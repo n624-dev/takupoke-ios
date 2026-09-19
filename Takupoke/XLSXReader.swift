@@ -6,18 +6,30 @@ import ZIPFoundation
 
 /// Reads selected ZIP entries in memory. Never extracts files or follows URLs.
 enum XLSXReader {
+    struct PreviewTable {
+        var rows: [[String]]
+        var warnings: [ChangeParseError]
+    }
     static let spreadsheet = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
     static let relationships = "http://schemas.openxmlformats.org/package/2006/relationships"
     static let documentRelationships = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
     static let maximumXMLBytes = 8 * 1024 * 1024
 
-    static func read(_ url: URL, check: @escaping () throws -> Void = {}) throws -> [[String]] {
-        do { return try readArchive(url, check: check) }
+    static func read(_ url: URL, defaultYear: Int? = nil, check: @escaping () throws -> Void = {}) throws -> [[String]] {
+        let table = try readForPreview(url, defaultYear: defaultYear, check: check)
+        if let warning = table.warnings.first { throw warning }
+        return table.rows
+    }
+
+    // Only weekday warnings are recoverable for display. All other structural
+    // checks still apply, and this entry point never persists a successful result.
+    static func readForPreview(_ url: URL, defaultYear: Int? = nil, check: @escaping () throws -> Void = {}) throws -> PreviewTable {
+        do { return try readArchive(url, defaultYear: defaultYear, check: check) }
         catch let error as ChangeParseError { throw error }
         catch { throw ChangeParseError(code: .invalidArchive) }
     }
 
-    private static func readArchive(_ url: URL, check: @escaping () throws -> Void) throws -> [[String]] {
+    private static func readArchive(_ url: URL, defaultYear: Int?, check: @escaping () throws -> Void) throws -> PreviewTable {
         try check()
         guard let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize,
               size > 0, size <= 50 * 1024 * 1024 else { throw ChangeParseError(code: .limit) }
@@ -51,7 +63,7 @@ enum XLSXReader {
         }
         let workbook = try xml("xl/workbook.xml", root: "workbook", namespace: spreadsheet)
         if let setting = workbook.child("workbookPr")?.attributes["date1904"], !["0", "false"].contains(setting) {
-            throw ChangeParseError(code: .unsupported)
+            throw ChangeParseError(code: .dateSystem)
         }
         guard workbook.child("externalReferences") == nil else { throw ChangeParseError(code: .unsupported) }
         let sheets = workbook.child("sheets")?.children.filter { $0.name == "sheet" && $0.attributes["name"] == "時間割変更" } ?? []
@@ -83,6 +95,7 @@ enum XLSXReader {
         var rows: [[String]] = []
         var cellCount = 0
         var cellBytes = 0
+        var formulas: [(row: Int, column: Int, hasCachedValue: Bool)] = []
         for row in data.children where row.name == "row" {
             try check()
             guard let number = Int(row.attributes["r", default: ""]), number > rows.count,
@@ -94,9 +107,12 @@ enum XLSXReader {
                 guard cellCount <= 100_000, let ref = cell.attributes["r"] else { throw ChangeParseError(code: .limit) }
                 let position = try coordinate(ref)
                 guard position.row == number, seen.insert(position.column).inserted else { throw ChangeParseError(code: .invalidXML) }
-                guard cell.child("f") == nil else { throw ChangeParseError(code: .unsupported, row: number) }
+                let isFormula = cell.child("f") != nil
                 let type = cell.attributes["t", default: "n"]
                 let value = cell.child("v")?.text ?? ""
+                if isFormula {
+                    formulas.append((number, position.column, !value.isEmpty && ["n", "str", "s", "b", "d"].contains(type)))
+                }
                 let decoded: String
                 switch type {
                 case "inlineStr": decoded = try cell.child("is").map(richText) ?? ""
@@ -107,7 +123,11 @@ enum XLSXReader {
                     guard ["0", "1"].contains(value) else { throw ChangeParseError(code: .invalidXML, row: number) }
                     decoded = value == "1" ? "TRUE" : "FALSE"
                 case "n", "str", "d": decoded = value
-                default: throw ChangeParseError(code: .unsupported, row: number)
+                default:
+                    // Formula metadata above the header is not part of the table.
+                    // Formula errors within the table are handled after locating that header.
+                    if isFormula { decoded = "" }
+                    else { throw ChangeParseError(code: .cellType, row: number) }
                 }
                 cellBytes += decoded.utf8.count
                 guard cellBytes <= ChangeNormalizer.maximumTextBytes else { throw ChangeParseError(code: .limit) }
@@ -117,15 +137,42 @@ enum XLSXReader {
             rows += Array(repeating: [], count: number - rows.count - 1)
             rows.append(cells)
         }
-        let header = try ChangeNormalizer.headerIndex(rows) + 1
+        // Locate literal required headers without accepting a formula's cached
+        // text as a header. All metadata before that row stays outside the table.
+        var headerRows = rows
+        for formula in formulas { headerRows[formula.row - 1][formula.column] = "" }
+        let header = try ChangeNormalizer.headerIndex(headerRows) + 1
+        let headers = rows[header - 1].map(ChangeNormalizer.token)
+        let dateColumn = headers.firstIndex(of: "月日")!
+        var warnings: [ChangeParseError] = []
+        for formula in formulas {
+            try check()
+            if formula.row < header {
+                rows[formula.row - 1][formula.column] = ""
+                continue
+            }
+            guard formula.row > header, headers.indices.contains(formula.column),
+                  ["曜日", "曜"].contains(headers[formula.column]) else {
+                throw ChangeParseError(code: .formula, row: formula.row)
+            }
+            guard rows[formula.row - 1].indices.contains(dateColumn) else { throw ChangeParseError(code: .date, row: formula.row) }
+            let date: String
+            do { date = try ChangeNormalizer.date(rows[formula.row - 1][dateColumn], defaultYear: defaultYear) }
+            catch { throw ChangeParseError(code: .date, row: formula.row) }
+            if !formula.hasCachedValue {
+                warnings.append(ChangeParseError(code: .formulaCache, row: formula.row))
+            } else if !ChangeNormalizer.weekdayMatches(rows[formula.row - 1][formula.column], normalizedDate: date) {
+                warnings.append(ChangeParseError(code: .weekdayMismatch, row: formula.row))
+            }
+        }
         for merge in sheet.child("mergeCells")?.children ?? [] where merge.name == "mergeCell" {
             guard let ref = merge.attributes["ref"] else { throw ChangeParseError(code: .invalidXML) }
             let parts = ref.split(separator: ":")
             guard (1...2).contains(parts.count) else { throw ChangeParseError(code: .invalidXML) }
             let end = try coordinate(String(parts.last!))
-            if end.row >= header { throw ChangeParseError(code: .unsupported, row: end.row) }
+            if end.row >= header { throw ChangeParseError(code: .mergedCells, row: end.row) }
         }
-        return rows
+        return PreviewTable(rows: rows, warnings: warnings)
     }
 
     private static func richText(_ node: XMLNode) throws -> String {
@@ -147,6 +194,22 @@ enum XLSXReader {
         guard let row = Int(ref.dropFirst(letters.count)), col <= ChangeNormalizer.maximumColumns,
               row <= ChangeNormalizer.maximumRows else { throw ChangeParseError(code: .limit) }
         return (row, col - 1)
+    }
+}
+
+// A preview is read-only and is available only for the exact source/year of a
+// failed weekday check. Kept with the reader so this path is tested on Linux too.
+extension MaterialLibrary {
+    func previewChanges(check: @escaping () throws -> Void = {}) throws -> ChangePreview {
+        guard let record = state.record(for: .changes),
+              let attempt = state.changeParseAttempt, attempt.failure?.permitsPreview == true,
+              attempt.sourceDigest == record.digest,
+              let url = localURL(for: .changes) else { throw ChangeParseError(code: .unsupported) }
+        let table = try XLSXReader.readForPreview(url, defaultYear: attempt.defaultYear, check: check)
+        let records = try ChangeNormalizer.parse(table.rows, defaultYear: attempt.defaultYear, check: check)
+        try check()
+        return ChangePreview(sourceName: record.originalName, defaultYear: attempt.defaultYear,
+                             records: records, warnings: table.warnings)
     }
 }
 

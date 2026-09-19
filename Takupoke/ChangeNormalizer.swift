@@ -15,7 +15,7 @@ struct ScheduleChange: Codable, Equatable {
 }
 
 struct ChangeAnalysis: Codable {
-    static let parserVersion = 1
+    static let parserVersion = 2
     var version = parserVersion
     var sourceDigest: String
     var sourceName: String
@@ -31,13 +31,23 @@ struct ChangeParseAttempt: Codable {
     var failure: ChangeParseError?
 }
 
+// Deliberately separate from the persisted, successful ChangeAnalysis.
+struct ChangePreview {
+    var sourceName: String
+    var defaultYear: Int?
+    var records: [ScheduleChange]
+    var warnings: [ChangeParseError]
+}
+
 struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
     enum Code: String, Codable {
         case invalidArchive, limit, invalidXML, missingSheet, unsupported, headers
         case date, year, classes, unknownAll, empty, cancelled, storage
+        case formula, formulaCache, weekdayMismatch, mergedCells, dateSystem, cellType
     }
     var code: Code
     var row: Int? = nil
+    var permitsPreview: Bool { code == .formulaCache || code == .weekdayMismatch }
     var errorDescription: String? {
         let detail: String
         switch code {
@@ -45,7 +55,13 @@ struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
         case .limit: detail = "資料が解析可能なサイズ・行数・件数の上限を超えています。"
         case .invalidXML: detail = "XLSX内の表の構造が不正です。"
         case .missingSheet: detail = "「時間割変更」シートが見つからないか、重複しています。"
-        case .unsupported: detail = "未対応の形式です。数式・表内の結合セル・1904年起点の日付などは解析できません。"
+        case .unsupported: detail = "このXLSXには未対応の構造や外部参照が含まれています。"
+        case .formula: detail = "見出し、または曜日以外の列に数式があります。この箇所の数式は解析できません。"
+        case .formulaCache: detail = "曜日の計算結果が保存されていません。警告を確認して内容だけを見ることができます。"
+        case .weekdayMismatch: detail = "曜日と月日が一致しないか、曜日の表記を確認できません。警告を確認して内容だけを見ることができます。"
+        case .mergedCells: detail = "見出しや表の行に結合セルがあります。結合された値は推測して補えません。"
+        case .dateSystem: detail = "1904年起点の日付を使用するXLSXは未対応です。"
+        case .cellType: detail = "表に未対応のセル形式やExcelのエラー値があります。"
         case .headers: detail = "必要な見出し（学 年・学科・クラス・月日）がないか、見出しが重複しています。"
         case .date: detail = "日付を確定できません。年なし日付の場合は補完する年を指定してください。"
         case .year: detail = "学年の指定を読み取れません。"
@@ -118,8 +134,19 @@ enum ChangeNormalizer {
         guard c.year == parts[0], c.month == parts[1], c.day == parts[2] else { throw ChangeParseError(code: .date) }
         return String(format: "%04d-%02d-%02d", parts[0], parts[1], parts[2])
     }
+    static func weekdayMatches(_ value: String, normalizedDate: String) -> Bool {
+        let parts = normalizedDate.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3,
+              let date = calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2])) else { return false }
+        let weekday = ["日", "月", "火", "水", "木", "金", "土"][calendar.component(.weekday, from: date) - 1]
+        return [weekday, weekday + "曜", weekday + "曜日", "(" + weekday + ")"].contains(text(value))
+    }
+
     static func years(_ value: String) throws -> [String] {
         let v = text(value)
+        // The source format also uses AI in the grade column. Keep that
+        // literal identifier, as the reference does; do not swap the columns.
+        if token(v) == "AI" { return ["AI"] }
         if matches(v, "^[0-9]+\\s*[～〜~-]\\s*[0-9]+$") {
             let ends = replace(v, "\\s*[～〜~-]\\s*", ",").split(separator: ",").compactMap { Int($0) }
             guard ends.count == 2, ends.allSatisfy({ (1...9).contains($0) }) else { throw ChangeParseError(code: .year) }

@@ -122,7 +122,7 @@ final class MaterialLibrary {
                     throw MaterialError.invalidState
                 }
                 if let analysis = state.changeAnalysis {
-                    guard analysis.version == ChangeAnalysis.parserVersion,
+                    guard (1...ChangeAnalysis.parserVersion).contains(analysis.version),
                           !analysis.records.isEmpty, analysis.records.count <= ChangeNormalizer.maximumRecords else {
                         throw MaterialError.invalidState
                     }

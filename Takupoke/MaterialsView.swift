@@ -85,7 +85,7 @@ struct MaterialsView: View {
                         dateRow("最終取得", record.acquiredAt)
                         if let date = record.lastCheckedAt { dateRow("最終確認", date) }
                         if let date = record.sourceModifiedAt { dateRow("元ファイルの更新", date) }
-                        if let failure = model.state.attempts[kind.rawValue]?.failure {
+                        if let failure = model.state.attempts[kind.rawValue]?.failure, failure != model.message {
                             Label(failure, systemImage: "exclamationmark.triangle")
                                 .font(.caption).foregroundStyle(.orange)
                         }
@@ -94,13 +94,13 @@ struct MaterialsView: View {
                         }
                     } else {
                         Text("未選択").foregroundStyle(.secondary)
-                        if let failure = model.state.attempts[kind.rawValue]?.failure {
+                        if let failure = model.state.attempts[kind.rawValue]?.failure, failure != model.message {
                             Text(failure).font(.caption).foregroundStyle(.orange)
                         }
                     }
                     if kind == .changes, model.state.record(for: .changes) != nil {
                         NavigationLink("XLSXを解析・結果を確認") { ChangeAnalysisView(model: model) }
-                        if let failure = model.state.changeParseAttempt?.failure {
+                        if let failure = model.state.changeParseAttempt?.failure, failure.localizedDescription != model.message {
                             Label(failure.localizedDescription, systemImage: "exclamationmark.triangle")
                                 .font(.caption).foregroundStyle(.orange)
                         }

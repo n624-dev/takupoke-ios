@@ -10,6 +10,13 @@ final class MaterialsModel: ObservableObject {
     @Published private(set) var ready = false
     @Published private(set) var message: String?
     @Published private(set) var failed = false
+    @Published private(set) var changePreview: ChangePreview?
+
+    var canPreviewChanges: Bool {
+        guard let attempt = state.changeParseAttempt, attempt.failure?.permitsPreview == true,
+              let record = state.record(for: .changes) else { return false }
+        return attempt.sourceDigest == record.digest
+    }
 
     private let worker = MaterialWorker()
     private let queue = DispatchQueue(label: "io.github.n624dev.takupoke.materials", qos: .userInitiated)
@@ -58,6 +65,13 @@ final class MaterialsModel: ObservableObject {
         }
     }
 
+    func previewChanges() {
+        guard canPreviewChanges else { return }
+        perform(success: nil) { try $0.previewChanges(control: $1) }
+    }
+
+    func dismissPreview() { changePreview = nil }
+
     func cancel() {
         control?.cancel()
         message = "中止を要求しました。処理の終了を待っています。"
@@ -68,11 +82,14 @@ final class MaterialsModel: ObservableObject {
         busy = true
         failed = false
         message = nil
+        changePreview = nil
         let worker = self.worker
         let control = AcquisitionControl()
         self.control = control
         queue.async {
             let result = Result { try operation(worker, control) }
+            let preview = worker.changePreview
+            worker.clearPreview()
             let snapshot = worker.library?.state
             let candidates = worker.candidates
             let listed = worker.folderListed
@@ -86,6 +103,7 @@ final class MaterialsModel: ObservableObject {
                 switch result {
                 case .success:
                     self.message = success
+                    self.changePreview = preview
                 case .failure(let error):
                     self.failed = true
                     self.message = (error as? ChangeParseError)?.localizedDescription

@@ -61,6 +61,9 @@ final class MaterialWorker {
     private(set) var library: MaterialLibrary?
     private(set) var candidates: [MaterialCandidate] = []
     private(set) var folderListed = false
+    private(set) var changePreview: ChangePreview?
+
+    func clearPreview() { changePreview = nil }
 
     func open() throws {
         if library != nil { return }
@@ -77,7 +80,7 @@ final class MaterialWorker {
                 do { try control.check() }
                 catch { throw ChangeParseError(code: .cancelled) }
             }
-            let rows = try XLSXReader.read(url, check: check)
+            let rows = try XLSXReader.read(url, defaultYear: defaultYear, check: check)
             let changes = try ChangeNormalizer.parse(rows, defaultYear: defaultYear, check: check)
             try check()
             let analysis = ChangeAnalysis(sourceDigest: record.digest, sourceName: record.originalName,
@@ -90,6 +93,16 @@ final class MaterialWorker {
             catch { throw ChangeParseError(code: .storage) }
             throw failure
         }
+    }
+
+    func previewChanges(control: AcquisitionControl) throws {
+        guard let library = library else { throw ChangeParseError(code: .storage) }
+        let check = {
+            do { try control.check() }
+            catch { throw ChangeParseError(code: .cancelled) }
+        }
+        changePreview = try library.previewChanges(check: check)
+        // No manifest write: neither the last success nor the failed attempt changes.
     }
 
     private func grant(for url: URL, folder: Bool) throws -> SourceGrant {
