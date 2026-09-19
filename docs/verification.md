@@ -25,16 +25,24 @@ iOS SDK によるコンパイルはローカルでは実施していません。
 - タグ API が draft に対して 404 を返す条件と、対象 draft が見つからない場合の回帰テストを追加しました。
 - 修正後のローカルテスト19件が通過しました。実際の失敗時の draft も ID で取得でき、CI が生成した IPA・Source・アイコン・チェックサムの検証が通りました。取得物は一時ディレクトリから削除済みで、Release 自体は変更していません。
 
-API の取得対象は [GitHub Releases API の仕様](https://docs.github.com/en/rest/releases/releases#get-a-release-by-tag-name) に基づきます。修正後の CI 公開成功はまだ確認していません。
+API の取得対象は [GitHub Releases API の仕様](https://docs.github.com/en/rest/releases/releases#get-a-release-by-tag-name) に基づきます。修正後の結果は次節に記載します。
+
+## 初回導入・実機起動の確認（2026-09-19）
+
+利用者から、修正後の Actions 成功と、AltStore Classic で初回導入したアプリが実機で動作したとの報告を受けました。開発エージェントによる CI の継続監視は行っていません。
+
+導入途中に `AltServer could not find this device` が表示されましたが、利用者が接続し直すことで解消しました。アプリ側の変更は行っていません。
+
+端末モデル、iOS / AltStore / AltServer のバージョン、インストール済みの version / build は未記録です。この記録更新を push して次の版を配布し、Source 経由の更新と確認メモの保持を検証します。文書のみの変更でも CI が新しい version / build を付与するため、更新経路を確認できます。
 
 ## CI・実機での確認待ち
 
 CI はメンテナーが監視します。開発エージェントはこの実装の push 後の Actions を監視しません。
 
-- [ ] Actions の checks / release（ビルド・公開）が成功する。
+- [x] Actions の checks / release（ビルド・公開）が成功する（利用者報告）。
 - [ ] Release の IPA・Source・アイコン・メタデータをダウンロードできる。
-- [ ] 固定 URL の Source を AltStore Classic に追加できる。
-- [ ] Source から初回導入し、アプリが起動する。
+- [x] 固定 URL の Source を AltStore Classic に追加できる（案内した導入手順に対する利用者の成功報告）。
+- [x] Source から初回導入し、アプリが起動する（利用者報告）。
 - [ ] アプリ内と Release の version / build・コミットが一致する。
 - [ ] 確認メモを入力後、次の版へ Source から更新できる。
 - [ ] 更新後に確認メモが保持される。

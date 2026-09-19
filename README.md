@@ -17,10 +17,10 @@
 
 | 対象 | 状態 |
 | --- | --- |
-| 最小アプリ・Xcode プロジェクト | CI で iOS ビルド成功。実機動作は未確認 |
-| Actions・IPA・Source 自動生成／公開処理 | IPA・Source 生成成功。公開時の不具合を修正し、再確認待ち |
+| 最小アプリ・Xcode プロジェクト | CI ビルド成功。利用者から実機起動の成功報告あり |
+| Actions・IPA・Source 自動生成／公開処理 | 公開処理を修正し、利用者から Actions 成功の報告あり |
 | 配布メタデータ・公開失敗時の処理 | 架空データによるローカルテストを実施 |
-| Source からの初回導入・更新 | 実機確認待ち |
+| Source からの初回導入・更新 | 初回導入・起動を確認。更新とデータ保持は確認待ち |
 | OneDrive 取得・PDF / XLSX 解析・時間割統合 | 未実装 |
 | 通知・バックグラウンド更新 | 未実装 |
 
@@ -28,13 +28,13 @@
 
 対象は **iOS 16.0 以降の iPhone と AltStore Classic** です。現在の配布設定では iPad 専用 UI・AltStore PAL・App Store 配布は対象にしていません。
 
-初回の Actions 公開処理が成功すると、以下の固定 URL を AltStore Classic の Source として追加できます。
+以下の固定 URL を AltStore Classic の Source として追加できます。
 
 ```text
 https://github.com/n624-dev/takupoke-ios/releases/latest/download/altstore-source.json
 ```
 
-初回公開が完了するまでは URL は利用できません。CI は [Actions](https://github.com/n624-dev/takupoke-ios/actions/workflows/ios-release.yml)、公開済みの成果物は [Releases](https://github.com/n624-dev/takupoke-ios/releases) で確認できます。
+CI は [Actions](https://github.com/n624-dev/takupoke-ios/actions/workflows/ios-release.yml)、公開済みの成果物は [Releases](https://github.com/n624-dev/takupoke-ios/releases) で確認できます。
 
 Windows での AltServer 準備、初回導入、アップデート、実機確認項目は [導入・更新手順](docs/distribution.md) を参照してください。IPA は署名なしで生成し、導入時に AltStore 側で署名する構成です。Apple ID や署名証明書をこのリポジトリや CI に登録する必要はありません。
 
