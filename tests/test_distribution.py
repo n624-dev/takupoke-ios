@@ -142,6 +142,7 @@ class PublicationTests(IPAFixture):
         self.corrupt_download = False
         self.change_main_after_upload = False
         self.existing_draft = False
+        self.created_draft = False
         self.previous_metadata = None
         self.fail_previous_download = False
         self.patch_env = patch.dict(os.environ, {
@@ -159,8 +160,8 @@ class PublicationTests(IPAFixture):
             if args[-1].endswith("/commits/main"):
                 return json.dumps({"sha": self.main_commit})
             if "/releases?" in args[-1]:
-                if self.existing_draft:
-                    return json.dumps([[{"tag_name": self.metadata["tag"], "draft": True,
+                if self.existing_draft or self.created_draft:
+                    return json.dumps([[{"id": 42, "tag_name": self.metadata["tag"], "draft": True,
                                          "prerelease": False, "target_commitish": COMMIT}]])
                 if self.previous_metadata:
                     return json.dumps([[{"tag_name": "previous", "draft": False, "prerelease": False}]])
@@ -168,7 +169,11 @@ class PublicationTests(IPAFixture):
             if args[-1].endswith("/releases/latest"):
                 return json.dumps({"tag_name": "previous"})
             if "/releases/tags/" in args[-1]:
-                return json.dumps({"draft": True, "assets": [
+                # GitHub does not expose unpublished drafts through this API.
+                raise subprocess.CalledProcessError(1, "gh", stderr="HTTP 404")
+            if args[-1].endswith("/releases/42"):
+                return json.dumps({"id": 42, "tag_name": self.metadata["tag"],
+                                   "target_commitish": COMMIT, "draft": True, "assets": [
                     {"name": name, "state": "uploaded", "size": len(data)}
                     for name, data in self.remote_files.items()
                 ]})
@@ -176,6 +181,7 @@ class PublicationTests(IPAFixture):
             if self.fail_upload:
                 raise subprocess.CalledProcessError(1, "gh")
             self.remote_files = {name: (self.output / name).read_bytes() for name in release.ASSETS}
+            self.created_draft = True
             if self.change_main_after_upload:
                 self.main_commit = "b" * 40
             return ""
@@ -203,6 +209,20 @@ class PublicationTests(IPAFixture):
             publish.publish(self.output)
         self.assertTrue(self.published())
         self.assertEqual(self.calls[-1][:2], ("release", "edit"))
+
+    def test_unpublished_draft_is_verified_by_id_not_tag(self):
+        with patch.object(publish, "gh", side_effect=self.fake_gh):
+            publish.publish(self.output)
+        self.assertTrue(self.published())
+        self.assertTrue(any(call[0] == "api" and call[-1].endswith("/releases/42") for call in self.calls))
+        self.assertFalse(any(call[0] == "api" and "/releases/tags/" in call[-1] for call in self.calls))
+
+    def test_missing_draft_stops_before_publication(self):
+        with patch.object(publish, "gh", side_effect=self.fake_gh):
+            with patch.object(publish, "list_releases", return_value=[]):
+                with self.assertRaisesRegex(ValueError, "exactly one"):
+                    publish.publish(self.output)
+        self.assertFalse(self.published())
 
     def test_upload_failure_does_not_publish(self):
         self.fail_upload = True

@@ -18,6 +18,24 @@ def api(path):
     return json.loads(gh("api", path))
 
 
+def list_releases(repo):
+    pages = json.loads(gh("api", "--paginate", "--slurp", f"repos/{repo}/releases?per_page=100"))
+    return [item for page in pages for item in page]
+
+
+def get_draft(repo, tag, commit):
+    # The tag endpoint only retrieves published releases. Drafts must be
+    # located in the authenticated listing and retrieved by numeric ID.
+    matches = [item for item in list_releases(repo) if item["tag_name"] == tag]
+    if len(matches) != 1:
+        raise ValueError("Expected exactly one matching draft release")
+    draft = api(f"repos/{repo}/releases/{matches[0]['id']}")
+    if (not draft["draft"] or draft["tag_name"] != tag
+            or draft["target_commitish"] != commit):
+        raise ValueError("Refusing an unexpected or already published release")
+    return draft
+
+
 def release_is_newer(candidate, current):
     def numbers(value):
         return tuple(int(part) for part in value.split("."))
@@ -41,8 +59,7 @@ def publish(output):
 
     # Refuse to move latest backwards when an old run is retried. Any download
     # failure aborts publication instead of assuming that no prior release exists.
-    releases = json.loads(gh("api", "--paginate", "--slurp", f"repos/{repo}/releases?per_page=100"))
-    all_releases = [r for page in releases for r in page]
+    all_releases = list_releases(repo)
     published = [r for r in all_releases if not r["draft"] and not r["prerelease"]]
     with tempfile.TemporaryDirectory(prefix="takupoke-publish-") as scratch:
         scratch = Path(scratch)
@@ -77,8 +94,8 @@ def publish(output):
             gh("release", "create", tag, "--repo", repo, "--target", commit,
                "--draft", "--title", f"たくぽけ {metadata['version']} ({metadata['build']})",
                "--notes-file", str(notes), *[str(output / name) for name in ASSETS])
-        draft = api(f"repos/{repo}/releases/tags/{tag}")
-        if not draft["draft"] or {a["name"] for a in draft["assets"]} != set(ASSETS):
+        draft = get_draft(repo, tag, commit)
+        if {a["name"] for a in draft["assets"]} != set(ASSETS):
             raise ValueError("Draft release asset mismatch")
         if any(a["state"] != "uploaded" or a["size"] != (output / a["name"]).stat().st_size for a in draft["assets"]):
             raise ValueError("Incomplete release upload")

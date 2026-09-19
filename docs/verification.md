@@ -15,6 +15,18 @@
 
 iOS SDK によるコンパイルはローカルでは実施していません。テストの IPA は実行できない架空の ZIP であり、実機検証の代わりにはなりません。
 
+## 初回 CI の失敗調査
+
+ユーザーからの失敗報告を受け、[実行 35430150981](https://github.com/n624-dev/takupoke-ios/actions/runs/35430150981) のログを確認しました。対象コミットは `ac411d2` です。
+
+- 配布テスト、iOS ビルド、IPA と Source の生成は成功しました。
+- `Verify uploads and publish together` で、draft Release を `/releases/tags/{tag}` から取得しようとして HTTP 404 になりました。
+- 認証済みの Release 一覧から対象の ID を取得し、`/releases/{release_id}` で draft と添付ファイルを確認するよう修正しました。
+- タグ API が draft に対して 404 を返す条件と、対象 draft が見つからない場合の回帰テストを追加しました。
+- 修正後のローカルテスト19件が通過しました。実際の失敗時の draft も ID で取得でき、CI が生成した IPA・Source・アイコン・チェックサムの検証が通りました。取得物は一時ディレクトリから削除済みで、Release 自体は変更していません。
+
+API の取得対象は [GitHub Releases API の仕様](https://docs.github.com/en/rest/releases/releases#get-a-release-by-tag-name) に基づきます。修正後の CI 公開成功はまだ確認していません。
+
 ## CI・実機での確認待ち
 
 CI はメンテナーが監視します。開発エージェントはこの実装の push 後の Actions を監視しません。
