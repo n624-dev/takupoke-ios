@@ -107,7 +107,7 @@ def make_source(config, version, build, size, date):
         "name": config["sourceName"],
         "identifier": config["sourceIdentifier"],
         "sourceURL": f"{base}/releases/latest/download/altstore-source.json",
-        "subtitle": "たくぽけの開発版を配布します",
+        "subtitle": "たくポケの開発版を配布します",
         "description": config["description"],
         "website": base,
         "iconURL": f"{download}/icon.png",

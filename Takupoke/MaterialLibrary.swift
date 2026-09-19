@@ -21,8 +21,11 @@ struct SourceGrant: Codable {
 }
 
 struct MaterialSource: Codable {
-    var grant: SourceGrant
+    var grant: SourceGrant?
     var childName: String?
+    var remoteURL: URL? = nil
+    var remoteETag: String? = nil
+    var remoteLastModified: String? = nil
 }
 
 struct MaterialRecord: Codable {
@@ -34,6 +37,7 @@ struct MaterialRecord: Codable {
     var digest: String
     var sourceModifiedAt: Date?
     var acquiredAt: Date
+    var lastCheckedAt: Date? = nil
 }
 
 struct AcquisitionAttempt: Codable {
@@ -54,6 +58,7 @@ struct MaterialLibraryState: Codable {
 
 enum MaterialError: LocalizedError {
     case unavailable, invalidFile, tooLarge, invalidState, cancelled, folderTooLarge
+    case accessExpired, bookmarkFailed, providerReadFailed, invalidWebURL, webUnavailable
 
     var errorDescription: String? {
         switch self {
@@ -69,6 +74,16 @@ enum MaterialError: LocalizedError {
             return "取得を中止しました。前回の資料は保持しています。"
         case .folderTooLarge:
             return "項目数が多いため一覧を取得できません。資料をまとめた小さなフォルダを選んでください。"
+        case .accessExpired:
+            return "資料へのアクセス許可を確認できません。ファイルを選び直してください。前回の資料は保持しています。"
+        case .bookmarkFailed:
+            return "資料は読み取れましたが、次回のアクセス情報を保存できませんでした。前回の資料は保持しています。ファイルを選び直してください。"
+        case .providerReadFailed:
+            return "ファイルの内容を取得できませんでした。OneDriveの通信状態を確認してください。続く場合は「ファイル」で一度開いてから再選択してください。前回の資料は保持しています。"
+        case .invalidWebURL:
+            return "学校行事PDFの取得先を利用できません。前回の資料は保持しています。"
+        case .webUnavailable:
+            return "学校行事PDFをWebから取得できませんでした。通信状態を確認して再試行してください。前回の資料は保持しています。"
         }
     }
 }
@@ -172,6 +187,19 @@ final class MaterialLibrary {
         try persist(next)
     }
 
+    func recordUnchanged(_ kind: MaterialKind, source: MaterialSource) throws {
+        var next = state
+        guard let index = next.records.firstIndex(where: { $0.kind == kind }),
+              source.remoteURL != nil, next.records[index].source.remoteURL == source.remoteURL else {
+            throw MaterialError.invalidState
+        }
+        let now = Date()
+        next.records[index].source = source
+        next.records[index].lastCheckedAt = now
+        next.attempts[kind.rawValue] = AcquisitionAttempt(date: now, failure: nil)
+        try persist(next)
+    }
+
     func commit(staged: URL, kind: MaterialKind, source: MaterialSource,
                 originalName: String, byteCount: Int, digest: String, modifiedAt: Date?) throws {
         guard staged.deletingLastPathComponent().standardizedFileURL == staging.standardizedFileURL,
@@ -184,7 +212,7 @@ final class MaterialLibrary {
         next.records.removeAll { $0.kind == kind }
         next.records.append(MaterialRecord(kind: kind, source: source, originalName: originalName,
                                            storedName: name, byteCount: byteCount, digest: digest,
-                                           sourceModifiedAt: modifiedAt, acquiredAt: now))
+                                           sourceModifiedAt: modifiedAt, acquiredAt: now, lastCheckedAt: now))
         next.attempts[kind.rawValue] = AcquisitionAttempt(date: now, failure: nil)
         do {
             try persist(next)

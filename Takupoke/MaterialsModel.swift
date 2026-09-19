@@ -20,7 +20,7 @@ final class MaterialsModel: ObservableObject {
         perform(success: nil) { worker, _ in try worker.open() }
     }
 
-    func selectFolder(_ url: URL) {
+    func selectFolder(_ url: ScopedMaterialSelection) {
         perform(success: "フォルダを登録しました。資料ごとに使用するファイルを選んでください。") {
             try $0.selectFolder(url, control: $1)
         }
@@ -30,7 +30,7 @@ final class MaterialsModel: ObservableObject {
         perform(success: "フォルダ内の一覧を更新しました。") { try $0.refreshFolder(control: $1) }
     }
 
-    func selectFile(_ url: URL, kind: MaterialKind) {
+    func selectFile(_ url: ScopedMaterialSelection, kind: MaterialKind) {
         perform(success: "\(kind.title)を取得しました。内容の解析はまだ行っていません。") {
             try $0.selectFile(url, kind: kind, control: $1)
         }
@@ -44,6 +44,12 @@ final class MaterialsModel: ObservableObject {
 
     func refresh(_ kind: MaterialKind) {
         perform(success: "\(kind.title)を再取得しました。") { try $0.refresh(kind, control: $1) }
+    }
+
+    func fetchEvents() {
+        perform(success: "学校行事PDFを確認しました。変更がなければ保存済みの資料を使います。") {
+            try $0.fetchEvents(control: $1)
+        }
     }
 
     func cancel() {

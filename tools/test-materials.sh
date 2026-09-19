@@ -10,6 +10,7 @@ trap 'exit 143' TERM
 # All modules, executable and test copies belong to this temporary directory.
 swiftc -swift-version 5 -parse-as-library \
     -module-cache-path "$scratch_dir/modules" \
-    Takupoke/MaterialLibrary.swift tests/MaterialLibraryChecks.swift \
+    Takupoke/MaterialLibrary.swift Takupoke/WebPDFDownloader.swift \
+    tests/MaterialLibraryChecks.swift tests/WebPDFChecks.swift \
     -o "$scratch_dir/checks"
 "$scratch_dir/checks" "$scratch_dir/data"

@@ -20,6 +20,10 @@ struct MaterialLibraryChecks {
         defer { try? manager.removeItem(at: root) }
         let source = MaterialSource(grant: SourceGrant(bookmark: Data("synthetic".utf8),
                                    name: "fictional.pdf", isFolder: false), childName: nil)
+        // Additive fields must decode from the previous version's source JSON.
+        let legacy = Data(#"{"grant":{"bookmark":"c3ludGhldGlj","name":"fictional.pdf","isFolder":false}}"#.utf8)
+        let migrated = try JSONDecoder().decode(MaterialSource.self, from: legacy)
+        try expect(migrated.grant?.name == "fictional.pdf" && migrated.remoteURL == nil, "Legacy source migration failed")
         var rejectWrites = false
         let library = try MaterialLibrary(root: root) { data, url in
             if rejectWrites { throw CheckError.injectedWriteFailure }
@@ -108,5 +112,6 @@ struct MaterialLibraryChecks {
         try expectFailure("Copies without manifest were discarded") { _ = try MaterialLibrary(root: root) }
         try expect(try manager.contentsOfDirectory(atPath: copies.path).count == 1, "Missing manifest destroyed data")
         print("Material persistence checks passed: commit, rollback, reload, failure status, isolation, recovery and corruption.")
+        try WebPDFChecks.run(root: root.appendingPathComponent("web"))
     }
 }

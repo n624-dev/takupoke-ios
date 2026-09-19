@@ -38,7 +38,7 @@ struct ContentView: View {
                         Label("学校資料を選ぶ", systemImage: "folder")
                     }
                 } footer: {
-                    Text("通常時間割・学校行事のPDFと、時間割変更のXLSXを端末内に取得します。内容の解析は今後追加します。")
+                    Text("通常時間割PDFと時間割変更XLSXは「ファイル」から、学校行事PDFは学校サイトから取得して端末内に保存します。内容の解析は今後追加します。")
                 }
 
                 Section("このアプリについて") {
@@ -65,7 +65,7 @@ struct ContentView: View {
                     Text("アプリの更新はAltStore Classicから行います。")
                 }
             }
-            .navigationTitle("たくぽけ")
+            .navigationTitle("たくポケ")
             .tint(accent)
             .scrollDismissesKeyboard(.interactively)
         }

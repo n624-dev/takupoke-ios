@@ -55,7 +55,7 @@ Windows でシェルスクリプトを変更した場合は Git Bash で `bash -
 
 ## Swift の保存処理テスト
 
-`bash tools/test-materials.sh` はアプリ本体の `MaterialLibrary.swift` を直接コンパイルし、保存・再読み込み・書き込み失敗時の保持・途中終了の回収・破損時の停止を架空データで検証します。macOS のビルド処理でも IPA 作成前に必ず実行します。失敗すれば配布には進みません。SwiftUI や File Provider はこのテストの対象外です。
+`bash tools/test-materials.sh` はアプリ本体の `MaterialLibrary.swift` を直接コンパイルし、保存・再読み込み・書き込み失敗時の保持・途中終了の回収・破損時の停止を架空データで検証します。macOS のビルド処理でも IPA 作成前に必ず実行します。失敗すれば配布には進みません。加えて `WebPDFDownloader.swift` を架空のHTTP応答で動かし、PDF取得・条件付きGET・304時の保持・HTTPエラー・サイズ上限・中止を検証します。学校サイトへの通信や実資料の取得は行いません。SwiftUI や File Provider はこのテストの対象外です。
 
 この Linux デバイスには Swift 6.1.2 を公式署名を確認して `/home/ubuntu/.local/share/swift-6.1.2` に導入しました。Swift を PATH に追加した環境では以下を実行できます。このデバイスで一時的に PATH を指定する場合は次のとおりです。
 
@@ -64,6 +64,8 @@ PATH="/home/ubuntu/.local/share/swift-6.1.2/usr/bin:$PATH" bash tools/test-mater
 ```
 
 コンパイラーのモジュールキャッシュ・実行ファイル・入力と保存データは専用の一時ディレクトリに置き、終了時に削除します。Swift の配布アーカイブもインストール後に削除済みです。Windows への Swift 導入は必須ではありません。
+
+学校サイトの本番URLをテスト・疎通確認に使いません。HEADや条件付きGETも禁止です。通信テストのURLProtocolはすべてのリクエストを捕捉し、`example.invalid`以外を拒否します。学校サーバーへの定期確認・負荷試験はCIへ追加しないでください。実装上必要な調査としての取得は利用者から許可されていますが、必要な回数に限定し、実資料をリポジトリ・CIへ持ち込みません。
 
 ## ファイルを変更するとき
 

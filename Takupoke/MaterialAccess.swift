@@ -32,6 +32,25 @@ final class AcquisitionControl {
     }
 }
 
+/// Acquire the picker URL before its callback returns; retain the lease until
+/// the worker finishes copying and saving the bookmark. URL and lease are immutable.
+final class ScopedMaterialSelection: @unchecked Sendable {
+    private let url: URL
+    private let granted: Bool
+
+    init(_ url: URL) {
+        self.url = url
+        granted = url.startAccessingSecurityScopedResource()
+    }
+
+    deinit { if granted { url.stopAccessingSecurityScopedResource() } }
+
+    func access<T>(_ body: (URL) throws -> T) throws -> T {
+        guard granted else { throw MaterialError.accessExpired }
+        return try withExtendedLifetime(self) { try body(url) }
+    }
+}
+
 struct MaterialCandidate: Identifiable {
     var name: String
     var id: String { name }
@@ -51,21 +70,24 @@ final class MaterialWorker {
     }
 
     private func grant(for url: URL, folder: Bool) throws -> SourceGrant {
-        guard url.startAccessingSecurityScopedResource() else { throw MaterialError.unavailable }
-        defer { url.stopAccessingSecurityScopedResource() }
-        return SourceGrant(bookmark: try url.bookmarkData(options: .minimalBookmark,
-                                                         includingResourceValuesForKeys: nil, relativeTo: nil),
-                           name: url.lastPathComponent, isFolder: folder)
+        // Called while the original selection is still scoped, after reading.
+        do {
+            return SourceGrant(bookmark: try url.bookmarkData(options: .minimalBookmark,
+                               includingResourceValuesForKeys: nil, relativeTo: nil),
+                               name: url.lastPathComponent, isFolder: folder)
+        } catch { throw MaterialError.bookmarkFailed }
     }
 
     private func withAccess<T>(_ grant: SourceGrant, body: (URL) throws -> T) throws -> T {
         var stale = false
-        let url = try URL(resolvingBookmarkData: grant.bookmark, options: [], relativeTo: nil,
+        let url: URL
+        do {
+            url = try URL(resolvingBookmarkData: grant.bookmark, options: [], relativeTo: nil,
                           bookmarkDataIsStale: &stale)
-        // Do not guess a replacement path or silently switch files.
-        guard !stale, url.startAccessingSecurityScopedResource() else { throw MaterialError.unavailable }
-        defer { url.stopAccessingSecurityScopedResource() }
-        return try body(url)
+        } catch { throw MaterialError.accessExpired }
+        let selection = ScopedMaterialSelection(url)
+        guard !stale else { throw MaterialError.accessExpired }
+        return try selection.access(body)
     }
 
     private func coordinated<T>(_ url: URL, control: AcquisitionControl,
@@ -85,14 +107,16 @@ final class MaterialWorker {
         return try result.get()
     }
 
-    func selectFolder(_ url: URL, control: AcquisitionControl) throws {
+    func selectFolder(_ selection: ScopedMaterialSelection, control: AcquisitionControl) throws {
         guard let library = library else { throw MaterialError.invalidState }
-        let selected = try grant(for: url, folder: true)
-        let files = try list(selected, control: control)
-        try control.check()
-        try library.saveFolder(selected)
-        candidates = files
-        folderListed = true
+        try selection.access { url in
+            let files = try list(url, control: control)
+            try control.check()
+            let selected = try grant(for: url, folder: true)
+            try library.saveFolder(selected)
+            candidates = files
+            folderListed = true
+        }
     }
 
     func refreshFolder(control: AcquisitionControl) throws {
@@ -100,110 +124,167 @@ final class MaterialWorker {
         // A failed listing must not leave an old list looking up to date.
         candidates = []
         folderListed = false
-        candidates = try list(folder, control: control)
+        candidates = try withAccess(folder) { try list($0, control: control) }
         folderListed = true
     }
 
-    private func list(_ grant: SourceGrant, control: AcquisitionControl) throws -> [MaterialCandidate] {
-        try withAccess(grant) { url in
-            try coordinated(url, control: control) { folder in
-                guard try folder.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true else {
-                    throw MaterialError.unavailable
-                }
-                let urls = try FileManager.default.contentsOfDirectory(at: folder,
-                    includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey], options: [.skipsHiddenFiles])
-                guard urls.count <= 1000 else { throw MaterialError.folderTooLarge }
-                var matches: [MaterialCandidate] = []
-                for file in urls {
-                    try control.check()
-                    guard ["pdf", "xlsx"].contains(file.pathExtension.lowercased()),
-                          !file.lastPathComponent.hasPrefix("~$") else { continue }
-                    let values = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
-                    if values.isRegularFile == true && values.isSymbolicLink != true {
-                        matches.append(MaterialCandidate(name: file.lastPathComponent))
-                    }
-                }
-                return matches.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    private func list(_ url: URL, control: AcquisitionControl) throws -> [MaterialCandidate] {
+        try coordinated(url, control: control) { folder in
+            guard try folder.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true else {
+                throw MaterialError.unavailable
             }
+            let urls = try FileManager.default.contentsOfDirectory(at: folder,
+                includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey], options: [.skipsHiddenFiles])
+            guard urls.count <= 1000 else { throw MaterialError.folderTooLarge }
+            var matches: [MaterialCandidate] = []
+            for file in urls {
+                try control.check()
+                guard ["pdf", "xlsx"].contains(file.pathExtension.lowercased()),
+                      !file.lastPathComponent.hasPrefix("~$") else { continue }
+                let values = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+                if values.isRegularFile == true && values.isSymbolicLink != true {
+                    matches.append(MaterialCandidate(name: file.lastPathComponent))
+                }
+            }
+            return matches.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
         }
     }
 
-    func selectFile(_ url: URL, kind: MaterialKind, control: AcquisitionControl) throws {
-        try acquire(kind, control: control) {
-            MaterialSource(grant: try grant(for: url, folder: false), childName: nil)
+    func selectFile(_ selection: ScopedMaterialSelection, kind: MaterialKind, control: AcquisitionControl) throws {
+        try acquire(kind, control: control) { staged in
+            try selection.access { url in
+                guard url.pathExtension.lowercased() == kind.fileExtension else { throw MaterialError.invalidFile }
+                let result = try copyProviderFile(url, to: staged, kind: kind, control: control)
+                let source = MaterialSource(grant: try grant(for: url, folder: false), childName: nil)
+                return .downloaded((source, url.lastPathComponent, result.0, result.1, result.2))
+            }
         }
     }
 
     func selectCandidate(_ name: String, kind: MaterialKind, control: AcquisitionControl) throws {
-        try acquire(kind, control: control) {
-            guard let folder = library?.state.folder, candidates.contains(where: { $0.name == name }) else {
-                throw MaterialError.unavailable
-            }
-            return MaterialSource(grant: folder, childName: name)
+        guard let folder = library?.state.folder, candidates.contains(where: { $0.name == name }) else {
+            throw MaterialError.unavailable
         }
+        try acquireSource(MaterialSource(grant: folder, childName: name), kind: kind, control: control)
     }
 
     func refresh(_ kind: MaterialKind, control: AcquisitionControl) throws {
-        try acquire(kind, control: control) {
-            guard let source = library?.state.record(for: kind)?.source else { throw MaterialError.unavailable }
-            return source
+        guard let source = library?.state.record(for: kind)?.source else { throw MaterialError.unavailable }
+        try acquireSource(source, kind: kind, control: control)
+    }
+
+    func fetchEvents(control: AcquisitionControl) throws {
+        try acquire(.events, control: control) { staged in
+            return try readWebPDF(WebPDFDownloader.eventsURL, to: staged, control: control)
         }
     }
 
+    private func acquireSource(_ source: MaterialSource, kind: MaterialKind, control: AcquisitionControl) throws {
+        try acquire(kind, control: control) { staged in
+            if let url = source.remoteURL {
+                guard kind == .events, source.grant == nil else { throw MaterialError.invalidState }
+                return try readWebPDF(url, to: staged, control: control)
+            }
+            guard let grant = source.grant else { throw MaterialError.invalidState }
+            return try withAccess(grant) { root in
+                let target: URL
+                if grant.isFolder {
+                    guard let name = source.childName, !name.isEmpty, name != ".", name != "..",
+                          !name.contains("/"), !name.contains("\\") else { throw MaterialError.invalidFile }
+                    target = root.appendingPathComponent(name)
+                } else { target = root }
+                guard target.pathExtension.lowercased() == kind.fileExtension else { throw MaterialError.invalidFile }
+                let result = try copyProviderFile(target, to: staged, kind: kind, control: control)
+                return .downloaded((source, target.lastPathComponent, result.0, result.1, result.2))
+            }
+        }
+    }
+
+    private func readWebPDF(_ url: URL, to staged: URL, control: AcquisitionControl) throws -> AcquisitionOutcome {
+        let previous = library?.state.record(for: .events)
+        let hasCopy = library?.localURL(for: .events).map { FileManager.default.fileExists(atPath: $0.path) } ?? false
+        let cached: WebPDFCacheMetadata?
+        if hasCopy, previous?.source.remoteURL == url {
+            cached = WebPDFCacheMetadata(etag: previous?.source.remoteETag, lastModified: previous?.source.remoteLastModified)
+        } else { cached = nil }
+        let response = try WebPDFDownloader.fetch(url, to: staged, cached: cached) { try control.check() }
+        let source = MaterialSource(grant: nil, childName: nil, remoteURL: url,
+                                    remoteETag: response.metadata.etag, remoteLastModified: response.metadata.lastModified)
+        if response.notModified { return .unchanged(source) }
+        let result = try readMaterial(staged, copyingTo: nil, kind: .events, control: control)
+        return .downloaded((source, "学校行事.pdf", result.0, result.1, response.modifiedAt))
+    }
+
+    private func copyProviderFile(_ url: URL, to staged: URL, kind: MaterialKind,
+                                  control: AcquisitionControl) throws -> (Int, String, Date?) {
+        do {
+            return try coordinated(url, control: control) { file in
+                let values = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .contentModificationDateKey])
+                guard values.isRegularFile == true, values.isSymbolicLink != true else { throw MaterialError.invalidFile }
+                let result = try readMaterial(file, copyingTo: staged, kind: kind, control: control)
+                return (result.0, result.1, values.contentModificationDate)
+            }
+        } catch {
+            throw (error as? MaterialError) ?? MaterialError.providerReadFailed
+        }
+    }
+
+    private func readMaterial(_ file: URL, copyingTo staged: URL?, kind: MaterialKind,
+                              control: AcquisitionControl) throws -> (Int, String) {
+        let input = try FileHandle(forReadingFrom: file)
+        defer { try? input.close() }
+        var output: FileHandle?
+        if let staged = staged {
+            guard FileManager.default.createFile(atPath: staged.path, contents: nil) else { throw MaterialError.unavailable }
+            output = try FileHandle(forWritingTo: staged)
+        }
+        defer { try? output?.close() }
+        var hasher = SHA256()
+        var count = 0
+        var header = Data()
+        while let chunk = try input.read(upToCount: 64 * 1024), !chunk.isEmpty {
+            try control.check()
+            count += chunk.count
+            guard count <= MaterialLibrary.maximumBytes else { throw MaterialError.tooLarge }
+            if header.count < 8 { header.append(chunk.prefix(8 - header.count)) }
+            hasher.update(data: chunk)
+            try output?.write(contentsOf: chunk)
+        }
+        guard count > 0 else { throw MaterialError.invalidFile }
+        if kind == .changes {
+            guard header.starts(with: [0x50, 0x4b, 0x03, 0x04]) else { throw MaterialError.invalidFile }
+        } else {
+            guard header.starts(with: Array("%PDF-".utf8)) else { throw MaterialError.invalidFile }
+        }
+        try output?.synchronize()
+        return (count, hasher.finalize().map { String(format: "%02x", $0) }.joined())
+    }
+
+    private typealias Acquisition = (source: MaterialSource, name: String, count: Int, digest: String, modified: Date?)
+
+    private enum AcquisitionOutcome {
+        case downloaded(Acquisition)
+        case unchanged(MaterialSource)
+    }
+
     private func acquire(_ kind: MaterialKind, control: AcquisitionControl,
-                         source makeSource: () throws -> MaterialSource) throws {
+                         read: (URL) throws -> AcquisitionOutcome) throws {
         guard let library = library else { throw MaterialError.invalidState }
         let staged = library.newStagingURL()
         defer { library.discardStaging(staged) }
         do {
-            let source = try makeSource()
-            try withAccess(source.grant) { root in
-                let target: URL
-                if source.grant.isFolder {
-                    guard let name = source.childName, !name.isEmpty, name != ".", name != "..",
-                          !name.contains("/"), !name.contains("\\") else { throw MaterialError.invalidFile }
-                    target = root.appendingPathComponent(name)
-                } else {
-                    target = root
-                }
-                guard target.pathExtension.lowercased() == kind.fileExtension else { throw MaterialError.invalidFile }
-                let result = try coordinated(target, control: control) { file -> (Int, String, Date?) in
-                    let values = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .contentModificationDateKey])
-                    guard values.isRegularFile == true, values.isSymbolicLink != true else { throw MaterialError.invalidFile }
-                    let input = try FileHandle(forReadingFrom: file)
-                    defer { try? input.close() }
-                    guard FileManager.default.createFile(atPath: staged.path, contents: nil) else { throw MaterialError.unavailable }
-                    let output = try FileHandle(forWritingTo: staged)
-                    defer { try? output.close() }
-                    var hasher = SHA256()
-                    var count = 0
-                    var header = Data()
-                    while let chunk = try input.read(upToCount: 64 * 1024), !chunk.isEmpty {
-                        try control.check()
-                        count += chunk.count
-                        guard count <= MaterialLibrary.maximumBytes else { throw MaterialError.tooLarge }
-                        if header.count < 8 { header.append(chunk.prefix(8 - header.count)) }
-                        hasher.update(data: chunk)
-                        try output.write(contentsOf: chunk)
-                    }
-                    guard count > 0 else { throw MaterialError.invalidFile }
-                    if kind == .changes {
-                        guard header.starts(with: [0x50, 0x4b, 0x03, 0x04]) else { throw MaterialError.invalidFile }
-                    } else {
-                        guard header.starts(with: Array("%PDF-".utf8)) else { throw MaterialError.invalidFile }
-                    }
-                    // Basic container detection only; semantic parsing belongs to steps 3 and 4.
-                    try output.synchronize()
-                    return (count, hasher.finalize().map { String(format: "%02x", $0) }.joined(), values.contentModificationDate)
-                }
-                try control.check()
-                try library.commit(staged: staged, kind: kind, source: source,
-                                   originalName: target.lastPathComponent, byteCount: result.0,
-                                   digest: result.1, modifiedAt: result.2)
+            let result = try read(staged)
+            try control.check()
+            switch result {
+            case .downloaded(let file):
+                try library.commit(staged: staged, kind: kind, source: file.source,
+                                   originalName: file.name, byteCount: file.count,
+                                   digest: file.digest, modifiedAt: file.modified)
+            case .unchanged(let source):
+                try library.recordUnchanged(kind, source: source)
             }
         } catch {
             let safeError = (error as? MaterialError) ?? .unavailable
-            // This updates attempt information only, never the previous copy or binding.
             try library.recordFailure(kind, message: safeError.localizedDescription)
             throw safeError
         }

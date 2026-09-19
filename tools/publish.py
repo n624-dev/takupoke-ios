@@ -79,10 +79,10 @@ def publish(output):
                 return
 
         notes = (
-            f"たくぽけ {metadata['version']} ({metadata['build']})\n\n"
+            f"たくポケ {metadata['version']} ({metadata['build']})\n\n"
             "AltStore Classic 向けの開発版です。署名は導入時に AltStore 側で行います。\n\n"
             f"Source: https://github.com/{repo}/releases/latest/download/altstore-source.json\n\n"
-            "「学校資料を選ぶ」からPDF・XLSXを取得できます。解析・時間割表示は未実装です。OneDriveの継続アクセスは実機確認中です。\n\n"
+            "アプリ名を「たくポケ」に修正。OneDriveは個別ファイル選択を基本とし、学校行事は学校サイトから取得・保持します。変更なしなら再ダウンロードを省きます。解析・時間割表示は未実装です。\n\n"
             f"Commit: {commit}\n"
         )
         # Retry a failed publication using the same verified artifact. Only an
@@ -100,7 +100,7 @@ def publish(output):
             request.write_text(json.dumps({
                 "tag_name": tag, "target_commitish": commit, "draft": True,
                 "prerelease": False,
-                "name": f"たくぽけ {metadata['version']} ({metadata['build']})",
+                "name": f"たくポケ {metadata['version']} ({metadata['build']})",
                 "body": notes,
             }, ensure_ascii=False), encoding="utf-8")
             created = api(f"repos/{repo}/releases", "--method", "POST", "--input", str(request))

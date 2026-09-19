@@ -1,12 +1,12 @@
 {
   "repository": "n624-dev/takupoke-ios",
   "bundleIdentifier": "io.github.n624dev.takupoke",
-  "name": "たくぽけ",
+  "name": "たくポケ",
   "developerName": "n624-dev",
   "versionPrefix": "0.1",
   "minOSVersion": "16.0",
-  "sourceName": "たくぽけ iOS",
+  "sourceName": "たくポケ iOS",
   "sourceIdentifier": "io.github.n624dev.takupoke.source",
-  "description": "学校の予定を端末内でまとめるiOSアプリ。「ファイル」からPDF・XLSXを選択して端末内に保存する開発版です。資料の解析と時間割表示は今後追加します。",
+  "description": "学校の予定を端末内でまとめるiOSアプリ。「ファイル」から通常時間割PDF・変更XLSXを、学校サイトから行事PDFを取得して端末内に保持する開発版です。資料の解析と時間割表示は今後追加します。",
   "tintColor": "146E66"
 }

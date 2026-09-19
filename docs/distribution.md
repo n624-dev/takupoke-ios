@@ -23,13 +23,13 @@ GitHub Pages や独自サーバーの設定は不要です。
 2. AltStore / AltServer 側で必要なサインインと端末側の設定を済ませます。Apple ID・パスワード・証明書を GitHub や CI に登録しないでください。
 3. AltStore Classic 自体がアプリをインストールできる状態にします。接続や署名の問題は [公式トラブルシューティング](https://faq.altstore.io/altstore-classic/troubleshooting-guide) を参照します。
 
-Windows の AltServer を使う経路を手順の基準とします。AltStore 自体の署名更新と、たくぽけの新しいバージョンへのアップデートは別の操作です。
+Windows の AltServer を使う経路を手順の基準とします。AltStore 自体の署名更新と、たくポケの新しいバージョンへのアップデートは別の操作です。
 
 ## 初回導入
 
 1. メンテナーが Actions の成功と、Release に `takupoke.ipa`・`altstore-source.json`・`icon.png`・`release.json` が揃っていることを確認します。
 2. iPhone の AltStore Classic の Sources 画面で Source を追加し、上記の固定 URL を入力します。
-3. Source 内の「たくぽけ」をインストールします。
+3. Source 内の「たくポケ」をインストールします。
 4. アプリを開き、バージョン・ビルド・コミットが Release と一致することを確認します。
 5. 「更新を確かめる」の欄に、個人情報を含まない短いメモを入力します。
 
