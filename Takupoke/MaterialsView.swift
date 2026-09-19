@@ -59,7 +59,7 @@ struct MaterialsView: View {
                 if model.busy {
                     HStack {
                         ProgressView()
-                        Text("資料へアクセス中…")
+                        Text("処理中…")
                         Spacer()
                         Button("中止") { model.cancel() }
                     }
@@ -79,7 +79,7 @@ struct MaterialsView: View {
                 Section {
                     if let record = model.state.record(for: kind) {
                         Text(record.originalName).font(.headline)
-                        Text("取得済み・未解析")
+                        Text(kind == .changes ? changeStatus(record) : "取得済み・未解析")
                             .font(.caption).foregroundStyle(.secondary)
                         LabeledContent("サイズ", value: ByteCountFormatter.string(fromByteCount: Int64(record.byteCount), countStyle: .file))
                         dateRow("最終取得", record.acquiredAt)
@@ -96,6 +96,13 @@ struct MaterialsView: View {
                         Text("未選択").foregroundStyle(.secondary)
                         if let failure = model.state.attempts[kind.rawValue]?.failure {
                             Text(failure).font(.caption).foregroundStyle(.orange)
+                        }
+                    }
+                    if kind == .changes, model.state.record(for: .changes) != nil {
+                        NavigationLink("XLSXを解析・結果を確認") { ChangeAnalysisView(model: model) }
+                        if let failure = model.state.changeParseAttempt?.failure {
+                            Label(failure.localizedDescription, systemImage: "exclamationmark.triangle")
+                                .font(.caption).foregroundStyle(.orange)
                         }
                     }
                     if kind != .events && model.folderListed {
@@ -138,7 +145,7 @@ struct MaterialsView: View {
             Section {
                 Text("OneDriveで読み取れない場合は「ファイル」で一度開くか、OneDriveの「オフラインで利用可能」を試してから再選択してください。")
                     .font(.footnote).foregroundStyle(.secondary)
-                Text("資料は端末内に保存します。現在は取得まで対応し、時間割への反映は行いません。1ファイル50 MiBまで。取得に失敗した場合は前回の資料を残します。")
+                Text("資料は端末内に保存します。時間割変更XLSXは取得後に解析できます。PDF解析・時間割への反映はまだ行いません。1ファイル50 MiBまで。取得に失敗した場合は前回の資料を残します。")
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
@@ -153,6 +160,12 @@ struct MaterialsView: View {
                 }
             }, cancelled: { picker = nil })
         }
+    }
+
+    private func changeStatus(_ record: MaterialRecord) -> String {
+        guard let analysis = model.state.changeAnalysis else { return "取得済み・未解析" }
+        return analysis.sourceDigest == record.digest && analysis.version == ChangeAnalysis.parserVersion
+            ? "取得済み・解析結果あり" : "取得済み・新しい資料は未解析（前回結果を保持）"
     }
 
     private func dateRow(_ title: String, _ date: Date) -> some View {

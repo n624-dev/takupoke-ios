@@ -15,6 +15,7 @@ output_dir="$(cd "$output_dir" && pwd)"
 
 xcodebuild -version
 bash tools/test-materials.sh
+bash tools/test-parsing.sh
 xcodebuild \
     -project Takupoke.xcodeproj \
     -scheme Takupoke \
@@ -22,6 +23,10 @@ xcodebuild \
     -sdk iphoneos \
     -destination 'generic/platform=iOS' \
     -derivedDataPath "$scratch_dir/DerivedData" \
+    -clonedSourcePackagesDirPath "$scratch_dir/SourcePackages" \
+    -packageCachePath "$scratch_dir/PackageCache" \
+    -disablePackageRepositoryCache \
+    -onlyUsePackageVersionsFromResolvedFile \
     CODE_SIGNING_ALLOWED=NO \
     CODE_SIGNING_REQUIRED=NO \
     CODE_SIGN_IDENTITY= \

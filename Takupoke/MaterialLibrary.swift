@@ -50,6 +50,8 @@ struct MaterialLibraryState: Codable {
     var folder: SourceGrant?
     var records: [MaterialRecord] = []
     var attempts: [String: AcquisitionAttempt] = [:]
+    var changeAnalysis: ChangeAnalysis?
+    var changeParseAttempt: ChangeParseAttempt?
 
     func record(for kind: MaterialKind) -> MaterialRecord? {
         records.first { $0.kind == kind }
@@ -111,11 +113,19 @@ final class MaterialLibrary {
         let hasManifest = manager.fileExists(atPath: manifest.path)
         if hasManifest {
             do {
+                guard let size = try manifest.resourceValues(forKeys: [.fileSizeKey]).fileSize,
+                      size <= 64 * 1024 * 1024 else { throw MaterialError.invalidState }
                 state = try JSONDecoder().decode(MaterialLibraryState.self, from: Data(contentsOf: manifest))
                 guard state.schemaVersion == 1,
                       Set(state.records.map(\.kind)).count == state.records.count,
                       state.records.allSatisfy({ Self.validStoredName($0.storedName, kind: $0.kind) }) else {
                     throw MaterialError.invalidState
+                }
+                if let analysis = state.changeAnalysis {
+                    guard analysis.version == ChangeAnalysis.parserVersion,
+                          !analysis.records.isEmpty, analysis.records.count <= ChangeNormalizer.maximumRecords else {
+                        throw MaterialError.invalidState
+                    }
                 }
             } catch {
                 // Never replace an unreadable manifest with an empty one.
@@ -173,6 +183,26 @@ final class MaterialLibrary {
         let data = try JSONEncoder().encode(next)
         try writeManifest(data, manifest)
         state = next
+    }
+
+    func saveChangeAnalysis(_ analysis: ChangeAnalysis) throws {
+        guard state.record(for: .changes)?.digest == analysis.sourceDigest,
+              analysis.version == ChangeAnalysis.parserVersion,
+              !analysis.records.isEmpty, analysis.records.count <= ChangeNormalizer.maximumRecords else {
+            throw ChangeParseError(code: .storage)
+        }
+        var next = state
+        next.changeAnalysis = analysis
+        next.changeParseAttempt = ChangeParseAttempt(date: analysis.parsedAt, sourceDigest: analysis.sourceDigest,
+                                                     defaultYear: analysis.defaultYear, failure: nil)
+        try persist(next)
+    }
+
+    func recordParseFailure(_ error: ChangeParseError, defaultYear: Int?) throws {
+        var next = state
+        next.changeParseAttempt = ChangeParseAttempt(date: Date(), sourceDigest: state.record(for: .changes)?.digest,
+                                                     defaultYear: defaultYear, failure: error)
+        try persist(next)
     }
 
     func saveFolder(_ grant: SourceGrant) throws {

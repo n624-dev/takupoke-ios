@@ -4,6 +4,18 @@
     classes = {};
     objectVersion = 56;
     objects = {
+        900000000000000000000001 = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/weichsel/ZIPFoundation.git"; requirement = {kind = revision; revision = "22787ffb59de99e5dc1fbfe80b19c97a904ad48d"; }; };
+        900000000000000000000002 = {isa = XCSwiftPackageProductDependency; package = 900000000000000000000001; productName = ZIPFoundation; };
+        900000000000000000000003 = {isa = PBXBuildFile; productRef = 900000000000000000000002; };
+        A0000000000000000000000C = {isa = PBXBuildFile; fileRef = B0000000000000000000000C; };
+        B0000000000000000000000C = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeNormalizer.swift; sourceTree = "<group>"; };
+        A0000000000000000000000D = {isa = PBXBuildFile; fileRef = B0000000000000000000000D; };
+        B0000000000000000000000D = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XLSXReader.swift; sourceTree = "<group>"; };
+        A0000000000000000000000E = {isa = PBXBuildFile; fileRef = B0000000000000000000000E; };
+        B0000000000000000000000E = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeAnalysisView.swift; sourceTree = "<group>"; };
+        A0000000000000000000000F = {isa = PBXBuildFile; fileRef = B0000000000000000000000F; };
+        B0000000000000000000000F = {isa = PBXFileReference; lastKnownFileType = text; path = ThirdPartyNotices.txt; sourceTree = "<group>"; };
+
         A0000000000000000000000B = {isa = PBXBuildFile; fileRef = B0000000000000000000000B; };
         B0000000000000000000000B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebPDFDownloader.swift; sourceTree = "<group>"; };
         A00000000000000000000007 = {isa = PBXBuildFile; fileRef = B00000000000000000000007; };
@@ -31,7 +43,7 @@
         };
         C00000000000000000000002 = {
             isa = PBXGroup;
-            children = (B00000000000000000000001, B00000000000000000000002, B00000000000000000000003, B00000000000000000000004, B00000000000000000000005, B00000000000000000000007, B00000000000000000000008, B00000000000000000000009, B0000000000000000000000A, B0000000000000000000000B);
+            children = (B00000000000000000000001, B00000000000000000000002, B00000000000000000000003, B00000000000000000000004, B00000000000000000000005, B00000000000000000000007, B00000000000000000000008, B00000000000000000000009, B0000000000000000000000A, B0000000000000000000000B, B0000000000000000000000C, B0000000000000000000000D, B0000000000000000000000E, B0000000000000000000000F);
             path = Takupoke;
             sourceTree = "<group>";
         };
@@ -42,6 +54,7 @@
             buildPhases = (E00000000000000000000001, E00000000000000000000002, E00000000000000000000003);
             buildRules = ();
             dependencies = ();
+            packageProductDependencies = (900000000000000000000002);
             name = Takupoke;
             productName = Takupoke;
             productReference = B00000000000000000000006;
@@ -59,11 +72,12 @@
             productRefGroup = C00000000000000000000003;
             projectDirPath = "";
             projectRoot = "";
+            packageReferences = (900000000000000000000001);
             targets = (D00000000000000000000001);
         };
-        E00000000000000000000001 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000001, A00000000000000000000002, A00000000000000000000007, A00000000000000000000008, A00000000000000000000009, A0000000000000000000000A, A0000000000000000000000B); runOnlyForDeploymentPostprocessing = 0; };
-        E00000000000000000000002 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-        E00000000000000000000003 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000003, A00000000000000000000004); runOnlyForDeploymentPostprocessing = 0; };
+        E00000000000000000000001 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000001, A00000000000000000000002, A00000000000000000000007, A00000000000000000000008, A00000000000000000000009, A0000000000000000000000A, A0000000000000000000000B, A0000000000000000000000C, A0000000000000000000000D, A0000000000000000000000E); runOnlyForDeploymentPostprocessing = 0; };
+        E00000000000000000000002 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (900000000000000000000003); runOnlyForDeploymentPostprocessing = 0; };
+        E00000000000000000000003 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000003, A00000000000000000000004, A0000000000000000000000F); runOnlyForDeploymentPostprocessing = 0; };
         F00000000000000000000001 = {isa = XCConfigurationList; buildConfigurations = (F00000000000000000000003, F00000000000000000000004); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
         F00000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (F00000000000000000000005, F00000000000000000000006); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
         F00000000000000000000003 = {

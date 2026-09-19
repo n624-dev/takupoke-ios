@@ -69,6 +69,29 @@ final class MaterialWorker {
         library = try MaterialLibrary(root: base.appendingPathComponent("SchoolMaterials", isDirectory: true))
     }
 
+    func analyzeChanges(defaultYear: Int?, control: AcquisitionControl) throws {
+        guard let library = library, let record = library.state.record(for: .changes),
+              let url = library.localURL(for: .changes) else { throw ChangeParseError(code: .invalidArchive) }
+        do {
+            let check = {
+                do { try control.check() }
+                catch { throw ChangeParseError(code: .cancelled) }
+            }
+            let rows = try XLSXReader.read(url, check: check)
+            let changes = try ChangeNormalizer.parse(rows, defaultYear: defaultYear, check: check)
+            try check()
+            let analysis = ChangeAnalysis(sourceDigest: record.digest, sourceName: record.originalName,
+                defaultYear: defaultYear, parsedAt: Date(), records: changes)
+            do { try library.saveChangeAnalysis(analysis) }
+            catch { throw ChangeParseError(code: .storage) }
+        } catch {
+            let failure = (error as? ChangeParseError) ?? ChangeParseError(code: .storage)
+            do { try library.recordParseFailure(failure, defaultYear: defaultYear) }
+            catch { throw ChangeParseError(code: .storage) }
+            throw failure
+        }
+    }
+
     private func grant(for url: URL, folder: Bool) throws -> SourceGrant {
         // Called while the original selection is still scoped, after reading.
         do {

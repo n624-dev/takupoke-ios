@@ -35,6 +35,7 @@ jobs:
         run: |
           bash -n tools/build-ios.sh
           bash -n tools/test-materials.sh
+          bash -n tools/test-parsing.sh
           git diff --check
 
   build-check:

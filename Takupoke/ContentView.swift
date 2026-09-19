@@ -7,6 +7,12 @@ struct ContentView: View {
     private let accent = Color(red: 0.08, green: 0.43, blue: 0.40)
     private let sourceURL = URL(string: "https://github.com/n624-dev/takupoke-ios/releases/latest/download/altstore-source.json")!
 
+    private var licenseText: String {
+        guard let url = Bundle.main.url(forResource: "ThirdPartyNotices", withExtension: "txt"),
+              let text = try? String(contentsOf: url, encoding: .utf8) else { return "ライセンス情報を読み取れません。" }
+        return text
+    }
+
     private func bundleValue(_ key: String) -> String {
         Bundle.main.object(forInfoDictionaryKey: key) as? String ?? "—"
     }
@@ -38,7 +44,7 @@ struct ContentView: View {
                         Label("学校資料を選ぶ", systemImage: "folder")
                     }
                 } footer: {
-                    Text("通常時間割PDFと時間割変更XLSXは「ファイル」から、学校行事PDFは学校サイトから取得して端末内に保存します。内容の解析は今後追加します。")
+                    Text("通常時間割PDFと時間割変更XLSXは「ファイル」から、学校行事PDFは学校サイトから取得して端末内に保存します。時間割変更XLSXは保存後に解析結果を確認できます。")
                 }
 
                 Section("このアプリについて") {
@@ -58,6 +64,11 @@ struct ContentView: View {
                 }
 
                 Section {
+                    NavigationLink("オープンソースライセンス") {
+                        ScrollView {
+                            Text(licenseText).font(.footnote).textSelection(.enabled).padding()
+                        }.navigationTitle("ライセンス")
+                    }
                     ShareLink(item: sourceURL) {
                         Label("AltStore SourceのURLを共有", systemImage: "square.and.arrow.up")
                     }

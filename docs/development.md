@@ -12,7 +12,7 @@
 | iOS ビルド | Actions の `macos-15` と Xcode 16.4 |
 | 実機導入・更新 | iOS 16.0 以降の iPhone、AltStore Classic。Windows の AltServer を使う経路を基準とする |
 
-このデバイスの開発環境は Linux です。Linux / Windows では SwiftUI のビルドを行わず、配布スクリプトのテストとソース編集を行います。XcodeGen、CocoaPods、サードパーティー Swift パッケージは使用していません。
+このデバイスの開発環境は Linux です。Linux / Windows では SwiftUI のビルドを行わず、配布スクリプトのテストとソース編集を行います。XcodeGen、CocoaPodsは使用していません。XLSX展開にはZIPFoundation 0.9.20（コミット固定）をSwift Packageとして使用します。
 
 ## clone とメールアドレスの非公開設定
 
@@ -39,6 +39,7 @@ Linux:
 python3 -B -m unittest discover -s tests -v
 bash -n tools/build-ios.sh
 bash -n tools/test-materials.sh
+bash -n tools/test-parsing.sh
 git diff --check
 ```
 
@@ -49,7 +50,7 @@ py -3 -B -m unittest discover -s tests -v
 git diff --check
 ```
 
-Windows でシェルスクリプトを変更した場合は Git Bash で `bash -n tools/build-ios.sh` と `bash -n tools/test-materials.sh` も実行します。`actionlint` がある環境ではリポジトリのルートで `actionlint` を実行します。
+Windows でシェルスクリプトを変更した場合は Git Bash で `bash -n tools/build-ios.sh`、`bash -n tools/test-materials.sh`、`bash -n tools/test-parsing.sh` も実行します。`actionlint` がある環境ではリポジトリのルートで `actionlint` を実行します。
 
 テストは架空の IPA を OS の一時ディレクトリに作成し、正常終了・テスト失敗のどちらでも後片付けします。`-B` は Python のバイトコードキャッシュ作成を抑止します。これらのテストは実際の SwiftUI ビルドや AltStore インストールの代わりにはなりません。
 
@@ -66,6 +67,21 @@ PATH="/home/ubuntu/.local/share/swift-6.1.2/usr/bin:$PATH" bash tools/test-mater
 コンパイラーのモジュールキャッシュ・実行ファイル・入力と保存データは専用の一時ディレクトリに置き、終了時に削除します。Swift の配布アーカイブもインストール後に削除済みです。Windows への Swift 導入は必須ではありません。
 
 学校サイトの本番URLをテスト・疎通確認に使いません。HEADや条件付きGETも禁止です。通信テストのURLProtocolはすべてのリクエストを捕捉し、`example.invalid`以外を拒否します。学校サーバーへの定期確認・負荷試験はCIへ追加しないでください。実装上必要な調査としての取得は利用者から許可されていますが、必要な回数に限定し、実資料をリポジトリ・CIへ持ち込みません。
+
+## SwiftのXLSX解析テスト
+
+`bash tools/test-parsing.sh` はSwift Package経由で、本体のXLSX読み取り・正規化・保存処理を検証します。GitHubから固定したZIPFoundationを取得しますが、学校サイトや学校資料にはアクセスしません。教師名・科目名を含め、テスト入力・期待結果は架空です。
+
+LinuxではSwiftに加えてzlibの開発ファイルが必要です。一般的なUbuntu環境では `zlib1g-dev` と `pkg-config` を導入してください。このデバイスでは管理者権限を使えなかったため、Ubuntu配布のzlib開発パッケージをユーザー領域に展開し、既存のzlibランタイムへリンクしました。pkg-configは未導入です。次の指定で実行できます。
+
+```sh
+TKPK_ZLIB_PREFIX=/home/ubuntu/.local/share/takupoke-build-deps \
+PATH="/home/ubuntu/.local/share/swift-6.1.2/usr/bin:$PATH" bash tools/test-parsing.sh
+```
+
+macOS CIでは標準のCompressionを使うため、この追加導入は不要です。解析テストもIPA作成前に実行し、失敗時は配布を止めます。パッケージcheckout、ビルド、モジュールキャッシュ、架空XLSXは専用一時ディレクトリにまとめ、終了時に削除します。SwiftPMの共有依存キャッシュは無効にします。通常の `swift test` を直接実行すると既定のキャッシュ・`.build`が残るため、このスクリプトを使ってください。
+
+Xcode側も依存のcheckout・キャッシュをビルド用一時ディレクトリへ指定し、repository cacheを無効にしています。Actions cache・artifactの保存は追加していません。`Package.swift`、Xcodeプロジェクト、2か所の `Package.resolved` は同じコミットに揃えます。
 
 ## ファイルを変更するとき
 

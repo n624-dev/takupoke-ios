@@ -52,9 +52,15 @@ final class MaterialsModel: ObservableObject {
         }
     }
 
+    func analyzeChanges(defaultYear: Int?) {
+        perform(success: "時間割変更を解析しました。解析結果から日付・クラス・科目を確認してください。") {
+            try $0.analyzeChanges(defaultYear: defaultYear, control: $1)
+        }
+    }
+
     func cancel() {
         control?.cancel()
-        message = "中止を要求しました。ファイルサービスの応答を待っています。"
+        message = "中止を要求しました。処理の終了を待っています。"
     }
 
     private func perform(success: String?, operation: @escaping (MaterialWorker, AcquisitionControl) throws -> Void) {
@@ -82,7 +88,8 @@ final class MaterialsModel: ObservableObject {
                     self.message = success
                 case .failure(let error):
                     self.failed = true
-                    self.message = ((error as? MaterialError) ?? .unavailable).localizedDescription
+                    self.message = (error as? ChangeParseError)?.localizedDescription
+                        ?? ((error as? MaterialError) ?? .unavailable).localizedDescription
                 }
             }
         }

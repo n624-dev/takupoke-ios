@@ -4,7 +4,7 @@
 
 通常時間割・時間割変更は iOS 標準の「ファイル」から OneDrive File Provider 経由で取得し、学校行事PDFは学校の公開サイトから取得します。Web 版とは独立して実装し、Microsoft Graph や通知用サーバーを必要としない構成を目指します。
 
-**現在は資料取得の開発版です。資料の解析・時間割表示はまだありません。**
+**現在は資料取得と時間割変更XLSXの解析に対応する開発版です。PDF解析・通常時間割との統合はまだありません。XLSX解析のiOSビルド・実機確認は確認待ちです。**
 
 [導入・更新手順](docs/distribution.md) · [開発環境](docs/development.md) · [ロードマップ](docs/roadmap.md) · [Releases](https://github.com/n624-dev/takupoke-ios/releases)
 
@@ -13,6 +13,7 @@
 - iOS「ファイル」から通常時間割PDF・時間割変更XLSXを個別に選択して端末内に保存。対応サービスではフォルダ選択も利用可能。
 - 学校行事PDFを固定の学校公式URLから取得して保持。手動更新はETag / Last-Modifiedを使い、変更なしの応答では本体の再取得を省略。
 - 資料の参照先を保存して手動再取得。失敗時は前回のコピーを維持し、エラーを表示。
+- 保存した時間割変更XLSXを手動解析し、日付・クラス・変更前後科目・教員・教室・備考を確認。年なし日付の補完年を明示的に指定でき、解析失敗時は前回正常な結果を保持。
 - SwiftUI のホーム画面でバージョン・ビルド・コミットを表示。
 - 端末内に確認メモを保存し、アプリ更新後のデータ保持を検証。
 - `main` への push から、Actions で iPhone 向け IPA と AltStore Source JSON を生成・公開するワークフロー。
@@ -26,7 +27,8 @@
 | Source からの初回導入・更新 | 初回導入・起動・更新後のメモ保持を利用者報告で確認 |
 | File Provider からの資料取得 | 修正版のPDF・XLSX取得、再起動後の保持・同じ資料の再取得に成功した利用者報告あり。OneDriveのフォルダ選択は不可 |
 | 学校行事PDFのWeb取得・保持 | 取得・再起動後の保持・変更なし時の日時表示を利用者報告で確認。条件付き応答と失敗時の保持は架空データでテスト |
-| PDF / XLSX 解析・時間割統合 | 未実装 |
+| XLSX解析・結果確認 | Swift実装と架空データによる比較テストを追加。iOSビルド・実機確認待ち |
+| PDF解析・時間割統合 | 未実装 |
 | 通知・バックグラウンド更新 | 未実装 |
 
 ## iPhone に導入する
@@ -76,7 +78,8 @@ Takupoke/                  SwiftUI アプリ、Info.plist、アイコン、プ�
 Takupoke.xcodeproj/         共有 scheme を含む Xcode プロジェクト
 distribution/config.json   公開アプリ情報・バージョン系列
 tools/                     IPA ビルド・Source 生成・公開用スクリプト
-tests/                     架空データによる配布・保存失敗・復旧のテスト
+tests/                     架空データによる配布・保存・復旧・XLSX解析のテスト
+Package.swift              Linux / macOSで共通の解析ソースを検証するSwift Package
 .github/workflows/         iOS ビルドと AltStore 配布の CI
 docs/                      方針・手順・検証・情報管理
 ```
@@ -103,4 +106,4 @@ docs/                      方針・手順・検証・情報管理
 
 ## ライセンス
 
-プロジェクトのライセンスは未選定です。正式なライセンスは決定後に `LICENSE` と本節へ記載します。
+プロジェクトのライセンスは未選定です。正式なライセンスは決定後に `LICENSE` と本節へ記載します。ZIPFoundationと移植元denpa-schedule-csvのMITライセンス表記は [ThirdPartyNotices.txt](Takupoke/ThirdPartyNotices.txt) に含め、アプリ内からも閲覧できます。

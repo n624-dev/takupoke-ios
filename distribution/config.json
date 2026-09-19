@@ -7,6 +7,6 @@
   "minOSVersion": "16.0",
   "sourceName": "たくポケ iOS",
   "sourceIdentifier": "io.github.n624dev.takupoke.source",
-  "description": "学校の予定を端末内でまとめるiOSアプリ。「ファイル」から通常時間割PDF・変更XLSXを、学校サイトから行事PDFを取得して端末内に保持する開発版です。資料の解析と時間割表示は今後追加します。",
+  "description": "学校の予定を端末内でまとめるiOSアプリ。「ファイル」から通常時間割PDF・変更XLSXを、学校サイトから行事PDFを取得して保持します。変更XLSXの解析と結果確認に対応する開発版です。PDF解析・通常時間割との統合は今後追加します。",
   "tintColor": "146E66"
 }
