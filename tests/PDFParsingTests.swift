@@ -101,6 +101,53 @@ final class PDFParsingTests: XCTestCase {
         XCTAssertEqual(lesson.names.room, "架空部屋S")
         XCTAssertEqual(lesson.sourceText, "架空αQⅣ\n架空担当R\n架空部屋S")
     }
+    func testTimetableJoinsAlignedNonoverlappingLineFragments() throws {
+        var page = timetable()
+        page.glyphs.removeAll { $0.x >= 100 && $0.x < 140 && $0.cy > 100 && $0.cy < 160 }
+        for (row, value) in ["架空科目Q", "架空教員R", "架空部屋S"].enumerated() {
+            for (i, character) in value.enumerated() {
+                page.glyphs.append(PDFGlyph(text: String(character), x: 104 + Double(i) * 4,
+                    y: 108 + Double(row) * 18, width: 4, height: 6,
+                    sourceLine: row * 10 + (i < 2 ? 0 : 1), sourceOrder: (2 - row) * 100 + i))
+            }
+        }
+        let parsed = try parse([page], kind: .timetable)
+        let lesson = try XCTUnwrap(parsed.lessons.first { $0.className == "1_ZZ" })
+        XCTAssertEqual(lesson.names.subject, "架空科目Q")
+        XCTAssertEqual(lesson.names.teacher, "架空教員R")
+        XCTAssertEqual(lesson.names.room, "架空部屋S")
+    }
+    func testTimetableFragmentsDoNotMergeOverlapsOrNearbyDifferentLines() throws {
+        let box = PDFBox(left: 0, top: 0, right: 100, bottom: 100)
+        let left = PDFGlyph(text: "架空", x: 10, y: 10, width: 8, height: 6, sourceLine: 0, sourceOrder: 2)
+        var right = PDFGlyph(text: "Q", x: 19, y: 10, width: 4, height: 6, sourceLine: 1, sourceOrder: 1)
+        func layout(_ glyphs: [PDFGlyph]) -> PDFGrid {
+            PDFGrid(page: PDFPageLayout(width: 100, height: 100, glyphs: glyphs, lines: []))
+        }
+        XCTAssertEqual(try layout([right, left]).timetableText(box), ["架空Q"])
+        // Calendar extraction keeps the two native lines; coalescing is timetable-only.
+        XCTAssertEqual(try layout([right, left]).text(box).count, 2)
+        right.x = 12
+        XCTAssertThrowsError(try layout([left, right]).timetableText(box)) {
+            XCTAssertEqual(($0 as? PDFParseError)?.stage, .lessonLines)
+        }
+        right.x = 19; right.y = 11.2
+        XCTAssertEqual(try layout([right, left]).timetableText(box), ["架空", "Q"])
+        right.y = 10; right.height = 4
+        XCTAssertEqual(try layout([right, left]).timetableText(box).count, 2)
+    }
+    func testTimetableFailureReportsLocationAndLineCountWithoutNames() throws {
+        var page = timetable()
+        page.glyphs += text("架空追加行", x: 104, y: 154)
+        try XCTAssertThrowsError(try parse([page], kind: .timetable)) { error in
+            guard let failure = error as? PDFParseError else { return XCTFail("Unexpected error type") }
+            XCTAssertEqual(failure.stage, .lessonLines)
+            XCTAssertEqual(failure.cell, PDFParseError.Cell(classRow: 1, weekday: 1, period: 1, detectedLines: 4))
+            XCTAssertTrue(failure.localizedDescription.contains("検出4行"))
+            XCTAssertFalse(failure.localizedDescription.contains("架空"))
+            XCTAssertEqual(try JSONDecoder().decode(PDFParseError.self, from: JSONEncoder().encode(failure)), failure)
+        }
+    }
     func testCloseCalendarLinesKeepTheirOrderAndExplicitTags() throws {
         var first = calendar(Array(4...9))
         first.glyphs.removeAll { $0.x >= 62 && $0.x < 100 && $0.cy == 100 }

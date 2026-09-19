@@ -112,7 +112,7 @@ struct PDFEventClassification: Codable, Equatable {
     }
 }
 struct PDFAnalysis: Codable {
-    static let parserVersion = 3
+    static let parserVersion = 4
     var version = parserVersion
     var kind: MaterialKind
     var sourceDigest: String
@@ -135,6 +135,7 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
     enum Stage: String, Codable, CaseIterable {
         case characterMapping, pageRotation, yearHeading, documentHeading, periodHeading
         case gridColumn, gridRow, gridCell, eventColumns, calendarDates, monthHeading, vectorObjects, textOrder
+        case classLabel, gradeLabel, duplicateClass, lessonLines, parallelLessons, emptySubject
 
         var label: String {
             switch self {
@@ -151,12 +152,30 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
             case .monthHeading: return "月の見出し（P11）"
             case .vectorObjects: return "未対応の埋め込み描画（P12）"
             case .textOrder: return "文字の行と読み順（P13）"
+            case .classLabel: return "クラス欄（P14）"
+            case .gradeLabel: return "学年欄（P15）"
+            case .duplicateClass: return "クラス行の重複（P16）"
+            case .lessonLines: return "授業欄の行分け（P17）"
+            case .parallelLessons: return "並記された授業の対応（P18）"
+            case .emptySubject: return "並記された科目の空欄（P19）"
             }
         }
     }
     var code: Code
     var page: Int? = nil
     var stage: Stage? = nil
+    struct Cell: Codable, Equatable {
+        var classRow: Int
+        var weekday: Int
+        var period: Int
+        var detectedLines: Int? = nil
+        var label: String {
+            let days = [1: "月", 2: "火", 3: "水", 4: "木", 5: "金"]
+            return "表の上から\(classRow)番目のクラス・\(days[weekday] ?? "?")曜\(period)限" +
+                (detectedLines.map { "・検出\($0)行" } ?? "")
+        }
+    }
+    var cell: Cell? = nil
     var errorDescription: String? {
         let reason: String
         switch code {
@@ -168,7 +187,8 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
         case .storage: reason = "PDF解析結果を保存できませんでした。"
         }
         return (page.map { "\($0)ページ目：" } ?? "") + reason +
-            (stage.map { "確認箇所：\($0.label)。" } ?? "") + "前回の正常な解析結果は保持しています。"
+            (stage.map { "確認箇所：\($0.label)。" } ?? "") +
+            (cell.map { "対象：\($0.label)。" } ?? "") + "前回の正常な解析結果は保持しています。"
     }
 }
 
@@ -236,6 +256,39 @@ struct PDFGrid {
     }
     func text(_ box: PDFBox) throws -> [String] {
         try Self.contentRows(glyphs(in: box)).map { $0.map(\.text).joined() }
+    }
+    /// Timetable-only: one visual line may arrive as several disjoint PDF text
+    /// selections. Join whole fragments only when both vertical edges align and
+    /// their horizontal ranges do not overlap. Never reorder individual glyphs.
+    func timetableText(_ box: PDFBox) throws -> [String] {
+        let input = glyphs(in: box)
+        guard input.reduce(0, { $0 + $1.text.utf8.count }) <= 4096 else { throw PDFParseError(code: .limit) }
+        let rows = try Self.contentRows(input)
+        guard input.contains(where: { $0.sourceLine != nil }) else { return rows.map { $0.map(\.text).joined() } }
+        struct Fragment {
+            let glyphs: [PDFGlyph]
+            var left: Double { glyphs.map(\.x).min()! }
+            var right: Double { glyphs.map { $0.x + $0.width }.max()! }
+            var top: Double { glyphs.map(\.y).min()! }
+            var bottom: Double { glyphs.map { $0.y + $0.height }.max()! }
+        }
+        let fragments = rows.map { Fragment(glyphs: $0) }.sorted { ($0.top, $0.left) < ($1.top, $1.left) }
+        var bands: [[Fragment]] = []
+        for fragment in fragments {
+            let aligned = bands.indices.filter { index in
+                bands[index].allSatisfy { abs($0.top - fragment.top) <= 0.35 && abs($0.bottom - fragment.bottom) <= 0.35 }
+            }
+            guard aligned.count <= 1 else { throw PDFParseError(code: .ambiguous, stage: .lessonLines) }
+            if let index = aligned.first {
+                guard bands[index].allSatisfy({ $0.right <= fragment.left + 0.1 || fragment.right <= $0.left + 0.1 }) else {
+                    throw PDFParseError(code: .ambiguous, stage: .lessonLines)
+                }
+                bands[index].append(fragment)
+            } else { bands.append([fragment]) }
+        }
+        return bands.map { band in
+            band.sorted { $0.left < $1.left }.flatMap(\.glyphs).map(\.text).joined()
+        }
     }
     func anchors(_ word: String, above: Double) -> [PDFBox] {
         let target = Array(word)
@@ -352,20 +405,20 @@ enum PDFSchoolParser {
             $0.cy > first.bottom && $0.cy < bodyBottom })
         var output: [PDFLesson] = []
         var classes: Set<String> = []
-        for glyphs in classRows {
+        for (classIndex, glyphs) in classRows.enumerated() {
             try check()
             let label = key(glyphs.map(\.text).joined())
             guard label.range(of: "^(?:[1-9]|[A-Z]{2,8})$", options: .regularExpression) != nil else {
-                throw PDFParseError(code: .ambiguous, page: 1)
+                throw PDFParseError(code: .ambiguous, page: 1, stage: .classLabel)
             }
             let y = glyphs.map(\.cy).reduce(0, +) / Double(glyphs.count)
             var row = try grid.box((classBox.left + classBox.right) / 2, y)
             let grade = try key(grid.text(grid.box(classBox.left - 2, y)).joined())
             guard grade == "AI" || grade.range(of: "^[1-9]$", options: .regularExpression) != nil else {
-                throw PDFParseError(code: .ambiguous, page: 1)
+                throw PDFParseError(code: .ambiguous, page: 1, stage: .gradeLabel)
             }
             let name = ChangeNormalizer.canonicalClassName(grade + "_" + label)
-            guard classes.insert(name).inserted else { throw PDFParseError(code: .ambiguous, page: 1) }
+            guard classes.insert(name).inserted else { throw PDFParseError(code: .ambiguous, page: 1, stage: .duplicateClass) }
             // The first class spans the supplementary period header as well.
             // Use the top of its first actual subject cell to exclude that header.
             row.top = max(row.top, try grid.box(header[0].cx, y).top)
@@ -378,17 +431,21 @@ enum PDFSchoolParser {
                 for i in 0..<(edges.count - 1) where edges[i + 1] - edges[i] >= 2 {
                     let box = try grid.box(h.cx, (edges[i] + edges[i + 1]) / 2)
                     guard seen.insert(box).inserted else { continue }
-                    let lines = try grid.text(box)
+                    var cell = PDFParseError.Cell(classRow: classIndex + 1, weekday: column / 8 + 1, period: column % 8 + 1)
+                    let lines: [String]
+                    do { lines = try grid.timetableText(box) }
+                    catch var error as PDFParseError { error.cell = cell; throw error }
                     if lines.isEmpty { continue }
+                    cell.detectedLines = lines.count
                     guard lines.reduce(0, { $0 + $1.utf8.count }) <= 4096 else { throw PDFParseError(code: .limit, page: 1) }
-                    guard lines.count <= 3, !lines[0].isEmpty else { throw PDFParseError(code: .ambiguous, page: 1) }
+                    guard lines.count <= 3, !lines[0].isEmpty else { throw PDFParseError(code: .ambiguous, page: 1, stage: .lessonLines, cell: cell) }
                     let fields = lines + Array(repeating: "", count: 3 - lines.count)
                     let parts = fields.map { $0.replacingOccurrences(of: "･", with: "・").components(separatedBy: "・") }
                     let parallel = lines.count == 3 && parts.allSatisfy { $0.count == 2 }
                     if parts[0].count > 1 && parts[1].count > 1 && !parallel {
-                        throw PDFParseError(code: .ambiguous, page: 1)
+                        throw PDFParseError(code: .ambiguous, page: 1, stage: .parallelLessons, cell: cell)
                     }
-                    if parallel && parts[0].contains(where: { $0.isEmpty }) { throw PDFParseError(code: .ambiguous, page: 1) }
+                    if parallel && parts[0].contains(where: { $0.isEmpty }) { throw PDFParseError(code: .ambiguous, page: 1, stage: .emptySubject, cell: cell) }
                     for variant in 0..<(parallel ? 2 : 1) {
                         let f = parallel ? parts.map { $0[variant] } : fields
                         output.append(PDFLesson(className: name, weekday: column / 8 + 1, period: column % 8 + 1,
