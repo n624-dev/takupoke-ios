@@ -1,0 +1,16 @@
+* text=auto
+*.md text eol=lf
+*.swift text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.sh text eol=lf
+*.ps1 text eol=lf
+*.pbxproj text eol=lf
+*.xcworkspacedata text eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.xlsx binary
+*.ipa binary

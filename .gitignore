@@ -1,0 +1,63 @@
+# Local private inputs, extracted data, and secrets
+/private/
+/local-data/
+/secrets/
+.env
+.env.*
+!.env.example
+
+# School documents and derived data: allow only individually reviewed synthetic fixtures
+*.[pP][dD][fF]
+*.[xX][lL][sS]
+*.[xX][lL][sS][xX]
+*.[xX][lL][sS][mM]
+*.[cC][sS][vV]
+*.[tT][sS][vV]
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.store
+*.store-*
+*.log
+
+# Signing and credentials
+*.p12
+*.pfx
+*.p8
+*.pem
+*.key
+*.cer
+*.mobileprovision
+*.provisionprofile
+*.keychain
+*.keychain-db
+
+# Swift / Xcode outputs and per-user settings
+.build/
+.swiftpm/
+DerivedData/
+build/
+dist/
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+*.ipa
+*.app/
+*.xcarchive/
+*.xcresult/
+*.dSYM/
+*.dSYM.zip
+
+# OS / editor local files
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
