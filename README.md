@@ -6,6 +6,8 @@
 
 **現在は資料取得と時間割変更XLSXの解析に対応する開発版です。PDF解析・通常時間割との統合はまだありません。XLSX解析の実機成功報告があります。追加したAIクラス表記統一は実機確認待ちです。**
 
+今後追加するUIはApple標準のLiquid Glassを採用する方針です。対応SDKへの更新と新規画面への導入はこれから行い、既存画面の置き換えは後の作業として進めます。
+
 [導入・更新手順](docs/distribution.md) · [開発環境](docs/development.md) · [ロードマップ](docs/roadmap.md) · [Releases](https://github.com/n624-dev/takupoke-ios/releases)
 
 ## 現在できること
@@ -96,6 +98,7 @@ docs/                      方針・手順・検証・情報管理
 | [導入・更新・配布の仕組み](docs/distribution.md) | Source URL、実機導入、番号規則、障害対応 |
 | [学校資料の選択・取得](docs/materials.md) | OneDrive / Files の選択・再取得・制約・実機確認項目 |
 | [XLSX解析の移植仕様](docs/xlsx-specification.md) | 既存実装の規則、架空の比較データ、未実装の範囲 |
+| [PDF解析の仕様確認](docs/pdf-specification.md) | 同時刻の並記授業、空欄保持、記載名・正式名称の保持とWeb版に合わせた表示方針 |
 | [検証記録](docs/verification.md) | ローカルの確認範囲と CI・実機の確認待ち項目 |
 | [公開時の情報管理](docs/public-repository.md) | 学校資料、個人情報、認証情報、コミット作者情報 |
 | [貢献ガイド](CONTRIBUTING.md) | 変更提案、Pull Request、公開できるテストデータ |

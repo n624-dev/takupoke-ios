@@ -13,9 +13,9 @@ let package = Package(
                 exclude: ["Assets.xcassets", "Info.plist", "PrivacyInfo.xcprivacy", "ThirdPartyNotices.txt",
                           "TakupokeApp.swift", "ContentView.swift", "MaterialAccess.swift", "MaterialsModel.swift",
                           "MaterialsView.swift", "ChangeAnalysisView.swift", "WebPDFDownloader.swift"],
-                sources: ["ChangeNormalizer.swift", "XLSXReader.swift", "MaterialLibrary.swift"]),
+                sources: ["ChangeNormalizer.swift", "XLSXReader.swift", "MaterialLibrary.swift", "TimetableLessonNames.swift"]),
         .testTarget(name: "ParsingTests", dependencies: ["TakupokeParsing", "ZIPFoundation"], path: "tests",
                     exclude: ["MaterialLibraryChecks.swift", "WebPDFChecks.swift", "test_distribution.py"],
-                    sources: ["ParsingTests.swift"], resources: [.copy("fixtures")])
+                    sources: ["ParsingTests.swift", "TimetableNameTests.swift"], resources: [.copy("fixtures")])
     ]
 )

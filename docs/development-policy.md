@@ -12,6 +12,17 @@
 - Web 版とは別実装とし、必要なデータ仕様・解析ルールのみ合わせる。
 - Windows 版は今回の開発対象に含めない。Windows とのコード共有のために iOS 版を複雑化しない。
 
+## 新規UIのデザイン
+
+- 今後追加する画面・操作部分にはApple標準のLiquid Glassを採用する。既存画面の全面的な置き換えは後の作業とする。
+- SwiftUIの標準ナビゲーション・ツールバー・ボタンなどを優先する。独自の操作部品で必要な場合に `glassEffect` / `GlassEffectContainer` を使用する。
+- 時間割の文字や資料本文の読みやすさを確保し、ガラス表現は主に操作・ナビゲーションの層に適用する。アクセシビリティの透明度・動きの設定も尊重する。
+- Liquid Glassを使う新規UIの追加時に、ActionsのXcode・SDKを対応版へ更新する。現時点のXcode 16.4では対応済みと扱わない。
+- 現行のiOS 16以降という最低対応条件は維持する。iOS 26以降ではLiquid Glassを利用し、それより古いOSでは利用可能な標準SwiftUI部品へ分岐する。
+- SDK更新に伴う既存標準部品の外観変化と、既存画面を作り直す作業は区別して検証する。
+
+参照: [Apple: Adopting Liquid Glass](https://developer.apple.com/documentation/TechnologyOverviews/adopting-liquid-glass)、[Applying Liquid Glass to custom views](https://developer.apple.com/documentation/SwiftUI/Applying-Liquid-Glass-to-custom-views)。
+
 ## 学校資料へのアクセス
 
 - Microsoft Graph は使用しない。
@@ -32,6 +43,8 @@
 - 学校の実際の書式に特化した解析処理を実装する。
 - 曖昧な内容を推測で時間割へ反映しない。未解析・曖昧・失敗を正常な解析結果と区別して管理する。
 - 実資料の検証は非公開の環境で行い、公開テストには架空の資料を使用する。
+- 並記された授業の対応付けと教室名の変換順序は [PDF解析の仕様確認](pdf-specification.md) に従う。教室の空欄を保持して授業ごとに分割した後、確認済みの対応表で正式名に変換する。
+- 科目・教員・教室のPDF記載名と正式名称を別々に保持し、どちらも表示に使えるようにする。Web版と同じく一覧では短い記載名、詳細では正式名称を優先し、正式名称がなければ記載名を使う。
 
 ### XLSX
 
