@@ -1,5 +1,12 @@
 import Foundation
 
+enum PDFDisplayText {
+    /// Remove document line breaks for display, keeping the stored text intact.
+    static func continuous(_ value: String) -> String {
+        value.components(separatedBy: .newlines).joined()
+    }
+}
+
 struct PDFGlyph: Codable {
     var text: String
     var x: Double
@@ -112,7 +119,9 @@ struct PDFEventClassification: Codable, Equatable {
     }
 }
 struct PDFAnalysis: Codable {
-    static let parserVersion = 4
+    static let parserVersion = 5
+    // Timetable fixes must not ask users to reparse an unchanged calendar.
+    static func currentVersion(for kind: MaterialKind) -> Int { kind == .events ? 4 : parserVersion }
     var version = parserVersion
     var kind: MaterialKind
     var sourceDigest: String
@@ -136,6 +145,7 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
         case characterMapping, pageRotation, yearHeading, documentHeading, periodHeading
         case gridColumn, gridRow, gridCell, eventColumns, calendarDates, monthHeading, vectorObjects, textOrder
         case classLabel, gradeLabel, duplicateClass, lessonLines, parallelLessons, emptySubject
+        case fragmentOverlap, fragmentAlignment
 
         var label: String {
             switch self {
@@ -158,6 +168,8 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
             case .lessonLines: return "授業欄の行分け（P17）"
             case .parallelLessons: return "並記された授業の対応（P18）"
             case .emptySubject: return "並記された科目の空欄（P19）"
+            case .fragmentOverlap: return "文字列断片の位置と読み順（P20）"
+            case .fragmentAlignment: return "文字列断片が属する行（P21）"
             }
         }
     }
@@ -258,8 +270,8 @@ struct PDFGrid {
         try Self.contentRows(glyphs(in: box)).map { $0.map(\.text).joined() }
     }
     /// Timetable-only: one visual line may arrive as several disjoint PDF text
-    /// selections. Join whole fragments only when both vertical edges align and
-    /// their horizontal ranges do not overlap. Never reorder individual glyphs.
+    /// selections. Selection rectangles can overlap at a character boundary;
+    /// that alone does not imply two conflicting lines of text.
     func timetableText(_ box: PDFBox) throws -> [String] {
         let input = glyphs(in: box)
         guard input.reduce(0, { $0 + $1.text.utf8.count }) <= 4096 else { throw PDFParseError(code: .limit) }
@@ -271,6 +283,17 @@ struct PDFGrid {
             var right: Double { glyphs.map { $0.x + $0.width }.max()! }
             var top: Double { glyphs.map(\.y).min()! }
             var bottom: Double { glyphs.map { $0.y + $0.height }.max()! }
+
+            func precedes(_ next: Fragment) -> Bool {
+                if right <= next.left + 0.1 { return true }
+                // Allow a boundary overhang only when BOTH the text ranges and
+                // boundary glyph edges advance left to right. Do not guess an
+                // order for contained, overprinted or backwards fragments.
+                let end = glyphs.last!, start = next.glyphs.first!
+                return left < next.left && right < next.right &&
+                    end.sourceOrder! < start.sourceOrder! &&
+                    end.x < start.x && end.x + end.width < start.x + start.width
+            }
         }
         let fragments = rows.map { Fragment(glyphs: $0) }.sorted { ($0.top, $0.left) < ($1.top, $1.left) }
         var bands: [[Fragment]] = []
@@ -278,10 +301,12 @@ struct PDFGrid {
             let aligned = bands.indices.filter { index in
                 bands[index].allSatisfy { abs($0.top - fragment.top) <= 0.35 && abs($0.bottom - fragment.bottom) <= 0.35 }
             }
-            guard aligned.count <= 1 else { throw PDFParseError(code: .ambiguous, stage: .lessonLines) }
+            guard aligned.count <= 1 else { throw PDFParseError(code: .ambiguous, stage: .fragmentAlignment) }
             if let index = aligned.first {
-                guard bands[index].allSatisfy({ $0.right <= fragment.left + 0.1 || fragment.right <= $0.left + 0.1 }) else {
-                    throw PDFParseError(code: .ambiguous, stage: .lessonLines)
+                guard bands[index].allSatisfy({ existing in
+                    existing.left < fragment.left ? existing.precedes(fragment) : fragment.precedes(existing)
+                }) else {
+                    throw PDFParseError(code: .ambiguous, stage: .fragmentOverlap)
                 }
                 bands[index].append(fragment)
             } else { bands.append([fragment]) }
@@ -348,7 +373,7 @@ enum PDFSchoolParser {
                 throw PDFParseError(code: .unsupported, page: index + 1, stage: .yearHeading)
             }
         }
-        var result = PDFAnalysis(kind: kind, sourceDigest: digest, sourceName: name, parsedAt: Date(),
+        var result = PDFAnalysis(version: PDFAnalysis.currentVersion(for: kind), kind: kind, sourceDigest: digest, sourceName: name, parsedAt: Date(),
                                  schoolYear: year, term: nil, lessons: [], events: [], notices: [])
         if kind == .timetable {
             guard pages.count == 1, normalized.contains("時間割"),

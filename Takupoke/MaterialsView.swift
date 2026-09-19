@@ -177,7 +177,7 @@ struct MaterialsView: View {
 
     private func pdfStatus(_ record: MaterialRecord) -> String {
         guard let analysis = model.state.pdfAnalyses?[record.kind.rawValue] else { return "取得済み・未解析" }
-        return analysis.sourceDigest == record.digest && analysis.version == PDFAnalysis.parserVersion
+        return analysis.sourceDigest == record.digest && analysis.version == PDFAnalysis.currentVersion(for: record.kind)
             ? "取得済み・解析結果あり" : "取得済み・新しい資料は未解析（前回結果を保持）"
     }
 

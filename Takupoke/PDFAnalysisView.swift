@@ -40,7 +40,7 @@ struct PDFAnalysisView: View {
                     if analysis.version < 3 {
                         Label("旧版の解析結果には文字順の誤りが含まれる場合があります。保存済みPDFを再解析してください。", systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
-                    } else if analysis.sourceDigest != model.state.record(for: kind)?.digest || analysis.version != PDFAnalysis.parserVersion {
+                    } else if analysis.sourceDigest != model.state.record(for: kind)?.digest || analysis.version != PDFAnalysis.currentVersion(for: kind) {
                         Label("前回の解析結果です。現在の資料を解析してください。", systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
                     }
@@ -61,11 +61,11 @@ struct PDFAnalysisView: View {
                             PDFLessonDetail(lesson: lesson)
                         } label: {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text(lesson.names.cellSubject).font(.headline)
+                                Text(PDFDisplayText.continuous(lesson.names.cellSubject)).font(.headline)
                                 Text("\(lesson.className) · \(weekdays[lesson.weekday])曜 · \(lesson.period)限")
                                     .font(.subheadline).foregroundStyle(.secondary)
                                 let metadata = [lesson.names.cellTeacher, lesson.names.cellRoom].filter { !$0.isEmpty }
-                                if !metadata.isEmpty { Text(metadata.joined(separator: " / ")).font(.caption) }
+                                if !metadata.isEmpty { Text(PDFDisplayText.continuous(metadata.joined(separator: " / "))).font(.caption) }
                             }.padding(.vertical, 4)
                         }
                     }
@@ -129,19 +129,19 @@ private struct PDFLessonDetail: View {
     var body: some View {
         List {
             Section {
-                Text(lesson.names.detailSubject).font(.title3)
+                Text(PDFDisplayText.continuous(lesson.names.detailSubject)).font(.title3)
                 LabeledContent("クラス", value: lesson.className)
                 LabeledContent("時限", value: "\(lesson.period)限")
-                LabeledContent("教員", value: lesson.names.detailTeacher.isEmpty ? "記載なし" : lesson.names.detailTeacher)
-                LabeledContent("教室", value: lesson.names.detailRoom.isEmpty ? "記載なし" : lesson.names.detailRoom)
+                LabeledContent("教員", value: lesson.names.detailTeacher.isEmpty ? "記載なし" : PDFDisplayText.continuous(lesson.names.detailTeacher))
+                LabeledContent("教室", value: lesson.names.detailRoom.isEmpty ? "記載なし" : PDFDisplayText.continuous(lesson.names.detailRoom))
             }
             Section("PDFの記載名") {
-                LabeledContent("科目", value: lesson.names.subject)
-                LabeledContent("教員", value: lesson.names.teacher.isEmpty ? "記載なし" : lesson.names.teacher)
-                LabeledContent("教室", value: lesson.names.room.isEmpty ? "記載なし" : lesson.names.room)
+                LabeledContent("科目", value: PDFDisplayText.continuous(lesson.names.subject))
+                LabeledContent("教員", value: lesson.names.teacher.isEmpty ? "記載なし" : PDFDisplayText.continuous(lesson.names.teacher))
+                LabeledContent("教室", value: lesson.names.room.isEmpty ? "記載なし" : PDFDisplayText.continuous(lesson.names.room))
             }
             Section {
-                DisclosureGroup("元のセルの記載") { Text(lesson.sourceText).textSelection(.enabled) }
+                DisclosureGroup("元のセルの記載") { Text(PDFDisplayText.continuous(lesson.sourceText)).textSelection(.enabled) }
                 Text("同時刻に複数の授業がある場合も、授業ごとに表示しています。空欄は他の授業から補っていません。")
                     .font(.caption).foregroundStyle(.secondary)
             }

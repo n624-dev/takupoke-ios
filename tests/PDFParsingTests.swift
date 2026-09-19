@@ -73,6 +73,8 @@ final class PDFParsingTests: XCTestCase {
     }
     func testTimetablePeriodsParallelLessonsAndEmptyRoom() throws {
         let result = try parse([timetable()], kind: .timetable)
+        XCTAssertEqual(result.version, PDFAnalysis.currentVersion(for: .timetable))
+        XCTAssertEqual(result.version, 5)
         XCTAssertEqual(result.schoolYear, 2032)
         XCTAssertEqual(result.term, "前期")
         XCTAssertEqual(result.lessons.count, 8)
@@ -129,12 +131,48 @@ final class PDFParsingTests: XCTestCase {
         XCTAssertEqual(try layout([right, left]).text(box).count, 2)
         right.x = 12
         XCTAssertThrowsError(try layout([left, right]).timetableText(box)) {
-            XCTAssertEqual(($0 as? PDFParseError)?.stage, .lessonLines)
+            XCTAssertEqual(($0 as? PDFParseError)?.stage, .fragmentOverlap)
         }
         right.x = 19; right.y = 11.2
         XCTAssertEqual(try layout([right, left]).timetableText(box), ["架空", "Q"])
         right.y = 10; right.height = 4
         XCTAssertEqual(try layout([right, left]).timetableText(box).count, 2)
+    }
+    func testTimetableBoundaryOverhangRequiresForwardTextAndGeometry() throws {
+        var page = timetable()
+        page.glyphs.removeAll { $0.x >= 100 && $0.x < 140 && $0.cy > 100 && $0.cy < 160 }
+        for (row, value) in ["架空科目Q", "架空教員R", "架空部屋S"].enumerated() {
+            for (i, character) in value.enumerated() {
+                page.glyphs.append(PDFGlyph(text: String(character), x: 104 + Double(i) * 4,
+                    y: 108 + Double(row) * 18, width: 5, height: 6,
+                    sourceLine: row * 10 + (i < 3 ? 0 : 1), sourceOrder: row * 100 + i))
+            }
+        }
+        let result = try parse([page], kind: .timetable)
+        let lesson = try XCTUnwrap(result.lessons.first { $0.className == "1_ZZ" })
+        XCTAssertEqual(lesson.names.subject, "架空科目Q")
+        XCTAssertEqual(lesson.names.teacher, "架空教員R")
+        XCTAssertEqual(lesson.names.room, "架空部屋S")
+
+        // The same rectangles do not authorize overriding a contrary reading order.
+        for index in page.glyphs.indices where page.glyphs[index].sourceLine == 0 {
+            page.glyphs[index].sourceOrder! += 10
+        }
+        XCTAssertThrowsError(try parse([page], kind: .timetable)) {
+            XCTAssertEqual(($0 as? PDFParseError)?.stage, .fragmentOverlap)
+            XCTAssertEqual(($0 as? PDFParseError)?.cell?.classRow, 1)
+        }
+    }
+    func testRemovingDisplayBreaksPreservesStoredLessonFields() throws {
+        let source = "架空\r\n科目Q\n架空教員R\u{2028}架空部屋S"
+        let lesson = PDFLesson(className: "1_ZZ", weekday: 2, period: 5,
+            names: TimetableLessonNames(subject: "架空\r\n科目Q", teacher: "架空教員R", room: "架空部屋S"),
+            sourceText: source, page: 1)
+        XCTAssertEqual(PDFDisplayText.continuous(lesson.sourceText), "架空科目Q架空教員R架空部屋S")
+        XCTAssertEqual(PDFDisplayText.continuous(lesson.names.subject), "架空科目Q")
+        XCTAssertEqual(lesson.sourceText, source)
+        let restored = try JSONDecoder().decode(PDFLesson.self, from: JSONEncoder().encode(lesson))
+        XCTAssertEqual(restored, lesson)
     }
     func testTimetableFailureReportsLocationAndLineCountWithoutNames() throws {
         var page = timetable()
@@ -202,6 +240,8 @@ final class PDFParsingTests: XCTestCase {
     }
     func testCalendarScopesDatesPeriodsAndYearBoundary() throws {
         let result = try parse([calendar(Array(4...9)), calendar([10, 11, 12, 1, 2, 3])], kind: .events)
+        XCTAssertEqual(result.version, PDFAnalysis.currentVersion(for: .events))
+        XCTAssertEqual(result.version, 4)
         XCTAssertEqual(result.schoolYear, 2032)
         XCTAssertFalse(result.events.contains { $0.title.contains("対象外") || $0.title == "9" })
         let winter = try XCTUnwrap(result.events.first { $0.title == "冬季休業" })
