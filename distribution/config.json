@@ -1,0 +1,12 @@
+{
+  "repository": "n624-dev/takupoke-ios",
+  "bundleIdentifier": "io.github.n624dev.takupoke",
+  "name": "たくぽけ",
+  "developerName": "n624-dev",
+  "versionPrefix": "0.1",
+  "minOSVersion": "16.0",
+  "sourceName": "たくぽけ iOS",
+  "sourceIdentifier": "io.github.n624dev.takupoke.source",
+  "description": "学校の予定を端末内でまとめるiOSアプリ。現在は初回導入・更新を確認する開発版です。資料の取り込みと時間割表示は今後追加します。",
+  "tintColor": "146E66"
+}

@@ -1,0 +1,106 @@
+name: iOS build and AltStore release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+
+jobs:
+  checks:
+    name: Distribution tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Check release and failure handling
+        run: python3 -B -m unittest discover -s tests -v
+      - name: Check shell syntax and whitespace
+        run: |
+          bash -n tools/build-ios.sh
+          git diff --check
+
+  build-check:
+    name: Check iPhone build without publishing
+    needs: checks
+    if: github.repository != 'n624-dev/takupoke-ios' || github.ref != 'refs/heads/main' || github.event_name == 'pull_request'
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Assign version and build number
+        id: version
+        run: python3 -B tools/release.py version --github-output "$GITHUB_OUTPUT"
+      - name: Validate Xcode project and property lists
+        run: plutil -lint Takupoke.xcodeproj/project.pbxproj Takupoke/Info.plist Takupoke/PrivacyInfo.xcprivacy
+      - name: Build unsigned IPA and matching AltStore Source
+        env:
+          TKPK_VERSION: ${{ steps.version.outputs.version }}
+          TKPK_BUILD: ${{ steps.version.outputs.build }}
+          TKPK_COMMIT: ${{ github.sha }}
+        run: bash tools/build-ios.sh "$RUNNER_TEMP/takupoke-output"
+      - name: Remove build outputs
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/takupoke-output"
+
+  release:
+    name: Build and publish AltStore release
+    needs: checks
+    if: github.repository == 'n624-dev/takupoke-ios' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: macos-15
+    timeout-minutes: 25
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    permissions:
+      contents: write
+    concurrency:
+      group: altstore-publication
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Assign version and build number
+        id: version
+        run: python3 -B tools/release.py version --github-output "$GITHUB_OUTPUT"
+      - name: Validate Xcode project and property lists
+        run: plutil -lint Takupoke.xcodeproj/project.pbxproj Takupoke/Info.plist Takupoke/PrivacyInfo.xcprivacy
+      - name: Build unsigned IPA and matching AltStore Source
+        env:
+          TKPK_VERSION: ${{ steps.version.outputs.version }}
+          TKPK_BUILD: ${{ steps.version.outputs.build }}
+          TKPK_COMMIT: ${{ github.sha }}
+        run: bash tools/build-ios.sh "$RUNNER_TEMP/takupoke-output"
+      - name: Verify uploads and publish together
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B tools/publish.py --output "$RUNNER_TEMP/takupoke-output"
+      - name: Remove build outputs
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/takupoke-output"

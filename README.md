@@ -1,39 +1,95 @@
-# takupoke-ios
+# たくぽけ iOS / takupoke-ios
 
-学校の通常時間割・学校行事・時間割変更を端末内で統合する、Swift / SwiftUI 製の iOS ネイティブアプリ。
+学校の通常時間割・学校行事・時間割変更を、iPhone 内でひとつにまとめる Swift / SwiftUI 製アプリです。
 
-現在は開発方針とリポジトリ構成を整えた段階です。アプリ、ビルド用 GitHub Actions、IPA、AltStore Source はまだ実装・公開していません。
+学校資料は iOS 標準の「ファイル」から OneDrive File Provider 経由で読み込む方針です。Web 版とは独立して実装し、Microsoft Graph や通知用サーバーを必要としない構成を目指します。
+
+**現在は開発初期の配布確認版です。時間割アプリとしての実用機能はまだありません。**
+
+[導入・更新手順](docs/distribution.md) · [開発環境](docs/development.md) · [ロードマップ](docs/roadmap.md) · [Releases](https://github.com/n624-dev/takupoke-ios/releases)
+
+## 現在できること
+
+- SwiftUI のホーム画面でバージョン・ビルド・コミットを表示。
+- 端末内に確認メモを保存し、アプリ更新後のデータ保持を検証。
+- `main` への push から、Actions で iPhone 向け IPA と AltStore Source JSON を生成・公開するワークフロー。
+- 配布前に IPA と Source の情報・アップロード内容を照合し、失敗した公開準備が前回の配布を置き換えない構成。
+
+| 対象 | 状態 |
+| --- | --- |
+| 最小アプリ・Xcode プロジェクト | 実装済み。iOS ビルド・実機動作は未確認 |
+| Actions・IPA・Source 自動生成／公開処理 | 実装済み。CI の結果はメンテナーが確認 |
+| 配布メタデータ・公開失敗時の処理 | 架空データによるローカルテストを実施 |
+| Source からの初回導入・更新 | 実機確認待ち |
+| OneDrive 取得・PDF / XLSX 解析・時間割統合 | 未実装 |
+| 通知・バックグラウンド更新 | 未実装 |
+
+## iPhone に導入する
+
+対象は **iOS 16.0 以降の iPhone と AltStore Classic** です。現在の配布設定では iPad 専用 UI・AltStore PAL・App Store 配布は対象にしていません。
+
+初回の Actions 公開処理が成功すると、以下の固定 URL を AltStore Classic の Source として追加できます。
+
+```text
+https://github.com/n624-dev/takupoke-ios/releases/latest/download/altstore-source.json
+```
+
+初回公開が完了するまでは URL は利用できません。CI は [Actions](https://github.com/n624-dev/takupoke-ios/actions/workflows/ios-release.yml)、公開済みの成果物は [Releases](https://github.com/n624-dev/takupoke-ios/releases) で確認できます。
+
+Windows での AltServer 準備、初回導入、アップデート、実機確認項目は [導入・更新手順](docs/distribution.md) を参照してください。IPA は署名なしで生成し、導入時に AltStore 側で署名する構成です。Apple ID や署名証明書をこのリポジトリや CI に登録する必要はありません。
+
+## 開発する
+
+現在の Linux 開発環境と Windows で編集し、iOS のビルドには GitHub Actions の macOS runner を使用します。Mac の所有は前提にしません。
+
+```text
+Linux / Windows で編集・ローカル検証
+  → GitHub の main へ push
+  → macOS runner で IPA をビルド
+  → IPA と AltStore Source を同じ Release で公開
+  → iPhone の AltStore Classic から更新
+```
+
+ローカルの配布テストに必要なのは Git と Python 3.11 以降です。Python の追加パッケージは不要です。
+
+```sh
+git clone https://github.com/n624-dev/takupoke-ios.git
+cd takupoke-ios
+python3 -B -m unittest discover -s tests -v
+```
+
+Windows では最後のコマンドを `py -3 -B -m unittest discover -s tests -v` に置き換えます。コミット前に、自分の GitHub `noreply` メールをこの clone に設定してください。詳しくは [開発環境・検証手順](docs/development.md) を参照してください。
+
+## 構成
+
+```text
+Takupoke/                  SwiftUI アプリ、Info.plist、アイコン、プライバシー宣言
+Takupoke.xcodeproj/         共有 scheme を含む Xcode プロジェクト
+distribution/config.json   公開アプリ情報・バージョン系列
+tools/                     IPA ビルド・Source 生成・公開用スクリプト
+tests/                     架空 IPA による配布・失敗処理のテスト
+.github/workflows/         iOS ビルドと AltStore 配布の CI
+docs/                      方針・手順・検証・情報管理
+```
 
 ## ドキュメント
 
-- [確定した開発方針](docs/development-policy.md)
-- [開発順序と完了条件](docs/roadmap.md)
-- [公開リポジトリでの情報管理](docs/public-repository.md)
+| 文書 | 内容 |
+| --- | --- |
+| [確定した開発方針](docs/development-policy.md) | 採用技術、資料取得、解析、保存、配布の判断基準 |
+| [開発ロードマップ](docs/roadmap.md) | ①〜⑧の順序と完了条件 |
+| [開発環境・検証手順](docs/development.md) | Linux / Windows の準備、Git 設定、テスト、ビルド |
+| [導入・更新・配布の仕組み](docs/distribution.md) | Source URL、実機導入、番号規則、障害対応 |
+| [検証記録](docs/verification.md) | ローカルの確認範囲と CI・実機の確認待ち項目 |
+| [公開時の情報管理](docs/public-repository.md) | 学校資料、個人情報、認証情報、コミット作者情報 |
+| [貢献ガイド](CONTRIBUTING.md) | 変更提案、Pull Request、公開できるテストデータ |
 
-## 基本方針
+## データと公開範囲
 
-- SwiftUI を基本とし、必要な箇所のみ UIKit を使用する。
-- Web 版とは別実装にし、必要なデータ仕様・解析ルールを合わせる。
-- iOS 標準の「ファイル」と OneDrive File Provider を通じて学校資料を取得する。Microsoft Graph は使用しない。
-- PDF は PDFKit、XLSX は Swift で解析する。曖昧な内容は推測で反映しない。
-- 取得・解析に失敗した場合も、端末内の前回正常データを維持する。
-- ローカルに一時ファイルを溜めず、開発・アプリ処理で不要になった作業用ファイルを片付ける。
-- 最初の開発ステップで AltStore Classic による初回導入と更新を実機確認する。
+公開するのはソースコード・設定・ドキュメント・架空のテストデータです。学校の実資料、その抽出結果、氏名、個人のメールアドレス、OneDrive 共有リンク、認証情報は含めません。実資料は原則リポジトリ外に置き、一時ファイルは作業後に片付けます。
 
-通常の開発フローは以下に固定します。
+この開発版の確認メモは端末内の UserDefaults に保存します。アプリから外部への送信処理はありません。学校資料の保存・解析処理は今後実装します。
 
-```text
-このデバイスまたは Windows で編集
-  → GitHub へ push
-  → GitHub Actions の macOS runner で IPA を生成・公開
-  → バージョン / build 番号と AltStore Source JSON を自動更新
-  → iPhone の AltStore Source から導入・更新
-```
+## ライセンス
 
-開発にはこのデバイスと Windows の両方を使用します。Mac の所有は前提にしません。Windows 版アプリは今回の開発対象外です。
-
-## リポジトリの扱い
-
-公開対象はソースコード、設定のひな形、ドキュメント、完全に架空のテストデータです。学校の実資料、実資料から抽出したデータ、個人情報、認証情報は含めません。
-
-ローカルの実資料はリポジトリ外に保存することを基本とし、作業上必要な場合は Git 除外済みの `private/` を使用します。追加・コミット・公開の前に [情報管理ルール](docs/public-repository.md) を確認してください。
+プロジェクトのライセンスは未選定です。正式なライセンスは決定後に `LICENSE` と本節へ記載します。

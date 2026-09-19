@@ -8,6 +8,10 @@
 *.ps1 text eol=lf
 *.pbxproj text eol=lf
 *.xcworkspacedata text eol=lf
+*.xcscheme text eol=lf
+*.plist text eol=lf
+*.xcprivacy text eol=lf
+*.py text eol=lf
 *.png binary
 *.jpg binary
 *.jpeg binary
