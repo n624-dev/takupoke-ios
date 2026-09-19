@@ -143,6 +143,12 @@ class PublicationTests(IPAFixture):
         self.change_main_after_upload = False
         self.existing_draft = False
         self.created_draft = False
+        self.draft_available = True
+        self.draft_published = False
+        self.draft_commit = COMMIT
+        self.missing_uploaded_asset = False
+        self.wrong_uploaded_size = False
+        self.fail_download = False
         self.previous_metadata = None
         self.fail_previous_download = False
         self.patch_env = patch.dict(os.environ, {
@@ -154,61 +160,89 @@ class PublicationTests(IPAFixture):
         self.patch_env.start()
         self.addCleanup(self.patch_env.stop)
 
-    def fake_gh(self, *args):
+    def fake_gh(self, *args, output=None):
         self.calls.append(args)
         if args[0] == "api":
-            if args[-1].endswith("/commits/main"):
+            endpoint = args[-1]
+            method = args[args.index("--method") + 1] if "--method" in args else "GET"
+            if endpoint.endswith("/commits/main"):
                 return json.dumps({"sha": self.main_commit})
-            if "/releases?" in args[-1]:
-                if self.existing_draft or self.created_draft:
-                    return json.dumps([[{"id": 42, "tag_name": self.metadata["tag"], "draft": True,
-                                         "prerelease": False, "target_commitish": COMMIT}]])
+            if "/releases?" in endpoint:
+                # Reproduce CI: newly created drafts never appear in the listing.
+                items = []
+                if self.existing_draft:
+                    items.append({"id": 42, "tag_name": self.metadata["tag"], "draft": True,
+                                  "prerelease": False, "target_commitish": COMMIT})
                 if self.previous_metadata:
-                    return json.dumps([[{"tag_name": "previous", "draft": False, "prerelease": False}]])
-                return "[[]]"
-            if args[-1].endswith("/releases/latest"):
+                    items.append({"tag_name": "previous", "draft": False, "prerelease": False})
+                return json.dumps([items])
+            if endpoint.endswith("/releases/latest"):
                 return json.dumps({"tag_name": "previous"})
-            if "/releases/tags/" in args[-1]:
-                # GitHub does not expose unpublished drafts through this API.
-                raise subprocess.CalledProcessError(1, "gh", stderr="HTTP 404")
-            if args[-1].endswith("/releases/42"):
-                return json.dumps({"id": 42, "tag_name": self.metadata["tag"],
-                                   "target_commitish": COMMIT, "draft": True, "assets": [
-                    {"name": name, "state": "uploaded", "size": len(data)}
+            if "/releases/tags/" in endpoint:
+                raise AssertionError("Drafts must not be located by tag")
+            if endpoint.endswith("/releases") and method == "POST":
+                request = json.loads(Path(args[args.index("--input") + 1]).read_text())
+                self.assertIs(request["draft"], True)
+                self.assertEqual(request["target_commitish"], COMMIT)
+                self.assertEqual(request["tag_name"], self.metadata["tag"])
+                self.assertIn("\n\n", request["body"])
+                self.created_draft = True
+                self.remote_files = {}
+                return json.dumps({"id": 42})
+            if endpoint.endswith("/releases/42"):
+                if method == "PATCH":
+                    self.assertIn("draft=false", args)
+                    self.assertIn("make_latest=true", args)
+                    return json.dumps({"id": 42, "draft": False,
+                                       "tag_name": self.metadata["tag"], "target_commitish": COMMIT})
+                if not self.draft_available:
+                    raise subprocess.CalledProcessError(1, "gh", stderr="HTTP 404")
+                assets = [
+                    {"id": release.ASSETS.index(name) + 100, "name": name, "state": "uploaded",
+                     "size": len(data) + int(self.wrong_uploaded_size)}
                     for name, data in self.remote_files.items()
-                ]})
-        if args[:2] in (("release", "create"), ("release", "upload")):
-            if self.fail_upload:
-                raise subprocess.CalledProcessError(1, "gh")
-            self.remote_files = {name: (self.output / name).read_bytes() for name in release.ASSETS}
-            self.created_draft = True
-            if self.change_main_after_upload:
-                self.main_commit = "b" * 40
-            return ""
-        if args[:2] == ("release", "download"):
-            target = Path(args[args.index("--dir") + 1])
-            if args[2] == "previous":
-                if self.fail_previous_download:
+                ]
+                if self.missing_uploaded_asset and assets:
+                    assets.pop()
+                return json.dumps({"id": 42, "tag_name": self.metadata["tag"],
+                                   "target_commitish": self.draft_commit,
+                                   "draft": not self.draft_published, "assets": assets})
+            if "/releases/42/assets?name=" in endpoint and method == "POST":
+                if self.fail_upload:
                     raise subprocess.CalledProcessError(1, "gh")
-                release.write_json(target / "release.json", self.previous_metadata)
+                name = endpoint.split("?name=")[1]
+                self.remote_files[name] = Path(args[args.index("--input") + 1]).read_bytes()
+                if self.change_main_after_upload:
+                    self.main_commit = "b" * 40
+                return json.dumps({"id": 100 + release.ASSETS.index(name)})
+            if "/releases/assets/" in endpoint:
+                index = int(endpoint.rsplit("/", 1)[1]) - 100
+                name = release.ASSETS[index]
+                if method == "DELETE":
+                    del self.remote_files[name]
+                    return ""
+                if self.fail_download:
+                    raise subprocess.CalledProcessError(1, "gh")
+                self.assertIn("Accept: application/octet-stream", args)
+                self.assertIsNotNone(output)
+                output.write_bytes(self.remote_files[name] + (b"corrupt" if self.corrupt_download else b""))
                 return ""
-            for name, data in self.remote_files.items():
-                (target / name).write_bytes(data + (b"corrupt" if self.corrupt_download else b""))
-            return ""
-        if args[:2] == ("release", "edit"):
-            self.assertIn("--draft=false", args)
-            self.assertIn("--latest", args)
+        if args[:2] == ("release", "download") and args[2] == "previous":
+            target = Path(args[args.index("--dir") + 1])
+            if self.fail_previous_download:
+                raise subprocess.CalledProcessError(1, "gh")
+            release.write_json(target / "release.json", self.previous_metadata)
             return ""
         raise AssertionError(f"Unexpected command: {args}")
 
     def published(self):
-        return any(call[:2] == ("release", "edit") for call in self.calls)
+        return any("PATCH" in call for call in self.calls)
 
     def test_publish_only_after_uploaded_bytes_match(self):
         with patch.object(publish, "gh", side_effect=self.fake_gh):
             publish.publish(self.output)
         self.assertTrue(self.published())
-        self.assertEqual(self.calls[-1][:2], ("release", "edit"))
+        self.assertIn("PATCH", self.calls[-1])
 
     def test_unpublished_draft_is_verified_by_id_not_tag(self):
         with patch.object(publish, "gh", side_effect=self.fake_gh):
@@ -217,12 +251,56 @@ class PublicationTests(IPAFixture):
         self.assertTrue(any(call[0] == "api" and call[-1].endswith("/releases/42") for call in self.calls))
         self.assertFalse(any(call[0] == "api" and "/releases/tags/" in call[-1] for call in self.calls))
 
-    def test_missing_draft_stops_before_publication(self):
+    def test_new_draft_is_not_rediscovered_through_stale_listing(self):
         with patch.object(publish, "gh", side_effect=self.fake_gh):
-            with patch.object(publish, "list_releases", return_value=[]):
-                with self.assertRaisesRegex(ValueError, "exactly one"):
-                    publish.publish(self.output)
+            publish.publish(self.output)
+        self.assertTrue(self.created_draft)
+        self.assertTrue(self.published())
+        self.assertEqual(sum("/releases?" in call[-1] for call in self.calls), 1)
+
+    def test_missing_draft_stops_before_publication(self):
+        self.draft_available = False
+        with patch.object(publish, "gh", side_effect=self.fake_gh):
+            with self.assertRaises(subprocess.CalledProcessError):
+                publish.publish(self.output)
         self.assertFalse(self.published())
+
+    def test_unexpected_draft_is_not_modified(self):
+        for published, commit in ((True, COMMIT), (False, "b" * 40)):
+            with self.subTest(published=published, commit=commit):
+                self.draft_published, self.draft_commit = published, commit
+                with patch.object(publish, "gh", side_effect=self.fake_gh):
+                    with self.assertRaisesRegex(ValueError, "unexpected"):
+                        publish.publish(self.output)
+                self.assertFalse(self.published())
+                self.assertEqual(self.remote_files, {})
+
+    def test_incomplete_assets_stop_publication(self):
+        for attribute in ("missing_uploaded_asset", "wrong_uploaded_size"):
+            with self.subTest(attribute=attribute):
+                setattr(self, attribute, True)
+                with patch.object(publish, "gh", side_effect=self.fake_gh):
+                    with self.assertRaisesRegex(ValueError, "asset mismatch|Incomplete"):
+                        publish.publish(self.output)
+                self.assertFalse(self.published())
+                setattr(self, attribute, False)
+
+    def test_asset_download_failure_stops_publication(self):
+        self.fail_download = True
+        with patch.object(publish, "gh", side_effect=self.fake_gh):
+            with self.assertRaises(subprocess.CalledProcessError):
+                publish.publish(self.output)
+        self.assertFalse(self.published())
+
+    def test_binary_download_preserves_bytes(self):
+        expected = b"\x00\xff\xfe\r\n"
+        destination = Path(self.scratch.name) / "download.bin"
+        def respond(command, *, stdout, check):
+            self.assertTrue(check)
+            stdout.write(expected)
+        with patch.object(publish.subprocess, "run", side_effect=respond):
+            publish.gh("api", "synthetic", output=destination)
+        self.assertEqual(destination.read_bytes(), expected)
 
     def test_upload_failure_does_not_publish(self):
         self.fail_upload = True
@@ -242,7 +320,7 @@ class PublicationTests(IPAFixture):
         self.main_commit = "b" * 40
         with patch.object(publish, "gh", side_effect=self.fake_gh):
             publish.publish(self.output)
-        self.assertFalse(any(call[0] == "release" for call in self.calls))
+        self.assertEqual(len(self.calls), 1)
 
     def test_main_changing_during_upload_leaves_draft(self):
         self.change_main_after_upload = True
@@ -259,18 +337,20 @@ class PublicationTests(IPAFixture):
 
     def test_existing_draft_can_be_retried_without_replacing_public_release(self):
         self.existing_draft = True
+        self.remote_files = {name: b"old synthetic upload" for name in release.ASSETS}
         with patch.object(publish, "gh", side_effect=self.fake_gh):
             publish.publish(self.output)
         self.assertTrue(self.published())
-        self.assertTrue(any(call[:2] == ("release", "upload") for call in self.calls))
-        self.assertFalse(any(call[:2] == ("release", "create") for call in self.calls))
+        self.assertTrue(any("/assets?name=" in call[-1] for call in self.calls))
+        self.assertFalse(self.created_draft)
+        self.assertEqual(sum("DELETE" in call for call in self.calls), len(release.ASSETS))
 
     def test_older_retry_does_not_overwrite_latest(self):
         self.previous_metadata = {"version": "0.1.13", "build": "13.1"}
         with patch.object(publish, "gh", side_effect=self.fake_gh):
             publish.publish(self.output)
         self.assertFalse(self.published())
-        self.assertFalse(any(call[:2] == ("release", "create") for call in self.calls))
+        self.assertFalse(self.created_draft)
 
     def test_cannot_read_previous_release_fails_closed(self):
         self.previous_metadata = {"version": "0.1.11", "build": "11.1"}
