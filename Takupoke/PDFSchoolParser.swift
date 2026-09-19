@@ -49,7 +49,7 @@ struct PDFSchoolEvent: Codable, Equatable {
     var periodEvidence: String? = nil
 }
 struct PDFAnalysis: Codable {
-    static let parserVersion = 1
+    static let parserVersion = 2
     var version = parserVersion
     var kind: MaterialKind
     var sourceDigest: String
@@ -68,8 +68,31 @@ struct PDFParseAttempt: Codable {
 }
 struct PDFParseError: Error, LocalizedError, Codable, Equatable {
     enum Code: String, Codable { case unreadable, unsupported, ambiguous, limit, cancelled, storage }
+    // Fixed labels only: never include source text, filenames, URLs or personal data.
+    enum Stage: String, Codable, CaseIterable {
+        case characterMapping, pageRotation, yearHeading, documentHeading, periodHeading
+        case gridColumn, gridRow, gridCell, eventColumns, calendarDates, monthHeading, vectorObjects
+
+        var label: String {
+            switch self {
+            case .characterMapping: return "文字と位置の対応（P01）"
+            case .pageRotation: return "ページの向き（P02）"
+            case .yearHeading: return "年度の見出し（P03）"
+            case .documentHeading: return "資料名・学期・ページ数（P04）"
+            case .periodHeading: return "時限の見出し（P05）"
+            case .gridColumn: return "表の列の罫線（P06）"
+            case .gridRow: return "日付の行の罫線（P07）"
+            case .gridCell: return "表のセルの罫線（P08）"
+            case .eventColumns: return "共通・高松・詫間の見出し（P09）"
+            case .calendarDates: return "日付の列（P10）"
+            case .monthHeading: return "月の見出し（P11）"
+            case .vectorObjects: return "未対応の埋め込み描画（P12）"
+            }
+        }
+    }
     var code: Code
     var page: Int? = nil
+    var stage: Stage? = nil
     var errorDescription: String? {
         let reason: String
         switch code {
@@ -80,7 +103,8 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
         case .cancelled: reason = "PDF解析を中止しました。"
         case .storage: reason = "PDF解析結果を保存できませんでした。"
         }
-        return (page.map { "\($0)ページ目：" } ?? "") + reason + "前回の正常な解析結果は保持しています。"
+        return (page.map { "\($0)ページ目：" } ?? "") + reason +
+            (stage.map { "確認箇所：\($0.label)。" } ?? "") + "前回の正常な解析結果は保持しています。"
     }
 }
 
@@ -91,12 +115,12 @@ struct PDFGrid {
     func column(_ x: Double, _ y: Double) throws -> PDFBox {
         let vs = page.lines.filter { $0.vertical && $0.y1 - 0.8 <= y && y <= $0.y2 + 0.8 }
         guard let l = vs.filter({ $0.x1 < x - 0.5 }).map(\.x1).max(),
-              let r = vs.filter({ $0.x1 > x + 0.5 }).map(\.x1).min() else { throw PDFParseError(code: .unsupported) }
+              let r = vs.filter({ $0.x1 > x + 0.5 }).map(\.x1).min() else { throw PDFParseError(code: .unsupported, stage: .gridColumn) }
         return PDFBox(left: l, top: 0, right: r, bottom: page.height)
     }
     func dateRow(_ x: Double, _ y: Double, headerBottom: Double) throws -> PDFBox {
         let hs = page.lines.filter { $0.horizontal && $0.x1 - 0.8 <= x && x <= $0.x2 + 0.8 }
-        guard let b = hs.filter({ $0.y1 > y + 0.5 }).map(\.y1).min() else { throw PDFParseError(code: .unsupported) }
+        guard let b = hs.filter({ $0.y1 > y + 0.5 }).map(\.y1).min() else { throw PDFParseError(code: .unsupported, stage: .gridRow) }
         let t = max(headerBottom + 1, hs.filter({ $0.y1 < y - 0.5 }).map(\.y1).max() ?? headerBottom + 1)
         return PDFBox(left: 0, top: t, right: page.width, bottom: b)
     }
@@ -107,7 +131,7 @@ struct PDFGrid {
               let r = vs.filter({ $0.x1 > x + 0.5 }).map(\.x1).min(),
               let t = hs.filter({ $0.y1 < y - 0.5 }).map(\.y1).max(),
               let b = hs.filter({ $0.y1 > y + 0.5 }).map(\.y1).min() else {
-            throw PDFParseError(code: .unsupported)
+            throw PDFParseError(code: .unsupported, stage: .gridCell)
         }
         return PDFBox(left: l, top: t, right: r, bottom: b)
     }
@@ -175,27 +199,32 @@ enum PDFSchoolParser {
         let normalized = key(top)
         guard let range = normalized.range(of: "令和[0-9]{1,2}年度", options: .regularExpression),
               let era = Int(normalized[range].dropFirst(2).dropLast(2)), (1...99).contains(era) else {
-            throw PDFParseError(code: .unsupported, page: 1)
+            throw PDFParseError(code: .unsupported, page: 1, stage: .yearHeading)
         }
         let year = 2018 + era
         for (index, page) in pages.enumerated() {
             let heading = key(PDFGrid.rows(page.glyphs.filter { $0.cy < page.height / 8 }).map { $0.map(\.text).joined() }.joined())
             guard let range = heading.range(of: "令和[0-9]{1,2}年度", options: .regularExpression),
                   Int(heading[range].dropFirst(2).dropLast(2)) == era else {
-                throw PDFParseError(code: .unsupported, page: index + 1)
+                throw PDFParseError(code: .unsupported, page: index + 1, stage: .yearHeading)
             }
         }
         var result = PDFAnalysis(kind: kind, sourceDigest: digest, sourceName: name, parsedAt: Date(),
                                  schoolYear: year, term: nil, lessons: [], events: [], notices: [])
         if kind == .timetable {
             guard pages.count == 1, normalized.contains("時間割"),
-                  normalized.contains("前期") != normalized.contains("後期") else { throw PDFParseError(code: .unsupported) }
+                  normalized.contains("前期") != normalized.contains("後期") else {
+                throw PDFParseError(code: .unsupported, page: 1, stage: .documentHeading)
+            }
             result.term = normalized.contains("前期") ? "前期" : "後期"
-            result.lessons = try timetable(pages[0], check: check)
+            do { result.lessons = try timetable(pages[0], check: check) }
+            catch var error as PDFParseError { error.page = 1; throw error }
             result.notices = ["PDFの記載名を表示しています。正式名称の対応表はまだ取り込んでいません。",
                               "適用開始日・終了日はPDFの学期名から推測していません。時間割変更との統合はまだ行いません。"]
         } else {
-            guard normalized.contains("行事予定表"), pages.count == 2 else { throw PDFParseError(code: .unsupported) }
+            guard normalized.contains("行事予定表"), pages.count == 2 else {
+                throw PDFParseError(code: .unsupported, page: 1, stage: .documentHeading)
+            }
             var months: Set<Int> = []
             var arrows: [CalendarArrow] = []
             for (i, page) in pages.enumerated() {
@@ -205,7 +234,7 @@ enum PDFSchoolParser {
                     months.formUnion(parsed.months)
                     result.events += parsed.records
                     arrows += parsed.arrows
-                } catch let e as PDFParseError { throw PDFParseError(code: e.code, page: i + 1) }
+                } catch var error as PDFParseError { error.page = i + 1; throw error }
             }
             guard months == Set(1...12), !result.events.isEmpty else { throw PDFParseError(code: .unsupported) }
             result.events.sort { ($0.date, $0.scope) < ($1.date, $1.scope) }
@@ -223,12 +252,14 @@ enum PDFSchoolParser {
         let headers = PDFGrid.rows(page.glyphs.filter { $0.cy < page.height / 5 }).filter {
             key($0.map(\.text).joined()) == String(repeating: "12345678", count: 5)
         }
-        guard headers.count == 1, headers[0].count == 40 else { throw PDFParseError(code: .unsupported, page: 1) }
+        guard headers.count == 1, headers[0].count == 40 else {
+            throw PDFParseError(code: .unsupported, page: 1, stage: .periodHeading)
+        }
         let header = headers[0]
         let first = try grid.box(header[0].cx, header[0].cy)
         let classBox = try grid.box(first.left - 2, first.bottom + 20)
         guard let bodyBottom = page.lines.filter({ $0.vertical && abs($0.x1 - classBox.right) < 0.3 }).map(\.y2).max() else {
-            throw PDFParseError(code: .unsupported, page: 1)
+            throw PDFParseError(code: .unsupported, page: 1, stage: .gridColumn)
         }
         let classRows = PDFGrid.rows(page.glyphs.filter { classBox.left < $0.cx && $0.cx < classBox.right &&
             $0.cy > first.bottom && $0.cy < bodyBottom })
@@ -294,7 +325,7 @@ enum PDFSchoolParser {
         guard common.count == 6, takuma.count == 6, takamatsu.count == 6,
               let headerBottom = common.map(\.bottom).max(),
               let dayHeader = grid.anchors("日", above: headerBottom + 1).filter({ $0.right < common[0].left }).min(by: { $0.left < $1.left }) else {
-            throw PDFParseError(code: .unsupported)
+            throw PDFParseError(code: .unsupported, stage: .eventColumns)
         }
         let dayX = (dayHeader.left + dayHeader.right) / 2
         let dateGlyphs = page.glyphs.filter { abs($0.cx - dayX) < 7 && $0.cy > headerBottom + 2 }
@@ -302,7 +333,7 @@ enum PDFSchoolParser {
             guard let day = Int(key(row.map(\.text).joined())), (1...31).contains(day) else { return nil }
             return (day, row.map(\.cy).reduce(0, +) / Double(row.count))
         }
-        guard dateRows.map(\.0) == Array(1...31) else { throw PDFParseError(code: .unsupported) }
+        guard dateRows.map(\.0) == Array(1...31) else { throw PDFParseError(code: .unsupported, stage: .calendarDates) }
         var output: [PDFSchoolEvent] = []
         var arrows: [CalendarArrow] = []
         var months: Set<Int> = []
@@ -313,10 +344,10 @@ enum PDFSchoolParser {
             let left = common[i].left, right = takuma[i].right
             let monthTexts = PDFGrid.rows(page.glyphs.filter { left < $0.cx && $0.cx < right &&
                 $0.cy < common[i].top && $0.cy > common[i].top - 22 }).map { key($0.map(\.text).joined()) }.filter { $0.range(of: "^(?:[1-9]|1[0-2])月$", options: .regularExpression) != nil }
-            guard monthTexts.count == 1 else { throw PDFParseError(code: .unsupported) }
+            guard monthTexts.count == 1 else { throw PDFParseError(code: .unsupported, stage: .monthHeading) }
             let monthText = monthTexts[0]
             guard monthText.range(of: "^(?:[1-9]|1[0-2])月$", options: .regularExpression) != nil,
-                  let month = Int(monthText.dropLast()), months.insert(month).inserted else { throw PDFParseError(code: .unsupported) }
+                  let month = Int(monthText.dropLast()), months.insert(month).inserted else { throw PDFParseError(code: .unsupported, stage: .monthHeading) }
             for (scope, anchor) in [("共通", common[i]), ("詫間", takuma[i])] {
                 var column: PDFBox
                 if scope == "詫間" {

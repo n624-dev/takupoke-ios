@@ -140,6 +140,42 @@ final class PDFParsingTests: XCTestCase {
         parallel.glyphs.removeAll { $0.cy == 208 && $0.text == "・" }
         XCTAssertThrowsError(try parse([parallel], kind: .timetable))
     }
+    func testFailureStagesSurvivePageWrappingAndContainNoSourceText() throws {
+        func assertFailure(_ pages: [PDFPageLayout], kind: MaterialKind, page: Int,
+                           stage: PDFParseError.Stage, file: StaticString = #filePath, line: UInt = #line) {
+            XCTAssertThrowsError(try parse(pages, kind: kind), file: file, line: line) { error in
+                guard let failure = error as? PDFParseError else { return XCTFail("Unexpected error type", file: file, line: line) }
+                XCTAssertEqual(failure.page, page, file: file, line: line)
+                XCTAssertEqual(failure.stage, stage, file: file, line: line)
+                XCTAssertTrue(failure.localizedDescription.contains(stage.label), file: file, line: line)
+                XCTAssertFalse(failure.localizedDescription.contains("架空"), file: file, line: line)
+            }
+        }
+        var missingYear = timetable()
+        missingYear.glyphs.removeAll { $0.cy == 20 }
+        assertFailure([missingYear], kind: .timetable, page: 1, stage: .yearHeading)
+        var missingPeriod = timetable()
+        missingPeriod.glyphs.removeAll { $0.cy == 70 }
+        assertFailure([missingPeriod], kind: .timetable, page: 1, stage: .periodHeading)
+        var missingGrid = timetable()
+        missingGrid.lines = []
+        assertFailure([missingGrid], kind: .timetable, page: 1, stage: .gridCell)
+        var missingColumns = calendar([10, 11, 12, 1, 2, 3])
+        missingColumns.glyphs.removeAll { $0.text == "詫" }
+        assertFailure([calendar(Array(4...9)), missingColumns], kind: .events, page: 2, stage: .eventColumns)
+        var missingDates = calendar([10, 11, 12, 1, 2, 3])
+        missingDates.glyphs.removeAll { $0.cy > 70 && $0.x < 30 }
+        assertFailure([calendar(Array(4...9)), missingDates], kind: .events, page: 2, stage: .calendarDates)
+    }
+    func testOldFailureDecodesAndNewFailureRetainsOnlyFixedDiagnostic() throws {
+        let old = try JSONDecoder().decode(PDFParseError.self, from: Data(#"{"code":"unsupported","page":1}"#.utf8))
+        XCTAssertNil(old.stage)
+        for stage in PDFParseError.Stage.allCases {
+            let failure = PDFParseError(code: .unsupported, page: 2, stage: stage)
+            XCTAssertEqual(try JSONDecoder().decode(PDFParseError.self, from: JSONEncoder().encode(failure)), failure)
+            XCTAssertTrue(failure.localizedDescription.contains("前回の正常な解析結果は保持しています"))
+        }
+    }
     func testPDFFailureReplacementAndManifestRollback() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -157,9 +193,16 @@ final class PDFParsingTests: XCTestCase {
         }
         try acquire("synthetic-digest")
         let good = try parse([timetable()], kind: .timetable)
-        try library.savePDFAnalysis(good)
+        var old = good
+        old.version = 1
+        try library.savePDFAnalysis(old)
+        let legacy = try MaterialLibrary(root: root)
+        XCTAssertEqual(legacy.state.pdfAnalyses?["timetable"]?.version, 1)
+        XCTAssertEqual(legacy.state.pdfAnalyses?["timetable"]?.lessons, old.lessons)
         try acquire("replacement")
-        try library.recordPDFFailure(PDFParseError(code: .ambiguous), kind: .timetable)
+        let failure = PDFParseError(code: .unsupported, page: 1, stage: .characterMapping)
+        try library.recordPDFFailure(failure, kind: .timetable)
+        XCTAssertEqual(try MaterialLibrary(root: root).state.pdfParseAttempts?["timetable"]?.failure, failure)
         XCTAssertEqual(library.state.pdfAnalyses?["timetable"]?.sourceDigest, "synthetic-digest")
         let manifest = root.appendingPathComponent("library.json")
         let before = try Data(contentsOf: manifest)
@@ -168,16 +211,70 @@ final class PDFParsingTests: XCTestCase {
         XCTAssertThrowsError(try library.savePDFAnalysis(next))
         XCTAssertEqual(try Data(contentsOf: manifest), before)
         XCTAssertEqual(library.state.pdfAnalyses?["timetable"]?.sourceDigest, "synthetic-digest")
+        XCTAssertEqual(library.state.pdfAnalyses?["timetable"]?.version, 1)
         reject = false
         try library.savePDFAnalysis(next)
         let reopened = try MaterialLibrary(root: root)
         XCTAssertEqual(reopened.state.pdfAnalyses?["timetable"]?.sourceDigest, "replacement")
+        XCTAssertEqual(reopened.state.pdfAnalyses?["timetable"]?.version, PDFAnalysis.parserVersion)
         XCTAssertNil(reopened.state.pdfParseAttempts?["timetable"]?.failure)
     }
 }
 
 #if canImport(PDFKit)
 extension PDFParsingTests {
+    func testPDFKitTextSelectionsStayAlignedAcrossSpacesLinesAndRotations() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let data = NSMutableData()
+        let consumer = try XCTUnwrap(CGDataConsumer(data: data as CFMutableData))
+        var media = CGRect(x: 0, y: 0, width: 300, height: 400)
+        let context = try XCTUnwrap(CGContext(consumer: consumer, mediaBox: &media, nil))
+        context.beginPDFPage(nil)
+        let font = CTFontCreateWithName("Helvetica" as CFString, 12, nil)
+        let labels: [(String, CGFloat, CGFloat)] = [("AB CD", 30, 360), ("EF GH", 150, 260), ("IJ KL", 50, 110)]
+        for (text, x, y) in labels {
+            let line = CTLineCreateWithAttributedString(NSAttributedString(string: text,
+                attributes: [NSAttributedString.Key(kCTFontAttributeName as String): font]) as CFAttributedString)
+            context.textPosition = CGPoint(x: x, y: y)
+            CTLineDraw(line, context)
+        }
+        context.move(to: CGPoint(x: 10, y: 20))
+        context.addLine(to: CGPoint(x: 290, y: 20))
+        context.strokePath()
+        context.endPDFPage()
+        context.closePDF()
+        let url = root.appendingPathComponent("synthetic-lines.pdf")
+        try (data as Data).write(to: url)
+        let document = try XCTUnwrap(PDFDocument(data: data as Data))
+        let nativePage = try XCTUnwrap(document.page(at: 0))
+        XCTAssertTrue(try XCTUnwrap(nativePage.string).contains("\n"))
+        let original = try XCTUnwrap(PDFKitReader.read(url).first)
+        XCTAssertEqual(PDFGrid.rows(original.glyphs).map { $0.map(\.text).joined() }, ["ABCD", "EFGH", "IJKL"])
+        for (text, x, y) in labels {
+            let first = try XCTUnwrap(original.glyphs.first { $0.text == String(text.prefix(1)) })
+            XCTAssertEqual(first.x, Double(x), accuracy: 2)
+            XCTAssertTrue((Double(400 - y) - 14...Double(400 - y) + 3).contains(first.cy))
+        }
+        for rotation in [90, 180, 270] {
+            nativePage.rotation = rotation
+            try XCTUnwrap(document.dataRepresentation()).write(to: url)
+            let rotated = try XCTUnwrap(PDFKitReader.read(url).first)
+            XCTAssertEqual(rotated.glyphs.count, original.glyphs.count)
+            for before in original.glyphs {
+                let after = try XCTUnwrap(rotated.glyphs.first { $0.text == before.text })
+                let expected: (Double, Double)
+                switch rotation {
+                case 90: expected = (400 - before.cy, before.cx)
+                case 180: expected = (300 - before.cx, 400 - before.cy)
+                default: expected = (before.cy, 300 - before.cx)
+                }
+                XCTAssertEqual(after.cx, expected.0, accuracy: 1)
+                XCTAssertEqual(after.cy, expected.1, accuracy: 1)
+            }
+        }
+    }
     func testPDFKitBridgeRecognizesFilledArrowGeometry() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)

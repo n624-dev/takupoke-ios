@@ -205,7 +205,7 @@ final class MaterialLibrary {
     }
 
     private static func validPDFAnalysis(_ analysis: PDFAnalysis) -> Bool {
-        guard analysis.version == PDFAnalysis.parserVersion, analysis.kind != .changes,
+        guard (1...PDFAnalysis.parserVersion).contains(analysis.version), analysis.kind != .changes,
               analysis.lessons.count + analysis.events.count <= PDFSchoolParser.maximumRecords else { return false }
         switch analysis.kind {
         case .timetable: return !analysis.lessons.isEmpty && analysis.events.isEmpty &&

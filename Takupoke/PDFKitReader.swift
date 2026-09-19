@@ -20,10 +20,14 @@ enum PDFKitReader {
             }
             let media = ref.getBoxRect(.mediaBox)
             let rotation = ((page.rotation % 360) + 360) % 360
-            guard [0, 90, 180, 270].contains(rotation) else { throw PDFParseError(code: .unsupported, page: index + 1) }
+            guard [0, 90, 180, 270].contains(rotation) else {
+                throw PDFParseError(code: .unsupported, page: index + 1, stage: .pageRotation)
+            }
             let transform = PDFDisplayTransform(media: media, rotation: rotation)
             let ns = string as NSString
-            guard ns.length == page.numberOfCharacters else { throw PDFParseError(code: .unsupported, page: index + 1) }
+            guard ns.length == page.numberOfCharacters else {
+                throw PDFParseError(code: .unsupported, page: index + 1, stage: .characterMapping)
+            }
             var glyphs: [PDFGlyph] = []
             var cursor = 0
             while cursor < ns.length {
@@ -31,18 +35,28 @@ enum PDFKitReader {
                 let range = ns.rangeOfComposedCharacterSequence(at: cursor)
                 let text = ns.substring(with: range)
                 if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    var box = CGRect.null
-                    for i in range.location..<NSMaxRange(range) { box = box.union(page.characterBounds(at: i)) }
-                    if !box.isNull && !box.isEmpty {
-                        let b = transform.rect(box)
-                        glyphs.append(PDFGlyph(text: text, x: Double(b.minX), y: Double(b.minY),
-                                               width: Double(b.width), height: Double(b.height)))
+                    // Obtain text and bounds from the same UTF-16 selection. Do not pair
+                    // page.string with a separately indexed characterBounds result: their
+                    // text layout/indexing can differ between PDFKit implementations.
+                    guard let selection = page.selection(for: range), selection.string == text else {
+                        throw PDFParseError(code: .unsupported, page: index + 1, stage: .characterMapping)
                     }
+                    let box = selection.bounds(for: page)
+                    guard !box.isNull, !box.isEmpty,
+                          [box.minX, box.minY, box.width, box.height].allSatisfy(\.isFinite) else {
+                        // Dropping a visible character could silently change a subject or date.
+                        throw PDFParseError(code: .unsupported, page: index + 1, stage: .characterMapping)
+                    }
+                    let b = transform.rect(box)
+                    glyphs.append(PDFGlyph(text: text, x: Double(b.minX), y: Double(b.minY),
+                                           width: Double(b.width), height: Double(b.height)))
                 }
                 cursor = NSMaxRange(range)
             }
             let reader = PDFPathReader(transform: transform, check: check)
-            let lines = try reader.read(ref)
+            let lines: [PDFRule]
+            do { lines = try reader.read(ref) }
+            catch var error as PDFParseError { error.page = index + 1; throw error }
             guard !glyphs.isEmpty, !lines.isEmpty else { throw PDFParseError(code: .unreadable, page: index + 1) }
             output.append(PDFPageLayout(width: Double(transform.width), height: Double(transform.height), glyphs: glyphs, lines: lines, arrows: reader.arrows))
         }
@@ -199,7 +213,9 @@ private final class PDFPathReader {
             }
         }
         // Form XObjects may contain an otherwise unseen part of the table. Fail closed.
-        CGPDFOperatorTableSetCallback(table, "Do") { _, p in PDFPathReader.state(p)?.failure = PDFParseError(code: .unsupported) }
+        CGPDFOperatorTableSetCallback(table, "Do") { _, p in
+            PDFPathReader.state(p)?.failure = PDFParseError(code: .unsupported, stage: .vectorObjects)
+        }
         let stream = CGPDFContentStreamCreateWithPage(page)
         defer { CGPDFContentStreamRelease(stream) }
         let scanner = CGPDFScannerCreate(stream, table, Unmanaged.passUnretained(self).toOpaque())
