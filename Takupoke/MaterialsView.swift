@@ -79,7 +79,7 @@ struct MaterialsView: View {
                 Section {
                     if let record = model.state.record(for: kind) {
                         Text(record.originalName).font(.headline)
-                        Text(kind == .changes ? changeStatus(record) : "取得済み・未解析")
+                        Text(kind == .changes ? changeStatus(record) : pdfStatus(record))
                             .font(.caption).foregroundStyle(.secondary)
                         LabeledContent("サイズ", value: ByteCountFormatter.string(fromByteCount: Int64(record.byteCount), countStyle: .file))
                         dateRow("最終取得", record.acquiredAt)
@@ -101,6 +101,13 @@ struct MaterialsView: View {
                     if kind == .changes, model.state.record(for: .changes) != nil {
                         NavigationLink("XLSXを解析・結果を確認") { ChangeAnalysisView(model: model) }
                         if let failure = model.state.changeParseAttempt?.failure, failure.localizedDescription != model.message {
+                            Label(failure.localizedDescription, systemImage: "exclamationmark.triangle")
+                                .font(.caption).foregroundStyle(.orange)
+                        }
+                    }
+                    if kind != .changes, model.state.record(for: kind) != nil {
+                        NavigationLink("PDFを解析・結果を確認") { PDFAnalysisView(model: model, kind: kind) }
+                        if let failure = model.state.pdfParseAttempts?[kind.rawValue]?.failure, failure.localizedDescription != model.message {
                             Label(failure.localizedDescription, systemImage: "exclamationmark.triangle")
                                 .font(.caption).foregroundStyle(.orange)
                         }
@@ -145,7 +152,7 @@ struct MaterialsView: View {
             Section {
                 Text("OneDriveで読み取れない場合は「ファイル」で一度開くか、OneDriveの「オフラインで利用可能」を試してから再選択してください。")
                     .font(.footnote).foregroundStyle(.secondary)
-                Text("資料は端末内に保存します。時間割変更XLSXは取得後に解析できます。PDF解析・時間割への反映はまだ行いません。1ファイル50 MiBまで。取得に失敗した場合は前回の資料を残します。")
+                Text("資料は端末内に保存します。PDF・XLSXは取得後に解析できます。時間割への統合はまだ行いません。1ファイル50 MiBまで。取得に失敗した場合は前回の資料を残します。")
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
@@ -165,6 +172,12 @@ struct MaterialsView: View {
     private func changeStatus(_ record: MaterialRecord) -> String {
         guard let analysis = model.state.changeAnalysis else { return "取得済み・未解析" }
         return analysis.sourceDigest == record.digest && analysis.version == ChangeAnalysis.parserVersion
+            ? "取得済み・解析結果あり" : "取得済み・新しい資料は未解析（前回結果を保持）"
+    }
+
+    private func pdfStatus(_ record: MaterialRecord) -> String {
+        guard let analysis = model.state.pdfAnalyses?[record.kind.rawValue] else { return "取得済み・未解析" }
+        return analysis.sourceDigest == record.digest && analysis.version == PDFAnalysis.parserVersion
             ? "取得済み・解析結果あり" : "取得済み・新しい資料は未解析（前回結果を保持）"
     }
 

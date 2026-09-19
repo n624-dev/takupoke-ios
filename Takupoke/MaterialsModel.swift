@@ -11,6 +11,7 @@ final class MaterialsModel: ObservableObject {
     @Published private(set) var message: String?
     @Published private(set) var failed = false
     @Published private(set) var changePreview: ChangePreview?
+    @Published private(set) var pdfURLs: [String: URL] = [:]
 
     var canPreviewChanges: Bool {
         guard let attempt = state.changeParseAttempt, attempt.failure?.permitsPreview == true,
@@ -65,6 +66,12 @@ final class MaterialsModel: ObservableObject {
         }
     }
 
+    func analyzePDF(_ kind: MaterialKind) {
+        perform(success: "\(kind.title)を解析しました。元PDFと解析結果を確認してください。") {
+            try $0.analyzePDF(kind: kind, control: $1)
+        }
+    }
+
     func previewChanges() {
         guard canPreviewChanges else { return }
         perform(success: nil) { try $0.previewChanges(control: $1) }
@@ -91,11 +98,14 @@ final class MaterialsModel: ObservableObject {
             let preview = worker.changePreview
             worker.clearPreview()
             let snapshot = worker.library?.state
+            var pdfURLs: [String: URL] = [:]
+            for kind in [MaterialKind.timetable, .events] { pdfURLs[kind.rawValue] = worker.pdfURL(for: kind) }
             let candidates = worker.candidates
             let listed = worker.folderListed
             DispatchQueue.main.async {
                 self.ready = snapshot != nil
                 if let snapshot = snapshot { self.state = snapshot }
+                self.pdfURLs = pdfURLs
                 self.candidates = candidates
                 self.folderListed = listed
                 self.busy = false
@@ -107,6 +117,7 @@ final class MaterialsModel: ObservableObject {
                 case .failure(let error):
                     self.failed = true
                     self.message = (error as? ChangeParseError)?.localizedDescription
+                        ?? (error as? PDFParseError)?.localizedDescription
                         ?? ((error as? MaterialError) ?? .unavailable).localizedDescription
                 }
             }

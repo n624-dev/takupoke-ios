@@ -9,7 +9,7 @@
 | ソース編集、Git 操作 | Linux または Windows、Git、任意のエディター |
 | 配布処理のローカルテスト | Python 3.11 以降、標準ライブラリのみ |
 | ワークフローの追加チェック | 任意で actionlint |
-| iOS ビルド | Actions の `macos-15` と Xcode 16.4 |
+| iOS ビルド | Actions の `macos-15` と Xcode 26.3 |
 | 実機導入・更新 | iOS 16.0 以降の iPhone、AltStore Classic。Windows の AltServer を使う経路を基準とする |
 
 このデバイスの開発環境は Linux です。Linux / Windows では SwiftUI のビルドを行わず、配布スクリプトのテストとソース編集を行います。XcodeGen、CocoaPodsは使用していません。XLSX展開にはZIPFoundation 0.9.20（コミット固定）をSwift Packageとして使用します。
@@ -70,7 +70,7 @@ PATH="/home/ubuntu/.local/share/swift-6.1.2/usr/bin:$PATH" bash tools/test-mater
 
 ## SwiftのXLSX解析テスト
 
-`bash tools/test-parsing.sh` はSwift Package経由で、本体のXLSX読み取り・正規化・保存処理を検証します。GitHubから固定したZIPFoundationを取得しますが、学校サイトや学校資料にはアクセスしません。教師名・科目名を含め、テスト入力・期待結果は架空です。
+`bash tools/test-parsing.sh` はSwift Package経由で、本体のXLSX読み取り・正規化・PDFの位置情報解析・保存処理を検証します。GitHubから固定したZIPFoundationを取得しますが、学校サイトや学校資料にはアクセスしません。教師名・科目名を含め、テスト入力・期待結果は架空です。
 
 LinuxではSwiftに加えてzlibの開発ファイルが必要です。一般的なUbuntu環境では `zlib1g-dev` と `pkg-config` を導入してください。このデバイスでは管理者権限を使えなかったため、Ubuntu配布のzlib開発パッケージをユーザー領域に展開し、既存のzlibランタイムへリンクしました。pkg-configは未導入です。次の指定で実行できます。
 
@@ -101,7 +101,7 @@ CI の監視はメンテナーが行います。開発エージェントは push
 
 ## Mac が利用できる場合の任意のビルド
 
-Mac の所有は必須ではありません。Xcode 16.4 を利用できる場合のみ、次のようにローカルビルドできます。
+Mac の所有は必須ではありません。Xcode 26.3 を利用できる場合のみ、次のようにローカルビルドできます。
 
 ```sh
 export TKPK_VERSION=0.1.1
@@ -117,3 +117,5 @@ bash tools/build-ios.sh ./dist
 - [GitHub の macOS runner 構成](https://github.com/actions/runner-images/blob/main/images/macos/macos-15-arm64-Readme.md)
 - [GitHub のコミットメール設定](https://docs.github.com/en/account-and-profile/how-tos/email-preferences/setting-your-commit-email-address)
 - [actionlint](https://github.com/rhysd/actionlint)
+
+PDFの公開テストは文字・罫線を架空の位置に配置して生成します。macOSではPDFKitによる架空PDFの読み取りと回転もテストし、実資料・学校サイトへはアクセスしません。Liquid Glass対応のためActionsではXcode 26.3を指定しています。

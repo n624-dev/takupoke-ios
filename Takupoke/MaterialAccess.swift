@@ -95,6 +95,26 @@ final class MaterialWorker {
         }
     }
 
+    func analyzePDF(kind: MaterialKind, control: AcquisitionControl) throws {
+        guard kind != .changes, let library = library, let record = library.state.record(for: kind),
+              let url = library.localURL(for: kind) else { throw PDFParseError(code: .unreadable) }
+        do {
+            let check = {
+                do { try control.check() } catch { throw PDFParseError(code: .cancelled) }
+            }
+            let pages = try PDFKitReader.read(url, check: check)
+            let analysis = try PDFSchoolParser.parse(pages, kind: kind, digest: record.digest, name: record.originalName, check: check)
+            try check()
+            do { try library.savePDFAnalysis(analysis) } catch { throw PDFParseError(code: .storage) }
+        } catch {
+            let failure = (error as? PDFParseError) ?? PDFParseError(code: .unreadable)
+            do { try library.recordPDFFailure(failure, kind: kind) } catch { throw PDFParseError(code: .storage) }
+            throw failure
+        }
+    }
+
+    func pdfURL(for kind: MaterialKind) -> URL? { library?.localURL(for: kind) }
+
     func previewChanges(control: AcquisitionControl) throws {
         guard let library = library else { throw ChangeParseError(code: .storage) }
         let check = {

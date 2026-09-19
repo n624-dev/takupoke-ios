@@ -52,6 +52,8 @@ struct MaterialLibraryState: Codable {
     var attempts: [String: AcquisitionAttempt] = [:]
     var changeAnalysis: ChangeAnalysis?
     var changeParseAttempt: ChangeParseAttempt?
+    var pdfAnalyses: [String: PDFAnalysis]?
+    var pdfParseAttempts: [String: PDFParseAttempt]?
 
     func record(for kind: MaterialKind) -> MaterialRecord? {
         records.first { $0.kind == kind }
@@ -127,6 +129,9 @@ final class MaterialLibrary {
                         throw MaterialError.invalidState
                     }
                 }
+                for (key, analysis) in state.pdfAnalyses ?? [:] {
+                    guard key == analysis.kind.rawValue, Self.validPDFAnalysis(analysis) else { throw MaterialError.invalidState }
+                }
             } catch {
                 // Never replace an unreadable manifest with an empty one.
                 throw MaterialError.invalidState
@@ -181,6 +186,7 @@ final class MaterialLibrary {
 
     private func persist(_ next: MaterialLibraryState) throws {
         let data = try JSONEncoder().encode(next)
+        guard data.count <= 64 * 1024 * 1024 else { throw MaterialError.invalidState }
         try writeManifest(data, manifest)
         state = next
     }
@@ -195,6 +201,40 @@ final class MaterialLibrary {
         next.changeAnalysis = analysis
         next.changeParseAttempt = ChangeParseAttempt(date: analysis.parsedAt, sourceDigest: analysis.sourceDigest,
                                                      defaultYear: analysis.defaultYear, failure: nil)
+        try persist(next)
+    }
+
+    private static func validPDFAnalysis(_ analysis: PDFAnalysis) -> Bool {
+        guard analysis.version == PDFAnalysis.parserVersion, analysis.kind != .changes,
+              analysis.lessons.count + analysis.events.count <= PDFSchoolParser.maximumRecords else { return false }
+        switch analysis.kind {
+        case .timetable: return !analysis.lessons.isEmpty && analysis.events.isEmpty &&
+            analysis.lessons.allSatisfy { (1...5).contains($0.weekday) && (1...8).contains($0.period) && !$0.names.subject.isEmpty }
+        case .events: return !analysis.events.isEmpty && analysis.lessons.isEmpty &&
+            analysis.events.allSatisfy { ["共通", "詫間"].contains($0.scope) && !$0.title.isEmpty }
+        case .changes: return false
+        }
+    }
+
+    func savePDFAnalysis(_ analysis: PDFAnalysis) throws {
+        guard Self.validPDFAnalysis(analysis), state.record(for: analysis.kind)?.digest == analysis.sourceDigest else {
+            throw PDFParseError(code: .storage)
+        }
+        var next = state
+        var analyses = next.pdfAnalyses ?? [:]
+        var attempts = next.pdfParseAttempts ?? [:]
+        analyses[analysis.kind.rawValue] = analysis
+        attempts[analysis.kind.rawValue] = PDFParseAttempt(date: analysis.parsedAt, sourceDigest: analysis.sourceDigest, failure: nil)
+        next.pdfAnalyses = analyses
+        next.pdfParseAttempts = attempts
+        try persist(next)
+    }
+
+    func recordPDFFailure(_ error: PDFParseError, kind: MaterialKind) throws {
+        var next = state
+        var attempts = next.pdfParseAttempts ?? [:]
+        attempts[kind.rawValue] = PDFParseAttempt(date: Date(), sourceDigest: state.record(for: kind)?.digest, failure: error)
+        next.pdfParseAttempts = attempts
         try persist(next)
     }
 
