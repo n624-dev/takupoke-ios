@@ -12,10 +12,14 @@ struct ScheduleChange: Codable, Equatable {
     var note: String
     var raw_text: String
     var canonical_text: String
+
+    // Old successful results remain on disk until an explicit reparse, but their
+    // class picker, filtering and labels use the same identity as new results.
+    var displayClassName: String { ChangeNormalizer.canonicalClassName(class_name) }
 }
 
 struct ChangeAnalysis: Codable {
-    static let parserVersion = 2
+    static let parserVersion = 3
     var version = parserVersion
     var sourceDigest: String
     var sourceName: String
@@ -165,6 +169,14 @@ enum ChangeNormalizer {
         }
         return parts
     }
+
+    static func canonicalClassName(_ identifier: String) -> String {
+        let parts = identifier.split(separator: "_", omittingEmptySubsequences: false)
+        guard parts.count == 2, parts[1] == "AI", matches(String(parts[0]), "^[0-9]+$"),
+              let year = Int(parts[0]), (1...9).contains(year) else { return identifier }
+        // User-confirmed aliases: 1_AI and AI_1 name the same class.
+        return "AI_\(parts[0])"
+    }
     static func headerIndex(_ rows: [[String]]) throws -> Int {
         guard let index = rows.firstIndex(where: { row in
             let cells = row.map(text)
@@ -233,7 +245,7 @@ enum ChangeNormalizer {
                 let cs = token(item.cells[classIndex]) == "全" ? (known[year] ?? []).filter { $0 != "AI" }.sorted() : item.classes
                 guard !cs.isEmpty else { throw ChangeParseError(code: .unknownAll, row: item.row) }
                 for cls in cs {
-                    let name = "\(year)_\(cls)"
+                    let name = canonicalClassName("\(year)_\(cls)")
                     let fields = [normalizedDate, name, period, before, after, teacher, room, note, raw]
                     let canonical = fields.map(text).filter { !$0.isEmpty }.joined(separator: " | ")
                     textBytes += fields.reduce(0) { $0 + $1.utf8.count } + canonical.utf8.count

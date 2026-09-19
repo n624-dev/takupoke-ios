@@ -303,7 +303,10 @@
           "raw_text": "学 年:3 | 学科・クラス:XX | 月日:2032/7/11 | 科目:架空科目C",
           "canonical_text": "2032-07-11 | 3_XX | 架空科目C | 学 年:3 | 学科・クラス:XX | 月日:2032/7/11 | 科目:架空科目C"
         }
-      ]
+      ],
+      "iosClassAliases": {
+        "2_AI": "AI_2"
+      }
     },
     {
       "id": "all-without-known-classes",

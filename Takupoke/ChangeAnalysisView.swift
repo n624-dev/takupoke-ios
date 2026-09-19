@@ -9,9 +9,9 @@ struct ChangeAnalysisView: View {
     private var defaultYear: Int? { Int(year.trimmingCharacters(in: .whitespaces)) }
     private var validYear: Bool { year.isEmpty || defaultYear.map { (1900...9999).contains($0) } == true }
     private var analysis: ChangeAnalysis? { model.state.changeAnalysis }
-    private var classes: [String] { Set(analysis?.records.map(\.class_name) ?? []).sorted() }
+    private var classes: [String] { Set(analysis?.records.map(\.displayClassName) ?? []).sorted() }
     private var visible: [ScheduleChange] {
-        (analysis?.records ?? []).filter { selectedClass.isEmpty || $0.class_name == selectedClass }
+        (analysis?.records ?? []).filter { selectedClass.isEmpty || $0.displayClassName == selectedClass }
     }
 
     var body: some View {
@@ -87,9 +87,9 @@ private struct ChangePreviewView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedClass = ""
 
-    private var classes: [String] { Set(preview.records.map(\.class_name)).sorted() }
+    private var classes: [String] { Set(preview.records.map(\.displayClassName)).sorted() }
     private var visible: [ScheduleChange] {
-        preview.records.filter { selectedClass.isEmpty || $0.class_name == selectedClass }
+        preview.records.filter { selectedClass.isEmpty || $0.displayClassName == selectedClass }
     }
 
     var body: some View {
@@ -131,7 +131,7 @@ private struct ChangeRecordFields: View {
 
     var body: some View {
         LabeledContent("日付", value: record.change_date)
-        LabeledContent("クラス", value: record.class_name)
+        LabeledContent("クラス", value: record.displayClassName)
         field("時限", record.period)
         field("変更前", record.before_subject)
         field("変更後", record.after_subject)
