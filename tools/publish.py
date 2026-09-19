@@ -79,7 +79,7 @@ def publish(output):
             f"たくぽけ {metadata['version']} ({metadata['build']})\n\n"
             "AltStore Classic 向けの開発版です。署名は導入時に AltStore 側で行います。\n\n"
             f"Source: https://github.com/{repo}/releases/latest/download/altstore-source.json\n\n"
-            "初回導入・更新の実機確認は未完了です。アプリ内のバージョンと確認メモをご確認ください。\n\n"
+            "「学校資料を選ぶ」からPDF・XLSXを取得できます。解析・時間割表示は未実装です。OneDriveの継続アクセスは実機確認中です。\n\n"
             f"Commit: {commit}\n", encoding="utf-8"
         )
         # Retry a failed publication using the same verified artifact. Only an

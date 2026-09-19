@@ -14,6 +14,7 @@ mkdir -p "$output_dir" "$scratch_dir/Payload"
 output_dir="$(cd "$output_dir" && pwd)"
 
 xcodebuild -version
+bash tools/test-materials.sh
 xcodebuild \
     -project Takupoke.xcodeproj \
     -scheme Takupoke \

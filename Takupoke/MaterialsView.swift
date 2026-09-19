@@ -1,0 +1,183 @@
+import SwiftUI
+import UniformTypeIdentifiers
+import UIKit
+
+private enum MaterialPicker: Identifiable {
+    case folder
+    case file(MaterialKind)
+
+    var id: String {
+        switch self {
+        case .folder: return "folder"
+        case .file(let kind): return kind.rawValue
+        }
+    }
+    var contentType: UTType {
+        switch self {
+        case .folder: return .folder
+        case .file(let kind): return kind == .changes ? (UTType(filenameExtension: "xlsx") ?? .data) : .pdf
+        }
+    }
+}
+
+private struct MaterialDocumentPicker: UIViewControllerRepresentable {
+    var type: UTType
+    var selected: (URL) -> Void
+    var cancelled: () -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
+
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [type], asCopy: false)
+        picker.allowsMultipleSelection = false
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ controller: UIDocumentPickerViewController, context: Context) {}
+
+    final class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let parent: MaterialDocumentPicker
+        init(parent: MaterialDocumentPicker) { self.parent = parent }
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            if let url = urls.first { parent.selected(url) } else { parent.cancelled() }
+        }
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) { parent.cancelled() }
+    }
+}
+
+struct MaterialsView: View {
+    @ObservedObject var model: MaterialsModel
+    @State private var picker: MaterialPicker?
+
+    var body: some View {
+        List {
+            Section {
+                Text("「ファイル」から学校資料を選びます。OneDriveが表示されない場合は、「ファイル」アプリでOneDriveを有効にしてください。")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                if model.busy {
+                    HStack {
+                        ProgressView()
+                        Text("資料へアクセス中…")
+                        Spacer()
+                        Button("中止") { model.cancel() }
+                    }
+                }
+                if let message = model.message {
+                    Label(message, systemImage: model.failed ? "exclamationmark.triangle" : "info.circle")
+                        .foregroundStyle(model.failed ? Color.orange : Color.secondary)
+                        .font(.subheadline)
+                        .accessibilityLabel(message)
+                }
+                if !model.ready && !model.busy {
+                    Button("保存情報を再読み込み") { model.loadIfNeeded() }
+                }
+            }
+
+            Section {
+                if let folder = model.state.folder {
+                    Label(folder.name, systemImage: "folder")
+                    Button("フォルダ内の一覧を取得") { model.refreshFolder() }
+                    if model.folderListed {
+                        Text("対象ファイル：\(model.candidates.count)件")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                Button(model.state.folder == nil ? "資料フォルダを選ぶ" : "フォルダを選び直す") {
+                    picker = .folder
+                }
+            } header: {
+                Text("資料フォルダ")
+            } footer: {
+                Text("選んだフォルダ直下のPDF・XLSXを表示します。フォルダを選べないサービスでは、下の「ファイルを選ぶ」を使えます。")
+            }
+            .disabled(model.busy || !model.ready)
+
+            ForEach(MaterialKind.allCases) { kind in
+                Section {
+                    if let record = model.state.record(for: kind) {
+                        Text(record.originalName).font(.headline)
+                        Text("取得済み・未解析")
+                            .font(.caption).foregroundStyle(.secondary)
+                        LabeledContent("サイズ", value: ByteCountFormatter.string(fromByteCount: Int64(record.byteCount), countStyle: .file))
+                        dateRow("最終取得", record.acquiredAt)
+                        if let date = record.sourceModifiedAt { dateRow("元ファイルの更新", date) }
+                        if let failure = model.state.attempts[kind.rawValue]?.failure {
+                            Label(failure, systemImage: "exclamationmark.triangle")
+                                .font(.caption).foregroundStyle(.orange)
+                        }
+                        Button("同じ資料を再取得") { model.refresh(kind) }
+                    } else {
+                        Text("未選択").foregroundStyle(.secondary)
+                        if let failure = model.state.attempts[kind.rawValue]?.failure {
+                            Text(failure).font(.caption).foregroundStyle(.orange)
+                        }
+                    }
+                    if model.folderListed {
+                        NavigationLink("フォルダ内から選ぶ") {
+                            MaterialCandidatesView(model: model, kind: kind)
+                        }
+                    }
+                    Button("\(kind.fileExtension.uppercased())ファイルを選ぶ") { picker = .file(kind) }
+                } header: {
+                    Text(kind.title)
+                }
+                .disabled(model.busy || !model.ready)
+            }
+            Section {
+                Text("資料は端末内に保存します。現在は取得まで対応し、時間割への反映は行いません。1ファイル50 MiBまで。取得に失敗した場合は前回の資料を残します。")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+        .navigationTitle("学校資料")
+        .task { model.loadIfNeeded() }
+        .sheet(item: $picker) { selection in
+            MaterialDocumentPicker(type: selection.contentType, selected: { url in
+                picker = nil
+                switch selection {
+                case .folder: model.selectFolder(url)
+                case .file(let kind): model.selectFile(url, kind: kind)
+                }
+            }, cancelled: { picker = nil })
+        }
+    }
+
+    private func dateRow(_ title: String, _ date: Date) -> some View {
+        LabeledContent(title) {
+            Text(date, format: .dateTime.year().month().day().hour().minute())
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct MaterialCandidatesView: View {
+    @ObservedObject var model: MaterialsModel
+    let kind: MaterialKind
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+
+    private var matches: [MaterialCandidate] {
+        model.candidates.filter {
+            $0.fileExtension == kind.fileExtension && (query.isEmpty || $0.name.localizedCaseInsensitiveContains(query))
+        }
+    }
+
+    var body: some View {
+        List {
+            if matches.isEmpty {
+                Text("対象ファイルがありません。別のフォルダを選ぶか、ファイルを個別に選択してください。")
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(matches) { candidate in
+                Button(candidate.name) {
+                    model.selectCandidate(candidate.name, kind: kind)
+                    dismiss()
+                }
+                .disabled(model.busy)
+            }
+        }
+        .navigationTitle(kind.title + "を選ぶ")
+        .searchable(text: $query, prompt: "ファイル名を検索")
+    }
+}

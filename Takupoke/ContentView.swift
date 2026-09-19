@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @AppStorage("updateVerificationNote") private var verificationNote = ""
+    @StateObject private var materials = MaterialsModel()
 
     private let accent = Color(red: 0.08, green: 0.43, blue: 0.40)
     private let sourceURL = URL(string: "https://github.com/n624-dev/takupoke-ios/releases/latest/download/altstore-source.json")!
@@ -22,12 +23,22 @@ struct ContentView: View {
                         Text("学校の予定を、\nひとつの場所に。")
                             .font(.title.bold())
                             .fixedSize(horizontal: false, vertical: true)
-                        Text("たくぽけの開発版へようこそ。\nまずは、インストールと更新の準備から。")
+                        Text("学校資料を、いつもの「ファイル」から。\n時間割づくりの準備を始めましょう。")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.vertical, 12)
+                }
+
+                Section {
+                    NavigationLink {
+                        MaterialsView(model: materials)
+                    } label: {
+                        Label("学校資料を選ぶ", systemImage: "folder")
+                    }
+                } footer: {
+                    Text("通常時間割・学校行事のPDFと、時間割変更のXLSXを端末内に取得します。内容の解析は今後追加します。")
                 }
 
                 Section("このアプリについて") {
@@ -51,7 +62,7 @@ struct ContentView: View {
                         Label("AltStore SourceのURLを共有", systemImage: "square.and.arrow.up")
                     }
                 } footer: {
-                    Text("アプリの更新はAltStore Classicから行います。学校資料の取り込みと時間割の表示は、今後の開発で追加します。")
+                    Text("アプリの更新はAltStore Classicから行います。")
                 }
             }
             .navigationTitle("たくぽけ")

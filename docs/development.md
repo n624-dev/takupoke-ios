@@ -38,6 +38,7 @@ Linux:
 ```sh
 python3 -B -m unittest discover -s tests -v
 bash -n tools/build-ios.sh
+bash -n tools/test-materials.sh
 git diff --check
 ```
 
@@ -48,9 +49,21 @@ py -3 -B -m unittest discover -s tests -v
 git diff --check
 ```
 
-Windows でシェルスクリプトを変更した場合は Git Bash で `bash -n tools/build-ios.sh` も実行します。`actionlint` がある環境ではリポジトリのルートで `actionlint` を実行します。
+Windows でシェルスクリプトを変更した場合は Git Bash で `bash -n tools/build-ios.sh` と `bash -n tools/test-materials.sh` も実行します。`actionlint` がある環境ではリポジトリのルートで `actionlint` を実行します。
 
 テストは架空の IPA を OS の一時ディレクトリに作成し、正常終了・テスト失敗のどちらでも後片付けします。`-B` は Python のバイトコードキャッシュ作成を抑止します。これらのテストは実際の SwiftUI ビルドや AltStore インストールの代わりにはなりません。
+
+## Swift の保存処理テスト
+
+`bash tools/test-materials.sh` はアプリ本体の `MaterialLibrary.swift` を直接コンパイルし、保存・再読み込み・書き込み失敗時の保持・途中終了の回収・破損時の停止を架空データで検証します。macOS のビルド処理でも IPA 作成前に必ず実行します。失敗すれば配布には進みません。SwiftUI や File Provider はこのテストの対象外です。
+
+この Linux デバイスには Swift 6.1.2 を公式署名を確認して `/home/ubuntu/.local/share/swift-6.1.2` に導入しました。Swift を PATH に追加した環境では以下を実行できます。このデバイスで一時的に PATH を指定する場合は次のとおりです。
+
+```sh
+PATH="/home/ubuntu/.local/share/swift-6.1.2/usr/bin:$PATH" bash tools/test-materials.sh
+```
+
+コンパイラーのモジュールキャッシュ・実行ファイル・入力と保存データは専用の一時ディレクトリに置き、終了時に削除します。Swift の配布アーカイブもインストール後に削除済みです。Windows への Swift 導入は必須ではありません。
 
 ## ファイルを変更するとき
 

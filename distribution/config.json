@@ -7,6 +7,6 @@
   "minOSVersion": "16.0",
   "sourceName": "たくぽけ iOS",
   "sourceIdentifier": "io.github.n624dev.takupoke.source",
-  "description": "学校の予定を端末内でまとめるiOSアプリ。現在は初回導入・更新を確認する開発版です。資料の取り込みと時間割表示は今後追加します。",
+  "description": "学校の予定を端末内でまとめるiOSアプリ。「ファイル」からPDF・XLSXを選択して端末内に保存する開発版です。資料の解析と時間割表示は今後追加します。",
   "tintColor": "146E66"
 }

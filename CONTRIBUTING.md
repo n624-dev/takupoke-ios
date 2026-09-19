@@ -1,6 +1,6 @@
 # 貢献ガイド
 
-変更提案や不具合報告の前に [開発方針](docs/development-policy.md) と [ロードマップ](docs/roadmap.md) を確認してください。現在は①の配布・更新経路の検証を優先しています。
+変更提案や不具合報告の前に [開発方針](docs/development-policy.md) と [ロードマップ](docs/roadmap.md) を確認してください。現在は②の資料取得を実装し、OneDrive での実機検証を進めています。
 
 ## 不具合報告
 

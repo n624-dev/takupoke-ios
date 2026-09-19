@@ -34,6 +34,7 @@ jobs:
       - name: Check shell syntax and whitespace
         run: |
           bash -n tools/build-ios.sh
+          bash -n tools/test-materials.sh
           git diff --check
 
   build-check:
