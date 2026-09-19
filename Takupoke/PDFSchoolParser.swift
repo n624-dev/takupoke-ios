@@ -6,6 +6,8 @@ struct PDFGlyph: Codable {
     var y: Double
     var width: Double
     var height: Double
+    var sourceLine: Int? = nil
+    var sourceOrder: Int? = nil
     var cx: Double { x + width / 2 }
     var cy: Double { y + height / 2 }
 }
@@ -47,9 +49,70 @@ struct PDFSchoolEvent: Codable, Equatable {
     var endDate: String? = nil
     var periodNeedsReview: Bool = false
     var periodEvidence: String? = nil
+    var classification: PDFEventClassification? = nil
+}
+struct PDFEventClassification: Codable, Equatable {
+    enum EventType: String, Codable {
+        case noClass = "NO_CLASS", weekdayOverride = "WEEKDAY_OVERRIDE", special = "SPECIAL"
+        case supplementary = "SUPPLEMENTARY", schoolEventNoClass = "SCHOOL_EVENT_NO_CLASS"
+    }
+    var type: EventType
+    var scheduleDay: Int? = nil
+    var needsReview: Bool = false
+
+    var label: String {
+        switch type {
+        case .noClass: return "授業なし"
+        case .supplementary: return "補講日"
+        case .schoolEventNoClass: return "校内行事（授業なし）"
+        case .weekdayOverride:
+            let days = [1: "月", 2: "火", 3: "水", 4: "木", 5: "金"]
+            return days[scheduleDay ?? 0].map { "曜日振替（\($0)曜日授業）" } ?? "曜日振替（要確認）"
+        case .special: return needsReview ? "分類を要確認" : "行事（授業の有無は未判定）"
+        }
+    }
+
+    static func fromExplicitText(_ title: String) -> Self {
+        let lines = title.components(separatedBy: .newlines).map(PDFSchoolParser.key)
+        // Exact declarations only. Do not turn exams, ceremonies or
+        // comments merely mentioning a break into an inferred cancellation.
+        func declares(_ names: [String]) -> Bool {
+            let words = names.map(NSRegularExpression.escapedPattern(for:)).joined(separator: "|")
+            return lines.contains { $0.range(of: "^(?:" + words + ")(?=$|[（(/／])", options: .regularExpression) != nil }
+        }
+        let holidays = ["元日", "成人の日", "建国記念の日", "天皇誕生日", "春分の日", "昭和の日", "憲法記念日",
+                        "みどりの日", "こどもの日", "子どもの日", "海の日", "山の日", "敬老の日", "秋分の日",
+                        "スポーツの日", "文化の日", "勤労感謝の日", "振替休日", "国民の休日"]
+        // These labels classify text already present in the PDF. No holiday dates
+        // are calculated, fetched, or inserted into a calendar by this code.
+        let noClass = declares(["臨時休業", "夏季休業", "冬季休業", "学年末休業", "休業日"] + holidays)
+        let supplementary = declares(["補講日"])
+        let schoolEvents = ["体育祭", "体育大会", "春季体育大会", "夏季体育大会", "秋季体育大会", "冬季体育大会",
+                            "文化祭", "総合文化祭", "電波祭"]
+        let schoolEvent = declares(schoolEvents.flatMap { [$0, $0 + "準備", $0 + "準備日"] })
+        let pattern = try! NSRegularExpression(pattern: "(?:^([月火水木金])曜日授業$|【([月火水木金])曜日授業】)")
+        let days = ["月": 1, "火": 2, "水": 3, "木": 4, "金": 5]
+        var overrides: [Int] = []
+        for line in lines {
+            let ns = line as NSString
+            for match in pattern.matches(in: line, range: NSRange(location: 0, length: ns.length)) {
+                let range = match.range(at: match.range(at: 1).location == NSNotFound ? 2 : 1)
+                if let day = days[ns.substring(with: range)] { overrides.append(day) }
+            }
+        }
+        // A break and an approved school event agree that regular lessons are
+        // absent. Keep the more specific school-event tag in that combination.
+        let categories = [noClass || schoolEvent, supplementary, !overrides.isEmpty].filter { $0 }.count
+        if overrides.count > 1 || categories > 1 { return Self(type: .special, needsReview: true) }
+        if schoolEvent { return Self(type: .schoolEventNoClass) }
+        if noClass { return Self(type: .noClass) }
+        if supplementary { return Self(type: .supplementary) }
+        if let day = overrides.first { return Self(type: .weekdayOverride, scheduleDay: day) }
+        return Self(type: .special)
+    }
 }
 struct PDFAnalysis: Codable {
-    static let parserVersion = 2
+    static let parserVersion = 3
     var version = parserVersion
     var kind: MaterialKind
     var sourceDigest: String
@@ -71,7 +134,7 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
     // Fixed labels only: never include source text, filenames, URLs or personal data.
     enum Stage: String, Codable, CaseIterable {
         case characterMapping, pageRotation, yearHeading, documentHeading, periodHeading
-        case gridColumn, gridRow, gridCell, eventColumns, calendarDates, monthHeading, vectorObjects
+        case gridColumn, gridRow, gridCell, eventColumns, calendarDates, monthHeading, vectorObjects, textOrder
 
         var label: String {
             switch self {
@@ -87,6 +150,7 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
             case .calendarDates: return "日付の列（P10）"
             case .monthHeading: return "月の見出し（P11）"
             case .vectorObjects: return "未対応の埋め込み描画（P12）"
+            case .textOrder: return "文字の行と読み順（P13）"
             }
         }
     }
@@ -148,8 +212,30 @@ struct PDFGrid {
         }
         return rows.map { $0.sorted { $0.cx < $1.cx } }
     }
-    func text(_ box: PDFBox) -> [String] {
-        Self.rows(glyphs(in: box)).map { $0.map(\.text).joined() }
+    /// Cell content follows the PDF text ranges, not glyph centres. Small type,
+    /// punctuation and overlapping selection boxes must not shuffle the text.
+    static func contentRows(_ glyphs: [PDFGlyph]) throws -> [[PDFGlyph]] {
+        guard glyphs.contains(where: { $0.sourceLine != nil || $0.sourceOrder != nil }) else { return rows(glyphs) }
+        guard glyphs.allSatisfy({ ($0.sourceLine ?? -1) >= 0 && ($0.sourceOrder ?? -1) >= 0 }),
+              Set(glyphs.compactMap(\.sourceOrder)).count == glyphs.count else {
+            throw PDFParseError(code: .ambiguous, stage: .textOrder)
+        }
+        let groups = Dictionary(grouping: glyphs, by: { $0.sourceLine! })
+            .values.map { $0.sorted { $0.sourceOrder! < $1.sourceOrder! } }
+        // PDF drawing/selection order can place the room before the subject.
+        // Place whole lines vertically, but never merge them or sort characters
+        // within a line by their variable-sized selection rectangles.
+        func center(_ row: [PDFGlyph]) -> Double {
+            let values = row.map(\.cy).sorted()
+            return values[values.count / 2]
+        }
+        return groups.sorted {
+            let a = center($0), b = center($1)
+            return a == b ? $0[0].sourceOrder! < $1[0].sourceOrder! : a < b
+        }
+    }
+    func text(_ box: PDFBox) throws -> [String] {
+        try Self.contentRows(glyphs(in: box)).map { $0.map(\.text).joined() }
     }
     func anchors(_ word: String, above: Double) -> [PDFBox] {
         let target = Array(word)
@@ -239,7 +325,8 @@ enum PDFSchoolParser {
             guard months == Set(1...12), !result.events.isEmpty else { throw PDFParseError(code: .unsupported) }
             result.events.sort { ($0.date, $0.scope) < ($1.date, $1.scope) }
             attachPeriods(to: &result.events, arrows: arrows)
-            result.notices = ["共通・詫間欄の記載を日付ごとに表示しています。行事名から休講を推測しません。",
+            for i in result.events.indices { result.events[i].classification = .fromExplicitText(result.events[i].title) }
+            result.notices = ["共通・詫間欄の記載を日付ごとに表示しています。休業・祝日・曜日振替・補講日・確認済みの校内行事にタグを付け、それ以外の授業の有無は未判定です。授業なしは登校不要という意味ではありません。",
                               "休業の終了日は期間表記・矢印から確認し、その日を含む期間として表示します。終了日未確認の項目は元PDFで確認してください。日別の休講反映はまだ行いません。"]
         }
         guard result.lessons.count + result.events.count <= maximumRecords else { throw PDFParseError(code: .limit) }
@@ -273,7 +360,7 @@ enum PDFSchoolParser {
             }
             let y = glyphs.map(\.cy).reduce(0, +) / Double(glyphs.count)
             var row = try grid.box((classBox.left + classBox.right) / 2, y)
-            let grade = key(grid.text(try grid.box(classBox.left - 2, y)).joined())
+            let grade = try key(grid.text(grid.box(classBox.left - 2, y)).joined())
             guard grade == "AI" || grade.range(of: "^[1-9]$", options: .regularExpression) != nil else {
                 throw PDFParseError(code: .ambiguous, page: 1)
             }
@@ -291,7 +378,7 @@ enum PDFSchoolParser {
                 for i in 0..<(edges.count - 1) where edges[i + 1] - edges[i] >= 2 {
                     let box = try grid.box(h.cx, (edges[i] + edges[i + 1]) / 2)
                     guard seen.insert(box).inserted else { continue }
-                    let lines = grid.text(box)
+                    let lines = try grid.text(box)
                     if lines.isEmpty { continue }
                     guard lines.reduce(0, { $0 + $1.utf8.count }) <= 4096 else { throw PDFParseError(code: .limit, page: 1) }
                     guard lines.count <= 3, !lines[0].isEmpty else { throw PDFParseError(code: .ambiguous, page: 1) }
@@ -387,7 +474,7 @@ enum PDFSchoolParser {
                         !(scope == "詫間" && g.cx > column.right - 7 &&
                           (Int(key(g.text)) != nil || ["〇", "○"].contains(g.text)))
                     }
-                    let title = PDFGrid.rows(glyphs).map { $0.map(\.text).joined() }.joined()
+                    let title = try PDFGrid.contentRows(glyphs).map { $0.map(\.text).joined() }.joined(separator: "\n")
                     if !title.isEmpty {
                         output.append(PDFSchoolEvent(date: String(format: "%04d-%02d-%02d", calendarYear, month, day),
                                                      scope: scope, title: title, page: pageNumber))

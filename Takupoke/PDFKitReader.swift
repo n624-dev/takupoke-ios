@@ -28,6 +28,35 @@ enum PDFKitReader {
             guard ns.length == page.numberOfCharacters else {
                 throw PDFParseError(code: .unsupported, page: index + 1, stage: .characterMapping)
             }
+            guard ns.length > 0, let pageSelection = page.selection(for: NSRange(location: 0, length: ns.length)) else {
+                throw PDFParseError(code: .unsupported, page: index + 1, stage: .textOrder)
+            }
+            var sourceLines = [Int?](repeating: nil, count: ns.length)
+            let textLines = pageSelection.selectionsByLine()
+            guard textLines.count <= 100000 else { throw PDFParseError(code: .limit, page: index + 1) }
+            var coveredUnits = 0
+            for (lineID, line) in textLines.enumerated() {
+                try check()
+                let count = line.numberOfTextRanges(on: page)
+                guard count <= 100000 else { throw PDFParseError(code: .limit, page: index + 1) }
+                for rangeIndex in 0..<count {
+                    let range = line.range(at: rangeIndex, on: page)
+                    guard range.location >= 0, range.location <= ns.length,
+                          range.length >= 0, range.length <= ns.length - range.location else {
+                        throw PDFParseError(code: .unsupported, page: index + 1, stage: .textOrder)
+                    }
+                    coveredUnits += range.length
+                    guard coveredUnits <= ns.length * 2 else { throw PDFParseError(code: .limit, page: index + 1) }
+                    for offset in range.location..<NSMaxRange(range) {
+                        if let scalar = UnicodeScalar(UInt32(ns.character(at: offset))),
+                           CharacterSet.whitespacesAndNewlines.contains(scalar) { continue }
+                        guard sourceLines[offset] == nil || sourceLines[offset] == lineID else {
+                            throw PDFParseError(code: .ambiguous, page: index + 1, stage: .textOrder)
+                        }
+                        sourceLines[offset] = lineID
+                    }
+                }
+            }
             var glyphs: [PDFGlyph] = []
             var cursor = 0
             while cursor < ns.length {
@@ -35,6 +64,10 @@ enum PDFKitReader {
                 let range = ns.rangeOfComposedCharacterSequence(at: cursor)
                 let text = ns.substring(with: range)
                 if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    guard let sourceLine = sourceLines[cursor],
+                          (range.location..<NSMaxRange(range)).allSatisfy({ sourceLines[$0] == sourceLine }) else {
+                        throw PDFParseError(code: .unsupported, page: index + 1, stage: .textOrder)
+                    }
                     // Obtain text and bounds from the same UTF-16 selection. Do not pair
                     // page.string with a separately indexed characterBounds result: their
                     // text layout/indexing can differ between PDFKit implementations.
@@ -49,7 +82,8 @@ enum PDFKitReader {
                     }
                     let b = transform.rect(box)
                     glyphs.append(PDFGlyph(text: text, x: Double(b.minX), y: Double(b.minY),
-                                           width: Double(b.width), height: Double(b.height)))
+                                           width: Double(b.width), height: Double(b.height),
+                                           sourceLine: sourceLine, sourceOrder: cursor))
                 }
                 cursor = NSMaxRange(range)
             }

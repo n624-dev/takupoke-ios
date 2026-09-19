@@ -83,6 +83,76 @@ final class PDFParsingTests: XCTestCase {
         XCTAssertTrue(parallel.allSatisfy { $0.names.roomFullName == nil && $0.sourceText.contains("・架空室Y") })
         XCTAssertEqual(result.lessons.filter { $0.className == "AI_3" }.map(\.weekday), [2, 2])
     }
+    func testSourceOrderKeepsMixedSizeLessonNamesAndMetadataSeparate() throws {
+        var page = timetable()
+        page.glyphs.removeAll { $0.x >= 100 && $0.x < 140 && $0.cy > 100 && $0.cy < 160 }
+        // Same glyph centres / different heights can occur in selection bounds.
+        // These fictional rows have their own reading order, unrelated to school data.
+        for (row, value) in ["架空αQⅣ", "架空担当R", "架空部屋S"].enumerated() {
+            for (i, character) in value.enumerated() {
+                page.glyphs.append(PDFGlyph(text: String(character), x: 109, y: 110 + Double(row) * 1.5,
+                    width: 5, height: i % 2 == 0 ? 7 : 3, sourceLine: row, sourceOrder: (2 - row) * 100 + i))
+            }
+        }
+        let result = try parse([page], kind: .timetable)
+        let lesson = try XCTUnwrap(result.lessons.first { $0.className == "1_ZZ" })
+        XCTAssertEqual(lesson.names.subject, "架空αQⅣ")
+        XCTAssertEqual(lesson.names.teacher, "架空担当R")
+        XCTAssertEqual(lesson.names.room, "架空部屋S")
+        XCTAssertEqual(lesson.sourceText, "架空αQⅣ\n架空担当R\n架空部屋S")
+    }
+    func testCloseCalendarLinesKeepTheirOrderAndExplicitTags() throws {
+        var first = calendar(Array(4...9))
+        first.glyphs.removeAll { $0.x >= 62 && $0.x < 100 && $0.cy == 100 }
+        for (row, value) in ["架空公開日", "【金曜日授業】"].enumerated() {
+            for (i, character) in value.enumerated() {
+                first.glyphs.append(PDFGlyph(text: String(character), x: 63 + Double(i) * 3,
+                    y: 96 + Double(row), width: 3, height: 4, sourceLine: row, sourceOrder: 100 + row * 50 + i))
+            }
+        }
+        let result = try parse([first, calendar([10, 11, 12, 1, 2, 3])], kind: .events)
+        let event = try XCTUnwrap(result.events.first { $0.date == "2032-04-02" && $0.scope == "共通" })
+        XCTAssertEqual(event.title, "架空公開日\n【金曜日授業】")
+        XCTAssertEqual(event.classification?.type, .weekdayOverride)
+        XCTAssertEqual(event.classification?.scheduleDay, 5)
+        let winter = try XCTUnwrap(result.events.first { $0.title == "冬季休業" })
+        XCTAssertEqual(winter.classification?.type, .noClass)
+        XCTAssertEqual(winter.endDate, "2033-01-04")
+    }
+    func testAmbiguousSourceOrderStopsInsteadOfFallingBackToCoordinates() throws {
+        let a = PDFGlyph(text: "架", x: 10, y: 10, width: 5, height: 6, sourceLine: 0, sourceOrder: 1)
+        var b = a; b.text = "空"
+        XCTAssertThrowsError(try PDFGrid.contentRows([a, b]))
+        b.sourceOrder = nil
+        XCTAssertThrowsError(try PDFGrid.contentRows([a, b]))
+        b.sourceOrder = 2; b.sourceLine = nil
+        XCTAssertThrowsError(try PDFGrid.contentRows([a, b]))
+    }
+    func testTagsUseOnlyExplicitDeclarationsAndFlagConflicts() throws {
+        for title in ["休業日", "臨時休業", "夏季休業（8/8まで）", "冬季休業\n架空連絡", "春分の日", "子どもの日", "振替休日"] {
+            XCTAssertEqual(PDFEventClassification.fromExplicitText(title).type, .noClass)
+        }
+        for title in ["架空試験", "架空式典", "休業ではありません", "冬季休業の説明会", "月曜日授業ではありません", "文化の日の説明会", "補講日の相談会", "体育大会の説明会"] {
+            let result = PDFEventClassification.fromExplicitText(title)
+            XCTAssertEqual(result.type, .special)
+            XCTAssertNil(result.scheduleDay)
+        }
+        XCTAssertEqual(PDFEventClassification.fromExplicitText("補講日").type, .supplementary)
+        for title in ["体育祭", "体育大会", "冬季体育大会", "文化祭", "文化祭準備日", "体育祭準備", "総合文化祭", "電波祭準備", "臨時休業\n文化祭"] {
+            let tag = PDFEventClassification.fromExplicitText(title)
+            XCTAssertEqual(tag.type, .schoolEventNoClass)
+            XCTAssertFalse(tag.needsReview)
+        }
+        for title in ["休業日\n【火曜日授業】", "【火曜日授業】【金曜日授業】"] {
+            let result = PDFEventClassification.fromExplicitText(title)
+            XCTAssertEqual(result.type, .special)
+            XCTAssertTrue(result.needsReview)
+            XCTAssertNil(result.scheduleDay)
+        }
+        let old = try JSONDecoder().decode(PDFSchoolEvent.self,
+            from: Data(#"{"date":"2032-05-06","scope":"共通","title":"架空行事","page":1,"periodNeedsReview":false}"#.utf8))
+        XCTAssertNil(old.classification)
+    }
     func testCalendarScopesDatesPeriodsAndYearBoundary() throws {
         let result = try parse([calendar(Array(4...9)), calendar([10, 11, 12, 1, 2, 3])], kind: .events)
         XCTAssertEqual(result.schoolYear, 2032)
@@ -252,6 +322,8 @@ extension PDFParsingTests {
         XCTAssertTrue(try XCTUnwrap(nativePage.string).contains("\n"))
         let original = try XCTUnwrap(PDFKitReader.read(url).first)
         XCTAssertEqual(PDFGrid.rows(original.glyphs).map { $0.map(\.text).joined() }, ["ABCD", "EFGH", "IJKL"])
+        XCTAssertEqual(try PDFGrid.contentRows(original.glyphs).map { $0.map(\.text).joined() }, ["ABCD", "EFGH", "IJKL"])
+        XCTAssertTrue(original.glyphs.allSatisfy { $0.sourceLine != nil && $0.sourceOrder != nil })
         for (text, x, y) in labels {
             let first = try XCTUnwrap(original.glyphs.first { $0.text == String(text.prefix(1)) })
             XCTAssertEqual(first.x, Double(x), accuracy: 2)
@@ -335,7 +407,12 @@ extension PDFParsingTests {
         let url = root.appendingPathComponent("synthetic.pdf")
         try (data as Data).write(to: url)
         let normal = try PDFKitReader.read(url)
-        XCTAssertEqual(try parse(normal, kind: .timetable).lessons.count, 8)
+        let parsed = try parse(normal, kind: .timetable)
+        XCTAssertEqual(parsed.lessons.count, 8)
+        XCTAssertEqual(Set(parsed.lessons.map(\.names.subject)), ["架空科目Q", "架空X", "架空Y", "架空科目Z"])
+        let independent = try XCTUnwrap(parsed.lessons.first { $0.className == "1_ZZ" })
+        XCTAssertEqual(independent.names.teacher, "架空教員Q")
+        XCTAssertEqual(independent.names.room, "架空室Q")
         let document = try XCTUnwrap(PDFDocument(data: data as Data))
         try XCTUnwrap(document.page(at: 0)).rotation = 90
         try XCTUnwrap(document.dataRepresentation()).write(to: url)

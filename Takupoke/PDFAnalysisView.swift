@@ -37,7 +37,10 @@ struct PDFAnalysisView: View {
                     LabeledContent("年度", value: "\(String(analysis.schoolYear))年度" + (analysis.term.map { "・" + $0 } ?? ""))
                     LabeledContent("最終解析成功") { Text(analysis.parsedAt, format: .dateTime.year().month().day().hour().minute()) }
                     LabeledContent("件数", value: "\(analysis.lessons.count + analysis.events.count)件")
-                    if analysis.sourceDigest != model.state.record(for: kind)?.digest || analysis.version != PDFAnalysis.parserVersion {
+                    if analysis.version < 3 {
+                        Label("旧版の解析結果には文字順の誤りが含まれる場合があります。保存済みPDFを再解析してください。", systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.orange)
+                    } else if analysis.sourceDigest != model.state.record(for: kind)?.digest || analysis.version != PDFAnalysis.parserVersion {
                         Label("前回の解析結果です。現在の資料を解析してください。", systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
                     }
@@ -71,6 +74,15 @@ struct PDFAnalysisView: View {
                         Section {
                             Text(event.title).font(.headline)
                             LabeledContent("対象欄", value: event.scope)
+                            if let classification = event.classification {
+                                Label(classification.label, systemImage: classification.type == .noClass ? "calendar.badge.minus" : "tag")
+                                    .font(.caption)
+                                    .foregroundStyle(classification.needsReview ? Color.orange : Color.secondary)
+                                if classification.type == .supplementary {
+                                    Text("基本時間割は使わず、時間割変更で指定された授業だけを扱う日です。")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
                             if let endDate = event.endDate {
                                 LabeledContent("期間", value: event.date + " 〜 " + endDate)
                                 Text("終了日を含みます。確認元：" + (event.periodEvidence ?? "PDF"))
