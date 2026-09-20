@@ -75,7 +75,7 @@ final class PDFParsingTests: XCTestCase {
     func testTimetablePeriodsParallelLessonsAndEmptyRoom() throws {
         let result = try parse([timetable()], kind: .timetable)
         XCTAssertEqual(result.version, PDFAnalysis.currentVersion(for: .timetable))
-        XCTAssertEqual(result.version, 6)
+        XCTAssertEqual(result.version, 7)
         XCTAssertEqual(result.schoolYear, 2032)
         XCTAssertEqual(result.term, "前期")
         XCTAssertEqual(result.lessons.count, 8)
