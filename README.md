@@ -6,6 +6,8 @@
 
 **資料取得・XLSX解析に加え、通常時間割と学校行事のPDF解析・結果確認画面を追加した開発版です。通常時間割のP01・P20に対し、全文診断をローカルで調べ、PDFの描画命令から文字位置を計算する解析バージョン7へ変更しました。前期・後期のローカル解析と架空データの回帰テストは通過しました。iPhoneでの解消・結果の正確性は確認待ちです。学校行事は解析完了の報告がある既存処理を維持しています。通常時間割・行事・変更の統合と通知は未実装です。**
 
+SQLite保存基盤と旧JSONからの移行候補作成を追加しました。アプリの保存先切替・時間割統合はまだ行っていません。実装範囲と確認待ちの条件は[SQLite設計](docs/local-database-design.md)に記載しています。
+
 新規のPDF結果確認画面は標準ナビゲーションとLiquid Glassの解析ボタンを使います。ActionsをXcode 26.3へ更新し、iOS 26以降でLiquid Glass、それより古いOSで従来の標準部品を使う構成です。既存画面の全面的な置き換えは後の作業です。
 
 [導入・更新手順](docs/distribution.md) · [開発環境](docs/development.md) · [ロードマップ](docs/roadmap.md) · [Releases](https://github.com/n624-dev/takupoke-ios/releases)
@@ -97,6 +99,7 @@ docs/                      方針・手順・検証・情報管理
 | --- | --- |
 | [確定した開発方針](docs/development-policy.md) | 採用技術、資料取得、解析、保存、配布の判断基準 |
 | [開発ロードマップ](docs/roadmap.md) | ①〜⑧の順序と完了条件 |
+| [端末内DB・統合の設計案](docs/local-database-design.md) | 修正案に基づく保存・採用・復旧の設計と、確認待ちの資料契約 |
 | [開発環境・検証手順](docs/development.md) | Linux / Windows の準備、Git 設定、テスト、ビルド |
 | [導入・更新・配布の仕組み](docs/distribution.md) | Source URL、実機導入、番号規則、障害対応 |
 | [学校資料の選択・取得](docs/materials.md) | OneDrive / Files の選択・再取得・制約・実機確認項目 |

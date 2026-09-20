@@ -12,7 +12,7 @@
 | iOS ビルド | Actions の `macos-15` と Xcode 26.3 |
 | 実機導入・更新 | iOS 16.0 以降の iPhone、AltStore Classic。Windows の AltServer を使う経路を基準とする |
 
-このデバイスの開発環境は Linux です。Linux / Windows では SwiftUI のビルドを行わず、配布スクリプトのテストとソース編集を行います。XcodeGen、CocoaPodsは使用していません。XLSX展開にはZIPFoundation 0.9.20（コミット固定）をSwift Packageとして使用します。
+このデバイスの開発環境は Linux です。Linux / Windows では SwiftUI のビルドを行わず、配布スクリプトのテストとソース編集を行います。XcodeGen、CocoaPodsは使用していません。XLSX展開にはZIPFoundation 0.9.20、SQLite保存基盤にはGRDB 7.11.1をコミット固定のSwift Packageとして使用します。共通ソースのテストにはSwift 6.1以降が必要です。
 
 ## clone とメールアドレスの非公開設定
 
@@ -68,11 +68,11 @@ PATH="/home/ubuntu/.local/share/swift-6.1.2/usr/bin:$PATH" bash tools/test-mater
 
 学校サイトの本番URLをテスト・疎通確認に使いません。HEADや条件付きGETも禁止です。通信テストのURLProtocolはすべてのリクエストを捕捉し、`example.invalid`以外を拒否します。学校サーバーへの定期確認・負荷試験はCIへ追加しないでください。実装上必要な調査としての取得は利用者から許可されていますが、必要な回数に限定し、実資料をリポジトリ・CIへ持ち込みません。
 
-## SwiftのXLSX解析テスト
+## Swiftの解析・保存テスト
 
-`bash tools/test-parsing.sh` はSwift Package経由で、本体のXLSX読み取り・正規化・PDFの位置情報解析・保存処理を検証します。GitHubから固定したZIPFoundationを取得しますが、学校サイトや学校資料にはアクセスしません。教師名・科目名を含め、テスト入力・期待結果は架空です。
+`bash tools/test-parsing.sh` はSwift Package経由で、本体のXLSX読み取り・正規化・PDFの位置情報解析・保存処理を検証します。GitHubから固定したZIPFoundationとGRDBを取得しますが、学校サイトや学校資料にはアクセスしません。教師名・科目名を含め、テスト入力・期待結果は架空です。
 
-LinuxではSwiftに加えてzlibの開発ファイルが必要です。一般的なUbuntu環境では `zlib1g-dev` と `pkg-config` を導入してください。このデバイスでは管理者権限を使えなかったため、Ubuntu配布のzlib開発パッケージをユーザー領域に展開し、既存のzlibランタイムへリンクしました。pkg-configは未導入です。次の指定で実行できます。
+LinuxではSwift 6.1以降に加えてzlib・SQLiteの開発ファイルが必要です。一般的なUbuntu環境では `zlib1g-dev`、`libsqlite3-dev`、`pkg-config` を導入してください。このデバイスではUbuntu配布の開発パッケージをユーザー領域に展開し、既存のzlib・SQLiteランタイムへリンクしました。pkg-configは未導入です。既存の環境変数名 `TKPK_ZLIB_PREFIX` で両方のヘッダー・ライブラリの配置先を渡し、次の指定で実行できます。
 
 ```sh
 TKPK_ZLIB_PREFIX=/home/ubuntu/.local/share/takupoke-build-deps \

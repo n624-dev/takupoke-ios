@@ -117,21 +117,7 @@ final class MaterialLibrary {
             do {
                 guard let size = try manifest.resourceValues(forKeys: [.fileSizeKey]).fileSize,
                       size <= 64 * 1024 * 1024 else { throw MaterialError.invalidState }
-                state = try JSONDecoder().decode(MaterialLibraryState.self, from: Data(contentsOf: manifest))
-                guard state.schemaVersion == 1,
-                      Set(state.records.map(\.kind)).count == state.records.count,
-                      state.records.allSatisfy({ Self.validStoredName($0.storedName, kind: $0.kind) }) else {
-                    throw MaterialError.invalidState
-                }
-                if let analysis = state.changeAnalysis {
-                    guard (1...ChangeAnalysis.parserVersion).contains(analysis.version),
-                          !analysis.records.isEmpty, analysis.records.count <= ChangeNormalizer.maximumRecords else {
-                        throw MaterialError.invalidState
-                    }
-                }
-                for (key, analysis) in state.pdfAnalyses ?? [:] {
-                    guard key == analysis.kind.rawValue, Self.validPDFAnalysis(analysis) else { throw MaterialError.invalidState }
-                }
+                state = try Self.decodeLegacyManifest(Data(contentsOf: manifest))
             } catch {
                 // Never replace an unreadable manifest with an empty one.
                 throw MaterialError.invalidState
@@ -168,6 +154,28 @@ final class MaterialLibrary {
         // A valid manifest is the commit point. Reclaim only our unreferenced
         // files, including work interrupted by termination during a copy.
         try removeUnreferencedFiles()
+    }
+
+    /// Pure validation shared by the legacy reader and migration preparation.
+    /// Does not create directories or run the legacy file collector.
+    static func decodeLegacyManifest(_ data: Data) throws -> MaterialLibraryState {
+        guard data.count <= 64 * 1024 * 1024 else { throw MaterialError.invalidState }
+        let state = try JSONDecoder().decode(MaterialLibraryState.self, from: data)
+        guard state.schemaVersion == 1,
+              Set(state.records.map(\.kind)).count == state.records.count,
+              state.records.allSatisfy({ Self.validStoredName($0.storedName, kind: $0.kind) }) else {
+            throw MaterialError.invalidState
+        }
+        if let analysis = state.changeAnalysis {
+            guard (1...ChangeAnalysis.parserVersion).contains(analysis.version),
+                  !analysis.records.isEmpty, analysis.records.count <= ChangeNormalizer.maximumRecords else {
+                throw MaterialError.invalidState
+            }
+        }
+        for (key, analysis) in state.pdfAnalyses ?? [:] {
+            guard key == analysis.kind.rawValue, Self.validPDFAnalysis(analysis) else { throw MaterialError.invalidState }
+        }
+        return state
     }
 
     private static func validStoredName(_ name: String, kind: MaterialKind) -> Bool {
