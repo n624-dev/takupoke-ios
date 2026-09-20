@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 
 /// Structured diagnostics accept only fixed codes and numbers, never source text.
 struct PDFDiagnosticSnapshot: Codable, Equatable {
@@ -11,7 +14,7 @@ struct PDFDiagnosticSnapshot: Codable, Equatable {
         var height: Double?
 
         init(_ rect: CGRect) {
-            let numbers = [rect.origin.x, rect.origin.y, rect.size.width, rect.size.height].map(Double.init)
+            let numbers: [Double] = [rect.origin.x, rect.origin.y, rect.size.width, rect.size.height].map { Double($0) }
             state = rect.isNull ? .null : rect.isInfinite ? .infinite :
                 !numbers.allSatisfy(\.isFinite) ? .nonFinite : rect.isEmpty ? .empty : .valid
             x = numbers[0].isFinite ? numbers[0] : nil
