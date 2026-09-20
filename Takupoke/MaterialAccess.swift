@@ -71,7 +71,7 @@ final class MaterialWorker {
         if library != nil { return }
         let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
                                                appropriateFor: nil, create: true)
-        library = try MaterialLibrary(root: base.appendingPathComponent("SchoolMaterials", isDirectory: true))
+        library = try LocalMaterialDatabase.openLibrary(root: base.appendingPathComponent("SchoolMaterialsSQLite", isDirectory: true))
     }
 
     func analyzeChanges(defaultYear: Int?, control: AcquisitionControl) throws {

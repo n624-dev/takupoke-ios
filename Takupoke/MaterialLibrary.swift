@@ -92,28 +92,40 @@ enum MaterialError: LocalizedError {
     }
 }
 
+/// An adapter owns the commit point; file collection runs only after a valid load.
+protocol MaterialLibraryPersistence: AnyObject {
+    func load() throws -> MaterialLibraryState
+    func save(_ state: MaterialLibraryState) throws
+    func retainedStoredNames() throws -> Set<String>
+}
+
 /// Used only on the acquisition worker's serial queue. No provider URLs are
-/// touched here; this owns the private on-device copies and their manifest.
+/// touched here; this owns the private on-device copies and their saved metadata.
 final class MaterialLibrary {
     static let maximumBytes = 50 * 1024 * 1024
     private let root: URL
     private let files: URL
     private let staging: URL
     private let manifest: URL
+    private let persistence: MaterialLibraryPersistence?
     private let writeManifest: (Data, URL) throws -> Void
     private(set) var state: MaterialLibraryState
 
-    init(root: URL, writeManifest: @escaping (Data, URL) throws -> Void = {
+    init(root: URL, persistence: MaterialLibraryPersistence? = nil, writeManifest: @escaping (Data, URL) throws -> Void = {
         try $0.write(to: $1, options: .atomic)
     }) throws {
         self.root = root
+        self.persistence = persistence
         files = root.appendingPathComponent("files", isDirectory: true)
         staging = root.appendingPathComponent("staging", isDirectory: true)
         manifest = root.appendingPathComponent("library.json")
         self.writeManifest = writeManifest
         let manager = FileManager.default
         let hasManifest = manager.fileExists(atPath: manifest.path)
-        if hasManifest {
+        if let persistence {
+            do { state = try persistence.load() }
+            catch { throw MaterialError.invalidState }
+        } else if hasManifest {
             do {
                 guard let size = try manifest.resourceValues(forKeys: [.fileSizeKey]).fileSize,
                       size <= 64 * 1024 * 1024 else { throw MaterialError.invalidState }
@@ -150,8 +162,8 @@ final class MaterialLibrary {
         #endif
         // Establish the empty commit point before the first copy. A crash
         // after moving that copy can then be recovered as an orphan.
-        if !hasManifest { try persist(state) }
-        // A valid manifest is the commit point. Reclaim only our unreferenced
+        if persistence == nil && !hasManifest { try persist(state) }
+        // A valid saved state is the commit point. Reclaim only our unreferenced
         // files, including work interrupted by termination during a copy.
         try removeUnreferencedFiles()
     }
@@ -195,7 +207,8 @@ final class MaterialLibrary {
     private func persist(_ next: MaterialLibraryState) throws {
         let data = try JSONEncoder().encode(next)
         guard data.count <= 64 * 1024 * 1024 else { throw MaterialError.invalidState }
-        try writeManifest(data, manifest)
+        if let persistence { try persistence.save(next) }
+        else { try writeManifest(data, manifest) }
         state = next
     }
 
@@ -293,14 +306,19 @@ final class MaterialLibrary {
                                            sourceModifiedAt: modifiedAt, acquiredAt: now, lastCheckedAt: now))
         next.attempts[kind.rawValue] = AcquisitionAttempt(date: now, failure: nil)
         do {
+            #if os(iOS)
+            try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: destination.path)
+            #endif
             try persist(next)
         } catch {
             try? FileManager.default.removeItem(at: destination)
             throw error
         }
-        // Old data is removed only after the atomic manifest write succeeds.
+        // Old data is removed only after persistence succeeds.
         // Interrupted cleanup is retried the next time the library opens.
-        try? removeUnreferencedFiles()
+        // SQLite may still have an older file open in a PDF view. Defer orphan
+        // collection to the next launch, before any views or jobs can use files.
+        if persistence == nil { try? removeUnreferencedFiles() }
     }
 
     func localURL(for kind: MaterialKind) -> URL? {
@@ -309,7 +327,7 @@ final class MaterialLibrary {
 
     private func removeUnreferencedFiles() throws {
         let manager = FileManager.default
-        let keep = Set(state.records.map(\.storedName))
+        let keep = try persistence?.retainedStoredNames() ?? Set(state.records.map(\.storedName))
         for url in try manager.contentsOfDirectory(at: staging, includingPropertiesForKeys: nil) {
             try manager.removeItem(at: url)
         }
