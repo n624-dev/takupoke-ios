@@ -11,7 +11,9 @@ struct PDFAnalysisView: View {
     @State private var showingSource = false
     @State private var copiedDiagnostic: String?
     private var analysis: PDFAnalysis? { model.state.pdfAnalyses?[kind.rawValue] }
-    private var failure: PDFParseError? { model.state.pdfParseAttempts?[kind.rawValue]?.failure }
+    private var failure: PDFParseError? {
+        (kind == .timetable ? model.timetableFailure : nil) ?? model.state.pdfParseAttempts?[kind.rawValue]?.failure
+    }
     private var classes: [String] { Set(analysis?.lessons.map(\.className) ?? []).sorted() }
     private var visibleLessons: [PDFLesson] {
         (analysis?.lessons ?? []).filter { (selectedClass.isEmpty || $0.className == selectedClass) &&
@@ -27,11 +29,15 @@ struct PDFAnalysisView: View {
                 if model.busy { HStack { ProgressView(); Text("処理中…") } }
                 if let failure = failure {
                     Label(failure.localizedDescription, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
-                    if kind == .timetable, let report = failure.diagnosticReport {
-                        diagnosticButton(report)
-                        Text(copiedDiagnostic == report ? "診断情報をコピーしました。" : "停止したセルの文字位置と読み順だけをコピーします。本文・科目名・教員名は含みません。")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
+                }
+                if kind == .timetable, let report = model.timetableReadReport {
+                    diagnosticButton(report, title: "読み取り結果をすべてコピー")
+                    Text(copiedDiagnostic == report ? "読み取り結果をコピーしました。" : "PDF本文・教員名などを含む全文と位置情報を、圧縮してコピーします。開発相談へ貼り付けてください。")
+                        .font(.caption).foregroundStyle(.secondary)
+                } else if kind == .timetable, let report = failure?.diagnosticReport {
+                    diagnosticButton(report, title: "保存済みのエラー診断をコピー")
+                    Text("全読み取り結果をコピーするには、保存済みPDFを再解析してください。")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
                 if let message = model.message, message != failure?.localizedDescription {
                     Text(message).font(.caption).foregroundStyle(model.failed ? Color.orange : Color.secondary)
@@ -114,6 +120,7 @@ struct PDFAnalysisView: View {
             if model.busy { ToolbarItem(placement: .cancellationAction) { Button("中止") { model.cancel() } } }
         }
         .onChange(of: classes) { values in if !values.contains(selectedClass) { selectedClass = "" } }
+        .onChange(of: model.busy) { busy in if busy { copiedDiagnostic = nil } }
         .sheet(isPresented: $showingSource) {
             if let url = model.pdfURLs[kind.rawValue] { SavedPDFView(url: url, title: kind.title) }
         }
@@ -131,13 +138,13 @@ struct PDFAnalysisView: View {
         }
     }
 
-    @ViewBuilder private func diagnosticButton(_ report: String) -> some View {
+    @ViewBuilder private func diagnosticButton(_ report: String, title: String) -> some View {
         if #available(iOS 26.0, *) {
-            Button("診断情報をコピー", systemImage: "doc.on.doc") { copyDiagnostic(report) }
+            Button(title, systemImage: "doc.on.doc") { copyDiagnostic(report) }
                 .buttonStyle(.glass)
                 .disabled(model.busy)
         } else {
-            Button("診断情報をコピー") { copyDiagnostic(report) }
+            Button(title) { copyDiagnostic(report) }
                 .buttonStyle(.bordered)
                 .disabled(model.busy)
         }

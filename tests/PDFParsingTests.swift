@@ -1,5 +1,6 @@
 import Foundation
 import XCTest
+import ZIPFoundation
 @testable import TakupokeParsing
 #if canImport(PDFKit)
 import PDFKit
@@ -301,6 +302,74 @@ final class PDFParsingTests: XCTestCase {
         XCTAssertEqual(snapshot.glyphs.last?.order, 255)
         XCTAssertLessThan(try JSONEncoder().encode(snapshot).count, 40_000)
     }
+    func testTraceCoversP01AndAllFailureStagesWithInvalidRectangles() throws {
+        let recorder = PDFDiagnosticRecorder()
+        recorder.record(.start)
+        recorder.record(.selection, page: 1, index: 2, length: 1, values: [1, 1],
+                        bounds: CGRect(x: 10, y: 20, width: 5, height: 7))
+        var captured: Error?
+        XCTAssertThrowsError(try PDFCharacterGeometry.bounds(for: NSRange(location: 2, length: 1), count: 4) { index in
+            recorder.record(.characterBounds, page: 1, index: index, bounds: .null)
+            return .null
+        }) { captured = $0 }
+        let failure = recorder.attaching(to: try XCTUnwrap(captured))
+        XCTAssertEqual(failure.stage, .characterMapping)
+        XCTAssertEqual(failure.trace?.entries.last?.step, .failure)
+        XCTAssertEqual(failure.trace?.entries.first { $0.step == .characterBounds }?.bounds?.state, .null)
+        let copied = try XCTUnwrap(failure.diagnosticReport)
+        XCTAssertTrue(copied.hasPrefix("TAKUPOKE-PDF-TRACE-1\n"))
+        let restored = try JSONDecoder().decode(PDFParseError.self,
+            from: Data(copied.split(separator: "\n", maxSplits: 1)[1].utf8))
+        XCTAssertEqual(restored, failure)
+        for stage in PDFParseError.Stage.allCases {
+            XCTAssertNotNil(PDFDiagnosticRecorder().attaching(to: PDFParseError(code: .unsupported, stage: stage)).diagnosticReport)
+        }
+        for code in [PDFParseError.Code.unreadable, .limit, .cancelled, .storage] {
+            XCTAssertNotNil(PDFDiagnosticRecorder().attaching(to: PDFParseError(code: code)).diagnosticReport)
+        }
+    }
+    func testTraceLimitsKeepStartupAndFinalFailureAndEncodeInvalidNumbers() throws {
+        let recorder = PDFDiagnosticRecorder(limit: 8)
+        for i in 0..<20 { recorder.record(.characterBounds, index: i, values: [.nan], bounds: .infinite) }
+        let failure = recorder.attaching(to: PDFParseError(code: .storage))
+        let trace = try XCTUnwrap(failure.trace)
+        XCTAssertEqual(trace.totalEntries, 21)
+        XCTAssertEqual(trace.omittedEntries, 13)
+        XCTAssertEqual(trace.entries.map(\.sequence), [0, 1, 2, 3, 17, 18, 19, 20])
+        XCTAssertEqual(trace.entries.last?.code, .storage)
+        XCTAssertEqual(trace.entries.first?.bounds?.state, .infinite)
+        XCTAssertNil(trace.entries.first?.values.first ?? nil)
+        XCTAssertNotNil(failure.diagnosticReport)
+    }
+    func testFullDiagnosticCopyPreservesAllTextAndGeometryLosslessly() throws {
+        var full = PDFFullReadDiagnostic()
+        var page = PDFFullReadDiagnostic.Page(number: 1)
+        page.text = "架空科目V\n架空教員W\n架空室X"
+        page.characters = [
+            .init(range: .init(NSRange(location: 0, length: 1)), text: "架", whitespace: false,
+                selectionText: "架", selectionBounds: .init(CGRect(x: 8, y: 10, width: 70, height: 7)), characterBounds: [.init(.null)]),
+            .init(range: .init(NSRange(location: 1, length: 1)), text: "空", whitespace: false,
+                selectionText: "空", selectionBounds: .init(CGRect(x: 15, y: 10, width: 7, height: 7)),
+                characterBounds: [.init(CGRect(x: 15, y: 10, width: 7, height: 7))])
+        ]
+        full.pages = [page]
+        full.attemptFailure = PDFParseError(code: .unsupported, page: 1, stage: .characterMapping)
+        let report = try PDFFullDiagnosticEncoding.report(full)
+        XCTAssertTrue(report.hasPrefix("TAKUPOKE-PDF-FULL-ZIP-1\n"))
+        let encoded = String(report.split(separator: "\n", maxSplits: 1)[1])
+        let data = try XCTUnwrap(Data(base64Encoded: encoded, options: .ignoreUnknownCharacters))
+        let archive = try Archive(data: data, accessMode: .read)
+        XCTAssertEqual(archive.map(\.path), ["diagnostic.json"])
+        let entry = try XCTUnwrap(archive["diagnostic.json"])
+        var decoded = Data()
+        _ = try archive.extract(entry) { decoded.append($0) }
+        XCTAssertEqual(decoded, try full.jsonData())
+        let restored = try JSONDecoder().decode(PDFFullReadDiagnostic.self, from: decoded)
+        XCTAssertEqual(restored.pages[0].text, page.text)
+        XCTAssertEqual(restored.pages[0].characters.map(\.text), ["架", "空"])
+        XCTAssertEqual(restored.pages[0].characters[0].characterBounds[0]?.state, .null)
+        XCTAssertEqual(restored.attemptFailure?.stage, .characterMapping)
+    }
     func testCloseCalendarLinesKeepTheirOrderAndExplicitTags() throws {
         var first = calendar(Array(4...9))
         first.glyphs.removeAll { $0.x >= 62 && $0.x < 100 && $0.cy == 100 }
@@ -443,6 +512,7 @@ final class PDFParsingTests: XCTestCase {
         let old = try JSONDecoder().decode(PDFParseError.self, from: Data(#"{"code":"unsupported","page":1}"#.utf8))
         XCTAssertNil(old.stage)
         XCTAssertNil(old.geometry)
+        XCTAssertNil(old.trace)
         XCTAssertNil(old.diagnosticReport)
         for stage in PDFParseError.Stage.allCases {
             let failure = PDFParseError(code: .unsupported, page: 2, stage: stage)
@@ -474,11 +544,11 @@ final class PDFParsingTests: XCTestCase {
         XCTAssertEqual(legacy.state.pdfAnalyses?["timetable"]?.version, 1)
         XCTAssertEqual(legacy.state.pdfAnalyses?["timetable"]?.lessons, old.lessons)
         try acquire("replacement")
-        let failure = PDFParseError(code: .ambiguous, page: 1, stage: .fragmentOverlap,
+        let failure = PDFDiagnosticRecorder().attaching(to: PDFParseError(code: .ambiguous, page: 1, stage: .fragmentOverlap,
             cell: PDFParseError.Cell(classRow: 1, weekday: 2, period: 3),
             geometry: PDFCellGeometryDiagnostic([
                 PDFGlyph(text: "架空秘密", x: 10, y: 10, width: 5, height: 6, sourceLine: 5, sourceOrder: 20)
-            ], box: PDFBox(left: 0, top: 0, right: 40, bottom: 60)))
+            ], box: PDFBox(left: 0, top: 0, right: 40, bottom: 60))))
         try library.recordPDFFailure(failure, kind: .timetable)
         XCTAssertEqual(try MaterialLibrary(root: root).state.pdfParseAttempts?["timetable"]?.failure, failure)
         XCTAssertEqual(library.state.pdfAnalyses?["timetable"]?.sourceDigest, "synthetic-digest")
@@ -558,6 +628,41 @@ extension PDFParsingTests {
                 }
             }
         }
+    }
+    func testPDFKitFullDiagnosticCollectsAllTextWhitespaceAndMultiplePages() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let data = NSMutableData()
+        let consumer = try XCTUnwrap(CGDataConsumer(data: data as CFMutableData))
+        var media = CGRect(x: 0, y: 0, width: 300, height: 400)
+        let context = try XCTUnwrap(CGContext(consumer: consumer, mediaBox: &media, nil))
+        for label in ["AB CD", "EF GH"] {
+            context.beginPDFPage(nil)
+            let font = CTFontCreateWithName("Helvetica" as CFString, 12, nil)
+            let line = CTLineCreateWithAttributedString(NSAttributedString(string: label,
+                attributes: [NSAttributedString.Key(kCTFontAttributeName as String): font]) as CFAttributedString)
+            context.textPosition = CGPoint(x: 30, y: 350)
+            CTLineDraw(line, context)
+            context.move(to: CGPoint(x: 10, y: 20)); context.addLine(to: CGPoint(x: 290, y: 20)); context.strokePath()
+            context.endPDFPage()
+        }
+        context.closePDF()
+        let url = root.appendingPathComponent("synthetic-diagnostic.pdf")
+        try (data as Data).write(to: url)
+        let report = PDFKitReader.diagnose(url)
+        XCTAssertTrue(report.incomplete.isEmpty)
+        XCTAssertEqual(report.pages.count, 2)
+        for page in report.pages {
+            XCTAssertEqual(page.characters.map(\.text).joined(), page.text)
+            XCTAssertTrue(page.characters.contains { $0.whitespace })
+            XCTAssertFalse(page.lines.isEmpty)
+            XCTAssertFalse(page.rules.isEmpty)
+            XCTAssertEqual(page.characters.reduce(0) { $0 + $1.range.length }, page.utf16Count)
+        }
+        let cancelled = PDFKitReader.diagnose(url) { throw PDFParseError(code: .cancelled) }
+        XCTAssertTrue(cancelled.incomplete.contains(.cancelled))
+        XCTAssertEqual(cancelled.issues.first?.code, .cancelled)
     }
     func testPDFKitBridgeRecognizesFilledArrowGeometry() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

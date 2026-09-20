@@ -221,12 +221,13 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
     }
     var cell: Cell? = nil
     var geometry: PDFCellGeometryDiagnostic? = nil
+    var trace: PDFDiagnosticSnapshot? = nil
     var diagnosticReport: String? {
-        guard geometry != nil else { return nil }
+        guard trace != nil || geometry != nil else { return nil }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         guard let data = try? encoder.encode(self), let json = String(data: data, encoding: .utf8) else { return nil }
-        return "TAKUPOKE-PDF-GEOMETRY-1\n" + json
+        return (trace == nil ? "TAKUPOKE-PDF-GEOMETRY-1\n" : "TAKUPOKE-PDF-TRACE-1\n") + json
     }
     var errorDescription: String? {
         let reason: String

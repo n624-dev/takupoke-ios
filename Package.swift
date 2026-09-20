@@ -13,7 +13,7 @@ let package = Package(
                 exclude: ["Assets.xcassets", "Info.plist", "PrivacyInfo.xcprivacy", "ThirdPartyNotices.txt",
                           "TakupokeApp.swift", "ContentView.swift", "MaterialAccess.swift", "MaterialsModel.swift",
                           "MaterialsView.swift", "ChangeAnalysisView.swift", "WebPDFDownloader.swift", "PDFAnalysisView.swift"],
-                sources: ["ChangeNormalizer.swift", "XLSXReader.swift", "MaterialLibrary.swift", "TimetableLessonNames.swift", "PDFSchoolParser.swift", "PDFKitReader.swift"]),
+                sources: ["ChangeNormalizer.swift", "XLSXReader.swift", "MaterialLibrary.swift", "TimetableLessonNames.swift", "PDFSchoolParser.swift", "PDFKitReader.swift", "PDFDiagnostics.swift", "PDFFullDiagnosticEncoding.swift"]),
         .testTarget(name: "ParsingTests", dependencies: ["TakupokeParsing", "ZIPFoundation"], path: "tests",
                     exclude: ["MaterialLibraryChecks.swift", "WebPDFChecks.swift", "test_distribution.py"],
                     sources: ["ParsingTests.swift", "TimetableNameTests.swift", "PDFParsingTests.swift"], resources: [.copy("fixtures")])
