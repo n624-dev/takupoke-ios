@@ -186,6 +186,58 @@ final class PDFParsingTests: XCTestCase {
             XCTAssertEqual(try JSONDecoder().decode(PDFParseError.self, from: JSONEncoder().encode(failure)), failure)
         }
     }
+    func testTimetableGeometryReportReproducesFailureWithoutSourceText() throws {
+        var page = timetable()
+        page.glyphs.removeAll { $0.x >= 100 && $0.x < 140 && $0.cy > 100 && $0.cy < 160 }
+        page.glyphs += [
+            PDFGlyph(text: "架空秘密科目", x: 108, y: 110, width: 8, height: 6, sourceLine: 800, sourceOrder: 9000),
+            PDFGlyph(text: "架空秘密教員", x: 111, y: 110, width: 2, height: 6, sourceLine: 801, sourceOrder: 9010)
+        ]
+        var captured: PDFParseError?
+        XCTAssertThrowsError(try parse([page], kind: .timetable)) { captured = $0 as? PDFParseError }
+        let failure = try XCTUnwrap(captured)
+        XCTAssertEqual(failure.stage, .fragmentOverlap)
+        XCTAssertEqual(failure.page, 1)
+        XCTAssertEqual(failure.cell?.classRow, 1)
+        let geometry = try XCTUnwrap(failure.geometry)
+        XCTAssertEqual(geometry.width, 40)
+        XCTAssertEqual(geometry.height, 60)
+        XCTAssertEqual(geometry.glyphs.map(\.line), [0, 1])
+        XCTAssertEqual(geometry.glyphs.map(\.order), [0, 1])
+        let report = try XCTUnwrap(failure.diagnosticReport)
+        XCTAssertTrue(report.hasPrefix("TAKUPOKE-PDF-GEOMETRY-1\n"))
+        for excluded in ["架空", "秘密", "synthetic.pdf", "synthetic-digest", "9000", "9010"] {
+            XCTAssertFalse(report.contains(excluded))
+        }
+        let data = Data(report.split(separator: "\n", maxSplits: 1)[1].utf8)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(Set(json.keys), ["code", "page", "stage", "cell", "geometry"])
+        let geometryJSON = try XCTUnwrap(json["geometry"] as? [String: Any])
+        XCTAssertEqual(Set(geometryJSON.keys), ["parserVersion", "width", "height", "totalGlyphs", "glyphs"])
+        let glyphJSON = try XCTUnwrap(geometryJSON["glyphs"] as? [[String: Any]])
+        XCTAssertTrue(glyphJSON.allSatisfy { Set($0.keys) == ["line", "order", "x", "y", "width", "height"] })
+        let restored = try JSONDecoder().decode(PDFParseError.self, from: data)
+        XCTAssertEqual(restored, failure)
+
+        // Reproduce the position/order check using placeholders only.
+        let glyphs = geometry.glyphs.map {
+            PDFGlyph(text: "□", x: $0.x, y: $0.y, width: $0.width, height: $0.height, sourceLine: $0.line, sourceOrder: $0.order)
+        }
+        let grid = PDFGrid(page: PDFPageLayout(width: geometry.width, height: geometry.height, glyphs: glyphs, lines: []))
+        XCTAssertThrowsError(try grid.timetableText(PDFBox(left: 0, top: 0, right: geometry.width, bottom: geometry.height))) {
+            XCTAssertEqual(($0 as? PDFParseError)?.stage, failure.stage)
+        }
+    }
+    func testGeometryDiagnosticHasBoundedSize() throws {
+        let glyphs = (0..<300).map {
+            PDFGlyph(text: "架空文字", x: Double($0), y: 10, width: 2, height: 5, sourceLine: 50, sourceOrder: 1000 + $0)
+        }
+        let snapshot = PDFCellGeometryDiagnostic(glyphs, box: PDFBox(left: 0, top: 0, right: 700, bottom: 40))
+        XCTAssertEqual(snapshot.totalGlyphs, 300)
+        XCTAssertEqual(snapshot.glyphs.count, PDFCellGeometryDiagnostic.maximumGlyphs)
+        XCTAssertEqual(snapshot.glyphs.last?.order, 255)
+        XCTAssertLessThan(try JSONEncoder().encode(snapshot).count, 40_000)
+    }
     func testCloseCalendarLinesKeepTheirOrderAndExplicitTags() throws {
         var first = calendar(Array(4...9))
         first.glyphs.removeAll { $0.x >= 62 && $0.x < 100 && $0.cy == 100 }
@@ -327,6 +379,8 @@ final class PDFParsingTests: XCTestCase {
     func testOldFailureDecodesAndNewFailureRetainsOnlyFixedDiagnostic() throws {
         let old = try JSONDecoder().decode(PDFParseError.self, from: Data(#"{"code":"unsupported","page":1}"#.utf8))
         XCTAssertNil(old.stage)
+        XCTAssertNil(old.geometry)
+        XCTAssertNil(old.diagnosticReport)
         for stage in PDFParseError.Stage.allCases {
             let failure = PDFParseError(code: .unsupported, page: 2, stage: stage)
             XCTAssertEqual(try JSONDecoder().decode(PDFParseError.self, from: JSONEncoder().encode(failure)), failure)
@@ -357,7 +411,11 @@ final class PDFParsingTests: XCTestCase {
         XCTAssertEqual(legacy.state.pdfAnalyses?["timetable"]?.version, 1)
         XCTAssertEqual(legacy.state.pdfAnalyses?["timetable"]?.lessons, old.lessons)
         try acquire("replacement")
-        let failure = PDFParseError(code: .unsupported, page: 1, stage: .characterMapping)
+        let failure = PDFParseError(code: .ambiguous, page: 1, stage: .fragmentOverlap,
+            cell: PDFParseError.Cell(classRow: 1, weekday: 2, period: 3),
+            geometry: PDFCellGeometryDiagnostic([
+                PDFGlyph(text: "架空秘密", x: 10, y: 10, width: 5, height: 6, sourceLine: 5, sourceOrder: 20)
+            ], box: PDFBox(left: 0, top: 0, right: 40, bottom: 60)))
         try library.recordPDFFailure(failure, kind: .timetable)
         XCTAssertEqual(try MaterialLibrary(root: root).state.pdfParseAttempts?["timetable"]?.failure, failure)
         XCTAssertEqual(library.state.pdfAnalyses?["timetable"]?.sourceDigest, "synthetic-digest")

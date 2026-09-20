@@ -1,5 +1,7 @@
 import SwiftUI
 import PDFKit
+import UIKit
+import UniformTypeIdentifiers
 
 struct PDFAnalysisView: View {
     @ObservedObject var model: MaterialsModel
@@ -7,6 +9,7 @@ struct PDFAnalysisView: View {
     @State private var selectedClass = ""
     @State private var selectedWeekday = 0
     @State private var showingSource = false
+    @State private var copiedDiagnostic: String?
     private var analysis: PDFAnalysis? { model.state.pdfAnalyses?[kind.rawValue] }
     private var failure: PDFParseError? { model.state.pdfParseAttempts?[kind.rawValue]?.failure }
     private var classes: [String] { Set(analysis?.lessons.map(\.className) ?? []).sorted() }
@@ -24,6 +27,11 @@ struct PDFAnalysisView: View {
                 if model.busy { HStack { ProgressView(); Text("処理中…") } }
                 if let failure = failure {
                     Label(failure.localizedDescription, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                    if kind == .timetable, let report = failure.diagnosticReport {
+                        diagnosticButton(report)
+                        Text(copiedDiagnostic == report ? "診断情報をコピーしました。" : "停止したセルの文字位置と読み順だけをコピーします。本文・科目名・教員名は含みません。")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
                 if let message = model.message, message != failure?.localizedDescription {
                     Text(message).font(.caption).foregroundStyle(model.failed ? Color.orange : Color.secondary)
@@ -121,6 +129,24 @@ struct PDFAnalysisView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(model.busy || !model.ready || model.state.record(for: kind) == nil)
         }
+    }
+
+    @ViewBuilder private func diagnosticButton(_ report: String) -> some View {
+        if #available(iOS 26.0, *) {
+            Button("診断情報をコピー", systemImage: "doc.on.doc") { copyDiagnostic(report) }
+                .buttonStyle(.glass)
+                .disabled(model.busy)
+        } else {
+            Button("診断情報をコピー") { copyDiagnostic(report) }
+                .buttonStyle(.bordered)
+                .disabled(model.busy)
+        }
+    }
+
+    private func copyDiagnostic(_ report: String) {
+        UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: report]],
+            options: [.localOnly: true, .expirationDate: Date().addingTimeInterval(600)])
+        copiedDiagnostic = report
     }
 }
 

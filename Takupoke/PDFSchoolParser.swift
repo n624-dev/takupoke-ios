@@ -40,6 +40,38 @@ struct PDFBox: Hashable {
     var right: Double
     var bottom: Double
 }
+/// A bounded, text-free snapshot of just the failing cell. Never include glyph
+/// text, document names, digests, paths or the rest of the page in this type.
+struct PDFCellGeometryDiagnostic: Codable, Equatable {
+    struct Glyph: Codable, Equatable {
+        var line: Int?
+        var order: Int?
+        var x: Double
+        var y: Double
+        var width: Double
+        var height: Double
+    }
+    static let maximumGlyphs = 256
+    var parserVersion: Int
+    var width: Double
+    var height: Double
+    var totalGlyphs: Int
+    var glyphs: [Glyph]
+
+    init(_ input: [PDFGlyph], box: PDFBox) {
+        parserVersion = PDFAnalysis.currentVersion(for: .timetable)
+        width = box.right - box.left
+        height = box.bottom - box.top
+        totalGlyphs = input.count
+        // Cell-local ranks preserve comparisons without disclosing page offsets.
+        let lines = Dictionary(uniqueKeysWithValues: Set(input.compactMap(\.sourceLine)).sorted().enumerated().map { ($1, $0) })
+        let orders = Dictionary(uniqueKeysWithValues: Set(input.compactMap(\.sourceOrder)).sorted().enumerated().map { ($1, $0) })
+        glyphs = input.prefix(Self.maximumGlyphs).map {
+            Glyph(line: $0.sourceLine.flatMap { lines[$0] }, order: $0.sourceOrder.flatMap { orders[$0] },
+                  x: $0.x - box.left, y: $0.y - box.top, width: $0.width, height: $0.height)
+        }
+    }
+}
 struct PDFLesson: Codable, Equatable {
     var className: String
     var weekday: Int
@@ -188,6 +220,14 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
         }
     }
     var cell: Cell? = nil
+    var geometry: PDFCellGeometryDiagnostic? = nil
+    var diagnosticReport: String? {
+        guard geometry != nil else { return nil }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        guard let data = try? encoder.encode(self), let json = String(data: data, encoding: .utf8) else { return nil }
+        return "TAKUPOKE-PDF-GEOMETRY-1\n" + json
+    }
     var errorDescription: String? {
         let reason: String
         switch code {
@@ -459,7 +499,13 @@ enum PDFSchoolParser {
                     var cell = PDFParseError.Cell(classRow: classIndex + 1, weekday: column / 8 + 1, period: column % 8 + 1)
                     let lines: [String]
                     do { lines = try grid.timetableText(box) }
-                    catch var error as PDFParseError { error.cell = cell; throw error }
+                    catch var error as PDFParseError {
+                        error.cell = cell
+                        if error.stage == .fragmentOverlap || error.stage == .fragmentAlignment {
+                            error.geometry = PDFCellGeometryDiagnostic(grid.glyphs(in: box), box: box)
+                        }
+                        throw error
+                    }
                     if lines.isEmpty { continue }
                     cell.detectedLines = lines.count
                     guard lines.reduce(0, { $0 + $1.utf8.count }) <= 4096 else { throw PDFParseError(code: .limit, page: 1) }
