@@ -102,7 +102,7 @@ final class MaterialWorker {
             let check = {
                 do { try control.check() } catch { throw PDFParseError(code: .cancelled) }
             }
-            let pages = try PDFKitReader.read(url, check: check)
+            let pages = try PDFKitReader.read(url, kind: kind, check: check)
             let analysis = try PDFSchoolParser.parse(pages, kind: kind, digest: record.digest, name: record.originalName, check: check)
             try check()
             do { try library.savePDFAnalysis(analysis) } catch { throw PDFParseError(code: .storage) }

@@ -1,12 +1,34 @@
-#if canImport(PDFKit)
 import Foundation
+
+/// Bounds for a composed character are built only from its own UTF-16 indices.
+/// A selection's highlight rectangle is not a per-character bounding box.
+enum PDFCharacterGeometry {
+    static func bounds(for range: NSRange, count: Int, characterBounds: (Int) -> CGRect) throws -> CGRect {
+        guard range.location >= 0, range.location < count, range.length > 0,
+              range.length <= count - range.location else {
+            throw PDFParseError(code: .unsupported, stage: .characterMapping)
+        }
+        var result = CGRect.null
+        for index in range.location..<(range.location + range.length) {
+            let rect = characterBounds(index)
+            guard !rect.isNull, !rect.isEmpty, !rect.isInfinite,
+                  [rect.minX, rect.minY, rect.width, rect.height].allSatisfy(\.isFinite) else {
+                throw PDFParseError(code: .unsupported, stage: .characterMapping)
+            }
+            result = result.union(rect)
+        }
+        return result
+    }
+}
+
+#if canImport(PDFKit)
 import PDFKit
 import CoreGraphics
 
 /// PDFKit supplies text, Core Graphics supplies painted table rules.
 /// No JavaScript, links, embedded files, or actions in a PDF are executed.
 enum PDFKitReader {
-    static func read(_ url: URL, check: @escaping () throws -> Void = {}) throws -> [PDFPageLayout] {
+    static func read(_ url: URL, kind: MaterialKind, check: @escaping () throws -> Void = {}) throws -> [PDFPageLayout] {
         guard let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize,
               size > 0, size <= MaterialLibrary.maximumBytes,
               let document = PDFDocument(url: url), !document.isLocked,
@@ -68,13 +90,23 @@ enum PDFKitReader {
                           (range.location..<NSMaxRange(range)).allSatisfy({ sourceLines[$0] == sourceLine }) else {
                         throw PDFParseError(code: .unsupported, page: index + 1, stage: .textOrder)
                     }
-                    // Obtain text and bounds from the same UTF-16 selection. Do not pair
-                    // page.string with a separately indexed characterBounds result: their
-                    // text layout/indexing can differ between PDFKit implementations.
+                    // Verify the UTF-16 text range in both geometry modes.
                     guard let selection = page.selection(for: range), selection.string == text else {
                         throw PDFParseError(code: .unsupported, page: index + 1, stage: .characterMapping)
                     }
-                    let box = selection.bounds(for: page)
+                    let box: CGRect
+                    if kind == .timetable {
+                        // Highlight rectangles can span neighbouring cells even for a
+                        // one-character selection. Use indexed character bounds instead.
+                        do {
+                            box = try PDFCharacterGeometry.bounds(for: range, count: ns.length) {
+                                page.characterBounds(at: $0)
+                            }
+                        } catch var error as PDFParseError { error.page = index + 1; throw error }
+                    } else {
+                        // The calendar path is intentionally kept unchanged.
+                        box = selection.bounds(for: page)
+                    }
                     guard !box.isNull, !box.isEmpty,
                           [box.minX, box.minY, box.width, box.height].allSatisfy(\.isFinite) else {
                         // Dropping a visible character could silently change a subject or date.

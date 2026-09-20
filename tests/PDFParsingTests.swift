@@ -74,7 +74,7 @@ final class PDFParsingTests: XCTestCase {
     func testTimetablePeriodsParallelLessonsAndEmptyRoom() throws {
         let result = try parse([timetable()], kind: .timetable)
         XCTAssertEqual(result.version, PDFAnalysis.currentVersion(for: .timetable))
-        XCTAssertEqual(result.version, 5)
+        XCTAssertEqual(result.version, 6)
         XCTAssertEqual(result.schoolYear, 2032)
         XCTAssertEqual(result.term, "前期")
         XCTAssertEqual(result.lessons.count, 8)
@@ -161,6 +161,69 @@ final class PDFParsingTests: XCTestCase {
         XCTAssertThrowsError(try parse([page], kind: .timetable)) {
             XCTAssertEqual(($0 as? PDFParseError)?.stage, .fragmentOverlap)
             XCTAssertEqual(($0 as? PDFParseError)?.cell?.classRow, 1)
+        }
+    }
+    func testCharacterBoundsKeepNeighbouringCellsOutOfTimetable() throws {
+        var page = timetable()
+        page.glyphs.removeAll { $0.x >= 100 && $0.x < 140 && $0.cy > 100 && $0.cy < 160 }
+        var actual: [CGRect] = []
+        var selections: [CGRect] = []
+        var content: [(String, Int)] = []
+        for (row, value) in ["架空科目M", "架空教員N", "架空部屋O"].enumerated() {
+            for (i, character) in value.enumerated() {
+                let rect = CGRect(x: 104 + i * 4, y: 108 + row * 18, width: 4, height: 6)
+                actual.append(rect)
+                selections.append(rect)
+                content.append((String(character), row))
+            }
+        }
+        // Independently invented adjacent-cell character and a wide highlight.
+        // The highlight centre falls in the teacher cell, but the character does not.
+        actual.append(CGRect(x: 148, y: 126, width: 4, height: 6))
+        selections.append(CGRect(x: 87, y: 126, width: 86, height: 6))
+        content.append(("隣", 99))
+        func layout(_ bounds: [CGRect]) throws -> PDFPageLayout {
+            var result = page
+            for (index, entry) in content.enumerated() {
+                let rect = try PDFCharacterGeometry.bounds(for: NSRange(location: index, length: 1), count: content.count) { bounds[$0] }
+                result.glyphs.append(PDFGlyph(text: entry.0, x: rect.minX, y: rect.minY, width: rect.width, height: rect.height,
+                    sourceLine: entry.1, sourceOrder: index))
+            }
+            return result
+        }
+        XCTAssertThrowsError(try parse([layout(selections)], kind: .timetable)) {
+            XCTAssertEqual(($0 as? PDFParseError)?.stage, .fragmentOverlap)
+        }
+        let result = try parse([layout(actual)], kind: .timetable)
+        let lesson = try XCTUnwrap(result.lessons.first { $0.className == "1_ZZ" && $0.period == 1 })
+        XCTAssertEqual(lesson.names.subject, "架空科目M")
+        XCTAssertEqual(lesson.names.teacher, "架空教員N")
+        XCTAssertEqual(lesson.names.room, "架空部屋O")
+        XCTAssertFalse(lesson.sourceText.contains("隣"))
+    }
+    func testCharacterGeometryValidatesUTF16RangesAndDoesNotDropInvalidBounds() throws {
+        let text = "Aか\u{3099}B" as NSString
+        let range = text.rangeOfComposedCharacterSequence(at: 1)
+        XCTAssertEqual(range, NSRange(location: 1, length: 2))
+        var indices: [Int] = []
+        let bounds = try PDFCharacterGeometry.bounds(for: range, count: text.length) { index in
+            indices.append(index)
+            return index == 1 ? CGRect(x: 10, y: 20, width: 5, height: 8) : CGRect(x: 14, y: 25, width: 2, height: 4)
+        }
+        XCTAssertEqual(indices, [1, 2])
+        XCTAssertEqual(bounds, CGRect(x: 10, y: 20, width: 6, height: 9))
+        for bad in [NSRange(location: NSNotFound, length: 1), NSRange(location: 1, length: Int.max),
+                    NSRange(location: 4, length: 1), NSRange(location: 0, length: 0)] {
+            XCTAssertThrowsError(try PDFCharacterGeometry.bounds(for: bad, count: text.length) { _ in
+                XCTFail("Out-of-range access"); return .zero
+            })
+        }
+        for bad in [CGRect.null, CGRect.zero, CGRect.infinite] {
+            XCTAssertThrowsError(try PDFCharacterGeometry.bounds(for: range, count: text.length) { index in
+                index == 1 ? CGRect(x: 10, y: 20, width: 5, height: 8) : bad
+            }) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage, .characterMapping)
+            }
         }
     }
     func testRemovingDisplayBreaksPreservesStoredLessonFields() throws {
@@ -465,30 +528,34 @@ extension PDFParsingTests {
         let document = try XCTUnwrap(PDFDocument(data: data as Data))
         let nativePage = try XCTUnwrap(document.page(at: 0))
         XCTAssertTrue(try XCTUnwrap(nativePage.string).contains("\n"))
-        let original = try XCTUnwrap(PDFKitReader.read(url).first)
-        XCTAssertEqual(PDFGrid.rows(original.glyphs).map { $0.map(\.text).joined() }, ["ABCD", "EFGH", "IJKL"])
-        XCTAssertEqual(try PDFGrid.contentRows(original.glyphs).map { $0.map(\.text).joined() }, ["ABCD", "EFGH", "IJKL"])
-        XCTAssertTrue(original.glyphs.allSatisfy { $0.sourceLine != nil && $0.sourceOrder != nil })
-        for (text, x, y) in labels {
-            let first = try XCTUnwrap(original.glyphs.first { $0.text == String(text.prefix(1)) })
-            XCTAssertEqual(first.x, Double(x), accuracy: 2)
-            XCTAssertTrue((Double(400 - y) - 14...Double(400 - y) + 3).contains(first.cy))
-        }
-        for rotation in [90, 180, 270] {
-            nativePage.rotation = rotation
+        for kind in [MaterialKind.timetable, .events] {
+            nativePage.rotation = 0
             try XCTUnwrap(document.dataRepresentation()).write(to: url)
-            let rotated = try XCTUnwrap(PDFKitReader.read(url).first)
-            XCTAssertEqual(rotated.glyphs.count, original.glyphs.count)
-            for before in original.glyphs {
-                let after = try XCTUnwrap(rotated.glyphs.first { $0.text == before.text })
-                let expected: (Double, Double)
-                switch rotation {
-                case 90: expected = (400 - before.cy, before.cx)
-                case 180: expected = (300 - before.cx, 400 - before.cy)
-                default: expected = (before.cy, 300 - before.cx)
+            let original = try XCTUnwrap(PDFKitReader.read(url, kind: kind).first)
+            XCTAssertEqual(PDFGrid.rows(original.glyphs).map { $0.map(\.text).joined() }, ["ABCD", "EFGH", "IJKL"])
+            XCTAssertEqual(try PDFGrid.contentRows(original.glyphs).map { $0.map(\.text).joined() }, ["ABCD", "EFGH", "IJKL"])
+            XCTAssertTrue(original.glyphs.allSatisfy { $0.sourceLine != nil && $0.sourceOrder != nil })
+            for (text, x, y) in labels {
+                let first = try XCTUnwrap(original.glyphs.first { $0.text == String(text.prefix(1)) })
+                XCTAssertEqual(first.x, Double(x), accuracy: 2)
+                XCTAssertTrue((Double(400 - y) - 14...Double(400 - y) + 3).contains(first.cy))
+            }
+            for rotation in [90, 180, 270] {
+                nativePage.rotation = rotation
+                try XCTUnwrap(document.dataRepresentation()).write(to: url)
+                let rotated = try XCTUnwrap(PDFKitReader.read(url, kind: kind).first)
+                XCTAssertEqual(rotated.glyphs.count, original.glyphs.count)
+                for before in original.glyphs {
+                    let after = try XCTUnwrap(rotated.glyphs.first { $0.text == before.text })
+                    let expected: (Double, Double)
+                    switch rotation {
+                    case 90: expected = (400 - before.cy, before.cx)
+                    case 180: expected = (300 - before.cx, 400 - before.cy)
+                    default: expected = (before.cy, 300 - before.cx)
+                    }
+                    XCTAssertEqual(after.cx, expected.0, accuracy: 1)
+                    XCTAssertEqual(after.cy, expected.1, accuracy: 1)
                 }
-                XCTAssertEqual(after.cx, expected.0, accuracy: 1)
-                XCTAssertEqual(after.cy, expected.1, accuracy: 1)
             }
         }
     }
@@ -517,7 +584,7 @@ extension PDFParsingTests {
         context.closePDF()
         let url = root.appendingPathComponent("synthetic-arrow.pdf")
         try (data as Data).write(to: url)
-        let result = try PDFKitReader.read(url)
+        let result = try PDFKitReader.read(url, kind: .events)
         let arrow = try XCTUnwrap(result.first?.arrows?.first)
         XCTAssertEqual(arrow.x, 100, accuracy: 0.1)
         XCTAssertEqual(arrow.top, 100, accuracy: 0.1)
@@ -551,7 +618,7 @@ extension PDFParsingTests {
         context.closePDF()
         let url = root.appendingPathComponent("synthetic.pdf")
         try (data as Data).write(to: url)
-        let normal = try PDFKitReader.read(url)
+        let normal = try PDFKitReader.read(url, kind: .timetable)
         let parsed = try parse(normal, kind: .timetable)
         XCTAssertEqual(parsed.lessons.count, 8)
         XCTAssertEqual(Set(parsed.lessons.map(\.names.subject)), ["架空科目Q", "架空X", "架空Y", "架空科目Z"])
@@ -561,7 +628,7 @@ extension PDFParsingTests {
         let document = try XCTUnwrap(PDFDocument(data: data as Data))
         try XCTUnwrap(document.page(at: 0)).rotation = 90
         try XCTUnwrap(document.dataRepresentation()).write(to: url)
-        let rotated = try PDFKitReader.read(url)
+        let rotated = try PDFKitReader.read(url, kind: .timetable)
         XCTAssertEqual(rotated[0].width, normal[0].height, accuracy: 0.1)
         XCTAssertEqual(rotated[0].height, normal[0].width, accuracy: 0.1)
         let before = try XCTUnwrap(normal[0].glyphs.first { $0.text == "令" })
