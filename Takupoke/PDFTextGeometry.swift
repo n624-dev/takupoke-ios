@@ -421,7 +421,7 @@ final class PDFDrawnTextReader {
             var object: CGPDFObjectRef?
             guard !CGPDFDictionaryGetObject(dict, key, &object) else { throw PDFTextFailure.unsupported }
         }
-        guard try number(dict, "ca", fallback: 1) == 1, number(dict, "CA", fallback: 1) == 1 else {
+        guard try number(dict, "ca", fallback: 1) == 1, try number(dict, "CA", fallback: 1) == 1 else {
             throw PDFTextFailure.unsupported
         }
     }
