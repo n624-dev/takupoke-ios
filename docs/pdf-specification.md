@@ -93,7 +93,7 @@
 
 ## 正式名称の配信
 
-利用者が別途構築するOIDC・配信用Worker・非公開R2と接続する。URLと配信schemaは未決定で、対応表の同梱やローカルZIPの取り込みUIは追加していない。接続条件・更新・失敗時の保持は [対応表配信の接続方針](mapping-distribution.md) に記録する。
+既存のOIDC・`takupoke-api` Worker・非公開R2と接続する。配信APIのURLとパスは決定済みで、ZIP内部schemaは検討中。対応表の同梱やローカルZIPの取り込みUIは追加していない。接続条件・更新・失敗時の保持は [対応表配信の接続方針](mapping-distribution.md) に記録する。
 
 ## 実機での確認手順
 
