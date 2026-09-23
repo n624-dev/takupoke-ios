@@ -151,7 +151,7 @@ struct PDFEventClassification: Codable, Equatable {
     }
 }
 struct PDFAnalysis: Codable {
-    static let parserVersion = 7
+    static let parserVersion = 8
     // Timetable fixes must not ask users to reparse an unchanged calendar.
     static func currentVersion(for kind: MaterialKind) -> Int { kind == .events ? 4 : parserVersion }
     var version = parserVersion
@@ -164,6 +164,35 @@ struct PDFAnalysis: Codable {
     var lessons: [PDFLesson]
     var events: [PDFSchoolEvent]
     var notices: [String]
+}
+
+enum PDFTimetableRoomText {
+    static func collapsingRepeatedVoicingMarks(_ room: String) -> String {
+        var output = String()
+        var afterHalfwidthKana = false
+        var repeatedMark: UInt32?
+        for scalar in room.unicodeScalars {
+            let value = scalar.value
+            if (0xFF66...0xFF9D).contains(value) {
+                afterHalfwidthKana = true
+                repeatedMark = nil
+            } else if value == 0xFF9E || value == 0xFF9F {
+                if afterHalfwidthKana {
+                    afterHalfwidthKana = false
+                    repeatedMark = value
+                } else if repeatedMark == value {
+                    continue
+                } else {
+                    repeatedMark = nil
+                }
+            } else {
+                afterHalfwidthKana = false
+                repeatedMark = nil
+            }
+            output.unicodeScalars.append(scalar)
+        }
+        return output
+    }
 }
 struct PDFParseAttempt: Codable {
     var date: Date
@@ -521,7 +550,8 @@ enum PDFSchoolParser {
                     for variant in 0..<(parallel ? 2 : 1) {
                         let f = parallel ? parts.map { $0[variant] } : fields
                         output.append(PDFLesson(className: name, weekday: column / 8 + 1, period: column % 8 + 1,
-                                                names: TimetableLessonNames(subject: f[0], teacher: f[1], room: f[2]),
+                                                names: TimetableLessonNames(subject: f[0], teacher: f[1],
+                                                                            room: PDFTimetableRoomText.collapsingRepeatedVoicingMarks(f[2])),
                                                 sourceText: lines.joined(separator: "\n"), page: 1))
                     }
                     if output.count > maximumRecords { throw PDFParseError(code: .limit) }

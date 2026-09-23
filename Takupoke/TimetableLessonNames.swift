@@ -1,7 +1,8 @@
 import Foundation
 
 /// Names for one lesson, after parallel lessons have been separated.
-/// Source values remain unchanged; only confirmed mappings belong in full-name fields.
+/// Timetable PDF parsing may collapse a repeated halfwidth voicing mark in room;
+/// the unmodified cell text remains available in PDFLesson.sourceText.
 struct TimetableLessonNames: Codable, Equatable, Sendable {
     let subject: String
     let teacher: String

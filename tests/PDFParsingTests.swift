@@ -75,7 +75,7 @@ final class PDFParsingTests: XCTestCase {
     func testTimetablePeriodsParallelLessonsAndEmptyRoom() throws {
         let result = try parse([timetable()], kind: .timetable)
         XCTAssertEqual(result.version, PDFAnalysis.currentVersion(for: .timetable))
-        XCTAssertEqual(result.version, 7)
+        XCTAssertEqual(result.version, 8)
         XCTAssertEqual(result.schoolYear, 2032)
         XCTAssertEqual(result.term, "前期")
         XCTAssertEqual(result.lessons.count, 8)
@@ -85,6 +85,30 @@ final class PDFParsingTests: XCTestCase {
         XCTAssertEqual(parallel.map(\.names.subject), ["架空X", "架空Y", "架空X", "架空Y"])
         XCTAssertTrue(parallel.allSatisfy { $0.names.roomFullName == nil && $0.sourceText.contains("・架空室Y") })
         XCTAssertEqual(result.lessons.filter { $0.className == "AI_3" }.map(\.weekday), [2, 2])
+    }
+    func testTimetableRoomCollapsesOnlyRepeatedHalfwidthVoicingMarks() throws {
+        var page = timetable()
+        page.glyphs.removeAll { $0.x >= 100 && $0.x < 140 && $0.cy > 100 && $0.cy < 160 }
+        page.glyphs += text("架空科目ｶﾞﾞ", x: 104, y: 112)
+        page.glyphs += text("架空担当ﾊﾟﾟ", x: 104, y: 130)
+        page.glyphs += text("架空室ｶﾞﾞとﾊﾟﾟ", x: 104, y: 148)
+        let parsed = try parse([page], kind: .timetable)
+        let lesson = try XCTUnwrap(parsed.lessons.first { $0.className == "1_ZZ" })
+        XCTAssertEqual(lesson.names.subject, "架空科目ｶﾞﾞ")
+        XCTAssertEqual(lesson.names.teacher, "架空担当ﾊﾟﾟ")
+        XCTAssertEqual(lesson.names.room, "架空室ｶﾞとﾊﾟ")
+        XCTAssertEqual(lesson.sourceText, "架空科目ｶﾞﾞ\n架空担当ﾊﾟﾟ\n架空室ｶﾞﾞとﾊﾟﾟ")
+
+        for (input, expected) in [
+            ("架空室ｶﾞﾞﾞ", "架空室ｶﾞ"),
+            ("架空室ﾊﾟﾟ", "架空室ﾊﾟ"),
+            ("架空室ﾞﾞ", "架空室ﾞﾞ"),
+            ("架空室ｶﾞﾟﾟ", "架空室ｶﾞﾟﾟ"),
+            ("架空室ｶﾞXﾞﾞ", "架空室ｶﾞXﾞﾞ"),
+            ("架空室か\u{3099}\u{3099}", "架空室か\u{3099}\u{3099}"),
+        ] {
+            XCTAssertEqual(PDFTimetableRoomText.collapsingRepeatedVoicingMarks(input), expected)
+        }
     }
     func testSourceOrderKeepsMixedSizeLessonNamesAndMetadataSeparate() throws {
         var page = timetable()

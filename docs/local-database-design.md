@@ -138,7 +138,7 @@ DBで保持する解析の元ファイルが失われても、ハッシュと出
 | GRDB | 接続管理・移行・監視などの仕組みを利用できる | 依存の固定・ライセンス・各ビルド環境の確認 |
 | SQLite C APIの直接利用 | SQLite以外のライブラリ依存を増やさない | 接続・バインド・エラー処理・移行等を実装し検証する |
 
-**保存基盤にはGRDB 7.11.1をコミット固定で追加した。** 単一のDatabaseQueueを使い、外部キー有効・DELETEジャーナル・同期FULLを設定する。Swift PackageとXcodeで同じリビジョンを参照する。Linux / Swift 6.1.2で検証し、追加後のCI成功と既存機能の実機動作は利用者報告あり。実機のOS・build番号は未記録。この報告は基盤追加時点のもので、今回のアプリからのDB利用は未検証。[GRDB 7.11.1公式README](https://github.com/groue/GRDB.swift/tree/v7.11.1#readme)
+**保存基盤にはGRDB 7.11.1をコミット固定で追加した。** 単一のDatabaseQueueを使い、外部キー有効・DELETEジャーナル・同期FULLを設定する。Swift PackageとXcodeで同じリビジョンを参照する。Linux / Swift 6.1.2で検証し、基盤追加後のCI成功と既存機能の実機動作は利用者報告あり。SQLiteへの保存先切替後も、利用者から案内した確認の成功報告があった。実機のOS・build番号と個別の障害条件の検証結果は未記録。[GRDB 7.11.1公式README](https://github.com/groue/GRDB.swift/tree/v7.11.1#readme)
 
 SQLite設定は実装時に明示し、外部キー有効化、同期設定、ジャーナル方式を読み戻して検証する。WALを無条件に選ばず、接続方式と対象iOSのSQLite実装を確認する。WALでは本体ファイルだけを複製してバックアップにしない。整合した複製にはBackup API等を用いる。電源断時の保証を設定やファイル配置以上に約束しない。[SQLite WAL](https://sqlite.org/wal.html)、[同期設定](https://sqlite.org/pragma.html#pragma_synchronous)、[Backup API](https://sqlite.org/backup.html)
 
