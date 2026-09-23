@@ -23,7 +23,7 @@ struct ContentView: View {
         .task {
             materials.loadIfNeeded()
             specialSchedules.loadIfNeeded()
-            schoolEvents.checkSourceAtStartup()
+            schoolEvents.refreshAtStartup()
         }
     }
 }

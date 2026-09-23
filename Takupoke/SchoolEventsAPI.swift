@@ -91,6 +91,31 @@ struct SchoolEventsPayload: Codable, Equatable {
 struct SavedSchoolEvents: Codable {
     let fetchedAt: Date
     let payload: SchoolEventsPayload
+    let apiETag: String?
+}
+
+enum SchoolEventsResponse {
+    private static func opaqueTag(_ value: String) -> Substring {
+        value.hasPrefix("W/") ? value.dropFirst(2) : value[...]
+    }
+
+    static func validETag(_ value: String) -> Bool {
+        let tag = value.hasPrefix("W/\"") ? String(value.dropFirst(2)) : value
+        return tag.utf8.count >= 3 && tag.utf8.count <= 256 && tag.first == "\"" && tag.last == "\"" &&
+            tag.utf8.dropFirst().dropLast().allSatisfy { (32...126).contains($0) && $0 != 34 }
+    }
+
+    static func isNotModified(status: Int, data: Data, sentETag: String?, receivedETag: String?,
+                              hasSavedResult: Bool) throws -> Bool {
+        guard status == 304 else { return false }
+        guard data.isEmpty, hasSavedResult,
+              let sentETag, validETag(sentETag),
+              let receivedETag, validETag(receivedETag),
+              opaqueTag(sentETag) == opaqueTag(receivedETag) else {
+            throw SchoolEventsError.invalidResponse
+        }
+        return true
+    }
 }
 
 final class SchoolEventsStore {
@@ -123,15 +148,21 @@ final class SchoolEventsStore {
                   size <= 1_000_000 else { throw SchoolEventsError.invalidResponse }
             let value = try JSONDecoder().decode(SavedSchoolEvents.self, from: Data(contentsOf: file))
             let verified = try SchoolEventsPayload.decode(JSONEncoder().encode(value.payload), requestedYear: year)
-            saved[year] = SavedSchoolEvents(fetchedAt: value.fetchedAt, payload: verified)
+            saved[year] = SavedSchoolEvents(fetchedAt: value.fetchedAt, payload: verified,
+                                            apiETag: value.apiETag.flatMap {
+                                                SchoolEventsResponse.validETag($0) ? $0 : nil
+                                            })
         }
         return saved
     }
 
-    func save(_ payload: SchoolEventsPayload, fetchedAt: Date = Date()) throws {
+    func save(_ payload: SchoolEventsPayload, apiETag: String? = nil, fetchedAt: Date = Date()) throws {
         let checked = try SchoolEventsPayload.decode(JSONEncoder().encode(payload), requestedYear: payload.schoolYear)
+        guard apiETag == nil || SchoolEventsResponse.validETag(apiETag!) else {
+            throw SchoolEventsError.invalidResponse
+        }
         let url = root.appendingPathComponent("events-\(checked.schoolYear).json")
-        try JSONEncoder().encode(SavedSchoolEvents(fetchedAt: fetchedAt, payload: checked))
+        try JSONEncoder().encode(SavedSchoolEvents(fetchedAt: fetchedAt, payload: checked, apiETag: apiETag))
             .write(to: url, options: .atomic)
         #if os(iOS)
         try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path)

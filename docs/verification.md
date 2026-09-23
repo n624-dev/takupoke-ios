@@ -1,5 +1,10 @@
 # 検証記録
 
+## 行事APIの条件付き更新（2026-09-23）
+
+`/events` のレスポンスETagを年度別の保存結果と一緒に保持し、アプリ起動時に保存済み年度だけを `If-None-Match` 付きで確認する実装を追加しました。304は本文なしとして前回結果と取得日時を維持し、200は版・年度・日付・タグを検証してから原子的に保存します。旧保存結果にAPIのETagがない場合は通常のGETを行い、通信・検証に失敗したときは前回の正常結果を表示します。API確認後、元PDFのHEADを別のETagで確認します。Linux Swift 6.1.2 の解析・保存テスト105件、配布テスト24件、全Swiftファイルの構文解析が成功しました。APIのNodeテスト・型検査とWranglerのデプロイ準備検査も成功しました。iOSの実機通信と配布ビルドは確認待ちです。
+
+
 [README に戻る](../README.md)
 
 ## 行事API・起動時確認・週表示の改修（2026-09-23）
@@ -8,7 +13,7 @@
 
 起動時に、保存済み行事APIの元PDFのETagを学校サイトへHEADで確認します。現在のPDF本文を一度ストリームで確認し、APIの元PDF SHA-256と同じ応答からETagを記録しました。iOSのテスト・CIから本番URLへ通信しません。通常PDF・変更XLSX・試験・返却PDFは、選択済み原本のハッシュが変わった場合だけ再解析します。試験・返却の旧選択はブックマークがないため、再選択後から自動確認します。File Providerの読み取り失敗時は前回の解析結果を保持する実装です。
 
-LinuxのSwift 6.1.2では、架空データの解析・保存テストとSwiftの構文解析を確認しました。APIのNodeテスト・型検査とWranglerのデプロイ準備検査も成功しました。iOS SDKでのビルド、OneDriveの起動時アクセス、実機の画面表示はActionsと利用者の実機確認待ちです。
+LinuxのSwift 6.1.2では、架空データの解析・保存テスト103件、配布テスト24件、Swiftの構文解析を確認しました。APIのNodeテスト・型検査とWranglerのデプロイ準備検査も成功しました。APIの[Actions 35871644753](https://github.com/n624-dev/takupoke-api/actions/runs/35871644753) は成功し、公開APIがETagを返すことを確認しました。iOSの[Actions 35871990169](https://github.com/n624-dev/takupoke-ios/actions/runs/35871990169) は iPhone 向けビルドと [Release v0.1.37-build.37.1](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.37-build.37.1) の公開まで成功しました。OneDriveの起動時アクセスと実機の画面表示は未確認です。
 
 ## SwiftUI 時間割タブ（2026-09-23）
 
