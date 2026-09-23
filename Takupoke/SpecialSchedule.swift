@@ -330,3 +330,22 @@ enum SpecialScheduleParser {
                           classes: seenClasses.sorted(), lessons: result)
     }
 }
+
+/// The same full-content export format as the ordinary timetable. The special
+/// material kind and parser version travel inside diagnostic.json.
+enum SpecialScheduleDiagnosticReport {
+    static func make(_ diagnostic: PDFFullReadDiagnostic, kind: SpecialScheduleKind,
+                     sourceName: String?, succeeded: Bool, failure: PDFParseError?,
+                     trace: PDFDiagnosticSnapshot?) -> String? {
+        var full = diagnostic
+        full.materialKind = kind.rawValue
+        full.parserVersion = SpecialScheduleAnalysis.parserVersion
+        full.sourceName = sourceName
+        full.analysisSucceeded = succeeded
+        full.attemptFailure = failure
+        full.trace = trace
+        return (try? PDFFullDiagnosticEncoding.report(full)) ??
+            (try? full.jsonData()).flatMap { String(data: $0, encoding: .utf8) }
+                .map { "TAKUPOKE-PDF-FULL-JSON-1\n" + $0 }
+    }
+}

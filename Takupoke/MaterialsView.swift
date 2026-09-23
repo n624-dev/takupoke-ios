@@ -48,12 +48,16 @@ struct MaterialDocumentPicker: UIViewControllerRepresentable {
 
 struct MaterialsView: View {
     @ObservedObject var model: MaterialsModel
+    @ObservedObject var specialSchedules: SpecialSchedulesModel
     @State private var picker: MaterialPicker?
+    @State private var specialPickerKind: SpecialScheduleKind?
+    @State private var showingSpecialSource: SpecialScheduleKind?
+    @State private var copiedSpecialKind: SpecialScheduleKind?
 
     var body: some View {
         List {
             Section {
-                Text("通常時間割と時間割変更は「ファイル」から個別に選びます。学校行事は学校サイトのPDFを端末内に保存します。")
+                Text("通常時間割・時間割変更・試験・返却は「ファイル」から個別に選びます。学校行事は学校サイトのPDFを端末内に保存します。")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 if model.busy {
@@ -72,6 +76,22 @@ struct MaterialsView: View {
                 }
                 if !model.ready && !model.busy {
                     Button("保存情報を再読み込み") { model.loadIfNeeded() }
+                }
+                if specialSchedules.busy {
+                    HStack {
+                        ProgressView()
+                        Text("試験・返却資料を処理中…")
+                        Spacer()
+                        Button("中止") { specialSchedules.cancel() }
+                    }
+                }
+                if let message = specialSchedules.message {
+                    Label(message, systemImage: specialSchedules.failed ? "exclamationmark.triangle" : "info.circle")
+                        .foregroundStyle(specialSchedules.failed ? Color.orange : Color.secondary)
+                        .font(.subheadline)
+                }
+                if !specialSchedules.ready && !specialSchedules.busy {
+                    Button("試験・返却資料を再読み込み") { specialSchedules.loadIfNeeded() }
                 }
             }
 
@@ -132,6 +152,27 @@ struct MaterialsView: View {
                 }
                 .disabled(model.busy || !model.ready)
             }
+            ForEach(SpecialScheduleKind.allCases) { kind in
+                Section(kind.title) {
+                    if let record = specialSchedules.records[kind] {
+                        Text(record.originalName).font(.headline)
+                        LabeledContent("年度", value: "\(record.analysis.schoolYear)年度")
+                        LabeledContent("授業枠", value: "\(record.analysis.lessons.count)件")
+                        Button("保存済みの元PDFを見る") { showingSpecialSource = kind }
+                            .disabled(specialSchedules.busy)
+                    } else {
+                        Text("未選択").foregroundStyle(.secondary)
+                    }
+                    Button("PDFファイルを選ぶ") { specialPickerKind = kind }
+                        .disabled(specialSchedules.busy || !specialSchedules.ready)
+                    if let report = specialSchedules.fullReadReports[kind] {
+                        specialDiagnosticButton(report, kind: kind)
+                        Text(copiedSpecialKind == kind ? "読み取り結果をコピーしました。" :
+                             "PDF本文・教員名などを含む全文と位置情報を、圧縮してコピーします。開発相談へ貼り付けてください。")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
             Section {
                 DisclosureGroup("フォルダから選ぶ（対応サービスのみ）") {
                     if let folder = model.state.folder {
@@ -152,12 +193,14 @@ struct MaterialsView: View {
             Section {
                 Text("OneDriveで読み取れない場合は「ファイル」で一度開くか、OneDriveの「オフラインで利用可能」を試してから再選択してください。")
                     .font(.footnote).foregroundStyle(.secondary)
-                Text("資料は端末内に保存します。PDF・XLSXは取得後に解析できます。時間割への統合はまだ行いません。1ファイル50 MiBまで。取得に失敗した場合は前回の資料を残します。")
+                Text("資料と解析結果は端末内に保存し、時間割に反映します。1ファイル50 MiBまで。取得や解析に失敗した場合は前回の正常な結果を残します。")
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("学校資料")
+        .navigationTitle("ファイル選択")
         .task { model.loadIfNeeded() }
+        .task { specialSchedules.loadIfNeeded() }
+        .onChange(of: specialSchedules.busy) { busy in if busy { copiedSpecialKind = nil } }
         .sheet(item: $picker) { selection in
             MaterialDocumentPicker(type: selection.contentType, selected: { url in
                 picker = nil
@@ -167,6 +210,38 @@ struct MaterialsView: View {
                 }
             }, cancelled: { picker = nil })
         }
+        .sheet(item: $specialPickerKind) { kind in
+            MaterialDocumentPicker(type: .pdf, selected: { selection in
+                specialPickerKind = nil
+                specialSchedules.importPDF(selection, kind: kind)
+            }, cancelled: { specialPickerKind = nil })
+        }
+        .sheet(item: $showingSpecialSource) { kind in
+            if let url = specialSchedules.urls[kind] {
+                SavedPDFView(url: url, title: kind.title)
+            }
+        }
+    }
+
+    @ViewBuilder private func specialDiagnosticButton(_ report: String,
+                                                       kind: SpecialScheduleKind) -> some View {
+        if #available(iOS 26.0, *) {
+            Button("読み取り結果をすべてコピー", systemImage: "doc.on.doc") {
+                copySpecialDiagnostic(report, kind: kind)
+            }
+            .buttonStyle(.glass)
+            .disabled(specialSchedules.busy)
+        } else {
+            Button("読み取り結果をすべてコピー") { copySpecialDiagnostic(report, kind: kind) }
+                .buttonStyle(.bordered)
+                .disabled(specialSchedules.busy)
+        }
+    }
+
+    private func copySpecialDiagnostic(_ report: String, kind: SpecialScheduleKind) {
+        UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: report]],
+            options: [.localOnly: true, .expirationDate: Date().addingTimeInterval(600)])
+        copiedSpecialKind = kind
     }
 
     private func changeStatus(_ record: MaterialRecord) -> String {

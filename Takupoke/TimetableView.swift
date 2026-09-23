@@ -36,7 +36,6 @@ struct TimetableView: View {
                 } else if classes.isEmpty {
                     Section {
                         ContentUnavailableViewPlaceholder()
-                        NavigationLink("学校資料を選ぶ") { MaterialsView(model: model) }
                     }
                 } else {
                     Section("表示クラス") {
@@ -49,15 +48,6 @@ struct TimetableView: View {
                     }
                     weekSection
                     changesSection
-                }
-                Section("試験・返却資料") {
-                    NavigationLink("PDFを選ぶ・解析結果を確認") {
-                        SpecialScheduleMaterialsView(model: specialSchedules)
-                    }
-                    if !specialSchedules.ready && specialSchedules.busy { Text("保存済みの試験資料を読み込み中…") }
-                    if !specialSchedules.ready && !specialSchedules.busy {
-                        Button("試験資料を再読み込み") { specialSchedules.loadIfNeeded() }
-                    }
                 }
             }
             .navigationTitle("時間割")
@@ -556,7 +546,7 @@ private struct SpecialSelection: Identifiable {
 
 private struct ContentUnavailableViewPlaceholder: View {
     var body: some View {
-        Label("時間割の解析結果がありません。学校資料を選んで解析してください。", systemImage: "calendar.badge.exclamationmark")
+        Label("時間割の解析結果がありません。設定の「ファイル選択」で資料を選んで解析してください。", systemImage: "calendar.badge.exclamationmark")
             .foregroundStyle(.secondary)
     }
 }

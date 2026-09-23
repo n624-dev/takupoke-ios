@@ -1,5 +1,6 @@
 import Foundation
 import XCTest
+import ZIPFoundation
 @testable import TakupokeParsing
 
 final class SpecialScheduleTests: XCTestCase {
@@ -100,5 +101,32 @@ final class SpecialScheduleTests: XCTestCase {
         let reopened = try SpecialScheduleStore(root: root)
         XCTAssertEqual(reopened.records[.exam]?.analysis, good)
         XCTAssertEqual(reopened.savedURL(for: .exam), oldURL)
+    }
+
+    func testFullCopyIncludesSpecialKindContentAndFailure() throws {
+        var full = PDFFullReadDiagnostic()
+        var page = PDFFullReadDiagnostic.Page(number: 1)
+        page.text = "架空科目A\n架空教員A"
+        page.lines = [.init(text: "架空科目A", ranges: [],
+                            bounds: .init(CGRect(x: 1, y: 2, width: 3, height: 4)))]
+        full.pages = [page]
+        let failure = PDFParseError(code: .unsupported, page: 1, stage: .periodHeading)
+        for kind in SpecialScheduleKind.allCases {
+            let report = try XCTUnwrap(SpecialScheduleDiagnosticReport.make(full, kind: kind,
+                sourceName: "fictional.pdf", succeeded: false, failure: failure, trace: nil))
+            XCTAssertTrue(report.hasPrefix("TAKUPOKE-PDF-FULL-ZIP-1\n"))
+            let encoded = String(report.split(separator: "\n", maxSplits: 1)[1])
+            let bytes = try XCTUnwrap(Data(base64Encoded: encoded, options: .ignoreUnknownCharacters))
+            let archive = try Archive(data: bytes, accessMode: .read)
+            let entry = try XCTUnwrap(archive["diagnostic.json"])
+            var json = Data()
+            _ = try archive.extract(entry) { json.append($0) }
+            let restored = try JSONDecoder().decode(PDFFullReadDiagnostic.self, from: json)
+            XCTAssertEqual(restored.materialKind, kind.rawValue)
+            XCTAssertEqual(restored.parserVersion, SpecialScheduleAnalysis.parserVersion)
+            XCTAssertEqual(restored.pages[0].text, "架空科目A\n架空教員A")
+            XCTAssertEqual(restored.pages[0].lines[0].bounds.x, 1)
+            XCTAssertEqual(restored.attemptFailure?.stage, .periodHeading)
+        }
     }
 }

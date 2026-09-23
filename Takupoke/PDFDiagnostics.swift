@@ -142,6 +142,7 @@ struct PDFFullReadDiagnostic: Codable {
     var appBuild: String?
     var commit: String?
     var osVersion: String?
+    var materialKind: String?
     var sourceName: String?
     var analysisSucceeded = false
     var fileBytes: Int?

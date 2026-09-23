@@ -6,17 +6,38 @@ struct ContentView: View {
 
     var body: some View {
         TabView {
-            HomeView(materials: materials)
+            HomeView()
                 .tabItem { Label("ホーム", systemImage: "house") }
             TimetableView(model: materials, specialSchedules: specialSchedules)
                 .tabItem { Label("時間割", systemImage: "calendar") }
+            SettingsView(materials: materials, specialSchedules: specialSchedules)
+                .tabItem { Label("設定", systemImage: "gearshape") }
+        }
+    }
+}
+
+private struct SettingsView: View {
+    @ObservedObject var materials: MaterialsModel
+    @ObservedObject var specialSchedules: SpecialSchedulesModel
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("データ取得") {
+                    NavigationLink {
+                        MaterialsView(model: materials, specialSchedules: specialSchedules)
+                    } label: {
+                        Label("ファイル選択", systemImage: "folder")
+                    }
+                }
+            }
+            .navigationTitle("設定")
         }
     }
 }
 
 private struct HomeView: View {
     @AppStorage("updateVerificationNote") private var verificationNote = ""
-    @ObservedObject var materials: MaterialsModel
 
     private let accent = Color(red: 0.08, green: 0.43, blue: 0.40)
     private let sourceURL = URL(string: "https://github.com/n624-dev/takupoke-ios/releases/latest/download/altstore-source.json")!
@@ -49,16 +70,6 @@ private struct HomeView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.vertical, 12)
-                }
-
-                Section {
-                    NavigationLink {
-                        MaterialsView(model: materials)
-                    } label: {
-                        Label("学校資料を選ぶ", systemImage: "folder")
-                    }
-                } footer: {
-                    Text("通常時間割PDFと時間割変更XLSXは「ファイル」から、学校行事PDFは学校サイトから取得して端末内に保存します。時間割変更XLSXは保存後に解析結果を確認できます。")
                 }
 
                 Section("このアプリについて") {

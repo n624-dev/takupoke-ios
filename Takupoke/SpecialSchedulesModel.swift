@@ -1,7 +1,12 @@
 import CryptoKit
 import Foundation
 import SwiftUI
-import UniformTypeIdentifiers
+
+/// Written only by the serial import worker, then read once on the main queue.
+private final class SpecialDiagnosticCapture {
+    var report: String?
+    var failure: PDFParseError?
+}
 
 @MainActor
 final class SpecialSchedulesModel: ObservableObject {
@@ -11,6 +16,7 @@ final class SpecialSchedulesModel: ObservableObject {
     @Published private(set) var busy = false
     @Published private(set) var message: String?
     @Published private(set) var failed = false
+    @Published private(set) var fullReadReports: [SpecialScheduleKind: String] = [:]
 
     private let queue = DispatchQueue(label: "io.github.n624dev.takupoke.special-schedules", qos: .userInitiated)
     private var store: SpecialScheduleStore?
@@ -18,20 +24,49 @@ final class SpecialSchedulesModel: ObservableObject {
 
     func loadIfNeeded() {
         guard !ready, !busy else { return }
-        perform(success: nil) { store, _ in _ = store }
+        perform(success: nil) { store, _, _ in _ = store }
     }
 
     func importPDF(_ selection: ScopedMaterialSelection, kind: SpecialScheduleKind) {
-        perform(success: "\(kind.title)を解析して保存しました。") { store, control in
+        guard !busy else { return }
+        fullReadReports[kind] = nil
+        perform(success: "\(kind.title)を解析して保存しました。", reporting: kind) { store, control, capture in
+            let diagnostics = PDFDiagnosticRecorder()
+            diagnostics.record(.start)
             let staged = store.newStagingURL()
             defer { store.discardStaging(staged) }
-            let (name, count, digest) = try Self.copy(selection, to: staged, control: control)
-            let pages = try PDFKitReader.read(staged, kind: .timetable, check: { try control.check() })
-            let analysis = try SpecialScheduleParser.parse(pages, kind: kind, digest: digest,
-                                                           name: name, check: { try control.check() })
-            try control.check()
-            try store.save(staged: staged, analysis: analysis, originalName: name,
-                           byteCount: count, digest: digest)
+            var sourceName: String?
+            var succeeded = false
+            var inspected: PDFFullReadDiagnostic?
+            defer {
+                let diagnosticURL = succeeded ? (store.savedURL(for: kind) ?? staged) : staged
+                let full = inspected ?? PDFKitReader.diagnose(diagnosticURL, check: { try control.check() })
+                diagnostics.record(.complete)
+                capture.report = SpecialScheduleDiagnosticReport.make(full, kind: kind,
+                    sourceName: sourceName, succeeded: succeeded,
+                    failure: capture.failure, trace: diagnostics.snapshot)
+            }
+            do {
+                diagnostics.record(.material)
+                let (name, count, digest) = try Self.copy(selection, to: staged, control: control)
+                sourceName = name
+                let pages = try PDFKitReader.read(staged, kind: .timetable,
+                                                  diagnostics: diagnostics, check: { try control.check() })
+                diagnostics.record(.parse, values: [Double(pages.count)])
+                let analysis = try SpecialScheduleParser.parse(pages, kind: kind, digest: digest,
+                                                               name: name, check: { try control.check() })
+                diagnostics.record(.parseComplete, values: [Double(analysis.lessons.count)])
+                inspected = PDFKitReader.diagnose(staged, check: { try control.check() })
+                try control.check()
+                diagnostics.record(.save)
+                try store.save(staged: staged, analysis: analysis, originalName: name,
+                               byteCount: count, digest: digest)
+                diagnostics.record(.saveComplete)
+                succeeded = true
+            } catch {
+                capture.failure = diagnostics.attaching(to: error)
+                throw capture.failure!
+            }
         }
     }
 
@@ -40,7 +75,9 @@ final class SpecialSchedulesModel: ObservableObject {
         message = "中止を要求しました。処理の終了を待っています。"
     }
 
-    private func perform(success: String?, operation: @escaping (SpecialScheduleStore, AcquisitionControl) throws -> Void) {
+    private func perform(success: String?, reporting kind: SpecialScheduleKind? = nil,
+                         operation: @escaping (SpecialScheduleStore, AcquisitionControl,
+                                               SpecialDiagnosticCapture) throws -> Void) {
         guard !busy else { return }
         busy = true
         failed = false
@@ -49,6 +86,7 @@ final class SpecialSchedulesModel: ObservableObject {
         self.control = control
         let existingStore = store
         queue.async {
+            let capture = SpecialDiagnosticCapture()
             let result = Result { () throws -> (SpecialScheduleStore, [SpecialScheduleKind: SpecialScheduleRecord], [SpecialScheduleKind: URL]) in
                 let store: SpecialScheduleStore
                 if let existing = existingStore { store = existing }
@@ -57,7 +95,7 @@ final class SpecialSchedulesModel: ObservableObject {
                                                            appropriateFor: nil, create: true)
                     store = try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite", isDirectory: true))
                 }
-                try operation(store, control)
+                try operation(store, control, capture)
                 let urls = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.compactMap { kind in
                     store.savedURL(for: kind).map { (kind, $0) }
                 })
@@ -66,6 +104,7 @@ final class SpecialSchedulesModel: ObservableObject {
             DispatchQueue.main.async {
                 self.busy = false
                 self.control = nil
+                if let kind { self.fullReadReports[kind] = capture.report }
                 switch result {
                 case .success(let snapshot):
                     self.store = snapshot.0
@@ -124,51 +163,6 @@ final class SpecialSchedulesModel: ObservableObject {
             if let error { throw error }
             guard let result else { throw MaterialError.unavailable }
             return try result.get()
-        }
-    }
-}
-
-struct SpecialScheduleMaterialsView: View {
-    @ObservedObject var model: SpecialSchedulesModel
-    @State private var pickerKind: SpecialScheduleKind?
-    @State private var showingSource: SpecialScheduleKind?
-
-    var body: some View {
-        List {
-            if !model.ready && model.busy { HStack { ProgressView(); Text("保存済み資料を読み込み中…") } }
-            if !model.ready && !model.busy { Button("保存済み資料を再読み込み") { model.loadIfNeeded() } }
-            if model.busy { Button("取込を中止") { model.cancel() } }
-            if let message = model.message {
-                Label(message, systemImage: model.failed ? "exclamationmark.triangle" : "info.circle")
-                    .foregroundStyle(model.failed ? Color.orange : Color.secondary)
-            }
-            ForEach(SpecialScheduleKind.allCases) { kind in
-                Section(kind.title) {
-                    if let record = model.records[kind] {
-                        Text(record.originalName)
-                        LabeledContent("年度", value: "\(record.analysis.schoolYear)年度")
-                        LabeledContent("授業枠", value: "\(record.analysis.lessons.count)件")
-                        Button("保存済みの元PDFを見る") { showingSource = kind }
-                    } else {
-                        Text("未選択").foregroundStyle(.secondary)
-                    }
-                    Button("PDFファイルを選ぶ") { pickerKind = kind }
-                        .disabled(model.busy || !model.ready)
-                }
-            }
-            Text("「ファイル」から選んだPDFを端末内で解析します。読めない書式の場合は前回の正常な結果を保持します。")
-                .font(.footnote).foregroundStyle(.secondary)
-        }
-        .navigationTitle("試験・返却資料")
-        .task { model.loadIfNeeded() }
-        .sheet(item: $pickerKind) { kind in
-            MaterialDocumentPicker(type: .pdf, selected: { selection in
-                pickerKind = nil
-                model.importPDF(selection, kind: kind)
-            }, cancelled: { pickerKind = nil })
-        }
-        .sheet(item: $showingSource) { kind in
-            if let url = model.urls[kind] { SavedPDFView(url: url, title: kind.title) }
         }
     }
 }
