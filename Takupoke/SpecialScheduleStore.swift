@@ -18,6 +18,7 @@ struct SpecialScheduleSource: Codable {
     let byteCount: Int
     let digest: String
     let acquiredAt: Date
+    var lastCheckedAt: Date? = nil
     var failure: PDFParseError?
     var grant: SourceGrant?
 }
@@ -138,9 +139,10 @@ final class SpecialScheduleStore {
         let storedName = UUID().uuidString + ".pdf"
         let destination = files.appendingPathComponent(storedName)
         try FileManager.default.moveItem(at: staged, to: destination)
+        let now = Date()
         let source = SpecialScheduleSource(kind: kind, originalName: originalName,
             storedName: storedName, byteCount: byteCount, digest: digest,
-            acquiredAt: Date(), failure: nil, grant: grant)
+            acquiredAt: now, lastCheckedAt: now, failure: nil, grant: grant)
         do {
             let payload = try JSONEncoder().encode(source)
             try queue.write { db in
@@ -153,6 +155,17 @@ final class SpecialScheduleStore {
         }
         sources[kind] = source
         try? removeUnreferencedFiles()
+    }
+
+    func recordSuccessfulCheck(_ kind: SpecialScheduleKind, digest: String, checkedAt: Date = Date()) throws {
+        guard var source = sources[kind], source.digest == digest else { throw StoreError.invalidState }
+        source.lastCheckedAt = checkedAt
+        let payload = try JSONEncoder().encode(source)
+        try queue.write { db in
+            try db.execute(sql: "INSERT INTO specialSource (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload",
+                           arguments: [kind.rawValue, payload])
+        }
+        sources[kind] = source
     }
 
     func saveAnalysis(_ analysis: SpecialScheduleAnalysis) throws {

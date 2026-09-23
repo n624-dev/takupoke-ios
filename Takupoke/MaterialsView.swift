@@ -158,6 +158,7 @@ struct MaterialsView: View {
                         LabeledContent("サイズ", value: ByteCountFormatter.string(
                             fromByteCount: Int64(source.byteCount), countStyle: .file))
                         dateRow("最終取得", source.acquiredAt)
+                        if let date = source.lastCheckedAt { dateRow("最終確認", date) }
                         NavigationLink("PDFを解析・結果を確認") {
                             SpecialScheduleAnalysisView(model: specialSchedules, kind: kind)
                         }
@@ -297,6 +298,11 @@ private struct SpecialScheduleAnalysisView: View {
                         fromByteCount: Int64(source.byteCount), countStyle: .file))
                     LabeledContent("最終取得") {
                         Text(source.acquiredAt, format: .dateTime.year().month().day().hour().minute())
+                    }
+                    if let date = source.lastCheckedAt {
+                        LabeledContent("最終確認") {
+                            Text(date, format: .dateTime.year().month().day().hour().minute())
+                        }
                     }
                 }
             }

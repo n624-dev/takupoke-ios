@@ -54,7 +54,10 @@ final class SpecialSchedulesModel: ObservableObject {
                     guard !stale else { throw MaterialError.accessExpired }
                     let selection = ScopedMaterialSelection(url)
                     let (name, count, digest) = try Self.copy(selection, to: staged, control: control)
-                    guard digest != source.digest else { continue }
+                    guard digest != source.digest else {
+                        try store.recordSuccessfulCheck(kind, digest: digest)
+                        continue
+                    }
                     try store.saveSelection(staged: staged, kind: kind, originalName: name,
                                             byteCount: count, digest: digest, grant: grant)
                     guard let selectedURL = store.selectedURL(for: kind) else { throw MaterialError.unavailable }

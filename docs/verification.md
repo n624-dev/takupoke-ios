@@ -1,5 +1,9 @@
 # 検証記録
 
+## 試験・返却PDFの起動時確認日時（2026-09-24）
+
+試験・返却PDFは起動時にブックマーク先を読み、保存済みコピーとSHA-256を比較します。従来は同じ内容なら保存日時も表示も変わらず、確認できたか画面から分かりませんでした。確認成功日時を別に保存・表示し、保存済みの解析結果と取得日時を維持するよう修正しました。旧選択でブックマークがない場合は再選択が必要です。Linux Swift 6.1.2 の解析・保存テスト106件、配布テスト24件、全Swiftファイルの構文解析が成功しました。実機での起動時確認は未確認です。
+
 ## 行事APIの条件付き更新（2026-09-23）
 
 `/events` のレスポンスETagを年度別の保存結果と一緒に保持し、アプリ起動時に保存済み年度だけを `If-None-Match` 付きで確認する実装を追加しました。304は本文なしとして前回結果と取得日時を維持し、200は版・年度・日付・タグを検証してから原子的に保存します。旧保存結果にAPIのETagがない場合は通常のGETを行い、通信・検証に失敗したときは前回の正常結果を表示します。API確認後、元PDFのHEADを別のETagで確認します。Linux Swift 6.1.2 の解析・保存テスト105件、配布テスト24件、全Swiftファイルの構文解析が成功しました。APIのNodeテスト・型検査とWranglerのデプロイ準備検査も成功しました。[iOS Actions 35875344497](https://github.com/n624-dev/takupoke-ios/actions/runs/35875344497) は成功し、iPhone向けビルドは配布せず確認できました。APIの最初のプレビュービルドは `wrangler.jsonc` の `previews` ブロック不足で失敗しました。ブロックを追加した後の [API Actions 35876408245](https://github.com/n624-dev/takupoke-api/actions/runs/35876408245) と Cloudflare Builds のPRチェックは成功しました。[本番APIのActions 35877210860](https://github.com/n624-dev/takupoke-api/actions/runs/35877210860) とCloudflare Buildsも成功し、公開 `/events` は200で確認済みデータと一致、同じETagで304・本文0バイト、未提供年度で404を返しました。[iOS Actions 35877555840](https://github.com/n624-dev/takupoke-ios/actions/runs/35877555840) は成功し、[Release v0.1.42-build.42.1](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.42-build.42.1) にIPAとAltStore Sourceが公開されました。公開Sourceの版とIPAの参照先も一致しました。利用者から実機の「行事予定を更新」で「更新はありません」と表示されたとの報告がありました。起動時の自動確認、オフライン時の保存結果保持、実機の正確な版番号照合は未確認です。
