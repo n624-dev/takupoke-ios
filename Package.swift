@@ -13,10 +13,10 @@ let package = Package(
         .target(name: "TakupokeParsing", dependencies: ["ZIPFoundation", .product(name: "GRDB", package: "GRDB.swift")], path: "Takupoke",
                 exclude: ["Assets.xcassets", "Info.plist", "PrivacyInfo.xcprivacy", "ThirdPartyNotices.txt",
                           "TakupokeApp.swift", "ContentView.swift", "MaterialAccess.swift", "MaterialsModel.swift",
-                          "MaterialsView.swift", "ChangeAnalysisView.swift", "WebPDFDownloader.swift", "PDFAnalysisView.swift"],
-                sources: ["LocalMaterialDatabase.swift", "LegacyDatabaseMigration.swift", "ChangeNormalizer.swift", "XLSXReader.swift", "MaterialLibrary.swift", "TimetableLessonNames.swift", "PDFSchoolParser.swift", "PDFKitReader.swift", "PDFTextGeometry.swift", "PDFDiagnostics.swift", "PDFFullDiagnosticEncoding.swift"]),
+                          "MaterialsView.swift", "ChangeAnalysisView.swift", "WebPDFDownloader.swift", "PDFAnalysisView.swift", "TimetableView.swift"],
+                sources: ["LocalMaterialDatabase.swift", "LegacyDatabaseMigration.swift", "ChangeNormalizer.swift", "XLSXReader.swift", "MaterialLibrary.swift", "TimetableLessonNames.swift", "PDFSchoolParser.swift", "PDFKitReader.swift", "PDFTextGeometry.swift", "PDFDiagnostics.swift", "PDFFullDiagnosticEncoding.swift", "SchoolDate.swift", "TimetableSchedule.swift"]),
         .testTarget(name: "ParsingTests", dependencies: ["TakupokeParsing", "ZIPFoundation", .product(name: "GRDB", package: "GRDB.swift")], path: "tests",
                     exclude: ["MaterialLibraryChecks.swift", "WebPDFChecks.swift", "test_distribution.py"],
-                    sources: ["ParsingTests.swift", "TimetableNameTests.swift", "PDFParsingTests.swift", "PDFTextGeometryTests.swift", "LocalDatabaseTests.swift"], resources: [.copy("fixtures")])
+                    sources: ["ParsingTests.swift", "TimetableNameTests.swift", "PDFParsingTests.swift", "PDFTextGeometryTests.swift", "LocalDatabaseTests.swift", "SchoolDateTests.swift", "TimetableScheduleTests.swift"], resources: [.copy("fixtures")])
     ]
 )

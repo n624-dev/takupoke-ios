@@ -1,8 +1,21 @@
 import SwiftUI
 
 struct ContentView: View {
-    @AppStorage("updateVerificationNote") private var verificationNote = ""
     @StateObject private var materials = MaterialsModel()
+
+    var body: some View {
+        TabView {
+            HomeView(materials: materials)
+                .tabItem { Label("ホーム", systemImage: "house") }
+            TimetableView(model: materials)
+                .tabItem { Label("時間割", systemImage: "calendar") }
+        }
+    }
+}
+
+private struct HomeView: View {
+    @AppStorage("updateVerificationNote") private var verificationNote = ""
+    @ObservedObject var materials: MaterialsModel
 
     private let accent = Color(red: 0.08, green: 0.43, blue: 0.40)
     private let sourceURL = URL(string: "https://github.com/n624-dev/takupoke-ios/releases/latest/download/altstore-source.json")!
