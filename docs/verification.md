@@ -6,9 +6,11 @@
 
 Astro 版のコミット `edfaf85` のクラス設定、週操作、通常／変更込み、授業詳細、変更一覧をコード上で照合しました。週グリッドと変更一覧は保存済み解析結果を読み取る構成です。前期4月1日〜9月30日、後期10月1日〜翌年3月31日の境界を明示し、学期不明の通常時間割は適用しません。変更は日付・クラス・時限で枠を置き換え、元の通常授業を詳細に保持します。学校行事の解析・タグ付け規則は変更していません。対応範囲と差異は[時間割タブの表示仕様](timetable-tab.md)に記録しました。
 
-この Linux 環境の Swift 6.1.2 で `bash tools/test-parsing.sh` を実行し、`SchoolDateTests` と `TimetableScheduleTests` を含む83件が通過しました。日付・学期境界、週フィルター、変更時の置き換えと元授業保持を架空データで検証しました。Python の配布テスト24件も通過しました。iOS SDK ビルドと実機表示は未確認です。
+この Linux 環境の Swift 6.1.2 で `bash tools/test-parsing.sh` を実行し、`SchoolDateTests` と `TimetableScheduleTests` を含む83件が通過しました。日付・学期境界、週フィルター、変更時の置き換えと元授業保持を架空データで検証しました。Python の配布テスト24件も通過しました。
 
-利用者の指定により、今回に限り push 後の Actions を監視しました。[実行35822048029](https://github.com/n624-dev/takupoke-ios/actions/runs/35822048029) は配布テストを通過しましたが、iOS ビルドで `TimetableView.changeDetail` の不透明戻り値に `return` がないため失敗しました。`return List` に修正しました。修正後の iOS ビルドは次の実行で確認します。
+利用者の指定により、今回に限り push 後の Actions を監視しました。[実行35822048029](https://github.com/n624-dev/takupoke-ios/actions/runs/35822048029) は配布テストを通過しましたが、iOS ビルドで `TimetableView.changeDetail` の不透明戻り値に `return` がないため失敗しました。`return List` に修正しました。
+
+修正後のコミット `82aa667` の[実行35822249025](https://github.com/n624-dev/takupoke-ios/actions/runs/35822249025) は配布テスト、iPhone 向けビルド、IPA と AltStore Source の照合・公開まで成功しました。[Release v0.1.28-build.28.1](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.28-build.28.1) は公開済みです。実機への導入・タブの表示や操作は未確認です。この実行の完了後に一時的な Actions 監視を終了しました。
 
 ## 配布基盤の初期実装
 
