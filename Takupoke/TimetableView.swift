@@ -286,7 +286,7 @@ struct TimetableView: View {
 
     private func changeDetail(_ selection: ChangeSelection) -> some View {
         let change = selection.change
-        List {
+        return List {
             Section("変更内容") {
                 LabeledContent("日付", value: change.change_date)
                 LabeledContent("クラス", value: change.displayClassName)

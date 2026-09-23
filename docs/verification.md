@@ -8,6 +8,8 @@ Astro 版のコミット `edfaf85` のクラス設定、週操作、通常／変
 
 この Linux 環境の Swift 6.1.2 で `bash tools/test-parsing.sh` を実行し、`SchoolDateTests` と `TimetableScheduleTests` を含む83件が通過しました。日付・学期境界、週フィルター、変更時の置き換えと元授業保持を架空データで検証しました。Python の配布テスト24件も通過しました。iOS SDK ビルドと実機表示は未確認です。
 
+利用者の指定により、今回に限り push 後の Actions を監視しました。[実行35822048029](https://github.com/n624-dev/takupoke-ios/actions/runs/35822048029) は配布テストを通過しましたが、iOS ビルドで `TimetableView.changeDetail` の不透明戻り値に `return` がないため失敗しました。`return List` に修正しました。修正後の iOS ビルドは次の実行で確認します。
+
 ## 配布基盤の初期実装
 
 ローカルの Linux / Python 3.12 で以下を確認しました。
