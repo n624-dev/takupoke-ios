@@ -3,15 +3,27 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var materials = MaterialsModel()
     @StateObject private var specialSchedules = SpecialSchedulesModel()
+    @StateObject private var schoolEvents = SchoolEventsModel()
 
     var body: some View {
         TabView {
             HomeView()
                 .tabItem { Label("ホーム", systemImage: "house") }
-            TimetableView(model: materials, specialSchedules: specialSchedules)
+            TimetableView(model: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents)
                 .tabItem { Label("時間割", systemImage: "calendar") }
-            SettingsView(materials: materials, specialSchedules: specialSchedules)
+            SettingsView(materials: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents)
                 .tabItem { Label("設定", systemImage: "gearshape") }
+        }
+        .onChange(of: materials.ready) { ready in
+            if ready { materials.checkSelectedFilesAtStartup() }
+        }
+        .onChange(of: specialSchedules.ready) { ready in
+            if ready { specialSchedules.checkSelectedFilesAtStartup() }
+        }
+        .task {
+            materials.loadIfNeeded()
+            specialSchedules.loadIfNeeded()
+            schoolEvents.checkSourceAtStartup()
         }
     }
 }
@@ -19,13 +31,14 @@ struct ContentView: View {
 private struct SettingsView: View {
     @ObservedObject var materials: MaterialsModel
     @ObservedObject var specialSchedules: SpecialSchedulesModel
+    @ObservedObject var schoolEvents: SchoolEventsModel
 
     var body: some View {
         NavigationStack {
             List {
                 Section("データ取得") {
                     NavigationLink {
-                        MaterialsView(model: materials, specialSchedules: specialSchedules)
+                        MaterialsView(model: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents)
                     } label: {
                         Label("ファイル選択", systemImage: "folder")
                     }

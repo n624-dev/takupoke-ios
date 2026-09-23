@@ -23,6 +23,7 @@ final class SpecialSchedulesModel: ObservableObject {
     private let queue = DispatchQueue(label: "io.github.n624dev.takupoke.special-schedules", qos: .userInitiated)
     private var store: SpecialScheduleStore?
     private var control: AcquisitionControl?
+    private var checkedAtStartup = false
 
     func loadIfNeeded() {
         guard !ready, !busy else { return }
@@ -35,6 +36,40 @@ final class SpecialSchedulesModel: ObservableObject {
 
     func analyzePDF(_ kind: SpecialScheduleKind) {
         analyze(kind: kind, selection: nil)
+    }
+
+    func checkSelectedFilesAtStartup() {
+        guard ready, !busy, !checkedAtStartup else { return }
+        checkedAtStartup = true
+        perform(success: nil) { store, control, _ in
+            var failure: Error?
+            for kind in SpecialScheduleKind.allCases {
+                guard let source = store.sources[kind], let grant = source.grant else { continue }
+                let staged = store.newStagingURL()
+                defer { store.discardStaging(staged) }
+                do {
+                    var stale = false
+                    let url = try URL(resolvingBookmarkData: grant.bookmark, options: [],
+                                      relativeTo: nil, bookmarkDataIsStale: &stale)
+                    guard !stale else { throw MaterialError.accessExpired }
+                    let selection = ScopedMaterialSelection(url)
+                    let (name, count, digest) = try Self.copy(selection, to: staged, control: control)
+                    guard digest != source.digest else { continue }
+                    try store.saveSelection(staged: staged, kind: kind, originalName: name,
+                                            byteCount: count, digest: digest, grant: grant)
+                    guard let selectedURL = store.selectedURL(for: kind) else { throw MaterialError.unavailable }
+                    let pages = try PDFKitReader.readSpecial(selectedURL, check: { try control.check() })
+                    let analysis = try SpecialScheduleParser.parse(pages, kind: kind, digest: digest,
+                                                                   name: name, check: { try control.check() })
+                    try store.saveAnalysis(analysis)
+                } catch {
+                    failure = error
+                    let parseFailure = (error as? PDFParseError) ?? PDFParseError(code: .unreadable)
+                    try? store.recordFailure(parseFailure, kind: kind)
+                }
+            }
+            if let failure { throw failure }
+        }
     }
 
     private func analyze(kind: SpecialScheduleKind, selection: ScopedMaterialSelection?) {
@@ -63,8 +98,13 @@ final class SpecialSchedulesModel: ObservableObject {
                     diagnosticURL = staged
                     let (name, count, digest) = try Self.copy(selection, to: staged, control: control)
                     sourceName = name
+                    let grant = try selection.access { url in
+                        SourceGrant(bookmark: try url.bookmarkData(options: .minimalBookmark,
+                            includingResourceValuesForKeys: nil, relativeTo: nil),
+                            name: url.lastPathComponent, isFolder: false)
+                    }
                     try store.saveSelection(staged: staged, kind: kind, originalName: name,
-                                            byteCount: count, digest: digest)
+                                            byteCount: count, digest: digest, grant: grant)
                 }
                 guard let source = store.sources[kind], let selectedURL = store.selectedURL(for: kind) else {
                     throw PDFParseError(code: .unreadable)

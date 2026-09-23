@@ -272,6 +272,18 @@ final class MaterialWorker {
         try acquireSource(source, kind: kind, control: control)
     }
 
+    /// Reads the selected provider file again, then reparses only if its content
+    /// digest changed. An unavailable provider preserves the previous result.
+    func refreshIfChanged(_ kind: MaterialKind, defaultYear: Int, control: AcquisitionControl) throws -> Bool {
+        guard kind == .timetable || kind == .changes,
+              let previous = library?.state.record(for: kind), previous.source.grant != nil else { return false }
+        try refresh(kind, control: control)
+        guard let current = library?.state.record(for: kind), current.digest != previous.digest else { return false }
+        if kind == .changes { try analyzeChanges(defaultYear: defaultYear, control: control) }
+        else { try analyzePDF(kind: kind, control: control) }
+        return true
+    }
+
     func fetchEvents(control: AcquisitionControl) throws {
         try acquire(.events, control: control) { staged in
             return try readWebPDF(WebPDFDownloader.eventsURL, to: staged, control: control)

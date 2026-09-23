@@ -24,10 +24,25 @@ final class MaterialsModel: ObservableObject {
     private let worker = MaterialWorker()
     private let queue = DispatchQueue(label: "io.github.n624dev.takupoke.materials", qos: .userInitiated)
     private var control: AcquisitionControl?
+    private var checkedAtStartup = false
 
     func loadIfNeeded() {
         guard !ready else { return }
         perform(success: nil) { worker, _ in try worker.open() }
+    }
+
+    func checkSelectedFilesAtStartup() {
+        guard ready, !busy, !checkedAtStartup else { return }
+        checkedAtStartup = true
+        let year = automaticChangeSchoolYear
+        perform(success: "保存済みファイルの変更を確認しました。") { worker, control in
+            var failed = false
+            for kind in [MaterialKind.timetable, .changes] {
+                do { _ = try worker.refreshIfChanged(kind, defaultYear: year, control: control) }
+                catch { failed = true }
+            }
+            if failed { throw MaterialError.providerReadFailed }
+        }
     }
 
     func selectFolder(_ url: ScopedMaterialSelection) {

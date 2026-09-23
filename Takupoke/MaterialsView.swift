@@ -49,13 +49,14 @@ struct MaterialDocumentPicker: UIViewControllerRepresentable {
 struct MaterialsView: View {
     @ObservedObject var model: MaterialsModel
     @ObservedObject var specialSchedules: SpecialSchedulesModel
+    @ObservedObject var schoolEvents: SchoolEventsModel
     @State private var picker: MaterialPicker?
     @State private var specialPickerKind: SpecialScheduleKind?
 
     var body: some View {
         List {
             Section {
-                Text("通常時間割・時間割変更・試験・返却は「ファイル」から個別に選びます。学校行事は学校サイトのPDFを端末内に保存します。")
+                Text("通常時間割・時間割変更・試験・返却は「ファイル」から個別に選びます。学校行事は行事予定APIから取得します。")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 if model.busy {
@@ -93,7 +94,7 @@ struct MaterialsView: View {
                 }
             }
 
-            ForEach(MaterialKind.allCases) { kind in
+            ForEach([MaterialKind.timetable, .changes]) { kind in
                 Section {
                     if let record = model.state.record(for: kind) {
                         Text(record.originalName).font(.headline)
@@ -107,9 +108,7 @@ struct MaterialsView: View {
                             Label(failure, systemImage: "exclamationmark.triangle")
                                 .font(.caption).foregroundStyle(.orange)
                         }
-                        if kind != .events {
-                            Button("同じ資料を再取得") { model.refresh(kind) }
-                        }
+                        Button("同じ資料を再取得") { model.refresh(kind) }
                     } else {
                         Text("未選択").foregroundStyle(.secondary)
                         if let failure = model.state.attempts[kind.rawValue]?.failure, failure != model.message {
@@ -130,32 +129,32 @@ struct MaterialsView: View {
                                 .font(.caption).foregroundStyle(.orange)
                         }
                     }
-                    if kind != .events && model.folderListed {
+                    if model.folderListed {
                         NavigationLink("フォルダ内から選ぶ") {
                             MaterialCandidatesView(model: model, kind: kind)
                         }
                     }
-                    if kind == .events {
-                        Button(model.state.record(for: .events)?.source.remoteURL == nil ? "学校サイトから取得" : "更新を確認") {
-                            model.fetchEvents()
-                        }
-                        Link("学校サイトのPDFを開く", destination: WebPDFDownloader.eventsURL)
-                        Text("一度取得したPDFは端末内に保持します。更新確認で変更がなければ、PDF本体を再取得しません。")
-                            .font(.caption).foregroundStyle(.secondary)
-                    } else {
-                        Button("\(kind.fileExtension.uppercased())ファイルを選ぶ") { picker = .file(kind) }
-                    }
+                    Button("\(kind.fileExtension.uppercased())ファイルを選ぶ") { picker = .file(kind) }
                 } header: {
                     Text(kind.title)
                 }
                 .disabled(model.busy || !model.ready)
             }
+            SchoolEventsSettingsSection(model: schoolEvents)
             ForEach(SpecialScheduleKind.allCases) { kind in
                 Section(kind.title) {
                     if let source = specialSchedules.sources[kind] {
                         Text(source.originalName).font(.headline)
                         Text(specialStatus(kind, source: source))
                             .font(.caption).foregroundStyle(.secondary)
+                        if source.grant == nil {
+                            Label("起動時の変更確認には、このPDFをもう一度選んでください。", systemImage: "exclamationmark.triangle")
+                                .font(.caption).foregroundStyle(.orange)
+                        }
+                        if let failure = source.failure {
+                            Label(failure.localizedDescription, systemImage: "exclamationmark.triangle")
+                                .font(.caption).foregroundStyle(.orange)
+                        }
                         LabeledContent("サイズ", value: ByteCountFormatter.string(
                             fromByteCount: Int64(source.byteCount), countStyle: .file))
                         dateRow("最終取得", source.acquiredAt)
@@ -196,6 +195,7 @@ struct MaterialsView: View {
         .navigationTitle("ファイル選択")
         .task { model.loadIfNeeded() }
         .task { specialSchedules.loadIfNeeded() }
+        .task { schoolEvents.loadIfNeeded() }
         .sheet(item: $picker) { selection in
             MaterialDocumentPicker(type: selection.contentType, selected: { url in
                 picker = nil

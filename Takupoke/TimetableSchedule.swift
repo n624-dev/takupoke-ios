@@ -59,6 +59,9 @@ enum TimetableSchedule {
         let isNoClass: Bool
         let isSupplementary: Bool
         let weekdayOverride: Int?
+        let apiNoClass: Bool
+        let apiTest: Bool
+        let apiTestReturn: Bool
 
         var noClassLabels: [String] {
             Array(Set(events.compactMap { event in
@@ -120,7 +123,10 @@ enum TimetableSchedule {
         let supplementary = reliable.contains { $0.type == .supplementary }
         let overrides = Set(reliable.filter { $0.type == .weekdayOverride }.compactMap(\.scheduleDay))
         return DayPlan(events: visible, isNoClass: noClass, isSupplementary: supplementary,
-                       weekdayOverride: overrides.count == 1 ? overrides.first : nil)
+                       weekdayOverride: overrides.count == 1 ? overrides.first : nil,
+                       apiNoClass: visible.contains { $0.apiTag == "授業なし" || $0.apiTag == "行事（授業なし）" },
+                       apiTest: visible.contains { $0.apiTag == "テスト" },
+                       apiTestReturn: visible.contains { $0.apiTag == "テスト返却" })
     }
 
     static func changes(in analysis: ChangeAnalysis?, className: String, range: ChangeRange,
@@ -144,14 +150,16 @@ enum TimetableSchedule {
                      changes: ChangeAnalysis?, includesChanges: Bool, events: PDFAnalysis? = nil,
                      specials: [SpecialScheduleAnalysis] = []) -> Slot {
         let plan = dayPlan(on: day, events: events)
-        guard !plan.isNoClass else { return Slot(baseLessons: [], specialLessons: [], changes: []) }
+        guard !plan.isNoClass || plan.apiNoClass else {
+            return Slot(baseLessons: [], specialLessons: [], changes: [])
+        }
         let specialDayApplies = specials.contains { $0.applies(date: day.iso8601, className: className) }
         let specialDayItems = specials.flatMap { analysis in
             analysis.lessons.filter { $0.date == day.iso8601 && $0.className == className }
                 .map { SpecialItem(kind: analysis.kind, lesson: $0,
                                    timeRange: $0.timeRange) }
         }
-        let base = plan.isSupplementary || specialDayApplies ? [] :
+        let base = plan.isNoClass || plan.isSupplementary || plan.apiTest || plan.apiTestReturn || specialDayApplies ? [] :
             lessons(on: day, className: className, analysis: timetable,
                     weekday: plan.weekdayOverride).filter { $0.period == period }
         let special = specialDayItems.filter { $0.lesson.period == period }
@@ -166,7 +174,7 @@ enum TimetableSchedule {
         (0..<7).compactMap { weekStart.addingDays($0) }.filter { day in
             if day.schoolWeekday <= 5 { return true }
             let plan = dayPlan(on: day, events: events)
-            if plan.isNoClass { return false }
+            if plan.isNoClass && !plan.apiNoClass { return false }
             return classes.contains { className in
                 (1...8).contains { period in
                     let item = slot(on: day, period: period, className: className, timetable: timetable,
@@ -186,6 +194,11 @@ enum TimetableSchedule {
             return "\(day.month >= 10 ? day.year : day.year - 1):second"
         }
         return key(lhs) == key(rhs)
+    }
+
+    static func weekOverlapsAcademicHalf(start: SchoolDate, containing reference: SchoolDate) -> Bool {
+        (0..<7).compactMap { start.addingDays($0) }
+            .contains { isSameAcademicHalf($0, reference) }
     }
 
     static func hasWeekData(start: SchoolDate, classes: [String], timetable: PDFAnalysis?,

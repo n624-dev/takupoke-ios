@@ -187,4 +187,42 @@ final class TimetableScheduleTests: XCTestCase {
                                                     timetable: timetable(term: "前期"), changes: analysis,
                                                     events: nil, includesChanges: true))
     }
+
+    func testPreviousWeekCanCrossBoundaryWhenPartOfWeekIsInCurrentHalf() throws {
+        let october = try XCTUnwrap(SchoolDate(iso8601: "2026-10-05"))
+        let previous = try XCTUnwrap(SchoolDate(iso8601: "2026-09-28"))
+        XCTAssertTrue(TimetableSchedule.weekOverlapsAcademicHalf(start: previous, containing: october))
+        XCTAssertFalse(TimetableSchedule.weekOverlapsAcademicHalf(
+            start: try XCTUnwrap(SchoolDate(iso8601: "2026-09-21")), containing: october))
+        let april = try XCTUnwrap(SchoolDate(iso8601: "2027-04-05"))
+        XCTAssertTrue(TimetableSchedule.weekOverlapsAcademicHalf(
+            start: try XCTUnwrap(SchoolDate(iso8601: "2027-03-29")), containing: april))
+    }
+
+    func testApiNoClassKeepsChangesWhileExamTagSuppressesOrdinaryLessons() throws {
+        let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
+        let change = ScheduleChange(change_date: day.iso8601, class_name: "1_A", period: "1",
+                                    before_subject: "架空科目A", after_subject: "架空科目B",
+                                    teacher: "", room: "", note: "", raw_text: "", canonical_text: "")
+        let changed = ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx",
+                                     defaultYear: nil, parsedAt: Date(timeIntervalSince1970: 0), records: [change])
+        let noClass = PDFSchoolEvent(date: day.iso8601, scope: "全クラス", title: "架空休業A", page: 0,
+                                     classification: .init(type: .noClass), apiTag: "授業なし")
+        var events = PDFAnalysis(kind: .events, sourceDigest: "fictional", sourceName: "fictional",
+                                 parsedAt: Date(timeIntervalSince1970: 0), schoolYear: 2032, term: nil,
+                                 lessons: [], events: [noClass], notices: [])
+        let slot = TimetableSchedule.slot(on: day, period: 1, className: "1_A",
+                                          timetable: timetable(term: "前期"), changes: changed,
+                                          includesChanges: true, events: events)
+        XCTAssertTrue(slot.baseLessons.isEmpty)
+        XCTAssertEqual(slot.changes.map(\.after_subject), ["架空科目B"])
+
+        events.events = [PDFSchoolEvent(date: day.iso8601, scope: "全クラス", title: "架空試験A", page: 0,
+                                        classification: .init(type: .special), apiTag: "テスト")]
+        let missingExam = TimetableSchedule.slot(on: day, period: 1, className: "1_A",
+                                                 timetable: timetable(term: "前期"), changes: nil,
+                                                 includesChanges: false, events: events)
+        XCTAssertTrue(missingExam.displayedLessons.isEmpty)
+        XCTAssertTrue(TimetableSchedule.dayPlan(on: day, events: events).apiTest)
+    }
 }

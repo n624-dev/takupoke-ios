@@ -3,20 +3,24 @@ import SwiftUI
 struct TimetableView: View {
     @ObservedObject var model: MaterialsModel
     @ObservedObject var specialSchedules: SpecialSchedulesModel
+    @ObservedObject var schoolEvents: SchoolEventsModel
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("timetableSelectedClasses") private var selectedClassesValue = ""
     @AppStorage("timetableChangeClasses") private var changeClassesValue = ""
     @AppStorage("timetableInternationalStudent") private var isInternationalStudent = false
     @State private var weekStart = SchoolDate.today().displayWeekStart
+    @State private var navigationHalfAnchor = SchoolDate.today().displayWeekStart
     @State private var today = SchoolDate.today()
     @AppStorage("timetableIncludesChanges") private var includesChanges = true
     @AppStorage("timetableChangeRange") private var changeRangeValue = ChangeRange.today.rawValue
     @State private var selectedLesson: LessonSelection?
     @State private var selectedSpecial: SpecialSelection?
     @State private var selectedChange: ChangeSelection?
+    @State private var showingWeekPicker = false
+    @State private var weekPickerDate = Date()
 
     private var timetable: PDFAnalysis? { model.state.pdfAnalyses?[MaterialKind.timetable.rawValue] }
-    private var events: PDFAnalysis? { model.state.pdfAnalyses?[MaterialKind.events.rawValue] }
+    private var events: PDFAnalysis? { schoolEvents.analysis }
     private var changes: ChangeAnalysis? { model.state.changeAnalysis }
     private var specials: [SpecialScheduleAnalysis] {
         specialSchedules.records.values.map(\.analysis).sorted { $0.kind.rawValue < $1.kind.rawValue }
@@ -30,6 +34,7 @@ struct TimetableView: View {
     }
     private var changeRange: ChangeRange { ChangeRange(rawValue: changeRangeValue) ?? .today }
     private let weekdayNames = ["月", "火", "水", "木", "金", "土", "日"]
+    private let dayColumnWidth: CGFloat = 148
 
     var body: some View {
         NavigationStack {
@@ -63,6 +68,7 @@ struct TimetableView: View {
             .navigationTitle("時間割")
             .task { model.loadIfNeeded() }
             .task { specialSchedules.loadIfNeeded() }
+            .task { schoolEvents.loadIfNeeded() }
             .onChange(of: scenePhase) { phase in
                 if phase == .active { today = SchoolDate.today() }
             }
@@ -75,6 +81,24 @@ struct TimetableView: View {
             .sheet(item: $selectedSpecial) { selection in
                 NavigationStack { specialDetail(selection.item) }
             }
+            .sheet(isPresented: $showingWeekPicker) {
+                NavigationStack {
+                    DatePicker("移動する日付", selection: $weekPickerDate, displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                        .padding()
+                        .navigationTitle("週を選ぶ")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("キャンセル") { showingWeekPicker = false }
+                            }
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("この週へ移動") { selectPickedWeek() }
+                            }
+                        }
+                }
+                .presentationDetents([.medium, .large])
+            }
         }
     }
 
@@ -83,8 +107,14 @@ struct TimetableView: View {
             HStack {
                 if canMovePrevious { Button("前週") { moveWeek(-7) } }
                 Spacer()
-                Text("\(weekStart.month)/\(weekStart.day)〜\(weekStart.addingDays(6)!.month)/\(weekStart.addingDays(6)!.day)")
-                    .font(.subheadline.monospacedDigit())
+                Button {
+                    openWeekPicker()
+                } label: {
+                    Label("\(weekStart.month)/\(weekStart.day)〜\(weekStart.addingDays(6)!.month)/\(weekStart.addingDays(6)!.day)",
+                          systemImage: "calendar")
+                        .font(.subheadline.monospacedDigit())
+                }
+                .accessibilityLabel("表示する週を選ぶ")
                 Spacer()
                 if canMoveNext { Button("翌週") { moveWeek(7) } }
             }
@@ -116,10 +146,13 @@ struct TimetableView: View {
                 Label("時間割変更は前回の解析結果です。", systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.orange)
             }
-            if let events, events.sourceDigest != model.state.record(for: .events)?.digest ||
-                events.version != PDFAnalysis.currentVersion(for: .events) {
-                Label("学校行事は前回の解析結果です。", systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+            if events == nil {
+                Label("学校行事は未取得です。設定から行事予定APIを取得できます。", systemImage: "calendar.badge.exclamationmark")
+                    .foregroundStyle(.secondary)
+            }
+            if let sourceCheckMessage = schoolEvents.sourceCheckMessage {
+                Label(sourceCheckMessage, systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.orange)
             }
             ForEach(SpecialScheduleKind.allCases) { kind in
                 if let source = specialSchedules.sources[kind],
@@ -134,6 +167,9 @@ struct TimetableView: View {
                      "保存したクラスは現在の資料に見つかりません。資料を再解析するか、クラスを選び直してください。")
                     .foregroundStyle(.secondary)
             } else {
+                Label("左右にスクロールして週全体を表示", systemImage: "hand.draw")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 weekGrid
                     .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
             }
@@ -150,12 +186,17 @@ struct TimetableView: View {
         return ScrollView(.horizontal) {
             Grid(alignment: .topLeading, horizontalSpacing: 4, verticalSpacing: 4) {
                 GridRow {
-                    Text("時限").frame(width: 38)
+                    Text("時限").font(.caption.bold()).frame(width: 54)
                     ForEach(days, id: \.self) { day in
                         let plan = TimetableSchedule.dayPlan(on: day, events: events)
-                        VStack(spacing: 2) {
-                            Text(weekdayNames[day.schoolWeekday - 1]).font(.caption.bold())
-                            Text("\(day.month)/\(day.day)").font(.caption2.monospacedDigit())
+                        VStack(spacing: 3) {
+                            HStack(spacing: 5) {
+                                Text("\(day.month)/\(day.day)")
+                                    .font(.subheadline.bold().monospacedDigit())
+                                Text("(\(weekdayNames[day.schoolWeekday - 1]))")
+                                    .font(.caption)
+                                if day == today { Text("今日").font(.caption2.bold()) }
+                            }
                             if plan.isSupplementary { Text("補講日").font(.caption2) }
                             if let override = plan.weekdayOverride {
                                 Text("\(weekdayNames[override - 1])曜授業").font(.caption2)
@@ -165,8 +206,21 @@ struct TimetableView: View {
                                     ? [analysis.kind.title] : []
                             })
                             if !types.isEmpty { Text(types.sorted().joined(separator: "・")).font(.caption2) }
+                            if plan.apiTest && selectedClasses.contains(where: { className in
+                                !specials.contains { $0.kind == .exam && $0.applies(date: day.iso8601, className: className) }
+                            }) {
+                                Text("試験：未公開または未解析です").font(.caption2).foregroundStyle(.orange)
+                            }
+                            if plan.apiTestReturn && selectedClasses.contains(where: { className in
+                                !specials.contains { $0.kind == .examReturn && $0.applies(date: day.iso8601, className: className) }
+                            }) {
+                                Text("返却：未公開または未解析です").font(.caption2).foregroundStyle(.orange)
+                            }
                         }
-                        .frame(width: 124)
+                        .frame(width: dayColumnWidth)
+                        .frame(minHeight: 44)
+                        .background(day == today ? Color.accentColor.opacity(0.14) : Color(uiColor: .secondarySystemGroupedBackground),
+                                    in: RoundedRectangle(cornerRadius: 10))
                         .accessibilityLabel("\(day.month)月\(day.day)日 \(weekdayNames[day.schoolWeekday - 1])曜日")
                     }
                 }
@@ -174,12 +228,12 @@ struct TimetableView: View {
                     let commonTime = commonPeriodTime(period, days: days)
                     GridRow {
                         VStack(spacing: 2) {
-                            Text("\(period)").font(.caption.bold())
+                            Text("\(period)限").font(.caption.bold())
                             if let commonTime {
-                                Text(commonTime).font(.system(size: 8))
+                                Text(commonTime).font(.system(size: 9)).foregroundStyle(.secondary)
                             }
                         }
-                        .frame(width: 48, alignment: .top)
+                        .frame(width: 54, alignment: .top)
                         ForEach(days, id: \.self) { day in
                             timetableCell(on: day, period: period, commonTime: commonTime)
                         }
@@ -193,7 +247,9 @@ struct TimetableView: View {
 
     private func commonPeriodTime(_ period: Int, days: [SchoolDate]) -> String? {
         var times: Set<String> = []
-        for day in days where !TimetableSchedule.dayPlan(on: day, events: events).isNoClass {
+        for day in days {
+            let plan = TimetableSchedule.dayPlan(on: day, events: events)
+            if plan.isNoClass && !plan.apiNoClass { continue }
             for className in selectedClasses {
                 let slot = TimetableSchedule.slot(on: day, period: period, className: className,
                                                   timetable: timetable, changes: changes,
@@ -237,22 +293,29 @@ struct TimetableView: View {
                 slot.changes.contains { TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent) }
         }
         return VStack(alignment: .leading, spacing: 4) {
-            if plan.isNoClass {
+            if plan.isNoClass && !plan.apiNoClass {
                 if period == 1 {
                     Text(plan.noClassLabels.isEmpty ? "授業なし" : plan.noClassLabels.joined(separator: "・"))
                         .font(.caption.bold())
                 }
             } else {
+                if plan.isNoClass && period == 1 {
+                    Text(plan.noClassLabels.isEmpty ? "授業なし" : plan.noClassLabels.joined(separator: "・"))
+                        .font(.caption.bold())
+                        .foregroundStyle(.orange)
+                }
                 ForEach(selectedClasses, id: \.self) { className in
                     classSlot(on: day, period: period, className: className, commonTime: commonTime)
                 }
-                if !hasItems { Text("—").foregroundStyle(.tertiary) }
+                if !hasItems && !plan.isNoClass { Text("—").foregroundStyle(.tertiary) }
             }
         }
         .padding(6)
-        .frame(width: 124, alignment: .topLeading)
-        .frame(minHeight: 64, alignment: .topLeading)
-        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8))
+        .frame(width: dayColumnWidth, alignment: .topLeading)
+        .frame(minHeight: 72, alignment: .topLeading)
+        .background(plan.isNoClass ? Color.orange.opacity(0.10) : Color(uiColor: .secondarySystemGroupedBackground),
+                    in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.primary.opacity(0.08)))
     }
 
     private func classSlot(on day: SchoolDate, period: Int, className: String,
@@ -272,7 +335,7 @@ struct TimetableView: View {
                     selectedLesson = LessonSelection(lesson: lesson, date: day)
                 } label: {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(PDFDisplayText.continuous(lesson.names.cellSubject)).font(.caption.bold()).lineLimit(3)
+                        Text(PDFDisplayText.continuous(lesson.names.cellSubject)).font(.subheadline.weight(.semibold)).lineLimit(3)
                         if commonTime == nil { Text(TimetableSchedule.normalPeriodTimes[period - 1]).font(.caption2).foregroundStyle(.secondary) }
                         if !lesson.names.cellTeacher.isEmpty {
                             Text(PDFDisplayText.continuous(lesson.names.cellTeacher)).font(.caption2).foregroundStyle(.secondary).lineLimit(2)
@@ -291,7 +354,7 @@ struct TimetableView: View {
             }.enumerated()), id: \.offset) { _, item in
                 Button { selectedSpecial = SpecialSelection(item: item) } label: {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(item.lesson.subject).font(.caption.bold()).lineLimit(3)
+                        Text(item.lesson.subject).font(.subheadline.weight(.semibold)).lineLimit(3)
                         if commonTime == nil, let time = item.timeRange { Text(time).font(.caption2).foregroundStyle(.secondary) }
                         if !item.lesson.teacher.isEmpty { Text(item.lesson.teacher).font(.caption2).lineLimit(2) }
                         if !item.lesson.room.isEmpty { Text(item.lesson.room).font(.caption2).lineLimit(2) }
@@ -309,7 +372,7 @@ struct TimetableView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Label(change.after_subject.isEmpty ? "変更を確認" : change.after_subject,
                               systemImage: "arrow.triangle.2.circlepath")
-                            .font(.caption2.bold()).lineLimit(3)
+                            .font(.caption.weight(.semibold)).lineLimit(3)
                         if commonTime == nil,
                            let time = slotTime(slot, on: day, className: className, period: period) {
                             Text(time).font(.caption2).foregroundStyle(.secondary)
@@ -388,14 +451,34 @@ struct TimetableView: View {
         if let next = weekStart.addingDays(days), next.addingDays(7) != nil { weekStart = next }
     }
 
+    private func openWeekPicker() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        weekPickerDate = calendar.date(from: DateComponents(year: weekStart.year,
+                                                            month: weekStart.month, day: weekStart.day)) ?? Date()
+        showingWeekPicker = true
+    }
+
+    private func selectPickedWeek() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        let parts = calendar.dateComponents([.year, .month, .day], from: weekPickerDate)
+        if let year = parts.year, let month = parts.month, let day = parts.day,
+           let picked = SchoolDate(year: year, month: month, day: day) {
+            weekStart = picked.monday
+            navigationHalfAnchor = picked
+        }
+        showingWeekPicker = false
+    }
+
     private var canMovePrevious: Bool {
         guard let previous = weekStart.addingDays(-7) else { return false }
-        return TimetableSchedule.isSameAcademicHalf(weekStart, previous)
+        return TimetableSchedule.weekOverlapsAcademicHalf(start: previous, containing: navigationHalfAnchor)
     }
 
     private var canMoveNext: Bool {
         guard let next = weekStart.addingDays(7) else { return false }
-        return TimetableSchedule.isSameAcademicHalf(weekStart, next) ||
+        return TimetableSchedule.weekOverlapsAcademicHalf(start: next, containing: navigationHalfAnchor) ||
             TimetableSchedule.hasWeekData(start: next, classes: selectedClasses, timetable: timetable,
                                           changes: changes, events: events, includesChanges: includesChanges,
                                           specials: specials)
@@ -421,30 +504,15 @@ struct TimetableView: View {
     }
 
     private var weekEvents: some View {
-        let hasLessons = (0..<7).compactMap { weekStart.addingDays($0) }.contains { day in
-            selectedClasses.contains { className in
-                (1...8).contains { period in
-                    let slot = TimetableSchedule.slot(on: day, period: period, className: className,
-                                                      timetable: timetable, changes: changes,
-                                                      includesChanges: includesChanges, events: events,
-                                                      specials: specials)
-                    return !slot.displayedLessons.isEmpty || !slot.displayedSpecialLessons.isEmpty || !slot.changes.isEmpty
-                }
-            }
-        }
         let rows = (0..<7).compactMap { weekStart.addingDays($0) }.flatMap { day in
-            TimetableSchedule.events(on: day, analysis: events).filter { event in
-                if hasLessons || day.schoolWeekday > 5 { return true }
-                guard event.classification?.needsReview == false,
-                      let type = event.classification?.type else { return true }
-                return type != .noClass && type != .schoolEventNoClass
-            }.map { (day, $0) }
+            TimetableSchedule.events(on: day, analysis: events).map { (day, $0) }
         }
         return Group {
             if !rows.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(Array(rows.enumerated()), id: \.offset) { _, entry in
-                        Text("\(entry.0.month)/\(entry.0.day) \(entry.1.title)")
+                        Text("\(entry.0.month)/\(entry.0.day) \(entry.1.title)" +
+                             (entry.1.apiTag.map { " · \($0)" } ?? ""))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }

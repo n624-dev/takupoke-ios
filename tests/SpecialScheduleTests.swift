@@ -139,11 +139,13 @@ final class SpecialScheduleTests: XCTestCase {
         try bytes.write(to: selectedStaging)
         try store.saveSelection(staged: selectedStaging, kind: .exam,
                                 originalName: "fictional-new.pdf", byteCount: bytes.count,
-                                digest: "current")
+                                digest: "current", grant: SourceGrant(bookmark: Data("fictional-bookmark".utf8),
+                                                                      name: "fictional-new.pdf", isFolder: false))
         let failure = PDFParseError(code: .unsupported, stage: .characterMapping)
         try store.recordFailure(failure, kind: .exam)
         let reopened = try SpecialScheduleStore(root: root)
         XCTAssertEqual(reopened.sources[.exam]?.originalName, "fictional-new.pdf")
+        XCTAssertEqual(reopened.sources[.exam]?.grant?.bookmark, Data("fictional-bookmark".utf8))
         XCTAssertEqual(reopened.sources[.exam]?.failure?.stage, .characterMapping)
         XCTAssertEqual(reopened.records[.exam]?.analysis, previous)
         XCTAssertNotEqual(reopened.selectedURL(for: .exam), previousURL)

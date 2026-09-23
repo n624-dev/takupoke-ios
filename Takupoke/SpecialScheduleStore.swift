@@ -19,6 +19,7 @@ struct SpecialScheduleSource: Codable {
     let digest: String
     let acquiredAt: Date
     var failure: PDFParseError?
+    var grant: SourceGrant?
 }
 
 /// The special PDFs have their own source and parser contract. This sidecar
@@ -109,7 +110,7 @@ final class SpecialScheduleStore {
         for (kind, record) in records where sources[kind] == nil {
             sources[kind] = SpecialScheduleSource(kind: kind, originalName: record.originalName,
                 storedName: record.storedName, byteCount: record.byteCount, digest: record.digest,
-                acquiredAt: record.acquiredAt, failure: nil)
+                acquiredAt: record.acquiredAt, failure: nil, grant: nil)
         }
         try removeUnreferencedFiles()
     }
@@ -130,7 +131,7 @@ final class SpecialScheduleStore {
     }
 
     func saveSelection(staged: URL, kind: SpecialScheduleKind, originalName: String,
-                       byteCount: Int, digest: String) throws {
+                       byteCount: Int, digest: String, grant: SourceGrant? = nil) throws {
         guard staged.deletingLastPathComponent().standardizedFileURL == staging.standardizedFileURL,
               byteCount > 0, byteCount <= MaterialLibrary.maximumBytes,
               !digest.isEmpty else { throw StoreError.invalidState }
@@ -139,7 +140,7 @@ final class SpecialScheduleStore {
         try FileManager.default.moveItem(at: staged, to: destination)
         let source = SpecialScheduleSource(kind: kind, originalName: originalName,
             storedName: storedName, byteCount: byteCount, digest: digest,
-            acquiredAt: Date(), failure: nil)
+            acquiredAt: Date(), failure: nil, grant: grant)
         do {
             let payload = try JSONEncoder().encode(source)
             try queue.write { db in

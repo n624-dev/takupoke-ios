@@ -89,6 +89,9 @@ struct PDFSchoolEvent: Codable, Equatable {
     var periodNeedsReview: Bool = false
     var periodEvidence: String? = nil
     var classification: PDFEventClassification? = nil
+    // Present only for the reviewed events API. Existing PDF classifications
+    // keep their original behavior when this value is absent.
+    var apiTag: String? = nil
 }
 struct PDFEventClassification: Codable, Equatable {
     enum EventType: String, Codable {
