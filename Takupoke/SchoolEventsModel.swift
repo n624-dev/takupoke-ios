@@ -12,39 +12,63 @@ final class SchoolEventsModel: ObservableObject {
 
     private var store: SchoolEventsStore?
     private var task: Task<Void, Never>?
-    private var checkedSourceAtStartup = false
+    private var checkedAtStartup = false
 
-    func checkSourceAtStartup() {
+    func refreshAtStartup() {
         loadIfNeeded()
-        guard ready, !checkedSourceAtStartup else { return }
-        checkedSourceAtStartup = true
-        guard let saved = saved[2026] else { return }
-        guard let expected = saved.payload.sourcePdfETag else {
-            sourceCheckMessage = "保存済み行事予定には元PDFのETagがありません。APIから取得し直すと起動時の更新確認ができます。"
+        guard ready, !checkedAtStartup, !busy else { return }
+        checkedAtStartup = true
+        let years = saved.keys.sorted()
+        guard !years.isEmpty else { return }
+        busy = true
+        task = Task { [weak self] in
+            guard let self else { return }
+            defer { self.busy = false; self.task = nil }
+            var failures: [Int] = []
+            var updated: [Int] = []
+            for year in years {
+                do {
+                    if try await self.fetchOne(year: year) { updated.append(year) }
+                } catch {
+                    failures.append(year)
+                }
+            }
+            if !Task.isCancelled { await self.checkSourceTask() }
+            self.failed = !failures.isEmpty
+            if !failures.isEmpty {
+                self.message = "\(failures.map(String.init).joined(separator: "、"))年度の行事予定を更新確認できませんでした。保存済みの結果を表示しています。"
+            } else if !updated.isEmpty {
+                self.message = "\(updated.map(String.init).joined(separator: "、"))年度の行事予定を更新しました。"
+            }
+        }
+    }
+
+    private func checkSourceTask() async {
+        guard let expected = saved[2026]?.payload.sourcePdfETag else {
+            if saved[2026] != nil {
+                sourceCheckMessage = "保存済み行事予定には元PDFのETagがありません。APIから取得し直すと起動時の更新確認ができます。"
+            }
             return
         }
-        Task { [weak self] in
-            guard let self else { return }
-            let configuration = URLSessionConfiguration.ephemeral
-            configuration.urlCache = nil
-            configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-            configuration.timeoutIntervalForRequest = 15
-            let session = URLSession(configuration: configuration)
-            defer { session.invalidateAndCancel() }
-            do {
-                var request = URLRequest(url: WebPDFDownloader.eventsURL)
-                request.httpMethod = "HEAD"
-                request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
-                let (_, response) = try await session.data(for: request)
-                guard let response = response as? HTTPURLResponse, response.statusCode == 200,
-                      let current = response.value(forHTTPHeaderField: "ETag") else {
-                    throw SchoolEventsError.unavailable
-                }
-                self.sourceCheckMessage = current == expected ? nil :
-                    "学校サイトの行事予定PDFがAPIの元資料から更新された可能性があります。APIの更新を確認してください。保存済み行事は表示しています。"
-            } catch {
-                self.sourceCheckMessage = "学校サイトの行事予定PDFを確認できませんでした。保存済み行事は表示しています。"
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.timeoutIntervalForRequest = 15
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+        do {
+            var request = URLRequest(url: WebPDFDownloader.eventsURL)
+            request.httpMethod = "HEAD"
+            request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+            let (_, response) = try await session.data(for: request)
+            guard let response = response as? HTTPURLResponse, response.statusCode == 200,
+                  let current = response.value(forHTTPHeaderField: "ETag") else {
+                throw SchoolEventsError.unavailable
             }
+            sourceCheckMessage = current == expected ? nil :
+                "学校サイトの行事予定PDFがAPIの元資料から更新された可能性があります。APIの更新を確認してください。保存済み行事は表示しています。"
+        } catch {
+            sourceCheckMessage = "学校サイトの行事予定PDFを確認できませんでした。保存済み行事は表示しています。"
         }
     }
 
@@ -81,13 +105,23 @@ final class SchoolEventsModel: ObservableObject {
         message = nil
         task = Task { [weak self] in
             guard let self else { return }
-            await self.fetchTask(year: year)
+            do {
+                let changed = try await self.fetchOne(year: year)
+                self.message = changed ? "\(year)年度の行事予定を取得しました。元PDFの更新確認は次回起動時に行います。" :
+                    "\(year)年度の行事予定に更新はありません。"
+            } catch {
+                self.failed = true
+                self.message = Task.isCancelled ? SchoolEventsError.cancelled.localizedDescription :
+                    (error as? SchoolEventsError)?.localizedDescription ?? SchoolEventsError.unavailable.localizedDescription
+            }
+            self.busy = false
+            self.task = nil
         }
     }
 
     func cancel() { task?.cancel() }
 
-    private func fetchTask(year: Int) async {
+    private func fetchOne(year: Int) async throws -> Bool {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.urlCache = nil
         configuration.httpCookieStorage = nil
@@ -96,34 +130,36 @@ final class SchoolEventsModel: ObservableObject {
         configuration.timeoutIntervalForRequest = 30
         configuration.timeoutIntervalForResource = 90
         let session = URLSession(configuration: configuration)
-        defer {
-            session.invalidateAndCancel()
-            busy = false
-            task = nil
+        defer { session.invalidateAndCancel() }
+        var components = URLComponents(string: "https://takupoke-api.n624.jp/events")!
+        components.queryItems = [URLQueryItem(name: "schoolYear", value: String(year))]
+        var request = URLRequest(url: components.url!)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        let sentETag = saved[year]?.apiETag
+        if let sentETag { request.setValue(sentETag, forHTTPHeaderField: "If-None-Match") }
+        let (data, response) = try await session.data(for: request)
+        try Task.checkCancellation()
+        guard let response = response as? HTTPURLResponse else { throw SchoolEventsError.unavailable }
+        let receivedETag = response.value(forHTTPHeaderField: "ETag")
+        if try SchoolEventsResponse.isNotModified(status: response.statusCode, data: data,
+                                                   sentETag: sentETag, receivedETag: receivedETag,
+                                                   hasSavedResult: saved[year] != nil) {
+            return false
         }
-        do {
-            var components = URLComponents(string: "https://takupoke-api.n624.jp/events")!
-            components.queryItems = [URLQueryItem(name: "schoolYear", value: String(year))]
-            var request = URLRequest(url: components.url!)
-            request.setValue("application/json", forHTTPHeaderField: "Accept")
-            let (data, response) = try await session.data(for: request)
-            try Task.checkCancellation()
-            guard let response = response as? HTTPURLResponse else { throw SchoolEventsError.unavailable }
-            if response.statusCode == 404 { throw SchoolEventsError.unsupportedYear }
-            guard response.statusCode == 200,
-                  response.expectedContentLength <= 1_000_000,
-                  data.count <= 1_000_000 else { throw SchoolEventsError.unavailable }
-            let payload = try SchoolEventsPayload.decode(data, requestedYear: year)
-            guard let store else { throw SchoolEventsError.unavailable }
-            let fetchedAt = Date()
-            try store.save(payload, fetchedAt: fetchedAt)
-            saved[year] = SavedSchoolEvents(fetchedAt: fetchedAt, payload: payload)
-            sourceCheckMessage = nil
-            message = "\(year)年度の行事予定を取得しました。元PDFの更新確認は次回起動時に行います。"
-        } catch {
-            failed = true
-            message = Task.isCancelled ? SchoolEventsError.cancelled.localizedDescription :
-                (error as? SchoolEventsError)?.localizedDescription ?? SchoolEventsError.unavailable.localizedDescription
+        if response.statusCode == 404 { throw SchoolEventsError.unsupportedYear }
+        guard response.statusCode == 200,
+              response.expectedContentLength <= 1_000_000,
+              data.count <= 1_000_000 else { throw SchoolEventsError.unavailable }
+        guard receivedETag == nil || SchoolEventsResponse.validETag(receivedETag!) else {
+            throw SchoolEventsError.invalidResponse
         }
+        let payload = try SchoolEventsPayload.decode(data, requestedYear: year)
+        guard let store else { throw SchoolEventsError.unavailable }
+        let fetchedAt = Date()
+        try store.save(payload, apiETag: receivedETag, fetchedAt: fetchedAt)
+        saved[year] = SavedSchoolEvents(fetchedAt: fetchedAt, payload: payload, apiETag: receivedETag)
+        sourceCheckMessage = nil
+        return true
     }
 }
