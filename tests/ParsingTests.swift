@@ -170,7 +170,9 @@ final class ParsingTests: XCTestCase {
 
     func testDatesAndExplicitYear() throws {
         XCTAssertEqual(try ChangeNormalizer.date("2032年2月29日", defaultYear: nil), "2032-02-29")
-        XCTAssertEqual(try ChangeNormalizer.date("1/2", defaultYear: 2033), "2033-01-02")
+        XCTAssertEqual(try ChangeNormalizer.date("1/2", defaultYear: 2033), "2034-01-02")
+        XCTAssertEqual(try ChangeNormalizer.date("4/1", defaultYear: 2033), "2033-04-01")
+        XCTAssertEqual(try ChangeNormalizer.date("2033/1/2", defaultYear: 2033), "2033-01-02")
         XCTAssertEqual(try ChangeNormalizer.date("46119.75", defaultYear: nil), "2026-04-07")
         for value in ["2031/2/29", "2032/13/1", "2032/0/1", "2032/4/31", "7/10", "99999999999999999999", "0"] {
             assertCode(.date) { _ = try ChangeNormalizer.date(value, defaultYear: nil) }

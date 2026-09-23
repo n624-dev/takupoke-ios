@@ -60,13 +60,16 @@ struct PDFDiagnosticSnapshot: Codable, Equatable {
 final class PDFDiagnosticRecorder {
     static let maximumEntries = 16_384
     private let limit: Int
+    private let parserVersion: Int
     private let prefixCount: Int
     private var entries: [PDFDiagnosticSnapshot.Entry] = []
     private var total = 0
     private var nextReplacement: Int
 
-    init(limit: Int = PDFDiagnosticRecorder.maximumEntries) {
+    init(limit: Int = PDFDiagnosticRecorder.maximumEntries,
+         parserVersion: Int = PDFAnalysis.currentVersion(for: .timetable)) {
         self.limit = min(Self.maximumEntries, max(2, limit))
+        self.parserVersion = parserVersion
         prefixCount = min(64, self.limit / 2)
         nextReplacement = prefixCount
     }
@@ -87,8 +90,10 @@ final class PDFDiagnosticRecorder {
     }
 
     var snapshot: PDFDiagnosticSnapshot {
-        PDFDiagnosticSnapshot(totalEntries: total, omittedEntries: total - entries.count,
-                              entries: entries.sorted { $0.sequence < $1.sequence })
+        var result = PDFDiagnosticSnapshot(totalEntries: total, omittedEntries: total - entries.count,
+                                           entries: entries.sorted { $0.sequence < $1.sequence })
+        result.parserVersion = parserVersion
+        return result
     }
 
     func attaching(to error: Error, fallback: PDFParseError.Code = .unreadable) -> PDFParseError {

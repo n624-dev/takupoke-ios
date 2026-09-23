@@ -2,6 +2,16 @@ import XCTest
 @testable import TakupokeParsing
 
 final class SchoolDateTests: XCTestCase {
+    func testJapaneseSchoolYearAndAutomaticChangeYear() throws {
+        let march = try XCTUnwrap(SchoolDate(year: 2027, month: 3, day: 31))
+        let april = try XCTUnwrap(SchoolDate(year: 2027, month: 4, day: 1))
+        XCTAssertEqual(march.schoolYear, 2026)
+        XCTAssertEqual(april.schoolYear, 2027)
+        XCTAssertEqual(ChangeNormalizer.effectiveSchoolYear(configured: nil, today: march), 2026)
+        XCTAssertEqual(ChangeNormalizer.effectiveSchoolYear(configured: "", today: april), 2027)
+        XCTAssertEqual(ChangeNormalizer.effectiveSchoolYear(configured: "2032", today: march), 2032)
+        XCTAssertEqual(try ChangeNormalizer.date("3/31", defaultYear: march.schoolYear), "2027-03-31")
+    }
     func testStrictCivilDateParsingAcrossLeapAndSchoolYearBoundary() throws {
         XCTAssertEqual(SchoolDate(iso8601: "2032-02-29")?.iso8601, "2032-02-29")
         XCTAssertNil(SchoolDate(iso8601: "2033-02-29"))

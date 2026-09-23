@@ -6,11 +6,13 @@ import SwiftUI
 private final class SpecialDiagnosticCapture {
     var report: String?
     var failure: PDFParseError?
+    var store: SpecialScheduleStore?
 }
 
 @MainActor
 final class SpecialSchedulesModel: ObservableObject {
     @Published private(set) var records: [SpecialScheduleKind: SpecialScheduleRecord] = [:]
+    @Published private(set) var sources: [SpecialScheduleKind: SpecialScheduleSource] = [:]
     @Published private(set) var urls: [SpecialScheduleKind: URL] = [:]
     @Published private(set) var ready = false
     @Published private(set) var busy = false
@@ -28,43 +30,66 @@ final class SpecialSchedulesModel: ObservableObject {
     }
 
     func importPDF(_ selection: ScopedMaterialSelection, kind: SpecialScheduleKind) {
+        analyze(kind: kind, selection: selection)
+    }
+
+    func analyzePDF(_ kind: SpecialScheduleKind) {
+        analyze(kind: kind, selection: nil)
+    }
+
+    private func analyze(kind: SpecialScheduleKind, selection: ScopedMaterialSelection?) {
         guard !busy else { return }
         fullReadReports[kind] = nil
         perform(success: "\(kind.title)を解析して保存しました。", reporting: kind) { store, control, capture in
-            let diagnostics = PDFDiagnosticRecorder()
+            let diagnostics = PDFDiagnosticRecorder(parserVersion: SpecialScheduleAnalysis.parserVersion)
             diagnostics.record(.start)
-            let staged = store.newStagingURL()
-            defer { store.discardStaging(staged) }
+            let staged = selection.map { _ in store.newStagingURL() }
+            defer { if let staged { store.discardStaging(staged) } }
+            var diagnosticURL: URL?
             var sourceName: String?
             var succeeded = false
             var inspected: PDFFullReadDiagnostic?
             defer {
-                let diagnosticURL = succeeded ? (store.savedURL(for: kind) ?? staged) : staged
-                let full = inspected ?? PDFKitReader.diagnose(diagnosticURL, check: { try control.check() })
+                let full = inspected ?? diagnosticURL.map { PDFKitReader.diagnose($0, check: { try control.check() }) }
+                    ?? PDFFullReadDiagnostic()
                 diagnostics.record(.complete)
                 capture.report = SpecialScheduleDiagnosticReport.make(full, kind: kind,
                     sourceName: sourceName, succeeded: succeeded,
                     failure: capture.failure, trace: diagnostics.snapshot)
             }
             do {
-                diagnostics.record(.material)
-                let (name, count, digest) = try Self.copy(selection, to: staged, control: control)
-                sourceName = name
-                let pages = try PDFKitReader.read(staged, kind: .timetable,
-                                                  diagnostics: diagnostics, check: { try control.check() })
+                if let selection, let staged {
+                    diagnostics.record(.material)
+                    diagnosticURL = staged
+                    let (name, count, digest) = try Self.copy(selection, to: staged, control: control)
+                    sourceName = name
+                    try store.saveSelection(staged: staged, kind: kind, originalName: name,
+                                            byteCount: count, digest: digest)
+                }
+                guard let source = store.sources[kind], let selectedURL = store.selectedURL(for: kind) else {
+                    throw PDFParseError(code: .unreadable)
+                }
+                diagnosticURL = selectedURL
+                sourceName = source.originalName
+                let pages = try PDFKitReader.readSpecial(selectedURL, diagnostics: diagnostics,
+                                                         check: { try control.check() })
                 diagnostics.record(.parse, values: [Double(pages.count)])
-                let analysis = try SpecialScheduleParser.parse(pages, kind: kind, digest: digest,
-                                                               name: name, check: { try control.check() })
+                let analysis = try SpecialScheduleParser.parse(pages, kind: kind, digest: source.digest,
+                                                               name: source.originalName, check: { try control.check() })
                 diagnostics.record(.parseComplete, values: [Double(analysis.lessons.count)])
-                inspected = PDFKitReader.diagnose(staged, check: { try control.check() })
+                inspected = PDFKitReader.diagnose(selectedURL, check: { try control.check() })
                 try control.check()
                 diagnostics.record(.save)
-                try store.save(staged: staged, analysis: analysis, originalName: name,
-                               byteCount: count, digest: digest)
+                do { try store.saveAnalysis(analysis) }
+                catch { throw PDFParseError(code: .storage) }
                 diagnostics.record(.saveComplete)
                 succeeded = true
             } catch {
                 capture.failure = diagnostics.attaching(to: error)
+                if let selectedURL = store.selectedURL(for: kind), diagnosticURL == selectedURL,
+                   let failure = capture.failure {
+                    try? store.recordFailure(failure, kind: kind)
+                }
                 throw capture.failure!
             }
         }
@@ -87,7 +112,7 @@ final class SpecialSchedulesModel: ObservableObject {
         let existingStore = store
         queue.async {
             let capture = SpecialDiagnosticCapture()
-            let result = Result { () throws -> (SpecialScheduleStore, [SpecialScheduleKind: SpecialScheduleRecord], [SpecialScheduleKind: URL]) in
+            let result = Result { () throws -> Void in
                 let store: SpecialScheduleStore
                 if let existing = existingStore { store = existing }
                 else {
@@ -95,22 +120,24 @@ final class SpecialSchedulesModel: ObservableObject {
                                                            appropriateFor: nil, create: true)
                     store = try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite", isDirectory: true))
                 }
+                capture.store = store
                 try operation(store, control, capture)
-                let urls = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.compactMap { kind in
-                    store.savedURL(for: kind).map { (kind, $0) }
-                })
-                return (store, store.records, urls)
             }
             DispatchQueue.main.async {
                 self.busy = false
                 self.control = nil
                 if let kind { self.fullReadReports[kind] = capture.report }
-                switch result {
-                case .success(let snapshot):
-                    self.store = snapshot.0
-                    self.records = snapshot.1
-                    self.urls = snapshot.2
+                if let store = capture.store {
+                    self.store = store
+                    self.records = store.records
+                    self.sources = store.sources
+                    self.urls = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.compactMap { kind in
+                        store.selectedURL(for: kind).map { (kind, $0) }
+                    })
                     self.ready = true
+                }
+                switch result {
+                case .success:
                     self.message = success
                 case .failure(let error):
                     self.failed = true

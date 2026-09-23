@@ -2,12 +2,17 @@ import SwiftUI
 
 struct ChangeAnalysisView: View {
     @ObservedObject var model: MaterialsModel
-    @State private var year = ""
+    @AppStorage("changeDefaultSchoolYear") private var year = ""
     @State private var selectedClass = ""
     @State private var confirmingPreview = false
 
-    private var defaultYear: Int? { Int(year.trimmingCharacters(in: .whitespaces)) }
-    private var validYear: Bool { year.isEmpty || defaultYear.map { (1900...9999).contains($0) } == true }
+    private var defaultYear: Int {
+        ChangeNormalizer.effectiveSchoolYear(configured: year, today: SchoolDate.today())
+    }
+    private var validYear: Bool {
+        year.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            Int(year.trimmingCharacters(in: .whitespacesAndNewlines)).map { (1900...9998).contains($0) } == true
+    }
     private var analysis: ChangeAnalysis? { model.state.changeAnalysis }
     private var classes: [String] { Set(analysis?.records.map(\.displayClassName) ?? []).sorted() }
     private var visible: [ScheduleChange] {
@@ -17,11 +22,11 @@ struct ChangeAnalysisView: View {
     var body: some View {
         List {
             Section {
-                TextField("年なし日付を補完する年（例：2032）", text: $year)
+                TextField("年なし日付を補完する学校年度（例：2032）", text: $year)
                     .keyboardType(.numberPad).disabled(model.busy)
-                Text("月日だけの日付に使用する西暦を指定してください。空欄の場合、年のない行は解析を止めます。1〜3月も指定した年になります。")
+                Text("空欄なら今日の学校年度（\(SchoolDate.today().schoolYear)年度）を使います。4〜12月は入力年度、1〜3月は翌年の日付として解析します。")
                     .font(.caption).foregroundStyle(.secondary)
-                if !validYear { Text("西暦1900〜9999を入力してください。").foregroundStyle(.orange) }
+                if !validYear { Text("西暦1900〜9998の学校年度を入力してください。").foregroundStyle(.orange) }
                 Button("保存済みXLSXを解析") { model.analyzeChanges(defaultYear: defaultYear) }
                     .disabled(model.busy || !model.ready || !validYear)
                 Text("端末内の資料を解析します。元ファイルを取得し直す場合は、前の画面で「同じ資料を再取得」を押してください。")
@@ -49,7 +54,7 @@ struct ChangeAnalysisView: View {
                     if analysis.sourceDigest != model.state.record(for: .changes)?.digest || analysis.version != ChangeAnalysis.parserVersion {
                         Label("前回の解析結果です。現在の資料を解析してください。", systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                     }
-                    Text("解析結果の確認用です。通常時間割との統合・通知はまだ行いません。教員欄が空の場合、科目の併記から推測して補いません。")
+                    Text("正常な解析結果を時間割の週表示に反映します。通知はまだ行いません。教員欄が空の場合、科目の併記から推測して補いません。")
                         .font(.caption).foregroundStyle(.secondary)
                 } header: { Text("保存済みの解析結果") }
                 Section {

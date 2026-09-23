@@ -19,7 +19,7 @@ struct ScheduleChange: Codable, Equatable {
 }
 
 struct ChangeAnalysis: Codable {
-    static let parserVersion = 3
+    static let parserVersion = 4
     var version = parserVersion
     var sourceDigest: String
     var sourceName: String
@@ -84,6 +84,13 @@ enum ChangeNormalizer {
     static let maximumColumns = 128
     static let maximumRecords = 20_000
     static let maximumTextBytes = 16 * 1024 * 1024
+    static let schoolYearSettingKey = "changeDefaultSchoolYear"
+
+    static func effectiveSchoolYear(configured: String?, today: SchoolDate) -> Int {
+        let value = configured?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if let year = Int(value), (1900...9998).contains(year) { return year }
+        return today.schoolYear
+    }
 
     static func replace(_ text: String, _ pattern: String, _ replacement: String) -> String {
         text.replacingOccurrences(of: pattern, with: replacement, options: .regularExpression)
@@ -127,7 +134,9 @@ enum ChangeNormalizer {
         if matches(v, "^[0-9]{4}/[0-9]{1,2}/[0-9]{1,2}$") {
             parts = v.split(separator: "/").compactMap { Int($0) }
         } else if matches(v, "^[0-9]{1,2}/[0-9]{1,2}$"), let year = defaultYear {
-            parts = [year] + v.split(separator: "/").compactMap { Int($0) }
+            let monthDay = v.split(separator: "/").compactMap { Int($0) }
+            guard monthDay.count == 2 else { throw ChangeParseError(code: .date) }
+            parts = [monthDay[0] <= 3 ? year + 1 : year] + monthDay
         } else { throw ChangeParseError(code: .date) }
         guard parts.count == 3, (1900...9999).contains(parts[0]),
               (1...12).contains(parts[1]), (1...31).contains(parts[2]),

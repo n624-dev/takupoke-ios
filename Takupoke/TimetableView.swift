@@ -115,6 +115,14 @@ struct TimetableView: View {
                 Label("学校行事は前回の解析結果です。", systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.orange)
             }
+            ForEach(SpecialScheduleKind.allCases) { kind in
+                if let source = specialSchedules.sources[kind],
+                   let record = specialSchedules.records[kind],
+                   source.digest != record.digest {
+                    Label("\(kind.title)は前回の解析結果です。", systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                }
+            }
             if selectedClasses.isEmpty {
                 Text("クラスを設定すると時間割を表示します。")
                     .foregroundStyle(.secondary)

@@ -41,25 +41,47 @@ final class MaterialsModel: ObservableObject {
     }
 
     func selectFile(_ url: ScopedMaterialSelection, kind: MaterialKind) {
-        perform(success: "\(kind.title)を取得しました。内容の解析はまだ行っていません。") {
-            try $0.selectFile(url, kind: kind, control: $1)
+        let year = automaticChangeSchoolYear
+        perform(success: "\(kind.title)を取得して解析しました。") { worker, control in
+            try worker.selectFile(url, kind: kind, control: control)
+            try Self.analyzeAfterAcquisition(kind, year: year, worker: worker, control: control)
         }
     }
 
     func selectCandidate(_ name: String, kind: MaterialKind) {
-        perform(success: "\(kind.title)を取得しました。内容の解析はまだ行っていません。") {
-            try $0.selectCandidate(name, kind: kind, control: $1)
+        let year = automaticChangeSchoolYear
+        perform(success: "\(kind.title)を取得して解析しました。") { worker, control in
+            try worker.selectCandidate(name, kind: kind, control: control)
+            try Self.analyzeAfterAcquisition(kind, year: year, worker: worker, control: control)
         }
     }
 
     func refresh(_ kind: MaterialKind) {
-        perform(success: "\(kind.title)を再取得しました。") { try $0.refresh(kind, control: $1) }
+        let year = automaticChangeSchoolYear
+        perform(success: "\(kind.title)を再取得して解析しました。") { worker, control in
+            try worker.refresh(kind, control: control)
+            try Self.analyzeAfterAcquisition(kind, year: year, worker: worker, control: control)
+        }
     }
 
     func fetchEvents() {
-        perform(success: "学校行事PDFを確認しました。変更がなければ保存済みの資料を使います。") {
-            try $0.fetchEvents(control: $1)
+        perform(success: "学校行事PDFを取得・確認して解析しました。") { worker, control in
+            try worker.fetchEvents(control: control)
+            try worker.analyzePDF(kind: .events, control: control)
         }
+    }
+
+    private var automaticChangeSchoolYear: Int {
+        ChangeNormalizer.effectiveSchoolYear(
+            configured: UserDefaults.standard.string(forKey: ChangeNormalizer.schoolYearSettingKey),
+            today: SchoolDate.today())
+    }
+
+    private nonisolated static func analyzeAfterAcquisition(_ kind: MaterialKind, year: Int,
+                                                            worker: MaterialWorker,
+                                                            control: AcquisitionControl) throws {
+        if kind == .changes { try worker.analyzeChanges(defaultYear: year, control: control) }
+        else { try worker.analyzePDF(kind: kind, control: control) }
     }
 
     func analyzeChanges(defaultYear: Int?) {

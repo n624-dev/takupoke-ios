@@ -35,6 +35,9 @@ struct SchoolDate: Codable, Hashable, Comparable {
         return "\(padded(year, width: 4))-\(padded(month, width: 2))-\(padded(day, width: 2))"
     }
 
+    /// Japanese school years run from April 1 through the following March 31.
+    var schoolYear: Int { month >= 4 ? year : year - 1 }
+
     static func < (lhs: Self, rhs: Self) -> Bool {
         (lhs.year, lhs.month, lhs.day) < (rhs.year, rhs.month, rhs.day)
     }

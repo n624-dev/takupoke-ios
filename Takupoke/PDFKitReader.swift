@@ -39,6 +39,18 @@ enum PDFKitReader {
         }
     }
 
+    /// The exam PDFs contain marked content or clipping commands rejected by
+    /// the ordinary timetable's drawing interpreter. Their PDFKit character
+    /// selections are validated individually by the calendar text path.
+    static func readSpecial(_ url: URL, diagnostics: PDFDiagnosticRecorder? = nil,
+                            check: @escaping () throws -> Void = {}) throws -> [PDFPageLayout] {
+        do { return try readPages(url, kind: .events, diagnostics: diagnostics, check: check) }
+        catch {
+            if let diagnostics { throw diagnostics.attaching(to: error) }
+            throw error
+        }
+    }
+
     private static func readPages(_ url: URL, kind: MaterialKind, diagnostics: PDFDiagnosticRecorder?,
                                   check: @escaping () throws -> Void) throws -> [PDFPageLayout] {
         diagnostics?.record(.file)

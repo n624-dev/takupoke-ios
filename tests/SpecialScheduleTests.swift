@@ -1,6 +1,7 @@
 import Foundation
 import XCTest
 import ZIPFoundation
+import GRDB
 @testable import TakupokeParsing
 
 final class SpecialScheduleTests: XCTestCase {
@@ -103,6 +104,67 @@ final class SpecialScheduleTests: XCTestCase {
         XCTAssertEqual(reopened.savedURL(for: .exam), oldURL)
     }
 
+    func testSelectedPDFAndFailurePersistWithoutReplacingPreviousAnalysis() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try SpecialScheduleStore(root: root)
+        let previous = try SpecialScheduleParser.parse((1...6).map { examPage($0) },
+                                                       kind: .exam, digest: "previous",
+                                                       name: "fictional-old.pdf")
+        let oldStaging = store.newStagingURL()
+        let bytes = Data("%PDF-fictional".utf8)
+        try bytes.write(to: oldStaging)
+        try store.save(staged: oldStaging, analysis: previous, originalName: "fictional-old.pdf",
+                       byteCount: bytes.count, digest: "previous")
+        let previousURL = try XCTUnwrap(store.savedURL(for: .exam))
+
+        let selectedStaging = store.newStagingURL()
+        try bytes.write(to: selectedStaging)
+        try store.saveSelection(staged: selectedStaging, kind: .exam,
+                                originalName: "fictional-new.pdf", byteCount: bytes.count,
+                                digest: "current")
+        let failure = PDFParseError(code: .unsupported, stage: .characterMapping)
+        try store.recordFailure(failure, kind: .exam)
+        let reopened = try SpecialScheduleStore(root: root)
+        XCTAssertEqual(reopened.sources[.exam]?.originalName, "fictional-new.pdf")
+        XCTAssertEqual(reopened.sources[.exam]?.failure?.stage, .characterMapping)
+        XCTAssertEqual(reopened.records[.exam]?.analysis, previous)
+        XCTAssertNotEqual(reopened.selectedURL(for: .exam), previousURL)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: previousURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: try XCTUnwrap(reopened.selectedURL(for: .exam)).path))
+
+        let current = try SpecialScheduleParser.parse((1...6).map { examPage($0) },
+                                                      kind: .exam, digest: "current",
+                                                      name: "fictional-new.pdf")
+        try reopened.saveAnalysis(current)
+        let final = try SpecialScheduleStore(root: root)
+        XCTAssertEqual(final.records[.exam]?.analysis, current)
+        XCTAssertNil(final.sources[.exam]?.failure)
+        XCTAssertEqual(final.selectedURL(for: .exam), final.savedURL(for: .exam))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: previousURL.path))
+    }
+
+    func testPreviousVersionAnalysisStillProvidesSelectedSource() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try SpecialScheduleStore(root: root)
+        let analysis = try SpecialScheduleParser.parse((1...6).map { examPage($0) },
+                                                       kind: .exam, digest: "fictional",
+                                                       name: "fictional.pdf")
+        let staged = store.newStagingURL()
+        let bytes = Data("%PDF-fictional".utf8)
+        try bytes.write(to: staged)
+        try store.save(staged: staged, analysis: analysis,
+                       originalName: "fictional.pdf", byteCount: bytes.count, digest: "fictional")
+        let db = try DatabaseQueue(path: root.appendingPathComponent("specials.sqlite").path)
+        try db.write { try $0.execute(sql: "DELETE FROM specialSource") }
+
+        let reopened = try SpecialScheduleStore(root: root)
+        XCTAssertEqual(reopened.sources[.exam]?.originalName, "fictional.pdf")
+        XCTAssertEqual(reopened.selectedURL(for: .exam), reopened.savedURL(for: .exam))
+        XCTAssertEqual(reopened.records[.exam]?.analysis, analysis)
+    }
+
     func testFullCopyIncludesSpecialKindContentAndFailure() throws {
         var full = PDFFullReadDiagnostic()
         var page = PDFFullReadDiagnostic.Page(number: 1)
@@ -111,9 +173,12 @@ final class SpecialScheduleTests: XCTestCase {
                             bounds: .init(CGRect(x: 1, y: 2, width: 3, height: 4)))]
         full.pages = [page]
         let failure = PDFParseError(code: .unsupported, page: 1, stage: .periodHeading)
+        let recorder = PDFDiagnosticRecorder(parserVersion: SpecialScheduleAnalysis.parserVersion)
+        recorder.record(.parse)
         for kind in SpecialScheduleKind.allCases {
             let report = try XCTUnwrap(SpecialScheduleDiagnosticReport.make(full, kind: kind,
-                sourceName: "fictional.pdf", succeeded: false, failure: failure, trace: nil))
+                sourceName: "fictional.pdf", succeeded: false, failure: failure,
+                trace: recorder.snapshot))
             XCTAssertTrue(report.hasPrefix("TAKUPOKE-PDF-FULL-ZIP-1\n"))
             let encoded = String(report.split(separator: "\n", maxSplits: 1)[1])
             let bytes = try XCTUnwrap(Data(base64Encoded: encoded, options: .ignoreUnknownCharacters))
@@ -127,6 +192,7 @@ final class SpecialScheduleTests: XCTestCase {
             XCTAssertEqual(restored.pages[0].text, "架空科目A\n架空教員A")
             XCTAssertEqual(restored.pages[0].lines[0].bounds.x, 1)
             XCTAssertEqual(restored.attemptFailure?.stage, .periodHeading)
+            XCTAssertEqual(restored.trace?.parserVersion, SpecialScheduleAnalysis.parserVersion)
         }
     }
 }
