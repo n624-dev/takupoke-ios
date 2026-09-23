@@ -3,7 +3,7 @@ import SwiftUI
 struct ChangeAnalysisView: View {
     @ObservedObject var model: MaterialsModel
     @AppStorage("changeDefaultSchoolYear") private var year = ""
-    @State private var selectedClass = ""
+    @AppStorage("changeAnalysisSelectedClass") private var selectedClass = ""
     @State private var confirmingPreview = false
 
     private var defaultYear: Int {
@@ -60,7 +60,14 @@ struct ChangeAnalysisView: View {
                 Section {
                     Picker("クラス", selection: $selectedClass) {
                         Text("すべて").tag("")
+                        if !selectedClass.isEmpty && !classes.contains(selectedClass) {
+                            Text("\(selectedClass)（保存済み・現在の資料に該当なし）").tag(selectedClass)
+                        }
                         ForEach(classes, id: \.self) { Text($0).tag($0) }
+                    }
+                    if !selectedClass.isEmpty && !classes.contains(selectedClass) {
+                        Label("選択したクラスは現在の解析結果にありません。選択は保持しています。", systemImage: "exclamationmark.triangle")
+                            .font(.caption).foregroundStyle(.orange)
                     }
                 }
                 // Use positions so identical source rows remain visible as distinct records.
@@ -73,8 +80,6 @@ struct ChangeAnalysisView: View {
         }
         .navigationTitle("時間割変更の解析")
         .scrollDismissesKeyboard(.interactively)
-        .onAppear { year = analysis?.defaultYear.map(String.init) ?? "" }
-        .onChange(of: classes) { values in if !values.contains(selectedClass) { selectedClass = "" } }
         .alert("曜日を確認できない資料です", isPresented: $confirmingPreview) {
             Button("確認して表示") { model.previewChanges() }
             Button("キャンセル", role: .cancel) {}

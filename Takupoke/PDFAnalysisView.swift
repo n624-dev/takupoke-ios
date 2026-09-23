@@ -6,8 +6,8 @@ import UniformTypeIdentifiers
 struct PDFAnalysisView: View {
     @ObservedObject var model: MaterialsModel
     let kind: MaterialKind
-    @State private var selectedClass = ""
-    @State private var selectedWeekday = 0
+    @AppStorage("pdfAnalysisSelectedClass") private var selectedClass = ""
+    @AppStorage("pdfAnalysisSelectedWeekday") private var selectedWeekday = 0
     @State private var showingSource = false
     @State private var copiedDiagnostic: String?
     private var analysis: PDFAnalysis? { model.state.pdfAnalyses?[kind.rawValue] }
@@ -64,7 +64,14 @@ struct PDFAnalysisView: View {
                     Section("絞り込み") {
                         Picker("クラス", selection: $selectedClass) {
                             Text("すべて").tag("")
+                            if !selectedClass.isEmpty && !classes.contains(selectedClass) {
+                                Text("\(selectedClass)（保存済み・現在の資料に該当なし）").tag(selectedClass)
+                            }
                             ForEach(classes, id: \.self) { Text($0).tag($0) }
+                        }
+                        if !selectedClass.isEmpty && !classes.contains(selectedClass) {
+                            Label("選択したクラスは現在の解析結果にありません。選択は保持しています。", systemImage: "exclamationmark.triangle")
+                                .font(.caption).foregroundStyle(.orange)
                         }
                         Picker("曜日", selection: $selectedWeekday) {
                             ForEach(0..<weekdays.count, id: \.self) { Text(weekdays[$0]).tag($0) }
@@ -119,7 +126,6 @@ struct PDFAnalysisView: View {
             ToolbarItem(placement: .primaryAction) { parseButton }
             if model.busy { ToolbarItem(placement: .cancellationAction) { Button("中止") { model.cancel() } } }
         }
-        .onChange(of: classes) { values in if !values.contains(selectedClass) { selectedClass = "" } }
         .onChange(of: model.busy) { busy in if busy { copiedDiagnostic = nil } }
         .sheet(isPresented: $showingSource) {
             if let url = model.pdfURLs[kind.rawValue] { SavedPDFView(url: url, title: kind.title) }

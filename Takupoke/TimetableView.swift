@@ -9,8 +9,8 @@ struct TimetableView: View {
     @AppStorage("timetableInternationalStudent") private var isInternationalStudent = false
     @State private var weekStart = SchoolDate.today().displayWeekStart
     @State private var today = SchoolDate.today()
-    @State private var includesChanges = true
-    @State private var changeRange: ChangeRange = .today
+    @AppStorage("timetableIncludesChanges") private var includesChanges = true
+    @AppStorage("timetableChangeRange") private var changeRangeValue = ChangeRange.today.rawValue
     @State private var selectedLesson: LessonSelection?
     @State private var selectedSpecial: SpecialSelection?
     @State private var selectedChange: ChangeSelection?
@@ -22,10 +22,13 @@ struct TimetableView: View {
         specialSchedules.records.values.map(\.analysis).sorted { $0.kind.rawValue < $1.kind.rawValue }
     }
     private var classes: [String] { TimetableSchedule.classes(in: model.state, specials: specials) }
-    private var selectedClasses: [String] { Self.decode(selectedClassesValue).filter(classes.contains) }
+    private var savedClasses: [String] { Self.decode(selectedClassesValue) }
+    private var selectedClasses: [String] { savedClasses.filter(classes.contains) }
+    private var savedChangeClasses: [String] { Self.decode(changeClassesValue) }
     private var listClasses: [String] {
-        changeClassesValue.isEmpty ? selectedClasses : Self.decode(changeClassesValue).filter(classes.contains)
+        changeClassesValue.isEmpty ? selectedClasses : savedChangeClasses.filter(classes.contains)
     }
+    private var changeRange: ChangeRange { ChangeRange(rawValue: changeRangeValue) ?? .today }
     private let weekdayNames = ["月", "火", "水", "木", "金", "土", "日"]
 
     var body: some View {
@@ -36,13 +39,20 @@ struct TimetableView: View {
                 } else if classes.isEmpty {
                     Section {
                         ContentUnavailableViewPlaceholder()
+                        if !savedClasses.isEmpty {
+                            LabeledContent("保存したクラス", value: savedClasses.joined(separator: "・"))
+                        }
                     }
                 } else {
                     Section("表示クラス") {
                         NavigationLink {
                             TimetablePrimaryClassSelection(classes: classes, value: $selectedClassesValue)
                         } label: {
-                            LabeledContent("クラス", value: selectedClasses.isEmpty ? "未選択" : selectedClasses.joined(separator: "・"))
+                            LabeledContent("クラス", value: savedClasses.isEmpty ? "未選択" : savedClasses.joined(separator: "・"))
+                        }
+                        if savedClasses.contains(where: { !classes.contains($0) }) {
+                            Label("保存したクラスの一部は現在の資料にありません。選択は保持しています。", systemImage: "exclamationmark.triangle")
+                                .font(.caption).foregroundStyle(.orange)
                         }
                         Toggle("留学生向けの授業も表示", isOn: $isInternationalStudent)
                     }
@@ -53,12 +63,8 @@ struct TimetableView: View {
             .navigationTitle("時間割")
             .task { model.loadIfNeeded() }
             .task { specialSchedules.loadIfNeeded() }
-            .onAppear { syncClasses() }
             .onChange(of: scenePhase) { phase in
                 if phase == .active { today = SchoolDate.today() }
-            }
-            .onChange(of: classes) { values in
-                syncClasses(values)
             }
             .sheet(item: $selectedLesson) { selection in
                 NavigationStack { lessonDetail(selection.lesson, date: selection.date) }
@@ -124,7 +130,8 @@ struct TimetableView: View {
                 }
             }
             if selectedClasses.isEmpty {
-                Text("クラスを設定すると時間割を表示します。")
+                Text(savedClasses.isEmpty ? "クラスを設定すると時間割を表示します。" :
+                     "保存したクラスは現在の資料に見つかりません。資料を再解析するか、クラスを選び直してください。")
                     .foregroundStyle(.secondary)
             } else {
                 weekGrid
@@ -326,7 +333,8 @@ struct TimetableView: View {
         }.filter { TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent) }
             .sorted { ($0.change_date, $0.period, $0.displayClassName) < ($1.change_date, $1.period, $1.displayClassName) }
         return Section {
-            Picker("表示範囲", selection: $changeRange) {
+            Picker("表示範囲", selection: Binding(
+                get: { changeRange }, set: { changeRangeValue = $0.rawValue })) {
                 ForEach(ChangeRange.allCases, id: \.self) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
@@ -335,7 +343,13 @@ struct TimetableView: View {
                     get: { changeClassesValue.isEmpty ? selectedClassesValue : changeClassesValue },
                     set: { changeClassesValue = $0 }))
             } label: {
-                LabeledContent("対象クラス", value: listClasses.isEmpty ? "未選択" : listClasses.joined(separator: "・"))
+                LabeledContent("対象クラス", value: changeClassesValue.isEmpty
+                    ? (savedClasses.isEmpty ? "未選択" : savedClasses.joined(separator: "・"))
+                    : savedChangeClasses.joined(separator: "・"))
+            }
+            if !changeClassesValue.isEmpty && savedChangeClasses.contains(where: { !classes.contains($0) }) {
+                Label("保存した対象クラスの一部は現在の資料にありません。選択は保持しています。", systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.orange)
             }
             if !changeClassesValue.isEmpty {
                 Button("時間割設定に戻す") { changeClassesValue = "" }
@@ -385,15 +399,6 @@ struct TimetableView: View {
             TimetableSchedule.hasWeekData(start: next, classes: selectedClasses, timetable: timetable,
                                           changes: changes, events: events, includesChanges: includesChanges,
                                           specials: specials)
-    }
-
-    private func syncClasses(_ values: [String]? = nil) {
-        let values = values ?? classes
-        let selected = Self.decode(selectedClassesValue).filter(values.contains)
-        let primary = selected.first ?? ""
-        let additional = selected.dropFirst().first.flatMap { TimetableSchedule.compatibleAdditionalClass($0, with: primary) ? $0 : nil }
-        selectedClassesValue = ([primary] + (additional.map { [$0] } ?? [])).filter { !$0.isEmpty }.joined(separator: "|")
-        changeClassesValue = Self.decode(changeClassesValue).filter(values.contains).prefix(30).joined(separator: "|")
     }
 
     private static func decode(_ value: String) -> [String] {
@@ -473,11 +478,11 @@ struct TimetableView: View {
                 LabeledContent("時限", value: lesson.spanStart == lesson.spanEnd
                                ? "\(lesson.period)限" : "\(lesson.spanStart)〜\(lesson.spanEnd)限")
                 if let time = item.timeRange { LabeledContent("時刻", value: time) }
-                LabeledContent("科目", value: lesson.subject)
-                if !lesson.teacher.isEmpty { LabeledContent("教員", value: lesson.teacher) }
-                if !lesson.room.isEmpty { LabeledContent("教室", value: lesson.room) }
-                if lesson.lines.count > 3 {
-                    LabeledContent("PDFのその他の記載", value: lesson.lines.dropFirst(3).joined(separator: "\n"))
+                LabeledContent("科目", value: PDFDisplayText.continuous(lesson.subject))
+                LabeledContent("教員", value: lesson.teacher.isEmpty ? "記載なし" : PDFDisplayText.continuous(lesson.teacher))
+                LabeledContent("教室", value: lesson.room.isEmpty ? "記載なし" : PDFDisplayText.continuous(lesson.room))
+                DisclosureGroup("元のセルの記載") {
+                    Text(lesson.lines.joined(separator: "\n")).textSelection(.enabled)
                 }
             }
         }
@@ -573,15 +578,21 @@ private struct TimetablePrimaryClassSelection: View {
         Form {
             Picker("クラス", selection: Binding(get: { primary }, set: { value = $0 })) {
                 Text("クラスを選択").tag("")
+                if !primary.isEmpty && !classes.contains(primary) {
+                    Text("\(primary)（保存済み・現在の資料に該当なし）").tag(primary)
+                }
                 ForEach(classes, id: \.self) { Text($0).tag($0) }
             }
             Picker("追加クラス（1年生のみ・任意）", selection: Binding(
-                get: { additionalClasses.contains(additional) ? additional : "" },
+                get: { additional },
                 set: { value = $0.isEmpty ? primary : primary + "|" + $0 })) {
                 Text("追加なし").tag("")
+                if !additional.isEmpty && !additionalClasses.contains(additional) {
+                    Text("\(additional)（保存済み・現在の資料に該当なし）").tag(additional)
+                }
                 ForEach(additionalClasses, id: \.self) { Text($0).tag($0) }
             }
-            .disabled(additionalClasses.isEmpty)
+            .disabled(additionalClasses.isEmpty && additional.isEmpty)
         }
         .navigationTitle("クラスを選ぶ")
     }
@@ -594,6 +605,7 @@ private struct TimetableChangeClassSelection: View {
     @State private var draft = ""
 
     private var selected: Set<String> { Set(draft.split(separator: "|").map(String.init)) }
+    private var unavailable: [String] { selected.subtracting(classes).sorted() }
     private var groups: [(String, [String])] {
         let grouped = Dictionary(grouping: classes) { className -> String in
             guard let year = className.split(separator: "_").first, Int(year) != nil else { return "専攻科" }
@@ -622,6 +634,15 @@ private struct TimetableChangeClassSelection: View {
                         Button(group.1.allSatisfy(selected.contains) ? "すべて解除" : "すべて選択") {
                             toggleGroup(group.1)
                         }
+                    }
+                }
+            }
+            if !unavailable.isEmpty {
+                Section("保存済み・現在の資料に該当なし") {
+                    ForEach(unavailable, id: \.self) { className in
+                        Toggle(className, isOn: Binding(
+                            get: { selected.contains(className) },
+                            set: { update(className, selected: $0) }))
                     }
                 }
             }

@@ -6,7 +6,8 @@ import GRDB
 
 final class SpecialScheduleTests: XCTestCase {
     private func examPage(_ number: Int, omitLastTime: Bool = false,
-                          mergedFirstTwo: Bool = false) -> PDFPageLayout {
+                          mergedFirstTwo: Bool = false,
+                          metadataOnFirstCell: Bool = false) -> PDFPageLayout {
         var glyphs: [PDFGlyph] = []
         var lines: [PDFRule] = []
         var sourceLine = 0
@@ -53,6 +54,10 @@ final class SpecialScheduleTests: XCTestCase {
                 write("架空科目A", x: 106 + Double(column) * 240,
                       y: 126 + Double(index) * 40, step: 6)
             }
+            if metadataOnFirstCell && index == 0 {
+                write("架空教員A", x: 106, y: 136, step: 5)
+                write("架空教室A", x: 106, y: 145, step: 5)
+            }
         }
         let times = ["8:50~9:35", "9:50~10:35", "10:50~11:35",
                      "11:50~12:35", "13:20~14:05", "14:20~15:05"]
@@ -80,6 +85,18 @@ final class SpecialScheduleTests: XCTestCase {
             $0.className == "1_1" && [1, 2].contains($0.period) }
         XCTAssertEqual(merged.count, 2)
         XCTAssertTrue(merged.allSatisfy { $0.spanEnd == 2 && $0.timeRange == "08:50〜10:20" })
+    }
+
+    func testSpecialLessonSeparatesDocumentSubjectTeacherAndRoom() throws {
+        let pages = (1...6).map { examPage($0, metadataOnFirstCell: $0 == 1) }
+        let result = try SpecialScheduleParser.parse(pages, kind: .exam,
+                                                     digest: "fictional", name: "fictional.pdf")
+        let lesson = try XCTUnwrap(result.lessons.first { $0.date == "2026-04-01" &&
+            $0.className == "1_1" && $0.period == 1 })
+        XCTAssertEqual(lesson.subject, "架空科目A")
+        XCTAssertEqual(lesson.teacher, "架空教員A")
+        XCTAssertEqual(lesson.room, "架空教室A")
+        XCTAssertEqual(lesson.lines, ["架空科目A", "架空教員A", "架空教室A"])
     }
 
     func testIncompleteSpecialTimesDoNotReplacePreviousStoreResult() throws {

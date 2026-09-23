@@ -320,16 +320,24 @@ private struct SpecialScheduleAnalysisView: View {
                                 LabeledContent("クラス", value: lesson.className)
                                 LabeledContent("時限", value: "\(lesson.period)限")
                                 if let time = lesson.timeRange { LabeledContent("時刻", value: time) }
-                                ForEach(Array(lesson.lines.enumerated()), id: \.offset) { _, line in
-                                    Text(line)
+                                LabeledContent("科目", value: PDFDisplayText.continuous(lesson.subject))
+                                LabeledContent("教員", value: lesson.teacher.isEmpty ? "記載なし" : PDFDisplayText.continuous(lesson.teacher))
+                                LabeledContent("教室", value: lesson.room.isEmpty ? "記載なし" : PDFDisplayText.continuous(lesson.room))
+                                DisclosureGroup("元のセルの記載") {
+                                    Text(lesson.lines.joined(separator: "\n")).textSelection(.enabled)
                                 }
                             }
                             .navigationTitle("授業詳細")
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(lesson.subject).font(.headline)
+                                Text(PDFDisplayText.continuous(lesson.subject)).font(.headline)
                                 Text("\(lesson.date) · \(lesson.className) · \(lesson.period)限")
                                     .font(.caption).foregroundStyle(.secondary)
+                                let metadata = [lesson.teacher, lesson.room].filter { !$0.isEmpty }
+                                if !metadata.isEmpty {
+                                    Text(PDFDisplayText.continuous(metadata.joined(separator: " / ")))
+                                        .font(.caption)
+                                }
                             }
                         }
                     }
