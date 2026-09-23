@@ -24,7 +24,7 @@ struct PDFAnalysisView: View {
     var body: some View {
         List {
             Section {
-                Text("端末に保存したPDFを解析します。再ダウンロードは行いません。")
+                Text("ファイル選択後は自動解析します。必要なときは右上の「解析する」から再実行できます。")
                     .font(.subheadline).foregroundStyle(.secondary)
                 if model.busy { HStack { ProgressView(); Text("処理中…") } }
                 if let failure = failure {
@@ -42,8 +42,34 @@ struct PDFAnalysisView: View {
                 if let message = model.message, message != failure?.localizedDescription {
                     Text(message).font(.caption).foregroundStyle(model.failed ? Color.orange : Color.secondary)
                 }
-                Button { showingSource = true } label: { Label("保存済みの元PDFを見る", systemImage: "doc.richtext") }
-                    .disabled(model.pdfURLs[kind.rawValue] == nil || model.busy)
+            }
+            if let source = model.state.record(for: kind) {
+                Section("選択した資料") {
+                    Text(source.originalName)
+                    LabeledContent("サイズ", value: ByteCountFormatter.string(
+                        fromByteCount: Int64(source.byteCount), countStyle: .file))
+                    LabeledContent("最終取得") {
+                        Text(source.acquiredAt, format: .dateTime.year().month().day().hour().minute())
+                    }
+                    if let date = source.lastCheckedAt {
+                        LabeledContent("最終確認") {
+                            Text(date, format: .dateTime.year().month().day().hour().minute())
+                        }
+                    }
+                    if let date = source.sourceModifiedAt {
+                        LabeledContent("元ファイルの更新") {
+                            Text(date, format: .dateTime.year().month().day().hour().minute())
+                        }
+                    }
+                    if let failure = model.state.attempts[kind.rawValue]?.failure {
+                        Label(failure, systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.orange)
+                    }
+                    Button("同じ資料を再取得") { model.refresh(kind) }
+                        .disabled(model.busy || !model.ready)
+                    Button { showingSource = true } label: { Label("保存済みの元PDFを見る", systemImage: "doc.richtext") }
+                        .disabled(model.pdfURLs[kind.rawValue] == nil || model.busy)
+                }
             }
             if let analysis = analysis {
                 Section("解析結果") {
@@ -117,7 +143,7 @@ struct PDFAnalysisView: View {
                     }
                 }
             } else {
-                Section { Text("まだ正常な解析結果はありません。右上の「解析」から読み取れます。").foregroundStyle(.secondary) }
+                Section { Text("まだ正常な解析結果はありません。右上の「解析する」から読み取れます。").foregroundStyle(.secondary) }
             }
         }
         .navigationTitle(kind.title + "の解析")
@@ -134,11 +160,11 @@ struct PDFAnalysisView: View {
 
     @ViewBuilder private var parseButton: some View {
         if #available(iOS 26.0, *) {
-            Button("解析", systemImage: "doc.text.magnifyingglass") { model.analyzePDF(kind) }
+            Button("解析する", systemImage: "doc.text.magnifyingglass") { model.analyzePDF(kind) }
                 .buttonStyle(.glassProminent)
                 .disabled(model.busy || !model.ready || model.state.record(for: kind) == nil)
         } else {
-            Button("解析") { model.analyzePDF(kind) }
+            Button("解析する") { model.analyzePDF(kind) }
                 .buttonStyle(.borderedProminent)
                 .disabled(model.busy || !model.ready || model.state.record(for: kind) == nil)
         }

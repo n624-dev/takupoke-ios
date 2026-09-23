@@ -95,48 +95,26 @@ struct MaterialsView: View {
             }
 
             ForEach([MaterialKind.timetable, .changes]) { kind in
-                Section {
+                Section(kind.title) {
                     if let record = model.state.record(for: kind) {
-                        Text(record.originalName).font(.headline)
-                        Text(kind == .changes ? changeStatus(record) : pdfStatus(record))
-                            .font(.caption).foregroundStyle(.secondary)
-                        LabeledContent("サイズ", value: ByteCountFormatter.string(fromByteCount: Int64(record.byteCount), countStyle: .file))
-                        dateRow("最終取得", record.acquiredAt)
-                        if let date = record.lastCheckedAt { dateRow("最終確認", date) }
-                        if let date = record.sourceModifiedAt { dateRow("元ファイルの更新", date) }
-                        if let failure = model.state.attempts[kind.rawValue]?.failure, failure != model.message {
+                        fileSummary(name: record.originalName, status: materialStatus(kind, record: record),
+                                    needsAttention: materialNeedsAttention(kind, record: record))
+                        NavigationLink {
+                            if kind == .changes { ChangeAnalysisView(model: model) }
+                            else { PDFAnalysisView(model: model, kind: kind) }
+                        } label: { Text("詳細を見る") }
+                        .accessibilityLabel("\(kind.title)の詳細を見る")
+                    } else {
+                        Text("未選択").foregroundStyle(.secondary)
+                        if let failure = model.state.attempts[kind.rawValue]?.failure {
                             Label(failure, systemImage: "exclamationmark.triangle")
                                 .font(.caption).foregroundStyle(.orange)
                         }
-                        Button("同じ資料を再取得") { model.refresh(kind) }
-                    } else {
-                        Text("未選択").foregroundStyle(.secondary)
-                        if let failure = model.state.attempts[kind.rawValue]?.failure, failure != model.message {
-                            Text(failure).font(.caption).foregroundStyle(.orange)
-                        }
                     }
-                    if kind == .changes, model.state.record(for: .changes) != nil {
-                        NavigationLink("XLSXを解析・結果を確認") { ChangeAnalysisView(model: model) }
-                        if let failure = model.state.changeParseAttempt?.failure, failure.localizedDescription != model.message {
-                            Label(failure.localizedDescription, systemImage: "exclamationmark.triangle")
-                                .font(.caption).foregroundStyle(.orange)
-                        }
+                    Button(model.state.record(for: kind) == nil ? "ファイルを選ぶ" : "ファイルを選び直す") {
+                        picker = .file(kind)
                     }
-                    if kind != .changes, model.state.record(for: kind) != nil {
-                        NavigationLink("PDFを解析・結果を確認") { PDFAnalysisView(model: model, kind: kind) }
-                        if let failure = model.state.pdfParseAttempts?[kind.rawValue]?.failure, failure.localizedDescription != model.message {
-                            Label(failure.localizedDescription, systemImage: "exclamationmark.triangle")
-                                .font(.caption).foregroundStyle(.orange)
-                        }
-                    }
-                    if model.folderListed {
-                        NavigationLink("フォルダ内から選ぶ") {
-                            MaterialCandidatesView(model: model, kind: kind)
-                        }
-                    }
-                    Button("\(kind.fileExtension.uppercased())ファイルを選ぶ") { picker = .file(kind) }
-                } header: {
-                    Text(kind.title)
+                    .accessibilityLabel("\(kind.title)のファイルを\(model.state.record(for: kind) == nil ? "選ぶ" : "選び直す")")
                 }
                 .disabled(model.busy || !model.ready)
             }
@@ -144,28 +122,23 @@ struct MaterialsView: View {
             ForEach(SpecialScheduleKind.allCases) { kind in
                 Section(kind.title) {
                     if let source = specialSchedules.sources[kind] {
-                        Text(source.originalName).font(.headline)
-                        Text(specialStatus(kind, source: source))
-                            .font(.caption).foregroundStyle(.secondary)
-                        if source.grant == nil {
-                            Label("起動時の変更確認には、このPDFをもう一度選んでください。", systemImage: "exclamationmark.triangle")
-                                .font(.caption).foregroundStyle(.orange)
-                        }
-                        if let failure = source.failure {
-                            Label(failure.localizedDescription, systemImage: "exclamationmark.triangle")
-                                .font(.caption).foregroundStyle(.orange)
-                        }
-                        LabeledContent("サイズ", value: ByteCountFormatter.string(
-                            fromByteCount: Int64(source.byteCount), countStyle: .file))
-                        dateRow("最終取得", source.acquiredAt)
-                        if let date = source.lastCheckedAt { dateRow("最終確認", date) }
-                        NavigationLink("PDFを解析・結果を確認") {
+                        fileSummary(name: source.originalName, status: specialStatus(kind, source: source),
+                                    needsAttention: specialStatus(kind, source: source) != "解析済み" || source.grant == nil)
+                        NavigationLink {
                             SpecialScheduleAnalysisView(model: specialSchedules, kind: kind)
+                        } label: { Text("詳細を見る") }
+                        .accessibilityLabel("\(kind.title)の詳細を見る")
+                        if source.grant == nil {
+                            Label("再選択が必要", systemImage: "exclamationmark.triangle")
+                                .font(.caption).foregroundStyle(.orange)
                         }
                     } else {
                         Text("未選択").foregroundStyle(.secondary)
                     }
-                    Button("PDFファイルを選ぶ") { specialPickerKind = kind }
+                    Button(specialSchedules.sources[kind] == nil ? "ファイルを選ぶ" : "ファイルを選び直す") {
+                        specialPickerKind = kind
+                    }
+                        .accessibilityLabel("\(kind.title)のファイルを\(specialSchedules.sources[kind] == nil ? "選ぶ" : "選び直す")")
                         .disabled(specialSchedules.busy || !specialSchedules.ready)
                 }
             }
@@ -177,6 +150,11 @@ struct MaterialsView: View {
                         if model.folderListed {
                             Text("対象ファイル：\(model.candidates.count)件")
                                 .font(.caption).foregroundStyle(.secondary)
+                            ForEach([MaterialKind.timetable, .changes]) { kind in
+                                NavigationLink("\(kind.title)をフォルダ内から選ぶ") {
+                                    MaterialCandidatesView(model: model, kind: kind)
+                                }
+                            }
                         }
                     }
                     Button("資料フォルダを選ぶ") { picker = .folder }
@@ -217,32 +195,50 @@ struct MaterialsView: View {
     private func specialStatus(_ kind: SpecialScheduleKind, source: SpecialScheduleSource) -> String {
         if source.failure != nil {
             return specialSchedules.records[kind] == nil
-                ? "取得済み・解析失敗" : "取得済み・解析失敗（前回結果を保持）"
+                ? "解析失敗" : "解析失敗（前回結果あり）"
         }
         guard let record = specialSchedules.records[kind] else {
-            return "取得済み・未解析"
+            return "未解析"
         }
         return record.digest == source.digest && record.analysis.version == SpecialScheduleAnalysis.parserVersion
-            ? "取得済み・解析結果あり" : "取得済み・新しい資料は未解析（前回結果を保持）"
+            ? "解析済み" : "未解析（前回結果あり）"
     }
 
-    private func changeStatus(_ record: MaterialRecord) -> String {
-        guard let analysis = model.state.changeAnalysis else { return "取得済み・未解析" }
-        return analysis.sourceDigest == record.digest && analysis.version == ChangeAnalysis.parserVersion
-            ? "取得済み・解析結果あり" : "取得済み・新しい資料は未解析（前回結果を保持）"
-    }
-
-    private func pdfStatus(_ record: MaterialRecord) -> String {
-        guard let analysis = model.state.pdfAnalyses?[record.kind.rawValue] else { return "取得済み・未解析" }
-        return analysis.sourceDigest == record.digest && analysis.version == PDFAnalysis.currentVersion(for: record.kind)
-            ? "取得済み・解析結果あり" : "取得済み・新しい資料は未解析（前回結果を保持）"
-    }
-
-    private func dateRow(_ title: String, _ date: Date) -> some View {
-        LabeledContent(title) {
-            Text(date, format: .dateTime.year().month().day().hour().minute())
-                .foregroundStyle(.secondary)
+    private func materialStatus(_ kind: MaterialKind, record: MaterialRecord) -> String {
+        let hasAnalysis: Bool
+        let isCurrent: Bool
+        if kind == .changes {
+            let analysis = model.state.changeAnalysis
+            hasAnalysis = analysis != nil
+            isCurrent = analysis?.sourceDigest == record.digest && analysis?.version == ChangeAnalysis.parserVersion
+        } else {
+            let analysis = model.state.pdfAnalyses?[kind.rawValue]
+            hasAnalysis = analysis != nil
+            isCurrent = analysis?.sourceDigest == record.digest && analysis?.version == PDFAnalysis.currentVersion(for: kind)
         }
+        let parseFailed = kind == .changes ? model.state.changeParseAttempt?.failure != nil :
+            model.state.pdfParseAttempts?[kind.rawValue]?.failure != nil
+        if model.state.attempts[kind.rawValue]?.failure != nil {
+            return hasAnalysis ? "取得失敗（前回結果あり）" : "取得失敗"
+        }
+        if parseFailed { return hasAnalysis ? "解析失敗（前回結果あり）" : "解析失敗" }
+        if isCurrent { return "解析済み" }
+        return hasAnalysis ? "未解析（前回結果あり）" : "未解析"
+    }
+
+    private func materialNeedsAttention(_ kind: MaterialKind, record: MaterialRecord) -> Bool {
+        model.state.attempts[kind.rawValue]?.failure != nil ||
+            materialStatus(kind, record: record) != "解析済み"
+    }
+
+    private func fileSummary(name: String, status: String, needsAttention: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(name).font(.headline).lineLimit(2)
+            Label(status, systemImage: needsAttention ? "exclamationmark.triangle" : "checkmark.circle")
+                .font(.caption)
+                .foregroundStyle(needsAttention ? Color.orange : Color.secondary)
+        }
+        .padding(.vertical, 2)
     }
 }
 
@@ -258,7 +254,7 @@ private struct SpecialScheduleAnalysisView: View {
     var body: some View {
         List {
             Section("解析") {
-                Text("保存済みのPDFを解析します。ファイルを選ぶと解析も始まります。")
+                Text("ファイル選択後は自動解析します。必要なときは右上の「解析する」から再実行できます。")
                     .font(.subheadline).foregroundStyle(.secondary)
                 if model.busy {
                     HStack { ProgressView(); Text("処理中…"); Spacer(); Button("中止") { model.cancel() } }
@@ -271,19 +267,6 @@ private struct SpecialScheduleAnalysisView: View {
                     Text(message).font(.caption)
                         .foregroundStyle(model.failed ? Color.orange : Color.secondary)
                 }
-                if #available(iOS 26.0, *) {
-                    Button("保存済みPDFを解析", systemImage: "doc.text.magnifyingglass") {
-                        model.analyzePDF(kind)
-                    }
-                    .buttonStyle(.glass)
-                    .disabled(model.busy || source == nil)
-                } else {
-                    Button("保存済みPDFを解析") { model.analyzePDF(kind) }
-                        .buttonStyle(.bordered)
-                        .disabled(model.busy || source == nil)
-                }
-                Button("保存済みの元PDFを見る") { showingSource = true }
-                    .disabled(model.busy || model.urls[kind] == nil)
                 if let report = model.fullReadReports[kind] {
                     diagnosticButton(report)
                     Text(copiedReport == report ? "読み取り結果をコピーしました。" :
@@ -294,6 +277,10 @@ private struct SpecialScheduleAnalysisView: View {
             if let source {
                 Section("選択した資料") {
                     Text(source.originalName)
+                    if source.grant == nil {
+                        Label("起動時の変更確認には、このPDFをもう一度選んでください。", systemImage: "exclamationmark.triangle")
+                            .font(.caption).foregroundStyle(.orange)
+                    }
                     LabeledContent("サイズ", value: ByteCountFormatter.string(
                         fromByteCount: Int64(source.byteCount), countStyle: .file))
                     LabeledContent("最終取得") {
@@ -304,6 +291,8 @@ private struct SpecialScheduleAnalysisView: View {
                             Text(date, format: .dateTime.year().month().day().hour().minute())
                         }
                     }
+                    Button("保存済みの元PDFを見る") { showingSource = true }
+                        .disabled(model.busy || model.urls[kind] == nil)
                 }
             }
             if let record {
@@ -351,9 +340,22 @@ private struct SpecialScheduleAnalysisView: View {
             }
         }
         .navigationTitle(kind.title)
+        .toolbar { ToolbarItem(placement: .primaryAction) { parseButton } }
         .onChange(of: model.busy) { busy in if busy { copiedReport = nil } }
         .sheet(isPresented: $showingSource) {
             if let url = model.urls[kind] { SavedPDFView(url: url, title: kind.title) }
+        }
+    }
+
+    @ViewBuilder private var parseButton: some View {
+        if #available(iOS 26.0, *) {
+            Button("解析する", systemImage: "doc.text.magnifyingglass") { model.analyzePDF(kind) }
+                .buttonStyle(.glassProminent)
+                .disabled(model.busy || source == nil)
+        } else {
+            Button("解析する") { model.analyzePDF(kind) }
+                .buttonStyle(.borderedProminent)
+                .disabled(model.busy || source == nil)
         }
     }
 

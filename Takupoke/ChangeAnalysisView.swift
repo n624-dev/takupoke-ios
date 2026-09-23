@@ -27,9 +27,7 @@ struct ChangeAnalysisView: View {
                 Text("空欄なら今日の学校年度（\(SchoolDate.today().schoolYear)年度）を使います。4〜12月は入力年度、1〜3月は翌年の日付として解析します。")
                     .font(.caption).foregroundStyle(.secondary)
                 if !validYear { Text("西暦1900〜9998の学校年度を入力してください。").foregroundStyle(.orange) }
-                Button("保存済みXLSXを解析") { model.analyzeChanges(defaultYear: defaultYear) }
-                    .disabled(model.busy || !model.ready || !validYear)
-                Text("端末内の資料を解析します。元ファイルを取得し直す場合は、前の画面で「同じ資料を再取得」を押してください。")
+                Text("ファイル選択後は自動解析します。必要なときは右上の「解析する」から再実行できます。")
                     .font(.caption).foregroundStyle(.secondary)
                 if model.busy {
                     HStack { ProgressView(); Text("処理中…"); Spacer(); Button("中止") { model.cancel() } }
@@ -45,6 +43,32 @@ struct ChangeAnalysisView: View {
                     Text(message).font(.caption).foregroundStyle(model.failed ? Color.orange : Color.secondary)
                 }
             } header: { Text("解析") }
+            if let source = model.state.record(for: .changes) {
+                Section("選択した資料") {
+                    Text(source.originalName)
+                    LabeledContent("サイズ", value: ByteCountFormatter.string(
+                        fromByteCount: Int64(source.byteCount), countStyle: .file))
+                    LabeledContent("最終取得") {
+                        Text(source.acquiredAt, format: .dateTime.year().month().day().hour().minute())
+                    }
+                    if let date = source.lastCheckedAt {
+                        LabeledContent("最終確認") {
+                            Text(date, format: .dateTime.year().month().day().hour().minute())
+                        }
+                    }
+                    if let date = source.sourceModifiedAt {
+                        LabeledContent("元ファイルの更新") {
+                            Text(date, format: .dateTime.year().month().day().hour().minute())
+                        }
+                    }
+                    if let failure = model.state.attempts[MaterialKind.changes.rawValue]?.failure {
+                        Label(failure, systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.orange)
+                    }
+                    Button("同じ資料を再取得") { model.refresh(.changes) }
+                        .disabled(model.busy || !model.ready)
+                }
+            }
             if let analysis = analysis {
                 Section {
                     Text(analysis.sourceName)
@@ -79,6 +103,7 @@ struct ChangeAnalysisView: View {
             }
         }
         .navigationTitle("時間割変更の解析")
+        .toolbar { ToolbarItem(placement: .primaryAction) { parseButton } }
         .scrollDismissesKeyboard(.interactively)
         .alert("曜日を確認できない資料です", isPresented: $confirmingPreview) {
             Button("確認して表示") { model.previewChanges() }
@@ -88,6 +113,20 @@ struct ChangeAnalysisView: View {
         }
         .sheet(isPresented: Binding(get: { model.changePreview != nil }, set: { if !$0 { model.dismissPreview() } })) {
             if let preview = model.changePreview { ChangePreviewView(preview: preview) }
+        }
+    }
+
+    @ViewBuilder private var parseButton: some View {
+        if #available(iOS 26.0, *) {
+            Button("解析する", systemImage: "doc.text.magnifyingglass") {
+                model.analyzeChanges(defaultYear: defaultYear)
+            }
+            .buttonStyle(.glassProminent)
+            .disabled(model.busy || !model.ready || !validYear || model.state.record(for: .changes) == nil)
+        } else {
+            Button("解析する") { model.analyzeChanges(defaultYear: defaultYear) }
+                .buttonStyle(.borderedProminent)
+                .disabled(model.busy || !model.ready || !validYear || model.state.record(for: .changes) == nil)
         }
     }
 }

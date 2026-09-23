@@ -20,15 +20,14 @@ struct SchoolEventsSettingsSection: View {
                 Text("\(year)年度（\(year)年4月〜\(year + 1)年3月）")
                     .font(.caption).foregroundStyle(.secondary)
                 if let saved = model.saved[year] {
-                    LabeledContent("保存済み", value: "\(saved.payload.events.count)件")
-                    LabeledContent("最終取得") {
-                        Text(saved.fetchedAt, format: .dateTime.year().month().day().hour().minute())
-                    }
-                    NavigationLink("行事予定の取得結果を見る") {
+                    Text("\(saved.payload.events.count)件を保存済み")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                    NavigationLink("詳細を見る") {
                         SchoolEventsResultView(saved: saved)
                     }
+                    .accessibilityLabel("\(year)年度の学校行事の詳細を見る")
                 } else {
-                    Text("この年度の行事予定は端末にありません。")
+                    Text("未取得")
                         .foregroundStyle(.secondary)
                 }
                 Button(model.saved[year] == nil ? "行事予定APIから取得" : "行事予定を更新") {
