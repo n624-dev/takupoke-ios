@@ -83,6 +83,7 @@
 
 - 開発環境はこのデバイスと Windows の両方とする。
 - GitHub へ push し、GitHub Actions の macOS runner で iOS をビルドする。
+- push 後は該当コミットの Actions の完了を確認する。失敗時はログを調べて修正し、修正後の実行も確認する。未確認の実機動作を CI 成功だけで確認済みとしない。
 - Mac 所有は前提にしない。
 - AltStore Classic による実機導入を前提とする。
 - AltStore Source は最初のステップで必ず構築する。

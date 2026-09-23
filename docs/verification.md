@@ -434,3 +434,7 @@ Linux / Swift 6.1.2の公開用架空データテスト96件が通過しまし�
 ## 補助テストのコンパイル指定修正（2026-09-23）
 
 利用者からの確認依頼で、コミット `5244ad5` のActions実行が失敗していたことを確認しました。iOSビルドに入る前の `tools/test-materials.sh` で、新たに `SchoolDate` を参照する `ChangeNormalizer.swift` をコンパイルしながら `SchoolDate.swift` を含めていなかったのが原因です。補助テストのソース一覧に追加し、Linux / Swift 6.1.2で同スクリプトの資料保存・Web PDF検査が通過しました。iOS SDKビルドと実機の確認は引き続き未実施です。
+
+## Actions確認方針の変更（2026-09-23）
+
+修正コミット `0eb5b30` の[Actions実行](https://github.com/n624-dev/takupoke-ios/actions/runs/35863421726)は成功しました。利用者の指定により、今後はpush後に該当コミットのActionsを完了まで確認し、失敗時は修正後の実行も確認します。過去の各記録にある「監視しない」は当時の運用を記録したものです。iOS実機での動作確認は別に扱います。
