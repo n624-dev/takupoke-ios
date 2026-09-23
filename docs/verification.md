@@ -4,13 +4,15 @@
 
 ## SwiftUI 時間割タブ（2026-09-23）
 
+追加実装では Astro の `docs/timetable.md` と画面コードを照合し、週末開始、学期境界、未設定クラス、固定の1年生2クラス選択、変更一覧の下書き適用、学校行事投影、留学生表示、通常時刻と試験・返却時刻の扱いを合わせました。試験・返却PDFは「ファイル」から選び、別の端末内SQLite領域に原本と解析結果を保存します。添付資料はリポジトリ外の一時領域でだけ解析し、表構造・日付・クラス・時刻の読み取りを確認し、作業用の派生ファイルを削除しました。Linux の Swift 6.1.2 で架空データの全92テスト、Python の配布テスト24件が通過し、SwiftUIの構文解析とXcodeプロジェクトへの追加登録も確認しました。SwiftUIの新規部分とPDFKitによる実機の読み取り、および今回の iOS SDK ビルドはまだ未確認です。利用者からは既存版の時間割タブが実機で表示できたと報告されています。今回の push 後は Actions を監視しません。
+
 Astro 版のコミット `edfaf85` のクラス設定、週操作、通常／変更込み、授業詳細、変更一覧をコード上で照合しました。週グリッドと変更一覧は保存済み解析結果を読み取る構成です。前期4月1日〜9月30日、後期10月1日〜翌年3月31日の境界を明示し、学期不明の通常時間割は適用しません。変更は日付・クラス・時限で枠を置き換え、元の通常授業を詳細に保持します。学校行事の解析・タグ付け規則は変更していません。対応範囲と差異は[時間割タブの表示仕様](timetable-tab.md)に記録しました。
 
 この Linux 環境の Swift 6.1.2 で `bash tools/test-parsing.sh` を実行し、`SchoolDateTests` と `TimetableScheduleTests` を含む83件が通過しました。日付・学期境界、週フィルター、変更時の置き換えと元授業保持を架空データで検証しました。Python の配布テスト24件も通過しました。
 
 利用者の指定により、今回に限り push 後の Actions を監視しました。[実行35822048029](https://github.com/n624-dev/takupoke-ios/actions/runs/35822048029) は配布テストを通過しましたが、iOS ビルドで `TimetableView.changeDetail` の不透明戻り値に `return` がないため失敗しました。`return List` に修正しました。
 
-修正後のコミット `82aa667` の[実行35822249025](https://github.com/n624-dev/takupoke-ios/actions/runs/35822249025) は配布テスト、iPhone 向けビルド、IPA と AltStore Source の照合・公開まで成功しました。[Release v0.1.28-build.28.1](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.28-build.28.1) は公開済みです。実機への導入・タブの表示や操作は未確認です。この実行の完了後に一時的な Actions 監視を終了しました。
+修正後のコミット `82aa667` の[実行35822249025](https://github.com/n624-dev/takupoke-ios/actions/runs/35822249025) は配布テスト、iPhone 向けビルド、IPA と AltStore Source の照合・公開まで成功しました。[Release v0.1.28-build.28.1](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.28-build.28.1) は公開済みです。その後、利用者から時間割タブが実機で表示できたと報告されました。今回追加する学校行事・試験・返却の表示操作は未確認です。この実行の完了後に一時的な Actions 監視を終了しました。
 
 ## 配布基盤の初期実装
 

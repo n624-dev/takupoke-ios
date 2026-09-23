@@ -2,12 +2,13 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var materials = MaterialsModel()
+    @StateObject private var specialSchedules = SpecialSchedulesModel()
 
     var body: some View {
         TabView {
             HomeView(materials: materials)
                 .tabItem { Label("ホーム", systemImage: "house") }
-            TimetableView(model: materials)
+            TimetableView(model: materials, specialSchedules: specialSchedules)
                 .tabItem { Label("時間割", systemImage: "calendar") }
         }
     }

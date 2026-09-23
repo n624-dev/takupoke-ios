@@ -20,7 +20,7 @@ private enum MaterialPicker: Identifiable {
     }
 }
 
-private struct MaterialDocumentPicker: UIViewControllerRepresentable {
+struct MaterialDocumentPicker: UIViewControllerRepresentable {
     var type: UTType
     var selected: (ScopedMaterialSelection) -> Void
     var cancelled: () -> Void

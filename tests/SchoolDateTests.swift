@@ -37,4 +37,10 @@ final class SchoolDateTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(SchoolDate(iso8601: "2033-12-31")).schoolWeekday, 6)
         XCTAssertEqual(try XCTUnwrap(SchoolDate(iso8601: "2034-01-01")).schoolWeekday, 7)
     }
+
+    func testDisplayedWeekAdvancesOnWeekend() throws {
+        XCTAssertEqual(try XCTUnwrap(SchoolDate(iso8601: "2033-12-30")).displayWeekStart.iso8601, "2033-12-26")
+        XCTAssertEqual(try XCTUnwrap(SchoolDate(iso8601: "2033-12-31")).displayWeekStart.iso8601, "2034-01-02")
+        XCTAssertEqual(try XCTUnwrap(SchoolDate(iso8601: "2034-01-01")).displayWeekStart.iso8601, "2034-01-02")
+    }
 }

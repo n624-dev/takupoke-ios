@@ -68,6 +68,11 @@ struct SchoolDate: Codable, Hashable, Comparable {
     }
 
     var monday: Self { addingDays(1 - schoolWeekday)! }
+
+    /// The Web timetable opens the following week on Saturday and Sunday.
+    var displayWeekStart: Self {
+        schoolWeekday >= 6 ? addingDays(8 - schoolWeekday)! : monday
+    }
 }
 
 /// The end boundary is exclusive. Callers must convert any stated final day

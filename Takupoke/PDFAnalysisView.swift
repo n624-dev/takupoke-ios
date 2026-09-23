@@ -184,7 +184,7 @@ private struct PDFLessonDetail: View {
     }
 }
 
-private struct SavedPDFView: View {
+struct SavedPDFView: View {
     let url: URL
     let title: String
     @Environment(\.dismiss) private var dismiss
