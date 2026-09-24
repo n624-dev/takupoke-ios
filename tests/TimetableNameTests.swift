@@ -3,6 +3,14 @@ import XCTest
 @testable import TakupokeParsing
 
 final class TimetableNameTests: XCTestCase {
+    func testHalfwidthKatakanaChangesOnlyAtPresentationBoundary() {
+        let source = "架空ｶﾞｯｺｳ・第2室(ABC)／ﾊﾟﾋﾟﾌﾟﾍﾟﾎﾟ"
+        XCTAssertEqual(TimetableDisplayText.kana(source), "架空ガッコウ・第2室(ABC)／パピプペポ")
+        XCTAssertEqual(source, "架空ｶﾞｯｺｳ・第2室(ABC)／ﾊﾟﾋﾟﾌﾟﾍﾟﾎﾟ")
+        XCTAssertEqual(TimetableDisplayText.continuous("架空\nｶﾞｯｺｳ"), "架空ガッコウ")
+        XCTAssertEqual(TimetableDisplayText.kana("架空科目A／架空教室B"), "架空科目A／架空教室B")
+    }
+
     func testBothFormsSurviveSavingAndDisplayWithoutChangingSource() throws {
         let names = TimetableLessonNames(
             subject: "  架空科目QⅣ  ", teacher: "（架空教員Q）", room: " 架空室Z ",

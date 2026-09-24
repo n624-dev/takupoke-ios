@@ -44,3 +44,31 @@ struct TimetableLessonNames: Codable, Equatable, Sendable {
             .replacingOccurrences(of: "\\s{2,}", with: " ", options: .regularExpression))
     }
 }
+
+enum TimetableDisplayText {
+    /// Convert halfwidth katakana only when presenting timetable data. Source
+    /// names stay unchanged so exact mapping rules still match PDF aliases.
+    static func kana(_ value: String) -> String {
+        var result = ""
+        var halfwidthRun = ""
+        for scalar in value.unicodeScalars {
+            if (0xFF61...0xFF9F).contains(scalar.value) {
+                halfwidthRun.append(String(scalar))
+            } else {
+                if !halfwidthRun.isEmpty {
+                    result += halfwidthRun.precomposedStringWithCompatibilityMapping
+                    halfwidthRun = ""
+                }
+                result.append(String(scalar))
+            }
+        }
+        if !halfwidthRun.isEmpty {
+            result += halfwidthRun.precomposedStringWithCompatibilityMapping
+        }
+        return result
+    }
+
+    static func continuous(_ value: String) -> String {
+        kana(PDFDisplayText.continuous(value))
+    }
+}
