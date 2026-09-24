@@ -138,6 +138,20 @@ final class TimetableScheduleTests: XCTestCase {
                                                   changes: nil, includesChanges: false, specials: [special])
         XCTAssertEqual(examCards.count, 1)
         XCTAssertEqual(examCards[0].endPeriod, 2)
+
+        let returned = SpecialScheduleAnalysis(kind: .examReturn, sourceDigest: "fictional",
+                                                sourceName: "fictional.pdf", parsedAt: Date(timeIntervalSince1970: 0),
+                                                schoolYear: 2032, coveredDates: [day.iso8601], coveredClasses: ["1_A"],
+                                                periodTimes: [1: "09:00〜09:45", 2: "10:00〜10:45"],
+                                                lessons: [exam(1), exam(2)])
+        let returnCards = TimetableSchedule.blocks(on: day, className: "1_A", timetable: normal,
+                                                    changes: nil, includesChanges: false, specials: [returned])
+        XCTAssertEqual(returnCards.count, 1)
+        XCTAssertEqual(returnCards[0].endPeriod, 2)
+        let combined = TimetableSchedule.blocks(on: day, className: "1_A", timetable: normal,
+                                                 changes: nil, includesChanges: false, specials: [special, returned])
+        XCTAssertEqual(combined.count, 2)
+        XCTAssertEqual(combined.map(\.endPeriod), [2, 2])
     }
 
     func testOverlappingChangesUseSeparateLanes() {
