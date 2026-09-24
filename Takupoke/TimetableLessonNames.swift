@@ -46,6 +46,14 @@ struct TimetableLessonNames: Codable, Equatable, Sendable {
 }
 
 enum TimetableDisplayText {
+    static func className(_ value: String) -> String {
+        kana(value).replacingOccurrences(of: "_", with: "-")
+    }
+
+    static func classNames(_ values: [String]) -> String {
+        values.map(className).joined(separator: "・")
+    }
+
     /// Convert halfwidth katakana only when presenting timetable data. Source
     /// names stay unchanged so exact mapping rules still match PDF aliases.
     static func kana(_ value: String) -> String {

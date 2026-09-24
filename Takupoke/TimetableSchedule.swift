@@ -7,6 +7,10 @@ enum TimetableSchedule {
     // use underscores in place of the Web settings' hyphens.
     static let firstYearHomerooms: Set<String> = ["1_1", "1_2", "1_3"]
     static let firstYearDepartments: Set<String> = ["1_CN", "1_ES", "1_IT"]
+    static let selectableClasses: [String] =
+        ["1_1", "1_2", "1_3"] + (1...5).flatMap { year in
+            ["CN", "ES", "IT"].map { "\(year)_\($0)" }
+        } + ["AI_1", "AI_2"]
     static let normalPeriodTimes = [
         "08:50〜09:35", "09:35〜10:20", "10:30〜11:15", "11:15〜12:00",
         "12:50〜13:35", "13:35〜14:20", "14:30〜15:15", "15:15〜16:00"
@@ -54,6 +58,76 @@ enum TimetableSchedule {
         var displayedSpecialLessons: [SpecialItem] { changes.isEmpty ? specialLessons : [] }
     }
 
+    struct GridBlock {
+        enum Content {
+            case normal(PDFLesson)
+            case special(SpecialItem)
+            case change(ScheduleChange)
+        }
+
+        var startPeriod: Int
+        var endPeriod: Int
+        let content: Content
+    }
+
+    struct PositionedBlock {
+        let block: GridBlock
+        let lane: Int
+    }
+
+    static func blocks(on day: SchoolDate, className: String, timetable: PDFAnalysis?,
+                       changes: ChangeAnalysis?, includesChanges: Bool, events: PDFAnalysis? = nil,
+                       specials: [SpecialScheduleAnalysis] = [], isInternationalStudent: Bool = false) -> [GridBlock] {
+        var result: [GridBlock] = []
+        for period in 1...8 {
+            let item = slot(on: day, period: period, className: className, timetable: timetable,
+                            changes: changes, includesChanges: includesChanges, events: events, specials: specials)
+            for lesson in item.displayedLessons where shouldDisplay(lesson, isInternationalStudent: isInternationalStudent) {
+                if let previous = result.indices.last(where: { index in
+                    guard result[index].endPeriod == period - 1,
+                          case .normal(let old) = result[index].content else { return false }
+                    return old.names.subject == lesson.names.subject && old.names.teacher == lesson.names.teacher &&
+                        old.names.room == lesson.names.room
+                }) {
+                    result[previous].endPeriod = period
+                } else {
+                    result.append(GridBlock(startPeriod: period, endPeriod: period, content: .normal(lesson)))
+                }
+            }
+            for special in item.displayedSpecialLessons where shouldDisplay(special, isInternationalStudent: isInternationalStudent) {
+                if let previous = result.indices.last(where: { index in
+                    guard result[index].endPeriod == period - 1,
+                          case .special(let old) = result[index].content else { return false }
+                    return old.kind == special.kind && old.lesson.subject == special.lesson.subject &&
+                        old.lesson.teacher == special.lesson.teacher && old.lesson.room == special.lesson.room
+                }) {
+                    result[previous].endPeriod = period
+                } else {
+                    result.append(GridBlock(startPeriod: period, endPeriod: period, content: .special(special)))
+                }
+            }
+            for change in item.changes where shouldDisplay(change, isInternationalStudent: isInternationalStudent) {
+                if let covered = change.gridPeriods, covered.first == period, let last = covered.last {
+                    result.append(GridBlock(startPeriod: period, endPeriod: last, content: .change(change)))
+                }
+            }
+        }
+        return result
+    }
+
+    /// Place overlapping cards in separate horizontal lanes within one class.
+    static func positioned(_ blocks: [GridBlock]) -> [PositionedBlock] {
+        var laneEnds: [Int] = []
+        return blocks.enumerated().sorted {
+            ($0.element.startPeriod, $0.offset) < ($1.element.startPeriod, $1.offset)
+        }.map { _, block in
+            let lane = laneEnds.firstIndex(where: { $0 < block.startPeriod }) ?? laneEnds.count
+            if lane == laneEnds.count { laneEnds.append(block.endPeriod) }
+            else { laneEnds[lane] = block.endPeriod }
+            return PositionedBlock(block: block, lane: lane)
+        }
+    }
+
     struct DayPlan {
         let events: [PDFSchoolEvent]
         let isNoClass: Bool
@@ -71,6 +145,11 @@ enum TimetableSchedule {
                 return event.title.trimmingCharacters(in: .whitespacesAndNewlines)
             }.filter { !$0.isEmpty })).sorted()
         }
+    }
+
+    static func fullDayEventTitle(plan: DayPlan, layouts: [[PositionedBlock]]) -> String? {
+        guard plan.isNoClass, layouts.allSatisfy(\.isEmpty) else { return nil }
+        return plan.noClassLabels.isEmpty ? "授業なし" : plan.noClassLabels.joined(separator: "・")
     }
 
     static func classes(in state: MaterialLibraryState, specials: [SpecialScheduleAnalysis] = []) -> [String] {
@@ -164,7 +243,7 @@ enum TimetableSchedule {
                     weekday: plan.weekdayOverride).filter { $0.period == period }
         let special = specialDayItems.filter { $0.lesson.period == period }
         let changes = includesChanges ? Self.changes(on: day, className: className, analysis: changes)
-            .filter { Int($0.period) == period } : []
+            .filter { $0.gridPeriods?.contains(period) == true } : []
         return Slot(baseLessons: base, specialLessons: special, changes: changes)
     }
 

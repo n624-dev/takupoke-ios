@@ -85,9 +85,9 @@ struct ChangeAnalysisView: View {
                     Picker("クラス", selection: $selectedClass) {
                         Text("すべて").tag("")
                         if !selectedClass.isEmpty && !classes.contains(selectedClass) {
-                            Text("\(selectedClass)（保存済み・現在のファイルに該当なし）").tag(selectedClass)
+                            Text("\(TimetableDisplayText.className(selectedClass))（保存済み・現在のファイルに該当なし）").tag(selectedClass)
                         }
-                        ForEach(classes, id: \.self) { Text($0).tag($0) }
+                        ForEach(classes, id: \.self) { Text(TimetableDisplayText.className($0)).tag($0) }
                     }
                     if !selectedClass.isEmpty && !classes.contains(selectedClass) {
                         Label("選択したクラスは現在の解析結果にありません。選択は保持しています。", systemImage: "exclamationmark.triangle")
@@ -161,7 +161,7 @@ private struct ChangePreviewView: View {
                 Section {
                     Picker("クラス", selection: $selectedClass) {
                         Text("すべて").tag("")
-                        ForEach(classes, id: \.self) { Text($0).tag($0) }
+                        ForEach(classes, id: \.self) { Text(TimetableDisplayText.className($0)).tag($0) }
                     }
                 }
                 ForEach(Array(visible.enumerated()), id: \.offset) { _, record in
@@ -180,7 +180,7 @@ private struct ChangeRecordFields: View {
 
     var body: some View {
         LabeledContent("日付", value: record.change_date)
-        LabeledContent("クラス", value: record.displayClassName)
+        LabeledContent("クラス", value: TimetableDisplayText.className(record.displayClassName))
         field("時限", record.period.isEmpty ? "" : record.displayPeriod)
         field("変更前", record.before_subject)
         field("変更後", record.after_subject)
