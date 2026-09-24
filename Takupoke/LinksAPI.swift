@@ -1,5 +1,16 @@
 import Foundation
 
+enum LinkOpeningMode: String {
+    case external
+    case inApp
+
+    func destination(for url: URL, opposite: Bool = false) -> LinkOpeningMode {
+        guard url.scheme?.lowercased() == "https" else { return .external }
+        if opposite { return self == .external ? .inApp : .external }
+        return self
+    }
+}
+
 enum LinksError: LocalizedError {
     case invalidResponse, unavailable, storage
 
