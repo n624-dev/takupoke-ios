@@ -1,0 +1,111 @@
+import Foundation
+import SwiftUI
+
+@MainActor
+final class LinksModel: ObservableObject {
+    @Published private(set) var saved: SavedLinks?
+    @Published private(set) var preferences = LinkPreferences()
+    @Published private(set) var ready = false
+    @Published private(set) var preferencesReady = true
+    @Published private(set) var busy = false
+    @Published private(set) var failed = false
+    @Published private(set) var message: String?
+
+    private var store: LinksStore?
+    private let preferencesStore = LinkPreferencesStore()
+    private let endpoint = URL(string: "https://takupoke-api.n624.jp/links")!
+
+    func loadIfNeeded() {
+        guard !ready else { return }
+        do {
+            let base = try FileManager.default.url(for: .applicationSupportDirectory,
+                                                   in: .userDomainMask, appropriateFor: nil, create: true)
+            let opened = try LinksStore(root: base.appendingPathComponent("LinksAPI", isDirectory: true))
+            store = opened
+            do { saved = try opened.load() }
+            catch {
+                failed = true
+                message = "保存済みの一覧を読み込めませんでした。更新を試してください。"
+            }
+            do { preferences = try preferencesStore.load() }
+            catch {
+                preferencesReady = false
+                failed = true
+                message = "一覧の設定を読み込めませんでした。保存済みの設定は変更していません。"
+            }
+            ready = true
+        } catch {
+            failed = true
+            message = "一覧の保存先を開けませんでした。再試行してください。"
+        }
+    }
+
+    func refresh(force: Bool = false) async {
+        loadIfNeeded()
+        guard ready, !busy, let store else { return }
+        if !force, let saved, Date().timeIntervalSince(saved.checkedAt) < 300 { return }
+        busy = true
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.urlCache = nil
+        configuration.httpCookieStorage = nil
+        configuration.httpShouldSetCookies = false
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.timeoutIntervalForRequest = 20
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel(); busy = false }
+        do {
+            var request = URLRequest(url: endpoint)
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            if let tag = saved?.apiETag { request.setValue(tag, forHTTPHeaderField: "If-None-Match") }
+            let (data, response) = try await session.data(for: request)
+            guard let response = response as? HTTPURLResponse,
+                  response.expectedContentLength <= LinksPayload.maximumBytes,
+                  data.count <= LinksPayload.maximumBytes else { throw LinksError.unavailable }
+            let replacement = try LinksResponse.decode(status: response.statusCode, data: data,
+                receivedETag: response.value(forHTTPHeaderField: "ETag"), saved: saved)
+            do { try store.save(replacement) } catch { throw LinksError.storage }
+            saved = replacement
+            if preferencesReady {
+                failed = false
+                message = nil
+            }
+        } catch {
+            failed = true
+            message = (error as? LinksError ?? .unavailable).localizedDescription +
+                (saved == nil ? "" : " 保存済みの一覧を表示しています。")
+        }
+    }
+
+    func isFavorite(_ id: String) -> Bool { preferences.favoriteIDs.contains(id) }
+    func isHidden(_ id: String) -> Bool { preferences.hiddenIDs.contains(id) }
+    func color(for item: LinkItem) -> String { preferences.colorOverrides[item.id] ?? item.color }
+
+    func toggleFavorite(_ id: String) {
+        changePreferences { draft in
+            if !draft.favoriteIDs.insert(id).inserted { draft.favoriteIDs.remove(id) }
+        }
+    }
+
+    func hide(_ id: String) { changePreferences { _ = $0.hiddenIDs.insert(id) } }
+    func restore(_ id: String) { changePreferences { _ = $0.hiddenIDs.remove(id) } }
+
+    func setColor(_ color: String?, for id: String) {
+        changePreferences { draft in
+            if let color, LinksPayload.colors.contains(color) { draft.colorOverrides[id] = color }
+            else { draft.colorOverrides.removeValue(forKey: id) }
+        }
+    }
+
+    private func changePreferences(_ edit: (inout LinkPreferences) -> Void) {
+        guard preferencesReady else { return }
+        var draft = preferences
+        edit(&draft)
+        do {
+            try preferencesStore.save(draft)
+            preferences = draft
+        } catch {
+            failed = true
+            message = "一覧の設定を保存できませんでした。"
+        }
+    }
+}
