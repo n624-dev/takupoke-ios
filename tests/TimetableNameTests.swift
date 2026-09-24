@@ -3,6 +3,12 @@ import XCTest
 @testable import TakupokeParsing
 
 final class TimetableNameTests: XCTestCase {
+    func testPeriodTimeUsesThreeCenteredLines() {
+        XCTAssertEqual(TimetableDisplayText.periodTime("08:50〜09:35"), "08:50\n～\n09:35")
+        XCTAssertEqual(TimetableDisplayText.periodTime("08:50～09:35"), "08:50\n～\n09:35")
+        XCTAssertEqual(TimetableDisplayText.periodTime("08:50~09:35"), "08:50\n～\n09:35")
+    }
+
     func testHalfwidthKatakanaChangesOnlyAtPresentationBoundary() {
         let source = "架空ｶﾞｯｺｳ・第2室(ABC)／ﾊﾟﾋﾟﾌﾟﾍﾟﾎﾟ"
         XCTAssertEqual(TimetableDisplayText.kana(source), "架空ガッコウ・第2室(ABC)／パピプペポ")
