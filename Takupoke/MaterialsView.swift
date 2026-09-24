@@ -83,7 +83,7 @@ struct MaterialsView: View {
                         fileSummary(name: record.originalName, status: materialStatus(kind, record: record),
                                     needsAttention: materialNeedsAttention(kind, record: record))
                         NavigationLink {
-                            if kind == .changes { ChangeAnalysisView(model: model) }
+                            if kind == .changes { ChangeAnalysisView(model: model, mappings: mappings) }
                             else { PDFAnalysisView(model: model, mappings: mappings, kind: kind) }
                         } label: { Text("詳細を見る") }
                         .accessibilityLabel("\(kind.title)の詳細を見る")

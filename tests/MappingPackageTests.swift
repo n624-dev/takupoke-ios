@@ -77,4 +77,59 @@ final class MappingPackageTests: XCTestCase {
         XCTAssertThrowsError(try MappingPackage.decode(package(subjects: duplicates), version: "v1",
                                                        revision: revision, archiveETag: "\"zip\""))
     }
+
+    func testInternationalStudentMarkerAlsoMatchesUnmarkedSubjectInMappedClass() throws {
+        let subjects: [[String: Any]] = [
+            ["alias": "留 架空科目A", "fullName": "架空正式科目A", "classes": ["4_XY"],
+             "internationalStudent": true],
+            ["alias": "架空科目B", "fullName": "架空正式科目B"],
+        ]
+        let saved = try MappingPackage.decode(package(subjects: subjects), version: "v1",
+                                              revision: revision, archiveETag: "\"zip\"")
+        XCTAssertTrue(saved.rules.isInternationalStudentSubject("留 架空科目A", className: "4_XY"))
+        XCTAssertTrue(saved.rules.isInternationalStudentSubject("架空科目A", className: "4_XY"))
+        XCTAssertFalse(saved.rules.isInternationalStudentSubject("架空科目A", className: "3_XY"))
+        XCTAssertFalse(saved.rules.isInternationalStudentSubject("架空科目B", className: "4_XY"))
+        XCTAssertFalse(saved.rules.isInternationalStudentSubject("架空科目C", className: "4_XY"))
+        let lesson = PDFLesson(className: "4_XY", weekday: 1, period: 1,
+                               names: TimetableLessonNames(subject: "架空科目A"), sourceText: "", page: 1)
+        XCTAssertFalse(TimetableSchedule.shouldDisplay(lesson, isInternationalStudent: false,
+            matchedByRule: { saved.rules.isInternationalStudentSubject($0, className: $1) }))
+        XCTAssertTrue(TimetableSchedule.shouldDisplay(lesson, isInternationalStudent: true,
+            matchedByRule: { saved.rules.isInternationalStudentSubject($0, className: $1) }))
+    }
+
+    func testChangeFieldSeparatesOnlyMappedTrailingTeacherAndRoom() throws {
+        let saved = try MappingPackage.decode(package(), version: "v1",
+                                              revision: revision, archiveETag: "\"zip\"")
+        let extracted = saved.rules.separatingChangeField("架空科目X（分野A）（架空教員A）（架空室A）")
+        XCTAssertEqual(extracted.subject, "架空科目X（分野A）")
+        XCTAssertEqual(extracted.teacher, "架空教員A")
+        XCTAssertEqual(extracted.room, "架空室A")
+        let reversed = saved.rules.separatingChangeField("架空略科A(架空室A)(架空教員A)")
+        XCTAssertEqual(reversed.subject, "架空略科A")
+        XCTAssertEqual(reversed.teacher, "架空教員A")
+        XCTAssertEqual(reversed.room, "架空室A")
+        let unknown = saved.rules.separatingChangeField("架空科目X（分野A）（架空未登録A）")
+        XCTAssertEqual(unknown.subject, "架空科目X（分野A）（架空未登録A）")
+        XCTAssertEqual(unknown.teacher, "")
+        XCTAssertEqual(unknown.room, "")
+    }
+
+    func testChangePresentationSeparatesBothSidesAndKeepsSourceFields() throws {
+        let saved = try MappingPackage.decode(package(), version: "v1",
+                                              revision: revision, archiveETag: "\"zip\"")
+        let change = ScheduleChange(change_date: "2032-10-01", class_name: "3_XY", period: "1",
+            before_subject: "架空科目X（分野A）（架空教員A）",
+            after_subject: "架空略科A（架空教員A）（架空室A）", teacher: "", room: "",
+            note: "", raw_text: "", canonical_text: "")
+        let names = saved.rules.presenting(change)
+        XCTAssertEqual(names.before.subject, "架空科目X（分野A）")
+        XCTAssertEqual(names.before.detailTeacher, "架空正式教員A")
+        XCTAssertEqual(names.after.cellSubject, "架空略科A")
+        XCTAssertEqual(names.after.detailSubject, "架空正式科目A")
+        XCTAssertEqual(names.after.detailTeacher, "架空正式教員A")
+        XCTAssertEqual(names.after.detailRoom, "架空正式教室A")
+        XCTAssertEqual(change.after_subject, "架空略科A（架空教員A）（架空室A）")
+    }
 }

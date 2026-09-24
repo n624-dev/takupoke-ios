@@ -23,7 +23,7 @@ struct SpecialScheduleLesson: Codable, Equatable {
 }
 
 struct SpecialScheduleAnalysis: Codable, Equatable {
-    static let parserVersion = 4
+    static let parserVersion = 5
     var version = parserVersion
     let kind: SpecialScheduleKind
     let sourceDigest: String
@@ -319,10 +319,17 @@ enum SpecialScheduleParser {
                 let periodXs = (0..<8).map { periods[dayIndex * 8 + $0].cx }
                 for period in 1...8 {
                     let x = periodXs[period - 1]
-                    let box = try grid.box(x, (row.top + row.bottom) / 2)
-                    result += try lessons(in: page, box: box, date: day, className: name,
-                                          period: period, periodXs: periodXs,
-                                          times: times, pageNumber: 1)
+                    let cuts = Set(page.lines.filter { $0.horizontal && $0.x1 - 0.5 <= x && x <= $0.x2 + 0.5 &&
+                        row.top + 1 < $0.y1 && $0.y1 < row.bottom - 1 }.map { ($0.y1 * 100).rounded() / 100 }).sorted()
+                    let edges = [row.top] + cuts + [row.bottom]
+                    var seen: Set<PDFBox> = []
+                    for i in 0..<(edges.count - 1) where edges[i + 1] - edges[i] >= 2 {
+                        let box = try grid.box(x, (edges[i] + edges[i + 1]) / 2)
+                        guard seen.insert(box).inserted else { continue }
+                        result += try lessons(in: page, box: box, date: day, className: name,
+                                              period: period, periodXs: periodXs,
+                                              times: times, pageNumber: 1)
+                    }
                 }
             }
         }

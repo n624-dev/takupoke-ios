@@ -103,6 +103,10 @@ final class MappingModel: ObservableObject {
         current?.rules.applying(to: lesson.names, className: lesson.className) ?? lesson.names
     }
 
+    func names(for change: ScheduleChange) -> ChangePresentation {
+        current?.rules.presenting(change) ?? .source(change)
+    }
+
     private func apply(_ result: MappingRevisionResult) {
         failed = false
         switch result {

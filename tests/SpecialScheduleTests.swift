@@ -68,6 +68,67 @@ final class SpecialScheduleTests: XCTestCase {
         return PDFPageLayout(width: 850, height: 600, glyphs: glyphs, lines: lines)
     }
 
+    private func returnPageWithSplitCell() -> PDFPageLayout {
+        var glyphs: [PDFGlyph] = []
+        var lines: [PDFRule] = []
+        func write(_ value: String, x: Double, y: Double, step: Double = 4) {
+            for (index, character) in value.enumerated() {
+                glyphs.append(PDFGlyph(text: String(character), x: x + Double(index) * step,
+                                       y: y, width: step, height: 4))
+            }
+        }
+        write("令和8年度 試験返却時間割", x: 20, y: 20)
+        for day in 0..<5 {
+            write("4/\(day + 1)", x: 150 + Double(day * 8) * 40, y: 70)
+            for period in 0..<8 {
+                write("\(period + 1)", x: 150 + Double(day * 8 + period) * 40, y: 100)
+            }
+        }
+        let classGroups: [(String, [String])] = [
+            ("1", ["1", "2", "3"]), ("2", ["CN", "ES", "IT"]),
+            ("3", ["CN", "ES", "IT"]), ("4", ["CN", "ES", "IT"]),
+            ("5", ["CN", "ES", "IT"]), ("AI", ["1", "2"]),
+        ]
+        var rowIndex = 0
+        for (grade, classes) in classGroups {
+            write(grade, x: 30, y: 132 + Double(rowIndex + classes.count / 2) * 25)
+            for className in classes {
+                write(className, x: 124, y: 132 + Double(rowIndex) * 25)
+                rowIndex += 1
+            }
+        }
+        for index in 0...40 {
+            let x = 140 + Double(index) * 40
+            lines.append(PDFRule(x1: x, y1: 110, x2: x, y2: 545))
+        }
+        lines.append(PDFRule(x1: 110, y1: 110, x2: 110, y2: 545))
+        for index in 0...17 {
+            let y = 120 + Double(index) * 25
+            lines.append(PDFRule(x1: 0, y1: y, x2: 1740, y2: y))
+        }
+        // Two independent lessons in the same 3-IT period cell, divided by a
+        // short horizontal rule. Names are fictional and unrelated to the PDF.
+        lines.append(PDFRule(x1: 220, y1: 332.5, x2: 260, y2: 332.5))
+        write("架空科目A", x: 222, y: 322, step: 3)
+        write("架空教員A", x: 222, y: 327, step: 3)
+        write("架空科目B", x: 222, y: 335, step: 3)
+        write("架空教員B", x: 222, y: 340, step: 3)
+        for period in 1...8 {
+            write("\(period)時限目8:50~9:35", x: 20, y: 760 + Double(period) * 15)
+        }
+        return PDFPageLayout(width: 1800, height: 1000, glyphs: glyphs, lines: lines)
+    }
+
+    func testReturnScheduleTreatsHorizontallyDividedCellAsTwoLessons() throws {
+        let result = try SpecialScheduleParser.parse([returnPageWithSplitCell()], kind: .examReturn,
+                                                     digest: "fictional", name: "fictional.pdf")
+        let lessons = result.lessons.filter { $0.className == "3_IT" && $0.date == "2026-04-01" && $0.period == 3 }
+        XCTAssertEqual(lessons.count, 2)
+        XCTAssertEqual(Set(lessons.map(\.subject)), ["架空科目A", "架空科目B"])
+        XCTAssertEqual(Set(lessons.map(\.teacher)), ["架空教員A", "架空教員B"])
+        XCTAssertTrue(lessons.allSatisfy { $0.room.isEmpty })
+    }
+
     func testExamParsesDatesClassesAndDocumentTimes() throws {
         let pages = (1...6).map { examPage($0, mergedFirstTwo: $0 == 1) }
         let result = try SpecialScheduleParser.parse(pages, kind: .exam,
@@ -208,12 +269,23 @@ final class SpecialScheduleTests: XCTestCase {
         try store.save(staged: staged, analysis: analysis,
                        originalName: "fictional.pdf", byteCount: bytes.count, digest: "fictional")
         let db = try DatabaseQueue(path: root.appendingPathComponent("specials.sqlite").path)
-        try db.write { try $0.execute(sql: "DELETE FROM specialSource") }
+        let current = try XCTUnwrap(store.records[.exam])
+        var oldAnalysis = current.analysis
+        oldAnalysis.version = 4
+        let old = SpecialScheduleRecord(kind: current.kind, originalName: current.originalName,
+                                        storedName: current.storedName, byteCount: current.byteCount,
+                                        digest: current.digest, acquiredAt: current.acquiredAt,
+                                        analysis: oldAnalysis)
+        try db.write {
+            try $0.execute(sql: "UPDATE specialSchedule SET payload = ? WHERE kind = 'exam'",
+                           arguments: [JSONEncoder().encode(old)])
+            try $0.execute(sql: "DELETE FROM specialSource")
+        }
 
         let reopened = try SpecialScheduleStore(root: root)
         XCTAssertEqual(reopened.sources[.exam]?.originalName, "fictional.pdf")
         XCTAssertEqual(reopened.selectedURL(for: .exam), reopened.savedURL(for: .exam))
-        XCTAssertEqual(reopened.records[.exam]?.analysis, analysis)
+        XCTAssertEqual(reopened.records[.exam]?.analysis.version, 4)
     }
 
     func testFullCopyIncludesSpecialKindContentAndFailure() throws {

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct TimetableView: View {
     @ObservedObject var model: MaterialsModel
@@ -35,9 +36,15 @@ struct TimetableView: View {
         changeClassesValue.isEmpty ? selectedClasses : savedChangeClasses.filter(classes.contains)
     }
     private var changeRange: ChangeRange { ChangeRange(rawValue: changeRangeValue) ?? .today }
+    private func isMappedInternational(_ subject: String, _ className: String) -> Bool {
+        guard let rules = mappings.current?.rules else { return false }
+        return rules.isInternationalStudentSubject(rules.separatingChangeField(subject).subject,
+                                                   className: className)
+    }
     private let weekdayNames = ["月", "火", "水", "木", "金", "土", "日"]
-    private let dayColumnWidth: CGFloat = 148
-    private let gridRowHeight: CGFloat = 112
+    private let dayColumnWidth: CGFloat = 58
+    private let periodColumnWidth: CGFloat = 44
+    private let gridRowHeight: CGFloat = 100
     private let gridSpacing: CGFloat = 4
 
     private struct DayGridLayout {
@@ -202,15 +209,19 @@ struct TimetableView: View {
                                                    timetable: timetable, changes: changes, events: events,
                                                    includesChanges: includesChanges,
                                                    isInternationalStudent: isInternationalStudent,
-                                                   specials: specials)
+                                                   specials: specials, matchedByRule: isMappedInternational)
         let columns = days.map(dayLayout)
         return ScrollView(.horizontal) {
             Grid(alignment: .topLeading, horizontalSpacing: gridSpacing, verticalSpacing: gridSpacing) {
                 GridRow {
-                    Text("時限").font(.caption.bold()).frame(width: 54, alignment: .topLeading)
+                    Text("時限")
+                        .font(.caption.bold())
+                        .frame(width: periodColumnWidth, alignment: .center)
+                        .gridCellAnchor(.center)
                     ForEach(columns, id: \.day) { column in
                         dayHeader(on: column.day)
-                            .frame(width: column.width, alignment: .topLeading)
+                            .frame(width: column.width, alignment: .center)
+                            .gridCellAnchor(.center)
                     }
                 }
                 GridRow {
@@ -218,12 +229,15 @@ struct TimetableView: View {
                         ForEach(1...8, id: \.self) { period in
                             let commonTime = commonPeriodTime(period, days: days)
                             VStack(spacing: 2) {
-                                Text("\(period)限").font(.caption.bold())
+                                Text("\(period)").font(.system(size: 15, weight: .semibold))
                                 if let commonTime {
-                                    Text(commonTime).font(.system(size: 9)).foregroundStyle(.secondary)
+                                    Text(commonTime.replacingOccurrences(of: "〜", with: "\n～\n"))
+                                        .font(.system(size: 9))
+                                        .foregroundStyle(.secondary)
                                 }
                             }
-                            .frame(width: 54, height: gridRowHeight, alignment: .top)
+                            .multilineTextAlignment(.center)
+                            .frame(width: periodColumnWidth, height: gridRowHeight, alignment: .center)
                         }
                     }
                     ForEach(columns, id: \.day) { column in
@@ -240,7 +254,8 @@ struct TimetableView: View {
         let positioned = selectedClasses.map { className in
             TimetableSchedule.positioned(TimetableSchedule.blocks(on: day, className: className,
                 timetable: timetable, changes: changes, includesChanges: includesChanges, events: events,
-                specials: specials, isInternationalStudent: isInternationalStudent))
+                specials: specials, isInternationalStudent: isInternationalStudent,
+                matchedByRule: isMappedInternational))
         }
         let widths = positioned.map { laneWidth($0) }
         let width = widths.reduce(0, +) + gridSpacing * CGFloat(max(0, widths.count - 1))
@@ -274,41 +289,38 @@ struct TimetableView: View {
 
     private func dayHeader(on day: SchoolDate) -> some View {
         let plan = TimetableSchedule.dayPlan(on: day, events: events)
-        let types = Set(specials.flatMap { analysis in
-            selectedClasses.contains { analysis.applies(date: day.iso8601, className: $0) }
-                ? [analysis.kind.title] : []
-        })
-        return VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: 5) {
+        return VStack(alignment: .center, spacing: 2) {
+            VStack(spacing: 0) {
                 Text("\(day.month)/\(day.day)").font(.subheadline.bold().monospacedDigit())
                 Text("(\(weekdayNames[day.schoolWeekday - 1]))").font(.caption)
                 if day == today { Text("今日").font(.caption2.bold()) }
             }
-            if plan.isNoClass {
-                Text(plan.noClassLabels.isEmpty ? "授業なし" : TimetableDisplayText.kana(plan.noClassLabels.joined(separator: "・")))
-                    .font(.caption2.bold()).foregroundStyle(.orange)
+            ForEach(Array(plan.events.enumerated()), id: \.offset) { _, event in
+                Text(TimetableDisplayText.kana(event.title))
+                    .font(.caption2)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            if plan.isSupplementary { Text("補講日").font(.caption2) }
-            if let override = plan.weekdayOverride {
-                Text("\(weekdayNames[override - 1])曜授業").font(.caption2)
-            }
-            if !types.isEmpty { Text(TimetableDisplayText.kana(types.sorted().joined(separator: "・"))).font(.caption2) }
             if plan.apiTest && selectedClasses.contains(where: { className in
                 !specials.contains { $0.kind == .exam && $0.applies(date: day.iso8601, className: className) }
             }) {
-                Text("試験時間割：未公開または未解析です").font(.caption2).foregroundStyle(.orange)
+                Text("試験時間割：未公開または未解析です")
+                    .font(.caption2).foregroundStyle(.orange)
+                    .multilineTextAlignment(.center)
             }
             if plan.apiTestReturn && selectedClasses.contains(where: { className in
                 !specials.contains { $0.kind == .examReturn && $0.applies(date: day.iso8601, className: className) }
             }) {
-                Text("試験返却時間割：未公開または未解析です").font(.caption2).foregroundStyle(.orange)
+                Text("試験返却時間割：未公開または未解析です")
+                    .font(.caption2).foregroundStyle(.orange)
+                    .multilineTextAlignment(.center)
             }
         }
-        .padding(6)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(3)
+        .frame(maxWidth: .infinity, alignment: .center)
         .background(day == today ? Color.accentColor.opacity(0.14) : Color(uiColor: .secondarySystemGroupedBackground),
                     in: RoundedRectangle(cornerRadius: 10))
-        .accessibilityLabel("\(day.month)月\(day.day)日 \(weekdayNames[day.schoolWeekday - 1])曜日")
+        .accessibilityElement(children: .combine)
     }
 
     private func laneWidth(_ blocks: [TimetableSchedule.PositionedBlock]) -> CGFloat {
@@ -357,9 +369,12 @@ struct TimetableView: View {
                                                   timetable: timetable, changes: changes,
                                                   includesChanges: includesChanges, events: events,
                                                   specials: specials)
-                let visible = slot.displayedLessons.contains { TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent) } ||
-                    slot.displayedSpecialLessons.contains { TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent) } ||
-                    slot.changes.contains { TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent) }
+                let visible = slot.displayedLessons.contains { TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent,
+                                                                                                matchedByRule: isMappedInternational) } ||
+                    slot.displayedSpecialLessons.contains { TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent,
+                                                                                               matchedByRule: isMappedInternational) } ||
+                    slot.changes.contains { TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent,
+                                                                              matchedByRule: isMappedInternational) }
                 guard visible else { continue }
                 guard let time = slotTime(slot, on: day, className: className, period: period) else { return nil }
                 times.insert(time)
@@ -385,8 +400,8 @@ struct TimetableView: View {
 
     private func gridCard(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
                           className: String, days: [SchoolDate], height: CGFloat) -> some View {
-        let label = block.startPeriod == block.endPeriod ? "\(block.startPeriod)限" :
-            "\(block.startPeriod)〜\(block.endPeriod)限"
+        let label = block.startPeriod == block.endPeriod ? "\(block.startPeriod)" :
+            "\(block.startPeriod)〜\(block.endPeriod)"
         let time = cardTime(block, on: day, className: className)
         let isChange: Bool = {
             if case .change = block.content { return true }
@@ -406,36 +421,65 @@ struct TimetableView: View {
                 selectedChange = changeSelection(for: change)
             }
         } label: {
-            VStack(alignment: .center, spacing: 3) {
-                Text(label).font(.caption2.bold()).foregroundStyle(.secondary)
+            VStack(alignment: .center, spacing: 1) {
+                Text(label).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
                 switch block.content {
                 case .normal(let lesson):
-                    Text(TimetableDisplayText.continuous(lesson.names.cellSubject))
-                        .font(.subheadline.weight(.semibold)).lineLimit(3)
-                    if showTime, let time { Text(time).font(.caption2).foregroundStyle(.secondary) }
+                    Text(cardText(TimetableDisplayText.continuous(lesson.names.cellSubject),
+                                  fontSize: 11, weight: .semibold, lines: 2))
+                        .font(.system(size: 11, weight: .semibold)).lineLimit(2)
+                    if showTime, let time {
+                        Text(cardText(time, fontSize: 8.5, lines: 2))
+                            .font(.system(size: 8.5)).foregroundStyle(.secondary).lineLimit(2)
+                    }
                     if !lesson.names.cellTeacher.isEmpty {
-                        Text(TimetableDisplayText.continuous(lesson.names.cellTeacher)).font(.caption2).lineLimit(2)
+                        Text(cardText(TimetableDisplayText.continuous(lesson.names.cellTeacher), fontSize: 9))
+                            .font(.system(size: 9)).lineLimit(1)
                     }
                     if !lesson.names.cellRoom.isEmpty {
-                        Text(TimetableDisplayText.continuous(lesson.names.cellRoom)).font(.caption2).lineLimit(2)
+                        Text(cardRoom(lesson.names.cellRoom)).font(.system(size: 9)).lineLimit(1)
                     }
                 case .special(let item):
-                    Text(TimetableDisplayText.kana(item.lesson.subject))
-                        .font(.subheadline.weight(.semibold)).lineLimit(3)
-                    if showTime, let time { Text(time).font(.caption2).foregroundStyle(.secondary) }
-                    if !item.lesson.teacher.isEmpty { Text(TimetableDisplayText.kana(item.lesson.teacher)).font(.caption2).lineLimit(2) }
-                    if !item.lesson.room.isEmpty { Text(TimetableDisplayText.kana(item.lesson.room)).font(.caption2).lineLimit(2) }
-                    Text(item.kind.title).font(.caption2).foregroundStyle(.secondary)
+                    Text(cardText(TimetableDisplayText.kana(item.lesson.subject),
+                                  fontSize: 11, weight: .semibold, lines: 2))
+                        .font(.system(size: 11, weight: .semibold)).lineLimit(2)
+                    if showTime, let time {
+                        Text(cardText(time, fontSize: 8.5, lines: 2))
+                            .font(.system(size: 8.5)).foregroundStyle(.secondary).lineLimit(2)
+                    }
+                    if !item.lesson.teacher.isEmpty {
+                        Text(cardText(TimetableDisplayText.kana(item.lesson.teacher), fontSize: 9))
+                            .font(.system(size: 9)).lineLimit(1)
+                    }
+                    if !item.lesson.room.isEmpty {
+                        Text(cardRoom(item.lesson.room)).font(.system(size: 9)).lineLimit(1)
+                    }
+                    Text(cardText(item.kind.title, fontSize: 9))
+                        .font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
                 case .change(let change):
-                    Label(change.after_subject.isEmpty ? "変更を確認" : TimetableDisplayText.kana(change.after_subject),
-                          systemImage: "arrow.triangle.2.circlepath")
-                        .font(.subheadline.weight(.semibold)).lineLimit(3)
-                    if showTime, let time { Text(time).font(.caption2).foregroundStyle(.secondary) }
-                    if !change.teacher.isEmpty { Text(TimetableDisplayText.kana(change.teacher)).font(.caption2).lineLimit(2) }
-                    if !change.room.isEmpty { Text(TimetableDisplayText.kana(change.room)).font(.caption2).lineLimit(2) }
+                    let names = mappings.names(for: change).after
+                    HStack(spacing: 1) {
+                        Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 8))
+                        Text(cardText(names.cellSubject.isEmpty ? "変更を確認" :
+                                      TimetableDisplayText.kana(names.cellSubject),
+                                      fontSize: 11, weight: .semibold, lines: 2,
+                                      width: dayColumnWidth - 19))
+                            .font(.system(size: 11, weight: .semibold)).lineLimit(2)
+                    }
+                    if showTime, let time {
+                        Text(cardText(time, fontSize: 8.5, lines: 2))
+                            .font(.system(size: 8.5)).foregroundStyle(.secondary).lineLimit(2)
+                    }
+                    if !names.cellTeacher.isEmpty {
+                        Text(cardText(TimetableDisplayText.kana(names.cellTeacher), fontSize: 9))
+                            .font(.system(size: 9)).lineLimit(1)
+                    }
+                    if !names.cellRoom.isEmpty {
+                        Text(cardRoom(names.cellRoom)).font(.system(size: 9)).lineLimit(1)
+                    }
                 }
             }
-            .padding(6)
+            .padding(3)
             .frame(width: dayColumnWidth, height: height, alignment: .center)
             .multilineTextAlignment(.center)
             .contentShape(Rectangle())
@@ -447,6 +491,38 @@ struct TimetableView: View {
         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.primary.opacity(0.08)))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .accessibilityLabel("\(TimetableDisplayText.className(className)) \(label)の授業詳細")
+    }
+
+    private func cardRoom(_ source: String) -> String {
+        let full = TimetableDisplayText.continuous(source)
+        let compact = PDFDisplayText.continuous(TimetableDisplayText.halfwidthKana(source))
+        return cardText(full, fontSize: 9, alternative: compact)
+    }
+
+    private func cardText(_ value: String, fontSize: CGFloat, weight: UIFont.Weight = .regular,
+                          lines: Int = 1, width: CGFloat? = nil, alternative: String? = nil) -> String {
+        let font = UIFont.systemFont(ofSize: fontSize, weight: weight)
+        let available = (width ?? dayColumnWidth - 8) - 2
+        func fits(_ text: String) -> Bool {
+            let attributes: [NSAttributedString.Key: Any] = [.font: font]
+            if lines == 1 { return (text as NSString).size(withAttributes: attributes).width <= available }
+            let bounds = (text as NSString).boundingRect(
+                with: CGSize(width: available, height: .greatestFiniteMagnitude),
+                options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: attributes, context: nil)
+            return bounds.height <= font.lineHeight * CGFloat(lines) + 0.5
+        }
+        let primary = value.replacingOccurrences(of: "\n", with: " ")
+        if fits(primary) { return primary }
+        let fallback = (alternative ?? primary).replacingOccurrences(of: "\n", with: " ")
+        if fits(fallback) { return fallback }
+        let characters = Array(fallback)
+        var lower = 0, upper = characters.count
+        while lower < upper {
+            let middle = (lower + upper + 1) / 2
+            if fits(String(characters.prefix(middle)) + "⋯") { lower = middle }
+            else { upper = middle - 1 }
+        }
+        return String(characters.prefix(lower)) + "⋯"
     }
 
     private func cardTime(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
@@ -471,7 +547,8 @@ struct TimetableView: View {
         let visible = listClasses.flatMap { className in
             TimetableSchedule.changes(in: changes, className: className, range: changeRange,
                                       today: today, weekStart: weekStart)
-        }.filter { TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent) }
+        }.filter { TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent,
+                                                   matchedByRule: isMappedInternational) }
             .sorted { ($0.change_date, $0.period, $0.displayClassName) < ($1.change_date, $1.period, $1.displayClassName) }
         return Section {
             Picker("表示範囲", selection: Binding(
@@ -506,13 +583,14 @@ struct TimetableView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(Array(visible.enumerated()), id: \.offset) { _, change in
+                    let selection = changeSelection(for: change)
                     Button {
-                        selectedChange = changeSelection(for: change)
+                        selectedChange = selection
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("\(change.change_date) · \(TimetableDisplayText.className(change.displayClassName)) · \(change.period.isEmpty ? "時限未記載" : change.displayPeriod)")
                                 .font(.caption).foregroundStyle(.secondary)
-                            Text(TimetableDisplayText.kana(changeSummary(change))).font(.subheadline)
+                            Text(TimetableDisplayText.kana(changeSummary(selection))).font(.subheadline)
                             if !change.note.isEmpty { Text(TimetableDisplayText.kana(change.note)).font(.caption).foregroundStyle(.secondary) }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -586,9 +664,20 @@ struct TimetableView: View {
         }
     }
 
-    private func changeSummary(_ change: ScheduleChange) -> String {
-        let before = change.before_subject.isEmpty ? "記載なし" : change.before_subject
-        let after = change.after_subject.isEmpty ? "記載なし" : change.after_subject
+    private func beforeSubject(_ selection: ChangeSelection) -> String {
+        if !selection.change.before_subject.isEmpty {
+            return mappings.names(for: selection.change).before.cellSubject
+        }
+        let names = selection.baseLessons.map(\.names.cellSubject).reduce(into: [String]()) { result, name in
+            if !name.isEmpty && !result.contains(name) { result.append(name) }
+        }
+        return names.isEmpty ? "記載なし" : names.joined(separator: "・")
+    }
+
+    private func changeSummary(_ selection: ChangeSelection) -> String {
+        let before = beforeSubject(selection)
+        let parsedAfter = mappings.names(for: selection.change).after.cellSubject
+        let after = parsedAfter.isEmpty ? "記載なし" : parsedAfter
         return "\(before) → \(after)"
     }
 
@@ -673,6 +762,7 @@ struct TimetableView: View {
 
     private func changeDetail(_ selection: ChangeSelection) -> some View {
         let change = selection.change
+        let names = mappings.names(for: change)
         let specialTimes = Set(selection.baseSpecialLessons.compactMap(\.timeRange))
         return List {
             Section("変更内容") {
@@ -685,11 +775,27 @@ struct TimetableView: View {
                 } else if specialTimes.count == 1, let time = specialTimes.first {
                     LabeledContent("時刻", value: time)
                 }
-                LabeledContent("変更前", value: change.before_subject.isEmpty ? "記載なし" : TimetableDisplayText.kana(change.before_subject))
-                LabeledContent("変更後", value: change.after_subject.isEmpty ? "記載なし" : TimetableDisplayText.kana(change.after_subject))
-                LabeledContent("教員", value: change.teacher.isEmpty ? "記載なし" : TimetableDisplayText.kana(change.teacher))
-                LabeledContent("教室", value: change.room.isEmpty ? "記載なし" : TimetableDisplayText.kana(change.room))
+                LabeledContent("変更前", value: TimetableDisplayText.kana(
+                    change.before_subject.isEmpty ? beforeSubject(selection) : names.before.detailSubject))
+                if change.before_subject.isEmpty && !selection.baseLessons.isEmpty {
+                    Text("変更前は通常時間割から表示しています。")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                if !names.before.detailTeacher.isEmpty {
+                    LabeledContent("変更前の教員", value: TimetableDisplayText.kana(names.before.detailTeacher))
+                }
+                if !names.before.detailRoom.isEmpty {
+                    LabeledContent("変更前の教室", value: TimetableDisplayText.kana(names.before.detailRoom))
+                }
+                LabeledContent("変更後", value: names.after.detailSubject.isEmpty ? "記載なし" : TimetableDisplayText.kana(names.after.detailSubject))
+                LabeledContent("変更後の教員", value: names.after.detailTeacher.isEmpty ? "記載なし" : TimetableDisplayText.kana(names.after.detailTeacher))
+                LabeledContent("変更後の教室", value: names.after.detailRoom.isEmpty ? "記載なし" : TimetableDisplayText.kana(names.after.detailRoom))
                 if !change.note.isEmpty { LabeledContent("備考", value: TimetableDisplayText.kana(change.note)) }
+                DisclosureGroup("元の記載") {
+                    if !change.before_subject.isEmpty { LabeledContent("変更前", value: change.before_subject) }
+                    if !change.after_subject.isEmpty { LabeledContent("変更後", value: change.after_subject) }
+                    if !change.raw_text.isEmpty { Text(change.raw_text).textSelection(.enabled) }
+                }
             }
             if !selection.baseLessons.isEmpty {
                 Section("通常の時間割") {
