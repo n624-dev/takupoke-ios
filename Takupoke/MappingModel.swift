@@ -129,7 +129,7 @@ struct MappingSettingsView: View {
 
     var body: some View {
         List {
-            Section("名称対応表") {
+            Section {
                 if let current = model.current {
                     LabeledContent("バージョン", value: current.version)
                     LabeledContent("最終取得") {
@@ -156,6 +156,8 @@ struct MappingSettingsView: View {
                 if !model.ready { Button("保存情報を再読み込み") { model.loadIfNeeded() } }
                 Button(model.current == nil ? "名称対応表を取得" : "更新を確認") { model.refresh() }
                     .disabled(model.busy || !model.ready)
+            } header: {
+                Text("名称対応表")
             } footer: {
                 Text("起動時は更新の有無だけを確認します。取得時に学校アカウントで認証し、通常授業の詳細に正式名称を表示します。")
             }
