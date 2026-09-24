@@ -68,6 +68,12 @@ enum TimetableSchedule {
         var displayedSpecialLessons: [SpecialItem] { changes.isEmpty ? specialLessons : [] }
     }
 
+    /// Match the merged-week source: the last makeup wins; otherwise the last row wins.
+    /// All rows stay in `Slot.changes` for the detail view and change list.
+    static func effectiveChange(_ changes: [ScheduleChange]) -> ScheduleChange? {
+        changes.last { $0.isMakeup } ?? changes.last
+    }
+
     struct GridBlock {
         enum Content {
             case normal(PDFLesson)
@@ -119,10 +125,17 @@ enum TimetableSchedule {
                     result.append(GridBlock(startPeriod: period, endPeriod: period, content: .special(special)))
                 }
             }
-            for change in item.changes where shouldDisplay(change, isInternationalStudent: isInternationalStudent,
-                                                            matchedByRule: matchedByRule) {
-                if let covered = change.gridPeriods, covered.first == period, let last = covered.last {
-                    result.append(GridBlock(startPeriod: period, endPeriod: last, content: .change(change)))
+            let visibleChanges = item.changes.filter { shouldDisplay($0,
+                isInternationalStudent: isInternationalStudent, matchedByRule: matchedByRule) }
+            if let change = effectiveChange(visibleChanges) {
+                if let previous = result.indices.last(where: { index in
+                    guard result[index].endPeriod == period - 1,
+                          case .change(let old) = result[index].content else { return false }
+                    return old == change
+                }) {
+                    result[previous].endPeriod = period
+                } else {
+                    result.append(GridBlock(startPeriod: period, endPeriod: period, content: .change(change)))
                 }
             }
         }

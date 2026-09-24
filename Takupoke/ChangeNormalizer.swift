@@ -17,6 +17,16 @@ struct ScheduleChange: Codable, Equatable {
     // class picker, filtering and labels use the same identity as new results.
     var displayClassName: String { ChangeNormalizer.canonicalClassName(class_name) }
 
+    var isCancellation: Bool {
+        note.precomposedStringWithCompatibilityMapping
+            .trimmingCharacters(in: .whitespacesAndNewlines) == "休講"
+    }
+
+    var isMakeup: Bool {
+        note.precomposedStringWithCompatibilityMapping
+            .trimmingCharacters(in: .whitespacesAndNewlines) == "補講"
+    }
+
     var displayPeriod: String {
         let value = period.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !value.isEmpty else { return "記載なし" }
