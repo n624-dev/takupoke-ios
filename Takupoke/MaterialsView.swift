@@ -271,7 +271,7 @@ private struct SpecialScheduleAnalysisView: View {
                         NavigationLink {
                             List {
                                 LabeledContent("日付", value: lesson.date)
-                                LabeledContent("クラス", value: lesson.className)
+                                LabeledContent("クラス", value: TimetableDisplayText.className(lesson.className))
                                 LabeledContent("時限", value: "\(lesson.period)限")
                                 if let time = lesson.timeRange { LabeledContent("時刻", value: time) }
                                 LabeledContent("科目", value: PDFDisplayText.continuous(lesson.subject))
@@ -285,7 +285,7 @@ private struct SpecialScheduleAnalysisView: View {
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(PDFDisplayText.continuous(lesson.subject)).font(.headline)
-                                Text("\(lesson.date) · \(lesson.className) · \(lesson.period)限")
+                                Text("\(lesson.date) · \(TimetableDisplayText.className(lesson.className)) · \(lesson.period)限")
                                     .font(.caption).foregroundStyle(.secondary)
                                 let metadata = [lesson.teacher, lesson.room].filter { !$0.isEmpty }
                                 if !metadata.isEmpty {

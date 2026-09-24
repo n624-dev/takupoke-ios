@@ -93,9 +93,9 @@ struct PDFAnalysisView: View {
                         Picker("クラス", selection: $selectedClass) {
                             Text("すべて").tag("")
                             if !selectedClass.isEmpty && !classes.contains(selectedClass) {
-                                Text("\(selectedClass)（保存済み・現在のファイルに該当なし）").tag(selectedClass)
+                                Text("\(TimetableDisplayText.className(selectedClass))（保存済み・現在のファイルに該当なし）").tag(selectedClass)
                             }
-                            ForEach(classes, id: \.self) { Text($0).tag($0) }
+                            ForEach(classes, id: \.self) { Text(TimetableDisplayText.className($0)).tag($0) }
                         }
                         if !selectedClass.isEmpty && !classes.contains(selectedClass) {
                             Label("選択したクラスは現在の解析結果にありません。選択は保持しています。", systemImage: "exclamationmark.triangle")
@@ -111,7 +111,7 @@ struct PDFAnalysisView: View {
                         } label: {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(PDFDisplayText.continuous(lesson.names.cellSubject)).font(.headline)
-                                Text("\(lesson.className) · \(weekdays[lesson.weekday])曜 · \(lesson.period)限")
+                                Text("\(TimetableDisplayText.className(lesson.className)) · \(weekdays[lesson.weekday])曜 · \(lesson.period)限")
                                     .font(.subheadline).foregroundStyle(.secondary)
                                 let metadata = [lesson.names.cellTeacher, lesson.names.cellRoom].filter { !$0.isEmpty }
                                 if !metadata.isEmpty { Text(PDFDisplayText.continuous(metadata.joined(separator: " / "))).font(.caption) }
@@ -199,7 +199,7 @@ private struct PDFLessonDetail: View {
         List {
             Section {
                 Text(PDFDisplayText.continuous(names.detailSubject)).font(.title3)
-                LabeledContent("クラス", value: lesson.className)
+                LabeledContent("クラス", value: TimetableDisplayText.className(lesson.className))
                 LabeledContent("時限", value: "\(lesson.period)限")
                 LabeledContent("教員", value: names.detailTeacher.isEmpty ? "記載なし" : PDFDisplayText.continuous(names.detailTeacher))
                 LabeledContent("教室", value: names.detailRoom.isEmpty ? "記載なし" : PDFDisplayText.continuous(names.detailRoom))

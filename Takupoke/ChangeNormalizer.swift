@@ -22,6 +22,30 @@ struct ScheduleChange: Codable, Equatable {
         guard !value.isEmpty else { return "記載なし" }
         return value.range(of: "^[0-9]+$", options: .regularExpression) == nil ? period : "\(value)限"
     }
+
+    /// A change remains one saved row even when it covers consecutive periods.
+    /// Unsupported or nonconsecutive notation stays visible in the change list.
+    var gridPeriods: [Int]? {
+        let value = period.precomposedStringWithCompatibilityMapping
+            .replacingOccurrences(of: "〜", with: "~")
+            .filter { !$0.isWhitespace }
+        let parts: [String]
+        if value.contains(",") {
+            parts = value.split(separator: ",", omittingEmptySubsequences: false).map(String.init)
+        } else if value.contains("~") {
+            let bounds = value.split(separator: "~", omittingEmptySubsequences: false)
+            guard bounds.count == 2, let first = Int(bounds[0]), let last = Int(bounds[1]),
+                  (1...8).contains(first), (1...8).contains(last), first < last else { return nil }
+            return Array(first...last)
+        } else {
+            parts = [value]
+        }
+        let periods = parts.compactMap(Int.init)
+        guard periods.count == parts.count, !periods.isEmpty,
+              periods.allSatisfy({ (1...8).contains($0) }),
+              zip(periods, periods.dropFirst()).allSatisfy({ $0.1 == $0.0 + 1 }) else { return nil }
+        return periods
+    }
 }
 
 struct ChangeAnalysis: Codable {

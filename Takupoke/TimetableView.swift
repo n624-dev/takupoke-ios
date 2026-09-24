@@ -26,7 +26,8 @@ struct TimetableView: View {
     private var specials: [SpecialScheduleAnalysis] {
         specialSchedules.records.values.map(\.analysis).sorted { $0.kind.rawValue < $1.kind.rawValue }
     }
-    private var classes: [String] { TimetableSchedule.classes(in: model.state, specials: specials) }
+    private var classes: [String] { TimetableSchedule.selectableClasses }
+    private var availableClasses: [String] { TimetableSchedule.classes(in: model.state, specials: specials) }
     private var savedClasses: [String] { Self.decode(selectedClassesValue) }
     private var selectedClasses: [String] { savedClasses.filter(classes.contains) }
     private var savedChangeClasses: [String] { Self.decode(changeClassesValue) }
@@ -36,6 +37,9 @@ struct TimetableView: View {
     private var changeRange: ChangeRange { ChangeRange(rawValue: changeRangeValue) ?? .today }
     private let weekdayNames = ["月", "火", "水", "木", "金", "土", "日"]
     private let dayColumnWidth: CGFloat = 148
+    private let gridRowHeight: CGFloat = 112
+    private let gridHeaderHeight: CGFloat = 112
+    private let gridSpacing: CGFloat = 4
 
     var body: some View {
         NavigationStack {
@@ -46,7 +50,7 @@ struct TimetableView: View {
                     Section {
                         ContentUnavailableViewPlaceholder()
                         if !savedClasses.isEmpty {
-                            LabeledContent("保存したクラス", value: TimetableDisplayText.kana(savedClasses.joined(separator: "・")))
+                            LabeledContent("保存したクラス", value: TimetableDisplayText.classNames(savedClasses))
                         }
                     }
                 } else {
@@ -54,9 +58,9 @@ struct TimetableView: View {
                         NavigationLink {
                             TimetablePrimaryClassSelection(classes: classes, value: $selectedClassesValue)
                         } label: {
-                            LabeledContent("クラス", value: savedClasses.isEmpty ? "未選択" : TimetableDisplayText.kana(savedClasses.joined(separator: "・")))
+                            LabeledContent("クラス", value: savedClasses.isEmpty ? "未選択" : TimetableDisplayText.classNames(savedClasses))
                         }
-                        if savedClasses.contains(where: { !classes.contains($0) }) {
+                        if savedClasses.contains(where: { !availableClasses.contains($0) }) {
                             Label("保存したクラスの一部は現在の資料にありません。選択は保持しています。", systemImage: "exclamationmark.triangle")
                                 .font(.caption).foregroundStyle(.orange)
                         }
@@ -81,13 +85,13 @@ struct TimetableView: View {
                 }
             }
             .sheet(item: $selectedLesson) { selection in
-                NavigationStack { lessonDetail(selection.lesson, date: selection.date) }
+                NavigationStack { lessonDetail(selection) }
             }
             .sheet(item: $selectedChange) { selection in
                 NavigationStack { changeDetail(selection) }
             }
             .sheet(item: $selectedSpecial) { selection in
-                NavigationStack { specialDetail(selection.item) }
+                NavigationStack { specialDetail(selection) }
             }
             .sheet(isPresented: $showingWeekPicker) {
                 NavigationStack {
@@ -194,65 +198,146 @@ struct TimetableView: View {
                                                    isInternationalStudent: isInternationalStudent,
                                                    specials: specials)
         return ScrollView(.horizontal) {
-            Grid(alignment: .topLeading, horizontalSpacing: 4, verticalSpacing: 4) {
-                GridRow {
-                    Text("時限").font(.caption.bold()).frame(width: 54)
-                    ForEach(days, id: \.self) { day in
-                        let plan = TimetableSchedule.dayPlan(on: day, events: events)
-                        VStack(spacing: 3) {
-                            HStack(spacing: 5) {
-                                Text("\(day.month)/\(day.day)")
-                                    .font(.subheadline.bold().monospacedDigit())
-                                Text("(\(weekdayNames[day.schoolWeekday - 1]))")
-                                    .font(.caption)
-                                if day == today { Text("今日").font(.caption2.bold()) }
-                            }
-                            if plan.isSupplementary { Text("補講日").font(.caption2) }
-                            if let override = plan.weekdayOverride {
-                                Text("\(weekdayNames[override - 1])曜授業").font(.caption2)
-                            }
-                            let types = Set(specials.flatMap { analysis in
-                                selectedClasses.contains { analysis.applies(date: day.iso8601, className: $0) }
-                                    ? [analysis.kind.title] : []
-                            })
-                            if !types.isEmpty { Text(TimetableDisplayText.kana(types.sorted().joined(separator: "・"))).font(.caption2) }
-                            if plan.apiTest && selectedClasses.contains(where: { className in
-                                !specials.contains { $0.kind == .exam && $0.applies(date: day.iso8601, className: className) }
-                            }) {
-                                Text("試験時間割：未公開または未解析です").font(.caption2).foregroundStyle(.orange)
-                            }
-                            if plan.apiTestReturn && selectedClasses.contains(where: { className in
-                                !specials.contains { $0.kind == .examReturn && $0.applies(date: day.iso8601, className: className) }
-                            }) {
-                                Text("試験返却時間割：未公開または未解析です").font(.caption2).foregroundStyle(.orange)
-                            }
-                        }
-                        .frame(width: dayColumnWidth)
-                        .frame(minHeight: 44)
-                        .background(day == today ? Color.accentColor.opacity(0.14) : Color(uiColor: .secondarySystemGroupedBackground),
-                                    in: RoundedRectangle(cornerRadius: 10))
-                        .accessibilityLabel("\(day.month)月\(day.day)日 \(weekdayNames[day.schoolWeekday - 1])曜日")
-                    }
-                }
-                ForEach(1...8, id: \.self) { period in
-                    let commonTime = commonPeriodTime(period, days: days)
-                    GridRow {
+            HStack(alignment: .top, spacing: gridSpacing) {
+                VStack(spacing: gridSpacing) {
+                    Text("時限").font(.caption.bold())
+                        .frame(width: 54, height: gridHeaderHeight, alignment: .top)
+                    Color.clear.frame(width: 54, height: 18)
+                    ForEach(1...8, id: \.self) { period in
+                        let commonTime = commonPeriodTime(period, days: days)
                         VStack(spacing: 2) {
                             Text("\(period)限").font(.caption.bold())
                             if let commonTime {
                                 Text(commonTime).font(.system(size: 9)).foregroundStyle(.secondary)
                             }
                         }
-                        .frame(width: 54, alignment: .top)
-                        ForEach(days, id: \.self) { day in
-                            timetableCell(on: day, period: period, commonTime: commonTime)
-                        }
+                        .frame(width: 54, height: gridRowHeight, alignment: .top)
                     }
+                }
+                ForEach(days, id: \.self) { day in
+                    dayColumn(on: day, days: days)
                 }
             }
             .padding(.horizontal)
         }
-        .accessibilityLabel("\(TimetableDisplayText.kana(selectedClasses.joined(separator: "・")))の週の時間割")
+        .accessibilityLabel("\(selectedClasses.map(TimetableDisplayText.className).joined(separator: "・"))の週の時間割")
+    }
+
+    private func dayColumn(on day: SchoolDate, days: [SchoolDate]) -> some View {
+        let layouts = selectedClasses.map { className in
+            TimetableSchedule.positioned(TimetableSchedule.blocks(on: day, className: className,
+                timetable: timetable, changes: changes, includesChanges: includesChanges, events: events,
+                specials: specials, isInternationalStudent: isInternationalStudent))
+        }
+        let widths = layouts.map { laneWidth($0) }
+        let width = widths.reduce(0, +) + gridSpacing * CGFloat(max(0, widths.count - 1))
+        let fullDayEventTitle = TimetableSchedule.fullDayEventTitle(
+            plan: TimetableSchedule.dayPlan(on: day, events: events), layouts: layouts)
+        return VStack(spacing: gridSpacing) {
+            dayHeader(on: day)
+                .frame(width: width, height: gridHeaderHeight, alignment: .topLeading)
+            HStack(spacing: gridSpacing) {
+                ForEach(selectedClasses.indices, id: \.self) { index in
+                    Text(TimetableDisplayText.className(selectedClasses[index]))
+                        .font(.caption2.bold()).foregroundStyle(.secondary)
+                        .frame(width: widths[index], height: 18)
+                }
+            }
+            if let fullDayEventTitle {
+                Text(TimetableDisplayText.kana(fullDayEventTitle))
+                    .font(.subheadline.weight(.semibold))
+                    .multilineTextAlignment(.center)
+                    .padding(12)
+                    .frame(width: width, height: 8 * gridRowHeight + 7 * gridSpacing, alignment: .center)
+                    .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.orange.opacity(0.3)))
+                    .accessibilityLabel(fullDayEventTitle)
+            } else {
+                HStack(alignment: .top, spacing: gridSpacing) {
+                    ForEach(selectedClasses.indices, id: \.self) { index in
+                        classLane(on: day, className: selectedClasses[index], days: days,
+                                  positioned: layouts[index])
+                    }
+                }
+            }
+        }
+    }
+
+    private func dayHeader(on day: SchoolDate) -> some View {
+        let plan = TimetableSchedule.dayPlan(on: day, events: events)
+        let types = Set(specials.flatMap { analysis in
+            selectedClasses.contains { analysis.applies(date: day.iso8601, className: $0) }
+                ? [analysis.kind.title] : []
+        })
+        return VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 5) {
+                Text("\(day.month)/\(day.day)").font(.subheadline.bold().monospacedDigit())
+                Text("(\(weekdayNames[day.schoolWeekday - 1]))").font(.caption)
+                if day == today { Text("今日").font(.caption2.bold()) }
+            }
+            if plan.isNoClass {
+                Text(plan.noClassLabels.isEmpty ? "授業なし" : TimetableDisplayText.kana(plan.noClassLabels.joined(separator: "・")))
+                    .font(.caption2.bold()).foregroundStyle(.orange)
+            }
+            if plan.isSupplementary { Text("補講日").font(.caption2) }
+            if let override = plan.weekdayOverride {
+                Text("\(weekdayNames[override - 1])曜授業").font(.caption2)
+            }
+            if !types.isEmpty { Text(TimetableDisplayText.kana(types.sorted().joined(separator: "・"))).font(.caption2) }
+            if plan.apiTest && selectedClasses.contains(where: { className in
+                !specials.contains { $0.kind == .exam && $0.applies(date: day.iso8601, className: className) }
+            }) {
+                Text("試験時間割：未公開または未解析です").font(.caption2).foregroundStyle(.orange)
+            }
+            if plan.apiTestReturn && selectedClasses.contains(where: { className in
+                !specials.contains { $0.kind == .examReturn && $0.applies(date: day.iso8601, className: className) }
+            }) {
+                Text("試験返却時間割：未公開または未解析です").font(.caption2).foregroundStyle(.orange)
+            }
+        }
+        .padding(6)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(day == today ? Color.accentColor.opacity(0.14) : Color(uiColor: .secondarySystemGroupedBackground),
+                    in: RoundedRectangle(cornerRadius: 10))
+        .accessibilityLabel("\(day.month)月\(day.day)日 \(weekdayNames[day.schoolWeekday - 1])曜日")
+    }
+
+    private func laneWidth(_ blocks: [TimetableSchedule.PositionedBlock]) -> CGFloat {
+        let lanes = max(1, (blocks.map(\.lane).max() ?? -1) + 1)
+        return CGFloat(lanes) * dayColumnWidth + CGFloat(lanes - 1) * gridSpacing
+    }
+
+    private func classLane(on day: SchoolDate, className: String, days: [SchoolDate],
+                           positioned: [TimetableSchedule.PositionedBlock]) -> some View {
+        let width = laneWidth(positioned)
+        let plan = TimetableSchedule.dayPlan(on: day, events: events)
+        return VStack(spacing: gridSpacing) {
+            ForEach(1...8, id: \.self) { period in
+                let occupied = positioned.contains { $0.block.startPeriod <= period && period <= $0.block.endPeriod }
+                Group {
+                    if occupied || plan.isNoClass { Color.clear }
+                    else { Text("—").foregroundStyle(.tertiary).frame(maxWidth: .infinity, alignment: .leading) }
+                }
+                .padding(6)
+                .frame(width: width, height: gridRowHeight, alignment: .topLeading)
+                .background(plan.isNoClass ? Color.orange.opacity(0.10) : Color(uiColor: .secondarySystemGroupedBackground),
+                            in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.primary.opacity(0.08)))
+            }
+        }
+        .overlay(alignment: .topLeading) {
+            ForEach(positioned.indices, id: \.self) { index in
+                let entry = positioned[index]
+                let span = entry.block.endPeriod - entry.block.startPeriod + 1
+                gridCard(entry.block, on: day, className: className, days: days)
+                    .frame(width: dayColumnWidth,
+                           height: CGFloat(span) * gridRowHeight + CGFloat(span - 1) * gridSpacing,
+                           alignment: .topLeading)
+                    .offset(x: CGFloat(entry.lane) * (dayColumnWidth + gridSpacing),
+                            y: CGFloat(entry.block.startPeriod - 1) * (gridRowHeight + gridSpacing))
+            }
+        }
+        .frame(width: width, height: 8 * gridRowHeight + 7 * gridSpacing, alignment: .topLeading)
     }
 
     private func commonPeriodTime(_ period: Int, days: [SchoolDate]) -> String? {
@@ -291,112 +376,86 @@ struct TimetableView: View {
             ? times.first : nil
     }
 
-    private func timetableCell(on day: SchoolDate, period: Int, commonTime: String?) -> some View {
-        let plan = TimetableSchedule.dayPlan(on: day, events: events)
-        let hasItems = selectedClasses.contains { className in
-            let slot = TimetableSchedule.slot(on: day, period: period, className: className,
-                                              timetable: timetable, changes: changes,
-                                              includesChanges: includesChanges, events: events,
-                                              specials: specials)
-            return slot.displayedLessons.contains { TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent) } ||
-                slot.displayedSpecialLessons.contains { TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent) } ||
-                slot.changes.contains { TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent) }
-        }
-        return VStack(alignment: .leading, spacing: 4) {
-            if plan.isNoClass && !plan.apiNoClass {
-                if period == 1 {
-                    Text(plan.noClassLabels.isEmpty ? "授業なし" : TimetableDisplayText.kana(plan.noClassLabels.joined(separator: "・")))
-                        .font(.caption.bold())
-                }
-            } else {
-                if plan.isNoClass && period == 1 {
-                    Text(plan.noClassLabels.isEmpty ? "授業なし" : TimetableDisplayText.kana(plan.noClassLabels.joined(separator: "・")))
-                        .font(.caption.bold())
-                        .foregroundStyle(.orange)
-                }
-                ForEach(selectedClasses, id: \.self) { className in
-                    classSlot(on: day, period: period, className: className, commonTime: commonTime)
-                }
-                if !hasItems && !plan.isNoClass { Text("—").foregroundStyle(.tertiary) }
+    private func gridCard(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
+                          className: String, days: [SchoolDate]) -> some View {
+        let label = block.startPeriod == block.endPeriod ? "\(block.startPeriod)限" :
+            "\(block.startPeriod)〜\(block.endPeriod)限"
+        let time = cardTime(block, on: day, className: className)
+        let isChange: Bool = {
+            if case .change = block.content { return true }
+            return false
+        }()
+        let showTime = block.startPeriod != block.endPeriod ||
+            commonPeriodTime(block.startPeriod, days: days) == nil
+        return Button {
+            switch block.content {
+            case .normal(let lesson):
+                selectedLesson = LessonSelection(lesson: lesson, date: day,
+                                                 startPeriod: block.startPeriod, endPeriod: block.endPeriod)
+            case .special(let item):
+                selectedSpecial = SpecialSelection(item: item, startPeriod: block.startPeriod,
+                                                   endPeriod: block.endPeriod, timeRange: time)
+            case .change(let change):
+                selectedChange = changeSelection(for: change)
             }
+        } label: {
+            VStack(alignment: .center, spacing: 3) {
+                Text(label).font(.caption2.bold()).foregroundStyle(.secondary)
+                switch block.content {
+                case .normal(let lesson):
+                    Text(TimetableDisplayText.continuous(lesson.names.cellSubject))
+                        .font(.subheadline.weight(.semibold)).lineLimit(3)
+                    if showTime, let time { Text(time).font(.caption2).foregroundStyle(.secondary) }
+                    if !lesson.names.cellTeacher.isEmpty {
+                        Text(TimetableDisplayText.continuous(lesson.names.cellTeacher)).font(.caption2).lineLimit(2)
+                    }
+                    if !lesson.names.cellRoom.isEmpty {
+                        Text(TimetableDisplayText.continuous(lesson.names.cellRoom)).font(.caption2).lineLimit(2)
+                    }
+                case .special(let item):
+                    Text(TimetableDisplayText.kana(item.lesson.subject))
+                        .font(.subheadline.weight(.semibold)).lineLimit(3)
+                    if showTime, let time { Text(time).font(.caption2).foregroundStyle(.secondary) }
+                    if !item.lesson.teacher.isEmpty { Text(TimetableDisplayText.kana(item.lesson.teacher)).font(.caption2).lineLimit(2) }
+                    if !item.lesson.room.isEmpty { Text(TimetableDisplayText.kana(item.lesson.room)).font(.caption2).lineLimit(2) }
+                    Text(item.kind.title).font(.caption2).foregroundStyle(.secondary)
+                case .change(let change):
+                    Label(change.after_subject.isEmpty ? "変更を確認" : TimetableDisplayText.kana(change.after_subject),
+                          systemImage: "arrow.triangle.2.circlepath")
+                        .font(.subheadline.weight(.semibold)).lineLimit(3)
+                    if showTime, let time { Text(time).font(.caption2).foregroundStyle(.secondary) }
+                    if !change.teacher.isEmpty { Text(TimetableDisplayText.kana(change.teacher)).font(.caption2).lineLimit(2) }
+                    if !change.room.isEmpty { Text(TimetableDisplayText.kana(change.room)).font(.caption2).lineLimit(2) }
+                }
+            }
+            .padding(6)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .multilineTextAlignment(.center)
+            .contentShape(Rectangle())
         }
-        .padding(6)
-        .frame(width: dayColumnWidth, alignment: .topLeading)
-        .frame(minHeight: 72, alignment: .topLeading)
-        .background(plan.isNoClass ? Color.orange.opacity(0.10) : Color(uiColor: .secondarySystemGroupedBackground),
-                    in: RoundedRectangle(cornerRadius: 10))
+        .buttonStyle(.plain)
+        .foregroundStyle(isChange ? Color.orange : Color.primary)
+        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10))
         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.primary.opacity(0.08)))
+        .accessibilityLabel("\(TimetableDisplayText.className(className)) \(label)の授業詳細")
     }
 
-    private func classSlot(on day: SchoolDate, period: Int, className: String,
-                           commonTime: String?) -> some View {
-        let slot = TimetableSchedule.slot(on: day, period: period, className: className,
-                                          timetable: timetable, changes: changes,
-                                          includesChanges: includesChanges, events: events,
-                                          specials: specials)
-        return VStack(alignment: .leading, spacing: 4) {
-            if selectedClasses.count > 1 && (!slot.displayedLessons.isEmpty || !slot.specialLessons.isEmpty || !slot.changes.isEmpty) {
-                Text(TimetableDisplayText.kana(className)).font(.caption2.bold()).foregroundStyle(.secondary)
-            }
-            ForEach(Array(slot.displayedLessons.filter {
-                TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent)
-            }.enumerated()), id: \.offset) { _, lesson in
-                Button {
-                    selectedLesson = LessonSelection(lesson: lesson, date: day)
-                } label: {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(TimetableDisplayText.continuous(lesson.names.cellSubject)).font(.subheadline.weight(.semibold)).lineLimit(3)
-                        if commonTime == nil { Text(TimetableSchedule.normalPeriodTimes[period - 1]).font(.caption2).foregroundStyle(.secondary) }
-                        if !lesson.names.cellTeacher.isEmpty {
-                            Text(TimetableDisplayText.continuous(lesson.names.cellTeacher)).font(.caption2).foregroundStyle(.secondary).lineLimit(2)
-                        }
-                        if !lesson.names.cellRoom.isEmpty {
-                            Text(TimetableDisplayText.continuous(lesson.names.cellRoom)).font(.caption2).foregroundStyle(.secondary).lineLimit(2)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(period)限 \(TimetableDisplayText.continuous(lesson.names.cellSubject))の詳細")
-            }
-            ForEach(Array(slot.displayedSpecialLessons.filter {
-                TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent)
-            }.enumerated()), id: \.offset) { _, item in
-                Button { selectedSpecial = SpecialSelection(item: item) } label: {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(TimetableDisplayText.kana(item.lesson.subject)).font(.subheadline.weight(.semibold)).lineLimit(3)
-                        if commonTime == nil, let time = item.timeRange { Text(time).font(.caption2).foregroundStyle(.secondary) }
-                        if !item.lesson.teacher.isEmpty { Text(TimetableDisplayText.kana(item.lesson.teacher)).font(.caption2).lineLimit(2) }
-                        if !item.lesson.room.isEmpty { Text(TimetableDisplayText.kana(item.lesson.room)).font(.caption2).lineLimit(2) }
-                        Text(item.kind.title).font(.caption2).foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-            }
-            ForEach(Array(slot.changes.filter {
-                TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent)
-            }.enumerated()), id: \.offset) { _, change in
-                Button { selectedChange = ChangeSelection(change: change, baseLessons: slot.baseLessons,
-                                                          baseSpecialLessons: slot.specialLessons) } label: {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Label(change.after_subject.isEmpty ? "変更を確認" : TimetableDisplayText.kana(change.after_subject),
-                              systemImage: "arrow.triangle.2.circlepath")
-                            .font(.caption.weight(.semibold)).lineLimit(3)
-                        if commonTime == nil,
-                           let time = slotTime(slot, on: day, className: className, period: period) {
-                            Text(time).font(.caption2).foregroundStyle(.secondary)
-                        }
-                        if !change.teacher.isEmpty { Text(TimetableDisplayText.kana(change.teacher)).font(.caption2).lineLimit(2) }
-                        if !change.room.isEmpty { Text(TimetableDisplayText.kana(change.room)).font(.caption2).lineLimit(2) }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.orange)
-                .accessibilityLabel("\(period)限の変更後の授業詳細。通常の時間割も表示")
-            }
-        }
+    private func cardTime(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
+                          className: String) -> String? {
+        let firstSlot = TimetableSchedule.slot(on: day, period: block.startPeriod, className: className,
+                                               timetable: timetable, changes: changes,
+                                               includesChanges: includesChanges, events: events, specials: specials)
+        guard let first = slotTime(firstSlot, on: day, className: className,
+                                   period: block.startPeriod) else { return nil }
+        if block.startPeriod == block.endPeriod { return first }
+        let lastSlot = TimetableSchedule.slot(on: day, period: block.endPeriod, className: className,
+                                              timetable: timetable, changes: changes,
+                                              includesChanges: includesChanges, events: events, specials: specials)
+        guard let last = slotTime(lastSlot, on: day, className: className,
+                                  period: block.endPeriod),
+              let startTime = first.components(separatedBy: "〜").first,
+              let endTime = last.components(separatedBy: "〜").last else { return nil }
+        return "\(startTime)〜\(endTime)"
     }
 
     private var changesSection: some View {
@@ -417,10 +476,10 @@ struct TimetableView: View {
                     set: { changeClassesValue = $0 }))
             } label: {
                 LabeledContent("対象クラス", value: changeClassesValue.isEmpty
-                    ? (savedClasses.isEmpty ? "未選択" : TimetableDisplayText.kana(savedClasses.joined(separator: "・")))
-                    : TimetableDisplayText.kana(savedChangeClasses.joined(separator: "・")))
+                    ? (savedClasses.isEmpty ? "未選択" : TimetableDisplayText.classNames(savedClasses))
+                    : TimetableDisplayText.classNames(savedChangeClasses))
             }
-            if !changeClassesValue.isEmpty && savedChangeClasses.contains(where: { !classes.contains($0) }) {
+            if !changeClassesValue.isEmpty && savedChangeClasses.contains(where: { !availableClasses.contains($0) }) {
                 Label("保存した対象クラスの一部は現在の資料にありません。選択は保持しています。", systemImage: "exclamationmark.triangle")
                     .font(.caption).foregroundStyle(.orange)
             }
@@ -439,12 +498,10 @@ struct TimetableView: View {
             } else {
                 ForEach(Array(visible.enumerated()), id: \.offset) { _, change in
                     Button {
-                        let base = baseSlot(for: change)
-                        selectedChange = ChangeSelection(change: change, baseLessons: base?.baseLessons ?? [],
-                                                         baseSpecialLessons: base?.specialLessons ?? [])
+                        selectedChange = changeSelection(for: change)
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("\(change.change_date) · \(TimetableDisplayText.kana(change.displayClassName)) · \(change.period.isEmpty ? "時限未記載" : change.displayPeriod)")
+                            Text("\(change.change_date) · \(TimetableDisplayText.className(change.displayClassName)) · \(change.period.isEmpty ? "時限未記載" : change.displayPeriod)")
                                 .font(.caption).foregroundStyle(.secondary)
                             Text(TimetableDisplayText.kana(changeSummary(change))).font(.subheadline)
                             if !change.note.isEmpty { Text(TimetableDisplayText.kana(change.note)).font(.caption).foregroundStyle(.secondary) }
@@ -526,39 +583,48 @@ struct TimetableView: View {
         return "\(before) → \(after)"
     }
 
-    private func baseSlot(for change: ScheduleChange) -> TimetableSchedule.Slot? {
-        guard let day = SchoolDate(iso8601: change.change_date), let period = Int(change.period) else { return nil }
-        return TimetableSchedule.slot(on: day, period: period, className: change.displayClassName,
-                                      timetable: timetable, changes: nil, includesChanges: false,
-                                      events: events, specials: specials)
+    private func changeSelection(for change: ScheduleChange) -> ChangeSelection {
+        guard let day = SchoolDate(iso8601: change.change_date) else {
+            return ChangeSelection(change: change, baseLessons: [], baseSpecialLessons: [])
+        }
+        let originals = (change.gridPeriods ?? []).map { period in
+            TimetableSchedule.slot(on: day, period: period, className: change.displayClassName,
+                                   timetable: timetable, changes: nil, includesChanges: false,
+                                   events: events, specials: specials)
+        }
+        return ChangeSelection(change: change, baseLessons: originals.flatMap(\.baseLessons),
+                               baseSpecialLessons: originals.flatMap(\.specialLessons))
     }
 
     private var weekEvents: some View {
-        let rows = (0..<7).compactMap { weekStart.addingDays($0) }.flatMap { day in
-            TimetableSchedule.events(on: day, analysis: events).map { (day, $0) }
+        let rows = (0..<7).compactMap { weekStart.addingDays($0) }.compactMap { day -> (SchoolDate, [String])? in
+            let titles = TimetableSchedule.events(on: day, analysis: events).map(\.title)
+            return titles.isEmpty ? nil : (day, titles)
         }
         return Group {
             if !rows.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(Array(rows.enumerated()), id: \.offset) { _, entry in
-                        Text(TimetableDisplayText.kana("\(entry.0.month)/\(entry.0.day) \(entry.1.title)" +
-                             (entry.1.apiTag.map { " · \($0)" } ?? "")))
+                        Text(TimetableDisplayText.kana("\(entry.0.month)/\(entry.0.day) " + entry.1.joined(separator: "・")))
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }
         }
     }
 
-    private func lessonDetail(_ lesson: PDFLesson, date: SchoolDate) -> some View {
+    private func lessonDetail(_ selection: LessonSelection) -> some View {
+        let lesson = selection.lesson
         let names = mappings.names(for: lesson)
         return List {
             Section("通常の授業") {
-                LabeledContent("日付", value: date.iso8601)
-                LabeledContent("クラス", value: TimetableDisplayText.kana(lesson.className))
-                LabeledContent("時限", value: "\(lesson.period)限")
-                LabeledContent("時刻", value: TimetableSchedule.normalPeriodTimes[lesson.period - 1])
+                LabeledContent("日付", value: selection.date.iso8601)
+                LabeledContent("クラス", value: TimetableDisplayText.className(lesson.className))
+                LabeledContent("時限", value: selection.startPeriod == selection.endPeriod
+                               ? "\(selection.startPeriod)限" : "\(selection.startPeriod)〜\(selection.endPeriod)限")
+                LabeledContent("時刻", value: normalTime(from: selection.startPeriod, to: selection.endPeriod))
                 LabeledContent("科目", value: TimetableDisplayText.continuous(names.detailSubject))
                 LabeledContent("教員", value: names.detailTeacher.isEmpty ? "記載なし" : TimetableDisplayText.continuous(names.detailTeacher))
                 LabeledContent("教室", value: names.detailRoom.isEmpty ? "記載なし" : TimetableDisplayText.continuous(names.detailRoom))
@@ -568,15 +634,22 @@ struct TimetableView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private func specialDetail(_ item: TimetableSchedule.SpecialItem) -> some View {
+    private func normalTime(from start: Int, to end: Int) -> String {
+        let first = TimetableSchedule.normalPeriodTimes[start - 1]
+        let last = TimetableSchedule.normalPeriodTimes[end - 1]
+        return "\(first.components(separatedBy: "〜").first ?? first)〜\(last.components(separatedBy: "〜").last ?? last)"
+    }
+
+    private func specialDetail(_ selection: SpecialSelection) -> some View {
+        let item = selection.item
         let lesson = item.lesson
         return List {
             Section(item.kind.title) {
                 LabeledContent("日付", value: lesson.date)
-                LabeledContent("クラス", value: TimetableDisplayText.kana(lesson.className))
-                LabeledContent("時限", value: lesson.spanStart == lesson.spanEnd
-                               ? "\(lesson.period)限" : "\(lesson.spanStart)〜\(lesson.spanEnd)限")
-                if let time = item.timeRange { LabeledContent("時刻", value: time) }
+                LabeledContent("クラス", value: TimetableDisplayText.className(lesson.className))
+                LabeledContent("時限", value: selection.startPeriod == selection.endPeriod
+                               ? "\(selection.startPeriod)限" : "\(selection.startPeriod)〜\(selection.endPeriod)限")
+                if let time = selection.timeRange { LabeledContent("時刻", value: time) }
                 LabeledContent("科目", value: TimetableDisplayText.continuous(lesson.subject))
                 LabeledContent("教員", value: lesson.teacher.isEmpty ? "記載なし" : TimetableDisplayText.continuous(lesson.teacher))
                 LabeledContent("教室", value: lesson.room.isEmpty ? "記載なし" : TimetableDisplayText.continuous(lesson.room))
@@ -595,12 +668,13 @@ struct TimetableView: View {
         return List {
             Section("変更内容") {
                 LabeledContent("日付", value: change.change_date)
-                LabeledContent("クラス", value: TimetableDisplayText.kana(change.displayClassName))
+                LabeledContent("クラス", value: TimetableDisplayText.className(change.displayClassName))
                 LabeledContent("時限", value: change.displayPeriod)
-                if specialTimes.count == 1, let time = specialTimes.first {
+                if let periods = change.gridPeriods, let first = periods.first, let last = periods.last,
+                   !selection.baseLessons.isEmpty {
+                    LabeledContent("時刻", value: normalTime(from: first, to: last))
+                } else if specialTimes.count == 1, let time = specialTimes.first {
                     LabeledContent("時刻", value: time)
-                } else if !selection.baseLessons.isEmpty, let period = Int(change.period), (1...8).contains(period) {
-                    LabeledContent("時刻", value: TimetableSchedule.normalPeriodTimes[period - 1])
                 }
                 LabeledContent("変更前", value: change.before_subject.isEmpty ? "記載なし" : TimetableDisplayText.kana(change.before_subject))
                 LabeledContent("変更後", value: change.after_subject.isEmpty ? "記載なし" : TimetableDisplayText.kana(change.after_subject))
@@ -643,6 +717,8 @@ private struct LessonSelection: Identifiable {
     let id = UUID()
     let lesson: PDFLesson
     let date: SchoolDate
+    let startPeriod: Int
+    let endPeriod: Int
 }
 
 private struct ChangeSelection: Identifiable {
@@ -655,6 +731,9 @@ private struct ChangeSelection: Identifiable {
 private struct SpecialSelection: Identifiable {
     let id = UUID()
     let item: TimetableSchedule.SpecialItem
+    let startPeriod: Int
+    let endPeriod: Int
+    let timeRange: String?
 }
 
 private struct ContentUnavailableViewPlaceholder: View {
@@ -679,18 +758,18 @@ private struct TimetablePrimaryClassSelection: View {
             Picker("クラス", selection: Binding(get: { primary }, set: { value = $0 })) {
                 Text("クラスを選択").tag("")
                 if !primary.isEmpty && !classes.contains(primary) {
-                    Text("\(TimetableDisplayText.kana(primary))（保存済み・現在の資料に該当なし）").tag(primary)
+                    Text("\(TimetableDisplayText.className(primary))（保存済み・現在の資料に該当なし）").tag(primary)
                 }
-                ForEach(classes, id: \.self) { Text(TimetableDisplayText.kana($0)).tag($0) }
+                ForEach(classes, id: \.self) { Text(TimetableDisplayText.className($0)).tag($0) }
             }
             Picker("追加クラス（1年生のみ・任意）", selection: Binding(
                 get: { additional },
                 set: { value = $0.isEmpty ? primary : primary + "|" + $0 })) {
                 Text("追加なし").tag("")
                 if !additional.isEmpty && !additionalClasses.contains(additional) {
-                    Text("\(TimetableDisplayText.kana(additional))（保存済み・現在の資料に該当なし）").tag(additional)
+                    Text("\(TimetableDisplayText.className(additional))（保存済み・現在の資料に該当なし）").tag(additional)
                 }
-                ForEach(additionalClasses, id: \.self) { Text(TimetableDisplayText.kana($0)).tag($0) }
+                ForEach(additionalClasses, id: \.self) { Text(TimetableDisplayText.className($0)).tag($0) }
             }
             .disabled(additionalClasses.isEmpty && additional.isEmpty)
         }
@@ -722,7 +801,7 @@ private struct TimetableChangeClassSelection: View {
                 let group = groups[index]
                 Section {
                     ForEach(group.1, id: \.self) { className in
-                        Toggle(TimetableDisplayText.kana(className), isOn: Binding(
+                        Toggle(TimetableDisplayText.className(className), isOn: Binding(
                             get: { selected.contains(className) },
                             set: { update(className, selected: $0) }))
                             .disabled(!selected.contains(className) && selected.count >= 30)
@@ -740,7 +819,7 @@ private struct TimetableChangeClassSelection: View {
             if !unavailable.isEmpty {
                 Section("保存済み・現在の資料に該当なし") {
                     ForEach(unavailable, id: \.self) { className in
-                        Toggle(TimetableDisplayText.kana(className), isOn: Binding(
+                        Toggle(TimetableDisplayText.className(className), isOn: Binding(
                             get: { selected.contains(className) },
                             set: { update(className, selected: $0) }))
                     }

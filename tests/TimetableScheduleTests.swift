@@ -77,6 +77,91 @@ final class TimetableScheduleTests: XCTestCase {
         XCTAssertEqual(merged.baseLessons.map(\.names.detailSubject), ["架空科目A"])
     }
 
+    func testConsecutiveChangeNotationCoversBothPeriodsWithoutChangingSource() throws {
+        let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
+        func change(_ period: String) -> ScheduleChange {
+            ScheduleChange(change_date: day.iso8601, class_name: "1_A", period: period,
+                           before_subject: "架空科目A", after_subject: "架空科目B",
+                           teacher: "架空教員B", room: "架空教室B", note: "", raw_text: "", canonical_text: "")
+        }
+        XCTAssertEqual(change("1,2").gridPeriods, [1, 2])
+        XCTAssertEqual(change("1, 2").gridPeriods, [1, 2])
+        XCTAssertEqual(change("１～２").gridPeriods, [1, 2])
+        XCTAssertEqual(change("1〜2").gridPeriods, [1, 2])
+        XCTAssertNil(change("1,3").gridPeriods)
+        XCTAssertNil(change("2,1").gridPeriods)
+        XCTAssertNil(change("8,9").gridPeriods)
+        XCTAssertNil(change("1,").gridPeriods)
+        let analysis = ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx",
+                                      defaultYear: nil, parsedAt: Date(timeIntervalSince1970: 0), records: [change("1, 2")])
+        for period in 1...2 {
+            let slot = TimetableSchedule.slot(on: day, period: period, className: "1_A",
+                                              timetable: timetable(term: "前期"), changes: analysis,
+                                              includesChanges: true)
+            XCTAssertEqual(slot.changes.map(\.period), ["1, 2"])
+            XCTAssertTrue(slot.displayedLessons.isEmpty)
+        }
+        let cards = TimetableSchedule.blocks(on: day, className: "1_A", timetable: timetable(term: "前期"),
+                                              changes: analysis, includesChanges: true)
+        XCTAssertEqual(cards.count, 1)
+        XCTAssertEqual(cards[0].startPeriod, 1)
+        XCTAssertEqual(cards[0].endPeriod, 2)
+    }
+
+    func testMatchingAdjacentNormalAndExamLessonsBecomeSpanningCards() throws {
+        let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
+        var normal = timetable(term: "前期")
+        normal.lessons[0].names = TimetableLessonNames(subject: "架空科目A", teacher: "架空教員A", room: "架空教室A")
+        var next = normal.lessons[0]
+        next.period = 2
+        normal.lessons.append(next)
+        let merged = TimetableSchedule.blocks(on: day, className: "1_A", timetable: normal,
+                                               changes: nil, includesChanges: false)
+        XCTAssertEqual(merged.count, 1)
+        XCTAssertEqual(merged[0].startPeriod, 1)
+        XCTAssertEqual(merged[0].endPeriod, 2)
+        normal.lessons[1].names = TimetableLessonNames(subject: "架空科目A", teacher: "架空教員B", room: "架空教室A")
+        XCTAssertEqual(TimetableSchedule.blocks(on: day, className: "1_A", timetable: normal,
+                                                 changes: nil, includesChanges: false).count, 2)
+
+        func exam(_ period: Int) -> SpecialScheduleLesson {
+            SpecialScheduleLesson(date: day.iso8601, className: "1_A", period: period,
+                                  spanStart: period, spanEnd: period, timeRange: "09:00〜09:45",
+                                  lines: ["架空科目B", "架空教員B", "架空教室B"], page: 1)
+        }
+        let special = SpecialScheduleAnalysis(kind: .exam, sourceDigest: "fictional", sourceName: "fictional.pdf",
+                                              parsedAt: Date(timeIntervalSince1970: 0), schoolYear: 2032,
+                                              coveredDates: [day.iso8601], coveredClasses: ["1_A"],
+                                              periodTimes: [1: "09:00〜09:45", 2: "10:00〜10:45"],
+                                              lessons: [exam(1), exam(2)])
+        let examCards = TimetableSchedule.blocks(on: day, className: "1_A", timetable: normal,
+                                                  changes: nil, includesChanges: false, specials: [special])
+        XCTAssertEqual(examCards.count, 1)
+        XCTAssertEqual(examCards[0].endPeriod, 2)
+    }
+
+    func testOverlappingChangesUseSeparateLanes() {
+        func change(_ period: String) -> ScheduleChange {
+            ScheduleChange(change_date: "2032-04-05", class_name: "1_A", period: period,
+                           before_subject: "架空科目A", after_subject: "架空科目B",
+                           teacher: "", room: "", note: "", raw_text: "", canonical_text: "")
+        }
+        let blocks = [
+            TimetableSchedule.GridBlock(startPeriod: 1, endPeriod: 2, content: .change(change("1,2"))),
+            TimetableSchedule.GridBlock(startPeriod: 2, endPeriod: 2, content: .change(change("2"))),
+            TimetableSchedule.GridBlock(startPeriod: 3, endPeriod: 3, content: .change(change("3")))
+        ]
+        XCTAssertEqual(TimetableSchedule.positioned(blocks).map(\.lane), [0, 1, 0])
+    }
+
+    func testSelectableClassesIncludeAbsentKnownClasses() {
+        XCTAssertEqual(TimetableSchedule.selectableClasses.count, 20)
+        XCTAssertTrue(TimetableSchedule.selectableClasses.contains("1_ES"))
+        XCTAssertTrue(TimetableSchedule.selectableClasses.contains("5_IT"))
+        XCTAssertTrue(TimetableSchedule.selectableClasses.contains("AI_2"))
+        XCTAssertFalse(TimetableSchedule.selectableClasses.contains("AI_IT"))
+    }
+
     func testSpecialDocumentsMergeBySlotAndChangesRetainBothOriginals() throws {
         let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
         func special(_ kind: SpecialScheduleKind, _ period: Int, _ subject: String) -> SpecialScheduleAnalysis {
@@ -272,5 +357,41 @@ final class TimetableScheduleTests: XCTestCase {
                                                  includesChanges: false, events: events)
         XCTAssertTrue(missingExam.displayedLessons.isEmpty)
         XCTAssertTrue(TimetableSchedule.dayPlan(on: day, events: events).apiTest)
+    }
+
+    func testFullDayEventCardAppearsOnlyWhenNoLessonIsDisplayed() throws {
+        let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
+        let noClass = PDFSchoolEvent(date: day.iso8601, scope: "全クラス", title: "架空休業A", page: 0,
+                                     classification: .init(type: .noClass), apiTag: "授業なし")
+        let another = PDFSchoolEvent(date: day.iso8601, scope: "全クラス", title: "架空休業B", page: 0,
+                                     classification: .init(type: .schoolEventNoClass), apiTag: "行事（授業なし）")
+        let events = PDFAnalysis(kind: .events, sourceDigest: "fictional", sourceName: "fictional",
+                                 parsedAt: Date(timeIntervalSince1970: 0), schoolYear: 2032, term: nil,
+                                 lessons: [], events: [noClass, another], notices: [])
+        let plan = TimetableSchedule.dayPlan(on: day, events: events)
+        XCTAssertEqual(TimetableSchedule.fullDayEventTitle(plan: plan, layouts: [[], []]), "架空休業A・架空休業B")
+
+        let change = ScheduleChange(change_date: day.iso8601, class_name: "1_A", period: "1",
+                                    before_subject: "架空科目A", after_subject: "架空科目B",
+                                    teacher: "", room: "", note: "", raw_text: "", canonical_text: "")
+        let changed = ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx",
+                                     defaultYear: nil, parsedAt: Date(timeIntervalSince1970: 0), records: [change])
+        let blocks = TimetableSchedule.positioned(TimetableSchedule.blocks(
+            on: day, className: "1_A", timetable: timetable(term: "前期"), changes: changed,
+            includesChanges: true, events: events))
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertNil(TimetableSchedule.fullDayEventTitle(plan: plan, layouts: [blocks, []]))
+
+        let exam = SpecialScheduleAnalysis(kind: .exam, sourceDigest: "fictional", sourceName: "fictional.pdf",
+                                           parsedAt: Date(timeIntervalSince1970: 0), schoolYear: 2032,
+                                           coveredDates: [day.iso8601], coveredClasses: ["1_A"], periodTimes: [:],
+                                           lessons: [SpecialScheduleLesson(date: day.iso8601, className: "1_A", period: 2,
+                                                                           spanStart: 2, spanEnd: 2, timeRange: nil,
+                                                                           lines: ["架空科目C", "架空教員C", "架空教室C"], page: 1)])
+        let examBlocks = TimetableSchedule.positioned(TimetableSchedule.blocks(
+            on: day, className: "1_A", timetable: timetable(term: "前期"), changes: nil,
+            includesChanges: true, events: events, specials: [exam]))
+        XCTAssertEqual(examBlocks.count, 1)
+        XCTAssertNil(TimetableSchedule.fullDayEventTitle(plan: plan, layouts: [examBlocks]))
     }
 }
