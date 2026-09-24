@@ -61,7 +61,7 @@ struct MaterialsView: View {
                 if specialSchedules.busy {
                     HStack {
                         ProgressView()
-                        Text("試験・返却資料を処理中…")
+                        Text("試験時間割・試験返却時間割を処理中…")
                         Spacer()
                         Button("中止") { specialSchedules.cancel() }
                     }
@@ -72,7 +72,7 @@ struct MaterialsView: View {
                         .font(.subheadline)
                 }
                 if !specialSchedules.ready && !specialSchedules.busy {
-                    Button("試験・返却資料を再読み込み") { specialSchedules.loadIfNeeded() }
+                    Button("試験時間割・試験返却時間割を再読み込み") { specialSchedules.loadIfNeeded() }
                 }
             }
 
@@ -125,9 +125,9 @@ struct MaterialsView: View {
                 }
             }
             Section {
-                Text("OneDriveで読み取れない場合は「ファイル」で一度開くか、OneDriveの「オフラインで利用可能」を試してから再選択してください。")
+                Text("OneDriveで読み取れない場合は「ファイル」で一度開くか、OneDriveの「オフラインで利用可能」を試してからファイルを選び直してください。")
                     .font(.footnote).foregroundStyle(.secondary)
-                Text("資料は端末内に保存します。解析に成功した結果を時間割に反映します。1ファイル50 MiBまで。解析に失敗しても選択した資料と前回の正常な結果を残します。")
+                Text("選択したファイルは端末内に保存します。解析に成功した結果を時間割に反映します。1ファイル50 MiBまで。解析に失敗しても選択したファイルと前回の正常な結果を残します。")
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
@@ -255,13 +255,13 @@ private struct SpecialScheduleAnalysisView: View {
             }
             if let record {
                 Section("解析結果") {
-                    LabeledContent("年度", value: "\(record.analysis.schoolYear)年度")
-                    LabeledContent("授業枠", value: "\(record.analysis.lessons.count)件")
+                    LabeledContent("学校年度", value: "\(record.analysis.schoolYear)年度")
+                    LabeledContent("件数", value: "\(record.analysis.lessons.count)件")
                     LabeledContent("最終解析成功") {
                         Text(record.analysis.parsedAt, format: .dateTime.year().month().day().hour().minute())
                     }
                     if source?.digest != record.digest || record.analysis.version != SpecialScheduleAnalysis.parserVersion {
-                        Label("前回の解析結果です。現在の資料を解析してください。", systemImage: "exclamationmark.triangle")
+                        Label("前回の解析結果です。現在のファイルを解析してください。", systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
                     }
                 }

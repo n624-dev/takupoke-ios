@@ -66,9 +66,9 @@ final class SchoolEventsModel: ObservableObject {
                 throw SchoolEventsError.unavailable
             }
             sourceCheckMessage = current == expected ? nil :
-                "学校サイトの行事予定PDFがAPIの元資料から更新された可能性があります。APIの更新を確認してください。保存済み行事は表示しています。"
+                "学校サイトの学校行事PDFがAPIの元PDFから更新された可能性があります。APIの更新を確認してください。保存済みの学校行事は表示しています。"
         } catch {
-            sourceCheckMessage = "学校サイトの行事予定PDFを確認できませんでした。保存済み行事は表示しています。"
+            sourceCheckMessage = "学校サイトの学校行事PDFを確認できませんでした。保存済みの学校行事は表示しています。"
         }
     }
 

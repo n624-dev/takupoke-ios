@@ -45,6 +45,19 @@ final class TimetableScheduleTests: XCTestCase {
                                                  today: today, weekStart: weekStart).count, 3)
     }
 
+    func testChangePeriodDisplayKeepsCombinedSourceValue() {
+        func change(period: String) -> ScheduleChange {
+            ScheduleChange(change_date: "2032-04-06", class_name: "1_A", period: period,
+                           before_subject: "架空科目A", after_subject: "架空科目B",
+                           teacher: "", room: "", note: "", raw_text: "", canonical_text: "")
+        }
+        XCTAssertEqual(change(period: "1").displayPeriod, "1限")
+        XCTAssertEqual(change(period: "1,2").displayPeriod, "1,2")
+        XCTAssertEqual(change(period: "1〜2").displayPeriod, "1〜2")
+        XCTAssertEqual(change(period: "").displayPeriod, "記載なし")
+        XCTAssertEqual(change(period: "1,2").period, "1,2")
+    }
+
     func testMergedSlotReplacesPeriodButRetainsOriginalForDetails() throws {
         let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
         let change = ScheduleChange(change_date: day.iso8601, class_name: "1_A", period: "1",

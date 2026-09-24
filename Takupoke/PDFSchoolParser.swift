@@ -264,7 +264,7 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
     var errorDescription: String? {
         let reason: String
         switch code {
-        case .unreadable: reason = "PDFを読み取れません。暗号化・破損・画像だけの資料には対応していません。"
+        case .unreadable: reason = "PDFを読み取れません。暗号化・破損・画像だけのPDFには対応していません。"
         case .unsupported: reason = "未対応のPDF書式です。年度・見出し・表の構造を確認できません。"
         case .ambiguous: reason = "表の内容を一意に読み取れません。推測せず解析を停止しました。"
         case .limit: reason = "PDFの解析上限を超えています。"

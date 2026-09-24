@@ -156,7 +156,7 @@ struct TimetableView: View {
                     .foregroundStyle(.orange)
             }
             if events == nil {
-                Label("学校行事は未取得です。設定から行事予定APIを取得できます。", systemImage: "calendar.badge.exclamationmark")
+                Label("学校行事は未取得です。設定から学校行事を取得できます。", systemImage: "calendar.badge.exclamationmark")
                     .foregroundStyle(.secondary)
             }
             if let sourceCheckMessage = schoolEvents.sourceCheckMessage {
@@ -218,12 +218,12 @@ struct TimetableView: View {
                             if plan.apiTest && selectedClasses.contains(where: { className in
                                 !specials.contains { $0.kind == .exam && $0.applies(date: day.iso8601, className: className) }
                             }) {
-                                Text("試験：未公開または未解析です").font(.caption2).foregroundStyle(.orange)
+                                Text("試験時間割：未公開または未解析です").font(.caption2).foregroundStyle(.orange)
                             }
                             if plan.apiTestReturn && selectedClasses.contains(where: { className in
                                 !specials.contains { $0.kind == .examReturn && $0.applies(date: day.iso8601, className: className) }
                             }) {
-                                Text("返却：未公開または未解析です").font(.caption2).foregroundStyle(.orange)
+                                Text("試験返却時間割：未公開または未解析です").font(.caption2).foregroundStyle(.orange)
                             }
                         }
                         .frame(width: dayColumnWidth)
@@ -443,7 +443,7 @@ struct TimetableView: View {
                                                          baseSpecialLessons: base?.specialLessons ?? [])
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("\(change.change_date) · \(change.displayClassName) · \(change.period.isEmpty ? "時限未記載" : change.period + "限")")
+                            Text("\(change.change_date) · \(change.displayClassName) · \(change.period.isEmpty ? "時限未記載" : change.displayPeriod)")
                                 .font(.caption).foregroundStyle(.secondary)
                             Text(changeSummary(change)).font(.subheadline)
                             if !change.note.isEmpty { Text(change.note).font(.caption).foregroundStyle(.secondary) }
@@ -594,7 +594,7 @@ struct TimetableView: View {
             Section("変更内容") {
                 LabeledContent("日付", value: change.change_date)
                 LabeledContent("クラス", value: change.displayClassName)
-                LabeledContent("時限", value: change.period.isEmpty ? "記載なし" : change.period)
+                LabeledContent("時限", value: change.displayPeriod)
                 if specialTimes.count == 1, let time = specialTimes.first {
                     LabeledContent("時刻", value: time)
                 } else if !selection.baseLessons.isEmpty, let period = Int(change.period), (1...8).contains(period) {
@@ -618,7 +618,7 @@ struct TimetableView: View {
                 }
             }
             if !selection.baseSpecialLessons.isEmpty {
-                Section("変更前の試験・返却時間割") {
+                Section("変更前の試験時間割・試験返却時間割") {
                     ForEach(Array(selection.baseSpecialLessons.enumerated()), id: \.offset) { _, item in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(item.lesson.subject).font(.headline)
@@ -656,7 +656,7 @@ private struct SpecialSelection: Identifiable {
 
 private struct ContentUnavailableViewPlaceholder: View {
     var body: some View {
-        Label("時間割の解析結果がありません。設定の「ファイル選択」で資料を選んで解析してください。", systemImage: "calendar.badge.exclamationmark")
+        Label("時間割の解析結果がありません。設定の「ファイル選択」でファイルを選んで解析してください。", systemImage: "calendar.badge.exclamationmark")
             .foregroundStyle(.secondary)
     }
 }

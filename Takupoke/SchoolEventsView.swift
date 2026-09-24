@@ -12,8 +12,8 @@ struct SchoolEventsSettingsSection: View {
     }
 
     var body: some View {
-        Section("学校行事（API）") {
-            TextField("学校年度（空欄なら現在の年度）", text: $yearValue)
+        Section("学校行事") {
+            TextField("学校年度（空欄なら現在の学校年度）", text: $yearValue)
                 .keyboardType(.numberPad)
                 .disabled(model.busy)
             if let year {

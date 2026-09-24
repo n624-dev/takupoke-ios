@@ -73,10 +73,10 @@ struct ChangeAnalysisView: View {
                 Section {
                     Text(analysis.sourceName)
                     LabeledContent("最終解析成功") { Text(analysis.parsedAt, format: .dateTime.year().month().day().hour().minute()) }
-                    LabeledContent("年なし日付の補完", value: analysis.defaultYear.map(String.init) ?? "指定なし")
-                    LabeledContent("解析件数", value: "\(analysis.records.count)件")
+                    LabeledContent("年なし日付の補完", value: analysis.defaultYear.map { "\($0)年度" } ?? "指定なし")
+                    LabeledContent("件数", value: "\(analysis.records.count)件")
                     if analysis.sourceDigest != model.state.record(for: .changes)?.digest || analysis.version != ChangeAnalysis.parserVersion {
-                        Label("前回の解析結果です。現在の資料を解析してください。", systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                        Label("前回の解析結果です。現在のファイルを解析してください。", systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                     }
                     Text("正常な解析結果を時間割の週表示に反映します。通知はまだ行いません。教員欄が空の場合、科目の併記から推測して補いません。")
                         .font(.caption).foregroundStyle(.secondary)
@@ -85,7 +85,7 @@ struct ChangeAnalysisView: View {
                     Picker("クラス", selection: $selectedClass) {
                         Text("すべて").tag("")
                         if !selectedClass.isEmpty && !classes.contains(selectedClass) {
-                            Text("\(selectedClass)（保存済み・現在の資料に該当なし）").tag(selectedClass)
+                            Text("\(selectedClass)（保存済み・現在のファイルに該当なし）").tag(selectedClass)
                         }
                         ForEach(classes, id: \.self) { Text($0).tag($0) }
                     }
@@ -105,11 +105,11 @@ struct ChangeAnalysisView: View {
         .navigationTitle("時間割変更")
         .toolbar { ToolbarItem(placement: .primaryAction) { parseButton } }
         .scrollDismissesKeyboard(.interactively)
-        .alert("曜日を確認できない資料です", isPresented: $confirmingPreview) {
+        .alert("曜日を確認できないファイルです", isPresented: $confirmingPreview) {
             Button("確認して表示") { model.previewChanges() }
             Button("キャンセル", role: .cancel) {}
         } message: {
-            Text("日付と曜日が合わないか、曜日の計算結果が保存されていません。日付欄を基準に内容を表示しますが、正しい内容かは元資料で確認してください。前回の正常データは置き換えません。")
+            Text("日付と曜日が合わないか、曜日の計算結果が保存されていません。日付欄を基準に内容を表示しますが、正しい内容かは元ファイルで確認してください。前回の正常データは置き換えません。")
         }
         .sheet(isPresented: Binding(get: { model.changePreview != nil }, set: { if !$0 { model.dismissPreview() } })) {
             if let preview = model.changePreview { ChangePreviewView(preview: preview) }
@@ -145,12 +145,12 @@ private struct ChangePreviewView: View {
         NavigationStack {
             List {
                 Section {
-                    Label("警告のある資料を閲覧しています", systemImage: "exclamationmark.triangle")
+                    Label("警告のあるファイルを閲覧しています", systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.orange)
                     Text("日付欄を基準に表示しています。正常な解析結果としては保存せず、前回の正常データを保持しています。この画面を閉じるとプレビューは破棄します。")
                     Text(preview.sourceName)
-                    LabeledContent("年なし日付の補完", value: preview.defaultYear.map(String.init) ?? "指定なし")
-                    LabeledContent("表示件数", value: "\(preview.records.count)件")
+                    LabeledContent("年なし日付の補完", value: preview.defaultYear.map { "\($0)年度" } ?? "指定なし")
+                    LabeledContent("件数", value: "\(preview.records.count)件")
                     DisclosureGroup("曜日の警告：\(preview.warnings.count)件") {
                         ForEach(Array(preview.warnings.enumerated()), id: \.offset) { _, warning in
                             Text((warning.row.map { "\($0)行目：" } ?? "") +
@@ -181,12 +181,12 @@ private struct ChangeRecordFields: View {
     var body: some View {
         LabeledContent("日付", value: record.change_date)
         LabeledContent("クラス", value: record.displayClassName)
-        field("時限", record.period)
+        field("時限", record.period.isEmpty ? "" : record.displayPeriod)
         field("変更前", record.before_subject)
         field("変更後", record.after_subject)
         field("教員", record.teacher)
         field("教室", record.room)
-        field("備考・変更内容", record.note)
+        field("備考", record.note)
     }
 
     @ViewBuilder private func field(_ title: String, _ value: String) -> some View {

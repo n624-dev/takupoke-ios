@@ -186,7 +186,7 @@ final class SpecialSchedulesModel: ObservableObject {
                     self.failed = true
                     self.message = (error as? PDFParseError)?.localizedDescription
                         ?? (error as? MaterialError)?.localizedDescription
-                        ?? "試験資料を保存できませんでした。前回の解析結果は保持しています。"
+                        ?? "\(kind?.title ?? "試験時間割・試験返却時間割")を保存できませんでした。前回の解析結果は保持しています。"
                 }
             }
         }

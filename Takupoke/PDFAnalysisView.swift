@@ -74,14 +74,15 @@ struct PDFAnalysisView: View {
             if let analysis = analysis {
                 Section("解析結果") {
                     Text(analysis.sourceName)
-                    LabeledContent("年度", value: "\(String(analysis.schoolYear))年度" + (analysis.term.map { "・" + $0 } ?? ""))
+                    LabeledContent("学校年度", value: "\(analysis.schoolYear)年度")
+                    if let term = analysis.term { LabeledContent("学期", value: term) }
                     LabeledContent("最終解析成功") { Text(analysis.parsedAt, format: .dateTime.year().month().day().hour().minute()) }
                     LabeledContent("件数", value: "\(analysis.lessons.count + analysis.events.count)件")
                     if analysis.version < 3 {
                         Label("旧版の解析結果には文字順の誤りが含まれる場合があります。保存済みPDFを再解析してください。", systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
                     } else if analysis.sourceDigest != model.state.record(for: kind)?.digest || analysis.version != PDFAnalysis.currentVersion(for: kind) {
-                        Label("前回の解析結果です。現在の資料を解析してください。", systemImage: "exclamationmark.triangle")
+                        Label("前回の解析結果です。現在のファイルを解析してください。", systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
                     }
                     ForEach(analysis.notices, id: \.self) { Text($0).font(.caption).foregroundStyle(.secondary) }
@@ -91,7 +92,7 @@ struct PDFAnalysisView: View {
                         Picker("クラス", selection: $selectedClass) {
                             Text("すべて").tag("")
                             if !selectedClass.isEmpty && !classes.contains(selectedClass) {
-                                Text("\(selectedClass)（保存済み・現在の資料に該当なし）").tag(selectedClass)
+                                Text("\(selectedClass)（保存済み・現在のファイルに該当なし）").tag(selectedClass)
                             }
                             ForEach(classes, id: \.self) { Text($0).tag($0) }
                         }
@@ -211,7 +212,7 @@ private struct PDFLessonDetail: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("授業の詳細")
+        .navigationTitle("授業詳細")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

@@ -5,10 +5,10 @@ enum SchoolEventsError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidResponse: return "行事予定APIの内容を確認できません。保存済みの結果は保持しています。"
-        case .unavailable: return "行事予定APIに接続できません。通信状態を確認して再試行してください。保存済みの結果は保持しています。"
-        case .unsupportedYear: return "この年度の行事予定はAPIでまだ公開されていません。"
-        case .cancelled: return "行事予定の取得を中止しました。保存済みの結果は保持しています。"
+        case .invalidResponse: return "学校行事APIの内容を確認できません。保存済みの結果は保持しています。"
+        case .unavailable: return "学校行事APIに接続できません。通信状態を確認して再試行してください。保存済みの結果は保持しています。"
+        case .unsupportedYear: return "この年度の学校行事はAPIでまだ公開されていません。"
+        case .cancelled: return "学校行事の取得を中止しました。保存済みの結果は保持しています。"
         }
     }
 }
@@ -82,7 +82,7 @@ struct SchoolEventsPayload: Codable, Equatable {
             }
             return PDFSchoolEvent(date: item.startDate, scope: "全クラス", title: item.title, page: 0,
                                   endDate: item.endDate == item.startDate ? nil : item.endDate,
-                                  periodEvidence: item.endDate == item.startDate ? nil : "行事予定API",
+                                  periodEvidence: item.endDate == item.startDate ? nil : "学校行事API",
                                   classification: classification, apiTag: item.tag)
         }
     }

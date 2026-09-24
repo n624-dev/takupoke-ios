@@ -16,6 +16,12 @@ struct ScheduleChange: Codable, Equatable {
     // Old successful results remain on disk until an explicit reparse, but their
     // class picker, filtering and labels use the same identity as new results.
     var displayClassName: String { ChangeNormalizer.canonicalClassName(class_name) }
+
+    var displayPeriod: String {
+        let value = period.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return "記載なし" }
+        return value.range(of: "^[0-9]+$", options: .regularExpression) == nil ? period : "\(value)限"
+    }
 }
 
 struct ChangeAnalysis: Codable {
@@ -56,7 +62,7 @@ struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
         let detail: String
         switch code {
         case .invalidArchive: detail = "XLSXの構造を読み取れません。破損・暗号化されたファイルは解析できません。"
-        case .limit: detail = "資料が解析可能なサイズ・行数・件数の上限を超えています。"
+        case .limit: detail = "ファイルが解析可能なサイズ・行数・件数の上限を超えています。"
         case .invalidXML: detail = "XLSX内の表の構造が不正です。"
         case .missingSheet: detail = "「時間割変更」シートが見つからないか、重複しています。"
         case .unsupported: detail = "このXLSXには未対応の構造や外部参照が含まれています。"
@@ -70,7 +76,7 @@ struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
         case .date: detail = "日付を確定できません。年なし日付の場合は補完する年を指定してください。"
         case .year: detail = "学年の指定を読み取れません。"
         case .classes: detail = "クラスの指定を読み取れません。"
-        case .unknownAll: detail = "「全」の対象クラスを資料内の記載から確定できません。"
+        case .unknownAll: detail = "「全」の対象クラスをファイル内の記載から確定できません。"
         case .empty: detail = "時間割変更の行がありません。空の結果では前回の解析結果を置き換えません。"
         case .cancelled: detail = "解析を中止しました。"
         case .storage: detail = "解析結果を保存できません。"
