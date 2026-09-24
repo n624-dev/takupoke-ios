@@ -24,7 +24,7 @@ enum TimetableSchedule {
     static func isInternationalStudentSubject(_ value: String) -> Bool {
         value.precomposedStringWithCompatibilityMapping
             .trimmingCharacters(in: .whitespacesAndNewlines)
-            .range(of: "^留\\s+", options: .regularExpression) != nil
+            .hasPrefix("留")
     }
 
     static func shouldDisplay(_ lesson: PDFLesson, isInternationalStudent: Bool) -> Bool {
