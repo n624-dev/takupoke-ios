@@ -46,6 +46,13 @@ struct TimetableLessonNames: Codable, Equatable, Sendable {
 }
 
 enum TimetableDisplayText {
+    static func periodTime(_ value: String) -> String {
+        guard let separator = value.range(of: "[〜～~]", options: .regularExpression) else { return value }
+        let start = String(value[..<separator.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+        let end = String(value[separator.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        return "\(start)\n～\n\(end)"
+    }
+
     static func className(_ value: String) -> String {
         kana(value).replacingOccurrences(of: "_", with: "-")
     }

@@ -1,6 +1,13 @@
 import SwiftUI
 import UIKit
 
+private struct DayHeaderHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 struct TimetableView: View {
     @ObservedObject var model: MaterialsModel
     @ObservedObject var specialSchedules: SpecialSchedulesModel
@@ -20,6 +27,7 @@ struct TimetableView: View {
     @State private var selectedChange: ChangeSelection?
     @State private var showingWeekPicker = false
     @State private var weekPickerDate = Date()
+    @State private var dayHeaderHeight: CGFloat = 0
 
     private var timetable: PDFAnalysis? { model.state.pdfAnalyses?[MaterialKind.timetable.rawValue] }
     private var events: PDFAnalysis? { schoolEvents.analysis }
@@ -194,9 +202,6 @@ struct TimetableView: View {
                      "保存したクラスは現在の資料に見つかりません。資料を再解析するか、クラスを選び直してください。")
                     .foregroundStyle(.secondary)
             } else {
-                Label("左右にスクロールして週全体を表示", systemImage: "hand.draw")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 weekGrid
                     .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
             }
@@ -211,43 +216,66 @@ struct TimetableView: View {
                                                    isInternationalStudent: isInternationalStudent,
                                                    specials: specials, matchedByRule: isMappedInternational)
         let columns = days.map(dayLayout)
+        let eventsOnly = !columns.isEmpty && columns.allSatisfy { $0.fullDayEventTitle != nil }
         return ScrollView(.horizontal) {
-            Grid(alignment: .topLeading, horizontalSpacing: gridSpacing, verticalSpacing: gridSpacing) {
-                GridRow {
-                    Text("時限")
-                        .font(.caption.bold())
-                        .frame(width: periodColumnWidth, alignment: .center)
-                        .gridCellAnchor(.center)
+            if eventsOnly {
+                HStack(alignment: .top, spacing: gridSpacing) {
                     ForEach(columns, id: \.day) { column in
-                        dayHeader(on: column.day)
-                            .frame(width: column.width, alignment: .center)
-                            .gridCellAnchor(.center)
-                    }
-                }
-                GridRow {
-                    VStack(spacing: gridSpacing) {
-                        ForEach(1...8, id: \.self) { period in
-                            let commonTime = commonPeriodTime(period, days: days)
-                            VStack(spacing: 2) {
-                                Text("\(period)").font(.system(size: 15, weight: .semibold))
-                                if let commonTime {
-                                    Text(commonTime.replacingOccurrences(of: "〜", with: "\n～\n"))
-                                        .font(.system(size: 9))
-                                        .foregroundStyle(.secondary)
-                                }
+                        VStack(spacing: gridSpacing) {
+                            dayHeaderCell(column)
+                            if let title = column.fullDayEventTitle {
+                                fullDayEventCard(title, width: column.width, height: nil)
                             }
-                            .multilineTextAlignment(.center)
-                            .frame(width: periodColumnWidth, height: gridRowHeight, alignment: .center)
                         }
                     }
-                    ForEach(columns, id: \.day) { column in
-                        dayColumn(column, days: days)
+                }
+            } else {
+                Grid(alignment: .topLeading, horizontalSpacing: gridSpacing, verticalSpacing: gridSpacing) {
+                    GridRow {
+                        Text("時限")
+                            .font(.caption.bold())
+                            .frame(width: periodColumnWidth, alignment: .center)
+                            .gridCellAnchor(.center)
+                        ForEach(columns, id: \.day) { column in
+                            dayHeaderCell(column).gridCellAnchor(.center)
+                        }
+                    }
+                    GridRow {
+                        VStack(spacing: gridSpacing) {
+                            ForEach(1...8, id: \.self) { period in
+                                let commonTime = commonPeriodTime(period, days: days)
+                                VStack(spacing: 2) {
+                                    Text("\(period)").font(.system(size: 15, weight: .semibold))
+                                    if let commonTime {
+                                        Text(TimetableDisplayText.periodTime(commonTime))
+                                            .font(.system(size: 9))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                .multilineTextAlignment(.center)
+                                .frame(width: periodColumnWidth, height: gridRowHeight, alignment: .center)
+                            }
+                        }
+                        ForEach(columns, id: \.day) { column in
+                            dayColumn(column, days: days)
+                        }
                     }
                 }
             }
-            .padding(.horizontal)
+        }
+        .onPreferenceChange(DayHeaderHeightKey.self) { height in
+            if abs(dayHeaderHeight - height) > 0.5 { dayHeaderHeight = height }
         }
         .accessibilityLabel("\(selectedClasses.map(TimetableDisplayText.className).joined(separator: "・"))の週の時間割")
+    }
+
+    private func dayHeaderCell(_ column: DayGridLayout) -> some View {
+        dayHeader(on: column.day)
+            .frame(width: column.width, height: dayHeaderHeight > 0 ? dayHeaderHeight : nil,
+                   alignment: .top)
+            .background(column.day == today ? Color.accentColor.opacity(0.14) :
+                        Color(uiColor: .secondarySystemGroupedBackground),
+                        in: RoundedRectangle(cornerRadius: 10))
     }
 
     private func dayLayout(_ day: SchoolDate) -> DayGridLayout {
@@ -267,14 +295,8 @@ struct TimetableView: View {
     private func dayColumn(_ column: DayGridLayout, days: [SchoolDate]) -> some View {
         Group {
             if let title = column.fullDayEventTitle {
-                Text(TimetableDisplayText.kana(title))
-                    .font(.subheadline.weight(.semibold))
-                    .multilineTextAlignment(.center)
-                    .padding(12)
-                    .frame(width: column.width, height: 8 * gridRowHeight + 7 * gridSpacing, alignment: .center)
-                    .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
-                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.orange.opacity(0.3)))
-                    .accessibilityLabel(title)
+                fullDayEventCard(title, width: column.width,
+                                 height: 8 * gridRowHeight + 7 * gridSpacing)
             } else {
                 HStack(alignment: .top, spacing: gridSpacing) {
                     ForEach(selectedClasses.indices, id: \.self) { index in
@@ -287,6 +309,19 @@ struct TimetableView: View {
         .frame(width: column.width, height: 8 * gridRowHeight + 7 * gridSpacing, alignment: .topLeading)
     }
 
+    private func fullDayEventCard(_ title: String, width: CGFloat, height: CGFloat?) -> some View {
+        Text(TimetableDisplayText.kana(title))
+            .font(.subheadline.weight(.semibold))
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(12)
+            .frame(width: width, height: height, alignment: .center)
+            .frame(minHeight: height == nil ? gridRowHeight : nil)
+            .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.orange.opacity(0.3)))
+            .accessibilityLabel(title)
+    }
+
     private func dayHeader(on day: SchoolDate) -> some View {
         let plan = TimetableSchedule.dayPlan(on: day, events: events)
         return VStack(alignment: .center, spacing: 2) {
@@ -295,7 +330,7 @@ struct TimetableView: View {
                 Text("(\(weekdayNames[day.schoolWeekday - 1]))").font(.caption)
                 if day == today { Text("今日").font(.caption2.bold()) }
             }
-            ForEach(Array(plan.events.enumerated()), id: \.offset) { _, event in
+            ForEach(Array(plan.events.filter { $0.apiTag != "行事メモ" }.enumerated()), id: \.offset) { _, event in
                 Text(TimetableDisplayText.kana(event.title))
                     .font(.caption2)
                     .multilineTextAlignment(.center)
@@ -307,6 +342,7 @@ struct TimetableView: View {
                 Text("試験時間割：未公開または未解析です")
                     .font(.caption2).foregroundStyle(.orange)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             if plan.apiTestReturn && selectedClasses.contains(where: { className in
                 !specials.contains { $0.kind == .examReturn && $0.applies(date: day.iso8601, className: className) }
@@ -314,12 +350,14 @@ struct TimetableView: View {
                 Text("試験返却時間割：未公開または未解析です")
                     .font(.caption2).foregroundStyle(.orange)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(3)
         .frame(maxWidth: .infinity, alignment: .center)
-        .background(day == today ? Color.accentColor.opacity(0.14) : Color(uiColor: .secondarySystemGroupedBackground),
-                    in: RoundedRectangle(cornerRadius: 10))
+        .background(GeometryReader { proxy in
+            Color.clear.preference(key: DayHeaderHeightKey.self, value: proxy.size.height)
+        })
         .accessibilityElement(children: .combine)
     }
 
@@ -400,8 +438,6 @@ struct TimetableView: View {
 
     private func gridCard(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
                           className: String, days: [SchoolDate], height: CGFloat) -> some View {
-        let label = block.startPeriod == block.endPeriod ? "\(block.startPeriod)" :
-            "\(block.startPeriod)〜\(block.endPeriod)"
         let time = cardTime(block, on: day, className: className)
         let isChange: Bool = {
             if case .change = block.content { return true }
@@ -422,15 +458,14 @@ struct TimetableView: View {
             }
         } label: {
             VStack(alignment: .center, spacing: 1) {
-                Text(label).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
                 switch block.content {
                 case .normal(let lesson):
                     Text(cardText(TimetableDisplayText.continuous(lesson.names.cellSubject),
                                   fontSize: 11, weight: .semibold, lines: 2))
                         .font(.system(size: 11, weight: .semibold)).lineLimit(2)
                     if showTime, let time {
-                        Text(cardText(time, fontSize: 8.5, lines: 2))
-                            .font(.system(size: 8.5)).foregroundStyle(.secondary).lineLimit(2)
+                        Text(TimetableDisplayText.periodTime(time))
+                            .font(.system(size: 8.5)).foregroundStyle(.secondary).lineLimit(3)
                     }
                     if !lesson.names.cellTeacher.isEmpty {
                         Text(cardText(TimetableDisplayText.continuous(lesson.names.cellTeacher), fontSize: 9))
@@ -444,8 +479,8 @@ struct TimetableView: View {
                                   fontSize: 11, weight: .semibold, lines: 2))
                         .font(.system(size: 11, weight: .semibold)).lineLimit(2)
                     if showTime, let time {
-                        Text(cardText(time, fontSize: 8.5, lines: 2))
-                            .font(.system(size: 8.5)).foregroundStyle(.secondary).lineLimit(2)
+                        Text(TimetableDisplayText.periodTime(time))
+                            .font(.system(size: 8.5)).foregroundStyle(.secondary).lineLimit(3)
                     }
                     if !item.lesson.teacher.isEmpty {
                         Text(cardText(TimetableDisplayText.kana(item.lesson.teacher), fontSize: 9))
@@ -454,8 +489,6 @@ struct TimetableView: View {
                     if !item.lesson.room.isEmpty {
                         Text(cardRoom(item.lesson.room)).font(.system(size: 9)).lineLimit(1)
                     }
-                    Text(cardText(item.kind.title, fontSize: 9))
-                        .font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
                 case .change(let change):
                     let names = mappings.names(for: change).after
                     HStack(spacing: 1) {
@@ -467,8 +500,8 @@ struct TimetableView: View {
                             .font(.system(size: 11, weight: .semibold)).lineLimit(2)
                     }
                     if showTime, let time {
-                        Text(cardText(time, fontSize: 8.5, lines: 2))
-                            .font(.system(size: 8.5)).foregroundStyle(.secondary).lineLimit(2)
+                        Text(TimetableDisplayText.periodTime(time))
+                            .font(.system(size: 8.5)).foregroundStyle(.secondary).lineLimit(3)
                     }
                     if !names.cellTeacher.isEmpty {
                         Text(cardText(TimetableDisplayText.kana(names.cellTeacher), fontSize: 9))
@@ -490,7 +523,9 @@ struct TimetableView: View {
         .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10))
         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.primary.opacity(0.08)))
         .clipShape(RoundedRectangle(cornerRadius: 10))
-        .accessibilityLabel("\(TimetableDisplayText.className(className)) \(label)の授業詳細")
+        .accessibilityLabel("\(TimetableDisplayText.className(className)) " +
+            (block.startPeriod == block.endPeriod ? "\(block.startPeriod)限" :
+                "\(block.startPeriod)〜\(block.endPeriod)限") + "の授業詳細")
     }
 
     private func cardRoom(_ source: String) -> String {
