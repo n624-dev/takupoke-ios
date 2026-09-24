@@ -271,7 +271,9 @@ final class PDFParsingTests: XCTestCase {
             XCTAssertEqual(failure.cell, PDFParseError.Cell(classRow: 1, weekday: 1, period: 1, detectedLines: 4))
             XCTAssertTrue(failure.localizedDescription.contains("検出4行"))
             XCTAssertFalse(failure.localizedDescription.contains("架空"))
-            XCTAssertEqual(try JSONDecoder().decode(PDFParseError.self, from: JSONEncoder().encode(failure)), failure)
+            let encoded = try? JSONEncoder().encode(failure)
+            let decoded = encoded.flatMap { try? JSONDecoder().decode(PDFParseError.self, from: $0) }
+            XCTAssertEqual(decoded, failure)
         }
     }
     func testTimetableGeometryReportReproducesFailureWithoutSourceText() throws {
