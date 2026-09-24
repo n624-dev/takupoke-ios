@@ -23,7 +23,7 @@ struct PDFAnalysisView: View {
 
     var body: some View {
         List {
-            Section {
+            Section("解析") {
                 Text("ファイル選択後は自動解析します。必要なときは右上の「解析する」から再実行できます。")
                     .font(.subheadline).foregroundStyle(.secondary)
                 if model.busy { HStack { ProgressView(); Text("処理中…") } }
@@ -44,7 +44,7 @@ struct PDFAnalysisView: View {
                 }
             }
             if let source = model.state.record(for: kind) {
-                Section("選択した資料") {
+                Section("選択したファイル") {
                     Text(source.originalName)
                     LabeledContent("サイズ", value: ByteCountFormatter.string(
                         fromByteCount: Int64(source.byteCount), countStyle: .file))
@@ -65,9 +65,9 @@ struct PDFAnalysisView: View {
                         Label(failure, systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
                     }
-                    Button("同じ資料を再取得") { model.refresh(kind) }
+                    Button("同じファイルを再取得") { model.refresh(kind) }
                         .disabled(model.busy || !model.ready)
-                    Button { showingSource = true } label: { Label("保存済みの元PDFを見る", systemImage: "doc.richtext") }
+                    Button { showingSource = true } label: { Label("保存済みのPDFを見る", systemImage: "doc.richtext") }
                         .disabled(model.pdfURLs[kind.rawValue] == nil || model.busy)
                 }
             }
@@ -146,7 +146,7 @@ struct PDFAnalysisView: View {
                 Section { Text("まだ正常な解析結果はありません。右上の「解析する」から読み取れます。").foregroundStyle(.secondary) }
             }
         }
-        .navigationTitle(kind.title + "の解析")
+        .navigationTitle(kind.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) { parseButton }

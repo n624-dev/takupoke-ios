@@ -51,16 +51,8 @@ final class ScopedMaterialSelection: @unchecked Sendable {
     }
 }
 
-struct MaterialCandidate: Identifiable {
-    var name: String
-    var id: String { name }
-    var fileExtension: String { (name as NSString).pathExtension.lowercased() }
-}
-
 final class MaterialWorker {
     private(set) var library: MaterialLibrary?
-    private(set) var candidates: [MaterialCandidate] = []
-    private(set) var folderListed = false
     private(set) var changePreview: ChangePreview?
     private(set) var timetableReadReport: String?
     private(set) var timetableFailure: PDFParseError?
@@ -168,12 +160,12 @@ final class MaterialWorker {
         // No manifest write: neither the last success nor the failed attempt changes.
     }
 
-    private func grant(for url: URL, folder: Bool) throws -> SourceGrant {
+    private func grant(for url: URL) throws -> SourceGrant {
         // Called while the original selection is still scoped, after reading.
         do {
             return SourceGrant(bookmark: try url.bookmarkData(options: .minimalBookmark,
                                includingResourceValuesForKeys: nil, relativeTo: nil),
-                               name: url.lastPathComponent, isFolder: folder)
+                               name: url.lastPathComponent, isFolder: false)
         } catch { throw MaterialError.bookmarkFailed }
     }
 
@@ -206,65 +198,15 @@ final class MaterialWorker {
         return try result.get()
     }
 
-    func selectFolder(_ selection: ScopedMaterialSelection, control: AcquisitionControl) throws {
-        guard let library = library else { throw MaterialError.invalidState }
-        try selection.access { url in
-            let files = try list(url, control: control)
-            try control.check()
-            let selected = try grant(for: url, folder: true)
-            try library.saveFolder(selected)
-            candidates = files
-            folderListed = true
-        }
-    }
-
-    func refreshFolder(control: AcquisitionControl) throws {
-        guard let folder = library?.state.folder else { return }
-        // A failed listing must not leave an old list looking up to date.
-        candidates = []
-        folderListed = false
-        candidates = try withAccess(folder) { try list($0, control: control) }
-        folderListed = true
-    }
-
-    private func list(_ url: URL, control: AcquisitionControl) throws -> [MaterialCandidate] {
-        try coordinated(url, control: control) { folder in
-            guard try folder.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true else {
-                throw MaterialError.unavailable
-            }
-            let urls = try FileManager.default.contentsOfDirectory(at: folder,
-                includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey], options: [.skipsHiddenFiles])
-            guard urls.count <= 1000 else { throw MaterialError.folderTooLarge }
-            var matches: [MaterialCandidate] = []
-            for file in urls {
-                try control.check()
-                guard ["pdf", "xlsx"].contains(file.pathExtension.lowercased()),
-                      !file.lastPathComponent.hasPrefix("~$") else { continue }
-                let values = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
-                if values.isRegularFile == true && values.isSymbolicLink != true {
-                    matches.append(MaterialCandidate(name: file.lastPathComponent))
-                }
-            }
-            return matches.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
-        }
-    }
-
     func selectFile(_ selection: ScopedMaterialSelection, kind: MaterialKind, control: AcquisitionControl) throws {
         try acquire(kind, control: control) { staged in
             try selection.access { url in
                 guard url.pathExtension.lowercased() == kind.fileExtension else { throw MaterialError.invalidFile }
                 let result = try copyProviderFile(url, to: staged, kind: kind, control: control)
-                let source = MaterialSource(grant: try grant(for: url, folder: false), childName: nil)
+                let source = MaterialSource(grant: try grant(for: url), childName: nil)
                 return .downloaded((source, url.lastPathComponent, result.0, result.1, result.2))
             }
         }
-    }
-
-    func selectCandidate(_ name: String, kind: MaterialKind, control: AcquisitionControl) throws {
-        guard let folder = library?.state.folder, candidates.contains(where: { $0.name == name }) else {
-            throw MaterialError.unavailable
-        }
-        try acquireSource(MaterialSource(grant: folder, childName: name), kind: kind, control: control)
     }
 
     func refresh(_ kind: MaterialKind, control: AcquisitionControl) throws {

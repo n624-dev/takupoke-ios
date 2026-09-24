@@ -4,8 +4,6 @@ import SwiftUI
 @MainActor
 final class MaterialsModel: ObservableObject {
     @Published private(set) var state = MaterialLibraryState()
-    @Published private(set) var candidates: [MaterialCandidate] = []
-    @Published private(set) var folderListed = false
     @Published private(set) var busy = false
     @Published private(set) var ready = false
     @Published private(set) var message: String?
@@ -45,28 +43,10 @@ final class MaterialsModel: ObservableObject {
         }
     }
 
-    func selectFolder(_ url: ScopedMaterialSelection) {
-        perform(success: "フォルダを登録しました。資料ごとに使用するファイルを選んでください。") {
-            try $0.selectFolder(url, control: $1)
-        }
-    }
-
-    func refreshFolder() {
-        perform(success: "フォルダ内の一覧を更新しました。") { try $0.refreshFolder(control: $1) }
-    }
-
     func selectFile(_ url: ScopedMaterialSelection, kind: MaterialKind) {
         let year = automaticChangeSchoolYear
         perform(success: "\(kind.title)を取得して解析しました。") { worker, control in
             try worker.selectFile(url, kind: kind, control: control)
-            try Self.analyzeAfterAcquisition(kind, year: year, worker: worker, control: control)
-        }
-    }
-
-    func selectCandidate(_ name: String, kind: MaterialKind) {
-        let year = automaticChangeSchoolYear
-        perform(success: "\(kind.title)を取得して解析しました。") { worker, control in
-            try worker.selectCandidate(name, kind: kind, control: control)
             try Self.analyzeAfterAcquisition(kind, year: year, worker: worker, control: control)
         }
     }
@@ -141,16 +121,12 @@ final class MaterialsModel: ObservableObject {
             let timetableFailure = worker.timetableFailure
             var pdfURLs: [String: URL] = [:]
             for kind in [MaterialKind.timetable, .events] { pdfURLs[kind.rawValue] = worker.pdfURL(for: kind) }
-            let candidates = worker.candidates
-            let listed = worker.folderListed
             DispatchQueue.main.async {
                 self.ready = snapshot != nil
                 if let snapshot = snapshot { self.state = snapshot }
                 self.pdfURLs = pdfURLs
                 self.timetableReadReport = timetableReport
                 self.timetableFailure = timetableFailure
-                self.candidates = candidates
-                self.folderListed = listed
                 self.busy = false
                 self.control = nil
                 switch result {

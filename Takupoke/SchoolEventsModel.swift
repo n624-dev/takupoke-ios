@@ -36,9 +36,9 @@ final class SchoolEventsModel: ObservableObject {
             if !Task.isCancelled { await self.checkSourceTask() }
             self.failed = !failures.isEmpty
             if !failures.isEmpty {
-                self.message = "\(failures.map(String.init).joined(separator: "、"))年度の行事予定を更新確認できませんでした。保存済みの結果を表示しています。"
+                self.message = "\(failures.map(String.init).joined(separator: "、"))年度の学校行事を更新確認できませんでした。保存済みの結果を表示しています。"
             } else if !updated.isEmpty {
-                self.message = "\(updated.map(String.init).joined(separator: "、"))年度の行事予定を更新しました。"
+                self.message = "\(updated.map(String.init).joined(separator: "、"))年度の学校行事を更新しました。"
             }
         }
     }
@@ -46,7 +46,7 @@ final class SchoolEventsModel: ObservableObject {
     private func checkSourceTask() async {
         guard let expected = saved[2026]?.payload.sourcePdfETag else {
             if saved[2026] != nil {
-                sourceCheckMessage = "保存済み行事予定には元PDFのETagがありません。APIから取得し直すと起動時の更新確認ができます。"
+                sourceCheckMessage = "保存済みの学校行事には元PDFのETagがありません。APIから取得し直すと起動時の更新確認ができます。"
             }
             return
         }
@@ -77,7 +77,7 @@ final class SchoolEventsModel: ObservableObject {
         let values = saved.values.sorted { $0.payload.schoolYear < $1.payload.schoolYear }
         return PDFAnalysis(version: PDFAnalysis.currentVersion(for: .events), kind: .events,
                            sourceDigest: values.map(\.payload.sourcePdfSha256).joined(separator: ":"),
-                           sourceName: "行事予定API", parsedAt: values.map(\.fetchedAt).max() ?? Date(),
+                           sourceName: "学校行事API", parsedAt: values.map(\.fetchedAt).max() ?? Date(),
                            schoolYear: values[0].payload.schoolYear, term: nil, lessons: [],
                            events: values.flatMap { $0.payload.projectedEvents }, notices: [])
     }
@@ -93,7 +93,7 @@ final class SchoolEventsModel: ObservableObject {
             ready = true
         } catch {
             failed = true
-            message = "保存済みの行事予定を読み取れません。端末内の結果は削除していません。"
+            message = "保存済みの学校行事を読み取れません。端末内の結果は削除していません。"
         }
     }
 
@@ -107,8 +107,8 @@ final class SchoolEventsModel: ObservableObject {
             guard let self else { return }
             do {
                 let changed = try await self.fetchOne(year: year)
-                self.message = changed ? "\(year)年度の行事予定を取得しました。元PDFの更新確認は次回起動時に行います。" :
-                    "\(year)年度の行事予定に更新はありません。"
+                self.message = changed ? "\(year)年度の学校行事を取得しました。元PDFの更新確認は次回起動時に行います。" :
+                    "\(year)年度の学校行事に更新はありません。"
             } catch {
                 self.failed = true
                 self.message = Task.isCancelled ? SchoolEventsError.cancelled.localizedDescription :

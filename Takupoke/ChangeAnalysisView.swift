@@ -44,7 +44,7 @@ struct ChangeAnalysisView: View {
                 }
             } header: { Text("解析") }
             if let source = model.state.record(for: .changes) {
-                Section("選択した資料") {
+                Section("選択したファイル") {
                     Text(source.originalName)
                     LabeledContent("サイズ", value: ByteCountFormatter.string(
                         fromByteCount: Int64(source.byteCount), countStyle: .file))
@@ -65,7 +65,7 @@ struct ChangeAnalysisView: View {
                         Label(failure, systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
                     }
-                    Button("同じ資料を再取得") { model.refresh(.changes) }
+                    Button("同じファイルを再取得") { model.refresh(.changes) }
                         .disabled(model.busy || !model.ready)
                 }
             }
@@ -80,7 +80,7 @@ struct ChangeAnalysisView: View {
                     }
                     Text("正常な解析結果を時間割の週表示に反映します。通知はまだ行いません。教員欄が空の場合、科目の併記から推測して補いません。")
                         .font(.caption).foregroundStyle(.secondary)
-                } header: { Text("保存済みの解析結果") }
+                } header: { Text("解析結果") }
                 Section {
                     Picker("クラス", selection: $selectedClass) {
                         Text("すべて").tag("")
@@ -102,7 +102,7 @@ struct ChangeAnalysisView: View {
                 Text("まだ正常な解析結果はありません。").foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("時間割変更の解析")
+        .navigationTitle("時間割変更")
         .toolbar { ToolbarItem(placement: .primaryAction) { parseButton } }
         .scrollDismissesKeyboard(.interactively)
         .alert("曜日を確認できない資料です", isPresented: $confirmingPreview) {

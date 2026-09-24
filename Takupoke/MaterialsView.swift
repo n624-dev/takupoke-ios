@@ -2,24 +2,6 @@ import SwiftUI
 import UniformTypeIdentifiers
 import UIKit
 
-private enum MaterialPicker: Identifiable {
-    case folder
-    case file(MaterialKind)
-
-    var id: String {
-        switch self {
-        case .folder: return "folder"
-        case .file(let kind): return kind.rawValue
-        }
-    }
-    var contentType: UTType {
-        switch self {
-        case .folder: return .folder
-        case .file(let kind): return kind == .changes ? (UTType(filenameExtension: "xlsx") ?? .data) : .pdf
-        }
-    }
-}
-
 struct MaterialDocumentPicker: UIViewControllerRepresentable {
     var type: UTType
     var selected: (ScopedMaterialSelection) -> Void
@@ -50,13 +32,13 @@ struct MaterialsView: View {
     @ObservedObject var model: MaterialsModel
     @ObservedObject var specialSchedules: SpecialSchedulesModel
     @ObservedObject var schoolEvents: SchoolEventsModel
-    @State private var picker: MaterialPicker?
+    @State private var picker: MaterialKind?
     @State private var specialPickerKind: SpecialScheduleKind?
 
     var body: some View {
         List {
             Section {
-                Text("通常時間割・時間割変更・試験・返却は「ファイル」から個別に選びます。学校行事は行事予定APIから取得します。")
+                Text("通常時間割・時間割変更・試験時間割・試験返却時間割は「ファイル」から個別に選びます。学校行事はAPIから取得します。")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 if model.busy {
@@ -112,7 +94,7 @@ struct MaterialsView: View {
                         }
                     }
                     Button(model.state.record(for: kind) == nil ? "ファイルを選ぶ" : "ファイルを選び直す") {
-                        picker = .file(kind)
+                        picker = kind
                     }
                     .accessibilityLabel("\(kind.title)のファイルを\(model.state.record(for: kind) == nil ? "選ぶ" : "選び直す")")
                 }
@@ -138,32 +120,10 @@ struct MaterialsView: View {
                     Button(specialSchedules.sources[kind] == nil ? "ファイルを選ぶ" : "ファイルを選び直す") {
                         specialPickerKind = kind
                     }
-                        .accessibilityLabel("\(kind.title)のファイルを\(specialSchedules.sources[kind] == nil ? "選ぶ" : "選び直す")")
-                        .disabled(specialSchedules.busy || !specialSchedules.ready)
+                    .accessibilityLabel("\(kind.title)のファイルを\(specialSchedules.sources[kind] == nil ? "選ぶ" : "選び直す")")
+                    .disabled(specialSchedules.busy || !specialSchedules.ready)
                 }
             }
-            Section {
-                DisclosureGroup("フォルダから選ぶ（対応サービスのみ）") {
-                    if let folder = model.state.folder {
-                        Label(folder.name, systemImage: "folder")
-                        Button("フォルダ内の一覧を取得") { model.refreshFolder() }
-                        if model.folderListed {
-                            Text("対象ファイル：\(model.candidates.count)件")
-                                .font(.caption).foregroundStyle(.secondary)
-                            ForEach([MaterialKind.timetable, .changes]) { kind in
-                                NavigationLink("\(kind.title)をフォルダ内から選ぶ") {
-                                    MaterialCandidatesView(model: model, kind: kind)
-                                }
-                            }
-                        }
-                    }
-                    Button("資料フォルダを選ぶ") { picker = .folder }
-                    Text("OneDriveでフォルダが選べない場合は、上の各資料からファイルを個別に選択してください。")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            .disabled(model.busy || !model.ready)
-
             Section {
                 Text("OneDriveで読み取れない場合は「ファイル」で一度開くか、OneDriveの「オフラインで利用可能」を試してから再選択してください。")
                     .font(.footnote).foregroundStyle(.secondary)
@@ -175,14 +135,12 @@ struct MaterialsView: View {
         .task { model.loadIfNeeded() }
         .task { specialSchedules.loadIfNeeded() }
         .task { schoolEvents.loadIfNeeded() }
-        .sheet(item: $picker) { selection in
-            MaterialDocumentPicker(type: selection.contentType, selected: { url in
-                picker = nil
-                switch selection {
-                case .folder: model.selectFolder(url)
-                case .file(let kind): model.selectFile(url, kind: kind)
-                }
-            }, cancelled: { picker = nil })
+        .sheet(item: $picker) { kind in
+            MaterialDocumentPicker(type: kind == .changes ? (UTType(filenameExtension: "xlsx") ?? .data) : .pdf,
+                                   selected: { selection in
+                                       picker = nil
+                                       model.selectFile(selection, kind: kind)
+                                   }, cancelled: { picker = nil })
         }
         .sheet(item: $specialPickerKind) { kind in
             MaterialDocumentPicker(type: .pdf, selected: { selection in
@@ -275,7 +233,7 @@ private struct SpecialScheduleAnalysisView: View {
                 }
             }
             if let source {
-                Section("選択した資料") {
+                Section("選択したファイル") {
                     Text(source.originalName)
                     if source.grant == nil {
                         Label("起動時の変更確認には、このPDFをもう一度選んでください。", systemImage: "exclamationmark.triangle")
@@ -291,7 +249,7 @@ private struct SpecialScheduleAnalysisView: View {
                             Text(date, format: .dateTime.year().month().day().hour().minute())
                         }
                     }
-                    Button("保存済みの元PDFを見る") { showingSource = true }
+                    Button("保存済みのPDFを見る") { showingSource = true }
                         .disabled(model.busy || model.urls[kind] == nil)
                 }
             }
@@ -375,36 +333,5 @@ private struct SpecialScheduleAnalysisView: View {
         UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: report]],
             options: [.localOnly: true, .expirationDate: Date().addingTimeInterval(600)])
         copiedReport = report
-    }
-}
-
-private struct MaterialCandidatesView: View {
-    @ObservedObject var model: MaterialsModel
-    let kind: MaterialKind
-    @Environment(\.dismiss) private var dismiss
-    @State private var query = ""
-
-    private var matches: [MaterialCandidate] {
-        model.candidates.filter {
-            $0.fileExtension == kind.fileExtension && (query.isEmpty || $0.name.localizedCaseInsensitiveContains(query))
-        }
-    }
-
-    var body: some View {
-        List {
-            if matches.isEmpty {
-                Text("対象ファイルがありません。別のフォルダを選ぶか、ファイルを個別に選択してください。")
-                    .foregroundStyle(.secondary)
-            }
-            ForEach(matches) { candidate in
-                Button(candidate.name) {
-                    model.selectCandidate(candidate.name, kind: kind)
-                    dismiss()
-                }
-                .disabled(model.busy)
-            }
-        }
-        .navigationTitle(kind.title + "を選ぶ")
-        .searchable(text: $query, prompt: "ファイル名を検索")
     }
 }

@@ -287,7 +287,6 @@ final class LocalDatabaseTests: XCTestCase {
         let example = try fixture()
         let (db, library) = try runtimeStore()
         defer { try? db.close() }
-        try library.saveFolder(try XCTUnwrap(example.folder))
         for kind in MaterialKind.allCases { try acquire(library, kind: kind) }
         for analysis in try XCTUnwrap(example.pdfAnalyses).values { try library.savePDFAnalysis(analysis) }
         try library.saveChangeAnalysis(try XCTUnwrap(example.changeAnalysis))

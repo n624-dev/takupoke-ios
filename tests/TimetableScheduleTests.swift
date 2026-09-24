@@ -199,6 +199,41 @@ final class TimetableScheduleTests: XCTestCase {
             start: try XCTUnwrap(SchoolDate(iso8601: "2027-03-29")), containing: april))
     }
 
+    func testOctoberOpeningKeepsSeptemberBoundaryWhenPickingAnotherWeek() throws {
+        let opening = try XCTUnwrap(SchoolDate(iso8601: "2026-10-01"))
+        let bounds = TimetableSchedule.reachableWeekBounds(containing: opening, classes: [],
+                                                            timetable: nil, changes: nil, events: nil,
+                                                            includesChanges: false)
+        XCTAssertEqual(bounds.lowerBound.iso8601, "2026-09-28")
+        XCTAssertEqual(bounds.upperBound.iso8601, "2027-03-29")
+        XCTAssertTrue(bounds.contains(try XCTUnwrap(SchoolDate(iso8601: "2026-10-12"))))
+        XCTAssertFalse(bounds.contains(try XCTUnwrap(SchoolDate(iso8601: "2026-09-21"))))
+    }
+
+    func testReachableWeeksExtendThroughConsecutiveSavedWeeksAndAllowReturning() throws {
+        let opening = try XCTUnwrap(SchoolDate(iso8601: "2026-09-24"))
+        func change(_ date: String) -> ScheduleChange {
+            ScheduleChange(change_date: date, class_name: "1_A", period: "1",
+                           before_subject: "架空科目A", after_subject: "架空科目B",
+                           teacher: "", room: "", note: "", raw_text: "", canonical_text: "")
+        }
+        let changes = ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx",
+                                     defaultYear: nil, parsedAt: Date(timeIntervalSince1970: 0),
+                                     records: [change("2026-10-05"), change("2026-10-12"),
+                                               change("2026-10-26")])
+        let bounds = TimetableSchedule.reachableWeekBounds(containing: opening, classes: ["1_A"],
+                                                            timetable: nil, changes: changes, events: nil,
+                                                            includesChanges: true)
+        XCTAssertEqual(bounds.lowerBound.iso8601, "2026-03-30")
+        XCTAssertEqual(bounds.upperBound.iso8601, "2026-10-12")
+        XCTAssertTrue(bounds.contains(try XCTUnwrap(SchoolDate(iso8601: "2026-10-05"))))
+        XCTAssertFalse(bounds.contains(try XCTUnwrap(SchoolDate(iso8601: "2026-10-26"))))
+        let withoutChanges = TimetableSchedule.reachableWeekBounds(containing: opening, classes: ["1_A"],
+                                                                   timetable: nil, changes: changes, events: nil,
+                                                                   includesChanges: false)
+        XCTAssertEqual(withoutChanges.upperBound.iso8601, "2026-09-28")
+    }
+
     func testApiNoClassKeepsChangesWhileExamTagSuppressesOrdinaryLessons() throws {
         let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
         let change = ScheduleChange(change_date: day.iso8601, class_name: "1_A", period: "1",

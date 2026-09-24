@@ -17,10 +17,8 @@ struct SchoolEventsSettingsSection: View {
                 .keyboardType(.numberPad)
                 .disabled(model.busy)
             if let year {
-                Text("\(year)年度（\(year)年4月〜\(year + 1)年3月）")
-                    .font(.caption).foregroundStyle(.secondary)
                 if let saved = model.saved[year] {
-                    Text("\(saved.payload.events.count)件を保存済み")
+                    Text("取得済み")
                         .font(.subheadline).foregroundStyle(.secondary)
                     NavigationLink("詳細を見る") {
                         SchoolEventsResultView(saved: saved)
@@ -30,7 +28,7 @@ struct SchoolEventsSettingsSection: View {
                     Text("未取得")
                         .foregroundStyle(.secondary)
                 }
-                Button(model.saved[year] == nil ? "行事予定APIから取得" : "行事予定を更新") {
+                Button(model.saved[year] == nil ? "学校行事を取得" : "学校行事を更新") {
                     model.fetch(year: year)
                 }
                     .disabled(!model.ready || model.busy)
@@ -41,7 +39,7 @@ struct SchoolEventsSettingsSection: View {
             if model.busy {
                 HStack {
                     ProgressView()
-                    Text("行事予定を取得中…")
+                    Text("学校行事を取得中…")
                     Spacer()
                     Button("中止") { model.cancel() }
                 }
@@ -68,6 +66,7 @@ private struct SchoolEventsResultView: View {
         List {
             Section("取得結果") {
                 LabeledContent("学校年度", value: "\(saved.payload.schoolYear)年度")
+                LabeledContent("年度の期間", value: "\(saved.payload.schoolYear)年4月1日〜\(saved.payload.schoolYear + 1)年3月31日")
                 LabeledContent("件数", value: "\(saved.payload.events.count)件")
                 LabeledContent("最終取得") {
                     Text(saved.fetchedAt, format: .dateTime.year().month().day().hour().minute())

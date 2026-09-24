@@ -61,7 +61,7 @@ struct MaterialLibraryState: Codable {
 }
 
 enum MaterialError: LocalizedError {
-    case unavailable, invalidFile, tooLarge, invalidState, cancelled, folderTooLarge
+    case unavailable, invalidFile, tooLarge, invalidState, cancelled
     case accessExpired, bookmarkFailed, providerReadFailed, invalidWebURL, webUnavailable
 
     var errorDescription: String? {
@@ -76,8 +76,6 @@ enum MaterialError: LocalizedError {
             return "端末内の保存情報を読み取れません。既存データを保護するため更新を停止しました。"
         case .cancelled:
             return "取得を中止しました。前回の資料は保持しています。"
-        case .folderTooLarge:
-            return "項目数が多いため一覧を取得できません。資料をまとめた小さなフォルダを選んでください。"
         case .accessExpired:
             return "資料へのアクセス許可を確認できません。ファイルを選び直してください。前回の資料は保持しています。"
         case .bookmarkFailed:
@@ -263,12 +261,6 @@ final class MaterialLibrary {
         var next = state
         next.changeParseAttempt = ChangeParseAttempt(date: Date(), sourceDigest: state.record(for: .changes)?.digest,
                                                      defaultYear: defaultYear, failure: error)
-        try persist(next)
-    }
-
-    func saveFolder(_ grant: SourceGrant) throws {
-        var next = state
-        next.folder = grant
         try persist(next)
     }
 

@@ -9,7 +9,7 @@ struct TimetableView: View {
     @AppStorage("timetableChangeClasses") private var changeClassesValue = ""
     @AppStorage("timetableInternationalStudent") private var isInternationalStudent = false
     @State private var weekStart = SchoolDate.today().displayWeekStart
-    @State private var navigationHalfAnchor = SchoolDate.today().displayWeekStart
+    @State private var navigationHalfAnchor = SchoolDate.today()
     @State private var today = SchoolDate.today()
     @AppStorage("timetableIncludesChanges") private var includesChanges = true
     @AppStorage("timetableChangeRange") private var changeRangeValue = ChangeRange.today.rawValue
@@ -72,6 +72,13 @@ struct TimetableView: View {
             .onChange(of: scenePhase) { phase in
                 if phase == .active { today = SchoolDate.today() }
             }
+            .onChange(of: weekBounds) { bounds in
+                weekStart = min(max(weekStart, bounds.lowerBound), bounds.upperBound)
+                if showingWeekPicker {
+                    weekPickerDate = min(max(weekPickerDate, weekPickerRange.lowerBound),
+                                         weekPickerRange.upperBound)
+                }
+            }
             .sheet(item: $selectedLesson) { selection in
                 NavigationStack { lessonDetail(selection.lesson, date: selection.date) }
             }
@@ -83,7 +90,8 @@ struct TimetableView: View {
             }
             .sheet(isPresented: $showingWeekPicker) {
                 NavigationStack {
-                    DatePicker("移動する日付", selection: $weekPickerDate, displayedComponents: .date)
+                    DatePicker("移動する日付", selection: $weekPickerDate, in: weekPickerRange,
+                               displayedComponents: .date)
                         .datePickerStyle(.graphical)
                         .padding()
                         .navigationTitle("週を選ぶ")
@@ -94,6 +102,7 @@ struct TimetableView: View {
                             }
                             ToolbarItem(placement: .confirmationAction) {
                                 Button("この週へ移動") { selectPickedWeek() }
+                                    .disabled(!pickerWeekIsReachable)
                             }
                         }
                 }
@@ -448,14 +457,37 @@ struct TimetableView: View {
     }
 
     private func moveWeek(_ days: Int) {
-        if let next = weekStart.addingDays(days), next.addingDays(7) != nil { weekStart = next }
+        if let next = weekStart.addingDays(days), weekBounds.contains(next) { weekStart = next }
+    }
+
+    private var weekBounds: ClosedRange<SchoolDate> {
+        TimetableSchedule.reachableWeekBounds(containing: navigationHalfAnchor,
+                                               classes: selectedClasses, timetable: timetable,
+                                               changes: changes, events: events,
+                                               includesChanges: includesChanges, specials: specials)
+    }
+
+    private func pickerDate(_ day: SchoolDate) -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        return calendar.date(from: DateComponents(year: day.year, month: day.month, day: day.day))!
+    }
+
+    private var weekPickerRange: ClosedRange<Date> {
+        pickerDate(weekBounds.lowerBound)...pickerDate(weekBounds.upperBound.addingDays(6)!)
+    }
+
+    private var pickerWeekIsReachable: Bool {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        let parts = calendar.dateComponents([.year, .month, .day], from: weekPickerDate)
+        guard let year = parts.year, let month = parts.month, let day = parts.day,
+              let picked = SchoolDate(year: year, month: month, day: day) else { return false }
+        return weekBounds.contains(picked.monday)
     }
 
     private func openWeekPicker() {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
-        weekPickerDate = calendar.date(from: DateComponents(year: weekStart.year,
-                                                            month: weekStart.month, day: weekStart.day)) ?? Date()
+        weekPickerDate = pickerDate(min(max(weekStart, weekBounds.lowerBound), weekBounds.upperBound))
         showingWeekPicker = true
     }
 
@@ -464,24 +496,21 @@ struct TimetableView: View {
         calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
         let parts = calendar.dateComponents([.year, .month, .day], from: weekPickerDate)
         if let year = parts.year, let month = parts.month, let day = parts.day,
-           let picked = SchoolDate(year: year, month: month, day: day) {
+           let picked = SchoolDate(year: year, month: month, day: day),
+           weekBounds.contains(picked.monday) {
             weekStart = picked.monday
-            navigationHalfAnchor = picked
         }
         showingWeekPicker = false
     }
 
     private var canMovePrevious: Bool {
         guard let previous = weekStart.addingDays(-7) else { return false }
-        return TimetableSchedule.weekOverlapsAcademicHalf(start: previous, containing: navigationHalfAnchor)
+        return weekBounds.contains(previous)
     }
 
     private var canMoveNext: Bool {
         guard let next = weekStart.addingDays(7) else { return false }
-        return TimetableSchedule.weekOverlapsAcademicHalf(start: next, containing: navigationHalfAnchor) ||
-            TimetableSchedule.hasWeekData(start: next, classes: selectedClasses, timetable: timetable,
-                                          changes: changes, events: events, includesChanges: includesChanges,
-                                          specials: specials)
+        return weekBounds.contains(next)
     }
 
     private static func decode(_ value: String) -> [String] {
