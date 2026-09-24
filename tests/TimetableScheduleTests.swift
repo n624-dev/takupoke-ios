@@ -168,6 +168,21 @@ final class TimetableScheduleTests: XCTestCase {
         XCTAssertEqual(TimetableSchedule.positioned(blocks).map(\.lane), [0, 1, 0])
     }
 
+    func testSeventhAndEighthPeriodSpanKeepsSeparateEighthPeriodInAnotherLane() throws {
+        let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
+        var normal = timetable(term: "前期")
+        func lesson(_ period: Int, _ subject: String) -> PDFLesson {
+            PDFLesson(className: "1_A", weekday: 1, period: period,
+                      names: TimetableLessonNames(subject: subject, teacher: "架空教員A", room: "架空教室A"),
+                      sourceText: subject, page: 1)
+        }
+        normal.lessons = [lesson(7, "架空科目A"), lesson(8, "架空科目A"), lesson(8, "架空科目B")]
+        let placed = TimetableSchedule.positioned(TimetableSchedule.blocks(
+            on: day, className: "1_A", timetable: normal, changes: nil, includesChanges: false))
+        XCTAssertEqual(placed.map { ($0.block.startPeriod, $0.block.endPeriod, $0.lane) }
+            .map { "\($0.0)-\($0.1)-\($0.2)" }, ["7-8-0", "8-8-1"])
+    }
+
     func testSelectableClassesIncludeAbsentKnownClasses() {
         XCTAssertEqual(TimetableSchedule.selectableClasses.count, 20)
         XCTAssertTrue(TimetableSchedule.selectableClasses.contains("1_ES"))
@@ -223,7 +238,7 @@ final class TimetableScheduleTests: XCTestCase {
         XCTAssertFalse(TimetableSchedule.compatibleAdditionalClass("1_ZZ", with: department))
     }
 
-    func testInternationalStudentFilterUsesNormalizedSubjectPrefix() {
+    func testInternationalStudentFilterUsesNormalizedSubjectPrefix() throws {
         let lesson = PDFLesson(className: "1_ZZ", weekday: 1, period: 1,
                                names: TimetableLessonNames(subject: "留 架空科目A"), sourceText: "", page: 1)
         let change = ScheduleChange(change_date: "2032-04-05", class_name: "1_ZZ", period: "1",
@@ -233,7 +248,31 @@ final class TimetableScheduleTests: XCTestCase {
         XCTAssertFalse(TimetableSchedule.shouldDisplay(change, isInternationalStudent: false))
         XCTAssertTrue(TimetableSchedule.shouldDisplay(lesson, isInternationalStudent: true))
         XCTAssertTrue(TimetableSchedule.shouldDisplay(change, isInternationalStudent: true))
-        XCTAssertFalse(TimetableSchedule.isInternationalStudentSubject("留架空科目A"))
+        XCTAssertTrue(TimetableSchedule.isInternationalStudentSubject("留架空科目A"))
+        XCTAssertFalse(TimetableSchedule.isInternationalStudentSubject("架空科目A 留"))
+        var adjacent = lesson
+        adjacent.names = TimetableLessonNames(subject: "留架空科目A")
+        XCTAssertFalse(TimetableSchedule.shouldDisplay(adjacent, isInternationalStudent: false))
+        XCTAssertTrue(TimetableSchedule.shouldDisplay(adjacent, isInternationalStudent: true))
+        var timetableAnalysis = timetable(term: "前期")
+        timetableAnalysis.lessons = [adjacent]
+        let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
+        XCTAssertTrue(TimetableSchedule.blocks(on: day, className: "1_ZZ", timetable: timetableAnalysis,
+                                               changes: nil, includesChanges: false,
+                                               isInternationalStudent: false).isEmpty)
+        XCTAssertEqual(TimetableSchedule.blocks(on: day, className: "1_ZZ", timetable: timetableAnalysis,
+                                                changes: nil, includesChanges: false,
+                                                isInternationalStudent: true).count, 1)
+        var adjacentChange = change
+        adjacentChange.after_subject = "留架空科目B"
+        XCTAssertFalse(TimetableSchedule.shouldDisplay(adjacentChange, isInternationalStudent: false))
+        XCTAssertTrue(TimetableSchedule.shouldDisplay(adjacentChange, isInternationalStudent: true))
+        let special = TimetableSchedule.SpecialItem(kind: .exam,
+            lesson: SpecialScheduleLesson(date: "2032-04-05", className: "1_ZZ", period: 1,
+                                          spanStart: 1, spanEnd: 1, timeRange: nil,
+                                          lines: ["留架空科目C"], page: 1), timeRange: nil)
+        XCTAssertFalse(TimetableSchedule.shouldDisplay(special, isInternationalStudent: false))
+        XCTAssertTrue(TimetableSchedule.shouldDisplay(special, isInternationalStudent: true))
     }
 
     func testExplicitCalendarTagsAffectWeekWithoutChangingParsedEvents() throws {
