@@ -10,13 +10,13 @@ mkdir -p "$scratch_dir/project" "$scratch_dir/tmp"
 cp Package.swift "$scratch_dir/project/"
 if [[ -f Package.resolved ]]; then cp Package.resolved "$scratch_dir/project/"; fi
 cp -R Takupoke tests "$scratch_dir/project/"
-extra_flags=()
+extra_flags=(--jobs 2)
 if [[ -n "${TKPK_ZLIB_PREFIX:-}" ]]; then
-    extra_flags=(-Xcc "-I$TKPK_ZLIB_PREFIX/usr/include" -Xlinker "-L$TKPK_ZLIB_PREFIX/usr/lib/x86_64-linux-gnu")
+    extra_flags+=( -Xcc "-I$TKPK_ZLIB_PREFIX/usr/include" -Xlinker "-L$TKPK_ZLIB_PREFIX/usr/lib/x86_64-linux-gnu" )
 fi
 TMPDIR="$scratch_dir/tmp" CLANG_MODULE_CACHE_PATH="$scratch_dir/modules" \
 SWIFTPM_MODULECACHE_OVERRIDE="$scratch_dir/modules" \
 swift test --package-path "$scratch_dir/project" \
     --scratch-path "$scratch_dir/build" --cache-path "$scratch_dir/cache" \
     --config-path "$scratch_dir/config" --security-path "$scratch_dir/security" \
-    --disable-dependency-cache --manifest-cache none --jobs 2 "${extra_flags[@]}"
+    --disable-dependency-cache --manifest-cache none "${extra_flags[@]}"

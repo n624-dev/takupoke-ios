@@ -4,6 +4,7 @@ struct TimetableView: View {
     @ObservedObject var model: MaterialsModel
     @ObservedObject var specialSchedules: SpecialSchedulesModel
     @ObservedObject var schoolEvents: SchoolEventsModel
+    @ObservedObject var mappings: MappingModel
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("timetableSelectedClasses") private var selectedClassesValue = ""
     @AppStorage("timetableChangeClasses") private var changeClassesValue = ""
@@ -551,15 +552,16 @@ struct TimetableView: View {
     }
 
     private func lessonDetail(_ lesson: PDFLesson, date: SchoolDate) -> some View {
-        List {
+        let names = mappings.names(for: lesson)
+        return List {
             Section("通常の授業") {
                 LabeledContent("日付", value: date.iso8601)
                 LabeledContent("クラス", value: lesson.className)
                 LabeledContent("時限", value: "\(lesson.period)限")
                 LabeledContent("時刻", value: TimetableSchedule.normalPeriodTimes[lesson.period - 1])
-                LabeledContent("科目", value: PDFDisplayText.continuous(lesson.names.detailSubject))
-                LabeledContent("教員", value: lesson.names.detailTeacher.isEmpty ? "記載なし" : PDFDisplayText.continuous(lesson.names.detailTeacher))
-                LabeledContent("教室", value: lesson.names.detailRoom.isEmpty ? "記載なし" : PDFDisplayText.continuous(lesson.names.detailRoom))
+                LabeledContent("科目", value: PDFDisplayText.continuous(names.detailSubject))
+                LabeledContent("教員", value: names.detailTeacher.isEmpty ? "記載なし" : PDFDisplayText.continuous(names.detailTeacher))
+                LabeledContent("教室", value: names.detailRoom.isEmpty ? "記載なし" : PDFDisplayText.continuous(names.detailRoom))
             }
         }
         .navigationTitle("授業詳細")
@@ -609,10 +611,11 @@ struct TimetableView: View {
             if !selection.baseLessons.isEmpty {
                 Section("通常の時間割") {
                     ForEach(Array(selection.baseLessons.enumerated()), id: \.offset) { _, lesson in
+                        let names = mappings.names(for: lesson)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(lesson.names.detailSubject).font(.headline)
-                            if !lesson.names.detailTeacher.isEmpty { Text("教員：" + lesson.names.detailTeacher) }
-                            if !lesson.names.detailRoom.isEmpty { Text("教室：" + lesson.names.detailRoom) }
+                            Text(names.detailSubject).font(.headline)
+                            if !names.detailTeacher.isEmpty { Text("教員：" + names.detailTeacher) }
+                            if !names.detailRoom.isEmpty { Text("教室：" + names.detailRoom) }
                         }
                     }
                 }

@@ -4,14 +4,17 @@ struct ContentView: View {
     @StateObject private var materials = MaterialsModel()
     @StateObject private var specialSchedules = SpecialSchedulesModel()
     @StateObject private var schoolEvents = SchoolEventsModel()
+    @StateObject private var mappings = MappingModel()
 
     var body: some View {
         TabView {
             HomeView()
                 .tabItem { Label("ホーム", systemImage: "house") }
-            TimetableView(model: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents)
+            TimetableView(model: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents,
+                          mappings: mappings)
                 .tabItem { Label("時間割", systemImage: "calendar") }
-            SettingsView(materials: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents)
+            SettingsView(materials: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents,
+                         mappings: mappings)
                 .tabItem { Label("設定", systemImage: "gearshape") }
         }
         .onChange(of: materials.ready) { ready in
@@ -24,6 +27,7 @@ struct ContentView: View {
             materials.loadIfNeeded()
             specialSchedules.loadIfNeeded()
             schoolEvents.refreshAtStartup()
+            mappings.checkAtStartup()
         }
     }
 }
@@ -32,15 +36,27 @@ private struct SettingsView: View {
     @ObservedObject var materials: MaterialsModel
     @ObservedObject var specialSchedules: SpecialSchedulesModel
     @ObservedObject var schoolEvents: SchoolEventsModel
+    @ObservedObject var mappings: MappingModel
 
     var body: some View {
         NavigationStack {
             List {
                 Section("データ取得") {
                     NavigationLink {
-                        MaterialsView(model: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents)
+                        MaterialsView(model: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents,
+                                      mappings: mappings)
                     } label: {
                         Label("ファイル選択", systemImage: "folder")
+                    }
+                    NavigationLink {
+                        MappingSettingsView(model: mappings)
+                    } label: {
+                        HStack {
+                            Label("名称対応表", systemImage: "text.book.closed")
+                            Spacer()
+                            if mappings.updateAvailable { Text("更新あり").font(.caption).foregroundStyle(.orange) }
+                            else if mappings.failed { Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange) }
+                        }
                     }
                 }
             }

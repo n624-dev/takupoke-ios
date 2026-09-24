@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 
 struct PDFAnalysisView: View {
     @ObservedObject var model: MaterialsModel
+    @ObservedObject var mappings: MappingModel
     let kind: MaterialKind
     @AppStorage("pdfAnalysisSelectedClass") private var selectedClass = ""
     @AppStorage("pdfAnalysisSelectedWeekday") private var selectedWeekday = 0
@@ -106,7 +107,7 @@ struct PDFAnalysisView: View {
                     }
                     ForEach(Array(visibleLessons.enumerated()), id: \.offset) { _, lesson in
                         NavigationLink {
-                            PDFLessonDetail(lesson: lesson)
+                            PDFLessonDetail(lesson: lesson, mappings: mappings)
                         } label: {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(PDFDisplayText.continuous(lesson.names.cellSubject)).font(.headline)
@@ -192,14 +193,16 @@ struct PDFAnalysisView: View {
 
 private struct PDFLessonDetail: View {
     let lesson: PDFLesson
+    @ObservedObject var mappings: MappingModel
+    private var names: TimetableLessonNames { mappings.names(for: lesson) }
     var body: some View {
         List {
             Section {
-                Text(PDFDisplayText.continuous(lesson.names.detailSubject)).font(.title3)
+                Text(PDFDisplayText.continuous(names.detailSubject)).font(.title3)
                 LabeledContent("クラス", value: lesson.className)
                 LabeledContent("時限", value: "\(lesson.period)限")
-                LabeledContent("教員", value: lesson.names.detailTeacher.isEmpty ? "記載なし" : PDFDisplayText.continuous(lesson.names.detailTeacher))
-                LabeledContent("教室", value: lesson.names.detailRoom.isEmpty ? "記載なし" : PDFDisplayText.continuous(lesson.names.detailRoom))
+                LabeledContent("教員", value: names.detailTeacher.isEmpty ? "記載なし" : PDFDisplayText.continuous(names.detailTeacher))
+                LabeledContent("教室", value: names.detailRoom.isEmpty ? "記載なし" : PDFDisplayText.continuous(names.detailRoom))
             }
             Section("PDFの記載名") {
                 LabeledContent("科目", value: PDFDisplayText.continuous(lesson.names.subject))
