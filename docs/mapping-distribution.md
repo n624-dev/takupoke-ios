@@ -1,35 +1,19 @@
-# 名称対応表の配信・接続方針
+# 名称対応表の配信・接続
 
-利用者が別途構築する配信サービスにiOS版を接続する方針です。現時点で配信URLは未決定で、iOSのログイン・ZIP取得・対応表の取り込みは未実装です。仮の本番URLや認証情報をアプリへ埋め込みません。PDF解析は対応表なしで、記載名を保持して利用できます。
+通常時間割PDFの記載名から正式名称への対応表を、認証付きの `takupoke-api` から取得します。iOSはPDF解析結果を書き換えず、授業詳細の表示時に保存済み対応表を適用します。時間割変更XLSX、試験・返却PDF、学校行事には適用しません。
 
-## 役割
+## 更新確認と認証
 
-- 既存の `takuma-gakunin-hono` をOIDC Providerとして利用する。iOSはpublic clientとしてAuthorization Code FlowとPKCE S256を使い、ログインには `ASWebAuthenticationSession` を使う方針。
-- 別の配信用Cloudflare Workerが、配信用API向けAccess Tokenの署名・発行者・対象API・有効期限・`mapping.read`権限を検証して対応表を返す。ID TokenをZIP取得用トークンとして兼用しない。
-- Provider側で必要な署名付きAccess Tokenの発行は配信側との連携作業で対応する。現行実装がすでに配信用APIへ対応しているとは扱わず、既存クライアントへの影響も確認する。
-- 実際の対応表ZIPは非公開R2に置く。公開用の `r2.dev` やバケットの公開ドメインを有効にせず、WorkerのR2 Bindingから読み取る。アプリへR2の直接URLを渡さない。
-- 配布対象は名称の対応・変換規則に限定する。正解時間割CSV、学校行事CSV、PDF、XLSXを含めない。
+- 起動時は公開 `GET https://takupoke-api.n624.jp/mapping-revision` だけを確認します。レスポンスは本文なし、ランダムな43文字の revision を引用符で囲んだ `ETag` のみです。内部バージョン、日時、件数、ZIPは公開しません。ただし継続監視から更新時期の範囲は推測可能です。
+- 保存済み revision を `If-None-Match` で送ります。304なら変更なし、200なら更新ありとして設定の「データ取得」→「名称対応表」に表示します。取得失敗時は保存済み対応表を保持し、確認失敗を示します。
+- 利用者が取得を押したとき、まず revision を再確認します。変更があれば `ASWebAuthenticationSession` で `takuma-gakunin-hono` のAuthorization Code + PKCE S256を開始し、`openid mapping.read` を要求します。Microsoft側の既存SSOを許可し、`prompt=login`は付けません。
+- `client_id=takupoke-ios`、callbackは `jp.n624.takupoke:/oauth/callback`。ID Tokenは署名・issuer・audience・nonce・有効期限を確認し、対応表APIにはAccess Tokenだけを送ります。Refresh Tokenは使用せず、Tokenは端末内へ永続保存しません。
+- 認証後の `GET /mappings/current` は Bearer Token必須です。ZIPレスポンスの `X-Mapping-Revision` と直前に確認した公開 revision が一致する場合だけ取り込みます。公開確認と取得の間に版が切り替わった場合は旧版を残して再試行を案内します。
 
-## iOSでの取り込みと更新
+## ZIPの検証と保存
 
-- 初回取得・更新確認は利用者の明示操作で行う。変更がない場合はETag等でZIPの取得を省く。
-- ZIPはアプリ専用の一時領域で扱い、検証・取り込み後に削除する。展開・変換した対応表もアプリ専用領域に置き、「ファイル」アプリへ公開しない。
-- ファイル数・サイズ・展開量・CSV形式・schema・変換規則を検証し、正常な新しい対応表だけを原子的に反映する。失敗時は前回正常版を保持する。
-- PDFの記載名を残し、取り込んだ対応表による正式名称を別の値として扱う。対応表の更新時に元PDFの再ダウンロードを必要としない。
-- 正規表現を含む対応表は、対応する記法・適用範囲・優先順位・複数一致・実行量上限を配信側と合意してから実装する。任意の解析コードをダウンロードして実行する仕組みにはしない。
-- 認証情報は適切な端末内保管を使い、ログ・バックアップ・公開リポジトリへ出さない。端末所有者によるデータ取り出しを完全に防ぐ仕組みではない。
+ZIP直下の `manifest.json` と `mappings.json` だけを許可し、ZIPのCRC、ファイル数・サイズ、schemaVersion、内部バージョン、`mappings.json` のサイズとSHA-256、規則の型と重複を検証します。v1は科目・教員・教室の完全一致規則だけです。科目のクラス指定規則は全クラス規則より優先します。正規表現はv1に含めません。配布形式の原本は [`takupoke-api` の仕様](https://github.com/n624-dev/takupoke-api/blob/main/docs/mapping-package.md)です。
 
-## 配信側の更新
+検証済みの規則と対応する公開revisionを専用SQLiteへ一回の取引で保存します。保存が成功するまで表示は前回正常版を使います。ZIPはURLSessionの一時ファイルで受け、取り込み後・失敗時に削除します。保存領域はバックアップ対象から外し、iOSのファイル保護を使用します。元PDFの再取得・再解析は行いません。
 
-新しいZIPのアップロードと検証を終えてから最新版への参照を切り替え、最新版と切り戻し用の前版のみを維持する方針です。これは対応表配信の保存方針であり、iOSアプリの正式なGitHub Releasesの自動削除は行いません。
-
-## 接続前に確定するもの
-
-- OIDC issuer、iOS用client ID、登録済みのredirect URI、配信用Access Tokenのaudience・scope・有効期限。
-- 配信用APIのHTTPS URL、更新確認・ZIP取得のパス、認可切れや権限不足時の応答。
-- ZIP内のファイル名、CSV列、metadata/schema、バージョン、整合性確認方法。
-- 規則の一致方法・優先順位・クラス別適用・要確認行・不一致の扱い。
-
-会話中のファイル名やURL例は確定値として使用しません。
-
-参照: [R2の非公開設定](https://developers.cloudflare.com/r2/buckets/public-buckets/)、[WorkersからのR2取得](https://developers.cloudflare.com/r2/api/workers/workers-api-usage/)、[OpenID Connect Core](https://openid.net/specs/openid-connect-core-1_0.html)。
+公開リポジトリ・テストには学校の実際の対応表、PDF、XLSX、認証情報を含めません。自動テストは架空データと架空URLを使います。

@@ -32,6 +32,7 @@ struct MaterialsView: View {
     @ObservedObject var model: MaterialsModel
     @ObservedObject var specialSchedules: SpecialSchedulesModel
     @ObservedObject var schoolEvents: SchoolEventsModel
+    @ObservedObject var mappings: MappingModel
     @State private var picker: MaterialKind?
     @State private var specialPickerKind: SpecialScheduleKind?
 
@@ -83,7 +84,7 @@ struct MaterialsView: View {
                                     needsAttention: materialNeedsAttention(kind, record: record))
                         NavigationLink {
                             if kind == .changes { ChangeAnalysisView(model: model) }
-                            else { PDFAnalysisView(model: model, kind: kind) }
+                            else { PDFAnalysisView(model: model, mappings: mappings, kind: kind) }
                         } label: { Text("詳細を見る") }
                         .accessibilityLabel("\(kind.title)の詳細を見る")
                     } else {

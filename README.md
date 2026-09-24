@@ -108,7 +108,7 @@ docs/                      方針・手順・検証・情報管理
 | [導入・更新・配布の仕組み](docs/distribution.md) | Source URL、実機導入、番号規則、障害対応 |
 | [学校資料の選択・取得](docs/materials.md) | OneDrive / Files の選択・再取得・制約・実機確認項目 |
 | [XLSX解析の移植仕様](docs/xlsx-specification.md) | 既存実装の規則、架空の比較データ、未実装の範囲 |
-| [対応表配信の接続方針](docs/mapping-distribution.md) | OIDC・配信用Worker・非公開R2の役割と、未確定の接続情報 |
+| [名称対応表の配信・接続](docs/mapping-distribution.md) | 起動時の公開revision確認、OIDC認証、ZIP検証、専用SQLite保存 |
 | [PDF解析の仕様確認](docs/pdf-specification.md) | 同時刻の並記授業、空欄保持、記載名・正式名称の保持とWeb版に合わせた表示方針 |
 | [検証記録](docs/verification.md) | ローカルの確認範囲と CI・実機の確認待ち項目 |
 | [公開時の情報管理](docs/public-repository.md) | 学校資料、個人情報、認証情報、コミット作者情報 |
