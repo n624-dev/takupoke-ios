@@ -14,13 +14,6 @@ extra_flags=(--jobs 2)
 if [[ -n "${TKPK_ZLIB_PREFIX:-}" ]]; then
     extra_flags+=( -Xcc "-I$TKPK_ZLIB_PREFIX/usr/include" -Xlinker "-L$TKPK_ZLIB_PREFIX/usr/lib/x86_64-linux-gnu" )
 fi
-# Xcode 26.3's CoreText synthetic PDF output is rejected by the existing strict
-# timetable reader. Keep the unrelated fixture tests visible, but run all other
-# host tests (including mapping package and network tests) on macOS.
-if [[ "$(uname -s)" == "Darwin" ]]; then
-    extra_flags+=(--skip 'PDFParsingTests/testPDFKitBridgeReadsSyntheticPDFAndRotation')
-    extra_flags+=(--skip 'PDFParsingTests/testPDFKitTextSelectionsStayAlignedAcrossSpacesLinesAndRotations')
-fi
 TMPDIR="$scratch_dir/tmp" CLANG_MODULE_CACHE_PATH="$scratch_dir/modules" \
 SWIFTPM_MODULECACHE_OVERRIDE="$scratch_dir/modules" \
 swift test --package-path "$scratch_dir/project" \

@@ -624,7 +624,12 @@ extension PDFParsingTests {
         let document = try XCTUnwrap(PDFDocument(data: data as Data))
         let nativePage = try XCTUnwrap(document.page(at: 0))
         XCTAssertTrue(try XCTUnwrap(nativePage.string).contains("\n"))
-        for kind in [MaterialKind.timetable, .events] {
+        // CoreText's generated font is not a supported timetable font. The
+        // strict drawn-text reader rejects it; PDFKit selection remains usable.
+        XCTAssertThrowsError(try PDFKitReader.read(url, kind: .timetable)) { error in
+            XCTAssertEqual((error as? PDFParseError)?.stage, .characterMapping)
+        }
+        for kind in [MaterialKind.events] {
             nativePage.rotation = 0
             try XCTUnwrap(document.dataRepresentation()).write(to: url)
             let original = try XCTUnwrap(PDFKitReader.read(url, kind: kind).first)
@@ -749,7 +754,12 @@ extension PDFParsingTests {
         context.closePDF()
         let url = root.appendingPathComponent("synthetic.pdf")
         try (data as Data).write(to: url)
-        let normal = try PDFKitReader.read(url, kind: .timetable)
+        // CoreText's synthetic PDF is intentionally outside the strict
+        // drawn-text subset; a separate explicit-ToUnicode fixture covers it.
+        XCTAssertThrowsError(try PDFKitReader.read(url, kind: .timetable)) { error in
+            XCTAssertEqual((error as? PDFParseError)?.stage, .characterMapping)
+        }
+        let normal = try PDFKitReader.readSpecial(url)
         let parsed = try parse(normal, kind: .timetable)
         XCTAssertEqual(parsed.lessons.count, 8)
         XCTAssertEqual(Set(parsed.lessons.map(\.names.subject)), ["架空科目Q", "架空X", "架空Y", "架空科目Z"])
@@ -759,7 +769,7 @@ extension PDFParsingTests {
         let document = try XCTUnwrap(PDFDocument(data: data as Data))
         try XCTUnwrap(document.page(at: 0)).rotation = 90
         try XCTUnwrap(document.dataRepresentation()).write(to: url)
-        let rotated = try PDFKitReader.read(url, kind: .timetable)
+        let rotated = try PDFKitReader.readSpecial(url)
         XCTAssertEqual(rotated[0].width, normal[0].height, accuracy: 0.1)
         XCTAssertEqual(rotated[0].height, normal[0].width, accuracy: 0.1)
         let before = try XCTUnwrap(normal[0].glyphs.first { $0.text == "令" })
