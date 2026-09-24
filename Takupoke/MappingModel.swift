@@ -146,8 +146,12 @@ struct MappingSettingsView: View {
                 }
                 if model.busy { HStack { ProgressView(); Text("確認中…") } }
                 if let message = model.message {
-                    Label(message, systemImage: model.failed ? "exclamationmark.triangle" : "info.circle")
-                        .foregroundStyle(model.failed ? Color.orange : Color.secondary)
+                    Label {
+                        Text(message)
+                    } icon: {
+                        Image(systemName: model.failed ? "exclamationmark.triangle" : "info.circle")
+                    }
+                    .foregroundStyle(model.failed ? Color.orange : Color.secondary)
                 }
                 if !model.ready { Button("保存情報を再読み込み") { model.loadIfNeeded() } }
                 Button(model.current == nil ? "名称対応表を取得" : "更新を確認") { model.refresh() }
