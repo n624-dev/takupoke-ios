@@ -1,3 +1,4 @@
+import SafariServices
 import SwiftUI
 
 private enum LinkPalette {
@@ -46,6 +47,7 @@ private struct VisibleLinkCategory: Identifiable {
 
 struct LinksView: View {
     @ObservedObject var model: LinksModel
+    @State private var safariPage: SafariPage?
     @State private var query = ""
 
     private var visibleCategories: [VisibleLinkCategory] {
@@ -93,12 +95,16 @@ struct LinksView: View {
                 } else if LinkSearch.normalize(query).isEmpty {
                     if !favorites.isEmpty {
                         Section("お気に入り") {
-                            ForEach(favorites) { item in LinkRow(item: item, model: model) }
+                            ForEach(favorites) { item in
+                                LinkRow(item: item, model: model) { safariPage = SafariPage(url: $0) }
+                            }
                         }
                     }
                     ForEach(visibleCategories) { entry in
                         Section(entry.category.label) {
-                            ForEach(entry.items) { item in LinkRow(item: item, model: model) }
+                            ForEach(entry.items) { item in
+                                LinkRow(item: item, model: model) { safariPage = SafariPage(url: $0) }
+                            }
                         }
                     }
                     if visibleCategories.isEmpty {
@@ -110,7 +116,9 @@ struct LinksView: View {
                             Text("該当するリンクがありません。").foregroundStyle(.secondary)
                         } else {
                             ForEach(searchHits) { hit in
-                                LinkRow(item: hit.item, subtitle: hit.category, model: model)
+                                LinkRow(item: hit.item, subtitle: hit.category, model: model) {
+                                    safariPage = SafariPage(url: $0)
+                                }
                             }
                         }
                     }
@@ -129,6 +137,40 @@ struct LinksView: View {
                     .accessibilityLabel("非表示のリンク")
                 }
             }
+            .fullScreenCover(item: $safariPage) { page in
+                SafariLinkView(url: page.url) { safariPage = nil }
+                    .ignoresSafeArea()
+            }
+        }
+    }
+}
+
+private struct SafariPage: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
+private struct SafariLinkView: UIViewControllerRepresentable {
+    let url: URL
+    let onDismiss: () -> Void
+
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        let controller = SFSafariViewController(url: url)
+        controller.delegate = context.coordinator
+        return controller
+    }
+
+    func updateUIViewController(_ controller: SFSafariViewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(onDismiss: onDismiss) }
+
+    final class Coordinator: NSObject, SFSafariViewControllerDelegate {
+        let onDismiss: () -> Void
+
+        init(onDismiss: @escaping () -> Void) { self.onDismiss = onDismiss }
+
+        func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
+            onDismiss()
         }
     }
 }
@@ -137,16 +179,29 @@ private struct LinkRow: View {
     let item: LinkItem
     var subtitle: String? = nil
     @ObservedObject var model: LinksModel
+    let openInApp: (URL) -> Void
+    @AppStorage("linkOpeningMode") private var linkOpeningMode = LinkOpeningMode.external.rawValue
     @Environment(\.openURL) private var openURL
     @State private var openFailed = false
 
-    var body: some View {
-        Button {
-            guard let url = item.url else { openFailed = true; return }
+    private var preferredMode: LinkOpeningMode {
+        LinkOpeningMode(rawValue: linkOpeningMode) ?? .external
+    }
+
+    private func open(opposite: Bool = false) {
+        guard let url = item.url else { openFailed = true; return }
+        switch preferredMode.destination(for: url, opposite: opposite) {
+        case .inApp:
+            openInApp(url)
+        case .external:
             openURL(url) { accepted in
                 if !accepted { DispatchQueue.main.async { openFailed = true } }
             }
-        } label: {
+        }
+    }
+
+    var body: some View {
+        Button { open() } label: {
             HStack(spacing: 12) {
                 Image(systemName: "link")
                     .font(.headline)
@@ -169,6 +224,14 @@ private struct LinkRow: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
+            if item.url?.scheme?.lowercased() == "https" {
+                Button {
+                    open(opposite: true)
+                } label: {
+                    Label(preferredMode == .external ? "アプリ内で開く" : "外部で開く",
+                          systemImage: preferredMode == .external ? "safari" : "arrow.up.right.square")
+                }
+            }
             if model.preferencesReady {
                 Button {
                     model.toggleFavorite(item.id)

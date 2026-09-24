@@ -5,6 +5,18 @@ import XCTest
 final class LinksTests: XCTestCase {
     private let tag = "W/\"fictional-links-etag\""
 
+    func testLinkOpeningModeUsesHTTPSOnlyAndKeepsOverrideTemporary() throws {
+        let web = try XCTUnwrap(URL(string: "https://example.invalid/path"))
+        let app = try XCTUnwrap(URL(string: "jrshikoku://fictional"))
+        XCTAssertEqual(LinkOpeningMode.external.destination(for: web), .external)
+        XCTAssertEqual(LinkOpeningMode.external.destination(for: web, opposite: true), .inApp)
+        XCTAssertEqual(LinkOpeningMode.external.destination(for: web), .external)
+        XCTAssertEqual(LinkOpeningMode.inApp.destination(for: web), .inApp)
+        XCTAssertEqual(LinkOpeningMode.inApp.destination(for: web, opposite: true), .external)
+        XCTAssertEqual(LinkOpeningMode.inApp.destination(for: app, opposite: true), .external)
+        XCTAssertEqual(LinkOpeningMode.inApp.destination(for: app), .external)
+    }
+
     private func item(id: String = "fictional-link", href: String = "https://example.invalid/path",
                       visible: Bool = true) -> LinkItem {
         LinkItem(id: id, categoryId: "fictional-category", label: "架空リンクA", href: href,

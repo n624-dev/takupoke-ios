@@ -46,6 +46,7 @@ struct ContentView: View {
 }
 
 private struct SettingsView: View {
+    @AppStorage("linkOpeningMode") private var linkOpeningMode = LinkOpeningMode.external.rawValue
     @ObservedObject var materials: MaterialsModel
     @ObservedObject var specialSchedules: SpecialSchedulesModel
     @ObservedObject var schoolEvents: SchoolEventsModel
@@ -70,6 +71,12 @@ private struct SettingsView: View {
                             if mappings.updateAvailable { Text("更新あり").font(.caption).foregroundStyle(.orange) }
                             else if mappings.failed { Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange) }
                         }
+                    }
+                }
+                Section("一覧") {
+                    Picker("リンクの開き方", selection: $linkOpeningMode) {
+                        Text("外部で開く").tag(LinkOpeningMode.external.rawValue)
+                        Text("アプリ内で開く").tag(LinkOpeningMode.inApp.rawValue)
                     }
                 }
             }
