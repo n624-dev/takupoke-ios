@@ -170,7 +170,8 @@ final class SpecialScheduleStore {
 
     func saveAnalysis(_ analysis: SpecialScheduleAnalysis) throws {
         guard let source = sources[analysis.kind], analysis.sourceDigest == source.digest,
-              analysis.sourceName == source.originalName, Self.valid(analysis) else {
+              analysis.sourceName == source.originalName,
+              analysis.version == SpecialScheduleAnalysis.parserVersion, Self.valid(analysis) else {
             throw StoreError.invalidState
         }
         let record = SpecialScheduleRecord(kind: analysis.kind, originalName: source.originalName,
@@ -206,7 +207,8 @@ final class SpecialScheduleStore {
               byteCount: Int, digest: String) throws {
         guard staged.deletingLastPathComponent().standardizedFileURL == staging.standardizedFileURL,
               analysis.sourceDigest == digest,
-              analysis.sourceName == originalName, Self.valid(analysis), byteCount > 0,
+              analysis.sourceName == originalName,
+              analysis.version == SpecialScheduleAnalysis.parserVersion, Self.valid(analysis), byteCount > 0,
               byteCount <= MaterialLibrary.maximumBytes else {
             throw StoreError.invalidState
         }
@@ -217,7 +219,7 @@ final class SpecialScheduleStore {
 
     private static func valid(_ analysis: SpecialScheduleAnalysis) -> Bool {
         let count = analysis.kind == .exam ? 6 : 8
-        return analysis.version == SpecialScheduleAnalysis.parserVersion &&
+        return (4...SpecialScheduleAnalysis.parserVersion).contains(analysis.version) &&
             analysis.coveredDates.count == 5 && Set(analysis.coveredDates).count == 5 &&
             analysis.coveredClasses.count == 17 && Set(analysis.coveredClasses).count == 17 &&
             analysis.periodTimes.count == count && !analysis.lessons.isEmpty &&

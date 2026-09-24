@@ -76,6 +76,28 @@ enum TimetableDisplayText {
         return result
     }
 
+    /// Use compact katakana only for a room label that does not fit a card.
+    static func halfwidthKana(_ value: String) -> String {
+        var result = ""
+        var katakana = ""
+        func appendRun() {
+            if !katakana.isEmpty {
+                result += katakana.applyingTransform(.fullwidthToHalfwidth, reverse: false) ?? katakana
+                katakana = ""
+            }
+        }
+        for scalar in value.unicodeScalars {
+            if (0x30A0...0x30FF).contains(scalar.value) {
+                katakana.append(String(scalar))
+            } else {
+                appendRun()
+                result.append(String(scalar))
+            }
+        }
+        appendRun()
+        return result
+    }
+
     static func continuous(_ value: String) -> String {
         kana(PDFDisplayText.continuous(value))
     }

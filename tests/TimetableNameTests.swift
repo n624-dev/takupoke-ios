@@ -12,6 +12,8 @@ final class TimetableNameTests: XCTestCase {
         XCTAssertEqual(TimetableDisplayText.className("1_ES"), "1-ES")
         XCTAssertEqual(TimetableDisplayText.className("AI_2"), "AI-2")
         XCTAssertEqual(TimetableDisplayText.classNames(["1_1", "1_ES"]), "1-1・1-ES")
+        XCTAssertEqual(TimetableDisplayText.halfwidthKana("架空ソフト室A"), "架空ｿﾌﾄ室A")
+        XCTAssertEqual(TimetableDisplayText.halfwidthKana("架空ｶﾞｯﾂ室A"), "架空ｶﾞｯﾂ室A")
     }
 
     func testBothFormsSurviveSavingAndDisplayWithoutChangingSource() throws {

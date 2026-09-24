@@ -27,18 +27,28 @@ enum TimetableSchedule {
             .hasPrefix("留")
     }
 
-    static func shouldDisplay(_ lesson: PDFLesson, isInternationalStudent: Bool) -> Bool {
+    private static func isInternationalStudentSubject(_ value: String, className: String,
+                                                       matchedByRule: ((String, String) -> Bool)?) -> Bool {
+        isInternationalStudentSubject(value) ||
+            (matchedByRule?(value, className) == true)
+    }
+
+    static func shouldDisplay(_ lesson: PDFLesson, isInternationalStudent: Bool,
+                              matchedByRule: ((String, String) -> Bool)? = nil) -> Bool {
         isInternationalStudent || ![lesson.names.subject, lesson.names.subjectFullName ?? ""]
-            .contains(where: isInternationalStudentSubject)
+            .contains(where: { isInternationalStudentSubject($0, className: lesson.className, matchedByRule: matchedByRule) })
     }
 
-    static func shouldDisplay(_ change: ScheduleChange, isInternationalStudent: Bool) -> Bool {
+    static func shouldDisplay(_ change: ScheduleChange, isInternationalStudent: Bool,
+                              matchedByRule: ((String, String) -> Bool)? = nil) -> Bool {
         isInternationalStudent || ![change.before_subject, change.after_subject]
-            .contains(where: isInternationalStudentSubject)
+            .contains(where: { isInternationalStudentSubject($0, className: change.displayClassName, matchedByRule: matchedByRule) })
     }
 
-    static func shouldDisplay(_ item: SpecialItem, isInternationalStudent: Bool) -> Bool {
-        isInternationalStudent || !isInternationalStudentSubject(item.lesson.subject)
+    static func shouldDisplay(_ item: SpecialItem, isInternationalStudent: Bool,
+                              matchedByRule: ((String, String) -> Bool)? = nil) -> Bool {
+        isInternationalStudent || !isInternationalStudentSubject(item.lesson.subject,
+            className: item.lesson.className, matchedByRule: matchedByRule)
     }
 
     struct SpecialItem {
@@ -77,12 +87,14 @@ enum TimetableSchedule {
 
     static func blocks(on day: SchoolDate, className: String, timetable: PDFAnalysis?,
                        changes: ChangeAnalysis?, includesChanges: Bool, events: PDFAnalysis? = nil,
-                       specials: [SpecialScheduleAnalysis] = [], isInternationalStudent: Bool = false) -> [GridBlock] {
+                       specials: [SpecialScheduleAnalysis] = [], isInternationalStudent: Bool = false,
+                       matchedByRule: ((String, String) -> Bool)? = nil) -> [GridBlock] {
         var result: [GridBlock] = []
         for period in 1...8 {
             let item = slot(on: day, period: period, className: className, timetable: timetable,
                             changes: changes, includesChanges: includesChanges, events: events, specials: specials)
-            for lesson in item.displayedLessons where shouldDisplay(lesson, isInternationalStudent: isInternationalStudent) {
+            for lesson in item.displayedLessons where shouldDisplay(lesson, isInternationalStudent: isInternationalStudent,
+                                                                    matchedByRule: matchedByRule) {
                 if let previous = result.indices.last(where: { index in
                     guard result[index].endPeriod == period - 1,
                           case .normal(let old) = result[index].content else { return false }
@@ -94,7 +106,8 @@ enum TimetableSchedule {
                     result.append(GridBlock(startPeriod: period, endPeriod: period, content: .normal(lesson)))
                 }
             }
-            for special in item.displayedSpecialLessons where shouldDisplay(special, isInternationalStudent: isInternationalStudent) {
+            for special in item.displayedSpecialLessons where shouldDisplay(special, isInternationalStudent: isInternationalStudent,
+                                                                            matchedByRule: matchedByRule) {
                 if let previous = result.indices.last(where: { index in
                     guard result[index].endPeriod == period - 1,
                           case .special(let old) = result[index].content else { return false }
@@ -106,7 +119,8 @@ enum TimetableSchedule {
                     result.append(GridBlock(startPeriod: period, endPeriod: period, content: .special(special)))
                 }
             }
-            for change in item.changes where shouldDisplay(change, isInternationalStudent: isInternationalStudent) {
+            for change in item.changes where shouldDisplay(change, isInternationalStudent: isInternationalStudent,
+                                                            matchedByRule: matchedByRule) {
                 if let covered = change.gridPeriods, covered.first == period, let last = covered.last {
                     result.append(GridBlock(startPeriod: period, endPeriod: last, content: .change(change)))
                 }
@@ -249,7 +263,8 @@ enum TimetableSchedule {
 
     static func displayedDays(weekStart: SchoolDate, classes: [String], timetable: PDFAnalysis?,
                               changes: ChangeAnalysis?, events: PDFAnalysis?, includesChanges: Bool,
-                              isInternationalStudent: Bool, specials: [SpecialScheduleAnalysis] = []) -> [SchoolDate] {
+                              isInternationalStudent: Bool, specials: [SpecialScheduleAnalysis] = [],
+                              matchedByRule: ((String, String) -> Bool)? = nil) -> [SchoolDate] {
         (0..<7).compactMap { weekStart.addingDays($0) }.filter { day in
             if day.schoolWeekday <= 5 { return true }
             let plan = dayPlan(on: day, events: events)
@@ -259,9 +274,12 @@ enum TimetableSchedule {
                     let item = slot(on: day, period: period, className: className, timetable: timetable,
                                     changes: changes, includesChanges: includesChanges, events: events,
                                     specials: specials)
-                    return item.displayedLessons.contains { shouldDisplay($0, isInternationalStudent: isInternationalStudent) } ||
-                        item.displayedSpecialLessons.contains { shouldDisplay($0, isInternationalStudent: isInternationalStudent) } ||
-                        item.changes.contains { shouldDisplay($0, isInternationalStudent: isInternationalStudent) }
+                    return item.displayedLessons.contains { shouldDisplay($0, isInternationalStudent: isInternationalStudent,
+                                                                            matchedByRule: matchedByRule) } ||
+                        item.displayedSpecialLessons.contains { shouldDisplay($0, isInternationalStudent: isInternationalStudent,
+                                                                                   matchedByRule: matchedByRule) } ||
+                        item.changes.contains { shouldDisplay($0, isInternationalStudent: isInternationalStudent,
+                                                               matchedByRule: matchedByRule) }
                 }
             }
         }

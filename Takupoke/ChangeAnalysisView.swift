@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ChangeAnalysisView: View {
     @ObservedObject var model: MaterialsModel
+    @ObservedObject var mappings: MappingModel
     @AppStorage("changeDefaultSchoolYear") private var year = ""
     @AppStorage("changeAnalysisSelectedClass") private var selectedClass = ""
     @State private var confirmingPreview = false
@@ -78,7 +79,7 @@ struct ChangeAnalysisView: View {
                     if analysis.sourceDigest != model.state.record(for: .changes)?.digest || analysis.version != ChangeAnalysis.parserVersion {
                         Label("前回の解析結果です。現在のファイルを解析してください。", systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                     }
-                    Text("正常な解析結果を時間割の週表示に反映します。通知はまだ行いません。教員欄が空の場合、科目の併記から推測して補いません。")
+                    Text("正常な解析結果を時間割の週表示に反映します。通知はまだ行いません。取得済みの名称対応表と一致する末尾の括弧だけ、表示時に教員・教室へ分けます。")
                         .font(.caption).foregroundStyle(.secondary)
                 } header: { Text("解析結果") }
                 Section {
@@ -96,7 +97,7 @@ struct ChangeAnalysisView: View {
                 }
                 // Use positions so identical source rows remain visible as distinct records.
                 ForEach(Array(visible.enumerated()), id: \.offset) { _, record in
-                    Section { ChangeRecordFields(record: record) }
+                    Section { ChangeRecordFields(record: record, names: mappings.names(for: record)) }
                 }
             } else {
                 Text("まだ正常な解析結果はありません。").foregroundStyle(.secondary)
@@ -112,7 +113,7 @@ struct ChangeAnalysisView: View {
             Text("日付と曜日が合わないか、曜日の計算結果が保存されていません。日付欄を基準に内容を表示しますが、正しい内容かは元ファイルで確認してください。前回の正常データは置き換えません。")
         }
         .sheet(isPresented: Binding(get: { model.changePreview != nil }, set: { if !$0 { model.dismissPreview() } })) {
-            if let preview = model.changePreview { ChangePreviewView(preview: preview) }
+            if let preview = model.changePreview { ChangePreviewView(preview: preview, mappings: mappings) }
         }
     }
 
@@ -133,6 +134,7 @@ struct ChangeAnalysisView: View {
 
 private struct ChangePreviewView: View {
     let preview: ChangePreview
+    @ObservedObject var mappings: MappingModel
     @Environment(\.dismiss) private var dismiss
     @State private var selectedClass = ""
 
@@ -165,7 +167,7 @@ private struct ChangePreviewView: View {
                     }
                 }
                 ForEach(Array(visible.enumerated()), id: \.offset) { _, record in
-                    Section { ChangeRecordFields(record: record) }
+                    Section { ChangeRecordFields(record: record, names: mappings.names(for: record)) }
                 }
             }
             .navigationTitle("プレビュー（閲覧のみ）")
@@ -177,19 +179,27 @@ private struct ChangePreviewView: View {
 
 private struct ChangeRecordFields: View {
     let record: ScheduleChange
+    let names: ChangePresentation
 
     var body: some View {
         LabeledContent("日付", value: record.change_date)
         LabeledContent("クラス", value: TimetableDisplayText.className(record.displayClassName))
         field("時限", record.period.isEmpty ? "" : record.displayPeriod)
-        field("変更前", record.before_subject)
-        field("変更後", record.after_subject)
-        field("教員", record.teacher)
-        field("教室", record.room)
+        field("変更前", names.before.detailSubject)
+        field("変更前の教員", names.before.detailTeacher)
+        field("変更前の教室", names.before.detailRoom)
+        field("変更後", names.after.detailSubject)
+        field("変更後の教員", names.after.detailTeacher)
+        field("変更後の教室", names.after.detailRoom)
         field("備考", record.note)
+        DisclosureGroup("元の記載") {
+            if !record.before_subject.isEmpty { LabeledContent("変更前", value: record.before_subject) }
+            if !record.after_subject.isEmpty { LabeledContent("変更後", value: record.after_subject) }
+            if !record.raw_text.isEmpty { Text(record.raw_text).textSelection(.enabled) }
+        }
     }
 
     @ViewBuilder private func field(_ title: String, _ value: String) -> some View {
-        if !value.isEmpty { LabeledContent(title, value: value) }
+        if !value.isEmpty { LabeledContent(title, value: TimetableDisplayText.kana(value)) }
     }
 }

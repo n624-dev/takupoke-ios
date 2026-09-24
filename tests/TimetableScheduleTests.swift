@@ -275,6 +275,33 @@ final class TimetableScheduleTests: XCTestCase {
         XCTAssertTrue(TimetableSchedule.shouldDisplay(special, isInternationalStudent: true))
     }
 
+    func testInternationalStudentMappingFlagHidesNonPrefixedSubjectsAcrossSources() throws {
+        let matchedByRule: (String, String) -> Bool = { subject, className in
+            subject == "架空科目D" && className == "1_ZZ"
+        }
+        let lesson = PDFLesson(className: "1_ZZ", weekday: 1, period: 1,
+                               names: TimetableLessonNames(subject: "架空科目D"), sourceText: "", page: 1)
+        let change = ScheduleChange(change_date: "2032-04-05", class_name: "1_ZZ", period: "1",
+                                    before_subject: "架空科目A", after_subject: "架空科目D",
+                                    teacher: "", room: "", note: "", raw_text: "", canonical_text: "")
+        let special = TimetableSchedule.SpecialItem(kind: .examReturn,
+            lesson: SpecialScheduleLesson(date: "2032-04-05", className: "1_ZZ", period: 1,
+                                          spanStart: 1, spanEnd: 1, timeRange: nil,
+                                          lines: ["架空科目D"], page: 1), timeRange: nil)
+        XCTAssertFalse(TimetableSchedule.shouldDisplay(lesson, isInternationalStudent: false,
+                                                       matchedByRule: matchedByRule))
+        XCTAssertFalse(TimetableSchedule.shouldDisplay(change, isInternationalStudent: false,
+                                                       matchedByRule: matchedByRule))
+        XCTAssertFalse(TimetableSchedule.shouldDisplay(special, isInternationalStudent: false,
+                                                       matchedByRule: matchedByRule))
+        XCTAssertTrue(TimetableSchedule.shouldDisplay(lesson, isInternationalStudent: true,
+                                                      matchedByRule: matchedByRule))
+        var otherClass = lesson
+        otherClass.className = "2_ZZ"
+        XCTAssertTrue(TimetableSchedule.shouldDisplay(otherClass, isInternationalStudent: false,
+                                                      matchedByRule: matchedByRule))
+    }
+
     func testExplicitCalendarTagsAffectWeekWithoutChangingParsedEvents() throws {
         let monday = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
         var base = timetable(term: "前期")

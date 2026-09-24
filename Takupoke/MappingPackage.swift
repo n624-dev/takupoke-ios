@@ -25,6 +25,17 @@ struct MappingRule: Codable, Equatable {
     let internationalStudent: Bool?
 }
 
+struct ChangePresentation: Equatable {
+    let before: TimetableLessonNames
+    let after: TimetableLessonNames
+
+    static func source(_ change: ScheduleChange) -> Self {
+        Self(before: TimetableLessonNames(subject: change.before_subject),
+             after: TimetableLessonNames(subject: change.after_subject,
+                                         teacher: change.teacher, room: change.room))
+    }
+}
+
 struct MappingRules: Codable, Equatable {
     let subjects: [MappingRule]
     let teachers: [MappingRule]
@@ -35,6 +46,80 @@ struct MappingRules: Codable, Equatable {
             subjectFullName: match(names.subject, in: subjects, className: className) ?? names.subjectFullName,
             teacherFullName: match(names.teacher, in: teachers) ?? names.teacherFullName,
             roomFullName: match(names.room, in: rooms) ?? names.roomFullName)
+    }
+
+    func isInternationalStudentSubject(_ alias: String, className: String) -> Bool {
+        guard !alias.isEmpty else { return false }
+        func matching(_ rules: [MappingRule]) -> MappingRule? {
+            rules.first(where: { $0.classes?.contains(className) == true }) ??
+                rules.first(where: { $0.classes == nil })
+        }
+        if let exact = matching(subjects.filter({ $0.alias == alias })) {
+            return exact.internationalStudent == true
+        }
+        let derived = subjects.filter { rule in
+            rule.internationalStudent == true && rule.alias.hasPrefix("留 ") &&
+                String(rule.alias.dropFirst(2)) == alias
+        }
+        return matching(derived)?.internationalStudent == true
+    }
+
+    /// Split only trailing metadata confirmed by the installed mapping. A
+    /// subject component such as 「架空科目X（分野A）」 remains part of the subject.
+    func separatingChangeField(_ source: String) -> TimetableLessonNames {
+        var remaining = source.trimmingCharacters(in: .whitespacesAndNewlines)
+        var teacher = ""
+        var room = ""
+        while let closing = remaining.last, closing == ")" || closing == "）" {
+            let opening: Character = closing == ")" ? "(" : "（"
+            var depth = 0
+            var openingIndex: String.Index?
+            for index in remaining.indices.reversed() {
+                let character = remaining[index]
+                if character == closing { depth += 1 }
+                else if character == opening {
+                    depth -= 1
+                    if depth == 0 { openingIndex = index; break }
+                }
+            }
+            guard let openingIndex, depth == 0 else { break }
+            let token = String(remaining[remaining.index(after: openingIndex)..<remaining.index(before: remaining.endIndex)])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let isTeacher = teachers.contains { $0.alias == token }
+            let isRoom = rooms.contains { $0.alias == token }
+            guard isTeacher != isRoom else { break }
+            if isTeacher {
+                guard teacher.isEmpty else { break }
+                teacher = token
+            } else {
+                guard room.isEmpty else { break }
+                room = token
+            }
+            remaining = String(remaining[..<openingIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return TimetableLessonNames(subject: remaining, teacher: teacher, room: room)
+    }
+
+    func presenting(_ change: ScheduleChange) -> ChangePresentation {
+        let before = separatingChangeField(change.before_subject)
+        let inlineAfter = separatingChangeField(change.after_subject)
+        let teacherConflict = !change.teacher.isEmpty && !inlineAfter.teacher.isEmpty &&
+            change.teacher != inlineAfter.teacher
+        let roomConflict = !change.room.isEmpty && !inlineAfter.room.isEmpty &&
+            change.room != inlineAfter.room
+        // A rare disagreement between two explicit source fields is left in
+        // source form; the app must not silently discard either value.
+        let after: TimetableLessonNames
+        if teacherConflict || roomConflict {
+            after = TimetableLessonNames(subject: change.after_subject,
+                teacher: change.teacher, room: change.room)
+        } else {
+            after = TimetableLessonNames(subject: inlineAfter.subject,
+                teacher: change.teacher.isEmpty ? inlineAfter.teacher : change.teacher,
+                room: change.room.isEmpty ? inlineAfter.room : change.room)
+        }
+        return ChangePresentation(before: applying(to: before, className: change.displayClassName),
+                                  after: applying(to: after, className: change.displayClassName))
     }
 
     private func match(_ alias: String, in rules: [MappingRule], className: String? = nil) -> String? {
