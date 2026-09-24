@@ -1,6 +1,6 @@
 # 名称対応表の配信・接続
 
-通常時間割PDFの記載名から正式名称への対応表を、認証付きの `takupoke-api` から取得します。iOSはPDF解析結果を書き換えず、授業詳細の表示時に保存済み対応表を適用します。時間割変更XLSX、試験・返却PDF、学校行事には適用しません。
+通常時間割PDFの記載名から正式名称への対応表を、認証付きの `takupoke-api` から取得します。iOSはPDF解析結果を書き換えず、授業詳細の表示時に保存済み対応表を適用します。時間割変更XLSXでは表示時だけ末尾括弧の教員・教室と正式名を照合します。試験・返却PDF、学校行事の解析結果は書き換えません。
 
 ## 更新確認と認証
 
@@ -12,7 +12,7 @@
 
 ## ZIPの検証と保存
 
-ZIP直下の `manifest.json` と `mappings.json` だけを許可し、ZIPのCRC、ファイル数・サイズ、schemaVersion、内部バージョン、`mappings.json` のサイズとSHA-256、規則の型と重複を検証します。v1は科目・教員・教室の完全一致規則だけです。科目のクラス指定規則は全クラス規則より優先します。正規表現はv1に含めません。配布形式の原本は [`takupoke-api` の仕様](https://github.com/n624-dev/takupoke-api/blob/main/docs/mapping-package.md)です。
+ZIP直下の `manifest.json` と `mappings.json` だけを許可し、ZIPのCRC、ファイル数・サイズ、schemaVersion、内部バージョン、`mappings.json` のサイズとSHA-256、規則の型と重複を検証します。v1は科目・教員・教室の完全一致規則だけです。v2は同姓教員について、学校年度・クラス・正式科目名・教員略名を合わせて確認する条件付き規則を追加します。科目のクラス指定規則は全クラス規則より優先します。正規表現は含めません。既存のv1保存結果も引き続き読み取ります。配布形式の原本は [`takupoke-api` の仕様](https://github.com/n624-dev/takupoke-api/blob/main/docs/mapping-package.md)です。
 
 検証済みの規則と対応する公開revisionを専用SQLiteへ一回の取引で保存します。保存が成功するまで表示は前回正常版を使います。ZIPはURLSessionの一時ファイルで受け、取り込み後・失敗時に削除します。保存領域はバックアップ対象から外し、iOSのファイル保護を使用します。元PDFの再取得・再解析は行いません。
 

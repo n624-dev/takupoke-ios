@@ -25,6 +25,14 @@ struct MappingRule: Codable, Equatable {
     let internationalStudent: Bool?
 }
 
+struct TeacherContextRule: Codable, Equatable {
+    let alias: String
+    let fullName: String
+    let subject: String
+    let className: String
+    let schoolYear: Int
+}
+
 struct ChangePresentation: Equatable {
     let before: TimetableLessonNames
     let after: TimetableLessonNames
@@ -40,12 +48,72 @@ struct MappingRules: Codable, Equatable {
     let subjects: [MappingRule]
     let teachers: [MappingRule]
     let rooms: [MappingRule]
+    let teacherContexts: [TeacherContextRule]
+
+    private enum CodingKeys: String, CodingKey { case subjects, teachers, rooms, teacherContexts }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        subjects = try values.decode([MappingRule].self, forKey: .subjects)
+        teachers = try values.decode([MappingRule].self, forKey: .teachers)
+        rooms = try values.decode([MappingRule].self, forKey: .rooms)
+        teacherContexts = try values.decodeIfPresent([TeacherContextRule].self, forKey: .teacherContexts) ?? []
+    }
 
     func applying(to names: TimetableLessonNames, className: String) -> TimetableLessonNames {
         TimetableLessonNames(subject: names.subject, teacher: names.teacher, room: names.room,
             subjectFullName: match(names.subject, in: subjects, className: className) ?? names.subjectFullName,
             teacherFullName: match(names.teacher, in: teachers) ?? names.teacherFullName,
             roomFullName: match(names.room, in: rooms) ?? names.roomFullName)
+    }
+
+    private static func comparable(_ text: String) -> String {
+        text.precomposedStringWithCompatibilityMapping.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Resolve a class-specific canonical subject without changing the stored source spelling.
+    private func canonicalSubject(_ source: String, className: String) -> String? {
+        let text = Self.comparable(source)
+        guard !text.isEmpty else { return nil }
+        let candidates = subjects.filter { rule in
+            (rule.classes == nil || rule.classes?.contains(className) == true) &&
+                (Self.comparable(rule.alias) == text || Self.comparable(rule.fullName) == text)
+        }
+        let specific = candidates.filter { $0.classes?.contains(className) == true }
+        let names = Set((specific.isEmpty ? candidates : specific).map { Self.comparable($0.fullName) })
+        return names.count == 1 ? names.first : nil
+    }
+
+    func shortSubject(for change: ScheduleChange, in lessons: [PDFLesson]) -> String? {
+        let source = separatingChangeField(change.after_subject, className: change.displayClassName,
+            schoolYear: SchoolDate(iso8601: change.change_date)?.schoolYear).subject
+        guard let canonical = canonicalSubject(source, className: change.displayClassName) else { return nil }
+        let candidates = Set(lessons.compactMap { lesson -> String? in
+            guard lesson.className == change.displayClassName,
+                  canonicalSubject(lesson.names.subject, className: lesson.className) == canonical else { return nil }
+            return lesson.names.cellSubject
+        })
+        return candidates.count == 1 ? candidates.first : nil
+    }
+
+    private func contextualTeacher(_ alias: String, subject: String, className: String,
+                                   schoolYear: Int?) -> String? {
+        guard let schoolYear, let canonical = canonicalSubject(subject, className: className) else { return nil }
+        let matches = Set(teacherContexts.filter {
+            $0.alias == alias && $0.className == className && $0.schoolYear == schoolYear &&
+                Self.comparable($0.subject) == canonical
+        }.map(\.fullName))
+        return matches.count == 1 ? matches.first : nil
+    }
+
+    private func presenting(_ names: TimetableLessonNames, className: String,
+                            schoolYear: Int?) -> TimetableLessonNames {
+        let standard = applying(to: names, className: className)
+        return TimetableLessonNames(subject: names.subject, teacher: names.teacher, room: names.room,
+            subjectFullName: standard.subjectFullName,
+            teacherFullName: contextualTeacher(names.teacher, subject: names.subject,
+                className: className, schoolYear: schoolYear) ?? standard.teacherFullName,
+            roomFullName: standard.roomFullName)
     }
 
     func isInternationalStudentSubject(_ alias: String, className: String) -> Bool {
@@ -66,7 +134,8 @@ struct MappingRules: Codable, Equatable {
 
     /// Split only trailing metadata confirmed by the installed mapping. A
     /// subject component such as 「架空科目X（分野A）」 remains part of the subject.
-    func separatingChangeField(_ source: String) -> TimetableLessonNames {
+    func separatingChangeField(_ source: String, className: String? = nil,
+                               schoolYear: Int? = nil) -> TimetableLessonNames {
         var remaining = source.trimmingCharacters(in: .whitespacesAndNewlines)
         var teacher = ""
         var room = ""
@@ -85,7 +154,10 @@ struct MappingRules: Codable, Equatable {
             guard let openingIndex, depth == 0 else { break }
             let token = String(remaining[remaining.index(after: openingIndex)..<remaining.index(before: remaining.endIndex)])
                 .trimmingCharacters(in: .whitespacesAndNewlines)
-            let isTeacher = teachers.contains { $0.alias == token }
+            let subject = String(remaining[..<openingIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
+            let isTeacher = teachers.contains { $0.alias == token } ||
+                (className.flatMap { contextualTeacher(token, subject: subject,
+                    className: $0, schoolYear: schoolYear) } != nil)
             let isRoom = rooms.contains { $0.alias == token }
             guard isTeacher != isRoom else { break }
             if isTeacher {
@@ -101,8 +173,10 @@ struct MappingRules: Codable, Equatable {
     }
 
     func presenting(_ change: ScheduleChange) -> ChangePresentation {
-        let before = separatingChangeField(change.before_subject)
-        let inlineAfter = separatingChangeField(change.after_subject)
+        let className = change.displayClassName
+        let schoolYear = SchoolDate(iso8601: change.change_date)?.schoolYear
+        let before = separatingChangeField(change.before_subject, className: className, schoolYear: schoolYear)
+        let inlineAfter = separatingChangeField(change.after_subject, className: className, schoolYear: schoolYear)
         let teacherConflict = !change.teacher.isEmpty && !inlineAfter.teacher.isEmpty &&
             change.teacher != inlineAfter.teacher
         let roomConflict = !change.room.isEmpty && !inlineAfter.room.isEmpty &&
@@ -118,8 +192,8 @@ struct MappingRules: Codable, Equatable {
                 teacher: change.teacher.isEmpty ? inlineAfter.teacher : change.teacher,
                 room: change.room.isEmpty ? inlineAfter.room : change.room)
         }
-        return ChangePresentation(before: applying(to: before, className: change.displayClassName),
-                                  after: applying(to: after, className: change.displayClassName))
+        return ChangePresentation(before: presenting(before, className: className, schoolYear: schoolYear),
+                                  after: presenting(after, className: className, schoolYear: schoolYear))
     }
 
     private func match(_ alias: String, in rules: [MappingRule], className: String? = nil) -> String? {
@@ -190,12 +264,14 @@ enum MappingPackage {
             throw MappingError.invalidPackage
         }
         let manifest = try decode(Manifest.self, from: manifestBytes)
-        guard manifest.schemaVersion == 1, manifest.version == version,
+        guard [1, 2].contains(manifest.schemaVersion), manifest.version == version,
               manifest.mappings.bytes == mappingBytes.count,
               manifest.mappings.sha256 == sha256(mappingBytes),
               manifest.publishedAt.range(of: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", options: .regularExpression) != nil,
               ISO8601DateFormatter().date(from: manifest.publishedAt) != nil else { throw MappingError.invalidPackage }
-        let mappingObject = try object(mappingBytes, keys: ["subjects", "teachers", "rooms"])
+        let mappingObject = try object(mappingBytes, keys: manifest.schemaVersion == 2
+            ? ["subjects", "teachers", "rooms", "teacherContexts"]
+            : ["subjects", "teachers", "rooms"])
         for key in ["subjects", "teachers", "rooms"] {
             guard let rows = mappingObject[key] as? [[String: Any]] else { throw MappingError.invalidPackage }
             for row in rows {
@@ -205,15 +281,27 @@ enum MappingPackage {
                 }
             }
         }
+        if manifest.schemaVersion == 2 {
+            guard let rows = mappingObject["teacherContexts"] as? [[String: Any]] else {
+                throw MappingError.invalidPackage
+            }
+            for row in rows {
+                guard Set(row.keys) == ["alias", "fullName", "subject", "className", "schoolYear"],
+                      row["schoolYear"] is Int else { throw MappingError.invalidPackage }
+            }
+        }
         let rules = try decode(MappingRules.self, from: mappingBytes)
-        try validate(rules)
-        return SavedMapping(revision: revision, version: version, schemaVersion: 1,
+        try validate(rules, schemaVersion: manifest.schemaVersion)
+        return SavedMapping(revision: revision, version: version, schemaVersion: manifest.schemaVersion,
                             archiveETag: archiveETag, archiveSHA256: sha256(zip),
                             publishedAt: manifest.publishedAt, fetchedAt: fetchedAt, rules: rules)
     }
 
-    static func validate(_ rules: MappingRules) throws {
-        guard rules.subjects.count + rules.teachers.count + rules.rooms.count <= 10_000 else { throw MappingError.invalidPackage }
+    static func validate(_ rules: MappingRules, schemaVersion: Int) throws {
+        guard [1, 2].contains(schemaVersion), (schemaVersion == 2 || rules.teacherContexts.isEmpty),
+              rules.subjects.count + rules.teachers.count + rules.rooms.count + rules.teacherContexts.count <= 10_000 else {
+            throw MappingError.invalidPackage
+        }
         for (kind, group) in [("subject", rules.subjects), ("teacher", rules.teachers), ("room", rules.rooms)] {
             var seen: Set<String> = []
             for rule in group {
@@ -232,6 +320,19 @@ enum MappingPackage {
                     guard seen.insert(rule.alias + "\u{0}" + className).inserted else { throw MappingError.invalidPackage }
                 }
             }
+        }
+        var seenContexts: Set<String> = []
+        for rule in rules.teacherContexts {
+            guard !rule.alias.isEmpty, !rule.fullName.isEmpty, !rule.subject.isEmpty,
+                  rule.alias.count <= 512, rule.fullName.count <= 512, rule.subject.count <= 512,
+                  [rule.alias, rule.fullName, rule.subject, rule.className].allSatisfy({
+                      $0 == $0.trimmingCharacters(in: .whitespacesAndNewlines)
+                  }),
+                  (2000...2099).contains(rule.schoolYear),
+                  TimetableSchedule.selectableClasses.contains(rule.className) else { throw MappingError.invalidPackage }
+            let key = [rule.alias, String(rule.schoolYear), rule.className,
+                       rule.subject.precomposedStringWithCompatibilityMapping].joined(separator: "\u{0}")
+            guard seenContexts.insert(key).inserted else { throw MappingError.invalidPackage }
         }
     }
 
@@ -272,8 +373,10 @@ final class MappingStore {
         try queue.read { db in
             guard let data = try Data.fetchOne(db, sql: "SELECT payload FROM currentMapping WHERE id = 1") else { return nil }
             let saved = try JSONDecoder().decode(SavedMapping.self, from: data)
-            guard saved.schemaVersion == 1, MappingPackage.validRevision(saved.revision) else { throw MappingError.storage }
-            try MappingPackage.validate(saved.rules)
+            guard [1, 2].contains(saved.schemaVersion), MappingPackage.validRevision(saved.revision) else {
+                throw MappingError.storage
+            }
+            try MappingPackage.validate(saved.rules, schemaVersion: saved.schemaVersion)
             return saved
         }
     }

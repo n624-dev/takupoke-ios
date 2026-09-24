@@ -51,8 +51,8 @@ struct TimetableView: View {
     }
     private let weekdayNames = ["月", "火", "水", "木", "金", "土", "日"]
     private let dayColumnWidth: CGFloat = 58
-    private let periodColumnWidth: CGFloat = 44
-    private let gridRowHeight: CGFloat = 100
+    private let periodColumnWidth: CGFloat = 38
+    private let gridRowHeight: CGFloat = 92
     private let gridSpacing: CGFloat = 4
 
     private struct DayGridLayout {
@@ -220,6 +220,7 @@ struct TimetableView: View {
         return ScrollView(.horizontal) {
             if eventsOnly {
                 HStack(alignment: .top, spacing: gridSpacing) {
+                    Color.clear.frame(width: periodColumnWidth, height: 1)
                     ForEach(columns, id: \.day) { column in
                         VStack(spacing: gridSpacing) {
                             dayHeaderCell(column)
@@ -314,7 +315,7 @@ struct TimetableView: View {
             .font(.subheadline.weight(.semibold))
             .multilineTextAlignment(.center)
             .fixedSize(horizontal: false, vertical: true)
-            .padding(12)
+            .padding(3)
             .frame(width: width, height: height, alignment: .center)
             .frame(minHeight: height == nil ? gridRowHeight : nil)
             .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
@@ -443,6 +444,10 @@ struct TimetableView: View {
             if case .change = block.content { return true }
             return false
         }()
+        let isCancellation: Bool = {
+            if case .change(let change) = block.content { return change.isCancellation }
+            return false
+        }()
         let showTime = block.startPeriod != block.endPeriod ||
             commonPeriodTime(block.startPeriod, days: days) == nil
         return Button {
@@ -493,10 +498,11 @@ struct TimetableView: View {
                     let names = mappings.names(for: change).after
                     HStack(spacing: 1) {
                         Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 8))
-                        Text(cardText(names.cellSubject.isEmpty ? "変更を確認" :
-                                      TimetableDisplayText.kana(names.cellSubject),
-                                      fontSize: 11, weight: .semibold, lines: 2,
-                                      width: dayColumnWidth - 19))
+                        Text(isCancellation ? "休講" : "変更")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    if !isCancellation {
+                        Text(changeCardSubject(change, names: names))
                             .font(.system(size: 11, weight: .semibold)).lineLimit(2)
                     }
                     if showTime, let time {
@@ -531,11 +537,25 @@ struct TimetableView: View {
     private func cardRoom(_ source: String) -> String {
         let full = TimetableDisplayText.continuous(source)
         let compact = PDFDisplayText.continuous(TimetableDisplayText.halfwidthKana(source))
-        return cardText(full, fontSize: 9, alternative: compact)
+        return cardText(full, fontSize: 9, alternatives: [compact])
+    }
+
+    private func changeCardSubject(_ change: ScheduleChange, names: TimetableLessonNames) -> String {
+        let source = TimetableDisplayText.continuous(names.cellSubject)
+        guard !source.isEmpty else { return cardText("変更を確認", fontSize: 11, weight: .semibold, lines: 2) }
+        let compact = TimetableDisplayText.halfwidthKana(source)
+        var alternatives = [compact]
+        if let rules = mappings.current?.rules,
+           let lessons = timetable?.lessons,
+           let short = rules.shortSubject(for: change, in: lessons) {
+            let shortFull = TimetableDisplayText.continuous(short)
+            alternatives.append(contentsOf: [shortFull, TimetableDisplayText.halfwidthKana(shortFull)])
+        }
+        return cardText(source, fontSize: 11, weight: .semibold, lines: 2, alternatives: alternatives)
     }
 
     private func cardText(_ value: String, fontSize: CGFloat, weight: UIFont.Weight = .regular,
-                          lines: Int = 1, width: CGFloat? = nil, alternative: String? = nil) -> String {
+                          lines: Int = 1, width: CGFloat? = nil, alternatives: [String] = []) -> String {
         let font = UIFont.systemFont(ofSize: fontSize, weight: weight)
         let available = (width ?? dayColumnWidth - 8) - 2
         func fits(_ text: String) -> Bool {
@@ -548,8 +568,9 @@ struct TimetableView: View {
         }
         let primary = value.replacingOccurrences(of: "\n", with: " ")
         if fits(primary) { return primary }
-        let fallback = (alternative ?? primary).replacingOccurrences(of: "\n", with: " ")
-        if fits(fallback) { return fallback }
+        let candidates = alternatives.map { $0.replacingOccurrences(of: "\n", with: " ") }
+        for candidate in candidates where fits(candidate) { return candidate }
+        let fallback = candidates.last ?? primary
         let characters = Array(fallback)
         var lower = 0, upper = characters.count
         while lower < upper {
@@ -718,15 +739,18 @@ struct TimetableView: View {
 
     private func changeSelection(for change: ScheduleChange) -> ChangeSelection {
         guard let day = SchoolDate(iso8601: change.change_date) else {
-            return ChangeSelection(change: change, baseLessons: [], baseSpecialLessons: [])
+            return ChangeSelection(change: change, baseLessons: [], baseSpecialLessons: [], relatedChanges: [])
         }
-        let originals = (change.gridPeriods ?? []).map { period in
+        let periods = change.gridPeriods ?? []
+        let originals = periods.map { period in
             TimetableSchedule.slot(on: day, period: period, className: change.displayClassName,
                                    timetable: timetable, changes: nil, includesChanges: false,
                                    events: events, specials: specials)
         }
+        let related = TimetableSchedule.changes(on: day, className: change.displayClassName, analysis: changes)
+            .filter { $0 != change && !Set($0.gridPeriods ?? []).isDisjoint(with: periods) }
         return ChangeSelection(change: change, baseLessons: originals.flatMap(\.baseLessons),
-                               baseSpecialLessons: originals.flatMap(\.specialLessons))
+                               baseSpecialLessons: originals.flatMap(\.specialLessons), relatedChanges: related)
     }
 
     private var weekEvents: some View {
@@ -844,6 +868,28 @@ struct TimetableView: View {
                     }
                 }
             }
+            if !selection.relatedChanges.isEmpty {
+                Section("同じ時限のほかの変更") {
+                    ForEach(Array(selection.relatedChanges.enumerated()), id: \.offset) { _, related in
+                        let relatedNames = mappings.names(for: related)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(TimetableDisplayText.kana(related.note.isEmpty ? "時間割変更" : related.note))
+                                .font(.headline)
+                            Text("時限：" + related.displayPeriod)
+                            if !relatedNames.before.detailSubject.isEmpty {
+                                Text("変更前：" + TimetableDisplayText.kana(relatedNames.before.detailSubject))
+                            }
+                            if !relatedNames.after.detailSubject.isEmpty {
+                                Text("変更後：" + TimetableDisplayText.kana(relatedNames.after.detailSubject))
+                            }
+                            if !related.raw_text.isEmpty {
+                                Text("元の記載：" + related.raw_text).font(.caption)
+                                    .foregroundStyle(.secondary).textSelection(.enabled)
+                            }
+                        }
+                    }
+                }
+            }
             if !selection.baseSpecialLessons.isEmpty {
                 Section("変更前の試験時間割・試験返却時間割") {
                     ForEach(Array(selection.baseSpecialLessons.enumerated()), id: \.offset) { _, item in
@@ -876,6 +922,7 @@ private struct ChangeSelection: Identifiable {
     let change: ScheduleChange
     let baseLessons: [PDFLesson]
     let baseSpecialLessons: [TimetableSchedule.SpecialItem]
+    let relatedChanges: [ScheduleChange]
 }
 
 private struct SpecialSelection: Identifiable {

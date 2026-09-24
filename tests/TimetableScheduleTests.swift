@@ -108,6 +108,62 @@ final class TimetableScheduleTests: XCTestCase {
         XCTAssertEqual(cards[0].endPeriod, 2)
     }
 
+    func testMakeupWinsSharedPeriodAndOtherRowsRemainAvailable() throws {
+        let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
+        func change(_ period: String, _ note: String, _ after: String) -> ScheduleChange {
+            ScheduleChange(change_date: day.iso8601, class_name: "1_A", period: period,
+                           before_subject: "架空科目A", after_subject: after,
+                           teacher: "", room: "", note: note, raw_text: "", canonical_text: "")
+        }
+        let makeup = change("1,2", "補講", "架空科目B")
+        let cancellation = change("1", "休講", "")
+        XCTAssertTrue(cancellation.isCancellation)
+        XCTAssertTrue(change("1", " 補講 ", "架空科目B").isMakeup)
+        for records in [[makeup, cancellation], [cancellation, makeup]] {
+            let analysis = ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx",
+                                          defaultYear: nil, parsedAt: Date(timeIntervalSince1970: 0),
+                                          records: records)
+            let slot = TimetableSchedule.slot(on: day, period: 1, className: "1_A",
+                                              timetable: timetable(term: "前期"), changes: analysis,
+                                              includesChanges: true)
+            XCTAssertEqual(slot.changes.count, 2)
+            let cards = TimetableSchedule.blocks(on: day, className: "1_A",
+                                                  timetable: timetable(term: "前期"),
+                                                  changes: analysis, includesChanges: true)
+            XCTAssertEqual(cards.count, 1)
+            XCTAssertEqual(cards[0].startPeriod, 1)
+            XCTAssertEqual(cards[0].endPeriod, 2)
+            if case .change(let selected) = cards[0].content {
+                XCTAssertEqual(selected.note, "補講")
+                XCTAssertEqual(selected.after_subject, "架空科目B")
+            } else { XCTFail("Expected a change card") }
+        }
+    }
+
+    func testLastChangeWinsWithoutMakeupAndOverlappingWinnersSplitCards() throws {
+        let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
+        func change(_ period: String, _ note: String, _ after: String) -> ScheduleChange {
+            ScheduleChange(change_date: day.iso8601, class_name: "1_A", period: period,
+                           before_subject: "架空科目A", after_subject: after,
+                           teacher: "", room: "", note: note, raw_text: "", canonical_text: "")
+        }
+        let cancellation = change("1", "休講", "")
+        let later = change("1", "変更", "架空科目C")
+        XCTAssertEqual(TimetableSchedule.effectiveChange([cancellation, later]), later)
+        XCTAssertEqual(TimetableSchedule.effectiveChange([later, cancellation]), cancellation)
+        XCTAssertNil(TimetableSchedule.effectiveChange([]))
+
+        let wide = change("1,2", "補講", "架空科目B")
+        let second = change("2", "補講", "架空科目C")
+        let analysis = ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx",
+                                      defaultYear: nil, parsedAt: Date(timeIntervalSince1970: 0),
+                                      records: [wide, second])
+        let cards = TimetableSchedule.blocks(on: day, className: "1_A",
+                                              timetable: timetable(term: "前期"),
+                                              changes: analysis, includesChanges: true)
+        XCTAssertEqual(cards.map { "\($0.startPeriod)-\($0.endPeriod)" }, ["1-1", "2-2"])
+    }
+
     func testMatchingAdjacentNormalAndExamLessonsBecomeSpanningCards() throws {
         let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
         var normal = timetable(term: "前期")
