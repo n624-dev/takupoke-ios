@@ -99,7 +99,8 @@ final class SpecialScheduleTests: XCTestCase {
         }
         for index in 0...40 {
             let x = 140 + Double(index) * 40
-            lines.append(PDFRule(x1: x, y1: 110, x2: x, y2: 545))
+            lines.append(PDFRule(x1: x, y1: index == 5 || index == 13 ? 145 : 110,
+                                 x2: x, y2: 545))
         }
         lines.append(PDFRule(x1: 110, y1: 110, x2: 110, y2: 545))
         for index in 0...17 {
@@ -113,8 +114,15 @@ final class SpecialScheduleTests: XCTestCase {
         write("架空教員A", x: 222, y: 327, step: 3)
         write("架空科目B", x: 222, y: 335, step: 3)
         write("架空教員B", x: 222, y: 340, step: 3)
-        for period in 1...8 {
-            write("\(period)時限目8:50~9:35", x: 20, y: 760 + Double(period) * 15)
+        write("架空科目C", x: 502, y: 322, step: 3)
+        write("架空科目D", x: 302, y: 130, step: 3)
+        write("架空科目E", x: 622, y: 130, step: 3)
+        write("4月1日の時間割は以下のとおりです。", x: 1300, y: 650)
+        write("4月2日~5日は通常の授業日どおりの授業時間です。", x: 1300, y: 670)
+        let times = ["7:00~7:40", "7:50~8:30", "8:40~9:20", "9:30~10:10",
+                     "10:30~11:10", "11:10~11:50", "12:00~12:40", "12:40~13:20"]
+        for (index, time) in times.enumerated() {
+            write("\(index + 1)時限目\(time)", x: 20, y: 760 + Double(index + 1) * 15)
         }
         return PDFPageLayout(width: 1800, height: 1000, glyphs: glyphs, lines: lines)
     }
@@ -127,6 +135,26 @@ final class SpecialScheduleTests: XCTestCase {
         XCTAssertEqual(Set(lessons.map(\.subject)), ["架空科目A", "架空科目B"])
         XCTAssertEqual(Set(lessons.map(\.teacher)), ["架空教員A", "架空教員B"])
         XCTAssertTrue(lessons.allSatisfy { $0.room.isEmpty })
+        XCTAssertEqual(result.periodTime(on: "2026-04-01", period: 6), "11:10〜11:50")
+        XCTAssertEqual(result.periodTime(on: "2026-04-02", period: 2), "09:35〜10:20")
+        XCTAssertEqual(result.periodTime(on: "2026-04-02", period: 6), "13:35〜14:20")
+        let ordinary = try XCTUnwrap(result.lessons.first { $0.className == "3_IT" &&
+            $0.date == "2026-04-02" && $0.period == 2 })
+        XCTAssertEqual(ordinary.timeRange, "09:35〜10:20")
+        let specialPair = result.lessons.filter { $0.className == "1_1" &&
+            $0.date == "2026-04-01" && [5, 6].contains($0.period) }
+        XCTAssertEqual(specialPair.count, 2)
+        XCTAssertTrue(specialPair.allSatisfy { $0.timeRange == "10:30〜11:50" })
+        let ordinaryPair = result.lessons.filter { $0.className == "1_1" &&
+            $0.date == "2026-04-02" && [5, 6].contains($0.period) }
+        XCTAssertEqual(ordinaryPair.count, 2)
+        XCTAssertTrue(ordinaryPair.allSatisfy { $0.timeRange == "12:50〜14:20" })
+        let oldSingle = SpecialScheduleLesson(date: "2026-04-02", className: "3_IT", period: 6,
+            spanStart: 6, spanEnd: 6, timeRange: "11:10〜11:50", lines: ["架空科目F"], page: 1)
+        let oldPair = SpecialScheduleLesson(date: "2026-04-02", className: "3_IT", period: 5,
+            spanStart: 5, spanEnd: 6, timeRange: nil, lines: ["架空科目G"], page: 1)
+        XCTAssertEqual(result.timeRange(for: oldSingle), "13:35〜14:20")
+        XCTAssertEqual(result.timeRange(for: oldPair), "12:50〜14:20")
     }
 
     func testExamParsesDatesClassesAndDocumentTimes() throws {

@@ -226,7 +226,8 @@ final class SpecialScheduleStore {
             analysis.lessons.allSatisfy { (1...count).contains($0.period) &&
                 (1...$0.period).contains($0.spanStart) &&
                 ($0.period...count).contains($0.spanEnd) &&
-                analysis.applies(date: $0.date, className: $0.className) }
+                analysis.applies(date: $0.date, className: $0.className) &&
+                (analysis.version < 6 || analysis.timeRange(for: $0) != nil) }
     }
 
     private func removeUnreferencedFiles() throws {

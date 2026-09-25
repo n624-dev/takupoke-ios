@@ -117,6 +117,9 @@ final class TimetableScheduleTests: XCTestCase {
         }
         let makeup = change("1,2", "補講", "架空科目B")
         let cancellation = change("1", "休講", "")
+        XCTAssertEqual(makeup.cardKindLabel, "補講")
+        XCTAssertEqual(cancellation.cardKindLabel, "休講")
+        XCTAssertEqual(change("1", "連絡", "架空科目C").cardKindLabel, "変更")
         XCTAssertTrue(cancellation.isCancellation)
         XCTAssertTrue(change("1", " 補講 ", "架空科目B").isMakeup)
         for records in [[makeup, cancellation], [cancellation, makeup]] {
