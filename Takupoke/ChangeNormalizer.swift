@@ -27,6 +27,10 @@ struct ScheduleChange: Codable, Equatable {
             .trimmingCharacters(in: .whitespacesAndNewlines) == "補講"
     }
 
+    var cardKindLabel: String {
+        isCancellation ? "休講" : (isMakeup ? "補講" : "変更")
+    }
+
     var displayPeriod: String {
         let value = period.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !value.isEmpty else { return "記載なし" }

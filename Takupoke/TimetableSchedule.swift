@@ -263,7 +263,7 @@ enum TimetableSchedule {
         let specialDayItems = specials.flatMap { analysis in
             analysis.lessons.filter { $0.date == day.iso8601 && $0.className == className }
                 .map { SpecialItem(kind: analysis.kind, lesson: $0,
-                                   timeRange: $0.timeRange) }
+                                   timeRange: analysis.timeRange(for: $0)) }
         }
         let base = plan.isNoClass || plan.isSupplementary || plan.apiTest || plan.apiTestReturn || specialDayApplies ? [] :
             lessons(on: day, className: className, analysis: timetable,

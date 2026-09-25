@@ -46,6 +46,17 @@ struct TimetableLessonNames: Codable, Equatable, Sendable {
 }
 
 enum TimetableDisplayText {
+    /// Choose the first spelling that fits one line. If none does, keep the
+    /// last short spelling intact so the card can grow instead of truncating it.
+    static func changeCardSubject(_ source: String, short: String?, fitsOneLine: (String) -> Bool) -> String {
+        let original = continuous(source).replacingOccurrences(of: "\n", with: " ")
+        let compactOriginal = halfwidthKana(original)
+        let shortFull = short.map { continuous($0).replacingOccurrences(of: "\n", with: " ") }
+        let candidates = [original, compactOriginal] + (shortFull.map { [$0, halfwidthKana($0)] } ?? [])
+        for candidate in candidates where fitsOneLine(candidate) { return candidate }
+        return shortFull.map(halfwidthKana) ?? original
+    }
+
     static func periodTime(_ value: String) -> String {
         guard let separator = value.range(of: "[〜～~]", options: .regularExpression) else { return value }
         let start = String(value[..<separator.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)

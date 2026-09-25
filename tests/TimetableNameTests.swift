@@ -3,6 +3,21 @@ import XCTest
 @testable import TakupokeParsing
 
 final class TimetableNameTests: XCTestCase {
+    func testChangeSubjectTriesOneLineSpellingBeforeWrappingWithoutTruncation() {
+        let source = "架空コンピュータ科目A"
+        let short = "架空コン科A"
+        var tried: [String] = []
+        let selected = TimetableDisplayText.changeCardSubject(source, short: short) { candidate in
+            tried.append(candidate)
+            return candidate == "架空コン科A"
+        }
+        XCTAssertEqual(selected, "架空コン科A")
+        XCTAssertEqual(tried, [source, "架空ｺﾝﾋﾟｭｰﾀ科目A", short])
+        XCTAssertEqual(TimetableDisplayText.changeCardSubject(source, short: short) { _ in false },
+                       "架空ｺﾝ科A")
+        XCTAssertEqual(TimetableDisplayText.changeCardSubject(source, short: nil) { _ in false }, source)
+    }
+
     func testPeriodTimeUsesThreeCenteredLines() {
         XCTAssertEqual(TimetableDisplayText.periodTime("08:50〜09:35"), "08:50\n～\n09:35")
         XCTAssertEqual(TimetableDisplayText.periodTime("08:50～09:35"), "08:50\n～\n09:35")

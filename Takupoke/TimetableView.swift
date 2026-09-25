@@ -51,8 +51,8 @@ struct TimetableView: View {
     }
     private let weekdayNames = ["月", "火", "水", "木", "金", "土", "日"]
     private let dayColumnWidth: CGFloat = 58
-    private let periodColumnWidth: CGFloat = 38
-    private let gridRowHeight: CGFloat = 92
+    private let periodColumnWidth: CGFloat = 34
+    private let gridRowHeight: CGFloat = 80
     private let gridSpacing: CGFloat = 4
 
     private struct DayGridLayout {
@@ -217,6 +217,7 @@ struct TimetableView: View {
                                                    specials: specials, matchedByRule: isMappedInternational)
         let columns = days.map(dayLayout)
         let eventsOnly = !columns.isEmpty && columns.allSatisfy { $0.fullDayEventTitle != nil }
+        let rowHeights = gridRowHeights(columns, days: days)
         return ScrollView(.horizontal) {
             if eventsOnly {
                 HStack(alignment: .top, spacing: gridSpacing) {
@@ -254,11 +255,11 @@ struct TimetableView: View {
                                     }
                                 }
                                 .multilineTextAlignment(.center)
-                                .frame(width: periodColumnWidth, height: gridRowHeight, alignment: .center)
+                                .frame(width: periodColumnWidth, height: rowHeights[period - 1], alignment: .center)
                             }
                         }
                         ForEach(columns, id: \.day) { column in
-                            dayColumn(column, days: days)
+                            dayColumn(column, days: days, rowHeights: rowHeights)
                         }
                     }
                 }
@@ -293,21 +294,21 @@ struct TimetableView: View {
                                 plan: TimetableSchedule.dayPlan(on: day, events: events), layouts: positioned))
     }
 
-    private func dayColumn(_ column: DayGridLayout, days: [SchoolDate]) -> some View {
-        Group {
+    private func dayColumn(_ column: DayGridLayout, days: [SchoolDate], rowHeights: [CGFloat]) -> some View {
+        let totalHeight = rowHeights.reduce(0, +) + 7 * gridSpacing
+        return Group {
             if let title = column.fullDayEventTitle {
-                fullDayEventCard(title, width: column.width,
-                                 height: 8 * gridRowHeight + 7 * gridSpacing)
+                fullDayEventCard(title, width: column.width, height: totalHeight)
             } else {
                 HStack(alignment: .top, spacing: gridSpacing) {
                     ForEach(selectedClasses.indices, id: \.self) { index in
                         classLane(on: column.day, className: selectedClasses[index], days: days,
-                                  positioned: column.positioned[index])
+                                  positioned: column.positioned[index], rowHeights: rowHeights)
                     }
                 }
             }
         }
-        .frame(width: column.width, height: 8 * gridRowHeight + 7 * gridSpacing, alignment: .topLeading)
+        .frame(width: column.width, height: totalHeight, alignment: .topLeading)
     }
 
     private func fullDayEventCard(_ title: String, width: CGFloat, height: CGFloat?) -> some View {
@@ -367,8 +368,81 @@ struct TimetableView: View {
         return CGFloat(lanes) * dayColumnWidth + CGFloat(lanes - 1) * gridSpacing
     }
 
+    private func gridRowHeights(_ columns: [DayGridLayout], days: [SchoolDate]) -> [CGFloat] {
+        var heights = Array(repeating: gridRowHeight, count: 8)
+        var entries: [(SchoolDate, String, TimetableSchedule.GridBlock)] = []
+        for column in columns {
+            for (index, lane) in column.positioned.enumerated() {
+                for entry in lane {
+                    entries.append((column.day, selectedClasses[index], entry.block))
+                }
+            }
+        }
+        entries.sort { ($0.2.endPeriod - $0.2.startPeriod) < ($1.2.endPeriod - $1.2.startPeriod) }
+        for (day, className, block) in entries {
+            let start = block.startPeriod - 1
+            let end = block.endPeriod
+            let required = cardRequiredHeight(block, on: day, className: className, days: days)
+            let available: CGFloat = heights[start..<end].reduce(CGFloat.zero, +) +
+                CGFloat(end - start - 1) * gridSpacing
+            if required > available { heights[end - 1] += required - available }
+        }
+        return heights
+    }
+
+    private func cardRequiredHeight(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
+                                    className: String, days: [SchoolDate]) -> CGFloat {
+        var parts: [(String, CGFloat, UIFont.Weight, Int?)] = []
+        switch block.content {
+        case .normal(let lesson):
+            parts.append((cardText(TimetableDisplayText.continuous(lesson.names.cellSubject),
+                                   fontSize: 11, weight: .semibold, lines: 2), 11, .semibold, 2))
+            if !lesson.names.cellTeacher.isEmpty {
+                parts.append((cardText(TimetableDisplayText.continuous(lesson.names.cellTeacher), fontSize: 9), 9, .regular, 1))
+            }
+            if !lesson.names.cellRoom.isEmpty { parts.append((cardRoom(lesson.names.cellRoom), 9, .regular, 1)) }
+        case .special(let item):
+            parts.append((cardText(TimetableDisplayText.kana(item.lesson.subject),
+                                   fontSize: 11, weight: .semibold, lines: 2), 11, .semibold, 2))
+            if !item.lesson.teacher.isEmpty {
+                parts.append((cardText(TimetableDisplayText.kana(item.lesson.teacher), fontSize: 9), 9, .regular, 1))
+            }
+            if !item.lesson.room.isEmpty { parts.append((cardRoom(item.lesson.room), 9, .regular, 1)) }
+        case .change(let change):
+            parts.append((change.cardKindLabel, 11, .semibold, 1))
+            if !change.isCancellation {
+                parts.append((changeCardSubject(change, names: mappings.names(for: change).after), 11, .semibold, nil))
+            }
+            let names = mappings.names(for: change).after
+            if !names.cellTeacher.isEmpty {
+                parts.append((cardText(TimetableDisplayText.kana(names.cellTeacher), fontSize: 9), 9, .regular, 1))
+            }
+            if !names.cellRoom.isEmpty { parts.append((cardRoom(names.cellRoom), 9, .regular, 1)) }
+        }
+        if (block.startPeriod != block.endPeriod || commonPeriodTime(block.startPeriod, days: days) == nil),
+           let time = cardTime(block, on: day, className: className) {
+            let timeIndex: Int
+            if case .change = block.content { timeIndex = 2 }
+            else { timeIndex = 1 }
+            parts.insert((TimetableDisplayText.periodTime(time), 8.5, .regular, 3),
+                         at: min(parts.count, timeIndex))
+        }
+        let width = dayColumnWidth - 10
+        let textHeight = parts.reduce(CGFloat.zero) { total, part in
+            let (value, size, weight, limit) = part
+            let font = UIFont.systemFont(ofSize: size, weight: weight)
+            let bounds = (value as NSString).boundingRect(
+                with: CGSize(width: width, height: .greatestFiniteMagnitude),
+                options: [.usesLineFragmentOrigin, .usesFontLeading],
+                attributes: [.font: font], context: nil)
+            let measured = max(font.lineHeight, ceil(bounds.height))
+            return total + (limit.map { min(measured, font.lineHeight * CGFloat($0)) } ?? measured)
+        }
+        return textHeight + CGFloat(max(0, parts.count - 1)) + 10
+    }
+
     private func classLane(on day: SchoolDate, className: String, days: [SchoolDate],
-                           positioned: [TimetableSchedule.PositionedBlock]) -> some View {
+                           positioned: [TimetableSchedule.PositionedBlock], rowHeights: [CGFloat]) -> some View {
         let width = laneWidth(positioned)
         let plan = TimetableSchedule.dayPlan(on: day, events: events)
         return ZStack(alignment: .topLeading) {
@@ -380,7 +454,7 @@ struct TimetableView: View {
                         else { Text("—").foregroundStyle(.tertiary).frame(maxWidth: .infinity, alignment: .center) }
                     }
                     .padding(6)
-                    .frame(width: width, height: gridRowHeight, alignment: .center)
+                    .frame(width: width, height: rowHeights[period - 1], alignment: .center)
                     .background(plan.isNoClass ? Color.orange.opacity(0.10) : Color(uiColor: .secondarySystemGroupedBackground),
                                 in: RoundedRectangle(cornerRadius: 10))
                     .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.primary.opacity(0.08)))
@@ -389,13 +463,15 @@ struct TimetableView: View {
             ForEach(positioned.indices, id: \.self) { index in
                 let entry = positioned[index]
                 let span = entry.block.endPeriod - entry.block.startPeriod + 1
-                let height = CGFloat(span) * gridRowHeight + CGFloat(span - 1) * gridSpacing
+                let height = rowHeights[(entry.block.startPeriod - 1)..<entry.block.endPeriod].reduce(0, +) +
+                    CGFloat(span - 1) * gridSpacing
                 gridCard(entry.block, on: day, className: className, days: days, height: height)
                     .offset(x: CGFloat(entry.lane) * (dayColumnWidth + gridSpacing),
-                            y: CGFloat(entry.block.startPeriod - 1) * (gridRowHeight + gridSpacing))
+                            y: rowHeights.prefix(entry.block.startPeriod - 1).reduce(0, +) +
+                                CGFloat(entry.block.startPeriod - 1) * gridSpacing)
             }
         }
-        .frame(width: width, height: 8 * gridRowHeight + 7 * gridSpacing, alignment: .topLeading)
+        .frame(width: width, height: rowHeights.reduce(0, +) + 7 * gridSpacing, alignment: .topLeading)
     }
 
     private func commonPeriodTime(_ period: Int, days: [SchoolDate]) -> String? {
@@ -430,10 +506,19 @@ struct TimetableView: View {
             return times.count == 1 && slot.specialLessons.allSatisfy({ $0.timeRange != nil })
                 ? times.first : nil
         }
+        let sourceTimes = Set(specials.flatMap { analysis in
+            analysis.lessons.filter { $0.date == day.iso8601 && $0.className == className &&
+                $0.period == period }.compactMap { analysis.timeRange(for: $0) }
+        })
+        if sourceTimes.count == 1 { return sourceTimes.first }
+        if sourceTimes.count > 1 { return nil }
         let applicable = specials.filter { $0.applies(date: day.iso8601, className: className) }
-        if applicable.isEmpty { return TimetableSchedule.normalPeriodTimes[period - 1] }
-        let times = Set(applicable.compactMap { $0.periodTimes[period] })
-        return times.count == 1 && applicable.allSatisfy({ $0.periodTimes[period] != nil })
+        if applicable.isEmpty {
+            let plan = TimetableSchedule.dayPlan(on: day, events: events)
+            return plan.apiTest || plan.apiTestReturn ? nil : TimetableSchedule.normalPeriodTimes[period - 1]
+        }
+        let times = Set(applicable.compactMap { $0.periodTime(on: day.iso8601, period: period) })
+        return times.count == 1 && applicable.allSatisfy({ $0.periodTime(on: day.iso8601, period: period) != nil })
             ? times.first : nil
     }
 
@@ -498,12 +583,13 @@ struct TimetableView: View {
                     let names = mappings.names(for: change).after
                     HStack(spacing: 1) {
                         Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 8))
-                        Text(isCancellation ? "休講" : "変更")
+                        Text(change.cardKindLabel)
                             .font(.system(size: 11, weight: .semibold))
                     }
                     if !isCancellation {
                         Text(changeCardSubject(change, names: names))
-                            .font(.system(size: 11, weight: .semibold)).lineLimit(2)
+                            .font(.system(size: 11, weight: .semibold))
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     if showTime, let time {
                         Text(TimetableDisplayText.periodTime(time))
@@ -543,15 +629,17 @@ struct TimetableView: View {
     private func changeCardSubject(_ change: ScheduleChange, names: TimetableLessonNames) -> String {
         let source = TimetableDisplayText.continuous(names.cellSubject)
         guard !source.isEmpty else { return cardText("変更を確認", fontSize: 11, weight: .semibold, lines: 2) }
-        let compact = TimetableDisplayText.halfwidthKana(source)
-        var alternatives = [compact]
-        if let rules = mappings.current?.rules,
-           let lessons = timetable?.lessons,
-           let short = rules.shortSubject(for: change, in: lessons) {
-            let shortFull = TimetableDisplayText.continuous(short)
-            alternatives.append(contentsOf: [shortFull, TimetableDisplayText.halfwidthKana(shortFull)])
+        let short: String?
+        if let rules = mappings.current?.rules, let lessons = timetable?.lessons {
+            short = rules.shortSubject(for: change, in: lessons)
+        } else {
+            short = nil
         }
-        return cardText(source, fontSize: 11, weight: .semibold, lines: 2, alternatives: alternatives)
+        let font = UIFont.systemFont(ofSize: 11, weight: .semibold)
+        let available = dayColumnWidth - 10
+        return TimetableDisplayText.changeCardSubject(source, short: short) {
+            ($0 as NSString).size(withAttributes: [.font: font]).width <= available
+        }
     }
 
     private func cardText(_ value: String, fontSize: CGFloat, weight: UIFont.Weight = .regular,

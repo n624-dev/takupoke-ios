@@ -23,7 +23,7 @@ struct SpecialScheduleLesson: Codable, Equatable {
 }
 
 struct SpecialScheduleAnalysis: Codable, Equatable {
-    static let parserVersion = 5
+    static let parserVersion = 6
     var version = parserVersion
     let kind: SpecialScheduleKind
     let sourceDigest: String
@@ -37,6 +37,26 @@ struct SpecialScheduleAnalysis: Codable, Equatable {
 
     func applies(date: String, className: String) -> Bool {
         coveredDates.contains(date) && coveredClasses.contains(className)
+    }
+
+    func periodTime(on date: String, period: Int) -> String? {
+        guard coveredDates.contains(date) else { return nil }
+        if kind == .examReturn && date != coveredDates.first {
+            guard (1...TimetableSchedule.normalPeriodTimes.count).contains(period) else { return nil }
+            return TimetableSchedule.normalPeriodTimes[period - 1]
+        }
+        return periodTimes[period]
+    }
+
+    func timeRange(for lesson: SpecialScheduleLesson) -> String? {
+        guard applies(date: lesson.date, className: lesson.className) else { return nil }
+        if kind != .examReturn || lesson.date == coveredDates.first,
+           let recorded = lesson.timeRange { return recorded }
+        guard let start = periodTime(on: lesson.date, period: lesson.spanStart)?
+            .components(separatedBy: "〜").first,
+              let end = periodTime(on: lesson.date, period: lesson.spanEnd)?
+            .components(separatedBy: "〜").last else { return nil }
+        return "\(start)〜\(end)"
     }
 }
 
@@ -226,7 +246,17 @@ enum SpecialScheduleParser {
         guard let first = covered.first, let last = covered.last, covered.contains(period) else {
             throw PDFParseError(code: .ambiguous, page: pageNumber, stage: .gridCell)
         }
-        let time = first == last ? times.single[period] : times.consecutive["\(first)-\(last)"]
+        let time: String?
+        if first == last {
+            time = times.single[period]
+        } else if let explicit = times.consecutive["\(first)-\(last)"] {
+            time = explicit
+        } else if let start = times.single[first]?.components(separatedBy: "〜").first,
+                  let end = times.single[last]?.components(separatedBy: "〜").last {
+            time = "\(start)〜\(end)"
+        } else {
+            time = nil
+        }
         return [SpecialScheduleLesson(date: date.iso8601, className: className,
                                       period: period, spanStart: first, spanEnd: last, timeRange: time,
                                       lines: lines, page: pageNumber)]
@@ -292,6 +322,19 @@ enum SpecialScheduleParser {
         guard dates.count == 5, Set(dates.map { $0.1 }).count == 5 else {
             throw PDFParseError(code: .unsupported, page: 1, stage: .calendarDates)
         }
+        let note = PDFSchoolParser.key(PDFGrid.rows(page.glyphs).map { $0.map(\.text).joined() }.joined())
+            .replacingOccurrences(of: "～", with: "~")
+            .replacingOccurrences(of: "〜", with: "~")
+        guard let specialDay = dates.first?.1, let ordinaryStart = dates.dropFirst().first?.1,
+              let ordinaryEnd = dates.last?.1,
+              ordinaryStart.month == ordinaryEnd.month,
+              note.contains("\(specialDay.month)月\(specialDay.day)日の時間割は以下のとおり"),
+              note.contains("\(ordinaryStart.month)月\(ordinaryStart.day)日~\(ordinaryEnd.day)日は通常の授業日どおりの授業時間") else {
+            throw PDFParseError(code: .unsupported, page: 1, stage: .periodHeading)
+        }
+        let ordinaryTimes = Times(single: Dictionary(uniqueKeysWithValues:
+            TimetableSchedule.normalPeriodTimes.enumerated().map { ($0.offset + 1, $0.element) }),
+            consecutive: [:])
         let left = runs(page.glyphs.filter { $0.cx < periods[0].cx - step * 0.15 &&
             $0.cy > headerY + 5 && $0.cy < page.height * 0.7 })
         let gradeMax = periods[0].cx - step * 0.8
@@ -316,6 +359,7 @@ enum SpecialScheduleParser {
             guard seenClasses.insert(name).inserted else { throw PDFParseError(code: .ambiguous, page: 1, stage: .duplicateClass) }
             let row = try grid.box(run.cx, run.cy)
             for (dayIndex, (_, day)) in dates.enumerated() {
+                let dayTimes = dayIndex == 0 ? times : ordinaryTimes
                 let periodXs = (0..<8).map { periods[dayIndex * 8 + $0].cx }
                 for period in 1...8 {
                     let x = periodXs[period - 1]
@@ -328,7 +372,7 @@ enum SpecialScheduleParser {
                         guard seen.insert(box).inserted else { continue }
                         result += try lessons(in: page, box: box, date: day, className: name,
                                               period: period, periodXs: periodXs,
-                                              times: times, pageNumber: 1)
+                                              times: dayTimes, pageNumber: 1)
                     }
                 }
             }

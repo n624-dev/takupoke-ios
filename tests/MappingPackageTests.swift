@@ -175,6 +175,11 @@ final class MappingPackageTests: XCTestCase {
         XCTAssertEqual(saved.rules.shortSubject(for: change, in: [
             lesson("3_IT", "架空略科A"), lesson("3_CN", "架空略科B")
         ]), "架空略科A")
+        var withTeacher = change
+        withTeacher.after_subject = "架空正式科目A（架空教員A）"
+        XCTAssertEqual(saved.rules.shortSubject(for: withTeacher, in: [
+            lesson("3_IT", "架空略科A")
+        ]), "架空略科A")
         XCTAssertNil(saved.rules.shortSubject(for: change, in: [lesson("3_CN", "架空略科A")]))
         let ambiguous = try MappingPackage.decode(package(subjects: [
             ["alias": "架空略科A", "fullName": "架空正式科目A"],
