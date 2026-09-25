@@ -296,7 +296,7 @@ struct TimetableView: View {
 
     private func dayColumn(_ column: DayGridLayout, days: [SchoolDate], rowHeights: [CGFloat]) -> some View {
         let totalHeight = rowHeights.reduce(0, +) + 7 * gridSpacing
-        Group {
+        return Group {
             if let title = column.fullDayEventTitle {
                 fullDayEventCard(title, width: column.width, height: totalHeight)
             } else {
@@ -370,16 +370,21 @@ struct TimetableView: View {
 
     private func gridRowHeights(_ columns: [DayGridLayout], days: [SchoolDate]) -> [CGFloat] {
         var heights = Array(repeating: gridRowHeight, count: 8)
-        let entries = columns.flatMap { column in
-            column.positioned.enumerated().flatMap { index, lane in
-                lane.map { (column.day, selectedClasses[index], $0.block) }
+        var entries: [(SchoolDate, String, TimetableSchedule.GridBlock)] = []
+        for column in columns {
+            for (index, lane) in column.positioned.enumerated() {
+                for entry in lane {
+                    entries.append((column.day, selectedClasses[index], entry.block))
+                }
             }
-        }.sorted { ($0.2.endPeriod - $0.2.startPeriod) < ($1.2.endPeriod - $1.2.startPeriod) }
+        }
+        entries.sort { ($0.2.endPeriod - $0.2.startPeriod) < ($1.2.endPeriod - $1.2.startPeriod) }
         for (day, className, block) in entries {
             let start = block.startPeriod - 1
             let end = block.endPeriod
             let required = cardRequiredHeight(block, on: day, className: className, days: days)
-            let available = heights[start..<end].reduce(0, +) + CGFloat(end - start - 1) * gridSpacing
+            let available: CGFloat = heights[start..<end].reduce(CGFloat.zero, +) +
+                CGFloat(end - start - 1) * gridSpacing
             if required > available { heights[end - 1] += required - available }
         }
         return heights
@@ -624,8 +629,11 @@ struct TimetableView: View {
     private func changeCardSubject(_ change: ScheduleChange, names: TimetableLessonNames) -> String {
         let source = TimetableDisplayText.continuous(names.cellSubject)
         guard !source.isEmpty else { return cardText("変更を確認", fontSize: 11, weight: .semibold, lines: 2) }
-        let short = mappings.current?.rules.flatMap { rules in
-            timetable?.lessons.flatMap { rules.shortSubject(for: change, in: $0) }
+        let short: String?
+        if let rules = mappings.current?.rules, let lessons = timetable?.lessons {
+            short = rules.shortSubject(for: change, in: lessons)
+        } else {
+            short = nil
         }
         let font = UIFont.systemFont(ofSize: 11, weight: .semibold)
         let available = dayColumnWidth - 10
