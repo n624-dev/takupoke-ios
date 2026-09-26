@@ -22,6 +22,10 @@ final class LinksModel: ObservableObject {
             .filter { $0.visible && !isHidden($0.id) && isFavorite($0.id) }
     }
 
+    var visibleRecommendations: [LinkItem] {
+        saved?.payload.recommendations(hiddenIDs: preferences.hiddenIDs) ?? []
+    }
+
     func loadIfNeeded() {
         guard !ready else { return }
         do {
