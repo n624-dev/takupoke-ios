@@ -100,7 +100,8 @@ APIのレスポンスETagと `sourcePdfETag` は別の値です。アプリ起�
 通常時間割PDF・時間割変更XLSX・試験時間割PDF・試験返却時間割PDFが対象です。Microsoft Graphは使用しません。
 
 - 起動時とバックグラウンドから復帰するたびに、保存済みブックマークを復元し、アクセス権を維持した状態で `NSFileCoordinator` の読み取り内に `NSFilePresenter` を登録します。登録後に元ファイルを読み直します。
-- 表示中に内容・属性・移動・削除の通知を受けたら、短時間に届く通知をまとめて読み直します。取得・解析中の通知は破棄せず、処理の終了後に確認します。
+- 表示中に内容・属性・移動・削除の通知を受けたら、短時間に届く通知をまとめます。属性通知はダウンロードを伴わないメタデータ参照でファイルの識別子と内容の世代識別子を比較し、両方が前回と同じと確認できた場合だけ読み直しを省きます。識別子が未提供・取得失敗の場合や内容変更・ファイル置き換えの場合は、SHA-256で確認します。取得・解析中に届いた内容変更通知は処理後に確認します。
+- アプリ自身のPDF/XLSX読み取りには登録済みのFile Presenterを関連付け、自分の操作による通知の循環を防ぎます。世代識別子は内容の変更で変わり、拡張属性等のメタデータだけの変更では変わらない値です。更新日時やサイズが同じという理由では、内容が同一とは判定しません。起動時・復帰時の読み直しはこの省略判定の対象外です。
 - 元の内容をSHA-256で比較し、変更時だけ既存の解析経路を使います。前回正常結果の保持、失敗表示、試験・返却の解析バージョン更新時の再解析を維持します。
 - バックグラウンド移行時に監視を直ちに解除し、登録途中の処理と遅れて届く通知も無効にします。復帰時には再登録・再確認します。別ファイルへの選び直しでも古い監視を解除します。
 - 学校行事API・名称対応表の起動時確認は従来どおりです。この変更でAPIの復帰時取得や認証画面の自動表示は追加しません。
@@ -110,3 +111,6 @@ APIのレスポンスETagと `sourcePdfETag` は別の値です。アプリ起�
 オフライン指定や調整された読み取りだけで、OneDriveのクラウド上の最新版を強制取得できるわけではありません。File Providerがまだクラウド上の変更を認識していない場合は、同じハッシュの端末内コピーを読み取る可能性があります。通知の即時性や同期の間隔は保証しません。
 
 参照: [AppleのFile PresenterとiOSの注意点](https://developer.apple.com/documentation/foundation/nsfilepresenter)、[登録時のファイル調整](https://developer.apple.com/documentation/foundation/nsfilecoordinator/addfilepresenter(_:))、[Microsoftのオフライン手順](https://support.microsoft.com/ja-jp/onedrive/read-files-or-folders-offline-in-onedrive-for-ios)、[MicrosoftのiOSトラブルシューティング](https://support.microsoft.com/en-us/onedrive/troubleshoot-onedrive-for-ios-app-problems)、[Appleの低電力モード](https://support.apple.com/ja-jp/101604)。
+
+
+通知の循環対策の参照: [Apple: init(filePresenter:)](https://developer.apple.com/documentation/foundation/nsfilecoordinator/init(filepresenter:))、[内容の世代識別子](https://developer.apple.com/documentation/foundation/urlresourcekey/generationidentifierkey)、[ダウンロードを行わないメタデータ確認](https://developer.apple.com/documentation/foundation/nsfilecoordinator/readingoptions/immediatelyavailablemetadataonly)。

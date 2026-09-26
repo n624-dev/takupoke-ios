@@ -26,7 +26,7 @@ extension MaterialWorker {
     private func coordinated<T>(_ url: URL, control: AcquisitionControl,
                                 read: (URL) throws -> T) throws -> T {
         try control.check()
-        let coordinator = NSFileCoordinator(filePresenter: nil)
+        let coordinator = SelectedFilePresenter.coordinator(for: url)
         control.attach(coordinator)
         defer { control.attach(nil) }
         var coordinationError: NSError?

@@ -40,6 +40,30 @@ final class FileRefreshTests: XCTestCase {
                           SelectedFileSource(id: "exam", grant: folder, childName: "B.pdf"))
     }
 
+    func testRepeatedAttributeNotificationsDoNotRestartRefresh() {
+        let version = FileContentVersion(identity: NSNumber(value: 1), generation: NSNumber(value: 10))
+        var gate = FileContentChangeGate()
+        var queue = FileRefreshQueue()
+        queue.setForeground(true)
+        gate.record(version)
+        // Model the provider emitting an attribute notification after each read.
+        for _ in 0..<100 {
+            if gate.shouldRefresh(version) { queue.request("timetable") }
+            XCTAssertTrue(queue.take(ready: true, busy: false).isEmpty)
+        }
+        let changed = FileContentVersion(identity: NSNumber(value: 1), generation: NSNumber(value: 11))
+        XCTAssertTrue(gate.shouldRefresh(changed))
+        XCTAssertFalse(gate.shouldRefresh(changed))
+    }
+
+    func testReplacementAndUnsupportedVersionsStillGetHashChecked() {
+        var gate = FileContentChangeGate()
+        gate.record(FileContentVersion(identity: NSNumber(value: 1), generation: NSNumber(value: 10)))
+        XCTAssertTrue(gate.shouldRefresh(FileContentVersion(identity: NSNumber(value: 2), generation: NSNumber(value: 10))))
+        XCTAssertTrue(gate.shouldRefresh(nil))
+        XCTAssertTrue(gate.shouldRefresh(nil))
+    }
+
 #if canImport(Darwin)
     @MainActor
     func testEveryForegroundEntryChecksOnceAndUnchangedSourcesDoNotLoop() async throws {
@@ -108,6 +132,51 @@ final class FileRefreshTests: XCTestCase {
         wait(for: [changed], timeout: 5)
         observation.stop()
         XCTAssertFalse(NSFileCoordinator.filePresenters.contains { $0.presentedItemURL == file })
+    }
+
+    func testOwnFileOperationsDoNotFeedBackButExternalWritesStillNotify() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let file = root.appendingPathComponent("fictional.txt")
+        try Data("before".utf8).write(to: file)
+        let initial = expectation(description: "initial read")
+        let ownChange = expectation(description: "no self notification")
+        ownChange.isInverted = true
+        let externalChange = expectation(description: "external changes remain observable")
+        let lock = NSLock()
+        var initialSeen = false
+        var external = false
+        let observation = SelectedFileObservation(resolve: { (file, nil) }) {
+            lock.lock()
+            let first = !initialSeen
+            initialSeen = true
+            let isExternal = external
+            lock.unlock()
+            if first { initial.fulfill() }
+            else if isExternal { externalChange.fulfill() }
+            else { ownChange.fulfill() }
+        }
+        defer { observation.stop() }
+        observation.start()
+        wait(for: [initial], timeout: 5)
+        // Use the same coordinator factory as both actual PDF/XLSX read paths.
+        let ownCoordinator = SelectedFilePresenter.coordinator(for: file)
+        var error: NSError?
+        ownCoordinator.coordinate(writingItemAt: file, options: [], error: &error) { url in
+            do { try Data("own-change".utf8).write(to: url) }
+            catch { XCTFail("Synthetic write failed") }
+        }
+        XCTAssertNil(error)
+        wait(for: [ownChange], timeout: 0.4)
+        lock.lock(); external = true; lock.unlock()
+        let writer = NSFileCoordinator(filePresenter: nil)
+        writer.coordinate(writingItemAt: file, options: [], error: &error) { url in
+            do { try Data("external-change".utf8).write(to: url) }
+            catch { XCTFail("Synthetic write failed") }
+        }
+        XCTAssertNil(error)
+        wait(for: [externalChange], timeout: 5)
     }
 
     func testStopWhileResolvingCannotRegisterAfterBackground() {
