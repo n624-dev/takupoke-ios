@@ -1,28 +1,6 @@
 import Foundation
 import GRDB
 
-struct SpecialScheduleRecord: Codable {
-    let kind: SpecialScheduleKind
-    let originalName: String
-    let storedName: String
-    let byteCount: Int
-    let digest: String
-    let acquiredAt: Date
-    let analysis: SpecialScheduleAnalysis
-}
-
-struct SpecialScheduleSource: Codable {
-    let kind: SpecialScheduleKind
-    let originalName: String
-    let storedName: String
-    let byteCount: Int
-    let digest: String
-    let acquiredAt: Date
-    var lastCheckedAt: Date? = nil
-    var failure: PDFParseError?
-    var grant: SourceGrant?
-}
-
 /// The special PDFs have their own source and parser contract. This sidecar
 /// SQLite store leaves the existing material database and parser untouched.
 final class SpecialScheduleStore {

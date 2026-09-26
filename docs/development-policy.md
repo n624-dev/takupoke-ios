@@ -10,7 +10,8 @@
 
 - `TimetableView.swift` は状態と画面全体を持ち、`TimetableView+Grid` / `Cards` / `Times` / `Navigation` / `Changes` / `Details` に描画・時刻・週移動・変更一覧・詳細を分ける。クラス選択画面は `TimetableClassSelection.swift`。
 - PDFのモデルは `PDFAnalysis.swift`、罫線・文字配置は `PDFGrid.swift`、文書全体の検証は `PDFSchoolParser.swift`、通常時間割と旧行事PDFの解析は同型のextensionに置く。
-- `LocalMaterialDatabase.swift` は接続・初期化と現在の資料保存を持ち、`Records` に解析結果の読み書き、`Schema` にDDL、`Legacy` に旧形式の取込・読出しを分ける。
+- `LocalMaterialDatabase.swift` は接続・初期化を持ち、`Current` に現在の資料保存、`Records` に解析結果の読み書き、`Schema` にDDL、`Legacy` に旧形式の取込・読出しを分ける。
+- PDFの描画命令・フォント、試験／返却解析、資料取得、名称対応表、各設定画面、テストにも同じ整理を適用する。現在の配置と確認範囲は[コードの構成](source-structure.md)を参照する。
 - ソースを追加・移動した場合はXcodeプロジェクト、`Package.swift`、`tools/test-materials.sh` の明示的な入力一覧も確認する。
 
 ## アプリの構成
