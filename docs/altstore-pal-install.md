@@ -11,6 +11,7 @@
 
 - iOS 27 以降の iPhone
 - 日本の App Store アカウント
+- 日本国内での利用
 - Wi-Fi 接続
 - Apple Account
 - AltStore PAL
@@ -111,7 +112,7 @@ Current status
 Connected
 ```
 
-LocalDevVPN は、インターネット通信を外部の VPN サーバーへ送る一般的な VPN サービスとは用途が異なります。iPhone 内にローカルネットワークトンネルを作成するために使用されます。
+LocalDevVPNは、iPhone内にローカルネットワークトンネルを作成するために使用します。
 
 ---
 
@@ -229,11 +230,12 @@ AltStore Classic が IPA を取得し、Apple Account で署名して iPhone に
 
 ## 13. インストール後に確認する
 
-たくポケを起動し、アプリ内に表示される次の情報を確認します。
+たくポケを起動し、初回セットアップに沿って学校アカウント認証、ファイル選択、クラス選択を行います。「あとで設定」で終了した場合は、設定の「セットアップ」から再開できます。
 
-- Version
-- Build
-- Commit
+「設定」→「このアプリについて」で次の情報を確認します。
+
+- バージョン
+- ビルド
 
 必要に応じて [GitHub Releases](https://github.com/n624-dev/takupoke-ios/releases) の公開内容と照合してください。
 
