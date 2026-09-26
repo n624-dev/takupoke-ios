@@ -4,6 +4,15 @@
 
 未確定の解析規則や利用者に見える振る舞いは、開発者の判断だけで仕様化しません。既存仕様から決まらない点は、具体例と利用上の影響を平易に説明して利用者へ確認します。確定済みの仕様や通常の実装方法について、繰り返し承認を求めることはしません。
 
+## 大きなSwiftファイルの分割
+
+表示を変えない整理では、SwiftUIのView型・Stateの所有者・ViewBuilderの構造・modifierの順序を維持し、同じ型のextensionへ既存実装を移す。ファイル間で参照する宣言だけアクセス範囲を広げ、文言・寸法・解析規則・保存形式の変更は含めない。
+
+- `TimetableView.swift` は状態と画面全体を持ち、`TimetableView+Grid` / `Cards` / `Times` / `Navigation` / `Changes` / `Details` に描画・時刻・週移動・変更一覧・詳細を分ける。クラス選択画面は `TimetableClassSelection.swift`。
+- PDFのモデルは `PDFAnalysis.swift`、罫線・文字配置は `PDFGrid.swift`、文書全体の検証は `PDFSchoolParser.swift`、通常時間割と旧行事PDFの解析は同型のextensionに置く。
+- `LocalMaterialDatabase.swift` は接続・初期化と現在の資料保存を持ち、`Records` に解析結果の読み書き、`Schema` にDDL、`Legacy` に旧形式の取込・読出しを分ける。
+- ソースを追加・移動した場合はXcodeプロジェクト、`Package.swift`、`tools/test-materials.sh` の明示的な入力一覧も確認する。
+
 ## アプリの構成
 
 - iOS ネイティブアプリとして新規開発する。
