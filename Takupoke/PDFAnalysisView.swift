@@ -25,9 +25,7 @@ struct PDFAnalysisView: View {
     var body: some View {
         List {
             Section("解析") {
-                Text("ファイル選択後は自動解析します。必要なときは右上の「解析する」から再実行できます。")
-                    .font(.subheadline).foregroundStyle(.secondary)
-                if model.busy { HStack { ProgressView(); Text("処理中…") } }
+                if model.busy { LoadingRow(title: "処理中⋯") }
                 if let failure = failure {
                     Label(failure.localizedDescription, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 }
@@ -147,7 +145,7 @@ struct PDFAnalysisView: View {
                     }
                 }
             } else {
-                Section { Text("まだ正常な解析結果はありません。右上の「解析する」から読み取れます。").foregroundStyle(.secondary) }
+                Section { Text("解析結果がありません。").foregroundStyle(.secondary) }
             }
         }
         .navigationTitle(kind.title)

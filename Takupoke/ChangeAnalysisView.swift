@@ -23,15 +23,11 @@ struct ChangeAnalysisView: View {
     var body: some View {
         List {
             Section {
-                TextField("年なし日付を補完する学校年度（例：2032）", text: $year)
+                TextField("補完年度（自動：\(SchoolDate.today().schoolYear)年度）", text: $year)
                     .keyboardType(.numberPad).disabled(model.busy)
-                Text("空欄なら今日の学校年度（\(SchoolDate.today().schoolYear)年度）を使います。4〜12月は入力年度、1〜3月は翌年の日付として解析します。")
-                    .font(.caption).foregroundStyle(.secondary)
                 if !validYear { Text("西暦1900〜9998の学校年度を入力してください。").foregroundStyle(.orange) }
-                Text("ファイル選択後は自動解析します。必要なときは右上の「解析する」から再実行できます。")
-                    .font(.caption).foregroundStyle(.secondary)
                 if model.busy {
-                    HStack { ProgressView(); Text("処理中…"); Spacer(); Button("中止") { model.cancel() } }
+                    LoadingRow(title: "処理中⋯", cancel: { model.cancel() })
                 }
                 if let failure = model.state.changeParseAttempt?.failure {
                     Label(failure.localizedDescription, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
@@ -79,8 +75,6 @@ struct ChangeAnalysisView: View {
                     if analysis.sourceDigest != model.state.record(for: .changes)?.digest || analysis.version != ChangeAnalysis.parserVersion {
                         Label("前回の解析結果です。現在のファイルを解析してください。", systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                     }
-                    Text("正常な解析結果を時間割の週表示に反映します。通知はまだ行いません。取得済みの名称対応表と一致する末尾の括弧だけ、表示時に教員・教室へ分けます。")
-                        .font(.caption).foregroundStyle(.secondary)
                 } header: { Text("解析結果") }
                 Section {
                     Picker("クラス", selection: $selectedClass) {

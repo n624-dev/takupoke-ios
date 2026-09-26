@@ -37,12 +37,7 @@ struct SchoolEventsSettingsSection: View {
                     .foregroundStyle(.orange)
             }
             if model.busy {
-                HStack {
-                    ProgressView()
-                    Text("学校行事を取得中…")
-                    Spacer()
-                    Button("中止") { model.cancel() }
-                }
+                LoadingRow(title: "学校行事を取得中⋯", cancel: { model.cancel() })
             }
             if let message = model.message {
                 Label(message, systemImage: model.failed ? "exclamationmark.triangle" : "info.circle")
@@ -53,8 +48,6 @@ struct SchoolEventsSettingsSection: View {
                 Label(message, systemImage: "exclamationmark.triangle")
                     .font(.caption).foregroundStyle(.orange)
             }
-            Text("APIが公開していない年度は取得できません。旧行事PDFの解析結果は時間割に使用しません。")
-                .font(.caption).foregroundStyle(.secondary)
         }
     }
 }

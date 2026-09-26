@@ -6,6 +6,7 @@ struct LegalDocumentView: View {
         var title: String { self == .terms ? "利用規約" : "プライバシーポリシー" }
     }
     let document: Document
+    @State private var safariPage: SafariPage?
 
     private var paragraphs: [String] {
         guard let url = Bundle.main.url(forResource: document.rawValue, withExtension: "txt", subdirectory: "LegalDocuments"),
@@ -23,10 +24,13 @@ struct LegalDocumentView: View {
                         Text(String(paragraph.dropFirst(3))).font(.headline).padding(.top, 8)
                     } else { Text(paragraph).font(.body) }
                 }
-                if document == .privacy {
-                    Link("たくにんのプライバシーポリシー", destination: URL(string: "https://takuma-gakunin.n624.jp/privacy")!)
+                Button("たくにんの" + document.title) {
+                    safariPage = SafariPage(url: URL(string: "https://takuma-gakunin.n624.jp/" + document.rawValue)!)
                 }
             }.frame(maxWidth: .infinity, alignment: .leading).padding().textSelection(.enabled)
         }.navigationTitle(document.title).navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(item: $safariPage) { page in
+            SafariLinkView(url: page.url) { safariPage = nil }.ignoresSafeArea()
+        }
     }
 }

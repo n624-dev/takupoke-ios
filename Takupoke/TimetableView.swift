@@ -58,7 +58,7 @@ struct TimetableView: View {
         NavigationStack {
             List {
                 if !model.ready {
-                    Section { HStack { ProgressView(); Text("保存済み資料を読み込み中…") } }
+                    Section { LoadingRow(title: "読み込み中⋯") }
                 } else if classes.isEmpty {
                     Section {
                         ContentUnavailableViewPlaceholder()
@@ -174,7 +174,7 @@ struct TimetableView: View {
                     .foregroundStyle(.orange)
             }
             if events == nil {
-                Label("学校行事は未取得です。設定から学校行事を取得できます。", systemImage: "calendar.badge.exclamationmark")
+                Label("学校行事は未取得です。", systemImage: "calendar.badge.exclamationmark")
                     .foregroundStyle(.secondary)
             }
             if let sourceCheckMessage = schoolEvents.sourceCheckMessage {
@@ -205,7 +205,7 @@ struct TimetableView: View {
 
 private struct ContentUnavailableViewPlaceholder: View {
     var body: some View {
-        Label("時間割の解析結果がありません。設定の「ファイル選択」でファイルを選んで解析してください。", systemImage: "calendar.badge.exclamationmark")
+        Label("時間割の解析結果がありません。", systemImage: "calendar.badge.exclamationmark")
             .foregroundStyle(.secondary)
     }
 }

@@ -48,21 +48,13 @@ struct LinksView: View {
     var body: some View {
         NavigationStack {
             List {
-                if let message = model.message {
-                    Section {
-                        Label(message, systemImage: model.failed ? "exclamationmark.triangle" : "info.circle")
-                            .font(.subheadline)
-                            .foregroundStyle(model.failed ? Color.orange : Color.secondary)
-                    }
-                }
                 if model.saved == nil {
                     Section {
-                        if model.busy || account.busy { ProgressView("一覧を取得中⋯") }
+                        if model.busy || account.busy { LoadingRow(title: "一覧を取得中⋯") }
                         else {
                             Text(model.failed ? "一覧を取得できませんでした。" : "一覧はまだ取得されていません。")
                                 .foregroundStyle(.secondary)
-                            Button("認証して一覧・名称対応表を取得") { Task { await account.refresh(mappings: mappings, links: model) } }
-                                .disabled(model.busy || mappings.busy || account.busy)
+                            NavigationLink("データ取得") { AccountDataSettingsView() }
                         }
                     }
                 } else if LinkSearch.normalize(query).isEmpty {
@@ -99,12 +91,7 @@ struct LinksView: View {
             }
             .navigationTitle("一覧")
             .searchable(text: $query, prompt: "リンクを検索")
-            .refreshable { await account.refresh(mappings: mappings, links: model) }
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("更新を確認") { Task { await account.refresh(mappings: mappings, links: model) } }
-                        .disabled(model.busy || mappings.busy || account.busy)
-                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink {
                         HiddenLinksView(model: model)

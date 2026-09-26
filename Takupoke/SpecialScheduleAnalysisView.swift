@@ -14,10 +14,8 @@ struct SpecialScheduleAnalysisView: View {
     var body: some View {
         List {
             Section("解析") {
-                Text("ファイル選択後は自動解析します。必要なときは右上の「解析する」から再実行できます。")
-                    .font(.subheadline).foregroundStyle(.secondary)
                 if model.busy {
-                    HStack { ProgressView(); Text("処理中…"); Spacer(); Button("中止") { model.cancel() } }
+                    LoadingRow(title: "処理中⋯", cancel: { model.cancel() })
                 }
                 if let failure = source?.failure {
                     Label(failure.localizedDescription, systemImage: "exclamationmark.triangle")
