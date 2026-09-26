@@ -6,13 +6,14 @@ extension SpecialSchedulesModel {
                                          control: AcquisitionControl) throws -> (String, Int, String) {
         try selection.access { url in
             try control.check()
-            let coordinator = SelectedFilePresenter.coordinator(for: url)
+            let access = SelectedFilePresenter.readAccess(for: url)
+            let coordinator = access.coordinator
             control.attach(coordinator)
             defer { control.attach(nil) }
             var error: NSError?
             var result: Result<(String, Int, String), Error>?
             coordinator.coordinate(readingItemAt: url, options: [], error: &error) { safeURL in
-                result = Result {
+                let copied = Result {
                     try control.check()
                     let values = try safeURL.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
                     guard values.isRegularFile == true, values.isSymbolicLink != true,
@@ -37,6 +38,13 @@ extension SpecialSchedulesModel {
                     try output.synchronize()
                     return (url.lastPathComponent, count,
                             hasher.finalize().map { String(format: "%02x", $0) }.joined())
+                }
+                result = Result {
+                    try access.read(at: safeURL) {
+                        let value = try copied.get()
+                        try control.check()
+                        return value
+                    }
                 }
             }
             try control.check()
