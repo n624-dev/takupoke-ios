@@ -159,7 +159,12 @@ final class FileRefreshTests: XCTestCase {
         access.coordinator.coordinate(writingItemAt: file, options: .forReplacing, error: &error) { url in
             do { try Data("after".utf8).write(to: url, options: .atomic) }
             catch { XCTFail("Synthetic write failed") }
-            XCTAssertThrowsError(try access.read(at: url) { throw CocoaError(.userCancelled) })
+            do {
+                let _: Data = try access.read(at: url) { throw CocoaError(.userCancelled) }
+                XCTFail("Cancelled read unexpectedly succeeded")
+            } catch {
+                XCTAssertEqual((error as? CocoaError)?.code, .userCancelled)
+            }
         }
         XCTAssertNil(error)
         presenter.presentedItemDidChange()
