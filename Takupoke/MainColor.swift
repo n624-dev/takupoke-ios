@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum MainColor: String, CaseIterable, Identifiable {
-    case red, orange, yellow, green, blue, purple, pink
+    case blue, purple, pink, red, orange, yellow, green
 
     var id: String { rawValue }
     var title: String {
