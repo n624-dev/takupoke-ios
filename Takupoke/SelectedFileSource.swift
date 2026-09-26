@@ -17,18 +17,25 @@ struct SelectedFileSource: Equatable {
 struct FileRefreshQueue {
     private(set) var foreground = false
     private(set) var pending: Set<String> = []
+    private(set) var suspended = false
 
     mutating func setForeground(_ value: Bool) {
+        if !value || !foreground { suspended = false }
         foreground = value
         if !value { pending.removeAll() }
     }
 
+    mutating func suspend() {
+        suspended = true
+        pending.removeAll()
+    }
+
     mutating func request(_ id: String) {
-        if foreground { pending.insert(id) }
+        if foreground && !suspended { pending.insert(id) }
     }
 
     mutating func take(ready: Bool, busy: Bool) -> Set<String> {
-        guard foreground, ready, !busy else { return [] }
+        guard foreground, !suspended, ready, !busy else { return [] }
         let result = pending
         pending.removeAll()
         return result

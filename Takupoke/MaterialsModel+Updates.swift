@@ -20,8 +20,15 @@ extension MaterialsModel {
         perform(success: "保存済みファイルの変更を確認しました。") { worker, control in
             var failed = false
             for kind in [MaterialKind.timetable, .changes] where requested.contains(kind.rawValue) {
-                do { _ = try worker.refreshIfChanged(kind, defaultYear: year, control: control) }
-                catch { failed = true }
+                let source = FileRefreshDiagnostics.Source(rawValue: kind.rawValue)
+                FileRefreshDiagnostics.shared.record(.refreshStarted, source: source)
+                do {
+                    let changed = try worker.refreshIfChanged(kind, defaultYear: year, control: control)
+                    FileRefreshDiagnostics.shared.record(changed ? .hashChanged : .hashSame, source: source)
+                } catch {
+                    FileRefreshDiagnostics.shared.record(.refreshFailed, source: source)
+                    failed = true
+                }
             }
             if failed { throw MaterialError.providerReadFailed }
         }

@@ -3,6 +3,41 @@ import Foundation
 @testable import TakupokeParsing
 
 final class FileRefreshTests: XCTestCase {
+    func testCancellationDropsPendingAndLateCallbacksUntilForegroundReturn() {
+        var queue = FileRefreshQueue()
+        queue.setForeground(true)
+        queue.request("timetable")
+        queue.suspend()
+        queue.request("changes")
+        queue.setForeground(true)
+        XCTAssertTrue(queue.suspended)
+        XCTAssertTrue(queue.take(ready: true, busy: false).isEmpty)
+        queue.setForeground(false)
+        queue.setForeground(true)
+        queue.request("changes")
+        XCTAssertFalse(queue.suspended)
+        XCTAssertEqual(queue.take(ready: true, busy: false), ["changes"])
+    }
+
+    func testRefreshDiagnosticIsBoundedAndSafeUnderConcurrentEvents() throws {
+        let diagnostic = FileRefreshDiagnostics(limit: 64)
+        DispatchQueue.concurrentPerform(iterations: 1_000) { _ in
+            diagnostic.record(.metadataUnavailable, source: .changes)
+        }
+        let snapshot = diagnostic.snapshot
+        XCTAssertEqual(snapshot.totalEntries, 1_000)
+        XCTAssertEqual(snapshot.omittedEntries, 936)
+        XCTAssertEqual(snapshot.entries.count, 64)
+        XCTAssertEqual(snapshot.entries.first?.sequence, 1)
+        XCTAssertEqual(snapshot.entries.last?.sequence, 1_000)
+        XCTAssertEqual(snapshot.entries.map(\.sequence), snapshot.entries.map(\.sequence).sorted())
+        let data = try XCTUnwrap(diagnostic.report.split(separator: "\n").last?.data(using: .utf8))
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let entries = try XCTUnwrap(object["entries"] as? [[String: Any]])
+        XCTAssertEqual(Set(entries[0].keys), ["sequence", "elapsedMilliseconds", "step", "source"])
+        XCTAssertTrue(entries.allSatisfy { $0["source"] as? String == "changes" })
+    }
+
     func testBusyOrLoadingDefersAndCoalescesNotifications() {
         var queue = FileRefreshQueue()
         queue.setForeground(true)
@@ -65,6 +100,24 @@ final class FileRefreshTests: XCTestCase {
     }
 
 #if canImport(Darwin)
+    @MainActor
+    func testSuspendedMonitorCannotRestartFromSourceUpdateOrLateWork() async throws {
+        var calls: [String] = []
+        let monitor = SelectedFileMonitor { calls.append($0) }
+        monitor.update([SelectedFileSource(id: "exam", grant: nil)])
+        monitor.setForeground(true)
+        monitor.suspend()
+        monitor.update([SelectedFileSource(id: "examReturn", grant: nil)])
+        monitor.setForeground(true)
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertTrue(calls.isEmpty)
+        monitor.setForeground(false)
+        monitor.setForeground(true)
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertEqual(calls, ["examReturn"])
+        monitor.setForeground(false)
+    }
+
     @MainActor
     func testEveryForegroundEntryChecksOnceAndUnchangedSourcesDoNotLoop() async throws {
         var calls: [String] = []

@@ -10,9 +10,11 @@ final class SelectedFileObservation: @unchecked Sendable {
     private var scopedURL: URL?
     private let resolve: () throws -> (url: URL, scope: URL?)
     private let changed: () -> Void
+    private let diagnosticSource: FileRefreshDiagnostics.Source?
 
     init(source: SelectedFileSource, changed: @escaping () -> Void) {
         self.changed = changed
+        diagnosticSource = .init(rawValue: source.id)
         resolve = {
             guard let bookmark = source.bookmark else { throw MaterialError.accessExpired }
             var stale = false
@@ -33,6 +35,7 @@ final class SelectedFileObservation: @unchecked Sendable {
     init(resolve: @escaping () throws -> (url: URL, scope: URL?), changed: @escaping () -> Void) {
         self.resolve = resolve
         self.changed = changed
+        diagnosticSource = nil
     }
 
     func start() {
@@ -44,7 +47,7 @@ final class SelectedFileObservation: @unchecked Sendable {
                 }
                 // Keep access alive even if stop occurs while coordination is unwinding.
                 defer { target.scope?.stopAccessingSecurityScopedResource() }
-                let newPresenter = SelectedFilePresenter(url: target.url, changed: changed)
+                let newPresenter = SelectedFilePresenter(url: target.url, source: diagnosticSource, changed: changed)
                 let newCoordinator = NSFileCoordinator(filePresenter: newPresenter)
                 lock.lock()
                 guard !stopped else { lock.unlock(); return }
@@ -64,12 +67,17 @@ final class SelectedFileObservation: @unchecked Sendable {
                     newPresenter.recordContentVersion(at: safeURL)
                     NSFileCoordinator.addFilePresenter(newPresenter)
                     self.presenter = newPresenter
+                    FileRefreshDiagnostics.shared.record(.registrationComplete, source: self.diagnosticSource)
                 }
                 lock.lock()
                 coordinator = nil
                 lock.unlock()
+                if error != nil {
+                    FileRefreshDiagnostics.shared.record(.registrationFailure, source: diagnosticSource)
+                }
                 notifyIfActive()
             } catch {
+                FileRefreshDiagnostics.shared.record(.registrationFailure, source: diagnosticSource)
                 // The normal refresh records an actionable failure while retaining
                 // the last successful analysis. Registration failure is not success.
                 notifyIfActive()
@@ -81,7 +89,10 @@ final class SelectedFileObservation: @unchecked Sendable {
         lock.lock()
         let active = !stopped
         lock.unlock()
-        if active { changed() }
+        if active {
+            FileRefreshDiagnostics.shared.record(.initialRefresh, source: diagnosticSource)
+            changed()
+        }
     }
 
     func stop() {

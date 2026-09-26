@@ -89,8 +89,11 @@ final class MaterialsModel: ObservableObject {
     func dismissPreview() { changePreview = nil }
 
     func cancel() {
+        FileRefreshDiagnostics.shared.record(.cancelled)
+        fileRefreshQueue.suspend()
+        fileMonitor.suspend()
         control?.cancel()
-        message = "中止を要求しました。処理の終了を待っています。"
+        message = busy ? "中止を要求しました。処理の終了を待っています。" : "自動確認を中止しました。"
     }
 
     func perform(success: String?, operation: @escaping (MaterialWorker, AcquisitionControl) throws -> Void) {

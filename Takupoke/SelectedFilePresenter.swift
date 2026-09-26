@@ -6,6 +6,7 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
     private let lock = NSLock()
     private var url: URL
     private let changed: () -> Void
+    private let diagnosticSource: FileRefreshDiagnostics.Source?
     private var contentGate = FileContentChangeGate()
     private var active = true
     private var metadataCoordinator: NSFileCoordinator?
@@ -22,12 +23,14 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
         return url
     }
 
-    init(url: URL, changed: @escaping () -> Void) {
+    init(url: URL, source: FileRefreshDiagnostics.Source? = nil, changed: @escaping () -> Void) {
         self.url = url
         self.changed = changed
+        diagnosticSource = source
     }
 
     func presentedItemDidChange() {
+        FileRefreshDiagnostics.shared.record(.providerChange, source: diagnosticSource)
         // The notification can mean that download status or another attribute
         // changed. Probe metadata without downloading the document or showing
         // the app as busy. Use this presenter to avoid notifying ourselves.
@@ -48,6 +51,8 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
             self.metadataCoordinator = nil
             let needsRefresh = self.active && self.contentGate.shouldRefresh(error == nil ? version : nil)
             self.lock.unlock()
+            FileRefreshDiagnostics.shared.record(error != nil || version == nil ? .metadataUnavailable :
+                (needsRefresh ? .metadataChanged : .metadataUnchanged), source: self.diagnosticSource)
             if needsRefresh { self.changed() }
         }
     }
@@ -83,10 +88,13 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
         let presenter = NSFileCoordinator.filePresenters.compactMap { $0 as? SelectedFilePresenter }.first {
             $0.presentedItemURL?.standardizedFileURL == url.standardizedFileURL
         }
+        FileRefreshDiagnostics.shared.record(presenter == nil ? .coordinatorUnmatched : .coordinatorMatched,
+                                             source: presenter?.diagnosticSource)
         return NSFileCoordinator(filePresenter: presenter)
     }
 
     func presentedItemDidMove(to newURL: URL) {
+        FileRefreshDiagnostics.shared.record(.providerMove, source: diagnosticSource)
         lock.lock()
         url = newURL
         lock.unlock()
@@ -94,6 +102,7 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
     }
 
     func accommodatePresentedItemDeletion(completionHandler: @escaping (Error?) -> Void) {
+        FileRefreshDiagnostics.shared.record(.providerDelete, source: diagnosticSource)
         changed()
         completionHandler(nil)
     }

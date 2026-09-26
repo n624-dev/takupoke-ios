@@ -114,3 +114,12 @@ APIのレスポンスETagと `sourcePdfETag` は別の値です。アプリ起�
 
 
 通知の循環対策の参照: [Apple: init(filePresenter:)](https://developer.apple.com/documentation/foundation/nsfilecoordinator/init(filepresenter:))、[内容の世代識別子](https://developer.apple.com/documentation/foundation/urlresourcekey/generationidentifierkey)、[ダウンロードを行わないメタデータ確認](https://developer.apple.com/documentation/foundation/nsfilecoordinator/readingoptions/immediatelyavailablemetadataonly)。
+
+
+### 更新確認の診断と中止
+
+0.1.102でも実機で処理中→完了の繰り返しが継続したため、世代識別子による対策だけで解消したとは扱いません。内部イベントの順序を調べるため、「ファイル選択」の「更新確認」に常時表示の「更新確認の診断をコピー」を置きます。処理中の行の表示・非表示には依存せず、コピーは自動確認中でも可能です。
+
+診断は起動・復帰、監視登録・解除、内部の内容／属性通知、世代情報の有無、読み取りの開始・同一内容／変更／失敗を記録します。資料種別は固定値だけで、ファイル名・パス・本文・個人名・ブックマーク・ハッシュ値・世代識別子の実値は含めません。起動後の経過時間とイベント番号を使い、開始側と直近を合わせて最大512件だけメモリに保持します。自動送信やディスク保存はしません。コピーは端末内限定で15分後に失効する設定です。
+
+「自動確認を中止」も常時表示します。利用者が中止したときは、実行中の取得・解析へ中止を要求し、待機中の確認と監視も停止します。元の「中止」ボタンも同じ動作です。保存済みの選択・正常結果は保持し、手動の取得・解析は引き続き利用できます。別アプリへ移動して戻ると、監視と確認を再開します。アプリが独断でループを判定して監視を止める処理は追加していません。
