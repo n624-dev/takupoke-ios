@@ -17,6 +17,11 @@ final class LinksModel: ObservableObject {
     private let preferencesStore = LinkPreferencesStore()
     private let endpoint = URL(string: "https://takupoke-api.n624.jp/links")!
 
+    var visibleFavorites: [LinkItem] {
+        (saved?.payload.categories ?? []).flatMap(\.buttons)
+            .filter { $0.visible && !isHidden($0.id) && isFavorite($0.id) }
+    }
+
     func loadIfNeeded() {
         guard !ready else { return }
         do {

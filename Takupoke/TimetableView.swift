@@ -77,7 +77,6 @@ struct TimetableView: View {
                             Label("保存したクラスの一部は現在の資料にありません。選択は保持しています。", systemImage: "exclamationmark.triangle")
                                 .font(.caption).foregroundStyle(.orange)
                         }
-                        Toggle("留学生向けの授業も表示", isOn: $isInternationalStudent)
                     }
                     weekSection
                     changesSection

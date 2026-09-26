@@ -30,7 +30,7 @@ struct LinksView: View {
     }
 
     private var favorites: [LinkItem] {
-        visibleCategories.flatMap(\.items).filter { model.isFavorite($0.id) }
+        model.visibleFavorites
     }
 
     private var searchHits: [LinkSearchHit] {
