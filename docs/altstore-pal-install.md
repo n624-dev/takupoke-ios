@@ -112,7 +112,7 @@ Current status
 Connected
 ```
 
-LocalDevVPN は、インターネット通信を外部の VPN サーバーへ送る一般的な VPN サービスとは用途が異なります。iPhone 内にローカルネットワークトンネルを作成するために使用されます。
+LocalDevVPNは、iPhone内にローカルネットワークトンネルを作成するために使用します。
 
 ---
 

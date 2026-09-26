@@ -15,8 +15,6 @@
 | 対象端末 | iOS 16.0 以降の iPhone |
 | 配布方式 | AltStore Classic が導入時に署名する IPA |
 
-GitHub Pages や独自サーバーの設定は不要です。
-
 ## Windows と iPhone の準備
 
 1. [AltStore 公式の Windows 導入手順](https://faq.altstore.io/altstore-classic/how-to-install-altstore-windows) に従い、Windows に AltServer を準備し、iPhone に AltStore Classic を導入します。関連する Apple ソフトウェアや接続設定は公式手順に合わせます。

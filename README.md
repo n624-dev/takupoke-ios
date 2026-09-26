@@ -6,7 +6,7 @@
 
 学校の通常時間割・学校行事・時間割変更を、iPhone 内でひとつにまとめる Swift / SwiftUI 製アプリです。
 
-通常時間割・時間割変更は iOS 標準の「ファイル」から OneDrive File Provider 経由で取得し、学校行事は `takupoke-api` から初回に手動で取得します。保存後は起動時に更新を確認します。Microsoft Graph は使いません。
+通常時間割・時間割変更は iOS 標準の「ファイル」から OneDrive File Provider 経由で取得し、学校行事は `takupoke-api` から初回に手動で取得します。保存後は起動時に更新を確認します。
 
 [インストール手順](docs/altstore-pal-install.md) · [開発環境](docs/development.md) · [ロードマップ](docs/roadmap.md) · [Releases](https://github.com/n624-dev/takupoke-ios/releases)
 
@@ -54,7 +54,7 @@ Linux / Windows で編集・ローカル検証
   → iPhone の AltStore Classic から更新
 ```
 
-ローカルの配布テストに必要なのは Git と Python 3.11 以降です。Python の追加パッケージは不要です。
+ローカルの配布テストにはGitとPython 3.11以降の標準ライブラリを使います。
 
 ```sh
 git clone https://github.com/n624-dev/takupoke-ios.git
