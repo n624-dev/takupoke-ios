@@ -10,7 +10,7 @@ mkdir -p "$scratch_dir/project" "$scratch_dir/tmp"
 cp Package.swift "$scratch_dir/project/"
 if [[ -f Package.resolved ]]; then cp Package.resolved "$scratch_dir/project/"; fi
 cp -R Takupoke tests "$scratch_dir/project/"
-extra_flags=(--jobs 2)
+extra_flags=(--jobs 2 -Xswiftc -DTAKUPOKE_INTERNAL_DIAGNOSTICS)
 if [[ -n "${TKPK_ZLIB_PREFIX:-}" ]]; then
     extra_flags+=( -Xcc "-I$TKPK_ZLIB_PREFIX/usr/include" -Xlinker "-L$TKPK_ZLIB_PREFIX/usr/lib/x86_64-linux-gnu" )
 fi

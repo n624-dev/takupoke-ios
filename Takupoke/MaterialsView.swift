@@ -53,6 +53,7 @@ struct MaterialsView: View {
             }
 
             Section("更新確認") {
+#if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
                 refreshControlButton("更新確認の診断をコピー") {
                     UIPasteboard.general.setItems(
                         [[UTType.utf8PlainText.identifier: FileRefreshDiagnostics.shared.report]],
@@ -62,6 +63,7 @@ struct MaterialsView: View {
                 Text(copiedRefreshDiagnostic ? "診断をコピーしました。" :
                     "再取得のきっかけと処理結果をコピーします。ファイル名・本文・教員名は含みません。")
                     .font(.footnote).foregroundStyle(.secondary)
+#endif
                 refreshControlButton("自動確認を中止") {
                     model.cancel()
                     specialSchedules.cancel()

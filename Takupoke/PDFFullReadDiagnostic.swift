@@ -1,3 +1,4 @@
+#if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
 import Foundation
 
 /// Explicit full-content export. Kept in memory for one attempt, never stored in
@@ -63,3 +64,5 @@ struct PDFFullReadDiagnostic: Codable {
         return try encoder.encode(self)
     }
 }
+
+#endif

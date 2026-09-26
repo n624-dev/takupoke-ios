@@ -33,6 +33,7 @@ extension MaterialWorker {
         }
         var diagnosticURL: URL?
         var succeeded = false
+#if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
         defer {
             if kind == .timetable {
                 var full = diagnosticURL.map { PDFKitReader.diagnose($0, check: check) } ?? PDFFullReadDiagnostic()
@@ -48,6 +49,7 @@ extension MaterialWorker {
                     (try? full.jsonData()).flatMap { String(data: $0, encoding: .utf8) }.map { "TAKUPOKE-PDF-FULL-JSON-1\n" + $0 }
             }
         }
+#endif
         do {
             diagnostics?.record(.material)
             guard kind != .changes, let library = library, let record = library.state.record(for: kind),

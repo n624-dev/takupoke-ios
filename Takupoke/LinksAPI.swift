@@ -110,6 +110,7 @@ struct SavedLinks: Codable, Equatable {
     let payload: LinksPayload
     let apiETag: String
     let checkedAt: Date
+    var revision: String? = nil
 }
 
 enum LinksResponse {

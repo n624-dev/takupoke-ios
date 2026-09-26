@@ -1,3 +1,4 @@
+#if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
 import Foundation
 #if canImport(PDFKit)
 import PDFKit
@@ -98,4 +99,6 @@ extension PDFKitReader {
         return report
     }
 }
+#endif
+
 #endif

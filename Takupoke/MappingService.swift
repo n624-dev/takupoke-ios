@@ -9,8 +9,8 @@ struct MappingService {
     let baseURL: URL
     let network: URLSession
 
-    func checkRevision(installed: String?) async throws -> MappingRevisionResult {
-        var request = URLRequest(url: baseURL.appendingPathComponent("mapping-revision"))
+    func checkRevision(installed: String?, path: String = "mapping-revision") async throws -> MappingRevisionResult {
+        var request = URLRequest(url: baseURL.appendingPathComponent(path))
         request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
         if let installed { request.setValue("\"\(installed)\"", forHTTPHeaderField: "If-None-Match") }
         let (data, rawResponse) = try await network.data(for: request)

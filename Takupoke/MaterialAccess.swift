@@ -6,6 +6,8 @@ final class MaterialWorker {
     var timetableReadReport: String?
     var timetableFailure: PDFParseError?
 
+    func close() { library = nil; changePreview = nil; timetableReadReport = nil; timetableFailure = nil }
+
     func clearPreview() { changePreview = nil }
 
     func open() throws {

@@ -73,6 +73,7 @@ extension PDFParsingTests {
             }
         }
     }
+#if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
     func testPDFKitFullDiagnosticCollectsAllTextWhitespaceAndMultiplePages() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -108,6 +109,7 @@ extension PDFParsingTests {
         XCTAssertTrue(cancelled.incomplete.contains(.cancelled))
         XCTAssertEqual(cancelled.issues.first?.code, .cancelled)
     }
+#endif
     func testPDFKitBridgeRecognizesFilledArrowGeometry() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)

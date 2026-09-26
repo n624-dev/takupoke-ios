@@ -27,12 +27,14 @@ struct SpecialScheduleAnalysisView: View {
                     Text(message).font(.caption)
                         .foregroundStyle(model.failed ? Color.orange : Color.secondary)
                 }
+#if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
                 if let report = model.fullReadReports[kind] {
                     diagnosticButton(report)
                     Text(copiedReport == report ? "読み取り結果をコピーしました。" :
                          "PDF本文・教員名などを含む全文と位置情報を、圧縮してコピーします。開発相談へ貼り付けてください。")
                         .font(.caption).foregroundStyle(.secondary)
                 }
+#endif
             }
             if let source {
                 Section("選択したファイル") {
@@ -119,6 +121,7 @@ struct SpecialScheduleAnalysisView: View {
         }
     }
 
+#if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
     @ViewBuilder private func diagnosticButton(_ report: String) -> some View {
         if #available(iOS 26.0, *) {
             Button("読み取り結果をすべてコピー", systemImage: "doc.on.doc") { copy(report) }
@@ -136,4 +139,5 @@ struct SpecialScheduleAnalysisView: View {
             options: [.localOnly: true, .expirationDate: Date().addingTimeInterval(600)])
         copiedReport = report
     }
+#endif
 }

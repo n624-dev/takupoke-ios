@@ -10,9 +10,9 @@ final class MappingModel: ObservableObject {
     @Published private(set) var message: String?
     @Published private(set) var failed = false
 
-    private let oidc = MappingOIDC()
     private var store: MappingStore?
     private var checkedAtStartup = false
+    private var generation = UUID()
     private let baseURL = URL(string: "https://takupoke-api.n624.jp")!
 
     func loadIfNeeded() {
@@ -51,14 +51,17 @@ final class MappingModel: ObservableObject {
         guard ready, !checkedAtStartup, !busy else { return }
         checkedAtStartup = true
         busy = true
+        let operation = generation
         Task {
             let network = Self.networkSession()
-            defer { network.invalidateAndCancel(); busy = false }
+            defer { network.invalidateAndCancel(); if operation == generation { busy = false } }
             do {
                 let result = try await MappingService(baseURL: baseURL, network: network)
                     .checkRevision(installed: current?.revision)
+                guard operation == generation else { return }
                 apply(result)
             } catch {
+                guard operation == generation else { return }
                 failed = true
                 message = "名称対応表の更新を確認できませんでした。" +
                     (current == nil ? "" : "保存済みの対応表を使用します。")
@@ -66,37 +69,38 @@ final class MappingModel: ObservableObject {
         }
     }
 
-    func refresh() {
+    func revision(using network: URLSession) async throws -> MappingRevisionResult {
         loadIfNeeded()
-        guard ready, !busy, let store else { return }
-        busy = true
+        guard ready else { throw MappingError.storage }
+        let result = try await MappingService(baseURL: baseURL, network: network).checkRevision(installed: current?.revision)
+        try Task.checkCancellation()
+        apply(result)
+        if case .unchanged = result { message = "名称対応表は最新です。" }
+        return result
+    }
+
+    func download(token: String, revision: String, network: URLSession) async throws {
+        guard let store else { throw MappingError.storage }
+        let package = try await MappingService(baseURL: baseURL, network: network)
+            .download(accessToken: token, expectedRevision: revision)
+        try Task.checkCancellation()
+        do { try store.save(package) } catch { throw MappingError.storage }
+        current = package
+        updateAvailable = false
         failed = false
-        message = nil
-        Task {
-            let network = Self.networkSession()
-            defer { network.invalidateAndCancel(); busy = false }
-            do {
-                let service = MappingService(baseURL: baseURL, network: network)
-                let result = try await service.checkRevision(installed: current?.revision)
-                switch result {
-                case .unchanged:
-                    updateAvailable = false
-                    message = "名称対応表は最新です。"
-                case .available(let revision):
-                    updateAvailable = true
-                    let token = try await oidc.accessToken(using: network)
-                    let package = try await service.download(accessToken: token, expectedRevision: revision)
-                    do { try store.save(package) } catch { throw MappingError.storage }
-                    current = package
-                    updateAvailable = false
-                    message = "名称対応表を更新しました。"
-                }
-            } catch {
-                failed = true
-                message = (error as? MappingError ?? .unavailable).localizedDescription +
-                    (current == nil ? "" : "保存済みの対応表を使用します。")
-            }
-        }
+        message = "名称対応表を更新しました。"
+    }
+
+    func report(_ error: Error) {
+        failed = true
+        message = (error as? MappingError ?? .unavailable).localizedDescription +
+            (current == nil ? "" : "保存済みの対応表を使用します。")
+    }
+
+    func resetForRetention() {
+        generation = UUID()
+        current = nil; store = nil; ready = false; busy = false
+        checkedAtStartup = false; updateAvailable = false; message = nil; failed = false
     }
 
     func names(for lesson: PDFLesson) -> TimetableLessonNames {

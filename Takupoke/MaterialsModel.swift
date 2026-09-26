@@ -21,6 +21,7 @@ final class MaterialsModel: ObservableObject {
 
     private let worker = MaterialWorker()
     private let queue = DispatchQueue(label: "io.github.n624dev.takupoke.materials", qos: .userInitiated)
+    private var retired = false
     private var control: AcquisitionControl?
     var fileRefreshQueue = FileRefreshQueue()
     lazy var fileMonitor = SelectedFileMonitor { [weak self] id in
@@ -88,6 +89,24 @@ final class MaterialsModel: ObservableObject {
 
     func dismissPreview() { changePreview = nil }
 
+    func closeForRetention() async {
+        retired = true
+        setFileMonitoring(false)
+        cancel()
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            queue.async {
+                self.worker.close()
+                continuation.resume()
+            }
+        }
+        state = MaterialLibraryState(); pdfURLs = [:]; changePreview = nil
+        timetableReadReport = nil; timetableFailure = nil
+        ready = false; busy = false; control = nil; message = nil; failed = false
+        fileMonitor.update([])
+    }
+
+    func resumeAfterRetention() { retired = false }
+
     func cancel() {
         FileRefreshDiagnostics.shared.record(.cancelled)
         fileRefreshQueue.suspend()
@@ -97,7 +116,7 @@ final class MaterialsModel: ObservableObject {
     }
 
     func perform(success: String?, operation: @escaping (MaterialWorker, AcquisitionControl) throws -> Void) {
-        guard !busy else { return }
+        guard !busy, !retired else { return }
         busy = true
         failed = false
         message = nil
@@ -115,6 +134,7 @@ final class MaterialsModel: ObservableObject {
             var pdfURLs: [String: URL] = [:]
             for kind in [MaterialKind.timetable, .events] { pdfURLs[kind.rawValue] = worker.pdfURL(for: kind) }
             DispatchQueue.main.async {
+                guard !self.retired else { self.busy = false; return }
                 self.ready = snapshot != nil
                 if let snapshot = snapshot { self.state = snapshot }
                 self.pdfURLs = pdfURLs
