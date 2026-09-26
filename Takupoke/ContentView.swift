@@ -65,7 +65,7 @@ struct ContentView: View {
                 .tabItem { Label("設定", systemImage: "gearshape") }.tag(Tab.settings)
         }
         .onChange(of: selectedTab) { tab in
-            if tab == .links { Task { await links.refresh() } }
+            if tab == .links, !account.busy { Task { await links.refresh() } }
         }
     }
 
@@ -104,7 +104,7 @@ struct ContentView: View {
             schoolEvents.refreshAtStartup()
             mappings.checkAtStartup()
             if scenePhase != .background { setFileMonitoring(true) }
-            await links.refresh()
+            if !account.busy { await links.refresh() }
         } catch {
             dataReady = false
             retentionFailure = true

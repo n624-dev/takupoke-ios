@@ -57,7 +57,7 @@ struct LinksView: View {
                 }
                 if model.saved == nil {
                     Section {
-                        if model.busy || account.busy { ProgressView("一覧を取得中…") }
+                        if model.busy || account.busy { ProgressView("一覧を取得中⋯") }
                         else {
                             Text(model.failed ? "一覧を取得できませんでした。" : "一覧はまだ取得されていません。")
                                 .foregroundStyle(.secondary)

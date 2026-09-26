@@ -22,7 +22,7 @@ struct MappingSettingsView: View {
                           systemImage: "arrow.down.circle")
                         .foregroundStyle(.orange)
                 }
-                if model.busy || account.busy { HStack { ProgressView(); Text("確認中…") } }
+                if model.busy || account.busy { HStack { ProgressView(); Text("確認中⋯") } }
                 if let message = model.message {
                     Label {
                         Text(message)
