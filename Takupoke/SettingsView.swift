@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @AppStorage("mainColor") private var mainColor = MainColor.blue.rawValue
     @AppStorage("linkOpeningMode") private var linkOpeningMode = LinkOpeningMode.inApp.rawValue
     @ObservedObject var materials: MaterialsModel
     @ObservedObject var specialSchedules: SpecialSchedulesModel
@@ -28,6 +29,13 @@ struct SettingsView: View {
                             if mappings.updateAvailable || links.updateAvailable { Text("更新あり").font(.caption).foregroundStyle(.orange) }
                             else if mappings.failed || links.failed { Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange) }
                         }
+                    }
+                }
+                Section("外観") {
+                    NavigationLink {
+                        MainColorSelectionView()
+                    } label: {
+                        LabeledContent("メインカラー", value: (MainColor(rawValue: mainColor) ?? .blue).title)
                     }
                 }
                 Section("一覧") {

@@ -14,6 +14,13 @@ struct HomeView: View {
                         }
                     }
                 }
+                if !links.visibleRecommendations.isEmpty {
+                    Section("おすすめ") {
+                        ForEach(links.visibleRecommendations) { item in
+                            LinkRow(item: item, model: links) { safariPage = SafariPage(url: $0) }
+                        }
+                    }
+                }
             }
             .navigationTitle("たくポケ")
             .fullScreenCover(item: $safariPage) { page in

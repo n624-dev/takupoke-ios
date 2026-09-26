@@ -1,6 +1,6 @@
 import Foundation
 
-// Ported from denpa-schedule-csv (MIT). See ThirdPartyNotices.txt.
+// Ported from denpa-schedule-csv (MIT). See LicenseDocuments/denpa-schedule-csv.txt.
 struct ScheduleChange: Codable, Equatable {
     var change_date: String
     var class_name: String

@@ -51,6 +51,18 @@ struct LinksPayload: Codable, Equatable {
     let linksVersion: String
     let categories: [LinkCategory]
 
+    func recommendations(hiddenIDs: Set<String>) -> [LinkItem] {
+        categories.flatMap(\.buttons)
+            .filter { $0.visible && $0.recommended && !hiddenIDs.contains($0.id) }
+            .sorted {
+                if $0.recommendationOrder != $1.recommendationOrder {
+                    return $0.recommendationOrder < $1.recommendationOrder
+                }
+                if $0.sortOrder != $1.sortOrder { return $0.sortOrder < $1.sortOrder }
+                return $0.label.compare($1.label, locale: Locale(identifier: "ja")) == .orderedAscending
+            }
+    }
+
     static let maximumBytes = 3_000_000
     static let colors: Set<String> = [
         "sky", "blue", "emerald", "green", "amber", "yellow", "orange", "rose",

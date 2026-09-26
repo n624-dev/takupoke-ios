@@ -4,12 +4,6 @@ struct AboutView: View {
     @State private var safariPage: SafariPage?
     private let sourceURL = URL(string: "https://github.com/n624-dev/takupoke-ios/releases/latest/download/altstore-source.json")!
 
-    private var licenseText: String {
-        guard let url = Bundle.main.url(forResource: "ThirdPartyNotices", withExtension: "txt"),
-              let text = try? String(contentsOf: url, encoding: .utf8) else { return "ライセンス情報を読み取れません。" }
-        return text
-    }
-
     private func bundleValue(_ key: String) -> String {
         Bundle.main.object(forInfoDictionaryKey: key) as? String ?? "—"
     }
@@ -31,9 +25,7 @@ struct AboutView: View {
                     safariPage = SafariPage(url: URL(string: "https://takuma-gakunin.n624.jp/privacy")!)
                 }
                 NavigationLink("オープンソースライセンス") {
-                    ScrollView {
-                        Text(licenseText).font(.footnote).textSelection(.enabled).padding()
-                    }.navigationTitle("オープンソースライセンス")
+                    OpenSourceLicensesView()
                 }
             }
             Section {

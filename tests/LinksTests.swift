@@ -18,10 +18,28 @@ final class LinksTests: XCTestCase {
     }
 
     private func item(id: String = "fictional-link", href: String = "https://example.invalid/path",
-                      visible: Bool = true) -> LinkItem {
-        LinkItem(id: id, categoryId: "fictional-category", label: "架空リンクA", href: href,
-                 color: "sky", visible: visible, sortOrder: 1, recommended: false,
-                 recommendationOrder: 0, searchAliases: ["架空別名A"], searchTerms: "かくうりんく|fictional")
+                      visible: Bool = true, label: String = "架空リンクA", sortOrder: Int = 1,
+                      recommended: Bool = false, recommendationOrder: Int = 0) -> LinkItem {
+        LinkItem(id: id, categoryId: "fictional-category", label: label, href: href,
+                 color: "sky", visible: visible, sortOrder: sortOrder, recommended: recommended,
+                 recommendationOrder: recommendationOrder, searchAliases: ["架空別名A"], searchTerms: "かくうりんく|fictional")
+    }
+
+    func testRecommendationsRespectVisibilityAndAstroOrdering() throws {
+        let links = payload([
+            item(id: "later", recommended: true, recommendationOrder: 20),
+            item(id: "name-second", label: "架空リンクい", sortOrder: 20, recommended: true, recommendationOrder: 10),
+            item(id: "name-first", label: "架空リンクあ", sortOrder: 20, recommended: true, recommendationOrder: 10),
+            item(id: "first", sortOrder: 90, recommended: true, recommendationOrder: 0),
+            item(id: "sort-first", sortOrder: 10, recommended: true, recommendationOrder: 10),
+            item(id: "hidden-by-user", recommended: true),
+            item(id: "hidden-by-api", visible: false, recommended: true),
+            item(id: "not-recommended")
+        ])
+        let decoded = try LinksPayload.decode(JSONEncoder().encode(links))
+        XCTAssertEqual(decoded.recommendations(hiddenIDs: ["hidden-by-user"]).map(\.id),
+                       ["first", "sort-first", "name-first", "name-second", "later"])
+        XCTAssertTrue(decoded.recommendations(hiddenIDs: Set(links.categories[0].buttons.map(\.id))).isEmpty)
     }
 
     private func payload(_ items: [LinkItem], version: String = "v1") -> LinksPayload {
