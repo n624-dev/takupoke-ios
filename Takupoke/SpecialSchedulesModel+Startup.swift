@@ -2,12 +2,12 @@ import Foundation
 import SwiftUI
 
 extension SpecialSchedulesModel {
-    func checkSelectedFilesAtStartup() {
-        guard ready, !busy, !checkedAtStartup else { return }
-        checkedAtStartup = true
+    func runPendingFileRefresh() {
+        let requested = fileRefreshQueue.take(ready: ready, busy: busy)
+        guard !requested.isEmpty else { return }
         perform(success: nil) { store, control, _ in
             var failure: Error?
-            for kind in SpecialScheduleKind.allCases {
+            for kind in SpecialScheduleKind.allCases where requested.contains(kind.rawValue) {
                 guard let source = store.sources[kind] else { continue }
                 let needsAnalysis = store.records[kind].map {
                     $0.analysis.version < SpecialScheduleAnalysis.parserVersion

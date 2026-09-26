@@ -22,25 +22,15 @@ final class MaterialsModel: ObservableObject {
     private let worker = MaterialWorker()
     private let queue = DispatchQueue(label: "io.github.n624dev.takupoke.materials", qos: .userInitiated)
     private var control: AcquisitionControl?
-    private var checkedAtStartup = false
+    var fileRefreshQueue = FileRefreshQueue()
+    lazy var fileMonitor = SelectedFileMonitor { [weak self] id in
+        self?.fileRefreshQueue.request(id)
+        self?.runPendingFileRefresh()
+    }
 
     func loadIfNeeded() {
         guard !ready else { return }
         perform(success: nil) { worker, _ in try worker.open() }
-    }
-
-    func checkSelectedFilesAtStartup() {
-        guard ready, !busy, !checkedAtStartup else { return }
-        checkedAtStartup = true
-        let year = automaticChangeSchoolYear
-        perform(success: "保存済みファイルの変更を確認しました。") { worker, control in
-            var failed = false
-            for kind in [MaterialKind.timetable, .changes] {
-                do { _ = try worker.refreshIfChanged(kind, defaultYear: year, control: control) }
-                catch { failed = true }
-            }
-            if failed { throw MaterialError.providerReadFailed }
-        }
     }
 
     func selectFile(_ url: ScopedMaterialSelection, kind: MaterialKind) {
@@ -66,7 +56,7 @@ final class MaterialsModel: ObservableObject {
         }
     }
 
-    private var automaticChangeSchoolYear: Int {
+    var automaticChangeSchoolYear: Int {
         ChangeNormalizer.effectiveSchoolYear(
             configured: UserDefaults.standard.string(forKey: ChangeNormalizer.schoolYearSettingKey),
             today: SchoolDate.today())
@@ -103,7 +93,7 @@ final class MaterialsModel: ObservableObject {
         message = "中止を要求しました。処理の終了を待っています。"
     }
 
-    private func perform(success: String?, operation: @escaping (MaterialWorker, AcquisitionControl) throws -> Void) {
+    func perform(success: String?, operation: @escaping (MaterialWorker, AcquisitionControl) throws -> Void) {
         guard !busy else { return }
         busy = true
         failed = false
@@ -129,6 +119,8 @@ final class MaterialsModel: ObservableObject {
                 self.timetableFailure = timetableFailure
                 self.busy = false
                 self.control = nil
+                self.updateFileMonitoring()
+                defer { self.runPendingFileRefresh() }
                 switch result {
                 case .success:
                     self.message = success

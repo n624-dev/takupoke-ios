@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     private enum Tab: Hashable { case home, links, timetable, settings }
 
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab: Tab = .home
     @StateObject private var materials = MaterialsModel()
     @StateObject private var specialSchedules = SpecialSchedulesModel()
@@ -30,17 +31,25 @@ struct ContentView: View {
         .onChange(of: selectedTab) { tab in
             if tab == .links { Task { await links.refresh() } }
         }
-        .onChange(of: materials.ready) { ready in
-            if ready { materials.checkSelectedFilesAtStartup() }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active { setFileMonitoring(true) }
+            else if phase == .background { setFileMonitoring(false) }
         }
-        .onChange(of: specialSchedules.ready) { ready in
-            if ready { specialSchedules.checkSelectedFilesAtStartup() }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+            // Remove presenters immediately, before iOS can suspend the process.
+            setFileMonitoring(false)
         }
         .task {
+            setFileMonitoring(scenePhase != .background)
             materials.loadIfNeeded()
             specialSchedules.loadIfNeeded()
             schoolEvents.refreshAtStartup()
             mappings.checkAtStartup()
         }
+    }
+
+    private func setFileMonitoring(_ foreground: Bool) {
+        materials.setFileMonitoring(foreground)
+        specialSchedules.setFileMonitoring(foreground)
     }
 }

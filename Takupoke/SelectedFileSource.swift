@@ -1,0 +1,36 @@
+import Foundation
+
+/// A provider bookmark identifies the original file, never the app's saved copy.
+struct SelectedFileSource: Equatable {
+    let id: String
+    let bookmark: Data?
+    let childName: String?
+
+    init(id: String, grant: SourceGrant?, childName: String? = nil) {
+        self.id = id
+        bookmark = grant?.bookmark
+        self.childName = grant?.isFolder == true ? childName : nil
+    }
+}
+
+/// Main-thread scheduling: notifications during a read wait for that read to end.
+struct FileRefreshQueue {
+    private(set) var foreground = false
+    private(set) var pending: Set<String> = []
+
+    mutating func setForeground(_ value: Bool) {
+        foreground = value
+        if !value { pending.removeAll() }
+    }
+
+    mutating func request(_ id: String) {
+        if foreground { pending.insert(id) }
+    }
+
+    mutating func take(ready: Bool, busy: Bool) -> Set<String> {
+        guard foreground, ready, !busy else { return [] }
+        let result = pending
+        pending.removeAll()
+        return result
+    }
+}

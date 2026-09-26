@@ -38,6 +38,19 @@ xcodebuild \
 app_path="$scratch_dir/DerivedData/Build/Products/Release-iphoneos/Takupoke.app"
 test -f "$app_path/Info.plist"
 test -x "$app_path/Takupoke"
+python3 - "$app_path" <<'PYICON'
+import plistlib
+import sys
+from pathlib import Path
+app = Path(sys.argv[1])
+with (app / "Info.plist").open("rb") as file:
+    info = plistlib.load(file)
+assert info["UISupportedInterfaceOrientations"] == ["UIInterfaceOrientationPortrait"]
+assert info["CFBundleIcons"]["CFBundlePrimaryIcon"]["CFBundleIconName"] == "AppIcon"
+assert (app / "Assets.car").is_file()
+assert list(app.glob("AppIcon*.png")), "Missing legacy iOS icon images"
+print("Verified compiled portrait setting and app icon resources.")
+PYICON
 # This initial app has no entitlements. Stop if capabilities are introduced
 # without updating the source generation and permission checks.
 if [[ -e "$app_path/embedded.mobileprovision" ]]; then

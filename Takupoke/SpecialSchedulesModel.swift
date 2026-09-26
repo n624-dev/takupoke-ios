@@ -22,7 +22,11 @@ final class SpecialSchedulesModel: ObservableObject {
     private let queue = DispatchQueue(label: "io.github.n624dev.takupoke.special-schedules", qos: .userInitiated)
     private var store: SpecialScheduleStore?
     private var control: AcquisitionControl?
-    var checkedAtStartup = false
+    var fileRefreshQueue = FileRefreshQueue()
+    lazy var fileMonitor = SelectedFileMonitor { [weak self] id in
+        self?.fileRefreshQueue.request(id)
+        self?.runPendingFileRefresh()
+    }
 
     func loadIfNeeded() {
         guard !ready, !busy else { return }
@@ -78,6 +82,8 @@ final class SpecialSchedulesModel: ObservableObject {
                     })
                     self.ready = true
                 }
+                self.updateFileMonitoring()
+                defer { self.runPendingFileRefresh() }
                 switch result {
                 case .success:
                     self.message = success
