@@ -22,6 +22,7 @@ final class SpecialSchedulesModel: ObservableObject {
     private let queue = DispatchQueue(label: "io.github.n624dev.takupoke.special-schedules", qos: .userInitiated)
     private var store: SpecialScheduleStore?
     private var retired = false
+    private var generation = UUID()
     private var control: AcquisitionControl?
     var fileRefreshQueue = FileRefreshQueue()
     lazy var fileMonitor = SelectedFileMonitor { [weak self] id in
@@ -44,11 +45,12 @@ final class SpecialSchedulesModel: ObservableObject {
 
     func closeForRetention() async {
         retired = true
+        generation = UUID()
         setFileMonitoring(false)
         cancel()
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             queue.async {
-                continuation.resume()
+                DispatchQueue.main.async { continuation.resume() }
             }
         }
         store = nil; records = [:]; sources = [:]; urls = [:]; fullReadReports = [:]
@@ -73,6 +75,7 @@ final class SpecialSchedulesModel: ObservableObject {
         busy = true
         failed = false
         message = nil
+        let operationGeneration = generation
         let control = AcquisitionControl()
         self.control = control
         let existingStore = store
@@ -90,7 +93,7 @@ final class SpecialSchedulesModel: ObservableObject {
                 try operation(store, control, capture)
             }
             DispatchQueue.main.async {
-                guard !self.retired else { self.busy = false; return }
+                guard !self.retired, operationGeneration == self.generation else { return }
                 self.busy = false
                 self.control = nil
                 if let kind { self.fullReadReports[kind] = capture.report }

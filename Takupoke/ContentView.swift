@@ -79,6 +79,9 @@ struct ContentView: View {
             let retention = SchoolDataRetention(root: base)
             let period = SchoolDataPeriod.current()
             if (try? retention.installedPeriod()) != period {
+                let hadPrivateData = SchoolDataRetention.privatePaths.contains {
+                    FileManager.default.fileExists(atPath: base.appendingPathComponent($0).path)
+                }
                 // Remove all data-bearing views before waiting for workers/auth to stop.
                 dataReady = false
                 setFileMonitoring(false)
@@ -91,7 +94,7 @@ struct ContentView: View {
                 FileRefreshDiagnostics.shared.clear()
                 materials.resumeAfterRetention()
                 specialSchedules.resumeAfterRetention()
-                retentionNotice = true
+                retentionNotice = hadPrivateData
             }
             loadedPeriod = period
             retentionFailure = false

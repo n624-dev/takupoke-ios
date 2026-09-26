@@ -97,8 +97,11 @@ final class LinksModel: ObservableObject {
 
     func report(_ error: Error) {
         failed = true
-        message = (error as? MappingError)?.localizedDescription ??
-            (error as? LinksError ?? .unavailable).localizedDescription
+        switch error as? MappingError {
+        case .authentication: message = "認証を完了できませんでした。"
+        case .changedDuringDownload: message = "取得中に一覧が更新されました。もう一度お試しください。"
+        default: message = (error as? LinksError ?? .unavailable).localizedDescription
+        }
         if saved != nil { message! += " 保存済みの一覧を表示しています。" }
     }
 

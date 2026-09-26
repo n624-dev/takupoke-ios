@@ -80,9 +80,19 @@ def inspect_ipa(ipa, config, version, build, commit):
         if not executable or "/" in executable:
             raise ValueError("Invalid executable name")
         with archive.open(root + executable) as stream:
-            magic = stream.read(4)
+            executable_bytes = stream.read()
+            magic = executable_bytes[:4]
         if magic not in (b"\xcf\xfa\xed\xfe", b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf"):
             raise ValueError("Missing Mach-O executable")
+        if any(marker in executable_bytes for marker in (
+            b"TAKUPOKE-PDF-FULL-ZIP-1", b"TAKUPOKE-PDF-FULL-JSON-1",
+            "更新確認の診断をコピー".encode(), "全文診断をコピー".encode(),
+        )):
+            raise ValueError("Internal diagnostics must not be included in public builds")
+        for policy in ("terms", "privacy"):
+            policy_path = root + f"LegalDocuments/{policy}.txt"
+            if policy_path not in paths or not archive.read(policy_path).strip():
+                raise ValueError("Bundled legal documents are missing")
         privacy = plistlib.loads(archive.read(root + "PrivacyInfo.xcprivacy"))
         if privacy.get("NSPrivacyTracking") is not False:
             raise ValueError("Unexpected tracking declaration")
