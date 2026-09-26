@@ -6,7 +6,7 @@ extension SpecialSchedulesModel {
                                          control: AcquisitionControl) throws -> (String, Int, String) {
         try selection.access { url in
             try control.check()
-            let coordinator = NSFileCoordinator(filePresenter: nil)
+            let coordinator = SelectedFilePresenter.coordinator(for: url)
             control.attach(coordinator)
             defer { control.attach(nil) }
             var error: NSError?

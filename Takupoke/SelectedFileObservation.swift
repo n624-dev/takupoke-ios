@@ -51,7 +51,7 @@ final class SelectedFileObservation: @unchecked Sendable {
                 coordinator = newCoordinator
                 lock.unlock()
                 var error: NSError?
-                newCoordinator.coordinate(readingItemAt: target.url, options: [], error: &error) { _ in
+                newCoordinator.coordinate(readingItemAt: target.url, options: [], error: &error) { safeURL in
                     self.lock.lock()
                     defer { self.lock.unlock() }
                     guard !self.stopped else { return }
@@ -61,6 +61,7 @@ final class SelectedFileObservation: @unchecked Sendable {
                         guard scope.startAccessingSecurityScopedResource() else { return }
                         self.scopedURL = scope
                     }
+                    newPresenter.recordContentVersion(at: safeURL)
                     NSFileCoordinator.addFilePresenter(newPresenter)
                     self.presenter = newPresenter
                 }
@@ -93,7 +94,10 @@ final class SelectedFileObservation: @unchecked Sendable {
         let scope = scopedURL
         scopedURL = nil
         lock.unlock()
-        if let currentPresenter { NSFileCoordinator.removeFilePresenter(currentPresenter) }
+        if let currentPresenter {
+            currentPresenter.deactivate()
+            NSFileCoordinator.removeFilePresenter(currentPresenter)
+        }
         currentCoordinator?.cancel()
         scope?.stopAccessingSecurityScopedResource()
     }

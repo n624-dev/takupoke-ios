@@ -34,3 +34,25 @@ struct FileRefreshQueue {
         return result
     }
 }
+
+/// A data-fork generation changes for content, not provider metadata. Identity
+/// is included because a replacement file can have the same generation value.
+struct FileContentVersion: Equatable {
+    let identity: NSObject
+    let generation: NSObject
+}
+
+struct FileContentChangeGate {
+    private var previous: FileContentVersion?
+
+    mutating func record(_ version: FileContentVersion?) { previous = version }
+
+    mutating func shouldRefresh(_ version: FileContentVersion?) -> Bool {
+        // Some volumes do not expose these identifiers. Never infer unchanged
+        // content from a timestamp or file size in that case.
+        guard let version else { previous = nil; return true }
+        guard previous != version else { return false }
+        previous = version
+        return true
+    }
+}

@@ -1,15 +1,52 @@
 {
-  "fill": {
-    "solid": "srgb:1.00000,1.00000,1.00000,1.00000"
-  },
   "groups": [
     {
       "layers": [
         {
-          "image-name": "ClassicForeground.png",
-          "name": "Classic lettering and pencil",
+          "image-name": "ClassicArtwork.png",
+          "name": "Circle and pencil",
           "glass": true,
           "fill": "automatic"
+        },
+        {
+          "image-name": "ClassicTaku.png",
+          "name": "Taku lettering",
+          "glass": false,
+          "fill-specializations": [
+            {
+              "value": "automatic"
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.71373,0.67451,0.58824,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            }
+          ],
+          "opacity": 1
+        },
+        {
+          "image-name": "ClassicPoke.png",
+          "name": "Poke lettering",
+          "glass": false,
+          "fill-specializations": [
+            {
+              "value": "automatic"
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            }
+          ],
+          "opacity": 1
         }
       ],
       "lighting": "individual",
@@ -26,5 +63,18 @@
   ],
   "supported-platforms": {
     "squares": "shared"
-  }
+  },
+  "fill-specializations": [
+    {
+      "value": {
+        "solid": "srgb:1.00000,1.00000,1.00000,1.00000"
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "solid": "srgb:0.09412,0.09412,0.10588,1.00000"
+      }
+    }
+  ]
 }
