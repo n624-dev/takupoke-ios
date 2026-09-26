@@ -17,7 +17,7 @@ struct ChangePreviewView: View {
                 Section {
                     Label("警告のあるファイルを閲覧しています", systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.orange)
-                    Text("日付欄を基準に表示しています。正常な解析結果としては保存せず、前回の正常データを保持しています。この画面を閉じるとプレビューは破棄します。")
+                    Text("曜日に不整合があります。日付を元ファイルで確認してください。")
                     Text(preview.sourceName)
                     LabeledContent("年なし日付の補完", value: preview.defaultYear.map { "\($0)年度" } ?? "指定なし")
                     LabeledContent("件数", value: "\(preview.records.count)件")

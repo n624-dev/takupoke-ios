@@ -23,8 +23,6 @@ struct PDFLessonDetail: View {
             }
             Section {
                 DisclosureGroup("元のセルの記載") { Text(PDFDisplayText.continuous(lesson.sourceText)).textSelection(.enabled) }
-                Text("同時刻に複数の授業がある場合も、授業ごとに表示しています。空欄は他の授業から補っていません。")
-                    .font(.caption).foregroundStyle(.secondary)
             }
         }
         .navigationTitle("授業詳細")

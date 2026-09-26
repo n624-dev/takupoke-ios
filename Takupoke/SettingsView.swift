@@ -6,6 +6,8 @@ struct SettingsView: View {
     @ObservedObject var specialSchedules: SpecialSchedulesModel
     @ObservedObject var schoolEvents: SchoolEventsModel
     @ObservedObject var mappings: MappingModel
+    @EnvironmentObject private var links: LinksModel
+    @State private var showingSetup = false
 
     var body: some View {
         NavigationStack {
@@ -18,13 +20,13 @@ struct SettingsView: View {
                         Label("ファイル選択", systemImage: "folder")
                     }
                     NavigationLink {
-                        MappingSettingsView(model: mappings)
+                        AccountDataSettingsView()
                     } label: {
                         HStack {
-                            Label("名称対応表", systemImage: "text.book.closed")
+                            Label("一覧・名称対応表", systemImage: "text.book.closed")
                             Spacer()
-                            if mappings.updateAvailable { Text("更新あり").font(.caption).foregroundStyle(.orange) }
-                            else if mappings.failed { Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange) }
+                            if mappings.updateAvailable || links.updateAvailable { Text("更新あり").font(.caption).foregroundStyle(.orange) }
+                            else if mappings.failed || links.failed { Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange) }
                         }
                     }
                 }
@@ -34,8 +36,17 @@ struct SettingsView: View {
                         Text("アプリ内で開く").tag(LinkOpeningMode.inApp.rawValue)
                     }
                 }
+                Section {
+                    Button("セットアップ") { showingSetup = true }
+                    NavigationLink("使い方") { UsageHelpView() }
+                    NavigationLink("このアプリについて") { AboutView() }
+                }
             }
             .navigationTitle("設定")
+            .fullScreenCover(isPresented: $showingSetup) {
+                SetupView(materials: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents,
+                          mappings: mappings, finish: { showingSetup = false })
+            }
         }
     }
 }

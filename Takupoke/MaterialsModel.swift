@@ -72,13 +72,13 @@ final class MaterialsModel: ObservableObject {
     }
 
     func analyzeChanges(defaultYear: Int?) {
-        perform(success: "時間割変更を解析しました。解析結果から日付・クラス・科目を確認してください。") {
+        perform(success: "時間割変更を解析しました。") {
             try $0.analyzeChanges(defaultYear: defaultYear, control: $1)
         }
     }
 
     func analyzePDF(_ kind: MaterialKind) {
-        perform(success: "\(kind.title)を解析しました。元PDFと解析結果を確認してください。") {
+        perform(success: "\(kind.title)を解析しました。") {
             try $0.analyzePDF(kind: kind, control: $1)
         }
     }

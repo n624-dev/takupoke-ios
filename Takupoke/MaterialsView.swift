@@ -7,6 +7,7 @@ struct MaterialsView: View {
     @ObservedObject var specialSchedules: SpecialSchedulesModel
     @ObservedObject var schoolEvents: SchoolEventsModel
     @ObservedObject var mappings: MappingModel
+    var setupMode = false
     @State private var picker: MaterialKind?
     @State private var specialPickerKind: SpecialScheduleKind?
     @State private var copiedRefreshDiagnostic = false
@@ -14,16 +15,8 @@ struct MaterialsView: View {
     var body: some View {
         List {
             Section {
-                Text("通常時間割・時間割変更・試験時間割・試験返却時間割は「ファイル」から個別に選びます。学校行事はAPIから取得します。")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
                 if model.busy {
-                    HStack {
-                        ProgressView()
-                        Text("処理中…")
-                        Spacer()
-                        Button("中止") { model.cancel() }
-                    }
+                    LoadingRow(title: "処理中⋯", cancel: { model.cancel() })
                 }
                 if let message = model.message {
                     Label(message, systemImage: model.failed ? "exclamationmark.triangle" : "info.circle")
@@ -35,12 +28,7 @@ struct MaterialsView: View {
                     Button("保存情報を再読み込み") { model.loadIfNeeded() }
                 }
                 if specialSchedules.busy {
-                    HStack {
-                        ProgressView()
-                        Text("試験時間割・試験返却時間割を処理中…")
-                        Spacer()
-                        Button("中止") { specialSchedules.cancel() }
-                    }
+                    LoadingRow(title: "処理中⋯", cancel: { specialSchedules.cancel() })
                 }
                 if let message = specialSchedules.message {
                     Label(message, systemImage: specialSchedules.failed ? "exclamationmark.triangle" : "info.circle")
@@ -52,27 +40,30 @@ struct MaterialsView: View {
                 }
             }
 
-            Section("更新確認") {
+            if !setupMode {
+                Section("更新確認") {
 #if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
-                refreshControlButton("更新確認の診断をコピー") {
-                    UIPasteboard.general.setItems(
-                        [[UTType.utf8PlainText.identifier: FileRefreshDiagnostics.shared.report]],
-                        options: [.localOnly: true, .expirationDate: Date().addingTimeInterval(900)])
-                    copiedRefreshDiagnostic = true
-                }
-                Text(copiedRefreshDiagnostic ? "診断をコピーしました。" :
-                    "再取得のきっかけと処理結果をコピーします。ファイル名・本文・教員名は含みません。")
-                    .font(.footnote).foregroundStyle(.secondary)
-#endif
-                refreshControlButton("自動確認を中止") {
-                    model.cancel()
-                    specialSchedules.cancel()
-                }
-                .disabled(model.fileRefreshQueue.suspended && specialSchedules.fileRefreshQueue.suspended)
-                if model.fileRefreshQueue.suspended || specialSchedules.fileRefreshQueue.suspended {
-                    Text("自動確認を中止しています。別のアプリへ移動して戻ると再開します。手動での取得・解析は引き続き使えます。")
+                    refreshControlButton("更新確認の診断をコピー") {
+                        UIPasteboard.general.setItems(
+                            [[UTType.utf8PlainText.identifier: FileRefreshDiagnostics.shared.report]],
+                            options: [.localOnly: true, .expirationDate: Date().addingTimeInterval(900)])
+                        copiedRefreshDiagnostic = true
+                    }
+                    Text(copiedRefreshDiagnostic ? "診断をコピーしました。" :
+                        "再取得のきっかけと処理結果をコピーします。ファイル名・本文・教員名は含みません。")
                         .font(.footnote).foregroundStyle(.secondary)
+#endif
+                    refreshControlButton("自動確認を中止") {
+                        model.cancel()
+                        specialSchedules.cancel()
+                    }
+                    .disabled(model.fileRefreshQueue.suspended && specialSchedules.fileRefreshQueue.suspended)
+                    if model.fileRefreshQueue.suspended || specialSchedules.fileRefreshQueue.suspended {
+                        Text("自動確認を中止中")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
                 }
+
             }
 
             ForEach([MaterialKind.timetable, .changes]) { kind in
@@ -123,20 +114,7 @@ struct MaterialsView: View {
                     .disabled(specialSchedules.busy || !specialSchedules.ready)
                 }
             }
-            Section {
-                Text("選択済みのPDF・XLSXは、アプリの起動時・復帰時と、表示中にファイルの変更通知を受けたときに確認します。内容が変わったときだけ自動で再解析します。")
-                    .font(.footnote).foregroundStyle(.secondary)
-                Text("OneDriveのクラウド同期を強制する機能ではありません。更新が反映されない場合は、OneDriveで同期状況を確認し、「ファイル」で対象を開いてからアプリへ戻ってください。オフライン設定だけで常に最新版になるとは限りません。")
-                    .font(.footnote).foregroundStyle(.secondary)
-                Text("取得を安定させるため、OneDriveで対象ファイルの「⋯」をタップし、「オフラインで使用可能にする」を選んで、ダウンロードの完了を待ってください。")
-                    .font(.footnote).foregroundStyle(.secondary)
-                Text("iPhoneの「設定」→「一般」→「Appのバックグラウンド更新」でOneDriveを有効にしてください。低電力モードではバックグラウンド更新が停止し、同期が遅れることがあります。更新が届かないときは低電力モードを解除してOneDriveを開き、同期を確認してください。")
-                    .font(.footnote).foregroundStyle(.secondary)
-                Text("それでも読み取れない場合は、「ファイル」で一度開いてからファイルを選び直してください。")
-                    .font(.footnote).foregroundStyle(.secondary)
-                Text("選択したファイルは端末内に保存します。解析に成功した結果を時間割に反映します。1ファイル50 MiBまで。解析に失敗しても選択したファイルと前回の正常な結果を残します。")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
+
         }
         .navigationTitle("ファイル選択")
         .task { model.loadIfNeeded() }
