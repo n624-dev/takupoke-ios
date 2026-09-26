@@ -100,7 +100,15 @@ struct MaterialsView: View {
                 }
             }
             Section {
-                Text("OneDriveで読み取れない場合は「ファイル」で一度開くか、OneDriveの「オフラインで利用可能」を試してからファイルを選び直してください。")
+                Text("選択済みのPDF・XLSXは、アプリの起動時・復帰時と、表示中にファイルの変更通知を受けたときに確認します。内容が変わったときだけ自動で再解析します。")
+                    .font(.footnote).foregroundStyle(.secondary)
+                Text("OneDriveのクラウド同期を強制する機能ではありません。更新が反映されない場合は、OneDriveで同期状況を確認し、「ファイル」で対象を開いてからアプリへ戻ってください。オフライン設定だけで常に最新版になるとは限りません。")
+                    .font(.footnote).foregroundStyle(.secondary)
+                Text("取得を安定させるため、OneDriveで対象ファイルの「…」をタップし、「オフラインで使用可能にする」を選んで、ダウンロードの完了を待ってください。")
+                    .font(.footnote).foregroundStyle(.secondary)
+                Text("iPhoneの「設定」→「一般」→「Appのバックグラウンド更新」でOneDriveを有効にしてください。低電力モードではバックグラウンド更新が停止し、同期が遅れることがあります。更新が届かないときは低電力モードを解除してOneDriveを開き、同期を確認してください。")
+                    .font(.footnote).foregroundStyle(.secondary)
+                Text("それでも読み取れない場合は、「ファイル」で一度開いてからファイルを選び直してください。")
                     .font(.footnote).foregroundStyle(.secondary)
                 Text("選択したファイルは端末内に保存します。解析に成功した結果を時間割に反映します。1ファイル50 MiBまで。解析に失敗しても選択したファイルと前回の正常な結果を残します。")
                     .font(.footnote).foregroundStyle(.secondary)

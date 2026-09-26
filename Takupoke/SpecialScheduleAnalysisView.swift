@@ -38,7 +38,7 @@ struct SpecialScheduleAnalysisView: View {
                 Section("選択したファイル") {
                     Text(source.originalName)
                     if source.grant == nil {
-                        Label("起動時の変更確認には、このPDFをもう一度選んでください。", systemImage: "exclamationmark.triangle")
+                        Label("ファイルの自動更新確認には、このPDFをもう一度選んでください。", systemImage: "exclamationmark.triangle")
                             .font(.caption).foregroundStyle(.orange)
                     }
                     LabeledContent("サイズ", value: ByteCountFormatter.string(

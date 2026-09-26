@@ -91,7 +91,7 @@ Xcode側も依存のcheckout・キャッシュをビルド用一時ディレク�
 - 権限、拡張機能、署名設定を追加するときは、Source の `appPermissions` と IPA 検証処理も更新する。初期版は追加権限なしを前提としている。
 - 配布や機能の挙動を変えたら README と関連手順も更新する。
 
-アイコンはプロジェクト独自の幾何学図形です。再生成は `python3 -B tools/make-icon.py`（Windows は `py -3 -B tools/make-icon.py`）で行います。追加パッケージや一時画像は不要です。
+アイコンはWeb版のクラシックを元にした `Takupoke/AppIcon.icon` です。Xcode 26.3でLiquid Glass用にコンパイルします。素材の出典・更新方法・旧OSの扱いは[アプリアイコン](app-icon.md)を参照してください。
 
 ## push と CI
 
