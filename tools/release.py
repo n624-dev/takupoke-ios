@@ -13,12 +13,19 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "distribution/config.json"
+NOTES = ROOT / "distribution/release-notes.txt"
 ICON = ROOT / "Takupoke/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
 ASSETS = ("takupoke.ipa", "altstore-source.json", "icon.png", "release.json")
 
 
 def read_config():
     return json.loads(CONFIG.read_text(encoding="utf-8"))
+
+
+def validate_notes(notes):
+    if not isinstance(notes, str) or not notes.strip():
+        raise ValueError("Release notes must not be empty")
+    return notes.strip()
 
 
 def versions(config, run_number, run_attempt):
@@ -101,14 +108,14 @@ def inspect_ipa(ipa, config, version, build, commit):
     return info
 
 
-def make_source(config, version, build, size, date):
+def make_source(config, version, build, size, date, notes):
     base = f"https://github.com/{config['repository']}"
     download = f"{base}/releases/download/{tag_for(version, build)}"
     item = {
         "version": version,
         "buildVersion": build,
         "date": date,
-        "localizedDescription": "開発版の更新です。アプリ内のバージョン・ビルドと確認メモをご確認ください。",
+        "localizedDescription": validate_notes(notes),
         "downloadURL": f"{download}/takupoke.ipa",
         "size": size,
         "minOSVersion": config["minOSVersion"],
@@ -147,8 +154,9 @@ def generate(ipa, output, version, build, commit, config=None):
     if ipa.resolve() != (output / "takupoke.ipa").resolve():
         raise ValueError("IPA must be output/takupoke.ipa")
     inspect_ipa(ipa, config, version, build, commit)
+    notes = validate_notes(NOTES.read_text(encoding="utf-8"))
     date = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    source = make_source(config, version, build, ipa.stat().st_size, date)
+    source = make_source(config, version, build, ipa.stat().st_size, date, notes)
     write_json(output / "altstore-source.json", source)
     (output / "icon.png").write_bytes(ICON.read_bytes())
     metadata = {
@@ -158,6 +166,7 @@ def generate(ipa, output, version, build, commit, config=None):
         "build": build,
         "commit": commit,
         "date": date,
+        "releaseNotes": notes,
         "sha256": {name: sha256(output / name) for name in ASSETS if name != "release.json"},
     }
     write_json(output / "release.json", metadata)
@@ -181,7 +190,8 @@ def validate(output, config=None):
         raise ValueError("Release file checksum mismatch")
     inspect_ipa(output / "takupoke.ipa", config, version, build, metadata["commit"])
     actual = json.loads((output / "altstore-source.json").read_text(encoding="utf-8"))
-    expected = make_source(config, version, build, (output / "takupoke.ipa").stat().st_size, metadata["date"])
+    expected = make_source(config, version, build, (output / "takupoke.ipa").stat().st_size,
+                           metadata["date"], validate_notes(metadata.get("releaseNotes")))
     if actual != expected:
         raise ValueError("Source does not match IPA / release metadata")
     if (output / "icon.png").read_bytes() != ICON.read_bytes():
