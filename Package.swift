@@ -92,6 +92,7 @@ let package = Package(
                     "MaterialLibrary.swift",
                     "MaterialModels.swift",
                     "SelectedFileSource.swift",
+                    "FileRefreshDiagnostics.swift",
                     "SelectedFilePresenter.swift",
                     "SelectedFileObservation.swift",
                     "SelectedFileMonitor.swift",

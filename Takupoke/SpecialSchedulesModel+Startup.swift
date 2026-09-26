@@ -9,6 +9,8 @@ extension SpecialSchedulesModel {
             var failure: Error?
             for kind in SpecialScheduleKind.allCases where requested.contains(kind.rawValue) {
                 guard let source = store.sources[kind] else { continue }
+                let diagnosticSource = FileRefreshDiagnostics.Source(rawValue: kind.rawValue)
+                FileRefreshDiagnostics.shared.record(.refreshStarted, source: diagnosticSource)
                 let needsAnalysis = store.records[kind].map {
                     $0.analysis.version < SpecialScheduleAnalysis.parserVersion
                 } ?? false
@@ -31,6 +33,8 @@ extension SpecialSchedulesModel {
                         guard !stale else { throw MaterialError.accessExpired }
                         let selection = ScopedMaterialSelection(url)
                         let (name, count, digest) = try Self.copy(selection, to: staged, control: control)
+                        FileRefreshDiagnostics.shared.record(digest == source.digest ? .hashSame : .hashChanged,
+                                                             source: diagnosticSource)
                         if digest == source.digest {
                             try store.recordSuccessfulCheck(kind, digest: digest)
                         } else {
@@ -47,6 +51,7 @@ extension SpecialSchedulesModel {
                         }
                     }
                 } catch {
+                    FileRefreshDiagnostics.shared.record(.refreshFailed, source: diagnosticSource)
                     failure = error
                     let parseFailure = (error as? PDFParseError) ?? PDFParseError(code: .unreadable)
                     try? store.recordFailure(parseFailure, kind: kind)

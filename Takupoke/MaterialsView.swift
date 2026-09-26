@@ -9,6 +9,7 @@ struct MaterialsView: View {
     @ObservedObject var mappings: MappingModel
     @State private var picker: MaterialKind?
     @State private var specialPickerKind: SpecialScheduleKind?
+    @State private var copiedRefreshDiagnostic = false
 
     var body: some View {
         List {
@@ -48,6 +49,27 @@ struct MaterialsView: View {
                 }
                 if !specialSchedules.ready && !specialSchedules.busy {
                     Button("試験時間割・試験返却時間割を再読み込み") { specialSchedules.loadIfNeeded() }
+                }
+            }
+
+            Section("更新確認") {
+                refreshControlButton("更新確認の診断をコピー") {
+                    UIPasteboard.general.setItems(
+                        [[UTType.utf8PlainText.identifier: FileRefreshDiagnostics.shared.report]],
+                        options: [.localOnly: true, .expirationDate: Date().addingTimeInterval(900)])
+                    copiedRefreshDiagnostic = true
+                }
+                Text(copiedRefreshDiagnostic ? "診断をコピーしました。" :
+                    "再取得のきっかけと処理結果をコピーします。ファイル名・本文・教員名は含みません。")
+                    .font(.footnote).foregroundStyle(.secondary)
+                refreshControlButton("自動確認を中止") {
+                    model.cancel()
+                    specialSchedules.cancel()
+                }
+                .disabled(model.fileRefreshQueue.suspended && specialSchedules.fileRefreshQueue.suspended)
+                if model.fileRefreshQueue.suspended || specialSchedules.fileRefreshQueue.suspended {
+                    Text("自動確認を中止しています。別のアプリへ移動して戻ると再開します。手動での取得・解析は引き続き使えます。")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
             }
 
@@ -143,6 +165,14 @@ struct MaterialsView: View {
         }
         return record.digest == source.digest && record.analysis.version == SpecialScheduleAnalysis.parserVersion
             ? "解析済み" : "未解析（前回結果あり）"
+    }
+
+    @ViewBuilder private func refreshControlButton(_ title: String, action: @escaping () -> Void) -> some View {
+        if #available(iOS 26.0, *) {
+            Button(title, action: action).buttonStyle(.glass)
+        } else {
+            Button(title, action: action).buttonStyle(.bordered)
+        }
     }
 
     private func materialStatus(_ kind: MaterialKind, record: MaterialRecord) -> String {
