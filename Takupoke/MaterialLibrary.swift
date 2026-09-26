@@ -1,102 +1,5 @@
 import Foundation
 
-enum MaterialKind: String, Codable, CaseIterable, Identifiable {
-    case timetable, events, changes
-
-    var id: String { rawValue }
-    var title: String {
-        switch self {
-        case .timetable: return "通常時間割"
-        case .events: return "学校行事"
-        case .changes: return "時間割変更"
-        }
-    }
-    var fileExtension: String { self == .changes ? "xlsx" : "pdf" }
-}
-
-struct SourceGrant: Codable {
-    var bookmark: Data
-    var name: String
-    var isFolder: Bool
-}
-
-struct MaterialSource: Codable {
-    var grant: SourceGrant?
-    var childName: String?
-    var remoteURL: URL? = nil
-    var remoteETag: String? = nil
-    var remoteLastModified: String? = nil
-}
-
-struct MaterialRecord: Codable {
-    var kind: MaterialKind
-    var source: MaterialSource
-    var originalName: String
-    var storedName: String
-    var byteCount: Int
-    var digest: String
-    var sourceModifiedAt: Date?
-    var acquiredAt: Date
-    var lastCheckedAt: Date? = nil
-}
-
-struct AcquisitionAttempt: Codable {
-    var date: Date
-    var failure: String?
-}
-
-struct MaterialLibraryState: Codable {
-    var schemaVersion = 1
-    var folder: SourceGrant?
-    var records: [MaterialRecord] = []
-    var attempts: [String: AcquisitionAttempt] = [:]
-    var changeAnalysis: ChangeAnalysis?
-    var changeParseAttempt: ChangeParseAttempt?
-    var pdfAnalyses: [String: PDFAnalysis]?
-    var pdfParseAttempts: [String: PDFParseAttempt]?
-
-    func record(for kind: MaterialKind) -> MaterialRecord? {
-        records.first { $0.kind == kind }
-    }
-}
-
-enum MaterialError: LocalizedError {
-    case unavailable, invalidFile, tooLarge, invalidState, cancelled
-    case accessExpired, bookmarkFailed, providerReadFailed, invalidWebURL, webUnavailable
-
-    var errorDescription: String? {
-        switch self {
-        case .unavailable:
-            return "取得できませんでした。「ファイル」で対象のファイルを開けるか確認し、必要なら選び直してください。前回のファイルは保持しています。"
-        case .invalidFile:
-            return "指定した種類のPDFまたはXLSXを選んでください。空のファイルや形式が異なるファイルは取得できません。"
-        case .tooLarge:
-            return "1ファイル50 MiBまで取得できます。前回のファイルは保持しています。"
-        case .invalidState:
-            return "端末内の保存情報を読み取れません。既存データを保護するため更新を停止しました。"
-        case .cancelled:
-            return "取得を中止しました。前回のファイルは保持しています。"
-        case .accessExpired:
-            return "ファイルへのアクセス許可を確認できません。ファイルを選び直してください。前回のファイルは保持しています。"
-        case .bookmarkFailed:
-            return "ファイルは読み取れましたが、次回のアクセス情報を保存できませんでした。前回のファイルは保持しています。ファイルを選び直してください。"
-        case .providerReadFailed:
-            return "ファイルの内容を取得できませんでした。OneDriveの通信状態を確認してください。続く場合は「ファイル」で一度開いてから選び直してください。前回のファイルは保持しています。"
-        case .invalidWebURL:
-            return "学校行事PDFの取得先を利用できません。前回のファイルは保持しています。"
-        case .webUnavailable:
-            return "学校行事PDFをWebから取得できませんでした。通信状態を確認して再試行してください。前回のファイルは保持しています。"
-        }
-    }
-}
-
-/// An adapter owns the commit point; file collection runs only after a valid load.
-protocol MaterialLibraryPersistence: AnyObject {
-    func load() throws -> MaterialLibraryState
-    func save(_ state: MaterialLibraryState) throws
-    func retainedStoredNames() throws -> Set<String>
-}
-
 /// Used only on the acquisition worker's serial queue. No provider URLs are
 /// touched here; this owns the private on-device copies and their saved metadata.
 final class MaterialLibrary {
@@ -107,7 +10,7 @@ final class MaterialLibrary {
     private let manifest: URL
     private let persistence: MaterialLibraryPersistence?
     private let writeManifest: (Data, URL) throws -> Void
-    private(set) var state: MaterialLibraryState
+    var state: MaterialLibraryState
 
     init(root: URL, persistence: MaterialLibraryPersistence? = nil, writeManifest: @escaping (Data, URL) throws -> Void = {
         try $0.write(to: $1, options: .atomic)
@@ -168,31 +71,6 @@ final class MaterialLibrary {
 
     /// Pure validation shared by the legacy reader and migration preparation.
     /// Does not create directories or run the legacy file collector.
-    static func decodeLegacyManifest(_ data: Data) throws -> MaterialLibraryState {
-        guard data.count <= 64 * 1024 * 1024 else { throw MaterialError.invalidState }
-        let state = try JSONDecoder().decode(MaterialLibraryState.self, from: data)
-        guard state.schemaVersion == 1,
-              Set(state.records.map(\.kind)).count == state.records.count,
-              state.records.allSatisfy({ Self.validStoredName($0.storedName, kind: $0.kind) }) else {
-            throw MaterialError.invalidState
-        }
-        if let analysis = state.changeAnalysis {
-            guard (1...ChangeAnalysis.parserVersion).contains(analysis.version),
-                  !analysis.records.isEmpty, analysis.records.count <= ChangeNormalizer.maximumRecords else {
-                throw MaterialError.invalidState
-            }
-        }
-        for (key, analysis) in state.pdfAnalyses ?? [:] {
-            guard key == analysis.kind.rawValue, Self.validPDFAnalysis(analysis) else { throw MaterialError.invalidState }
-        }
-        return state
-    }
-
-    private static func validStoredName(_ name: String, kind: MaterialKind) -> Bool {
-        let suffix = "." + kind.fileExtension
-        return name.hasSuffix(suffix) && UUID(uuidString: String(name.dropLast(suffix.count))) != nil
-    }
-
     func newStagingURL() -> URL {
         staging.appendingPathComponent(UUID().uuidString)
     }
@@ -221,18 +99,6 @@ final class MaterialLibrary {
         next.changeParseAttempt = ChangeParseAttempt(date: analysis.parsedAt, sourceDigest: analysis.sourceDigest,
                                                      defaultYear: analysis.defaultYear, failure: nil)
         try persist(next)
-    }
-
-    private static func validPDFAnalysis(_ analysis: PDFAnalysis) -> Bool {
-        guard (1...PDFAnalysis.parserVersion).contains(analysis.version), analysis.kind != .changes,
-              analysis.lessons.count + analysis.events.count <= PDFSchoolParser.maximumRecords else { return false }
-        switch analysis.kind {
-        case .timetable: return !analysis.lessons.isEmpty && analysis.events.isEmpty &&
-            analysis.lessons.allSatisfy { (1...5).contains($0.weekday) && (1...8).contains($0.period) && !$0.names.subject.isEmpty }
-        case .events: return !analysis.events.isEmpty && analysis.lessons.isEmpty &&
-            analysis.events.allSatisfy { ["共通", "詫間"].contains($0.scope) && !$0.title.isEmpty }
-        case .changes: return false
-        }
     }
 
     func savePDFAnalysis(_ analysis: PDFAnalysis) throws {

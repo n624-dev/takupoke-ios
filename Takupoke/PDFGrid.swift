@@ -1,5 +1,8 @@
 import Foundation
 
+/// Geometry is in displayed page coordinates: top-left origin, after page rotation.
+/// This core has no network access and never opens another document.
+
 struct PDFGrid {
     let page: PDFPageLayout
     func column(_ x: Double, _ y: Double) throws -> PDFBox {
