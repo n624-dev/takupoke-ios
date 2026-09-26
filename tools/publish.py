@@ -82,7 +82,7 @@ def publish(output):
             f"たくポケ {metadata['version']} ({metadata['build']})\n\n"
             "AltStore Classic 向けの開発版です。署名は導入時に AltStore 側で行います。\n\n"
             f"Source: https://github.com/{repo}/releases/latest/download/altstore-source.json\n\n"
-            "アプリ名を「たくポケ」に修正。OneDriveは個別ファイル選択を基本とし、学校行事は学校サイトから取得・保持します。変更なしなら再ダウンロードを省きます。解析・時間割表示は未実装です。\n\n"
+            f"{metadata['releaseNotes']}\n\n"
             f"Commit: {commit}\n"
         )
         # Retry a failed publication using the same verified artifact. Only an
@@ -133,7 +133,7 @@ def publish(output):
             print("Main changed during upload; leaving this release as a draft.")
             return
         published_release = api(f"repos/{repo}/releases/{release_id}", "--method", "PATCH",
-            "--field", "draft=false", "--raw-field", "make_latest=true")
+            "--field", "draft=false", "--raw-field", "make_latest=true", "--raw-field", f"body={notes}")
         if (published_release["id"] != release_id or published_release["draft"]
                 or published_release["tag_name"] != tag
                 or published_release["target_commitish"] != commit):

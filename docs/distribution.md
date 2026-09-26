@@ -62,6 +62,8 @@ Source は IPA と同じ Release を参照します。IPA・アイコンの URL 
 
 ## バージョン・build 番号
 
+更新内容は `distribution/release-notes.txt` に記載し、配布する変更ごとに見直します。生成時の文面を `release.json` に保存し、GitHub ReleasesとAltStoreのバージョン説明へ同じ内容を反映します。空欄・欠落では生成を停止し、検証時は生成済みの文面とSourceの一致を確認します。既存draftの再試行でもその版の文面を反映します。
+
 `distribution/config.json` の `versionPrefix` が `0.1`、Actions の run number が `12`、run attempt が `1` の例です。
 
 | 項目 | 例 |

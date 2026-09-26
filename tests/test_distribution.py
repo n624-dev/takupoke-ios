@@ -26,6 +26,11 @@ class IPAFixture(unittest.TestCase):
         self.output = Path(self.scratch.name) / "output"
         self.output.mkdir()
         self.config = release.read_config()
+        self.notes = Path(self.scratch.name) / "notes.txt"
+        self.notes.write_text("・架空の変更内容A\n・架空の変更内容B\n", encoding="utf-8")
+        notes_patch = patch.object(release, "NOTES", self.notes)
+        notes_patch.start()
+        self.addCleanup(notes_patch.stop)
         self.info = {
             "CFBundleIdentifier": self.config["bundleIdentifier"],
             "CFBundleShortVersionString": "0.1.12",
@@ -65,7 +70,29 @@ class DistributionTests(IPAFixture):
         self.assertEqual(version["version"], self.info["CFBundleShortVersionString"])
         self.assertEqual(version["buildVersion"], self.info["CFBundleVersion"])
         self.assertIn("/v0.1.12-build.12.1/takupoke.ipa", version["downloadURL"])
+        self.assertEqual(version["localizedDescription"], self.notes.read_text().strip())
         self.assertEqual(release.validate(self.output)["commit"], COMMIT)
+
+    def test_notes_are_snapshotted_and_must_match_source(self):
+        self.generate()
+        self.notes.write_text("・次の版の更新内容", encoding="utf-8")
+        self.assertEqual(release.validate(self.output)["releaseNotes"], "・架空の変更内容A\n・架空の変更内容B")
+        path = self.output / "release.json"
+        metadata = json.loads(path.read_text())
+        metadata["releaseNotes"] = "・別の更新内容"
+        release.write_json(path, metadata)
+        with self.assertRaisesRegex(ValueError, "Source does not match"):
+            release.validate(self.output)
+
+    def test_missing_or_empty_notes_stop_generation(self):
+        self.write_ipa()
+        self.notes.write_text(" \n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "Release notes"):
+            release.generate(self.output / "takupoke.ipa", self.output, "0.1.12", "12.1", COMMIT)
+        self.assertFalse((self.output / "altstore-source.json").exists())
+        self.notes.unlink()
+        with self.assertRaises(FileNotFoundError):
+            release.generate(self.output / "takupoke.ipa", self.output, "0.1.12", "12.1", COMMIT)
 
     def test_metadata_mismatches_fail_before_source_generation(self):
         for key, value in (
@@ -198,6 +225,7 @@ class PublicationTests(IPAFixture):
                 self.assertEqual(request["target_commitish"], COMMIT)
                 self.assertEqual(request["tag_name"], self.metadata["tag"])
                 self.assertIn("\n\n", request["body"])
+                self.assertIn(self.metadata["releaseNotes"], request["body"])
                 self.created_draft = True
                 self.remote_files = {}
                 return json.dumps({"id": 42})
@@ -205,6 +233,8 @@ class PublicationTests(IPAFixture):
                 if method == "PATCH":
                     self.assertIn("draft=false", args)
                     self.assertIn("make_latest=true", args)
+                    body = next(arg.removeprefix("body=") for arg in args if arg.startswith("body="))
+                    self.assertIn(self.metadata["releaseNotes"], body)
                     return json.dumps({"id": 42, "draft": False,
                                        "tag_name": self.metadata["tag"], "target_commitish": COMMIT})
                 if not self.draft_available:
