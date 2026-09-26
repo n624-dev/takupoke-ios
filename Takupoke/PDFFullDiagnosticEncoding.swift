@@ -1,3 +1,4 @@
+#if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
 import Foundation
 import ZIPFoundation
 
@@ -15,3 +16,5 @@ enum PDFFullDiagnosticEncoding {
         return "TAKUPOKE-PDF-FULL-ZIP-1\n" + compressed.base64EncodedString(options: .lineLength76Characters)
     }
 }
+
+#endif

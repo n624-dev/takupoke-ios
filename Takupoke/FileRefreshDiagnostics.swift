@@ -45,6 +45,11 @@ final class FileRefreshDiagnostics: @unchecked Sendable {
         entries.append(entry)
     }
 
+    func clear() {
+        lock.lock(); defer { lock.unlock() }
+        total = 0; entries.removeAll()
+    }
+
     var snapshot: Snapshot {
         lock.lock()
         defer { lock.unlock() }

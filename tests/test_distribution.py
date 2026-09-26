@@ -37,13 +37,16 @@ class IPAFixture(unittest.TestCase):
             "TakupokeCommit": COMMIT,
         }
 
-    def write_ipa(self, extra=None):
+    def write_ipa(self, extra=None, executable=b"SYNTHETIC", policies=True):
         with zipfile.ZipFile(self.output / "takupoke.ipa", "w") as archive:
             root = "Payload/Takupoke.app/"
             archive.writestr(root + "Info.plist", plistlib.dumps(self.info, fmt=plistlib.FMT_BINARY))
             # Deliberately synthetic; this fixture is never released or installed.
-            archive.writestr(root + "Takupoke", b"\xcf\xfa\xed\xfe" + b"SYNTHETIC")
+            archive.writestr(root + "Takupoke", b"\xcf\xfa\xed\xfe" + executable)
             archive.writestr(root + "Assets.car", b"SYNTHETIC")
+            if policies:
+                for policy in ("terms", "privacy"):
+                    archive.writestr(root + f"LegalDocuments/{policy}.txt", "Synthetic policy")
             archive.writestr(root + "PrivacyInfo.xcprivacy", plistlib.dumps({"NSPrivacyTracking": False}))
             for name, content in (extra or {}).items():
                 archive.writestr(name, content)
@@ -90,6 +93,15 @@ class DistributionTests(IPAFixture):
         del self.info["NSCameraUsageDescription"]
         self.write_ipa({"Payload/Takupoke.app/embedded.mobileprovision": b"SYNTHETIC"})
         with self.assertRaisesRegex(ValueError, "permission policy"):
+            release.inspect_ipa(self.output / "takupoke.ipa", self.config, "0.1.12", "12.1", COMMIT)
+
+    def test_public_release_excludes_diagnostics_and_requires_bundled_policies(self):
+        for marker in (b"TAKUPOKE-PDF-FULL-ZIP-1", b"TAKUPOKE-PDF-FULL-JSON-1"):
+            self.write_ipa(executable=marker)
+            with self.assertRaisesRegex(ValueError, "Internal diagnostics"):
+                release.inspect_ipa(self.output / "takupoke.ipa", self.config, "0.1.12", "12.1", COMMIT)
+        self.write_ipa(policies=False)
+        with self.assertRaisesRegex(ValueError, "legal documents"):
             release.inspect_ipa(self.output / "takupoke.ipa", self.config, "0.1.12", "12.1", COMMIT)
 
     def test_modified_ipa_and_source_fail_validation(self):

@@ -21,6 +21,8 @@ final class SpecialSchedulesModel: ObservableObject {
 
     private let queue = DispatchQueue(label: "io.github.n624dev.takupoke.special-schedules", qos: .userInitiated)
     private var store: SpecialScheduleStore?
+    private var retired = false
+    private var generation = UUID()
     private var control: AcquisitionControl?
     var fileRefreshQueue = FileRefreshQueue()
     lazy var fileMonitor = SelectedFileMonitor { [weak self] id in
@@ -41,6 +43,23 @@ final class SpecialSchedulesModel: ObservableObject {
         analyze(kind: kind, selection: nil)
     }
 
+    func closeForRetention() async {
+        retired = true
+        generation = UUID()
+        setFileMonitoring(false)
+        cancel()
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            queue.async {
+                DispatchQueue.main.async { continuation.resume() }
+            }
+        }
+        store = nil; records = [:]; sources = [:]; urls = [:]; fullReadReports = [:]
+        ready = false; busy = false; control = nil; message = nil; failed = false
+        fileMonitor.update([])
+    }
+
+    func resumeAfterRetention() { retired = false }
+
     func cancel() {
         FileRefreshDiagnostics.shared.record(.cancelled)
         fileRefreshQueue.suspend()
@@ -52,10 +71,11 @@ final class SpecialSchedulesModel: ObservableObject {
     func perform(success: String?, reporting kind: SpecialScheduleKind? = nil,
                          operation: @escaping (SpecialScheduleStore, AcquisitionControl,
                                                SpecialDiagnosticCapture) throws -> Void) {
-        guard !busy else { return }
+        guard !busy, !retired else { return }
         busy = true
         failed = false
         message = nil
+        let operationGeneration = generation
         let control = AcquisitionControl()
         self.control = control
         let existingStore = store
@@ -73,6 +93,7 @@ final class SpecialSchedulesModel: ObservableObject {
                 try operation(store, control, capture)
             }
             DispatchQueue.main.async {
+                guard !self.retired, operationGeneration == self.generation else { return }
                 self.busy = false
                 self.control = nil
                 if let kind { self.fullReadReports[kind] = capture.report }

@@ -16,6 +16,8 @@ private struct VisibleLinkCategory: Identifiable {
 }
 
 struct LinksView: View {
+    @EnvironmentObject private var account: AccountDataModel
+    @EnvironmentObject private var mappings: MappingModel
     @ObservedObject var model: LinksModel
     @State private var safariPage: SafariPage?
     @State private var query = ""
@@ -55,11 +57,12 @@ struct LinksView: View {
                 }
                 if model.saved == nil {
                     Section {
-                        if model.busy { ProgressView("一覧を取得中…") }
+                        if model.busy || account.busy { ProgressView("一覧を取得中⋯") }
                         else {
                             Text(model.failed ? "一覧を取得できませんでした。" : "一覧はまだ取得されていません。")
                                 .foregroundStyle(.secondary)
-                            Button("再試行") { Task { await model.refresh(force: true) } }
+                            Button("認証して一覧・名称対応表を取得") { Task { await account.refresh(mappings: mappings, links: model) } }
+                                .disabled(model.busy || mappings.busy || account.busy)
                         }
                     }
                 } else if LinkSearch.normalize(query).isEmpty {
@@ -96,8 +99,12 @@ struct LinksView: View {
             }
             .navigationTitle("一覧")
             .searchable(text: $query, prompt: "リンクを検索")
-            .refreshable { await model.refresh(force: true) }
+            .refreshable { await account.refresh(mappings: mappings, links: model) }
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("更新を確認") { Task { await account.refresh(mappings: mappings, links: model) } }
+                        .disabled(model.busy || mappings.busy || account.busy)
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink {
                         HiddenLinksView(model: model)

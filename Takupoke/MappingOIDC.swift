@@ -9,6 +9,7 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
     static let issuer = "https://takuma-gakunin.n624.jp"
     static let clientID = "takupoke-ios"
     static let redirectURI = "jp.n624.takupoke:/oauth/callback"
+    private var completion: ((Result<URL, Error>) -> Void)?
     private var session: ASWebAuthenticationSession?
 
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
@@ -27,7 +28,7 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
             URLQueryItem(name: "response_type", value: "code"),
             URLQueryItem(name: "client_id", value: Self.clientID),
             URLQueryItem(name: "redirect_uri", value: Self.redirectURI),
-            URLQueryItem(name: "scope", value: "openid mapping.read"),
+            URLQueryItem(name: "scope", value: "openid mapping.read links.read"),
             URLQueryItem(name: "state", value: state),
             URLQueryItem(name: "nonce", value: nonce),
             URLQueryItem(name: "code_challenge", value: challenge),
@@ -35,13 +36,16 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
         ]
         guard let authorizeURL = authorize.url else { throw MappingError.authentication }
         let callback: URL = try await withCheckedThrowingContinuation { continuation in
+            self.completion = { continuation.resume(with: $0) }
             let browser = ASWebAuthenticationSession(url: authorizeURL, callbackURLScheme: "jp.n624.takupoke") { url, error in
-                if let url, error == nil { continuation.resume(returning: url) }
-                else { continuation.resume(throwing: MappingError.authentication) }
+                Task { @MainActor in
+                    if let url, error == nil { self.finish(.success(url)) }
+                    else { self.finish(.failure(MappingError.authentication)) }
+                }
             }
             self.session = browser
             browser.presentationContextProvider = self
-            if !browser.start() { continuation.resume(throwing: MappingError.authentication) }
+            if !browser.start() { finish(.failure(MappingError.authentication)) }
         }
         guard callback.scheme == "jp.n624.takupoke", callback.host == nil,
               callback.path == "/oauth/callback",
@@ -71,9 +75,22 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
               let value = try? JSONDecoder().decode(TokenResponse.self, from: bytes),
               value.token_type == "Bearer", value.expires_in > 0, value.expires_in <= 600,
               value.scope.split(separator: " ").contains("mapping.read"),
+              value.scope.split(separator: " ").contains("links.read"),
               !value.access_token.isEmpty else { throw MappingError.authentication }
         try await verifyIDToken(value.id_token, nonce: nonce, network: network)
         return value.access_token
+    }
+
+    private func finish(_ result: Result<URL, Error>) {
+        let callback = completion
+        completion = nil
+        callback?(result)
+    }
+
+    func cancel() {
+        session?.cancel()
+        finish(.failure(CancellationError()))
+        session = nil
     }
 
     private struct TokenResponse: Decodable {

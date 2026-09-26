@@ -66,6 +66,7 @@ final class SpecialScheduleTests: XCTestCase {
         XCTAssertEqual(lesson.lines, ["架空科目A", "架空教員A", "架空教室A"])
     }
 
+#if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
     func testFullCopyIncludesSpecialKindContentAndFailure() throws {
         var full = PDFFullReadDiagnostic()
         var page = PDFFullReadDiagnostic.Page(number: 1)
@@ -96,4 +97,5 @@ final class SpecialScheduleTests: XCTestCase {
             XCTAssertEqual(restored.trace?.parserVersion, SpecialScheduleAnalysis.parserVersion)
         }
     }
+#endif
 }

@@ -64,6 +64,7 @@ struct SpecialScheduleAnalysis: Codable, Equatable {
 /// layout fails validation and never replaces the previous successful result.
 /// The same full-content export format as the ordinary timetable. The special
 /// material kind and parser version travel inside diagnostic.json.
+#if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
 enum SpecialScheduleDiagnosticReport {
     static func make(_ diagnostic: PDFFullReadDiagnostic, kind: SpecialScheduleKind,
                      sourceName: String?, succeeded: Bool, failure: PDFParseError?,
@@ -80,3 +81,5 @@ enum SpecialScheduleDiagnosticReport {
                 .map { "TAKUPOKE-PDF-FULL-JSON-1\n" + $0 }
     }
 }
+
+#endif

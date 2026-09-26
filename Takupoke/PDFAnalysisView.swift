@@ -31,6 +31,7 @@ struct PDFAnalysisView: View {
                 if let failure = failure {
                     Label(failure.localizedDescription, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 }
+#if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
                 if kind == .timetable, let report = model.timetableReadReport {
                     diagnosticButton(report, title: "読み取り結果をすべてコピー")
                     Text(copiedDiagnostic == report ? "読み取り結果をコピーしました。" : "PDF本文・教員名などを含む全文と位置情報を、圧縮してコピーします。開発相談へ貼り付けてください。")
@@ -40,6 +41,7 @@ struct PDFAnalysisView: View {
                     Text("全読み取り結果をコピーするには、保存済みPDFを再解析してください。")
                         .font(.caption).foregroundStyle(.secondary)
                 }
+#endif
                 if let message = model.message, message != failure?.localizedDescription {
                     Text(message).font(.caption).foregroundStyle(model.failed ? Color.orange : Color.secondary)
                 }
@@ -172,6 +174,7 @@ struct PDFAnalysisView: View {
         }
     }
 
+#if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
     @ViewBuilder private func diagnosticButton(_ report: String, title: String) -> some View {
         if #available(iOS 26.0, *) {
             Button(title, systemImage: "doc.on.doc") { copyDiagnostic(report) }
@@ -189,4 +192,5 @@ struct PDFAnalysisView: View {
             options: [.localOnly: true, .expirationDate: Date().addingTimeInterval(600)])
         copiedDiagnostic = report
     }
+#endif
 }

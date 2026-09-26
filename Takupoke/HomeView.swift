@@ -37,6 +37,12 @@ struct HomeView: View {
                 }
 
                 Section("このアプリについて") {
+                    Text("たくポケは個人が開発・運営する非公式アプリです。香川高等専門学校および国立高等専門学校機構が運営・承認・推奨・保証するものではありません。表示内容には遅延や誤りが生じる場合があります。重要な予定・変更は学校の公式案内も確認してください。")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    NavigationLink("利用規約") { LegalDocumentView(document: .terms) }
+                    NavigationLink("プライバシーポリシー") { LegalDocumentView(document: .privacy) }
+                    Link("ソースコード", destination: URL(string: "https://github.com/n624-dev/takupoke-ios")!)
+                    Link("問い合わせ", destination: URL(string: "mailto:takupoke@n624.jp")!)
                     LabeledContent("バージョン", value: bundleValue("CFBundleShortVersionString"))
                     LabeledContent("ビルド", value: bundleValue("CFBundleVersion"))
                     LabeledContent("コミット", value: String(bundleValue("TakupokeCommit").prefix(7)))

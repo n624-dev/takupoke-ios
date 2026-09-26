@@ -3,6 +3,8 @@ import SwiftUI
 
 @MainActor
 final class LinksModel: ObservableObject {
+    @Published private(set) var updateAvailable = false
+    private var generation = UUID()
     @Published private(set) var saved: SavedLinks?
     @Published private(set) var preferences = LinkPreferences()
     @Published private(set) var ready = false
@@ -42,38 +44,79 @@ final class LinksModel: ObservableObject {
 
     func refresh(force: Bool = false) async {
         loadIfNeeded()
-        guard ready, !busy, let store else { return }
-        if !force, let saved, Date().timeIntervalSince(saved.checkedAt) < 300 { return }
+        guard ready, !busy else { return }
         busy = true
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.urlCache = nil
-        configuration.httpCookieStorage = nil
-        configuration.httpShouldSetCookies = false
-        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-        configuration.timeoutIntervalForRequest = 20
-        let session = URLSession(configuration: configuration)
-        defer { session.invalidateAndCancel(); busy = false }
+        let operation = generation
+        let session = Self.networkSession()
+        defer { session.invalidateAndCancel(); if operation == generation { busy = false } }
         do {
-            var request = URLRequest(url: endpoint)
-            request.setValue("application/json", forHTTPHeaderField: "Accept")
-            if let tag = saved?.apiETag { request.setValue(tag, forHTTPHeaderField: "If-None-Match") }
-            let (data, response) = try await session.data(for: request)
-            guard let response = response as? HTTPURLResponse,
-                  response.expectedContentLength <= LinksPayload.maximumBytes,
-                  data.count <= LinksPayload.maximumBytes else { throw LinksError.unavailable }
-            let replacement = try LinksResponse.decode(status: response.statusCode, data: data,
-                receivedETag: response.value(forHTTPHeaderField: "ETag"), saved: saved)
-            do { try store.save(replacement) } catch { throw LinksError.storage }
-            saved = replacement
-            if preferencesReady {
-                failed = false
-                message = nil
-            }
+            let result = try await revision(using: session)
+            guard operation == generation else { return }
+            updateAvailable = result != .unchanged
         } catch {
-            failed = true
-            message = (error as? LinksError ?? .unavailable).localizedDescription +
-                (saved == nil ? "" : " 保存済みの一覧を表示しています。")
+            guard operation == generation else { return }
+            report(error)
         }
+    }
+
+    func revision(using network: URLSession) async throws -> MappingRevisionResult {
+        loadIfNeeded()
+        guard ready else { throw LinksError.storage }
+        let operation = generation
+        let result = try await MappingService(baseURL: endpoint.deletingLastPathComponent(), network: network)
+            .checkRevision(installed: saved?.revision, path: "links-revision")
+        try Task.checkCancellation()
+        guard operation == generation else { throw CancellationError() }
+        updateAvailable = result != .unchanged
+        failed = false
+        message = updateAvailable ? (saved == nil ? "学校アカウントで認証して一覧を取得してください。" : "一覧に更新があります。") : "一覧は最新です。"
+        return result
+    }
+
+    func download(token: String, revision: String, network: URLSession) async throws {
+        guard let store else { throw LinksError.storage }
+        var request = URLRequest(url: endpoint)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let (data, rawResponse) = try await network.data(for: request)
+        try Task.checkCancellation()
+        guard let response = rawResponse as? HTTPURLResponse,
+              response.expectedContentLength <= LinksPayload.maximumBytes,
+              data.count <= LinksPayload.maximumBytes else { throw LinksError.unavailable }
+        if response.statusCode == 401 || response.statusCode == 403 { throw MappingError.authentication }
+        guard response.value(forHTTPHeaderField: "X-Links-Revision") == revision else {
+            throw MappingError.changedDuringDownload
+        }
+        var replacement = try LinksResponse.decode(status: response.statusCode, data: data,
+            receivedETag: response.value(forHTTPHeaderField: "ETag"), saved: nil)
+        replacement.revision = revision
+        do { try store.save(replacement) } catch { throw LinksError.storage }
+        saved = replacement; updateAvailable = false; failed = false
+        message = "一覧を更新しました。"
+    }
+
+    func report(_ error: Error) {
+        failed = true
+        switch error as? MappingError {
+        case .authentication: message = "認証を完了できませんでした。"
+        case .changedDuringDownload: message = "取得中に一覧が更新されました。もう一度お試しください。"
+        default: message = (error as? LinksError ?? .unavailable).localizedDescription
+        }
+        if saved != nil { message! += " 保存済みの一覧を表示しています。" }
+    }
+
+    func resetForRetention() {
+        generation = UUID()
+        saved = nil; store = nil; ready = false; busy = false
+        updateAvailable = false; message = nil; failed = false
+    }
+
+    static func networkSession() -> URLSession {
+        let config = URLSessionConfiguration.ephemeral
+        config.urlCache = nil; config.httpCookieStorage = nil; config.httpShouldSetCookies = false
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        config.timeoutIntervalForRequest = 20
+        return URLSession(configuration: config)
     }
 
     func isFavorite(_ id: String) -> Bool { preferences.favoriteIDs.contains(id) }

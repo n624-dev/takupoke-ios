@@ -114,6 +114,7 @@ extension PDFParsingTests {
         XCTAssertNil(trace.entries.first?.values.first ?? nil)
         XCTAssertNotNil(failure.diagnosticReport)
     }
+#if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
     func testFullDiagnosticCopyPreservesAllTextAndGeometryLosslessly() throws {
         var full = PDFFullReadDiagnostic()
         var page = PDFFullReadDiagnostic.Page(number: 1)
@@ -143,6 +144,7 @@ extension PDFParsingTests {
         XCTAssertEqual(restored.pages[0].characters[0].characterBounds[0]?.state, .null)
         XCTAssertEqual(restored.attemptFailure?.stage, .characterMapping)
     }
+#endif
     func testFailureStagesSurvivePageWrappingAndContainNoSourceText() throws {
         func assertFailure(_ pages: [PDFPageLayout], kind: MaterialKind, page: Int,
                            stage: PDFParseError.Stage, file: StaticString = #filePath, line: UInt = #line) {

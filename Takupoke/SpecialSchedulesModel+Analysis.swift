@@ -12,6 +12,7 @@ extension SpecialSchedulesModel {
             var diagnosticURL: URL?
             var sourceName: String?
             var succeeded = false
+#if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
             var inspected: PDFFullReadDiagnostic?
             defer {
                 let full = inspected ?? diagnosticURL.map { PDFKitReader.diagnose($0, check: { try control.check() }) }
@@ -21,6 +22,7 @@ extension SpecialSchedulesModel {
                     sourceName: sourceName, succeeded: succeeded,
                     failure: capture.failure, trace: diagnostics.snapshot)
             }
+#endif
             do {
                 if let selection, let staged {
                     diagnostics.record(.material)
@@ -46,7 +48,9 @@ extension SpecialSchedulesModel {
                 let analysis = try SpecialScheduleParser.parse(pages, kind: kind, digest: source.digest,
                                                                name: source.originalName, check: { try control.check() })
                 diagnostics.record(.parseComplete, values: [Double(analysis.lessons.count)])
+#if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
                 inspected = PDFKitReader.diagnose(selectedURL, check: { try control.check() })
+#endif
                 try control.check()
                 diagnostics.record(.save)
                 do { try store.saveAnalysis(analysis) }
