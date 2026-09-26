@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage("linkOpeningMode") private var linkOpeningMode = LinkOpeningMode.external.rawValue
+    @AppStorage("linkOpeningMode") private var linkOpeningMode = LinkOpeningMode.inApp.rawValue
     @ObservedObject var materials: MaterialsModel
     @ObservedObject var specialSchedules: SpecialSchedulesModel
     @ObservedObject var schoolEvents: SchoolEventsModel
@@ -36,7 +36,7 @@ struct SettingsView: View {
                         Text("アプリ内で開く").tag(LinkOpeningMode.inApp.rawValue)
                     }
                 }
-                Section {
+                Section("サポート") {
                     Button("セットアップ") { showingSetup = true }
                     NavigationLink("使い方") { UsageHelpView() }
                     NavigationLink("このアプリについて") { AboutView() }

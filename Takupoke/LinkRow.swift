@@ -35,12 +35,12 @@ struct LinkRow: View {
     var subtitle: String? = nil
     @ObservedObject var model: LinksModel
     let openInApp: (URL) -> Void
-    @AppStorage("linkOpeningMode") private var linkOpeningMode = LinkOpeningMode.external.rawValue
+    @AppStorage("linkOpeningMode") private var linkOpeningMode = LinkOpeningMode.inApp.rawValue
     @Environment(\.openURL) private var openURL
     @State private var openFailed = false
 
     private var preferredMode: LinkOpeningMode {
-        LinkOpeningMode(rawValue: linkOpeningMode) ?? .external
+        LinkOpeningMode(rawValue: linkOpeningMode) ?? .inApp
     }
 
     private func open(opposite: Bool = false) {

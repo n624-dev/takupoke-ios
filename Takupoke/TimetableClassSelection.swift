@@ -3,6 +3,7 @@ import SwiftUI
 struct TimetablePrimaryClassSelection: View {
     let classes: [String]
     @Binding var value: String
+    @AppStorage("timetableInternationalStudent") private var isInternationalStudent = false
 
     private var selected: [String] { value.split(separator: "|").map(String.init) }
     private var primary: String { selected.first ?? "" }
@@ -29,6 +30,7 @@ struct TimetablePrimaryClassSelection: View {
                 ForEach(additionalClasses, id: \.self) { Text(TimetableDisplayText.className($0)).tag($0) }
             }
             .disabled(additionalClasses.isEmpty && additional.isEmpty)
+            Toggle("留学生向けの授業も表示", isOn: $isInternationalStudent)
         }
         .navigationTitle("クラスを選ぶ")
     }
