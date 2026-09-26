@@ -2,6 +2,8 @@
 
 [README に戻る](../README.md)
 
+新規導入は [AltStore PAL 経由のインストール手順](altstore-pal-install.md) を主な案内とします。この文書には、WindowsのAltServerを使う導入手順と、開発者向けの生成・公開方法を記載しています。
+
 この文書は実装した配布経路の手順です。公開処理の修正後に、利用者から Actions 成功と初回導入・実機起動の報告を受けました。その後、案内した Source 更新の手順に対し、更新後も確認メモが残るとの報告を受けました。詳細は [検証記録](verification.md) を参照してください。
 
 ## 配布先
@@ -23,15 +25,15 @@ GitHub Pages や独自サーバーの設定は不要です。
 2. AltStore / AltServer 側で必要なサインインと端末側の設定を済ませます。Apple ID・パスワード・証明書を GitHub や CI に登録しないでください。
 3. AltStore Classic 自体がアプリをインストールできる状態にします。接続や署名の問題は [公式トラブルシューティング](https://faq.altstore.io/altstore-classic/troubleshooting-guide) を参照します。
 
-Windows の AltServer を使う経路を手順の基準とします。AltStore 自体の署名更新と、たくポケの新しいバージョンへのアップデートは別の操作です。
+ここではWindowsのAltServerを使う経路を説明します。AltStore 自体の署名更新と、たくポケの新しいバージョンへのアップデートは別の操作です。
 
 ## 初回導入
 
 1. メンテナーが Actions の成功と、Release に `takupoke.ipa`・`altstore-source.json`・`icon.png`・`release.json` が揃っていることを確認します。
 2. iPhone の AltStore Classic の Sources 画面で Source を追加し、上記の固定 URL を入力します。
 3. Source 内の「たくポケ」をインストールします。
-4. アプリを開き、バージョン・ビルド・コミットが Release と一致することを確認します。
-5. 「更新を確かめる」の欄に、個人情報を含まない短いメモを入力します。
+4. アプリを開き、初回セットアップに沿って認証・ファイル選択・クラス選択を行います。あとで設定することもできます。
+5. 「設定」→「このアプリについて」で、バージョン・ビルドが Release と一致することを確認します。
 
 初回導入の確認には個別 IPA の手動インポートだけでなく、Source からの導入が必要です。
 
@@ -40,7 +42,7 @@ Windows の AltServer を使う経路を手順の基準とします。AltStore �
 1. `main` に次の変更を push します。コードを変更せず配布経路だけ再確認する場合は、`main` を対象に Actions の `workflow_dispatch` を新規実行できます。
 2. メンテナーが新しい Release と Source の生成を確認します。
 3. AltStore Classic で Source / 更新一覧を更新し、新しいバージョンをインストールします。
-4. アプリ内のバージョン・ビルドが新しくなり、メモが保持されることを確認します。確認中にアプリを削除しないでください。
+4. 「設定」→「このアプリについて」でバージョン・ビルドが新しくなったことを確認します。クラス・お気に入り・メインカラーなどの個人設定は保持します。学校由来の保存データには [半期ごとの削除](private-data-lifecycle.md) が適用されます。確認中にアプリを削除しないでください。
 5. iOS / AltStore / AltServer のバージョンと結果を [検証記録](verification.md) に残します。
 
 この経路での更新と確認メモ保持について利用者から成功報告を受け、ロードマップ①の必須の完了条件を満たしました。正確な version / build の照合など、追加の確認項目は検証記録に残しています。
