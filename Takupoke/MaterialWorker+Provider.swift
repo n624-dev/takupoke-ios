@@ -26,13 +26,21 @@ extension MaterialWorker {
     private func coordinated<T>(_ url: URL, control: AcquisitionControl,
                                 read: (URL) throws -> T) throws -> T {
         try control.check()
-        let coordinator = SelectedFilePresenter.coordinator(for: url)
+        let access = SelectedFilePresenter.readAccess(for: url)
+        let coordinator = access.coordinator
         control.attach(coordinator)
         defer { control.attach(nil) }
         var coordinationError: NSError?
         var result: Result<T, Error>?
         coordinator.coordinate(readingItemAt: url, options: [], error: &coordinationError) { safeURL in
-            result = Result { try control.check(); return try read(safeURL) }
+            result = Result {
+                try access.read(at: safeURL) {
+                    try control.check()
+                    let value = try read(safeURL)
+                    try control.check()
+                    return value
+                }
+            }
         }
         try control.check()
         if let error = coordinationError { throw error }

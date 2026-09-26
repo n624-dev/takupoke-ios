@@ -42,17 +42,27 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
             self.metadataCoordinator = coordinator
             self.lock.unlock()
             var error: NSError?
-            var version: FileContentVersion?
+            var needsRefresh = false
             coordinator.coordinate(readingItemAt: url, options: .immediatelyAvailableMetadataOnly,
                                    error: &error) { safeURL in
-                version = Self.contentVersion(at: safeURL)
+                // Capture and compare under the same lock as read completion.
+                // A delayed metadata probe must not overwrite a newer baseline.
+                self.lock.lock()
+                defer { self.lock.unlock() }
+                guard self.active else { return }
+                let version = Self.contentVersion(at: safeURL)
+                needsRefresh = self.contentGate.shouldRefresh(version)
+                FileRefreshDiagnostics.shared.record(version == nil ? .metadataUnavailable :
+                    (needsRefresh ? .metadataChanged : .metadataUnchanged), source: self.diagnosticSource)
             }
             self.lock.lock()
             self.metadataCoordinator = nil
-            let needsRefresh = self.active && self.contentGate.shouldRefresh(error == nil ? version : nil)
+            if error != nil && self.active {
+                needsRefresh = true
+                FileRefreshDiagnostics.shared.record(.metadataUnavailable, source: self.diagnosticSource)
+            }
+            needsRefresh = self.active && needsRefresh
             self.lock.unlock()
-            FileRefreshDiagnostics.shared.record(error != nil || version == nil ? .metadataUnavailable :
-                (needsRefresh ? .metadataChanged : .metadataUnchanged), source: self.diagnosticSource)
             if needsRefresh { self.changed() }
         }
     }
@@ -67,11 +77,14 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
         coordinator?.cancel()
     }
 
-    func recordContentVersion(at url: URL) {
-        let version = Self.contentVersion(at: url)
+    @discardableResult
+    func recordContentVersion(at url: URL) -> Bool {
         lock.lock()
+        defer { lock.unlock() }
+        guard active else { return false }
+        let version = Self.contentVersion(at: url)
         contentGate.record(version)
-        lock.unlock()
+        return version != nil
     }
 
     private static func contentVersion(at url: URL) -> FileContentVersion? {
@@ -84,13 +97,36 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
         return FileContentVersion(identity: identity, generation: generation)
     }
 
-    static func coordinator(for url: URL) -> NSFileCoordinator {
+    /// Keep the presenter matched at the start of a read. Never acknowledge a
+    /// different observation that replaced it while this operation was running.
+    struct ReadAccess {
+        let coordinator: NSFileCoordinator
+        fileprivate let presenter: SelectedFilePresenter?
+
+        /// Call inside the coordinated accessor, after all source handles close.
+        /// A later external write cannot be mistaken for the bytes just read.
+        func read<T>(at url: URL, body: () throws -> T) rethrows -> T {
+            let result = try body()
+            if let presenter {
+                let recorded = presenter.recordContentVersion(at: url)
+                FileRefreshDiagnostics.shared.record(recorded ? .readVersionRecorded : .readVersionUnavailable,
+                                                     source: presenter.diagnosticSource)
+            }
+            return result
+        }
+    }
+
+    static func readAccess(for url: URL) -> ReadAccess {
         let presenter = NSFileCoordinator.filePresenters.compactMap { $0 as? SelectedFilePresenter }.first {
             $0.presentedItemURL?.standardizedFileURL == url.standardizedFileURL
         }
         FileRefreshDiagnostics.shared.record(presenter == nil ? .coordinatorUnmatched : .coordinatorMatched,
                                              source: presenter?.diagnosticSource)
-        return NSFileCoordinator(filePresenter: presenter)
+        return ReadAccess(coordinator: NSFileCoordinator(filePresenter: presenter), presenter: presenter)
+    }
+
+    static func coordinator(for url: URL) -> NSFileCoordinator {
+        readAccess(for: url).coordinator
     }
 
     func presentedItemDidMove(to newURL: URL) {

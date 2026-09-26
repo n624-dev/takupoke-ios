@@ -10,6 +10,7 @@ final class FileRefreshDiagnostics: @unchecked Sendable {
         case metadataUnavailable, metadataChanged, metadataUnchanged
         case coordinatorMatched, coordinatorUnmatched, scheduled, delivered
         case refreshStarted, hashSame, hashChanged, refreshFailed, cancelled
+        case readVersionRecorded, readVersionUnavailable
     }
     struct Entry: Codable {
         let sequence: Int

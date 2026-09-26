@@ -100,6 +100,77 @@ final class FileRefreshTests: XCTestCase {
     }
 
 #if canImport(Darwin)
+    func testReadAcknowledgesMaterializedVersionAndStillDetectsLaterEdit() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let file = root.appendingPathComponent("fictional.txt")
+        let bytes = Data("fictional unchanged content".utf8)
+        try bytes.write(to: file)
+        let noRefresh = expectation(description: "delayed notification for already-read content")
+        noRefresh.isInverted = true
+        let externalEdit = expectation(description: "later real edit remains observable")
+        let lock = NSLock()
+        var external = false
+        let presenter = SelectedFilePresenter(url: file) {
+            lock.lock(); let isExternal = external; lock.unlock()
+            if isExternal { externalEdit.fulfill() } else { noRefresh.fulfill() }
+        }
+        presenter.recordContentVersion(at: file)
+        NSFileCoordinator.addFilePresenter(presenter)
+        defer { presenter.deactivate(); NSFileCoordinator.removeFilePresenter(presenter) }
+        let access = SelectedFilePresenter.readAccess(for: file)
+        var error: NSError?
+        // Simulate a provider replacing its local materialization with identical
+        // bytes during access: the source identity changes, the digest does not.
+        access.coordinator.coordinate(writingItemAt: file, options: .forReplacing, error: &error) { url in
+            do {
+                try bytes.write(to: url, options: .atomic)
+                let read = try access.read(at: url) { try Data(contentsOf: url) }
+                XCTAssertEqual(read, bytes)
+            } catch { XCTFail("Synthetic read failed") }
+        }
+        XCTAssertNil(error)
+        for _ in 0..<10 { presenter.presentedItemDidChange() }
+        wait(for: [noRefresh], timeout: 0.5)
+        lock.lock(); external = true; lock.unlock()
+        let writer = NSFileCoordinator(filePresenter: nil)
+        writer.coordinate(writingItemAt: file, options: .forReplacing, error: &error) { url in
+            do { try Data("fictional next content".utf8).write(to: url, options: .atomic) }
+            catch { XCTFail("Synthetic external write failed") }
+        }
+        XCTAssertNil(error)
+        wait(for: [externalEdit], timeout: 5)
+    }
+
+    func testFailedReadDoesNotAcknowledgeUnreadVersion() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let file = root.appendingPathComponent("fictional.txt")
+        try Data("before".utf8).write(to: file)
+        let retry = expectation(description: "failed read must leave the change detectable")
+        let presenter = SelectedFilePresenter(url: file) { retry.fulfill() }
+        presenter.recordContentVersion(at: file)
+        NSFileCoordinator.addFilePresenter(presenter)
+        defer { presenter.deactivate(); NSFileCoordinator.removeFilePresenter(presenter) }
+        let access = SelectedFilePresenter.readAccess(for: file)
+        var error: NSError?
+        access.coordinator.coordinate(writingItemAt: file, options: .forReplacing, error: &error) { url in
+            do { try Data("after".utf8).write(to: url, options: .atomic) }
+            catch { XCTFail("Synthetic write failed") }
+            do {
+                let _: Data = try access.read(at: url) { throw CocoaError(.userCancelled) }
+                XCTFail("Cancelled read unexpectedly succeeded")
+            } catch {
+                XCTAssertEqual((error as? CocoaError)?.code, .userCancelled)
+            }
+        }
+        XCTAssertNil(error)
+        presenter.presentedItemDidChange()
+        wait(for: [retry], timeout: 5)
+    }
+
     @MainActor
     func testSuspendedMonitorCannotRestartFromSourceUpdateOrLateWork() async throws {
         var calls: [String] = []
