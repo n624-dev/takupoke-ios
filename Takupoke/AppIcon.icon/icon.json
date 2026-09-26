@@ -11,7 +11,7 @@
         {
           "image-name": "ClassicTaku.png",
           "name": "Taku lettering",
-          "glass": true,
+          "glass": false,
           "fill-specializations": [
             {
               "value": "automatic"
@@ -27,7 +27,7 @@
         {
           "image-name": "ClassicPoke.png",
           "name": "Poke lettering",
-          "glass": true,
+          "glass": false,
           "fill": "automatic"
         }
       ],
