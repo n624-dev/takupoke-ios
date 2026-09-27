@@ -1,6 +1,16 @@
 import SwiftUI
 
 extension TimetableView {
+    func consumeTodayRequest() {
+        guard todayRequest != nil else { return }
+        today = SchoolDate.today()
+        navigationHalfAnchor = today
+        // This action opens the week containing today, including weekends.
+        weekStart = today.monday
+        showingWeekPicker = false
+        todayRequest = nil
+    }
+
     func moveWeek(_ days: Int) {
         if let next = weekStart.addingDays(days), weekBounds.contains(next) { weekStart = next }
     }

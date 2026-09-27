@@ -1,12 +1,18 @@
 import SwiftUI
 
 struct HomeView: View {
+    @ObservedObject var materials: MaterialsModel
+    @ObservedObject var specialSchedules: SpecialSchedulesModel
+    @ObservedObject var schoolEvents: SchoolEventsModel
+    let openTimetable: () -> Void
     @EnvironmentObject private var links: LinksModel
     @State private var safariPage: SafariPage?
 
     var body: some View {
         NavigationStack {
             List {
+                HomeTodayView(materials: materials, specialSchedules: specialSchedules,
+                              schoolEvents: schoolEvents, openTimetable: openTimetable)
                 if !links.visibleFavorites.isEmpty {
                     Section("お気に入り") {
                         ForEach(links.visibleFavorites) { item in

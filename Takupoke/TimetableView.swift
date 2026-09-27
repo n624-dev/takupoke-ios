@@ -5,6 +5,7 @@ struct TimetableView: View {
     @ObservedObject var specialSchedules: SpecialSchedulesModel
     @ObservedObject var schoolEvents: SchoolEventsModel
     @ObservedObject var mappings: MappingModel
+    @Binding var todayRequest: UUID?
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("mainColor") private var mainColor = MainColor.blue.rawValue
     @AppStorage("timetableSelectedClasses") var selectedClassesValue = ""
@@ -89,6 +90,8 @@ struct TimetableView: View {
                 }
             }
             .navigationTitle("時間割")
+            .onAppear { consumeTodayRequest() }
+            .onChange(of: todayRequest) { _ in consumeTodayRequest() }
             .task { model.loadIfNeeded() }
             .task { specialSchedules.loadIfNeeded() }
             .task { schoolEvents.loadIfNeeded() }

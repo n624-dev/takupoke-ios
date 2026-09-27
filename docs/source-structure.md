@@ -31,3 +31,7 @@
 Xcodeプロジェクトと `Package.swift` の明示的なソース一覧を両方更新します。`tools/test-materials.sh` はSPMとは別にコンパイルするため、ここにも必要なモデルと処理を登録します。プラットフォームごとの `canImport` 条件とmacOS限定の対応表テストを維持します。
 
 移動前後の実装行、テスト名一覧、ファイル登録を照合します。CIのSwiftテスト・iPhoneビルドは実機の画面比較とは区別し、結果を[検証記録](verification.md)に残します。
+
+## ホームと時間割の共用処理
+
+`HomeTodayView` は今日の行事・クラスごとの授業・詳細への操作を担当します。`TimetableDaySchedule` は保存済み解析からの授業・時刻・不足状態と、日本時間での授業中判定を担当します。`TimetablePresentation` は両画面の授業詳細・変更前後の情報を共用します。週グリッドの描画は既存の `TimetableView` に残します。
