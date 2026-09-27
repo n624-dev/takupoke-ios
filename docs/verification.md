@@ -6,7 +6,8 @@
 
 - PRのビルド確認と配布を `xcode-27` runner・Xcode 27.0へ切り替え。最低対応iOS 16、Swift 5言語モード、画面・アイコン素材・解析・保存処理は既存設定を使用する。
 - LinuxのPython27テストと差分検査が成功。actionlintは公式runner名 `xcode-27` の未認識警告だけを除いて成功。
-- [初回PR CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36327821745)でXcode 27.0（27A266a）、Swift171テスト、iPhone向けReleaseビルドの成功を確認。新コンパイラが検出した2画面のCombine読み込み不足を明示importで修正。並行処理のSendable警告とZIP初期化の警告は残っている。配布物は公開後に検証する。
+- [初回PR CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36327821745)でXcode 27.0（27A266a）、Swift171テスト、iPhone向けReleaseビルドの成功を確認。新コンパイラが検出した2画面のCombine読み込み不足を明示importで修正。並行処理のSendable警告とZIP初期化の警告は残っている。[修正後のPR CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36328192790)でSwift171テストとiPhone向けビルドが成功し、Combineの警告解消を確認。
+- [配布CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36328442774)が成功し、0.1.149（149.1）を公開。公開IPAのXcode 27.0（27A266a）・iOS 27.0 SDK・最低対応iOS 16.0、更新内容、固定Source URLと版固有Sourceの一致を確認。
 - 実機では時間割の5日分の幅・折り返し、タブ・カレンダー、ライト・ダーク・クリアのアイコン、文字選択を確認する。現時点では未確認。
 
 ## 一覧のお気に入り欄（2026-09-27）
