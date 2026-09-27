@@ -12,56 +12,66 @@ extension TimetableView {
         let eventsOnly = !columns.isEmpty && columns.allSatisfy { $0.fullDayEventTitle != nil }
         let rowHeights = gridRowHeights(columns, days: days)
         return ScrollView(.horizontal) {
-            if eventsOnly {
-                HStack(alignment: .top, spacing: gridSpacing) {
-                    Color.clear.frame(width: periodColumnWidth, height: 1)
-                    ForEach(columns, id: \.day) { column in
-                        VStack(spacing: gridSpacing) {
-                            dayHeaderCell(column)
-                            if let title = column.fullDayEventTitle {
-                                fullDayEventCard(title, width: column.width, height: nil)
-                            }
-                        }
-                    }
-                }
-            } else {
-                Grid(alignment: .topLeading, horizontalSpacing: gridSpacing, verticalSpacing: gridSpacing) {
-                    GridRow {
-                        Text("時限")
-                            .font(.caption.bold())
-                            .frame(width: periodColumnWidth, alignment: .center)
-                            .gridCellAnchor(.center)
+            Group {
+                if eventsOnly {
+                    HStack(alignment: .top, spacing: gridSpacing) {
+                        Color.clear.frame(width: periodColumnWidth, height: 1)
                         ForEach(columns, id: \.day) { column in
-                            dayHeaderCell(column).gridCellAnchor(.center)
-                        }
-                    }
-                    GridRow {
-                        VStack(spacing: gridSpacing) {
-                            ForEach(1...8, id: \.self) { period in
-                                let commonTime = commonPeriodTime(period, days: days)
-                                VStack(spacing: 2) {
-                                    Text("\(period)").font(.system(size: 15, weight: .semibold))
-                                    if let commonTime {
-                                        Text(TimetableDisplayText.periodTime(commonTime))
-                                            .font(.system(size: 9))
-                                            .foregroundStyle(.secondary)
-                                    }
+                            VStack(spacing: gridSpacing) {
+                                dayHeaderCell(column)
+                                if let title = column.fullDayEventTitle {
+                                    fullDayEventCard(title, width: column.width, height: nil)
                                 }
-                                .multilineTextAlignment(.center)
-                                .frame(width: periodColumnWidth, height: rowHeights[period - 1], alignment: .center)
                             }
                         }
-                        ForEach(columns, id: \.day) { column in
-                            dayColumn(column, days: days, rowHeights: rowHeights)
+                    }
+                } else {
+                    Grid(alignment: .topLeading, horizontalSpacing: gridSpacing, verticalSpacing: gridSpacing) {
+                        GridRow {
+                            Text("時限")
+                                .font(periodHeadingFont)
+                                .frame(width: periodColumnWidth, alignment: .center)
+                                .gridCellAnchor(.center)
+                            ForEach(columns, id: \.day) { column in
+                                dayHeaderCell(column).gridCellAnchor(.center)
+                            }
+                        }
+                        GridRow {
+                            VStack(spacing: gridSpacing) {
+                                ForEach(1...8, id: \.self) { period in
+                                    let commonTime = commonPeriodTime(period, days: days)
+                                    VStack(spacing: 2) {
+                                        Text("\(period)").font(periodNumberFont)
+                                        if let commonTime {
+                                            Text(TimetableDisplayText.periodTime(commonTime))
+                                                .font(periodClockFont)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                    .multilineTextAlignment(.center)
+                                    .frame(width: periodColumnWidth, height: rowHeights[period - 1], alignment: .center)
+                                }
+                            }
+                            ForEach(columns, id: \.day) { column in
+                                dayColumn(column, days: days, rowHeights: rowHeights)
+                            }
                         }
                     }
                 }
             }
+            .padding(.trailing, gridSpacing)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(GeometryReader { proxy in
             Color.clear.preference(key: WeekGridWidthKey.self, value: proxy.size.width)
         })
+        .background(periodColumnMeasurement)
+        .onPreferenceChange(PeriodColumnWidthKey.self) { width in
+            let fittedWidth = ceil(width) + 2
+            guard width > 0, abs(periodColumnWidth - fittedWidth) > 0.5 else { return }
+            periodColumnWidth = fittedWidth
+            dayHeaderHeight = 0
+        }
         .onPreferenceChange(WeekGridWidthKey.self) { width in
             guard width > 0, abs(gridViewportWidth - width) > 0.5 else { return }
             gridViewportWidth = width
@@ -71,6 +81,35 @@ extension TimetableView {
             if abs(dayHeaderHeight - height) > 0.5 { dayHeaderHeight = height }
         }
         .accessibilityLabel("\(selectedClasses.map(TimetableDisplayText.className).joined(separator: "・"))の週の時間割")
+    }
+
+    private var periodHeadingFont: Font { .caption.bold() }
+    private var periodNumberFont: Font { .system(size: 15, weight: .semibold) }
+    private var periodClockFont: Font { .system(size: 9) }
+
+    // Measure unconstrained SwiftUI text with the same fonts and environment as
+    // the visible column. Include source times even in an events-only week so
+    // hiding the period labels does not shift the day columns.
+    private var periodColumnMeasurement: some View {
+        let ranges = TimetableSchedule.normalPeriodTimes + specials.flatMap { analysis in
+            Array(analysis.periodTimes.values) + analysis.lessons.compactMap(\.timeRange)
+        }
+        let times = Set(ranges.map(TimetableDisplayText.periodTime)).sorted()
+        return VStack(spacing: 0) {
+            Text("時限").font(periodHeadingFont)
+            ForEach(1...8, id: \.self) { period in
+                Text("\(period)").font(periodNumberFont)
+            }
+            ForEach(times, id: \.self) { time in
+                Text(time).font(periodClockFont)
+            }
+        }
+        .fixedSize()
+        .background(GeometryReader { proxy in
+            Color.clear.preference(key: PeriodColumnWidthKey.self, value: proxy.size.width)
+        })
+        .hidden()
+        .accessibilityHidden(true)
     }
 
     private func dayHeaderCell(_ column: DayGridLayout) -> some View {
@@ -212,6 +251,13 @@ private struct DayHeaderHeightKey: PreferenceKey {
 }
 
 private struct WeekGridWidthKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private struct PeriodColumnWidthKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())

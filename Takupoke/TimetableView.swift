@@ -22,6 +22,7 @@ struct TimetableView: View {
     @State var weekPickerDate = Date()
     @State var dayHeaderHeight: CGFloat = 0
     @State var gridViewportWidth: CGFloat = 0
+    @State var periodColumnWidth: CGFloat = 34
 
     var timetable: PDFAnalysis? { model.state.pdfAnalyses?[MaterialKind.timetable.rawValue] }
     var events: PDFAnalysis? { schoolEvents.analysis }
@@ -46,12 +47,11 @@ struct TimetableView: View {
     let weekdayNames = ["月", "火", "水", "木", "金", "土", "日"]
     var dayColumnWidth: CGFloat {
         guard gridViewportWidth > 0 else { return 58 }
-        // Five days plus the period column have five horizontal gaps.
-        return max(1, (gridViewportWidth - periodColumnWidth - 5 * gridSpacing) / 5)
+        // Five inter-column gaps plus one trailing gap inside the scroll content.
+        return max(1, (gridViewportWidth - periodColumnWidth - 6 * gridSpacing) / 5)
     }
-    let periodColumnWidth: CGFloat = 34
     let gridRowHeight: CGFloat = 80
-    let gridSpacing: CGFloat = 4
+    let gridSpacing: CGFloat = 2
 
     struct DayGridLayout {
         let day: SchoolDate
