@@ -24,7 +24,7 @@
 
 ## 1. AltStore PAL をインストールする
 
-iPhone で [AltStore 公式ダウンロードページ](https://altstore.io/download) を開き、**Download** を押します。
+iPhone の Safari で [AltStore 公式ダウンロードページ](https://altstore.io/download) を開き、**Download** を押します。
 
 初回は「AltStore LLC からの Marketplace を許可」のような確認が表示されます。画面の案内に従って設定アプリで許可したあと、もう一度 [AltStore 公式ダウンロードページ](https://altstore.io/download) に戻って **Download** を押し、AltStore PAL をインストールしてください。
 
@@ -95,7 +95,7 @@ Settings
 
 Remote AltServer は、PC 上の AltServer を常時起動していなくても、AltStore Classic からアプリのインストールや Refresh を行うための仕組みです。
 
-AltStore Classic 2.3 の Remote AltServer については、[開発者による説明](https://www.patreon.com/rileyshane/posts/altstore-classic-158697195) も参照してください。
+詳しくは [Remote AltServer の公式セットアップ手順](https://faq.altstore.io/altstore-classic/remote-altservers)を参照してください。
 
 ---
 
@@ -116,24 +116,37 @@ LocalDevVPNは、iPhone内にローカルネットワークトンネルを作成
 
 ---
 
-## 7. On-Device Pairing を行う
+## 7. デベロッパモードを有効にしてペアリングする
 
-Remote AltServer のセットアップ画面で **Start Pairing** を押します。
+AltStore Classic からインストールする「たくポケ」を起動するには、**デベロッパモードを有効にする必要があります**。
 
-続いて iPhone の設定アプリを開きます。
+### デベロッパモードを有効にする
 
-```text
-設定
-→ プライバシーとセキュリティ
-→ デベロッパモード
-→ Pair with AltStore
-```
+1. AltStore Classic の Remote AltServer セットアップ画面で **Start Pairing** を押します。
+2. iPhone の「設定」→「プライバシーとセキュリティ」→「デベロッパモード」を開きます。
+3. **デベロッパモードをオン**にし、確認画面で再起動を選びます。
+4. 再起動後に iPhone のロックを解除し、デベロッパモードを有効にする確認画面で有効化を選び、パスコードを入力します。
+5. 「設定」へ戻り、デベロッパモードがオンになっていることを確認します。
 
-`Pair with AltStore` が表示されたら選択し、必要に応じて iPhone のパスコードを入力します。
+すでにオンの場合は、次のペアリングへ進みます。操作の詳細は [Apple のデベロッパモード有効化手順](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device)を参照してください。
 
-iOS 27 以降では On-Device Pairing に対応しているため、Remote AltServer 用の Pairing File を PC で作成して転送する必要はありません。
+### On-Device Pairing を完了する
 
-詳しくは [AltStore Classic 2.3 RC の On-Device Pairing の説明](https://www.patreon.com/rileyshane/posts/altstore-classic-169262530) を参照してください。
+1. 再起動した場合は Wi-Fi の接続を確認し、LocalDevVPN を開いて **Connected** にします。
+2. AltStore Classic の Remote AltServer セットアップへ戻り、**Start Pairing** を押します。
+3. iPhone の設定アプリで次を開きます。
+
+   ```text
+   設定
+   → プライバシーとセキュリティ
+   → デベロッパモード
+   → Pair with AltStore
+   ```
+
+4. **Pair with AltStore** を選択し、求められたら iPhone のパスコードを入力します。
+5. AltStore Classic へ戻り、画面の案内に沿ってセットアップを続けます。
+
+iOS 27 以降では、この操作で端末内にペアリング情報を作成できます。詳しくは [AltStore 開発者による On-Device Pairing の説明](https://www.patreon.com/rileyshane/posts/altstore-classic-169262530)を参照してください。
 
 ---
 
@@ -222,7 +235,18 @@ https://github.com/n624-dev/takupoke-ios/releases/latest/download/altstore-sourc
 
 AltStore Classic が IPA を取得し、Apple Account で署名して iPhone にインストールします。
 
-インストールが完了したら、ホーム画面から **たくポケ** を起動してください。
+インストールが完了したら、ホーム画面から **たくポケ** を起動します。
+
+### 開発元の信頼を求められた場合
+
+初回起動時に開発元が信頼されていないという案内が表示されたら、次の手順を行います。
+
+1. iPhone の「設定」→「一般」→「VPNとデバイス管理」を開きます。
+2. 「デベロッパAPP」で、**AltStore Classic の署名に使った自分の Apple Account** を選択します。
+3. 信頼する操作を選び、確認画面の案内に従います。
+4. ホーム画面へ戻り、たくポケを開き直します。
+
+署名したアカウントの信頼については、[AltStore の公式インストール手順](https://faq.altstore.io/altstore-classic/how-to-install-altstore-windows)にも記載されています。
 
 たくポケのソースコードと最新の説明は [n624-dev/takupoke-ios](https://github.com/n624-dev/takupoke-ios) で確認できます。
 
@@ -321,17 +345,21 @@ Settings
 
 ---
 
-## `Pair with AltStore` が表示されない
+## 「デベロッパモード」や `Pair with AltStore` が表示されない
 
-まず AltStore Classic 側で **Start Pairing** を押してから、設定アプリを確認します。
+1. iOS 27 以降・AltStore Classic 2.3 以降であることを確認します。
+2. Wi-Fi と LocalDevVPN を接続します。
+3. AltStore Classic の Remote AltServer セットアップで **Start Pairing** を押します。
+4. 「設定」→「プライバシーとセキュリティ」を開き直します。
+5. 「デベロッパモード」がオフなら、手順7の有効化・再起動・再起動後の確認を完了してから、もう一度ペアリングを開始します。
 
-```text
-設定
-→ プライバシーとセキュリティ
-→ デベロッパモード
-```
+Apple は、ペアリングを開始すると設定にデベロッパモードが表示されると案内しています。表示されない場合は、[AltStore の公式セットアップ手順](https://faq.altstore.io/altstore-classic/remote-altservers)を確認してください。
 
-AltStore Classic と iOS が最新であることも確認してください。
+---
+
+## 「デベロッパモードが必要」と表示され、たくポケを起動できない
+
+手順7に戻り、デベロッパモードをオンにします。**再起動後の有効化確認とパスコード入力まで**完了してから、たくポケを開き直してください。
 
 ---
 
@@ -362,3 +390,5 @@ iPhone を USB 接続
 - [AltStore PAL 公式ダウンロード](https://altstore.io/download)
 - [AltStore Classic 公式 PAL Source](https://api.altstore.io/source/marketplace.altstore.io?app=com.rileytestut.AltStore)
 - [LocalDevVPN — App Store](https://apps.apple.com/jp/app/localdevvpn/id6755608044)
+- [Apple：デベロッパモードの有効化](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device)
+- [AltStore：Remote AltServer のセットアップ](https://faq.altstore.io/altstore-classic/remote-altservers)
