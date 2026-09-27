@@ -5,6 +5,7 @@ struct ContentView: View {
 
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab: Tab = .home
+    @State private var timetableTodayRequest: UUID?
     @State private var dataReady = false
     @State private var checkingPeriod = false
     @State private var loadedPeriod: SchoolDataPeriod?
@@ -76,11 +77,14 @@ struct ContentView: View {
 
     private var tabs: some View {
         TabView(selection: $selectedTab) {
-            HomeView()
+            HomeView(materials: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents) {
+                timetableTodayRequest = UUID()
+                selectedTab = .timetable
+            }
                 .tabItem { Label("ホーム", systemImage: "house") }.tag(Tab.home)
             LinksView(model: links)
                 .tabItem { Label("一覧", systemImage: "list.bullet") }.tag(Tab.links)
-            TimetableView(model: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents, mappings: mappings)
+            TimetableView(model: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents, mappings: mappings, todayRequest: $timetableTodayRequest)
                 .tabItem { Label("時間割", systemImage: "calendar") }.tag(Tab.timetable)
             SettingsView(materials: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents, mappings: mappings)
                 .tabItem { Label("設定", systemImage: "gearshape") }.tag(Tab.settings)
