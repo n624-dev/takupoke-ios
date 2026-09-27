@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 struct ContentView: View {
     private enum Tab: Hashable { case home, links, timetable, settings }
