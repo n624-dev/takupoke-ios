@@ -27,27 +27,3 @@ enum MainColor: String, CaseIterable, Identifiable {
         }
     }
 }
-
-struct MainColorSelectionView: View {
-    @AppStorage("mainColor") private var selectedValue = MainColor.blue.rawValue
-
-    var body: some View {
-        List(MainColor.allCases) { choice in
-            let selected = (MainColor(rawValue: selectedValue) ?? .blue) == choice
-            Button {
-                selectedValue = choice.rawValue
-            } label: {
-                HStack(spacing: 12) {
-                    Circle().fill(choice.color).frame(width: 24, height: 24)
-                        .accessibilityHidden(true)
-                    Text(choice.title).foregroundStyle(.primary)
-                    Spacer()
-                    if selected { Image(systemName: "checkmark").accessibilityHidden(true) }
-                }
-                .contentShape(Rectangle())
-            }
-            .accessibilityAddTraits(selected ? [.isSelected] : [])
-        }
-        .navigationTitle("メインカラー")
-    }
-}

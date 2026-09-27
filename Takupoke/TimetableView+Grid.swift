@@ -58,6 +58,15 @@ extension TimetableView {
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(GeometryReader { proxy in
+            Color.clear.preference(key: WeekGridWidthKey.self, value: proxy.size.width)
+        })
+        .onPreferenceChange(WeekGridWidthKey.self) { width in
+            guard width > 0, abs(gridViewportWidth - width) > 0.5 else { return }
+            gridViewportWidth = width
+            dayHeaderHeight = 0
+        }
         .onPreferenceChange(DayHeaderHeightKey.self) { height in
             if abs(dayHeaderHeight - height) > 0.5 { dayHeaderHeight = height }
         }
@@ -196,6 +205,13 @@ extension TimetableView {
 }
 
 private struct DayHeaderHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private struct WeekGridWidthKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())
