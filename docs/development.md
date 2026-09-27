@@ -9,10 +9,12 @@
 | ソース編集、Git 操作 | Linux または Windows、Git、任意のエディター |
 | 配布処理のローカルテスト | Python 3.11 以降、標準ライブラリのみ |
 | ワークフローの追加チェック | 任意で actionlint |
-| iOS ビルド | Actions の `macos-15` と Xcode 26.3 |
+| iOS ビルド | Actions の `xcode-27` と Xcode 27.0 |
 | 実機導入・更新 | iOS 16.0以降のiPhone、AltStore Classic。[導入手順](altstore-pal-install.md)を参照 |
 
 Linux / Windows では SwiftUI のビルドを行わず、配布スクリプトのテストとソース編集を行います。XLSX展開にはZIPFoundation 0.9.20、SQLite保存基盤にはGRDB 7.11.1をコミット固定のSwift Packageとして使用します。共通ソースのテストにはSwift 6.1以降が必要です。
+
+Actionsでは `/Applications/Xcode_27.0.app/Contents/Developer` を指定し、正式版のXcode 27.0を使用します。`xcode-27` runnerは公開プレビューです。最低対応OSはiOS 16、アプリのSwift言語モードは5を維持します。
 
 ## clone とメールアドレスの非公開設定
 
@@ -92,7 +94,7 @@ Xcode側も依存のcheckout・キャッシュをビルド用一時ディレク�
 - 権限、拡張機能、署名設定を追加するときは、Source の `appPermissions` と IPA 検証処理も更新する。初期版は追加権限なしを前提としている。
 - 配布や機能の挙動を変えたらREADMEと関連手順、`distribution/release-notes.txt` を更新する。
 
-アイコンはWeb版のクラシックを元にした `Takupoke/AppIcon.icon` です。Xcode 26.3でLiquid Glass用にコンパイルします。素材の出典・更新方法・旧OSの扱いは[アプリアイコン](app-icon.md)を参照してください。
+アイコンはWeb版のクラシックを元にした `Takupoke/AppIcon.icon` です。Xcode 27.0でLiquid Glass用にコンパイルします。素材の出典・更新方法・旧OSの扱いは[アプリアイコン](app-icon.md)を参照してください。
 
 ## push と CI
 
@@ -102,7 +104,7 @@ Xcode側も依存のcheckout・キャッシュをビルド用一時ディレク�
 
 ## Mac が利用できる場合の任意のビルド
 
-Mac の所有は必須ではありません。Xcode 26.3 を利用できる場合のみ、次のようにローカルビルドできます。
+Mac の所有は必須ではありません。Xcode 27.0 を利用できる場合のみ、次のようにローカルビルドできます。
 
 ```sh
 export TKPK_VERSION=0.1.1
@@ -115,8 +117,8 @@ bash tools/build-ios.sh ./dist
 
 ## 参照
 
-- [GitHub の macOS runner 構成](https://github.com/actions/runner-images/blob/main/images/macos/macos-15-arm64-Readme.md)
+- [GitHub の macOS runner 構成](https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md)
 - [GitHub のコミットメール設定](https://docs.github.com/en/account-and-profile/how-tos/email-preferences/setting-your-commit-email-address)
 - [actionlint](https://github.com/rhysd/actionlint)
 
-PDFの公開テストは文字・罫線を架空の位置に配置して生成します。macOSではPDFKitによる架空PDFの読み取りと回転もテストし、実資料・学校サイトへはアクセスしません。Liquid Glass対応のためActionsではXcode 26.3を指定しています。
+PDFの公開テストは文字・罫線を架空の位置に配置して生成します。macOSではPDFKitによる架空PDFの読み取りと回転もテストし、実資料・学校サイトへはアクセスしません。Liquid Glass対応のためActionsではXcode 27.0を指定しています。

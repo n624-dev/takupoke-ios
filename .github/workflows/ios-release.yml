@@ -42,10 +42,10 @@ jobs:
     name: Check iPhone build without publishing
     needs: checks
     if: github.repository != 'n624-dev/takupoke-ios' || github.ref != 'refs/heads/main' || github.event_name == 'pull_request'
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 20
     env:
-      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -72,10 +72,10 @@ jobs:
     name: Build and publish AltStore release
     needs: checks
     if: github.repository == 'n624-dev/takupoke-ios' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 25
     env:
-      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
     permissions:
       contents: write
     concurrency:
