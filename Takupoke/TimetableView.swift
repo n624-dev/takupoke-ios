@@ -6,6 +6,7 @@ struct TimetableView: View {
     @ObservedObject var schoolEvents: SchoolEventsModel
     @ObservedObject var mappings: MappingModel
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("mainColor") private var mainColor = MainColor.blue.rawValue
     @AppStorage("timetableSelectedClasses") var selectedClassesValue = ""
     @AppStorage("timetableChangeClasses") var changeClassesValue = ""
     @AppStorage("timetableInternationalStudent") var isInternationalStudent = false
@@ -20,6 +21,7 @@ struct TimetableView: View {
     @State var showingWeekPicker = false
     @State var weekPickerDate = Date()
     @State var dayHeaderHeight: CGFloat = 0
+    @State var gridViewportWidth: CGFloat = 0
 
     var timetable: PDFAnalysis? { model.state.pdfAnalyses?[MaterialKind.timetable.rawValue] }
     var events: PDFAnalysis? { schoolEvents.analysis }
@@ -42,7 +44,11 @@ struct TimetableView: View {
                                                    className: className)
     }
     let weekdayNames = ["月", "火", "水", "木", "金", "土", "日"]
-    let dayColumnWidth: CGFloat = 58
+    var dayColumnWidth: CGFloat {
+        guard gridViewportWidth > 0 else { return 58 }
+        // Five days plus the period column have five horizontal gaps.
+        return max(1, (gridViewportWidth - periodColumnWidth - 5 * gridSpacing) / 5)
+    }
     let periodColumnWidth: CGFloat = 34
     let gridRowHeight: CGFloat = 80
     let gridSpacing: CGFloat = 4
@@ -128,10 +134,16 @@ struct TimetableView: View {
         }
     }
 
+    private var weekControlColor: Color { (MainColor(rawValue: mainColor) ?? .blue).color }
+
     private var weekSection: some View {
         Section {
             HStack {
-                if canMovePrevious { Button("前週") { moveWeek(-7) } }
+                if canMovePrevious {
+                    Button { moveWeek(-7) } label: {
+                        Text("前週").foregroundStyle(weekControlColor)
+                    }
+                }
                 Spacer()
                 Button {
                     openWeekPicker()
@@ -139,12 +151,19 @@ struct TimetableView: View {
                     Label("\(weekStart.month)/\(weekStart.day)〜\(weekStart.addingDays(6)!.month)/\(weekStart.addingDays(6)!.day)",
                           systemImage: "calendar")
                         .font(.subheadline.monospacedDigit())
+                        .foregroundStyle(weekControlColor)
                 }
                 .accessibilityLabel("表示する週を選ぶ")
                 Spacer()
-                if canMoveNext { Button("翌週") { moveWeek(7) } }
+                if canMoveNext {
+                    Button { moveWeek(7) } label: {
+                        Text("翌週").foregroundStyle(weekControlColor)
+                    }
+                }
             }
             .buttonStyle(.bordered)
+            // Keep the standard neutral background; theme only the labels.
+            .tint(nil as Color?)
             Picker("表示モード", selection: $includesChanges) {
                 Text("通常").tag(false)
                 Text("変更込み").tag(true)

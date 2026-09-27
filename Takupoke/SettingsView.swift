@@ -32,11 +32,12 @@ struct SettingsView: View {
                     }
                 }
                 Section("外観") {
-                    NavigationLink {
-                        MainColorSelectionView()
-                    } label: {
-                        LabeledContent("メインカラー", value: (MainColor(rawValue: mainColor) ?? .blue).title)
+                    Picker("メインカラー", selection: $mainColor) {
+                        ForEach(MainColor.allCases) { choice in
+                            Text(choice.title).tag(choice.rawValue)
+                        }
                     }
+                    .pickerStyle(.menu)
                 }
                 Section("一覧") {
                     Picker("リンクの開き方", selection: $linkOpeningMode) {
