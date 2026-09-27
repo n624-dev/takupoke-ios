@@ -29,10 +29,6 @@ struct LinksView: View {
         }
     }
 
-    private var favorites: [LinkItem] {
-        model.visibleFavorites
-    }
-
     private var searchHits: [LinkSearchHit] {
         var position = 0
         return visibleCategories.flatMap { entry in
@@ -58,13 +54,6 @@ struct LinksView: View {
                         }
                     }
                 } else if LinkSearch.normalize(query).isEmpty {
-                    if !favorites.isEmpty {
-                        Section("お気に入り") {
-                            ForEach(favorites) { item in
-                                LinkRow(item: item, model: model) { safariPage = SafariPage(url: $0) }
-                            }
-                        }
-                    }
                     ForEach(visibleCategories) { entry in
                         Section(entry.category.label) {
                             ForEach(entry.items) { item in
