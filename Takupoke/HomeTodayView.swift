@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 /// Embedded in HomeView's List; every row uses the same saved models as the timetable.
 struct HomeTodayView: View {
