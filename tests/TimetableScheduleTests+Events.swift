@@ -156,4 +156,20 @@ extension TimetableScheduleTests {
         }
     }
 
+    func testWeekdaySupplementaryCardAndHeaderAvoidDuplicateTitles() throws {
+        let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
+        let events = PDFAnalysis(kind: .events, sourceDigest: "fictional", sourceName: "fictional",
+            parsedAt: Date(timeIntervalSince1970: 0), schoolYear: 2032, term: nil, lessons: [], events: [
+                PDFSchoolEvent(date: day.iso8601, scope: "全クラス", title: "架空補講日A", page: 0,
+                    classification: .init(type: .supplementary), apiTag: "補講日"),
+                PDFSchoolEvent(date: day.iso8601, scope: "全クラス", title: "架空行事B", page: 0, apiTag: "行事"),
+                PDFSchoolEvent(date: day.iso8601, scope: "全クラス", title: "架空メモC", page: 0, apiTag: "行事メモ")
+            ], notices: [])
+        let plan = TimetableSchedule.dayPlan(on: day, events: events)
+        XCTAssertEqual(TimetableSchedule.fullDayEventTitle(plan: plan, layouts: [[]]), "架空補講日A")
+        XCTAssertEqual(plan.headerEvents(hasFullDayCard: true).map(\.title), ["架空行事B"])
+        XCTAssertEqual(plan.headerEvents(hasFullDayCard: false).map(\.title), ["架空補講日A", "架空行事B"])
+        XCTAssertEqual(TimetableSchedule.events(on: day, analysis: events).count, 3)
+    }
+
 }

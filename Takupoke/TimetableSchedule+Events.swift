@@ -11,6 +11,20 @@ extension TimetableSchedule {
         let apiTestReturn: Bool
         let weekendEventLabels: [String]
 
+        var fullDayLabels: [String] {
+            Array(Set(noClassLabels + events.filter { $0.apiTag == "補講日" }
+                .map { $0.title.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty })).sorted()
+        }
+
+        func headerEvents(hasFullDayCard: Bool) -> [PDFSchoolEvent] {
+            let cardLabels = hasFullDayCard ? Set(fullDayLabels) : []
+            return events.filter {
+                $0.apiTag != "行事メモ" &&
+                    !cardLabels.contains($0.title.trimmingCharacters(in: .whitespacesAndNewlines))
+            }
+        }
+
         var noClassLabels: [String] {
             Array(Set(events.compactMap { event in
                 guard event.classification?.needsReview == false,
@@ -22,9 +36,9 @@ extension TimetableSchedule {
     }
 
     static func fullDayEventTitle(plan: DayPlan, layouts: [[PositionedBlock]]) -> String? {
-        guard plan.isNoClass || !plan.weekendEventLabels.isEmpty,
+        guard plan.isNoClass || !plan.fullDayLabels.isEmpty,
               layouts.allSatisfy(\.isEmpty) else { return nil }
-        let labels = Array(Set(plan.noClassLabels + plan.weekendEventLabels)).sorted()
+        let labels = plan.fullDayLabels
         return labels.isEmpty ? "授業なし" : labels.joined(separator: "・")
     }
 
