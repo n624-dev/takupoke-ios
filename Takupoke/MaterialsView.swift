@@ -41,8 +41,8 @@ struct MaterialsView: View {
             }
 
             if !setupMode {
-                Section("更新確認") {
 #if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
+                Section("更新確認") {
                     refreshControlButton("更新確認の診断をコピー") {
                         UIPasteboard.general.setItems(
                             [[UTType.utf8PlainText.identifier: FileRefreshDiagnostics.shared.report]],
@@ -52,18 +52,14 @@ struct MaterialsView: View {
                     Text(copiedRefreshDiagnostic ? "診断をコピーしました。" :
                         "再取得のきっかけと処理結果をコピーします。ファイル名・本文・教員名は含みません。")
                         .font(.footnote).foregroundStyle(.secondary)
+                }
 #endif
-                    refreshControlButton("自動確認を中止") {
-                        model.cancel()
-                        specialSchedules.cancel()
-                    }
-                    .disabled(model.fileRefreshQueue.suspended && specialSchedules.fileRefreshQueue.suspended)
-                    if model.fileRefreshQueue.suspended || specialSchedules.fileRefreshQueue.suspended {
+                if model.fileRefreshQueue.suspended || specialSchedules.fileRefreshQueue.suspended {
+                    Section {
                         Text("自動確認を中止中")
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                 }
-
             }
 
             ForEach([MaterialKind.timetable, .changes]) { kind in
@@ -117,6 +113,17 @@ struct MaterialsView: View {
 
         }
         .navigationTitle("ファイル選択")
+        .toolbar {
+            if !setupMode {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("自動確認を中止") {
+                        model.cancel()
+                        specialSchedules.cancel()
+                    }
+                    .disabled(model.fileRefreshQueue.suspended && specialSchedules.fileRefreshQueue.suspended)
+                }
+            }
+        }
         .task { model.loadIfNeeded() }
         .task { specialSchedules.loadIfNeeded() }
         .task { schoolEvents.loadIfNeeded() }
