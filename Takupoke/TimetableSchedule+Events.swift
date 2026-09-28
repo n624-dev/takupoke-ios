@@ -9,6 +9,21 @@ extension TimetableSchedule {
         let apiNoClass: Bool
         let apiTest: Bool
         let apiTestReturn: Bool
+        let weekendEventLabels: [String]
+
+        var fullDayLabels: [String] {
+            Array(Set(noClassLabels + events.filter { $0.apiTag == "補講日" }
+                .map { $0.title.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty })).sorted()
+        }
+
+        func headerEvents(hasFullDayCard: Bool) -> [PDFSchoolEvent] {
+            let cardLabels = hasFullDayCard ? Set(fullDayLabels) : []
+            return events.filter {
+                $0.apiTag != "行事メモ" &&
+                    !cardLabels.contains($0.title.trimmingCharacters(in: .whitespacesAndNewlines))
+            }
+        }
 
         var noClassLabels: [String] {
             Array(Set(events.compactMap { event in
@@ -21,8 +36,10 @@ extension TimetableSchedule {
     }
 
     static func fullDayEventTitle(plan: DayPlan, layouts: [[PositionedBlock]]) -> String? {
-        guard plan.isNoClass, layouts.allSatisfy(\.isEmpty) else { return nil }
-        return plan.noClassLabels.isEmpty ? "授業なし" : plan.noClassLabels.joined(separator: "・")
+        guard plan.isNoClass || !plan.fullDayLabels.isEmpty,
+              layouts.allSatisfy(\.isEmpty) else { return nil }
+        let labels = plan.fullDayLabels
+        return labels.isEmpty ? "授業なし" : labels.joined(separator: "・")
     }
 
     static func events(on day: SchoolDate, analysis: PDFAnalysis?) -> [PDFSchoolEvent] {
@@ -48,6 +65,9 @@ extension TimetableSchedule {
                        weekdayOverride: overrides.count == 1 ? overrides.first : nil,
                        apiNoClass: visible.contains { $0.apiTag == "授業なし" || $0.apiTag == "行事（授業なし）" },
                        apiTest: visible.contains { $0.apiTag == "テスト" },
-                       apiTestReturn: visible.contains { $0.apiTag == "テスト返却" })
+                       apiTestReturn: visible.contains { $0.apiTag == "テスト返却" },
+                       weekendEventLabels: day.schoolWeekday > 5 ? Array(Set(visible.filter {
+                           $0.apiTag == "行事（授業なし）" || $0.apiTag == "補講日"
+                       }.map(\.title))).sorted() : [])
     }
 }

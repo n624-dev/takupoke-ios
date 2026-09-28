@@ -16,7 +16,7 @@ struct AccountDataSettingsView: View {
                 }
                 .disabled(busy)
             }
-            Section("一覧") {
+            Section("リンク一覧") {
                 LabeledContent("状態", value: links.saved == nil ? "未取得" : "取得済み")
                 if let saved = links.saved {
                     LabeledContent("最終取得") {
@@ -35,7 +35,7 @@ struct AccountDataSettingsView: View {
                 NavigationLink("詳細を見る") { MappingSettingsView(model: mappings) }
             }
         }
-        .navigationTitle("一覧・名称対応表")
+        .navigationTitle("リンク一覧・名称対応表")
         .task { links.loadIfNeeded(); mappings.loadIfNeeded() }
     }
 }

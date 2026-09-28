@@ -8,6 +8,7 @@ extension TimetableSchedule {
         (0..<7).compactMap { weekStart.addingDays($0) }.filter { day in
             if day.schoolWeekday <= 5 { return true }
             let plan = dayPlan(on: day, events: events)
+            if !plan.weekendEventLabels.isEmpty { return true }
             if plan.isNoClass && !plan.apiNoClass { return false }
             return classes.contains { className in
                 (1...8).contains { period in

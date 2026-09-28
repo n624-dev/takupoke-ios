@@ -24,7 +24,7 @@ struct SettingsView: View {
                         AccountDataSettingsView()
                     } label: {
                         HStack {
-                            Label("一覧・名称対応表", systemImage: "text.book.closed")
+                            Label("リンク一覧・名称対応表", systemImage: "text.book.closed")
                             Spacer()
                             if mappings.updateAvailable || links.updateAvailable { Text("更新あり").font(.caption).foregroundStyle(.orange) }
                             else if mappings.failed || links.failed { Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange) }
@@ -39,7 +39,7 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                 }
-                Section("一覧") {
+                Section("リンク一覧") {
                     Picker("リンクの開き方", selection: $linkOpeningMode) {
                         Text("外部で開く").tag(LinkOpeningMode.external.rawValue)
                         Text("アプリ内で開く").tag(LinkOpeningMode.inApp.rawValue)

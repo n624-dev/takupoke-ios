@@ -53,4 +53,45 @@ final class SchoolDataRetentionTests: XCTestCase {
         XCTAssertEqual(try retention.installedPeriod(), second)
     }
 
+    func testHalfYearDeletionPreservesPreferencesPublicEventsAndExternalOriginal() throws {
+        let manager = FileManager.default
+        let root = manager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let external = manager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let suite = "retention-tests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer {
+            try? manager.removeItem(at: root)
+            try? manager.removeItem(at: external)
+            defaults.removePersistentDomain(forName: suite)
+        }
+        let preferences = LinkPreferencesStore(defaults: defaults)
+        let value = LinkPreferences(favoriteIDs: ["fictional-link"], hiddenIDs: ["fictional-hidden"],
+                                    colorOverrides: ["fictional-link": "teal"])
+        try preferences.save(value)
+        defaults.set("3_XY", forKey: "timetableSelectedClasses")
+        defaults.set(true, forKey: "timetableInternationalStudent")
+        try Data("synthetic external original".utf8).write(to: external)
+        let publicEvents = root.appendingPathComponent("SchoolEventsAPI")
+        try manager.createDirectory(at: publicEvents, withIntermediateDirectories: true)
+        let publicFile = publicEvents.appendingPathComponent("synthetic.json")
+        try Data("synthetic public events".utf8).write(to: publicFile)
+        let retention = SchoolDataRetention(root: root)
+        for day in ["2032-04-01", "2032-10-01", "2033-04-01"] {
+            for name in SchoolDataRetention.privatePaths {
+                let dir = root.appendingPathComponent(name)
+                try manager.createDirectory(at: dir, withIntermediateDirectories: true)
+                try Data("synthetic private data".utf8).write(to: dir.appendingPathComponent("data"))
+            }
+            try retention.replace(with: SchoolDataPeriod(day: try XCTUnwrap(SchoolDate(iso8601: day))))
+            for name in SchoolDataRetention.privatePaths {
+                XCTAssertFalse(manager.fileExists(atPath: root.appendingPathComponent(name).path))
+            }
+            XCTAssertEqual(try preferences.load(), value)
+            XCTAssertEqual(defaults.string(forKey: "timetableSelectedClasses"), "3_XY")
+            XCTAssertTrue(defaults.bool(forKey: "timetableInternationalStudent"))
+            XCTAssertEqual(try Data(contentsOf: external), Data("synthetic external original".utf8))
+            XCTAssertEqual(try Data(contentsOf: publicFile), Data("synthetic public events".utf8))
+        }
+    }
+
 }

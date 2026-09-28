@@ -32,7 +32,7 @@ final class GuidedDocumentPicker: UIDocumentPickerViewController {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        reserveGuidanceSpace()
+        updateGuidanceWidth()
     }
 
     func finishGuidance() {
@@ -68,10 +68,16 @@ final class GuidedDocumentPicker: UIDocumentPickerViewController {
         host.view.translatesAutoresizingMaskIntoConstraints = false
         let width = host.view.widthAnchor.constraint(equalToConstant: max(1, view.bounds.width - 24))
         guidanceWidth = width
+        // The provider owns its bottom controls. Keep the instruction above their
+        // floating region instead of trying to move them with picker safe-area insets.
+        let bottom = host.view.bottomAnchor.constraint(
+            equalTo: container.view.safeAreaLayoutGuide.bottomAnchor, constant: -96)
+        bottom.priority = .defaultHigh
         NSLayoutConstraint.activate([
             host.view.centerXAnchor.constraint(equalTo: container.view.centerXAnchor),
             width,
-            host.view.bottomAnchor.constraint(equalTo: container.view.keyboardLayoutGuide.topAnchor, constant: -8)
+            bottom,
+            host.view.bottomAnchor.constraint(lessThanOrEqualTo: container.view.keyboardLayoutGuide.topAnchor, constant: -12)
         ])
         host.sizingOptions = .intrinsicContentSize
         host.didMove(toParent: container)
@@ -79,19 +85,11 @@ final class GuidedDocumentPicker: UIDocumentPickerViewController {
         guidanceHost = host
         guidanceWindow = window
         window.isHidden = false
-        reserveGuidanceSpace()
+        updateGuidanceWidth()
     }
 
-    private func reserveGuidanceSpace() {
-        guard let host = guidanceHost else { return }
-        let width = max(1, view.bounds.width - 24)
-        guidanceWidth?.constant = width
-        let size = host.sizeThatFits(in: CGSize(width: width, height: 1_000))
-        let bottom = ceil(size.height) + 16
-        // Keep the picker toolbar and last file row above the floating instruction.
-        if abs(additionalSafeAreaInsets.bottom - bottom) > 0.5 {
-            additionalSafeAreaInsets.bottom = bottom
-        }
+    private func updateGuidanceWidth() {
+        guidanceWidth?.constant = max(1, view.bounds.width - 24)
     }
 
     private func removeGuidance() {
@@ -100,7 +98,6 @@ final class GuidedDocumentPicker: UIDocumentPickerViewController {
         guidanceWindow = nil
         guidanceHost = nil
         guidanceWidth = nil
-        additionalSafeAreaInsets.bottom = 0
     }
 }
 

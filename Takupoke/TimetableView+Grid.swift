@@ -113,7 +113,7 @@ extension TimetableView {
     }
 
     private func dayHeaderCell(_ column: DayGridLayout) -> some View {
-        dayHeader(on: column.day)
+        dayHeader(on: column.day, hasFullDayCard: column.fullDayEventTitle != nil)
             .frame(width: column.width, height: dayHeaderHeight > 0 ? dayHeaderHeight : nil,
                    alignment: .top)
             .background(column.day == today ? Color.accentColor.opacity(0.14) :
@@ -151,7 +151,7 @@ extension TimetableView {
             .accessibilityLabel(title)
     }
 
-    private func dayHeader(on day: SchoolDate) -> some View {
+    private func dayHeader(on day: SchoolDate, hasFullDayCard: Bool) -> some View {
         let plan = TimetableSchedule.dayPlan(on: day, events: events)
         return VStack(alignment: .center, spacing: 2) {
             VStack(spacing: 0) {
@@ -159,7 +159,7 @@ extension TimetableView {
                 Text("(\(weekdayNames[day.schoolWeekday - 1]))").font(.caption)
                 if day == today { Text("今日").font(.caption2.bold()) }
             }
-            ForEach(Array(plan.events.filter { $0.apiTag != "行事メモ" }.enumerated()), id: \.offset) { _, event in
+            ForEach(Array(plan.headerEvents(hasFullDayCard: hasFullDayCard).enumerated()), id: \.offset) { _, event in
                 Text(TimetableDisplayText.kana(event.title))
                     .font(.caption2)
                     .multilineTextAlignment(.center)
