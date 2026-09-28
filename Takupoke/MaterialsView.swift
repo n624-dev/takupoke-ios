@@ -143,18 +143,6 @@ struct MaterialsView: View {
         }
     }
 
-    private func specialStatus(_ kind: SpecialScheduleKind, source: SpecialScheduleSource) -> String {
-        if source.failure != nil {
-            return specialSchedules.records[kind] == nil
-                ? "解析失敗" : "解析失敗（前回結果あり）"
-        }
-        guard let record = specialSchedules.records[kind] else {
-            return "未解析"
-        }
-        return record.digest == source.digest && record.analysis.version == SpecialScheduleAnalysis.parserVersion
-            ? "解析済み" : "未解析（前回結果あり）"
-    }
-
     @ViewBuilder private func refreshControlButton(_ title: String, action: @escaping () -> Void) -> some View {
         if #available(iOS 26.0, *) {
             Button(title, action: action).buttonStyle(.glass)
@@ -163,40 +151,5 @@ struct MaterialsView: View {
         }
     }
 
-    private func materialStatus(_ kind: MaterialKind, record: MaterialRecord) -> String {
-        let hasAnalysis: Bool
-        let isCurrent: Bool
-        if kind == .changes {
-            let analysis = model.state.changeAnalysis
-            hasAnalysis = analysis != nil
-            isCurrent = analysis?.sourceDigest == record.digest && analysis?.version == ChangeAnalysis.parserVersion
-        } else {
-            let analysis = model.state.pdfAnalyses?[kind.rawValue]
-            hasAnalysis = analysis != nil
-            isCurrent = analysis?.sourceDigest == record.digest && analysis?.version == PDFAnalysis.currentVersion(for: kind)
-        }
-        let parseFailed = kind == .changes ? model.state.changeParseAttempt?.failure != nil :
-            model.state.pdfParseAttempts?[kind.rawValue]?.failure != nil
-        if model.state.attempts[kind.rawValue]?.failure != nil {
-            return hasAnalysis ? "取得失敗（前回結果あり）" : "取得失敗"
-        }
-        if parseFailed { return hasAnalysis ? "解析失敗（前回結果あり）" : "解析失敗" }
-        if isCurrent { return "解析済み" }
-        return hasAnalysis ? "未解析（前回結果あり）" : "未解析"
-    }
 
-    private func materialNeedsAttention(_ kind: MaterialKind, record: MaterialRecord) -> Bool {
-        model.state.attempts[kind.rawValue]?.failure != nil ||
-            materialStatus(kind, record: record) != "解析済み"
-    }
-
-    private func fileSummary(name: String, status: String, needsAttention: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(name).font(.headline).lineLimit(2)
-            Label(status, systemImage: needsAttention ? "exclamationmark.triangle" : "checkmark.circle")
-                .font(.caption)
-                .foregroundStyle(needsAttention ? Color.orange : Color.secondary)
-        }
-        .padding(.vertical, 2)
-    }
 }

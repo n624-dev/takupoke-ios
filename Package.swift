@@ -2,7 +2,7 @@
 import PackageDescription
 
 #if os(macOS)
-let mappingSources = ["MappingPackage.swift", "MappingRules.swift", "MappingStore.swift", "MappingService.swift"]
+let mappingSources = ["MappingPackage.swift", "MappingRules.swift", "MappingRules+Changes.swift", "MappingModels.swift", "MappingStore.swift", "MappingService.swift"]
 let mappingTests = ["MappingPackageTests.swift", "MappingServiceTests.swift"]
 let mappingExcludes: [String] = []
 let mappingTestExcludes: [String] = []
@@ -10,7 +10,7 @@ let mappingTestExcludes: [String] = []
 // CryptoKit and URLSession host tests run on the macOS release runner.
 let mappingSources: [String] = []
 let mappingTests: [String] = []
-let mappingExcludes = ["MappingPackage.swift", "MappingRules.swift", "MappingStore.swift", "MappingService.swift"]
+let mappingExcludes = ["MappingPackage.swift", "MappingRules.swift", "MappingRules+Changes.swift", "MappingModels.swift", "MappingStore.swift", "MappingService.swift"]
 let mappingTestExcludes = ["MappingPackageTests.swift", "MappingServiceTests.swift"]
 #endif
 
@@ -36,8 +36,8 @@ let package = Package(
                     "ContentView.swift",
                     "SettingsView.swift",
                     "HomeView.swift",
-                    "HomeTodayView.swift",
-                    "TimetablePresentation.swift",
+                    "HomeTodayView.swift", "HomeLessonRow.swift",
+                    "TimetablePresentation.swift", "TimetablePresentation+Details.swift",
                     "LoadingRow.swift",
                     "AboutView.swift",
                     "UsageHelpView.swift",
@@ -53,7 +53,7 @@ let package = Package(
                     "MaterialsModel.swift",
                     "MaterialsModel+Updates.swift",
                     "SpecialSchedulesModel+Updates.swift",
-                    "MaterialsView.swift",
+                    "MaterialsView.swift", "MaterialsView+FileSummary.swift",
                     "MaterialDocumentPicker.swift",
                     "GuidedDocumentPicker.swift",
                     "SpecialScheduleAnalysisView.swift",
@@ -63,8 +63,8 @@ let package = Package(
                     "PDFAnalysisView.swift",
                     "PDFLessonDetail.swift",
                     "SavedPDFView.swift",
-                    "TimetableView.swift",
-                    "TimetableView+Grid.swift",
+                    "TimetableView.swift", "TimetableView+WeekSection.swift",
+                    "TimetableView+Grid.swift", "TimetableView+GridHeaders.swift", "TimetableView+DayColumns.swift",
                     "TimetableView+Layout.swift",
                     "TimetableView+Cards.swift",
                     "TimetableView+Times.swift",
@@ -88,7 +88,7 @@ let package = Package(
                 ] + mappingExcludes,
                 sources: [
                     "LocalMaterialDatabase.swift",
-                    "LocalMaterialDatabase+Current.swift",
+                    "LocalMaterialDatabase+Current.swift", "LocalMaterialDatabase+Snapshot.swift",
                     "PDFAnalysis.swift",
                     "PDFParseError.swift",
                     "PDFGrid.swift",
@@ -98,11 +98,11 @@ let package = Package(
                     "LocalMaterialDatabase+Records.swift",
                     "LocalMaterialDatabase+Schema.swift",
                     "LegacyDatabaseMigration.swift",
-                    "ChangeNormalizer.swift",
+                    "ChangeNormalizer.swift", "ChangeNormalizer+Dates.swift",
                     "ChangeAnalysis.swift",
-                    "XLSXReader.swift",
+                    "XLSXReader.swift", "XLSXReader+Worksheet.swift",
                     "BoundedXML.swift",
-                    "MaterialLibrary.swift",
+                    "MaterialLibrary.swift", "MaterialLibrary+Analysis.swift",
                     "MaterialModels.swift",
                     "SelectedFileSource.swift",
                     "FileRefreshDiagnostics.swift",
