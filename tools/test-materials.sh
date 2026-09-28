@@ -12,6 +12,7 @@ swiftc -swift-version 5 -parse-as-library \
     -module-cache-path "$scratch_dir/modules" \
     Takupoke/SchoolDate.swift \
     Takupoke/ChangeNormalizer.swift \
+    Takupoke/ChangeNormalizer+Dates.swift \
     Takupoke/ChangeAnalysis.swift \
     Takupoke/TimetableLessonNames.swift \
     Takupoke/PDFSchoolParser.swift \
@@ -23,6 +24,7 @@ swiftc -swift-version 5 -parse-as-library \
     Takupoke/PDFDiagnostics.swift \
     Takupoke/PDFFullReadDiagnostic.swift \
     Takupoke/MaterialLibrary.swift \
+    Takupoke/MaterialLibrary+Analysis.swift \
     Takupoke/MaterialModels.swift \
     Takupoke/MaterialLibrary+Validation.swift \
     Takupoke/WebPDFDownloader.swift \
