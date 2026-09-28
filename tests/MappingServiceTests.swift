@@ -14,12 +14,14 @@ final class MappingServiceTests: XCTestCase {
             let headers: [String: String]
             let body: Data
             switch (request.url?.host ?? "", request.url?.path ?? "") {
-            case ("unchanged.example.test", "/mapping-revision")
-                where request.value(forHTTPHeaderField: "If-None-Match") == "\"\(revision)\"" &&
+            case ("unchanged.example.test", let path)
+                where ["/mapping-revision", "/links-revision"].contains(path) &&
+                      request.value(forHTTPHeaderField: "If-None-Match") == "\"\(revision)\"" &&
                       request.value(forHTTPHeaderField: "Authorization") == nil:
                 status = 304; headers = ["ETag": "\"\(revision)\""]; body = Data()
-            case ("changed.example.test", "/mapping-revision")
-                where request.value(forHTTPHeaderField: "Authorization") == nil:
+            case ("changed.example.test", let path)
+                where ["/mapping-revision", "/links-revision"].contains(path) &&
+                      request.value(forHTTPHeaderField: "Authorization") == nil:
                 status = 200; headers = ["ETag": "\"\(revision)\""]; body = Data()
             case ("mismatch.example.test", "/mappings/current")
                 where request.value(forHTTPHeaderField: "Authorization") == "Bearer fake-access-token":
@@ -70,4 +72,32 @@ final class MappingServiceTests: XCTestCase {
             // The model never reaches its save call.
         }
     }
+    func testBothRevisionEndpointsDistinguishMissingSameAndChangedData() async throws {
+        for path in ["mapping-revision", "links-revision"] {
+            let (changed, firstNetwork) = service(host: "changed.example.test")
+            defer { firstNetwork.invalidateAndCancel() }
+            let missing = try await changed.checkRevision(installed: nil, path: path)
+            XCTAssertEqual(missing, .available(revision))
+            let same = try await changed.checkRevision(installed: revision, path: path)
+            XCTAssertEqual(same, .unchanged)
+            let newer = try await changed.checkRevision(installed: String(repeating: "B", count: 43), path: path)
+            XCTAssertEqual(newer, .available(revision))
+            let (unchanged, secondNetwork) = service(host: "unchanged.example.test")
+            defer { secondNetwork.invalidateAndCancel() }
+            let conditional = try await unchanged.checkRevision(installed: revision, path: path)
+            XCTAssertEqual(conditional, .unchanged)
+        }
+    }
+
+    func testRevisionFailureIsNotReportedAsCurrentForEitherEndpoint() async throws {
+        let (service, network) = service(host: "failure.example.test")
+        defer { network.invalidateAndCancel() }
+        for path in ["mapping-revision", "links-revision"] {
+            do {
+                _ = try await service.checkRevision(installed: revision, path: path)
+                XCTFail("A failed check must not clear an available update")
+            } catch MappingError.unavailable { }
+        }
+    }
+
 }
