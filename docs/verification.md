@@ -6,7 +6,8 @@
 
 - 0.1.161を基準に、行数の多いファイルを中心として24ファイルを確認。10ファイルから12ファイルへ既存処理を分けた。
 - View型、Stateの所有者、ViewBuilder、modifier順、文言、寸法、色、保存形式を維持。移動前後の実装行と118個のメソッド・プロパティを照合し、Xcode・SPM・単独コンパイルの入力一覧を確認した。
-- LinuxでPython27テストと差分検査が成功。SwiftテストとiPhoneビルドはCIで確認する。
+- LinuxでPython27テストと差分検査が成功。[PR #33のCI](https://github.com/n624-dev/takupoke-ios/actions/runs/36446573595)でSwift177テストとiPhone向けReleaseビルドが成功。
+- [配布CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36447198745)も成功し、[0.1.163（163.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.163-build.163.1)を公開。公開IPAの検証、更新内容、固定URLと版固有AltStore Sourceの一致を確認。
 - 実機の画面比較は未実施。
 
 ## ファイル選択の間隔・更新と保存期限の再検証（2026-09-29）
