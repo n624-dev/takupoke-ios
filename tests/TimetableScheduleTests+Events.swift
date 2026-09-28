@@ -110,4 +110,50 @@ extension TimetableScheduleTests {
         XCTAssertEqual(examBlocks.count, 1)
         XCTAssertNil(TimetableSchedule.fullDayEventTitle(plan: plan, layouts: [examBlocks]))
     }
+    func testWeekendEventAndSupplementaryDaysAppearWithoutLessons() throws {
+        let monday = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
+        let saturday = try XCTUnwrap(monday.addingDays(5))
+        let sunday = try XCTUnwrap(monday.addingDays(6))
+        for (tag, kind) in [("行事（授業なし）", PDFEventClassification.EventType.schoolEventNoClass), ("補講日", .supplementary)] {
+            var events = PDFAnalysis(kind: .events, sourceDigest: "fictional", sourceName: "fictional",
+                parsedAt: Date(timeIntervalSince1970: 0), schoolYear: 2032, term: nil,
+                lessons: [], events: [], notices: [])
+            events.events = [saturday, sunday].map { day in
+                PDFSchoolEvent(date: day.iso8601, scope: "全クラス", title: "架空行事A", page: 0,
+                               classification: .init(type: kind), apiTag: tag)
+            }
+            let days = TimetableSchedule.displayedDays(weekStart: monday, classes: ["1_A"],
+                timetable: nil, changes: nil, events: events, includesChanges: true, isInternationalStudent: false)
+            XCTAssertEqual(days.count, 7)
+            for day in [saturday, sunday] {
+                XCTAssertEqual(TimetableSchedule.fullDayEventTitle(
+                    plan: TimetableSchedule.dayPlan(on: day, events: events), layouts: [[]]), "架空行事A")
+                let change = ScheduleChange(change_date: day.iso8601, class_name: "1_A", period: "1",
+                    before_subject: "", after_subject: "架空科目A", teacher: "", room: "", note: "",
+                    raw_text: "", canonical_text: "")
+                let changed = ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx",
+                    defaultYear: nil, parsedAt: Date(timeIntervalSince1970: 0), records: [change])
+                let blocks = TimetableSchedule.positioned(TimetableSchedule.blocks(on: day, className: "1_A",
+                    timetable: nil, changes: changed, includesChanges: true, events: events))
+                XCTAssertEqual(blocks.count, 1)
+                XCTAssertNil(TimetableSchedule.fullDayEventTitle(
+                    plan: TimetableSchedule.dayPlan(on: day, events: events), layouts: [blocks]))
+            }
+        }
+    }
+
+    func testWeekendMemoAndPlainNoClassTagDoNotAddColumns() throws {
+        let monday = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
+        let saturday = try XCTUnwrap(monday.addingDays(5))
+        for tag in ["行事メモ", "授業なし"] {
+            let events = PDFAnalysis(kind: .events, sourceDigest: "fictional", sourceName: "fictional",
+                parsedAt: Date(timeIntervalSince1970: 0), schoolYear: 2032, term: nil, lessons: [],
+                events: [PDFSchoolEvent(date: saturday.iso8601, scope: "全クラス", title: "架空行事A", page: 0,
+                                       apiTag: tag)], notices: [])
+            XCTAssertEqual(TimetableSchedule.displayedDays(weekStart: monday, classes: ["1_A"],
+                timetable: nil, changes: nil, events: events, includesChanges: true,
+                isInternationalStudent: false).count, 5)
+        }
+    }
+
 }
