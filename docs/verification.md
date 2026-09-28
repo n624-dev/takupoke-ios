@@ -6,6 +6,8 @@
 
 - 4種類の選択案内を別ウインドウに表示。選択・キャンセル・画面終了で破棄し、復帰時に選択途中なら再表示する。
 - ホームでは取得済みの一覧・名称対応表の更新だけを案内し、共通取得画面へ進む。
+- LinuxのPython27テストと差分検査が成功。[PR CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36400529231)と[配布CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36401001619)でSwift171テスト・iPhone向けReleaseビルドが成功。
+- [0.1.155（155.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.155-build.155.1)を公開し、配布ファイル・更新内容・固定URLと版固有AltStore Sourceの一致を確認。
 - OneDriveでのフォルダ移動・検索・キーボード・スワイプ終了と、更新案内からの認証は実機未確認。
 
 ## 時間割カードの高さ・時刻・文字（2026-09-28）
