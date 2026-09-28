@@ -55,6 +55,7 @@ let package = Package(
                     "SpecialSchedulesModel+Updates.swift",
                     "MaterialsView.swift",
                     "MaterialDocumentPicker.swift",
+                    "GuidedDocumentPicker.swift",
                     "SpecialScheduleAnalysisView.swift",
                     "ChangeAnalysisView.swift",
                     "ChangePreviewView.swift",
