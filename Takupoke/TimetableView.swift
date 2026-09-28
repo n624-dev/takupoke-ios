@@ -51,7 +51,7 @@ struct TimetableView: View {
         // Five inter-column gaps plus one trailing gap inside the scroll content.
         return max(1, (gridViewportWidth - periodColumnWidth - 6 * gridSpacing) / 5)
     }
-    let gridRowHeight: CGFloat = 80
+    let gridRowHeight: CGFloat = 72
     let gridSpacing: CGFloat = 2
 
     struct DayGridLayout {

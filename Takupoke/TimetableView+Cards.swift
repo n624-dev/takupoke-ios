@@ -30,12 +30,11 @@ extension TimetableView {
             VStack(alignment: .center, spacing: 1) {
                 switch block.content {
                 case .normal(let lesson):
-                    Text(cardText(TimetableDisplayText.continuous(lesson.names.cellSubject),
+                    Text(cardText(cardSubject(TimetableDisplayText.continuous(lesson.names.cellSubject)),
                                   fontSize: 11, weight: .semibold, lines: 2))
                         .font(.system(size: 11, weight: .semibold)).lineLimit(2)
                     if showTime, let time {
-                        Text(TimetableDisplayText.periodTime(time))
-                            .font(.system(size: 8.5)).foregroundStyle(.secondary).lineLimit(3)
+                        cardTimeLabel(time)
                     }
                     if !lesson.names.cellTeacher.isEmpty {
                         Text(cardText(TimetableDisplayText.continuous(lesson.names.cellTeacher), fontSize: 9))
@@ -45,12 +44,11 @@ extension TimetableView {
                         Text(cardRoom(lesson.names.cellRoom)).font(.system(size: 9)).lineLimit(1)
                     }
                 case .special(let item):
-                    Text(cardText(TimetableDisplayText.kana(item.lesson.subject),
+                    Text(cardText(cardSubject(TimetableDisplayText.kana(item.lesson.subject)),
                                   fontSize: 11, weight: .semibold, lines: 2))
                         .font(.system(size: 11, weight: .semibold)).lineLimit(2)
                     if showTime, let time {
-                        Text(TimetableDisplayText.periodTime(time))
-                            .font(.system(size: 8.5)).foregroundStyle(.secondary).lineLimit(3)
+                        cardTimeLabel(time)
                     }
                     if !item.lesson.teacher.isEmpty {
                         Text(cardText(TimetableDisplayText.kana(item.lesson.teacher), fontSize: 9))
@@ -72,8 +70,7 @@ extension TimetableView {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     if showTime, let time {
-                        Text(TimetableDisplayText.periodTime(time))
-                            .font(.system(size: 8.5)).foregroundStyle(.secondary).lineLimit(3)
+                        cardTimeLabel(time)
                     }
                     if !names.cellTeacher.isEmpty {
                         Text(cardText(TimetableDisplayText.kana(names.cellTeacher), fontSize: 9))
@@ -100,6 +97,30 @@ extension TimetableView {
                 "\(block.startPeriod)〜\(block.endPeriod)限") + "の授業詳細")
     }
 
+    // These transformations belong to grid labels, not persisted names or matching rules.
+    func cardSubject(_ value: String) -> String {
+        value.replacingOccurrences(of: "・", with: "•")
+    }
+
+    func cardTimeText(_ value: String) -> String {
+        TimetableDisplayText.periodTime(value).replacingOccurrences(of: "\n", with: "")
+    }
+
+    func cardTimeFontSize(_ value: String) -> CGFloat {
+        let size: CGFloat = 8.5
+        let textWidth = (cardTimeText(value) as NSString)
+            .size(withAttributes: [.font: UIFont.systemFont(ofSize: size)]).width
+        return size * min(1, max(1, dayColumnWidth - 10) / max(1, textWidth))
+    }
+
+    private func cardTimeLabel(_ value: String) -> some View {
+        Text(cardTimeText(value))
+            .font(.system(size: cardTimeFontSize(value)))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+    }
+
     func cardRoom(_ source: String) -> String {
         let full = TimetableDisplayText.continuous(source)
         let compact = PDFDisplayText.continuous(TimetableDisplayText.halfwidthKana(source))
@@ -107,11 +128,11 @@ extension TimetableView {
     }
 
     func changeCardSubject(_ change: ScheduleChange, names: TimetableLessonNames) -> String {
-        let source = TimetableDisplayText.continuous(names.cellSubject)
+        let source = cardSubject(TimetableDisplayText.continuous(names.cellSubject))
         guard !source.isEmpty else { return cardText("変更を確認", fontSize: 11, weight: .semibold, lines: 2) }
         let short: String?
         if let rules = mappings.current?.rules, let lessons = timetable?.lessons {
-            short = rules.shortSubject(for: change, in: lessons)
+            short = rules.shortSubject(for: change, in: lessons).map { cardSubject(TimetableDisplayText.kana($0)) }
         } else {
             short = nil
         }

@@ -48,14 +48,14 @@ extension TimetableView {
         var parts: [(String, CGFloat, UIFont.Weight, Int?)] = []
         switch block.content {
         case .normal(let lesson):
-            parts.append((cardText(TimetableDisplayText.continuous(lesson.names.cellSubject),
+            parts.append((cardText(cardSubject(TimetableDisplayText.continuous(lesson.names.cellSubject)),
                                    fontSize: 11, weight: .semibold, lines: 2), 11, .semibold, 2))
             if !lesson.names.cellTeacher.isEmpty {
                 parts.append((cardText(TimetableDisplayText.continuous(lesson.names.cellTeacher), fontSize: 9), 9, .regular, 1))
             }
             if !lesson.names.cellRoom.isEmpty { parts.append((cardRoom(lesson.names.cellRoom), 9, .regular, 1)) }
         case .special(let item):
-            parts.append((cardText(TimetableDisplayText.kana(item.lesson.subject),
+            parts.append((cardText(cardSubject(TimetableDisplayText.kana(item.lesson.subject)),
                                    fontSize: 11, weight: .semibold, lines: 2), 11, .semibold, 2))
             if !item.lesson.teacher.isEmpty {
                 parts.append((cardText(TimetableDisplayText.kana(item.lesson.teacher), fontSize: 9), 9, .regular, 1))
@@ -77,7 +77,7 @@ extension TimetableView {
             let timeIndex: Int
             if case .change = block.content { timeIndex = 2 }
             else { timeIndex = 1 }
-            parts.insert((TimetableDisplayText.periodTime(time), 8.5, .regular, 3),
+            parts.insert((cardTimeText(time), cardTimeFontSize(time), .regular, 1),
                          at: min(parts.count, timeIndex))
         }
         let width = dayColumnWidth - 10
