@@ -1,16 +1,25 @@
 import SwiftUI
 
 struct HomeView: View {
+    private enum Destination: Hashable { case accountData }
     @ObservedObject var materials: MaterialsModel
     @ObservedObject var specialSchedules: SpecialSchedulesModel
     @ObservedObject var schoolEvents: SchoolEventsModel
     let openTimetable: () -> Void
     @EnvironmentObject private var links: LinksModel
+    @EnvironmentObject private var mappings: MappingModel
     @State private var safariPage: SafariPage?
 
     var body: some View {
         NavigationStack {
             List {
+                if let notice = updateNotice {
+                    Section {
+                        NavigationLink(value: Destination.accountData) {
+                            Label(notice, systemImage: "arrow.triangle.2.circlepath")
+                        }
+                    }
+                }
                 HomeTodayView(materials: materials, specialSchedules: specialSchedules,
                               schoolEvents: schoolEvents, openTimetable: openTimetable)
                 if !links.visibleFavorites.isEmpty {
@@ -29,9 +38,21 @@ struct HomeView: View {
                 }
             }
             .navigationTitle("たくポケ")
+            .navigationDestination(for: Destination.self) { _ in AccountDataSettingsView() }
             .fullScreenCover(item: $safariPage) { page in
                 SafariLinkView(url: page.url) { safariPage = nil }.ignoresSafeArea()
             }
+        }
+    }
+
+    private var updateNotice: String? {
+        let linksUpdated = links.saved != nil && links.updateAvailable
+        let mappingsUpdated = mappings.current != nil && mappings.updateAvailable
+        switch (linksUpdated, mappingsUpdated) {
+        case (true, true): return "一覧・名称対応表に更新があります"
+        case (true, false): return "一覧に更新があります"
+        case (false, true): return "名称対応表に更新があります"
+        case (false, false): return nil
         }
     }
 }
