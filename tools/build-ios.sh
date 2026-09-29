@@ -14,27 +14,7 @@ mkdir -p "$output_dir" "$scratch_dir/Payload"
 output_dir="$(cd "$output_dir" && pwd)"
 
 xcodebuild -version
-bash tools/test-materials.sh
-bash tools/test-parsing.sh
-bash tools/test-picker-ui.sh
-xcodebuild \
-    -project Takupoke.xcodeproj \
-    -scheme Takupoke \
-    -configuration Release \
-    -sdk iphoneos \
-    -destination 'generic/platform=iOS' \
-    -derivedDataPath "$scratch_dir/DerivedData" \
-    -clonedSourcePackagesDirPath "$scratch_dir/SourcePackages" \
-    -packageCachePath "$scratch_dir/PackageCache" \
-    -disablePackageRepositoryCache \
-    -onlyUsePackageVersionsFromResolvedFile \
-    CODE_SIGNING_ALLOWED=NO \
-    CODE_SIGNING_REQUIRED=NO \
-    CODE_SIGN_IDENTITY= \
-    MARKETING_VERSION="$TKPK_VERSION" \
-    CURRENT_PROJECT_VERSION="$TKPK_BUILD" \
-    TAKUPOKE_COMMIT="$TKPK_COMMIT" \
-    build
+python3 -B tools/parallel_build.py "$scratch_dir"
 
 app_path="$scratch_dir/DerivedData/Build/Products/Release-iphoneos/Takupoke.app"
 test -f "$app_path/Info.plist"

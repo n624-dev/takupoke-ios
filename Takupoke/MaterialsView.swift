@@ -8,8 +8,7 @@ struct MaterialsView: View {
     @ObservedObject var schoolEvents: SchoolEventsModel
     @ObservedObject var mappings: MappingModel
     var setupMode = false
-    @State private var picker: MaterialKind?
-    @State private var specialPickerKind: SpecialScheduleKind?
+    @State private var fileRequest: FileRequest?
     @State private var copiedRefreshDiagnostic = false
 
     var body: some View {
@@ -80,7 +79,7 @@ struct MaterialsView: View {
                         }
                     }
                     Button(model.state.record(for: kind) == nil ? "ファイルを選ぶ" : "ファイルを選び直す") {
-                        picker = kind
+                        fileRequest = FileRequest(target: .material(kind))
                     }
                     .accessibilityLabel("\(kind.title)のファイルを\(model.state.record(for: kind) == nil ? "選ぶ" : "選び直す")")
                 }
@@ -104,7 +103,7 @@ struct MaterialsView: View {
                         Text("未選択").foregroundStyle(.secondary)
                     }
                     Button(specialSchedules.sources[kind] == nil ? "ファイルを選ぶ" : "ファイルを選び直す") {
-                        specialPickerKind = kind
+                        fileRequest = FileRequest(target: .special(kind))
                     }
                     .accessibilityLabel("\(kind.title)のファイルを\(specialSchedules.sources[kind] == nil ? "選ぶ" : "選び直す")")
                     .disabled(specialSchedules.busy || !specialSchedules.ready)
@@ -128,15 +127,30 @@ struct MaterialsView: View {
         .task { specialSchedules.loadIfNeeded() }
         .task { schoolEvents.loadIfNeeded() }
         .background {
-            MaterialDocumentPicker(item: $picker,
-                type: { $0 == .changes ? (UTType(filenameExtension: "xlsx") ?? .data) : .pdf },
-                instruction: { $0 == .changes ? "時間割変更のExcelファイルを選んでください" : "通常時間割のPDFを選んでください" },
-                selected: { kind, selection in model.selectFile(selection, kind: kind) })
+            MaterialDocumentPicker(item: $fileRequest, type: { $0.type }, instruction: { $0.instruction },
+                selected: { request, selection in
+                    switch request.target {
+                    case .material(let kind): model.selectFile(selection, kind: kind)
+                    case .special(let kind): specialSchedules.importPDF(selection, kind: kind)
+                    }
+                })
         }
-        .background {
-            MaterialDocumentPicker(item: $specialPickerKind, type: { _ in .pdf },
-                instruction: { "\($0.title)のPDFを選んでください" },
-                selected: { kind, selection in specialSchedules.importPDF(selection, kind: kind) })
+    }
+
+    private struct FileRequest: Identifiable {
+        enum Target { case material(MaterialKind), special(SpecialScheduleKind) }
+        let id = UUID()
+        let target: Target
+        var type: UTType {
+            if case .material(.changes) = target { return UTType(filenameExtension: "xlsx") ?? .data }
+            return .pdf
+        }
+        var instruction: String {
+            switch target {
+            case .material(.changes): return "時間割変更のExcelファイルを選んでください"
+            case .material: return "通常時間割のPDFを選んでください"
+            case .special(let kind): return "\(kind.title)のPDFを選んでください"
+            }
         }
     }
 

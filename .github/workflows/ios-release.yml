@@ -34,6 +34,7 @@ jobs:
       - name: Check shell syntax and whitespace
         run: |
           bash -n tools/build-ios.sh
+          bash -n tools/build-ios-app.sh
           bash -n tools/test-materials.sh
           bash -n tools/test-parsing.sh
           bash -n tools/test-picker-ui.sh
