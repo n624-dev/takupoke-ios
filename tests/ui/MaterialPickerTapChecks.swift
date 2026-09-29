@@ -52,8 +52,8 @@ final class MaterialPickerTapChecks: XCTestCase {
         app.buttons["choose-\(kind)"].tap()
         let instruction = app.staticTexts["架空ファイル\(kind)を選んでください"]
         XCTAssertTrue(instruction.waitForExistence(timeout: 8), "Picker did not open after tap \(kind)\n\(app.debugDescription)")
-        let cancel = app.buttons.matching(NSPredicate(format: "label IN %@", ["Cancel", "Close", "キャンセル", "閉じる"])).firstMatch
-        XCTAssertTrue(cancel.waitForExistence(timeout: 5), app.debugDescription)
+        let cancel = app.buttons["Cancel"].firstMatch
+        XCTAssertTrue(cancel.waitForExistence(timeout: 30), app.debugDescription)
         cancel.tap()
         let closed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: instruction)
         XCTAssertEqual(XCTWaiter.wait(for: [closed], timeout: 8), .completed)

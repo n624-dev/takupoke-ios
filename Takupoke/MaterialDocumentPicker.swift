@@ -62,13 +62,11 @@ private struct MaterialPickerBridge<Item: Identifiable>: UIViewControllerReprese
         private var results: [ObjectIdentifier: ResultContext] = [:]
         private var retry: DispatchWorkItem?
         private var dismissalCheck: DispatchWorkItem?
-        private var presentationCheck: DispatchWorkItem?
         private weak var presenter: UIViewController?
-        private var rejectedRequest: Item.ID?
         private var stopped = false
 
         init(parent: MaterialPickerBridge) { self.parent = parent }
-        deinit { retry?.cancel(); dismissalCheck?.cancel(); presentationCheck?.cancel() }
+        deinit { retry?.cancel(); dismissalCheck?.cancel() }
 
         func synchronize() {
             trace("synchronize")
@@ -95,7 +93,6 @@ private struct MaterialPickerBridge<Item: Identifiable>: UIViewControllerReprese
                 retryWhenAvailable()
                 return
             }
-            guard rejectedRequest != item.id else { return }
             results = results.filter { $0.value.controller != nil }
             guard !results.values.contains(where: { $0.item.id == item.id }) else { return }
             let controller = MaterialPickerController(forOpeningContentTypes: [parent.type(item)], asCopy: false)
@@ -116,41 +113,8 @@ private struct MaterialPickerBridge<Item: Identifiable>: UIViewControllerReprese
                 guard let controller else { return }
                 self?.didPresent(controller, completed: true)
             }
-            // UIKit may defer presentation beyond the next main-loop turn.
-            // Completion is reported by the transition, never inferred from an
-            // immediately absent presentingViewController.
-            checkPresentation(controller, after: 2)
-        }
-
-        private func checkPresentation(_ controller: UIDocumentPickerViewController, after delay: TimeInterval) {
-            presentationCheck?.cancel()
-            let work = DispatchWorkItem { [weak self, weak controller] in
-                guard let self, let controller, self.picker === controller, self.phase == .presenting else { return }
-                self.reconcile(controller)
-                guard self.phase == .presenting else { return }
-                // A real transition or modal attachment may still be waiting for
-                // the provider. Never discard it based on elapsed time alone.
-                if controller.presentingViewController != nil || controller.isBeingPresented ||
-                    controller.transitionCoordinator != nil || controller.viewIfLoaded?.window != nil ||
-                    self.presenter?.transitionCoordinator != nil {
-                    self.checkPresentation(controller, after: 0.1)
-                    return
-                }
-                self.trace("presentation not attached")
-                self.rejectedRequest = self.activeItem?.id
-                self.results.removeValue(forKey: ObjectIdentifier(controller))
-                (controller as? MaterialPickerController)?.presentationChanged = nil
-                controller.delegate = nil
-                self.picker = nil
-                self.activeItem = nil
-                self.presenter = nil
-                self.phase = .idle
-                // The same request is not retried in a loop. A fresh button tap
-                // creates a new ID; a newer pending request can proceed now.
-                self.synchronize()
-            }
-            presentationCheck = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+            // The native browser may still be preparing its content. Only
+            // UIKit's transition and lifecycle callbacks complete presentation.
         }
 
         private func reconcile(_ controller: UIDocumentPickerViewController) {
@@ -175,8 +139,6 @@ private struct MaterialPickerBridge<Item: Identifiable>: UIViewControllerReprese
 
         private func didPresent(_ controller: UIDocumentPickerViewController, completed: Bool) {
             guard !stopped, picker === controller, phase == .presenting else { return }
-            presentationCheck?.cancel()
-            presentationCheck = nil
             trace("presented \(completed)")
             if completed {
                 presenter = controller.presentingViewController ?? presenter
@@ -195,8 +157,6 @@ private struct MaterialPickerBridge<Item: Identifiable>: UIViewControllerReprese
 
         private func didDismiss(_ controller: UIDocumentPickerViewController) {
             guard !stopped, picker === controller else { return }
-            presentationCheck?.cancel()
-            presentationCheck = nil
             trace("dismissed callback")
             phase = .dismissing
             dismissalCheck?.cancel()
@@ -223,8 +183,6 @@ private struct MaterialPickerBridge<Item: Identifiable>: UIViewControllerReprese
 
         func stop() {
             stopped = true
-            presentationCheck?.cancel()
-            presentationCheck = nil
             dismissalCheck?.cancel()
             dismissalCheck = nil
             retry?.cancel()
