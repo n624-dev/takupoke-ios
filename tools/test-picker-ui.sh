@@ -23,33 +23,23 @@ print(devices[0]['identifier'], runtime['identifier'])
 PY
 )
 simulator_id="$(xcrun simctl create "Takupoke Picker Checks" "$device_type" "$runtime")"
-app_dir="$scratch_dir/PickerChecks.app"
-mkdir -p "$app_dir"
-cat > "$app_dir/Info.plist" <<'PLIST'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-<key>CFBundleIdentifier</key><string>jp.n624.takupoke.picker-checks</string>
-<key>CFBundleExecutable</key><string>PickerChecks</string>
-<key>CFBundleName</key><string>PickerChecks</string>
-<key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleVersion</key><string>1</string>
-<key>CFBundleShortVersionString</key><string>1.0</string>
-<key>MinimumOSVersion</key><string>16.0</string>
-<key>UIDeviceFamily</key><array><integer>1</integer></array>
-<key>UILaunchScreen</key><dict/>
-<key>UIApplicationSceneManifest</key><dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>
-</dict></plist>
-PLIST
-xcrun --sdk iphonesimulator swiftc -swift-version 5 -D TAKUPOKE_PICKER_TESTS -sdk "$(xcrun --sdk iphonesimulator --show-sdk-path)" \
-    -target "$(uname -m)-apple-ios16.0-simulator" \
-    -module-cache-path "$scratch_dir/modules" \
-    Takupoke/GuidedDocumentPicker.swift Takupoke/MaterialPickerLayout.swift Takupoke/MaterialDocumentPicker.swift Takupoke/ScopedMaterialSelection.swift tests/ui/MaterialPickerUIChecks.swift \
-    -o "$app_dir/PickerChecks"
-codesign --force --sign - "$app_dir"
+python3 -B tools/picker_test_project.py "$scratch_dir"
 xcrun simctl boot "$simulator_id"
 xcrun simctl bootstatus "$simulator_id" -b
-xcrun simctl install "$simulator_id" "$app_dir"
+set +e
+xcodebuild -project "$scratch_dir/PickerChecks.xcodeproj" -scheme PickerChecks \
+    -destination "platform=iOS Simulator,id=$simulator_id" \
+    -derivedDataPath "$scratch_dir/DerivedData" \
+    -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
+    CODE_SIGNING_ALLOWED=NO test
+ui_status=$?
+set -e
+app_data="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.picker-checks data)"
+if [[ -f "$app_data/Documents/trace.txt" ]]; then cat "$app_data/Documents/trace.txt"; fi
+if [[ "$ui_status" != 0 ]]; then exit "$ui_status"; fi
+# Retain the existing transition and geometry checks, then remove everything.
+xcrun simctl terminate "$simulator_id" jp.n624.takupoke.picker-checks >/dev/null 2>&1 || true
+rm -f "$app_data/Documents/result.txt"
 xcrun simctl launch --stdout="$scratch_dir/stdout.log" --stderr="$scratch_dir/stderr.log" "$simulator_id" jp.n624.takupoke.picker-checks
 app_data="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.picker-checks data)"
 for ((attempt = 0; attempt < 180; attempt++)); do

@@ -24,12 +24,22 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options: UIScene.ConnectionOptions) {
         guard let scene = scene as? UIWindowScene else { return }
-        MaterialPickerTestTrace.record = { [weak self] in self?.trace.append($0) }
+        MaterialPickerTestTrace.record = { [weak self] entry in
+            guard let self else { return }
+            self.trace.append(entry)
+            let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("trace.txt")
+            try? self.trace.suffix(100).joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+        }
         progress("scene connected")
         let window = UIWindow(windowScene: scene)
         window.rootViewController = root
         self.window = window
         window.makeKeyAndVisible()
+        if ProcessInfo.processInfo.arguments.contains("--tap-checks") {
+            root = UIHostingController(rootView: PickerTapHarness())
+            window.rootViewController = root
+            return
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.open() }
     }
 
