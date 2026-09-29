@@ -3,6 +3,36 @@ import Foundation
 @testable import TakupokeParsing
 
 final class FileRefreshTests: XCTestCase {
+    func testUserSelectionsWaitAndPreserveOrderAcrossAllFourKinds() {
+        var pending = PendingFileSelections<String, Int>()
+        for (index, kind) in ["timetable", "changes", "exam", "examReturn"].enumerated() {
+            pending.append(index, kind: kind)
+        }
+        XCTAssertNil(pending.take(busy: true))
+        for (index, kind) in ["timetable", "changes", "exam", "examReturn"].enumerated() {
+            let next = pending.take(busy: false)
+            XCTAssertEqual(next?.kind, kind)
+            XCTAssertEqual(next?.selection, index)
+        }
+        XCTAssertNil(pending.take(busy: false))
+    }
+
+    func testPendingSelectionKeepsLeaseUntilCancellationOrRetentionClear() {
+        var pending = PendingFileSelections<String, NSObject>()
+        weak var lease: NSObject?
+        do {
+            let selection = NSObject()
+            lease = selection
+            pending.append(selection, kind: "exam")
+        }
+        XCTAssertNotNil(lease)
+        XCTAssertNil(pending.take(busy: true))
+        XCTAssertNotNil(lease)
+        pending.clear()
+        XCTAssertNil(lease)
+        XCTAssertNil(pending.take(busy: false))
+    }
+
     func testCancellationDropsPendingAndLateCallbacksUntilForegroundReturn() {
         var queue = FileRefreshQueue()
         queue.setForeground(true)

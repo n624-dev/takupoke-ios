@@ -49,6 +49,22 @@ struct TimetableDaySchedule {
         return "\(startTime)〜\(endTime)"
     }
 
+    func changeTimeRanges(_ change: ScheduleChange) -> [String?] {
+        guard let day = SchoolDate(iso8601: change.change_date),
+              let periods = change.detailPeriods else { return [] }
+        var ranges: [ClosedRange<Int>] = []
+        for period in periods {
+            if let last = ranges.last, last.upperBound + 1 == period {
+                ranges[ranges.count - 1] = last.lowerBound...period
+            } else { ranges.append(period...period) }
+        }
+        return ranges.map { range in
+            cardTime(TimetableSchedule.GridBlock(startPeriod: range.lowerBound,
+                endPeriod: range.upperBound, content: .change(change)),
+                on: day, className: change.displayClassName)
+        }
+    }
+
     func normalTime(from start: Int, to end: Int) -> String {
         let first = TimetableSchedule.normalPeriodTimes[start - 1]
         let last = TimetableSchedule.normalPeriodTimes[end - 1]

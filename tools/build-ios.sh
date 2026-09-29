@@ -16,6 +16,7 @@ output_dir="$(cd "$output_dir" && pwd)"
 xcodebuild -version
 bash tools/test-materials.sh
 bash tools/test-parsing.sh
+bash tools/test-picker-ui.sh
 xcodebuild \
     -project Takupoke.xcodeproj \
     -scheme Takupoke \

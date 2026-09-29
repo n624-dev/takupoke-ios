@@ -127,19 +127,16 @@ struct MaterialsView: View {
         .task { model.loadIfNeeded() }
         .task { specialSchedules.loadIfNeeded() }
         .task { schoolEvents.loadIfNeeded() }
-        .sheet(item: $picker) { kind in
-            MaterialDocumentPicker(type: kind == .changes ? (UTType(filenameExtension: "xlsx") ?? .data) : .pdf,
-                                   instruction: kind == .changes ? "時間割変更のExcelファイルを選んでください" : "通常時間割のPDFを選んでください",
-                                   selected: { selection in
-                                       picker = nil
-                                       model.selectFile(selection, kind: kind)
-                                   }, cancelled: { picker = nil })
+        .background {
+            MaterialDocumentPicker(item: $picker,
+                type: { $0 == .changes ? (UTType(filenameExtension: "xlsx") ?? .data) : .pdf },
+                instruction: { $0 == .changes ? "時間割変更のExcelファイルを選んでください" : "通常時間割のPDFを選んでください" },
+                selected: { kind, selection in model.selectFile(selection, kind: kind) })
         }
-        .sheet(item: $specialPickerKind) { kind in
-            MaterialDocumentPicker(type: .pdf, instruction: "\(kind.title)のPDFを選んでください", selected: { selection in
-                specialPickerKind = nil
-                specialSchedules.importPDF(selection, kind: kind)
-            }, cancelled: { specialPickerKind = nil })
+        .background {
+            MaterialDocumentPicker(item: $specialPickerKind, type: { _ in .pdf },
+                instruction: { "\($0.title)のPDFを選んでください" },
+                selected: { kind, selection in specialSchedules.importPDF(selection, kind: kind) })
         }
     }
 

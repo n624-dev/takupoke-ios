@@ -24,6 +24,7 @@ final class MaterialsModel: ObservableObject {
     private var retired = false
     private var generation = UUID()
     private var control: AcquisitionControl?
+    private var pendingSelections = PendingFileSelections<MaterialKind, ScopedMaterialSelection>()
     var fileRefreshQueue = FileRefreshQueue()
     lazy var fileMonitor = SelectedFileMonitor { [weak self] id in
         self?.fileRefreshQueue.request(id)
@@ -36,6 +37,14 @@ final class MaterialsModel: ObservableObject {
     }
 
     func selectFile(_ url: ScopedMaterialSelection, kind: MaterialKind) {
+        guard !retired else { return }
+        pendingSelections.append(url, kind: kind)
+        runPendingSelection()
+    }
+
+    private func runPendingSelection() {
+        guard !retired, let selected = pendingSelections.take(busy: busy) else { return }
+        let (kind, url) = selected
         let year = automaticChangeSchoolYear
         perform(success: "\(kind.title)を取得して解析しました。") { worker, control in
             try worker.selectFile(url, kind: kind, control: control)
@@ -113,6 +122,7 @@ final class MaterialsModel: ObservableObject {
         FileRefreshDiagnostics.shared.record(.cancelled)
         fileRefreshQueue.suspend()
         fileMonitor.suspend()
+        pendingSelections.clear()
         control?.cancel()
         message = busy ? "中止を要求しました。処理の終了を待っています。" : "自動確認を中止しました。"
     }
@@ -146,7 +156,7 @@ final class MaterialsModel: ObservableObject {
                 self.busy = false
                 self.control = nil
                 self.updateFileMonitoring()
-                defer { self.runPendingFileRefresh() }
+                defer { self.runPendingSelection(); self.runPendingFileRefresh() }
                 switch result {
                 case .success:
                     self.message = success

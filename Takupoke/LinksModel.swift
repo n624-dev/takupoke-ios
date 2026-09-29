@@ -38,7 +38,10 @@ final class LinksModel: ObservableObject {
                 failed = true
                 message = "保存済みの一覧を読み込めませんでした。更新を試してください。"
             }
-            do { preferences = try preferencesStore.load() }
+            do {
+                preferences = try preferencesStore.load()
+                preferencesReady = true
+            }
             catch {
                 preferencesReady = false
                 failed = true
