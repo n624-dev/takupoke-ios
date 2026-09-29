@@ -1,3 +1,4 @@
+import Darwin
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
@@ -47,7 +48,7 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
             finish("FAIL: presentation controller = \(String(describing: picker.presentationController)), style = \(picker.modalPresentationStyle.rawValue)")
             return
         }
-        guard let chrome = presentation.presentedView else { finish("FAIL: missing chrome"); return }
+        guard let chrome = presentation.containerView else { finish("FAIL: missing chrome"); return }
         guard let label = descendants(chrome).compactMap({ $0 as? UILabel }).first(where: { $0.text == instructions[step] }) else {
             finish("FAIL: missing instruction, subviews = \(chrome.subviews.map { String(describing: type(of: $0)) })")
             return
@@ -58,6 +59,8 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
         let text = label.convert(label.bounds, to: chrome)
         let content = picker.view.convert(picker.view.bounds, to: chrome)
         print("PICKER GEOMETRY: frame=\(content), safeArea=\(picker.view.safeAreaInsets), instruction=\(text)")
+        fflush(stdout)
+        guard picker.view.safeAreaInsets.top < 1 else { finish("FAIL: duplicated top safe area \(picker.view.safeAreaInsets.top)"); return }
         guard text.height > 0, text.maxY < content.minY,
               text.minY >= chrome.safeAreaInsets.top,
               abs(content.width - chrome.bounds.width) < 1,
@@ -92,7 +95,33 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
             if index < 7 {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { self.bridgeCycle(index + 1) }
             } else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.checkBlockedRequest() }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.checkNavigationReturn() }
+            }
+        }
+    }
+
+    private func checkNavigationReturn() {
+        progress("detail navigation and return")
+        driver.path.append(2)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.driver.path.removeLast()
+            // Request during the return transition, without waiting for appearance.
+            self.driver.choose(3)
+            self.waitForPicker(remaining: 40) { picker in
+                guard let picker else { self.finish("FAIL: request during navigation return"); return }
+                picker.dismiss(animated: true) {
+                    // A native result can arrive after dismissal and after a new request.
+                    self.driver.choose(2)
+                    self.waitForPicker(remaining: 40) { next in
+                        guard let next else { self.finish("FAIL: request after native dismissal"); return }
+                        picker.delegate?.documentPickerWasCancelled?(picker)
+                        guard self.driver.request?.kind == 2 else {
+                            self.finish("FAIL: old cancellation cleared the new request"); return
+                        }
+                        next.delegate?.documentPickerWasCancelled?(next)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.checkBlockedRequest() }
+                    }
+                }
             }
         }
     }
@@ -159,6 +188,7 @@ struct PickerHarnessRequest: Identifiable {
 
 final class PickerHarnessDriver: ObservableObject {
     @Published var request: PickerHarnessRequest?
+    @Published var path: [Int] = [1]
     func choose(_ kind: Int) { request = PickerHarnessRequest(kind: kind) }
 }
 
@@ -166,16 +196,12 @@ struct PickerHarness: View {
     @ObservedObject var driver: PickerHarnessDriver
     var body: some View {
         TabView {
-            NavigationStack {
-                List {
-                    NavigationLink("ファイル選択") { fileList }
-                }
-                .navigationTitle("設定")
-                // Keep the real presenter under a SwiftUI NavigationStack/List.
-                .background {
-                    MaterialDocumentPicker(item: $driver.request, type: { _ in .pdf },
-                        instruction: { "架空ファイル\($0.kind)を選んでください" }, selected: { _, _ in })
-                }
+            NavigationStack(path: $driver.path) {
+                List { NavigationLink("ファイル選択", value: 1) }
+                    .navigationTitle("設定")
+                    .navigationDestination(for: Int.self) { value in
+                        if value == 1 { fileList } else { Text("架空の詳細") }
+                    }
             }
             .tabItem { Text("設定") }
         }
@@ -185,7 +211,11 @@ struct PickerHarness: View {
             ForEach(0..<4) { kind in
                 Button("ファイル\(kind)を選び直す") { driver.choose(kind) }
             }
-            NavigationLink("詳細を見る") { Text("架空の詳細") }
+            NavigationLink("詳細を見る", value: 2)
+        }
+        .background {
+            MaterialDocumentPicker(item: $driver.request, type: { _ in .pdf },
+                instruction: { "架空ファイル\($0.kind)を選んでください" }, selected: { _, _ in })
         }
     }
 }

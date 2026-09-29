@@ -9,29 +9,31 @@ final class MaterialPickerController: UIDocumentPickerViewController {
     }
 }
 
-/// Keep UIKit's picker as a modal controller. Its complete view, including
-/// remote File Provider UI, sits below a separately measured instruction.
+/// The instruction is a sibling of the native picker. UIKit receives the
+/// picker's actual rectangle, so its safe area matches its on-screen position.
 final class GuidedDocumentPicker: UIPresentationController {
     private let chrome: MaterialPickerChrome
+    private let presented: (Bool) -> Void
     private let dismissed: () -> Void
 
     init(picker: UIDocumentPickerViewController, presenting: UIViewController?,
-         instruction: String, cancel: @escaping () -> Void, dismissed: @escaping () -> Void = {}) {
+         instruction: String, cancel: @escaping () -> Void,
+         presented: @escaping (Bool) -> Void = { _ in }, dismissed: @escaping () -> Void = {}) {
         chrome = MaterialPickerChrome(instruction: instruction, cancel: cancel)
+        self.presented = presented
         self.dismissed = dismissed
         super.init(presentedViewController: picker, presenting: presenting)
     }
 
-    override var presentedView: UIView? { chrome }
     override var shouldRemovePresentersView: Bool { false }
-    override var frameOfPresentedViewInContainerView: CGRect { containerView?.bounds ?? .zero }
+    override var frameOfPresentedViewInContainerView: CGRect {
+        guard let containerView else { return .zero }
+        return chrome.layout(in: containerView.bounds, topInset: containerView.safeAreaInsets.top).picker
+    }
 
     override func presentationTransitionWillBegin() {
         guard let containerView else { return }
-        presentedViewController.view.clipsToBounds = true
-        chrome.pickerView = presentedViewController.view
-        chrome.addSubview(presentedViewController.view)
-        containerView.addSubview(chrome)
+        containerView.insertSubview(chrome, at: 0)
         layoutChrome()
     }
 
@@ -42,28 +44,30 @@ final class GuidedDocumentPicker: UIPresentationController {
 
     private func layoutChrome() {
         guard let containerView else { return }
-        chrome.bounds = CGRect(origin: .zero, size: containerView.bounds.size)
-        chrome.center = CGPoint(x: containerView.bounds.midX, y: containerView.bounds.midY)
+        chrome.frame = containerView.bounds
         chrome.topInset = containerView.safeAreaInsets.top
         chrome.setNeedsLayout()
         chrome.layoutIfNeeded()
+        let frame = frameOfPresentedViewInContainerView
+        // Bounds/center remain valid while the transition applies a transform.
+        presentedViewController.view.bounds = CGRect(origin: .zero, size: frame.size)
+        presentedViewController.view.center = CGPoint(x: frame.midX, y: frame.midY)
     }
 
     override func presentationTransitionDidEnd(_ completed: Bool) {
         if !completed { chrome.removeFromSuperview() }
+        presented(completed)
     }
 
     override func dismissalTransitionDidEnd(_ completed: Bool) {
         if completed {
             chrome.removeFromSuperview()
-            // UIKit clears the modal relationship after this callback returns.
             DispatchQueue.main.async(execute: dismissed)
         }
     }
 }
 
 private final class MaterialPickerChrome: UIView {
-    var pickerView: UIView?
     var topInset: CGFloat = 0
     private let instructionView: UIVisualEffectView
     private let label = UILabel()
@@ -115,15 +119,17 @@ private final class MaterialPickerChrome: UIView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    override func layoutSubviews() {
-        super.layoutSubviews()
+    func layout(in bounds: CGRect, topInset: CGFloat) -> MaterialPickerLayout {
         let width = max(1, bounds.width - 24)
         let labelHeight = label.sizeThatFits(CGSize(width: max(1, width - 24 - 18 - 8),
                                                    height: .greatestFiniteMagnitude)).height
-        let layout = MaterialPickerLayout(bounds: bounds, topInset: topInset,
-                                          instructionHeight: max(20, labelHeight) + 24)
-        instructionView.frame = layout.instruction
-        pickerView?.frame = layout.picker
+        return MaterialPickerLayout(bounds: bounds, topInset: topInset,
+                                    instructionHeight: max(20, labelHeight) + 24)
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        instructionView.frame = layout(in: bounds, topInset: topInset).instruction
     }
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -153,6 +159,9 @@ final class MaterialPickerTransition: NSObject, UIViewControllerAnimatedTransiti
         }
         let translation = CGAffineTransform(translationX: 0, y: context.containerView.bounds.height)
         if presenting {
+            if let controller = context.viewController(forKey: .to) {
+                view.frame = context.finalFrame(for: controller)
+            }
             context.containerView.addSubview(view)
             view.transform = translation
         }
