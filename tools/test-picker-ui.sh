@@ -31,6 +31,7 @@ xcodebuild -project "$scratch_dir/PickerChecks.xcodeproj" -scheme PickerChecks \
     -destination "platform=iOS Simulator,id=$simulator_id" \
     -derivedDataPath "$scratch_dir/DerivedData" \
     -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
+    -collect-test-diagnostics never \
     CODE_SIGNING_ALLOWED=NO test
 ui_status=$?
 set -e

@@ -4,8 +4,23 @@ import UIKit
 
 /// The standard picker stays modal. A pending request survives a temporarily
 /// unavailable presenter; native results are tracked separately from animation.
-struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable {
+struct MaterialDocumentPicker<Item: Identifiable>: View {
     @Binding var item: Item?
+    var type: (Item) -> UTType
+    var instruction: (Item) -> String
+    var selected: (Item, ScopedMaterialSelection) -> Void
+
+    var body: some View {
+        // Read the request in a SwiftUI body. Passing only its Binding through
+        // a background builder did not invalidate the UIKit bridge on a tap.
+        MaterialPickerBridge(item: $item, requestID: item?.id, type: type,
+                             instruction: instruction, selected: selected)
+    }
+}
+
+private struct MaterialPickerBridge<Item: Identifiable>: UIViewControllerRepresentable {
+    @Binding var item: Item?
+    let requestID: Item.ID?
     var type: (Item) -> UTType
     var instruction: (Item) -> String
     var selected: (Item, ScopedMaterialSelection) -> Void
@@ -39,7 +54,7 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
                 self.item = item
             }
         }
-        var parent: MaterialDocumentPicker
+        var parent: MaterialPickerBridge
         weak var anchor: MaterialPickerAnchor?
         private var picker: UIDocumentPickerViewController?
         private var activeItem: Item?
@@ -52,7 +67,7 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
         private var rejectedRequest: Item.ID?
         private var stopped = false
 
-        init(parent: MaterialDocumentPicker) { self.parent = parent }
+        init(parent: MaterialPickerBridge) { self.parent = parent }
         deinit { retry?.cancel(); dismissalCheck?.cancel(); presentationCheck?.cancel() }
 
         func synchronize() {
@@ -196,7 +211,7 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
                 return
             }
             dismissalCheck = nil
-                (controller as? MaterialPickerController)?.presentationChanged = nil
+            (controller as? MaterialPickerController)?.presentationChanged = nil
             presenter = nil
             picker = nil
             activeItem = nil
