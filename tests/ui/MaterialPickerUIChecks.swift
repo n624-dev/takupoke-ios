@@ -95,6 +95,7 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
             guard let delegate = picker.delegate else { self.finish("FAIL: missing native delegate"); return }
             // Exercise the same callback the native Cancel control delivers.
             delegate.documentPickerWasCancelled?(picker)
+            guard self.driver.request == nil else { self.finish("FAIL: cancellation did not clear active request \(index)"); return }
             if index < 7 {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { self.bridgeCycle(index + 1) }
             } else {

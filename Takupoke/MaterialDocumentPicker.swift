@@ -88,12 +88,9 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
                 guard let controller else { return }
                 self?.didPresent(controller, completed: true)
             }
-            DispatchQueue.main.async { [weak self, weak controller] in
-                guard let self, let controller, self.picker === controller,
-                      self.phase == .presenting, controller.presentingViewController == nil,
-                      !controller.isBeingPresented else { return }
-                self.didPresent(controller, completed: false)
-            }
+            // UIKit may defer presentation beyond the next main-loop turn.
+            // Completion is reported by the transition, never inferred from an
+            // immediately absent presentingViewController.
         }
 
         private func retryWhenAvailable() {
