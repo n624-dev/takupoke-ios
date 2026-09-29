@@ -123,6 +123,7 @@ let package = Package(
                     "PDFDiagnostics.swift",
                     "PDFFullReadDiagnostic.swift",
                     "PDFFullDiagnosticEncoding.swift",
+                    "MaterialPickerLayout.swift",
                     "SchoolDate.swift",
                     "SchoolDataRetention.swift",
                     "TimetableSchedule.swift",
@@ -144,6 +145,7 @@ let package = Package(
                 ] + mappingSources),
         .testTarget(name: "ParsingTests", dependencies: ["TakupokeParsing", "ZIPFoundation", .product(name: "GRDB", package: "GRDB.swift")], path: "tests",
                     exclude: [
+                    "ui",
                     "MaterialLibraryChecks.swift",
                     "WebPDFChecks.swift",
                     "test_distribution.py",
@@ -165,6 +167,7 @@ let package = Package(
                     "LocalDatabaseTests.swift",
                     "LocalDatabaseTests+Legacy.swift",
                     "LocalDatabaseTests+Current.swift",
+                    "MaterialPickerLayoutTests.swift",
                     "SchoolDateTests.swift",
                     "SchoolDataRetentionTests.swift",
                     "TimetableScheduleTests.swift",

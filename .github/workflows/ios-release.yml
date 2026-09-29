@@ -36,6 +36,7 @@ jobs:
           bash -n tools/build-ios.sh
           bash -n tools/test-materials.sh
           bash -n tools/test-parsing.sh
+          bash -n tools/test-picker-ui.sh
           git diff --check
 
   build-check:
