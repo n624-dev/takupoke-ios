@@ -38,6 +38,7 @@ cat > "$app_dir/Info.plist" <<'PLIST'
 <key>MinimumOSVersion</key><string>16.0</string>
 <key>UIDeviceFamily</key><array><integer>1</integer></array>
 <key>UILaunchScreen</key><dict/>
+<key>UIApplicationSceneManifest</key><dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>
 </dict></plist>
 PLIST
 xcrun --sdk iphonesimulator swiftc -swift-version 5 -sdk "$(xcrun --sdk iphonesimulator --show-sdk-path)" \

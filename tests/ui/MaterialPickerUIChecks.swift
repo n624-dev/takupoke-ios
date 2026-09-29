@@ -3,20 +3,30 @@ import UniformTypeIdentifiers
 
 /// Runs only in a disposable simulator with the local Files provider.
 @main
-final class PickerChecks: UIResponder, UIApplicationDelegate, UIViewControllerTransitioningDelegate {
+final class PickerChecks: UIResponder, UIApplicationDelegate {
+    func application(_ application: UIApplication, configurationForConnecting session: UISceneSession,
+                     options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        let configuration = UISceneConfiguration(name: "Picker checks", sessionRole: session.role)
+        configuration.sceneClass = UIWindowScene.self
+        configuration.delegateClass = PickerCheckScene.self
+        return configuration
+    }
+}
+
+final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControllerTransitioningDelegate {
     var window: UIWindow?
     private var root = UIViewController()
     private var step = 0
     private let instructions = ["架空ファイルを選んでください", String(repeating: "架空ファイルの選択案内です。", count: 8)]
 
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        progress("app launched")
-        let window = UIWindow(frame: UIScreen.main.bounds)
+    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options: UIScene.ConnectionOptions) {
+        guard let scene = scene as? UIWindowScene else { return }
+        progress("scene connected")
+        let window = UIWindow(windowScene: scene)
         window.rootViewController = root
         self.window = window
         window.makeKeyAndVisible()
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.open() }
-        return true
     }
 
     private func open() {
