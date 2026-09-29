@@ -42,10 +42,12 @@ private struct PickerTapFileList: View {
                             func anchors(_ controller: UIViewController) -> [MaterialPickerAnchor] {
                                 (controller as? MaterialPickerAnchor).map { [$0] } ?? controller.children.flatMap(anchors)
                             }
-                            if let root, let anchor = anchors(root).first {
-                                MaterialPickerTestTrace.record?("FAULT unpaired appearance return")
-                                anchor.viewDidDisappear(false)
+                            guard let root, let anchor = anchors(root).first else {
+                                MaterialPickerTestTrace.record?("FAULT missing anchor")
+                                return
                             }
+                            MaterialPickerTestTrace.record?("FAULT unpaired appearance return")
+                            anchor.viewDidDisappear(false)
                         }
                         request = Request(kind: kind)
                     }

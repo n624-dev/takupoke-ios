@@ -47,11 +47,13 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
         private var results: [ObjectIdentifier: ResultContext] = [:]
         private var retry: DispatchWorkItem?
         private var dismissalCheck: DispatchWorkItem?
+        private var presentationCheck: DispatchWorkItem?
         private weak var presenter: UIViewController?
+        private var rejectedRequest: Item.ID?
         private var stopped = false
 
         init(parent: MaterialDocumentPicker) { self.parent = parent }
-        deinit { retry?.cancel(); dismissalCheck?.cancel() }
+        deinit { retry?.cancel(); dismissalCheck?.cancel(); presentationCheck?.cancel() }
 
         func synchronize() {
             trace("synchronize")
@@ -66,13 +68,19 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
                 }
                 return
             }
-            guard let item = parent.item, let anchor,
-                  anchor.viewIfLoaded?.window != nil, !anchor.disappeared else { return }
-            guard anchor.presentedViewController == nil,
-                  anchor.transitionCoordinator == nil else {
+            guard let item = parent.item, let anchor else { return }
+            guard let host = anchor.visiblePresentationHost else {
+                trace("waiting for visible host")
+                if anchor.viewIfLoaded?.window != nil { retryWhenAvailable() }
+                return
+            }
+            guard host.presentedViewController == nil, host.transitionCoordinator == nil,
+                  !host.isBeingPresented, !host.isBeingDismissed else {
+                trace("waiting for host transition")
                 retryWhenAvailable()
                 return
             }
+            guard rejectedRequest != item.id else { return }
             results = results.filter { $0.value.controller != nil }
             guard !results.values.contains(where: { $0.item.id == item.id }) else { return }
             let controller = MaterialPickerController(forOpeningContentTypes: [parent.type(item)], asCopy: false)
@@ -83,14 +91,63 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
             activeItem = item
             picker = controller
             phase = .presenting
+            presenter = host
             results[ObjectIdentifier(controller)] = ResultContext(controller, item: item)
-            anchor.present(controller, animated: true) { [weak self, weak controller] in
+            controller.presentationChanged = { [weak self, weak controller] in
+                guard let controller else { return }
+                self?.reconcile(controller)
+            }
+            host.present(controller, animated: true) { [weak self, weak controller] in
                 guard let controller else { return }
                 self?.didPresent(controller, completed: true)
             }
             // UIKit may defer presentation beyond the next main-loop turn.
             // Completion is reported by the transition, never inferred from an
             // immediately absent presentingViewController.
+            checkPresentation(controller, after: 2)
+        }
+
+        private func checkPresentation(_ controller: UIDocumentPickerViewController, after delay: TimeInterval) {
+            presentationCheck?.cancel()
+            let work = DispatchWorkItem { [weak self, weak controller] in
+                guard let self, let controller, self.picker === controller, self.phase == .presenting else { return }
+                self.reconcile(controller)
+                guard self.phase == .presenting else { return }
+                // A real transition or modal attachment may still be waiting for
+                // the provider. Never discard it based on elapsed time alone.
+                if controller.presentingViewController != nil || controller.isBeingPresented ||
+                    controller.transitionCoordinator != nil || controller.viewIfLoaded?.window != nil ||
+                    self.presenter?.transitionCoordinator != nil {
+                    self.checkPresentation(controller, after: 0.1)
+                    return
+                }
+                self.trace("presentation not attached")
+                self.rejectedRequest = self.activeItem?.id
+                self.results.removeValue(forKey: ObjectIdentifier(controller))
+                (controller as? MaterialPickerController)?.presentationChanged = nil
+                controller.delegate = nil
+                self.picker = nil
+                self.activeItem = nil
+                self.presenter = nil
+                self.phase = .idle
+                // The same request is not retried in a loop. A fresh button tap
+                // creates a new ID; a newer pending request can proceed now.
+                self.synchronize()
+            }
+            presentationCheck = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+        }
+
+        private func reconcile(_ controller: UIDocumentPickerViewController) {
+            guard !stopped, picker === controller else { return }
+            if phase == .presenting, controller.presentingViewController != nil,
+               controller.viewIfLoaded?.window != nil, !controller.isBeingPresented,
+               !controller.isBeingDismissed {
+                didPresent(controller, completed: true)
+            } else if phase != .presenting, controller.presentingViewController == nil,
+                      presenter?.presentedViewController !== controller, !controller.isBeingDismissed {
+                didDismiss(controller)
+            }
         }
 
         private func retryWhenAvailable() {
@@ -103,9 +160,11 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
 
         private func didPresent(_ controller: UIDocumentPickerViewController, completed: Bool) {
             guard !stopped, picker === controller, phase == .presenting else { return }
+            presentationCheck?.cancel()
+            presentationCheck = nil
             trace("presented \(completed)")
             if completed {
-                presenter = controller.presentingViewController
+                presenter = controller.presentingViewController ?? presenter
                 phase = .visible
                 synchronize()
             } else {
@@ -113,6 +172,7 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
                 if parent.item?.id == activeItem?.id { parent.item = nil }
                 picker = nil
                 activeItem = nil
+                presenter = nil
                 phase = .idle
                 synchronize()
             }
@@ -120,11 +180,13 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
 
         private func didDismiss(_ controller: UIDocumentPickerViewController) {
             guard !stopped, picker === controller else { return }
+            presentationCheck?.cancel()
+            presentationCheck = nil
             trace("dismissed callback")
             phase = .dismissing
             dismissalCheck?.cancel()
             if controller.presentingViewController != nil || presenter?.presentedViewController === controller ||
-                controller.isBeingDismissed || controller.viewIfLoaded?.window != nil {
+                controller.isBeingDismissed {
                 let work = DispatchWorkItem { [weak self, weak controller] in
                     guard let controller else { return }
                     self?.didDismiss(controller)
@@ -134,6 +196,7 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
                 return
             }
             dismissalCheck = nil
+                (controller as? MaterialPickerController)?.presentationChanged = nil
             presenter = nil
             picker = nil
             activeItem = nil
@@ -145,11 +208,14 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
 
         func stop() {
             stopped = true
+            presentationCheck?.cancel()
+            presentationCheck = nil
             dismissalCheck?.cancel()
             dismissalCheck = nil
             retry?.cancel()
             retry = nil
             results.removeAll()
+            (picker as? MaterialPickerController)?.presentationChanged = nil
             picker?.delegate = nil
             picker?.dismiss(animated: false)
             picker = nil
@@ -185,7 +251,7 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
 
         private func trace(_ event: String) {
 #if TAKUPOKE_PICKER_TESTS
-            MaterialPickerTestTrace.record?("\(event) phase=\(phase) request=\(String(describing: parent.item?.id)) active=\(String(describing: activeItem?.id)) picker=\(String(describing: picker.map(ObjectIdentifier.init)))")
+            MaterialPickerTestTrace.record?("\(event) phase=\(phase) request=\(String(describing: parent.item?.id)) active=\(String(describing: activeItem?.id)) picker=\(String(describing: picker.map(ObjectIdentifier.init))) attached=\(anchor?.viewIfLoaded?.window != nil)")
 #endif
         }
 
@@ -218,21 +284,55 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
 
 final class MaterialPickerAnchor: UIViewController {
     var availabilityChanged: (() -> Void)?
-    private(set) var disappeared = false
+    private var activationObserver: NSObjectProtocol?
+
+    /// Resolve the actual containing screen afresh for each request. Appearance
+    /// callbacks on a SwiftUI background controller are not a visibility record.
+    var visiblePresentationHost: UIViewController? {
+        guard let content = viewIfLoaded, let window = content.window,
+              window.windowScene?.activationState == .foregroundActive else { return nil }
+        var visibleView: UIView? = content
+        while let current = visibleView, current !== window {
+            guard !current.isHidden, current.alpha > 0 else { return nil }
+            visibleView = current.superview
+        }
+        guard var host = parent else { return nil }
+        var child: UIViewController = self
+        while true {
+            if let navigation = host as? UINavigationController,
+               navigation.topViewController !== child { return nil }
+            if let tabs = host as? UITabBarController,
+               tabs.selectedViewController !== child { return nil }
+            guard host.viewIfLoaded?.window === window else { return nil }
+            guard let next = host.parent else { return host }
+            child = host
+            host = next
+        }
+    }
     override func loadView() {
         let content = MaterialPickerAnchorView()
         content.backgroundColor = .clear
+        content.isUserInteractionEnabled = false
         content.attached = { [weak self] in self?.availabilityChanged?() }
         view = content
+        activationObserver = NotificationCenter.default.addObserver(
+            forName: UIScene.didActivateNotification, object: nil, queue: .main) { [weak self] notification in
+                guard let self, let scene = notification.object as? UIScene,
+                      self.viewIfLoaded?.window?.windowScene === scene else { return }
+                self.availabilityChanged?()
+            }
+    }
+    deinit { if let activationObserver { NotificationCenter.default.removeObserver(activationObserver) } }
+    override func didMove(toParent parent: UIViewController?) {
+        super.didMove(toParent: parent)
+        availabilityChanged?()
     }
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        disappeared = false
         availabilityChanged?()
     }
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        disappeared = true
         availabilityChanged?()
     }
 }

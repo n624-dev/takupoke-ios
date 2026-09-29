@@ -134,6 +134,7 @@ struct MaterialsView: View {
                     case .special(let kind): specialSchedules.importPDF(selection, kind: kind)
                     }
                 })
+                .allowsHitTesting(false)
         }
     }
 
