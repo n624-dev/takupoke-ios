@@ -32,6 +32,7 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
     private func open() {
         progress("opening picker \(step), window: \(root.view.window != nil)")
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.pdf], asCopy: false)
+        picker.loadViewIfNeeded()
         picker.modalPresentationStyle = .custom
         picker.transitioningDelegate = self
         root.present(picker, animated: true) {

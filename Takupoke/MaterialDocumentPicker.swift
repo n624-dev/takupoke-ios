@@ -52,6 +52,8 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
             let controller = UIDocumentPickerViewController(forOpeningContentTypes: [parent.type(item)], asCopy: false)
             controller.allowsMultipleSelection = false
             controller.delegate = self
+            // The picker sets its default sheet style while loading its view.
+            controller.loadViewIfNeeded()
             controller.modalPresentationStyle = .custom
             controller.transitioningDelegate = self
             activeItem = item
