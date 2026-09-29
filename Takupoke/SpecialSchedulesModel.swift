@@ -24,6 +24,7 @@ final class SpecialSchedulesModel: ObservableObject {
     private var retired = false
     private var generation = UUID()
     private var control: AcquisitionControl?
+    private var pendingSelections = PendingFileSelections<SpecialScheduleKind, ScopedMaterialSelection>()
     var fileRefreshQueue = FileRefreshQueue()
     lazy var fileMonitor = SelectedFileMonitor { [weak self] id in
         self?.fileRefreshQueue.request(id)
@@ -36,7 +37,14 @@ final class SpecialSchedulesModel: ObservableObject {
     }
 
     func importPDF(_ selection: ScopedMaterialSelection, kind: SpecialScheduleKind) {
-        analyze(kind: kind, selection: selection)
+        guard !retired else { return }
+        pendingSelections.append(selection, kind: kind)
+        runPendingSelection()
+    }
+
+    private func runPendingSelection() {
+        guard !retired, let selected = pendingSelections.take(busy: busy) else { return }
+        analyze(kind: selected.kind, selection: selected.selection)
     }
 
     func analyzePDF(_ kind: SpecialScheduleKind) {
@@ -64,6 +72,7 @@ final class SpecialSchedulesModel: ObservableObject {
         FileRefreshDiagnostics.shared.record(.cancelled)
         fileRefreshQueue.suspend()
         fileMonitor.suspend()
+        pendingSelections.clear()
         control?.cancel()
         message = busy ? "中止を要求しました。処理の終了を待っています。" : "自動確認を中止しました。"
     }
@@ -107,7 +116,7 @@ final class SpecialSchedulesModel: ObservableObject {
                     self.ready = true
                 }
                 self.updateFileMonitoring()
-                defer { self.runPendingFileRefresh() }
+                defer { self.runPendingSelection(); self.runPendingFileRefresh() }
                 switch result {
                 case .success:
                     self.message = success

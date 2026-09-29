@@ -30,6 +30,20 @@ struct HomeTodayView: View {
     private var presentation: TimetablePresentation { TimetablePresentation(schedule: schedule, mappings: mappings) }
     private var ready: Bool { materials.ready && specialSchedules.ready && schoolEvents.ready && mappings.ready }
 
+    private var loadFailed: Bool {
+        (!materials.ready && !materials.busy && materials.failed) ||
+        (!specialSchedules.ready && !specialSchedules.busy && specialSchedules.failed) ||
+        (!schoolEvents.ready && !schoolEvents.busy && schoolEvents.failed) ||
+        (!mappings.ready && !mappings.busy && mappings.failed)
+    }
+
+    private func retryLoading() {
+        materials.loadIfNeeded()
+        specialSchedules.loadIfNeeded()
+        schoolEvents.loadIfNeeded()
+        mappings.loadIfNeeded()
+    }
+
     var body: some View {
         Section {
             VStack(alignment: .leading, spacing: 6) {
@@ -42,7 +56,11 @@ struct HomeTodayView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            if !ready {
+            if loadFailed {
+                Text("データを読み込めませんでした。")
+                    .font(.subheadline).foregroundStyle(.secondary)
+                Button("再試行", action: retryLoading)
+            } else if !ready {
                 LoadingRow(title: "読み込み中⋯")
             } else if classes.isEmpty {
                 NavigationLink("クラスを選択") {

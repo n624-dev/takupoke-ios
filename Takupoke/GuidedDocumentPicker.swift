@@ -1,13 +1,24 @@
 import UIKit
 
+/// The picker resets its sheet style during presentation. Keep the public
+/// presentation style consistent with the transitioning delegate for its lifetime.
+final class MaterialPickerController: UIDocumentPickerViewController {
+    override var modalPresentationStyle: UIModalPresentationStyle {
+        get { .custom }
+        set { super.modalPresentationStyle = .custom }
+    }
+}
+
 /// Keep UIKit's picker as a modal controller. Its complete view, including
 /// remote File Provider UI, sits below a separately measured instruction.
 final class GuidedDocumentPicker: UIPresentationController {
     private let chrome: MaterialPickerChrome
+    private let dismissed: () -> Void
 
     init(picker: UIDocumentPickerViewController, presenting: UIViewController?,
-         instruction: String, cancel: @escaping () -> Void) {
+         instruction: String, cancel: @escaping () -> Void, dismissed: @escaping () -> Void = {}) {
         chrome = MaterialPickerChrome(instruction: instruction, cancel: cancel)
+        self.dismissed = dismissed
         super.init(presentedViewController: picker, presenting: presenting)
     }
 
@@ -43,7 +54,11 @@ final class GuidedDocumentPicker: UIPresentationController {
     }
 
     override func dismissalTransitionDidEnd(_ completed: Bool) {
-        if completed { chrome.removeFromSuperview() }
+        if completed {
+            chrome.removeFromSuperview()
+            // UIKit clears the modal relationship after this callback returns.
+            DispatchQueue.main.async(execute: dismissed)
+        }
     }
 }
 

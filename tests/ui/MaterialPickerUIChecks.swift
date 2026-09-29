@@ -31,8 +31,7 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
 
     private func open() {
         progress("opening picker \(step), window: \(root.view.window != nil)")
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.pdf], asCopy: false)
-        picker.loadViewIfNeeded()
+        let picker = MaterialPickerController(forOpeningContentTypes: [.pdf], asCopy: false)
         picker.modalPresentationStyle = .custom
         picker.transitioningDelegate = self
         root.present(picker, animated: true) {
@@ -61,7 +60,7 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
               text.minY >= chrome.safeAreaInsets.top,
               abs(content.width - chrome.bounds.width) < 1,
               abs(content.maxY - chrome.bounds.maxY) < 1,
-              content.height > 200 else { finish("FAIL: instruction/picker overlap or clipped bounds"); return }
+              content.height > 200 else { finish("FAIL: layout text=\(text), picker=\(content), bounds=\(chrome.bounds)"); return }
         root.dismiss(animated: true) {
             guard self.root.presentedViewController == nil else { self.finish("FAIL: dismiss"); return }
             self.step += 1

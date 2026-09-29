@@ -63,3 +63,20 @@ struct FileContentChangeGate {
         return true
     }
 }
+
+/// User selections retain their access lease while another operation finishes.
+/// The model drains these before starting another automatic refresh.
+struct PendingFileSelections<Kind, Selection> {
+    private var items: [(kind: Kind, selection: Selection)] = []
+
+    mutating func append(_ selection: Selection, kind: Kind) {
+        items.append((kind, selection))
+    }
+
+    mutating func take(busy: Bool) -> (kind: Kind, selection: Selection)? {
+        guard !busy, !items.isEmpty else { return nil }
+        return items.removeFirst()
+    }
+
+    mutating func clear() { items.removeAll() }
+}

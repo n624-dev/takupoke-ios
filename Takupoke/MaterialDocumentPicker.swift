@@ -49,11 +49,9 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
             }
             guard picker == nil, let anchor, anchor.viewIfLoaded?.window != nil,
                   anchor.presentedViewController == nil else { return }
-            let controller = UIDocumentPickerViewController(forOpeningContentTypes: [parent.type(item)], asCopy: false)
+            let controller = MaterialPickerController(forOpeningContentTypes: [parent.type(item)], asCopy: false)
             controller.allowsMultipleSelection = false
             controller.delegate = self
-            // The picker sets its default sheet style while loading its view.
-            controller.loadViewIfNeeded()
             controller.modalPresentationStyle = .custom
             controller.transitioningDelegate = self
             activeItem = item
@@ -96,7 +94,8 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
                                     presenting: UIViewController?, source: UIViewController) -> UIPresentationController? {
             guard let picker = presented as? UIDocumentPickerViewController, let activeItem else { return nil }
             return GuidedDocumentPicker(picker: picker, presenting: presenting,
-                instruction: parent.instruction(activeItem), cancel: { [weak self] in self?.cancel() })
+                instruction: parent.instruction(activeItem), cancel: { [weak self] in self?.cancel() },
+                dismissed: { [weak self] in self?.synchronize() })
         }
 
         func animationController(forPresented presented: UIViewController, presenting: UIViewController,
