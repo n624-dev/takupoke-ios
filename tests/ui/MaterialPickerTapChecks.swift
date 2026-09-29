@@ -39,11 +39,19 @@ final class MaterialPickerTapChecks: XCTestCase {
 
     private func reveal(_ app: XCUIApplication, identifier: String) {
         let button = app.buttons[identifier]
-        for _ in 0..<4 where !button.isHittable { app.swipeUp() }
-        if !button.isHittable {
-            for _ in 0..<4 where !button.isHittable { app.swipeDown() }
+        let top = app.navigationBars.firstMatch.frame.maxY + 4
+        let bottom = app.tabBars.firstMatch.frame.minY - 4
+        // isHittable may include a row XCTest can scroll to automatically.
+        // Scroll explicitly before tapping so recycled List rows are settled.
+        for _ in 0..<8 {
+            guard button.exists else { app.swipeUp(); continue }
+            if button.frame.minY < top { app.swipeDown() }
+            else if button.frame.maxY > bottom { app.swipeUp() }
+            else { break }
         }
         XCTAssertTrue(button.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertGreaterThanOrEqual(button.frame.minY, top, app.debugDescription)
+        XCTAssertLessThanOrEqual(button.frame.maxY, bottom, app.debugDescription)
         XCTAssertTrue(button.isHittable, "Button is not hittable: \(identifier)\n\(app.debugDescription)")
     }
 
