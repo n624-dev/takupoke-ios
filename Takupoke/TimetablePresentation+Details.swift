@@ -45,17 +45,16 @@ extension TimetablePresentation {
     func changeDetail(_ selection: ChangeSelection) -> some View {
         let change = selection.change
         let names = mappings.names(for: change)
-        let specialTimes = Set(selection.baseSpecialLessons.compactMap(\.timeRange))
+        let times = schedule.changeTimeRanges(change)
         return List {
             Section("変更内容") {
                 LabeledContent("日付", value: change.change_date)
                 LabeledContent("クラス", value: TimetableDisplayText.className(change.displayClassName))
                 LabeledContent("時限", value: change.displayPeriod)
-                if let periods = change.gridPeriods, let first = periods.first, let last = periods.last,
-                   !selection.baseLessons.isEmpty {
-                    LabeledContent("時刻", value: normalTime(from: first, to: last))
-                } else if specialTimes.count == 1, let time = specialTimes.first {
-                    LabeledContent("時刻", value: time)
+                if times.contains(where: { $0 != nil }) {
+                    ForEach(Array(times.enumerated()), id: \.offset) { _, time in
+                        LabeledContent("時刻", value: time ?? "時刻未確認")
+                    }
                 }
                 LabeledContent("変更前", value: TimetableDisplayText.kana(
                     change.before_subject.isEmpty ? beforeSubject(selection) : names.before.detailSubject))

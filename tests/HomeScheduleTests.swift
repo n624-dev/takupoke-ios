@@ -38,6 +38,35 @@ final class HomeScheduleTests: XCTestCase {
                 lines: ["架空科目C", "架空教員C", "架空教室C"], page: 1) })
     }
 
+    func testChangeDetailsJoinSeparateExamSlotsAndKeepDisjointPeriodsSeparate() {
+        for kind in SpecialScheduleKind.allCases {
+            let source = special(kind)
+            let separate = SpecialScheduleAnalysis(kind: kind, sourceDigest: source.sourceDigest,
+                sourceName: source.sourceName, parsedAt: source.parsedAt, schoolYear: source.schoolYear,
+                coveredDates: source.coveredDates, coveredClasses: source.coveredClasses,
+                periodTimes: source.periodTimes, lessons: (1...2).map { period in
+                    SpecialScheduleLesson(date: day.iso8601, className: fixtureClass,
+                        period: period, spanStart: period, spanEnd: period,
+                        timeRange: source.periodTimes[period], lines: ["架空科目D"], page: 1)
+                })
+            let schedule = TimetableDaySchedule(timetable: timetable(), changes: changes([change()]),
+                events: nil, specials: [separate], includesChanges: true)
+            XCTAssertEqual(schedule.changeTimeRanges(change()), ["09:10〜09:50"])
+        }
+        let schedule = TimetableDaySchedule(timetable: timetable(), changes: nil, events: nil,
+            specials: [], includesChanges: true)
+        var disjoint = change()
+        disjoint.period = "1,3"
+        XCTAssertNil(disjoint.gridPeriods)
+        XCTAssertEqual(schedule.changeTimeRanges(disjoint), ["08:50〜09:35", "10:30〜11:15"])
+        disjoint.period = "1,1"
+        XCTAssertTrue(schedule.changeTimeRanges(disjoint).isEmpty)
+        let missing = TimetableDaySchedule(timetable: timetable(), changes: nil,
+            events: events("テスト"), specials: [], includesChanges: true)
+        XCTAssertEqual(missing.changeTimeRanges(change()).count, 1)
+        XCTAssertNil(missing.changeTimeRanges(change())[0])
+    }
+
     func testJapaneseDayAtMidnightAndWeekendWeek() {
         XCTAssertEqual(TimetableDaySchedule.schoolDay(at: date("2032-04-04T14:59:59Z")).iso8601, "2032-04-04")
         XCTAssertEqual(TimetableDaySchedule.schoolDay(at: date("2032-04-04T15:00:00Z")), day)

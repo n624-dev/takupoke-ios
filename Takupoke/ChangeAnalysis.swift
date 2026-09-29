@@ -40,6 +40,13 @@ struct ScheduleChange: Codable, Equatable {
     /// A change remains one saved row even when it covers consecutive periods.
     /// Unsupported or nonconsecutive notation stays visible in the change list.
     var gridPeriods: [Int]? {
+        guard let periods = detailPeriods,
+              zip(periods, periods.dropFirst()).allSatisfy({ $0.1 == $0.0 + 1 }) else { return nil }
+        return periods
+    }
+
+    /// Detailed clock ranges may be disjoint; grid merging still requires adjacency.
+    var detailPeriods: [Int]? {
         let value = period.precomposedStringWithCompatibilityMapping
             .replacingOccurrences(of: "〜", with: "~")
             .filter { !$0.isWhitespace }
@@ -57,7 +64,7 @@ struct ScheduleChange: Codable, Equatable {
         let periods = parts.compactMap(Int.init)
         guard periods.count == parts.count, !periods.isEmpty,
               periods.allSatisfy({ (1...8).contains($0) }),
-              zip(periods, periods.dropFirst()).allSatisfy({ $0.1 == $0.0 + 1 }) else { return nil }
+              Set(periods).count == periods.count else { return nil }
         return periods
     }
 }
