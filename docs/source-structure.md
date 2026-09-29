@@ -44,3 +44,7 @@ Xcodeプロジェクトと `Package.swift` の明示的なソース一覧を両�
 - 構成を維持した確認対象：`SpecialScheduleStore`、`PDFAnalysisView`、`TimetableView+Cards`、`PDFAnalysis`、`PDFPathReader`、`WebPDFDownloader`、`SchoolEventsModel`、`MappingOIDC`、`PDFKitReader`、`MaterialsModel`、`LinksModel`、`SpecialScheduleParser`、`TimetableSchedule`、`SelectedFilePresenter`。保存の確定・通信の終了・監視のロックといった一連の処理は、同じファイル内のまとまりを維持しています。
 
 分割した10ファイルは、移動前後の実装行と118個のメソッド・プロパティの内容と順序を照合しました。XLSXのワークシート処理だけは既存の連続した処理を引数付きメソッドへ移し、呼出し位置と検証順序を維持しています。
+
+ファイル選択は `MaterialsView` が4種類共通の要求を作り、`MaterialDocumentPicker` が表示待ち・開閉・要求ごとの結果を管理します。`GuidedDocumentPicker` は上部案内と標準ピッカーの領域を分け、`MaterialPickerLayout` が寸法を計算します。
+
+`tools/build-ios.sh` は `parallel_build.py` でUI検証と `build-ios-app.sh` を並列実行し、両方の成功後にIPAを生成します。UI検証には本体と同じSwiftUI接続・UIKit表示コードを使用します。

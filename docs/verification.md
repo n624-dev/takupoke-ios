@@ -8,7 +8,11 @@
 - [修正前のCI](https://github.com/n624-dev/takupoke-ios/actions/runs/36575943581)で、SwiftUI接続を通した選択要求が、別のモーダルを閉じた後に再開しないことを再現。既存の単体ピッカー開閉テストではこの経路を検証していなかった。
 - 表示待ち・表示中・終了中を区別し、表示元の準備待ちの要求を再開する。選択結果は要求ごとに扱い、遅れて届いた終了通知が新しい要求を消さないようにする。
 - 案内とピッカーを同じコンテナ内の別領域に配置し、UIKitへピッカーの実際の矩形を渡す。
-- 修正後のCI、配布とOneDrive実機確認は未完了。
+- [修正後のCI](https://github.com/n624-dev/takupoke-ios/actions/runs/36579764828)でPython29件・Swift182件、標準Filesを使うiPhone 16シミュレーター検証、iPhone向けReleaseビルドが成功。連続キャンセル・画面遷移からの復帰・古いコールバック・表示待ちの再開・上部安全領域を確認。テストはSwiftUIとUIKitの接続を通し、ネイティブのキャンセルコールバックを呼ぶ。画面上のボタンを物理タップする検証とOneDriveでの確認は含まない。
+- 並列処理はUI検証約300秒、保存・解析テスト＋ビルド約500秒、全体約500秒。環境負荷で変動するため、直列時との差を固定値では保証しない。
+- [最終コミットのCI](https://github.com/n624-dev/takupoke-ios/actions/runs/36580471412)でもPython29件・Swift182件・UI検証・iPhoneビルドが成功し、[PR #35](https://github.com/n624-dev/takupoke-ios/pull/35)をマージ。
+- [配布CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36581861562)でも全検証が成功し、[0.1.178（178.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.178-build.178.1)を公開。公開IPA・ハッシュ・コミット・更新内容・固定URLのAltStore Sourceを照合した。配布時の並列工程はUI約355秒、保存・解析テスト＋ビルド約617秒だった。
+- ダウンロードした検証ファイルは削除済み。OneDriveで上部余白、詳細画面を経由しない4種類の選び直し、キャンセル後の再選択を実機で確認する。
 
 ## ファイル選択の案内領域（2026-09-29）
 
