@@ -1,3 +1,4 @@
+import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
@@ -56,6 +57,7 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
         chrome.layoutIfNeeded()
         let text = label.convert(label.bounds, to: chrome)
         let content = picker.view.convert(picker.view.bounds, to: chrome)
+        print("PICKER GEOMETRY: frame=\(content), safeArea=\(picker.view.safeAreaInsets), instruction=\(text)")
         guard text.height > 0, text.maxY < content.minY,
               text.minY >= chrome.safeAreaInsets.top,
               abs(content.width - chrome.bounds.width) < 1,
@@ -65,7 +67,63 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
             guard self.root.presentedViewController == nil else { self.finish("FAIL: dismiss"); return }
             self.step += 1
             if self.step < self.instructions.count { self.open() }
-            else { self.finish("PASS: native modal, separate instruction, wrapped text, dismiss and reopen") }
+            else { self.checkBridge() }
+        }
+    }
+
+    private var driver = PickerHarnessDriver()
+
+    private func checkBridge() {
+        progress("starting SwiftUI bridge")
+        let host = UIHostingController(rootView: PickerHarness(driver: driver))
+        root = host
+        window?.rootViewController = host
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.bridgeCycle(0) }
+    }
+
+    private func bridgeCycle(_ index: Int) {
+        progress("SwiftUI request \(index)")
+        driver.choose(index % 4)
+        waitForPicker(remaining: 40) { picker in
+            guard let picker else { self.finish("FAIL: SwiftUI request \(index) did not present"); return }
+            guard let delegate = picker.delegate else { self.finish("FAIL: missing native delegate"); return }
+            // Exercise the same callback the native Cancel control delivers.
+            delegate.documentPickerWasCancelled?(picker)
+            if index < 7 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { self.bridgeCycle(index + 1) }
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.checkBlockedRequest() }
+            }
+        }
+    }
+
+    private func checkBlockedRequest() {
+        progress("request while another presentation is active")
+        let blocker = UIViewController()
+        blocker.modalPresentationStyle = .overFullScreen
+        root.present(blocker, animated: false) {
+            self.driver.choose(0)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                blocker.dismiss(animated: false) {
+                    self.waitForPicker(remaining: 40) { picker in
+                        guard let picker else { self.finish("FAIL: pending SwiftUI request did not resume after dismissal"); return }
+                        picker.delegate?.documentPickerWasCancelled?(picker)
+                        self.finish("PASS: native layout, SwiftUI binding, repeated cancellation/reselection, deferred presentation")
+                    }
+                }
+            }
+        }
+    }
+
+    private func waitForPicker(remaining: Int, completion: @escaping (UIDocumentPickerViewController?) -> Void) {
+        if let picker = root.presentedViewController as? UIDocumentPickerViewController,
+           !picker.isBeingPresented, !picker.isBeingDismissed {
+            completion(picker)
+        } else if remaining == 0 { completion(nil) }
+        else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.waitForPicker(remaining: remaining - 1, completion: completion)
+            }
         }
     }
 
@@ -87,5 +145,47 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
     }
     func animationController(forDismissed dismissed: UIViewController) -> UIViewControllerAnimatedTransitioning? {
         MaterialPickerTransition(presenting: false)
+    }
+}
+
+// The UI fixture uses the app's actual representable and security-scope lease.
+// Only the unrelated acquisition error type is substituted for this small app.
+enum MaterialError: Error { case cancelled, accessExpired }
+
+struct PickerHarnessRequest: Identifiable {
+    let id = UUID()
+    let kind: Int
+}
+
+final class PickerHarnessDriver: ObservableObject {
+    @Published var request: PickerHarnessRequest?
+    func choose(_ kind: Int) { request = PickerHarnessRequest(kind: kind) }
+}
+
+struct PickerHarness: View {
+    @ObservedObject var driver: PickerHarnessDriver
+    var body: some View {
+        TabView {
+            NavigationStack {
+                List {
+                    NavigationLink("ファイル選択") { fileList }
+                }
+                .navigationTitle("設定")
+                // Keep the real presenter under a SwiftUI NavigationStack/List.
+                .background {
+                    MaterialDocumentPicker(item: $driver.request, type: { _ in .pdf },
+                        instruction: { "架空ファイル\($0.kind)を選んでください" }, selected: { _, _ in })
+                }
+            }
+            .tabItem { Text("設定") }
+        }
+    }
+    private var fileList: some View {
+        List {
+            ForEach(0..<4) { kind in
+                Button("ファイル\(kind)を選び直す") { driver.choose(kind) }
+            }
+            NavigationLink("詳細を見る") { Text("架空の詳細") }
+        }
     }
 }

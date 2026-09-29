@@ -44,7 +44,7 @@ PLIST
 xcrun --sdk iphonesimulator swiftc -swift-version 5 -sdk "$(xcrun --sdk iphonesimulator --show-sdk-path)" \
     -target "$(uname -m)-apple-ios16.0-simulator" \
     -module-cache-path "$scratch_dir/modules" \
-    Takupoke/GuidedDocumentPicker.swift Takupoke/MaterialPickerLayout.swift tests/ui/MaterialPickerUIChecks.swift \
+    Takupoke/GuidedDocumentPicker.swift Takupoke/MaterialPickerLayout.swift Takupoke/MaterialDocumentPicker.swift Takupoke/ScopedMaterialSelection.swift tests/ui/MaterialPickerUIChecks.swift \
     -o "$app_dir/PickerChecks"
 codesign --force --sign - "$app_dir"
 xcrun simctl boot "$simulator_id"
@@ -55,6 +55,7 @@ app_data="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.pick
 for ((attempt = 0; attempt < 180; attempt++)); do
     if [[ -f "$app_data/Documents/result.txt" ]]; then
         cat "$app_data/Documents/result.txt"
+        if [[ -f "$scratch_dir/stdout.log" ]]; then cat "$scratch_dir/stdout.log"; fi
         if [[ "$(cat "$app_data/Documents/result.txt")" == PASS:* ]]; then exit 0; fi
         if [[ -f "$scratch_dir/stderr.log" ]]; then tail -30 "$scratch_dir/stderr.log"; fi
         exit 1
