@@ -17,7 +17,7 @@ let mappingTestExcludes = ["MappingPackageTests.swift", "MappingServiceTests.swi
 // Host tests compile the same Foundation-based sources used by the iOS target.
 let package = Package(
     name: "TakupokeParsing",
-    platforms: [.macOS(.v12), .iOS(.v16)],
+    platforms: [.macOS(.v12), .iOS("26.0")],
     dependencies: [
         .package(url: "https://github.com/weichsel/ZIPFoundation.git", revision: "22787ffb59de99e5dc1fbfe80b19c97a904ad48d"),
         .package(url: "https://github.com/groue/GRDB.swift.git", revision: "b83108d10f42680d78f23fe4d4d80fc88dab3212")

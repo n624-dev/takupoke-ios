@@ -10,11 +10,11 @@
 | 配布処理のローカルテスト | Python 3.11 以降、標準ライブラリのみ |
 | ワークフローの追加チェック | 任意で actionlint |
 | iOS ビルド | Actions の `xcode-27` と Xcode 27.0 |
-| 実機導入・更新 | iOS 16.0以降のiPhone、AltStore Classic。[導入手順](altstore-pal-install.md)を参照 |
+| 実機導入・更新 | iOS 26・27のiPhone、AltStore Classic。[導入手順](altstore-pal-install.md)を参照 |
 
 Linux / Windows では SwiftUI のビルドを行わず、配布スクリプトのテストとソース編集を行います。XLSX展開にはZIPFoundation 0.9.20、SQLite保存基盤にはGRDB 7.11.1をコミット固定のSwift Packageとして使用します。共通ソースのテストにはSwift 6.1以降が必要です。
 
-Actionsでは `/Applications/Xcode_27.0.app/Contents/Developer` を指定し、正式版のXcode 27.0を使用します。`xcode-27` runnerは公開プレビューです。最低対応OSはiOS 16、アプリのSwift言語モードは5を維持します。
+Actionsでは `/Applications/Xcode_27.0.app/Contents/Developer` を指定し、正式版のXcode 27.0を使用します。`xcode-27` runnerは公開プレビューです。最低対応OSはiOS 26、アプリのSwift言語モードは5を維持します。
 
 ## clone とメールアドレスの非公開設定
 

@@ -129,4 +129,4 @@ OIDC認証と `takupoke-api` の非公開R2配信へ接続する。起動時は�
 
 文字範囲の取得と選択範囲の座標は、Appleの [PDFPage](https://developer.apple.com/documentation/pdfkit/pdfpage) 、[PDFPage.characterBounds(at:)](https://developer.apple.com/documentation/pdfkit/pdfpage/characterbounds(at:)) と [PDFSelection.bounds(for:)](https://developer.apple.com/documentation/pdfkit/pdfselection/bounds(for:)) のAPIを使用する。
 
-新しい画面の解析ボタンはiOS 26以降でLiquid Glassを使い、それより古いOSでは標準のボタンを使う。
+新しい画面の解析ボタンは標準のLiquid Glassを使う。

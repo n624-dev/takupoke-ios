@@ -43,7 +43,7 @@ def generate(destination):
             values.append(add(dict(isa="XCBuildConfiguration", name=name, buildSettings=settings)))
         return add(dict(isa="XCConfigurationList", buildConfigurations=values, defaultConfigurationIsVisible=0, defaultConfigurationName="Debug"))
 
-    common = dict(SWIFT_VERSION="5.0", IPHONEOS_DEPLOYMENT_TARGET="16.0", SDKROOT="iphonesimulator",
+    common = dict(SWIFT_VERSION="5.0", IPHONEOS_DEPLOYMENT_TARGET="26.0", SDKROOT="iphonesimulator",
                   TARGETED_DEVICE_FAMILY="1", CODE_SIGNING_ALLOWED="NO", PRODUCT_NAME="$(TARGET_NAME)",
                   CLANG_ENABLE_MODULES="YES", SWIFT_OPTIMIZATION_LEVEL="-Onone",
                   LD_RUNPATH_SEARCH_PATHS=["$(inherited)", "@executable_path/Frameworks", "@loader_path/Frameworks"])
@@ -93,7 +93,7 @@ def generate(destination):
     with (destination / "Info.plist").open("wb") as stream:
         plistlib.dump(dict(CFBundleIdentifier="$(PRODUCT_BUNDLE_IDENTIFIER)", CFBundleExecutable="$(EXECUTABLE_NAME)",
             CFBundleName="PickerChecks", CFBundlePackageType="APPL", CFBundleVersion="1", CFBundleShortVersionString="1.0",
-            MinimumOSVersion="16.0", UIDeviceFamily=[1], UILaunchScreen={},
+            MinimumOSVersion="26.0", UIDeviceFamily=[1], UILaunchScreen={},
             UIApplicationSceneManifest=dict(UIApplicationSupportsMultipleScenes=False)), stream)
 
 

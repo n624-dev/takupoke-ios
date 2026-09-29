@@ -38,7 +38,7 @@ class IPAFixture(unittest.TestCase):
             "CFBundlePackageType": "APPL",
             "CFBundleExecutable": "Takupoke",
             "CFBundleSupportedPlatforms": ["iPhoneOS"],
-            "MinimumOSVersion": "16.0",
+            "MinimumOSVersion": self.config["minOSVersion"],
             "TakupokeCommit": COMMIT,
         }
 
@@ -69,6 +69,7 @@ class DistributionTests(IPAFixture):
         self.assertEqual(version["size"], (self.output / "takupoke.ipa").stat().st_size)
         self.assertEqual(version["version"], self.info["CFBundleShortVersionString"])
         self.assertEqual(version["buildVersion"], self.info["CFBundleVersion"])
+        self.assertEqual(version["minOSVersion"], self.info["MinimumOSVersion"])
         self.assertIn("/v0.1.12-build.12.1/takupoke.ipa", version["downloadURL"])
         self.assertEqual(version["localizedDescription"], self.notes.read_text().strip())
         self.assertEqual(release.validate(self.output)["commit"], COMMIT)
