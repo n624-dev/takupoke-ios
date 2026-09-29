@@ -1,6 +1,18 @@
 import XCTest
 
 final class MaterialPickerTapChecks: XCTestCase {
+    func testReselectionWithMissingAppearanceReturn() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["--tap-checks", "--unpaired-appearance", "-AppleLanguages", "(en)"]
+        app.launch()
+        app.tabBars.buttons["設定"].tap()
+        app.buttons["ファイル選択"].tap()
+        // Fault injection isolates the stale appearance record. This does not
+        // claim that OneDrive emits this exact callback sequence.
+        chooseAndCancel(app, kind: 0)
+    }
+
     func testReselectionThroughActualButtons() {
         continueAfterFailure = false
         let app = XCUIApplication()
