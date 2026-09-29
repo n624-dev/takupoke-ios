@@ -251,4 +251,3 @@ struct PickerHarness: View {
         }
     }
 }
-
