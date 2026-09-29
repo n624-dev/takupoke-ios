@@ -42,11 +42,17 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
 
     private func check(_ picker: UIDocumentPickerViewController) {
         progress("checking picker \(step)")
-        guard let presentation = picker.presentationController as? GuidedDocumentPicker,
-              let chrome = presentation.presentedView,
-              let label = descendants(chrome).compactMap({ $0 as? UILabel }).first(where: { $0.text == instructions[step] }),
-              picker.presentingViewController != nil,
-              picker.parent == nil else { finish("FAIL: modal presentation"); return }
+        guard let presentation = picker.presentationController as? GuidedDocumentPicker else {
+            finish("FAIL: presentation controller = \(String(describing: picker.presentationController)), style = \(picker.modalPresentationStyle.rawValue)")
+            return
+        }
+        guard let chrome = presentation.presentedView else { finish("FAIL: missing chrome"); return }
+        guard let label = descendants(chrome).compactMap({ $0 as? UILabel }).first(where: { $0.text == instructions[step] }) else {
+            finish("FAIL: missing instruction, subviews = \(chrome.subviews.map { String(describing: type(of: $0)) })")
+            return
+        }
+        guard picker.presentingViewController != nil else { finish("FAIL: no presenting controller"); return }
+        guard picker.parent == nil else { finish("FAIL: picker parent = \(String(describing: picker.parent))"); return }
         chrome.layoutIfNeeded()
         let text = label.convert(label.bounds, to: chrome)
         let content = picker.view.convert(picker.view.bounds, to: chrome)
