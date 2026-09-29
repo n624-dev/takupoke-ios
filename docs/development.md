@@ -40,6 +40,8 @@ Linux:
 ```sh
 python3 -B -m unittest discover -s tests -v
 bash -n tools/build-ios.sh
+bash -n tools/build-ios-app.sh
+bash -n tools/test-picker-ui.sh
 bash -n tools/test-materials.sh
 bash -n tools/test-parsing.sh
 git diff --check
@@ -85,6 +87,15 @@ bash tools/test-parsing.sh
 macOS CIでは標準のCompressionを使うため、この追加導入は不要です。解析テストもIPA作成前に実行し、失敗時は配布を止めます。パッケージcheckout、ビルド、モジュールキャッシュ、架空XLSXは専用一時ディレクトリにまとめ、終了時に削除します。SwiftPMの共有依存キャッシュは無効にします。通常の `swift test` を直接実行すると既定のキャッシュ・`.build`が残るため、このスクリプトを使ってください。
 
 Xcode側も依存のcheckout・キャッシュをビルド用一時ディレクトリへ指定し、repository cacheを無効にしています。Actions cache・artifactの保存は追加していません。`Package.swift`、Xcodeプロジェクト、2か所の `Package.resolved` は同じコミットに揃えます。
+
+## UI検証とビルドの並列実行
+
+`tools/build-ios.sh` は次の2系統を同時に実行します。
+
+- `tools/test-picker-ui.sh`：使い捨てのiPhoneシミュレーターで標準ファイル選択画面を検証。
+- `tools/build-ios-app.sh`：保存・解析テストの後にiPhone向けReleaseビルドを実行。
+
+`tools/parallel_build.py` が両方の終了結果を確認し、すべて成功した場合だけIPA作成へ進みます。失敗・中止時には子プロセスも停止します。処理ごとのログは完了時に出力し、一時ディレクトリとシミュレーターは後片付けします。プロセス制御のテストはmacOS・Linuxで実行し、Windowsでは省略します。
 
 ## ファイルを変更するとき
 

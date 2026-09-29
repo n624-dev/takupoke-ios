@@ -1,4 +1,5 @@
 import importlib.util
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -9,6 +10,7 @@ parallel = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(parallel)
 
 
+@unittest.skipUnless(os.name == "posix", "macOS CI process groups")
 class ParallelBuildTests(unittest.TestCase):
     def test_both_commands_start_before_either_finishes(self):
         with tempfile.TemporaryDirectory() as directory:
