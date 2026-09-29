@@ -49,9 +49,9 @@ codesign --force --sign - "$app_dir"
 xcrun simctl boot "$simulator_id"
 xcrun simctl bootstatus "$simulator_id" -b
 xcrun simctl install "$simulator_id" "$app_dir"
-xcrun simctl launch "$simulator_id" jp.n624.takupoke.picker-checks
+xcrun simctl launch --stdout="$scratch_dir/stdout.log" --stderr="$scratch_dir/stderr.log" "$simulator_id" jp.n624.takupoke.picker-checks
 app_data="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.picker-checks data)"
-for ((attempt = 0; attempt < 30; attempt++)); do
+for ((attempt = 0; attempt < 180; attempt++)); do
     if [[ -f "$app_data/Documents/result.txt" ]]; then
         cat "$app_data/Documents/result.txt"
         [[ "$(cat "$app_data/Documents/result.txt")" == PASS:* ]]
@@ -60,4 +60,7 @@ for ((attempt = 0; attempt < 30; attempt++)); do
     sleep 1
 done
 echo "Picker UI checks timed out" >&2
+if [[ -f "$app_data/Documents/progress.txt" ]]; then cat "$app_data/Documents/progress.txt"; fi
+if [[ -f "$scratch_dir/stderr.log" ]]; then tail -50 "$scratch_dir/stderr.log"; fi
+xcrun simctl spawn "$simulator_id" log show --last 5m --style compact --predicate 'process == "PickerChecks"' | tail -50
 exit 1

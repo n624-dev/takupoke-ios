@@ -10,6 +10,7 @@ final class PickerChecks: UIResponder, UIApplicationDelegate, UIViewControllerTr
     private let instructions = ["架空ファイルを選んでください", String(repeating: "架空ファイルの選択案内です。", count: 8)]
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        progress("app launched")
         let window = UIWindow(frame: UIScreen.main.bounds)
         window.rootViewController = root
         self.window = window
@@ -19,15 +20,18 @@ final class PickerChecks: UIResponder, UIApplicationDelegate, UIViewControllerTr
     }
 
     private func open() {
+        progress("opening picker \(step), window: \(root.view.window != nil)")
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.pdf], asCopy: false)
         picker.modalPresentationStyle = .custom
         picker.transitioningDelegate = self
         root.present(picker, animated: true) {
+            self.progress("presentation completed \(self.step)")
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.check(picker) }
         }
     }
 
     private func check(_ picker: UIDocumentPickerViewController) {
+        progress("checking picker \(step)")
         guard let presentation = picker.presentationController as? GuidedDocumentPicker,
               let chrome = presentation.presentedView,
               let label = descendants(chrome).compactMap({ $0 as? UILabel }).first(where: { $0.text == instructions[step] }),
@@ -50,6 +54,10 @@ final class PickerChecks: UIResponder, UIApplicationDelegate, UIViewControllerTr
     }
 
     private func descendants(_ view: UIView) -> [UIView] { view.subviews.flatMap { [$0] + descendants($0) } }
+    private func progress(_ message: String) {
+        let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("progress.txt")
+        try? message.write(to: url, atomically: true, encoding: .utf8)
+    }
     private func finish(_ result: String) {
         let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("result.txt")
         try! result.write(to: url, atomically: true, encoding: .utf8)
