@@ -56,10 +56,10 @@ private struct PickerTapFileList: View {
             }
         }
         .navigationTitle("ファイル選択")
-        .background {
-            MaterialDocumentPicker(item: $request, type: { _ in .pdf },
+        .background(
+            MaterialDocumentPicker(item: $request, requestID: request?.id, type: { _ in .pdf },
                 instruction: { "架空ファイル\($0.kind)を選んでください" }, selected: { _, _ in })
                 .allowsHitTesting(false)
-        }
+        )
     }
 }

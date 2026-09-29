@@ -36,7 +36,9 @@ xcodebuild -project "$scratch_dir/PickerChecks.xcodeproj" -scheme PickerChecks \
 ui_status=$?
 set -e
 app_data="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.picker-checks data)"
-if [[ -f "$app_data/Documents/trace.txt" ]]; then cat "$app_data/Documents/trace.txt"; fi
+for trace_path in "$app_data"/Documents/trace-*.txt; do
+    if [[ -f "$trace_path" ]]; then cat "$trace_path"; fi
+done
 if [[ "$ui_status" != 0 ]]; then exit "$ui_status"; fi
 # Retain the existing transition and geometry checks, then remove everything.
 xcrun simctl terminate "$simulator_id" jp.n624.takupoke.picker-checks >/dev/null 2>&1 || true

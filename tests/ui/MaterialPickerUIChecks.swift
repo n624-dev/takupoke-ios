@@ -27,8 +27,9 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
         MaterialPickerTestTrace.record = { [weak self] entry in
             guard let self else { return }
             self.trace.append(entry)
-            let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("trace.txt")
-            try? self.trace.suffix(100).joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+            let name = "trace-\(ProcessInfo.processInfo.processIdentifier).txt"
+            let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent(name)
+            try? self.trace.suffix(200).joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
         }
         progress("scene connected")
         let window = UIWindow(windowScene: scene)
@@ -245,9 +246,9 @@ struct PickerHarness: View {
             }
             NavigationLink("詳細を見る", value: 2)
         }
-        .background {
-            MaterialDocumentPicker(item: $driver.request, type: { _ in .pdf },
+        .background(
+            MaterialDocumentPicker(item: $driver.request, requestID: driver.request?.id, type: { _ in .pdf },
                 instruction: { "架空ファイル\($0.kind)を選んでください" }, selected: { request, _ in driver.selectedKind = request.kind })
-        }
+        )
     }
 }
