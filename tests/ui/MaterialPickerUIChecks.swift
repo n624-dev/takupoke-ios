@@ -18,11 +18,13 @@ final class PickerChecks: UIResponder, UIApplicationDelegate {
 final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControllerTransitioningDelegate {
     var window: UIWindow?
     private var root = UIViewController()
+    private var trace: [String] = []
     private var step = 0
     private let instructions = ["架空ファイルを選んでください", String(repeating: "架空ファイルの選択案内です。", count: 8)]
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options: UIScene.ConnectionOptions) {
         guard let scene = scene as? UIWindowScene else { return }
+        MaterialPickerTestTrace.record = { [weak self] in self?.trace.append($0) }
         progress("scene connected")
         let window = UIWindow(windowScene: scene)
         window.rootViewController = root
@@ -59,6 +61,7 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
         let text = label.convert(label.bounds, to: chrome)
         let content = picker.view.convert(picker.view.bounds, to: chrome)
         print("PICKER GEOMETRY: frame=\(content), safeArea=\(picker.view.safeAreaInsets), instruction=\(text)")
+        trace.append("Geometry: frame=\(content), safeArea=\(picker.view.safeAreaInsets), instruction=\(text)")
         fflush(stdout)
         guard picker.view.safeAreaInsets.top < 1 else { finish("FAIL: duplicated top safe area \(picker.view.safeAreaInsets.top)"); return }
         guard text.height > 0, text.maxY < content.minY,
@@ -112,8 +115,11 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
                 picker.dismiss(animated: true) {
                     // A native result can arrive after dismissal and after a new request.
                     self.driver.choose(2)
-                    self.waitForPicker(remaining: 40) { next in
+                    self.waitForPicker(remaining: 40, excluding: picker) { next in
                         guard let next else { self.finish("FAIL: request after native dismissal"); return }
+                        guard self.driver.request?.kind == 2 else {
+                            self.finish("FAIL: new request cleared before delayed cancellation"); return
+                        }
                         picker.delegate?.documentPickerWasCancelled?(picker)
                         guard self.driver.request?.kind == 2 else {
                             self.finish("FAIL: old cancellation cleared the new request"); return
@@ -144,14 +150,14 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
         }
     }
 
-    private func waitForPicker(remaining: Int, completion: @escaping (UIDocumentPickerViewController?) -> Void) {
+    private func waitForPicker(remaining: Int, excluding: UIDocumentPickerViewController? = nil, completion: @escaping (UIDocumentPickerViewController?) -> Void) {
         if let picker = root.presentedViewController as? UIDocumentPickerViewController,
-           !picker.isBeingPresented, !picker.isBeingDismissed {
+           picker !== excluding, !picker.isBeingPresented, !picker.isBeingDismissed {
             completion(picker)
         } else if remaining == 0 { completion(nil) }
         else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                self.waitForPicker(remaining: remaining - 1, completion: completion)
+                self.waitForPicker(remaining: remaining - 1, excluding: excluding, completion: completion)
             }
         }
     }
@@ -163,7 +169,7 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
     }
     private func finish(_ result: String) {
         let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("result.txt")
-        try! result.write(to: url, atomically: true, encoding: .utf8)
+        try! (result + "\n" + trace.suffix(50).joined(separator: "\n")).write(to: url, atomically: true, encoding: .utf8)
     }
     func presentationController(forPresented presented: UIViewController, presenting: UIViewController?, source: UIViewController) -> UIPresentationController? {
         GuidedDocumentPicker(picker: presented as! UIDocumentPickerViewController, presenting: presenting,

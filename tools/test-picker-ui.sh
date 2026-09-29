@@ -41,7 +41,7 @@ cat > "$app_dir/Info.plist" <<'PLIST'
 <key>UIApplicationSceneManifest</key><dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>
 </dict></plist>
 PLIST
-xcrun --sdk iphonesimulator swiftc -swift-version 5 -sdk "$(xcrun --sdk iphonesimulator --show-sdk-path)" \
+xcrun --sdk iphonesimulator swiftc -swift-version 5 -D TAKUPOKE_PICKER_TESTS -sdk "$(xcrun --sdk iphonesimulator --show-sdk-path)" \
     -target "$(uname -m)-apple-ios16.0-simulator" \
     -module-cache-path "$scratch_dir/modules" \
     Takupoke/GuidedDocumentPicker.swift Takupoke/MaterialPickerLayout.swift Takupoke/MaterialDocumentPicker.swift Takupoke/ScopedMaterialSelection.swift tests/ui/MaterialPickerUIChecks.swift \

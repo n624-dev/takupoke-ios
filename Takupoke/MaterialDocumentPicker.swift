@@ -46,12 +46,15 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
         private var phase = Phase.idle
         private var results: [ObjectIdentifier: ResultContext] = [:]
         private var retry: DispatchWorkItem?
+        private var dismissalCheck: DispatchWorkItem?
+        private weak var presenter: UIViewController?
         private var stopped = false
 
         init(parent: MaterialDocumentPicker) { self.parent = parent }
-        deinit { retry?.cancel() }
+        deinit { retry?.cancel(); dismissalCheck?.cancel() }
 
         func synchronize() {
+            trace("synchronize")
             retry?.cancel()
             retry = nil
             guard !stopped else { return }
@@ -103,7 +106,9 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
 
         private func didPresent(_ controller: UIDocumentPickerViewController, completed: Bool) {
             guard !stopped, picker === controller, phase == .presenting else { return }
+            trace("presented \(completed)")
             if completed {
+                presenter = controller.presentingViewController
                 phase = .visible
                 synchronize()
             } else {
@@ -118,6 +123,21 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
 
         private func didDismiss(_ controller: UIDocumentPickerViewController) {
             guard !stopped, picker === controller else { return }
+            trace("dismissed callback")
+            phase = .dismissing
+            dismissalCheck?.cancel()
+            if controller.presentingViewController != nil || presenter?.presentedViewController === controller ||
+                controller.isBeingDismissed || controller.viewIfLoaded?.window != nil {
+                let work = DispatchWorkItem { [weak self, weak controller] in
+                    guard let controller else { return }
+                    self?.didDismiss(controller)
+                }
+                dismissalCheck = work
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: work)
+                return
+            }
+            dismissalCheck = nil
+            presenter = nil
             picker = nil
             activeItem = nil
             phase = .idle
@@ -128,6 +148,8 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
 
         func stop() {
             stopped = true
+            dismissalCheck?.cancel()
+            dismissalCheck = nil
             retry?.cancel()
             retry = nil
             results.removeAll()
@@ -147,6 +169,7 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
         }
 
         func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            trace("cancel callback \(ObjectIdentifier(controller))")
             guard !stopped, let result = results.removeValue(forKey: ObjectIdentifier(controller)) else { return }
             if parent.item?.id == result.item.id { parent.item = nil }
             close(controller)
@@ -161,6 +184,12 @@ struct MaterialDocumentPicker<Item: Identifiable>: UIViewControllerRepresentable
                 guard let controller else { return }
                 self?.didDismiss(controller)
             }
+        }
+
+        private func trace(_ event: String) {
+#if TAKUPOKE_PICKER_TESTS
+            MaterialPickerTestTrace.record?("\(event) phase=\(phase) request=\(String(describing: parent.item?.id)) active=\(String(describing: activeItem?.id)) picker=\(String(describing: picker.map(ObjectIdentifier.init)))")
+#endif
         }
 
         func presentationController(forPresented presented: UIViewController,
@@ -218,3 +247,10 @@ private final class MaterialPickerAnchorView: UIView {
         DispatchQueue.main.async { [weak self] in self?.attached?() }
     }
 }
+
+#if TAKUPOKE_PICKER_TESTS
+// Compiled only into the disposable UI test app; no file data is recorded.
+enum MaterialPickerTestTrace {
+    static var record: ((String) -> Void)?
+}
+#endif
