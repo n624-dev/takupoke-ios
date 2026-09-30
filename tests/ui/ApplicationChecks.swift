@@ -19,29 +19,30 @@ final class ApplicationChecks: XCTestCase {
     private func enableChangeNotifications() {
         let toggle = app.switches["時間割変更"]
         toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
-        let predicate = NSPredicate(format: "label CONTAINS[c] %@ OR label CONTAINS %@", "Allow", "許可")
-        for host in [app!, XCUIApplication(bundleIdentifier: "com.apple.springboard")] {
+        let predicate = NSPredicate(format: "label BEGINSWITH[c] %@ OR label == %@ OR label == %@ OR label == %@", "Allow", "許可", "許可する", "通知を許可")
+        for host in [XCUIApplication(bundleIdentifier: "com.apple.springboard"), app!] {
             let allow = host.buttons.matching(predicate).firstMatch
             if allow.waitForExistence(timeout: 5) { allow.tap(); break }
         }
         let enabled = expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: toggle)
         wait(for: [enabled], timeout: 15)
     }
-    private func dismissLesson() {
-        let bar = app.navigationBars["授業詳細"]
+    private func dismissLesson(title: String = "授業詳細") {
+        let bar = app.navigationBars[title]
         let start = bar.coordinate(withNormalizedOffset: CGVector(dx: 0.5,dy: 0.5))
         start.press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5,dy: 0.95)))
     }
     func testMergedCardsFromAllSources() {
         tab("時間割")
         for subject in ["架空科目A", "架空試験A", "架空返却A", "架空変更A"] {
-            let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", subject)).firstMatch
+            let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", subject, "月")).firstMatch
             if !card.isHittable { app.swipeUp() }
             XCTAssertTrue(card.waitForExistence(timeout: 10), app.debugDescription)
             XCTAssertGreaterThan(card.frame.height, 72)
             card.tap()
-            XCTAssertTrue(app.navigationBars["授業詳細"].waitForExistence(timeout: 5))
-            dismissLesson()
+            let title = subject == "架空変更A" ? "時間割変更" : "授業詳細"
+            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5))
+            dismissLesson(title: title)
         }
         XCTAssertTrue(app.staticTexts["架空行事A"].firstMatch.exists || app.buttons["架空行事A"].exists)
     }
