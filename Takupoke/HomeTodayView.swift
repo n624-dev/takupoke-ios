@@ -3,6 +3,7 @@ import Combine
 
 /// Embedded in HomeView's List; every row uses the same saved models as the timetable.
 struct HomeTodayView: View {
+    @EnvironmentObject private var times: TimetableTimesModel
     @ObservedObject var materials: MaterialsModel
     @ObservedObject var specialSchedules: SpecialSchedulesModel
     @ObservedObject var schoolEvents: SchoolEventsModel
@@ -25,7 +26,7 @@ struct HomeTodayView: View {
         TimetableDaySchedule(timetable: materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue],
             changes: materials.state.changeAnalysis, events: schoolEvents.analysis,
             specials: specialSchedules.records.values.map(\.analysis).sorted { $0.kind.rawValue < $1.kind.rawValue },
-            includesChanges: true)
+            includesChanges: true, customTimes: times.current?.data)
     }
     private var presentation: TimetablePresentation { TimetablePresentation(schedule: schedule, mappings: mappings) }
     private var ready: Bool { materials.ready && specialSchedules.ready && schoolEvents.ready && mappings.ready }

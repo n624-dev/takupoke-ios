@@ -13,6 +13,7 @@ final class ApplicationData: ObservableObject {
     let schoolEvents = SchoolEventsModel()
     let mappings = MappingModel()
     let links = LinksModel()
+    let times = TimetableTimesModel()
     let account = AccountDataModel()
     let notifications = ScheduleNotifications()
 
@@ -61,6 +62,7 @@ final class ApplicationData: ObservableObject {
                 await specialSchedules.closeForRetention()
                 mappings.resetForRetention()
                 links.resetForRetention()
+                times.resetForRetention()
                 try Task.checkCancellation()
                 // Protected data can become unavailable while workers unwind.
                 guard UIApplication.shared.isProtectedDataAvailable else { return false }
@@ -90,8 +92,13 @@ final class ApplicationData: ObservableObject {
         specialSchedules.loadIfNeeded()
         schoolEvents.refreshAtStartup()
         mappings.checkAtStartup()
+        times.loadIfNeeded()
         if UIApplication.shared.applicationState != .background { setFileMonitoring(true) }
-        if !account.busy { await links.refresh() }
+        if !account.busy {
+            async let linkCheck: Void = links.refresh()
+            async let timeCheck: Void = times.check()
+            _ = await (linkCheck, timeCheck)
+        }
         checkNotificationsWhenActive()
     }
 
@@ -131,6 +138,7 @@ final class ApplicationData: ObservableObject {
         guard !Task.isCancelled else { return }
         async let links: Void = self.links.refresh()
         async let mappings: Void = self.mappings.checkInBackground()
-        _ = await (links, mappings)
+        async let times: Void = self.times.check()
+        _ = await (links, mappings, times)
     }
 }

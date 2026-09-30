@@ -38,6 +38,7 @@ struct ContentView: View {
         .environmentObject(links)
         .environmentObject(mappings)
         .environmentObject(application.notifications)
+        .environmentObject(application.times)
         .onChange(of: scenePhase) { phase in
             if phase == .active { Task { await activate() } }
             else if phase == .background { setFileMonitoring(false) }
@@ -63,12 +64,13 @@ struct ContentView: View {
                       mappings: mappings, finish: { setupPresented = true; showingSetup = false })
                 .environmentObject(account).environmentObject(links).environmentObject(mappings)
                 .environmentObject(application.notifications)
+                .environmentObject(application.times)
         }
         .alert("保存データを削除しました", isPresented: $application.retentionNotice) {
             Button("設定する") { showingSetup = true }
             Button("あとで", role: .cancel) { setupPresented = true }
         } message: {
-            Text("保存期間が切り替わりました。ファイルの再選択と一覧・名称対応表の再取得が必要です。")
+            Text("保存期間が切り替わりました。ファイルの再選択とリンク一覧・名称対応表・授業時刻の再取得が必要です。")
         }
     }
 

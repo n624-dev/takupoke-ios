@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     private enum Destination: Hashable { case accountData }
+    @EnvironmentObject private var times: TimetableTimesModel
     @ObservedObject var materials: MaterialsModel
     @ObservedObject var specialSchedules: SpecialSchedulesModel
     @ObservedObject var schoolEvents: SchoolEventsModel
@@ -48,6 +49,11 @@ struct HomeView: View {
     private var updateNotice: String? {
         let linksUpdated = links.saved != nil && links.updateAvailable
         let mappingsUpdated = mappings.current != nil && mappings.updateAvailable
+        if times.updateAvailable {
+            let names = [(linksUpdated, "一覧"), (mappingsUpdated, "名称対応表"), (true, "授業時刻")]
+                .filter { $0.0 }.map { $0.1 }.joined(separator: "・")
+            return "\(names)に更新があります"
+        }
         switch (linksUpdated, mappingsUpdated) {
         case (true, true): return "一覧・名称対応表に更新があります"
         case (true, false): return "一覧に更新があります"

@@ -8,6 +8,7 @@ struct SettingsView: View {
     @ObservedObject var schoolEvents: SchoolEventsModel
     @ObservedObject var mappings: MappingModel
     @EnvironmentObject private var links: LinksModel
+    @EnvironmentObject private var times: TimetableTimesModel
     @State private var showingSetup = false
 
     var body: some View {
@@ -24,10 +25,10 @@ struct SettingsView: View {
                         AccountDataSettingsView()
                     } label: {
                         HStack {
-                            Label("リンク一覧・名称対応表", systemImage: "text.book.closed")
+                            Label("学校アカウントのデータ", systemImage: "text.book.closed")
                             Spacer()
-                            if mappings.updateAvailable || links.updateAvailable { Text("更新あり").font(.caption).foregroundStyle(.orange) }
-                            else if mappings.failed || links.failed { Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange) }
+                            if mappings.updateAvailable || links.updateAvailable || times.updateAvailable { Text("更新あり").font(.caption).foregroundStyle(.orange) }
+                            else if mappings.failed || links.failed || times.failed { Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange) }
                         }
                     }
                 }
