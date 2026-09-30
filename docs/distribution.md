@@ -46,9 +46,10 @@
 ワークフローは [ios-release.yml](../.github/workflows/ios-release.yml) です。
 
 1. **checks**：架空データで配布スクリプトをテスト。
-2. **release ジョブ内のビルド**：macOS / Xcode で iPhone 向け Release ビルドを行い、`Payload/Takupoke.app` を IPA 化。署名用 Secrets は不要。
-3. **Source 生成**：IPA の Info.plist、対象 OS、実行ファイル、サイズを検査して Source を生成。不一致があれば停止。
-4. **同じ release ジョブ内の公開**：Release を draft として作成して4個の成果物をアップロード。再ダウンロードした内容の SHA-256 が一致した後に公開し、Latest を切り替え。
+2. **simulator**：iOS 26と27の専用Runnerで実アプリの画面を検証。両方の成功を配布条件とします。
+3. **release ジョブ内のビルド**：macOS / Xcode で iPhone 向け Release ビルドを行い、`Payload/Takupoke.app` を IPA 化。署名用 Secrets は不要。
+4. **Source 生成**：IPA の Info.plist、対象 OS、実行ファイル、サイズを検査して Source を生成。不一致があれば停止。
+5. **同じ release ジョブ内の公開**：Release を draft として作成して4個の成果物をアップロード。再ダウンロードした内容の SHA-256 が一致した後に公開し、Latest を切り替え。
 
 PR と配布対象外のブランチは、読み取り権限だけの `build-check` ジョブでビルドします。ジョブ間の IPA 受け渡し用 artifact は作成しません。
 

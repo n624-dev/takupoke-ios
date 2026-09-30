@@ -10,6 +10,7 @@
 | 配布処理のローカルテスト | Python 3.11 以降、標準ライブラリのみ |
 | ワークフローの追加チェック | 任意で actionlint |
 | iOS ビルド | Actions の `xcode-27` と Xcode 27.0 |
+| アプリ画面の検証 | iOS 26：`macos-26`・Xcode 26.6、iOS 27：`xcode-27`・Xcode 27.0 |
 | 実機導入・更新 | iOS 26・27のiPhone、AltStore Classic。[導入手順](altstore-pal-install.md)を参照 |
 
 Linux / Windows では SwiftUI のビルドを行わず、配布スクリプトのテストとソース編集を行います。XLSX展開にはZIPFoundation 0.9.20、SQLite保存基盤にはGRDB 7.11.1をコミット固定のSwift Packageとして使用します。共通ソースのテストにはSwift 6.1以降が必要です。
@@ -42,6 +43,7 @@ python3 -B -m unittest discover -s tests -v
 bash -n tools/build-ios.sh
 bash -n tools/build-ios-app.sh
 bash -n tools/test-picker-ui.sh
+bash -n tools/test-app-ui.sh
 bash -n tools/test-materials.sh
 bash -n tools/test-parsing.sh
 git diff --check
@@ -135,3 +137,5 @@ bash tools/build-ios.sh ./dist
 - [actionlint](https://github.com/rhysd/actionlint)
 
 PDFの公開テストは文字・罫線を架空の位置に配置して生成します。macOSではPDFKitによる架空PDFの読み取りと回転もテストし、実資料・学校サイトへはアクセスしません。Liquid Glass対応のためActionsではXcode 27.0を指定しています。
+
+アプリ画面の検証はOS別の専用Runnerで実行します。両OSの成功後に配布ビルドへ進みます。対象・結果は[シミュレーター検証](simulator-verification.md)を参照してください。

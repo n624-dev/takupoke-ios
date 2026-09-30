@@ -32,4 +32,17 @@ BGTaskSchedulerの自然な実行はシミュレーターで確認できませ�
 
 ## 今回の結果
 
-CI実行後に対象コミット・実行OS・検証結果を追記します。
+2026年9月30日、コミット `00f63fd9f568d739bca69ecc125d02831b0b79f7` の検証が成功しました。
+
+| 環境 | 結果 |
+|---|---|
+| iOS 26.5・Xcode 26.6 | アプリUI 8件成功。Xcode 27専用のVoiceOver操作1件は対象外 |
+| iOS 27・Xcode 27.0 | アプリUI 9件成功。ローカル通知の実配信・VoiceOver操作を含む |
+| Xcode 27のホストテスト | Swift 195件成功。PDFKitによる架空PDFの読み取りを含む |
+| iOS 27のファイル選択UI | 3件成功。4種類の選択・キャンセル・選び直しを確認 |
+| Ubuntuの配布テスト | Python 29件成功 |
+| iPhone向けReleaseビルド | 成功 |
+
+[検証CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36725806191)。配布時はmainでもOS別の画面テストを実行し、両方の成功後に配布ビルドへ進みます。
+
+[配布CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36728565646)でもコミット `6d9b288aaabcc6ff7da5d5a6ca90bb00a40a3352` の同じ検証が成功し、[0.1.212（212.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.212-build.212.1)を公開しました。公開された4ファイルのハッシュ、IPAのコミット・最低OS 26.0・縦向き・バックグラウンド登録、固定URLのAltStore Sourceとの一致を確認しました。
