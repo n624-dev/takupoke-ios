@@ -2,16 +2,16 @@
 import PackageDescription
 
 #if os(macOS)
-let mappingSources = ["MappingPackage.swift", "MappingRules.swift", "MappingRules+Changes.swift", "MappingModels.swift", "MappingStore.swift", "MappingService.swift"]
-let mappingTests = ["MappingPackageTests.swift", "MappingServiceTests.swift"]
+let mappingSources = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingRules.swift", "MappingRules+Changes.swift", "MappingModels.swift", "MappingStore.swift", "MappingService.swift"]
+let mappingTests = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift"]
 let mappingExcludes: [String] = []
 let mappingTestExcludes: [String] = []
 #else
 // CryptoKit and URLSession host tests run on the macOS release runner.
 let mappingSources: [String] = []
 let mappingTests: [String] = []
-let mappingExcludes = ["MappingPackage.swift", "MappingRules.swift", "MappingRules+Changes.swift", "MappingModels.swift", "MappingStore.swift", "MappingService.swift"]
-let mappingTestExcludes = ["MappingPackageTests.swift", "MappingServiceTests.swift"]
+let mappingExcludes = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingRules.swift", "MappingRules+Changes.swift", "MappingModels.swift", "MappingStore.swift", "MappingService.swift"]
+let mappingTestExcludes = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift"]
 #endif
 
 // Host tests compile the same Foundation-based sources used by the iOS target.
@@ -34,7 +34,7 @@ let package = Package(
                     "MainColor.swift",
                     "TakupokeApp.swift",
                     "ContentView.swift",
-                    "ApplicationData.swift", "BackgroundRefresh.swift",
+                    "ApplicationData.swift", "BackgroundRefresh.swift", "TimetableTimesModel.swift",
                     "ScheduleNotifications.swift", "NotificationSettingsView.swift",
                     "SettingsView.swift",
                     "HomeView.swift",
@@ -130,7 +130,7 @@ let package = Package(
                     "SchoolDataRetention.swift",
                     "ScheduleNotificationSnapshot.swift",
                     "TimetableSchedule.swift",
-                    "TimetableDaySchedule.swift",
+                    "TimetableDaySchedule.swift", "TimetableTimes.swift",
                     "TimetableSchedule+Blocks.swift",
                     "TimetableSchedule+Events.swift",
                     "TimetableSchedule+Weeks.swift",
@@ -175,7 +175,7 @@ let package = Package(
                     "SchoolDataRetentionTests.swift",
                     "ScheduleNotificationTests.swift",
                     "TimetableScheduleTests.swift",
-                    "HomeScheduleTests.swift",
+                    "HomeScheduleTests.swift", "TimetableTimesTests.swift",
                     "TimetableScheduleTests+Changes.swift",
                     "TimetableScheduleTests+Blocks.swift",
                     "TimetableScheduleTests+Events.swift",

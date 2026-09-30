@@ -10,7 +10,7 @@ extension TimetablePresentation {
                 LabeledContent("クラス", value: TimetableDisplayText.className(lesson.className))
                 LabeledContent("時限", value: selection.startPeriod == selection.endPeriod
                                ? "\(selection.startPeriod)限" : "\(selection.startPeriod)〜\(selection.endPeriod)限")
-                LabeledContent("時刻", value: normalTime(from: selection.startPeriod, to: selection.endPeriod))
+                LabeledContent("時刻", value: schedule.normalTime(from: selection.startPeriod, to: selection.endPeriod, on: selection.date))
                 LabeledContent("科目", value: TimetableDisplayText.continuous(names.detailSubject))
                 LabeledContent("教員", value: names.detailTeacher.isEmpty ? "記載なし" : TimetableDisplayText.continuous(names.detailTeacher))
                 LabeledContent("教室", value: names.detailRoom.isEmpty ? "記載なし" : TimetableDisplayText.continuous(names.detailRoom))

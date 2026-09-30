@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TimetableView: View {
+    @EnvironmentObject var times: TimetableTimesModel
     @ObservedObject var model: MaterialsModel
     @ObservedObject var specialSchedules: SpecialSchedulesModel
     @ObservedObject var schoolEvents: SchoolEventsModel

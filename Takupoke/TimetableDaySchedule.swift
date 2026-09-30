@@ -7,7 +7,33 @@ struct TimetableDaySchedule {
     let events: PDFAnalysis?
     let specials: [SpecialScheduleAnalysis]
     let includesChanges: Bool
+    var customTimes: TimetableTimes? = nil
 
+    func commonPeriodTime(_ period: Int, days: [SchoolDate], classes: [String],
+                          international: Bool, matchedByRule: ((String, String) -> Bool)? = nil) -> String? {
+        var times: Set<String> = []
+        for day in days {
+            let plan = TimetableSchedule.dayPlan(on: day, events: events)
+            if plan.isNoClass && !plan.apiNoClass { continue }
+            for className in classes {
+                let slot = TimetableSchedule.slot(on: day, period: period, className: className,
+                                                  timetable: timetable, changes: changes,
+                                                  includesChanges: includesChanges, events: events,
+                                                  specials: specials)
+                let visible = slot.displayedLessons.contains { TimetableSchedule.shouldDisplay($0, isInternationalStudent: international,
+                                                                                                matchedByRule: matchedByRule) } ||
+                    slot.displayedSpecialLessons.contains { TimetableSchedule.shouldDisplay($0, isInternationalStudent: international,
+                                                                                               matchedByRule: matchedByRule) } ||
+                    slot.changes.contains { TimetableSchedule.shouldDisplay($0, isInternationalStudent: international,
+                                                                              matchedByRule: matchedByRule) }
+                guard visible else { continue }
+                guard let time = slotTime(slot, on: day, className: className, period: period) else { return nil }
+                times.insert(time)
+                if times.count > 1 { return nil }
+            }
+        }
+        return times.first
+    }
     func slotTime(_ slot: TimetableSchedule.Slot, on day: SchoolDate,
                           className: String, period: Int) -> String? {
         if !slot.specialLessons.isEmpty {
@@ -24,7 +50,7 @@ struct TimetableDaySchedule {
         let applicable = specials.filter { $0.applies(date: day.iso8601, className: className) }
         if applicable.isEmpty {
             let plan = TimetableSchedule.dayPlan(on: day, events: events)
-            return plan.apiTest || plan.apiTestReturn ? nil : TimetableSchedule.normalPeriodTimes[period - 1]
+            return plan.apiTest || plan.apiTestReturn ? nil : (customTimes?.time(on: day, period: period) ?? TimetableSchedule.normalPeriodTimes[period - 1])
         }
         let times = Set(applicable.compactMap { $0.periodTime(on: day.iso8601, period: period) })
         return times.count == 1 && applicable.allSatisfy({ $0.periodTime(on: day.iso8601, period: period) != nil })
@@ -65,9 +91,9 @@ struct TimetableDaySchedule {
         }
     }
 
-    func normalTime(from start: Int, to end: Int) -> String {
-        let first = TimetableSchedule.normalPeriodTimes[start - 1]
-        let last = TimetableSchedule.normalPeriodTimes[end - 1]
+    func normalTime(from start: Int, to end: Int, on day: SchoolDate? = nil) -> String {
+        let first = day.flatMap { customTimes?.time(on: $0, period: start) } ?? TimetableSchedule.normalPeriodTimes[start - 1]
+        let last = day.flatMap { customTimes?.time(on: $0, period: end) } ?? TimetableSchedule.normalPeriodTimes[end - 1]
         return "\(first.components(separatedBy: "〜").first ?? first)〜\(last.components(separatedBy: "〜").last ?? last)"
     }
 }

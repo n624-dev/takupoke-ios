@@ -1,0 +1,68 @@
+import SwiftUI
+import UIKit
+import CryptoKit
+
+final class FixtureNetwork: URLProtocol {
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        // Every network request is intercepted; no school or production service.
+        client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
+    }
+    override func stopLoading() {}
+}
+
+@main
+struct SimulatorApplication: App {
+    @AppStorage("mainColor") private var mainColor = MainColor.blue.rawValue
+    init() {
+        URLProtocol.registerClass(FixtureNetwork.self)
+        do { try Self.seed() } catch { fatalError("Synthetic fixture initialization failed: \(error)") }
+    }
+    var body: some Scene {
+        WindowGroup { ContentView().tint((MainColor(rawValue: mainColor) ?? .blue).color) }
+    }
+    private static func seed() throws {
+        let defaults = UserDefaults.standard
+        let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        let day = SchoolDate.today()
+        let period = SchoolDataPeriod.current()
+        if ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
+            try SchoolDataRetention(root: base).replace(with: period)
+            if let domain = Bundle.main.bundleIdentifier { defaults.removePersistentDomain(forName: domain) }
+        }
+        defaults.set(!ProcessInfo.processInfo.arguments.contains("--setup"), forKey: "setupPresented")
+        defaults.set("3_XY", forKey: "timetableSelectedClasses")
+        if !FileManager.default.fileExists(atPath: base.appendingPathComponent("fixture-seeded").path) || ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
+            try SchoolDataRetention(root: base).replace(with: period)
+            let library = try LocalMaterialDatabase.openLibrary(root: base.appendingPathComponent("SchoolMaterialsSQLite"))
+            let staged = library.newStagingURL()
+            let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0,y: 0,width: 200,height: 200))
+            let raw = renderer.pdfData { context in context.beginPage(); ("架空の資料" as NSString).draw(at: CGPoint(x: 20,y: 20), withAttributes: nil) }
+            try raw.write(to: staged)
+            let digest = SHA256.hash(data: raw).map { String(format: "%02x", $0) }.joined()
+            try library.commit(staged: staged, kind: .timetable, source: .init(grant: nil, childName: nil),
+                               originalName: "fictional.pdf", byteCount: raw.count, digest: digest, modifiedAt: nil)
+            let analysis = PDFAnalysis(kind: .timetable, sourceDigest: digest, sourceName: "fictional.pdf", parsedAt: Date(),
+                schoolYear: period.schoolYear, term: period.half == 1 ? "前期" : "後期",
+                lessons: (1...5).flatMap { weekday in (1...8).map { number in
+                    PDFLesson(className: "3_XY", weekday: weekday, period: number,
+                        names: .init(subject: "架空科目\(number <= 2 ? "A" : "B")", teacher: "架空教員A", room: "架空教室A"), sourceText: "", page: 1)
+                } }, events: [], notices: [])
+            try library.savePDFAnalysis(analysis)
+            let payload = LinksPayload(version: "v1", linksVersion: "sha256-" + String(repeating: "a",count: 64), categories: [
+                .init(id: "fictional", label: "架空カテゴリ", sortOrder: 0, buttons: [
+                    .init(id: "fictional-link", categoryId: "fictional", label: "架空リンクA", href: "https://fixture.example.test",
+                          color: "blue", visible: true, sortOrder: 0, recommended: true, recommendationOrder: 0, searchAliases: [], searchTerms: "架空リンクA")])])
+            try LinksStore(root: base.appendingPathComponent("LinksAPI")).save(.init(payload: payload, apiETag: "\"fictional\"", checkedAt: Date(), revision: String(repeating: "L", count: 43)))
+            try LinkPreferencesStore().save(.init(favoriteIDs: ["fictional-link"]))
+            let directory = base.appendingPathComponent("NameMappings")
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let rules = try JSONDecoder().decode(MappingRules.self, from: Data("{\"subjects\":[],\"teachers\":[],\"rooms\":[],\"teacherContexts\":[]}".utf8))
+            try MappingStore(url: directory.appendingPathComponent("mappings.sqlite")).save(.init(revision: String(repeating: "M", count: 43), version: "fictional", schemaVersion: 1,
+                archiveETag: "\"fictional\"", archiveSHA256: String(repeating: "a", count: 64), publishedAt: "2032-04-01T00:00:00Z", fetchedAt: Date(), rules: rules))
+            try Data().write(to: base.appendingPathComponent("fixture-seeded"))
+        }
+        _ = day
+    }
+}

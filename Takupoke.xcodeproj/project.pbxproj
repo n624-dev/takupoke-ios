@@ -4,6 +4,12 @@
     classes = {};
     objectVersion = 56;
     objects = {
+        A0000000000000000000008A = {isa = PBXBuildFile; fileRef = B0000000000000000000008A; };
+        B0000000000000000000008A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimetableTimes.swift; sourceTree = "<group>"; };
+        A0000000000000000000008B = {isa = PBXBuildFile; fileRef = B0000000000000000000008B; };
+        B0000000000000000000008B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimetableTimesService.swift; sourceTree = "<group>"; };
+        A0000000000000000000008C = {isa = PBXBuildFile; fileRef = B0000000000000000000008C; };
+        B0000000000000000000008C = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimetableTimesModel.swift; sourceTree = "<group>"; };
         A00000000000000000000089 = {isa = PBXBuildFile; fileRef = B00000000000000000000089; };
         B00000000000000000000089 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsView.swift; sourceTree = "<group>"; };
         A00000000000000000000088 = {isa = PBXBuildFile; fileRef = B00000000000000000000088; };
@@ -291,7 +297,10 @@
         };
         C00000000000000000000002 = {
             isa = PBXGroup;
-            children = (B00000000000000000000085,
+            children = (B0000000000000000000008A,
+                B0000000000000000000008B,
+                B0000000000000000000008C,
+                B00000000000000000000085,
                 B00000000000000000000086,
                 B00000000000000000000087,
                 B00000000000000000000088,
@@ -328,7 +337,7 @@
             packageReferences = (900000000000000000000001, 900000000000000000000004);
             targets = (D00000000000000000000001);
         };
-        E00000000000000000000001 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000085,
+        E00000000000000000000001 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A0000000000000000000008A, A0000000000000000000008B, A0000000000000000000008C, A00000000000000000000085,
                 A00000000000000000000086,
                 A00000000000000000000087,
                 A00000000000000000000088,

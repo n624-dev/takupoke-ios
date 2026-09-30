@@ -3,7 +3,7 @@ import SwiftUI
 extension TimetableView {
     var daySchedule: TimetableDaySchedule {
         TimetableDaySchedule(timetable: timetable, changes: changes, events: events,
-                             specials: specials, includesChanges: includesChanges)
+                             specials: specials, includesChanges: includesChanges, customTimes: times.current?.data)
     }
 
     var presentation: TimetablePresentation {

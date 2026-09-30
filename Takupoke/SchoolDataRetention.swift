@@ -25,7 +25,7 @@ struct SchoolDataRetention {
     private var marker: URL { root.appendingPathComponent("school-data-period.json") }
     static let privatePaths = ["SchoolMaterialsSQLite", "SchoolMaterialsSQLite.initializing",
         "SchoolMaterialsSQLite.lock", "SchoolMaterials", "SpecialSchedulesSQLite", "SpecialSchedules",
-        "NameMappings", "LinksAPI", "ScheduleNotifications"]
+        "NameMappings", "LinksAPI", "ScheduleNotifications", "TimetableTimes"]
 
     func installedPeriod() throws -> SchoolDataPeriod? {
         guard FileManager.default.fileExists(atPath: marker.path) else { return nil }

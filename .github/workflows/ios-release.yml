@@ -45,7 +45,7 @@ jobs:
     needs: checks
     if: github.repository != 'n624-dev/takupoke-ios' || github.ref != 'refs/heads/main' || github.event_name == 'pull_request'
     runs-on: xcode-27
-    timeout-minutes: 20
+    timeout-minutes: 40
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
     steps:
@@ -75,7 +75,7 @@ jobs:
     needs: checks
     if: github.repository == 'n624-dev/takupoke-ios' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: xcode-27
-    timeout-minutes: 25
+    timeout-minutes: 45
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
     permissions:
