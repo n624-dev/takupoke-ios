@@ -7,7 +7,19 @@ final class FixtureNetwork: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
-        // Every network request is intercepted; no school or production service.
+        // Synthetic revision responses exercise saved/empty/update UI states.
+        // Every other request is rejected; nothing reaches a production service.
+        if let url = request.url, ["/mapping-revision", "/links-revision", "/timetable-times-revision"].contains(url.path) {
+            let installed = request.value(forHTTPHeaderField: "If-None-Match")
+            let changed = ProcessInfo.processInfo.arguments.contains("--updated-revisions")
+            let status = installed != nil && !changed ? 304 : 200
+            let etag = status == 304 ? installed! : "\"" + String(repeating: "Z", count: 43) + "\""
+            let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1",
+                                           headerFields: ["ETag": etag, "Cache-Control": "no-store"])!
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocolDidFinishLoading(self)
+            return
+        }
         client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
     }
     override func stopLoading() {}

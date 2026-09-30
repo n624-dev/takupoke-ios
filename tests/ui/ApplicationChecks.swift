@@ -171,6 +171,19 @@ final class ApplicationChecks: XCTestCase {
             XCTAssertFalse(app.buttons["\(title)の詳細を見る"].exists)
         }
     }
+    func testChangedAccountDataNoticeOpensSharedAcquisition() {
+        app.terminate()
+        app.launchArguments += ["--updated-revisions"]
+        app.launch()
+        XCTAssertTrue(app.tabBars.buttons["ホーム"].waitForExistence(timeout: 30))
+        let notice = app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "名称データ", "更新があります")).firstMatch
+        XCTAssertTrue(notice.waitForExistence(timeout: 10), app.debugDescription)
+        notice.tap()
+        XCTAssertTrue(app.navigationBars["リンク・名称・授業時刻"].waitForExistence(timeout: 5))
+        for title in ["リンク一覧", "名称データ", "授業時刻"] {
+            XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", title, "更新あり")).firstMatch.exists, app.debugDescription)
+        }
+    }
     func testFileFailuresKeepResultsAndStayInTheirOwnDetails() {
         app.terminate()
         app.launchArguments += ["--failed-refresh"]
