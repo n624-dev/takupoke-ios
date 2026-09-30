@@ -36,7 +36,7 @@ while read -r device_type runtime; do
         -destination "platform=iOS Simulator,id=$simulator_id" \
         -derivedDataPath "$scratch_dir/DerivedData" \
         -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
-        -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO test
+        -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES test
     xcrun simctl shutdown "$simulator_id"
     xcrun simctl delete "$simulator_id"
     simulator_id=""

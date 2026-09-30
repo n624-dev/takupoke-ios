@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import CryptoKit
+import UserNotifications
 
 final class FixtureNetwork: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool { true }
@@ -14,13 +15,31 @@ final class FixtureNetwork: URLProtocol {
 
 @main
 struct SimulatorApplication: App {
+    @State private var notificationProbe = "待機中"
     @AppStorage("mainColor") private var mainColor = MainColor.blue.rawValue
     init() {
         URLProtocol.registerClass(FixtureNetwork.self)
         do { try Self.seed() } catch { fatalError("Synthetic fixture initialization failed: \(error)") }
     }
     var body: some Scene {
-        WindowGroup { ContentView().tint((MainColor(rawValue: mainColor) ?? .blue).color) }
+        WindowGroup {
+            ContentView().tint((MainColor(rawValue: mainColor) ?? .blue).color)
+                .overlay {
+                    if ProcessInfo.processInfo.arguments.contains("--notification-probe") {
+                        Text(notificationProbe).accessibilityIdentifier("fixture-notification-result")
+                    }
+                }
+                .task {
+                    guard ProcessInfo.processInfo.arguments.contains("--notification-probe") else { return }
+                    for _ in 0..<40 {
+                        let delivered = await UNUserNotificationCenter.current().deliveredNotifications()
+                        let changes = delivered.filter { $0.request.identifier == "takupoke.changes" }
+                        if !changes.isEmpty { notificationProbe = changes[0].request.content.body; return }
+                        try? await Task.sleep(nanoseconds: 500_000_000)
+                    }
+                    notificationProbe = "通知なし"
+                }
+        }
     }
     private static func seed() throws {
         let defaults = UserDefaults.standard
@@ -59,7 +78,9 @@ struct SimulatorApplication: App {
             let change = ScheduleChange(change_date: changeDay.iso8601, class_name: "3_XY", period: "4,5",
                 before_subject: "", after_subject: "架空変更A", teacher: "架空教員B", room: "架空教室B", note: "補講", raw_text: "", canonical_text: "")
             try library.saveChangeAnalysis(.init(sourceDigest: digest, sourceName: "fictional.xlsx", defaultYear: period.schoolYear,
-                parsedAt: Date(), records: [change]))
+                parsedAt: Date(), records: [change,
+                    ScheduleChange(change_date: day.iso8601, class_name: "3_XY", period: "6", before_subject: "",
+                        after_subject: "架空変更通知A", teacher: "", room: "", note: "変更", raw_text: "", canonical_text: "")]))
             let specialStore = try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite"))
             for (kind, offset, subject) in [(SpecialScheduleKind.exam, 1, "架空試験A"), (.examReturn, 2, "架空返却A")] {
                 let date = monday.addingDays(offset)!.iso8601
@@ -97,6 +118,18 @@ struct SimulatorApplication: App {
                 .write(to: timesDirectory.appendingPathComponent("current.json"))
             try Data().write(to: base.appendingPathComponent("fixture-seeded"))
         }
-        _ = day
+        if ProcessInfo.processInfo.arguments.contains("--updated-changes") {
+            let library = try LocalMaterialDatabase.openLibrary(root: base.appendingPathComponent("SchoolMaterialsSQLite"))
+            var analysis = library.state.changeAnalysis!
+            analysis.records[1].after_subject = "架空変更通知B"
+            let data = Data("Synthetic updated XLSX fixture".utf8)
+            let staged = library.newStagingURL()
+            try data.write(to: staged)
+            let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+            try library.commit(staged: staged, kind: .changes, source: .init(grant: nil, childName: nil),
+                originalName: "fictional.xlsx", byteCount: data.count, digest: digest, modifiedAt: nil)
+            analysis.sourceDigest = digest; analysis.parsedAt = Date()
+            try library.saveChangeAnalysis(analysis)
+        }
     }
 }

@@ -139,6 +139,22 @@ final class ApplicationChecks: XCTestCase {
         tap("緑")
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "メインカラー", "緑")).firstMatch.exists)
     }
+    func testChangedDataProducesOneLocalNotification() {
+        tab("設定")
+        tap("通知設定")
+        app.switches["時間割変更"].tap()
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let allow = springboard.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "Allow", "許可")).firstMatch
+        if allow.waitForExistence(timeout: 3) { allow.tap() }
+        XCTAssertEqual(app.switches["時間割変更"].value as? String, "1")
+        app.terminate()
+        app.launchArguments = ["--updated-changes", "--notification-probe", "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
+        app.launch()
+        let result = app.staticTexts["fixture-notification-result"]
+        XCTAssertTrue(result.waitForExistence(timeout: 30))
+        let received = expectation(for: NSPredicate(format: "label == %@", "1件の時間割変更を確認してください。"), evaluatedWith: result)
+        wait(for: [received], timeout: 30)
+    }
     func testVoiceOverReadsTimetableCard() throws {
         guard #available(iOS 27.0, *) else { throw XCTSkip("VoiceOver automation requires iOS 27") }
         tab("時間割")
