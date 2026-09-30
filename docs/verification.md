@@ -779,3 +779,7 @@ UIシミュレーター検証と、保存・解析テスト＋iPhoneビルドを
 - [PRの検証CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36748528274)と[配布CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36753370121)が成功しました。[0.1.220（220.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.220-build.220.1)の4ファイルのハッシュ、IPAのコミット・最低OS 26.0・縦向き・バックグラウンド登録、固定URLのSourceとの一致を確認しました。
 - たくにんの同意画面とプライバシー説明も名称データ・授業時刻の表示に合わせました。109件のテストと型検査、[認証サービスのCI](https://github.com/n624-dev/takuma-gakunin-hono/actions/runs/36736543800)が成功し、本番HTMLの表示も確認しました。
 - OneDriveの同期、学校アカウントでの認証、ロック中の保護と自然なバックグラウンド実行、AltStoreからの導入は実機で確認します。
+
+## 2026-10-01 半期切替の実機確認
+
+10月1日の半期切替後、保存データと選択情報が削除される動作を実機で確認しました。
