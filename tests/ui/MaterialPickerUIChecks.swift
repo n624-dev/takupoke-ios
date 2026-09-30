@@ -33,6 +33,11 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
         }
         progress("scene connected")
         let window = UIWindow(windowScene: scene)
+        if ProcessInfo.processInfo.arguments.contains("--appearance-light") {
+            window.overrideUserInterfaceStyle = .light
+        } else if ProcessInfo.processInfo.arguments.contains("--appearance-dark") {
+            window.overrideUserInterfaceStyle = .dark
+        }
         window.rootViewController = root
         self.window = window
         window.makeKeyAndVisible()

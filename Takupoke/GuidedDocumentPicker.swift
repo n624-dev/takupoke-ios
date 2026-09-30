@@ -4,6 +4,17 @@ import UIKit
 /// presentation style consistent with the transitioning delegate for its lifetime.
 final class MaterialPickerController: UIDocumentPickerViewController {
     var presentationChanged: (() -> Void)?
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        registerForTraitChanges([UITraitUserInterfaceStyle.self, UITraitUserInterfaceLevel.self,
+                                UITraitAccessibilityContrast.self]) { (picker: MaterialPickerController, _) in
+            picker.viewIfLoaded?.setNeedsLayout()
+        }
+    }
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        (presentationController as? GuidedDocumentPicker)?.updateBackground()
+    }
     override var modalPresentationStyle: UIModalPresentationStyle {
         get { .custom }
         set { super.modalPresentationStyle = .custom }
@@ -53,6 +64,7 @@ final class GuidedDocumentPicker: UIPresentationController {
 
     private func layoutChrome() {
         guard let containerView else { return }
+        updateBackground()
         chrome.frame = containerView.bounds
         chrome.topInset = containerView.safeAreaInsets.top
         chrome.setNeedsLayout()
@@ -61,6 +73,20 @@ final class GuidedDocumentPicker: UIPresentationController {
         // Bounds/center remain valid while the transition applies a transform.
         presentedViewController.view.bounds = CGRect(origin: .zero, size: frame.size)
         presentedViewController.view.center = CGPoint(x: frame.midX, y: frame.midY)
+    }
+
+    func updateBackground() {
+        guard let pickerView = presentedViewController.viewIfLoaded else { return }
+        let color = pickerView.backgroundColor?.resolvedColor(with: pickerView.traitCollection)
+        if let color, color.cgColor.alpha == 1 {
+            chrome.backgroundColor = color
+        } else {
+            // A transparent picker root doesn't expose the remote Files view's
+            // fill. Use the system background for an elevated presentation.
+            let traits = UITraitCollection(traitsFrom: [pickerView.traitCollection,
+                UITraitCollection(userInterfaceLevel: .elevated)])
+            chrome.backgroundColor = UIColor.systemBackground.resolvedColor(with: traits)
+        }
     }
 
     override func presentationTransitionDidEnd(_ completed: Bool) {
