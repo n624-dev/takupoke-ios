@@ -55,6 +55,7 @@ final class LinksModel: ObservableObject {
     }
 
     func refresh(force: Bool = false) async {
+        guard !Task.isCancelled else { return }
         loadIfNeeded()
         guard ready, !busy else { return }
         busy = true
@@ -66,7 +67,7 @@ final class LinksModel: ObservableObject {
             guard operation == generation else { return }
             updateAvailable = result != .unchanged
         } catch {
-            guard operation == generation else { return }
+            guard operation == generation, !Task.isCancelled else { return }
             report(error)
         }
     }

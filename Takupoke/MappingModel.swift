@@ -72,11 +72,23 @@ final class MappingModel: ObservableObject {
     func revision(using network: URLSession) async throws -> MappingRevisionResult {
         loadIfNeeded()
         guard ready else { throw MappingError.storage }
+        let operation = generation
         let result = try await MappingService(baseURL: baseURL, network: network).checkRevision(installed: current?.revision)
         try Task.checkCancellation()
+        guard operation == generation else { throw CancellationError() }
         apply(result)
         if case .unchanged = result { message = "名称対応表は最新です。" }
         return result
+    }
+
+    func checkInBackground() async {
+        guard !busy, !Task.isCancelled else { return }
+        busy = true
+        let operation = generation
+        let network = Self.networkSession()
+        defer { network.invalidateAndCancel(); if operation == generation { busy = false } }
+        do { _ = try await revision(using: network) }
+        catch { if !Task.isCancelled, operation == generation { report(error) } }
     }
 
     func download(token: String, revision: String, network: URLSession) async throws {

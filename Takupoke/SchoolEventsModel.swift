@@ -121,6 +121,30 @@ final class SchoolEventsModel: ObservableObject {
 
     func cancel() { task?.cancel() }
 
+    /// Reuse the conditional API fetch without making another school PDF HEAD
+    /// request. Background cancellation must belong to the awaiting task.
+    func refreshInBackground() async -> Bool {
+        guard !busy, !Task.isCancelled else { return false }
+        loadIfNeeded()
+        guard ready else { return false }
+        busy = true
+        defer { busy = false }
+        var succeeded = true
+        for year in saved.keys.sorted() {
+            do {
+                try Task.checkCancellation()
+                _ = try await fetchOne(year: year)
+            } catch {
+                succeeded = false
+                if Task.isCancelled { break }
+                failed = true
+                message = "学校行事を更新確認できませんでした。保存済みの結果を表示しています。"
+            }
+        }
+        if succeeded { failed = false; message = nil }
+        return succeeded && !Task.isCancelled
+    }
+
     private func fetchOne(year: Int) async throws -> Bool {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.urlCache = nil

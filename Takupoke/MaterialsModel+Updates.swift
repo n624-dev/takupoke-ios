@@ -18,8 +18,15 @@ extension MaterialsModel {
         guard !requested.isEmpty else { return }
         let year = automaticChangeSchoolYear
         perform(success: "保存済みファイルの変更を確認しました。") { worker, control in
+            try Self.refreshSelectedFiles(worker, requested: requested, year: year, control: control)
+        }
+    }
+
+    nonisolated static func refreshSelectedFiles(_ worker: MaterialWorker, requested: Set<String>,
+                                                 year: Int, control: AcquisitionControl) throws {
             var failed = false
             for kind in [MaterialKind.timetable, .changes] where requested.contains(kind.rawValue) {
+                try control.check()
                 let source = FileRefreshDiagnostics.Source(rawValue: kind.rawValue)
                 FileRefreshDiagnostics.shared.record(.refreshStarted, source: source)
                 do {
@@ -31,6 +38,5 @@ extension MaterialsModel {
                 }
             }
             if failed { throw MaterialError.providerReadFailed }
-        }
     }
 }

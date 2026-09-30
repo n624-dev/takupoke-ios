@@ -6,8 +6,15 @@ extension SpecialSchedulesModel {
         let requested = fileRefreshQueue.take(ready: ready, busy: busy)
         guard !requested.isEmpty else { return }
         perform(success: nil) { store, control, _ in
+            try Self.refreshSelectedFiles(store, requested: requested, control: control)
+        }
+    }
+
+    nonisolated static func refreshSelectedFiles(_ store: SpecialScheduleStore, requested: Set<String>,
+                                                 control: AcquisitionControl) throws {
             var failure: Error?
             for kind in SpecialScheduleKind.allCases where requested.contains(kind.rawValue) {
+                try control.check()
                 guard let source = store.sources[kind] else { continue }
                 let diagnosticSource = FileRefreshDiagnostics.Source(rawValue: kind.rawValue)
                 FileRefreshDiagnostics.shared.record(.refreshStarted, source: diagnosticSource)
@@ -58,6 +65,5 @@ extension SpecialSchedulesModel {
                 }
             }
             if let failure { throw failure }
-        }
     }
 }

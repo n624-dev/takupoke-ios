@@ -48,6 +48,9 @@ extension TimetableView {
                 Text("(\(weekdayNames[day.schoolWeekday - 1]))").font(.caption)
                 if day == today { Text("今日").font(.caption2.bold()) }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(day.month)月\(day.day)日、\(weekdayNames[day.schoolWeekday - 1])曜日" +
+                                (day == today ? "、今日" : ""))
             ForEach(Array(plan.headerEvents(hasFullDayCard: hasFullDayCard).enumerated()), id: \.offset) { _, event in
                 Text(TimetableDisplayText.kana(event.title))
                     .font(.caption2)

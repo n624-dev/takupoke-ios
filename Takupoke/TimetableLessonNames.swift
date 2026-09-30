@@ -46,6 +46,21 @@ struct TimetableLessonNames: Codable, Equatable, Sendable {
 }
 
 enum TimetableDisplayText {
+    /// VoiceOver receives complete names, independently of the card's visual
+    /// abbreviation and truncation. Keep each field's meaning explicit.
+    static func lessonAccessibilityLabel(names: TimetableLessonNames, time: String?,
+                                         kind: String? = nil) -> String {
+        var parts: [String] = []
+        if let kind, !kind.isEmpty { parts.append(kind) }
+        if !names.detailSubject.isEmpty { parts.append("科目、" + continuous(names.detailSubject)) }
+        if let time, !time.isEmpty {
+            parts.append("時刻、" + periodTime(time).replacingOccurrences(of: "\n", with: ""))
+        } else { parts.append("時刻未確認") }
+        if !names.detailTeacher.isEmpty { parts.append("教員、" + continuous(names.detailTeacher)) }
+        if !names.detailRoom.isEmpty { parts.append("教室、" + continuous(names.detailRoom)) }
+        return parts.joined(separator: "、")
+    }
+
     /// Choose the first spelling that fits one line. If none does, keep the
     /// last short spelling intact so the card can grow instead of truncating it.
     static func changeCardSubject(_ source: String, short: String?, fitsOneLine: (String) -> Bool) -> String {

@@ -18,7 +18,8 @@ extension TimetableView {
                         .font(.subheadline.monospacedDigit())
                         .foregroundStyle(weekControlColor)
                 }
-                .accessibilityLabel("表示する週を選ぶ")
+                .accessibilityLabel("\(weekStart.month)月\(weekStart.day)日から\(weekStart.addingDays(6)!.month)月\(weekStart.addingDays(6)!.day)日")
+                .accessibilityHint("カレンダーで表示する週を選びます")
                 Spacer()
                 if canMoveNext {
                     Button { moveWeek(7) } label: {

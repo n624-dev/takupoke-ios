@@ -7,19 +7,19 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab: Tab = .home
     @State private var timetableTodayRequest: UUID?
-    @State private var dataReady = false
-    @State private var checkingPeriod = false
-    @State private var loadedPeriod: SchoolDataPeriod?
-    @State private var retentionFailure = false
-    @State private var retentionNotice = false
+    @StateObject private var application = ApplicationData.shared
+    private var dataReady: Bool { application.ready }
+    private var loadedPeriod: SchoolDataPeriod? { application.loadedPeriod }
+    private var retentionFailure: Bool { application.retentionFailure }
+    private var retentionNotice: Bool { application.retentionNotice }
     @AppStorage("setupPresented") private var setupPresented = false
     @State private var showingSetup = false
-    @StateObject private var materials = MaterialsModel()
-    @StateObject private var specialSchedules = SpecialSchedulesModel()
-    @StateObject private var schoolEvents = SchoolEventsModel()
-    @StateObject private var mappings = MappingModel()
-    @StateObject private var links = LinksModel()
-    @StateObject private var account = AccountDataModel()
+    @StateObject private var materials = ApplicationData.shared.materials
+    @StateObject private var specialSchedules = ApplicationData.shared.specialSchedules
+    @StateObject private var schoolEvents = ApplicationData.shared.schoolEvents
+    @StateObject private var mappings = ApplicationData.shared.mappings
+    @StateObject private var links = ApplicationData.shared.links
+    @StateObject private var account = ApplicationData.shared.account
     private let boundaryCheck = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -37,6 +37,7 @@ struct ContentView: View {
         .environmentObject(account)
         .environmentObject(links)
         .environmentObject(mappings)
+        .environmentObject(application.notifications)
         .onChange(of: scenePhase) { phase in
             if phase == .active { Task { await activate() } }
             else if phase == .background { setFileMonitoring(false) }
@@ -50,6 +51,9 @@ struct ContentView: View {
             }
         }
         .task { await activate() }
+        .onChange(of: dataReady) { ready in
+            if !ready { showingSetup = false }
+        }
         .onChange(of: materials.ready) { _ in offerSetupIfNeeded() }
         .onChange(of: specialSchedules.ready) { _ in offerSetupIfNeeded() }
         .onChange(of: links.ready) { _ in offerSetupIfNeeded() }
@@ -58,8 +62,9 @@ struct ContentView: View {
             SetupView(materials: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents,
                       mappings: mappings, finish: { setupPresented = true; showingSetup = false })
                 .environmentObject(account).environmentObject(links).environmentObject(mappings)
+                .environmentObject(application.notifications)
         }
-        .alert("保存データを削除しました", isPresented: $retentionNotice) {
+        .alert("保存データを削除しました", isPresented: $application.retentionNotice) {
             Button("設定する") { showingSetup = true }
             Button("あとで", role: .cancel) { setupPresented = true }
         } message: {
@@ -96,50 +101,11 @@ struct ContentView: View {
     }
 
     @MainActor private func activate() async {
-        guard !checkingPeriod else { return }
-        checkingPeriod = true
-        defer { checkingPeriod = false }
-        do {
-            let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
-                                                  appropriateFor: nil, create: true)
-            let retention = SchoolDataRetention(root: base)
-            let period = SchoolDataPeriod.current()
-            if (try? retention.installedPeriod()) != period {
-                let hadPrivateData = SchoolDataRetention.privatePaths.contains {
-                    FileManager.default.fileExists(atPath: base.appendingPathComponent($0).path)
-                }
-                // Remove all data-bearing views before waiting for workers/auth to stop.
-                dataReady = false
-                showingSetup = false
-                setFileMonitoring(false)
-                await account.stopForRetention()
-                await materials.closeForRetention()
-                await specialSchedules.closeForRetention()
-                mappings.resetForRetention()
-                links.resetForRetention()
-                try retention.replace(with: period)
-                FileRefreshDiagnostics.shared.clear()
-                materials.resumeAfterRetention()
-                specialSchedules.resumeAfterRetention()
-                retentionNotice = hadPrivateData
-            }
-            loadedPeriod = period
-            retentionFailure = false
-            dataReady = true
-            materials.loadIfNeeded()
-            specialSchedules.loadIfNeeded()
-            schoolEvents.refreshAtStartup()
-            mappings.checkAtStartup()
-            if scenePhase != .background { setFileMonitoring(true) }
-            if !account.busy { await links.refresh() }
-        } catch {
-            dataReady = false
-            retentionFailure = true
-        }
+        await application.activate()
     }
 
     private func setFileMonitoring(_ foreground: Bool) {
-        materials.setFileMonitoring(foreground && dataReady)
-        specialSchedules.setFileMonitoring(foreground && dataReady)
+        application.setFileMonitoring(foreground)
+        if !foreground { BackgroundRefresh.schedule() }
     }
 }

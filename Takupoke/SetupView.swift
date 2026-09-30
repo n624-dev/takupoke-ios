@@ -6,7 +6,9 @@ struct SetupView: View {
     @ObservedObject var schoolEvents: SchoolEventsModel
     @ObservedObject var mappings: MappingModel
     @AppStorage("timetableSelectedClasses") private var selectedClasses = ""
+    @EnvironmentObject private var notifications: ScheduleNotifications
     @State private var step = 0
+    @State private var finishing = false
     let finish: () -> Void
 
     var body: some View {
@@ -23,20 +25,27 @@ struct SetupView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 HStack {
-                    if step > 0 { Button("戻る") { step -= 1 } }
+                    if step > 0 { Button("戻る") { step -= 1 }.disabled(finishing) }
                     Spacer()
                     Text("\(step + 1) / 3").font(.footnote).foregroundStyle(.secondary)
                     Spacer()
                     Button(step == 2 ? "はじめる" : "次へ") {
-                        if step == 2 { finish() } else { step += 1 }
+                        if step == 2 {
+                            finishing = true
+                            Task {
+                                await notifications.enableFromSetup()
+                                finish()
+                            }
+                        } else { step += 1 }
                     }
                     .buttonStyle(.borderedProminent)
+                    .disabled(finishing)
                 }
                 .padding()
                 .background(.bar)
             }
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("あとで設定", action: finish) }
+                ToolbarItem(placement: .cancellationAction) { Button("あとで設定", action: finish).disabled(finishing) }
             }
         }
         .interactiveDismissDisabled()

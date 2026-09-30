@@ -92,9 +92,28 @@ extension TimetableView {
         .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10))
         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.primary.opacity(0.08)))
         .clipShape(RoundedRectangle(cornerRadius: 10))
-        .accessibilityLabel("\(TimetableDisplayText.className(className)) " +
-            (block.startPeriod == block.endPeriod ? "\(block.startPeriod)限" :
-                "\(block.startPeriod)〜\(block.endPeriod)限") + "の授業詳細")
+        .accessibilityLabel(gridCardAccessibilityLabel(block, on: day, className: className, time: time))
+        .accessibilityHint("授業詳細を開きます")
+    }
+
+    private func gridCardAccessibilityLabel(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
+                                             className: String, time: String?) -> String {
+        let names: TimetableLessonNames
+        let kind: String?
+        switch block.content {
+        case .normal(let lesson): names = lesson.names; kind = nil
+        case .special(let item):
+            names = TimetableLessonNames(subject: item.lesson.subject, teacher: item.lesson.teacher,
+                                         room: item.lesson.room)
+            kind = nil
+        case .change(let change):
+            names = mappings.names(for: change).after
+            kind = change.cardKindLabel
+        }
+        let periods = block.startPeriod == block.endPeriod ? "\(block.startPeriod)限" :
+            "\(block.startPeriod)限から\(block.endPeriod)限"
+        return "\(day.month)月\(day.day)日、\(TimetableDisplayText.className(className))、\(periods)、" +
+            TimetableDisplayText.lessonAccessibilityLabel(names: names, time: time, kind: kind)
     }
 
     // These transformations belong to grid labels, not persisted names or matching rules.

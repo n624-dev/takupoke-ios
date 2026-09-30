@@ -55,6 +55,8 @@ struct HomeLessonRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
+        .accessibilityLabel(TimetableDisplayText.lessonAccessibilityLabel(
+            names: names, time: time, kind: change?.cardKindLabel) + (inProgress ? "、授業中" : ""))
         .accessibilityHint("授業詳細を開きます")
     }
 }
