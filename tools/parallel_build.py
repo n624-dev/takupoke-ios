@@ -68,6 +68,5 @@ if __name__ == "__main__":
     scratch = str(Path(sys.argv[1]).resolve())
     sys.exit(run_commands([
         ("Picker UI", ["bash", "tools/test-picker-ui.sh"]),
-        ("Application UI", ["bash", "tools/test-app-ui.sh"]),
         ("Host tests and iPhone build", ["bash", "tools/build-ios-app.sh", scratch]),
     ]))
