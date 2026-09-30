@@ -28,6 +28,7 @@ final class FixtureNetwork: URLProtocol {
 @main
 struct SimulatorApplication: App {
     @State private var notificationProbe = "待機中"
+    @State private var applicationReady = false
     @AppStorage("mainColor") private var mainColor = MainColor.blue.rawValue
     init() {
         URLProtocol.registerClass(FixtureNetwork.self)
@@ -36,12 +37,30 @@ struct SimulatorApplication: App {
     var body: some Scene {
         WindowGroup {
             ContentView().tint((MainColor(rawValue: mainColor) ?? .blue).color)
+                .overlay(alignment: .topLeading) {
+                    if applicationReady {
+                        Text("準備完了").font(.caption2)
+                            .accessibilityIdentifier("fixture-ready")
+                            .allowsHitTesting(false)
+                    }
+                }
                 .overlay {
                     if ProcessInfo.processInfo.arguments.contains("--notification-probe") {
                         Text(notificationProbe).accessibilityIdentifier("fixture-notification-result")
                     }
                 }
                 .task {
+                    let data = ApplicationData.shared
+                    for _ in 0..<300 {
+                        if data.ready && data.materials.ready && data.specialSchedules.ready &&
+                            data.schoolEvents.ready && data.links.ready && data.mappings.ready && data.times.ready &&
+                            !data.materials.busy && !data.specialSchedules.busy &&
+                            !data.schoolEvents.busy && !data.links.busy && !data.mappings.busy && !data.times.busy {
+                            applicationReady = true
+                            break
+                        }
+                        try? await Task.sleep(nanoseconds: 100_000_000)
+                    }
                     guard ProcessInfo.processInfo.arguments.contains("--notification-probe") else { return }
                     for _ in 0..<40 {
                         let delivered = await UNUserNotificationCenter.current().deliveredNotifications()
