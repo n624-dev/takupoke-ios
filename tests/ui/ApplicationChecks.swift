@@ -16,6 +16,17 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertTrue(e.waitForExistence(timeout: 5), app.debugDescription)
         e.tap()
     }
+    private func enableChangeNotifications() {
+        let toggle = app.switches["時間割変更"]
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
+        let predicate = NSPredicate(format: "label CONTAINS[c] %@ OR label CONTAINS %@", "Allow", "許可")
+        for host in [app, XCUIApplication(bundleIdentifier: "com.apple.springboard")] {
+            let allow = host.buttons.matching(predicate).firstMatch
+            if allow.waitForExistence(timeout: 5) { allow.tap(); break }
+        }
+        let enabled = expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: toggle)
+        wait(for: [enabled], timeout: 15)
+    }
     private func dismissLesson() {
         let bar = app.navigationBars["授業詳細"]
         let start = bar.coordinate(withNormalizedOffset: CGVector(dx: 0.5,dy: 0.5))
@@ -63,8 +74,8 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertTrue(app.staticTexts["リンク一覧"].exists)
         app.navigationBars.buttons.element(boundBy: 0).tap()
         tap("ファイル選択")
-        XCTAssertTrue(app.buttons["ファイルを選び直す"].firstMatch.waitForExistence(timeout: 5), app.debugDescription)
-        tap("詳細を見る")
+        XCTAssertTrue(app.buttons["通常時間割のファイルを選び直す"].waitForExistence(timeout: 5), app.debugDescription)
+        tap("通常時間割の詳細を見る")
         XCTAssertTrue(app.staticTexts["fictional.pdf"].waitForExistence(timeout: 5), app.debugDescription)
         // Picker interactions are tested separately using the same production picker.
     }
@@ -89,7 +100,7 @@ final class ApplicationChecks: XCTestCase {
         tab("設定")
         tap("このアプリについて")
         tap("利用規約")
-        XCTAssertFalse(app.staticTexts["文書を読み取れません。"].exists)
+        XCTAssertFalse(app.staticTexts["文書を読み込めませんでした。"].exists)
         XCTAssertTrue(app.navigationBars["利用規約"].exists)
         app.navigationBars.buttons.element(boundBy: 0).tap()
         tap("プライバシーポリシー")
@@ -109,7 +120,12 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertTrue(app.buttons["あとで設定"].waitForExistence(timeout: 5))
         tap("次へ")
         for name in ["通常時間割", "時間割変更", "試験時間割", "試験返却時間割"] {
-            XCTAssertTrue(app.staticTexts[name].exists, app.debugDescription)
+            let heading = app.staticTexts[name].firstMatch
+            for _ in 0..<6 {
+                if heading.exists && heading.isHittable { break }
+                app.swipeUp()
+            }
+            XCTAssertTrue(heading.exists, app.debugDescription)
         }
         tap("次へ")
         XCTAssertTrue(app.staticTexts["3 / 3"].exists, app.debugDescription)
@@ -121,12 +137,7 @@ final class ApplicationChecks: XCTestCase {
         tap("通知設定")
         XCTAssertTrue(app.switches["時間割変更"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.switches["試験・返却"].exists)
-        app.switches["時間割変更"].tap()
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        let allow = springboard.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "Allow", "許可")).firstMatch
-        if allow.waitForExistence(timeout: 3) { allow.tap() }
-        XCTAssertTrue(app.switches["時間割変更"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.switches["時間割変更"].value as? String, "1")
+        enableChangeNotifications()
         app.switches["試験・返却"].tap()
         XCTAssertEqual(app.switches["試験・返却"].value as? String, "1")
         app.navigationBars.buttons.element(boundBy: 0).tap()
@@ -142,11 +153,7 @@ final class ApplicationChecks: XCTestCase {
     func testChangedDataProducesOneLocalNotification() {
         tab("設定")
         tap("通知設定")
-        app.switches["時間割変更"].tap()
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        let allow = springboard.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "Allow", "許可")).firstMatch
-        if allow.waitForExistence(timeout: 3) { allow.tap() }
-        XCTAssertEqual(app.switches["時間割変更"].value as? String, "1")
+        enableChangeNotifications()
         app.terminate()
         app.launchArguments = ["--updated-changes", "--notification-probe", "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
         app.launch()

@@ -51,7 +51,7 @@ struct SimulatorApplication: App {
             if let domain = Bundle.main.bundleIdentifier { defaults.removePersistentDomain(forName: domain) }
         }
         defaults.set(!ProcessInfo.processInfo.arguments.contains("--setup"), forKey: "setupPresented")
-        defaults.set("3_XY", forKey: "timetableSelectedClasses")
+        defaults.set("3_IT", forKey: "timetableSelectedClasses")
         if !FileManager.default.fileExists(atPath: base.appendingPathComponent("fixture-seeded").path) || ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
             try SchoolDataRetention(root: base).replace(with: period)
             let library = try LocalMaterialDatabase.openLibrary(root: base.appendingPathComponent("SchoolMaterialsSQLite"))
@@ -65,7 +65,7 @@ struct SimulatorApplication: App {
             let analysis = PDFAnalysis(kind: .timetable, sourceDigest: digest, sourceName: "fictional.pdf", parsedAt: Date(),
                 schoolYear: period.schoolYear, term: period.half == 1 ? "前期" : "後期",
                 lessons: (1...5).flatMap { weekday in (1...8).map { number in
-                    PDFLesson(className: "3_XY", weekday: weekday, period: number,
+                    PDFLesson(className: "3_IT", weekday: weekday, period: number,
                         names: .init(subject: "架空科目\(number <= 2 ? "A" : "B")", teacher: "架空教員A", room: "架空教室A"), sourceText: "", page: 1)
                 } }, events: [], notices: [])
             try library.savePDFAnalysis(analysis)
@@ -75,11 +75,11 @@ struct SimulatorApplication: App {
             try raw.write(to: changeStaged)
             try library.commit(staged: changeStaged, kind: .changes, source: .init(grant: nil, childName: nil),
                 originalName: "fictional.xlsx", byteCount: raw.count, digest: digest, modifiedAt: nil)
-            let change = ScheduleChange(change_date: changeDay.iso8601, class_name: "3_XY", period: "4,5",
+            let change = ScheduleChange(change_date: changeDay.iso8601, class_name: "3_IT", period: "4,5",
                 before_subject: "", after_subject: "架空変更A", teacher: "架空教員B", room: "架空教室B", note: "補講", raw_text: "", canonical_text: "")
             try library.saveChangeAnalysis(.init(sourceDigest: digest, sourceName: "fictional.xlsx", defaultYear: period.schoolYear,
                 parsedAt: Date(), records: [change,
-                    ScheduleChange(change_date: day.iso8601, class_name: "3_XY", period: "6", before_subject: "",
+                    ScheduleChange(change_date: day.iso8601, class_name: "3_IT", period: "6", before_subject: "",
                         after_subject: "架空変更通知A", teacher: "", room: "", note: "変更", raw_text: "", canonical_text: "")]))
             let specialStore = try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite"))
             for (kind, offset, subject) in [(SpecialScheduleKind.exam, 1, "架空試験A"), (.examReturn, 2, "架空返却A")] {
@@ -87,12 +87,12 @@ struct SimulatorApplication: App {
                 let staged = specialStore.newStagingURL()
                 try raw.write(to: staged)
                 let name = "fictional-\(kind.rawValue).pdf"
-                let lessons = (1...2).map { n in SpecialScheduleLesson(date: date, className: "3_XY", period: n,
+                let lessons = (1...2).map { n in SpecialScheduleLesson(date: date, className: "3_IT", period: n,
                     spanStart: 1, spanEnd: 2, timeRange: "08:00〜09:20", lines: [subject,"架空教員C","架空教室C"], page: 1) }
                 let special = SpecialScheduleAnalysis(kind: kind, sourceDigest: digest, sourceName: name, parsedAt: Date(),
                     schoolYear: period.schoolYear,
                     coveredDates: (0..<5).map { monday.addingDays(offset + $0)!.iso8601 },
-                    coveredClasses: ["3_XY"] + (1...16).map { "fictional_\($0)" },
+                    coveredClasses: ["3_IT"] + (1...16).map { "fictional_\($0)" },
                     periodTimes: Dictionary(uniqueKeysWithValues: (1...(kind == .exam ? 6 : 8)).map {
                         ($0, String(format: "%02d:00〜%02d:40", $0 + 7, $0 + 7))
                     }), lessons: lessons)
@@ -100,7 +100,7 @@ struct SimulatorApplication: App {
             }
             let eventDay = monday.addingDays(4)!.iso8601
             let events = SchoolEventsPayload(version: "v1", schoolYear: period.schoolYear, sourcePdfSha256: digest,
-                sourcePdfETag: nil, events: [.init(startDate: eventDay, endDate: eventDay, title: "架空行事A", tag: "行事（授業なし）")])
+                sourcePdfETag: "\"fictional\"", events: [.init(startDate: eventDay, endDate: eventDay, title: "架空行事A", tag: "行事（授業なし）")])
             try SchoolEventsStore(root: base.appendingPathComponent("SchoolEventsAPI")).save(events)
 
             let payload = LinksPayload(version: "v1", linksVersion: "sha256-" + String(repeating: "a",count: 64), categories: [

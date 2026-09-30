@@ -40,7 +40,7 @@ while read -r device_type runtime; do
         -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES test || {
         # Only the synthetic app runs on this isolated simulator.
         xcrun simctl spawn "$simulator_id" log show --last 10m --style compact \
-            --predicate 'process == "Takupoke" AND eventMessage CONTAINS "fixture"' || true
+            --predicate 'process == "Takupoke" AND eventMessage CONTAINS "Synthetic fixture initialization"' || true
         exit 1
     }
     xcrun simctl shutdown "$simulator_id"

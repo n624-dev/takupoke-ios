@@ -22,6 +22,8 @@ def generate(destination):
         # A URLProtocol below rejects every request. Rewrite URLs as a second
         # guard against any production communication from the test app.
         text = re.sub(r'https?://[^"\s)]+', 'https://fixture.example.test', text)
+        text = re.sub(r'(\b(?:let|var) (\w+) = URLSessionConfiguration\.(?:ephemeral|default))',
+                      lambda match: match[1] + "\n        " + match[2] + ".protocolClasses = [FixtureNetwork.self]", text)
         path.write_text(text)
     shutil.copyfile(repo/'tests/ui/ApplicationFixture.swift',copied/'TakupokeApp.swift')
     real['objects']['C00000000000000000000002']['sourceTree']='<absolute>'
