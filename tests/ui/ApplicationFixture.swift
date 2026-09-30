@@ -90,8 +90,12 @@ struct SimulatorApplication: App {
                 let lessons = (1...2).map { n in SpecialScheduleLesson(date: date, className: "3_XY", period: n,
                     spanStart: 1, spanEnd: 2, timeRange: "08:00〜09:20", lines: [subject,"架空教員C","架空教室C"], page: 1) }
                 let special = SpecialScheduleAnalysis(kind: kind, sourceDigest: digest, sourceName: name, parsedAt: Date(),
-                    schoolYear: period.schoolYear, coveredDates: [date], coveredClasses: ["3_XY"],
-                    periodTimes: [1: "08:00〜08:40", 2: "08:40〜09:20"], lessons: lessons)
+                    schoolYear: period.schoolYear,
+                    coveredDates: (0..<5).map { monday.addingDays(offset + $0)!.iso8601 },
+                    coveredClasses: ["3_XY"] + (1...16).map { "fictional_\($0)" },
+                    periodTimes: Dictionary(uniqueKeysWithValues: (1...(kind == .exam ? 6 : 8)).map {
+                        ($0, String(format: "%02d:00〜%02d:40", $0 + 7, $0 + 7))
+                    }), lessons: lessons)
                 try specialStore.save(staged: staged, analysis: special, originalName: name, byteCount: raw.count, digest: digest)
             }
             let eventDay = monday.addingDays(4)!.iso8601

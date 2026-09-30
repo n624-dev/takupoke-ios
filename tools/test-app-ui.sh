@@ -37,7 +37,12 @@ while read -r device_type runtime; do
         -destination "platform=iOS Simulator,id=$simulator_id" \
         -derivedDataPath "$scratch_dir/DerivedData" \
         -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
-        -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES test
+        -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES test || {
+        # Only the synthetic app runs on this isolated simulator.
+        xcrun simctl spawn "$simulator_id" log show --last 10m --style compact \
+            --predicate 'process == "Takupoke" AND eventMessage CONTAINS "fixture"' || true
+        exit 1
+    }
     xcrun simctl shutdown "$simulator_id"
     xcrun simctl delete "$simulator_id"
     simulator_id=""
