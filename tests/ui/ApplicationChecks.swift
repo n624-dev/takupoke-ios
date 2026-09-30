@@ -155,7 +155,7 @@ final class ApplicationChecks: XCTestCase {
         let received = expectation(for: NSPredicate(format: "label == %@", "1件の時間割変更を確認してください。"), evaluatedWith: result)
         wait(for: [received], timeout: 30)
     }
-    func testVoiceOverReadsTimetableCard() throws {
+    @MainActor func testVoiceOverReadsTimetableCard() throws {
         guard #available(iOS 27.0, *) else { throw XCTSkip("VoiceOver automation requires iOS 27") }
         tab("時間割")
         let service = XCUIDevice.shared.voiceOverService
