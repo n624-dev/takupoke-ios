@@ -20,7 +20,7 @@ final class ApplicationChecks: XCTestCase {
         let toggle = app.switches["時間割変更"]
         toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
         let predicate = NSPredicate(format: "label CONTAINS[c] %@ OR label CONTAINS %@", "Allow", "許可")
-        for host in [app, XCUIApplication(bundleIdentifier: "com.apple.springboard")] {
+        for host in [app!, XCUIApplication(bundleIdentifier: "com.apple.springboard")] {
             let allow = host.buttons.matching(predicate).firstMatch
             if allow.waitForExistence(timeout: 5) { allow.tap(); break }
         }
