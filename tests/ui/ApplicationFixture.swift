@@ -51,6 +51,7 @@ struct SimulatorApplication: App {
             if let domain = Bundle.main.bundleIdentifier { defaults.removePersistentDomain(forName: domain) }
         }
         defaults.set(!ProcessInfo.processInfo.arguments.contains("--setup"), forKey: "setupPresented")
+        if ProcessInfo.processInfo.arguments.contains("--empty-fixture") { return }
         if !FileManager.default.fileExists(atPath: base.appendingPathComponent("fixture-seeded").path) || ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
             try SchoolDataRetention(root: base).replace(with: period)
             defaults.set("3_IT", forKey: "timetableSelectedClasses")
@@ -91,7 +92,9 @@ struct SimulatorApplication: App {
                     spanStart: 1, spanEnd: 2, timeRange: "08:00〜09:20", lines: [subject,"架空教員C","架空教室C"], page: 1) }
                 let special = SpecialScheduleAnalysis(kind: kind, sourceDigest: digest, sourceName: name, parsedAt: Date(),
                     schoolYear: period.schoolYear,
-                    coveredDates: (0..<5).map { monday.addingDays(offset + $0)!.iso8601 },
+                    // Keep the normal Thursday separate from special coverage, including
+                    // weeks that straddle the April/October semester boundary.
+                    coveredDates: ([offset] + Array(8...11)).map { monday.addingDays($0)!.iso8601 },
                     coveredClasses: ["3_IT"] + (1...16).map { "fictional_\($0)" },
                     periodTimes: Dictionary(uniqueKeysWithValues: (1...(kind == .exam ? 6 : 8)).map {
                         ($0, String(format: "%02d:00〜%02d:40", $0 + 7, $0 + 7))
@@ -134,6 +137,12 @@ struct SimulatorApplication: App {
                 originalName: "fictional.xlsx", byteCount: data.count, digest: digest, modifiedAt: nil)
             analysis.sourceDigest = digest; analysis.parsedAt = Date()
             try library.saveChangeAnalysis(analysis)
+        }
+        if ProcessInfo.processInfo.arguments.contains("--failed-refresh") {
+            let library = try LocalMaterialDatabase.openLibrary(root: base.appendingPathComponent("SchoolMaterialsSQLite"))
+            try library.recordFailure(.changes, message: "架空の変更ファイル取得エラー")
+            try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite"))
+                .recordFailure(PDFParseError(code: .unsupported), kind: .exam)
         }
     }
 }
