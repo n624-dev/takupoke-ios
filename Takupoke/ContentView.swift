@@ -70,7 +70,7 @@ struct ContentView: View {
             Button("設定する") { showingSetup = true }
             Button("あとで", role: .cancel) { setupPresented = true }
         } message: {
-            Text("保存期間が切り替わりました。ファイルの再選択とリンク一覧・名称対応表・授業時刻の再取得が必要です。")
+            Text("保存期間が切り替わりました。ファイルの再選択とリンク一覧・名称データ・授業時刻の再取得が必要です。")
         }
     }
 

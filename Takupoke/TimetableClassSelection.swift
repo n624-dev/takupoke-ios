@@ -3,6 +3,7 @@ import SwiftUI
 struct TimetablePrimaryClassSelection: View {
     let classes: [String]
     @Binding var value: String
+    var setupMode = false
     @AppStorage("timetableInternationalStudent") private var isInternationalStudent = false
 
     private var selected: [String] { value.split(separator: "|").map(String.init) }
@@ -13,6 +14,11 @@ struct TimetablePrimaryClassSelection: View {
 
     var body: some View {
         Form {
+            if setupMode {
+                Section("クラスを選ぶ") {
+                    Text("時間割に表示するクラスを選びます。1年生は追加クラスも選べます。")
+                }
+            }
             Picker("クラス", selection: Binding(get: { primary }, set: { value = $0 })) {
                 Text("クラスを選択").tag("")
                 if !primary.isEmpty && !classes.contains(primary) {
@@ -32,7 +38,7 @@ struct TimetablePrimaryClassSelection: View {
             .disabled(additionalClasses.isEmpty && additional.isEmpty)
             Toggle("留学生向けの授業も表示", isOn: $isInternationalStudent)
         }
-        .navigationTitle("クラスを選ぶ")
+        .navigationTitle("クラス")
     }
 }
 

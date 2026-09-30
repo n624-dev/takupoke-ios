@@ -83,7 +83,7 @@ struct LinkRow: View {
                 Button {
                     open(opposite: true)
                 } label: {
-                    Label(preferredMode == .external ? "アプリ内で開く" : "外部で開く",
+                    Label(preferredMode == .external ? "アプリ内で開く" : "デフォルトのブラウザで開く",
                           systemImage: preferredMode == .external ? "safari" : "arrow.up.right.square")
                 }
             }

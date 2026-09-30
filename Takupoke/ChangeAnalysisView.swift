@@ -26,6 +26,9 @@ struct ChangeAnalysisView: View {
                 TextField("補完年度（自動：\(SchoolDate.today().schoolYear)年度）", text: $year)
                     .keyboardType(.numberPad).disabled(model.busy)
                 if !validYear { Text("西暦1900〜9998の学校年度を入力してください。").foregroundStyle(.orange) }
+                if let source = model.state.record(for: .changes) {
+                    LabeledContent("状態", value: model.analysisStatus(.changes, record: source))
+                }
                 if model.busy {
                     LoadingRow(title: "処理中⋯", cancel: { model.cancel() })
                 }
@@ -39,9 +42,13 @@ struct ChangeAnalysisView: View {
                 if let message = model.message, message != model.state.changeParseAttempt?.failure?.localizedDescription {
                     Text(message).font(.caption).foregroundStyle(model.failed ? Color.orange : Color.secondary)
                 }
-            } header: { Text("解析") }
+            } header: { Text("状態") }
+            Section("操作") {
+                Button("同じファイルを再取得") { model.refresh(.changes) }
+                    .disabled(model.busy || !model.ready || model.state.record(for: .changes) == nil)
+            }
             if let source = model.state.record(for: .changes) {
-                Section("選択したファイル") {
+                Section("ファイル情報") {
                     Text(source.originalName)
                     LabeledContent("サイズ", value: ByteCountFormatter.string(
                         fromByteCount: Int64(source.byteCount), countStyle: .file))
@@ -62,8 +69,6 @@ struct ChangeAnalysisView: View {
                         Label(failure, systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
                     }
-                    Button("同じファイルを再取得") { model.refresh(.changes) }
-                        .disabled(model.busy || !model.ready)
                 }
             }
             if let analysis = analysis {

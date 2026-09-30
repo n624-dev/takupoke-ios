@@ -63,7 +63,7 @@ final class MappingModel: ObservableObject {
             } catch {
                 guard operation == generation else { return }
                 failed = true
-                message = "名称対応表の更新を確認できませんでした。" +
+                message = "名称データの更新を確認できませんでした。" +
                     (current == nil ? "" : "保存済みの対応表を使用します。")
             }
         }
@@ -77,7 +77,7 @@ final class MappingModel: ObservableObject {
         try Task.checkCancellation()
         guard operation == generation else { throw CancellationError() }
         apply(result)
-        if case .unchanged = result { message = "名称対応表は最新です。" }
+        if case .unchanged = result { message = "名称データは最新です。" }
         return result
     }
 
@@ -100,7 +100,7 @@ final class MappingModel: ObservableObject {
         current = package
         updateAvailable = false
         failed = false
-        message = "名称対応表を更新しました。"
+        message = "名称データを更新しました。"
     }
 
     func report(_ error: Error) {

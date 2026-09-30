@@ -15,12 +15,12 @@ struct SetupView: View {
         NavigationStack {
             Group {
                 switch step {
-                case 0: AccountDataSettingsView()
+                case 0: AccountDataSettingsView(setupMode: true)
                 case 1:
                     MaterialsView(model: materials, specialSchedules: specialSchedules,
                                   schoolEvents: schoolEvents, mappings: mappings, setupMode: true)
                 default:
-                    TimetablePrimaryClassSelection(classes: TimetableSchedule.selectableClasses, value: $selectedClasses)
+                    TimetablePrimaryClassSelection(classes: TimetableSchedule.selectableClasses, value: $selectedClasses, setupMode: true)
                 }
             }
             .safeAreaInset(edge: .bottom) {

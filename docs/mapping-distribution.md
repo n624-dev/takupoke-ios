@@ -1,12 +1,12 @@
-# 名称対応表の配信・接続
+# 名称データの配信・接続
 
 通常時間割PDFの記載名から正式名称への対応表を、認証付きの `takupoke-api` から取得します。iOSはPDF解析結果を書き換えず、授業詳細の表示時に保存済み対応表を適用します。時間割変更XLSXでは表示時だけ末尾括弧の教員・教室と正式名を照合します。試験・返却PDF、学校行事の解析結果は書き換えません。
 
 ## 更新確認と認証
 
 - 起動時は公開 `GET https://takupoke-api.n624.jp/mapping-revision` だけを確認します。レスポンスは本文なし、ランダムな43文字の revision を引用符で囲んだ `ETag` のみです。内部バージョン、日時、件数、ZIPは公開しません。ただし継続監視から更新時期の範囲は推測可能です。
-- 保存済み revision を `If-None-Match` で送ります。304なら変更なし、200なら更新ありとして設定の「データ取得」→「リンク一覧・名称対応表」に表示します。取得失敗時は保存済み対応表を保持し、確認失敗を示します。
-- 利用者が取得を押したとき、まず revision を再確認します。変更があれば `ASWebAuthenticationSession` で `takuma-gakunin-hono` のAuthorization Code + PKCE S256を開始し、`openid mapping.read links.read` を要求し、一覧と名称対応表の必要な更新を一回の認証で取得します。Microsoft側の既存SSOを許可し、`prompt=login`は付けません。
+- 保存済み revision を `If-None-Match` で送ります。304なら変更なし、200なら更新ありとして設定の「データ」→「リンク・名称・授業時刻」に表示します。取得失敗時は保存済み対応表を保持し、確認失敗を示します。
+- 利用者が取得を押したとき、まず revision を再確認します。変更があれば `ASWebAuthenticationSession` で `takuma-gakunin-hono` のAuthorization Code + PKCE S256を開始し、`openid mapping.read links.read` を要求し、一覧と名称データの必要な更新を一回の認証で取得します。Microsoft側の既存SSOを許可し、`prompt=login`は付けません。
 - `client_id=takupoke-ios`、callbackは `jp.n624.takupoke:/oauth/callback`。ID Tokenは署名・issuer・audience・nonce・有効期限を確認し、対応表APIにはAccess Tokenだけを送ります。Refresh Tokenは使用せず、Tokenは端末内へ永続保存しません。
 - 認証後の `GET /mappings/current` は Bearer Token必須です。ZIPレスポンスの `X-Mapping-Revision` と直前に確認した公開 revision が一致する場合だけ取り込みます。公開確認と取得の間に版が切り替わった場合は旧版を残して再試行を案内します。
 

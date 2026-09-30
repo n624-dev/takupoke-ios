@@ -51,9 +51,9 @@ struct SimulatorApplication: App {
             if let domain = Bundle.main.bundleIdentifier { defaults.removePersistentDomain(forName: domain) }
         }
         defaults.set(!ProcessInfo.processInfo.arguments.contains("--setup"), forKey: "setupPresented")
-        defaults.set("3_IT", forKey: "timetableSelectedClasses")
         if !FileManager.default.fileExists(atPath: base.appendingPathComponent("fixture-seeded").path) || ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
             try SchoolDataRetention(root: base).replace(with: period)
+            defaults.set("3_IT", forKey: "timetableSelectedClasses")
             let library = try LocalMaterialDatabase.openLibrary(root: base.appendingPathComponent("SchoolMaterialsSQLite"))
             let staged = library.newStagingURL()
             let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0,y: 0,width: 200,height: 200))

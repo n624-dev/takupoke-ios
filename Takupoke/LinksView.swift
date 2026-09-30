@@ -50,7 +50,7 @@ struct LinksView: View {
                         else {
                             Text(model.failed ? "一覧を取得できませんでした。" : "一覧はまだ取得されていません。")
                                 .foregroundStyle(.secondary)
-                            NavigationLink("データ取得") { AccountDataSettingsView() }
+                            NavigationLink("リンク一覧を取得") { AccountDataSettingsView() }
                         }
                     }
                 } else if LinkSearch.normalize(query).isEmpty {

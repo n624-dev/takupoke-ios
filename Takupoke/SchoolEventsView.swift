@@ -1,5 +1,16 @@
 import SwiftUI
 
+struct SchoolEventsSettingsView: View {
+    @ObservedObject var model: SchoolEventsModel
+
+    var body: some View {
+        List { SchoolEventsSettingsSection(model: model) }
+            .navigationTitle("学校行事")
+            .task { model.loadIfNeeded() }
+            .scrollDismissesKeyboard(.interactively)
+    }
+}
+
 struct SchoolEventsSettingsSection: View {
     @ObservedObject var model: SchoolEventsModel
     @AppStorage("eventsSelectedSchoolYear") private var yearValue = ""

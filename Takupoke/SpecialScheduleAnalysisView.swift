@@ -13,7 +13,10 @@ struct SpecialScheduleAnalysisView: View {
 
     var body: some View {
         List {
-            Section("解析") {
+            Section("状態") {
+                if let source {
+                    LabeledContent("状態", value: model.analysisStatus(kind, source: source))
+                }
                 if model.busy {
                     LoadingRow(title: "処理中⋯", cancel: { model.cancel() })
                 }
@@ -34,8 +37,12 @@ struct SpecialScheduleAnalysisView: View {
                 }
 #endif
             }
+            Section("操作") {
+                Button("保存済みのPDFを見る") { showingSource = true }
+                    .disabled(model.busy || model.urls[kind] == nil)
+            }
             if let source {
-                Section("選択したファイル") {
+                Section("ファイル情報") {
                     Text(source.originalName)
                     if source.grant == nil {
                         Label("ファイルの自動更新確認には、このPDFをもう一度選んでください。", systemImage: "exclamationmark.triangle")
@@ -51,8 +58,6 @@ struct SpecialScheduleAnalysisView: View {
                             Text(date, format: .dateTime.year().month().day().hour().minute())
                         }
                     }
-                    Button("保存済みのPDFを見る") { showingSource = true }
-                        .disabled(model.busy || model.urls[kind] == nil)
                 }
             }
             if let record {

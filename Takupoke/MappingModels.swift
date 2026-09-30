@@ -5,12 +5,12 @@ enum MappingError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidPackage: return "名称対応表の形式または整合性を確認できませんでした。"
-        case .invalidResponse: return "名称対応表の配信応答を確認できませんでした。"
+        case .invalidPackage: return "名称データの形式または整合性を確認できませんでした。"
+        case .invalidResponse: return "名称データの配信応答を確認できませんでした。"
         case .authentication: return "認証を完了できませんでした。"
-        case .unavailable: return "名称対応表を取得できませんでした。"
-        case .storage: return "名称対応表を保存できませんでした。"
-        case .changedDuringDownload: return "取得中に名称対応表が更新されました。もう一度お試しください。"
+        case .unavailable: return "名称データを取得できませんでした。"
+        case .storage: return "名称データを保存できませんでした。"
+        case .changedDuringDownload: return "取得中に名称データが更新されました。もう一度お試しください。"
         }
     }
 }

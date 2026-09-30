@@ -12,8 +12,12 @@ final class ApplicationChecks: XCTestCase {
     private func tab(_ title: String) { app.tabBars.buttons[title].tap() }
     private func tap(_ title: String) {
         let e = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
-        if !e.isHittable { app.swipeUp() }
+        for _ in 0..<6 {
+            if e.exists && e.isHittable { break }
+            app.swipeUp()
+        }
         XCTAssertTrue(e.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(e.isHittable, app.debugDescription)
         e.tap()
     }
     private func enableChangeNotifications() {
@@ -69,16 +73,66 @@ final class ApplicationChecks: XCTestCase {
     }
     func testSettingsAccountDataAndFileDetails() {
         tab("設定")
-        tap("学校アカウントのデータ")
-        XCTAssertTrue(app.staticTexts["授業時刻"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["名称対応表"].exists)
-        XCTAssertTrue(app.staticTexts["リンク一覧"].exists)
+        tap("リンク・名称・授業時刻")
+        for title in ["リンク一覧", "名称データ", "授業時刻"] {
+            tap(title)
+            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertTrue(app.staticTexts["最終取得"].exists, app.debugDescription)
+            XCTAssertTrue(app.staticTexts["件数"].exists, app.debugDescription)
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+        }
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        tap("ファイル選択")
-        XCTAssertTrue(app.buttons["通常時間割のファイルを選び直す"].waitForExistence(timeout: 5), app.debugDescription)
-        tap("通常時間割の詳細を見る")
-        XCTAssertTrue(app.staticTexts["fictional.pdf"].waitForExistence(timeout: 5), app.debugDescription)
-        // Picker interactions are tested separately using the same production picker.
+        tap("学校行事")
+        XCTAssertTrue(app.buttons["学校行事を更新"].waitForExistence(timeout: 5), app.debugDescription)
+        tap("詳細を見る")
+        XCTAssertTrue(app.staticTexts["件数"].exists)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        tap("時間割ファイル")
+        XCTAssertFalse(app.buttons["学校行事を更新"].exists)
+        for title in ["通常時間割", "時間割変更", "試験時間割", "試験返却時間割"] {
+            tap("\(title)の詳細を見る")
+            XCTAssertTrue(app.staticTexts["ファイル情報"].waitForExistence(timeout: 5), app.debugDescription)
+            for _ in 0..<4 {
+                if app.staticTexts["解析結果"].exists { break }
+                app.swipeUp()
+            }
+            XCTAssertTrue(app.staticTexts["解析結果"].exists, app.debugDescription)
+            XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "解析する")).firstMatch.exists)
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+        }
+        // Actual picker interactions are exercised by the dedicated picker suite.
+    }
+    func testUsageHelpIsOrganizedByTask() {
+        tab("設定")
+        tap("使い方")
+        for (title, heading) in [("はじめに", "1. OneDriveを準備する"),
+                                 ("時間割を見る", "今日の予定"),
+                                 ("リンクを使う", "リンクを開く"),
+                                 ("更新と通知", "ファイルと学校行事"),
+                                 ("困ったとき", "ファイルが更新されない")] {
+            tap(title)
+            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.staticTexts[heading].exists, app.debugDescription)
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+        }
+    }
+    func testSettingsClassSelectionSharesTimetablePreference() {
+        tab("設定")
+        tap("クラス")
+        tap("クラス")
+        tap("4-IT")
+        XCTAssertTrue(app.switches["留学生向けの授業も表示"].exists, app.debugDescription)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        tab("時間割")
+        let predicate = NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "クラス", "4-IT")
+        XCTAssertTrue(app.buttons.matching(predicate).firstMatch.waitForExistence(timeout: 5), app.debugDescription)
+        app.terminate()
+        app.launchArguments = ["-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
+        app.launch()
+        XCTAssertTrue(app.tabBars.buttons["設定"].waitForExistence(timeout: 30))
+        tab("設定")
+        XCTAssertTrue(app.buttons.matching(predicate).firstMatch.exists, app.debugDescription)
     }
     func testLinkPreferencesSurviveRelaunch() {
         tab("一覧")
@@ -117,7 +171,7 @@ final class ApplicationChecks: XCTestCase {
     }
     func testSetupCanBeSkippedAndOffersAllFiles() {
         tab("設定")
-        tap("セットアップ")
+        tap("初期設定")
         XCTAssertTrue(app.buttons["あとで設定"].waitForExistence(timeout: 5))
         tap("次へ")
         for name in ["通常時間割", "時間割変更", "試験時間割", "試験返却時間割"] {
@@ -135,7 +189,7 @@ final class ApplicationChecks: XCTestCase {
     }
     func testNotificationControlsAndAppearance() {
         tab("設定")
-        tap("通知設定")
+        tap("通知")
         XCTAssertTrue(app.switches["時間割変更"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.switches["試験・返却"].exists)
         enableChangeNotifications()
@@ -155,7 +209,7 @@ final class ApplicationChecks: XCTestCase {
     }
     func testChangedDataProducesOneLocalNotification() {
         tab("設定")
-        tap("通知設定")
+        tap("通知")
         enableChangeNotifications()
         app.terminate()
         app.launchArguments = ["--updated-changes", "--notification-probe", "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
