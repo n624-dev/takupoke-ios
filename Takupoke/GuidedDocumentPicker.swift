@@ -3,9 +3,18 @@ import UIKit
 /// The picker resets its sheet style during presentation. Keep the public
 /// presentation style consistent with the transitioning delegate for its lifetime.
 final class MaterialPickerController: UIDocumentPickerViewController {
+    var presentationChanged: (() -> Void)?
     override var modalPresentationStyle: UIModalPresentationStyle {
         get { .custom }
         set { super.modalPresentationStyle = .custom }
+    }
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        DispatchQueue.main.async { [weak self] in self?.presentationChanged?() }
+    }
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        DispatchQueue.main.async { [weak self] in self?.presentationChanged?() }
     }
 }
 

@@ -18,7 +18,7 @@
 - AltStore Classic 2.3 以降
 - LocalDevVPN
 
-たくポケ本体は iOS 16.0 以降に対応していますが、このページでは PC を常時使用しない Remote AltServer の設定まで行うため、iOS 27 以降を前提とします。
+たくポケ本体は iOS 26・27に対応していますが、このページでは PC を常時使用しない Remote AltServer の設定まで行うため、iOS 27 以降を前提とします。
 
 ---
 

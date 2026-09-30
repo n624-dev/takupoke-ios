@@ -18,7 +18,7 @@ Web版「クラシック」を使用します。出典は `n624-dev/takupoke-ast
 
 ## ビルドと配布
 
-`AppIcon.icon` はXcodeのResourcesへ登録し、`ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon` を使用します。Xcode 27.0でLiquid Glass用にコンパイルします。iOS 26より前のOS向け画像はXcodeが生成します。最低対応OSはiOS 16のままです。
+`AppIcon.icon` はXcodeのResourcesへ登録し、`ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon` を使用します。Xcode 27.0でLiquid Glass用にコンパイルします。対応OSはiOS 26・27で、最低対応OSはiOS 26です。
 
 `Assets.xcassets/AppIcon.appiconset/AppIcon.png` は同じ前景を白背景に合成した不透明PNGです。AltStore Source / Releaseの `icon.png` にも使用します。ネイティブの動的な光沢をPNGへ焼き込んではいません。
 

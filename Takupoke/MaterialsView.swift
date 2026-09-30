@@ -126,15 +126,17 @@ struct MaterialsView: View {
         .task { model.loadIfNeeded() }
         .task { specialSchedules.loadIfNeeded() }
         .task { schoolEvents.loadIfNeeded() }
-        .background {
-            MaterialDocumentPicker(item: $fileRequest, type: { $0.type }, instruction: { $0.instruction },
+        .background(
+            MaterialDocumentPicker(item: $fileRequest, requestID: fileRequest?.id,
+                type: { $0.type }, instruction: { $0.instruction },
                 selected: { request, selection in
                     switch request.target {
                     case .material(let kind): model.selectFile(selection, kind: kind)
                     case .special(let kind): specialSchedules.importPDF(selection, kind: kind)
                     }
                 })
-        }
+                .allowsHitTesting(false)
+        )
     }
 
     private struct FileRequest: Identifiable {

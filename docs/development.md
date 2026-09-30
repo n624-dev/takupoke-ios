@@ -10,11 +10,11 @@
 | 配布処理のローカルテスト | Python 3.11 以降、標準ライブラリのみ |
 | ワークフローの追加チェック | 任意で actionlint |
 | iOS ビルド | Actions の `xcode-27` と Xcode 27.0 |
-| 実機導入・更新 | iOS 16.0以降のiPhone、AltStore Classic。[導入手順](altstore-pal-install.md)を参照 |
+| 実機導入・更新 | iOS 26・27のiPhone、AltStore Classic。[導入手順](altstore-pal-install.md)を参照 |
 
 Linux / Windows では SwiftUI のビルドを行わず、配布スクリプトのテストとソース編集を行います。XLSX展開にはZIPFoundation 0.9.20、SQLite保存基盤にはGRDB 7.11.1をコミット固定のSwift Packageとして使用します。共通ソースのテストにはSwift 6.1以降が必要です。
 
-Actionsでは `/Applications/Xcode_27.0.app/Contents/Developer` を指定し、正式版のXcode 27.0を使用します。`xcode-27` runnerは公開プレビューです。最低対応OSはiOS 16、アプリのSwift言語モードは5を維持します。
+Actionsでは `/Applications/Xcode_27.0.app/Contents/Developer` を指定し、正式版のXcode 27.0を使用します。`xcode-27` runnerは公開プレビューです。最低対応OSはiOS 26、アプリのSwift言語モードは5を維持します。
 
 ## clone とメールアドレスの非公開設定
 
@@ -92,8 +92,10 @@ Xcode側も依存のcheckout・キャッシュをビルド用一時ディレク�
 
 `tools/build-ios.sh` は次の2系統を同時に実行します。
 
-- `tools/test-picker-ui.sh`：使い捨てのiPhoneシミュレーターで標準ファイル選択画面を検証。
+- `tools/test-picker-ui.sh`：使い捨てのiPhoneシミュレーターで標準ファイル選択画面を検証。XCUITestでボタンをタップし、別の検証で表示領域・遅れたキャンセル・表示拒否後の再選択・選択結果の引き継ぎを確認。
 - `tools/build-ios-app.sh`：保存・解析テストの後にiPhone向けReleaseビルドを実行。
+
+UI検証用のXcodeプロジェクトは `tools/picker_test_project.py` が一時ディレクトリへ生成します。検証後はプロジェクト・テスト結果・シミュレーターを削除します。
 
 `tools/parallel_build.py` が両方の終了結果を確認し、すべて成功した場合だけIPA作成へ進みます。失敗・中止時には子プロセスも停止します。処理ごとのログは完了時に出力し、一時ディレクトリとシミュレーターは後片付けします。プロセス制御のテストはmacOS・Linuxで実行し、Windowsでは省略します。
 

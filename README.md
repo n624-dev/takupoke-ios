@@ -22,13 +22,13 @@
 - 初回セットアップと、設定からの再開。
 - 7色のメインカラー、アプリ内／外部ブラウザの選択、ライセンスの個別表示。
 
-画面は縦向き専用です。iOS 26以降では標準部品のLiquid Glassに対応しています。通知と時間割画像の共有は未実装です。実装範囲と検証状況は[ロードマップ](docs/roadmap.md)と[検証記録](docs/verification.md)を参照してください。
+画面は縦向き専用です。標準部品のLiquid Glassに対応しています。通知と時間割画像の共有は未実装です。実装範囲と検証状況は[ロードマップ](docs/roadmap.md)と[検証記録](docs/verification.md)を参照してください。
 
 ## iPhone に導入する
 
 まず [AltStore PAL 経由のインストール手順](docs/altstore-pal-install.md) を参照してください。**AltStore PAL → AltStore Classic → たくポケ** の順に導入します。この案内は、iOS 27以降とAltStore Classic 2.3以降でRemote AltServer・端末内ペアリングを使う方を対象にしています。デベロッパモードの有効化、再起動後の確認、初回起動時の設定も手順に沿って行ってください。
 
-たくポケ本体は **iOS 16.0以降のiPhone** に対応します。追加ガイドの条件に合わない場合は、[WindowsのAltServerを使う導入手順](docs/distribution.md#windows-と-iphone-の準備) を利用できます。画面は縦向き専用です。アプリアイコンはWeb版のクラシックを単色化したLiquid Glass対応素材を使用します（[素材とビルド](docs/app-icon.md)）。
+たくポケ本体は **iOS 26・27のiPhone** に対応します。追加ガイドの条件に合わない場合は、[WindowsのAltServerを使う導入手順](docs/distribution.md#windows-と-iphone-の準備) を利用できます。画面は縦向き専用です。アプリアイコンはWeb版のクラシックを単色化したLiquid Glass対応素材を使用します（[素材とビルド](docs/app-icon.md)）。
 
 以下の固定 URL を AltStore Classic の Source として追加できます。
 

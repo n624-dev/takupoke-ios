@@ -24,12 +24,23 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options: UIScene.ConnectionOptions) {
         guard let scene = scene as? UIWindowScene else { return }
-        MaterialPickerTestTrace.record = { [weak self] in self?.trace.append($0) }
+        MaterialPickerTestTrace.record = { [weak self] entry in
+            guard let self else { return }
+            self.trace.append(entry)
+            let name = "trace-\(ProcessInfo.processInfo.processIdentifier).txt"
+            let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent(name)
+            try? self.trace.suffix(200).joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+        }
         progress("scene connected")
         let window = UIWindow(windowScene: scene)
         window.rootViewController = root
         self.window = window
         window.makeKeyAndVisible()
+        if ProcessInfo.processInfo.arguments.contains("--tap-checks") {
+            root = UIHostingController(rootView: PickerTapHarness())
+            window.rootViewController = root
+            return
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.open() }
     }
 
@@ -144,10 +155,24 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
                     self.waitForPicker(remaining: 40) { picker in
                         guard let picker else { self.finish("FAIL: pending SwiftUI request did not resume after dismissal"); return }
                         picker.delegate?.documentPickerWasCancelled?(picker)
-                        self.finish("PASS: native layout, SwiftUI binding, repeated cancellation/reselection, deferred presentation")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.checkSelectionDelivery() }
                     }
                 }
             }
+        }
+    }
+
+    private func checkSelectionDelivery() {
+        progress("selection delivery")
+        driver.choose(1)
+        waitForPicker(remaining: 40) { picker in
+            guard let picker else { self.finish("FAIL: selection request did not present"); return }
+            picker.delegate?.documentPicker?(picker, didPickDocumentsAt: [
+                FileManager.default.temporaryDirectory.appendingPathComponent("synthetic.pdf")])
+            guard self.driver.selectedKind == 1, self.driver.request == nil else {
+                self.finish("FAIL: native selection did not reach the correct request"); return
+            }
+            self.finish("PASS: native layout, SwiftUI binding, repeated cancellation/reselection, deferred presentation, selection delivery")
         }
     }
 
@@ -196,6 +221,7 @@ struct PickerHarnessRequest: Identifiable {
 final class PickerHarnessDriver: ObservableObject {
     @Published var request: PickerHarnessRequest?
     @Published var path: [Int] = [1]
+    @Published var selectedKind: Int?
     func choose(_ kind: Int) { request = PickerHarnessRequest(kind: kind) }
 }
 
@@ -220,9 +246,9 @@ struct PickerHarness: View {
             }
             NavigationLink("詳細を見る", value: 2)
         }
-        .background {
-            MaterialDocumentPicker(item: $driver.request, type: { _ in .pdf },
-                instruction: { "架空ファイル\($0.kind)を選んでください" }, selected: { _, _ in })
-        }
+        .background(
+            MaterialDocumentPicker(item: $driver.request, requestID: driver.request?.id, type: { _ in .pdf },
+                instruction: { "架空ファイル\($0.kind)を選んでください" }, selected: { request, _ in driver.selectedKind = request.kind })
+        )
     }
 }

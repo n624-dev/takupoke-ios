@@ -12,7 +12,7 @@
 | 公開成果物 | [GitHub Releases](https://github.com/n624-dev/takupoke-ios/releases) |
 | Source | `https://github.com/n624-dev/takupoke-ios/releases/latest/download/altstore-source.json` |
 | 元の Bundle ID | `io.github.n624dev.takupoke` |
-| 対象端末 | iOS 16.0 以降の iPhone |
+| 対象端末 | iOS 26・27のiPhone |
 | 配布方式 | AltStore Classic が導入時に署名する IPA |
 
 ## Windows と iPhone の準備

@@ -29,7 +29,7 @@
 - SwiftUIの標準ナビゲーション・ツールバー・ボタンなどを優先する。独自の操作部品で必要な場合に `glassEffect` / `GlassEffectContainer` を使用する。
 - 時間割の文字や資料本文の読みやすさを確保し、ガラス表現は主に操作・ナビゲーションの層に適用する。アクセシビリティの透明度・動きの設定も尊重する。
 - Actionsは `xcode-27` runnerで正式版のXcode 27.0を明示して使用する。iOS 27 SDKによるビルド・実機の確認状況は検証記録で管理する。
-- 現行のiOS 16以降という最低対応条件は維持する。iOS 26以降ではLiquid Glassを利用し、それより古いOSでは利用可能な標準SwiftUI部品へ分岐する。
+- 対応OSはiOS 26・27とし、最低対応OSをiOS 26にする。標準部品のLiquid Glassを利用する。
 - SDK更新に伴う既存標準部品の外観変化と、既存画面を作り直す作業は区別して検証する。
 
 参照: [Apple: Adopting Liquid Glass](https://developer.apple.com/documentation/TechnologyOverviews/adopting-liquid-glass)、[Applying Liquid Glass to custom views](https://developer.apple.com/documentation/SwiftUI/Applying-Liquid-Glass-to-custom-views)。
