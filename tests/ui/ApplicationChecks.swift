@@ -46,7 +46,9 @@ final class ApplicationChecks: XCTestCase {
         e.tap()
     }
     private func heading(_ title: String) -> XCUIElement {
-        let e = app.staticTexts[title].firstMatch
+        visible(app.staticTexts[title].firstMatch)
+    }
+    private func visible(_ e: XCUIElement) -> XCUIElement {
         for _ in 0..<6 {
             // LabeledContent's child text can be readable while its combined
             // accessibility parent owns hit testing. Check visible geometry.
@@ -306,7 +308,9 @@ final class ApplicationChecks: XCTestCase {
         back(to: "このアプリについて")
         _ = heading("問い合わせ・配布")
         for title in ["ソースコード", "問い合わせ", "AltStore SourceのURLを共有"] {
-            _ = heading(title)
+            // SwiftUI Link has its own accessibility role; it need not have a
+            // static-text child. ShareLink is exposed as a button.
+            _ = visible(app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", title)).firstMatch)
         }
     }
     func testSetupCanBeSkippedAndOffersAllFiles() {
