@@ -141,7 +141,7 @@ final class SchoolEventsModel: ObservableObject {
                 message = "学校行事を更新確認できませんでした。保存済みの結果を表示しています。"
             }
         }
-        if succeeded { failed = false }
+        if succeeded { failed = false; message = nil }
         return succeeded && !Task.isCancelled
     }
 

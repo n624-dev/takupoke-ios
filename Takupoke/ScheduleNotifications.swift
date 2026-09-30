@@ -55,6 +55,9 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             specialsEnabled = value
             UserDefaults.standard.set(value, forKey: "notifySpecialSchedules")
         }
+        // Manual choices also complete notification setup; reopening the
+        // general setup must not enable a type the person turned off.
+        UserDefaults.standard.set(true, forKey: "notificationsSetupCompleted")
         message = nil
         if !value {
             let ids = changes ? ["takupoke.changes"] : ["takupoke.exam", "takupoke.examReturn"]
@@ -79,9 +82,10 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
 
     func checkPermission() async {
         let settings = await center.notificationSettings()
+        let deniedMessage = "iPhoneの設定で通知を許可してください。"
         if (changesEnabled || specialsEnabled), settings.authorizationStatus == .denied {
-            message = "iPhoneの設定で通知を許可してください。"
-        }
+            message = deniedMessage
+        } else if message == deniedMessage { message = nil }
     }
 
     func resetForRetention() async {
