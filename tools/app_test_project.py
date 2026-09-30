@@ -1,5 +1,6 @@
 """Build the real app UI with synthetic local stores in an isolated project."""
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -45,7 +46,10 @@ def generate(destination):
             obj['containerPortal']=real['rootObject']
             obj['remoteGlobalIDString']=app_target
             obj['remoteInfo']='Takupoke'
-        if obj.get('isa')=='XCBuildConfiguration': obj['buildSettings']['TEST_TARGET_NAME']='Takupoke'
+        if obj.get('isa')=='XCBuildConfiguration':
+            obj['buildSettings']['TEST_TARGET_NAME']='Takupoke'
+            if os.environ.get('TKPK_VOICEOVER_AUTOMATION')=='1':
+                obj['buildSettings']['SWIFT_ACTIVE_COMPILATION_CONDITIONS']='TAKUPOKE_VOICEOVER_AUTOMATION'
         real['objects'][key]=obj
     real['objects'][real['rootObject']]['targets'].append(test_target)
     real['objects'][real['rootObject']].setdefault('attributes',{}).setdefault('TargetAttributes',{})[test_target]={'CreatedOnToolsVersion':'27.0','TestTargetID':app_target}

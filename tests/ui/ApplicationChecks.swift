@@ -155,6 +155,7 @@ final class ApplicationChecks: XCTestCase {
         let received = expectation(for: NSPredicate(format: "label == %@", "1件の時間割変更を確認してください。"), evaluatedWith: result)
         wait(for: [received], timeout: 30)
     }
+    #if TAKUPOKE_VOICEOVER_AUTOMATION
     @MainActor func testVoiceOverReadsTimetableCard() throws {
         guard #available(iOS 27.0, *) else { throw XCTSkip("VoiceOver automation requires iOS 27") }
         tab("時間割")
@@ -169,5 +170,11 @@ final class ApplicationChecks: XCTestCase {
         }
         XCTAssertTrue(utterances.contains { $0.contains("架空科目A") }, utterances.joined(separator: " | "))
     }
+
+    #else
+    func testVoiceOverReadsTimetableCard() throws {
+        throw XCTSkip("VoiceOver automation requires Xcode 27 and iOS 27")
+    }
+    #endif
 
 }
