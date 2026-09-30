@@ -10,7 +10,7 @@ extension TimetableView {
     // the visible column. Include source times even in an events-only week so
     // hiding the period labels does not shift the day columns.
     var periodColumnMeasurement: some View {
-        let customRanges = times.current?.data.days.flatMap { $0.periods.map { "\($0.start)〜\($0.end)" } } ?? []
+        let customRanges = self.times.current?.data.days.flatMap { $0.periods.map { "\($0.start)〜\($0.end)" } } ?? []
         let ranges = TimetableSchedule.normalPeriodTimes + customRanges + specials.flatMap { analysis in
             Array(analysis.periodTimes.values) + analysis.lessons.compactMap(\.timeRange)
         }
