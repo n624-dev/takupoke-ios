@@ -58,6 +58,13 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         message = nil
         if !value {
             let ids = changes ? ["takupoke.changes"] : ["takupoke.exam", "takupoke.examReturn"]
+            reconcileTask?.cancel()
+            await reconcileTask?.value
+            if var value = baseline {
+                for id in ids { value.pending.removeValue(forKey: String(id.dropFirst("takupoke.".count))) }
+                do { try save(value, to: storageFile()) }
+                catch { message = "通知の更新確認を保存できませんでした。" }
+            }
             center.removePendingNotificationRequests(withIdentifiers: ids)
             center.removeDeliveredNotifications(withIdentifiers: ids)
         }
@@ -141,35 +148,72 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             if let changes = input.changes {
                 let count = next.changeCount(comparedWith: changes, today: .today(), classes: classes)
                 if changesEnabled && allowed && count > 0 {
-                    try await send("時間割変更があります", body: "\(count)件の時間割変更を確認してください。", kind: "changes")
+                    let data = try JSONEncoder().encode(changes.map(\.fingerprint).sorted())
+                    let fingerprint = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+                    next.pending["changes"] = .init(fingerprint: fingerprint, count: count)
                 }
                 next.changes = changes
             }
             for kind in SpecialScheduleKind.allCases {
                 guard let digest = input.specials[kind.rawValue] else { continue }
                 if specialsEnabled && allowed && next.specialChanged(kind: kind.rawValue, digest: digest) {
-                    try await send("\(kind.title)が更新されました", body: "時間割で更新内容を確認してください。", kind: kind.rawValue)
+                    next.pending[kind.rawValue] = .init(fingerprint: digest, count: 1)
                 }
                 next.specialDigests[kind.rawValue] = digest
+            }
+            if !changesEnabled || !allowed { next.pending.removeValue(forKey: "changes") }
+            if !specialsEnabled || !allowed {
+                for kind in SpecialScheduleKind.allCases { next.pending.removeValue(forKey: kind.rawValue) }
             }
             guard operation == generation, input.period == SchoolDataPeriod.current(),
                   UIApplication.shared.isProtectedDataAvailable else { return }
             try Task.checkCancellation()
-            if next != baseline {
-                try JSONEncoder().encode(next).write(to: file, options: .atomic)
-                try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: file.path)
-                baseline = next
+            // Commit the comparison baseline and outgoing notices together,
+            // before yielding to the notification service. An interrupted send
+            // can be retried without recomputing or losing the data difference.
+            if next != baseline { try save(next, to: file) }
+            for kind in ["changes", "exam", "examReturn"] {
+                guard let notice = next.pending[kind] else { continue }
+                try Task.checkCancellation()
+                guard operation == generation, input.period == SchoolDataPeriod.current(),
+                      UIApplication.shared.isProtectedDataAvailable else { return }
+                let queued = await center.pendingNotificationRequests()
+                let deliveredNotifications = await center.deliveredNotifications()
+                let delivered = deliveredNotifications.map(\.request)
+                let identifier = "takupoke." + kind
+                let alreadySent = (queued + delivered).contains {
+                    $0.identifier == identifier && $0.content.userInfo["revision"] as? String == notice.fingerprint
+                }
+                guard operation == generation, input.period == SchoolDataPeriod.current(),
+                      UIApplication.shared.isProtectedDataAvailable else { return }
+                if !alreadySent { try await send(kind: kind, notice: notice) }
+                guard operation == generation, input.period == SchoolDataPeriod.current(),
+                      UIApplication.shared.isProtectedDataAvailable else { return }
+                // Acknowledge an accepted notice even if cancellation arrived
+                // while add() was completing. Do not deliver it again on return.
+                next.pending.removeValue(forKey: kind)
+                try save(next, to: file)
             }
+            message = nil
         } catch {
             if operation == generation, !Task.isCancelled { message = "通知の更新確認を保存できませんでした。" }
         }
     }
 
-    private func send(_ title: String, body: String, kind: String) async throws {
+    private func save(_ value: ScheduleNotificationSnapshot, to file: URL) throws {
+        try JSONEncoder().encode(value).write(to: file, options: .atomic)
+        try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: file.path)
+        baseline = value
+    }
+
+    private func send(kind: String, notice: ScheduleNotificationSnapshot.Pending) async throws {
         try Task.checkCancellation()
         let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
+        content.title = kind == "changes" ? "時間割変更があります" :
+            "\(kind == "exam" ? SpecialScheduleKind.exam.title : SpecialScheduleKind.examReturn.title)が更新されました"
+        content.body = kind == "changes" ? "\(notice.count)件の時間割変更を確認してください。" :
+            "時間割で更新内容を確認してください。"
+        content.userInfo = ["revision": notice.fingerprint]
         content.sound = .default
         try await center.add(UNNotificationRequest(identifier: "takupoke." + kind, content: content, trigger: nil))
     }

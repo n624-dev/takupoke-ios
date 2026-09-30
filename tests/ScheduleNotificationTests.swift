@@ -39,10 +39,12 @@ final class ScheduleNotificationTests: XCTestCase {
 
     func testSavedBaselineSurvivesRestartAndSeparatesExamAndReturn() throws {
         let saved = ScheduleNotificationSnapshot(changes: [change("a")],
-            specialDigests: ["exam": "synthetic-exam-A", "examReturn": "synthetic-return-A"])
+            specialDigests: ["exam": "synthetic-exam-A", "examReturn": "synthetic-return-A"],
+            pending: ["examReturn": .init(fingerprint: "synthetic-return-A", count: 1)])
         let data = try JSONEncoder().encode(saved)
         let restored = try JSONDecoder().decode(ScheduleNotificationSnapshot.self, from: data)
         XCTAssertEqual(saved, restored)
+        XCTAssertEqual(restored.pending["examReturn"]?.fingerprint, "synthetic-return-A")
         XCTAssertFalse(restored.specialChanged(kind: "exam", digest: "synthetic-exam-A"))
         XCTAssertTrue(restored.specialChanged(kind: "examReturn", digest: "synthetic-return-B"))
         XCTAssertFalse(restored.specialChanged(kind: "unknown", digest: "synthetic-digest-A"))

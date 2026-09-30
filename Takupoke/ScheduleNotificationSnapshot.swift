@@ -10,9 +10,14 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
         let period: String
         let fingerprint: String
     }
+    struct Pending: Codable, Equatable {
+        let fingerprint: String
+        let count: Int
+    }
 
     var changes: Set<Change>?
     var specialDigests: [String: String] = [:]
+    var pending: [String: Pending] = [:]
 
     static func acceptedChanges(in state: MaterialLibraryState) -> [ScheduleChange]? {
         guard let analysis = state.changeAnalysis, analysis.version == ChangeAnalysis.parserVersion,
