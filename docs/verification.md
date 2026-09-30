@@ -9,7 +9,8 @@
 - 取得モデルと半期切替の処理を起動・復帰・バックグラウンドで共有。BackgroundTasksの終了要求をファイル取得・解析へ伝え、継続中の処理を待ってから復帰時の確認を開始する。
 - 保存データのファイル保護を維持。ロック中で読めない場合はバックグラウンド確認を見送り、半期切替では通知の比較基準と通知センター内の通知も削除する。
 - 通常／変更／試験／返却のカードと今日の予定へ、省略前の授業情報をVoiceOver用に渡す。表示文字・寸法・配置は維持。
-- LinuxでPython29テストと差分検査が成功。SwiftテストとSDKビルドは今回のCIで確認する。通知・背景実行・VoiceOverの実機確認は未実施。
+- LinuxでPython29テストと差分検査が成功。[PR #38の最終CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36683477006)でSwift189テスト・UI3テスト・iPhone向けReleaseビルドも成功。通知・バックグラウンド実行・VoiceOverの実機確認は未実施。
+- [配布CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36684960143)でも同じ検証が成功し、[0.1.197（197.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.197-build.197.1)を公開。公開IPAのハッシュ・コミット・最低OS・バックグラウンド登録、4つの添付ファイル、更新内容、固定URLと版固有AltStore Sourceの一致を確認した。検証用のダウンロードは削除済み。
 
 ## ファイル選択の背景（2026-09-30）
 
