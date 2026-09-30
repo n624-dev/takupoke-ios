@@ -48,6 +48,7 @@ def generate(destination):
         if obj.get('isa')=='XCBuildConfiguration': obj['buildSettings']['TEST_TARGET_NAME']='Takupoke'
         real['objects'][key]=obj
     real['objects'][real['rootObject']]['targets'].append(test_target)
+    real['objects'][real['rootObject']].setdefault('attributes',{}).setdefault('TargetAttributes',{})[test_target]={'CreatedOnToolsVersion':'27.0','TestTargetID':app_target}
     def encode(v):
         if isinstance(v,dict): return '{'+''.join(f'{json.dumps(k)}={encode(x)};' for k,x in v.items())+'}'
         if isinstance(v,list): return '('+','.join(encode(x) for x in v)+')'

@@ -50,6 +50,34 @@ struct SimulatorApplication: App {
                         names: .init(subject: "架空科目\(number <= 2 ? "A" : "B")", teacher: "架空教員A", room: "架空教室A"), sourceText: "", page: 1)
                 } }, events: [], notices: [])
             try library.savePDFAnalysis(analysis)
+            let monday = day.monday
+            let changeDay = monday.addingDays(3)!
+            let changeStaged = library.newStagingURL()
+            try raw.write(to: changeStaged)
+            try library.commit(staged: changeStaged, kind: .changes, source: .init(grant: nil, childName: nil),
+                originalName: "fictional.xlsx", byteCount: raw.count, digest: digest, modifiedAt: nil)
+            let change = ScheduleChange(change_date: changeDay.iso8601, class_name: "3_XY", period: "4,5",
+                before_subject: "", after_subject: "架空変更A", teacher: "架空教員B", room: "架空教室B", note: "補講", raw_text: "", canonical_text: "")
+            try library.saveChangeAnalysis(.init(sourceDigest: digest, sourceName: "fictional.xlsx", defaultYear: period.schoolYear,
+                parsedAt: Date(), records: [change]))
+            let specialStore = try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite"))
+            for (kind, offset, subject) in [(SpecialScheduleKind.exam, 1, "架空試験A"), (.examReturn, 2, "架空返却A")] {
+                let date = monday.addingDays(offset)!.iso8601
+                let staged = specialStore.newStagingURL()
+                try raw.write(to: staged)
+                let name = "fictional-\(kind.rawValue).pdf"
+                let lessons = (1...2).map { n in SpecialScheduleLesson(date: date, className: "3_XY", period: n,
+                    spanStart: 1, spanEnd: 2, timeRange: "08:00〜09:20", lines: [subject,"架空教員C","架空教室C"], page: 1) }
+                let special = SpecialScheduleAnalysis(kind: kind, sourceDigest: digest, sourceName: name, parsedAt: Date(),
+                    schoolYear: period.schoolYear, coveredDates: [date], coveredClasses: ["3_XY"],
+                    periodTimes: [1: "08:00〜08:40", 2: "08:40〜09:20"], lessons: lessons)
+                try specialStore.save(staged: staged, analysis: special, originalName: name, byteCount: raw.count, digest: digest)
+            }
+            let eventDay = monday.addingDays(4)!.iso8601
+            let events = SchoolEventsPayload(version: "v1", schoolYear: period.schoolYear, sourcePdfSha256: digest,
+                sourcePdfETag: nil, events: [.init(startDate: eventDay, endDate: eventDay, title: "架空行事A", tag: "行事（授業なし）")])
+            try SchoolEventsStore(root: base.appendingPathComponent("SchoolEventsAPI")).save(events)
+
             let payload = LinksPayload(version: "v1", linksVersion: "sha256-" + String(repeating: "a",count: 64), categories: [
                 .init(id: "fictional", label: "架空カテゴリ", sortOrder: 0, buttons: [
                     .init(id: "fictional-link", categoryId: "fictional", label: "架空リンクA", href: "https://fixture.example.test",

@@ -16,10 +16,28 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertTrue(e.waitForExistence(timeout: 5), app.debugDescription)
         e.tap()
     }
+    private func dismissLesson() {
+        let bar = app.navigationBars["授業詳細"]
+        let start = bar.coordinate(withNormalizedOffset: CGVector(dx: 0.5,dy: 0.5))
+        start.press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5,dy: 0.95)))
+    }
+    func testMergedCardsFromAllSources() {
+        tab("時間割")
+        for subject in ["架空科目A", "架空試験A", "架空返却A", "架空変更A"] {
+            let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", subject)).firstMatch
+            if !card.isHittable { app.swipeUp() }
+            XCTAssertTrue(card.waitForExistence(timeout: 10), app.debugDescription)
+            XCTAssertGreaterThan(card.frame.height, 72)
+            card.tap()
+            XCTAssertTrue(app.navigationBars["授業詳細"].waitForExistence(timeout: 5))
+            dismissLesson()
+        }
+        XCTAssertTrue(app.staticTexts["架空行事A"].firstMatch.exists || app.buttons["架空行事A"].exists)
+    }
     func testHomeTimetableAndWeekCalendar() {
         XCTAssertTrue(app.staticTexts["今日の予定"].waitForExistence(timeout: 10))
         tab("時間割")
-        XCTAssertTrue(app.staticTexts["架空科目A"].firstMatch.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "架空科目A")).firstMatch.waitForExistence(timeout: 10), app.debugDescription)
         // Actual merged cards must stay within the app frame.
         let cards = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "架空科目A"))
         XCTAssertGreaterThan(cards.count, 0)
@@ -28,8 +46,7 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertLessThanOrEqual(first.frame.maxX, app.frame.maxX + 1)
         first.tap()
         XCTAssertTrue(app.staticTexts["架空教員A"].firstMatch.waitForExistence(timeout: 5), app.debugDescription)
-        if app.buttons["閉じる"].exists { tap("閉じる") }
-        else { app.navigationBars.buttons.element(boundBy: 0).tap() }
+        dismissLesson()
         let calendar = app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "月", "日から")).firstMatch
         XCTAssertTrue(calendar.waitForExistence(timeout: 5), app.debugDescription)
         calendar.tap()
@@ -95,7 +112,7 @@ final class ApplicationChecks: XCTestCase {
             XCTAssertTrue(app.staticTexts[name].exists, app.debugDescription)
         }
         tap("次へ")
-        XCTAssertTrue(app.staticTexts["クラス"].exists || app.buttons["1-1"].exists, app.debugDescription)
+        XCTAssertTrue(app.staticTexts["3 / 3"].exists, app.debugDescription)
         tap("あとで設定")
         XCTAssertTrue(app.tabBars.buttons["設定"].waitForExistence(timeout: 5))
     }
@@ -104,6 +121,14 @@ final class ApplicationChecks: XCTestCase {
         tap("通知設定")
         XCTAssertTrue(app.switches["時間割変更"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.switches["試験・返却"].exists)
+        app.switches["時間割変更"].tap()
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let allow = springboard.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "Allow", "許可")).firstMatch
+        if allow.waitForExistence(timeout: 3) { allow.tap() }
+        XCTAssertTrue(app.switches["時間割変更"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.switches["時間割変更"].value as? String, "1")
+        app.switches["試験・返却"].tap()
+        XCTAssertEqual(app.switches["試験・返却"].value as? String, "1")
         app.navigationBars.buttons.element(boundBy: 0).tap()
         let color = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "メインカラー")).firstMatch
         XCTAssertTrue(color.exists, app.debugDescription)
