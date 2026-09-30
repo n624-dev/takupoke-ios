@@ -16,8 +16,9 @@ extension MappingRules {
         let standard = applying(to: names, className: className)
         return TimetableLessonNames(subject: names.subject, teacher: names.teacher, room: names.room,
             subjectFullName: standard.subjectFullName,
-            teacherFullName: contextualTeacher(names.teacher, subject: names.subject,
-                className: className, schoolYear: schoolYear) ?? standard.teacherFullName,
+            teacherFullName: metadataName(names.teacher, in: teachers, contextual: {
+                contextualTeacher($0, subject: names.subject, className: className, schoolYear: schoolYear)
+            }) ?? standard.teacherFullName,
             roomFullName: standard.roomFullName)
     }
 
@@ -44,10 +45,11 @@ extension MappingRules {
             let token = String(remaining[remaining.index(after: openingIndex)..<remaining.index(before: remaining.endIndex)])
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             let subject = String(remaining[..<openingIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
-            let isTeacher = teachers.contains { $0.alias == token } ||
-                (className.flatMap { contextualTeacher(token, subject: subject,
-                    className: $0, schoolYear: schoolYear) } != nil)
-            let isRoom = rooms.contains { $0.alias == token }
+            let isTeacher = confirmsMetadata(token, in: teachers, contextual: { alias in
+                className.flatMap { contextualTeacher(alias, subject: subject,
+                    className: $0, schoolYear: schoolYear) }
+            })
+            let isRoom = confirmsMetadata(token, in: rooms)
             guard isTeacher != isRoom else { break }
             if isTeacher {
                 guard teacher.isEmpty else { break }

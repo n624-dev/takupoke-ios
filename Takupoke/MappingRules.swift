@@ -19,8 +19,8 @@ struct MappingRules: Codable, Equatable {
     func applying(to names: TimetableLessonNames, className: String) -> TimetableLessonNames {
         TimetableLessonNames(subject: names.subject, teacher: names.teacher, room: names.room,
             subjectFullName: match(names.subject, in: subjects, className: className) ?? names.subjectFullName,
-            teacherFullName: match(names.teacher, in: teachers) ?? names.teacherFullName,
-            roomFullName: match(names.room, in: rooms) ?? names.roomFullName)
+            teacherFullName: metadataName(names.teacher, in: teachers) ?? names.teacherFullName,
+            roomFullName: metadataName(names.room, in: rooms) ?? names.roomFullName)
     }
 
     static func comparable(_ text: String) -> String {
@@ -68,12 +68,70 @@ struct MappingRules: Codable, Equatable {
         return matching(derived)?.internationalStudent == true
     }
 
+    /// Preserve the source separators and unregistered names. Whole-field
+    /// aliases take precedence over splitting a list of names.
+    func metadataName(_ source: String, in rules: [MappingRule],
+                      contextual: ((String) -> String?)? = nil) -> String? {
+        func resolve(_ value: String) -> String? {
+            contextual?(value.trimmingCharacters(in: .whitespacesAndNewlines)) ?? match(value, in: rules)
+        }
+        if let name = resolve(source) { return name }
+        let fields = metadataFields(source)
+        guard fields.count > 1 else { return nil }
+        var resolved = false
+        let result = fields.map { field in
+            guard let name = resolve(field.value) else { return field.value + field.separator }
+            resolved = true
+            let leading = field.value.prefix(while: { $0.isWhitespace })
+            let trailing = String(field.value.reversed().prefix(while: { $0.isWhitespace }).reversed())
+            return leading + name + trailing + field.separator
+        }.joined()
+        return resolved ? result : nil
+    }
+
+    /// Used only to identify a trailing XLSX field. Every nonempty member
+    /// must be known before treating a subject suffix as teacher/room data.
+    func confirmsMetadata(_ source: String, in rules: [MappingRule],
+                          contextual: ((String) -> String?)? = nil) -> Bool {
+        func confirmed(_ value: String) -> Bool {
+            contextual?(value.trimmingCharacters(in: .whitespacesAndNewlines)) != nil || match(value, in: rules) != nil
+        }
+        if confirmed(source) { return true }
+        let fields = metadataFields(source)
+        return fields.count > 1 && fields.allSatisfy { confirmed($0.value) }
+    }
+
+    private func metadataFields(_ source: String) -> [(value: String, separator: String)] {
+        var fields: [(value: String, separator: String)] = []
+        var start = source.startIndex
+        var depth = 0
+        for index in source.indices {
+            let character = source[index]
+            if character == "(" || character == "（" { depth += 1 }
+            else if character == ")" || character == "）" { depth = max(0, depth - 1) }
+            else if depth == 0 && (character == "," || character == "，" || character == "、") {
+                fields.append((String(source[start..<index]), String(character)))
+                start = source.index(after: index)
+            }
+        }
+        fields.append((String(source[start...]), ""))
+        return fields
+    }
+
     private func match(_ alias: String, in rules: [MappingRule], className: String? = nil) -> String? {
         guard !alias.isEmpty else { return nil }
-        let matches = rules.filter { $0.alias == alias }
-        if let className, let specific = matches.first(where: { $0.classes?.contains(className) == true }) {
-            return specific.fullName
+        func uniqueName(_ candidates: [MappingRule]) -> String? {
+            let names = Set(candidates.map(\.fullName))
+            return names.count == 1 ? names.first : nil
         }
-        return matches.first(where: { $0.classes == nil })?.fullName
+        let eligible = rules.filter { rule in
+            rule.classes == nil || className.map { rule.classes?.contains($0) == true } == true
+        }
+        let normalized = Self.comparable(alias)
+        let matches = eligible.filter { Self.comparable($0.alias) == normalized }
+        let specific = matches.filter { $0.classes != nil }
+        let preferred = specific.isEmpty ? matches : specific
+        let exact = preferred.filter { $0.alias == alias }
+        return uniqueName(exact.isEmpty ? preferred : exact)
     }
 }

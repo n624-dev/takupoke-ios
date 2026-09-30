@@ -2,7 +2,7 @@
 import PackageDescription
 
 #if os(macOS)
-let mappingSources = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingRules.swift", "MappingRules+Changes.swift", "MappingModels.swift", "MappingStore.swift", "MappingService.swift"]
+let mappingSources = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift"]
 let mappingTests = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift"]
 let mappingExcludes: [String] = []
 let mappingTestExcludes: [String] = []
@@ -10,7 +10,7 @@ let mappingTestExcludes: [String] = []
 // CryptoKit and URLSession host tests run on the macOS release runner.
 let mappingSources: [String] = []
 let mappingTests: [String] = []
-let mappingExcludes = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingRules.swift", "MappingRules+Changes.swift", "MappingModels.swift", "MappingStore.swift", "MappingService.swift"]
+let mappingExcludes = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift"]
 let mappingTestExcludes = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift"]
 #endif
 
@@ -113,6 +113,7 @@ let package = Package(
                     "SelectedFileMonitor.swift",
                     "MaterialLibrary+Validation.swift",
                     "TimetableLessonNames.swift",
+                    "MappingRules.swift", "MappingRules+Changes.swift", "MappingModels.swift",
                     "PDFSchoolParser.swift",
                     "PDFKitReader.swift",
                     "PDFCharacterGeometry.swift",
@@ -160,7 +161,7 @@ let package = Package(
                     "ParsingTests+Workbook.swift",
                     "ParsingTests+Preview.swift",
                     "ParsingTests+Persistence.swift",
-                    "TimetableNameTests.swift",
+                    "TimetableNameTests.swift", "MappingRulesTests.swift",
                     "PDFParsingTests.swift",
                     "PDFParsingTests+Timetable.swift",
                     "PDFParsingTests+Diagnostics.swift",
