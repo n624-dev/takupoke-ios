@@ -29,6 +29,9 @@ struct PDFAnalysisView: View {
                     LabeledContent("状態", value: model.analysisStatus(kind, record: source))
                 }
                 if model.busy { LoadingRow(title: "処理中⋯") }
+                if let failure = model.state.attempts[kind.rawValue]?.failure {
+                    Label(failure, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                }
                 if let failure = failure {
                     Label(failure.localizedDescription, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 }
@@ -43,9 +46,6 @@ struct PDFAnalysisView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
 #endif
-                if let message = model.message, message != failure?.localizedDescription {
-                    Text(message).font(.caption).foregroundStyle(model.failed ? Color.orange : Color.secondary)
-                }
             }
             Section("操作") {
                 Button("同じファイルを再取得") { model.refresh(kind) }
@@ -70,10 +70,6 @@ struct PDFAnalysisView: View {
                         LabeledContent("元ファイルの更新") {
                             Text(date, format: .dateTime.year().month().day().hour().minute())
                         }
-                    }
-                    if let failure = model.state.attempts[kind.rawValue]?.failure {
-                        Label(failure, systemImage: "exclamationmark.triangle")
-                            .foregroundStyle(.orange)
                     }
                 }
             }

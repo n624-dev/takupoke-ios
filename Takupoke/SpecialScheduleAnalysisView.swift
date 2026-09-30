@@ -24,10 +24,6 @@ struct SpecialScheduleAnalysisView: View {
                     Label(failure.localizedDescription, systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.orange)
                 }
-                if let message = model.message, message != source?.failure?.localizedDescription {
-                    Text(message).font(.caption)
-                        .foregroundStyle(model.failed ? Color.orange : Color.secondary)
-                }
 #if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
                 if let report = model.fullReadReports[kind] {
                     diagnosticButton(report)

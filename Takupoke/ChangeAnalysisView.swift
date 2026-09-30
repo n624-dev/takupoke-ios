@@ -32,15 +32,15 @@ struct ChangeAnalysisView: View {
                 if model.busy {
                     LoadingRow(title: "処理中⋯", cancel: { model.cancel() })
                 }
+                if let failure = model.state.attempts[MaterialKind.changes.rawValue]?.failure {
+                    Label(failure, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                }
                 if let failure = model.state.changeParseAttempt?.failure {
                     Label(failure.localizedDescription, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 }
                 if model.canPreviewChanges {
                     Button("警告を確認して内容を見る") { confirmingPreview = true }
                         .disabled(model.busy || !model.ready)
-                }
-                if let message = model.message, message != model.state.changeParseAttempt?.failure?.localizedDescription {
-                    Text(message).font(.caption).foregroundStyle(model.failed ? Color.orange : Color.secondary)
                 }
             } header: { Text("状態") }
             Section("操作") {
@@ -64,10 +64,6 @@ struct ChangeAnalysisView: View {
                         LabeledContent("元ファイルの更新") {
                             Text(date, format: .dateTime.year().month().day().hour().minute())
                         }
-                    }
-                    if let failure = model.state.attempts[MaterialKind.changes.rawValue]?.failure {
-                        Label(failure, systemImage: "exclamationmark.triangle")
-                            .foregroundStyle(.orange)
                     }
                 }
             }

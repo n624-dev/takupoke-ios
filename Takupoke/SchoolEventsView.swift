@@ -50,7 +50,7 @@ struct SchoolEventsSettingsSection: View {
             if model.busy {
                 LoadingRow(title: "学校行事を取得中⋯", cancel: { model.cancel() })
             }
-            if let message = model.message {
+            if model.failed, let message = model.message {
                 Label(message, systemImage: model.failed ? "exclamationmark.triangle" : "info.circle")
                     .font(.caption)
                     .foregroundStyle(model.failed ? Color.orange : Color.secondary)
