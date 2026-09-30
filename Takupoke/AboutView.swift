@@ -10,12 +10,12 @@ struct AboutView: View {
 
     var body: some View {
         List {
-            Section {
+            Section("アプリ情報") {
                 Text("香川高専詫間キャンパスの学生向けに個人が開発・運営する非公式アプリです。")
                 LabeledContent("バージョン", value: bundleValue("CFBundleShortVersionString"))
                 LabeledContent("ビルド", value: bundleValue("CFBundleVersion"))
             }
-            Section {
+            Section("規約・プライバシー") {
                 NavigationLink("利用規約") { LegalDocumentView(document: .terms) }
                 NavigationLink("プライバシーポリシー") { LegalDocumentView(document: .privacy) }
                 Button("たくにんの利用規約") {
@@ -24,11 +24,13 @@ struct AboutView: View {
                 Button("たくにんのプライバシーポリシー") {
                     safariPage = SafariPage(url: URL(string: "https://takuma-gakunin.n624.jp/privacy")!)
                 }
+            }
+            Section("ライセンス") {
                 NavigationLink("オープンソースライセンス") {
                     OpenSourceLicensesView()
                 }
             }
-            Section {
+            Section("問い合わせ・配布") {
                 Link("ソースコード", destination: URL(string: "https://github.com/n624-dev/takupoke-ios")!)
                 Link("問い合わせ", destination: URL(string: "mailto:takupoke@n624.jp")!)
                 ShareLink(item: sourceURL) {

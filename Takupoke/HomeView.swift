@@ -50,14 +50,14 @@ struct HomeView: View {
         let linksUpdated = links.saved != nil && links.updateAvailable
         let mappingsUpdated = mappings.current != nil && mappings.updateAvailable
         if times.updateAvailable {
-            let names = [(linksUpdated, "一覧"), (mappingsUpdated, "名称対応表"), (true, "授業時刻")]
+            let names = [(linksUpdated, "一覧"), (mappingsUpdated, "名称データ"), (true, "授業時刻")]
                 .filter { $0.0 }.map { $0.1 }.joined(separator: "・")
             return "\(names)に更新があります"
         }
         switch (linksUpdated, mappingsUpdated) {
-        case (true, true): return "一覧・名称対応表に更新があります"
+        case (true, true): return "一覧・名称データに更新があります"
         case (true, false): return "一覧に更新があります"
-        case (false, true): return "名称対応表に更新があります"
+        case (false, true): return "名称データに更新があります"
         case (false, false): return nil
         }
     }

@@ -1,5 +1,16 @@
 import SwiftUI
 
+struct SchoolEventsSettingsView: View {
+    @ObservedObject var model: SchoolEventsModel
+
+    var body: some View {
+        List { SchoolEventsSettingsSection(model: model) }
+            .navigationTitle("学校行事")
+            .task { model.loadIfNeeded() }
+            .scrollDismissesKeyboard(.interactively)
+    }
+}
+
 struct SchoolEventsSettingsSection: View {
     @ObservedObject var model: SchoolEventsModel
     @AppStorage("eventsSelectedSchoolYear") private var yearValue = ""
@@ -39,7 +50,7 @@ struct SchoolEventsSettingsSection: View {
             if model.busy {
                 LoadingRow(title: "学校行事を取得中⋯", cancel: { model.cancel() })
             }
-            if let message = model.message {
+            if model.failed, let message = model.message {
                 Label(message, systemImage: model.failed ? "exclamationmark.triangle" : "info.circle")
                     .font(.caption)
                     .foregroundStyle(model.failed ? Color.orange : Color.secondary)

@@ -13,29 +13,34 @@ struct MaterialsView: View {
 
     var body: some View {
         List {
-            Section {
-                if model.busy {
-                    LoadingRow(title: "処理中⋯", cancel: { model.cancel() })
+            if setupMode {
+                Section("ファイルを選ぶ") {
+                    Text("通常時間割のPDFと時間割変更のExcelファイルを選びます。選択後、自動で解析します。")
+                    Text("試験時間割・試験返却時間割のPDFは、手元にある場合に選んでください。")
+                    NavigationLink("OneDriveの準備") { UsageHelpTopicView(topic: .gettingStarted) }
                 }
-                if let message = model.message {
-                    Label(message, systemImage: model.failed ? "exclamationmark.triangle" : "info.circle")
-                        .foregroundStyle(model.failed ? Color.orange : Color.secondary)
-                        .font(.subheadline)
-                        .accessibilityLabel(message)
+            }
+            if model.busy || specialSchedules.busy {
+                Section {
+                    LoadingRow(title: "処理中⋯", cancel: { model.cancel(); specialSchedules.cancel() })
                 }
-                if !model.ready && !model.busy {
+            }
+            if !model.ready && !model.busy {
+                Section("保存データ") {
+                    if let message = model.message { Text(message).foregroundStyle(.orange) }
                     Button("保存情報を再読み込み") { model.loadIfNeeded() }
                 }
-                if specialSchedules.busy {
-                    LoadingRow(title: "処理中⋯", cancel: { specialSchedules.cancel() })
+            }
+            if !specialSchedules.ready && !specialSchedules.busy {
+                Section("保存データ") {
+                    if let message = specialSchedules.message { Text(message).foregroundStyle(.orange) }
+                    Button("保存情報を再読み込み") { specialSchedules.loadIfNeeded() }
                 }
-                if let message = specialSchedules.message {
-                    Label(message, systemImage: specialSchedules.failed ? "exclamationmark.triangle" : "info.circle")
-                        .foregroundStyle(specialSchedules.failed ? Color.orange : Color.secondary)
-                        .font(.subheadline)
-                }
-                if !specialSchedules.ready && !specialSchedules.busy {
-                    Button("試験時間割・試験返却時間割を再読み込み") { specialSchedules.loadIfNeeded() }
+            }
+            if (model.ready && model.failed) || (specialSchedules.ready && specialSchedules.failed) {
+                Section("取得・解析のエラー") {
+                    if model.failed, let message = model.message { Text(message).foregroundStyle(.orange) }
+                    if specialSchedules.failed, let message = specialSchedules.message { Text(message).foregroundStyle(.orange) }
                 }
             }
 
@@ -85,7 +90,6 @@ struct MaterialsView: View {
                 }
                 .disabled(model.busy || !model.ready)
             }
-            SchoolEventsSettingsSection(model: schoolEvents)
             ForEach(SpecialScheduleKind.allCases) { kind in
                 Section(kind.title) {
                     if let source = specialSchedules.sources[kind] {
@@ -110,8 +114,13 @@ struct MaterialsView: View {
                 }
             }
 
+            if setupMode {
+                Section {
+                    NavigationLink("学校行事を取得") { SchoolEventsSettingsView(model: schoolEvents) }
+                }
+            }
         }
-        .navigationTitle("ファイル選択")
+        .navigationTitle("時間割ファイル")
         .toolbar {
             if !setupMode {
                 ToolbarItem(placement: .navigationBarTrailing) {
