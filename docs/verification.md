@@ -6,7 +6,7 @@
 
 - 上部の案内の周囲を標準ピッカーの背景色に合わせる。透明なルートの場合は、モーダル表示用のシステム背景色を使う。角丸のガラス表示・寸法・選択とキャンセルの処理は維持する。
 - [PR #37のCI](https://github.com/n624-dev/takupoke-ios/actions/runs/36659951865)で、iOS 27シミュレーターのスクリーンショットから背景画素を比較。ライトは両領域とも白、ダークは両領域ともRGB（28, 28, 30）で一致した。
-- UI3テスト、標準ピッカーの寸法・遷移・結果の受渡し、Python29テスト・Swift182テストとiPhone向けReleaseビルドも成功。OneDrive実機での背景の一致は未確認。
+- UI3テスト、標準ピッカーの寸法・遷移・結果の受渡し、Python29テスト・Swift182テストとiPhone向けReleaseビルドも成功。0.1.192の実機で案内の背景表示を確認した。
 - [配布CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36660979734)でも同じ検証が成功し、[0.1.192（192.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.192-build.192.1)を公開。公開IPAのハッシュ・コミット・更新内容と、固定URLと版固有AltStore Sourceの一致を確認した。検証用のダウンロードは削除済み。
 
 ## ファイル選び直し・対応OS（2026-09-30）
