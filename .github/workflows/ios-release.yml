@@ -38,7 +38,22 @@ jobs:
           bash -n tools/test-materials.sh
           bash -n tools/test-parsing.sh
           bash -n tools/test-picker-ui.sh
+          bash -n tools/test-app-ui.sh
           git diff --check
+
+  simulator:
+    name: Application simulator checks
+    needs: checks
+    runs-on: xcode-27
+    timeout-minutes: 35
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Exercise app screens with synthetic data
+        run: bash tools/test-app-ui.sh
 
   build-check:
     name: Check iPhone build without publishing
@@ -72,7 +87,7 @@ jobs:
 
   release:
     name: Build and publish AltStore release
-    needs: checks
+    needs: [checks, simulator]
     if: github.repository == 'n624-dev/takupoke-ios' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: xcode-27
     timeout-minutes: 45

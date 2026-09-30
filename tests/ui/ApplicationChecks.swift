@@ -11,7 +11,7 @@ final class ApplicationChecks: XCTestCase {
     }
     private func tab(_ title: String) { app.tabBars.buttons[title].tap() }
     private func tap(_ title: String) {
-        let e = app.buttons[title].firstMatch
+        let e = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
         if !e.isHittable { app.swipeUp() }
         XCTAssertTrue(e.waitForExistence(timeout: 5), app.debugDescription)
         e.tap()
