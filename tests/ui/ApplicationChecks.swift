@@ -114,4 +114,19 @@ final class ApplicationChecks: XCTestCase {
         tap("緑")
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "メインカラー", "緑")).firstMatch.exists)
     }
+    func testVoiceOverReadsTimetableCard() throws {
+        guard #available(iOS 27.0, *) else { throw XCTSkip("VoiceOver automation requires iOS 27") }
+        tab("時間割")
+        let service = XCUIDevice.shared.voiceOverService
+        try service.enable()
+        defer { try? service.disable() }
+        var utterances: [String] = []
+        for _ in 0..<60 {
+            let output = try service.moveForward()
+            utterances.append(output.utterance)
+            if output.utterance.contains("架空科目A") { break }
+        }
+        XCTAssertTrue(utterances.contains { $0.contains("架空科目A") }, utterances.joined(separator: " | "))
+    }
+
 }

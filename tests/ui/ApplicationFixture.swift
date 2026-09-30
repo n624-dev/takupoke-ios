@@ -61,6 +61,12 @@ struct SimulatorApplication: App {
             let rules = try JSONDecoder().decode(MappingRules.self, from: Data("{\"subjects\":[],\"teachers\":[],\"rooms\":[],\"teacherContexts\":[]}".utf8))
             try MappingStore(url: directory.appendingPathComponent("mappings.sqlite")).save(.init(revision: String(repeating: "M", count: 43), version: "fictional", schemaVersion: 1,
                 archiveETag: "\"fictional\"", archiveSHA256: String(repeating: "a", count: 64), publishedAt: "2032-04-01T00:00:00Z", fetchedAt: Date(), rules: rules))
+            let times = TimetableTimes(schemaVersion: 1, days: [.init(date: day.iso8601,
+                periods: (1...8).map { .init(period: $0, start: String(format: "%02d:00", $0+7), end: String(format: "%02d:40", $0+7)) })])
+            let timesDirectory = base.appendingPathComponent("TimetableTimes")
+            try FileManager.default.createDirectory(at: timesDirectory, withIntermediateDirectories: true)
+            try JSONEncoder().encode(SavedTimetableTimes(revision: String(repeating: "T",count: 43), fetchedAt: Date(), data: times))
+                .write(to: timesDirectory.appendingPathComponent("current.json"))
             try Data().write(to: base.appendingPathComponent("fixture-seeded"))
         }
         _ = day
