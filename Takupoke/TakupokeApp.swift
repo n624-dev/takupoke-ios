@@ -9,5 +9,9 @@ struct TakupokeApp: App {
             ContentView()
                 .tint((MainColor(rawValue: mainColor) ?? .blue).color)
         }
+        .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) {
+            BackgroundRefresh.schedule()
+            await ApplicationData.shared.refreshInBackground()
+        }
     }
 }

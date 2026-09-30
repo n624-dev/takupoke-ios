@@ -24,6 +24,7 @@ final class SpecialSchedulesModel: ObservableObject {
     private var retired = false
     private var generation = UUID()
     private var control: AcquisitionControl?
+    private var backgroundRefreshID: UUID?
     private var pendingSelections = PendingFileSelections<SpecialScheduleKind, ScopedMaterialSelection>()
     var fileRefreshQueue = FileRefreshQueue()
     lazy var fileMonitor = SelectedFileMonitor { [weak self] id in
@@ -77,10 +78,37 @@ final class SpecialSchedulesModel: ObservableObject {
         message = busy ? "中止を要求しました。処理の終了を待っています。" : "自動確認を中止しました。"
     }
 
+    func refreshInBackground() async -> Bool {
+        guard !busy, !retired, !Task.isCancelled else { return false }
+        let id = UUID()
+        backgroundRefreshID = id
+        let result = await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                perform(success: nil, completion: {
+                    if self.backgroundRefreshID == id { self.backgroundRefreshID = nil }
+                    continuation.resume(returning: $0)
+                }) { store, control, _ in
+                    try control.check()
+                    let requested = Set(SpecialScheduleKind.allCases.compactMap { kind in
+                        store.sources[kind]?.grant == nil ? nil : kind.rawValue
+                    })
+                    try Self.refreshSelectedFiles(store, requested: requested, control: control)
+                }
+            }
+        } onCancel: {
+            Task { @MainActor in
+                if self.backgroundRefreshID == id { self.control?.cancel() }
+            }
+        }
+        if backgroundRefreshID == id { backgroundRefreshID = nil }
+        return result && !Task.isCancelled
+    }
+
     func perform(success: String?, reporting kind: SpecialScheduleKind? = nil,
+                         completion: ((Bool) -> Void)? = nil,
                          operation: @escaping (SpecialScheduleStore, AcquisitionControl,
                                                SpecialDiagnosticCapture) throws -> Void) {
-        guard !busy, !retired else { return }
+        guard !busy, !retired else { completion?(false); return }
         busy = true
         failed = false
         message = nil
@@ -91,6 +119,7 @@ final class SpecialSchedulesModel: ObservableObject {
         queue.async {
             let capture = SpecialDiagnosticCapture()
             let result = Result { () throws -> Void in
+                try control.check()
                 let store: SpecialScheduleStore
                 if let existing = existingStore { store = existing }
                 else {
@@ -102,7 +131,7 @@ final class SpecialSchedulesModel: ObservableObject {
                 try operation(store, control, capture)
             }
             DispatchQueue.main.async {
-                guard !self.retired, operationGeneration == self.generation else { return }
+                guard !self.retired, operationGeneration == self.generation else { completion?(false); return }
                 self.busy = false
                 self.control = nil
                 if let kind { self.fullReadReports[kind] = capture.report }
@@ -126,6 +155,7 @@ final class SpecialSchedulesModel: ObservableObject {
                         ?? (error as? MaterialError)?.localizedDescription
                         ?? "\(kind?.title ?? "試験時間割・試験返却時間割")を保存できませんでした。前回の解析結果は保持しています。"
                 }
+                completion?(!self.failed)
             }
         }
     }

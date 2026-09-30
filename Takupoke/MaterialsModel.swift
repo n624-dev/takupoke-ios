@@ -24,6 +24,7 @@ final class MaterialsModel: ObservableObject {
     private var retired = false
     private var generation = UUID()
     private var control: AcquisitionControl?
+    private var backgroundRefreshID: UUID?
     private var pendingSelections = PendingFileSelections<MaterialKind, ScopedMaterialSelection>()
     var fileRefreshQueue = FileRefreshQueue()
     lazy var fileMonitor = SelectedFileMonitor { [weak self] id in
@@ -127,8 +128,38 @@ final class MaterialsModel: ObservableObject {
         message = busy ? "中止を要求しました。処理の終了を待っています。" : "自動確認を中止しました。"
     }
 
-    func perform(success: String?, operation: @escaping (MaterialWorker, AcquisitionControl) throws -> Void) {
-        guard !busy, !retired else { return }
+    func refreshInBackground() async -> Bool {
+        guard !busy, !retired, !Task.isCancelled else { return false }
+        let id = UUID()
+        backgroundRefreshID = id
+        let year = automaticChangeSchoolYear
+        let result = await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                perform(success: "保存済みファイルの変更を確認しました。", completion: {
+                    if self.backgroundRefreshID == id { self.backgroundRefreshID = nil }
+                    continuation.resume(returning: $0)
+                }) {
+                    worker, control in
+                    try control.check()
+                    try worker.open()
+                    let requested = Set([MaterialKind.timetable, .changes].compactMap { kind in
+                        worker.library?.state.record(for: kind)?.source.grant == nil ? nil : kind.rawValue
+                    })
+                    try Self.refreshSelectedFiles(worker, requested: requested, year: year, control: control)
+                }
+            }
+        } onCancel: {
+            Task { @MainActor in
+                if self.backgroundRefreshID == id { self.control?.cancel() }
+            }
+        }
+        if backgroundRefreshID == id { backgroundRefreshID = nil }
+        return result && !Task.isCancelled
+    }
+
+    func perform(success: String?, completion: ((Bool) -> Void)? = nil,
+                 operation: @escaping (MaterialWorker, AcquisitionControl) throws -> Void) {
+        guard !busy, !retired else { completion?(false); return }
         busy = true
         failed = false
         message = nil
@@ -147,7 +178,7 @@ final class MaterialsModel: ObservableObject {
             var pdfURLs: [String: URL] = [:]
             for kind in [MaterialKind.timetable, .events] { pdfURLs[kind.rawValue] = worker.pdfURL(for: kind) }
             DispatchQueue.main.async {
-                guard !self.retired, operationGeneration == self.generation else { return }
+                guard !self.retired, operationGeneration == self.generation else { completion?(false); return }
                 self.ready = snapshot != nil
                 if let snapshot = snapshot { self.state = snapshot }
                 self.pdfURLs = pdfURLs
@@ -167,6 +198,7 @@ final class MaterialsModel: ObservableObject {
                         ?? (error as? PDFParseError)?.localizedDescription
                         ?? ((error as? MaterialError) ?? .unavailable).localizedDescription
                 }
+                completion?(!self.failed)
             }
         }
     }

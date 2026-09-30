@@ -6,7 +6,8 @@
 
 | 領域 | 配置と役割 |
 | --- | --- |
-| タブ・ホーム・設定 | `ContentView` はタブと起動処理。`HomeView`・`SettingsView` は既存画面をそれぞれ保持。 |
+| タブ・ホーム・設定 | `ContentView` はタブ。`ApplicationData` は起動・半期切替・背景確認で共有するモデルの所有者。`HomeView`・`SettingsView` は各画面を保持。 |
+| 通知・背景確認 | `BackgroundRefresh` はiOSへの実行要求、`ScheduleNotifications` は通知許可・送信・比較基準の保存、`ScheduleNotificationSnapshot` は差分と正常結果の判定、`NotificationSettingsView` は種類別設定。 |
 | 時間割画面 | `TimetableView` は状態と画面全体。`WeekSection` は週の操作と状態表示、`Grid` はグリッド全体、`GridHeaders` は日付・時限の測定、`DayColumns` は日別の授業・行事カード配置、`Layout` は配置・高さの計算、`Cards` はカード、`Times` は時刻、`Navigation` は週移動、`Changes` は変更一覧、`Details` は詳細。 |
 | 時間割統合 | `TimetableSchedule` は授業枠とクラス規則。`Blocks` は連続授業と重なり、`Events` は行事による日別の扱い、`Weeks` は表示日と週移動範囲。 |
 | ファイル選択・解析結果画面 | `MaterialsView` と `FileSummary`（ファイル状態・要約）、`MaterialDocumentPicker`（標準ピッカーの提示・選択）、`GuidedDocumentPicker`（案内領域とモーダル配置）、`MaterialPickerLayout`（領域計算）、`SpecialScheduleAnalysisView`、`PDFAnalysisView`、`PDFLessonDetail`、`SavedPDFView`、`ChangeAnalysisView`、`ChangePreviewView`。 |

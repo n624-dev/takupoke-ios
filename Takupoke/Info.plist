@@ -22,6 +22,14 @@
     <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>fetch</string>
+    </array>
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>io.github.n624dev.takupoke.refresh</string>
+    </array>
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>

@@ -39,6 +39,9 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                 }
+                Section("通知") {
+                    NavigationLink("通知設定") { NotificationSettingsView() }
+                }
                 Section("リンク一覧") {
                     Picker("リンクの開き方", selection: $linkOpeningMode) {
                         Text("外部で開く").tag(LinkOpeningMode.external.rawValue)

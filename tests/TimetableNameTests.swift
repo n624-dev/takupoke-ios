@@ -3,6 +3,17 @@ import XCTest
 @testable import TakupokeParsing
 
 final class TimetableNameTests: XCTestCase {
+    func testAccessibleLessonKeepsFullNamesAndFieldMeanings() {
+        let names = TimetableLessonNames(subject: "架空ｺﾝ科A", teacher: "架空教員A", room: "架空室A",
+            subjectFullName: "架空コンピュータ科目Aの正式名称", teacherFullName: "架空教員Aの正式名称",
+            roomFullName: "架空教室Aの正式名称")
+        XCTAssertEqual(TimetableDisplayText.lessonAccessibilityLabel(names: names, time: "08:50〜10:30", kind: "補講"),
+            "補講、科目、架空コンピュータ科目Aの正式名称、時刻、08:50～10:30、教員、架空教員Aの正式名称、教室、架空教室Aの正式名称")
+        XCTAssertEqual(names.cellSubject, "架空ｺﾝ科A")
+        XCTAssertEqual(TimetableDisplayText.lessonAccessibilityLabel(
+            names: TimetableLessonNames(subject: "架空科目B"), time: nil), "科目、架空科目B、時刻未確認")
+    }
+
     func testChangeSubjectTriesOneLineSpellingBeforeWrappingWithoutTruncation() {
         let source = "架空コンピュータ科目A"
         let short = "架空コン科A"
