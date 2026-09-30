@@ -4,6 +4,13 @@ import UIKit
 /// presentation style consistent with the transitioning delegate for its lifetime.
 final class MaterialPickerController: UIDocumentPickerViewController {
     var presentationChanged: (() -> Void)?
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        registerForTraitChanges([UITraitUserInterfaceStyle.self, UITraitUserInterfaceLevel.self,
+                                UITraitAccessibilityContrast.self]) { (picker: MaterialPickerController, _) in
+            picker.viewIfLoaded?.setNeedsLayout()
+        }
+    }
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         (presentationController as? GuidedDocumentPicker)?.updateBackground()
