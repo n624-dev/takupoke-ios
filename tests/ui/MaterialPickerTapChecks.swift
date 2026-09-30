@@ -18,8 +18,8 @@ final class MaterialPickerTapChecks: XCTestCase {
             let cancel = app.buttons["Cancel"].firstMatch
             XCTAssertTrue(cancel.waitForExistence(timeout: 30))
             let image = XCUIScreen.main.screenshot().image
-            let surround = pixel(image, at: CGPoint(x: 4, y: instruction.frame.midY))
-            let files = pixel(image, at: CGPoint(x: 4, y: app.frame.height * 0.6))
+            let surround = pixel(image, at: CGPoint(x: app.frame.minX + 4, y: instruction.frame.midY), bounds: app.frame)
+            let files = pixel(image, at: CGPoint(x: app.frame.minX + 4, y: app.frame.minY + app.frame.height * 0.6), bounds: app.frame)
             print("PICKER BACKGROUND \(appearance): surround=\(surround), Files=\(files)")
             for channel in 0..<3 {
                 XCTAssertEqual(surround[channel], files[channel], accuracy: 2,
@@ -30,10 +30,10 @@ final class MaterialPickerTapChecks: XCTestCase {
         }
     }
 
-    private func pixel(_ image: UIImage, at point: CGPoint) -> [Double] {
+    private func pixel(_ image: UIImage, at point: CGPoint, bounds: CGRect) -> [Double] {
         guard let source = image.cgImage,
-              let crop = source.cropping(to: CGRect(x: point.x * image.scale,
-                y: point.y * image.scale, width: 1, height: 1)) else {
+              let crop = source.cropping(to: CGRect(x: (point.x - bounds.minX) * CGFloat(source.width) / bounds.width,
+                y: (point.y - bounds.minY) * CGFloat(source.height) / bounds.height, width: 1, height: 1)) else {
             XCTFail("Cannot read screenshot pixel")
             return [0, 0, 0, 0]
         }
