@@ -6,12 +6,13 @@
 
 | 領域 | 配置と役割 |
 | --- | --- |
-| タブ・ホーム・設定 | `ContentView` はタブ。`ApplicationData` は起動・半期切替・背景確認で共有するモデルの所有者。`HomeView`・`SettingsView` は各画面を保持。 |
+| タブ・ホーム・設定 | `ContentView` はタブ。`ApplicationData` は起動・半期切替・背景確認で共有するモデルの所有者。`HomeView`・`SettingsView` は各画面。`UsageHelpView`は目的別の使い方、`SetupView`は初期設定。クラス選択は設定と時間割で共有。 |
 | 通知・背景確認 | `BackgroundRefresh` はiOSへの実行要求、`ScheduleNotifications` は通知許可・送信・比較基準の保存、`ScheduleNotificationSnapshot` は差分と正常結果の判定、`NotificationSettingsView` は種類別設定。 |
 | 時間割画面 | `TimetableView` は状態と画面全体。`WeekSection` は週の操作と状態表示、`Grid` はグリッド全体、`GridHeaders` は日付・時限の測定、`DayColumns` は日別の授業・行事カード配置、`Layout` は配置・高さの計算、`Cards` はカード、`Times` は時刻、`Navigation` は週移動、`Changes` は変更一覧、`Details` は詳細。 |
 | 時間割統合 | `TimetableSchedule` は授業枠とクラス規則。`Blocks` は連続授業と重なり、`Events` は行事による日別の扱い、`Weeks` は表示日と週移動範囲。 |
 | ファイル選択・解析結果画面 | `MaterialsView` と `FileSummary`（ファイル状態・要約）、`MaterialDocumentPicker`（標準ピッカーの提示・選択）、`GuidedDocumentPicker`（案内領域とモーダル配置）、`MaterialPickerLayout`（領域計算）、`SpecialScheduleAnalysisView`、`PDFAnalysisView`、`PDFLessonDetail`、`SavedPDFView`、`ChangeAnalysisView`、`ChangePreviewView`。 |
 | 一覧 | `LinksView` は一覧と検索、`LinkRow` は行と色、`SafariLinkView` はブラウザ。`LinksAPI` は応答検証、`LinksStore` は保存。 |
+| 共通認証・授業時刻 | `AccountDataModel`・`AccountDataSettingsView`は3種類の更新と一回の認証。`TimetableTimesModel`・`TimetableTimesService`は日付別時刻の確認・取得・保存。 |
 | 名称データ | `MappingModels` は配信・保存モデル、`MappingRules` は照合規則、`Changes` は変更欄の分解と科目・クラス別教員照合、`MappingPackage` はZIP検証、`MappingStore` はSQLite、`MappingModel` は取得状態、`MappingSettingsView` は設定画面。認証は既存の `MappingOIDC`。 |
 | ファイル取得 | `ScopedMaterialSelection` はアクセス権の保持と中止。`MaterialAccess` の `MaterialWorker` は取得・更新、`Analysis` は解析、`Provider` はFile Providerの読み取り。 |
 | 資料保存 | `MaterialModels` は保存モデル、`MaterialLibrary` は原本の確定、`Analysis` は解析結果・失敗記録の保存、`Validation` は検証。DBは接続・初期化、現在の保存、`Snapshot` による検証付き読出し、レコード、DDL、旧形式処理に分離。 |

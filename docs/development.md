@@ -86,11 +86,15 @@ bash tools/test-parsing.sh
 
 依存ライブラリを独自のディレクトリへ配置する場合は、`TKPK_ZLIB_PREFIX` にzlib・SQLiteのヘッダーとライブラリの配置先を指定します。
 
+PDFの公開テストは架空の文字と罫線から生成します。macOSではPDFKitによる読み取りと回転も検証します。
+
 macOS CIでは標準のCompressionを使うため、この追加導入は不要です。解析テストもIPA作成前に実行し、失敗時は配布を止めます。パッケージcheckout、ビルド、モジュールキャッシュ、架空XLSXは専用一時ディレクトリにまとめ、終了時に削除します。SwiftPMの共有依存キャッシュは無効にします。通常の `swift test` を直接実行すると既定のキャッシュ・`.build`が残るため、このスクリプトを使ってください。
 
 Xcode側も依存のcheckout・キャッシュをビルド用一時ディレクトリへ指定し、repository cacheを無効にしています。Actions cache・artifactの保存は追加していません。`Package.swift`、Xcodeプロジェクト、2か所の `Package.resolved` は同じコミットに揃えます。
 
 ## UI検証とビルドの並列実行
+
+実アプリの画面検証はiOS 26・27の専用Runnerで並列実行します。配布は両OSの成功後に進みます。対象は[シミュレーター検証](simulator-verification.md)を参照してください。
 
 `tools/build-ios.sh` は次の2系統を同時に実行します。
 
@@ -106,10 +110,10 @@ UI検証用のXcodeプロジェクトは `tools/picker_test_project.py` が一�
 - SwiftUI 画面は `Takupoke/` に追加する。新しい Swift ファイルは Xcode プロジェクトの Sources にも登録する。
 - Bundle ID と最低 iOS は `distribution/config.json` と Xcode の設定を一致させる。導入済みアプリの更新を維持するため、Bundle ID は安易に変更しない。
 - バージョンの major / minor は `distribution/config.json` の `versionPrefix` で管理する。patch と build は CI が付与する。
-- 権限、拡張機能、署名設定を追加するときは、Source の `appPermissions` と IPA 検証処理も更新する。初期版は追加権限なしを前提としている。
+- 権限、拡張機能、署名設定を追加するときは、Source の `appPermissions` と IPA 検証処理も更新する。現在は通知許可・バックグラウンド更新の登録と、Required Reason APIのプライバシー宣言を含む。
 - 配布や機能の挙動を変えたらREADMEと関連手順、`distribution/release-notes.txt` を更新する。
 
-アイコンはWeb版のクラシックを元にした `Takupoke/AppIcon.icon` です。Xcode 27.0でLiquid Glass用にコンパイルします。素材の出典・更新方法・旧OSの扱いは[アプリアイコン](app-icon.md)を参照してください。
+アイコンはWeb版のクラシックを元にした `Takupoke/AppIcon.icon` です。Xcode 27.0でLiquid Glass用にコンパイルします。素材の出典・更新方法・各外観の指定は[アプリアイコン](app-icon.md)を参照してください。
 
 ## push と CI
 
@@ -135,7 +139,3 @@ bash tools/build-ios.sh ./dist
 - [GitHub の macOS runner 構成](https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md)
 - [GitHub のコミットメール設定](https://docs.github.com/en/account-and-profile/how-tos/email-preferences/setting-your-commit-email-address)
 - [actionlint](https://github.com/rhysd/actionlint)
-
-PDFの公開テストは文字・罫線を架空の位置に配置して生成します。macOSではPDFKitによる架空PDFの読み取りと回転もテストし、実資料・学校サイトへはアクセスしません。Liquid Glass対応のためActionsではXcode 27.0を指定しています。
-
-アプリ画面の検証はOS別の専用Runnerで実行します。両OSの成功後に配布ビルドへ進みます。対象・結果は[シミュレーター検証](simulator-verification.md)を参照してください。

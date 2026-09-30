@@ -33,23 +33,6 @@
 
 BGTaskSchedulerの自然な実行はシミュレーターで確認できません。内部の更新処理と通知判定をテストし、実行機会・ロック中の挙動は実機で確認します。
 
-## 2026年9月30日の結果
-
-2026年9月30日、コミット `00f63fd9f568d739bca69ecc125d02831b0b79f7` の検証が成功しました。
-
-| 環境 | 結果 |
-|---|---|
-| iOS 26.5・Xcode 26.6 | アプリUI 8件成功。Xcode 27専用のVoiceOver操作1件は対象外 |
-| iOS 27・Xcode 27.0 | アプリUI 9件成功。ローカル通知の実配信・VoiceOver操作を含む |
-| Xcode 27のホストテスト | Swift 195件成功。PDFKitによる架空PDFの読み取りを含む |
-| iOS 27のファイル選択UI | 3件成功。4種類の選択・キャンセル・選び直しを確認 |
-| Ubuntuの配布テスト | Python 29件成功 |
-| iPhone向けReleaseビルド | 成功 |
-
-[検証CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36725806191)。配布時はmainでもOS別の画面テストを実行し、両方の成功後に配布ビルドへ進みます。
-
-[配布CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36728565646)でもコミット `6d9b288aaabcc6ff7da5d5a6ca90bb00a40a3352` の同じ検証が成功し、[0.1.212（212.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.212-build.212.1)を公開しました。公開された4ファイルのハッシュ、IPAのコミット・最低OS 26.0・縦向き・バックグラウンド登録、固定URLのAltStore Sourceとの一致を確認しました。
-
 ## 2026年10月1日の結果
 
 設定の整理に合わせ、実アプリUIテストを9項目から15項目へ拡充しました。設定の分類、取得済み・未取得・更新あり、学校行事、4種類のファイル詳細、ファイルごとのエラーと前回結果の保持、使い方の全5ページ、初期設定、クラス共有と設定の再起動後の保持、アプリ情報・規約・個別ライセンスを確認します。
@@ -68,3 +51,20 @@ BGTaskSchedulerの自然な実行はシミュレーターで確認できませ�
 PRの検証途中でピッカーのXCTest画面照会がタイムアウトしました。同一コードを別Runnerで再実行して成功し、統合後の配布CIでも成功しました。今回、ピッカーの製品コードは変更していません。
 
 [0.1.220（220.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.220-build.220.1)を公開しました。公開された4ファイルのハッシュ、IPAのコミット・最低OS 26.0・縦向き・バックグラウンド登録、固定URLのAltStore Sourceとの一致を確認しました。
+
+## 2026年9月30日の結果
+
+2026年9月30日、コミット `00f63fd9f568d739bca69ecc125d02831b0b79f7` の検証が成功しました。
+
+| 環境 | 結果 |
+|---|---|
+| iOS 26.5・Xcode 26.6 | アプリUI 8件成功。Xcode 27専用のVoiceOver操作1件は対象外 |
+| iOS 27・Xcode 27.0 | アプリUI 9件成功。ローカル通知の実配信・VoiceOver操作を含む |
+| Xcode 27のホストテスト | Swift 195件成功。PDFKitによる架空PDFの読み取りを含む |
+| iOS 27のファイル選択UI | 3件成功。4種類の選択・キャンセル・選び直しを確認 |
+| Ubuntuの配布テスト | Python 29件成功 |
+| iPhone向けReleaseビルド | 成功 |
+
+[検証CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36725806191)。配布時はmainでもOS別の画面テストを実行し、両方の成功後に配布ビルドへ進みます。
+
+[配布CI](https://github.com/n624-dev/takupoke-ios/actions/runs/36728565646)でもコミット `6d9b288aaabcc6ff7da5d5a6ca90bb00a40a3352` の同じ検証が成功し、[0.1.212（212.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.212-build.212.1)を公開しました。公開された4ファイルのハッシュ、IPAのコミット・最低OS 26.0・縦向き・バックグラウンド登録、固定URLのAltStore Sourceとの一致を確認しました。

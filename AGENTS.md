@@ -1,7 +1,7 @@
 # 開発時の指針
 
 - 実装前に `docs/development-policy.md` と `docs/roadmap.md` を読む。
-- ①の AltStore Source による初回導入・更新の実機確認を優先し、未確認の事項を完了済みと記載しない。
+- AltStore Sourceによる導入・更新は版ごとに実機確認し、未確認の事項を完了済みと記載しない。
 - Swift / SwiftUI による独立した iOS アプリとして開発する。Microsoft Graph、Web 版のラップ、Windows 版へのコード共有は導入しない。
 - 今後新規に追加するUIはApple標準のLiquid Glassを採用する。既存画面の全面的な置き換えは後の作業とし、新規画面の実装へ混在させない。対応SDK・OSと標準コンポーネントの利用方針は `docs/development-policy.md` に従う。
 - 実資料と既存実装を参照するときは必要な仕様だけを取り込み、学校資料・個人情報・認証情報をコピーしない。
