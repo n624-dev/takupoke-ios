@@ -117,16 +117,27 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         }
         let specials = ScheduleNotificationSnapshot.acceptedSpecialDigests(records: records, sources: sources)
         pending = Input(changes: changes, specials: specials, period: period)
-        if let task = reconcileTask { await task.value; return }
-        let task = Task { @MainActor in
-            while let input = self.pending, !Task.isCancelled {
-                self.pending = nil
-                await self.apply(input)
+        await drainPending()
+    }
+
+    private func drainPending() async {
+        guard pending != nil, !Task.isCancelled else { return }
+        let task: Task<Void, Never>
+        if let current = reconcileTask { task = current }
+        else {
+            task = Task { @MainActor in
+                defer { self.reconcileTask = nil }
+                while let input = self.pending, !Task.isCancelled {
+                    self.pending = nil
+                    await self.apply(input)
+                }
             }
+            reconcileTask = task
         }
-        reconcileTask = task
         await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
-        reconcileTask = nil
+        // A cancelled send can leave a newer, valid input waiting. A caller
+        // still allowed to run drains it after the old task has fully stopped.
+        if pending != nil, !Task.isCancelled { await drainPending() }
     }
 
     private func apply(_ input: Input) async {
