@@ -1,6 +1,52 @@
 import XCTest
+import UIKit
 
 final class MaterialPickerTapChecks: XCTestCase {
+    func testInstructionSurroundMatchesFilesBackground() {
+        continueAfterFailure = false
+        for appearance in ["light", "dark"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--tap-checks", "--appearance-\(appearance)",
+                                   "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+            app.launch()
+            app.tabBars.buttons["設定"].tap()
+            app.buttons["ファイル選択"].tap()
+            reveal(app, identifier: "choose-0")
+            app.buttons["choose-0"].tap()
+            let instruction = app.staticTexts["架空ファイル0を選んでください"]
+            XCTAssertTrue(instruction.waitForExistence(timeout: 8))
+            let cancel = app.buttons["Cancel"].firstMatch
+            XCTAssertTrue(cancel.waitForExistence(timeout: 30))
+            let image = XCUIScreen.main.screenshot().image
+            let surround = pixel(image, at: CGPoint(x: 4, y: instruction.frame.midY))
+            let files = pixel(image, at: CGPoint(x: 4, y: app.frame.height * 0.6))
+            print("PICKER BACKGROUND \(appearance): surround=\(surround), Files=\(files)")
+            for channel in 0..<3 {
+                XCTAssertEqual(surround[channel], files[channel], accuracy: 2,
+                               "Background seam in \(appearance) mode")
+            }
+            cancel.tap()
+            app.terminate()
+        }
+    }
+
+    private func pixel(_ image: UIImage, at point: CGPoint) -> [Double] {
+        guard let source = image.cgImage,
+              let crop = source.cropping(to: CGRect(x: point.x * image.scale,
+                y: point.y * image.scale, width: 1, height: 1)) else {
+            XCTFail("Cannot read screenshot pixel")
+            return [0, 0, 0, 0]
+        }
+        var bytes = [UInt8](repeating: 0, count: 4)
+        bytes.withUnsafeMutableBytes { buffer in
+            let context = CGContext(data: buffer.baseAddress, width: 1, height: 1,
+                bitsPerComponent: 8, bytesPerRow: 4, space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue)!
+            context.draw(crop, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+        }
+        return bytes.map(Double.init)
+    }
+
     func testReselectionWithMissingAppearanceReturn() {
         continueAfterFailure = false
         let app = XCUIApplication()
