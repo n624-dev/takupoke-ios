@@ -138,8 +138,10 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertTrue(app.switches["時間割変更"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.switches["試験・返却"].exists)
         enableChangeNotifications()
-        app.switches["試験・返却"].tap()
-        XCTAssertEqual(app.switches["試験・返却"].value as? String, "1")
+        let specialToggle = app.switches["試験・返却"]
+        specialToggle.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
+        let enabled = expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: specialToggle)
+        wait(for: [enabled], timeout: 10)
         app.navigationBars.buttons.element(boundBy: 0).tap()
         let color = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "メインカラー")).firstMatch
         XCTAssertTrue(color.exists, app.debugDescription)
