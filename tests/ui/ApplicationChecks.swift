@@ -36,7 +36,7 @@ final class ApplicationChecks: XCTestCase {
         let e = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
         for _ in 0..<6 {
             let footer = app.buttons["次へ"]
-            let coveredByFooter = footer.exists && footer.isHittable && e.exists && e != footer &&
+            let coveredByFooter = footer.exists && footer.isHittable && e.exists && title != "次へ" &&
                 e.frame.maxY > footer.frame.minY
             if e.exists && e.isHittable && !coveredByFooter { break }
             app.swipeUp()
