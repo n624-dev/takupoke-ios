@@ -21,7 +21,7 @@
 | 認証付き取得、revision、304、取得失敗時の保持 | モック通信と保存のホストテスト |
 | 半期の削除、個人設定の保持 | 保存期間のホストテスト |
 
-`tools/test-app-ui.sh`はiOS 26と27の専用Runnerで実行します。iOS 26はmacOS 26・Xcode 26.6、iOS 27はXcode 27を使います。指定OSのランタイムがなければ検証失敗とします。VoiceOver操作はXcode 27・iOS 27で実行します。アプリUIは専用のRunnerで実行します。ピッカーUIはホストテスト・配布ビルドと並列で実行します。
+`tools/test-app-ui.sh`はiOS 26と27で各2組に分け、計4台の専用Runnerで実行します。iOS 26はmacOS 26・Xcode 26.6、iOS 27はXcode 27を使います。指定OSのランタイムがなければ検証失敗とします。VoiceOver操作はXcode 27・iOS 27で実行します。ピッカーUIはホストテスト・配布ビルドと並列で実行します。分割表をテスト宣言・実行結果と照合する仕組みは[CIの実行時間](ci-performance.md)を参照してください。
 
 ## 2026年10月1日：OSの文字サイズとグリッド配置
 

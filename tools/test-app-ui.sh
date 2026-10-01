@@ -13,7 +13,11 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 xcrun simctl list -j > "$scratch_dir/simulators.json"
-python3 -B tools/timed_command.py "App test project" python3 -B tools/app_test_project.py "$scratch_dir"
+shard="${TKPK_UI_SHARD:-all}"
+python3 -B tools/ui_test_manifest.py --shard "$shard" --mode selectors > "$scratch_dir/selectors"
+system_size_check="$(python3 -B tools/ui_test_manifest.py --shard "$shard" --mode system-size)"
+selected_checks=()
+while IFS= read -r selector; do selected_checks+=("$selector"); done < "$scratch_dir/selectors"
 python3 - "$scratch_dir/simulators.json" "${TKPK_TEST_IOS:-}" > "$scratch_dir/destinations" <<'PY'
 import json, sys
 s = json.load(open(sys.argv[1]))
@@ -30,42 +34,46 @@ for major in ([int(sys.argv[2])] if sys.argv[2] else (27,26)):
     print(device['identifier'],runtime['identifier'])
 PY
 while read -r device_type runtime; do
+    ios_major="${runtime##*.iOS-}"
+    ios_major="${ios_major%%-*}"
+    project_dir="$scratch_dir/ios-$ios_major"
+    mkdir -p "$project_dir"
+    voiceover="0"
+    if [[ "$ios_major" == "27" ]]; then voiceover="1"; fi
+    TKPK_VOICEOVER_AUTOMATION="$voiceover" python3 -B tools/timed_command.py "App test project iOS $ios_major" \
+        python3 -B tools/app_test_project.py "$project_dir"
     simulator_id="$(xcrun simctl create 'Takupoke App Checks' "$device_type" "$runtime")"
     xcrun simctl boot "$simulator_id"
     python3 -B tools/timed_command.py "App simulator boot" xcrun simctl bootstatus "$simulator_id" -b
     xcrun simctl ui "$simulator_id" content_size large
-    xcode_args=(-project "$scratch_dir/AppChecks.xcodeproj" -scheme AppChecks
+    xcode_args=(-project "$project_dir/AppChecks.xcodeproj" -scheme AppChecks
         -destination "platform=iOS Simulator,id=$simulator_id"
         -derivedDataPath "$scratch_dir/DerivedData"
         -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1
         -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES)
     check_ui() {
-        python3 -B tools/timed_command.py "App UI $runtime" xcodebuild "${xcode_args[@]}" "$@" || {
+        local log_path="$1"
+        shift
+        python3 -B tools/timed_command.py "App UI $runtime shard $shard" xcodebuild "${xcode_args[@]}" "$@" 2>&1 | tee "$log_path" || {
             # Only the synthetic app runs on this isolated simulator.
             xcrun simctl spawn "$simulator_id" log show --last 10m --style compact \
                 --predicate 'process == "Takupoke" AND eventMessage CONTAINS "Synthetic fixture initialization"' || true
             exit 1
         }
     }
-    dynamic_checks=(TimetableCommonClocksAndEventOnlyWeekScale
-        TimetableDynamicTypeScalesAndRestoresStandardLayout TimetableUsesSystemTextSize)
-    only_checks=()
-    skip_checks=()
-    for check in "${dynamic_checks[@]}"; do
-        only_checks+=("-only-testing:PickerTapChecks/ApplicationChecks/test$check")
-        skip_checks+=("-skip-testing:PickerTapChecks/ApplicationChecks/test$check")
-    done
-    # Run the changed layout first, then the rest of the suite with the same build.
-    check_ui "${only_checks[@]}" test
-    check_ui "${skip_checks[@]}" test-without-building
+    check_ui "$scratch_dir/suite.log" "${selected_checks[@]}" test
+    python3 -B tools/ui_test_manifest.py --shard "$shard" --mode verify --ios "$ios_major" --log "$scratch_dir/suite.log"
     # Exercise the actual Simulator OS setting as well as live SwiftUI changes.
-    for content_size in extra-small extra-extra-extra-large accessibility-extra-extra-extra-large; do
-        xcrun simctl ui "$simulator_id" content_size "$content_size"
-        app_container="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.app-checks data)"
-        mkdir -p "$app_container/Documents"
-        printf '%s' "$content_size" > "$app_container/Documents/expected-text-size.txt"
-        check_ui -only-testing:PickerTapChecks/ApplicationChecks/testTimetableUsesSystemTextSize test-without-building
-    done
+    if [[ "$system_size_check" == "1" ]]; then
+        for content_size in extra-small extra-extra-extra-large accessibility-extra-extra-extra-large; do
+            xcrun simctl ui "$simulator_id" content_size "$content_size"
+            app_container="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.app-checks data)"
+            mkdir -p "$app_container/Documents"
+            printf '%s' "$content_size" > "$app_container/Documents/expected-text-size.txt"
+            check_ui "$scratch_dir/os-size.log" -only-testing:PickerTapChecks/ApplicationChecks/testTimetableUsesSystemTextSize test-without-building
+            python3 -B tools/ui_test_manifest.py --shard "$shard" --mode verify --ios "$ios_major" --log "$scratch_dir/os-size.log" --system-size-only
+        done
+    fi
     xcrun simctl shutdown "$simulator_id"
     xcrun simctl delete "$simulator_id"
     simulator_id=""

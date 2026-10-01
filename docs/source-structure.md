@@ -50,3 +50,5 @@ Xcodeプロジェクトと `Package.swift` の明示的なソース一覧を両�
 ファイル選択は `MaterialsView` が4種類共通の要求を作り、`MaterialDocumentPicker` が表示待ち・開閉・要求ごとの結果を管理します。`GuidedDocumentPicker` は上部案内と標準ピッカーの領域を分け、`MaterialPickerLayout` が寸法を計算します。
 
 `tools/build-ios.sh` は `parallel_build.py` でUI検証と `build-ios-app.sh` を並列実行し、両方の成功後にIPAを生成します。UI検証には本体と同じSwiftUI接続・UIKit表示コードを使用します。
+
+アプリ全体のUI検証は`test-app-ui.sh`で実行し、`ui_test_manifest.py`で各OSの2組への分割と完了結果を照合します。配布ビルドを並行して開始し、公開前に`release_gate.py`で同じ実行・再実行回・コミットの全検証の成功を確認します。`timed_command.py`は各工程の経過時間を記録します。

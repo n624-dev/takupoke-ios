@@ -46,7 +46,7 @@
 ワークフローは [ios-release.yml](../.github/workflows/ios-release.yml) です。
 
 1. **checks**：架空データで配布スクリプトをテスト。
-2. **simulator**：iOS 26と27の専用Runnerで実アプリの画面を検証。
+2. **simulator**：iOS 26・27のUI検証を各2組に分け、計4台の専用Runnerで実行。
 3. **release ジョブ内のビルド**：シミュレーター検証と並行して、ホストテスト・ファイル選択UI検証・iPhone向けReleaseビルドを実行し、`Payload/Takupoke.app` をIPA化。署名用Secretsは不要。
 4. **Source 生成**：IPA の Info.plist、対象 OS、実行ファイル、サイズを検査して Source を生成。不一致があれば停止。
 5. **公開前の検証確認**：`tools/release_gate.py`が同じ実行ID・再実行回・コミットの配布テストと両OSのUI検証の成功を確認します。未完了なら60秒間隔で待機し、失敗・中止・想定外のスキップ・APIエラー・時間切れでは公開を停止します。

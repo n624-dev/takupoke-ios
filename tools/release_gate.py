@@ -4,9 +4,10 @@ import json
 import os
 import subprocess
 import time
+from ui_test_manifest import REQUIRED_JOBS
 
 REPOSITORY = "n624-dev/takupoke-ios"
-REQUIRED = frozenset({"Distribution tests", "Application iOS 26 UI", "Application iOS 27 UI"})
+REQUIRED = REQUIRED_JOBS | {"Distribution tests"}
 
 
 def api(path, *, pages=False):

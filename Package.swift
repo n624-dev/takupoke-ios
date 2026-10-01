@@ -153,6 +153,10 @@ let package = Package(
                     "MaterialLibraryChecks.swift",
                     "WebPDFChecks.swift",
                     "test_distribution.py",
+                    "test_parallel_build.py",
+                    "test_release_gate.py",
+                    "test_timed_command.py",
+                    "test_ui_test_manifest.py",
                 ] + mappingTestExcludes,
                     sources: [
                     "FileRefreshTests.swift",

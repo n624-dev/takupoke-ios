@@ -31,6 +31,16 @@ class ReleaseGateTests(unittest.TestCase):
         self.jobs[0].update(status="in_progress", conclusion=None)
         self.assertEqual(self.snapshot(), sorted([missing, self.jobs[0]["name"]]))
 
+    def test_each_required_job_is_individually_required(self):
+        for index, job in enumerate(self.jobs):
+            with self.subTest(name=job["name"]):
+                remaining = self.jobs[:index] + self.jobs[index + 1:]
+                self.assertEqual(gate.check_snapshot(self.run, remaining, **self.context), [job["name"]])
+                failed = copy.deepcopy(self.jobs)
+                failed[index]["conclusion"] = "failure"
+                with self.assertRaisesRegex(ValueError, "did not succeed"):
+                    gate.check_snapshot(self.run, failed, **self.context)
+
     def test_unsuccessful_completion_is_never_accepted(self):
         for conclusion in ["failure", "cancelled", "timed_out", "skipped", "neutral", None]:
             with self.subTest(conclusion=conclusion):
