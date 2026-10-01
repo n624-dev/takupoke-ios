@@ -8,6 +8,7 @@ struct TimetableView: View {
     @ObservedObject var mappings: MappingModel
     @Binding var todayRequest: UUID?
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) var gridDynamicTypeSize
     @AppStorage("mainColor") private var mainColor = MainColor.blue.rawValue
     @AppStorage("timetableSelectedClasses") var selectedClassesValue = ""
     @AppStorage("timetableChangeClasses") var changeClassesValue = ""
@@ -24,7 +25,9 @@ struct TimetableView: View {
     @State var weekPickerDate = Date()
     @State var dayHeaderHeight: CGFloat = 0
     @State var gridViewportWidth: CGFloat = 0
-    @State var periodColumnWidth: CGFloat = 34
+    @State var standardPeriodColumnWidth: CGFloat = 34
+    @State var measuredPeriodColumnWidth: CGFloat = 34
+    var periodColumnWidth: CGFloat { max(standardPeriodColumnWidth, measuredPeriodColumnWidth) }
 
     var timetable: PDFAnalysis? { model.state.pdfAnalyses?[MaterialKind.timetable.rawValue] }
     var events: PDFAnalysis? { schoolEvents.analysis }
@@ -47,12 +50,13 @@ struct TimetableView: View {
                                                    className: className)
     }
     let weekdayNames = ["月", "火", "水", "木", "金", "土", "日"]
-    var dayColumnWidth: CGFloat {
+    var standardDayColumnWidth: CGFloat {
         guard gridViewportWidth > 0 else { return 58 }
         // Five inter-column gaps plus one trailing gap inside the scroll content.
-        return max(1, (gridViewportWidth - periodColumnWidth - 6 * gridSpacing) / 5)
+        return max(1, (gridViewportWidth - standardPeriodColumnWidth - 6 * gridSpacing) / 5)
     }
-    let gridRowHeight: CGFloat = 72
+    var dayColumnWidth: CGFloat { standardDayColumnWidth * gridScale }
+    var gridRowHeight: CGFloat { 72 * gridScale }
     let gridSpacing: CGFloat = 2
 
     struct DayGridLayout {

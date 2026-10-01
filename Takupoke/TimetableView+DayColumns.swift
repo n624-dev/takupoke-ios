@@ -21,7 +21,7 @@ extension TimetableView {
 
     func fullDayEventCard(_ title: String, width: CGFloat, height: CGFloat?) -> some View {
         Text(TimetableDisplayText.kana(title))
-            .font(.system(size: 14, weight: .semibold))
+            .font(gridFont(14, weight: .semibold))
             .multilineTextAlignment(.center)
             .fixedSize(horizontal: false, vertical: true)
             .padding(3)

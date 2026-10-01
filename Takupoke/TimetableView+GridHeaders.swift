@@ -3,13 +3,13 @@ import UIKit
 
 extension TimetableView {
     var periodHeadingFont: Font { .caption.bold() }
-    var periodNumberFont: Font { .system(size: 15, weight: .semibold) }
-    var periodClockFont: Font { .system(size: 9) }
+    var periodNumberFont: Font { gridFont(15, weight: .semibold) }
+    var periodClockFont: Font { gridFont(9) }
 
     // Measure unconstrained SwiftUI text with the same fonts and environment as
     // the visible column. Include source times even in an events-only week so
     // hiding the period labels does not shift the day columns.
-    var periodColumnMeasurement: some View {
+    func periodColumnMeasurement(standard: Bool) -> some View {
         let customRanges = self.times.current?.data.days.flatMap { $0.periods.map { "\($0.start)〜\($0.end)" } } ?? []
         let ranges = TimetableSchedule.normalPeriodTimes + customRanges + specials.flatMap { analysis in
             Array(analysis.periodTimes.values) + analysis.lessons.compactMap(\.timeRange)
@@ -18,15 +18,19 @@ extension TimetableView {
         return VStack(spacing: 0) {
             Text("時限").font(periodHeadingFont)
             ForEach(1...8, id: \.self) { period in
-                Text("\(period)").font(periodNumberFont)
+                Text("\(period)").font(.system(size: 15 * (standard ? 1 : gridScale), weight: .semibold))
             }
             ForEach(times, id: \.self) { time in
-                Text(time).font(periodClockFont)
+                Text(time).font(.system(size: 9 * (standard ? 1 : gridScale)))
             }
         }
         .fixedSize()
         .background(GeometryReader { proxy in
-            Color.clear.preference(key: PeriodColumnWidthKey.self, value: proxy.size.width)
+            if standard {
+                Color.clear.preference(key: StandardPeriodColumnWidthKey.self, value: proxy.size.width)
+            } else {
+                Color.clear.preference(key: PeriodColumnWidthKey.self, value: proxy.size.width)
+            }
         })
         .hidden()
         .accessibilityHidden(true)
@@ -92,6 +96,13 @@ struct DayHeaderHeightKey: PreferenceKey {
 }
 
 struct PeriodColumnWidthKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+struct StandardPeriodColumnWidthKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())

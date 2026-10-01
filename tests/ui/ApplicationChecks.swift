@@ -110,6 +110,115 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertFalse(app.buttons["この週へ移動"].exists)
         if app.buttons["翌週"].exists { tap("翌週"); XCTAssertTrue(app.buttons["前週"].exists); tap("前週") }
     }
+
+    private func gridMetrics() throws -> [String: Any] {
+        let probe = app.staticTexts["fixture-grid-metrics"]
+        for _ in 0..<8 {
+            if probe.exists { break }
+            app.swipeUp()
+        }
+        XCTAssertTrue(probe.waitForExistence(timeout: 10), app.debugDescription)
+        let json = try XCTUnwrap(probe.value as? String)
+        return try XCTUnwrap(JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any])
+    }
+
+    private func selectTypeSize(_ title: String) throws -> [String: Any] {
+        app.buttons["fixture-type-size"].tap()
+        app.buttons[title].tap()
+        return try gridMetrics()
+    }
+
+    func testTimetableDynamicTypeScalesAndRestoresStandardLayout() throws {
+        app.terminate()
+        app.launchArguments += ["--grid-probe"]
+        launchReady()
+        tab("時間割")
+        let standard = try gridMetrics()
+        func number(_ key: String, in value: [String: Any]) throws -> Double {
+            try XCTUnwrap(value[key] as? Double)
+        }
+        func assertLayout(_ metrics: [String: Any]) throws {
+            let scale = try number("scale", in: metrics)
+            let width = try number("width", in: metrics)
+            let baseWidth = try number("baseWidth", in: metrics)
+            XCTAssertGreaterThanOrEqual(scale, 1)
+            XCTAssertEqual(width, baseWidth * scale, accuracy: 0.1)
+            XCTAssertEqual(baseWidth * 5 + (try number("basePeriodWidth", in: metrics)) + 12,
+                           try number("viewport", in: metrics), accuracy: 0.1)
+            for (key, base) in [("subjectFont", 11.0), ("metadataFont", 9.0), ("eventFont", 14.0), ("periodFont", 15.0)] {
+                XCTAssertEqual(try number(key, in: metrics), base * scale, accuracy: 0.01)
+            }
+            let heights = try XCTUnwrap(metrics["heights"] as? [Double])
+            XCTAssertEqual(heights.count, 8)
+            XCTAssertTrue(heights.allSatisfy { $0 >= 72 * scale })
+            let cards = try XCTUnwrap(metrics["cards"] as? [[String: Any]])
+            XCTAssertEqual(Set(cards.compactMap { $0["source"] as? String }), Set(["normal", "change", "exam", "examReturn"]))
+            for card in cards {
+                XCTAssertGreaterThanOrEqual(try number("height", in: card), try number("required", in: card))
+            }
+            for source in ["normal", "change", "exam", "examReturn"] {
+                XCTAssertTrue(cards.contains { ($0["source"] as? String) == source &&
+                    ($0["end"] as? Int ?? 0) > ($0["start"] as? Int ?? 0) })
+            }
+            for day in Set(cards.compactMap { $0["day"] as? String }) {
+                let entries = cards.filter { ($0["day"] as? String) == day }
+                for (i, first) in entries.enumerated() {
+                    for second in entries.dropFirst(i + 1) where (first["lane"] as? Int) == (second["lane"] as? Int) {
+                        let a = try XCTUnwrap(first["start"] as? Int)...(try XCTUnwrap(first["end"] as? Int))
+                        let b = try XCTUnwrap(second["start"] as? Int)...(try XCTUnwrap(second["end"] as? Int))
+                        XCTAssertFalse(a.overlaps(b))
+                    }
+                }
+            }
+        }
+        try assertLayout(standard)
+        XCTAssertEqual(try number("scale", in: standard), 1)
+        let small = try selectTypeSize("小")
+        try assertLayout(small)
+        for key in ["width", "baseWidth", "subjectFont", "metadataFont", "eventFont", "periodFont", "periodWidth"] {
+            XCTAssertEqual(try number(key, in: small), try number(key, in: standard), accuracy: 0.1)
+        }
+        var previous = standard
+        for title in ["大", "最大"] {
+            let enlarged = try selectTypeSize(title)
+            try assertLayout(enlarged)
+            XCTAssertGreaterThan(try number("scale", in: enlarged), try number("scale", in: previous))
+            XCTAssertEqual(try number("baseWidth", in: enlarged), try number("baseWidth", in: standard), accuracy: 0.1)
+            let oldTimes = try XCTUnwrap(previous["cards"] as? [[String: Any]]).compactMap { $0["timeFont"] as? Double }.filter { $0 > 0 }
+            let newTimes = try XCTUnwrap(enlarged["cards"] as? [[String: Any]]).compactMap { $0["timeFont"] as? Double }.filter { $0 > 0 }
+            XCTAssertEqual(oldTimes.count, newTimes.count)
+            for (old, new) in zip(oldTimes, newTimes) { XCTAssertGreaterThan(new, old) }
+            // Read actual rendered card bounds as well as the layout metrics.
+            let first = app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "架空科目A", "月")).firstMatch
+            XCTAssertTrue(first.exists)
+            XCTAssertEqual(first.frame.width, try number("width", in: enlarged), accuracy: 1)
+            previous = enlarged
+        }
+        let restored = try selectTypeSize("標準")
+        try assertLayout(restored)
+        for key in ["width", "baseWidth", "subjectFont", "metadataFont", "periodWidth"] {
+            XCTAssertEqual(try number(key, in: restored), try number(key, in: standard), accuracy: 0.1)
+        }
+        XCTAssertEqual(try XCTUnwrap(restored["heights"] as? [Double]), try XCTUnwrap(standard["heights"] as? [Double]))
+    }
+
+    func testTimetableUsesSystemTextSize() throws {
+        app.terminate()
+        app.launchArguments += ["--grid-probe", "--system-text-size"]
+        launchReady()
+        tab("時間割")
+        let metrics = try gridMetrics()
+        let scale = try XCTUnwrap(metrics["scale"] as? Double)
+        let category = try XCTUnwrap(metrics["systemSize"] as? String)
+        let standardOrSmaller = ["UICTContentSizeCategoryXS", "UICTContentSizeCategoryS",
+                                "UICTContentSizeCategoryM", "UICTContentSizeCategoryL"]
+        if standardOrSmaller.contains(category) { XCTAssertEqual(scale, 1) }
+        else { XCTAssertGreaterThan(scale, 1, category) }
+        XCTAssertEqual(try XCTUnwrap(metrics["subjectFont"] as? Double), 11 * scale, accuracy: 0.01)
+        XCTAssertEqual(try XCTUnwrap(metrics["width"] as? Double),
+                       (try XCTUnwrap(metrics["baseWidth"] as? Double)) * scale, accuracy: 0.1)
+        print("System text size: \(category); timetable scale: \(scale)")
+    }
     func testSettingsAccountDataAndFileDetails() {
         tab("設定")
         tap("リンク・名称・授業時刻")

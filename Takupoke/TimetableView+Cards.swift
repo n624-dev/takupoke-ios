@@ -32,41 +32,41 @@ extension TimetableView {
                 case .normal(let lesson):
                     Text(cardText(cardSubject(TimetableDisplayText.continuous(lesson.names.cellSubject)),
                                   fontSize: 11, weight: .semibold, lines: 2))
-                        .font(.system(size: 11, weight: .semibold)).lineLimit(2)
+                        .font(gridFont(11, weight: .semibold)).lineLimit(2)
                     if showTime, let time {
                         cardTimeLabel(time)
                     }
                     if !lesson.names.cellTeacher.isEmpty {
                         Text(cardText(TimetableDisplayText.continuous(lesson.names.cellTeacher), fontSize: 9))
-                            .font(.system(size: 9)).lineLimit(1)
+                            .font(gridFont(9)).lineLimit(1)
                     }
                     if !lesson.names.cellRoom.isEmpty {
-                        Text(cardRoom(lesson.names.cellRoom)).font(.system(size: 9)).lineLimit(1)
+                        Text(cardRoom(lesson.names.cellRoom)).font(gridFont(9)).lineLimit(1)
                     }
                 case .special(let item):
                     Text(cardText(cardSubject(TimetableDisplayText.kana(item.lesson.subject)),
                                   fontSize: 11, weight: .semibold, lines: 2))
-                        .font(.system(size: 11, weight: .semibold)).lineLimit(2)
+                        .font(gridFont(11, weight: .semibold)).lineLimit(2)
                     if showTime, let time {
                         cardTimeLabel(time)
                     }
                     if !item.lesson.teacher.isEmpty {
                         Text(cardText(TimetableDisplayText.kana(item.lesson.teacher), fontSize: 9))
-                            .font(.system(size: 9)).lineLimit(1)
+                            .font(gridFont(9)).lineLimit(1)
                     }
                     if !item.lesson.room.isEmpty {
-                        Text(cardRoom(item.lesson.room)).font(.system(size: 9)).lineLimit(1)
+                        Text(cardRoom(item.lesson.room)).font(gridFont(9)).lineLimit(1)
                     }
                 case .change(let change):
                     let names = mappings.names(for: change).after
                     HStack(spacing: 1) {
-                        Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 8))
+                        Image(systemName: "arrow.triangle.2.circlepath").font(gridFont(8))
                         Text(change.cardKindLabel)
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(gridFont(11, weight: .semibold))
                     }
                     if !isCancellation {
                         Text(changeCardSubject(change, names: names))
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(gridFont(11, weight: .semibold))
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     if showTime, let time {
@@ -74,10 +74,10 @@ extension TimetableView {
                     }
                     if !names.cellTeacher.isEmpty {
                         Text(cardText(TimetableDisplayText.kana(names.cellTeacher), fontSize: 9))
-                            .font(.system(size: 9)).lineLimit(1)
+                            .font(gridFont(9)).lineLimit(1)
                     }
                     if !names.cellRoom.isEmpty {
-                        Text(cardRoom(names.cellRoom)).font(.system(size: 9)).lineLimit(1)
+                        Text(cardRoom(names.cellRoom)).font(gridFont(9)).lineLimit(1)
                     }
                 }
             }
@@ -129,7 +129,7 @@ extension TimetableView {
         let size: CGFloat = 8.5
         let textWidth = (cardTimeText(value) as NSString)
             .size(withAttributes: [.font: UIFont.systemFont(ofSize: size)]).width
-        return size * min(1, max(1, dayColumnWidth - 10) / max(1, textWidth))
+        return gridScale * size * min(1, max(1, standardDayColumnWidth - 10) / max(1, textWidth))
     }
 
     private func cardTimeLabel(_ value: String) -> some View {
@@ -137,7 +137,7 @@ extension TimetableView {
             .font(.system(size: cardTimeFontSize(value)))
             .foregroundStyle(.secondary)
             .lineLimit(1)
-            .minimumScaleFactor(0.5)
+            .minimumScaleFactor(gridScale > 1 ? 1 : 0.5)
     }
 
     func cardRoom(_ source: String) -> String {
@@ -155,7 +155,7 @@ extension TimetableView {
         } else {
             short = nil
         }
-        let font = UIFont.systemFont(ofSize: 11, weight: .semibold)
+        let font = gridUIFont(11, weight: .semibold)
         let available = dayColumnWidth - 10
         return TimetableDisplayText.changeCardSubject(source, short: short) {
             ($0 as NSString).size(withAttributes: [.font: font]).width <= available
@@ -164,7 +164,7 @@ extension TimetableView {
 
     func cardText(_ value: String, fontSize: CGFloat, weight: UIFont.Weight = .regular,
                           lines: Int = 1, width: CGFloat? = nil, alternatives: [String] = []) -> String {
-        let font = UIFont.systemFont(ofSize: fontSize, weight: weight)
+        let font = gridUIFont(fontSize, weight: weight)
         let available = (width ?? dayColumnWidth - 8) - 2
         func fits(_ text: String) -> Bool {
             let attributes: [NSAttributedString.Key: Any] = [.font: font]

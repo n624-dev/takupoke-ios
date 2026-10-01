@@ -2,6 +2,37 @@ import SwiftUI
 import UIKit
 
 extension TimetableView {
+    // Use one Dynamic Type ratio for the entire grid, keeping its existing
+    // typography proportions and never going below the standard (.large) size.
+    var gridScale: CGFloat {
+        let category: UIContentSizeCategory
+        switch gridDynamicTypeSize {
+        case .xSmall: category = .extraSmall
+        case .small: category = .small
+        case .medium: category = .medium
+        case .large: category = .large
+        case .xLarge: category = .extraLarge
+        case .xxLarge: category = .extraExtraLarge
+        case .xxxLarge: category = .extraExtraExtraLarge
+        case .accessibility1: category = .accessibilityMedium
+        case .accessibility2: category = .accessibilityLarge
+        case .accessibility3: category = .accessibilityExtraLarge
+        case .accessibility4: category = .accessibilityExtraExtraLarge
+        case .accessibility5: category = .accessibilityExtraExtraExtraLarge
+        @unknown default: category = .large
+        }
+        return max(1, UIFontMetrics(forTextStyle: .caption2).scaledValue(for: 11,
+            compatibleWith: UITraitCollection(preferredContentSizeCategory: category)) / 11)
+    }
+
+    func gridUIFont(_ size: CGFloat, weight: UIFont.Weight = .regular) -> UIFont {
+        UIFont.systemFont(ofSize: size * gridScale, weight: weight)
+    }
+
+    func gridFont(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        .system(size: size * gridScale, weight: weight)
+    }
+
     func dayLayout(_ day: SchoolDate) -> DayGridLayout {
         let positioned = selectedClasses.map { className in
             TimetableSchedule.positioned(TimetableSchedule.blocks(on: day, className: className,
@@ -22,7 +53,12 @@ extension TimetableView {
     }
 
     func gridRowHeights(_ columns: [DayGridLayout], days: [SchoolDate]) -> [CGFloat] {
-        var heights = Array(repeating: gridRowHeight, count: 8)
+        var heights = (1...8).map { period -> CGFloat in
+            let clock = commonPeriodTime(period, days: days).map(TimetableDisplayText.periodTime)
+            let clockHeight = clock.map { measuredTextHeight($0, font: gridUIFont(9), width: periodColumnWidth) } ?? 0
+            return max(gridRowHeight, gridUIFont(15, weight: .semibold).lineHeight +
+                (clock == nil ? 0 : clockHeight + 2) + 6)
+        }
         var entries: [(SchoolDate, String, TimetableSchedule.GridBlock)] = []
         for column in columns {
             for (index, lane) in column.positioned.enumerated() {
@@ -40,57 +76,66 @@ extension TimetableView {
                 CGFloat(end - start - 1) * gridSpacing
             if required > available { heights[end - 1] += required - available }
         }
+        for column in columns {
+            guard let title = column.fullDayEventTitle else { continue }
+            let required = measuredTextHeight(TimetableDisplayText.kana(title),
+                                             font: gridUIFont(14, weight: .semibold), width: column.width - 6) + 6
+            let available = heights.reduce(0, +) + 7 * gridSpacing
+            if required > available { heights[7] += required - available }
+        }
         return heights
     }
 
-    private func cardRequiredHeight(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
+    func cardRequiredHeight(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
                                     className: String, days: [SchoolDate]) -> CGFloat {
-        var parts: [(String, CGFloat, UIFont.Weight, Int?)] = []
+        var parts: [(String, UIFont, Int?)] = []
         switch block.content {
         case .normal(let lesson):
             parts.append((cardText(cardSubject(TimetableDisplayText.continuous(lesson.names.cellSubject)),
-                                   fontSize: 11, weight: .semibold, lines: 2), 11, .semibold, 2))
+                                   fontSize: 11, weight: .semibold, lines: 2), gridUIFont(11, weight: .semibold), 2))
             if !lesson.names.cellTeacher.isEmpty {
-                parts.append((cardText(TimetableDisplayText.continuous(lesson.names.cellTeacher), fontSize: 9), 9, .regular, 1))
+                parts.append((cardText(TimetableDisplayText.continuous(lesson.names.cellTeacher), fontSize: 9), gridUIFont(9), 1))
             }
-            if !lesson.names.cellRoom.isEmpty { parts.append((cardRoom(lesson.names.cellRoom), 9, .regular, 1)) }
+            if !lesson.names.cellRoom.isEmpty { parts.append((cardRoom(lesson.names.cellRoom), gridUIFont(9), 1)) }
         case .special(let item):
             parts.append((cardText(cardSubject(TimetableDisplayText.kana(item.lesson.subject)),
-                                   fontSize: 11, weight: .semibold, lines: 2), 11, .semibold, 2))
+                                   fontSize: 11, weight: .semibold, lines: 2), gridUIFont(11, weight: .semibold), 2))
             if !item.lesson.teacher.isEmpty {
-                parts.append((cardText(TimetableDisplayText.kana(item.lesson.teacher), fontSize: 9), 9, .regular, 1))
+                parts.append((cardText(TimetableDisplayText.kana(item.lesson.teacher), fontSize: 9), gridUIFont(9), 1))
             }
-            if !item.lesson.room.isEmpty { parts.append((cardRoom(item.lesson.room), 9, .regular, 1)) }
+            if !item.lesson.room.isEmpty { parts.append((cardRoom(item.lesson.room), gridUIFont(9), 1)) }
         case .change(let change):
-            parts.append((change.cardKindLabel, 11, .semibold, 1))
+            parts.append((change.cardKindLabel, gridUIFont(11, weight: .semibold), 1))
             if !change.isCancellation {
-                parts.append((changeCardSubject(change, names: mappings.names(for: change).after), 11, .semibold, nil))
+                parts.append((changeCardSubject(change, names: mappings.names(for: change).after), gridUIFont(11, weight: .semibold), nil))
             }
             let names = mappings.names(for: change).after
             if !names.cellTeacher.isEmpty {
-                parts.append((cardText(TimetableDisplayText.kana(names.cellTeacher), fontSize: 9), 9, .regular, 1))
+                parts.append((cardText(TimetableDisplayText.kana(names.cellTeacher), fontSize: 9), gridUIFont(9), 1))
             }
-            if !names.cellRoom.isEmpty { parts.append((cardRoom(names.cellRoom), 9, .regular, 1)) }
+            if !names.cellRoom.isEmpty { parts.append((cardRoom(names.cellRoom), gridUIFont(9), 1)) }
         }
         if (block.startPeriod != block.endPeriod || commonPeriodTime(block.startPeriod, days: days) == nil),
            let time = cardTime(block, on: day, className: className) {
             let timeIndex: Int
             if case .change = block.content { timeIndex = 2 }
             else { timeIndex = 1 }
-            parts.insert((cardTimeText(time), cardTimeFontSize(time), .regular, 1),
+            parts.insert((cardTimeText(time), UIFont.systemFont(ofSize: cardTimeFontSize(time)), 1),
                          at: min(parts.count, timeIndex))
         }
         let width = dayColumnWidth - 10
         let textHeight = parts.reduce(CGFloat.zero) { total, part in
-            let (value, size, weight, limit) = part
-            let font = UIFont.systemFont(ofSize: size, weight: weight)
-            let bounds = (value as NSString).boundingRect(
-                with: CGSize(width: width, height: .greatestFiniteMagnitude),
-                options: [.usesLineFragmentOrigin, .usesFontLeading],
-                attributes: [.font: font], context: nil)
-            let measured = max(font.lineHeight, ceil(bounds.height))
+            let (value, font, limit) = part
+            let measured = measuredTextHeight(value, font: font, width: width)
             return total + (limit.map { min(measured, font.lineHeight * CGFloat($0)) } ?? measured)
         }
         return textHeight + CGFloat(max(0, parts.count - 1)) + 10
+    }
+
+    func measuredTextHeight(_ value: String, font: UIFont, width: CGFloat) -> CGFloat {
+        let bounds = (value as NSString).boundingRect(
+            with: CGSize(width: max(1, width), height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [.font: font], context: nil)
+        return max(font.lineHeight, ceil(bounds.height))
     }
 }

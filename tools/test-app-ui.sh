@@ -43,6 +43,16 @@ while read -r device_type runtime; do
             --predicate 'process == "Takupoke" AND eventMessage CONTAINS "Synthetic fixture initialization"' || true
         exit 1
     }
+    # Exercise the actual Simulator OS setting as well as live SwiftUI changes.
+    for content_size in extra-small extra-extra-extra-large accessibility-extra-extra-extra-large; do
+        xcrun simctl ui "$simulator_id" content_size "$content_size"
+        xcodebuild -project "$scratch_dir/AppChecks.xcodeproj" -scheme AppChecks \
+            -destination "platform=iOS Simulator,id=$simulator_id" \
+            -derivedDataPath "$scratch_dir/DerivedData" \
+            -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
+            -only-testing:PickerTapChecks/ApplicationChecks/testTimetableUsesSystemTextSize \
+            -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES test-without-building
+    done
     xcrun simctl shutdown "$simulator_id"
     xcrun simctl delete "$simulator_id"
     simulator_id=""

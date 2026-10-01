@@ -29,6 +29,7 @@ final class FixtureNetwork: URLProtocol {
 struct SimulatorApplication: App {
     @State private var notificationProbe = "待機中"
     @State private var applicationReady = false
+    @State private var fixtureTypeSize: DynamicTypeSize = .large
     @AppStorage("mainColor") private var mainColor = MainColor.blue.rawValue
     init() {
         URLProtocol.registerClass(FixtureNetwork.self)
@@ -37,6 +38,22 @@ struct SimulatorApplication: App {
     var body: some Scene {
         WindowGroup {
             ContentView().tint((MainColor(rawValue: mainColor) ?? .blue).color)
+                .modifier(FixtureTypeSize(enabled: ProcessInfo.processInfo.arguments.contains("--grid-probe") &&
+                    !ProcessInfo.processInfo.arguments.contains("--system-text-size"),
+                                          size: fixtureTypeSize))
+                .overlay(alignment: .topTrailing) {
+                    if ProcessInfo.processInfo.arguments.contains("--grid-probe") {
+                        Menu("文字サイズ") {
+                            ForEach(["標準", "小", "大", "最大"], id: \.self) { title in
+                                Button(title) {
+                                    fixtureTypeSize = ["小": .xSmall, "標準": .large,
+                                                       "大": .xxxLarge, "最大": .accessibility5][title]!
+                                }
+                            }
+                        }
+                        .font(.system(size: 12)).accessibilityIdentifier("fixture-type-size")
+                    }
+                }
                 .overlay(alignment: .topLeading) {
                     if applicationReady {
                         Text("準備完了").font(.caption2)
@@ -175,5 +192,50 @@ struct SimulatorApplication: App {
             try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite"))
                 .recordFailure(PDFParseError(code: .unsupported), kind: .exam)
         }
+    }
+}
+
+// Only the isolated test app uses these controls and metrics. Production
+// sources are instrumented in the temporary project, not in the shipped app.
+private struct FixtureTypeSize: ViewModifier {
+    let enabled: Bool
+    let size: DynamicTypeSize
+    func body(content: Content) -> some View {
+        if enabled { content.environment(\.dynamicTypeSize, size) }
+        else { content }
+    }
+}
+
+extension TimetableView {
+    func fixtureGridMetrics(columns: [DayGridLayout], days: [SchoolDate], heights: [CGFloat]) -> String {
+        var cards: [[String: Any]] = []
+        for column in columns {
+            for (index, positioned) in column.positioned.enumerated() {
+                for entry in positioned {
+                    let block = entry.block
+                    let source: String
+                    switch block.content {
+                    case .normal: source = "normal"
+                    case .change: source = "change"
+                    case .special(let item): source = item.kind.rawValue
+                    }
+                    let actual = heights[(block.startPeriod - 1)..<block.endPeriod].reduce(0, +) +
+                        CGFloat(block.endPeriod - block.startPeriod) * gridSpacing
+                    cards.append(["source": source, "start": block.startPeriod, "end": block.endPeriod,
+                        "lane": entry.lane, "day": column.day.iso8601,
+                        "height": actual, "required": cardRequiredHeight(block, on: column.day,
+                            className: selectedClasses[index], days: days),
+                        "timeFont": cardTime(block, on: column.day, className: selectedClasses[index]).map(cardTimeFontSize) ?? 0])
+                }
+            }
+        }
+        let value: [String: Any] = ["scale": gridScale, "width": dayColumnWidth,
+            "systemSize": UIApplication.shared.preferredContentSizeCategory.rawValue,
+            "baseWidth": standardDayColumnWidth, "viewport": gridViewportWidth,
+            "periodWidth": periodColumnWidth, "basePeriodWidth": standardPeriodColumnWidth,
+            "subjectFont": gridUIFont(11).pointSize, "metadataFont": gridUIFont(9).pointSize,
+            "eventFont": gridUIFont(14).pointSize, "periodFont": gridUIFont(15).pointSize,
+            "heights": heights, "cards": cards]
+        return String(data: try! JSONSerialization.data(withJSONObject: value, options: [.sortedKeys]), encoding: .utf8)!
     }
 }
