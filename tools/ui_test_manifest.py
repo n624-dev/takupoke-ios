@@ -81,7 +81,7 @@ def main():
     parser.add_argument("--ios", type=int, choices=(26, 27))
     parser.add_argument("--system-size-only", action="store_true")
     args = parser.parse_args()
-    validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text())
+    validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8"))
     tests = selected_tests(args.shard)
     if args.mode == "selectors":
         for test in tests:
@@ -95,7 +95,7 @@ def main():
             if SYSTEM_SIZE_TEST not in tests:
                 parser.error("OS size check is not assigned to this shard")
             tests = (SYSTEM_SIZE_TEST,)
-        validate_results(args.log.read_text(errors="replace"), tests, args.ios)
+        validate_results(args.log.read_text(encoding="utf-8", errors="replace"), tests, args.ios)
         print(f"Verified {len(tests)} XCTest completions on iOS {args.ios}.")
 
 

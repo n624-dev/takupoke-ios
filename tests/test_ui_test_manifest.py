@@ -22,14 +22,14 @@ def result_line(test, status="passed"):
 
 class ManifestTests(unittest.TestCase):
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
-        manifest.validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text())
+        manifest.validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8"))
         self.assertEqual(len(manifest.selected_tests("all")), 18)
         self.assertFalse(set(manifest.SHARDS["A"]) & set(manifest.SHARDS["B"]))
         self.assertEqual(release_gate.REQUIRED, manifest.REQUIRED_JOBS | {"Distribution tests"})
         self.assertIn(manifest.SYSTEM_SIZE_TEST, manifest.SHARDS["B"])
 
     def test_missing_obsolete_or_duplicate_source_tests_fail(self):
-        source = (ROOT / "tests/ui/ApplicationChecks.swift").read_text()
+        source = (ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8")
         for altered in (source + "\nfunc testNewCase() {}",
                         source.replace("testMergedCardsFromAllSources", "testRenamedCase"),
                         source + "\nfunc testMergedCardsFromAllSources() {}"):
@@ -39,7 +39,7 @@ class ManifestTests(unittest.TestCase):
     def test_overlapping_manifest_is_rejected(self):
         with patch.dict(manifest.SHARDS, {"B": manifest.SHARDS["B"] + manifest.SHARDS["A"][:1]}):
             with self.assertRaisesRegex(ValueError, "duplicate tests"):
-                manifest.validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text())
+                manifest.validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8"))
 
     def test_passed_results_with_only_the_declared_voiceover_exception(self):
         for ios in (26, 27):
@@ -67,7 +67,7 @@ class ManifestTests(unittest.TestCase):
                 manifest.validate_results(result_line(test, status), (test,), ios)
 
     def test_workflow_matrix_matches_gate_and_publish_follows_gate(self):
-        workflow = (ROOT / ".github/workflows/ios-release.yml").read_text()
+        workflow = (ROOT / ".github/workflows/ios-release.yml").read_text(encoding="utf-8")
         simulator = workflow.split("  simulator:\n", 1)[1].split("  build-check:\n", 1)[0]
         entries = re.findall(r"- ios: (26|27)\n\s+shard: ([AB])", simulator)
         self.assertEqual(len(entries), 4)
@@ -88,6 +88,14 @@ class ManifestTests(unittest.TestCase):
         invalid = subprocess.run(command + ["--shard", "C", "--mode", "selectors"],
                                  capture_output=True, text=True)
         self.assertNotEqual(invalid.returncode, 0)
+
+    def test_cli_reads_japanese_source_with_non_utf8_default_encoding(self):
+        environment = os.environ | {"LC_ALL": "C", "PYTHONCOERCECLOCALE": "0", "PYTHONUTF8": "0"}
+        result = subprocess.run([sys.executable, "-X", "utf8=0", "-B",
+            str(ROOT / "tools/ui_test_manifest.py"), "--shard", "A", "--mode", "selectors"],
+            env=environment, capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len(result.stdout.splitlines()), len(manifest.SHARDS["A"]))
 
 
 @unittest.skipUnless(os.name == "posix", "macOS CI Bash runner")
