@@ -25,9 +25,10 @@ def generate(destination):
         text = re.sub(r'(\b(?:let|var) (\w+) = URLSessionConfiguration\.(?:ephemeral|default))',
                       lambda match: match[1] + "\n        " + match[2] + ".protocolClasses = [FixtureNetwork.self]", text)
         if path.name == 'TimetableView+Grid.swift':
-            marker = '.accessibilityIdentifier("timetable-week-grid")'
+            marker = next(line for line in text.splitlines() if '.accessibilityLabel(' in line and 'の週の時間割' in line)
             assert marker in text, 'Timetable grid probe insertion point missing'
-            text = text.replace(marker, '''.overlay(alignment: .topLeading) {
+            text = text.replace(marker, marker + '''
+        .overlay(alignment: .topLeading) {
             if ProcessInfo.processInfo.arguments.contains("--grid-probe") {
                 Text("grid metrics").font(.system(size: 1)).foregroundStyle(.clear)
                     .accessibilityIdentifier("fixture-grid-metrics")
@@ -35,7 +36,7 @@ def generate(destination):
                     .allowsHitTesting(false)
             }
         }
-        ''' + marker)
+        ''')
         path.write_text(text)
     shutil.copyfile(repo/'tests/ui/ApplicationFixture.swift',copied/'TakupokeApp.swift')
     real['objects']['C00000000000000000000002']['sourceTree']='<absolute>'

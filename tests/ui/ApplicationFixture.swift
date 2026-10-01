@@ -118,7 +118,7 @@ struct SimulatorApplication: App {
                         names: .init(subject: "架空科目\(number <= 2 ? "A" : "B")", teacher: "架空教員A", room: "架空教室A"), sourceText: "", page: 1)
                 } }, events: [], notices: [])
             try library.savePDFAnalysis(analysis)
-            let monday = day.monday
+            let monday = day.displayWeekStart
             let changeDay = monday.addingDays(3)!
             let changeStaged = library.newStagingURL()
             try raw.write(to: changeStaged)
@@ -134,8 +134,10 @@ struct SimulatorApplication: App {
                     before_subject: "架空休講A", after_subject: "", teacher: "架空教員D", room: "架空教室D",
                     note: "休講", raw_text: "", canonical_text: ""))
             }
-            try library.saveChangeAnalysis(.init(sourceDigest: digest, sourceName: "fictional.xlsx", defaultYear: period.schoolYear,
-                parsedAt: Date(), records: ProcessInfo.processInfo.arguments.contains("--normal-only") ? [] : changeRecords))
+            if !ProcessInfo.processInfo.arguments.contains("--normal-only") {
+                try library.saveChangeAnalysis(.init(sourceDigest: digest, sourceName: "fictional.xlsx", defaultYear: period.schoolYear,
+                    parsedAt: Date(), records: changeRecords))
+            }
             let specialStore = try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite"))
             for (kind, offset, subject) in [(SpecialScheduleKind.exam, 1, "架空試験A"), (.examReturn, 2, "架空返却A")] {
                 if ProcessInfo.processInfo.arguments.contains("--normal-only") { continue }

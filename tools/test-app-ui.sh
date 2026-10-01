@@ -33,25 +33,34 @@ while read -r device_type runtime; do
     simulator_id="$(xcrun simctl create 'Takupoke App Checks' "$device_type" "$runtime")"
     xcrun simctl boot "$simulator_id"
     xcrun simctl bootstatus "$simulator_id" -b
-    xcodebuild -project "$scratch_dir/AppChecks.xcodeproj" -scheme AppChecks \
-        -destination "platform=iOS Simulator,id=$simulator_id" \
-        -derivedDataPath "$scratch_dir/DerivedData" \
-        -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
-        -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES test || {
-        # Only the synthetic app runs on this isolated simulator.
-        xcrun simctl spawn "$simulator_id" log show --last 10m --style compact \
-            --predicate 'process == "Takupoke" AND eventMessage CONTAINS "Synthetic fixture initialization"' || true
-        exit 1
+    xcode_args=(-project "$scratch_dir/AppChecks.xcodeproj" -scheme AppChecks
+        -destination "platform=iOS Simulator,id=$simulator_id"
+        -derivedDataPath "$scratch_dir/DerivedData"
+        -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1
+        -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES)
+    check_ui() {
+        xcodebuild "${xcode_args[@]}" "$@" || {
+            # Only the synthetic app runs on this isolated simulator.
+            xcrun simctl spawn "$simulator_id" log show --last 10m --style compact \
+                --predicate 'process == "Takupoke" AND eventMessage CONTAINS "Synthetic fixture initialization"' || true
+            exit 1
+        }
     }
+    dynamic_checks=(TimetableCommonClocksAndEventOnlyWeekScale
+        TimetableDynamicTypeScalesAndRestoresStandardLayout TimetableUsesSystemTextSize)
+    only_checks=()
+    skip_checks=()
+    for check in "${dynamic_checks[@]}"; do
+        only_checks+=("-only-testing:PickerTapChecks/ApplicationChecks/test$check")
+        skip_checks+=("-skip-testing:PickerTapChecks/ApplicationChecks/test$check")
+    done
+    # Run the changed layout first, then the rest of the suite with the same build.
+    check_ui "${only_checks[@]}" test
+    check_ui "${skip_checks[@]}" test-without-building
     # Exercise the actual Simulator OS setting as well as live SwiftUI changes.
     for content_size in extra-small extra-extra-extra-large accessibility-extra-extra-extra-large; do
         xcrun simctl ui "$simulator_id" content_size "$content_size"
-        xcodebuild -project "$scratch_dir/AppChecks.xcodeproj" -scheme AppChecks \
-            -destination "platform=iOS Simulator,id=$simulator_id" \
-            -derivedDataPath "$scratch_dir/DerivedData" \
-            -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
-            -only-testing:PickerTapChecks/ApplicationChecks/testTimetableUsesSystemTextSize \
-            -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES test-without-building
+        check_ui -only-testing:PickerTapChecks/ApplicationChecks/testTimetableUsesSystemTextSize test-without-building
     done
     xcrun simctl shutdown "$simulator_id"
     xcrun simctl delete "$simulator_id"
