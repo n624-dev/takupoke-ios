@@ -166,8 +166,11 @@ struct SimulatorApplication: App {
                     return .init(startDate: date, endDate: date, title: "架空行事A", tag: "行事（授業なし）")
                 }
             } else {
-                eventRows = ProcessInfo.processInfo.arguments.contains("--normal-only") ? [] :
-                    [.init(startDate: eventDay, endDate: eventDay, title: "架空行事A", tag: "行事（授業なし）")]
+                // The API requires at least one event. A teaching-day event
+                // keeps all normal lessons and exercises unequal header text.
+                eventRows = [.init(startDate: eventDay, endDate: eventDay, title: "架空行事A",
+                    tag: ProcessInfo.processInfo.arguments.contains("--normal-only") ?
+                        "行事（授業あり）" : "行事（授業なし）")]
             }
             let events = SchoolEventsPayload(version: "v1", schoolYear: period.schoolYear, sourcePdfSha256: digest,
                 sourcePdfETag: "\"fictional\"", events: eventRows)
