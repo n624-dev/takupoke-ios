@@ -43,6 +43,7 @@ extension TimetableView {
             .background(column.day == today ? Color.accentColor.opacity(0.14) :
                         Color(uiColor: .secondarySystemGroupedBackground),
                         in: RoundedRectangle(cornerRadius: 10))
+            .accessibilityIdentifier("timetable-day-\(column.day.iso8601)")
     }
 
     private func dayHeader(on day: SchoolDate, hasFullDayCard: Bool) -> some View {

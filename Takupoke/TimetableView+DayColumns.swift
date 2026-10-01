@@ -30,6 +30,7 @@ extension TimetableView {
             .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
             .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.orange.opacity(0.3)))
             .accessibilityLabel(title)
+            .accessibilityIdentifier("timetable-event-\(title)")
     }
     private func classLane(on day: SchoolDate, className: String, days: [SchoolDate],
                            positioned: [TimetableSchedule.PositionedBlock], rowHeights: [CGFloat]) -> some View {

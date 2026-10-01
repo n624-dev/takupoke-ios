@@ -152,6 +152,7 @@ final class ApplicationChecks: XCTestCase {
             XCTAssertEqual(heights.count, 8)
             XCTAssertTrue(heights.allSatisfy { $0 >= 72 * scale })
             let cards = try XCTUnwrap(metrics["cards"] as? [[String: Any]])
+            XCTAssertTrue(cards.contains { ($0["cancellation"] as? Bool) == true })
             XCTAssertEqual(Set(cards.compactMap { $0["source"] as? String }), Set(["normal", "change", "exam", "examReturn"]))
             for card in cards {
                 XCTAssertGreaterThanOrEqual(try number("height", in: card), try number("required", in: card))
@@ -218,6 +219,44 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(metrics["width"] as? Double),
                        (try XCTUnwrap(metrics["baseWidth"] as? Double)) * scale, accuracy: 0.1)
         print("System text size: \(category); timetable scale: \(scale)")
+    }
+
+    func testTimetableCommonClocksAndEventOnlyWeekScale() throws {
+        for eventsOnly in [false, true] {
+            app.terminate()
+            app.launchArguments = ["--reset-fixture", "--grid-probe", "--normal-only",
+                "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"] + (eventsOnly ? ["--events-only"] : [])
+            launchReady()
+            tab("時間割")
+            for title in ["標準", "最大", "標準"] {
+                let metrics = try selectTypeSize(title)
+                let scale = try XCTUnwrap(metrics["scale"] as? Double)
+                let heights = try XCTUnwrap(metrics["heights"] as? [Double])
+                XCTAssertEqual(metrics["eventsOnly"] as? Bool, eventsOnly)
+                let days = try XCTUnwrap(metrics["days"] as? [String])
+                let headers = days.map { app.descendants(matching: .any)["timetable-day-" + $0].firstMatch }
+                XCTAssertTrue(headers.allSatisfy(\.exists))
+                let headerHeight = try XCTUnwrap(headers.first).frame.height
+                XCTAssertGreaterThan(headerHeight, 0)
+                for header in headers { XCTAssertEqual(header.frame.height, headerHeight, accuracy: 1) }
+                if eventsOnly {
+                    XCTAssertEqual((metrics["cards"] as? [[String: Any]])?.count, 0)
+                    let event = app.descendants(matching: .any)["timetable-event-架空行事A"].firstMatch
+                    XCTAssertTrue(event.exists)
+                    XCTAssertEqual(event.frame.height, 72 * scale, accuracy: 1)
+                    XCTAssertEqual(event.frame.width, try XCTUnwrap(metrics["width"] as? Double), accuracy: 1)
+                    let grid = app.scrollViews["timetable-week-grid"]
+                    XCTAssertTrue(grid.exists)
+                    XCTAssertEqual(event.frame.minX - grid.frame.minX,
+                                   (try XCTUnwrap(metrics["periodWidth"] as? Double)) + 2, accuracy: 1)
+                } else {
+                    XCTAssertEqual((metrics["commonClocks"] as? [String])?.count, 8)
+                    XCTAssertGreaterThanOrEqual(try XCTUnwrap(metrics["periodWidth"] as? Double),
+                                              try XCTUnwrap(metrics["basePeriodWidth"] as? Double))
+                    XCTAssertTrue(heights.allSatisfy { $0 >= 72 * scale })
+                }
+            }
+        }
     }
     func testSettingsAccountDataAndFileDetails() {
         tab("設定")

@@ -126,12 +126,19 @@ struct SimulatorApplication: App {
                 originalName: "fictional.xlsx", byteCount: raw.count, digest: digest, modifiedAt: nil)
             let change = ScheduleChange(change_date: changeDay.iso8601, class_name: "3_IT", period: "4,5",
                 before_subject: "", after_subject: "架空変更A", teacher: "架空教員B", room: "架空教室B", note: "補講", raw_text: "", canonical_text: "")
-            try library.saveChangeAnalysis(.init(sourceDigest: digest, sourceName: "fictional.xlsx", defaultYear: period.schoolYear,
-                parsedAt: Date(), records: [change,
+            var changeRecords = [change,
                     ScheduleChange(change_date: day.iso8601, class_name: "3_IT", period: "6", before_subject: "",
-                        after_subject: "架空変更通知A", teacher: "", room: "", note: "変更", raw_text: "", canonical_text: "")]))
+                        after_subject: "架空変更通知A", teacher: "", room: "", note: "変更", raw_text: "", canonical_text: "")]
+            if ProcessInfo.processInfo.arguments.contains("--grid-probe") {
+                changeRecords.append(ScheduleChange(change_date: changeDay.iso8601, class_name: "3_IT", period: "3",
+                    before_subject: "架空休講A", after_subject: "", teacher: "架空教員D", room: "架空教室D",
+                    note: "休講", raw_text: "", canonical_text: ""))
+            }
+            try library.saveChangeAnalysis(.init(sourceDigest: digest, sourceName: "fictional.xlsx", defaultYear: period.schoolYear,
+                parsedAt: Date(), records: ProcessInfo.processInfo.arguments.contains("--normal-only") ? [] : changeRecords))
             let specialStore = try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite"))
             for (kind, offset, subject) in [(SpecialScheduleKind.exam, 1, "架空試験A"), (.examReturn, 2, "架空返却A")] {
+                if ProcessInfo.processInfo.arguments.contains("--normal-only") { continue }
                 let date = monday.addingDays(offset)!.iso8601
                 let staged = specialStore.newStagingURL()
                 try raw.write(to: staged)
@@ -150,8 +157,18 @@ struct SimulatorApplication: App {
                 try specialStore.save(staged: staged, analysis: special, originalName: name, byteCount: raw.count, digest: digest)
             }
             let eventDay = monday.addingDays(4)!.iso8601
+            let eventRows: [SchoolEventsPayload.Event]
+            if ProcessInfo.processInfo.arguments.contains("--events-only") {
+                eventRows = (0..<5).map { offset in
+                    let date = monday.addingDays(offset)!.iso8601
+                    return .init(startDate: date, endDate: date, title: "架空行事A", tag: "行事（授業なし）")
+                }
+            } else {
+                eventRows = ProcessInfo.processInfo.arguments.contains("--normal-only") ? [] :
+                    [.init(startDate: eventDay, endDate: eventDay, title: "架空行事A", tag: "行事（授業なし）")]
+            }
             let events = SchoolEventsPayload(version: "v1", schoolYear: period.schoolYear, sourcePdfSha256: digest,
-                sourcePdfETag: "\"fictional\"", events: [.init(startDate: eventDay, endDate: eventDay, title: "架空行事A", tag: "行事（授業なし）")])
+                sourcePdfETag: "\"fictional\"", events: eventRows)
             try SchoolEventsStore(root: base.appendingPathComponent("SchoolEventsAPI")).save(events)
 
             let payload = LinksPayload(version: "v1", linksVersion: "sha256-" + String(repeating: "a",count: 64), categories: [
@@ -165,7 +182,9 @@ struct SimulatorApplication: App {
             let rules = try JSONDecoder().decode(MappingRules.self, from: Data("{\"subjects\":[],\"teachers\":[],\"rooms\":[],\"teacherContexts\":[]}".utf8))
             try MappingStore(url: directory.appendingPathComponent("mappings.sqlite")).save(.init(revision: String(repeating: "M", count: 43), version: "fictional", schemaVersion: 1,
                 archiveETag: "\"fictional\"", archiveSHA256: String(repeating: "a", count: 64), publishedAt: "2032-04-01T00:00:00Z", fetchedAt: Date(), rules: rules))
-            let times = TimetableTimes(schemaVersion: 1, days: [.init(date: day.iso8601,
+            let timesDate = ProcessInfo.processInfo.arguments.contains("--normal-only") ?
+                monday.addingDays(7)!.iso8601 : day.iso8601
+            let times = TimetableTimes(schemaVersion: 1, days: [.init(date: timesDate,
                 periods: (1...8).map { .init(period: $0, start: String(format: "%02d:00", $0+7), end: String(format: "%02d:40", $0+7)) })])
             let timesDirectory = base.appendingPathComponent("TimetableTimes")
             try FileManager.default.createDirectory(at: timesDirectory, withIntermediateDirectories: true)
@@ -222,6 +241,7 @@ extension TimetableView {
                     let actual = heights[(block.startPeriod - 1)..<block.endPeriod].reduce(0, +) +
                         CGFloat(block.endPeriod - block.startPeriod) * gridSpacing
                     cards.append(["source": source, "start": block.startPeriod, "end": block.endPeriod,
+                        "cancellation": { if case .change(let item) = block.content { return item.isCancellation }; return false }(),
                         "lane": entry.lane, "day": column.day.iso8601,
                         "height": actual, "required": cardRequiredHeight(block, on: column.day,
                             className: selectedClasses[index], days: days),
@@ -235,7 +255,9 @@ extension TimetableView {
             "periodWidth": periodColumnWidth, "basePeriodWidth": standardPeriodColumnWidth,
             "subjectFont": gridUIFont(11).pointSize, "metadataFont": gridUIFont(9).pointSize,
             "eventFont": gridUIFont(14).pointSize, "periodFont": gridUIFont(15).pointSize,
-            "heights": heights, "cards": cards]
+            "heights": heights, "cards": cards,
+            "days": days.map(\.iso8601), "eventsOnly": columns.allSatisfy { $0.fullDayEventTitle != nil },
+            "commonClocks": (1...8).compactMap { commonPeriodTime($0, days: days) }]
         return String(data: try! JSONSerialization.data(withJSONObject: value, options: [.sortedKeys]), encoding: .utf8)!
     }
 }
