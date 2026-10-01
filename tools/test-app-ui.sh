@@ -13,7 +13,7 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 xcrun simctl list -j > "$scratch_dir/simulators.json"
-python3 -B tools/app_test_project.py "$scratch_dir"
+python3 -B tools/timed_command.py "App test project" python3 -B tools/app_test_project.py "$scratch_dir"
 python3 - "$scratch_dir/simulators.json" "${TKPK_TEST_IOS:-}" > "$scratch_dir/destinations" <<'PY'
 import json, sys
 s = json.load(open(sys.argv[1]))
@@ -32,7 +32,7 @@ PY
 while read -r device_type runtime; do
     simulator_id="$(xcrun simctl create 'Takupoke App Checks' "$device_type" "$runtime")"
     xcrun simctl boot "$simulator_id"
-    xcrun simctl bootstatus "$simulator_id" -b
+    python3 -B tools/timed_command.py "App simulator boot" xcrun simctl bootstatus "$simulator_id" -b
     xcrun simctl ui "$simulator_id" content_size large
     xcode_args=(-project "$scratch_dir/AppChecks.xcodeproj" -scheme AppChecks
         -destination "platform=iOS Simulator,id=$simulator_id"
@@ -40,7 +40,7 @@ while read -r device_type runtime; do
         -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1
         -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES)
     check_ui() {
-        xcodebuild "${xcode_args[@]}" "$@" || {
+        python3 -B tools/timed_command.py "App UI $runtime" xcodebuild "${xcode_args[@]}" "$@" || {
             # Only the synthetic app runs on this isolated simulator.
             xcrun simctl spawn "$simulator_id" log show --last 10m --style compact \
                 --predicate 'process == "Takupoke" AND eventMessage CONTAINS "Synthetic fixture initialization"' || true

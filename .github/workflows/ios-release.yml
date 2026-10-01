@@ -42,7 +42,7 @@ jobs:
           git diff --check
 
   simulator:
-    name: Application simulator checks
+    name: Application iOS ${{ matrix.ios }} UI
     needs: checks
     strategy:
       fail-fast: false
@@ -101,7 +101,7 @@ jobs:
 
   release:
     name: Build and publish AltStore release
-    needs: [checks, simulator]
+    needs: checks
     if: github.repository == 'n624-dev/takupoke-ios' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: xcode-27
     timeout-minutes: 45
@@ -109,6 +109,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
     permissions:
       contents: write
+      actions: read
     concurrency:
       group: altstore-publication
       cancel-in-progress: false
@@ -130,6 +131,10 @@ jobs:
           TKPK_BUILD: ${{ steps.version.outputs.build }}
           TKPK_COMMIT: ${{ github.sha }}
         run: bash tools/build-ios.sh "$RUNNER_TEMP/takupoke-output"
+      - name: Require this run's simulator checks before publishing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B tools/release_gate.py
       - name: Verify uploads and publish together
         env:
           GH_TOKEN: ${{ github.token }}

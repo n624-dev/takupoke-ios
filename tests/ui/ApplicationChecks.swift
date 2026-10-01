@@ -7,6 +7,20 @@ final class ApplicationChecks: XCTestCase {
         continueAfterFailure = false
         app = XCUIApplication()
         app.launchArguments = ["--reset-fixture", "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
+        let initialConditions: [String: [String]] = [
+            "testTimetableDynamicTypeScalesAndRestoresStandardLayout": ["--grid-probe"],
+            "testTimetableUsesSystemTextSize": ["--grid-probe", "--system-text-size"],
+            "testTimetableCommonClocksAndEventOnlyWeekScale": ["--grid-probe", "--normal-only"],
+            "testEmptyDataCanBeConfigured": ["--empty-fixture"],
+            "testChangedAccountDataNoticeOpensSharedAcquisition": ["--updated-revisions"],
+            "testFileFailuresKeepResultsAndStayInTheirOwnDetails": ["--failed-refresh"],
+        ]
+        for (method, arguments) in initialConditions where name.contains(method) {
+            app.launchArguments += arguments
+        }
+        #if !TAKUPOKE_VOICEOVER_AUTOMATION
+        if name.contains("testVoiceOverReadsTimetableCard") { return }
+        #endif
         launchReady()
         XCTAssertTrue(app.tabBars.buttons["ホーム"].waitForExistence(timeout: 30), app.debugDescription)
     }
@@ -130,9 +144,6 @@ final class ApplicationChecks: XCTestCase {
     }
 
     func testTimetableDynamicTypeScalesAndRestoresStandardLayout() throws {
-        app.terminate()
-        app.launchArguments += ["--grid-probe"]
-        launchReady()
         tab("時間割")
         let standard = try gridMetrics()
         func number(_ key: String, in value: [String: Any]) throws -> Double {
@@ -214,9 +225,6 @@ final class ApplicationChecks: XCTestCase {
     }
 
     func testTimetableUsesSystemTextSize() throws {
-        app.terminate()
-        app.launchArguments += ["--grid-probe", "--system-text-size"]
-        launchReady()
         tab("時間割")
         let metrics = try gridMetrics()
         let scale = try XCTUnwrap(metrics["scale"] as? Double)
@@ -234,10 +242,12 @@ final class ApplicationChecks: XCTestCase {
 
     func testTimetableCommonClocksAndEventOnlyWeekScale() throws {
         for eventsOnly in [false, true] {
-            app.terminate()
-            app.launchArguments = ["--reset-fixture", "--grid-probe", "--normal-only",
-                "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"] + (eventsOnly ? ["--events-only"] : [])
-            launchReady()
+            if eventsOnly {
+                app.terminate()
+                app.launchArguments = ["--reset-fixture", "--grid-probe", "--normal-only", "--events-only",
+                    "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
+                launchReady()
+            }
             tab("時間割")
             for title in ["標準", "最大", "標準"] {
                 let metrics = try selectTypeSize(title)
@@ -355,9 +365,6 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertTrue(app.buttons["自動確認を中止"].exists)
     }
     func testEmptyDataCanBeConfigured() {
-        app.terminate()
-        app.launchArguments += ["--empty-fixture"]
-        launchReady()
         XCTAssertTrue(app.tabBars.buttons["設定"].waitForExistence(timeout: 30))
         tab("設定")
         tap("リンク・名称・授業時刻")
@@ -377,9 +384,6 @@ final class ApplicationChecks: XCTestCase {
         }
     }
     func testChangedAccountDataNoticeOpensSharedAcquisition() {
-        app.terminate()
-        app.launchArguments += ["--updated-revisions"]
-        launchReady()
         XCTAssertTrue(app.tabBars.buttons["ホーム"].waitForExistence(timeout: 30))
         let notice = app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "名称データ", "更新があります")).firstMatch
         XCTAssertTrue(notice.waitForExistence(timeout: 10), app.debugDescription)
@@ -390,9 +394,6 @@ final class ApplicationChecks: XCTestCase {
         }
     }
     func testFileFailuresKeepResultsAndStayInTheirOwnDetails() {
-        app.terminate()
-        app.launchArguments += ["--failed-refresh"]
-        launchReady()
         XCTAssertTrue(app.tabBars.buttons["設定"].waitForExistence(timeout: 30))
         tab("設定")
         tap("時間割ファイル")

@@ -46,12 +46,15 @@
 ワークフローは [ios-release.yml](../.github/workflows/ios-release.yml) です。
 
 1. **checks**：架空データで配布スクリプトをテスト。
-2. **simulator**：iOS 26と27の専用Runnerで実アプリの画面を検証。両方の成功を配布条件とします。
-3. **release ジョブ内のビルド**：macOS / Xcode で iPhone 向け Release ビルドを行い、`Payload/Takupoke.app` を IPA 化。署名用 Secrets は不要。
+2. **simulator**：iOS 26と27の専用Runnerで実アプリの画面を検証。
+3. **release ジョブ内のビルド**：シミュレーター検証と並行して、ホストテスト・ファイル選択UI検証・iPhone向けReleaseビルドを実行し、`Payload/Takupoke.app` をIPA化。署名用Secretsは不要。
 4. **Source 生成**：IPA の Info.plist、対象 OS、実行ファイル、サイズを検査して Source を生成。不一致があれば停止。
-5. **同じ release ジョブ内の公開**：Release を draft として作成して4個の成果物をアップロード。再ダウンロードした内容の SHA-256 が一致した後に公開し、Latest を切り替え。
+5. **公開前の検証確認**：`tools/release_gate.py`が同じ実行ID・再実行回・コミットの配布テストと両OSのUI検証の成功を確認します。未完了なら60秒間隔で待機し、失敗・中止・想定外のスキップ・APIエラー・時間切れでは公開を停止します。
+6. **同じ release ジョブ内の公開**：Releaseをdraftとして作成して4個の成果物をアップロード。再ダウンロードした内容のSHA-256が一致した後に公開し、Latestを切り替え。
 
 PR と配布対象外のブランチは、読み取り権限だけの `build-check` ジョブでビルドします。ジョブ間の IPA 受け渡し用 artifact は作成しません。
+
+計測方法と改善前後の所要時間は[CIの実行時間](ci-performance.md)を参照してください。アプリのコードを変えない配布処理の変更では、利用者向け更新内容を新しい機能として記載しません。
 
 Source は IPA と同じ Release を参照します。IPA・アイコンの URL には固有のタグが入り、後の配布で中身を上書きしません。固定 Source URL だけが Latest に追従します。
 

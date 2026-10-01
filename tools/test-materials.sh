@@ -8,7 +8,7 @@ trap 'exit 143' TERM
 
 # Compile the actual persistence implementation, using only synthetic data.
 # All modules, executable and test copies belong to this temporary directory.
-swiftc -swift-version 5 -parse-as-library \
+python3 -B tools/timed_command.py "Material compilation" swiftc -swift-version 5 -parse-as-library \
     -module-cache-path "$scratch_dir/modules" \
     Takupoke/SchoolDate.swift \
     Takupoke/ChangeNormalizer.swift \
@@ -30,4 +30,4 @@ swiftc -swift-version 5 -parse-as-library \
     Takupoke/WebPDFDownloader.swift \
     tests/MaterialLibraryChecks.swift tests/WebPDFChecks.swift \
     -o "$scratch_dir/checks"
-"$scratch_dir/checks" "$scratch_dir/data"
+python3 -B tools/timed_command.py "Material execution" "$scratch_dir/checks" "$scratch_dir/data"

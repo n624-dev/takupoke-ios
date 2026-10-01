@@ -16,7 +16,7 @@ if [[ -n "${TKPK_ZLIB_PREFIX:-}" ]]; then
 fi
 TMPDIR="$scratch_dir/tmp" CLANG_MODULE_CACHE_PATH="$scratch_dir/modules" \
 SWIFTPM_MODULECACHE_OVERRIDE="$scratch_dir/modules" \
-swift test --package-path "$scratch_dir/project" \
+python3 -B tools/timed_command.py "Swift package build and tests" swift test --package-path "$scratch_dir/project" \
     --scratch-path "$scratch_dir/build" --cache-path "$scratch_dir/cache" \
     --config-path "$scratch_dir/config" --security-path "$scratch_dir/security" \
     --disable-dependency-cache --manifest-cache none "${extra_flags[@]}"

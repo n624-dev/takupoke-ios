@@ -106,6 +106,7 @@
 - 通常の開発フローを「このデバイスまたは Windows で編集 → GitHub push → Actions で IPA 生成 → AltStore Source 更新 → iPhone で更新」に固定する。
 - ビルド、IPA 公開、Source 更新の整合性を保ち、失敗したリリースを有効な更新として案内しない。
 - Actions のキャッシュ・保存用 artifact を使用せず、容量枠を手動管理する運用を避ける。ビルドから Release 公開までは同じジョブで完結させる。
+- 配布ビルドはiOS 26・27の検証と並行して開始する。公開前に、同じワークフロー実行ID・再実行回・コミットの必要な検証がすべて成功したことをGitHub APIで確認する。失敗・中止・確認エラー・時間切れでは公開しない。
 - GitHub Releases の正式な配布物はキャッシュ・artifact とは別に扱い、件数制限による自動削除は行わない。
 - 配布URL・Bundle ID・バージョン規則・Sourceの形式は[配布仕様](distribution.md)に従い、実機確認は版ごとに記録する。
 

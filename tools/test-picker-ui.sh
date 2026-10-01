@@ -25,9 +25,9 @@ PY
 simulator_id="$(xcrun simctl create "Takupoke Picker Checks" "$device_type" "$runtime")"
 python3 -B tools/picker_test_project.py "$scratch_dir"
 xcrun simctl boot "$simulator_id"
-xcrun simctl bootstatus "$simulator_id" -b
+python3 -B tools/timed_command.py "Picker simulator boot" xcrun simctl bootstatus "$simulator_id" -b
 set +e
-xcodebuild -project "$scratch_dir/PickerChecks.xcodeproj" -scheme PickerChecks \
+python3 -B tools/timed_command.py "Picker UI" xcodebuild -project "$scratch_dir/PickerChecks.xcodeproj" -scheme PickerChecks \
     -destination "platform=iOS Simulator,id=$simulator_id" \
     -derivedDataPath "$scratch_dir/DerivedData" \
     -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \

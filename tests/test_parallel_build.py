@@ -1,4 +1,6 @@
 import importlib.util
+import contextlib
+import io
 import os
 from pathlib import Path
 import sys
@@ -12,6 +14,17 @@ spec.loader.exec_module(parallel)
 
 @unittest.skipUnless(os.name == "posix", "macOS CI process groups")
 class ParallelBuildTests(unittest.TestCase):
+    def test_child_logs_keep_their_labels(self):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            result = parallel.run_commands([
+                ("first", [sys.executable, "-c", "print('first output')"]),
+                ("second", [sys.executable, "-c", "print('second output')"]),
+            ])
+        self.assertEqual(result, 0)
+        self.assertIn("[first] first output", output.getvalue())
+        self.assertIn("[second] second output", output.getvalue())
+
     def test_both_commands_start_before_either_finishes(self):
         with tempfile.TemporaryDirectory() as directory:
             commands = []
