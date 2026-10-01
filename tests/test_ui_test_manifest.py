@@ -90,6 +90,7 @@ class ManifestTests(unittest.TestCase):
         self.assertNotEqual(invalid.returncode, 0)
 
 
+@unittest.skipUnless(os.name == "posix", "macOS CI Bash runner")
 class ShellRunnerTests(unittest.TestCase):
     def run_synthetic_runner(self, ios, shard, *, omit_result=False):
         with tempfile.TemporaryDirectory(prefix="takupoke-shard-check-") as directory:

@@ -10,6 +10,7 @@ import unittest
 TOOL = Path(__file__).resolve().parents[1] / "tools/timed_command.py"
 
 
+@unittest.skipUnless(os.name == "posix", "macOS CI process groups")
 class TimedCommandTests(unittest.TestCase):
     def test_child_output_and_exit_status_are_preserved(self):
         result = subprocess.run([sys.executable, str(TOOL), "synthetic stage", sys.executable,
