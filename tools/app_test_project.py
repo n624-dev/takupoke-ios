@@ -24,10 +24,45 @@ def generate(destination):
         text = re.sub(r'https?://[^"\s)]+', 'https://fixture.example.test', text)
         text = re.sub(r'(\b(?:let|var) (\w+) = URLSessionConfiguration\.(?:ephemeral|default))',
                       lambda match: match[1] + "\n        " + match[2] + ".protocolClasses = [FixtureNetwork.self]", text)
+        if path.name == 'TimetableView.swift':
+            marker = 'struct TimetableView: View {'
+            assert marker in text
+            text = text.replace(marker, marker + '''
+    @State var fixtureHeaderFrames: [String: CGRect] = [:]
+    @State var fixtureEventSizes: [String: CGSize] = [:]
+    @State var fixtureCardFrames: [String: CGRect] = [:]
+''')
+        if path.name == 'TimetableView+GridHeaders.swift':
+            marker = next(line for line in text.splitlines() if '.accessibilityIdentifier("timetable-day-' in line)
+            text = text.replace(marker, marker + '''
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("fixture-grid")) } action: { frame in
+                guard ProcessInfo.processInfo.arguments.contains("--grid-probe") else { return }
+                if fixtureHeaderFrames[column.day.iso8601] != frame {
+                    fixtureHeaderFrames[column.day.iso8601] = frame
+                }
+            }
+''')
+        if path.name == 'TimetableView+DayColumns.swift':
+            marker = next(line for line in text.splitlines() if '.accessibilityIdentifier("timetable-event-' in line)
+            text = text.replace(marker, marker + '''
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
+                guard ProcessInfo.processInfo.arguments.contains("--grid-probe") else { return }
+                if fixtureEventSizes[title] != size { fixtureEventSizes[title] = size }
+            }
+''')
+            marker = next(line for line in text.splitlines() if 'CGFloat(entry.block.startPeriod - 1) * gridSpacing)' in line)
+            text = text.replace(marker, marker + '''
+                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("fixture-grid")) } action: { frame in
+                        guard ProcessInfo.processInfo.arguments.contains("--grid-probe") else { return }
+                        let key = fixtureCardKey(on: day, className: className, entry: entry)
+                        if fixtureCardFrames[key] != frame { fixtureCardFrames[key] = frame }
+                    }
+''')
         if path.name == 'TimetableView+Grid.swift':
             marker = next(line for line in text.splitlines() if '.accessibilityLabel(' in line and 'の週の時間割' in line)
             assert marker in text, 'Timetable grid probe insertion point missing'
             text = text.replace(marker, marker + '''
+        .coordinateSpace(name: "fixture-grid")
         .overlay(alignment: .topLeading) {
             if ProcessInfo.processInfo.arguments.contains("--grid-probe") {
                 Text("grid metrics").font(.system(size: 1)).foregroundStyle(.clear)

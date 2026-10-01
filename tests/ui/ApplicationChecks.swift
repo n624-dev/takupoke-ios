@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 final class ApplicationChecks: XCTestCase {
     private var app: XCUIApplication!
@@ -155,7 +156,10 @@ final class ApplicationChecks: XCTestCase {
             XCTAssertTrue(cards.contains { ($0["cancellation"] as? Bool) == true })
             XCTAssertEqual(Set(cards.compactMap { $0["source"] as? String }), Set(["normal", "change", "exam", "examReturn"]))
             for card in cards {
-                XCTAssertGreaterThanOrEqual(try number("height", in: card), try number("required", in: card))
+                let frame = try XCTUnwrap(card["frame"] as? [String: Double])
+                XCTAssertEqual(try XCTUnwrap(frame["width"]), width, accuracy: 1)
+                XCTAssertEqual(try XCTUnwrap(frame["height"]), try number("height", in: card), accuracy: 1)
+                XCTAssertGreaterThanOrEqual(try XCTUnwrap(frame["height"]), try number("required", in: card) - 1)
             }
             for source in ["normal", "change", "exam", "examReturn"] {
                 XCTAssertTrue(cards.contains { ($0["source"] as? String) == source &&
@@ -168,6 +172,12 @@ final class ApplicationChecks: XCTestCase {
                         let a = try XCTUnwrap(first["start"] as? Int)...(try XCTUnwrap(first["end"] as? Int))
                         let b = try XCTUnwrap(second["start"] as? Int)...(try XCTUnwrap(second["end"] as? Int))
                         XCTAssertFalse(a.overlaps(b))
+                        let firstFrame = try XCTUnwrap(first["frame"] as? [String: Double])
+                        let secondFrame = try XCTUnwrap(second["frame"] as? [String: Double])
+                        let upper = a.lowerBound < b.lowerBound ? firstFrame : secondFrame
+                        let lower = a.lowerBound < b.lowerBound ? secondFrame : firstFrame
+                        XCTAssertLessThanOrEqual(try XCTUnwrap(upper["y"]) + (try XCTUnwrap(upper["height"])),
+                                                 (try XCTUnwrap(lower["y"])) - 1)
                     }
                 }
             }
@@ -211,8 +221,9 @@ final class ApplicationChecks: XCTestCase {
         let metrics = try gridMetrics()
         let scale = try XCTUnwrap(metrics["scale"] as? Double)
         let category = try XCTUnwrap(metrics["systemSize"] as? String)
-        let standardOrSmaller = ["UICTContentSizeCategoryXS", "UICTContentSizeCategoryS",
-                                "UICTContentSizeCategoryM", "UICTContentSizeCategoryL"]
+        XCTAssertEqual(category, try XCTUnwrap(metrics["expectedSystemSize"] as? String),
+                       "The requested Simulator OS setting must actually reach the app")
+        let standardOrSmaller = [UIContentSizeCategory.extraSmall, .small, .medium, .large].map(\.rawValue)
         if standardOrSmaller.contains(category) { XCTAssertEqual(scale, 1) }
         else { XCTAssertGreaterThan(scale, 1, category) }
         XCTAssertEqual(try XCTUnwrap(metrics["subjectFont"] as? Double), 11 * scale, accuracy: 0.01)
@@ -236,18 +247,25 @@ final class ApplicationChecks: XCTestCase {
                 let days = try XCTUnwrap(metrics["days"] as? [String])
                 let headers = days.map { app.descendants(matching: .any)["timetable-day-" + $0].firstMatch }
                 XCTAssertTrue(headers.allSatisfy(\.exists))
-                let headerHeight = try XCTUnwrap(headers.first).frame.height
+                // Combined accessibility elements report their text bounds.
+                // Measure the actual outer view, including its aligned frame.
+                let frames = try XCTUnwrap(metrics["headerFrames"] as? [String: [String: Double]])
+                XCTAssertEqual(Set(frames.keys), Set(days))
+                let headerHeight = try XCTUnwrap(frames[days[0]]?["height"])
                 XCTAssertGreaterThan(headerHeight, 0)
-                for header in headers { XCTAssertEqual(header.frame.height, headerHeight, accuracy: 1) }
+                for day in days {
+                    XCTAssertEqual(try XCTUnwrap(frames[day]?["height"]), headerHeight, accuracy: 1)
+                }
                 if eventsOnly {
                     XCTAssertEqual((metrics["cards"] as? [[String: Any]])?.count, 0)
                     let event = app.descendants(matching: .any)["timetable-event-架空行事A"].firstMatch
                     XCTAssertTrue(event.exists)
-                    XCTAssertEqual(event.frame.height, 72 * scale, accuracy: 1)
-                    XCTAssertEqual(event.frame.width, try XCTUnwrap(metrics["width"] as? Double), accuracy: 1)
+                    let sizes = try XCTUnwrap(metrics["eventSizes"] as? [String: [String: Double]])
+                    XCTAssertEqual(try XCTUnwrap(sizes["架空行事A"]?["height"]), 72 * scale, accuracy: 1)
+                    XCTAssertEqual(try XCTUnwrap(sizes["架空行事A"]?["width"]), try XCTUnwrap(metrics["width"] as? Double), accuracy: 1)
                     let grid = app.scrollViews["timetable-week-grid"]
                     XCTAssertTrue(grid.exists)
-                    XCTAssertEqual(event.frame.minX - grid.frame.minX,
+                    XCTAssertEqual(try XCTUnwrap(frames[days[0]]?["x"]),
                                    (try XCTUnwrap(metrics["periodWidth"] as? Double)) + 2, accuracy: 1)
                 } else {
                     XCTAssertEqual((metrics["commonClocks"] as? [String])?.count, 8)

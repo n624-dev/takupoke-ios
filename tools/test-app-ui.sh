@@ -33,6 +33,7 @@ while read -r device_type runtime; do
     simulator_id="$(xcrun simctl create 'Takupoke App Checks' "$device_type" "$runtime")"
     xcrun simctl boot "$simulator_id"
     xcrun simctl bootstatus "$simulator_id" -b
+    xcrun simctl ui "$simulator_id" content_size large
     xcode_args=(-project "$scratch_dir/AppChecks.xcodeproj" -scheme AppChecks
         -destination "platform=iOS Simulator,id=$simulator_id"
         -derivedDataPath "$scratch_dir/DerivedData"
@@ -60,6 +61,9 @@ while read -r device_type runtime; do
     # Exercise the actual Simulator OS setting as well as live SwiftUI changes.
     for content_size in extra-small extra-extra-extra-large accessibility-extra-extra-extra-large; do
         xcrun simctl ui "$simulator_id" content_size "$content_size"
+        app_container="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.app-checks data)"
+        mkdir -p "$app_container/Documents"
+        printf '%s' "$content_size" > "$app_container/Documents/expected-text-size.txt"
         check_ui -only-testing:PickerTapChecks/ApplicationChecks/testTimetableUsesSystemTextSize test-without-building
     done
     xcrun simctl shutdown "$simulator_id"
