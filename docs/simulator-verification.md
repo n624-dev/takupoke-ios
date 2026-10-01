@@ -23,7 +23,7 @@
 
 `tools/test-app-ui.sh`はiOS 26と27で各2組に分け、計4台の専用Runnerで実行します。iOS 26はmacOS 26・Xcode 26.6、iOS 27はXcode 27を使います。指定OSのランタイムがなければ検証失敗とします。VoiceOver操作はXcode 27・iOS 27で実行します。ピッカーUIはホストテスト・配布ビルドと並列で実行します。分割表をテスト宣言・実行結果と照合する仕組みは[CIの実行時間](ci-performance.md)を参照してください。
 
-最新の[229のCI](https://github.com/n624-dev/takupoke-ios/actions/runs/36866156685)で、分割した4組すべてが成功しました。iOS 27は18項目、iOS 26.5は17項目成功・VoiceOver操作1項目対象外です。両OSの文字サイズのOS設定3パターン、Swift204件、Python54件、ファイル選択UI3件も成功しました。公開前に同じ実行・再実行回・コミットの全検証の成功を確認しています。
+最新の[231のCI](https://github.com/n624-dev/takupoke-ios/actions/runs/36885432547)で、分割した4組すべてが成功しました。iOS 27は18項目、iOS 26.5は17項目成功・VoiceOver操作1項目対象外です。両OSの文字サイズのOS設定3パターン、Swift204件、Python55件、ファイル選択UI3件も成功しました。公開前に同じ実行・再実行回・コミットの全検証の成功を確認しています。
 
 ## 2026年10月1日：OSの文字サイズとグリッド配置
 
