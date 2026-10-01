@@ -50,14 +50,16 @@ def generate(destination):
                 if fixtureEventSizes[title] != size { fixtureEventSizes[title] = size }
             }
 ''')
-            marker = next(line for line in text.splitlines() if 'CGFloat(entry.block.startPeriod - 1) * gridSpacing)' in line)
-            text = text.replace(marker, marker + '''
+            # The observer must be inside offset so its frame includes the
+            # ancestor's translation, rather than measuring offset's layout box.
+            marker = next(line for line in text.splitlines() if '.offset(x: CGFloat(entry.lane)' in line)
+            text = text.replace(marker, '''
                     .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("fixture-grid")) } action: { frame in
                         guard ProcessInfo.processInfo.arguments.contains("--grid-probe") else { return }
                         let key = fixtureCardKey(on: day, className: className, entry: entry)
                         if fixtureCardFrames[key] != frame { fixtureCardFrames[key] = frame }
                     }
-''')
+''' + marker)
         if path.name == 'TimetableView+Grid.swift':
             marker = next(line for line in text.splitlines() if '.accessibilityLabel(' in line and 'の週の時間割' in line)
             assert marker in text, 'Timetable grid probe insertion point missing'

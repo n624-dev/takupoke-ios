@@ -38,6 +38,7 @@ extension TimetableView {
 
     func dayHeaderCell(_ column: DayGridLayout) -> some View {
         dayHeader(on: column.day, hasFullDayCard: column.fullDayEventTitle != nil)
+            .fixedSize(horizontal: false, vertical: true)
             .frame(width: column.width, height: dayHeaderHeight > 0 ? dayHeaderHeight : nil,
                    alignment: .top)
             .background(column.day == today ? Color.accentColor.opacity(0.14) :

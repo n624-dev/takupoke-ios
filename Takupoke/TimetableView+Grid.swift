@@ -71,23 +71,19 @@ extension TimetableView {
             let fittedWidth = ceil(width) + 2
             guard width > 0, abs(standardPeriodColumnWidth - fittedWidth) > 0.5 else { return }
             standardPeriodColumnWidth = fittedWidth
-            dayHeaderHeight = 0
         }
         .onPreferenceChange(PeriodColumnWidthKey.self) { width in
             let fittedWidth = ceil(width) + 2
             guard width > 0, abs(measuredPeriodColumnWidth - fittedWidth) > 0.5 else { return }
             measuredPeriodColumnWidth = fittedWidth
-            dayHeaderHeight = 0
         }
         .onPreferenceChange(WeekGridWidthKey.self) { width in
             guard width > 0, abs(gridViewportWidth - width) > 0.5 else { return }
             gridViewportWidth = width
-            dayHeaderHeight = 0
         }
         .onPreferenceChange(DayHeaderHeightKey.self) { height in
             if abs(dayHeaderHeight - height) > 0.5 { dayHeaderHeight = height }
         }
-        .onChange(of: gridDynamicTypeSize) { _ in dayHeaderHeight = 0 }
         .dynamicTypeSize(.large...)
         .accessibilityIdentifier("timetable-week-grid")
         .accessibilityLabel("\(selectedClasses.map(TimetableDisplayText.className).joined(separator: "・"))の週の時間割")
