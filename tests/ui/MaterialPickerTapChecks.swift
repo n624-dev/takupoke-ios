@@ -89,23 +89,21 @@ final class MaterialPickerTapChecks: XCTestCase {
         let button = app.buttons[identifier].firstMatch
         let navigation = app.navigationBars["ファイル選択"].firstMatch
         let tabs = app.tabBars.firstMatch
-        var limits: (CGFloat, CGFloat)?
         // On foreground return XCTest can briefly expose a null bar frame.
-        // Capture valid viewport bounds before deciding which way to scroll.
-        let restored = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            guard navigation.exists, tabs.exists else { return false }
-            let barFrame = navigation.frame, tabFrame = tabs.frame
-            guard !barFrame.isEmpty, !tabFrame.isEmpty,
-                  barFrame.maxY.isFinite, tabFrame.minY.isFinite,
-                  barFrame.maxY + 4 < tabFrame.minY - 4 else { return false }
-            limits = (barFrame.maxY + 4, tabFrame.minY - 4)
-            return true
-        }, object: app)
-        guard XCTWaiter.wait(for: [restored], timeout: 5) == .completed,
-              let (top, bottom) = limits else {
+        // Use XCTest's native polling; exists in a block predicate can spend
+        // its whole timeout retrying one accessibility snapshot of Files.
+        guard navigation.waitForExistence(timeout: 30), tabs.waitForExistence(timeout: 30) else {
             XCTFail("File list viewport did not return\n\(app.debugDescription)")
             return
         }
+        let barFrame = navigation.frame, tabFrame = tabs.frame
+        guard !barFrame.isEmpty, !tabFrame.isEmpty,
+              barFrame.maxY.isFinite, tabFrame.minY.isFinite,
+              barFrame.maxY + 4 < tabFrame.minY - 4 else {
+            XCTFail("File list viewport has invalid bounds\n\(app.debugDescription)")
+            return
+        }
+        let top = barFrame.maxY + 4, bottom = tabFrame.minY - 4
         // isHittable may include a row XCTest can scroll to automatically.
         // Scroll explicitly before tapping so recycled List rows are settled.
         for _ in 0..<8 {
