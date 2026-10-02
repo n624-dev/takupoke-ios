@@ -6,7 +6,11 @@
 
 取得・確認・元ファイル更新・解析の日時15か所を日本時間に統一し、アプリとUI検証用アプリの環境タイムゾーンも`Asia/Tokyo`へ固定しました。保存済み日時の瞬間は変更しません。
 
-LinuxでSwift180件（海外タイムゾーンでの日付・年度境界2件を含む）、Python55件、差分の空白検査が成功しました。SwiftUI・iOS画面・配布ビルドはプッシュ後のActionsで確認します。実機での海外タイムゾーン設定とこの版のAltStore導入・更新は未確認です。
+LinuxでSwift180件（海外タイムゾーンでの日付・年度境界2件を含む）、Python55件、差分の空白検査が成功しました。
+
+コミット`bfc599fd5a552ced0c140497c703199547c30fd4`の[Actions](https://github.com/n624-dev/takupoke-ios/actions/runs/37001415484)は全必須ジョブが成功しました。macOSでSwift215件、Python55件、ファイル選択UI3件、iOS 26のUI17項目（VoiceOver操作1項目は既存方針で対象外）、iOS 27のUI18項目、両OSの文字サイズ設定3パターン、iPhone Releaseビルドを確認しました。同じ実行・再実行回・コミットの検証成功を照合後、[0.1.239（239.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.239-build.239.1)のIPA・AltStore Sourceを公開しました。所要時間は25分27秒でした。
+
+実機での海外タイムゾーン設定とこの版のAltStore導入・更新は未確認です。
 
 ## 2026-10-02 メインカラーのデフォルト設定
 
