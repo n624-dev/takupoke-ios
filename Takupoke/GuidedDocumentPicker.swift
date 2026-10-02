@@ -91,6 +91,9 @@ final class GuidedDocumentPicker: UIPresentationController {
 
     override func presentationTransitionDidEnd(_ completed: Bool) {
         if !completed { chrome.removeFromSuperview() }
+#if TAKUPOKE_PICKER_TESTS
+        MaterialPickerTestTrace.record?("presentation transition ended \(completed), instructionAttached=\(chrome.window != nil), controller=\(ObjectIdentifier(presentedViewController))")
+#endif
         presented(completed)
     }
 
@@ -99,6 +102,9 @@ final class GuidedDocumentPicker: UIPresentationController {
             chrome.removeFromSuperview()
             DispatchQueue.main.async(execute: dismissed)
         }
+#if TAKUPOKE_PICKER_TESTS
+        MaterialPickerTestTrace.record?("dismissal transition ended \(completed), instructionAttached=\(chrome.window != nil), controller=\(ObjectIdentifier(presentedViewController))")
+#endif
     }
 }
 

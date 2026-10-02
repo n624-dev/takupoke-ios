@@ -84,7 +84,7 @@ final class MaterialPickerTapChecks: XCTestCase {
     }
 
     private func reveal(_ app: XCUIApplication, identifier: String) {
-        let button = app.buttons[identifier]
+        let button = app.buttons[identifier].firstMatch
         let top = app.navigationBars.firstMatch.frame.maxY + 4
         let bottom = app.tabBars.firstMatch.frame.minY - 4
         // isHittable may include a row XCTest can scroll to automatically.
@@ -103,13 +103,12 @@ final class MaterialPickerTapChecks: XCTestCase {
 
     private func chooseAndCancel(_ app: XCUIApplication, kind: Int) {
         reveal(app, identifier: "choose-\(kind)")
-        app.buttons["choose-\(kind)"].tap()
-        let instruction = app.staticTexts["架空ファイル\(kind)を選んでください"]
+        app.buttons["choose-\(kind)"].firstMatch.tap()
+        let instruction = app.staticTexts["架空ファイル\(kind)を選んでください"].firstMatch
         XCTAssertTrue(instruction.waitForExistence(timeout: 8), "Picker did not open after tap \(kind)\n\(app.debugDescription)")
         let cancel = app.buttons["Cancel"].firstMatch
         XCTAssertTrue(cancel.waitForExistence(timeout: 30), app.debugDescription)
         cancel.tap()
-        let closed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: instruction)
-        XCTAssertEqual(XCTWaiter.wait(for: [closed], timeout: 8), .completed)
+        XCTAssertTrue(instruction.waitForNonExistence(timeout: 8), "Picker instruction remained after cancellation \(kind)")
     }
 }
