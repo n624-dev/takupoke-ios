@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage("mainColor") private var mainColor = MainColor.blue.rawValue
+    @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
     @AppStorage("linkOpeningMode") private var linkOpeningMode = LinkOpeningMode.inApp.rawValue
     @AppStorage("timetableSelectedClasses") private var selectedClasses = ""
     @ObservedObject var materials: MaterialsModel
@@ -11,6 +11,11 @@ struct SettingsView: View {
     @EnvironmentObject private var links: LinksModel
     @EnvironmentObject private var times: TimetableTimesModel
     @State private var showingSetup = false
+
+    private var colorSelection: Binding<MainColor> {
+        Binding(get: { MainColor(rawValue: mainColor) ?? .systemDefault },
+                set: { $0.save() })
+    }
 
     var body: some View {
         NavigationStack {
@@ -46,9 +51,9 @@ struct SettingsView: View {
                             TimetableDisplayText.classNames(selectedClasses.split(separator: "|").map(String.init)))
                     }
                     NavigationLink("通知") { NotificationSettingsView() }
-                    Picker("メインカラー", selection: $mainColor) {
+                    Picker("メインカラー", selection: colorSelection) {
                         ForEach(MainColor.allCases) { choice in
-                            Text(choice.title).tag(choice.rawValue)
+                            Text(choice.title).tag(choice)
                         }
                     }
                     .pickerStyle(.menu)

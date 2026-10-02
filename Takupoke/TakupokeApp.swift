@@ -2,12 +2,12 @@ import SwiftUI
 
 @main
 struct TakupokeApp: App {
-    @AppStorage("mainColor") private var mainColor = MainColor.blue.rawValue
+    @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .tint((MainColor(rawValue: mainColor) ?? .blue).color)
+                .tint((MainColor(rawValue: mainColor) ?? .systemDefault).color)
         }
         .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) {
             BackgroundRefresh.schedule()

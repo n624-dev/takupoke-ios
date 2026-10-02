@@ -1,11 +1,26 @@
+import Foundation
+#if canImport(SwiftUI)
 import SwiftUI
+#endif
 
 enum MainColor: String, CaseIterable, Identifiable {
+    case systemDefault = "default"
     case blue, green, yellow, orange, red, pink, purple
+
+    static let storageKey = "mainColor"
+
+    func save(in defaults: UserDefaults = .standard) {
+        if self == .systemDefault {
+            defaults.removeObject(forKey: Self.storageKey)
+        } else {
+            defaults.set(rawValue, forKey: Self.storageKey)
+        }
+    }
 
     var id: String { rawValue }
     var title: String {
         switch self {
+        case .systemDefault: return "デフォルト"
         case .blue: return "青"
         case .yellow: return "黄色"
         case .green: return "緑"
@@ -15,8 +30,10 @@ enum MainColor: String, CaseIterable, Identifiable {
         case .purple: return "紫"
         }
     }
-    var color: Color {
+    #if canImport(SwiftUI)
+    var color: Color? {
         switch self {
+        case .systemDefault: return nil
         case .blue: return .blue
         case .yellow: return .yellow
         case .green: return .green
@@ -26,4 +43,9 @@ enum MainColor: String, CaseIterable, Identifiable {
         case .purple: return .purple
         }
     }
+
+    // Custom text and shapes need a concrete color; use the inherited accent
+    // when the user has not selected an override.
+    var displayColor: Color { color ?? .accentColor }
+    #endif
 }

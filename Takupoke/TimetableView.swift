@@ -10,7 +10,7 @@ struct TimetableView: View {
     @Binding var todayRequest: UUID?
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) var gridDynamicTypeSize
-    @AppStorage("mainColor") private var mainColor = MainColor.blue.rawValue
+    @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
     @AppStorage("timetableSelectedClasses") var selectedClassesValue = ""
     @AppStorage("timetableChangeClasses") var changeClassesValue = ""
     @AppStorage("timetableInternationalStudent") var isInternationalStudent = false
@@ -154,7 +154,7 @@ struct TimetableView: View {
         }
     }
 
-    var weekControlColor: Color { (MainColor(rawValue: mainColor) ?? .blue).color }
+    var weekControlColor: Color { (MainColor(rawValue: mainColor) ?? .systemDefault).displayColor }
 
 
 }

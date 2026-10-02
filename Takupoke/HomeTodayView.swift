@@ -11,7 +11,7 @@ struct HomeTodayView: View {
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("timetableSelectedClasses") private var classesValue = ""
     @AppStorage("timetableInternationalStudent") private var international = false
-    @AppStorage("mainColor") private var mainColor = MainColor.blue.rawValue
+    @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
     @State private var now = Date()
     @State private var selectedLesson: LessonSelection?
     @State private var selectedSpecial: SpecialSelection?
@@ -21,7 +21,7 @@ struct HomeTodayView: View {
 
     private var day: SchoolDate { TimetableDaySchedule.schoolDay(at: now) }
     private var classes: [String] { TimetableView.decode(classesValue) }
-    private var accent: Color { (MainColor(rawValue: mainColor) ?? .blue).color }
+    private var accent: Color { (MainColor(rawValue: mainColor) ?? .systemDefault).displayColor }
     private var schedule: TimetableDaySchedule {
         TimetableDaySchedule(timetable: materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue],
             changes: materials.state.changeAnalysis, events: schoolEvents.analysis,

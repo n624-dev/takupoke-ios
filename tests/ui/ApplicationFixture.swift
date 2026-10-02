@@ -30,14 +30,14 @@ struct SimulatorApplication: App {
     @State private var notificationProbe = "待機中"
     @State private var applicationReady = false
     @State private var fixtureTypeSize: DynamicTypeSize = .large
-    @AppStorage("mainColor") private var mainColor = MainColor.blue.rawValue
+    @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
     init() {
         URLProtocol.registerClass(FixtureNetwork.self)
         do { try Self.seed() } catch { fatalError("Synthetic fixture initialization failed: \(error)") }
     }
     var body: some Scene {
         WindowGroup {
-            ContentView().tint((MainColor(rawValue: mainColor) ?? .blue).color)
+            ContentView().tint((MainColor(rawValue: mainColor) ?? .systemDefault).color)
                 .modifier(FixtureTypeSize(enabled: ProcessInfo.processInfo.arguments.contains("--grid-probe") &&
                     !ProcessInfo.processInfo.arguments.contains("--system-text-size"),
                                           size: fixtureTypeSize))
@@ -58,6 +58,14 @@ struct SimulatorApplication: App {
                     if applicationReady {
                         Text("準備完了").font(.caption2)
                             .accessibilityIdentifier("fixture-ready")
+                            .allowsHitTesting(false)
+                    }
+                }
+                .overlay(alignment: .bottomLeading) {
+                    if ProcessInfo.processInfo.arguments.contains("--theme-probe") {
+                        Text(UserDefaults.standard.string(forKey: MainColor.storageKey) ?? "未設定")
+                            .id(mainColor)
+                            .accessibilityIdentifier("fixture-stored-color")
                             .allowsHitTesting(false)
                     }
                 }

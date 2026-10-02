@@ -31,7 +31,6 @@ let package = Package(
                     "PrivacyInfo.xcprivacy",
                     "LicenseDocuments",
                     "OpenSourceLicensesView.swift",
-                    "MainColor.swift",
                     "TakupokeApp.swift",
                     "ContentView.swift",
                     "ApplicationData.swift", "BackgroundRefresh.swift", "TimetableTimesModel.swift",
@@ -89,6 +88,7 @@ let package = Package(
                     "LinkRow.swift",
                 ] + mappingExcludes,
                 sources: [
+                    "MainColor.swift",
                     "LocalMaterialDatabase.swift",
                     "LocalMaterialDatabase+Current.swift", "LocalMaterialDatabase+Snapshot.swift",
                     "PDFAnalysis.swift",
@@ -159,6 +159,7 @@ let package = Package(
                     "test_ui_test_manifest.py",
                 ] + mappingTestExcludes,
                     sources: [
+                    "MainColorTests.swift",
                     "FileRefreshTests.swift",
                     "ParsingTests.swift",
                     "ParsingTests+Normalization.swift",
