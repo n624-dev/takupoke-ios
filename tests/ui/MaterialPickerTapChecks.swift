@@ -26,6 +26,8 @@ final class MaterialPickerTapChecks: XCTestCase {
                                "Background seam in \(appearance) mode")
             }
             cancel.tap()
+            XCTAssertTrue(instruction.waitForNonExistence(timeout: 8),
+                          "Picker instruction remained before terminating the appearance fixture")
             app.terminate()
         }
     }

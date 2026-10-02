@@ -1,4 +1,4 @@
-"""Run isolated simulator checks alongside host checks and the iPhone build."""
+"""Run isolated commands with live logs and process-group cleanup."""
 import os
 from pathlib import Path
 import signal
@@ -72,7 +72,12 @@ def run_commands(commands):
 
 if __name__ == "__main__":
     scratch = str(Path(sys.argv[1]).resolve())
-    sys.exit(run_commands([
+    # The Files view service and accessibility snapshots need the runner while
+    # the picker is live. Do not compete with host Swift compilation here.
+    for command in [
         ("Picker UI", ["bash", "tools/test-picker-ui.sh"]),
         ("Host tests and iPhone build", ["bash", "tools/build-ios-app.sh", scratch]),
-    ]))
+    ]:
+        status = run_commands([command])
+        if status:
+            sys.exit(status)

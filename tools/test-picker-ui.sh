@@ -32,7 +32,7 @@ python3 -B tools/timed_command.py "Picker UI" xcodebuild -project "$scratch_dir/
     -derivedDataPath "$scratch_dir/DerivedData" \
     -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
     -collect-test-diagnostics never \
-    CODE_SIGNING_ALLOWED=NO test
+    CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES test
 ui_status=$?
 set -e
 app_data="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.picker-checks data)"
