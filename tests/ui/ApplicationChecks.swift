@@ -557,9 +557,9 @@ final class ApplicationChecks: XCTestCase {
         for _ in 0..<60 {
             let output = try service.moveForward()
             utterances.append(output.utterance)
-            if output.utterance.contains("架空正式科目A") { break }
+            if output.utterance.contains("架空科目甲") { break }
         }
-        for name in ["架空正式科目A", "架空正式教員A", "架空正式教室A"] {
+        for name in ["架空科目甲", "架空教員甲", "架空教室甲"] {
             XCTAssertTrue(utterances.contains { $0.contains(name) }, utterances.joined(separator: " | "))
         }
     }

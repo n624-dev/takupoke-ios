@@ -16,7 +16,11 @@ LinuxでPython55件、Swift Packageの解析・保存テスト175件、`bash too
 
 最初の解析テストはPATH上にSwiftがなく `FileNotFoundError: 'swift'` で起動できませんでしたが、ローカルのSwift 6.1.2を見つけ、必要な互換ライブラリを専用ディレクトリに配置して再実行しました。設置先と環境変数は[開発手順](development.md#このlinux環境のswift)に記録し、AGENTS.mdにも参照を追加しました。
 
-LinuxではPDFKit・SwiftUI・AuthenticationServicesの実装が対象外です。新しいPDFKitテスト5件、iOS用変更の型検査、iOS UI/VoiceOver、画面上の日付切替、読み込み失敗からの復旧、認証キャンセル後の再試行は未実行です。Xcode・CI・実機での確認と配布は未完了であり、PDF問題の実行時の解消を検証済みとは扱いません。
+LinuxではPDFKit・SwiftUI・AuthenticationServicesの実装が対象外です。その後の[232のCI](https://github.com/n624-dev/takupoke-ios/actions/runs/36946633735)で、新しいPDFKitテスト5件を含むSwift209件、ファイル選択UI3件、iPhone向けReleaseビルドが成功しました。
+
+iOS 27のVoiceOverテストは、取得した読み上げ文字列が64文字で終わり、長い架空正式名の末尾が含まれず失敗しました。科目・教員の正式名への変換はログで確認できています。テスト用の正式名を略称とは異なる短い架空名に変更し、科目・教員・教室の3項目を確認する条件を維持して再実行します。公開前の検証で停止したため、232は未配布です。
+
+iOS UI/VoiceOver全体の最終結果、画面上の日付切替、読み込み失敗からの復旧、認証キャンセル後の再試行、実機での確認は未完了です。PDFの処理上限・中止・罫線・矢印の回帰テストはMacで成功しましたが、実資料や実機での所要時間・中止応答は未計測です。
 
 ## 2026-10-02 OSの文字サイズ変更の実機確認
 

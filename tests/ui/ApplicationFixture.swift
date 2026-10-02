@@ -184,11 +184,12 @@ struct SimulatorApplication: App {
             try LinkPreferencesStore().save(.init(favoriteIDs: ["fictional-link"]))
             let directory = base.appendingPathComponent("NameMappings")
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            // Keep all three distinct full names within the returned VoiceOver utterance.
             let mappingJSON = ProcessInfo.processInfo.arguments.contains("--mapped-names") ?
                 """
-                {"subjects":[{"alias":"架空科目A","fullName":"架空正式科目A"}],
-                 "teachers":[{"alias":"架空教員A","fullName":"架空正式教員A"}],
-                 "rooms":[{"alias":"架空教室A","fullName":"架空正式教室A"}],"teacherContexts":[]}
+                {"subjects":[{"alias":"架空科目A","fullName":"架空科目甲"}],
+                 "teachers":[{"alias":"架空教員A","fullName":"架空教員甲"}],
+                 "rooms":[{"alias":"架空教室A","fullName":"架空教室甲"}],"teacherContexts":[]}
                 """ : "{\"subjects\":[],\"teachers\":[],\"rooms\":[],\"teacherContexts\":[]}"
             let rules = try JSONDecoder().decode(MappingRules.self, from: Data(mappingJSON.utf8))
             try MappingStore(url: directory.appendingPathComponent("mappings.sqlite")).save(.init(revision: String(repeating: "M", count: 43), version: "fictional", schemaVersion: 1,
