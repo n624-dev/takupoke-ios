@@ -1,6 +1,7 @@
 # 開発時の指針
 
 - 実装前に `docs/development-policy.md` と `docs/roadmap.md` を読む。
+- LinuxのローカルSwiftと依存ライブラリの設置先・実行方法は `docs/development.md` の「このLinux環境のSwift」を参照する。PATH上にない場合も、記載された設置先を確認する。
 - AltStore Sourceによる導入・更新は版ごとに実機確認し、未確認の事項を完了済みと記載しない。
 - Swift / SwiftUI による独立した iOS アプリとして開発する。Microsoft Graph、Web 版のラップ、Windows 版へのコード共有は導入しない。
 - 今後新規に追加するUIはApple標準のLiquid Glassを採用する。既存画面の全面的な置き換えは後の作業とし、新規画面の実装へ混在させない。対応SDK・OSと標準コンポーネントの利用方針は `docs/development-policy.md` に従う。

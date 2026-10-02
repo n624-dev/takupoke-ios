@@ -101,7 +101,7 @@ extension TimetableView {
         let names: TimetableLessonNames
         let kind: String?
         switch block.content {
-        case .normal(let lesson): names = lesson.names; kind = nil
+        case .normal(let lesson): names = mappings.names(for: lesson); kind = nil
         case .special(let item):
             names = TimetableLessonNames(subject: item.lesson.subject, teacher: item.lesson.teacher,
                                          room: item.lesson.room)

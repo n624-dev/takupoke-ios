@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 struct TimetableView: View {
     @EnvironmentObject var times: TimetableTimesModel
@@ -16,6 +17,7 @@ struct TimetableView: View {
     @State var weekStart = SchoolDate.today().displayWeekStart
     @State var navigationHalfAnchor = SchoolDate.today()
     @State var today = SchoolDate.today()
+    private let clock = Timer.publish(every: 15, on: .main, in: .common).autoconnect()
     @AppStorage("timetableIncludesChanges") var includesChanges = true
     @AppStorage("timetableChangeRange") var changeRangeValue = ChangeRange.today.rawValue
     @State var selectedLesson: LessonSelection?
@@ -70,7 +72,16 @@ struct TimetableView: View {
         NavigationStack {
             List {
                 if !model.ready {
-                    Section { LoadingRow(title: "読み込み中⋯") }
+                    Section {
+                        if model.failed && !model.busy {
+                            Label(model.message ?? "データを読み込めませんでした。", systemImage: "exclamationmark.triangle")
+                                .foregroundStyle(.orange)
+                            Button("再試行") { model.loadIfNeeded() }
+                                .buttonStyle(.glass)
+                        } else {
+                            LoadingRow(title: "読み込み中⋯")
+                        }
+                    }
                 } else if classes.isEmpty {
                     Section {
                         ContentUnavailableViewPlaceholder()
@@ -95,13 +106,14 @@ struct TimetableView: View {
                 }
             }
             .navigationTitle("時間割")
-            .onAppear { consumeTodayRequest() }
+            .onAppear { refreshToday(); consumeTodayRequest() }
             .onChange(of: todayRequest) { _ in consumeTodayRequest() }
+            .onReceive(clock) { _ in refreshToday() }
             .task { model.loadIfNeeded() }
             .task { specialSchedules.loadIfNeeded() }
             .task { schoolEvents.loadIfNeeded() }
             .onChange(of: scenePhase) { phase in
-                if phase == .active { today = SchoolDate.today() }
+                if phase == .active { refreshToday() }
             }
             .onChange(of: weekBounds) { bounds in
                 weekStart = min(max(weekStart, bounds.lowerBound), bounds.upperBound)

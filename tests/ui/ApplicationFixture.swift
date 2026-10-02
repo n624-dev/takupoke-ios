@@ -184,7 +184,13 @@ struct SimulatorApplication: App {
             try LinkPreferencesStore().save(.init(favoriteIDs: ["fictional-link"]))
             let directory = base.appendingPathComponent("NameMappings")
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            let rules = try JSONDecoder().decode(MappingRules.self, from: Data("{\"subjects\":[],\"teachers\":[],\"rooms\":[],\"teacherContexts\":[]}".utf8))
+            let mappingJSON = ProcessInfo.processInfo.arguments.contains("--mapped-names") ?
+                """
+                {"subjects":[{"alias":"架空科目A","fullName":"架空正式科目A"}],
+                 "teachers":[{"alias":"架空教員A","fullName":"架空正式教員A"}],
+                 "rooms":[{"alias":"架空教室A","fullName":"架空正式教室A"}],"teacherContexts":[]}
+                """ : "{\"subjects\":[],\"teachers\":[],\"rooms\":[],\"teacherContexts\":[]}"
+            let rules = try JSONDecoder().decode(MappingRules.self, from: Data(mappingJSON.utf8))
             try MappingStore(url: directory.appendingPathComponent("mappings.sqlite")).save(.init(revision: String(repeating: "M", count: 43), version: "fictional", schemaVersion: 1,
                 archiveETag: "\"fictional\"", archiveSHA256: String(repeating: "a", count: 64), publishedAt: "2032-04-01T00:00:00Z", fetchedAt: Date(), rules: rules))
             let timesDate = ProcessInfo.processInfo.arguments.contains("--normal-only") ?

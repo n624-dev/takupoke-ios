@@ -14,6 +14,7 @@ final class ApplicationChecks: XCTestCase {
             "testEmptyDataCanBeConfigured": ["--empty-fixture"],
             "testChangedAccountDataNoticeOpensSharedAcquisition": ["--updated-revisions"],
             "testFileFailuresKeepResultsAndStayInTheirOwnDetails": ["--failed-refresh"],
+            "testVoiceOverReadsTimetableCard": ["--mapped-names"],
         ]
         for (method, arguments) in initialConditions where name.contains(method) {
             app.launchArguments += arguments
@@ -556,9 +557,11 @@ final class ApplicationChecks: XCTestCase {
         for _ in 0..<60 {
             let output = try service.moveForward()
             utterances.append(output.utterance)
-            if output.utterance.contains("架空科目A") { break }
+            if output.utterance.contains("架空正式科目A") { break }
         }
-        XCTAssertTrue(utterances.contains { $0.contains("架空科目A") }, utterances.joined(separator: " | "))
+        for name in ["架空正式科目A", "架空正式教員A", "架空正式教室A"] {
+            XCTAssertTrue(utterances.contains { $0.contains(name) }, utterances.joined(separator: " | "))
+        }
     }
 
     #else

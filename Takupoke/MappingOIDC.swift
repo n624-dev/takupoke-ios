@@ -10,6 +10,7 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
     static let clientID = "takupoke-ios"
     static let redirectURI = "jp.n624.takupoke:/oauth/callback"
     private var completion: ((Result<URL, Error>) -> Void)?
+    private var completionID: UUID?
     private var session: ASWebAuthenticationSession?
 
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
@@ -36,9 +37,12 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
         ]
         guard let authorizeURL = authorize.url else { throw MappingError.authentication }
         let callback: URL = try await withCheckedThrowingContinuation { continuation in
+            let id = UUID()
+            self.completionID = id
             self.completion = { continuation.resume(with: $0) }
             let browser = ASWebAuthenticationSession(url: authorizeURL, callbackURLScheme: "jp.n624.takupoke") { url, error in
                 Task { @MainActor in
+                    guard self.completionID == id else { return }
                     if let url, error == nil { self.finish(.success(url)) }
                     else { self.finish(.failure(MappingError.authentication)) }
                 }
@@ -84,6 +88,7 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
     private func finish(_ result: Result<URL, Error>) {
         let callback = completion
         completion = nil
+        completionID = nil
         callback?(result)
     }
 

@@ -92,6 +92,23 @@ macOS CIでは標準のCompressionを使うため、この追加導入は不要�
 
 Xcode側も依存のcheckout・キャッシュをビルド用一時ディレクトリへ指定し、repository cacheを無効にしています。Actions cache・artifactの保存は追加していません。`Package.swift`、Xcodeプロジェクト、2か所の `Package.resolved` は同じコミットに揃えます。
 
+## このLinux環境のSwift
+
+この開発環境ではSwift 6.1.2を `/home/ubuntu/.local/share/swift-6.1.2` に配置しています。既定のPATHには含まれていません。zlib・SQLiteの開発ファイルは `/home/ubuntu/.local/share/takupoke-build-deps` にあります。
+
+現在のOSにはSwift Package Managerが必要とする `libxml2.so.2` がないため、Ubuntuの公式パッケージ `libxml2`・`libicu74` を `/home/ubuntu/.local/share/swift-6.1.2-compat` に展開しています。システムのライブラリは変更せず、実行時だけ参照します。
+
+```sh
+export PATH="/home/ubuntu/.local/share/swift-6.1.2/usr/bin:$PATH"
+export LD_LIBRARY_PATH="/home/ubuntu/.local/share/swift-6.1.2-compat/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export TKPK_ZLIB_PREFIX="/home/ubuntu/.local/share/takupoke-build-deps"
+swift --version
+bash tools/test-materials.sh
+bash tools/test-parsing.sh
+```
+
+これらはこの端末の設置先です。別のLinux環境では実際の設置先に合わせます。LinuxのSwiftではPDFKit・SwiftUI・iOSの実行検証はできないため、該当部分はmacOS・Xcodeで確認します。
+
 ## UI検証とビルドの並列実行
 
 実アプリの画面検証はiOS 26・27で各2組に分け、専用Runner4台で並列実行します。配布用ビルドも同時に開始し、公開前に同じ実行・再実行回・コミットの全検証の成功を確認します。対象は[シミュレーター検証](simulator-verification.md)、測定結果は[CIの実行時間](ci-performance.md)を参照してください。

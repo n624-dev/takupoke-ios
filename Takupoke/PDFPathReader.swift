@@ -35,13 +35,23 @@ final class PDFPathReader {
     var arrows: [PDFArrow] = []
     var failure: Error?
     var operations = 0
+    private var paintWork = 0
+    private static let maximumPaintWork = 1_000_000
+
+    private struct PathBounds {
+        var left: CGFloat
+        var right: CGFloat
+        var top: CGFloat
+        var bottom: CGFloat
+    }
 
     init(transform: PDFDisplayTransform, check: @escaping () throws -> Void) { self.transform = transform; self.check = check }
     static func state(_ info: UnsafeMutableRawPointer?) -> PDFPathReader? {
         guard let info = info else { return nil }
         let s = Unmanaged<PDFPathReader>.fromOpaque(info).takeUnretainedValue()
+        guard s.failure == nil else { return nil }
         s.operations += 1
-        if s.operations > 1000000 { s.failure = PDFParseError(code: .limit) }
+        if s.operations > 1000000 { s.failure = PDFParseError(code: .limit); return nil }
         if s.operations % 128 == 0 { do { try s.check() } catch { s.failure = error } }
         return s.failure == nil ? s : nil
     }
@@ -66,11 +76,52 @@ final class PDFPathReader {
         }
         if lines.count > 100000 { failure = PDFParseError(code: .limit) }
     }
+    // Operator limits do not cover work within one paint callback. Charge point
+    // visits, path visits, stem comparisons and stroke segments across the page.
+    private func consumePaintWork() -> Bool {
+        guard failure == nil else { return false }
+        paintWork += 1
+        guard paintWork <= Self.maximumPaintWork else {
+            failure = PDFParseError(code: .limit)
+            return false
+        }
+        if paintWork % 128 == 0 {
+            do { try check() } catch { failure = error; return false }
+        }
+        return true
+    }
+
+    private func bounds(of path: [CGPoint]) -> PathBounds? {
+        guard let first = path.first else { return nil }
+        var result = PathBounds(left: first.x, right: first.x, top: first.y, bottom: first.y)
+        for point in path {
+            guard consumePaintWork() else { return nil }
+            result.left = min(result.left, point.x); result.right = max(result.right, point.x)
+            result.top = min(result.top, point.y); result.bottom = max(result.bottom, point.y)
+        }
+        return result
+    }
+
     func paint(fill: Bool, stroke: Bool) {
         defer { paths.removeAll(keepingCapacity: true) }
+        guard failure == nil else { return }
+        do { try check() } catch { failure = error; return }
+        var pathBounds: [PathBounds?] = []
         if fill {
+            var stems: [PathBounds] = []
+            pathBounds.reserveCapacity(paths.count)
+            for path in paths {
+                guard consumePaintWork() else { return }
+                let box = bounds(of: path)
+                guard failure == nil else { return }
+                pathBounds.append(box)
+                if path.count >= 4, let box, box.right - box.left < 2.1, box.bottom - box.top > 5 {
+                    stems.append(box)
+                }
+            }
             // The supported calendar draws each arrow as a narrow stem and a filled triangle.
             for path in paths {
+                guard consumePaintWork() else { return }
                 var vertices = path
                 if vertices.count == 4, vertices.first == vertices.last { vertices.removeLast() }
                 guard vertices.count == 3 else { continue }
@@ -79,27 +130,35 @@ final class PDFPathReader {
                 guard abs(a.y - b.y) < 1, (3...12).contains(abs(a.x - b.x)),
                       (3...12).contains(tip.y - max(a.y, b.y)),
                       abs(tip.x - (a.x + b.x) / 2) < 1 else { continue }
-                let stems = paths.filter { other in
-                    guard other.count >= 4 else { return false }
-                    let l = other.map(\.x).min()!, r = other.map(\.x).max()!
-                    let t = other.map(\.y).min()!, end = other.map(\.y).max()!
-                    return r - l < 2.1 && end - t > 5 && abs((l + r) / 2 - tip.x) < 2 &&
-                        abs(end - max(a.y, b.y)) < 2
+                var matchedStem: PathBounds?
+                var ambiguous = false
+                for stem in stems {
+                    guard consumePaintWork() else { return }
+                    guard abs((stem.left + stem.right) / 2 - tip.x) < 2,
+                          abs(stem.bottom - max(a.y, b.y)) < 2 else { continue }
+                    if matchedStem != nil { ambiguous = true; break }
+                    matchedStem = stem
                 }
-                if stems.count == 1, let top = stems[0].map(\.y).min() {
-                    arrows.append(PDFArrow(x: Double(tip.x), top: Double(top), bottom: Double(tip.y)))
+                if let stem = matchedStem, !ambiguous {
+                    arrows.append(PDFArrow(x: Double(tip.x), top: Double(stem.top), bottom: Double(tip.y)))
                 }
             }
         }
-        for path in paths where path.count >= 2 {
-            if fill {
-                let xs = path.map(\.x), ys = path.map(\.y)
-                let l = xs.min()!, r = xs.max()!, t = ys.min()!, b = ys.max()!
+        for (index, path) in paths.enumerated() {
+            guard consumePaintWork() else { return }
+            guard path.count >= 2 else { continue }
+            if fill, let box = pathBounds[index] {
+                let l = box.left, r = box.right, t = box.top, b = box.bottom
                 // Thin painted rectangles form the grid; ignore broad fills and highlights.
                 if r - l <= 2.1, b - t > 3 { line(CGPoint(x: (l + r) / 2, y: t), CGPoint(x: (l + r) / 2, y: b)) }
                 else if b - t <= 2.1, r - l > 3 { line(CGPoint(x: l, y: (t + b) / 2), CGPoint(x: r, y: (t + b) / 2)) }
             }
-            if stroke { for i in 1..<path.count { line(path[i - 1], path[i]) } }
+            if stroke {
+                for i in 1..<path.count {
+                    guard consumePaintWork() else { return }
+                    line(path[i - 1], path[i])
+                }
+            }
         }
     }
     func read(_ page: CGPDFPage) throws -> [PDFRule] {

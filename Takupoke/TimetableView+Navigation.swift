@@ -1,6 +1,11 @@
 import SwiftUI
 
 extension TimetableView {
+    func refreshToday() {
+        let current = SchoolDate.today()
+        if today != current { today = current }
+    }
+
     func consumeTodayRequest() {
         guard todayRequest != nil else { return }
         today = SchoolDate.today()

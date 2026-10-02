@@ -75,7 +75,7 @@ struct SpecialScheduleAnalysisView: View {
                                 LabeledContent("日付", value: lesson.date)
                                 LabeledContent("クラス", value: TimetableDisplayText.className(lesson.className))
                                 LabeledContent("時限", value: "\(lesson.period)限")
-                                if let time = lesson.timeRange { LabeledContent("時刻", value: time) }
+                                if let time = record.analysis.timeRange(for: lesson) { LabeledContent("時刻", value: time) }
                                 LabeledContent("科目", value: PDFDisplayText.continuous(lesson.subject))
                                 LabeledContent("教員", value: lesson.teacher.isEmpty ? "記載なし" : PDFDisplayText.continuous(lesson.teacher))
                                 LabeledContent("教室", value: lesson.room.isEmpty ? "記載なし" : PDFDisplayText.continuous(lesson.room))

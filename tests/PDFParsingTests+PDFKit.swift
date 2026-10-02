@@ -10,6 +10,96 @@ import CoreText
 
 #if canImport(PDFKit)
 extension PDFParsingTests {
+    func testPDFPathPaintPreservesFilledRulesAndUniqueArrow() {
+        let reader = syntheticPathReader()
+        // Bounds are deliberately taken from a non-rectangular stem, too.
+        let stem = [CGPoint(x: 99.7, y: 100), CGPoint(x: 100.3, y: 100),
+                    CGPoint(x: 100.2, y: 149), CGPoint(x: 99.8, y: 149)]
+        let triangle = [CGPoint(x: 97, y: 148), CGPoint(x: 103, y: 148),
+                        CGPoint(x: 100, y: 154), CGPoint(x: 97, y: 148)]
+        let horizontal = [CGPoint(x: 10, y: 200), CGPoint(x: 30, y: 200),
+                          CGPoint(x: 30, y: 201), CGPoint(x: 10, y: 201)]
+        reader.paths = [stem, triangle, horizontal]
+        reader.paint(fill: true, stroke: false)
+        XCTAssertNil(reader.failure)
+        XCTAssertTrue(reader.paths.isEmpty)
+        XCTAssertEqual(reader.lines.count, 2)
+        XCTAssertEqual(reader.arrows.count, 1)
+        XCTAssertEqual(reader.arrows.first?.x, 100)
+        XCTAssertEqual(reader.arrows.first?.top, 100)
+        XCTAssertEqual(reader.arrows.first?.bottom, 154)
+
+        let ambiguous = syntheticPathReader()
+        ambiguous.paths = [stem, triangle, stem]
+        ambiguous.paint(fill: true, stroke: false)
+        XCTAssertNil(ambiguous.failure)
+        XCTAssertTrue(ambiguous.arrows.isEmpty)
+        XCTAssertEqual(ambiguous.lines.count, 2)
+    }
+
+    func testPDFPathPaintPreservesStrokeRules() {
+        let reader = syntheticPathReader()
+        reader.paths = [[CGPoint(x: 10, y: 20), CGPoint(x: 30, y: 20), CGPoint(x: 30, y: 40)]]
+        reader.paint(fill: false, stroke: true)
+        XCTAssertNil(reader.failure)
+        XCTAssertTrue(reader.paths.isEmpty)
+        XCTAssertEqual(reader.lines.count, 2)
+        XCTAssertEqual(reader.lines.first?.y1, 20)
+        XCTAssertEqual(reader.lines.last?.x1, 30)
+    }
+
+    func testPDFPathPaintChecksCancellationWithinFillAndStroke() {
+        for (fill, stroke) in [(true, false), (false, true), (true, true)] {
+            var checks = 0
+            let reader = syntheticPathReader {
+                checks += 1
+                if checks == 2 { throw PDFParseError(code: .cancelled) }
+            }
+            reader.paths = [(0..<400).map { CGPoint(x: CGFloat($0), y: CGFloat($0)) }]
+            reader.paint(fill: fill, stroke: stroke)
+            XCTAssertEqual(checks, 2)
+            XCTAssertEqual((reader.failure as? PDFParseError)?.code, .cancelled)
+            XCTAssertTrue(reader.paths.isEmpty)
+            // Later scanner callbacks must not overwrite the first failure.
+            reader.operations = 1_000_000
+            XCTAssertNil(PDFPathReader.state(Unmanaged.passUnretained(reader).toOpaque()))
+            XCTAssertEqual((reader.failure as? PDFParseError)?.code, .cancelled)
+        }
+    }
+
+    func testPDFPathPaintBoundsStemComparisonWork() {
+        let reader = syntheticPathReader()
+        let triangle = [CGPoint(x: 0, y: 10), CGPoint(x: 6, y: 10), CGPoint(x: 3, y: 16)]
+        let distantStem = [CGPoint(x: 100, y: 0), CGPoint(x: 101, y: 0),
+                           CGPoint(x: 101, y: 10), CGPoint(x: 100, y: 10)]
+        reader.paths = Array(repeating: triangle, count: 1_100) + Array(repeating: distantStem, count: 1_100)
+        reader.paint(fill: true, stroke: false)
+        XCTAssertEqual((reader.failure as? PDFParseError)?.code, .limit)
+        XCTAssertTrue(reader.paths.isEmpty)
+        XCTAssertTrue(reader.arrows.isEmpty)
+    }
+
+    func testPDFPathPaintBudgetIsCumulativeAcrossCallbacks() {
+        let reader = syntheticPathReader()
+        let square = [CGPoint(x: 0, y: 0), CGPoint(x: 10, y: 0),
+                      CGPoint(x: 10, y: 10), CGPoint(x: 0, y: 10)]
+        let paths = Array(repeating: square, count: 128)
+        reader.paths = paths
+        reader.paint(fill: true, stroke: false)
+        XCTAssertNil(reader.failure)
+        for _ in 0..<1_500 where reader.failure == nil {
+            reader.paths = paths
+            reader.paint(fill: true, stroke: false)
+        }
+        XCTAssertEqual((reader.failure as? PDFParseError)?.code, .limit)
+        XCTAssertTrue(reader.paths.isEmpty)
+    }
+
+    private func syntheticPathReader(check: @escaping () throws -> Void = {}) -> PDFPathReader {
+        PDFPathReader(transform: PDFDisplayTransform(media: CGRect(x: 0, y: 0, width: 300, height: 400),
+                                                     rotation: 0), check: check)
+    }
+
     func testPDFKitTextSelectionsStayAlignedAcrossSpacesLinesAndRotations() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
