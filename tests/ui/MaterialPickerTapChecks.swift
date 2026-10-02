@@ -87,8 +87,25 @@ final class MaterialPickerTapChecks: XCTestCase {
 
     private func reveal(_ app: XCUIApplication, identifier: String) {
         let button = app.buttons[identifier].firstMatch
-        let top = app.navigationBars.firstMatch.frame.maxY + 4
-        let bottom = app.tabBars.firstMatch.frame.minY - 4
+        let navigation = app.navigationBars["ファイル選択"].firstMatch
+        let tabs = app.tabBars.firstMatch
+        var limits: (CGFloat, CGFloat)?
+        // On foreground return XCTest can briefly expose a null bar frame.
+        // Capture valid viewport bounds before deciding which way to scroll.
+        let restored = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            guard navigation.exists, tabs.exists else { return false }
+            let barFrame = navigation.frame, tabFrame = tabs.frame
+            guard !barFrame.isEmpty, !tabFrame.isEmpty,
+                  barFrame.maxY.isFinite, tabFrame.minY.isFinite,
+                  barFrame.maxY + 4 < tabFrame.minY - 4 else { return false }
+            limits = (barFrame.maxY + 4, tabFrame.minY - 4)
+            return true
+        }, object: app)
+        guard XCTWaiter.wait(for: [restored], timeout: 5) == .completed,
+              let (top, bottom) = limits else {
+            XCTFail("File list viewport did not return\n\(app.debugDescription)")
+            return
+        }
         // isHittable may include a row XCTest can scroll to automatically.
         // Scroll explicitly before tapping so recycled List rows are settled.
         for _ in 0..<8 {
