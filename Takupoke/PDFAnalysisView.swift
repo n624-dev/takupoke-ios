@@ -59,16 +59,16 @@ struct PDFAnalysisView: View {
                     LabeledContent("サイズ", value: ByteCountFormatter.string(
                         fromByteCount: Int64(source.byteCount), countStyle: .file))
                     LabeledContent("最終取得") {
-                        Text(source.acquiredAt, format: .dateTime.year().month().day().hour().minute())
+                        Text(source.acquiredAt, format: JapaneseDateDisplay.timestamp)
                     }
                     if let date = source.lastCheckedAt {
                         LabeledContent("最終確認") {
-                            Text(date, format: .dateTime.year().month().day().hour().minute())
+                            Text(date, format: JapaneseDateDisplay.timestamp)
                         }
                     }
                     if let date = source.sourceModifiedAt {
                         LabeledContent("元ファイルの更新") {
-                            Text(date, format: .dateTime.year().month().day().hour().minute())
+                            Text(date, format: JapaneseDateDisplay.timestamp)
                         }
                     }
                 }
@@ -78,7 +78,7 @@ struct PDFAnalysisView: View {
                     Text(analysis.sourceName)
                     LabeledContent("学校年度", value: "\(analysis.schoolYear)年度")
                     if let term = analysis.term { LabeledContent("学期", value: term) }
-                    LabeledContent("最終解析成功") { Text(analysis.parsedAt, format: .dateTime.year().month().day().hour().minute()) }
+                    LabeledContent("最終解析成功") { Text(analysis.parsedAt, format: JapaneseDateDisplay.timestamp) }
                     LabeledContent("件数", value: "\(analysis.lessons.count + analysis.events.count)件")
                     if analysis.version < 3 {
                         Label("旧版の解析結果には文字順の誤りが含まれる場合があります。保存済みPDFを再解析してください。", systemImage: "exclamationmark.triangle")

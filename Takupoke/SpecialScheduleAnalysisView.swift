@@ -47,11 +47,11 @@ struct SpecialScheduleAnalysisView: View {
                     LabeledContent("サイズ", value: ByteCountFormatter.string(
                         fromByteCount: Int64(source.byteCount), countStyle: .file))
                     LabeledContent("最終取得") {
-                        Text(source.acquiredAt, format: .dateTime.year().month().day().hour().minute())
+                        Text(source.acquiredAt, format: JapaneseDateDisplay.timestamp)
                     }
                     if let date = source.lastCheckedAt {
                         LabeledContent("最終確認") {
-                            Text(date, format: .dateTime.year().month().day().hour().minute())
+                            Text(date, format: JapaneseDateDisplay.timestamp)
                         }
                     }
                 }
@@ -61,7 +61,7 @@ struct SpecialScheduleAnalysisView: View {
                     LabeledContent("学校年度", value: "\(record.analysis.schoolYear)年度")
                     LabeledContent("件数", value: "\(record.analysis.lessons.count)件")
                     LabeledContent("最終解析成功") {
-                        Text(record.analysis.parsedAt, format: .dateTime.year().month().day().hour().minute())
+                        Text(record.analysis.parsedAt, format: JapaneseDateDisplay.timestamp)
                     }
                     if source?.digest != record.digest || record.analysis.version != SpecialScheduleAnalysis.parserVersion {
                         Label("前回の解析結果です。現在のファイルを解析してください。", systemImage: "exclamationmark.triangle")

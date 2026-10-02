@@ -7,6 +7,7 @@ struct TakupokeApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(\.timeZone, JapaneseDateDisplay.timeZone)
                 .tint((MainColor(rawValue: mainColor) ?? .systemDefault).color)
         }
         .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) {

@@ -82,7 +82,7 @@ private struct LinksDataDetailView: View {
             }
             if let saved = links.saved {
                 Section("取得情報") {
-                    LabeledContent("最終取得") { Text(saved.checkedAt, format: .dateTime.year().month().day().hour().minute()) }
+                    LabeledContent("最終取得") { Text(saved.checkedAt, format: JapaneseDateDisplay.timestamp) }
                     LabeledContent("件数", value: "\(saved.payload.categories.flatMap(\.buttons).count)件")
                 }
             }
@@ -104,7 +104,7 @@ private struct TimetableTimesDetailView: View {
             }
             if let current = times.current {
                 Section("取得情報") {
-                    LabeledContent("最終取得") { Text(current.fetchedAt, format: .dateTime.year().month().day().hour().minute()) }
+                    LabeledContent("最終取得") { Text(current.fetchedAt, format: JapaneseDateDisplay.timestamp) }
                     LabeledContent("件数", value: "\(current.data.days.reduce(0) { $0 + $1.periods.count })件")
                 }
                 ForEach(current.data.days, id: \.date) { day in

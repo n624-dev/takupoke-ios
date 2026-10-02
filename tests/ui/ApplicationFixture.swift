@@ -37,7 +37,7 @@ struct SimulatorApplication: App {
     }
     var body: some Scene {
         WindowGroup {
-            ContentView().tint((MainColor(rawValue: mainColor) ?? .systemDefault).color)
+            ContentView().environment(\.timeZone, JapaneseDateDisplay.timeZone).tint((MainColor(rawValue: mainColor) ?? .systemDefault).color)
                 .modifier(FixtureTypeSize(enabled: ProcessInfo.processInfo.arguments.contains("--grid-probe") &&
                     !ProcessInfo.processInfo.arguments.contains("--system-text-size"),
                                           size: fixtureTypeSize))

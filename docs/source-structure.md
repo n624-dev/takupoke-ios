@@ -12,6 +12,7 @@
 | 時間割統合 | `TimetableSchedule` は授業枠とクラス規則。`Blocks` は連続授業と重なり、`Events` は行事による日別の扱い、`Weeks` は表示日と週移動範囲。 |
 | ファイル選択・解析結果画面 | `MaterialsView` と `FileSummary`（ファイル状態・要約）、`MaterialDocumentPicker`（標準ピッカーの提示・選択）、`GuidedDocumentPicker`（案内領域とモーダル配置）、`MaterialPickerLayout`（領域計算）、`SpecialScheduleAnalysisView`、`PDFAnalysisView`、`PDFLessonDetail`、`SavedPDFView`、`ChangeAnalysisView`、`ChangePreviewView`。 |
 | 一覧 | `LinksView` は一覧と検索、`LinkRow` は行と色、`SafariLinkView` はブラウザ。`LinksAPI` は応答検証、`LinksStore` は保存。 |
+| 日時表示 | `JapaneseDateDisplay` は取得・確認・解析等の日時を日本時間で表示するFoundationの書式。`TakupokeApp` の環境タイムゾーンも日本時間にそろえる。 |
 | 共通認証・授業時刻 | `AccountDataModel`・`AccountDataSettingsView`は3種類の更新と一回の認証。`TimetableTimesModel`・`TimetableTimesService`は日付別時刻の確認・取得・保存。 |
 | 名称データ | `MappingModels` は配信・保存モデル、`MappingRules` は照合規則、`Changes` は変更欄の分解と科目・クラス別教員照合、`MappingPackage` はZIP検証、`MappingStore` はSQLite、`MappingModel` は取得状態、`MappingSettingsView` は設定画面。認証は既存の `MappingOIDC`。 |
 | ファイル取得 | `ScopedMaterialSelection` はアクセス権の保持と中止。`MaterialAccess` の `MaterialWorker` は取得・更新、`Analysis` は解析、`Provider` はFile Providerの読み取り。 |

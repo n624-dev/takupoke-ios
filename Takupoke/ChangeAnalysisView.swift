@@ -53,16 +53,16 @@ struct ChangeAnalysisView: View {
                     LabeledContent("サイズ", value: ByteCountFormatter.string(
                         fromByteCount: Int64(source.byteCount), countStyle: .file))
                     LabeledContent("最終取得") {
-                        Text(source.acquiredAt, format: .dateTime.year().month().day().hour().minute())
+                        Text(source.acquiredAt, format: JapaneseDateDisplay.timestamp)
                     }
                     if let date = source.lastCheckedAt {
                         LabeledContent("最終確認") {
-                            Text(date, format: .dateTime.year().month().day().hour().minute())
+                            Text(date, format: JapaneseDateDisplay.timestamp)
                         }
                     }
                     if let date = source.sourceModifiedAt {
                         LabeledContent("元ファイルの更新") {
-                            Text(date, format: .dateTime.year().month().day().hour().minute())
+                            Text(date, format: JapaneseDateDisplay.timestamp)
                         }
                     }
                 }
@@ -70,7 +70,7 @@ struct ChangeAnalysisView: View {
             if let analysis = analysis {
                 Section {
                     Text(analysis.sourceName)
-                    LabeledContent("最終解析成功") { Text(analysis.parsedAt, format: .dateTime.year().month().day().hour().minute()) }
+                    LabeledContent("最終解析成功") { Text(analysis.parsedAt, format: JapaneseDateDisplay.timestamp) }
                     LabeledContent("年なし日付の補完", value: analysis.defaultYear.map { "\($0)年度" } ?? "指定なし")
                     LabeledContent("件数", value: "\(analysis.records.count)件")
                     if analysis.sourceDigest != model.state.record(for: .changes)?.digest || analysis.version != ChangeAnalysis.parserVersion {

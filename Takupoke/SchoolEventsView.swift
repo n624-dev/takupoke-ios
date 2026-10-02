@@ -73,7 +73,7 @@ private struct SchoolEventsResultView: View {
                 LabeledContent("年度の期間", value: "\(saved.payload.schoolYear)年4月1日〜\(saved.payload.schoolYear + 1)年3月31日")
                 LabeledContent("件数", value: "\(saved.payload.events.count)件")
                 LabeledContent("最終取得") {
-                    Text(saved.fetchedAt, format: .dateTime.year().month().day().hour().minute())
+                    Text(saved.fetchedAt, format: JapaneseDateDisplay.timestamp)
                 }
             }
             ForEach(Array(saved.payload.events.enumerated()), id: \.offset) { _, event in

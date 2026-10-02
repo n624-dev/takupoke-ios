@@ -19,7 +19,7 @@ struct MappingSettingsView: View {
                 Section("取得情報") {
                     LabeledContent("バージョン", value: current.version)
                     LabeledContent("最終取得") {
-                        Text(current.fetchedAt, format: .dateTime.year().month().day().hour().minute())
+                        Text(current.fetchedAt, format: JapaneseDateDisplay.timestamp)
                     }
                     LabeledContent("件数", value: "\(current.rules.subjects.count + current.rules.teachers.count + current.rules.rooms.count)件")
                 }
