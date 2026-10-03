@@ -206,13 +206,23 @@ final class ApplicationChecks: XCTestCase {
     func testMergedCardsFromAllSources() {
         tab("時間割")
         for subject in ["架空科目A", "架空試験A", "架空返却A", "架空変更A"] {
-            let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", subject, "月")).firstMatch
-            if !card.isHittable { app.swipeUp() }
+            let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", subject)).firstMatch
             XCTAssertTrue(card.waitForExistence(timeout: 10), app.debugDescription)
+            for _ in 0..<8 {
+                let top = app.navigationBars.firstMatch.frame.maxY
+                let bottom = app.tabBars.firstMatch.frame.minY
+                if card.isHittable && card.frame.midY > top && card.frame.midY < bottom { break }
+                if card.frame.midY <= top { app.swipeDown() } else { app.swipeUp() }
+            }
+            let ready = expectation(for: NSPredicate { _, _ in
+                card.isHittable && card.frame.midY > self.app.navigationBars.firstMatch.frame.maxY &&
+                    card.frame.midY < self.app.tabBars.firstMatch.frame.minY
+            }, evaluatedWith: card)
+            wait(for: [ready], timeout: 10)
             XCTAssertGreaterThan(card.frame.height, 72)
             card.tap()
             let title = subject == "架空変更A" ? "時間割変更" : "授業詳細"
-            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5), app.debugDescription)
             dismissLesson(title: title)
         }
         XCTAssertTrue(app.staticTexts["架空行事A"].firstMatch.exists || app.buttons["架空行事A"].exists)
