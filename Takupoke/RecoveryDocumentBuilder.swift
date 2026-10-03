@@ -221,7 +221,8 @@ enum RecoveryDocumentBuilder {
                                     let bottom = i == 2 ? subBox.bottom : (labelBox.y + (try box(sorted[i+1].1)).y)/2
                                     let scope = RecoveryBox(x:labelBox.x+labelBox.width,y:top,width:subBox.right-labelBox.x-labelBox.width,height:bottom-top)
                                     if !item.2.isEmpty { cell.sourceIds.append(try add(item.2,owner:id)) } else { cell.blankFields.append(item.0.rawValue) }
-                                    cell.roleScopes.append(RecoveryRoleScope(lessonIndex:lessonIndex,role:item.0,page:number,box:scope,labelSourceIds:[labelId],labelRegion:region(labelBox,axis:.left),proof:.inlineLabel,emptyVerified:item.2.isEmpty && (!fromOCR.contains(number) || pageRaster?.isBlank(scope,rules:page.lines) == true)))
+                                    let emptyVerified = try item.2.isEmpty && (!fromOCR.contains(number) || pageRaster?.isBlank(scope,rules:page.lines,check:check) == true)
+                                    cell.roleScopes.append(RecoveryRoleScope(lessonIndex:lessonIndex,role:item.0,page:number,box:scope,labelSourceIds:[labelId],labelRegion:region(labelBox,axis:.left),proof:.inlineLabel,emptyVerified:emptyVerified))
                                 }
                             } else {
                                 let fieldsAttempt = try? grid.lessonFields(subBox,lines:lines,referenceBoxes:referenceBoxes)
@@ -238,7 +239,8 @@ enum RecoveryDocumentBuilder {
                                             cell.sourceIds += labelIds
                                             cell.sourceIds += try role.body.map { try add($0.glyphs,owner:id) }
                                             if role.body.isEmpty { cell.blankFields.append(role.role.rawValue) }
-                                            cell.roleScopes.append(RecoveryRoleScope(lessonIndex:lessonIndex,role:role.role,page:number,box:role.scope,labelSourceIds:labelIds,labelRegion:region(role.labelBox,axis:.left),proof:.inlineLabel,emptyVerified:role.body.isEmpty && (!fromOCR.contains(number) || pageRaster?.isBlank(role.scope,rules:page.lines) == true)))
+                                            let emptyVerified = try role.body.isEmpty && (!fromOCR.contains(number) || pageRaster?.isBlank(role.scope,rules:page.lines,check:check) == true)
+                                            cell.roleScopes.append(RecoveryRoleScope(lessonIndex:lessonIndex,role:role.role,page:number,box:role.scope,labelSourceIds:labelIds,labelRegion:region(role.labelBox,axis:.left),proof:.inlineLabel,emptyVerified:emptyVerified))
                                         }
                                     } else {
                                         requests.append(request)
@@ -278,11 +280,11 @@ enum RecoveryDocumentBuilder {
                             }
                         }
                         cell.lessonBindings = bindings
-                        cell.confirmedEmpty = cell.sourceIds.isEmpty && (!fromOCR.contains(number) || pageRaster?.isBlank(cell.box,rules:page.lines) == true)
+                        cell.confirmedEmpty = try cell.sourceIds.isEmpty && (!fromOCR.contains(number) || pageRaster?.isBlank(cell.box,rules:page.lines,check:check) == true)
                         cell.parallelCount = max(1,cell.bindingMode == .fixed ? bindings.count : cell.roleScopes.count/3)
                         guard cell.confirmedEmpty || !cell.sourceIds.isEmpty else { throw PDFParseError(code:.ambiguous) }
                         if fromOCR.contains(number) {
-                            guard let raster = pageRaster, !raster.hasUncoveredInk(cell.box,text:try grid.glyphs(in:logical).map { try box([$0]) },rules:page.lines) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
+                            guard let raster = pageRaster, try !raster.hasUncoveredInk(cell.box,text:try grid.glyphs(in:logical).map { try box([$0]) },rules:page.lines,check:check) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
                         }
                         doc.cells.append(cell)
                         _ = periodIndex

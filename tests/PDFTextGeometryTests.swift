@@ -231,6 +231,9 @@ extension PDFTextGeometryTests {
             }
             var descriptor: CGPDFDictionaryRef?, ascent: CGPDFReal = 0, descent: CGPDFReal = 0
             XCTAssertTrue(CGPDFDictionaryGetDictionary(metrics,"FontDescriptor",&descriptor))
+            var descriptorName: UnsafePointer<CChar>?
+            XCTAssertTrue(CGPDFDictionaryGetName(try XCTUnwrap(descriptor),"FontName",&descriptorName))
+            XCTAssertEqual(String(cString:try XCTUnwrap(descriptorName)),simple ? "Helvetica":"Synthetic")
             XCTAssertTrue(CGPDFDictionaryGetNumber(try XCTUnwrap(descriptor),"Ascent",&ascent))
             XCTAssertTrue(CGPDFDictionaryGetNumber(try XCTUnwrap(descriptor),"Descent",&descent))
             XCTAssertEqual(ascent,800); XCTAssertEqual(descent,-200)
@@ -274,7 +277,7 @@ extension PDFTextGeometryTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] \(crop) /Resources << /Font << /F1 4 0 R >> /ExtGState << /Visibility << \(graphicsState) >> >> >> /Contents 8 0 R >>",
             simpleFont ? "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 65 /LastChar 67 /Widths [667 667 667] /FontDescriptor 6 0 R \(unicode ? "/ToUnicode 7 0 R" : "") >>" : "<< /Type /Font /Subtype /Type0 /BaseFont /Synthetic /Encoding /Identity-H /DescendantFonts [5 0 R] \(unicode ? "/ToUnicode 7 0 R" : "") >>",
             "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Synthetic /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 6 0 R /DW 1000 /W [1 [500] 2 3 600] /CIDToGIDMap /Identity >>",
-            "<< /Type /FontDescriptor /FontName \(simpleFont ? "Helvetica" : "Synthetic") /Flags \(simpleFont ? 32:4) /FontBBox [0 -200 1000 800] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 >>",
+            "<< /Type /FontDescriptor /FontName /\(simpleFont ? "Helvetica" : "Synthetic") /Flags \(simpleFont ? 32:4) /FontBBox [0 -200 1000 800] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 >>",
             stream(cmap), stream(content)
         ]
         var data = Data("%PDF-1.4\n".utf8), offsets: [Int] = [0]

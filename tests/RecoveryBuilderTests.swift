@@ -3,6 +3,42 @@ import XCTest
 @testable import TakupokeParsing
 
 extension PDFParsingTests {
+    func testRasterRuleGraphStopsAtItsComparisonBudgetAndChecksCancellationInsidePass() {
+        let lines = (0..<1100).map { PDFRule(x1:10,y1:Double($0)*4,x2:50,y2:Double($0)*4) }
+        XCTAssertThrowsError(try RecoveryRasterGrid.connectedRules(lines,check:{})) {
+            XCTAssertEqual(($0 as? PDFParseError)?.code,.limit)
+        }
+        var checks = 0
+        XCTAssertThrowsError(try RecoveryRasterGrid.connectedRules(lines,check:{
+            checks += 1
+            if checks == 2 { throw PDFParseError(code:.cancelled) }
+        })) { XCTAssertEqual(($0 as? PDFParseError)?.code,.cancelled) }
+        XCTAssertEqual(checks,2)
+        let covered = RecoveryBox(x:0,y:0,width:128,height:128)
+        let dense = RecoveryRasterGrid(width:128,height:128,grayscale:[UInt8](repeating:0,count:128*128))
+        let outside = RecoveryBox(x:200,y:200,width:10,height:10)
+        XCTAssertThrowsError(try dense.hasUncoveredInk(covered,text:Array(repeating:outside,count:2000)+[covered],rules:[],check:{})) {
+            XCTAssertEqual(($0 as? PDFParseError)?.code,.limit)
+        }
+    }
+    func testRasterInkAndRuleMaskCheckCancellationInsideTheirPixelLoops() throws {
+        let size = 512, pixels = [UInt8](repeating:0,count:size*size)
+        let raster = RecoveryRasterGrid(width:size,height:size,grayscale:pixels)
+        let rules = [PDFRule(x1:0,y1:20,x2:511,y2:20)]
+        var checks = 0
+        XCTAssertThrowsError(try raster.preparingRules(rules,check:{
+            checks += 1
+            if checks == 2 { throw PDFParseError(code:.cancelled) }
+        })) { XCTAssertEqual(($0 as? PDFParseError)?.code,.cancelled) }
+        XCTAssertEqual(checks,2)
+        checks = 0
+        let box = RecoveryBox(x:0,y:0,width:512,height:512)
+        XCTAssertThrowsError(try raster.hasUncoveredInk(box,text:[box],rules:[],check:{
+            checks += 1
+            if checks == 2 { throw PDFParseError(code:.cancelled) }
+        })) { XCTAssertEqual(($0 as? PDFParseError)?.code,.cancelled) }
+        XCTAssertEqual(checks,2)
+    }
     func testOffscreenRecoveryLayoutFailsBeforeSourceBindingOrAI() {
         var page = recoveryTimetablePage()
         for index in page.glyphs.indices { page.glyphs[index].x += 3000 }
