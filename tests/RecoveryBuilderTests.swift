@@ -3,6 +3,26 @@ import XCTest
 @testable import TakupokeParsing
 
 extension PDFParsingTests {
+    func testSourceIdentityIndexPreservesDuplicateAmbiguityAndCancellation() throws {
+        let a = PDFGlyph(text:"A",x:10,y:20,width:4,height:8,sourceOrder:0)
+        let b = PDFGlyph(text:"A",x:10,y:20,width:4,height:8,sourceOrder:1)
+        let c = PDFGlyph(text:"A",x:20,y:20,width:4,height:8,sourceOrder:0)
+        let index = try RecoveryGlyphIndex([a,b,a,c],check:{})
+        XCTAssertEqual(try index.indices(for:[a],check:{}),[0,2])
+        XCTAssertEqual(try index.indices(for:[b,c],check:{}),[1,3])
+        XCTAssertEqual(try index.indices(for:[a,a],check:{}),[0,2])
+        var checks = 0
+        XCTAssertThrowsError(try RecoveryGlyphIndex(Array(repeating:a,count:100000),check:{
+            checks += 1; if checks == 2 { throw PDFParseError(code:.cancelled) }
+        })) { XCTAssertEqual(($0 as? PDFParseError)?.code,.cancelled) }
+        XCTAssertEqual(checks,2)
+        let dense = try RecoveryGlyphIndex(Array(repeating:a,count:100000),check:{})
+        checks = 0
+        XCTAssertThrowsError(try dense.indices(for:[a],check:{
+            checks += 1; if checks == 2 { throw PDFParseError(code:.cancelled) }
+        })) { XCTAssertEqual(($0 as? PDFParseError)?.code,.cancelled) }
+        XCTAssertEqual(checks,2)
+    }
     func testRasterRuleGraphStopsAtItsComparisonBudgetAndChecksCancellationInsidePass() {
         let lines = (0..<1100).map { PDFRule(x1:10,y1:Double($0)*4,x2:50,y2:Double($0)*4) }
         XCTAssertThrowsError(try RecoveryRasterGrid.connectedRules(lines,check:{})) {

@@ -9,6 +9,13 @@ enum PDFTextFailure {
 /// The strict drawn subset accepts black device colors only. Other colors need
 /// a composited raster: selecting a glyph does not prove contrast or visibility.
 enum PDFTextVisibility {
+    static func similarStrokeTransform(a: Double,b: Double,c: Double,d: Double) -> Bool {
+        guard [a,b,c,d].allSatisfy(\.isFinite) else { return false }
+        let first = hypot(a,b), second = hypot(c,d)
+        // A device-axis corner can represent an acute source-angle miter under
+        // shear/nonuniform scale. Only exact angle-preserving bases certify pad.
+        return first.isFinite && first > 0 && first == second && a*c+b*d == 0
+    }
     static func strokePad(_ width: Double, a: Double, b: Double, c: Double, d: Double) -> Double? {
         guard width.isFinite, width >= 0, [a,b,c,d].allSatisfy(\.isFinite) else { return nil }
         // Frobenius norm bounds every transformed stroke direction, including shear.

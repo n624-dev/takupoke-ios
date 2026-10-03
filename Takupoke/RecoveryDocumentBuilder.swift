@@ -1,5 +1,38 @@
 import Foundation
 
+/// Preserves the reader's original identity comparison without rescanning the
+/// complete page for every source fragment. Duplicate identities stay visible.
+struct RecoveryGlyphIndex {
+    private struct Key: Hashable {
+        let text: String; let x: Double; let y: Double; let sourceOrder: Int?
+        init(_ glyph: PDFGlyph) { text = glyph.text; x = glyph.x; y = glyph.y; sourceOrder = glyph.sourceOrder }
+    }
+    private var originals: [Key:[Int]] = [:]
+    init(_ glyphs: [PDFGlyph],check: () throws -> Void) throws {
+        guard glyphs.count <= 100000 else { throw PDFParseError(code:.limit) }
+        for (index,glyph) in glyphs.enumerated() {
+            if index % 128 == 0 { try check() }
+            originals[Key(glyph),default:[]].append(index)
+        }
+    }
+    func indices(for glyphs: [PDFGlyph],check: () throws -> Void) throws -> [Int] {
+        guard glyphs.count <= 100000 else { throw PDFParseError(code:.limit) }
+        var keys = Set<Key>(), result = Set<Int>(), visits = 0
+        for (index,glyph) in glyphs.enumerated() {
+            if index % 128 == 0 { try check() }
+            keys.insert(Key(glyph))
+        }
+        for key in keys {
+            for original in originals[key] ?? [] {
+                visits += 1
+                if visits % 128 == 0 { try check() }
+                result.insert(original)
+            }
+        }
+        return result.sorted()
+    }
+}
+
 /// Binds physical table cells and original text before any language model runs.
 /// A layout without independent class/date/period and field boundaries fails.
 enum RecoveryDocumentBuilder {
@@ -34,10 +67,11 @@ enum RecoveryDocumentBuilder {
             try page.requireVisibleBounds(check:check)
             let number = pageIndex + 1, grid = PDFGrid(page: page)
             let pageRaster = try rasters[number].map { try $0.preparingRules(page.lines,check:check) }
+            let glyphIndex = try RecoveryGlyphIndex(page.glyphs,check:check)
             var used: Set<Int> = []
             func add(_ glyphs: [PDFGlyph], owner: String = "", value: String? = nil) throws -> String {
                 guard !glyphs.isEmpty else { throw PDFParseError(code: .ambiguous) }
-                let indices = page.glyphs.indices.filter { i in glyphs.contains { g in g.text == page.glyphs[i].text && g.x == page.glyphs[i].x && g.y == page.glyphs[i].y && g.sourceOrder == page.glyphs[i].sourceOrder } }
+                let indices = try glyphIndex.indices(for:glyphs,check:check)
                 guard indices.count == glyphs.count, indices.allSatisfy({ !used.contains($0) }) else { throw PDFParseError(code: .ambiguous, page: number, stage: .textOrder) }
                 used.formUnion(indices); sourceNumber += 1
                 let id = "p\(number)-s\(sourceNumber)"

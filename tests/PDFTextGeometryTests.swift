@@ -10,6 +10,14 @@ import AppKit
 #endif
 
 final class PDFTextGeometryTests: XCTestCase {
+    func testStrokePaddingRequiresAnExactAnglePreservingTransform() {
+        for m in [[1.0,0,0,1],[0,1,-1,0],[0.5,0,0,0.5],[1,0,0,-1],[0.5,0.5,-0.5,0.5]] {
+            XCTAssertTrue(PDFTextVisibility.similarStrokeTransform(a:m[0],b:m[1],c:m[2],d:m[3]))
+        }
+        for m in [[2.0,0,0,1],[1,0,0.1,1],[0,0,0,0],[Double.nan,0,0,1],[Double.infinity,0,0,1]] {
+            XCTAssertFalse(PDFTextVisibility.similarStrokeTransform(a:m[0],b:m[1],c:m[2],d:m[3]))
+        }
+    }
     func testOnlyFilledTextModeHasAnIndependentGlyphExtentProof() throws {
         let engine = PDFTextGeometry()
         XCTAssertNoThrow(try engine.operation("Tr",[0]))
@@ -293,14 +301,61 @@ extension PDFTextGeometryTests {
         return data
     }
 
-    private func paintedInk(_ data: Data) throws -> Int {
+    private func paintedInk(_ data: Data,minimumX: Int = 0) throws -> Int {
         let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
         var pixels = [UInt8](repeating:255,count:300*400)
         return try pixels.withUnsafeMutableBytes { buffer in
             let context = try XCTUnwrap(CGContext(data:buffer.baseAddress,width:300,height:400,bitsPerComponent:8,bytesPerRow:300,space:CGColorSpaceCreateDeviceGray(),bitmapInfo:CGImageAlphaInfo.none.rawValue))
             context.setFillColor(CGColor(gray:1,alpha:1)); context.fill(CGRect(x:0,y:0,width:300,height:400))
             context.drawPDFPage(page)
-            return buffer.reduce(0) { $0 + ($1 == 255 ? 0:1) }
+            return buffer.enumerated().reduce(0) { $0 + ($1.offset % 300 >= minimumX && $1.element != 255 ? 1:0) }
+        }
+    }
+    func testNativeNearAxisMiterAndNonSimilarStrokeCannotCertifyPaintBounds() throws {
+        let text = "BT /F1 12 Tf 1 0 0 1 120 114 Tm (A) Tj ET"
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString,isDirectory:true)
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let transform = PDFDisplayTransform(media:CGRect(x:0,y:0,width:300,height:400),rotation:0)
+        let textData = syntheticPDF(content:text,simpleFont:true)
+        let hairpin = syntheticPDF(content:text+" 1 w 0 J 0 j 1000 M 80 120 m 81.1 120 l 80 120.01 l S",simpleFont:true)
+        // The near-axis miter paints past x=85 although both segment endpoints
+        // stop at x=81.1. A centerline-plus-pad proof must not accept this paint.
+        XCTAssertGreaterThan(try paintedInk(hairpin,minimumX:85),try paintedInk(textData,minimumX:85))
+        let negatives = [hairpin,
+            syntheticPDF(content:text+" q 2 0 0 1 0 0 cm 0.1 w 20 20 m 40 20 l S Q",simpleFont:true),
+            syntheticPDF(content:text+" q 1 0 0.1 1 0 0 cm 0.1 w 20 20 m 40 20 l S Q",simpleFont:true)]
+        for (index,data) in negatives.enumerated() {
+            let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
+            XCTAssertThrowsError(try PDFPathReader(transform:transform,verifyVisibility:true,check:{}).read(page)) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage,.vectorObjects)
+            }
+            let url = root.appendingPathComponent("fictional-\(index).pdf"); try data.write(to:url)
+            let normal = RecoveryReadCapture(), special = RecoveryReadCapture()
+            XCTAssertThrowsError(try PDFKitReader.read(url,kind:.timetable,capture:normal))
+            XCTAssertThrowsError(try PDFKitReader.readSpecial(url,capture:special))
+            XCTAssertFalse(normal.complete); XCTAssertFalse(special.complete)
+        }
+        for matrix in ["1 0 0 1", "0.5 0 0 0.5", "0 1 -1 0"] {
+            let data = syntheticPDF(content:text+" q \(matrix) 100 100 cm 0.1 w 20 20 m 40 20 l S Q",simpleFont:true)
+            let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
+            XCTAssertEqual(try PDFPathReader(transform:transform,verifyVisibility:true,check:{}).read(page).count,1)
+        }
+    }
+    func testNativeCrossedOrRetracedThinFillIsNotARectangularBorder() throws {
+        let transform = PDFDisplayTransform(media:CGRect(x:0,y:0,width:300,height:400),rotation:0)
+        for path in ["10 10 m 11 40 l 10 40 l 11 10 l h f", "10 10 m 11 10 l 10 10 l 10 40 l h f"] {
+            let data = syntheticPDF(content:path,simpleFont:true)
+            let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
+            XCTAssertThrowsError(try PDFPathReader(transform:transform,verifyVisibility:true,check:{}).read(page)) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage,.vectorObjects)
+            }
+        }
+        for path in ["10 10 1 30 re f", "10 10 m 11 10 l 11 40 l 10 40 l h f"] {
+            let data = syntheticPDF(content:path,simpleFont:true)
+            let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
+            XCTAssertGreaterThan(try paintedInk(data),0)
+            XCTAssertEqual(try PDFPathReader(transform:transform,verifyVisibility:true,check:{}).read(page).count,1)
         }
     }
 #if canImport(AppKit)
@@ -454,9 +509,15 @@ extension PDFTextGeometryTests {
         let text = "0 g BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET"
         let textOnlyInk = try paintedInk(syntheticPDF(content:text,simpleFont:true))
         XCTAssertGreaterThan(textOnlyInk,0)
-        for (state,operatorText) in [("","[0 1000] 0 d"),("/D [[0 1000] 0]","/Visibility gs")] {
+        for (state,operatorText) in [("","[1 1000] 1 d"),("/D [[1 1000] 1]","/Visibility gs")] {
             let data = syntheticPDF(content:text+" "+operatorText+" 0 J 10 10 m 290 10 l S",graphicsState:state,simpleFont:true)
-            XCTAssertEqual(try paintedInk(data),textOnlyInk,"The stored path is a ghost line in the composited PDF")
+            let ink = try paintedInk(data)
+            if state.isEmpty { XCTAssertEqual(ink,textOnlyInk,"The direct dash is entirely in its gap: \(operatorText)") }
+            else {
+                // Quartz may render ExtGState dash differently. The raw style
+                // remains unsupported, whether the preview shows gaps or solid ink.
+                XCTAssertGreaterThanOrEqual(ink,textOnlyInk,"ExtGState dash must retain the visible reference text")
+            }
             let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
             let reader = PDFPathReader(transform:PDFDisplayTransform(media:page.getBoxRect(.mediaBox),rotation:0),verifyVisibility:true,check:{})
             XCTAssertThrowsError(try reader.read(page)) { XCTAssertEqual(($0 as? PDFParseError)?.stage,.vectorObjects) }

@@ -133,21 +133,25 @@ final class PDFPathReader {
                     if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }; return
                 }
                 let width = box.right-box.left, height = box.bottom-box.top
-                guard ((width <= 2.1 && height > 3) || (height <= 2.1 && width > 3)),
+                let corners = [CGPoint(x:box.left,y:box.top),CGPoint(x:box.right,y:box.top),CGPoint(x:box.right,y:box.bottom),CGPoint(x:box.left,y:box.bottom)]
+                let uniqueCorners = corners.allSatisfy { corner in path.dropLast().filter { $0 == corner }.count == 1 }
+                let axisEdges = zip(path,path.dropFirst()).allSatisfy { a,b in (a.x == b.x) != (a.y == b.y) }
+                guard uniqueCorners, axisEdges, ((width <= 2.1 && height > 3) || (height <= 2.1 && width > 3)),
                       !overlapsText(left:box.left,top:box.top,right:box.right,bottom:box.bottom,pad:0) else {
                     if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }; return
                 }
             }
         }
         if verifyVisibility && stroke && !paths.isEmpty {
-            guard let pad = PDFTextVisibility.strokePad(lineWidth,a:Double(ctm.a),b:Double(ctm.b),c:Double(ctm.c),d:Double(ctm.d)) else {
+            guard PDFTextVisibility.similarStrokeTransform(a:Double(ctm.a),b:Double(ctm.b),c:Double(ctm.c),d:Double(ctm.d)),
+                  let pad = PDFTextVisibility.strokePad(lineWidth,a:Double(ctm.a),b:Double(ctm.b),c:Double(ctm.c),d:Double(ctm.d)) else {
                 failure = PDFParseError(code:.unsupported,stage:.vectorObjects); return
             }
             for path in paths where path.count >= 2 {
                 for index in 1..<path.count {
                     guard consumePaintWork() else { return }
                     let a = path[index-1], b = path[index]
-                    guard (abs(a.x-b.x) < 0.2 || abs(a.y-b.y) < 0.2),
+                    guard (a.x == b.x || a.y == b.y),
                           !overlapsText(left:min(a.x,b.x),top:min(a.y,b.y),right:max(a.x,b.x),bottom:max(a.y,b.y),pad:pad) else {
                         if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }; return
                     }
