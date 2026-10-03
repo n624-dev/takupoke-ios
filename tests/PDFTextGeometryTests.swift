@@ -66,6 +66,23 @@ final class PDFTextGeometryTests: XCTestCase {
                         defaultWidth: 1000, ascent: 800, descent: -200)
     }
 
+    func testFullTwoByteSingletonCodeDomainRemainsBoundedAndCancellable() throws {
+        let codes = (0...65535).map { String(format:"<%04X>",$0) }
+        let spaces = codes.map { $0+$0 }.joined()
+        let entries = codes.map { $0+"<0041>" }.joined()
+        let data = Data(("65536 begincodespacerange "+spaces+" endcodespacerange 65536 beginbfchar "+entries+" endbfchar").utf8)
+        XCTAssertLessThan(data.count,2_000_000)
+        let decoded = try PDFUnicodeMap.read(data)
+        XCTAssertEqual(decoded.bytes,2); XCTAssertEqual(decoded.values.count,65536)
+        XCTAssertEqual(decoded.values[0],"A"); XCTAssertEqual(decoded.values[65535],"A")
+        var checks = 0
+        XCTAssertThrowsError(try PDFUnicodeMap.read(data,check:{
+            checks += 1; if checks == 3 { throw PDFParseError(code:.cancelled) }
+        })) { XCTAssertEqual(($0 as? PDFParseError)?.code,.cancelled) }
+        XCTAssertEqual(checks,3)
+        XCTAssertThrowsError(try map("2 begincodespacerange <0000><00FF><00FF><01FF> endcodespacerange 1 beginbfchar <0000><0041> endbfchar"))
+        XCTAssertThrowsError(try map("1 begincodespacerange <0000><00FF> endcodespacerange 1 beginbfchar <0100><0041> endbfchar"))
+    }
     func testUnicodeCharactersRangesAndSurrogatePairs() throws {
         let decoded = try map("""
         /WMode 0 def
@@ -311,6 +328,18 @@ extension PDFTextGeometryTests {
             return buffer.enumerated().reduce(0) { $0 + ($1.offset % 300 >= minimumX && $1.element != 255 ? 1:0) }
         }
     }
+    private func directStrokeInk(width: Double, delta: Double, limit: Double, minimumX: Int) throws -> Int {
+        var pixels = [UInt8](repeating:255,count:300*400)
+        return try pixels.withUnsafeMutableBytes { buffer in
+            let context = try XCTUnwrap(CGContext(data:buffer.baseAddress,width:300,height:400,bitsPerComponent:8,bytesPerRow:300,space:CGColorSpaceCreateDeviceGray(),bitmapInfo:CGImageAlphaInfo.none.rawValue))
+            context.setFillColor(CGColor(gray:1,alpha:1)); context.fill(CGRect(x:0,y:0,width:300,height:400))
+            context.setStrokeColor(CGColor(gray:0,alpha:1)); context.setLineWidth(CGFloat(width))
+            context.setLineCap(.butt); context.setLineJoin(.miter); context.setMiterLimit(CGFloat(limit))
+            context.move(to:CGPoint(x:10,y:120)); context.addLine(to:CGPoint(x:81.1,y:120))
+            context.addLine(to:CGPoint(x:78.1,y:120+delta)); context.strokePath()
+            return buffer.enumerated().reduce(0) { $0 + ($1.offset % 300 >= minimumX && $1.element != 255 ? 1:0) }
+        }
+    }
     func testNativeNearAxisMiterAndNonSimilarStrokeCannotCertifyPaintBounds() throws {
         let text = "BT /F1 12 Tf 1 0 0 1 120 114 Tm (A) Tj ET"
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString,isDirectory:true)
@@ -319,9 +348,24 @@ extension PDFTextGeometryTests {
         let transform = PDFDisplayTransform(media:CGRect(x:0,y:0,width:300,height:400),rotation:0)
         let textData = syntheticPDF(content:text,simpleFont:true)
         let hairpin = syntheticPDF(content:text+" 1 w 0 J 0 j 100 M 10 120 m 81.1 120 l 78.1 120.19 l S",simpleFont:true)
-        // The near-axis miter paints past x=85 although both segment endpoints
-        // stop at x=81.1. A centerline-plus-pad proof must not accept this paint.
-        XCTAssertGreaterThan(try paintedInk(hairpin,minimumX:85),try paintedInk(textData,minimumX:85))
+        XCTAssertGreaterThan(try paintedInk(hairpin),try paintedInk(textData))
+        // Poppler reproduces an acute miter outside the centerline pad. Quartz
+        // may bevel that join. Record actual PDF and direct CG paint without
+        // requiring an unobserved backend-specific protrusion for acceptance.
+        var diagnostics = [String]()
+        for width in [1.0,2.0,25.0] {
+            for delta in [0.01,0.19,0.29,3.0] {
+                for limit in [10.0,100.0] {
+                    let path = "0 G \(width) w 0 J 0 j \(limit) M 10 120 m 81.1 120 l 78.1 \(120+delta) l S"
+                    let data = syntheticPDF(content:path,simpleFont:true)
+                    let total = try paintedInk(data), beyond = try paintedInk(data,minimumX:85)
+                    let direct = try directStrokeInk(width:width,delta:delta,limit:limit,minimumX:85)
+                    XCTAssertGreaterThan(total,0)
+                    diagnostics.append("w=\(width),dy=\(delta),M=\(limit):pdfTotal=\(total),pdfBeyond85=\(beyond),cgBeyond85=\(direct)")
+                }
+            }
+        }
+        print("NATIVE_QUARTZ_MITER "+diagnostics.joined(separator:"; "))
         let negatives = [hairpin,
             syntheticPDF(content:text+" q 2 0 0 1 0 0 cm 0.1 w 20 20 m 40 20 l S Q",simpleFont:true),
             syntheticPDF(content:text+" q 1 0 0.1 1 0 0 cm 0.1 w 20 20 m 40 20 l S Q",simpleFont:true)]

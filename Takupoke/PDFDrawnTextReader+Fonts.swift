@@ -32,7 +32,7 @@ extension PDFDrawnTextReader {
         }
         var format = CGPDFDataFormat.raw
         guard let data = CGPDFStreamCopyData(mapStream, &format), format == .raw else { throw PDFTextFailure.unsupported }
-        let mapping = try PDFUnicodeMap.read(data as Data)
+        let mapping = try PDFUnicodeMap.read(data as Data,check:engine.check)
         var metrics = dict
         let composite = named(dict, "Subtype") == "Type0"
         if composite {

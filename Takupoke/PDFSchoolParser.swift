@@ -4,18 +4,42 @@ enum PDFSchoolParser {
     static let maximumRecords = 10000
     struct YearMarker { let year: Int; let range: Range<String.Index>; let isReiwa: Bool }
     static func yearMarkers(_ header: String,check: () throws -> Void = {}) throws -> [YearMarker] {
-        var markers = [YearMarker](), remainder = header.startIndex..<header.endIndex
-        while let range = header.range(of:"(?<![\\p{N}])(?:令和[\\p{N}]+|[\\p{N}]+)年度",options:.regularExpression,range:remainder) {
+        // Remove header whitespace while preserving raw numeric characters:
+        // compatibility normalization can turn an unsupported Roman numeral
+        // into letters and hide its annual marker. Evidence keeps raw bounds.
+        var normalized = "", originalRanges = [Range<String.Index>]()
+        for (offset,index) in header.indices.enumerated() {
+            if offset % 128 == 0 { try check() }
+            let original = index..<header.index(after:index)
+            var detector = ""
+            for scalar in header[original].unicodeScalars {
+                switch scalar.properties.generalCategory {
+                case .decimalNumber, .letterNumber, .otherNumber: detector += String(scalar)
+                default: detector += String(scalar).precomposedStringWithCompatibilityMapping
+                }
+            }
+            for character in detector {
+                if character.unicodeScalars.allSatisfy({ CharacterSet.whitespacesAndNewlines.contains($0) }) { continue }
+                normalized.append(character); originalRanges.append(original)
+            }
+        }
+        guard normalized.count == originalRanges.count else { throw PDFParseError(code:.unsupported,stage:.yearHeading) }
+        let originals = Dictionary(uniqueKeysWithValues:zip(normalized.indices,originalRanges))
+        var markers = [YearMarker](), remainder = normalized.startIndex..<normalized.endIndex
+        while let range = normalized.range(of:"(?<![\\p{N}])(?:令和[\\p{N}]+|[\\p{N}]+)年度",options:.regularExpression,range:remainder) {
             try check()
-            let token = header[range], era = token.hasPrefix("令和")
+            let token = normalized[range], era = token.hasPrefix("令和")
             let digits = String(era ? token.dropFirst(2).dropLast(2) : token.dropLast(2)).precomposedStringWithCompatibilityMapping
             guard (era ? (1...2).contains(digits.count) : digits.count == 4),
                   digits.utf8.allSatisfy({ (48...57).contains($0) }), let value = Int(digits),
                   !era || (1...99).contains(value) else { throw PDFParseError(code:.unsupported,stage:.yearHeading) }
             let year = era ? 2018+value:value
             guard (1900...9998).contains(year) else { throw PDFParseError(code:.unsupported,stage:.yearHeading) }
-            markers.append(YearMarker(year:year,range:range,isReiwa:era))
-            remainder = range.upperBound..<header.endIndex
+            guard let first = originals[range.lowerBound], let last = originals[normalized.index(before:range.upperBound)] else {
+                throw PDFParseError(code:.unsupported,stage:.yearHeading)
+            }
+            markers.append(YearMarker(year:year,range:first.lowerBound..<last.upperBound,isReiwa:era))
+            remainder = range.upperBound..<normalized.endIndex
         }
         return markers
     }
@@ -52,7 +76,7 @@ enum PDFSchoolParser {
         let normalized = key(top)
         let year: Int
         if kind == .timetable {
-            do { year = try uniqueTitleYear(normalized,check:check) }
+            do { year = try uniqueTitleYear(top,check:check) }
             catch var error as PDFParseError { error.page = 1; throw error }
         } else {
             // Legacy event PDFs retain their original header contract.
@@ -63,9 +87,10 @@ enum PDFSchoolParser {
             year = 2018+era
         }
         for (index, page) in pages.enumerated() {
-            let heading = key(PDFGrid.rows(page.glyphs.filter { $0.cy < page.height / 8 }).map { $0.map(\.text).joined() }.joined())
+            let rawHeading = PDFGrid.rows(page.glyphs.filter { $0.cy < page.height / 8 }).map { $0.map(\.text).joined() }.joined()
+            let heading = key(rawHeading)
             if kind == .timetable {
-                do { guard try uniqueTitleYear(heading,check:check) == year else { throw PDFParseError(code:.ambiguous,stage:.yearHeading) } }
+                do { guard try uniqueTitleYear(rawHeading,check:check) == year else { throw PDFParseError(code:.ambiguous,stage:.yearHeading) } }
                 catch var error as PDFParseError { error.page = index+1; throw error }
             } else {
                 guard let range = heading.range(of: "令和[0-9]{1,2}年度", options: .regularExpression),

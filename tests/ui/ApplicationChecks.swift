@@ -22,6 +22,7 @@ final class ApplicationChecks: XCTestCase {
             "testRecoveryClosingKeepsFormalAndModelManagementIsAccessible": ["--recovery-preview"],
             "testSpecialRecoveryShowsMergedAndDifferentDayClocksBeforeAdoption": ["--recovery-preview", "--recovery-exam"],
             "testRecoveryImageOnlyPDFUsesNativeOCRAndTopLeftRaster": ["--recovery-ocr-probe"],
+            "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork": ["--selection-snapshot", "--normal-only"],
         ]
         for (method, arguments) in initialConditions where name.contains(method) {
             app.launchArguments += arguments
@@ -264,6 +265,43 @@ final class ApplicationChecks: XCTestCase {
             dismissLesson(title: title)
         }
         XCTAssertTrue(app.staticTexts["架空行事A"].firstMatch.exists || app.buttons["架空行事A"].exists)
+    }
+    func testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork() {
+        func openFirstLesson(_ surface: String) {
+            tab(surface)
+            let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "架空科目")).firstMatch
+            XCTAssertTrue(card.waitForExistence(timeout: 10), app.debugDescription)
+            for _ in 0..<8 {
+                if card.exists && card.isHittable && card.frame.midY > app.navigationBars.firstMatch.frame.maxY && card.frame.midY < app.tabBars.firstMatch.frame.minY { break }
+                if card.exists && card.frame.midY <= app.navigationBars.firstMatch.frame.maxY { app.swipeDown() } else { app.swipeUp() }
+            }
+            XCTAssertTrue(card.exists && card.isHittable, app.debugDescription); card.tap()
+            screen("授業詳細")
+        }
+        for surface in ["ホーム", "時間割"] {
+            // A changed raw source deliberately retains the last good analysis.
+            // Start each surface from a fresh, matching source/analysis pair.
+            if surface == "時間割" { app.terminate(); launchReady() }
+            let initial = app.staticTexts["fixture-selection-data"].label
+            openFirstLesson(surface)
+            app.buttons["架空処理のみ"].tap()
+            let busy = app.staticTexts["fixture-selection-busy"]
+            let started = expectation(for: NSPredicate(format: "label == %@", "架空処理中"), evaluatedWith: busy)
+            wait(for: [started], timeout: 5)
+            XCTAssertTrue(app.navigationBars["授業詳細"].exists, app.debugDescription)
+            let finished = expectation(for: NSPredicate(format: "label == %@", "架空待機中"), evaluatedWith: busy)
+            wait(for: [finished], timeout: 10)
+            XCTAssertTrue(app.navigationBars["授業詳細"].exists, app.debugDescription)
+            app.buttons["架空正式更新"].tap()
+            XCTAssertTrue(app.navigationBars["授業詳細"].waitForNonExistence(timeout: 15), app.debugDescription)
+            XCTAssertNotEqual(app.staticTexts["fixture-selection-data"].label, initial, app.debugDescription)
+            let adopted = app.staticTexts["fixture-selection-data"].label
+            openFirstLesson(surface)
+            app.buttons["架空原本更新"].tap()
+            XCTAssertTrue(app.navigationBars["授業詳細"].waitForNonExistence(timeout: 15), app.debugDescription)
+            XCTAssertNotEqual(app.staticTexts["fixture-selection-data"].label, adopted, app.debugDescription)
+            print("SYNTHETIC_SELECTION_UI \(surface): busy-only kept detail; actual formal and source writes closed detail")
+        }
     }
     func testHomeTimetableAndWeekCalendar() {
         XCTAssertTrue(app.staticTexts["今日の予定"].waitForExistence(timeout: 10))

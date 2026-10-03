@@ -49,6 +49,20 @@ def generate(destination):
         text = re.sub(r'https?://[^"\s)]+', 'https://fixture.example.test', text)
         text = re.sub(r'(\b(?:let|var) (\w+) = URLSessionConfiguration\.(?:ephemeral|default))',
                       lambda match: match[1] + "\n        " + match[2] + ".protocolClasses = [FixtureNetwork.self]", text)
+        if path.name in ('TimetableView.swift', 'TimetableView+Navigation.swift'):
+            text = text.replace('SchoolDate.today()', '(ProcessInfo.processInfo.arguments.contains("--selection-snapshot") ? SimulatorSelectionFixture.day : SchoolDate.today())')
+        if path.name == 'HomeTodayView.swift':
+            marker = 'private var day: SchoolDate { TimetableDaySchedule.schoolDay(at: now) }'
+            assert text.count(marker) == 1, 'Home selection date probe insertion point missing'
+            text = text.replace(marker, 'private var day: SchoolDate { ProcessInfo.processInfo.arguments.contains("--selection-snapshot") ? SimulatorSelectionFixture.day : TimetableDaySchedule.schoolDay(at: now) }')
+        if path.name == 'TimetablePresentation+Details.swift':
+            marker = '.navigationBarTitleDisplayMode(.inline)'
+            assert text.count(marker) == 3, 'Selection snapshot controls insertion point missing'
+            text = text.replace(marker, marker + '''
+        .safeAreaInset(edge: .bottom) {
+            if ProcessInfo.processInfo.arguments.contains("--selection-snapshot") { FixtureSelectionMutationControls() }
+        }
+''')
         if path.name == 'PDFRecoveryCoordinator.swift':
             marker = '    func start(_ kind: RecoveryDocumentKind) {'
             assert marker in text, 'Recovery UI fixture insertion point missing'

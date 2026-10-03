@@ -23,18 +23,31 @@ struct PDFTextFont {
 /// The supported ToUnicode subset has one-byte or two-byte code spaces,
 /// bfchar and bfrange mappings. A missing or inherited map is never guessed.
 enum PDFUnicodeMap {
-    static func read(_ data: Data) throws -> (bytes: Int, values: [Int: String]) {
+    static func read(_ data: Data, check: () throws -> Void = {}) throws -> (bytes: Int, values: [Int: String]) {
+        try check()
         guard data.count <= 2_000_000, let source = String(data: data, encoding: .ascii) else {
             throw PDFTextFailure.unsupported
         }
         let noComments = source.replacingOccurrences(of: "%[^\\r\\n]*", with: "", options: .regularExpression)
         let regex = try NSRegularExpression(pattern: "<[^<>]*>|\\[|\\]|[^\\s<>\\[\\]]+")
         let ns = noComments as NSString
-        let tokens = regex.matches(in: noComments, range: NSRange(location: 0, length: ns.length)).map { ns.substring(with: $0.range) }
+        let matches = regex.matches(in: noComments, range: NSRange(location:0,length:ns.length))
+        var tokens = [String]()
+        for (index,match) in matches.enumerated() {
+            if index % 128 == 0 { try check() }
+            tokens.append(ns.substring(with:match.range))
+        }
         guard !tokens.contains("usecmap"), !tokens.contains("beginnotdefrange"),
               !tokens.contains("beginnotdefchar") else { throw PDFTextFailure.unsupported }
-        var spaces: [(Int, Int)] = [], byteCount: Int?, values: [Int: String] = [:]
-        var i = 0
+        // The code domain is finite. Each valid disjoint range marks at most
+        // 65,536 positions in total; membership no longer rescans every range.
+        var covered = [Bool](repeating:false,count:65536)
+        var byteCount: Int?, values: [Int: String] = [:]
+        var i = 0, work = 0
+        func consume() throws {
+            work += 1
+            if work % 128 == 0 { try check() }
+        }
         func hex(_ value: String) throws -> [UInt8] {
             guard value.first == "<", value.last == ">" else { throw PDFTextFailure.unsupported }
             let body = value.dropFirst().dropLast().filter { !$0.isWhitespace }
@@ -53,8 +66,9 @@ enum PDFUnicodeMap {
             return b.reduce(0) { $0 * 256 + Int($1) }
         }
         func insert(_ key: Int, _ bytes: [UInt8]) throws {
+            try consume()
             guard values[key] == nil, values.count < 65536, bytes.count % 2 == 0,
-                  spaces.contains(where: { $0.0 <= key && key <= $0.1 }),
+                  covered.indices.contains(key), covered[key],
                   let text = String(data: Data(bytes), encoding: .utf16BigEndian), !text.isEmpty,
                   !text.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else {
                 throw PDFTextFailure.unsupported
@@ -62,11 +76,12 @@ enum PDFUnicodeMap {
             values[key] = text
         }
         func next() throws -> String {
+            try consume()
             guard i < tokens.count else { throw PDFTextFailure.unsupported }
             defer { i += 1 }; return tokens[i]
         }
         while i < tokens.count {
-            let token = tokens[i]; i += 1
+            let token = try next()
             if token == "/WMode" {
                 guard try next() == "0" else { throw PDFTextFailure.unsupported }
             }
@@ -79,8 +94,12 @@ enum PDFUnicodeMap {
                           byteCount == nil || byteCount == low.count else { throw PDFTextFailure.unsupported }
                     byteCount = low.count
                     let l = low.reduce(0) { $0 * 256 + Int($1) }, h = high.reduce(0) { $0 * 256 + Int($1) }
-                    guard l <= h, !spaces.contains(where: { l <= $0.1 && h >= $0.0 }) else { throw PDFTextFailure.unsupported }
-                    spaces.append((l, h))
+                    guard l <= h else { throw PDFTextFailure.unsupported }
+                    for code in l...h {
+                        try consume()
+                        guard !covered[code] else { throw PDFTextFailure.unsupported }
+                        covered[code] = true
+                    }
                 } else if token == "beginbfchar" {
                     let key = try code(next()), bytes = try hex(next())
                     try insert(key, bytes)

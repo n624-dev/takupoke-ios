@@ -58,6 +58,35 @@ struct HomeTodayView: View {
         return values
     }
 
+    // Selections hold lesson snapshots. Close them when their underlying
+    // accepted data or display scope changes; loading status is not a revision.
+    private var detailRevision: [String] {
+        var values = [day.iso8601, classesValue, String(international)]
+        values.append(times.current?.revision ?? "")
+        values.append(mappings.current?.revision ?? "")
+        for kind: MaterialKind in [.timetable,.changes] {
+            let source = materials.state.record(for:kind)
+            values.append(source?.digest ?? ""); values.append(source?.storedName ?? "")
+        }
+        for analysis in [schedule.timetable,schedule.events] {
+            values.append(analysis?.sourceDigest ?? "")
+            values.append(String(analysis?.version ?? 0))
+            values.append(String(analysis?.parsedAt.timeIntervalSinceReferenceDate ?? 0))
+        }
+        values.append(schedule.changes?.sourceDigest ?? "")
+        values.append(String(schedule.changes?.version ?? 0))
+        values.append(String(schedule.changes?.parsedAt.timeIntervalSinceReferenceDate ?? 0))
+        for kind in SpecialScheduleKind.allCases {
+            let source = specialSchedules.sources[kind]
+            let analysis = specialSchedules.records[kind]?.analysis
+            values.append(source?.digest ?? ""); values.append(source?.storedName ?? "")
+            values.append(analysis?.sourceDigest ?? "")
+            values.append(String(analysis?.version ?? 0))
+            values.append(String(analysis?.parsedAt.timeIntervalSinceReferenceDate ?? 0))
+        }
+        return values
+    }
+
     var body: some View {
         Section {
             VStack(alignment: .leading, spacing: 6) {
@@ -110,6 +139,9 @@ struct HomeTodayView: View {
         .onAppear { now = Date() }
         .onReceive(clock) { date in if scenePhase == .active { now = date } }
         .onChange(of: scenePhase) { phase in if phase == .active { now = Date() } }
+        .onChange(of: detailRevision) { _ in
+            selectedLesson = nil; selectedSpecial = nil; selectedChange = nil
+        }
         .sheet(item: $selectedLesson) { selection in
             NavigationStack { presentation.lessonDetail(selection) }
         }

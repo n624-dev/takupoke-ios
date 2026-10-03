@@ -39,14 +39,15 @@ enum SpecialScheduleParser {
             }
             do { try page.requireVisibleBounds(check:check) }
             catch var error as PDFParseError { error.page = index+1; throw error }
-            let header = PDFSchoolParser.key(PDFGrid.rows(page.glyphs.filter { $0.cy < page.height / 4 })
-                .map { $0.map(\.text).joined() }.joined())
+            let rawHeader = PDFGrid.rows(page.glyphs.filter { $0.cy < page.height / 4 })
+                .map { $0.map(\.text).joined() }.joined()
+            let header = PDFSchoolParser.key(rawHeader)
             guard header.contains("試験"),
                   header.contains("返却") == (kind == .examReturn) else {
                 throw PDFParseError(code: .unsupported, page: index + 1, stage: .documentHeading)
             }
             let pageYear: Int
-            do { pageYear = try PDFSchoolParser.uniqueTitleYear(header,check:check) }
+            do { pageYear = try PDFSchoolParser.uniqueTitleYear(rawHeader,check:check) }
             catch var error as PDFParseError { error.page = index+1; throw error }
             guard year == nil || year == pageYear else {
                 throw PDFParseError(code: .ambiguous, page: index + 1, stage: .yearHeading)

@@ -21,6 +21,7 @@ SHARDS = {
         "testSettingsGroupsAndCompactDataOverviews",
         "testRecoveryClosingKeepsFormalAndModelManagementIsAccessible",
         "testSpecialRecoveryShowsMergedAndDifferentDayClocksBeforeAdoption",
+        "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
     ),
     "B": (
         "testSettingsAccountDataAndFileDetails",

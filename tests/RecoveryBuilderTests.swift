@@ -4,12 +4,12 @@ import XCTest
 
 extension PDFParsingTests {
     func testMalformedAnnualNumericColumnsCannotHideBehindAValidYear() throws {
-        for malformed in ["令和100年度","令和0年度","12026年度","202年度","10000年度", "999999999999999999999999年度", "令和①⓪⓪年度", "１２０２６年度"] {
+        for malformed in ["令和100年度","令和0年度","12026年度","202年度","10000年度", "999999999999999999999999年度", "令和①⓪⓪年度", "１２０２６年度", "令 和 1 0 0 年 度", "1 2 0 2 6 年 度", "令和Ⅸ年度", "ⅯⅯⅩⅩⅥ年度", "令和ⅰ年度", "令和9年度", "㋿9年度", "令和Ⅸ年度"] {
             XCTAssertThrowsError(try PDFSchoolParser.uniqueTitleYear("令和8年度"+malformed+"前期時間割")) {
                 XCTAssertEqual(($0 as? PDFParseError)?.stage,.yearHeading)
             }
         }
-        for title in ["令和8年度令和８年度", "２０２６年度令和8年度", "令和⑧年度2026年度"] {
+        for title in ["令和8年度令和８年度", "２０２６年度令和8年度", "令和⑧年度2026年度", "令 和 8 年 度2 0 2 6 年 度", "㋿8年度2026年度"] {
             let markers = try PDFSchoolParser.yearMarkers(title)
             XCTAssertEqual(markers.count,2)
             XCTAssertTrue(markers.allSatisfy { $0.year == 2026 })
@@ -24,12 +24,12 @@ extension PDFParsingTests {
             value.glyphs += text(title,x:200,y:20)
             return value
         }
-        for title in ["令和14年度令和14年度前期時間割","2032年度令和14年度前期時間割"] {
+        for title in ["令和14年度令和14年度前期時間割","2032年度令和14年度前期時間割", "令 和 1 4 年 度2 0 3 2 年 度前期時間割", "㋿14年度2032年度前期時間割"] {
             XCTAssertEqual(try parse([page(title)],kind:.timetable).schoolYear,2032)
         }
         for title in ["令和13年度令和14年度前期時間割","令和14年度令和13年度前期時間割",
                       "令和14年度令和100年度前期時間割","令和14年度12032年度前期時間割",
-                      "令和14年度令和0年度前期時間割","令和14年度99999999999999999999年度前期時間割"] {
+                      "令和14年度令和0年度前期時間割","令和14年度99999999999999999999年度前期時間割", "令和14年度令 和 1 0 0 年 度前期時間割", "令和14年度令和Ⅸ年度前期時間割", "令和14年度令和15年度前期時間割", "令和14年度㋿15年度前期時間割"] {
             XCTAssertThrowsError(try parse([page(title)],kind:.timetable)) {
                 XCTAssertEqual(($0 as? PDFParseError)?.stage,.yearHeading)
             }
@@ -41,7 +41,7 @@ extension PDFParsingTests {
             value.glyphs += text(title,x:200,y:20)
             return value
         }
-        for title in ["令和14年度令和14年度前期時間割","2032年度令和14年度前期時間割"] {
+        for title in ["令和14年度令和14年度前期時間割","2032年度令和14年度前期時間割", "㋿14年度2032年度前期時間割"] {
             let doc = try RecoveryDocumentBuilder.build([page(title)],kind:.timetable,hash:String(repeating:"b",count:64))
             XCTAssertEqual(doc.schoolYear,2032); XCTAssertEqual(doc.yearEvidence.count,2)
             let run = try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
@@ -49,11 +49,18 @@ extension PDFParsingTests {
         }
         for title in ["令和13年度令和14年度前期時間割","令和14年度令和13年度前期時間割",
                       "令和14年度令和100年度前期時間割","令和14年度12032年度前期時間割",
-                      "令和14年度令和0年度前期時間割","令和14年度99999999999999999999年度前期時間割"] {
-            XCTAssertThrowsError(try RecoveryDocumentBuilder.build([page(title)],kind:.timetable,hash:String(repeating:"b",count:64))) {
-                XCTAssertEqual(($0 as? PDFParseError)?.stage,.yearHeading)
-            }
+                      "令和14年度令和0年度前期時間割","令和14年度99999999999999999999年度前期時間割", "令和14年度令 和 1 0 0 年 度前期時間割", "令和14年度令和Ⅸ年度前期時間割", "令和14年度令和15年度前期時間割", "令和14年度㋿15年度前期時間割"] {
+            do {
+                let doc = try RecoveryDocumentBuilder.build([page(title)],kind:.timetable,hash:String(repeating:"b",count:64))
+                let run = try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
+                XCTFail("Invalid annual marker reached \(run.state.rawValue): \(run.errors)")
+            } catch let error as PDFParseError { XCTAssertEqual(error.stage,.yearHeading) }
+
         }
+        let spaced = try RecoveryDocumentBuilder.build([page("令 和 1 4 年 度2 0 3 2 年 度前期時間割")],kind:.timetable,hash:String(repeating:"b",count:64))
+        XCTAssertEqual(spaced.schoolYear,2032); XCTAssertEqual(spaced.yearEvidence.count,2)
+        let run = try await RecoveryEngine.run(spaced,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
+        XCTAssertEqual(run.state,.awaitingConfirmation)
     }
     func testSourceIdentityIndexPreservesDuplicateAmbiguityAndCancellation() throws {
         let a = PDFGlyph(text:"A",x:10,y:20,width:4,height:8,sourceOrder:0)
@@ -236,7 +243,7 @@ extension SpecialScheduleTests {
                 result[0].glyphs += title.enumerated().map { PDFGlyph(text:String($0.element),x:20+Double($0.offset)*4,y:20,width:4,height:4) }
                 return result
             }
-            for years in ["令和8年度令和8年度","2026年度令和8年度"] {
+            for years in ["令和8年度令和8年度","2026年度令和8年度", "㋿8年度2026年度"] {
                 let doc = try RecoveryDocumentBuilder.build(pages(years),kind:kind,hash:String(repeating:"c",count:64))
                 XCTAssertEqual(doc.schoolYear,2026)
                 XCTAssertEqual(doc.yearEvidence.count,kind == .exam ? 7:2)
@@ -245,11 +252,18 @@ extension SpecialScheduleTests {
             }
             for years in ["令和7年度令和8年度","令和8年度令和7年度",
                           "令和8年度令和100年度","令和8年度12026年度",
-                          "令和8年度令和0年度","令和8年度99999999999999999999年度"] {
-                XCTAssertThrowsError(try RecoveryDocumentBuilder.build(pages(years),kind:kind,hash:String(repeating:"c",count:64))) {
-                    XCTAssertEqual(($0 as? PDFParseError)?.stage,.yearHeading)
-                }
+                          "令和8年度令和0年度","令和8年度99999999999999999999年度", "令和8年度令 和 1 0 0 年 度", "令和8年度令和Ⅸ年度", "令和8年度令和9年度", "令和8年度㋿9年度"] {
+                do {
+                    let doc = try RecoveryDocumentBuilder.build(pages(years),kind:kind,hash:String(repeating:"c",count:64))
+                    let run = try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
+                    XCTFail("Invalid annual marker reached \(run.state.rawValue): \(run.errors)")
+                } catch let error as PDFParseError { XCTAssertEqual(error.stage,.yearHeading) }
+
             }
+            let spaced = try RecoveryDocumentBuilder.build(pages("令 和 8 年 度2 0 2 6 年 度"),kind:kind,hash:String(repeating:"c",count:64))
+            XCTAssertEqual(spaced.schoolYear,2026); XCTAssertEqual(spaced.yearEvidence.count,kind == .exam ? 7:2)
+            let run = try await RecoveryEngine.run(spaced,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
+            XCTAssertEqual(run.state,.awaitingConfirmation)
         }
     }
     func testSpecialTitleYearMustBeUniqueAndEquivalentYearMarkersRemainValid() throws {
@@ -262,12 +276,12 @@ extension SpecialScheduleTests {
                 result[0].glyphs += title.enumerated().map { PDFGlyph(text:String($0.element),x:20+Double($0.offset)*4,y:20,width:4,height:8) }
                 return result
             }
-            for years in ["令和8年度令和8年度","2026年度令和8年度"] {
+            for years in ["令和8年度令和8年度","2026年度令和8年度", "令 和 8 年 度2 0 2 6 年 度", "㋿8年度2026年度"] {
                 XCTAssertEqual(try SpecialScheduleParser.parse(pages(years),kind:kind,digest:"fictional",name:"fictional.pdf").schoolYear,2026)
             }
             for years in ["令和7年度令和8年度","令和8年度令和7年度",
                           "令和8年度令和100年度","令和8年度12026年度",
-                          "令和8年度令和0年度","令和8年度99999999999999999999年度"] {
+                          "令和8年度令和0年度","令和8年度99999999999999999999年度", "令和8年度令 和 1 0 0 年 度", "令和8年度令和Ⅸ年度", "令和8年度令和9年度", "令和8年度㋿9年度"] {
                 XCTAssertThrowsError(try SpecialScheduleParser.parse(pages(years),kind:kind,digest:"fictional",name:"fictional.pdf")) {
                     XCTAssertEqual(($0 as? PDFParseError)?.stage,.yearHeading)
                 }
