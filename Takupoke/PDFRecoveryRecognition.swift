@@ -66,7 +66,8 @@ enum PDFRecoveryRecognition {
             var glyphs = [PDFGlyph](), order = 0, lineNumber = 0
             for observation in observations {
                 for line in observation.document.text.lines {
-                    guard let candidate = line.topCandidates(1).first, candidate.confidence >= 0.85 else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
+                    guard let candidate = line.topCandidates(1).first, candidate.confidence.isFinite,
+                          candidate.confidence >= 0.85, candidate.confidence <= 1 else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
                     let text = candidate.string
                     for start in text.indices {
                         let end = text.index(after:start)
