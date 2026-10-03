@@ -8,6 +8,24 @@ import subprocess
 import sys
 from picker_test_project import generate as generate_picker
 
+def instrument_native_ocr(text):
+    # Anchor the diagnostic before candidate validation without depending on
+    # the spelling or line breaks of the production safety checks.
+    marker = '                for line in observation.document.text.lines {'
+    assert text.count(marker) == 1, 'Native OCR probe insertion point missing'
+    return text.replace(marker, marker + '''
+                    if ProcessInfo.processInfo.arguments.contains("--recovery-ocr-probe") {
+                        let detail = line.topCandidates(1).map { $0.string + " confidence=" + String($0.confidence) + " box=" + String(describing: line.boundingBox) }.joined(separator: " | ")
+                        let previous = UserDefaults.standard.stringArray(forKey: "fixture.nativeOCRCandidates") ?? []
+                        UserDefaults.standard.set(previous + [detail], forKey: "fixture.nativeOCRCandidates")
+                        if let probe = line.topCandidates(1).first {
+                            UserDefaults.standard.set(probe.string, forKey: "fixture.nativeOCRText")
+                            UserDefaults.standard.set(Double(probe.confidence), forKey: "fixture.nativeOCRConfidence")
+                        }
+                        print("SYNTHETIC_NATIVE_OCR " + detail)
+                    }
+''')
+
 def generate(destination):
     repo = Path(__file__).resolve().parents[1]
     destination = Path(destination)
@@ -74,20 +92,7 @@ def generate(destination):
                 }
             }
 ''')
-            marker = '                    guard let candidate = line.topCandidates(1).first, candidate.confidence >= 0.85 else'
-            assert marker in text, 'Native OCR probe insertion point missing'
-            text = text.replace(marker, '''
-                    if ProcessInfo.processInfo.arguments.contains("--recovery-ocr-probe") {
-                        let detail = line.topCandidates(1).map { $0.string + " confidence=" + String($0.confidence) + " box=" + String(describing: line.boundingBox) }.joined(separator: " | ")
-                        let previous = UserDefaults.standard.stringArray(forKey: "fixture.nativeOCRCandidates") ?? []
-                        UserDefaults.standard.set(previous + [detail], forKey: "fixture.nativeOCRCandidates")
-                        if let probe = line.topCandidates(1).first {
-                            UserDefaults.standard.set(probe.string, forKey: "fixture.nativeOCRText")
-                            UserDefaults.standard.set(Double(probe.confidence), forKey: "fixture.nativeOCRConfidence")
-                        }
-                        print("SYNTHETIC_NATIVE_OCR " + detail)
-                    }
-''' + marker)
+            text = instrument_native_ocr(text)
         if path.name == 'TimetableView.swift':
             marker = 'struct TimetableView: View {'
             assert marker in text

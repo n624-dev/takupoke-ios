@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 import release_gate
 import ui_test_manifest as manifest
+import app_test_project
 
 
 def result_line(test, status="passed"):
@@ -21,6 +22,17 @@ def result_line(test, status="passed"):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_native_ocr_probe_preserves_actual_multiline_confidence_guard(self):
+        source = (ROOT / "Takupoke/PDFRecoveryRecognition.swift").read_text(encoding="utf-8")
+        self.assertNotIn("--recovery-ocr-probe", source)
+        generated = app_test_project.instrument_native_ocr(source)
+        guard = source.split("                    guard let candidate = ", 1)[1].split("                    let text =", 1)[0]
+        self.assertIn("candidate.confidence.isFinite", guard)
+        self.assertIn("candidate.confidence >= 0.85", guard)
+        self.assertIn("candidate.confidence <= 1", guard)
+        self.assertIn("                    guard let candidate = " + guard, generated)
+        self.assertLess(generated.index("SYNTHETIC_NATIVE_OCR"), generated.index("guard let candidate ="))
+
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8"))
         self.assertEqual(len(manifest.selected_tests("all")), 22)
