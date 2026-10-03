@@ -190,16 +190,32 @@ final class ApplicationChecks: XCTestCase {
                 "架空並記担当\(suffix)", "架空並記教室\(suffix)")).firstMatch
             _ = recoveryVisible(paired)
         }
+        let pairedFields = ["A", "B"].flatMap { suffix in
+            [app.staticTexts["架空並記科目\(suffix)"],
+             app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@",
+                "架空並記担当\(suffix)", "架空並記教室\(suffix)")).firstMatch]
+        }
+        // Align the whole pair group before measuring it. Full-list swipes
+        // used to expose the last field can move the first behind the bar.
+        for _ in 0..<10 {
+            let top = app.navigationBars["時間割の復旧"].frame.maxY + 2
+            let bottom = app.frame.maxY - 34
+            let first = pairedFields.first!.frame.minY, last = pairedFields.last!.frame.maxY
+            if first >= top && last <= bottom { break }
+            let delta = first < top ? min(140, top - first + 12) : -min(140, last - bottom + 12)
+            let start = recoveryList.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: delta)))
+        }
         var previousBottom: CGFloat = 0
         for suffix in ["A", "B"] {
             let subject = app.staticTexts["架空並記科目\(suffix)"]
             let metadata = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@",
                 "架空並記担当\(suffix)", "架空並記教室\(suffix)")).firstMatch
             for field in [subject, metadata] {
+                print("SYNTHETIC_PARALLEL_UI \(field.label) frame=\(field.frame)")
                 XCTAssertTrue(field.exists && !field.frame.isEmpty && field.frame.minY >= app.navigationBars["時間割の復旧"].frame.maxY &&
                     field.frame.maxY <= app.frame.maxY && field.frame.minY >= previousBottom - 1, app.debugDescription)
                 previousBottom = field.frame.maxY
-                print("SYNTHETIC_PARALLEL_UI \(field.label) frame=\(field.frame)")
             }
         }
         recoveryScreenshot("ios-recovery-parallel", marker: "TAKUPOKE_PARALLEL_UI_IMAGE")
