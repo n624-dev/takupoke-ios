@@ -73,7 +73,10 @@ public final class CoreAIRecoveryBridge: NSObject, @unchecked Sendable {
         let text = prompt as String
         lock.withLock {
             let task = Task {
-                do { completion(try await state.recover(text) as NSString, nil) }
+                do {
+                    let response = try await state.recover(text)
+                    completion(response as NSString, nil)
+                }
                 catch LanguageModelSession.GenerationError.decodingFailure { completion(nil, NSError(domain: "TakupokeLocalCoreAI", code: 3)) }
                 catch { completion(nil, NSError(domain: "TakupokeLocalCoreAI", code: error is CancellationError ? 1 : 2)) }
             }
