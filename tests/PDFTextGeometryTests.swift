@@ -318,7 +318,7 @@ extension PDFTextGeometryTests {
         defer { try? FileManager.default.removeItem(at:root) }
         let transform = PDFDisplayTransform(media:CGRect(x:0,y:0,width:300,height:400),rotation:0)
         let textData = syntheticPDF(content:text,simpleFont:true)
-        let hairpin = syntheticPDF(content:text+" 1 w 0 J 0 j 1000 M 80 120 m 81.1 120 l 80 120.01 l S",simpleFont:true)
+        let hairpin = syntheticPDF(content:text+" 1 w 0 J 0 j 100 M 10 120 m 81.1 120 l 78.1 120.19 l S",simpleFont:true)
         // The near-axis miter paints past x=85 although both segment endpoints
         // stop at x=81.1. A centerline-plus-pad proof must not accept this paint.
         XCTAssertGreaterThan(try paintedInk(hairpin,minimumX:85),try paintedInk(textData,minimumX:85))
