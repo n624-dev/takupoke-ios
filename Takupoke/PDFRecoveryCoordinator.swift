@@ -83,7 +83,10 @@ final class PDFRecoveryCoordinator: ObservableObject {
             if let result = result.result {
                 preview = RecoveryPreview(document:doc,result:result,source:source); status = "採用前に元のPDFと内容を確認してください。"
             } else if result.state == .awaitingModel {
-                awaitingModel = true; status = result.errors.contains("notReady") ? "OSのAIモデルが準備中です。準備が完了してから再試行してください。" : "この端末では追加のローカルAIモデルが必要です。"
+                awaitingModel = true
+                if result.errors.contains("notReady") { status = "OSのAIモデルが準備中です。準備が完了してから再試行してください。" }
+                else if result.errors.contains("disabled") { status = "端末の設定でApple Intelligenceを有効にしてから再確認してください。" }
+                else { status = "この端末では追加のローカルAIモデルが必要です。" }
                 // A temporarily unready system model never triggers an automatic download.
             } else { failure = "原文に基づいて結果を確認できませんでした。前回の正常結果を保持しています。" }
         } catch {

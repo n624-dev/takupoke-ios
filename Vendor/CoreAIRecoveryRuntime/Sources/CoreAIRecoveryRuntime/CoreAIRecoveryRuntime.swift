@@ -59,21 +59,27 @@ public final class CoreAIRecoveryBridge: NSObject, @unchecked Sendable {
     @objc public func loadModel(_ path: NSString, completion: @escaping @Sendable (NSError?) -> Void) {
         let state = state
         let modelPath = path as String
-        let task = Task {
-            do { try await state.load(URL(fileURLWithPath: modelPath, isDirectory: true)); completion(nil) }
-            catch { completion(NSError(domain: "TakupokeLocalCoreAI", code: error is CancellationError ? 1 : 2)) }
+        lock.withLock {
+            let task = Task {
+                do { try await state.load(URL(fileURLWithPath: modelPath, isDirectory: true)); completion(nil) }
+                catch { completion(NSError(domain: "TakupokeLocalCoreAI", code: error is CancellationError ? 1 : 2)) }
+            }
+            active = task
+            if cancelled { task.cancel() }
         }
-        lock.withLock { active = task; if cancelled { task.cancel() } }
     }
     @objc public func recoverCell(_ prompt: NSString, completion: @escaping @Sendable (NSString?, NSError?) -> Void) {
         let state = state
         let text = prompt as String
-        let task = Task {
-            do { completion(try await state.recover(text) as NSString, nil) }
-            catch LanguageModelSession.GenerationError.decodingFailure { completion(nil, NSError(domain: "TakupokeLocalCoreAI", code: 3)) }
-            catch { completion(nil, NSError(domain: "TakupokeLocalCoreAI", code: error is CancellationError ? 1 : 2)) }
+        lock.withLock {
+            let task = Task {
+                do { completion(try await state.recover(text) as NSString, nil) }
+                catch LanguageModelSession.GenerationError.decodingFailure { completion(nil, NSError(domain: "TakupokeLocalCoreAI", code: 3)) }
+                catch { completion(nil, NSError(domain: "TakupokeLocalCoreAI", code: error is CancellationError ? 1 : 2)) }
+            }
+            active = task
+            if cancelled { task.cancel() }
         }
-        lock.withLock { active = task; if cancelled { task.cancel() } }
     }
     @objc public func cancel() { lock.withLock { cancelled = true; active?.cancel() } }
     deinit { active?.cancel(); let state = state; Task { await state.unload() } }

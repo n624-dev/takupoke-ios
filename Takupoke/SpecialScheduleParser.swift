@@ -130,7 +130,7 @@ enum SpecialScheduleParser {
             throw PDFParseError(code: .ambiguous, page: pageNumber, stage: .lessonLines)
         }
         guard !rawLines.isEmpty else { return [] }
-        guard !rawLines.contains(where: { line in RecoveryRole.allCases.contains { role in role.labels.contains { line.hasPrefix($0 + ":") || line.hasPrefix($0 + "：") } } }) else { throw PDFParseError(code: .unsupported, page: pageNumber, stage: .lessonLines) }
+        guard !rawLines.contains(where:RecoveryRole.hasLabelPrefix) else { throw PDFParseError(code: .unsupported, page: pageNumber, stage: .lessonLines) }
         let lines = try grid.lessonFields(box, lines: rawLines)
         let covered = periodXs.enumerated().filter { box.left + 0.5 < $0.element &&
             $0.element < box.right - 0.5 }.map { $0.offset + 1 }

@@ -23,7 +23,8 @@ def main():
         package = owned / "package"
         shutil.copytree(source, package, ignore=shutil.ignore_patterns(".build", ".swiftpm"))
         command = ["xcrun", "swift", "build", "--package-path", str(package), "--scratch-path", str(owned / "build"),
-                   "--configuration", "release", "--triple", "arm64-apple-ios27.0", "--sdk", sdk]
+                   "--configuration", "release", "--product", "CoreAIRecoveryRuntime", "--disable-automatic-resolution",
+                   "--triple", "arm64-apple-ios27.0", "--sdk", sdk]
         environment = dict(os.environ, IPHONEOS_DEPLOYMENT_TARGET="27.0")
         subprocess.run(command, env=environment, check=True)
         output = subprocess.check_output(command + ["--show-bin-path"], env=environment, text=True).strip()

@@ -2,10 +2,10 @@ import Foundation
 
 /// Cancellation can be requested from the UI while the serial worker is
 /// waiting for the File Provider. No UI work is performed under file coordination.
-final class AcquisitionControl {
+final class AcquisitionControl: @unchecked Sendable {
     private let lock = NSLock()
-    var cancelled = false
-    var coordinator: NSFileCoordinator?
+    private var cancelled = false
+    private var coordinator: NSFileCoordinator?
 
     func cancel() {
         lock.lock()

@@ -256,6 +256,7 @@ enum RecoveryValidator {
                 }
             }
             if cell.bindingMode == .fixed {
+                check(!cell.lessonBindings.contains { binding in [binding.subject,binding.teacher,binding.room].contains { ids in RecoveryRole.hasLabelPrefix(ids.compactMap { sources[$0]?.text }.joined()) } }, "unboundRoleLabel")
                 check(cell.roleScopes.isEmpty && (cell.confirmedEmpty ? cell.lessonBindings.isEmpty : cell.lessonBindings.count == cell.parallelCount && Set(bindingIds).count == bindingIds.count && Set(bindingIds) == Set(cell.sourceIds).subtracting(cell.parallelSeparators.values)), "lessonBinding")
             } else {
                 check(cell.parallelSeparators.isEmpty && !cell.confirmedEmpty && cell.lessonBindings.isEmpty && (1...4).contains(cell.parallelCount) && cell.roleScopes.count == cell.parallelCount * 3 && Set(labelIds).count == labelIds.count, "roleScope")

@@ -51,16 +51,16 @@ enum PDFRecoveryRecognition {
             let scale = min(2,2048/max(bounds.width,bounds.height))
             let w = Int(ceil(bounds.width*scale)), h = Int(ceil(bounds.height*scale))
             guard w > 0, h > 0, w <= 2048, h <= 2048 else { throw PDFParseError(code:.limit) }
-            let image = page.thumbnail(of:CGSize(width:w,height:h),for:.mediaBox)
+            let image = page.thumbnail(of:CGSize(width:CGFloat(w),height:CGFloat(h)),for:.mediaBox)
             guard let cg = image.cgImage else { throw PDFParseError(code:.unreadable) }
-            var gray = [UInt8](repeating:255,count:cg.width*cg.height)
-            let made = gray.withUnsafeMutableBytes { bytes -> Bool in
-                guard let context = CGContext(data:bytes.baseAddress,width:cg.width,height:cg.height,bitsPerComponent:8,bytesPerRow:cg.width,space:CGColorSpaceCreateDeviceGray(),bitmapInfo:CGImageAlphaInfo.none.rawValue) else { return false }
-                context.setFillColor(gray:1,alpha:1); context.fill(CGRect(x:0,y:0,width:cg.width,height:cg.height)); context.draw(cg,in:CGRect(x:0,y:0,width:cg.width,height:cg.height))
+            var rgba = [UInt8](repeating:255,count:cg.width*cg.height*4)
+            let made = rgba.withUnsafeMutableBytes { bytes -> Bool in
+                guard let context = CGContext(data:bytes.baseAddress,width:cg.width,height:cg.height,bitsPerComponent:8,bytesPerRow:cg.width*4,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue) else { return false }
+                context.setFillColor(gray:1,alpha:1); context.fill(CGRect(x:0,y:0,width:CGFloat(cg.width),height:CGFloat(cg.height))); context.draw(cg,in:CGRect(x:0,y:0,width:CGFloat(cg.width),height:CGFloat(cg.height)))
                 return true
             }
             guard made else { throw PDFParseError(code:.unreadable) }
-            let raster = RecoveryRasterGrid(width:cg.width,height:cg.height,grayscale:gray)
+            let raster = try RecoveryRasterGrid.fromRGBA(width:cg.width,height:cg.height,pixels:rgba,check:check)
             let observations = try await RecognizeDocumentsRequest().perform(on:cg)
             try check(); try Task.checkCancellation()
             var glyphs = [PDFGlyph](), order = 0, lineNumber = 0
@@ -72,9 +72,9 @@ enum PDFRecoveryRecognition {
                         let end = text.index(after:start)
                         guard let rectangle = candidate.boundingBox(for:start..<end) else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
                         let b = rectangle.boundingBox.cgRect
-                        let rect = CGRect(x:b.minX*Double(cg.width),y:(1-b.maxY)*Double(cg.height),width:b.width*Double(cg.width),height:b.height*Double(cg.height))
+                        let rect = CGRect(x:b.minX*CGFloat(cg.width),y:(1-b.maxY)*CGFloat(cg.height),width:b.width*CGFloat(cg.width),height:b.height*CGFloat(cg.height))
                         guard rect.width > 0, rect.height > 0, rect.minX >= 0, rect.minY >= 0 else { throw PDFParseError(code:.ambiguous) }
-                        glyphs.append(PDFGlyph(text:String(text[start..<end]),x:rect.minX,y:rect.minY,width:rect.width,height:rect.height,sourceLine:lineNumber,sourceOrder:order)); order += 1
+                        glyphs.append(PDFGlyph(text:String(text[start..<end]),x:Double(rect.minX),y:Double(rect.minY),width:Double(rect.width),height:Double(rect.height),sourceLine:lineNumber,sourceOrder:order)); order += 1
                     }
                     lineNumber += 1
                 }

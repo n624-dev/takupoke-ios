@@ -59,7 +59,7 @@ extension PDFSchoolParser {
                     cell.detectedLines = lines.count
                     guard lines.reduce(0, { $0 + $1.utf8.count }) <= 4096 else { throw PDFParseError(code: .limit, page: 1) }
                     guard lines.count <= 3, !lines[0].isEmpty else { throw PDFParseError(code: .ambiguous, page: 1, stage: .lessonLines, cell: cell) }
-                    guard !lines.contains(where: { line in RecoveryRole.allCases.contains { role in role.labels.contains { line.hasPrefix($0 + ":") || line.hasPrefix($0 + "：") } } }) else { throw PDFParseError(code: .unsupported, stage: .lessonLines, cell: cell) }
+                    guard !lines.contains(where:RecoveryRole.hasLabelPrefix) else { throw PDFParseError(code: .unsupported, stage: .lessonLines, cell: cell) }
                     let fields = try grid.lessonFields(box, lines: lines)
                     let parts = fields.map { $0.replacingOccurrences(of: "･", with: "・").components(separatedBy: "・") }
                     let parallel = lines.count == 3 && parts.allSatisfy { $0.count == 2 }

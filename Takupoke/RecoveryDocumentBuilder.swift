@@ -219,7 +219,7 @@ enum RecoveryDocumentBuilder {
                                     cell.roleScopes.append(RecoveryRoleScope(lessonIndex:lessonIndex,role:item.0,page:number,box:scope,labelSourceIds:[labelId],labelRegion:region(labelBox,axis:.left),proof:.inlineLabel,emptyVerified:item.2.isEmpty && (!fromOCR.contains(number) || rasters[number]?.isBlank(scope) == true)))
                                 }
                             } else {
-                                guard cell.bindingMode == .fixed else { throw PDFParseError(code:.ambiguous) }
+                                guard cell.bindingMode == .fixed, !rows.contains(where:{ RecoveryRole.hasLabelPrefix($0.map(\.text).joined()) }) else { throw PDFParseError(code:.ambiguous,stage:.lessonLines) }
                                 let fields = try grid.lessonFields(subBox,lines:lines)
                                 let parallel = fields.allSatisfy { $0.replacingOccurrences(of:"･",with:"・").components(separatedBy:"・").count == 2 }
                                 if parallel {

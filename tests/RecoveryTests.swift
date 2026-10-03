@@ -67,6 +67,12 @@ final class RecoveryTests: XCTestCase {
         XCTAssertTrue(retry(nil, nil, PDFParseError(code: .storage), 8)); XCTAssertTrue(retry(nil, nil, nil, nil)); XCTAssertTrue(retry("old", 8, PDFParseError(code: .cancelled), 8))
         XCTAssertTrue(retry("current", 7, PDFParseError(code: .unsupported), 7)); XCTAssertFalse(retry("old", 8, PDFParseError(code: .unsupported), 8)); XCTAssertFalse(retry("current", 8, nil, 8))
     }
+    func testFixedBindingCannotHideAnExplicitRoleLabel() {
+        var (d,r) = fixture()
+        d.sources[d.sources.firstIndex { $0.id == "subject" }!].text = "教員:架空担当"
+        r.cells[0].lessons[0].subject.value = "教員:架空担当"
+        XCTAssertTrue(RecoveryValidator.validate(d,r).errors.contains("unboundRoleLabel"))
+    }
     func testManifestRequiresKnownBackendAndMinimumOS() {
         var m = RecoveryModelManifest(modelId: "synthetic", version: "1", url: "https://models.example.invalid/model", size: 1, sha256: String(repeating: "a", count: 64), runtime: "llamaCpp", minimumOs: "26.1", minimumMemory: 1, recommendedBackend: "Metal", license: "test-only", validated: true)
         XCTAssertTrue(m.isUsable(runtime: "llamaCpp", availableMemory: 1)); XCTAssertFalse(m.supportsOs("26.0")); XCTAssertTrue(m.supportsOs("27")); m.recommendedBackend = "BOGUS"; XCTAssertFalse(m.isUsable(runtime: "llamaCpp", availableMemory: 1))
@@ -193,6 +199,21 @@ final class RecoveryTests: XCTestCase {
         XCTAssertEqual(RecoveryValidator.validate(d,r).errors,[])
         d.sources[d.sources.firstIndex { $0.id == "label-teacher" }!].text = "教室:"
         XCTAssertTrue(RecoveryValidator.validate(d,r).errors.contains("roleEvidence"))
+    }
+    func testFaintOrColoredUnrecognizedInkCannotProveAnEmptyRasterCell() throws {
+        let box = RecoveryBox(x:0,y:0,width:40,height:40)
+        let colors: [[UInt8]] = [[254,254,254,255],[255,255,254,255],[255,0,0,255],[255,255,0,255]]
+        for color in colors {
+            var pixels = [UInt8](repeating:255,count:40*40*4)
+            pixels.replaceSubrange((20*40+20)*4..<(20*40+20)*4+4,with:color)
+            let raster = try RecoveryRasterGrid.fromRGBA(width:40,height:40,pixels:pixels)
+            XCTAssertFalse(raster.isBlank(box),"color \(color)")
+            XCTAssertTrue(raster.hasUncoveredInk(box,text:[],rules:[]),"color \(color)")
+        }
+        let white = try RecoveryRasterGrid.fromRGBA(width:40,height:40,pixels:[UInt8](repeating:255,count:40*40*4))
+        XCTAssertTrue(white.isBlank(box)); XCTAssertFalse(white.hasUncoveredInk(box,text:[],rules:[]))
+        XCTAssertFalse(RecoveryRasterGrid(width:40,height:40,grayscale:[]).isBlank(box))
+        XCTAssertTrue(RecoveryRasterGrid(width:40,height:40,grayscale:[]).hasUncoveredInk(box,text:[],rules:[]))
     }
     func testRasterRulesRetainLinesTouchingRightAndBottomEdge() throws {
         var bytes = [UInt8](repeating:255,count:50*50)

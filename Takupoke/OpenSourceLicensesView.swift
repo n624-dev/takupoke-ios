@@ -4,6 +4,19 @@ private enum OpenSourceLicense: String, CaseIterable, Identifiable {
     case zipFoundation = "ZIPFoundation"
     case denpaSchedule = "denpa-schedule-csv"
     case grdb = "GRDB"
+    case llama = "llama.cpp"
+    case coreAI = "CoreAI"
+    case xgrammar = "XGrammar"
+    case picojson = "picojson"
+    case dlpack = "DLPack"
+    case transformers = "SwiftTransformers"
+    case jinja = "Jinja"
+    case collections = "SwiftCollections"
+    case crypto = "SwiftCrypto"
+    case boringSSL = "BoringSSL"
+    case yyjson = "yyjson"
+    case huggingFace = "SwiftHuggingFace"
+    case eventSource = "EventSource"
 
     var id: String { rawValue }
     var title: String { self == .grdb ? "GRDB.swift" : rawValue }

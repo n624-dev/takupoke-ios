@@ -42,6 +42,15 @@ extension PDFParsingTests {
         XCTAssertEqual(Set(cell.roleScopes.map(\.role)),Set(RecoveryRole.allCases))
         XCTAssertNil(RecoveryRules.recover(d,cell))
     }
+    func testPartialReorderedRoleLabelsCannotBecomeFixedOrParallelBindings() {
+        for parallel in [false,true] {
+            var page = recoveryTimetablePage()
+            page.glyphs.removeAll { 100 <= $0.cx && $0.cx < 140 && 100 < $0.cy && $0.cy < 160 }
+            let lines = parallel ? ["教員:A・B","C・D","E・F"] : ["教員:A","C","E"]
+            for (i,line) in lines.enumerated() { page.glyphs += text(line,x:102,y:110+Double(i)*18,step:3) }
+            XCTAssertThrowsError(try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:String(repeating:"b",count:64)))
+        }
+    }
     func testStrictMissingTeacherDoesNotShiftRoomIntoTeacher() throws {
         var p = timetable(); p.glyphs.removeAll { $0.cy == 130 && $0.cx >= 100 }
         let result = try parse([p],kind:.timetable)

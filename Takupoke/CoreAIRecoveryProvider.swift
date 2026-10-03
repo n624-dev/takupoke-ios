@@ -20,8 +20,12 @@ private final class CoreAIRecoveryHandle: @unchecked Sendable {
             try Task.checkCancellation()
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                 tk_coreai_load(pointer, modelURL.path) { error in
-                    if let error { continuation.resume(throwing: error.code == 1 ? CancellationError() : CoreAIRuntimeError.unavailable) }
-                    else { continuation.resume() }
+                    if let error {
+                        let failure: any Error
+                        if (error as NSError).code == 1 { failure = CancellationError() }
+                        else { failure = CoreAIRuntimeError.unavailable }
+                        continuation.resume(throwing: failure)
+                    } else { continuation.resume() }
                 }
             }
             try Task.checkCancellation()
@@ -33,7 +37,12 @@ private final class CoreAIRecoveryHandle: @unchecked Sendable {
             return try await withCheckedThrowingContinuation { continuation in
                 tk_coreai_recover(pointer, prompt) { output, error in
                     if let error {
-                        let failure: Error = error.code == 1 ? CancellationError() : error.code == 3 ? RecoveryProviderError.invalidOutput : CoreAIRuntimeError.unavailable
+                        let failure: any Error
+                        switch (error as NSError).code {
+                        case 1: failure = CancellationError()
+                        case 3: failure = RecoveryProviderError.invalidOutput
+                        default: failure = CoreAIRuntimeError.unavailable
+                        }
                         continuation.resume(throwing: failure)
                     }
                     else if let output, let data = output.data(using: .utf8), data.count <= 16384 { continuation.resume(returning: data) }

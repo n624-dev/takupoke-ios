@@ -2,6 +2,9 @@ import Foundation
 import SwiftUI
 import UIKit
 import ZIPFoundation
+#if canImport(CLlamaRecovery)
+import CLlamaRecovery
+#endif
 
 /// Only application-reviewed manifests are eligible for download. This API
 /// accepts model bytes and never accepts PDFs, prompts, or school information.
@@ -21,9 +24,10 @@ final class LocalRecoveryModelManager: ObservableObject {
     private var root: URL {
         FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("LocalRecoveryModels",isDirectory:true)
     }
-    private var store: RecoveryModelStore { RecoveryModelStore(root:root) }
+    private lazy var store = RecoveryModelStore(root:root)
     func refresh() async {
         guard !busy, leases.isEmpty else { return }
+        busy = true; defer { busy = false }
         do {
             let store = self.store; try await store.cleanupAbandonedFiles(inUse:[])
             var next = [String:RecoveryModelManifest]()
@@ -61,7 +65,7 @@ final class LocalRecoveryModelManager: ObservableObject {
                 try control.check(); try Task.checkCancellation()
                 guard UIApplication.shared.applicationState == .active else { throw CancellationError() }
                 let major = ProcessInfo.processInfo.operatingSystemVersion
-                let memory = Int64(ProcessInfo.processInfo.physicalMemory)
+                let memory = Self.availableMemory()
                 _ = try await store.install(manifest,runtime:manifest.runtime,availableMemory:memory,osSupported:manifest.supportsOs("\(major.majorVersion).\(major.minorVersion).\(major.patchVersion)"),foreground:true,openModel:{ _ in
                     guard let stream = InputStream(url:temporary) else { throw RecoveryModelStore.Failure.invalidModel }; return stream
                 },prepareAndSmokeTest:{ url in
@@ -71,13 +75,15 @@ final class LocalRecoveryModelManager: ObservableObject {
                         if !FileManager.default.fileExists(atPath:bundle.path) {
                             try await Task.detached(priority:.userInitiated) { try Self.prepareCoreAI(archive:url,bundle:bundle,check:{ try control.check() }) }.value
                         }
+                        guard Self.availableMemory() >= manifest.minimumMemory else { throw RecoveryModelStore.Failure.unavailable }
                         try await CoreAIRecoveryProvider.smokeTest(bundleURL:bundle)
                         #else
                         throw RecoveryModelStore.Failure.unavailable
                         #endif
                     } else if manifest.runtime == "llamaCpp" {
                         #if canImport(CLlamaRecovery)
-                        try await Task.detached(priority:.userInitiated) { try LocalLlamaRecoveryProvider.smokeTest(url:url) }.value
+                        guard Self.availableMemory() >= manifest.minimumMemory else { throw RecoveryModelStore.Failure.unavailable }
+                        try await Task.detached(priority:.userInitiated) { try LocalLlamaRecoveryProvider.smokeTest(url:url,check:{ try control.check() }) }.value
                         #else
                         throw RecoveryModelStore.Failure.unavailable
                         #endif
@@ -86,6 +92,13 @@ final class LocalRecoveryModelManager: ObservableObject {
                 message = "AIモデルを準備しました。"; installed[manifest.runtime] = manifest
             } catch { message = "AIモデルを準備できませんでした。前のモデルを保持しています。" }
         }
+    }
+    private nonisolated static func availableMemory() -> Int64 {
+        #if canImport(CLlamaRecovery)
+        return Int64(clamping:tk_llama_available_memory())
+        #else
+        return 0
+        #endif
     }
     private nonisolated static func prepareCoreAI(archive url: URL,bundle: URL,check: () throws -> Void) throws {
         let archive = try Archive(url:url,accessMode:.read)

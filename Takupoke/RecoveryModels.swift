@@ -25,7 +25,15 @@ struct RecoveryClockBinding: Codable, Equatable, Sendable {
 struct RecoveryLessonBinding: Codable, Equatable, Sendable { var subject: [String]; var teacher: [String]; var room: [String] }
 enum RecoveryBindingMode: String, Codable, Sendable { case fixed, roleProposal }
 enum RecoveryRole: String, Codable, CaseIterable, Sendable { case subject, teacher, room
-    var labels: [String] { switch self { case .subject: return ["科目", "科目名", "授業名"]; case .teacher: return ["教員", "教員名", "担当", "担当者"]; case .room: return ["教室", "教室名", "会場"] } }
+    var labels: [String] { switch self { case .subject: return ["科目", "科目名", "授業名"]; case .teacher: return ["教員", "教員名", "教師名", "担当", "担当者", "担当教員"]; case .room: return ["教室", "教室名", "会場"] } }
+}
+extension RecoveryRole {
+    static func hasLabelPrefix(_ value: String) -> Bool {
+        let compact = value.filter { !$0.isWhitespace }.replacingOccurrences(of:"･",with:"・")
+        return compact.components(separatedBy:"・").contains { part in
+            allCases.flatMap(\.labels).contains { part.hasPrefix($0+":") || part.hasPrefix($0+"：") }
+        }
+    }
 }
 enum RecoveryRoleProof: String, Codable, Sendable { case inlineLabel, columnHeader }
 struct RecoveryRoleScope: Codable, Equatable, Sendable {
