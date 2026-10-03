@@ -5,10 +5,12 @@ enum PDFSchoolParser {
     struct YearMarker { let year: Int; let range: Range<String.Index>; let isReiwa: Bool }
     static func yearMarkers(_ header: String,check: () throws -> Void = {}) throws -> [YearMarker] {
         var markers = [YearMarker](), remainder = header.startIndex..<header.endIndex
-        while let range = header.range(of:"(?<![0-9])(?:令和[0-9]{1,2}|[0-9]{4})年度",options:.regularExpression,range:remainder) {
+        while let range = header.range(of:"(?<![\\p{N}])(?:令和[\\p{N}]+|[\\p{N}]+)年度",options:.regularExpression,range:remainder) {
             try check()
             let token = header[range], era = token.hasPrefix("令和")
-            guard let value = Int(era ? token.dropFirst(2).dropLast(2) : token.dropLast(2)),
+            let digits = String(era ? token.dropFirst(2).dropLast(2) : token.dropLast(2)).precomposedStringWithCompatibilityMapping
+            guard (era ? (1...2).contains(digits.count) : digits.count == 4),
+                  digits.utf8.allSatisfy({ (48...57).contains($0) }), let value = Int(digits),
                   !era || (1...99).contains(value) else { throw PDFParseError(code:.unsupported,stage:.yearHeading) }
             let year = era ? 2018+value:value
             guard (1900...9998).contains(year) else { throw PDFParseError(code:.unsupported,stage:.yearHeading) }

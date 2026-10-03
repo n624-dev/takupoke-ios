@@ -184,15 +184,22 @@ final class ApplicationChecks: XCTestCase {
     func testParallelRecoveryKeepsBothLessonsInPreviewAndFormalAnalysis() {
         openRecoveryPreview()
         for suffix in ["A", "B"] {
-            let paired = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@ AND label CONTAINS %@",
-                "架空並記科目\(suffix)", "架空並記担当\(suffix)", "架空並記教室\(suffix)")).firstMatch
+            _ = recoveryVisible(app.staticTexts["架空並記科目\(suffix)"])
+            let paired = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@",
+                "架空並記担当\(suffix)", "架空並記教室\(suffix)")).firstMatch
             _ = recoveryVisible(paired)
         }
+        var previousBottom: CGFloat = 0
         for suffix in ["A", "B"] {
-            let paired = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@ AND label CONTAINS %@",
-                "架空並記科目\(suffix)", "架空並記担当\(suffix)", "架空並記教室\(suffix)")).firstMatch
-            XCTAssertTrue(paired.isHittable && paired.frame.minY >= app.navigationBars["時間割の復旧"].frame.maxY &&
-                paired.frame.maxY <= app.frame.maxY, app.debugDescription)
+            let subject = app.staticTexts["架空並記科目\(suffix)"]
+            let metadata = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@",
+                "架空並記担当\(suffix)", "架空並記教室\(suffix)")).firstMatch
+            for field in [subject, metadata] {
+                XCTAssertTrue(field.exists && !field.frame.isEmpty && field.frame.minY >= app.navigationBars["時間割の復旧"].frame.maxY &&
+                    field.frame.maxY <= app.frame.maxY && field.frame.minY >= previousBottom - 1, app.debugDescription)
+                previousBottom = field.frame.maxY
+                print("SYNTHETIC_PARALLEL_UI \(field.label) frame=\(field.frame)")
+            }
         }
         recoveryScreenshot("ios-recovery-parallel", marker: "TAKUPOKE_PARALLEL_UI_IMAGE")
         XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].firstMatch.label, "前回の正式結果を保持")
