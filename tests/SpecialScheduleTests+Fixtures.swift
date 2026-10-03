@@ -7,7 +7,7 @@ import GRDB
 extension SpecialScheduleTests {
     func examPage(_ number: Int, omitLastTime: Bool = false,
                           mergedFirstTwo: Bool = false,
-                          metadataOnFirstCell: Bool = false) -> PDFPageLayout {
+                          metadataOnFirstCell: Bool = false, timingOverride: [String]? = nil) -> PDFPageLayout {
         var glyphs: [PDFGlyph] = []
         var lines: [PDFRule] = []
         var sourceLine = 0
@@ -59,7 +59,7 @@ extension SpecialScheduleTests {
                 write("架空教室A", x: 106, y: 145, step: 5, height: 4)
             }
         }
-        let times = ["8:50~9:35", "9:50~10:35", "10:50~11:35",
+        let times = timingOverride ?? ["8:50~9:35", "9:50~10:35", "10:50~11:35",
                      "11:50~12:35", "13:20~14:05", "14:20~15:05"]
         for (index, time) in times.enumerated() where !omitLastTime || index != 5 {
             write("\(index + 1)時限目\(time)", x: 20, y: 470 + Double(index) * 15)
@@ -68,7 +68,7 @@ extension SpecialScheduleTests {
         return PDFPageLayout(width: 850, height: 600, glyphs: glyphs, lines: lines)
     }
 
-    func returnPageWithSplitCell() -> PDFPageLayout {
+    func returnPageWithSplitCell(timingOverride: [String]? = nil, dateDays: [Int] = [1,2,3,4,5]) -> PDFPageLayout {
         var glyphs: [PDFGlyph] = []
         var lines: [PDFRule] = []
         func write(_ value: String, x: Double, y: Double, step: Double = 4, height: Double = 4) {
@@ -79,7 +79,7 @@ extension SpecialScheduleTests {
         }
         write("令和8年度 試験返却時間割", x: 20, y: 20)
         for day in 0..<5 {
-            write("4/\(day + 1)", x: 150 + Double(day * 8) * 40, y: 70)
+            write("4/\(dateDays[day])", x: 150 + Double(day * 8) * 40, y: 70)
             for period in 0..<8 {
                 write("\(period + 1)", x: 150 + Double(day * 8 + period) * 40, y: 100)
             }
@@ -129,9 +129,9 @@ extension SpecialScheduleTests {
         write("架空基準教室K", x: 342, y: 141, step: 3)
         write("架空基準科目K", x: 342, y: 130, step: 3)
         write("架空科目E", x: 622, y: 130, step: 3)
-        write("4月1日の時間割は以下のとおりです。", x: 1300, y: 650)
-        write("4月2日~5日は通常の授業日どおりの授業時間です。", x: 1300, y: 670)
-        let times = ["7:00~7:40", "7:50~8:30", "8:40~9:20", "9:30~10:10",
+        write("4月\(dateDays[0])日の時間割は以下のとおりです。", x: 1300, y: 650)
+        write("4月\(dateDays[1])日~\(dateDays[4])日は通常の授業日どおりの授業時間です。", x: 1300, y: 670)
+        let times = timingOverride ?? ["7:00~7:40", "7:50~8:30", "8:40~9:20", "9:30~10:10",
                      "10:30~11:10", "11:10~11:50", "12:00~12:40", "12:40~13:20"]
         for (index, time) in times.enumerated() {
             write("\(index + 1)時限目\(time)", x: 20, y: 760 + Double(index + 1) * 15)

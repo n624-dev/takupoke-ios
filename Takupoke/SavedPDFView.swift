@@ -19,6 +19,7 @@ private struct LocalPDFCanvas: UIViewRepresentable {
     let url: URL
     func makeUIView(context: Context) -> PDFView {
         let view = PDFView()
+        view.displayBox = .cropBox
         view.autoScales = true
         updateUIView(view, context: context)
         return view

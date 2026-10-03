@@ -122,7 +122,7 @@ enum SpecialScheduleParser {
 
     static func lessons(in page: PDFPageLayout, box: PDFBox, date: SchoolDate,
                                 className: String, period: Int, periodXs: [Double],
-                                times: Times, pageNumber: Int) throws -> [SpecialScheduleLesson] {
+                                times: Times, pageNumber: Int, referenceBoxes: [PDFBox]) throws -> [SpecialScheduleLesson] {
         let grid = PDFGrid(page: page)
         let rawLines = try grid.timetableText(box).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
@@ -131,7 +131,7 @@ enum SpecialScheduleParser {
         }
         guard !rawLines.isEmpty else { return [] }
         guard !rawLines.contains(where:RecoveryRole.hasLabelPrefix) else { throw PDFParseError(code: .unsupported, page: pageNumber, stage: .lessonLines) }
-        let lines = try grid.lessonFields(box, lines: rawLines)
+        let lines = try grid.lessonFields(box, lines: rawLines,referenceBoxes:referenceBoxes)
         let covered = periodXs.enumerated().filter { box.left + 0.5 < $0.element &&
             $0.element < box.right - 0.5 }.map { $0.offset + 1 }
         guard let first = covered.first, let last = covered.last, covered.contains(period) else {

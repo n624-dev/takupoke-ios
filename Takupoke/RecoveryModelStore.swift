@@ -116,12 +116,19 @@ actor RecoveryModelStore {
         }
     }
 
-    func active(runtime: String) throws -> (RecoveryModelManifest, URL)? {
-        guard ["coreAI", "llamaCpp"].contains(runtime) else { throw Failure.unavailable }
+    /// Management must retain the durable identity even when model files need
+    /// repair, so a partial deletion can still be retried after a restart.
+    func storedManifest(runtime: String) throws -> RecoveryModelManifest? {
+        guard ["coreAI", "llamaCpp", "liteRtLm", "foundryLocal"].contains(runtime) else { throw Failure.unavailable }
         let pointer = root.appendingPathComponent("active."+runtime+".json")
         guard FileManager.default.fileExists(atPath:pointer.path) else { return nil }
-        let m = try JSONDecoder().decode(RecoveryModelManifest.self,from:Data(contentsOf:pointer))
-        guard m.isUsable(runtime:runtime,availableMemory:Int64.max) else { throw Failure.invalidModel }
+        let manifest = try JSONDecoder().decode(RecoveryModelManifest.self,from:Data(contentsOf:pointer))
+        guard manifest.isUsable(runtime:runtime,availableMemory:Int64.max) else { throw Failure.invalidModel }
+        return manifest
+    }
+    func active(runtime: String) throws -> (RecoveryModelManifest, URL)? {
+        guard ["coreAI", "llamaCpp"].contains(runtime) else { throw Failure.unavailable }
+        guard let m = try storedManifest(runtime:runtime) else { return nil }
         let url = root.appendingPathComponent(runtime+"-"+m.modelId+"-"+m.version+"-"+m.sha256+".model")
         guard let size = try url.resourceValues(forKeys:[.fileSizeKey]).fileSize, Int64(size) == m.size else { throw Failure.invalidModel }
         if runtime == "coreAI" {
@@ -131,16 +138,19 @@ actor RecoveryModelStore {
         }
         return (m,url)
     }
-    func delete(runtime: String) throws {
+    func delete(runtime: String, removeItem: @Sendable (URL) throws -> Void = { try FileManager.default.removeItem(at:$0) }) throws {
         guard !installing, ["coreAI", "llamaCpp", "liteRtLm", "foundryLocal"].contains(runtime) else { throw Failure.unavailable }
         let manager = FileManager.default; let pointer = root.appendingPathComponent("active." + runtime + ".json")
         guard manager.fileExists(atPath: pointer.path) else { return }
         let manifest = try JSONDecoder().decode(RecoveryModelManifest.self, from: Data(contentsOf: pointer))
         guard manifest.isUsable(runtime: runtime, availableMemory: Int64.max) else { throw Failure.invalidModel }
-        try manager.removeItem(at: pointer)
         let target = root.appendingPathComponent(runtime + "-" + manifest.modelId + "-" + manifest.version + "-" + manifest.sha256 + ".model")
-        if manager.fileExists(atPath: target.path) { try manager.removeItem(at: target) }
-        let bundle = target.appendingPathExtension("bundle"); if manager.fileExists(atPath:bundle.path) { try manager.removeItem(at:bundle) }
+        let bundle = target.appendingPathExtension("bundle")
+        if manager.fileExists(atPath:bundle.path) { try removeItem(bundle) }
+        if manager.fileExists(atPath:target.path) { try removeItem(target) }
+        // Keep the durable model identity while any owned removal can still fail.
+        // A retry can remove the remaining files even after a partial I/O failure.
+        try removeItem(pointer)
     }
 }
 #endif

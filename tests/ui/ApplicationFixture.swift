@@ -445,6 +445,48 @@ enum SimulatorRecoveryOCRFixture {
             return "実raster・上端座標・罫線・未読インク・空欄検証済み"
         } catch { return "実raster検証失敗: " + String(describing: error) }
     }
+    nonisolated static func cropRasterProof(_ input: RecoveryRasterGrid, clipped: Bool) -> String {
+        let expectedHeight = clipped ? 400 : 1600
+        guard input.width == 1200, input.height == expectedHeight else {
+            return "CropBox寸法不一致: \(input.width)x\(input.height), expected=1200x\(expectedHeight)"
+        }
+        let header = RecoveryBox(x: 20, y: 40, width: 1100, height: 160)
+        guard input.hasUncoveredInk(header, text: [], rules: []) else { return "CropBoxの上部本文が欠落" }
+        if clipped {
+            let lowerVisible = RecoveryBox(x: 400, y: 320, width: 400, height: 60)
+            guard input.isBlank(lowerVisible), !input.hasUncoveredInk(lowerVisible, text: [], rules: []) else { return "CropBox外のfooterが混入" }
+        } else {
+            guard input.dark(600, 1380) else { return "全ページの架空footerが描画されていない" }
+        }
+        return clipped ? "CropBox1200x400・footer除外" : "MediaBox1200x1600・footer存在"
+    }
+    private static func checkCrop(_ root: URL, image: UIImage, size: CGSize) async throws {
+        let full = root.appendingPathComponent("fictional-crop-full.pdf")
+        try UIGraphicsPDFRenderer(bounds: CGRect(origin: .zero, size: size)).writePDF(to: full) { context in
+            context.beginPage(); image.draw(in: CGRect(origin: .zero, size: size))
+            // A known footer marker is below the header-only CropBox.
+            context.cgContext.setFillColor(UIColor.black.cgColor)
+            context.cgContext.fill(CGRect(x: 250, y: 660, width: 100, height: 60))
+        }
+        guard let document = PDFDocument(url: full), let page = document.page(at: 0) else { throw PDFParseError(code: .unreadable) }
+        page.setBounds(CGRect(x: 0, y: 600, width: 600, height: 200), for: .cropBox)
+        let cropped = root.appendingPathComponent("fictional-crop-header.pdf")
+        guard document.write(to: cropped), let saved = PDFDocument(url: cropped)?.page(at: 0),
+              saved.bounds(for: .mediaBox).size == size, saved.bounds(for: .cropBox) == CGRect(x: 0, y: 600, width: 600, height: 200) else { throw PDFParseError(code: .ambiguous) }
+        defer {
+            UserDefaults.standard.removeObject(forKey: "fixture.nativeCropMode")
+            UserDefaults.standard.removeObject(forKey: "fixture.nativeCropRasterProof")
+        }
+        for (url, mode, expected) in [(full, "full", "MediaBox1200x1600・footer存在"), (cropped, "cropped", "CropBox1200x400・footer除外")] {
+            UserDefaults.standard.set(mode, forKey: "fixture.nativeCropMode")
+            UserDefaults.standard.removeObject(forKey: "fixture.nativeCropRasterProof")
+            do { _ = try await PDFRecoveryRecognition.layouts(url, only: [1], check: {}) }
+            catch { print("SYNTHETIC_NATIVE_CROP recognition ended: " + String(describing: error)) }
+            let observed = UserDefaults.standard.string(forKey: "fixture.nativeCropRasterProof") ?? "未取得"
+            guard observed == expected else { throw NSError(domain: "SyntheticNativeCrop", code: 1, userInfo: [NSLocalizedDescriptionKey: observed]) }
+            print("SYNTHETIC_NATIVE_CROP_RESULT " + observed)
+        }
+    }
     static func check() async throws -> String {
         for key in ["fixture.nativeOCRCandidates", "fixture.nativeOCRText", "fixture.nativeOCRConfidence", "fixture.nativeRasterProof"] { UserDefaults.standard.removeObject(forKey: key) }
 
@@ -462,6 +504,8 @@ enum SimulatorRecoveryOCRFixture {
             context.cgContext.fill(CGRect(x: 0, y: 140, width: 1, height: 361))
             context.cgContext.fill(CGRect(x: 599, y: 140, width: 1, height: 361))
         }
+        try await checkCrop(root, image: image, size: size)
+        for key in ["fixture.nativeOCRCandidates", "fixture.nativeOCRText", "fixture.nativeOCRConfidence", "fixture.nativeRasterProof"] { UserDefaults.standard.removeObject(forKey: key) }
         let url = root.appendingPathComponent("fictional-image-only.pdf")
         try UIGraphicsPDFRenderer(bounds: CGRect(origin: .zero, size: size)).writePDF(to: url) { context in
             context.beginPage(); image.draw(in: CGRect(origin: .zero, size: size))
@@ -479,7 +523,7 @@ enum SimulatorRecoveryOCRFixture {
                text == "これは架空の時間割です", let confidence, confidence.isFinite, confidence >= 0, confidence < 0.85,
                raster == "実raster・上端座標・罫線・未読インク・空欄検証済み" {
                 print("SYNTHETIC_NATIVE_OCR safelyRejected confidence=\(confidence), rasterProof=\(raster!)")
-                return "低信頼OCRを安全拒否・実raster・上端座標・罫線・未読インク・空欄検証済み; confidence=\(confidence)"
+                return "CropBox/footer検証済み; 低信頼OCRを安全拒否・実raster・上端座標・罫線・未読インク・空欄検証済み; confidence=\(confidence)"
             }
             throw NSError(domain: "SyntheticNativeOCR", code: 1, userInfo: [NSLocalizedDescriptionKey: String(describing: error) + "; candidates=" + candidates.joined(separator: " | ") + "; raster=" + (raster ?? "未取得")])
         }
@@ -504,6 +548,6 @@ enum SimulatorRecoveryOCRFixture {
               !raster.hasUncoveredInk(blankRegion, text: [], rules: layout.lines) else {
             throw NSError(domain: "SyntheticOCRProbe", code: 2, userInfo: [NSLocalizedDescriptionKey: "ink: text=\(raster.hasUncoveredInk(textRegion, text: [], rules: layout.lines)), rule=\(raster.hasUncoveredInk(ruleRegion, text: [], rules: layout.lines)), blank=\(raster.isBlank(blankRegion)), blankInk=\(raster.hasUncoveredInk(blankRegion, text: [], rules: layout.lines))"])
         }
-        return "OCR・上端座標・罫線・未読インク検証済み"
+        return "CropBox/footer検証済み; OCR・上端座標・罫線・未読インク検証済み"
     }
 }

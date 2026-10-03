@@ -112,19 +112,35 @@ struct PDFGrid {
             band.sorted { $0.left < $1.left }.flatMap(\.glyphs).map(\.text).joined()
         }
     }
-    /// A missing visual line cannot shift the following field into its place.
-    /// Only other complete cells with the same physical height establish the
-    /// three role baselines. Content/name dictionaries never establish roles.
-    func lessonFields(_ box: PDFBox, lines: [String]) throws -> [String] {
+    /// Build calibration cells only inside the independently identified lesson
+    /// rows and period columns. Page annotations cannot establish field roles.
+    func lessonBoxes(rows: [PDFBox], columns: [Double]) throws -> [PDFBox] {
+        var boxes = Set<PDFBox>()
+        for row in rows {
+            for x in columns {
+                let cuts = Set(page.lines.filter { $0.horizontal && $0.x1-0.5 <= x && x <= $0.x2+0.5 && row.top+1 < $0.y1 && $0.y1 < row.bottom-1 }.map(\.y1)).sorted()
+                let edges = [row.top]+cuts+[row.bottom]
+                for index in 0..<(edges.count-1) where edges[index+1]-edges[index] >= 2 {
+                    let cell = try box(x,(edges[index]+edges[index+1])/2)
+                    guard cell.top >= row.top-0.8, cell.bottom <= row.bottom+0.8 else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
+                    boxes.insert(cell)
+                    guard boxes.count <= 10_000 else { throw PDFParseError(code:.limit) }
+                }
+            }
+        }
+        return Array(boxes)
+    }
+    /// A missing line cannot shift the following field into its place. Only
+    /// complete lesson cells of the same height establish the role baselines.
+    func lessonFields(_ box: PDFBox, lines: [String], referenceBoxes: [PDFBox]) throws -> [String] {
         if lines.count == 3 { return lines }
         guard !lines.isEmpty, lines.count < 3 else { throw PDFParseError(code: .ambiguous, stage: .lessonLines) }
         let height = box.bottom - box.top
         var references: [[Double]] = []
-        var seen: Set<PDFBox> = []
-        for glyph in page.glyphs {
-            guard let other = try? self.box(glyph.cx, glyph.cy), seen.insert(other).inserted,
-                  abs(other.bottom - other.top - height) < 0.5,
-                  let text = try? timetableText(other), text.count == 3 else { continue }
+        for other in Set(referenceBoxes) {
+            guard abs(other.bottom - other.top - height) < 0.5,
+                  let text = try? timetableText(other), text.count == 3,
+                  !text.contains(where:RecoveryRole.hasLabelPrefix) else { continue }
             let rows = Self.rows(glyphs(in: other))
             guard rows.count == 3 else { continue }
             references.append(rows.map { row in row.map(\.cy).reduce(0,+) / Double(row.count) - other.top })
@@ -141,9 +157,11 @@ struct PDFGrid {
                 guard matches.count == 1, assigned.insert(matches[0]).inserted else { valid = false; break }
                 fields[matches[0]] = text
             }
-            if valid && !fields[0].isEmpty { candidates.append(fields) }
+            // A matching reference that places this line in teacher/room is
+            // conflicting evidence, even when it would leave subject absent.
+            if valid { candidates.append(fields) }
         }
-        guard let fields = candidates.first, candidates.allSatisfy({ $0 == fields }) else {
+        guard let fields = candidates.first, !fields[0].isEmpty, candidates.allSatisfy({ $0 == fields }) else {
             throw PDFParseError(code: .ambiguous, stage: .lessonLines)
         }
         return fields

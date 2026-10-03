@@ -30,9 +30,15 @@ final class LocalRecoveryModelManager: ObservableObject {
         busy = true; defer { busy = false }
         do {
             let store = self.store; try await store.cleanupAbandonedFiles(inUse:[])
-            var next = [String:RecoveryModelManifest]()
-            for runtime in ["coreAI","llamaCpp"] { if let (manifest,_) = try await store.active(runtime:runtime) { next[runtime] = manifest } }
+            var next = [String:RecoveryModelManifest](), needsRepair = false
+            for runtime in ["coreAI","llamaCpp"] {
+                if let manifest = try await store.storedManifest(runtime:runtime) {
+                    next[runtime] = manifest
+                    if (try? await store.active(runtime:runtime)) == nil { needsRepair = true }
+                }
+            }
             installed = next
+            if needsRepair { message = "保存済みAIモデルの一部を確認できません。モデルを再取得または削除してください。" }
         } catch { message = "保存済みAIモデルを確認できませんでした。" }
     }
     func providers(lease: UUID) async -> [any LocalRecoveryProvider] {

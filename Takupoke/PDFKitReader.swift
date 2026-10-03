@@ -18,19 +18,19 @@ enum PDFKitReader {
         }
     }
 
-    /// The exam PDFs contain marked content or clipping commands rejected by
-    /// the ordinary timetable's drawing interpreter. Their PDFKit character
-    /// selections are validated individually by the calendar text path.
+    /// Special schedules use individually validated PDFKit selections plus an
+    /// independent content-stream visibility check. Unsupported visibility is
+    /// recovered from raster pages, rather than from selectable hidden text.
     static func readSpecial(_ url: URL, diagnostics: PDFDiagnosticRecorder? = nil, capture: RecoveryReadCapture? = nil,
                             check: @escaping () throws -> Void = {}) throws -> [PDFPageLayout] {
-        do { return try readPages(url, kind: .events, diagnostics: diagnostics, capture: capture, check: check) }
+        do { return try readPages(url, kind: .events, diagnostics: diagnostics, capture: capture, verifyVisibility: true, check: check) }
         catch {
             if let diagnostics { throw diagnostics.attaching(to: error) }
             throw error
         }
     }
 
-    private static func readPages(_ url: URL, kind: MaterialKind, diagnostics: PDFDiagnosticRecorder?, capture: RecoveryReadCapture?,
+    private static func readPages(_ url: URL, kind: MaterialKind, diagnostics: PDFDiagnosticRecorder?, capture: RecoveryReadCapture?, verifyVisibility: Bool = false,
                                   check: @escaping () throws -> Void) throws -> [PDFPageLayout] {
         capture?.reset()
         diagnostics?.record(.file)
@@ -49,6 +49,14 @@ enum PDFKitReader {
             guard let page = document.page(at: index), let ref = page.pageRef,
                   page.numberOfCharacters <= 100000 else {
                 throw PDFParseError(code: .unreadable, page: index + 1)
+            }
+            if verifyVisibility || kind == .timetable {
+                let media = ref.getBoxRect(.mediaBox), crop = ref.getBoxRect(.cropBox)
+                guard media == crop else {
+                    // The viewer displays CropBox. Selectable content outside it
+                    // must never become a complete timetable through MediaBox.
+                    throw PDFParseError(code:.unsupported,page:index+1,stage:.rasterInput)
+                }
             }
             guard let string = page.string, !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 throw PDFParseError(code: .unsupported, page: index + 1, stage: .rasterInput)
@@ -151,7 +159,7 @@ enum PDFKitReader {
                 }
             }
             capture?.record(page: index + 1, state: .partial, layout: PDFPageLayout(width: Double(transform.width), height: Double(transform.height), glyphs: glyphs, lines: []))
-            let reader = PDFPathReader(transform: transform, check: check)
+            let reader = PDFPathReader(transform: transform, verifyVisibility: verifyVisibility || kind == .timetable, textBoxes:glyphs.map { PDFBox(left:$0.x,top:$0.y,right:$0.x+$0.width,bottom:$0.y+$0.height) }, check: check)
             diagnostics?.record(.paths, page: index + 1)
             let lines: [PDFRule]
             do { lines = try reader.read(ref) }

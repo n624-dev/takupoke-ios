@@ -7,7 +7,7 @@ import time
 from ui_test_manifest import REQUIRED_JOBS
 
 REPOSITORY = "n624-dev/takupoke-ios"
-REQUIRED = REQUIRED_JOBS | {"Distribution tests"}
+REQUIRED = REQUIRED_JOBS | {"Distribution tests", "Native PDF and recovery tests"}
 
 
 def api(path, *, pages=False):

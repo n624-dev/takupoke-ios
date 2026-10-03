@@ -17,6 +17,13 @@ extension PDFSchoolParser {
         }
         let classRows = PDFGrid.rows(page.glyphs.filter { classBox.left < $0.cx && $0.cx < classBox.right &&
             $0.cy > first.bottom && $0.cy < bodyBottom })
+        let bodyRows = try classRows.map { glyphs -> PDFBox in
+            let y = glyphs.map(\.cy).reduce(0,+)/Double(glyphs.count)
+            var row = try grid.box((classBox.left+classBox.right)/2,y)
+            row.top = max(row.top,try grid.box(header[0].cx,y).top)
+            return row
+        }
+        let referenceBoxes = try grid.lessonBoxes(rows:bodyRows,columns:header.map(\.cx))
         var output: [PDFLesson] = []
         var classes: Set<String> = []
         for (classIndex, glyphs) in classRows.enumerated() {
@@ -60,7 +67,7 @@ extension PDFSchoolParser {
                     guard lines.reduce(0, { $0 + $1.utf8.count }) <= 4096 else { throw PDFParseError(code: .limit, page: 1) }
                     guard lines.count <= 3, !lines[0].isEmpty else { throw PDFParseError(code: .ambiguous, page: 1, stage: .lessonLines, cell: cell) }
                     guard !lines.contains(where:RecoveryRole.hasLabelPrefix) else { throw PDFParseError(code: .unsupported, stage: .lessonLines, cell: cell) }
-                    let fields = try grid.lessonFields(box, lines: lines)
+                    let fields = try grid.lessonFields(box, lines: lines,referenceBoxes:referenceBoxes)
                     let parts = fields.map { $0.replacingOccurrences(of: "･", with: "・").components(separatedBy: "・") }
                     let parallel = lines.count == 3 && parts.allSatisfy { $0.count == 2 }
                     if parts[0].count > 1 && parts[1].count > 1 && !parallel {

@@ -68,17 +68,17 @@ final class RecoveryTests: XCTestCase {
         XCTAssertTrue(retry("current", 7, PDFParseError(code: .unsupported), 7)); XCTAssertFalse(retry("old", 8, PDFParseError(code: .unsupported), 8)); XCTAssertFalse(retry("current", 8, nil, 8))
     }
     func testSpecialScopeVersionRetriesSameHashEarlierSuccessfulAnalysis() {
-        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion,10)
+        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion,15)
         XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"unchanged",parserVersion:SpecialScheduleAnalysis.parserVersion,
-            analysisDigest:"unchanged",analysisVersion:9,attemptDigest:"unchanged",failure:nil,attemptVersion:9))
+            analysisDigest:"unchanged",analysisVersion:14,attemptDigest:"unchanged",failure:nil,attemptVersion:14))
         XCTAssertFalse(PDFParseAttempt.needsAnalysis(digest:"unchanged",parserVersion:SpecialScheduleAnalysis.parserVersion,
             analysisDigest:"unchanged",analysisVersion:SpecialScheduleAnalysis.parserVersion,attemptDigest:"unchanged",failure:nil,
             attemptVersion:SpecialScheduleAnalysis.parserVersion))
     }
     func testOrdinaryRoleAliasVersionRetriesUnchangedEarlierSuccess() {
-        XCTAssertEqual(PDFAnalysis.currentVersion(for:.timetable),11)
+        XCTAssertEqual(PDFAnalysis.currentVersion(for:.timetable),14)
         XCTAssertEqual(PDFAnalysis.currentVersion(for:.events),4)
-        XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"same",parserVersion:PDFAnalysis.parserVersion,analysisDigest:"same",analysisVersion:10,attemptDigest:"same",failure:nil,attemptVersion:10))
+        XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"same",parserVersion:PDFAnalysis.parserVersion,analysisDigest:"same",analysisVersion:13,attemptDigest:"same",failure:nil,attemptVersion:13))
     }
     func testRecoverySourceRequiresCurrentStrictFailureForSameDocument() {
         let version = SpecialScheduleAnalysis.parserVersion
@@ -130,6 +130,55 @@ final class RecoveryTests: XCTestCase {
     func testReturnNormalTimeRequiresActualApplicableNote() throws { var (d, r) = try special("return"); d.sources[d.sources.firstIndex { $0.id == "normal-note" }!].text = "架空の無関係な注記"; XCTAssertTrue(RecoveryValidator.validate(d, r).errors.contains("normalTimeNote")) }
     func testSeventeenClassesCannotIncludeAnUnexpectedReplacement() throws { var (d, r) = try special(); d.classes[0] = "1_CN"; XCTAssertTrue(RecoveryValidator.validate(d, r).errors.contains("specialScope")) }
     #if canImport(CryptoKit) || canImport(Crypto)
+    func testModelDeletionFailurePreservesPointerForRetry() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-model-delete-"+UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let bytes = Data("entirely fictional model".utf8), store = RecoveryModelStore(root:root)
+        let m = RecoveryModelManifest(modelId:"synthetic",version:"1",url:"https://models.example.invalid/model",size:Int64(bytes.count),sha256:SHA256.hash(data:bytes).map { String(format:"%02x",$0) }.joined(),runtime:"llamaCpp",minimumOs:"26",minimumMemory:1,recommendedBackend:"CPU",license:"test-only",validated:true)
+        let model = try await store.install(m,runtime:"llamaCpp",availableMemory:1,osSupported:true,foreground:true,openModel:{ _ in InputStream(data:bytes) },prepareAndSmokeTest:{ _ in },check:{})
+        let pointer = root.appendingPathComponent("active.llamaCpp.json"), previous = try Data(contentsOf:pointer)
+        do {
+            try await store.delete(runtime:"llamaCpp",removeItem:{ target in
+                if target.pathExtension == "model" { throw CocoaError(.fileWriteNoPermission) }
+                try FileManager.default.removeItem(at:target)
+            })
+            XCTFail("file deletion must fail")
+        } catch let error as CocoaError { XCTAssertEqual(error.code,.fileWriteNoPermission) }
+        XCTAssertEqual(try Data(contentsOf:pointer),previous)
+        XCTAssertTrue(FileManager.default.fileExists(atPath:model.path))
+        let active = try await store.active(runtime:"llamaCpp"); XCTAssertEqual(active?.0,m)
+        try await store.delete(runtime:"llamaCpp")
+        XCTAssertFalse(FileManager.default.fileExists(atPath:pointer.path)); XCTAssertFalse(FileManager.default.fileExists(atPath:model.path))
+    }
+    func testPartialCoreAIDeletionKeepsManagementIdentityAcrossRestart() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-coreai-delete-"+UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let bytes = Data("entirely fictional CoreAI archive".utf8), store = RecoveryModelStore(root:root)
+        let manifest = RecoveryModelManifest(modelId:"synthetic",version:"1",url:"https://models.example.invalid/model",size:Int64(bytes.count),sha256:SHA256.hash(data:bytes).map { String(format:"%02x",$0) }.joined(),runtime:"coreAI",minimumOs:"27",minimumMemory:1,recommendedBackend:"CPU",license:"test-only",validated:true)
+        let bundle = try await store.install(manifest,runtime:"coreAI",availableMemory:1,osSupported:true,foreground:true,openModel:{ _ in InputStream(data:bytes) },prepareAndSmokeTest:{ url in
+            let bundle = url.appendingPathExtension("bundle")
+            try FileManager.default.createDirectory(at:bundle.appendingPathComponent("tokenizer"),withIntermediateDirectories:true)
+            try Data("{}".utf8).write(to:bundle.appendingPathComponent("metadata.json"))
+            try Data("{}".utf8).write(to:bundle.appendingPathComponent("tokenizer/tokenizer.json"))
+        },check:{})
+        do {
+            try await store.delete(runtime:"coreAI",removeItem:{ url in
+                if url.pathExtension == "bundle" {
+                    try FileManager.default.removeItem(at:url.appendingPathComponent("metadata.json"))
+                    throw CocoaError(.fileWriteNoPermission)
+                }
+                try FileManager.default.removeItem(at:url)
+            })
+            XCTFail("partial bundle deletion must fail")
+        } catch let error as CocoaError { XCTAssertEqual(error.code,.fileWriteNoPermission) }
+        let restarted = RecoveryModelStore(root:root)
+        try await restarted.cleanupAbandonedFiles(inUse:[])
+        let identity = try await restarted.storedManifest(runtime:"coreAI"); XCTAssertEqual(identity,manifest)
+        do { _ = try await restarted.active(runtime:"coreAI"); XCTFail("runtime must refuse incomplete files") } catch { }
+        XCTAssertTrue(FileManager.default.fileExists(atPath:bundle.deletingPathExtension().path))
+        try await restarted.delete(runtime:"coreAI")
+        XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath:root.path).isEmpty)
+    }
     func testModelUpdateSameBytesRemovesOldVersionAndFailureKeepsActiveModel() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-model-test-" + UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -190,7 +239,7 @@ final class RecoveryTests: XCTestCase {
         XCTAssertNoThrow(try RecoveryConversion.verifyFile(source,currentPeriod:{ before },check:{}))
     }
     func testOldValidatorApprovalCannotBeReusedButRemainsDecodable() throws {
-        let (d,current) = fixture(); var old = current; old.metadata.validatorVersion = 2; old.metadata.recoveryVersion = "1"
+        let (d,current) = fixture(); var old = current; old.metadata.validatorVersion = 3; old.metadata.recoveryVersion = "2"
         let approval = RecoveryAcceptance(pdfHash:d.pdfHash,resultHash:try RecoveryValidator.fingerprint(old),scopeHash:try RecoveryValidator.fingerprint(d),metadata:old.metadata,acceptedAt:Date())
         XCTAssertFalse(try RecoveryValidator.canReuse(approval,document:d,result:old))
         XCTAssertEqual(try JSONDecoder().decode(RecoveryResult.self,from:JSONEncoder().encode(old)),old)

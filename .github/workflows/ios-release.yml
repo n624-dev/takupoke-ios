@@ -41,6 +41,20 @@ jobs:
           bash -n tools/test-app-ui.sh
           git diff --check
 
+  native-parsing:
+    name: Native PDF and recovery tests
+    needs: checks
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Verify actual PDFKit visibility and recovery contracts with fictional PDFs
+        run: bash tools/test-parsing.sh
+
   simulator:
     name: Application iOS ${{ matrix.ios }} UI ${{ matrix.shard }}
     needs: checks

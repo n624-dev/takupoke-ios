@@ -6,6 +6,23 @@ enum PDFTextFailure {
     static var unsupported: PDFParseError { PDFParseError(code: .unsupported, stage: .characterMapping) }
 }
 
+/// The strict drawn subset accepts black device colors only. Other colors need
+/// a composited raster: selecting a glyph does not prove contrast or visibility.
+enum PDFTextVisibility {
+    static func strokePad(_ width: Double, a: Double, b: Double, c: Double, d: Double) -> Double? {
+        guard width.isFinite, width >= 0, [a,b,c,d].allSatisfy(\.isFinite) else { return nil }
+        // Frobenius norm bounds every transformed stroke direction, including shear.
+        let scale = hypot(hypot(a,b),hypot(c,d)), extent = max(1,width*scale)
+        guard scale.isFinite, scale > 0, extent.isFinite, extent <= 2 else { return nil }
+        return extent/2
+    }
+    static func blackColor(_ components: [Double], count: Int) -> Bool {
+        guard components.count == count, components.allSatisfy({ $0.isFinite && (0...1).contains($0) }) else { return false }
+        if count == 1 || count == 3 { return components.allSatisfy { $0 == 0 } }
+        return count == 4 && components == [0,0,0,1]
+    }
+}
+
 /// Affine math also runs in the Foundation-only regression tests.
 struct PDFTextMatrix {
     var a = 1.0, b = 0.0, c = 0.0, d = 1.0, tx = 0.0, ty = 0.0

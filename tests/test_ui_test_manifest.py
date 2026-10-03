@@ -25,7 +25,7 @@ class ManifestTests(unittest.TestCase):
         manifest.validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8"))
         self.assertEqual(len(manifest.selected_tests("all")), 22)
         self.assertFalse(set(manifest.SHARDS["A"]) & set(manifest.SHARDS["B"]))
-        self.assertEqual(release_gate.REQUIRED, manifest.REQUIRED_JOBS | {"Distribution tests"})
+        self.assertEqual(release_gate.REQUIRED, manifest.REQUIRED_JOBS | {"Distribution tests", "Native PDF and recovery tests"})
         self.assertIn(manifest.SYSTEM_SIZE_TEST, manifest.SHARDS["B"])
 
     def test_missing_obsolete_or_duplicate_source_tests_fail(self):

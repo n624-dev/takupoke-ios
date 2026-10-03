@@ -195,8 +195,8 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertTrue(result.waitForExistence(timeout: 10), app.debugDescription)
         let finished = expectation(for: NSPredicate(format: "label != %@", "OCR実行中"), evaluatedWith: result)
         wait(for: [finished], timeout: 60)
-        let accepted = "OCR・上端座標・罫線・未読インク検証済み"
-        let safelyRejected = "低信頼OCRを安全拒否・実raster・上端座標・罫線・未読インク・空欄検証済み; confidence="
+        let accepted = "CropBox/footer検証済み; OCR・上端座標・罫線・未読インク検証済み"
+        let safelyRejected = "CropBox/footer検証済み; 低信頼OCRを安全拒否・実raster・上端座標・罫線・未読インク・空欄検証済み; confidence="
         let observedConfidence = result.label.hasPrefix(safelyRejected) ? Double(result.label.dropFirst(safelyRejected.count)) : nil
         let rejectedLowConfidence = observedConfidence.map { $0.isFinite && $0 >= 0 && $0 < 0.85 } ?? false
         XCTAssertTrue(result.label == accepted || rejectedLowConfidence, app.debugDescription)

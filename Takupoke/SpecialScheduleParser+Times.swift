@@ -3,6 +3,7 @@ import Foundation
 extension SpecialScheduleParser {
     static func readPeriodTimes(_ page: PDFPageLayout, count: Int,
                                         pageNumber: Int) throws -> Times {
+        guard (1...8).contains(count) else { throw PDFParseError(code:.unsupported,page:pageNumber,stage:.periodHeading) }
         let pattern = try NSRegularExpression(pattern: "([1-8])時限目([0-9]{1,2}:[0-9]{2})[~〜]([0-9]{1,2}:[0-9]{2})")
         let consecutivePattern = try NSRegularExpression(pattern: "([1-8])[・･]([1-8])時限連続([0-9]{1,2}:[0-9]{2})[~〜]([0-9]{1,2}:[0-9]{2})")
         var times: [Int: String] = [:]
@@ -39,6 +40,14 @@ extension SpecialScheduleParser {
         }
         guard times.count == count else {
             throw PDFParseError(code: .unsupported, page: pageNumber, stage: .periodHeading)
+        }
+        for period in 1..<count {
+            // Canonical HH:mm strings have the same order as clock minutes.
+            // Explicit consecutive periods remain their own PDF-backed chart.
+            guard let previous = times[period], let current = times[period+1],
+                  String(previous.suffix(5)) <= String(current.prefix(5)) else {
+                throw PDFParseError(code:.ambiguous,page:pageNumber,stage:.periodHeading)
+            }
         }
         return Times(single: times, consecutive: consecutive)
     }

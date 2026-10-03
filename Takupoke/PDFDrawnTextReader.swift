@@ -61,6 +61,15 @@ final class PDFDrawnTextReader {
             var object: CGPDFObjectRef?
             guard !CGPDFDictionaryGetObject(dict, key, &object) else { throw PDFTextFailure.unsupported }
         }
+        var lineWidth: CGPDFReal = 0, widthObject: CGPDFObjectRef?
+        if CGPDFDictionaryGetNumber(dict,"LW",&lineWidth) {
+            let m = engine.state.ctm
+            guard PDFTextVisibility.strokePad(Double(lineWidth),a:m.a,b:m.b,c:m.c,d:m.d) != nil else { throw PDFTextFailure.unsupported }
+        } else if CGPDFDictionaryGetObject(dict,"LW",&widthObject) { throw PDFTextFailure.unsupported }
+        var blendMode: UnsafePointer<CChar>?, blendObject: CGPDFObjectRef?
+        if CGPDFDictionaryGetName(dict,"BM",&blendMode), let blendMode {
+            guard String(cString:blendMode) == "Normal" else { throw PDFTextFailure.unsupported }
+        } else if CGPDFDictionaryGetObject(dict,"BM",&blendObject) { throw PDFTextFailure.unsupported }
         guard try number(dict, "ca", fallback: 1) == 1, try number(dict, "CA", fallback: 1) == 1 else {
             throw PDFTextFailure.unsupported
         }
@@ -129,9 +138,35 @@ final class PDFDrawnTextReader {
             }
         }
         CGPDFOperatorTableSetCallback(table, "gs") { scanner, p in PDFDrawnTextReader.run(p) { try $0.graphicsState(scanner) } }
+        CGPDFOperatorTableSetCallback(table, "w") { scanner, p in PDFDrawnTextReader.run(p) { s in
+            let width = try s.numbers(scanner,1)[0], m = s.engine.state.ctm
+            guard PDFTextVisibility.strokePad(width,a:m.a,b:m.b,c:m.c,d:m.d) != nil else { throw PDFTextFailure.unsupported }
+        } }
+        for op in ["g", "G"] {
+            CGPDFOperatorTableSetCallback(table, op) { scanner, p in PDFDrawnTextReader.run(p) { s in
+                guard PDFTextVisibility.blackColor(try s.numbers(scanner,1),count:1) else { throw PDFTextFailure.unsupported }
+            } }
+        }
+        for op in ["rg", "RG"] {
+            CGPDFOperatorTableSetCallback(table, op) { scanner, p in PDFDrawnTextReader.run(p) { s in
+                guard PDFTextVisibility.blackColor(try s.numbers(scanner,3),count:3) else { throw PDFTextFailure.unsupported }
+            } }
+        }
+        for op in ["k", "K"] {
+            CGPDFOperatorTableSetCallback(table, op) { scanner, p in PDFDrawnTextReader.run(p) { s in
+                guard PDFTextVisibility.blackColor(try s.numbers(scanner,4),count:4) else { throw PDFTextFailure.unsupported }
+            } }
+        }
+        // A later fill may replace an earlier subject while PDFKit continues
+        // to expose the covered text. Geometry is not a visibility certificate.
+        for op in ["f", "F", "f*", "B", "B*", "b", "b*"] {
+            CGPDFOperatorTableSetCallback(table, op) { _, p in PDFDrawnTextReader.run(p) { s in
+                guard s.engine.glyphs.isEmpty else { throw PDFTextFailure.unsupported }
+            } }
+        }
         // Form XObjects, optional/replacement text and clipping can conceal or
         // replace drawn text. Do not silently emit a partial timetable.
-        for op in ["Do", "BDC", "BMC", "W", "W*"] {
+        for op in ["Do", "BDC", "BMC", "W", "W*", "BI", "ID", "EI", "sh", "cs", "CS", "sc", "SC", "scn", "SCN"] {
             CGPDFOperatorTableSetCallback(table, op) { _, p in PDFDrawnTextReader.run(p) { _ in throw PDFTextFailure.unsupported } }
         }
         let stream = CGPDFContentStreamCreateWithPage(page)

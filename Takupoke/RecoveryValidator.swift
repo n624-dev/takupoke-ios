@@ -7,7 +7,7 @@ import Crypto
 
 enum RecoveryValidator {
     static let schemaVersion = 2
-    static let version = 3
+    static let version = 4
     private static func text(_ value: String) -> String {
         value.precomposedStringWithCompatibilityMapping.components(separatedBy: .whitespacesAndNewlines).joined()
     }

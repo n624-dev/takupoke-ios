@@ -124,14 +124,15 @@ struct RecoveryRasterGrid: Sendable {
     }
     func hasUncoveredInk(_ box: RecoveryBox, text: [RecoveryBox], rules: [PDFRule]) -> Bool {
         guard validPixels, box.valid, box.x+box.width <= Double(width), box.y+box.height <= Double(height) else { return true }
-        let left = max(0,Int(ceil(box.x))), right = min(width,Int(floor(box.x+box.width)))
-        let top = max(0,Int(ceil(box.y))), bottom = min(height,Int(floor(box.y+box.height)))
+        let left = max(0,Int(floor(box.x))), right = min(width,Int(ceil(box.x+box.width)))
+        let top = max(0,Int(floor(box.y))), bottom = min(height,Int(ceil(box.y+box.height)))
         guard left < right, top < bottom else { return true }
         let sameRules = preparedRules.count == rules.count && zip(preparedRules,rules).allSatisfy { a,b in a.x1 == b.x1 && a.y1 == b.y1 && a.x2 == b.x2 && a.y2 == b.y2 }
         let mask = sameRules ? preparedRuleMask : (try? preparingRules(rules).preparedRuleMask)
         for y in top..<bottom {
             for x in left..<right where grayscale[y*width+x] != 255 {
                 let px = Double(x)+0.5, py = Double(y)+0.5
+                guard box.x <= px, px <= box.x+box.width, box.y <= py, py <= box.y+box.height else { continue }
                 if text.contains(where: { $0.x-1 <= px && px <= $0.x+$0.width+1 && $0.y-1 <= py && py <= $0.y+$0.height+1 }) { continue }
                 if mask?[y*width+x] == 1 { continue }
                 return true

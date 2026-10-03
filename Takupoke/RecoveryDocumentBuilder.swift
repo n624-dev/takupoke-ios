@@ -166,6 +166,7 @@ enum RecoveryDocumentBuilder {
                     doc.classEvidence[cls,default:[]] += [gradeId,labelId]
                 }
             }
+            let referenceBoxes = try grid.lessonBoxes(rows:vertical.compactMap(\.row),columns:periodRow.map(\.cx))
             // Build logical cells, preserving short horizontal divisions as parallel lessons.
             for v in vertical {
                 guard let row = v.row else { throw PDFParseError(code:.unsupported) }
@@ -222,7 +223,7 @@ enum RecoveryDocumentBuilder {
                                     cell.roleScopes.append(RecoveryRoleScope(lessonIndex:lessonIndex,role:item.0,page:number,box:scope,labelSourceIds:[labelId],labelRegion:region(labelBox,axis:.left),proof:.inlineLabel,emptyVerified:item.2.isEmpty && (!fromOCR.contains(number) || pageRaster?.isBlank(scope,rules:page.lines) == true)))
                                 }
                             } else {
-                                let fieldsAttempt = try? grid.lessonFields(subBox,lines:lines)
+                                let fieldsAttempt = try? grid.lessonFields(subBox,lines:lines,referenceBoxes:referenceBoxes)
                                 if fieldsAttempt == nil || rows.contains(where:{ RecoveryRole.hasLabelPrefix($0.map(\.text).joined()) }) {
                                     guard bindings.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.lessonLines) }
                                     let request = try RecoveryStructure.request(id:"\(id)-sub-\(subIndex)",page:number,box:rect(subBox),slots:cell.slots,glyphs:glyphs)

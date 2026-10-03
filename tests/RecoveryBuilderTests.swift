@@ -64,6 +64,42 @@ extension PDFParsingTests {
           }
         }
     }
+    func testTeacherOnlyCellCannotUseOutsideTableOrConflictingRoleCalibration() {
+        for outside in [true,false] {
+            var page = timetable()
+            page.glyphs.removeAll { 100 <= $0.cx && $0.cx < 140 && 100 < $0.cy && $0.cy < 160 && $0.cy != 130 }
+            let x = outside ? 920.0 : 144.0, top = outside ? 400.0 : 100.0
+            if outside { page.lines += [h(top,920,1040),h(top+60,920,1040),v(920,top,top+60),v(1040,top,top+60)] }
+            for (index,line) in ["架空注記A","架空注記B","架空注記C"].enumerated() {
+                page.glyphs += text(line,x:x+4,y:top+30+Double(index)*12)
+            }
+            XCTAssertThrowsError(try parse([page],kind:.timetable)) { error in
+                XCTAssertEqual((error as? PDFParseError)?.stage,.lessonLines)
+            }
+        }
+    }
+    func testRecoveryCannotCalibrateTeacherOnlyCellFromOutsideTable() {
+        var page = recoveryTimetablePage()
+        page.glyphs.removeAll { 100 <= $0.cx && $0.cx < 140 && 100 < $0.cy && $0.cy < 160 && $0.cy != 130 }
+        page.lines += [h(400,1750,1850),h(460,1750,1850),v(1750,400,460),v(1850,400,460)]
+        for (index,line) in ["架空注記A","架空注記B","架空注記C"].enumerated() {
+            page.glyphs += text(line,x:1754,y:430+Double(index)*12)
+        }
+        XCTAssertThrowsError(try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:String(repeating:"b",count:64)))
+    }
+    func testFractionalRasterCellIncludesEveryInteriorPixelCenter() {
+        let box = RecoveryBox(x:10.25,y:10.25,width:20.5,height:20.5)
+        for (x,y) in [(10,15),(30,15),(15,10),(15,30)] {
+            var pixels = [UInt8](repeating:255,count:50*50); pixels[y*50+x] = 254
+            let raster = RecoveryRasterGrid(width:50,height:50,grayscale:pixels)
+            XCTAssertTrue(raster.hasUncoveredInk(box,text:[],rules:[]))
+            XCTAssertFalse(raster.isBlank(box))
+        }
+        let blank = RecoveryRasterGrid(width:50,height:50,grayscale:[UInt8](repeating:255,count:50*50))
+        XCTAssertTrue(blank.isBlank(box))
+        var outside = [UInt8](repeating:255,count:50*50); outside[15*50+9] = 254
+        XCTAssertTrue(RecoveryRasterGrid(width:50,height:50,grayscale:outside).isBlank(box))
+    }
     func testStrictMissingTeacherDoesNotShiftRoomIntoTeacher() throws {
         var p = timetable(); p.glyphs.removeAll { $0.cy == 130 && $0.cx >= 100 }
         let result = try parse([p],kind:.timetable)

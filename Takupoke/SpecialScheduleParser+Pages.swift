@@ -22,6 +22,7 @@ extension SpecialScheduleParser {
             throw PDFParseError(code: .unsupported, page: pageNumber, stage: .calendarDates)
         }
         let grid = PDFGrid(page: page)
+        let referenceBoxes = try grid.lessonBoxes(rows:dateRuns.map { try grid.box($0.0.cx,$0.0.cy) },columns:periods.map(\.cx))
         var result: [SpecialScheduleLesson] = []
         for (dayRun, day) in dateRuns {
             try check()
@@ -39,7 +40,7 @@ extension SpecialScheduleParser {
                         guard seen.insert(box).inserted else { continue }
                         result += try lessons(in: page, box: box, date: day, className: name,
                                               period: period, periodXs: periodXs,
-                                              times: times, pageNumber: pageNumber)
+                                              times: times, pageNumber: pageNumber,referenceBoxes:referenceBoxes)
                     }
                 }
             }
@@ -58,7 +59,8 @@ extension SpecialScheduleParser {
                 guard let day = date(run.text, schoolYear: schoolYear, slash: true) else { return nil }
                 return (run, day)
             }.sorted { $0.0.cx < $1.0.cx }
-        guard dates.count == 5, Set(dates.map { $0.1 }).count == 5 else {
+        guard dates.count == 5, Set(dates.map { $0.1 }).count == 5,
+              zip(dates,dates.dropFirst()).allSatisfy({ $0.0.1 < $0.1.1 }) else {
             throw PDFParseError(code: .unsupported, page: 1, stage: .calendarDates)
         }
         let note = PDFSchoolParser.key(PDFGrid.rows(page.glyphs).map { $0.map(\.text).joined() }.joined())
@@ -86,6 +88,7 @@ extension SpecialScheduleParser {
             throw PDFParseError(code: .unsupported, page: 1, stage: .classLabel)
         }
         let grid = PDFGrid(page: page)
+        let referenceBoxes = try grid.lessonBoxes(rows:classRuns.map { try grid.box($0.cx,$0.cy) },columns:periods.map(\.cx))
         var seenClasses: Set<String> = []
         var result: [SpecialScheduleLesson] = []
         for run in classRuns {
@@ -111,7 +114,7 @@ extension SpecialScheduleParser {
                         guard seen.insert(box).inserted else { continue }
                         result += try lessons(in: page, box: box, date: day, className: name,
                                               period: period, periodXs: periodXs,
-                                              times: dayTimes, pageNumber: 1)
+                                              times: dayTimes, pageNumber: 1,referenceBoxes:referenceBoxes)
                     }
                 }
             }

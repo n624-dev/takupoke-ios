@@ -5,6 +5,13 @@ import GRDB
 @testable import TakupokeParsing
 
 final class SpecialScheduleTests: XCTestCase {
+    func testReturnColumnsMustBeInDateOrderBeforeSelectingFirstDayTimes() {
+        for days in [[3,4,2,5,6], [1,2,6,4,5]] {
+            XCTAssertThrowsError(try SpecialScheduleParser.parse([returnPageWithSplitCell(dateDays:days)],kind:.examReturn,digest:"fictional",name:"fictional.pdf")) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage,.calendarDates)
+            }
+        }
+    }
     func testReturnScheduleTreatsHorizontallyDividedCellAsTwoLessons() throws {
         let result = try SpecialScheduleParser.parse([returnPageWithSplitCell()], kind: .examReturn,
                                                      digest: "fictional", name: "fictional.pdf")
@@ -45,6 +52,27 @@ final class SpecialScheduleTests: XCTestCase {
         XCTAssertThrowsError(try SpecialScheduleParser.parse(pages,kind:.exam,digest:"fictional",name:"fictional.pdf"))
     }
 
+    func testSpecialSinglePeriodTimesCannotOverlapOrReversePeriodOrder() {
+        for early in [["9:00~10:00", "9:30~10:30"], ["9:00~10:00", "8:00~8:30"]] {
+            let times = early + ["10:50~11:35", "11:50~12:35", "13:20~14:05", "14:20~15:05"]
+            let pages = (1...6).map { examPage($0,timingOverride:times) }
+            XCTAssertThrowsError(try SpecialScheduleParser.parse(pages,kind:.exam,digest:"fictional",name:"fictional.pdf")) {
+                XCTAssertEqual(($0 as? PDFParseError)?.code,.ambiguous)
+                XCTAssertEqual(($0 as? PDFParseError)?.stage,.periodHeading)
+            }
+        }
+        let times = ["7:00~8:00", "7:50~8:30", "8:40~9:20", "9:30~10:10", "10:30~11:10", "11:10~11:50", "12:00~12:40", "12:40~13:20"]
+        XCTAssertThrowsError(try SpecialScheduleParser.parse([returnPageWithSplitCell(timingOverride:times)],kind:.examReturn,digest:"fictional",name:"fictional.pdf")) {
+            XCTAssertEqual(($0 as? PDFParseError)?.stage,.periodHeading)
+        }
+    }
+    func testAdjacentPeriodTimesAndIndependentConsecutiveChartRemainValid() throws {
+        let times = ["8:50~9:35", "9:35~10:35", "10:50~11:35", "11:50~12:35", "13:20~14:05", "14:20~15:05"]
+        let pages = (1...6).map { examPage($0,mergedFirstTwo:$0 == 1,timingOverride:times) }
+        let result = try SpecialScheduleParser.parse(pages,kind:.exam,digest:"fictional",name:"fictional.pdf")
+        XCTAssertEqual(result.periodTimes[2],"09:35〜10:35")
+        XCTAssertEqual(result.lessons.first { $0.spanEnd == 2 }?.timeRange,"08:50〜10:20")
+    }
     func testExamParsesDatesClassesAndDocumentTimes() throws {
         let pages = (1...6).map { examPage($0, mergedFirstTwo: $0 == 1) }
         let result = try SpecialScheduleParser.parse(pages, kind: .exam,

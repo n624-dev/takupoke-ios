@@ -26,10 +26,10 @@ enum PDFRecoveryRecognition {
         for index in 0..<document.pageCount where only == nil || only!.contains(index + 1) {
             try check(); try Task.checkCancellation()
             guard let page = document.page(at: index) else { throw PDFParseError(code: .unreadable, page: index + 1) }
-            let bounds = page.bounds(for: .mediaBox)
+            let bounds = page.bounds(for: .cropBox)
             guard bounds.width > 0, bounds.height > 0, bounds.width.isFinite, bounds.height.isFinite else { throw PDFParseError(code: .unreadable, page: index + 1) }
             let scale = min(2, 2048 / max(bounds.width, bounds.height))
-            let image = page.thumbnail(of: CGSize(width: max(1, bounds.width * scale), height: max(1, bounds.height * scale)), for: .mediaBox)
+            let image = page.thumbnail(of: CGSize(width: max(1, bounds.width * scale), height: max(1, bounds.height * scale)), for: .cropBox)
             guard let raster = image.cgImage else { throw PDFParseError(code: .unreadable, page: index + 1) }
             // One bounded page per request; no page image goes to a language model.
             let observations = try await RecognizeDocumentsRequest().perform(on: raster)
@@ -46,12 +46,12 @@ enum PDFRecoveryRecognition {
         for index in 0..<document.pageCount where only == nil || only!.contains(index+1) {
             try check(); try Task.checkCancellation()
             guard let page = document.page(at:index) else { throw PDFParseError(code:.unreadable) }
-            let bounds = page.bounds(for:.mediaBox)
+            let bounds = page.bounds(for:.cropBox)
             guard bounds.width.isFinite, bounds.height.isFinite, bounds.width > 0, bounds.height > 0 else { throw PDFParseError(code:.limit) }
             let scale = min(2,2048/max(bounds.width,bounds.height))
             let w = Int(ceil(bounds.width*scale)), h = Int(ceil(bounds.height*scale))
             guard w > 0, h > 0, w <= 2048, h <= 2048 else { throw PDFParseError(code:.limit) }
-            let image = page.thumbnail(of:CGSize(width:CGFloat(w),height:CGFloat(h)),for:.mediaBox)
+            let image = page.thumbnail(of:CGSize(width:CGFloat(w),height:CGFloat(h)),for:.cropBox)
             guard let cg = image.cgImage else { throw PDFParseError(code:.unreadable) }
             var rgba = [UInt8](repeating:255,count:cg.width*cg.height*4)
             let made = rgba.withUnsafeMutableBytes { bytes -> Bool in
