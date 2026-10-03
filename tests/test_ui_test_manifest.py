@@ -23,7 +23,7 @@ def result_line(test, status="passed"):
 class ManifestTests(unittest.TestCase):
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8"))
-        self.assertEqual(len(manifest.selected_tests("all")), 21)
+        self.assertEqual(len(manifest.selected_tests("all")), 22)
         self.assertFalse(set(manifest.SHARDS["A"]) & set(manifest.SHARDS["B"]))
         self.assertEqual(release_gate.REQUIRED, manifest.REQUIRED_JOBS | {"Distribution tests"})
         self.assertIn(manifest.SYSTEM_SIZE_TEST, manifest.SHARDS["B"])

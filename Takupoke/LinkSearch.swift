@@ -88,11 +88,11 @@ enum LinkSearch {
             guard !term.isEmpty else { continue }
             let text = String(term)
             expanded.append(normalize(text))
-            if text.unicodeScalars.contains(where: { (0x3041...0x3096).contains($0.value) }) {
+            if hiragana(text.precomposedStringWithCompatibilityMapping.lowercased()).unicodeScalars.contains(where: { (0x3041...0x3096).contains($0.value) }) {
                 let value = normalize(romaji(text))
                 expanded.append(value)
                 expanded.append(value.replacingOccurrences(of: "ou", with: "o")
-                    .replacingOccurrences(of: "uu", with: "o")
+                    .replacingOccurrences(of: "uu", with: "u")
                     .replacingOccurrences(of: "oo", with: "o"))
             }
         }

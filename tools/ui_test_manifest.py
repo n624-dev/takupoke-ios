@@ -33,6 +33,7 @@ SHARDS = {
         VOICEOVER_TEST,
         "testChangedAccountDataNoticeOpensSharedAcquisition",
         "testRecoveryPreviewOriginalBlankFieldsAndExplicitAdoption",
+        "testRecoveryImageOnlyPDFUsesNativeOCRAndTopLeftRaster",
     ),
 }
 REQUIRED_JOBS = frozenset(

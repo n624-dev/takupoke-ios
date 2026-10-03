@@ -1,5 +1,6 @@
 import XCTest
 import UIKit
+import CryptoKit
 
 final class ApplicationChecks: XCTestCase {
     private var app: XCUIApplication!
@@ -19,6 +20,7 @@ final class ApplicationChecks: XCTestCase {
             "testRecoveryPreviewOriginalBlankFieldsAndExplicitAdoption": ["--recovery-preview"],
             "testRecoveryClosingKeepsFormalAndModelManagementIsAccessible": ["--recovery-preview"],
             "testSpecialRecoveryShowsMergedAndDifferentDayClocksBeforeAdoption": ["--recovery-preview", "--recovery-exam"],
+            "testRecoveryImageOnlyPDFUsesNativeOCRAndTopLeftRaster": ["--recovery-ocr-probe"],
         ]
         for (method, arguments) in initialConditions where name.contains(method) {
             app.launchArguments += arguments
@@ -104,8 +106,22 @@ final class ApplicationChecks: XCTestCase {
         _ = heading("採用する資料全体")
         _ = heading("選択クラスだけでなく、以下の資料全体を採用します。元のPDFと読み取り結果を確認してください。")
     }
+    private func recoveryScreenshot(_ name: String) {
+        let bytes = app.screenshot().pngRepresentation
+        XCTAssertTrue((9...2 * 1024 * 1024).contains(bytes.count))
+        let hash = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+        let encoded = bytes.base64EncodedString(), chunkSize = 6000
+        print("TAKUPOKE_UI_IMAGE BEGIN \(name) \(hash) \(bytes.count)")
+        let characters = Array(encoded)
+        for offset in stride(from: 0, to: characters.count, by: chunkSize) {
+            let chunk = String(characters[offset..<min(offset + chunkSize, characters.count)])
+            print("TAKUPOKE_UI_IMAGE DATA \(name) \(offset / chunkSize) \(chunk)")
+        }
+        print("TAKUPOKE_UI_IMAGE END \(name) \((characters.count + chunkSize - 1) / chunkSize)")
+    }
     func testRecoveryPreviewOriginalBlankFieldsAndExplicitAdoption() {
         openRecoveryPreview()
+        recoveryScreenshot("ios-recovery-normal-preview")
         let fields = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "教員: 記載なし", "架空教室A")).firstMatch
         _ = visible(fields)
         _ = visible(app.staticTexts["空欄"].firstMatch)
@@ -114,6 +130,7 @@ final class ApplicationChecks: XCTestCase {
         for _ in 0..<3 { app.swipeDown() }
         tap("元のPDFを確認"); screen("元のPDF")
         XCTAssertTrue(app.navigationBars["元のPDF"].exists, app.debugDescription)
+        recoveryScreenshot("ios-recovery-original")
         app.navigationBars["元のPDF"].buttons["閉じる"].tap(); screen("時間割の復旧")
         let adoption = app.buttons["この資料全体の結果を使用"]
         for _ in 0..<20 { if adoption.exists && adoption.isHittable { break }; app.swipeUp() }
@@ -134,12 +151,15 @@ final class ApplicationChecks: XCTestCase {
             openRecoveryPreview(material: item.0, recovery: item.1)
             _ = visible(app.staticTexts["08:00〜09:00"].firstMatch)
             _ = visible(app.staticTexts[item.3].firstMatch)
+            recoveryScreenshot(index == 0 ? "ios-recovery-exam-preview" : "ios-recovery-return-preview")
             XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].label, "前回の正式結果を保持")
             let adoption = app.buttons["この資料全体の結果を使用"]
             for _ in 0..<20 { if adoption.exists && adoption.isHittable { break }; app.swipeUp() }
             XCTAssertTrue(adoption.isHittable, app.debugDescription); adoption.tap()
             XCTAssertTrue(app.staticTexts["復旧結果を採用しました。"].waitForExistence(timeout: 20), app.debugDescription)
             XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].label, "確認後に正式採用済み")
+            app.terminate(); app.launchArguments = ["--recovery-probe", item.2, "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]; launchReady()
+            XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].label, "確認後に正式採用済み", app.debugDescription)
         }
     }
     func testRecoveryClosingKeepsFormalAndModelManagementIsAccessible() {
@@ -150,6 +170,14 @@ final class ApplicationChecks: XCTestCase {
         tap("端末内AIモデル"); screen("端末内AIモデル")
         _ = heading("追加モデルは品質評価後に提供します。OSの端末内AIが利用可能な端末では追加ダウンロードは不要です。")
         XCTAssertFalse(app.buttons["モデルをダウンロード"].exists, app.debugDescription)
+        recoveryScreenshot("ios-recovery-models")
+    }
+    func testRecoveryImageOnlyPDFUsesNativeOCRAndTopLeftRaster() {
+        let result = app.staticTexts["fixture-ocr-result"]
+        XCTAssertTrue(result.waitForExistence(timeout: 10), app.debugDescription)
+        let finished = expectation(for: NSPredicate(format: "label != %@", "OCR実行中"), evaluatedWith: result)
+        wait(for: [finished], timeout: 60)
+        XCTAssertEqual(result.label, "OCR・上端座標・罫線・未読インク検証済み", app.debugDescription)
     }
 
     func testMergedCardsFromAllSources() {

@@ -216,7 +216,7 @@ enum RecoveryDocumentBuilder {
                                     let bottom = i == 2 ? subBox.bottom : (labelBox.y + (try box(sorted[i+1].1)).y)/2
                                     let scope = RecoveryBox(x:labelBox.x+labelBox.width,y:top,width:subBox.right-labelBox.x-labelBox.width,height:bottom-top)
                                     if !item.2.isEmpty { cell.sourceIds.append(try add(item.2,owner:id)) } else { cell.blankFields.append(item.0.rawValue) }
-                                    cell.roleScopes.append(RecoveryRoleScope(lessonIndex:lessonIndex,role:item.0,page:number,box:scope,labelSourceIds:[labelId],labelRegion:region(labelBox,axis:.left),proof:.inlineLabel,emptyVerified:item.2.isEmpty && (!fromOCR.contains(number) || rasters[number]?.isBlank(scope) == true)))
+                                    cell.roleScopes.append(RecoveryRoleScope(lessonIndex:lessonIndex,role:item.0,page:number,box:scope,labelSourceIds:[labelId],labelRegion:region(labelBox,axis:.left),proof:.inlineLabel,emptyVerified:item.2.isEmpty && (!fromOCR.contains(number) || rasters[number]?.isBlank(scope,rules:page.lines) == true)))
                                 }
                             } else {
                                 guard cell.bindingMode == .fixed, !rows.contains(where:{ RecoveryRole.hasLabelPrefix($0.map(\.text).joined()) }) else { throw PDFParseError(code:.ambiguous,stage:.lessonLines) }
@@ -252,7 +252,7 @@ enum RecoveryDocumentBuilder {
                             }
                         }
                         cell.lessonBindings = bindings
-                        cell.confirmedEmpty = cell.sourceIds.isEmpty && (!fromOCR.contains(number) || rasters[number]?.isBlank(cell.box) == true)
+                        cell.confirmedEmpty = cell.sourceIds.isEmpty && (!fromOCR.contains(number) || rasters[number]?.isBlank(cell.box,rules:page.lines) == true)
                         cell.parallelCount = max(1,cell.bindingMode == .fixed ? bindings.count : cell.roleScopes.count/3)
                         guard cell.confirmedEmpty || !cell.sourceIds.isEmpty else { throw PDFParseError(code:.ambiguous) }
                         if fromOCR.contains(number) {

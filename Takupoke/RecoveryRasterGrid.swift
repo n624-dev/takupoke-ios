@@ -12,7 +12,13 @@ struct RecoveryRasterGrid: Sendable {
             let offset = index*4
             // Round DOWN: every non-white RGB component remains non-white.
             // This preserves faint or colored ink that ordinary gray rounding loses.
-            gray.append(pixels[offset+3] == 255 ? UInt8((Int(pixels[offset])*299+Int(pixels[offset+1])*587+Int(pixels[offset+2])*114)/1000) : 0)
+            if pixels[offset+3] == 255 {
+                let red = Int(pixels[offset]) * 299
+                let green = Int(pixels[offset+1]) * 587
+                let blue = Int(pixels[offset+2]) * 114
+                let luminance = (red + green + blue) / 1000
+                gray.append(UInt8(luminance))
+            } else { gray.append(0) }
         }
         return RecoveryRasterGrid(width:width,height:height,grayscale:gray)
     }
@@ -66,12 +72,26 @@ struct RecoveryRasterGrid: Sendable {
                 return r
             }
         }
-        return collapse(result.filter(\.horizontal),vertical:false)+collapse(result.filter(\.vertical),vertical:true)
+        var connected = collapse(result.filter(\.horizontal),vertical:false)+collapse(result.filter(\.vertical),vertical:true)
+        // Isolated 一/I strokes are content, not borders. Remove dangling strokes
+        // repeatedly so a character H cannot prove its own pair of fake borders.
+        for _ in 0..<8 {
+            try check()
+            let next = connected.filter { line in
+                if line.horizontal {
+                    return [line.x1,line.x2].allSatisfy { x in connected.contains { $0.vertical && abs($0.x1-x) <= 2 && line.y1 >= $0.y1-2 && line.y1 <= $0.y2+2 } }
+                }
+                return [line.y1,line.y2].allSatisfy { y in connected.contains { $0.horizontal && abs($0.y1-y) <= 2 && line.x1 >= $0.x1-2 && line.x1 <= $0.x2+2 } }
+            }
+            if next.count == connected.count { return next }
+            connected = next
+        }
+        return [] // Unresolved chains cannot certify a table or conceal OCR ink.
     }
     func hasUncoveredInk(_ box: RecoveryBox, text: [RecoveryBox], rules: [PDFRule]) -> Bool {
         guard validPixels, box.valid, box.x+box.width <= Double(width), box.y+box.height <= Double(height) else { return true }
-        let left = max(0,Int(ceil(box.x))+3), right = min(width,Int(floor(box.x+box.width))-3)
-        let top = max(0,Int(ceil(box.y))+3), bottom = min(height,Int(floor(box.y+box.height))-3)
+        let left = max(0,Int(ceil(box.x))), right = min(width,Int(floor(box.x+box.width)))
+        let top = max(0,Int(ceil(box.y))), bottom = min(height,Int(floor(box.y+box.height)))
         guard left < right, top < bottom else { return true }
         for y in top..<bottom {
             for x in left..<right where grayscale[y*width+x] != 255 {
@@ -85,13 +105,8 @@ struct RecoveryRasterGrid: Sendable {
         }
         return false
     }
-    func isBlank(_ box: RecoveryBox) -> Bool {
+    func isBlank(_ box: RecoveryBox,rules: [PDFRule] = []) -> Bool {
         guard validPixels, box.valid, box.x+box.width <= Double(width), box.y+box.height <= Double(height), box.width > 8, box.height > 8 else { return false }
-        let left = Int(ceil(box.x))+3, right = Int(floor(box.x+box.width))-3
-        let top = Int(ceil(box.y))+3, bottom = Int(floor(box.y+box.height))-3
-        guard left < right, top < bottom else { return false }
-        // Every interior pixel must be white. Faint text/unknown marks fail safely.
-        for y in top..<bottom { for x in left..<right where grayscale[y*width+x] != 255 { return false } }
-        return true
+        return !hasUncoveredInk(box,text:[],rules:rules)
     }
 }

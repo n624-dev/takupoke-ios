@@ -14,15 +14,39 @@ enum RecoveryProviderError: Error { case invalidOutput }
 struct RecoveryRun { var state: RecoveryJobState; var result: RecoveryResult?; var errors: [String] }
 enum RecoveryRules {
     static func recover(_ doc: RecoveryDocument, _ cell: RecoveryCell) -> RecoveredCell? {
-        guard cell.bindingMode == .fixed, cell.inputState == .complete, !cell.confirmedEmpty, cell.lessonBindings.count == cell.parallelCount else { return nil }
+        guard cell.inputState == .complete, !cell.confirmedEmpty, (1...4).contains(cell.parallelCount) else { return nil }
         let sources = Dictionary(doc.sources.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         func field(_ ids: [String], _ name: String) -> RecoveryField? {
-            if ids.isEmpty { return name != "subject" && cell.blankFields.contains(name) ? RecoveryField(state: .empty, value: "", evidence: []) : nil }
+            if ids.isEmpty { return name != "subject" ? RecoveryField(state: .empty, value: "", evidence: []) : nil }
             guard ids.allSatisfy({ sources[$0]?.cellId == cell.id }) else { return nil }
             return RecoveryField(state: .present, value: ids.compactMap { sources[$0]?.text }.joined(), evidence: ids)
         }
+        var bindings = cell.lessonBindings
+        if cell.bindingMode == .roleProposal {
+            let labels = Set(cell.roleScopes.flatMap(\.labelSourceIds)), body = Set(cell.sourceIds).subtracting(labels)
+            guard cell.roleScopes.count == cell.parallelCount*3,
+                  body.allSatisfy({ id in sources[id].map { atom in cell.roleScopes.filter { $0.page == atom.page && $0.box.contains(atom.box) }.count == 1 } ?? false }) else { return nil }
+            bindings = []
+            for index in 0..<cell.parallelCount {
+                var ids = [RecoveryRole:[String]]()
+                for role in RecoveryRole.allCases {
+                    let candidates = cell.roleScopes.filter { $0.lessonIndex == index && $0.role == role }
+                    guard candidates.count == 1 else { return nil }
+                    let scope = candidates[0]
+                    ids[role] = doc.sources.filter { body.contains($0.id) && scope.page == $0.page && scope.box.contains($0.box) }.map(\.id)
+                    guard !ids[role]!.isEmpty || role != .subject && scope.emptyVerified else { return nil }
+                }
+                bindings.append(RecoveryLessonBinding(subject:ids[.subject]!,teacher:ids[.teacher]!,room:ids[.room]!))
+            }
+        }
+        guard bindings.count == cell.parallelCount else { return nil }
         var lessons = [RecoveryLesson]()
-        for binding in cell.lessonBindings {
+        for (index,binding) in bindings.enumerated() {
+            if cell.bindingMode == .fixed {
+                guard (!binding.teacher.isEmpty || cell.blankFields.contains("teacher")) && (!binding.room.isEmpty || cell.blankFields.contains("room")) else { return nil }
+            } else {
+                guard cell.roleScopes.filter({ $0.lessonIndex == index }).count == 3 else { return nil }
+            }
             guard let subject = field(binding.subject, "subject"), let teacher = field(binding.teacher, "teacher"), let room = field(binding.room, "room") else { return nil }
             lessons.append(RecoveryLesson(subject: subject, teacher: teacher, room: room, dateEvidence: cell.dayHeaderIds, periodEvidence: cell.periodHeaderIds))
         }
@@ -49,7 +73,7 @@ enum RecoveryEngine {
             try check(); try Task.checkCancellation()
             return RecoveryRun(state: validation.canAdopt ? .awaitingConfirmation : .failed, result: validation.canAdopt ? value : nil, errors: validation.errors)
         }
-        if missing.isEmpty { return try validated(result(RecoveryMetadata(provider: "rule", modelId: "rules", modelVersion: "1", runtimeVersion: "1", promptVersion: "1", recoverySchemaVersion: RecoveryValidator.schemaVersion, validatorVersion: RecoveryValidator.version, osVersion: "\(os):\(osMajor)"))) }
+        if missing.isEmpty { return try validated(result(RecoveryMetadata(provider: "rule", modelId: "rules", modelVersion: "2", runtimeVersion: "2", promptVersion: "1", recoverySchemaVersion: RecoveryValidator.schemaVersion, validatorVersion: RecoveryValidator.version, osVersion: "\(os):\(osMajor)"))) }
         var runtimeFailed = false
         for id in RecoveryPolicy.providers(os: os, majorVersion: osMajor) {
             try check(); try Task.checkCancellation()

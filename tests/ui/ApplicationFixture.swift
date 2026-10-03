@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 import CryptoKit
 import UserNotifications
+import PDFKit
 
 final class FixtureNetwork: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool { true }
@@ -28,6 +29,7 @@ final class FixtureNetwork: URLProtocol {
 @main
 struct SimulatorApplication: App {
     @State private var notificationProbe = "待機中"
+    @State private var recoveryOCRProbe = "OCR実行中"
     @State private var applicationReady = false
     @State private var fixtureTypeSize: DynamicTypeSize = .large
     @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
@@ -65,6 +67,10 @@ struct SimulatorApplication: App {
                     }
                 }
                 .overlay(alignment: .bottomLeading) {
+                    if ProcessInfo.processInfo.arguments.contains("--recovery-ocr-probe") {
+                        Text(recoveryOCRProbe).accessibilityIdentifier("fixture-ocr-result")
+                            .allowsHitTesting(false)
+                    }
                     if ProcessInfo.processInfo.arguments.contains("--theme-probe") {
                         Text(UserDefaults.standard.string(forKey: MainColor.storageKey) ?? "未設定")
                             .id(mainColor)
@@ -88,6 +94,10 @@ struct SimulatorApplication: App {
                             break
                         }
                         try? await Task.sleep(nanoseconds: 100_000_000)
+                    }
+                    if ProcessInfo.processInfo.arguments.contains("--recovery-ocr-probe") {
+                        do { recoveryOCRProbe = try await SimulatorRecoveryOCRFixture.check() }
+                        catch { recoveryOCRProbe = "OCR検証失敗: \(error)" }
                     }
                     guard ProcessInfo.processInfo.arguments.contains("--notification-probe") else { return }
                     for _ in 0..<40 {
@@ -404,5 +414,51 @@ struct FixtureRecoveryProbe: View {
         Text(adopted ? "確認後に正式採用済み" : "前回の正式結果を保持")
             .font(.caption2).accessibilityIdentifier("fixture-recovery-formal")
             .allowsHitTesting(false)
+    }
+}
+
+// This runs the production renderer, Vision recognition and grayscale checks.
+// The PDF contains only a raster image; no extracted text or preview is injected.
+@MainActor
+enum SimulatorRecoveryOCRFixture {
+    static func check() async throws -> String {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-ocr-ui-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let size = CGSize(width: 600, height: 800)
+        let format = UIGraphicsImageRendererFormat(); format.scale = 1; format.opaque = true
+        let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
+            UIColor.white.setFill(); context.fill(CGRect(origin: .zero, size: size))
+            ("FICTIONAL OCR ALPHA" as NSString).draw(at: CGPoint(x: 20, y: 32), withAttributes: [.font: UIFont.systemFont(ofSize: 32), .foregroundColor: UIColor.black])
+            context.cgContext.setFillColor(UIColor.black.cgColor)
+            context.cgContext.fill(CGRect(x: 0, y: 140, width: 600, height: 1))
+            context.cgContext.fill(CGRect(x: 0, y: 500, width: 600, height: 1))
+            context.cgContext.fill(CGRect(x: 0, y: 140, width: 1, height: 361))
+            context.cgContext.fill(CGRect(x: 599, y: 140, width: 1, height: 361))
+        }
+        let url = root.appendingPathComponent("fictional-image-only.pdf")
+        try UIGraphicsPDFRenderer(bounds: CGRect(origin: .zero, size: size)).writePDF(to: url) { context in
+            context.beginPage(); image.draw(in: CGRect(origin: .zero, size: size))
+        }
+        guard let pdf = PDFDocument(url: url), pdf.pageCount == 1,
+              (pdf.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw PDFParseError(code: .ambiguous) }
+        let pages = try await PDFRecoveryRecognition.layouts(url, only: [1], check: {})
+        guard pages.count == 1, let page = pages.first else { throw PDFParseError(code: .unreadable) }
+        let layout = page.layout, raster = page.raster
+        let text = layout.glyphs.map(\.text).joined().filter { !$0.isWhitespace }
+        guard text == "FICTIONALOCRALPHA", !layout.glyphs.isEmpty,
+              layout.glyphs.allSatisfy({ $0.y < layout.height * 0.15 && $0.x >= 0 && $0.width > 0 && $0.height > 0 }) else { throw PDFParseError(code: .ambiguous, stage: .characterMapping) }
+        let scale = layout.height / 800
+        guard let line = layout.lines.first(where: { $0.horizontal && abs($0.y1 - 140.5 * scale) <= 3 && $0.x2 - $0.x1 > layout.width * 0.95 }),
+              raster.dark(raster.width / 2, Int(line.y1.rounded())),
+              !raster.dark(raster.width / 2, raster.height - 1 - Int(line.y1.rounded())) else { throw PDFParseError(code: .ambiguous, stage: .rasterInput) }
+        let textRegion = RecoveryBox(x: 10 * scale, y: 20 * scale, width: 550 * scale, height: 70 * scale)
+        let blankRegion = RecoveryBox(x: 10 * scale, y: 550 * scale, width: 550 * scale, height: 200 * scale)
+        let ruleRegion = RecoveryBox(x: 10 * scale, y: 125 * scale, width: 550 * scale, height: 30 * scale)
+        guard raster.hasUncoveredInk(textRegion, text: [], rules: layout.lines),
+              !raster.hasUncoveredInk(ruleRegion, text: [], rules: layout.lines),
+              raster.isBlank(blankRegion),
+              !raster.hasUncoveredInk(blankRegion, text: [], rules: layout.lines) else { throw PDFParseError(code: .ambiguous, stage: .rasterInput) }
+        return "OCR・上端座標・罫線・未読インク検証済み"
     }
 }

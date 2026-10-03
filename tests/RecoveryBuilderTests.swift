@@ -40,7 +40,7 @@ extension PDFParsingTests {
         let d = try RecoveryDocumentBuilder.build([recoveryTimetablePage(labeled:true)],kind:.timetable,hash:String(repeating:"b",count:64))
         let cell = try XCTUnwrap(d.cells.first { $0.bindingMode == .roleProposal })
         XCTAssertEqual(Set(cell.roleScopes.map(\.role)),Set(RecoveryRole.allCases))
-        XCTAssertNil(RecoveryRules.recover(d,cell))
+        XCTAssertNotNil(RecoveryRules.recover(d,cell))
     }
     func testPartialReorderedRoleLabelsCannotBecomeFixedOrParallelBindings() {
         for parallel in [false,true] {

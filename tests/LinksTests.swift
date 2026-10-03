@@ -105,6 +105,11 @@ final class LinksTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(LinkSearch.score(terms: "しら|しらばす", query: "sira"), 0)
         XCTAssertGreaterThan(LinkSearch.score(terms: "かくう|かくうりんく", query: "かくう"),
                              LinkSearch.score(terms: "かくうりんく", query: "かくう"))
+        for term in ["ちゅうごく","チュウゴク","ﾁｭｳｺﾞｸ"] {
+            XCTAssertGreaterThanOrEqual(LinkSearch.score(terms:term,query:"chugoku"),0)
+            XCTAssertGreaterThanOrEqual(LinkSearch.score(terms:term,query:"chuugoku"),0)
+        }
+        XCTAssertGreaterThanOrEqual(LinkSearch.score(terms:"ＡＢＣ",query:"abc"),0)
         XCTAssertEqual(LinkSearch.score(terms: "かくうりんく", query: "unrelated"), -1)
     }
 }

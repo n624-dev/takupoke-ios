@@ -164,26 +164,22 @@ final class RecoveryTests: XCTestCase {
         r.metadata.provider = "systemLanguageModel"
         return (d,r)
     }
-    private struct ProposedRoles: LocalRecoveryProvider {
-        var id = "systemLanguageModel"; var localOnly = true; var metadata: RecoveryMetadata; var swap = false
-        func availability() async throws -> LocalProviderState { .ready }
-        func recoverCell(_ cell: RecoveryPromptCell) async throws -> [RecoveryLesson] {
-            [RecoveryLesson(subject:RecoveryField(state:.present,value:"invented subject",evidence:[swap ? "teacher":"subject"]),teacher:RecoveryField(state:.present,value:"invented teacher",evidence:[swap ? "subject":"teacher"]),room:RecoveryField(state:.present,value:"invented room",evidence:["room"]),dateEvidence:[],periodEvidence:[])]
-        }
-    }
-    func testRoleProposalUsesOriginalValuesAndCanReachLocalAI() async throws {
-        let (d,r) = roleFixture()
+    func testUniqueRoleScopePartitionUsesRulesWithoutLoadingLocalAI() async throws {
+        let (d,r) = roleFixture(), provider = ProbeProvider("systemLanguageModel",r.metadata)
         XCTAssertEqual(RecoveryValidator.inputErrors(d),[])
-        XCTAssertNil(RecoveryRules.recover(d,d.cells[0]))
-        let run = try await RecoveryEngine.run(d,os:"ios",osMajor:26,foreground:true,providers:[ProposedRoles(metadata:r.metadata)],rule:{ _ in nil },check:{})
+        XCTAssertNotNil(RecoveryRules.recover(d,d.cells[0]))
+        let run = try await RecoveryEngine.run(d,os:"ios",osMajor:26,foreground:true,providers:[provider],rule:{ _ in nil },check:{})
         XCTAssertEqual(run.state,.awaitingConfirmation)
         XCTAssertEqual(run.result?.cells[0].lessons.first?.subject.value,"架空科目A")
-        XCTAssertEqual(run.result?.metadata.provider,"systemLanguageModel")
+        XCTAssertEqual(run.result?.metadata.provider,"rule")
+        XCTAssertEqual(provider.availabilityCalls,0); XCTAssertEqual(provider.recoveryCalls,0)
     }
-    func testRoleProposalCannotSwapRolesOrOmitAnOriginalAtom() async throws {
+    func testRoleProposalCannotSwapRolesOrOmitAnOriginalAtom() {
         let (d,r) = roleFixture()
-        let run = try await RecoveryEngine.run(d,os:"ios",osMajor:26,foreground:true,providers:[ProposedRoles(metadata:r.metadata,swap:true)],rule:{ _ in nil },check:{})
-        XCTAssertEqual(run.state,.failed); XCTAssertNil(run.result)
+        var swapped = r
+        swapped.cells[0].lessons[0].subject = r.cells[0].lessons[0].teacher
+        swapped.cells[0].lessons[0].teacher = r.cells[0].lessons[0].subject
+        XCTAssertFalse(RecoveryValidator.validate(d,swapped).canAdopt)
         var omitted = r; omitted.cells[0].lessons[0].room = RecoveryField(state:.empty,value:"",evidence:[])
         XCTAssertFalse(RecoveryValidator.validate(d,omitted).canAdopt)
     }
@@ -217,10 +213,26 @@ final class RecoveryTests: XCTestCase {
     }
     func testRasterRulesRetainLinesTouchingRightAndBottomEdge() throws {
         var bytes = [UInt8](repeating:255,count:50*50)
-        for x in 0..<50 { bytes[10*50+x] = 0 }; for y in 0..<50 { bytes[y*50+30] = 0 }
+        for x in 0..<50 { bytes[x] = 0; bytes[10*50+x] = 0; bytes[49*50+x] = 0 }
+        for y in 0..<50 { bytes[y*50] = 0; bytes[y*50+30] = 0; bytes[y*50+49] = 0 }
         let grid = RecoveryRasterGrid(width:50,height:50,grayscale:bytes), rules = try grid.rules(check:{})
         XCTAssertTrue(rules.contains { $0.horizontal && $0.y1 == 10 && $0.x2 == 49 })
         XCTAssertTrue(rules.contains { $0.vertical && $0.x1 == 30 && $0.y2 == 49 })
+    }
+    func testIsolatedOrDanglingCharacterStrokesCannotMaskUnrecognizedInk() throws {
+        let box = RecoveryBox(x:0,y:0,width:80,height:80)
+        for shape in ["horizontal","vertical","H"] {
+            var bytes = [UInt8](repeating:255,count:80*80)
+            if shape != "vertical" { for x in 10...60 { bytes[40*80+x] = 0 } }
+            if shape != "horizontal" { for y in 10...65 { bytes[y*80+10] = 0 } }
+            if shape == "H" { for y in 10...65 { bytes[y*80+60] = 0 } }
+            let raster = RecoveryRasterGrid(width:80,height:80,grayscale:bytes), rules = try raster.rules(check:{})
+            XCTAssertTrue(rules.isEmpty,shape)
+            XCTAssertTrue(raster.hasUncoveredInk(box,text:[],rules:rules),shape)
+        }
+        var borderInk = [UInt8](repeating:255,count:80*80); borderInk[40*80+1] = 254
+        let raster = RecoveryRasterGrid(width:80,height:80,grayscale:borderInk)
+        XCTAssertFalse(raster.isBlank(box)); XCTAssertTrue(raster.hasUncoveredInk(box,text:[],rules:[]))
     }
     func testOCRUnrecognizedInkCannotBecomeAnEmptyField() {
         let box = RecoveryBox(x:0,y:0,width:40,height:40)

@@ -34,7 +34,7 @@ PDF・画像・OCR文字・科目・教員・Prompt・復旧結果を外部LLM�
 
 セル内の原文をすべて使っていても、科目と教員を入れ替えれば誤った結果になり得る。次の契約では、固定Bindingsとは別に、アプリが原文ラベル・役割列の見出し・既存書式の役割領域・並記列から作るRoleScopeを持たせる。AIは新しい文字や座標を作らず、既存の原文atom IDの割当案を返す。原文順序・矩形・役割領域・完全partition・並記対応・空欄証明をValidatorで確認し、正式値は原文から再構築する。一意に決められる割当は先にルールで処理する。
 
-固定BindingsとRoleScopeの両経路を実装し、ラベル並び替え・外部列見出し・原文再構築を架空ケースで検証した。独立した役割の根拠がない無ラベルの折返し・欠落を、AIの知識と確認ボタンだけで確定扱いにしない。Schema / Validator versionは2で、Document全体のfingerprintにRoleScopeも含める。
+固定BindingsとRoleScopeの両経路を実装し、ラベル並び替え・外部列見出し・原文再構築を架空ケースで検証した。独立した役割の根拠がない無ラベルの折返し・欠落を、AIの知識と確認ボタンだけで確定扱いにしない。RoleScopeへの全atom所属が一意ならモデルを呼ばずRulesで復旧する。現契約で安全に確定できない入力が生成AIによって新しく成功するとは保証せず、利用可能なモデルだけで不明を埋めない。Schema / Validator versionは2で、Document全体のfingerprintにRoleScopeも含める。
 
 ## 接続と残る確認
 
@@ -60,8 +60,8 @@ LinuxのSwiftホストテストではFoundation側の契約・Validator・Engine
 
 ## この作業でのローカル検証（2026-10-03 UTC）
 
-LinuxでiOS Swift233件が成功。iOS Python55件、Android core98件、Windows Core227件・Integration141件、パッケージライセンス収集13件は前の基盤検証記録。iOSの材料保存/HTTP失敗保持の単体実行も成功。Androidはdebug APKのassembleまで成功。Windowsは実SDKを参照したProviderとAppViewModelのC#コンパイルが成功（UI/XAMLと実OS実行は含まない）。公開fixture・SDK接続のコンパイルを確認した結果で、学校資料の復旧精度と実機動作の確認ではない。
+LinuxでiOS Swift240件が成功。iOS Python55件、Android core98件、Windows Core227件・Integration141件、パッケージライセンス収集13件は前の基盤検証記録。iOSの材料保存/HTTP失敗保持の単体実行も成功。Androidはdebug APKのassembleまで成功。Windowsは実SDKを参照したProviderとAppViewModelのC#コンパイルが成功（UI/XAMLと実OS実行は含まない）。公開fixture・SDK接続のコンパイルを確認した結果で、学校資料の復旧精度と実機動作の確認ではない。
 
-サブエージェント3名が各OSの追加コードを反復レビューし、別の1名が更新・中止・期間切替のバグ調査を並行実施した。Evidenceの省略/誤ったセル/孤立Source/見出しへの偽装/別日時刻、iOSの保存失敗後の再試行、Windowsのjob原子的保存とキャンセル後snapshot、Androidの未反映警告の指摘を修正し、架空回帰ケースへ追加した。RoleScopeで未確定項目を復旧する経路は実装後に独立レビューし、交換・省略・隣セル取り込みが拒否されることを追加確認した。
+サブエージェント3名が各OSの追加コードを反復レビューし、別の1名が更新・中止・期間切替のバグ調査を並行実施した。Evidenceの省略/誤ったセル/孤立Source/見出しへの偽装/別日時刻、iOSの保存失敗後の再試行、Windowsのjob原子的保存とキャンセル後snapshot、Androidの未反映警告の指摘を修正し、架空回帰ケースへ追加した。RoleScopeを実装後に独立レビューし、交換・省略・隣セル取り込みが拒否されることを追加確認した。一意な割当は先にRulesへ回す。
 
 追加の並行調査で、iOSの更新原本へのPDF表示差替え、Androidの閲覧中原本更新への追従、WindowsのPDF描画例外・二重起動・旧要求失敗の競合と、同一SHA選び直し後の失敗キャッシュ失効を修正した。Windowsの監視再登録では受信済み通知を保持し、空登録・取消では破棄する。Androidでは処理中の通知を世代付きで保留し、observer管理をMainへ直列化、安定した原本の読取通知連鎖を有限にして、observer起点の確認では学校行事API・revisionを取得しない。Windowsは実ファイル通知と再選択の保存境界、Androidは通知queueの回帰を確認する。PDF画面の実OS描画は未検証。
