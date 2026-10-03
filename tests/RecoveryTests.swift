@@ -68,12 +68,17 @@ final class RecoveryTests: XCTestCase {
         XCTAssertTrue(retry("current", 7, PDFParseError(code: .unsupported), 7)); XCTAssertFalse(retry("old", 8, PDFParseError(code: .unsupported), 8)); XCTAssertFalse(retry("current", 8, nil, 8))
     }
     func testSpecialScopeVersionRetriesSameHashEarlierSuccessfulAnalysis() {
-        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion,9)
+        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion,10)
         XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"unchanged",parserVersion:SpecialScheduleAnalysis.parserVersion,
-            analysisDigest:"unchanged",analysisVersion:8,attemptDigest:"unchanged",failure:nil,attemptVersion:8))
+            analysisDigest:"unchanged",analysisVersion:9,attemptDigest:"unchanged",failure:nil,attemptVersion:9))
         XCTAssertFalse(PDFParseAttempt.needsAnalysis(digest:"unchanged",parserVersion:SpecialScheduleAnalysis.parserVersion,
             analysisDigest:"unchanged",analysisVersion:SpecialScheduleAnalysis.parserVersion,attemptDigest:"unchanged",failure:nil,
             attemptVersion:SpecialScheduleAnalysis.parserVersion))
+    }
+    func testOrdinaryRoleAliasVersionRetriesUnchangedEarlierSuccess() {
+        XCTAssertEqual(PDFAnalysis.currentVersion(for:.timetable),11)
+        XCTAssertEqual(PDFAnalysis.currentVersion(for:.events),4)
+        XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"same",parserVersion:PDFAnalysis.parserVersion,analysisDigest:"same",analysisVersion:10,attemptDigest:"same",failure:nil,attemptVersion:10))
     }
     func testRecoverySourceRequiresCurrentStrictFailureForSameDocument() {
         let version = SpecialScheduleAnalysis.parserVersion
@@ -183,6 +188,13 @@ final class RecoveryTests: XCTestCase {
         }
         XCTAssertEqual(calls,2)
         XCTAssertNoThrow(try RecoveryConversion.verifyFile(source,currentPeriod:{ before },check:{}))
+    }
+    func testOldValidatorApprovalCannotBeReusedButRemainsDecodable() throws {
+        let (d,current) = fixture(); var old = current; old.metadata.validatorVersion = 2; old.metadata.recoveryVersion = "1"
+        let approval = RecoveryAcceptance(pdfHash:d.pdfHash,resultHash:try RecoveryValidator.fingerprint(old),scopeHash:try RecoveryValidator.fingerprint(d),metadata:old.metadata,acceptedAt:Date())
+        XCTAssertFalse(try RecoveryValidator.canReuse(approval,document:d,result:old))
+        XCTAssertEqual(try JSONDecoder().decode(RecoveryResult.self,from:JSONEncoder().encode(old)),old)
+        XCTAssertEqual(current.metadata.recoveryVersion,"2")
     }
     func testApprovalOnlyReusesExactValidatedResult() throws {
         var (d, r) = fixture()

@@ -58,6 +58,11 @@ final class LinksTests: XCTestCase {
         XCTAssertEqual(try LinksPayload.decode(JSONEncoder().encode(payload([item(href: "jrshikoku://open")]))).categories.count, 1)
     }
 
+    func testWeakETagComparisonPreservesOpaqueEmbeddedMarker() throws {
+        let saved = SavedLinks(payload:payload([item()]),apiETag:"\"abcW/def\"",checkedAt:Date())
+        XCTAssertThrowsError(try LinksResponse.decode(status:304,data:Data(),receivedETag:"\"abcdef\"",saved:saved))
+        XCTAssertNoThrow(try LinksResponse.decode(status:304,data:Data(),receivedETag:"W/\"abcW/def\"",saved:saved))
+    }
     func test200304AndFailureKeepPreviousResult() throws {
         let first = try LinksResponse.decode(status: 200, data: JSONEncoder().encode(payload([item()])),
                                              receivedETag: tag, saved: nil, checkedAt: Date(timeIntervalSince1970: 1))

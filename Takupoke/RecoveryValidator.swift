@@ -7,7 +7,7 @@ import Crypto
 
 enum RecoveryValidator {
     static let schemaVersion = 2
-    static let version = 2
+    static let version = 3
     private static func text(_ value: String) -> String {
         value.precomposedStringWithCompatibilityMapping.components(separatedBy: .whitespacesAndNewlines).joined()
     }
@@ -22,13 +22,16 @@ enum RecoveryValidator {
     private static func classLabels(_ cls: String) -> [String] {
         [cls, cls.replacingOccurrences(of: "_", with: "-"), cls.replacingOccurrences(of: "_", with: ""), cls.hasPrefix("AI_") ? cls.replacingOccurrences(of: "AI_", with: "") + "年" : cls]
     }
-    static func validate(_ doc: RecoveryDocument, _ result: RecoveryResult, inputOnly: Bool = false) -> RecoveryValidation {
+    static func validate(_ doc: RecoveryDocument, _ result: RecoveryResult, inputOnly: Bool = false, unresolvedCellIds: Set<String> = []) -> RecoveryValidation {
+        guard inputOnly || unresolvedCellIds.isEmpty else { return RecoveryValidation(errors:["unresolvedStructure"]) }
         guard (1900...9998).contains(doc.schoolYear), (1...64).contains(doc.classes.count), (1...31).contains(doc.days.count), (1...20000).contains(doc.cells.count), doc.sources.count <= 100000, result.cells.count <= 20000 else { return RecoveryValidation(errors: ["inputLimit"]) }
         var errors = [String]()
         func check(_ ok: Bool, _ code: String) { if !ok && !errors.contains(code) { errors.append(code) } }
+        check(unresolvedCellIds.isSubset(of:Set(doc.cells.filter { !$0.confirmedEmpty && !$0.sourceIds.isEmpty }.map(\.id))),"unresolvedStructure")
         check([RecoveryDocumentKind.timetable, .exam, .return].contains(doc.kind), "documentKind")
         check(doc.pdfHash.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil && result.pdfHash == doc.pdfHash, "sourceHash")
         check(doc.complete && (1...20000).contains(doc.cells.count) && doc.sources.count <= 100000, "incompleteDocument")
+        check(doc.structureMetadata == nil || doc.structureMetadata == result.metadata,"structureMetadata")
         check(result.kind == doc.kind && result.schoolYear == doc.schoolYear && result.term == doc.term, "documentIdentity")
         check((1900...9998).contains(doc.schoolYear) && (doc.kind != .timetable || ["前期", "後期"].contains(doc.term ?? "")), "yearTerm")
         check(result.metadata.recoverySchemaVersion == schemaVersion && result.metadata.validatorVersion == version &&
@@ -116,7 +119,7 @@ enum RecoveryValidator {
                       doc.clockReplicas[key,default:[]].isEmpty,
                       let first = doc.times[firstKey], let last = doc.times[lastKey],
                       first.components(separatedBy:"〜").first! + "〜" + last.components(separatedBy:"〜").last! == clock,
-                      Set(ids) == Set(doc.clockEvidence[firstKey,default:[]] + doc.clockEvidence[lastKey,default:[]]),
+                      Set(ids) == Set((doc.clockEvidence[firstKey,default:[]] + doc.clockEvidence[lastKey,default:[]]).filter { sources[$0]?.page == primary.page }),
                       ids.allSatisfy({ id in sources[id].map { $0.page == primary.page && primary.box.contains($0.box) } ?? false }) else { return false }
                 func endpoint(_ period: Int,_ value: String) -> Bool {
                     clockBound(day,period,period,value) || doc.kind == .return && day != doc.days.sorted().first && noteValid && value == normalTimes[period-1] && evidence(doc.clockEvidence["\(day):\(period)",default:[]],doc.normalTimeNoteEvidence)
@@ -247,6 +250,7 @@ enum RecoveryValidator {
                     } else { check(false, "normalSpanTimeCondition") }
                 }
             }
+            let bindingIncomplete = inputOnly && unresolvedCellIds.contains(cell.id)
             let bindingIds = cell.lessonBindings.flatMap { $0.subject + $0.teacher + $0.room }
             let labelIds = cell.roleScopes.flatMap(\.labelSourceIds)
             if !cell.parallelSeparators.isEmpty {
@@ -264,11 +268,11 @@ enum RecoveryValidator {
             }
             if cell.bindingMode == .fixed {
                 check(!cell.lessonBindings.contains { binding in [binding.subject,binding.teacher,binding.room].contains { ids in RecoveryRole.hasLabelPrefix(ids.compactMap { sources[$0]?.text }.joined()) } }, "unboundRoleLabel")
-                check(cell.roleScopes.isEmpty && (cell.confirmedEmpty ? cell.lessonBindings.isEmpty : cell.lessonBindings.count == cell.parallelCount && Set(bindingIds).count == bindingIds.count && Set(bindingIds) == Set(cell.sourceIds).subtracting(cell.parallelSeparators.values)), "lessonBinding")
+                check(cell.roleScopes.isEmpty && (cell.confirmedEmpty ? cell.lessonBindings.isEmpty : bindingIncomplete || cell.lessonBindings.count == cell.parallelCount && Set(bindingIds).count == bindingIds.count && Set(bindingIds) == Set(cell.sourceIds).subtracting(cell.parallelSeparators.values)), "lessonBinding")
             } else {
-                check(cell.parallelSeparators.isEmpty && !cell.confirmedEmpty && cell.lessonBindings.isEmpty && (1...4).contains(cell.parallelCount) && cell.roleScopes.count == cell.parallelCount * 3 && Set(labelIds).count == labelIds.count, "roleScope")
+                check(cell.parallelSeparators.isEmpty && !cell.confirmedEmpty && cell.lessonBindings.isEmpty && (1...4).contains(cell.parallelCount) && (bindingIncomplete || cell.roleScopes.count == cell.parallelCount * 3) && Set(labelIds).count == labelIds.count, "roleScope")
                 let keys = cell.roleScopes.map { "\($0.lessonIndex):\($0.role.rawValue)" }
-                check(Set(keys).count == keys.count && Set(keys) == Set((0..<max(0, min(cell.parallelCount, 4))).flatMap { i in RecoveryRole.allCases.map { "\(i):\($0.rawValue)" } }), "roleScope")
+                check(Set(keys).count == keys.count && (bindingIncomplete || Set(keys) == Set((0..<max(0, min(cell.parallelCount, 4))).flatMap { i in RecoveryRole.allCases.map { "\(i):\($0.rawValue)" } })), "roleScope")
                 for scope in cell.roleScopes {
                     let virtual = RecoveryCell(id: cell.id, page: cell.page, box: scope.box, inputState: .complete, slots: [], sourceIds: [], blankFields: [])
                     let labels = scope.role.labels.flatMap { [$0, $0 + ":", $0 + "："] }
@@ -308,8 +312,8 @@ enum RecoveryValidator {
         }
         return RecoveryValidation(errors: errors)
     }
-    static func inputErrors(_ doc: RecoveryDocument) -> [String] {
-        validate(doc, RecoveryResult(pdfHash: doc.pdfHash, kind: doc.kind, schoolYear: doc.schoolYear, term: doc.term, cells: doc.cells.map { RecoveredCell(cellId: $0.id, state: .missing, lessons: []) }, metadata: RecoveryMetadata(provider: "rule", modelId: "rules", modelVersion: "1", runtimeVersion: "1", promptVersion: "1", recoverySchemaVersion: schemaVersion, validatorVersion: version, osVersion: "preflight")), inputOnly: true).errors
+    static func inputErrors(_ doc: RecoveryDocument, unresolvedCellIds:Set<String> = []) -> [String] {
+        validate(doc, RecoveryResult(pdfHash: doc.pdfHash, kind: doc.kind, schoolYear: doc.schoolYear, term: doc.term, cells: doc.cells.map { RecoveredCell(cellId: $0.id, state: .missing, lessons: []) }, metadata: doc.structureMetadata ?? RecoveryMetadata(provider: "rule", modelId: "rules", modelVersion: "1", runtimeVersion: "1", promptVersion: "1", recoverySchemaVersion: schemaVersion, validatorVersion: version, osVersion: "preflight")), inputOnly: true,unresolvedCellIds:unresolvedCellIds).errors
     }
     static func previouslyAccepted(_ adopted: RecoveryAdopted?, hash: String) -> Bool {
         #if canImport(CryptoKit) || canImport(Crypto)

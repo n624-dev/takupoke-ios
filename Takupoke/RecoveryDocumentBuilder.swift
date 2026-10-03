@@ -23,11 +23,12 @@ enum RecoveryDocumentBuilder {
         }
     }
     static func build(_ pages: [PDFPageLayout], kind: RecoveryDocumentKind, hash: String,
-                      fromOCR: Set<Int> = [], rasters: [Int:RecoveryRasterGrid] = [:], check: () throws -> Void = {}) throws -> RecoveryDocument {
+                      fromOCR: Set<Int> = [], rasters: [Int:RecoveryRasterGrid] = [:], structureProposals: [String:[RecoveryLesson]] = [:], check: () throws -> Void = {}) throws -> RecoveryDocument {
         guard (1...12).contains(pages.count), pages.allSatisfy({ $0.width.isFinite && $0.height.isFinite && $0.width > 0 && $0.height > 0 && $0.glyphs.count <= 100000 }) else { throw PDFParseError(code: .limit) }
         var doc = RecoveryDocument(pdfHash: hash, kind: kind, schoolYear: 0, term: nil, classes: [], days: [], requiredSlots: [], cells: [], sources: [], complete: true, yearEvidence: [], termEvidence: [], dayEvidence: [:], classEvidence: [:], periodEvidence: [:], times: [:], timeEvidence: [], normalTimeNoteEvidence: [])
         let count = kind == .exam ? 6 : 8
         var sourceNumber = 0
+        var requests = [RecoveryStructureRequest]()
         for (pageIndex, page) in pages.enumerated() {
             try check()
             let number = pageIndex + 1, grid = PDFGrid(page: page)
@@ -39,7 +40,7 @@ enum RecoveryDocumentBuilder {
                 guard indices.count == glyphs.count, indices.allSatisfy({ !used.contains($0) }) else { throw PDFParseError(code: .ambiguous, page: number, stage: .textOrder) }
                 used.formUnion(indices); sourceNumber += 1
                 let id = "p\(number)-s\(sourceNumber)"
-                doc.sources.append(RecoverySource(id: id, cellId: owner, page: number, text: value ?? glyphs.map(\.text).joined(), box: try box(glyphs), fromOcr: fromOCR.contains(number)))
+                doc.sources.append(RecoverySource(id: id, cellId: owner, page: number, text: value ?? glyphs.map(\.text).joined(), box: try box(glyphs), fromOcr: fromOCR.contains(number), sourceLine:glyphs.first?.sourceLine, sourceOrder:glyphs.first?.sourceOrder))
                 return id
             }
             func region(_ b: RecoveryBox, axis: RecoveryHeaderAxis) -> RecoveryHeaderRegion { .init(page: number, box: b, axis: axis) }
@@ -140,7 +141,7 @@ enum RecoveryDocumentBuilder {
                     if let physical = try? grid.box(classBox.left-2,y) {
                         gradeBox = physical; gradeGlyphs = grid.glyphs(in:physical)
                     } else {
-                        guard kind == .return, grades.count == 6, rows.count == 17,
+                        guard kind == .return, !grades.isEmpty, rows.count == grades.reduce(0,{ $0 + (PDFSchoolParser.key($1.text) == "AI" ? 2:3) }),
                               let gradeIndex = grades.indices.min(by:{ abs(grades[$0].box.y+grades[$0].box.height/2-y) < abs(grades[$1].box.y+grades[$1].box.height/2-y) }) else { throw PDFParseError(code:.unsupported,stage:.gradeLabel) }
                         let members = rows.filter { candidate in
                             let cy = candidate.map(\.cy).reduce(0,+)/Double(candidate.count)
@@ -189,7 +190,7 @@ enum RecoveryDocumentBuilder {
                             cell.periodHeaderIds.append(periodIds[index]); cell.periodRegions[String(p)] = region(periodBoxes[index],axis:.above)
                         }
                         var bindings = [RecoveryLessonBinding]()
-                        for subBox in Set(sub).sorted(by: { $0.top < $1.top }) {
+                        for (subIndex,subBox) in Set(sub).sorted(by: { $0.top < $1.top }).enumerated() {
                             let glyphs = grid.glyphs(in:subBox)
                             if glyphs.isEmpty { continue }
                             let rows = try PDFGrid.contentRows(glyphs)
@@ -221,8 +222,29 @@ enum RecoveryDocumentBuilder {
                                     cell.roleScopes.append(RecoveryRoleScope(lessonIndex:lessonIndex,role:item.0,page:number,box:scope,labelSourceIds:[labelId],labelRegion:region(labelBox,axis:.left),proof:.inlineLabel,emptyVerified:item.2.isEmpty && (!fromOCR.contains(number) || pageRaster?.isBlank(scope,rules:page.lines) == true)))
                                 }
                             } else {
-                                guard cell.bindingMode == .fixed, !rows.contains(where:{ RecoveryRole.hasLabelPrefix($0.map(\.text).joined()) }) else { throw PDFParseError(code:.ambiguous,stage:.lessonLines) }
-                                let fields = try grid.lessonFields(subBox,lines:lines)
+                                let fieldsAttempt = try? grid.lessonFields(subBox,lines:lines)
+                                if fieldsAttempt == nil || rows.contains(where:{ RecoveryRole.hasLabelPrefix($0.map(\.text).joined()) }) {
+                                    guard bindings.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.lessonLines) }
+                                    let request = try RecoveryStructure.request(id:"\(id)-sub-\(subIndex)",page:number,box:rect(subBox),slots:cell.slots,glyphs:glyphs)
+                                    let proposal = structureProposals[request.id] ?? RecoveryStructure.cheap(request)
+                                    if let proposal {
+                                        let roles = try RecoveryStructure.verify(request,proposal)
+                                        cell.bindingMode = .roleProposal
+                                        let lessonIndex = cell.roleScopes.count/3
+                                        for role in roles {
+                                            let labelIds = try role.labels.map { try add($0.glyphs,owner:id) }
+                                            cell.sourceIds += labelIds
+                                            cell.sourceIds += try role.body.map { try add($0.glyphs,owner:id) }
+                                            if role.body.isEmpty { cell.blankFields.append(role.role.rawValue) }
+                                            cell.roleScopes.append(RecoveryRoleScope(lessonIndex:lessonIndex,role:role.role,page:number,box:role.scope,labelSourceIds:labelIds,labelRegion:region(role.labelBox,axis:.left),proof:.inlineLabel,emptyVerified:role.body.isEmpty && (!fromOCR.contains(number) || pageRaster?.isBlank(role.scope,rules:page.lines) == true)))
+                                        }
+                                    } else {
+                                        requests.append(request)
+                                        cell.sourceIds += try request.units.map { try add($0.glyphs,owner:id) }
+                                    }
+                                    continue
+                                }
+                                guard cell.bindingMode == .fixed, let fields = fieldsAttempt else { throw PDFParseError(code:.ambiguous,stage:.lessonLines) }
                                 let parallel = fields.allSatisfy { $0.replacingOccurrences(of:"･",with:"・").components(separatedBy:"・").count == 2 }
                                 if parallel {
                                     guard rows.count == 3, Set(sub).count == 1, rows.allSatisfy({ $0.filter { ["・","･"].contains($0.text) }.count == 1 }) else { throw PDFParseError(code:.ambiguous,stage:.parallelLessons) }
@@ -317,7 +339,10 @@ enum RecoveryDocumentBuilder {
                     for p in 1...count {
                         let key = "\(day):\(p)", (value,clockId,template) = clocks[p]!
                         if kind == .return && day != pageDays.first {
-                            doc.times[key] = TimetableSchedule.normalPeriodTimes[p-1]; doc.clockEvidence[key] = doc.normalTimeNoteEvidence
+                            doc.times[key] = TimetableSchedule.normalPeriodTimes[p-1]
+                            if doc.clockEvidence[key] == nil {
+                                doc.clockEvidence[key] = doc.normalTimeNoteEvidence.filter { id in doc.sources.first { $0.id == id }?.page == number }
+                            }
                         } else {
                             guard doc.times[key] == nil || doc.times[key] == value else { throw PDFParseError(code:.ambiguous) }
                             doc.times[key] = value; doc.clockEvidence[key,default:[]].append(clockId)
@@ -334,7 +359,9 @@ enum RecoveryDocumentBuilder {
                     if spans[suffix] == nil || kind == .return && day != pageDays.first {
                         let first = periods.first!, last = periods.last!
                         guard let firstTime = doc.times["\(day):\(first)"], let lastTime = doc.times["\(day):\(last)"] else { throw PDFParseError(code:.ambiguous) }
-                        let ids = Array(Set(doc.clockEvidence["\(day):\(first)",default:[]] + doc.clockEvidence["\(day):\(last)",default:[]])).sorted { a,b in doc.sources.firstIndex { $0.id == a }! < doc.sources.firstIndex { $0.id == b }! }
+                        let allIds = doc.clockEvidence["\(day):\(first)",default:[]] + doc.clockEvidence["\(day):\(last)",default:[]]
+                        guard let proofPage = doc.clockBindings["\(day):\(first)"]?.page ?? doc.sources.first(where:{ allIds.contains($0.id) })?.page else { throw PDFParseError(code:.ambiguous) }
+                        let ids = Array(Set(allIds.filter { id in doc.sources.first { $0.id == id }?.page == proofPage })).sorted { a,b in doc.sources.firstIndex { $0.id == a }! < doc.sources.firstIndex { $0.id == b }! }
                         let sourceBoxes = doc.sources.filter { ids.contains($0.id) }.map(\.box)
                         guard !sourceBoxes.isEmpty, Set(doc.sources.filter { ids.contains($0.id) }.map(\.page)).count == 1 else { throw PDFParseError(code:.ambiguous) }
                         let x = sourceBoxes.map(\.x).min()!, y = sourceBoxes.map(\.y).min()!
@@ -375,6 +402,11 @@ enum RecoveryDocumentBuilder {
         }
         doc.classes = doc.classEvidence.keys.sorted(); doc.days = doc.dayEvidence.keys.sorted()
         doc.requiredSlots = doc.classes.flatMap { cls in doc.days.flatMap { day in (1...count).map { RecoverySlot(className:cls,day:day,period:$0) } } }
+        guard requests.count <= 32 else { throw PDFParseError(code:.limit) }
+        if !requests.isEmpty {
+            guard RecoveryValidator.inputErrors(doc,unresolvedCellIds:Set(requests.map(\.ownerCellId))).isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
+            throw RecoveryStructurePreparation(document:doc,requests:requests)
+        }
         let errors = RecoveryValidator.inputErrors(doc)
         guard errors.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
         return doc

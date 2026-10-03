@@ -14,6 +14,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
     private var operation = UUID()
     private var source: RecoverySelectedSource?
     private var pendingDocument: RecoveryDocument?
+    private var pendingPages: RecoveryPreparedPages?
 
     func start(_ kind: RecoveryDocumentKind) {
         guard !running else { return }
@@ -39,7 +40,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 }
                 self.source = source
                 try self.check(operation)
-                let doc = try await Task.detached(priority:.userInitiated) { () throws -> RecoveryDocument in
+                let prepared = try await Task.detached(priority:.userInitiated) { () throws -> RecoveryPreparedPages in
                     try RecoveryConversion.verifyFile(source,check:{ try preparationControl.check(); try Task.checkCancellation() })
                     let capture = RecoveryReadCapture()
                     var pages = source.captured
@@ -60,12 +61,11 @@ final class PDFRecoveryCoordinator: ObservableObject {
                         for p in recognized { layouts[p.page] = p.layout; ocrPages.insert(p.page); rasters[p.page] = p.raster }
                     }
                     guard !layouts.isEmpty, layouts.count == layouts.keys.max(), layouts.keys.sorted() == Array(1...layouts.count) else { throw PDFParseError(code:.ambiguous) }
-                    return try RecoveryDocumentBuilder.build(layouts.keys.sorted().compactMap { layouts[$0] },kind:kind,hash:source.digest,fromOCR:ocrPages,rasters:rasters,check:{ try preparationControl.check(); try Task.checkCancellation() })
+                    return RecoveryPreparedPages(pages:layouts.keys.sorted().compactMap { layouts[$0] },fromOCR:ocrPages,rasters:rasters)
                 }.value
                 try self.check(operation)
-                guard RecoveryConversion.matchesPeriod(doc,source.period) else { throw PDFParseError(code:.ambiguous,stage:.yearHeading) }
-                self.pendingDocument = doc
-                await self.run(doc,source:source,operation:operation)
+                self.pendingPages = prepared
+                await self.buildAndRun(prepared,source:source,operation:operation,control:preparationControl)
             } catch {
                 guard self.operation == operation else { return }
                 self.running = false
@@ -74,10 +74,58 @@ final class PDFRecoveryCoordinator: ObservableObject {
         }
     }
     func retryModel() {
-        guard !running, let doc = pendingDocument, let source else { return }
+        guard !running, let source, pendingDocument != nil || pendingPages != nil else { return }
         running = true; awaitingModel = false
         let operation = self.operation
-        task = Task { await run(doc,source:source,operation:operation) }
+        let control = AcquisitionControl(); preparationControl = control
+        task = Task {
+            if let doc = pendingDocument { await run(doc,source:source,operation:operation) }
+            else if let pages = pendingPages { await buildAndRun(pages,source:source,operation:operation,control:control) }
+        }
+    }
+    private func buildAndRun(_ prepared: RecoveryPreparedPages,source:RecoverySelectedSource,operation:UUID,control:AcquisitionControl) async {
+        defer { LocalRecoveryModelManager.shared.release(lease:operation) }
+        do {
+            try check(operation)
+            let attempt = try await Task.detached(priority:.userInitiated) { () throws -> RecoveryBuildAttempt in
+                do { return .document(try RecoveryDocumentBuilder.build(prepared.pages,kind:source.kind,hash:source.digest,fromOCR:prepared.fromOCR,rasters:prepared.rasters,check:{ try control.check(); try Task.checkCancellation() })) }
+                catch let input as RecoveryStructurePreparation { return .structure(input) }
+            }.value
+            try check(operation)
+            let doc:RecoveryDocument
+            switch attempt {
+            case .document(let value): doc = value
+            case .structure(let input):
+                guard RecoveryConversion.matchesPeriod(input.document,source.period), RecoveryValidator.inputErrors(input.document,unresolvedCellIds:Set(input.requests.map(\.ownerCellId))).isEmpty else { throw PDFParseError(code:.ambiguous,stage:.yearHeading) }
+                status = "折り返された見出しの構造を端末内で確認しています⋯"
+                let providers:[any LocalRecoveryProvider] = [SystemLanguageRecoveryProvider()] + (await LocalRecoveryModelManager.shared.providers(lease:operation))
+                let proposed = try await RecoveryStructure.resolve(input,providers:providers,os:"ios",osMajor:ProcessInfo.processInfo.operatingSystemVersion.majorVersion,check:{ try self.check(operation) })
+                try check(operation)
+                guard let proposals = proposed.proposals,let metadata = proposed.metadata else {
+                    running = false; awaitingModel = proposed.state == .awaitingModel
+                    if awaitingModel { modelStatus(proposed.errors) }
+                    else { failure = "資料の見出しと位置を安全に確認できませんでした。前回の正常結果を保持しています。" }
+                    return
+                }
+                var rebuilt = try await Task.detached(priority:.userInitiated) {
+                    try RecoveryDocumentBuilder.build(prepared.pages,kind:source.kind,hash:source.digest,fromOCR:prepared.fromOCR,rasters:prepared.rasters,structureProposals:proposals,check:{ try control.check(); try Task.checkCancellation() })
+                }.value
+                rebuilt.structureMetadata = metadata
+                doc = rebuilt
+            }
+            try check(operation)
+            guard RecoveryConversion.matchesPeriod(doc,source.period), RecoveryValidator.inputErrors(doc).isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
+            pendingDocument = doc; pendingPages = nil
+            await run(doc,source:source,operation:operation)
+        } catch {
+            guard self.operation == operation else { return }
+            running = false; failure = "資料の内容と位置を安全に確認できませんでした。前回の正常結果を保持しています。"
+        }
+    }
+    private func modelStatus(_ errors:[String]) {
+        if errors.contains("notReady") { status = "OSのAIモデルが準備中です。準備が完了してから再試行してください。" }
+        else if errors.contains("disabled") { status = "端末の設定でApple Intelligenceを有効にしてから再確認してください。" }
+        else { status = "この端末では追加のローカルAIモデルが必要です。" }
     }
     private func run(_ doc: RecoveryDocument, source: RecoverySelectedSource, operation: UUID) async {
         defer { LocalRecoveryModelManager.shared.release(lease:operation) }
@@ -92,9 +140,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 preview = RecoveryPreview(document:doc,result:result,source:source); status = "採用前に元のPDFと内容を確認してください。"
             } else if result.state == .awaitingModel {
                 awaitingModel = true
-                if result.errors.contains("notReady") { status = "OSのAIモデルが準備中です。準備が完了してから再試行してください。" }
-                else if result.errors.contains("disabled") { status = "端末の設定でApple Intelligenceを有効にしてから再確認してください。" }
-                else { status = "この端末では追加のローカルAIモデルが必要です。" }
+                modelStatus(result.errors)
                 // A temporarily unready system model never triggers an automatic download.
             } else { failure = "原文に基づいて結果を確認できませんでした。前回の正常結果を保持しています。" }
         } catch {
@@ -111,14 +157,14 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 try check(operation)
                 let success = preview.document.kind == .timetable ? await ApplicationData.shared.materials.adoptRecovery(preview) : await ApplicationData.shared.specialSchedules.adoptRecovery(preview)
                 try check(operation); running = false
-                if success { self.preview = nil; pendingDocument = nil; source = nil; status = "復旧結果を採用しました。" }
+                if success { self.preview = nil; pendingDocument = nil; pendingPages = nil; source = nil; status = "復旧結果を採用しました。" }
                 else { failure = "資料の選択や保存状態が変わったため採用できませんでした。元のPDFから再試行してください。" }
             } catch { guard self.operation == operation else { return }; running = false; failure = "採用を中止しました。" }
         }
     }
     func cancel() {
         task?.cancel(); preparationControl?.cancel(); preparationControl = nil; operation = UUID(); running = false
-        preview = nil; pendingDocument = nil; source = nil; awaitingModel = false
+        preview = nil; pendingDocument = nil; pendingPages = nil; source = nil; awaitingModel = false
         status = "復旧を開始してください。"; failure = nil
     }
     private func check(_ operation: UUID) throws {

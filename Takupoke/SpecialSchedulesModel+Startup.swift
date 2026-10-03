@@ -36,7 +36,7 @@ extension SpecialSchedulesModel {
                         FileRefreshDiagnostics.shared.record(digest == source.digest ? .hashSame : .hashChanged,
                                                              source: diagnosticSource)
                         if digest == source.digest {
-                            try store.recordSuccessfulCheck(kind, digest: digest)
+                            try store.recordSuccessfulCheck(kind, digest: digest, originalName:name)
                         } else {
                             try store.saveSelection(staged: staged, kind: kind, originalName: name,
                                                     byteCount: count, digest: digest, grant: grant)

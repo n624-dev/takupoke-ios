@@ -68,7 +68,7 @@ actor CoreAIRecoveryProvider: LocalRecoveryProvider {
     init(bundleURL: URL, manifest: RecoveryModelManifest) {
         self.manifest = manifest; self.bundleURL = bundleURL
         metadata = RecoveryMetadata(provider: "coreAI", modelId: manifest.modelId, modelVersion: manifest.version,
-            runtimeVersion: "CoreAI:coreai-models:52c84ba874b2c57adcede08a671ce96ed1b3f433", promptVersion: "2",
+            runtimeVersion: "CoreAI:coreai-models:52c84ba874b2c57adcede08a671ce96ed1b3f433", promptVersion: "3",
             recoverySchemaVersion: RecoveryValidator.schemaVersion, validatorVersion: RecoveryValidator.version,
             osVersion: ProcessInfo.processInfo.operatingSystemVersionString)
     }

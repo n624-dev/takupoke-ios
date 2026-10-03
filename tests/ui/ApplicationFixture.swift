@@ -426,7 +426,28 @@ struct FixtureRecoveryProbe: View {
 // The PDF contains only a raster image; no extracted text or preview is injected.
 @MainActor
 enum SimulatorRecoveryOCRFixture {
+    // Generated test target only. Run on the actual production PDF bitmap,
+    // before Vision can safely reject its candidate confidence.
+    nonisolated static func rasterProof(_ input: RecoveryRasterGrid) -> String {
+        do {
+            let lines = try input.rules(check: {})
+            let raster = try input.preparingRules(lines, check: {})
+            let scale = Double(raster.height) / 800
+            guard let line = lines.first(where: { $0.horizontal && abs($0.y1 - 140.5 * scale) <= 3 && $0.x2 - $0.x1 > Double(raster.width) * 0.95 }),
+                  raster.dark(raster.width / 2, Int(line.y1.rounded())),
+                  !raster.dark(raster.width / 2, raster.height - 1 - Int(line.y1.rounded())) else { return "実rasterの上端座標・罫線が不一致" }
+            let text = RecoveryBox(x: 10 * scale, y: 20 * scale, width: 550 * scale, height: 70 * scale)
+            let blank = RecoveryBox(x: 10 * scale, y: 550 * scale, width: 550 * scale, height: 200 * scale)
+            let rule = RecoveryBox(x: 10 * scale, y: 125 * scale, width: 550 * scale, height: 30 * scale)
+            guard raster.hasUncoveredInk(text, text: [], rules: lines),
+                  !raster.hasUncoveredInk(rule, text: [], rules: lines),
+                  raster.isBlank(blank), !raster.hasUncoveredInk(blank, text: [], rules: lines) else { return "実rasterの未読インク・空欄が不一致" }
+            return "実raster・上端座標・罫線・未読インク・空欄検証済み"
+        } catch { return "実raster検証失敗: " + String(describing: error) }
+    }
     static func check() async throws -> String {
+        for key in ["fixture.nativeOCRCandidates", "fixture.nativeOCRText", "fixture.nativeOCRConfidence", "fixture.nativeRasterProof"] { UserDefaults.standard.removeObject(forKey: key) }
+
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-ocr-ui-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -451,7 +472,16 @@ enum SimulatorRecoveryOCRFixture {
         do { pages = try await PDFRecoveryRecognition.layouts(url, only: [1], check: {}) }
         catch {
             let candidates = UserDefaults.standard.stringArray(forKey: "fixture.nativeOCRCandidates") ?? []
-            throw NSError(domain: "SyntheticNativeOCR", code: 1, userInfo: [NSLocalizedDescriptionKey: String(describing: error) + "; candidates=" + candidates.joined(separator: " | ")])
+            let text = UserDefaults.standard.string(forKey: "fixture.nativeOCRText")
+            let confidence = UserDefaults.standard.object(forKey: "fixture.nativeOCRConfidence") as? Double
+            let raster = UserDefaults.standard.string(forKey: "fixture.nativeRasterProof")
+            if let failure = error as? PDFParseError, failure.code == .ambiguous, failure.stage == .rasterInput,
+               text == "これは架空の時間割です", let confidence, confidence.isFinite, confidence >= 0, confidence < 0.85,
+               raster == "実raster・上端座標・罫線・未読インク・空欄検証済み" {
+                print("SYNTHETIC_NATIVE_OCR safelyRejected confidence=\(confidence), rasterProof=\(raster!)")
+                return "低信頼OCRを安全拒否・実raster・上端座標・罫線・未読インク・空欄検証済み; confidence=\(confidence)"
+            }
+            throw NSError(domain: "SyntheticNativeOCR", code: 1, userInfo: [NSLocalizedDescriptionKey: String(describing: error) + "; candidates=" + candidates.joined(separator: " | ") + "; raster=" + (raster ?? "未取得")])
         }
         guard pages.count == 1, let page = pages.first else { throw PDFParseError(code: .unreadable) }
         let layout = page.layout, raster = page.raster

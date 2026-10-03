@@ -55,11 +55,13 @@ extension PDFParsingTests {
     }
     func testPartialReorderedRoleLabelsCannotBecomeFixedOrParallelBindings() {
         for parallel in [false,true] {
+          for label in RecoveryRole.teacher.labels {
             var page = recoveryTimetablePage()
             page.glyphs.removeAll { 100 <= $0.cx && $0.cx < 140 && 100 < $0.cy && $0.cy < 160 }
-            let lines = parallel ? ["教員:A・B","C・D","E・F"] : ["教員:A","C","E"]
+            let lines = parallel ? [label+":A・B","C・D","E・F"] : [label+":A","C","E"]
             for (i,line) in lines.enumerated() { page.glyphs += text(line,x:102,y:110+Double(i)*18,step:3) }
             XCTAssertThrowsError(try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:String(repeating:"b",count:64)))
+          }
         }
     }
     func testStrictMissingTeacherDoesNotShiftRoomIntoTeacher() throws {
@@ -78,6 +80,30 @@ extension SpecialScheduleTests {
         let doc = try RecoveryDocumentBuilder.build(pages,kind:.exam,hash:String(repeating:"c",count:64))
         XCTAssertEqual(doc.classes.count,17); XCTAssertEqual(doc.days.count,5)
         XCTAssertEqual(doc.clockReplicas["2026-04-01:1"]?.count,5)
+        let run = try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
+        XCTAssertEqual(run.state,.awaitingConfirmation)
+    }
+    func testExamDerivedSpanOnLaterPageUsesVerifiedPrimaryEndpointChart() async throws {
+        var pages = (1...6).map { examPage($0,mergedFirstTwo:$0 == 2) }
+        for i in pages.indices { pages[i].glyphs.removeAll { $0.x >= 300 && $0.y == 470 } }
+        let doc = try RecoveryDocumentBuilder.build(pages,kind:.exam,hash:String(repeating:"c",count:64))
+        XCTAssertEqual(doc.spanTimes["2026-04-01:1-2"],"08:50〜10:35")
+        let run = try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
+        XCTAssertEqual(run.state,.awaitingConfirmation)
+    }
+    func testReturnDerivedSpanOnLaterPageUsesApplicableNormalNote() async throws {
+        var pages = [returnPageWithSplitCell(),returnPageWithSplitCell()]
+        for i in pages.indices {
+            pages[i].glyphs.removeAll { glyph in
+                guard glyph.cy >= 120 && glyph.cy < 545 else { return false }
+                let row = Int((glyph.cy-120)/25)
+                return i == 0 ? row >= 9 : row < 9
+            }
+        }
+        pages[1].lines.removeAll { $0.vertical && $0.x1 == 660 }
+        pages[1].lines += [PDFRule(x1:660,y1:110,x2:660,y2:345),PDFRule(x1:660,y1:370,x2:660,y2:545)]
+        let doc = try RecoveryDocumentBuilder.build(pages,kind:.return,hash:String(repeating:"d",count:64))
+        XCTAssertEqual(doc.spanTimes["2026-04-02:5-6"],"12:50〜14:20")
         let run = try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
         XCTAssertEqual(run.state,.awaitingConfirmation)
     }

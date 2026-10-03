@@ -17,7 +17,7 @@
 - 原文Sourceの位置とセル所属、科目・教員・教室ごとのEvidence、クラス・日付・時限の見出し領域を検証する。原文に文字があるだけでは受理しない。未割当の原文Sourceは、セルの外にあっても拒否する。
 - 時刻は日付・時限・位置と原文に結び付ける。別日の時刻を共通時刻として流用しない。共通時刻は文書内の時刻表見出し・領域・対象日の完全性で適用範囲を証明する。任意の `day="*"` を受理しない。繰り返された各ページの時刻表も位置・値の一致を個別に検証する。連続時限は原文の専用時刻か、証明済みの最初と最後の時刻から決定論的に求める。
 - 返却の通常時刻は、その5日に適用するPDF注記を要求する。モデルの知識から補完しない。年度・時刻・EvidenceをAIが決める経路は作らない。
-- 決定論的に全フィールドの原文所属が判明したセルはルールで復旧し、モデルをロードしない。Schema / Validator version 2では、原文ラベルや列見出しに結び付いたRoleScopeを別に持ち、AIへ原文atom IDの割当案だけを要求する。値は原文から再構築し、役割領域・原文順序・並記対応・全sourceの完全partitionを検証する。所属や空欄の独立証拠が不足する候補は採用しない。
+- 決定論的に全フィールドの原文所属が判明したセルはルールで復旧し、モデルをロードしない。Schema 2 / Validator 3では、原文ラベルや列見出しに結び付いたRoleScopeを別に持ち、AIへ原文atom IDの割当案だけを要求する。値は原文から再構築し、役割領域・原文順序・並記対応・全sourceの完全partitionを検証する。所属や空欄の独立証拠が不足する候補は採用しない。
 - 型・構造・Validatorの不正な出力は終端の失敗。複数モデルを試し続けて通る結果を探さない。Runtimeの非対応や実行不能は次Providerへ進められる。iOSの一時的なモデル未準備は待機する。
 - 確認の再利用はPDF SHA、結果、文書全体の意味・Evidence、モデルと各Versionの一致に限定する。初回は利用者による採用が必要。指紋照合だけでValidatorを省略しない。
 - モバイルの更新確認では復旧待ちを記録するだけで、重いモデルをロードしない。失敗・中止でも前回正常結果を保持する。新原本未反映の表示を維持する。
@@ -32,9 +32,11 @@ PDF・画像・OCR文字・科目・教員・Prompt・復旧結果を外部LLM�
 
 ## 未確定な役割を扱う契約
 
-セル内の原文をすべて使っていても、科目と教員を入れ替えれば誤った結果になり得る。次の契約では、固定Bindingsとは別に、アプリが原文ラベル・役割列の見出し・既存書式の役割領域・並記列から作るRoleScopeを持たせる。AIは新しい文字や座標を作らず、既存の原文atom IDの割当案を返す。原文順序・矩形・役割領域・完全partition・並記対応・空欄証明をValidatorで確認し、正式値は原文から再構築する。一意に決められる割当は先にルールで処理する。
+セル内の原文をすべて使っていても、科目と教員を入れ替えれば誤った結果になる。固定Bindingsとは別にRoleScopeを持ち、原文ラベル・役割列・既存書式・並記領域から役割を証明する。一意な割当はRulesで処理する。
 
-固定BindingsとRoleScopeの両経路を実装し、ラベル並び替え・外部列見出し・原文再構築を架空ケースで検証した。独立した役割の根拠がない無ラベルの折返し・欠落を、AIの知識と確認ボタンだけで確定扱いにしない。RoleScopeへの全atom所属が一意ならモデルを呼ばずRulesで復旧する。現契約で安全に確定できない入力が生成AIによって新しく成功するとは保証せず、利用可能なモデルだけで不明を埋めない。Schema / Validator versionは2で、Document全体のfingerprintにRoleScopeも含める。
+折り返されたラベルの間に本文だけの行が入る場合には、小さいセルの原文group IDとコードが列挙した空隙cut IDだけをAIへ渡す。AIが提案したラベル連鎖と領域について、原文文字の一致、左側の全ラベル消費、唯一の役割、領域の非重複、本文の完全partitionを独立検証する。値は原文から再構築し、既存Validatorと利用者確認を通す。新しい文字・任意座標・未読の補完は認めない。全ページのクラス・年度・時限・位置・原文inventoryはモデル取得前に検証する。
+
+Schemaは2、Validatorは3、RecoveryVersionは2、構造提案Promptは3。構造を提案したProviderのMetadataをDocumentとResultに保持し、文書全体の指紋にも含める。以前のValidatorによる確認は再利用しない。
 
 ## 接続と残る確認
 
@@ -56,12 +58,8 @@ SystemLanguageModel / Foundation Modelsの@Generable ProviderとVision Recognize
 
 CoreAILanguageModelはSDKへ直接追加された型ではなく、Appleの `coreai-models` の `CoreAILM` product / `CoreAILanguageModels` moduleで提供されるラッパー。調査した公式リポジトリのrevisionは `52c84ba874b2c57adcede08a671ce96ed1b3f433`。同Packageのminimum iOSは27なので、iOS 26本体からは小さいObjective-C bridgeで別frameworkを動的に読み込む。device向けSDK27で公式CoreAILM依存frameworkをビルド・同梱し、iOS 26や未対応環境ではllama.cppへ進む。Core AI tokenizerは完全同梱が必須で、学校情報を扱う実行中の外部取得fallbackを禁止する。llama.cppは公式b11371のXCFrameworkをSHA固定でビルド時に取得し、deviceへ組み込む。公式配布にsimulator sliceがないためsimulatorのllama実行は非対応。これらのnative compileはCIで確認する。
 
-LinuxのSwiftホストテストではFoundation側の契約・Validator・Engine・ModelStoreを確認する。ModelStore/指紋の検証にはLinuxだけSwift Cryptoを使い、iOS本体はCryptoKit。Foundation Models/VisionのApple SDKコンパイルとiPhoneでの処理は未検証。`tools/test-parsing.sh` と `tools/test-materials.sh` を使う。
+LinuxのSwiftホストテストではFoundation側の契約・Validator・Engine・ModelStoreを確認する。ModelStore/指紋の検証にはLinuxだけSwift Cryptoを使い、iOS本体はCryptoKit。Foundation Models/Vision、CoreAIとllama runtimeのApple SDKコンパイルはCIで成功した。実端末のモデル推論・メモリと実資料の品質は未検証。`tools/test-parsing.sh` と `tools/test-materials.sh` を使う。
 
 ## この作業でのローカル検証（2026-10-03 UTC）
 
-LinuxでiOS Swift248件、Python56件が成功。Android core125件、Windows Core242件・Integration175件も成功。Windowsの実OS CIは全7ジョブと354件のUIチェックに成功し、3種のPDF復旧結果の採用後に実アプリを再起動して保存結果を確認した。AndroidはAPI29/36で各46件のnativeチェックに成功。iOSはOS26/27で通常時間割の明示採用と実アプリ再起動後の保存確認に成功し、追加のUI・端末向けビルドは再検証中。公開架空fixtureでの検証であり、学校資料の復旧精度や追加モデルの配信承認を示すものではない。
-
-サブエージェント3名が各OSの追加コードを反復レビューし、別の1名が更新・中止・期間切替のバグ調査を並行実施した。Evidenceの省略/誤ったセル/孤立Source/見出しへの偽装/別日時刻、iOSの保存失敗後の再試行、Windowsのjob原子的保存とキャンセル後snapshot、Androidの未反映警告の指摘を修正し、架空回帰ケースへ追加した。RoleScopeを実装後に独立レビューし、交換・省略・隣セル取り込みが拒否されることを追加確認した。一意な割当は先にRulesへ回す。
-
-追加の並行調査で、iOSの更新原本へのPDF表示差替え、Androidの閲覧中原本更新への追従、WindowsのPDF描画例外・二重起動・旧要求失敗の競合と、同一SHA選び直し後の失敗キャッシュ失効を修正した。Windowsの監視再登録では受信済み通知を保持し、空登録・取消では破棄する。Androidでは処理中の通知を世代付きで保留し、observer管理をMainへ直列化、安定した原本の読取通知連鎖を有限にして、observer起点の確認では学校行事API・revisionを取得しない。Windowsは実ファイル通知と再選択の保存境界、Androidは通知queueの回帰を確認する。PDF画面の実OS描画は未検証。
+LinuxでiOS Swift259件とPython56件が成功。最新の構造提案・起動前完全性チェック・名称変更・ETag回帰を含む。Windowsは実OS CIの7ジョブと354件のUIチェックに成功し、3種の採用後に実アプリを再起動して保存を確認した。AndroidはAPI29/36で従来46件と最新追加分48件が成功し、新しい実OCRテストは戻り値の修正後に再検証する。iOSはOS26/27で3文書種別の明示採用・実アプリ再起動後の保存確認とiPhone向けビルドが成功した。日本語画像PDFのactual Vision OCRはOS27で成功し、OS26では低confidenceを安全に拒否した。最新構造提案・OCRテストのCIは再検証中。公開架空fixtureでの検証であり、学校資料の復旧精度や追加モデルの配信承認を示すものではない。

@@ -12,7 +12,7 @@ struct SpecialScheduleRecord: Codable {
 
 struct SpecialScheduleSource: Codable {
     let kind: SpecialScheduleKind
-    let originalName: String
+    var originalName: String
     let storedName: String
     let byteCount: Int
     let digest: String

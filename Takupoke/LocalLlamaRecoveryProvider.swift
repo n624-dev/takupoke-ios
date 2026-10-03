@@ -28,7 +28,7 @@ actor LocalLlamaRecoveryProvider: LocalRecoveryProvider {
         runtimeURL = Self.bundledRuntimeURL
         availableMemory = Int64(clamping: tk_llama_available_memory())
         metadata = RecoveryMetadata(provider: "llamaCpp", modelId: manifest.modelId, modelVersion: manifest.version,
-            runtimeVersion: "llama.cpp:b11371:99b95488c", promptVersion: "2",
+            runtimeVersion: "llama.cpp:b11371:99b95488c", promptVersion: "3",
             recoverySchemaVersion: RecoveryValidator.schemaVersion, validatorVersion: RecoveryValidator.version,
             osVersion: ProcessInfo.processInfo.operatingSystemVersionString)
     }
@@ -74,7 +74,7 @@ actor LocalLlamaRecoveryProvider: LocalRecoveryProvider {
     init(manifest: RecoveryModelManifest, modelURL: URL, runtimeURL: URL, availableMemory: Int64) {
         self.manifest = manifest; self.modelURL = modelURL; self.runtimeURL = runtimeURL; self.availableMemory = availableMemory
         metadata = RecoveryMetadata(provider: "llamaCpp", modelId: manifest.modelId, modelVersion: manifest.version,
-            runtimeVersion: "llama.cpp:b11371:99b95488c", promptVersion: "2",
+            runtimeVersion: "llama.cpp:b11371:99b95488c", promptVersion: "3",
             recoverySchemaVersion: RecoveryValidator.schemaVersion, validatorVersion: RecoveryValidator.version,
             osVersion: ProcessInfo.processInfo.operatingSystemVersionString)
     }

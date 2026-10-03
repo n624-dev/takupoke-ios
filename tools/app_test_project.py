@@ -60,6 +60,14 @@ def generate(destination):
             }
 """)
         if path.name == 'PDFRecoveryRecognition.swift':
+            raster_marker = '            let raster = try RecoveryRasterGrid.fromRGBA(width:cg.width,height:cg.height,pixels:rgba,check:check)'
+            assert raster_marker in text, 'Native raster probe insertion point missing'
+            text = text.replace(raster_marker, raster_marker + '\n' + '''            if ProcessInfo.processInfo.arguments.contains("--recovery-ocr-probe") {
+                let proof = SimulatorRecoveryOCRFixture.rasterProof(raster)
+                UserDefaults.standard.set(proof, forKey: "fixture.nativeRasterProof")
+                print("SYNTHETIC_NATIVE_RASTER " + proof)
+            }
+''')
             marker = '                    guard let candidate = line.topCandidates(1).first, candidate.confidence >= 0.85 else'
             assert marker in text, 'Native OCR probe insertion point missing'
             text = text.replace(marker, '''
@@ -67,6 +75,10 @@ def generate(destination):
                         let detail = line.topCandidates(1).map { $0.string + " confidence=" + String($0.confidence) + " box=" + String(describing: line.boundingBox) }.joined(separator: " | ")
                         let previous = UserDefaults.standard.stringArray(forKey: "fixture.nativeOCRCandidates") ?? []
                         UserDefaults.standard.set(previous + [detail], forKey: "fixture.nativeOCRCandidates")
+                        if let probe = line.topCandidates(1).first {
+                            UserDefaults.standard.set(probe.string, forKey: "fixture.nativeOCRText")
+                            UserDefaults.standard.set(Double(probe.confidence), forKey: "fixture.nativeOCRConfidence")
+                        }
                         print("SYNTHETIC_NATIVE_OCR " + detail)
                     }
 ''' + marker)

@@ -141,8 +141,8 @@ enum LinksResponse {
             return SavedLinks(payload: try LinksPayload.decode(data), apiETag: receivedETag, checkedAt: checkedAt)
         case 304:
             guard data.isEmpty, let saved,
-                  receivedETag.replacingOccurrences(of: "W/", with: "") ==
-                    saved.apiETag.replacingOccurrences(of: "W/", with: "") else {
+                  (receivedETag.hasPrefix("W/") ? String(receivedETag.dropFirst(2)):receivedETag) ==
+                    (saved.apiETag.hasPrefix("W/") ? String(saved.apiETag.dropFirst(2)):saved.apiETag) else {
                 throw LinksError.invalidResponse
             }
             return SavedLinks(payload: saved.payload, apiETag: receivedETag, checkedAt: checkedAt)

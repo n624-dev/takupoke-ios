@@ -104,6 +104,25 @@ extension SpecialScheduleTests {
         XCTAssertEqual(reopened.records[.exam]?.analysis, analysis)
     }
 
+    func testSameBytesProviderRenamePreservesOriginalAnalysisAndPendingFailure() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let store = try SpecialScheduleStore(root:root)
+        let analysis = try SpecialScheduleParser.parse((1...6).map { examPage($0) },kind:.exam,digest:"fictional",name:"fictional.pdf")
+        let staged = store.newStagingURL(), bytes = Data("%PDF-fictional".utf8)
+        try bytes.write(to:staged)
+        try store.save(staged:staged,analysis:analysis,originalName:"fictional.pdf",byteCount:bytes.count,digest:"fictional")
+        try store.recordFailure(PDFParseError(code:.ambiguous),kind:.exam)
+        let storedName = try XCTUnwrap(store.sources[.exam]?.storedName),job = store.sources[.exam]?.recoveryJob
+        try store.recordSuccessfulCheck(.exam,digest:"fictional",originalName:"fictional-renamed.pdf")
+        let reopened = try SpecialScheduleStore(root:root)
+        XCTAssertEqual(reopened.sources[.exam]?.originalName,"fictional-renamed.pdf")
+        XCTAssertEqual(reopened.sources[.exam]?.storedName,storedName)
+        XCTAssertEqual(reopened.sources[.exam]?.recoveryJob,job)
+        XCTAssertEqual(reopened.sources[.exam]?.failure?.code,.ambiguous)
+        XCTAssertEqual(reopened.records[.exam]?.analysis,analysis)
+        XCTAssertEqual(reopened.records[.exam]?.originalName,"fictional.pdf")
+    }
     func testPreviousVersionAnalysisStillProvidesSelectedSource() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

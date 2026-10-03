@@ -1,9 +1,11 @@
 import Foundation
 
-struct RecoveryPromptSource: Codable, Sendable { var id: String; var text: String; var box: RecoveryBox? = nil }
+struct RecoveryPromptSource: Codable, Sendable { var id: String; var text: String; var box: RecoveryBox? = nil; var sourceLine: Int? = nil; var sourceOrder: Int? = nil }
 struct RecoveryPromptCell: Codable, Sendable {
     var cellId: String; var slots: [RecoverySlot]; var sources: [RecoveryPromptSource]; var blankFields: [String]; var parallelCount: Int; var lessonBindings: [RecoveryLessonBinding]
     var roleScopes: [RecoveryRoleScope] = []
+    var mode: RecoveryPromptMode = .fieldExtraction
+    var structureCuts: [RecoveryStructureCut] = []
 }
 protocol LocalRecoveryProvider {
     var id: String { get }; var localOnly: Bool { get }; var metadata: RecoveryMetadata { get }
@@ -73,7 +75,7 @@ enum RecoveryEngine {
             try check(); try Task.checkCancellation()
             return RecoveryRun(state: validation.canAdopt ? .awaitingConfirmation : .failed, result: validation.canAdopt ? value : nil, errors: validation.errors)
         }
-        if missing.isEmpty { return try validated(result(RecoveryMetadata(provider: "rule", modelId: "rules", modelVersion: "2", runtimeVersion: "2", promptVersion: "1", recoverySchemaVersion: RecoveryValidator.schemaVersion, validatorVersion: RecoveryValidator.version, osVersion: "\(os):\(osMajor)"))) }
+        if missing.isEmpty { return try validated(result(doc.structureMetadata ?? RecoveryMetadata(provider: "rule", modelId: "rules", modelVersion: "2", runtimeVersion: "2", promptVersion: "1", recoverySchemaVersion: RecoveryValidator.schemaVersion, validatorVersion: RecoveryValidator.version, osVersion: "\(os):\(osMajor)"))) }
         var runtimeFailed = false
         for id in RecoveryPolicy.providers(os: os, majorVersion: osMajor) {
             try check(); try Task.checkCancellation()

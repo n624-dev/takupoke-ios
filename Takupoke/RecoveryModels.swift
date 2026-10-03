@@ -25,7 +25,7 @@ struct RecoveryClockBinding: Codable, Equatable, Sendable {
 struct RecoveryLessonBinding: Codable, Equatable, Sendable { var subject: [String]; var teacher: [String]; var room: [String] }
 enum RecoveryBindingMode: String, Codable, Sendable { case fixed, roleProposal }
 enum RecoveryRole: String, Codable, CaseIterable, Sendable { case subject, teacher, room
-    var labels: [String] { switch self { case .subject: return ["科目", "科目名", "授業名"]; case .teacher: return ["教員", "教員名", "教師名", "担当", "担当者", "担当教員"]; case .room: return ["教室", "教室名", "会場"] } }
+    var labels: [String] { switch self { case .subject: return ["科目", "科目名", "授業", "授業名", "授業科目"]; case .teacher: return ["教員", "教員名", "教師", "教師名", "担当", "担当者", "担当教員"]; case .room: return ["教室", "教室名", "授業教室", "場所", "会場"] } }
 }
 extension RecoveryRole {
     static func hasLabelPrefix(_ value: String) -> Bool {
@@ -70,6 +70,7 @@ struct RecoveryDocument: Codable, Equatable, Sendable {
     var annotations: [RecoveryAnnotation] = []
     var commonClockEvidence: [String] = []
     var commonClockRegions: [String: RecoveryHeaderRegion] = [:]
+    var structureMetadata: RecoveryMetadata? = nil
 }
 struct RecoveryLesson: Codable, Equatable, Sendable {
     var subject: RecoveryField; var teacher: RecoveryField; var room: RecoveryField
@@ -78,7 +79,7 @@ struct RecoveryLesson: Codable, Equatable, Sendable {
 struct RecoveredCell: Codable, Equatable, Sendable { var cellId: String; var state: RecoveryValueState; var lessons: [RecoveryLesson] }
 struct RecoveryMetadata: Codable, Equatable, Sendable {
     var provider: String; var modelId: String; var modelVersion: String; var runtimeVersion: String; var promptVersion: String
-    var recoverySchemaVersion: Int; var validatorVersion: Int; var osVersion: String; var recoveryVersion = "1"
+    var recoverySchemaVersion: Int; var validatorVersion: Int; var osVersion: String; var recoveryVersion = "2"
 }
 struct RecoveryResult: Codable, Equatable, Sendable {
     var pdfHash: String; var kind: RecoveryDocumentKind; var schoolYear: Int; var term: String?
@@ -148,7 +149,7 @@ extension RecoveryCell {
 extension RecoveryDocument {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.init(pdfHash: try c.decode(String.self, forKey: .pdfHash), kind: try c.decode(RecoveryDocumentKind.self, forKey: .kind), schoolYear: try c.decode(Int.self, forKey: .schoolYear), term: try c.decodeIfPresent(String.self, forKey: .term), classes: try c.decode([String].self, forKey: .classes), days: try c.decode([String].self, forKey: .days), requiredSlots: try c.decode([RecoverySlot].self, forKey: .requiredSlots), cells: try c.decode([RecoveryCell].self, forKey: .cells), sources: try c.decode([RecoverySource].self, forKey: .sources), complete: try c.decode(Bool.self, forKey: .complete), yearEvidence: try c.decode([String].self, forKey: .yearEvidence), termEvidence: try c.decode([String].self, forKey: .termEvidence), dayEvidence: try c.decode([String: [String]].self, forKey: .dayEvidence), classEvidence: try c.decode([String: [String]].self, forKey: .classEvidence), periodEvidence: try c.decode([String: [String]].self, forKey: .periodEvidence), times: try c.decode([String: String].self, forKey: .times), timeEvidence: try c.decode([String].self, forKey: .timeEvidence), normalTimeNoteEvidence: try c.decode([String].self, forKey: .normalTimeNoteEvidence), clockEvidence: try c.decodeIfPresent([String: [String]].self, forKey: .clockEvidence) ?? [:], spanTimes: try c.decodeIfPresent([String: String].self, forKey: .spanTimes) ?? [:], clockBindings: try c.decodeIfPresent([String: RecoveryClockBinding].self, forKey: .clockBindings) ?? [:], clockReplicas: try c.decodeIfPresent([String: [RecoveryClockBinding]].self, forKey: .clockReplicas) ?? [:], annotations: try c.decodeIfPresent([RecoveryAnnotation].self, forKey: .annotations) ?? [], commonClockEvidence: try c.decodeIfPresent([String].self, forKey: .commonClockEvidence) ?? [], commonClockRegions: try c.decodeIfPresent([String: RecoveryHeaderRegion].self, forKey: .commonClockRegions) ?? [:])
+        self.init(pdfHash: try c.decode(String.self, forKey: .pdfHash), kind: try c.decode(RecoveryDocumentKind.self, forKey: .kind), schoolYear: try c.decode(Int.self, forKey: .schoolYear), term: try c.decodeIfPresent(String.self, forKey: .term), classes: try c.decode([String].self, forKey: .classes), days: try c.decode([String].self, forKey: .days), requiredSlots: try c.decode([RecoverySlot].self, forKey: .requiredSlots), cells: try c.decode([RecoveryCell].self, forKey: .cells), sources: try c.decode([RecoverySource].self, forKey: .sources), complete: try c.decode(Bool.self, forKey: .complete), yearEvidence: try c.decode([String].self, forKey: .yearEvidence), termEvidence: try c.decode([String].self, forKey: .termEvidence), dayEvidence: try c.decode([String: [String]].self, forKey: .dayEvidence), classEvidence: try c.decode([String: [String]].self, forKey: .classEvidence), periodEvidence: try c.decode([String: [String]].self, forKey: .periodEvidence), times: try c.decode([String: String].self, forKey: .times), timeEvidence: try c.decode([String].self, forKey: .timeEvidence), normalTimeNoteEvidence: try c.decode([String].self, forKey: .normalTimeNoteEvidence), clockEvidence: try c.decodeIfPresent([String: [String]].self, forKey: .clockEvidence) ?? [:], spanTimes: try c.decodeIfPresent([String: String].self, forKey: .spanTimes) ?? [:], clockBindings: try c.decodeIfPresent([String: RecoveryClockBinding].self, forKey: .clockBindings) ?? [:], clockReplicas: try c.decodeIfPresent([String: [RecoveryClockBinding]].self, forKey: .clockReplicas) ?? [:], annotations: try c.decodeIfPresent([RecoveryAnnotation].self, forKey: .annotations) ?? [], commonClockEvidence: try c.decodeIfPresent([String].self, forKey: .commonClockEvidence) ?? [], commonClockRegions: try c.decodeIfPresent([String: RecoveryHeaderRegion].self, forKey: .commonClockRegions) ?? [:], structureMetadata:try c.decodeIfPresent(RecoveryMetadata.self,forKey:.structureMetadata))
     }
 }
 

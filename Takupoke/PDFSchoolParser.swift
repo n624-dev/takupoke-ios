@@ -45,8 +45,8 @@ enum PDFSchoolParser {
             result.term = normalized.contains("前期") ? "前期" : "後期"
             do { result.lessons = try timetable(pages[0], check: check) }
             catch var error as PDFParseError { error.page = 1; throw error }
-            result.notices = ["PDFの記載名を表示しています。正式名称の対応表はまだ取り込んでいません。",
-                              "適用開始日・終了日はPDFの学期名から推測していません。時間割変更との統合はまだ行いません。"]
+            result.notices = ["PDFの記載名を解析結果として保存しています。正式名称の対応は表示時に適用します。",
+                              "適用開始日・終了日はPDFの学期名から推測していません。時間割変更は日付ごとの表示時に反映します。"]
         } else {
             guard normalized.contains("行事予定表"), pages.count == 2 else {
                 throw PDFParseError(code: .unsupported, page: 1, stage: .documentHeading)

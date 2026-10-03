@@ -135,8 +135,12 @@ final class SpecialScheduleStore {
         try? removeUnreferencedFiles()
     }
 
-    func recordSuccessfulCheck(_ kind: SpecialScheduleKind, digest: String, checkedAt: Date = Date()) throws {
+    func recordSuccessfulCheck(_ kind: SpecialScheduleKind, digest: String, originalName: String? = nil, checkedAt: Date = Date()) throws {
         guard var source = sources[kind], source.digest == digest else { throw StoreError.invalidState }
+        if let originalName {
+            guard !originalName.isEmpty else { throw StoreError.invalidState }
+            source.originalName = originalName
+        }
         source.lastCheckedAt = checkedAt
         source.acquisitionFailure = nil
         let payload = try JSONEncoder().encode(source)
