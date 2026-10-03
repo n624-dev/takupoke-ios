@@ -68,7 +68,7 @@ extension TimetableView {
             ForEach(SpecialScheduleKind.allCases) { kind in
                 if let source = specialSchedules.sources[kind],
                    let record = specialSchedules.records[kind],
-                   source.digest != record.digest {
+                   source.digest != record.digest || record.analysis.version != SpecialScheduleAnalysis.parserVersion {
                     Label("\(kind.title)は前回の解析結果です。", systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.orange)
                 }

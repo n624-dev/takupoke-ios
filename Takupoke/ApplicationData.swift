@@ -8,6 +8,7 @@ import Combine
 final class ApplicationData: ObservableObject {
     static let shared = ApplicationData()
 
+    let recovery = PDFRecoveryCoordinator()
     let materials = MaterialsModel()
     let specialSchedules = SpecialSchedulesModel()
     let schoolEvents = SchoolEventsModel()
@@ -55,6 +56,7 @@ final class ApplicationData: ObservableObject {
                     FileManager.default.fileExists(atPath: base.appendingPathComponent($0).path)
                 }
                 ready = false
+                recovery.cancel()
                 setFileMonitoring(false)
                 await notifications.resetForRetention()
                 await account.stopForRetention()
@@ -103,6 +105,7 @@ final class ApplicationData: ObservableObject {
     }
 
     func setFileMonitoring(_ foreground: Bool) {
+        if !foreground { recovery.cancel() }
         materials.setFileMonitoring(foreground && ready)
         specialSchedules.setFileMonitoring(foreground && ready)
     }

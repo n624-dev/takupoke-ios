@@ -4,6 +4,8 @@
 
 [インストール手順](docs/altstore-pal-install.md) · [Releases](https://github.com/n624-dev/takupoke-ios/releases) · [開発環境](docs/development.md) · [検証状況](docs/roadmap.md)
 
+PDF端末内AI復旧は開発中です。前処理・Validator・開始・元PDF確認・プレビュー・明示採用・モデル管理と各iOS Runtime adapterを接続しました。Apple SDK/実機検証は継続中で、追加モデルの配信は品質評価後です。[方針・実装状況・残る接続](docs/pdf-recovery.md)を参照してください。
+
 ## 主な機能
 
 - 通常時間割PDF・時間割変更XLSX・試験時間割PDF・試験返却時間割PDFの選択、自動解析、端末内保存。

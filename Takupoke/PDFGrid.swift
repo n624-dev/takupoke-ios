@@ -112,6 +112,43 @@ struct PDFGrid {
             band.sorted { $0.left < $1.left }.flatMap(\.glyphs).map(\.text).joined()
         }
     }
+    /// A missing visual line cannot shift the following field into its place.
+    /// Only other complete cells with the same physical height establish the
+    /// three role baselines. Content/name dictionaries never establish roles.
+    func lessonFields(_ box: PDFBox, lines: [String]) throws -> [String] {
+        if lines.count == 3 { return lines }
+        guard !lines.isEmpty, lines.count < 3 else { throw PDFParseError(code: .ambiguous, stage: .lessonLines) }
+        let height = box.bottom - box.top
+        var references: [[Double]] = []
+        var seen: Set<PDFBox> = []
+        for glyph in page.glyphs {
+            guard let other = try? self.box(glyph.cx, glyph.cy), seen.insert(other).inserted,
+                  abs(other.bottom - other.top - height) < 0.5,
+                  let text = try? timetableText(other), text.count == 3 else { continue }
+            let rows = Self.rows(glyphs(in: other))
+            guard rows.count == 3 else { continue }
+            references.append(rows.map { row in row.map(\.cy).reduce(0,+) / Double(row.count) - other.top })
+        }
+        let rows = Self.rows(glyphs(in: box))
+        guard rows.count == lines.count else { throw PDFParseError(code: .ambiguous, stage: .lessonLines) }
+        var candidates = [[String]]()
+        for reference in references where zip(reference, reference.dropFirst()).allSatisfy({ $0.1 - $0.0 > 2 }) {
+            let tolerance = min(0.75, zip(reference, reference.dropFirst()).map { ($0.1 - $0.0) / 3 }.min()!)
+            var fields = ["", "", ""], assigned: Set<Int> = [], valid = true
+            for (row, text) in zip(rows, lines) {
+                let center = row.map(\.cy).reduce(0,+) / Double(row.count) - box.top
+                let matches = reference.indices.filter { abs(reference[$0] - center) <= tolerance }
+                guard matches.count == 1, assigned.insert(matches[0]).inserted else { valid = false; break }
+                fields[matches[0]] = text
+            }
+            if valid && !fields[0].isEmpty { candidates.append(fields) }
+        }
+        guard let fields = candidates.first, candidates.allSatisfy({ $0 == fields }) else {
+            throw PDFParseError(code: .ambiguous, stage: .lessonLines)
+        }
+        return fields
+    }
+
     func anchors(_ word: String, above: Double) -> [PDFBox] {
         let target = Array(word)
         return Self.rows(page.glyphs.filter { $0.cy < above }).flatMap { row -> [PDFBox] in

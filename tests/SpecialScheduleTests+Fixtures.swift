@@ -12,10 +12,10 @@ extension SpecialScheduleTests {
         var lines: [PDFRule] = []
         var sourceLine = 0
         var order = 0
-        func write(_ value: String, x: Double, y: Double, step: Double = 4) {
+        func write(_ value: String, x: Double, y: Double, step: Double = 4, height: Double = 8) {
             for (index, character) in value.enumerated() {
                 glyphs.append(PDFGlyph(text: String(character), x: x + Double(index) * step,
-                                       y: y, width: step, height: 8,
+                                       y: y, width: step, height: height,
                                        sourceLine: sourceLine, sourceOrder: order))
                 order += 1
             }
@@ -54,9 +54,9 @@ extension SpecialScheduleTests {
                 write("架空科目A", x: 106 + Double(column) * 240,
                       y: 126 + Double(index) * 40, step: 6)
             }
-            if metadataOnFirstCell && index == 0 {
+            if index == 0 {
                 write("架空教員A", x: 106, y: 136, step: 5)
-                write("架空教室A", x: 106, y: 145, step: 5)
+                write("架空教室A", x: 106, y: 145, step: 5, height: 4)
             }
         }
         let times = ["8:50~9:35", "9:50~10:35", "10:50~11:35",
@@ -71,10 +71,10 @@ extension SpecialScheduleTests {
     func returnPageWithSplitCell() -> PDFPageLayout {
         var glyphs: [PDFGlyph] = []
         var lines: [PDFRule] = []
-        func write(_ value: String, x: Double, y: Double, step: Double = 4) {
+        func write(_ value: String, x: Double, y: Double, step: Double = 4, height: Double = 4) {
             for (index, character) in value.enumerated() {
                 glyphs.append(PDFGlyph(text: String(character), x: x + Double(index) * step,
-                                       y: y, width: step, height: 4))
+                                       y: y, width: step, height: height))
             }
         }
         write("令和8年度 試験返却時間割", x: 20, y: 20)
@@ -114,8 +114,20 @@ extension SpecialScheduleTests {
         write("架空教員A", x: 222, y: 327, step: 3)
         write("架空科目B", x: 222, y: 335, step: 3)
         write("架空教員B", x: 222, y: 340, step: 3)
+        lines.append(PDFRule(x1: 260, y1: 332.5, x2: 300, y2: 332.5))
+        write("架空基準科目H", x: 262, y: 322, step: 3)
+        write("架空基準教員H", x: 262, y: 327, step: 3)
+        write("架空基準教室H", x: 262, y: 331.4, step: 3, height: 0.8)
+        write("架空基準科目I", x: 262, y: 335, step: 3)
+        write("架空基準教員I", x: 262, y: 340, step: 3)
+        write("架空基準教室I", x: 262, y: 344, step: 3, height: 0.6)
+        write("架空基準教員J", x: 502, y: 327, step: 3)
+        write("架空基準教室J", x: 502, y: 337, step: 3)
         write("架空科目C", x: 502, y: 322, step: 3)
         write("架空科目D", x: 302, y: 130, step: 3)
+        write("架空基準教員K", x: 342, y: 136, step: 3)
+        write("架空基準教室K", x: 342, y: 141, step: 3)
+        write("架空基準科目K", x: 342, y: 130, step: 3)
         write("架空科目E", x: 622, y: 130, step: 3)
         write("4月1日の時間割は以下のとおりです。", x: 1300, y: 650)
         write("4月2日~5日は通常の授業日どおりの授業時間です。", x: 1300, y: 670)

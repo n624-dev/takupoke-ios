@@ -55,7 +55,9 @@ extension MaterialWorker {
             guard kind != .changes, let library = library, let record = library.state.record(for: kind),
                   let url = library.localURL(for: kind) else { throw PDFParseError(code: .unreadable) }
             diagnosticURL = url
-            let pages = try PDFKitReader.read(url, kind: kind, diagnostics: diagnostics, check: check)
+            let captured = kind == .timetable ? RecoveryReadCapture() : nil
+            if kind == .timetable { recoveryCapture = captured; recoveryCapturedStoredName = record.storedName }
+            let pages = try PDFKitReader.read(url, kind: kind, diagnostics: diagnostics, capture: captured, check: check)
             diagnostics?.record(.parse, values: [Double(pages.count)])
             let analysis = try PDFSchoolParser.parse(pages, kind: kind, digest: record.digest, name: record.originalName, check: check)
             diagnostics?.record(.parseComplete, values: [Double(analysis.lessons.count), Double(analysis.events.count)])

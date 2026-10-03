@@ -11,11 +11,14 @@ trap 'exit 143' TERM
 python3 -B tools/timed_command.py "Material compilation" swiftc -swift-version 5 -parse-as-library \
     -module-cache-path "$scratch_dir/modules" \
     Takupoke/SchoolDate.swift \
+    Takupoke/SchoolDataRetention.swift \
     Takupoke/ChangeNormalizer.swift \
     Takupoke/ChangeNormalizer+Dates.swift \
     Takupoke/ChangeAnalysis.swift \
     Takupoke/TimetableLessonNames.swift \
     Takupoke/PDFSchoolParser.swift \
+    Takupoke/RecoveryModels.swift \
+    Takupoke/RecoveryValidator.swift \
     Takupoke/PDFAnalysis.swift \
     Takupoke/PDFParseError.swift \
     Takupoke/PDFGrid.swift \

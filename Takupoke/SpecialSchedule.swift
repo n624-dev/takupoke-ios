@@ -23,7 +23,7 @@ struct SpecialScheduleLesson: Codable, Equatable {
 }
 
 struct SpecialScheduleAnalysis: Codable, Equatable {
-    static let parserVersion = 6
+    static let parserVersion = 7
     var version = parserVersion
     let kind: SpecialScheduleKind
     let sourceDigest: String
@@ -34,6 +34,7 @@ struct SpecialScheduleAnalysis: Codable, Equatable {
     let coveredClasses: [String]
     let periodTimes: [Int: String]
     let lessons: [SpecialScheduleLesson]
+    var recovery: RecoveryAdopted? = nil
 
     func applies(date: String, className: String) -> Bool {
         coveredDates.contains(date) && coveredClasses.contains(className)
@@ -41,6 +42,7 @@ struct SpecialScheduleAnalysis: Codable, Equatable {
 
     func periodTime(on date: String, period: Int) -> String? {
         guard coveredDates.contains(date) else { return nil }
+        if let recovered = recovery?.document.times["\(date):\(period)"] { return recovered }
         if kind == .examReturn && date != coveredDates.first {
             guard (1...TimetableSchedule.normalPeriodTimes.count).contains(period) else { return nil }
             return TimetableSchedule.normalPeriodTimes[period - 1]

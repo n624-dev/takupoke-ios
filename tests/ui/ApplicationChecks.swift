@@ -16,6 +16,9 @@ final class ApplicationChecks: XCTestCase {
             "testFileFailuresKeepResultsAndStayInTheirOwnDetails": ["--failed-refresh"],
             "testVoiceOverReadsTimetableCard": ["--mapped-names"],
             "testNotificationControlsAndAppearance": ["--theme-probe"],
+            "testRecoveryPreviewOriginalBlankFieldsAndExplicitAdoption": ["--recovery-preview"],
+            "testRecoveryClosingKeepsFormalAndModelManagementIsAccessible": ["--recovery-preview"],
+            "testSpecialRecoveryShowsMergedAndDifferentDayClocksBeforeAdoption": ["--recovery-preview", "--recovery-exam"],
         ]
         for (method, arguments) in initialConditions where name.contains(method) {
             app.launchArguments += arguments
@@ -92,6 +95,63 @@ final class ApplicationChecks: XCTestCase {
         let start = bar.coordinate(withNormalizedOffset: CGVector(dx: 0.5,dy: 0.5))
         start.press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5,dy: 0.95)))
     }
+    private func openRecoveryPreview(material: String = "通常時間割", recovery: String = "時間割の復旧") {
+        tab("設定"); tap("時間割ファイル"); screen("時間割ファイル")
+        tap("\(material)の詳細を見る"); screen(material)
+        XCTAssertTrue(app.staticTexts["fixture-recovery-formal"].label == "前回の正式結果を保持", app.debugDescription)
+        tap("端末内で復旧する"); screen(recovery)
+        tap("端末内で復旧を開始")
+        _ = heading("採用する資料全体")
+        _ = heading("選択クラスだけでなく、以下の資料全体を採用します。元のPDFと読み取り結果を確認してください。")
+    }
+    func testRecoveryPreviewOriginalBlankFieldsAndExplicitAdoption() {
+        openRecoveryPreview()
+        let fields = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "教員: 記載なし", "架空教室A")).firstMatch
+        _ = visible(fields)
+        _ = visible(app.staticTexts["空欄"].firstMatch)
+        XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].label, "前回の正式結果を保持")
+        // Return to the top before opening the matching saved PDF.
+        for _ in 0..<3 { app.swipeDown() }
+        tap("元のPDFを確認"); screen("元のPDF")
+        XCTAssertTrue(app.navigationBars["元のPDF"].exists, app.debugDescription)
+        app.navigationBars["元のPDF"].buttons["閉じる"].tap(); screen("時間割の復旧")
+        let adoption = app.buttons["この資料全体の結果を使用"]
+        for _ in 0..<20 { if adoption.exists && adoption.isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(adoption.isHittable, app.debugDescription)
+        XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].label, "前回の正式結果を保持")
+        adoption.tap()
+        XCTAssertTrue(app.staticTexts["復旧結果を採用しました。"].waitForExistence(timeout: 20), app.debugDescription)
+        XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].label, "確認後に正式採用済み")
+        app.terminate(); app.launchArguments = ["--recovery-probe", "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]; launchReady()
+        XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].label, "確認後に正式採用済み", app.debugDescription)
+    }
+    func testSpecialRecoveryShowsMergedAndDifferentDayClocksBeforeAdoption() {
+        for (index, item) in [("試験時間割", "試験時間割の復旧", "--recovery-exam", "08:05〜08:30"),
+                              ("試験返却時間割", "試験返却時間割の復旧", "--recovery-return", "08:50〜09:35")].enumerated() {
+            if index > 0 {
+                app.terminate(); app.launchArguments = ["--reset-fixture", "--recovery-preview", item.2, "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]; launchReady()
+            }
+            openRecoveryPreview(material: item.0, recovery: item.1)
+            _ = visible(app.staticTexts["08:00〜09:00"].firstMatch)
+            _ = visible(app.staticTexts[item.3].firstMatch)
+            XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].label, "前回の正式結果を保持")
+            let adoption = app.buttons["この資料全体の結果を使用"]
+            for _ in 0..<20 { if adoption.exists && adoption.isHittable { break }; app.swipeUp() }
+            XCTAssertTrue(adoption.isHittable, app.debugDescription); adoption.tap()
+            XCTAssertTrue(app.staticTexts["復旧結果を採用しました。"].waitForExistence(timeout: 20), app.debugDescription)
+            XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].label, "確認後に正式採用済み")
+        }
+    }
+    func testRecoveryClosingKeepsFormalAndModelManagementIsAccessible() {
+        openRecoveryPreview()
+        app.navigationBars["時間割の復旧"].buttons["閉じる"].tap(); screen("通常時間割")
+        XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].label, "前回の正式結果を保持")
+        back(to: "時間割ファイル"); back(to: "設定")
+        tap("端末内AIモデル"); screen("端末内AIモデル")
+        _ = heading("追加モデルは品質評価後に提供します。OSの端末内AIが利用可能な端末では追加ダウンロードは不要です。")
+        XCTAssertFalse(app.buttons["モデルをダウンロード"].exists, app.debugDescription)
+    }
+
     func testMergedCardsFromAllSources() {
         tab("時間割")
         for subject in ["架空科目A", "架空試験A", "架空返却A", "架空変更A"] {

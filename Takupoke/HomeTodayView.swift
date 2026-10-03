@@ -45,6 +45,19 @@ struct HomeTodayView: View {
         mappings.loadIfNeeded()
     }
 
+    private var unreflectedTitles: [String] {
+        var values = [String]()
+        if let source = materials.state.record(for:.timetable) {
+            let a = materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue]
+            if a?.sourceDigest != source.digest || a?.version != PDFAnalysis.currentVersion(for:.timetable) { values.append(MaterialKind.timetable.title) }
+        }
+        if let source = materials.state.record(for:.changes), materials.state.changeAnalysis?.sourceDigest != source.digest || materials.state.changeAnalysis?.version != ChangeAnalysis.parserVersion { values.append(MaterialKind.changes.title) }
+        for kind in SpecialScheduleKind.allCases {
+            if let source = specialSchedules.sources[kind], specialSchedules.records[kind]?.digest != source.digest || specialSchedules.records[kind]?.analysis.version != SpecialScheduleAnalysis.parserVersion { values.append(kind.title) }
+        }
+        return values
+    }
+
     var body: some View {
         Section {
             VStack(alignment: .leading, spacing: 6) {
@@ -56,6 +69,10 @@ struct HomeTodayView: View {
                         .font(.subheadline).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+            }
+            ForEach(unreflectedTitles,id:\.self) { title in
+                Label("\(title)の新しい資料をまだ反映できていません。前回の正常結果を表示しています。",systemImage:"exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.orange)
             }
             if loadFailed {
                 Text("データを読み込めませんでした。")

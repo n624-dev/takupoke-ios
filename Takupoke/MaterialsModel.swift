@@ -203,3 +203,40 @@ final class MaterialsModel: ObservableObject {
         }
     }
 }
+
+
+extension MaterialsModel {
+    func recoverySource() async -> RecoverySelectedSource? {
+        guard ready, !busy, !retired, let period = ApplicationData.shared.loadedPeriod else { return nil }
+        let capturedSource = RecoverySourceCapture()
+        return await withCheckedContinuation { continuation in
+            perform(success:nil,completion:{ success in continuation.resume(returning:success ? capturedSource.source : nil) }) { worker,control in
+                guard let library = worker.library, let source = library.state.record(for:.timetable),
+                      let failure = library.state.pdfParseAttempts?[MaterialKind.timetable.rawValue]?.failure,
+                      RecoveryPolicy.eligible(failure), let url = library.localURL(for:.timetable) else { throw PDFParseError(code:.unsupported) }
+                let selected = RecoverySelectedSource(kind:.timetable,url:url,digest:source.digest,originalName:source.originalName,storedName:source.storedName,period:period,captured:worker.recoveryCapturedStoredName == source.storedName ? worker.recoveryCapture?.pages ?? [] : [])
+                try control.check()
+                capturedSource.source = selected
+            }
+        }
+    }
+    func adoptRecovery(_ preview: RecoveryPreview) async -> Bool {
+        let cancelled = AcquisitionControl()
+        return await withTaskCancellationHandler {
+        await withCheckedContinuation { continuation in
+            perform(success:"復旧結果を採用しました。",completion:{ continuation.resume(returning:$0) }) { worker,control in
+                guard let library = worker.library, let selected = library.state.record(for:.timetable),
+                      selected.storedName == preview.source.storedName, selected.digest == preview.source.digest,
+                      let attempt = library.state.pdfParseAttempts?[MaterialKind.timetable.rawValue],
+                      attempt.sourceDigest == selected.digest, attempt.parserVersion == PDFAnalysis.currentVersion(for:.timetable),
+                      attempt.failure.map(RecoveryPolicy.eligible) == true,
+                      attempt.recoveryJob?.pdfHash == selected.digest,
+                      preview.document.pdfHash == selected.digest else { throw PDFParseError(code:.storage) }
+                try RecoveryConversion.verifyFile(preview.source,check:{ try cancelled.check(); try control.check() })
+                let analysis = try RecoveryConversion.timetable(preview)
+                try cancelled.check(); try control.check(); try library.savePDFAnalysis(analysis)
+            }
+        }
+        } onCancel: { cancelled.cancel() }
+    }
+}

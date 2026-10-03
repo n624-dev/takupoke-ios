@@ -16,8 +16,10 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     private var reconcileTask: Task<Void, Never>?
     private var pending: Input?
     private var generation = UUID()
+    private var latestRevision = UUID()
 
     private struct Input {
+        let revision: UUID
         let changes: Set<ScheduleNotificationSnapshot.Change>?
         let specials: [String: String]
         let period: SchoolDataPeriod
@@ -116,7 +118,8 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             })
         }
         let specials = ScheduleNotificationSnapshot.acceptedSpecialDigests(records: records, sources: sources)
-        pending = Input(changes: changes, specials: specials, period: period)
+        latestRevision = UUID()
+        pending = Input(revision:latestRevision,changes: changes, specials: specials, period: period)
         await drainPending()
     }
 
@@ -161,16 +164,14 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             let classes = Set((UserDefaults.standard.string(forKey: "timetableSelectedClasses") ?? "")
                 .split(separator: "|").map { ChangeNormalizer.canonicalClassName(String($0)) })
             if let changes = input.changes {
-                let count = next.changeCount(comparedWith: changes, today: .today(), classes: classes)
-                if changesEnabled && allowed && count > 0 {
-                    let data = try JSONEncoder().encode(changes.map(\.fingerprint).sorted())
-                    let fingerprint = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-                    next.pending["changes"] = .init(fingerprint: fingerprint, count: count)
-                }
+                let targets = next.pendingChangeTargets(in:changes,today:.today(),classes:classes)
+                if changesEnabled && allowed, !targets.isEmpty {
+                    next.pending["changes"] = try changeNotice(targets)
+                } else { next.pending.removeValue(forKey:"changes") }
                 next.changes = changes
-            }
+            } else { next.pending.removeValue(forKey:"changes") }
             for kind in SpecialScheduleKind.allCases {
-                guard let digest = input.specials[kind.rawValue] else { continue }
+                guard let digest = input.specials[kind.rawValue] else { next.pending.removeValue(forKey:kind.rawValue); continue }
                 if specialsEnabled && allowed && next.specialChanged(kind: kind.rawValue, digest: digest) {
                     next.pending[kind.rawValue] = .init(fingerprint: digest, count: 1)
                 }
@@ -188,19 +189,29 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             // can be retried without recomputing or losing the data difference.
             if next != baseline { try save(next, to: file) }
             for kind in ["changes", "exam", "examReturn"] {
-                guard let notice = next.pending[kind] else { continue }
+                guard var notice = next.pending[kind] else { continue }
                 try Task.checkCancellation()
                 guard operation == generation, input.period == SchoolDataPeriod.current(),
                       UIApplication.shared.isProtectedDataAvailable else { return }
                 let queued = await center.pendingNotificationRequests()
                 let deliveredNotifications = await center.deliveredNotifications()
                 let delivered = deliveredNotifications.map(\.request)
+                // Selection or midnight may change while the notification service
+                // suspends. Revalidate the exact slots immediately before delivery.
+                if kind == "changes" {
+                    let currentClasses = Set((UserDefaults.standard.string(forKey:"timetableSelectedClasses") ?? "")
+                        .split(separator:"|").map { ChangeNormalizer.canonicalClassName(String($0)) })
+                    let targets = next.validTargets(notice.changeTargets ?? [],in:input.changes ?? [],today:.today(),classes:currentClasses)
+                    if targets.isEmpty { next.pending.removeValue(forKey:kind); try save(next,to:file); continue }
+                    notice = try changeNotice(targets); next.pending[kind] = notice; try save(next,to:file)
+                }
                 let identifier = "takupoke." + kind
                 let alreadySent = (queued + delivered).contains {
                     $0.identifier == identifier && $0.content.userInfo["revision"] as? String == notice.fingerprint
                 }
                 guard operation == generation, input.period == SchoolDataPeriod.current(),
                       UIApplication.shared.isProtectedDataAvailable else { return }
+                guard latestRevision == input.revision else { return }
                 if !alreadySent { try await send(kind: kind, notice: notice) }
                 guard operation == generation, input.period == SchoolDataPeriod.current(),
                       UIApplication.shared.isProtectedDataAvailable else { return }
@@ -213,6 +224,12 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         } catch {
             if operation == generation, !Task.isCancelled { message = "通知の更新確認を保存できませんでした。" }
         }
+    }
+
+    private func changeNotice(_ targets: [ScheduleNotificationSnapshot.ChangeTarget]) throws -> ScheduleNotificationSnapshot.Pending {
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        let fingerprint = SHA256.hash(data:try encoder.encode(targets)).map { String(format:"%02x",$0) }.joined()
+        return .init(fingerprint:fingerprint,count:targets.count,changeTargets:targets)
     }
 
     private func save(_ value: ScheduleNotificationSnapshot, to file: URL) throws {

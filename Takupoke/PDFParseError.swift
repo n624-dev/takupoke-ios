@@ -4,6 +4,14 @@ struct PDFParseAttempt: Codable {
     var date: Date
     var sourceDigest: String?
     var failure: PDFParseError?
+    var recoveryJob: RecoveryJob? = nil
+    var parserVersion: Int? = nil
+    static func needsAnalysis(digest: String, parserVersion: Int, analysisDigest: String?, analysisVersion: Int?,
+                              attemptDigest: String?, failure: PDFParseError?, attemptVersion: Int?) -> Bool {
+        if analysisDigest == digest && analysisVersion == parserVersion { return false }
+        if attemptDigest == digest, let failure, failure.code != .cancelled, failure.code != .storage, attemptVersion == parserVersion { return false }
+        return true
+    }
 }
 struct PDFParseError: Error, LocalizedError, Codable, Equatable {
     enum Code: String, Codable { case unreadable, unsupported, ambiguous, limit, cancelled, storage }
@@ -12,7 +20,7 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
         case characterMapping, pageRotation, yearHeading, documentHeading, periodHeading
         case gridColumn, gridRow, gridCell, eventColumns, calendarDates, monthHeading, vectorObjects, textOrder
         case classLabel, gradeLabel, duplicateClass, lessonLines, parallelLessons, emptySubject
-        case fragmentOverlap, fragmentAlignment
+        case fragmentOverlap, fragmentAlignment, rasterInput
 
         var label: String {
             switch self {
@@ -36,6 +44,7 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
             case .parallelLessons: return "並記された授業の対応（P18）"
             case .emptySubject: return "並記された科目の空欄（P19）"
             case .fragmentOverlap: return "文字列断片の位置と読み順（P20）"
+            case .rasterInput: return "画像からの文字認識が必要（P22）"
             case .fragmentAlignment: return "文字列断片が属する行（P21）"
             }
         }
@@ -67,7 +76,7 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
     var errorDescription: String? {
         let reason: String
         switch code {
-        case .unreadable: reason = "PDFを読み取れません。暗号化・破損・画像だけのPDFには対応していません。"
+        case .unreadable: reason = "PDFを読み取れません。暗号化・破損などにより原本を確認できません。"
         case .unsupported: reason = "未対応のPDF書式です。年度・見出し・表の構造を確認できません。"
         case .ambiguous: reason = "表の内容を一意に読み取れません。推測せず解析を停止しました。"
         case .limit: reason = "PDFの解析上限を超えています。"

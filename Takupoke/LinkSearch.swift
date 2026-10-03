@@ -87,7 +87,7 @@ enum LinkSearch {
         for term in terms.split(separator: "|", omittingEmptySubsequences: false) {
             guard !term.isEmpty else { continue }
             let text = String(term)
-            expanded.append(text)
+            expanded.append(normalize(text))
             if text.unicodeScalars.contains(where: { (0x3041...0x3096).contains($0.value) }) {
                 let value = normalize(romaji(text))
                 expanded.append(value)

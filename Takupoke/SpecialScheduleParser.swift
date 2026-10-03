@@ -124,12 +124,14 @@ enum SpecialScheduleParser {
                                 className: String, period: Int, periodXs: [Double],
                                 times: Times, pageNumber: Int) throws -> [SpecialScheduleLesson] {
         let grid = PDFGrid(page: page)
-        let lines = try grid.timetableText(box).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        let rawLines = try grid.timetableText(box).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
-        guard lines.count <= 8, lines.reduce(0, { $0 + $1.utf8.count }) <= 4096 else {
+        guard rawLines.count <= 3, rawLines.reduce(0, { $0 + $1.utf8.count }) <= 4096 else {
             throw PDFParseError(code: .ambiguous, page: pageNumber, stage: .lessonLines)
         }
-        guard !lines.isEmpty else { return [] }
+        guard !rawLines.isEmpty else { return [] }
+        guard !rawLines.contains(where: { line in RecoveryRole.allCases.contains { role in role.labels.contains { line.hasPrefix($0 + ":") || line.hasPrefix($0 + "：") } } }) else { throw PDFParseError(code: .unsupported, page: pageNumber, stage: .lessonLines) }
+        let lines = try grid.lessonFields(box, lines: rawLines)
         let covered = periodXs.enumerated().filter { box.left + 0.5 < $0.element &&
             $0.element < box.right - 0.5 }.map { $0.offset + 1 }
         guard let first = covered.first, let last = covered.last, covered.contains(period) else {

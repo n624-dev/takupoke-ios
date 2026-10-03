@@ -6,6 +6,7 @@ struct SpecialScheduleAnalysisView: View {
     @ObservedObject var model: SpecialSchedulesModel
     let kind: SpecialScheduleKind
     @State private var showingSource = false
+    @State private var showingRecovery = false
     @State private var copiedReport: String?
 
     private var source: SpecialScheduleSource? { model.sources[kind] }
@@ -20,6 +21,7 @@ struct SpecialScheduleAnalysisView: View {
                 if model.busy {
                     LoadingRow(title: "処理中⋯", cancel: { model.cancel() })
                 }
+                if let failure = source?.acquisitionFailure { Label(failure, systemImage: "exclamationmark.triangle") }
                 if let failure = source?.failure {
                     Label(failure.localizedDescription, systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.orange)
@@ -32,6 +34,11 @@ struct SpecialScheduleAnalysisView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
 #endif
+            }
+            if source?.recoveryJob?.pdfHash == source?.digest, source?.recoveryJob?.state == .pending {
+                Section("復旧") {
+                    Button("端末内で復旧する",systemImage:"doc.text.magnifyingglass") { showingRecovery = true }.disabled(model.busy)
+                    Text("端末内AIによる復旧待ちです。新しい資料をまだ反映できていません。前回の正常結果を保持しています。") }
             }
             Section("操作") {
                 Button("保存済みのPDFを見る") { showingSource = true }
@@ -103,6 +110,7 @@ struct SpecialScheduleAnalysisView: View {
         .navigationTitle(kind.title)
         .toolbar { ToolbarItem(placement: .primaryAction) { parseButton } }
         .onChange(of: model.busy) { busy in if busy { copiedReport = nil } }
+        .sheet(isPresented:$showingRecovery) { PDFRecoveryView(kind:kind == .exam ? .exam : .return) }
         .sheet(isPresented: $showingSource) {
             if let url = model.urls[kind] { SavedPDFView(url: url, title: kind.title) }
         }

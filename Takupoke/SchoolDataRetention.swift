@@ -1,7 +1,7 @@
 import Foundation
 
 /// Retention uses Japan time and the actual date, never the timetable's selected week.
-struct SchoolDataPeriod: Codable, Equatable {
+struct SchoolDataPeriod: Codable, Equatable, Sendable {
     let schoolYear: Int
     let half: Int
 

@@ -12,7 +12,7 @@ extension PDFParsingTests {
     func testTimetablePeriodsParallelLessonsAndEmptyRoom() throws {
         let result = try parse([timetable()], kind: .timetable)
         XCTAssertEqual(result.version, PDFAnalysis.currentVersion(for: .timetable))
-        XCTAssertEqual(result.version, 8)
+        XCTAssertEqual(result.version, 9)
         XCTAssertEqual(result.schoolYear, 2032)
         XCTAssertEqual(result.term, "前期")
         XCTAssertEqual(result.lessons.count, 8)
@@ -128,6 +128,15 @@ extension PDFParsingTests {
     func testCharacterBoundsKeepNeighbouringCellsOutOfTimetable() throws {
         var page = timetable()
         page.glyphs.removeAll { $0.x >= 100 && $0.x < 140 && $0.cy > 100 && $0.cy < 160 }
+        // The independent single-line cell uses another complete reference's
+        // baseline; it must not depend on this target cell's deliberate offsets.
+        page.glyphs += text("架空担当Z", x: 264, y: 250)
+        page.glyphs += text("架空教室Z", x: 264, y: 268)
+        for (line,value,y) in [(98,"架空隣科目",112.0),(100,"架空隣教室",148.0)] {
+            page.glyphs += text(value,x:144,y:y).enumerated().map { index,glyph in
+                var g = glyph; g.sourceLine = line; g.sourceOrder = line*100+index; return g
+            }
+        }
         var actual: [CGRect] = []
         var selections: [CGRect] = []
         var content: [(String, Int)] = []

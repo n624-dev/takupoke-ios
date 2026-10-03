@@ -108,9 +108,21 @@ final class MaterialLibrary {
     }
 
     func commit(staged: URL, kind: MaterialKind, source: MaterialSource,
-                originalName: String, byteCount: Int, digest: String, modifiedAt: Date?) throws {
+                originalName: String, byteCount: Int, digest: String, modifiedAt: Date?, reuseUnchanged: Bool = false) throws {
         guard staged.deletingLastPathComponent().standardizedFileURL == staging.standardizedFileURL,
               byteCount > 0, byteCount <= Self.maximumBytes else { throw MaterialError.invalidFile }
+        if reuseUnchanged, let index = state.records.firstIndex(where: { $0.kind == kind }),
+           state.records[index].digest == digest, state.records[index].byteCount == byteCount,
+           state.records[index].originalName == originalName {
+            var next = state
+            let now = Date()
+            next.records[index].source = source
+            next.records[index].sourceModifiedAt = modifiedAt
+            next.records[index].lastCheckedAt = now
+            next.attempts[kind.rawValue] = AcquisitionAttempt(date: now, failure: nil)
+            try persist(next)
+            return
+        }
         let name = UUID().uuidString + "." + kind.fileExtension
         let destination = files.appendingPathComponent(name)
         try FileManager.default.moveItem(at: staged, to: destination)

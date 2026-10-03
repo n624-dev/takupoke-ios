@@ -138,6 +138,7 @@ final class SpecialScheduleStore {
     func recordSuccessfulCheck(_ kind: SpecialScheduleKind, digest: String, checkedAt: Date = Date()) throws {
         guard var source = sources[kind], source.digest == digest else { throw StoreError.invalidState }
         source.lastCheckedAt = checkedAt
+        source.acquisitionFailure = nil
         let payload = try JSONEncoder().encode(source)
         try queue.write { db in
             try db.execute(sql: "INSERT INTO specialSource (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload",
@@ -157,6 +158,8 @@ final class SpecialScheduleStore {
             acquiredAt: source.acquiredAt, analysis: analysis)
         var cleared = source
         cleared.failure = nil
+        cleared.recoveryJob = nil
+        cleared.attemptParserVersion = SpecialScheduleAnalysis.parserVersion
         let recordPayload = try JSONEncoder().encode(record)
         let sourcePayload = try JSONEncoder().encode(cleared)
         try queue.write { db in
@@ -170,9 +173,22 @@ final class SpecialScheduleStore {
         try? removeUnreferencedFiles()
     }
 
+    func recordAcquisitionFailure(kind: SpecialScheduleKind) throws {
+        guard var source = sources[kind] else { throw StoreError.invalidState }
+        source.acquisitionFailure = "更新確認できませんでした。保存済みの資料と解析状態は保持しています。"
+        let payload = try JSONEncoder().encode(source)
+        try queue.write { db in
+            try db.execute(sql: "INSERT INTO specialSource (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload", arguments: [kind.rawValue, payload])
+        }
+        sources[kind] = source
+    }
+
     func recordFailure(_ failure: PDFParseError, kind: SpecialScheduleKind) throws {
         guard var source = sources[kind] else { throw StoreError.invalidState }
         source.failure = failure
+        source.attemptParserVersion = SpecialScheduleAnalysis.parserVersion
+        source.recoveryJob = RecoveryPolicy.eligible(failure) && !(records[kind]?.analysis.version == SpecialScheduleAnalysis.parserVersion && RecoveryValidator.previouslyAccepted(records[kind]?.analysis.recovery,hash:source.digest)) ? RecoveryJob(pdfHash: source.digest,
+            kind: kind == .exam ? .exam : .return, state: .pending, createdAt: Date()) : nil
         let payload = try JSONEncoder().encode(source)
         try queue.write { db in
             try db.execute(sql: "INSERT INTO specialSource (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload",

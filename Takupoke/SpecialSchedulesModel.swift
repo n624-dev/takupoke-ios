@@ -6,6 +6,7 @@ final class SpecialDiagnosticCapture {
     var report: String?
     var failure: PDFParseError?
     var store: SpecialScheduleStore?
+    var recoveryPages: [RecoveryReadPage]?
 }
 
 @MainActor
@@ -20,6 +21,7 @@ final class SpecialSchedulesModel: ObservableObject {
     @Published var fullReadReports: [SpecialScheduleKind: String] = [:]
 
     private let queue = DispatchQueue(label: "io.github.n624dev.takupoke.special-schedules", qos: .userInitiated)
+    private var recoveryCaptures: [SpecialScheduleKind: (String, [RecoveryReadPage])] = [:]
     private var store: SpecialScheduleStore?
     private var retired = false
     private var generation = UUID()
@@ -62,7 +64,7 @@ final class SpecialSchedulesModel: ObservableObject {
                 DispatchQueue.main.async { continuation.resume() }
             }
         }
-        store = nil; records = [:]; sources = [:]; urls = [:]; fullReadReports = [:]
+        store = nil; recoveryCaptures = [:]; records = [:]; sources = [:]; urls = [:]; fullReadReports = [:]
         ready = false; busy = false; control = nil; message = nil; failed = false
         fileMonitor.update([])
     }
@@ -143,6 +145,7 @@ final class SpecialSchedulesModel: ObservableObject {
                         store.selectedURL(for: kind).map { (kind, $0) }
                     })
                     self.ready = true
+                    if let kind, let pages = capture.recoveryPages, let source = store.sources[kind] { self.recoveryCaptures[kind] = (source.storedName,pages) }
                 }
                 self.updateFileMonitoring()
                 defer { self.runPendingSelection(); self.runPendingFileRefresh() }
@@ -160,4 +163,38 @@ final class SpecialSchedulesModel: ObservableObject {
         }
     }
 
+}
+
+
+extension SpecialSchedulesModel {
+    func recoverySource(_ kind: SpecialScheduleKind) async -> RecoverySelectedSource? {
+        guard ready, !busy, !retired, let period = ApplicationData.shared.loadedPeriod else { return nil }
+        let captured = recoveryCaptures[kind]
+        let capturedSource = RecoverySourceCapture()
+        return await withCheckedContinuation { continuation in
+            perform(success:nil,completion:{ success in continuation.resume(returning:success ? capturedSource.source : nil) }) { store,control,_ in
+                guard let source = store.sources[kind], let failure = source.failure, RecoveryPolicy.eligible(failure),
+                      let url = store.selectedURL(for:kind) else { throw PDFParseError(code:.unsupported) }
+                let selected = RecoverySelectedSource(kind:kind == .exam ? .exam : .return,url:url,digest:source.digest,originalName:source.originalName,storedName:source.storedName,period:period,captured:captured?.0 == source.storedName ? captured?.1 ?? [] : [])
+                try control.check(); capturedSource.source = selected
+            }
+        }
+    }
+    func adoptRecovery(_ preview: RecoveryPreview) async -> Bool {
+        let kind: SpecialScheduleKind = preview.document.kind == .exam ? .exam : .examReturn
+        let cancelled = AcquisitionControl()
+        return await withTaskCancellationHandler {
+        await withCheckedContinuation { continuation in
+            perform(success:"復旧結果を採用しました。",completion:{ continuation.resume(returning:$0) }) { store,control,_ in
+                guard let selected = store.sources[kind], selected.storedName == preview.source.storedName,
+                      selected.digest == preview.source.digest, selected.attemptParserVersion == SpecialScheduleAnalysis.parserVersion,
+                      selected.failure.map(RecoveryPolicy.eligible) == true, selected.recoveryJob?.pdfHash == selected.digest,
+                      preview.document.pdfHash == selected.digest else { throw PDFParseError(code:.storage) }
+                try RecoveryConversion.verifyFile(preview.source,check:{ try cancelled.check(); try control.check() })
+                let analysis = try RecoveryConversion.special(preview)
+                try cancelled.check(); try control.check(); try store.saveAnalysis(analysis)
+            }
+        }
+        } onCancel: { cancelled.cancel() }
+    }
 }

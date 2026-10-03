@@ -18,9 +18,10 @@ extension SpecialSchedulesModel {
                 guard let source = store.sources[kind] else { continue }
                 let diagnosticSource = FileRefreshDiagnostics.Source(rawValue: kind.rawValue)
                 FileRefreshDiagnostics.shared.record(.refreshStarted, source: diagnosticSource)
-                let needsAnalysis = store.records[kind].map {
-                    $0.analysis.version < SpecialScheduleAnalysis.parserVersion
-                } ?? false
+                let saved = store.records[kind]
+                let needsAnalysis = PDFParseAttempt.needsAnalysis(digest: source.digest, parserVersion: SpecialScheduleAnalysis.parserVersion,
+                    analysisDigest: saved?.digest, analysisVersion: saved?.analysis.version, attemptDigest: source.digest,
+                    failure: source.failure, attemptVersion: source.attemptParserVersion)
                 do {
                     if needsAnalysis {
                         guard let selectedURL = store.selectedURL(for: kind) else { throw MaterialError.unavailable }
@@ -60,8 +61,8 @@ extension SpecialSchedulesModel {
                 } catch {
                     FileRefreshDiagnostics.shared.record(.refreshFailed, source: diagnosticSource)
                     failure = error
-                    let parseFailure = (error as? PDFParseError) ?? PDFParseError(code: .unreadable)
-                    try? store.recordFailure(parseFailure, kind: kind)
+                    if let parseFailure = error as? PDFParseError { try? store.recordFailure(parseFailure, kind: kind) }
+                    else { try? store.recordAcquisitionFailure(kind: kind) }
                 }
             }
             if let failure { throw failure }

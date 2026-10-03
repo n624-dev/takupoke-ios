@@ -19,6 +19,8 @@ SHARDS = {
         "testEmptyDataCanBeConfigured",
         "testChangedDataProducesOneLocalNotification",
         "testSettingsGroupsAndCompactDataOverviews",
+        "testRecoveryClosingKeepsFormalAndModelManagementIsAccessible",
+        "testSpecialRecoveryShowsMergedAndDifferentDayClocksBeforeAdoption",
     ),
     "B": (
         "testSettingsAccountDataAndFileDetails",
@@ -30,6 +32,7 @@ SHARDS = {
         "testHomeTimetableAndWeekCalendar",
         VOICEOVER_TEST,
         "testChangedAccountDataNoticeOpensSharedAcquisition",
+        "testRecoveryPreviewOriginalBlankFieldsAndExplicitAdoption",
     ),
 }
 REQUIRED_JOBS = frozenset(

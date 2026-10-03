@@ -8,10 +8,10 @@ import CoreGraphics
 /// text placement and painted rules. Calendar selection handling stays unchanged.
 /// No JavaScript, links, embedded files, or actions in a PDF are executed.
 enum PDFKitReader {
-    static func read(_ url: URL, kind: MaterialKind, diagnostics: PDFDiagnosticRecorder? = nil,
+    static func read(_ url: URL, kind: MaterialKind, diagnostics: PDFDiagnosticRecorder? = nil, capture: RecoveryReadCapture? = nil,
                      check: @escaping () throws -> Void = {}) throws -> [PDFPageLayout] {
         let recorder = kind == .timetable ? (diagnostics ?? PDFDiagnosticRecorder()) : nil
-        do { return try readPages(url, kind: kind, diagnostics: recorder, check: check) }
+        do { return try readPages(url, kind: kind, diagnostics: recorder, capture: capture, check: check) }
         catch {
             if let recorder = recorder { throw recorder.attaching(to: error) }
             throw error
@@ -21,17 +21,18 @@ enum PDFKitReader {
     /// The exam PDFs contain marked content or clipping commands rejected by
     /// the ordinary timetable's drawing interpreter. Their PDFKit character
     /// selections are validated individually by the calendar text path.
-    static func readSpecial(_ url: URL, diagnostics: PDFDiagnosticRecorder? = nil,
+    static func readSpecial(_ url: URL, diagnostics: PDFDiagnosticRecorder? = nil, capture: RecoveryReadCapture? = nil,
                             check: @escaping () throws -> Void = {}) throws -> [PDFPageLayout] {
-        do { return try readPages(url, kind: .events, diagnostics: diagnostics, check: check) }
+        do { return try readPages(url, kind: .events, diagnostics: diagnostics, capture: capture, check: check) }
         catch {
             if let diagnostics { throw diagnostics.attaching(to: error) }
             throw error
         }
     }
 
-    private static func readPages(_ url: URL, kind: MaterialKind, diagnostics: PDFDiagnosticRecorder?,
+    private static func readPages(_ url: URL, kind: MaterialKind, diagnostics: PDFDiagnosticRecorder?, capture: RecoveryReadCapture?,
                                   check: @escaping () throws -> Void) throws -> [PDFPageLayout] {
+        capture?.reset()
         diagnostics?.record(.file)
         let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize
         diagnostics?.record(.file, values: [Double(size ?? -1)])
@@ -40,13 +41,17 @@ enum PDFKitReader {
         diagnostics?.record(.document, values: [Double(opened?.pageCount ?? -1), opened?.isLocked == true ? 1 : 0])
         guard let document = opened, !document.isLocked,
               document.pageCount > 0, document.pageCount <= 12 else { throw PDFParseError(code: .unreadable) }
+        capture?.begin(pageCount: document.pageCount)
         var output: [PDFPageLayout] = []
         for index in 0..<document.pageCount {
             try check()
             diagnostics?.record(.page, page: index + 1)
             guard let page = document.page(at: index), let ref = page.pageRef,
-                  let string = page.string, page.numberOfCharacters <= 100000 else {
+                  page.numberOfCharacters <= 100000 else {
                 throw PDFParseError(code: .unreadable, page: index + 1)
+            }
+            guard let string = page.string, !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw PDFParseError(code: .unsupported, page: index + 1, stage: .rasterInput)
             }
             let media = ref.getBoxRect(.mediaBox)
             let rotation = ((page.rotation % 360) + 360) % 360
@@ -145,17 +150,22 @@ enum PDFKitReader {
                     cursor = NSMaxRange(range)
                 }
             }
+            capture?.record(page: index + 1, state: .partial, layout: PDFPageLayout(width: Double(transform.width), height: Double(transform.height), glyphs: glyphs, lines: []))
             let reader = PDFPathReader(transform: transform, check: check)
             diagnostics?.record(.paths, page: index + 1)
             let lines: [PDFRule]
             do { lines = try reader.read(ref) }
             catch var error as PDFParseError { error.page = index + 1; throw error }
-            guard !glyphs.isEmpty, !lines.isEmpty else { throw PDFParseError(code: .unreadable, page: index + 1) }
+            let layout = PDFPageLayout(width: Double(transform.width), height: Double(transform.height), glyphs: glyphs, lines: lines, arrows: reader.arrows)
+            capture?.record(page: index + 1, state: glyphs.isEmpty ? .rasterOnly : .complete, layout: layout)
+            guard !glyphs.isEmpty else { throw PDFParseError(code: .unsupported, page: index + 1, stage: .rasterInput) }
+            guard !lines.isEmpty else { throw PDFParseError(code: .unsupported, page: index + 1, stage: .gridCell) }
             diagnostics?.record(.pageComplete, page: index + 1,
                 values: [Double(glyphs.count), Double(lines.count), Double(reader.arrows.count), Double(reader.operations)])
-            output.append(PDFPageLayout(width: Double(transform.width), height: Double(transform.height), glyphs: glyphs, lines: lines, arrows: reader.arrows))
+            output.append(layout)
         }
         diagnostics?.record(.readComplete, values: [Double(output.count)])
+        capture?.finish()
         return output
     }
 

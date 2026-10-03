@@ -23,6 +23,26 @@ extension LocalDatabaseTests {
         XCTAssertEqual(library.state.pdfAnalyses?["timetable"]?.lessons.count, 2)
     }
 
+    func testSameDigestAutomaticRefreshReusesOriginalAndPersistsUpdatedModificationDate() throws {
+        let (db,library) = try runtimeStore(); defer { try? db.close() }
+        let bytes = Data("entirely synthetic same PDF".utf8)
+        func commit(_ date: Date) throws {
+            let staged = library.newStagingURL(); try bytes.write(to:staged)
+            try library.commit(staged:staged,kind:.timetable,source:MaterialSource(),originalName:"架空資料.pdf",byteCount:bytes.count,digest:"synthetic-same",modifiedAt:date,reuseUnchanged:true)
+        }
+        try commit(time)
+        let firstName = try XCTUnwrap(library.state.record(for:.timetable)?.storedName)
+        let updated = time.addingTimeInterval(30)
+        try commit(updated)
+        XCTAssertEqual(library.state.record(for:.timetable)?.storedName,firstName)
+        XCTAssertEqual(library.state.record(for:.timetable)?.sourceModifiedAt,updated)
+        XCTAssertEqual(try db.load().record(for:.timetable)?.sourceModifiedAt,updated)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath:runtime.appendingPathComponent("files").path),[firstName])
+        let reopened = try LocalMaterialDatabase(url:runtime.appendingPathComponent("library.sqlite")); defer { try? reopened.close() }
+        XCTAssertEqual(try reopened.load().record(for:.timetable)?.storedName,firstName)
+        XCTAssertEqual(try reopened.load().record(for:.timetable)?.sourceModifiedAt,updated)
+    }
+
     func testRuntimeKeepsOriginalForPreviousGoodAnalysisAndCollectsOnlyAfterRestart() throws {
         let example = try fixture()
         let (db, library) = try runtimeStore()

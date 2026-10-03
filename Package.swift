@@ -20,10 +20,11 @@ let package = Package(
     platforms: [.macOS(.v12), .iOS("26.0")],
     dependencies: [
         .package(url: "https://github.com/weichsel/ZIPFoundation.git", revision: "22787ffb59de99e5dc1fbfe80b19c97a904ad48d"),
-        .package(url: "https://github.com/groue/GRDB.swift.git", revision: "b83108d10f42680d78f23fe4d4d80fc88dab3212")
+        .package(url: "https://github.com/groue/GRDB.swift.git", revision: "b83108d10f42680d78f23fe4d4d80fc88dab3212"),
+        .package(url: "https://github.com/apple/swift-crypto.git", revision: "da9d28d69ebe3894b18376c8f2395c2f37b8448f")
     ],
     targets: [
-        .target(name: "TakupokeParsing", dependencies: ["ZIPFoundation", .product(name: "GRDB", package: "GRDB.swift")], path: "Takupoke",
+        .target(name: "TakupokeParsing", dependencies: ["ZIPFoundation", .product(name: "GRDB", package: "GRDB.swift"), .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux]))], path: "Takupoke",
                 exclude: [
                     "Assets.xcassets",
                     "AppIcon.icon",
@@ -61,7 +62,8 @@ let package = Package(
                     "ChangeAnalysisView.swift",
                     "ChangePreviewView.swift",
                     "WebPDFDownloader.swift",
-                    "PDFAnalysisView.swift",
+                    "PDFAnalysisView.swift", "SystemLanguageRecoveryProvider.swift", "PDFRecoveryRecognition.swift",
+                    "PDFRecoveryCoordinator.swift", "PDFRecoveryView.swift", "LocalRecoveryModelManager.swift", "LocalLlamaRecoveryProvider.swift", "CoreAIRecoveryProvider.swift",
                     "PDFLessonDetail.swift",
                     "SavedPDFView.swift",
                     "TimetableView.swift", "TimetableView+WeekSection.swift",
@@ -91,7 +93,7 @@ let package = Package(
                     "MainColor.swift",
                     "LocalMaterialDatabase.swift",
                     "LocalMaterialDatabase+Current.swift", "LocalMaterialDatabase+Snapshot.swift",
-                    "PDFAnalysis.swift",
+                    "PDFAnalysis.swift", "RecoveryModels.swift", "RecoveryValidator.swift", "RecoveryModelStore.swift", "RecoveryEngine.swift", "RecoveryDocumentBuilder.swift", "RecoveryConversion.swift", "RecoveryRasterGrid.swift",
                     "PDFParseError.swift",
                     "PDFGrid.swift",
                     "PDFSchoolParser+Timetable.swift",
@@ -167,7 +169,7 @@ let package = Package(
                     "ParsingTests+Preview.swift",
                     "ParsingTests+Persistence.swift",
                     "TimetableNameTests.swift", "MappingRulesTests.swift",
-                    "PDFParsingTests.swift",
+                    "PDFParsingTests.swift", "RecoveryTests.swift", "RecoveryBuilderTests.swift",
                     "PDFParsingTests+Timetable.swift",
                     "PDFParsingTests+Diagnostics.swift",
                     "PDFParsingTests+Events.swift",

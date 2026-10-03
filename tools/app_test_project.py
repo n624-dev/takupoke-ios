@@ -17,6 +17,13 @@ def generate(destination):
     real = json.loads(subprocess.check_output(['plutil','-convert','json','-o','-',str(repo/'Takupoke.xcodeproj/project.pbxproj')]))
     copied = destination/'Takupoke'
     shutil.copytree(repo/'Takupoke', copied)
+    # The real project also uses local bridge packages and build phases.
+    # Preserve those relative references in this isolated app; never rely on
+    # the working tree being adjacent to the temporary project.
+    shutil.copytree(repo/'Vendor', destination/'Vendor', ignore=shutil.ignore_patterns('.build', '.swiftpm'))
+    (destination/'tools').mkdir(exist_ok=True)
+    for script in ('prepare-llama-runtime.py', 'prepare-coreai-runtime.py'):
+        shutil.copyfile(repo/'tools'/script, destination/'tools'/script)
     for path in copied.glob('*.swift'):
         text = path.read_text()
         # A URLProtocol below rejects every request. Rewrite URLs as a second
@@ -24,6 +31,25 @@ def generate(destination):
         text = re.sub(r'https?://[^"\s)]+', 'https://fixture.example.test', text)
         text = re.sub(r'(\b(?:let|var) (\w+) = URLSessionConfiguration\.(?:ephemeral|default))',
                       lambda match: match[1] + "\n        " + match[2] + ".protocolClasses = [FixtureNetwork.self]", text)
+        if path.name == 'PDFRecoveryCoordinator.swift':
+            marker = '    func start(_ kind: RecoveryDocumentKind) {'
+            assert marker in text, 'Recovery UI fixture insertion point missing'
+            text = text.replace(marker, marker + '\n' + """
+        if ProcessInfo.processInfo.arguments.contains("--recovery-preview") {
+            cancel(); failure = nil
+            do { let prepared = try SimulatorRecoveryFixture.preview(kind); source = prepared.source; preview = prepared; status = "採用前に元のPDFと内容を確認してください。" }
+            catch { failure = "架空復旧fixtureを準備できませんでした。" }
+            return
+        }
+""")
+        if path.name == 'PDFRecoveryView.swift':
+            marker = '.navigationTitle(title)'
+            assert marker in text, 'Recovery preview probe insertion point missing'
+            text = text.replace(marker, marker + """
+            .overlay(alignment: .topLeading) {
+                if ProcessInfo.processInfo.arguments.contains("--recovery-preview") { FixtureRecoveryProbe() }
+            }
+""")
         if path.name == 'TimetableView.swift':
             marker = 'struct TimetableView: View {'
             assert marker in text
@@ -76,6 +102,18 @@ def generate(destination):
         ''')
         path.write_text(text)
     shutil.copyfile(repo/'tests/ui/ApplicationFixture.swift',copied/'TakupokeApp.swift')
+    fixture_dir = destination/'recovery-fixtures'
+    fixture_dir.mkdir()
+    resources = next(obj for obj in real['objects'].values() if obj.get('isa') == 'PBXResourcesBuildPhase')
+    for index, name in enumerate(('exam', 'return'), start=1):
+        fixture = fixture_dir/f'recovery-{name}.json'
+        shutil.copyfile(repo/'tests/fixtures'/fixture.name, fixture)
+        reference = f'FA90000000000000000000{index:02X}'
+        build_file = f'FB90000000000000000000{index:02X}'
+        assert reference not in real['objects'] and build_file not in real['objects']
+        real['objects'][reference] = dict(isa='PBXFileReference', lastKnownFileType='text.json', path=str(fixture), sourceTree='<absolute>')
+        real['objects'][build_file] = dict(isa='PBXBuildFile', fileRef=reference)
+        resources['files'].append(build_file)
     real['objects']['C00000000000000000000002']['sourceTree']='<absolute>'
     real['objects']['C00000000000000000000002']['path']=str(copied)
     for obj in real['objects'].values():

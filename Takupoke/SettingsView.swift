@@ -50,6 +50,7 @@ struct SettingsView: View {
                         LabeledContent("クラス", value: selectedClasses.isEmpty ? "未選択" :
                             TimetableDisplayText.classNames(selectedClasses.split(separator: "|").map(String.init)))
                     }
+                    NavigationLink("端末内AIモデル") { RecoveryModelSettingsView() }
                     NavigationLink("通知") { NotificationSettingsView() }
                     Picker("メインカラー", selection: colorSelection) {
                         ForEach(MainColor.allCases) { choice in

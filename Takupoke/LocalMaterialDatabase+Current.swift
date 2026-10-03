@@ -25,6 +25,7 @@ extension LocalMaterialDatabase {
                     var comparable = record
                     comparable.source = old.source
                     comparable.lastCheckedAt = old.lastCheckedAt
+                    comparable.sourceModifiedAt = old.sourceModifiedAt
                     guard try Self.encode(comparable) == Self.encode(old),
                           let id = try String.fetchOne(db, sql: "SELECT originalID FROM currentRecord WHERE kind = ?",
                                                        arguments: [record.kind.rawValue]) else {

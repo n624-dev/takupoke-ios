@@ -5,6 +5,9 @@ extension SpecialSchedulesModel {
         guard !busy else { return }
         fullReadReports[kind] = nil
         perform(success: "\(kind.title)を解析して保存しました。", reporting: kind) { store, control, capture in
+            let parseCheck: () throws -> Void = {
+                do { try control.check() } catch { throw PDFParseError(code: .cancelled) }
+            }
             let diagnostics = PDFDiagnosticRecorder(parserVersion: SpecialScheduleAnalysis.parserVersion)
             diagnostics.record(.start)
             let staged = selection.map { _ in store.newStagingURL() }
@@ -15,7 +18,7 @@ extension SpecialSchedulesModel {
 #if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
             var inspected: PDFFullReadDiagnostic?
             defer {
-                let full = inspected ?? diagnosticURL.map { PDFKitReader.diagnose($0, check: { try control.check() }) }
+                let full = inspected ?? diagnosticURL.map { PDFKitReader.diagnose($0, check: parseCheck) }
                     ?? PDFFullReadDiagnostic()
                 diagnostics.record(.complete)
                 capture.report = SpecialScheduleDiagnosticReport.make(full, kind: kind,
@@ -42,16 +45,18 @@ extension SpecialSchedulesModel {
                 }
                 diagnosticURL = selectedURL
                 sourceName = source.originalName
+                let readerCapture = RecoveryReadCapture()
+                defer { capture.recoveryPages = readerCapture.pages }
                 let pages = try PDFKitReader.readSpecial(selectedURL, diagnostics: diagnostics,
-                                                         check: { try control.check() })
+                                                         capture: readerCapture, check: parseCheck)
                 diagnostics.record(.parse, values: [Double(pages.count)])
                 let analysis = try SpecialScheduleParser.parse(pages, kind: kind, digest: source.digest,
-                                                               name: source.originalName, check: { try control.check() })
+                                                               name: source.originalName, check: parseCheck)
                 diagnostics.record(.parseComplete, values: [Double(analysis.lessons.count)])
 #if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
-                inspected = PDFKitReader.diagnose(selectedURL, check: { try control.check() })
+                inspected = PDFKitReader.diagnose(selectedURL, check: parseCheck)
 #endif
-                try control.check()
+                try parseCheck()
                 diagnostics.record(.save)
                 do { try store.saveAnalysis(analysis) }
                 catch { throw PDFParseError(code: .storage) }

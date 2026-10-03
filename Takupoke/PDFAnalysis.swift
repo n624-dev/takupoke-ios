@@ -7,7 +7,7 @@ enum PDFDisplayText {
     }
 }
 
-struct PDFGlyph: Codable {
+struct PDFGlyph: Codable, Sendable {
     var text: String
     var x: Double
     var y: Double
@@ -18,7 +18,7 @@ struct PDFGlyph: Codable {
     var cx: Double { x + width / 2 }
     var cy: Double { y + height / 2 }
 }
-struct PDFRule: Codable {
+struct PDFRule: Codable, Sendable {
     var x1: Double
     var y1: Double
     var x2: Double
@@ -26,14 +26,14 @@ struct PDFRule: Codable {
     var horizontal: Bool { abs(y1 - y2) < 0.2 }
     var vertical: Bool { abs(x1 - x2) < 0.2 }
 }
-struct PDFPageLayout: Codable {
+struct PDFPageLayout: Codable, Sendable {
     var width: Double
     var height: Double
     var glyphs: [PDFGlyph]
     var lines: [PDFRule]
     var arrows: [PDFArrow]? = nil
 }
-struct PDFArrow: Codable { var x: Double; var top: Double; var bottom: Double }
+struct PDFArrow: Codable, Sendable { var x: Double; var top: Double; var bottom: Double }
 struct PDFBox: Hashable {
     var left: Double
     var top: Double
@@ -154,7 +154,7 @@ struct PDFEventClassification: Codable, Equatable {
     }
 }
 struct PDFAnalysis: Codable {
-    static let parserVersion = 8
+    static let parserVersion = 9
     // Timetable fixes must not ask users to reparse an unchanged calendar.
     static func currentVersion(for kind: MaterialKind) -> Int { kind == .events ? 4 : parserVersion }
     var version = parserVersion
@@ -167,4 +167,5 @@ struct PDFAnalysis: Codable {
     var lessons: [PDFLesson]
     var events: [PDFSchoolEvent]
     var notices: [String]
+    var recovery: RecoveryAdopted? = nil
 }

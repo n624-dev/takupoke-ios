@@ -5,8 +5,10 @@ final class MaterialWorker {
     var changePreview: ChangePreview?
     var timetableReadReport: String?
     var timetableFailure: PDFParseError?
+    var recoveryCapture: RecoveryReadCapture?
+    var recoveryCapturedStoredName: String?
 
-    func close() { library = nil; changePreview = nil; timetableReadReport = nil; timetableFailure = nil }
+    func close() { library = nil; changePreview = nil; timetableReadReport = nil; timetableFailure = nil; recoveryCapture = nil; recoveryCapturedStoredName = nil }
 
     func clearPreview() { changePreview = nil }
 
@@ -34,12 +36,24 @@ final class MaterialWorker {
     }
 
     /// Reads the selected provider file again, then reparses only if its content
-    /// digest changed. An unavailable provider preserves the previous result.
+    /// digest changed, analysis was interrupted, or the parser changed. An unavailable provider preserves the previous result.
     func refreshIfChanged(_ kind: MaterialKind, defaultYear: Int, control: AcquisitionControl) throws -> Bool {
         guard kind == .timetable || kind == .changes,
               let previous = library?.state.record(for: kind), previous.source.grant != nil else { return false }
         try refresh(kind, control: control)
-        guard let current = library?.state.record(for: kind), current.digest != previous.digest else { return false }
+        guard let current = library?.state.record(for: kind) else { return false }
+        if current.digest == previous.digest {
+            guard let state = library?.state else { return false }
+            if kind == .changes {
+                guard ChangeParseAttempt.needsAnalysis(digest: current.digest, defaultYear: defaultYear,
+                    analysis: state.changeAnalysis, attempt: state.changeParseAttempt) else { return false }
+            } else {
+            let analysis = state.pdfAnalyses?[kind.rawValue], attempt = state.pdfParseAttempts?[kind.rawValue]
+            guard PDFParseAttempt.needsAnalysis(digest: current.digest, parserVersion: PDFAnalysis.parserVersion,
+                analysisDigest: analysis?.sourceDigest, analysisVersion: analysis?.version, attemptDigest: attempt?.sourceDigest,
+                failure: attempt?.failure, attemptVersion: attempt?.parserVersion) else { return false }
+            }
+        }
         if kind == .changes { try analyzeChanges(defaultYear: defaultYear, control: control) }
         else { try analyzePDF(kind: kind, control: control) }
         return true
@@ -52,7 +66,7 @@ final class MaterialWorker {
     }
 
     private func acquireSource(_ source: MaterialSource, kind: MaterialKind, control: AcquisitionControl) throws {
-        try acquire(kind, control: control) { staged in
+        try acquire(kind, control: control, reuseUnchanged: true) { staged in
             if let url = source.remoteURL {
                 guard kind == .events, source.grant == nil else { throw MaterialError.invalidState }
                 return try readWebPDF(url, to: staged, control: control)
@@ -94,7 +108,7 @@ final class MaterialWorker {
         case unchanged(MaterialSource)
     }
 
-    private func acquire(_ kind: MaterialKind, control: AcquisitionControl,
+    private func acquire(_ kind: MaterialKind, control: AcquisitionControl, reuseUnchanged: Bool = false,
                          read: (URL) throws -> AcquisitionOutcome) throws {
         guard let library = library else { throw MaterialError.invalidState }
         let staged = library.newStagingURL()
@@ -106,7 +120,7 @@ final class MaterialWorker {
             case .downloaded(let file):
                 try library.commit(staged: staged, kind: kind, source: file.source,
                                    originalName: file.name, byteCount: file.count,
-                                   digest: file.digest, modifiedAt: file.modified)
+                                   digest: file.digest, modifiedAt: file.modified, reuseUnchanged: reuseUnchanged)
             case .unchanged(let source):
                 try library.recordUnchanged(kind, source: source)
             }

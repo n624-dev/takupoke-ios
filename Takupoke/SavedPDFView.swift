@@ -20,8 +20,16 @@ private struct LocalPDFCanvas: UIViewRepresentable {
     func makeUIView(context: Context) -> PDFView {
         let view = PDFView()
         view.autoScales = true
-        view.document = PDFDocument(url: url)
+        updateUIView(view, context: context)
         return view
     }
-    func updateUIView(_ view: PDFView, context: Context) {}
+    func updateUIView(_ view: PDFView, context: Context) {
+        guard context.coordinator.loadedURL != url.standardizedFileURL else { return }
+        // Originals use a new local URL on replacement. Clear the old document even
+        // when opening the replacement fails, so it cannot look like the new PDF.
+        view.document = PDFDocument(url: url)
+        context.coordinator.loadedURL = url.standardizedFileURL
+    }
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    final class Coordinator { var loadedURL: URL? }
 }

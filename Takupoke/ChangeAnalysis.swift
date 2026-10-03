@@ -84,6 +84,16 @@ struct ChangeParseAttempt: Codable {
     var sourceDigest: String?
     var defaultYear: Int?
     var failure: ChangeParseError?
+    var parserVersion: Int? = nil
+
+    static func needsAnalysis(digest: String, defaultYear: Int, analysis: ChangeAnalysis?, attempt: ChangeParseAttempt?) -> Bool {
+        if analysis?.sourceDigest == digest, analysis?.version == ChangeAnalysis.parserVersion,
+           analysis?.defaultYear == defaultYear { return false }
+        if attempt?.sourceDigest == digest, attempt?.defaultYear == defaultYear,
+           attempt?.parserVersion == ChangeAnalysis.parserVersion, let failure = attempt?.failure,
+           failure.code != .cancelled && failure.code != .storage { return false }
+        return true
+    }
 }
 
 // Deliberately separate from the persisted, successful ChangeAnalysis.

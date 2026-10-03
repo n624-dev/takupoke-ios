@@ -19,5 +19,8 @@ struct SpecialScheduleSource: Codable {
     let acquiredAt: Date
     var lastCheckedAt: Date? = nil
     var failure: PDFParseError?
+    var recoveryJob: RecoveryJob? = nil
+    var attemptParserVersion: Int? = nil
+    var acquisitionFailure: String? = nil
     var grant: SourceGrant?
 }

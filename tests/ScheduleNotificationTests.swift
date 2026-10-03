@@ -51,6 +51,31 @@ final class ScheduleNotificationTests: XCTestCase {
         XCTAssertEqual(restored.changeCount(comparedWith: [change("a")], today: today, classes: ["3_XY"]), 0)
     }
 
+    func testFailedChangeSendCannotSurviveClassSwitchTargetExpiryOrChangedContent() throws {
+        let previous: Set = [change("old")], current: Set = [change("new")]
+        var baseline = ScheduleNotificationSnapshot(changes:previous)
+        let targets = baseline.changeTargets(comparedWith:current,today:today,classes:["3_XY"])
+        baseline.pending["changes"] = .init(fingerprint:"failed",count:1,changeTargets:targets)
+        baseline.changes = current
+        XCTAssertEqual(baseline.pendingChangeTargets(in:current,today:today,classes:["3_XY"]).count,1)
+        XCTAssertTrue(baseline.pendingChangeTargets(in:current,today:today,classes:["4_XY"]).isEmpty)
+        XCTAssertTrue(baseline.pendingChangeTargets(in:current,today:SchoolDate(iso8601:"2032-10-16")!,classes:["3_XY"]).isEmpty)
+        XCTAssertTrue(baseline.validTargets(targets,in:[change("superseded")],today:today,classes:["3_XY"]).isEmpty)
+        let restored = try JSONDecoder().decode(ScheduleNotificationSnapshot.self,from:JSONEncoder().encode(baseline))
+        XCTAssertEqual(restored.pending["changes"]?.changeTargets,targets)
+        baseline.pending["changes"] = .init(fingerprint:"legacy",count:1)
+        XCTAssertTrue(baseline.pendingChangeTargets(in:current,today:today,classes:["3_XY"]).isEmpty)
+    }
+
+    func testFailedRemovalNoticeRemainsRelevantOnlyWhileSlotIsAbsent() {
+        var baseline = ScheduleNotificationSnapshot(changes:[change("removed")])
+        let targets = baseline.changeTargets(comparedWith:[],today:today,classes:["3_XY"])
+        baseline.pending["changes"] = .init(fingerprint:"removed",count:1,changeTargets:targets)
+        baseline.changes = []
+        XCTAssertEqual(baseline.pendingChangeTargets(in:[],today:today,classes:["3_XY"]).count,1)
+        XCTAssertTrue(baseline.validTargets(targets,in:[change("restored")],today:today,classes:["3_XY"]).isEmpty)
+    }
+
     func testInvalidDateCannotNotify() {
         let saved = ScheduleNotificationSnapshot(changes: [])
         XCTAssertEqual(saved.changeCount(comparedWith: [change("a", date: "invalid")], today: today, classes: ["3_XY"]), 0)

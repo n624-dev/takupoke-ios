@@ -10,6 +10,7 @@ struct PDFAnalysisView: View {
     @AppStorage("pdfAnalysisSelectedClass") private var selectedClass = ""
     @AppStorage("pdfAnalysisSelectedWeekday") private var selectedWeekday = 0
     @State private var showingSource = false
+    @State private var showingRecovery = false
     @State private var copiedDiagnostic: String?
     private var analysis: PDFAnalysis? { model.state.pdfAnalyses?[kind.rawValue] }
     private var failure: PDFParseError? {
@@ -46,6 +47,13 @@ struct PDFAnalysisView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
 #endif
+            }
+            if model.state.pdfParseAttempts?[kind.rawValue]?.recoveryJob?.pdfHash == model.state.record(for: kind)?.digest,
+               model.state.pdfParseAttempts?[kind.rawValue]?.recoveryJob?.state == .pending {
+                Section("復旧") {
+                    Text("端末内AIによる復旧待ちです。新しい資料をまだ反映できていません。前回の正常結果を保持しています。")
+                    Button("端末内で復旧する",systemImage:"doc.text.magnifyingglass") { showingRecovery = true }.disabled(model.busy)
+                }
             }
             Section("操作") {
                 Button("同じファイルを再取得") { model.refresh(kind) }
@@ -156,6 +164,7 @@ struct PDFAnalysisView: View {
             if model.busy { ToolbarItem(placement: .cancellationAction) { Button("中止") { model.cancel() } } }
         }
         .onChange(of: model.busy) { busy in if busy { copiedDiagnostic = nil } }
+        .sheet(isPresented:$showingRecovery) { PDFRecoveryView(kind:.timetable) }
         .sheet(isPresented: $showingSource) {
             if let url = model.pdfURLs[kind.rawValue] { SavedPDFView(url: url, title: kind.title) }
         }
