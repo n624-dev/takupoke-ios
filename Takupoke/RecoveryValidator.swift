@@ -95,6 +95,21 @@ enum RecoveryValidator {
         check(!doc.classes.isEmpty && Set(doc.classes).count == doc.classes.count && Set(doc.classes).isSubset(of: Set(RecoveryValidator.knownClasses)) && !doc.days.isEmpty && Set(doc.days).count == doc.days.count, "scope")
         if doc.kind != .timetable { check(Set(doc.classes) == Set(RecoveryValidator.specialClasses) && doc.days.count == 5, "specialScope") }
         let maxPeriod = doc.kind == .exam ? 6 : 8
+        var periodIds = [Int:Set<String>]()
+        for period in 1...maxPeriod {
+            let ids = doc.periodEvidence[String(period),default:[]]
+            guard work.charge(ids.count + 1) else { return RecoveryValidation(errors:["validationLimit"]) }
+            periodIds[period] = Set(ids)
+        }
+        func periodMembers(_ ids:[String],period:Int) -> [String] {
+            let allowed = periodIds[period,default:[]]
+            var matching = [String]()
+            for id in ids {
+                guard work.charge() else { return [] }
+                if allowed.contains(id) { matching.append(id) }
+            }
+            return matching
+        }
         if doc.kind == .timetable { check(doc.days.sorted() == ["1", "2", "3", "4", "5"], "weekdays") }
         else {
             let formatter = DateFormatter(); formatter.calendar = Calendar(identifier: .gregorian)
@@ -228,7 +243,7 @@ enum RecoveryValidator {
         for day in doc.days { check(Set(doc.dayEvidence[day] ?? []) == Set(dayCells[day,default:[]].flatMap(\.dayHeaderIds) + validClocks.filter { $0.day == day }.flatMap(\.dayHeaderIds)), "dayHeaderCoverage") }
         for period in 1...maxPeriod {
             let allowed = doc.periodEvidence[String(period)] ?? []
-            let bound = periodCells[period,default:[]].flatMap(\.periodHeaderIds).filter { allowed.contains($0) } + validClocks.filter { $0.spanStart == period && $0.spanEnd == period }.flatMap(\.periodHeaderIds)
+            let bound = periodMembers(periodCells[period,default:[]].flatMap(\.periodHeaderIds),period:period) + validClocks.filter { $0.spanStart == period && $0.spanEnd == period }.flatMap(\.periodHeaderIds)
             check(Set(allowed) == Set(bound), "periodHeaderCoverage")
         }
         for values in pageCells.values {
@@ -299,7 +314,7 @@ enum RecoveryValidator {
             if let slot = cell.slots.first {
                 check(header(cell.classHeaderIds, doc.classEvidence[slot.className] ?? [], classLabels(slot.className), cell: cell, region: cell.classRegion), "classBinding")
                 check(header(cell.dayHeaderIds, doc.dayEvidence[slot.day] ?? [], dayLabels(slot.day, kind: doc.kind), cell: cell, region: cell.dayRegion), "dayBinding")
-                check(cell.slots.allSatisfy { s in let ids = cell.periodHeaderIds.filter { (doc.periodEvidence[String(s.period)] ?? []).contains($0) }; return header(ids, doc.periodEvidence[String(s.period)] ?? [], [String(s.period), "\(s.period)限", "\(s.period)時限", "\(s.period)時限目", "第\(s.period)時限"], cell: cell, region: cell.periodRegions[String(s.period)]) }, "periodBinding")
+                check(cell.slots.allSatisfy { s in let ids = periodMembers(cell.periodHeaderIds,period:s.period); return header(ids, doc.periodEvidence[String(s.period)] ?? [], [String(s.period), "\(s.period)限", "\(s.period)時限", "\(s.period)時限目", "第\(s.period)時限"], cell: cell, region: cell.periodRegions[String(s.period)]) }, "periodBinding")
             }
             let periods = cell.slots.map(\.period).sorted()
             check(!cell.slots.isEmpty && Set(cell.slots.map { $0.className + "/" + $0.day }).count == 1 && zip(periods, periods.dropFirst()).allSatisfy { $1 == $0 + 1 }, "span")
@@ -316,7 +331,9 @@ enum RecoveryValidator {
             }
             let bindingIncomplete = inputOnly && unresolvedCellIds.contains(cell.id)
             let bindingIds = cell.lessonBindings.flatMap { $0.subject + $0.teacher + $0.room }
-            let labelIds = cell.roleScopes.flatMap(\.labelSourceIds)
+            let labelIds = cell.roleScopes.flatMap(\.labelSourceIds), labelSet = Set(cell.roleScopes.flatMap(\.labelSourceIds))
+            let bodyIds = cell.sourceIds.filter { !labelSet.contains($0) }
+            let bindingSet = Set(bindingIds)
             if !cell.parallelSeparators.isEmpty {
                 check(cell.bindingMode == .fixed && cell.parallelCount == 2 && cell.lessonBindings.count == 2 && Set(cell.parallelSeparators.keys) == Set(RecoveryRole.allCases.map(\.rawValue)) && Set(cell.parallelSeparators.values).count == 3, "parallelEvidence")
                 if cell.lessonBindings.count == 2 {
@@ -324,7 +341,7 @@ enum RecoveryValidator {
                         guard let separator = cell.parallelSeparators[role.rawValue].flatMap({ sources[$0] }) else { check(false,"parallelEvidence"); continue }
                         func ids(_ b: RecoveryLessonBinding) -> [String] { role == .subject ? b.subject : role == .teacher ? b.teacher : b.room }
                         let left = ids(cell.lessonBindings[0]), right = ids(cell.lessonBindings[1])
-                        check(["・","･"].contains(separator.text) && cell.sourceIds.contains(separator.id) && !bindingIds.contains(separator.id) &&
+                        check(["・","･"].contains(separator.text) && sourceIds.contains(separator.id) && !bindingSet.contains(separator.id) &&
                             left.allSatisfy { id in sources[id].map { $0.box.x+$0.box.width <= separator.box.x && abs($0.box.y+$0.box.height/2-separator.box.y-separator.box.height/2) <= 2 } ?? false } &&
                             right.allSatisfy { id in sources[id].map { $0.box.x >= separator.box.x+separator.box.width && abs($0.box.y+$0.box.height/2-separator.box.y-separator.box.height/2) <= 2 } ?? false }, "parallelEvidence")
                     }
@@ -343,7 +360,7 @@ enum RecoveryValidator {
                     check(scope.page == cell.page && cell.box.contains(scope.box) && (scope.proof == .columnHeader || scope.labelSourceIds.allSatisfy { sourceIds.contains($0) }) &&
                           (scope.proof != .inlineLabel || cell.box.contains(scope.labelRegion.box)) &&
                           header(scope.labelSourceIds, scope.proof == .inlineLabel ? cell.sourceIds : scope.labelSourceIds, labels, cell: virtual, region: scope.labelRegion), "roleEvidence")
-                    check(!scope.emptyVerified || !cell.sourceIds.filter { !labelIds.contains($0) }.contains { id in sources[id].map { scope.box.contains($0.box) } ?? false }, "falseBlankField")
+                    check(!scope.emptyVerified || !bodyIds.contains { id in sources[id].map { scope.box.contains($0.box) } ?? false }, "falseBlankField")
                 }
                 for (i, scope) in cell.roleScopes.enumerated() { check(!cell.roleScopes.prefix(i).contains { min($0.box.x + $0.box.width, scope.box.x + scope.box.width) > max($0.box.x, scope.box.x) && min($0.box.y + $0.box.height, scope.box.y + scope.box.height) > max($0.box.y, scope.box.y) }, "roleScopeOverlap") }
             }
@@ -361,12 +378,12 @@ enum RecoveryValidator {
                             check(field.state == .present && field.evidence == ids && ordered(field.evidence) && evidence(field.evidence, ids, field.value), "fieldEvidence") }
                     } else if let scope = cell.roleScopes.first(where: { $0.lessonIndex == lessonIndex && $0.role.rawValue == name }) {
                         if field.state == .empty { check(name != "subject" && scope.emptyVerified && field.value.isEmpty && field.evidence.isEmpty, "falseBlankField") }
-                        else { check(field.state == .present && ordered(field.evidence) && evidence(field.evidence, cell.sourceIds.filter { !labelIds.contains($0) }, field.value) && field.evidence.allSatisfy { id in sources[id].map { scope.box.contains($0.box) } ?? false }, "fieldEvidence") }
+                        else { check(field.state == .present && ordered(field.evidence) && evidence(field.evidence, bodyIds, field.value) && field.evidence.allSatisfy { id in sources[id].map { scope.box.contains($0.box) } ?? false }, "fieldEvidence") }
                     } else { check(false, "roleScope") }
                 }
                 check(cell.slots.first.flatMap { doc.dayEvidence[$0.day] }.map { _ in evidence(lesson.dateEvidence, cell.dayHeaderIds) } ?? false, "lessonDateEvidence")
-                let periodIds = cell.periodHeaderIds
-                check(evidence(lesson.periodEvidence, periodIds) && cell.slots.allSatisfy { slot in lesson.periodEvidence.contains { (doc.periodEvidence[String(slot.period)] ?? []).contains($0) } }, "lessonPeriodEvidence")
+                let headerIds = cell.periodHeaderIds
+                check(evidence(lesson.periodEvidence, headerIds) && cell.slots.allSatisfy { slot in !periodMembers(lesson.periodEvidence,period:slot.period).isEmpty }, "lessonPeriodEvidence")
             }
             if cell.bindingMode == .roleProposal {
                 let used = recovered.lessons.flatMap { $0.subject.evidence + $0.teacher.evidence + $0.room.evidence }

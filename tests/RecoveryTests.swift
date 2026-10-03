@@ -47,6 +47,18 @@ final class RecoveryTests: XCTestCase {
         XCTAssertEqual(provider.recoveryCalls,1)
         XCTAssertEqual(fallback.availabilityCalls,0)
     }
+    func testRepeatedMalformedPeriodEvidenceCannotTriggerQuadraticMembership() throws {
+        var (doc,result) = fixture()
+        let first = try XCTUnwrap(doc.periodEvidence["1"]?.first), second = try XCTUnwrap(doc.periodEvidence["2"]?.first)
+        // Matching only at the end of an array used to require 8 billion
+        // comparisons before the malformed proof was rejected.
+        doc.periodEvidence["1"] = Array(repeating:second,count:39999)+[first]
+        for i in doc.cells.indices where doc.cells[i].slots.first?.period == 1 { doc.cells[i].periodHeaderIds = Array(repeating:first,count:40000) }
+        XCTAssertFalse(RecoveryValidator.validate(doc,result).canAdopt)
+        var checks = 0
+        XCTAssertThrowsError(try RecoveryValidator.validate(doc,result,check:{ checks += 1; if checks == 15 { throw PDFParseError(code:.cancelled) } })) { XCTAssertEqual(($0 as? PDFParseError)?.code,.cancelled) }
+        XCTAssertEqual(checks,15)
+    }
     func testRecoveryStringInventoriesAndConcatenationShareTheWorkLimit() throws {
         let text = String(repeating:"x",count:4096)
         let sources = (0..<10000).map { RecoverySource(id:String($0),cellId:"cell",page:1,text:text,box:RecoveryBox(x:10,y:10,width:2,height:2)) }
