@@ -67,6 +67,14 @@ final class RecoveryTests: XCTestCase {
         XCTAssertTrue(retry(nil, nil, PDFParseError(code: .storage), 8)); XCTAssertTrue(retry(nil, nil, nil, nil)); XCTAssertTrue(retry("old", 8, PDFParseError(code: .cancelled), 8))
         XCTAssertTrue(retry("current", 7, PDFParseError(code: .unsupported), 7)); XCTAssertFalse(retry("old", 8, PDFParseError(code: .unsupported), 8)); XCTAssertFalse(retry("current", 8, nil, 8))
     }
+    func testSpecialScopeVersionRetriesSameHashEarlierSuccessfulAnalysis() {
+        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion,9)
+        XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"unchanged",parserVersion:SpecialScheduleAnalysis.parserVersion,
+            analysisDigest:"unchanged",analysisVersion:8,attemptDigest:"unchanged",failure:nil,attemptVersion:8))
+        XCTAssertFalse(PDFParseAttempt.needsAnalysis(digest:"unchanged",parserVersion:SpecialScheduleAnalysis.parserVersion,
+            analysisDigest:"unchanged",analysisVersion:SpecialScheduleAnalysis.parserVersion,attemptDigest:"unchanged",failure:nil,
+            attemptVersion:SpecialScheduleAnalysis.parserVersion))
+    }
     func testFixedBindingCannotHideAnExplicitRoleLabel() {
         var (d,r) = fixture()
         d.sources[d.sources.firstIndex { $0.id == "subject" }!].text = "教員:架空担当"

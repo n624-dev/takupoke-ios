@@ -60,7 +60,7 @@ LinuxのSwiftホストテストではFoundation側の契約・Validator・Engine
 
 ## この作業でのローカル検証（2026-10-03 UTC）
 
-LinuxでiOS Swift244件、Python56件が成功。Android core123件、Windows Core242件・Integration163件も成功。Windowsの実OS CIは全7ジョブと355件のUIチェックに成功し、3種のPDF復旧結果の採用後に実アプリを再起動して保存結果を確認した。iOSとAndroidの最新native UI・端末向けビルドは修正後の再検証中。公開架空fixtureでの検証であり、学校資料の復旧精度や追加モデルの配信承認を示すものではない。
+LinuxでiOS Swift245件、Python56件が成功。Android core123件、Windows Core242件・Integration163件も成功。Windowsの実OS CIは全7ジョブと355件のUIチェックに成功し、3種のPDF復旧結果の採用後に実アプリを再起動して保存結果を確認した。iOSとAndroidの最新native UI・端末向けビルドは修正後の再検証中。公開架空fixtureでの検証であり、学校資料の復旧精度や追加モデルの配信承認を示すものではない。
 
 サブエージェント3名が各OSの追加コードを反復レビューし、別の1名が更新・中止・期間切替のバグ調査を並行実施した。Evidenceの省略/誤ったセル/孤立Source/見出しへの偽装/別日時刻、iOSの保存失敗後の再試行、Windowsのjob原子的保存とキャンセル後snapshot、Androidの未反映警告の指摘を修正し、架空回帰ケースへ追加した。RoleScopeを実装後に独立レビューし、交換・省略・隣セル取り込みが拒否されることを追加確認した。一意な割当は先にRulesへ回す。
 

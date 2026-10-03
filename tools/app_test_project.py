@@ -37,14 +37,14 @@ def generate(destination):
             text = text.replace(marker, marker + '\n' + """
         if ProcessInfo.processInfo.arguments.contains("--recovery-preview") {
             cancel(); failure = nil; running = true
-            let fixtureOperation = operation
+            let fixtureOperation = self.operation
             task = Task { @MainActor in
                 do {
                     let prepared = try await SimulatorRecoveryFixture.preview(kind)
-                    guard operation == fixtureOperation, !Task.isCancelled else { return }
+                    guard self.operation == fixtureOperation, !Task.isCancelled else { return }
                     source = prepared.source; preview = prepared; running = false; status = "採用前に元のPDFと内容を確認してください。"
                 } catch {
-                    guard operation == fixtureOperation else { return }
+                    guard self.operation == fixtureOperation else { return }
                     running = false; failure = "架空復旧fixtureを準備できませんでした: " + String(describing: error)
                 }
             }

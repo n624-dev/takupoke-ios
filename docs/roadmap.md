@@ -42,4 +42,4 @@
 
 ## PDF端末内復旧（開発中）
 
-[確定方針と現在の接続状況](pdf-recovery.md)に記録する。Strictを維持し、前処理、RoleScope付きValidator、前景ジョブ、元PDF確認/全クラスプレビュー/明示採用、正式保存、モデル管理とCore AI/llama.cpp adapterを接続。Linux Swift240件が成功。Apple SDKのビルド・UIと実機検証は継続中。追加モデルは品質未合格のため配信Manifestを空に保持。公開fixtureの通過を機能完成や実資料の精度確認として扱わない。
+[確定方針と現在の接続状況](pdf-recovery.md)に記録する。Strictを維持し、前処理、RoleScope付きValidator、前景ジョブ、元PDF確認/全クラスプレビュー/明示採用、正式保存、モデル管理とCore AI/llama.cpp adapterを接続。Linux Swift245件が成功。Apple SDKのビルド・UIと実機検証は継続中。追加モデルは品質未合格のため配信Manifestを空に保持。公開fixtureの通過を機能完成や実資料の精度確認として扱わない。
