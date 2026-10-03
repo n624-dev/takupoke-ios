@@ -316,6 +316,14 @@ extension TimetableView {
 
 @MainActor
 enum SimulatorSelectionFixture {
+    static func recordTrace(_ event: String) {
+        let defaults = UserDefaults.standard
+        let previous = defaults.stringArray(forKey: "fixture.selectionEvents") ?? []
+        let events = Array((previous + [event]).suffix(12))
+        defaults.set(events, forKey: "fixture.selectionEvents")
+        defaults.set(events.joined(separator: " | "), forKey: "fixture.selectionTrace")
+        print(event)
+    }
     static var day: SchoolDate {
         let actual = SchoolDate.today(), period = SchoolDataPeriod.current()
         let monday = actual.displayWeekStart
@@ -368,10 +376,14 @@ struct FixtureSelectionMutationControls: View {
 }
 struct FixtureSelectionProbe: View {
     @ObservedObject private var model = ApplicationData.shared.materials
+    @AppStorage("fixture.selectionTrace") private var trace = ""
     var body: some View {
-        Text((model.state.record(for: .timetable)?.digest ?? "none") + ":" +
-            (model.state.pdfAnalyses?[MaterialKind.timetable.rawValue]?.lessons.first?.names.subject ?? "none"))
-            .accessibilityIdentifier("fixture-selection-data").font(.caption2).allowsHitTesting(false)
+        VStack(spacing: 0) {
+            Text((model.state.record(for: .timetable)?.digest ?? "none") + ":" +
+                (model.state.pdfAnalyses?[MaterialKind.timetable.rawValue]?.lessons.first?.names.subject ?? "none"))
+                .accessibilityIdentifier("fixture-selection-data")
+            Text(trace).lineLimit(1).accessibilityIdentifier("fixture-selection-trace")
+        }.font(.caption2).allowsHitTesting(false)
     }
 }
 

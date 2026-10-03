@@ -58,21 +58,21 @@ def generate(destination):
             selection_marker = '                    selectedLesson = LessonSelection(lesson: lesson, date: day,'
             assert text.count(selection_marker) == 1, 'Home detail selection diagnostic insertion point missing'
             text = text.replace(selection_marker, '''                    if ProcessInfo.processInfo.arguments.contains("--selection-snapshot") {
-                        print("SYNTHETIC_SELECTION_HOME tap " + lesson.names.subject + " revision=" + String(describing: detailRevision))
+                        SimulatorSelectionFixture.recordTrace("SYNTHETIC_SELECTION_HOME tap " + lesson.names.subject + " revision=" + String(describing: detailRevision))
                     }
 ''' + selection_marker)
             revision_marker = '        .onChange(of: detailRevision) { _ in'
             assert text.count(revision_marker) == 1, 'Home detail revision diagnostic insertion point missing'
             text = text.replace(revision_marker, revision_marker + '''
             if ProcessInfo.processInfo.arguments.contains("--selection-snapshot") {
-                print("SYNTHETIC_SELECTION_HOME reset selected=" + (selectedLesson?.lesson.names.subject ?? "none") + " revision=" + String(describing: detailRevision))
+                SimulatorSelectionFixture.recordTrace("SYNTHETIC_SELECTION_HOME reset selected=" + (selectedLesson?.lesson.names.subject ?? "none") + " revision=" + String(describing: detailRevision))
             }
 ''')
             sheet_marker = '            NavigationStack { presentation.lessonDetail(selection) }'
             assert text.count(sheet_marker) == 1, 'Home detail presentation diagnostic insertion point missing'
             text = text.replace(sheet_marker, sheet_marker + '''
                 .onAppear {
-                    if ProcessInfo.processInfo.arguments.contains("--selection-snapshot") { print("SYNTHETIC_SELECTION_HOME sheet appeared " + selection.lesson.names.subject) }
+                    if ProcessInfo.processInfo.arguments.contains("--selection-snapshot") { SimulatorSelectionFixture.recordTrace("SYNTHETIC_SELECTION_HOME sheet appeared " + selection.lesson.names.subject) }
                 }
 ''')
         if path.name == 'TimetablePresentation+Details.swift':
