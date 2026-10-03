@@ -549,8 +549,7 @@ final class ApplicationChecks: XCTestCase {
         tab("一覧")
         let link = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "架空リンクA")).firstMatch
         XCTAssertTrue(link.waitForExistence(timeout: 10), app.debugDescription)
-        link.press(forDuration: 1.2)
-        tap("お気に入りを解除")
+        linkContextAction(link, title: "お気に入りを解除")
         app.terminate()
         app.launchArguments = ["-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
         launchReady()
@@ -558,9 +557,19 @@ final class ApplicationChecks: XCTestCase {
         tab("一覧")
         let restored = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "架空リンクA")).firstMatch
         XCTAssertTrue(restored.waitForExistence(timeout: 10))
-        restored.press(forDuration: 1.2)
-        XCTAssertTrue(app.buttons["お気に入りに追加"].waitForExistence(timeout: 5), app.debugDescription)
-        tap("お気に入りに追加")
+        linkContextAction(restored, title: "お気に入りに追加")
+    }
+    private func linkContextAction(_ link: XCUIElement, title: String) {
+        let ready = expectation(for: NSPredicate { _, _ in
+            link.isHittable && link.frame.minY >= self.app.navigationBars.firstMatch.frame.maxY &&
+                link.frame.maxY <= self.app.tabBars.firstMatch.frame.minY
+        }, evaluatedWith: link)
+        wait(for: [ready], timeout: 10)
+        link.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).press(forDuration: 2)
+        let action = app.buttons[title]
+        XCTAssertTrue(action.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(action.isHittable, app.debugDescription)
+        action.tap()
     }
     func testLegalDocumentsAndIndividualLicenses() {
         tab("設定")
