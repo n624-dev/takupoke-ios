@@ -24,16 +24,29 @@ extension PDFParsingTests {
         }
         return [RecoveryLesson(subject:try field(["科目:"]),teacher:try field(["担当教","員:"]),room:try field(["教室:"]),dateEvidence:[],periodEvidence:[])]
     }
-    private final class StructureProvider:LocalRecoveryProvider {
+    private final class StructureProvider:LocalRecoveryProvider, @unchecked Sendable {
         var id="systemLanguageModel"; var localOnly=true; var calls=0; var availabilityCalls=0
         var metadata=RecoveryMetadata(provider:"systemLanguageModel",modelId:"synthetic-guided-probe",modelVersion:"1",runtimeVersion:"test",promptVersion:"3",recoverySchemaVersion:RecoveryValidator.schemaVersion,validatorVersion:RecoveryValidator.version,osVersion:"test")
+        var failure:Error?
         var answer:[RecoveryLesson]
         init(_ answer:[RecoveryLesson]) { self.answer=answer }
         func availability() async throws -> LocalProviderState { availabilityCalls += 1; return .ready }
         func recoverCell(_ cell:RecoveryPromptCell) async throws -> [RecoveryLesson] {
             XCTAssertEqual(cell.mode,.structureProposal); XCTAssertFalse(cell.structureCuts.isEmpty)
-            calls += 1; return answer
+            calls += 1; if let failure { throw failure }; return answer
         }
+    }
+    func testStructureResourceLimitDoesNotLoadAnotherRuntime() async throws {
+        let input:RecoveryStructurePreparation
+        do { _ = try RecoveryDocumentBuilder.build([foldedPage()],kind:.timetable,hash:String(repeating:"b",count:64)); XCTFail("requires structure proposal"); return }
+        catch let value as RecoveryStructurePreparation { input = value }
+        let provider = StructureProvider([]), fallback = StructureProvider([])
+        provider.failure = PDFParseError(code:.limit); fallback.id = "coreAI"
+        do {
+            _ = try await RecoveryStructure.resolve(input,providers:[provider,fallback],os:"ios",osMajor:27,check:{})
+            XCTFail("Resource limit retried a runtime")
+        } catch let error as PDFParseError { XCTAssertEqual(error.code,.limit) }
+        XCTAssertEqual(provider.calls,1); XCTAssertEqual(fallback.availabilityCalls,0)
     }
     func testFoldedInterleavedLabelProposalRebuildsOriginalAtomsBeforeValidation() async throws {
         let page = foldedPage(),hash = String(repeating:"a",count:64)

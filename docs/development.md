@@ -92,6 +92,10 @@ macOS CIでは標準のCompressionを使うため、この追加導入は不要�
 
 Xcode側も依存のcheckout・キャッシュをビルド用一時ディレクトリへ指定し、repository cacheを無効にしています。Actions cache・artifactの保存は追加していません。`Package.swift`、Xcodeプロジェクト、2か所の `Package.resolved` は同じコミットに揃えます。
 
+### 復旧の負荷と中止を確認する入力
+
+`RecoveryBuilderTests` は680セル・各3項目24群の完全架空の返却PDFレイアウトから、前処理・Rules・Validatorを通す。iOSでは固定項目の行をSourceへまとめるため、実Builderの出力は2,388件。49,308の独立Source入力は同じ架空文字と群の位置を使う別の契約回帰であり、Builderの実到達件数やモデルの精度として報告しない。背の高い跨セルSource、原順、共有の比較・文字列上限、内側取消、上限時に次のモデルを読み込まないことも検証する。SwiftUIの安定した詳細表示とworkerから各iOS Providerへの取消は、Apple SDKのビルド・実アプリUIで別に確認する。
+
 ## このLinux環境のSwift
 
 この開発環境ではSwift 6.1.2を `/home/ubuntu/.local/share/swift-6.1.2` に配置しています。既定のPATHには含まれていません。zlib・SQLiteの開発ファイルは `/home/ubuntu/.local/share/takupoke-build-deps` にあります。

@@ -68,7 +68,8 @@ def generate(destination):
                 SimulatorSelectionFixture.recordTrace("SYNTHETIC_SELECTION_HOME reset selected=" + (selectedLesson?.lesson.names.subject ?? "none") + " revision=" + String(describing: detailRevision))
             }
 ''')
-            sheet_marker = '            NavigationStack { presentation.lessonDetail(selection) }'
+        if path.name == 'HomeView.swift':
+            sheet_marker = '                NavigationStack { presentation.lessonDetail(selection) }'
             assert text.count(sheet_marker) == 1, 'Home detail presentation diagnostic insertion point missing'
             text = text.replace(sheet_marker, sheet_marker + '''
                 .onAppear {

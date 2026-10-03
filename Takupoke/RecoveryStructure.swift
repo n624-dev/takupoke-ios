@@ -22,7 +22,7 @@ struct RecoveryStructurePreparation: Error, Sendable {
     var document: RecoveryDocument; var requests: [RecoveryStructureRequest]
 }
 enum RecoveryBuildAttempt: Sendable { case document(RecoveryDocument), structure(RecoveryStructurePreparation) }
-struct RecoveryStructureResolution {
+struct RecoveryStructureResolution: Sendable {
     var state: RecoveryJobState; var proposals:[String:[RecoveryLesson]]?; var metadata:RecoveryMetadata?; var errors:[String]
 }
 struct RecoveryPreparedPages: Sendable {
@@ -154,13 +154,13 @@ enum RecoveryStructure {
 }
 
 extension RecoveryStructure {
-    static func resolve(_ input:RecoveryStructurePreparation,providers:[any LocalRecoveryProvider],os:String,osMajor:Int,check:() throws -> Void) async throws -> RecoveryStructureResolution {
+    static func resolve(_ input:RecoveryStructurePreparation,providers:[any LocalRecoveryProvider],os:String,osMajor:Int,check:@escaping () throws -> Void) async throws -> RecoveryStructureResolution {
         try check(); try Task.checkCancellation()
-        let errors = RecoveryValidator.inputErrors(input.document,unresolvedCellIds:Set(input.requests.map(\.ownerCellId)))
+        let errors = try RecoveryValidator.inputErrors(input.document,unresolvedCellIds:Set(input.requests.map(\.ownerCellId)),check:check)
         guard errors.isEmpty else { return RecoveryStructureResolution(state:.failed,proposals:nil,metadata:nil,errors:errors) }
         return try await resolve(input.requests,providers:providers,os:os,osMajor:osMajor,check:check)
     }
-    private static func resolve(_ requests:[RecoveryStructureRequest],providers:[any LocalRecoveryProvider],os:String,osMajor:Int,check:() throws -> Void) async throws -> RecoveryStructureResolution {
+    private static func resolve(_ requests:[RecoveryStructureRequest],providers:[any LocalRecoveryProvider],os:String,osMajor:Int,check:@escaping () throws -> Void) async throws -> RecoveryStructureResolution {
         guard !requests.isEmpty,requests.count <= 32,Set(requests.map(\.id)).count == requests.count else { throw RecoveryProviderError.invalidOutput }
         for request in requests { guard try JSONEncoder().encode(request.prompt).count <= 8192 else { throw PDFParseError(code:.limit) } }
         var runtimeFailed = false
@@ -172,7 +172,7 @@ extension RecoveryStructure {
             let availability:LocalProviderState
             do { availability = try await provider.availability(); try check(); try Task.checkCancellation() }
             catch is CancellationError { throw CancellationError() }
-            catch let error as PDFParseError where error.code == .cancelled { throw error }
+            catch let error as PDFParseError where error.code == .cancelled || error.code == .limit { throw error }
             catch { runtimeFailed = true; continue }
             if availability != .ready {
                 if RecoveryPolicy.mayTryNext(availability) || os == "windows" && availability == .notReady { continue }
@@ -190,7 +190,7 @@ extension RecoveryStructure {
                 try check(); try Task.checkCancellation()
                 return RecoveryStructureResolution(state:.awaitingConfirmation,proposals:proposals,metadata:provider.metadata,errors:[])
             } catch is CancellationError { throw CancellationError() }
-            catch let error as PDFParseError where error.code == .cancelled { throw error }
+            catch let error as PDFParseError where error.code == .cancelled || error.code == .limit { throw error }
             catch RecoveryProviderError.invalidOutput { return RecoveryStructureResolution(state:.failed,proposals:nil,metadata:nil,errors:["invalidOutput"]) }
             catch { runtimeFailed = true }
         }

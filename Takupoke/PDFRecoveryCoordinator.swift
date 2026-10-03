@@ -79,7 +79,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
         let operation = self.operation
         let control = AcquisitionControl(); preparationControl = control
         task = Task {
-            if let doc = pendingDocument { await run(doc,source:source,operation:operation) }
+            if let doc = pendingDocument { await run(doc,source:source,operation:operation,control:control) }
             else if let pages = pendingPages { await buildAndRun(pages,source:source,operation:operation,control:control) }
         }
     }
@@ -96,10 +96,19 @@ final class PDFRecoveryCoordinator: ObservableObject {
             switch attempt {
             case .document(let value): doc = value
             case .structure(let input):
-                guard RecoveryConversion.matchesPeriod(input.document,source.period), RecoveryValidator.inputErrors(input.document,unresolvedCellIds:Set(input.requests.map(\.ownerCellId))).isEmpty else { throw PDFParseError(code:.ambiguous,stage:.yearHeading) }
+                let inputErrors = try await Task.detached(priority:.userInitiated) {
+                    try RecoveryValidator.inputErrors(input.document,unresolvedCellIds:Set(input.requests.map(\.ownerCellId)),check:{ try control.check(); try Task.checkCancellation() })
+                }.value
+                try check(operation)
+                guard RecoveryConversion.matchesPeriod(input.document,source.period), inputErrors.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.yearHeading) }
                 status = "折り返された見出しの構造を端末内で確認しています⋯"
                 let providers:[any LocalRecoveryProvider] = [SystemLanguageRecoveryProvider()] + (await LocalRecoveryModelManager.shared.providers(lease:operation))
-                let proposed = try await RecoveryStructure.resolve(input,providers:providers,os:"ios",osMajor:ProcessInfo.processInfo.operatingSystemVersion.majorVersion,check:{ try self.check(operation) })
+                try check(operation)
+                let major = ProcessInfo.processInfo.operatingSystemVersion.majorVersion
+                let worker = Task.detached(priority:.userInitiated) {
+                    try await RecoveryStructure.resolve(input,providers:providers,os:"ios",osMajor:major,check:{ try control.check(); try Task.checkCancellation() })
+                }
+                let proposed = try await withTaskCancellationHandler(operation:{ try await worker.value },onCancel:{ worker.cancel() })
                 try check(operation)
                 guard let proposals = proposed.proposals,let metadata = proposed.metadata else {
                     running = false; awaitingModel = proposed.state == .awaitingModel
@@ -114,9 +123,13 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 doc = rebuilt
             }
             try check(operation)
-            guard RecoveryConversion.matchesPeriod(doc,source.period), RecoveryValidator.inputErrors(doc).isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
+            let inputErrors = try await Task.detached(priority:.userInitiated) {
+                try RecoveryValidator.inputErrors(doc,check:{ try control.check(); try Task.checkCancellation() })
+            }.value
+            try check(operation)
+            guard RecoveryConversion.matchesPeriod(doc,source.period), inputErrors.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
             pendingDocument = doc; pendingPages = nil
-            await run(doc,source:source,operation:operation)
+            await run(doc,source:source,operation:operation,control:control)
         } catch {
             guard self.operation == operation else { return }
             running = false; failure = "資料の内容と位置を安全に確認できませんでした。前回の正常結果を保持しています。"
@@ -127,13 +140,17 @@ final class PDFRecoveryCoordinator: ObservableObject {
         else if errors.contains("disabled") { status = "端末の設定でApple Intelligenceを有効にしてから再確認してください。" }
         else { status = "この端末では追加のローカルAIモデルが必要です。" }
     }
-    private func run(_ doc: RecoveryDocument, source: RecoverySelectedSource, operation: UUID) async {
+    private func run(_ doc: RecoveryDocument, source: RecoverySelectedSource, operation: UUID, control:AcquisitionControl) async {
         defer { LocalRecoveryModelManager.shared.release(lease:operation) }
         do {
             try check(operation); status = "端末内で読み取り、原文を検証しています⋯"
             let major = ProcessInfo.processInfo.operatingSystemVersion.majorVersion
             let providers: [any LocalRecoveryProvider] = [SystemLanguageRecoveryProvider()] + (await LocalRecoveryModelManager.shared.providers(lease:operation))
-            let result = try await RecoveryEngine.run(doc,os:"ios",osMajor:major,foreground:true,providers:providers,rule:{ _ in nil },check:{ try self.check(operation) })
+            try check(operation)
+            let worker = Task.detached(priority:.userInitiated) {
+                try await RecoveryEngine.run(doc,os:"ios",osMajor:major,foreground:true,providers:providers,rule:{ _ in nil },check:{ try control.check(); try Task.checkCancellation() })
+            }
+            let result = try await withTaskCancellationHandler(operation:{ try await worker.value },onCancel:{ worker.cancel() })
             try check(operation)
             running = false
             if let result = result.result {

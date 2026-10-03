@@ -10,6 +10,17 @@ struct HomeView: View {
     @EnvironmentObject private var links: LinksModel
     @EnvironmentObject private var mappings: MappingModel
     @State private var safariPage: SafariPage?
+    @State private var selectedLesson: LessonSelection?
+    @State private var selectedSpecial: SpecialSelection?
+    @State private var selectedChange: ChangeSelection?
+
+    private var presentation: TimetablePresentation {
+        TimetablePresentation(schedule: TimetableDaySchedule(
+            timetable: materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue],
+            changes: materials.state.changeAnalysis, events: schoolEvents.analysis,
+            specials: specialSchedules.records.values.map(\.analysis).sorted { $0.kind.rawValue < $1.kind.rawValue },
+            includesChanges: true, customTimes: times.current?.data), mappings: mappings)
+    }
 
     var body: some View {
         NavigationStack {
@@ -22,7 +33,9 @@ struct HomeView: View {
                     }
                 }
                 HomeTodayView(materials: materials, specialSchedules: specialSchedules,
-                              schoolEvents: schoolEvents, openTimetable: openTimetable)
+                              schoolEvents: schoolEvents, selectedLesson: $selectedLesson,
+                              selectedSpecial: $selectedSpecial, selectedChange: $selectedChange,
+                              openTimetable: openTimetable)
                 if !links.visibleFavorites.isEmpty {
                     Section("お気に入り") {
                         ForEach(links.visibleFavorites) { item in
@@ -40,6 +53,17 @@ struct HomeView: View {
             }
             .navigationTitle("たくポケ")
             .navigationDestination(for: Destination.self) { _ in AccountDataSettingsView() }
+            // A Section is flattened into List rows. Keep modal presenters on
+            // the single List host rather than duplicating them across rows.
+            .sheet(item: $selectedLesson) { selection in
+                NavigationStack { presentation.lessonDetail(selection) }
+            }
+            .sheet(item: $selectedSpecial) { selection in
+                NavigationStack { presentation.specialDetail(selection) }
+            }
+            .sheet(item: $selectedChange) { selection in
+                NavigationStack { presentation.changeDetail(selection) }
+            }
             .fullScreenCover(item: $safariPage) { page in
                 SafariLinkView(url: page.url) { safariPage = nil }.ignoresSafeArea()
             }

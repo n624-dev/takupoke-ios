@@ -56,7 +56,7 @@ enum RecoveryDocumentBuilder {
         }
     }
     static func build(_ pages: [PDFPageLayout], kind: RecoveryDocumentKind, hash: String,
-                      fromOCR: Set<Int> = [], rasters: [Int:RecoveryRasterGrid] = [:], structureProposals: [String:[RecoveryLesson]] = [:], check: () throws -> Void = {}) throws -> RecoveryDocument {
+                      fromOCR: Set<Int> = [], rasters: [Int:RecoveryRasterGrid] = [:], structureProposals: [String:[RecoveryLesson]] = [:], check: @escaping () throws -> Void = {}) throws -> RecoveryDocument {
         guard (1...12).contains(pages.count), pages.allSatisfy({ $0.width.isFinite && $0.height.isFinite && $0.width > 0 && $0.height > 0 && $0.glyphs.count <= 100000 }) else { throw PDFParseError(code: .limit) }
         var doc = RecoveryDocument(pdfHash: hash, kind: kind, schoolYear: 0, term: nil, classes: [], days: [], requiredSlots: [], cells: [], sources: [], complete: true, yearEvidence: [], termEvidence: [], dayEvidence: [:], classEvidence: [:], periodEvidence: [:], times: [:], timeEvidence: [], normalTimeNoteEvidence: [])
         let count = kind == .exam ? 6 : 8
@@ -445,10 +445,10 @@ enum RecoveryDocumentBuilder {
         doc.requiredSlots = doc.classes.flatMap { cls in doc.days.flatMap { day in (1...count).map { RecoverySlot(className:cls,day:day,period:$0) } } }
         guard requests.count <= 32 else { throw PDFParseError(code:.limit) }
         if !requests.isEmpty {
-            guard RecoveryValidator.inputErrors(doc,unresolvedCellIds:Set(requests.map(\.ownerCellId))).isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
+            guard try RecoveryValidator.inputErrors(doc,unresolvedCellIds:Set(requests.map(\.ownerCellId)),check:check).isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
             throw RecoveryStructurePreparation(document:doc,requests:requests)
         }
-        let errors = RecoveryValidator.inputErrors(doc)
+        let errors = try RecoveryValidator.inputErrors(doc,check:check)
         guard errors.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
         return doc
     }

@@ -13,9 +13,9 @@ struct HomeTodayView: View {
     @AppStorage("timetableInternationalStudent") private var international = false
     @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
     @State private var now = Date()
-    @State private var selectedLesson: LessonSelection?
-    @State private var selectedSpecial: SpecialSelection?
-    @State private var selectedChange: ChangeSelection?
+    @Binding var selectedLesson: LessonSelection?
+    @Binding var selectedSpecial: SpecialSelection?
+    @Binding var selectedChange: ChangeSelection?
     let openTimetable: () -> Void
     private let clock = Timer.publish(every: 15, on: .main, in: .common).autoconnect()
 
@@ -141,15 +141,6 @@ struct HomeTodayView: View {
         .onChange(of: scenePhase) { phase in if phase == .active { now = Date() } }
         .onChange(of: detailRevision) { _ in
             selectedLesson = nil; selectedSpecial = nil; selectedChange = nil
-        }
-        .sheet(item: $selectedLesson) { selection in
-            NavigationStack { presentation.lessonDetail(selection) }
-        }
-        .sheet(item: $selectedSpecial) { selection in
-            NavigationStack { presentation.specialDetail(selection) }
-        }
-        .sheet(item: $selectedChange) { selection in
-            NavigationStack { presentation.changeDetail(selection) }
         }
     }
 

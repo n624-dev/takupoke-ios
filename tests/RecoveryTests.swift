@@ -24,17 +24,68 @@ final class RecoveryTests: XCTestCase {
         let result = RecoveryResult(pdfHash: doc.pdfHash, kind: doc.kind, schoolYear: 2026, term: "前期", cells: cells.enumerated().map { i, cell in RecoveredCell(cellId: cell.id, state: i == 0 ? .present : .empty, lessons: i == 0 ? [lesson] : []) }, metadata: RecoveryMetadata(provider: "rule", modelId: "rules", modelVersion: "1", runtimeVersion: "1", promptVersion: "1", recoverySchemaVersion: RecoveryValidator.schemaVersion, validatorVersion: RecoveryValidator.version, osVersion: "test"))
         return (doc, result)
     }
-    private final class ProbeProvider: LocalRecoveryProvider {
+    private final class ProbeProvider: LocalRecoveryProvider, @unchecked Sendable {
         let id: String; var metadata: RecoveryMetadata; let localOnly = true
+        var failure: Error = RecoveryProviderError.invalidOutput
         var state: LocalProviderState = .ready; var availabilityCalls = 0; var recoveryCalls = 0
         init(_ id: String, _ metadata: RecoveryMetadata) { self.id = id; self.metadata = metadata; self.metadata.provider = id }
         func availability() async throws -> LocalProviderState { availabilityCalls += 1; return state }
-        func recoverCell(_ cell: RecoveryPromptCell) async throws -> [RecoveryLesson] { recoveryCalls += 1; throw RecoveryProviderError.invalidOutput }
+        func recoverCell(_ cell: RecoveryPromptCell) async throws -> [RecoveryLesson] { recoveryCalls += 1; throw failure }
     }
     private func uncertain() -> RecoveryDocument { var (d, _) = fixture(); d.sources.removeAll { $0.id == "teacher" }; d.cells[0].sourceIds.removeAll { $0 == "teacher" }; d.cells[0].lessonBindings[0].teacher = []; return d }
     func testGroundedRulesDoNotLoadLanguageModel() async throws { let (d, r) = fixture(); let p = ProbeProvider("systemLanguageModel", r.metadata); let run = try await RecoveryEngine.run(d, os: "ios", osMajor: 27, foreground: true, providers: [p], rule: { _ in nil }, check: {}); XCTAssertEqual(run.state, .awaitingConfirmation); XCTAssertEqual(run.result?.metadata.provider, "rule"); XCTAssertEqual(p.availabilityCalls, 0) }
     func testModelNotReadyWaitsWithoutDownloadingFallback() async throws { let (_, r) = fixture(); let p = ProbeProvider("systemLanguageModel", r.metadata); p.state = .notReady; let fallback = ProbeProvider("coreAI", r.metadata); let run = try await RecoveryEngine.run(uncertain(), os: "ios", osMajor: 27, foreground: true, providers: [p, fallback], rule: { _ in nil }, check: {}); XCTAssertEqual(run.state, .awaitingModel); XCTAssertEqual(fallback.availabilityCalls, 0) }
     func testMalformedOutputIsTerminalBeforeNextProvider() async throws { let (_, r) = fixture(); let p = ProbeProvider("windowsLanguageModel", r.metadata); let fallback = ProbeProvider("foundryLocal", r.metadata); let run = try await RecoveryEngine.run(uncertain(), os: "windows", osMajor: 10, foreground: true, providers: [p, fallback], rule: { _ in nil }, check: {}); XCTAssertEqual(run.errors, ["invalidOutput"]); XCTAssertNil(run.result); XCTAssertEqual(fallback.availabilityCalls, 0) }
+    func testResourceLimitDoesNotLoadAnotherRuntime() async throws {
+        let (_,r) = fixture(), provider = ProbeProvider("systemLanguageModel",fixture().1.metadata)
+        let fallback = ProbeProvider("coreAI",r.metadata)
+        provider.failure = PDFParseError(code:.limit)
+        do {
+            _ = try await RecoveryEngine.run(uncertain(),os:"ios",osMajor:27,foreground:true,providers:[provider,fallback],rule:{ _ in nil },check:{})
+            XCTFail("Resource limit retried a runtime")
+        } catch let error as PDFParseError { XCTAssertEqual(error.code,.limit) }
+        XCTAssertEqual(provider.recoveryCalls,1)
+        XCTAssertEqual(fallback.availabilityCalls,0)
+    }
+    func testRecoveryStringInventoriesAndConcatenationShareTheWorkLimit() throws {
+        let text = String(repeating:"x",count:4096)
+        let sources = (0..<10000).map { RecoverySource(id:String($0),cellId:"cell",page:1,text:text,box:RecoveryBox(x:10,y:10,width:2,height:2)) }
+        XCTAssertThrowsError(try RecoverySourceIndex(sources,work:RecoveryValidationWork())) { XCTAssertEqual(($0 as? PDFParseError)?.code,.limit) }
+        let work = RecoveryValidationWork()
+        let index = try RecoverySourceIndex([sources[0]],work:work)
+        XCTAssertTrue(work.charge(RecoveryValidationWork.maximum-5000))
+        XCTAssertNil(index.original([sources[0].id],work:work))
+        XCTAssertThrowsError(try work.finish()) { XCTAssertEqual(($0 as? PDFParseError)?.code,.limit) }
+    }
+    func testRecoverySourceIndexRetainsOriginalOrderAndTallOrphanIntersections() throws {
+        let sources = [RecoverySource(id:"tall",cellId:"other",page:1,text:"原文",box:RecoveryBox(x:12,y:1,width:2,height:1000)),
+                       RecoverySource(id:"later",cellId:"cell",page:1,text:"後",box:RecoveryBox(x:30,y:920,width:2,height:2)),
+                       RecoverySource(id:"earlier",cellId:"cell",page:1,text:"前",box:RecoveryBox(x:20,y:910,width:2,height:2))]
+        let work = RecoveryValidationWork()
+        let index = try RecoverySourceIndex(sources,work:work)
+        XCTAssertEqual(index.byCell["cell"]?.map(\.id),["later","earlier"])
+        var found = [String]()
+        XCTAssertTrue(index.intersections(page:1,box:RecoveryBox(x:10,y:900,width:50,height:50),work:work) { found.append($0.id); return true })
+        XCTAssertEqual(Set(found),Set(sources.map(\.id)))
+        XCTAssertFalse(index.intersections(page:1,box:RecoveryBox(x:10,y:900,width:50,height:50),work:work) { $0.cellId == "cell" })
+        XCTAssertTrue(index.intersections(page:2,box:RecoveryBox(x:10,y:900,width:50,height:50),work:work) { _ in false })
+    }
+    func testRecoveryIndexCandidateBudgetAndCancellationAreSharedAndFailClosed() throws {
+        let source = RecoverySource(id:"s",cellId:"cell",page:1,text:"原文",box:RecoveryBox(x:10,y:10,width:1,height:1000))
+        let sources = (0..<1000).map { n -> RecoverySource in var value = source; value.id = String(n); return value }
+        var cancellation = false, checks = 0
+        let work = RecoveryValidationWork(check:{ if cancellation { checks += 1; throw PDFParseError(code:.cancelled) } })
+        let index = try RecoverySourceIndex(sources,work:work)
+        cancellation = true
+        XCTAssertFalse(index.intersections(page:1,box:RecoveryBox(x:0,y:100,width:50,height:50),work:work) { _ in true })
+        XCTAssertThrowsError(try work.finish()) { XCTAssertEqual(($0 as? PDFParseError)?.code,.cancelled) }
+        XCTAssertEqual(checks,1)
+        let bounded = RecoveryValidationWork()
+        let small = try RecoverySourceIndex([source],work:bounded)
+        XCTAssertTrue(bounded.charge(RecoveryValidationWork.maximum-100))
+        for _ in 0..<100 { _ = small.intersections(page:1,box:RecoveryBox(x:0,y:100,width:50,height:50),work:bounded) { _ in true } }
+        XCTAssertThrowsError(try bounded.finish()) { XCTAssertEqual(($0 as? PDFParseError)?.code,.limit) }
+    }
     func testCompleteGroundedResultCanBePreviewed() { let (d, r) = fixture(); XCTAssertEqual(RecoveryValidator.validate(d, r).errors, []) }
     func testUnknownIsNeverFreePeriod() { for state in [RecoveryValueState.unreadable, .missing, .ambiguous] { var (d, r) = fixture(); r.cells[0].state = state; XCTAssertTrue(RecoveryValidator.validate(d, r).errors.contains("cellState")) } }
     func testIncompleteReaderIsRejected() { var (d, r) = fixture(); d.complete = false; XCTAssertTrue(RecoveryValidator.validate(d, r).errors.contains("incompleteDocument")) }
