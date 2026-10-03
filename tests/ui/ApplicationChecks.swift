@@ -119,6 +119,10 @@ final class ApplicationChecks: XCTestCase {
         }
         print("TAKUPOKE_UI_IMAGE END \(name) \((characters.count + chunkSize - 1) / chunkSize)")
     }
+    private var recoveryList: XCUIElement {
+        let lists = app.collectionViews
+        return lists.element(boundBy: max(0, lists.count - 1))
+    }
     private func recoveryVisible(_ element: XCUIElement) -> XCUIElement {
         // The underlying tab bar remains in the accessibility tree while the
         // sheet covers it. Use the sheet's viewport and scroll its own List.
@@ -126,7 +130,9 @@ final class ApplicationChecks: XCTestCase {
         for _ in 0..<12 {
             if element.exists && element.frame.height > 0 && element.frame.minY >= bar.frame.maxY &&
                 element.frame.maxY <= app.frame.maxY - 34 { break }
-            app.collectionViews.lastMatch.swipeUp()
+            if element.exists && element.frame.height > 0 && element.frame.minY < bar.frame.maxY {
+                recoveryList.swipeDown()
+            } else { recoveryList.swipeUp() }
         }
         XCTAssertTrue(element.exists, app.debugDescription)
         return element
@@ -139,13 +145,13 @@ final class ApplicationChecks: XCTestCase {
         _ = recoveryVisible(app.staticTexts["空欄"].firstMatch)
         XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].firstMatch.label, "前回の正式結果を保持")
         // Return to the top before opening the matching saved PDF.
-        for _ in 0..<3 { app.collectionViews.lastMatch.swipeDown() }
+        for _ in 0..<3 { recoveryList.swipeDown() }
         tap("元のPDFを確認"); screen("元のPDF")
         XCTAssertTrue(app.navigationBars["元のPDF"].exists, app.debugDescription)
         recoveryScreenshot("ios-recovery-original")
         app.navigationBars["元のPDF"].buttons["閉じる"].tap(); screen("時間割の復旧")
         let adoption = app.buttons["この資料全体の結果を使用"]
-        for _ in 0..<20 { if adoption.exists && adoption.isHittable { break }; app.collectionViews.lastMatch.swipeUp() }
+        for _ in 0..<20 { if adoption.exists && adoption.isHittable { break }; recoveryList.swipeUp() }
         XCTAssertTrue(adoption.isHittable, app.debugDescription)
         XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].firstMatch.label, "前回の正式結果を保持")
         adoption.tap()
@@ -166,7 +172,7 @@ final class ApplicationChecks: XCTestCase {
             recoveryScreenshot(index == 0 ? "ios-recovery-exam-preview" : "ios-recovery-return-preview")
             XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].firstMatch.label, "前回の正式結果を保持")
             let adoption = app.buttons["この資料全体の結果を使用"]
-            for _ in 0..<20 { if adoption.exists && adoption.isHittable { break }; app.collectionViews.lastMatch.swipeUp() }
+            for _ in 0..<20 { if adoption.exists && adoption.isHittable { break }; recoveryList.swipeUp() }
             XCTAssertTrue(adoption.isHittable, app.debugDescription); adoption.tap()
             XCTAssertTrue(app.staticTexts["復旧結果を採用しました。"].waitForExistence(timeout: 20), app.debugDescription)
             XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].firstMatch.label, "確認後に正式採用済み")

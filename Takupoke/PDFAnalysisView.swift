@@ -164,7 +164,7 @@ struct PDFAnalysisView: View {
             if model.busy { ToolbarItem(placement: .cancellationAction) { Button("中止") { model.cancel() } } }
         }
         .onChange(of: model.busy) { busy in if busy { copiedDiagnostic = nil } }
-        .sheet(isPresented:$showingRecovery) { PDFRecoveryView(kind:.timetable) }
+        .sheet(isPresented:$showingRecovery,onDismiss:{ ApplicationData.shared.recovery.cancel() }) { PDFRecoveryView(kind:.timetable) }
         .sheet(isPresented: $showingSource) {
             if let url = model.pdfURLs[kind.rawValue] { SavedPDFView(url: url, title: kind.title) }
         }

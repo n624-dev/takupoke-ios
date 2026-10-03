@@ -110,7 +110,7 @@ struct SpecialScheduleAnalysisView: View {
         .navigationTitle(kind.title)
         .toolbar { ToolbarItem(placement: .primaryAction) { parseButton } }
         .onChange(of: model.busy) { busy in if busy { copiedReport = nil } }
-        .sheet(isPresented:$showingRecovery) { PDFRecoveryView(kind:kind == .exam ? .exam : .return) }
+        .sheet(isPresented:$showingRecovery,onDismiss:{ ApplicationData.shared.recovery.cancel() }) { PDFRecoveryView(kind:kind == .exam ? .exam : .return) }
         .sheet(isPresented: $showingSource) {
             if let url = model.urls[kind] { SavedPDFView(url: url, title: kind.title) }
         }

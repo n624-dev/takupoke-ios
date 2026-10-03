@@ -346,7 +346,13 @@ enum SimulatorRecoveryFixture {
     private struct SpecialPayload: Decodable { var document: RecoveryDocument; var result: RecoveryResult }
     static func specialPayload(_ kind: RecoveryDocumentKind) throws -> (RecoveryDocument, RecoveryResult) {
         guard let path = Bundle.main.url(forResource: kind == .exam ? "recovery-exam" : "recovery-return", withExtension: "json") else { throw PDFParseError(code: .storage) }
-        let json = try String(contentsOf: path, encoding: .utf8).replacingOccurrences(of: "2026", with: String(SchoolDataPeriod.current().schoolYear))
+        let period = SchoolDataPeriod.current()
+        let month = period.half == 1 ? "04" : "10"
+        let json = try String(contentsOf: path, encoding: .utf8)
+            .replacingOccurrences(of: "2026-10-", with: "\(period.schoolYear)-\(month)-")
+            .replacingOccurrences(of: "10月", with: period.half == 1 ? "4月" : "10月")
+            .replacingOccurrences(of: "10/", with: period.half == 1 ? "4/" : "10/")
+            .replacingOccurrences(of: "2026", with: String(period.schoolYear))
         let payload = try JSONDecoder().decode(SpecialPayload.self, from: Data(json.utf8))
         return (payload.document, payload.result)
     }

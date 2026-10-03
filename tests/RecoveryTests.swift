@@ -282,5 +282,18 @@ final class RecoveryTests: XCTestCase {
         let raster = RecoveryRasterGrid(width:40,height:40,grayscale:bytes)
         XCTAssertFalse(raster.isBlank(box)); XCTAssertTrue(raster.hasUncoveredInk(box,text:[RecoveryBox(x:5,y:5,width:5,height:5)],rules:[]))
     }
+    func testConnectedBorderCannotHideOnePixelOfFaintContentBesideIt() throws {
+        let size = 50, box = RecoveryBox(x:0,y:0,width:50,height:50)
+        var bytes = [UInt8](repeating:255,count:size*size)
+        for i in 0..<size { bytes[i] = 0; bytes[(size-1)*size+i] = 0; bytes[i*size] = 0; bytes[i*size+size-1] = 0 }
+        let blank = RecoveryRasterGrid(width:size,height:size,grayscale:bytes), rules = try blank.rules(check:{})
+        XCTAssertEqual(rules.count,4)
+        XCTAssertTrue(try blank.preparingRules(rules).isBlank(box,rules:rules))
+        for pixel in [size+20,20*size+1,(size-2)*size+20,20*size+size-2] {
+            var changed = bytes; changed[pixel] = 254
+            let raster = try RecoveryRasterGrid(width:size,height:size,grayscale:changed).preparingRules(rules)
+            XCTAssertFalse(raster.isBlank(box,rules:rules)); XCTAssertTrue(raster.hasUncoveredInk(box,text:[],rules:rules))
+        }
+    }
 
 }

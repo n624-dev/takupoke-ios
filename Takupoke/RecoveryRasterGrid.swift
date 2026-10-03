@@ -3,7 +3,41 @@ import Foundation
 /// Physical rules and ink checks operate on the bounded page raster, independent
 /// of OCR. Missing recognized text is never sufficient evidence of an empty cell.
 struct RecoveryRasterGrid: Sendable {
-    var width: Int; var height: Int; var grayscale: [UInt8]
+    let width: Int; let height: Int; let grayscale: [UInt8]
+    private var preparedRuleMask: [UInt8]? = nil
+    private var preparedRules: [PDFRule] = []
+    init(width: Int,height: Int,grayscale: [UInt8]) { self.width = width; self.height = height; self.grayscale = grayscale }
+    func preparingRules(_ rules: [PDFRule], check: () throws -> Void = {}) throws -> Self {
+        guard validPixels else { throw PDFParseError(code:.limit) }
+        var copy = self, mask = [UInt8](repeating:0,count:width*height)
+        for (index,rule) in rules.enumerated() {
+            if index % 64 == 0 { try check() }
+            guard [rule.x1,rule.y1,rule.x2,rule.y2].allSatisfy({ $0.isFinite && $0 >= 0 && $0 <= Double(max(width,height)) }) else { continue }
+            if rule.horizontal {
+                guard rule.y1 < Double(height) else { continue }
+                let left = max(0,Int(floor(min(rule.x1,rule.x2)))), right = min(width-1,Int(ceil(max(rule.x1,rule.x2))))
+                guard left < right else { continue }
+                for y in max(0,Int(floor(rule.y1))-2)...min(height-1,Int(ceil(rule.y1))+2) {
+                    // Only a complete physical pixel row is part of a border.
+                    // A faint/local mark beside it remains unread ink.
+                    if (left...right).allSatisfy({ grayscale[y*width+$0] != 255 }) {
+                        for x in left...right { mask[y*width+x] = 1 }
+                    }
+                }
+            } else if rule.vertical {
+                guard rule.x1 < Double(width) else { continue }
+                let top = max(0,Int(floor(min(rule.y1,rule.y2)))), bottom = min(height-1,Int(ceil(max(rule.y1,rule.y2))))
+                guard top < bottom else { continue }
+                for x in max(0,Int(floor(rule.x1))-2)...min(width-1,Int(ceil(rule.x1))+2) {
+                    if (top...bottom).allSatisfy({ grayscale[$0*width+x] != 255 }) {
+                        for y in top...bottom { mask[y*width+x] = 1 }
+                    }
+                }
+            }
+        }
+        copy.preparedRuleMask = mask; copy.preparedRules = rules
+        return copy
+    }
     static func fromRGBA(width: Int,height: Int,pixels: [UInt8],check: () throws -> Void = {}) throws -> RecoveryRasterGrid {
         guard width > 0, height > 0, width <= 4096, height <= 4096, pixels.count == width*height*4 else { throw PDFParseError(code:.limit) }
         var gray = [UInt8](); gray.reserveCapacity(width*height)
@@ -93,13 +127,13 @@ struct RecoveryRasterGrid: Sendable {
         let left = max(0,Int(ceil(box.x))), right = min(width,Int(floor(box.x+box.width)))
         let top = max(0,Int(ceil(box.y))), bottom = min(height,Int(floor(box.y+box.height)))
         guard left < right, top < bottom else { return true }
+        let sameRules = preparedRules.count == rules.count && zip(preparedRules,rules).allSatisfy { a,b in a.x1 == b.x1 && a.y1 == b.y1 && a.x2 == b.x2 && a.y2 == b.y2 }
+        let mask = sameRules ? preparedRuleMask : (try? preparingRules(rules).preparedRuleMask)
         for y in top..<bottom {
             for x in left..<right where grayscale[y*width+x] != 255 {
                 let px = Double(x)+0.5, py = Double(y)+0.5
                 if text.contains(where: { $0.x-1 <= px && px <= $0.x+$0.width+1 && $0.y-1 <= py && py <= $0.y+$0.height+1 }) { continue }
-                if rules.contains(where: { rule in
-                    rule.horizontal ? abs(py-rule.y1) <= 2 && rule.x1 <= px && px <= rule.x2 : rule.vertical && abs(px-rule.x1) <= 2 && rule.y1 <= py && py <= rule.y2
-                }) { continue }
+                if mask?[y*width+x] == 1 { continue }
                 return true
             }
         }

@@ -81,7 +81,7 @@ enum PDFRecoveryRecognition {
             }
             guard glyphs.count <= 100000 else { throw PDFParseError(code:.limit) }
             let rules = try raster.rules(check:check)
-            output.append(LayoutPage(page:index+1,layout:PDFPageLayout(width:Double(cg.width),height:Double(cg.height),glyphs:glyphs,lines:rules),raster:raster))
+            output.append(LayoutPage(page:index+1,layout:PDFPageLayout(width:Double(cg.width),height:Double(cg.height),glyphs:glyphs,lines:rules),raster:try raster.preparingRules(rules,check:check)))
         }
         return output
     }
