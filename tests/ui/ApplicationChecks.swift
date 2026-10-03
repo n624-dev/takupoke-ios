@@ -125,15 +125,24 @@ final class ApplicationChecks: XCTestCase {
         let lists = app.collectionViews
         return lists.element(boundBy: max(0, lists.count - 1))
     }
-    private func recoveryVisible(_ element: XCUIElement) -> XCUIElement {
+    private func recoveryVisible(_ element: XCUIElement, searchEarlierRows: Bool = false) -> XCUIElement {
         // The underlying tab bar remains in the accessibility tree while the
         // sheet covers it. Use the sheet's viewport and scroll its own List.
         let bar = app.navigationBars.matching(NSPredicate(format: "identifier ENDSWITH %@", "の復旧")).firstMatch
         for _ in 0..<12 {
+            guard bar.exists else {
+                XCTFail("The recovery sheet disappeared while locating its row: " + app.debugDescription)
+                return element
+            }
             if element.exists && element.frame.height > 0 && element.frame.minY >= bar.frame.maxY &&
                 element.frame.maxY <= app.frame.maxY - 34 { break }
-            if element.exists && element.frame.height > 0 && element.frame.minY < bar.frame.maxY {
-                recoveryList.swipeDown()
+            let earlier = element.exists && element.frame.height > 0 ? element.frame.minY < bar.frame.maxY : searchEarlierRows
+            if earlier {
+                // A lazy row above the viewport may have no accessibility
+                // node yet. Keep its known direction and avoid pulling the
+                // sheet down with a full swipe once the List reaches its top.
+                let start = recoveryList.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+                start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: 120)))
             } else { recoveryList.swipeUp() }
         }
         XCTAssertTrue(element.exists, app.debugDescription)
@@ -148,7 +157,7 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].firstMatch.label, "前回の正式結果を保持")
         // Stop as soon as the original button is visible. Extra downward
         // swipes at the top can dismiss the sheet through its native gesture.
-        let original = recoveryVisible(app.buttons["元のPDFを確認"].firstMatch)
+        let original = recoveryVisible(app.buttons["元のPDFを確認"].firstMatch, searchEarlierRows: true)
         XCTAssertTrue(original.isHittable, app.debugDescription)
         original.tap(); screen("元のPDF")
         XCTAssertTrue(app.navigationBars["元のPDF"].exists, app.debugDescription)
