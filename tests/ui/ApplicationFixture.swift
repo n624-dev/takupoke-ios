@@ -428,7 +428,7 @@ enum SimulatorRecoveryOCRFixture {
         let format = UIGraphicsImageRendererFormat(); format.scale = 1; format.opaque = true
         let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
             UIColor.white.setFill(); context.fill(CGRect(origin: .zero, size: size))
-            ("FICTIONAL OCR ALPHA" as NSString).draw(at: CGPoint(x: 20, y: 32), withAttributes: [.font: UIFont.systemFont(ofSize: 32), .foregroundColor: UIColor.black])
+            ("これは架空の時間割です" as NSString).draw(at: CGPoint(x: 20, y: 32), withAttributes: [.font: UIFont.systemFont(ofSize: 32), .foregroundColor: UIColor.black])
             context.cgContext.setFillColor(UIColor.black.cgColor)
             context.cgContext.fill(CGRect(x: 0, y: 140, width: 600, height: 1))
             context.cgContext.fill(CGRect(x: 0, y: 500, width: 600, height: 1))
@@ -450,7 +450,7 @@ enum SimulatorRecoveryOCRFixture {
         guard pages.count == 1, let page = pages.first else { throw PDFParseError(code: .unreadable) }
         let layout = page.layout, raster = page.raster
         let text = layout.glyphs.map(\.text).joined().filter { !$0.isWhitespace }
-        guard text == "FICTIONALOCRALPHA", !layout.glyphs.isEmpty,
+        guard text == "これは架空の時間割です", !layout.glyphs.isEmpty,
               layout.glyphs.allSatisfy({ $0.y < layout.height * 0.15 && $0.x >= 0 && $0.width > 0 && $0.height > 0 }) else { throw PDFParseError(code: .ambiguous, stage: .characterMapping) }
         let scale = layout.height / 800
         guard let line = layout.lines.first(where: { $0.horizontal && abs($0.y1 - 140.5 * scale) <= 3 && $0.x2 - $0.x1 > layout.width * 0.95 }),

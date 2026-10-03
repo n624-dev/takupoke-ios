@@ -116,6 +116,11 @@ enum RecoveryPolicy {
         guard failure.code == .unsupported || failure.code == .ambiguous else { return false }
         return failure.stage != .duplicateClass && failure.stage != .eventColumns && failure.stage != .monthHeading
     }
+    static func mayRecover(digest: String, kind: RecoveryDocumentKind, parserVersion: Int,
+                           attemptDigest: String?, attemptVersion: Int?, failure: PDFParseError?, job: RecoveryJob?) -> Bool {
+        attemptDigest == digest && attemptVersion == parserVersion && failure.map(eligible) == true &&
+            job?.pdfHash == digest && job?.kind == kind
+    }
     static func mayTryNext(_ state: LocalProviderState) -> Bool { state == .unsupported || state == .insufficientMemory }
 }
 

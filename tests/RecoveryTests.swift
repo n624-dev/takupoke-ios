@@ -75,6 +75,27 @@ final class RecoveryTests: XCTestCase {
             analysisDigest:"unchanged",analysisVersion:SpecialScheduleAnalysis.parserVersion,attemptDigest:"unchanged",failure:nil,
             attemptVersion:SpecialScheduleAnalysis.parserVersion))
     }
+    func testRecoverySourceRequiresCurrentStrictFailureForSameDocument() {
+        let version = SpecialScheduleAnalysis.parserVersion
+        let job = RecoveryJob(pdfHash:"current",kind:.exam,state:.pending,createdAt:Date())
+        func allowed(_ digest: String? = "current",_ attempt: Int? = nil,_ failure: PDFParseError? = PDFParseError(code:.unsupported),_ pending: RecoveryJob? = nil) -> Bool {
+            RecoveryPolicy.mayRecover(digest:"current",kind:.exam,parserVersion:version,attemptDigest:digest,attemptVersion:attempt ?? version,failure:failure,job:pending ?? job)
+        }
+        XCTAssertTrue(allowed())
+        XCTAssertFalse(allowed("old")); XCTAssertFalse(allowed("current",version-1)); XCTAssertFalse(allowed("current",version,nil))
+        var wrong = job; wrong.kind = .return; XCTAssertFalse(allowed("current",version,PDFParseError(code:.unsupported),wrong))
+        XCTAssertFalse(RecoveryPolicy.mayRecover(digest:"current",kind:.exam,parserVersion:version,attemptDigest:"current",attemptVersion:version,failure:PDFParseError(code:.unsupported),job:nil))
+    }
+    func testRecoveryDocumentCannotReplaceAnotherYearOrHalf() throws {
+        var (document,result) = fixture()
+        let first = SchoolDataPeriod(day:SchoolDate(iso8601:"2026-04-01")!), second = SchoolDataPeriod(day:SchoolDate(iso8601:"2026-10-01")!)
+        XCTAssertTrue(RecoveryConversion.matchesPeriod(document,first)); XCTAssertFalse(RecoveryConversion.matchesPeriod(document,second))
+        document.schoolYear = 2025; XCTAssertFalse(RecoveryConversion.matchesPeriod(document,first))
+        let source = RecoverySelectedSource(kind:.timetable,url:URL(fileURLWithPath:"/fictional.pdf"),digest:document.pdfHash,originalName:"fictional.pdf",storedName:"fictional.pdf",period:first)
+        XCTAssertThrowsError(try RecoveryConversion.timetable(RecoveryPreview(document:document,result:result,source:source)))
+        let (exam,_) = try special()
+        XCTAssertTrue(RecoveryConversion.matchesPeriod(exam,second)); XCTAssertFalse(RecoveryConversion.matchesPeriod(exam,first))
+    }
     func testFixedBindingCannotHideAnExplicitRoleLabel() {
         var (d,r) = fixture()
         d.sources[d.sources.firstIndex { $0.id == "subject" }!].text = "教員:架空担当"

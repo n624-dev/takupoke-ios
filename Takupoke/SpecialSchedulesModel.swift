@@ -173,7 +173,9 @@ extension SpecialSchedulesModel {
         let capturedSource = RecoverySourceCapture()
         return await withCheckedContinuation { continuation in
             perform(success:nil,completion:{ success in continuation.resume(returning:success ? capturedSource.source : nil) }) { store,control,_ in
-                guard let source = store.sources[kind], let failure = source.failure, RecoveryPolicy.eligible(failure),
+                guard let source = store.sources[kind],
+                      RecoveryPolicy.mayRecover(digest:source.digest,kind:kind == .exam ? .exam : .return,parserVersion:SpecialScheduleAnalysis.parserVersion,
+                        attemptDigest:source.digest,attemptVersion:source.attemptParserVersion,failure:source.failure,job:source.recoveryJob),
                       let url = store.selectedURL(for:kind) else { throw PDFParseError(code:.unsupported) }
                 let selected = RecoverySelectedSource(kind:kind == .exam ? .exam : .return,url:url,digest:source.digest,originalName:source.originalName,storedName:source.storedName,period:period,captured:captured?.0 == source.storedName ? captured?.1 ?? [] : [])
                 try control.check(); capturedSource.source = selected

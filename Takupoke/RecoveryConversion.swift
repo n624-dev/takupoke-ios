@@ -7,8 +7,16 @@ import Crypto
 
 /// One verified payload goes through the existing transactional Analysis save.
 enum RecoveryConversion {
+    static func matchesPeriod(_ document: RecoveryDocument, _ period: SchoolDataPeriod) -> Bool {
+        guard document.schoolYear == period.schoolYear else { return false }
+        if document.kind == .timetable { return document.term == (period.half == 1 ? "前期" : "後期") }
+        return !document.days.isEmpty && document.days.allSatisfy {
+            guard let day = SchoolDate(iso8601:$0) else { return false }
+            return SchoolDataPeriod(day:day) == period
+        }
+    }
     static func adopted(_ preview: RecoveryPreview, now: Date = Date()) throws -> RecoveryAdopted {
-        guard RecoveryValidator.validate(preview.document, preview.result).canAdopt else { throw PDFParseError(code:.ambiguous) }
+        guard matchesPeriod(preview.document,preview.source.period), RecoveryValidator.validate(preview.document, preview.result).canAdopt else { throw PDFParseError(code:.ambiguous) }
         return RecoveryAdopted(document:preview.document,result:preview.result,acceptance:RecoveryAcceptance(pdfHash:preview.document.pdfHash,resultHash:try RecoveryValidator.fingerprint(preview.result),scopeHash:try RecoveryValidator.fingerprint(preview.document),metadata:preview.result.metadata,acceptedAt:now))
     }
     static func timetable(_ preview: RecoveryPreview) throws -> PDFAnalysis {

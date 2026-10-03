@@ -212,8 +212,10 @@ extension MaterialsModel {
         return await withCheckedContinuation { continuation in
             perform(success:nil,completion:{ success in continuation.resume(returning:success ? capturedSource.source : nil) }) { worker,control in
                 guard let library = worker.library, let source = library.state.record(for:.timetable),
-                      let failure = library.state.pdfParseAttempts?[MaterialKind.timetable.rawValue]?.failure,
-                      RecoveryPolicy.eligible(failure), let url = library.localURL(for:.timetable) else { throw PDFParseError(code:.unsupported) }
+                      let attempt = library.state.pdfParseAttempts?[MaterialKind.timetable.rawValue],
+                      RecoveryPolicy.mayRecover(digest:source.digest,kind:.timetable,parserVersion:PDFAnalysis.currentVersion(for:.timetable),
+                        attemptDigest:attempt.sourceDigest,attemptVersion:attempt.parserVersion,failure:attempt.failure,job:attempt.recoveryJob),
+                      let url = library.localURL(for:.timetable) else { throw PDFParseError(code:.unsupported) }
                 let selected = RecoverySelectedSource(kind:.timetable,url:url,digest:source.digest,originalName:source.originalName,storedName:source.storedName,period:period,captured:worker.recoveryCapturedStoredName == source.storedName ? worker.recoveryCapture?.pages ?? [] : [])
                 try control.check()
                 capturedSource.source = selected

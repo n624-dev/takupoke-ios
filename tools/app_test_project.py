@@ -64,7 +64,7 @@ def generate(destination):
             assert marker in text, 'Native OCR probe insertion point missing'
             text = text.replace(marker, '''
                     if ProcessInfo.processInfo.arguments.contains("--recovery-ocr-probe") {
-                        let detail = line.topCandidates(1).map { $0.string + " confidence=" + String($0.confidence) }.joined(separator: " | ")
+                        let detail = line.topCandidates(1).map { $0.string + " confidence=" + String($0.confidence) + " box=" + String(describing: line.boundingBox) }.joined(separator: " | ")
                         let previous = UserDefaults.standard.stringArray(forKey: "fixture.nativeOCRCandidates") ?? []
                         UserDefaults.standard.set(previous + [detail], forKey: "fixture.nativeOCRCandidates")
                         print("SYNTHETIC_NATIVE_OCR " + detail)

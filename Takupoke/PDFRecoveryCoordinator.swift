@@ -30,7 +30,13 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 guard self.operation == operation else { return }
                 let app = ApplicationData.shared
                 let source = kind == .timetable ? await app.materials.recoverySource() : await app.specialSchedules.recoverySource(kind == .exam ? .exam : .examReturn)
-                guard let source else { throw PDFParseError(code:.unsupported) }
+                try Task.checkCancellation()
+                guard self.operation == operation else { return }
+                guard let source else {
+                    self.running = false
+                    self.failure = "最新の通常解析の失敗を確認できませんでした。この画面を閉じ、資料の解析画面で再解析してから復旧を開始してください。前回の正常結果を保持しています。"
+                    return
+                }
                 self.source = source
                 try self.check(operation)
                 let doc = try await Task.detached(priority:.userInitiated) { () throws -> RecoveryDocument in
@@ -56,7 +62,9 @@ final class PDFRecoveryCoordinator: ObservableObject {
                     guard !layouts.isEmpty, layouts.count == layouts.keys.max(), layouts.keys.sorted() == Array(1...layouts.count) else { throw PDFParseError(code:.ambiguous) }
                     return try RecoveryDocumentBuilder.build(layouts.keys.sorted().compactMap { layouts[$0] },kind:kind,hash:source.digest,fromOCR:ocrPages,rasters:rasters,check:{ try preparationControl.check(); try Task.checkCancellation() })
                 }.value
-                try self.check(operation); self.pendingDocument = doc
+                try self.check(operation)
+                guard RecoveryConversion.matchesPeriod(doc,source.period) else { throw PDFParseError(code:.ambiguous,stage:.yearHeading) }
+                self.pendingDocument = doc
                 await self.run(doc,source:source,operation:operation)
             } catch {
                 guard self.operation == operation else { return }
