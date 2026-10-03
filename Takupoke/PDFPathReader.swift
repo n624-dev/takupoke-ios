@@ -222,6 +222,13 @@ final class PDFPathReader {
             var value: CGPDFObjectRef?
             if CGPDFDictionaryGetObject(dictionary,key,&value) { return false }
         }
+        var dashObject: CGPDFObjectRef?
+        if CGPDFDictionaryGetObject(dictionary,"D",&dashObject) {
+            var dash: CGPDFArrayRef?, pattern: CGPDFArrayRef?, phase: CGPDFReal = 0
+            guard CGPDFDictionaryGetArray(dictionary,"D",&dash), let dash, CGPDFArrayGetCount(dash) == 2,
+                  CGPDFArrayGetArray(dash,0,&pattern), let pattern, CGPDFArrayGetCount(pattern) == 0,
+                  CGPDFArrayGetNumber(dash,1,&phase), phase == 0 else { return false }
+        }
         var width: CGPDFReal = 0, widthObject: CGPDFObjectRef?
         if CGPDFDictionaryGetNumber(dictionary,"LW",&width) {
             guard width.isFinite, width >= 0 else { return false }
@@ -294,6 +301,13 @@ final class PDFPathReader {
             PDFPathReader.state(p)?.failure = PDFParseError(code: .unsupported, stage: .vectorObjects)
         }
         if verifyVisibility {
+            CGPDFOperatorTableSetCallback(table,"d") { scanner, p in
+                guard let s = PDFPathReader.state(p), let phase = s.numbers(scanner,1)?.first else { return }
+                var pattern: CGPDFArrayRef?
+                guard CGPDFScannerPopArray(scanner,&pattern), let pattern, CGPDFArrayGetCount(pattern) == 0, phase == 0 else {
+                    s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects); return
+                }
+            }
             CGPDFOperatorTableSetCallback(table, "w") { scanner, p in
                 guard let s = PDFPathReader.state(p), let width = s.numbers(scanner,1)?.first else { return }
                 guard width >= 0 else { s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects); return }

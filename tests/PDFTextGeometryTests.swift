@@ -447,6 +447,33 @@ extension PDFTextGeometryTests {
             XCTAssertFalse(capture.complete); XCTAssertFalse(capture.pages.contains { $0.state == .complete })
         }
     }
+    func testNativeDashedGhostRulesCannotBecomeACompleteTable() throws {
+        let text = "0 g BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET"
+        let textOnlyInk = try paintedInk(syntheticPDF(content:text,simpleFont:true))
+        XCTAssertGreaterThan(textOnlyInk,0)
+        for (state,operatorText) in [("","[0 1000] 0 d"),("/D [[0 1000] 0]","/Visibility gs")] {
+            let data = syntheticPDF(content:text+" "+operatorText+" 0 J 10 10 m 290 10 l S",graphicsState:state,simpleFont:true)
+            XCTAssertEqual(try paintedInk(data),textOnlyInk,"The stored path is a ghost line in the composited PDF")
+            let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
+            let reader = PDFPathReader(transform:PDFDisplayTransform(media:page.getBoxRect(.mediaBox),rotation:0),verifyVisibility:true,check:{})
+            XCTAssertThrowsError(try reader.read(page)) { XCTAssertEqual(($0 as? PDFParseError)?.stage,.vectorObjects) }
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-dash-"+UUID().uuidString+".pdf")
+            defer { try? FileManager.default.removeItem(at:url) }; try data.write(to:url)
+            for special in [false,true] {
+                let capture = RecoveryReadCapture()
+                if special { XCTAssertThrowsError(try PDFKitReader.readSpecial(url,capture:capture)) }
+                else { XCTAssertThrowsError(try PDFKitReader.read(url,kind:.timetable,capture:capture)) }
+                XCTAssertFalse(capture.complete); XCTAssertFalse(capture.pages.contains { $0.state == .complete })
+            }
+        }
+        for (state,operatorText) in [("","[] 0 d"),("/D [[] 0]","/Visibility gs")] {
+            let data = syntheticPDF(content:text+" "+operatorText+" 10 10 m 290 10 l S",graphicsState:state,simpleFont:true)
+            XCTAssertGreaterThan(try paintedInk(data),textOnlyInk)
+            let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
+            let reader = PDFPathReader(transform:PDFDisplayTransform(media:page.getBoxRect(.mediaBox),rotation:0),verifyVisibility:true,check:{})
+            XCTAssertEqual(try reader.read(page).count,1)
+        }
+    }
     func testNativeSpecialVisibilityScanRejectsHiddenAndUnverifiedText() throws {
         let variants: [(String,String)] = [("/BM /Multiply", "/Visibility gs"), ("/BM [/Normal /Multiply]", "/Visibility gs"), ("/ca 0", "/Visibility gs"), ("/CA 0", "/Visibility gs"), ("/SMask /None", "/Visibility gs"), ("/TR /Identity", "/Visibility gs"), ("/TR2 /Identity", "/Visibility gs"), ("", "3 Tr"), ("", "4 Tr"), ("", "0 0 10 10 re W n"), ("", "/Artifact BMC"), ("", "/Span << /ActualText (Different) >> BDC")]
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-visibility-"+UUID().uuidString)
