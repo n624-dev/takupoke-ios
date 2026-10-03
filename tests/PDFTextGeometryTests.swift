@@ -202,7 +202,7 @@ extension PDFTextGeometryTests {
             let data = syntheticPDF(content:simple ? "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET" : "BT /F1 10 Tf 1 0 0 1 30 350 Tm <00010002> Tj ET",simpleFont:simple)
             let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
             var resources: CGPDFDictionaryRef?, fonts: CGPDFDictionaryRef?, font: CGPDFDictionaryRef?, map: CGPDFStreamRef?
-            XCTAssertTrue(CGPDFDictionaryGetDictionary(page.dictionary,"Resources",&resources))
+            XCTAssertTrue(CGPDFDictionaryGetDictionary(try XCTUnwrap(page.dictionary),"Resources",&resources))
             XCTAssertTrue(CGPDFDictionaryGetDictionary(try XCTUnwrap(resources),"Font",&fonts))
             XCTAssertTrue(CGPDFDictionaryGetDictionary(try XCTUnwrap(fonts),"F1",&font))
             XCTAssertTrue(CGPDFDictionaryGetStream(try XCTUnwrap(font),"ToUnicode",&map))
