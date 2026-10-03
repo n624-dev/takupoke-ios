@@ -22,11 +22,11 @@ extension SpecialScheduleParser {
             throw PDFParseError(code: .unsupported, page: pageNumber, stage: .calendarDates)
         }
         let grid = PDFGrid(page: page)
-        let referenceBoxes = try grid.lessonBoxes(rows:dateRuns.map { try grid.box($0.0.cx,$0.0.cy) },columns:periods.map(\.cx))
+        let referenceBoxes = try grid.lessonBoxes(rows:dateRuns.map { try grid.box($0.0.cx,$0.0.cy,check:check) },columns:periods.map(\.cx),check:check)
         var result: [SpecialScheduleLesson] = []
         for (dayRun, day) in dateRuns {
             try check()
-            let row = try grid.box(dayRun.cx, dayRun.cy)
+            let row = try grid.box(dayRun.cx, dayRun.cy,check:check)
             for (column, name) in names.enumerated() {
                 let periodXs = (0..<6).map { periods[column * 6 + $0].cx }
                 for period in 1...6 {
@@ -36,11 +36,11 @@ extension SpecialScheduleParser {
                     let edges = [row.top] + cuts + [row.bottom]
                     var seen: Set<PDFBox> = []
                     for i in 0..<(edges.count - 1) where edges[i + 1] - edges[i] >= 2 {
-                        let box = try grid.box(x, (edges[i] + edges[i + 1]) / 2)
+                        let box = try grid.box(x, (edges[i] + edges[i + 1]) / 2,check:check)
                         guard seen.insert(box).inserted else { continue }
                         result += try lessons(in: page, box: box, date: day, className: name,
                                               period: period, periodXs: periodXs,
-                                              times: times, pageNumber: pageNumber,referenceBoxes:referenceBoxes)
+                                              times: times, pageNumber: pageNumber,referenceBoxes:referenceBoxes,using:grid,check:check)
                     }
                 }
             }
@@ -88,7 +88,7 @@ extension SpecialScheduleParser {
             throw PDFParseError(code: .unsupported, page: 1, stage: .classLabel)
         }
         let grid = PDFGrid(page: page)
-        let referenceBoxes = try grid.lessonBoxes(rows:classRuns.map { try grid.box($0.cx,$0.cy) },columns:periods.map(\.cx))
+        let referenceBoxes = try grid.lessonBoxes(rows:classRuns.map { try grid.box($0.cx,$0.cy,check:check) },columns:periods.map(\.cx),check:check)
         var seenClasses: Set<String> = []
         var result: [SpecialScheduleLesson] = []
         for run in classRuns {
@@ -99,7 +99,7 @@ extension SpecialScheduleParser {
             }
             let name = grade.text == "AI" ? "AI_" + run.text : grade.text + "_" + run.text
             guard seenClasses.insert(name).inserted else { throw PDFParseError(code: .ambiguous, page: 1, stage: .duplicateClass) }
-            let row = try grid.box(run.cx, run.cy)
+            let row = try grid.box(run.cx, run.cy,check:check)
             for (dayIndex, (_, day)) in dates.enumerated() {
                 let dayTimes = dayIndex == 0 ? times : ordinaryTimes
                 let periodXs = (0..<8).map { periods[dayIndex * 8 + $0].cx }
@@ -110,11 +110,11 @@ extension SpecialScheduleParser {
                     let edges = [row.top] + cuts + [row.bottom]
                     var seen: Set<PDFBox> = []
                     for i in 0..<(edges.count - 1) where edges[i + 1] - edges[i] >= 2 {
-                        let box = try grid.box(x, (edges[i] + edges[i + 1]) / 2)
+                        let box = try grid.box(x, (edges[i] + edges[i + 1]) / 2,check:check)
                         guard seen.insert(box).inserted else { continue }
                         result += try lessons(in: page, box: box, date: day, className: name,
                                               period: period, periodXs: periodXs,
-                                              times: dayTimes, pageNumber: 1,referenceBoxes:referenceBoxes)
+                                              times: dayTimes, pageNumber: 1,referenceBoxes:referenceBoxes,using:grid,check:check)
                     }
                 }
             }

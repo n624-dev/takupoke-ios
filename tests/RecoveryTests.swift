@@ -68,17 +68,17 @@ final class RecoveryTests: XCTestCase {
         XCTAssertTrue(retry("current", 7, PDFParseError(code: .unsupported), 7)); XCTAssertFalse(retry("old", 8, PDFParseError(code: .unsupported), 8)); XCTAssertFalse(retry("current", 8, nil, 8))
     }
     func testSpecialScopeVersionRetriesSameHashEarlierSuccessfulAnalysis() {
-        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion,21)
+        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion,22)
         XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"unchanged",parserVersion:SpecialScheduleAnalysis.parserVersion,
-            analysisDigest:"unchanged",analysisVersion:20,attemptDigest:"unchanged",failure:nil,attemptVersion:20))
+            analysisDigest:"unchanged",analysisVersion:21,attemptDigest:"unchanged",failure:nil,attemptVersion:21))
         XCTAssertFalse(PDFParseAttempt.needsAnalysis(digest:"unchanged",parserVersion:SpecialScheduleAnalysis.parserVersion,
             analysisDigest:"unchanged",analysisVersion:SpecialScheduleAnalysis.parserVersion,attemptDigest:"unchanged",failure:nil,
             attemptVersion:SpecialScheduleAnalysis.parserVersion))
     }
     func testOrdinaryRoleAliasVersionRetriesUnchangedEarlierSuccess() {
-        XCTAssertEqual(PDFAnalysis.currentVersion(for:.timetable),20)
+        XCTAssertEqual(PDFAnalysis.currentVersion(for:.timetable),21)
         XCTAssertEqual(PDFAnalysis.currentVersion(for:.events),4)
-        XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"same",parserVersion:PDFAnalysis.parserVersion,analysisDigest:"same",analysisVersion:19,attemptDigest:"same",failure:nil,attemptVersion:19))
+        XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"same",parserVersion:PDFAnalysis.parserVersion,analysisDigest:"same",analysisVersion:20,attemptDigest:"same",failure:nil,attemptVersion:20))
     }
     func testRecoverySourceRequiresCurrentStrictFailureForSameDocument() {
         let version = SpecialScheduleAnalysis.parserVersion
@@ -130,6 +130,23 @@ final class RecoveryTests: XCTestCase {
     func testReturnNormalTimeRequiresActualApplicableNote() throws { var (d, r) = try special("return"); d.sources[d.sources.firstIndex { $0.id == "normal-note" }!].text = "架空の無関係な注記"; XCTAssertTrue(RecoveryValidator.validate(d, r).errors.contains("normalTimeNote")) }
     func testSeventeenClassesCannotIncludeAnUnexpectedReplacement() throws { var (d, r) = try special(); d.classes[0] = "1_CN"; XCTAssertTrue(RecoveryValidator.validate(d, r).errors.contains("specialScope")) }
     #if canImport(CryptoKit) || canImport(Crypto)
+    #if os(iOS) || os(macOS)
+    func testDownloadedModelsExcludeExistingAndNewRootsFromBackup() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-backup-"+UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let store = RecoveryModelStore(root:root)
+        try await store.prepareRoot()
+        XCTAssertEqual(try root.resourceValues(forKeys:[.isExcludedFromBackupKey]).isExcludedFromBackup,true)
+        let bytes = Data("fictional legacy model".utf8), owned = root.appendingPathComponent("legacy.model")
+        try bytes.write(to:owned)
+        var legacy = root, values = URLResourceValues(); values.isExcludedFromBackup = false
+        try legacy.setResourceValues(values)
+        try await store.prepareRoot()
+        let fresh = URL(fileURLWithPath:root.path,isDirectory:true)
+        XCTAssertEqual(try fresh.resourceValues(forKeys:[.isExcludedFromBackupKey]).isExcludedFromBackup,true)
+        XCTAssertEqual(try Data(contentsOf:owned),bytes)
+    }
+    #endif
     func testModelDeletionFailurePreservesPointerForRetry() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-model-delete-"+UUID().uuidString)
         defer { try? FileManager.default.removeItem(at:root) }

@@ -26,7 +26,7 @@ enum PDFSchoolParser {
         guard normalized.count == originalRanges.count else { throw PDFParseError(code:.unsupported,stage:.yearHeading) }
         let originals = Dictionary(uniqueKeysWithValues:zip(normalized.indices,originalRanges))
         var markers = [YearMarker](), remainder = normalized.startIndex..<normalized.endIndex
-        while let range = normalized.range(of:"(?<![\\p{N}])(?:令和[\\p{N}]+|[\\p{N}]+)年度",options:.regularExpression,range:remainder) {
+        while let range = normalized.range(of:"(?<![\\p{N}])(?:令和[^年]*?|[\\p{N}]+)年度",options:.regularExpression,range:remainder) {
             try check()
             let token = normalized[range], era = token.hasPrefix("令和")
             let digits = String(era ? token.dropFirst(2).dropLast(2) : token.dropLast(2)).precomposedStringWithCompatibilityMapping

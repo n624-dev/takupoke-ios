@@ -10,8 +10,8 @@ extension PDFSchoolParser {
             throw PDFParseError(code: .unsupported, page: 1, stage: .periodHeading)
         }
         let header = headers[0]
-        let first = try grid.box(header[0].cx, header[0].cy)
-        let classBox = try grid.box(first.left - 2, first.bottom + 20)
+        let first = try grid.box(header[0].cx, header[0].cy,check:check)
+        let classBox = try grid.box(first.left - 2, first.bottom + 20,check:check)
         guard let bodyBottom = page.lines.filter({ $0.vertical && abs($0.x1 - classBox.right) < 0.3 }).map(\.y2).max() else {
             throw PDFParseError(code: .unsupported, page: 1, stage: .gridColumn)
         }
@@ -19,11 +19,11 @@ extension PDFSchoolParser {
             $0.cy > first.bottom && $0.cy < bodyBottom })
         let bodyRows = try classRows.map { glyphs -> PDFBox in
             let y = glyphs.map(\.cy).reduce(0,+)/Double(glyphs.count)
-            var row = try grid.box((classBox.left+classBox.right)/2,y)
-            row.top = max(row.top,try grid.box(header[0].cx,y).top)
+            var row = try grid.box((classBox.left+classBox.right)/2,y,check:check)
+            row.top = max(row.top,try grid.box(header[0].cx,y,check:check).top)
             return row
         }
-        let referenceBoxes = try grid.lessonBoxes(rows:bodyRows,columns:header.map(\.cx))
+        let referenceBoxes = try grid.lessonBoxes(rows:bodyRows,columns:header.map(\.cx),check:check)
         var output: [PDFLesson] = []
         var classes: Set<String> = []
         for (classIndex, glyphs) in classRows.enumerated() {
@@ -33,8 +33,8 @@ extension PDFSchoolParser {
                 throw PDFParseError(code: .ambiguous, page: 1, stage: .classLabel)
             }
             let y = glyphs.map(\.cy).reduce(0, +) / Double(glyphs.count)
-            var row = try grid.box((classBox.left + classBox.right) / 2, y)
-            let grade = try key(grid.text(grid.box(classBox.left - 2, y)).joined())
+            var row = try grid.box((classBox.left + classBox.right) / 2, y,check:check)
+            let grade = try key(grid.text(grid.box(classBox.left - 2, y,check:check),check:check).joined())
             guard grade == "AI" || grade.range(of: "^[1-9]$", options: .regularExpression) != nil else {
                 throw PDFParseError(code: .ambiguous, page: 1, stage: .gradeLabel)
             }
@@ -42,7 +42,7 @@ extension PDFSchoolParser {
             guard classes.insert(name).inserted else { throw PDFParseError(code: .ambiguous, page: 1, stage: .duplicateClass) }
             // The first class spans the supplementary period header as well.
             // Use the top of its first actual subject cell to exclude that header.
-            row.top = max(row.top, try grid.box(header[0].cx, y).top)
+            row.top = max(row.top, try grid.box(header[0].cx, y,check:check).top)
             for (column, h) in header.enumerated() {
                 try check()
                 let cuts = Set(page.lines.filter { $0.horizontal && $0.x1 - 0.5 <= h.cx && h.cx <= $0.x2 + 0.5 &&
@@ -50,15 +50,15 @@ extension PDFSchoolParser {
                 let edges = [row.top] + cuts + [row.bottom]
                 var seen: Set<PDFBox> = []
                 for i in 0..<(edges.count - 1) where edges[i + 1] - edges[i] >= 2 {
-                    let box = try grid.box(h.cx, (edges[i] + edges[i + 1]) / 2)
+                    let box = try grid.box(h.cx, (edges[i] + edges[i + 1]) / 2,check:check)
                     guard seen.insert(box).inserted else { continue }
                     var cell = PDFParseError.Cell(classRow: classIndex + 1, weekday: column / 8 + 1, period: column % 8 + 1)
                     let lines: [String]
-                    do { lines = try grid.timetableText(box) }
+                    do { lines = try grid.timetableText(box,check:check) }
                     catch var error as PDFParseError {
                         error.cell = cell
                         if error.stage == .fragmentOverlap || error.stage == .fragmentAlignment {
-                            error.geometry = PDFCellGeometryDiagnostic(grid.glyphs(in: box), box: box)
+                            error.geometry = PDFCellGeometryDiagnostic(try grid.glyphs(in:box,check:check), box: box)
                         }
                         throw error
                     }
@@ -67,7 +67,7 @@ extension PDFSchoolParser {
                     guard lines.reduce(0, { $0 + $1.utf8.count }) <= 4096 else { throw PDFParseError(code: .limit, page: 1) }
                     guard lines.count <= 3, !lines[0].isEmpty else { throw PDFParseError(code: .ambiguous, page: 1, stage: .lessonLines, cell: cell) }
                     guard !lines.contains(where:RecoveryRole.hasLabelPrefix) else { throw PDFParseError(code: .unsupported, stage: .lessonLines, cell: cell) }
-                    let fields = try grid.lessonFields(box, lines: lines,referenceBoxes:referenceBoxes)
+                    let fields = try grid.lessonFields(box, lines: lines,referenceBoxes:referenceBoxes,check:check)
                     let parts = fields.map { $0.replacingOccurrences(of: "･", with: "・").components(separatedBy: "・") }
                     let parallel = lines.count == 3 && parts.allSatisfy { $0.count == 2 }
                     if parts[0].count > 1 && parts[1].count > 1 && !parallel {

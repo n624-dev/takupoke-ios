@@ -36,6 +36,15 @@ actor RecoveryModelStore {
     private let root: URL
     private var installing = false
     init(root: URL) { self.root = root }
+    /// Downloaded assets can be rebuilt and must never consume device backup.
+    /// Applying the attribute again also migrates roots created by older builds.
+    func prepareRoot() throws {
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
+        #if os(iOS) || os(macOS)
+        var values = URLResourceValues(); values.isExcludedFromBackup = true
+        var directory = root; try directory.setResourceValues(values)
+        #endif
+    }
     func install(_ manifest: RecoveryModelManifest, runtime: String, availableMemory: Int64,
                  osSupported: Bool, foreground: Bool, openModel: (URL) throws -> InputStream,
                  prepareAndSmokeTest: (URL) async throws -> Void, check: () throws -> Void) async throws -> URL {
@@ -46,7 +55,7 @@ actor RecoveryModelStore {
         func alive() throws { try check(); try Task.checkCancellation() }
         try alive()
         let manager = FileManager.default
-        try manager.createDirectory(at: root, withIntermediateDirectories: true)
+        try prepareRoot()
         let staging = root.appendingPathComponent("staging-" + UUID().uuidString)
         let target = root.appendingPathComponent(runtime + "-" + manifest.modelId + "-" + manifest.version + "-" + manifest.sha256 + ".model")
         let bundle = target.appendingPathExtension("bundle"), stagedBundle = staging.appendingPathExtension("bundle")

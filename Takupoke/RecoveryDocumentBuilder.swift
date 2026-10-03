@@ -138,7 +138,7 @@ enum RecoveryDocumentBuilder {
                 }
                 guard dates.count == 5 else { throw PDFParseError(code: .unsupported, stage: .calendarDates) }
                 for (h,date) in dates {
-                    let id = try add(h.glyphs), r = try grid.box(h.box.x+h.box.width/2,h.box.y+h.box.height/2)
+                    let id = try add(h.glyphs), r = try grid.box(h.box.x+h.box.width/2,h.box.y+h.box.height/2,check:check)
                     vertical.append(AxisItem(value: date.iso8601, ids: [id], region: region(h.box, axis: .left), position: h.box.y+h.box.height/2, row: r))
                     doc.dayEvidence[date.iso8601, default: []].append(id)
                 }
@@ -162,8 +162,8 @@ enum RecoveryDocumentBuilder {
                     let step = periodRow[1].cx-periodRow[0].cx
                     guard step > 5 else { throw PDFParseError(code:.ambiguous) }
                     first = PDFBox(left:periodRow[0].cx-step/2,top:0,right:periodRow[0].cx+step/2,bottom:headerY+2)
-                } else { first = try grid.box(periodRow[0].cx,periodRow[0].cy) }
-                let classBox = try grid.box(first.left-2, first.bottom+20)
+                } else { first = try grid.box(periodRow[0].cx,periodRow[0].cy,check:check) }
+                let classBox = try grid.box(first.left-2, first.bottom+20,check:check)
                 guard let bottom = page.lines.filter({ $0.vertical && abs($0.x1-classBox.right)<0.3 }).map(\.y2).max() else { throw PDFParseError(code:.unsupported) }
                 let rows = PDFGrid.rows(page.glyphs.filter { classBox.left < $0.cx && $0.cx < classBox.right && $0.cy > first.bottom && $0.cy < bottom })
                 var gradeSources = [PDFBox:(String,[PDFGlyph])]()
@@ -171,8 +171,11 @@ enum RecoveryDocumentBuilder {
                 for row in rows {
                     let y = row.map(\.cy).reduce(0,+)/Double(row.count)
                     let gradeBox: PDFBox, gradeGlyphs: [PDFGlyph]
-                    if let physical = try? grid.box(classBox.left-2,y) {
-                        gradeBox = physical; gradeGlyphs = grid.glyphs(in:physical)
+                    let physical: PDFBox?
+                    do { physical = try grid.box(classBox.left-2,y,check:check) }
+                    catch let error as PDFParseError where error.code == .unsupported { physical = nil }
+                    if let physical {
+                        gradeBox = physical; gradeGlyphs = try grid.glyphs(in:physical,check:check)
                     } else {
                         guard kind == .return, !grades.isEmpty, rows.count == grades.reduce(0,{ $0 + (PDFSchoolParser.key($1.text) == "AI" ? 2:3) }),
                               let gradeIndex = grades.indices.min(by:{ abs(grades[$0].box.y+grades[$0].box.height/2-y) < abs(grades[$1].box.y+grades[$1].box.height/2-y) }) else { throw PDFParseError(code:.unsupported,stage:.gradeLabel) }
@@ -180,7 +183,7 @@ enum RecoveryDocumentBuilder {
                             let cy = candidate.map(\.cy).reduce(0,+)/Double(candidate.count)
                             return grades.indices.min(by:{ abs(grades[$0].box.y+grades[$0].box.height/2-cy) < abs(grades[$1].box.y+grades[$1].box.height/2-cy) }) == gradeIndex
                         }
-                        let group = try members.map { try grid.box($0[0].cx,$0.map(\.cy).reduce(0,+)/Double($0.count)) }
+                        let group = try members.map { try grid.box($0[0].cx,$0.map(\.cy).reduce(0,+)/Double($0.count),check:check) }
                         guard members.count == (PDFSchoolParser.key(grades[gradeIndex].text) == "AI" ? 2:3), let top = group.map(\.top).min(), let bottom = group.map(\.bottom).max(),
                               grades[gradeIndex].box.y >= top && grades[gradeIndex].box.y+grades[gradeIndex].box.height <= bottom else { throw PDFParseError(code:.ambiguous,stage:.gradeLabel) }
                         gradeBox = PDFBox(left:0,top:top,right:classBox.left,bottom:bottom); gradeGlyphs = grades[gradeIndex].glyphs
@@ -192,14 +195,14 @@ enum RecoveryDocumentBuilder {
                     // structural source, and reference it from all relevant classes.
                     if gradeSources[gradeBox] == nil { gradeSources[gradeBox] = (try add(gradeGlyphs), gradeGlyphs) }
                     let labelId = try add(row), gradeId = gradeSources[gradeBox]!.0
-                    var classRow = try grid.box((classBox.left+classBox.right)/2,y)
-                    classRow.top = max(classRow.top,try grid.box(periodRow[0].cx,y).top)
+                    var classRow = try grid.box((classBox.left+classBox.right)/2,y,check:check)
+                    classRow.top = max(classRow.top,try grid.box(periodRow[0].cx,y,check:check).top)
                     let combined = RecoveryBox(x: gradeBox.left,y: gradeBox.top,width: classBox.right-gradeBox.left,height: gradeBox.bottom-gradeBox.top)
                     vertical.append(AxisItem(value:cls,ids:[gradeId,labelId],region:region(combined,axis:.left),position:y,row:classRow))
                     doc.classEvidence[cls,default:[]] += [gradeId,labelId]
                 }
             }
-            let referenceBoxes = try grid.lessonBoxes(rows:vertical.compactMap(\.row),columns:periodRow.map(\.cx))
+            let referenceBoxes = try grid.lessonBoxes(rows:vertical.compactMap(\.row),columns:periodRow.map(\.cx),check:check)
             // Build logical cells, preserving short horizontal divisions as parallel lessons.
             for v in vertical {
                 guard let row = v.row else { throw PDFParseError(code:.unsupported) }
@@ -208,13 +211,13 @@ enum RecoveryDocumentBuilder {
                     var seen: Set<PDFBox> = []
                     for (periodIndex,x) in centers.enumerated() {
                         try check()
-                        let main = try grid.box(x,v.position)
+                        let main = try grid.box(x,v.position,check:check)
                         guard seen.insert(main).inserted else { continue }
                         let covered = centers.indices.filter { main.left < centers[$0] && centers[$0] < main.right }.map { $0+1 }
                         guard !covered.isEmpty else { throw PDFParseError(code:.ambiguous) }
                         let cuts = Set(page.lines.filter { $0.horizontal && $0.x1 <= x && x <= $0.x2 && row.top+1 < $0.y1 && $0.y1 < row.bottom-1 }.map(\.y1)).sorted()
                         let edges = [row.top]+cuts+[row.bottom]
-                        let sub = try (0..<(edges.count-1)).map { try grid.box(x,(edges[$0]+edges[$0+1])/2) }
+                        let sub = try (0..<(edges.count-1)).map { try grid.box(x,(edges[$0]+edges[$0+1])/2,check:check) }
                         let logical = PDFBox(left: main.left,top: row.top,right: main.right,bottom:row.bottom)
                         let cls = kind == .exam ? h.value : v.value, day = kind == .exam ? v.value : h.value
                         let id = "cell-\(number)-\(doc.cells.count)"
@@ -225,10 +228,10 @@ enum RecoveryDocumentBuilder {
                         }
                         var bindings = [RecoveryLessonBinding]()
                         for (subIndex,subBox) in Set(sub).sorted(by: { $0.top < $1.top }).enumerated() {
-                            let glyphs = grid.glyphs(in:subBox)
+                            let glyphs = try grid.glyphs(in:subBox,check:check)
                             if glyphs.isEmpty { continue }
                             let rows = try PDFGrid.contentRows(glyphs)
-                            let lines = try grid.timetableText(subBox)
+                            let lines = try grid.timetableText(subBox,check:check)
                             let labeled = rows.compactMap { r -> (RecoveryRole,[PDFGlyph],[PDFGlyph])? in
                                 let t = r.map(\.text).joined()
                                 guard r.allSatisfy({ $0.text.count == 1 }) else { return nil }
@@ -257,7 +260,9 @@ enum RecoveryDocumentBuilder {
                                     cell.roleScopes.append(RecoveryRoleScope(lessonIndex:lessonIndex,role:item.0,page:number,box:scope,labelSourceIds:[labelId],labelRegion:region(labelBox,axis:.left),proof:.inlineLabel,emptyVerified:emptyVerified))
                                 }
                             } else {
-                                let fieldsAttempt = try? grid.lessonFields(subBox,lines:lines,referenceBoxes:referenceBoxes)
+                                let fieldsAttempt: [String]?
+                                do { fieldsAttempt = try grid.lessonFields(subBox,lines:lines,referenceBoxes:referenceBoxes,check:check) }
+                                catch let error as PDFParseError where error.code == .ambiguous || error.code == .unsupported { fieldsAttempt = nil }
                                 if fieldsAttempt == nil || rows.contains(where:{ RecoveryRole.hasLabelPrefix($0.map(\.text).joined()) }) {
                                     guard bindings.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.lessonLines) }
                                     let request = try RecoveryStructure.request(id:"\(id)-sub-\(subIndex)",page:number,box:rect(subBox),slots:cell.slots,glyphs:glyphs)
@@ -316,7 +321,7 @@ enum RecoveryDocumentBuilder {
                         cell.parallelCount = max(1,cell.bindingMode == .fixed ? bindings.count : cell.roleScopes.count/3)
                         guard cell.confirmedEmpty || !cell.sourceIds.isEmpty else { throw PDFParseError(code:.ambiguous) }
                         if fromOCR.contains(number) {
-                            guard let raster = pageRaster, try !raster.hasUncoveredInk(cell.box,text:try grid.glyphs(in:logical).map { try box([$0]) },rules:page.lines,check:check) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
+                            guard let raster = pageRaster, try !raster.hasUncoveredInk(cell.box,text:try grid.glyphs(in:logical,check:check).map { try box([$0]) },rules:page.lines,check:check) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
                         }
                         doc.cells.append(cell)
                         _ = periodIndex

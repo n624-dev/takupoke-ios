@@ -29,7 +29,7 @@ final class LocalRecoveryModelManager: ObservableObject {
         guard !busy, leases.isEmpty else { return }
         busy = true; defer { busy = false }
         do {
-            let store = self.store; try await store.cleanupAbandonedFiles(inUse:[])
+            let store = self.store; try await store.prepareRoot(); try await store.cleanupAbandonedFiles(inUse:[])
             var next = [String:RecoveryModelManifest](), needsRepair = false
             for runtime in ["coreAI","llamaCpp"] {
                 if let manifest = try await store.storedManifest(runtime:runtime) {

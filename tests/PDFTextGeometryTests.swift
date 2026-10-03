@@ -328,18 +328,6 @@ extension PDFTextGeometryTests {
             return buffer.enumerated().reduce(0) { $0 + ($1.offset % 300 >= minimumX && $1.element != 255 ? 1:0) }
         }
     }
-    private func directStrokeInk(width: Double, delta: Double, limit: Double, minimumX: Int) throws -> Int {
-        var pixels = [UInt8](repeating:255,count:300*400)
-        return try pixels.withUnsafeMutableBytes { buffer in
-            let context = try XCTUnwrap(CGContext(data:buffer.baseAddress,width:300,height:400,bitsPerComponent:8,bytesPerRow:300,space:CGColorSpaceCreateDeviceGray(),bitmapInfo:CGImageAlphaInfo.none.rawValue))
-            context.setFillColor(CGColor(gray:1,alpha:1)); context.fill(CGRect(x:0,y:0,width:300,height:400))
-            context.setStrokeColor(CGColor(gray:0,alpha:1)); context.setLineWidth(CGFloat(width))
-            context.setLineCap(.butt); context.setLineJoin(.miter); context.setMiterLimit(CGFloat(limit))
-            context.move(to:CGPoint(x:10,y:120)); context.addLine(to:CGPoint(x:81.1,y:120))
-            context.addLine(to:CGPoint(x:78.1,y:120+delta)); context.strokePath()
-            return buffer.enumerated().reduce(0) { $0 + ($1.offset % 300 >= minimumX && $1.element != 255 ? 1:0) }
-        }
-    }
     func testNativeNearAxisMiterAndNonSimilarStrokeCannotCertifyPaintBounds() throws {
         let text = "BT /F1 12 Tf 1 0 0 1 120 114 Tm (A) Tj ET"
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString,isDirectory:true)
@@ -347,25 +335,12 @@ extension PDFTextGeometryTests {
         defer { try? FileManager.default.removeItem(at:root) }
         let transform = PDFDisplayTransform(media:CGRect(x:0,y:0,width:300,height:400),rotation:0)
         let textData = syntheticPDF(content:text,simpleFont:true)
-        let hairpin = syntheticPDF(content:text+" 1 w 0 J 0 j 100 M 10 120 m 81.1 120 l 78.1 120.19 l S",simpleFont:true)
+        let hairpin = syntheticPDF(content:text+" 2 w 0 J 0 j 100 M 10 120 m 81.1 120 l 78.1 120.19 l S",simpleFont:true)
         XCTAssertGreaterThan(try paintedInk(hairpin),try paintedInk(textData))
-        // Poppler reproduces an acute miter outside the centerline pad. Quartz
-        // may bevel that join. Record actual PDF and direct CG paint without
-        // requiring an unobserved backend-specific protrusion for acceptance.
-        var diagnostics = [String]()
-        for width in [1.0,2.0,25.0] {
-            for delta in [0.01,0.19,0.29,3.0] {
-                for limit in [10.0,100.0] {
-                    let path = "0 G \(width) w 0 J 0 j \(limit) M 10 120 m 81.1 120 l 78.1 \(120+delta) l S"
-                    let data = syntheticPDF(content:path,simpleFont:true)
-                    let total = try paintedInk(data), beyond = try paintedInk(data,minimumX:85)
-                    let direct = try directStrokeInk(width:width,delta:delta,limit:limit,minimumX:85)
-                    XCTAssertGreaterThan(total,0)
-                    diagnostics.append("w=\(width),dy=\(delta),M=\(limit):pdfTotal=\(total),pdfBeyond85=\(beyond),cgBeyond85=\(direct)")
-                }
-            }
-        }
-        print("NATIVE_QUARTZ_MITER "+diagnostics.joined(separator:"; "))
+        // The native Quartz diagnostic measured 40 pixels beyond x=85 for
+        // this M100 join, versus zero for the otherwise identical M10 path.
+        let bevelControl = syntheticPDF(content:text+" 2 w 0 J 0 j 10 M 10 120 m 81.1 120 l 78.1 120.19 l S",simpleFont:true)
+        XCTAssertGreaterThan(try paintedInk(hairpin,minimumX:85),try paintedInk(bevelControl,minimumX:85))
         let negatives = [hairpin,
             syntheticPDF(content:text+" q 2 0 0 1 0 0 cm 0.1 w 20 20 m 40 20 l S Q",simpleFont:true),
             syntheticPDF(content:text+" q 1 0 0.1 1 0 0 cm 0.1 w 20 20 m 40 20 l S Q",simpleFont:true)]
