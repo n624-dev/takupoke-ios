@@ -146,9 +146,11 @@ final class ApplicationChecks: XCTestCase {
         _ = recoveryVisible(fields)
         _ = recoveryVisible(app.staticTexts["空欄"].firstMatch)
         XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].firstMatch.label, "前回の正式結果を保持")
-        // Return to the top before opening the matching saved PDF.
-        for _ in 0..<3 { recoveryList.swipeDown() }
-        tap("元のPDFを確認"); screen("元のPDF")
+        // Stop as soon as the original button is visible. Extra downward
+        // swipes at the top can dismiss the sheet through its native gesture.
+        let original = recoveryVisible(app.buttons["元のPDFを確認"].firstMatch)
+        XCTAssertTrue(original.isHittable, app.debugDescription)
+        original.tap(); screen("元のPDF")
         XCTAssertTrue(app.navigationBars["元のPDF"].exists, app.debugDescription)
         recoveryScreenshot("ios-recovery-original")
         app.navigationBars["元のPDF"].buttons["閉じる"].tap(); screen("時間割の復旧")
