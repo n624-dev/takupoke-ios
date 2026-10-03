@@ -34,6 +34,7 @@ SHARDS = {
         "testChangedAccountDataNoticeOpensSharedAcquisition",
         "testRecoveryPreviewOriginalBlankFieldsAndExplicitAdoption",
         "testRecoveryImageOnlyPDFUsesNativeOCRAndTopLeftRaster",
+        "testParallelRecoveryKeepsBothLessonsInPreviewAndFormalAnalysis",
     ),
 }
 REQUIRED_JOBS = frozenset(

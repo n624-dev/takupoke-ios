@@ -18,6 +18,7 @@ final class ApplicationChecks: XCTestCase {
             "testVoiceOverReadsTimetableCard": ["--mapped-names"],
             "testNotificationControlsAndAppearance": ["--theme-probe"],
             "testRecoveryPreviewOriginalBlankFieldsAndExplicitAdoption": ["--recovery-preview"],
+            "testParallelRecoveryKeepsBothLessonsInPreviewAndFormalAnalysis": ["--recovery-preview", "--recovery-parallel"],
             "testRecoveryClosingKeepsFormalAndModelManagementIsAccessible": ["--recovery-preview"],
             "testSpecialRecoveryShowsMergedAndDifferentDayClocksBeforeAdoption": ["--recovery-preview", "--recovery-exam"],
             "testRecoveryImageOnlyPDFUsesNativeOCRAndTopLeftRaster": ["--recovery-ocr-probe"],
@@ -106,18 +107,18 @@ final class ApplicationChecks: XCTestCase {
         _ = heading("採用する資料全体")
         _ = heading("選択クラスだけでなく、以下の資料全体を採用します。元のPDFと読み取り結果を確認してください。")
     }
-    private func recoveryScreenshot(_ name: String) {
+    private func recoveryScreenshot(_ name: String, marker: String = "TAKUPOKE_UI_IMAGE") {
         let bytes = app.screenshot().pngRepresentation
         XCTAssertTrue((9...2 * 1024 * 1024).contains(bytes.count))
         let hash = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
         let encoded = bytes.base64EncodedString(), chunkSize = 6000
-        print("TAKUPOKE_UI_IMAGE BEGIN \(name) \(hash) \(bytes.count)")
+        print("\(marker) BEGIN \(name) \(hash) \(bytes.count)")
         let characters = Array(encoded)
         for offset in stride(from: 0, to: characters.count, by: chunkSize) {
             let chunk = String(characters[offset..<min(offset + chunkSize, characters.count)])
-            print("TAKUPOKE_UI_IMAGE DATA \(name) \(offset / chunkSize) \(chunk)")
+            print("\(marker) DATA \(name) \(offset / chunkSize) \(chunk)")
         }
-        print("TAKUPOKE_UI_IMAGE END \(name) \((characters.count + chunkSize - 1) / chunkSize)")
+        print("\(marker) END \(name) \((characters.count + chunkSize - 1) / chunkSize)")
     }
     private var recoveryList: XCUIElement {
         let lists = app.collectionViews
@@ -178,6 +179,36 @@ final class ApplicationChecks: XCTestCase {
             XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].firstMatch.label, "確認後に正式採用済み")
             app.terminate(); app.launchArguments = ["--recovery-probe", item.2, "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]; launchReady()
             XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].firstMatch.label, "確認後に正式採用済み", app.debugDescription)
+        }
+    }
+    func testParallelRecoveryKeepsBothLessonsInPreviewAndFormalAnalysis() {
+        openRecoveryPreview()
+        for suffix in ["A", "B"] {
+            let paired = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@ AND label CONTAINS %@",
+                "架空並記科目\(suffix)", "架空並記担当\(suffix)", "架空並記教室\(suffix)")).firstMatch
+            _ = recoveryVisible(paired)
+        }
+        for suffix in ["A", "B"] {
+            let paired = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@ AND label CONTAINS %@",
+                "架空並記科目\(suffix)", "架空並記担当\(suffix)", "架空並記教室\(suffix)")).firstMatch
+            XCTAssertTrue(paired.isHittable && paired.frame.minY >= app.navigationBars["時間割の復旧"].frame.maxY &&
+                paired.frame.maxY <= app.frame.maxY, app.debugDescription)
+        }
+        recoveryScreenshot("ios-recovery-parallel", marker: "TAKUPOKE_PARALLEL_UI_IMAGE")
+        XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].firstMatch.label, "前回の正式結果を保持")
+        let adoption = app.buttons["この資料全体の結果を使用"]
+        for _ in 0..<20 { if adoption.exists && adoption.isHittable { break }; recoveryList.swipeUp() }
+        XCTAssertTrue(adoption.isHittable, app.debugDescription); adoption.tap()
+        XCTAssertTrue(app.staticTexts["復旧結果を採用しました。"].waitForExistence(timeout: 20), app.debugDescription)
+        app.terminate(); app.launchArguments = ["--recovery-probe", "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]; launchReady()
+        XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].firstMatch.label, "確認後に正式採用済み")
+        tab("設定"); tap("時間割ファイル"); tap("通常時間割の詳細を見る"); screen("通常時間割")
+        _ = heading("解析結果")
+        for suffix in ["A", "B"] {
+            let paired = app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@ AND label CONTAINS %@",
+                "架空並記科目\(suffix)", "架空並記担当\(suffix)", "架空並記教室\(suffix)")).firstMatch
+            _ = visible(paired)
+            XCTAssertTrue(paired.label.contains("3-IT · 月曜 · 1限"), app.debugDescription)
         }
     }
     func testRecoveryClosingKeepsFormalAndModelManagementIsAccessible() {

@@ -340,6 +340,28 @@ enum SimulatorRecoveryFixture {
         doc.cells[0].blankFields = ["teacher"]
         doc.cells[0].lessonBindings[0].teacher = []
         result.cells[0].lessons[0].teacher = RecoveryField(state: .empty, value: "", evidence: [])
+        if ProcessInfo.processInfo.arguments.contains("--recovery-parallel") {
+            var atoms: [RecoverySource] = []
+            var bindings: [RecoveryLessonBinding] = []
+            var lessons: [RecoveryLesson] = []
+            for index in 0..<2 {
+                let suffix = index == 0 ? "A" : "B"
+                let ids = ["parallel-subject-\(index)", "parallel-teacher-\(index)", "parallel-room-\(index)"]
+                let values = ["架空並記科目\(suffix)", "架空並記担当\(suffix)", "架空並記教室\(suffix)"]
+                for role in 0..<3 {
+                    atoms.append(RecoverySource(id: ids[role], cellId: "c0", page: 1, text: values[role],
+                        box: RecoveryBox(x: 110, y: Double(110 + index * 45 + role * 15), width: 80, height: 10)))
+                }
+                bindings.append(RecoveryLessonBinding(subject: [ids[0]], teacher: [ids[1]], room: [ids[2]]))
+                lessons.append(RecoveryLesson(subject: RecoveryField(state: .present, value: values[0], evidence: [ids[0]]),
+                    teacher: RecoveryField(state: .present, value: values[1], evidence: [ids[1]]),
+                    room: RecoveryField(state: .present, value: values[2], evidence: [ids[2]]), dateEvidence: ["day1"], periodEvidence: ["period1"]))
+            }
+            doc.sources.removeAll { $0.cellId == "c0" }; doc.sources.append(contentsOf: atoms)
+            doc.cells[0].parallelCount = 2; doc.cells[0].sourceIds = atoms.map(\.id)
+            doc.cells[0].blankFields = []; doc.cells[0].lessonBindings = bindings
+            result.cells[0].lessons = lessons
+        }
         return (doc, result)
     }
 
