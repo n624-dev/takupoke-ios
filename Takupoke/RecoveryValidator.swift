@@ -239,6 +239,13 @@ enum RecoveryValidator {
             if doc.kind != .timetable, periods.count > 1, let slot = cell.slots.first {
                 let key = "\(slot.day):\(periods.first!)-\(periods.last!)"
                 check(doc.spanTimes[key].map { clockBound(slot.day, periods.first!, periods.last!, $0) && $0.range(of: "^(?:[01][0-9]|2[0-3]):[0-5][0-9]〜(?:[01][0-9]|2[0-3]):[0-5][0-9]$", options: .regularExpression) != nil } ?? false, "spanTimeEvidence")
+                if doc.kind == .return && slot.day != doc.days.sorted().first {
+                    let first = periods.first!, last = periods.last!
+                    if (1...normalTimes.count).contains(first) && (1...normalTimes.count).contains(last) {
+                        let expected = String(normalTimes[first-1].prefix(5)) + "〜" + String(normalTimes[last-1].suffix(5))
+                        check(noteValid && doc.spanTimes[key] == expected, "normalSpanTimeCondition")
+                    } else { check(false, "normalSpanTimeCondition") }
+                }
             }
             let bindingIds = cell.lessonBindings.flatMap { $0.subject + $0.teacher + $0.room }
             let labelIds = cell.roleScopes.flatMap(\.labelSourceIds)

@@ -23,15 +23,7 @@ extension SpecialSchedulesModel {
                     analysisDigest: saved?.digest, analysisVersion: saved?.analysis.version, attemptDigest: source.digest,
                     failure: source.failure, attemptVersion: source.attemptParserVersion)
                 do {
-                    if needsAnalysis {
-                        guard let selectedURL = store.selectedURL(for: kind) else { throw MaterialError.unavailable }
-                        let pages = try PDFKitReader.readSpecial(selectedURL, check: { try control.check() })
-                        let analysis = try SpecialScheduleParser.parse(pages, kind: kind,
-                                                                       digest: source.digest,
-                                                                       name: source.originalName,
-                                                                       check: { try control.check() })
-                        try store.saveAnalysis(analysis)
-                    }
+                    var changed = false
                     if let grant = source.grant {
                         let staged = store.newStagingURL()
                         defer { store.discardStaging(staged) }
@@ -48,15 +40,24 @@ extension SpecialSchedulesModel {
                         } else {
                             try store.saveSelection(staged: staged, kind: kind, originalName: name,
                                                     byteCount: count, digest: digest, grant: grant)
-                            guard let selectedURL = store.selectedURL(for: kind),
-                                  let selectedSource = store.sources[kind] else { throw MaterialError.unavailable }
-                            let pages = try PDFKitReader.readSpecial(selectedURL, check: { try control.check() })
-                            let analysis = try SpecialScheduleParser.parse(pages, kind: kind,
-                                                                           digest: selectedSource.digest,
-                                                                           name: selectedSource.originalName,
-                                                                           check: { try control.check() })
-                            try store.saveAnalysis(analysis)
+                            changed = true
                         }
+                    }
+                    // Check the provider before retrying an older local parser failure.
+                    // A malformed old copy must not prevent acquiring its replacement.
+                    if changed || needsAnalysis {
+                        guard let selectedURL = store.selectedURL(for: kind),
+                              let selectedSource = store.sources[kind] else { throw MaterialError.unavailable }
+                        let parseCheck: () throws -> Void = {
+                            do { try control.check() } catch { throw PDFParseError(code: .cancelled) }
+                        }
+                        let pages = try PDFKitReader.readSpecial(selectedURL, check: parseCheck)
+                        let analysis = try SpecialScheduleParser.parse(pages, kind: kind,
+                                                                       digest: selectedSource.digest,
+                                                                       name: selectedSource.originalName,
+                                                                       check: parseCheck)
+                        try parseCheck()
+                        try store.saveAnalysis(analysis)
                     }
                 } catch {
                     FileRefreshDiagnostics.shared.record(.refreshFailed, source: diagnosticSource)

@@ -44,8 +44,8 @@ enum RecoveryConversion {
         let periodTimes = Dictionary(uniqueKeysWithValues:(1...(doc.kind == .exam ? 6 : 8)).compactMap { p in doc.times["\(day):\(p)"].map { (p,$0) } })
         return SpecialScheduleAnalysis(kind:doc.kind == .exam ? .exam : .examReturn,sourceDigest:preview.source.digest,sourceName:preview.source.originalName,parsedAt:adopted.acceptance.acceptedAt,schoolYear:doc.schoolYear,coveredDates:doc.days.sorted(),coveredClasses:doc.classes.sorted(),periodTimes:periodTimes,lessons:lessons,recovery:adopted)
     }
-    static func verifyFile(_ source: RecoverySelectedSource, check: () throws -> Void) throws {
-        guard SchoolDataPeriod.current() == source.period else { throw PDFParseError(code:.cancelled) }
+    static func verifyFile(_ source: RecoverySelectedSource, currentPeriod: () -> SchoolDataPeriod = { SchoolDataPeriod.current() }, check: () throws -> Void) throws {
+        guard currentPeriod() == source.period else { throw PDFParseError(code:.cancelled) }
         let file = try FileHandle(forReadingFrom:source.url); defer { try? file.close() }
         var hash = SHA256(), count = 0
         while true {
@@ -55,5 +55,6 @@ enum RecoveryConversion {
         }
         guard count > 0, hash.finalize().map({ String(format:"%02x",$0) }).joined() == source.digest else { throw PDFParseError(code:.storage) }
         try check()
+        guard currentPeriod() == source.period else { throw PDFParseError(code:.cancelled) }
     }
 }

@@ -42,6 +42,17 @@ extension PDFParsingTests {
         XCTAssertEqual(Set(cell.roleScopes.map(\.role)),Set(RecoveryRole.allCases))
         XCTAssertNotNil(RecoveryRules.recover(d,cell))
     }
+    func testMultiCharacterTermGlyphFailsWithoutOutOfBoundsAccess() {
+        var page = recoveryTimetablePage()
+        let prefix = page.glyphs.firstIndex { $0.text == "前" }!
+        let suffix = page.glyphs.firstIndex { $0.text == "期" }!
+        page.glyphs[prefix].text = "前期"
+        page.glyphs[prefix].y = 30
+        page.glyphs.remove(at:suffix)
+        XCTAssertThrowsError(try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:String(repeating:"b",count:64))) { error in
+            XCTAssertEqual((error as? PDFParseError)?.code,.ambiguous)
+        }
+    }
     func testPartialReorderedRoleLabelsCannotBecomeFixedOrParallelBindings() {
         for parallel in [false,true] {
             var page = recoveryTimetablePage()
@@ -76,5 +87,8 @@ extension SpecialScheduleTests {
         XCTAssertEqual(doc.spanTimes["2026-04-02:5-6"],"12:50〜14:20")
         let run = try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
         XCTAssertEqual(run.state,.awaitingConfirmation)
+        var changed = doc
+        changed.spanTimes["2026-04-02:5-6"] = "12:50〜15:15"
+        XCTAssertTrue(RecoveryValidator.validate(changed,try XCTUnwrap(run.result)).errors.contains("normalSpanTimeCondition"))
     }
 }

@@ -36,9 +36,18 @@ def generate(destination):
             assert marker in text, 'Recovery UI fixture insertion point missing'
             text = text.replace(marker, marker + '\n' + """
         if ProcessInfo.processInfo.arguments.contains("--recovery-preview") {
-            cancel(); failure = nil
-            do { let prepared = try SimulatorRecoveryFixture.preview(kind); source = prepared.source; preview = prepared; status = "採用前に元のPDFと内容を確認してください。" }
-            catch { failure = "架空復旧fixtureを準備できませんでした。" }
+            cancel(); failure = nil; running = true
+            let fixtureOperation = operation
+            task = Task { @MainActor in
+                do {
+                    let prepared = try await SimulatorRecoveryFixture.preview(kind)
+                    guard operation == fixtureOperation, !Task.isCancelled else { return }
+                    source = prepared.source; preview = prepared; running = false; status = "採用前に元のPDFと内容を確認してください。"
+                } catch {
+                    guard operation == fixtureOperation else { return }
+                    running = false; failure = "架空復旧fixtureを準備できませんでした: " + String(describing: error)
+                }
+            }
             return
         }
 """)
@@ -50,6 +59,17 @@ def generate(destination):
                 if ProcessInfo.processInfo.arguments.contains("--recovery-preview") { FixtureRecoveryProbe() }
             }
 """)
+        if path.name == 'PDFRecoveryRecognition.swift':
+            marker = '                    guard let candidate = line.topCandidates(1).first, candidate.confidence >= 0.85 else'
+            assert marker in text, 'Native OCR probe insertion point missing'
+            text = text.replace(marker, '''
+                    if ProcessInfo.processInfo.arguments.contains("--recovery-ocr-probe") {
+                        let detail = line.topCandidates(1).map { $0.string + " confidence=" + String($0.confidence) }.joined(separator: " | ")
+                        let previous = UserDefaults.standard.stringArray(forKey: "fixture.nativeOCRCandidates") ?? []
+                        UserDefaults.standard.set(previous + [detail], forKey: "fixture.nativeOCRCandidates")
+                        print("SYNTHETIC_NATIVE_OCR " + detail)
+                    }
+''' + marker)
         if path.name == 'TimetableView.swift':
             marker = 'struct TimetableView: View {'
             assert marker in text

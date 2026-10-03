@@ -15,6 +15,7 @@ def main():
     if int(version.split(".")[0]) < 27:
         return
     sdk = subprocess.check_output(["xcrun", "--sdk", "iphoneos", "--show-sdk-path"], text=True).strip()
+    host_sdk = subprocess.check_output(["xcrun", "--sdk", "macosx", "--show-sdk-path"], text=True).strip()
     destination = Path(os.environ["BUILT_PRODUCTS_DIR"]) / os.environ["FRAMEWORKS_FOLDER_PATH"] / "CoreAIRecoveryRuntime.framework"
     destination.parent.mkdir(parents=True, exist_ok=True)
     source = Path(os.environ["SRCROOT"]) / "Vendor/CoreAIRecoveryRuntime"
@@ -22,10 +23,13 @@ def main():
         owned = Path(temporary)
         package = owned / "package"
         shutil.copytree(source, package, ignore=shutil.ignore_patterns(".build", ".swiftpm"))
-        command = ["xcrun", "swift", "build", "--package-path", str(package), "--scratch-path", str(owned / "build"),
+        command = ["xcrun", "--sdk", "macosx", "swift", "build", "--package-path", str(package), "--scratch-path", str(owned / "build"),
                    "--configuration", "release", "--product", "CoreAIRecoveryRuntime", "--disable-automatic-resolution",
                    "--triple", "arm64-apple-ios27.0", "--sdk", sdk]
-        environment = dict(os.environ, IPHONEOS_DEPLOYMENT_TARGET="27.0")
+        # Package manifests execute on macOS, even when the product targets iOS.
+        # Xcode's build-phase SDKROOT must not give the host compiler an iOS SDK.
+        environment = dict(os.environ, SDKROOT=host_sdk, IPHONEOS_DEPLOYMENT_TARGET="27.0")
+        environment.pop("SWIFTC_PASS_SDKROOT", None)
         subprocess.run(command, env=environment, check=True)
         output = subprocess.check_output(command + ["--show-bin-path"], env=environment, text=True).strip()
         library = Path(output) / "libCoreAIRecoveryRuntime.dylib"
@@ -40,9 +44,16 @@ def main():
                 "CFBundleName": "CoreAIRecoveryRuntime", "CFBundlePackageType": "FMWK", "CFBundleShortVersionString": "1.0",
                 "CFBundleVersion": "1", "MinimumOSVersion": "27.0", "CFBundleSupportedPlatforms": ["iPhoneOS"]}
         (prepared / "Info.plist").write_bytes(plistlib.dumps(info))
-        # Preserve any SwiftPM-owned resources alongside their linked runtime.
+        # SwiftPM's generated Bundle.module accessor also looks beside Bundle.main.
+        # Keep the bundles there after the temporary build directory is removed;
+        # the dylib's framework directory alone does not satisfy that lookup.
+        app_resources = destination.parent.parent
         for resource in Path(output).glob("*.bundle"):
             shutil.copytree(resource, prepared / resource.name)
+            installed_resource = app_resources / resource.name
+            if installed_resource.exists():
+                shutil.rmtree(installed_resource)
+            shutil.copytree(resource, installed_resource)
         if os.environ.get("CODE_SIGNING_ALLOWED") != "NO":
             subprocess.run(["/usr/bin/codesign", "--force", "--sign", os.environ.get("EXPANDED_CODE_SIGN_IDENTITY") or "-",
                             "--timestamp=none", str(prepared)], check=True)

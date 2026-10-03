@@ -73,7 +73,7 @@ enum SpecialScheduleParser {
             guard lessons.count <= PDFSchoolParser.maximumRecords else { throw PDFParseError(code: .limit) }
         }
         guard let year, let dates = expectedDates, let periodTimes,
-              coveredClasses.count == 17, !lessons.isEmpty else { throw PDFParseError(code: .unsupported) }
+              coveredClasses == Set(RecoveryValidator.specialClasses), !lessons.isEmpty else { throw PDFParseError(code: .unsupported) }
         return SpecialScheduleAnalysis(kind: kind, sourceDigest: digest, sourceName: name,
                                        parsedAt: Date(), schoolYear: year, coveredDates: dates,
                                        coveredClasses: coveredClasses.sorted(), periodTimes: periodTimes.single,

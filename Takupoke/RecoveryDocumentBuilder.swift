@@ -61,6 +61,7 @@ enum RecoveryDocumentBuilder {
                         guard doc.term == nil || doc.term == term, let range = raw.range(of: term) else { throw PDFParseError(code: .ambiguous, stage: .documentHeading) }
                         doc.term = term
                         let first = raw.distance(from: raw.startIndex, to: range.lowerBound)
+                        guard row.allSatisfy({ $0.text.count == 1 }), first + term.count <= row.count else { throw PDFParseError(code: .ambiguous, stage: .documentHeading) }
                         doc.termEvidence.append(try add(Array(row[first..<(first+term.count)])))
                     }
                 }

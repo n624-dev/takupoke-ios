@@ -142,6 +142,19 @@ final class RecoveryTests: XCTestCase {
         try await store.delete(runtime:"coreAI")
         XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath:root.path).isEmpty)
     }
+    func testOriginalHashVerificationRejectsADataPeriodChangeDuringRead() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-period-hash-"+UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at:url) }
+        let bytes = Data("entirely fictional PDF bytes".utf8); try bytes.write(to:url)
+        let before = SchoolDataPeriod(day:SchoolDate(iso8601:"2032-09-30")!), after = SchoolDataPeriod(day:SchoolDate(iso8601:"2032-10-01")!)
+        let source = RecoverySelectedSource(kind:.timetable,url:url,digest:SHA256.hash(data:bytes).map { String(format:"%02x",$0) }.joined(),originalName:"fictional.pdf",storedName:"fictional.pdf",period:before,captured:[])
+        var calls = 0
+        XCTAssertThrowsError(try RecoveryConversion.verifyFile(source,currentPeriod:{ calls += 1; return calls == 1 ? before:after },check:{})) { error in
+            XCTAssertEqual((error as? PDFParseError)?.code,.cancelled)
+        }
+        XCTAssertEqual(calls,2)
+        XCTAssertNoThrow(try RecoveryConversion.verifyFile(source,currentPeriod:{ before },check:{}))
+    }
     func testApprovalOnlyReusesExactValidatedResult() throws {
         var (d, r) = fixture()
         let a = RecoveryAcceptance(pdfHash: d.pdfHash, resultHash: try RecoveryValidator.fingerprint(r), scopeHash: try RecoveryValidator.fingerprint(d), metadata: r.metadata, acceptedAt: Date())

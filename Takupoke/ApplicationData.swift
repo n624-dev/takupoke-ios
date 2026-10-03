@@ -105,7 +105,7 @@ final class ApplicationData: ObservableObject {
     }
 
     func setFileMonitoring(_ foreground: Bool) {
-        if !foreground { recovery.cancel() }
+        if !foreground { recovery.cancel(); LocalRecoveryModelManager.shared.cancel() }
         materials.setFileMonitoring(foreground && ready)
         specialSchedules.setFileMonitoring(foreground && ready)
     }

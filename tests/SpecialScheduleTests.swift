@@ -35,6 +35,16 @@ final class SpecialScheduleTests: XCTestCase {
         XCTAssertEqual(result.timeRange(for: oldPair), "12:50〜14:20")
     }
 
+    func testSeventeenExamHeadingsCannotReplaceARequiredClassWithAnUnknownClass() {
+        var pages = (1...6).map { examPage($0,mergedFirstTwo:$0 == 1) }
+        var replaced = 0
+        for glyph in pages[2].glyphs.indices where pages[2].glyphs[glyph].y == 70 && [448.0,452.0].contains(pages[2].glyphs[glyph].x) {
+            pages[2].glyphs[glyph].text = "X"; replaced += 1
+        }
+        XCTAssertEqual(replaced,2)
+        XCTAssertThrowsError(try SpecialScheduleParser.parse(pages,kind:.exam,digest:"fictional",name:"fictional.pdf"))
+    }
+
     func testExamParsesDatesClassesAndDocumentTimes() throws {
         let pages = (1...6).map { examPage($0, mergedFirstTwo: $0 == 1) }
         let result = try SpecialScheduleParser.parse(pages, kind: .exam,

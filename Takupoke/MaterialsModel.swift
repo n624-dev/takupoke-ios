@@ -234,6 +234,7 @@ extension MaterialsModel {
                       preview.document.pdfHash == selected.digest else { throw PDFParseError(code:.storage) }
                 try RecoveryConversion.verifyFile(preview.source,check:{ try cancelled.check(); try control.check() })
                 let analysis = try RecoveryConversion.timetable(preview)
+                guard preview.source.period == SchoolDataPeriod.current() else { throw PDFParseError(code:.cancelled) }
                 try cancelled.check(); try control.check(); try library.savePDFAnalysis(analysis)
             }
         }

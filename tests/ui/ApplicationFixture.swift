@@ -385,21 +385,20 @@ enum SimulatorRecoveryFixture {
         try library.commit(staged: staging, kind: .timetable, source: .init(grant: nil, childName: nil), originalName: "fictional-recovery.pdf", byteCount: raw.count, digest: digest, modifiedAt: nil)
         try library.recordPDFFailure(PDFParseError(code: .ambiguous), kind: .timetable)
     }
-    static func preview(_ kind: RecoveryDocumentKind) throws -> RecoveryPreview {
-        let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+    static func preview(_ kind: RecoveryDocumentKind) async throws -> RecoveryPreview {
+        let app = ApplicationData.shared
+        let selected = kind == .timetable ? await app.materials.recoverySource() : await app.specialSchedules.recoverySource(kind == .exam ? .exam : .examReturn)
+        guard let source = selected else { throw PDFParseError(code: .storage) }
         if kind != .timetable {
-            let special: SpecialScheduleKind = kind == .exam ? .exam : .examReturn
-            let store = try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite"))
-            guard let record = store.sources[special], let url = store.selectedURL(for: special) else { throw PDFParseError(code: .storage) }
-            var (document, result) = try specialPayload(kind); document.pdfHash = record.digest; result.pdfHash = record.digest
-            guard RecoveryValidator.validate(document, result).canAdopt else { throw PDFParseError(code: .ambiguous) }
-            return RecoveryPreview(document: document, result: result, source: RecoverySelectedSource(kind: kind, url: url, digest: record.digest, originalName: record.originalName, storedName: record.storedName, period: SchoolDataPeriod.current()))
+            var (document, result) = try specialPayload(kind); document.pdfHash = source.digest; result.pdfHash = source.digest
+            let validation = RecoveryValidator.validate(document, result)
+            guard validation.canAdopt else { throw NSError(domain: "SyntheticRecoveryPreview", code: 1, userInfo: [NSLocalizedDescriptionKey: validation.errors.joined(separator: ",")]) }
+            return RecoveryPreview(document: document, result: result, source: source)
         }
-        let library = try LocalMaterialDatabase.openLibrary(root: base.appendingPathComponent("SchoolMaterialsSQLite"))
-        guard let record = library.state.record(for: .timetable), let url = library.localURL(for: .timetable) else { throw PDFParseError(code: .storage) }
-        var (document, result) = payload(); document.pdfHash = record.digest; result.pdfHash = record.digest
-        guard RecoveryValidator.validate(document, result).canAdopt else { throw PDFParseError(code: .ambiguous) }
-        return RecoveryPreview(document: document, result: result, source: RecoverySelectedSource(kind: .timetable, url: url, digest: record.digest, originalName: record.originalName, storedName: record.storedName, period: SchoolDataPeriod.current()))
+        var (document, result) = payload(); document.pdfHash = source.digest; result.pdfHash = source.digest
+        let validation = RecoveryValidator.validate(document, result)
+        guard validation.canAdopt else { throw NSError(domain: "SyntheticRecoveryPreview", code: 1, userInfo: [NSLocalizedDescriptionKey: validation.errors.joined(separator: ",")]) }
+        return RecoveryPreview(document: document, result: result, source: source)
     }
 }
 struct FixtureRecoveryProbe: View {
@@ -442,7 +441,12 @@ enum SimulatorRecoveryOCRFixture {
         }
         guard let pdf = PDFDocument(url: url), pdf.pageCount == 1,
               (pdf.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw PDFParseError(code: .ambiguous) }
-        let pages = try await PDFRecoveryRecognition.layouts(url, only: [1], check: {})
+        let pages: [PDFRecoveryRecognition.LayoutPage]
+        do { pages = try await PDFRecoveryRecognition.layouts(url, only: [1], check: {}) }
+        catch {
+            let candidates = UserDefaults.standard.stringArray(forKey: "fixture.nativeOCRCandidates") ?? []
+            throw NSError(domain: "SyntheticNativeOCR", code: 1, userInfo: [NSLocalizedDescriptionKey: String(describing: error) + "; candidates=" + candidates.joined(separator: " | ")])
+        }
         guard pages.count == 1, let page = pages.first else { throw PDFParseError(code: .unreadable) }
         let layout = page.layout, raster = page.raster
         let text = layout.glyphs.map(\.text).joined().filter { !$0.isWhitespace }
@@ -451,14 +455,19 @@ enum SimulatorRecoveryOCRFixture {
         let scale = layout.height / 800
         guard let line = layout.lines.first(where: { $0.horizontal && abs($0.y1 - 140.5 * scale) <= 3 && $0.x2 - $0.x1 > layout.width * 0.95 }),
               raster.dark(raster.width / 2, Int(line.y1.rounded())),
-              !raster.dark(raster.width / 2, raster.height - 1 - Int(line.y1.rounded())) else { throw PDFParseError(code: .ambiguous, stage: .rasterInput) }
+              !raster.dark(raster.width / 2, raster.height - 1 - Int(line.y1.rounded())) else {
+            let horizontal = layout.lines.filter(\.horizontal).map { String(format: "%.1f", $0.y1) }.joined(separator: ",")
+            throw NSError(domain: "SyntheticOCRProbe", code: 1, userInfo: [NSLocalizedDescriptionKey: "rule/orientation h=\(layout.height), expected=\(140.5 * scale), horizontal=\(horizontal), grayAtExpected=\(raster.grayscale[Int(140.5 * scale) * raster.width + raster.width / 2])"])
+        }
         let textRegion = RecoveryBox(x: 10 * scale, y: 20 * scale, width: 550 * scale, height: 70 * scale)
         let blankRegion = RecoveryBox(x: 10 * scale, y: 550 * scale, width: 550 * scale, height: 200 * scale)
         let ruleRegion = RecoveryBox(x: 10 * scale, y: 125 * scale, width: 550 * scale, height: 30 * scale)
         guard raster.hasUncoveredInk(textRegion, text: [], rules: layout.lines),
               !raster.hasUncoveredInk(ruleRegion, text: [], rules: layout.lines),
               raster.isBlank(blankRegion),
-              !raster.hasUncoveredInk(blankRegion, text: [], rules: layout.lines) else { throw PDFParseError(code: .ambiguous, stage: .rasterInput) }
+              !raster.hasUncoveredInk(blankRegion, text: [], rules: layout.lines) else {
+            throw NSError(domain: "SyntheticOCRProbe", code: 2, userInfo: [NSLocalizedDescriptionKey: "ink: text=\(raster.hasUncoveredInk(textRegion, text: [], rules: layout.lines)), rule=\(raster.hasUncoveredInk(ruleRegion, text: [], rules: layout.lines)), blank=\(raster.isBlank(blankRegion)), blankInk=\(raster.hasUncoveredInk(blankRegion, text: [], rules: layout.lines))"])
+        }
         return "OCR・上端座標・罫線・未読インク検証済み"
     }
 }
