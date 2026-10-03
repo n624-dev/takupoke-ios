@@ -94,7 +94,7 @@ Xcode側も依存のcheckout・キャッシュをビルド用一時ディレク�
 
 ### 復旧の負荷と中止を確認する入力
 
-`RecoveryBuilderTests` は680セル・各3項目24群の完全架空の返却PDFレイアウトから、前処理・Rules・Validatorを通す。iOSでは固定項目の行をSourceへまとめるため、実Builderの出力は2,388件。49,308の独立Source入力は同じ架空文字と群の位置を使う別の契約回帰であり、Builderの実到達件数やモデルの精度として報告しない。背の高い跨セルSource、原順、共有の比較・文字列上限、内側取消、上限時に次のモデルを読み込まないことも検証する。SwiftUIの安定した詳細表示とworkerから各iOS Providerへの取消は、Apple SDKのビルド・実アプリUIで別に確認する。
+`RecoveryBuilderTests` は680セル・各3項目24群の完全架空の返却PDFレイアウトから、前処理・Rules・Validatorを通す。iOSでは固定項目の行をSourceへまとめるため、実Builderの出力は2,388件。49,308の独立Source入力は同じ架空文字と群の位置を使う別の契約回帰であり、Builderの実到達件数やモデルの精度として報告しない。背の高い跨セルSource、原順、共有の比較・文字列上限、内側取消、上限時に次のモデルを読み込まないことも検証する。最新検証ではLinux295件、Native Mac343件が成功した。Apple SDKのiPhoneビルドでworkerと各Providerの接続を確認し、OS26/27の実アプリUIで安定した詳細表示、採用・再起動後の保持を確認した。物理端末のモデル推論・メモリ・取消は別に確認する。
 
 ## このLinux環境のSwift
 

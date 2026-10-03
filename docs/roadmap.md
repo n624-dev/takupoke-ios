@@ -42,4 +42,4 @@
 
 ## PDF端末内復旧（開発中）
 
-[確定方針と現在の接続状況](pdf-recovery.md)に記録する。Strictを維持し、前処理、RoleScope付きValidator、前景ジョブ、元PDF確認/全クラスプレビュー/明示採用、正式保存、モデル管理とCore AI/llama.cpp adapterを接続。原文と有限候補IDだけを使う折り返し見出しの構造提案も接続。Linux Swift284件とPython57件が成功し、返却日付列の昇順と旧解析版の同一SHA再解析も確認した。Apple SDKのビルド・UIは以前のcheckpointで成功したが、最新の可視性・太線・CropBox変更はnative CIで再確認する。追加モデルは品質未合格のため配信Manifestを空に保持。公開fixtureの通過を機能完成や実資料の精度確認として扱わない。
+[確定方針と現在の接続状況](pdf-recovery.md)に記録する。Strictを維持し、前処理、RoleScope付きValidator、前景ジョブ、元PDF確認/全クラスプレビュー/明示採用、正式保存、モデル管理とCore AI/llama.cpp adapterを接続。原文と有限候補IDだけを使う折り返し見出しの構造提案も接続。Linux Swift295件とPython57件、最終CIのNative Mac343件、iPhone向けビルド、OS26/27のUI各2組が成功した。可視性・太線・CropBox・処理上限と取消、3文書種別／並記の明示採用と実アプリ再起動後の保存、更新時のホーム／時間割詳細の閉鎖を確認した。採用UIには検証済みの完全架空Previewを使い、生成モデルの精度とは分ける。物理端末での推論・メモリと実資料の復旧品質は未確認。追加モデルは品質未合格のため配信Manifestを空に保持。公開fixtureの通過を実資料の精度確認として扱わない。
