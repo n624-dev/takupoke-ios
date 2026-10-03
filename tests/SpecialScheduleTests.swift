@@ -5,6 +5,16 @@ import GRDB
 @testable import TakupokeParsing
 
 final class SpecialScheduleTests: XCTestCase {
+    func testRelativeSpecialSchedulesOutsideViewportCannotBecomeStrictSuccess() {
+        for kind: SpecialScheduleKind in [.exam,.examReturn] {
+            var pages = kind == .exam ? (1...6).map { examPage($0) } : [returnPageWithSplitCell()]
+            for index in pages[0].glyphs.indices { pages[0].glyphs[index].x += 3000 }
+            for index in pages[0].lines.indices { pages[0].lines[index].x1 += 3000; pages[0].lines[index].x2 += 3000 }
+            XCTAssertThrowsError(try SpecialScheduleParser.parse(pages,kind:kind,digest:"fictional",name:"fictional.pdf")) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage,.rasterInput)
+            }
+        }
+    }
     func testReturnColumnsMustBeInDateOrderBeforeSelectingFirstDayTimes() {
         for days in [[3,4,2,5,6], [1,2,6,4,5]] {
             XCTAssertThrowsError(try SpecialScheduleParser.parse([returnPageWithSplitCell(dateDays:days)],kind:.examReturn,digest:"fictional",name:"fictional.pdf")) {

@@ -110,7 +110,13 @@ final class PDFPathReader {
     }
 
     private func overlapsText(left: CGFloat, top: CGFloat, right: CGFloat, bottom: CGFloat, pad: Double) -> Bool {
-        textBoxes.contains { $0.left <= Double(right)+pad && Double(left)-pad <= $0.right && $0.top <= Double(bottom)+pad && Double(top)-pad <= $0.bottom }
+        for box in textBoxes {
+            // The collision loop is part of the page work budget, even when
+            // every glyph is disjoint. Fail closed and preserve its first error.
+            guard consumePaintWork() else { return true }
+            if box.left <= Double(right)+pad && Double(left)-pad <= box.right && box.top <= Double(bottom)+pad && Double(top)-pad <= box.bottom { return true }
+        }
+        return false
     }
     func paint(fill: Bool, stroke: Bool) {
         defer { paths.removeAll(keepingCapacity: true) }
@@ -129,7 +135,7 @@ final class PDFPathReader {
                 let width = box.right-box.left, height = box.bottom-box.top
                 guard ((width <= 2.1 && height > 3) || (height <= 2.1 && width > 3)),
                       !overlapsText(left:box.left,top:box.top,right:box.right,bottom:box.bottom,pad:0) else {
-                    failure = PDFParseError(code:.unsupported,stage:.vectorObjects); return
+                    if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }; return
                 }
             }
         }
@@ -143,7 +149,7 @@ final class PDFPathReader {
                     let a = path[index-1], b = path[index]
                     guard (abs(a.x-b.x) < 0.2 || abs(a.y-b.y) < 0.2),
                           !overlapsText(left:min(a.x,b.x),top:min(a.y,b.y),right:max(a.x,b.x),bottom:max(a.y,b.y),pad:pad) else {
-                        failure = PDFParseError(code:.unsupported,stage:.vectorObjects); return
+                        if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }; return
                     }
                 }
             }
@@ -299,7 +305,7 @@ final class PDFPathReader {
             }
             CGPDFOperatorTableSetCallback(table, "Tr") { scanner, p in
                 guard let s = PDFPathReader.state(p), let mode = s.numbers(scanner,1)?.first else { return }
-                if mode.rounded() != mode || !(0...2).contains(mode) { s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }
+                if mode != 0 { s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }
             }
             for op in ["Tj", "TJ", "'", "\""] {
                 CGPDFOperatorTableSetCallback(table, op) { _, p in PDFPathReader.state(p)?.textSeen = true }

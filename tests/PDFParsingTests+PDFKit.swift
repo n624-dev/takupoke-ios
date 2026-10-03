@@ -10,6 +10,27 @@ import CoreText
 
 #if canImport(PDFKit)
 extension PDFParsingTests {
+    func testVisibilityCollisionWorkAndCancellationAreBoundedWithinEachPaint() {
+        let boxes = Array(repeating:PDFBox(left:100,top:100,right:110,bottom:110),count:1100)
+        let segment = [CGPoint(x:10,y:20),CGPoint(x:30,y:20)]
+        let limited = PDFPathReader(transform:PDFDisplayTransform(media:CGRect(x:0,y:0,width:300,height:400),rotation:0),verifyVisibility:true,textBoxes:boxes,check:{})
+        limited.paths = Array(repeating:segment,count:1100)
+        limited.paint(fill:false,stroke:true)
+        XCTAssertEqual((limited.failure as? PDFParseError)?.code,.limit)
+        XCTAssertTrue(limited.paths.isEmpty)
+        XCTAssertTrue(limited.lines.isEmpty)
+
+        var checks = 0
+        let cancelled = PDFPathReader(transform:PDFDisplayTransform(media:CGRect(x:0,y:0,width:300,height:400),rotation:0),verifyVisibility:true,textBoxes:boxes,check:{
+            checks += 1
+            if checks == 2 { throw PDFParseError(code:.cancelled) }
+        })
+        cancelled.paths = [segment]
+        cancelled.paint(fill:false,stroke:true)
+        XCTAssertEqual(checks,2)
+        XCTAssertEqual((cancelled.failure as? PDFParseError)?.code,.cancelled)
+        XCTAssertTrue(cancelled.paths.isEmpty)
+    }
     func testPDFPathPaintPreservesFilledRulesAndUniqueArrow() {
         let reader = syntheticPathReader()
         // Bounds are deliberately taken from a non-rectangular stem, too.
@@ -264,7 +285,9 @@ extension PDFParsingTests {
         XCTAssertThrowsError(try PDFKitReader.read(url, kind: .timetable)) { error in
             XCTAssertEqual((error as? PDFParseError)?.stage, .characterMapping)
         }
-        let normal = try PDFKitReader.readSpecial(url)
+        // This test covers the legacy PDFKit selection bridge, whose generated
+        // CoreText color spaces/fonts are outside the school visibility subset.
+        let normal = try PDFKitReader.read(url,kind:.events)
         let parsed = try parse(normal, kind: .timetable)
         XCTAssertEqual(parsed.lessons.count, 8)
         XCTAssertEqual(Set(parsed.lessons.map(\.names.subject)), ["架空科目Q", "架空X", "架空Y", "架空科目Z"])
@@ -274,7 +297,7 @@ extension PDFParsingTests {
         let document = try XCTUnwrap(PDFDocument(data: data as Data))
         try XCTUnwrap(document.page(at: 0)).rotation = 90
         try XCTUnwrap(document.dataRepresentation()).write(to: url)
-        let rotated = try PDFKitReader.readSpecial(url)
+        let rotated = try PDFKitReader.read(url,kind:.events)
         XCTAssertEqual(rotated[0].width, normal[0].height, accuracy: 0.1)
         XCTAssertEqual(rotated[0].height, normal[0].width, accuracy: 0.1)
         let before = try XCTUnwrap(normal[0].glyphs.first { $0.text == "令" })

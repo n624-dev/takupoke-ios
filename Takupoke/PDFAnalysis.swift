@@ -32,6 +32,26 @@ struct PDFPageLayout: Codable, Sendable {
     var glyphs: [PDFGlyph]
     var lines: [PDFRule]
     var arrows: [PDFArrow]? = nil
+
+    /// Relative table geometry alone does not prove that any text is displayed.
+    /// School schedules may reuse a native layout only within its viewport.
+    func requireVisibleBounds(check: () throws -> Void = {}) throws {
+        func inside(_ x: Double, _ y: Double) -> Bool {
+            x.isFinite && y.isFinite && x >= 0 && y >= 0 && x <= width && y <= height
+        }
+        guard width.isFinite, height.isFinite, width > 0, height > 0 else { throw PDFParseError(code:.unsupported,stage:.rasterInput) }
+        for (index,glyph) in glyphs.enumerated() {
+            if index % 128 == 0 { try check() }
+            guard glyph.width.isFinite, glyph.height.isFinite, glyph.width >= 0, glyph.height >= 0,
+                  inside(glyph.x,glyph.y), inside(glyph.x+glyph.width,glyph.y+glyph.height) else {
+                throw PDFParseError(code:.unsupported,stage:.rasterInput)
+            }
+        }
+        for (index,line) in lines.enumerated() {
+            if index % 128 == 0 { try check() }
+            guard inside(line.x1,line.y1), inside(line.x2,line.y2) else { throw PDFParseError(code:.unsupported,stage:.rasterInput) }
+        }
+    }
 }
 struct PDFArrow: Codable, Sendable { var x: Double; var top: Double; var bottom: Double }
 struct PDFBox: Hashable {
@@ -154,7 +174,7 @@ struct PDFEventClassification: Codable, Equatable {
     }
 }
 struct PDFAnalysis: Codable {
-    static let parserVersion = 14
+    static let parserVersion = 15
     // Timetable fixes must not ask users to reparse an unchanged calendar.
     static func currentVersion(for kind: MaterialKind) -> Int { kind == .events ? 4 : parserVersion }
     var version = parserVersion

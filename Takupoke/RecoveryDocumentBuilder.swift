@@ -31,6 +31,7 @@ enum RecoveryDocumentBuilder {
         var requests = [RecoveryStructureRequest]()
         for (pageIndex, page) in pages.enumerated() {
             try check()
+            try page.requireVisibleBounds(check:check)
             let number = pageIndex + 1, grid = PDFGrid(page: page)
             let pageRaster = try rasters[number].map { try $0.preparingRules(page.lines,check:check) }
             var used: Set<Int> = []

@@ -10,6 +10,27 @@ import AppKit
 #endif
 
 final class PDFTextGeometryTests: XCTestCase {
+    func testOnlyFilledTextModeHasAnIndependentGlyphExtentProof() throws {
+        let engine = PDFTextGeometry()
+        XCTAssertNoThrow(try engine.operation("Tr",[0]))
+        for mode in 1...7 { XCTAssertThrowsError(try engine.operation("Tr",[Double(mode)])) }
+        XCTAssertThrowsError(try engine.operation("Tr",[0.5]))
+    }
+    func testViewportChecksWholeGlyphsRulesAndFiniteEndpointSums() throws {
+        let glyph = PDFGlyph(text:"A",x:0,y:0,width:10,height:10)
+        let rule = PDFRule(x1:0,y1:100,x2:100,y2:100)
+        let visible = PDFPageLayout(width:100,height:100,glyphs:[glyph],lines:[rule])
+        XCTAssertNoThrow(try visible.requireVisibleBounds())
+        for (x,y,w,h) in [(-0.1,0.0,10.0,10.0),(95,0,10,10),(0,-0.1,10,10),(0,95,10,10),(0,0,Double.infinity,10)] {
+            var page = visible; page.glyphs = [PDFGlyph(text:"A",x:x,y:y,width:w,height:h)]
+            XCTAssertThrowsError(try page.requireVisibleBounds())
+        }
+        var outsideRule = visible; outsideRule.lines[0].x2 = 100.1
+        XCTAssertThrowsError(try outsideRule.requireVisibleBounds())
+        var overflow = visible; overflow.width = Double.greatestFiniteMagnitude
+        overflow.glyphs[0].x = Double.greatestFiniteMagnitude; overflow.glyphs[0].width = Double.greatestFiniteMagnitude
+        XCTAssertThrowsError(try overflow.requireVisibleBounds())
+    }
     func testStrictStrokeWidthBoundsIncludeTransformsAndHairlines() {
         XCTAssertNotNil(PDFTextVisibility.strokePad(1,a:1,b:0,c:0,d:1))
         XCTAssertEqual(PDFTextVisibility.strokePad(0,a:1,b:0,c:0,d:1),0.5)
@@ -172,6 +193,61 @@ final class PDFTextGeometryTests: XCTestCase {
 
 #if canImport(PDFKit)
 extension PDFTextGeometryTests {
+    private final class NativeFontProbe {
+        let reader = PDFDrawnTextReader(check:{})
+        var failure: Error?
+    }
+    func testNativeExplicitFontAndUnicodeResourcesDecodeIndependently() throws {
+        for simple in [true,false] {
+            let data = syntheticPDF(content:simple ? "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET" : "BT /F1 10 Tf 1 0 0 1 30 350 Tm <00010002> Tj ET",simpleFont:simple)
+            let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
+            var resources: CGPDFDictionaryRef?, fonts: CGPDFDictionaryRef?, font: CGPDFDictionaryRef?, map: CGPDFStreamRef?
+            XCTAssertTrue(CGPDFDictionaryGetDictionary(page.dictionary,"Resources",&resources))
+            XCTAssertTrue(CGPDFDictionaryGetDictionary(try XCTUnwrap(resources),"Font",&fonts))
+            XCTAssertTrue(CGPDFDictionaryGetDictionary(try XCTUnwrap(fonts),"F1",&font))
+            XCTAssertTrue(CGPDFDictionaryGetStream(try XCTUnwrap(font),"ToUnicode",&map))
+            var format = CGPDFDataFormat.raw
+            let unicode = try XCTUnwrap(CGPDFStreamCopyData(try XCTUnwrap(map),&format))
+            XCTAssertEqual(format,.raw)
+            let decoded = try PDFUnicodeMap.read(unicode as Data)
+            XCTAssertEqual(decoded.bytes,simple ? 1:2)
+            XCTAssertEqual(decoded.values[simple ? 65:1],"A")
+            var metrics = try XCTUnwrap(font)
+            var subtype: UnsafePointer<CChar>?
+            XCTAssertTrue(CGPDFDictionaryGetName(metrics,"Subtype",&subtype))
+            XCTAssertEqual(String(cString:try XCTUnwrap(subtype)),simple ? "Type1":"Type0")
+            if simple {
+                var first: CGPDFReal = 0, last: CGPDFReal = 0, widths: CGPDFArrayRef?
+                XCTAssertTrue(CGPDFDictionaryGetNumber(metrics,"FirstChar",&first))
+                XCTAssertTrue(CGPDFDictionaryGetNumber(metrics,"LastChar",&last))
+                XCTAssertEqual(first,65); XCTAssertEqual(last,67)
+                XCTAssertTrue(CGPDFDictionaryGetArray(metrics,"Widths",&widths))
+                XCTAssertEqual(CGPDFArrayGetCount(try XCTUnwrap(widths)),3)
+            } else {
+                var descendants: CGPDFArrayRef?, descendant: CGPDFDictionaryRef?
+                XCTAssertTrue(CGPDFDictionaryGetArray(metrics,"DescendantFonts",&descendants))
+                XCTAssertTrue(CGPDFArrayGetDictionary(try XCTUnwrap(descendants),0,&descendant))
+                metrics = try XCTUnwrap(descendant)
+            }
+            var descriptor: CGPDFDictionaryRef?, ascent: CGPDFReal = 0, descent: CGPDFReal = 0
+            XCTAssertTrue(CGPDFDictionaryGetDictionary(metrics,"FontDescriptor",&descriptor))
+            XCTAssertTrue(CGPDFDictionaryGetNumber(try XCTUnwrap(descriptor),"Ascent",&ascent))
+            XCTAssertTrue(CGPDFDictionaryGetNumber(try XCTUnwrap(descriptor),"Descent",&descent))
+            XCTAssertEqual(ascent,800); XCTAssertEqual(descent,-200)
+            let probe = NativeFontProbe()
+            let table = try XCTUnwrap(CGPDFOperatorTableCreate()); defer { CGPDFOperatorTableRelease(table) }
+            CGPDFOperatorTableSetCallback(table,"Tf") { scanner, info in
+                guard let info else { return }
+                let probe = Unmanaged<NativeFontProbe>.fromOpaque(info).takeUnretainedValue()
+                do { try probe.reader.font(scanner) } catch { probe.failure = error }
+            }
+            let stream = CGPDFContentStreamCreateWithPage(page); defer { CGPDFContentStreamRelease(stream) }
+            let scanner = CGPDFScannerCreate(stream,table,Unmanaged.passUnretained(probe).toOpaque()); defer { CGPDFScannerRelease(scanner) }
+            XCTAssertTrue(CGPDFScannerScan(scanner))
+            XCTAssertNil(probe.failure,"Native font resource decode must succeed independently of content visibility")
+            XCTAssertEqual(probe.reader.fonts.count,1)
+        }
+    }
     // Entirely invented PDF, with explicit resources and text operators. This
     // checks the Core Graphics adapter rather than relying on Quartz's font choice.
     private func syntheticPDF(content: String, unicode: Bool = true, graphicsState: String = "", simpleFont: Bool = false, crop: String = "") -> Data {
@@ -181,7 +257,7 @@ extension PDFTextGeometryTests {
         /CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def
         /CMapName /Synthetic def /CMapType 2 def
         1 begincodespacerange <00> <FF> endcodespacerange
-        2 beginbfchar <41> <0041> <42> <0042> endbfchar
+        3 beginbfchar <41> <0041> <42> <0042> <43> <0043> endbfchar
         endcmap CMapName currentdict /CMap defineresource pop end end
         """
         let cmap = simpleFont ? simpleMap : """
@@ -196,9 +272,9 @@ extension PDFTextGeometryTests {
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] \(crop) /Resources << /Font << /F1 4 0 R >> /ExtGState << /Visibility << \(graphicsState) >> >> >> /Contents 8 0 R >>",
-            simpleFont ? "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /FirstChar 65 /LastChar 66 /Widths [667 667] /FontDescriptor 6 0 R /ToUnicode 7 0 R >>" : "<< /Type /Font /Subtype /Type0 /BaseFont /Synthetic /Encoding /Identity-H /DescendantFonts [5 0 R] \(unicode ? "/ToUnicode 7 0 R" : "") >>",
+            simpleFont ? "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 65 /LastChar 67 /Widths [667 667 667] /FontDescriptor 6 0 R \(unicode ? "/ToUnicode 7 0 R" : "") >>" : "<< /Type /Font /Subtype /Type0 /BaseFont /Synthetic /Encoding /Identity-H /DescendantFonts [5 0 R] \(unicode ? "/ToUnicode 7 0 R" : "") >>",
             "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Synthetic /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 6 0 R /DW 1000 /W [1 [500] 2 3 600] /CIDToGIDMap /Identity >>",
-            "<< /Type /FontDescriptor /FontName \(simpleFont ? "Helvetica" : "Synthetic") /Flags 4 /FontBBox [0 -200 1000 800] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 >>",
+            "<< /Type /FontDescriptor /FontName \(simpleFont ? "Helvetica" : "Synthetic") /Flags \(simpleFont ? 32:4) /FontBBox [0 -200 1000 800] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 >>",
             stream(cmap), stream(content)
         ]
         var data = Data("%PDF-1.4\n".utf8), offsets: [Int] = [0]
@@ -329,6 +405,23 @@ extension PDFTextGeometryTests {
             }
         }
     }
+    func testNativeOffCanvasSelectableTextCannotBecomeCompleteInput() throws {
+        let content = "0 g BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET 10 10 m 290 10 l S"
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-offcanvas-"+UUID().uuidString)
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
+        defer { try? FileManager.default.removeItem(at:root) }
+        for (x,y) in [(600,0),(-600,0),(0,600),(0,-600)] {
+            let data = syntheticPDF(content:"q 1 0 0 1 \(x) \(y) cm "+content+" Q",simpleFont:true)
+            XCTAssertEqual(try paintedInk(data),0,"The entire shifted table is outside the displayed page")
+            let url = root.appendingPathComponent("fictional.pdf"); try data.write(to:url)
+            for special in [false,true] {
+                let capture = RecoveryReadCapture()
+                if special { XCTAssertThrowsError(try PDFKitReader.readSpecial(url,capture:capture)) }
+                else { XCTAssertThrowsError(try PDFKitReader.read(url,kind:.timetable,capture:capture)) }
+                XCTAssertFalse(capture.complete); XCTAssertFalse(capture.pages.contains { $0.state == .complete })
+            }
+        }
+    }
     func testNativeThinStrokeCannotCrossAcquiredGlyphs() throws {
         let data = syntheticPDF(content:"0 g BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET 0 G 1 w 20 355 m 70 355 l S",simpleFont:true)
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-thin-stroke-"+UUID().uuidString+".pdf")
@@ -337,6 +430,20 @@ extension PDFTextGeometryTests {
             let capture = RecoveryReadCapture()
             if special { XCTAssertThrowsError(try PDFKitReader.readSpecial(url,capture:capture)) }
             else { XCTAssertThrowsError(try PDFKitReader.read(url,kind:.timetable,capture:capture)) }
+            XCTAssertFalse(capture.complete); XCTAssertFalse(capture.pages.contains { $0.state == .complete })
+        }
+    }
+    func testNativeOutlinedTextUsesCompositedRasterInsteadOfSelectionBounds() throws {
+        for mode in [1,2] {
+            let data = syntheticPDF(content:"0 g 0 G 25 w BT /F1 12 Tf \(mode) Tr 1 0 0 1 30 350 Tm (AB) Tj ET",simpleFont:true)
+            XCTAssertGreaterThan(try paintedInk(data),0,"The outline is painted, but its extent is not the glyph advance box")
+            let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
+            let reader = PDFPathReader(transform:PDFDisplayTransform(media:page.getBoxRect(.mediaBox),rotation:0),verifyVisibility:true,check:{})
+            XCTAssertThrowsError(try reader.read(page)) { XCTAssertEqual(($0 as? PDFParseError)?.stage,.vectorObjects) }
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-outline-"+UUID().uuidString+".pdf")
+            defer { try? FileManager.default.removeItem(at:url) }; try data.write(to:url)
+            let capture = RecoveryReadCapture()
+            XCTAssertThrowsError(try PDFKitReader.readSpecial(url,capture:capture))
             XCTAssertFalse(capture.complete); XCTAssertFalse(capture.pages.contains { $0.state == .complete })
         }
     }
@@ -366,7 +473,7 @@ extension PDFTextGeometryTests {
         }
     }
     func testNativeSpecialVisibilityScanAllowsOpaqueTextAndRules() throws {
-        let data = syntheticPDF(content:"/Visibility gs BT /F1 10 Tf 0 Tr 1 0 0 1 30 350 Tm <00010002> Tj ET 10 10 m 290 10 l S",graphicsState:"/ca 1 /CA 1 /BM /Normal")
+        let data = syntheticPDF(content:"/Visibility gs BT /F1 10 Tf 0 Tr 1 0 0 1 30 350 Tm (AB) Tj ET 10 10 m 290 10 l S",graphicsState:"/ca 1 /CA 1 /BM /Normal",simpleFont:true)
         let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
         let reader = PDFPathReader(transform:PDFDisplayTransform(media:page.getBoxRect(.mediaBox),rotation:0),verifyVisibility:true,check:{})
         XCTAssertEqual(try reader.read(page).count,1)
@@ -377,7 +484,9 @@ extension PDFTextGeometryTests {
         XCTAssertTrue(capture.complete); XCTAssertEqual(pages.first?.glyphs.map(\.text).joined(),"AB")
     }
     func testNativeResourcesAndTJThroughPDFKitBridge() throws {
-        let data = syntheticPDF(content: "BT /F1 10 Tf 1 0 0 1 30 350 Tm [<0001> -1500 <0002>] TJ 0 -20 TD <0003> Tj ET 10 10 m 290 10 l S")
+        // Standard Helvetica is actually drawable without an embedded font.
+        // The separate resource probe covers two-byte CID decoder interop.
+        let data = syntheticPDF(content: "BT /F1 10 Tf 1 0 0 1 30 350 Tm [<41> -1500 <42>] TJ 0 -20 TD <43> Tj ET 10 10 m 290 10 l S",simpleFont:true)
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -385,9 +494,9 @@ extension PDFTextGeometryTests {
         try data.write(to: url)
         let layout = try XCTUnwrap(PDFKitReader.read(url, kind: .timetable).first)
         XCTAssertEqual(layout.glyphs.map(\.text), ["A", "B", "C"])
-        XCTAssertEqual(layout.glyphs.map(\.x), [30, 50, 30])
+        for (actual,expected) in zip(layout.glyphs.map(\.x),[30.0,51.67,30]) { XCTAssertEqual(actual,expected,accuracy:0.001) }
         XCTAssertEqual(layout.glyphs.map(\.y), [42, 42, 62])
-        XCTAssertEqual(layout.glyphs.map(\.width), [5, 6, 6])
+        for width in layout.glyphs.map(\.width) { XCTAssertEqual(width,6.67,accuracy:0.001) }
         XCTAssertFalse(layout.lines.isEmpty)
     }
 

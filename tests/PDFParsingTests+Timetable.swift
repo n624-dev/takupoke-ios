@@ -9,6 +9,14 @@ import CoreText
 #endif
 
 extension PDFParsingTests {
+    func testRelativeTimetableOutsideViewportCannotBecomeStrictSuccess() {
+        for shift in [-2000.0,2000.0] {
+            var page = timetable()
+            for index in page.glyphs.indices { page.glyphs[index].x += shift }
+            for index in page.lines.indices { page.lines[index].x1 += shift; page.lines[index].x2 += shift }
+            XCTAssertThrowsError(try parse([page],kind:.timetable)) { XCTAssertEqual(($0 as? PDFParseError)?.stage,.rasterInput) }
+        }
+    }
     func testTimetablePeriodsParallelLessonsAndEmptyRoom() throws {
         let result = try parse([timetable()], kind: .timetable)
         XCTAssertEqual(result.version, PDFAnalysis.currentVersion(for: .timetable))

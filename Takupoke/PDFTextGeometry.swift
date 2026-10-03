@@ -90,7 +90,9 @@ final class PDFTextGeometry {
         case "TL": state.leading = n[0]
         case "Ts": state.rise = n[0]; line += 1
         case "Tr":
-            guard [0, 1, 2].contains(n[0]) else { throw PDFTextFailure.unsupported }
+            // Glyph advance/ascent bounds do not certify a stroked outline's
+            // painted extent or contrast. Composite those modes in raster.
+            guard n[0] == 0 else { throw PDFTextFailure.unsupported }
             state.rendering = n[0]
         default: throw PDFTextFailure.unsupported
         }

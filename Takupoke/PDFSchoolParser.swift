@@ -20,6 +20,10 @@ enum PDFSchoolParser {
                   (page.arrows ?? []).allSatisfy({ [$0.x, $0.top, $0.bottom].allSatisfy(\.isFinite) && $0.top < $0.bottom }) else {
                 throw PDFParseError(code: .limit, page: index + 1)
             }
+            if kind == .timetable {
+                do { try page.requireVisibleBounds(check:check) }
+                catch var error as PDFParseError { error.page = index+1; throw error }
+            }
         }
         let top = PDFGrid.rows(pages[0].glyphs.filter { $0.cy < pages[0].height / 8 }).map { $0.map(\.text).joined() }.joined()
         let normalized = key(top)

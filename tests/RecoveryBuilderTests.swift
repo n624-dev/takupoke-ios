@@ -3,6 +3,14 @@ import XCTest
 @testable import TakupokeParsing
 
 extension PDFParsingTests {
+    func testOffscreenRecoveryLayoutFailsBeforeSourceBindingOrAI() {
+        var page = recoveryTimetablePage()
+        for index in page.glyphs.indices { page.glyphs[index].x += 3000 }
+        for index in page.lines.indices { page.lines[index].x1 += 3000; page.lines[index].x2 += 3000 }
+        XCTAssertThrowsError(try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:String(repeating:"b",count:64))) {
+            XCTAssertEqual(($0 as? PDFParseError)?.stage,.rasterInput)
+        }
+    }
     func recoveryTimetablePage(labeled: Bool = false) -> PDFPageLayout {
         var p = timetable(); p.width = 1900
         p.glyphs.removeAll { $0.cy == 70 }

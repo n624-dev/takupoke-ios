@@ -37,6 +37,8 @@ enum SpecialScheduleParser {
                       $0.text.utf8.count <= 64 }) else {
                 throw PDFParseError(code: .limit, page: index + 1)
             }
+            do { try page.requireVisibleBounds(check:check) }
+            catch var error as PDFParseError { error.page = index+1; throw error }
             let header = PDFSchoolParser.key(PDFGrid.rows(page.glyphs.filter { $0.cy < page.height / 4 })
                 .map { $0.map(\.text).joined() }.joined())
             guard let range = header.range(of: "令和[0-9]{1,2}年度", options: .regularExpression),

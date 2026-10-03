@@ -62,7 +62,7 @@ LinuxのSwiftホストテストではFoundation側の契約・Validator・Engine
 
 ## この作業でのローカル検証（2026-10-03 UTC）
 
-LinuxでiOS Swift269件とPython56件が成功。構造提案・起動前完全性チェック・名称変更・ETag・授業領域内の配役校正・時刻順・小数境界の未読画素・モデル削除失敗と再起動の回帰を含む。返却日付列の昇順と旧解析版の同一SHA再解析も確認した。WindowsとAndroidの実OS検証は各版の記録を参照する。
+LinuxでiOS Swift274件とPython56件が成功。構造提案・起動前完全性チェック・名称変更・ETag・授業領域内の配役校正・時刻順・小数境界の未読画素・モデル削除失敗と再起動の回帰を含む。返却日付列の昇順、表示領域外へ平行移動した表の拒否、旧解析版の同一SHA再解析も確認した。WindowsとAndroidの実OS検証は各版の記録を参照する。
 
 iOSはOS26/27で3文書種別の明示採用・実アプリ再起動後の保存確認とiPhone向けビルドが成功した。日本語画像PDFのactual Vision OCRはOS27で成功し、OS26では低confidenceを安全に拒否した。最新の可視性・太線・CropBoxと原本表示の変更はnative CIで再検証する。白文字・上塗り・不可視描画・文字と交差する線・切り抜き外本文を扱う架空PDF、および実PDFKit thumbnailのCropBox画像と参照画像を比較するMacテストを追加した。LinuxではこれらのApple SDKコードの構文検査までで、実描画の確認とは区別する。
 
