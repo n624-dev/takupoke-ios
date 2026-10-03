@@ -41,13 +41,13 @@ enum SpecialScheduleParser {
             catch var error as PDFParseError { error.page = index+1; throw error }
             let header = PDFSchoolParser.key(PDFGrid.rows(page.glyphs.filter { $0.cy < page.height / 4 })
                 .map { $0.map(\.text).joined() }.joined())
-            guard let range = header.range(of: "令和[0-9]{1,2}年度", options: .regularExpression),
-                  let era = Int(header[range].dropFirst(2).dropLast(2)),
-                  (1...99).contains(era), header.contains("試験"),
+            guard header.contains("試験"),
                   header.contains("返却") == (kind == .examReturn) else {
                 throw PDFParseError(code: .unsupported, page: index + 1, stage: .documentHeading)
             }
-            let pageYear = 2018 + era
+            let pageYear: Int
+            do { pageYear = try PDFSchoolParser.uniqueTitleYear(header,check:check) }
+            catch var error as PDFParseError { error.page = index+1; throw error }
             guard year == nil || year == pageYear else {
                 throw PDFParseError(code: .ambiguous, page: index + 1, stage: .yearHeading)
             }

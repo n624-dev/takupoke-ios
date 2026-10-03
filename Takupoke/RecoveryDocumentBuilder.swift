@@ -83,10 +83,8 @@ enum RecoveryDocumentBuilder {
             var yearFound = false
             for row in headingRows {
                 let raw = row.map(\.text).joined()
-                if let range = raw.range(of: "(?:令和[0-9]{1,2}|[0-9]{4})年度", options: .regularExpression) {
-                    let token = String(raw[range]), era = token.hasPrefix("令和")
-                    guard let value = Int(era ? token.dropFirst(2).dropLast(2) : token.dropLast(2)) else { throw PDFParseError(code: .ambiguous) }
-                    let year = era ? value + 2018 : value
+                for marker in try PDFSchoolParser.yearMarkers(raw,check:check) {
+                    let range = marker.range, year = marker.year
                     guard doc.schoolYear == 0 || doc.schoolYear == year else { throw PDFParseError(code: .ambiguous, stage: .yearHeading) }
                     doc.schoolYear = year; yearFound = true
                     let first = raw.distance(from: raw.startIndex, to: range.lowerBound), last = raw.distance(from: raw.startIndex, to: range.upperBound)

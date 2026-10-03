@@ -2,6 +2,27 @@ import Foundation
 
 enum PDFSchoolParser {
     static let maximumRecords = 10000
+    struct YearMarker { let year: Int; let range: Range<String.Index>; let isReiwa: Bool }
+    static func yearMarkers(_ header: String,check: () throws -> Void = {}) throws -> [YearMarker] {
+        var markers = [YearMarker](), remainder = header.startIndex..<header.endIndex
+        while let range = header.range(of:"(?<![0-9])(?:令和[0-9]{1,2}|[0-9]{4})年度",options:.regularExpression,range:remainder) {
+            try check()
+            let token = header[range], era = token.hasPrefix("令和")
+            guard let value = Int(era ? token.dropFirst(2).dropLast(2) : token.dropLast(2)),
+                  !era || (1...99).contains(value) else { throw PDFParseError(code:.unsupported,stage:.yearHeading) }
+            let year = era ? 2018+value:value
+            guard (1900...9998).contains(year) else { throw PDFParseError(code:.unsupported,stage:.yearHeading) }
+            markers.append(YearMarker(year:year,range:range,isReiwa:era))
+            remainder = range.upperBound..<header.endIndex
+        }
+        return markers
+    }
+    static func uniqueTitleYear(_ header: String,check: () throws -> Void = {}) throws -> Int {
+        let markers = try yearMarkers(header,check:check)
+        guard let first = markers.first, markers.contains(where:\.isReiwa) else { throw PDFParseError(code:.unsupported,stage:.yearHeading) }
+        guard markers.allSatisfy({ $0.year == first.year }) else { throw PDFParseError(code:.ambiguous,stage:.yearHeading) }
+        return first.year
+    }
     static func key(_ s: String) -> String {
         s.precomposedStringWithCompatibilityMapping.components(separatedBy: .whitespacesAndNewlines).joined()
     }
@@ -27,16 +48,28 @@ enum PDFSchoolParser {
         }
         let top = PDFGrid.rows(pages[0].glyphs.filter { $0.cy < pages[0].height / 8 }).map { $0.map(\.text).joined() }.joined()
         let normalized = key(top)
-        guard let range = normalized.range(of: "令和[0-9]{1,2}年度", options: .regularExpression),
-              let era = Int(normalized[range].dropFirst(2).dropLast(2)), (1...99).contains(era) else {
-            throw PDFParseError(code: .unsupported, page: 1, stage: .yearHeading)
+        let year: Int
+        if kind == .timetable {
+            do { year = try uniqueTitleYear(normalized,check:check) }
+            catch var error as PDFParseError { error.page = 1; throw error }
+        } else {
+            // Legacy event PDFs retain their original header contract.
+            guard let range = normalized.range(of: "令和[0-9]{1,2}年度", options: .regularExpression),
+                  let era = Int(normalized[range].dropFirst(2).dropLast(2)), (1...99).contains(era) else {
+                throw PDFParseError(code: .unsupported, page: 1, stage: .yearHeading)
+            }
+            year = 2018+era
         }
-        let year = 2018 + era
         for (index, page) in pages.enumerated() {
             let heading = key(PDFGrid.rows(page.glyphs.filter { $0.cy < page.height / 8 }).map { $0.map(\.text).joined() }.joined())
-            guard let range = heading.range(of: "令和[0-9]{1,2}年度", options: .regularExpression),
-                  Int(heading[range].dropFirst(2).dropLast(2)) == era else {
-                throw PDFParseError(code: .unsupported, page: index + 1, stage: .yearHeading)
+            if kind == .timetable {
+                do { guard try uniqueTitleYear(heading,check:check) == year else { throw PDFParseError(code:.ambiguous,stage:.yearHeading) } }
+                catch var error as PDFParseError { error.page = index+1; throw error }
+            } else {
+                guard let range = heading.range(of: "令和[0-9]{1,2}年度", options: .regularExpression),
+                      Int(heading[range].dropFirst(2).dropLast(2)) == year-2018 else {
+                    throw PDFParseError(code: .unsupported, page: index + 1, stage: .yearHeading)
+                }
             }
         }
         var result = PDFAnalysis(version: PDFAnalysis.currentVersion(for: kind), kind: kind, sourceDigest: digest, sourceName: name, parsedAt: Date(),

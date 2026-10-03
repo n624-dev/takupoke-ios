@@ -3,6 +3,39 @@ import XCTest
 @testable import TakupokeParsing
 
 extension PDFParsingTests {
+    func testOrdinaryTitleYearMustBeUniqueWhileRepeatedEquivalentYearsRemainValid() throws {
+        func page(_ title: String) -> PDFPageLayout {
+            var value = timetable(); value.glyphs.removeAll { $0.cy == 20 }
+            value.glyphs += text(title,x:200,y:20)
+            return value
+        }
+        for title in ["令和14年度令和14年度前期時間割","2032年度令和14年度前期時間割"] {
+            XCTAssertEqual(try parse([page(title)],kind:.timetable).schoolYear,2032)
+        }
+        for title in ["令和13年度令和14年度前期時間割","令和14年度令和13年度前期時間割"] {
+            XCTAssertThrowsError(try parse([page(title)],kind:.timetable)) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage,.yearHeading)
+            }
+        }
+    }
+    func testRecoveryTitleYearEvidenceMustIncludeEveryEquivalentMarker() async throws {
+        func page(_ title: String) -> PDFPageLayout {
+            var value = recoveryTimetablePage(); value.glyphs.removeAll { $0.cy == 20 }
+            value.glyphs += text(title,x:200,y:20)
+            return value
+        }
+        for title in ["令和14年度令和14年度前期時間割","2032年度令和14年度前期時間割"] {
+            let doc = try RecoveryDocumentBuilder.build([page(title)],kind:.timetable,hash:String(repeating:"b",count:64))
+            XCTAssertEqual(doc.schoolYear,2032); XCTAssertEqual(doc.yearEvidence.count,2)
+            let run = try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
+            XCTAssertEqual(run.state,.awaitingConfirmation)
+        }
+        for title in ["令和13年度令和14年度前期時間割","令和14年度令和13年度前期時間割"] {
+            XCTAssertThrowsError(try RecoveryDocumentBuilder.build([page(title)],kind:.timetable,hash:String(repeating:"b",count:64))) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage,.yearHeading)
+            }
+        }
+    }
     func testSourceIdentityIndexPreservesDuplicateAmbiguityAndCancellation() throws {
         let a = PDFGlyph(text:"A",x:10,y:20,width:4,height:8,sourceOrder:0)
         let b = PDFGlyph(text:"A",x:10,y:20,width:4,height:8,sourceOrder:1)
@@ -175,6 +208,49 @@ extension PDFParsingTests {
 }
 
 extension SpecialScheduleTests {
+    func testRecoverySpecialTitleYearEvidenceCannotIgnoreASecondYear() async throws {
+        for kind: RecoveryDocumentKind in [.exam,.return] {
+            let originals = kind == .exam ? (1...6).map { examPage($0) } : [returnPageWithSplitCell()]
+            func pages(_ years: String) -> [PDFPageLayout] {
+                var result = originals; result[0].glyphs.removeAll { $0.y == 20 }
+                let title = years+(kind == .exam ? "試験時間割":"試験返却時間割")
+                result[0].glyphs += title.enumerated().map { PDFGlyph(text:String($0.element),x:20+Double($0.offset)*4,y:20,width:4,height:4) }
+                return result
+            }
+            for years in ["令和8年度令和8年度","2026年度令和8年度"] {
+                let doc = try RecoveryDocumentBuilder.build(pages(years),kind:kind,hash:String(repeating:"c",count:64))
+                XCTAssertEqual(doc.schoolYear,2026)
+                XCTAssertEqual(doc.yearEvidence.count,kind == .exam ? 7:2)
+                let run = try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
+                XCTAssertEqual(run.state,.awaitingConfirmation)
+            }
+            for years in ["令和7年度令和8年度","令和8年度令和7年度"] {
+                XCTAssertThrowsError(try RecoveryDocumentBuilder.build(pages(years),kind:kind,hash:String(repeating:"c",count:64))) {
+                    XCTAssertEqual(($0 as? PDFParseError)?.stage,.yearHeading)
+                }
+            }
+        }
+    }
+    func testSpecialTitleYearMustBeUniqueAndEquivalentYearMarkersRemainValid() throws {
+        for kind: SpecialScheduleKind in [.exam,.examReturn] {
+            let originals = kind == .exam ? (1...6).map { examPage($0) } : [returnPageWithSplitCell()]
+            func pages(_ years: String) -> [PDFPageLayout] {
+                var result = originals
+                result[0].glyphs.removeAll { $0.y == 20 }
+                let title = years+(kind == .exam ? "試験時間割":"試験返却時間割")
+                result[0].glyphs += title.enumerated().map { PDFGlyph(text:String($0.element),x:20+Double($0.offset)*4,y:20,width:4,height:8) }
+                return result
+            }
+            for years in ["令和8年度令和8年度","2026年度令和8年度"] {
+                XCTAssertEqual(try SpecialScheduleParser.parse(pages(years),kind:kind,digest:"fictional",name:"fictional.pdf").schoolYear,2026)
+            }
+            for years in ["令和7年度令和8年度","令和8年度令和7年度"] {
+                XCTAssertThrowsError(try SpecialScheduleParser.parse(pages(years),kind:kind,digest:"fictional",name:"fictional.pdf")) {
+                    XCTAssertEqual(($0 as? PDFParseError)?.stage,.yearHeading)
+                }
+            }
+        }
+    }
     func testExamLayoutRecoveryReusesAllRepeatedClockCharts() async throws {
         let pages = (1...6).map { examPage($0,mergedFirstTwo:$0 == 1) }
         let doc = try RecoveryDocumentBuilder.build(pages,kind:.exam,hash:String(repeating:"c",count:64))
