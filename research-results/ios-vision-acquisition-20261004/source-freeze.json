@@ -1,0 +1,117 @@
+{
+  "baseCommit": "748ec016ea32b8d533df4626c3767505cc268cb2",
+  "worktree": "/tmp/takupoke-ios-vision-acquisition-20261004",
+  "scope": "source-extracted native read acquisition; no layouts/Builder/formal/LLM; ten original pages, one finite CI pending",
+  "files": [
+    {
+      "path": ".github/workflows/vision-acquisition-probe.yml",
+      "bytes": 3282,
+      "sha256": "d5ffb3f436ac571374b328e9df5a37dc964a05d219b3485649de4a52f8690eb9"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/Probe.swift",
+      "bytes": 7878,
+      "sha256": "a9895af7fbf7009b88a4f62eac04c4766732d2dbc2fc5b7ffa9c2e77924e29de"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/README.md",
+      "bytes": 3657,
+      "sha256": "e455e650a3fa90c780aa50976b782ad5248ee2ed45e8f6a6b904fc70e95b4d2b"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-literal-乙/page-1.png",
+      "bytes": 13079,
+      "sha256": "a0db633e4ee653dd18ab0d99b00f69aa3aa7f8d009f86e2b03c3cffd23bba6a7"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-literal-乙/page-2.png",
+      "bytes": 8111,
+      "sha256": "e4b7f6cfa73a27567893e6a555b720c954bee2f709b77bb60066938b67a793b8"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-literal-乙/page-3.png",
+      "bytes": 8132,
+      "sha256": "b9eff63c09a77fa9a054a478287fe1737b66710bfc39eda436109e519774100e"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-literal-乙/page-4.png",
+      "bytes": 8044,
+      "sha256": "32bfc1384924e8c63dd97f53529726daf64d8e6f5425c73a73cad578156cafa3"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-literal-乙/page-5.png",
+      "bytes": 8147,
+      "sha256": "4933332d579a7ddc1c3123fdd6c22206f851483193a891f19ead01a0cc19a4b4"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-verifiedblank-丙/page-1.png",
+      "bytes": 12397,
+      "sha256": "5dc6c33f3600c7c2e8f8cffced619a96af292ece024f82357c77857936b6e3c7"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-verifiedblank-丙/page-2.png",
+      "bytes": 8452,
+      "sha256": "a337510f7052b27adce3f24d38fa17ae7dfbc7cad7295dbf0390753acdc2b1af"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-verifiedblank-丙/page-3.png",
+      "bytes": 8480,
+      "sha256": "bfaed1fc9931f04b7e86946d482455fbfbe7b110ab66a756e68bd17cd6974185"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-verifiedblank-丙/page-4.png",
+      "bytes": 8386,
+      "sha256": "255cc9bbfb95f17ab9f0bb453495804ccc525705540a6eb8635d06d6dff548ce"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-verifiedblank-丙/page-5.png",
+      "bytes": 8489,
+      "sha256": "41ebdb01f4f3dfeb0ab323150545871961cc0bca6d4a2e3aa91abacd78c6dbfd"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs.json",
+      "bytes": 2745,
+      "sha256": "0a1b2895fb9f8c34e452dcceaddf2aaf8b00a52079695a53789b5162d1283aa1"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/original_assemble.py",
+      "bytes": 3610,
+      "sha256": "825cbb7d226585fc8e194f30484812b98b4d4edf00881e15521e14f2a5dcd3e9"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/prepare.py",
+      "bytes": 5353,
+      "sha256": "954d75d7c2868095dcdd74a3ab4c6eb47be1bf2765992a51945f6975be736462"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/run_simulator.py",
+      "bytes": 6446,
+      "sha256": "701d6dc328f05b9b610512380362524710645a5630089ba488138752025c3472"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/source-pins.json",
+      "bytes": 753,
+      "sha256": "515c383aeeb00ac6ae9bc717936e74375a7ece787b4e4541dd7d420bb521a35d"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/test_prepare.py",
+      "bytes": 2328,
+      "sha256": "8aeb1e1c864a40d6168a078acf9f1dd61db94cc51b653008c45250a0ad8dec9d"
+    }
+  ],
+  "proofs": {
+    "pythonTests": "/workspace/review-notes/ios-vision-acquisition-python-tests.log",
+    "swiftSyntax": "Swift6.1.2 frontend -parse succeeds; no AppleSDK type/build claim",
+    "bashSyntax": "all four workflow shell blocks parse",
+    "originalPdfs": [
+      "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+      "2625bf49044d59088b53109fc15ba7813073fdedac71bde5eb82925c297050f8"
+    ],
+    "actionlint": "1.7.12 actual PASS, only predeclared xcode-27 label suppressed"
+  },
+  "reviewCorrections": [
+    "public read returned count separate from diagnostic completion",
+    "read API throw is not proof Vision.perform failed/not returned",
+    "timeout/incomplete raw bytes and timing pinned in finally"
+  ]
+}

@@ -1,0 +1,2974 @@
+{
+  "scope": "Three independent actual-output reviews; no additional inference",
+  "reviews": [
+    {
+      "file": "ios-vision-acquisition-independent-ten-page-review-high.json",
+      "bytes": 68560,
+      "sha256": "557de43d08baf254ed5d0056e14208611d40feb68bc49a285e0c14c867f30798",
+      "report": {
+        "scope": "Independent all ten actual acquisition-only outputs; original drawing/gold used only post-output. No inference/source/scorer changes.",
+        "run": 37206582959,
+        "job": 111448915724,
+        "sourceCommit": "0294fd6eb8d8c5695ed7de6302523d1c46dc284e",
+        "rawSHA256": "d5ce20d53565920930f365db47e7f24828ea2217f827e1ff2cb72ce7de39a191",
+        "fullLogSHA256": "803a4e325570871d4c037ecd5e9dcb5de3aa348e20b86972f8952b449c8d7071",
+        "extractedReadBodySHA256": "1f54acfb040b8d8476a40c2c65fc8d2abb0b68dc164e2824e551e5c65e606d75",
+        "counts": {
+          "readReturnedPages": 10,
+          "diagnosticCompletedPages": 10,
+          "confidenceFailurePages": 10,
+          "characterPredicateFailurePages": 9,
+          "observedLineCount": 79,
+          "observedLowConfidenceLines": 41,
+          "confirmedWrongBodyValues": 0
+        },
+        "verificationIssues": [],
+        "allObservedLinesMatchedPrintedSpans": true,
+        "nativeOperationalErrors": 0,
+        "formalAssessed": 0,
+        "characterAccuracyDenominator": null,
+        "modelQualification": false,
+        "limitations": [
+          "Ten .read outputs and post-observation diagnostics are not the production .layouts raster/Builder/Rules/Validator/formal pipeline.",
+          "Nine tiny negative year-character x coordinates fail the original character predicate; this is a candidate geometry observation, not a license to clip boxes.",
+          "Every page has low-confidence period or class lines, including text that matches the printed original. Do not call these observed tokens wrong characters.",
+          "Body observations correct on two page-one lessons, but teacher label-only on 丙 proves no original blank region by itself.",
+          "Structured tables not serialized; no full-document omission or CER/complete source coverage claim.",
+          "Actual thumbnail raster differs from immutable PNG and Windows render; no controlled OCR-engine ranking.",
+          "Actual host arm64 Apple M1 Virtual / iOS27 simulator and host RAM are not physical iPhone memory/performance measurements."
+        ],
+        "host": {
+          "hostCPU": "Apple M1 (Virtual)",
+          "hostArchitecture": "arm64",
+          "hostPhysicalMemoryBytes": "7516192768",
+          "simulatorSDK": "27.0",
+          "nativeSeconds": 49.84761420799998
+        },
+        "rows": [
+          {
+            "fixture": "independent-Timetable-literal-乙",
+            "page": 1,
+            "pdfSHA256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+            "originalDrawingSHA256": "c2acd23ad38bc9e6eea4ded8b1fb790ac5817bb7891f090483a2f28084eab1b9",
+            "originalGoldSHA256": "0451ac80edac37e4e424d3d78b1d96ffe31cd06711024abe301c2ceff1e515c0",
+            "renderedDimensions": [
+              984,
+              197
+            ],
+            "originalPngDimensions": [
+              1025,
+              206
+            ],
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "seconds": 3.3033729791641235,
+            "originalPostObservationPredicatesPass": false,
+            "lowConfidenceLines": [
+              {
+                "observation": 0,
+                "line": 3,
+                "text": "1",
+                "confidence": 0.2556345462799072,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "text": "2",
+                "confidence": 0.19839522242546082,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "text": "3",
+                "confidence": 0.19643139839172363,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 6,
+                "text": "5_ES",
+                "confidence": 0.3152874708175659,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              }
+            ],
+            "invalidCharacterBoxes": [
+              {
+                "text": "2",
+                "pixelBox": {
+                  "height": 25.177343910860554,
+                  "width": 13.80198293717143,
+                  "x": -0.026521894030224515,
+                  "y": 4.2859710116163665
+                },
+                "confirmedFailure": "Original character predicate rejects negative x; no clipping or replacement performed."
+              }
+            ],
+            "serializedPeriodTokens": [
+              1,
+              2,
+              3
+            ],
+            "periodsAbsentFromSerializedLines": [
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "absenceScope": "Only observation.document.text.lines serialized; structured table content not retained. Absence from these lines cannot prove the full Vision document omitted these periods.",
+            "bodyValueObservations": [
+              {
+                "role": "subject",
+                "rawLine": "科目：架空化学乙",
+                "originalValue": "架空化学乙",
+                "returnedBody": "架空化学乙",
+                "literalBodyExact": true,
+                "normalizedBodyExact": true,
+                "confidence": 0.9594942331314087,
+                "blankProof": null,
+                "scope": "Post-output original-value observation; no full cell ownership/coverage or EMPTY certification."
+              },
+              {
+                "role": "teacher",
+                "rawLine": "担当：架空担当乙",
+                "originalValue": "架空担当乙",
+                "returnedBody": "架空担当乙",
+                "literalBodyExact": true,
+                "normalizedBodyExact": true,
+                "confidence": 0.9577177166938782,
+                "blankProof": null,
+                "scope": "Post-output original-value observation; no full cell ownership/coverage or EMPTY certification."
+              },
+              {
+                "role": "room",
+                "rawLine": "教室：架空室乙",
+                "originalValue": "架空室乙",
+                "returnedBody": "架空室乙",
+                "literalBodyExact": true,
+                "normalizedBodyExact": true,
+                "confidence": 0.9592577815055847,
+                "blankProof": null,
+                "scope": "Post-output original-value observation; no full cell ownership/coverage or EMPTY certification."
+              }
+            ],
+            "lines": [
+              {
+                "observation": 0,
+                "line": 0,
+                "rawText": "2027年度前期",
+                "confidence": 0.9770357012748718,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 1,
+                "rawText": "時間割",
+                "confidence": 0.9705422520637512,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 2,
+                "rawText": "月",
+                "confidence": 0.9553374648094177,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 3,
+                "rawText": "1",
+                "confidence": 0.2556345462799072,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "rawText": "2",
+                "confidence": 0.19839522242546082,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "rawText": "3",
+                "confidence": 0.19643139839172363,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 6,
+                "rawText": "5_ES",
+                "confidence": 0.3152874708175659,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 7,
+                "rawText": "科目：架空化学乙",
+                "confidence": 0.9594942331314087,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed original body matches; label colon form differs literally",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 8,
+                "rawText": "担当：架空担当乙",
+                "confidence": 0.9577177166938782,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed original body matches; label colon form differs literally",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 9,
+                "rawText": "教室：架空室乙",
+                "confidence": 0.9592577815055847,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed original body matches; label colon form differs literally",
+                "rawCharacterStringExact": true
+              }
+            ],
+            "formalAssessed": false,
+            "inkCoverageVerified": false,
+            "rootCause": "Model/rendering/layout extraction mechanism undetermined; no causal intervention or second native run."
+          },
+          {
+            "fixture": "independent-Timetable-literal-乙",
+            "page": 2,
+            "pdfSHA256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+            "originalDrawingSHA256": "c2acd23ad38bc9e6eea4ded8b1fb790ac5817bb7891f090483a2f28084eab1b9",
+            "originalGoldSHA256": "0451ac80edac37e4e424d3d78b1d96ffe31cd06711024abe301c2ceff1e515c0",
+            "renderedDimensions": [
+              984,
+              197
+            ],
+            "originalPngDimensions": [
+              1025,
+              206
+            ],
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "seconds": 0.9784600734710693,
+            "originalPostObservationPredicatesPass": false,
+            "lowConfidenceLines": [
+              {
+                "observation": 0,
+                "line": 3,
+                "text": "2",
+                "confidence": 0.2298191785812378,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "text": "3",
+                "confidence": 0.19643139839172363,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "text": "4",
+                "confidence": 0.26034578680992126,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 6,
+                "text": "5_ES",
+                "confidence": 0.3060927987098694,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              }
+            ],
+            "invalidCharacterBoxes": [
+              {
+                "text": "2",
+                "pixelBox": {
+                  "height": 21.063263580364946,
+                  "width": 14.333061705036192,
+                  "x": -0.07887254057269484,
+                  "y": 8.71470045936995
+                },
+                "confirmedFailure": "Original character predicate rejects negative x; no clipping or replacement performed."
+              }
+            ],
+            "serializedPeriodTokens": [
+              2,
+              3,
+              4
+            ],
+            "periodsAbsentFromSerializedLines": [
+              1,
+              5,
+              6,
+              7,
+              8
+            ],
+            "absenceScope": "Only observation.document.text.lines serialized; structured table content not retained. Absence from these lines cannot prove the full Vision document omitted these periods.",
+            "bodyValueObservations": [],
+            "lines": [
+              {
+                "observation": 0,
+                "line": 0,
+                "rawText": "2027年度前期",
+                "confidence": 0.9468138813972473,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 1,
+                "rawText": "時間割",
+                "confidence": 0.9776884913444519,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 2,
+                "rawText": "火",
+                "confidence": 0.9541111588478088,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 3,
+                "rawText": "2",
+                "confidence": 0.2298191785812378,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "rawText": "3",
+                "confidence": 0.19643139839172363,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "rawText": "4",
+                "confidence": 0.26034578680992126,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 6,
+                "rawText": "5_ES",
+                "confidence": 0.3060927987098694,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              }
+            ],
+            "formalAssessed": false,
+            "inkCoverageVerified": false,
+            "rootCause": "Model/rendering/layout extraction mechanism undetermined; no causal intervention or second native run."
+          },
+          {
+            "fixture": "independent-Timetable-literal-乙",
+            "page": 3,
+            "pdfSHA256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+            "originalDrawingSHA256": "c2acd23ad38bc9e6eea4ded8b1fb790ac5817bb7891f090483a2f28084eab1b9",
+            "originalGoldSHA256": "0451ac80edac37e4e424d3d78b1d96ffe31cd06711024abe301c2ceff1e515c0",
+            "renderedDimensions": [
+              984,
+              197
+            ],
+            "originalPngDimensions": [
+              1025,
+              206
+            ],
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "seconds": 0.90693199634552,
+            "originalPostObservationPredicatesPass": false,
+            "lowConfidenceLines": [
+              {
+                "observation": 0,
+                "line": 3,
+                "text": "1",
+                "confidence": 0.2556345462799072,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "text": "2",
+                "confidence": 0.2298191785812378,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "text": "3",
+                "confidence": 0.19643139839172363,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 6,
+                "text": "4",
+                "confidence": 0.26034578680992126,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 7,
+                "text": "5_ES",
+                "confidence": 0.3060927987098694,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              }
+            ],
+            "invalidCharacterBoxes": [
+              {
+                "text": "2",
+                "pixelBox": {
+                  "height": 21.063263580364946,
+                  "width": 14.333061705036192,
+                  "x": -0.07887254057269484,
+                  "y": 8.71470045936995
+                },
+                "confirmedFailure": "Original character predicate rejects negative x; no clipping or replacement performed."
+              }
+            ],
+            "serializedPeriodTokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "periodsAbsentFromSerializedLines": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "absenceScope": "Only observation.document.text.lines serialized; structured table content not retained. Absence from these lines cannot prove the full Vision document omitted these periods.",
+            "bodyValueObservations": [],
+            "lines": [
+              {
+                "observation": 0,
+                "line": 0,
+                "rawText": "2027年度前期",
+                "confidence": 0.9468138813972473,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 1,
+                "rawText": "時間割",
+                "confidence": 0.9776884913444519,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 2,
+                "rawText": "水",
+                "confidence": 0.9790541529655457,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 3,
+                "rawText": "1",
+                "confidence": 0.2556345462799072,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "rawText": "2",
+                "confidence": 0.2298191785812378,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "rawText": "3",
+                "confidence": 0.19643139839172363,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 6,
+                "rawText": "4",
+                "confidence": 0.26034578680992126,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 7,
+                "rawText": "5_ES",
+                "confidence": 0.3060927987098694,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              }
+            ],
+            "formalAssessed": false,
+            "inkCoverageVerified": false,
+            "rootCause": "Model/rendering/layout extraction mechanism undetermined; no causal intervention or second native run."
+          },
+          {
+            "fixture": "independent-Timetable-literal-乙",
+            "page": 4,
+            "pdfSHA256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+            "originalDrawingSHA256": "c2acd23ad38bc9e6eea4ded8b1fb790ac5817bb7891f090483a2f28084eab1b9",
+            "originalGoldSHA256": "0451ac80edac37e4e424d3d78b1d96ffe31cd06711024abe301c2ceff1e515c0",
+            "renderedDimensions": [
+              984,
+              197
+            ],
+            "originalPngDimensions": [
+              1025,
+              206
+            ],
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "seconds": 0.764348030090332,
+            "originalPostObservationPredicatesPass": false,
+            "lowConfidenceLines": [
+              {
+                "observation": 0,
+                "line": 3,
+                "text": "2",
+                "confidence": 0.2298191785812378,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "text": "3",
+                "confidence": 0.19643139839172363,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "text": "4",
+                "confidence": 0.26034578680992126,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 6,
+                "text": "5_ES",
+                "confidence": 0.3060927987098694,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              }
+            ],
+            "invalidCharacterBoxes": [
+              {
+                "text": "2",
+                "pixelBox": {
+                  "height": 21.071659610014226,
+                  "width": 14.345643546096388,
+                  "x": -0.0850230719877317,
+                  "y": 8.74121425554518
+                },
+                "confirmedFailure": "Original character predicate rejects negative x; no clipping or replacement performed."
+              }
+            ],
+            "serializedPeriodTokens": [
+              2,
+              3,
+              4
+            ],
+            "periodsAbsentFromSerializedLines": [
+              1,
+              5,
+              6,
+              7,
+              8
+            ],
+            "absenceScope": "Only observation.document.text.lines serialized; structured table content not retained. Absence from these lines cannot prove the full Vision document omitted these periods.",
+            "bodyValueObservations": [],
+            "lines": [
+              {
+                "observation": 0,
+                "line": 0,
+                "rawText": "2027年度前期",
+                "confidence": 0.9474759697914124,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 1,
+                "rawText": "時間割",
+                "confidence": 0.9264426231384277,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 2,
+                "rawText": "木",
+                "confidence": 0.976219892501831,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 3,
+                "rawText": "2",
+                "confidence": 0.2298191785812378,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "rawText": "3",
+                "confidence": 0.19643139839172363,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "rawText": "4",
+                "confidence": 0.26034578680992126,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 6,
+                "rawText": "5_ES",
+                "confidence": 0.3060927987098694,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              }
+            ],
+            "formalAssessed": false,
+            "inkCoverageVerified": false,
+            "rootCause": "Model/rendering/layout extraction mechanism undetermined; no causal intervention or second native run."
+          },
+          {
+            "fixture": "independent-Timetable-literal-乙",
+            "page": 5,
+            "pdfSHA256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+            "originalDrawingSHA256": "c2acd23ad38bc9e6eea4ded8b1fb790ac5817bb7891f090483a2f28084eab1b9",
+            "originalGoldSHA256": "0451ac80edac37e4e424d3d78b1d96ffe31cd06711024abe301c2ceff1e515c0",
+            "renderedDimensions": [
+              984,
+              197
+            ],
+            "originalPngDimensions": [
+              1025,
+              206
+            ],
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "seconds": 0.8362840414047241,
+            "originalPostObservationPredicatesPass": false,
+            "lowConfidenceLines": [
+              {
+                "observation": 0,
+                "line": 3,
+                "text": "1",
+                "confidence": 0.2556345462799072,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "text": "2",
+                "confidence": 0.2327273190021515,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "text": "3",
+                "confidence": 0.19643139839172363,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 6,
+                "text": "4",
+                "confidence": 0.26034578680992126,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 7,
+                "text": "5_ES",
+                "confidence": 0.3192978799343109,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              }
+            ],
+            "invalidCharacterBoxes": [],
+            "serializedPeriodTokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "periodsAbsentFromSerializedLines": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "absenceScope": "Only observation.document.text.lines serialized; structured table content not retained. Absence from these lines cannot prove the full Vision document omitted these periods.",
+            "bodyValueObservations": [],
+            "lines": [
+              {
+                "observation": 0,
+                "line": 0,
+                "rawText": "2027年度前期",
+                "confidence": 0.9367382526397705,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 1,
+                "rawText": "時間割",
+                "confidence": 0.9673144817352295,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 2,
+                "rawText": "金",
+                "confidence": 0.9201628565788269,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 3,
+                "rawText": "1",
+                "confidence": 0.2556345462799072,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "rawText": "2",
+                "confidence": 0.2327273190021515,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "rawText": "3",
+                "confidence": 0.19643139839172363,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 6,
+                "rawText": "4",
+                "confidence": 0.26034578680992126,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 7,
+                "rawText": "5_ES",
+                "confidence": 0.3192978799343109,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              }
+            ],
+            "formalAssessed": false,
+            "inkCoverageVerified": false,
+            "rootCause": "Model/rendering/layout extraction mechanism undetermined; no causal intervention or second native run."
+          },
+          {
+            "fixture": "independent-Timetable-verifiedblank-丙",
+            "page": 1,
+            "pdfSHA256": "2625bf49044d59088b53109fc15ba7813073fdedac71bde5eb82925c297050f8",
+            "originalDrawingSHA256": "fdbb25473adc36c9c31a01686a6255377557a383ae98f47cf89276bb0e8c3c40",
+            "originalGoldSHA256": "8ff9ea8dc55fb6e010e18c6019f938c47840bf589fdd503d2db9d18072184f43",
+            "renderedDimensions": [
+              984,
+              201
+            ],
+            "originalPngDimensions": [
+              1025,
+              210
+            ],
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "seconds": 0.9892799854278564,
+            "originalPostObservationPredicatesPass": false,
+            "lowConfidenceLines": [
+              {
+                "observation": 0,
+                "line": 3,
+                "text": "1",
+                "confidence": 0.2645111083984375,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "text": "2",
+                "confidence": 0.20444706082344055,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "text": "3",
+                "confidence": 0.20072360336780548,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 6,
+                "text": "2_IT",
+                "confidence": 0.29884228110313416,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              }
+            ],
+            "invalidCharacterBoxes": [
+              {
+                "text": "2",
+                "pixelBox": {
+                  "height": 21.03337149143352,
+                  "width": 14.318150318311252,
+                  "x": -0.07163178869081394,
+                  "y": 8.67536311806787
+                },
+                "confirmedFailure": "Original character predicate rejects negative x; no clipping or replacement performed."
+              }
+            ],
+            "serializedPeriodTokens": [
+              1,
+              2,
+              3
+            ],
+            "periodsAbsentFromSerializedLines": [
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "absenceScope": "Only observation.document.text.lines serialized; structured table content not retained. Absence from these lines cannot prove the full Vision document omitted these periods.",
+            "bodyValueObservations": [
+              {
+                "role": "subject",
+                "rawLine": "科目：架空物理丙",
+                "originalValue": "架空物理丙",
+                "returnedBody": "架空物理丙",
+                "literalBodyExact": true,
+                "normalizedBodyExact": true,
+                "confidence": 0.9761252403259277,
+                "blankProof": null,
+                "scope": "Post-output original-value observation; no full cell ownership/coverage or EMPTY certification."
+              },
+              {
+                "role": "teacher",
+                "rawLine": "担当：",
+                "originalValue": "",
+                "returnedBody": "",
+                "literalBodyExact": true,
+                "normalizedBodyExact": true,
+                "confidence": 0.9147184491157532,
+                "blankProof": false,
+                "scope": "Post-output original-value observation; no full cell ownership/coverage or EMPTY certification."
+              },
+              {
+                "role": "room",
+                "rawLine": "教室：架空室丙",
+                "originalValue": "架空室丙",
+                "returnedBody": "架空室丙",
+                "literalBodyExact": true,
+                "normalizedBodyExact": true,
+                "confidence": 0.9805557727813721,
+                "blankProof": null,
+                "scope": "Post-output original-value observation; no full cell ownership/coverage or EMPTY certification."
+              }
+            ],
+            "lines": [
+              {
+                "observation": 0,
+                "line": 0,
+                "rawText": "2028年度後期",
+                "confidence": 0.9416653513908386,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 1,
+                "rawText": "時間割",
+                "confidence": 0.9727776050567627,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 2,
+                "rawText": "月",
+                "confidence": 0.9573667049407959,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 3,
+                "rawText": "1",
+                "confidence": 0.2645111083984375,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "rawText": "2",
+                "confidence": 0.20444706082344055,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "rawText": "3",
+                "confidence": 0.20072360336780548,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 6,
+                "rawText": "2_IT",
+                "confidence": 0.29884228110313416,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 7,
+                "rawText": "科目：架空物理丙",
+                "confidence": 0.9761252403259277,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed original body matches; label colon form differs literally",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 8,
+                "rawText": "担当：",
+                "confidence": 0.9147184491157532,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed original body matches; label colon form differs literally",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 9,
+                "rawText": "教室：架空室丙",
+                "confidence": 0.9805557727813721,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed original body matches; label colon form differs literally",
+                "rawCharacterStringExact": true
+              }
+            ],
+            "formalAssessed": false,
+            "inkCoverageVerified": false,
+            "rootCause": "Model/rendering/layout extraction mechanism undetermined; no causal intervention or second native run."
+          },
+          {
+            "fixture": "independent-Timetable-verifiedblank-丙",
+            "page": 2,
+            "pdfSHA256": "2625bf49044d59088b53109fc15ba7813073fdedac71bde5eb82925c297050f8",
+            "originalDrawingSHA256": "fdbb25473adc36c9c31a01686a6255377557a383ae98f47cf89276bb0e8c3c40",
+            "originalGoldSHA256": "8ff9ea8dc55fb6e010e18c6019f938c47840bf589fdd503d2db9d18072184f43",
+            "renderedDimensions": [
+              984,
+              201
+            ],
+            "originalPngDimensions": [
+              1025,
+              210
+            ],
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "seconds": 1.1250009536743164,
+            "originalPostObservationPredicatesPass": false,
+            "lowConfidenceLines": [
+              {
+                "observation": 0,
+                "line": 3,
+                "text": "3",
+                "confidence": 0.20414699614048004,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "text": "4",
+                "confidence": 0.2608276903629303,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "text": "2_IT",
+                "confidence": 0.29884228110313416,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              }
+            ],
+            "invalidCharacterBoxes": [
+              {
+                "text": "2",
+                "pixelBox": {
+                  "height": 21.074996137786094,
+                  "width": 14.38055461047961,
+                  "x": -0.10209528032650557,
+                  "y": 8.80689816616328
+                },
+                "confirmedFailure": "Original character predicate rejects negative x; no clipping or replacement performed."
+              }
+            ],
+            "serializedPeriodTokens": [
+              2,
+              3,
+              4
+            ],
+            "periodsAbsentFromSerializedLines": [
+              1,
+              5,
+              6,
+              7,
+              8
+            ],
+            "absenceScope": "Only observation.document.text.lines serialized; structured table content not retained. Absence from these lines cannot prove the full Vision document omitted these periods.",
+            "bodyValueObservations": [],
+            "lines": [
+              {
+                "observation": 0,
+                "line": 0,
+                "rawText": "2028年度後期",
+                "confidence": 0.9473292827606201,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 1,
+                "rawText": "火",
+                "confidence": 0.8955000042915344,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 2,
+                "rawText": "2",
+                "confidence": 0.8729578852653503,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 3,
+                "rawText": "3",
+                "confidence": 0.20414699614048004,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "rawText": "4",
+                "confidence": 0.2608276903629303,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "rawText": "2_IT",
+                "confidence": 0.29884228110313416,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 6,
+                "rawText": "時間割",
+                "confidence": 0.9788309931755066,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              }
+            ],
+            "formalAssessed": false,
+            "inkCoverageVerified": false,
+            "rootCause": "Model/rendering/layout extraction mechanism undetermined; no causal intervention or second native run."
+          },
+          {
+            "fixture": "independent-Timetable-verifiedblank-丙",
+            "page": 3,
+            "pdfSHA256": "2625bf49044d59088b53109fc15ba7813073fdedac71bde5eb82925c297050f8",
+            "originalDrawingSHA256": "fdbb25473adc36c9c31a01686a6255377557a383ae98f47cf89276bb0e8c3c40",
+            "originalGoldSHA256": "8ff9ea8dc55fb6e010e18c6019f938c47840bf589fdd503d2db9d18072184f43",
+            "renderedDimensions": [
+              984,
+              201
+            ],
+            "originalPngDimensions": [
+              1025,
+              210
+            ],
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "seconds": 1.0168190002441406,
+            "originalPostObservationPredicatesPass": false,
+            "lowConfidenceLines": [
+              {
+                "observation": 0,
+                "line": 2,
+                "text": "1",
+                "confidence": 0.2645111083984375,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 3,
+                "text": "2",
+                "confidence": 0.220990389585495,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "text": "3",
+                "confidence": 0.20414699614048004,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "text": "2_IT",
+                "confidence": 0.31222450733184814,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              }
+            ],
+            "invalidCharacterBoxes": [
+              {
+                "text": "2",
+                "pixelBox": {
+                  "height": 21.022056274161596,
+                  "width": 14.30120662109888,
+                  "x": -0.06330231398596507,
+                  "y": 8.633363805538327
+                },
+                "confirmedFailure": "Original character predicate rejects negative x; no clipping or replacement performed."
+              }
+            ],
+            "serializedPeriodTokens": [
+              1,
+              2,
+              3
+            ],
+            "periodsAbsentFromSerializedLines": [
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "absenceScope": "Only observation.document.text.lines serialized; structured table content not retained. Absence from these lines cannot prove the full Vision document omitted these periods.",
+            "bodyValueObservations": [],
+            "lines": [
+              {
+                "observation": 0,
+                "line": 0,
+                "rawText": "2028年度後期",
+                "confidence": 0.9182806611061096,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 1,
+                "rawText": "水",
+                "confidence": 0.9807175397872925,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 2,
+                "rawText": "1",
+                "confidence": 0.2645111083984375,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 3,
+                "rawText": "2",
+                "confidence": 0.220990389585495,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "rawText": "3",
+                "confidence": 0.20414699614048004,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "rawText": "2_IT",
+                "confidence": 0.31222450733184814,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 6,
+                "rawText": "時間割",
+                "confidence": 0.9727776050567627,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              }
+            ],
+            "formalAssessed": false,
+            "inkCoverageVerified": false,
+            "rootCause": "Model/rendering/layout extraction mechanism undetermined; no causal intervention or second native run."
+          },
+          {
+            "fixture": "independent-Timetable-verifiedblank-丙",
+            "page": 4,
+            "pdfSHA256": "2625bf49044d59088b53109fc15ba7813073fdedac71bde5eb82925c297050f8",
+            "originalDrawingSHA256": "fdbb25473adc36c9c31a01686a6255377557a383ae98f47cf89276bb0e8c3c40",
+            "originalGoldSHA256": "8ff9ea8dc55fb6e010e18c6019f938c47840bf589fdd503d2db9d18072184f43",
+            "renderedDimensions": [
+              984,
+              201
+            ],
+            "originalPngDimensions": [
+              1025,
+              210
+            ],
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "seconds": 0.8861250877380371,
+            "originalPostObservationPredicatesPass": false,
+            "lowConfidenceLines": [
+              {
+                "observation": 0,
+                "line": 2,
+                "text": "1",
+                "confidence": 0.2645111083984375,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "text": "3",
+                "confidence": 0.20072360336780548,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "text": "4",
+                "confidence": 0.2608276903629303,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 6,
+                "text": "2_IT",
+                "confidence": 0.29884228110313416,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              }
+            ],
+            "invalidCharacterBoxes": [
+              {
+                "text": "2",
+                "pixelBox": {
+                  "height": 21.074996137786094,
+                  "width": 14.38055461047961,
+                  "x": -0.10209528032650557,
+                  "y": 8.80689816616328
+                },
+                "confirmedFailure": "Original character predicate rejects negative x; no clipping or replacement performed."
+              }
+            ],
+            "serializedPeriodTokens": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "periodsAbsentFromSerializedLines": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "absenceScope": "Only observation.document.text.lines serialized; structured table content not retained. Absence from these lines cannot prove the full Vision document omitted these periods.",
+            "bodyValueObservations": [],
+            "lines": [
+              {
+                "observation": 0,
+                "line": 0,
+                "rawText": "2028年度後期",
+                "confidence": 0.9473292827606201,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 1,
+                "rawText": "木",
+                "confidence": 0.9560596346855164,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 2,
+                "rawText": "1",
+                "confidence": 0.2645111083984375,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 3,
+                "rawText": "2",
+                "confidence": 0.8729578852653503,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "rawText": "3",
+                "confidence": 0.20072360336780548,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "rawText": "4",
+                "confidence": 0.2608276903629303,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 6,
+                "rawText": "2_IT",
+                "confidence": 0.29884228110313416,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 7,
+                "rawText": "時間割",
+                "confidence": 0.9788309931755066,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              }
+            ],
+            "formalAssessed": false,
+            "inkCoverageVerified": false,
+            "rootCause": "Model/rendering/layout extraction mechanism undetermined; no causal intervention or second native run."
+          },
+          {
+            "fixture": "independent-Timetable-verifiedblank-丙",
+            "page": 5,
+            "pdfSHA256": "2625bf49044d59088b53109fc15ba7813073fdedac71bde5eb82925c297050f8",
+            "originalDrawingSHA256": "fdbb25473adc36c9c31a01686a6255377557a383ae98f47cf89276bb0e8c3c40",
+            "originalGoldSHA256": "8ff9ea8dc55fb6e010e18c6019f938c47840bf589fdd503d2db9d18072184f43",
+            "renderedDimensions": [
+              984,
+              201
+            ],
+            "originalPngDimensions": [
+              1025,
+              210
+            ],
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "seconds": 0.8689249753952026,
+            "originalPostObservationPredicatesPass": false,
+            "lowConfidenceLines": [
+              {
+                "observation": 0,
+                "line": 2,
+                "text": "1",
+                "confidence": 0.2645111083984375,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 3,
+                "text": "2",
+                "confidence": 0.220990389585495,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "text": "3",
+                "confidence": 0.20072360336780548,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "text": "2_IT",
+                "confidence": 0.31222450733184814,
+                "cause": "Correct printed token can fail retained line-candidate confidence prerequisite; this is not per-character confidence."
+              }
+            ],
+            "invalidCharacterBoxes": [
+              {
+                "text": "2",
+                "pixelBox": {
+                  "height": 21.022056334095293,
+                  "width": 14.30120739980282,
+                  "x": -0.06328278472963769,
+                  "y": 8.639717689067805
+                },
+                "confirmedFailure": "Original character predicate rejects negative x; no clipping or replacement performed."
+              }
+            ],
+            "serializedPeriodTokens": [
+              1,
+              2,
+              3
+            ],
+            "periodsAbsentFromSerializedLines": [
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "absenceScope": "Only observation.document.text.lines serialized; structured table content not retained. Absence from these lines cannot prove the full Vision document omitted these periods.",
+            "bodyValueObservations": [],
+            "lines": [
+              {
+                "observation": 0,
+                "line": 0,
+                "rawText": "2028年度後期",
+                "confidence": 0.9416239261627197,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 1,
+                "rawText": "金",
+                "confidence": 0.9603057503700256,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 2,
+                "rawText": "1",
+                "confidence": 0.2645111083984375,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 3,
+                "rawText": "2",
+                "confidence": 0.220990389585495,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 4,
+                "rawText": "3",
+                "confidence": 0.20072360336780548,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 5,
+                "rawText": "2_IT",
+                "confidence": 0.31222450733184814,
+                "lineConfidencePredicatePass": false,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              },
+              {
+                "observation": 0,
+                "line": 6,
+                "rawText": "時間割",
+                "confidence": 0.9727776050567627,
+                "lineConfidencePredicatePass": true,
+                "matchedOriginalPrintedSpan": true,
+                "causeClassification": "confirmed",
+                "diagnosis": "confirmed matched original printed token after explicitly diagnostic NFKC/whitespace normalization",
+                "rawCharacterStringExact": true
+              }
+            ],
+            "formalAssessed": false,
+            "inkCoverageVerified": false,
+            "rootCause": "Model/rendering/layout extraction mechanism undetermined; no causal intervention or second native run."
+          }
+        ]
+      }
+    },
+    {
+      "file": "ios-high-vision-acquisition-ten-page-independent-review.json",
+      "bytes": 12544,
+      "sha256": "9409aeb941d273f6a7fa39a03c51e4a15a0304d97c627c901d94ac06d19849bf",
+      "report": {
+        "reviewer": "qualify_ios_high",
+        "status": "PASS_EVIDENCE_SCOPE",
+        "run": 37206582959,
+        "sourceCommit": "0294fd6eb8d8c5695ed7de6302523d1c46dc284e",
+        "rawBytes": 91880,
+        "rawSHA256": "d5ce20d53565920930f365db47e7f24828ea2217f827e1ff2cb72ce7de39a191",
+        "actualRowsMatchDerivedResults": true,
+        "planned": 10,
+        "readReturned": 10,
+        "operationalErrors": 0,
+        "diagnosticGuardPassed": 0,
+        "formalAssessed": 0,
+        "inkCoverageProved": false,
+        "pages": [
+          {
+            "fixture": "independent-Timetable-literal-乙",
+            "page": 1,
+            "readReturned": true,
+            "renderPixels": [
+              984,
+              197
+            ],
+            "serializedLineCount": 10,
+            "lowConfidenceLines": [
+              {
+                "text": "1",
+                "candidateConfidence": 0.2556345462799072
+              },
+              {
+                "text": "2",
+                "candidateConfidence": 0.19839522242546082
+              },
+              {
+                "text": "3",
+                "candidateConfidence": 0.19643139839172363
+              },
+              {
+                "text": "5_ES",
+                "candidateConfidence": 0.3152874708175659
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 25.177343910860554,
+                  "width": 13.80198293717143,
+                  "x": -0.026521894030224515,
+                  "y": 4.2859710116163665
+                }
+              }
+            ],
+            "page1ObservedBodies": [
+              {
+                "role": "subject",
+                "literalBodyExact": true,
+                "lineCandidateConfidence": 0.9594942331314087,
+                "scope": "Observed single line BODY only; not completeness, EMPTY or full recovery proof."
+              },
+              {
+                "role": "teacher",
+                "literalBodyExact": true,
+                "lineCandidateConfidence": 0.9577177166938782,
+                "scope": "Observed single line BODY only; not completeness, EMPTY or full recovery proof."
+              },
+              {
+                "role": "room",
+                "literalBodyExact": true,
+                "lineCandidateConfidence": 0.9592577815055847,
+                "scope": "Observed single line BODY only; not completeness, EMPTY or full recovery proof."
+              }
+            ],
+            "originalDiagnosticPass": false
+          },
+          {
+            "fixture": "independent-Timetable-literal-乙",
+            "page": 2,
+            "readReturned": true,
+            "renderPixels": [
+              984,
+              197
+            ],
+            "serializedLineCount": 7,
+            "lowConfidenceLines": [
+              {
+                "text": "2",
+                "candidateConfidence": 0.2298191785812378
+              },
+              {
+                "text": "3",
+                "candidateConfidence": 0.19643139839172363
+              },
+              {
+                "text": "4",
+                "candidateConfidence": 0.26034578680992126
+              },
+              {
+                "text": "5_ES",
+                "candidateConfidence": 0.3060927987098694
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 21.063263580364946,
+                  "width": 14.333061705036192,
+                  "x": -0.07887254057269484,
+                  "y": 8.71470045936995
+                }
+              }
+            ],
+            "page1ObservedBodies": [],
+            "originalDiagnosticPass": false
+          },
+          {
+            "fixture": "independent-Timetable-literal-乙",
+            "page": 3,
+            "readReturned": true,
+            "renderPixels": [
+              984,
+              197
+            ],
+            "serializedLineCount": 8,
+            "lowConfidenceLines": [
+              {
+                "text": "1",
+                "candidateConfidence": 0.2556345462799072
+              },
+              {
+                "text": "2",
+                "candidateConfidence": 0.2298191785812378
+              },
+              {
+                "text": "3",
+                "candidateConfidence": 0.19643139839172363
+              },
+              {
+                "text": "4",
+                "candidateConfidence": 0.26034578680992126
+              },
+              {
+                "text": "5_ES",
+                "candidateConfidence": 0.3060927987098694
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 21.063263580364946,
+                  "width": 14.333061705036192,
+                  "x": -0.07887254057269484,
+                  "y": 8.71470045936995
+                }
+              }
+            ],
+            "page1ObservedBodies": [],
+            "originalDiagnosticPass": false
+          },
+          {
+            "fixture": "independent-Timetable-literal-乙",
+            "page": 4,
+            "readReturned": true,
+            "renderPixels": [
+              984,
+              197
+            ],
+            "serializedLineCount": 7,
+            "lowConfidenceLines": [
+              {
+                "text": "2",
+                "candidateConfidence": 0.2298191785812378
+              },
+              {
+                "text": "3",
+                "candidateConfidence": 0.19643139839172363
+              },
+              {
+                "text": "4",
+                "candidateConfidence": 0.26034578680992126
+              },
+              {
+                "text": "5_ES",
+                "candidateConfidence": 0.3060927987098694
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 21.071659610014226,
+                  "width": 14.345643546096388,
+                  "x": -0.0850230719877317,
+                  "y": 8.74121425554518
+                }
+              }
+            ],
+            "page1ObservedBodies": [],
+            "originalDiagnosticPass": false
+          },
+          {
+            "fixture": "independent-Timetable-literal-乙",
+            "page": 5,
+            "readReturned": true,
+            "renderPixels": [
+              984,
+              197
+            ],
+            "serializedLineCount": 8,
+            "lowConfidenceLines": [
+              {
+                "text": "1",
+                "candidateConfidence": 0.2556345462799072
+              },
+              {
+                "text": "2",
+                "candidateConfidence": 0.2327273190021515
+              },
+              {
+                "text": "3",
+                "candidateConfidence": 0.19643139839172363
+              },
+              {
+                "text": "4",
+                "candidateConfidence": 0.26034578680992126
+              },
+              {
+                "text": "5_ES",
+                "candidateConfidence": 0.3192978799343109
+              }
+            ],
+            "invalidCharacterRectangles": [],
+            "page1ObservedBodies": [],
+            "originalDiagnosticPass": false
+          },
+          {
+            "fixture": "independent-Timetable-verifiedblank-丙",
+            "page": 1,
+            "readReturned": true,
+            "renderPixels": [
+              984,
+              201
+            ],
+            "serializedLineCount": 10,
+            "lowConfidenceLines": [
+              {
+                "text": "1",
+                "candidateConfidence": 0.2645111083984375
+              },
+              {
+                "text": "2",
+                "candidateConfidence": 0.20444706082344055
+              },
+              {
+                "text": "3",
+                "candidateConfidence": 0.20072360336780548
+              },
+              {
+                "text": "2_IT",
+                "candidateConfidence": 0.29884228110313416
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 21.03337149143352,
+                  "width": 14.318150318311252,
+                  "x": -0.07163178869081394,
+                  "y": 8.67536311806787
+                }
+              }
+            ],
+            "page1ObservedBodies": [
+              {
+                "role": "subject",
+                "literalBodyExact": true,
+                "lineCandidateConfidence": 0.9761252403259277,
+                "scope": "Observed single line BODY only; not completeness, EMPTY or full recovery proof."
+              },
+              {
+                "role": "teacher",
+                "literalBodyExact": true,
+                "lineCandidateConfidence": 0.9147184491157532,
+                "scope": "Observed single line BODY only; not completeness, EMPTY or full recovery proof."
+              },
+              {
+                "role": "room",
+                "literalBodyExact": true,
+                "lineCandidateConfidence": 0.9805557727813721,
+                "scope": "Observed single line BODY only; not completeness, EMPTY or full recovery proof."
+              }
+            ],
+            "originalDiagnosticPass": false
+          },
+          {
+            "fixture": "independent-Timetable-verifiedblank-丙",
+            "page": 2,
+            "readReturned": true,
+            "renderPixels": [
+              984,
+              201
+            ],
+            "serializedLineCount": 7,
+            "lowConfidenceLines": [
+              {
+                "text": "3",
+                "candidateConfidence": 0.20414699614048004
+              },
+              {
+                "text": "4",
+                "candidateConfidence": 0.2608276903629303
+              },
+              {
+                "text": "2_IT",
+                "candidateConfidence": 0.29884228110313416
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 21.074996137786094,
+                  "width": 14.38055461047961,
+                  "x": -0.10209528032650557,
+                  "y": 8.80689816616328
+                }
+              }
+            ],
+            "page1ObservedBodies": [],
+            "originalDiagnosticPass": false
+          },
+          {
+            "fixture": "independent-Timetable-verifiedblank-丙",
+            "page": 3,
+            "readReturned": true,
+            "renderPixels": [
+              984,
+              201
+            ],
+            "serializedLineCount": 7,
+            "lowConfidenceLines": [
+              {
+                "text": "1",
+                "candidateConfidence": 0.2645111083984375
+              },
+              {
+                "text": "2",
+                "candidateConfidence": 0.220990389585495
+              },
+              {
+                "text": "3",
+                "candidateConfidence": 0.20414699614048004
+              },
+              {
+                "text": "2_IT",
+                "candidateConfidence": 0.31222450733184814
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 21.022056274161596,
+                  "width": 14.30120662109888,
+                  "x": -0.06330231398596507,
+                  "y": 8.633363805538327
+                }
+              }
+            ],
+            "page1ObservedBodies": [],
+            "originalDiagnosticPass": false
+          },
+          {
+            "fixture": "independent-Timetable-verifiedblank-丙",
+            "page": 4,
+            "readReturned": true,
+            "renderPixels": [
+              984,
+              201
+            ],
+            "serializedLineCount": 8,
+            "lowConfidenceLines": [
+              {
+                "text": "1",
+                "candidateConfidence": 0.2645111083984375
+              },
+              {
+                "text": "3",
+                "candidateConfidence": 0.20072360336780548
+              },
+              {
+                "text": "4",
+                "candidateConfidence": 0.2608276903629303
+              },
+              {
+                "text": "2_IT",
+                "candidateConfidence": 0.29884228110313416
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 21.074996137786094,
+                  "width": 14.38055461047961,
+                  "x": -0.10209528032650557,
+                  "y": 8.80689816616328
+                }
+              }
+            ],
+            "page1ObservedBodies": [],
+            "originalDiagnosticPass": false
+          },
+          {
+            "fixture": "independent-Timetable-verifiedblank-丙",
+            "page": 5,
+            "readReturned": true,
+            "renderPixels": [
+              984,
+              201
+            ],
+            "serializedLineCount": 7,
+            "lowConfidenceLines": [
+              {
+                "text": "1",
+                "candidateConfidence": 0.2645111083984375
+              },
+              {
+                "text": "2",
+                "candidateConfidence": 0.220990389585495
+              },
+              {
+                "text": "3",
+                "candidateConfidence": 0.20072360336780548
+              },
+              {
+                "text": "2_IT",
+                "candidateConfidence": 0.31222450733184814
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 21.022056334095293,
+                  "width": 14.30120739980282,
+                  "x": -0.06328278472963769,
+                  "y": 8.639717689067805
+                }
+              }
+            ],
+            "page1ObservedBodies": [],
+            "originalDiagnosticPass": false
+          }
+        ],
+        "conclusions": [
+          "All actual serialized line/character predicate calculations independently match, originalPDF pins unchanged.",
+          "Both page1 observed three BODY lines are literal-exact; empty teacher line does not prove EMPTY.",
+          "Each page has candidate-line confidence below unchanged.85. Nine pages include slightly negative first-year-character x.",
+          "Only .document.text.lines was serialized; missing5..8 within that view cannot alone prove absence from all DocumentObservation output. Official Container.text wording says all text, so table-only hypothesis remains unconfirmed.",
+          "No native .layouts call, whole OCR accuracy denominator, formal quality, physical phone or additional model qualification is established.",
+          "Do not lower confidence or clip character boxes based on this small partial acquisition."
+        ],
+        "nativeRepeats": 0
+      }
+    },
+    {
+      "file": "windows-independent-ios-vision-native-ten-page-review.json",
+      "bytes": 24369,
+      "sha256": "8a524d2e4ead0578c7836cf4d3c7c189dfc3f84341c1d192dc5306e248aff11c",
+      "report": {
+        "scope": "Independent actual10page source-extracted iOS Vision acquisition; raw bytes + every confidence/character predicate checked, literal comparison after inference only.",
+        "disposition": "Observation evidence valid;10 APIread returns/0 executionerrors; no fullformal/AIquality PASS.",
+        "runId": 37206582959,
+        "jobId": 111448915724,
+        "sourceCommit": "0294fd6eb8d8c5695ed7de6302523d1c46dc284e",
+        "evidence": [
+          {
+            "path": "/workspace/review-notes/ios-vision-acquisition-native-full.log",
+            "bytes": 150944,
+            "sha256": "803a4e325570871d4c037ecd5e9dcb5de3aa348e20b86972f8952b449c8d7071"
+          },
+          {
+            "path": "/workspace/review-notes/ios-vision-acquisition-native-raw.jsonl",
+            "bytes": 91880,
+            "sha256": "d5ce20d53565920930f365db47e7f24828ea2217f827e1ff2cb72ce7de39a191"
+          },
+          {
+            "path": "/workspace/review-notes/ios-vision-acquisition-native-results.json",
+            "bytes": 166758,
+            "sha256": "9855f5e5ab93495ad8d5a0a4080b19f7e6a25122e7495908e0823d9a4d6f6858"
+          },
+          {
+            "path": "/workspace/review-notes/ios-vision-acquisition-native-execution.json",
+            "bytes": 38575,
+            "sha256": "22842a631cdd95bd21b7dd99b125983cada2dc725ca6fb6328ab92e94cf21f7c"
+          }
+        ],
+        "rawReconstructedFromActionsLogExact": true,
+        "derivedRecordsExact": true,
+        "summary": {
+          "plannedPages": 10,
+          "readReturned": 10,
+          "operationalErrors": 0,
+          "diagnosticComplete": 10,
+          "pagesFailingOriginalConfidencePredicate": 10,
+          "pagesFailingCharacterPredicate": 9,
+          "formalAssessed": 0,
+          "wrongFormalAccepted": "unassessed: no formal run"
+        },
+        "rows": [
+          {
+            "fixture": "independent-Timetable-literal-乙",
+            "page": 1,
+            "pdfSHA256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+            "nativeRenderedDimensions": [
+              984,
+              197
+            ],
+            "nativePixelsSHA256": null,
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "operationalError": false,
+            "seconds": 3.3033729791641235,
+            "lowConfidenceLines": [
+              {
+                "text": "1",
+                "confidence": 0.2556345462799072,
+                "observation": 0,
+                "line": 3
+              },
+              {
+                "text": "2",
+                "confidence": 0.19839522242546082,
+                "observation": 0,
+                "line": 4
+              },
+              {
+                "text": "3",
+                "confidence": 0.19643139839172363,
+                "observation": 0,
+                "line": 5
+              },
+              {
+                "text": "5_ES",
+                "confidence": 0.3152874708175659,
+                "observation": 0,
+                "line": 6
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 25.177343910860554,
+                  "width": 13.80198293717143,
+                  "x": -0.026521894030224515,
+                  "y": 4.2859710116163665
+                },
+                "sourceLine": "2027年度前期"
+              }
+            ],
+            "bodyLiteralLineAgreement": [
+              {
+                "expectedLiteralNormalized": "科目:",
+                "returnedLineExact": false,
+                "rawMatches": []
+              },
+              {
+                "expectedLiteralNormalized": "担当:",
+                "returnedLineExact": false,
+                "rawMatches": []
+              },
+              {
+                "expectedLiteralNormalized": "教室:",
+                "returnedLineExact": false,
+                "rawMatches": []
+              }
+            ],
+            "printedPeriodTokensMissingFromConsumedDocumentTextLines": [
+              "4",
+              "5",
+              "6",
+              "7",
+              "8"
+            ],
+            "printedKnownClassMissingFromConsumedLines": [],
+            "confirmedFailureCause": "Diagnostic application of unchanged layouts predicates fails at least one correctly printed period/class line on everypage; rectangle predicate additionally fails the negative-x firstyear glyph on9pages. Actual .layouts/Builder/ink/fullformal route was not run, so this is an observed predicate barrier rather than a measured fullpipeline refusal.",
+            "undeterminedCause": "Underlying confidence/calibration/rendering/engine cause not isolated; absence from consumed document.text.lines does not prove absence from unrecorded document tables.",
+            "formalAssessed": false
+          },
+          {
+            "fixture": "independent-Timetable-literal-乙",
+            "page": 2,
+            "pdfSHA256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+            "nativeRenderedDimensions": [
+              984,
+              197
+            ],
+            "nativePixelsSHA256": null,
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "operationalError": false,
+            "seconds": 0.9784600734710693,
+            "lowConfidenceLines": [
+              {
+                "text": "2",
+                "confidence": 0.2298191785812378,
+                "observation": 0,
+                "line": 3
+              },
+              {
+                "text": "3",
+                "confidence": 0.19643139839172363,
+                "observation": 0,
+                "line": 4
+              },
+              {
+                "text": "4",
+                "confidence": 0.26034578680992126,
+                "observation": 0,
+                "line": 5
+              },
+              {
+                "text": "5_ES",
+                "confidence": 0.3060927987098694,
+                "observation": 0,
+                "line": 6
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 21.063263580364946,
+                  "width": 14.333061705036192,
+                  "x": -0.07887254057269484,
+                  "y": 8.71470045936995
+                },
+                "sourceLine": "2027年度前期"
+              }
+            ],
+            "bodyLiteralLineAgreement": [],
+            "printedPeriodTokensMissingFromConsumedDocumentTextLines": [
+              "1",
+              "5",
+              "6",
+              "7",
+              "8"
+            ],
+            "printedKnownClassMissingFromConsumedLines": [],
+            "confirmedFailureCause": "Diagnostic application of unchanged layouts predicates fails at least one correctly printed period/class line on everypage; rectangle predicate additionally fails the negative-x firstyear glyph on9pages. Actual .layouts/Builder/ink/fullformal route was not run, so this is an observed predicate barrier rather than a measured fullpipeline refusal.",
+            "undeterminedCause": "Underlying confidence/calibration/rendering/engine cause not isolated; absence from consumed document.text.lines does not prove absence from unrecorded document tables.",
+            "formalAssessed": false
+          },
+          {
+            "fixture": "independent-Timetable-literal-乙",
+            "page": 3,
+            "pdfSHA256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+            "nativeRenderedDimensions": [
+              984,
+              197
+            ],
+            "nativePixelsSHA256": null,
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "operationalError": false,
+            "seconds": 0.90693199634552,
+            "lowConfidenceLines": [
+              {
+                "text": "1",
+                "confidence": 0.2556345462799072,
+                "observation": 0,
+                "line": 3
+              },
+              {
+                "text": "2",
+                "confidence": 0.2298191785812378,
+                "observation": 0,
+                "line": 4
+              },
+              {
+                "text": "3",
+                "confidence": 0.19643139839172363,
+                "observation": 0,
+                "line": 5
+              },
+              {
+                "text": "4",
+                "confidence": 0.26034578680992126,
+                "observation": 0,
+                "line": 6
+              },
+              {
+                "text": "5_ES",
+                "confidence": 0.3060927987098694,
+                "observation": 0,
+                "line": 7
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 21.063263580364946,
+                  "width": 14.333061705036192,
+                  "x": -0.07887254057269484,
+                  "y": 8.71470045936995
+                },
+                "sourceLine": "2027年度前期"
+              }
+            ],
+            "bodyLiteralLineAgreement": [],
+            "printedPeriodTokensMissingFromConsumedDocumentTextLines": [
+              "5",
+              "6",
+              "7",
+              "8"
+            ],
+            "printedKnownClassMissingFromConsumedLines": [],
+            "confirmedFailureCause": "Diagnostic application of unchanged layouts predicates fails at least one correctly printed period/class line on everypage; rectangle predicate additionally fails the negative-x firstyear glyph on9pages. Actual .layouts/Builder/ink/fullformal route was not run, so this is an observed predicate barrier rather than a measured fullpipeline refusal.",
+            "undeterminedCause": "Underlying confidence/calibration/rendering/engine cause not isolated; absence from consumed document.text.lines does not prove absence from unrecorded document tables.",
+            "formalAssessed": false
+          },
+          {
+            "fixture": "independent-Timetable-literal-乙",
+            "page": 4,
+            "pdfSHA256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+            "nativeRenderedDimensions": [
+              984,
+              197
+            ],
+            "nativePixelsSHA256": null,
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "operationalError": false,
+            "seconds": 0.764348030090332,
+            "lowConfidenceLines": [
+              {
+                "text": "2",
+                "confidence": 0.2298191785812378,
+                "observation": 0,
+                "line": 3
+              },
+              {
+                "text": "3",
+                "confidence": 0.19643139839172363,
+                "observation": 0,
+                "line": 4
+              },
+              {
+                "text": "4",
+                "confidence": 0.26034578680992126,
+                "observation": 0,
+                "line": 5
+              },
+              {
+                "text": "5_ES",
+                "confidence": 0.3060927987098694,
+                "observation": 0,
+                "line": 6
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 21.071659610014226,
+                  "width": 14.345643546096388,
+                  "x": -0.0850230719877317,
+                  "y": 8.74121425554518
+                },
+                "sourceLine": "2027年度前期"
+              }
+            ],
+            "bodyLiteralLineAgreement": [],
+            "printedPeriodTokensMissingFromConsumedDocumentTextLines": [
+              "1",
+              "5",
+              "6",
+              "7",
+              "8"
+            ],
+            "printedKnownClassMissingFromConsumedLines": [],
+            "confirmedFailureCause": "Diagnostic application of unchanged layouts predicates fails at least one correctly printed period/class line on everypage; rectangle predicate additionally fails the negative-x firstyear glyph on9pages. Actual .layouts/Builder/ink/fullformal route was not run, so this is an observed predicate barrier rather than a measured fullpipeline refusal.",
+            "undeterminedCause": "Underlying confidence/calibration/rendering/engine cause not isolated; absence from consumed document.text.lines does not prove absence from unrecorded document tables.",
+            "formalAssessed": false
+          },
+          {
+            "fixture": "independent-Timetable-literal-乙",
+            "page": 5,
+            "pdfSHA256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+            "nativeRenderedDimensions": [
+              984,
+              197
+            ],
+            "nativePixelsSHA256": null,
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "operationalError": false,
+            "seconds": 0.8362840414047241,
+            "lowConfidenceLines": [
+              {
+                "text": "1",
+                "confidence": 0.2556345462799072,
+                "observation": 0,
+                "line": 3
+              },
+              {
+                "text": "2",
+                "confidence": 0.2327273190021515,
+                "observation": 0,
+                "line": 4
+              },
+              {
+                "text": "3",
+                "confidence": 0.19643139839172363,
+                "observation": 0,
+                "line": 5
+              },
+              {
+                "text": "4",
+                "confidence": 0.26034578680992126,
+                "observation": 0,
+                "line": 6
+              },
+              {
+                "text": "5_ES",
+                "confidence": 0.3192978799343109,
+                "observation": 0,
+                "line": 7
+              }
+            ],
+            "invalidCharacterRectangles": [],
+            "bodyLiteralLineAgreement": [],
+            "printedPeriodTokensMissingFromConsumedDocumentTextLines": [
+              "5",
+              "6",
+              "7",
+              "8"
+            ],
+            "printedKnownClassMissingFromConsumedLines": [],
+            "confirmedFailureCause": "Diagnostic application of unchanged layouts predicates fails at least one correctly printed period/class line on everypage; rectangle predicate additionally fails the negative-x firstyear glyph on9pages. Actual .layouts/Builder/ink/fullformal route was not run, so this is an observed predicate barrier rather than a measured fullpipeline refusal.",
+            "undeterminedCause": "Underlying confidence/calibration/rendering/engine cause not isolated; absence from consumed document.text.lines does not prove absence from unrecorded document tables.",
+            "formalAssessed": false
+          },
+          {
+            "fixture": "independent-Timetable-verifiedblank-丙",
+            "page": 1,
+            "pdfSHA256": "2625bf49044d59088b53109fc15ba7813073fdedac71bde5eb82925c297050f8",
+            "nativeRenderedDimensions": [
+              984,
+              201
+            ],
+            "nativePixelsSHA256": null,
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "operationalError": false,
+            "seconds": 0.9892799854278564,
+            "lowConfidenceLines": [
+              {
+                "text": "1",
+                "confidence": 0.2645111083984375,
+                "observation": 0,
+                "line": 3
+              },
+              {
+                "text": "2",
+                "confidence": 0.20444706082344055,
+                "observation": 0,
+                "line": 4
+              },
+              {
+                "text": "3",
+                "confidence": 0.20072360336780548,
+                "observation": 0,
+                "line": 5
+              },
+              {
+                "text": "2_IT",
+                "confidence": 0.29884228110313416,
+                "observation": 0,
+                "line": 6
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 21.03337149143352,
+                  "width": 14.318150318311252,
+                  "x": -0.07163178869081394,
+                  "y": 8.67536311806787
+                },
+                "sourceLine": "2028年度後期"
+              }
+            ],
+            "bodyLiteralLineAgreement": [
+              {
+                "expectedLiteralNormalized": "科目:",
+                "returnedLineExact": false,
+                "rawMatches": []
+              },
+              {
+                "expectedLiteralNormalized": "担当:",
+                "returnedLineExact": true,
+                "rawMatches": [
+                  "担当："
+                ]
+              },
+              {
+                "expectedLiteralNormalized": "教室:",
+                "returnedLineExact": false,
+                "rawMatches": []
+              }
+            ],
+            "printedPeriodTokensMissingFromConsumedDocumentTextLines": [
+              "4",
+              "5",
+              "6",
+              "7",
+              "8"
+            ],
+            "printedKnownClassMissingFromConsumedLines": [],
+            "confirmedFailureCause": "Diagnostic application of unchanged layouts predicates fails at least one correctly printed period/class line on everypage; rectangle predicate additionally fails the negative-x firstyear glyph on9pages. Actual .layouts/Builder/ink/fullformal route was not run, so this is an observed predicate barrier rather than a measured fullpipeline refusal.",
+            "undeterminedCause": "Underlying confidence/calibration/rendering/engine cause not isolated; absence from consumed document.text.lines does not prove absence from unrecorded document tables.",
+            "formalAssessed": false
+          },
+          {
+            "fixture": "independent-Timetable-verifiedblank-丙",
+            "page": 2,
+            "pdfSHA256": "2625bf49044d59088b53109fc15ba7813073fdedac71bde5eb82925c297050f8",
+            "nativeRenderedDimensions": [
+              984,
+              201
+            ],
+            "nativePixelsSHA256": null,
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "operationalError": false,
+            "seconds": 1.1250009536743164,
+            "lowConfidenceLines": [
+              {
+                "text": "3",
+                "confidence": 0.20414699614048004,
+                "observation": 0,
+                "line": 3
+              },
+              {
+                "text": "4",
+                "confidence": 0.2608276903629303,
+                "observation": 0,
+                "line": 4
+              },
+              {
+                "text": "2_IT",
+                "confidence": 0.29884228110313416,
+                "observation": 0,
+                "line": 5
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 21.074996137786094,
+                  "width": 14.38055461047961,
+                  "x": -0.10209528032650557,
+                  "y": 8.80689816616328
+                },
+                "sourceLine": "2028年度後期"
+              }
+            ],
+            "bodyLiteralLineAgreement": [],
+            "printedPeriodTokensMissingFromConsumedDocumentTextLines": [
+              "1",
+              "5",
+              "6",
+              "7",
+              "8"
+            ],
+            "printedKnownClassMissingFromConsumedLines": [],
+            "confirmedFailureCause": "Diagnostic application of unchanged layouts predicates fails at least one correctly printed period/class line on everypage; rectangle predicate additionally fails the negative-x firstyear glyph on9pages. Actual .layouts/Builder/ink/fullformal route was not run, so this is an observed predicate barrier rather than a measured fullpipeline refusal.",
+            "undeterminedCause": "Underlying confidence/calibration/rendering/engine cause not isolated; absence from consumed document.text.lines does not prove absence from unrecorded document tables.",
+            "formalAssessed": false
+          },
+          {
+            "fixture": "independent-Timetable-verifiedblank-丙",
+            "page": 3,
+            "pdfSHA256": "2625bf49044d59088b53109fc15ba7813073fdedac71bde5eb82925c297050f8",
+            "nativeRenderedDimensions": [
+              984,
+              201
+            ],
+            "nativePixelsSHA256": null,
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "operationalError": false,
+            "seconds": 1.0168190002441406,
+            "lowConfidenceLines": [
+              {
+                "text": "1",
+                "confidence": 0.2645111083984375,
+                "observation": 0,
+                "line": 2
+              },
+              {
+                "text": "2",
+                "confidence": 0.220990389585495,
+                "observation": 0,
+                "line": 3
+              },
+              {
+                "text": "3",
+                "confidence": 0.20414699614048004,
+                "observation": 0,
+                "line": 4
+              },
+              {
+                "text": "2_IT",
+                "confidence": 0.31222450733184814,
+                "observation": 0,
+                "line": 5
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 21.022056274161596,
+                  "width": 14.30120662109888,
+                  "x": -0.06330231398596507,
+                  "y": 8.633363805538327
+                },
+                "sourceLine": "2028年度後期"
+              }
+            ],
+            "bodyLiteralLineAgreement": [],
+            "printedPeriodTokensMissingFromConsumedDocumentTextLines": [
+              "4",
+              "5",
+              "6",
+              "7",
+              "8"
+            ],
+            "printedKnownClassMissingFromConsumedLines": [],
+            "confirmedFailureCause": "Diagnostic application of unchanged layouts predicates fails at least one correctly printed period/class line on everypage; rectangle predicate additionally fails the negative-x firstyear glyph on9pages. Actual .layouts/Builder/ink/fullformal route was not run, so this is an observed predicate barrier rather than a measured fullpipeline refusal.",
+            "undeterminedCause": "Underlying confidence/calibration/rendering/engine cause not isolated; absence from consumed document.text.lines does not prove absence from unrecorded document tables.",
+            "formalAssessed": false
+          },
+          {
+            "fixture": "independent-Timetable-verifiedblank-丙",
+            "page": 4,
+            "pdfSHA256": "2625bf49044d59088b53109fc15ba7813073fdedac71bde5eb82925c297050f8",
+            "nativeRenderedDimensions": [
+              984,
+              201
+            ],
+            "nativePixelsSHA256": null,
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "operationalError": false,
+            "seconds": 0.8861250877380371,
+            "lowConfidenceLines": [
+              {
+                "text": "1",
+                "confidence": 0.2645111083984375,
+                "observation": 0,
+                "line": 2
+              },
+              {
+                "text": "3",
+                "confidence": 0.20072360336780548,
+                "observation": 0,
+                "line": 4
+              },
+              {
+                "text": "4",
+                "confidence": 0.2608276903629303,
+                "observation": 0,
+                "line": 5
+              },
+              {
+                "text": "2_IT",
+                "confidence": 0.29884228110313416,
+                "observation": 0,
+                "line": 6
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 21.074996137786094,
+                  "width": 14.38055461047961,
+                  "x": -0.10209528032650557,
+                  "y": 8.80689816616328
+                },
+                "sourceLine": "2028年度後期"
+              }
+            ],
+            "bodyLiteralLineAgreement": [],
+            "printedPeriodTokensMissingFromConsumedDocumentTextLines": [
+              "5",
+              "6",
+              "7",
+              "8"
+            ],
+            "printedKnownClassMissingFromConsumedLines": [],
+            "confirmedFailureCause": "Diagnostic application of unchanged layouts predicates fails at least one correctly printed period/class line on everypage; rectangle predicate additionally fails the negative-x firstyear glyph on9pages. Actual .layouts/Builder/ink/fullformal route was not run, so this is an observed predicate barrier rather than a measured fullpipeline refusal.",
+            "undeterminedCause": "Underlying confidence/calibration/rendering/engine cause not isolated; absence from consumed document.text.lines does not prove absence from unrecorded document tables.",
+            "formalAssessed": false
+          },
+          {
+            "fixture": "independent-Timetable-verifiedblank-丙",
+            "page": 5,
+            "pdfSHA256": "2625bf49044d59088b53109fc15ba7813073fdedac71bde5eb82925c297050f8",
+            "nativeRenderedDimensions": [
+              984,
+              201
+            ],
+            "nativePixelsSHA256": null,
+            "readReturned": true,
+            "diagnosticComplete": true,
+            "operationalError": false,
+            "seconds": 0.8689249753952026,
+            "lowConfidenceLines": [
+              {
+                "text": "1",
+                "confidence": 0.2645111083984375,
+                "observation": 0,
+                "line": 2
+              },
+              {
+                "text": "2",
+                "confidence": 0.220990389585495,
+                "observation": 0,
+                "line": 3
+              },
+              {
+                "text": "3",
+                "confidence": 0.20072360336780548,
+                "observation": 0,
+                "line": 4
+              },
+              {
+                "text": "2_IT",
+                "confidence": 0.31222450733184814,
+                "observation": 0,
+                "line": 5
+              }
+            ],
+            "invalidCharacterRectangles": [
+              {
+                "text": "2",
+                "pixelTopLeft": {
+                  "height": 21.022056334095293,
+                  "width": 14.30120739980282,
+                  "x": -0.06328278472963769,
+                  "y": 8.639717689067805
+                },
+                "sourceLine": "2028年度後期"
+              }
+            ],
+            "bodyLiteralLineAgreement": [],
+            "printedPeriodTokensMissingFromConsumedDocumentTextLines": [
+              "4",
+              "5",
+              "6",
+              "7",
+              "8"
+            ],
+            "printedKnownClassMissingFromConsumedLines": [],
+            "confirmedFailureCause": "Diagnostic application of unchanged layouts predicates fails at least one correctly printed period/class line on everypage; rectangle predicate additionally fails the negative-x firstyear glyph on9pages. Actual .layouts/Builder/ink/fullformal route was not run, so this is an observed predicate barrier rather than a measured fullpipeline refusal.",
+            "undeterminedCause": "Underlying confidence/calibration/rendering/engine cause not isolated; absence from consumed document.text.lines does not prove absence from unrecorded document tables.",
+            "formalAssessed": false
+          }
+        ],
+        "comparisonLimits": "OriginalPDFbytes same Windows ordinary2; actual iOSrender984x197/201 vs originalPNG1025x206/210. Rendered pixels not retained. Differentrenderer/runtime/confidence granularity prohibit intrinsicOCRmodel or physicaldevice ranking. Blank teacher returnedlabel-only does not independently certify absence of ink.",
+        "newInferenceCallsByReviewer": 0
+      }
+    }
+  ]
+}

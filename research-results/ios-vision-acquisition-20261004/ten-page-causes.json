@@ -1,0 +1,1759 @@
+{
+  "run": 37206582959,
+  "source": "0294fd6eb8d8c5695ed7de6302523d1c46dc284e",
+  "resultsSHA256": "9855f5e5ab93495ad8d5a0a4080b19f7e6a25122e7495908e0823d9a4d6f6858",
+  "rawSHA256": "d5ce20d53565920930f365db47e7f24828ea2217f827e1ff2cb72ce7de39a191",
+  "scope": "Same original PDF acquisition-only; all posthoc literals from independent original, never inference input",
+  "summary": {
+    "plannedPages": 10,
+    "readReturnedPages": 10,
+    "diagnosticCompletedPages": 10,
+    "operationalErrors": 0,
+    "diagnosticPredicatePassingPages": 0,
+    "recognizedLines": 79,
+    "lowConfidenceLines": 41,
+    "invalidCharacterBoxes": 9,
+    "bodyValueLiteralMatches": 6,
+    "bodyValueDiagnostics": 6,
+    "verifiedBlankProofs": 0,
+    "formalAssessed": 0,
+    "acceptedResults": null,
+    "incorrectAdoptions": null,
+    "qualityQualification": false
+  },
+  "rows": [
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "readReturned": true,
+      "diagnosticComplete": true,
+      "actualReadRenderPixels": [
+        984,
+        197
+      ],
+      "failureStage": "post-observation confidence/character-geometry diagnostic",
+      "operationalError": null,
+      "originalDrawingSHA256": "c2acd23ad38bc9e6eea4ded8b1fb790ac5817bb7891f090483a2f28084eab1b9",
+      "originalPeriodSources": [
+        {
+          "originalPointer": "pages[0].textsAndInk[3]",
+          "text": "1",
+          "originalPNGBox": [
+            104,
+            73,
+            112,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[0].textsAndInk[4]",
+          "text": "2",
+          "originalPNGBox": [
+            220,
+            73,
+            228,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[0].textsAndInk[5]",
+          "text": "3",
+          "originalPNGBox": [
+            336,
+            73,
+            344,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[0].textsAndInk[6]",
+          "text": "4",
+          "originalPNGBox": [
+            452,
+            73,
+            460,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[0].textsAndInk[7]",
+          "text": "5",
+          "originalPNGBox": [
+            568,
+            73,
+            576,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[0].textsAndInk[8]",
+          "text": "6",
+          "originalPNGBox": [
+            684,
+            73,
+            692,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[0].textsAndInk[9]",
+          "text": "7",
+          "originalPNGBox": [
+            800,
+            73,
+            808,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[0].textsAndInk[10]",
+          "text": "8",
+          "originalPNGBox": [
+            916,
+            73,
+            924,
+            84
+          ]
+        }
+      ],
+      "serializedLinePeriodNumbers": [
+        "1",
+        "2",
+        "3"
+      ],
+      "missingFromSerializedGlobalLines": [
+        "4",
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "lowConfidenceLines": [
+        {
+          "lineIndex": 3,
+          "rawText": "1",
+          "confidence": 0.2556345462799072
+        },
+        {
+          "lineIndex": 4,
+          "rawText": "2",
+          "confidence": 0.19839522242546082
+        },
+        {
+          "lineIndex": 5,
+          "rawText": "3",
+          "confidence": 0.19643139839172363
+        },
+        {
+          "lineIndex": 6,
+          "rawText": "5_ES",
+          "confidence": 0.3152874708175659
+        }
+      ],
+      "invalidCharacterBoxes": [
+        {
+          "lineIndex": 0,
+          "charIndex": 0,
+          "text": "2",
+          "pixelTopLeft": {
+            "height": 25.177343910860554,
+            "width": 13.80198293717143,
+            "x": -0.026521894030224515,
+            "y": 4.2859710116163665
+          }
+        }
+      ],
+      "bodyValueDiagnostics": [
+        {
+          "role": "subject",
+          "literalExpectedValue": "架空化学乙",
+          "rawLine": "科目：架空化学乙",
+          "bodyValueObserved": "架空化学乙",
+          "exactBodyValue": true,
+          "confidence": 0.9594942331314087,
+          "labelColonRawDifference": "original ASCII colon; output fullwidth colon",
+          "verifiedEmpty": false,
+          "scope": "posthoc literal body diagnostic only; no cell ownership/ink/Validator/formal proof"
+        },
+        {
+          "role": "teacher",
+          "literalExpectedValue": "架空担当乙",
+          "rawLine": "担当：架空担当乙",
+          "bodyValueObserved": "架空担当乙",
+          "exactBodyValue": true,
+          "confidence": 0.9577177166938782,
+          "labelColonRawDifference": "original ASCII colon; output fullwidth colon",
+          "verifiedEmpty": false,
+          "scope": "posthoc literal body diagnostic only; no cell ownership/ink/Validator/formal proof"
+        },
+        {
+          "role": "room",
+          "literalExpectedValue": "架空室乙",
+          "rawLine": "教室：架空室乙",
+          "bodyValueObserved": "架空室乙",
+          "exactBodyValue": true,
+          "confidence": 0.9592577815055847,
+          "labelColonRawDifference": "original ASCII colon; output fullwidth colon",
+          "verifiedEmpty": false,
+          "scope": "posthoc literal body diagnostic only; no cell ownership/ink/Validator/formal proof"
+        }
+      ],
+      "evidence": [
+        {
+          "cause": "Confidence floor .85 not met by correct-looking single-period/class text in consumed global lines",
+          "strength": "confirmed",
+          "scope": "post-observation diagnostic; .layouts itself not executed"
+        },
+        {
+          "cause": "Some printed period labels absent from serialized document.text.lines; whole Document tables not recorded",
+          "strength": "confirmed for serialized inventory, undetermined for whole Vision detection"
+        },
+        {
+          "cause": "OCR engine versus rendering/segmentation/table representation contribution",
+          "strength": "undetermined",
+          "reason": "One API/render recipe; no tables/transcript inventory or paired same-render engines; no retuning"
+        },
+        {
+          "cause": "Year first character box extends slightly left of viewport; original x>=0 diagnostic rejects",
+          "strength": "confirmed",
+          "scope": "actual x -0.0265 through -0.1021 pixel; no clamp or tolerance added"
+        }
+      ],
+      "formalAssessment": "unassessed",
+      "inkCoverageVerified": false,
+      "qualityQualification": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "readReturned": true,
+      "diagnosticComplete": true,
+      "actualReadRenderPixels": [
+        984,
+        197
+      ],
+      "failureStage": "post-observation confidence/character-geometry diagnostic",
+      "operationalError": null,
+      "originalDrawingSHA256": "c2acd23ad38bc9e6eea4ded8b1fb790ac5817bb7891f090483a2f28084eab1b9",
+      "originalPeriodSources": [
+        {
+          "originalPointer": "pages[1].textsAndInk[3]",
+          "text": "1",
+          "originalPNGBox": [
+            104,
+            73,
+            112,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[1].textsAndInk[4]",
+          "text": "2",
+          "originalPNGBox": [
+            220,
+            73,
+            228,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[1].textsAndInk[5]",
+          "text": "3",
+          "originalPNGBox": [
+            336,
+            73,
+            344,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[1].textsAndInk[6]",
+          "text": "4",
+          "originalPNGBox": [
+            452,
+            73,
+            460,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[1].textsAndInk[7]",
+          "text": "5",
+          "originalPNGBox": [
+            568,
+            73,
+            576,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[1].textsAndInk[8]",
+          "text": "6",
+          "originalPNGBox": [
+            684,
+            73,
+            692,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[1].textsAndInk[9]",
+          "text": "7",
+          "originalPNGBox": [
+            800,
+            73,
+            808,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[1].textsAndInk[10]",
+          "text": "8",
+          "originalPNGBox": [
+            916,
+            73,
+            924,
+            84
+          ]
+        }
+      ],
+      "serializedLinePeriodNumbers": [
+        "2",
+        "3",
+        "4"
+      ],
+      "missingFromSerializedGlobalLines": [
+        "1",
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "lowConfidenceLines": [
+        {
+          "lineIndex": 3,
+          "rawText": "2",
+          "confidence": 0.2298191785812378
+        },
+        {
+          "lineIndex": 4,
+          "rawText": "3",
+          "confidence": 0.19643139839172363
+        },
+        {
+          "lineIndex": 5,
+          "rawText": "4",
+          "confidence": 0.26034578680992126
+        },
+        {
+          "lineIndex": 6,
+          "rawText": "5_ES",
+          "confidence": 0.3060927987098694
+        }
+      ],
+      "invalidCharacterBoxes": [
+        {
+          "lineIndex": 0,
+          "charIndex": 0,
+          "text": "2",
+          "pixelTopLeft": {
+            "height": 21.063263580364946,
+            "width": 14.333061705036192,
+            "x": -0.07887254057269484,
+            "y": 8.71470045936995
+          }
+        }
+      ],
+      "bodyValueDiagnostics": [],
+      "evidence": [
+        {
+          "cause": "Confidence floor .85 not met by correct-looking single-period/class text in consumed global lines",
+          "strength": "confirmed",
+          "scope": "post-observation diagnostic; .layouts itself not executed"
+        },
+        {
+          "cause": "Some printed period labels absent from serialized document.text.lines; whole Document tables not recorded",
+          "strength": "confirmed for serialized inventory, undetermined for whole Vision detection"
+        },
+        {
+          "cause": "OCR engine versus rendering/segmentation/table representation contribution",
+          "strength": "undetermined",
+          "reason": "One API/render recipe; no tables/transcript inventory or paired same-render engines; no retuning"
+        },
+        {
+          "cause": "Year first character box extends slightly left of viewport; original x>=0 diagnostic rejects",
+          "strength": "confirmed",
+          "scope": "actual x -0.0265 through -0.1021 pixel; no clamp or tolerance added"
+        }
+      ],
+      "formalAssessment": "unassessed",
+      "inkCoverageVerified": false,
+      "qualityQualification": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "readReturned": true,
+      "diagnosticComplete": true,
+      "actualReadRenderPixels": [
+        984,
+        197
+      ],
+      "failureStage": "post-observation confidence/character-geometry diagnostic",
+      "operationalError": null,
+      "originalDrawingSHA256": "c2acd23ad38bc9e6eea4ded8b1fb790ac5817bb7891f090483a2f28084eab1b9",
+      "originalPeriodSources": [
+        {
+          "originalPointer": "pages[2].textsAndInk[3]",
+          "text": "1",
+          "originalPNGBox": [
+            104,
+            73,
+            112,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[2].textsAndInk[4]",
+          "text": "2",
+          "originalPNGBox": [
+            220,
+            73,
+            228,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[2].textsAndInk[5]",
+          "text": "3",
+          "originalPNGBox": [
+            336,
+            73,
+            344,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[2].textsAndInk[6]",
+          "text": "4",
+          "originalPNGBox": [
+            452,
+            73,
+            460,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[2].textsAndInk[7]",
+          "text": "5",
+          "originalPNGBox": [
+            568,
+            73,
+            576,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[2].textsAndInk[8]",
+          "text": "6",
+          "originalPNGBox": [
+            684,
+            73,
+            692,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[2].textsAndInk[9]",
+          "text": "7",
+          "originalPNGBox": [
+            800,
+            73,
+            808,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[2].textsAndInk[10]",
+          "text": "8",
+          "originalPNGBox": [
+            916,
+            73,
+            924,
+            84
+          ]
+        }
+      ],
+      "serializedLinePeriodNumbers": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "missingFromSerializedGlobalLines": [
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "lowConfidenceLines": [
+        {
+          "lineIndex": 3,
+          "rawText": "1",
+          "confidence": 0.2556345462799072
+        },
+        {
+          "lineIndex": 4,
+          "rawText": "2",
+          "confidence": 0.2298191785812378
+        },
+        {
+          "lineIndex": 5,
+          "rawText": "3",
+          "confidence": 0.19643139839172363
+        },
+        {
+          "lineIndex": 6,
+          "rawText": "4",
+          "confidence": 0.26034578680992126
+        },
+        {
+          "lineIndex": 7,
+          "rawText": "5_ES",
+          "confidence": 0.3060927987098694
+        }
+      ],
+      "invalidCharacterBoxes": [
+        {
+          "lineIndex": 0,
+          "charIndex": 0,
+          "text": "2",
+          "pixelTopLeft": {
+            "height": 21.063263580364946,
+            "width": 14.333061705036192,
+            "x": -0.07887254057269484,
+            "y": 8.71470045936995
+          }
+        }
+      ],
+      "bodyValueDiagnostics": [],
+      "evidence": [
+        {
+          "cause": "Confidence floor .85 not met by correct-looking single-period/class text in consumed global lines",
+          "strength": "confirmed",
+          "scope": "post-observation diagnostic; .layouts itself not executed"
+        },
+        {
+          "cause": "Some printed period labels absent from serialized document.text.lines; whole Document tables not recorded",
+          "strength": "confirmed for serialized inventory, undetermined for whole Vision detection"
+        },
+        {
+          "cause": "OCR engine versus rendering/segmentation/table representation contribution",
+          "strength": "undetermined",
+          "reason": "One API/render recipe; no tables/transcript inventory or paired same-render engines; no retuning"
+        },
+        {
+          "cause": "Year first character box extends slightly left of viewport; original x>=0 diagnostic rejects",
+          "strength": "confirmed",
+          "scope": "actual x -0.0265 through -0.1021 pixel; no clamp or tolerance added"
+        }
+      ],
+      "formalAssessment": "unassessed",
+      "inkCoverageVerified": false,
+      "qualityQualification": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "readReturned": true,
+      "diagnosticComplete": true,
+      "actualReadRenderPixels": [
+        984,
+        197
+      ],
+      "failureStage": "post-observation confidence/character-geometry diagnostic",
+      "operationalError": null,
+      "originalDrawingSHA256": "c2acd23ad38bc9e6eea4ded8b1fb790ac5817bb7891f090483a2f28084eab1b9",
+      "originalPeriodSources": [
+        {
+          "originalPointer": "pages[3].textsAndInk[3]",
+          "text": "1",
+          "originalPNGBox": [
+            104,
+            73,
+            112,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[3].textsAndInk[4]",
+          "text": "2",
+          "originalPNGBox": [
+            220,
+            73,
+            228,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[3].textsAndInk[5]",
+          "text": "3",
+          "originalPNGBox": [
+            336,
+            73,
+            344,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[3].textsAndInk[6]",
+          "text": "4",
+          "originalPNGBox": [
+            452,
+            73,
+            460,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[3].textsAndInk[7]",
+          "text": "5",
+          "originalPNGBox": [
+            568,
+            73,
+            576,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[3].textsAndInk[8]",
+          "text": "6",
+          "originalPNGBox": [
+            684,
+            73,
+            692,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[3].textsAndInk[9]",
+          "text": "7",
+          "originalPNGBox": [
+            800,
+            73,
+            808,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[3].textsAndInk[10]",
+          "text": "8",
+          "originalPNGBox": [
+            916,
+            73,
+            924,
+            84
+          ]
+        }
+      ],
+      "serializedLinePeriodNumbers": [
+        "2",
+        "3",
+        "4"
+      ],
+      "missingFromSerializedGlobalLines": [
+        "1",
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "lowConfidenceLines": [
+        {
+          "lineIndex": 3,
+          "rawText": "2",
+          "confidence": 0.2298191785812378
+        },
+        {
+          "lineIndex": 4,
+          "rawText": "3",
+          "confidence": 0.19643139839172363
+        },
+        {
+          "lineIndex": 5,
+          "rawText": "4",
+          "confidence": 0.26034578680992126
+        },
+        {
+          "lineIndex": 6,
+          "rawText": "5_ES",
+          "confidence": 0.3060927987098694
+        }
+      ],
+      "invalidCharacterBoxes": [
+        {
+          "lineIndex": 0,
+          "charIndex": 0,
+          "text": "2",
+          "pixelTopLeft": {
+            "height": 21.071659610014226,
+            "width": 14.345643546096388,
+            "x": -0.0850230719877317,
+            "y": 8.74121425554518
+          }
+        }
+      ],
+      "bodyValueDiagnostics": [],
+      "evidence": [
+        {
+          "cause": "Confidence floor .85 not met by correct-looking single-period/class text in consumed global lines",
+          "strength": "confirmed",
+          "scope": "post-observation diagnostic; .layouts itself not executed"
+        },
+        {
+          "cause": "Some printed period labels absent from serialized document.text.lines; whole Document tables not recorded",
+          "strength": "confirmed for serialized inventory, undetermined for whole Vision detection"
+        },
+        {
+          "cause": "OCR engine versus rendering/segmentation/table representation contribution",
+          "strength": "undetermined",
+          "reason": "One API/render recipe; no tables/transcript inventory or paired same-render engines; no retuning"
+        },
+        {
+          "cause": "Year first character box extends slightly left of viewport; original x>=0 diagnostic rejects",
+          "strength": "confirmed",
+          "scope": "actual x -0.0265 through -0.1021 pixel; no clamp or tolerance added"
+        }
+      ],
+      "formalAssessment": "unassessed",
+      "inkCoverageVerified": false,
+      "qualityQualification": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "readReturned": true,
+      "diagnosticComplete": true,
+      "actualReadRenderPixels": [
+        984,
+        197
+      ],
+      "failureStage": "post-observation confidence/character-geometry diagnostic",
+      "operationalError": null,
+      "originalDrawingSHA256": "c2acd23ad38bc9e6eea4ded8b1fb790ac5817bb7891f090483a2f28084eab1b9",
+      "originalPeriodSources": [
+        {
+          "originalPointer": "pages[4].textsAndInk[3]",
+          "text": "1",
+          "originalPNGBox": [
+            104,
+            73,
+            112,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[4].textsAndInk[4]",
+          "text": "2",
+          "originalPNGBox": [
+            220,
+            73,
+            228,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[4].textsAndInk[5]",
+          "text": "3",
+          "originalPNGBox": [
+            336,
+            73,
+            344,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[4].textsAndInk[6]",
+          "text": "4",
+          "originalPNGBox": [
+            452,
+            73,
+            460,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[4].textsAndInk[7]",
+          "text": "5",
+          "originalPNGBox": [
+            568,
+            73,
+            576,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[4].textsAndInk[8]",
+          "text": "6",
+          "originalPNGBox": [
+            684,
+            73,
+            692,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[4].textsAndInk[9]",
+          "text": "7",
+          "originalPNGBox": [
+            800,
+            73,
+            808,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[4].textsAndInk[10]",
+          "text": "8",
+          "originalPNGBox": [
+            916,
+            73,
+            924,
+            84
+          ]
+        }
+      ],
+      "serializedLinePeriodNumbers": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "missingFromSerializedGlobalLines": [
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "lowConfidenceLines": [
+        {
+          "lineIndex": 3,
+          "rawText": "1",
+          "confidence": 0.2556345462799072
+        },
+        {
+          "lineIndex": 4,
+          "rawText": "2",
+          "confidence": 0.2327273190021515
+        },
+        {
+          "lineIndex": 5,
+          "rawText": "3",
+          "confidence": 0.19643139839172363
+        },
+        {
+          "lineIndex": 6,
+          "rawText": "4",
+          "confidence": 0.26034578680992126
+        },
+        {
+          "lineIndex": 7,
+          "rawText": "5_ES",
+          "confidence": 0.3192978799343109
+        }
+      ],
+      "invalidCharacterBoxes": [],
+      "bodyValueDiagnostics": [],
+      "evidence": [
+        {
+          "cause": "Confidence floor .85 not met by correct-looking single-period/class text in consumed global lines",
+          "strength": "confirmed",
+          "scope": "post-observation diagnostic; .layouts itself not executed"
+        },
+        {
+          "cause": "Some printed period labels absent from serialized document.text.lines; whole Document tables not recorded",
+          "strength": "confirmed for serialized inventory, undetermined for whole Vision detection"
+        },
+        {
+          "cause": "OCR engine versus rendering/segmentation/table representation contribution",
+          "strength": "undetermined",
+          "reason": "One API/render recipe; no tables/transcript inventory or paired same-render engines; no retuning"
+        }
+      ],
+      "formalAssessment": "unassessed",
+      "inkCoverageVerified": false,
+      "qualityQualification": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "readReturned": true,
+      "diagnosticComplete": true,
+      "actualReadRenderPixels": [
+        984,
+        201
+      ],
+      "failureStage": "post-observation confidence/character-geometry diagnostic",
+      "operationalError": null,
+      "originalDrawingSHA256": "fdbb25473adc36c9c31a01686a6255377557a383ae98f47cf89276bb0e8c3c40",
+      "originalPeriodSources": [
+        {
+          "originalPointer": "pages[0].textsAndInk[3]",
+          "text": "1",
+          "originalPNGBox": [
+            104,
+            73,
+            112,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[0].textsAndInk[4]",
+          "text": "2",
+          "originalPNGBox": [
+            220,
+            73,
+            228,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[0].textsAndInk[5]",
+          "text": "3",
+          "originalPNGBox": [
+            336,
+            73,
+            344,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[0].textsAndInk[6]",
+          "text": "4",
+          "originalPNGBox": [
+            452,
+            73,
+            460,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[0].textsAndInk[7]",
+          "text": "5",
+          "originalPNGBox": [
+            568,
+            73,
+            576,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[0].textsAndInk[8]",
+          "text": "6",
+          "originalPNGBox": [
+            684,
+            73,
+            692,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[0].textsAndInk[9]",
+          "text": "7",
+          "originalPNGBox": [
+            800,
+            73,
+            808,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[0].textsAndInk[10]",
+          "text": "8",
+          "originalPNGBox": [
+            916,
+            73,
+            924,
+            84
+          ]
+        }
+      ],
+      "serializedLinePeriodNumbers": [
+        "1",
+        "2",
+        "3"
+      ],
+      "missingFromSerializedGlobalLines": [
+        "4",
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "lowConfidenceLines": [
+        {
+          "lineIndex": 3,
+          "rawText": "1",
+          "confidence": 0.2645111083984375
+        },
+        {
+          "lineIndex": 4,
+          "rawText": "2",
+          "confidence": 0.20444706082344055
+        },
+        {
+          "lineIndex": 5,
+          "rawText": "3",
+          "confidence": 0.20072360336780548
+        },
+        {
+          "lineIndex": 6,
+          "rawText": "2_IT",
+          "confidence": 0.29884228110313416
+        }
+      ],
+      "invalidCharacterBoxes": [
+        {
+          "lineIndex": 0,
+          "charIndex": 0,
+          "text": "2",
+          "pixelTopLeft": {
+            "height": 21.03337149143352,
+            "width": 14.318150318311252,
+            "x": -0.07163178869081394,
+            "y": 8.67536311806787
+          }
+        }
+      ],
+      "bodyValueDiagnostics": [
+        {
+          "role": "subject",
+          "literalExpectedValue": "架空物理丙",
+          "rawLine": "科目：架空物理丙",
+          "bodyValueObserved": "架空物理丙",
+          "exactBodyValue": true,
+          "confidence": 0.9761252403259277,
+          "labelColonRawDifference": "original ASCII colon; output fullwidth colon",
+          "verifiedEmpty": false,
+          "scope": "posthoc literal body diagnostic only; no cell ownership/ink/Validator/formal proof"
+        },
+        {
+          "role": "teacher",
+          "literalExpectedValue": "",
+          "rawLine": "担当：",
+          "bodyValueObserved": "",
+          "exactBodyValue": true,
+          "confidence": 0.9147184491157532,
+          "labelColonRawDifference": "original ASCII colon; output fullwidth colon",
+          "verifiedEmpty": false,
+          "scope": "posthoc literal body diagnostic only; no cell ownership/ink/Validator/formal proof"
+        },
+        {
+          "role": "room",
+          "literalExpectedValue": "架空室丙",
+          "rawLine": "教室：架空室丙",
+          "bodyValueObserved": "架空室丙",
+          "exactBodyValue": true,
+          "confidence": 0.9805557727813721,
+          "labelColonRawDifference": "original ASCII colon; output fullwidth colon",
+          "verifiedEmpty": false,
+          "scope": "posthoc literal body diagnostic only; no cell ownership/ink/Validator/formal proof"
+        }
+      ],
+      "evidence": [
+        {
+          "cause": "Confidence floor .85 not met by correct-looking single-period/class text in consumed global lines",
+          "strength": "confirmed",
+          "scope": "post-observation diagnostic; .layouts itself not executed"
+        },
+        {
+          "cause": "Some printed period labels absent from serialized document.text.lines; whole Document tables not recorded",
+          "strength": "confirmed for serialized inventory, undetermined for whole Vision detection"
+        },
+        {
+          "cause": "OCR engine versus rendering/segmentation/table representation contribution",
+          "strength": "undetermined",
+          "reason": "One API/render recipe; no tables/transcript inventory or paired same-render engines; no retuning"
+        },
+        {
+          "cause": "Year first character box extends slightly left of viewport; original x>=0 diagnostic rejects",
+          "strength": "confirmed",
+          "scope": "actual x -0.0265 through -0.1021 pixel; no clamp or tolerance added"
+        }
+      ],
+      "formalAssessment": "unassessed",
+      "inkCoverageVerified": false,
+      "qualityQualification": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "readReturned": true,
+      "diagnosticComplete": true,
+      "actualReadRenderPixels": [
+        984,
+        201
+      ],
+      "failureStage": "post-observation confidence/character-geometry diagnostic",
+      "operationalError": null,
+      "originalDrawingSHA256": "fdbb25473adc36c9c31a01686a6255377557a383ae98f47cf89276bb0e8c3c40",
+      "originalPeriodSources": [
+        {
+          "originalPointer": "pages[1].textsAndInk[3]",
+          "text": "1",
+          "originalPNGBox": [
+            104,
+            73,
+            112,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[1].textsAndInk[4]",
+          "text": "2",
+          "originalPNGBox": [
+            220,
+            73,
+            228,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[1].textsAndInk[5]",
+          "text": "3",
+          "originalPNGBox": [
+            336,
+            73,
+            344,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[1].textsAndInk[6]",
+          "text": "4",
+          "originalPNGBox": [
+            452,
+            73,
+            460,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[1].textsAndInk[7]",
+          "text": "5",
+          "originalPNGBox": [
+            568,
+            73,
+            576,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[1].textsAndInk[8]",
+          "text": "6",
+          "originalPNGBox": [
+            684,
+            73,
+            692,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[1].textsAndInk[9]",
+          "text": "7",
+          "originalPNGBox": [
+            800,
+            73,
+            808,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[1].textsAndInk[10]",
+          "text": "8",
+          "originalPNGBox": [
+            916,
+            73,
+            924,
+            84
+          ]
+        }
+      ],
+      "serializedLinePeriodNumbers": [
+        "2",
+        "3",
+        "4"
+      ],
+      "missingFromSerializedGlobalLines": [
+        "1",
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "lowConfidenceLines": [
+        {
+          "lineIndex": 3,
+          "rawText": "3",
+          "confidence": 0.20414699614048004
+        },
+        {
+          "lineIndex": 4,
+          "rawText": "4",
+          "confidence": 0.2608276903629303
+        },
+        {
+          "lineIndex": 5,
+          "rawText": "2_IT",
+          "confidence": 0.29884228110313416
+        }
+      ],
+      "invalidCharacterBoxes": [
+        {
+          "lineIndex": 0,
+          "charIndex": 0,
+          "text": "2",
+          "pixelTopLeft": {
+            "height": 21.074996137786094,
+            "width": 14.38055461047961,
+            "x": -0.10209528032650557,
+            "y": 8.80689816616328
+          }
+        }
+      ],
+      "bodyValueDiagnostics": [],
+      "evidence": [
+        {
+          "cause": "Confidence floor .85 not met by correct-looking single-period/class text in consumed global lines",
+          "strength": "confirmed",
+          "scope": "post-observation diagnostic; .layouts itself not executed"
+        },
+        {
+          "cause": "Some printed period labels absent from serialized document.text.lines; whole Document tables not recorded",
+          "strength": "confirmed for serialized inventory, undetermined for whole Vision detection"
+        },
+        {
+          "cause": "OCR engine versus rendering/segmentation/table representation contribution",
+          "strength": "undetermined",
+          "reason": "One API/render recipe; no tables/transcript inventory or paired same-render engines; no retuning"
+        },
+        {
+          "cause": "Year first character box extends slightly left of viewport; original x>=0 diagnostic rejects",
+          "strength": "confirmed",
+          "scope": "actual x -0.0265 through -0.1021 pixel; no clamp or tolerance added"
+        }
+      ],
+      "formalAssessment": "unassessed",
+      "inkCoverageVerified": false,
+      "qualityQualification": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "readReturned": true,
+      "diagnosticComplete": true,
+      "actualReadRenderPixels": [
+        984,
+        201
+      ],
+      "failureStage": "post-observation confidence/character-geometry diagnostic",
+      "operationalError": null,
+      "originalDrawingSHA256": "fdbb25473adc36c9c31a01686a6255377557a383ae98f47cf89276bb0e8c3c40",
+      "originalPeriodSources": [
+        {
+          "originalPointer": "pages[2].textsAndInk[3]",
+          "text": "1",
+          "originalPNGBox": [
+            104,
+            73,
+            112,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[2].textsAndInk[4]",
+          "text": "2",
+          "originalPNGBox": [
+            220,
+            73,
+            228,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[2].textsAndInk[5]",
+          "text": "3",
+          "originalPNGBox": [
+            336,
+            73,
+            344,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[2].textsAndInk[6]",
+          "text": "4",
+          "originalPNGBox": [
+            452,
+            73,
+            460,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[2].textsAndInk[7]",
+          "text": "5",
+          "originalPNGBox": [
+            568,
+            73,
+            576,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[2].textsAndInk[8]",
+          "text": "6",
+          "originalPNGBox": [
+            684,
+            73,
+            692,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[2].textsAndInk[9]",
+          "text": "7",
+          "originalPNGBox": [
+            800,
+            73,
+            808,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[2].textsAndInk[10]",
+          "text": "8",
+          "originalPNGBox": [
+            916,
+            73,
+            924,
+            84
+          ]
+        }
+      ],
+      "serializedLinePeriodNumbers": [
+        "1",
+        "2",
+        "3"
+      ],
+      "missingFromSerializedGlobalLines": [
+        "4",
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "lowConfidenceLines": [
+        {
+          "lineIndex": 2,
+          "rawText": "1",
+          "confidence": 0.2645111083984375
+        },
+        {
+          "lineIndex": 3,
+          "rawText": "2",
+          "confidence": 0.220990389585495
+        },
+        {
+          "lineIndex": 4,
+          "rawText": "3",
+          "confidence": 0.20414699614048004
+        },
+        {
+          "lineIndex": 5,
+          "rawText": "2_IT",
+          "confidence": 0.31222450733184814
+        }
+      ],
+      "invalidCharacterBoxes": [
+        {
+          "lineIndex": 0,
+          "charIndex": 0,
+          "text": "2",
+          "pixelTopLeft": {
+            "height": 21.022056274161596,
+            "width": 14.30120662109888,
+            "x": -0.06330231398596507,
+            "y": 8.633363805538327
+          }
+        }
+      ],
+      "bodyValueDiagnostics": [],
+      "evidence": [
+        {
+          "cause": "Confidence floor .85 not met by correct-looking single-period/class text in consumed global lines",
+          "strength": "confirmed",
+          "scope": "post-observation diagnostic; .layouts itself not executed"
+        },
+        {
+          "cause": "Some printed period labels absent from serialized document.text.lines; whole Document tables not recorded",
+          "strength": "confirmed for serialized inventory, undetermined for whole Vision detection"
+        },
+        {
+          "cause": "OCR engine versus rendering/segmentation/table representation contribution",
+          "strength": "undetermined",
+          "reason": "One API/render recipe; no tables/transcript inventory or paired same-render engines; no retuning"
+        },
+        {
+          "cause": "Year first character box extends slightly left of viewport; original x>=0 diagnostic rejects",
+          "strength": "confirmed",
+          "scope": "actual x -0.0265 through -0.1021 pixel; no clamp or tolerance added"
+        }
+      ],
+      "formalAssessment": "unassessed",
+      "inkCoverageVerified": false,
+      "qualityQualification": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "readReturned": true,
+      "diagnosticComplete": true,
+      "actualReadRenderPixels": [
+        984,
+        201
+      ],
+      "failureStage": "post-observation confidence/character-geometry diagnostic",
+      "operationalError": null,
+      "originalDrawingSHA256": "fdbb25473adc36c9c31a01686a6255377557a383ae98f47cf89276bb0e8c3c40",
+      "originalPeriodSources": [
+        {
+          "originalPointer": "pages[3].textsAndInk[3]",
+          "text": "1",
+          "originalPNGBox": [
+            104,
+            73,
+            112,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[3].textsAndInk[4]",
+          "text": "2",
+          "originalPNGBox": [
+            220,
+            73,
+            228,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[3].textsAndInk[5]",
+          "text": "3",
+          "originalPNGBox": [
+            336,
+            73,
+            344,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[3].textsAndInk[6]",
+          "text": "4",
+          "originalPNGBox": [
+            452,
+            73,
+            460,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[3].textsAndInk[7]",
+          "text": "5",
+          "originalPNGBox": [
+            568,
+            73,
+            576,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[3].textsAndInk[8]",
+          "text": "6",
+          "originalPNGBox": [
+            684,
+            73,
+            692,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[3].textsAndInk[9]",
+          "text": "7",
+          "originalPNGBox": [
+            800,
+            73,
+            808,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[3].textsAndInk[10]",
+          "text": "8",
+          "originalPNGBox": [
+            916,
+            73,
+            924,
+            84
+          ]
+        }
+      ],
+      "serializedLinePeriodNumbers": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "missingFromSerializedGlobalLines": [
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "lowConfidenceLines": [
+        {
+          "lineIndex": 2,
+          "rawText": "1",
+          "confidence": 0.2645111083984375
+        },
+        {
+          "lineIndex": 4,
+          "rawText": "3",
+          "confidence": 0.20072360336780548
+        },
+        {
+          "lineIndex": 5,
+          "rawText": "4",
+          "confidence": 0.2608276903629303
+        },
+        {
+          "lineIndex": 6,
+          "rawText": "2_IT",
+          "confidence": 0.29884228110313416
+        }
+      ],
+      "invalidCharacterBoxes": [
+        {
+          "lineIndex": 0,
+          "charIndex": 0,
+          "text": "2",
+          "pixelTopLeft": {
+            "height": 21.074996137786094,
+            "width": 14.38055461047961,
+            "x": -0.10209528032650557,
+            "y": 8.80689816616328
+          }
+        }
+      ],
+      "bodyValueDiagnostics": [],
+      "evidence": [
+        {
+          "cause": "Confidence floor .85 not met by correct-looking single-period/class text in consumed global lines",
+          "strength": "confirmed",
+          "scope": "post-observation diagnostic; .layouts itself not executed"
+        },
+        {
+          "cause": "Some printed period labels absent from serialized document.text.lines; whole Document tables not recorded",
+          "strength": "confirmed for serialized inventory, undetermined for whole Vision detection"
+        },
+        {
+          "cause": "OCR engine versus rendering/segmentation/table representation contribution",
+          "strength": "undetermined",
+          "reason": "One API/render recipe; no tables/transcript inventory or paired same-render engines; no retuning"
+        },
+        {
+          "cause": "Year first character box extends slightly left of viewport; original x>=0 diagnostic rejects",
+          "strength": "confirmed",
+          "scope": "actual x -0.0265 through -0.1021 pixel; no clamp or tolerance added"
+        }
+      ],
+      "formalAssessment": "unassessed",
+      "inkCoverageVerified": false,
+      "qualityQualification": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "readReturned": true,
+      "diagnosticComplete": true,
+      "actualReadRenderPixels": [
+        984,
+        201
+      ],
+      "failureStage": "post-observation confidence/character-geometry diagnostic",
+      "operationalError": null,
+      "originalDrawingSHA256": "fdbb25473adc36c9c31a01686a6255377557a383ae98f47cf89276bb0e8c3c40",
+      "originalPeriodSources": [
+        {
+          "originalPointer": "pages[4].textsAndInk[3]",
+          "text": "1",
+          "originalPNGBox": [
+            104,
+            73,
+            112,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[4].textsAndInk[4]",
+          "text": "2",
+          "originalPNGBox": [
+            220,
+            73,
+            228,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[4].textsAndInk[5]",
+          "text": "3",
+          "originalPNGBox": [
+            336,
+            73,
+            344,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[4].textsAndInk[6]",
+          "text": "4",
+          "originalPNGBox": [
+            452,
+            73,
+            460,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[4].textsAndInk[7]",
+          "text": "5",
+          "originalPNGBox": [
+            568,
+            73,
+            576,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[4].textsAndInk[8]",
+          "text": "6",
+          "originalPNGBox": [
+            684,
+            73,
+            692,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[4].textsAndInk[9]",
+          "text": "7",
+          "originalPNGBox": [
+            800,
+            73,
+            808,
+            84
+          ]
+        },
+        {
+          "originalPointer": "pages[4].textsAndInk[10]",
+          "text": "8",
+          "originalPNGBox": [
+            916,
+            73,
+            924,
+            84
+          ]
+        }
+      ],
+      "serializedLinePeriodNumbers": [
+        "1",
+        "2",
+        "3"
+      ],
+      "missingFromSerializedGlobalLines": [
+        "4",
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "lowConfidenceLines": [
+        {
+          "lineIndex": 2,
+          "rawText": "1",
+          "confidence": 0.2645111083984375
+        },
+        {
+          "lineIndex": 3,
+          "rawText": "2",
+          "confidence": 0.220990389585495
+        },
+        {
+          "lineIndex": 4,
+          "rawText": "3",
+          "confidence": 0.20072360336780548
+        },
+        {
+          "lineIndex": 5,
+          "rawText": "2_IT",
+          "confidence": 0.31222450733184814
+        }
+      ],
+      "invalidCharacterBoxes": [
+        {
+          "lineIndex": 0,
+          "charIndex": 0,
+          "text": "2",
+          "pixelTopLeft": {
+            "height": 21.022056334095293,
+            "width": 14.30120739980282,
+            "x": -0.06328278472963769,
+            "y": 8.639717689067805
+          }
+        }
+      ],
+      "bodyValueDiagnostics": [],
+      "evidence": [
+        {
+          "cause": "Confidence floor .85 not met by correct-looking single-period/class text in consumed global lines",
+          "strength": "confirmed",
+          "scope": "post-observation diagnostic; .layouts itself not executed"
+        },
+        {
+          "cause": "Some printed period labels absent from serialized document.text.lines; whole Document tables not recorded",
+          "strength": "confirmed for serialized inventory, undetermined for whole Vision detection"
+        },
+        {
+          "cause": "OCR engine versus rendering/segmentation/table representation contribution",
+          "strength": "undetermined",
+          "reason": "One API/render recipe; no tables/transcript inventory or paired same-render engines; no retuning"
+        },
+        {
+          "cause": "Year first character box extends slightly left of viewport; original x>=0 diagnostic rejects",
+          "strength": "confirmed",
+          "scope": "actual x -0.0265 through -0.1021 pixel; no clamp or tolerance added"
+        }
+      ],
+      "formalAssessment": "unassessed",
+      "inkCoverageVerified": false,
+      "qualityQualification": false
+    }
+  ],
+  "limits": [
+    "No .layouts or raster ink/blank proof, Builder/Rules/Validator/formal execution",
+    "Whole native Document tables/transcript unrecorded; omission cause undetermined",
+    "Same PDF, different native render scales and guard floors from Windows; no isolated engine ranking",
+    "Simulator host-backed memory/performance, not physical iPhone proof",
+    "Two development controls only; no unused holdout or model adoption qualification"
+  ]
+}

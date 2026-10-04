@@ -1,0 +1,66 @@
+{
+  "scope": "Read-only official documentation investigation, no code change or native repeat",
+  "evidence": [
+    {
+      "url": "https://developer.apple.com/documentation/vision/documentobservation/container",
+      "sha256OfRetrievedDocCJSON": "a04a5bc6b583bbdb567d4423f30ffbe25412127cefa3e70141cfe4e91902ecc8",
+      "shortAbstract": "A region of content recognized in a document."
+    },
+    {
+      "url": "https://developer.apple.com/documentation/vision/documentobservation/container/table/cell/content",
+      "sha256OfRetrievedDocCJSON": "8b0627a31dab8d8aae582dd9f50cc9ad0b90befbafaf2982ca03a7eb5bf81e00",
+      "shortAbstract": "The contents of a cell."
+    },
+    {
+      "url": "https://developer.apple.com/documentation/vision/documentobservation/container/table/cell",
+      "sha256OfRetrievedDocCJSON": "bd17ae4bc65419aa862f9695409fc7f3fde1cc0721f031631b8c7344436b0610",
+      "shortAbstract": "A structure that represents a table cell."
+    },
+    {
+      "url": "https://developer.apple.com/documentation/vision/documentobservation/container/table",
+      "sha256OfRetrievedDocCJSON": "095f482a8947aa08738a70420ada971e13c13cb99e7c876baf1e7b3ff835f72b",
+      "shortAbstract": "A structure that represents a table within a document."
+    },
+    {
+      "url": "https://developer.apple.com/documentation/vision/documentobservation/container/table/rows",
+      "sha256OfRetrievedDocCJSON": "328b7ae0f08b67fdf93e9371b26f8a94f33765a56a85448cd655ac9244359380",
+      "shortAbstract": "The rows in a table."
+    },
+    {
+      "url": "https://developer.apple.com/documentation/vision/documentobservation/container/tables",
+      "sha256OfRetrievedDocCJSON": "1756428ed70a93d085cc3cd8040c6733eb70d18559525e6717727c21ba278e99",
+      "shortAbstract": "The tables found within the container."
+    },
+    {
+      "url": "https://developer.apple.com/documentation/vision/documentobservation/container/text-swift.property",
+      "sha256OfRetrievedDocCJSON": "ed6271701c5266188090b9203aead76247607c0a269daf2b69df1b3986245a80",
+      "shortAbstract": "All the text found within the container."
+    },
+    {
+      "url": "https://developer.apple.com/documentation/vision/documentobservation/container/text-swift.struct/lines",
+      "sha256OfRetrievedDocCJSON": "f955525613b7a88b63bf160b707ff149695a8580563d49be99e6b012358579a7",
+      "shortAbstract": "The text grouped by line."
+    },
+    {
+      "url": "https://developer.apple.com/documentation/vision/documentobservation/container/text-swift.struct",
+      "sha256OfRetrievedDocCJSON": "ceb51b2629fd6d23c949bc304374a8ecbb51950e7c724dd869f6c0ee1d4afdf2",
+      "shortAbstract": "A structure that represents a region of text in a document."
+    },
+    {
+      "url": "https://developer.apple.com/documentation/vision/documentobservation/container/text-swift.struct/transcript",
+      "sha256OfRetrievedDocCJSON": "df409d0515d445738575ac925188066d67f3fa698a162a9413f4891bbe7fb79b",
+      "shortAbstract": "The complete text as a string."
+    },
+    {
+      "url": "https://developer.apple.com/documentation/vision/documentobservation/container/text-swift.struct/words",
+      "sha256OfRetrievedDocCJSON": "0f5b8660eccf0c2f17a88f732c474ca373fe4b96420bcfe84e2f2a57dfb8c09d",
+      "shortAbstract": "An instance property that returns individual words in a text container."
+    },
+    {
+      "url": "https://developer.apple.com/documentation/vision/documentobservation/document",
+      "sha256OfRetrievedDocCJSON": "80d61bc75f92b2f5ef7d31a9bf72de0038eeff4bda5a8a19ad28dd3b8a25a523",
+      "shortAbstract": "The contents of the document."
+    }
+  ],
+  "conclusion": "Container.text is documented as all text in the container; Text.lines groups text by line; separate table/cell/text APIs exist. This does not establish that global lines exclude table text. A table-only extraction gap remains unconfirmed. Japanese word fallback is not a supported blanket remedy: words documentation explicitly says Chinese/Japanese/Korean/Thai do not recognize individual words. No duplicate table merge, box clamp, or threshold change is justified by this evidence alone."
+}

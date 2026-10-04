@@ -1,0 +1,4990 @@
+{
+  "run": 37206582959,
+  "job": 111448915724,
+  "source": "0294fd6eb8d8c5695ed7de6302523d1c46dc284e",
+  "decodedLogSHA256": "803a4e325570871d4c037ecd5e9dcb5de3aa348e20b86972f8952b449c8d7071",
+  "rawSHA256": "d5ce20d53565920930f365db47e7f24828ea2217f827e1ff2cb72ce7de39a191",
+  "records": [
+    {
+      "confidenceGuard": "post-observation diagnostic only: finite and 0.85...1",
+      "deviceSystemVersion": "27.0",
+      "inkCoverageVerified": false,
+      "os": "Version 27.0 (Build 24A434)",
+      "pid": 10188,
+      "plannedPages": 10,
+      "readReturnDefinition": ".read public API returned; a throw can occur after Vision.perform, so failures do not prove Vision did not finish",
+      "readRoute": "original thumbnail fractional CGSize; layouts ceil/raster route is not executed",
+      "scope": "source-extracted native .read acquisition only; no CoreAI/Builder/formal quality evaluation",
+      "simulator": true,
+      "type": "environment"
+    },
+    {
+      "areaIsUnion": false,
+      "characterCount": 42,
+      "diagnosticComplete": true,
+      "diagnosticFailures": [
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ],
+      "fixture": "independent-Timetable-literal-乙",
+      "formalEvaluation": "unassessed",
+      "height": 197,
+      "inkCoverageVerified": false,
+      "lines": [
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.1278037761972617,
+                "width": 0.014026405423954707,
+                "x": -2.6953144339659058e-05,
+                "y": 0.8504400257742288
+              },
+              "originalLayoutsCharacterPredicate": false,
+              "pixelTopLeft": {
+                "height": 25.177343910860554,
+                "width": 13.80198293717143,
+                "x": -0.026521894030224515,
+                "y": 4.2859710116163665
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.12636086584546247,
+                "width": 0.00958027788040387,
+                "x": 0.013946592979935148,
+                "y": 0.8519814466390678
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 24.893090571556105,
+                "width": 9.426993434317408,
+                "x": 13.723447492256184,
+                "y": 4.266564440547532
+              },
+              "text": "0"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.12636086584546258,
+                "width": 0.009580277880403873,
+                "x": 0.02347401156065912,
+                "y": 0.8520799571521076
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 24.89309057155613,
+                "width": 9.426993434317412,
+                "x": 23.098427375688573,
+                "y": 4.2471578694786745
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.12639370268314254,
+                "width": 0.012756084073978526,
+                "x": 0.03300143014138309,
+                "y": 0.8521784676651474
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 24.89955942857908,
+                "width": 12.55198672879487,
+                "x": 32.47340725912096,
+                "y": 4.221282441386887
+              },
+              "text": "7"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.1264265395208225,
+                "width": 0.015931890267553178,
+                "x": 0.04570465491568172,
+                "y": 0.8523098150158671
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 24.906028285602034,
+                "width": 15.676980023272327,
+                "x": 44.97338043703081,
+                "y": 4.188938156272147
+              },
+              "text": "年"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.12645937635850235,
+                "width": 0.019107696461127845,
+                "x": 0.061583685883555,
+                "y": 0.8524739992042668
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 24.912497142624964,
+                "width": 18.8019733177498,
+                "x": 60.59834690941812,
+                "y": 4.150125014134476
+              },
+              "text": "度"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.12645937635850235,
+                "width": 0.019107696461127838,
+                "x": 0.08063852304500295,
+                "y": 0.8526710202303465
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 24.912497142624964,
+                "width": 18.80197331774979,
+                "x": 79.3483066762829,
+                "y": 4.111311871996783
+              },
+              "text": "前"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.12765929256651154,
+                "width": 0.021023247888473387,
+                "x": 0.09969336020645089,
+                "y": 0.8516879160642616
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 25.148880635602772,
+                "width": 20.686875922257812,
+                "x": 98.09826644314768,
+                "y": 4.068599899737683
+              },
+              "text": "期"
+            }
+          ],
+          "confidence": 0.9770357012748718,
+          "line": 0,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "2027年度前期"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09789383152010389,
+                "width": 0.022863225380754776,
+                "x": 0.21120689657046474,
+                "y": 0.8617021280758557
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.285084809460468,
+                "width": 22.4974137746627,
+                "x": 207.8275862253373,
+                "y": 7.959595959595967
+              },
+              "text": "時"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09595959595959591,
+                "width": 0.016895325203252043,
+                "x": 0.2340701219512195,
+                "y": 0.8636363636363636
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.904040404040394,
+                "width": 16.62500000000001,
+                "x": 230.325,
+                "y": 7.959595959595967
+              },
+              "text": "間"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09789383152010389,
+                "width": 0.0162759319309857,
+                "x": 0.25096544715447155,
+                "y": 0.8617021280758557
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.285084809460468,
+                "width": 16.015517020089927,
+                "x": 246.95000000000002,
+                "y": 7.959595959595967
+              },
+              "text": "割"
+            }
+          ],
+          "confidence": 0.9705422520637512,
+          "line": 1,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "時間割"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09574467925531915,
+                "width": 0.017241379022988515,
+                "x": 0.1012931034841954,
+                "y": 0.7127659590425532
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.861701813297874,
+                "width": 16.9655169586207,
+                "x": 99.67241382844827,
+                "y": 37.72340425531914
+              },
+              "text": "月"
+            }
+          ],
+          "confidence": 0.9553374648094177,
+          "line": 2,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "月"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06382978595744682,
+                "width": 0.012931034224137938,
+                "x": 0.09913793103448276,
+                "y": 0.5957446821276595
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.574467833617023,
+                "width": 12.724137676551731,
+                "x": 97.55172413793103,
+                "y": 67.06382978723406
+              },
+              "text": "1"
+            }
+          ],
+          "confidence": 0.2556345462799072,
+          "line": 3,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "1"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06382978563829789,
+                "width": 0.010775861799568964,
+                "x": 0.21336206901939656,
+                "y": 0.5957446824468084
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.574467770744684,
+                "width": 10.60344801077586,
+                "x": 209.9482759150862,
+                "y": 67.06382978723406
+              },
+              "text": "2"
+            }
+          ],
+          "confidence": 0.19839522242546082,
+          "line": 4,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "2"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0744680832446809,
+                "width": 0.012931034159482824,
+                "x": 0.3254310345366379,
+                "y": 0.5957446827127659
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 14.67021239920214,
+                "width": 12.724137612931099,
+                "x": 320.2241379840517,
+                "y": 64.96808510638297
+              },
+              "text": "3"
+            }
+          ],
+          "confidence": 0.19643139839172363,
+          "line": 5,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "3"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.1276595723404257,
+                "width": 0.04310344755747129,
+                "x": 2.873563169023847e-10,
+                "y": 0.32978723617021266
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 25.14893575106386,
+                "width": 42.41379239655175,
+                "x": 2.827586158319466e-07,
+                "y": 106.88297872340425
+              },
+              "text": "5"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.1276595723404257,
+                "width": 0.04310344755747129,
+                "x": 2.873563169023847e-10,
+                "y": 0.32978723617021266
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 25.14893575106386,
+                "width": 42.41379239655175,
+                "x": 2.827586158319466e-07,
+                "y": 106.88297872340425
+              },
+              "text": "_"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.1276595723404257,
+                "width": 0.04310344755747129,
+                "x": 2.873563169023847e-10,
+                "y": 0.32978723617021266
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 25.14893575106386,
+                "width": 42.41379239655175,
+                "x": 2.827586158319466e-07,
+                "y": 106.88297872340425
+              },
+              "text": "E"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.1276595723404257,
+                "width": 0.04310344755747129,
+                "x": 2.873563169023847e-10,
+                "y": 0.32978723617021266
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 25.14893575106386,
+                "width": 42.41379239655175,
+                "x": 2.827586158319466e-07,
+                "y": 106.88297872340425
+              },
+              "text": "S"
+            }
+          ],
+          "confidence": 0.3152874708175659,
+          "line": 6,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "5_ES"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09573932763393533,
+                "width": 0.017122118330712324,
+                "x": 0.09257276581948153,
+                "y": 0.4388723778186525
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.86064754388526,
+                "width": 16.848164437420927,
+                "x": 91.09160156636982,
+                "y": 91.6814940258402
+              },
+              "text": "科"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09150076485027303,
+                "width": 0.011624400316533154,
+                "x": 0.10950278031655226,
+                "y": 0.4422279907347476
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.025650675503787,
+                "width": 11.438409911468623,
+                "x": 107.75073583148743,
+                "y": 91.85543514975093
+              },
+              "text": "目"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09138142762028356,
+                "width": 0.009337941019954846,
+                "x": 0.12093507679944383,
+                "y": 0.44175064181478974
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.00214124119586,
+                "width": 9.188533963635567,
+                "x": 119.00011557065274,
+                "y": 91.97298232129056
+              },
+              "text": "："
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0916201020802625,
+                "width": 0.013910859613111476,
+                "x": 0.13008091398575708,
+                "y": 0.4410346184348529
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.049160109811712,
+                "width": 13.688285859301692,
+                "x": 127.99961936198497,
+                "y": 92.06702005852226
+              },
+              "text": "架"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0916201020802625,
+                "width": 0.013910859613111476,
+                "x": 0.14379966976522696,
+                "y": 0.4403185950549161
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.049160109811712,
+                "width": 13.688285859301692,
+                "x": 141.49887504898334,
+                "y": 92.20807666436981
+              },
+              "text": "空"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09150076485027303,
+                "width": 0.01162440031653314,
+                "x": 0.15751842554469686,
+                "y": 0.43972190890496876
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.025650675503787,
+                "width": 11.438409911468609,
+                "x": 154.9981307359817,
+                "y": 92.34913327021737
+              },
+              "text": "化"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0916201020802625,
+                "width": 0.013910859613111476,
+                "x": 0.16895072202758843,
+                "y": 0.43900588552503195
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.049160109811712,
+                "width": 13.688285859301692,
+                "x": 166.247510475147,
+                "y": 92.46668044175699
+              },
+              "text": "学"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09643656307071491,
+                "width": 0.013550859601897558,
+                "x": 0.1826694778070583,
+                "y": 0.4334734011546427
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.998002924930837,
+                "width": 13.334045848267197,
+                "x": 179.74676616214538,
+                "y": 92.60773704760454
+              },
+              "text": "乙"
+            }
+          ],
+          "confidence": 0.9594942331314087,
+          "line": 7,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "科目：架空化学乙"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09574430969912417,
+                "width": 0.016973844418303866,
+                "x": 0.09264565878957709,
+                "y": 0.33048216249805085
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.861629010727462,
+                "width": 16.702262907611004,
+                "x": 91.16332824894386,
+                "y": 113.03338497715652
+              },
+              "text": "担"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09106557500358159,
+                "width": 0.011483375110845198,
+                "x": 0.10956901131314933,
+                "y": 0.3349287987529941
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 17.939918275705573,
+                "width": 11.299641109071676,
+                "x": 107.81590713213895,
+                "y": 113.0791083699546
+              },
+              "text": "当"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09103420882655133,
+                "width": 0.009196798467622475,
+                "x": 0.12100189452926291,
+                "y": 0.33480333404487306
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 17.933739138830614,
+                "width": 9.049649692140514,
+                "x": 119.06586421679471,
+                "y": 113.1100040543294
+              },
+              "text": "："
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09109694118061185,
+                "width": 0.013769951754067894,
+                "x": 0.13014820110215378,
+                "y": 0.33461513698269163
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 17.946097412580535,
+                "width": 13.549632526002808,
+                "x": 128.0658298845193,
+                "y": 113.13472060182922
+              },
+              "text": "架"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09109694118061185,
+                "width": 0.013769951754067894,
+                "x": 0.14386766096149006,
+                "y": 0.3344269399205101
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 17.946097412580535,
+                "width": 13.549632526002808,
+                "x": 141.56577838610622,
+                "y": 113.17179542307898
+              },
+              "text": "空"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09109694118061185,
+                "width": 0.013769951754067922,
+                "x": 0.15758712082082635,
+                "y": 0.33423874285832866
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 17.946097412580535,
+                "width": 13.549632526002835,
+                "x": 155.06572688769313,
+                "y": 113.20887024432872
+              },
+              "text": "担"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09106557500358159,
+                "width": 0.011483375110845212,
+                "x": 0.17130658068016263,
+                "y": 0.3340819119731774
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 17.939918275705573,
+                "width": 11.299641109071688,
+                "x": 168.56567538928005,
+                "y": 113.24594506557848
+              },
+              "text": "当"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09589797914158049,
+                "width": 0.011252808137915349,
+                "x": 0.18273946389627624,
+                "y": 0.3290926769500273
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.891901890891358,
+                "width": 11.072763207708704,
+                "x": 179.8156324739358,
+                "y": 113.27684074995327
+              },
+              "text": "乙"
+            }
+          ],
+          "confidence": 0.9577177166938782,
+          "line": 8,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "担当：架空担当乙"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0957430256190781,
+                "width": 0.01703302620568589,
+                "x": 0.09261613567309726,
+                "y": 0.23535779453315708
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.861376046958387,
+                "width": 16.760497786394918,
+                "x": 91.1342775023277,
+                "y": 131.77313843000968
+              },
+              "text": "教"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0912395795405081,
+                "width": 0.011539632085392743,
+                "x": 0.10954226172637357,
+                "y": 0.23936986970715846
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 17.974197169480096,
+                "width": 11.354997972026458,
+                "x": 107.7895855387516,
+                "y": 131.86993849820968
+              },
+              "text": "室"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0912395795405081,
+                "width": 0.011539632085392715,
+                "x": 0.12097499365935674,
+                "y": 0.23903783135497714
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 17.974197169480096,
+                "width": 11.354997972026432,
+                "x": 119.03939376080703,
+                "y": 131.93535005358942
+              },
+              "text": "："
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0913059872109443,
+                "width": 0.013826178471989387,
+                "x": 0.13240772559233988,
+                "y": 0.23863938533235962
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 17.987279480556026,
+                "width": 13.604959616437556,
+                "x": 130.28920198286244,
+                "y": 132.00076160896913
+              },
+              "text": "架"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0912395795405081,
+                "width": 0.01153963208539277,
+                "x": 0.14612700391191968,
+                "y": 0.2383073469801783
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 17.974197169480096,
+                "width": 11.354997972026485,
+                "x": 143.78897184932896,
+                "y": 132.0792554754248
+              },
+              "text": "空"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0913059872109443,
+                "width": 0.013826178471989359,
+                "x": 0.15755973584490288,
+                "y": 0.2379089009575608
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 17.987279480556026,
+                "width": 13.60495961643753,
+                "x": 155.03878007138442,
+                "y": 132.1446670308045
+              },
+              "text": "室"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09608747480586588,
+                "width": 0.01196691891272414,
+                "x": 0.17127901416448263,
+                "y": 0.2327289673400217
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.929232536755578,
+                "width": 11.775448210120553,
+                "x": 168.53854993785092,
+                "y": 132.22316089726016
+              },
+              "text": "乙"
+            }
+          ],
+          "confidence": 0.9592577815055847,
+          "line": 9,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "教室：架空室乙"
+        }
+      ],
+      "observations": 1,
+      "originalLayoutsDiagnosticPredicatesPass": false,
+      "page": 1,
+      "pdfSHA256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+      "readReturned": true,
+      "seconds": 3.3033729791641235,
+      "summedCharacterBoxAreaPixels": 14452.765585119383,
+      "type": "page",
+      "width": 984
+    },
+    {
+      "areaIsUnion": false,
+      "characterCount": 19,
+      "diagnosticComplete": true,
+      "diagnosticFailures": [
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ],
+      "fixture": "independent-Timetable-literal-乙",
+      "formalEvaluation": "unassessed",
+      "height": 197,
+      "inkCoverageVerified": false,
+      "lines": [
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10692011969728399,
+                "width": 0.01456611961893922,
+                "x": -8.01550209072102e-05,
+                "y": 0.8488428221333254
+              },
+              "originalLayoutsCharacterPredicate": false,
+              "pixelTopLeft": {
+                "height": 21.063263580364946,
+                "width": 14.333061705036192,
+                "x": -0.07887254057269484,
+                "y": 8.71470045936995
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10645774061523494,
+                "width": 0.01083146621013151,
+                "x": 0.014324926075184923,
+                "y": 0.8497053575448733
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.972174901201285,
+                "width": 10.658162750769407,
+                "x": 14.095727257981963,
+                "y": 8.635869662458674
+              },
+              "text": "0"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10635770153286017,
+                "width": 0.00816385928831041,
+                "x": 0.024995353762469346,
+                "y": 0.8501055138743722
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.952467201973455,
+                "width": 8.033237539697442,
+                "x": 24.595428102269835,
+                "y": 8.57674656477523
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10645774061523494,
+                "width": 0.010831466210131507,
+                "x": 0.03299817452793267,
+                "y": 0.8504056311214963
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.972174901201285,
+                "width": 10.658162750769403,
+                "x": 32.47020373548575,
+                "y": 8.497915767863955
+              },
+              "text": "7"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10675785786235903,
+                "width": 0.018834286975594826,
+                "x": 0.04366860221521709,
+                "y": 0.8508057874509951
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.031297998884728,
+                "width": 18.532938383985307,
+                "x": 42.96990457977361,
+                "y": 8.359961873269235
+              },
+              "text": "年"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10675785786235903,
+                "width": 0.018834286975594833,
+                "x": 0.06234185066796483,
+                "y": 0.851506061027618
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.031297998884728,
+                "width": 18.532938383985314,
+                "x": 61.34438105727739,
+                "y": 8.222007978674515
+              },
+              "text": "度"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10675785786235903,
+                "width": 0.01883428697559482,
+                "x": 0.08101509912071257,
+                "y": 0.852206334604241
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.031297998884728,
+                "width": 18.5329383839853,
+                "x": 79.71885753478116,
+                "y": 8.084054084079794
+              },
+              "text": "前"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10676120818002233,
+                "width": 0.018926289986097272,
+                "x": 0.0996883475734603,
+                "y": 0.852906608180864
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.031958011464397,
+                "width": 18.623469346319716,
+                "x": 98.09333401228494,
+                "y": 7.945440176905405
+              },
+              "text": "期"
+            }
+          ],
+          "confidence": 0.9468138813972473,
+          "line": 0,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "2027年度前期"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09789383150118203,
+                "width": 0.020326955414930403,
+                "x": 0.21336206897531348,
+                "y": 0.8617021280947775
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.285084805732858,
+                "width": 20.001724128291517,
+                "x": 209.94827587170846,
+                "y": 7.959595959595967
+              },
+              "text": "時"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09595959595959591,
+                "width": 0.016895325203252015,
+                "x": 0.2336890243902439,
+                "y": 0.8636363636363636
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.904040404040394,
+                "width": 16.624999999999982,
+                "x": 229.95,
+                "y": 7.959595959595967
+              },
+              "text": "間"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09789383150118203,
+                "width": 0.016657029481739194,
+                "x": 0.2505843495934959,
+                "y": 0.8617021280947775
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.285084805732858,
+                "width": 16.390517010031367,
+                "x": 246.57499999999996,
+                "y": 7.959595959595967
+              },
+              "text": "割"
+            }
+          ],
+          "confidence": 0.9776884913444519,
+          "line": 1,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "時間割"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09574467925531915,
+                "width": 0.021551723778735654,
+                "x": 0.09913793114224137,
+                "y": 0.7127659590425532
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.861701813297874,
+                "width": 21.206896198275885,
+                "x": 97.55172424396551,
+                "y": 37.72340425531914
+              },
+              "text": "火"
+            }
+          ],
+          "confidence": 0.9541111588478088,
+          "line": 2,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "火"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06382978563829789,
+                "width": 0.012931034159482768,
+                "x": 0.21336206901939656,
+                "y": 0.5957446824468084
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.574467770744684,
+                "width": 12.724137612931044,
+                "x": 209.9482759150862,
+                "y": 67.06382978723406
+              },
+              "text": "2"
+            }
+          ],
+          "confidence": 0.2298191785812378,
+          "line": 3,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "2"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0744680832446809,
+                "width": 0.012931034159482824,
+                "x": 0.3254310345366379,
+                "y": 0.5957446827127659
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 14.67021239920214,
+                "width": 12.724137612931099,
+                "x": 320.2241379840517,
+                "y": 64.96808510638297
+              },
+              "text": "3"
+            }
+          ],
+          "confidence": 0.19643139839172363,
+          "line": 4,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "3"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06382978595744682,
+                "width": 0.012931034224137994,
+                "x": 0.4375000000431034,
+                "y": 0.5957446821276595
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.574467833617023,
+                "width": 12.724137676551786,
+                "x": 430.5000000424138,
+                "y": 67.06382978723406
+              },
+              "text": "4"
+            }
+          ],
+          "confidence": 0.26034578680992126,
+          "line": 5,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "4"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10638297809762198,
+                "width": 0.04094827562119675,
+                "x": 1.2677484780345388e-11,
+                "y": 0.3297872346683355
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.95744668523153,
+                "width": 40.2931032112576,
+                "x": 1.2474645023859861e-08,
+                "y": 111.07446808510637
+              },
+              "text": "5"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10638297809762198,
+                "width": 0.04094827562119675,
+                "x": 1.2677484780345388e-11,
+                "y": 0.3297872346683355
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.95744668523153,
+                "width": 40.2931032112576,
+                "x": 1.2474645023859861e-08,
+                "y": 111.07446808510637
+              },
+              "text": "_"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10638297809762198,
+                "width": 0.04094827562119675,
+                "x": 1.2677484780345388e-11,
+                "y": 0.3297872346683355
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.95744668523153,
+                "width": 40.2931032112576,
+                "x": 1.2474645023859861e-08,
+                "y": 111.07446808510637
+              },
+              "text": "E"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10638297809762198,
+                "width": 0.04094827562119675,
+                "x": 1.2677484780345388e-11,
+                "y": 0.3297872346683355
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.95744668523153,
+                "width": 40.2931032112576,
+                "x": 1.2474645023859861e-08,
+                "y": 111.07446808510637
+              },
+              "text": "S"
+            }
+          ],
+          "confidence": 0.3060927987098694,
+          "line": 6,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "5_ES"
+        }
+      ],
+      "observations": 1,
+      "originalLayoutsDiagnosticPredicatesPass": false,
+      "page": 2,
+      "pdfSHA256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+      "readReturned": true,
+      "seconds": 0.9784600734710693,
+      "summedCharacterBoxAreaPixels": 7778.802034292189,
+      "type": "page",
+      "width": 984
+    },
+    {
+      "areaIsUnion": false,
+      "characterCount": 20,
+      "diagnosticComplete": true,
+      "diagnosticFailures": [
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ],
+      "fixture": "independent-Timetable-literal-乙",
+      "formalEvaluation": "unassessed",
+      "height": 197,
+      "inkCoverageVerified": false,
+      "lines": [
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10692011969728399,
+                "width": 0.01456611961893922,
+                "x": -8.01550209072102e-05,
+                "y": 0.8488428221333254
+              },
+              "originalLayoutsCharacterPredicate": false,
+              "pixelTopLeft": {
+                "height": 21.063263580364946,
+                "width": 14.333061705036192,
+                "x": -0.07887254057269484,
+                "y": 8.71470045936995
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10645774061523494,
+                "width": 0.01083146621013151,
+                "x": 0.014324926075184923,
+                "y": 0.8497053575448733
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.972174901201285,
+                "width": 10.658162750769407,
+                "x": 14.095727257981963,
+                "y": 8.635869662458674
+              },
+              "text": "0"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10635770153286017,
+                "width": 0.00816385928831041,
+                "x": 0.024995353762469346,
+                "y": 0.8501055138743722
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.952467201973455,
+                "width": 8.033237539697442,
+                "x": 24.595428102269835,
+                "y": 8.57674656477523
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10645774061523494,
+                "width": 0.010831466210131507,
+                "x": 0.03299817452793267,
+                "y": 0.8504056311214963
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.972174901201285,
+                "width": 10.658162750769403,
+                "x": 32.47020373548575,
+                "y": 8.497915767863955
+              },
+              "text": "7"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10675785786235903,
+                "width": 0.018834286975594826,
+                "x": 0.04366860221521709,
+                "y": 0.8508057874509951
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.031297998884728,
+                "width": 18.532938383985307,
+                "x": 42.96990457977361,
+                "y": 8.359961873269235
+              },
+              "text": "年"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10675785786235903,
+                "width": 0.018834286975594833,
+                "x": 0.06234185066796483,
+                "y": 0.851506061027618
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.031297998884728,
+                "width": 18.532938383985314,
+                "x": 61.34438105727739,
+                "y": 8.222007978674515
+              },
+              "text": "度"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10675785786235903,
+                "width": 0.01883428697559482,
+                "x": 0.08101509912071257,
+                "y": 0.852206334604241
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.031297998884728,
+                "width": 18.5329383839853,
+                "x": 79.71885753478116,
+                "y": 8.084054084079794
+              },
+              "text": "前"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10676120818002233,
+                "width": 0.018926289986097272,
+                "x": 0.0996883475734603,
+                "y": 0.852906608180864
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.031958011464397,
+                "width": 18.623469346319716,
+                "x": 98.09333401228494,
+                "y": 7.945440176905405
+              },
+              "text": "期"
+            }
+          ],
+          "confidence": 0.9468138813972473,
+          "line": 0,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "2027年度前期"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09789383150118203,
+                "width": 0.020326955414930403,
+                "x": 0.21336206897531348,
+                "y": 0.8617021280947775
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.285084805732858,
+                "width": 20.001724128291517,
+                "x": 209.94827587170846,
+                "y": 7.959595959595967
+              },
+              "text": "時"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09595959595959591,
+                "width": 0.016895325203252015,
+                "x": 0.2336890243902439,
+                "y": 0.8636363636363636
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.904040404040394,
+                "width": 16.624999999999982,
+                "x": 229.95,
+                "y": 7.959595959595967
+              },
+              "text": "間"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09789383150118203,
+                "width": 0.016657029481739194,
+                "x": 0.2505843495934959,
+                "y": 0.8617021280947775
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.285084805732858,
+                "width": 16.390517010031367,
+                "x": 246.57499999999996,
+                "y": 7.959595959595967
+              },
+              "text": "割"
+            }
+          ],
+          "confidence": 0.9776884913444519,
+          "line": 1,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "時間割"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0957446794832828,
+                "width": 0.02155172383004926,
+                "x": 0.09913793109605912,
+                "y": 0.7127659588145896
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.86170185820671,
+                "width": 21.206896248768473,
+                "x": 97.55172419852217,
+                "y": 37.72340425531914
+              },
+              "text": "水"
+            }
+          ],
+          "confidence": 0.9790541529655457,
+          "line": 2,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "水"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06382978563829789,
+                "width": 0.012931034159482768,
+                "x": 0.09913793108836207,
+                "y": 0.5957446824468084
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.574467770744684,
+                "width": 12.724137612931044,
+                "x": 97.55172419094828,
+                "y": 67.06382978723406
+              },
+              "text": "1"
+            }
+          ],
+          "confidence": 0.2556345462799072,
+          "line": 3,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "1"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06382978563829789,
+                "width": 0.012931034159482768,
+                "x": 0.21336206901939656,
+                "y": 0.5957446824468084
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.574467770744684,
+                "width": 12.724137612931044,
+                "x": 209.9482759150862,
+                "y": 67.06382978723406
+              },
+              "text": "2"
+            }
+          ],
+          "confidence": 0.2298191785812378,
+          "line": 4,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "2"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0744680832446809,
+                "width": 0.012931034159482824,
+                "x": 0.3254310345366379,
+                "y": 0.5957446827127659
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 14.67021239920214,
+                "width": 12.724137612931099,
+                "x": 320.2241379840517,
+                "y": 64.96808510638297
+              },
+              "text": "3"
+            }
+          ],
+          "confidence": 0.19643139839172363,
+          "line": 5,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "3"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06382978563829789,
+                "width": 0.012931034159482768,
+                "x": 0.43750000010775864,
+                "y": 0.5957446824468084
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.574467770744684,
+                "width": 12.724137612931044,
+                "x": 430.5000001060345,
+                "y": 67.06382978723406
+              },
+              "text": "4"
+            }
+          ],
+          "confidence": 0.26034578680992126,
+          "line": 6,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "4"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10638297809762198,
+                "width": 0.04094827562119675,
+                "x": 1.2677484780345388e-11,
+                "y": 0.3297872346683355
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.95744668523153,
+                "width": 40.2931032112576,
+                "x": 1.2474645023859861e-08,
+                "y": 111.07446808510637
+              },
+              "text": "5"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10638297809762198,
+                "width": 0.04094827562119675,
+                "x": 1.2677484780345388e-11,
+                "y": 0.3297872346683355
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.95744668523153,
+                "width": 40.2931032112576,
+                "x": 1.2474645023859861e-08,
+                "y": 111.07446808510637
+              },
+              "text": "_"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10638297809762198,
+                "width": 0.04094827562119675,
+                "x": 1.2677484780345388e-11,
+                "y": 0.3297872346683355
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.95744668523153,
+                "width": 40.2931032112576,
+                "x": 1.2474645023859861e-08,
+                "y": 111.07446808510637
+              },
+              "text": "E"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10638297809762198,
+                "width": 0.04094827562119675,
+                "x": 1.2677484780345388e-11,
+                "y": 0.3297872346683355
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.95744668523153,
+                "width": 40.2931032112576,
+                "x": 1.2474645023859861e-08,
+                "y": 111.07446808510637
+              },
+              "text": "S"
+            }
+          ],
+          "confidence": 0.3060927987098694,
+          "line": 7,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "5_ES"
+        }
+      ],
+      "observations": 1,
+      "originalLayoutsDiagnosticPredicatesPass": false,
+      "page": 3,
+      "pdfSHA256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+      "readReturned": true,
+      "seconds": 0.90693199634552,
+      "summedCharacterBoxAreaPixels": 7938.801292921272,
+      "type": "page",
+      "width": 984
+    },
+    {
+      "areaIsUnion": false,
+      "characterCount": 19,
+      "diagnosticComplete": true,
+      "diagnosticFailures": [
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ],
+      "fixture": "independent-Timetable-literal-乙",
+      "formalEvaluation": "unassessed",
+      "height": 197,
+      "inkCoverageVerified": false,
+      "lines": [
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10696273913712806,
+                "width": 0.014578906042780882,
+                "x": -8.640556096314197e-05,
+                "y": 0.8486656148956375
+              },
+              "originalLayoutsCharacterPredicate": false,
+              "pixelTopLeft": {
+                "height": 21.071659610014226,
+                "width": 14.345643546096388,
+                "x": -0.0850230719877317,
+                "y": 8.74121425554518
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10648919265209278,
+                "width": 0.010844274475125641,
+                "x": 0.014318603447987861,
+                "y": 0.8495712691617047
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.978370952462278,
+                "width": 10.670766083523631,
+                "x": 14.089505792820056,
+                "y": 8.656089022681902
+              },
+              "text": "0"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10638116570683476,
+                "width": 0.008176680114801712,
+                "x": 0.024988980889283623,
+                "y": 0.8500033769427365
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.957089644246448,
+                "width": 8.045853232964884,
+                "x": 24.589157195055087,
+                "y": 8.592245098034455
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10648919265209267,
+                "width": 0.010844274475125634,
+                "x": 0.03299176397025545,
+                "y": 0.8503274577785104
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.978370952462257,
+                "width": 10.670766083523624,
+                "x": 32.46389574673137,
+                "y": 8.5071198651712
+              },
+              "text": "7"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10681327348786662,
+                "width": 0.01884705755609746,
+                "x": 0.04366214141155121,
+                "y": 0.8507595655595421
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.042214877109725,
+                "width": 18.5455046351999,
+                "x": 42.96354714896639,
+                "y": 8.358150707660476
+              },
+              "text": "年"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10681327348786662,
+                "width": 0.018847057556097474,
+                "x": 0.062335301933818796,
+                "y": 0.8515157541763478
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.042214877109725,
+                "width": 18.545504635199915,
+                "x": 61.337937102877696,
+                "y": 8.20918155014975
+              },
+              "text": "度"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10681327348786662,
+                "width": 0.01884705755609746,
+                "x": 0.0810084624560864,
+                "y": 0.8522719427931535
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.042214877109725,
+                "width": 18.5455046351999,
+                "x": 79.71232705678901,
+                "y": 8.060212392639027
+              },
+              "text": "前"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.1068168921921353,
+                "width": 0.01893926512537318,
+                "x": 0.09968162297835398,
+                "y": 0.8530281314099593
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.042927761850656,
+                "width": 18.63623688336721,
+                "x": 98.08671701070031,
+                "y": 7.910530350387372
+              },
+              "text": "期"
+            }
+          ],
+          "confidence": 0.9474759697914124,
+          "line": 0,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "2027年度前期"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10853212932516654,
+                "width": 0.019793418829564563,
+                "x": 0.21336206897531348,
+                "y": 0.851063830270793
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.38082947705781,
+                "width": 19.47672412829153,
+                "x": 209.94827587170846,
+                "y": 7.959595959595967
+              },
+              "text": "時"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10606060606060597,
+                "width": 0.01867378048780488,
+                "x": 0.23315548780487805,
+                "y": 0.8535353535353536
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.893939393939377,
+                "width": 18.375000000000004,
+                "x": 229.425,
+                "y": 7.959595959595967
+              },
+              "text": "間"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10853212932516654,
+                "width": 0.015412110782552169,
+                "x": 0.25182926829268293,
+                "y": 0.851063830270793
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.38082947705781,
+                "width": 15.165517010031333,
+                "x": 247.8,
+                "y": 7.959595959595967
+              },
+              "text": "割"
+            }
+          ],
+          "confidence": 0.9264426231384277,
+          "line": 1,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "時間割"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0957446794832828,
+                "width": 0.02155172383004926,
+                "x": 0.09913793109605912,
+                "y": 0.7127659588145896
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.86170185820671,
+                "width": 21.206896248768473,
+                "x": 97.55172419852217,
+                "y": 37.72340425531914
+              },
+              "text": "木"
+            }
+          ],
+          "confidence": 0.976219892501831,
+          "line": 2,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "木"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06382978563829789,
+                "width": 0.012931034159482768,
+                "x": 0.21336206901939656,
+                "y": 0.5957446824468084
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.574467770744684,
+                "width": 12.724137612931044,
+                "x": 209.9482759150862,
+                "y": 67.06382978723406
+              },
+              "text": "2"
+            }
+          ],
+          "confidence": 0.2298191785812378,
+          "line": 3,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "2"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.07446808262411353,
+                "width": 0.012931034051724133,
+                "x": 0.3254310346264368,
+                "y": 0.5957446833333333
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 14.670212276950366,
+                "width": 12.724137506896547,
+                "x": 320.22413807241384,
+                "y": 64.96808510638297
+              },
+              "text": "3"
+            }
+          ],
+          "confidence": 0.19643139839172363,
+          "line": 4,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "3"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06382978563829789,
+                "width": 0.012931034159482768,
+                "x": 0.43750000010775864,
+                "y": 0.5957446824468084
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.574467770744684,
+                "width": 12.724137612931044,
+                "x": 430.5000001060345,
+                "y": 67.06382978723406
+              },
+              "text": "4"
+            }
+          ],
+          "confidence": 0.26034578680992126,
+          "line": 5,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "4"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10638297805851071,
+                "width": 0.04094827560614223,
+                "x": 2.6939655487233228e-11,
+                "y": 0.32978723470744675
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.95744667752661,
+                "width": 40.29310319644396,
+                "x": 2.6508620999437495e-08,
+                "y": 111.07446808510637
+              },
+              "text": "5"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10638297805851071,
+                "width": 0.04094827560614223,
+                "x": 2.6939655487233228e-11,
+                "y": 0.32978723470744675
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.95744667752661,
+                "width": 40.29310319644396,
+                "x": 2.6508620999437495e-08,
+                "y": 111.07446808510637
+              },
+              "text": "_"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10638297805851071,
+                "width": 0.04094827560614223,
+                "x": 2.6939655487233228e-11,
+                "y": 0.32978723470744675
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.95744667752661,
+                "width": 40.29310319644396,
+                "x": 2.6508620999437495e-08,
+                "y": 111.07446808510637
+              },
+              "text": "E"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10638297805851071,
+                "width": 0.04094827560614223,
+                "x": 2.6939655487233228e-11,
+                "y": 0.32978723470744675
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.95744667752661,
+                "width": 40.29310319644396,
+                "x": 2.6508620999437495e-08,
+                "y": 111.07446808510637
+              },
+              "text": "S"
+            }
+          ],
+          "confidence": 0.3060927987098694,
+          "line": 6,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "5_ES"
+        }
+      ],
+      "observations": 1,
+      "originalLayoutsDiagnosticPredicatesPass": false,
+      "page": 4,
+      "pdfSHA256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+      "readReturned": true,
+      "seconds": 0.764348030090332,
+      "summedCharacterBoxAreaPixels": 7890.521933745781,
+      "type": "page",
+      "width": 984
+    },
+    {
+      "areaIsUnion": false,
+      "characterCount": 20,
+      "diagnosticComplete": true,
+      "diagnosticFailures": [
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ],
+      "fixture": "independent-Timetable-literal-乙",
+      "formalEvaluation": "unassessed",
+      "height": 197,
+      "inkCoverageVerified": false,
+      "lines": [
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09789383175226063,
+                "width": 0.015447154467400153,
+                "x": 4.144562327434603e-12,
+                "y": 0.8617021278436989
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.285084855195343,
+                "width": 15.19999999592175,
+                "x": 4.0782493301956495e-09,
+                "y": 7.959595959595967
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09595959595959591,
+                "width": 0.009654471544715446,
+                "x": 0.015447154471544716,
+                "y": 0.8636363636363636
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.904040404040394,
+                "width": 9.499999999999998,
+                "x": 15.200000000000001,
+                "y": 7.959595959595967
+              },
+              "text": "0"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09595959595959591,
+                "width": 0.009654471544715451,
+                "x": 0.025101626016260162,
+                "y": 0.8636363636363636
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.904040404040394,
+                "width": 9.500000000000004,
+                "x": 24.7,
+                "y": 7.959595959595967
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09595959595959591,
+                "width": 0.009654471544715437,
+                "x": 0.03475609756097561,
+                "y": 0.8636363636363636
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.904040404040394,
+                "width": 9.49999999999999,
+                "x": 34.2,
+                "y": 7.959595959595967
+              },
+              "text": "7"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09595959595959591,
+                "width": 0.016895325203252036,
+                "x": 0.04441056910569105,
+                "y": 0.8636363636363636
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.904040404040394,
+                "width": 16.625000000000004,
+                "x": 43.699999999999996,
+                "y": 7.959595959595967
+              },
+              "text": "年"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09595959595959591,
+                "width": 0.02172256097560977,
+                "x": 0.061305894308943086,
+                "y": 0.8636363636363636
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.904040404040394,
+                "width": 21.37500000000001,
+                "x": 60.324999999999996,
+                "y": 7.959595959595967
+              },
+              "text": "度"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09595959595959591,
+                "width": 0.01930894308943089,
+                "x": 0.08302845528455285,
+                "y": 0.8636363636363636
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.904040404040394,
+                "width": 18.999999999999993,
+                "x": 81.7,
+                "y": 7.959595959595967
+              },
+              "text": "前"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09789383175226063,
+                "width": 0.016197084160830585,
+                "x": 0.10233739837398374,
+                "y": 0.8617021278436989
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.285084855195343,
+                "width": 15.937930814257296,
+                "x": 100.7,
+                "y": 7.959595959595967
+              },
+              "text": "期"
+            }
+          ],
+          "confidence": 0.9367382526397705,
+          "line": 0,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "2027年度前期"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09789383150118203,
+                "width": 0.0228632253799029,
+                "x": 0.2112068965713166,
+                "y": 0.8617021280947775
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.285084805732858,
+                "width": 22.497413773824455,
+                "x": 207.82758622617555,
+                "y": 7.959595959595967
+              },
+              "text": "時"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09595959595959591,
+                "width": 0.016895325203252043,
+                "x": 0.2340701219512195,
+                "y": 0.8636363636363636
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.904040404040394,
+                "width": 16.62500000000001,
+                "x": 230.325,
+                "y": 7.959595959595967
+              },
+              "text": "間"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09789383150118203,
+                "width": 0.016275931920763542,
+                "x": 0.25096544715447155,
+                "y": 0.8617021280947775
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.285084805732858,
+                "width": 16.015517010031324,
+                "x": 246.95000000000002,
+                "y": 7.959595959595967
+              },
+              "text": "割"
+            }
+          ],
+          "confidence": 0.9673144817352295,
+          "line": 1,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "時間割"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0957446794832828,
+                "width": 0.01939655144704433,
+                "x": 0.10129310347906405,
+                "y": 0.7127659588145896
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.86170185820671,
+                "width": 19.08620662389162,
+                "x": 99.67241382339903,
+                "y": 37.72340425531914
+              },
+              "text": "金"
+            }
+          ],
+          "confidence": 0.9201628565788269,
+          "line": 2,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "金"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06382978563829789,
+                "width": 0.012931034159482768,
+                "x": 0.09913793108836207,
+                "y": 0.5957446824468084
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.574467770744684,
+                "width": 12.724137612931044,
+                "x": 97.55172419094828,
+                "y": 67.06382978723406
+              },
+              "text": "1"
+            }
+          ],
+          "confidence": 0.2556345462799072,
+          "line": 3,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "1"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06382978563829789,
+                "width": 0.015086206519396572,
+                "x": 0.21336206901939656,
+                "y": 0.5957446824468084
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.574467770744684,
+                "width": 14.844827215086227,
+                "x": 209.9482759150862,
+                "y": 67.06382978723406
+              },
+              "text": "2"
+            }
+          ],
+          "confidence": 0.2327273190021515,
+          "line": 4,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "2"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0744680832446809,
+                "width": 0.012931034159482824,
+                "x": 0.3254310345366379,
+                "y": 0.5957446827127659
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 14.67021239920214,
+                "width": 12.724137612931099,
+                "x": 320.2241379840517,
+                "y": 64.96808510638297
+              },
+              "text": "3"
+            }
+          ],
+          "confidence": 0.19643139839172363,
+          "line": 5,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "3"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06382978595744682,
+                "width": 0.012931034224137994,
+                "x": 0.4375000000431034,
+                "y": 0.5957446821276595
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.574467833617023,
+                "width": 12.724137676551786,
+                "x": 430.5000000424138,
+                "y": 67.06382978723406
+              },
+              "text": "4"
+            }
+          ],
+          "confidence": 0.26034578680992126,
+          "line": 6,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "4"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09574468028785998,
+                "width": 0.04094827562119675,
+                "x": 1.2677484780345388e-11,
+                "y": 0.3404255324780975
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.861702016708417,
+                "width": 40.2931032112576,
+                "x": 1.2474645023859861e-08,
+                "y": 111.07446808510637
+              },
+              "text": "5"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09574468028785998,
+                "width": 0.04094827562119675,
+                "x": 1.2677484780345388e-11,
+                "y": 0.3404255324780975
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.861702016708417,
+                "width": 40.2931032112576,
+                "x": 1.2474645023859861e-08,
+                "y": 111.07446808510637
+              },
+              "text": "_"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09574468028785998,
+                "width": 0.04094827562119675,
+                "x": 1.2677484780345388e-11,
+                "y": 0.3404255324780975
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.861702016708417,
+                "width": 40.2931032112576,
+                "x": 1.2474645023859861e-08,
+                "y": 111.07446808510637
+              },
+              "text": "E"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09574468028785998,
+                "width": 0.04094827562119675,
+                "x": 1.2677484780345388e-11,
+                "y": 0.3404255324780975
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.861702016708417,
+                "width": 40.2931032112576,
+                "x": 1.2474645023859861e-08,
+                "y": 111.07446808510637
+              },
+              "text": "S"
+            }
+          ],
+          "confidence": 0.3192978799343109,
+          "line": 7,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "5_ES"
+        }
+      ],
+      "observations": 1,
+      "originalLayoutsDiagnosticPredicatesPass": false,
+      "page": 5,
+      "pdfSHA256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+      "readReturned": true,
+      "seconds": 0.8362840414047241,
+      "summedCharacterBoxAreaPixels": 7367.112384782343,
+      "type": "page",
+      "width": 984
+    },
+    {
+      "areaIsUnion": false,
+      "characterCount": 37,
+      "diagnosticComplete": true,
+      "diagnosticFailures": [
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ],
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "formalEvaluation": "unassessed",
+      "height": 201,
+      "inkCoverageVerified": false,
+      "lines": [
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10464363926086329,
+                "width": 0.014550965770641517,
+                "x": -7.279653322237188e-05,
+                "y": 0.8521953502014856
+              },
+              "originalLayoutsCharacterPredicate": false,
+              "pixelTopLeft": {
+                "height": 21.03337149143352,
+                "width": 14.318150318311252,
+                "x": -0.07163178869081394,
+                "y": 8.67536311806787
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10431311403212162,
+                "width": 0.010816294783669547,
+                "x": 0.014332356839198892,
+                "y": 0.8528810224595558
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.966935920456446,
+                "width": 10.643234067130834,
+                "x": 14.103039129771709,
+                "y": 8.603978565172843
+              },
+              "text": "0"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10422432727478947,
+                "width": 0.00814867418730723,
+                "x": 0.025002839224648184,
+                "y": 0.8532361694888844
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.949089782232683,
+                "width": 8.018295400310315,
+                "x": 24.602793797053813,
+                "y": 8.550440150501558
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10431311403212162,
+                "width": 0.010816294783669536,
+                "x": 0.033005701013735164,
+                "y": 0.8535025297608807
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.966935920456446,
+                "width": 10.643234067130823,
+                "x": 32.4776097975154,
+                "y": 8.479055597606532
+              },
+              "text": "8"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10457947430411796,
+                "width": 0.018819156572756512,
+                "x": 0.04367618339918445,
+                "y": 0.8538576767902093
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.02047433512771,
+                "width": 18.51805006759241,
+                "x": 42.977364464797496,
+                "y": 8.354132630040223
+              },
+              "text": "年"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10457947430411796,
+                "width": 0.018819156572756512,
+                "x": 0.06234952757372071,
+                "y": 0.8544791840915342
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.02047433512771,
+                "width": 18.51805006759241,
+                "x": 61.35193513254118,
+                "y": 8.229209662473911
+              },
+              "text": "度"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10457947430411807,
+                "width": 0.018819156572756512,
+                "x": 0.08102287174825697,
+                "y": 0.8551006913928592
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.020474335127734,
+                "width": 18.51805006759241,
+                "x": 79.72650580028485,
+                "y": 8.104286694907577
+              },
+              "text": "後"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10458245137372746,
+                "width": 0.018911063226874983,
+                "x": 0.09969621592279324,
+                "y": 0.8557221986941841
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.02107272611922,
+                "width": 18.608486215244984,
+                "x": 98.10107646802854,
+                "y": 7.978765336349779
+              },
+              "text": "期"
+            }
+          ],
+          "confidence": 0.9416653513908386,
+          "line": 0,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "2028年度後期"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09581270584449064,
+                "width": 0.0228632253799029,
+                "x": 0.2112068965713166,
+                "y": 0.8645833337594697
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.258353874742618,
+                "width": 22.497413773824455,
+                "x": 207.82758622617555,
+                "y": 7.9603960396039675
+              },
+              "text": "時"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09405940594059403,
+                "width": 0.016895325203252043,
+                "x": 0.2340701219512195,
+                "y": 0.8663366336633663
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.905940594059402,
+                "width": 16.62500000000001,
+                "x": 230.325,
+                "y": 7.9603960396039675
+              },
+              "text": "間"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09581270584449064,
+                "width": 0.016275931920763542,
+                "x": 0.25096544715447155,
+                "y": 0.8645833337594697
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.258353874742618,
+                "width": 16.015517010031324,
+                "x": 246.95000000000002,
+                "y": 7.9603960396039675
+              },
+              "text": "割"
+            }
+          ],
+          "confidence": 0.9727776050567627,
+          "line": 1,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "時間割"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09374999843750009,
+                "width": 0.017241379022988515,
+                "x": 0.1012931034841954,
+                "y": 0.7187500015624999
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.843749685937517,
+                "width": 16.9655169586207,
+                "x": 99.67241382844827,
+                "y": 37.6875
+              },
+              "text": "月"
+            }
+          ],
+          "confidence": 0.9573667049407959,
+          "line": 2,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "月"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06249999843750009,
+                "width": 0.010775861799568978,
+                "x": 0.09913793108836207,
+                "y": 0.6041666682291666
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.562499685937519,
+                "width": 10.603448010775875,
+                "x": 97.55172419094828,
+                "y": 66.99999999999999
+              },
+              "text": "1"
+            }
+          ],
+          "confidence": 0.2645111083984375,
+          "line": 3,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "1"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06249999843750009,
+                "width": 0.010775861799568964,
+                "x": 0.21336206901939656,
+                "y": 0.6041666682291666
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.562499685937519,
+                "width": 10.60344801077586,
+                "x": 209.9482759150862,
+                "y": 66.99999999999999
+              },
+              "text": "2"
+            }
+          ],
+          "confidence": 0.20444706082344055,
+          "line": 4,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "2"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.07291666484375003,
+                "width": 0.012931034159482824,
+                "x": 0.3254310345366379,
+                "y": 0.6041666684895832
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 14.656249633593756,
+                "width": 12.724137612931099,
+                "x": 320.2241379840517,
+                "y": 64.90625000000001
+              },
+              "text": "3"
+            }
+          ],
+          "confidence": 0.20072360336780548,
+          "line": 5,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "3"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10416666493055549,
+                "width": 0.03448275804597702,
+                "x": 3.591953956494365e-10,
+                "y": 0.34375000173611114
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.93749965104165,
+                "width": 33.93103391724139,
+                "x": 3.534482693190455e-07,
+                "y": 110.96875000000001
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10416666493055549,
+                "width": 0.03448275804597702,
+                "x": 3.591953956494365e-10,
+                "y": 0.34375000173611114
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.93749965104165,
+                "width": 33.93103391724139,
+                "x": 3.534482693190455e-07,
+                "y": 110.96875000000001
+              },
+              "text": "_"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10416666493055549,
+                "width": 0.03448275804597702,
+                "x": 3.591953956494365e-10,
+                "y": 0.34375000173611114
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.93749965104165,
+                "width": 33.93103391724139,
+                "x": 3.534482693190455e-07,
+                "y": 110.96875000000001
+              },
+              "text": "I"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10416666493055549,
+                "width": 0.03448275804597702,
+                "x": 3.591953956494365e-10,
+                "y": 0.34375000173611114
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.93749965104165,
+                "width": 33.93103391724139,
+                "x": 3.534482693190455e-07,
+                "y": 110.96875000000001
+              },
+              "text": "T"
+            }
+          ],
+          "confidence": 0.29884228110313416,
+          "line": 6,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "2_IT"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09238417519033204,
+                "width": 0.016920731207534012,
+                "x": 0.09247482551635597,
+                "y": 0.4551493464129929
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.56921921325674,
+                "width": 16.64999950821347,
+                "x": 90.99522830809427,
+                "y": 90.94576215773169
+              },
+              "text": "科"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.08910891090375306,
+                "width": 0.009146341468614039,
+                "x": 0.10939555671869057,
+                "y": 0.45842461069957186
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 17.910891091654364,
+                "width": 9.000000005116213,
+                "x": 107.64522781119152,
+                "y": 90.94576215773169
+              },
+              "text": "目"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.08910891090691897,
+                "width": 0.0114329268344677,
+                "x": 0.1185418981821052,
+                "y": 0.45842461068374196
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 17.91089109229071,
+                "width": 11.250000005116217,
+                "x": 116.64522781119152,
+                "y": 90.94576216027716
+              },
+              "text": "："
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.08910891091008499,
+                "width": 0.01371951220032136,
+                "x": 0.1299748250113735,
+                "y": 0.45842461066474616
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 17.910891092927084,
+                "width": 13.500000005116219,
+                "x": 127.89522781119153,
+                "y": 90.94576216345894
+              },
+              "text": "架"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.08910891090691897,
+                "width": 0.0114329268344677,
+                "x": 0.14369433720649544,
+                "y": 0.45842461064891626
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 17.91089109229071,
+                "width": 11.250000005116217,
+                "x": 141.39522781119152,
+                "y": 90.94576216727712
+              },
+              "text": "空"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.08910891090691897,
+                "width": 0.0114329268344677,
+                "x": 0.15512726403576374,
+                "y": 0.45842461063308637
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 17.91089109229071,
+                "width": 11.250000005116217,
+                "x": 152.64522781119152,
+                "y": 90.94576217045892
+              },
+              "text": "物"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.08910891090691897,
+                "width": 0.0114329268344677,
+                "x": 0.16656019086503204,
+                "y": 0.4584246106172565
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 17.91089109229071,
+                "width": 11.250000005116217,
+                "x": 163.89522781119152,
+                "y": 90.94576217364073
+              },
+              "text": "理"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09238417523303177,
+                "width": 0.013918529464733126,
+                "x": 0.17799311769430032,
+                "y": 0.4551493462753138
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.569219221839386,
+                "width": 13.695832993297396,
+                "x": 175.14522781119152,
+                "y": 90.94576217682254
+              },
+              "text": "丙"
+            }
+          ],
+          "confidence": 0.9761252403259277,
+          "line": 7,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "科目：架空物理丙"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.08333333263888887,
+                "width": 0.016880431717392064,
+                "x": 0.09267241381106321,
+                "y": 0.36458333402777776
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 16.74999986041666,
+                "width": 16.61034480991379,
+                "x": 91.1896551900862,
+                "y": 110.96875000000001
+              },
+              "text": "担"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.07920792079207917,
+                "width": 0.01016260162601626,
+                "x": 0.10955284552845528,
+                "y": 0.36633663366336633
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 15.920792079207912,
+                "width": 10,
+                "x": 107.8,
+                "y": 111.44554455445545
+              },
+              "text": "当"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.08333333263888887,
+                "width": 0.00528455259409169,
+                "x": 0.11971544715447154,
+                "y": 0.36458333402777776
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 16.74999986041666,
+                "width": 5.199999752586224,
+                "x": 117.8,
+                "y": 110.96875000000001
+              },
+              "text": "："
+            }
+          ],
+          "confidence": 0.9147184491157532,
+          "line": 8,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "担当："
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.08333035288180424,
+                "width": 0.013151254338995999,
+                "x": 0.09475616700503946,
+                "y": 0.2621363854957771
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 16.74940092924265,
+                "width": 12.940834269572063,
+                "x": 93.24006833295883,
+                "y": 131.56118558610615
+              },
+              "text": "教"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.07970372873293874,
+                "width": 0.012331165025025848,
+                "x": 0.10777094868065519,
+                "y": 0.26523126499962746
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 16.020449475320685,
+                "width": 12.133866384625435,
+                "x": 106.04661350176471,
+                "y": 131.6680662597542
+              },
+              "text": "室"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.07962062904187062,
+                "width": 0.010298716298084917,
+                "x": 0.11996564104230077,
+                "y": 0.2648157665442865
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 16.003746437415995,
+                "width": 10.13393683731556,
+                "x": 118.04619078562396,
+                "y": 131.76828448718243
+              },
+              "text": "："
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.07978682842400708,
+                "width": 0.014363613751966792,
+                "x": 0.13012788467700542,
+                "y": 0.2642340687068092
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 16.037152513225422,
+                "width": 14.133795931935323,
+                "x": 128.04583852217334,
+                "y": 131.85179967670592
+              },
+              "text": "架"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.07962062904187062,
+                "width": 0.010298716298084903,
+                "x": 0.14435502576559195,
+                "y": 0.2638185702514684
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 16.003746437415995,
+                "width": 10.133936837315545,
+                "x": 142.04534535334247,
+                "y": 131.96872094203886
+              },
+              "text": "空"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.07970372873293885,
+                "width": 0.012331165025025848,
+                "x": 0.1545172694002966,
+                "y": 0.2633199721050592
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 16.02044947532071,
+                "width": 12.133866384625435,
+                "x": 152.04499308989185,
+                "y": 132.05223613156238
+              },
+              "text": "室"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.08382517417417001,
+                "width": 0.012238767563945485,
+                "x": 0.16671196176194217,
+                "y": 0.25869992851741896
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 16.848860009008174,
+                "width": 12.042947282922357,
+                "x": 164.0445703737511,
+                "y": 132.1524543589906
+              },
+              "text": "丙"
+            }
+          ],
+          "confidence": 0.9805557727813721,
+          "line": 9,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "教室：架空室丙"
+        }
+      ],
+      "observations": 1,
+      "originalLayoutsDiagnosticPredicatesPass": false,
+      "page": 1,
+      "pdfSHA256": "2625bf49044d59088b53109fc15ba7813073fdedac71bde5eb82925c297050f8",
+      "readReturned": true,
+      "seconds": 0.9892799854278564,
+      "summedCharacterBoxAreaPixels": 10801.200228652835,
+      "type": "page",
+      "width": 984
+    },
+    {
+      "areaIsUnion": false,
+      "characterCount": 19,
+      "diagnosticComplete": true,
+      "diagnosticFailures": [
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ],
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "formalEvaluation": "unassessed",
+      "height": 201,
+      "inkCoverageVerified": false,
+      "lines": [
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10485072705366216,
+                "width": 0.014614384766747571,
+                "x": -0.00010375536618547314,
+                "y": 0.8513338591843315
+              },
+              "originalLayoutsCharacterPredicate": false,
+              "pixelTopLeft": {
+                "height": 21.074996137786094,
+                "width": 14.38055461047961,
+                "x": -0.10209528032650557,
+                "y": 8.80689816616328
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10446587387509276,
+                "width": 0.010879808923275005,
+                "x": 0.014301037640239283,
+                "y": 0.8522292031850732
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.997640648893647,
+                "width": 10.705731980502604,
+                "x": 14.072221037995455,
+                "y": 8.704289510906637
+              },
+              "text": "0"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10433825116954965,
+                "width": 0.008212254632536966,
+                "x": 0.024971254803191473,
+                "y": 0.8527396940072456
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.97198848507948,
+                "width": 8.080858558416374,
+                "x": 24.57171472634041,
+                "y": 8.627333019464158
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10446587387509276,
+                "width": 0.010879808923275003,
+                "x": 0.032973917675405626,
+                "y": 0.8531225621238749
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.997640648893647,
+                "width": 10.705731980502602,
+                "x": 32.446334992599134,
+                "y": 8.524724364207492
+              },
+              "text": "8"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10484874199172212,
+                "width": 0.018882471795489145,
+                "x": 0.043644134838357815,
+                "y": 0.8536330529460473
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.074597140336145,
+                "width": 18.58035224676132,
+                "x": 42.94582868094409,
+                "y": 8.345159217508348
+              },
+              "text": "年"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10484874199172212,
+                "width": 0.01888247179548915,
+                "x": 0.06231701487352414,
+                "y": 0.854526411884849
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.074597140336145,
+                "width": 18.580352246761326,
+                "x": 61.319942635547754,
+                "y": 8.165594070809203
+              },
+              "text": "度"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.104848741991722,
+                "width": 0.01888247179548916,
+                "x": 0.08098989490869048,
+                "y": 0.8554197708236507
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.074597140336124,
+                "width": 18.580352246761333,
+                "x": 79.69405659015143,
+                "y": 7.986028924110081
+              },
+              "text": "後"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10485301136417058,
+                "width": 0.01897546308234535,
+                "x": 0.09966277494385681,
+                "y": 0.8563131297624524
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.075455284198288,
+                "width": 18.671855673027824,
+                "x": 98.0681705447551,
+                "y": 7.805605633548773
+              },
+              "text": "期"
+            }
+          ],
+          "confidence": 0.9473292827606201,
+          "line": 0,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "2028年度後期"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09374999843750009,
+                "width": 0.019396551400862078,
+                "x": 0.1012931034841954,
+                "y": 0.7187500015624999
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.843749685937517,
+                "width": 19.086206578448284,
+                "x": 99.67241382844827,
+                "y": 37.6875
+              },
+              "text": "火"
+            }
+          ],
+          "confidence": 0.8955000042915344,
+          "line": 1,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "火"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06249999843750009,
+                "width": 0.01724137887931032,
+                "x": 0.21336206901939656,
+                "y": 0.6041666682291666
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.562499685937519,
+                "width": 16.965516817241355,
+                "x": 209.9482759150862,
+                "y": 66.99999999999999
+              },
+              "text": "2"
+            }
+          ],
+          "confidence": 0.8729578852653503,
+          "line": 2,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "2"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0729166642361112,
+                "width": 0.015086206393678137,
+                "x": 0.3254310346264368,
+                "y": 0.604166669097222
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 14.656249511458352,
+                "width": 14.844827091379287,
+                "x": 320.22413807241384,
+                "y": 64.90625000000001
+              },
+              "text": "3"
+            }
+          ],
+          "confidence": 0.20414699614048004,
+          "line": 3,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "3"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06249999843750009,
+                "width": 0.012931034159482768,
+                "x": 0.43750000010775864,
+                "y": 0.6041666682291666
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.562499685937519,
+                "width": 12.724137612931044,
+                "x": 430.5000001060345,
+                "y": 66.99999999999999
+              },
+              "text": "4"
+            }
+          ],
+          "confidence": 0.2608276903629303,
+          "line": 4,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "4"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10416666493055549,
+                "width": 0.03448275804597702,
+                "x": 3.591953961279809e-10,
+                "y": 0.34375000173611114
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.93749965104165,
+                "width": 33.93103391724139,
+                "x": 3.534482697899332e-07,
+                "y": 110.96875000000001
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10416666493055549,
+                "width": 0.03448275804597702,
+                "x": 3.591953961279809e-10,
+                "y": 0.34375000173611114
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.93749965104165,
+                "width": 33.93103391724139,
+                "x": 3.534482697899332e-07,
+                "y": 110.96875000000001
+              },
+              "text": "_"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10416666493055549,
+                "width": 0.03448275804597702,
+                "x": 3.591953961279809e-10,
+                "y": 0.34375000173611114
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.93749965104165,
+                "width": 33.93103391724139,
+                "x": 3.534482697899332e-07,
+                "y": 110.96875000000001
+              },
+              "text": "I"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10416666493055549,
+                "width": 0.03448275804597702,
+                "x": 3.591953961279809e-10,
+                "y": 0.34375000173611114
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.93749965104165,
+                "width": 33.93103391724139,
+                "x": 3.534482697899332e-07,
+                "y": 110.96875000000001
+              },
+              "text": "T"
+            }
+          ],
+          "confidence": 0.29884228110313416,
+          "line": 5,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "2_IT"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09581270584449064,
+                "width": 0.020326955414930403,
+                "x": 0.21336206897531348,
+                "y": 0.8645833337594697
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.258353874742618,
+                "width": 20.001724128291517,
+                "x": 209.94827587170846,
+                "y": 7.9603960396039675
+              },
+              "text": "時"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09405940594059403,
+                "width": 0.016895325203252015,
+                "x": 0.2336890243902439,
+                "y": 0.8663366336633663
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.905940594059402,
+                "width": 16.624999999999982,
+                "x": 229.95,
+                "y": 7.9603960396039675
+              },
+              "text": "間"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09581270584449064,
+                "width": 0.016657029481739194,
+                "x": 0.2505843495934959,
+                "y": 0.8645833337594697
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.258353874742618,
+                "width": 16.390517010031367,
+                "x": 246.57499999999996,
+                "y": 7.9603960396039675
+              },
+              "text": "割"
+            }
+          ],
+          "confidence": 0.9788309931755066,
+          "line": 6,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "時間割"
+        }
+      ],
+      "observations": 1,
+      "originalLayoutsDiagnosticPredicatesPass": false,
+      "page": 2,
+      "pdfSHA256": "2625bf49044d59088b53109fc15ba7813073fdedac71bde5eb82925c297050f8",
+      "readReturned": true,
+      "seconds": 1.1250009536743164,
+      "summedCharacterBoxAreaPixels": 7297.461633018316,
+      "type": "page",
+      "width": 984
+    },
+    {
+      "areaIsUnion": false,
+      "characterCount": 19,
+      "diagnosticComplete": true,
+      "diagnosticFailures": [
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ],
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "formalEvaluation": "unassessed",
+      "height": 201,
+      "inkCoverageVerified": false,
+      "lines": [
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10458734464757014,
+                "width": 0.014533746566157397,
+                "x": -6.433161990443604e-05,
+                "y": 0.8524605966184083
+              },
+              "originalLayoutsCharacterPredicate": false,
+              "pixelTopLeft": {
+                "height": 21.022056274161596,
+                "width": 14.30120662109888,
+                "x": -0.06330231398596507,
+                "y": 8.633363805538327
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10427154492734392,
+                "width": 0.010799059882850908,
+                "x": 0.014340893419066561,
+                "y": 0.8530894289692074
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.958580530396127,
+                "width": 10.626274924725294,
+                "x": 14.111439124361496,
+                "y": 8.570444246793192
+              },
+              "text": "0"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10419328676970063,
+                "width": 0.008131425293934798,
+                "x": 0.02501143177473107,
+                "y": 0.8534024615997802
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.94285064070983,
+                "width": 8.00132248923184,
+                "x": 24.611248866335373,
+                "y": 8.523254577734358
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10427154492734392,
+                "width": 0.010799059882850896,
+                "x": 0.033014335541479464,
+                "y": 0.8536372360727098
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.958580530396127,
+                "width": 10.626274924725282,
+                "x": 32.486106172815795,
+                "y": 8.460335018989202
+              },
+              "text": "8"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10450631940027344,
+                "width": 0.01880196364959929,
+                "x": 0.04368487389714396,
+                "y": 0.8539502687032826
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.00577019945496,
+                "width": 18.501132231205702,
+                "x": 42.98591591478966,
+                "y": 8.350225791185235
+              },
+              "text": "年"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10450631940027344,
+                "width": 0.018801963649599296,
+                "x": 0.06235831601955685,
+                "y": 0.854498075806785
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.00577019945496,
+                "width": 18.50113223120571,
+                "x": 61.36058296324394,
+                "y": 8.240116563381243
+              },
+              "text": "度"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10450631940027344,
+                "width": 0.018801963649599296,
+                "x": 0.08103175814196974,
+                "y": 0.8550458829102875
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.00577019945496,
+                "width": 18.50113223120571,
+                "x": 79.73525001169823,
+                "y": 8.130007335577252
+              },
+              "text": "後"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10444571363792643,
+                "width": 0.016738441563891496,
+                "x": 0.09970520026438263,
+                "y": 0.8555936900137899
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.993588441223213,
+                "width": 16.470626498869233,
+                "x": 98.10991706015251,
+                "y": 8.032079866005011
+              },
+              "text": "期"
+            }
+          ],
+          "confidence": 0.9182806611061096,
+          "line": 0,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "2028年度後期"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0937499986607142,
+                "width": 0.02155172383004926,
+                "x": 0.09913793109605912,
+                "y": 0.7187500013392858
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.843749730803555,
+                "width": 21.206896248768473,
+                "x": 97.55172419852217,
+                "y": 37.6875
+              },
+              "text": "水"
+            }
+          ],
+          "confidence": 0.9807175397872925,
+          "line": 1,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "水"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06249999843750009,
+                "width": 0.010775861799568978,
+                "x": 0.09913793108836207,
+                "y": 0.6041666682291666
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.562499685937519,
+                "width": 10.603448010775875,
+                "x": 97.55172419094828,
+                "y": 66.99999999999999
+              },
+              "text": "1"
+            }
+          ],
+          "confidence": 0.2645111083984375,
+          "line": 2,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "1"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06249999875000012,
+                "width": 0.019396551336206908,
+                "x": 0.21336206896551724,
+                "y": 0.6041666679166666
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.562499748750025,
+                "width": 19.086206514827598,
+                "x": 209.94827586206895,
+                "y": 66.99999999999999
+              },
+              "text": "2"
+            }
+          ],
+          "confidence": 0.220990389585495,
+          "line": 3,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "2"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.07291666484375003,
+                "width": 0.015086206519396572,
+                "x": 0.3254310345366379,
+                "y": 0.6041666684895832
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 14.656249633593756,
+                "width": 14.844827215086227,
+                "x": 320.2241379840517,
+                "y": 64.90625000000001
+              },
+              "text": "3"
+            }
+          ],
+          "confidence": 0.20414699614048004,
+          "line": 4,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "3"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09374999843749998,
+                "width": 0.03448275804597702,
+                "x": 3.591953956494365e-10,
+                "y": 0.35416666822916665
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.843749685937496,
+                "width": 33.93103391724139,
+                "x": 3.534482693190455e-07,
+                "y": 110.96875000000001
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09374999843749998,
+                "width": 0.03448275804597702,
+                "x": 3.591953956494365e-10,
+                "y": 0.35416666822916665
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.843749685937496,
+                "width": 33.93103391724139,
+                "x": 3.534482693190455e-07,
+                "y": 110.96875000000001
+              },
+              "text": "_"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09374999843749998,
+                "width": 0.03448275804597702,
+                "x": 3.591953956494365e-10,
+                "y": 0.35416666822916665
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.843749685937496,
+                "width": 33.93103391724139,
+                "x": 3.534482693190455e-07,
+                "y": 110.96875000000001
+              },
+              "text": "I"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09374999843749998,
+                "width": 0.03448275804597702,
+                "x": 3.591953956494365e-10,
+                "y": 0.35416666822916665
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.843749685937496,
+                "width": 33.93103391724139,
+                "x": 3.534482693190455e-07,
+                "y": 110.96875000000001
+              },
+              "text": "T"
+            }
+          ],
+          "confidence": 0.31222450733184814,
+          "line": 5,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "2_IT"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09581270584449064,
+                "width": 0.0228632253799029,
+                "x": 0.2112068965713166,
+                "y": 0.8645833337594697
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.258353874742618,
+                "width": 22.497413773824455,
+                "x": 207.82758622617555,
+                "y": 7.9603960396039675
+              },
+              "text": "時"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09405940594059403,
+                "width": 0.016895325203252043,
+                "x": 0.2340701219512195,
+                "y": 0.8663366336633663
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.905940594059402,
+                "width": 16.62500000000001,
+                "x": 230.325,
+                "y": 7.9603960396039675
+              },
+              "text": "間"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09581270584449064,
+                "width": 0.016275931920763542,
+                "x": 0.25096544715447155,
+                "y": 0.8645833337594697
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.258353874742618,
+                "width": 16.015517010031324,
+                "x": 246.95000000000002,
+                "y": 7.9603960396039675
+              },
+              "text": "割"
+            }
+          ],
+          "confidence": 0.9727776050567627,
+          "line": 6,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "時間割"
+        }
+      ],
+      "observations": 1,
+      "originalLayoutsDiagnosticPredicatesPass": false,
+      "page": 3,
+      "pdfSHA256": "2625bf49044d59088b53109fc15ba7813073fdedac71bde5eb82925c297050f8",
+      "readReturned": true,
+      "seconds": 1.0168190002441406,
+      "summedCharacterBoxAreaPixels": 7029.025466829461,
+      "type": "page",
+      "width": 984
+    },
+    {
+      "areaIsUnion": false,
+      "characterCount": 20,
+      "diagnosticComplete": true,
+      "diagnosticFailures": [
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ],
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "formalEvaluation": "unassessed",
+      "height": 201,
+      "inkCoverageVerified": false,
+      "lines": [
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10485072705366216,
+                "width": 0.014614384766747571,
+                "x": -0.00010375536618547314,
+                "y": 0.8513338591843315
+              },
+              "originalLayoutsCharacterPredicate": false,
+              "pixelTopLeft": {
+                "height": 21.074996137786094,
+                "width": 14.38055461047961,
+                "x": -0.10209528032650557,
+                "y": 8.80689816616328
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10446587387509276,
+                "width": 0.010879808923275005,
+                "x": 0.014301037640239283,
+                "y": 0.8522292031850732
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.997640648893647,
+                "width": 10.705731980502604,
+                "x": 14.072221037995455,
+                "y": 8.704289510906637
+              },
+              "text": "0"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10433825116954965,
+                "width": 0.008212254632536966,
+                "x": 0.024971254803191473,
+                "y": 0.8527396940072456
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.97198848507948,
+                "width": 8.080858558416374,
+                "x": 24.57171472634041,
+                "y": 8.627333019464158
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10446587387509276,
+                "width": 0.010879808923275003,
+                "x": 0.032973917675405626,
+                "y": 0.8531225621238749
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.997640648893647,
+                "width": 10.705731980502602,
+                "x": 32.446334992599134,
+                "y": 8.524724364207492
+              },
+              "text": "8"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10484874199172212,
+                "width": 0.018882471795489145,
+                "x": 0.043644134838357815,
+                "y": 0.8536330529460473
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.074597140336145,
+                "width": 18.58035224676132,
+                "x": 42.94582868094409,
+                "y": 8.345159217508348
+              },
+              "text": "年"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10484874199172212,
+                "width": 0.01888247179548915,
+                "x": 0.06231701487352414,
+                "y": 0.854526411884849
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.074597140336145,
+                "width": 18.580352246761326,
+                "x": 61.319942635547754,
+                "y": 8.165594070809203
+              },
+              "text": "度"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.104848741991722,
+                "width": 0.01888247179548916,
+                "x": 0.08098989490869048,
+                "y": 0.8554197708236507
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.074597140336124,
+                "width": 18.580352246761333,
+                "x": 79.69405659015143,
+                "y": 7.986028924110081
+              },
+              "text": "後"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10485301136417058,
+                "width": 0.01897546308234535,
+                "x": 0.09966277494385681,
+                "y": 0.8563131297624524
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.075455284198288,
+                "width": 18.671855673027824,
+                "x": 98.0681705447551,
+                "y": 7.805605633548773
+              },
+              "text": "期"
+            }
+          ],
+          "confidence": 0.9473292827606201,
+          "line": 0,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "2028年度後期"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0937499986607142,
+                "width": 0.01939655144704433,
+                "x": 0.10129310347906405,
+                "y": 0.7187500013392858
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.843749730803555,
+                "width": 19.08620662389162,
+                "x": 99.67241382339903,
+                "y": 37.6875
+              },
+              "text": "木"
+            }
+          ],
+          "confidence": 0.9560596346855164,
+          "line": 1,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "木"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06249999843750009,
+                "width": 0.010775861799568978,
+                "x": 0.09913793108836207,
+                "y": 0.6041666682291666
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.562499685937519,
+                "width": 10.603448010775875,
+                "x": 97.55172419094828,
+                "y": 66.99999999999999
+              },
+              "text": "1"
+            }
+          ],
+          "confidence": 0.2645111083984375,
+          "line": 2,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "1"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06249999843750009,
+                "width": 0.01724137887931032,
+                "x": 0.21336206901939656,
+                "y": 0.6041666682291666
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.562499685937519,
+                "width": 16.965516817241355,
+                "x": 209.9482759150862,
+                "y": 66.99999999999999
+              },
+              "text": "2"
+            }
+          ],
+          "confidence": 0.8729578852653503,
+          "line": 3,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "2"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0729166642361112,
+                "width": 0.012931034051724133,
+                "x": 0.3254310346264368,
+                "y": 0.604166669097222
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 14.656249511458352,
+                "width": 12.724137506896547,
+                "x": 320.22413807241384,
+                "y": 64.90625000000001
+              },
+              "text": "3"
+            }
+          ],
+          "confidence": 0.20072360336780548,
+          "line": 4,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "3"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06249999843750009,
+                "width": 0.012931034159482768,
+                "x": 0.43750000010775864,
+                "y": 0.6041666682291666
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.562499685937519,
+                "width": 12.724137612931044,
+                "x": 430.5000001060345,
+                "y": 66.99999999999999
+              },
+              "text": "4"
+            }
+          ],
+          "confidence": 0.2608276903629303,
+          "line": 5,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "4"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10416666493055549,
+                "width": 0.03448275804597702,
+                "x": 3.591953961279809e-10,
+                "y": 0.34375000173611114
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.93749965104165,
+                "width": 33.93103391724139,
+                "x": 3.534482697899332e-07,
+                "y": 110.96875000000001
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10416666493055549,
+                "width": 0.03448275804597702,
+                "x": 3.591953961279809e-10,
+                "y": 0.34375000173611114
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.93749965104165,
+                "width": 33.93103391724139,
+                "x": 3.534482697899332e-07,
+                "y": 110.96875000000001
+              },
+              "text": "_"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10416666493055549,
+                "width": 0.03448275804597702,
+                "x": 3.591953961279809e-10,
+                "y": 0.34375000173611114
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.93749965104165,
+                "width": 33.93103391724139,
+                "x": 3.534482697899332e-07,
+                "y": 110.96875000000001
+              },
+              "text": "I"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10416666493055549,
+                "width": 0.03448275804597702,
+                "x": 3.591953961279809e-10,
+                "y": 0.34375000173611114
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.93749965104165,
+                "width": 33.93103391724139,
+                "x": 3.534482697899332e-07,
+                "y": 110.96875000000001
+              },
+              "text": "T"
+            }
+          ],
+          "confidence": 0.29884228110313416,
+          "line": 6,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "2_IT"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09581270584449064,
+                "width": 0.020326955414930403,
+                "x": 0.21336206897531348,
+                "y": 0.8645833337594697
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.258353874742618,
+                "width": 20.001724128291517,
+                "x": 209.94827587170846,
+                "y": 7.9603960396039675
+              },
+              "text": "時"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09405940594059403,
+                "width": 0.016895325203252015,
+                "x": 0.2336890243902439,
+                "y": 0.8663366336633663
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.905940594059402,
+                "width": 16.624999999999982,
+                "x": 229.95,
+                "y": 7.9603960396039675
+              },
+              "text": "間"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09581270584449064,
+                "width": 0.016657029481739194,
+                "x": 0.2505843495934959,
+                "y": 0.8645833337594697
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.258353874742618,
+                "width": 16.390517010031367,
+                "x": 246.57499999999996,
+                "y": 7.9603960396039675
+              },
+              "text": "割"
+            }
+          ],
+          "confidence": 0.9788309931755066,
+          "line": 7,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "時間割"
+        }
+      ],
+      "observations": 1,
+      "originalLayoutsDiagnosticPredicatesPass": false,
+      "page": 4,
+      "pdfSHA256": "2625bf49044d59088b53109fc15ba7813073fdedac71bde5eb82925c297050f8",
+      "readReturned": true,
+      "seconds": 0.8861250877380371,
+      "summedCharacterBoxAreaPixels": 7399.586091349658,
+      "type": "page",
+      "width": 984
+    },
+    {
+      "areaIsUnion": false,
+      "characterCount": 19,
+      "diagnosticComplete": true,
+      "diagnosticFailures": [
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ],
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "formalEvaluation": "unassessed",
+      "height": 201,
+      "inkCoverageVerified": false,
+      "lines": [
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10458734494574773,
+                "width": 0.014533747357523191,
+                "x": -6.431177309922529e-05,
+                "y": 0.8524289849593876
+              },
+              "originalLayoutsCharacterPredicate": false,
+              "pixelTopLeft": {
+                "height": 21.022056334095293,
+                "width": 14.30120739980282,
+                "x": -0.06328278472963769,
+                "y": 8.639717689067805
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.1042715449273438,
+                "width": 0.010799059882850908,
+                "x": 0.014340914057237567,
+                "y": 0.8530578176083643
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.958580530396105,
+                "width": 10.626274924725294,
+                "x": 14.111459432321766,
+                "y": 8.57679813032267
+              },
+              "text": "0"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10419328676970063,
+                "width": 0.00813142529393479,
+                "x": 0.025011452412902077,
+                "y": 0.8533708502389371
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.94285064070983,
+                "width": 8.001322489231834,
+                "x": 24.611269174295643,
+                "y": 8.529608461263814
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10427154492734392,
+                "width": 0.010799059882850903,
+                "x": 0.03301435617965046,
+                "y": 0.8536056247118666
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 20.958580530396127,
+                "width": 10.626274924725289,
+                "x": 32.48612648077606,
+                "y": 8.46668890251868
+              },
+              "text": "8"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10450631940027344,
+                "width": 0.01880196364959929,
+                "x": 0.04368489453531497,
+                "y": 0.8539186573424395
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.00577019945496,
+                "width": 18.501132231205702,
+                "x": 42.98593622274993,
+                "y": 8.35657967471469
+              },
+              "text": "年"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10450631940027355,
+                "width": 0.018801963649599296,
+                "x": 0.06235833665772786,
+                "y": 0.8544664644459419
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.005770199454982,
+                "width": 18.50113223120571,
+                "x": 61.36060327120421,
+                "y": 8.246470446910699
+              },
+              "text": "度"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10450631940027355,
+                "width": 0.018801963649599296,
+                "x": 0.08103177878014074,
+                "y": 0.8550142715494443
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.005770199454982,
+                "width": 18.50113223120571,
+                "x": 79.7352703196585,
+                "y": 8.136361219106709
+              },
+              "text": "後"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.10450893665762395,
+                "width": 0.018893573487037005,
+                "x": 0.09970522090255364,
+                "y": 0.8555620786529468
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 21.006296268182414,
+                "width": 18.591276311244414,
+                "x": 98.10993736811278,
+                "y": 8.025725922575287
+              },
+              "text": "期"
+            }
+          ],
+          "confidence": 0.9416239261627197,
+          "line": 0,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "2028年度後期"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.0937499986607142,
+                "width": 0.01939655144704433,
+                "x": 0.10129310347906405,
+                "y": 0.7187500013392858
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.843749730803555,
+                "width": 19.08620662389162,
+                "x": 99.67241382339903,
+                "y": 37.6875
+              },
+              "text": "金"
+            }
+          ],
+          "confidence": 0.9603057503700256,
+          "line": 1,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "金"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06249999843750009,
+                "width": 0.010775861799568978,
+                "x": 0.09913793108836207,
+                "y": 0.6041666682291666
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.562499685937519,
+                "width": 10.603448010775875,
+                "x": 97.55172419094828,
+                "y": 66.99999999999999
+              },
+              "text": "1"
+            }
+          ],
+          "confidence": 0.2645111083984375,
+          "line": 2,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "1"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.06249999875000012,
+                "width": 0.019396551336206908,
+                "x": 0.21336206896551724,
+                "y": 0.6041666679166666
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 12.562499748750025,
+                "width": 19.086206514827598,
+                "x": 209.94827586206895,
+                "y": 66.99999999999999
+              },
+              "text": "2"
+            }
+          ],
+          "confidence": 0.220990389585495,
+          "line": 3,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "2"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.07291666484375003,
+                "width": 0.012931034159482824,
+                "x": 0.3254310345366379,
+                "y": 0.6041666684895832
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 14.656249633593756,
+                "width": 12.724137612931099,
+                "x": 320.2241379840517,
+                "y": 64.90625000000001
+              },
+              "text": "3"
+            }
+          ],
+          "confidence": 0.20072360336780548,
+          "line": 4,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "3"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09374999843749998,
+                "width": 0.03448275804597702,
+                "x": 3.591953956494365e-10,
+                "y": 0.35416666822916665
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.843749685937496,
+                "width": 33.93103391724139,
+                "x": 3.534482693190455e-07,
+                "y": 110.96875000000001
+              },
+              "text": "2"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09374999843749998,
+                "width": 0.03448275804597702,
+                "x": 3.591953956494365e-10,
+                "y": 0.35416666822916665
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.843749685937496,
+                "width": 33.93103391724139,
+                "x": 3.534482693190455e-07,
+                "y": 110.96875000000001
+              },
+              "text": "_"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09374999843749998,
+                "width": 0.03448275804597702,
+                "x": 3.591953956494365e-10,
+                "y": 0.35416666822916665
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.843749685937496,
+                "width": 33.93103391724139,
+                "x": 3.534482693190455e-07,
+                "y": 110.96875000000001
+              },
+              "text": "I"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09374999843749998,
+                "width": 0.03448275804597702,
+                "x": 3.591953956494365e-10,
+                "y": 0.35416666822916665
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.843749685937496,
+                "width": 33.93103391724139,
+                "x": 3.534482693190455e-07,
+                "y": 110.96875000000001
+              },
+              "text": "T"
+            }
+          ],
+          "confidence": 0.31222450733184814,
+          "line": 5,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": false,
+          "rawText": "2_IT"
+        },
+        {
+          "characters": [
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09581270584449064,
+                "width": 0.0228632253799029,
+                "x": 0.2112068965713166,
+                "y": 0.8645833337594697
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.258353874742618,
+                "width": 22.497413773824455,
+                "x": 207.82758622617555,
+                "y": 7.9603960396039675
+              },
+              "text": "時"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09405940594059403,
+                "width": 0.016895325203252043,
+                "x": 0.2340701219512195,
+                "y": 0.8663366336633663
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 18.905940594059402,
+                "width": 16.62500000000001,
+                "x": 230.325,
+                "y": 7.9603960396039675
+              },
+              "text": "間"
+            },
+            {
+              "finite": true,
+              "normalizedLowerLeft": {
+                "height": 0.09581270584449064,
+                "width": 0.016275931920763542,
+                "x": 0.25096544715447155,
+                "y": 0.8645833337594697
+              },
+              "originalLayoutsCharacterPredicate": true,
+              "pixelTopLeft": {
+                "height": 19.258353874742618,
+                "width": 16.015517010031324,
+                "x": 246.95000000000002,
+                "y": 7.9603960396039675
+              },
+              "text": "割"
+            }
+          ],
+          "confidence": 0.9727776050567627,
+          "line": 6,
+          "observation": 0,
+          "passesOriginalConfidencePredicate": true,
+          "rawText": "時間割"
+        }
+      ],
+      "observations": 1,
+      "originalLayoutsDiagnosticPredicatesPass": false,
+      "page": 5,
+      "pdfSHA256": "2625bf49044d59088b53109fc15ba7813073fdedac71bde5eb82925c297050f8",
+      "readReturned": true,
+      "seconds": 0.8689249753952026,
+      "summedCharacterBoxAreaPixels": 7002.738687415375,
+      "type": "page",
+      "width": 984
+    },
+    {
+      "diagnosticCompletedPages": 10,
+      "formalAssessed": 0,
+      "operationalErrors": 0,
+      "plannedPages": 10,
+      "qualityQualification": false,
+      "readReturnedPages": 10,
+      "type": "summary"
+    }
+  ]
+}

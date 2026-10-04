@@ -1,0 +1,45 @@
+{
+  "algorithm": "SHA-256",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 4133,
+      "sha256": "dd2cd6c4c4c35b70aeb90bf0ca96dedc1c14b864e620b1fe26c3408d622e7127"
+    },
+    {
+      "path": "api-investigation.json",
+      "bytes": 4114,
+      "sha256": "107e807daf7d3520bfe4ac45ec35d945b0c5fc414c1ae1d3a5e8aeb5d1d7ae91"
+    },
+    {
+      "path": "execution.json",
+      "bytes": 38575,
+      "sha256": "22842a631cdd95bd21b7dd99b125983cada2dc725ca6fb6328ab92e94cf21f7c"
+    },
+    {
+      "path": "independent-reviews.json",
+      "bytes": 123917,
+      "sha256": "a526fbbace3ff348c7af262301acf74f583ddc55d762e4bf7e176f0eee9e30f5"
+    },
+    {
+      "path": "raw-evidence.json",
+      "bytes": 324355,
+      "sha256": "9d0558be75d6c5ecb1c063f8a01011e09f7ea8aa0dd2fb73164c86215d73ece7"
+    },
+    {
+      "path": "results.json",
+      "bytes": 166758,
+      "sha256": "9855f5e5ab93495ad8d5a0a4080b19f7e6a25122e7495908e0823d9a4d6f6858"
+    },
+    {
+      "path": "source-freeze.json",
+      "bytes": 4834,
+      "sha256": "db92a8e7d9146baa6a924abd9dc7eb59426fa7f6d21bab304b11f55eddbb35e9"
+    },
+    {
+      "path": "ten-page-causes.json",
+      "bytes": 47697,
+      "sha256": "c6c97835b64d3c3f90ab9e33c1bdfbeb4518f794d1ad026a25f232ed6cd69f15"
+    }
+  ]
+}
