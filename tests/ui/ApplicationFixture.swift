@@ -527,7 +527,9 @@ enum SimulatorRecoveryFixture {
             .replacingOccurrences(of: "10月", with: period.half == 1 ? "4月" : "10月")
             .replacingOccurrences(of: "10/", with: period.half == 1 ? "4/" : "10/")
             .replacingOccurrences(of: "2026", with: String(period.schoolYear))
-        let payload = try JSONDecoder().decode(SpecialPayload.self, from: Data(json.utf8))
+        var payload = try JSONDecoder().decode(SpecialPayload.self, from: Data(json.utf8))
+        payload.result.metadata.validatorVersion = RecoveryValidator.version
+        payload.document.structureMetadata?.validatorVersion = RecoveryValidator.version
         return (payload.document, payload.result)
     }
     static func seed(_ base: URL) throws {
