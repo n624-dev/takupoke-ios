@@ -10,6 +10,22 @@ final class FixtureNetwork: URLProtocol {
     override func startLoading() {
         // Synthetic revision responses exercise saved/empty/update UI states.
         // Every other request is rejected; nothing reaches a production service.
+        if ProcessInfo.processInfo.arguments.contains("--events-cache-corrupt") ||
+            ProcessInfo.processInfo.arguments.contains("--events-cache-probe"),
+           let url = request.url, url.host == "fixture.example.test", request.httpMethod == "GET",
+           let yearText = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "schoolYear" })?.value,
+           let year = Int(yearText), [2032, 2033].contains(year) {
+            let payload = SimulatorEventsCacheFixture.payload(year: year, title: "架空行事更新\(year)")
+            do {
+                let bytes = try JSONEncoder().encode(payload)
+                let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1",
+                    headerFields: ["ETag": "\"fictional-events-\(year)\"", "Content-Type": "application/json", "Content-Length": String(bytes.count)])!
+                client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+                client?.urlProtocol(self, didLoad: bytes)
+                client?.urlProtocolDidFinishLoading(self)
+            } catch { client?.urlProtocol(self, didFailWithError: error) }
+            return
+        }
         if let url = request.url, ["/mapping-revision", "/links-revision", "/timetable-times-revision"].contains(url.path) {
             let installed = request.value(forHTTPHeaderField: "If-None-Match")
             let changed = ProcessInfo.processInfo.arguments.contains("--updated-revisions")
@@ -240,12 +256,33 @@ struct SimulatorApplication: App {
             try library.saveChangeAnalysis(analysis)
         }
         if ProcessInfo.processInfo.arguments.contains("--recovery-preview") { try SimulatorRecoveryFixture.seed(base) }
+        if ProcessInfo.processInfo.arguments.contains("--events-cache-corrupt") {
+            try SimulatorEventsCacheFixture.seed(base)
+        }
         if ProcessInfo.processInfo.arguments.contains("--failed-refresh") {
             let library = try LocalMaterialDatabase.openLibrary(root: base.appendingPathComponent("SchoolMaterialsSQLite"))
             try library.recordFailure(.changes, message: "架空の変更ファイル取得エラー")
             try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite"))
                 .recordFailure(PDFParseError(code: .unsupported), kind: .exam)
         }
+    }
+}
+
+// Seed actual event files; user actions still run production fetch/decode/save.
+// The separate probe launch omits this mutation to verify persisted repair.
+enum SimulatorEventsCacheFixture {
+    static func payload(year: Int, title: String) -> SchoolEventsPayload {
+        SchoolEventsPayload(version: "v1", schoolYear: year, sourcePdfSha256: String(repeating: "c", count: 64),
+            sourcePdfETag: "\"fictional-events-source\"", events: [
+                .init(startDate: "\(year)-04-02", endDate: "\(year)-04-02", title: title, tag: "行事（授業あり）")
+            ])
+    }
+    static func seed(_ base: URL) throws {
+        let root = base.appendingPathComponent("SchoolEventsAPI", isDirectory: true)
+        let store = try SchoolEventsStore(root: root)
+        try store.save(payload(year: 2032, title: "架空正常行事2032"), apiETag: "\"fictional-events-old\"")
+        try Data("{entirely-fictional-corrupt-event-json".utf8)
+            .write(to: root.appendingPathComponent("events-2033.json"), options: .atomic)
     }
 }
 

@@ -35,11 +35,15 @@ struct SchoolEventsSettingsSection: View {
                         SchoolEventsResultView(saved: saved)
                     }
                     .accessibilityLabel("\(year)年度の学校行事の詳細を見る")
+                } else if model.failedCacheYears.contains(year) {
+                    Text("再取得が必要")
+                        .foregroundStyle(.orange)
                 } else {
                     Text("未取得")
                         .foregroundStyle(.secondary)
                 }
-                Button(model.saved[year] == nil ? "学校行事を取得" : "学校行事を更新") {
+                Button(model.failedCacheYears.contains(year) ? "学校行事を再取得" :
+                       model.saved[year] == nil ? "学校行事を取得" : "学校行事を更新") {
                     model.fetch(year: year)
                 }
                     .disabled(!model.ready || model.busy)
@@ -54,6 +58,10 @@ struct SchoolEventsSettingsSection: View {
                 Label(message, systemImage: model.failed ? "exclamationmark.triangle" : "info.circle")
                     .font(.caption)
                     .foregroundStyle(model.failed ? Color.orange : Color.secondary)
+            }
+            if let warning = model.cacheWarning {
+                Label(warning, systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.orange)
             }
             if let message = model.sourceCheckMessage {
                 Label(message, systemImage: "exclamationmark.triangle")

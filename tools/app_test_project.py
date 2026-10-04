@@ -8,6 +8,17 @@ import subprocess
 import sys
 from picker_test_project import generate as generate_picker
 
+def instrument_events_cache(text):
+    marker = '    func refreshAtStartup() {'
+    assert text.count(marker) == 1, 'Events cache fixture insertion point missing'
+    return text.replace(marker, marker + '''
+        if ProcessInfo.processInfo.arguments.contains("--events-cache-corrupt") ||
+            ProcessInfo.processInfo.arguments.contains("--events-cache-probe") {
+            loadIfNeeded()
+            return
+        }
+''')
+
 def instrument_native_ocr(text):
     # Anchor the diagnostic before candidate validation without depending on
     # the spelling or line breaks of the production safety checks.
@@ -49,6 +60,8 @@ def generate(destination):
         text = re.sub(r'https?://[^"\s)]+', 'https://fixture.example.test', text)
         text = re.sub(r'(\b(?:let|var) (\w+) = URLSessionConfiguration\.(?:ephemeral|default))',
                       lambda match: match[1] + "\n        " + match[2] + ".protocolClasses = [FixtureNetwork.self]", text)
+        if path.name == 'SchoolEventsModel.swift':
+            text = instrument_events_cache(text)
         if path.name in ('TimetableView.swift', 'TimetableView+Navigation.swift'):
             text = text.replace('SchoolDate.today()', '(ProcessInfo.processInfo.arguments.contains("--selection-snapshot") ? SimulatorSelectionFixture.day : SchoolDate.today())')
         if path.name == 'HomeTodayView.swift':

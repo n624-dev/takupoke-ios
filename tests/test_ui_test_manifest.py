@@ -22,6 +22,19 @@ def result_line(test, status="passed"):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_event_cache_probe_changes_only_automatic_startup_in_isolated_copy(self):
+        source = (ROOT / "Takupoke/SchoolEventsModel.swift").read_text(encoding="utf-8")
+        self.assertNotIn("--events-cache-", source)
+        generated = app_test_project.instrument_events_cache(source)
+        insertion = generated[len(source.split('    func refreshAtStartup() {')[0]):].split('        loadIfNeeded()', 2)
+        self.assertIn('"--events-cache-corrupt"', insertion[0])
+        self.assertIn('"--events-cache-probe"', insertion[0])
+        self.assertIn('return', insertion[1])
+        # Actual manual fetch, response validation, persistence and background
+        # refresh remain byte-for-byte identical; no fabricated model readiness.
+        self.assertEqual(source.split('    func fetch(year: Int) {', 1)[1],
+                         generated.split('    func fetch(year: Int) {', 1)[1])
+
     def test_native_ocr_probe_preserves_actual_multiline_confidence_guard(self):
         source = (ROOT / "Takupoke/PDFRecoveryRecognition.swift").read_text(encoding="utf-8")
         self.assertNotIn("--recovery-ocr-probe", source)
@@ -35,7 +48,7 @@ class ManifestTests(unittest.TestCase):
 
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8"))
-        self.assertEqual(len(manifest.selected_tests("all")), 24)
+        self.assertEqual(len(manifest.selected_tests("all")), 25)
         self.assertFalse(set(manifest.SHARDS["A"]) & set(manifest.SHARDS["B"]))
         self.assertEqual(release_gate.REQUIRED, manifest.REQUIRED_JOBS | {"Distribution tests", "Native PDF and recovery tests"})
         self.assertIn(manifest.SYSTEM_SIZE_TEST, manifest.SHARDS["B"])

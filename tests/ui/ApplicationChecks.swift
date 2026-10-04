@@ -23,6 +23,7 @@ final class ApplicationChecks: XCTestCase {
             "testSpecialRecoveryShowsMergedAndDifferentDayClocksBeforeAdoption": ["--recovery-preview", "--recovery-exam"],
             "testRecoveryImageOnlyPDFUsesNativeOCRAndTopLeftRaster": ["--recovery-ocr-probe"],
             "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork": ["--selection-snapshot", "--normal-only"],
+            "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair": ["--events-cache-corrupt"],
         ]
         for (method, arguments) in initialConditions where name.contains(method) {
             app.launchArguments += arguments
@@ -551,6 +552,53 @@ final class ApplicationChecks: XCTestCase {
             back(to: "時間割ファイル")
         }
         // Actual picker interactions are exercised by the dedicated picker suite.
+    }
+    func testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair() {
+        let warningText = "2033年度の保存済み学校行事を読み取れません。正常な年度の結果は表示しています。該当年度を再取得してください。端末内の結果は削除していません。"
+        func selectYear(_ digits: String, replacing: Bool) {
+            let field = app.textFields["学校年度（空欄なら現在の学校年度）"]
+            for _ in 0..<6 {
+                if field.exists && field.isHittable && field.frame.minY >= app.navigationBars["学校行事"].frame.maxY { break }
+                app.swipeDown()
+            }
+            XCTAssertTrue(field.exists && field.isHittable, app.debugDescription)
+            field.tap()
+            field.typeText((replacing ? String(repeating: XCUIKeyboardKey.delete.rawValue, count: 4) : "") + digits)
+            XCTAssertEqual(field.value as? String, digits, app.debugDescription)
+            app.swipeUp() // Dismiss the number pad through the List's standard behavior.
+        }
+        func openSavedEvent(_ year: Int, title: String) {
+            tap("\(year)年度の学校行事の詳細を見る")
+            XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 10), app.debugDescription)
+            back(to: "学校行事")
+        }
+        tab("設定"); tap("学校行事"); screen("学校行事")
+        selectYear("2032", replacing: false)
+        let warning = app.staticTexts[warningText].firstMatch
+        _ = visible(warning)
+        XCTAssertTrue(app.buttons["学校行事を更新"].isEnabled, app.debugDescription)
+        recoveryScreenshot("ios-events-cache-warning")
+        openSavedEvent(2032, title: "架空正常行事2032")
+        tap("学校行事を更新")
+        let healthyUpdated = expectation(for: NSPredicate { _, _ in
+            self.app.buttons["学校行事を更新"].isEnabled && self.app.staticTexts[warningText].firstMatch.exists
+        }, evaluatedWith: app)
+        wait(for: [healthyUpdated], timeout: 20)
+        openSavedEvent(2032, title: "架空行事更新2032")
+        XCTAssertTrue(warning.exists, app.debugDescription)
+        selectYear("2033", replacing: true)
+        _ = heading("再取得が必要")
+        XCTAssertTrue(app.buttons["学校行事を再取得"].isEnabled, app.debugDescription)
+        tap("学校行事を再取得")
+        XCTAssertTrue(warning.waitForNonExistence(timeout: 20), app.debugDescription)
+        openSavedEvent(2033, title: "架空行事更新2033")
+        app.terminate()
+        app.launchArguments = ["--events-cache-probe", "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
+        launchReady(); tab("設定"); tap("学校行事"); screen("学校行事")
+        XCTAssertFalse(app.staticTexts[warningText].exists, app.debugDescription)
+        XCTAssertFalse(app.staticTexts["再取得が必要"].exists, app.debugDescription)
+        openSavedEvent(2033, title: "架空行事更新2033")
+        print("SYNTHETIC_EVENTS_CACHE_UI healthy visible/fetch enabled; other-year fetch kept warning; actual same-year repair and process restart cleared warning")
     }
     func testUsageHelpIsOrganizedByTask() {
         tab("設定")

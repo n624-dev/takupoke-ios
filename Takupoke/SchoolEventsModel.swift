@@ -9,6 +9,9 @@ final class SchoolEventsModel: ObservableObject {
     @Published private(set) var failed = false
     @Published private(set) var message: String?
     @Published private(set) var sourceCheckMessage: String?
+    @Published private(set) var failedCacheYears: Set<Int> = []
+
+    var cacheWarning: String? { SchoolEventsAvailableLoad.warning(for: failedCacheYears) }
 
     private var store: SchoolEventsStore?
     private var task: Task<Void, Never>?
@@ -88,9 +91,13 @@ final class SchoolEventsModel: ObservableObject {
             let base = try FileManager.default.url(for: .applicationSupportDirectory,
                                                    in: .userDomainMask, appropriateFor: nil, create: true)
             let opened = try SchoolEventsStore(root: base.appendingPathComponent("SchoolEventsAPI", isDirectory: true))
-            saved = try opened.loadAll()
+            let available = try opened.loadAvailable()
+            saved = available.saved
+            failedCacheYears = available.failedYears
             store = opened
             ready = true
+            failed = false
+            message = nil
         } catch {
             failed = true
             message = "保存済みの学校行事を読み取れません。端末内の結果は削除していません。"
@@ -183,6 +190,7 @@ final class SchoolEventsModel: ObservableObject {
         let fetchedAt = Date()
         try store.save(payload, apiETag: receivedETag, fetchedAt: fetchedAt)
         saved[year] = SavedSchoolEvents(fetchedAt: fetchedAt, payload: payload, apiETag: receivedETag)
+        failedCacheYears.remove(year)
         sourceCheckMessage = nil
         return true
     }
