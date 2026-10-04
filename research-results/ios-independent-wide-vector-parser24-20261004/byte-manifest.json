@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "scope": "All portable evidence files except this manifest itself",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 4338,
+      "sha256": "72f51a779e2e101a4c861fcdb02bac08ccec959235cea06f064d12d8bd370aa7"
+    },
+    {
+      "path": "analyze.py",
+      "bytes": 7443,
+      "sha256": "3e491417f2a5720772a1357b1f2774cf451a98b7ad6e7f3bd527e080828c2101"
+    },
+    {
+      "path": "derived-evidence.json",
+      "bytes": 16772,
+      "sha256": "10e9c768ce64b2e05fe5e6e0cfa17599171be88dbffee4d50833c0a4a40fd0c1"
+    },
+    {
+      "path": "expected.json",
+      "bytes": 157034,
+      "sha256": "efdcb749420be6b000bf172f41102fd6c98b4e6b600dd22d07b41168788ce191"
+    },
+    {
+      "path": "fixed-stderr.raw.json",
+      "bytes": 325,
+      "sha256": "8dad7370dad10643f7c50e2b350cbba89f0f3f9360f73f396b421ca9b63abee2"
+    },
+    {
+      "path": "fixed-stdout.raw.json",
+      "bytes": 566094,
+      "sha256": "5970dd663a3bf371fc139d48e511f235cc4ae1f8512c0d164a0cfdecaabf8358"
+    },
+    {
+      "path": "independent-page-counts.json",
+      "bytes": 1225,
+      "sha256": "5e76c981a1ee4739afb9a9260a42e48d4ac23ca0fb5801bd14a18deb8b2a5d12"
+    },
+    {
+      "path": "log-restoration.json",
+      "bytes": 1128,
+      "sha256": "8b7e8c61e1fc864c3d2cb12f26d18e1b37c96e37019526a05650c86aa130bdf1"
+    },
+    {
+      "path": "metadata-execution.raw.json",
+      "bytes": 8974,
+      "sha256": "bf35ff470e943b43fa699eef85322983536c77350c2fb21052abe0dc0e132fa7"
+    },
+    {
+      "path": "native-inputs.json",
+      "bytes": 985,
+      "sha256": "0d5f3913736239e31d96744aa0224000e0d0f292d26cdd7f5d3631621c83b199"
+    },
+    {
+      "path": "source-receipt.json",
+      "bytes": 8053,
+      "sha256": "4907550b9901442648f7c40ffee51e1b05b4698fc97f65b0570e7efabad8f7eb"
+    }
+  ]
+}

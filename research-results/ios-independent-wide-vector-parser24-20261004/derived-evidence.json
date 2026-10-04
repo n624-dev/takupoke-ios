@@ -1,0 +1,536 @@
+{
+  "sourceCommit": "3526db360a8de06900fd4daf4d6e25288e3dd0e8",
+  "runId": "37225883970",
+  "attempt": "1",
+  "externalLogReadbackComplete": true,
+  "keys": [
+    "fixed/stderr",
+    "fixed/stdout",
+    "metadata/execution"
+  ],
+  "rawStreams": [
+    {
+      "key": "fixed/stderr",
+      "bytes": 95,
+      "sha256": "f62be3783d4cace8a66c32fb08fdbee82e74a17b59784e9339745f3baf65b92e"
+    },
+    {
+      "key": "fixed/stdout",
+      "bytes": 6702446,
+      "sha256": "e2c7682d7a1b9361547dfd07d45d268b74572a11373016c638abc55d787c074d"
+    },
+    {
+      "key": "metadata/execution",
+      "bytes": 47556,
+      "sha256": "4c7dbf29f607c247ad5c5149b9e0d45ebe8669b8f41b98a97435dbd6e5066283"
+    }
+  ],
+  "phases": {
+    "fixed": {
+      "summary": {
+        "all680LiteralMatches": 2,
+        "analysesReturned": 2,
+        "attemptedReaderCalls": 6,
+        "mode": "fixed",
+        "modelInvocations": 0,
+        "ocrRequests": 0,
+        "plannedReaderCalls": 6,
+        "qualityQualification": false,
+        "readReturned": 5,
+        "recordedCases": 6,
+        "type": "summary"
+      },
+      "cases": [
+        {
+          "file": "unlabeled.pdf",
+          "pdfSHA256": "a90ed8be04c058789a354ab7a2ad78c2e598b75433fc1152df2584bd00f4223a",
+          "pdfBytes": 38164,
+          "readerOnly": false,
+          "readerCallStarted": true,
+          "readReturned": true,
+          "analysisReturned": true,
+          "capture": {
+            "complete": true,
+            "pages": [
+              {
+                "glyphs": 8749,
+                "layoutPresent": true,
+                "originalLayoutSHA256": "9ea946ea0432d472175f04774a7d1571991f8181843329e026d4324f5224f2a8",
+                "page": 1,
+                "rules": 1094,
+                "state": "complete"
+              }
+            ],
+            "readerCompleted": true
+          },
+          "seconds": 10.55118703842163,
+          "route": "strict",
+          "strictReturned": true,
+          "glyphCount": 8749,
+          "ruleCount": 1094,
+          "retainedPathBudgetEntries": [
+            {
+              "page": 1,
+              "sequence": 6,
+              "step": "paths",
+              "values": [
+                5637,
+                281679
+              ]
+            }
+          ],
+          "diagnosticEntriesOmitted": 0,
+          "pathBudgetEntryCoverage": "Retained actual recorder entries only; omitted pages are unassessed, no extra Reader requests",
+          "actualPages": [
+            {
+              "glyphs": 8749,
+              "rules": 1094,
+              "width": 3052,
+              "height": 990
+            }
+          ],
+          "independentLiteralAssertion": {
+            "assertionOnly": true,
+            "literalSlotsAssessed": 680,
+            "literalSlotsMatched": 680,
+            "mismatches": [],
+            "extraSlotKeys": [],
+            "yearAndTermMatch": true,
+            "classesMatch": true,
+            "all680LiteralMatch": true
+          }
+        },
+        {
+          "file": "labeled-control.pdf",
+          "pdfSHA256": "4ad4bed500a8b1b1112e1a918225353bf9db84eab784f577d49e08257307b0bc",
+          "pdfBytes": 39246,
+          "readerOnly": false,
+          "readerCallStarted": true,
+          "readReturned": true,
+          "analysisReturned": false,
+          "capture": {
+            "complete": true,
+            "pages": [
+              {
+                "glyphs": 12646,
+                "layoutPresent": true,
+                "originalLayoutSHA256": "7e1e776ca6c6e669a84cf20178b54c2772f5a809754932435bf6e29b16bd8125",
+                "page": 1,
+                "rules": 1094,
+                "state": "complete"
+              }
+            ],
+            "readerCompleted": true
+          },
+          "seconds": 7.896203994750977,
+          "route": "recovery",
+          "strictReturned": false,
+          "failureStage": "recoveryBuilder",
+          "failure": {
+            "code": "ambiguous",
+            "detail": {
+              "code": "ambiguous",
+              "stage": "parallelLessons"
+            },
+            "page": null,
+            "stage": "parallelLessons",
+            "type": "PDFParseError"
+          },
+          "strictError": {
+            "code": "unsupported",
+            "detail": {
+              "cell": {
+                "classRow": 1,
+                "detectedLines": 3,
+                "period": 1,
+                "weekday": 1
+              },
+              "code": "unsupported",
+              "page": 1,
+              "stage": "lessonLines"
+            },
+            "page": 1,
+            "stage": "lessonLines",
+            "type": "PDFParseError"
+          },
+          "glyphCount": 12646,
+          "ruleCount": 1094,
+          "retainedPathBudgetEntries": [
+            {
+              "page": 1,
+              "sequence": 6,
+              "step": "paths",
+              "values": [
+                5747,
+                465477
+              ]
+            }
+          ],
+          "diagnosticEntriesOmitted": 0,
+          "pathBudgetEntryCoverage": "Retained actual recorder entries only; omitted pages are unassessed, no extra Reader requests",
+          "actualPages": [
+            {
+              "glyphs": 12646,
+              "rules": 1094,
+              "width": 3052,
+              "height": 990
+            }
+          ]
+        },
+        {
+          "file": "unlabeled-no-unused-font.pdf",
+          "pdfSHA256": "bd8a441ef33903ff8e01a9c7f6f4f7715f453afafb7130cae1499914eba54c6a",
+          "pdfBytes": 38009,
+          "readerOnly": false,
+          "readerCallStarted": true,
+          "readReturned": true,
+          "analysisReturned": true,
+          "capture": {
+            "complete": true,
+            "pages": [
+              {
+                "glyphs": 8749,
+                "layoutPresent": true,
+                "originalLayoutSHA256": "20a65e94ff40dde3527362194ddfebb81945dcb131ac0c26aaaf1c9bbccec4ca",
+                "page": 1,
+                "rules": 1094,
+                "state": "complete"
+              }
+            ],
+            "readerCompleted": true
+          },
+          "seconds": 7.327551960945129,
+          "route": "strict",
+          "strictReturned": true,
+          "glyphCount": 8749,
+          "ruleCount": 1094,
+          "retainedPathBudgetEntries": [
+            {
+              "page": 1,
+              "sequence": 6,
+              "step": "paths",
+              "values": [
+                5637,
+                281679
+              ]
+            }
+          ],
+          "diagnosticEntriesOmitted": 0,
+          "pathBudgetEntryCoverage": "Retained actual recorder entries only; omitted pages are unassessed, no extra Reader requests",
+          "actualPages": [
+            {
+              "glyphs": 8749,
+              "rules": 1094,
+              "width": 3052,
+              "height": 990
+            }
+          ],
+          "independentLiteralAssertion": {
+            "assertionOnly": true,
+            "literalSlotsAssessed": 680,
+            "literalSlotsMatched": 680,
+            "mismatches": [],
+            "extraSlotKeys": [],
+            "yearAndTermMatch": true,
+            "classesMatch": true,
+            "all680LiteralMatch": true
+          }
+        },
+        {
+          "file": "labeled-control-no-unused-font.pdf",
+          "pdfSHA256": "dfa4266abaed7aae5a1f3430eedf566193e62ade376a4768250f1091d4fbabed",
+          "pdfBytes": 39091,
+          "readerOnly": false,
+          "readerCallStarted": true,
+          "readReturned": true,
+          "analysisReturned": false,
+          "capture": {
+            "complete": true,
+            "pages": [
+              {
+                "glyphs": 12646,
+                "layoutPresent": true,
+                "originalLayoutSHA256": "5716404cadeca61e30f8be4e63d2f83ec8e1d4d10a506887543078ba52f48eaf",
+                "page": 1,
+                "rules": 1094,
+                "state": "complete"
+              }
+            ],
+            "readerCompleted": true
+          },
+          "seconds": 1.3381359577178955,
+          "route": "recovery",
+          "strictReturned": false,
+          "failureStage": "recoveryBuilder",
+          "failure": {
+            "code": "ambiguous",
+            "detail": {
+              "code": "ambiguous",
+              "stage": "parallelLessons"
+            },
+            "page": null,
+            "stage": "parallelLessons",
+            "type": "PDFParseError"
+          },
+          "strictError": {
+            "code": "unsupported",
+            "detail": {
+              "cell": {
+                "classRow": 1,
+                "detectedLines": 3,
+                "period": 1,
+                "weekday": 1
+              },
+              "code": "unsupported",
+              "page": 1,
+              "stage": "lessonLines"
+            },
+            "page": 1,
+            "stage": "lessonLines",
+            "type": "PDFParseError"
+          },
+          "glyphCount": 12646,
+          "ruleCount": 1094,
+          "retainedPathBudgetEntries": [
+            {
+              "page": 1,
+              "sequence": 6,
+              "step": "paths",
+              "values": [
+                5747,
+                465477
+              ]
+            }
+          ],
+          "diagnosticEntriesOmitted": 0,
+          "pathBudgetEntryCoverage": "Retained actual recorder entries only; omitted pages are unassessed, no extra Reader requests",
+          "actualPages": [
+            {
+              "glyphs": 12646,
+              "rules": 1094,
+              "width": 3052,
+              "height": 990
+            }
+          ]
+        },
+        {
+          "file": "parallel-mismatch.pdf",
+          "pdfSHA256": "eece294ddd4d96f82228b01f528585f9cf3a00b4179d6a8662377c6db79f3ee0",
+          "pdfBytes": 38202,
+          "readerOnly": false,
+          "readerCallStarted": true,
+          "readReturned": true,
+          "analysisReturned": false,
+          "capture": {
+            "complete": true,
+            "pages": [
+              {
+                "glyphs": 8741,
+                "layoutPresent": true,
+                "originalLayoutSHA256": "ec17ba2ae55fa554ab160ba71d720b3eb3dfdd2985760205777a63ae2e3c06c6",
+                "page": 1,
+                "rules": 1094,
+                "state": "complete"
+              }
+            ],
+            "readerCompleted": true
+          },
+          "seconds": 0.759937047958374,
+          "route": "recovery",
+          "strictReturned": false,
+          "failureStage": "recoveryBuilder",
+          "failure": {
+            "code": "ambiguous",
+            "detail": {
+              "code": "ambiguous",
+              "stage": "parallelLessons"
+            },
+            "page": null,
+            "stage": "parallelLessons",
+            "type": "PDFParseError"
+          },
+          "strictError": {
+            "code": "ambiguous",
+            "detail": {
+              "cell": {
+                "classRow": 1,
+                "detectedLines": 3,
+                "period": 1,
+                "weekday": 3
+              },
+              "code": "ambiguous",
+              "page": 1,
+              "stage": "parallelLessons"
+            },
+            "page": 1,
+            "stage": "parallelLessons",
+            "type": "PDFParseError"
+          },
+          "glyphCount": 8741,
+          "ruleCount": 1094,
+          "retainedPathBudgetEntries": [
+            {
+              "page": 1,
+              "sequence": 6,
+              "step": "paths",
+              "values": [
+                5637,
+                280383
+              ]
+            }
+          ],
+          "diagnosticEntriesOmitted": 0,
+          "pathBudgetEntryCoverage": "Retained actual recorder entries only; omitted pages are unassessed, no extra Reader requests",
+          "actualPages": [
+            {
+              "glyphs": 8741,
+              "rules": 1094,
+              "width": 3052,
+              "height": 990
+            }
+          ]
+        },
+        {
+          "file": "unreadable-body.pdf",
+          "pdfSHA256": "aadd33eb9883dfc4db358a6200c6daf5e2cb38753b12afe8ef22caed8375e81e",
+          "pdfBytes": 38215,
+          "readerOnly": false,
+          "readerCallStarted": true,
+          "readReturned": false,
+          "analysisReturned": false,
+          "capture": {
+            "complete": false,
+            "pages": [
+              {
+                "layoutPresent": false,
+                "page": 1,
+                "state": "rasterOnly"
+              }
+            ],
+            "readerCompleted": false
+          },
+          "seconds": 0.02086198329925537,
+          "strictReturned": false,
+          "failureStage": "reader",
+          "failure": {
+            "code": "unsupported",
+            "detail": {
+              "code": "unsupported",
+              "page": 1,
+              "stage": "characterMapping",
+              "trace": {
+                "entries": [
+                  {
+                    "sequence": 0,
+                    "step": "file",
+                    "values": []
+                  },
+                  {
+                    "sequence": 1,
+                    "step": "file",
+                    "values": [
+                      38215
+                    ]
+                  },
+                  {
+                    "sequence": 2,
+                    "step": "document",
+                    "values": [
+                      1,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 3,
+                    "step": "page",
+                    "values": []
+                  },
+                  {
+                    "bounds": {
+                      "height": 990,
+                      "state": "valid",
+                      "width": 3052,
+                      "x": 0,
+                      "y": 0
+                    },
+                    "page": 1,
+                    "sequence": 4,
+                    "step": "pageText",
+                    "values": [
+                      9993,
+                      9993,
+                      0
+                    ]
+                  },
+                  {
+                    "code": "unsupported",
+                    "page": 1,
+                    "sequence": 5,
+                    "stage": "characterMapping",
+                    "step": "failure",
+                    "values": []
+                  }
+                ],
+                "omittedEntries": 0,
+                "parserVersion": 24,
+                "schemaVersion": 1,
+                "totalEntries": 6
+              }
+            },
+            "page": 1,
+            "stage": "characterMapping",
+            "type": "PDFParseError"
+          },
+          "retainedPathBudgetEntries": [],
+          "diagnosticEntriesOmitted": 0,
+          "pathBudgetEntryCoverage": "Retained actual recorder entries only; omitted pages are unassessed, no extra Reader requests"
+        }
+      ],
+      "nativeReceipt": {
+        "plannedReaderCalls": 6,
+        "rawSHA256": "e2c7682d7a1b9361547dfd07d45d268b74572a11373016c638abc55d787c074d",
+        "rawBytes": 6702446,
+        "recordedFiles": [
+          "unlabeled.pdf",
+          "labeled-control.pdf",
+          "unlabeled-no-unused-font.pdf",
+          "labeled-control-no-unused-font.pdf",
+          "parallel-mismatch.pdf",
+          "unreadable-body.pdf"
+        ],
+        "plannedFilesWithoutRecord": [],
+        "attemptedReaderCalls": 6,
+        "readReturned": 5,
+        "analysesReturned": 2,
+        "sourceFailures": 4,
+        "failureClasses": {
+          "semanticRefusal": 4,
+          "rulesIncomplete": 0,
+          "structureUnassessed": 0,
+          "executionOrUnassessed": 0
+        },
+        "positiveAll680LiteralMatches": 2,
+        "positiveLiteralMismatches": 0,
+        "positiveLiteralUnassessed": 0,
+        "negativeSemanticRefusals": 2,
+        "negativeRulesIncomplete": 0,
+        "negativeStructureUnassessed": 0,
+        "negativeExecutionOrUnassessed": 0,
+        "negativeAnalysesReturned": 0,
+        "nonJSONOrIncompleteLines": 0,
+        "transportComplete": true,
+        "semanticResultsSeparateFromTransport": true,
+        "nativeExitCode": 0,
+        "nativeSeconds": 130.56514670800016,
+        "originalRawSHA256": "e2c7682d7a1b9361547dfd07d45d268b74572a11373016c638abc55d787c074d",
+        "originalRawBytes": 6702446,
+        "parsingTruncated": false
+      }
+    }
+  },
+  "expectedSHA256": "efdcb749420be6b000bf172f41102fd6c98b4e6b600dd22d07b41168788ce191",
+  "ocrRequests": 0,
+  "modelInvocations": 0,
+  "limits": "Independent generated vector fixtures only; no physical-device, persistence/manual-UI or OCR/model quality qualification. Blank slots compare absence only after complete native Reader/actual parser."
+}

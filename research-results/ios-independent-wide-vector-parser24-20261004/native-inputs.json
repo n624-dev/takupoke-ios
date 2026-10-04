@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "file": "unlabeled.pdf",
+      "sha256": "a90ed8be04c058789a354ab7a2ad78c2e598b75433fc1152df2584bd00f4223a",
+      "bytes": 38164
+    },
+    {
+      "file": "labeled-control.pdf",
+      "sha256": "4ad4bed500a8b1b1112e1a918225353bf9db84eab784f577d49e08257307b0bc",
+      "bytes": 39246
+    },
+    {
+      "file": "unlabeled-no-unused-font.pdf",
+      "sha256": "bd8a441ef33903ff8e01a9c7f6f4f7715f453afafb7130cae1499914eba54c6a",
+      "bytes": 38009
+    },
+    {
+      "file": "labeled-control-no-unused-font.pdf",
+      "sha256": "dfa4266abaed7aae5a1f3430eedf566193e62ade376a4768250f1091d4fbabed",
+      "bytes": 39091
+    },
+    {
+      "file": "parallel-mismatch.pdf",
+      "sha256": "eece294ddd4d96f82228b01f528585f9cf3a00b4179d6a8662377c6db79f3ee0",
+      "bytes": 38202
+    },
+    {
+      "file": "unreadable-body.pdf",
+      "sha256": "aadd33eb9883dfc4db358a6200c6daf5e2cb38753b12afe8ef22caed8375e81e",
+      "bytes": 38215
+    }
+  ]
+}
