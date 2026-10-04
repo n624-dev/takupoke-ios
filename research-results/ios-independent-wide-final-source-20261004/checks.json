@@ -1,0 +1,651 @@
+{
+  "schemaVersion": 1,
+  "scope": "Final source/tests and wholly independent synthetic vector-PDF evidence; no school original, OCR, model inference or hardware qualification.",
+  "runtimeCommit": "2569b7a",
+  "testedApplicationCommit": "f8b0ca476d6fe6c5627231b1f24f32e73cb816f1",
+  "versions": {
+    "timetableParser": 24,
+    "recoveryValidator": 5,
+    "responseSchema": 2,
+    "fieldExtractionPrompt": 4,
+    "structureProposalPrompt": 3
+  },
+  "limits": {
+    "pathPaintWork": 1000000,
+    "recoveryValidationWork": 32000000,
+    "changed": false
+  },
+  "privacy": {
+    "schoolOriginalsAsTestInputs": 0,
+    "schoolContentCopied": 0,
+    "generatedPdfOrFontOrImageBinariesCommitted": 0,
+    "expectedOnlyPostOutputAssertion": true,
+    "publicPinnedFont": "Noto Sans JP / SIL OFL 1.1",
+    "fakeContentPrefixes": [
+      "架空科目",
+      "架空教員",
+      "架空室"
+    ]
+  },
+  "host": {
+    "tests": 344,
+    "failures": 0,
+    "recertificationTests": 13,
+    "fullLog": {
+      "bytes": 176736,
+      "sha256": "b32080ed4f179d55605a19e9be022d29cf8fb1caecd6ff3eee0ce077697f274c"
+    }
+  },
+  "normalCI": {
+    "run": 37226523125,
+    "url": "https://github.com/n624-dev/takupoke-ios/actions/runs/37226523125",
+    "conclusion": "success",
+    "requiredJobs": 7,
+    "jobs": [
+      {
+        "id": 111507205599,
+        "name": "Distribution tests",
+        "conclusion": "success",
+        "startedAt": "2026-10-04T18:59:23Z",
+        "completedAt": "2026-10-04T18:59:31Z",
+        "decodedFullLog": {
+          "bytes": 29411,
+          "sha256": "7fc8c9b0b76ce46fc4af0550ce2f06f052e4aa4056c56feeeab06a6290b44db4"
+        },
+        "distributionTests": 58,
+        "sharedPromptTests": 7
+      },
+      {
+        "id": 111507237032,
+        "name": "Check iPhone build without publishing",
+        "conclusion": "success",
+        "startedAt": "2026-10-04T19:00:03Z",
+        "completedAt": "2026-10-04T19:24:35Z",
+        "decodedFullLog": {
+          "bytes": 1120643,
+          "sha256": "d2e10257019841e30310a7b70b3de685cf4f91e650b6040639b62ccc63b44c7d"
+        }
+      },
+      {
+        "id": 111507237099,
+        "name": "Application iOS 27 UI B",
+        "conclusion": "success",
+        "startedAt": "2026-10-04T19:00:25Z",
+        "completedAt": "2026-10-04T19:30:35Z",
+        "decodedFullLog": {
+          "bytes": 3024121,
+          "sha256": "b0339f49098abfc50be2408c5b3877618e98ffe2aefc9312107f23398d806b72"
+        },
+        "mainTests": 13,
+        "failures": 0,
+        "expectedSkips": 0,
+        "sizeTests": 3
+      },
+      {
+        "id": 111507237115,
+        "name": "Native PDF and recovery tests",
+        "conclusion": "success",
+        "startedAt": "2026-10-04T19:00:27Z",
+        "completedAt": "2026-10-04T19:04:11Z",
+        "decodedFullLog": {
+          "bytes": 280724,
+          "sha256": "7da9cd35c075f103ef68bef354d9c4f994c8b48e2ed6e5fdc43020392bc8c0b4"
+        },
+        "tests": 394,
+        "failures": 0
+      },
+      {
+        "id": 111507237122,
+        "name": "Application iOS 26 UI A",
+        "conclusion": "success",
+        "startedAt": "2026-10-04T19:00:43Z",
+        "completedAt": "2026-10-04T19:27:34Z",
+        "decodedFullLog": {
+          "bytes": 1691435,
+          "sha256": "52d837672465da4ea36a96ef3ce7eb76a98070b9b097ad124db14f8f1893846e"
+        },
+        "mainTests": 13,
+        "failures": 0,
+        "expectedSkips": 0,
+        "sizeTests": 0
+      },
+      {
+        "id": 111507237124,
+        "name": "Application iOS 27 UI A",
+        "conclusion": "success",
+        "startedAt": "2026-10-04T19:08:33Z",
+        "completedAt": "2026-10-04T19:39:18Z",
+        "decodedFullLog": {
+          "bytes": 1675082,
+          "sha256": "7f20bf8aba83f1a7fc8ed4e824376c74f5a2698c706a9be5d0749dd3028180f3"
+        },
+        "mainTests": 13,
+        "failures": 0,
+        "expectedSkips": 0,
+        "sizeTests": 0
+      },
+      {
+        "id": 111507237125,
+        "name": "Application iOS 26 UI B",
+        "conclusion": "success",
+        "startedAt": "2026-10-04T19:04:22Z",
+        "completedAt": "2026-10-04T19:42:15Z",
+        "decodedFullLog": {
+          "bytes": 2745189,
+          "sha256": "ea56a680fc71c9a9807d40b7b2986b968e078131998148174d8fbfdc9fa9a5b7"
+        },
+        "mainTests": 13,
+        "failures": 0,
+        "expectedSkips": 1,
+        "sizeTests": 3
+      }
+    ],
+    "releaseJob": "skipped; no production release"
+  },
+  "wideCurrentSix": {
+    "run": 37225883970,
+    "raw": {
+      "bytes": 6702446,
+      "sha256": "e2c7682d7a1b9361547dfd07d45d268b74572a11373016c638abc55d787c074d"
+    },
+    "expected": {
+      "bytes": 157034,
+      "sha256": "efdcb749420be6b000bf172f41102fd6c98b4e6b600dd22d07b41168788ce191"
+    },
+    "readerComplete": 5,
+    "analysisReturned": 2,
+    "cases": [
+      {
+        "file": "unlabeled.pdf",
+        "pdfBytes": 38164,
+        "pdfSHA256": "a90ed8be04c058789a354ab7a2ad78c2e598b75433fc1152df2584bd00f4223a",
+        "readReturned": true,
+        "strictReturned": true,
+        "analysisReturned": true,
+        "failureStage": null,
+        "failure": null,
+        "glyphCount": 8749,
+        "ruleCount": 1094,
+        "retainedPathBudgetEntries": [
+          {
+            "page": 1,
+            "sequence": 6,
+            "step": "paths",
+            "values": [
+              5637,
+              281679
+            ]
+          }
+        ],
+        "independentLiteralSlotsMatched": 680,
+        "lessonRows": 658,
+        "extraSlots": 0
+      },
+      {
+        "file": "labeled-control.pdf",
+        "pdfBytes": 39246,
+        "pdfSHA256": "4ad4bed500a8b1b1112e1a918225353bf9db84eab784f577d49e08257307b0bc",
+        "readReturned": true,
+        "strictReturned": false,
+        "analysisReturned": false,
+        "failureStage": "recoveryBuilder",
+        "failure": {
+          "code": "ambiguous",
+          "detail": {
+            "code": "ambiguous",
+            "stage": "parallelLessons"
+          },
+          "page": null,
+          "stage": "parallelLessons",
+          "type": "PDFParseError"
+        },
+        "glyphCount": 12646,
+        "ruleCount": 1094,
+        "retainedPathBudgetEntries": [
+          {
+            "page": 1,
+            "sequence": 6,
+            "step": "paths",
+            "values": [
+              5747,
+              465477
+            ]
+          }
+        ],
+        "independentLiteralSlotsMatched": null
+      },
+      {
+        "file": "unlabeled-no-unused-font.pdf",
+        "pdfBytes": 38009,
+        "pdfSHA256": "bd8a441ef33903ff8e01a9c7f6f4f7715f453afafb7130cae1499914eba54c6a",
+        "readReturned": true,
+        "strictReturned": true,
+        "analysisReturned": true,
+        "failureStage": null,
+        "failure": null,
+        "glyphCount": 8749,
+        "ruleCount": 1094,
+        "retainedPathBudgetEntries": [
+          {
+            "page": 1,
+            "sequence": 6,
+            "step": "paths",
+            "values": [
+              5637,
+              281679
+            ]
+          }
+        ],
+        "independentLiteralSlotsMatched": 680,
+        "lessonRows": 658,
+        "extraSlots": 0
+      },
+      {
+        "file": "labeled-control-no-unused-font.pdf",
+        "pdfBytes": 39091,
+        "pdfSHA256": "dfa4266abaed7aae5a1f3430eedf566193e62ade376a4768250f1091d4fbabed",
+        "readReturned": true,
+        "strictReturned": false,
+        "analysisReturned": false,
+        "failureStage": "recoveryBuilder",
+        "failure": {
+          "code": "ambiguous",
+          "detail": {
+            "code": "ambiguous",
+            "stage": "parallelLessons"
+          },
+          "page": null,
+          "stage": "parallelLessons",
+          "type": "PDFParseError"
+        },
+        "glyphCount": 12646,
+        "ruleCount": 1094,
+        "retainedPathBudgetEntries": [
+          {
+            "page": 1,
+            "sequence": 6,
+            "step": "paths",
+            "values": [
+              5747,
+              465477
+            ]
+          }
+        ],
+        "independentLiteralSlotsMatched": null
+      },
+      {
+        "file": "parallel-mismatch.pdf",
+        "pdfBytes": 38202,
+        "pdfSHA256": "eece294ddd4d96f82228b01f528585f9cf3a00b4179d6a8662377c6db79f3ee0",
+        "readReturned": true,
+        "strictReturned": false,
+        "analysisReturned": false,
+        "failureStage": "recoveryBuilder",
+        "failure": {
+          "code": "ambiguous",
+          "detail": {
+            "code": "ambiguous",
+            "stage": "parallelLessons"
+          },
+          "page": null,
+          "stage": "parallelLessons",
+          "type": "PDFParseError"
+        },
+        "glyphCount": 8741,
+        "ruleCount": 1094,
+        "retainedPathBudgetEntries": [
+          {
+            "page": 1,
+            "sequence": 6,
+            "step": "paths",
+            "values": [
+              5637,
+              280383
+            ]
+          }
+        ],
+        "independentLiteralSlotsMatched": null
+      },
+      {
+        "file": "unreadable-body.pdf",
+        "pdfBytes": 38215,
+        "pdfSHA256": "aadd33eb9883dfc4db358a6200c6daf5e2cb38753b12afe8ef22caed8375e81e",
+        "readReturned": false,
+        "strictReturned": false,
+        "analysisReturned": false,
+        "failureStage": "reader",
+        "failure": {
+          "code": "unsupported",
+          "detail": {
+            "code": "unsupported",
+            "page": 1,
+            "stage": "characterMapping",
+            "trace": {
+              "entries": [
+                {
+                  "sequence": 0,
+                  "step": "file",
+                  "values": []
+                },
+                {
+                  "sequence": 1,
+                  "step": "file",
+                  "values": [
+                    38215
+                  ]
+                },
+                {
+                  "sequence": 2,
+                  "step": "document",
+                  "values": [
+                    1,
+                    0
+                  ]
+                },
+                {
+                  "page": 1,
+                  "sequence": 3,
+                  "step": "page",
+                  "values": []
+                },
+                {
+                  "bounds": {
+                    "height": 990,
+                    "state": "valid",
+                    "width": 3052,
+                    "x": 0,
+                    "y": 0
+                  },
+                  "page": 1,
+                  "sequence": 4,
+                  "step": "pageText",
+                  "values": [
+                    9993,
+                    9993,
+                    0
+                  ]
+                },
+                {
+                  "code": "unsupported",
+                  "page": 1,
+                  "sequence": 5,
+                  "stage": "characterMapping",
+                  "step": "failure",
+                  "values": []
+                }
+              ],
+              "omittedEntries": 0,
+              "parserVersion": 24,
+              "schemaVersion": 1,
+              "totalEntries": 6
+            }
+          },
+          "page": 1,
+          "stage": "characterMapping",
+          "type": "PDFParseError"
+        },
+        "glyphCount": null,
+        "ruleCount": null,
+        "retainedPathBudgetEntries": [],
+        "independentLiteralSlotsMatched": null
+      }
+    ],
+    "publicEvidence": "https://github.com/n624-dev/takupoke-ios/tree/ea0df352cf8486053cb5295b73d68a194f9019b0/research-results/ios-independent-wide-vector-parser24-20261004"
+  },
+  "denseCurrentFour": {
+    "run": 37227358109,
+    "raw": {
+      "bytes": 3428419,
+      "sha256": "23e27b50d3ae611cc12c501a27d1d9699e6662529fd415de8b69cda00f711094"
+    },
+    "expected": {
+      "bytes": 157034,
+      "sha256": "efdcb749420be6b000bf172f41102fd6c98b4e6b600dd22d07b41168788ce191"
+    },
+    "readerComplete": 2,
+    "analysisReturned": 1,
+    "cases": [
+      {
+        "file": "dense-unlabeled-black.pdf",
+        "pdfBytes": 80758,
+        "pdfSHA256": "67828f93c5e6f007109302362130f54c87525fe4baf1c7de86e9c16fabb22116",
+        "readReturned": true,
+        "strictReturned": true,
+        "analysisReturned": true,
+        "failureStage": null,
+        "failure": null,
+        "glyphCount": 8750,
+        "ruleCount": 1094,
+        "retainedPathBudgetEntries": [
+          {
+            "page": 1,
+            "sequence": 6,
+            "step": "paths",
+            "values": [
+              21882,
+              352949
+            ]
+          }
+        ],
+        "independentLiteralSlotsMatched": 680,
+        "lessonRows": 658,
+        "extraSlots": 0
+      },
+      {
+        "file": "dense-unlabeled-darkblue.pdf",
+        "pdfBytes": 80870,
+        "pdfSHA256": "87952e32abe2dfbfdcd01b8095482ba56886e3953576c56d750b5cdf5c983aa4",
+        "readReturned": false,
+        "strictReturned": false,
+        "analysisReturned": false,
+        "failureStage": "reader",
+        "failure": {
+          "code": "unsupported",
+          "detail": {
+            "code": "unsupported",
+            "page": 1,
+            "stage": "characterMapping",
+            "trace": {
+              "entries": [
+                {
+                  "sequence": 0,
+                  "step": "file",
+                  "values": []
+                },
+                {
+                  "sequence": 1,
+                  "step": "file",
+                  "values": [
+                    80870
+                  ]
+                },
+                {
+                  "sequence": 2,
+                  "step": "document",
+                  "values": [
+                    1,
+                    0
+                  ]
+                },
+                {
+                  "page": 1,
+                  "sequence": 3,
+                  "step": "page",
+                  "values": []
+                },
+                {
+                  "bounds": {
+                    "height": 990,
+                    "state": "valid",
+                    "width": 1450,
+                    "x": 0,
+                    "y": 0
+                  },
+                  "page": 1,
+                  "sequence": 4,
+                  "step": "pageText",
+                  "values": [
+                    10012,
+                    10012,
+                    0
+                  ]
+                },
+                {
+                  "code": "unsupported",
+                  "page": 1,
+                  "sequence": 5,
+                  "stage": "characterMapping",
+                  "step": "failure",
+                  "values": []
+                }
+              ],
+              "omittedEntries": 0,
+              "parserVersion": 24,
+              "schemaVersion": 1,
+              "totalEntries": 6
+            }
+          },
+          "page": 1,
+          "stage": "characterMapping",
+          "type": "PDFParseError"
+        },
+        "glyphCount": null,
+        "ruleCount": null,
+        "retainedPathBudgetEntries": [],
+        "independentLiteralSlotsMatched": null
+      },
+      {
+        "file": "dense-labeled-control-black.pdf",
+        "pdfBytes": 104536,
+        "pdfSHA256": "32934e745bbe2eab8c3b8b75d2f87791b314f8b8df9a0def2f6a01e9431bd094",
+        "readReturned": true,
+        "strictReturned": false,
+        "analysisReturned": false,
+        "failureStage": "recoveryBuilder",
+        "failure": {
+          "code": "ambiguous",
+          "detail": {
+            "code": "ambiguous",
+            "stage": "fragmentAlignment"
+          },
+          "page": null,
+          "stage": "fragmentAlignment",
+          "type": "PDFParseError"
+        },
+        "glyphCount": 12647,
+        "ruleCount": 1094,
+        "retainedPathBudgetEntries": [
+          {
+            "page": 1,
+            "sequence": 6,
+            "step": "paths",
+            "values": [
+              29676,
+              525709
+            ]
+          }
+        ],
+        "independentLiteralSlotsMatched": null
+      },
+      {
+        "file": "dense-labeled-control-darkblue.pdf",
+        "pdfBytes": 104639,
+        "pdfSHA256": "e80b7f7ba29d204c252fb0771e163e25a010a502959b73a8b1c21fcbbba70d42",
+        "readReturned": false,
+        "strictReturned": false,
+        "analysisReturned": false,
+        "failureStage": "reader",
+        "failure": {
+          "code": "unsupported",
+          "detail": {
+            "code": "unsupported",
+            "page": 1,
+            "stage": "characterMapping",
+            "trace": {
+              "entries": [
+                {
+                  "sequence": 0,
+                  "step": "file",
+                  "values": []
+                },
+                {
+                  "sequence": 1,
+                  "step": "file",
+                  "values": [
+                    104639
+                  ]
+                },
+                {
+                  "sequence": 2,
+                  "step": "document",
+                  "values": [
+                    1,
+                    0
+                  ]
+                },
+                {
+                  "page": 1,
+                  "sequence": 3,
+                  "step": "page",
+                  "values": []
+                },
+                {
+                  "bounds": {
+                    "height": 990,
+                    "state": "valid",
+                    "width": 1450,
+                    "x": 0,
+                    "y": 0
+                  },
+                  "page": 1,
+                  "sequence": 4,
+                  "step": "pageText",
+                  "values": [
+                    14019,
+                    14019,
+                    0
+                  ]
+                },
+                {
+                  "code": "unsupported",
+                  "page": 1,
+                  "sequence": 5,
+                  "stage": "characterMapping",
+                  "step": "failure",
+                  "values": []
+                }
+              ],
+              "omittedEntries": 0,
+              "parserVersion": 24,
+              "schemaVersion": 1,
+              "totalEntries": 6
+            }
+          },
+          "page": 1,
+          "stage": "characterMapping",
+          "type": "PDFParseError"
+        },
+        "glyphCount": null,
+        "ruleCount": null,
+        "retainedPathBudgetEntries": [],
+        "independentLiteralSlotsMatched": null
+      }
+    ],
+    "publicEvidence": "https://github.com/n624-dev/takupoke-ios/tree/e501ea1f323ae02b5e95400cd6dbe6f4d7075f8e/research-results/ios-independent-density-vector-parser24-20261004"
+  },
+  "scopeLimits": {
+    "modelInvocations": 0,
+    "ocrRequests": 0,
+    "modelQualityQualification": false,
+    "physicalDeviceInferenceAssessed": false,
+    "nativePdfFormalStorageAssessed": false,
+    "nativePdfManualAdoptionUIAssessed": false,
+    "applicationUITestsScope": "existing synthetic UI fixtures; does not prove these PDFs were manually adopted"
+  },
+  "historicalRuns": {
+    "37219964089": "parser22 source; UI27B cancelled at previous35-minute wall cap",
+    "37222078243": "intermediate source; SDK Picker snapshot error and one UI jobwall cancellation retained",
+    "37225570563": "owner cancelled known-bad UI archived-special positive metadata seed after native394 and distribution passed; new seed fix tested once in final run"
+  },
+  "publicationPolicy": "Two report text files only; data-only research push, no new CI/native run."
+}
