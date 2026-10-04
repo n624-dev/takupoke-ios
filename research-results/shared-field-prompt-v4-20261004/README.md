@@ -9,3 +9,5 @@ iOSの3実Providerと別ビルドのCoreAI runtimeへ、共通のfieldExtraction
 [共通資産CI 37200758652](https://github.com/n624-dev/takupoke-ios/actions/runs/37200758652) では7件の検証と30件の厳密JSON境界例が成功しています。ローカルの既存Python58件も成功しました。[checks.json](checks.json) にソース、job ID、資産識別子、取得した実行ログのbytes/SHAを記録しています。fixtureと検証入力はすべて架空です。
 
 新しいモデル推論やダウンロードは行っていません。指示の説明不足と組込みの修正であり、精度向上・追加モデル品質合格・catalog有効化の証明ではありません。過去の実測指示と出力は変更しません。CoreAIの物理端末での推論とメモリは未確認のままで、従来のsimulator SDKでCoreAIモジュールが提供されなかった実結果も保持します。
+
+通常の復旧featureへ統合した [748ec01](https://github.com/n624-dev/takupoke-ios/commit/748ec016ea32b8d533df4626c3767505cc268cb2) の [CI 37201817291](https://github.com/n624-dev/takupoke-ios/actions/runs/37201817291) も、host回帰359件・iPhone SDK・架空データの4組のUI検証など7 jobすべて成功しました。初回のiOS27 UI Aは既存画面のsnapshot queryがタイムアウトしたため、その1 jobだけ同じソースで再実行し13件/失敗0を確認しています。このCIもモデル推論・実機での品質認定は含みません。

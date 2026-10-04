@@ -62,5 +62,77 @@
   "nativeInferenceCalls": 0,
   "newMeasuredModelAccuracy": false,
   "modelCatalogActivation": false,
-  "qualification": "Not established by prompt content, packaging or regression tests. CoreAI physical inference/memory remains unverified; prior simulator SDK lacks CoreAI module."
+  "qualification": "Not established by prompt content, packaging or regression tests. CoreAI physical inference/memory remains unverified; prior simulator SDK lacks CoreAI module.",
+  "featureIntegrationCI": {
+    "sourceCommit": "748ec016ea32b8d533df4626c3767505cc268cb2",
+    "runId": 37201817291,
+    "status": "SUCCESS",
+    "jobs": [
+      {
+        "name": "Application iOS 27 UI A",
+        "databaseId": 111441558761,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/n624-dev/takupoke-ios/actions/runs/37201817291/job/111441558761"
+      },
+      {
+        "name": "Distribution tests",
+        "databaseId": 111441558957,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/n624-dev/takupoke-ios/actions/runs/37201817291/job/111441558957"
+      },
+      {
+        "name": "Native PDF and recovery tests",
+        "databaseId": 111441559277,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/n624-dev/takupoke-ios/actions/runs/37201817291/job/111441559277"
+      },
+      {
+        "name": "Application iOS 26 UI A",
+        "databaseId": 111441559360,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/n624-dev/takupoke-ios/actions/runs/37201817291/job/111441559360"
+      },
+      {
+        "name": "Application iOS 27 UI B",
+        "databaseId": 111441559509,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/n624-dev/takupoke-ios/actions/runs/37201817291/job/111441559509"
+      },
+      {
+        "name": "Check iPhone build without publishing",
+        "databaseId": 111441559528,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/n624-dev/takupoke-ios/actions/runs/37201817291/job/111441559528"
+      },
+      {
+        "name": "Application iOS 26 UI B",
+        "databaseId": 111441559784,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/n624-dev/takupoke-ios/actions/runs/37201817291/job/111441559784"
+      }
+    ],
+    "failedFirstAttempt": {
+      "jobId": 111434939242,
+      "stage": "existing UI snapshot query timeout",
+      "sourceChanged": false
+    },
+    "rerun": {
+      "jobId": 111441558761,
+      "tests": 13,
+      "failures": 0,
+      "logBytes": 1670774,
+      "logSHA256": "98dd22c96c4f8b3cd7200a3e3ee425800c30204aad86b7aa788866aa3f3328ba"
+    },
+    "nativeHostTests": 359,
+    "nativeHostFailures": 0,
+    "modelCalls": 0,
+    "scope": "Shared field instructions/package and regression CI; no model inference or physical qualification."
+  }
 }
