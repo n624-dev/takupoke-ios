@@ -1,0 +1,5451 @@
+{
+  "scope": "Independent ordinary accurate text OCR, posthoc exact printed-text comparison only; no formal recovery quality or empty-cell proof",
+  "rawSHA256": "af08b6eae78ec40902de6cec9304182aab22aa3cb32f4348b1a438fb49e684f0",
+  "rawBytes": 382507,
+  "analysisScriptSHA256": "e3c2fbd9c722301a0a97e423aba5f4c2950934817fb7429f98df9fdec477afaa",
+  "nativeEnvironment": {
+    "api": "RecognizeTextRequest",
+    "automaticallyDetectsLanguage": false,
+    "confidenceCrossAPICalibrationAssumed": false,
+    "confidenceGuard": "post-observation diagnostic only: finite and 0.85...1",
+    "customWords": [],
+    "deviceSystemVersion": "27.0",
+    "inkCoverageVerified": false,
+    "minimumTextHeightFraction": 0.03125,
+    "os": "Version 27.0 (Build 24A434)",
+    "plannedPages": 10,
+    "rangeBoxContract": "Unmodified API per-Character range responses; precision is not assumed; accurate APIs may return whole word boxes",
+    "rasterRoute": "Exact original.read fractional thumbnail statements; same CGImage encoded to PNG before OCR and passed once",
+    "recognitionLanguages": [
+      "ja-JP",
+      "en-US"
+    ],
+    "recognitionLevel": "accurate",
+    "revision": "revision3",
+    "scope": "ordinary accurate text OCR only; no formal recovery qualification",
+    "simulator": true,
+    "supportedRecognitionLanguages": [
+      "en",
+      "fr",
+      "it",
+      "de",
+      "es",
+      "pt",
+      "zh",
+      "zh-TW",
+      "yue-CN",
+      "yue",
+      "ko",
+      "ja",
+      "ru",
+      "uk",
+      "th",
+      "vi-VT",
+      "ar-SA",
+      "ars",
+      "tr",
+      "id",
+      "cs",
+      "da",
+      "nl",
+      "no",
+      "nn",
+      "nb",
+      "ms",
+      "pl",
+      "ro",
+      "sv",
+      "fi",
+      "hi",
+      "mr"
+    ],
+    "type": "environment",
+    "usesLanguageCorrection": false
+  },
+  "nativeSummary": {
+    "diagnosticCompletedPages": 10,
+    "formalAssessed": 0,
+    "operationalErrors": 0,
+    "plannedPages": 10,
+    "qualityQualification": false,
+    "requestCount": 10,
+    "serializationCompletedPages": 10,
+    "type": "summary"
+  },
+  "counts": {
+    "period": {
+      "expectedPrintedPositions": 80,
+      "rawExactSubstringExists": 52,
+      "exactRangeLocated": 36,
+      "exactRangeLocatedUnshared": 36,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": 7
+    },
+    "class": {
+      "expectedPrintedPositions": 10,
+      "rawExactSubstringExists": 10,
+      "exactRangeLocated": 10,
+      "exactRangeLocatedUnshared": 10,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": 0
+    },
+    "weekday": {
+      "expectedPrintedPositions": 10,
+      "rawExactSubstringExists": 10,
+      "exactRangeLocated": 10,
+      "exactRangeLocatedUnshared": 10,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": 9
+    },
+    "printedValue": {
+      "expectedPrintedPositions": 5,
+      "rawExactSubstringExists": 5,
+      "exactRangeLocated": 5,
+      "exactRangeLocatedUnshared": 5,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": 5
+    },
+    "periodByPrintedDigit": {
+      "1": {
+        "expected": 10,
+        "locatedUnshared": 9,
+        "originalPredicatesPass": 4
+      },
+      "2": {
+        "expected": 10,
+        "locatedUnshared": 9,
+        "originalPredicatesPass": 0
+      },
+      "3": {
+        "expected": 10,
+        "locatedUnshared": 10,
+        "originalPredicatesPass": 3
+      },
+      "4": {
+        "expected": 10,
+        "locatedUnshared": 8,
+        "originalPredicatesPass": 0
+      },
+      "5": {
+        "expected": 10,
+        "locatedUnshared": 0,
+        "originalPredicatesPass": 0
+      },
+      "6": {
+        "expected": 10,
+        "locatedUnshared": 0,
+        "originalPredicatesPass": 0
+      },
+      "7": {
+        "expected": 10,
+        "locatedUnshared": 0,
+        "originalPredicatesPass": 0
+      },
+      "8": {
+        "expected": 10,
+        "locatedUnshared": 0,
+        "originalPredicatesPass": 0
+      }
+    }
+  },
+  "nativeInkCounts": {
+    "printedPeriodRegions": 80,
+    "positiveDarkPixelRegions": 80,
+    "period5Through8Regions": 40,
+    "positivePeriod5Through8DarkPixelRegions": 40,
+    "rule": "Scale original drawing ink bbox to native dimensions, floor/ceil crop; all RGB channels <128. Positive pixels alone do not identify a character or prove an empty cell."
+  },
+  "renderPNGs": [
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "file": "independent-Timetable-literal-乙-page-1.png",
+      "sha256": "1778ddd50e7d267b77b561df7e0fc17eae82fa68693bd2d74c76132f738ade57",
+      "bytes": 24230,
+      "width": 984,
+      "height": 197
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "file": "independent-Timetable-literal-乙-page-2.png",
+      "sha256": "12ca47baf8ddcd81a38251b8881078b20a4e8e16d2b7e47347eb0f476c537bf5",
+      "bytes": 17330,
+      "width": 984,
+      "height": 197
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "file": "independent-Timetable-literal-乙-page-3.png",
+      "sha256": "fd0ff0bf423b417e418c013469aa0402c42fd2501931678506daa97a28b83c43",
+      "bytes": 17448,
+      "width": 984,
+      "height": 197
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "file": "independent-Timetable-literal-乙-page-4.png",
+      "sha256": "f3bc66e6f83859e44ba6c54b0fa4ae6a2a7091850d4cf915f63676104b6bccab",
+      "bytes": 17364,
+      "width": 984,
+      "height": 197
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "file": "independent-Timetable-literal-乙-page-5.png",
+      "sha256": "fb170e72f0feddd255e6a1c6c2f05c803fea435a7b9d1dd3fd04701f23e943d9",
+      "bytes": 17414,
+      "width": 984,
+      "height": 197
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "file": "independent-Timetable-verifiedblank-丙-page-1.png",
+      "sha256": "5c130af880a26a25b7161f7d4e5dd766249b4b0ea2f3e6cb075c4a6aea013b5e",
+      "bytes": 23182,
+      "width": 984,
+      "height": 201
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "file": "independent-Timetable-verifiedblank-丙-page-2.png",
+      "sha256": "9fe02e6569b2f255e9d77bf91f4fff5db83e44ad45848f37fbe56cd28dfab26c",
+      "bytes": 17378,
+      "width": 984,
+      "height": 201
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "file": "independent-Timetable-verifiedblank-丙-page-3.png",
+      "sha256": "6cb36509abb8a584eee01f2017782afc8a699cda6f78924a3de99da5a117eb00",
+      "bytes": 17549,
+      "width": 984,
+      "height": 201
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "file": "independent-Timetable-verifiedblank-丙-page-4.png",
+      "sha256": "9e0f5779455b124a212ee17fbce990237056f3cbb1dc62283ae0285556048b8c",
+      "bytes": 17346,
+      "width": 984,
+      "height": 201
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "file": "independent-Timetable-verifiedblank-丙-page-5.png",
+      "sha256": "75fc4f5b482105004e43415e78ea55680c456d2acdaaaa1a38e2e0bf935bdb23",
+      "bytes": 17497,
+      "width": 984,
+      "height": 201
+    }
+  ],
+  "pageRows": [
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "nativeObservations": 11,
+      "rawTexts": [
+        "2027年度前期",
+        "5_ES",
+        "月",
+        "1",
+        "科目：架空化学乙",
+        "担当：架空担当乙",
+        "教室：架空室乙",
+        "時間割",
+        "2",
+        "3",
+        "4"
+      ],
+      "confidencePredicatePass": false,
+      "diagnosticFailures": [
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ]
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "nativeObservations": 8,
+      "rawTexts": [
+        "2027年度前期",
+        "火",
+        "1",
+        "5_ES",
+        "時間割",
+        "2",
+        "3",
+        "4"
+      ],
+      "confidencePredicatePass": false,
+      "diagnosticFailures": [
+        "lineConfidence",
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ]
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "nativeObservations": 8,
+      "rawTexts": [
+        "2027年度前期",
+        "水",
+        "1",
+        "5_ES",
+        "時間割",
+        "2",
+        "3",
+        "4"
+      ],
+      "confidencePredicatePass": false,
+      "diagnosticFailures": [
+        "lineConfidence",
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ]
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "nativeObservations": 8,
+      "rawTexts": [
+        "2027年度前期",
+        "木",
+        "1",
+        "5_ES",
+        "時間割",
+        "2",
+        "3",
+        "4"
+      ],
+      "confidencePredicatePass": false,
+      "diagnosticFailures": [
+        "lineConfidence",
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ]
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "nativeObservations": 7,
+      "rawTexts": [
+        "2027年度前期",
+        "金",
+        "1",
+        "5_ES",
+        "時間割",
+        "3",
+        "4"
+      ],
+      "confidencePredicatePass": false,
+      "diagnosticFailures": [
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ]
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "nativeObservations": 10,
+      "rawTexts": [
+        "2028年度後期",
+        "2_IT",
+        "月",
+        "1",
+        "科目：架空物理丙",
+        "担当：",
+        "教室：架空室丙",
+        "時間割",
+        "2",
+        "3"
+      ],
+      "confidencePredicatePass": false,
+      "diagnosticFailures": [
+        "lineConfidence",
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ]
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "nativeObservations": 7,
+      "rawTexts": [
+        "2028年度後期",
+        "火",
+        "2_IT",
+        "時間割",
+        "2",
+        "3",
+        "4"
+      ],
+      "confidencePredicatePass": false,
+      "diagnosticFailures": [
+        "lineConfidence",
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ]
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "nativeObservations": 8,
+      "rawTexts": [
+        "2028年度後期",
+        "水",
+        "1",
+        "2_IT",
+        "時間割",
+        "2",
+        "3",
+        "4"
+      ],
+      "confidencePredicatePass": false,
+      "diagnosticFailures": [
+        "lineConfidence",
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ]
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "nativeObservations": 8,
+      "rawTexts": [
+        "2028年度後期",
+        "木",
+        "1",
+        "2_IT",
+        "時間割",
+        "2",
+        "3",
+        "4"
+      ],
+      "confidencePredicatePass": false,
+      "diagnosticFailures": [
+        "lineConfidence",
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ]
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "nativeObservations": 7,
+      "rawTexts": [
+        "2028年度後期",
+        "金",
+        "1",
+        "2_IT",
+        "時間割",
+        "2",
+        "3"
+      ],
+      "confidencePredicatePass": false,
+      "diagnosticFailures": [
+        "lineConfidence",
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence"
+      ]
+    }
+  ],
+  "printedTextRows": [
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "category": "weekday",
+      "expectedPrintedText": "月",
+      "originalDrawingInkBBox": [
+        106,
+        42,
+        123,
+        58
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        28.689320388349515,
+        203.51999999999998,
+        57.37864077669903
+      ],
+      "matches": [
+        {
+          "nativeOrder": 2,
+          "rawText": "月",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            99.67241382844827,
+            37.72340425531914,
+            116.63793078706897,
+            56.58510606861701
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "category": "period",
+      "expectedPrintedText": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        57.37864077669903,
+        203.51999999999998,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 3,
+          "rawText": "1",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            97.55172413793103,
+            67.06382978723406,
+            110.27586181448277,
+            79.63829762085108
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 21,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "category": "period",
+      "expectedPrintedText": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativePhysicalCell": [
+        203.51999999999998,
+        57.37864077669903,
+        314.88,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2027年度前期",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            -0.026521894030224515,
+            4.2859710116163665,
+            13.775461043141206,
+            29.46331492247692
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": false,
+          "confidence": 1
+        },
+        {
+          "nativeOrder": 0,
+          "rawText": "2027年度前期",
+          "utf16Start": 2,
+          "utf16End": 3,
+          "rangeBoxUnion": [
+            23.098427375688573,
+            4.2471578694786745,
+            32.52542081000598,
+            29.140248441034803
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        },
+        {
+          "nativeOrder": 8,
+          "rawText": "2",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            209.9482759150862,
+            67.06382978723406,
+            220.55172392586206,
+            79.63829755797875
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "category": "period",
+      "expectedPrintedText": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativePhysicalCell": [
+        314.88,
+        57.37864077669903,
+        426.24,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 9,
+          "rawText": "3",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            320.2241379840517,
+            64.96808510638297,
+            332.9482755969828,
+            79.63829750558511
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "category": "period",
+      "expectedPrintedText": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativePhysicalCell": [
+        426.24,
+        57.37864077669903,
+        537.6,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 10,
+          "rawText": "4",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            432.6206896551724,
+            67.06382978723406,
+            443.2241377189655,
+            79.63829762085108
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 26,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "category": "period",
+      "expectedPrintedText": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativePhysicalCell": [
+        537.6,
+        57.37864077669903,
+        648.9599999999999,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 1,
+          "rawText": "5_ES",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            2.827586158319466e-07,
+            106.45959595959597,
+            14.299998950958253,
+            132.32828282828282
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "category": "period",
+      "expectedPrintedText": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativePhysicalCell": [
+        648.9599999999999,
+        57.37864077669903,
+        760.3199999999999,
+        86.06796116504854
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 26,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "category": "period",
+      "expectedPrintedText": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativePhysicalCell": [
+        760.3199999999999,
+        57.37864077669903,
+        871.68,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2027年度前期",
+          "utf16Start": 3,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            32.47340725912096,
+            4.221282441386887,
+            45.025393987915834,
+            29.120841869965968
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 19,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "category": "period",
+      "expectedPrintedText": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativePhysicalCell": [
+        871.68,
+        57.37864077669903,
+        983.04,
+        86.06796116504854
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 36,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "category": "class",
+      "expectedPrintedText": "5_ES",
+      "originalDrawingInkBBox": [
+        5,
+        121,
+        40,
+        134
+      ],
+      "nativePhysicalCell": [
+        0.0,
+        86.06796116504854,
+        92.16,
+        158.74757281553397
+      ],
+      "matches": [
+        {
+          "nativeOrder": 1,
+          "rawText": "5_ES",
+          "utf16Start": 0,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            2.827586158319466e-07,
+            106.45959595959597,
+            42.41379267931037,
+            132.32828282828282
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "category": "printedValue",
+      "expectedPrintedText": "架空化学乙",
+      "originalDrawingInkBBox": [
+        135,
+        100,
+        200,
+        115
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        86.06796116504854,
+        203.51999999999998,
+        158.74757281553397
+      ],
+      "matches": [
+        {
+          "nativeOrder": 4,
+          "rawText": "科目：架空化学乙",
+          "utf16Start": 3,
+          "utf16End": 8,
+          "rangeBoxUnion": [
+            127.99961936198497,
+            92.06702005852226,
+            193.0808120104126,
+            111.60573997253539
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "category": "printedValue",
+      "expectedPrintedText": "架空担当乙",
+      "originalDrawingInkBBox": [
+        135,
+        122,
+        200,
+        135
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        86.06796116504854,
+        203.51999999999998,
+        158.74757281553397
+      ],
+      "matches": [
+        {
+          "nativeOrder": 5,
+          "rawText": "担当：架空担当乙",
+          "utf16Start": 3,
+          "utf16End": 8,
+          "rangeBoxUnion": [
+            128.0658298845193,
+            113.13472060182922,
+            190.8883956816445,
+            132.1687426408446
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "category": "printedValue",
+      "expectedPrintedText": "架空室乙",
+      "originalDrawingInkBBox": [
+        135,
+        143,
+        187,
+        156
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        86.06796116504854,
+        203.51999999999998,
+        158.74757281553397
+      ],
+      "matches": [
+        {
+          "nativeOrder": 6,
+          "rawText": "教室：架空室乙",
+          "utf16Start": 3,
+          "utf16End": 7,
+          "rangeBoxUnion": [
+            130.28920198286244,
+            132.00076160896913,
+            180.31399814797146,
+            151.15239343401572
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "category": "weekday",
+      "expectedPrintedText": "火",
+      "originalDrawingInkBBox": [
+        106,
+        42,
+        123,
+        58
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        28.689320388349515,
+        203.51999999999998,
+        57.37864077669903
+      ],
+      "matches": [
+        {
+          "nativeOrder": 1,
+          "rawText": "火",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            97.55172424396551,
+            37.72340425531914,
+            118.7586204422414,
+            56.58510606861701
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "category": "period",
+      "expectedPrintedText": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        57.37864077669903,
+        203.51999999999998,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 2,
+          "rawText": "1",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            99.67241379310344,
+            67.06382978723406,
+            110.27586180387932,
+            79.63829755797875
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 21,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "category": "period",
+      "expectedPrintedText": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativePhysicalCell": [
+        203.51999999999998,
+        57.37864077669903,
+        314.88,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2027年度前期",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            -0.07887254057269484,
+            8.71470045936995,
+            14.254189164463497,
+            29.777964039734897
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": false,
+          "confidence": 0.5
+        },
+        {
+          "nativeOrder": 0,
+          "rawText": "2027年度前期",
+          "utf16Start": 2,
+          "utf16End": 3,
+          "rangeBoxUnion": [
+            24.595428102269835,
+            8.57674656477523,
+            32.628665641967274,
+            29.529213766748683
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        },
+        {
+          "nativeOrder": 5,
+          "rawText": "2",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            209.9482759150862,
+            67.06382978723406,
+            222.67241352801724,
+            79.63829755797875
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "category": "period",
+      "expectedPrintedText": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativePhysicalCell": [
+        314.88,
+        57.37864077669903,
+        426.24,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 6,
+          "rawText": "3",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            320.2241379840517,
+            64.96808510638297,
+            332.9482755969828,
+            79.63829750558511
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "category": "period",
+      "expectedPrintedText": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativePhysicalCell": [
+        426.24,
+        57.37864077669903,
+        537.6,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 7,
+          "rawText": "4",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            430.5000000424138,
+            67.06382978723406,
+            443.22413771896555,
+            79.63829762085108
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 26,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "category": "period",
+      "expectedPrintedText": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativePhysicalCell": [
+        537.6,
+        57.37864077669903,
+        648.9599999999999,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 3,
+          "rawText": "5_ES",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            1.2474645023859861e-08,
+            111.07446808510637,
+            14.175000000000002,
+            132.32828282828282
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "category": "period",
+      "expectedPrintedText": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativePhysicalCell": [
+        648.9599999999999,
+        57.37864077669903,
+        760.3199999999999,
+        86.06796116504854
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 26,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "category": "period",
+      "expectedPrintedText": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativePhysicalCell": [
+        760.3199999999999,
+        57.37864077669903,
+        871.68,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2027年度前期",
+          "utf16Start": 3,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            32.47020373548575,
+            8.497915767863955,
+            43.128366486255146,
+            29.47009066906524
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 19,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "category": "period",
+      "expectedPrintedText": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativePhysicalCell": [
+        871.68,
+        57.37864077669903,
+        983.04,
+        86.06796116504854
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 36,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "category": "class",
+      "expectedPrintedText": "5_ES",
+      "originalDrawingInkBBox": [
+        5,
+        121,
+        40,
+        134
+      ],
+      "nativePhysicalCell": [
+        0.0,
+        86.06796116504854,
+        92.16,
+        158.74757281553397
+      ],
+      "matches": [
+        {
+          "nativeOrder": 3,
+          "rawText": "5_ES",
+          "utf16Start": 0,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            1.2474645023859861e-08,
+            111.07446808510637,
+            40.29310322373225,
+            132.32828282828282
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "category": "weekday",
+      "expectedPrintedText": "水",
+      "originalDrawingInkBBox": [
+        106,
+        41,
+        123,
+        58
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        28.689320388349515,
+        203.51999999999998,
+        57.37864077669903
+      ],
+      "matches": [
+        {
+          "nativeOrder": 1,
+          "rawText": "水",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            97.55172419852217,
+            37.72340425531914,
+            118.75862044729064,
+            56.58510611352585
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "category": "period",
+      "expectedPrintedText": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        57.37864077669903,
+        203.51999999999998,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 2,
+          "rawText": "1",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            97.55172419094828,
+            67.06382978723406,
+            110.27586180387932,
+            79.63829755797875
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 21,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "category": "period",
+      "expectedPrintedText": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativePhysicalCell": [
+        203.51999999999998,
+        57.37864077669903,
+        314.88,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2027年度前期",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            -0.07887254057269484,
+            8.71470045936995,
+            14.254189164463497,
+            29.777964039734897
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": false,
+          "confidence": 0.5
+        },
+        {
+          "nativeOrder": 0,
+          "rawText": "2027年度前期",
+          "utf16Start": 2,
+          "utf16End": 3,
+          "rangeBoxUnion": [
+            24.595428102269835,
+            8.57674656477523,
+            32.628665641967274,
+            29.529213766748683
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        },
+        {
+          "nativeOrder": 5,
+          "rawText": "2",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            209.9482759150862,
+            67.06382978723406,
+            222.67241352801724,
+            79.63829755797875
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "category": "period",
+      "expectedPrintedText": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativePhysicalCell": [
+        314.88,
+        57.37864077669903,
+        426.24,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 6,
+          "rawText": "3",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            320.2241379840517,
+            64.96808510638297,
+            332.9482755969828,
+            79.63829750558511
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "category": "period",
+      "expectedPrintedText": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativePhysicalCell": [
+        426.24,
+        57.37864077669903,
+        537.6,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 7,
+          "rawText": "4",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            430.5000001060345,
+            67.06382978723406,
+            443.22413771896555,
+            79.63829755797875
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 26,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "category": "period",
+      "expectedPrintedText": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativePhysicalCell": [
+        537.6,
+        57.37864077669903,
+        648.9599999999999,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 3,
+          "rawText": "5_ES",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            1.2474645023859861e-08,
+            111.07446808510637,
+            14.175000000000002,
+            132.32828282828282
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "category": "period",
+      "expectedPrintedText": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativePhysicalCell": [
+        648.9599999999999,
+        57.37864077669903,
+        760.3199999999999,
+        86.06796116504854
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 26,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "category": "period",
+      "expectedPrintedText": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativePhysicalCell": [
+        760.3199999999999,
+        57.37864077669903,
+        871.68,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2027年度前期",
+          "utf16Start": 3,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            32.47020373548575,
+            8.497915767863955,
+            43.128366486255146,
+            29.47009066906524
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 19,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "category": "period",
+      "expectedPrintedText": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativePhysicalCell": [
+        871.68,
+        57.37864077669903,
+        983.04,
+        86.06796116504854
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 36,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "category": "class",
+      "expectedPrintedText": "5_ES",
+      "originalDrawingInkBBox": [
+        5,
+        121,
+        40,
+        134
+      ],
+      "nativePhysicalCell": [
+        0.0,
+        86.06796116504854,
+        92.16,
+        158.74757281553397
+      ],
+      "matches": [
+        {
+          "nativeOrder": 3,
+          "rawText": "5_ES",
+          "utf16Start": 0,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            1.2474645023859861e-08,
+            111.07446808510637,
+            40.29310322373225,
+            132.32828282828282
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "category": "weekday",
+      "expectedPrintedText": "木",
+      "originalDrawingInkBBox": [
+        106,
+        41,
+        123,
+        58
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        28.689320388349515,
+        203.51999999999998,
+        57.37864077669903
+      ],
+      "matches": [
+        {
+          "nativeOrder": 1,
+          "rawText": "木",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            97.55172419852217,
+            37.72340425531914,
+            118.75862044729064,
+            56.58510611352585
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "category": "period",
+      "expectedPrintedText": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        57.37864077669903,
+        203.51999999999998,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 2,
+          "rawText": "1",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            99.67241379310344,
+            67.06382978723406,
+            110.27586180387932,
+            79.63829755797875
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 21,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "category": "period",
+      "expectedPrintedText": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativePhysicalCell": [
+        203.51999999999998,
+        57.37864077669903,
+        314.88,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2027年度前期",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            -0.0850230719877317,
+            8.74121425554518,
+            14.260620474108658,
+            29.812873865559407
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": false,
+          "confidence": 0.5
+        },
+        {
+          "nativeOrder": 0,
+          "rawText": "2027年度前期",
+          "utf16Start": 2,
+          "utf16End": 3,
+          "rangeBoxUnion": [
+            24.589157195055087,
+            8.592245098034455,
+            32.63501042801997,
+            29.549334742280905
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        },
+        {
+          "nativeOrder": 5,
+          "rawText": "2",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            209.9482759150862,
+            67.06382978723406,
+            222.67241352801724,
+            79.63829755797875
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "category": "period",
+      "expectedPrintedText": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativePhysicalCell": [
+        314.88,
+        57.37864077669903,
+        426.24,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 6,
+          "rawText": "3",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            320.22413807241384,
+            64.96808510638297,
+            332.9482755793104,
+            79.63829738333334
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "category": "period",
+      "expectedPrintedText": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativePhysicalCell": [
+        426.24,
+        57.37864077669903,
+        537.6,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 7,
+          "rawText": "4",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            430.5000001060345,
+            67.06382978723406,
+            443.22413771896555,
+            79.63829755797875
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 26,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "category": "period",
+      "expectedPrintedText": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativePhysicalCell": [
+        537.6,
+        57.37864077669903,
+        648.9599999999999,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 3,
+          "rawText": "5_ES",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            2.6508620999437495e-08,
+            111.07446808510637,
+            14.175,
+            132.32828282828282
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "category": "period",
+      "expectedPrintedText": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativePhysicalCell": [
+        648.9599999999999,
+        57.37864077669903,
+        760.3199999999999,
+        86.06796116504854
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 26,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "category": "period",
+      "expectedPrintedText": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativePhysicalCell": [
+        760.3199999999999,
+        57.37864077669903,
+        871.68,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2027年度前期",
+          "utf16Start": 3,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            32.46389574673137,
+            8.5071198651712,
+            43.13466183025499,
+            29.485490817633455
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 19,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "category": "period",
+      "expectedPrintedText": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativePhysicalCell": [
+        871.68,
+        57.37864077669903,
+        983.04,
+        86.06796116504854
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 36,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "category": "class",
+      "expectedPrintedText": "5_ES",
+      "originalDrawingInkBBox": [
+        5,
+        121,
+        40,
+        134
+      ],
+      "nativePhysicalCell": [
+        0.0,
+        86.06796116504854,
+        92.16,
+        158.74757281553397
+      ],
+      "matches": [
+        {
+          "nativeOrder": 3,
+          "rawText": "5_ES",
+          "utf16Start": 0,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            2.6508620999437495e-08,
+            111.07446808510637,
+            40.29310322295258,
+            132.32828282828282
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "category": "weekday",
+      "expectedPrintedText": "金",
+      "originalDrawingInkBBox": [
+        106,
+        41,
+        123,
+        58
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        28.689320388349515,
+        203.51999999999998,
+        57.37864077669903
+      ],
+      "matches": [
+        {
+          "nativeOrder": 1,
+          "rawText": "金",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            99.67241382339903,
+            37.72340425531914,
+            118.75862044729064,
+            56.58510611352585
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "category": "period",
+      "expectedPrintedText": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        57.37864077669903,
+        203.51999999999998,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 2,
+          "rawText": "1",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            97.55172419094828,
+            67.06382978723406,
+            110.27586180387932,
+            79.63829755797875
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 21,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "category": "period",
+      "expectedPrintedText": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativePhysicalCell": [
+        203.51999999999998,
+        57.37864077669903,
+        314.88,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2027年度前期",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            4.0782493301956495e-09,
+            7.959595959595967,
+            15.2,
+            27.24468081479131
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        },
+        {
+          "nativeOrder": 0,
+          "rawText": "2027年度前期",
+          "utf16Start": 2,
+          "utf16End": 3,
+          "rangeBoxUnion": [
+            24.7,
+            7.959595959595967,
+            34.2,
+            26.86363636363636
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "category": "period",
+      "expectedPrintedText": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativePhysicalCell": [
+        314.88,
+        57.37864077669903,
+        426.24,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 5,
+          "rawText": "3",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            320.2241379840517,
+            64.96808510638297,
+            332.9482755969828,
+            79.63829750558511
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "category": "period",
+      "expectedPrintedText": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativePhysicalCell": [
+        426.24,
+        57.37864077669903,
+        537.6,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 6,
+          "rawText": "4",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            430.5000000424138,
+            67.06382978723406,
+            443.22413771896555,
+            79.63829762085108
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 26,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "category": "period",
+      "expectedPrintedText": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativePhysicalCell": [
+        537.6,
+        57.37864077669903,
+        648.9599999999999,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 3,
+          "rawText": "5_ES",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            1.2474645023859861e-08,
+            111.07446808510637,
+            12.825000000000003,
+            130.33838383838383
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "category": "period",
+      "expectedPrintedText": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativePhysicalCell": [
+        648.9599999999999,
+        57.37864077669903,
+        760.3199999999999,
+        86.06796116504854
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 26,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "category": "period",
+      "expectedPrintedText": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativePhysicalCell": [
+        760.3199999999999,
+        57.37864077669903,
+        871.68,
+        86.06796116504854
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2027年度前期",
+          "utf16Start": 3,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            34.2,
+            7.959595959595967,
+            43.69999999999999,
+            26.86363636363636
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 19,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "category": "period",
+      "expectedPrintedText": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativePhysicalCell": [
+        871.68,
+        57.37864077669903,
+        983.04,
+        86.06796116504854
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 36,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "category": "class",
+      "expectedPrintedText": "5_ES",
+      "originalDrawingInkBBox": [
+        5,
+        121,
+        40,
+        134
+      ],
+      "nativePhysicalCell": [
+        0.0,
+        86.06796116504854,
+        92.16,
+        158.74757281553397
+      ],
+      "matches": [
+        {
+          "nativeOrder": 3,
+          "rawText": "5_ES",
+          "utf16Start": 0,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            1.2474645023859861e-08,
+            111.07446808510637,
+            40.293103223732246,
+            130.33838383838383
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "category": "weekday",
+      "expectedPrintedText": "月",
+      "originalDrawingInkBBox": [
+        106,
+        42,
+        123,
+        58
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        28.714285714285715,
+        203.51999999999998,
+        57.42857142857143
+      ],
+      "matches": [
+        {
+          "nativeOrder": 2,
+          "rawText": "月",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            99.67241382844827,
+            37.6875,
+            116.63793078706897,
+            56.53124968593752
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "category": "period",
+      "expectedPrintedText": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        57.42857142857143,
+        203.51999999999998,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 3,
+          "rawText": "1",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            97.55172419094828,
+            66.99999999999999,
+            108.15517220172416,
+            79.56249968593751
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true,
+      "nativeDrawingInkCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 21,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "category": "period",
+      "expectedPrintedText": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativePhysicalCell": [
+        203.51999999999998,
+        57.42857142857143,
+        314.88,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2028年度後期",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            -0.07163178869081394,
+            8.67536311806787,
+            14.246518529620438,
+            29.70873460950139
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": false,
+          "confidence": 0.5
+        },
+        {
+          "nativeOrder": 0,
+          "rawText": "2028年度後期",
+          "utf16Start": 2,
+          "utf16End": 3,
+          "rangeBoxUnion": [
+            24.602793797053813,
+            8.550440150501558,
+            32.62108919736413,
+            29.49952993273424
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        },
+        {
+          "nativeOrder": 1,
+          "rawText": "2_IT",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            3.534482693190455e-07,
+            110.96875000000001,
+            14.175,
+            132.34158415841586
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        },
+        {
+          "nativeOrder": 8,
+          "rawText": "2",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            209.9482759150862,
+            66.99999999999999,
+            220.55172392586206,
+            79.56249968593751
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 24,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "category": "period",
+      "expectedPrintedText": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativePhysicalCell": [
+        314.88,
+        57.42857142857143,
+        426.24,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 9,
+          "rawText": "3",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            320.2241379840517,
+            64.90625000000001,
+            332.9482755969828,
+            79.56249963359377
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true,
+      "nativeDrawingInkCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "category": "period",
+      "expectedPrintedText": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativePhysicalCell": [
+        426.24,
+        57.42857142857143,
+        537.6,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "category": "period",
+      "expectedPrintedText": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativePhysicalCell": [
+        537.6,
+        57.42857142857143,
+        648.9599999999999,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 26,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "category": "period",
+      "expectedPrintedText": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativePhysicalCell": [
+        648.9599999999999,
+        57.42857142857143,
+        760.3199999999999,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "category": "period",
+      "expectedPrintedText": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativePhysicalCell": [
+        760.3199999999999,
+        57.42857142857143,
+        871.68,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 18,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "category": "period",
+      "expectedPrintedText": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativePhysicalCell": [
+        871.68,
+        57.42857142857143,
+        983.04,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2028年度後期",
+          "utf16Start": 3,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            32.4776097975154,
+            8.479055597606532,
+            43.12084386464622,
+            29.44599151806298
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 33,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "category": "class",
+      "expectedPrintedText": "2_IT",
+      "originalDrawingInkBBox": [
+        5,
+        121,
+        35,
+        134
+      ],
+      "nativePhysicalCell": [
+        0.0,
+        86.14285714285715,
+        92.16,
+        162.71428571428572
+      ],
+      "matches": [
+        {
+          "nativeOrder": 1,
+          "rawText": "2_IT",
+          "utf16Start": 0,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            3.534482693190455e-07,
+            110.96875000000001,
+            33.93103427068966,
+            132.34158415841586
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "category": "printedValue",
+      "expectedPrintedText": "架空物理丙",
+      "originalDrawingInkBBox": [
+        135,
+        99,
+        195,
+        111
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        86.14285714285715,
+        203.51999999999998,
+        162.71428571428572
+      ],
+      "matches": [
+        {
+          "nativeOrder": 4,
+          "rawText": "科目：架空物理丙",
+          "utf16Start": 3,
+          "utf16End": 8,
+          "rangeBoxUnion": [
+            127.89522781119153,
+            90.94576216345894,
+            188.8410608044889,
+            109.51498139866193
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "category": "printedValue",
+      "expectedPrintedText": "架空室丙",
+      "originalDrawingInkBBox": [
+        135,
+        141,
+        183,
+        153
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        86.14285714285715,
+        203.51999999999998,
+        162.71428571428572
+      ],
+      "matches": [
+        {
+          "nativeOrder": 6,
+          "rawText": "教室：架空室丙",
+          "utf16Start": 3,
+          "utf16End": 7,
+          "rangeBoxUnion": [
+            128.04583852217334,
+            131.85179967670592,
+            176.08751765667347,
+            149.0013143679988
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "category": "weekday",
+      "expectedPrintedText": "火",
+      "originalDrawingInkBBox": [
+        106,
+        42,
+        123,
+        58
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        28.714285714285715,
+        203.51999999999998,
+        57.42857142857143
+      ],
+      "matches": [
+        {
+          "nativeOrder": 1,
+          "rawText": "火",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            99.67241382844827,
+            37.6875,
+            118.75862040689655,
+            56.53124968593752
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "category": "period",
+      "expectedPrintedText": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        57.42857142857143,
+        203.51999999999998,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 21,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "category": "period",
+      "expectedPrintedText": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativePhysicalCell": [
+        203.51999999999998,
+        57.42857142857143,
+        314.88,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2028年度後期",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            -0.10209528032650557,
+            8.80689816616328,
+            14.278459330153105,
+            29.881894303949373
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": false,
+          "confidence": 0.5
+        },
+        {
+          "nativeOrder": 0,
+          "rawText": "2028年度後期",
+          "utf16Start": 2,
+          "utf16End": 3,
+          "rangeBoxUnion": [
+            24.57171472634041,
+            8.627333019464158,
+            32.652573284756784,
+            29.59932150454364
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        },
+        {
+          "nativeOrder": 2,
+          "rawText": "2_IT",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            3.534482697899332e-07,
+            110.96875000000001,
+            14.175,
+            132.34158415841586
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        },
+        {
+          "nativeOrder": 4,
+          "rawText": "2",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            209.9482759150862,
+            66.99999999999999,
+            226.91379273232758,
+            79.56249968593751
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 24,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "category": "period",
+      "expectedPrintedText": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativePhysicalCell": [
+        314.88,
+        57.42857142857143,
+        426.24,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 5,
+          "rawText": "3",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            320.22413807241384,
+            64.90625000000001,
+            335.0689651637931,
+            79.56249951145837
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "category": "period",
+      "expectedPrintedText": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativePhysicalCell": [
+        426.24,
+        57.42857142857143,
+        537.6,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 6,
+          "rawText": "4",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            430.5000001060345,
+            66.99999999999999,
+            443.22413771896555,
+            79.56249968593751
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "category": "period",
+      "expectedPrintedText": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativePhysicalCell": [
+        537.6,
+        57.42857142857143,
+        648.9599999999999,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 26,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "category": "period",
+      "expectedPrintedText": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativePhysicalCell": [
+        648.9599999999999,
+        57.42857142857143,
+        760.3199999999999,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "category": "period",
+      "expectedPrintedText": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativePhysicalCell": [
+        760.3199999999999,
+        57.42857142857143,
+        871.68,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 18,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "category": "period",
+      "expectedPrintedText": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativePhysicalCell": [
+        871.68,
+        57.42857142857143,
+        983.04,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2028年度後期",
+          "utf16Start": 3,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            32.446334992599134,
+            8.524724364207492,
+            43.15206697310174,
+            29.522365013101137
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 33,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "category": "class",
+      "expectedPrintedText": "2_IT",
+      "originalDrawingInkBBox": [
+        5,
+        121,
+        35,
+        134
+      ],
+      "nativePhysicalCell": [
+        0.0,
+        86.14285714285715,
+        92.16,
+        162.71428571428572
+      ],
+      "matches": [
+        {
+          "nativeOrder": 2,
+          "rawText": "2_IT",
+          "utf16Start": 0,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            3.534482697899332e-07,
+            110.96875000000001,
+            33.93103427068966,
+            132.34158415841586
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "category": "weekday",
+      "expectedPrintedText": "水",
+      "originalDrawingInkBBox": [
+        106,
+        41,
+        123,
+        58
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        28.714285714285715,
+        203.51999999999998,
+        57.42857142857143
+      ],
+      "matches": [
+        {
+          "nativeOrder": 1,
+          "rawText": "水",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            97.55172419852217,
+            37.6875,
+            118.75862044729064,
+            56.53124973080355
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "category": "period",
+      "expectedPrintedText": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        57.42857142857143,
+        203.51999999999998,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 2,
+          "rawText": "1",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            97.55172419094828,
+            66.99999999999999,
+            108.15517220172416,
+            79.56249968593751
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true,
+      "nativeDrawingInkCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 21,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "category": "period",
+      "expectedPrintedText": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativePhysicalCell": [
+        203.51999999999998,
+        57.42857142857143,
+        314.88,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2028年度後期",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            -0.06330231398596507,
+            8.633363805538327,
+            14.237904307112915,
+            29.655420079699923
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": false,
+          "confidence": 0.5
+        },
+        {
+          "nativeOrder": 0,
+          "rawText": "2028年度後期",
+          "utf16Start": 2,
+          "utf16End": 3,
+          "rangeBoxUnion": [
+            24.611248866335373,
+            8.523254577734358,
+            32.61257135556721,
+            29.466105218444184
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        },
+        {
+          "nativeOrder": 3,
+          "rawText": "2_IT",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            3.534482693190455e-07,
+            110.96875000000001,
+            14.400000000000002,
+            129.8124996859375
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        },
+        {
+          "nativeOrder": 5,
+          "rawText": "2",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            209.94827586206895,
+            66.99999999999999,
+            229.03448237689656,
+            79.56249974875001
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 24,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "category": "period",
+      "expectedPrintedText": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativePhysicalCell": [
+        314.88,
+        57.42857142857143,
+        426.24,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 6,
+          "rawText": "3",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            320.2241379840517,
+            64.90625000000001,
+            335.06896519913795,
+            79.56249963359377
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "category": "period",
+      "expectedPrintedText": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativePhysicalCell": [
+        426.24,
+        57.42857142857143,
+        537.6,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 7,
+          "rawText": "4",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            432.6206896551724,
+            66.99999999999999,
+            443.2241377189655,
+            79.56249974875001
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "category": "period",
+      "expectedPrintedText": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativePhysicalCell": [
+        537.6,
+        57.42857142857143,
+        648.9599999999999,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 26,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "category": "period",
+      "expectedPrintedText": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativePhysicalCell": [
+        648.9599999999999,
+        57.42857142857143,
+        760.3199999999999,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "category": "period",
+      "expectedPrintedText": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativePhysicalCell": [
+        760.3199999999999,
+        57.42857142857143,
+        871.68,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 18,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "category": "period",
+      "expectedPrintedText": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativePhysicalCell": [
+        871.68,
+        57.42857142857143,
+        983.04,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2028年度後期",
+          "utf16Start": 3,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            32.486106172815795,
+            8.460335018989202,
+            43.112381097541075,
+            29.41891554938533
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 33,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "category": "class",
+      "expectedPrintedText": "2_IT",
+      "originalDrawingInkBBox": [
+        5,
+        121,
+        35,
+        134
+      ],
+      "nativePhysicalCell": [
+        0.0,
+        86.14285714285715,
+        92.16,
+        162.71428571428572
+      ],
+      "matches": [
+        {
+          "nativeOrder": 3,
+          "rawText": "2_IT",
+          "utf16Start": 0,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            3.534482693190455e-07,
+            110.96875000000001,
+            33.93103427068966,
+            129.8124996859375
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "category": "weekday",
+      "expectedPrintedText": "木",
+      "originalDrawingInkBBox": [
+        106,
+        41,
+        123,
+        58
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        28.714285714285715,
+        203.51999999999998,
+        57.42857142857143
+      ],
+      "matches": [
+        {
+          "nativeOrder": 1,
+          "rawText": "木",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            99.67241382339903,
+            37.6875,
+            118.75862044729064,
+            56.53124973080355
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "category": "period",
+      "expectedPrintedText": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        57.42857142857143,
+        203.51999999999998,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 2,
+          "rawText": "1",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            97.55172419094828,
+            66.99999999999999,
+            108.15517220172416,
+            79.56249968593751
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true,
+      "nativeDrawingInkCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 21,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "category": "period",
+      "expectedPrintedText": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativePhysicalCell": [
+        203.51999999999998,
+        57.42857142857143,
+        314.88,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2028年度後期",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            -0.10209528032650557,
+            8.80689816616328,
+            14.278459330153105,
+            29.881894303949373
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": false,
+          "confidence": 0.5
+        },
+        {
+          "nativeOrder": 0,
+          "rawText": "2028年度後期",
+          "utf16Start": 2,
+          "utf16End": 3,
+          "rangeBoxUnion": [
+            24.57171472634041,
+            8.627333019464158,
+            32.652573284756784,
+            29.59932150454364
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        },
+        {
+          "nativeOrder": 3,
+          "rawText": "2_IT",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            3.534482697899332e-07,
+            110.96875000000001,
+            14.175,
+            132.34158415841586
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        },
+        {
+          "nativeOrder": 5,
+          "rawText": "2",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            209.9482759150862,
+            66.99999999999999,
+            226.91379273232758,
+            79.56249968593751
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 24,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "category": "period",
+      "expectedPrintedText": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativePhysicalCell": [
+        314.88,
+        57.42857142857143,
+        426.24,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 6,
+          "rawText": "3",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            320.22413807241384,
+            64.90625000000001,
+            332.9482755793104,
+            79.56249951145837
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true,
+      "nativeDrawingInkCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "category": "period",
+      "expectedPrintedText": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativePhysicalCell": [
+        426.24,
+        57.42857142857143,
+        537.6,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 7,
+          "rawText": "4",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            430.5000001060345,
+            66.99999999999999,
+            443.22413771896555,
+            79.56249968593751
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "category": "period",
+      "expectedPrintedText": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativePhysicalCell": [
+        537.6,
+        57.42857142857143,
+        648.9599999999999,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 26,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "category": "period",
+      "expectedPrintedText": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativePhysicalCell": [
+        648.9599999999999,
+        57.42857142857143,
+        760.3199999999999,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "category": "period",
+      "expectedPrintedText": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativePhysicalCell": [
+        760.3199999999999,
+        57.42857142857143,
+        871.68,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 18,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "category": "period",
+      "expectedPrintedText": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativePhysicalCell": [
+        871.68,
+        57.42857142857143,
+        983.04,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2028年度後期",
+          "utf16Start": 3,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            32.446334992599134,
+            8.524724364207492,
+            43.15206697310174,
+            29.522365013101137
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 33,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "category": "class",
+      "expectedPrintedText": "2_IT",
+      "originalDrawingInkBBox": [
+        5,
+        121,
+        35,
+        134
+      ],
+      "nativePhysicalCell": [
+        0.0,
+        86.14285714285715,
+        92.16,
+        162.71428571428572
+      ],
+      "matches": [
+        {
+          "nativeOrder": 3,
+          "rawText": "2_IT",
+          "utf16Start": 0,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            3.534482697899332e-07,
+            110.96875000000001,
+            33.93103427068966,
+            132.34158415841586
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "category": "weekday",
+      "expectedPrintedText": "金",
+      "originalDrawingInkBBox": [
+        106,
+        41,
+        123,
+        58
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        28.714285714285715,
+        203.51999999999998,
+        57.42857142857143
+      ],
+      "matches": [
+        {
+          "nativeOrder": 1,
+          "rawText": "金",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            99.67241382339903,
+            37.6875,
+            118.75862044729064,
+            56.53124973080355
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "category": "period",
+      "expectedPrintedText": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativePhysicalCell": [
+        92.16,
+        57.42857142857143,
+        203.51999999999998,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 2,
+          "rawText": "1",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            97.55172419094828,
+            66.99999999999999,
+            108.15517220172416,
+            79.56249968593751
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true,
+      "nativeDrawingInkCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 21,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "category": "period",
+      "expectedPrintedText": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativePhysicalCell": [
+        203.51999999999998,
+        57.42857142857143,
+        314.88,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2028年度後期",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            -0.06328278472963769,
+            8.639717689067805,
+            14.237924615073183,
+            29.661774023163098
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": false,
+          "confidence": 0.5
+        },
+        {
+          "nativeOrder": 0,
+          "rawText": "2028年度後期",
+          "utf16Start": 2,
+          "utf16End": 3,
+          "rangeBoxUnion": [
+            24.611269174295643,
+            8.529608461263814,
+            32.612591663527475,
+            29.47245910197364
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        },
+        {
+          "nativeOrder": 3,
+          "rawText": "2_IT",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            3.534482693190455e-07,
+            110.96875000000001,
+            14.400000000000002,
+            129.8124996859375
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        },
+        {
+          "nativeOrder": 5,
+          "rawText": "2",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            209.94827586206895,
+            66.99999999999999,
+            229.03448237689656,
+            79.56249974875001
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 24,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "category": "period",
+      "expectedPrintedText": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativePhysicalCell": [
+        314.88,
+        57.42857142857143,
+        426.24,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 6,
+          "rawText": "3",
+          "utf16Start": 0,
+          "utf16End": 1,
+          "rangeBoxUnion": [
+            320.2241379840517,
+            64.90625000000001,
+            332.9482755969828,
+            79.56249963359377
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": true,
+          "rangePredicatesPass": true,
+          "confidence": 1
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": true,
+      "nativeDrawingInkCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "category": "period",
+      "expectedPrintedText": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativePhysicalCell": [
+        426.24,
+        57.42857142857143,
+        537.6,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "category": "period",
+      "expectedPrintedText": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativePhysicalCell": [
+        537.6,
+        57.42857142857143,
+        648.9599999999999,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 26,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "category": "period",
+      "expectedPrintedText": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativePhysicalCell": [
+        648.9599999999999,
+        57.42857142857143,
+        760.3199999999999,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 25,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "category": "period",
+      "expectedPrintedText": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativePhysicalCell": [
+        760.3199999999999,
+        57.42857142857143,
+        871.68,
+        86.14285714285715
+      ],
+      "matches": [],
+      "rawExactSubstringExists": false,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 18,
+      "nativeDrawingInkCropPixels": 96
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "category": "period",
+      "expectedPrintedText": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativePhysicalCell": [
+        871.68,
+        57.42857142857143,
+        983.04,
+        86.14285714285715
+      ],
+      "matches": [
+        {
+          "nativeOrder": 0,
+          "rawText": "2028年度後期",
+          "utf16Start": 3,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            32.48612648077606,
+            8.46668890251868,
+            43.112401405501345,
+            29.425269432914806
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": false,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.5
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": false,
+      "exactRangeLocatedUnshared": false,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false,
+      "nativeDrawingInkCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "nativeDrawingInkDarkPixelsRGBChannelsAllBelow128": 33,
+      "nativeDrawingInkCropPixels": 108
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "category": "class",
+      "expectedPrintedText": "2_IT",
+      "originalDrawingInkBBox": [
+        5,
+        121,
+        35,
+        134
+      ],
+      "nativePhysicalCell": [
+        0.0,
+        86.14285714285715,
+        92.16,
+        162.71428571428572
+      ],
+      "matches": [
+        {
+          "nativeOrder": 3,
+          "rawText": "2_IT",
+          "utf16Start": 0,
+          "utf16End": 4,
+          "rangeBoxUnion": [
+            3.534482693190455e-07,
+            110.96875000000001,
+            33.93103427068966,
+            129.8124996859375
+          ],
+          "rangeBoxUnionCenterInPhysicalCell": true,
+          "rangeBoxesSharedWithOtherNonspaceCharacters": false,
+          "allRangeBoxesReturned": true,
+          "passesOriginalConfidencePredicate": false,
+          "rangePredicatesPass": true,
+          "confidence": 0.30000001192092896
+        }
+      ],
+      "rawExactSubstringExists": true,
+      "exactRangeLocated": true,
+      "exactRangeLocatedUnshared": true,
+      "exactRangeLocatedUnsharedOriginalPredicatesPass": false
+    }
+  ],
+  "limits": [
+    "Raw Character-range API boxes are not precise glyph geometry. Unshared boxes only eliminate identical-box sharing ambiguity, not establish exact geometry.",
+    "Source image-to-native physical cells use actual width/height ratios; no box clipping or text normalization.",
+    "Previous document OCR run did not preserve its pixels; matching render recipe does not establish previous native byte identity.",
+    "Confidence from the two APIs is not presumed calibrated identically.",
+    "No rules/cells/semantic tuple binding, validator/manual adoption/last-good or fullformal evaluation executed.",
+    "Printed blank value is excluded; no missing observation proves EMPTY.",
+    "No latent-recognition/model-versus-render cause inference. PNGs allow separate inspection of actual rendered ink."
+  ]
+}

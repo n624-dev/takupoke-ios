@@ -1,0 +1,93 @@
+{
+  "scope": "Independent fictional ordinary text OCR evidence; data-only publication, no further native requests",
+  "nativeRun": 37210746428,
+  "nativeAttempt": 1,
+  "nativeSourceCommit": "c9f9480b400189b92c6d7753c7ccb1c2957f56ef",
+  "rawSHA256": "af08b6eae78ec40902de6cec9304182aab22aa3cb32f4348b1a438fb49e684f0",
+  "files": {
+    "README.md": {
+      "sha256": "beeb16ace422c5a72714e09c6791963d7faa488ae5bcba6d1519db7d6ddb5a5e",
+      "bytes": 4941
+    },
+    "analyze.py": {
+      "sha256": "e3c2fbd9c722301a0a97e423aba5f4c2950934817fb7429f98df9fdec477afaa",
+      "bytes": 8771
+    },
+    "derived-evidence.json": {
+      "sha256": "cb19ee1d8deecd44a02cbf27eaedb7da85846e3d1c8ecf7afb1279652a5a29eb",
+      "bytes": 148683
+    },
+    "drawing-source/independent-Timetable-literal-乙/drawing-source.json": {
+      "sha256": "c2acd23ad38bc9e6eea4ded8b1fb790ac5817bb7891f090483a2f28084eab1b9",
+      "bytes": 14662
+    },
+    "drawing-source/independent-Timetable-verifiedblank-丙/drawing-source.json": {
+      "sha256": "fdbb25473adc36c9c31a01686a6255377557a383ae98f47cf89276bb0e8c3c40",
+      "bytes": 14635
+    },
+    "execution-receipt.json": {
+      "sha256": "49f56622b7cb96cf79e9d964fd870fa9331ca7e74695948c85799849cec44beb",
+      "bytes": 39520
+    },
+    "input-manifest.json": {
+      "sha256": "0a1b2895fb9f8c34e452dcceaddf2aaf8b00a52079695a53789b5162d1283aa1",
+      "bytes": 2745
+    },
+    "native-raw.jsonl": {
+      "sha256": "af08b6eae78ec40902de6cec9304182aab22aa3cb32f4348b1a438fb49e684f0",
+      "bytes": 382507
+    },
+    "native-render/independent-Timetable-literal-乙-page-1.png": {
+      "sha256": "1778ddd50e7d267b77b561df7e0fc17eae82fa68693bd2d74c76132f738ade57",
+      "bytes": 24230
+    },
+    "native-render/independent-Timetable-literal-乙-page-2.png": {
+      "sha256": "12ca47baf8ddcd81a38251b8881078b20a4e8e16d2b7e47347eb0f476c537bf5",
+      "bytes": 17330
+    },
+    "native-render/independent-Timetable-literal-乙-page-3.png": {
+      "sha256": "fd0ff0bf423b417e418c013469aa0402c42fd2501931678506daa97a28b83c43",
+      "bytes": 17448
+    },
+    "native-render/independent-Timetable-literal-乙-page-4.png": {
+      "sha256": "f3bc66e6f83859e44ba6c54b0fa4ae6a2a7091850d4cf915f63676104b6bccab",
+      "bytes": 17364
+    },
+    "native-render/independent-Timetable-literal-乙-page-5.png": {
+      "sha256": "fb170e72f0feddd255e6a1c6c2f05c803fea435a7b9d1dd3fd04701f23e943d9",
+      "bytes": 17414
+    },
+    "native-render/independent-Timetable-verifiedblank-丙-page-1.png": {
+      "sha256": "5c130af880a26a25b7161f7d4e5dd766249b4b0ea2f3e6cb075c4a6aea013b5e",
+      "bytes": 23182
+    },
+    "native-render/independent-Timetable-verifiedblank-丙-page-2.png": {
+      "sha256": "9fe02e6569b2f255e9d77bf91f4fff5db83e44ad45848f37fbe56cd28dfab26c",
+      "bytes": 17378
+    },
+    "native-render/independent-Timetable-verifiedblank-丙-page-3.png": {
+      "sha256": "6cb36509abb8a584eee01f2017782afc8a699cda6f78924a3de99da5a117eb00",
+      "bytes": 17549
+    },
+    "native-render/independent-Timetable-verifiedblank-丙-page-4.png": {
+      "sha256": "9e0f5779455b124a212ee17fbce990237056f3cbb1dc62283ae0285556048b8c",
+      "bytes": 17346
+    },
+    "native-render/independent-Timetable-verifiedblank-丙-page-5.png": {
+      "sha256": "75fc4f5b482105004e43415e78ea55680c456d2acdaaaa1a38e2e0bf935bdb23",
+      "bytes": 17497
+    },
+    "native-run.json": {
+      "sha256": "cb375dbfbb127db2d9d7dfe6cf04b8fb426cb5914fcf4fb15837eb342d7bb2bf",
+      "bytes": 1367
+    },
+    "render-inspection.json": {
+      "sha256": "dd27c1bab56f3724f19853d96ed6867347ba7d3c07621f5b612a2ea2ff54d17d",
+      "bytes": 37984
+    },
+    "source-extraction-receipt.json": {
+      "sha256": "ec4c89495db2f473d98fb1957b89d3fa7796eca5065696f49ad3a945415087a3",
+      "bytes": 3904
+    }
+  }
+}

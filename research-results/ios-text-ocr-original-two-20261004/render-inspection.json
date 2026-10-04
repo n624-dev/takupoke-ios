@@ -1,0 +1,1702 @@
+{
+  "scope": "Posthoc current-run renderer inspection and raw printed-period comparison only",
+  "rawSHA256": "af08b6eae78ec40902de6cec9304182aab22aa3cb32f4348b1a438fb49e684f0",
+  "renderPNGHashes": [
+    "1778ddd50e7d267b77b561df7e0fc17eae82fa68693bd2d74c76132f738ade57",
+    "12ca47baf8ddcd81a38251b8881078b20a4e8e16d2b7e47347eb0f476c537bf5",
+    "fd0ff0bf423b417e418c013469aa0402c42fd2501931678506daa97a28b83c43",
+    "f3bc66e6f83859e44ba6c54b0fa4ae6a2a7091850d4cf915f63676104b6bccab",
+    "fb170e72f0feddd255e6a1c6c2f05c803fea435a7b9d1dd3fd04701f23e943d9",
+    "5c130af880a26a25b7161f7d4e5dd766249b4b0ea2f3e6cb075c4a6aea013b5e",
+    "9fe02e6569b2f255e9d77bf91f4fff5db83e44ad45848f37fbe56cd28dfab26c",
+    "6cb36509abb8a584eee01f2017782afc8a699cda6f78924a3de99da5a117eb00",
+    "9e0f5779455b124a212ee17fbce990237056f3cbb1dc62283ae0285556048b8c",
+    "75fc4f5b482105004e43415e78ea55680c456d2acdaaaa1a38e2e0bf935bdb23"
+  ],
+  "all10LosslessPNGsDecodedAndVisuallyInspected": true,
+  "manualInspection": "All eight printed period labels are readable on each of the ten actual request CGImage PNGs. This confirms visible labels on this run only; previous document-run native pixels were not saved.",
+  "inkPixelRule": "Original drawing ink bbox scaled by actual width/height ratios; floor start/ceil end; RGB channels all <128; crop content counts only, no OCR or empty-state inference",
+  "printedPeriodInkRegions": 80,
+  "positiveDarkPixelRegions": 80,
+  "period5Through8InkRegions": 40,
+  "positivePeriod5Through8DarkPixelRegions": 40,
+  "allPeriodMinDarkPixels": 18,
+  "period5Through8MinDarkPixels": 18,
+  "inkRows": [
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "printedPeriod": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativeCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 21,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "printedPeriod": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativeCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "printedPeriod": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativeCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "printedPeriod": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativeCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 26,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "printedPeriod": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativeCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "printedPeriod": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativeCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 26,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "printedPeriod": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativeCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 19,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "printedPeriod": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativeCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 36,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "printedPeriod": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativeCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 21,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "printedPeriod": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativeCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "printedPeriod": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativeCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "printedPeriod": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativeCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 26,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "printedPeriod": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativeCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "printedPeriod": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativeCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 26,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "printedPeriod": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativeCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 19,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "printedPeriod": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativeCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 36,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "printedPeriod": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativeCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 21,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "printedPeriod": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativeCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "printedPeriod": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativeCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "printedPeriod": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativeCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 26,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "printedPeriod": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativeCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "printedPeriod": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativeCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 26,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "printedPeriod": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativeCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 19,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "printedPeriod": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativeCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 36,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "printedPeriod": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativeCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 21,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "printedPeriod": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativeCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "printedPeriod": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativeCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "printedPeriod": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativeCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 26,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "printedPeriod": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativeCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "printedPeriod": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativeCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 26,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "printedPeriod": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativeCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 19,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "printedPeriod": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativeCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 36,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "printedPeriod": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativeCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 21,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "printedPeriod": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativeCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "printedPeriod": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativeCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "printedPeriod": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativeCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 26,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "printedPeriod": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativeCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "printedPeriod": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativeCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 26,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "printedPeriod": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativeCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 19,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "printedPeriod": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativeCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 36,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "printedPeriod": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativeCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 21,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "printedPeriod": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativeCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 24,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "printedPeriod": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativeCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "printedPeriod": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativeCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "printedPeriod": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativeCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 26,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "printedPeriod": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativeCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "printedPeriod": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativeCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 18,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "printedPeriod": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativeCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 33,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "printedPeriod": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativeCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 21,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "printedPeriod": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativeCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 24,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "printedPeriod": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativeCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "printedPeriod": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativeCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "printedPeriod": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativeCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 26,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "printedPeriod": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativeCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "printedPeriod": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativeCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 18,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "printedPeriod": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativeCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 33,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "printedPeriod": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativeCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 21,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "printedPeriod": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativeCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 24,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "printedPeriod": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativeCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "printedPeriod": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativeCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "printedPeriod": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativeCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 26,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "printedPeriod": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativeCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "printedPeriod": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativeCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 18,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "printedPeriod": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativeCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 33,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "printedPeriod": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativeCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 21,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "printedPeriod": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativeCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 24,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "printedPeriod": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativeCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "printedPeriod": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativeCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "printedPeriod": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativeCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 26,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "printedPeriod": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativeCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "printedPeriod": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativeCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 18,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "printedPeriod": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativeCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 33,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "printedPeriod": "1",
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativeCropBounds": [
+        99,
+        69,
+        108,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 21,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "printedPeriod": "2",
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativeCropBounds": [
+        211,
+        69,
+        219,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 24,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "printedPeriod": "3",
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativeCropBounds": [
+        322,
+        69,
+        331,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "printedPeriod": "4",
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativeCropBounds": [
+        433,
+        69,
+        442,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "printedPeriod": "5",
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativeCropBounds": [
+        545,
+        69,
+        553,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 26,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "printedPeriod": "6",
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativeCropBounds": [
+        656,
+        69,
+        665,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 25,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "printedPeriod": "7",
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativeCropBounds": [
+        768,
+        69,
+        776,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 18,
+      "cropPixels": 96,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "printedPeriod": "8",
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativeCropBounds": [
+        879,
+        69,
+        888,
+        81
+      ],
+      "darkPixelsRGBChannelsAllBelow128": 33,
+      "cropPixels": 108,
+      "cropContainsPrintedGlyphByManualPNGInspection": true
+    }
+  ],
+  "priorComparison": {
+    "priorRun": 37209476528,
+    "priorSourceCommit": "6fe7d66f64b5cd26484d629a3304e95bb4510631",
+    "priorRawSHA256": "0c21d705c253bcc98ef25ca717c6005bc6bd0c3cb753bada12c93104909b840d",
+    "priorPeriodPositions": 33,
+    "currentPeriodPositions": 36,
+    "gainedPositions": [
+      {
+        "fixture": "independent-Timetable-literal-乙",
+        "page": 1,
+        "period": "4"
+      },
+      {
+        "fixture": "independent-Timetable-literal-乙",
+        "page": 2,
+        "period": "1"
+      },
+      {
+        "fixture": "independent-Timetable-literal-乙",
+        "page": 4,
+        "period": "1"
+      },
+      {
+        "fixture": "independent-Timetable-verifiedblank-丙",
+        "page": 3,
+        "period": "4"
+      }
+    ],
+    "lostPositions": [
+      {
+        "fixture": "independent-Timetable-literal-乙",
+        "page": 5,
+        "period": "2"
+      }
+    ],
+    "retainedInBoth": 32,
+    "period5Through8PositionCountBoth": 0,
+    "confidenceCrossAPICalibrationAssumed": false,
+    "publicEvidenceURL": "https://raw.githubusercontent.com/n624-dev/takupoke-ios/d49b135f65b18e946edd506c28fd90da6e61df0d/research-results/ios-vision-hierarchy-20261004/header-evidence.json",
+    "publicEvidenceSHA256": "1c9908baaefc8448cd3a10faf8ea79b186e2f5b56b84d69a206c4499d63b8eef",
+    "priorPublicEvidenceSummary": {
+      "plannedPages": 10,
+      "recordedPages": 10,
+      "readReturnedPages": 10,
+      "serializationCompletedPages": 10,
+      "selectedHierarchyCaptureCompletePages": 10,
+      "operationalErrors": 0,
+      "formalAssessed": 0,
+      "periodHeaderRows": 80,
+      "globalTop1PositionFound": 33,
+      "anyTop1PositionFound": 33,
+      "anyTop5PositionFound": 33,
+      "tablePositionFound": 33,
+      "originalGlobalTop1Comparisons": 79,
+      "originalGlobalTop1AllEqual": true,
+      "top1PositionFoundPassingOriginalConfidenceAndBoxPredicates": 2,
+      "periodPositionFoundCounts": {
+        "1": 7,
+        "2": 10,
+        "3": 10,
+        "4": 6,
+        "5": 0,
+        "6": 0,
+        "7": 0,
+        "8": 0
+      },
+      "top5AdditionalCorrectHeaderPositions": 0,
+      "oldVsNewOriginalMainLinesAllEqual": true
+    }
+  },
+  "limits": [
+    "Positive dark pixels alone do not identify a character; the manual PNG inspection confirms displayed digit labels.",
+    "No previous-run render byte identity or framework internal source-of-loss claim.",
+    "No fulltuple/EMPTY/formal recovery evidence."
+  ]
+}
