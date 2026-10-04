@@ -1,0 +1,321 @@
+{
+  "scope": "Native CPU development label component controls only; not model qualification, phone memory proof, CoreAI evidence, or useful AI recovery",
+  "candidate": {
+    "id": "smollm3-3",
+    "repository": "ggml-org/SmolLM3-3B-GGUF",
+    "revision": "4965cb60b150737b68a0408c36aeefb65078f894",
+    "file": "SmolLM3-Q4_K_M.gguf",
+    "bytes": 1915305312,
+    "sha256": "8334b850b7bd46238c16b0c550df2138f0889bf433809008cc17a8b05761863e",
+    "baseRepository": "HuggingFaceTB/SmolLM3-3B",
+    "baseRevision": "a07cc9a04f16550a088caea529712d1d335b0ac1",
+    "license": "apache-2.0",
+    "licenseSource": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+    "licenseFile": "licenses/smollm3-3.txt",
+    "licenseSHA256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "quantizationCardFile": "licenses/smollm3-3-quantization-card.md",
+    "quantizationCardSHA256": "1b1f541a8ef3d5481da2df378f6a987622f08be18ffd3658d3ba7e29941aa68b",
+    "repositoryMetadataSHA256": "9263e85cdc40b19c5da7595ef203b4cb831c620e3ae3165181dff5996adffdba",
+    "baseMetadataSHA256": "24502741f5b99d375bbbf36b3aa89c1d5045f746e4fbc1a77d5f214cd57df7f4",
+    "licenseNote": "Original model metadata explicitly declares Apache2; no source license file, full official standard Apache2 retained"
+  },
+  "runtimeCommit": "99b95488cac0f00ce3f05af113a8c1e287753f87",
+  "sourceSHA": "63d140478eb0e3d82794aaf1fa7f489bbc48c9fc",
+  "corpusSHA256": "7a0c210890d713cc1f597f30f76a538027d47d9ae2fc960de90cc85aaaabffd3",
+  "instructionSHA256": "32e7f94105d6309955ecba1717c0a3642265f823891563c783428164d73a932e",
+  "recipe": {
+    "contextTokens": 4096,
+    "tokenLimit": 512,
+    "CPUThreads": 2,
+    "sampler": "production bridge greedy, no RNG sampling",
+    "grammar": "three role arrays, every original ID eligible in every role, zero to48 entries",
+    "metal": false,
+    "perCallCooperativeWatchdogSeconds": 120
+  },
+  "memoryScope": "Linux Python process including actual C bridge/model; RUSAGE_SELF largest process high-water RSS, no iPhone6GB available-memory assumption",
+  "results": [
+    {
+      "variant": "baseline",
+      "case": "original-certificate-control",
+      "negative": false,
+      "nativeStatus": 0,
+      "seconds": 14.923875354000018,
+      "raw": "{\"subject\":[],\"teacher\":[],\"room\":[]}",
+      "watchdogExpired": false,
+      "requestSHA256": "5a48c9d447c8fddf76571903a913ddbdda357fdf9dab47f9b89372756345bf2f",
+      "grammarSHA256": "6e28072904872cf5bb3f5ff80d6fcfe6ec580231363984e250082fa2d172395f",
+      "processPeakRSSKiB": 3622344,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [],
+        "teacher": [],
+        "room": []
+      }
+    },
+    {
+      "variant": "baseline",
+      "case": "heldout-missingteacher",
+      "negative": true,
+      "nativeStatus": 0,
+      "seconds": 10.476073729999996,
+      "raw": "{\"subject\":[],\"teacher\":[],\"room\":[]}",
+      "watchdogExpired": false,
+      "requestSHA256": "13d1138dd094dd090db0a1f7f5ceb74682c4693b2339f5df1e92d4517f632dc5",
+      "grammarSHA256": "bae040790f362e4e9982f581475cba17a401aacca3d2e477e3e692f88b876030",
+      "processPeakRSSKiB": 3625032,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [],
+        "teacher": [],
+        "room": []
+      }
+    },
+    {
+      "variant": "baseline",
+      "case": "heldout-injection",
+      "negative": true,
+      "nativeStatus": 0,
+      "seconds": 11.246583713999996,
+      "raw": "{\"subject\": [\"u37\"], \"teacher\": [], \"room\": [\"u40\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "5ea5f80a72ce1f9b60b262ad336002544740cb2fded01bf6cdf51aa7a5b53a8d",
+      "grammarSHA256": "bae040790f362e4e9982f581475cba17a401aacca3d2e477e3e692f88b876030",
+      "processPeakRSSKiB": 3625032,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "u37"
+        ],
+        "teacher": [],
+        "room": [
+          "u40"
+        ]
+      }
+    },
+    {
+      "variant": "shared-japanese",
+      "case": "original-certificate-control",
+      "negative": false,
+      "nativeStatus": 0,
+      "seconds": 20.34657333199999,
+      "raw": "{\"subject\":[\"g0\",\"g1\"],\"teacher\":[\"g2\",\"g3\"],\"room\":[\"g5\",\"g6\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "5a48c9d447c8fddf76571903a913ddbdda357fdf9dab47f9b89372756345bf2f",
+      "grammarSHA256": "6e28072904872cf5bb3f5ff80d6fcfe6ec580231363984e250082fa2d172395f",
+      "processPeakRSSKiB": 3625032,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "g0",
+          "g1"
+        ],
+        "teacher": [
+          "g2",
+          "g3"
+        ],
+        "room": [
+          "g5",
+          "g6"
+        ]
+      }
+    },
+    {
+      "variant": "shared-japanese",
+      "case": "heldout-missingteacher",
+      "negative": true,
+      "nativeStatus": 0,
+      "seconds": 16.195225886999992,
+      "raw": "{\"subject\":[\"u37\",\"u21\",\"u84\",\"u19\",\"u62\",\"u40\"],\"teacher\":[],\"room\":[\"u62\",\"u40\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "13d1138dd094dd090db0a1f7f5ceb74682c4693b2339f5df1e92d4517f632dc5",
+      "grammarSHA256": "bae040790f362e4e9982f581475cba17a401aacca3d2e477e3e692f88b876030",
+      "processPeakRSSKiB": 3627080,
+      "decoderAccepted": false,
+      "exactRaw": false,
+      "decodeError": "Repeated, cross-role, or reordered source"
+    },
+    {
+      "variant": "shared-japanese",
+      "case": "heldout-injection",
+      "negative": true,
+      "nativeStatus": 0,
+      "seconds": 16.53555443900001,
+      "raw": "{\"subject\": [\"u37\", \"u21\", \"u84\", \"u19\", \"u62\", \"u40\"], \"teacher\": [], \"room\": []}",
+      "watchdogExpired": false,
+      "requestSHA256": "5ea5f80a72ce1f9b60b262ad336002544740cb2fded01bf6cdf51aa7a5b53a8d",
+      "grammarSHA256": "bae040790f362e4e9982f581475cba17a401aacca3d2e477e3e692f88b876030",
+      "processPeakRSSKiB": 3627208,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "u37",
+          "u21",
+          "u84",
+          "u19",
+          "u62",
+          "u40"
+        ],
+        "teacher": [],
+        "room": []
+      }
+    }
+  ],
+  "nativeExecutionComplete": true,
+  "usefulAIRecoveryDenominator": 0,
+  "heldout": false,
+  "plannedCases": 6,
+  "promptExperiment": "Shared fixed Japanese instruction A/B",
+  "promptVariants": {
+    "baseline": "32e7f94105d6309955ecba1717c0a3642265f823891563c783428164d73a932e",
+    "shared-japanese": "391a678c09537b4e22b26b3b831b6ec9cb3b6b5554d0a173bb67f8302864dc12"
+  },
+  "selectedCaseNames": [
+    "original-certificate-control",
+    "heldout-missingteacher",
+    "heldout-injection"
+  ],
+  "promptComparisonLimits": "Same fixed order baseline then Japanese; native bridge clears context every call. Second phase may benefit from warm CPU/cache state; no causal latency advantage claimed.",
+  "actualBridgeBinarySHA256": "34b447ee042518fe3533a2bac821da28e4b3249e7d5a840bd3debe5664adf24e",
+  "actualRuntimeBinarySHA256": "745d8210b0275711101c206ea54f3e8768fa1c9d39ecebbf117ad00ea52843d2",
+  "download": {
+    "seconds": 14.641770414999996,
+    "bytes": 1915305312,
+    "sha256": "8334b850b7bd46238c16b0c550df2138f0889bf433809008cc17a8b05761863e"
+  },
+  "load": {
+    "status": 0,
+    "seconds": 1.3615549360000045,
+    "processPeakRSSKiB": 3542864
+  },
+  "summary": {
+    "total": 6,
+    "attempted": 6,
+    "rawExact": 0,
+    "semanticScored": 5,
+    "nativeGenerationErrors": 0,
+    "nativeOutputFormatErrors": 1,
+    "negativeTotal": 4,
+    "negativeSemanticScored": 3,
+    "negativeExact": 0
+  },
+  "variantSummaries": {
+    "baseline": {
+      "planned": 3,
+      "attempted": 3,
+      "exactRaw": 0,
+      "strictDecoded": 3,
+      "nativeErrors": 0
+    },
+    "shared-japanese": {
+      "planned": 3,
+      "attempted": 3,
+      "exactRaw": 0,
+      "strictDecoded": 2,
+      "nativeErrors": 0
+    }
+  },
+  "release": {
+    "nativeDestroyReturned": true,
+    "seconds": 0.05018003799997928
+  },
+  "processPeakRSSKiB": 3627208,
+  "nativeCertificateControl": {
+    "currentRulesResolved": true,
+    "scope": "Same actual source geometry certificate and complete unchanged timetable pipeline for each shared prompt; useful AI denominator zero",
+    "variants": [
+      {
+        "certificateAccepted": false,
+        "currentRulesResolved": true,
+        "modelNecessary": false,
+        "rejectionType": "RecoveryProviderError",
+        "schemaVersion": 2,
+        "scope": "One original geometry component control plus complete ordinary timetable rebuild; other raw cases are text-only. Current ordinary/exam/return Rules controls are separately tested. No production adapter or useful AI denominator.",
+        "validatorVersion": 4,
+        "variant": "baseline",
+        "wholeTimetableExact": false
+      },
+      {
+        "certificateAccepted": false,
+        "currentRulesResolved": true,
+        "modelNecessary": false,
+        "rejectionType": "RecoveryProviderError",
+        "schemaVersion": 2,
+        "scope": "One original geometry component control plus complete ordinary timetable rebuild; other raw cases are text-only. Current ordinary/exam/return Rules controls are separately tested. No production adapter or useful AI denominator.",
+        "validatorVersion": 4,
+        "variant": "shared-japanese",
+        "wholeTimetableExact": false
+      }
+    ]
+  },
+  "sourceRecipePins": {
+    "NativeScorer.swift": {
+      "bytes": 5067,
+      "sha256": "d2b4b2dfcfefeec8eb3ef6a6df99bdab88ca5341d9970b70c63a463ea4ffc53f"
+    },
+    "candidates.json": {
+      "bytes": 7380,
+      "sha256": "2bf47519614fe6fb2619f6fcda0b4443d821d777c74c35ce5200613ccc6259db"
+    },
+    "corpus.json": {
+      "bytes": 9071,
+      "sha256": "7a0c210890d713cc1f597f30f76a538027d47d9ae2fc960de90cc85aaaabffd3"
+    },
+    "native-gbnf-smoke.json": {
+      "bytes": 1301,
+      "sha256": "e5eccf7ce5fee22f3f8233e99df27a8820f462b8120ae6e1b080b1cbf4be80dc"
+    },
+    "package.py": {
+      "bytes": 2909,
+      "sha256": "cca02d7355bff37d5de79996ad6fd89cb325401eabc7e2a9175c603e0cc83718"
+    },
+    "prompt-audit.json": {
+      "bytes": 3606,
+      "sha256": "11cb1cfbc87f140d66ce51062c23dcec6124f96050721c5a92447ec59a2ea0af"
+    },
+    "run_batch.py": {
+      "bytes": 12970,
+      "sha256": "0b945d64593d2e0e2b5566787c2b6aadaf6f74cde2dfccdaf3eaddda8e6f60d8"
+    },
+    "simulator-failure.json": {
+      "bytes": 2202,
+      "sha256": "ebcb263a6ec33cfbd955aa69af178338d509feb473803b749ccec15d721ffad2"
+    },
+    "test_protocol.py": {
+      "bytes": 2395,
+      "sha256": "956a7667b3efd9b20939687283b0c6f94752a9856d4cd68326dd2ad9e28194d8"
+    },
+    "upload_artifacts.py": {
+      "bytes": 5773,
+      "sha256": "29334deca996f4fb087f1b0d3b15d00054745624c50a9e4d8b7e21b5c7c89295"
+    }
+  },
+  "nativeScorerCompleted": true,
+  "logs": [
+    {
+      "file": "runtime-build.log",
+      "originalBytes": 7484,
+      "originalSHA256": "a86a2886de19f31af7713b93c38728c388d6c2b93c9b009478506643e47359d0",
+      "retainedBytes": 7484,
+      "truncated": false
+    },
+    {
+      "file": "runtime.log",
+      "originalBytes": 283485,
+      "originalSHA256": "524dae6d87bf4911430da1f627d3ba70b93ce2ad02defafb0477c391853f9824",
+      "retainedBytes": 283485,
+      "truncated": false
+    },
+    {
+      "file": "native-scorer.log",
+      "originalBytes": 100588,
+      "originalSHA256": "5cd899c8a12f681bd07368c86922dbc1b163bb3f0050a089b31d8d060849e53e",
+      "retainedBytes": 100588,
+      "truncated": false
+    }
+  ]
+}

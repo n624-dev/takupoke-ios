@@ -1,0 +1,342 @@
+{
+  "scope": "Actual shared native CPU A/B reports; fixed sequential prompt phases, six independent parallel models; no qualification",
+  "runId": 37192105515,
+  "rows": [
+    {
+      "model": "granite4-1",
+      "nativeComplete": true,
+      "modes": {
+        "baseline": {
+          "planned": 3,
+          "attempted": 3,
+          "exactRaw": 0,
+          "strictDecoded": 3,
+          "nativeErrors": 0
+        },
+        "shared-japanese": {
+          "planned": 3,
+          "attempted": 3,
+          "exactRaw": 0,
+          "strictDecoded": 3,
+          "nativeErrors": 0
+        }
+      },
+      "peakKiB": 2114412,
+      "scorerCompleted": true,
+      "certificate": {
+        "currentRulesResolved": true,
+        "scope": "Same actual source geometry certificate and complete unchanged timetable pipeline for each shared prompt; useful AI denominator zero",
+        "variants": [
+          {
+            "certificateAccepted": false,
+            "currentRulesResolved": true,
+            "modelNecessary": false,
+            "rejectionType": "RecoveryProviderError",
+            "schemaVersion": 2,
+            "scope": "One original geometry component control plus complete ordinary timetable rebuild; other raw cases are text-only. Current ordinary/exam/return Rules controls are separately tested. No production adapter or useful AI denominator.",
+            "validatorVersion": 4,
+            "variant": "baseline",
+            "wholeTimetableExact": false
+          },
+          {
+            "certificateAccepted": false,
+            "currentRulesResolved": true,
+            "modelNecessary": false,
+            "rejectionType": "RecoveryProviderError",
+            "schemaVersion": 2,
+            "scope": "One original geometry component control plus complete ordinary timetable rebuild; other raw cases are text-only. Current ordinary/exam/return Rules controls are separately tested. No production adapter or useful AI denominator.",
+            "validatorVersion": 4,
+            "variant": "shared-japanese",
+            "wholeTimetableExact": false
+          }
+        ]
+      },
+      "asset": {
+        "id": 609532034,
+        "name": "ios-gguf-granite4-1-37192105515-1.json",
+        "bytes": 11817,
+        "sha256": "a5828503f974cfe767d8f7278d9282e4e10cd582456b1149135893539bd60005"
+      }
+    },
+    {
+      "model": "ministral3-3",
+      "nativeComplete": true,
+      "modes": {
+        "baseline": {
+          "planned": 3,
+          "attempted": 3,
+          "exactRaw": 0,
+          "strictDecoded": 3,
+          "nativeErrors": 0
+        },
+        "shared-japanese": {
+          "planned": 3,
+          "attempted": 3,
+          "exactRaw": 0,
+          "strictDecoded": 3,
+          "nativeErrors": 0
+        }
+      },
+      "peakKiB": 4104284,
+      "scorerCompleted": true,
+      "certificate": {
+        "currentRulesResolved": true,
+        "scope": "Same actual source geometry certificate and complete unchanged timetable pipeline for each shared prompt; useful AI denominator zero",
+        "variants": [
+          {
+            "certificateAccepted": false,
+            "currentRulesResolved": true,
+            "modelNecessary": false,
+            "rejectionType": "RecoveryProviderError",
+            "schemaVersion": 2,
+            "scope": "One original geometry component control plus complete ordinary timetable rebuild; other raw cases are text-only. Current ordinary/exam/return Rules controls are separately tested. No production adapter or useful AI denominator.",
+            "validatorVersion": 4,
+            "variant": "baseline",
+            "wholeTimetableExact": false
+          },
+          {
+            "certificateAccepted": false,
+            "currentRulesResolved": true,
+            "modelNecessary": false,
+            "rejectionType": "RecoveryProviderError",
+            "schemaVersion": 2,
+            "scope": "One original geometry component control plus complete ordinary timetable rebuild; other raw cases are text-only. Current ordinary/exam/return Rules controls are separately tested. No production adapter or useful AI denominator.",
+            "validatorVersion": 4,
+            "variant": "shared-japanese",
+            "wholeTimetableExact": false
+          }
+        ]
+      },
+      "asset": {
+        "id": 609533662,
+        "name": "ios-gguf-ministral3-3-37192105515-1.json",
+        "bytes": 11686,
+        "sha256": "1cc21370761ef90b446ec3063ee8786d28dc26ab3718e978d9b15ff4a2b8114d"
+      }
+    },
+    {
+      "model": "phi35-mini",
+      "nativeComplete": true,
+      "modes": {
+        "baseline": {
+          "planned": 3,
+          "attempted": 3,
+          "exactRaw": 1,
+          "strictDecoded": 3,
+          "nativeErrors": 0
+        },
+        "shared-japanese": {
+          "planned": 3,
+          "attempted": 3,
+          "exactRaw": 0,
+          "strictDecoded": 3,
+          "nativeErrors": 0
+        }
+      },
+      "peakKiB": 5268368,
+      "scorerCompleted": true,
+      "certificate": {
+        "currentRulesResolved": true,
+        "scope": "Same actual source geometry certificate and complete unchanged timetable pipeline for each shared prompt; useful AI denominator zero",
+        "variants": [
+          {
+            "certificateAccepted": false,
+            "currentRulesResolved": true,
+            "modelNecessary": false,
+            "rejectionType": "RecoveryProviderError",
+            "schemaVersion": 2,
+            "scope": "One original geometry component control plus complete ordinary timetable rebuild; other raw cases are text-only. Current ordinary/exam/return Rules controls are separately tested. No production adapter or useful AI denominator.",
+            "validatorVersion": 4,
+            "variant": "baseline",
+            "wholeTimetableExact": false
+          },
+          {
+            "certificateAccepted": false,
+            "currentRulesResolved": true,
+            "modelNecessary": false,
+            "rejectionType": "RecoveryProviderError",
+            "schemaVersion": 2,
+            "scope": "One original geometry component control plus complete ordinary timetable rebuild; other raw cases are text-only. Current ordinary/exam/return Rules controls are separately tested. No production adapter or useful AI denominator.",
+            "validatorVersion": 4,
+            "variant": "shared-japanese",
+            "wholeTimetableExact": false
+          }
+        ]
+      },
+      "asset": {
+        "id": 609536070,
+        "name": "ios-gguf-phi35-mini-37192105515-1.json",
+        "bytes": 11780,
+        "sha256": "e28cc0c1b7fbdffc9266c00e53d2581b608dbe7eeba7a87a8d4ecb427c68b524"
+      }
+    },
+    {
+      "model": "qwen25-15",
+      "nativeComplete": true,
+      "modes": {
+        "baseline": {
+          "planned": 3,
+          "attempted": 3,
+          "exactRaw": 0,
+          "strictDecoded": 3,
+          "nativeErrors": 0
+        },
+        "shared-japanese": {
+          "planned": 3,
+          "attempted": 3,
+          "exactRaw": 0,
+          "strictDecoded": 3,
+          "nativeErrors": 0
+        }
+      },
+      "peakKiB": 1968592,
+      "scorerCompleted": true,
+      "certificate": {
+        "currentRulesResolved": true,
+        "scope": "Same actual source geometry certificate and complete unchanged timetable pipeline for each shared prompt; useful AI denominator zero",
+        "variants": [
+          {
+            "certificateAccepted": false,
+            "currentRulesResolved": true,
+            "modelNecessary": false,
+            "rejectionType": "RecoveryProviderError",
+            "schemaVersion": 2,
+            "scope": "One original geometry component control plus complete ordinary timetable rebuild; other raw cases are text-only. Current ordinary/exam/return Rules controls are separately tested. No production adapter or useful AI denominator.",
+            "validatorVersion": 4,
+            "variant": "baseline",
+            "wholeTimetableExact": false
+          },
+          {
+            "certificateAccepted": false,
+            "currentRulesResolved": true,
+            "modelNecessary": false,
+            "rejectionType": "RecoveryProviderError",
+            "schemaVersion": 2,
+            "scope": "One original geometry component control plus complete ordinary timetable rebuild; other raw cases are text-only. Current ordinary/exam/return Rules controls are separately tested. No production adapter or useful AI denominator.",
+            "validatorVersion": 4,
+            "variant": "shared-japanese",
+            "wholeTimetableExact": false
+          }
+        ]
+      },
+      "asset": {
+        "id": 609531374,
+        "name": "ios-gguf-qwen25-15-37192105515-1.json",
+        "bytes": 11818,
+        "sha256": "f8840435fe37893ed223b78cea77b6d6ae7509a3909a4eb5e1b52dc8d1a6bf74"
+      }
+    },
+    {
+      "model": "qwen3-06",
+      "nativeComplete": true,
+      "modes": {
+        "baseline": {
+          "planned": 3,
+          "attempted": 3,
+          "exactRaw": 0,
+          "strictDecoded": 0,
+          "nativeErrors": 0
+        },
+        "shared-japanese": {
+          "planned": 3,
+          "attempted": 3,
+          "exactRaw": 0,
+          "strictDecoded": 3,
+          "nativeErrors": 0
+        }
+      },
+      "peakKiB": 1210152,
+      "scorerCompleted": true,
+      "certificate": {
+        "currentRulesResolved": true,
+        "scope": "Same actual source geometry certificate and complete unchanged timetable pipeline for each shared prompt; useful AI denominator zero",
+        "variants": [
+          {
+            "certificateAccepted": false,
+            "currentRulesResolved": true,
+            "modelNecessary": false,
+            "rejectionType": "RecoveryProviderError",
+            "schemaVersion": 2,
+            "scope": "One original geometry component control plus complete ordinary timetable rebuild; other raw cases are text-only. Current ordinary/exam/return Rules controls are separately tested. No production adapter or useful AI denominator.",
+            "validatorVersion": 4,
+            "variant": "baseline",
+            "wholeTimetableExact": false
+          },
+          {
+            "certificateAccepted": false,
+            "currentRulesResolved": true,
+            "modelNecessary": false,
+            "rejectionType": "RecoveryProviderError",
+            "schemaVersion": 2,
+            "scope": "One original geometry component control plus complete ordinary timetable rebuild; other raw cases are text-only. Current ordinary/exam/return Rules controls are separately tested. No production adapter or useful AI denominator.",
+            "validatorVersion": 4,
+            "variant": "shared-japanese",
+            "wholeTimetableExact": false
+          }
+        ]
+      },
+      "asset": {
+        "id": 609530385,
+        "name": "ios-gguf-qwen3-06-37192105515-1.json",
+        "bytes": 11757,
+        "sha256": "68a7e59a708c9b9227752804245e1eff83075d5d74fc80235e13ca6b5010b0a8"
+      }
+    },
+    {
+      "model": "smollm3-3",
+      "nativeComplete": true,
+      "modes": {
+        "baseline": {
+          "planned": 3,
+          "attempted": 3,
+          "exactRaw": 0,
+          "strictDecoded": 3,
+          "nativeErrors": 0
+        },
+        "shared-japanese": {
+          "planned": 3,
+          "attempted": 3,
+          "exactRaw": 0,
+          "strictDecoded": 2,
+          "nativeErrors": 0
+        }
+      },
+      "peakKiB": 3627208,
+      "scorerCompleted": true,
+      "certificate": {
+        "currentRulesResolved": true,
+        "scope": "Same actual source geometry certificate and complete unchanged timetable pipeline for each shared prompt; useful AI denominator zero",
+        "variants": [
+          {
+            "certificateAccepted": false,
+            "currentRulesResolved": true,
+            "modelNecessary": false,
+            "rejectionType": "RecoveryProviderError",
+            "schemaVersion": 2,
+            "scope": "One original geometry component control plus complete ordinary timetable rebuild; other raw cases are text-only. Current ordinary/exam/return Rules controls are separately tested. No production adapter or useful AI denominator.",
+            "validatorVersion": 4,
+            "variant": "baseline",
+            "wholeTimetableExact": false
+          },
+          {
+            "certificateAccepted": false,
+            "currentRulesResolved": true,
+            "modelNecessary": false,
+            "rejectionType": "RecoveryProviderError",
+            "schemaVersion": 2,
+            "scope": "One original geometry component control plus complete ordinary timetable rebuild; other raw cases are text-only. Current ordinary/exam/return Rules controls are separately tested. No production adapter or useful AI denominator.",
+            "validatorVersion": 4,
+            "variant": "shared-japanese",
+            "wholeTimetableExact": false
+          }
+        ]
+      },
+      "asset": {
+        "id": 609536083,
+        "name": "ios-gguf-smollm3-3-37192105515-1.json",
+        "bytes": 11610,
+        "sha256": "479309fec46c843ce3ffee393cc9a62c002211fa9ed811b19271df4a0269407a"
+      }
+    }
+  ]
+}

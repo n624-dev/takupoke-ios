@@ -1,0 +1,84 @@
+{
+  "scope": "Exact actual llama metadata display and native Swift selected-test completion, not phone or qualification",
+  "runId": 37192105515,
+  "rows": [
+    {
+      "candidate": "granite4-1",
+      "nativeParameterDisplay": [
+        "1.63 B"
+      ],
+      "tests": [
+        "Executed 2 tests, with 0 failures (0 unexpected) in 0.104 (0.104) seconds",
+        "Executed 3 tests, with 0 failures (0 unexpected) in 0.66 (0.66) seconds"
+      ],
+      "zipAssetId": 609531992,
+      "zipSHA256": "4151655b33546a8d8042d4ba7bf83793d7cd1e7c3253611f24d4b7e9e5c3b4c9",
+      "zipBytes": 80443
+    },
+    {
+      "candidate": "ministral3-3",
+      "nativeParameterDisplay": [
+        "3.43 B"
+      ],
+      "tests": [
+        "Executed 2 tests, with 0 failures (0 unexpected) in 0.11 (0.11) seconds",
+        "Executed 3 tests, with 0 failures (0 unexpected) in 0.688 (0.688) seconds"
+      ],
+      "zipAssetId": 609533612,
+      "zipSHA256": "e07c67e88f07d16d996cd1896a7b12d2807475f9c58a09eda833c5476db7f61b",
+      "zipBytes": 82722
+    },
+    {
+      "candidate": "phi35-mini",
+      "nativeParameterDisplay": [
+        "3.82 B"
+      ],
+      "tests": [
+        "Executed 2 tests, with 0 failures (0 unexpected) in 0.147 (0.147) seconds",
+        "Executed 3 tests, with 0 failures (0 unexpected) in 0.938 (0.938) seconds"
+      ],
+      "zipAssetId": 609536024,
+      "zipSHA256": "b4f50488eb30de23bbba0031e5ece856aec48e9b986a3bdedc60e2edfd6a2034",
+      "zipBytes": 75392
+    },
+    {
+      "candidate": "qwen25-15",
+      "nativeParameterDisplay": [
+        "1.78 B"
+      ],
+      "tests": [
+        "Executed 2 tests, with 0 failures (0 unexpected) in 0.109 (0.109) seconds",
+        "Executed 3 tests, with 0 failures (0 unexpected) in 0.687 (0.687) seconds"
+      ],
+      "zipAssetId": 609531327,
+      "zipSHA256": "d023a1f269ee910b4574acc2b0e74d1b13622b85cc55e97cc3afbef60c7696c5",
+      "zipBytes": 75508
+    },
+    {
+      "candidate": "qwen3-06",
+      "nativeParameterDisplay": [
+        "596.05 M"
+      ],
+      "tests": [
+        "Executed 2 tests, with 0 failures (0 unexpected) in 0.102 (0.102) seconds",
+        "Executed 3 tests, with 0 failures (0 unexpected) in 0.641 (0.641) seconds"
+      ],
+      "zipAssetId": 609530320,
+      "zipSHA256": "62ae21171ece1765fe12fe1b6a94383012c78813e089db15f7d1daa603885c8a",
+      "zipBytes": 75132
+    },
+    {
+      "candidate": "smollm3-3",
+      "nativeParameterDisplay": [
+        "3.08 B"
+      ],
+      "tests": [
+        "Executed 2 tests, with 0 failures (0 unexpected) in 0.206 (0.206) seconds",
+        "Executed 3 tests, with 0 failures (0 unexpected) in 1.362 (1.362) seconds"
+      ],
+      "zipAssetId": 609536040,
+      "zipSHA256": "9a8e8a43186fcebfb674ef6cca7e6c5ba2da78ef21abed9c53f452aa5152a66b",
+      "zipBytes": 78171
+    }
+  ]
+}

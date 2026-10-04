@@ -1,0 +1,344 @@
+{
+  "scope": "Native CPU development label component controls only; not model qualification, phone memory proof, CoreAI evidence, or useful AI recovery",
+  "candidate": {
+    "id": "qwen25-15",
+    "repository": "Qwen/Qwen2.5-1.5B-Instruct-GGUF",
+    "revision": "91cad51170dc346986eccefdc2dd33a9da36ead9",
+    "file": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+    "bytes": 1117320736,
+    "sha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+    "baseRepository": "Qwen/Qwen2.5-1.5B-Instruct",
+    "baseRevision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+    "license": "apache-2.0",
+    "licenseSource": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct/raw/989aa7980e4cf806f80c7fef2b1adb7bc71aa306/LICENSE",
+    "licenseFile": "licenses/qwen25-15.txt",
+    "licenseSHA256": "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e",
+    "quantizationCardFile": "licenses/qwen25-15-quantization-card.md",
+    "quantizationCardSHA256": "57c72d4010fb11a98fc8e62dc8ef112b23a7a7525b71e571ca978d35cb3b2eec",
+    "repositoryMetadataSHA256": "420666714fbababe8a53a43919a82b9015bf5aeef630d067797c85580d02fe36",
+    "baseMetadataSHA256": "32824c1922b4f434a58e7ec03fc20d44bb15a3d495251ebb6d33daef61b97663",
+    "licenseNote": "Full original license retained"
+  },
+  "runtimeCommit": "99b95488cac0f00ce3f05af113a8c1e287753f87",
+  "sourceSHA": "63d140478eb0e3d82794aaf1fa7f489bbc48c9fc",
+  "corpusSHA256": "7a0c210890d713cc1f597f30f76a538027d47d9ae2fc960de90cc85aaaabffd3",
+  "instructionSHA256": "32e7f94105d6309955ecba1717c0a3642265f823891563c783428164d73a932e",
+  "recipe": {
+    "contextTokens": 4096,
+    "tokenLimit": 512,
+    "CPUThreads": 2,
+    "sampler": "production bridge greedy, no RNG sampling",
+    "grammar": "three role arrays, every original ID eligible in every role, zero to48 entries",
+    "metal": false,
+    "perCallCooperativeWatchdogSeconds": 120
+  },
+  "memoryScope": "Linux Python process including actual C bridge/model; RUSAGE_SELF largest process high-water RSS, no iPhone6GB available-memory assumption",
+  "results": [
+    {
+      "variant": "baseline",
+      "case": "original-certificate-control",
+      "negative": false,
+      "nativeStatus": 0,
+      "seconds": 5.407965494999985,
+      "raw": "{\"subject\":[\"g0\",\"g2\"],\"teacher\":[\"g3\"],\"room\":[\"g5\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "5a48c9d447c8fddf76571903a913ddbdda357fdf9dab47f9b89372756345bf2f",
+      "grammarSHA256": "6e28072904872cf5bb3f5ff80d6fcfe6ec580231363984e250082fa2d172395f",
+      "processPeakRSSKiB": 1959032,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "g0",
+          "g2"
+        ],
+        "teacher": [
+          "g3"
+        ],
+        "room": [
+          "g5"
+        ]
+      }
+    },
+    {
+      "variant": "baseline",
+      "case": "heldout-missingteacher",
+      "negative": true,
+      "nativeStatus": 0,
+      "seconds": 3.772700222000026,
+      "raw": "{\"subject\":[\"u37\",\"u84\"],\"teacher\":[\"u19\"],\"room\":[\"u62\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "13d1138dd094dd090db0a1f7f5ceb74682c4693b2339f5df1e92d4517f632dc5",
+      "grammarSHA256": "bae040790f362e4e9982f581475cba17a401aacca3d2e477e3e692f88b876030",
+      "processPeakRSSKiB": 1963808,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "u37",
+          "u84"
+        ],
+        "teacher": [
+          "u19"
+        ],
+        "room": [
+          "u62"
+        ]
+      }
+    },
+    {
+      "variant": "baseline",
+      "case": "heldout-injection",
+      "negative": true,
+      "nativeStatus": 0,
+      "seconds": 3.65868727000003,
+      "raw": "{\"subject\":[\"u37\"],\"teacher\":[\"u19\"],\"room\":[\"u62\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "5ea5f80a72ce1f9b60b262ad336002544740cb2fded01bf6cdf51aa7a5b53a8d",
+      "grammarSHA256": "bae040790f362e4e9982f581475cba17a401aacca3d2e477e3e692f88b876030",
+      "processPeakRSSKiB": 1963808,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "u37"
+        ],
+        "teacher": [
+          "u19"
+        ],
+        "room": [
+          "u62"
+        ]
+      }
+    },
+    {
+      "variant": "shared-japanese",
+      "case": "original-certificate-control",
+      "negative": false,
+      "nativeStatus": 0,
+      "seconds": 6.6779001190000145,
+      "raw": "{\"subject\":[\"g1\",\"g4\",\"g6\"],\"teacher\":[\"g2\",\"g3\"],\"room\":[\"g5\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "5a48c9d447c8fddf76571903a913ddbdda357fdf9dab47f9b89372756345bf2f",
+      "grammarSHA256": "6e28072904872cf5bb3f5ff80d6fcfe6ec580231363984e250082fa2d172395f",
+      "processPeakRSSKiB": 1963836,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "g1",
+          "g4",
+          "g6"
+        ],
+        "teacher": [
+          "g2",
+          "g3"
+        ],
+        "room": [
+          "g5"
+        ]
+      }
+    },
+    {
+      "variant": "shared-japanese",
+      "case": "heldout-missingteacher",
+      "negative": true,
+      "nativeStatus": 0,
+      "seconds": 4.8483986370000025,
+      "raw": "{\"subject\":[\"u84\"],\"teacher\":[\"u19\"],\"room\":[\"u62\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "13d1138dd094dd090db0a1f7f5ceb74682c4693b2339f5df1e92d4517f632dc5",
+      "grammarSHA256": "bae040790f362e4e9982f581475cba17a401aacca3d2e477e3e692f88b876030",
+      "processPeakRSSKiB": 1963848,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "u84"
+        ],
+        "teacher": [
+          "u19"
+        ],
+        "room": [
+          "u62"
+        ]
+      }
+    },
+    {
+      "variant": "shared-japanese",
+      "case": "heldout-injection",
+      "negative": true,
+      "nativeStatus": 0,
+      "seconds": 4.677298680999968,
+      "raw": "{\"subject\":[\"u84\"],\"teacher\":[],\"room\":[\"u62\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "5ea5f80a72ce1f9b60b262ad336002544740cb2fded01bf6cdf51aa7a5b53a8d",
+      "grammarSHA256": "bae040790f362e4e9982f581475cba17a401aacca3d2e477e3e692f88b876030",
+      "processPeakRSSKiB": 1968592,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "u84"
+        ],
+        "teacher": [],
+        "room": [
+          "u62"
+        ]
+      }
+    }
+  ],
+  "nativeExecutionComplete": true,
+  "usefulAIRecoveryDenominator": 0,
+  "heldout": false,
+  "plannedCases": 6,
+  "promptExperiment": "Shared fixed Japanese instruction A/B",
+  "promptVariants": {
+    "baseline": "32e7f94105d6309955ecba1717c0a3642265f823891563c783428164d73a932e",
+    "shared-japanese": "391a678c09537b4e22b26b3b831b6ec9cb3b6b5554d0a173bb67f8302864dc12"
+  },
+  "selectedCaseNames": [
+    "original-certificate-control",
+    "heldout-missingteacher",
+    "heldout-injection"
+  ],
+  "promptComparisonLimits": "Same fixed order baseline then Japanese; native bridge clears context every call. Second phase may benefit from warm CPU/cache state; no causal latency advantage claimed.",
+  "actualBridgeBinarySHA256": "34b447ee042518fe3533a2bac821da28e4b3249e7d5a840bd3debe5664adf24e",
+  "actualRuntimeBinarySHA256": "745d8210b0275711101c206ea54f3e8768fa1c9d39ecebbf117ad00ea52843d2",
+  "download": {
+    "seconds": 7.079131856000004,
+    "bytes": 1117320736,
+    "sha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e"
+  },
+  "load": {
+    "status": 0,
+    "seconds": 0.45267395099995156,
+    "processPeakRSSKiB": 1889752
+  },
+  "summary": {
+    "total": 6,
+    "attempted": 6,
+    "rawExact": 0,
+    "semanticScored": 6,
+    "nativeGenerationErrors": 0,
+    "nativeOutputFormatErrors": 0,
+    "negativeTotal": 4,
+    "negativeSemanticScored": 4,
+    "negativeExact": 0
+  },
+  "variantSummaries": {
+    "baseline": {
+      "planned": 3,
+      "attempted": 3,
+      "exactRaw": 0,
+      "strictDecoded": 3,
+      "nativeErrors": 0
+    },
+    "shared-japanese": {
+      "planned": 3,
+      "attempted": 3,
+      "exactRaw": 0,
+      "strictDecoded": 3,
+      "nativeErrors": 0
+    }
+  },
+  "release": {
+    "nativeDestroyReturned": true,
+    "seconds": 0.028238730999987638
+  },
+  "processPeakRSSKiB": 1968592,
+  "nativeCertificateControl": {
+    "currentRulesResolved": true,
+    "scope": "Same actual source geometry certificate and complete unchanged timetable pipeline for each shared prompt; useful AI denominator zero",
+    "variants": [
+      {
+        "certificateAccepted": false,
+        "currentRulesResolved": true,
+        "modelNecessary": false,
+        "rejectionType": "RecoveryProviderError",
+        "schemaVersion": 2,
+        "scope": "One original geometry component control plus complete ordinary timetable rebuild; other raw cases are text-only. Current ordinary/exam/return Rules controls are separately tested. No production adapter or useful AI denominator.",
+        "validatorVersion": 4,
+        "variant": "baseline",
+        "wholeTimetableExact": false
+      },
+      {
+        "certificateAccepted": false,
+        "currentRulesResolved": true,
+        "modelNecessary": false,
+        "rejectionType": "RecoveryProviderError",
+        "schemaVersion": 2,
+        "scope": "One original geometry component control plus complete ordinary timetable rebuild; other raw cases are text-only. Current ordinary/exam/return Rules controls are separately tested. No production adapter or useful AI denominator.",
+        "validatorVersion": 4,
+        "variant": "shared-japanese",
+        "wholeTimetableExact": false
+      }
+    ]
+  },
+  "sourceRecipePins": {
+    "NativeScorer.swift": {
+      "bytes": 5067,
+      "sha256": "d2b4b2dfcfefeec8eb3ef6a6df99bdab88ca5341d9970b70c63a463ea4ffc53f"
+    },
+    "candidates.json": {
+      "bytes": 7380,
+      "sha256": "2bf47519614fe6fb2619f6fcda0b4443d821d777c74c35ce5200613ccc6259db"
+    },
+    "corpus.json": {
+      "bytes": 9071,
+      "sha256": "7a0c210890d713cc1f597f30f76a538027d47d9ae2fc960de90cc85aaaabffd3"
+    },
+    "native-gbnf-smoke.json": {
+      "bytes": 1301,
+      "sha256": "e5eccf7ce5fee22f3f8233e99df27a8820f462b8120ae6e1b080b1cbf4be80dc"
+    },
+    "package.py": {
+      "bytes": 2909,
+      "sha256": "cca02d7355bff37d5de79996ad6fd89cb325401eabc7e2a9175c603e0cc83718"
+    },
+    "prompt-audit.json": {
+      "bytes": 3606,
+      "sha256": "11cb1cfbc87f140d66ce51062c23dcec6124f96050721c5a92447ec59a2ea0af"
+    },
+    "run_batch.py": {
+      "bytes": 12970,
+      "sha256": "0b945d64593d2e0e2b5566787c2b6aadaf6f74cde2dfccdaf3eaddda8e6f60d8"
+    },
+    "simulator-failure.json": {
+      "bytes": 2202,
+      "sha256": "ebcb263a6ec33cfbd955aa69af178338d509feb473803b749ccec15d721ffad2"
+    },
+    "test_protocol.py": {
+      "bytes": 2395,
+      "sha256": "956a7667b3efd9b20939687283b0c6f94752a9856d4cd68326dd2ad9e28194d8"
+    },
+    "upload_artifacts.py": {
+      "bytes": 5773,
+      "sha256": "29334deca996f4fb087f1b0d3b15d00054745624c50a9e4d8b7e21b5c7c89295"
+    }
+  },
+  "nativeScorerCompleted": true,
+  "logs": [
+    {
+      "file": "runtime-build.log",
+      "originalBytes": 7484,
+      "originalSHA256": "daf785fd37e4f90fffb915f5cbaa3e3d9c2dffd552c3b8aab3b5aaae8051e7a6",
+      "retainedBytes": 7484,
+      "truncated": false
+    },
+    {
+      "file": "runtime.log",
+      "originalBytes": 224279,
+      "originalSHA256": "dd48eb048fa34562a71cc912d97b10ff4d148be9e37f81fce11e9ed9384c5d51",
+      "retainedBytes": 224279,
+      "truncated": false
+    },
+    {
+      "file": "native-scorer.log",
+      "originalBytes": 100586,
+      "originalSHA256": "dc503f0079f35c3cc79ccfb245976ea5650dcc7ec171ccb4cbde00a6a134d5b6",
+      "retainedBytes": 100586,
+      "truncated": false
+    }
+  ]
+}

@@ -1,0 +1,180 @@
+{
+  "scope": "Downloaded actual bot-owned readback-verified original frozen native CPU reports; Swift scorer setup failure remains separate",
+  "runId": 37191355813,
+  "rows": [
+    {
+      "model": "granite4-1",
+      "nativeComplete": true,
+      "load": {
+        "status": 0,
+        "seconds": 0.41055646999998885,
+        "processPeakRSSKiB": 2062848
+      },
+      "summary": {
+        "total": 9,
+        "attempted": 9,
+        "rawExact": 0,
+        "semanticScored": 9,
+        "nativeGenerationErrors": 0,
+        "nativeOutputFormatErrors": 0,
+        "negativeTotal": 5,
+        "negativeSemanticScored": 5,
+        "negativeExact": 0
+      },
+      "peakKiB": 2112344,
+      "scorerCompleted": false,
+      "error": null,
+      "asset": {
+        "id": 609510432,
+        "name": "ios-gguf-granite4-1-37191355813-1.json",
+        "bytes": 11522,
+        "sha256": "a5ed0023fb1ec307b462a9d3f5cc490de0ba131d3f97333726225a61b0844745"
+      }
+    },
+    {
+      "model": "ministral3-3",
+      "nativeComplete": true,
+      "load": {
+        "status": 0,
+        "seconds": 1.4992673510000145,
+        "processPeakRSSKiB": 4023280
+      },
+      "summary": {
+        "total": 9,
+        "attempted": 9,
+        "rawExact": 0,
+        "semanticScored": 9,
+        "nativeGenerationErrors": 0,
+        "nativeOutputFormatErrors": 0,
+        "negativeTotal": 5,
+        "negativeSemanticScored": 5,
+        "negativeExact": 0
+      },
+      "peakKiB": 4104376,
+      "scorerCompleted": false,
+      "error": null,
+      "asset": {
+        "id": 609513795,
+        "name": "ios-gguf-ministral3-3-37191355813-1.json",
+        "bytes": 11386,
+        "sha256": "3a4c7a54b7297f68138cd2e802bc9df73a868e7193c1c9b511318cef6fe4f6a8"
+      }
+    },
+    {
+      "model": "phi35-mini",
+      "nativeComplete": true,
+      "load": {
+        "status": 0,
+        "seconds": 1.2417920139999978,
+        "processPeakRSSKiB": 5218936
+      },
+      "summary": {
+        "total": 9,
+        "attempted": 9,
+        "rawExact": 1,
+        "semanticScored": 9,
+        "nativeGenerationErrors": 0,
+        "nativeOutputFormatErrors": 0,
+        "negativeTotal": 5,
+        "negativeSemanticScored": 5,
+        "negativeExact": 1
+      },
+      "peakKiB": 5273212,
+      "scorerCompleted": false,
+      "error": null,
+      "asset": {
+        "id": 609513323,
+        "name": "ios-gguf-phi35-mini-37191355813-1.json",
+        "bytes": 11645,
+        "sha256": "dcffcbf7a52a57e2f498abb0895571381d1d7c4e473abc418e08f56080e5c2ec"
+      }
+    },
+    {
+      "model": "qwen25-15",
+      "nativeComplete": true,
+      "load": {
+        "status": 0,
+        "seconds": 0.6935604899999959,
+        "processPeakRSSKiB": 1889656
+      },
+      "summary": {
+        "total": 9,
+        "attempted": 9,
+        "rawExact": 0,
+        "semanticScored": 8,
+        "nativeGenerationErrors": 0,
+        "nativeOutputFormatErrors": 1,
+        "negativeTotal": 5,
+        "negativeSemanticScored": 5,
+        "negativeExact": 0
+      },
+      "peakKiB": 1967244,
+      "scorerCompleted": false,
+      "error": null,
+      "asset": {
+        "id": 609511164,
+        "name": "ios-gguf-qwen25-15-37191355813-1.json",
+        "bytes": 11367,
+        "sha256": "2eadb032b2bd970cf8b84d4c9d668ff87ec87431cac6ac89655aafbbdd86036b"
+      }
+    },
+    {
+      "model": "qwen3-06",
+      "nativeComplete": true,
+      "load": {
+        "status": 0,
+        "seconds": 0.19862794799999506,
+        "processPeakRSSKiB": 1155924
+      },
+      "summary": {
+        "total": 9,
+        "attempted": 9,
+        "rawExact": 0,
+        "semanticScored": 0,
+        "nativeGenerationErrors": 0,
+        "nativeOutputFormatErrors": 9,
+        "negativeTotal": 5,
+        "negativeSemanticScored": 0,
+        "negativeExact": 0
+      },
+      "peakKiB": 1210508,
+      "scorerCompleted": false,
+      "error": null,
+      "asset": {
+        "id": 609509990,
+        "name": "ios-gguf-qwen3-06-37191355813-1.json",
+        "bytes": 11130,
+        "sha256": "bb3c1c109a5e48376a1d433e8a6853da97b583a982e2c85a9c3254fe0550a64a"
+      }
+    },
+    {
+      "model": "smollm3-3",
+      "nativeComplete": true,
+      "load": {
+        "status": 0,
+        "seconds": 1.3156053069999984,
+        "processPeakRSSKiB": 3542356
+      },
+      "summary": {
+        "total": 9,
+        "attempted": 9,
+        "rawExact": 0,
+        "semanticScored": 8,
+        "nativeGenerationErrors": 0,
+        "nativeOutputFormatErrors": 1,
+        "negativeTotal": 5,
+        "negativeSemanticScored": 4,
+        "negativeExact": 0
+      },
+      "peakKiB": 3628692,
+      "scorerCompleted": false,
+      "error": null,
+      "asset": {
+        "id": 609512296,
+        "name": "ios-gguf-smollm3-3-37191355813-1.json",
+        "bytes": 10867,
+        "sha256": "77ba3c6e21d1e3969da77b1e0815d82c9023d93e19f56ed046082caea4dcd497"
+      }
+    }
+  ]
+}

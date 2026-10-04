@@ -1,0 +1,343 @@
+{
+  "scope": "Native CPU development label component controls only; not model qualification, phone memory proof, CoreAI evidence, or useful AI recovery",
+  "candidate": {
+    "id": "ministral3-3",
+    "repository": "mistralai/Ministral-3-3B-Instruct-2512-GGUF",
+    "revision": "eb599d408350ea2bb60452cb86be7c7b2fc28227",
+    "file": "Ministral-3-3B-Instruct-2512-Q4_K_M.gguf",
+    "bytes": 2147023008,
+    "sha256": "9ed150d4367e68df0ac8e1540f6ddc65b42d0ee26378329d1ecbca60f93fc5f8",
+    "baseRepository": "mistralai/Ministral-3-3B-Instruct-2512",
+    "baseRevision": "b35d4dfe56c142746f54dbd64f579faab2744308",
+    "license": "apache-2.0",
+    "licenseSource": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+    "licenseFile": "licenses/ministral3-3.txt",
+    "licenseSHA256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "quantizationCardFile": "licenses/ministral3-3-quantization-card.md",
+    "quantizationCardSHA256": "044632daa43f96b7e7c44cd1b9ea356e77a99df808227ec86d3252aadc637725",
+    "repositoryMetadataSHA256": "4e964a9720649672614599193504200344cbe5a1a32268965d8b2eda7794f9dd",
+    "baseMetadataSHA256": "b6ba5dee2e9455671b2e2b4cc9e6591aa016d25f88e475a5080c018799f2aea5",
+    "licenseNote": "Original model metadata explicitly declares Apache2; no source license file, full official standard Apache2 retained"
+  },
+  "runtimeCommit": "99b95488cac0f00ce3f05af113a8c1e287753f87",
+  "sourceSHA": "a92ffdfc541a98241b373be3aaac545c1dff9755",
+  "corpusSHA256": "7a0c210890d713cc1f597f30f76a538027d47d9ae2fc960de90cc85aaaabffd3",
+  "instructionSHA256": "32e7f94105d6309955ecba1717c0a3642265f823891563c783428164d73a932e",
+  "recipe": {
+    "contextTokens": 4096,
+    "tokenLimit": 512,
+    "CPUThreads": 2,
+    "sampler": "production bridge greedy, no RNG sampling",
+    "grammar": "three role arrays, every original ID eligible in every role, zero to48 entries",
+    "metal": false,
+    "perCallCooperativeWatchdogSeconds": 120
+  },
+  "memoryScope": "Linux Python process including actual C bridge/model; RUSAGE_SELF largest process high-water RSS, no iPhone6GB available-memory assumption",
+  "results": [
+    {
+      "case": "original-certificate-control",
+      "negative": false,
+      "nativeStatus": 0,
+      "seconds": 18.89250388199997,
+      "raw": "{\"subject\": [\"g1\"], \"teacher\": [], \"room\": [\"g6\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "5a48c9d447c8fddf76571903a913ddbdda357fdf9dab47f9b89372756345bf2f",
+      "grammarSHA256": "6e28072904872cf5bb3f5ff80d6fcfe6ec580231363984e250082fa2d172395f",
+      "processPeakRSSKiB": 4101304,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "g1"
+        ],
+        "teacher": [],
+        "room": [
+          "g6"
+        ]
+      }
+    },
+    {
+      "case": "heldout-synonyms",
+      "negative": false,
+      "nativeStatus": 0,
+      "seconds": 15.596511469000006,
+      "raw": "{\"subject\": [\"u71\", \"u13\"], \"teacher\": [\"u29\", \"u94\"], \"room\": [\"u17\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "eef136209c4c6d31ae7189e2de7141ffb7b78778cce02ae7514f6eb120bf1d87",
+      "grammarSHA256": "21c09f5d572fa5f90dc6d0d463b36bd938f4a27cf741447e34d8b3e03cb2ea15",
+      "processPeakRSSKiB": 4103480,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "u71",
+          "u13"
+        ],
+        "teacher": [
+          "u29",
+          "u94"
+        ],
+        "room": [
+          "u17"
+        ]
+      }
+    },
+    {
+      "case": "heldout-subject-roomfold",
+      "negative": false,
+      "nativeStatus": 0,
+      "seconds": 14.85128546499999,
+      "raw": "{\"subject\": [\"u82\"], \"teacher\": [\"u94\"], \"room\": [\"u46\", \"u17\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "0e24c5279059e452282080d71800b0342874640d6e01e41fcd369f4614a3f2b0",
+      "grammarSHA256": "2d1559f38db016fd550131de8a46380dc5cce420979582d9df40662975b1a33f",
+      "processPeakRSSKiB": 4103480,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "u82"
+        ],
+        "teacher": [
+          "u94"
+        ],
+        "room": [
+          "u46",
+          "u17"
+        ]
+      }
+    },
+    {
+      "case": "heldout-order-roomfirst",
+      "negative": false,
+      "nativeStatus": 0,
+      "seconds": 13.917429769000023,
+      "raw": "{\"subject\": [\"u82\"], \"teacher\": [\"u35\"], \"room\": [\"u13\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "b84188c818e4d69bfc022d627072dbe57089fcb13332bf3d457f434e2a9789ec",
+      "grammarSHA256": "de8707baeea00e397ea8e4b971c407f78c5a93de2e57b6520a064b650848e0dc",
+      "processPeakRSSKiB": 4103480,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "u82"
+        ],
+        "teacher": [
+          "u35"
+        ],
+        "room": [
+          "u13"
+        ]
+      }
+    },
+    {
+      "case": "heldout-missingteacher",
+      "negative": true,
+      "nativeStatus": 0,
+      "seconds": 13.336917929000037,
+      "raw": "{\"subject\": [\"u21\"], \"teacher\": [], \"room\": [\"u40\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "13d1138dd094dd090db0a1f7f5ceb74682c4693b2339f5df1e92d4517f632dc5",
+      "grammarSHA256": "bae040790f362e4e9982f581475cba17a401aacca3d2e477e3e692f88b876030",
+      "processPeakRSSKiB": 4103480,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "u21"
+        ],
+        "teacher": [],
+        "room": [
+          "u40"
+        ]
+      }
+    },
+    {
+      "case": "heldout-injection",
+      "negative": true,
+      "nativeStatus": 0,
+      "seconds": 13.969332055999985,
+      "raw": "{\"subject\": [\"u21\"], \"teacher\": [], \"room\": [\"u62\", \"u40\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "5ea5f80a72ce1f9b60b262ad336002544740cb2fded01bf6cdf51aa7a5b53a8d",
+      "grammarSHA256": "bae040790f362e4e9982f581475cba17a401aacca3d2e477e3e692f88b876030",
+      "processPeakRSSKiB": 4103480,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "u21"
+        ],
+        "teacher": [],
+        "room": [
+          "u62",
+          "u40"
+        ]
+      }
+    },
+    {
+      "case": "heldout-notexact",
+      "negative": true,
+      "nativeStatus": 0,
+      "seconds": 13.417718487000002,
+      "raw": "{\"subject\": [\"u21\"], \"teacher\": [], \"room\": [\"u40\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "4ed80d8acea05660431e4fe1b38927dfdeac9204e92ab424659fa364c5358a12",
+      "grammarSHA256": "bae040790f362e4e9982f581475cba17a401aacca3d2e477e3e692f88b876030",
+      "processPeakRSSKiB": 4104376,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "u21"
+        ],
+        "teacher": [],
+        "room": [
+          "u40"
+        ]
+      }
+    },
+    {
+      "case": "body-instruction-injection",
+      "negative": true,
+      "nativeStatus": 0,
+      "seconds": 13.573304291999989,
+      "raw": "{\"subject\": [\"b21\"], \"teacher\": [], \"room\": [\"f33\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "4f7c515b0bbc696693a983755f499079e27301443a897c9fd99302f26d283233",
+      "grammarSHA256": "d59d7d7eec25516f89e7e815a4437569eebc021f7a75db7b25b82c6f021bb348",
+      "processPeakRSSKiB": 4104376,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "b21"
+        ],
+        "teacher": [],
+        "room": [
+          "f33"
+        ]
+      }
+    },
+    {
+      "case": "all-labels-absent",
+      "negative": true,
+      "nativeStatus": 0,
+      "seconds": 13.328217553999934,
+      "raw": "{\"subject\": [\"m74\"], \"teacher\": [], \"room\": [\"t51\"]}",
+      "watchdogExpired": false,
+      "requestSHA256": "b7391a545e4f52fc24d3570356204706ad14aba479d24530b153b761f969fb6e",
+      "grammarSHA256": "1287d8e4aca2d3ceed2e6a5ed4c86de5724a012bc49922091471ac42978640e4",
+      "processPeakRSSKiB": 4104376,
+      "decoderAccepted": true,
+      "exactRaw": false,
+      "decoded": {
+        "subject": [
+          "m74"
+        ],
+        "teacher": [],
+        "room": [
+          "t51"
+        ]
+      }
+    }
+  ],
+  "nativeExecutionComplete": true,
+  "usefulAIRecoveryDenominator": 0,
+  "heldout": false,
+  "actualBridgeBinarySHA256": "34b447ee042518fe3533a2bac821da28e4b3249e7d5a840bd3debe5664adf24e",
+  "actualRuntimeBinarySHA256": "745d8210b0275711101c206ea54f3e8768fa1c9d39ecebbf117ad00ea52843d2",
+  "download": {
+    "seconds": 52.93325184499997,
+    "bytes": 2147023008,
+    "sha256": "9ed150d4367e68df0ac8e1540f6ddc65b42d0ee26378329d1ecbca60f93fc5f8"
+  },
+  "load": {
+    "status": 0,
+    "seconds": 1.4992673510000145,
+    "processPeakRSSKiB": 4023280
+  },
+  "summary": {
+    "total": 9,
+    "attempted": 9,
+    "rawExact": 0,
+    "semanticScored": 9,
+    "nativeGenerationErrors": 0,
+    "nativeOutputFormatErrors": 0,
+    "negativeTotal": 5,
+    "negativeSemanticScored": 5,
+    "negativeExact": 0
+  },
+  "release": {
+    "nativeDestroyReturned": true,
+    "seconds": 0.05840647600007287
+  },
+  "processPeakRSSKiB": 4104376,
+  "nativeCertificateControl": {
+    "executed": false,
+    "reason": "Native Swift scorer did not return a report; see retained native-scorer log"
+  },
+  "sourceRecipePins": {
+    "NativeScorer.swift": {
+      "bytes": 4486,
+      "sha256": "b0b677d70d0f70d90b9dabc9acd941f27cd687f77b68b4beb1a99f29ba72fcf2"
+    },
+    "candidates.json": {
+      "bytes": 7380,
+      "sha256": "2bf47519614fe6fb2619f6fcda0b4443d821d777c74c35ce5200613ccc6259db"
+    },
+    "corpus.json": {
+      "bytes": 9071,
+      "sha256": "7a0c210890d713cc1f597f30f76a538027d47d9ae2fc960de90cc85aaaabffd3"
+    },
+    "native-gbnf-smoke.json": {
+      "bytes": 1301,
+      "sha256": "e5eccf7ce5fee22f3f8233e99df27a8820f462b8120ae6e1b080b1cbf4be80dc"
+    },
+    "package.py": {
+      "bytes": 2889,
+      "sha256": "53da6c964ac941829e477e9d7d06c2eb172ef0aa6f7d41d83861a53757df062f"
+    },
+    "run_batch.py": {
+      "bytes": 10213,
+      "sha256": "c8fa2748eccd7ad0e49f61bea7515f432924955825890fefead92caa3252d2c4"
+    },
+    "simulator-failure.json": {
+      "bytes": 2202,
+      "sha256": "ebcb263a6ec33cfbd955aa69af178338d509feb473803b749ccec15d721ffad2"
+    },
+    "test_protocol.py": {
+      "bytes": 1915,
+      "sha256": "a11d7430dcb34fd19b19cccce53d880eb0b8d233336f0147b2634396f5252512"
+    },
+    "upload_artifacts.py": {
+      "bytes": 5773,
+      "sha256": "29334deca996f4fb087f1b0d3b15d00054745624c50a9e4d8b7e21b5c7c89295"
+    }
+  },
+  "nativeScorerCompleted": false,
+  "logs": [
+    {
+      "file": "runtime-build.log",
+      "originalBytes": 7484,
+      "originalSHA256": "2c008f41418cc5926adc94cbe39a792d955d4134f5159fb45a1af598e772cde6",
+      "retainedBytes": 7484,
+      "truncated": false
+    },
+    {
+      "file": "runtime.log",
+      "originalBytes": 312251,
+      "originalSHA256": "e19aada2a9bf4d8fa9c83ac77baf2e4d3cc9cd6c6cd6d84d12a171db9d829d70",
+      "retainedBytes": 312251,
+      "truncated": false
+    },
+    {
+      "file": "native-scorer.log",
+      "originalBytes": 1290,
+      "originalSHA256": "caf68381d329215ed84e4496d865dfa808d7dd9c4e0e8e3fc2ad4ed60b27264c",
+      "retainedBytes": 1290,
+      "truncated": false
+    }
+  ]
+}
