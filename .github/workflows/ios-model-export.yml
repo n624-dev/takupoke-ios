@@ -1,0 +1,93 @@
+# Research-only public checkpoint conversion. Root owns branch/draft publication.
+name: Export standalone iOS Core AI research model
+on:
+  push:
+    branches: ['research/ios-model-probe-*']
+    paths: ['.github/workflows/ios-model-export.yml', 'tools/phone-model-probe/model-export/**']
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing draft iOS research prerelease only
+        required: true
+        type: string
+      release_id:
+        description: Immutable numeric ID of the exact existing draft research prerelease
+        required: true
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: ios-model-export-${{ github.event.inputs.release_tag || 'model-probe-ios-20261004' }}
+  cancel-in-progress: false
+jobs:
+  convert-public-model:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      QA_TAG: ${{ github.event.inputs.release_tag || 'model-probe-ios-20261004' }}
+      QA_RELEASE_ID: ${{ github.event.inputs.release_id || '402903016' }}
+      PIP_NO_CACHE_DIR: '1'
+    steps:
+      - name: Checkout immutable reviewed export source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, same production pin
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+          sparse-checkout: tools/phone-model-probe/model-export
+      - name: Check the destination and prepare only owned scratch
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$QA_RELEASE_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$QA_TAG" =~ ^model-probe-ios-[0-9]{8}(-[a-z0-9]+)?$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/releases/$QA_RELEASE_ID" > "$RUNNER_TEMP/ios-model-export-draft.json"
+          python3 - "$RUNNER_TEMP/ios-model-export-draft.json" <<'PY'
+          import json,os,sys
+          value=json.load(open(sys.argv[1]));assert value['id']==int(os.environ['QA_RELEASE_ID']) and value['tag_name']==os.environ['QA_TAG'] and value['draft'] and value['prerelease']
+          assert sys.version_info[:2]==(3,12)
+          PY
+          mkdir "$RUNNER_TEMP/ios-model-export-owned"
+          touch "$RUNNER_TEMP/ios-model-export-owned/.ios-model-export-owned"
+      - name: Resolve the fixed official Core AI source and CPU dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/ios-model-export-owned"
+          source="$GITHUB_WORKSPACE/tools/phone-model-probe/model-export"
+          git init "$work/coreai-models"
+          git -C "$work/coreai-models" remote add origin https://github.com/apple/coreai-models.git
+          git -C "$work/coreai-models" fetch --depth=1 origin 52c84ba874b2c57adcede08a671ce96ed1b3f433
+          git -C "$work/coreai-models" checkout --detach FETCH_HEAD
+          [[ "$(git -C "$work/coreai-models" rev-parse HEAD)" == 52c84ba874b2c57adcede08a671ce96ed1b3f433 ]]
+          python3 -m venv "$work/venv"
+          "$work/venv/bin/python" -m pip install torch==2.9.0+cpu --index-url https://download.pytorch.org/whl/cpu
+          "$work/venv/bin/python" -m pip install -r "$source/requirements.txt"
+          "$work/venv/bin/python" -m pip install --no-deps "$work/coreai-models/python"
+          "$work/venv/bin/python" -m pip check
+      - name: Convert the pinned public full model and retain new actual hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/ios-model-export-owned"
+          "$work/venv/bin/python" "$GITHUB_WORKSPACE/tools/phone-model-probe/model-export/export_model.py" "$work" "$GITHUB_WORKSPACE/tools/phone-model-probe/model-export"
+      - name: Upload and read back only this run's new model artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 "$GITHUB_WORKSPACE/tools/phone-model-probe/model-export/upload_model_artifacts.py" "$RUNNER_TEMP/ios-model-export-owned/package"
+      - name: Retain cleanup evidence and remove only owned temporary data
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          cleanup_status=0
+          helper="$GITHUB_WORKSPACE/tools/phone-model-probe/model-export/upload_model_artifacts.py"
+          work="$RUNNER_TEMP/ios-model-export-owned"
+          if [[ -f "$helper" && -f "$work/package/upload-owned-assets.json" ]]; then
+            python3 "$helper" "$work/package" --cleanup || cleanup_status=$?
+          fi
+          if [[ -f "$work/.ios-model-export-owned" ]]; then rm -rf "$work"; fi
+          rm -f "$RUNNER_TEMP/ios-model-export-draft.json"
+          exit "$cleanup_status"
