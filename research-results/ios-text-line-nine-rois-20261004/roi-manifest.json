@@ -1,0 +1,172 @@
+{
+  "schema": 1,
+  "fixture": "independent-Timetable-literal-\u4e59",
+  "page": 1,
+  "pdfSha256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+  "capturedRawSHA256": "feeb3cdd4ea2f930f305cc94050c8ba5ba018a10ba259f7a14abc8823ca8b78c",
+  "originalPNG_SHA256": "1778ddd50e7d267b77b561df7e0fc17eae82fa68693bd2d74c76132f738ade57",
+  "originalRGBA_SHA256": "ea88aabe36bfd799029b644f42467a47c9cf9e32f0691807b2b156ea1daf58b9",
+  "originalImage": {
+    "alphaInfoRawValue": 2,
+    "bitmapInfoRawValue": 8194,
+    "bitsPerComponent": 8,
+    "bitsPerPixel": 32,
+    "bytesPerRow": 3936,
+    "colorSpaceComponents": 3,
+    "colorSpaceModel": "CGColorSpaceModel(rawValue: 1)",
+    "colorSpaceName": "kCGColorSpaceDeviceRGB",
+    "height": 197,
+    "shouldInterpolate": true,
+    "width": 984
+  },
+  "selection": "Every finite top1 confidence <0.85; geometry only, raw text is not read",
+  "paddingPixels": 2,
+  "maxRequests": 16,
+  "requestCount": 9,
+  "rois": [
+    {
+      "id": "left-0000",
+      "sourceRegion": "left",
+      "sourceNativeOrder": 0,
+      "sourceConfidence": 0.5,
+      "sourceObservationOriginalPixelBox": {
+        "height": 21.888888888888875,
+        "width": 118,
+        "x": -9.821428648137953e-08,
+        "y": 5.969696950153321
+      },
+      "x": 0,
+      "y": 3,
+      "width": 120,
+      "height": 27
+    },
+    {
+      "id": "left-0001",
+      "sourceRegion": "left",
+      "sourceNativeOrder": 1,
+      "sourceConfidence": 0.5,
+      "sourceObservationOriginalPixelBox": {
+        "height": 26.288595339264514,
+        "width": 42.25994491577148,
+        "x": -0.12997231527205244,
+        "y": 107.2445904875581
+      },
+      "x": 0,
+      "y": 105,
+      "width": 45,
+      "height": 31
+    },
+    {
+      "id": "left-0003",
+      "sourceRegion": "left",
+      "sourceNativeOrder": 3,
+      "sourceConfidence": 0.5,
+      "sourceObservationOriginalPixelBox": {
+        "height": 17.909090909090892,
+        "width": 11.999999999999993,
+        "x": 97.9999999,
+        "y": 65.66666644280305
+      },
+      "x": 95,
+      "y": 63,
+      "width": 17,
+      "height": 23
+    },
+    {
+      "id": "left-0007",
+      "sourceRegion": "left",
+      "sourceNativeOrder": 7,
+      "sourceConfidence": 0.5,
+      "sourceObservationOriginalPixelBox": {
+        "height": 21.8888888888889,
+        "width": 53.999999999999986,
+        "x": 209.99999989583335,
+        "y": 5.969696924095109
+      },
+      "x": 207,
+      "y": 3,
+      "width": 59,
+      "height": 27
+    },
+    {
+      "id": "left-0008",
+      "sourceRegion": "left",
+      "sourceNativeOrder": 8,
+      "sourceConfidence": 0.5,
+      "sourceObservationOriginalPixelBox": {
+        "height": 17.90909090909094,
+        "width": 14.000000000000004,
+        "x": 207.99999988333332,
+        "y": 65.66666651742422
+      },
+      "x": 205,
+      "y": 63,
+      "width": 19,
+      "height": 23
+    },
+    {
+      "id": "left-0010",
+      "sourceRegion": "left",
+      "sourceNativeOrder": 10,
+      "sourceConfidence": 0.5,
+      "sourceObservationOriginalPixelBox": {
+        "height": 17.909090909090892,
+        "width": 14.000000000000032,
+        "x": 429.9999999,
+        "y": 65.66666648757577
+      },
+      "x": 427,
+      "y": 63,
+      "width": 19,
+      "height": 23
+    },
+    {
+      "id": "right-0001",
+      "sourceRegion": "right",
+      "sourceNativeOrder": 1,
+      "sourceConfidence": 0.5,
+      "sourceObservationOriginalPixelBox": {
+        "height": 15.919190970334133,
+        "width": 11.999999999999979,
+        "x": 653.9999999333334,
+        "y": 65.6666668757757
+      },
+      "x": 651,
+      "y": 63,
+      "width": 17,
+      "height": 21
+    },
+    {
+      "id": "right-0002",
+      "sourceRegion": "right",
+      "sourceNativeOrder": 2,
+      "sourceConfidence": 0.5,
+      "sourceObservationOriginalPixelBox": {
+        "height": 13.92929292929293,
+        "width": 11.999999999999979,
+        "x": 765.9999998666667,
+        "y": 65.66666643451178
+      },
+      "x": 763,
+      "y": 63,
+      "width": 17,
+      "height": 19
+    },
+    {
+      "id": "right-0003",
+      "sourceRegion": "right",
+      "sourceNativeOrder": 3,
+      "sourceConfidence": 0.5,
+      "sourceObservationOriginalPixelBox": {
+        "height": 13.92929292929293,
+        "width": 12.000000000000036,
+        "x": 877.99999988,
+        "y": 67.65656551727274
+      },
+      "x": 875,
+      "y": 65,
+      "width": 17,
+      "height": 19
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "sourceCommit": "748ec016ea32b8d533df4626c3767505cc268cb2",
+  "sourceFiles": {
+    "PDFRecoveryRecognition.swift": "455d3bd4ba4a886c7578bf3214457977e7b73f6ef14540c4fc738f93eae37d22",
+    "RecoveryModels.swift": "a1047c3d042b12f6d94d125eeed18881d8a9710abffed4a6fe550e6d85a4073a",
+    "MaterialLibrary.swift": "d32021ff2c76d890a4fdf96c9ed83c09852a77d98ef5c4adbd72e5ffce0d933f",
+    "PDFParseError.swift": "71ec98ca51b91f9dc754ce5831c993bc6a5a0681a19677dc7c07e456018c007e",
+    "PDFDiagnostics.swift": "ba948805a25d6189c9af1e44b0e10b1839edff6f308c02e935fb769737e118b9",
+    "PDFAnalysis.swift": "0b9870edc3e8d12c6179d2d58775571073e44ba0259122f618cad40309fd0e95",
+    "MaterialModels.swift": "d598593866ecb51d38f23e921b7882d5191d8ac6e6ededb979232a21b25f097a"
+  },
+  "selectors": [
+    {
+      "file": "RecoveryModels.swift",
+      "selector": "enum RecoveryInputState:",
+      "sha256": "8aba0151a7bff78dd70825b7429931904452ea64f83f0fc1871725ff8f9a2814",
+      "bytes": 89
+    },
+    {
+      "file": "MaterialModels.swift",
+      "selector": "enum MaterialKind:",
+      "sha256": "38641c6170155e5ed173780e0344315051324d1a7034deda3d00e358367b41dc",
+      "bytes": 407
+    },
+    {
+      "file": "PDFAnalysis.swift",
+      "selector": "struct PDFGlyph:",
+      "sha256": "29db6e71bae2b58ae3a068feeabba0588cff30c77305e3af742628841cce91c9",
+      "bytes": 278
+    },
+    {
+      "file": "PDFAnalysis.swift",
+      "selector": "struct PDFBox:",
+      "sha256": "e77a134e17681a6db6578cc263a466a8d40f108245b5a74a08ff267165c64a42",
+      "bytes": 113
+    },
+    {
+      "file": "PDFAnalysis.swift",
+      "selector": "struct PDFCellGeometryDiagnostic:",
+      "sha256": "65c88c63e59b2a9f2aa5602eac69067cce0a356d95af0a6197dde8813d12f05c",
+      "bytes": 1238
+    },
+    {
+      "file": "PDFDiagnostics.swift",
+      "selector": "struct PDFDiagnosticSnapshot:",
+      "sha256": "63b87878547a0c8b1bb456b25b17f45ad62c4f976007712f7b1b51b3db854805",
+      "bytes": 2039
+    },
+    {
+      "file": "PDFParseError.swift",
+      "selector": "struct PDFParseError:",
+      "sha256": "c8ffcf64dae28c60911308ee641b60bbfd6d055e675ed6b72d18643891052328",
+      "bytes": 4408
+    },
+    {
+      "file": "PDFRecoveryRecognition.swift",
+      "selector": "struct RecoveryRecognizedPage:",
+      "sha256": "8b401fa587c5ed291fd8b3cc947908b598bde284bb9557ed43873156ff4eb9de",
+      "bytes": 365
+    },
+    {
+      "file": "PDFAnalysis.swift",
+      "selector": "static func currentVersion(",
+      "sha256": "bc71f9c56dc51c309c897670d6eee563a9d8a3b0e7db3764b9ca842a8c3dad66",
+      "bytes": 97
+    },
+    {
+      "file": "PDFRecoveryRecognition.swift",
+      "selector": "static func read(",
+      "sha256": "1f54acfb040b8d8476a40c2c65fc8d2abb0b68dc164e2824e551e5c65e606d75",
+      "bytes": 1836
+    }
+  ],
+  "generatedSourceSHA256": "47fa7265e80a4b81b0d60f8552a1527c9c1fac5215e6c87be99f545cbb48c5fc",
+  "readBodySHA256": "1f54acfb040b8d8476a40c2c65fc8d2abb0b68dc164e2824e551e5c65e606d75",
+  "scope": "Source-extracted native .read acquisition measurement; namespace wrappers are not the full app; layouts is never called",
+  "textLineComparison": {
+    "scope": "First original literal page rendered once; only captured low-confidence line ROIs requested",
+    "renderStatementsSHA256": "aa65cd57d6e1eb1dbd2badf8a9c80cc8447fc7ad117ec98afef084b1c3d6caf5",
+    "generatedRasterSHA256": "aa6e43cec4ef4d611a540fcae36afeffc09f90867850024809454922bf62854a",
+    "api": "RecognizeTextRequest",
+    "recognitionLevel": "accurate",
+    "recognitionLanguages": [
+      "ja-JP",
+      "en-US"
+    ],
+    "usesLanguageCorrection": false,
+    "automaticallyDetectsLanguage": false,
+    "customWords": [],
+    "requestCount": 9,
+    "candidatesPerObservation": 1,
+    "confidencePredicate": "finite and 0.85...1; diagnostic only",
+    "nativeInputs": "Original PDFs and input manifest plus actual-observation geometry ROI manifest only; no raw/expected text or gold",
+    "selectedFixture": "independent-Timetable-literal-\u4e59",
+    "selectedPage": 1,
+    "cropRule": "floor(min)-2, ceil(max)+2, integer clip to original image; no resizing",
+    "inverseRule": "Original top-left pixel x/y = local pixel x/y + ROI integer offsets",
+    "roiManifestSHA256": "1944ad0a3d4cfa2234adb35dc0358888e46b0b5e1910c49c151f70fbcbd75631",
+    "capturedRawSHA256": "feeb3cdd4ea2f930f305cc94050c8ba5ba018a10ba259f7a14abc8823ca8b78c"
+  }
+}

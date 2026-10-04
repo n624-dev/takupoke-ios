@@ -1,0 +1,14 @@
+{
+  "id": 37217403883,
+  "run_attempt": 1,
+  "event": "push",
+  "head_branch": "research/ios-text-line-20261004",
+  "head_sha": "3e319d1d2b8e86db4aba73f489d9de0b72803f8f",
+  "status": "completed",
+  "conclusion": "success",
+  "html_url": "https://github.com/n624-dev/takupoke-ios/actions/runs/37217403883",
+  "created_at": "2026-10-04T16:36:43Z",
+  "updated_at": "2026-10-04T16:43:45Z",
+  "run_started_at": "2026-10-04T16:36:43Z",
+  "workflow_id": 374723477
+}

@@ -1,0 +1,126 @@
+{
+  "sourceCommit": "3e319d1d2b8e86db4aba73f489d9de0b72803f8f",
+  "nativeRunId": 37217403883,
+  "attempt": 1,
+  "nativeRawSHA256": "1b0bf8b6cfc8e58947880792fe964142555438bf568a82a9725ccfc156290ed3",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 3817,
+      "sha256": "4014a7a246505a28252d04d1ef06f19a77bb92094e91ebba34f61513f13f3503"
+    },
+    {
+      "path": "analyze.py",
+      "bytes": 10714,
+      "sha256": "fbc1d8b1b545d813a11b44b3a31257d267e06c9e79c798d124ad0c35aa060485"
+    },
+    {
+      "path": "derived-evidence.json",
+      "bytes": 41329,
+      "sha256": "daadc6b159478f2f15d0bde88172fc892864ab94c2c700968b000d5e4ca1c403"
+    },
+    {
+      "path": "execution-receipt.json",
+      "bytes": 40039,
+      "sha256": "8dbc4d368335b36301d4f6946d852e2fe9958d37296eed6a31f2aa290f90865c"
+    },
+    {
+      "path": "native-raw.jsonl",
+      "bytes": 75070,
+      "sha256": "1b0bf8b6cfc8e58947880792fe964142555438bf568a82a9725ccfc156290ed3"
+    },
+    {
+      "path": "native-render/left-0000.png",
+      "bytes": 3792,
+      "sha256": "caf8dceb6fdc04bea33a300ac70ed0ced65109fef5fab415ab42306c1f8f72b0"
+    },
+    {
+      "path": "native-render/left-0001.png",
+      "bytes": 1236,
+      "sha256": "1f590753896c6a1e2f42c7b5c9df2c3647efa8ae7ddfd16c314a824e87debc9c"
+    },
+    {
+      "path": "native-render/left-0003.png",
+      "bytes": 548,
+      "sha256": "8c2fe1942260766a1f56a5eb73722a0713b224bf70ceffa6f7d37158d352061a"
+    },
+    {
+      "path": "native-render/left-0007.png",
+      "bytes": 2324,
+      "sha256": "be2c4a80fd2e556ed4a4dcf0387dfa5eaaf1362948061938e13b810d54d478ab"
+    },
+    {
+      "path": "native-render/left-0008.png",
+      "bytes": 618,
+      "sha256": "c75df2bf6eb3f8c02920187aa38172edd503c8887214dfd734916ee59ab08c86"
+    },
+    {
+      "path": "native-render/left-0010.png",
+      "bytes": 616,
+      "sha256": "9613cf552e560d937a548637b6ae6eeaec901caf141075df4e4ee5038808fa87"
+    },
+    {
+      "path": "native-render/original.png",
+      "bytes": 24230,
+      "sha256": "1778ddd50e7d267b77b561df7e0fc17eae82fa68693bd2d74c76132f738ade57"
+    },
+    {
+      "path": "native-render/right-0001.png",
+      "bytes": 659,
+      "sha256": "5e6354bce0ba74c25b8d66b16b7a0070e9b0799cd280599fa262ff07d12d2a26"
+    },
+    {
+      "path": "native-render/right-0002.png",
+      "bytes": 550,
+      "sha256": "5e1c19e1c56b199550e7b53987be2b2aca4b06723eeca3f5b2beed99bc3d8d79"
+    },
+    {
+      "path": "native-render/right-0003.png",
+      "bytes": 657,
+      "sha256": "55a8ba4afc09d65798ffc0ba9d5daeba57cbb9126fb0e520ceeeb791b9553cf6"
+    },
+    {
+      "path": "native-run.json",
+      "bytes": 460,
+      "sha256": "0d11de675583276b2d2e0d7f8ae9a7e0b4931ca8020b9df3d6237a7e332bb7df"
+    },
+    {
+      "path": "roi-manifest.json",
+      "bytes": 4460,
+      "sha256": "1944ad0a3d4cfa2234adb35dc0358888e46b0b5e1910c49c151f70fbcbd75631"
+    },
+    {
+      "path": "source-extraction-receipt.json",
+      "bytes": 4384,
+      "sha256": "7112c4fab70b07ee15f244e5e1e451c074590f20d30ba1e8eb1221a48d70692b"
+    },
+    {
+      "path": "source-input-receipt.json",
+      "bytes": 13458,
+      "sha256": "05588c882811ccb70ad932dafbb24a9a0a36cf229b57670865b35d686097ebdb"
+    }
+  ],
+  "predecessorCommit": "ab8927db8db4f6809989ff46b47208e0f1dba61b",
+  "predecessorFiles": [
+    {
+      "path": "research-results/ios-text-crop-one-page-20261004/native-raw.jsonl",
+      "sha256": "feeb3cdd4ea2f930f305cc94050c8ba5ba018a10ba259f7a14abc8823ca8b78c"
+    },
+    {
+      "path": "research-results/ios-text-crop-one-page-20261004/previous-page-one.jsonl",
+      "sha256": "876be87ea34b3a1455c22c53de025b195ed5fd26d60d079146d6bd421d226ca2"
+    },
+    {
+      "path": "research-results/ios-text-crop-one-page-20261004/input-manifest.json",
+      "sha256": "0a1b2895fb9f8c34e452dcceaddf2aaf8b00a52079695a53789b5162d1283aa1"
+    },
+    {
+      "path": "research-results/ios-text-crop-one-page-20261004/drawing-source.json",
+      "sha256": "c2acd23ad38bc9e6eea4ded8b1fb790ac5817bb7891f090483a2f28084eab1b9"
+    },
+    {
+      "path": "research-results/ios-text-crop-one-page-20261004/native-render/original.png",
+      "sha256": "1778ddd50e7d267b77b561df7e0fc17eae82fa68693bd2d74c76132f738ade57"
+    }
+  ]
+}

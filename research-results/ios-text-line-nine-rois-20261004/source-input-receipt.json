@@ -1,0 +1,365 @@
+{
+  "base": "6fe7d66f64b5cd26484d629a3304e95bb4510631",
+  "allEqual": true,
+  "immutableFiles": [
+    {
+      "path": "tools/vision-acquisition-probe/HierarchyObservation.swift",
+      "sha256": "634cc092197dbda7174735d27b5f2b31f9acf2814858145290a69c0c44f3d0e7"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/Probe.swift",
+      "sha256": "aef78dffb7ed85360b851882976c002aad77e2c3e5de89a6337fb26bbb5bbf77"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/README.md",
+      "sha256": "68df44615cc099caf782c11d75944ee375a5a16239e2e409a54c0d8c11cb92be"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs.json",
+      "sha256": "0a1b2895fb9f8c34e452dcceaddf2aaf8b00a52079695a53789b5162d1283aa1"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-literal-\u4e59/page-1.png",
+      "sha256": "a0db633e4ee653dd18ab0d99b00f69aa3aa7f8d009f86e2b03c3cffd23bba6a7"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-literal-\u4e59/page-2.png",
+      "sha256": "e4b7f6cfa73a27567893e6a555b720c954bee2f709b77bb60066938b67a793b8"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-literal-\u4e59/page-3.png",
+      "sha256": "b9eff63c09a77fa9a054a478287fe1737b66710bfc39eda436109e519774100e"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-literal-\u4e59/page-4.png",
+      "sha256": "32bfc1384924e8c63dd97f53529726daf64d8e6f5425c73a73cad578156cafa3"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-literal-\u4e59/page-5.png",
+      "sha256": "4933332d579a7ddc1c3123fdd6c22206f851483193a891f19ead01a0cc19a4b4"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-verifiedblank-\u4e19/page-1.png",
+      "sha256": "5dc6c33f3600c7c2e8f8cffced619a96af292ece024f82357c77857936b6e3c7"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-verifiedblank-\u4e19/page-2.png",
+      "sha256": "a337510f7052b27adce3f24d38fa17ae7dfbc7cad7295dbf0390753acdc2b1af"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-verifiedblank-\u4e19/page-3.png",
+      "sha256": "bfaed1fc9931f04b7e86946d482455fbfbe7b110ab66a756e68bd17cd6974185"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-verifiedblank-\u4e19/page-4.png",
+      "sha256": "255cc9bbfb95f17ab9f0bb453495804ccc525705540a6eb8635d06d6dff548ce"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-verifiedblank-\u4e19/page-5.png",
+      "sha256": "41ebdb01f4f3dfeb0ab323150545871961cc0bca6d4a2e3aa91abacd78c6dbfd"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/original_assemble.py",
+      "sha256": "825cbb7d226585fc8e194f30484812b98b4d4edf00881e15521e14f2a5dcd3e9"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/prepare.py",
+      "sha256": "954d75d7c2868095dcdd74a3ab4c6eb47be1bf2765992a51945f6975be736462"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/run_simulator.py",
+      "sha256": "0f859979758dc761396961031594817ccd87bc3dba87eed5eed4a8b0a0cccfb9"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/source-pins.json",
+      "sha256": "515c383aeeb00ac6ae9bc717936e74375a7ece787b4e4541dd7d420bb521a35d"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/test_hierarchy_budget.py",
+      "sha256": "49de72464ca9da540edaafdd3acef46d4a2f6fb13143d226f80022da78e7673f"
+    },
+    {
+      "path": "tools/vision-acquisition-probe/test_prepare.py",
+      "sha256": "8aeb1e1c864a40d6168a078acf9f1dd61db94cc51b653008c45250a0ad8dec9d"
+    },
+    {
+      "path": ".github/workflows/vision-acquisition-probe.yml",
+      "sha256": "79c0ae33a7a9865a05939024fd195a129e14a002616a0d0b92ea5d392b463970"
+    }
+  ],
+  "roiManifest": {
+    "schema": 1,
+    "fixture": "independent-Timetable-literal-\u4e59",
+    "page": 1,
+    "pdfSha256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+    "capturedRawSHA256": "feeb3cdd4ea2f930f305cc94050c8ba5ba018a10ba259f7a14abc8823ca8b78c",
+    "originalPNG_SHA256": "1778ddd50e7d267b77b561df7e0fc17eae82fa68693bd2d74c76132f738ade57",
+    "originalRGBA_SHA256": "ea88aabe36bfd799029b644f42467a47c9cf9e32f0691807b2b156ea1daf58b9",
+    "originalImage": {
+      "alphaInfoRawValue": 2,
+      "bitmapInfoRawValue": 8194,
+      "bitsPerComponent": 8,
+      "bitsPerPixel": 32,
+      "bytesPerRow": 3936,
+      "colorSpaceComponents": 3,
+      "colorSpaceModel": "CGColorSpaceModel(rawValue: 1)",
+      "colorSpaceName": "kCGColorSpaceDeviceRGB",
+      "height": 197,
+      "shouldInterpolate": true,
+      "width": 984
+    },
+    "selection": "Every finite top1 confidence <0.85; geometry only, raw text is not read",
+    "paddingPixels": 2,
+    "maxRequests": 16,
+    "requestCount": 9,
+    "rois": [
+      {
+        "id": "left-0000",
+        "sourceRegion": "left",
+        "sourceNativeOrder": 0,
+        "sourceConfidence": 0.5,
+        "sourceObservationOriginalPixelBox": {
+          "height": 21.888888888888875,
+          "width": 118,
+          "x": -9.821428648137953e-08,
+          "y": 5.969696950153321
+        },
+        "x": 0,
+        "y": 3,
+        "width": 120,
+        "height": 27
+      },
+      {
+        "id": "left-0001",
+        "sourceRegion": "left",
+        "sourceNativeOrder": 1,
+        "sourceConfidence": 0.5,
+        "sourceObservationOriginalPixelBox": {
+          "height": 26.288595339264514,
+          "width": 42.25994491577148,
+          "x": -0.12997231527205244,
+          "y": 107.2445904875581
+        },
+        "x": 0,
+        "y": 105,
+        "width": 45,
+        "height": 31
+      },
+      {
+        "id": "left-0003",
+        "sourceRegion": "left",
+        "sourceNativeOrder": 3,
+        "sourceConfidence": 0.5,
+        "sourceObservationOriginalPixelBox": {
+          "height": 17.909090909090892,
+          "width": 11.999999999999993,
+          "x": 97.9999999,
+          "y": 65.66666644280305
+        },
+        "x": 95,
+        "y": 63,
+        "width": 17,
+        "height": 23
+      },
+      {
+        "id": "left-0007",
+        "sourceRegion": "left",
+        "sourceNativeOrder": 7,
+        "sourceConfidence": 0.5,
+        "sourceObservationOriginalPixelBox": {
+          "height": 21.8888888888889,
+          "width": 53.999999999999986,
+          "x": 209.99999989583335,
+          "y": 5.969696924095109
+        },
+        "x": 207,
+        "y": 3,
+        "width": 59,
+        "height": 27
+      },
+      {
+        "id": "left-0008",
+        "sourceRegion": "left",
+        "sourceNativeOrder": 8,
+        "sourceConfidence": 0.5,
+        "sourceObservationOriginalPixelBox": {
+          "height": 17.90909090909094,
+          "width": 14.000000000000004,
+          "x": 207.99999988333332,
+          "y": 65.66666651742422
+        },
+        "x": 205,
+        "y": 63,
+        "width": 19,
+        "height": 23
+      },
+      {
+        "id": "left-0010",
+        "sourceRegion": "left",
+        "sourceNativeOrder": 10,
+        "sourceConfidence": 0.5,
+        "sourceObservationOriginalPixelBox": {
+          "height": 17.909090909090892,
+          "width": 14.000000000000032,
+          "x": 429.9999999,
+          "y": 65.66666648757577
+        },
+        "x": 427,
+        "y": 63,
+        "width": 19,
+        "height": 23
+      },
+      {
+        "id": "right-0001",
+        "sourceRegion": "right",
+        "sourceNativeOrder": 1,
+        "sourceConfidence": 0.5,
+        "sourceObservationOriginalPixelBox": {
+          "height": 15.919190970334133,
+          "width": 11.999999999999979,
+          "x": 653.9999999333334,
+          "y": 65.6666668757757
+        },
+        "x": 651,
+        "y": 63,
+        "width": 17,
+        "height": 21
+      },
+      {
+        "id": "right-0002",
+        "sourceRegion": "right",
+        "sourceNativeOrder": 2,
+        "sourceConfidence": 0.5,
+        "sourceObservationOriginalPixelBox": {
+          "height": 13.92929292929293,
+          "width": 11.999999999999979,
+          "x": 765.9999998666667,
+          "y": 65.66666643451178
+        },
+        "x": 763,
+        "y": 63,
+        "width": 17,
+        "height": 19
+      },
+      {
+        "id": "right-0003",
+        "sourceRegion": "right",
+        "sourceNativeOrder": 3,
+        "sourceConfidence": 0.5,
+        "sourceObservationOriginalPixelBox": {
+          "height": 13.92929292929293,
+          "width": 12.000000000000036,
+          "x": 877.99999988,
+          "y": 67.65656551727274
+        },
+        "x": 875,
+        "y": 65,
+        "width": 17,
+        "height": 19
+      }
+    ]
+  },
+  "extraction": {
+    "sourceCommit": "748ec016ea32b8d533df4626c3767505cc268cb2",
+    "sourceFiles": {
+      "PDFRecoveryRecognition.swift": "455d3bd4ba4a886c7578bf3214457977e7b73f6ef14540c4fc738f93eae37d22",
+      "RecoveryModels.swift": "a1047c3d042b12f6d94d125eeed18881d8a9710abffed4a6fe550e6d85a4073a",
+      "MaterialLibrary.swift": "d32021ff2c76d890a4fdf96c9ed83c09852a77d98ef5c4adbd72e5ffce0d933f",
+      "PDFParseError.swift": "71ec98ca51b91f9dc754ce5831c993bc6a5a0681a19677dc7c07e456018c007e",
+      "PDFDiagnostics.swift": "ba948805a25d6189c9af1e44b0e10b1839edff6f308c02e935fb769737e118b9",
+      "PDFAnalysis.swift": "0b9870edc3e8d12c6179d2d58775571073e44ba0259122f618cad40309fd0e95",
+      "MaterialModels.swift": "d598593866ecb51d38f23e921b7882d5191d8ac6e6ededb979232a21b25f097a"
+    },
+    "selectors": [
+      {
+        "file": "RecoveryModels.swift",
+        "selector": "enum RecoveryInputState:",
+        "sha256": "8aba0151a7bff78dd70825b7429931904452ea64f83f0fc1871725ff8f9a2814",
+        "bytes": 89
+      },
+      {
+        "file": "MaterialModels.swift",
+        "selector": "enum MaterialKind:",
+        "sha256": "38641c6170155e5ed173780e0344315051324d1a7034deda3d00e358367b41dc",
+        "bytes": 407
+      },
+      {
+        "file": "PDFAnalysis.swift",
+        "selector": "struct PDFGlyph:",
+        "sha256": "29db6e71bae2b58ae3a068feeabba0588cff30c77305e3af742628841cce91c9",
+        "bytes": 278
+      },
+      {
+        "file": "PDFAnalysis.swift",
+        "selector": "struct PDFBox:",
+        "sha256": "e77a134e17681a6db6578cc263a466a8d40f108245b5a74a08ff267165c64a42",
+        "bytes": 113
+      },
+      {
+        "file": "PDFAnalysis.swift",
+        "selector": "struct PDFCellGeometryDiagnostic:",
+        "sha256": "65c88c63e59b2a9f2aa5602eac69067cce0a356d95af0a6197dde8813d12f05c",
+        "bytes": 1238
+      },
+      {
+        "file": "PDFDiagnostics.swift",
+        "selector": "struct PDFDiagnosticSnapshot:",
+        "sha256": "63b87878547a0c8b1bb456b25b17f45ad62c4f976007712f7b1b51b3db854805",
+        "bytes": 2039
+      },
+      {
+        "file": "PDFParseError.swift",
+        "selector": "struct PDFParseError:",
+        "sha256": "c8ffcf64dae28c60911308ee641b60bbfd6d055e675ed6b72d18643891052328",
+        "bytes": 4408
+      },
+      {
+        "file": "PDFRecoveryRecognition.swift",
+        "selector": "struct RecoveryRecognizedPage:",
+        "sha256": "8b401fa587c5ed291fd8b3cc947908b598bde284bb9557ed43873156ff4eb9de",
+        "bytes": 365
+      },
+      {
+        "file": "PDFAnalysis.swift",
+        "selector": "static func currentVersion(",
+        "sha256": "bc71f9c56dc51c309c897670d6eee563a9d8a3b0e7db3764b9ca842a8c3dad66",
+        "bytes": 97
+      },
+      {
+        "file": "PDFRecoveryRecognition.swift",
+        "selector": "static func read(",
+        "sha256": "1f54acfb040b8d8476a40c2c65fc8d2abb0b68dc164e2824e551e5c65e606d75",
+        "bytes": 1836
+      }
+    ],
+    "generatedSourceSHA256": "47fa7265e80a4b81b0d60f8552a1527c9c1fac5215e6c87be99f545cbb48c5fc",
+    "readBodySHA256": "1f54acfb040b8d8476a40c2c65fc8d2abb0b68dc164e2824e551e5c65e606d75",
+    "scope": "Source-extracted native .read acquisition measurement; namespace wrappers are not the full app; layouts is never called",
+    "textLineComparison": {
+      "scope": "First original literal page rendered once; only captured low-confidence line ROIs requested",
+      "renderStatementsSHA256": "aa65cd57d6e1eb1dbd2badf8a9c80cc8447fc7ad117ec98afef084b1c3d6caf5",
+      "generatedRasterSHA256": "aa6e43cec4ef4d611a540fcae36afeffc09f90867850024809454922bf62854a",
+      "api": "RecognizeTextRequest",
+      "recognitionLevel": "accurate",
+      "recognitionLanguages": [
+        "ja-JP",
+        "en-US"
+      ],
+      "usesLanguageCorrection": false,
+      "automaticallyDetectsLanguage": false,
+      "customWords": [],
+      "requestCount": 9,
+      "candidatesPerObservation": 1,
+      "confidencePredicate": "finite and 0.85...1; diagnostic only",
+      "nativeInputs": "Original PDFs and input manifest plus actual-observation geometry ROI manifest only; no raw/expected text or gold",
+      "selectedFixture": "independent-Timetable-literal-\u4e59",
+      "selectedPage": 1,
+      "cropRule": "floor(min)-2, ceil(max)+2, integer clip to original image; no resizing",
+      "inverseRule": "Original top-left pixel x/y = local pixel x/y + ROI integer offsets",
+      "roiManifestSHA256": "1944ad0a3d4cfa2234adb35dc0358888e46b0b5e1910c49c151f70fbcbd75631",
+      "capturedRawSHA256": "feeb3cdd4ea2f930f305cc94050c8ba5ba018a10ba259f7a14abc8823ca8b78c"
+    }
+  },
+  "sourceCommit": "3e319d1d2b8e86db4aba73f489d9de0b72803f8f",
+  "nativeRun": "https://github.com/n624-dev/takupoke-ios/actions/runs/37217403883"
+}
