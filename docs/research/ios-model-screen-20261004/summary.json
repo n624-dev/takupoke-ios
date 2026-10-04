@@ -22,7 +22,7 @@
   "usefulAIRecoveryDenominator": 0,
   "heldout": false,
   "memoryScope": "Linux RUSAGE_SELF.ru_maxrss whole evaluator-process resident high-water including native model mappings/shared resident pages. Not private RSS, private working set or PSS; excludes the separately launched Swift/Docker child. No iPhone available-memory proof. Fixed baseline-then-Japanese ordering prevents causal latency comparison.",
-  "finalDecision": "All6 remain inactive/unqualified; no additional conversion or physical-device request justified from this evidence. Shared Japanese prompt improves .6 strict shape/order compliance, but no model exact result improves on the three controlled cases.",
+  "finalDecision": "All6 remain inactive/unqualified; no additional conversion or physical-device request justified from this evidence. Shared Japanese prompt improves .6 strict shape/order compliance; none of six improves literal original-gold-array equality on the three selected development inputs. Ambiguous text-only cases do not establish semantic accuracy/failure. Actual unambiguous original-geometry12 certificate decisions all reject, and usefulAI denominator is zero.",
   "records": [
     {
       "identity": {
@@ -1484,5 +1484,18 @@
     }
   ],
   "privateMemoryMeasured": false,
-  "historicalCaseNameScope": "heldout-* names are historical identifiers only; all nine inputs in this screen are consumed development controls, not blind heldout qualification."
+  "historicalCaseNameScope": "heldout-* names are historical identifiers only; all nine inputs in this screen are consumed development controls, not blind heldout qualification.",
+  "literalExactInterpretation": "rawExact/exactRaw counts literal equality with the single recorded gold arrays only. Text-only inputs omit some geometry and may admit multiple supported alias ID assignments; non-equality is not sufficient to conclude semantic model error. Ambiguity/alternative analysis is separate. Actual original complete geometry certificate decisions remain unchanged.",
+  "textOnlySemanticAccuracyEstablished": false,
+  "independentOutputDiagnosis": {
+    "file": "independent-output-diagnosis.json",
+    "bytes": 360823,
+    "sha256": "fae2317001bf29fa76154a655b70cfce9309d0e2263e624bd6f72cc7ad3042ed",
+    "records": 90,
+    "ambiguousCase": "heldout-subject-roomfold",
+    "validCompleteAliasAssignmentCount": 5,
+    "otherCasesUniqueCompleteAliasAssignment": true,
+    "actualReturnedAlternateCompleteAssignments": 0,
+    "capacityCausation": "Not isolated; instruction/template/input contract and model weights were not independently separated. Exact aliases do not establish full-PDF recovery."
+  }
 }
