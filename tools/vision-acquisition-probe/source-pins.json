@@ -1,0 +1,12 @@
+{
+  "commit": "748ec016ea32b8d533df4626c3767505cc268cb2",
+  "files": {
+    "PDFRecoveryRecognition.swift": "455d3bd4ba4a886c7578bf3214457977e7b73f6ef14540c4fc738f93eae37d22",
+    "RecoveryModels.swift": "a1047c3d042b12f6d94d125eeed18881d8a9710abffed4a6fe550e6d85a4073a",
+    "MaterialLibrary.swift": "d32021ff2c76d890a4fdf96c9ed83c09852a77d98ef5c4adbd72e5ffce0d933f",
+    "PDFParseError.swift": "71ec98ca51b91f9dc754ce5831c993bc6a5a0681a19677dc7c07e456018c007e",
+    "PDFDiagnostics.swift": "ba948805a25d6189c9af1e44b0e10b1839edff6f308c02e935fb769737e118b9",
+    "PDFAnalysis.swift": "0b9870edc3e8d12c6179d2d58775571073e44ba0259122f618cad40309fd0e95",
+    "MaterialModels.swift": "d598593866ecb51d38f23e921b7882d5191d8ac6e6ededb979232a21b25f097a"
+  }
+}
