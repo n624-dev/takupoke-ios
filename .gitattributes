@@ -18,3 +18,6 @@
 *.pdf binary
 *.xlsx binary
 *.ipa binary
+tools/recovery-prompt-contracts/prompts/*.txt text eol=lf
+Takupoke/RecoveryPromptResources/*.txt text eol=lf
+Vendor/CoreAIRecoveryRuntime/Sources/CoreAIRecoveryRuntime/Resources/*.txt text eol=lf

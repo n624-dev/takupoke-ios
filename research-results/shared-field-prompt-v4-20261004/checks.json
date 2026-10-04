@@ -1,0 +1,66 @@
+{
+  "sourceCommit": "3c90d6e202efa6f38e43a6a01ee4cddcca5b9aa9",
+  "promptVersion": 4,
+  "structurePromptVersion": 3,
+  "recoveryVersion": 2,
+  "schemaVersion": 2,
+  "validatorVersion": 4,
+  "instructionUTF8Bytes": 2939,
+  "instructionSHA256": "c24039ae4317a433a14f01697d77813424a3a1c20a70327189964b2fc60bb188",
+  "runs": [
+    {
+      "id": 37200758652,
+      "workflow": "Check shared research recovery prompts",
+      "conclusion": "success",
+      "offlineTests": 7,
+      "strictFixtures": 30
+    },
+    {
+      "id": 37200758660,
+      "workflow": "Shared iOS field prompt packaging",
+      "conclusion": "success",
+      "hostJob": 111431780114,
+      "nativeHostTests": 359,
+      "failures": 0,
+      "deviceSDKJob": 111431779909,
+      "iPhoneSDKBuild": "success",
+      "installedAppInstructionReadback": "2939 bytes / exact c240 SHA",
+      "installedCoreAISwiftPMInstructionReadback": "2939 bytes / exact c240 SHA"
+    }
+  ],
+  "localChecks": {
+    "pythonDistributionTests": 58,
+    "failures": 0,
+    "Swift6_1_2SyntaxParse": "pass",
+    "canonicalAndRuntimeAssetCopies": 3
+  },
+  "logs": [
+    {
+      "name": "ios-high-shared-field-native-host.log",
+      "bytes": 269939,
+      "sha256": "7e2df686f895435cf6796477011b775fc74e8dec0d479a3da5fed7ed073011fd"
+    },
+    {
+      "name": "ios-high-shared-field-device-sdk.log",
+      "bytes": 523090,
+      "sha256": "9e28b674db9cf55a5af26d1e76c51b4c7cb73418b2d75c21a66b31cb360439c7"
+    }
+  ],
+  "productionProviders": [
+    "SystemLanguageRecoveryProvider",
+    "LocalLlamaRecoveryProvider",
+    "CoreAIRecoveryProvider / separate CoreAIRecoveryRuntime"
+  ],
+  "unchanged": [
+    "Structure instructions and guide descriptions",
+    "Native schemas and state casing",
+    "Strict/Rules/Validator",
+    "Llama closed-think template behavior and runtimes",
+    "Models and model catalog",
+    "Previously measured prompts / inference receipts"
+  ],
+  "nativeInferenceCalls": 0,
+  "newMeasuredModelAccuracy": false,
+  "modelCatalogActivation": false,
+  "qualification": "Not established by prompt content, packaging or regression tests. CoreAI physical inference/memory remains unverified; prior simulator SDK lacks CoreAI module."
+}
