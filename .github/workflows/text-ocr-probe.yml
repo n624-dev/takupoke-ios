@@ -1,0 +1,69 @@
+name: Compare ordinary accurate text OCR on the original two PDFs
+on:
+  push:
+    branches: [research/ios-text-ocr-20261004]
+    paths: ['tools/text-ocr-probe/**', '.github/workflows/text-ocr-probe.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ios-text-ocr-original-two-20261004
+  cancel-in-progress: false
+jobs:
+  native-acquisition:
+    runs-on: xcode-27
+    timeout-minutes: 40
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Verify exact source and assemble unchanged original PDF pixels
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/text-ocr-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir "$work"
+          touch "$work/.text-ocr-owned"
+          python3 -m unittest discover -s tools/vision-acquisition-probe -p 'test_prepare.py'
+          python3 -m unittest discover -s tools/text-ocr-probe -p 'test_*.py'
+          python3 tools/text-ocr-probe/prepare.py "$work/prepared"
+      - name: Compile ordinary accurate text OCR for the actual iOS simulator SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/text-ocr-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          architecture="$(uname -m)"
+          sdk="$(xcrun --sdk iphonesimulator --show-sdk-path)"
+          xcrun --sdk iphonesimulator --show-sdk-version
+          xcrun swiftc -sdk "$sdk" -target "$architecture-apple-ios27.0-simulator" -parse-as-library -O "$work/prepared/OriginalAcquisition.swift" "$work/prepared/OriginalTextRaster.swift" tools/text-ocr-probe/TextProbe.swift -o "$work/TextOCRProbe"
+          codesign --force --sign - "$work/TextOCRProbe"
+      - name: One native request for each of the ten original pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/text-ocr-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          python3 tools/text-ocr-probe/run_simulator.py "$work"
+      - name: Clean only this job's simulator and scratch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/text-ocr-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          cleanup_status=0
+          if [[ -f "$work/owned-simulator.json" ]]; then
+            python3 - "$work/owned-simulator.json" <<'PY' || cleanup_status=$?
+          import json,os,re,subprocess,sys
+          v=json.load(open(sys.argv[1]));assert v['runId']==os.environ['GITHUB_RUN_ID'] and v['attempt']==os.environ['GITHUB_RUN_ATTEMPT']
+          u=v['udid'];assert re.fullmatch(r'[0-9A-Fa-f-]{36}',u)
+          listed=json.loads(subprocess.run(['xcrun','simctl','list','devices','-j'],check=True,capture_output=True,text=True).stdout)
+          if any(d['udid']==u for devices in listed['devices'].values() for d in devices):
+              subprocess.run(['xcrun','simctl','shutdown',u],check=False)
+              subprocess.run(['xcrun','simctl','delete',u],check=True)
+          PY
+          fi
+          if [[ -f "$work/.text-ocr-owned" ]]; then rm -rf "$work"; fi
+          exit "$cleanup_status"
