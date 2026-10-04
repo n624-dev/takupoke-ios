@@ -1,0 +1,4481 @@
+{
+  "fixtureCases" : 73,
+  "fixtureSha256" : "66ce1efcf4a415d70ec71e1eb5707ca665c91eba0f33d99a86d08dc54f59c43f",
+  "nativeInferenceCalls" : 0,
+  "recipe" : "evidence-span-finite-v1",
+  "results" : [
+    {
+      "accepted" : true,
+      "name" : "original-three-parent-utf8-partition",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-subject-科目:",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "27e296260ff22d4991156efd901a7fca21581d5b9a5601a8ddcce86e7b75f720",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-subject-科目：",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-a",
+            "start" : 9
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 9,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目：架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "1beeba24bac08cf56d9b7069bc143c38fad8eaf2218343b92fc0b5e9824acba3",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-subject-授業:",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "授業:架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "d538cf86120b4488805a976624c807df60b050c28309ebc19ed27e871b636a95",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-subject-授業：",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-a",
+            "start" : 9
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 9,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "授業：架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "cf477f4e45d74b4b3ff22ce7c9cb331b7c1d1d2907c3e9d82e46de6024168607",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-subject-授業科目:",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-a",
+            "start" : 13
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 13,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "授業科目:架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "63f625f15753695ca9f78d30e0e194ad6f1d8fdfb0957477b38653241d0c3f24",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-subject-授業科目：",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-a",
+            "start" : 15
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "授業科目：架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "9493b8af89604ea17c6dea87e55a5052a1e58d36e38a0b9a6cf4f65729eb63ef",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-subject-科目名:",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-a",
+            "start" : 10
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 10,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目名:架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "59c12503e926984ff301e4cef68e6554709165615a802a1b776003bcc09888da",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-subject-科目名：",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-a",
+            "start" : 12
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 12,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目名：架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "4ca0429de3bf73d1130dd238352f09954eeeff725d783f8e04a7be32f042711c",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-subject-授業名:",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-a",
+            "start" : 10
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 10,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "授業名:架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "6e339f9b356ce530d644bbe79c8a1bbeb1905dbf711842f77bc96c85c12596af",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-subject-授業名：",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-a",
+            "start" : 12
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 12,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "授業名：架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "8710f57f7ede493032ea7a22ca08f207790e855602c65ad40761ea82a6c5df90",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-teacher-教員:",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-b",
+            "start" : 7
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "教員:架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "20c765e97390618fdce35a544f6a654b9b0c5eaddd66c6bb2cd0377ab1da0cff",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-teacher-教員：",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-b",
+            "start" : 9
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 9,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "教員：架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "86155b0c4e982afdea89d34f64a074e8eb34ade2b92e05c0e6e4252cdab54693",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-teacher-担当:",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-b",
+            "start" : 7
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当:架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "3e324cf8810ead2a52b53391e957361024951a920acf989d7e1e1227f3a5431e",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-teacher-担当：",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-b",
+            "start" : 9
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 9,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当：架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "188f6714e670c29bb427cdfb23a11f62916a7cf3a95f31c9bedab732628e910f",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-teacher-担当教員:",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-b",
+            "start" : 13
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 13,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員:架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "122343de7aeedbd1b5ae72a462578c654e5550361bac85fee798067d6cf29eed",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-teacher-担当教員：",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "1f0250f375abcc4a428864c811c7d1808d9a2c7fc1dd842f92dac131eadf7a07",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-teacher-教師:",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-b",
+            "start" : 7
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "教師:架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "63e0e1ef284d9740f87e1314184155965ac35b8ec8ed365bd49d9e9922a8f9fb",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-teacher-教師：",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-b",
+            "start" : 9
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 9,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "教師：架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "bca5ce7e9c2feba3381a0e928f621c5cd9d8bc04010448c64d48072208244b4b",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-teacher-教員名:",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-b",
+            "start" : 10
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 10,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "教員名:架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "2a7c39de197a3410be5e346e63418b04f42da2af693df08d1ae2626002edd7ef",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-teacher-教員名：",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-b",
+            "start" : 12
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 12,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "教員名：架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "3cb96bb9d476c40f7982ae51177849be22437a6d4fd5666f526a9402d10902f1",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-teacher-教師名:",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-b",
+            "start" : 10
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 10,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "教師名:架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "6291039009855e42a4132116b18a65db695451e1831ef82a4d6b36618b1ed403",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-teacher-教師名：",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-b",
+            "start" : 12
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 12,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "教師名：架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "2dcdeddf5d7465fe76352d409fb0210b933e3da123d3f07ab97c9f515d5c516f",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-teacher-担当者:",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-b",
+            "start" : 10
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 10,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当者:架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "df3cdc90b29c9998bea8eb3b41afbfab7f5341cd1123b1789196e1b7af161437",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-teacher-担当者：",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-b",
+            "start" : 12
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 12,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当者：架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "348d7e94313c7970d65ac3fdf427d813f78e82977ce8b309eb91d599a451c678",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-room-教室:",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "677606c90bc028ec536514e147984abe743ec9c85c0b966aa12c012c433cd31b",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-room-教室：",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-c",
+            "start" : 9
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室：架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "55487f8ed6ba7c10d26fea00a0b150f21d07b60f1a7939e4933c5e927d9922f2",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-room-場所:",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "場所:架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "045ba4f1ce3def53106176e17a533c2da31a6b4c58c41c27a82f801eb13123c0",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-room-場所：",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-c",
+            "start" : 9
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "場所：架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "3ccad6f296eaf8657083b753cc18461d08192e8046ffdbf656d716c289288c81",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-room-授業教室:",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-c",
+            "start" : 13
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 13,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "授業教室:架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "dbe2b8f512ed293ba308359b33acd9e488e837e1278e4d2d0b7cc5b88d966bc3",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-room-授業教室：",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-c",
+            "start" : 15
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "授業教室：架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "a1c6a4714d877994000adc1e1fbdaf6376f95e7a814b76df57d4faf0f7a6aa8f",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-room-教室名:",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-c",
+            "start" : 10
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 10,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室名:架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "99918f5b5e703107b7ada8fe5ba46c83fd2d9601adca78798480ee93b0ec9d5a",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-room-教室名：",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-c",
+            "start" : 12
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 12,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室名：架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "57da06360ecd89cc49bd07ca4a83d709d3ecaf3192c1cb0c053f1003215aa6cf",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-room-会場:",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "会場:架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2ffd50fa3465c304504f96e19d4095b5b42773c02f69ad8f9f559b7cd92683cd",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "public-alias-room-会場：",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 12,
+            "parentId" : "line-c",
+            "start" : 9
+          },
+          "bodyText" : "架空本文",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "会場：架空本文",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "c4807afc81ad5be361cbdb2ac6678e6f156c4fb046296fbc4044c242a41ce5ff",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "body-exact-spaces-no-normalization",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 19,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "  架空科目葵  ",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:  架空科目葵  ",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "ca3a6689d732f70b1588995d83f962b0e5b8dae43a88eda1addfaa36e1b469af",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "body-internal-graphemes-not-split",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "Aé👩‍💻",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:Aé👩‍💻",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "c5c29a763d99439ed969e3775aa18dbf63df390bccf210beef6c423849e88165",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "rule-touches-original-box-boundary",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : false,
+      "error" : "unknownOrAmbiguousAlias",
+      "name" : "unknown-alias",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "unknownOrAmbiguousAlias",
+      "name" : "metadata-not-claimed",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "unknownOrAmbiguousAlias",
+      "name" : "alias-substring-not-whole-prefix",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "unknownOrAmbiguousAlias",
+      "name" : "alias-without-colon",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "bodyBoundaryOrEmpty",
+      "name" : "empty-body",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "bodyBoundaryOrEmpty",
+      "name" : "whitespace-body-is-not-empty-proof",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "bodyBoundaryOrEmpty",
+      "name" : "unsafe-prefix-boundary-combining",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "bodyBoundaryOrEmpty",
+      "name" : "unsafe-prefix-boundary-variation",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "bodyBoundaryOrEmpty",
+      "name" : "unsafe-prefix-boundary-joiner",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "multipleRoleSyntax",
+      "name" : "nested-other-role",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "multipleRoleSyntax",
+      "name" : "nested-same-role",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "unsupportedParallelSyntax",
+      "name" : "unsupported-parallel-・",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "unsupportedParallelSyntax",
+      "name" : "unsupported-parallel-･",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "unsupportedParallelSyntax",
+      "name" : "unsupported-parallel-/",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "controlText",
+      "name" : "newline",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "controlText",
+      "name" : "nul",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "invalidParent",
+      "name" : "duplicate-parent-id",
+      "passed" : true
+    },
+    {
+      "accepted" : true,
+      "name" : "duplicate-native-order-preserved",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "permuted-native-order-preserved",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 1,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "missing-native-order-preserved",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        }
+      ]
+    },
+    {
+      "accepted" : true,
+      "name" : "reversed-parent-array-remains-authoritative",
+      "passed" : true,
+      "proofs" : [
+        {
+          "bandId" : "row-2",
+          "body" : {
+            "kind" : "body",
+            "length" : 9,
+            "parentId" : "line-c",
+            "start" : 7
+          },
+          "bodyText" : "仮室椿",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-c",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-c",
+            "page" : 1,
+            "sourceOrder" : 12,
+            "text" : "教室:仮室椿",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 22
+            }
+          },
+          "parentUtf8Sha256" : "2b0db895ff9c55518a754a1e8c67d381b71fe4af39576afc703077dfbe57dc4d",
+          "role" : "room"
+        },
+        {
+          "bandId" : "row-1",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 15
+          },
+          "bodyText" : "架空担当楓",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 15,
+            "parentId" : "line-b",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-b",
+            "page" : 1,
+            "sourceOrder" : 8,
+            "text" : "担当教員：架空担当楓",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 12
+            }
+          },
+          "parentUtf8Sha256" : "e5f3baf198c5baab7d3e11f97ef619145a2b8b5df57a6aa119769cdbfba95919",
+          "role" : "teacher"
+        },
+        {
+          "bandId" : "row-0",
+          "body" : {
+            "kind" : "body",
+            "length" : 15,
+            "parentId" : "line-a",
+            "start" : 7
+          },
+          "bodyText" : "架空科目葵",
+          "cellId" : "cell-a",
+          "label" : {
+            "kind" : "label",
+            "length" : 7,
+            "parentId" : "line-a",
+            "start" : 0
+          },
+          "original" : {
+            "id" : "line-a",
+            "page" : 1,
+            "sourceOrder" : 5,
+            "text" : "科目:架空科目葵",
+            "wholeBox" : {
+              "height" : 6,
+              "width" : 60,
+              "x" : 2,
+              "y" : 2
+            }
+          },
+          "parentUtf8Sha256" : "0c10c298e66d3693847cae2b261f1280128aafc70e62b8baef7926e8a788a5e1",
+          "role" : "subject"
+        }
+      ]
+    },
+    {
+      "accepted" : false,
+      "error" : "invalidParent",
+      "name" : "negative-native-order-invalid",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "ambiguousGeometry",
+      "name" : "crosses-row-band",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "ambiguousGeometry",
+      "name" : "crosses-cell",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "ambiguousGeometry",
+      "name" : "wrong-page",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "overlappingCells",
+      "name" : "overlapping-competing-cell",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "overlappingBands",
+      "name" : "overlapping-competing-band",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "overlappingParents",
+      "name" : "full-and-subline-overlap",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "unknownOrAmbiguousAlias",
+      "name" : "extra-disconnected-unrecognized-parent-not-discarded",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "ruleCrossing",
+      "name" : "physical-horizontal-rule-crossing",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "ruleCrossing",
+      "name" : "physical-vertical-rule-crossing",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "incompleteOrRepeatedRoles",
+      "name" : "missing-role-not-empty-proof",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "incompleteOrRepeatedRoles",
+      "name" : "repeated-role-not-parallel-guess",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "invalidParent",
+      "name" : "zero-box",
+      "passed" : true
+    },
+    {
+      "accepted" : false,
+      "error" : "invalidParent",
+      "name" : "oversize-text",
+      "passed" : true
+    },
+    {
+      "name" : "verify-parent-array-order",
+      "passed" : true
+    },
+    {
+      "name" : "verify-cut-inside-utf8",
+      "passed" : true
+    },
+    {
+      "name" : "verify-gap",
+      "passed" : true
+    },
+    {
+      "name" : "verify-overlap",
+      "passed" : true
+    },
+    {
+      "name" : "verify-hash",
+      "passed" : true
+    },
+    {
+      "name" : "verify-whole-box",
+      "passed" : true
+    },
+    {
+      "name" : "verify-native-order",
+      "passed" : true
+    },
+    {
+      "name" : "verify-body-repair",
+      "passed" : true
+    },
+    {
+      "name" : "verify-reused-label",
+      "passed" : true
+    },
+    {
+      "name" : "verify-missing-proof",
+      "passed" : true
+    },
+    {
+      "name" : "canonical-equivalent-identifiers-are-distinct",
+      "passed" : true
+    },
+    {
+      "name" : "canonical-equivalent-body-repair-refuses",
+      "passed" : true
+    },
+    {
+      "name" : "nonfinite-parent",
+      "passed" : true
+    },
+    {
+      "name" : "cancel-build-and-verify",
+      "passed" : true
+    },
+    {
+      "name" : "shared-budget-no-refill-for-verification",
+      "passed" : true
+    },
+    {
+      "name" : "identifier-cap",
+      "passed" : true
+    },
+    {
+      "name" : "null-transport-not-replaced",
+      "passed" : true
+    },
+    {
+      "name" : "unpaired-surrogate-transport-rejects",
+      "passed" : true
+    },
+    {
+      "name" : "all-eight-parallel-markers-refuse",
+      "passed" : true
+    },
+    {
+      "name" : "cancellation-during-scan-and-comparison",
+      "passed" : true
+    },
+    {
+      "name" : "unicode-line-and-paragraph-separators-refuse",
+      "passed" : true
+    }
+  ],
+  "runtime" : "Swift version 6.1.2 (swift-6.1.2-RELEASE)\nTarget: x86_64-unknown-linux-gnu; Debian GNU/Linux 13 (trixie); Character segmentation is runtime-dependent",
+  "scope" : "Textual ranges and unchanged parent ownership only. No Schema2, fullformal, OCR correctness, complete acquisition, EMPTY or AI qualification.",
+  "testsFailed" : 0,
+  "testsPassed" : 94
+}

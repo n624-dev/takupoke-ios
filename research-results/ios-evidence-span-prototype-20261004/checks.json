@@ -1,0 +1,51 @@
+{
+  "scope": "Independent fictional host proof only. Production changes/OCR/model calls/fullformal qualification zero. Android frozen.",
+  "sharedFixtureSHA256": "66ce1efcf4a415d70ec71e1eb5707ca665c91eba0f33d99a86d08dc54f59c43f",
+  "sharedCases": 73,
+  "additionalSwiftCases": 21,
+  "finalTestsPassed": 94,
+  "finalTestsFailed": 0,
+  "actualRuntime": "Swift version 6.1.2 (swift-6.1.2-RELEASE)\nTarget: x86_64-unknown-linux-gnu; Debian GNU/Linux 13 (trixie); Character segmentation is runtime-dependent",
+  "finalResultSHA256": "b107142f0d6bbacfdb63dbe56998e39463c01da570636ec19fe4f5b6fa57fba1",
+  "finalResultBytes": 120744,
+  "originalParentArrayOrderIsAuthoritative": true,
+  "nativeSourceOrderIsUnchangedNullableProvenance": true,
+  "pythonComparison": {
+    "sameCases": 73,
+    "decisionRawBodyUtf8SpansHashAndOrderMatched": 73,
+    "referenceReportSHA256": "7f2fc7882d534556dba283d18132eb8563369b6ced774ce2aad2c11c6713f016"
+  },
+  "historicalSeparatorRegression": {
+    "passed": 93,
+    "failed": 1,
+    "rawSHA256": "36c6951196c83a7810145a0112cdb7d3d1af036980d595c38741b76bfbc8b541",
+    "failure": "U+2028/U+2029 were not Unicode Control category; same new test now passes after explicit line/paragraph guard"
+  },
+  "toolFiles": [
+    {
+      "path": "tools/evidence-span-prototype/EvidenceSpans.swift",
+      "bytes": 11910,
+      "sha256": "69b7d3cc283f4f9af6a0cda35d128079f5fadc1f59daf937b899d13bc0653e4a"
+    },
+    {
+      "path": "tools/evidence-span-prototype/README.md",
+      "bytes": 3946,
+      "sha256": "392166436bd60ef29aa97e66cfdbfbf69d95fef0970e37852eb3c03e47552fe2"
+    },
+    {
+      "path": "tools/evidence-span-prototype/main.swift",
+      "bytes": 8850,
+      "sha256": "a34eb5b9323e3338f3f515e440517b0daa0249f867bba4967bec1d33fd070928"
+    },
+    {
+      "path": "tools/evidence-span-prototype/run.sh",
+      "bytes": 476,
+      "sha256": "463fb89d7ef82cf5aee02183da35ee82bffc45827b6ac0ef93bb12725b273a8c"
+    },
+    {
+      "path": "tools/evidence-span-prototype/shared-fixtures.json",
+      "bytes": 234471,
+      "sha256": "66ce1efcf4a415d70ec71e1eb5707ca665c91eba0f33d99a86d08dc54f59c43f"
+    }
+  ]
+}
