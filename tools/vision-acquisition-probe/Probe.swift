@@ -25,7 +25,7 @@ struct VisionAcquisitionProbe {
         let inputs = try JSONDecoder().decode(Inputs.self,from:Data(contentsOf:folder.appendingPathComponent("inputs.json")))
         guard inputs.fixtures.count == 2, inputs.fixtures.allSatisfy({ $0.pages.map(\.page) == [1,2,3,4,5] }) else { throw NSError(domain:"ProbeInput",code:1) }
         try emit(["type":"environment","scope":"source-extracted native .read acquisition only; no CoreAI/Builder/formal quality evaluation", "os":ProcessInfo.processInfo.operatingSystemVersionString,"deviceSystemVersion":UIDevice.current.systemVersion,"pid":ProcessInfo.processInfo.processIdentifier,"readReturnDefinition":".read public API returned; a throw can occur after Vision.perform, so failures do not prove Vision did not finish","simulator":true,"plannedPages":10,"readRoute":"original thumbnail fractional CGSize; layouts ceil/raster route is not executed","confidenceGuard":"post-observation diagnostic only: finite and 0.85...1","inkCoverageVerified":false])
-        var completed = 0, failed = 0, readReturns = 0
+        var completed = 0, failed = 0, readReturns = 0, hierarchyComplete = 0
         for fixture in inputs.fixtures {
             let url = folder.appendingPathComponent(fixture.id + ".pdf")
             let digest = SHA256.hash(data:try Data(contentsOf:url)).map { String(format:"%02x",$0) }.joined()
@@ -78,15 +78,17 @@ struct VisionAcquisitionProbe {
                             lines.append(["observation":observationIndex,"line":lineIndex,"rawText":text,"confidence":confidence.isFinite ? confidence as Any : NSNull(),"passesOriginalConfidencePredicate":good,"characters":boxes])
                         }
                     }
+                    let hierarchy = HierarchyObservation.capture(page.observations,width:page.width,height:page.height)
+                    try emit(["type":"page","fixture":fixture.id,"pdfSHA256":digest,"page":pageNumber,"width":page.width,"height":page.height,"seconds":Date().timeIntervalSince(started),"readReturned":true,"serializationCompleted":true,"hierarchyCaptureComplete":hierarchy["captureComplete"] ?? false,"hierarchy":hierarchy,"diagnosticComplete":true,"observations":page.observations.count,"lines":lines,"characterCount":characters,"summedCharacterBoxAreaPixels":positiveBoxArea,"areaIsUnion":false,"diagnosticFailures":diagnosticFailures,"originalLayoutsDiagnosticPredicatesPass":diagnosticFailures.isEmpty,"inkCoverageVerified":false,"formalEvaluation":"unassessed"])
                     completed += 1
-                    try emit(["type":"page","fixture":fixture.id,"pdfSHA256":digest,"page":pageNumber,"width":page.width,"height":page.height,"seconds":Date().timeIntervalSince(started),"readReturned":true,"diagnosticComplete":true,"observations":page.observations.count,"lines":lines,"characterCount":characters,"summedCharacterBoxAreaPixels":positiveBoxArea,"areaIsUnion":false,"diagnosticFailures":diagnosticFailures,"originalLayoutsDiagnosticPredicatesPass":diagnosticFailures.isEmpty,"inkCoverageVerified":false,"formalEvaluation":"unassessed"])
+                    if hierarchy["captureComplete"] as? Bool == true { hierarchyComplete += 1 }
                 } catch {
                     failed += 1
-                    try emit(["type":"page","fixture":fixture.id,"pdfSHA256":digest,"page":pageNumber,"readReturned":readReturned,"failureStage":phase,"seconds":Date().timeIntervalSince(started),"operationalError":String(describing:error),"formalEvaluation":"unassessed"])
+                    try emit(["type":"page","fixture":fixture.id,"pdfSHA256":digest,"page":pageNumber,"readReturned":readReturned,"serializationCompleted":false,"hierarchyCaptureComplete":false,"failureStage":phase,"seconds":Date().timeIntervalSince(started),"operationalError":String(describing:error),"formalEvaluation":"unassessed"])
                 }
             }
         }
-        try emit(["type":"summary","plannedPages":10,"readReturnedPages":readReturns,"diagnosticCompletedPages":completed,"operationalErrors":failed,"formalAssessed":0,"qualityQualification":false])
+        try emit(["type":"summary","plannedPages":10,"readReturnedPages":readReturns,"diagnosticCompletedPages":completed,"serializationCompletedPages":completed,"hierarchyCaptureCompletePages":hierarchyComplete,"operationalErrors":failed,"formalAssessed":0,"qualityQualification":false])
     }
     static func main() async {
         do {

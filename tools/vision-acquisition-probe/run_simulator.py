@@ -16,6 +16,7 @@ udid = None
 cleanup_error = None
 exit_status = 1
 started = None
+MAX_RAW_BYTES = 64*1024*1024
 
 def command(argv, timeout=180):
     p = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
@@ -45,17 +46,25 @@ try:
     with (work/'native.stdout').open('wb') as out, (work/'native.stderr').open('wb') as err:
         p = subprocess.Popen(['xcrun','simctl','spawn',udid,str(work/'VisionAcquisitionProbe'),str(work/'prepared')],stdout=out,stderr=err)
         try:
-            status = p.wait(timeout=1200)
-        except subprocess.TimeoutExpired:
+            while True:
+                if (work/'native.stdout').stat().st_size > MAX_RAW_BYTES:
+                    raise RuntimeError('Bounded raw transport exceeded; partial bytes remain pinned')
+                remaining = 1200-(time.monotonic()-started)
+                if remaining <= 0: raise subprocess.TimeoutExpired(p.args,1200)
+                try:
+                    status = p.wait(timeout=min(0.5,remaining)); break
+                except subprocess.TimeoutExpired:
+                    continue
+        except (subprocess.TimeoutExpired,RuntimeError) as cause:
             p.terminate()
             try: p.wait(timeout=15)
             except subprocess.TimeoutExpired: p.kill(); p.wait(timeout=15)
             record['nativeExitCode'] = p.returncode
-            raise RuntimeError('1200-second native wall guard; partial pages remain unassessed')
+            raise RuntimeError('Native wall/transport guard; partial pages remain unassessed: '+str(cause))
     record['nativeExitCode'] = status
     record['nativeSeconds'] = time.monotonic()-started
+    assert (work/'native.stdout').stat().st_size <= MAX_RAW_BYTES, 'Bounded raw transport exceeded'
     raw = (work/'native.stdout').read_bytes()
-    assert len(raw) <= 16*1024*1024, 'Bounded raw transport exceeded'
     record['nativeRawSHA256'] = hashlib.sha256(raw).hexdigest()
     record['nativeRawBytes'] = len(raw)
     records = [json.loads(line) for line in raw.splitlines() if line.strip()]
@@ -76,9 +85,13 @@ finally:
     if started is not None: record['nativeSeconds'] = time.monotonic()-started
     raw_path = work/'native.stdout'
     if raw_path.is_file():
-        raw_bytes = raw_path.read_bytes()
-        record['nativeRawSHA256'] = hashlib.sha256(raw_bytes).hexdigest()
-        record['nativeRawBytes'] = len(raw_bytes)
+        raw_hash = hashlib.sha256()
+        with raw_path.open('rb') as source:
+            while chunk := source.read(65536): raw_hash.update(chunk)
+        record['nativeRawSHA256'] = raw_hash.hexdigest()
+        record['nativeRawBytes'] = raw_path.stat().st_size
+        with raw_path.open('rb') as source: raw_bytes = source.read(MAX_RAW_BYTES)
+        record['rawParsingTruncated'] = record['nativeRawBytes'] > MAX_RAW_BYTES
         partial = []
         for line in raw_bytes.splitlines():
             try:
@@ -89,6 +102,8 @@ finally:
         record['recordedPages'] = len(partial)
         record['readReturnedPages'] = sum(bool(v.get('readReturned')) for v in partial)
         record['diagnosticCompletedPages'] = sum(bool(v.get('diagnosticComplete')) for v in partial)
+        record['serializationCompletedPages'] = sum(bool(v.get('serializationCompleted')) for v in partial)
+        record['hierarchyCaptureCompletePages'] = sum(bool(v.get('hierarchyCaptureComplete')) for v in partial)
         record['recordedOperationalErrors'] = sum('operationalError' in v for v in partial)
         record['plannedPagesWithoutRecord'] = max(0,10-len(partial))
     if udid:

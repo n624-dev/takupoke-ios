@@ -28,7 +28,7 @@ jobs:
           work="$RUNNER_TEMP/vision-acquisition-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           mkdir "$work"
           touch "$work/.vision-acquisition-owned"
-          python3 -m unittest discover -s tools/vision-acquisition-probe -p test_prepare.py
+          python3 -m unittest discover -s tools/vision-acquisition-probe -p 'test_*.py'
           python3 tools/vision-acquisition-probe/prepare.py "$work/prepared"
       - name: Compile actual Vision acquisition for the iOS simulator SDK
         shell: bash
@@ -38,7 +38,7 @@ jobs:
           architecture="$(uname -m)"
           sdk="$(xcrun --sdk iphonesimulator --show-sdk-path)"
           xcrun --sdk iphonesimulator --show-sdk-version
-          xcrun swiftc -sdk "$sdk" -target "$architecture-apple-ios27.0-simulator" -parse-as-library -O "$work/prepared/OriginalAcquisition.swift" tools/vision-acquisition-probe/Probe.swift -o "$work/VisionAcquisitionProbe"
+          xcrun swiftc -sdk "$sdk" -target "$architecture-apple-ios27.0-simulator" -parse-as-library -O "$work/prepared/OriginalAcquisition.swift" tools/vision-acquisition-probe/Probe.swift tools/vision-acquisition-probe/HierarchyObservation.swift -o "$work/VisionAcquisitionProbe"
           codesign --force --sign - "$work/VisionAcquisitionProbe"
       - name: One native request for each of the ten original pages
         shell: bash
