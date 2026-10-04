@@ -70,7 +70,7 @@ extension PDFSchoolParser {
                     let fields = try grid.lessonFields(box, lines: lines,referenceBoxes:referenceBoxes,check:check)
                     let parts = fields.map { $0.replacingOccurrences(of: "･", with: "・").components(separatedBy: "・") }
                     let parallel = lines.count == 3 && parts.allSatisfy { $0.count == 2 }
-                    if parts[0].count > 1 && parts[1].count > 1 && !parallel {
+                    if parts.filter({ $0.count > 1 }).count >= 2 && !parallel {
                         throw PDFParseError(code: .ambiguous, page: 1, stage: .parallelLessons, cell: cell)
                     }
                     if parallel && parts[0].contains(where: { $0.isEmpty }) { throw PDFParseError(code: .ambiguous, page: 1, stage: .emptySubject, cell: cell) }

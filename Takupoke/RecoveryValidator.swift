@@ -7,7 +7,7 @@ import Crypto
 
 enum RecoveryValidator {
     static let schemaVersion = 2
-    static let version = 4
+    static let version = 5
     private static func text(_ value: String) -> String {
         value.precomposedStringWithCompatibilityMapping.components(separatedBy: .whitespacesAndNewlines).joined()
     }
@@ -86,7 +86,10 @@ enum RecoveryValidator {
         check([RecoveryDocumentKind.timetable, .exam, .return].contains(doc.kind), "documentKind")
         check(doc.pdfHash.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil && result.pdfHash == doc.pdfHash, "sourceHash")
         check(doc.complete && (1...20000).contains(doc.cells.count) && doc.sources.count <= 100000, "incompleteDocument")
-        check(doc.structureMetadata == nil || doc.structureMetadata == result.metadata,"structureMetadata")
+        if let metadata = doc.structureMetadata {
+            check(metadata.recoverySchemaVersion == schemaVersion && metadata.validatorVersion == version && metadata.recoveryVersion == "2" &&
+                  [metadata.provider,metadata.modelId,metadata.modelVersion,metadata.runtimeVersion,metadata.promptVersion,metadata.osVersion].allSatisfy { !$0.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty }, "structureMetadata")
+        }
         check(result.kind == doc.kind && result.schoolYear == doc.schoolYear && result.term == doc.term, "documentIdentity")
         check((1900...9998).contains(doc.schoolYear) && (doc.kind != .timetable || ["前期", "後期"].contains(doc.term ?? "")), "yearTerm")
         check(result.metadata.recoverySchemaVersion == schemaVersion && result.metadata.validatorVersion == version &&
@@ -364,6 +367,33 @@ enum RecoveryValidator {
                 }
                 for (i, scope) in cell.roleScopes.enumerated() { check(!cell.roleScopes.prefix(i).contains { min($0.box.x + $0.box.width, scope.box.x + scope.box.width) > max($0.box.x, scope.box.x) && min($0.box.y + $0.box.height, scope.box.y + scope.box.height) > max($0.box.y, scope.box.y) }, "roleScopeOverlap") }
             }
+            // A complete ownership certificate must identify each tuple. Two
+            // plural BODY roles cannot be adopted as a single compound lesson.
+            if !bindingIncomplete && !cell.confirmedEmpty {
+                var tuples = [[String]]()
+                if cell.bindingMode == .fixed {
+                    tuples = cell.lessonBindings.map { [original($0.subject),original($0.teacher),original($0.room)] }
+                } else {
+                    for lessonIndex in 0..<max(0,min(cell.parallelCount,4)) {
+                        var values = [String]()
+                        for role in RecoveryRole.allCases {
+                            guard work.charge(cell.roleScopes.count + 1) else { return RecoveryValidation(errors:["validationLimit"]) }
+                            let scope = cell.roleScopes.first { $0.lessonIndex == lessonIndex && $0.role == role }
+                            var ids = [String]()
+                            for source in index.byCell[cell.id] ?? [] {
+                                guard work.charge(1) else { return RecoveryValidation(errors:["validationLimit"]) }
+                                if !labelSet.contains(source.id), scope?.box.contains(source.box) == true { ids.append(source.id) }
+                            }
+                            values.append(original(ids))
+                        }
+                        tuples.append(values)
+                    }
+                }
+                for values in tuples {
+                    guard work.charge(values.reduce(1) { $0 + $1.utf8.count }) else { return RecoveryValidation(errors:["validationLimit"]) }
+                    check(values.filter { $0.contains("・") || $0.contains("･") }.count < 2,"parallelLessons")
+                }
+            }
             if inputOnly { continue }
             guard let recovered = cells[cell.id] else { continue }
             if recovered.state == .empty { check(cell.confirmedEmpty && cell.sourceIds.isEmpty && recovered.lessons.isEmpty, "falseEmpty"); continue }
@@ -408,7 +438,7 @@ enum RecoveryValidator {
     static func previouslyAccepted(_ adopted: RecoveryAdopted?, hash: String) -> Bool {
         #if canImport(CryptoKit) || canImport(Crypto)
         guard let adopted, adopted.document.pdfHash == hash else { return false }
-        return (try? canReuse(adopted.acceptance,document:adopted.document,result:adopted.result)) == true
+        return (try? recertify(adopted,hash:hash)) != nil
         #else
         return false
         #endif
@@ -418,11 +448,67 @@ enum RecoveryValidator {
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
         return SHA256.hash(data: try encoder.encode(value)).map { String(format: "%02x", $0) }.joined()
     }
+    /// Only a proved, already accepted v4 payload can carry its confirmation
+    /// forward. Original field and structure provenance remain independent.
+    static func recertify(_ adopted: RecoveryAdopted, hash: String) throws -> RecoveryAdopted? {
+        guard adopted.document.pdfHash == hash else { return nil }
+        if adopted.result.metadata.validatorVersion == version {
+            guard try canReuse(adopted.acceptance,document:adopted.document,result:adopted.result) else { return nil }
+            if let original = adopted.previousAcceptance {
+                var old = adopted
+                old.previousAcceptance = nil; old.acceptance = original
+                old.result.metadata.validatorVersion = 4
+                if old.document.structureMetadata != nil { old.document.structureMetadata!.validatorVersion = 4 }
+                guard try recertify(old,hash:hash) == adopted else { return nil }
+            }
+            return adopted
+        }
+        guard adopted.previousAcceptance == nil,
+              adopted.document.structureMetadata == nil || adopted.document.structureMetadata == adopted.result.metadata,
+              adopted.result.metadata.validatorVersion == 4,
+              adopted.result.metadata.recoverySchemaVersion == schemaVersion,
+              adopted.result.metadata.recoveryVersion == "2",
+              adopted.acceptance.pdfHash == hash,
+              adopted.acceptance.metadata == adopted.result.metadata,
+              adopted.acceptance.resultHash == (try fingerprint(adopted.result)),
+              adopted.acceptance.scopeHash == (try fingerprint(adopted.document)),
+              adopted.document.structureMetadata.map({ $0.validatorVersion == 4 && $0.recoverySchemaVersion == schemaVersion && $0.recoveryVersion == "2" }) ?? true else { return nil }
+        var current = adopted
+        current.result.metadata.validatorVersion = version
+        if current.document.structureMetadata != nil { current.document.structureMetadata!.validatorVersion = version }
+        guard validate(current.document,current.result).canAdopt else { return nil }
+        current.previousAcceptance = adopted.acceptance
+        current.acceptance = RecoveryAcceptance(pdfHash:hash,resultHash:try fingerprint(current.result),scopeHash:try fingerprint(current.document),metadata:current.result.metadata,acceptedAt:adopted.acceptance.acceptedAt)
+        return current
+    }
+    /// Compare the formal projection before a metadata-only cache refresh.
+    static func recertifiedTimetable(_ analysis: PDFAnalysis, hash: String) throws -> PDFAnalysis? {
+        guard (1...PDFAnalysis.parserVersion).contains(analysis.version), analysis.kind == .timetable, analysis.sourceDigest == hash, analysis.events.isEmpty,
+              let original = analysis.recovery, let current = try recertify(original,hash:hash),
+              current.document.kind == .timetable, analysis.schoolYear == current.document.schoolYear,
+              analysis.term == current.document.term, analysis.parsedAt == original.acceptance.acceptedAt else { return nil }
+        let cells = Dictionary(uniqueKeysWithValues:current.document.cells.map { ($0.id,$0) })
+        var lessons = [PDFLesson]()
+        for output in current.result.cells where output.state == .present {
+            guard let cell = cells[output.cellId] else { return nil }
+            for slot in cell.slots {
+                guard let weekday = Int(slot.day) else { return nil }
+                for lesson in output.lessons {
+                    lessons.append(PDFLesson(className:slot.className,weekday:weekday,period:slot.period,names:TimetableLessonNames(subject:lesson.subject.value,teacher:lesson.teacher.value,room:lesson.room.value),sourceText:[lesson.subject.value,lesson.teacher.value,lesson.room.value].joined(separator:"\n"),page:cell.page))
+                }
+            }
+        }
+        guard analysis.lessons == lessons else { return nil }
+        var next = analysis; next.version = PDFAnalysis.parserVersion; next.recovery = current
+        return next
+    }
     static func canReuse(_ acceptance: RecoveryAcceptance, document: RecoveryDocument, result: RecoveryResult) throws -> Bool {
         let resultHash = try fingerprint(result)
         let scopeHash = try fingerprint(document)
         return acceptance.pdfHash == document.pdfHash && acceptance.resultHash == resultHash &&
             acceptance.scopeHash == scopeHash && acceptance.metadata == result.metadata && validate(document, result).canAdopt
     }
+    #else
+    static func recertifiedTimetable(_ analysis: PDFAnalysis, hash: String) throws -> PDFAnalysis? { nil }
     #endif
 }

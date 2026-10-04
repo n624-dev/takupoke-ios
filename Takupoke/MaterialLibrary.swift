@@ -67,6 +67,7 @@ final class MaterialLibrary {
         // A valid saved state is the commit point. Reclaim only our unreferenced
         // files, including work interrupted by termination during a copy.
         try removeUnreferencedFiles()
+        if let hash = state.record(for:.timetable)?.digest { try recertifyAcceptedTimetable(hash:hash) }
     }
 
     /// Pure validation shared by the legacy reader and migration preparation.

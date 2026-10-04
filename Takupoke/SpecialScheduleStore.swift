@@ -92,6 +92,27 @@ final class SpecialScheduleStore {
                 acquiredAt: record.acquiredAt, failure: nil, grant: nil)
         }
         try removeUnreferencedFiles()
+        for kind in Array(records.keys) { try recertifyAccepted(kind:kind) }
+    }
+
+    /// Revalidate only already accepted results; never confirm an old preview.
+    @discardableResult
+    func recertifyAccepted(kind: SpecialScheduleKind) throws -> Bool {
+        guard let old = records[kind], sources[kind]?.digest == old.digest,
+              let proved = try RecoveryConversion.recertifiedSpecial(old.analysis,hash:old.digest) else { return false }
+        guard proved.recovery != old.analysis.recovery else { return true }
+        let current = SpecialScheduleRecord(kind:old.kind,originalName:old.originalName,storedName:old.storedName,byteCount:old.byteCount,digest:old.digest,acquiredAt:old.acquiredAt,analysis:proved)
+        let currentData = try JSONEncoder().encode(current)
+        try queue.write { db in
+            guard let persisted = try Data.fetchOne(db,sql:"SELECT payload FROM specialSchedule WHERE kind = ?",arguments:[kind.rawValue]),
+                  let reread = try? JSONDecoder().decode(SpecialScheduleRecord.self,from:persisted),
+                  try RecoveryValidator.fingerprint(reread) == RecoveryValidator.fingerprint(old),
+                  let repeated = try RecoveryConversion.recertifiedSpecial(reread.analysis,hash:old.digest),
+                  repeated == proved else { throw StoreError.invalidState }
+            try db.execute(sql:"UPDATE specialSchedule SET payload = ? WHERE kind = ?",arguments:[currentData,kind.rawValue])
+        }
+        records[kind] = current
+        return true
     }
 
     func newStagingURL() -> URL { staging.appendingPathComponent(UUID().uuidString) }
@@ -167,6 +188,12 @@ final class SpecialScheduleStore {
         let recordPayload = try JSONEncoder().encode(record)
         let sourcePayload = try JSONEncoder().encode(cleared)
         try queue.write { db in
+            if analysis.recovery?.previousAcceptance != nil {
+                guard let payload = try Data.fetchOne(db,sql:"SELECT payload FROM specialSchedule WHERE kind = ?",arguments:[analysis.kind.rawValue]),
+                      let old = try? JSONDecoder().decode(SpecialScheduleRecord.self,from:payload),
+                      let proved = try RecoveryConversion.recertifiedSpecial(old.analysis,hash:source.digest),
+                      proved == analysis else { throw StoreError.invalidState }
+            }
             try db.execute(sql: "INSERT INTO specialSchedule (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload",
                            arguments: [analysis.kind.rawValue, recordPayload])
             try db.execute(sql: "INSERT INTO specialSource (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload",

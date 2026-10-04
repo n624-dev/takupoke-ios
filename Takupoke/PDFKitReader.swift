@@ -167,8 +167,10 @@ enum PDFKitReader {
             let reader = PDFPathReader(transform: transform, verifyVisibility: verifyVisibility || kind == .timetable, textBoxes:glyphs.map { PDFBox(left:$0.x,top:$0.y,right:$0.x+$0.width,bottom:$0.y+$0.height) }, check: check)
             diagnostics?.record(.paths, page: index + 1)
             let lines: [PDFRule]
-            do { lines = try reader.read(ref) }
-            catch var error as PDFParseError { error.page = index + 1; throw error }
+            do {
+                defer { diagnostics?.record(.paths,page:index+1,values:[Double(reader.operations),Double(reader.paintWork)]) }
+                lines = try reader.read(ref)
+            } catch var error as PDFParseError { error.page = index + 1; throw error }
             let layout = PDFPageLayout(width: Double(transform.width), height: Double(transform.height), glyphs: glyphs, lines: lines, arrows: reader.arrows)
             if verifyVisibility || kind == .timetable {
                 do { try layout.requireVisibleBounds(check:check) }

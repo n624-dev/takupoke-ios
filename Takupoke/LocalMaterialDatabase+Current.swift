@@ -77,6 +77,11 @@ extension LocalMaterialDatabase {
                 if kind == .changes, let analysis = state.changeAnalysis {
                     id = try Self.writeChanges(db, analysis, original: original)
                 } else if let analysis = state.pdfAnalyses?[kind.rawValue] {
+                    if analysis.recovery?.previousAcceptance != nil {
+                        guard let oldAnalysis = previous.pdfAnalyses?[kind.rawValue],
+                              let proved = try RecoveryValidator.recertifiedTimetable(oldAnalysis,hash:analysis.sourceDigest),
+                              try Self.encode(proved) == Self.encode(analysis) else { throw StoreError.invalidDatabase }
+                    }
                     id = try Self.writePDF(db, analysis, original: original)
                 } else { throw StoreError.invalidDatabase }
                 try db.execute(sql: "INSERT OR REPLACE INTO currentAnalysis (kind, analysisID) VALUES (?, ?)",

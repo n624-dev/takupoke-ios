@@ -27,6 +27,7 @@ extension MaterialsView {
 
 extension SpecialSchedulesModel {
     func analysisStatus(_ kind: SpecialScheduleKind, source: SpecialScheduleSource) -> String {
+        if rejectedRecoveryKinds.contains(kind) { return "保存済み復旧結果を再検証できません" }
         if source.failure != nil {
             return records[kind] == nil
                 ? "解析失敗" : "解析失敗（前回結果あり）"
@@ -42,6 +43,7 @@ extension SpecialSchedulesModel {
 
 extension MaterialsModel {
     func analysisStatus(_ kind: MaterialKind, record: MaterialRecord) -> String {
+        if rejectedRecoveryKinds.contains(kind.rawValue) { return "保存済み復旧結果を再検証できません" }
         let hasAnalysis: Bool
         let isCurrent: Bool
         if kind == .changes {
