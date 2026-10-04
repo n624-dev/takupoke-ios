@@ -1,6 +1,6 @@
 # 独立架空wide資料の実iOS Reader検証（Parser24）
 
-原版のラベルなし本体と、未使用フォント選択だけを変えた診断版は、実iOS Reader→Strict Parserでそれぞれ **680/680枠** の架空科目・教員・教室が一致した。年度2032・後期・17クラスも一致し、余分な枠は0。学校原本は入力・参照・CI・公開物のいずれにも使用していない。
+原版のラベルなし本体と、未使用フォント選択だけを変えた診断版は、実iOS Reader→Strict Parserでそれぞれ **680/680枠** の架空科目・教員・教室が一致した。年度2032・後期・17クラスも一致し、余分な枠は0。このgeneratorと実測では、学校原本を入力・参照資料・CI・公開物として使用していない。提供原本の閲覧は担当者の非公開ローカルでの構造理解に限り、workspace上の作業用コピーは削除済み。科目・教員・教室・対応配列は継承していない。
 
 実行は [37225883970](https://github.com/n624-dev/takupoke-ios/actions/runs/37225883970)、native helper `3526db360a8de06900fd4daf4d6e25288e3dd0e8`、本体ソース `2569b7a`。Apple iOS27 SDKで30ファイルをコンパイルし、iPhone14型のiOS27シミュレーターで固定6件を各1回だけ測定した。旧baseline・密度variant・OCR・モデルの呼出しは0。補助テスト20件と所有一時ファイルの後片付けは成功した。
 
@@ -27,6 +27,6 @@ native phase全体は130.565秒、6件のacquire時間合計は約27.894秒。�
 python3 -B analyze.py . /tmp/unique-owned-derived-evidence.json
 ```
 
-本体成功とcontrolの未対応拒否は別の結果である。空欄の期待枠は完全Reader/Strict成功後の授業不在を比較しており、画像OCRでのEMPTY証明や追加AIモデルの品質合格ではない。この実測はシミュレーター・生成vector資料・in-memory Analysisまでで、実iPhone、ユーザー原本、画像PDF、利用者の保存・手動採用UIの確認は含まない。不一致のAnalysis返却0、実行limit/IO/cancellation0だが、全形式の品質合格は主張しない。
+本体成功とcontrolの未対応拒否は別の結果である。control2件は読める比較用資料の復旧失敗であり、負例2件の正しい拒否と区別する。空欄の期待枠は完全Reader/Strict成功後の授業不在を比較しており、画像OCRでのEMPTY証明や追加AIモデルの品質合格ではない。この実測はシミュレーター・生成vector資料・in-memory Analysisまでで、実iPhone、ユーザー原本、画像PDF、利用者の保存・手動採用UIの確認は含まない。不一致のAnalysis返却0、実行limit/IO/cancellation0だが、全形式の品質合格は主張しない。
 
 PDF・font・PNGのバイナリはGitに含めていない。generator、public font pin、PDF SHAはsource receiptと既存 `tools/independent-wide-timetable` にある。生のfixture本文とlayoutの公開は完全架空資料に限定する。
