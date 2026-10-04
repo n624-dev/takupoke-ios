@@ -61,6 +61,7 @@ enum RecoveryDocumentBuilder {
         var doc = RecoveryDocument(pdfHash: hash, kind: kind, schoolYear: 0, term: nil, classes: [], days: [], requiredSlots: [], cells: [], sources: [], complete: true, yearEvidence: [], termEvidence: [], dayEvidence: [:], classEvidence: [:], periodEvidence: [:], times: [:], timeEvidence: [], normalTimeNoteEvidence: [])
         let count = kind == .exam ? 6 : 8
         var sourceNumber = 0
+        let structureWork = RecoveryValidationWork(check:check)
         var requests = [RecoveryStructureRequest]()
         for (pageIndex, page) in pages.enumerated() {
             try check()
@@ -266,7 +267,9 @@ enum RecoveryDocumentBuilder {
                                 if fieldsAttempt == nil || rows.contains(where:{ RecoveryRole.hasLabelPrefix($0.map(\.text).joined()) }) {
                                     guard bindings.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.lessonLines) }
                                     let request = try RecoveryStructure.request(id:"\(id)-sub-\(subIndex)",page:number,box:rect(subBox),slots:cell.slots,glyphs:glyphs)
-                                    let proposal = structureProposals[request.id] ?? RecoveryStructure.cheap(request)
+                                    let proposal: [RecoveryLesson]?
+                                    if let supplied=structureProposals[request.id] { proposal=supplied }
+                                    else { proposal=try RecoveryStructure.cheap(request,work:structureWork) }
                                     if let proposal {
                                         let roles = try RecoveryStructure.verify(request,proposal)
                                         cell.bindingMode = .roleProposal

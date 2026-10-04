@@ -189,7 +189,7 @@ enum RecoveryEngine {
             try check(); try Task.checkCancellation()
             return RecoveryRun(state: validation.canAdopt ? .awaitingConfirmation : .failed, result: validation.canAdopt ? value : nil, errors: validation.errors)
         }
-        if missing.isEmpty { return try validated(result(doc.structureMetadata ?? RecoveryMetadata(provider: "rule", modelId: "rules", modelVersion: "2", runtimeVersion: "2", promptVersion: "1", recoverySchemaVersion: RecoveryValidator.schemaVersion, validatorVersion: RecoveryValidator.version, osVersion: "\(os):\(osMajor)"))) }
+        if missing.isEmpty { return try validated(result(doc.structureMetadata ?? RecoveryMetadata(provider: "rule", modelId: "rules", modelVersion: "3", runtimeVersion: "3", promptVersion: "1", recoverySchemaVersion: RecoveryValidator.schemaVersion, validatorVersion: RecoveryValidator.version, osVersion: "\(os):\(osMajor)"))) }
         var runtimeFailed = false
         for id in RecoveryPolicy.providers(os: os, majorVersion: osMajor) {
             try check(); try Task.checkCancellation()

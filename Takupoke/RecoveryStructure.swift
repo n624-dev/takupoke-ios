@@ -120,36 +120,97 @@ enum RecoveryStructure {
         guard result.first(where:{ $0.role == .subject })?.body.isEmpty == false else { throw RecoveryProviderError.invalidOutput }
         return result.sorted { $0.scope.y < $1.scope.y }
     }
-    /// Cheap rule path: adjacent original text rows only. A wrapped label with a
-    /// body row interleaved between its parts proceeds to the bounded AI proposal.
+    /// Bounded exact-label search uses original groups, including fragments with
+    /// body-only rows between them. The certificate remains the authority: a
+    /// matching string alone cannot establish source ownership or empty fields.
     static func cheap(_ request: RecoveryStructureRequest) -> [RecoveryLesson]? {
-        let rows = PDFGrid.rows(request.units.flatMap(\.glyphs))
-        var fields = [RecoveryRole:RecoveryField]()
-        for role in RecoveryRole.allCases {
-            let candidates = request.units.enumerated().filter { _,unit in
-                role.labels.contains { normalized($0+":").hasPrefix(normalized(unit.text)) }
+        try? cheap(request,check:{})
+    }
+    static func cheap(_ request: RecoveryStructureRequest,check:@escaping () throws -> Void) throws -> [RecoveryLesson]? {
+        try cheap(request,work:RecoveryValidationWork(check:check))
+    }
+    static func cheap(_ request: RecoveryStructureRequest,work:RecoveryValidationWork) throws -> [RecoveryLesson]? {
+        try work.finish()
+        guard !request.units.isEmpty,request.units.count <= 64,request.cuts.count <= 132 else { throw PDFParseError(code:.limit) }
+        guard request.box.valid,Set(request.units.map(\.id)).count == request.units.count,
+              Set(request.cuts.map(\.id)).count == request.cuts.count else { return nil }
+        // Every unit at the left boundary must belong to one of three labels,
+        // and the unchanged certificate allows at most three groups per label.
+        let required = Set(request.units.filter { $0.box.x-request.box.x <= $0.box.height }.map(\.id))
+        guard required.count <= 9 else { return nil }
+        var glyphCount=0
+        for unit in request.units {
+            guard unit.glyphs.count <= 512-glyphCount else { throw PDFParseError(code:.limit) }
+            glyphCount += unit.glyphs.count
+        }
+        let ordered=request.units.sorted { ($0.box.y,$0.box.x) < ($1.box.y,$1.box.x) }
+        var strings=[String](), originalBytes=[String:Int]()
+        for unit in ordered {
+            guard work.charge(unit.glyphs.count+1) else { try work.finish(); return nil }
+            var parts=[String](), bytes=0
+            for glyph in unit.glyphs {
+                guard work.charge(glyph.text.utf8.count+1) else { try work.finish(); return nil }
+                parts.append(glyph.text);bytes += glyph.text.utf8.count
             }
-            for (_,first) in candidates {
-                let row = rows.firstIndex { $0.contains { $0.x == first.glyphs[0].x && $0.y == first.glyphs[0].y } }!
-                for length in 1...3 where row+length <= rows.count {
-                    guard (row..<(row+length)).allSatisfy({ index in
-                        request.units.contains { u in u.box.x-request.box.x <= u.box.height && rows[index].contains { $0.x == u.glyphs[0].x && $0.y == u.glyphs[0].y } }
-                    }) else { continue }
-                    let labelUnits = request.units.filter { u in u.box.x-request.box.x <= u.box.height && (row..<(row+length)).contains(rows.firstIndex { $0.contains { $0.x == u.glyphs[0].x && $0.y == u.glyphs[0].y } }!) }
-                    guard role.labels.map({ normalized($0+":") }).contains(normalized(labelUnits.map(\.text).joined())) else { continue }
-                    guard let label = try? bounds(labelUnits.flatMap(\.glyphs)),
-                          let x = request.cuts.first(where:{ $0.axis == "vertical" && $0.position >= label.x+label.width }),
-                          let top = request.cuts.last(where:{ $0.axis == "horizontal" && $0.position <= label.y }),
-                          let bottom = request.cuts.first(where:{ $0.axis == "horizontal" && $0.position >= label.y+label.height }) else { continue }
-                    fields[role] = RecoveryField(state:.present,value:"",evidence:labelUnits.map(\.id)+[top.id,bottom.id,x.id])
-                    break
+            originalBytes[unit.id]=bytes
+            strings.append(normalized(parts.joined()))
+        }
+        func field(_ indices:[Int]) throws -> RecoveryField? {
+            guard work.charge(indices.count+request.cuts.count+1) else { try work.finish(); return nil }
+            let units=indices.map { ordered[$0] }
+            guard let label=try? bounds(units.flatMap(\.glyphs)),
+                  let top=request.cuts.filter({ $0.axis == "horizontal" && $0.position <= label.y }).max(by:{ $0.position < $1.position }),
+                  let bottom=request.cuts.filter({ $0.axis == "horizontal" && $0.position >= label.y+label.height }).min(by:{ $0.position < $1.position }),
+                  let left=request.cuts.filter({ $0.axis == "vertical" && $0.position >= label.x+label.width && $0.position > request.box.x && $0.position < request.box.x+request.box.width }).min(by:{ $0.position < $1.position }) else { return nil }
+            // These nearest measured margins include the whole label footprint.
+            // verify requires every body group to lie within that footprint, so
+            // wider equivalent margins need no separate assignment search.
+            return RecoveryField(state:.present,value:"",evidence:units.map(\.id)+[top.id,bottom.id,left.id])
+        }
+        var candidates=[RecoveryRole:[RecoveryField]]()
+        for role in RecoveryRole.allCases {
+            let targets=role.labels.map { normalized($0+":") }
+            var fields=[RecoveryField]()
+            func search(_ start:Int,_ chain:[Int],_ prefix:String) throws {
+                guard chain.count < 3 else { return }
+                for index in start..<ordered.count {
+                    guard work.charge(strings[index].utf8.count+prefix.utf8.count+1) else { try work.finish(); return }
+                    let text=prefix+strings[index]
+                    guard targets.contains(where:{ $0.hasPrefix(text) }) else { continue }
+                    let next=chain+[index]
+                    if targets.contains(text),let value=try field(next) { fields.append(value) }
+                    try search(index+1,next,text)
                 }
-                if fields[role] != nil { break }
+            }
+            try search(0,[],"")
+            guard !fields.isEmpty else { try work.finish(); return nil }
+            candidates[role]=fields
+        }
+        var accepted:[RecoveryLesson]?, signature:[[String]]?
+        for subject in candidates[.subject]! {
+            let subjectIds=Set(subject.evidence.dropLast(3))
+            for teacher in candidates[.teacher]! {
+                guard work.charge(subject.evidence.count+teacher.evidence.count+1) else { try work.finish(); return nil }
+                let teacherIds=Set(teacher.evidence.dropLast(3))
+                guard subjectIds.isDisjoint(with:teacherIds) else { continue }
+                for room in candidates[.room]! {
+                    guard work.charge(request.units.count*4+request.cuts.count+room.evidence.count+1) else { try work.finish(); return nil }
+                    let roomIds=Set(room.evidence.dropLast(3)), labels=subjectIds.union(teacherIds).union(roomIds)
+                    guard roomIds.isDisjoint(with:subjectIds),roomIds.isDisjoint(with:teacherIds),required.isSubset(of:labels) else { continue }
+                    guard work.charge(labels.reduce(0) { $0+originalBytes[$1,default:0] }) else { try work.finish(); return nil }
+                    let proposal=[RecoveryLesson(subject:subject,teacher:teacher,room:room,dateEvidence:[],periodEvidence:[])]
+                    guard let roles=try? verify(request,proposal) else { continue }
+                    let partition=RecoveryRole.allCases.flatMap { role -> [[String]] in
+                        let value=roles.first { $0.role == role }!
+                        return [value.labels.map(\.id),value.body.map(\.id)]
+                    }
+                    if let signature,signature != partition { try work.finish(); throw PDFParseError(code:.ambiguous,stage:.lessonLines) }
+                    if accepted == nil { accepted=proposal;signature=partition }
+                }
             }
         }
-        guard let subject = fields[.subject],let teacher = fields[.teacher],let room = fields[.room] else { return nil }
-        let proposal = [RecoveryLesson(subject:subject,teacher:teacher,room:room,dateEvidence:[],periodEvidence:[])]
-        return (try? verify(request,proposal)) == nil ? nil : proposal
+        try work.finish()
+        return accepted
     }
 }
 
