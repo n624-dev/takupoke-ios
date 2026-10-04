@@ -305,10 +305,14 @@ enum SimulatorEventsYearFixture {
         try library.savePDFAnalysis(PDFAnalysis(kind: .timetable, sourceDigest: source.digest,
             sourceName: source.originalName, parsedAt: Date(), schoolYear: 2032, term: "後期",
             lessons: [lesson], events: [], notices: []))
-        // The no-classes guard also requires a loaded change analysis. Empty
-        // change records are valid and isolate availability of school events.
+        // The no-classes guard requires a loaded change analysis. The store
+        // requires a nonempty result; this other-day record cannot add a block
+        // to the fixed day or its March/April boundary week.
         try library.saveChangeAnalysis(ChangeAnalysis(sourceDigest: changes.digest,
-            sourceName: changes.originalName, defaultYear: 2032, parsedAt: Date(), records: []))
+            sourceName: changes.originalName, defaultYear: 2032, parsedAt: Date(), records: [
+                ScheduleChange(change_date: "2032-04-02", class_name: "3_IT", period: "1", before_subject: "",
+                    after_subject: "架空別日変更A", teacher: "", room: "", note: "補講", raw_text: "", canonical_text: "")
+            ]))
         let root = base.appendingPathComponent("SchoolEventsAPI", isDirectory: true)
         let store = try SchoolEventsStore(root: root)
         // All these files belong to this reset, synthetic application fixture.

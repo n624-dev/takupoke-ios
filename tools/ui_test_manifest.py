@@ -20,7 +20,6 @@ SHARDS = {
         "testChangedDataProducesOneLocalNotification",
         "testSettingsGroupsAndCompactDataOverviews",
         "testRecoveryClosingKeepsFormalAndModelManagementIsAccessible",
-        "testSpecialRecoveryShowsMergedAndDifferentDayClocksBeforeAdoption",
         "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
         "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair",
         "testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates",
@@ -38,6 +37,7 @@ SHARDS = {
         "testRecoveryPreviewOriginalBlankFieldsAndExplicitAdoption",
         "testRecoveryImageOnlyPDFUsesNativeOCRAndTopLeftRaster",
         "testParallelRecoveryKeepsBothLessonsInPreviewAndFormalAnalysis",
+        "testSpecialRecoveryShowsMergedAndDifferentDayClocksBeforeAdoption",
     ),
 }
 REQUIRED_JOBS = frozenset(
