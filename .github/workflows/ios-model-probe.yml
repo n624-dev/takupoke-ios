@@ -10,6 +10,10 @@ on:
         description: Existing draft prerelease tag for this isolated research artifact
         required: true
         type: string
+      release_id:
+        description: Immutable numeric ID of the exact existing draft research prerelease
+        required: true
+        type: string
       source_sha256:
         description: SHA256 of reviewed ios-high-phone-benchmark-source.zip
         required: true
@@ -27,8 +31,9 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
       GH_TOKEN: ${{ github.token }}
       QA_TAG: ${{ github.event.inputs.release_tag || 'model-probe-ios-20261004' }}
+      QA_RELEASE_ID: ${{ github.event.inputs.release_id || '402903016' }}
       # Exact reviewed research source archive; feature branch only.
-      QA_SOURCE_SHA256: ${{ github.event.inputs.source_sha256 || '10fffc71e7de633428275a4126cd11f15e5d16a786cc95ac4e2bee1395624cb1' }}
+      QA_SOURCE_SHA256: ${{ github.event.inputs.source_sha256 || 'bcf9a930df495613187152f90acc44110ced12c7d7e4e63bef33dcf44e84f8cc' }}
     steps:
       - name: Checkout the immutable research source archive
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, same pinned action as production CI
@@ -42,13 +47,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          [[ "$QA_RELEASE_ID" =~ ^[1-9][0-9]*$ ]]
           [[ "$QA_TAG" =~ ^model-probe-ios-[0-9]{8}(-[a-z0-9]+)?$ ]]
           [[ "$QA_SOURCE_SHA256" =~ ^[0-9a-f]{64}$ ]]
-          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$QA_TAG" > "$RUNNER_TEMP/qa-release.json"
+          gh api "repos/$GITHUB_REPOSITORY/releases/$QA_RELEASE_ID" > "$RUNNER_TEMP/qa-release.json"
           python3 - "$RUNNER_TEMP/qa-release.json" <<'PY'
-          import json,sys
+          import json,os,sys
           value=json.load(open(sys.argv[1]))
-          assert value['draft'] and value['prerelease'], 'Only isolated draft prerelease may receive QA artifacts'
+          assert value['id']==int(os.environ['QA_RELEASE_ID']) and value['tag_name']==os.environ['QA_TAG'] and value['draft'] and value['prerelease'], 'Only exact immutable draft prerelease may receive QA artifacts'
           PY
       - name: Verify the committed reviewed standalone project
         shell: bash
@@ -116,10 +122,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$QA_TAG" > "$RUNNER_TEMP/qa-release-final.json"
+          gh api "repos/$GITHUB_REPOSITORY/releases/$QA_RELEASE_ID" > "$RUNNER_TEMP/qa-release-final.json"
           python3 - "$RUNNER_TEMP/qa-release-final.json" <<'PY'
-          import json,sys
-          value=json.load(open(sys.argv[1]));assert value['draft'] and value['prerelease']
+          import json,os,sys
+          value=json.load(open(sys.argv[1]));assert value['id']==int(os.environ['QA_RELEASE_ID']) and value['tag_name']==os.environ['QA_TAG'] and value['draft'] and value['prerelease']
           PY
           python3 "$RUNNER_TEMP/model-probe-input/ios-high-phone-benchmark/tools/upload_qa_artifacts.py" "$RUNNER_TEMP/model-probe-package"
       - name: Remove only this job's owned temporary directories
