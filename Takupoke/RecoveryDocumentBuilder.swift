@@ -57,11 +57,21 @@ enum RecoveryDocumentBuilder {
     }
     static func build(_ pages: [PDFPageLayout], kind: RecoveryDocumentKind, hash: String,
                       fromOCR: Set<Int> = [], rasters: [Int:RecoveryRasterGrid] = [:], structureProposals: [String:[RecoveryLesson]] = [:], check: @escaping () throws -> Void = {}) throws -> RecoveryDocument {
+        let structureWork = RecoveryValidationWork(check:check)
+        do {
+            return try buildLayout(pages,kind:kind,hash:hash,fromOCR:fromOCR,rasters:rasters,structureProposals:structureProposals,structureWork:structureWork,check:check)
+        } catch let error as PDFParseError where kind == .timetable && error.code == .unsupported && error.stage == .periodHeading {
+            // Rebuild from the original acquisition only. Partial legacy documents,
+            // ambiguity, cancellation and exhausted work are never fallback inputs.
+            return try buildLayout(pages,kind:kind,hash:hash,fromOCR:fromOCR,rasters:rasters,structureProposals:structureProposals,structureWork:structureWork,genericRuled:true,check:check)
+        }
+    }
+    private static func buildLayout(_ pages: [PDFPageLayout], kind: RecoveryDocumentKind, hash: String,
+                      fromOCR: Set<Int>, rasters: [Int:RecoveryRasterGrid], structureProposals: [String:[RecoveryLesson]], structureWork:RecoveryValidationWork, genericRuled: Bool = false, check: @escaping () throws -> Void) throws -> RecoveryDocument {
         guard (1...12).contains(pages.count), pages.allSatisfy({ $0.width.isFinite && $0.height.isFinite && $0.width > 0 && $0.height > 0 && $0.glyphs.count <= 100000 }) else { throw PDFParseError(code: .limit) }
         var doc = RecoveryDocument(pdfHash: hash, kind: kind, schoolYear: 0, term: nil, classes: [], days: [], requiredSlots: [], cells: [], sources: [], complete: true, yearEvidence: [], termEvidence: [], dayEvidence: [:], classEvidence: [:], periodEvidence: [:], times: [:], timeEvidence: [], normalTimeNoteEvidence: [])
         let count = kind == .exam ? 6 : 8
         var sourceNumber = 0
-        let structureWork = RecoveryValidationWork(check:check)
         var requests = [RecoveryStructureRequest]()
         for (pageIndex, page) in pages.enumerated() {
             try check()
@@ -80,7 +90,8 @@ enum RecoveryDocumentBuilder {
                 return id
             }
             func region(_ b: RecoveryBox, axis: RecoveryHeaderAxis) -> RecoveryHeaderRegion { .init(page: number, box: b, axis: axis) }
-            let headingRows = PDFGrid.rows(page.glyphs.filter { $0.cy < page.height / 3 })
+            let genericHeaders = genericRuled ? try ruledHeaders(page,grid:grid,work:structureWork,check:check) : nil
+            let headingRows = PDFGrid.rows(page.glyphs.filter { $0.cy < (genericHeaders?.periods.map(\.y).min() ?? page.height / 3) })
             var yearFound = false
             for row in headingRows {
                 let raw = row.map(\.text).joined()
@@ -104,13 +115,13 @@ enum RecoveryDocumentBuilder {
             }
             guard yearFound else { throw PDFParseError(code: .unsupported, stage: .yearHeading) }
             let sequence = String((1...count).map(String.init).joined())
-            let periodRows = headingRows.filter { row in
+            let periodRows = genericHeaders.map { [$0.periods] } ?? headingRows.filter { row in
                 let raw = PDFSchoolParser.key(row.map(\.text).joined())
                 return !raw.isEmpty && raw.count % count == 0 && raw == String(repeating: sequence, count: raw.count/count)
             }
             guard periodRows.count == 1, let periodRow = periodRows.first, periodRow.count % count == 0 else { throw PDFParseError(code: .unsupported, stage: .periodHeading) }
             let groups = periodRow.count / count
-            guard kind == .exam || groups == 5 else { throw PDFParseError(code: .unsupported) }
+            guard genericRuled || kind == .exam || groups == 5 else { throw PDFParseError(code: .unsupported, stage:.periodHeading) }
             var periodIds = [String](); var periodBoxes = [RecoveryBox]()
             for (index, glyph) in periodRow.enumerated() {
                 let id = try add([glyph]); periodIds.append(id); periodBoxes.append(try box([glyph]))
@@ -119,7 +130,17 @@ enum RecoveryDocumentBuilder {
             let headerY = periodRow[0].cy
             struct AxisItem { var value: String; var ids: [String]; var region: RecoveryHeaderRegion; var position: Double; var row: PDFBox? }
             var horizontal = [AxisItem](), vertical = [AxisItem]()
-            if kind == .exam {
+            if let genericHeaders {
+                let h = genericHeaders.day
+                let dayId = try add(h.glyphs)
+                horizontal.append(AxisItem(value:genericHeaders.weekday,ids:[dayId],region:region(rect(genericHeaders.dayBand),axis:.above),position:h.box.x+h.box.width/2))
+                doc.dayEvidence[genericHeaders.weekday,default:[]].append(dayId)
+                for item in genericHeaders.classes {
+                    let classId = try add(item.heading.glyphs)
+                    vertical.append(AxisItem(value:item.value,ids:[classId],region:region(rect(item.row),axis:.left),position:(item.row.top+item.row.bottom)/2,row:item.row))
+                    doc.classEvidence[item.value,default:[]].append(classId)
+                }
+            } else if kind == .exam {
                 let labels = headings(page.glyphs.filter { $0.cy < headerY - 3 && $0.cy > headerY - page.height / 8 }).filter { h in
                     let t = PDFSchoolParser.key(h.text)
                     return t.range(of: "^(?:[1-5][_-](?:[1-3]|CN|ES|IT)|[12]年)$", options: .regularExpression) != nil
@@ -245,19 +266,35 @@ enum RecoveryDocumentBuilder {
                                 }
                                 return nil
                             }
+                            // This new physical-table family admits complete inline
+                            // labels only; uncertainty must not become a model request.
+                            if genericRuled {
+                                guard rows.count == 3, labeled.count == 3, Set(labeled.map { $0.0 }).count == 3,
+                                      labeled.contains(where:{ $0.0 == .subject && !$0.2.isEmpty }) else { throw PDFParseError(code:.ambiguous,stage:.lessonLines) }
+                            }
                             if labeled.count == 3, Set(labeled.map { $0.0 }).count == 3 {
                                 guard bindings.isEmpty else { throw PDFParseError(code:.ambiguous) }
                                 cell.bindingMode = .roleProposal
                                 let lessonIndex = cell.roleScopes.count/3
                                 let sorted = labeled.sorted { $0.1[0].y < $1.1[0].y }
+                                let measuredRows = genericRuled ? try sorted.map { try box($0.1+$0.2) } : []
                                 for (i,item) in sorted.enumerated() {
                                     let labelId = try add(item.1,owner:id); cell.sourceIds.append(labelId)
                                     let labelBox = try box(item.1)
-                                    let top = i == 0 ? subBox.top : (try box(sorted[i-1].1).y + labelBox.y)/2
-                                    let bottom = i == 2 ? subBox.bottom : (labelBox.y + (try box(sorted[i+1].1)).y)/2
+                                    let top:Double, bottom:Double
+                                    if genericRuled {
+                                        let rowBox = measuredRows[i]
+                                        top = i == 0 ? subBox.top : (measuredRows[i-1].y+measuredRows[i-1].height+rowBox.y)/2
+                                        bottom = i == 2 ? subBox.bottom : (rowBox.y+rowBox.height+measuredRows[i+1].y)/2
+                                        guard rowBox.y >= top && rowBox.y+rowBox.height <= bottom else { throw PDFParseError(code:.ambiguous,stage:.lessonLines) }
+                                    } else {
+                                        top = i == 0 ? subBox.top : (try box(sorted[i-1].1).y+labelBox.y)/2
+                                        bottom = i == 2 ? subBox.bottom : (labelBox.y+(try box(sorted[i+1].1)).y)/2
+                                    }
                                     let scope = RecoveryBox(x:labelBox.x+labelBox.width,y:top,width:subBox.right-labelBox.x-labelBox.width,height:bottom-top)
                                     if !item.2.isEmpty { cell.sourceIds.append(try add(item.2,owner:id)) } else { cell.blankFields.append(item.0.rawValue) }
                                     let emptyVerified = try item.2.isEmpty && (!fromOCR.contains(number) || pageRaster?.isBlank(scope,rules:page.lines,check:check) == true)
+                                    if genericRuled { guard !item.2.isEmpty || item.0 != .subject && emptyVerified else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) } }
                                     cell.roleScopes.append(RecoveryRoleScope(lessonIndex:lessonIndex,role:item.0,page:number,box:scope,labelSourceIds:[labelId],labelRegion:region(labelBox,axis:.left),proof:.inlineLabel,emptyVerified:emptyVerified))
                                 }
                             } else {
@@ -443,6 +480,9 @@ enum RecoveryDocumentBuilder {
                 }
             }
             guard used.count == page.glyphs.count else { throw PDFParseError(code:.ambiguous) }
+            if genericRuled, fromOCR.contains(number) {
+                guard let raster = pageRaster, try !raster.hasUncoveredInk(RecoveryBox(x:0,y:0,width:page.width,height:page.height),text:page.glyphs.map { try box([$0]) },rules:page.lines,check:check) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
+            }
         }
         doc.classes = doc.classEvidence.keys.sorted(); doc.days = doc.dayEvidence.keys.sorted()
         doc.requiredSlots = doc.classes.flatMap { cls in doc.days.flatMap { day in (1...count).map { RecoverySlot(className:cls,day:day,period:$0) } } }
@@ -451,8 +491,87 @@ enum RecoveryDocumentBuilder {
             guard try RecoveryValidator.inputErrors(doc,unresolvedCellIds:Set(requests.map(\.ownerCellId)),check:check).isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
             throw RecoveryStructurePreparation(document:doc,requests:requests)
         }
+        if genericRuled { try structureWork.finish() }
         let errors = try RecoveryValidator.inputErrors(doc,check:check)
         guard errors.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
         return doc
+    }
+
+    private struct RuledHeaders {
+        var periods: [PDFGlyph]
+        var day: Heading
+        var weekday: String
+        var dayBand: PDFBox
+        var classes: [(heading:Heading,value:String,row:PDFBox)]
+    }
+    /// One weekday per independently closed table band. No font, page height,
+    /// column width, page count or expected lesson values identify the table.
+    private static func ruledHeaders(_ page: PDFPageLayout,grid:PDFGrid,work:RecoveryValidationWork,check:() throws -> Void) throws -> RuledHeaders {
+        guard work.charge(page.glyphs.count+page.lines.count) else { try work.finish(); throw PDFParseError(code:.limit) }
+        for glyph in page.glyphs {
+            guard work.charge(glyph.text.utf8.count) else { try work.finish(); throw PDFParseError(code:.limit) }
+        }
+        func closed(_ b:PDFBox) throws -> Bool {
+            guard work.charge(page.lines.count*4) else { try work.finish(); throw PDFParseError(code:.limit) }
+            func supports(_ predicate:(PDFRule)->Bool) throws -> Bool {
+                for (index,line) in page.lines.enumerated() {
+                    if index % 128 == 0 { try check(); try Task.checkCancellation() }
+                    if predicate(line) { return true }
+                }
+                return false
+            }
+            return try [b.top,b.bottom].allSatisfy { y in try supports { $0.horizontal && abs($0.y1-y)<0.3 && $0.x1 <= b.left+0.3 && $0.x2 >= b.right-0.3 } }
+                && [b.left,b.right].allSatisfy { x in try supports { $0.vertical && abs($0.x1-x)<0.3 && $0.y1 <= b.top+0.3 && $0.y2 >= b.bottom-0.3 } }
+        }
+        let candidates = PDFGrid.rows(page.glyphs).filter { $0.count == 8 && $0.map(\.text).joined() == "12345678" }
+        guard candidates.count == 1, let periods = candidates.first else { throw PDFParseError(code:.unsupported,stage:.periodHeading) }
+        let headerBoxes = try periods.map { try grid.box($0.cx,$0.cy,check:check) }
+        guard Set(headerBoxes).count == 8 else { throw PDFParseError(code:.ambiguous,stage:.periodHeading) }
+        for (i,b) in headerBoxes.enumerated() {
+            guard try closed(b), rect(b).contains(try box([periods[i]])), b.top == headerBoxes[0].top, b.bottom == headerBoxes[0].bottom,
+                  i == 0 || abs(headerBoxes[i-1].right-b.left)<0.3 else { throw PDFParseError(code:.ambiguous,stage:.periodHeading) }
+        }
+        let labels = headings(page.glyphs.filter { $0.cy < headerBoxes[0].top })
+        let days = labels.compactMap { h -> (Heading,String)? in
+            ["月":"1","火":"2","水":"3","木":"4","金":"5"][PDFSchoolParser.key(h.text).replacingOccurrences(of:"曜日",with:"").replacingOccurrences(of:"曜",with:"")].map { (h,$0) }
+        }
+        guard days.count == 1 else { throw PDFParseError(code:.ambiguous,stage:.calendarDates) }
+        let (day,weekday) = days[0]
+        let dayBand = try grid.box(day.box.x+day.box.width/2,day.box.y+day.box.height/2,check:check)
+        guard try closed(dayBand), rect(dayBand).contains(day.box), dayBand.bottom <= headerBoxes[0].top,
+              abs(dayBand.left-headerBoxes[0].left)<0.3, abs(dayBand.right-headerBoxes[7].right)<0.3 else { throw PDFParseError(code:.ambiguous,stage:.calendarDates) }
+        var classes = [(heading:Heading,value:String,row:PDFBox)]()
+        for h in headings(page.glyphs.filter { $0.cx < headerBoxes[0].left && $0.cy > headerBoxes[0].bottom }) {
+            let value = PDFSchoolParser.key(h.text).replacingOccurrences(of:"-",with:"_")
+            guard RecoveryValidator.knownClasses.contains(value) else { continue }
+            let row = try grid.box(h.box.x+h.box.width/2,h.box.y+h.box.height/2,check:check)
+            guard work.charge(classes.count+1) else { try work.finish(); throw PDFParseError(code:.limit) }
+            guard try closed(row), rect(row).contains(h.box), row.right <= headerBoxes[0].left,
+                  classes.allSatisfy({ $0.value != value && $0.row != row }) else { throw PDFParseError(code:.ambiguous,stage:.classLabel) }
+            for b in headerBoxes {
+                let body = try grid.box((b.left+b.right)/2,(row.top+row.bottom)/2,check:check)
+                guard try closed(body), body.top == row.top, body.bottom == row.bottom,
+                      body.left == b.left, body.right == b.right else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
+            }
+            classes.append((h,value,row))
+        }
+        guard !classes.isEmpty else { throw PDFParseError(code:.unsupported,stage:.classLabel) }
+        guard work.charge(page.lines.count+classes.count*classes.count) else { try work.finish(); throw PDFParseError(code:.limit) }
+        var measuredEdges = Set<Double>()
+        for (index,line) in page.lines.enumerated() {
+            if index % 128 == 0 { try check(); try Task.checkCancellation() }
+            if line.horizontal && line.x1 <= headerBoxes[0].left+0.3 && line.x2 >= headerBoxes[7].right-0.3 && line.y1 >= headerBoxes[0].bottom-0.3 { measuredEdges.insert(line.y1) }
+        }
+        // Every measured full-width body row needs its own known printed class.
+        // An unknown class row cannot disappear into outside-table annotations.
+        guard measuredEdges.count == classes.count+1 else { throw PDFParseError(code:.ambiguous,stage:.classLabel) }
+        let rowEdges=measuredEdges.sorted()
+        guard rowEdges.first == headerBoxes[0].bottom else { throw PDFParseError(code:.ambiguous,stage:.classLabel) }
+        let rows = classes.map { $0.row }.sorted { $0.top < $1.top }
+        for (i,row) in rows.enumerated() {
+            guard work.charge() else { try work.finish(); throw PDFParseError(code:.limit) }
+            guard row.top == rowEdges[i], row.bottom == rowEdges[i+1] else { throw PDFParseError(code:.ambiguous,stage:.classLabel) }
+        }
+        return RuledHeaders(periods:periods,day:day,weekday:weekday,dayBand:dayBand,classes:classes)
     }
 }
