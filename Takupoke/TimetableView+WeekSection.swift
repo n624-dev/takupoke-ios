@@ -57,7 +57,7 @@ extension TimetableView {
                 Label("時間割変更は前回の解析結果です。", systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.orange)
             }
-            if events == nil {
+            if !SchoolEventsCoverage(savedYears: Set(schoolEvents.saved.keys)).coversWeek(starting: weekStart) {
                 Label("学校行事は未取得です。", systemImage: "calendar.badge.exclamationmark")
                     .foregroundStyle(.secondary)
             }

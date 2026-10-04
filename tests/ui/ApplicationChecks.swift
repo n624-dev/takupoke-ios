@@ -24,6 +24,7 @@ final class ApplicationChecks: XCTestCase {
             "testRecoveryImageOnlyPDFUsesNativeOCRAndTopLeftRaster": ["--recovery-ocr-probe"],
             "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork": ["--selection-snapshot", "--normal-only"],
             "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair": ["--events-cache-corrupt"],
+            "testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates": ["--events-year-coverage", "--normal-only"],
         ]
         for (method, arguments) in initialConditions where name.contains(method) {
             app.launchArguments += arguments
@@ -568,7 +569,10 @@ final class ApplicationChecks: XCTestCase {
             app.swipeUp() // Dismiss the number pad through the List's standard behavior.
         }
         func openSavedEvent(_ year: Int, title: String) {
-            tap("\(year)年度の学校行事の詳細を見る")
+            let detail = app.buttons.matching(NSPredicate(format: "label ENDSWITH %@", "年度の学校行事の詳細を見る")).firstMatch
+            XCTAssertTrue(detail.waitForExistence(timeout: 10), app.debugDescription)
+            XCTAssertEqual(detail.label.replacingOccurrences(of: ",", with: ""), "\(year)年度の学校行事の詳細を見る", app.debugDescription)
+            tap(detail.label)
             XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 10), app.debugDescription)
             back(to: "学校行事")
         }
@@ -599,6 +603,48 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertFalse(app.staticTexts["再取得が必要"].exists, app.debugDescription)
         openSavedEvent(2033, title: "架空行事更新2033")
         print("SYNTHETIC_EVENTS_CACHE_UI healthy visible/fetch enabled; other-year fetch kept warning; actual same-year repair and process restart cleared warning")
+    }
+    func testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates() {
+        let notice = "学校行事は未取得です。"
+        let noClasses = "授業はありません。"
+        func relaunch(_ arguments: [String]) {
+            app.terminate()
+            app.launchArguments = ["--reset-fixture", "--events-year-coverage", "--normal-only",
+                "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"] + arguments
+            launchReady()
+        }
+        func home(hasNotice: Bool, hasLesson: Bool, saysNoClasses: Bool) {
+            tab("ホーム")
+            _ = heading("今日の予定")
+            XCTAssertTrue(app.staticTexts["3月31日（木）"].exists, app.debugDescription)
+            XCTAssertEqual(app.staticTexts[notice].firstMatch.exists, hasNotice, app.debugDescription)
+            XCTAssertEqual(app.staticTexts[noClasses].firstMatch.exists, saysNoClasses, app.debugDescription)
+            let lesson = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "架空年度確認科目A")).firstMatch
+            if hasLesson {
+                XCTAssertTrue(lesson.waitForExistence(timeout: 10), app.debugDescription)
+                XCTAssertTrue(lesson.isHittable, app.debugDescription)
+            } else { XCTAssertFalse(lesson.exists, app.debugDescription) }
+        }
+        func boundaryWeek(hasNotice: Bool) {
+            tab("時間割")
+            XCTAssertTrue(app.buttons["3月28日から4月3日"].waitForExistence(timeout: 10), app.debugDescription)
+            XCTAssertEqual(app.staticTexts[notice].firstMatch.exists, hasNotice, app.debugDescription)
+        }
+        // The only saved year is 2031; current 2032 lessons stay usable.
+        home(hasNotice: true, hasLesson: true, saysNoClasses: false)
+        boundaryWeek(hasNotice: true)
+        relaunch(["--events-year-no-lessons"])
+        home(hasNotice: true, hasLesson: false, saysNoClasses: false)
+        // A valid 2032 payload contains one other day, not March 31.
+        relaunch(["--events-year-current", "--events-year-no-lessons"])
+        home(hasNotice: false, hasLesson: false, saysNoClasses: true)
+        relaunch(["--events-year-current"])
+        home(hasNotice: false, hasLesson: true, saysNoClasses: false)
+        boundaryWeek(hasNotice: true) // April 1–3 still need school year 2033.
+        relaunch(["--events-year-both"])
+        home(hasNotice: false, hasLesson: true, saysNoClasses: false)
+        boundaryWeek(hasNotice: false)
+        print("SYNTHETIC_EVENTS_YEAR_UI past-only cache kept missing notice and usable lessons; no false no-classes; other-day yearly coverage; March28-April3 week required both school years")
     }
     func testUsageHelpIsOrganizedByTask() {
         tab("設定")

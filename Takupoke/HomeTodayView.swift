@@ -30,6 +30,9 @@ struct HomeTodayView: View {
     }
     private var presentation: TimetablePresentation { TimetablePresentation(schedule: schedule, mappings: mappings) }
     private var ready: Bool { materials.ready && specialSchedules.ready && schoolEvents.ready && mappings.ready }
+    private var eventsAvailable: Bool {
+        SchoolEventsCoverage(savedYears: Set(schoolEvents.saved.keys)).contains(day: day)
+    }
 
     private var loadFailed: Bool {
         (!materials.ready && !materials.busy && materials.failed) ||
@@ -115,7 +118,7 @@ struct HomeTodayView: View {
                 }
             } else {
                 if schedule.changes == nil { status("時間割変更の解析結果がありません。") }
-                if schedule.events == nil { status("学校行事は未取得です。") }
+                if !eventsAvailable { status("学校行事は未取得です。") }
                 ForEach(classes, id: \.self) { className in
                     classRows(className)
                 }
@@ -153,7 +156,7 @@ struct HomeTodayView: View {
         Text(TimetableDisplayText.className(className))
             .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
         ForEach(missing, id: \.self) { status($0) }
-        if blocks.isEmpty && missing.isEmpty && schedule.changes != nil && schedule.events != nil {
+        if blocks.isEmpty && missing.isEmpty && schedule.changes != nil && eventsAvailable {
             // The event title is already shown once above all classes.
             Text("授業はありません。")
                 .font(.subheadline).foregroundStyle(.secondary)

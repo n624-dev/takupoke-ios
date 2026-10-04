@@ -17,6 +17,44 @@ final class SchoolEventsAPITests: XCTestCase {
                                            title: title, tag: "行事")])
     }
 
+    func testAnnualCoverageUsesValidatedYearEvenWithoutEventsOnDisplayedDay() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try SchoolEventsStore(root: root)
+        try store.save(fictionalPayload(year: 2031))
+        let day = SchoolDate(iso8601: "2032-04-05")!
+        var coverage = SchoolEventsCoverage(savedYears: Set(try store.loadAvailable().saved.keys))
+        XCTAssertFalse(coverage.contains(day: day))
+        XCTAssertTrue(coverage.contains(day: SchoolDate(iso8601: "2032-03-31")!))
+
+        // A valid year may contain events on other days. That confirms annual
+        // availability without inventing an event on the displayed day.
+        try store.save(fictionalPayload(year: 2032))
+        let loaded = try store.loadAvailable()
+        XCTAssertFalse(try XCTUnwrap(loaded.saved[2032]).payload.projectedEvents.contains { $0.date == day.iso8601 })
+        coverage = SchoolEventsCoverage(savedYears: Set(loaded.saved.keys))
+        XCTAssertTrue(coverage.contains(day: day))
+        try Data("{fictional damaged JSON".utf8).write(to: root.appendingPathComponent("events-2033.json"))
+        let damaged = try store.loadAvailable()
+        XCTAssertEqual(damaged.failedYears, [2033])
+        XCTAssertFalse(SchoolEventsCoverage(savedYears: Set(damaged.saved.keys))
+            .contains(day: SchoolDate(iso8601: "2033-04-01")!))
+    }
+
+    func testWeekCoverageChecksEveryDayAcrossSchoolYearBoundary() {
+        let start = SchoolDate(iso8601: "2032-03-29")!
+        XCTAssertEqual(start.schoolWeekday, 1)
+        XCTAssertFalse(SchoolEventsCoverage(savedYears: []).coversWeek(starting: start))
+        XCTAssertFalse(SchoolEventsCoverage(savedYears: [2031]).coversWeek(starting: start))
+        XCTAssertFalse(SchoolEventsCoverage(savedYears: [2032]).coversWeek(starting: start))
+        XCTAssertTrue(SchoolEventsCoverage(savedYears: [2031, 2032]).coversWeek(starting: start))
+        XCTAssertTrue(SchoolEventsCoverage(savedYears: [2032])
+            .coversWeek(starting: SchoolDate(iso8601: "2032-04-05")!))
+        // Include the final weekend day, even when only weekdays have columns.
+        XCTAssertFalse(SchoolEventsCoverage(savedYears: [2034])
+            .coversWeek(starting: SchoolDate(iso8601: "2035-03-26")!))
+    }
+
     func testCorruptYearRetainsHealthyYearsAndOriginalUntilVerifiedSameYearRepair() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

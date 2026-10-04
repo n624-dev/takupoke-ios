@@ -13,7 +13,8 @@ def instrument_events_cache(text):
     assert text.count(marker) == 1, 'Events cache fixture insertion point missing'
     return text.replace(marker, marker + '''
         if ProcessInfo.processInfo.arguments.contains("--events-cache-corrupt") ||
-            ProcessInfo.processInfo.arguments.contains("--events-cache-probe") {
+            ProcessInfo.processInfo.arguments.contains("--events-cache-probe") ||
+            SimulatorEventsYearFixture.enabled {
             loadIfNeeded()
             return
         }
@@ -63,11 +64,11 @@ def generate(destination):
         if path.name == 'SchoolEventsModel.swift':
             text = instrument_events_cache(text)
         if path.name in ('TimetableView.swift', 'TimetableView+Navigation.swift'):
-            text = text.replace('SchoolDate.today()', '(ProcessInfo.processInfo.arguments.contains("--selection-snapshot") ? SimulatorSelectionFixture.day : SchoolDate.today())')
+            text = text.replace('SchoolDate.today()', '(SimulatorEventsYearFixture.enabled ? SimulatorEventsYearFixture.day : (ProcessInfo.processInfo.arguments.contains("--selection-snapshot") ? SimulatorSelectionFixture.day : SchoolDate.today()))')
         if path.name == 'HomeTodayView.swift':
             marker = 'private var day: SchoolDate { TimetableDaySchedule.schoolDay(at: now) }'
             assert text.count(marker) == 1, 'Home selection date probe insertion point missing'
-            text = text.replace(marker, 'private var day: SchoolDate { ProcessInfo.processInfo.arguments.contains("--selection-snapshot") ? SimulatorSelectionFixture.day : TimetableDaySchedule.schoolDay(at: now) }')
+            text = text.replace(marker, 'private var day: SchoolDate { SimulatorEventsYearFixture.enabled ? SimulatorEventsYearFixture.day : (ProcessInfo.processInfo.arguments.contains("--selection-snapshot") ? SimulatorSelectionFixture.day : TimetableDaySchedule.schoolDay(at: now)) }')
             selection_marker = '                    selectedLesson = LessonSelection(lesson: lesson, date: day,'
             assert text.count(selection_marker) == 1, 'Home detail selection diagnostic insertion point missing'
             text = text.replace(selection_marker, '''                    if ProcessInfo.processInfo.arguments.contains("--selection-snapshot") {

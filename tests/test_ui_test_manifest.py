@@ -29,6 +29,7 @@ class ManifestTests(unittest.TestCase):
         insertion = generated[len(source.split('    func refreshAtStartup() {')[0]):].split('        loadIfNeeded()', 2)
         self.assertIn('"--events-cache-corrupt"', insertion[0])
         self.assertIn('"--events-cache-probe"', insertion[0])
+        self.assertIn('SimulatorEventsYearFixture.enabled', insertion[0])
         self.assertIn('return', insertion[1])
         # Actual manual fetch, response validation, persistence and background
         # refresh remain byte-for-byte identical; no fabricated model readiness.
@@ -48,7 +49,7 @@ class ManifestTests(unittest.TestCase):
 
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8"))
-        self.assertEqual(len(manifest.selected_tests("all")), 25)
+        self.assertEqual(len(manifest.selected_tests("all")), 26)
         self.assertFalse(set(manifest.SHARDS["A"]) & set(manifest.SHARDS["B"]))
         self.assertEqual(release_gate.REQUIRED, manifest.REQUIRED_JOBS | {"Distribution tests", "Native PDF and recovery tests"})
         self.assertIn(manifest.SYSTEM_SIZE_TEST, manifest.SHARDS["B"])

@@ -23,6 +23,7 @@ SHARDS = {
         "testSpecialRecoveryShowsMergedAndDifferentDayClocksBeforeAdoption",
         "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
         "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair",
+        "testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates",
     ),
     "B": (
         "testSettingsAccountDataAndFileDetails",

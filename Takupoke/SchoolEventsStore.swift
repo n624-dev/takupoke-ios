@@ -1,5 +1,20 @@
 import Foundation
 
+/// Annual coverage comes from validated saved payloads, not whether a day has
+/// an event or the combined analysis contains a different school year's data.
+struct SchoolEventsCoverage {
+    let savedYears: Set<Int>
+
+    func contains(day: SchoolDate) -> Bool { savedYears.contains(day.schoolYear) }
+
+    func coversWeek(starting day: SchoolDate) -> Bool {
+        (0..<7).allSatisfy { offset in
+            guard let date = day.addingDays(offset) else { return false }
+            return contains(day: date)
+        }
+    }
+}
+
 struct SchoolEventsAvailableLoad {
     let saved: [Int: SavedSchoolEvents]
     let failedYears: Set<Int>
