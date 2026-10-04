@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "generatorSha256": "bb300e1b4da32f576594ffcc9c1345c5943241b4c17109bfc1f0d64fa28b971b",
+  "expectedSha256": "efdcb749420be6b000bf172f41102fd6c98b4e6b600dd22d07b41168788ce191",
+  "layout": {
+    "width": 1450,
+    "height": 990,
+    "left": 28,
+    "gradeWidth": 38,
+    "classWidth": 44,
+    "periodWidth": 32,
+    "top": 62,
+    "dayHeight": 28,
+    "periodHeight": 20,
+    "rowHeight": 47
+  },
+  "colorSeed": 704893,
+  "colorRGB": [
+    0.02,
+    0.04,
+    0.12
+  ],
+  "artifacts": [
+    {
+      "variant": "dense-unlabeled-black",
+      "file": "dense-unlabeled-black.pdf",
+      "bytes": 80758,
+      "sha256": "67828f93c5e6f007109302362130f54c87525fe4baf1c7de86e9c16fabb22116",
+      "expectedSlots": 680
+    },
+    {
+      "variant": "dense-unlabeled-darkblue",
+      "file": "dense-unlabeled-darkblue.pdf",
+      "bytes": 80870,
+      "sha256": "87952e32abe2dfbfdcd01b8095482ba56886e3953576c56d750b5cdf5c983aa4",
+      "expectedSlots": 680
+    },
+    {
+      "variant": "dense-labeled-control-black",
+      "file": "dense-labeled-control-black.pdf",
+      "bytes": 104536,
+      "sha256": "32934e745bbe2eab8c3b8b75d2f87791b314f8b8df9a0def2f6a01e9431bd094",
+      "expectedSlots": 680
+    },
+    {
+      "variant": "dense-labeled-control-darkblue",
+      "file": "dense-labeled-control-darkblue.pdf",
+      "bytes": 104639,
+      "sha256": "e80b7f7ba29d204c252fb0771e163e25a010a502959b73a8b1c21fcbbba70d42",
+      "expectedSlots": 680
+    }
+  ]
+}

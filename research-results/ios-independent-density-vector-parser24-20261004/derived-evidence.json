@@ -1,0 +1,417 @@
+{
+  "sourceCommit": "1f222ad3b6b1e8cc5dd24fabceab03fc5211ee6d",
+  "runId": "37227358109",
+  "attempt": "1",
+  "externalLogReadbackComplete": true,
+  "keys": [
+    "fixed/stderr",
+    "fixed/stdout",
+    "metadata/execution"
+  ],
+  "rawStreams": [
+    {
+      "key": "fixed/stderr",
+      "bytes": 95,
+      "sha256": "f62be3783d4cace8a66c32fb08fdbee82e74a17b59784e9339745f3baf65b92e"
+    },
+    {
+      "key": "fixed/stdout",
+      "bytes": 3428419,
+      "sha256": "23e27b50d3ae611cc12c501a27d1d9699e6662529fd415de8b69cda00f711094"
+    },
+    {
+      "key": "metadata/execution",
+      "bytes": 50770,
+      "sha256": "818efed0d36e837adb3d0e14367b56adce7de281796a1c78135065edce182d7b"
+    }
+  ],
+  "phases": {
+    "fixed": {
+      "summary": {
+        "all680LiteralMatches": 1,
+        "analysesReturned": 1,
+        "attemptedReaderCalls": 4,
+        "mode": "fixed",
+        "modelInvocations": 0,
+        "ocrRequests": 0,
+        "plannedReaderCalls": 4,
+        "qualityQualification": false,
+        "readReturned": 2,
+        "recordedCases": 4,
+        "type": "summary"
+      },
+      "cases": [
+        {
+          "file": "dense-unlabeled-black.pdf",
+          "pdfSHA256": "67828f93c5e6f007109302362130f54c87525fe4baf1c7de86e9c16fabb22116",
+          "pdfBytes": 80758,
+          "readerOnly": false,
+          "readerCallStarted": true,
+          "readReturned": true,
+          "analysisReturned": true,
+          "capture": {
+            "complete": true,
+            "pages": [
+              {
+                "glyphs": 8750,
+                "layoutPresent": true,
+                "originalLayoutSHA256": "1b0fe79b390b1f6b8e87cdc7b15a0311328b2d760d8e0dda89eb4e17da4b2d3e",
+                "page": 1,
+                "rules": 1094,
+                "state": "complete"
+              }
+            ],
+            "readerCompleted": true
+          },
+          "seconds": 1.5296279191970825,
+          "route": "strict",
+          "strictReturned": true,
+          "glyphCount": 8750,
+          "ruleCount": 1094,
+          "retainedPathBudgetEntries": [
+            {
+              "page": 1,
+              "sequence": 6,
+              "step": "paths",
+              "values": [
+                21882,
+                352949
+              ]
+            }
+          ],
+          "diagnosticEntriesOmitted": 0,
+          "pathBudgetEntryCoverage": "Retained actual recorder entries only; omitted pages are unassessed, no extra Reader requests",
+          "actualPages": [
+            {
+              "glyphs": 8750,
+              "rules": 1094,
+              "width": 1450,
+              "height": 990
+            }
+          ],
+          "independentLiteralAssertion": {
+            "assertionOnly": true,
+            "literalSlotsAssessed": 680,
+            "literalSlotsMatched": 680,
+            "mismatches": [],
+            "extraSlotKeys": [],
+            "yearAndTermMatch": true,
+            "classesMatch": true,
+            "all680LiteralMatch": true
+          }
+        },
+        {
+          "file": "dense-unlabeled-darkblue.pdf",
+          "pdfSHA256": "87952e32abe2dfbfdcd01b8095482ba56886e3953576c56d750b5cdf5c983aa4",
+          "pdfBytes": 80870,
+          "readerOnly": false,
+          "readerCallStarted": true,
+          "readReturned": false,
+          "analysisReturned": false,
+          "capture": {
+            "complete": false,
+            "pages": [
+              {
+                "layoutPresent": false,
+                "page": 1,
+                "state": "rasterOnly"
+              }
+            ],
+            "readerCompleted": false
+          },
+          "seconds": 0.15780901908874512,
+          "strictReturned": false,
+          "failureStage": "reader",
+          "failure": {
+            "code": "unsupported",
+            "detail": {
+              "code": "unsupported",
+              "page": 1,
+              "stage": "characterMapping",
+              "trace": {
+                "entries": [
+                  {
+                    "sequence": 0,
+                    "step": "file",
+                    "values": []
+                  },
+                  {
+                    "sequence": 1,
+                    "step": "file",
+                    "values": [
+                      80870
+                    ]
+                  },
+                  {
+                    "sequence": 2,
+                    "step": "document",
+                    "values": [
+                      1,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 3,
+                    "step": "page",
+                    "values": []
+                  },
+                  {
+                    "bounds": {
+                      "height": 990,
+                      "state": "valid",
+                      "width": 1450,
+                      "x": 0,
+                      "y": 0
+                    },
+                    "page": 1,
+                    "sequence": 4,
+                    "step": "pageText",
+                    "values": [
+                      10012,
+                      10012,
+                      0
+                    ]
+                  },
+                  {
+                    "code": "unsupported",
+                    "page": 1,
+                    "sequence": 5,
+                    "stage": "characterMapping",
+                    "step": "failure",
+                    "values": []
+                  }
+                ],
+                "omittedEntries": 0,
+                "parserVersion": 24,
+                "schemaVersion": 1,
+                "totalEntries": 6
+              }
+            },
+            "page": 1,
+            "stage": "characterMapping",
+            "type": "PDFParseError"
+          },
+          "retainedPathBudgetEntries": [],
+          "diagnosticEntriesOmitted": 0,
+          "pathBudgetEntryCoverage": "Retained actual recorder entries only; omitted pages are unassessed, no extra Reader requests"
+        },
+        {
+          "file": "dense-labeled-control-black.pdf",
+          "pdfSHA256": "32934e745bbe2eab8c3b8b75d2f87791b314f8b8df9a0def2f6a01e9431bd094",
+          "pdfBytes": 104536,
+          "readerOnly": false,
+          "readerCallStarted": true,
+          "readReturned": true,
+          "analysisReturned": false,
+          "capture": {
+            "complete": true,
+            "pages": [
+              {
+                "glyphs": 12647,
+                "layoutPresent": true,
+                "originalLayoutSHA256": "f5366266f671df9ffe9c8b724a373f4ea8b6495f3c9e5a217e93289b23c5c10c",
+                "page": 1,
+                "rules": 1094,
+                "state": "complete"
+              }
+            ],
+            "readerCompleted": true
+          },
+          "seconds": 0.8102240562438965,
+          "route": "recovery",
+          "strictReturned": false,
+          "failureStage": "recoveryBuilder",
+          "failure": {
+            "code": "ambiguous",
+            "detail": {
+              "code": "ambiguous",
+              "stage": "fragmentAlignment"
+            },
+            "page": null,
+            "stage": "fragmentAlignment",
+            "type": "PDFParseError"
+          },
+          "strictError": {
+            "code": "unsupported",
+            "detail": {
+              "cell": {
+                "classRow": 1,
+                "detectedLines": 3,
+                "period": 1,
+                "weekday": 1
+              },
+              "code": "unsupported",
+              "page": 1,
+              "stage": "lessonLines"
+            },
+            "page": 1,
+            "stage": "lessonLines",
+            "type": "PDFParseError"
+          },
+          "glyphCount": 12647,
+          "ruleCount": 1094,
+          "retainedPathBudgetEntries": [
+            {
+              "page": 1,
+              "sequence": 6,
+              "step": "paths",
+              "values": [
+                29676,
+                525709
+              ]
+            }
+          ],
+          "diagnosticEntriesOmitted": 0,
+          "pathBudgetEntryCoverage": "Retained actual recorder entries only; omitted pages are unassessed, no extra Reader requests",
+          "actualPages": [
+            {
+              "glyphs": 12647,
+              "rules": 1094,
+              "width": 1450,
+              "height": 990
+            }
+          ]
+        },
+        {
+          "file": "dense-labeled-control-darkblue.pdf",
+          "pdfSHA256": "e80b7f7ba29d204c252fb0771e163e25a010a502959b73a8b1c21fcbbba70d42",
+          "pdfBytes": 104639,
+          "readerOnly": false,
+          "readerCallStarted": true,
+          "readReturned": false,
+          "analysisReturned": false,
+          "capture": {
+            "complete": false,
+            "pages": [
+              {
+                "layoutPresent": false,
+                "page": 1,
+                "state": "rasterOnly"
+              }
+            ],
+            "readerCompleted": false
+          },
+          "seconds": 0.15682291984558105,
+          "strictReturned": false,
+          "failureStage": "reader",
+          "failure": {
+            "code": "unsupported",
+            "detail": {
+              "code": "unsupported",
+              "page": 1,
+              "stage": "characterMapping",
+              "trace": {
+                "entries": [
+                  {
+                    "sequence": 0,
+                    "step": "file",
+                    "values": []
+                  },
+                  {
+                    "sequence": 1,
+                    "step": "file",
+                    "values": [
+                      104639
+                    ]
+                  },
+                  {
+                    "sequence": 2,
+                    "step": "document",
+                    "values": [
+                      1,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 3,
+                    "step": "page",
+                    "values": []
+                  },
+                  {
+                    "bounds": {
+                      "height": 990,
+                      "state": "valid",
+                      "width": 1450,
+                      "x": 0,
+                      "y": 0
+                    },
+                    "page": 1,
+                    "sequence": 4,
+                    "step": "pageText",
+                    "values": [
+                      14019,
+                      14019,
+                      0
+                    ]
+                  },
+                  {
+                    "code": "unsupported",
+                    "page": 1,
+                    "sequence": 5,
+                    "stage": "characterMapping",
+                    "step": "failure",
+                    "values": []
+                  }
+                ],
+                "omittedEntries": 0,
+                "parserVersion": 24,
+                "schemaVersion": 1,
+                "totalEntries": 6
+              }
+            },
+            "page": 1,
+            "stage": "characterMapping",
+            "type": "PDFParseError"
+          },
+          "retainedPathBudgetEntries": [],
+          "diagnosticEntriesOmitted": 0,
+          "pathBudgetEntryCoverage": "Retained actual recorder entries only; omitted pages are unassessed, no extra Reader requests"
+        }
+      ],
+      "nativeReceipt": {
+        "plannedReaderCalls": 4,
+        "rawSHA256": "23e27b50d3ae611cc12c501a27d1d9699e6662529fd415de8b69cda00f711094",
+        "rawBytes": 3428419,
+        "recordedFiles": [
+          "dense-unlabeled-black.pdf",
+          "dense-unlabeled-darkblue.pdf",
+          "dense-labeled-control-black.pdf",
+          "dense-labeled-control-darkblue.pdf"
+        ],
+        "plannedFilesWithoutRecord": [],
+        "attemptedReaderCalls": 4,
+        "readReturned": 2,
+        "analysesReturned": 1,
+        "sourceFailures": 3,
+        "failureClasses": {
+          "semanticRefusal": 3,
+          "rulesIncomplete": 0,
+          "structureUnassessed": 0,
+          "executionOrUnassessed": 0
+        },
+        "positiveAll680LiteralMatches": 1,
+        "positiveLiteralMismatches": 0,
+        "positiveLiteralUnassessed": 0,
+        "negativeSemanticRefusals": 0,
+        "negativeRulesIncomplete": 0,
+        "negativeStructureUnassessed": 0,
+        "negativeExecutionOrUnassessed": 0,
+        "negativeAnalysesReturned": 0,
+        "nonJSONOrIncompleteLines": 0,
+        "transportComplete": true,
+        "semanticResultsSeparateFromTransport": true,
+        "nativeExitCode": 0,
+        "nativeSeconds": 76.82227383399999,
+        "originalRawSHA256": "23e27b50d3ae611cc12c501a27d1d9699e6662529fd415de8b69cda00f711094",
+        "originalRawBytes": 3428419,
+        "parsingTruncated": false
+      }
+    }
+  },
+  "expectedSHA256": "efdcb749420be6b000bf172f41102fd6c98b4e6b600dd22d07b41168788ce191",
+  "ocrRequests": 0,
+  "modelInvocations": 0,
+  "limits": "Independent generated vector fixtures only; no physical-device, persistence/manual-UI or OCR/model quality qualification. Blank slots compare absence only after complete native Reader/actual parser."
+}

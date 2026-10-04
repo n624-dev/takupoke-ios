@@ -1,0 +1,42 @@
+{
+  "run": "https://github.com/n624-dev/takupoke-ios/actions/runs/37227358109",
+  "nativeSourceCommit": "1f222ad3b6b1e8cc5dd24fabceab03fc5211ee6d",
+  "job": 111509672966,
+  "fullGHLog": {
+    "bytes": 4892287,
+    "sha256": "e0a08131aa888f511d38d8d10d06b8e585d4c31a60877319ddacac083e543e5f"
+  },
+  "keysRequired": [
+    "fixed/stderr",
+    "fixed/stdout",
+    "metadata/execution"
+  ],
+  "keysRestored": [
+    "fixed/stderr",
+    "fixed/stdout",
+    "metadata/execution"
+  ],
+  "rawStreams": [
+    {
+      "key": "fixed/stderr",
+      "bytes": 95,
+      "sha256": "f62be3783d4cace8a66c32fb08fdbee82e74a17b59784e9339745f3baf65b92e"
+    },
+    {
+      "key": "fixed/stdout",
+      "bytes": 3428419,
+      "sha256": "23e27b50d3ae611cc12c501a27d1d9699e6662529fd415de8b69cda00f711094"
+    },
+    {
+      "key": "metadata/execution",
+      "bytes": 50770,
+      "sha256": "818efed0d36e837adb3d0e14367b56adce7de281796a1c78135065edce182d7b"
+    }
+  ],
+  "externalFullSHAByteRestoration": "PASS",
+  "nativeObservedRequests": 4,
+  "baselineObservedRequests": 0,
+  "wideObservedRequests": 0,
+  "ocrRequests": 0,
+  "modelInvocations": 0
+}

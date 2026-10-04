@@ -1,0 +1,219 @@
+{
+  "sourceCommit": "1f222ad3b6b1e8cc5dd24fabceab03fc5211ee6d",
+  "runtimeSourceCommit": "2569b7aee75453afae4846f09d9e5b3744f9ba3e",
+  "sourceFiles": [
+    {
+      "mode": "fixed",
+      "path": "Takupoke/SchoolDate.swift",
+      "sha256": "09404aac447ec72004809f41b35e7519e1ca39177fbde0f1f846499d20ab64cd",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/SchoolDataRetention.swift",
+      "sha256": "bd7d27f960f4d8ef4ddae9fa926ba020e2c2442953fcfc4bad611d6a3b85ff8a",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/TimetableLessonNames.swift",
+      "sha256": "96ad23d31d02a3294cf07a3bc179e42696de2605237e01e5d0e24e577f8dbc55",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/ChangeAnalysis.swift",
+      "sha256": "43f4525ac9bca1a83b8743f93230aff776e2c9df72ec6658d34346ee03d5e9eb",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/ChangeNormalizer.swift",
+      "sha256": "431669fd6b8cee5273e151ea357b922592005a42297cd94320bfe98037cfae4b",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/ChangeNormalizer+Dates.swift",
+      "sha256": "f616d54e688e9d6baa97208ced900fa6c0804e3a8765a989cd83b965f2ff2677",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/PDFAnalysis.swift",
+      "sha256": "8b824503c617170a93713cad8995a911d01669984048b8654bfcc51483f88e3f",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/PDFParseError.swift",
+      "sha256": "71ec98ca51b91f9dc754ce5831c993bc6a5a0681a19677dc7c07e456018c007e",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/PDFGrid.swift",
+      "sha256": "140c3ccc1ac3f29c20781598469c06b06866b0521bed6030b2c0e0831d28c9e0",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/PDFSchoolParser.swift",
+      "sha256": "800cc32741c99c14d0b73f08c737012f8f42c9e1adefdf13b630f8b6b9a2b3f6",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/PDFSchoolParser+Timetable.swift",
+      "sha256": "e12892f45029b1134eadd8da2d6f1db0462c9b9c018061f76342eb60dca04335",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/PDFSchoolParser+Events.swift",
+      "sha256": "62765f0004a3154f8b873affea4d4e08314a9bb6e9b22f048291d45e4545deae",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/PDFDiagnostics.swift",
+      "sha256": "ba948805a25d6189c9af1e44b0e10b1839edff6f308c02e935fb769737e118b9",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/PDFTextGeometry.swift",
+      "sha256": "15d05e000717b2e0546291c849ef1dda7f2db7949cc56c3fa90fb3595ea3625a",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/PDFUnicodeMap.swift",
+      "sha256": "ba6c24af0d111fa5196ce297c77c56623ec178d81d291b22083c78e84b1db43e",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/PDFDrawnTextReader.swift",
+      "sha256": "bbce883966eb173f15c3325fdcdd2ed54a3118784521b0bc8ca044875815a567",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/PDFDrawnTextReader+Fonts.swift",
+      "sha256": "8d9536a96ce43546cdc74257f387a721f70573bd90de0c92274ffe2173d5c51a",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/PDFPathReader.swift",
+      "sha256": "e5a41e262e5a5b67125cbd84b6751150878b1424df9c32a1a47e497c5b8a1ab7",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/PDFKitReader.swift",
+      "sha256": "4b309ce2147f146d218d406aeede65c984e073dac9af1c80bda8393a0f5a10ab",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/RecoveryModels.swift",
+      "sha256": "6e9d91315cf928252c46afb9343181f158ef7f2cc16650329b3add44efc8c71d",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/RecoveryValidator.swift",
+      "sha256": "5ac3d982ebdf8aa5c651e024485ef6bc6e1e49232e665dd9af6565ce7a994deb",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/RecoveryEngine.swift",
+      "sha256": "36157d95f3783eafdcf1de7ad1e1e799d14a37bcb23d1070e0aec87b6cb88418",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/RecoveryStructure.swift",
+      "sha256": "304e847a06d2d44c03959230eae88a931ac94b89ef809f45e17c31ead18bfa0d",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/RecoveryDocumentBuilder.swift",
+      "sha256": "1df1b2ce5cab550e953f4c6d46e7b692ba98b467ef6ca45fd0ecedc44245b696",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/RecoveryRasterGrid.swift",
+      "sha256": "9e2aa775bd877a3a074f932b2fa95a355f7040702107494805f9c3bdcd7af48f",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/RecoveryConversion.swift",
+      "sha256": "7cc57579a702a3b265159911f2496314fd52c99d3d4dbcedef7af6ba896ce7f3",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/SpecialSchedule.swift",
+      "sha256": "4f702910370006c197fba955d3e48458b6b645dfaba59205d3102a825e57de32",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/SpecialScheduleParser.swift",
+      "sha256": "8d41690aedd89ea67e001e62c4bc85e6c4d35f39848c9a55c0b09e67b17711cb",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/SpecialScheduleParser+Pages.swift",
+      "sha256": "fec44b2f176587e4cbb647435093e730dd711fa6038b96468f998bd394b7767c",
+      "source": "exactReviewedRuntime"
+    },
+    {
+      "mode": "fixed",
+      "path": "Takupoke/SpecialScheduleParser+Times.swift",
+      "sha256": "2c48ab783a14c17a710d9d38e53932b42935edcf56c9c90e8bf5f0a9367db4d6",
+      "source": "exactReviewedRuntime"
+    }
+  ],
+  "sourceParameterSHA256": "a2af603a05e00e728371f13b05482e9112300c23cceb6df634e8f85253057e0b",
+  "sourceParameters": "Exact public MaterialKind,maximumBytes,normalPeriodTimes declarations only; no runtime substitution",
+  "generatedFixtureManifestSHA256": "e22a89f9812bdf649bf35ceff3b73178f334e75320e4c3017d08041f78592091",
+  "scope": "Independent current-only actualReader/Strict/completecapture/Builder/Rules/Validator/in-memoryAnalysis four separate density/color calls",
+  "ocrRequests": 0,
+  "modelInvocations": 0,
+  "expectedUse": "After actual Analysis only; assertions never enter source APIs",
+  "nativeInputs": [
+    {
+      "file": "dense-unlabeled-black.pdf",
+      "sha256": "67828f93c5e6f007109302362130f54c87525fe4baf1c7de86e9c16fabb22116",
+      "bytes": 80758
+    },
+    {
+      "file": "dense-unlabeled-darkblue.pdf",
+      "sha256": "87952e32abe2dfbfdcd01b8095482ba56886e3953576c56d750b5cdf5c983aa4",
+      "bytes": 80870
+    },
+    {
+      "file": "dense-labeled-control-black.pdf",
+      "sha256": "32934e745bbe2eab8c3b8b75d2f87791b314f8b8df9a0def2f6a01e9431bd094",
+      "bytes": 104536
+    },
+    {
+      "file": "dense-labeled-control-darkblue.pdf",
+      "sha256": "e80b7f7ba29d204c252fb0771e163e25a010a502959b73a8b1c21fcbbba70d42",
+      "bytes": 104639
+    }
+  ],
+  "fixedRequests": 4,
+  "baselineRequests": 0,
+  "denseRequests": 4,
+  "wideRequests": 0
+}
