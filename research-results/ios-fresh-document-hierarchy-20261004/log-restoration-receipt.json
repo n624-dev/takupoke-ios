@@ -1,0 +1,33 @@
+{
+  "derived": {
+    "path": "/workspace/review-notes/ios-fresh-hierarchy-derived-evidence.json",
+    "sha256": "e122b28e9c2bb75cd7cb812418f27b6da81cdb23aad2813a6ac768ed1dbdf5c2"
+  },
+  "exactStreamKeys": [
+    "metadata/execution",
+    "native/stderr",
+    "native/stdout"
+  ],
+  "fullLog": {
+    "bytes": 2859099,
+    "path": "/workspace/review-notes/ios-fresh-hierarchy-37242276787-full.log",
+    "sha256": "691bf4e154d92b3965b44b56956871d1e88b668cbda53530b85e9f04f5951959"
+  },
+  "streams": {
+    "metadata/execution": {
+      "bytes": 35735,
+      "path": "/workspace/review-notes/ios-fresh-hierarchy-metadata-execution.jsonl",
+      "sha256": "5b12ce7b7b8eead24889888e17114a250b48f1356060d0cf4214a2704a6a804d"
+    },
+    "native/stderr": {
+      "bytes": 0,
+      "path": "/workspace/review-notes/ios-fresh-hierarchy-native-stderr.jsonl",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "native/stdout": {
+      "bytes": 2005423,
+      "path": "/workspace/review-notes/ios-fresh-hierarchy-native-stdout.jsonl",
+      "sha256": "05fff08d571d61aa7023b8acdf716392d5c75f76cc349e3a1a3c1c43002dd0b6"
+    }
+  }
+}

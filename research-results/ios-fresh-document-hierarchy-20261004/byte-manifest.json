@@ -1,0 +1,51 @@
+{
+  "files": {
+    "README.md": {
+      "bytes": 7317,
+      "sha256": "d4151b1376ab6224980c13a7240c8df8359549464d756934d6941eba001502c2"
+    },
+    "analyze.py": {
+      "bytes": 6249,
+      "sha256": "a1299a4dd4b1ba9f6de88313baad4cc614d000b697086c5d6d0f4808f6670a80"
+    },
+    "derived-evidence.json": {
+      "bytes": 371148,
+      "sha256": "bded988f63f3c7a2e6428be5ebbafe4fa1918ae2c204c797adb5941f33f6708f"
+    },
+    "execution-metadata.json": {
+      "bytes": 4785,
+      "sha256": "630d2b228ed629c0b61003fa134c789c09362f6c23f3152e024a97abd7eaa6aa"
+    },
+    "input-image-receipt.json": {
+      "bytes": 1102,
+      "sha256": "b75c0384428daeb492e89fe104b542f517a10104ab69721cfbaf8c81fc2458e5"
+    },
+    "log-restoration-receipt.json": {
+      "bytes": 1158,
+      "sha256": "f8675d96c80ebb97c3bb559a410b6e336c9239d2d03fb14ece23647be1a5a4f4"
+    },
+    "native-stderr.json": {
+      "bytes": 242,
+      "sha256": "424aba717f911b7ae8e1f87fa6cd777f145294c7e321de4338bac791bfaae660"
+    },
+    "physical-evidence.json": {
+      "bytes": 128875,
+      "sha256": "af8e711fc481b0d505d310c33e67331783f1d5f545428a2dfa99af30aabb68e5"
+    },
+    "physical_evidence.py": {
+      "bytes": 5713,
+      "sha256": "c8e40689bbe13f1de87ab0d839d5bf1a548b6354ea6caa2cf409dc7da2c4a90a"
+    },
+    "sanitization-receipt.json": {
+      "bytes": 1297,
+      "sha256": "f81aaf02bb0cf86aee6f3333230729b4d4370b15569a733ac9c2ad02317a78dc"
+    },
+    "selected-native-records.json": {
+      "bytes": 154664,
+      "sha256": "acfa9eacfeba72a3f72f1ac974b3a302e44d88192b07f5c6ff5a979659f68c62"
+    }
+  },
+  "nativeSourceCommit": "fde3e233b77f78dd3ca4fa5015ad2ec493cdeabb",
+  "runId": 37242276787,
+  "scope": "Text-only selected native record publication; entire image input record excluded"
+}

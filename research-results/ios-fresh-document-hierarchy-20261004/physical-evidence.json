@@ -1,0 +1,3350 @@
+{
+  "classGlobalTop1CompleteLiteralInPrintedCell": 1,
+  "classGlobalTop1CompleteLiteralOriginalGuardPass": 0,
+  "classes": [
+    {
+      "expectedLiteral": "2_XM",
+      "formalClassScope": "fictional recognition controls only; not supported canonical-class or formal timetable proof",
+      "global/top1": [],
+      "global/top5": [],
+      "nested/top1": [],
+      "nested/top5": [],
+      "printedCell": {
+        "height": 175,
+        "width": 180,
+        "x": 48,
+        "y": 360
+      }
+    },
+    {
+      "expectedLiteral": "3_ZQ",
+      "formalClassScope": "fictional recognition controls only; not supported canonical-class or formal timetable proof",
+      "global/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.13446155190467834,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.lines[37].top1",
+          "rawText": "3_ZQ"
+        }
+      ],
+      "global/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.13446155190467834,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.lines[37].top5[0]",
+          "rawText": "3_ZQ"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.09991519898176193,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.lines[37].top5[1]",
+          "rawText": "3_ZQ"
+        }
+      ],
+      "nested/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.13446155190467834,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[35].lines[0].top1",
+          "rawText": "3_ZQ"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.13446155190467834,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[0][3].content.paragraphs[0].lines[0].top1",
+          "rawText": "3_ZQ"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.13446155190467834,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[0][3].content.text.lines[0].top1",
+          "rawText": "3_ZQ"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.13446155190467834,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[3][0].content.paragraphs[0].lines[0].top1",
+          "rawText": "3_ZQ"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.13446155190467834,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[3][0].content.text.lines[0].top1",
+          "rawText": "3_ZQ"
+        }
+      ],
+      "nested/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.13446155190467834,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[35].lines[0].top5[0]",
+          "rawText": "3_ZQ"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.09991519898176193,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[35].lines[0].top5[1]",
+          "rawText": "3_ZQ"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.13446155190467834,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[0][3].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "3_ZQ"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.09991519898176193,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[0][3].content.paragraphs[0].lines[0].top5[1]",
+          "rawText": "3_ZQ"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.13446155190467834,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[0][3].content.text.lines[0].top5[0]",
+          "rawText": "3_ZQ"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.09991519898176193,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[0][3].content.text.lines[0].top5[1]",
+          "rawText": "3_ZQ"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.13446155190467834,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[3][0].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "3_ZQ"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.09991519898176193,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[3][0].content.paragraphs[0].lines[0].top5[1]",
+          "rawText": "3_ZQ"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.13446155190467834,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[3][0].content.text.lines[0].top5[0]",
+          "rawText": "3_ZQ"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.09991519898176193,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 45.83333310416674,
+            "width": 87.49999956249997,
+            "x": 75,
+            "y": 591.6666666666666
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[3][0].content.text.lines[0].top5[1]",
+          "rawText": "3_ZQ"
+        }
+      ],
+      "printedCell": {
+        "height": 175,
+        "width": 180,
+        "x": 48,
+        "y": 535
+      }
+    }
+  ],
+  "coordinateProvenance": "fde3e233 Fixture.swift frozen independent drawing constants, posthoc only",
+  "globalLowConfidenceLineCount": 11,
+  "globalMissingCharacterRangeBoxLines": [
+    {
+      "missingCharacters": [
+        " ",
+        " ",
+        " ",
+        " ",
+        " ",
+        " "
+      ],
+      "path": "observations[0].document.text.lines[47].top1",
+      "rawText": "Fictional amber lesson and fictional room R73"
+    }
+  ],
+  "globalTop1LineCount": 50,
+  "globalTop1LiteralInventory": [
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "完全架空 観測用時間割",
+      "sourceId": "title"
+    },
+    {
+      "exactRawCandidateTextCount": 0,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "2035年度 前期",
+      "sourceId": "yearTerm"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "科目：架空科目琥",
+      "sourceId": "roleSubject"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "教員：架空教員朔",
+      "sourceId": "roleTeacher"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "教室：架空室R73",
+      "sourceId": "roleRoom"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "月",
+      "sourceId": "weekday"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "クラス",
+      "sourceId": "classHeader"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "1",
+      "sourceId": "period-1"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "2",
+      "sourceId": "period-2"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "3",
+      "sourceId": "period-3"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "4",
+      "sourceId": "period-4"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "5",
+      "sourceId": "period-5"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "6",
+      "sourceId": "period-6"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "7",
+      "sourceId": "period-7"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "8",
+      "sourceId": "period-8"
+    },
+    {
+      "exactRawCandidateTextCount": 0,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "2_XM",
+      "sourceId": "class-a"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "3_ZQ",
+      "sourceId": "class-b"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空科目青",
+      "sourceId": "subject-a-0"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空教員甲",
+      "sourceId": "teacher-a-0"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空室R71",
+      "sourceId": "room-a-0"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空科目紅",
+      "sourceId": "subject-a-1"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空教員乙",
+      "sourceId": "teacher-a-1"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空室R72",
+      "sourceId": "room-a-1"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空科目紫",
+      "sourceId": "subject-a-2"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空教員丙",
+      "sourceId": "teacher-a-2"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空室R73",
+      "sourceId": "room-a-2"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空科目翠",
+      "sourceId": "subject-a-4"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空教員戊",
+      "sourceId": "teacher-a-4"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空室R75",
+      "sourceId": "room-a-4"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空科目橙",
+      "sourceId": "subject-a-5"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空教員己",
+      "sourceId": "teacher-a-5"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空室R76",
+      "sourceId": "room-a-5"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空科目紺",
+      "sourceId": "subject-a-6"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空教員庚",
+      "sourceId": "teacher-a-6"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空室R77",
+      "sourceId": "room-a-6"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空科目銀",
+      "sourceId": "subject-a-7"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空教員辛",
+      "sourceId": "teacher-a-7"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空室R78",
+      "sourceId": "room-a-7"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空科目白",
+      "sourceId": "subject-b-0"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空科目黒",
+      "sourceId": "subject-b-1"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空科目桃",
+      "sourceId": "subject-b-2"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空科目藍",
+      "sourceId": "subject-b-3"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空科目緑",
+      "sourceId": "subject-b-4"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空科目黄",
+      "sourceId": "subject-b-5"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空科目赤",
+      "sourceId": "subject-b-6"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "架空科目茶",
+      "sourceId": "subject-b-7"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "これは新規に描画した架空の比較用ページです。",
+      "sourceId": "paragraph"
+    },
+    {
+      "exactRawCandidateTextCount": 1,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "Fictional amber lesson and fictional room R73",
+      "sourceId": "english"
+    },
+    {
+      "exactRawCandidateTextCount": 0,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "1. 架空の観測項目",
+      "sourceId": "list-1"
+    },
+    {
+      "exactRawCandidateTextCount": 0,
+      "metric": "full exact candidate text inventory only, no position assertion or whitespace repair",
+      "sourceExactText": "2. 架空の比較項目",
+      "sourceId": "list-2"
+    }
+  ],
+  "limitations": [
+    "Printed-cell range containment is not exact glyph extent or unique ink ownership",
+    "Narrow typographic drawing matches are separately retained; no failed match is equated with absent recognition",
+    "Full exact class values required; prefix 2_XM in misread 2_XMl is not accepted",
+    "Original layouts predicates are posthoc only; production layouts was not invoked",
+    "No inferred blanks, merged-cell expansion, alternate adoption, source correction or formal quality qualification"
+  ],
+  "periodGlobalTop1LiteralInPrintedCell": 8,
+  "periodGlobalTop1OriginalGuardPass": 1,
+  "periodGlobalTop1RangeFullyContainedInPrintedCell": 8,
+  "periodGlobalWordTop1LiteralInPrintedCell": 7,
+  "periods": [
+    {
+      "expectedLiteral": "1",
+      "global/lines/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.lines[7].top1",
+          "rawText": "1"
+        }
+      ],
+      "global/lines/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.lines[7].top5[0]",
+          "rawText": "1"
+        }
+      ],
+      "global/words/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.words[0].top1",
+          "rawText": "1"
+        }
+      ],
+      "global/words/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.words[0].top5[0]",
+          "rawText": "1"
+        }
+      ],
+      "nested/lines/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[6].lines[0].top1",
+          "rawText": "1"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[1][1].content.paragraphs[0].lines[0].top1",
+          "rawText": "1"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[1][1].content.text.lines[0].top1",
+          "rawText": "1"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][1].content.paragraphs[0].lines[0].top1",
+          "rawText": "1"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][1].content.text.lines[0].top1",
+          "rawText": "1"
+        }
+      ],
+      "nested/lines/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[6].lines[0].top5[0]",
+          "rawText": "1"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[1][1].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "1"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[1][1].content.text.lines[0].top5[0]",
+          "rawText": "1"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][1].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "1"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][1].content.text.lines[0].top5[0]",
+          "rawText": "1"
+        }
+      ],
+      "nested/words/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[6].words[0].top1",
+          "rawText": "1"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[1][1].content.paragraphs[0].words[0].top1",
+          "rawText": "1"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[1][1].content.text.words[0].top1",
+          "rawText": "1"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][1].content.paragraphs[0].words[0].top1",
+          "rawText": "1"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][1].content.text.words[0].top1",
+          "rawText": "1"
+        }
+      ],
+      "nested/words/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[6].words[0].top5[0]",
+          "rawText": "1"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[1][1].content.paragraphs[0].words[0].top5[0]",
+          "rawText": "1"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[1][1].content.text.words[0].top5[0]",
+          "rawText": "1"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][1].content.paragraphs[0].words[0].top5[0]",
+          "rawText": "1"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.1903253048658371,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665694444475,
+            "width": 20.833332638888862,
+            "x": 320.83333347222225,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][1].content.text.words[0].top5[0]",
+          "rawText": "1"
+        }
+      ],
+      "period": 1,
+      "printedCell": {
+        "height": 54,
+        "width": 216,
+        "x": 228,
+        "y": 306
+      }
+    },
+    {
+      "expectedLiteral": "2",
+      "global/lines/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.lines[8].top1",
+          "rawText": "2"
+        }
+      ],
+      "global/lines/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.lines[8].top5[0]",
+          "rawText": "2"
+        }
+      ],
+      "global/words/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.words[1].top1",
+          "rawText": "2"
+        }
+      ],
+      "global/words/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.words[1].top5[0]",
+          "rawText": "2"
+        }
+      ],
+      "nested/lines/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[7].lines[0].top1",
+          "rawText": "2"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[2][1].content.paragraphs[0].lines[0].top1",
+          "rawText": "2"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[2][1].content.text.lines[0].top1",
+          "rawText": "2"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][2].content.paragraphs[0].lines[0].top1",
+          "rawText": "2"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][2].content.text.lines[0].top1",
+          "rawText": "2"
+        }
+      ],
+      "nested/lines/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[7].lines[0].top5[0]",
+          "rawText": "2"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[2][1].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "2"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[2][1].content.text.lines[0].top5[0]",
+          "rawText": "2"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][2].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "2"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][2].content.text.lines[0].top5[0]",
+          "rawText": "2"
+        }
+      ],
+      "nested/words/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[7].words[0].top1",
+          "rawText": "2"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[2][1].content.paragraphs[0].words[0].top1",
+          "rawText": "2"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[2][1].content.text.words[0].top1",
+          "rawText": "2"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][2].content.paragraphs[0].words[0].top1",
+          "rawText": "2"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][2].content.text.words[0].top1",
+          "rawText": "2"
+        }
+      ],
+      "nested/words/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[7].words[0].top5[0]",
+          "rawText": "2"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[2][1].content.paragraphs[0].words[0].top5[0]",
+          "rawText": "2"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[2][1].content.text.words[0].top5[0]",
+          "rawText": "2"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][2].content.paragraphs[0].words[0].top5[0]",
+          "rawText": "2"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23245997726917267,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 537.5000001041667,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][2].content.text.words[0].top5[0]",
+          "rawText": "2"
+        }
+      ],
+      "period": 2,
+      "printedCell": {
+        "height": 54,
+        "width": 216,
+        "x": 444,
+        "y": 306
+      }
+    },
+    {
+      "expectedLiteral": "3",
+      "global/lines/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.lines[9].top1",
+          "rawText": "3"
+        }
+      ],
+      "global/lines/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.lines[9].top5[0]",
+          "rawText": "3"
+        }
+      ],
+      "global/words/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.words[2].top1",
+          "rawText": "3"
+        }
+      ],
+      "global/words/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.words[2].top5[0]",
+          "rawText": "3"
+        }
+      ],
+      "nested/lines/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[8].lines[0].top1",
+          "rawText": "3"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[3][1].content.paragraphs[0].lines[0].top1",
+          "rawText": "3"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[3][1].content.text.lines[0].top1",
+          "rawText": "3"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][3].content.paragraphs[0].lines[0].top1",
+          "rawText": "3"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][3].content.text.lines[0].top1",
+          "rawText": "3"
+        }
+      ],
+      "nested/lines/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[8].lines[0].top5[0]",
+          "rawText": "3"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[3][1].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "3"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[3][1].content.text.lines[0].top5[0]",
+          "rawText": "3"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][3].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "3"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][3].content.text.lines[0].top5[0]",
+          "rawText": "3"
+        }
+      ],
+      "nested/words/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[8].words[0].top1",
+          "rawText": "3"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[3][1].content.paragraphs[0].words[0].top1",
+          "rawText": "3"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[3][1].content.text.words[0].top1",
+          "rawText": "3"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][3].content.paragraphs[0].words[0].top1",
+          "rawText": "3"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][3].content.text.words[0].top1",
+          "rawText": "3"
+        }
+      ],
+      "nested/words/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[8].words[0].top5[0]",
+          "rawText": "3"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[3][1].content.paragraphs[0].words[0].top5[0]",
+          "rawText": "3"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[3][1].content.text.words[0].top5[0]",
+          "rawText": "3"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][3].content.paragraphs[0].words[0].top5[0]",
+          "rawText": "3"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.23754996061325073,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 29.166665937500056,
+            "width": 24.99999937500013,
+            "x": 754.1666667708333,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][3].content.text.words[0].top5[0]",
+          "rawText": "3"
+        }
+      ],
+      "period": 3,
+      "printedCell": {
+        "height": 54,
+        "width": 216,
+        "x": 660,
+        "y": 306
+      }
+    },
+    {
+      "expectedLiteral": "4",
+      "global/lines/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.9455901980400085,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.499999375000016,
+            "width": 66.6666655555556,
+            "x": 937.500000486111,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": true,
+          "path": "observations[0].document.text.lines[10].top1",
+          "rawText": "4"
+        }
+      ],
+      "global/lines/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.9455901980400085,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.499999375000016,
+            "width": 66.6666655555556,
+            "x": 937.500000486111,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": true,
+          "path": "observations[0].document.text.lines[10].top5[0]",
+          "rawText": "4"
+        }
+      ],
+      "global/words/top1": [],
+      "global/words/top5": [],
+      "nested/lines/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.9455901980400085,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.499999375000016,
+            "width": 66.6666655555556,
+            "x": 937.500000486111,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": true,
+          "path": "observations[0].document.paragraphs[9].lines[0].top1",
+          "rawText": "4"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.9455901980400085,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.499999375000016,
+            "width": 66.6666655555556,
+            "x": 937.500000486111,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": true,
+          "path": "observations[0].document.tables[0].columns[4][1].content.paragraphs[0].lines[0].top1",
+          "rawText": "4"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.9455901980400085,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.499999375000016,
+            "width": 66.6666655555556,
+            "x": 937.500000486111,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": true,
+          "path": "observations[0].document.tables[0].columns[4][1].content.text.lines[0].top1",
+          "rawText": "4"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.9455901980400085,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.499999375000016,
+            "width": 66.6666655555556,
+            "x": 937.500000486111,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": true,
+          "path": "observations[0].document.tables[0].rows[1][4].content.paragraphs[0].lines[0].top1",
+          "rawText": "4"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.9455901980400085,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.499999375000016,
+            "width": 66.6666655555556,
+            "x": 937.500000486111,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": true,
+          "path": "observations[0].document.tables[0].rows[1][4].content.text.lines[0].top1",
+          "rawText": "4"
+        }
+      ],
+      "nested/lines/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.9455901980400085,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.499999375000016,
+            "width": 66.6666655555556,
+            "x": 937.500000486111,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": true,
+          "path": "observations[0].document.paragraphs[9].lines[0].top5[0]",
+          "rawText": "4"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.9455901980400085,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.499999375000016,
+            "width": 66.6666655555556,
+            "x": 937.500000486111,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": true,
+          "path": "observations[0].document.tables[0].columns[4][1].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "4"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.9455901980400085,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.499999375000016,
+            "width": 66.6666655555556,
+            "x": 937.500000486111,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": true,
+          "path": "observations[0].document.tables[0].columns[4][1].content.text.lines[0].top5[0]",
+          "rawText": "4"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.9455901980400085,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.499999375000016,
+            "width": 66.6666655555556,
+            "x": 937.500000486111,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": true,
+          "path": "observations[0].document.tables[0].rows[1][4].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "4"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.9455901980400085,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.499999375000016,
+            "width": 66.6666655555556,
+            "x": 937.500000486111,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": true,
+          "path": "observations[0].document.tables[0].rows[1][4].content.text.lines[0].top5[0]",
+          "rawText": "4"
+        }
+      ],
+      "nested/words/top1": [],
+      "nested/words/top5": [],
+      "period": 4,
+      "printedCell": {
+        "height": 54,
+        "width": 216,
+        "x": 876,
+        "y": 306
+      }
+    },
+    {
+      "expectedLiteral": "5",
+      "global/lines/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.lines[11].top1",
+          "rawText": "5"
+        }
+      ],
+      "global/lines/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.lines[11].top5[0]",
+          "rawText": "5"
+        }
+      ],
+      "global/words/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.words[3].top1",
+          "rawText": "5"
+        }
+      ],
+      "global/words/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.words[3].top5[0]",
+          "rawText": "5"
+        }
+      ],
+      "nested/lines/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[10].lines[0].top1",
+          "rawText": "5"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[5][1].content.paragraphs[0].lines[0].top1",
+          "rawText": "5"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[5][1].content.text.lines[0].top1",
+          "rawText": "5"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][5].content.paragraphs[0].lines[0].top1",
+          "rawText": "5"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][5].content.text.lines[0].top1",
+          "rawText": "5"
+        }
+      ],
+      "nested/lines/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[10].lines[0].top5[0]",
+          "rawText": "5"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[5][1].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "5"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[5][1].content.text.lines[0].top5[0]",
+          "rawText": "5"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][5].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "5"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][5].content.text.lines[0].top5[0]",
+          "rawText": "5"
+        }
+      ],
+      "nested/words/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[10].words[0].top1",
+          "rawText": "5"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[5][1].content.paragraphs[0].words[0].top1",
+          "rawText": "5"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[5][1].content.text.words[0].top1",
+          "rawText": "5"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][5].content.paragraphs[0].words[0].top1",
+          "rawText": "5"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][5].content.text.words[0].top1",
+          "rawText": "5"
+        }
+      ],
+      "nested/words/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[10].words[0].top5[0]",
+          "rawText": "5"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[5][1].content.paragraphs[0].words[0].top5[0]",
+          "rawText": "5"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[5][1].content.text.words[0].top5[0]",
+          "rawText": "5"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][5].content.paragraphs[0].words[0].top5[0]",
+          "rawText": "5"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.2633122503757477,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332222222225,
+            "width": 20.833332638888805,
+            "x": 1187.500000138889,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][5].content.text.words[0].top5[0]",
+          "rawText": "5"
+        }
+      ],
+      "period": 5,
+      "printedCell": {
+        "height": 54,
+        "width": 216,
+        "x": 1092,
+        "y": 306
+      }
+    },
+    {
+      "expectedLiteral": "6",
+      "global/lines/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.lines[12].top1",
+          "rawText": "6"
+        }
+      ],
+      "global/lines/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.lines[12].top5[0]",
+          "rawText": "6"
+        }
+      ],
+      "global/words/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.words[4].top1",
+          "rawText": "6"
+        }
+      ],
+      "global/words/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.words[4].top5[0]",
+          "rawText": "6"
+        }
+      ],
+      "nested/lines/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[11].lines[0].top1",
+          "rawText": "6"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[6][1].content.paragraphs[0].lines[0].top1",
+          "rawText": "6"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[6][1].content.text.lines[0].top1",
+          "rawText": "6"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][6].content.paragraphs[0].lines[0].top1",
+          "rawText": "6"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][6].content.text.lines[0].top1",
+          "rawText": "6"
+        }
+      ],
+      "nested/lines/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[11].lines[0].top5[0]",
+          "rawText": "6"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[6][1].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "6"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[6][1].content.text.lines[0].top5[0]",
+          "rawText": "6"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][6].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "6"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][6].content.text.lines[0].top5[0]",
+          "rawText": "6"
+        }
+      ],
+      "nested/words/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[11].words[0].top1",
+          "rawText": "6"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[6][1].content.paragraphs[0].words[0].top1",
+          "rawText": "6"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[6][1].content.text.words[0].top1",
+          "rawText": "6"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][6].content.paragraphs[0].words[0].top1",
+          "rawText": "6"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][6].content.text.words[0].top1",
+          "rawText": "6"
+        }
+      ],
+      "nested/words/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[11].words[0].top5[0]",
+          "rawText": "6"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[6][1].content.paragraphs[0].words[0].top5[0]",
+          "rawText": "6"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[6][1].content.text.words[0].top5[0]",
+          "rawText": "6"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][6].content.paragraphs[0].words[0].top5[0]",
+          "rawText": "6"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.22402159869670868,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.333332777777855,
+            "width": 29.166666180555694,
+            "x": 1395.8333334027777,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][6].content.text.words[0].top5[0]",
+          "rawText": "6"
+        }
+      ],
+      "period": 6,
+      "printedCell": {
+        "height": 54,
+        "width": 216,
+        "x": 1308,
+        "y": 306
+      }
+    },
+    {
+      "expectedLiteral": "7",
+      "global/lines/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.lines[13].top1",
+          "rawText": "7"
+        }
+      ],
+      "global/lines/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.lines[13].top5[0]",
+          "rawText": "7"
+        }
+      ],
+      "global/words/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.words[5].top1",
+          "rawText": "7"
+        }
+      ],
+      "global/words/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.words[5].top5[0]",
+          "rawText": "7"
+        }
+      ],
+      "nested/lines/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[12].lines[0].top1",
+          "rawText": "7"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[7][1].content.paragraphs[0].lines[0].top1",
+          "rawText": "7"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[7][1].content.text.lines[0].top1",
+          "rawText": "7"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][7].content.paragraphs[0].lines[0].top1",
+          "rawText": "7"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][7].content.text.lines[0].top1",
+          "rawText": "7"
+        }
+      ],
+      "nested/lines/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[12].lines[0].top5[0]",
+          "rawText": "7"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[7][1].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "7"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[7][1].content.text.lines[0].top5[0]",
+          "rawText": "7"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][7].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "7"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][7].content.text.lines[0].top5[0]",
+          "rawText": "7"
+        }
+      ],
+      "nested/words/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[12].words[0].top1",
+          "rawText": "7"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[7][1].content.paragraphs[0].words[0].top1",
+          "rawText": "7"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[7][1].content.text.words[0].top1",
+          "rawText": "7"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][7].content.paragraphs[0].words[0].top1",
+          "rawText": "7"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][7].content.text.words[0].top1",
+          "rawText": "7"
+        }
+      ],
+      "nested/words/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[12].words[0].top5[0]",
+          "rawText": "7"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[7][1].content.paragraphs[0].words[0].top5[0]",
+          "rawText": "7"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[7][1].content.text.words[0].top5[0]",
+          "rawText": "7"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][7].content.paragraphs[0].words[0].top5[0]",
+          "rawText": "7"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.227913036942482,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 37.49999925000003,
+            "width": 29.16666608333344,
+            "x": 1612.5000000833334,
+            "y": 316.66666666666663
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][7].content.text.words[0].top5[0]",
+          "rawText": "7"
+        }
+      ],
+      "period": 7,
+      "printedCell": {
+        "height": 54,
+        "width": 216,
+        "x": 1524,
+        "y": 306
+      }
+    },
+    {
+      "expectedLiteral": "8",
+      "global/lines/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.lines[14].top1",
+          "rawText": "8"
+        }
+      ],
+      "global/lines/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.lines[14].top5[0]",
+          "rawText": "8"
+        }
+      ],
+      "global/words/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.words[6].top1",
+          "rawText": "8"
+        }
+      ],
+      "global/words/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.text.words[6].top5[0]",
+          "rawText": "8"
+        }
+      ],
+      "nested/lines/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[13].lines[0].top1",
+          "rawText": "8"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[8][1].content.paragraphs[0].lines[0].top1",
+          "rawText": "8"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[8][1].content.text.lines[0].top1",
+          "rawText": "8"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][8].content.paragraphs[0].lines[0].top1",
+          "rawText": "8"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][8].content.text.lines[0].top1",
+          "rawText": "8"
+        }
+      ],
+      "nested/lines/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[13].lines[0].top5[0]",
+          "rawText": "8"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[8][1].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "8"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[8][1].content.text.lines[0].top5[0]",
+          "rawText": "8"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][8].content.paragraphs[0].lines[0].top5[0]",
+          "rawText": "8"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][8].content.text.lines[0].top5[0]",
+          "rawText": "8"
+        }
+      ],
+      "nested/words/top1": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[13].words[0].top1",
+          "rawText": "8"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[8][1].content.paragraphs[0].words[0].top1",
+          "rawText": "8"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[8][1].content.text.words[0].top1",
+          "rawText": "8"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][8].content.paragraphs[0].words[0].top1",
+          "rawText": "8"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][8].content.text.words[0].top1",
+          "rawText": "8"
+        }
+      ],
+      "nested/words/top5": [
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.paragraphs[13].words[0].top5[0]",
+          "rawText": "8"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[8][1].content.paragraphs[0].words[0].top5[0]",
+          "rawText": "8"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].columns[8][1].content.text.words[0].top5[0]",
+          "rawText": "8"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][8].content.paragraphs[0].words[0].top5[0]",
+          "rawText": "8"
+        },
+        {
+          "allOriginalCharacterPredicatesPass": true,
+          "confidence": 0.26681503653526306,
+          "nativeRangeUnionFullyContainedInPrintedCell": true,
+          "nativeRangeUnionPixelTopLeft": {
+            "height": 33.33333285714292,
+            "width": 29.166666249999935,
+            "x": 1829.1666666666665,
+            "y": 320.8333333333333
+          },
+          "passesOriginalConfidencePredicate": false,
+          "path": "observations[0].document.tables[0].rows[1][8].content.text.words[0].top5[0]",
+          "rawText": "8"
+        }
+      ],
+      "period": 8,
+      "printedCell": {
+        "height": 54,
+        "width": 216,
+        "x": 1740,
+        "y": 306
+      }
+    }
+  ],
+  "wordAccessorStates": {
+    "presentEmpty": 161,
+    "presentNonempty": 47
+  }
+}

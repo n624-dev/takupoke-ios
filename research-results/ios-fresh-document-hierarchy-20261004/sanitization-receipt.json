@@ -1,0 +1,31 @@
+{
+  "fullOriginalStdoutPubliclyReconstructable": false,
+  "fullOriginalStreamsRecoveredLocally": true,
+  "inputMetadataReceiptScope": "Derived CG metadata and verification only, not an original input record",
+  "nativeRequestCount": 1,
+  "nativeStdoutOriginalBytes": 2005423,
+  "nativeStdoutOriginalSHA256": "05fff08d571d61aa7023b8acdf716392d5c75f76cc349e3a1a3c1c43002dd0b6",
+  "omittedBase64FieldUTF8Bytes": 157816,
+  "omittedPNGBytes": 118361,
+  "omittedPNGSHA256": "8e1850db43ae229e65a7bd6e4ed712d9d67aa3f3e8c037723d214f6ad3d222ea",
+  "omittedRecords": [
+    {
+      "originalBytes": 161293,
+      "originalRecordIndex": 0,
+      "originalSHA256": "ddf4791824c2c11f8a93f064fa65ddb2ee97e22bd49b0712ff1252eab37760f8",
+      "reason": "Entire native input record contains lossless PNG base64; do not put image payload into Git",
+      "type": "input"
+    }
+  ],
+  "runId": 37242276787,
+  "selectedNativeRecordBytesChanged": false,
+  "selectedRawBytes": 1844130,
+  "selectedRawSHA256": "1439f2675aaf447beefa9e4e2a81b993e614266c32f3dc36adaa9cdb9dacb0d3",
+  "selectedRecordTypes": [
+    "page",
+    "oracle",
+    "summary"
+  ],
+  "selectionRule": "Keep original JSONL line bytes with indices1,2,3 in original order; no reserialization",
+  "sourceCommit": "fde3e233b77f78dd3ca4fa5015ad2ec493cdeabb"
+}

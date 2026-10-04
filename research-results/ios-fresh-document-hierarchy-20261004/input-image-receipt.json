@@ -1,0 +1,32 @@
+{
+  "imageMetadata": {
+    "alphaInfo": 6,
+    "bitmapInfo": 8198,
+    "bitsPerComponent": 8,
+    "bitsPerPixel": 32,
+    "bytesPerRow": 8000,
+    "colorSpace": "kCGColorSpaceSRGB",
+    "height": 1000,
+    "pngBytes": 118361,
+    "pngSHA256": "8e1850db43ae229e65a7bd6e4ed712d9d67aa3f3e8c037723d214f6ad3d222ea",
+    "providerBytes": 8000000,
+    "providerSHA256": "3a777705629deb690604f9960d29a091ba034ab8c596131ecb0195275762b57a",
+    "resized": false,
+    "source": "fresh UIKit system-font source drawing; no PDF or former image input",
+    "width": 2000
+  },
+  "validation": {
+    "decodedPNGMode": "RGB",
+    "decodedPNGSize": [
+      2000,
+      1000
+    ],
+    "decodedRGBABytes": 8000000,
+    "decodedRGBAEqualsOriginalCGProviderSHA256": true,
+    "decodedRGBASHA256": "3a777705629deb690604f9960d29a091ba034ab8c596131ecb0195275762b57a",
+    "localInspectionPNGRemoved": true,
+    "noPNGOrFontOrPDFBinaryCommitted": true,
+    "pngSHAAndBytesVerified": true,
+    "scope": "Actual generated PNG decoded in memory after the request; PNG bytes and entire input record deliberately unpublished"
+  }
+}
