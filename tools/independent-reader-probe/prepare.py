@@ -33,7 +33,15 @@ def source_parameters():
     kind=block((ROOT/'Takupoke/MaterialModels.swift').read_text(),'enum MaterialKind:')
     maximum=re.search(r'^    static let maximumBytes = .+$',(ROOT/'Takupoke/MaterialLibrary.swift').read_text(),re.M)
     assert maximum and maximum.group().strip()=='static let maximumBytes = 50 * 1024 * 1024'
-    return ('import Foundation\n'+kind+'\nenum MaterialLibrary {\n'+maximum.group()+'\n}\n').encode()
+    times=normal_times((ROOT/'Takupoke/TimetableSchedule.swift').read_text())
+    baseline=subprocess.check_output(['git','show',BASELINE+':Takupoke/TimetableSchedule.swift'],cwd=ROOT).decode()
+    assert times==normal_times(baseline), 'Baseline public normalPeriodTimes changed'
+    return ('import Foundation\n'+kind+'\nenum MaterialLibrary {\n'+maximum.group()+'\n}\n'+'enum TimetableSchedule {\n'+times+'\n}\n').encode()
+
+def normal_times(source):
+    declaration=re.search(r'^    static let normalPeriodTimes = \[\n.*?^    \]',source,re.M|re.S)
+    assert declaration, 'Exact public normalPeriodTimes declaration missing'
+    return declaration.group()
 
 def prepare(output, fixtures, pins=None):
     assert output.parent.is_dir() and not output.exists()
@@ -65,7 +73,9 @@ def prepare(output, fixtures, pins=None):
     receipt={'sourceCommit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT).decode().strip(),
         'baselineCommit':subprocess.check_output(['git','rev-parse',BASELINE],cwd=ROOT).decode().strip(),
         'sourceFiles':source_rows,'sourceParameterSHA256':sha(parameters),
-        'sourceParameters':'Exact MaterialKind block and maximumBytes constant only; no Reader/parser/recovery substitutions',
+        'sourceParameters':'Exact MaterialKind block, maximumBytes and normalPeriodTimes constants only; no Reader/parser/recovery substitutions',
+        'normalPeriodTimes':{'source':'Takupoke/TimetableSchedule.swift','sourceSHA256':sha((ROOT/'Takupoke/TimetableSchedule.swift').read_bytes()),
+            'declarationSHA256':sha(normal_times((ROOT/'Takupoke/TimetableSchedule.swift').read_text()).encode()),'baselineDeclarationIdentical':True},
         'generatedFixtureManifestSHA256':sha((fixtures/'manifest.json').read_bytes()),
         'scope':'Baseline Reader-only4 calls; fixed actualReader/Strict/completecapture/Builder/Rules/Validator/in-memoryAnalysis6 calls',
         'ocrRequests':0,'modelInvocations':0,'expectedUse':'Only after an actual Analysis is returned, for680literal assertions',

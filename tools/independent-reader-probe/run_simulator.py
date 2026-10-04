@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import time
+import log_transport
 
 MAX_RAW_BYTES = 64 * 1024 * 1024
 
@@ -156,17 +157,19 @@ def main(work):
             for stream in ['stdout', 'stderr']:
                 path = work / f'native.{mode}.{stream}'
                 if path.is_file():
-                    marker = 'IOS_INDEPENDENT_READER_' + mode.upper() + '_' + stream.upper()
-                    print(marker + '_BEGIN', flush=True)
-                    with path.open('rb') as source:
-                        while chunk := source.read(65536):
-                            sys.stdout.buffer.write(chunk)
-                    sys.stdout.buffer.flush()
-                    print('\n' + marker + '_END', flush=True)
+                    raw = path.read_bytes()
+                    lines = list(log_transport.encode(raw, mode + '/' + stream))
+                    assert log_transport.restore('\n'.join(lines))[mode + '/' + stream] == raw
+                    for line in lines:
+                        print(line, flush=True)
         record['sourceReceipt'] = json.loads((work / 'prepared/source-receipt.json').read_text())
         record['generatedFixtureManifest'] = json.loads((work / 'fixtures/manifest.json').read_text())
-        print('IOS_INDEPENDENT_READER_EXECUTION_JSON ' + json.dumps(record, ensure_ascii=False), flush=True)
-        (work / 'execution.json').write_text(json.dumps(record, ensure_ascii=False, indent=2) + '\n')
+        execution = (json.dumps(record, ensure_ascii=False, indent=2) + '\n').encode()
+        for line in log_transport.encode(execution, 'metadata/execution'):
+            print(line, flush=True)
+        print('IOS_INDEPENDENT_READER_SUMMARY ' + json.dumps({'runId': record['runId'], 'sourceCommit': record['sourceCommit'],
+            'nativeExecutionComplete': record['nativeExecutionComplete'], 'phases': record['phases'], 'ocrRequests': 0, 'modelInvocations': 0}), flush=True)
+        (work / 'execution.json').write_bytes(execution)
     return 1 if cleanup_error else exit_status
 
 

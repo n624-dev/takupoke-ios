@@ -46,6 +46,10 @@ class NativePreparationTests(unittest.TestCase):
         generated=prepare.source_parameters().decode()
         self.assertIn('enum MaterialKind:',generated)
         self.assertIn('static let maximumBytes = 50 * 1024 * 1024',generated)
+        times=prepare.normal_times((prepare.ROOT/'Takupoke/TimetableSchedule.swift').read_text())
+        self.assertIn(times,generated)
+        baseline=subprocess.check_output(['git','show',prepare.BASELINE+':Takupoke/TimetableSchedule.swift'],cwd=prepare.ROOT).decode()
+        self.assertEqual(times,prepare.normal_times(baseline))
         self.assertNotIn('PDFKitReader',generated)
         self.assertNotIn('RecoveryDocumentBuilder',generated)
 
