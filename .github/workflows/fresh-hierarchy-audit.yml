@@ -1,0 +1,67 @@
+name: Observe one fresh independent image with default iOS Vision document request
+on:
+  push:
+    branches: [research/ios-fresh-hierarchy-audit-20261004]
+    paths: ['tools/fresh-hierarchy-audit/**', '.github/workflows/fresh-hierarchy-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ios-fresh-hierarchy-audit-20261004
+  cancel-in-progress: false
+jobs:
+  native-acquisition:
+    runs-on: xcode-27
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Prepare only owned scratch and test accounting and transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/fresh-hierarchy-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir "$work"
+          touch "$work/.fresh-hierarchy-owned"
+          python3 -B -m unittest discover -s tools/fresh-hierarchy-audit -p 'test_*.py'
+      - name: Compile new observer API against the actual iOS simulator SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/fresh-hierarchy-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          architecture="$(uname -m)"
+          sdk="$(xcrun --sdk iphonesimulator --show-sdk-path)"
+          xcrun --sdk iphonesimulator --show-sdk-version
+          xcrun swiftc -swift-version 5 -sdk "$sdk" -target "$architecture-apple-ios27.0-simulator" -parse-as-library -O tools/fresh-hierarchy-audit/*.swift -o "$work/FreshHierarchyProbe"
+          codesign --force --sign - "$work/FreshHierarchyProbe"
+      - name: Generate one new image and perform exactly one default Document request
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/fresh-hierarchy-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          python3 -B tools/fresh-hierarchy-audit/run_simulator.py "$work"
+      - name: Clean only this job's simulator and temporary generated image
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/fresh-hierarchy-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          cleanup_status=0
+          if [[ -f "$work/owned-simulator.json" ]]; then
+            python3 - "$work/owned-simulator.json" <<'PY' || cleanup_status=$?
+          import json,os,re,subprocess,sys
+          v=json.load(open(sys.argv[1]));assert v['runId']==os.environ['GITHUB_RUN_ID'] and v['attempt']==os.environ['GITHUB_RUN_ATTEMPT']
+          u=v['udid'];assert re.fullmatch(r'[0-9A-Fa-f-]{36}',u)
+          listed=json.loads(subprocess.run(['xcrun','simctl','list','devices','-j'],check=True,capture_output=True,text=True).stdout)
+          if any(d['udid']==u for devices in listed['devices'].values() for d in devices):
+              subprocess.run(['xcrun','simctl','shutdown',u],check=False)
+              subprocess.run(['xcrun','simctl','delete',u],check=True)
+          PY
+          fi
+          if [[ -f "$work/.fresh-hierarchy-owned" ]]; then rm -rf "$work"; fi
+          exit "$cleanup_status"
