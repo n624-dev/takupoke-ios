@@ -564,7 +564,12 @@ final class ApplicationChecks: XCTestCase {
             }
             XCTAssertTrue(field.exists && field.isHittable, app.debugDescription)
             field.tap()
+            XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 10), app.debugDescription)
             field.typeText((replacing ? String(repeating: XCUIKeyboardKey.delete.rawValue, count: 4) : "") + digits)
+            let entered = expectation(for: NSPredicate { _, _ in
+                field.exists && field.value as? String == digits
+            }, evaluatedWith: field)
+            wait(for: [entered], timeout: 10)
             XCTAssertEqual(field.value as? String, digits, app.debugDescription)
             app.swipeUp() // Dismiss the number pad through the List's standard behavior.
         }
