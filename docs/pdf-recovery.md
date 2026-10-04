@@ -87,3 +87,10 @@ iOSの[最終検証CI28](https://github.com/n624-dev/takupoke-ios/actions/runs/3
 追加取得モデルの保存先はバックアップ対象外属性を設定します。管理画面の確認時にも既存ディレクトリへ属性を再適用します。Linuxでは保存処理、Macでは新規・既存ディレクトリの属性と残存モデルの保持を確認しました。実際のiCloud／端末バックアップの動作は未確認です。
 
 検証の負荷回帰には、5ページ・680セル・各項目24群の架空返却レイアウトを使う。iOSの実Builderは固定項目を行単位でまとめ、Sourceは2,388件となる。この前処理からRules・Validatorへ進む陽性と、同じ架空文字・元の群位置を持つ49,308 Sourceの独立した契約入力を区別する。後者はBuilderの実到達件数ではなく、索引・全所属・取消・上限の検証範囲を確認するための入力である。最新debug実行で、この独立契約のValidatorはLinux約1.18秒、Mac約1.25秒だった（端末の処理時間保証ではない）。索引・workerとProvider接続はApple SDKでコンパイルされ、共有上限・取消の契約はNative Macテストで確認した。ホームの詳細を安定したList親から表示する修正は両OSの実アプリUIで成功した。
+
+
+### 共通fieldExtraction指示
+
+SystemLanguageModel、llama.cpp、別ビルドのCoreAI runtimeのfieldExtractionは、OS共通の指示資産を使う。2939 UTF-8 bytes/SHA256 `c24039ae4317a433a14f01697d77813424a3a1c20a70327189964b2fc60bb188` を実loaderが検証し、読めて一意な確定本文をPRESENTにする条件、roleScopes.emptyVerifiedと固定bindingのblankFieldsの区別、元sources配列順、全non-PRESENTの空value/evidenceを明記する。状態は既存native schemaの綴りに従い、fieldExtractionのpromptVersionは4、変更していないstructureProposalの成功metadataは3、RecoveryVersion2/Schema2/Validator4を保つ。Strict/Rules/Validator、runtime・モデル・配信catalogは変更しない。
+
+研究branchの同一ソース3c90d6eを使ったCI37200758660では、Macのnative359件すべて成功し、iPhone向けSDK27のapp/runtimeビルドと、実app及びCoreAI SwiftPM bundle内の同一資産byte/SHA照合が成功した。推論は行っていないため、指示の整合性・組込み確認を精度向上や追加モデル品質合格とは扱わない。共通HEAD/COPY対照と評価済み利用者参照文は別課題として保存し、過去の弱い指示や実測出力を変更・再実行しない。資産と仕様は [tools/recovery-prompt-contracts](../tools/recovery-prompt-contracts/README.md) に記録する。

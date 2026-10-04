@@ -79,8 +79,12 @@ extension PDFParsingTests {
     func testImmutablePreparedRequestStillValidatesProviderStructureMetadata() async throws {
         let input=try preparedStructureInput(),request=try XCTUnwrap(input.requests.first)
         let provider=StructureProvider(try proposal(request))
+        provider.metadata.promptVersion = "4" // fieldExtraction uses the new shared instruction.
         let resolution=try await RecoveryStructure.resolve(input,providers:[provider],os:"ios",osMajor:26,check:{})
         XCTAssertEqual(provider.calls,1);XCTAssertEqual(resolution.state,.awaitingConfirmation)
+        XCTAssertEqual(provider.metadata.promptVersion,"4")
+        XCTAssertEqual(resolution.metadata?.promptVersion,"3")
+        XCTAssertEqual(resolution.metadata?.recoveryVersion,"2")
         var doc=try RecoveryDocumentBuilder.build([foldedPage()],kind:.timetable,hash:input.document.pdfHash,structureProposals:try XCTUnwrap(resolution.proposals))
         doc.structureMetadata=resolution.metadata
         let run=try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
