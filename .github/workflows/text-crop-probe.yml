@@ -30,6 +30,7 @@ jobs:
           touch "$work/.text-crop-owned"
           python3 -m unittest discover -s tools/vision-acquisition-probe -p 'test_prepare.py'
           python3 -m unittest discover -s tools/text-ocr-probe -p 'test_*.py'
+          python3 -m unittest discover -s tools/text-crop-probe -p 'test_*.py'
           python3 tools/text-crop-probe/prepare.py "$work/prepared"
       - name: Compile two-region ordinary accurate text OCR for the actual iOS simulator SDK
         shell: bash

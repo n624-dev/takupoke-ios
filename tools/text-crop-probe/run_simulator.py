@@ -99,7 +99,7 @@ finally:
         for line in raw_bytes.splitlines():
             try:
                 value = json.loads(line)
-                if value.get('type') == 'page': partial.append(value)
+                if value.get('type') == 'region': partial.append(value)
             except (ValueError, AttributeError):
                 record['nonJSONOrIncompleteRawLines'] = record.get('nonJSONOrIncompleteRawLines',0)+1
         record['recordedRegions'] = len(partial)
