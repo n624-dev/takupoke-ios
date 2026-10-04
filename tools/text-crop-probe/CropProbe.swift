@@ -77,7 +77,9 @@ struct TextCropProbe {
                             let b=rectangle.boundingBox.cgRect
                             box.merge(rect(b,width:crop.width,height:crop.height,offsetX:offsetX)) { _,new in new }
                             let x=b.minX*CGFloat(crop.width),y=(1-b.maxY)*CGFloat(crop.height),w=b.width*CGFloat(crop.width),h=b.height*CGFloat(crop.height)
-                            let valid=w>0 && h>0 && x>=0 && y>=0;box["originalLayoutsCharacterPredicate"]=valid
+                            let valid=w>0 && h>0 && x+CGFloat(offsetX)>=0 && y>=0
+                            box["cropLocalCharacterPredicate"]=w>0 && h>0 && x>=0 && y>=0
+                            box["originalLayoutsCharacterPredicate"]=valid
                             if !valid { failures.append("characterRectangle") }
                         } else { box["missing"]=true;failures.append("characterBoundingBoxMissing") }
                         boxes.append(box)
