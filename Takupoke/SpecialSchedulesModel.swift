@@ -18,6 +18,7 @@ final class SpecialSchedulesModel: ObservableObject {
     @Published private(set) var busy = false
     @Published private(set) var message: String?
     @Published private(set) var failed = false
+    private(set) var rejectedRecoveryKinds = Set<SpecialScheduleKind>()
     @Published var fullReadReports: [SpecialScheduleKind: String] = [:]
 
     private let queue = DispatchQueue(label: "io.github.n624dev.takupoke.special-schedules", qos: .userInitiated)
@@ -132,6 +133,13 @@ final class SpecialSchedulesModel: ObservableObject {
                 capture.store = store
                 try operation(store, control, capture)
             }
+            var visible = capture.store?.records ?? [:], rejected = Set<SpecialScheduleKind>()
+            for (kind,record) in visible where record.analysis.recovery != nil {
+                if (try? RecoveryConversion.recertifiedSpecial(record.analysis,hash:record.digest)) == nil {
+                    visible.removeValue(forKey:kind); rejected.insert(kind)
+                }
+            }
+            let visibleRecords = visible, rejectedKinds = rejected
             DispatchQueue.main.async {
                 guard !self.retired, operationGeneration == self.generation else { completion?(false); return }
                 self.busy = false
@@ -139,7 +147,8 @@ final class SpecialSchedulesModel: ObservableObject {
                 if let kind { self.fullReadReports[kind] = capture.report }
                 if let store = capture.store {
                     self.store = store
-                    self.records = store.records
+                    self.records = visibleRecords
+                    self.rejectedRecoveryKinds = rejectedKinds
                     self.sources = store.sources
                     self.urls = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.compactMap { kind in
                         store.selectedURL(for: kind).map { (kind, $0) }

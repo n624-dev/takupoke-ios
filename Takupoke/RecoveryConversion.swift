@@ -52,6 +52,19 @@ enum RecoveryConversion {
         let periodTimes = Dictionary(uniqueKeysWithValues:(1...(doc.kind == .exam ? 6 : 8)).compactMap { p in doc.times["\(day):\(p)"].map { (p,$0) } })
         return SpecialScheduleAnalysis(kind:doc.kind == .exam ? .exam : .examReturn,sourceDigest:preview.source.digest,sourceName:preview.source.originalName,parsedAt:adopted.acceptance.acceptedAt,schoolYear:doc.schoolYear,coveredDates:doc.days.sorted(),coveredClasses:doc.classes.sorted(),periodTimes:periodTimes,lessons:lessons,recovery:adopted)
     }
+    static func recertifiedSpecial(_ analysis: SpecialScheduleAnalysis, hash: String) throws -> SpecialScheduleAnalysis? {
+        guard (4...SpecialScheduleAnalysis.parserVersion).contains(analysis.version), analysis.sourceDigest == hash, let original = analysis.recovery,
+              let current = try RecoveryValidator.recertify(original,hash:hash),
+              let first = current.document.days.sorted().first, let day = SchoolDate(iso8601:first) else { return nil }
+        let source = RecoverySelectedSource(kind:current.document.kind,url:URL(fileURLWithPath:"/"),digest:hash,originalName:analysis.sourceName,storedName:"",period:SchoolDataPeriod(day:day))
+        let projection = try special(RecoveryPreview(document:current.document,result:current.result,source:source))
+        guard analysis.kind == projection.kind, analysis.schoolYear == projection.schoolYear,
+              analysis.coveredDates == projection.coveredDates, analysis.coveredClasses == projection.coveredClasses,
+              analysis.periodTimes == projection.periodTimes, analysis.lessons == projection.lessons,
+              analysis.parsedAt == original.acceptance.acceptedAt else { return nil }
+        var next = analysis; next.recovery = current
+        return next
+    }
     static func verifyFile(_ source: RecoverySelectedSource, currentPeriod: () -> SchoolDataPeriod = { SchoolDataPeriod.current() }, check: () throws -> Void) throws {
         guard currentPeriod() == source.period else { throw PDFParseError(code:.cancelled) }
         let file = try FileHandle(forReadingFrom:source.url); defer { try? file.close() }

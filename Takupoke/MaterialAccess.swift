@@ -43,6 +43,7 @@ final class MaterialWorker {
         try refresh(kind, control: control)
         guard let current = library?.state.record(for: kind) else { return false }
         if current.digest == previous.digest {
+            if kind == .timetable, try library?.recertifyAcceptedTimetable(hash:current.digest) == true { return false }
             guard let state = library?.state else { return false }
             if kind == .changes {
                 guard ChangeParseAttempt.needsAnalysis(digest: current.digest, defaultYear: defaultYear,

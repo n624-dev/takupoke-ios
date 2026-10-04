@@ -139,7 +139,7 @@ final class RecoveryTests: XCTestCase {
             attemptVersion:SpecialScheduleAnalysis.parserVersion))
     }
     func testOrdinaryRoleAliasVersionRetriesUnchangedEarlierSuccess() {
-        XCTAssertEqual(PDFAnalysis.currentVersion(for:.timetable),23)
+        XCTAssertEqual(PDFAnalysis.currentVersion(for:.timetable),24)
         XCTAssertEqual(PDFAnalysis.currentVersion(for:.events),4)
         XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"same",parserVersion:PDFAnalysis.parserVersion,analysisDigest:"same",analysisVersion:20,attemptDigest:"same",failure:nil,attemptVersion:20))
     }
@@ -153,14 +153,14 @@ final class RecoveryTests: XCTestCase {
         XCTAssertEqual(SpecialScheduleAnalysis.parserVersion, 22)
     }
     func testParallelAlignmentVersionRetriesEarlierSameHashSuccessAndFailure() {
-        XCTAssertEqual(PDFAnalysis.currentVersion(for: .timetable), 23)
+        XCTAssertEqual(PDFAnalysis.currentVersion(for: .timetable), 24)
         XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest: "same", parserVersion: PDFAnalysis.parserVersion,
             analysisDigest: "same", analysisVersion: 22, attemptDigest: "same", failure: nil, attemptVersion: 22))
         let failure = PDFParseError(code: .ambiguous, stage: .parallelLessons)
         XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest: "same", parserVersion: PDFAnalysis.parserVersion,
             analysisDigest: nil, analysisVersion: nil, attemptDigest: "same", failure: failure, attemptVersion: 22))
         XCTAssertFalse(PDFParseAttempt.needsAnalysis(digest: "same", parserVersion: PDFAnalysis.parserVersion,
-            analysisDigest: nil, analysisVersion: nil, attemptDigest: "same", failure: failure, attemptVersion: 23))
+            analysisDigest: nil, analysisVersion: nil, attemptDigest: "same", failure: failure, attemptVersion: 24))
         XCTAssertEqual(PDFAnalysis.currentVersion(for: .events), 4)
         XCTAssertEqual(SpecialScheduleAnalysis.parserVersion, 22)
     }
@@ -198,7 +198,12 @@ final class RecoveryTests: XCTestCase {
     private struct SpecialFixture: Decodable { var document: RecoveryDocument; var result: RecoveryResult }
     private func special(_ kind: String = "exam") throws -> (RecoveryDocument, RecoveryResult) {
         let url = try XCTUnwrap(Bundle.module.url(forResource: "recovery-" + kind, withExtension: "json", subdirectory: "fixtures"))
-        let fixture = try JSONDecoder().decode(SpecialFixture.self, from: Data(contentsOf: url)); return (fixture.document, fixture.result)
+        var fixture = try JSONDecoder().decode(SpecialFixture.self, from: Data(contentsOf: url))
+        // Preserve archived source/cell fixtures; exercise their unchanged
+        // geometry and field proofs with the current validation recipe.
+        fixture.result.metadata.validatorVersion = RecoveryValidator.version
+        fixture.document.structureMetadata?.validatorVersion = RecoveryValidator.version
+        return (fixture.document, fixture.result)
     }
     func testSpecialSchedulesWithFullScopeAndExplicitSpanTimesPass() throws { for kind in ["exam", "return"] { let (d, r) = try special(kind); XCTAssertEqual(RecoveryValidator.validate(d, r).errors, [], kind) } }
     func testInventoryCannotDiscardTextToClaimEmpty() { var (d, r) = fixture(); d.cells[0].sourceIds = []; d.cells[0].lessonBindings = []; d.cells[0].confirmedEmpty = true; r.cells[0].state = .empty; r.cells[0].lessons = []; XCTAssertTrue(RecoveryValidator.validate(d, r).errors.contains("sourceInventory")) }

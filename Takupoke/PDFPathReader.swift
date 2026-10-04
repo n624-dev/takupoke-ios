@@ -1,4 +1,63 @@
 import Foundation
+
+/// Broad-phase lookup only: every candidate still uses the original inclusive
+/// collision predicate. Index creation/search consume the caller's same budget.
+struct PDFTextCollisionIndex {
+    private let boxes: [PDFBox]
+    private let xOrder: [Int]
+    private let yOrder: [Int]
+    private let maximumWidth: Double
+    private let maximumHeight: Double
+
+    init(_ boxes: [PDFBox], work: () throws -> Void) throws {
+        guard boxes.count <= 100000 else { throw PDFParseError(code:.limit) }
+        var width = 0.0, height = 0.0
+        for box in boxes {
+            try work()
+            guard [box.left,box.top,box.right,box.bottom].allSatisfy(\.isFinite),
+                  box.left <= box.right, box.top <= box.bottom,
+                  (box.right-box.left).isFinite, (box.bottom-box.top).isFinite else { throw PDFParseError(code:.unreadable) }
+            width = max(width,box.right-box.left); height = max(height,box.bottom-box.top)
+        }
+        self.boxes = boxes; maximumWidth = width.nextUp; maximumHeight = height.nextUp
+        xOrder = try boxes.indices.sorted { a,b in try work(); return boxes[a].left < boxes[b].left }
+        yOrder = try boxes.indices.sorted { a,b in try work(); return boxes[a].top < boxes[b].top }
+    }
+    private func range(_ order: [Int], horizontal: Bool, lower: Double, upper: Double,
+                       work: () throws -> Void) throws -> Range<Int> {
+        func bound(_ target: Double, afterEqual: Bool) throws -> Int {
+            var start = 0, end = order.count
+            while start < end {
+                try work()
+                let mid = start+(end-start)/2
+                let coordinate = horizontal ? boxes[order[mid]].left : boxes[order[mid]].top
+                if coordinate < target || afterEqual && coordinate == target { start = mid+1 } else { end = mid }
+            }
+            return start
+        }
+        return try bound(lower,afterEqual:false)..<bound(upper,afterEqual:true)
+    }
+    func overlaps(_ query: PDFBox, pad: Double, work: () throws -> Void) throws -> Bool {
+        guard [query.left,query.top,query.right,query.bottom,pad].allSatisfy(\.isFinite),
+              query.left <= query.right, query.top <= query.bottom, pad >= 0,
+              (query.left-pad).isFinite, (query.top-pad).isFinite,
+              (query.right+pad).isFinite, (query.bottom+pad).isFinite else { throw PDFParseError(code:.unreadable) }
+        // An overlapping box starts no earlier than query-min minus the largest
+        // original extent. Outward rounding only broadens candidates; the exact
+        // collision predicate below still includes the same touching edges.
+        let xs = try range(xOrder,horizontal:true,lower:(query.left-pad-maximumWidth).nextDown,upper:(query.right+pad).nextUp,work:work)
+        let ys = try range(yOrder,horizontal:false,lower:(query.top-pad-maximumHeight).nextDown,upper:(query.bottom+pad).nextUp,work:work)
+        let horizontal = xs.count < ys.count
+        let selected = horizontal ? xs : ys, order = horizontal ? xOrder : yOrder
+        for index in selected {
+            try work()
+            let box = boxes[order[index]]
+            if box.left <= query.right+pad && query.left-pad <= box.right &&
+               box.top <= query.bottom+pad && query.top-pad <= box.bottom { return true }
+        }
+        return false
+    }
+}
 #if canImport(PDFKit)
 import PDFKit
 import CoreGraphics
@@ -40,7 +99,8 @@ final class PDFPathReader {
     var failure: Error?
     var operations = 0
     private var textSeen = false
-    private var paintWork = 0
+    private(set) var paintWork = 0
+    private var textIndex: PDFTextCollisionIndex?
     private static let maximumPaintWork = 1_000_000
 
     private struct PathBounds {
@@ -110,13 +170,16 @@ final class PDFPathReader {
     }
 
     private func overlapsText(left: CGFloat, top: CGFloat, right: CGFloat, bottom: CGFloat, pad: Double) -> Bool {
-        for box in textBoxes {
-            // The collision loop is part of the page work budget, even when
-            // every glyph is disjoint. Fail closed and preserve its first error.
-            guard consumePaintWork() else { return true }
-            if box.left <= Double(right)+pad && Double(left)-pad <= box.right && box.top <= Double(bottom)+pad && Double(top)-pad <= box.bottom { return true }
+        do {
+            let work = { [self] in
+                guard consumePaintWork() else { throw failure ?? PDFParseError(code:.limit) }
+            }
+            if textIndex == nil { textIndex = try PDFTextCollisionIndex(textBoxes,work:work) }
+            return try textIndex!.overlaps(PDFBox(left:Double(left),top:Double(top),right:Double(right),bottom:Double(bottom)),pad:pad,work:work)
+        } catch {
+            if failure == nil { failure = error }
+            return true
         }
-        return false
     }
     func paint(fill: Bool, stroke: Bool) {
         defer { paths.removeAll(keepingCapacity: true) }

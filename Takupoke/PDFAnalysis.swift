@@ -174,7 +174,7 @@ struct PDFEventClassification: Codable, Equatable {
     }
 }
 struct PDFAnalysis: Codable {
-    static let parserVersion = 23
+    static let parserVersion = 24
     // Timetable fixes must not ask users to reparse an unchanged calendar.
     static func currentVersion(for kind: MaterialKind) -> Int { kind == .events ? 4 : parserVersion }
     var version = parserVersion

@@ -12,6 +12,7 @@ final class MaterialsModel: ObservableObject {
     @Published private(set) var pdfURLs: [String: URL] = [:]
     @Published private(set) var timetableReadReport: String?
     @Published private(set) var timetableFailure: PDFParseError?
+    private(set) var rejectedRecoveryKinds = Set<String>()
 
     var canPreviewChanges: Bool {
         guard let attempt = state.changeParseAttempt, attempt.failure?.permitsPreview == true,
@@ -172,7 +173,8 @@ final class MaterialsModel: ObservableObject {
             let result = Result { try operation(worker, control) }
             let preview = worker.changePreview
             worker.clearPreview()
-            let snapshot = worker.library?.state
+            let display = worker.library.map { MaterialLibrary.displayableTimetables($0.state) }
+            let snapshot = display?.state
             let timetableReport = worker.timetableReadReport
             let timetableFailure = worker.timetableFailure
             var pdfURLs: [String: URL] = [:]
@@ -181,6 +183,7 @@ final class MaterialsModel: ObservableObject {
                 guard !self.retired, operationGeneration == self.generation else { completion?(false); return }
                 self.ready = snapshot != nil
                 if let snapshot = snapshot { self.state = snapshot }
+                self.rejectedRecoveryKinds = display?.rejected ?? []
                 self.pdfURLs = pdfURLs
                 self.timetableReadReport = timetableReport
                 self.timetableFailure = timetableFailure

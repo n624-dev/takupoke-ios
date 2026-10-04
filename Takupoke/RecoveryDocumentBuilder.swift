@@ -43,6 +43,12 @@ enum RecoveryDocumentBuilder {
         return RecoveryBox(x: x, y: y, width: glyphs.map { $0.x + $0.width }.max()! - x,
                            height: glyphs.map { $0.y + $0.height }.max()! - y)
     }
+    private static func requireSingleInlineTuple(_ values: [String]) throws {
+        let multiple = values.filter { $0.replacingOccurrences(of:"･",with:"・").components(separatedBy:"・").count > 1 }.count
+        // One printed label per role cannot certify two scoped lessons under
+        // the unchanged distinct-label/partition contract. Fail before AI fallback.
+        guard multiple < 2 else { throw PDFParseError(code:.ambiguous,stage:.parallelLessons) }
+    }
     private static func rect(_ b: PDFBox) -> RecoveryBox { .init(x: b.left, y: b.top, width: b.right-b.left, height: b.bottom-b.top) }
     private static func headings(_ glyphs: [PDFGlyph]) -> [Heading] {
         PDFGrid.rows(glyphs).flatMap { row -> [Heading] in
@@ -273,6 +279,7 @@ enum RecoveryDocumentBuilder {
                                       labeled.contains(where:{ $0.0 == .subject && !$0.2.isEmpty }) else { throw PDFParseError(code:.ambiguous,stage:.lessonLines) }
                             }
                             if labeled.count == 3, Set(labeled.map { $0.0 }).count == 3 {
+                                try requireSingleInlineTuple(labeled.map { $0.2.map(\.text).joined() })
                                 guard bindings.isEmpty else { throw PDFParseError(code:.ambiguous) }
                                 cell.bindingMode = .roleProposal
                                 let lessonIndex = cell.roleScopes.count/3
@@ -309,6 +316,7 @@ enum RecoveryDocumentBuilder {
                                     else { proposal=try RecoveryStructure.cheap(request,work:structureWork) }
                                     if let proposal {
                                         let roles = try RecoveryStructure.verify(request,proposal)
+                                        try requireSingleInlineTuple(roles.map { $0.body.flatMap(\.glyphs).map(\.text).joined() })
                                         cell.bindingMode = .roleProposal
                                         let lessonIndex = cell.roleScopes.count/3
                                         for role in roles {
@@ -326,7 +334,9 @@ enum RecoveryDocumentBuilder {
                                     continue
                                 }
                                 guard cell.bindingMode == .fixed, let fields = fieldsAttempt else { throw PDFParseError(code:.ambiguous,stage:.lessonLines) }
-                                let parallel = fields.allSatisfy { $0.replacingOccurrences(of:"･",with:"・").components(separatedBy:"・").count == 2 }
+                                let partCounts = fields.map { $0.replacingOccurrences(of:"･",with:"・").components(separatedBy:"・").count }
+                                let parallel = partCounts.allSatisfy { $0 == 2 }
+                                guard partCounts.filter({ $0 > 1 }).count < 2 || parallel else { throw PDFParseError(code:.ambiguous,stage:.parallelLessons) }
                                 if parallel {
                                     guard rows.count == 3, Set(sub).count == 1, rows.allSatisfy({ $0.filter { ["・","･"].contains($0.text) }.count == 1 }) else { throw PDFParseError(code:.ambiguous,stage:.parallelLessons) }
                                     var variants = [RecoveryLessonBinding(subject:[],teacher:[],room:[]),RecoveryLessonBinding(subject:[],teacher:[],room:[])]

@@ -338,6 +338,89 @@ extension PDFParsingTests {
         XCTAssertEqual(run.state,.awaitingConfirmation)
         XCTAssertEqual(run.result?.metadata.provider,"rule")
     }
+    private func recoveryTimetableReplacingParallelFields(_ fields: [String]) -> PDFPageLayout {
+        var page = recoveryTimetablePage()
+        page.glyphs.removeAll { $0.x >= 100 && $0.x < 140 && $0.cy > 160 && $0.cy < 220 }
+        for (index, value) in fields.enumerated() {
+            page.glyphs += text(value, x: 104, y: 172 + Double(index) * 18, step: 2)
+        }
+        return page
+    }
+    func testLayoutRecoveryCannotBypassUnalignedParallelEvidenceRefusal() {
+        let single = ["架空科目A", "架空教員A", "架空室A"]
+        let paired = ["架空科目A・架空科目B", "架空教員A・架空教員B", "架空室A・架空室B"]
+        for unchangedRole in 0..<3 {
+            var fields = paired
+            fields[unchangedRole] = single[unchangedRole]
+            XCTAssertThrowsError(try RecoveryDocumentBuilder.build([recoveryTimetableReplacingParallelFields(fields)],
+                kind: .timetable, hash: String(repeating: "b", count: 64))) {
+                XCTAssertEqual(($0 as? PDFParseError)?.code, .ambiguous)
+                XCTAssertEqual(($0 as? PDFParseError)?.stage, .parallelLessons)
+            }
+        }
+    }
+    func testLayoutRecoveryKeepsACompoundSingleRoleLiteralThroughRulesAndValidator() async throws {
+        let single = ["架空科目A", "架空教員A", "架空室A"]
+        let compound = ["架空科目A・架空科目B", "架空教員A・架空教員B", "架空室A・架空室B"]
+        for compoundRole in 0..<3 {
+            var fields = single
+            fields[compoundRole] = compound[compoundRole]
+            let doc = try RecoveryDocumentBuilder.build([recoveryTimetableReplacingParallelFields(fields)],
+                kind: .timetable, hash: String(repeating: "b", count: 64))
+            let cell = try XCTUnwrap(doc.cells.first { $0.slots.contains { $0.className == "2_CN" && $0.day == "1" && $0.period == 1 } })
+            XCTAssertEqual(cell.parallelCount, 1)
+            let run = try await RecoveryEngine.run(doc, os: "ios", osMajor: 26, foreground: true,
+                providers: [], rule: { _ in nil }, check: {})
+            XCTAssertEqual(run.state, .awaitingConfirmation)
+            let result = try XCTUnwrap(run.result)
+            XCTAssertTrue(RecoveryValidator.validate(doc, result).errors.isEmpty)
+            let recovered = try XCTUnwrap(result.cells.first { $0.cellId == cell.id })
+            XCTAssertEqual(recovered.lessons.count, 1)
+            XCTAssertEqual(recovered.lessons[0].subject.value, fields[0])
+            XCTAssertEqual(recovered.lessons[0].teacher.value, fields[1])
+            XCTAssertEqual(recovered.lessons[0].room.value, fields[2])
+        }
+    }
+    private func recoveryTimetableWithInlineFields(_ fields: [String]) -> PDFPageLayout {
+        var page = recoveryTimetablePage()
+        page.glyphs.removeAll { $0.x >= 100 && $0.x < 140 && $0.cy > 100 && $0.cy < 160 }
+        for (index, field) in fields.enumerated() {
+            let label = ["科目：", "教員：", "教室："][index]
+            page.glyphs += text(label+field, x: 102, y: 110+Double(index)*18, step: 2)
+        }
+        return page
+    }
+    func testInlineRoleScopesCannotCollapseMatchedOrMismatchedMultipleBodyRoles() {
+        let single = ["架空科目A", "架空教員A", "架空室A"]
+        let paired = ["架空科目A・架空科目B", "架空教員A・架空教員B", "架空室A・架空室B"]
+        for unchangedRole in [-1,0,1,2] {
+            var fields = paired
+            if unchangedRole >= 0 { fields[unchangedRole] = single[unchangedRole] }
+            XCTAssertThrowsError(try RecoveryDocumentBuilder.build([recoveryTimetableWithInlineFields(fields)],
+                kind:.timetable,hash:String(repeating:"b",count:64))) {
+                XCTAssertEqual(($0 as? PDFParseError)?.code,.ambiguous)
+                XCTAssertEqual(($0 as? PDFParseError)?.stage,.parallelLessons)
+            }
+        }
+    }
+    func testInlineRoleScopesKeepEachSingleCompoundRoleWithoutParallelInvention() async throws {
+        let single = ["架空科目A", "架空教員A", "架空室A"]
+        let compound = ["架空科目A・架空科目B", "架空教員A・架空教員B", "架空室A・架空室B"]
+        for compoundRole in 0..<3 {
+            var fields = single; fields[compoundRole] = compound[compoundRole]
+            let doc = try RecoveryDocumentBuilder.build([recoveryTimetableWithInlineFields(fields)],kind:.timetable,hash:String(repeating:"b",count:64))
+            let cell = try XCTUnwrap(doc.cells.first { $0.slots.contains { $0.className == "1_CN" && $0.day == "1" && $0.period == 1 } })
+            XCTAssertEqual(cell.bindingMode,.roleProposal); XCTAssertEqual(cell.parallelCount,1)
+            let run = try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{_ in nil},check:{})
+            XCTAssertEqual(run.state,.awaitingConfirmation)
+            let result = try XCTUnwrap(run.result)
+            XCTAssertTrue(RecoveryValidator.validate(doc,result).errors.isEmpty)
+            let recovered = try XCTUnwrap(result.cells.first { $0.cellId == cell.id })
+            XCTAssertEqual(recovered.lessons[0].subject.value,fields[0])
+            XCTAssertEqual(recovered.lessons[0].teacher.value,fields[1])
+            XCTAssertEqual(recovered.lessons[0].room.value,fields[2])
+        }
+    }
     func testReorderedInlineRolesRequireIndependentLabels() throws {
         let d = try RecoveryDocumentBuilder.build([recoveryTimetablePage(labeled:true)],kind:.timetable,hash:String(repeating:"b",count:64))
         let cell = try XCTUnwrap(d.cells.first { $0.bindingMode == .roleProposal })

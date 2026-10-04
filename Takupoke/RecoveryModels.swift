@@ -93,6 +93,7 @@ struct RecoveryAcceptance: Codable, Equatable, Sendable {
 }
 struct RecoveryAdopted: Codable, Equatable, Sendable {
     var document: RecoveryDocument; var result: RecoveryResult; var acceptance: RecoveryAcceptance
+    var previousAcceptance: RecoveryAcceptance? = nil
 }
 struct RecoveryPreview: Identifiable, Sendable {
     var id = UUID(); var document: RecoveryDocument; var result: RecoveryResult
@@ -161,3 +162,11 @@ extension RecoveryClockBinding {
 }
 
 final class RecoverySourceCapture { var source: RecoverySelectedSource? }
+
+/// Canonical comparison also used by the dependency-free persistence checks.
+extension JSONEncoder {
+    static func sortedRecoveryEncoding<T: Encodable>(_ value: T) throws -> Data {
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        return try encoder.encode(value)
+    }
+}

@@ -10,6 +10,70 @@ import AppKit
 #endif
 
 final class PDFTextGeometryTests: XCTestCase {
+    func testCollisionIndexMatchesInclusiveBruteForceAcrossWidthsPadsAndBoundaryContacts() throws {
+        var boxes = [PDFBox(left:-200,top:-90,right:100,bottom:10),PDFBox(left:20,top:30,right:20,bottom:30)]
+        for i in 0..<80 {
+            let x = Double((i*37)%211-100), y = Double((i*53)%193-90)
+            boxes.append(PDFBox(left:x,top:y,right:x+Double(i%17),bottom:y+Double(i%23)))
+        }
+        let index = try PDFTextCollisionIndex(boxes,work:{})
+        for i in 0..<150 {
+            let x = Double((i*31)%251-125), y = Double((i*47)%229-115)
+            let query = PDFBox(left:x,top:y,right:x+Double(i%29),bottom:y+Double(i%31))
+            for pad in [0.0,0.5,2.25] {
+                let expected = boxes.contains { $0.left <= query.right+pad && query.left-pad <= $0.right && $0.top <= query.bottom+pad && query.top-pad <= $0.bottom }
+                XCTAssertEqual(try index.overlaps(query,pad:pad,work:{}),expected)
+            }
+        }
+        XCTAssertTrue(try index.overlaps(PDFBox(left:100,top:10,right:101,bottom:11),pad:0,work:{}))
+        XCTAssertTrue(try index.overlaps(PDFBox(left:20,top:30,right:20,bottom:30),pad:0,work:{}))
+        for left in [0.1,1e-200,1e100] {
+            let right = left+max(left.ulp*3,abs(left)*0.2)
+            let box = PDFBox(left:left,top:left,right:right,bottom:right)
+            let boundaryIndex = try PDFTextCollisionIndex([box],work:{})
+            XCTAssertTrue(try boundaryIndex.overlaps(PDFBox(left:right,top:right,right:right,bottom:right),pad:0,work:{}))
+        }
+    }
+    func testCollisionIndexKeepsDenseDisjointTableSearchInsideOneOriginalPaintBudget() throws {
+        var boxes = [PDFBox]()
+        for row in 0..<17 { for column in 0..<40 { for glyph in 0..<18 {
+            let x = Double(column*72+12+(glyph%6)*7), y = Double(row*48+8+(glyph/6)*13)
+            boxes.append(PDFBox(left:x,top:y,right:x+4,bottom:y+6))
+        } } }
+        var work = 0
+        let charge = { work += 1; if work > 1000000 { throw PDFParseError(code:.limit) } }
+        let index = try PDFTextCollisionIndex(boxes,work:charge)
+        for row in 0..<17 { for column in 0...40 {
+            let x = Double(column*72), y = Double(row*48)
+            XCTAssertFalse(try index.overlaps(PDFBox(left:x,top:y,right:x,bottom:y+48),pad:0.275,work:charge))
+        } }
+        for row in 0...17 {
+            let y = Double(row*48)
+            XCTAssertFalse(try index.overlaps(PDFBox(left:0,top:y,right:2880,bottom:y),pad:0.275,work:charge))
+        }
+        XCTAssertLessThan(work,1000000)
+    }
+    func testCollisionIndexChargesConstructionSearchAndPreservesThrownCancellation() throws {
+        let boxes: [PDFBox] = (0..<100).map { value in
+            let coordinate = Double(value)
+            return PDFBox(left:coordinate,top:coordinate,right:coordinate+1,bottom:coordinate+1)
+        }
+        for stop in [1,101] {
+            var visits = 0
+            XCTAssertThrowsError(try PDFTextCollisionIndex(boxes,work:{ visits += 1; if visits == stop { throw PDFParseError(code:.cancelled) } })) {
+                XCTAssertEqual(($0 as? PDFParseError)?.code,.cancelled)
+            }
+            XCTAssertEqual(visits,stop)
+        }
+        let index = try PDFTextCollisionIndex(boxes,work:{})
+        var visits = 0
+        XCTAssertThrowsError(try index.overlaps(PDFBox(left:20,top:20,right:21,bottom:21),pad:0,work:{ visits += 1; if visits == 3 { throw PDFParseError(code:.limit) } })) {
+            XCTAssertEqual(($0 as? PDFParseError)?.code,.limit)
+        }
+        XCTAssertEqual(visits,3)
+        XCTAssertThrowsError(try PDFTextCollisionIndex([PDFBox(left:0,top:0,right:.infinity,bottom:1)],work:{}))
+        XCTAssertThrowsError(try index.overlaps(PDFBox(left:.nan,top:0,right:1,bottom:1),pad:0,work:{}))
+    }
     func testStrokePaddingRequiresAnExactAnglePreservingTransform() {
         for m in [[1.0,0,0,1],[0,1,-1,0],[0.5,0,0,0.5],[1,0,0,-1],[0.5,0.5,-0.5,0.5]] {
             XCTAssertTrue(PDFTextVisibility.similarStrokeTransform(a:m[0],b:m[1],c:m[2],d:m[3]))

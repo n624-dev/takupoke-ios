@@ -90,8 +90,10 @@ extension PDFParsingTests {
         let run=try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
         let result=try XCTUnwrap(run.result)
         XCTAssertEqual(RecoveryValidator.validate(doc,result).errors,[])
-        var wrong=result;wrong.metadata.provider="rule"
-        XCTAssertTrue(RecoveryValidator.validate(doc,wrong).errors.contains("structureMetadata"))
+        var independent=result;independent.metadata.provider="rule";independent.metadata.promptVersion="4"
+        XCTAssertEqual(RecoveryValidator.validate(doc,independent).errors,[])
+        var wrong=doc;wrong.structureMetadata?.validatorVersion=4
+        XCTAssertTrue(RecoveryValidator.validate(wrong,result).errors.contains("structureMetadata"))
     }
     func testFoldedLabelsInTwoPhysicalParallelBandsPreserveLessonPairing() async throws {
         var page = recoveryTimetablePage()

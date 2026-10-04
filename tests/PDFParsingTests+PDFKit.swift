@@ -11,7 +11,10 @@ import CoreText
 #if canImport(PDFKit)
 extension PDFParsingTests {
     func testVisibilityCollisionWorkAndCancellationAreBoundedWithinEachPaint() {
-        let boxes = Array(repeating:PDFBox(left:100,top:100,right:110,bottom:110),count:1100)
+        // A giant distant glyph makes both broad-phase ranges non-selective.
+        // The exact candidate scan must still exhaust the same page budget.
+        let boxes = Array(repeating:PDFBox(left:-100,top:-100,right:-90,bottom:-90),count:1100) +
+            [PDFBox(left:-5000,top:-5000,right:-4000,bottom:-4000)]
         let segment = [CGPoint(x:10,y:20),CGPoint(x:30,y:20)]
         let limited = PDFPathReader(transform:PDFDisplayTransform(media:CGRect(x:0,y:0,width:300,height:400),rotation:0),verifyVisibility:true,textBoxes:boxes,check:{})
         limited.paths = Array(repeating:segment,count:1100)
@@ -30,6 +33,16 @@ extension PDFParsingTests {
         XCTAssertEqual(checks,2)
         XCTAssertEqual((cancelled.failure as? PDFParseError)?.code,.cancelled)
         XCTAssertTrue(cancelled.paths.isEmpty)
+    }
+    func testDisjointVisibilityCollisionIndexAvoidsTheFormerFullGlyphScan() {
+        let boxes = Array(repeating:PDFBox(left:100,top:100,right:110,bottom:110),count:1100)
+        let reader = PDFPathReader(transform:PDFDisplayTransform(media:CGRect(x:0,y:0,width:300,height:400),rotation:0),verifyVisibility:true,textBoxes:boxes,check:{})
+        reader.paths = Array(repeating:[CGPoint(x:10,y:20),CGPoint(x:30,y:20)],count:1100)
+        reader.paint(fill:false,stroke:true)
+        XCTAssertNil(reader.failure)
+        XCTAssertEqual(reader.lines.count,1100)
+        XCTAssertLessThan(reader.paintWork,100000)
+        XCTAssertTrue(reader.paths.isEmpty)
     }
     func testPDFPathPaintPreservesFilledRulesAndUniqueArrow() {
         let reader = syntheticPathReader()
