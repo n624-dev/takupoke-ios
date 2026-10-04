@@ -1,5 +1,5 @@
 {
-  "contractVersion": 1,
+  "contractVersion": 2,
   "encoding": "UTF-8 exact bytes; no BOM or newline normalization",
   "recipes": {
     "single_header_role": {
@@ -58,6 +58,22 @@
         ],
         "extraction": "Exact3927UTF8bytes, no terminal newline"
       }
+    },
+    "field_extraction": {
+      "promptVersion": 4,
+      "path": "prompts/field-extraction-v4.txt",
+      "sha256": "c24039ae4317a433a14f01697d77813424a3a1c20a70327189964b2fc60bb188",
+      "utf8Bytes": 2939,
+      "terminalNewline": false,
+      "status": "production_instruction_contract",
+      "inputSchema": "field_extraction_input",
+      "outputSchema": "field_extraction_native_output",
+      "scope": "Shared fieldExtraction state/assignment contract for existing production providers; each native schema/Validator stays authoritative; no model quality or catalog activation",
+      "productionEnabled": false,
+      "origin": {
+        "kind": "Three independently reviewed shared contract; readable unique PRESENT, mode-specific verified EMPTY, original-source order, exact native state spelling",
+        "contentReviewSHA256": "c24039ae4317a433a14f01697d77813424a3a1c20a70327189964b2fc60bb188"
+      }
     }
   },
   "sharedAcross": [
@@ -67,5 +83,5 @@
   ],
   "rankingPolicy": "Compare only the same task/input/schema/runtime recipe; HEAD selection and predetermined BODY COPY are different tasks",
   "legacyBaselines": "Previously measured poor or ambiguous instructions remain archived with their original results; this change schedules no repeats",
-  "activation": "Research prompt assets only. No model approval or production prompt adoption."
+  "activation": "Existing production field-instruction adapters may load field_extraction at promptVersion4; model approval/catalog activation remains false. Research HEAD/COPY and archived reference are separate tasks."
 }

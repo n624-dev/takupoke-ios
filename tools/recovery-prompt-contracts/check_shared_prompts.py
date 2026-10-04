@@ -14,10 +14,11 @@ PINS = {
     "single_header_role": ("prompts/single-header-role-ja-v1.txt", "4827fa46956a14d375792000e9bdba62a7c0bc153a19ceb4c6202063877debc7", 1422, "research_component_control"),
     "deterministic_body_id_copy_control": ("prompts/deterministic-body-id-copy-v1.txt", "c6d1410ebe5de98ad1934627b3f5115ae396087d758814dbc538daafc750998c", 449, "research_component_control"),
     "fieldExtraction_reference": ("prompts/field-extraction-user-reference-v1.txt", "23f711aa564233963fd1a259d0403b45e3d891d6903fc0009dd6853a32371d9c", 3927, "archived_evaluated_reference"),
+    "field_extraction": ("prompts/field-extraction-v4.txt", "c24039ae4317a433a14f01697d77813424a3a1c20a70327189964b2fc60bb188", 2939, "production_instruction_contract"),
 }
 CONTROL_PINS = {
-    "manifest.json": "8078bf92dad7b36cc4501e4a0535d29acd62d91f2d6b6b3a37020326645c37a3",
-    "protocol.json": "4b71a37451fbb8ca0f10cb0182c4018b50d87b0f6aeccc611da8e867027e199e",
+    "manifest.json": "d27ec1b2038c93e4acee87f41a73e87437330f42ea1d6b3a79a64c63462b5aa6",
+    "protocol.json": "83026c7096761b8193a84e7edfcc5775e11766de34d70e2a8767c7c65a607dae",
     "validation-fixtures.json": "fd04b85bd8688959b50b9a21bebfe92e4b910e712ac899c6b038331272d4f783",
 }
 
@@ -54,16 +55,16 @@ def inventory(root=ROOT):
     for path, digest in CONTROL_PINS.items():
         require(hashlib.sha256((root / path).read_bytes()).hexdigest() == digest, "Unapproved contract or fixture bytes: " + path)
     manifest = strict_json((root / "manifest.json").read_text(encoding="utf-8"))
-    require(manifest.get("contractVersion") == 1, "Unknown contract version")
+    require(manifest.get("contractVersion") == 2, "Unknown contract version")
     require(set(manifest.get("recipes", {})) == set(PINS), "Unknown or missing task")
     require(manifest.get("sharedAcross") == ["ios", "android", "windows"], "OS scope changed")
     for task, (path, digest, size, status) in PINS.items():
         entry = manifest["recipes"][task]
         require(entry.get("path") == path and entry.get("sha256") == digest, "Unapproved prompt pin")
-        require(entry.get("promptVersion") == 1 and entry.get("utf8Bytes") == size, "Version or size changed")
+        require(entry.get("promptVersion") == (4 if task == "field_extraction" else 1) and entry.get("utf8Bytes") == size, "Version or size changed")
         require(entry.get("status") == status and entry.get("productionEnabled") is False, "Task scope or activation changed")
         require(entry.get("inputSchema") == task + "_input", "Task input schema changed")
-        expected_output = "field_extraction_output" if task == "fieldExtraction_reference" else "original_ids_output"
+        expected_output = "field_extraction_native_output" if task == "field_extraction" else "field_extraction_output" if task == "fieldExtraction_reference" else "original_ids_output"
         require(entry.get("outputSchema") == expected_output, "Task output schema changed")
         raw = (root / path).read_bytes()
         require(not raw.startswith(b"\xef\xbb\xbf") and b"\r" not in raw, "BOM or newline normalization")
@@ -71,7 +72,7 @@ def inventory(root=ROOT):
         raw.decode("utf-8", errors="strict")
         require(entry.get("terminalNewline") == raw.endswith(b"\n"), "Terminal newline differs")
     protocol = strict_json((root / "protocol.json").read_text(encoding="utf-8"))
-    require(protocol.get("contractVersion") == 1, "Unknown protocol version")
+    require(protocol.get("contractVersion") == 2, "Unknown protocol version")
     ids = protocol["schemas"]["original_ids_output"]
     require(ids == {"type": "object", "properties": {"ids": {"type": "array", "items": {"type": "string"}, "maxItems": 48}}, "required": ["ids"], "additionalProperties": False}, "ID schema changed")
     body = protocol["dynamicConstraints"]["deterministic_body_id_copy_control_input"]
@@ -126,7 +127,7 @@ def request(task, payload, all_source_ids=None, root=ROOT):
         candidates = [s["id"] for s in body]
         require(candidates == decode_ids(json.dumps({"ids": candidates}), all_source_ids), "BODY candidates differ from original source order")
     else:
-        raise ValueError("Archived reference cannot create a new request")
+        raise ValueError("This CLI creates HEAD/COPY requests only; native fieldExtraction retains its existing per-OS schema/Validator adapter")
     # Validate the unfiltered enum, including the empty-list case.
     decode_ids('{"ids":[]}', all_source_ids)
     require(bool(all_source_ids), "No original IDs: do not create an invalid empty native enum or schedule a model")
@@ -150,7 +151,7 @@ def check(root=ROOT):
         except (ValueError, TypeError, UnicodeError):
             accepted = False
         require(accepted == fixture["expectedStrict"], "Boundary mismatch: " + fixture["name"])
-    return {"contractVersion": 1, "pinnedPrompts": len(PINS), "strictFixtures": len(fixtures),
+    return {"contractVersion": 2, "pinnedPrompts": len(PINS), "strictFixtures": len(fixtures),
             "nativeCalls": 0, "productionEnabled": False, "scope": "Offline byte/protocol checks only"}
 
 

@@ -1,0 +1,65 @@
+name: Shared iOS field prompt packaging
+on:
+  push:
+    branches: [research/ios-model-probe-20261004]
+    paths:
+      - 'tools/recovery-prompt-contracts/**'
+      - 'Takupoke/*RecoveryProvider.swift'
+      - 'Takupoke/RecoveryPromptCatalog.swift'
+      - 'Takupoke/RecoveryPromptResources/**'
+      - 'Takupoke.xcodeproj/project.pbxproj'
+      - 'Vendor/CoreAIRecoveryRuntime/**'
+      - 'Package.swift'
+      - 'tests/RecoveryPromptCatalogTests.swift'
+      - '.github/workflows/ios-shared-field-prompt.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+jobs:
+  host:
+    name: Unchanged native recovery contracts and bundled instruction tests
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Check exact shared and adapter instruction bytes
+        run: |
+          python3 tools/recovery-prompt-contracts/check_shared_prompts.py
+          python3 tools/recovery-prompt-contracts/test_shared_prompts.py
+          python3 tools/recovery-prompt-contracts/check_ios_adapters.py
+      - name: Native Swift and recovery contracts with only fictional PDFs
+        run: bash tools/test-parsing.sh
+  device-sdk:
+    name: All three production providers and actual runtime resource packaging
+    runs-on: xcode-27
+    timeout-minutes: 40
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Compile actual iPhone app and inspect packaged resources
+        run: |
+          scratch="$(mktemp -d "$RUNNER_TEMP/takupoke-shared-prompt.XXXXXX")"
+          trap 'rm -rf "$scratch"' EXIT
+          plutil -lint Takupoke.xcodeproj/project.pbxproj Takupoke/Info.plist
+          xcodebuild -project Takupoke.xcodeproj -scheme Takupoke \
+            -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath "$scratch/DerivedData" \
+            -clonedSourcePackagesDirPath "$scratch/SourcePackages" \
+            -packageCachePath "$scratch/PackageCache" -disablePackageRepositoryCache \
+            -onlyUsePackageVersionsFromResolvedFile \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= \
+            MARKETING_VERSION=0.0.0 CURRENT_PROJECT_VERSION=1 TAKUPOKE_COMMIT="$GITHUB_SHA" build
+          python3 tools/recovery-prompt-contracts/check_ios_adapters.py \
+            --app "$scratch/DerivedData/Build/Products/Release-iphoneos/Takupoke.app"

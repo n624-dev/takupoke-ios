@@ -1,5 +1,5 @@
 {
-  "contractVersion": 1,
+  "contractVersion": 2,
   "schemas": {
     "original_ids_output": {
       "type": "object",
@@ -304,6 +304,160 @@
         "lessons"
       ],
       "additionalProperties": false
+    },
+    "field_extraction_input": {
+      "type": "object",
+      "required": [
+        "mode",
+        "sources",
+        "parallelCount"
+      ],
+      "properties": {
+        "mode": {
+          "const": "fieldExtraction"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "text"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              },
+              "box": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "parallelCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "roleScopes": {
+          "type": "array"
+        },
+        "lessonBindings": {
+          "type": "array"
+        },
+        "blankFields": {
+          "type": "array"
+        },
+        "responseStateTokens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Public output tokens only for an adapter without native schema; never assigned field states"
+        }
+      },
+      "additionalProperties": true
+    },
+    "field_extraction_native_output": {
+      "type": "object",
+      "properties": {
+        "lessons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "subject": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "description": "Exact state spelling from the unchanged native schema or public responseStateTokens; the original per-OS adapter owns its enum and bounds"
+                  },
+                  "value": {
+                    "type": "string"
+                  },
+                  "evidence": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "state",
+                  "value",
+                  "evidence"
+                ],
+                "additionalProperties": false
+              },
+              "teacher": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "description": "Exact state spelling from the unchanged native schema or public responseStateTokens; the original per-OS adapter owns its enum and bounds"
+                  },
+                  "value": {
+                    "type": "string"
+                  },
+                  "evidence": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "state",
+                  "value",
+                  "evidence"
+                ],
+                "additionalProperties": false
+              },
+              "room": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "description": "Exact state spelling from the unchanged native schema or public responseStateTokens; the original per-OS adapter owns its enum and bounds"
+                  },
+                  "value": {
+                    "type": "string"
+                  },
+                  "evidence": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "state",
+                  "value",
+                  "evidence"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "subject",
+              "teacher",
+              "room"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "lessons"
+      ],
+      "additionalProperties": false
     }
   },
   "dynamicConstraints": {
@@ -330,6 +484,18 @@
     "fieldExtraction_reference": {
       "status": "Archive only; existing original per-OS Validator owns all state, grounding and parallel-count checks",
       "parallelCount": "Output lessons must match input parallelCount; recorded contract is not an alternative field validator"
+    },
+    "field_extraction": {
+      "mode": "fieldExtraction only; structureProposal branch is unchanged",
+      "promptVersion": 4,
+      "stateSpellings": "iOS/Windows lowercase and Android uppercase preserved by existing native schemas; canonical instruction bytes are identical",
+      "windowsSchemaDescriptor": "Only public five-state lowercase responseStateTokens added to the existing top-level cell user JSON; no new responseFormat or decoder schema",
+      "sourceAssignment": "Existing unique roleScopes complete containment/alllabel+separator exclusion, otherwise exact lessonBindings; no expected fixture assignments",
+      "emptiness": "Teacher/room and zero assigned sources only: matching emptyVerified in scope mode, blankFields in binding mode; missing referenced IDs never imply EMPTY",
+      "evidence": "All assigned BODY IDs once in original sources-array order; no sorting, repair or value correction",
+      "outputAuthority": "Unchanged native enum/schema, per-OS source grounding/full Validator and formal checks; this catalog is not a replacement field decoder",
+      "modelActivation": false,
+      "llamaRuntime": "Existing closed-think chat-template prefix retained; common text has no provider-specific /no_think suffix"
     }
   },
   "operationalScoring": "Runtime/no-return rows unassessed; completed malformed outputs wrong; CI/build/export success is not model quality",

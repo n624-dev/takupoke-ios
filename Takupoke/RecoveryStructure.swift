@@ -33,6 +33,8 @@ struct RecoveryStructureRole: Sendable {
     var scope: RecoveryBox; var labelBox: RecoveryBox
 }
 enum RecoveryStructure {
+    // Existing structure instruction bytes retain their own provenance.
+    static let promptVersion = "3"
     static func bounds(_ glyphs: [PDFGlyph]) throws -> RecoveryBox {
         guard !glyphs.isEmpty else { throw PDFParseError(code:.ambiguous) }
         let x = glyphs.map(\.x).min()!, y = glyphs.map(\.y).min()!
@@ -249,7 +251,9 @@ extension RecoveryStructure {
                     proposals[request.id] = proposal
                 }
                 try check(); try Task.checkCancellation()
-                return RecoveryStructureResolution(state:.awaitingConfirmation,proposals:proposals,metadata:provider.metadata,errors:[])
+                var metadata = provider.metadata
+                metadata.promptVersion = promptVersion
+                return RecoveryStructureResolution(state:.awaitingConfirmation,proposals:proposals,metadata:metadata,errors:[])
             } catch is CancellationError { throw CancellationError() }
             catch let error as PDFParseError where error.code == .cancelled || error.code == .limit { throw error }
             catch RecoveryProviderError.invalidOutput { return RecoveryStructureResolution(state:.failed,proposals:nil,metadata:nil,errors:["invalidOutput"]) }
