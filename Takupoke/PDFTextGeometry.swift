@@ -104,7 +104,7 @@ final class PDFTextGeometry {
         default: throw PDFTextFailure.unsupported
         }
     }
-    func font(_ font: PDFTextFont, size: Double) throws {
+    func font(_ font: PDFTextFont?, size: Double) throws {
         guard size.isFinite, size > 0 else { throw PDFTextFailure.unsupported }
         state.font = font; state.size = size
     }
@@ -121,6 +121,7 @@ final class PDFTextGeometry {
             if order % 128 == 0 { try check() }
             let cid = bytes[offset..<(offset + font.codeBytes)].reduce(0) { $0 * 256 + Int($1) }
             guard let text = font.unicode[cid], !text.isEmpty,
+                  !text.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }),
                   textUnits + text.utf16.count <= 100_000 else { throw PDFTextFailure.unsupported }
             let width = (font.widths[cid] ?? font.defaultWidth) / 1000 * state.size
             let total = try matrix.followed(by: state.ctm)

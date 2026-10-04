@@ -8,6 +8,7 @@ final class PDFDrawnTextReader {
     let engine: PDFTextGeometry
     private var failure: Error?
     var fonts: [String: PDFTextFont] = [:]
+    var selectedFontKeys: Set<String> = []
     init(check: @escaping () throws -> Void) { engine = PDFTextGeometry(check: check) }
 
     private static func run(_ info: UnsafeMutableRawPointer?, _ action: (PDFDrawnTextReader) throws -> Void) {

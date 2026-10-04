@@ -23,13 +23,23 @@ extension PDFDrawnTextReader {
     }
     func font(_ scanner: CGPDFScannerRef) throws {
         let size = try numbers(scanner, 1)[0], key = try name(scanner)
+        if !selectedFontKeys.contains(key) {
+            guard selectedFontKeys.count < 128 else { throw PDFParseError(code: .limit) }
+            selectedFontKeys.insert(key)
+        }
         if let cached = fonts[key] { try engine.font(cached, size: size); return }
         guard fonts.count < 128 else { throw PDFParseError(code: .limit) }
         let dict = try resource(scanner, "Font", key)
         var mapStream: CGPDFStreamRef?
-        guard CGPDFDictionaryGetStream(dict, "ToUnicode", &mapStream), let mapStream = mapStream else {
-            throw PDFTextFailure.unsupported
+        if !CGPDFDictionaryGetStream(dict, "ToUnicode", &mapStream) {
+            // Only an absent map can be an unused setup font. An explicitly
+            // malformed map, broken resource, cancellation, or limit still fails.
+            var object: CGPDFObjectRef?
+            guard !CGPDFDictionaryGetObject(dict, "ToUnicode", &object) else { throw PDFTextFailure.unsupported }
+            try engine.font(nil, size: size)
+            return
         }
+        guard let mapStream = mapStream else { throw PDFTextFailure.unsupported }
         var format = CGPDFDataFormat.raw
         guard let data = CGPDFStreamCopyData(mapStream, &format), format == .raw else { throw PDFTextFailure.unsupported }
         let mapping = try PDFUnicodeMap.read(data as Data,check:engine.check)

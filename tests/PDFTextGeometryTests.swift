@@ -102,11 +102,44 @@ final class PDFTextGeometryTests: XCTestCase {
             "1 beginbfchar <0141> <0041> endbfchar",
             "1 beginbfrange <41> <43> [<0041>] endbfrange",
             "1 beginbfrange <43> <41> <0041> endbfrange",
-            "1 beginbfchar <41> <000A> endbfchar",
             "/Inherited usecmap", "/WMode 1 def",
             "1 beginbfchar <41> <0041> endbfrange"
         ] {
             XCTAssertThrowsError(try map(prefix + body))
+        }
+    }
+
+    func testUnusedControlMappingsAreMetadataButDrawingThemFailsClosed() throws {
+        let decoded = try map("1 begincodespacerange <00> <FF> endcodespacerange 3 beginbfchar <00> <0000> <41> <0041> <42> <000A> endbfchar")
+        let mapped = try PDFTextFont(unicode: decoded.values, codeBytes: decoded.bytes,
+                                    widths: [0: 500, 65: 500, 66: 500], defaultWidth: 1000,
+                                    ascent: 800, descent: -200)
+        let readable = PDFTextGeometry()
+        try readable.operation("BT"); try readable.font(mapped, size: 10)
+        try readable.show([65]); try readable.operation("ET")
+        XCTAssertEqual(try readable.finish(expectedText: "A").map(\.text), ["A"])
+        for code: UInt8 in [0, 66] {
+            let used = PDFTextGeometry()
+            try used.operation("BT"); try used.font(mapped, size: 10)
+            XCTAssertThrowsError(try used.show([code])) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage, .characterMapping)
+            }
+            XCTAssertTrue(used.glyphs.isEmpty)
+        }
+    }
+
+    func testUnusedUnsupportedFontStateAndGraphicsRestorePreserveReadableGlyphs() throws {
+        let engine = PDFTextGeometry()
+        try engine.operation("BT"); try engine.font(nil, size: 12); try engine.operation("ET")
+        try engine.font(font(), size: 10)
+        try engine.operation("q"); try engine.font(nil, size: 12); try engine.operation("Q")
+        try engine.operation("BT"); try engine.show([65]); try engine.operation("ET")
+        XCTAssertEqual(try engine.finish(expectedText: "A").map(\.text), ["A"])
+        let used = PDFTextGeometry()
+        try used.operation("BT"); try used.font(font(), size: 10); try used.font(nil, size: 12)
+        XCTAssertThrowsError(try used.show([65]))
+        for size in [0.0, -1, Double.nan, Double.infinity] {
+            XCTAssertThrowsError(try PDFTextGeometry().font(nil, size: size))
         }
     }
 
@@ -278,7 +311,7 @@ extension PDFTextGeometryTests {
     }
     // Entirely invented PDF, with explicit resources and text operators. This
     // checks the Core Graphics adapter rather than relying on Quartz's font choice.
-    private func syntheticPDF(content: String, unicode: Bool = true, graphicsState: String = "", simpleFont: Bool = false, crop: String = "") -> Data {
+    private func syntheticPDF(content: String, unicode: Bool = true, graphicsState: String = "", simpleFont: Bool = false, crop: String = "", unusedFont: Bool = false, unusedFontEntry: String = "") -> Data {
         func stream(_ s: String) -> String { "<< /Length \(s.utf8.count) >>\nstream\n\(s)\nendstream" }
         let simpleMap = """
         /CIDInit /ProcSet findresource begin 12 dict begin begincmap
@@ -296,15 +329,16 @@ extension PDFTextGeometryTests {
         1 beginbfrange <0001> <0003> <0041> endbfrange
         endcmap CMapName currentdict /CMap defineresource pop end end
         """
-        let objects = [
+        var objects = [
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] \(crop) /Resources << /Font << /F1 4 0 R >> /ExtGState << /Visibility << \(graphicsState) >> >> >> /Contents 8 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] \(crop) /Resources << /Font << /F1 4 0 R \(unusedFont ? "/FU 9 0 R" : "") >> /ExtGState << /Visibility << \(graphicsState) >> >> >> /Contents 8 0 R >>",
             simpleFont ? "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 65 /LastChar 67 /Widths [667 667 667] /FontDescriptor 6 0 R \(unicode ? "/ToUnicode 7 0 R" : "") >>" : "<< /Type /Font /Subtype /Type0 /BaseFont /Synthetic /Encoding /Identity-H /DescendantFonts [5 0 R] \(unicode ? "/ToUnicode 7 0 R" : "") >>",
             "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Synthetic /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 6 0 R /DW 1000 /W [1 [500] 2 3 600] /CIDToGIDMap /Identity >>",
             "<< /Type /FontDescriptor /FontName /\(simpleFont ? "Helvetica" : "Synthetic") /Flags \(simpleFont ? 32:4) /FontBBox [0 -200 1000 800] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 >>",
             stream(cmap), stream(content)
         ]
+        if unusedFont { objects.append("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding \(unusedFontEntry) >>") }
         var data = Data("%PDF-1.4\n".utf8), offsets: [Int] = [0]
         for (i, object) in objects.enumerated() {
             offsets.append(data.count)
@@ -619,6 +653,29 @@ extension PDFTextGeometryTests {
             XCTAssertThrowsError(try PDFDrawnTextReader(check: {}).read(page, expectedText: "A")) { error in
                 XCTAssertEqual((error as? PDFParseError)?.stage, .characterMapping)
             }
+        }
+    }
+
+    func testNativeUnusedUnsupportedFontSetupAllowsCompleteReadableTextButUseRejects() throws {
+        let supported = "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET 10 10 m 290 10 l S"
+        for setup in ["BT /FU 12 Tf 14.4 TL ET ", "BT /F1 10 Tf ET q BT /FU 12 Tf ET Q "] {
+            let data = syntheticPDF(content: setup + supported, simpleFont: true, unusedFont: true)
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-unused-font-"+UUID().uuidString+".pdf")
+            defer { try? FileManager.default.removeItem(at: url) }; try data.write(to: url)
+            let capture = RecoveryReadCapture()
+            XCTAssertEqual(try PDFKitReader.read(url, kind: .timetable, capture: capture).first?.glyphs.map(\.text), ["A", "B"])
+            XCTAssertTrue(capture.complete)
+        }
+        let data = syntheticPDF(content: "BT /FU 12 Tf (A) Tj ET " + supported, simpleFont: true, unusedFont: true)
+        let provider = try XCTUnwrap(CGDataProvider(data: data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider))
+        XCTAssertThrowsError(try PDFDrawnTextReader(check: {}).read(try XCTUnwrap(document.page(at: 1)), expectedText: "AAB")) {
+            XCTAssertEqual(($0 as? PDFParseError)?.stage, .characterMapping)
+        }
+        for (selection, entry) in [("FU", "/ToUnicode (broken)"), ("Missing", "")] {
+            let malformed = syntheticPDF(content: "BT /\(selection) 12 Tf ET " + supported,
+                                         simpleFont: true, unusedFont: true, unusedFontEntry: entry)
+            let provider = try XCTUnwrap(CGDataProvider(data: malformed as CFData)), document = try XCTUnwrap(CGPDFDocument(provider))
+            XCTAssertThrowsError(try PDFDrawnTextReader(check: {}).read(try XCTUnwrap(document.page(at: 1)), expectedText: "AB"))
         }
     }
 }

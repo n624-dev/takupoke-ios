@@ -69,10 +69,11 @@ enum PDFUnicodeMap {
             try consume()
             guard values[key] == nil, values.count < 65536, bytes.count % 2 == 0,
                   covered.indices.contains(key), covered[key],
-                  let text = String(data: Data(bytes), encoding: .utf16BigEndian), !text.isEmpty,
-                  !text.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else {
+                  let text = String(data: Data(bytes), encoding: .utf16BigEndian), !text.isEmpty else {
                 throw PDFTextFailure.unsupported
             }
+            // Unused entries (including the conventional .notdef NUL) are
+            // metadata. PDFTextGeometry rejects a control mapping at actual use.
             values[key] = text
         }
         func next() throws -> String {
