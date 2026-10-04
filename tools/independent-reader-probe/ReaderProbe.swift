@@ -28,7 +28,8 @@ struct IndependentReaderProbe {
             return ["type":"PDFParseError","code":pdf.code.rawValue,"stage":pdf.stage?.rawValue as Any? ?? NSNull(),
                     "page":pdf.page as Any? ?? NSNull(),"detail":(try? object(pdf)) ?? NSNull()]
         }
-        return ["type":String(describing:type(of:error)),"description":String(describing:error)]
+        let native=error as NSError
+        return ["type":String(describing:type(of:error)),"domain":native.domain,"code":native.code,"description":String(describing:error)]
     }
     static func captureRecord(_ capture:RecoveryReadCapture) throws -> [String:Any] {
         var pages=[[String:Any]]()
@@ -85,7 +86,12 @@ struct IndependentReaderProbe {
                         record["structureInputErrors"]=try RecoveryValidator.inputErrors(preparation.document,unresolvedCellIds:Set(preparation.requests.map(\.ownerCellId)),check:check)
                         let resolution=try await RecoveryStructure.resolve(preparation,providers:[],os:"ios",osMajor:27,check:check)
                         record["structureState"]=resolution.state.rawValue;record["structureErrors"]=resolution.errors
-                        throw NSError(domain:"NoSourceOnlyStructureResult",code:1)
+                        // The actual return type contains proposals/metadata, not
+                        // a document. This no-provider vector probe does not
+                        // apply model structure proposals or qualify that route.
+                        record["structureProposalReturned"]=resolution.proposals != nil
+                        record["structureProposalAdoptionAssessed"]=false
+                        throw NSError(domain:"StructureProposalNotAssessed",code:1)
                     }
                     record["recoveryDocument"]=try object(document)
                     record["builderRequiredSlots"]=document.requiredSlots.count;record["builderClasses"]=document.classes

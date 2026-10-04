@@ -11,6 +11,22 @@ import time
 MAX_RAW_BYTES = 64 * 1024 * 1024
 
 
+def failure_class(value):
+    error = value.get('failure')
+    if not isinstance(error, dict):
+        return None
+    # Production PDFParseError.Code is unreadable/unsupported/ambiguous/
+    # limit/cancelled/storage. Only these two source-shape failures establish
+    # semantic refusal here; IO, bounds, cancellation and timeouts are unassessed.
+    if value.get('analysisReturned') is False and error.get('type') == 'PDFParseError' and error.get('code') in {'unsupported', 'ambiguous'}:
+        return 'semanticRefusal'
+    if error.get('domain') in {'SourceOnlyRulesNotComplete', 'NativeValidatorRejected'}:
+        return 'rulesIncomplete'
+    if error.get('domain') == 'StructureProposalNotAssessed':
+        return 'structureUnassessed'
+    return 'executionOrUnassessed'
+
+
 def receipt(raw, planned_files):
     values, invalid = [], 0
     for line in raw.splitlines():
@@ -33,9 +49,14 @@ def receipt(raw, planned_files):
             'readReturned': sum(v.get('readReturned') is True for v in fixtures),
             'analysesReturned': sum(v.get('analysisReturned') is True for v in fixtures),
             'sourceFailures': sum('failure' in v for v in fixtures),
+            'failureClasses': {name: sum(failure_class(v) == name for v in fixtures) for name in ['semanticRefusal', 'rulesIncomplete', 'structureUnassessed', 'executionOrUnassessed']},
             'positiveAll680LiteralMatches': sum(v.get('literalAssertion', {}).get('all680LiteralMatch') is True for v in positive),
-            'positiveLiteralMismatches': sum(v.get('analysisReturned') is True and v.get('literalAssertion', {}).get('all680LiteralMatch') is not True for v in positive),
-            'negativeRefusals': sum('failure' in v and v.get('analysisReturned') is False for v in negative),
+            'positiveLiteralMismatches': sum(v.get('literalAssertion', {}).get('all680LiteralMatch') is False for v in positive),
+            'positiveLiteralUnassessed': sum(v.get('analysisReturned') is True and not isinstance(v.get('literalAssertion', {}).get('all680LiteralMatch'), bool) for v in positive),
+            'negativeSemanticRefusals': sum(failure_class(v) == 'semanticRefusal' for v in negative),
+            'negativeRulesIncomplete': sum(failure_class(v) == 'rulesIncomplete' for v in negative),
+            'negativeStructureUnassessed': sum(failure_class(v) == 'structureUnassessed' for v in negative),
+            'negativeExecutionOrUnassessed': sum(failure_class(v) == 'executionOrUnassessed' for v in negative),
             'negativeAnalysesReturned': sum(v.get('analysisReturned') is True for v in negative),
             'nonJSONOrIncompleteLines': invalid,
             'transportComplete': actual_files == planned_files and invalid == 0 and len([v for v in values if v.get('type') == 'summary']) == 1,
