@@ -1,0 +1,27 @@
+{
+  "scope": "Posthoc component result only",
+  "nativeRun": 37212811710,
+  "nativeAttempt": 1,
+  "nativeSourceCommit": "685ea5ba9f055c619b560b1c8a88698b5790b8f8",
+  "nativeRawSHA256": "feeb3cdd4ea2f930f305cc94050c8ba5ba018a10ba259f7a14abc8823ca8b78c",
+  "checks": [
+    "Exact native stdout SHA/byte count verified from Actions log archive",
+    "2 region records/requests/returns/serializations/PNGs, 0 errors",
+    "original PNG byte-identical to previous saved ordinary full-page PNG",
+    "left/right decoded RGBA pixels equal original slices exactly",
+    "each finite original coordinate equals crop coordinate plus offset",
+    "8 original period positions, no identical range sharing and all overlap source ink boxes",
+    "All3native PNGs viewed; original and cropped digit labels visible",
+    "CI Python suites3+1+2=6 successful; new receipt parser also locally2+root2 confirmed"
+  ],
+  "originalPredicates": "2/8periods pass; confidence remains unchanged; allregion-wide diagnostics fail",
+  "nativeSeconds": 148.629226625,
+  "regionSeconds": {
+    "left": 43.5180379152298,
+    "right": 3.2700480222702026
+  },
+  "timingLimits": "Native process timer includes startup/render/serialization; uninstrumented remainder is not assigned a cause. Simulator bootstatus says already booted; boot command has no individual duration.",
+  "formalAssessed": 0,
+  "modelsActivated": 0,
+  "productionChanged": false
+}

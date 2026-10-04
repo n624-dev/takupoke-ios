@@ -1,0 +1,9 @@
+{
+  "scope": "Exact selected page JSONL bytes from previous ordinary native run; posthoc only, never native input",
+  "previousNativeRun": 37210746428,
+  "previousNativeSourceCommit": "c9f9480b400189b92c6d7753c7ccb1c2957f56ef",
+  "previousNativeRawWholeSHA256": "af08b6eae78ec40902de6cec9304182aab22aa3cb32f4348b1a438fb49e684f0",
+  "previousPageOneRecordSHA256": "876be87ea34b3a1455c22c53de025b195ed5fd26d60d079146d6bd421d226ca2",
+  "previousPageOneRecordBytes": 54092,
+  "publicWholeRawURL": "https://raw.githubusercontent.com/n624-dev/takupoke-ios/0f74e19d65659b3a0c0e344cdf253ab4bc122dcf/research-results/ios-text-ocr-original-two-20261004/native-raw.jsonl"
+}

@@ -1,0 +1,581 @@
+{
+  "scope": "Independent one-page two-region component diagnostic; no full-page rerun or formal quality assessment",
+  "rawSHA256": "feeb3cdd4ea2f930f305cc94050c8ba5ba018a10ba259f7a14abc8823ca8b78c",
+  "rawBytes": 101809,
+  "analysisScriptSHA256": "3ad720fbf00a60dde46cb4859f263b8fe2be92c1d53295ec536295f6d95e8aed",
+  "nativeEnvironment": {
+    "api": "RecognizeTextRequest",
+    "automaticallyDetectsLanguage": false,
+    "confidenceCrossAPICalibrationAssumed": false,
+    "confidenceGuard": "Post-observation only: finite and 0.85...1, unchanged",
+    "cropRule": "Midpoint +/-16px, overlap32px, full height; CGImage.cropping without resizing",
+    "customWords": [],
+    "deviceSystemVersion": "27.0",
+    "fixture": "independent-Timetable-literal-乙",
+    "inverseRule": "Original top-left x = crop top-left x + offsetX; y unchanged",
+    "minimumTextHeightFraction": 0.03125,
+    "originalImage": {
+      "alphaInfoRawValue": 2,
+      "bitmapInfoRawValue": 8194,
+      "bitsPerComponent": 8,
+      "bitsPerPixel": 32,
+      "bytesPerRow": 3936,
+      "colorSpaceComponents": 3,
+      "colorSpaceModel": "CGColorSpaceModel(rawValue: 1)",
+      "colorSpaceName": "kCGColorSpaceDeviceRGB",
+      "height": 197,
+      "shouldInterpolate": true,
+      "width": 984
+    },
+    "os": "Version 27.0 (Build 24A434)",
+    "page": 1,
+    "pdfSHA256": "233dec852ec7e43c93c70c42d8f88238a0c2e8aef146445c4b94d674bb6cc187",
+    "plannedRegions": 2,
+    "rangeBoxPrecisionAssumed": false,
+    "recognitionLanguages": [
+      "ja-JP",
+      "en-US"
+    ],
+    "recognitionLevel": "accurate",
+    "revision": "revision3",
+    "scope": "Two-region component diagnostic only; no full-page OCR or formal recovery qualification",
+    "simulator": true,
+    "supportedRecognitionLanguages": [
+      "en",
+      "fr",
+      "it",
+      "de",
+      "es",
+      "pt",
+      "zh",
+      "zh-TW",
+      "yue-CN",
+      "yue",
+      "ko",
+      "ja",
+      "ru",
+      "uk",
+      "th",
+      "vi-VT",
+      "ar-SA",
+      "ars",
+      "tr",
+      "id",
+      "cs",
+      "da",
+      "nl",
+      "no",
+      "nn",
+      "nb",
+      "ms",
+      "pl",
+      "ro",
+      "sv",
+      "fi",
+      "hi",
+      "mr"
+    ],
+    "type": "environment",
+    "usesLanguageCorrection": false
+  },
+  "nativeSummary": {
+    "diagnosticCompletedRegions": 2,
+    "formalAssessed": 0,
+    "operationalErrors": 0,
+    "plannedRegions": 2,
+    "qualityQualification": false,
+    "readReturnedRegions": 2,
+    "requestCount": 2,
+    "serializationCompletedRegions": 2,
+    "type": "summary"
+  },
+  "originalPNG": {
+    "sha256": "1778ddd50e7d267b77b561df7e0fc17eae82fa68693bd2d74c76132f738ade57",
+    "bytes": 24230,
+    "RGBAWidth": 984,
+    "RGBAHeight": 197,
+    "previousFullPagePNGByteEqual": true,
+    "previousPageOneRecordSHA256": "876be87ea34b3a1455c22c53de025b195ed5fd26d60d079146d6bd421d226ca2"
+  },
+  "regions": [
+    {
+      "region": "left",
+      "offsetX": 0,
+      "metadata": {
+        "alphaInfoRawValue": 2,
+        "bitmapInfoRawValue": 8194,
+        "bitsPerComponent": 8,
+        "bitsPerPixel": 32,
+        "bytesPerRow": 3936,
+        "colorSpaceComponents": 3,
+        "colorSpaceModel": "CGColorSpaceModel(rawValue: 1)",
+        "colorSpaceName": "kCGColorSpaceDeviceRGB",
+        "height": 197,
+        "shouldInterpolate": true,
+        "width": 508
+      },
+      "PNGBytes": 18338,
+      "PNGHash": "02b87ddb24a86eb2fdc01f8780b85ce5083b76b49e028ccb9902e64fe3644b8b",
+      "RGBAEqualsOriginalPixelSlice": true,
+      "rawTexts": [
+        "2027年度前期",
+        "5_ES",
+        "月",
+        "1",
+        "科目：架空化学乙",
+        "担当：架空担当乙",
+        "教室：架空室乙",
+        "時間割",
+        "2",
+        "3",
+        "4"
+      ],
+      "allOriginalPredicatesPass": false,
+      "diagnosticFailures": [
+        "lineConfidence",
+        "lineConfidence",
+        "characterRectangle",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ]
+    },
+    {
+      "region": "right",
+      "offsetX": 476,
+      "metadata": {
+        "alphaInfoRawValue": 2,
+        "bitmapInfoRawValue": 8194,
+        "bitsPerComponent": 8,
+        "bitsPerPixel": 32,
+        "bytesPerRow": 3936,
+        "colorSpaceComponents": 3,
+        "colorSpaceModel": "CGColorSpaceModel(rawValue: 1)",
+        "colorSpaceName": "kCGColorSpaceDeviceRGB",
+        "height": 197,
+        "shouldInterpolate": true,
+        "width": 508
+      },
+      "PNGBytes": 5271,
+      "PNGHash": "f6c876797774cb6f831d56db0313bcfd7e7c952c2f5c6b71af86669955b8f3ee",
+      "RGBAEqualsOriginalPixelSlice": true,
+      "rawTexts": [
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "allOriginalPredicatesPass": false,
+      "diagnosticFailures": [
+        "lineConfidence",
+        "lineConfidence",
+        "lineConfidence"
+      ]
+    }
+  ],
+  "periodPositions": [
+    {
+      "period": 1,
+      "expectedPrintedText": "1",
+      "originalPhysicalCell": [
+        92.16,
+        57.37864077669903,
+        203.51999999999998,
+        86.06796116504854
+      ],
+      "originalDrawingInkBBox": [
+        104,
+        73,
+        112,
+        84
+      ],
+      "nativeDrawingInkBBox": [
+        99.84,
+        69.81067961165049,
+        107.52,
+        80.33009708737865
+      ],
+      "positionMatches": [
+        {
+          "region": "left",
+          "nativeOrder": 3,
+          "rawText": "1",
+          "rawCharacter": "1",
+          "confidence": 0.5,
+          "originalPixelBox": {
+            "height": 17.90909046136365,
+            "width": 11.999999700000002,
+            "x": 98.00000005,
+            "y": 65.66666666666666
+          },
+          "boxSharedWithOtherNonspaceCharacters": false,
+          "boxOverlapsOriginalDrawingInkBBox": true,
+          "passesOriginalConfidencePredicate": false,
+          "passesOriginalBoxPredicate": true,
+          "cropLocalPredicate": true,
+          "nativeRangeBoxFullyContainedInPrintedCell": true
+        }
+      ],
+      "locatedUnshared": true,
+      "locatedUnsharedOriginalPredicatesPass": false,
+      "locatedUnsharedInkBBoxOverlap": true,
+      "locatedUnsharedFullyContainedInPrintedCell": true,
+      "priorFullPageLocated": true
+    },
+    {
+      "period": 2,
+      "expectedPrintedText": "2",
+      "originalPhysicalCell": [
+        203.51999999999998,
+        57.37864077669903,
+        314.88,
+        86.06796116504854
+      ],
+      "originalDrawingInkBBox": [
+        220,
+        73,
+        228,
+        84
+      ],
+      "nativeDrawingInkBBox": [
+        211.2,
+        69.81067961165049,
+        218.88,
+        80.33009708737865
+      ],
+      "positionMatches": [
+        {
+          "region": "left",
+          "nativeOrder": 8,
+          "rawText": "2",
+          "rawCharacter": "2",
+          "confidence": 0.5,
+          "originalPixelBox": {
+            "height": 17.90909061060608,
+            "width": 13.99999976666667,
+            "x": 208,
+            "y": 65.66666666666666
+          },
+          "boxSharedWithOtherNonspaceCharacters": false,
+          "boxOverlapsOriginalDrawingInkBBox": true,
+          "passesOriginalConfidencePredicate": false,
+          "passesOriginalBoxPredicate": true,
+          "cropLocalPredicate": true,
+          "nativeRangeBoxFullyContainedInPrintedCell": true
+        }
+      ],
+      "locatedUnshared": true,
+      "locatedUnsharedOriginalPredicatesPass": false,
+      "locatedUnsharedInkBBoxOverlap": true,
+      "locatedUnsharedFullyContainedInPrintedCell": true,
+      "priorFullPageLocated": true
+    },
+    {
+      "period": 3,
+      "expectedPrintedText": "3",
+      "originalPhysicalCell": [
+        314.88,
+        57.37864077669903,
+        426.24,
+        86.06796116504854
+      ],
+      "originalDrawingInkBBox": [
+        336,
+        73,
+        344,
+        84
+      ],
+      "nativeDrawingInkBBox": [
+        322.56,
+        69.81067961165049,
+        330.24,
+        80.33009708737865
+      ],
+      "positionMatches": [
+        {
+          "region": "left",
+          "nativeOrder": 9,
+          "rawText": "3",
+          "rawCharacter": "3",
+          "confidence": 1,
+          "originalPixelBox": {
+            "height": 17.909090550909117,
+            "width": 13.999999719999977,
+            "x": 318.00000004,
+            "y": 65.66666666666666
+          },
+          "boxSharedWithOtherNonspaceCharacters": false,
+          "boxOverlapsOriginalDrawingInkBBox": true,
+          "passesOriginalConfidencePredicate": true,
+          "passesOriginalBoxPredicate": true,
+          "cropLocalPredicate": true,
+          "nativeRangeBoxFullyContainedInPrintedCell": true
+        }
+      ],
+      "locatedUnshared": true,
+      "locatedUnsharedOriginalPredicatesPass": true,
+      "locatedUnsharedInkBBoxOverlap": true,
+      "locatedUnsharedFullyContainedInPrintedCell": true,
+      "priorFullPageLocated": true
+    },
+    {
+      "period": 4,
+      "expectedPrintedText": "4",
+      "originalPhysicalCell": [
+        426.24,
+        57.37864077669903,
+        537.6,
+        86.06796116504854
+      ],
+      "originalDrawingInkBBox": [
+        452,
+        73,
+        460,
+        84
+      ],
+      "nativeDrawingInkBBox": [
+        433.91999999999996,
+        69.81067961165049,
+        441.59999999999997,
+        80.33009708737865
+      ],
+      "positionMatches": [
+        {
+          "region": "left",
+          "nativeOrder": 10,
+          "rawText": "4",
+          "rawCharacter": "4",
+          "confidence": 0.5,
+          "originalPixelBox": {
+            "height": 17.909090550909117,
+            "width": 13.999999720000032,
+            "x": 430.00000004,
+            "y": 65.66666666666666
+          },
+          "boxSharedWithOtherNonspaceCharacters": false,
+          "boxOverlapsOriginalDrawingInkBBox": true,
+          "passesOriginalConfidencePredicate": false,
+          "passesOriginalBoxPredicate": true,
+          "cropLocalPredicate": true,
+          "nativeRangeBoxFullyContainedInPrintedCell": true
+        }
+      ],
+      "locatedUnshared": true,
+      "locatedUnsharedOriginalPredicatesPass": false,
+      "locatedUnsharedInkBBoxOverlap": true,
+      "locatedUnsharedFullyContainedInPrintedCell": true,
+      "priorFullPageLocated": true
+    },
+    {
+      "period": 5,
+      "expectedPrintedText": "5",
+      "originalPhysicalCell": [
+        537.6,
+        57.37864077669903,
+        648.9599999999999,
+        86.06796116504854
+      ],
+      "originalDrawingInkBBox": [
+        568,
+        73,
+        576,
+        84
+      ],
+      "nativeDrawingInkBBox": [
+        545.28,
+        69.81067961165049,
+        552.96,
+        80.33009708737865
+      ],
+      "positionMatches": [
+        {
+          "region": "right",
+          "nativeOrder": 0,
+          "rawText": "5",
+          "rawCharacter": "5",
+          "confidence": 1,
+          "originalPixelBox": {
+            "height": 13.929292581060627,
+            "width": 13.999999650000019,
+            "x": 540.00000015,
+            "y": 67.65656565656566
+          },
+          "boxSharedWithOtherNonspaceCharacters": false,
+          "boxOverlapsOriginalDrawingInkBBox": true,
+          "passesOriginalConfidencePredicate": true,
+          "passesOriginalBoxPredicate": true,
+          "cropLocalPredicate": true,
+          "nativeRangeBoxFullyContainedInPrintedCell": true
+        }
+      ],
+      "locatedUnshared": true,
+      "locatedUnsharedOriginalPredicatesPass": true,
+      "locatedUnsharedInkBBoxOverlap": true,
+      "locatedUnsharedFullyContainedInPrintedCell": true,
+      "priorFullPageLocated": false
+    },
+    {
+      "period": 6,
+      "expectedPrintedText": "6",
+      "originalPhysicalCell": [
+        648.9599999999999,
+        57.37864077669903,
+        760.3199999999999,
+        86.06796116504854
+      ],
+      "originalDrawingInkBBox": [
+        684,
+        73,
+        692,
+        84
+      ],
+      "nativeDrawingInkBBox": [
+        656.64,
+        69.81067961165049,
+        664.3199999999999,
+        80.33009708737865
+      ],
+      "positionMatches": [
+        {
+          "region": "right",
+          "nativeOrder": 1,
+          "rawText": "6",
+          "rawCharacter": "6",
+          "confidence": 0.5,
+          "originalPixelBox": {
+            "height": 15.919191388552207,
+            "width": 11.999999600000027,
+            "x": 654.0000001333333,
+            "y": 65.66666666666666
+          },
+          "boxSharedWithOtherNonspaceCharacters": false,
+          "boxOverlapsOriginalDrawingInkBBox": true,
+          "passesOriginalConfidencePredicate": false,
+          "passesOriginalBoxPredicate": true,
+          "cropLocalPredicate": true,
+          "nativeRangeBoxFullyContainedInPrintedCell": true
+        }
+      ],
+      "locatedUnshared": true,
+      "locatedUnsharedOriginalPredicatesPass": false,
+      "locatedUnsharedInkBBoxOverlap": true,
+      "locatedUnsharedFullyContainedInPrintedCell": true,
+      "priorFullPageLocated": false
+    },
+    {
+      "period": 7,
+      "expectedPrintedText": "7",
+      "originalPhysicalCell": [
+        760.3199999999999,
+        57.37864077669903,
+        871.68,
+        86.06796116504854
+      ],
+      "originalDrawingInkBBox": [
+        800,
+        73,
+        808,
+        84
+      ],
+      "nativeDrawingInkBBox": [
+        768.0,
+        69.81067961165049,
+        775.68,
+        80.33009708737865
+      ],
+      "positionMatches": [
+        {
+          "region": "right",
+          "nativeOrder": 2,
+          "rawText": "7",
+          "rawCharacter": "7",
+          "confidence": 0.5,
+          "originalPixelBox": {
+            "height": 13.929292464983192,
+            "width": 11.999999600000027,
+            "x": 766.0000000666666,
+            "y": 65.66666666666666
+          },
+          "boxSharedWithOtherNonspaceCharacters": false,
+          "boxOverlapsOriginalDrawingInkBBox": true,
+          "passesOriginalConfidencePredicate": false,
+          "passesOriginalBoxPredicate": true,
+          "cropLocalPredicate": true,
+          "nativeRangeBoxFullyContainedInPrintedCell": true
+        }
+      ],
+      "locatedUnshared": true,
+      "locatedUnsharedOriginalPredicatesPass": false,
+      "locatedUnsharedInkBBoxOverlap": true,
+      "locatedUnsharedFullyContainedInPrintedCell": true,
+      "priorFullPageLocated": false
+    },
+    {
+      "period": 8,
+      "expectedPrintedText": "8",
+      "originalPhysicalCell": [
+        871.68,
+        57.37864077669903,
+        983.04,
+        86.06796116504854
+      ],
+      "originalDrawingInkBBox": [
+        916,
+        73,
+        924,
+        84
+      ],
+      "nativeDrawingInkBBox": [
+        879.36,
+        69.81067961165049,
+        887.04,
+        80.33009708737865
+      ],
+      "positionMatches": [
+        {
+          "region": "right",
+          "nativeOrder": 3,
+          "rawText": "8",
+          "rawCharacter": "8",
+          "confidence": 0.5,
+          "originalPixelBox": {
+            "height": 13.929292650707062,
+            "width": 11.999999759999962,
+            "x": 878,
+            "y": 67.65656565656566
+          },
+          "boxSharedWithOtherNonspaceCharacters": false,
+          "boxOverlapsOriginalDrawingInkBBox": true,
+          "passesOriginalConfidencePredicate": false,
+          "passesOriginalBoxPredicate": true,
+          "cropLocalPredicate": true,
+          "nativeRangeBoxFullyContainedInPrintedCell": true
+        }
+      ],
+      "locatedUnshared": true,
+      "locatedUnsharedOriginalPredicatesPass": false,
+      "locatedUnsharedInkBBoxOverlap": true,
+      "locatedUnsharedFullyContainedInPrintedCell": true,
+      "priorFullPageLocated": false
+    }
+  ],
+  "counts": {
+    "expectedPositions": 8,
+    "locatedUnshared": 8,
+    "locatedUnsharedOriginalPredicatesPass": 2,
+    "locatedUnsharedInkBBoxOverlap": 8,
+    "locatedUnsharedFullyContainedInPrintedCell": 8,
+    "positionRule": "Native range box center in original physical header cell; full containment and drawing ink overlap are separate metrics",
+    "priorFullPageLocated": 4,
+    "period5Through8LocatedUnshared": 4
+  },
+  "limits": [
+    "Character-range boxes are native API range responses, not precise glyph extent or unique ownership proof.",
+    "Original physical cells/drawing evidence are posthoc only; none entered native requests.",
+    "Pixel equality confirms lossless crops of this run; PNG equality compares saved full-page encoding, not unsaved framework intermediate tensors.",
+    "No framework-internal model/detector/stride/ROI cause attribution.",
+    "No empty states, period filling, app layouts/rules/validator/tuple binding/adoption/last-good data or physical iPhone/fullformal quality assessment.",
+    "All raw observations from both overlapping regions remain separately identified; no merge or deduplication changes source."
+  ]
+}

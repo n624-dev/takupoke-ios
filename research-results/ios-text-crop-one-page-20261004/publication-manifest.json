@@ -1,0 +1,69 @@
+{
+  "scope": "Independent fictional one-page two-crop component data-only publication; no further native requests",
+  "nativeRun": 37212811710,
+  "nativeAttempt": 1,
+  "nativeSourceCommit": "685ea5ba9f055c619b560b1c8a88698b5790b8f8",
+  "rawSHA256": "feeb3cdd4ea2f930f305cc94050c8ba5ba018a10ba259f7a14abc8823ca8b78c",
+  "files": {
+    "README.md": {
+      "sha256": "9b1a10e0608ea95c2d0fce9b075e03cbddc86a04d419cbca20a51e898933dc84",
+      "bytes": 4944
+    },
+    "analyze.py": {
+      "sha256": "3ad720fbf00a60dde46cb4859f263b8fe2be92c1d53295ec536295f6d95e8aed",
+      "bytes": 8127
+    },
+    "derived-evidence.json": {
+      "sha256": "74144b7b2e6cd5c446ca0e86d0bb42e969cb20dd1d851544396f3a9912f89e05",
+      "bytes": 16845
+    },
+    "drawing-source.json": {
+      "sha256": "c2acd23ad38bc9e6eea4ded8b1fb790ac5817bb7891f090483a2f28084eab1b9",
+      "bytes": 14662
+    },
+    "execution-receipt.json": {
+      "sha256": "5024ad7645a85edfeb8329bbfb9050d453549bdcc14e00333461e073892dd625",
+      "bytes": 39841
+    },
+    "input-manifest.json": {
+      "sha256": "0a1b2895fb9f8c34e452dcceaddf2aaf8b00a52079695a53789b5162d1283aa1",
+      "bytes": 2745
+    },
+    "native-raw.jsonl": {
+      "sha256": "feeb3cdd4ea2f930f305cc94050c8ba5ba018a10ba259f7a14abc8823ca8b78c",
+      "bytes": 101809
+    },
+    "native-render/left.png": {
+      "sha256": "02b87ddb24a86eb2fdc01f8780b85ce5083b76b49e028ccb9902e64fe3644b8b",
+      "bytes": 18338
+    },
+    "native-render/original.png": {
+      "sha256": "1778ddd50e7d267b77b561df7e0fc17eae82fa68693bd2d74c76132f738ade57",
+      "bytes": 24230
+    },
+    "native-render/right.png": {
+      "sha256": "f6c876797774cb6f831d56db0313bcfd7e7c952c2f5c6b71af86669955b8f3ee",
+      "bytes": 5271
+    },
+    "native-run.json": {
+      "sha256": "91f34722d14a292b1836220e48d15dbda20bd65311dc37ac7bc22d3e78adb249",
+      "bytes": 1395
+    },
+    "previous-page-one.jsonl": {
+      "sha256": "876be87ea34b3a1455c22c53de025b195ed5fd26d60d079146d6bd421d226ca2",
+      "bytes": 54092
+    },
+    "previous-reference.json": {
+      "sha256": "11e943508035cd0eeb1378282316e3a14ac96eef3285925be5a6c0d917085806",
+      "bytes": 663
+    },
+    "source-extraction-receipt.json": {
+      "sha256": "cdd179e9722e32b8e371dad1df6ab8f943da1a86b137a1a43fc177b1d22b0c4b",
+      "bytes": 4206
+    },
+    "verification-receipt.json": {
+      "sha256": "7ba71dc1ba3cd5373943c04fff227d88d986a0e9642a7ac1c39038a67108f1cb",
+      "bytes": 1417
+    }
+  }
+}
