@@ -33,7 +33,7 @@ jobs:
       QA_TAG: ${{ github.event.inputs.release_tag || 'model-probe-ios-20261004' }}
       QA_RELEASE_ID: ${{ github.event.inputs.release_id || '402903016' }}
       # Exact reviewed research source archive; feature branch only.
-      QA_SOURCE_SHA256: ${{ github.event.inputs.source_sha256 || 'bcf9a930df495613187152f90acc44110ced12c7d7e4e63bef33dcf44e84f8cc' }}
+      QA_SOURCE_SHA256: ${{ github.event.inputs.source_sha256 || '0c532701a0a1e4a08a2765f53da794f4ba76f692ee8cffdeaa799986b701deb7' }}
     steps:
       - name: Checkout the immutable research source archive
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, same pinned action as production CI

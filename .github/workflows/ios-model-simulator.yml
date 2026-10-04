@@ -1,0 +1,139 @@
+# Isolated real native simulator probe. No production activation/publication.
+name: Run standalone iOS27 Core AI simulator probe
+on:
+  push:
+    branches: ['research/ios-model-probe-*']
+    paths: ['.github/workflows/ios-model-simulator.yml', 'tools/phone-model-probe/simulator/**', 'tools/phone-model-probe/ios-high-phone-benchmark-source.zip']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: ios-model-simulator-model-probe-ios-20261004
+  cancel-in-progress: false
+jobs:
+  native-simulator:
+    runs-on: xcode-27
+    timeout-minutes: 40
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+      GH_TOKEN: ${{ github.token }}
+      QA_TAG: model-probe-ios-20261004
+      QA_RELEASE_ID: '402903016'
+      QA_SOURCE_SHA256: 0c532701a0a1e4a08a2765f53da794f4ba76f692ee8cffdeaa799986b701deb7
+      QA_MODEL_ASSET_ID: '609422032'
+      QA_MODEL_ASSET_NAME: ios-coreai-model-37187793646-1.zip
+      QA_MODEL_BYTES: '368972278'
+      QA_MODEL_SHA256: 0c3addba18481bda1a223ba7e047e8c5afafbb84dace09cc139d44bfe8943aa1
+    steps:
+      - name: Checkout the immutable reviewed simulator source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+          sparse-checkout: |
+            tools/phone-model-probe/ios-high-phone-benchmark-source.zip
+            tools/phone-model-probe/simulator
+          sparse-checkout-cone-mode: false
+      - name: Verify the exact draft and new actual model asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/ios-model-simulator-owned"
+          mkdir "$work"
+          touch "$work/.ios-model-simulator-owned"
+          gh api "repos/$GITHUB_REPOSITORY/releases/$QA_RELEASE_ID" > "$work/draft.json"
+          python3 - "$work/draft.json" <<'PY'
+          import json,os,sys
+          value=json.load(open(sys.argv[1]))
+          assert value['id']==int(os.environ['QA_RELEASE_ID']) and value['tag_name']==os.environ['QA_TAG'] and value['draft'] and value['prerelease']
+          asset=next(a for a in value['assets'] if a['id']==int(os.environ['QA_MODEL_ASSET_ID']))
+          assert asset['name']==os.environ['QA_MODEL_ASSET_NAME'] and asset['size']==int(os.environ['QA_MODEL_BYTES'])
+          assert asset['uploader']['login']=='github-actions[bot]'
+          PY
+          gh api "repos/$GITHUB_REPOSITORY/releases/assets/$QA_MODEL_ASSET_ID" -H 'Accept: application/octet-stream' > "$work/actual-model.zip"
+      - name: Verify and extract the exact reviewed app and model archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$GITHUB_WORKSPACE/tools/phone-model-probe/ios-high-phone-benchmark-source.zip" "$RUNNER_TEMP/ios-model-simulator-owned" <<'PY'
+          import hashlib,os,pathlib,sys,zipfile
+          source=pathlib.Path(sys.argv[1]);work=pathlib.Path(sys.argv[2]);assert hashlib.sha256(source.read_bytes()).hexdigest()==os.environ['QA_SOURCE_SHA256']
+          h=hashlib.sha256();count=0
+          with (work/'actual-model.zip').open('rb') as model:
+              while chunk:=model.read(1048576):h.update(chunk);count+=len(chunk)
+          assert count==int(os.environ['QA_MODEL_BYTES']) and h.hexdigest()==os.environ['QA_MODEL_SHA256']
+          with zipfile.ZipFile(source) as archive:
+              assert len(archive.infolist())<=128 and sum(v.file_size for v in archive.infolist())<=5000000
+              for item in archive.infolist():
+                  parts=pathlib.PurePosixPath(item.filename).parts
+                  assert parts and parts[0]=='ios-high-phone-benchmark' and '..' not in parts and not item.filename.startswith('/') and '\\' not in item.filename
+                  assert (item.external_attr>>16)&0o170000!=0o120000
+              archive.extractall(work)
+          PY
+      - name: Compile the real iOS27 simulator runtime and app
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/ios-model-simulator-owned"
+          cd "$work/ios-high-phone-benchmark"
+          plutil -lint ModelProbe.xcodeproj/project.pbxproj Info.plist
+          xcrun --sdk iphonesimulator --show-sdk-version
+          architecture="$(uname -m)"
+          xcodebuild -project ModelProbe.xcodeproj -scheme ModelProbe -configuration Release -destination 'generic/platform=iOS Simulator' -derivedDataPath "$work/build" ARCHS="$architecture" ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO build > "$work/xcodebuild.log" 2>&1 || { tail -n 160 "$work/xcodebuild.log"; exit 1; }
+          app="$work/build/Build/Products/Release-iphonesimulator/ModelProbe.app"
+          python3 - "$app" <<'PY'
+          import hashlib,json,pathlib,plistlib,sys
+          app=pathlib.Path(sys.argv[1]);info=plistlib.loads((app/'Info.plist').read_bytes());assert info['CFBundleIdentifier']=='jp.n624.takupoke-modelprobe'
+          runtime=app/'Frameworks/CoreAIRecoveryRuntime.framework';assert (runtime/'CoreAIRecoveryRuntime').is_file()
+          assert plistlib.loads((runtime/'Info.plist').read_bytes())['CFBundleSupportedPlatforms']==['iPhoneSimulator']
+          notices=runtime/'ThirdPartyNotices/SOURCE-NOTICES.json';inventory=json.loads(notices.read_text());assert inventory['files'] and inventory['sourcePins']
+          for item in inventory['files']:
+              path=notices.parent/item['path'];assert path.resolve().is_relative_to(notices.parent.resolve())
+              assert path.stat().st_size==item['bytes'] and hashlib.sha256(path.read_bytes()).hexdigest()==item['sha256']
+          PY
+      - name: Run actual native inference and retain partial errors
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/ios-model-simulator-owned"
+          python3 "$GITHUB_WORKSPACE/tools/phone-model-probe/simulator/run_simulator.py" "$work/build/Build/Products/Release-iphonesimulator/ModelProbe.app" "$work/actual-model.zip" "$work/ios-high-phone-benchmark" "$work"
+      - name: Upload the actual native outputs and environment diagnostics
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/ios-model-simulator-owned"
+          if [[ -f "$work/package/ios-model-simulator-execution.json" ]]; then
+            python3 "$GITHUB_WORKSPACE/tools/phone-model-probe/simulator/upload_simulator_artifacts.py" "$work/package"
+          fi
+      - name: Require actual complete generations without treating this as quality qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$RUNNER_TEMP/ios-model-simulator-owned/package/ios-model-simulator-execution.json" <<'PY'
+          import json,sys
+          value=json.load(open(sys.argv[1]));assert value['nativeExecutionComplete'], 'Actual simulator probe failed/partial; uploaded diagnostics retain its real failure'
+          PY
+      - name: Clean only this job's simulator, incomplete uploads, and owned scratch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/ios-model-simulator-owned"
+          cleanup_status=0
+          helper="$GITHUB_WORKSPACE/tools/phone-model-probe/simulator/upload_simulator_artifacts.py"
+          if [[ -f "$helper" && -f "$work/package/upload-owned-assets.json" ]]; then
+            python3 "$helper" "$work/package" --cleanup || cleanup_status=$?
+          fi
+          if [[ -f "$work/owned-simulator.json" ]]; then
+            python3 - "$work/owned-simulator.json" <<'PY' || cleanup_status=$?
+          import json,os,re,subprocess,sys
+          value=json.load(open(sys.argv[1]));assert value['runId']==os.environ['GITHUB_RUN_ID'] and value['attempt']==os.environ['GITHUB_RUN_ATTEMPT']
+          udid=value['udid'];assert re.fullmatch(r'[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}',udid)
+          subprocess.run(['xcrun','simctl','shutdown',udid],check=False)
+          subprocess.run(['xcrun','simctl','delete',udid],check=True)
+          PY
+          fi
+          if [[ -f "$work/.ios-model-simulator-owned" ]]; then rm -rf "$work"; fi
+          exit "$cleanup_status"
