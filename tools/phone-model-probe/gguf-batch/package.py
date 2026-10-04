@@ -23,7 +23,7 @@ logs=[]
 with zipfile.ZipFile(package/'gguf-component-evidence.zip','w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as archive:
     for p in sorted(source.glob('licenses/*')):
         if p.is_file():archive.write(p,'licenses/'+p.name)
-    for name in ('candidates.json','corpus.json','NativeScorer.swift','README.md','simulator-failure.json'):
+    for name in ('candidates.json','corpus.json','NativeScorer.swift','README.md','simulator-failure.json','prompt-audit.json'):
         archive.write(source/name,'recipe/'+name)
     for p in (work/'llama/LICENSE',work/'host.json'):
         if p.is_file():archive.write(p,'runtime/'+p.name)

@@ -1,6 +1,6 @@
 import json
 import unittest
-from run_batch import decode, grammar, prompt
+from run_batch import AB_CASES, INSTRUCTION, JAPANESE_INSTRUCTION, decode, grammar, prompt
 
 class ProtocolTests(unittest.TestCase):
     def setUp(self):
@@ -22,6 +22,13 @@ class ProtocolTests(unittest.TestCase):
         gbnf=grammar(self.groups)
         for group in self.groups:self.assertIn(json.dumps(json.dumps(group['id'])),gbnf)
         self.assertIn('{0,47}',gbnf)
+    def test_shared_prompt_variant_keeps_original_sources_and_grammar(self):
+        self.assertNotEqual(INSTRUCTION,JAPANESE_INSTRUCTION)
+        self.assertEqual(len(AB_CASES),3)
+        for instruction in (INSTRUCTION,JAPANESE_INSTRUCTION):
+            self.assertLessEqual(len(instruction.encode()),4096)
+            for group in self.groups:self.assertNotIn(group['id'],instruction)
+        self.assertEqual(len(set(AB_CASES)),3)
     def test_grammar_escapes_original_ID_content(self):
         gbnf=grammar([dict(id='a"\\b',text='untrusted')])
         self.assertIn(json.dumps(json.dumps('a"\\b')),gbnf)

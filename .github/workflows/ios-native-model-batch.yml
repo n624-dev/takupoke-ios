@@ -5,6 +5,12 @@ on:
     branches: ['research/ios-model-probe-*']
     paths: ['.github/workflows/ios-native-model-batch.yml', 'tools/phone-model-probe/gguf-batch/**']
   workflow_dispatch:
+    inputs:
+      prompt_experiment:
+        description: Fixed original baseline or one common three-case Japanese A/B
+        type: choice
+        default: prompt-ab
+        options: [baseline, prompt-ab]
 permissions:
   contents: write
 concurrency:
@@ -24,6 +30,7 @@ jobs:
       QA_TAG: model-probe-ios-20261004
       QA_RELEASE_ID: '402903016'
       QA_CANDIDATE_ID: ${{ matrix.candidate }}
+      QA_PROMPT_EXPERIMENT: ${{ github.event.inputs.prompt_experiment || 'prompt-ab' }}
       PYTHONDONTWRITEBYTECODE: '1'
       SWIFT_IMAGE: swift@sha256:6676af406f96360a37297db0ce36d1f3998687c724dde359d6a7b43a1f809d27
     steps:
@@ -70,7 +77,9 @@ jobs:
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/ios-gguf-batch-owned"
-          python3 -B tools/phone-model-probe/gguf-batch/run_batch.py tools/phone-model-probe/gguf-batch "$work" "$QA_CANDIDATE_ID" > "$work/runtime.log" 2>&1
+          args=()
+          if [[ "$QA_PROMPT_EXPERIMENT" == prompt-ab ]]; then args=(--prompt-ab); elif [[ "$QA_PROMPT_EXPERIMENT" != baseline ]]; then exit 2; fi
+          python3 -B tools/phone-model-probe/gguf-batch/run_batch.py tools/phone-model-probe/gguf-batch "$work" "$QA_CANDIDATE_ID" "${args[@]}" > "$work/runtime.log" 2>&1
           python3 - "$work/batch-report.json" <<'PY'
           import json,sys
           r=json.load(open(sys.argv[1]));print(json.dumps(dict(candidate=r['candidate']['id'],load=r.get('load'),summary=r.get('summary'),error=r.get('executionError'),nativeComplete=r['nativeExecutionComplete'])))
@@ -90,7 +99,7 @@ jobs:
           cp -L /usr/lib/x86_64-linux-gnu/libsqlite3.so "$work/libs/libsqlite3.so"
           docker pull "$SWIFT_IMAGE"
           scorer_status=0
-          docker run --rm --user "$(id -u):$(id -g)" --mount "type=bind,src=$work,dst=/work" -e IOS_GGUF_WORK=/work "$SWIFT_IMAGE" swift test --package-path /work/native --scratch-path /work/native-build --cache-path /work/native-cache --config-path /work/native-config --security-path /work/native-security --disable-dependency-cache --manifest-cache none --jobs 2 -Xcc -I/work/headers -Xlinker -L/work/libs --filter 'ParallelGGUFNativeCertificateControl|FoldedInterleavedLabelsUseBoundedRulesBeforeProviders|ExamAndReturnInterleavedLabelsUseBoundedRulesWithCompleteCoverage' > "$work/native-scorer.log" 2>&1 || scorer_status=$?
+          docker run --rm --user 0:0 --mount "type=bind,src=$work,dst=/work" -e IOS_GGUF_WORK=/work "$SWIFT_IMAGE" swift test --package-path /work/native --scratch-path /work/native-build --cache-path /work/native-cache --config-path /work/native-config --security-path /work/native-security --disable-dependency-cache --manifest-cache none --jobs 2 -Xcc -I/work/headers -Xlinker -L/work/libs --filter 'ParallelGGUFNativeCertificateControl|FoldedInterleavedLabelsUseBoundedRulesBeforeProviders|ExamAndReturnInterleavedLabelsUseBoundedRulesWithCompleteCoverage' > "$work/native-scorer.log" 2>&1 || scorer_status=$?
           printf '%s\n' "$scorer_status" > "$work/native-scorer-status.txt"
           if [[ "$scorer_status" != 0 ]]; then tail -n 100 "$work/native-scorer.log"; exit "$scorer_status"; fi
       - name: Retain actual outputs, failure evidence and all license notices
@@ -122,5 +131,5 @@ jobs:
           if [[ -f "$helper" && -f "$work/package/upload-owned-assets.json" ]]; then
             python3 -B "$helper" "$work/package" --cleanup || cleanup_status=$?
           fi
-          if [[ -f "$work/.ios-gguf-batch-owned" && "$work" == "$RUNNER_TEMP/ios-gguf-batch-owned" ]]; then rm -rf -- "$work"; fi
+          if [[ -f "$work/.ios-gguf-batch-owned" && "$work" == "$RUNNER_TEMP/ios-gguf-batch-owned" ]]; then sudo rm -rf -- "$work"; fi
           exit "$cleanup_status"
