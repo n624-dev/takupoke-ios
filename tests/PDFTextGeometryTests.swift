@@ -143,6 +143,22 @@ final class PDFTextGeometryTests: XCTestCase {
         }
     }
 
+    func testEmptyShowRequiresSelectedValidTextStateAndRetainsCancellation() throws {
+        let engine = PDFTextGeometry()
+        XCTAssertThrowsError(try engine.show([]))
+        try engine.operation("BT")
+        XCTAssertThrowsError(try engine.show([]))
+        try engine.font(nil, size: 12)
+        XCTAssertNoThrow(try engine.show([]))
+        try engine.operation("Tz", [0])
+        XCTAssertThrowsError(try engine.show([]))
+        let cancelled = PDFTextGeometry { throw PDFParseError(code: .cancelled) }
+        try cancelled.operation("BT"); try cancelled.font(nil, size: 12)
+        XCTAssertThrowsError(try cancelled.show([])) {
+            XCTAssertEqual(($0 as? PDFParseError)?.code, .cancelled)
+        }
+    }
+
     func testSpacingAndTJKeepAdjacentCellsSeparate() throws {
         let engine = PDFTextGeometry()
         try engine.font(font(), size: 10)
@@ -658,7 +674,7 @@ extension PDFTextGeometryTests {
 
     func testNativeUnusedUnsupportedFontSetupAllowsCompleteReadableTextButUseRejects() throws {
         let supported = "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET 10 10 m 290 10 l S"
-        for setup in ["BT /FU 12 Tf 14.4 TL ET ", "BT /F1 10 Tf ET q BT /FU 12 Tf ET Q "] {
+        for setup in ["BT /FU 12 Tf 14.4 TL ET ", "BT /FU 12 Tf () Tj ET ", "BT /F1 10 Tf ET q BT /FU 12 Tf ET Q "] {
             let data = syntheticPDF(content: setup + supported, simpleFont: true, unusedFont: true)
             let url = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-unused-font-"+UUID().uuidString+".pdf")
             defer { try? FileManager.default.removeItem(at: url) }; try data.write(to: url)

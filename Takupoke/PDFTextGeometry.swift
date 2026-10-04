@@ -113,7 +113,10 @@ final class PDFTextGeometry {
         matrix.translate(-amount / 1000 * state.size * state.scale, 0)
     }
     func show(_ bytes: [UInt8]) throws {
-        guard inText, let font = state.font, state.size > 0, state.scale > 0,
+        try check()
+        guard inText, state.size > 0, state.scale > 0 else { throw PDFTextFailure.unsupported }
+        if bytes.isEmpty { return }
+        guard let font = state.font,
               bytes.count % font.codeBytes == 0, order + bytes.count / font.codeBytes <= 100_000 else {
             throw PDFTextFailure.unsupported
         }

@@ -139,9 +139,18 @@ final class RecoveryTests: XCTestCase {
             attemptVersion:SpecialScheduleAnalysis.parserVersion))
     }
     func testOrdinaryRoleAliasVersionRetriesUnchangedEarlierSuccess() {
-        XCTAssertEqual(PDFAnalysis.currentVersion(for:.timetable),21)
+        XCTAssertEqual(PDFAnalysis.currentVersion(for:.timetable),22)
         XCTAssertEqual(PDFAnalysis.currentVersion(for:.events),4)
         XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"same",parserVersion:PDFAnalysis.parserVersion,analysisDigest:"same",analysisVersion:20,attemptDigest:"same",failure:nil,attemptVersion:20))
+    }
+    func testUnusedFontReaderVersionRetriesEarlierSameHashDefinitiveFailure() {
+        let failure = PDFParseError(code: .unsupported, stage: .characterMapping)
+        XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest: "same", parserVersion: PDFAnalysis.parserVersion,
+            analysisDigest: nil, analysisVersion: nil, attemptDigest: "same", failure: failure, attemptVersion: 21))
+        XCTAssertFalse(PDFParseAttempt.needsAnalysis(digest: "same", parserVersion: PDFAnalysis.parserVersion,
+            analysisDigest: nil, analysisVersion: nil, attemptDigest: "same", failure: failure, attemptVersion: PDFAnalysis.parserVersion))
+        XCTAssertEqual(PDFAnalysis.currentVersion(for: .events), 4)
+        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion, 22)
     }
     func testRecoverySourceRequiresCurrentStrictFailureForSameDocument() {
         let version = SpecialScheduleAnalysis.parserVersion

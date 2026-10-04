@@ -39,7 +39,7 @@ final class PDFDrawnTextReader {
     private func show(_ value: CGPDFStringRef) throws {
         let length = CGPDFStringGetLength(value)
         guard length <= 200_000 else { throw PDFParseError(code: .limit) }
-        if length == 0 { return }
+        if length == 0 { try engine.show([]); return }
         guard let bytes = CGPDFStringGetBytePtr(value) else { throw PDFTextFailure.unsupported }
         try engine.show(Array(UnsafeBufferPointer(start: bytes, count: length)))
     }
