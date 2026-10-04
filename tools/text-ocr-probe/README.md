@@ -20,7 +20,9 @@ No missing cell is called empty, no missing period is inserted, and formal quali
 assessment remains unassessed.
 
 Settings: `.accurate`, priority languages `ja-JP`, `en-US`, language correction and
-automatic language detection disabled, no custom words, one top candidate. Native
+automatic language detection disabled, no custom words, one top candidate. The
+default minimum text height fraction is unchanged and recorded from the native
+request. Confidence calibration is not assumed to match document OCR. Native
 runtime support is checked before requests; a missing language fails the finite
 comparison instead of choosing another setting. There are no resolution, preset,
 seed or revision sweeps. Expected values and drawing-source evidence never enter
