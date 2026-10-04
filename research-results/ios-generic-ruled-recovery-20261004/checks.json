@@ -1,0 +1,229 @@
+{
+  "repo": "n624-dev/takupoke-ios",
+  "sourceCommit": "71d28af373535762e406ec370e8dfddfd25a0744",
+  "sourceBranch": "codex/pdf-local-recovery",
+  "sourceReadback": {
+    "publicCommit": "71d28af373535762e406ec370e8dfddfd25a0744",
+    "repo": "n624-dev/takupoke-ios",
+    "branch": "codex/pdf-local-recovery",
+    "files": [
+      {
+        "path": "Takupoke/RecoveryDocumentBuilder.swift",
+        "bytes": 49861,
+        "sha256": "3de5601a596f6e3f2699b2bc975e97b3bf33a6ad798d6f7aa03e2b1905f06c6c",
+        "apiByteExact": true
+      },
+      {
+        "path": "tests/RecoveryBuilderTests.swift",
+        "bytes": 42795,
+        "sha256": "50255d8b07920f6f62e0f527d7475ff979ec08373d800dc30fa0385343015363",
+        "apiByteExact": true
+      },
+      {
+        "path": "tests/fixtures/recovery-generic-ruled-original-two.json",
+        "bytes": 522531,
+        "sha256": "7a87ca9355ee2577fb3fab05cfc9dc86ab5d870a8e49f2119b54ef70d260a54c",
+        "apiByteExact": true
+      },
+      {
+        "path": "docs/pdf-recovery.md",
+        "bytes": 24548,
+        "sha256": "91b43ea8f8fe727d3bc9b06f920b223ead0ed8eb437cf15523858aabb719d1d9",
+        "apiByteExact": true
+      }
+    ],
+    "sourceQualityScope": "Original drawing-source geometry controls; no Vision inference/model quality claim."
+  },
+  "sourceControl": {
+    "originalDocuments": 2,
+    "pages": 10,
+    "formalSlotsPerDocument": 40,
+    "expectedSource": "Independent original literal oracle consulted only in assertions after actual Builder/Rules/Validator/formal conversion",
+    "glyphSource": "Frozen font-derived original per-character geometry control; not Vision output",
+    "originalRGBAExact": true,
+    "nativeOCRQualityAssessed": false
+  },
+  "hostLinux": {
+    "tests": 317,
+    "failures": 0,
+    "logSHA256": "b11c8457f4f164072e481c660016690734e6157a2c82561bfb8e1e89f1a69c9a"
+  },
+  "ci": {
+    "runId": 37207798028,
+    "sourceCommit": "71d28af373535762e406ec370e8dfddfd25a0744",
+    "conclusion": "success",
+    "requiredJobs": 7,
+    "requiredJobsSucceeded": 7,
+    "publishJob": "skipped: no main release",
+    "jobs": [
+      {
+        "name": "Distribution tests",
+        "executedJobId": 111452547276,
+        "latestReportedJobId": 111459329715,
+        "conclusion": "success",
+        "startedAt": "2026-10-04T14:02:37Z",
+        "completedAt": "2026-10-04T14:02:47Z",
+        "counts": {
+          "distributionTests": 58,
+          "sharedProtocolTests": 7,
+          "strictFixtures": 30
+        },
+        "retainedDecodedLog": {
+          "bytes": 29276,
+          "sha256": "198562f16c92111988f89082e6be2702b145dbdc934de1ced0e45b5fe4a5fe06",
+          "encoding": "UTF8 retained decoded job log text"
+        },
+        "url": "https://github.com/n624-dev/takupoke-ios/actions/runs/37207798028/job/111452547276"
+      },
+      {
+        "name": "Check iPhone build without publishing",
+        "executedJobId": 111452585076,
+        "latestReportedJobId": 111459330043,
+        "conclusion": "success",
+        "startedAt": "2026-10-04T14:02:53Z",
+        "completedAt": "2026-10-04T14:22:06Z",
+        "counts": {
+          "hostTests": 365,
+          "failures": 0,
+          "pickerUITests": 3,
+          "build": "BUILD SUCCEEDED"
+        },
+        "retainedDecodedLog": {
+          "bytes": 1106373,
+          "sha256": "e51f0cb2816b89848e92093064b618d4835046b6a9094261c9d3fbb9535c7cb1",
+          "encoding": "UTF8 retained decoded job log text"
+        },
+        "url": "https://github.com/n624-dev/takupoke-ios/actions/runs/37207798028/job/111452585076"
+      },
+      {
+        "name": "Native PDF and recovery tests",
+        "executedJobId": 111452585123,
+        "latestReportedJobId": 111459353047,
+        "conclusion": "success",
+        "startedAt": "2026-10-04T14:02:53Z",
+        "completedAt": "2026-10-04T14:05:18Z",
+        "counts": {
+          "tests": 365,
+          "failures": 0
+        },
+        "retainedDecodedLog": {
+          "bytes": 269712,
+          "sha256": "a7185b4a30597fe2052846cd1baae0a400cdb477485d6441cb69eb9ff7a4c754",
+          "encoding": "UTF8 retained decoded job log text"
+        },
+        "url": "https://github.com/n624-dev/takupoke-ios/actions/runs/37207798028/job/111452585123"
+      },
+      {
+        "name": "Application iOS 26 UI A",
+        "executedJobId": 111452585105,
+        "latestReportedJobId": 111459349038,
+        "conclusion": "success",
+        "startedAt": "2026-10-04T14:02:53Z",
+        "completedAt": "2026-10-04T14:26:30Z",
+        "counts": {
+          "tests": 13,
+          "failures": 0,
+          "skipped": 0
+        },
+        "retainedDecodedLog": {
+          "bytes": 1680838,
+          "sha256": "95c94d399edd2361a77d4575e7d746d59ee93d4fae66cb69387fcb907ec03744",
+          "encoding": "UTF8 retained decoded job log text"
+        },
+        "url": "https://github.com/n624-dev/takupoke-ios/actions/runs/37207798028/job/111452585105"
+      },
+      {
+        "name": "Application iOS 26 UI B",
+        "executedJobId": 111452585166,
+        "latestReportedJobId": 111459330191,
+        "conclusion": "success",
+        "startedAt": "2026-10-04T14:02:55Z",
+        "completedAt": "2026-10-04T14:34:43Z",
+        "counts": {
+          "tests": 13,
+          "failures": 0,
+          "skipped": 1,
+          "skipReason": "VoiceOver automation requires Xcode27/iOS27"
+        },
+        "retainedDecodedLog": {
+          "bytes": 2815045,
+          "sha256": "47c64ad9e2cfcccc6b45f826ae9d21bc582dd46e8e54544c90b0edd2139a2b7c",
+          "encoding": "UTF8 retained decoded job log text"
+        },
+        "url": "https://github.com/n624-dev/takupoke-ios/actions/runs/37207798028/job/111452585166"
+      },
+      {
+        "name": "Application iOS 27 UI B",
+        "executedJobId": 111452585184,
+        "latestReportedJobId": 111459358667,
+        "conclusion": "success",
+        "startedAt": "2026-10-04T14:05:26Z",
+        "completedAt": "2026-10-04T14:36:45Z",
+        "counts": {
+          "tests": 13,
+          "failures": 0,
+          "skipped": 0
+        },
+        "retainedDecodedLog": {
+          "bytes": 2962718,
+          "sha256": "fc0ff7a37e84f59c5ffa0b18c3f8b3d91a03fb0b1c67a1f8a75e552d8dc352f2",
+          "encoding": "UTF8 retained decoded job log text"
+        },
+        "url": "https://github.com/n624-dev/takupoke-ios/actions/runs/37207798028/job/111452585184"
+      },
+      {
+        "name": "Application iOS 27 UI A",
+        "executedJobId": 111459329271,
+        "latestReportedJobId": 111459329271,
+        "conclusion": "success",
+        "startedAt": "2026-10-04T14:39:57Z",
+        "completedAt": "2026-10-04T15:06:43Z",
+        "counts": {
+          "tests": 13,
+          "failures": 0,
+          "skipped": 0
+        },
+        "retainedDecodedLog": {
+          "bytes": 1672104,
+          "sha256": "11e3dfa1fc29c44553bd69fe51e75effdd0714bac9ae4b829adaef6ec70a244d",
+          "encoding": "UTF8 retained decoded job log text"
+        },
+        "url": "https://github.com/n624-dev/takupoke-ios/actions/runs/37207798028/job/111459329271"
+      }
+    ],
+    "uiTotals": {
+      "scheduled": 52,
+      "passed": 51,
+      "expectedSkipped": 1,
+      "failures": 0
+    },
+    "ui27AInitial": {
+      "jobId": 111452585116,
+      "conclusion": "cancelled",
+      "jobTimeoutMinutes": 35,
+      "passedCases": 11,
+      "failedCases": 0,
+      "stage": "12th testTimetableCommonClocksAndEventOnlyWeekScale was executing; global job wall limit",
+      "classification": "Build/setup 16m40 plus normally progressing tests exhausted total wall budget; no snapshot hang established",
+      "retainedDecodedLog": {
+        "bytes": 1623662,
+        "sha256": "1d19f078a98b57906c54927f2f14ac8c26c90a831bcdf9a1ccc9a4c4a060626c"
+      }
+    },
+    "retry": {
+      "actualNewJobId": 111459329271,
+      "sameSource": true,
+      "onlyJob": "Application iOS 27 UI A",
+      "newNativeOCRCalls": 0,
+      "otherSuccessfulJobs": "Inherited result aliases with original execution timestamps; not reexecutions",
+      "assertionsOrTimeoutOrTargetsChanged": false
+    }
+  },
+  "qualityScope": {
+    "modelCallsForGenericSourceControl": 0,
+    "additionalModelQualification": false,
+    "physicalPhoneQualification": false,
+    "modelCatalogActivated": false,
+    "visionCoverageOrFormalFromNativeOCR": "unassessed here; separate acquisition observations"
+  }
+}
