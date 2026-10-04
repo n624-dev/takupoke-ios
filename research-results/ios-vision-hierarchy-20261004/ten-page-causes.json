@@ -1,0 +1,1459 @@
+{
+  "runId": 37209476528,
+  "sourceCommit": "6fe7d66f64b5cd26484d629a3304e95bb4510631",
+  "rawSHA256": "0c21d705c253bcc98ef25ca717c6005bc6bd0c3cb753bada12c93104909b840d",
+  "rawBytes": 1683713,
+  "resultsSHA256": "6f7bee8f8aa076c5dd3a4781ca53cd9a6f7b8c3b3d19df5df6f525c3931d3ba9",
+  "derivedEvidenceSHA256": "1c9908baaefc8448cd3a10faf8ea79b186e2f5b56b84d69a206c4499d63b8eef",
+  "summary": {
+    "plannedPages": 10,
+    "recordedPages": 10,
+    "readReturnedPages": 10,
+    "serializationCompletedPages": 10,
+    "selectedHierarchyCaptureCompletePages": 10,
+    "operationalErrors": 0,
+    "formalAssessed": 0,
+    "periodHeaderRows": 80,
+    "globalTop1PositionFound": 33,
+    "anyTop1PositionFound": 33,
+    "anyTop5PositionFound": 33,
+    "tablePositionFound": 33,
+    "originalGlobalTop1Comparisons": 79,
+    "originalGlobalTop1AllEqual": true,
+    "top1PositionFoundPassingOriginalConfidenceAndBoxPredicates": 2,
+    "periodPositionFoundCounts": {
+      "1": 7,
+      "2": 10,
+      "3": 10,
+      "4": 6,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0
+    },
+    "top5AdditionalCorrectHeaderPositions": 0,
+    "oldVsNewOriginalMainLinesAllEqual": true
+  },
+  "rows": [
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "selectedHierarchyCaptureComplete": true,
+      "omissionCount": 0,
+      "globalTranscriptRaw": "2027年度前期\n時間割\n\n月\n\n\n\n\n\n\n\n\n1\n2\n3\n\n\n\n\n\n5_ES\n科目：架空化学乙担当：架空担当乙教室：架空室乙\n\n\n\n\n\n\n",
+      "nativeTables": [
+        {
+          "path": "observations[0].document.tables[0]",
+          "nativeRowCount": 3,
+          "nativeColumnCount": 9,
+          "capturedRowEntryCounts": [
+            9,
+            9,
+            9
+          ],
+          "nonemptyNativeCells": [
+            {
+              "path": "observations[0].document.tables[0].rows[0][1]",
+              "rowRange": [
+                0,
+                0
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "月"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[1][1]",
+              "rowRange": [
+                1,
+                1
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "1"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[1][2]",
+              "rowRange": [
+                1,
+                1
+              ],
+              "columnRange": [
+                2,
+                2
+              ],
+              "rawTranscript": "2"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[1][3]",
+              "rowRange": [
+                1,
+                1
+              ],
+              "columnRange": [
+                3,
+                3
+              ],
+              "rawTranscript": "3"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][0]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                0,
+                0
+              ],
+              "rawTranscript": "5_ES"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][1]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "科目：架空化学乙担当：架空担当乙教室：架空室乙"
+            }
+          ]
+        }
+      ],
+      "positionVerifiedHeaders": [
+        1,
+        2,
+        3
+      ],
+      "missingExpectedHeaderPositions": [
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "top1HeadersPassingOriginalConfidenceAndBoxPredicates": [],
+      "stageFindings": [
+        {
+          "stage": "readAndObservationSerialization",
+          "strength": "confirmed",
+          "finding": "Read and selected-accessor capture returned; no runtime error, omission or accessor disagreement."
+        },
+        {
+          "stage": "lineVsTableCandidateExtraction",
+          "strength": "confirmed observed scope",
+          "finding": "Same correctly positioned headers in global top1, table cell text and bounded top5; no additional correct period recovered from table or alternatives."
+        },
+        {
+          "stage": "missingPeriodText",
+          "strength": "confirmed observed scope; underlying cause undetermined",
+          "finding": "Expected original header text is absent at listed positions across captured text accessors. This does not prove absence from every latent Vision representation/candidate."
+        },
+        {
+          "stage": "originalLayoutPredicates",
+          "strength": "confirmed post-observation predicate; actual layouts not executed",
+          "finding": "Correct header strings can have confidence below0.85; low confidence blocks the original predicate. No threshold adjustment is justified by this diagnostic alone."
+        }
+      ],
+      "fullClassDayPeriodFieldTuple": "unassessed; native table ranges and strings are not complete original source/ink/blank proof",
+      "emptyTeacherProof": false,
+      "autoAdopted": false,
+      "causeCandidatesUndetermined": [
+        "rendered pixels and recognition calibration",
+        "default document-recognition detection/decoding",
+        "latent content beyond captured accessors/top5"
+      ],
+      "intrinsicModelIncapacityClaim": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "selectedHierarchyCaptureComplete": true,
+      "omissionCount": 0,
+      "globalTranscriptRaw": "2027年度前期\n\n時間割\n\n\n\n\n\n\n\n火\n\n\n\n\n\n\n\n\n\n2\n3\n4\n\n\n\n\n5_ES\n\n\n\n\n\n\n\n",
+      "nativeTables": [
+        {
+          "path": "observations[0].document.tables[0]",
+          "nativeRowCount": 4,
+          "nativeColumnCount": 9,
+          "capturedRowEntryCounts": [
+            9,
+            9,
+            9,
+            9
+          ],
+          "nonemptyNativeCells": [
+            {
+              "path": "observations[0].document.tables[0].rows[0][0]",
+              "rowRange": [
+                0,
+                0
+              ],
+              "columnRange": [
+                0,
+                0
+              ],
+              "rawTranscript": "2027年度前期"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[0][2]",
+              "rowRange": [
+                0,
+                0
+              ],
+              "columnRange": [
+                2,
+                2
+              ],
+              "rawTranscript": "時間割"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[1][1]",
+              "rowRange": [
+                1,
+                1
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "火"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][2]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                2,
+                2
+              ],
+              "rawTranscript": "2"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][3]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                3,
+                3
+              ],
+              "rawTranscript": "3"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][4]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                4,
+                4
+              ],
+              "rawTranscript": "4"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[3][0]",
+              "rowRange": [
+                3,
+                3
+              ],
+              "columnRange": [
+                0,
+                0
+              ],
+              "rawTranscript": "5_ES"
+            }
+          ]
+        }
+      ],
+      "positionVerifiedHeaders": [
+        2,
+        3,
+        4
+      ],
+      "missingExpectedHeaderPositions": [
+        1,
+        5,
+        6,
+        7,
+        8
+      ],
+      "top1HeadersPassingOriginalConfidenceAndBoxPredicates": [],
+      "stageFindings": [
+        {
+          "stage": "readAndObservationSerialization",
+          "strength": "confirmed",
+          "finding": "Read and selected-accessor capture returned; no runtime error, omission or accessor disagreement."
+        },
+        {
+          "stage": "lineVsTableCandidateExtraction",
+          "strength": "confirmed observed scope",
+          "finding": "Same correctly positioned headers in global top1, table cell text and bounded top5; no additional correct period recovered from table or alternatives."
+        },
+        {
+          "stage": "missingPeriodText",
+          "strength": "confirmed observed scope; underlying cause undetermined",
+          "finding": "Expected original header text is absent at listed positions across captured text accessors. This does not prove absence from every latent Vision representation/candidate."
+        },
+        {
+          "stage": "originalLayoutPredicates",
+          "strength": "confirmed post-observation predicate; actual layouts not executed",
+          "finding": "Correct header strings can have confidence below0.85; low confidence blocks the original predicate. No threshold adjustment is justified by this diagnostic alone."
+        }
+      ],
+      "fullClassDayPeriodFieldTuple": "unassessed; native table ranges and strings are not complete original source/ink/blank proof",
+      "emptyTeacherProof": false,
+      "autoAdopted": false,
+      "causeCandidatesUndetermined": [
+        "rendered pixels and recognition calibration",
+        "default document-recognition detection/decoding",
+        "latent content beyond captured accessors/top5"
+      ],
+      "intrinsicModelIncapacityClaim": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "selectedHierarchyCaptureComplete": true,
+      "omissionCount": 0,
+      "globalTranscriptRaw": "2027年度前期\n\n時間割\n\n\n\n\n\n\n\n水\n\n\n\n\n\n\n\n\n1\n2\n3\n4\n\n\n\n\n5_ES\n\n\n\n\n\n\n\n",
+      "nativeTables": [
+        {
+          "path": "observations[0].document.tables[0]",
+          "nativeRowCount": 4,
+          "nativeColumnCount": 9,
+          "capturedRowEntryCounts": [
+            9,
+            9,
+            9,
+            9
+          ],
+          "nonemptyNativeCells": [
+            {
+              "path": "observations[0].document.tables[0].rows[0][0]",
+              "rowRange": [
+                0,
+                0
+              ],
+              "columnRange": [
+                0,
+                0
+              ],
+              "rawTranscript": "2027年度前期"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[0][2]",
+              "rowRange": [
+                0,
+                0
+              ],
+              "columnRange": [
+                2,
+                2
+              ],
+              "rawTranscript": "時間割"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[1][1]",
+              "rowRange": [
+                1,
+                1
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "水"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][1]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "1"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][2]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                2,
+                2
+              ],
+              "rawTranscript": "2"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][3]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                3,
+                3
+              ],
+              "rawTranscript": "3"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][4]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                4,
+                4
+              ],
+              "rawTranscript": "4"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[3][0]",
+              "rowRange": [
+                3,
+                3
+              ],
+              "columnRange": [
+                0,
+                0
+              ],
+              "rawTranscript": "5_ES"
+            }
+          ]
+        }
+      ],
+      "positionVerifiedHeaders": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "missingExpectedHeaderPositions": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "top1HeadersPassingOriginalConfidenceAndBoxPredicates": [],
+      "stageFindings": [
+        {
+          "stage": "readAndObservationSerialization",
+          "strength": "confirmed",
+          "finding": "Read and selected-accessor capture returned; no runtime error, omission or accessor disagreement."
+        },
+        {
+          "stage": "lineVsTableCandidateExtraction",
+          "strength": "confirmed observed scope",
+          "finding": "Same correctly positioned headers in global top1, table cell text and bounded top5; no additional correct period recovered from table or alternatives."
+        },
+        {
+          "stage": "missingPeriodText",
+          "strength": "confirmed observed scope; underlying cause undetermined",
+          "finding": "Expected original header text is absent at listed positions across captured text accessors. This does not prove absence from every latent Vision representation/candidate."
+        },
+        {
+          "stage": "originalLayoutPredicates",
+          "strength": "confirmed post-observation predicate; actual layouts not executed",
+          "finding": "Correct header strings can have confidence below0.85; low confidence blocks the original predicate. No threshold adjustment is justified by this diagnostic alone."
+        }
+      ],
+      "fullClassDayPeriodFieldTuple": "unassessed; native table ranges and strings are not complete original source/ink/blank proof",
+      "emptyTeacherProof": false,
+      "autoAdopted": false,
+      "causeCandidatesUndetermined": [
+        "rendered pixels and recognition calibration",
+        "default document-recognition detection/decoding",
+        "latent content beyond captured accessors/top5"
+      ],
+      "intrinsicModelIncapacityClaim": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "selectedHierarchyCaptureComplete": true,
+      "omissionCount": 0,
+      "globalTranscriptRaw": "2027年度前期\n\n時間割\n\n\n\n\n\n\n\n木\n\n\n\n\n\n\n\n\n\n2\n3\n4\n\n\n\n\n5_ES\n\n\n\n\n\n\n\n",
+      "nativeTables": [
+        {
+          "path": "observations[0].document.tables[0]",
+          "nativeRowCount": 4,
+          "nativeColumnCount": 9,
+          "capturedRowEntryCounts": [
+            9,
+            9,
+            9,
+            9
+          ],
+          "nonemptyNativeCells": [
+            {
+              "path": "observations[0].document.tables[0].rows[0][0]",
+              "rowRange": [
+                0,
+                0
+              ],
+              "columnRange": [
+                0,
+                0
+              ],
+              "rawTranscript": "2027年度前期"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[0][2]",
+              "rowRange": [
+                0,
+                0
+              ],
+              "columnRange": [
+                2,
+                2
+              ],
+              "rawTranscript": "時間割"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[1][1]",
+              "rowRange": [
+                1,
+                1
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "木"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][2]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                2,
+                2
+              ],
+              "rawTranscript": "2"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][3]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                3,
+                3
+              ],
+              "rawTranscript": "3"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][4]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                4,
+                4
+              ],
+              "rawTranscript": "4"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[3][0]",
+              "rowRange": [
+                3,
+                3
+              ],
+              "columnRange": [
+                0,
+                0
+              ],
+              "rawTranscript": "5_ES"
+            }
+          ]
+        }
+      ],
+      "positionVerifiedHeaders": [
+        2,
+        3,
+        4
+      ],
+      "missingExpectedHeaderPositions": [
+        1,
+        5,
+        6,
+        7,
+        8
+      ],
+      "top1HeadersPassingOriginalConfidenceAndBoxPredicates": [],
+      "stageFindings": [
+        {
+          "stage": "readAndObservationSerialization",
+          "strength": "confirmed",
+          "finding": "Read and selected-accessor capture returned; no runtime error, omission or accessor disagreement."
+        },
+        {
+          "stage": "lineVsTableCandidateExtraction",
+          "strength": "confirmed observed scope",
+          "finding": "Same correctly positioned headers in global top1, table cell text and bounded top5; no additional correct period recovered from table or alternatives."
+        },
+        {
+          "stage": "missingPeriodText",
+          "strength": "confirmed observed scope; underlying cause undetermined",
+          "finding": "Expected original header text is absent at listed positions across captured text accessors. This does not prove absence from every latent Vision representation/candidate."
+        },
+        {
+          "stage": "originalLayoutPredicates",
+          "strength": "confirmed post-observation predicate; actual layouts not executed",
+          "finding": "Correct header strings can have confidence below0.85; low confidence blocks the original predicate. No threshold adjustment is justified by this diagnostic alone."
+        }
+      ],
+      "fullClassDayPeriodFieldTuple": "unassessed; native table ranges and strings are not complete original source/ink/blank proof",
+      "emptyTeacherProof": false,
+      "autoAdopted": false,
+      "causeCandidatesUndetermined": [
+        "rendered pixels and recognition calibration",
+        "default document-recognition detection/decoding",
+        "latent content beyond captured accessors/top5"
+      ],
+      "intrinsicModelIncapacityClaim": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "selectedHierarchyCaptureComplete": true,
+      "omissionCount": 0,
+      "globalTranscriptRaw": "2027年度前期\n\n時間割\n\n\n\n\n\n\n\n金\n\n\n\n\n\n\n\n\n1\n2\n3\n4\n\n\n\n\n5_ES\n\n\n\n\n\n\n\n",
+      "nativeTables": [
+        {
+          "path": "observations[0].document.tables[0]",
+          "nativeRowCount": 4,
+          "nativeColumnCount": 9,
+          "capturedRowEntryCounts": [
+            9,
+            9,
+            9,
+            9
+          ],
+          "nonemptyNativeCells": [
+            {
+              "path": "observations[0].document.tables[0].rows[0][0]",
+              "rowRange": [
+                0,
+                0
+              ],
+              "columnRange": [
+                0,
+                0
+              ],
+              "rawTranscript": "2027年度前期"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[0][2]",
+              "rowRange": [
+                0,
+                0
+              ],
+              "columnRange": [
+                2,
+                2
+              ],
+              "rawTranscript": "時間割"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[1][1]",
+              "rowRange": [
+                1,
+                1
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "金"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][1]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "1"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][2]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                2,
+                2
+              ],
+              "rawTranscript": "2"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][3]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                3,
+                3
+              ],
+              "rawTranscript": "3"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][4]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                4,
+                4
+              ],
+              "rawTranscript": "4"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[3][0]",
+              "rowRange": [
+                3,
+                3
+              ],
+              "columnRange": [
+                0,
+                0
+              ],
+              "rawTranscript": "5_ES"
+            }
+          ]
+        }
+      ],
+      "positionVerifiedHeaders": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "missingExpectedHeaderPositions": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "top1HeadersPassingOriginalConfidenceAndBoxPredicates": [],
+      "stageFindings": [
+        {
+          "stage": "readAndObservationSerialization",
+          "strength": "confirmed",
+          "finding": "Read and selected-accessor capture returned; no runtime error, omission or accessor disagreement."
+        },
+        {
+          "stage": "lineVsTableCandidateExtraction",
+          "strength": "confirmed observed scope",
+          "finding": "Same correctly positioned headers in global top1, table cell text and bounded top5; no additional correct period recovered from table or alternatives."
+        },
+        {
+          "stage": "missingPeriodText",
+          "strength": "confirmed observed scope; underlying cause undetermined",
+          "finding": "Expected original header text is absent at listed positions across captured text accessors. This does not prove absence from every latent Vision representation/candidate."
+        },
+        {
+          "stage": "originalLayoutPredicates",
+          "strength": "confirmed post-observation predicate; actual layouts not executed",
+          "finding": "Correct header strings can have confidence below0.85; low confidence blocks the original predicate. No threshold adjustment is justified by this diagnostic alone."
+        }
+      ],
+      "fullClassDayPeriodFieldTuple": "unassessed; native table ranges and strings are not complete original source/ink/blank proof",
+      "emptyTeacherProof": false,
+      "autoAdopted": false,
+      "causeCandidatesUndetermined": [
+        "rendered pixels and recognition calibration",
+        "default document-recognition detection/decoding",
+        "latent content beyond captured accessors/top5"
+      ],
+      "intrinsicModelIncapacityClaim": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "selectedHierarchyCaptureComplete": true,
+      "omissionCount": 0,
+      "globalTranscriptRaw": "2028年度後期\n時間割\n\n月\n\n\n\n\n\n\n\n\n1\n2\n3\n\n\n\n\n\n2_IT\n科目：架空物理丙\n担当：\n教室：架空室丙\n\n\n\n\n\n\n",
+      "nativeTables": [
+        {
+          "path": "observations[0].document.tables[0]",
+          "nativeRowCount": 3,
+          "nativeColumnCount": 9,
+          "capturedRowEntryCounts": [
+            9,
+            9,
+            9
+          ],
+          "nonemptyNativeCells": [
+            {
+              "path": "observations[0].document.tables[0].rows[0][1]",
+              "rowRange": [
+                0,
+                0
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "月"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[1][1]",
+              "rowRange": [
+                1,
+                1
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "1"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[1][2]",
+              "rowRange": [
+                1,
+                1
+              ],
+              "columnRange": [
+                2,
+                2
+              ],
+              "rawTranscript": "2"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[1][3]",
+              "rowRange": [
+                1,
+                1
+              ],
+              "columnRange": [
+                3,
+                3
+              ],
+              "rawTranscript": "3"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][0]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                0,
+                0
+              ],
+              "rawTranscript": "2_IT"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][1]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "科目：架空物理丙\n担当：\n教室：架空室丙"
+            }
+          ]
+        }
+      ],
+      "positionVerifiedHeaders": [
+        1,
+        2,
+        3
+      ],
+      "missingExpectedHeaderPositions": [
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "top1HeadersPassingOriginalConfidenceAndBoxPredicates": [],
+      "stageFindings": [
+        {
+          "stage": "readAndObservationSerialization",
+          "strength": "confirmed",
+          "finding": "Read and selected-accessor capture returned; no runtime error, omission or accessor disagreement."
+        },
+        {
+          "stage": "lineVsTableCandidateExtraction",
+          "strength": "confirmed observed scope",
+          "finding": "Same correctly positioned headers in global top1, table cell text and bounded top5; no additional correct period recovered from table or alternatives."
+        },
+        {
+          "stage": "missingPeriodText",
+          "strength": "confirmed observed scope; underlying cause undetermined",
+          "finding": "Expected original header text is absent at listed positions across captured text accessors. This does not prove absence from every latent Vision representation/candidate."
+        },
+        {
+          "stage": "originalLayoutPredicates",
+          "strength": "confirmed post-observation predicate; actual layouts not executed",
+          "finding": "Correct header strings can have confidence below0.85; low confidence blocks the original predicate. No threshold adjustment is justified by this diagnostic alone."
+        }
+      ],
+      "fullClassDayPeriodFieldTuple": "unassessed; native table ranges and strings are not complete original source/ink/blank proof",
+      "emptyTeacherProof": false,
+      "autoAdopted": false,
+      "causeCandidatesUndetermined": [
+        "rendered pixels and recognition calibration",
+        "default document-recognition detection/decoding",
+        "latent content beyond captured accessors/top5"
+      ],
+      "intrinsicModelIncapacityClaim": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "selectedHierarchyCaptureComplete": true,
+      "omissionCount": 0,
+      "globalTranscriptRaw": "2028年度後期\n\n\n\n\n\n\n\n\n\n\n火\n\n\n\n\n\n\n\n\n\n2\n3\n4\n\n\n\n\n2_IT\n\n\n\n\n\n\n\n\n時間割",
+      "nativeTables": [
+        {
+          "path": "observations[0].document.tables[0]",
+          "nativeRowCount": 4,
+          "nativeColumnCount": 9,
+          "capturedRowEntryCounts": [
+            9,
+            9,
+            9,
+            9
+          ],
+          "nonemptyNativeCells": [
+            {
+              "path": "observations[0].document.tables[0].rows[1][1]",
+              "rowRange": [
+                1,
+                1
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "火"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][2]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                2,
+                2
+              ],
+              "rawTranscript": "2"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][3]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                3,
+                3
+              ],
+              "rawTranscript": "3"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][4]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                4,
+                4
+              ],
+              "rawTranscript": "4"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[3][0]",
+              "rowRange": [
+                3,
+                3
+              ],
+              "columnRange": [
+                0,
+                0
+              ],
+              "rawTranscript": "2_IT"
+            }
+          ]
+        }
+      ],
+      "positionVerifiedHeaders": [
+        2,
+        3,
+        4
+      ],
+      "missingExpectedHeaderPositions": [
+        1,
+        5,
+        6,
+        7,
+        8
+      ],
+      "top1HeadersPassingOriginalConfidenceAndBoxPredicates": [
+        2
+      ],
+      "stageFindings": [
+        {
+          "stage": "readAndObservationSerialization",
+          "strength": "confirmed",
+          "finding": "Read and selected-accessor capture returned; no runtime error, omission or accessor disagreement."
+        },
+        {
+          "stage": "lineVsTableCandidateExtraction",
+          "strength": "confirmed observed scope",
+          "finding": "Same correctly positioned headers in global top1, table cell text and bounded top5; no additional correct period recovered from table or alternatives."
+        },
+        {
+          "stage": "missingPeriodText",
+          "strength": "confirmed observed scope; underlying cause undetermined",
+          "finding": "Expected original header text is absent at listed positions across captured text accessors. This does not prove absence from every latent Vision representation/candidate."
+        },
+        {
+          "stage": "originalLayoutPredicates",
+          "strength": "confirmed post-observation predicate; actual layouts not executed",
+          "finding": "Correct header strings can have confidence below0.85; low confidence blocks the original predicate. No threshold adjustment is justified by this diagnostic alone."
+        }
+      ],
+      "fullClassDayPeriodFieldTuple": "unassessed; native table ranges and strings are not complete original source/ink/blank proof",
+      "emptyTeacherProof": false,
+      "autoAdopted": false,
+      "causeCandidatesUndetermined": [
+        "rendered pixels and recognition calibration",
+        "default document-recognition detection/decoding",
+        "latent content beyond captured accessors/top5"
+      ],
+      "intrinsicModelIncapacityClaim": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "selectedHierarchyCaptureComplete": true,
+      "omissionCount": 0,
+      "globalTranscriptRaw": "2028年度後期\n\n\n\n\n\n\n\n\n\n\n水\n\n\n\n\n\n\n\n\n1\n2\n3\n\n\n\n\n\n2_IT\n\n\n\n\n\n\n\n\n時間割",
+      "nativeTables": [
+        {
+          "path": "observations[0].document.tables[0]",
+          "nativeRowCount": 4,
+          "nativeColumnCount": 9,
+          "capturedRowEntryCounts": [
+            9,
+            9,
+            9,
+            9
+          ],
+          "nonemptyNativeCells": [
+            {
+              "path": "observations[0].document.tables[0].rows[1][1]",
+              "rowRange": [
+                1,
+                1
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "水"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][1]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "1"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][2]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                2,
+                2
+              ],
+              "rawTranscript": "2"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][3]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                3,
+                3
+              ],
+              "rawTranscript": "3"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[3][0]",
+              "rowRange": [
+                3,
+                3
+              ],
+              "columnRange": [
+                0,
+                0
+              ],
+              "rawTranscript": "2_IT"
+            }
+          ]
+        }
+      ],
+      "positionVerifiedHeaders": [
+        1,
+        2,
+        3
+      ],
+      "missingExpectedHeaderPositions": [
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "top1HeadersPassingOriginalConfidenceAndBoxPredicates": [],
+      "stageFindings": [
+        {
+          "stage": "readAndObservationSerialization",
+          "strength": "confirmed",
+          "finding": "Read and selected-accessor capture returned; no runtime error, omission or accessor disagreement."
+        },
+        {
+          "stage": "lineVsTableCandidateExtraction",
+          "strength": "confirmed observed scope",
+          "finding": "Same correctly positioned headers in global top1, table cell text and bounded top5; no additional correct period recovered from table or alternatives."
+        },
+        {
+          "stage": "missingPeriodText",
+          "strength": "confirmed observed scope; underlying cause undetermined",
+          "finding": "Expected original header text is absent at listed positions across captured text accessors. This does not prove absence from every latent Vision representation/candidate."
+        },
+        {
+          "stage": "originalLayoutPredicates",
+          "strength": "confirmed post-observation predicate; actual layouts not executed",
+          "finding": "Correct header strings can have confidence below0.85; low confidence blocks the original predicate. No threshold adjustment is justified by this diagnostic alone."
+        }
+      ],
+      "fullClassDayPeriodFieldTuple": "unassessed; native table ranges and strings are not complete original source/ink/blank proof",
+      "emptyTeacherProof": false,
+      "autoAdopted": false,
+      "causeCandidatesUndetermined": [
+        "rendered pixels and recognition calibration",
+        "default document-recognition detection/decoding",
+        "latent content beyond captured accessors/top5"
+      ],
+      "intrinsicModelIncapacityClaim": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "selectedHierarchyCaptureComplete": true,
+      "omissionCount": 0,
+      "globalTranscriptRaw": "2028年度後期\n\n\n\n\n\n\n\n\n\n\n木\n\n\n\n\n\n\n\n\n1\n2\n3\n4\n\n\n\n\n2_IT\n\n\n\n\n\n\n\n\n時間割",
+      "nativeTables": [
+        {
+          "path": "observations[0].document.tables[0]",
+          "nativeRowCount": 4,
+          "nativeColumnCount": 9,
+          "capturedRowEntryCounts": [
+            9,
+            9,
+            9,
+            9
+          ],
+          "nonemptyNativeCells": [
+            {
+              "path": "observations[0].document.tables[0].rows[1][1]",
+              "rowRange": [
+                1,
+                1
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "木"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][1]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "1"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][2]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                2,
+                2
+              ],
+              "rawTranscript": "2"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][3]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                3,
+                3
+              ],
+              "rawTranscript": "3"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][4]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                4,
+                4
+              ],
+              "rawTranscript": "4"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[3][0]",
+              "rowRange": [
+                3,
+                3
+              ],
+              "columnRange": [
+                0,
+                0
+              ],
+              "rawTranscript": "2_IT"
+            }
+          ]
+        }
+      ],
+      "positionVerifiedHeaders": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "missingExpectedHeaderPositions": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "top1HeadersPassingOriginalConfidenceAndBoxPredicates": [
+        2
+      ],
+      "stageFindings": [
+        {
+          "stage": "readAndObservationSerialization",
+          "strength": "confirmed",
+          "finding": "Read and selected-accessor capture returned; no runtime error, omission or accessor disagreement."
+        },
+        {
+          "stage": "lineVsTableCandidateExtraction",
+          "strength": "confirmed observed scope",
+          "finding": "Same correctly positioned headers in global top1, table cell text and bounded top5; no additional correct period recovered from table or alternatives."
+        },
+        {
+          "stage": "missingPeriodText",
+          "strength": "confirmed observed scope; underlying cause undetermined",
+          "finding": "Expected original header text is absent at listed positions across captured text accessors. This does not prove absence from every latent Vision representation/candidate."
+        },
+        {
+          "stage": "originalLayoutPredicates",
+          "strength": "confirmed post-observation predicate; actual layouts not executed",
+          "finding": "Correct header strings can have confidence below0.85; low confidence blocks the original predicate. No threshold adjustment is justified by this diagnostic alone."
+        }
+      ],
+      "fullClassDayPeriodFieldTuple": "unassessed; native table ranges and strings are not complete original source/ink/blank proof",
+      "emptyTeacherProof": false,
+      "autoAdopted": false,
+      "causeCandidatesUndetermined": [
+        "rendered pixels and recognition calibration",
+        "default document-recognition detection/decoding",
+        "latent content beyond captured accessors/top5"
+      ],
+      "intrinsicModelIncapacityClaim": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "selectedHierarchyCaptureComplete": true,
+      "omissionCount": 0,
+      "globalTranscriptRaw": "2028年度後期\n\n\n\n\n\n\n\n\n\n\n金\n\n\n\n\n\n\n\n\n1\n2\n3\n\n\n\n\n\n2_IT\n\n\n\n\n\n\n\n\n時間割",
+      "nativeTables": [
+        {
+          "path": "observations[0].document.tables[0]",
+          "nativeRowCount": 4,
+          "nativeColumnCount": 9,
+          "capturedRowEntryCounts": [
+            9,
+            9,
+            9,
+            9
+          ],
+          "nonemptyNativeCells": [
+            {
+              "path": "observations[0].document.tables[0].rows[1][1]",
+              "rowRange": [
+                1,
+                1
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "金"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][1]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                1,
+                1
+              ],
+              "rawTranscript": "1"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][2]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                2,
+                2
+              ],
+              "rawTranscript": "2"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[2][3]",
+              "rowRange": [
+                2,
+                2
+              ],
+              "columnRange": [
+                3,
+                3
+              ],
+              "rawTranscript": "3"
+            },
+            {
+              "path": "observations[0].document.tables[0].rows[3][0]",
+              "rowRange": [
+                3,
+                3
+              ],
+              "columnRange": [
+                0,
+                0
+              ],
+              "rawTranscript": "2_IT"
+            }
+          ]
+        }
+      ],
+      "positionVerifiedHeaders": [
+        1,
+        2,
+        3
+      ],
+      "missingExpectedHeaderPositions": [
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "top1HeadersPassingOriginalConfidenceAndBoxPredicates": [],
+      "stageFindings": [
+        {
+          "stage": "readAndObservationSerialization",
+          "strength": "confirmed",
+          "finding": "Read and selected-accessor capture returned; no runtime error, omission or accessor disagreement."
+        },
+        {
+          "stage": "lineVsTableCandidateExtraction",
+          "strength": "confirmed observed scope",
+          "finding": "Same correctly positioned headers in global top1, table cell text and bounded top5; no additional correct period recovered from table or alternatives."
+        },
+        {
+          "stage": "missingPeriodText",
+          "strength": "confirmed observed scope; underlying cause undetermined",
+          "finding": "Expected original header text is absent at listed positions across captured text accessors. This does not prove absence from every latent Vision representation/candidate."
+        },
+        {
+          "stage": "originalLayoutPredicates",
+          "strength": "confirmed post-observation predicate; actual layouts not executed",
+          "finding": "Correct header strings can have confidence below0.85; low confidence blocks the original predicate. No threshold adjustment is justified by this diagnostic alone."
+        }
+      ],
+      "fullClassDayPeriodFieldTuple": "unassessed; native table ranges and strings are not complete original source/ink/blank proof",
+      "emptyTeacherProof": false,
+      "autoAdopted": false,
+      "causeCandidatesUndetermined": [
+        "rendered pixels and recognition calibration",
+        "default document-recognition detection/decoding",
+        "latent content beyond captured accessors/top5"
+      ],
+      "intrinsicModelIncapacityClaim": false
+    }
+  ],
+  "conclusion": "On these fixed controls, traversing tables/cells/bounded candidates adds no correctly positioned period header to the original global lines. This measurement does not support table-only extraction loss as the remedy. Complete formal lesson association remains unassessed; no values are filled or alternate candidates adopted.",
+  "newInferenceRequiredForThisReport": false
+}

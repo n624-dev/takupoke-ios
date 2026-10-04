@@ -1,0 +1,288 @@
+{
+  "worktree": "/tmp/takupoke-ios-vision-acquisition-20261004",
+  "reviewBase": "abe64b9b9b657128ecdbb7f116176adb5523d82f",
+  "productionReadBase": "748ec016ea32b8d533df4626c3767505cc268cb2",
+  "scope": "Output-only second finite ten-page hierarchy observation; read body/request/settings/render/PDF/PNG unchanged; top1 preserved; no candidate adoption/formal/Android/models",
+  "files": [
+    {
+      "path": ".github/workflows/vision-acquisition-probe.yml",
+      "bytes": 3336,
+      "sha256": "79c0ae33a7a9865a05939024fd195a129e14a002616a0d0b92ea5d392b463970",
+      "changed": true
+    },
+    {
+      "path": "tools/vision-acquisition-probe/HierarchyObservation.swift",
+      "bytes": 12994,
+      "sha256": "634cc092197dbda7174735d27b5f2b31f9acf2814858145290a69c0c44f3d0e7",
+      "changed": true
+    },
+    {
+      "path": "tools/vision-acquisition-probe/Probe.swift",
+      "bytes": 8388,
+      "sha256": "aef78dffb7ed85360b851882976c002aad77e2c3e5de89a6337fb26bbb5bbf77",
+      "changed": true
+    },
+    {
+      "path": "tools/vision-acquisition-probe/README.md",
+      "bytes": 6019,
+      "sha256": "68df44615cc099caf782c11d75944ee375a5a16239e2e409a54c0d8c11cb92be",
+      "changed": true
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs.json",
+      "bytes": 2745,
+      "sha256": "0a1b2895fb9f8c34e452dcceaddf2aaf8b00a52079695a53789b5162d1283aa1",
+      "changed": false
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-literal-乙/page-1.png",
+      "bytes": 13079,
+      "sha256": "a0db633e4ee653dd18ab0d99b00f69aa3aa7f8d009f86e2b03c3cffd23bba6a7",
+      "changed": false
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-literal-乙/page-2.png",
+      "bytes": 8111,
+      "sha256": "e4b7f6cfa73a27567893e6a555b720c954bee2f709b77bb60066938b67a793b8",
+      "changed": false
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-literal-乙/page-3.png",
+      "bytes": 8132,
+      "sha256": "b9eff63c09a77fa9a054a478287fe1737b66710bfc39eda436109e519774100e",
+      "changed": false
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-literal-乙/page-4.png",
+      "bytes": 8044,
+      "sha256": "32bfc1384924e8c63dd97f53529726daf64d8e6f5425c73a73cad578156cafa3",
+      "changed": false
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-literal-乙/page-5.png",
+      "bytes": 8147,
+      "sha256": "4933332d579a7ddc1c3123fdd6c22206f851483193a891f19ead01a0cc19a4b4",
+      "changed": false
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-verifiedblank-丙/page-1.png",
+      "bytes": 12397,
+      "sha256": "5dc6c33f3600c7c2e8f8cffced619a96af292ece024f82357c77857936b6e3c7",
+      "changed": false
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-verifiedblank-丙/page-2.png",
+      "bytes": 8452,
+      "sha256": "a337510f7052b27adce3f24d38fa17ae7dfbc7cad7295dbf0390753acdc2b1af",
+      "changed": false
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-verifiedblank-丙/page-3.png",
+      "bytes": 8480,
+      "sha256": "bfaed1fc9931f04b7e86946d482455fbfbe7b110ab66a756e68bd17cd6974185",
+      "changed": false
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-verifiedblank-丙/page-4.png",
+      "bytes": 8386,
+      "sha256": "255cc9bbfb95f17ab9f0bb453495804ccc525705540a6eb8635d06d6dff548ce",
+      "changed": false
+    },
+    {
+      "path": "tools/vision-acquisition-probe/inputs/independent-Timetable-verifiedblank-丙/page-5.png",
+      "bytes": 8489,
+      "sha256": "41ebdb01f4f3dfeb0ab323150545871961cc0bca6d4a2e3aa91abacd78c6dbfd",
+      "changed": false
+    },
+    {
+      "path": "tools/vision-acquisition-probe/original_assemble.py",
+      "bytes": 3610,
+      "sha256": "825cbb7d226585fc8e194f30484812b98b4d4edf00881e15521e14f2a5dcd3e9",
+      "changed": false
+    },
+    {
+      "path": "tools/vision-acquisition-probe/prepare.py",
+      "bytes": 5353,
+      "sha256": "954d75d7c2868095dcdd74a3ab4c6eb47be1bf2765992a51945f6975be736462",
+      "changed": false
+    },
+    {
+      "path": "tools/vision-acquisition-probe/run_simulator.py",
+      "bytes": 7493,
+      "sha256": "0f859979758dc761396961031594817ccd87bc3dba87eed5eed4a8b0a0cccfb9",
+      "changed": true
+    },
+    {
+      "path": "tools/vision-acquisition-probe/source-pins.json",
+      "bytes": 753,
+      "sha256": "515c383aeeb00ac6ae9bc717936e74375a7ece787b4e4541dd7d420bb521a35d",
+      "changed": false
+    },
+    {
+      "path": "tools/vision-acquisition-probe/test_hierarchy_budget.py",
+      "bytes": 2182,
+      "sha256": "49de72464ca9da540edaafdd3acef46d4a2f6fb13143d226f80022da78e7673f",
+      "changed": true
+    },
+    {
+      "path": "tools/vision-acquisition-probe/test_prepare.py",
+      "bytes": 2328,
+      "sha256": "8aeb1e1c864a40d6168a078acf9f1dd61db94cc51b653008c45250a0ad8dec9d",
+      "changed": false
+    }
+  ],
+  "changedPaths": [
+    ".github/workflows/vision-acquisition-probe.yml",
+    "tools/vision-acquisition-probe/Probe.swift",
+    "tools/vision-acquisition-probe/README.md",
+    "tools/vision-acquisition-probe/run_simulator.py",
+    "tools/vision-acquisition-probe/HierarchyObservation.swift",
+    "tools/vision-acquisition-probe/test_hierarchy_budget.py"
+  ],
+  "unchangedOldFileCount": 15,
+  "nativeRunsAuthorized": 1,
+  "nativeRunsExecuted": 0,
+  "SDKTypecheck": "pending Apple CI; Linux syntax only",
+  "localChecks": {
+    "preparationAndActualBudgetTests": 4,
+    "swiftSyntax": "PASS",
+    "pythonCompile": "PASS",
+    "actionlint": "PASS except known custom runner label",
+    "diffCheck": "PASS"
+  },
+  "officialAPIContext": [
+    {
+      "path": "/workspace/review-notes/apple-vision-contoursobservation-contour-boundingbox-official.json",
+      "sha256": "339e449fa517d3e206eb088b2e764ae852ed2efea09db437bfa42ed96463ba09"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-contoursobservation-contour-normalizedpoints-official.json",
+      "sha256": "10fbd04fb82c9439fa983700fcfb94faafd343dfb21e8db3c8913752916782f7"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-contoursobservation-contour-official.json",
+      "sha256": "2beb4ca94709f548fddd4e8e73ee06ef40c3fabea2dd7a134aba451e85a0f089"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-list-item-content-official.json",
+      "sha256": "51318261609acc78f5c810b8c4c9e2c3ceca254e6dc250f3b3373dac204c2c9b"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-list-item-official.json",
+      "sha256": "efd1d0f937028739539ea9ab023cafdd58c717ee74169d57e5fb029252201fa9"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-list-items-official.json",
+      "sha256": "f8a8a12a034c31114ffd699fea13e6f7b694b7380e6690bd56dc4c55317d8b90"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-list-official.json",
+      "sha256": "bf1ef08633df5bb6724d94cd702ee95771ba22aae730edf18df501d8eddc1b98"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-lists-official.json",
+      "sha256": "87c8e425b3d7650f482441481e2ac34ef1c9e4658202aeba0232b53334eef447"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-official.json",
+      "sha256": "a04a5bc6b583bbdb567d4423f30ffbe25412127cefa3e70141cfe4e91902ecc8"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-paragraphs-official.json",
+      "sha256": "4b3ea8b0148595964d9c9d238604c0b01d9d8864363ec4d79a87d2605bc6b047"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-table-boundingregion-official.json",
+      "sha256": "bda21f7529dc66efbf0d0a0db047371c745e13211f55cc263f0c3b5ea3c040d2"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-table-cell-columnrange-official.json",
+      "sha256": "c5d44ee58a4bf81bb2e790f77a280e28d87173069e709b7181a578a66348c1b5"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-table-cell-content-official.json",
+      "sha256": "8b0627a31dab8d8aae582dd9f50cc9ad0b90befbafaf2982ca03a7eb5bf81e00"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-table-cell-official.json",
+      "sha256": "bd17ae4bc65419aa862f9695409fc7f3fde1cc0721f031631b8c7344436b0610"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-table-cell-rowrange-official.json",
+      "sha256": "1184df66c7cfec1b130eefa4daaa1ad6918add5b9c4abdaf915142bf54475375"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-table-official.json",
+      "sha256": "095f482a8947aa08738a70420ada971e13c13cb99e7c876baf1e7b3ff835f72b"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-table-rows-official.json",
+      "sha256": "328b7ae0f08b67fdf93e9371b26f8a94f33765a56a85448cd655ac9244359380"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-tables-official.json",
+      "sha256": "1756428ed70a93d085cc3cd8040c6733eb70d18559525e6717727c21ba278e99"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-text-swift.property-official.json",
+      "sha256": "ed6271701c5266188090b9203aead76247607c0a269daf2b69df1b3986245a80"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-text-swift.struct-boundingregion-official.json",
+      "sha256": "703d8d5561fcf973bf1c2cc3b446d6f0862e752bec5bc25990ee1d33dce1654f"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-text-swift.struct-lines-official.json",
+      "sha256": "f955525613b7a88b63bf160b707ff149695a8580563d49be99e6b012358579a7"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-text-swift.struct-official.json",
+      "sha256": "ceb51b2629fd6d23c949bc304374a8ecbb51950e7c724dd869f6c0ee1d4afdf2"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-text-swift.struct-transcript-official.json",
+      "sha256": "df409d0515d445738575ac925188066d67f3fa698a162a9413f4891bbe7fb79b"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-text-swift.struct-words-official.json",
+      "sha256": "0f5b8660eccf0c2f17a88f732c474ca373fe4b96420bcfe84e2f2a57dfb8c09d"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-container-title-official.json",
+      "sha256": "9f5d2b0de3d965cc3cb225429fd158c4950ec739c8a22c9a309790569d9fce72"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-document-official.json",
+      "sha256": "80d61bc75f92b2f5ef7d31a9bf72de0038eeff4bda5a8a19ad28dd3b8a25a523"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-documentobservation-official.json",
+      "sha256": "429989b4bd0bd483242ef287fe3820d6f6c55512b554123ef83459967f0c1344"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-normalizedpoint-cgpoint-official.json",
+      "sha256": "07d29f1178ca9f91396e2da5822bdfc2e43fafa2e18a6f81f3479ce69679c3e7"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-normalizedpoint-official.json",
+      "sha256": "7030e643ed6ce82d05fdcc862fe6ae74240604de1ed6d487ae91eb219f0893a9"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-normalizedregion-official.json",
+      "sha256": "3b9e22ca9ba3e1be577a7420938ee69ab9437ebb784b64e94964b7cdb6f8e9f0"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-recognizedtext-official.json",
+      "sha256": "a61cbaf5848a14fdf305ae354fd9ae05df155df6e518c75350be656cba155d58"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-recognizedtextobservation-official.json",
+      "sha256": "afa8d6fed1f1dc5df1631bd3e8f2ea42b98b85f7c7d68e249b2ee6dee4ea9f5f"
+    },
+    {
+      "path": "/workspace/review-notes/apple-vision-recognizedtextobservation-topcandidates(_)-official.json",
+      "sha256": "5305965adce1e44892fb57dffc3c1c33f583457ca18ff51145d3b881cb9fd235"
+    }
+  ],
+  "captureScope": "listed text accessors only; explicit unsupported content/caps; no latent or ink-completeness claim"
+}

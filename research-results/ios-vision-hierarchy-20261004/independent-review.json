@@ -1,0 +1,1467 @@
+{
+  "verdict": "PASS: numerical claims independently reproduced; no quality qualification",
+  "runId": 37209476528,
+  "sourceCommit": "6fe7d66f64b5cd26484d629a3304e95bb4510631",
+  "rawSHA256": "0c21d705c253bcc98ef25ca717c6005bc6bd0c3cb753bada12c93104909b840d",
+  "summary": {
+    "planned": 10,
+    "readReturned": 10,
+    "serialized": 10,
+    "selectedCaptureComplete": 10,
+    "errors": 0,
+    "periodPositions": 80,
+    "globalTop1": 33,
+    "anyTop1": 33,
+    "anyTop5": 33,
+    "table": 33,
+    "anyCorrectPositionPassing85": 2,
+    "mainLinesEqualFirstRun": true,
+    "allTop1Top5FirstAgreements": true,
+    "periods5To8Found": 0
+  },
+  "pages": [
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "nativeTables": 1,
+      "nativeTableColumns": [
+        9
+      ],
+      "observedPeriods": [
+        1,
+        2,
+        3
+      ],
+      "selectedCaptureComplete": true,
+      "omissions": 0
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "nativeTables": 1,
+      "nativeTableColumns": [
+        9
+      ],
+      "observedPeriods": [
+        2,
+        3,
+        4
+      ],
+      "selectedCaptureComplete": true,
+      "omissions": 0
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "nativeTables": 1,
+      "nativeTableColumns": [
+        9
+      ],
+      "observedPeriods": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "selectedCaptureComplete": true,
+      "omissions": 0
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "nativeTables": 1,
+      "nativeTableColumns": [
+        9
+      ],
+      "observedPeriods": [
+        2,
+        3,
+        4
+      ],
+      "selectedCaptureComplete": true,
+      "omissions": 0
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "nativeTables": 1,
+      "nativeTableColumns": [
+        9
+      ],
+      "observedPeriods": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "selectedCaptureComplete": true,
+      "omissions": 0
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "nativeTables": 1,
+      "nativeTableColumns": [
+        9
+      ],
+      "observedPeriods": [
+        1,
+        2,
+        3
+      ],
+      "selectedCaptureComplete": true,
+      "omissions": 0
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "nativeTables": 1,
+      "nativeTableColumns": [
+        9
+      ],
+      "observedPeriods": [
+        2,
+        3,
+        4
+      ],
+      "selectedCaptureComplete": true,
+      "omissions": 0
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "nativeTables": 1,
+      "nativeTableColumns": [
+        9
+      ],
+      "observedPeriods": [
+        1,
+        2,
+        3
+      ],
+      "selectedCaptureComplete": true,
+      "omissions": 0
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "nativeTables": 1,
+      "nativeTableColumns": [
+        9
+      ],
+      "observedPeriods": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "selectedCaptureComplete": true,
+      "omissions": 0
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "nativeTables": 1,
+      "nativeTableColumns": [
+        9
+      ],
+      "observedPeriods": [
+        1,
+        2,
+        3
+      ],
+      "selectedCaptureComplete": true,
+      "omissions": 0
+    }
+  ],
+  "periodPositions": [
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "period": 1,
+      "pixelMeasuredCell": [
+        96,
+        60,
+        212,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "period": 2,
+      "pixelMeasuredCell": [
+        212,
+        60,
+        328,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "period": 3,
+      "pixelMeasuredCell": [
+        328,
+        60,
+        444,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "period": 4,
+      "pixelMeasuredCell": [
+        444,
+        60,
+        560,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "period": 5,
+      "pixelMeasuredCell": [
+        560,
+        60,
+        676,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "period": 6,
+      "pixelMeasuredCell": [
+        676,
+        60,
+        792,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "period": 7,
+      "pixelMeasuredCell": [
+        792,
+        60,
+        908,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 1,
+      "period": 8,
+      "pixelMeasuredCell": [
+        908,
+        60,
+        1024,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "period": 1,
+      "pixelMeasuredCell": [
+        96,
+        60,
+        212,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "period": 2,
+      "pixelMeasuredCell": [
+        212,
+        60,
+        328,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "period": 3,
+      "pixelMeasuredCell": [
+        328,
+        60,
+        444,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "period": 4,
+      "pixelMeasuredCell": [
+        444,
+        60,
+        560,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "period": 5,
+      "pixelMeasuredCell": [
+        560,
+        60,
+        676,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "period": 6,
+      "pixelMeasuredCell": [
+        676,
+        60,
+        792,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "period": 7,
+      "pixelMeasuredCell": [
+        792,
+        60,
+        908,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 2,
+      "period": 8,
+      "pixelMeasuredCell": [
+        908,
+        60,
+        1024,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "period": 1,
+      "pixelMeasuredCell": [
+        96,
+        60,
+        212,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "period": 2,
+      "pixelMeasuredCell": [
+        212,
+        60,
+        328,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "period": 3,
+      "pixelMeasuredCell": [
+        328,
+        60,
+        444,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "period": 4,
+      "pixelMeasuredCell": [
+        444,
+        60,
+        560,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "period": 5,
+      "pixelMeasuredCell": [
+        560,
+        60,
+        676,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "period": 6,
+      "pixelMeasuredCell": [
+        676,
+        60,
+        792,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "period": 7,
+      "pixelMeasuredCell": [
+        792,
+        60,
+        908,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 3,
+      "period": 8,
+      "pixelMeasuredCell": [
+        908,
+        60,
+        1024,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "period": 1,
+      "pixelMeasuredCell": [
+        96,
+        60,
+        212,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "period": 2,
+      "pixelMeasuredCell": [
+        212,
+        60,
+        328,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "period": 3,
+      "pixelMeasuredCell": [
+        328,
+        60,
+        444,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "period": 4,
+      "pixelMeasuredCell": [
+        444,
+        60,
+        560,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "period": 5,
+      "pixelMeasuredCell": [
+        560,
+        60,
+        676,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "period": 6,
+      "pixelMeasuredCell": [
+        676,
+        60,
+        792,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "period": 7,
+      "pixelMeasuredCell": [
+        792,
+        60,
+        908,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 4,
+      "period": 8,
+      "pixelMeasuredCell": [
+        908,
+        60,
+        1024,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "period": 1,
+      "pixelMeasuredCell": [
+        96,
+        60,
+        212,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "period": 2,
+      "pixelMeasuredCell": [
+        212,
+        60,
+        328,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "period": 3,
+      "pixelMeasuredCell": [
+        328,
+        60,
+        444,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "period": 4,
+      "pixelMeasuredCell": [
+        444,
+        60,
+        560,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "period": 5,
+      "pixelMeasuredCell": [
+        560,
+        60,
+        676,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "period": 6,
+      "pixelMeasuredCell": [
+        676,
+        60,
+        792,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "period": 7,
+      "pixelMeasuredCell": [
+        792,
+        60,
+        908,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-literal-乙",
+      "page": 5,
+      "period": 8,
+      "pixelMeasuredCell": [
+        908,
+        60,
+        1024,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "period": 1,
+      "pixelMeasuredCell": [
+        96,
+        60,
+        212,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "period": 2,
+      "pixelMeasuredCell": [
+        212,
+        60,
+        328,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "period": 3,
+      "pixelMeasuredCell": [
+        328,
+        60,
+        444,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "period": 4,
+      "pixelMeasuredCell": [
+        444,
+        60,
+        560,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "period": 5,
+      "pixelMeasuredCell": [
+        560,
+        60,
+        676,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "period": 6,
+      "pixelMeasuredCell": [
+        676,
+        60,
+        792,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "period": 7,
+      "pixelMeasuredCell": [
+        792,
+        60,
+        908,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 1,
+      "period": 8,
+      "pixelMeasuredCell": [
+        908,
+        60,
+        1024,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "period": 1,
+      "pixelMeasuredCell": [
+        96,
+        60,
+        212,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "period": 2,
+      "pixelMeasuredCell": [
+        212,
+        60,
+        328,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "period": 3,
+      "pixelMeasuredCell": [
+        328,
+        60,
+        444,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "period": 4,
+      "pixelMeasuredCell": [
+        444,
+        60,
+        560,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "period": 5,
+      "pixelMeasuredCell": [
+        560,
+        60,
+        676,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "period": 6,
+      "pixelMeasuredCell": [
+        676,
+        60,
+        792,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "period": 7,
+      "pixelMeasuredCell": [
+        792,
+        60,
+        908,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 2,
+      "period": 8,
+      "pixelMeasuredCell": [
+        908,
+        60,
+        1024,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "period": 1,
+      "pixelMeasuredCell": [
+        96,
+        60,
+        212,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "period": 2,
+      "pixelMeasuredCell": [
+        212,
+        60,
+        328,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "period": 3,
+      "pixelMeasuredCell": [
+        328,
+        60,
+        444,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "period": 4,
+      "pixelMeasuredCell": [
+        444,
+        60,
+        560,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "period": 5,
+      "pixelMeasuredCell": [
+        560,
+        60,
+        676,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "period": 6,
+      "pixelMeasuredCell": [
+        676,
+        60,
+        792,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "period": 7,
+      "pixelMeasuredCell": [
+        792,
+        60,
+        908,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 3,
+      "period": 8,
+      "pixelMeasuredCell": [
+        908,
+        60,
+        1024,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "period": 1,
+      "pixelMeasuredCell": [
+        96,
+        60,
+        212,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "period": 2,
+      "pixelMeasuredCell": [
+        212,
+        60,
+        328,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": true
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "period": 3,
+      "pixelMeasuredCell": [
+        328,
+        60,
+        444,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "period": 4,
+      "pixelMeasuredCell": [
+        444,
+        60,
+        560,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "period": 5,
+      "pixelMeasuredCell": [
+        560,
+        60,
+        676,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "period": 6,
+      "pixelMeasuredCell": [
+        676,
+        60,
+        792,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "period": 7,
+      "pixelMeasuredCell": [
+        792,
+        60,
+        908,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 4,
+      "period": 8,
+      "pixelMeasuredCell": [
+        908,
+        60,
+        1024,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "period": 1,
+      "pixelMeasuredCell": [
+        96,
+        60,
+        212,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "period": 2,
+      "pixelMeasuredCell": [
+        212,
+        60,
+        328,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "period": 3,
+      "pixelMeasuredCell": [
+        328,
+        60,
+        444,
+        90
+      ],
+      "globalTop1": true,
+      "anyTop1": true,
+      "anyTop5": true,
+      "table": true,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "period": 4,
+      "pixelMeasuredCell": [
+        444,
+        60,
+        560,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "period": 5,
+      "pixelMeasuredCell": [
+        560,
+        60,
+        676,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "period": 6,
+      "pixelMeasuredCell": [
+        676,
+        60,
+        792,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "period": 7,
+      "pixelMeasuredCell": [
+        792,
+        60,
+        908,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    },
+    {
+      "fixture": "independent-Timetable-verifiedblank-丙",
+      "page": 5,
+      "period": 8,
+      "pixelMeasuredCell": [
+        908,
+        60,
+        1024,
+        90
+      ],
+      "globalTop1": false,
+      "anyTop1": false,
+      "anyTop5": false,
+      "table": false,
+      "anyPass85": false
+    }
+  ],
+  "scope": "Post-observation assertion-only analysis. Original raster black ruled edges define regions; original drawing identifies printed assertions only. Neither is native OCR input.",
+  "conclusions": [
+    "No additional correct period headers recovered by listed table/cell/paragraph/transcript candidate traversal or bounded top5.",
+    "Periods5..8 absent at all40 original positions within captured listed accessors; this is not proof of absence from latent candidates.",
+    "31 of33 correct period positions fail unchanged .85 candidate-confidence predicate; 2 pass that predicate alone.",
+    "No missing header is filled, alternative adopted, EMPTY/ink completeness/full formal recovery inferred."
+  ],
+  "nativeCallsByReview": 0
+}
