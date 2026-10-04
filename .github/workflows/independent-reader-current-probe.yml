@@ -1,0 +1,73 @@
+name: Observe indexed current vector Reader on the original six fictional PDFs
+on:
+  push:
+    branches: [research/ios-independent-reader-current-probe-20261004]
+    paths: ['tools/independent-reader-current-probe/**', '.github/workflows/independent-reader-current-probe.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ios-independent-reader-current-20261004
+  cancel-in-progress: false
+jobs:
+  native-acquisition:
+    runs-on: xcode-27
+    timeout-minutes: 40
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Regenerate pinned independent fictional vector PDFs and verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/independent-reader-current-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir "$work"
+          touch "$work/.independent-reader-owned"
+          python3 -m venv "$work/venv"
+          "$work/venv/bin/python" -m pip install --no-cache-dir -r tools/independent-wide-timetable/requirements.txt
+          "$work/venv/bin/python" -B -m unittest discover -s tools/independent-wide-timetable -p 'test_generator.py'
+          "$work/venv/bin/python" -B -m unittest discover -s tools/independent-reader-probe -p 'test_*.py'
+          "$work/venv/bin/python" -B tools/independent-wide-timetable/generate.py --source-root . --output "$work/fixtures"
+          "$work/venv/bin/python" -B -m unittest discover -s tools/independent-reader-current-probe -p 'test_*.py'
+          "$work/venv/bin/python" -B tools/independent-reader-current-probe/prepare.py "$work/prepared" "$work/fixtures"
+      - name: Compile only the reviewed current production sources for the actual iOS simulator SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/independent-reader-current-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          architecture="$(uname -m)"
+          sdk="$(xcrun --sdk iphonesimulator --show-sdk-path)"
+          xcrun --sdk iphonesimulator --show-sdk-version
+          xcrun swiftc -swift-version 5 -sdk "$sdk" -target "$architecture-apple-ios27.0-simulator" -parse-as-library -O "$work/prepared/fixed/"*.swift tools/independent-reader-current-probe/ReaderProbe.swift -o "$work/IndependentReaderFixed"
+          codesign --force --sign - "$work/IndependentReaderFixed"
+      - name: Exactly six fixed source pipeline observations; baseline zero
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/independent-reader-current-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          python3 -B tools/independent-reader-current-probe/run_simulator.py "$work"
+      - name: Clean only this job's simulator and temporary generated files
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/independent-reader-current-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          cleanup_status=0
+          if [[ -f "$work/owned-simulator.json" ]]; then
+            python3 - "$work/owned-simulator.json" <<'PY' || cleanup_status=$?
+          import json,os,re,subprocess,sys
+          v=json.load(open(sys.argv[1]));assert v['runId']==os.environ['GITHUB_RUN_ID'] and v['attempt']==os.environ['GITHUB_RUN_ATTEMPT']
+          u=v['udid'];assert re.fullmatch(r'[0-9A-Fa-f-]{36}',u)
+          listed=json.loads(subprocess.run(['xcrun','simctl','list','devices','-j'],check=True,capture_output=True,text=True).stdout)
+          if any(d['udid']==u for devices in listed['devices'].values() for d in devices):
+              subprocess.run(['xcrun','simctl','shutdown',u],check=False)
+              subprocess.run(['xcrun','simctl','delete',u],check=True)
+          PY
+          fi
+          if [[ -f "$work/.independent-reader-owned" ]]; then rm -rf "$work"; fi
+          exit "$cleanup_status"
