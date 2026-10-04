@@ -296,7 +296,7 @@ enum SimulatorEventsYearFixture {
         let arguments = ProcessInfo.processInfo.arguments
         let noLessons = arguments.contains("--events-year-no-lessons")
         let library = try LocalMaterialDatabase.openLibrary(root: base.appendingPathComponent("SchoolMaterialsSQLite"))
-        let state = try library.load()
+        let state = library.state
         guard let source = state.record(for: .timetable), let changes = state.record(for: .changes) else {
             throw LocalMaterialDatabase.StoreError.invalidDatabase
         }
