@@ -31,6 +31,41 @@ extension PDFParsingTests {
         XCTAssertTrue(parallel.allSatisfy { $0.names.roomFullName == nil && $0.sourceText.contains("・架空室Y") })
         XCTAssertEqual(result.lessons.filter { $0.className == "AI_3" }.map(\.weekday), [2, 2])
     }
+    private func timetableReplacingParallelFields(_ fields: [String]) -> PDFPageLayout {
+        var page = timetable()
+        page.glyphs.removeAll { $0.x >= 100 && $0.x < 140 && $0.cy > 160 && $0.cy < 220 }
+        for (index, value) in fields.enumerated() {
+            page.glyphs += text(value, x: 104, y: 172 + Double(index) * 18, step: 2)
+        }
+        return page
+    }
+    func testTimetableRejectsUnalignedParallelEvidenceAcrossAnyTwoRoles() {
+        let single = ["架空科目A", "架空教員A", "架空室A"]
+        let paired = ["架空科目A・架空科目B", "架空教員A・架空教員B", "架空室A・架空室B"]
+        for unchangedRole in 0..<3 {
+            var fields = paired
+            fields[unchangedRole] = single[unchangedRole]
+            XCTAssertThrowsError(try parse([timetableReplacingParallelFields(fields)], kind: .timetable)) {
+                XCTAssertEqual(($0 as? PDFParseError)?.code, .ambiguous)
+                XCTAssertEqual(($0 as? PDFParseError)?.stage, .parallelLessons)
+                XCTAssertEqual(($0 as? PDFParseError)?.cell?.classRow, 2)
+            }
+        }
+    }
+    func testTimetableKeepsOneCompoundRoleLiteralWithoutInventingParallelTuples() throws {
+        let single = ["架空科目A", "架空教員A", "架空室A"]
+        let compound = ["架空科目A・架空科目B", "架空教員A・架空教員B", "架空室A・架空室B"]
+        for compoundRole in 0..<3 {
+            var fields = single
+            fields[compoundRole] = compound[compoundRole]
+            let result = try parse([timetableReplacingParallelFields(fields)], kind: .timetable)
+            let lessons = result.lessons.filter { $0.className == "2_YY" }
+            XCTAssertEqual(lessons.map(\.period), [1, 2])
+            XCTAssertEqual(lessons.map(\.names.subject), Array(repeating: fields[0], count: 2))
+            XCTAssertEqual(lessons.map(\.names.teacher), Array(repeating: fields[1], count: 2))
+            XCTAssertEqual(lessons.map(\.names.room), Array(repeating: fields[2], count: 2))
+        }
+    }
     func testTimetableRoomCollapsesOnlyRepeatedHalfwidthVoicingMarks() throws {
         var page = timetable()
         page.glyphs.removeAll { $0.x >= 100 && $0.x < 140 && $0.cy > 100 && $0.cy < 160 }
