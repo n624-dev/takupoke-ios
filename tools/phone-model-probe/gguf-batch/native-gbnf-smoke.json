@@ -1,0 +1,16 @@
+{
+  "scope": "ONE real native common GBNF smoke, semantic model control not qualification",
+  "loadStatus": 0,
+  "generationStatus": 0,
+  "seconds": 5.0424152850027895,
+  "raw": "{\"subject\":[\"g0\",\"g2\",\"g4\",\"g6\"],\"teacher\":[\"g2\",\"g2\",\"g4\",\"g6\"],\"room\":[\"g5\",\"g6\"]}",
+  "grammar": "root ::= \"{\" ws \"\\\"subject\\\"\" ws \":\" ws array ws \",\" ws \"\\\"teacher\\\"\" ws \":\" ws array ws \",\" ws \"\\\"room\\\"\" ws \":\" ws array ws \"}\"\narray ::= \"[\" ws (id (ws \",\" ws id){0,47})? ws \"]\"\nws ::= [ \\t\\n\\r]{0,4}\nid ::= \"\\\"g0\\\"\" | \"\\\"g1\\\"\" | \"\\\"g2\\\"\" | \"\\\"g3\\\"\" | \"\\\"g4\\\"\" | \"\\\"g5\\\"\" | \"\\\"g6\\\"\"\n",
+  "decodeError": "Repeated, cross-role, or reordered source",
+  "modelFile": "Qwen3-0.6B-Q8_0.gguf",
+  "modelBytes": 639446688,
+  "modelSHA256": "9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031",
+  "bridgeBinarySHA256": "1e879daa39ef6e54d89c2d58969479137d6352b160a28b4306dd36b1de9b51e3",
+  "runtimeBinarySHA256": "85d6f071ee6cbbf1f622b49ee3505fae41fbf8f818a3a59e69e57ec0c83f97f9",
+  "runtimeCommit": "99b95488cac0f00ce3f05af113a8c1e287753f87",
+  "inferenceScope": "Existing genuine production C bridge CPU runtime; one first-case format feasibility smoke only, no new model download or qualification"
+}

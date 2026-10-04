@@ -1,0 +1,23 @@
+{
+  "scope": "Actual SDK simulator compilation failure; no model initialization/inference or quality evaluation occurred",
+  "runId": "37189271515",
+  "jobId": "111397862051",
+  "workflowCommit": "bebca8a481dc5350ecdceca9852dd0dc9a8745b8",
+  "reviewedSourceZIP_SHA256": "0c532701a0a1e4a08a2765f53da794f4ba76f692ee8cffdeaa799986b701deb7",
+  "sdk": "iPhoneSimulator27.0.sdk",
+  "targetTriple": "arm64-apple-ios27.0-simulator",
+  "failureStage": "Compile actual CoreAIShared dependency",
+  "actualCompilerErrors": [
+    "2026-10-04T08:34:07.7094540Z error: /Users/runner/work/_temp/ios-model-simulator-owned/build/Build/Intermediates.noindex/ModelProbe.build/Release-iphonesimulator/ModelProbe.build/takupoke-coreai-3_r4fzwg/build/checkouts/coreai-models/swift/Sources/CoreAIShared/Runtime/ModelStructure.swift:6:8 unable to resolve module dependency: 'CoreAI'",
+    "2026-10-04T08:34:07.7143140Z subprocess.CalledProcessError: Command '['xcrun', '--sdk', 'macosx', 'swift', 'build', '--package-path', '/Users/runner/work/_temp/ios-model-simulator-owned/build/Build/Intermediates.noindex/ModelProbe.build/Release-iphonesimulator/ModelProbe.build/takupoke-coreai-3_r4fzwg/package', '--scratch-path', '/Users/runner/work/_temp/ios-model-simulator-owned/build/Build/Intermediates.noindex/ModelProbe.build/Release-iphonesimulator/ModelProbe.build/takupoke-coreai-3_r4fzwg/build', '--configuration', 'release', '--product', 'CoreAIRecoveryRuntime', '--disable-automatic-resolution', '--triple', 'arm64-apple-ios27.0-simulator', '--sdk', '/Applications/Xcode_27.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk']' returned non-zero exit status 1."
+  ],
+  "nativeInferenceRan": false,
+  "simulatorUI": "Not captured: app did not compile",
+  "deviceSDK": {
+    "runId": "37189271464",
+    "status": "success",
+    "scope": "Compile/IPA only, no inference or physicalmemory proof"
+  },
+  "logSHA256": "194b6be8ebbf8d70b991026f8959bbc1caf705662d790da9b38401fc7c077942",
+  "limitations": "This SDK cannot resolve CoreAI for this simulator target. CoreAI physical-device execution and macOS27-host execution have not been tested; this is not model accuracy failure."
+}

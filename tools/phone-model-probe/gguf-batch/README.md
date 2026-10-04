@@ -1,0 +1,13 @@
+# Isolated iOS native CPU model screening
+
+Six public, pinned GGUF models download on separate Ubuntu CI runners. The actual app C bridge and llama.cpp b11371 run the same instruction, all-original-ID grammar, nine fictional development inputs, greedy sampler, 4096-token context, 512-output-token cap, and two CPU threads. No per-model prompt adjustments. Five training families include two previously unsuccessful Qwen baselines; artifact quantization differs and is recorded.
+
+Every scored raw output, error, latency, process high-water RSS, artifact hash and retained log is exported to the existing draft research release with upload readback. A missing or failed native generation is reported separately from semantic label mistakes. The literal oracle is consulted only after generation. Grammar allows every original ID for every role, including incorrect assignments. Strict decoding checks source order, uniqueness and known IDs independently.
+
+One original immutable geometry request goes through a research adapter selecting measured nearest cuts, the unchanged production certificate, a complete timetable rebuild, Rules, Engine and Validator. Its complete result must equal the independent Rules baseline. The baseline ordinary/exam/return Rules tests also execute. The other eight inputs are text-only label controls and have no full-document pipeline claim. The entire consumed corpus is development data; finalists require fresh heldout evidence before activation.
+
+These supported label chains already have a bounded deterministic solution. Useful AI recovery denominator is zero. This screen measures model component correctness and Linux native feasibility, not model necessity, production qualification, original PDF acquisition, CoreAI success, Metal performance, or iPhone14 available memory. Phone6GB board RAM is not an app memory budget. CPU screening can reject candidates before expensive native conversion; it cannot qualify them for a phone.
+
+The prior actual iOS27 simulator build failed before inference because the simulator SDK could not import CoreAI. The saved failure JSON records the exact run/SDK/triple and log digest. The device SDK build succeeded, but physical CoreAI load/generation remains unverified. No repeat of the known simulator compilation failure is required by this screen.
+
+All inputs are entirely fictional. No school files, real school names, school URLs, cloud LLM calls, app catalog changes, main merge or production release. Downloaded weights and build scratch are removed at job completion; caches and Actions artifacts are not used. Only small evidence ZIP/JSON assets and full model/runtime license notices are retained in the existing draft.

@@ -1,0 +1,126 @@
+# Research component screening only. Independent runners, no production activation.
+name: Compare six iOS llama CPU model candidates
+on:
+  push:
+    branches: ['research/ios-model-probe-*']
+    paths: ['.github/workflows/ios-native-model-batch.yml', 'tools/phone-model-probe/gguf-batch/**']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: ios-native-model-batch-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        candidate: [qwen3-06, qwen25-15, granite4-1, smollm3-3, phi35-mini, ministral3-3]
+    env:
+      GH_TOKEN: ${{ github.token }}
+      QA_TAG: model-probe-ios-20261004
+      QA_RELEASE_ID: '402903016'
+      QA_CANDIDATE_ID: ${{ matrix.candidate }}
+      PYTHONDONTWRITEBYTECODE: '1'
+      SWIFT_IMAGE: swift@sha256:6676af406f96360a37297db0ce36d1f3998687c724dde359d6a7b43a1f809d27
+    steps:
+      - name: Checkout immutable reviewed source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Verify fixed recipe and prepare owned scratch
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/ios-gguf-batch-owned"
+          mkdir "$work"
+          touch "$work/.ios-gguf-batch-owned"
+          python3 -B -m unittest discover -s tools/phone-model-probe/gguf-batch -p test_protocol.py -v
+          gh api "repos/$GITHUB_REPOSITORY/releases/$QA_RELEASE_ID" > "$work/draft.json"
+          python3 - "$work" <<'PY'
+          import hashlib,json,os,pathlib,platform,subprocess,sys
+          work=pathlib.Path(sys.argv[1]);source=pathlib.Path('tools/phone-model-probe/gguf-batch');pins=json.loads((source/'candidates.json').read_text())
+          assert hashlib.sha256(pathlib.Path('Vendor/LocalLlama/Sources/CLlamaRecovery/CLlamaRecovery.cpp').read_bytes()).hexdigest()==pins['bridgeSHA256']
+          assert len(pins['candidates'])==6 and len({p['id'] for p in pins['candidates']})==6
+          candidate=next(c for c in pins['candidates'] if c['id']==os.environ['QA_CANDIDATE_ID']);assert 0<candidate['bytes']<=3000000000
+          draft=json.loads((work/'draft.json').read_text());assert draft['id']==int(os.environ['QA_RELEASE_ID']) and draft['tag_name']==os.environ['QA_TAG'] and draft['draft'] and draft['prerelease']
+          host=dict(scope='Actual remote Linux CPU runner only; not physical iPhone RAM',platform=platform.platform(),machine=platform.machine(),cpu=subprocess.check_output(['lscpu'],text=True),meminfo=pathlib.Path('/proc/meminfo').read_text(),sourceCommit=os.environ['GITHUB_SHA'],swiftImage=os.environ['SWIFT_IMAGE'])
+          (work/'host.json').write_text(json.dumps(host,indent=2)+'\n')
+          PY
+      - name: Build pinned actual CPU runtime and original app C bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/ios-gguf-batch-owned"
+          git init "$work/llama"
+          git -C "$work/llama" remote add origin https://github.com/ggml-org/llama.cpp.git
+          git -C "$work/llama" fetch --depth=1 origin 99b95488cac0f00ce3f05af113a8c1e287753f87
+          git -C "$work/llama" checkout --detach FETCH_HEAD
+          [[ "$(git -C "$work/llama" rev-parse HEAD)" == 99b95488cac0f00ce3f05af113a8c1e287753f87 ]]
+          cmake -S "$work/llama" -B "$work/llama/build" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DGGML_NATIVE=OFF -DGGML_CUDA=OFF -DGGML_BLAS=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TOOLS=OFF > "$work/runtime-build.log" 2>&1
+          cmake --build "$work/llama/build" --target llama --parallel 2 >> "$work/runtime-build.log" 2>&1
+          g++ -std=c++17 -O2 -fPIC -shared -pthread Vendor/LocalLlama/Sources/CLlamaRecovery/CLlamaRecovery.cpp -ldl -o "$work/libtkllama.so"
+      - name: Download one verified candidate and run identical actual native controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/ios-gguf-batch-owned"
+          python3 -B tools/phone-model-probe/gguf-batch/run_batch.py tools/phone-model-probe/gguf-batch "$work" "$QA_CANDIDATE_ID" > "$work/runtime.log" 2>&1
+          python3 - "$work/batch-report.json" <<'PY'
+          import json,sys
+          r=json.load(open(sys.argv[1]));print(json.dumps(dict(candidate=r['candidate']['id'],load=r.get('load'),summary=r.get('summary'),error=r.get('executionError'),nativeComplete=r['nativeExecutionComplete'])))
+          PY
+      - name: Run unchanged native certificate and complete Rules controls
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/ios-gguf-batch-owned"
+          [[ -f "$work/.ios-gguf-batch-owned" && -f "$work/batch-report.json" ]]
+          mkdir "$work/native" "$work/headers" "$work/libs"
+          cp Package.swift Package.resolved "$work/native/"
+          cp -R Takupoke tests "$work/native/"
+          cat tools/phone-model-probe/gguf-batch/NativeScorer.swift >> "$work/native/tests/RecoveryStructureTests.swift"
+          cp /usr/include/sqlite3.h /usr/include/sqlite3ext.h "$work/headers/"
+          cp -L /usr/lib/x86_64-linux-gnu/libsqlite3.so "$work/libs/libsqlite3.so"
+          docker pull "$SWIFT_IMAGE"
+          scorer_status=0
+          docker run --rm --user "$(id -u):$(id -g)" --mount "type=bind,src=$work,dst=/work" -e IOS_GGUF_WORK=/work "$SWIFT_IMAGE" swift test --package-path /work/native --scratch-path /work/native-build --cache-path /work/native-cache --config-path /work/native-config --security-path /work/native-security --disable-dependency-cache --manifest-cache none --jobs 2 -Xcc -I/work/headers -Xlinker -L/work/libs --filter 'ParallelGGUFNativeCertificateControl|FoldedInterleavedLabelsUseBoundedRulesBeforeProviders|ExamAndReturnInterleavedLabelsUseBoundedRulesWithCompleteCoverage' > "$work/native-scorer.log" 2>&1 || scorer_status=$?
+          printf '%s\n' "$scorer_status" > "$work/native-scorer-status.txt"
+          if [[ "$scorer_status" != 0 ]]; then tail -n 100 "$work/native-scorer.log"; exit "$scorer_status"; fi
+      - name: Retain actual outputs, failure evidence and all license notices
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/ios-gguf-batch-owned"
+          [[ -f "$work/.ios-gguf-batch-owned" ]]
+          python3 -B tools/phone-model-probe/gguf-batch/package.py tools/phone-model-probe/gguf-batch "$work"
+          python3 -B tools/phone-model-probe/gguf-batch/upload_artifacts.py "$work/package"
+      - name: Require native operation and scorer completion, independently of semantic mistakes
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$RUNNER_TEMP/ios-gguf-batch-owned/package/batch-report.json" <<'PY'
+          import json,sys
+          r=json.load(open(sys.argv[1]));assert r['nativeExecutionComplete'] and r['nativeScorerCompleted'],'Native execution/scorer incomplete; retained actual failure evidence. No semantic percentage inferred.'
+          PY
+      - name: Retain owned-upload cleanup evidence and remove own scratch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          cleanup_status=0
+          work="$RUNNER_TEMP/ios-gguf-batch-owned"
+          helper="$GITHUB_WORKSPACE/tools/phone-model-probe/gguf-batch/upload_artifacts.py"
+          if [[ -f "$helper" && -f "$work/package/upload-owned-assets.json" ]]; then
+            python3 -B "$helper" "$work/package" --cleanup || cleanup_status=$?
+          fi
+          if [[ -f "$work/.ios-gguf-batch-owned" && "$work" == "$RUNNER_TEMP/ios-gguf-batch-owned" ]]; then rm -rf -- "$work"; fi
+          exit "$cleanup_status"
