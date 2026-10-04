@@ -1,0 +1,527 @@
+{
+  "scope": "Consumed-development runtime/prompt/output-unit diagnosis only. No fresh heldout, phone proof, production activation or useful-AI qualification. Distinct tasks never pooled into accuracy.",
+  "sourceBase": "f8b0ca476d6fe6c5627231b1f24f32e73cb816f1",
+  "productionChanged": false,
+  "plannedFreshHeldoutStarted": false,
+  "modelActivation": false,
+  "results": [
+    {
+      "diagnostic": "qwen25-server-dev",
+      "path": "ios-role-diagnostics-qwen25-server-dev.json",
+      "bytes": 32483,
+      "sha256": "e08bbf2902ab89aa1d45d40901fd8e07280cd8f0cdfdde5ed301b39288b78b0f",
+      "instructionSHA256": "4827fa46956a14d375792000e9bdba62a7c0bc153a19ceb4c6202063877debc7",
+      "artifact": null,
+      "rows": [
+        {
+          "roleOrName": "literal-marker",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "READY",
+          "exact": true,
+          "strictDecoded": null,
+          "seconds": 0.3957683249900583,
+          "nativeProcessMemoryKiB": null
+        },
+        {
+          "roleOrName": "arithmetic",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "4",
+          "exact": true,
+          "strictDecoded": null,
+          "seconds": 0.4829425889911363,
+          "nativeProcessMemoryKiB": null
+        },
+        {
+          "roleOrName": "role-meaning",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "\"教室\" (kakudo) in Japanese means \"classroom.\"",
+          "exact": false,
+          "strictDecoded": null,
+          "seconds": 1.33888693699555,
+          "nativeProcessMemoryKiB": null
+        },
+        {
+          "roleOrName": "head-subject-free",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "```json\n[[\"g1\",\"g6\"]]\n```",
+          "exact": false,
+          "strictDecoded": null,
+          "seconds": 6.716689298002166,
+          "nativeProcessMemoryKiB": null
+        },
+        {
+          "roleOrName": "head-subject-gbnf",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\"ids\":[\"g1\"]}",
+          "exact": false,
+          "strictDecoded": null,
+          "seconds": 6.407243736000964,
+          "nativeProcessMemoryKiB": null
+        },
+        {
+          "roleOrName": "head-teacher-free",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "```json\n[[\"g1\",\"g2\",\"g3\",\"g4\",\"g5\",\"g6\"]]\n```",
+          "exact": false,
+          "strictDecoded": null,
+          "seconds": 7.591605127003277,
+          "nativeProcessMemoryKiB": null
+        },
+        {
+          "roleOrName": "head-teacher-gbnf",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\"ids\":[\"g1\"]}",
+          "exact": false,
+          "strictDecoded": null,
+          "seconds": 6.280764693001402,
+          "nativeProcessMemoryKiB": null
+        },
+        {
+          "roleOrName": "head-room-free",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "```json\n[[\"g6\"]]\n```",
+          "exact": false,
+          "strictDecoded": null,
+          "seconds": 6.491043286994682,
+          "nativeProcessMemoryKiB": null
+        },
+        {
+          "roleOrName": "head-room-gbnf",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\"ids\":[\"g1\"]}",
+          "exact": false,
+          "strictDecoded": null,
+          "seconds": 6.199478163005551,
+          "nativeProcessMemoryKiB": null
+        }
+      ]
+    },
+    {
+      "diagnostic": "qwen25-compact-dev",
+      "path": "ios-role-diagnostics-qwen25-compact-dev.json",
+      "bytes": 9466,
+      "sha256": "edbfbeb032c720ac9850108e7500cf91dd191e82052509b273118d4a6943daf7",
+      "instructionSHA256": "93c98914185bb2211574ed52395505a76c825203320495232debafe5fe6a4e3b",
+      "artifact": null,
+      "rows": [
+        {
+          "roleOrName": "subject",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\"ids\": [\"g0\"]}",
+          "exact": true,
+          "strictDecoded": true,
+          "seconds": 2.6516936590051046,
+          "nativeProcessMemoryKiB": null
+        },
+        {
+          "roleOrName": "teacher",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\"ids\": [\"g4\"]}",
+          "exact": false,
+          "strictDecoded": true,
+          "seconds": 2.5131815600034315,
+          "nativeProcessMemoryKiB": null
+        },
+        {
+          "roleOrName": "room",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\n  \"ids\": [\"g5\"]\n}",
+          "exact": true,
+          "strictDecoded": true,
+          "seconds": 2.7106702490127645,
+          "nativeProcessMemoryKiB": null
+        }
+      ]
+    },
+    {
+      "diagnostic": "qwen35-compact-dev",
+      "path": "ios-role-diagnostics-qwen35-compact-dev.json",
+      "bytes": 10313,
+      "sha256": "3155d8aa0465eb0af040e5e249a32624f05c0864aa0bb236e984b303b6c926c0",
+      "instructionSHA256": "93c98914185bb2211574ed52395505a76c825203320495232debafe5fe6a4e3b",
+      "artifact": {
+        "bytes": 1396198496,
+        "sha256": "57a1085840f497d764a7fc5d346922dbde961efb54cc792ea81d694fd846a1d8"
+      },
+      "rows": [
+        {
+          "roleOrName": "subject",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\"ids\": [\"g0\", \"g1\", \"g2\", \"g3\", \"g4\", \"g5\", \"g6\"]}",
+          "exact": false,
+          "strictDecoded": true,
+          "seconds": 7.869652004999807,
+          "nativeProcessMemoryKiB": {
+            "VmHWM": 2085784,
+            "VmRSS": 2085784
+          }
+        },
+        {
+          "roleOrName": "teacher",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\"ids\": [\"g2\", \"g4\", \"g6\"]}",
+          "exact": false,
+          "strictDecoded": true,
+          "seconds": 5.700599292002153,
+          "nativeProcessMemoryKiB": {
+            "VmHWM": 2089892,
+            "VmRSS": 2089892
+          }
+        },
+        {
+          "roleOrName": "room",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\"ids\": [\"g5\"]}",
+          "exact": true,
+          "strictDecoded": true,
+          "seconds": 3.0507516159996158,
+          "nativeProcessMemoryKiB": {
+            "VmHWM": 2090028,
+            "VmRSS": 2090028
+          }
+        }
+      ]
+    },
+    {
+      "diagnostic": "qwen06-compact-dev",
+      "path": "ios-role-diagnostics-qwen06-compact-dev.json",
+      "bytes": 10469,
+      "sha256": "d176b58560427b68a8121a36acdc8080782f6d050b3d529462d5de75ee06aa8c",
+      "instructionSHA256": "93c98914185bb2211574ed52395505a76c825203320495232debafe5fe6a4e3b",
+      "artifact": {
+        "bytes": 639446688,
+        "sha256": "9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031"
+      },
+      "rows": [
+        {
+          "roleOrName": "subject",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\n  \"ids\": [\"g0\", \"g1\", \"g2\", \"g3\", \"g4\", \"g5\", \"g6\"]\n}",
+          "exact": false,
+          "strictDecoded": true,
+          "seconds": 4.468070635994081,
+          "nativeProcessMemoryKiB": {
+            "VmHWM": 1188316,
+            "VmRSS": 1188316
+          }
+        },
+        {
+          "roleOrName": "teacher",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\n  \"ids\": [\"g0\", \"g2\", \"g3\", \"g4\", \"g5\", \"g6\"]\n}",
+          "exact": false,
+          "strictDecoded": true,
+          "seconds": 4.640879548998782,
+          "nativeProcessMemoryKiB": {
+            "VmHWM": 1188900,
+            "VmRSS": 1188900
+          }
+        },
+        {
+          "roleOrName": "room",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\n  \"ids\": [\"g5\", \"g6\"]\n}",
+          "exact": false,
+          "strictDecoded": true,
+          "seconds": 3.616567456003395,
+          "nativeProcessMemoryKiB": {
+            "VmHWM": 1189624,
+            "VmRSS": 1189624
+          }
+        }
+      ]
+    },
+    {
+      "diagnostic": "qwen17-compact-dev",
+      "path": "ios-role-diagnostics-qwen17-compact-dev.json",
+      "bytes": 10123,
+      "sha256": "861aa96182af66ea4af30334d38105a7a83d47cc8be8e2ec4169a1a1a474eb42",
+      "instructionSHA256": "93c98914185bb2211574ed52395505a76c825203320495232debafe5fe6a4e3b",
+      "artifact": {
+        "bytes": 1834426016,
+        "sha256": "061b54daade076b5d3362dac252678d17da8c68f07560be70818cace6590cb1a"
+      },
+      "rows": [
+        {
+          "roleOrName": "subject",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\n  \"ids\": [\"g0\", \"g1\", \"g3\", \"g6\"]\n}",
+          "exact": false,
+          "strictDecoded": true,
+          "seconds": 13.755214094999246,
+          "nativeProcessMemoryKiB": {
+            "VmHWM": 2362080,
+            "VmRSS": 2362080
+          }
+        },
+        {
+          "roleOrName": "teacher",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\n  \"ids\": []\n}",
+          "exact": false,
+          "strictDecoded": true,
+          "seconds": 10.222440174999065,
+          "nativeProcessMemoryKiB": {
+            "VmHWM": 2363096,
+            "VmRSS": 2363096
+          }
+        },
+        {
+          "roleOrName": "room",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\n  \"ids\": []\n}",
+          "exact": false,
+          "strictDecoded": true,
+          "seconds": 8.405582242005039,
+          "nativeProcessMemoryKiB": {
+            "VmHWM": 2363276,
+            "VmRSS": 2363276
+          }
+        }
+      ]
+    },
+    {
+      "diagnostic": "qwen17-server-arithmetic",
+      "path": "ios-role-diagnostics-qwen17-server-arithmetic.json",
+      "bytes": 3438,
+      "sha256": "f92cd61b58d14b67712c28d2ea94d7db34de44a568c48ed5decc7b2ab2983089",
+      "instructionSHA256": null,
+      "artifact": null,
+      "rows": [
+        {
+          "roleOrName": null,
+          "nativeReturned": null,
+          "operationalError": null,
+          "raw": null,
+          "exact": null,
+          "strictDecoded": null,
+          "seconds": 2.9310577180003747,
+          "nativeProcessMemoryKiB": null
+        },
+        {
+          "roleOrName": null,
+          "nativeReturned": null,
+          "operationalError": null,
+          "raw": null,
+          "exact": null,
+          "strictDecoded": null,
+          "seconds": 12.438082616004976,
+          "nativeProcessMemoryKiB": null
+        }
+      ]
+    },
+    {
+      "diagnostic": "qwen25-compact-dev-v2",
+      "path": "ios-role-diagnostics-qwen25-compact-dev-v2.json",
+      "bytes": 11334,
+      "sha256": "e514b1ea3a01e47f15b3a47f752b456de953480d24c3dc68aa5c218bee710d44",
+      "instructionSHA256": "d24d3520e32dcd44d7a7440adc5ff20169580285d12190e04c2feb42329ad741",
+      "artifact": {
+        "bytes": 1117320736,
+        "sha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e"
+      },
+      "rows": [
+        {
+          "roleOrName": "subject",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\"ids\": [\"g0\"]}",
+          "exact": true,
+          "strictDecoded": true,
+          "seconds": 3.345194793990231,
+          "nativeProcessMemoryKiB": {
+            "VmHWM": 1947196,
+            "VmRSS": 1947196
+          }
+        },
+        {
+          "roleOrName": "teacher",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\"ids\": [\"g4\"]}",
+          "exact": false,
+          "strictDecoded": true,
+          "seconds": 3.2955004809919046,
+          "nativeProcessMemoryKiB": {
+            "VmHWM": 1953080,
+            "VmRSS": 1953080
+          }
+        },
+        {
+          "roleOrName": "room",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\"ids\": [\"g5\"]}",
+          "exact": true,
+          "strictDecoded": true,
+          "seconds": 3.3032858460064745,
+          "nativeProcessMemoryKiB": {
+            "VmHWM": 1953388,
+            "VmRSS": 1953388
+          }
+        }
+      ]
+    },
+    {
+      "diagnostic": "qwen25-v2-teacher-free",
+      "path": "ios-role-diagnostics-qwen25-v2-teacher-free.json",
+      "bytes": 2827,
+      "sha256": "c68220d4f23df47d3b4f5f0d3448bb523f9ed7cf5de989e6566ffb0891f8a69a",
+      "instructionSHA256": null,
+      "artifact": null,
+      "rows": [
+        {
+          "roleOrName": null,
+          "nativeReturned": null,
+          "operationalError": null,
+          "raw": null,
+          "exact": null,
+          "strictDecoded": null,
+          "seconds": 3.658736781013431,
+          "nativeProcessMemoryKiB": null
+        }
+      ]
+    },
+    {
+      "diagnostic": "qwen25-whole-alias-dev",
+      "path": "ios-role-diagnostics-qwen25-whole-alias-dev.json",
+      "bytes": 10065,
+      "sha256": "5372d06dd36c821299832e90344574858abe432de505f9dfd622d81c731215b3",
+      "instructionSHA256": "99dd8fcd5ad5a018f20b3023dc5fe0cd1eb5222edcef8c704ebcc59b2e5112fa",
+      "artifact": null,
+      "rows": [
+        {
+          "roleOrName": "subject",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\n  \"alias\": \"科目:\"\n}",
+          "exact": true,
+          "strictDecoded": true,
+          "seconds": 3.0355765870044706,
+          "nativeProcessMemoryKiB": null
+        },
+        {
+          "roleOrName": "teacher",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\"alias\": \"教員:\"}",
+          "exact": false,
+          "strictDecoded": true,
+          "seconds": 4.466515555002843,
+          "nativeProcessMemoryKiB": null
+        },
+        {
+          "roleOrName": "room",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\n  \"alias\": \"教室:\"\n}",
+          "exact": true,
+          "strictDecoded": true,
+          "seconds": 4.495450553004048,
+          "nativeProcessMemoryKiB": null
+        }
+      ]
+    },
+    {
+      "diagnostic": "qwen25-teacher-prefill",
+      "path": "ios-role-diagnostics-qwen25-teacher-prefill.json",
+      "bytes": 3547,
+      "sha256": "61040c2a323edd19a4d4c69e38d17d205714843da36b28e0b72db0359c3aa7a8",
+      "instructionSHA256": null,
+      "artifact": null,
+      "rows": [
+        {
+          "roleOrName": null,
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\"ids\":[g4,g5]}",
+          "exact": false,
+          "strictDecoded": false,
+          "seconds": 5.59138486199663,
+          "nativeProcessMemoryKiB": null
+        }
+      ]
+    },
+    {
+      "diagnostic": "qwen35-compact-dev-v2",
+      "path": "ios-role-diagnostics-qwen35-compact-dev-v2.json",
+      "bytes": 11566,
+      "sha256": "7693aaa48aa521c44038298d4674ad645b2fb3d588e31da1b2492d5ba543b569",
+      "instructionSHA256": "d24d3520e32dcd44d7a7440adc5ff20169580285d12190e04c2feb42329ad741",
+      "artifact": {
+        "bytes": 1396198496,
+        "sha256": "57a1085840f497d764a7fc5d346922dbde961efb54cc792ea81d694fd846a1d8"
+      },
+      "rows": [
+        {
+          "roleOrName": "subject",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\"ids\":[\"g0\",\"g4\",\"g5\"]}",
+          "exact": false,
+          "strictDecoded": true,
+          "seconds": 4.531292379993829,
+          "nativeProcessMemoryKiB": {
+            "VmHWM": 2095164,
+            "VmRSS": 2095164
+          }
+        },
+        {
+          "roleOrName": "teacher",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\"ids\":[\"g0\",\"g1\",\"g2\",\"g3\",\"g4\",\"g5\",\"g6\"]}",
+          "exact": false,
+          "strictDecoded": true,
+          "seconds": 5.618394246004755,
+          "nativeProcessMemoryKiB": {
+            "VmHWM": 2103044,
+            "VmRSS": 2103044
+          }
+        },
+        {
+          "roleOrName": "room",
+          "nativeReturned": true,
+          "operationalError": false,
+          "raw": "{\"ids\":[\"g5\"]}",
+          "exact": true,
+          "strictDecoded": true,
+          "seconds": 3.8508759020041907,
+          "nativeProcessMemoryKiB": {
+            "VmHWM": 2103192,
+            "VmRSS": 2103192
+          }
+        }
+      ]
+    }
+  ],
+  "findings": [
+    "Qwen2.5 concise HEAD improves only consumed-dev from0/3 canonical-constrained to2/3 compact; teacher fragmented chain remains wrong across whole-alias, free output and schema-only prefill. No sole capacity cause asserted.",
+    "Qwen3.5-2B same compact-v2 scores1/3, matching its v1 outcome; prefix/suffix repair forbidden.",
+    "Qwen1.7 free math expresses4, constrained digit returns2 under same question: constrained generation need not preserve free final answer.",
+    "Native and returned-format failures are separate; raw fenced/malformed returns stay assessed failures.",
+    "All aliases and geometry ownership must be independently checked, including partitions for aliases not selected by model. Rules-solvable controls have useful denominator0.",
+    "Native server process memory is Linux scope only. Parallel earlier Qwen35/Qwen06 walltime affected by shared memory pressure; no cross-model speed ranking."
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "scope": "Raw file copy readback; six offline boundary tests passed. No additional native invocation.",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 2208,
+      "sha256": "4919be87a9060acaa3f42a4e7e9c9af9eb3815bd535a19963d49b80a370e8c58"
+    },
+    {
+      "path": "ios-role-diagnostics-qwen06-compact-dev.json",
+      "bytes": 10469,
+      "sha256": "d176b58560427b68a8121a36acdc8080782f6d050b3d529462d5de75ee06aa8c"
+    },
+    {
+      "path": "ios-role-diagnostics-qwen17-compact-dev.json",
+      "bytes": 10123,
+      "sha256": "861aa96182af66ea4af30334d38105a7a83d47cc8be8e2ec4169a1a1a474eb42"
+    },
+    {
+      "path": "ios-role-diagnostics-qwen17-server-arithmetic.json",
+      "bytes": 3438,
+      "sha256": "f92cd61b58d14b67712c28d2ea94d7db34de44a568c48ed5decc7b2ab2983089"
+    },
+    {
+      "path": "ios-role-diagnostics-qwen25-compact-dev-v2.json",
+      "bytes": 11334,
+      "sha256": "e514b1ea3a01e47f15b3a47f752b456de953480d24c3dc68aa5c218bee710d44"
+    },
+    {
+      "path": "ios-role-diagnostics-qwen25-compact-dev.json",
+      "bytes": 9466,
+      "sha256": "edbfbeb032c720ac9850108e7500cf91dd191e82052509b273118d4a6943daf7"
+    },
+    {
+      "path": "ios-role-diagnostics-qwen25-server-dev.json",
+      "bytes": 32483,
+      "sha256": "e08bbf2902ab89aa1d45d40901fd8e07280cd8f0cdfdde5ed301b39288b78b0f"
+    },
+    {
+      "path": "ios-role-diagnostics-qwen25-teacher-prefill.json",
+      "bytes": 3547,
+      "sha256": "61040c2a323edd19a4d4c69e38d17d205714843da36b28e0b72db0359c3aa7a8"
+    },
+    {
+      "path": "ios-role-diagnostics-qwen25-v2-teacher-free.json",
+      "bytes": 2827,
+      "sha256": "c68220d4f23df47d3b4f5f0d3448bb523f9ed7cf5de989e6566ffb0891f8a69a"
+    },
+    {
+      "path": "ios-role-diagnostics-qwen25-whole-alias-dev.json",
+      "bytes": 10065,
+      "sha256": "5372d06dd36c821299832e90344574858abe432de505f9dfd622d81c731215b3"
+    },
+    {
+      "path": "ios-role-diagnostics-qwen35-compact-dev-v2.json",
+      "bytes": 11566,
+      "sha256": "7693aaa48aa521c44038298d4674ad645b2fb3d588e31da1b2492d5ba543b569"
+    },
+    {
+      "path": "ios-role-diagnostics-qwen35-compact-dev.json",
+      "bytes": 10313,
+      "sha256": "3155d8aa0465eb0af040e5e249a32624f05c0864aa0bb236e984b303b6c926c0"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 17573,
+      "sha256": "9c46d8bcd3ce0bcde015915f48a4eaf4f30d660085a0d3d5a49553e559cd41f6"
+    }
+  ]
+}

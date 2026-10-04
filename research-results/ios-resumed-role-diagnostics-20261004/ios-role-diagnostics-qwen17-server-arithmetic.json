@@ -1,0 +1,118 @@
+{
+  "scope": "Qwen1.7 sameweight API/template arithmetic controls, no HEAD quality claim",
+  "results": [
+    {
+      "variant": "free",
+      "request": {
+        "messages": [
+          {
+            "role": "system",
+            "content": "Answer the arithmetic question with its correct single-digit result."
+          },
+          {
+            "role": "user",
+            "content": "Compute 2 + 2. Return the single numeral for the result."
+          }
+        ],
+        "temperature": 0,
+        "seed": 17,
+        "max_tokens": 128,
+        "cache_prompt": false
+      },
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "2 + 2 = 4\n\nThe single numeral for the result is **4**."
+            }
+          }
+        ],
+        "created": 1791152669,
+        "model": "/workspace/recovery-research/artifacts/qwen3-1.7B-Q8.gguf",
+        "system_fingerprint": "b11371-99b95488c",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 20,
+          "prompt_tokens": 43,
+          "total_tokens": 63,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "id": "chatcmpl-1Am9O7T8cnlWHM5ARhoUJzuxSLAODpM6",
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 43,
+          "prompt_ms": 849.971,
+          "prompt_per_token_ms": 19.766767441860466,
+          "prompt_per_second": 50.58996130456215,
+          "predicted_n": 20,
+          "predicted_ms": 2064.246,
+          "predicted_per_token_ms": 108.64452631578948,
+          "predicted_per_second": 9.204329328965636
+        }
+      },
+      "seconds": 2.9310577180003747
+    },
+    {
+      "variant": "digitGBNF",
+      "request": {
+        "messages": [
+          {
+            "role": "system",
+            "content": "Answer the arithmetic question with its correct single-digit result."
+          },
+          {
+            "role": "user",
+            "content": "Compute 2 + 2. Return the single numeral for the result."
+          }
+        ],
+        "temperature": 0,
+        "seed": 17,
+        "max_tokens": 128,
+        "cache_prompt": false,
+        "grammar": "root ::= [0-9]\n"
+      },
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "2"
+            }
+          }
+        ],
+        "created": 1791152682,
+        "model": "/workspace/recovery-research/artifacts/qwen3-1.7B-Q8.gguf",
+        "system_fingerprint": "b11371-99b95488c",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 2,
+          "prompt_tokens": 43,
+          "total_tokens": 45,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "id": "chatcmpl-lyvk0lo0gjPPb7PpLa08MXdqFTYoA2QH",
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 43,
+          "prompt_ms": 1418.815,
+          "prompt_per_token_ms": 32.99569767441861,
+          "prompt_per_second": 30.306981530361604,
+          "predicted_n": 2,
+          "predicted_ms": 159.762,
+          "predicted_per_token_ms": 159.762,
+          "predicted_per_second": 6.2593107247029955
+        }
+      },
+      "seconds": 12.438082616004976
+    }
+  ]
+}
