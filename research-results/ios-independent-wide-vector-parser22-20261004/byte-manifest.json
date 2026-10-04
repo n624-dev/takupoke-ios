@@ -1,0 +1,85 @@
+{
+  "scope": "data-only independently generated fictional evidence; manifest excludes itself",
+  "files": [
+    {
+      "file": "README.md",
+      "bytes": 4354,
+      "sha256": "eabb7841dd4afd7654dda413919d1b437ea7b74cf6d339bd4008fcb3a0df23cf"
+    },
+    {
+      "file": "analyze.py",
+      "bytes": 6854,
+      "sha256": "588ee7ee1925b994680278d765a2281fc55567d8a32e67b021476fb68749d7a6"
+    },
+    {
+      "file": "baseline-stderr.raw.json",
+      "bytes": 313,
+      "sha256": "7e453540f7f7cf6d186148077df986e2a0da8836be0e289c542a466f3eb723fc"
+    },
+    {
+      "file": "baseline-stdout.raw.json",
+      "bytes": 1691,
+      "sha256": "aa6154213ea4f6349628457bd56dd495626a6de37e8605a2d613c2f1ed4548a9"
+    },
+    {
+      "file": "derived-evidence.json",
+      "bytes": 33950,
+      "sha256": "ce0e30b007559bb7bf1e01b95b97de54c1ff471a3e8047d56071c33a18b12dd9"
+    },
+    {
+      "file": "expected.json",
+      "bytes": 157034,
+      "sha256": "efdcb749420be6b000bf172f41102fd6c98b4e6b600dd22d07b41168788ce191"
+    },
+    {
+      "file": "fixed-stderr.raw.json",
+      "bytes": 310,
+      "sha256": "778c326e2b38b3bebd850d788424482346e5e2babf5e621e5ed870c60daa96ac"
+    },
+    {
+      "file": "fixed-stdout.raw.json",
+      "bytes": 2336,
+      "sha256": "6d81fd6503626323146004f03f5083983f288bfa8c09cecd5dc7d0877af226aa"
+    },
+    {
+      "file": "generated-fixture-manifest.json",
+      "bytes": 3103,
+      "sha256": "41dd2aba47472d5b6b3fb590fe59483359b7b59e9e85fb7efbe53c06bb2ff496"
+    },
+    {
+      "file": "initial-sdk-failure.json",
+      "bytes": 661,
+      "sha256": "21fd07c98cc58a99c3f13e00bd2cdb33d9264260529991652eeaacccd2d6ca58"
+    },
+    {
+      "file": "log-restoration.json",
+      "bytes": 1337,
+      "sha256": "a1a78a426269ce248af10f40224dc97622621c99d830096c63f6ca4621e5b0f9"
+    },
+    {
+      "file": "log_transport.py",
+      "bytes": 2596,
+      "sha256": "8e5bfb73263de7bad6f3a5860e63cf26e114986d8dec0552b626e2472357932c"
+    },
+    {
+      "file": "metadata-execution.raw.json",
+      "bytes": 9895,
+      "sha256": "13e4d4697a706d1969e2457c40a006c0d3f51504a100342c78f7b7779e303360"
+    },
+    {
+      "file": "source-receipt.json",
+      "bytes": 14451,
+      "sha256": "ad2471407d75b74211e02f3a265bb451f27a8f9fa14dba6a97a9762dd3c256c3"
+    },
+    {
+      "file": "static-budget-evidence.json",
+      "bytes": 9276,
+      "sha256": "0580bc8380593428a80c5c9bcc517700c148750369fc640ed92461c9fe29c849"
+    },
+    {
+      "file": "static_budget.py",
+      "bytes": 6531,
+      "sha256": "0e5700ef4d7c8631eba8d0a49b491bff579b89a567ee42d462deb3c546f8e551"
+    }
+  ]
+}

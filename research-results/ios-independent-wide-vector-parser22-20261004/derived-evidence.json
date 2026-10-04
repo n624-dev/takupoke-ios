@@ -1,0 +1,1123 @@
+{
+  "sourceCommit": "0d31e79e98692b009ea8414888a558fa91c7f340",
+  "runId": "37221805739",
+  "attempt": "1",
+  "externalLogReadbackComplete": true,
+  "keys": [
+    "baseline/stderr",
+    "baseline/stdout",
+    "fixed/stderr",
+    "fixed/stdout",
+    "metadata/execution"
+  ],
+  "rawStreams": [
+    {
+      "key": "baseline/stderr",
+      "bytes": 95,
+      "sha256": "f62be3783d4cace8a66c32fb08fdbee82e74a17b59784e9339745f3baf65b92e"
+    },
+    {
+      "key": "baseline/stdout",
+      "bytes": 5539,
+      "sha256": "d7dbfc2bd0f7a8e2c94f7ae55df8338beafc8b7cd543c8133825f47667d352e2"
+    },
+    {
+      "key": "fixed/stderr",
+      "bytes": 95,
+      "sha256": "f62be3783d4cace8a66c32fb08fdbee82e74a17b59784e9339745f3baf65b92e"
+    },
+    {
+      "key": "fixed/stdout",
+      "bytes": 8338,
+      "sha256": "bb4fcd15f644e3bffadc4327d0f422b8abf3da8557536b500fb4b576eba22cae"
+    },
+    {
+      "key": "metadata/execution",
+      "bytes": 55635,
+      "sha256": "969a0fd40bb5475a7855ba05dd852f89f03c23e95d72b210ad597bc0c340395f"
+    }
+  ],
+  "phases": {
+    "baseline": {
+      "summary": {
+        "all680LiteralMatches": 0,
+        "analysesReturned": 0,
+        "attemptedReaderCalls": 4,
+        "mode": "baseline",
+        "modelInvocations": 0,
+        "ocrRequests": 0,
+        "plannedReaderCalls": 4,
+        "qualityQualification": false,
+        "readReturned": 0,
+        "recordedCases": 4,
+        "type": "summary"
+      },
+      "cases": [
+        {
+          "file": "unlabeled.pdf",
+          "pdfSHA256": "a90ed8be04c058789a354ab7a2ad78c2e598b75433fc1152df2584bd00f4223a",
+          "pdfBytes": 38164,
+          "readerOnly": true,
+          "readerCallStarted": true,
+          "readReturned": false,
+          "analysisReturned": false,
+          "capture": {
+            "complete": false,
+            "pages": [
+              {
+                "layoutPresent": false,
+                "page": 1,
+                "state": "rasterOnly"
+              }
+            ],
+            "readerCompleted": false
+          },
+          "seconds": 0.8446359634399414,
+          "strictReturned": false,
+          "failureStage": "reader",
+          "failure": {
+            "code": "unsupported",
+            "detail": {
+              "code": "unsupported",
+              "page": 1,
+              "stage": "characterMapping",
+              "trace": {
+                "entries": [
+                  {
+                    "sequence": 0,
+                    "step": "file",
+                    "values": []
+                  },
+                  {
+                    "sequence": 1,
+                    "step": "file",
+                    "values": [
+                      38164
+                    ]
+                  },
+                  {
+                    "sequence": 2,
+                    "step": "document",
+                    "values": [
+                      1,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 3,
+                    "step": "page",
+                    "values": []
+                  },
+                  {
+                    "bounds": {
+                      "height": 990,
+                      "state": "valid",
+                      "width": 3052,
+                      "x": 0,
+                      "y": 0
+                    },
+                    "page": 1,
+                    "sequence": 4,
+                    "step": "pageText",
+                    "values": [
+                      10009,
+                      10009,
+                      0
+                    ]
+                  },
+                  {
+                    "code": "unsupported",
+                    "page": 1,
+                    "sequence": 5,
+                    "stage": "characterMapping",
+                    "step": "failure",
+                    "values": []
+                  }
+                ],
+                "omittedEntries": 0,
+                "parserVersion": 21,
+                "schemaVersion": 1,
+                "totalEntries": 6
+              }
+            },
+            "page": 1,
+            "stage": "characterMapping",
+            "type": "PDFParseError"
+          }
+        },
+        {
+          "file": "labeled-control.pdf",
+          "pdfSHA256": "4ad4bed500a8b1b1112e1a918225353bf9db84eab784f577d49e08257307b0bc",
+          "pdfBytes": 39246,
+          "readerOnly": true,
+          "readerCallStarted": true,
+          "readReturned": false,
+          "analysisReturned": false,
+          "capture": {
+            "complete": false,
+            "pages": [
+              {
+                "layoutPresent": false,
+                "page": 1,
+                "state": "rasterOnly"
+              }
+            ],
+            "readerCompleted": false
+          },
+          "seconds": 0.4026249647140503,
+          "strictReturned": false,
+          "failureStage": "reader",
+          "failure": {
+            "code": "unsupported",
+            "detail": {
+              "code": "unsupported",
+              "page": 1,
+              "stage": "characterMapping",
+              "trace": {
+                "entries": [
+                  {
+                    "sequence": 0,
+                    "step": "file",
+                    "values": []
+                  },
+                  {
+                    "sequence": 1,
+                    "step": "file",
+                    "values": [
+                      39246
+                    ]
+                  },
+                  {
+                    "sequence": 2,
+                    "step": "document",
+                    "values": [
+                      1,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 3,
+                    "step": "page",
+                    "values": []
+                  },
+                  {
+                    "bounds": {
+                      "height": 990,
+                      "state": "valid",
+                      "width": 3052,
+                      "x": 0,
+                      "y": 0
+                    },
+                    "page": 1,
+                    "sequence": 4,
+                    "step": "pageText",
+                    "values": [
+                      14016,
+                      14016,
+                      0
+                    ]
+                  },
+                  {
+                    "code": "unsupported",
+                    "page": 1,
+                    "sequence": 5,
+                    "stage": "characterMapping",
+                    "step": "failure",
+                    "values": []
+                  }
+                ],
+                "omittedEntries": 0,
+                "parserVersion": 21,
+                "schemaVersion": 1,
+                "totalEntries": 6
+              }
+            },
+            "page": 1,
+            "stage": "characterMapping",
+            "type": "PDFParseError"
+          }
+        },
+        {
+          "file": "unlabeled-no-unused-font.pdf",
+          "pdfSHA256": "bd8a441ef33903ff8e01a9c7f6f4f7715f453afafb7130cae1499914eba54c6a",
+          "pdfBytes": 38009,
+          "readerOnly": true,
+          "readerCallStarted": true,
+          "readReturned": false,
+          "analysisReturned": false,
+          "capture": {
+            "complete": false,
+            "pages": [
+              {
+                "layoutPresent": false,
+                "page": 1,
+                "state": "rasterOnly"
+              }
+            ],
+            "readerCompleted": false
+          },
+          "seconds": 0.44008493423461914,
+          "strictReturned": false,
+          "failureStage": "reader",
+          "failure": {
+            "code": "unsupported",
+            "detail": {
+              "code": "unsupported",
+              "page": 1,
+              "stage": "characterMapping",
+              "trace": {
+                "entries": [
+                  {
+                    "sequence": 0,
+                    "step": "file",
+                    "values": []
+                  },
+                  {
+                    "sequence": 1,
+                    "step": "file",
+                    "values": [
+                      38009
+                    ]
+                  },
+                  {
+                    "sequence": 2,
+                    "step": "document",
+                    "values": [
+                      1,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 3,
+                    "step": "page",
+                    "values": []
+                  },
+                  {
+                    "bounds": {
+                      "height": 990,
+                      "state": "valid",
+                      "width": 3052,
+                      "x": 0,
+                      "y": 0
+                    },
+                    "page": 1,
+                    "sequence": 4,
+                    "step": "pageText",
+                    "values": [
+                      10009,
+                      10009,
+                      0
+                    ]
+                  },
+                  {
+                    "code": "unsupported",
+                    "page": 1,
+                    "sequence": 5,
+                    "stage": "characterMapping",
+                    "step": "failure",
+                    "values": []
+                  }
+                ],
+                "omittedEntries": 0,
+                "parserVersion": 21,
+                "schemaVersion": 1,
+                "totalEntries": 6
+              }
+            },
+            "page": 1,
+            "stage": "characterMapping",
+            "type": "PDFParseError"
+          }
+        },
+        {
+          "file": "labeled-control-no-unused-font.pdf",
+          "pdfSHA256": "dfa4266abaed7aae5a1f3430eedf566193e62ade376a4768250f1091d4fbabed",
+          "pdfBytes": 39091,
+          "readerOnly": true,
+          "readerCallStarted": true,
+          "readReturned": false,
+          "analysisReturned": false,
+          "capture": {
+            "complete": false,
+            "pages": [
+              {
+                "layoutPresent": false,
+                "page": 1,
+                "state": "rasterOnly"
+              }
+            ],
+            "readerCompleted": false
+          },
+          "seconds": 0.14278697967529297,
+          "strictReturned": false,
+          "failureStage": "reader",
+          "failure": {
+            "code": "unsupported",
+            "detail": {
+              "code": "unsupported",
+              "page": 1,
+              "stage": "characterMapping",
+              "trace": {
+                "entries": [
+                  {
+                    "sequence": 0,
+                    "step": "file",
+                    "values": []
+                  },
+                  {
+                    "sequence": 1,
+                    "step": "file",
+                    "values": [
+                      39091
+                    ]
+                  },
+                  {
+                    "sequence": 2,
+                    "step": "document",
+                    "values": [
+                      1,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 3,
+                    "step": "page",
+                    "values": []
+                  },
+                  {
+                    "bounds": {
+                      "height": 990,
+                      "state": "valid",
+                      "width": 3052,
+                      "x": 0,
+                      "y": 0
+                    },
+                    "page": 1,
+                    "sequence": 4,
+                    "step": "pageText",
+                    "values": [
+                      14016,
+                      14016,
+                      0
+                    ]
+                  },
+                  {
+                    "code": "unsupported",
+                    "page": 1,
+                    "sequence": 5,
+                    "stage": "characterMapping",
+                    "step": "failure",
+                    "values": []
+                  }
+                ],
+                "omittedEntries": 0,
+                "parserVersion": 21,
+                "schemaVersion": 1,
+                "totalEntries": 6
+              }
+            },
+            "page": 1,
+            "stage": "characterMapping",
+            "type": "PDFParseError"
+          }
+        }
+      ],
+      "nativeReceipt": {
+        "plannedReaderCalls": 4,
+        "rawSHA256": "d7dbfc2bd0f7a8e2c94f7ae55df8338beafc8b7cd543c8133825f47667d352e2",
+        "rawBytes": 5539,
+        "recordedFiles": [
+          "unlabeled.pdf",
+          "labeled-control.pdf",
+          "unlabeled-no-unused-font.pdf",
+          "labeled-control-no-unused-font.pdf"
+        ],
+        "plannedFilesWithoutRecord": [],
+        "attemptedReaderCalls": 4,
+        "readReturned": 0,
+        "analysesReturned": 0,
+        "sourceFailures": 4,
+        "failureClasses": {
+          "semanticRefusal": 4,
+          "rulesIncomplete": 0,
+          "structureUnassessed": 0,
+          "executionOrUnassessed": 0
+        },
+        "positiveAll680LiteralMatches": 0,
+        "positiveLiteralMismatches": 0,
+        "positiveLiteralUnassessed": 0,
+        "negativeSemanticRefusals": 0,
+        "negativeRulesIncomplete": 0,
+        "negativeStructureUnassessed": 0,
+        "negativeExecutionOrUnassessed": 0,
+        "negativeAnalysesReturned": 0,
+        "nonJSONOrIncompleteLines": 0,
+        "transportComplete": true,
+        "semanticResultsSeparateFromTransport": true,
+        "nativeExitCode": 0,
+        "nativeSeconds": 125.81094549999989,
+        "originalRawSHA256": "d7dbfc2bd0f7a8e2c94f7ae55df8338beafc8b7cd543c8133825f47667d352e2",
+        "originalRawBytes": 5539,
+        "parsingTruncated": false
+      }
+    },
+    "fixed": {
+      "summary": {
+        "all680LiteralMatches": 0,
+        "analysesReturned": 0,
+        "attemptedReaderCalls": 6,
+        "mode": "fixed",
+        "modelInvocations": 0,
+        "ocrRequests": 0,
+        "plannedReaderCalls": 6,
+        "qualityQualification": false,
+        "readReturned": 0,
+        "recordedCases": 6,
+        "type": "summary"
+      },
+      "cases": [
+        {
+          "file": "unlabeled.pdf",
+          "pdfSHA256": "a90ed8be04c058789a354ab7a2ad78c2e598b75433fc1152df2584bd00f4223a",
+          "pdfBytes": 38164,
+          "readerOnly": false,
+          "readerCallStarted": true,
+          "readReturned": false,
+          "analysisReturned": false,
+          "capture": {
+            "complete": false,
+            "pages": [
+              {
+                "glyphs": 8749,
+                "layoutPresent": true,
+                "originalLayoutSHA256": "320cc73457529ff4d82f8da9bb69e6c5ac4a67af91b68b2064fb17810c6272cf",
+                "page": 1,
+                "rules": 0,
+                "state": "partial"
+              }
+            ],
+            "readerCompleted": false
+          },
+          "seconds": 0.11119794845581055,
+          "strictReturned": false,
+          "failureStage": "reader",
+          "failure": {
+            "code": "limit",
+            "detail": {
+              "code": "limit",
+              "page": 1,
+              "trace": {
+                "entries": [
+                  {
+                    "sequence": 0,
+                    "step": "file",
+                    "values": []
+                  },
+                  {
+                    "sequence": 1,
+                    "step": "file",
+                    "values": [
+                      38164
+                    ]
+                  },
+                  {
+                    "sequence": 2,
+                    "step": "document",
+                    "values": [
+                      1,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 3,
+                    "step": "page",
+                    "values": []
+                  },
+                  {
+                    "bounds": {
+                      "height": 990,
+                      "state": "valid",
+                      "width": 3052,
+                      "x": 0,
+                      "y": 0
+                    },
+                    "page": 1,
+                    "sequence": 4,
+                    "step": "pageText",
+                    "values": [
+                      10009,
+                      10009,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 5,
+                    "step": "paths",
+                    "values": []
+                  },
+                  {
+                    "code": "limit",
+                    "page": 1,
+                    "sequence": 6,
+                    "step": "failure",
+                    "values": []
+                  }
+                ],
+                "omittedEntries": 0,
+                "parserVersion": 22,
+                "schemaVersion": 1,
+                "totalEntries": 7
+              }
+            },
+            "page": 1,
+            "stage": null,
+            "type": "PDFParseError"
+          }
+        },
+        {
+          "file": "labeled-control.pdf",
+          "pdfSHA256": "4ad4bed500a8b1b1112e1a918225353bf9db84eab784f577d49e08257307b0bc",
+          "pdfBytes": 39246,
+          "readerOnly": false,
+          "readerCallStarted": true,
+          "readReturned": false,
+          "analysisReturned": false,
+          "capture": {
+            "complete": false,
+            "pages": [
+              {
+                "glyphs": 12646,
+                "layoutPresent": true,
+                "originalLayoutSHA256": "a101073d6b9382e3299999360dd9c33174324a5aab03f9f47364f74984b3abc5",
+                "page": 1,
+                "rules": 0,
+                "state": "partial"
+              }
+            ],
+            "readerCompleted": false
+          },
+          "seconds": 0.08581399917602539,
+          "strictReturned": false,
+          "failureStage": "reader",
+          "failure": {
+            "code": "limit",
+            "detail": {
+              "code": "limit",
+              "page": 1,
+              "trace": {
+                "entries": [
+                  {
+                    "sequence": 0,
+                    "step": "file",
+                    "values": []
+                  },
+                  {
+                    "sequence": 1,
+                    "step": "file",
+                    "values": [
+                      39246
+                    ]
+                  },
+                  {
+                    "sequence": 2,
+                    "step": "document",
+                    "values": [
+                      1,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 3,
+                    "step": "page",
+                    "values": []
+                  },
+                  {
+                    "bounds": {
+                      "height": 990,
+                      "state": "valid",
+                      "width": 3052,
+                      "x": 0,
+                      "y": 0
+                    },
+                    "page": 1,
+                    "sequence": 4,
+                    "step": "pageText",
+                    "values": [
+                      14016,
+                      14016,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 5,
+                    "step": "paths",
+                    "values": []
+                  },
+                  {
+                    "code": "limit",
+                    "page": 1,
+                    "sequence": 6,
+                    "step": "failure",
+                    "values": []
+                  }
+                ],
+                "omittedEntries": 0,
+                "parserVersion": 22,
+                "schemaVersion": 1,
+                "totalEntries": 7
+              }
+            },
+            "page": 1,
+            "stage": null,
+            "type": "PDFParseError"
+          }
+        },
+        {
+          "file": "unlabeled-no-unused-font.pdf",
+          "pdfSHA256": "bd8a441ef33903ff8e01a9c7f6f4f7715f453afafb7130cae1499914eba54c6a",
+          "pdfBytes": 38009,
+          "readerOnly": false,
+          "readerCallStarted": true,
+          "readReturned": false,
+          "analysisReturned": false,
+          "capture": {
+            "complete": false,
+            "pages": [
+              {
+                "glyphs": 8749,
+                "layoutPresent": true,
+                "originalLayoutSHA256": "d3d634685913d4f8b77902210532b5c4cc4c8164fa57712c5f2a36081bcba7ac",
+                "page": 1,
+                "rules": 0,
+                "state": "partial"
+              }
+            ],
+            "readerCompleted": false
+          },
+          "seconds": 0.07155990600585938,
+          "strictReturned": false,
+          "failureStage": "reader",
+          "failure": {
+            "code": "limit",
+            "detail": {
+              "code": "limit",
+              "page": 1,
+              "trace": {
+                "entries": [
+                  {
+                    "sequence": 0,
+                    "step": "file",
+                    "values": []
+                  },
+                  {
+                    "sequence": 1,
+                    "step": "file",
+                    "values": [
+                      38009
+                    ]
+                  },
+                  {
+                    "sequence": 2,
+                    "step": "document",
+                    "values": [
+                      1,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 3,
+                    "step": "page",
+                    "values": []
+                  },
+                  {
+                    "bounds": {
+                      "height": 990,
+                      "state": "valid",
+                      "width": 3052,
+                      "x": 0,
+                      "y": 0
+                    },
+                    "page": 1,
+                    "sequence": 4,
+                    "step": "pageText",
+                    "values": [
+                      10009,
+                      10009,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 5,
+                    "step": "paths",
+                    "values": []
+                  },
+                  {
+                    "code": "limit",
+                    "page": 1,
+                    "sequence": 6,
+                    "step": "failure",
+                    "values": []
+                  }
+                ],
+                "omittedEntries": 0,
+                "parserVersion": 22,
+                "schemaVersion": 1,
+                "totalEntries": 7
+              }
+            },
+            "page": 1,
+            "stage": null,
+            "type": "PDFParseError"
+          }
+        },
+        {
+          "file": "labeled-control-no-unused-font.pdf",
+          "pdfSHA256": "dfa4266abaed7aae5a1f3430eedf566193e62ade376a4768250f1091d4fbabed",
+          "pdfBytes": 39091,
+          "readerOnly": false,
+          "readerCallStarted": true,
+          "readReturned": false,
+          "analysisReturned": false,
+          "capture": {
+            "complete": false,
+            "pages": [
+              {
+                "glyphs": 12646,
+                "layoutPresent": true,
+                "originalLayoutSHA256": "470e2b929cf9009df12d22b04cb2a6f624be902e70a4b7ef4bd2cc08b8fc25bf",
+                "page": 1,
+                "rules": 0,
+                "state": "partial"
+              }
+            ],
+            "readerCompleted": false
+          },
+          "seconds": 0.133276104927063,
+          "strictReturned": false,
+          "failureStage": "reader",
+          "failure": {
+            "code": "limit",
+            "detail": {
+              "code": "limit",
+              "page": 1,
+              "trace": {
+                "entries": [
+                  {
+                    "sequence": 0,
+                    "step": "file",
+                    "values": []
+                  },
+                  {
+                    "sequence": 1,
+                    "step": "file",
+                    "values": [
+                      39091
+                    ]
+                  },
+                  {
+                    "sequence": 2,
+                    "step": "document",
+                    "values": [
+                      1,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 3,
+                    "step": "page",
+                    "values": []
+                  },
+                  {
+                    "bounds": {
+                      "height": 990,
+                      "state": "valid",
+                      "width": 3052,
+                      "x": 0,
+                      "y": 0
+                    },
+                    "page": 1,
+                    "sequence": 4,
+                    "step": "pageText",
+                    "values": [
+                      14016,
+                      14016,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 5,
+                    "step": "paths",
+                    "values": []
+                  },
+                  {
+                    "code": "limit",
+                    "page": 1,
+                    "sequence": 6,
+                    "step": "failure",
+                    "values": []
+                  }
+                ],
+                "omittedEntries": 0,
+                "parserVersion": 22,
+                "schemaVersion": 1,
+                "totalEntries": 7
+              }
+            },
+            "page": 1,
+            "stage": null,
+            "type": "PDFParseError"
+          }
+        },
+        {
+          "file": "parallel-mismatch.pdf",
+          "pdfSHA256": "eece294ddd4d96f82228b01f528585f9cf3a00b4179d6a8662377c6db79f3ee0",
+          "pdfBytes": 38202,
+          "readerOnly": false,
+          "readerCallStarted": true,
+          "readReturned": false,
+          "analysisReturned": false,
+          "capture": {
+            "complete": false,
+            "pages": [
+              {
+                "glyphs": 8741,
+                "layoutPresent": true,
+                "originalLayoutSHA256": "ea3c3b2ef2cc776869168201f74ed864b52bf16d23ad5ad1d92bbc9582965062",
+                "page": 1,
+                "rules": 0,
+                "state": "partial"
+              }
+            ],
+            "readerCompleted": false
+          },
+          "seconds": 0.08574295043945312,
+          "strictReturned": false,
+          "failureStage": "reader",
+          "failure": {
+            "code": "limit",
+            "detail": {
+              "code": "limit",
+              "page": 1,
+              "trace": {
+                "entries": [
+                  {
+                    "sequence": 0,
+                    "step": "file",
+                    "values": []
+                  },
+                  {
+                    "sequence": 1,
+                    "step": "file",
+                    "values": [
+                      38202
+                    ]
+                  },
+                  {
+                    "sequence": 2,
+                    "step": "document",
+                    "values": [
+                      1,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 3,
+                    "step": "page",
+                    "values": []
+                  },
+                  {
+                    "bounds": {
+                      "height": 990,
+                      "state": "valid",
+                      "width": 3052,
+                      "x": 0,
+                      "y": 0
+                    },
+                    "page": 1,
+                    "sequence": 4,
+                    "step": "pageText",
+                    "values": [
+                      10001,
+                      10001,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 5,
+                    "step": "paths",
+                    "values": []
+                  },
+                  {
+                    "code": "limit",
+                    "page": 1,
+                    "sequence": 6,
+                    "step": "failure",
+                    "values": []
+                  }
+                ],
+                "omittedEntries": 0,
+                "parserVersion": 22,
+                "schemaVersion": 1,
+                "totalEntries": 7
+              }
+            },
+            "page": 1,
+            "stage": null,
+            "type": "PDFParseError"
+          }
+        },
+        {
+          "file": "unreadable-body.pdf",
+          "pdfSHA256": "aadd33eb9883dfc4db358a6200c6daf5e2cb38753b12afe8ef22caed8375e81e",
+          "pdfBytes": 38215,
+          "readerOnly": false,
+          "readerCallStarted": true,
+          "readReturned": false,
+          "analysisReturned": false,
+          "capture": {
+            "complete": false,
+            "pages": [
+              {
+                "layoutPresent": false,
+                "page": 1,
+                "state": "rasterOnly"
+              }
+            ],
+            "readerCompleted": false
+          },
+          "seconds": 0.018985986709594727,
+          "strictReturned": false,
+          "failureStage": "reader",
+          "failure": {
+            "code": "unsupported",
+            "detail": {
+              "code": "unsupported",
+              "page": 1,
+              "stage": "characterMapping",
+              "trace": {
+                "entries": [
+                  {
+                    "sequence": 0,
+                    "step": "file",
+                    "values": []
+                  },
+                  {
+                    "sequence": 1,
+                    "step": "file",
+                    "values": [
+                      38215
+                    ]
+                  },
+                  {
+                    "sequence": 2,
+                    "step": "document",
+                    "values": [
+                      1,
+                      0
+                    ]
+                  },
+                  {
+                    "page": 1,
+                    "sequence": 3,
+                    "step": "page",
+                    "values": []
+                  },
+                  {
+                    "bounds": {
+                      "height": 990,
+                      "state": "valid",
+                      "width": 3052,
+                      "x": 0,
+                      "y": 0
+                    },
+                    "page": 1,
+                    "sequence": 4,
+                    "step": "pageText",
+                    "values": [
+                      9993,
+                      9993,
+                      0
+                    ]
+                  },
+                  {
+                    "code": "unsupported",
+                    "page": 1,
+                    "sequence": 5,
+                    "stage": "characterMapping",
+                    "step": "failure",
+                    "values": []
+                  }
+                ],
+                "omittedEntries": 0,
+                "parserVersion": 22,
+                "schemaVersion": 1,
+                "totalEntries": 6
+              }
+            },
+            "page": 1,
+            "stage": "characterMapping",
+            "type": "PDFParseError"
+          }
+        }
+      ],
+      "nativeReceipt": {
+        "plannedReaderCalls": 6,
+        "rawSHA256": "bb4fcd15f644e3bffadc4327d0f422b8abf3da8557536b500fb4b576eba22cae",
+        "rawBytes": 8338,
+        "recordedFiles": [
+          "unlabeled.pdf",
+          "labeled-control.pdf",
+          "unlabeled-no-unused-font.pdf",
+          "labeled-control-no-unused-font.pdf",
+          "parallel-mismatch.pdf",
+          "unreadable-body.pdf"
+        ],
+        "plannedFilesWithoutRecord": [],
+        "attemptedReaderCalls": 6,
+        "readReturned": 0,
+        "analysesReturned": 0,
+        "sourceFailures": 6,
+        "failureClasses": {
+          "semanticRefusal": 1,
+          "rulesIncomplete": 0,
+          "structureUnassessed": 0,
+          "executionOrUnassessed": 5
+        },
+        "positiveAll680LiteralMatches": 0,
+        "positiveLiteralMismatches": 0,
+        "positiveLiteralUnassessed": 0,
+        "negativeSemanticRefusals": 1,
+        "negativeRulesIncomplete": 0,
+        "negativeStructureUnassessed": 0,
+        "negativeExecutionOrUnassessed": 1,
+        "negativeAnalysesReturned": 0,
+        "nonJSONOrIncompleteLines": 0,
+        "transportComplete": true,
+        "semanticResultsSeparateFromTransport": true,
+        "nativeExitCode": 0,
+        "nativeSeconds": 35.8407044170001,
+        "originalRawSHA256": "bb4fcd15f644e3bffadc4327d0f422b8abf3da8557536b500fb4b576eba22cae",
+        "originalRawBytes": 8338,
+        "parsingTruncated": false
+      }
+    }
+  },
+  "expectedSHA256": "efdcb749420be6b000bf172f41102fd6c98b4e6b600dd22d07b41168788ce191",
+  "ocrRequests": 0,
+  "modelInvocations": 0,
+  "limits": "Independent generated vector fixtures only; no physical-device, persistence/manual-UI or OCR/model quality qualification. Blank slots compare absence only after complete native Reader/actual parser."
+}

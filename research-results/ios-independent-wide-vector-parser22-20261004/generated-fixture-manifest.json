@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "seed": 20320819,
+  "provenance": "new coordinates/content/merge decisions; no original or private input read",
+  "generatorSha256": "fbb0490b25e12de71e7c965ee8104a548c610810600e38d9d55e8fef94c320c1",
+  "canonicalClassSourceLineSha256": "1246da147c11ea744ecf3d126892477e78f98861d153c4917fd38217d4de7d38",
+  "font": {
+    "url": "https://raw.githubusercontent.com/google/fonts/295d98a7a0c17c68f1341eaeea354e7960ea70d3/ofl/notosansjp/NotoSansJP%5Bwght%5D.ttf",
+    "revision": "295d98a7a0c17c68f1341eaeea354e7960ea70d3",
+    "sha256": "c2f3b4d463500a2ddcd3849cded1fceeb9fd6d1c32e6cbecd568453ba50fc68f",
+    "licenseSha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9"
+  },
+  "expectedSha256": "efdcb749420be6b000bf172f41102fd6c98b4e6b600dd22d07b41168788ce191",
+  "plannedSlots": 680,
+  "physicalCells": 509,
+  "mergedCells": 111,
+  "parallelCells": 33,
+  "blankCells": 76,
+  "artifacts": [
+    {
+      "variant": "unlabeled",
+      "file": "unlabeled.pdf",
+      "bytes": 38164,
+      "sha256": "a90ed8be04c058789a354ab7a2ad78c2e598b75433fc1152df2584bd00f4223a",
+      "expectedDisposition": "complete680"
+    },
+    {
+      "variant": "labeled-control",
+      "file": "labeled-control.pdf",
+      "bytes": 39246,
+      "sha256": "4ad4bed500a8b1b1112e1a918225353bf9db84eab784f577d49e08257307b0bc",
+      "expectedDisposition": "complete680"
+    },
+    {
+      "variant": "missing-class",
+      "file": "missing-class.pdf",
+      "bytes": 37539,
+      "sha256": "37e32b4400b67bc903548db2975f103132f790dce54e3c1476bbf62545b1c89a",
+      "expectedDisposition": "subset16ClassScopeNotInvalidByItself"
+    },
+    {
+      "variant": "parallel-mismatch",
+      "file": "parallel-mismatch.pdf",
+      "bytes": 38202,
+      "sha256": "eece294ddd4d96f82228b01f528585f9cf3a00b4179d6a8662377c6db79f3ee0",
+      "expectedDisposition": "diagnosticNegative"
+    },
+    {
+      "variant": "unreadable-body",
+      "file": "unreadable-body.pdf",
+      "bytes": 38215,
+      "sha256": "aadd33eb9883dfc4db358a6200c6daf5e2cb38753b12afe8ef22caed8375e81e",
+      "expectedDisposition": "diagnosticNegative"
+    },
+    {
+      "variant": "unlabeled-no-unused-font",
+      "file": "unlabeled-no-unused-font.pdf",
+      "bytes": 38009,
+      "sha256": "bd8a441ef33903ff8e01a9c7f6f4f7715f453afafb7130cae1499914eba54c6a",
+      "expectedDisposition": "complete680-diagnosticSetupDifferenceOnly"
+    },
+    {
+      "variant": "labeled-control-no-unused-font",
+      "file": "labeled-control-no-unused-font.pdf",
+      "bytes": 39091,
+      "sha256": "dfa4266abaed7aae5a1f3430eedf566193e62ade376a4768250f1091d4fbabed",
+      "expectedDisposition": "complete680-diagnosticSetupDifferenceOnly"
+    }
+  ],
+  "limits": [
+    "Missing-class PDF is a different 16-row source; normal timetable need not reject it solely for subset scope.",
+    "The opaque unreadable mark must not be called a proved blank; actual reader/ink handling is evaluated.",
+    "Labeled-control success does not establish unlabeled-main success.",
+    "PyMuPDF text health is not iOS or Windows reader proof."
+  ]
+}

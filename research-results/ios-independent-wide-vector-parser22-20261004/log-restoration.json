@@ -1,0 +1,40 @@
+{
+  "runId": 37221805739,
+  "attempt": 1,
+  "jobId": 111493479767,
+  "sourceCommit": "0d31e79e98692b009ea8414888a558fa91c7f340",
+  "runtimeSourceCommit": "a25e93e",
+  "baselineCommit": "71d28af373535762e406ec370e8dfddfd25a0744",
+  "expectedKeys": [
+    "baseline/stdout",
+    "baseline/stderr",
+    "fixed/stdout",
+    "fixed/stderr",
+    "metadata/execution"
+  ],
+  "exactFiveKeySet": true,
+  "fullLogBytes": 172235,
+  "fullLogSHA256": "2b6d1e9c229798b837a72aeac2eb368e3e36449c6f3e5639f213d0ac00779951",
+  "collector": "log_transport.restore on gh run view --log fulljob output; every numbered chunk/order/bytecount/SHA checked",
+  "fixedPlannedAttemptedRecorded": 6,
+  "baselinePlannedAttemptedRecorded": 4,
+  "fixedReaderReturned": 0,
+  "baselineReaderReturned": 0,
+  "completeSourcePages": 0,
+  "analysesReturned": 0,
+  "literal680Assessed": false,
+  "host": "actual Apple iOS27 simulator SDK/runtime, not physical iPhone",
+  "sdkCompile": "both baseline/current PASS",
+  "helperTests": {
+    "passed": 12,
+    "failed": 0
+  },
+  "generatorTests": {
+    "passed": 4,
+    "failed": 0
+  },
+  "ocrRequests": 0,
+  "modelInvocations": 0,
+  "fullFormalQualification": false,
+  "partialCaptureLimits": "Error records retain actual count/state/layoutSHA only; partial actual glyph/rule arrays were not exported. No complete layout claim."
+}

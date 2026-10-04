@@ -1,0 +1,14 @@
+{
+  "runId": 37221400765,
+  "sourceCommit": "1a16a843c9010d5ff969aafa430107fcdcbdabb8",
+  "phase": "actualSimulatorSDKCompile",
+  "error": "missing TimetableSchedule.normalPeriodTimes compile dependency in helper source closure",
+  "nativeStep": "skipped",
+  "readerCalls": 0,
+  "ocrRequests": 0,
+  "modelInvocations": 0,
+  "semanticAssessed": false,
+  "errorLogSHA256": "36e4962a30dff88b4b3d586d921835eb270309cc23387a55d48cc70666ee6202",
+  "correctionSourceCommit": "0d31e79e98692b009ea8414888a558fa91c7f340",
+  "correction": "Exact public source array extraction, source/declaration SHA and baseline byte equality; no production Reader/parser substitution"
+}
