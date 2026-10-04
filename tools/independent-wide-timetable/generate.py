@@ -38,7 +38,7 @@ def digest(data):
 
 def canonical_classes(source_root, class_contract=None):
     """Fail on source contract changes instead of importing a private class list."""
-    source = class_contract.read_text() if class_contract else (source_root / "Takupoke/RecoveryValidator.swift").read_text()
+    source = class_contract.read_text(encoding="utf-8") if class_contract else (source_root / "Takupoke/RecoveryValidator.swift").read_text(encoding="utf-8")
     line = next(line.strip() for line in source.splitlines() if "static let specialClasses =" in line)
     expected = 'static let specialClasses = ["1_1", "1_2", "1_3"] + (2...5).flatMap { year in ["CN", "ES", "IT"].map { "\\(year)_\\($0)" } } + ["AI_1", "AI_2"]'
     if line != expected:
@@ -196,11 +196,11 @@ def draw(out, variant, classes, cells, omit_unused_font=False):
 
 def generate(source_root, output, font_file=None, images=False, class_contract=None):
     output.mkdir(parents=True, exist_ok=False)
-    (output / ".independent-wide-timetable-owned").write_text("v1\n")
+    (output / ".independent-wide-timetable-owned").write_text("v1\n", encoding="utf-8", newline="\n")
     classes, class_source_sha = canonical_classes(source_root, class_contract)
     cells = design(classes)
     oracle = expected(classes, cells)
-    (output / "expected.json").write_text(json.dumps(oracle, ensure_ascii=False, indent=2)+"\n")
+    (output / "expected.json").write_text(json.dumps(oracle, ensure_ascii=False, indent=2)+"\n", encoding="utf-8", newline="\n")
     install_font(output, font_file)
     artifacts = []
     for variant in VARIANTS:
@@ -239,7 +239,7 @@ def generate(source_root, output, font_file=None, images=False, class_contract=N
                            "The opaque unreadable mark must not be called a proved blank; actual reader/ink handling is evaluated.",
                            "Labeled-control success does not establish unlabeled-main success.",
                            "PyMuPDF text health is not iOS or Windows reader proof."]}
-    (output / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2)+"\n")
+    (output / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2)+"\n", encoding="utf-8", newline="\n")
     return manifest
 
 
