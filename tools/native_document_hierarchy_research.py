@@ -155,19 +155,30 @@ def phase(label, command, *, seconds, scratch):
         raise
     finally:
         cleanup = stop_owned(process)
-        close_errors = []
-        for owned in (selector, process.stdout, log):
-            if owned is not None:
-                try:
-                    owned.close()
-                except Exception as exc:
-                    close_errors.append(type(exc).__name__ + ":" + str(exc))
-        cleanup["logCloseErrors"] = close_errors
-        print("RESEARCH owned group cleanup: " + json.dumps(cleanup), flush=True)
+        # Latch retention authority before any descriptor/diagnostic operation.
+        # Broken stdout or cancellation must not downgrade an unproved group to
+        # the generic-error path which is allowed to remove proved-empty scratch.
+        retention = None
         if not cleanup["complete"]:
             cleanup["phase"] = label
             cleanup["primaryPhaseError"] = primary
-            raise OwnedCleanupFailure(cleanup)
+            retention = OwnedCleanupFailure(cleanup)
+        close_errors = []
+        try:
+            for owned in (selector, process.stdout, log):
+                if owned is not None:
+                    try:
+                        owned.close()
+                    except Exception as exc:
+                        close_errors.append(type(exc).__name__ + ":" + str(exc))
+            cleanup["logCloseErrors"] = close_errors
+            print("RESEARCH owned group cleanup: " + json.dumps(cleanup), flush=True)
+        except BaseException as exc:
+            cleanup["diagnosticFailure"] = type(exc).__name__ + ":" + str(exc)
+            raise
+        finally:
+            if retention is not None:
+                raise retention
         if close_errors:
             raise RuntimeError("Research log close failed after proved group cleanup")
 

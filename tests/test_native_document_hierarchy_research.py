@@ -258,8 +258,14 @@ class ResearchLauncherTests(unittest.TestCase):
         try:
             with ExitStack() as stack:
                 for p in patches:stack.enter_context(p)
-                if failure=="kill":stack.enter_context(patch.object(research.os,"killpg",side_effect=PermissionError("fictional kill denied")))
+                if failure in ("kill","stdout","cancel"):stack.enter_context(patch.object(research.os,"killpg",side_effect=PermissionError("fictional kill denied")))
                 else:stack.enter_context(patch.object(research,"owned_group_members",side_effect=RuntimeError("fictional inventory unavailable")))
+                if failure in ("stdout","cancel"):
+                    def output(value,*args,**kwargs):
+                        if str(value).startswith("RESEARCH owned group cleanup:"):
+                            if failure=="stdout":raise BrokenPipeError("fictional cleanup stdout unavailable")
+                            signal.getsignal(signal.SIGTERM)(signal.SIGTERM,None)
+                    stack.enter_context(patch("builtins.print",side_effect=output))
                 with redirect_stdout(io.StringIO()):
                     with self.assertRaises(Exception):research.main()
             self.assertEqual(len(created),1)
@@ -268,6 +274,8 @@ class ResearchLauncherTests(unittest.TestCase):
             receipt=json.loads((created[0]/"owned-cleanup-failure.json").read_text())
             self.assertTrue(receipt["scratchRetained"]);self.assertFalse(receipt["cleanup"]["complete"])
             self.assertEqual(receipt["sourceSHA"],"a"*40);self.assertEqual(receipt["runAttempt"],1)
+            if failure in ("stdout","cancel"):
+                self.assertIn("BrokenPipeError" if failure=="stdout" else "SystemExit",receipt["cleanup"]["diagnosticFailure"])
         finally:
             for process in spawned:
                 try:real_kill(process.pid,signal.SIGKILL)
@@ -280,6 +288,12 @@ class ResearchLauncherTests(unittest.TestCase):
 
     def test_actual_inventory_failure_retains_scratch_log_and_error_receipt(self):
         self.retained_main("inventory")
+
+    def test_cleanup_stdout_broken_pipe_cannot_downgrade_retention(self):
+        self.retained_main("stdout")
+
+    def test_cleanup_stdout_sigterm_cannot_downgrade_retention(self):
+        self.retained_main("cancel")
 
     def test_actual_owned_descendant_group_is_proved_empty_before_success(self):
         code="import subprocess,signal,sys,time\nchild=subprocess.Popen([sys.executable,'-c','import time;time.sleep(30)'])\ndef stop(*_):\n child.terminate();child.wait(timeout=3);sys.exit(0)\nsignal.signal(signal.SIGTERM,stop)\nprint('ready',flush=True)\ntime.sleep(30)"
