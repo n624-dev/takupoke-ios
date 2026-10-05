@@ -76,8 +76,13 @@ enum RecoveryManualComparison {
 /// Pixel bounds for display only. No OCR or role proof is created here.
 enum RecoveryManualImageGeometry {
     struct Bounds: Equatable { let x:Double;let y:Double;let width:Double;let height:Double }
+    private static func valid(_ bounds:Bounds) -> Bool {
+        let right:Double=bounds.x+bounds.width,bottom:Double=bounds.y+bounds.height
+        let values:[Double]=[bounds.x,bounds.y,bounds.width,bounds.height,right,bottom]
+        return values.allSatisfy(\.isFinite) && bounds.x>=0 && bounds.y>=0 && bounds.width>0 && bounds.height>0
+    }
     static func normalizedHighlight(container:Bounds,target:Bounds) -> Bounds? {
-        guard [container,target].allSatisfy({ [$0.x,$0.y,$0.width,$0.height,$0.x+$0.width,$0.y+$0.height].allSatisfy(\.isFinite) && $0.x>=0 && $0.y>=0 && $0.width>0 && $0.height>0 }),
+        guard valid(container),valid(target),
               target.x >= container.x,target.y >= container.y,
               target.x+target.width <= container.x+container.width,target.y+target.height <= container.y+container.height else { return nil }
         return Bounds(x:(target.x-container.x)/container.width,y:(target.y-container.y)/container.height,

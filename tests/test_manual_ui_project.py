@@ -109,6 +109,13 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('models.cancel()',changed)
         self.assertEqual(changed.count('accessibilityIdentifier("manual-submit")'),1)
 
+    def test_review_uses_production_japan_timestamp_without_device_timezone(self):
+        original=(ROOT/"Takupoke/PDFRecoveryView.swift").read_text(encoding="utf-8")
+        changed=module.view(original)
+        self.assertIn('Text(date,format:JapaneseDateDisplay.timestamp)',changed)
+        self.assertNotIn('date.formatted(date:',changed)
+        self.assertIn('JapaneseDateDisplay.swift',(ROOT/"Takupoke.xcodeproj/project.pbxproj").read_text())
+
     def test_existing_app_generator_raster_anchor_matches_current_acquisition(self):
         import ast
         tree=ast.parse((ROOT/"tools/app_test_project.py").read_text(encoding="utf-8"))

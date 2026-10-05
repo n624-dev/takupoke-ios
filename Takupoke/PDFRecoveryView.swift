@@ -82,7 +82,7 @@ struct PDFRecoveryView: View {
                     }
                     Section("前回の結果からの変更") {
                         if review.comparison.available {
-                            if let date = review.previousDate { LabeledContent("比較した前回の解析",value:date.formatted(date:.numeric,time:.shortened)) }
+                            if let date = review.previousDate { LabeledContent("比較した前回の解析") { Text(date,format:JapaneseDateDisplay.timestamp) } }
                             Text(review.comparison.changes.isEmpty ? "比較できる本文に変更はありません。" : "本文の変更: \(review.comparison.changes.count)箇所")
                             ForEach(review.comparison.changes) { change in
                                 VStack(alignment:.leading,spacing:8) {
