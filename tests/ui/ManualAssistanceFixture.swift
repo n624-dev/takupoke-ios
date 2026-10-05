@@ -9,7 +9,7 @@ enum SimulatorManualFixture {
     }
     struct Prepared { let source:RecoverySelectedSource; let draft:RecoveryManualDraft; let raster:RecoveryRasterGrid }
     static func input() throws -> (PDFPageLayout,RecoveryRasterGrid,UIImage,Set<Int>) {
-        let scale=3.0,width=2220,height=1440
+        let scale=2.0,width=1480,height=960
         var glyphs=[PDFGlyph](),rules=[PDFRule](),line=0,uncertain=Set<Int>()
         func text(_ value:String,_ x:Double,_ y:Double,_ w:Double=3,_ h:Double=6,low:Bool=false) {
             if low { uncertain.insert(line) }
@@ -17,9 +17,9 @@ enum SimulatorManualFixture {
         }
         let period=SchoolDataPeriod.current()
         text("令和\(period.schoolYear-2018)年度",20,8,5,8);text(period.half==1 ? "前期":"後期",80,8,5,8)
-        for y in [40.0,72,96,148,200] { rules.append(PDFRule(x1:60,y1:y*scale,x2:2160,y2:y*scale)) }
-        for x in [20.0,44,80] { rules.append(PDFRule(x1:x*scale,y1:120,x2:x*scale,y2:600)) }
-        for p in 0...40 { let x=(80+Double(p)*16)*scale;rules.append(PDFRule(x1:x,y1:(p%8==0 ? 40:72)*scale,x2:x,y2:600)) }
+        for y in [40.0,72,96,148,200] { rules.append(PDFRule(x1:20*scale,y1:y*scale,x2:720*scale,y2:y*scale)) }
+        for x in [20.0,44,80] { rules.append(PDFRule(x1:x*scale,y1:40*scale,x2:x*scale,y2:200*scale)) }
+        for p in 0...40 { let x=(80+Double(p)*16)*scale;rules.append(PDFRule(x1:x,y1:(p%8==0 ? 40:72)*scale,x2:x,y2:200*scale)) }
         for (day,label) in ["月曜日","火曜日","水曜日","木曜日","金曜日"].enumerated() {
             text(label,80+Double(day)*128+55,48)
             for p in 1...8 { text(String(p),80+Double(day*8+p-1)*16+6,85,4,8) }
@@ -36,7 +36,7 @@ enum SimulatorManualFixture {
         let image=UIGraphicsImageRenderer(size:CGSize(width:width,height:height),format:format).image { context in
             UIColor.white.setFill();context.fill(CGRect(x:0,y:0,width:width,height:height));UIColor.black.setStroke()
             for r in rules { let path=UIBezierPath();path.move(to:CGPoint(x:r.x1,y:r.y1));path.addLine(to:CGPoint(x:r.x2,y:r.y2));path.lineWidth=1;path.stroke() }
-            for g in glyphs { (g.text as NSString).draw(at:CGPoint(x:g.x+0.5,y:g.y+1),withAttributes:[.font:UIFont.systemFont(ofSize:8),.foregroundColor:UIColor.black]) }
+            for g in glyphs { (g.text as NSString).draw(at:CGPoint(x:g.x+0.5,y:g.y+1),withAttributes:[.font:UIFont.systemFont(ofSize:8*scale/3),.foregroundColor:UIColor.black]) }
         }
         guard let cg=image.cgImage else { throw PDFParseError(code:.unreadable) }
         var rgba=[UInt8](repeating:0,count:width*height*4)
@@ -52,8 +52,8 @@ enum SimulatorManualFixture {
         // Never overwrite an already adopted result on relaunch.
         if !ProcessInfo.processInfo.arguments.contains("--reset-fixture") { return }
         let (_,_,image,_)=try input()
-        let raw=UIGraphicsPDFRenderer(bounds:CGRect(x:0,y:0,width:2220,height:1440)).pdfData { context in
-            context.beginPage();image.draw(in:CGRect(x:0,y:0,width:2220,height:1440))
+        let raw=UIGraphicsPDFRenderer(bounds:CGRect(x:0,y:0,width:1480,height:960)).pdfData { context in
+            context.beginPage();image.draw(in:CGRect(x:0,y:0,width:1480,height:960))
         }
         let library=try LocalMaterialDatabase.openLibrary(root:base.appendingPathComponent("SchoolMaterialsSQLite"))
         let staged=library.newStagingURL();try raw.write(to:staged)
@@ -70,17 +70,24 @@ enum SimulatorManualFixture {
         try bytes.write(to:source.url,options:.atomic)
     }
     static func prepare() async throws -> Prepared {
+        print("TAKUPOKE-MANUAL-QA stage=source")
         guard let source=await ApplicationData.shared.materials.recoverySource() else { throw PDFParseError(code:.storage) }
+        print("TAKUPOKE-MANUAL-QA stage=raster")
         let (page,raster,_,low)=try input()
+        print("TAKUPOKE-MANUAL-QA stage=builder;width=\(raster.width);height=\(raster.height)")
         let original=try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:source.digest,fromOCR:[1],rasters:[1:raster])
+        print("TAKUPOKE-MANUAL-QA stage=builder-returned;cells=\(original.cells.count)")
         let groups=Dictionary(grouping:page.glyphs,by:{$0.sourceLine!})
         let lines=groups.keys.sorted().map { key -> RecoveryOCRLine in
             let glyphs=groups[key]!.sorted{$0.sourceOrder!<$1.sourceOrder!}
             return RecoveryOCRLine(nativeOrder:key,candidates:[RecoveryOCRCandidate(text:glyphs.map(\.text).joined(),confidence:low.contains(key) ? 0.4:0.95,characters:glyphs.map{RecoveryOCRCharacter(text:$0.text,range:RecoveryOCRRange(x:$0.x,y:$0.y,width:$0.width,height:$0.height))})])
         }
         let capture=RecoveryOCRAcquisitionDraft(sourcePDFHash:source.digest,documentPageCount:1,requiredOCRPages:[1],pages:[RecoveryOCRPage(page:1,width:raster.width,height:raster.height,nativeDocumentCount:1,lines:lines,captureComplete:true)])
+        print("TAKUPOKE-MANUAL-QA stage=attach")
         let document=try RecoveryManualAssistance.attaching(capture,to:original)
+        print("TAKUPOKE-MANUAL-QA stage=prepare")
         guard let draft=try RecoveryManualAssistance.prepare(document,os:"ios") else { throw PDFParseError(code:.ambiguous) }
+        print("TAKUPOKE-MANUAL-QA stage=prepared;fields=\(draft.fields.count)")
         return Prepared(source:source,draft:draft,raster:raster)
     }
 }

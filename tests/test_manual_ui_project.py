@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import unittest
+import re
 
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location("manual_ui_project",ROOT/"tools/manual_ui_project.py")
@@ -39,6 +40,20 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertEqual(len(anchors),1)
         source=(ROOT/"Takupoke/PDFRecoveryRecognition.swift").read_text(encoding="utf-8")
         self.assertEqual(source.count(anchors[0]),1)
+
+    def test_fixture_dimensions_respect_native_capture_limit_and_uniform_rule_scale(self):
+        source=(ROOT/"tests/ui/ManualAssistanceFixture.swift").read_text(encoding="utf-8")
+        limit=(ROOT/"Takupoke/RecoveryOCRAcquisition.swift").read_text(encoding="utf-8")
+        scale,width,height=re.search(r"let scale=([0-9.]+),width=(\d+),height=(\d+)",source).groups()
+        self.assertIn('(1...2048).contains(page.width)',limit)
+        self.assertLessEqual(int(width),2048);self.assertLessEqual(int(height),2048)
+        self.assertGreaterEqual(int(width),720*float(scale));self.assertGreaterEqual(int(height),200*float(scale))
+        for expected in ('x1:20*scale', 'x2:720*scale', 'y1:40*scale', 'y2:200*scale', 'UIFont.systemFont(ofSize:8*scale/3)'):
+            self.assertIn(expected,source)
+        self.assertEqual(source.count('width:1480,height:960'),2)
+        self.assertIn('TAKUPOKE-MANUAL-QA stage=attach',source)
+        generated=module.coordinator((ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8"))
+        self.assertIn('TAKUPOKE-MANUAL-QA failure=\\(String(reflecting:error))',generated)
 
     def test_fixture_uses_current_period_and_actual_builder_proof(self):
         source=(ROOT/"tests/ui/ManualAssistanceFixture.swift").read_text(encoding="utf-8")
