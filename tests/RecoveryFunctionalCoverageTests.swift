@@ -138,4 +138,17 @@ extension SpecialScheduleTests {
         open.lines.removeAll { $0.vertical && $0.x1 == 158 }
         XCTAssertThrowsError(try RecoveryDocumentBuilder.build([open],kind:.return,hash:String(repeating:"f",count:64)))
     }
+    func testFunctionalReturnClassRowIncludesBoundaryAtPeriodHeaderBottom() throws {
+        var page = returnPageWithSplitCell()
+        // The header reference ends exactly at the first real row boundary.
+        // Select that first row rather than stepping down into the second one.
+        for index in page.glyphs.indices where page.glyphs[index].cy == 102 && page.glyphs[index].x >= 140 {
+            page.glyphs[index].y += 16
+        }
+        let doc = try RecoveryDocumentBuilder.build([page],kind:.return,hash:String(repeating:"f",count:64))
+        XCTAssertEqual(doc.requiredSlots.count,680)
+        XCTAssertEqual(doc.classes.count,17)
+        let first = try XCTUnwrap(doc.cells.first { $0.slots.contains(RecoverySlot(className:"1_1",day:"2026-04-01",period:1)) })
+        XCTAssertEqual(first.box.y,120)
+    }
 }

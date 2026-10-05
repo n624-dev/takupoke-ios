@@ -526,7 +526,7 @@ enum RecoveryDocumentBuilder {
         var top:Double?, bottom:Double?
         for line in page.lines {
             guard work.charge() else { try work.finish(); throw PDFParseError(code:.limit) }
-            guard line.horizontal, line.x1 <= x, x <= line.x2, line.y1 > below else { continue }
+            guard line.horizontal, line.x1 <= x, x <= line.x2, line.y1 >= below else { continue }
             let y = line.y1
             if top == nil || y < top! { bottom = top; top = y }
             else if y != top && (bottom == nil || y < bottom!) { bottom = y }
