@@ -25,7 +25,7 @@ class ManualUIProjectTests(unittest.TestCase):
         original=(ROOT/"Takupoke/PDFRecoveryView.swift").read_text(encoding="utf-8")
         changed=module.view(original)
         self.assertIn('manualAcknowledged[field.id] ?? false',changed)
-        self.assertIn('manualAcknowledged[field.id] = false',changed)
+        self.assertIn('RecoveryManualInput.update(',changed)
         self.assertIn('coordinator.submitManual(',changed)
         self.assertIn('draft.fields.contains',changed)
         self.assertIn('coordinator.suspendForInactivity()',changed)

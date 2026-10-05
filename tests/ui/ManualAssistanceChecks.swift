@@ -76,12 +76,18 @@ final class ManualAssistanceChecks:XCTestCase {
         XCTAssertTrue(control.exists,app.debugDescription)
         visible(control).tap()
         let changed=XCTNSPredicateExpectation(predicate:NSPredicate(format:"value == %@","1"),object:row)
-        XCTAssertEqual(XCTWaiter.wait(for:[changed],timeout:5),.completed,app.debugDescription)
+        let outcome=XCTWaiter.wait(for:[changed],timeout:5)
+        let state=app.staticTexts["manual-input-state"].firstMatch
+        print("TAKUPOKE-MANUAL-INPUT " + (state.exists ? state.label : "absent"))
+        XCTAssertEqual(outcome,.completed,app.debugDescription)
     }
     private func assertSubmitEnabled(_ expected:Bool) {
         let button=visible(submit)
         let changed=XCTNSPredicateExpectation(predicate:NSPredicate(format:"enabled == %@",NSNumber(value:expected)),object:button)
-        XCTAssertEqual(XCTWaiter.wait(for:[changed],timeout:5),.completed,app.debugDescription)
+        let outcome=XCTWaiter.wait(for:[changed],timeout:5)
+        let state=app.staticTexts["manual-input-state"].firstMatch
+        print("TAKUPOKE-MANUAL-INPUT " + (state.exists ? state.label : "absent"))
+        XCTAssertEqual(outcome,.completed,app.debugDescription)
     }
     private func edit(_ e:XCUIElement,_ value:String) {
         visible(e).tap(); e.press(forDuration:1.1)

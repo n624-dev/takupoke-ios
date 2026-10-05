@@ -3,6 +3,31 @@ import XCTest
 @testable import TakupokeParsing
 
 extension PDFParsingTests {
+    func testManualInputIdenticalRebindPreservesThreeIndividualAcknowledgements() {
+        var values=["room":"架空室一","subject":"架空科目二","teacher":"架空教員三"]
+        var acknowledged=Dictionary(uniqueKeysWithValues:values.keys.map { ($0,true) })
+        for id in ["room","subject","teacher","room","subject"] {
+            RecoveryManualInput.update(values[id]!,id:id,original:"旧架空本文",values:&values,acknowledged:&acknowledged)
+        }
+        XCTAssertEqual(acknowledged.count,3)
+        XCTAssertTrue(acknowledged.values.allSatisfy { $0 })
+        RecoveryManualInput.update("架空科目改",id:"subject",original:"旧架空本文",values:&values,acknowledged:&acknowledged)
+        XCTAssertEqual(values["subject"],"架空科目改")
+        XCTAssertEqual(acknowledged,["room":true,"subject":false,"teacher":true])
+    }
+    func testManualInputRawUnicodeChangeRequiresNewAcknowledgement() {
+        var values=["subject":"Ae\u{301}"]
+        var acknowledged=["subject":true]
+        RecoveryManualInput.update("Aé",id:"subject",original:"",values:&values,acknowledged:&acknowledged)
+        XCTAssertEqual(Array(values["subject"]!.utf8),Array("Aé".utf8))
+        XCTAssertEqual(acknowledged["subject"],false)
+        acknowledged["subject"]=true
+        RecoveryManualInput.update("Aé",id:"subject",original:"",values:&values,acknowledged:&acknowledged)
+        XCTAssertEqual(acknowledged["subject"],true)
+        RecoveryManualInput.update("",id:"subject",original:"",values:&values,acknowledged:&acknowledged)
+        XCTAssertEqual(acknowledged["subject"],false)
+    }
+
     private func manualFixture(lowCount:Int = 1, lowHeader:Bool = false) throws -> RecoveryDocument {
         let (page,raster) = try twoClassRasterCoverage()
         let hash = String(repeating:"a",count:64)

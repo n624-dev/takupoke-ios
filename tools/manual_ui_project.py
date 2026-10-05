@@ -62,6 +62,10 @@ def view(text):
                     VStack { FixtureManualProbe()
                         if manualQAMutationComplete { Text("変更完了").accessibilityIdentifier("manual-mutation-complete") }
                         if let draft = coordinator.manualDraft {
+                            Text(draft.fields.map { field in
+                                field.id + "=" + (manualValues[field.id] ?? field.originalText) + ";ack=" + String(manualAcknowledged[field.id] ?? false)
+                            }.joined(separator:"|"))
+                                .font(.system(size:1)).accessibilityIdentifier("manual-input-state").allowsHitTesting(false)
                             Text(draft.fields.map(\\.id).joined(separator:"|"))
                                 .font(.system(size:1)).accessibilityIdentifier("manual-field-ids").allowsHitTesting(false)
                         }
@@ -70,7 +74,7 @@ def view(text):
             }''')
     text = once(text, '.autocorrectionDisabled().textInputAutocapitalization(.never).disabled(coordinator.running)',
                 '.autocorrectionDisabled().textInputAutocapitalization(.never).disabled(coordinator.running).accessibilityIdentifier("manual-value-" + field.id)')
-    marker = '''                            Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ manualAcknowledged[field.id] = $0 }))
+    marker = '''                            Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; manualAcknowledged[field.id] = $0 }))
                                 .disabled(coordinator.running)'''
     text = once(text, marker, marker + '.accessibilityIdentifier("manual-ack-" + field.id)')
     text = once(text, '.accessibilityLabel("原本の該当箇所")', '.accessibilityLabel("原本の該当箇所").accessibilityIdentifier("manual-crop-" + field.id)')
