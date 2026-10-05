@@ -77,7 +77,7 @@ enum RecoveryManualAssistance {
             doc.sources[i].nativeConfidence = confidence
         }
         // Atom lines must prove BODY ownership before becoming model/manual input.
-        if capture.pages.contains(where: { $0.lines.contains { $0.candidates[0].characters.contains { $0.range == nil } } }) {
+        if !(doc.ocrLineAtomSourceIds ?? []).isEmpty || capture.pages.contains(where: { $0.lines.contains { $0.candidates[0].characters.contains { $0.range == nil } } }) {
             _ = try fields(doc,check:check)
         }
         return doc
@@ -99,7 +99,10 @@ enum RecoveryManualAssistance {
     }
 
     static func fields(_ doc: RecoveryDocument, check: @escaping () throws -> Void = {}, work suppliedWork: RecoveryValidationWork? = nil) throws -> [RecoveryManualField] {
-        guard let capture = doc.nativeCapture else { return [] }
+        guard let capture = doc.nativeCapture else {
+            guard (doc.ocrLineAtomSourceIds ?? []).isEmpty else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
+            return []
+        }
         let assessment = try capture.assess(check: check)
         guard capture.sourcePDFHash == doc.pdfHash,
               capture.documentPageCount == (doc.sources.map(\.page).max() ?? 0),
@@ -111,6 +114,12 @@ enum RecoveryManualAssistance {
         }
         let work = suppliedWork ?? RecoveryValidationWork(check:check)
         let index = try RecoverySourceIndex(doc.sources,work:work)
+        let requiredAtoms = doc.ocrLineAtomSourceIds ?? []
+        guard requiredAtoms.count <= doc.sources.count, Set(requiredAtoms).count == requiredAtoms.count else {
+            throw PDFParseError(code:.ambiguous,stage:.characterMapping)
+        }
+        let requiredAtomIds = Set(requiredAtoms)
+        var provenAtomIds = Set<String>()
         let confidences = Dictionary(uniqueKeysWithValues:capture.pages.flatMap { page in page.lines.map { ("\(page.page):\($0.nativeOrder)",$0.candidates[0].confidence) } })
         for source in doc.sources {
             guard work.charge() else { try work.finish(); throw PDFParseError(code:.limit) }
@@ -147,7 +156,8 @@ enum RecoveryManualAssistance {
                 })
                 if atom {
                     let members = byLine["\(page.page):\(line.nativeOrder)",default:[]]
-                    guard members.count == 1, let source = members.first, let native = top1.observationRange,
+                    guard members.count == 1, let source = members.first, requiredAtomIds.contains(source.id),
+                          let candidate = top1.lineRange, let native = top1.observationRange,
                           source.text.utf8.elementsEqual(top1.text.utf8),
                           [source.box.x.bitPattern,source.box.y.bitPattern,source.box.width.bitPattern,source.box.height.bitPattern] ==
                             [native.x.bitPattern,native.y.bitPattern,native.width.bitPattern,native.height.bitPattern],
@@ -155,16 +165,41 @@ enum RecoveryManualAssistance {
                           let cell = cellsById[source.cellId], cell.page == page.page, cell.box.contains(source.box) else {
                         throw PDFParseError(code:.ambiguous,stage:.characterMapping)
                     }
+                    let ranges = [candidate,native] + top1.characters.compactMap(\.range)
+                    let scopes = cell.roleScopes.filter { $0.lessonIndex == target.lessonIndex && $0.role == target.role }
+                    if cell.bindingMode == .roleProposal {
+                        guard scopes.count == 1, scopes[0].page == page.page else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
+                    }
+                    for range in ranges {
+                        guard work.charge() else { try work.finish(); throw PDFParseError(code:.limit) }
+                        let box = RecoveryBox(x:range.x,y:range.y,width:range.width,height:range.height)
+                        guard cell.box.contains(box), box.x > cell.box.x, box.y > cell.box.y,
+                              box.x+box.width < cell.box.x+cell.box.width, box.y+box.height < cell.box.y+cell.box.height,
+                              cell.bindingMode == .fixed || scopes[0].box.contains(box) else {
+                            throw PDFParseError(code:.ambiguous,stage:.characterMapping)
+                        }
+                        for scope in cell.roleScopes where scope.lessonIndex != target.lessonIndex || scope.role != target.role {
+                            guard work.charge() else { try work.finish(); throw PDFParseError(code:.limit) }
+                            guard !(box.x <= scope.box.x+scope.box.width && scope.box.x <= box.x+box.width &&
+                                box.y <= scope.box.y+scope.box.height && scope.box.y <= box.y+box.height) else {
+                                throw PDFParseError(code:.ambiguous,stage:.characterMapping)
+                            }
+                        }
+                    }
                     // Fixed three-line fields and verified role scopes remain the
                     // independent authority. A whole line cannot cover another
                     // role's ink, a label, another lesson, or a structural source.
                     for id in cell.sourceIds where id != source.id {
                         guard work.charge(), let other = index.byId[id] else { try work.finish(); throw PDFParseError(code:.ambiguous,stage:.gridCell) }
                         if ownership[id] == target { continue }
-                        let overlaps = source.box.x < other.box.x+other.box.width && other.box.x < source.box.x+source.box.width &&
-                            source.box.y < other.box.y+other.box.height && other.box.y < source.box.y+source.box.height
-                        guard !overlaps else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
+                        for range in ranges {
+                            guard work.charge() else { try work.finish(); throw PDFParseError(code:.limit) }
+                            let overlaps = range.x <= other.box.x+other.box.width && other.box.x <= range.x+range.width &&
+                                range.y <= other.box.y+other.box.height && other.box.y <= range.y+range.height
+                            guard !overlaps else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
+                        }
                     }
+                    provenAtomIds.insert(source.id)
                     atomOrders.insert(line.nativeOrder)
                 }
             }
@@ -200,35 +235,35 @@ enum RecoveryManualAssistance {
                       let originalText = index.original(ids,work:work),
                       let left = originals.map({ $0.box.x }).min(), let top = originals.map({ $0.box.y }).min(),
                       let right = originals.map({ $0.box.x+$0.box.width }).max(), let bottom = originals.map({ $0.box.y+$0.box.height }).max() else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
-                let crop = RecoveryBox(x:left,y:top,width:right-left,height:bottom-top)
+                let crop = originals.contains(where:{ requiredAtomIds.contains($0.id) }) ? cell.box : RecoveryBox(x:left,y:top,width:right-left,height:bottom-top)
                 guard cell.box.contains(crop) else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
                 targets[target] = RecoveryManualField(target:target,page:page.page,parentSourceIds:ids,crop:crop,originalText:originalText)
             }
         }
         try work.finish()
+        guard provenAtomIds == requiredAtomIds else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
         guard targets.count <= maximumFields else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
         return targets.values.sorted { $0.id < $1.id }
     }
 
     static func prepare(_ document: RecoveryDocument, os: String, check:@escaping () throws -> Void = {}) throws -> RecoveryManualDraft? {
-        guard let capture = document.nativeCapture else { return nil }
+        guard let capture = document.nativeCapture else {
+            guard (document.ocrLineAtomSourceIds ?? []).isEmpty else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
+            return nil
+        }
         _ = try capture.assess(check:check)
-        var baseline = document; baseline.nativeCapture = nil
-        // This local copy checks the existing raw-text/structure contract. The
-        // original document retains every native receipt and confidence value;
-        // fields() verifies those independently before a draft is returned.
-        for i in baseline.sources.indices { baseline.sources[i].nativeConfidence = nil }
-        let work = RecoveryValidationWork(check:check), index = try RecoverySourceIndex(baseline.sources,work:work)
-        let cells = try baseline.cells.map { cell -> RecoveredCell in
+        let work = RecoveryValidationWork(check:check), index = try RecoverySourceIndex(document.sources,work:work)
+        let cells = try document.cells.map { cell -> RecoveredCell in
             try check()
             if cell.confirmedEmpty && cell.sourceIds.isEmpty { return RecoveredCell(cellId:cell.id,state:.empty,lessons:[]) }
             guard let result = try RecoveryRules.recover(cell,index:index,work:work) else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
             return result
         }
-        let result = RecoveryResult(pdfHash:baseline.pdfHash,kind:baseline.kind,schoolYear:baseline.schoolYear,term:baseline.term,cells:cells,
-                                    metadata:baseline.structureMetadata ?? RecoveryMetadata(provider:"rule",modelId:"rules",modelVersion:"3",runtimeVersion:"3",promptVersion:"1",recoverySchemaVersion:RecoveryValidator.schemaVersion,validatorVersion:RecoveryValidator.version,osVersion:os))
-        guard try RecoveryValidator.validate(baseline,result,check:check).canAdopt else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
-        let fields = try fields(document,check:check)
+        let result = RecoveryResult(pdfHash:document.pdfHash,kind:document.kind,schoolYear:document.schoolYear,term:document.term,cells:cells,
+                                    metadata:document.structureMetadata ?? RecoveryMetadata(provider:"rule",modelId:"rules",modelVersion:"3",runtimeVersion:"3",promptVersion:"1",recoverySchemaVersion:RecoveryValidator.schemaVersion,validatorVersion:RecoveryValidator.version,osVersion:os))
+        let proof = try RecoveryValidator.pendingManualBaseline(document,result,index:index,work:work)
+        guard proof.errors.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
+        let fields = proof.fields
         guard !fields.isEmpty else { return nil }
         return RecoveryManualDraft(document:document,originalResult:result,fields:fields,
                                    acquisitionHash:try fingerprint(document.nativeCapture!),snapshotHash:try fingerprint(document))
@@ -264,6 +299,7 @@ enum RecoveryManualAssistance {
     static func validationErrors(_ doc: RecoveryDocument, _ result: RecoveryResult, inputOnly: Bool,
                                  check:@escaping () throws -> Void = {}, work: RecoveryValidationWork? = nil) throws -> [String] {
         if doc.nativeCapture == nil, result.humanCorrections == nil {
+            if !(doc.ocrLineAtomSourceIds ?? []).isEmpty { return ["atomCapture"] }
             return doc.sources.allSatisfy({ $0.nativeConfidence == nil }) ? [] : ["nativeConfidence"]
         }
         guard doc.nativeCapture != nil else { return ["manualCapture"] }

@@ -131,7 +131,6 @@ final class RecoveryOCRAcquisitionTests: XCTestCase {
         for (text,characters,range) in [
             ("架 空",[RecoveryOCRCharacter(text:"架",range:nil),.init(text:" ",range:nil),.init(text:"空",range:box)],box),
             ("架 ",[.init(text:"架",range:box),.init(text:" ",range:.init(x:15,y:10,width:0,height:10))],box),
-            ("架 空",[.init(text:"架",range:box),.init(text:" ",range:nil),.init(text:"空",range:.init(x:25,y:10,width:10,height:10))],box),
             ("  ",[.init(text:" ",range:box),.init(text:" ",range:nil)],box),
             ("架 \n",[.init(text:"架",range:box),.init(text:" ",range:nil),.init(text:"\n",range:box)],box)
         ] {
@@ -158,10 +157,12 @@ final class RecoveryOCRAcquisitionTests: XCTestCase {
         XCTAssertTrue(try raw.assess().directLayoutsAllowed)
         XCTAssertEqual(raw.pages[0].lines[0].candidates[0].lineRange,box)
         XCTAssertEqual(raw.pages[0].lines[0].candidates[0].observationRange,observed)
-        for wrong in [nil,box,RecoveryOCRRange(x:10,y:10,width:100,height:10)] {
+        for wrong in [nil,RecoveryOCRRange(x:10,y:10,width:100,height:10)] {
             var changed = candidate; changed.observationRange = wrong
             fails(draft([page(candidates:[changed])]),.characterMapping)
         }
+        var different = candidate; different.observationRange = box
+        XCTAssertTrue(try draft([page(candidates:[different])]).assess().directLayoutsAllowed) // still requires independent BODY proof
         var without = candidate; without.observationRange = nil
         XCTAssertNotEqual(try raw.canonicalData(),try draft([page(candidates:[without])]).canonicalData())
         XCTAssertThrowsError(try raw.strictAssessment())

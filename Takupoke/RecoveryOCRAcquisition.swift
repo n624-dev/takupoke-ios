@@ -80,13 +80,13 @@ enum RecoveryOCRLineMapping {
         }
         if atom {
             guard positioned > 0, !top1.text.contains(where: \.isNewline),
-                  let range = top1.observationRange, range.isInside(width: width, height: height) else {
+                  let candidate = top1.lineRange, candidate.isInside(width:width,height:height),
+                  let observed = top1.observationRange, observed.isInside(width: width, height: height) else {
                 throw RecoveryOCRAcquisitionFailure.characterMapping
             }
-            for character in top1.characters {
-                try consume()
-                if let box = character.range, !range.contains(box) { throw RecoveryOCRAcquisitionFailure.characterMapping }
-            }
+            // The framework's independent box APIs need not contain one another.
+            // Every original box still needs the same independently proved BODY
+            // scope before any recovery/model/manual consumer can use this atom.
         }
         return atom
     }

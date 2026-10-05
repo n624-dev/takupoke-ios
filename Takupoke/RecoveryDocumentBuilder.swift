@@ -107,6 +107,10 @@ enum RecoveryDocumentBuilder {
                     sourceBox = RecoveryBox(x:g.x,y:g.y,width:g.width,height:g.height)
                 } else { sourceBox = try box(glyphs) }
                 doc.sources.append(RecoverySource(id: id, cellId: owner, page: number, text: value ?? glyphs.map(\.text).joined(), box: sourceBox, fromOcr: fromOCR.contains(number), sourceLine:glyphs.first?.sourceLine, sourceOrder:glyphs.first?.sourceOrder))
+                if glyphs[0].ocrLineAtom == true {
+                    if doc.ocrLineAtomSourceIds == nil { doc.ocrLineAtomSourceIds = [] }
+                    doc.ocrLineAtomSourceIds?.append(id)
+                }
                 return id
             }
             func region(_ b: RecoveryBox, axis: RecoveryHeaderAxis) -> RecoveryHeaderRegion { .init(page: number, box: b, axis: axis) }
@@ -518,15 +522,31 @@ enum RecoveryDocumentBuilder {
         }
         doc.classes = doc.classEvidence.keys.sorted(); doc.days = doc.dayEvidence.keys.sorted()
         doc.requiredSlots = doc.classes.flatMap { cls in doc.days.flatMap { day in (1...count).map { RecoverySlot(className:cls,day:day,period:$0) } } }
+        if !(doc.ocrLineAtomSourceIds ?? []).isEmpty {
+            // Existing validators know this metadata guard even when they do not
+            // know the optional atom marker. They must refuse this new contract.
+            doc.structureMetadata = RecoveryMetadata(provider:"rule",modelId:"rules",modelVersion:"3",
+                runtimeVersion:"rules:3+native-common-body:1",promptVersion:"1",
+                recoverySchemaVersion:RecoveryValidator.schemaVersion,validatorVersion:RecoveryValidator.version,
+                osVersion:ProcessInfo.processInfo.operatingSystemVersionString)
+        }
         guard requests.count <= 32 else { throw PDFParseError(code:.limit) }
         if !requests.isEmpty {
-            guard try RecoveryValidator.inputErrors(doc,unresolvedCellIds:Set(requests.map(\.ownerCellId)),check:check).isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
+            guard try inputErrors(doc,unresolvedCellIds:Set(requests.map(\.ownerCellId)),check:check).isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
             throw RecoveryStructurePreparation(document:doc,requests:requests)
         }
         if genericRuled { try structureWork.finish() }
-        let errors = try RecoveryValidator.inputErrors(doc,check:check)
+        let errors = try inputErrors(doc,check:check)
         guard errors.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
         return doc
+    }
+
+    private static func inputErrors(_ doc:RecoveryDocument,unresolvedCellIds:Set<String> = [],
+                                    check:@escaping () throws -> Void) throws -> [String] {
+        if !(doc.ocrLineAtomSourceIds ?? []).isEmpty {
+            return try RecoveryValidator.pendingNativeCaptureInputErrors(doc,unresolvedCellIds:unresolvedCellIds,check:check)
+        }
+        return try RecoveryValidator.inputErrors(doc,unresolvedCellIds:unresolvedCellIds,check:check)
     }
 
     /// Locate the first actual closed class row below the period header. A fixed

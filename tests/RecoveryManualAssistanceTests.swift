@@ -3,7 +3,7 @@ import XCTest
 @testable import TakupokeParsing
 
 extension PDFParsingTests {
-    private func lineAtomFixture(atomCount:Int = 1,low:Bool = false) throws -> RecoveryDocument {
+    private func lineAtomFixture(atomCount:Int = 1,low:Bool = false,attach:Bool = true) throws -> RecoveryDocument {
         var (page,raster) = try twoClassRasterCoverage()
         let groups = Dictionary(grouping:page.glyphs,by:{ $0.sourceLine! })
         let eligible = groups.keys.sorted().filter { key in
@@ -32,13 +32,16 @@ extension PDFParsingTests {
         let doc = try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:hash,fromOCR:[1],rasters:[1:raster])
         let capture = RecoveryOCRAcquisitionDraft(sourcePDFHash:hash,documentPageCount:1,requiredOCRPages:[1],pages:[
             .init(page:1,width:Int(page.width),height:Int(page.height),nativeDocumentCount:1,lines:lines,captureComplete:true)])
-        return try RecoveryManualAssistance.attaching(capture,to:doc)
+        return attach ? try RecoveryManualAssistance.attaching(capture,to:doc) : doc
     }
     func testBodyLineAtomsKeepEveryRawSpaceAndRealBoxThroughThreeManualFields() throws {
         for count in 1...3 {
             let doc = try lineAtomFixture(atomCount:count,low:true)
             let draft = try XCTUnwrap(RecoveryManualAssistance.prepare(doc,os:"test"))
             XCTAssertEqual(draft.fields.count,count)
+            XCTAssertEqual(draft.document,doc)
+            XCTAssertFalse(RecoveryValidator.validate(doc,draft.originalResult).canAdopt)
+            XCTAssertEqual(draft.document.ocrLineAtomSourceIds,doc.ocrLineAtomSourceIds)
             XCTAssertTrue(draft.fields.allSatisfy { $0.originalText.contains(" ") })
             let native = try XCTUnwrap(doc.nativeCapture)
             XCTAssertEqual(native.pages[0].lines.filter { $0.candidates[0].characters.contains { $0.range == nil } }.count,count)
@@ -98,6 +101,90 @@ extension PDFParsingTests {
         headingPage.glyphs.insert(.init(text:row.map(\.text).joined(),x:20,y:8,width:30,height:8,sourceLine:0,sourceOrder:0,ocrLineAtom:true),at:0)
         XCTAssertThrowsError(try RecoveryDocumentBuilder.build([headingPage],kind:.timetable,hash:String(repeating:"a",count:64),fromOCR:[1],rasters:[1:headingRaster]))
     }
+    private func changingAtom(_ doc:RecoveryDocument,_ mutate:(inout RecoveryOCRCandidate) throws -> Void) throws -> RecoveryDocument {
+        var changed = doc
+        let capture = try XCTUnwrap(doc.nativeCapture), page = capture.pages[0]
+        var lines = page.lines
+        let i = try XCTUnwrap(lines.firstIndex { $0.candidates[0].characters.contains { $0.range == nil } })
+        var candidate = lines[i].candidates[0]; try mutate(&candidate)
+        lines[i] = .init(nativeOrder:lines[i].nativeOrder,candidates:[candidate])
+        changed.nativeCapture = .init(sourcePDFHash:capture.sourcePDFHash,documentPageCount:capture.documentPageCount,
+            requiredOCRPages:capture.requiredOCRPages,pages:[.init(page:page.page,width:page.width,height:page.height,
+                nativeDocumentCount:page.nativeDocumentCount,lines:lines,captureComplete:true)])
+        return changed
+    }
+    func testCommonBodyProofKeepsIndependentNativeBoxesWithoutExpandingAnyRange() throws {
+        let original = try lineAtomFixture(low:true)
+        let changed = try changingAtom(original) { candidate in
+            let observed = try XCTUnwrap(candidate.observationRange)
+            candidate.lineRange = .init(x:observed.x,y:observed.y+0.0000003,width:observed.width,height:observed.height)
+        }
+        let raw = try XCTUnwrap(changed.nativeCapture), draft = try XCTUnwrap(RecoveryManualAssistance.prepare(changed,os:"test"))
+        XCTAssertEqual(changed.sources,original.sources)
+        XCTAssertEqual(draft.document,changed)
+        XCTAssertEqual(draft.document.nativeCapture,raw)
+        let source = try XCTUnwrap(changed.sources.first { $0.id == changed.ocrLineAtomSourceIds?.first })
+        let cell = try XCTUnwrap(changed.cells.first { $0.id == source.cellId })
+        XCTAssertEqual(draft.fields[0].crop,cell.box)
+        XCTAssertFalse(RecoveryValidator.validate(changed,draft.originalResult).canAdopt)
+        let result = try RecoveryManualAssistance.complete(draft,values:[draft.fields[0].id:"架空の利用者確認本文"])
+        XCTAssertTrue(RecoveryValidator.validate(changed,result).canAdopt)
+    }
+    func testOneNativeCharacterAcrossCellRoleOrSharedBoundaryRefusesWholeAtom() throws {
+        let original = try lineAtomFixture()
+        let source = try XCTUnwrap(original.sources.first { $0.id == original.ocrLineAtomSourceIds?.first })
+        let cell = try XCTUnwrap(original.cells.first { $0.id == source.cellId })
+        let other = try XCTUnwrap(original.sources.first { $0.cellId == cell.id && $0.id != source.id })
+        for wrong in [RecoveryOCRRange(x:cell.box.x+cell.box.width-1,y:source.box.y,width:1.0000003,height:1),
+                      .init(x:cell.box.x+cell.box.width-1,y:source.box.y,width:1,height:1),
+                      .init(x:other.box.x,y:other.box.y-0.0000003,width:1,height:0.0000006),
+                      .init(x:other.box.x,y:other.box.y-1,width:1,height:1)] {
+            let changed = try changingAtom(original) { candidate in
+                var chars = candidate.characters
+                chars[0] = .init(text:chars[0].text,range:wrong)
+                candidate = .init(text:candidate.text,confidence:candidate.confidence,characters:chars,
+                    lineRange:candidate.lineRange,observationRange:candidate.observationRange)
+            }
+            XCTAssertTrue(try changed.nativeCapture!.assess().directLayoutsAllowed)
+            XCTAssertEqual(changed.sources,original.sources)
+            XCTAssertThrowsError(try RecoveryManualAssistance.fields(changed))
+        }
+    }
+    func testCandidateRangeOtherRoleAndMissingOrDuplicateAtomReceiptRefuse() throws {
+        let original = try lineAtomFixture()
+        let source = try XCTUnwrap(original.sources.first { $0.id == original.ocrLineAtomSourceIds?.first })
+        let other = try XCTUnwrap(original.sources.first { $0.cellId == source.cellId && $0.id != source.id })
+        let wrong = try changingAtom(original) { $0.lineRange = .init(x:other.box.x,y:other.box.y,width:other.box.width,height:other.box.height) }
+        XCTAssertThrowsError(try RecoveryManualAssistance.fields(wrong))
+        for mutation in 0..<3 {
+            var changed = original
+            if mutation == 0 { changed.ocrLineAtomSourceIds = nil }
+            if mutation == 1 { changed.ocrLineAtomSourceIds = [source.id,source.id] }
+            if mutation == 2 { changed.ocrLineAtomSourceIds = ["missing-native-atom-source"] }
+            XCTAssertThrowsError(try RecoveryManualAssistance.fields(changed))
+        }
+    }
+    func testMissingVerifiedRoleScopeCannotUsePhysicalCellProofAlone() throws {
+        var doc = try lineAtomFixture()
+        let atom = try XCTUnwrap(doc.sources.first { $0.id == doc.ocrLineAtomSourceIds?.first })
+        let cell = try XCTUnwrap(doc.cells.firstIndex { $0.id == atom.cellId })
+        doc.cells[cell].bindingMode = .roleProposal
+        doc.cells[cell].roleScopes = []
+        XCTAssertThrowsError(try RecoveryManualAssistance.fields(doc))
+        XCTAssertThrowsError(try RecoveryManualAssistance.prepare(doc,os:"test"))
+    }
+    func testStandaloneBuilderAtomCannotEscapeWithoutNativeCapture() async throws {
+        let doc = try lineAtomFixture(attach:false)
+        XCTAssertNil(doc.nativeCapture)
+        XCTAssertEqual(doc.ocrLineAtomSourceIds?.count,1)
+        XCTAssertTrue(RecoveryValidator.inputErrors(doc).contains("atomCapture"))
+        XCTAssertThrowsError(try RecoveryManualAssistance.fields(doc))
+        XCTAssertThrowsError(try RecoveryManualAssistance.prepare(doc,os:"test"))
+        let run = try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
+        XCTAssertEqual(run.state,.failed)
+        XCTAssertNil(run.result)
+        XCTAssertTrue(run.errors.contains("atomCapture"))
+    }
     func testManualInputIdenticalRebindPreservesThreeIndividualAcknowledgements() {
         var values=["room":"架空室一","subject":"架空科目二","teacher":"架空教員三"]
         var acknowledged=Dictionary(uniqueKeysWithValues:values.keys.map { ($0,true) })
@@ -148,6 +235,9 @@ extension PDFParsingTests {
             let doc = try manualFixture(lowCount:count)
             let draft = try XCTUnwrap(RecoveryManualAssistance.prepare(doc,os:"test"))
             XCTAssertEqual(draft.fields.count,count)
+            XCTAssertEqual(draft.document,doc)
+            XCTAssertFalse(RecoveryValidator.validate(doc,draft.originalResult).canAdopt)
+            XCTAssertEqual(draft.document.ocrLineAtomSourceIds,doc.ocrLineAtomSourceIds)
             let values = Dictionary(uniqueKeysWithValues:draft.fields.map { ($0.id,"架空手入力"+$0.target.role.rawValue) })
             let result = try RecoveryManualAssistance.complete(draft,values:values,now:Date(timeIntervalSince1970:1770000000))
             XCTAssertTrue(RecoveryValidator.validate(doc,result).canAdopt)
@@ -273,6 +363,50 @@ extension PDFParsingTests {
             XCTAssertFalse(RecoveryValidator.validate(changed,result).canAdopt,"mutation \(mutation)")
         }
     }
+    private func acceptedVersionSix(_ doc:RecoveryDocument,_ current:RecoveryResult) throws -> RecoveryAdopted {
+        var result = current; result.metadata.validatorVersion = 6
+        let acceptance = RecoveryAcceptance(pdfHash:doc.pdfHash,resultHash:try RecoveryValidator.fingerprint(result),
+            scopeHash:try RecoveryValidator.fingerprint(doc),metadata:result.metadata,acceptedAt:Date(timeIntervalSince1970:1770000000))
+        return RecoveryAdopted(document:doc,result:result,acceptance:acceptance)
+    }
+    func testVersionSixNativeAndManualAuditsKeepExactConfirmationOnlyAfterCurrentProof() async throws {
+        for low in [0,1] {
+            let doc = try manualFixture(lowCount:low)
+            XCTAssertNil(doc.ocrLineAtomSourceIds)
+            let result:RecoveryResult
+            if low == 0 {
+                let run = try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
+                result = try XCTUnwrap(run.result)
+            } else {
+                let draft = try XCTUnwrap(RecoveryManualAssistance.prepare(doc,os:"test"))
+                result = try RecoveryManualAssistance.complete(draft,values:[draft.fields[0].id:"架空の既存訂正値"])
+            }
+            let old = try acceptedVersionSix(doc,result)
+            XCTAssertFalse(try RecoveryValidator.canReuse(old.acceptance,document:doc,result:old.result))
+            let upgraded = try XCTUnwrap(RecoveryValidator.recertify(old,hash:doc.pdfHash))
+            XCTAssertEqual(upgraded.document,doc)
+            XCTAssertEqual(upgraded.previousAcceptance,old.acceptance)
+            XCTAssertEqual(upgraded.result.humanCorrections,old.result.humanCorrections)
+            XCTAssertEqual(upgraded.acceptance.acceptedAt,old.acceptance.acceptedAt)
+            XCTAssertEqual(upgraded.result.metadata.validatorVersion,7)
+            XCTAssertEqual(try RecoveryValidator.recertify(upgraded,hash:doc.pdfHash),upgraded)
+            var changed = old
+            changed.document.sources[0].text += "偽"
+            XCTAssertNil(try RecoveryValidator.recertify(changed,hash:doc.pdfHash))
+        }
+    }
+    func testAtomContractCannotBeBackdatedToVersionSixOrLoseKnownVersionGuard() async throws {
+        let doc = try lineAtomFixture()
+        XCTAssertEqual(doc.structureMetadata?.validatorVersion,7)
+        XCTAssertEqual(doc.structureMetadata?.runtimeVersion,"rules:3+native-common-body:1")
+        XCTAssertFalse(doc.structureMetadata!.osVersion.isEmpty)
+        let run = try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
+        let result = try XCTUnwrap(run.result)
+        XCTAssertEqual(result.metadata.validatorVersion,7)
+        let backdated = try acceptedVersionSix(doc,result)
+        XCTAssertNil(try RecoveryValidator.recertify(backdated,hash:doc.pdfHash))
+        XCTAssertFalse(RecoveryValidator.validate(doc,backdated.result).canAdopt)
+    }
     func testOptionalManualReceiptAbsencePreservesHistoricalJSON() async throws {
         let (page,raster) = try twoClassRasterCoverage()
         let doc = try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:String(repeating:"a",count:64),fromOCR:[1],rasters:[1:raster])
@@ -280,7 +414,7 @@ extension PDFParsingTests {
         let result = try XCTUnwrap(run.result)
         let documentJSON = try XCTUnwrap(JSONSerialization.jsonObject(with:JSONEncoder().encode(doc)) as? [String:Any])
         let resultJSON = try XCTUnwrap(JSONSerialization.jsonObject(with:JSONEncoder().encode(result)) as? [String:Any])
-        XCTAssertNil(documentJSON["nativeCapture"]); XCTAssertNil(resultJSON["humanCorrections"])
+        XCTAssertNil(documentJSON["nativeCapture"]); XCTAssertNil(documentJSON["ocrLineAtomSourceIds"]); XCTAssertNil(resultJSON["humanCorrections"])
         XCTAssertTrue((documentJSON["sources"] as? [[String:Any]])?.allSatisfy { $0["nativeConfidence"] == nil } == true)
         var oldResult = result; oldResult.metadata.validatorVersion = 5
         let acceptance = RecoveryAcceptance(pdfHash:doc.pdfHash,resultHash:try RecoveryValidator.fingerprint(oldResult),scopeHash:try RecoveryValidator.fingerprint(doc),metadata:oldResult.metadata,acceptedAt:Date(timeIntervalSince1970:1770000000))
