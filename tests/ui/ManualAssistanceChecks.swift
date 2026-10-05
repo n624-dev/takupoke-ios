@@ -12,17 +12,47 @@ final class ManualAssistanceChecks:XCTestCase {
     private func visible(_ e:XCUIElement)->XCUIElement {
         let recoveryList=app.collectionViews["manual-recovery-list"]
         let list=recoveryList.exists ? recoveryList : app.collectionViews.firstMatch
-        for _ in 0..<16 {
+        var upward=true,reversed=false,unchanged=0,previousAnchor=""
+        for attempt in 0..<16 {
             if e.exists && e.isHittable { return e }
-            let top=max(list.frame.minY,app.navigationBars.allElementsBoundByIndex.last?.frame.maxY ?? list.frame.minY)+24
-            let bottom=min(list.frame.maxY,app.keyboards.firstMatch.exists ? app.keyboards.firstMatch.frame.minY-45 : list.frame.maxY)-24
-            guard bottom-top>80 else { break }
+            let navigation=recoveryList.exists ? app.navigationBars["時間割の復旧"] : app.navigationBars.firstMatch
+            let top=max(list.frame.minY,navigation.frame.maxY)+12
+            let bottom=min(list.frame.maxY,app.keyboards.firstMatch.exists ? app.keyboards.firstMatch.frame.minY-45 : list.frame.maxY)-12
+            let viewport=CGRect(x:list.frame.minX+100,y:top,width:1,height:max(0,bottom-top))
+            if e.exists { upward=e.frame.minY>=top }
+            // Pick a real passive Cell on each attempt, including preview lesson/header rows.
+            // Never start a drag on an editor, button, switch, keyboard or outer List gutter.
+            let cells=list.cells.allElementsBoundByIndex.filter {
+                let area=$0.frame.intersection(viewport)
+                return !area.isNull && area.height>36
+            }
+            let passive=cells.filter {
+                $0.buttons.count==0 && $0.switches.count==0 && $0.textFields.count==0 && $0.textViews.count==0
+                    && $0.pickers.count==0 && $0.pickerWheels.count==0
+                    && ($0.images.count>0 || $0.staticTexts.count>0)
+            }
+            guard let cell=passive.max(by:{
+                let a=$0.frame.intersection(viewport),b=$1.frame.intersection(viewport)
+                return upward ? a.maxY<b.maxY:a.minY>b.minY
+            }) else {
+                print("TAKUPOKE-MANUAL-SCROLL no-passive-cell;list=\(list.frame);viewport=\(viewport)")
+                break
+            }
+            let safe=cell.frame.intersection(viewport)
+            let anchor="\(cell.label);\(cell.staticTexts.firstMatch.exists ? cell.staticTexts.firstMatch.label:"");\(cell.images.firstMatch.exists ? cell.images.firstMatch.identifier:"");\(cell.frame)"
+            unchanged=anchor==previousAnchor ? unchanged+1:0
+            previousAnchor=anchor
+            if unchanged>=2 {
+                guard !reversed else { print("TAKUPOKE-MANUAL-SCROLL no-progress-after-reverse;\(anchor)");break }
+                upward.toggle();reversed=true;unchanged=0
+            }
+            print("TAKUPOKE-MANUAL-SCROLL attempt=\(attempt);up=\(upward);anchor=\(anchor);target=\(e.exists ? String(describing:e.frame):"virtualized")")
             let base=list.coordinate(withNormalizedOffset:CGVector(dx:0,dy:0))
-            // The measured List rows start at x=16; its x=8 gutter avoids fields and switch thumbs.
-            let upper=base.withOffset(CGVector(dx:8,dy:top-list.frame.minY))
-            let lower=base.withOffset(CGVector(dx:8,dy:bottom-list.frame.minY))
-            if e.exists && e.frame.minY<top { upper.press(forDuration:0.1,thenDragTo:lower) }
-            else { lower.press(forDuration:0.1,thenDragTo:upper) }
+            // Touch begins inside the passive Cell; the pan can continue across the List.
+            // Viewport-sized drags retain the16-attempt cap for the complete40-slot preview.
+            let start=base.withOffset(CGVector(dx:100,dy:(upward ? safe.maxY-12:safe.minY+12)-list.frame.minY))
+            let end=base.withOffset(CGVector(dx:100,dy:(upward ? viewport.minY+12:viewport.maxY-12)-list.frame.minY))
+            start.press(forDuration:0.1,thenDragTo:end)
         }
         XCTAssertTrue(e.exists && e.isHittable,app.debugDescription);return e
     }
