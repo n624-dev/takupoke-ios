@@ -13,6 +13,49 @@ private func manualAcknowledgementPoint(outer:CGRect,inner:CGRect,viewport:CGRec
     return CGPoint(x:inner.midX,y:inner.midY)
 }
 
+// BEGIN PURE MANUAL SCROLL NAVIGATION
+// Geometry controls only. A recycled editor's existence does not locate its row.
+private struct ManualScrollNavigation {
+    private(set) var upward=true
+    private(set) var reversed=false
+    private var unchanged=0
+    private var previousAnchor=""
+
+    static func usable(_ frame:CGRect)->Bool {
+        !frame.isNull && !frame.isInfinite && frame.width>0 && frame.height>0
+            && [frame.minX,frame.minY,frame.maxX,frame.maxY].allSatisfy(\.isFinite)
+    }
+    private static func direction(_ frame:CGRect?,viewport:CGRect)->Bool? {
+        guard let frame,usable(frame),usable(viewport),
+              frame.maxX>viewport.minX,frame.minX<viewport.maxX else { return nil }
+        if frame.maxY<=viewport.minY { return false } // Drag down to reveal above.
+        if frame.minY>=viewport.maxY { return true }  // Drag up to reveal below.
+        // A small control may straddle navigation/keyboard occlusion. A large
+        // owner spanning both edges cannot establish a direction on its own.
+        if frame.height<=viewport.height {
+            if frame.minY<viewport.minY { return false }
+            if frame.maxY>viewport.maxY { return true }
+        }
+        return nil
+    }
+    mutating func locate(target:CGRect?,owner:CGRect?,viewport:CGRect) {
+        if let direction=Self.direction(owner,viewport:viewport)
+            ?? Self.direction(target,viewport:viewport) { upward=direction }
+        // Unknown/zero/infinite/in-viewport geometry keeps the last direction,
+        // including the one bounded no-progress reversal.
+    }
+    mutating func observe(anchor:String)->Bool {
+        unchanged=anchor==previousAnchor ? unchanged+1:0
+        previousAnchor=anchor
+        if unchanged>=2 {
+            guard !reversed else { return false }
+            upward.toggle();reversed=true;unchanged=0
+        }
+        return true
+    }
+}
+// END PURE MANUAL SCROLL NAVIGATION
+
 final class ManualAssistanceChecks:XCTestCase {
     private var app:XCUIApplication!
     override func setUp() { continueAfterFailure=false;app=XCUIApplication() }
@@ -24,14 +67,23 @@ final class ManualAssistanceChecks:XCTestCase {
     private func visible(_ e:XCUIElement)->XCUIElement {
         let recoveryList=app.collectionViews["manual-recovery-list"]
         let list=recoveryList.exists ? recoveryList : app.collectionViews.firstMatch
-        var upward=true,reversed=false,unchanged=0,previousAnchor=""
+        var navigationState=ManualScrollNavigation(),targetID=""
         for attempt in 0..<16 {
             if e.exists && e.isHittable { return e }
             let navigation=recoveryList.exists ? app.navigationBars["時間割の復旧"] : app.navigationBars.firstMatch
             let top=max(list.frame.minY,navigation.frame.maxY)+12
             let bottom=min(list.frame.maxY,app.keyboards.firstMatch.exists ? app.keyboards.firstMatch.frame.minY-45 : list.frame.maxY)-12
             let viewport=CGRect(x:list.frame.minX+100,y:top,width:1,height:max(0,bottom-top))
-            if e.exists { upward=e.frame.minY>=top }
+            guard ManualScrollNavigation.usable(viewport),viewport.height>36 else {
+                print("TAKUPOKE-MANUAL-SCROLL invalid-viewport;\(viewport)");break
+            }
+            let exists=e.exists,targetFrame=exists ? e.frame:nil
+            if exists && targetID.isEmpty { targetID=e.identifier }
+            // Resolve the unique actual containing Cell, even when its focused
+            // child exposes an infinite/zero or stale in-viewport frame.
+            let owners=targetID.isEmpty ? []:list.cells.containing(.any,identifier:targetID).allElementsBoundByIndex
+            let ownerFrame=owners.count==1 ? owners[0].frame:nil
+            navigationState.locate(target:targetFrame,owner:ownerFrame,viewport:viewport)
             // Pick a real passive Cell on each attempt, including preview lesson/header rows.
             // Never start a drag on an editor, button, switch, keyboard or outer List gutter.
             let cells=list.cells.allElementsBoundByIndex.filter {
@@ -43,22 +95,24 @@ final class ManualAssistanceChecks:XCTestCase {
                     && $0.pickers.count==0 && $0.pickerWheels.count==0
                     && ($0.images.count>0 || $0.staticTexts.count>0)
             }
-            guard let cell=passive.max(by:{
-                let a=$0.frame.intersection(viewport),b=$1.frame.intersection(viewport)
-                return upward ? a.maxY<b.maxY:a.minY>b.minY
-            }) else {
+            func passiveCell(_ upward:Bool)->XCUIElement? {
+                passive.max(by:{
+                    let a=$0.frame.intersection(viewport),b=$1.frame.intersection(viewport)
+                    return upward ? a.maxY<b.maxY:a.minY>b.minY
+                })
+            }
+            guard let firstCell=passiveCell(navigationState.upward) else {
                 print("TAKUPOKE-MANUAL-SCROLL no-passive-cell;list=\(list.frame);viewport=\(viewport)")
                 break
             }
-            let safe=cell.frame.intersection(viewport)
-            let anchor="\(cell.label);\(cell.staticTexts.firstMatch.exists ? cell.staticTexts.firstMatch.label:"");\(cell.images.firstMatch.exists ? cell.images.firstMatch.identifier:"");\(cell.frame)"
-            unchanged=anchor==previousAnchor ? unchanged+1:0
-            previousAnchor=anchor
-            if unchanged>=2 {
-                guard !reversed else { print("TAKUPOKE-MANUAL-SCROLL no-progress-after-reverse;\(anchor)");break }
-                upward.toggle();reversed=true;unchanged=0
+            let anchor="\(firstCell.label);\(firstCell.staticTexts.firstMatch.exists ? firstCell.staticTexts.firstMatch.label:"");\(firstCell.images.firstMatch.exists ? firstCell.images.firstMatch.identifier:"");\(firstCell.frame)"
+            guard navigationState.observe(anchor:anchor) else {
+                print("TAKUPOKE-MANUAL-SCROLL no-progress-after-reverse;\(anchor)");break
             }
-            print("TAKUPOKE-MANUAL-SCROLL attempt=\(attempt);up=\(upward);anchor=\(anchor);target=\(e.exists ? String(describing:e.frame):"virtualized")")
+            // A reversal must also select the passive start Cell for its new direction.
+            guard let cell=passiveCell(navigationState.upward) else { break }
+            let safe=cell.frame.intersection(viewport),upward=navigationState.upward
+            print("TAKUPOKE-MANUAL-SCROLL attempt=\(attempt);up=\(upward);anchor=\(anchor);target=\(targetFrame.map { String(describing:$0) } ?? "virtualized");owner=\(ownerFrame.map { String(describing:$0) } ?? "unknown");reversed=\(navigationState.reversed)")
             let base=list.coordinate(withNormalizedOffset:CGVector(dx:0,dy:0))
             // Touch begins inside the passive Cell; the pan can continue across the List.
             // Viewport-sized drags retain the16-attempt cap for the complete40-slot preview.
