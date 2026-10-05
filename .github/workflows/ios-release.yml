@@ -99,11 +99,11 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - name: Exercise app screens with synthetic data
-        run: bash tools/test-app-ui.sh
       - name: Exercise acknowledgement and separate adoption with fictional manual corrections
         if: matrix.shard == 'A'
         run: bash tools/test-manual-ui.sh
+      - name: Exercise app screens with synthetic data
+        run: bash tools/test-app-ui.sh
 
   build-check:
     name: Check iPhone build without publishing
