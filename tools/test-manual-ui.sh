@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 # Opt-in focused checks; root chooses when to add this to existing CI batching.
 set -euo pipefail
+# Exact allowlist only; the unset default still requires all three completions.
+manual_case="${TKPK_MANUAL_CASE:-}"
+case "$manual_case" in
+    "") only_testing="-only-testing:PickerTapChecks/ManualAssistanceChecks" ;;
+    testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground|testChangedOriginalCannotSubmitOrReplaceLastGood|testThreeFieldsRequireEachAcknowledgementAndFourRefuses)
+        only_testing="-only-testing:PickerTapChecks/ManualAssistanceChecks/$manual_case" ;;
+    *) printf '%s\n' 'Invalid manual UI case selection' >&2; exit 2 ;;
+esac
 scratch_dir="$(mktemp -d "${TMPDIR:-/tmp}/takupoke-manual-ui.XXXXXX")"
 simulator_id=""
 diagnostic_started="$(python3 -c 'import time; print(time.time())')"
@@ -44,13 +52,17 @@ python3 -B tools/timed_command.py 'Manual UI checks' xcodebuild \
     -project "$scratch_dir/project/AppChecks.xcodeproj" -scheme AppChecks \
     -destination "platform=iOS Simulator,id=$simulator_id" -derivedDataPath "$scratch_dir/DerivedData" \
     -parallel-testing-enabled NO "${diagnostic_args[@]}" CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES \
-    -only-testing:PickerTapChecks/ManualAssistanceChecks test 2>&1 | tee "$scratch_dir/manual-ui.log"
-python3 - "$scratch_dir/manual-ui.log" <<'PY'
+    "$only_testing" test 2>&1 | tee "$scratch_dir/manual-ui.log"
+python3 - "$scratch_dir/manual-ui.log" "$manual_case" <<'PY'
 from collections import Counter
 import re,sys
 log=open(sys.argv[1],encoding='utf-8').read()
 expected={'testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground','testChangedOriginalCannotSubmitOrReplaceLastGood','testThreeFieldsRequireEachAcknowledgementAndFourRefuses'}
+selected=sys.argv[2]
+if selected:
+    if selected not in expected:raise SystemExit('Invalid manual UI case selection')
+    expected={selected}
 rows=re.findall(r"Test Case '-\[PickerTapChecks\.ManualAssistanceChecks (test\w+)\]' (passed|failed|skipped) \([\d.]+ seconds\)\.",log)
 if Counter(name for name,_ in rows)!=Counter(expected) or any(status!='passed' for _,status in rows):raise SystemExit('Manual UI completion mismatch')
-print('Verified three manual UI XCTest completions.')
+print('Verified three manual UI XCTest completions.' if not selected else 'Verified selected manual UI XCTest completion: '+selected)
 PY

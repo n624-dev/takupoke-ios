@@ -13,13 +13,21 @@ defaults:
 
 jobs:
   manual-qa:
-    name: Fictional manual QA iOS 26
+    name: Fictional manual QA iOS 26 / ${{ matrix.case }}
+    strategy:
+      fail-fast: false
+      matrix:
+        case:
+          - testChangedOriginalCannotSubmitOrReplaceLastGood
+          - testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground
+          - testThreeFieldsRequireEachAcknowledgementAndFourRefuses
     runs-on: macos-26
     timeout-minutes: 35
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
       TKPK_TEST_IOS: '26'
       TKPK_MANUAL_DIAGNOSTICS: '1'
+      TKPK_MANUAL_CASE: ${{ matrix.case }}
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -28,5 +36,5 @@ jobs:
           persist-credentials: false
       - name: Verify exact diagnostic source
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-      - name: Exercise existing three manual cases and retain exact completion guard
+      - name: Exercise selected unchanged manual case and require its exact completion
         run: bash tools/test-manual-ui.sh

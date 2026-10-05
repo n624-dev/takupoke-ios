@@ -2,6 +2,9 @@ import importlib.util
 from pathlib import Path
 import unittest
 import re
+import os
+import subprocess
+import tempfile
 
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location("manual_ui_project",ROOT/"tools/manual_ui_project.py")
@@ -38,6 +41,64 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('editStage("after-focus",e)',edit)
         self.assertIn('editStage("before-selection",focused)',edit)
         self.assertIn('TAKUPOKE-MANUAL-EDIT stage=',checks)
+
+    def test_manual_case_filter_is_exact_and_default_keeps_whole_suite(self):
+        runner=(ROOT/"tools/test-manual-ui.sh").read_text(encoding="utf-8")
+        prefix=runner.split('scratch_dir=',1)[0]
+        names=['testChangedOriginalCannotSubmitOrReplaceLastGood',
+               'testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground',
+               'testThreeFieldsRequireEachAcknowledgementAndFourRefuses']
+        for selected in ['']+names:
+            env=os.environ.copy();env['TKPK_MANUAL_CASE']=selected
+            result=subprocess.run(['bash','-c',prefix+'\nprintf "%s\\n" "$only_testing"'],
+                                  env=env,text=True,capture_output=True)
+            self.assertEqual(result.returncode,0,result.stderr)
+            expected='-only-testing:PickerTapChecks/ManualAssistanceChecks'+('/'+selected if selected else '')
+            self.assertEqual(result.stdout.strip(),expected)
+        for selected in ['testUnknown',names[0]+';printf BAD','ManualAssistanceChecks','../ApplicationChecks']:
+            env=os.environ.copy();env['TKPK_MANUAL_CASE']=selected
+            result=subprocess.run(['bash','-c',prefix+'\nprintf "%s\\n" "$only_testing"'],
+                                  env=env,text=True,capture_output=True)
+            self.assertEqual(result.returncode,2)
+            self.assertEqual(result.stdout,'')
+
+    def test_completion_guard_rejects_missing_duplicate_skipped_failed_or_other_case(self):
+        runner=(ROOT/"tools/test-manual-ui.sh").read_text(encoding="utf-8")
+        program=runner.split('python3 - "$scratch_dir/manual-ui.log" "$manual_case" <<\'PY\'\n',1)[1].split('\nPY',1)[0]
+        names=['testChangedOriginalCannotSubmitOrReplaceLastGood',
+               'testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground',
+               'testThreeFieldsRequireEachAcknowledgementAndFourRefuses']
+        def line(name,status='passed'):
+            return "Test Case '-[PickerTapChecks.ManualAssistanceChecks "+name+"]' "+status+" (1.0 seconds).\n"
+        with tempfile.TemporaryDirectory() as scratch:
+            log=Path(scratch)/'completed.log'
+            def run(selected,content):
+                log.write_text(content,encoding='utf-8')
+                return subprocess.run(['python3','-c',program,str(log),selected],capture_output=True,text=True)
+            for name in names:
+                self.assertEqual(run(name,line(name)).returncode,0)
+            whole=''.join(line(name) for name in names)
+            self.assertEqual(run('',whole).returncode,0)
+            negatives=[(names[0],''),(names[0],line(names[0])*2),
+                       (names[0],line(names[0],'skipped')),(names[0],line(names[0],'failed')),
+                       (names[0],line(names[1])),(names[0],whole),('',line(names[0])),
+                       ('',whole+line(names[0])),('',whole+line('testUnknown')),('testUnknown',whole)]
+            for selected,content in negatives:
+                self.assertNotEqual(run(selected,content).returncode,0,(selected,content))
+
+    def test_research_matrix_requires_all_three_cases_at_one_source_and_fixed_budget(self):
+        workflow=(ROOT/'.github/workflows/manual-qa-diagnostic.yml').read_text(encoding='utf-8')
+        cases=re.findall(r'^          - (test\w+)$',workflow,re.MULTILINE)
+        self.assertCountEqual(cases,['testChangedOriginalCannotSubmitOrReplaceLastGood',
+                                   'testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground',
+                                   'testThreeFieldsRequireEachAcknowledgementAndFourRefuses'])
+        self.assertEqual(len(cases),3)
+        self.assertIn('fail-fast: false',workflow)
+        self.assertIn('timeout-minutes: 35',workflow)
+        self.assertIn('ref: ${{ github.sha }}',workflow)
+        self.assertIn('TKPK_MANUAL_CASE: ${{ matrix.case }}',workflow)
+        self.assertNotIn('continue-on-error',workflow)
+        self.assertNotIn('workflow_dispatch',workflow)
 
     def test_coordinator_preserves_actual_submit_adopt_and_source_guards(self):
         original=(ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8")
