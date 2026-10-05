@@ -5,7 +5,7 @@ import XCTest
 #endif
 
 final class RecoveryOCRAcquisitionTests: XCTestCase {
-    private let hash = String(repeating: "a", count: 64)
+    private let sourcePDFHash = String(repeating: "a", count: 64)
     private let box = RecoveryOCRRange(x: 10, y: 10, width: 10, height: 10)
     private func withSource(_ bytes: Data, run: (URL) throws -> Void) throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("ocr-snapshot-" + UUID().uuidString)
@@ -59,7 +59,7 @@ final class RecoveryOCRAcquisitionTests: XCTestCase {
               lines: [.init(nativeOrder: 0, candidates: candidates ?? [candidate()])], captureComplete: complete)
     }
     private func draft(_ pages: [RecoveryOCRPage], count: Int? = nil, required: [Int]? = nil) -> RecoveryOCRAcquisitionDraft {
-        .init(sourcePDFHash: hash, documentPageCount: count ?? pages.count,
+        .init(sourcePDFHash: sourcePDFHash, documentPageCount: count ?? pages.count,
               requiredOCRPages: required ?? pages.map(\.page), pages: pages)
     }
     private func fails(_ value: RecoveryOCRAcquisitionDraft, _ expected: RecoveryOCRAcquisitionFailure,
