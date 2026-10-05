@@ -1,9 +1,11 @@
 """Research-launcher contracts; no Apple request, SDK substitution or network."""
 from contextlib import redirect_stdout
 import io
+import json
 import os
 from pathlib import Path
 import signal
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -178,6 +180,133 @@ class ResearchLauncherTests(unittest.TestCase):
         self.assertEqual(stopped.exception.code,143)
         self.assertEqual(len(created),1);self.assertFalse(created[0].exists())
         self.assertEqual(signal.getsignal(signal.SIGTERM),previous)
+
+    def test_inventory_only_inspects_selected_group_sessions(self):
+        with patch.object(research.subprocess,"check_output",return_value="11 42\n12 99\n13 42\n"),patch.object(research.os,"getpgid",return_value=42),patch.object(research.os,"getsid",return_value=42) as sid:
+            self.assertEqual(research.owned_group_members(42),[11,13])
+        self.assertEqual([call.args[0] for call in sid.call_args_list],[11,13])
+
+    def test_foreign_session_refuses_signal(self):
+        process=unittest.mock.Mock(pid=42);process.poll.return_value=None
+        with patch.object(research.subprocess,"check_output",return_value="11 42\n"),patch.object(research.os,"getpgid",return_value=42),patch.object(research.os,"getsid",return_value=99),patch.object(research.os,"killpg") as kill:
+            result=research.stop_owned(process)
+        self.assertFalse(result["complete"]);kill.assert_not_called()
+
+    def test_uninspectable_selected_session_refuses_signal(self):
+        process=unittest.mock.Mock(pid=42);process.poll.return_value=None
+        with patch.object(research.subprocess,"check_output",return_value="11 42\n"),patch.object(research.os,"getpgid",return_value=42),patch.object(research.os,"getsid",side_effect=PermissionError("fictional denied")),patch.object(research.os,"killpg") as kill:
+            result=research.stop_owned(process)
+        self.assertFalse(result["complete"]);kill.assert_not_called()
+
+    def test_changed_selected_group_refuses_signal(self):
+        process=unittest.mock.Mock(pid=42);process.poll.return_value=None
+        with patch.object(research.subprocess,"check_output",return_value="11 42\n"),patch.object(research.os,"getpgid",return_value=99),patch.object(research.os,"getsid") as sid,patch.object(research.os,"killpg") as kill:
+            result=research.stop_owned(process)
+        self.assertFalse(result["complete"]);kill.assert_not_called();sid.assert_not_called()
+
+    def test_group_inventory_malformed_or_oversized_refuses(self):
+        for text in ["not a pid\n","1 2\n"*100000]:
+            with patch.object(research.subprocess,"check_output",return_value=text):
+                with self.assertRaises(RuntimeError):research.owned_group_members(42)
+
+    def test_kill_after_term_reverifies_then_requires_empty_group(self):
+        process=unittest.mock.Mock(pid=42);process.poll.return_value=0
+        with patch.object(research,"GROUP_CLEANUP_SECONDS",0),patch.object(research,"owned_group_members",side_effect=[[11],[11],[11],[]]) as inventory,patch.object(research.os,"killpg") as kill:
+            result=research.stop_owned(process)
+        self.assertTrue(result["complete"]);self.assertEqual(inventory.call_count,4)
+        self.assertEqual([call.args for call in kill.call_args_list],[(42,signal.SIGTERM),(42,signal.SIGKILL)])
+
+    def test_remaining_descendants_after_kill_cannot_be_success(self):
+        process=unittest.mock.Mock(pid=42);process.poll.return_value=0
+        with patch.object(research,"GROUP_CLEANUP_SECONDS",0),patch.object(research,"owned_group_members",return_value=[11]),patch.object(research.os,"killpg"):
+            result=research.stop_owned(process)
+        self.assertFalse(result["complete"]);self.assertEqual(result["remainingOwnedGroupPids"],[11])
+
+    def test_interrupt_during_cleanup_becomes_unknown_group_hold(self):
+        process=unittest.mock.Mock(pid=42);process.poll.return_value=None
+        with patch.object(research,"owned_group_members",side_effect=SystemExit(143)):
+            result=research.stop_owned(process)
+        self.assertFalse(result["complete"]);self.assertIn("SystemExit",result["errors"][0])
+
+    def test_post_spawn_selector_failure_still_proves_group_empty(self):
+        spawned=[];original=research.subprocess.Popen
+        def spawn(command,*args,**kwargs):
+            process=original(command,*args,**kwargs)
+            if command[0]==sys.executable:spawned.append(process)
+            return process
+        with tempfile.TemporaryDirectory() as d,patch.object(research,"RESERVE",0),patch.object(research.subprocess,"Popen",side_effect=spawn),patch.object(research.selectors,"DefaultSelector",side_effect=OSError("fictional selector failure")):
+            with self.assertRaisesRegex(OSError,"fictional selector failure"):
+                research.phase("selector fault",[sys.executable,"-c","import time;time.sleep(30)"],seconds=3,scratch=Path(d))
+        self.assertEqual(len(spawned),1);self.assertIsNotNone(spawned[0].returncode)
+        self.assertEqual(research.owned_group_members(spawned[0].pid),[])
+
+    def retained_main(self, failure):
+        created=[];spawned=[];real_lookup=research.subprocess.check_output;real_spawn=research.subprocess.Popen
+        real_directory=research.tempfile.mkdtemp;real_kill=os.killpg
+        def directory(*args,**kwargs):
+            d=real_directory(*args,**kwargs);created.append(Path(d));return d
+        def lookup(command,**kwargs):
+            if command[0]=="git":return "a"*40
+            if command[0]=="xcrun":return "27.0" if command[-1]=="--show-sdk-version" else "/actual/sdk"
+            return real_lookup(command,**kwargs)
+        def spawn(command,*args,**kwargs):
+            process=real_spawn(command,*args,**kwargs)
+            if command[0]==sys.executable:spawned.append(process)
+            return process
+        patches=[patch.dict(os.environ,self.environment()),patch.object(sys,"argv",["probe","--sdk-major","27"]),patch.object(sys,"platform","darwin"),patch.object(research.subprocess,"check_output",side_effect=lookup),patch.object(research.subprocess,"Popen",side_effect=spawn),patch.object(research.tempfile,"mkdtemp",side_effect=directory),patch.object(research,"RESERVE",0),patch.object(research,"commands",return_value=[("fictional cleanup failure",[sys.executable,"-c","import time;time.sleep(30)"],.1)])]
+        from contextlib import ExitStack
+        try:
+            with ExitStack() as stack:
+                for p in patches:stack.enter_context(p)
+                if failure=="kill":stack.enter_context(patch.object(research.os,"killpg",side_effect=PermissionError("fictional kill denied")))
+                else:stack.enter_context(patch.object(research,"owned_group_members",side_effect=RuntimeError("fictional inventory unavailable")))
+                with redirect_stdout(io.StringIO()):
+                    with self.assertRaises(Exception):research.main()
+            self.assertEqual(len(created),1)
+            self.assertTrue(created[0].exists(),"Unproved cleanup must retain owned scratch")
+            logs=list(created[0].glob("phase-*.log"));self.assertEqual(len(logs),1)
+            receipt=json.loads((created[0]/"owned-cleanup-failure.json").read_text())
+            self.assertTrue(receipt["scratchRetained"]);self.assertFalse(receipt["cleanup"]["complete"])
+            self.assertEqual(receipt["sourceSHA"],"a"*40);self.assertEqual(receipt["runAttempt"],1)
+        finally:
+            for process in spawned:
+                try:real_kill(process.pid,signal.SIGKILL)
+                except ProcessLookupError:pass
+                process.wait(timeout=5)
+            for d in created:research.shutil.rmtree(d,ignore_errors=True)
+
+    def test_actual_kill_failure_retains_scratch_log_and_error_receipt(self):
+        self.retained_main("kill")
+
+    def test_actual_inventory_failure_retains_scratch_log_and_error_receipt(self):
+        self.retained_main("inventory")
+
+    def test_actual_owned_descendant_group_is_proved_empty_before_success(self):
+        code="import subprocess,signal,sys,time\nchild=subprocess.Popen([sys.executable,'-c','import time;time.sleep(30)'])\ndef stop(*_):\n child.terminate();child.wait(timeout=3);sys.exit(0)\nsignal.signal(signal.SIGTERM,stop)\nprint('ready',flush=True)\ntime.sleep(30)"
+        process=subprocess.Popen([sys.executable,"-c",code],stdout=subprocess.PIPE,start_new_session=True)
+        try:
+            import select
+            self.assertTrue(select.select([process.stdout],[],[],3)[0]);self.assertEqual(process.stdout.readline(),b"ready\n")
+            self.assertEqual(len(research.owned_group_members(process.pid)),2)
+            result=research.stop_owned(process)
+            self.assertTrue(result["complete"],result);self.assertEqual(research.owned_group_members(process.pid),[])
+        finally:
+            if process.poll() is None:
+                os.killpg(process.pid,signal.SIGKILL);process.wait(timeout=5)
+            process.stdout.close()
+
+    def test_actual_term_ignoring_leader_requires_kill_and_empty_readback(self):
+        process=subprocess.Popen([sys.executable,"-c","import signal,time;signal.signal(signal.SIGTERM,signal.SIG_IGN);print('ready',flush=True);time.sleep(30)"],stdout=subprocess.PIPE,start_new_session=True)
+        try:
+            import select
+            self.assertTrue(select.select([process.stdout],[],[],3)[0]);self.assertEqual(process.stdout.readline(),b"ready\n")
+            with patch.object(research,"GROUP_CLEANUP_SECONDS",.15):result=research.stop_owned(process)
+            self.assertTrue(result["complete"],result);self.assertEqual(process.returncode,-signal.SIGKILL)
+            self.assertEqual(research.owned_group_members(process.pid),[])
+        finally:
+            if process.poll() is None:
+                os.killpg(process.pid,signal.SIGKILL);process.wait(timeout=5)
+            process.stdout.close()
 
 
 if __name__ == "__main__":unittest.main()

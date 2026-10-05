@@ -22,6 +22,8 @@ BRANCH = "codex/ios-native-document-hierarchy-validation-20261005"
 RESERVE = 2 * 1024**3 + 256 * 1024**2
 MAX_OUTPUT = 256 * 1024
 MAX_OWNED_RSS = 2 * 1024**3
+GROUP_CLEANUP_SECONDS = 5
+GROUP_INVENTORY_BYTES = 256 * 1024
 ROOT = Path(__file__).resolve().parents[1]
 SOURCES = ("Takupoke/RecoveryOCRAcquisition.swift", "Takupoke/RecoveryOCRStructure.swift",
            "Takupoke/RecoveryVisionCapture.swift")
@@ -44,19 +46,69 @@ def owned_rss(group):
                if len(parts := line.split()) == 2 and parts[0] == str(group))
 
 
-def stop_owned(process):
-    for sig in (signal.SIGTERM, signal.SIGKILL):
+class OwnedCleanupFailure(RuntimeError):
+    def __init__(self, report):
+        self.report = report
+        super().__init__("Owned group cleanup unproved; retain scratch")
+
+
+def owned_group_members(group):
+    # ps uses portable Darwin/POSIX PID+PGID fields. os.getsid verifies the
+    # selected group's actual session; no global process signal or environment.
+    if type(group) is not int or group <= 1:
+        raise RuntimeError("Invalid recorded owned group; no signal")
+    output = subprocess.check_output(["ps", "-axo", "pid=,pgid="], text=True, timeout=5)
+    if len(output.encode()) > GROUP_INVENTORY_BYTES:
+        raise RuntimeError("Owned group inventory output limit")
+    selected = []
+    for line in output.splitlines():
+        parts = line.split()
+        if len(parts) != 2 or not all(p.isdecimal() for p in parts):
+            raise RuntimeError("Owned group inventory malformed")
+        pid, pgid = map(int, parts)
+        if pgid != group:
+            continue
         try:
-            os.killpg(process.pid, sig)
+            if os.getpgid(pid) != group:
+                raise RuntimeError("Selected process group identity changed; no signal")
+            if os.getsid(pid) != group:
+                raise RuntimeError("Selected process session identity mismatch; no signal")
         except ProcessLookupError:
-            pass
-        if sig == signal.SIGTERM:
+            continue
+        selected.append(pid)
+        if len(selected) > 1024:
+            raise RuntimeError("Owned group member limit")
+    return selected
+
+
+def stop_owned(process):
+    remaining = []
+    try:
+        for sig in (signal.SIGTERM, signal.SIGKILL):
+            process.poll()  # Reap the recorded leader before each inventory.
+            remaining = owned_group_members(process.pid)
+            if not remaining:
+                if process.poll() is None:
+                    raise RuntimeError("Live recorded leader missing from group inventory")
+                return {"complete": True, "remainingOwnedGroupPids": [], "errors": []}
+            # Reverify every selected member's exact PGID/session before signal.
             try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                continue
-        else:
-            process.wait(timeout=5)
+                os.killpg(process.pid, sig)
+            except ProcessLookupError:
+                pass
+            deadline = time.monotonic() + GROUP_CLEANUP_SECONDS
+            while True:
+                process.poll()
+                remaining = owned_group_members(process.pid)
+                if not remaining and process.poll() is not None:
+                    return {"complete": True, "remainingOwnedGroupPids": [], "errors": []}
+                if time.monotonic() >= deadline:
+                    break
+                time.sleep(.05)
+        raise RuntimeError("Owned group remains after bounded TERM/KILL")
+    except BaseException as exc:
+        return {"complete": False, "remainingOwnedGroupPids": remaining,
+                "errors": [type(exc).__name__ + ":" + str(exc)]}
 
 
 def phase(label, command, *, seconds, scratch):
@@ -68,8 +120,12 @@ def phase(label, command, *, seconds, scratch):
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                start_new_session=True, env=env)
     total = 0; peak = 0
-    selector = selectors.DefaultSelector()
+    selector = None
+    log = None
+    primary = None
     try:
+        selector = selectors.DefaultSelector()
+        log = (scratch / ("phase-" + re.sub(r"[^a-zA-Z0-9]+", "-", label).strip("-") + ".log")).open("xb")
         os.set_blocking(process.stdout.fileno(), False)
         selector.register(process.stdout, selectors.EVENT_READ)
         while selector.get_map() or process.poll() is None:
@@ -86,6 +142,7 @@ def phase(label, command, *, seconds, scratch):
                 total += len(block)
                 if total > MAX_OUTPUT:
                     raise RuntimeError("Research phase output limit")
+                log.write(block); log.flush()
                 sys.stdout.buffer.write(block); sys.stdout.buffer.flush()
         code = process.wait(timeout=max(1, seconds - (time.monotonic() - started)))
         print("RESEARCH phase result: " + json.dumps({"phase": label, "exit": code,
@@ -93,10 +150,26 @@ def phase(label, command, *, seconds, scratch):
             "maximumObservedOwnedRSSBytes": peak}), flush=True)
         if code:
             raise RuntimeError("Research phase failed: " + label)
+    except BaseException as exc:
+        primary = type(exc).__name__ + ":" + str(exc)
+        raise
     finally:
-        selector.close()
-        process.stdout.close()
-        stop_owned(process)
+        cleanup = stop_owned(process)
+        close_errors = []
+        for owned in (selector, process.stdout, log):
+            if owned is not None:
+                try:
+                    owned.close()
+                except Exception as exc:
+                    close_errors.append(type(exc).__name__ + ":" + str(exc))
+        cleanup["logCloseErrors"] = close_errors
+        print("RESEARCH owned group cleanup: " + json.dumps(cleanup), flush=True)
+        if not cleanup["complete"]:
+            cleanup["phase"] = label
+            cleanup["primaryPhaseError"] = primary
+            raise OwnedCleanupFailure(cleanup)
+        if close_errors:
+            raise RuntimeError("Research log close failed after proved group cleanup")
 
 
 def commands(root, scratch, ios_sdk, major, mac_sdk=None, arch="arm64"):
@@ -142,22 +215,44 @@ def main():
         "attempt": 1, "iPhoneSDK": sdk_version, "deploymentTarget": "iOS26.0",
         "unrelatedDomainStubsForUIKitTypecheck": True, "nativeProbeCases": 2 if args.sdk_major == 26 else 0,
         "systemVisionServiceRSS": "UNASSESSED", "semanticQuality": "UNASSESSED"}), flush=True)
-    previous = {}; scratch = None
+    previous = {}; scratch = None; hold = None; primary = None
     def interrupted(signum, _frame):
         raise SystemExit(128 + signum)
     try:
         for sig in (signal.SIGINT, signal.SIGTERM):
             previous[sig] = signal.signal(sig, interrupted)
-        with tempfile.TemporaryDirectory(prefix="takupoke-native-hierarchy-") as directory:
-            scratch = Path(directory)
-            for label, command, seconds in commands(ROOT, scratch, ios_sdk, args.sdk_major, mac_sdk, platform.machine()):
-                phase(label, command, seconds=seconds, scratch=scratch)
+        scratch = Path(tempfile.mkdtemp(prefix="takupoke-native-hierarchy-"))
+        for label, command, seconds in commands(ROOT, scratch, ios_sdk, args.sdk_major, mac_sdk, platform.machine()):
+            phase(label, command, seconds=seconds, scratch=scratch)
+    except OwnedCleanupFailure as exc:
+        hold = exc.report
+        primary = type(exc).__name__ + ":" + str(exc)
+        raise
+    except BaseException as exc:
+        primary = type(exc).__name__ + ":" + str(exc)
+        raise
     finally:
         for sig, handler in previous.items():
             signal.signal(sig, handler)
+        receipt_error = None
+        if scratch is not None and scratch.exists():
+            if hold is None:
+                shutil.rmtree(scratch)
+            else:
+                # Never delete beneath live/unknown owned processes. The retained
+                # receipt and bounded phase logs contain only research metadata.
+                try:
+                    (scratch / "owned-cleanup-failure.json").write_text(json.dumps({
+                        "sourceSHA": actual_head, "runID": os.environ["GITHUB_RUN_ID"],
+                        "runAttempt": 1, "primaryError": primary, "cleanup": hold,
+                        "scratchRetained": True, "nativeXPCGroupScope": "UNASSESSED"}, indent=2) + "\n")
+                except Exception as exc:
+                    receipt_error = type(exc).__name__ + ":" + str(exc)
         removed = scratch is None or not scratch.exists()
         print("RESEARCH cleanup: " + json.dumps({"ownedScratchRemoved": removed,
-            "noArtifactsOrSharedCache": True}), flush=True)
+            "scratchRetainedForUnprovedGroupCleanup": hold is not None,
+            "ownedScratchPath": str(scratch) if hold is not None else None,
+            "cleanupReceiptWriteError": receipt_error, "noArtifactsOrSharedCache": True}), flush=True)
 
 
 if __name__ == "__main__":
