@@ -55,8 +55,12 @@ enum RecoveryVisionCapture {
                         width: Double(b.width * CGFloat(width)), height: Double(b.height * CGFloat(height)))
                 }
                 try check(); try Task.checkCancellation()
+                let observed = line.boundingBox.cgRect
+                let observationRange = RecoveryOCRRange(x:Double(observed.minX * CGFloat(width)),
+                    y:Double((1-observed.maxY)*CGFloat(height)),width:Double(observed.width*CGFloat(width)),
+                    height:Double(observed.height*CGFloat(height)))
                 candidates.append(RecoveryOCRCandidate(text: text, confidence: Double(candidate.confidence),
-                    characters: characters, lineRange: wholeRange))
+                    characters: characters, lineRange: wholeRange, observationRange:observationRange))
             }
             return RecoveryOCRLine(nativeOrder: order, candidates: candidates)
         }

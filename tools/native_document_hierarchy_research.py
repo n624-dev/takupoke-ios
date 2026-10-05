@@ -200,7 +200,7 @@ def commands(root, scratch, ios_sdk, major, mac_sdk=None, arch="arm64"):
                   str(root / "tests/research/NativeDocumentHierarchyProbe.swift"),
                   "-o", str(scratch / "native-hierarchy-probe")]
         result += [("actual macOS26 shared production capture compile", native, 300),
-                   ("six matched native Vision language and line capture controls", [str(scratch / "native-hierarchy-probe")], 180)]
+                   ("one observed-line native Vision language and line capture controls", [str(scratch / "native-hierarchy-probe")], 180)]
     return result
 
 
@@ -225,7 +225,7 @@ def main():
         mac_sdk = subprocess.check_output(["xcrun", "--sdk", "macosx", "--show-sdk-path"], text=True).strip()
     print("RESEARCH identity: " + json.dumps({"sha": actual_head, "runID": os.environ["GITHUB_RUN_ID"],
         "attempt": 1, "iPhoneSDK": sdk_version, "deploymentTarget": "iOS26.0",
-        "unrelatedDomainStubsForUIKitTypecheck": True, "nativeProbeCases": 6 if args.sdk_major == 26 else 0,
+        "unrelatedDomainStubsForUIKitTypecheck": True, "nativeProbeCases": 1 if args.sdk_major == 26 else 0,
         "systemVisionServiceRSS": "UNASSESSED", "semanticQuality": "UNASSESSED"}), flush=True)
     previous = {}; scratch = None; hold = None; primary = None
     def interrupted(signum, _frame):

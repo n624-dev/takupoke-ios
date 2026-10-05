@@ -147,7 +147,7 @@ enum RecoveryManualAssistance {
                 })
                 if atom {
                     let members = byLine["\(page.page):\(line.nativeOrder)",default:[]]
-                    guard members.count == 1, let source = members.first, let native = top1.lineRange,
+                    guard members.count == 1, let source = members.first, let native = top1.observationRange,
                           source.text.utf8.elementsEqual(top1.text.utf8),
                           [source.box.x.bitPattern,source.box.y.bitPattern,source.box.width.bitPattern,source.box.height.bitPattern] ==
                             [native.x.bitPattern,native.y.bitPattern,native.width.bitPattern,native.height.bitPattern],

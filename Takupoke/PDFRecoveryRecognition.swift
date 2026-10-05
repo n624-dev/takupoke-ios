@@ -75,7 +75,7 @@ enum PDFRecoveryRecognition {
                 for line in page.lines {
                     let top1 = line.candidates[0]
                     if try RecoveryOCRLineMapping.requiresAtom(top1, width: page.width, height: page.height, consume: check) {
-                        guard let range = top1.lineRange else { throw PDFParseError(code: .ambiguous, stage: .characterMapping) }
+                        guard let range = top1.observationRange else { throw PDFParseError(code: .ambiguous, stage: .characterMapping) }
                         glyphs.append(PDFGlyph(text: top1.text, x: range.x, y: range.y, width: range.width, height: range.height,
                             sourceLine: line.nativeOrder, sourceOrder: order, ocrLineAtom: true))
                         order += 1

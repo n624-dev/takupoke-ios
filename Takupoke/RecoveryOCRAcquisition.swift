@@ -49,6 +49,9 @@ struct RecoveryOCRCandidate: Codable, Equatable, Sendable {
     /// Actual native box for this complete candidate range. Never a union of
     /// character boxes or a fabricated position for an unpositioned separator.
     var lineRange: RecoveryOCRRange? = nil
+    /// Actual bounding box of the returned RecognizedTextObservation. Retained
+    /// separately from the candidate substring rectangle, without expansion.
+    var observationRange: RecoveryOCRRange? = nil
 }
 struct RecoveryOCRLine: Codable, Equatable, Sendable {
     let nativeOrder: Int
@@ -77,7 +80,7 @@ enum RecoveryOCRLineMapping {
         }
         if atom {
             guard positioned > 0, !top1.text.contains(where: \.isNewline),
-                  let range = top1.lineRange, range.isInside(width: width, height: height) else {
+                  let range = top1.observationRange, range.isInside(width: width, height: height) else {
                 throw RecoveryOCRAcquisitionFailure.characterMapping
             }
             for character in top1.characters {

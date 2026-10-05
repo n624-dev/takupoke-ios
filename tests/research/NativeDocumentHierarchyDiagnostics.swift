@@ -4,6 +4,7 @@ import Foundation
 enum NativeDocumentHierarchyDiagnostics {
     static func lineAtoms(_ page: RecoveryOCRPage) throws -> [String: Any] {
         var atoms = 0, failures = 0, low = 0, samples = [[String: Any]]()
+        var candidateOutside = 0, observationOutside = 0, boundaryFailures = 0, boundarySamples = [[String: Any]]()
         for line in page.lines {
             try Task.checkCancellation()
             guard let top1 = line.candidates.first else { throw RecoveryOCRAcquisitionFailure.invalidInventory }
@@ -12,16 +13,35 @@ enum NativeDocumentHierarchyDiagnostics {
             catch RecoveryOCRAcquisitionFailure.characterMapping { failures += 1 }
             if atom == true { atoms += 1 }
             if top1.confidence < 0.85 { low += 1 }
+            for (index,character) in top1.characters.enumerated() {
+                if index % 128 == 0 { try Task.checkCancellation() }
+                guard let box = character.range, !RecoveryOCRLineMapping.isSpace(character.text) else { continue }
+                let oldOutside = top1.lineRange.map { !$0.contains(box) } ?? true
+                let newOutside = top1.observationRange.map { !$0.contains(box) } ?? true
+                if oldOutside { candidateOutside += 1 }; if newOutside { observationOutside += 1 }
+                if oldOutside || newOutside { boundaryFailures += 1 }
+                if (oldOutside || newOutside), boundarySamples.count < 16 {
+                    boundarySamples.append(["lineOrder":line.nativeOrder,"characterIndex":index,
+                        "characterUTF8":Array(character.text.utf8.prefix(16)),
+                        "characterPixelRangeBits":[box.x,box.y,box.width,box.height].map { String($0.bitPattern,radix:16) },
+                        "outsideCandidateRange":oldOutside,"outsideObservationRange":newOutside])
+                }
+            }
             if samples.count < 16 {
                 var sample: [String: Any] = ["lineOrder":line.nativeOrder,"confidenceDoubleBits":String(top1.confidence.bitPattern,radix:16),
                     "mappingPassed":atom != nil,"requiresBodyAtomProof":atom == true]
                 if let range = top1.lineRange {
                     sample["actualWholeCandidatePixelRangeBits"] = [range.x,range.y,range.width,range.height].map { String($0.bitPattern,radix:16) }
                 }
+                if let range = top1.observationRange {
+                    sample["actualObservationPixelRangeBits"] = [range.x,range.y,range.width,range.height].map { String($0.bitPattern,radix:16) }
+                }
                 samples.append(sample)
             }
         }
         return ["acquiredAtomLines":atoms,"mappingRefusedLines":failures,"lowConfidenceLines":low,
+            "nonWhitespaceOutsideCandidateRange":candidateOutside,"nonWhitespaceOutsideObservationRange":observationOutside,
+            "firstBoundaryFailures":boundarySamples,"omittedBoundaryFailureCharacters":max(0,boundaryFailures-boundarySamples.count),
             "firstLines":samples,"omittedLines":max(0,page.lines.count-samples.count),
             "bodyOwnership": "NOT_ATTEMPTED; independent field/cell proof required; native table spans not physical authority"]
     }

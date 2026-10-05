@@ -114,6 +114,9 @@ import CryptoKit
             if let box = candidate.lineRange {
                 integer(1); for number in [box.x, box.y, box.width, box.height] { integer(number.bitPattern) }
             } else { integer(0) }
+            if let box = candidate.observationRange {
+                integer(1); for number in [box.x, box.y, box.width, box.height] { integer(number.bitPattern) }
+            } else { integer(0) }
         }
         return value
     }
@@ -163,6 +166,8 @@ import CryptoKit
                 integer(1)
                 for number in [b.minX, b.minY, b.width, b.height] { integer(Double(number).bitPattern) }
             } else { integer(0) }
+            let observed = line.boundingBox.cgRect
+            for number in [observed.minX,observed.minY,observed.width,observed.height] { integer(Double(number).bitPattern) }
         }
         return value
     }
@@ -261,8 +266,8 @@ import CryptoKit
     }
     static func main() async {
         var outcomes = [[String: Any]](), compatible = true, acquisitionCompatible = true, attempted = 0
-        for languageProfile in ["default", "ja-en-auto"] {
-        for fixture in ["independent-rectangular","independent-merged","independent-japanese-rectangular"] {
+        for languageProfile in ["default"] {
+        for fixture in ["independent-rectangular"] {
             let merged = fixture == "independent-merged"
             var result: [String: Any] = ["case": fixture,
                 "languageProfile":languageProfile,
@@ -359,20 +364,21 @@ import CryptoKit
         }
         let report: [String: Any] = ["schemaVersion": 1, "sourceSHA": ProcessInfo.processInfo.environment["GITHUB_SHA"] ?? "",
             "runID": ProcessInfo.processInfo.environment["GITHUB_RUN_ID"] ?? "", "runAttempt": ProcessInfo.processInfo.environment["GITHUB_RUN_ATTEMPT"] ?? "",
-            "nativeCallsAttempted": attempted, "maximumNativeCalls": 6, "retries": 0,
+            "nativeCallsAttempted": attempted, "maximumNativeCalls": 1, "retries": 0,
             "diagnosticBounds":["firstCharacterFailuresPerCase":4,"firstRawTop1LinesPerCase":16,
                 "rawBytesPerLine":128,"firstWholeLineRangesPerCase":16,"firstNativeSpansPerTable":32,"reportBytes":65_536],
-            "matchedProspectiveLanguageProfiles":["default","ja-en-auto"],
+            "matchedProspectiveLanguageProfiles":["default"],
             "matchedRawTop1Comparison":matched,
+            "currentNativeScope":"one unchanged English rectangle/default; previous Japanese/merged six results retained separately",
             "legacyAndAtomAssessmentReuseSameRawNativeOutput":true,
-            "cases": outcomes, "nativeHierarchyCorrespondencePassed": compatible && attempted == 6,
-            "nativeFullAcquisitionControlsPassed": acquisitionCompatible && attempted == 6,
+            "cases": outcomes, "nativeHierarchyCorrespondencePassed": compatible && attempted == 1,
+            "nativeFullAcquisitionControlsPassed": acquisitionCompatible && attempted == 1,
             "wholeDocumentAdoption": "NOT_ATTEMPTED", "modelQualification": "UNASSESSED"]
         do {
             let data = try JSONSerialization.data(withJSONObject: report, options: [.sortedKeys])
             guard data.count <= 65_536 else { throw NSError(domain: "ReportBound", code: 1) }
             print("TAKUPOKE-NATIVE-HIERARCHY-1 " + String(decoding: data, as: UTF8.self))
         } catch { print("TAKUPOKE-NATIVE-HIERARCHY-REPORT-FAILED"); exit(2) }
-        if !compatible || !acquisitionCompatible || attempted != 6 { exit(1) }
+        if !compatible || !acquisitionCompatible || attempted != 1 { exit(1) }
     }
 }

@@ -19,7 +19,7 @@ extension PDFParsingTests {
                 let text = first.text+" "+row.dropFirst().map(\.text).joined()
                 let chars = [RecoveryOCRCharacter(text:first.text,range:.init(x:first.x,y:first.y,width:first.width,height:first.height)),.init(text:" ",range:nil)] + row.dropFirst().map { RecoveryOCRCharacter(text:$0.text,range:.init(x:$0.x,y:$0.y,width:$0.width,height:$0.height)) }
                 lines.append(.init(nativeOrder:key,candidates:[.init(text:text,confidence:low ? 0.4:0.95,characters:chars,
-                    lineRange:.init(x:first.x,y:first.y,width:width,height:first.height))]))
+                    lineRange:.init(x:first.x,y:first.y,width:width,height:first.height),observationRange:.init(x:first.x,y:first.y,width:width,height:first.height))]))
                 glyphs.append(.init(text:text,x:first.x,y:first.y,width:width,height:first.height,
                     sourceLine:key,sourceOrder:first.sourceOrder,ocrLineAtom:true))
             } else {
@@ -75,10 +75,10 @@ extension PDFParsingTests {
         let capture = try XCTUnwrap(doc.nativeCapture), page = capture.pages[0]
         let lineIndex = try XCTUnwrap(page.lines.firstIndex { $0.candidates[0].characters.contains { $0.range == nil } })
         let sourceIndex = try XCTUnwrap(doc.sources.firstIndex { $0.sourceLine == lineIndex })
-        let original = page.lines[lineIndex].candidates[0], range = try XCTUnwrap(original.lineRange)
+        let original = page.lines[lineIndex].candidates[0], range = try XCTUnwrap(original.observationRange)
         let crossing = RecoveryOCRRange(x:range.x,y:range.y,width:range.width,height:40)
         var lines = page.lines
-        lines[lineIndex] = .init(nativeOrder:lineIndex,candidates:[.init(text:original.text,confidence:original.confidence,characters:original.characters,lineRange:crossing)])
+        lines[lineIndex] = .init(nativeOrder:lineIndex,candidates:[.init(text:original.text,confidence:original.confidence,characters:original.characters,lineRange:original.lineRange,observationRange:crossing)])
         doc.nativeCapture = .init(sourcePDFHash:capture.sourcePDFHash,documentPageCount:1,requiredOCRPages:[1],pages:[
             .init(page:1,width:page.width,height:page.height,nativeDocumentCount:1,lines:lines,captureComplete:true)])
         doc.sources[sourceIndex].box.height = 40
