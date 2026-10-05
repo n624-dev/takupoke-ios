@@ -253,7 +253,7 @@ def prepare(run_id, commit, output):
     return metadata, attempt
 
 
-def publish(output, metadata, run_id, attempt, commit):
+def publish(output, metadata, run_id, attempt, commit, expected_draft_id=None):
     if ({p.name for p in output.iterdir()} != set(ASSETS)
             or sha256(output / "takupoke.ipa") != metadata["sha256"]["takupoke.ipa"]):
         raise ValueError("Prepared package changed before publication")
@@ -263,6 +263,8 @@ def publish(output, metadata, run_id, attempt, commit):
         raise ValueError("Required run was rerun before publication")
     draft = find_stage(run_id, attempt, commit)
     owned_id = draft["id"]
+    if expected_draft_id is not None and owned_id != expected_draft_id:
+        raise ValueError("Owned development draft changed before publication")
     expected_hashes = {name: sha256(output / name) for name in ASSETS}
     with tempfile.TemporaryDirectory(prefix="takupoke-dev-upload-") as scratch:
         scratch = Path(scratch)

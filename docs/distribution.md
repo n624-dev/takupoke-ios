@@ -98,7 +98,7 @@ Sourceは最新の1版を掲載します。過去の IPA と各時点の Source 
 
 ## キャッシュと一時保存
 
-Actions のビルド・依存関係キャッシュと保存用 artifact は使用しません。`actions/cache`、`upload-artifact`、`download-artifact` は導入せず、Python セットアップの依存キャッシュも有効にしません。IPA は同じ macOS ジョブ内でビルドから公開まで完結し、終了時に runner 内の成果物を削除します。
+Actions のビルド・依存関係キャッシュと保存用 artifact は使用しません。`actions/cache`、`upload-artifact`、`download-artifact` は導入せず、Python セットアップの依存キャッシュも有効にしません。正式配布のIPAは同じ macOS ジョブ内でビルドから公開まで完結し、終了時に runner 内の成果物を削除します。研究branchの開発版は非公開の所有draftを介して、検証完了後の公開専用ジョブへ渡します。
 
 GitHub Releases の添付は Actions のキャッシュ・artifact と別の配布用保存です。正式な Release を件数制限で自動削除することはしません。不要な失敗 draft は公開されず、正常な Source からも参照されません。保存の区分は [Actions のストレージ](https://docs.github.com/en/billing/concepts/product-billing/github-actions) と [Releases の説明](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases) を参照してください。
 
@@ -107,6 +107,14 @@ GitHub Releases の添付は Actions のキャッシュ・artifact と別の配�
 GitHub 側の配信キャッシュをこのリポジトリから完全に無効化することは保証しません。固定 Source URL の反映が遅れる場合は、Release の Source と AltStore の表示を照合し、時間をおいて再取得します。
 
 ビルド用一時ファイル・照合用ダウンロードも処理終了時に削除します。Actions の実行ログは GitHub の保持期限に従います。キャッシュや artifact の使用量を手動で整理する運用は設けません。
+
+## 研究branchの開発版をCIから公開する
+
+`codex/pdf-local-recovery` の手動実行では、`mode=build` が既定です。同じrun・再実行回・コミットの必須13ジョブを実行し、iPhoneビルドは所有情報付きの非公開draftへIPAと検査情報を保存します。
+
+全13ジョブの成功後、同じbranchで `mode=development-publish` を選び、`development_run_id` に完了済みrunのID、`development_source` にその40文字のコミットを指定します。公開専用ジョブは実行中ワークフローのコミットに固定したhelperで、前回runの所属・コミット・再実行回・全13件の成功をGitHubから再確認します。公開run自体はテストの成功根拠にせず、ビルドも行いません。
+
+所有draftからIPAを取得し、未署名のiPhoneビルド・埋込コミット・ハッシュを検査します。公開添付は `takupoke.ipa`、`SHA256SUMS`、`INSTALL.txt` の3件です。非公開時と公開後に全ファイルの実byteを照合し、開発版prereleaseとして公開します。正式latest・AltStore Source・mainを更新せず、失敗や中止時の削除は記録した同一runの所有draftがまだ非公開である場合に限ります。実機動作・実資料の復旧品質・追加モデル品質の確認は別途必要です。
 
 ## 公式資料
 
