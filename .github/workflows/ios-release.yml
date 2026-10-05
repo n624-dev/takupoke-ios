@@ -44,6 +44,7 @@ jobs:
           bash -n tools/test-parsing.sh
           bash -n tools/test-picker-ui.sh
           bash -n tools/test-app-ui.sh
+          bash -n tools/test-manual-ui.sh
           git diff --check
 
   native-parsing:
@@ -100,6 +101,9 @@ jobs:
           persist-credentials: false
       - name: Exercise app screens with synthetic data
         run: bash tools/test-app-ui.sh
+      - name: Exercise acknowledgement and separate adoption with fictional manual corrections
+        if: matrix.shard == 'A'
+        run: bash tools/test-manual-ui.sh
 
   build-check:
     name: Check iPhone build without publishing
@@ -127,6 +131,16 @@ jobs:
           TKPK_BUILD: ${{ steps.version.outputs.build }}
           TKPK_COMMIT: ${{ github.sha }}
         run: bash tools/build-ios.sh "$RUNNER_TEMP/takupoke-output"
+      - name: Retain unsigned device build for verified development distribution
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/pdf-local-recovery'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: takupoke-ios-development-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/takupoke-output/takupoke.ipa
+            ${{ runner.temp }}/takupoke-output/release.json
+          if-no-files-found: error
+          retention-days: 3
       - name: Remove build outputs
         if: always()
         run: rm -rf "$RUNNER_TEMP/takupoke-output"
