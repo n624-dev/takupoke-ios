@@ -20,23 +20,26 @@ def instrument_events_cache(text):
         }
 ''')
 
-def instrument_native_ocr(text):
-    # Anchor the diagnostic before candidate validation without depending on
-    # the spelling or line breaks of the production safety checks.
-    marker = '                for line in observation.document.text.lines {'
-    assert text.count(marker) == 1, 'Native OCR probe insertion point missing'
-    return text.replace(marker, marker + '''
+NATIVE_OCR_DIAGNOSTIC = '''
                     if ProcessInfo.processInfo.arguments.contains("--recovery-ocr-probe") {
-                        let detail = line.topCandidates(1).map { $0.string + " confidence=" + String($0.confidence) + " box=" + String(describing: line.boundingBox) }.joined(separator: " | ")
+                        let captured = lines.last?.candidates.first
+                        let detail = captured.map { $0.text + " confidence=" + String($0.confidence) + " candidateBox=" + String(describing: $0.lineRange) + " observationBox=" + String(describing: $0.observationRange) } ?? "no-top1"
                         let previous = UserDefaults.standard.stringArray(forKey: "fixture.nativeOCRCandidates") ?? []
                         UserDefaults.standard.set(previous + [detail], forKey: "fixture.nativeOCRCandidates")
-                        if let probe = line.topCandidates(1).first {
-                            UserDefaults.standard.set(probe.string, forKey: "fixture.nativeOCRText")
-                            UserDefaults.standard.set(Double(probe.confidence), forKey: "fixture.nativeOCRConfidence")
+                        if let probe = captured {
+                            UserDefaults.standard.set(probe.text, forKey: "fixture.nativeOCRText")
+                            UserDefaults.standard.set(probe.confidence, forKey: "fixture.nativeOCRConfidence")
                         }
                         print("SYNTHETIC_NATIVE_OCR " + detail)
                     }
-''')
+'''
+
+def instrument_native_ocr(text):
+    # Record only the captured page-level top1 after unchanged top-five capture.
+    # Hierarchy cell lines are separate observations and never duplicate this log.
+    marker = '                lines.append(try captureLine(line, order: lines.count, hierarchy: false))'
+    assert text.count(marker) == 1, 'Native OCR probe insertion point missing'
+    return text.replace(marker, marker + NATIVE_OCR_DIAGNOSTIC)
 
 def generate(destination):
     repo = Path(__file__).resolve().parents[1]
@@ -141,6 +144,7 @@ def generate(destination):
                 }
             }
 ''')
+        if path.name == 'RecoveryVisionCapture.swift':
             text = instrument_native_ocr(text)
         if path.name == 'TimetableView.swift':
             marker = 'struct TimetableView: View {'

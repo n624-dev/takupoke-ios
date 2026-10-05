@@ -37,34 +37,41 @@ class ManifestTests(unittest.TestCase):
                          generated.split('    func fetch(year: Int) {', 1)[1])
 
     def test_native_ocr_probe_preserves_actual_multiline_confidence_guard(self):
-        source = (ROOT / "Takupoke/PDFRecoveryRecognition.swift").read_text(encoding="utf-8")
+        source = (ROOT / "Takupoke/RecoveryVisionCapture.swift").read_text(encoding="utf-8")
+        recognition = (ROOT / "Takupoke/PDFRecoveryRecognition.swift").read_text(encoding="utf-8")
         assessment = (ROOT / "Takupoke/RecoveryOCRAcquisition.swift").read_text(encoding="utf-8")
         self.assertNotIn("--recovery-ocr-probe", source)
         generated = app_test_project.instrument_native_ocr(source)
-        marker = "for line in observation.document.text.lines {"
-        prefix, capture = source.split(marker, 1)
-        generated_prefix, generated_capture = generated.split(marker, 1)
-        # The probe is inserted before acquisition. All production code, including
-        # raw top-five capture and the later strict assessment, stays identical.
-        self.assertEqual(prefix, generated_prefix)
-        self.assertTrue(generated_capture.endswith(capture))
-        probe = generated_capture[:-len(capture)]
+        probe = app_test_project.NATIVE_OCR_DIAGNOSTIC
+        self.assertEqual(generated.count(probe), 1)
+        self.assertEqual(generated.replace(probe, "", 1), source)
+        self.assertNotIn("--recovery-ocr-probe", recognition)
+        generator=(ROOT / "tools/app_test_project.py").read_text(encoding="utf-8")
+        self.assertIn("if path.name == 'RecoveryVisionCapture.swift':\n            text = instrument_native_ocr(text)", generator)
+        marker='                lines.append(try captureLine(line, order: lines.count, hierarchy: false))'
+        for changed in (source.replace(marker, ""), source+"\n"+marker):
+            with self.assertRaises(AssertionError): app_test_project.instrument_native_ocr(changed)
         self.assertIn("SYNTHETIC_NATIVE_OCR", probe)
-        self.assertIn("line.topCandidates(1)", probe)
-        acquire = source.split("static func acquire(", 1)[1].split("private static func snapshotHash(", 1)[0]
+        self.assertIn("let captured = lines.last?.candidates.first", probe)
+        self.assertIn("$0.lineRange", probe)
+        self.assertIn("$0.observationRange", probe)
+        self.assertNotIn("topCandidates(", probe)
+        self.assertNotRegex(probe, r"\b(?:lines|candidates|characters)\.(?:append|remove|sort)")
+        acquire = recognition.split("static func acquire(", 1)[1].split("private static func snapshotHash(", 1)[0]
         for retained in (
-                "for number in required {",
                 "for candidate in line.topCandidates(5) {",
                 "let text = candidate.string",
                 "candidate.boundingBox(for: start..<end)",
                 "characters.append(RecoveryOCRCharacter(text: characterText, range: range))",
-                "candidates.append(RecoveryOCRCandidate(text: text, confidence: Double(candidate.confidence), characters: characters))",
-                "lines.append(RecoveryOCRLine(nativeOrder: lines.count, candidates: candidates))",
-                "requiredOCRPages: required, pages: output"):
+                "lineRange: wholeRange, observationRange:observationRange",
+                "lines.append(try captureLine(line, order: lines.count, hierarchy: false))",
+                "nativeDocumentCount: observations.count, lines: lines, captureComplete: true"):
+            self.assertIn(retained, source)
+        self.assertLess(generated.index("lines.append(try captureLine(line"), generated.index("SYNTHETIC_NATIVE_OCR"))
+        self.assertLess(generated.index("SYNTHETIC_NATIVE_OCR"), generated.index("let tables ="))
+        self.assertIn("hierarchy: true", source)
+        for retained in ("for number in required {", "RecoveryVisionCapture.page(", "requiredOCRPages: required, pages: output"):
             self.assertIn(retained, acquire)
-        self.assertLess(generated.index("SYNTHETIC_NATIVE_OCR"), generated.index("line.topCandidates(5)"))
-        self.assertLess(acquire.index("lines.append(RecoveryOCRLine"), acquire.index("captureComplete: true"))
-        self.assertLess(acquire.index("captureComplete: true"), acquire.index("return Draft("))
         self.assertNotIn("0.85", acquire)
         self.assertNotIn(".assess(", acquire)
 
@@ -80,10 +87,10 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("let top1 = line.candidates[0]", assess)
         self.assertIn("if top1.confidence < 0.85 { low[page.page, default: []].append(order) }", assess)
         self.assertIn(r"lowConfidenceNativeOrders.values.allSatisfy(\.isEmpty)", assessment)
-        strict = source.split("func strictLayouts(", 1)[1].split("private func makeLayouts(", 1)[0]
-        self.assertLess(strict.index("acquisition.assess(check: check)"), strict.index("guard assessment.directLayoutsAllowed"))
+        strict = recognition.split("func strictLayouts(", 1)[1].split("private func makeLayouts(", 1)[0]
+        self.assertLess(strict.index("acquisition.strictAssessment(check: check)"), strict.index("guard assessment.directLayoutsAllowed"))
         self.assertLess(strict.index("guard assessment.directLayoutsAllowed"), strict.index("return try makeLayouts(check: check)"))
-        self.assertIn("return try await acquire(url, only: only, check: check).strictLayouts(check: check)", source)
+        self.assertIn("return try await acquire(url, only: only, check: check).strictLayouts(check: check)", recognition)
 
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8"))
@@ -168,7 +175,8 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("timeout-minutes: 35", manual)
         self.assertIn("bash tools/test-manual-ui.sh", manual)
         self.assertNotIn("continue-on-error", manual)
-        self.assertNotIn("TKPK_MANUAL_DIAGNOSTICS", manual)
+        self.assertEqual(manual.count("TKPK_MANUAL_DIAGNOSTICS: '1'"), 1)
+        self.assertEqual(workflow.count("TKPK_MANUAL_DIAGNOSTICS"), 1)
         for ios, runner, xcode in ((26, "macos-26", "26.6"), (27, "xcode-27", "27.0")):
             self.assertIn(f"- ios: {ios}\n            runner: {runner}\n            developer: /Applications/Xcode_{xcode}.app/Contents/Developer", manual)
         simulator = workflow.split("  simulator:\n", 1)[1].split("  manual:\n", 1)[0]
