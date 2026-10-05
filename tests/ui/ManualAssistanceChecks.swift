@@ -107,11 +107,23 @@ final class ManualAssistanceChecks:XCTestCase {
         XCTAssertEqual(outcome,.completed,app.debugDescription)
     }
     private func edit(_ e:XCUIElement,_ value:String) {
-        visible(e).tap(); e.press(forDuration:1.1)
+        visible(e).tap()
+        editStage("after-focus",e)
+        // Focusing can move a recycled List row when the keyboard changes.
+        // Reacquire its real hit region before the existing selection gesture.
+        let focused=visible(e)
+        editStage("before-selection",focused)
+        focused.press(forDuration:1.1)
+        editStage("after-selection",e)
         if app.menuItems["すべてを選択"].waitForExistence(timeout:2) { app.menuItems["すべてを選択"].tap() }
         else if app.menuItems["Select All"].exists { app.menuItems["Select All"].tap() }
         else { e.typeText(String(repeating:XCUIKeyboardKey.delete.rawValue,count:(e.value as? String)?.count ?? 0)) }
         e.typeText(value)
+    }
+    private func editStage(_ stage:String,_ e:XCUIElement) {
+        let keyboard=app.keyboards.firstMatch
+        let exists=e.exists
+        print("TAKUPOKE-MANUAL-EDIT stage=\(stage);id=\(exists ? e.identifier:"absent");exists=\(exists);hittable=\(exists && e.isHittable);frame=\(exists ? String(describing:e.frame):"absent");focused=\(exists && e.debugDescription.contains("Keyboard Focused"));keyboard=\(keyboard.exists ? String(describing:keyboard.frame):"absent")")
     }
     func testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground() {
         launch();XCTAssertTrue(fieldsExist(),app.debugDescription);XCTAssertEqual(fieldIDs.count,1)

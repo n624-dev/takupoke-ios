@@ -26,6 +26,19 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('XCTAssertEqual(app.staticTexts["manual-process-launch"].firstMatch.label,processBefore',checks)
         self.assertIn('XCTAssertEqual(header.label,"採用する資料全体",app.debugDescription)',checks)
 
+    def test_editor_reacquires_real_hit_region_after_keyboard_focus(self):
+        checks=(ROOT/"tests/ui/ManualAssistanceChecks.swift").read_text(encoding="utf-8")
+        edit=checks.split('    private func edit(',1)[1].split('    private func editStage(',1)[0]
+        self.assertLess(edit.index('visible(e).tap()'),edit.index('let focused=visible(e)'))
+        self.assertLess(edit.index('let focused=visible(e)'),edit.index('focused.press(forDuration:1.1)'))
+        self.assertIn('menuItems["すべてを選択"]',edit)
+        self.assertIn('menuItems["Select All"]',edit)
+        self.assertIn('e.typeText(value)',edit)
+        self.assertNotIn('sleep(',edit)
+        self.assertIn('editStage("after-focus",e)',edit)
+        self.assertIn('editStage("before-selection",focused)',edit)
+        self.assertIn('TAKUPOKE-MANUAL-EDIT stage=',checks)
+
     def test_coordinator_preserves_actual_submit_adopt_and_source_guards(self):
         original=(ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8")
         changed=module.coordinator(original)
