@@ -1,0 +1,159 @@
+{
+  "status": "COMPLETED: seven required jobs successful, one authorized UI26A-only retry",
+  "source": "63ea9c88212bfe6a3755743e9c6288ff7d62adfb",
+  "base": "f8b0ca476d6fe6c5627231b1f24f32e73cb816f1",
+  "parserVersion": 25,
+  "modelSchemaVersion": 2,
+  "validatorVersion": 5,
+  "appOCRCoverageProofVersion": 1,
+  "fieldPromptVersion": 4,
+  "structurePromptVersion": 3,
+  "bug": "Recognized first class could pass while an entirely omitted second class still had original nonrule pixels outside all captured cells. Legacy OCR builders lacked the generic full-page coverage check.",
+  "reproduction": {
+    "source": "Independently invented 2-class model-free host raster fixture; not native OCR output",
+    "before": {
+      "completeClasses": 2,
+      "completeSlots": 80,
+      "completeAdoptable": true,
+      "omittedClassSlots": 40,
+      "omittedClassIncorrectlyAdoptable": true,
+      "originalUncoveredInk": true
+    },
+    "after": {
+      "completeSlots": 80,
+      "completeAdoptable": true,
+      "omittedClassRefusal": "ambiguous.rasterInput"
+    }
+  },
+  "fix": {
+    "fullPageInk": "Existing original raster full-page guard now applies to every OCR page, same predicates/cancellation/shared32M limit",
+    "proof": "Builder-produced page/dimensions/grayscaleSHA256 proof is scope-fingerprint bound to exact original inventory and role/header geometry. No model field supplies it.",
+    "oldOCRCache": "Old nil-proof OCR cannot be repaired by metadata-only recertification or reused silently; reread needed. Stored last-good bytes retained and warnings apply.",
+    "vectorCache": "Existing legal vector acceptance timestamps and histories retained. Strict and events behavior unchanged; Special parser22 unchanged but untrusted recovered cache no longer bypasses reread."
+  },
+  "verification": {
+    "LinuxFinal": {
+      "tests": 352,
+      "failures": 0,
+      "logSHA256": "242ea02b7b802187799f2574f8b75f5f0ef3133db9f1ee0f7baef4f3b0991eef"
+    },
+    "independentFocused": {
+      "tests": 8,
+      "failures": 0,
+      "binarySHA256": "ade39b027da1fca16b4c0063542c4c2925c0361e54b229d77119fa48efe56d78"
+    },
+    "nativeMac": {
+      "tests": 402,
+      "failures": 0,
+      "logSHA256": "e89b66cd3734e09b47c0d116593245c956ed0d89913c7b534760976b54bcfa03"
+    },
+    "SDK": {
+      "build": "BUILD SUCCEEDED",
+      "logSHA256": "ec1f607f2df1764cdbe9792f6e0d543859ea88613bf4a0f0e7fd3b3a753c1d92"
+    },
+    "CIrun": 37248116100,
+    "UI26AInitial": {
+      "tests": 13,
+      "failures": 1,
+      "stage": "Settings tab selected-state wait, actual cause unresolved",
+      "logSHA256": "9de569b5f5fa36ff68ed4f0f312ae84050edc3a11ee7062b9beb35bfb818f135"
+    },
+    "UI27A": {
+      "passed": 13
+    },
+    "UI26B": {
+      "passed": 12,
+      "skipped": 1,
+      "logBytes": 2794798,
+      "logSHA256": "3983a797804511b6e70aab08b2d9870d7a6f80ca579ca7a27186c20c46d482fc"
+    },
+    "UI27B": {
+      "passed": 13,
+      "logBytes": 2984580,
+      "logSHA256": "f5541fdce9eef73ef6766efd9252764efc407f4afe2c3bc8165af760c8e289c2"
+    },
+    "UI26ARetry": {
+      "job": 111575918479,
+      "passed": 13,
+      "failures": 0,
+      "startedAt": "2026-10-05T01:07:12Z",
+      "completedAt": "2026-10-05T01:34:16Z",
+      "logBytes": 1686439,
+      "logSHA256": "44bf5a57124a0a168c6ee8794bd7c8dc5501a46ab2a186c82e3b54ff449624be"
+    },
+    "CI": {
+      "url": "https://github.com/n624-dev/takupoke-ios/actions/runs/37248116100",
+      "headSHA": "63ea9c88212bfe6a3755743e9c6288ff7d62adfb",
+      "status": "completed",
+      "conclusion": "success",
+      "attempt": 2,
+      "requiredSuccesses": 7,
+      "jobs": [
+        {
+          "id": 111575918266,
+          "name": "Distribution tests",
+          "conclusion": "success",
+          "started_at": "2026-10-05T00:35:35Z",
+          "completed_at": "2026-10-05T00:35:45Z"
+        },
+        {
+          "id": 111575918479,
+          "name": "Application iOS 26 UI A",
+          "conclusion": "success",
+          "started_at": "2026-10-05T01:07:12Z",
+          "completed_at": "2026-10-05T01:34:16Z"
+        },
+        {
+          "id": 111575918711,
+          "name": "Application iOS 27 UI A",
+          "conclusion": "success",
+          "started_at": "2026-10-05T00:43:06Z",
+          "completed_at": "2026-10-05T01:02:51Z"
+        },
+        {
+          "id": 111575918790,
+          "name": "Check iPhone build without publishing",
+          "conclusion": "success",
+          "started_at": "2026-10-05T00:35:54Z",
+          "completed_at": "2026-10-05T01:03:21Z"
+        },
+        {
+          "id": 111575918803,
+          "name": "Application iOS 26 UI B",
+          "conclusion": "success",
+          "started_at": "2026-10-05T00:35:52Z",
+          "completed_at": "2026-10-05T01:05:42Z"
+        },
+        {
+          "id": 111575918854,
+          "name": "Native PDF and recovery tests",
+          "conclusion": "success",
+          "started_at": "2026-10-05T00:35:59Z",
+          "completed_at": "2026-10-05T00:43:00Z"
+        },
+        {
+          "id": 111575918864,
+          "name": "Build and publish AltStore release",
+          "conclusion": "skipped",
+          "started_at": "2026-10-05T01:07:04Z",
+          "completed_at": "2026-10-05T00:35:45Z"
+        },
+        {
+          "id": 111575918961,
+          "name": "Application iOS 27 UI B",
+          "conclusion": "success",
+          "started_at": "2026-10-05T00:35:53Z",
+          "completed_at": "2026-10-05T01:03:56Z"
+        }
+      ],
+      "retryScope": "Only UI26A reexecuted. Other cloned job IDs retain original started_at; original execution logs are retained.",
+      "initialFailureCause": "Unresolved Settings selected-state wait. Later success does not establish its cause."
+    }
+  },
+  "scope": [
+    "This proves conservative acquisition completeness/source-cache behavior, not literal OCR transcription correctness.",
+    "No model/native OCR request was added by this production fix. No model qualification or distribution activation.",
+    "All test fixtures independently invented. Original school PDF was never input to source/tests/CI; no PDF/font/PNG binaries committed.",
+    "Separate defaultDoc40 and consumed image-only PDF regional acquisition remain separate research phases, with no qualification credit from these safety checks."
+  ]
+}
