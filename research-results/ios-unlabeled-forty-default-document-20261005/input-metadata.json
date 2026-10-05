@@ -1,0 +1,33 @@
+{
+  "expectedPassedToNativeOrBuilder": false,
+  "image": {
+    "alphaInfo": 6,
+    "bitmapInfo": 8198,
+    "bitsPerComponent": 8,
+    "bitsPerPixel": 32,
+    "bytesPerRow": 8192,
+    "colorSpace": "kCGColorSpaceSRGB",
+    "height": 439,
+    "pngBytes": 49791,
+    "pngSHA256": "a890c6ace2cab7cbf4d3a70272570a0f6dbe534176d69cef22ae37560e733a61",
+    "providerBytes": 3596288,
+    "providerSHA256": "f7c179002e771d9d8c83b0013b3822db41336e80ad5c42e7ff96800cf6b149bb",
+    "sameAsPillowPixels": false,
+    "source_generated": true,
+    "width": 2048
+  },
+  "imagePayloadExcluded": true,
+  "ordinaryPDFEndpointAssessed": false,
+  "originalInputRecordSHA256": "a9c482111822b863b66265623e559a613fc694e8a5ca1da9318f5d743359fb13",
+  "plannedRequests": 1,
+  "productionLayoutsScale": 0.5475935828877005,
+  "publicScope": "Derived selected metadata, not original raw inputrecord; whole raw inputrecord omitted",
+  "recipe": "min(2,2048/max(sourcebasis)),ceil dimensions; UIKit source drawing, no PDF thumbnail",
+  "requestConstruction": "RecognizeDocumentsRequest()",
+  "settingOverrides": [],
+  "sourceBasis": [
+    3740,
+    800
+  ],
+  "type": "input"
+}

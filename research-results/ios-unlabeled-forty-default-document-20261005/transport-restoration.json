@@ -1,0 +1,50 @@
+{
+  "runId": 37247509343,
+  "fullLogBytes": 424538,
+  "fullLogSHA256": "b74c408fbdb90b33563bafb484edcd8cfb9df1078af0db1511c2d444a619d51b",
+  "streams": {
+    "native/stdout": {
+      "path": "/workspace/review-notes/ios-unlabeled-forty-native-stdout.jsonl",
+      "bytes": 220272,
+      "sha256": "bb3acdd16d38884c2ec9373d69c01c76dbb6912fd3e5ac17fa6a5191a1fbd224"
+    },
+    "native/stderr": {
+      "path": "/workspace/review-notes/ios-unlabeled-forty-native-stderr.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "metadata/execution": {
+      "path": "/workspace/review-notes/ios-unlabeled-forty-metadata-execution.jsonl",
+      "bytes": 43952,
+      "sha256": "61f354cfb36bbe2bcb63f5a7b59a31cca3833d15b5797e5e63ee6b3237e19ea7"
+    }
+  },
+  "receipt": {
+    "rawBytes": 220272,
+    "rawSHA256": "bb3acdd16d38884c2ec9373d69c01c76dbb6912fd3e5ac17fa6a5191a1fbd224",
+    "recordTypes": [
+      "input",
+      "page",
+      "drawing",
+      "literalAssessment",
+      "summary"
+    ],
+    "invalidLines": 0,
+    "recordSequenceComplete": true,
+    "summary": {
+      "analysesReturned": 0,
+      "attemptedRequests": 1,
+      "externalModelInvocations": 0,
+      "formalQuality": "UNASSESSED",
+      "formalStorageWrites": 0,
+      "manualAdopted": false,
+      "plannedRequests": 1,
+      "returnedRequests": 1,
+      "type": "summary"
+    },
+    "all40LiteralMatched": false,
+    "assessedLiteralMismatch": false,
+    "literalUnassessed": true,
+    "scope": "serialization/transport only; all PDF endpoint/adoption/formal storage unassessed here"
+  }
+}

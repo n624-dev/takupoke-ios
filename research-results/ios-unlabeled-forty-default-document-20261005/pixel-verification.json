@@ -1,0 +1,18 @@
+{
+  "pngByteSHAExact": true,
+  "dimensions": [
+    2048,
+    439
+  ],
+  "format": "PNG",
+  "decodedMode": "RGB",
+  "RGBABytes": 3596288,
+  "RGBA_SHA256": "f7c179002e771d9d8c83b0013b3822db41336e80ad5c42e7ff96800cf6b149bb",
+  "nativeProviderSHA256": "f7c179002e771d9d8c83b0013b3822db41336e80ad5c42e7ff96800cf6b149bb",
+  "decodedRGBAEqualsNativeProvider": true,
+  "inspectionScope": "Lossless PNG/RGBA byte checks in memory; one owned temporary image viewed then marker-checked deleted, no image Git/publicdataset",
+  "localGeneratedImageFilesCreated": 1,
+  "localGeneratedImageFilesRemaining": 0,
+  "ownedInspectDirectoryRemoved": "/tmp/ios-unlabeled-forty-inspect-37247509343",
+  "visualInspection": "All five weekday groups, 40 period digits, separated grade/class 1/2, subject/teacher/room rows visible in this source-generated actual input; not exact ink/unique ownership or quality qualification"
+}

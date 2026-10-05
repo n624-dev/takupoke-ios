@@ -1,0 +1,46 @@
+{
+  "README.md": {
+    "bytes": 5700,
+    "sha256": "5fc7f7d2c961f00ddd07de4f05a324f163e86324516164d3ab2df6fcc27b9fd2"
+  },
+  "analyze.py": {
+    "bytes": 6504,
+    "sha256": "8087fe18c0da089ffe6754ab3780dbed3b352c6fa6e096f397039185ab12f433"
+  },
+  "derived-evidence.json": {
+    "bytes": 335981,
+    "sha256": "db1cd7f54c4fc07166270a1a046516a5b8ef256f4d688e03427cf0ac0ca331db"
+  },
+  "drawing-source.json": {
+    "bytes": 6000,
+    "sha256": "25e8f58156bc3a955b3b8bf4616ad1267e627b9aff37676a829b3f3e625d815e"
+  },
+  "execution.json": {
+    "bytes": 43952,
+    "sha256": "61f354cfb36bbe2bcb63f5a7b59a31cca3833d15b5797e5e63ee6b3237e19ea7"
+  },
+  "fixture-pins.json": {
+    "bytes": 460,
+    "sha256": "675a869bef6e32281e9152a6806cee191ecfeadb7eb599073a749934c88502b1"
+  },
+  "input-metadata.json": {
+    "bytes": 1145,
+    "sha256": "f4d1fc1a0132e2ed3aa8a0c3235f551b1029b59b66e16c617af84db8a732bdcd"
+  },
+  "literal-formal-oracle.json": {
+    "bytes": 9883,
+    "sha256": "448d13ae7860890ed86b7211e226718c1d8068c41d913709d07e8a18e7868a69"
+  },
+  "native-output.json": {
+    "bytes": 19921,
+    "sha256": "514e07dd7c42bd93e09d80557267724694fad59d02622b8d2bba4a39324dd647"
+  },
+  "pixel-verification.json": {
+    "bytes": 902,
+    "sha256": "5dca918d2684db5e04c820a6e902e4da832a905d1e06ad72bcfbc62d03167e7c"
+  },
+  "transport-restoration.json": {
+    "bytes": 1624,
+    "sha256": "c1ec086b3d717c5b65c1ba15e4e4457fd3bec02a95d5b24510eee962e799eb66"
+  }
+}
