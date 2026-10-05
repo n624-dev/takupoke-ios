@@ -127,7 +127,7 @@ def generate(destination):
             }
 """)
         if path.name == 'PDFRecoveryRecognition.swift':
-            raster_marker = '            let raster = try RecoveryRasterGrid.fromRGBA(width:cg.width,height:cg.height,pixels:rgba,check:check)'
+            raster_marker = '            let raster = try RecoveryRasterGrid.fromRGBA(width: cg.width, height: cg.height, pixels: rgba, check: check)'
             assert raster_marker in text, 'Native raster probe insertion point missing'
             text = text.replace(raster_marker, raster_marker + '\n' + '''            if ProcessInfo.processInfo.arguments.contains("--recovery-ocr-probe") {
                 if let mode = UserDefaults.standard.string(forKey: "fixture.nativeCropMode") {
