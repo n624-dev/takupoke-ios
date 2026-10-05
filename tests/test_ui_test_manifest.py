@@ -38,14 +38,52 @@ class ManifestTests(unittest.TestCase):
 
     def test_native_ocr_probe_preserves_actual_multiline_confidence_guard(self):
         source = (ROOT / "Takupoke/PDFRecoveryRecognition.swift").read_text(encoding="utf-8")
+        assessment = (ROOT / "Takupoke/RecoveryOCRAcquisition.swift").read_text(encoding="utf-8")
         self.assertNotIn("--recovery-ocr-probe", source)
         generated = app_test_project.instrument_native_ocr(source)
-        guard = source.split("                    guard let candidate = ", 1)[1].split("                    let text =", 1)[0]
+        marker = "for line in observation.document.text.lines {"
+        prefix, capture = source.split(marker, 1)
+        generated_prefix, generated_capture = generated.split(marker, 1)
+        # The probe is inserted before acquisition. All production code, including
+        # raw top-five capture and the later strict assessment, stays identical.
+        self.assertEqual(prefix, generated_prefix)
+        self.assertTrue(generated_capture.endswith(capture))
+        probe = generated_capture[:-len(capture)]
+        self.assertIn("SYNTHETIC_NATIVE_OCR", probe)
+        self.assertIn("line.topCandidates(1)", probe)
+        acquire = source.split("static func acquire(", 1)[1].split("private static func snapshotHash(", 1)[0]
+        for retained in (
+                "for number in required {",
+                "for candidate in line.topCandidates(5) {",
+                "let text = candidate.string",
+                "candidate.boundingBox(for: start..<end)",
+                "characters.append(RecoveryOCRCharacter(text: characterText, range: range))",
+                "candidates.append(RecoveryOCRCandidate(text: text, confidence: Double(candidate.confidence), characters: characters))",
+                "lines.append(RecoveryOCRLine(nativeOrder: lines.count, candidates: candidates))",
+                "requiredOCRPages: required, pages: output"):
+            self.assertIn(retained, acquire)
+        self.assertLess(generated.index("SYNTHETIC_NATIVE_OCR"), generated.index("line.topCandidates(5)"))
+        self.assertLess(acquire.index("lines.append(RecoveryOCRLine"), acquire.index("captureComplete: true"))
+        self.assertLess(acquire.index("captureComplete: true"), acquire.index("return Draft("))
+        self.assertNotIn("0.85", acquire)
+        self.assertNotIn(".assess(", acquire)
+
+        # Confidence still rejects nonfinite/out-of-range candidates. Only original
+        # top-one confidence controls the unchanged inclusive .85 direct gate.
+        assess = assessment.split("func assess(", 1)[1]
+        guard = assess.split("guard !candidate.text.isEmpty,", 1)[1].split("else", 1)[0]
         self.assertIn("candidate.confidence.isFinite", guard)
-        self.assertIn("candidate.confidence >= 0.85", guard)
-        self.assertIn("candidate.confidence <= 1", guard)
-        self.assertIn("                    guard let candidate = " + guard, generated)
-        self.assertLess(generated.index("SYNTHETIC_NATIVE_OCR"), generated.index("guard let candidate ="))
+        self.assertIn("(0...1).contains(candidate.confidence)", guard)
+        self.assertIn("pages.count == requiredOCRPages.count", assess)
+        self.assertIn(r"pages.map(\.page) == requiredOCRPages", assess)
+        self.assertLess(assess.index("guard page.captureComplete"), assess.index("candidate.confidence.isFinite"))
+        self.assertIn("let top1 = line.candidates[0]", assess)
+        self.assertIn("if top1.confidence < 0.85 { low[page.page, default: []].append(order) }", assess)
+        self.assertIn(r"lowConfidenceNativeOrders.values.allSatisfy(\.isEmpty)", assessment)
+        strict = source.split("func strictLayouts(", 1)[1].split("private func makeLayouts(", 1)[0]
+        self.assertLess(strict.index("acquisition.assess(check: check)"), strict.index("guard assessment.directLayoutsAllowed"))
+        self.assertLess(strict.index("guard assessment.directLayoutsAllowed"), strict.index("return try makeLayouts(check: check)"))
+        self.assertIn("return try await acquire(url, only: only, check: check).strictLayouts(check: check)", source)
 
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8"))
