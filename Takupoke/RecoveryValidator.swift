@@ -7,7 +7,7 @@ import Crypto
 
 enum RecoveryValidator {
     static let schemaVersion = 2
-    static let version = 5
+    static let version = 6
     private static func text(_ value: String) -> String {
         value.precomposedStringWithCompatibilityMapping.components(separatedBy: .whitespacesAndNewlines).joined()
     }
@@ -35,13 +35,14 @@ enum RecoveryValidator {
         return try validate(doc,result,inputOnly:inputOnly,unresolvedCellIds:unresolvedCellIds,index:index,work:work)
     }
     static func validate(_ doc:RecoveryDocument,_ result:RecoveryResult,inputOnly:Bool = false,unresolvedCellIds:Set<String> = [],index:RecoverySourceIndex,work:RecoveryValidationWork) throws -> RecoveryValidation {
-        let result = validation(doc,result,inputOnly:inputOnly,unresolvedCellIds:unresolvedCellIds,index:index,work:work)
+        var outcome = validation(doc,result,inputOnly:inputOnly,unresolvedCellIds:unresolvedCellIds,index:index,work:work)
+        outcome.errors += try RecoveryManualAssistance.validationErrors(doc,result,inputOnly:inputOnly,check:{ try work.finish() },work:work)
         try work.finish()
-        return result
+        return outcome
     }
     private static func validation(_ doc:RecoveryDocument,_ result:RecoveryResult,inputOnly:Bool,unresolvedCellIds:Set<String>,index:RecoverySourceIndex,work:RecoveryValidationWork) -> RecoveryValidation {
         guard inputOnly || unresolvedCellIds.isEmpty else { return RecoveryValidation(errors:["unresolvedStructure"]) }
-        guard (1900...9998).contains(doc.schoolYear), (1...64).contains(doc.classes.count), (1...31).contains(doc.days.count), (1...20000).contains(doc.cells.count), doc.sources.count <= 100000, result.cells.count <= 20000 else { return RecoveryValidation(errors: ["inputLimit"]) }
+        guard (1900...9998).contains(doc.schoolYear), (1...64).contains(doc.classes.count), (1...31).contains(doc.days.count), (1...20000).contains(doc.cells.count), doc.sources.count <= 100000, result.cells.count <= 20000, (result.humanCorrections?.count ?? 0) <= RecoveryManualAssistance.maximumFields else { return RecoveryValidation(errors: ["inputLimit"]) }
         var errors = [String]()
         func check(_ ok: Bool, _ code: String) { if work.charge(), !ok && !errors.contains(code) { errors.append(code) } }
         // Old OCR audits lack this acquisition proof and cannot be recertified
@@ -423,13 +424,15 @@ enum RecoveryValidator {
                 let binding = cell.lessonBindings.indices.contains(lessonIndex) ? cell.lessonBindings[lessonIndex] : RecoveryLessonBinding(subject: [], teacher: [], room: [])
                 for (name, field) in [("subject", lesson.subject), ("teacher", lesson.teacher), ("room", lesson.room)] {
                     check(field.value.utf16.count <= 1024, "fieldLimit")
+                    let correction = result.humanCorrections?.first { $0.target.cellId == cell.id && $0.target.lessonIndex == lessonIndex && $0.target.role.rawValue == name }
+                    let humanValue = correction.map { $0.value == field.value && $0.parentSourceIds == field.evidence && field.state == .present } ?? false
                     if cell.bindingMode == .fixed {
                         if field.state == .empty { let ids = name == "subject" ? binding.subject : name == "teacher" ? binding.teacher : binding.room; check(ids.isEmpty && name != "subject" && field.value.isEmpty && field.evidence.isEmpty && cell.blankFields.contains(name), "falseBlankField") }
                         else { let ids = name == "subject" ? binding.subject : name == "teacher" ? binding.teacher : binding.room
-                            check(field.state == .present && field.evidence == ids && ordered(field.evidence) && evidence(field.evidence, ids, field.value), "fieldEvidence") }
+                            check(field.state == .present && field.evidence == ids && ordered(field.evidence) && evidence(field.evidence, ids, humanValue ? nil : field.value), "fieldEvidence") }
                     } else if let scope = cell.roleScopes.first(where: { $0.lessonIndex == lessonIndex && $0.role.rawValue == name }) {
                         if field.state == .empty { check(name != "subject" && scope.emptyVerified && field.value.isEmpty && field.evidence.isEmpty, "falseBlankField") }
-                        else { check(field.state == .present && ordered(field.evidence) && evidence(field.evidence, bodyIds, field.value) && field.evidence.allSatisfy { id in sources[id].map { scope.box.contains($0.box) } ?? false }, "fieldEvidence") }
+                        else { check(field.state == .present && ordered(field.evidence) && evidence(field.evidence, bodyIds, humanValue ? nil : field.value) && field.evidence.allSatisfy { id in sources[id].map { scope.box.contains($0.box) } ?? false }, "fieldEvidence") }
                     } else { check(false, "roleScope") }
                 }
                 check(cell.slots.first.flatMap { doc.dayEvidence[$0.day] }.map { _ in evidence(lesson.dateEvidence, cell.dayHeaderIds) } ?? false, "lessonDateEvidence")
@@ -478,22 +481,35 @@ enum RecoveryValidator {
             if let original = adopted.previousAcceptance {
                 var old = adopted
                 old.previousAcceptance = nil; old.acceptance = original
-                old.result.metadata.validatorVersion = 4
-                if old.document.structureMetadata != nil { old.document.structureMetadata!.validatorVersion = 4 }
+                old.result.metadata.validatorVersion = original.metadata.validatorVersion
+                if old.document.structureMetadata != nil { old.document.structureMetadata!.validatorVersion = original.metadata.validatorVersion }
                 guard try recertify(old,hash:hash) == adopted else { return nil }
             }
             return adopted
         }
-        guard adopted.previousAcceptance == nil,
+        if adopted.result.metadata.validatorVersion == 5, let original = adopted.previousAcceptance {
+            guard original.metadata.validatorVersion == 4 else { return nil }
+            var old = adopted; old.previousAcceptance = nil; old.acceptance = original
+            old.result.metadata.validatorVersion = 4
+            if old.document.structureMetadata != nil { old.document.structureMetadata!.validatorVersion = 4 }
+            guard let upgraded = try recertify(old,hash:hash) else { return nil }
+            var expected = upgraded
+            expected.result.metadata.validatorVersion = 5
+            if expected.document.structureMetadata != nil { expected.document.structureMetadata!.validatorVersion = 5 }
+            expected.acceptance = RecoveryAcceptance(pdfHash:hash,resultHash:try fingerprint(expected.result),scopeHash:try fingerprint(expected.document),metadata:expected.result.metadata,acceptedAt:original.acceptedAt)
+            return expected == adopted ? upgraded : nil
+        }
+        guard adopted.previousAcceptance == nil, adopted.document.nativeCapture == nil, adopted.result.humanCorrections == nil,
+              adopted.document.sources.allSatisfy({ $0.nativeConfidence == nil }),
               adopted.document.structureMetadata == nil || adopted.document.structureMetadata == adopted.result.metadata,
-              adopted.result.metadata.validatorVersion == 4,
+              [4,5].contains(adopted.result.metadata.validatorVersion),
               adopted.result.metadata.recoverySchemaVersion == schemaVersion,
               adopted.result.metadata.recoveryVersion == "2",
               adopted.acceptance.pdfHash == hash,
               adopted.acceptance.metadata == adopted.result.metadata,
               adopted.acceptance.resultHash == (try fingerprint(adopted.result)),
               adopted.acceptance.scopeHash == (try fingerprint(adopted.document)),
-              adopted.document.structureMetadata.map({ $0.validatorVersion == 4 && $0.recoverySchemaVersion == schemaVersion && $0.recoveryVersion == "2" }) ?? true else { return nil }
+              adopted.document.structureMetadata.map({ $0.validatorVersion == adopted.result.metadata.validatorVersion && $0.recoverySchemaVersion == schemaVersion && $0.recoveryVersion == "2" }) ?? true else { return nil }
         var current = adopted
         current.result.metadata.validatorVersion = version
         if current.document.structureMetadata != nil { current.document.structureMetadata!.validatorVersion = version }

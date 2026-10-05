@@ -9,6 +9,9 @@ final class PDFRecoveryCoordinator: ObservableObject {
     @Published var preview: RecoveryPreview?
     @Published private(set) var failure: String?
     @Published private(set) var awaitingModel = false
+    @Published private(set) var manualDraft: RecoveryManualDraft?
+    @Published private(set) var manualImages = [String:UIImage]()
+    var manualSourceURL: URL? { manualDraft == nil ? nil : source?.url }
     private var task: Task<Void,Never>?
     private var preparationControl: AcquisitionControl?
     private var operation = UUID()
@@ -56,12 +59,15 @@ final class PDFRecoveryCoordinator: ObservableObject {
                     var layouts = Dictionary(uniqueKeysWithValues:pages.compactMap { p in p.state == .complete ? p.layout.map { (p.page,$0) } : nil })
                     let needsOCR = pages.isEmpty || !missing.isEmpty
                     var ocrPages = Set<Int>(), rasters = [Int:RecoveryRasterGrid]()
+                    var nativeCapture: RecoveryOCRAcquisitionDraft?
                     if needsOCR {
-                        let recognized = try await PDFRecoveryRecognition.layouts(source.url,only:pages.isEmpty ? nil : missing,check:{ try preparationControl.check(); try Task.checkCancellation() })
+                        let acquisition = try await PDFRecoveryRecognition.acquire(source.url,only:pages.isEmpty ? nil : missing,expectedPDFHash:source.digest,check:{ try preparationControl.check(); try Task.checkCancellation() })
+                        nativeCapture = acquisition.acquisition
+                        let recognized = try acquisition.capturedLayouts(check:{ try preparationControl.check(); try Task.checkCancellation() })
                         for p in recognized { layouts[p.page] = p.layout; ocrPages.insert(p.page); rasters[p.page] = p.raster }
                     }
                     guard !layouts.isEmpty, layouts.count == layouts.keys.max(), layouts.keys.sorted() == Array(1...layouts.count) else { throw PDFParseError(code:.ambiguous) }
-                    return RecoveryPreparedPages(pages:layouts.keys.sorted().compactMap { layouts[$0] },fromOCR:ocrPages,rasters:rasters)
+                    return RecoveryPreparedPages(pages:layouts.keys.sorted().compactMap { layouts[$0] },fromOCR:ocrPages,rasters:rasters,nativeCapture:nativeCapture)
                 }.value
                 try self.check(operation)
                 self.pendingPages = prepared
@@ -92,10 +98,11 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 catch let input as RecoveryStructurePreparation { return .structure(input) }
             }.value
             try check(operation)
-            let doc:RecoveryDocument
+            var doc:RecoveryDocument
             switch attempt {
             case .document(let value): doc = value
             case .structure(let input):
+                if let capture = prepared.nativeCapture, try !capture.assess().directLayoutsAllowed { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
                 let inputErrors = try await Task.detached(priority:.userInitiated) {
                     try RecoveryValidator.inputErrors(input.document,unresolvedCellIds:Set(input.requests.map(\.ownerCellId)),check:{ try control.check(); try Task.checkCancellation() })
                 }.value
@@ -122,18 +129,91 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 rebuilt.structureMetadata = metadata
                 doc = rebuilt
             }
+            doc = try RecoveryManualAssistance.attaching(prepared.nativeCapture,to:doc,check:{ try control.check(); try Task.checkCancellation() })
+            let completedDocument = doc
             try check(operation)
             let inputErrors = try await Task.detached(priority:.userInitiated) {
-                try RecoveryValidator.inputErrors(doc,check:{ try control.check(); try Task.checkCancellation() })
+                try RecoveryValidator.inputErrors(completedDocument,check:{ try control.check(); try Task.checkCancellation() })
             }.value
             try check(operation)
             guard RecoveryConversion.matchesPeriod(doc,source.period), inputErrors.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
+            let draft = try await Task.detached(priority:.userInitiated) {
+                try RecoveryManualAssistance.prepare(completedDocument,os:"ios",check:{ try control.check(); try Task.checkCancellation() })
+            }.value
+            try check(operation)
+            if let draft {
+                var images = [String:UIImage]()
+                for field in draft.fields {
+                    guard let raster = prepared.rasters[field.page], let image = Self.crop(field.crop,raster:raster) else { throw PDFParseError(code:.unreadable,stage:.rasterInput) }
+                    images[field.id] = image
+                }
+                manualDraft = draft; manualImages = images; running = false
+                pendingDocument = nil; pendingPages = nil
+                status = "原本と照合して、確認が必要な\(draft.fields.count)項目を入力してください。"
+                return
+            }
             pendingDocument = doc; pendingPages = nil
             await run(doc,source:source,operation:operation,control:control)
         } catch {
             guard self.operation == operation else { return }
             running = false; failure = "資料の内容と位置を安全に確認できませんでした。前回の正常結果を保持しています。"
         }
+    }
+    func submitManual(_ values: [String:String], acknowledged:Set<String>) {
+        guard !running, let draft = manualDraft, let source,
+              acknowledged == Set(draft.fields.map(\.id)) else { return }
+        running = true; failure = nil; status = "原本と入力内容を確認しています⋯"
+        let operation = self.operation, control = AcquisitionControl(); preparationControl = control
+        task = Task { @MainActor in
+            do {
+                try check(operation)
+                let result = try await Task.detached(priority:.userInitiated) {
+                    try RecoveryConversion.verifyFile(source,check:{ try control.check(); try Task.checkCancellation() })
+                    return try RecoveryManualAssistance.complete(draft,values:values,check:{ try control.check(); try Task.checkCancellation() })
+                }.value
+                try check(operation)
+                guard manualDraft?.id == draft.id else { throw CancellationError() }
+                preview = RecoveryPreview(document:draft.document,result:result,source:source)
+                manualDraft = nil; manualImages = [:]; running = false
+                status = "採用前に元のPDFと資料全体の内容を確認してください。"
+            } catch {
+                guard self.operation == operation else { return }
+                manualDraft = nil; manualImages = [:]; pendingDocument = nil; pendingPages = nil; self.source = nil
+                running = false; failure = "原本または入力内容を確認できませんでした。前回の正常結果を保持しています。"
+            }
+        }
+    }
+    func suspendForInactivity() {
+        guard manualDraft != nil else { cancel(); return }
+        task?.cancel(); preparationControl?.cancel(); preparationControl = nil
+        operation = UUID(); running = false
+        status = "原本と照合して、確認が必要な項目を入力してください。"
+    }
+    func invalidateManualIfSourceChanged() {
+        guard manualDraft != nil, !selectedSourceIsCurrent else { return }
+        cancel()
+        failure = "資料の選択や保存状態が変わりました。元のPDFから再試行してください。前回の正常結果を保持しています。"
+    }
+    private var selectedSourceIsCurrent:Bool {
+        guard let source, source.period == ApplicationData.shared.loadedPeriod,
+              source.period == SchoolDataPeriod.current() else { return false }
+        if source.kind == .timetable {
+            let current = ApplicationData.shared.materials.state.record(for:.timetable)
+            return current?.digest == source.digest && current?.storedName == source.storedName
+        }
+        let current = ApplicationData.shared.specialSchedules.sources[source.kind == .exam ? .exam : .examReturn]
+        return current?.digest == source.digest && current?.storedName == source.storedName
+    }
+    private static func crop(_ box:RecoveryBox,raster:RecoveryRasterGrid) -> UIImage? {
+        guard box.valid, box.x+box.width <= Double(raster.width), box.y+box.height <= Double(raster.height) else { return nil }
+        let left = Int(floor(box.x)), top = Int(floor(box.y)), right = Int(ceil(box.x+box.width)), bottom = Int(ceil(box.y+box.height))
+        guard left >= 0, top >= 0, right <= raster.width, bottom <= raster.height, left < right, top < bottom else { return nil }
+        var bytes = [UInt8](); bytes.reserveCapacity((right-left)*(bottom-top))
+        for y in top..<bottom { bytes.append(contentsOf:raster.grayscale[(y*raster.width+left)..<(y*raster.width+right)]) }
+        guard let provider = CGDataProvider(data:Data(bytes) as CFData), let image = CGImage(width:right-left,height:bottom-top,
+            bitsPerComponent:8,bitsPerPixel:8,bytesPerRow:right-left,space:CGColorSpaceCreateDeviceGray(),bitmapInfo:CGBitmapInfo(rawValue:0),
+            provider:provider,decode:nil,shouldInterpolate:false,intent:.defaultIntent) else { return nil }
+        return UIImage(cgImage:image)
     }
     private func modelStatus(_ errors:[String]) {
         if errors.contains("notReady") { status = "OSのAIモデルが準備中です。準備が完了してから再試行してください。" }
@@ -175,27 +255,19 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 let success = preview.document.kind == .timetable ? await ApplicationData.shared.materials.adoptRecovery(preview) : await ApplicationData.shared.specialSchedules.adoptRecovery(preview)
                 try check(operation); running = false
                 if success { self.preview = nil; pendingDocument = nil; pendingPages = nil; source = nil; status = "復旧結果を採用しました。" }
-                else { failure = "資料の選択や保存状態が変わったため採用できませんでした。元のPDFから再試行してください。" }
+                else { self.preview = nil; source = nil; failure = "資料の選択や保存状態が変わったため採用できませんでした。元のPDFから再試行してください。" }
             } catch { guard self.operation == operation else { return }; running = false; failure = "採用を中止しました。" }
         }
     }
     func cancel() {
         task?.cancel(); preparationControl?.cancel(); preparationControl = nil; operation = UUID(); running = false
-        preview = nil; pendingDocument = nil; pendingPages = nil; source = nil; awaitingModel = false
+        preview = nil; manualDraft = nil; manualImages = [:]; pendingDocument = nil; pendingPages = nil; source = nil; awaitingModel = false
         status = "復旧を開始してください。"; failure = nil
     }
     private func check(_ operation: UUID) throws {
         try Task.checkCancellation()
         guard self.operation == operation, UIApplication.shared.applicationState == .active,
               UIApplication.shared.isProtectedDataAvailable,
-              let source, source.period == ApplicationData.shared.loadedPeriod,
-              source.period == SchoolDataPeriod.current() else { throw CancellationError() }
-        if source.kind == .timetable {
-            let current = ApplicationData.shared.materials.state.record(for:.timetable)
-            guard current?.digest == source.digest, current?.storedName == source.storedName else { throw CancellationError() }
-        } else {
-            let current = ApplicationData.shared.specialSchedules.sources[source.kind == .exam ? .exam : .examReturn]
-            guard current?.digest == source.digest, current?.storedName == source.storedName else { throw CancellationError() }
-        }
+              selectedSourceIsCurrent else { throw CancellationError() }
     }
 }

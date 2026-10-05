@@ -10,7 +10,7 @@ struct RecoveryBox: Codable, Equatable, Sendable {
     var valid: Bool { [x, y, width, height, x + width, y + height].allSatisfy(\.isFinite) && x >= 0 && y >= 0 && width > 0 && height > 0 }
     func contains(_ other: Self) -> Bool { valid && other.valid && other.x >= x && other.y >= y && other.x + other.width <= x + width && other.y + other.height <= y + height }
 }
-struct RecoverySource: Codable, Equatable, Sendable { var id: String; var cellId: String; var page: Int; var text: String; var box: RecoveryBox; var fromOcr = false; var sourceLine: Int? = nil; var sourceOrder: Int? = nil }
+struct RecoverySource: Codable, Equatable, Sendable { var id: String; var cellId: String; var page: Int; var text: String; var box: RecoveryBox; var fromOcr = false; var sourceLine: Int? = nil; var sourceOrder: Int? = nil; var nativeConfidence: Double? = nil }
 struct RecoveryField: Codable, Equatable, Sendable { var state: RecoveryValueState; var value: String; var evidence: [String] }
 struct RecoverySlot: Codable, Hashable, Sendable { var className: String; var day: String; var period: Int }
 enum RecoveryHeaderAxis: String, Codable, Sendable { case above, left }
@@ -79,6 +79,7 @@ struct RecoveryDocument: Codable, Equatable, Sendable {
     var commonClockRegions: [String: RecoveryHeaderRegion] = [:]
     var structureMetadata: RecoveryMetadata? = nil
     var ocrCoverageProof: RecoveryOCRCoverageProof? = nil
+    var nativeCapture: RecoveryOCRAcquisitionDraft? = nil
 }
 struct RecoveryLesson: Codable, Equatable, Sendable {
     var subject: RecoveryField; var teacher: RecoveryField; var room: RecoveryField
@@ -92,6 +93,7 @@ struct RecoveryMetadata: Codable, Equatable, Sendable {
 struct RecoveryResult: Codable, Equatable, Sendable {
     var pdfHash: String; var kind: RecoveryDocumentKind; var schoolYear: Int; var term: String?
     var cells: [RecoveredCell]; var metadata: RecoveryMetadata
+    var humanCorrections: [RecoveryHumanCorrection]? = nil
 }
 struct RecoveryJob: Codable, Equatable, Sendable {
     var pdfHash: String; var kind: RecoveryDocumentKind; var state: RecoveryJobState; var createdAt: Date; var resultHash: String? = nil
@@ -158,7 +160,7 @@ extension RecoveryCell {
 extension RecoveryDocument {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.init(pdfHash: try c.decode(String.self, forKey: .pdfHash), kind: try c.decode(RecoveryDocumentKind.self, forKey: .kind), schoolYear: try c.decode(Int.self, forKey: .schoolYear), term: try c.decodeIfPresent(String.self, forKey: .term), classes: try c.decode([String].self, forKey: .classes), days: try c.decode([String].self, forKey: .days), requiredSlots: try c.decode([RecoverySlot].self, forKey: .requiredSlots), cells: try c.decode([RecoveryCell].self, forKey: .cells), sources: try c.decode([RecoverySource].self, forKey: .sources), complete: try c.decode(Bool.self, forKey: .complete), yearEvidence: try c.decode([String].self, forKey: .yearEvidence), termEvidence: try c.decode([String].self, forKey: .termEvidence), dayEvidence: try c.decode([String: [String]].self, forKey: .dayEvidence), classEvidence: try c.decode([String: [String]].self, forKey: .classEvidence), periodEvidence: try c.decode([String: [String]].self, forKey: .periodEvidence), times: try c.decode([String: String].self, forKey: .times), timeEvidence: try c.decode([String].self, forKey: .timeEvidence), normalTimeNoteEvidence: try c.decode([String].self, forKey: .normalTimeNoteEvidence), clockEvidence: try c.decodeIfPresent([String: [String]].self, forKey: .clockEvidence) ?? [:], spanTimes: try c.decodeIfPresent([String: String].self, forKey: .spanTimes) ?? [:], clockBindings: try c.decodeIfPresent([String: RecoveryClockBinding].self, forKey: .clockBindings) ?? [:], clockReplicas: try c.decodeIfPresent([String: [RecoveryClockBinding]].self, forKey: .clockReplicas) ?? [:], annotations: try c.decodeIfPresent([RecoveryAnnotation].self, forKey: .annotations) ?? [], commonClockEvidence: try c.decodeIfPresent([String].self, forKey: .commonClockEvidence) ?? [], commonClockRegions: try c.decodeIfPresent([String: RecoveryHeaderRegion].self, forKey: .commonClockRegions) ?? [:], structureMetadata:try c.decodeIfPresent(RecoveryMetadata.self,forKey:.structureMetadata), ocrCoverageProof:try c.decodeIfPresent(RecoveryOCRCoverageProof.self,forKey:.ocrCoverageProof))
+        self.init(pdfHash: try c.decode(String.self, forKey: .pdfHash), kind: try c.decode(RecoveryDocumentKind.self, forKey: .kind), schoolYear: try c.decode(Int.self, forKey: .schoolYear), term: try c.decodeIfPresent(String.self, forKey: .term), classes: try c.decode([String].self, forKey: .classes), days: try c.decode([String].self, forKey: .days), requiredSlots: try c.decode([RecoverySlot].self, forKey: .requiredSlots), cells: try c.decode([RecoveryCell].self, forKey: .cells), sources: try c.decode([RecoverySource].self, forKey: .sources), complete: try c.decode(Bool.self, forKey: .complete), yearEvidence: try c.decode([String].self, forKey: .yearEvidence), termEvidence: try c.decode([String].self, forKey: .termEvidence), dayEvidence: try c.decode([String: [String]].self, forKey: .dayEvidence), classEvidence: try c.decode([String: [String]].self, forKey: .classEvidence), periodEvidence: try c.decode([String: [String]].self, forKey: .periodEvidence), times: try c.decode([String: String].self, forKey: .times), timeEvidence: try c.decode([String].self, forKey: .timeEvidence), normalTimeNoteEvidence: try c.decode([String].self, forKey: .normalTimeNoteEvidence), clockEvidence: try c.decodeIfPresent([String: [String]].self, forKey: .clockEvidence) ?? [:], spanTimes: try c.decodeIfPresent([String: String].self, forKey: .spanTimes) ?? [:], clockBindings: try c.decodeIfPresent([String: RecoveryClockBinding].self, forKey: .clockBindings) ?? [:], clockReplicas: try c.decodeIfPresent([String: [RecoveryClockBinding]].self, forKey: .clockReplicas) ?? [:], annotations: try c.decodeIfPresent([RecoveryAnnotation].self, forKey: .annotations) ?? [], commonClockEvidence: try c.decodeIfPresent([String].self, forKey: .commonClockEvidence) ?? [], commonClockRegions: try c.decodeIfPresent([String: RecoveryHeaderRegion].self, forKey: .commonClockRegions) ?? [:], structureMetadata:try c.decodeIfPresent(RecoveryMetadata.self,forKey:.structureMetadata), ocrCoverageProof:try c.decodeIfPresent(RecoveryOCRCoverageProof.self,forKey:.ocrCoverageProof), nativeCapture:try c.decodeIfPresent(RecoveryOCRAcquisitionDraft.self,forKey:.nativeCapture))
     }
 }
 

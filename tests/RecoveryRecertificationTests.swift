@@ -71,8 +71,8 @@ final class RecoveryRecertificationTests: XCTestCase {
             XCTAssertFalse(try RecoveryValidator.canReuse(old.acceptance,document:old.document,result:old.result))
             let current = try XCTUnwrap(RecoveryValidator.recertify(old,hash:old.document.pdfHash))
             var expected = old
-            expected.result.metadata.validatorVersion = 5
-            if expected.document.structureMetadata != nil { expected.document.structureMetadata!.validatorVersion = 5 }
+            expected.result.metadata.validatorVersion = RecoveryValidator.version
+            if expected.document.structureMetadata != nil { expected.document.structureMetadata!.validatorVersion = RecoveryValidator.version }
             expected.previousAcceptance = old.acceptance
             expected.acceptance = RecoveryAcceptance(pdfHash:old.document.pdfHash,
                 resultHash:try RecoveryValidator.fingerprint(expected.result), scopeHash:try RecoveryValidator.fingerprint(expected.document),
@@ -176,13 +176,22 @@ final class RecoveryRecertificationTests: XCTestCase {
         XCTAssertFalse(RecoveryValidator.previouslyAccepted(nil,hash:old.document.pdfHash))
     }
 
-    func testOlderAndFutureVersionsCannotTakeTheExplicitFourToFiveTransition() throws {
+    func testOlderAndFutureVersionsCannotTakeTheExplicitHistoricalTransition() throws {
         let old = try oldGood()
-        for version in [3,6] {
+        for version in [3,RecoveryValidator.version+1] {
             var result = old.result; result.metadata.validatorVersion = version
             let other = try accepted(old.document,result)
             XCTAssertNil(try RecoveryValidator.recertify(other,hash:old.document.pdfHash))
         }
+    }
+    func testOCRCoverageProofSurvivesJSONRoundtripAndRemainsReusable() throws {
+        var (doc,result) = fixture()
+        for index in doc.sources.indices { doc.sources[index].fromOcr = true }
+        doc.ocrCoverageProof = RecoveryOCRCoverageProof(version:1,pages:[RecoveryOCRCoveragePage(page:1,width:700,height:1000,grayscaleSHA256:String(repeating:"b",count:64))])
+        let original = try accepted(doc,result)
+        let decoded = try JSONDecoder().decode(RecoveryAdopted.self,from:JSONEncoder().encode(original))
+        XCTAssertEqual(decoded.document.ocrCoverageProof,original.document.ocrCoverageProof)
+        XCTAssertTrue(try RecoveryValidator.canReuse(decoded.acceptance,document:decoded.document,result:decoded.result))
     }
 
     func testFormalProjectionMustBeIdenticalBeforeMetadataOnlyUpgrade() throws {
@@ -361,16 +370,6 @@ final class RecoveryRecertificationTests: XCTestCase {
         XCTAssertFalse(RecoveryConversion.trustsAcquisitionCache(unprovedSpecial,hash:special.sourceDigest))
         XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:special.sourceDigest,parserVersion:SpecialScheduleAnalysis.parserVersion,
             analysisDigest:nil,analysisVersion:nil,attemptDigest:special.sourceDigest,failure:nil,attemptVersion:SpecialScheduleAnalysis.parserVersion))
-    }
-
-    func testOCRCoverageProofSurvivesJSONRoundtripAndRemainsReusable() throws {
-        var (doc,result) = fixture()
-        for index in doc.sources.indices { doc.sources[index].fromOcr = true }
-        doc.ocrCoverageProof = RecoveryOCRCoverageProof(version:1,pages:[RecoveryOCRCoveragePage(page:1,width:700,height:1000,grayscaleSHA256:String(repeating:"b",count:64))])
-        let original = try accepted(doc,result)
-        let decoded = try JSONDecoder().decode(RecoveryAdopted.self,from:JSONEncoder().encode(original))
-        XCTAssertEqual(decoded.document.ocrCoverageProof,original.document.ocrCoverageProof)
-        XCTAssertTrue(try RecoveryValidator.canReuse(decoded.acceptance,document:decoded.document,result:decoded.result))
     }
 
 }

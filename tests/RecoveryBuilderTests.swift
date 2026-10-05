@@ -695,7 +695,7 @@ extension SpecialScheduleTests {
 
 extension PDFParsingTests {
     // Independent synthetic ink markers test coverage, not font recognition accuracy.
-    private func twoClassRasterCoverage(annotation:Bool = false,unknownAnnotation:Bool = false) throws -> (PDFPageLayout,RecoveryRasterGrid) {
+    func twoClassRasterCoverage(annotation:Bool = false,unknownAnnotation:Bool = false) throws -> (PDFPageLayout,RecoveryRasterGrid) {
         let width=740,height=480
  var glyphs=[PDFGlyph](),rules=[PDFRule](),sourceLine=0
  func text(_ value:String,_ x:Double,_ y:Double,_ charWidth:Double=3,_ charHeight:Double=6) {

@@ -27,6 +27,7 @@ struct RecoveryStructureResolution: Sendable {
 }
 struct RecoveryPreparedPages: Sendable {
     var pages: [PDFPageLayout]; var fromOCR: Set<Int>; var rasters: [Int:RecoveryRasterGrid]
+    var nativeCapture: RecoveryOCRAcquisitionDraft? = nil
 }
 struct RecoveryStructureRole: Sendable {
     var role: RecoveryRole; var labels: [RecoveryStructureUnit]; var body: [RecoveryStructureUnit]
