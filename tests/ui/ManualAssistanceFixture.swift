@@ -27,6 +27,12 @@ enum SimulatorManualFixture {
         return args.contains("--manual-four") ? 4 : args.contains("--manual-three") ? 3 : 1
     }
     struct Prepared { let source:RecoverySelectedSource; let draft:RecoveryManualDraft; let raster:RecoveryRasterGrid }
+    static var requiresAsyncSeed:Bool {
+        enabled && ProcessInfo.processInfo.arguments.contains("--reset-fixture")
+            && ProcessInfo.processInfo.arguments.contains("--manual-comparable-prior")
+    }
+    private static var deferredSeedBase:URL?
+    private static var seededScope:RecoveryDocument?
     static func trace(_ message:String) {
         UserDefaults.standard.set(message,forKey:"fixture.manualStage")
         print("TAKUPOKE-MANUAL-QA "+message)
@@ -133,6 +139,14 @@ enum SimulatorManualFixture {
         eventCount=0;UserDefaults.standard.removeObject(forKey:"fixture.manualEvents")
         // Never overwrite an already adopted result on relaunch.
         if !ProcessInfo.processInfo.arguments.contains("--reset-fixture") { return }
+        if requiresAsyncSeed {
+            deferredSeedBase=base;trace("stage=seed-deferred");return
+        }
+        let (_,_,raw)=try seedInput()
+        try persistSeed(base,raw:raw,scope:nil)
+    }
+    private static func seedInput() throws -> (PDFPageLayout,RecoveryRasterGrid,Data) {
+        trace("stage=seed-input")
         let (page,raster,image,_)=try input()
         // Run the two bounded measurements before fixture-ready, not while
         // the UI waits its unchanged 15 seconds for editable fields.
@@ -144,10 +158,32 @@ enum SimulatorManualFixture {
         let raw=UIGraphicsPDFRenderer(bounds:CGRect(x:0,y:0,width:1480,height:960)).pdfData { context in
             context.beginPage();image.draw(in:CGRect(x:0,y:0,width:1480,height:960))
         }
+        return (page,raster,raw)
+    }
+    static func finishAsyncSeed() async throws {
+        guard requiresAsyncSeed,let base=deferredSeedBase else { throw PDFParseError(code:.storage) }
+        let (page,raster,raw)=try seedInput()
+        let hash=SHA256.hash(data:raw).map{String(format:"%02x",$0)}.joined()
+        trace("stage=seed-builder")
+        let worker=Task.detached(priority:.userInitiated) {
+            let deadline=ProcessInfo.processInfo.systemUptime+30
+            return try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:hash,fromOCR:[1],rasters:[1:raster],check:{
+                try Task.checkCancellation()
+                guard ProcessInfo.processInfo.systemUptime<deadline else { throw PDFParseError(code:.limit) }
+            })
+        }
+        let scope=try await withTaskCancellationHandler(operation:{ try await worker.value },onCancel:{ worker.cancel() })
+        try Task.checkCancellation()
+        trace("stage=seed-builder-returned;slots=\(scope.requiredSlots.count)")
+        try persistSeed(base,raw:raw,scope:scope)
+        seededScope=scope;deferredSeedBase=nil
+        trace("stage=seed-complete")
+    }
+    private static func persistSeed(_ base:URL,raw:Data,scope:RecoveryDocument?) throws {
+        trace("stage=seed-persist")
         let library=try LocalMaterialDatabase.openLibrary(root:base.appendingPathComponent("SchoolMaterialsSQLite"))
         if ProcessInfo.processInfo.arguments.contains("--manual-comparable-prior") {
-            guard let old=library.state.pdfAnalyses?[MaterialKind.timetable.rawValue] else { throw PDFParseError(code:.storage) }
-            let scope=try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:old.sourceDigest,fromOCR:[1],rasters:[1:raster])
+            guard let scope,let old=library.state.pdfAnalyses?[MaterialKind.timetable.rawValue] else { throw PDFParseError(code:.storage) }
             // An explicit dense prior is a UI comparison control, not an OCR result.
             // Every stored slot is represented; only the subsequently edited cell changes.
             let lessons=scope.requiredSlots.map { slot in
@@ -174,7 +210,13 @@ enum SimulatorManualFixture {
         trace("stage=raster")
         let (page,raster,_,low)=try input()
         trace("stage=builder;width=\(raster.width);height=\(raster.height)")
-        let original=try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:source.digest,fromOCR:[1],rasters:[1:raster])
+        let original:RecoveryDocument
+        if let scope=seededScope {
+            guard scope.pdfHash==source.digest else { throw PDFParseError(code:.storage) }
+            original=scope;seededScope=nil
+        } else {
+            original=try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:source.digest,fromOCR:[1],rasters:[1:raster])
+        }
         trace("stage=builder-returned;cells=\(original.cells.count)")
         let groups=Dictionary(grouping:page.glyphs,by:{$0.sourceLine!})
         let lines=groups.keys.sorted().map { key -> RecoveryOCRLine in

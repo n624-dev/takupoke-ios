@@ -123,6 +123,33 @@ def view(text):
     return text
 
 
+def application(text):
+    marker = '        if ProcessInfo.processInfo.arguments.contains("--recovery-preview") { try SimulatorRecoveryFixture.seed(base) }'
+    text = once(text, marker, marker + '\n        if SimulatorManualFixture.enabled { try SimulatorManualFixture.seed(base) }')
+    # The comparable prior uses the actual builder after the first QA window
+    # exists. Keep model/store consumers absent until both prior and source commit.
+    text = once(text, '    @State private var applicationReady = false',
+                '    @State private var applicationReady = false\n    @State private var manualSeedComplete = !SimulatorManualFixture.requiresAsyncSeed\n    @State private var manualSeedError:String?')
+    text = once(text, '        WindowGroup {\n            ContentView()',
+                '        WindowGroup {\n            if manualSeedComplete {\n            ContentView()')
+    text = once(text, '        }\n        .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) {', '''            } else {
+                VStack {
+                    ProgressView("架空資料を準備中")
+                    if let manualSeedError { Text(manualSeedError).accessibilityIdentifier("manual-seed-failure") }
+                }.task {
+                    guard manualSeedError == nil else { return }
+                    do { try await SimulatorManualFixture.finishAsyncSeed(); manualSeedComplete = true }
+                    catch { SimulatorManualFixture.failed(error); manualSeedError = String(reflecting:error) }
+                }
+            }
+        }
+        .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) {''')
+    probe_marker = '                            if ProcessInfo.processInfo.arguments.contains("--selection-snapshot") { FixtureSelectionProbe() }'
+    text = once(text, probe_marker, probe_marker + '\n                            if SimulatorManualFixture.enabled { FixtureManualProbe() }')
+    text += '\n' + (ROOT / "tests/ui/ManualAssistanceFixture.swift").read_text(encoding="utf-8")
+    return text
+
+
 def generate(destination, source_root=ROOT):
     source_root = Path(source_root).resolve()
     spec = importlib.util.spec_from_file_location("app_test_project", source_root / "tools/app_test_project.py")
@@ -133,13 +160,7 @@ def generate(destination, source_root=ROOT):
     app = destination / "Takupoke"
     path = app / "PDFRecoveryCoordinator.swift"; path.write_text(coordinator(path.read_text(encoding="utf-8")), encoding="utf-8")
     path = app / "PDFRecoveryView.swift"; path.write_text(view(path.read_text(encoding="utf-8")), encoding="utf-8")
-    path = app / "TakupokeApp.swift"; text = path.read_text(encoding="utf-8")
-    marker = '        if ProcessInfo.processInfo.arguments.contains("--recovery-preview") { try SimulatorRecoveryFixture.seed(base) }'
-    text = once(text, marker, marker + '\n        if SimulatorManualFixture.enabled { try SimulatorManualFixture.seed(base) }')
-    probe_marker = '                            if ProcessInfo.processInfo.arguments.contains("--selection-snapshot") { FixtureSelectionProbe() }'
-    text = once(text, probe_marker, probe_marker + '\n                            if SimulatorManualFixture.enabled { FixtureManualProbe() }')
-    text += '\n' + (ROOT / "tests/ui/ManualAssistanceFixture.swift").read_text(encoding="utf-8")
-    path.write_text(text, encoding="utf-8")
+    path = app / "TakupokeApp.swift"; path.write_text(application(path.read_text(encoding="utf-8")), encoding="utf-8")
     project = destination / "AppChecks.xcodeproj/project.pbxproj"
     text = project.read_text(encoding="utf-8")
     text = once(text, str(source_root / "tests/ui/ApplicationChecks.swift"), str(ROOT / "tests/ui/ManualAssistanceChecks.swift"))

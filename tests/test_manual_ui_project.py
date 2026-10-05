@@ -116,6 +116,32 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('preview=\\(coordinator.preview != nil)',state)
         self.assertEqual(changed.count('accessibilityIdentifier("manual-coordinator-state")'),1)
 
+    def test_comparable_prior_defers_actual_builder_until_qa_window_exists(self):
+        fixture=(ROOT/"tests/ui/ManualAssistanceFixture.swift").read_text(encoding="utf-8")
+        seed=fixture.split('    static func seed(',1)[1].split('    private static func seedInput()',1)[0]
+        self.assertNotIn('RecoveryDocumentBuilder.build(',seed)
+        self.assertLess(seed.index('if requiresAsyncSeed'),seed.index('try seedInput()'))
+        asynchronous=fixture.split('    static func finishAsyncSeed()',1)[1].split('    private static func persistSeed(',1)[0]
+        self.assertIn('Task.detached(priority:.userInitiated)',asynchronous)
+        self.assertIn('try Task.checkCancellation()',asynchronous)
+        self.assertIn('systemUptime+30',asynchronous)
+        self.assertIn('onCancel:{ worker.cancel() }',asynchronous)
+        self.assertLess(asynchronous.index('try await worker.value'),asynchronous.index('try persistSeed('))
+        self.assertIn('seededScope=scope',asynchronous)
+        prepare=fixture.split('    static func prepare()',1)[1]
+        self.assertIn('guard scope.pdfHash==source.digest',prepare)
+        self.assertIn('original=scope;seededScope=nil',prepare)
+        host=module.application((ROOT/'tests/ui/ApplicationFixture.swift').read_text(encoding='utf-8'))
+        self.assertIn('if manualSeedComplete {\n            ContentView()',host)
+        self.assertIn('try await SimulatorManualFixture.finishAsyncSeed(); manualSeedComplete = true',host)
+        self.assertIn('accessibilityIdentifier("manual-seed-failure")',host)
+        # Library save still requires the old selected digest; current source is
+        # committed only afterward. Scope comes from the same actual builder.
+        persist=fixture.split('    private static func persistSeed(',1)[1].split('    static func changeOriginal()',1)[0]
+        self.assertIn('let lessons=scope.requiredSlots.map',persist)
+        self.assertLess(persist.index('try library.savePDFAnalysis('),persist.index('try library.commit('))
+        self.assertNotIn('ApplicationData.shared',persist)
+
     def test_review_uses_production_japan_timestamp_without_device_timezone(self):
         original=(ROOT/"Takupoke/PDFRecoveryView.swift").read_text(encoding="utf-8")
         changed=module.view(original)
