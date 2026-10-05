@@ -46,6 +46,14 @@ struct TimetableLessonNames: Codable, Equatable, Sendable {
 }
 
 enum TimetableDisplayText {
+    static func cellSubject(_ value: String) -> String {
+        value.replacingOccurrences(of: "・", with: "•")
+    }
+
+    static func cardLine(_ value: String) -> String {
+        value.replacingOccurrences(of: "\n", with: " ")
+    }
+
     /// VoiceOver receives complete names, independently of the card's visual
     /// abbreviation and truncation. Keep each field's meaning explicit.
     static func lessonAccessibilityLabel(names: TimetableLessonNames, time: String?,

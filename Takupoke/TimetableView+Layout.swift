@@ -91,14 +91,14 @@ extension TimetableView {
         var parts: [(String, UIFont, Int?)] = []
         switch block.content {
         case .normal(let lesson):
-            parts.append((cardText(cardSubject(TimetableDisplayText.continuous(lesson.names.cellSubject)),
+            parts.append((cardText(TimetableDisplayText.cellSubject(TimetableDisplayText.continuous(lesson.names.cellSubject)),
                                    fontSize: 11, weight: .semibold, lines: 2), gridUIFont(11, weight: .semibold), 2))
             if !lesson.names.cellTeacher.isEmpty {
                 parts.append((cardText(TimetableDisplayText.continuous(lesson.names.cellTeacher), fontSize: 9), gridUIFont(9), 1))
             }
             if !lesson.names.cellRoom.isEmpty { parts.append((cardRoom(lesson.names.cellRoom), gridUIFont(9), 1)) }
         case .special(let item):
-            parts.append((cardText(cardSubject(TimetableDisplayText.kana(item.lesson.subject)),
+            parts.append((cardText(TimetableDisplayText.cellSubject(TimetableDisplayText.kana(item.lesson.subject)),
                                    fontSize: 11, weight: .semibold, lines: 2), gridUIFont(11, weight: .semibold), 2))
             if !item.lesson.teacher.isEmpty {
                 parts.append((cardText(TimetableDisplayText.kana(item.lesson.teacher), fontSize: 9), gridUIFont(9), 1))

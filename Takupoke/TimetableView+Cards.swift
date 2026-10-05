@@ -30,7 +30,7 @@ extension TimetableView {
             VStack(alignment: .center, spacing: 1) {
                 switch block.content {
                 case .normal(let lesson):
-                    Text(cardText(cardSubject(TimetableDisplayText.continuous(lesson.names.cellSubject)),
+                    Text(cardText(TimetableDisplayText.cellSubject(TimetableDisplayText.continuous(lesson.names.cellSubject)),
                                   fontSize: 11, weight: .semibold, lines: 2))
                         .font(gridFont(11, weight: .semibold)).lineLimit(2)
                     if showTime, let time {
@@ -44,7 +44,7 @@ extension TimetableView {
                         Text(cardRoom(lesson.names.cellRoom)).font(gridFont(9)).lineLimit(1)
                     }
                 case .special(let item):
-                    Text(cardText(cardSubject(TimetableDisplayText.kana(item.lesson.subject)),
+                    Text(cardText(TimetableDisplayText.cellSubject(TimetableDisplayText.kana(item.lesson.subject)),
                                   fontSize: 11, weight: .semibold, lines: 2))
                         .font(gridFont(11, weight: .semibold)).lineLimit(2)
                     if showTime, let time {
@@ -117,10 +117,6 @@ extension TimetableView {
     }
 
     // These transformations belong to grid labels, not persisted names or matching rules.
-    func cardSubject(_ value: String) -> String {
-        value.replacingOccurrences(of: "・", with: "•")
-    }
-
     func cardTimeText(_ value: String) -> String {
         TimetableDisplayText.periodTime(value).replacingOccurrences(of: "\n", with: "")
     }
@@ -147,11 +143,11 @@ extension TimetableView {
     }
 
     func changeCardSubject(_ change: ScheduleChange, names: TimetableLessonNames) -> String {
-        let source = cardSubject(TimetableDisplayText.continuous(names.cellSubject))
+        let source = TimetableDisplayText.cellSubject(TimetableDisplayText.continuous(names.cellSubject))
         guard !source.isEmpty else { return cardText("変更を確認", fontSize: 11, weight: .semibold, lines: 2) }
         let short: String?
         if let rules = mappings.current?.rules, let lessons = timetable?.lessons {
-            short = rules.shortSubject(for: change, in: lessons).map { cardSubject(TimetableDisplayText.kana($0)) }
+            short = rules.shortSubject(for: change, in: lessons).map { TimetableDisplayText.cellSubject(TimetableDisplayText.kana($0)) }
         } else {
             short = nil
         }
@@ -174,9 +170,9 @@ extension TimetableView {
                 options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: attributes, context: nil)
             return bounds.height <= font.lineHeight * CGFloat(lines) + 0.5
         }
-        let primary = value.replacingOccurrences(of: "\n", with: " ")
+        let primary = TimetableDisplayText.cardLine(value)
         if fits(primary) { return primary }
-        let candidates = alternatives.map { $0.replacingOccurrences(of: "\n", with: " ") }
+        let candidates = alternatives.map(TimetableDisplayText.cardLine)
         for candidate in candidates where fits(candidate) { return candidate }
         let fallback = candidates.last ?? primary
         let characters = Array(fallback)

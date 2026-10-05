@@ -13,6 +13,26 @@ struct HomeLessonRow: View {
         return nil
     }
 
+    private var usesRawMetadata: Bool {
+        if case .special = block.content { return true }
+        return false
+    }
+
+    private var subjectText: String {
+        let source = names.cellSubject.isEmpty ? "変更を確認" : (usesRawMetadata ? names.subject : names.cellSubject)
+        let text = usesRawMetadata ? TimetableDisplayText.cardLine(TimetableDisplayText.kana(source)) : TimetableDisplayText.continuous(source)
+        return TimetableDisplayText.cellSubject(text)
+    }
+
+    private var teacherText: String {
+        if case .normal = block.content { return TimetableDisplayText.continuous(names.cellTeacher) }
+        return TimetableDisplayText.cardLine(TimetableDisplayText.kana(usesRawMetadata ? names.teacher : names.cellTeacher))
+    }
+
+    private var roomText: String {
+        TimetableDisplayText.continuous(usesRawMetadata ? names.room : names.cellRoom)
+    }
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 12) {
@@ -32,12 +52,12 @@ struct HomeLessonRow: View {
                         }.font(.caption.weight(.semibold))
                     }
                     if change?.isCancellation != true {
-                        Text(TimetableDisplayText.continuous(names.cellSubject.isEmpty ? "変更を確認" : names.cellSubject))
+                        Text(subjectText)
                             .font(.headline)
                     }
-                    let metadata = [names.cellTeacher, names.cellRoom].filter { !$0.isEmpty }
+                    let metadata = [teacherText, roomText].filter { !$0.isEmpty }
                     if !metadata.isEmpty {
-                        Text(TimetableDisplayText.continuous(metadata.joined(separator: "・")))
+                        Text(metadata.joined(separator: "・"))
                             .font(.subheadline).foregroundStyle(.secondary)
                     }
                 }
