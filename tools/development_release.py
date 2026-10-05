@@ -116,6 +116,8 @@ def prepare(run_id, commit, output):
             (output / "INSTALL.txt").write_text(
                 f"たくポケ iOS 開発版 {metadata['version']} ({metadata['build']})\n"
                 f"Commit: {commit}\nCI: https://github.com/{REPO}/actions/runs/{run_id} (attempt {attempt})\n\n"
+                "更新: 原本と照合した最大3項目の訂正は、全体プレビュー後に別操作で採用します。Homeの授業表示は時間割カードと共通です。\n"
+                "追加の生成AIモデルは品質未合格のため配信していません。\n\n"
                 "iOS 26 以上向けの未署名 IPA です。直接インストールはできません。\n"
                 "AltStore Classic 等の署名・サイドロード手段で、この IPA を手動で取り込んでください。\n"
                 "署名に使うアカウント情報を本リポジトリへ送信する必要はありません。\n"
