@@ -21,11 +21,11 @@ def coordinator(text):
     return once(text, marker, marker + '''
         if SimulatorManualFixture.enabled {
             cancel(); failure = nil; running = true
-            let fixtureOperation = operation
+            let fixtureOperation = self.operation
             task = Task { @MainActor in
                 do {
                     let prepared = try await SimulatorManualFixture.prepare()
-                    guard operation == fixtureOperation, !Task.isCancelled else { return }
+                    guard self.operation == fixtureOperation, !Task.isCancelled else { return }
                     var images = [String:UIImage]()
                     for field in prepared.draft.fields {
                         guard let image = Self.crop(field.crop,raster:prepared.raster) else { throw PDFParseError(code:.unreadable) }
@@ -34,7 +34,7 @@ def coordinator(text):
                     source = prepared.source; manualDraft = prepared.draft; manualImages = images
                     running = false; status = "原本と入力内容を照合してください。"
                 } catch {
-                    guard operation == fixtureOperation else { return }
+                    guard self.operation == fixtureOperation else { return }
                     running = false; failure = "架空資料の補助入力を拒否しました。前回の正常結果を保持しています。"
                 }
             }
