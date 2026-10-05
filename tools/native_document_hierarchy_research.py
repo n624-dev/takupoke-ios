@@ -196,7 +196,8 @@ def commands(root, scratch, ios_sdk, major, mac_sdk=None, arch="arm64"):
             raise ValueError("Native probe requires its actual macOS SDK/architecture")
         native = ["xcrun", "--sdk", "macosx", "swiftc", "-swift-version", "5", "-parse-as-library",
                   "-sdk", mac_sdk, "-target", arch + "-apple-macos26.0", "-module-cache-path",
-                  str(scratch / "modules")] + sources + [str(root / "tests/research/NativeDocumentHierarchyProbe.swift"),
+                  str(scratch / "modules")] + sources + [str(root / "tests/research/NativeDocumentHierarchyDiagnostics.swift"),
+                  str(root / "tests/research/NativeDocumentHierarchyProbe.swift"),
                   "-o", str(scratch / "native-hierarchy-probe")]
         result += [("actual macOS26 shared production capture compile", native, 300),
                    ("two independent native Vision correspondence controls", [str(scratch / "native-hierarchy-probe")], 180)]

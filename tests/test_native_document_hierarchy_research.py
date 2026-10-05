@@ -51,6 +51,7 @@ class ResearchLauncherTests(unittest.TestCase):
             self.assertEqual(native[-1][1],[str(path/"native-hierarchy-probe")])
             self.assertEqual(native[-1][2],180)
             self.assertIn("arm64-apple-macos26.0",native[1][1])
+            self.assertIn(str(research.ROOT/"tests/research/NativeDocumentHierarchyDiagnostics.swift"),native[1][1])
             self.assertNotIn(str(research.ROOT/"tests/research/NativeDocumentHierarchyDomainStubs.swift"),native[1][1])
             for _, command, _ in native+other:
                 self.assertFalse(any(token in command for token in ["swift", "test", "xcodebuild", "simctl", "--publish"]))
@@ -81,7 +82,9 @@ class ResearchLauncherTests(unittest.TestCase):
         self.assertIn('counts["missingNativeRawMatches", default: 0] == 0',probe)
         self.assertIn('counts["ambiguousNativeRawMatches", default: 0] == 0',probe)
         self.assertIn("compatible && attempted == 2",probe)
-        self.assertIn("if !compatible || attempted != 2 { exit(1) }",probe)
+        self.assertIn("if !compatible || !acquisitionCompatible || attempted != 2 { exit(1) }",probe)
+        self.assertIn('"nativeFullAcquisitionControlsPassed": acquisitionCompatible && attempted == 2',probe)
+        self.assertIn("acquisitionPassed = assessment.directLayoutsAllowed",probe)
         self.assertIn('"fullAcquisitionDisposition"',probe)
         self.assertIn('"wholeDocumentAdoption": "NOT_ATTEMPTED"',probe)
         self.assertNotIn("PDFDocument(",probe)

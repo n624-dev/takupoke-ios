@@ -102,6 +102,30 @@ import CryptoKit
         }
         return value
     }
+    static func nativeFailureRanges(_ mapping: [String: Any], observations: [DocumentObservation]) throws -> [[String: Any]] {
+        let lines = observations.flatMap { $0.document.text.lines }
+        guard let samples = mapping["firstFailures"] as? [[String: Any]], samples.count <= 16 else {
+            throw NSError(domain: "NativeMappingDiagnostic", code: 1)
+        }
+        return try samples.map { sample in
+            guard let order = sample["lineOrder"] as? Int, let index = sample["characterIndex"] as? Int,
+                  lines.indices.contains(order), let candidate = lines[order].topCandidates(1).first,
+                  index >= 0, index < candidate.string.count else {
+                throw NSError(domain: "NativeMappingDiagnostic", code: 2)
+            }
+            let start = candidate.string.index(candidate.string.startIndex, offsetBy: index)
+            let end = candidate.string.index(after: start)
+            var result: [String: Any] = ["lineOrder": order, "characterIndex": index,
+                "nativeLineUUID": lines[order].uuid.uuidString]
+            if let rectangle = candidate.boundingBox(for: start..<end) {
+                let b = rectangle.boundingBox.cgRect
+                result["nativeNormalizedDoubleBits"] = [b.minX, b.minY, b.width, b.height]
+                    .map { String(Double($0).bitPattern, radix: 16) }
+                result["nativeRangePresent"] = true
+            } else { result["nativeRangePresent"] = false }
+            return result
+        }
+    }
     static func measure(_ page: RecoveryOCRPage, observations: [DocumentObservation]) throws -> [String: Int] {
         var counts = ["flatLines": page.lines.count, "nativeTables": 0, "uniqueMergedSpans": 0,
                       "cellLineAppearances": 0, "uniqueRawMatches": 0, "missingRawMatches": 0,
@@ -172,7 +196,7 @@ import CryptoKit
         return counts
     }
     static func main() async {
-        var outcomes = [[String: Any]](), compatible = true, attempted = 0
+        var outcomes = [[String: Any]](), compatible = true, acquisitionCompatible = true, attempted = 0
         for merged in [false, true] {
             var result: [String: Any] = ["case": merged ? "independent-merged" : "independent-rectangular",
                 "rawSource": "independent CoreGraphics drawing", "semanticTimetableQuality": "UNASSESSED"]
@@ -187,6 +211,10 @@ import CryptoKit
                 let page = try RecoveryVisionCapture.page(1, width: width, height: height,
                     observations: observations, work: &work, check: { try Task.checkCancellation() })
                 result["captureWork"] = work
+                let mapping = try NativeDocumentHierarchyDiagnostics.mapping(page)
+                result["top1CharacterMapping"] = mapping
+                result["nativeFirstFailureRanges"] = try nativeFailureRanges(mapping, observations: observations)
+                result["nativeRangeInventory"] = try NativeDocumentHierarchyDiagnostics.spans(page)
                 let counts = try measure(page, observations: observations)
                 result["correspondence"] = counts
                 var hierarchyPassed = false
@@ -199,11 +227,13 @@ import CryptoKit
                     result["hierarchyDisposition"] = "REFUSED"
                     result["hierarchyFailure"] = String(describing: error).prefix(160).description
                 }
+                var acquisitionPassed = false
                 do {
                     let draft = RecoveryOCRAcquisitionDraft(sourcePDFHash: hash, documentPageCount: 1, requiredOCRPages: [1], pages: [page])
                     let assessment = try draft.assess()
                     result["fullAcquisitionDisposition"] = assessment.directLayoutsAllowed ? "DIRECT_LAYOUTS_ALLOWED" : "LOW_CONFIDENCE_REFUSED"
                     result["lowConfidenceNativeCount"] = assessment.lowConfidenceNativeOrders[1]?.count ?? 0
+                    acquisitionPassed = assessment.directLayoutsAllowed
                 } catch {
                     result["fullAcquisitionDisposition"] = "REFUSED"
                     result["fullAcquisitionFailure"] = String(describing: error).prefix(160).description
@@ -216,11 +246,14 @@ import CryptoKit
                     && counts["ambiguousNativeRawMatches", default: 0] == 0
                 result["expectedNativeStructureObserved"] = exercised
                 result["correspondenceControlPassed"] = pass
+                result["fullAcquisitionControlPassed"] = acquisitionPassed
                 compatible = compatible && pass
+                acquisitionCompatible = acquisitionCompatible && acquisitionPassed
             } catch {
                 result["correspondenceControlPassed"] = false
                 result["operationalFailure"] = String(describing: error).prefix(160).description
                 compatible = false
+                acquisitionCompatible = false
             }
             outcomes.append(result)
         }
@@ -228,12 +261,13 @@ import CryptoKit
             "runID": ProcessInfo.processInfo.environment["GITHUB_RUN_ID"] ?? "", "runAttempt": ProcessInfo.processInfo.environment["GITHUB_RUN_ATTEMPT"] ?? "",
             "nativeCallsAttempted": attempted, "maximumNativeCalls": 2, "retries": 0,
             "cases": outcomes, "nativeHierarchyCorrespondencePassed": compatible && attempted == 2,
+            "nativeFullAcquisitionControlsPassed": acquisitionCompatible && attempted == 2,
             "wholeDocumentAdoption": "NOT_ATTEMPTED", "modelQualification": "UNASSESSED"]
         do {
             let data = try JSONSerialization.data(withJSONObject: report, options: [.sortedKeys])
             guard data.count <= 65_536 else { throw NSError(domain: "ReportBound", code: 1) }
             print("TAKUPOKE-NATIVE-HIERARCHY-1 " + String(decoding: data, as: UTF8.self))
         } catch { print("TAKUPOKE-NATIVE-HIERARCHY-REPORT-FAILED"); exit(2) }
-        if !compatible || attempted != 2 { exit(1) }
+        if !compatible || !acquisitionCompatible || attempted != 2 { exit(1) }
     }
 }
