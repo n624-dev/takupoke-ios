@@ -41,6 +41,27 @@ class ManualUIProjectTests(unittest.TestCase):
         source=(ROOT/"Takupoke/PDFRecoveryRecognition.swift").read_text(encoding="utf-8")
         self.assertEqual(source.count(anchors[0]),1)
 
+    def test_generated_host_preserves_production_background_task_registration(self):
+        import ast
+        generator=ast.parse((ROOT/"tools/app_test_project.py").read_text(encoding="utf-8"))
+        replacements=[node for node in ast.walk(generator) if isinstance(node,ast.Call) and
+                      isinstance(node.func,ast.Attribute) and ast.unparse(node.func)=="shutil.copyfile" and
+                      len(node.args)==2 and ast.unparse(node.args[1])=="copied / 'TakupokeApp.swift'"]
+        self.assertEqual(len(replacements),1)
+        self.assertEqual(ast.unparse(replacements[0].args[0]),"repo / 'tests/ui/ApplicationFixture.swift'")
+        fixture=(ROOT/"tests/ui/ApplicationFixture.swift").read_text(encoding="utf-8")
+        production=(ROOT/"Takupoke/TakupokeApp.swift").read_text(encoding="utf-8")
+        # Compare the selected QA entrypoint's Scene registration and callback
+        # against production. This establishes source parity, not crash cause
+        # or native BackgroundTasks execution on any SDK/device.
+        pattern=r'        \}\n        (\.backgroundTask\(\.appRefresh\(BackgroundRefresh\.identifier\)\) \{[^{}]*\})'
+        normalize=lambda text:"\n".join(line.strip() for line in text.splitlines())
+        expected=[normalize(block) for block in re.findall(pattern,production)]
+        self.assertEqual(len(expected),1)
+        scene=fixture.split("    private static func seed()",1)[0]
+        self.assertEqual([normalize(block) for block in re.findall(pattern,scene)],expected,
+                         "Generated QA host must register the production app-refresh handler")
+
     def test_fixture_dimensions_respect_native_capture_limit_and_uniform_rule_scale(self):
         source=(ROOT/"tests/ui/ManualAssistanceFixture.swift").read_text(encoding="utf-8")
         limit=(ROOT/"Takupoke/RecoveryOCRAcquisition.swift").read_text(encoding="utf-8")

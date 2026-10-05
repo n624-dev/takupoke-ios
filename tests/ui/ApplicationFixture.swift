@@ -126,6 +126,10 @@ struct SimulatorApplication: App {
                     notificationProbe = "通知なし"
                 }
         }
+        .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) {
+            BackgroundRefresh.schedule()
+            await ApplicationData.shared.refreshInBackground()
+        }
     }
     private static func seed() throws {
         let defaults = UserDefaults.standard
