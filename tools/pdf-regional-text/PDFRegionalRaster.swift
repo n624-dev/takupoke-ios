@@ -11,7 +11,10 @@ enum PDFRegionalRaster {
         guard width>0,height>0,width<=maximum,height<=maximum else {throw PDFParseError(code:.limit)}
         guard let context=CGContext(data:nil,width:width,height:height,bitsPerComponent:8,bytesPerRow:width*4,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue|CGBitmapInfo.byteOrder32Big.rawValue) else {throw PDFParseError(code:.unreadable)}
         context.setFillColor(gray:1,alpha:1);context.fill(CGRect(x:0,y:0,width:width,height:height))
-        context.translateBy(x:0,y:CGFloat(height));context.scaleBy(x:scale,y:-scale)
+        // Quartz device coordinates remain bottom-left. CGImage storage rows are top-down:
+        // pixelY = height - scale*(PDFY-(pageHeight-box.bottom)), the recorded RasterAffine.
+        // An extra Y-flip here reverses the actual lossless image (measured native0 prerequisite).
+        context.scaleBy(x:scale,y:scale)
         context.translateBy(x:-box.x,y:-(bounds.height-box.bottom))
         context.drawPDFPage(page)
         guard let image=context.makeImage() else {throw PDFParseError(code:.unreadable)}
