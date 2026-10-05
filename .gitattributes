@@ -22,3 +22,5 @@ tools/recovery-prompt-contracts/prompts/*.txt text eol=lf
 Takupoke/RecoveryPromptResources/*.txt text eol=lf
 Vendor/CoreAIRecoveryRuntime/Sources/CoreAIRecoveryRuntime/Resources/*.txt text eol=lf
 tools/independent-wide-timetable/*.txt text eol=lf
+tools/unlabeled-pdf-input/requirements.txt text eol=lf
+tools/unlabeled-pdf-input/source/font-license.txt text eol=lf
