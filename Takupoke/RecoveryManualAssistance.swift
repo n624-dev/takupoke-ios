@@ -43,6 +43,13 @@ enum RecoveryManualAssistance {
     static let schemaVersion = 1
     static let maximumFields = 3
     static let maximumCorrectedUTF16 = 256
+    private static func fingerprint<T:Encodable>(_ value:T) throws -> String {
+        #if canImport(CryptoKit) || canImport(Crypto)
+        return try RecoveryValidator.fingerprint(value)
+        #else
+        throw PDFParseError(code:.unsupported)
+        #endif
+    }
 
     static func attaching(_ capture:RecoveryOCRAcquisitionDraft?, to original:RecoveryDocument,
                           check:@escaping () throws -> Void = {}) throws -> RecoveryDocument {
@@ -180,7 +187,7 @@ enum RecoveryManualAssistance {
         let fields = try fields(document,check:check)
         guard !fields.isEmpty else { return nil }
         return RecoveryManualDraft(document:document,originalResult:result,fields:fields,
-                                   acquisitionHash:try RecoveryValidator.fingerprint(document.nativeCapture!),snapshotHash:try RecoveryValidator.fingerprint(document))
+                                   acquisitionHash:try fingerprint(document.nativeCapture!),snapshotHash:try fingerprint(document))
     }
 
     static func complete(_ draft: RecoveryManualDraft, values: [String:String], now: Date = Date(),
@@ -188,7 +195,7 @@ enum RecoveryManualAssistance {
         try check()
         let currentFields = try fields(draft.document,check:check)
         guard values.count == draft.fields.count, Set(values.keys) == Set(draft.fields.map(\.id)),
-              draft.snapshotHash == (try RecoveryValidator.fingerprint(draft.document)),
+              draft.snapshotHash == (try fingerprint(draft.document)),
               draft.fields == currentFields else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
         var result = draft.originalResult, corrections = [RecoveryHumanCorrection]()
         for field in draft.fields {
@@ -222,7 +229,7 @@ enum RecoveryManualAssistance {
         guard let corrections = result.humanCorrections, corrections.count == fields.count,
               corrections.count <= maximumFields, Set(corrections.map(\.target)).count == corrections.count,
               Set(corrections.map(\.target)) == Set(fields.map(\.target)) else { return ["manualMissing"] }
-        let snapshot = try RecoveryValidator.fingerprint(doc), capture = try RecoveryValidator.fingerprint(doc.nativeCapture!)
+        let snapshot = try fingerprint(doc), capture = try fingerprint(doc.nativeCapture!)
         for field in fields {
             guard let edit = corrections.first(where:{ $0.target == field.target }), edit.schemaVersion == schemaVersion,
                   edit.pdfHash == doc.pdfHash, edit.acquisitionHash == capture, edit.documentSnapshotHash == snapshot,
