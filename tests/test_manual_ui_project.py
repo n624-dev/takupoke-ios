@@ -78,6 +78,8 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('emitDiagnostic()',checks)
         self.assertEqual(checks.count('XCTAssertTrue(fieldsExist()'),3)
         self.assertIn('TAKUPOKE-MANUAL-QA ',checks)
+        self.assertIn('input(integralRails:Bool? = nil)',source)
+        self.assertIn('let drawIntegral=integralRails ?? SimulatorManualFixture.integralRails',source)
         self.assertIn('waitForExistence(timeout:15)',checks)
         self.assertNotIn('inkDiagnostic(',source.split('static func prepare()')[1])
 
