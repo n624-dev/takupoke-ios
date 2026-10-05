@@ -8,6 +8,15 @@ enum SimulatorManualFixture {
         return args.contains("--manual-four") ? 4 : args.contains("--manual-three") ? 3 : 1
     }
     struct Prepared { let source:RecoverySelectedSource; let draft:RecoveryManualDraft; let raster:RecoveryRasterGrid }
+    static func trace(_ message:String) {
+        UserDefaults.standard.set(message,forKey:"fixture.manualStage")
+        print("TAKUPOKE-MANUAL-QA "+message)
+    }
+    static func failed(_ error:Error) {
+        let stage=UserDefaults.standard.string(forKey:"fixture.manualStage") ?? "unknown"
+        trace(stage+";error="+String(reflecting:error))
+    }
+
     static func input() throws -> (PDFPageLayout,RecoveryRasterGrid,UIImage,Set<Int>) {
         let scale=2.0,width=1480,height=960
         var glyphs=[PDFGlyph](),rules=[PDFRule](),line=0,uncertain=Set<Int>()
@@ -46,6 +55,12 @@ enum SimulatorManualFixture {
         }
         guard rendered else { throw PDFParseError(code:.unreadable) }
         let raster=try RecoveryRasterGrid.fromRGBA(width:width,height:height,pixels:rgba).preparingRules(rules)
+        var minX=width,minY=height,maxX = -1,maxY = -1
+        for y in 0..<height { for x in 0..<width where raster.grayscale[y*width+x] < 200 {
+            minX=min(minX,x);minY=min(minY,y);maxX=max(maxX,x);maxY=max(maxY,y)
+        } }
+        // Actual bitmap row coordinates only: this does not certify ownership.
+        UserDefaults.standard.set("inkBounds=\(minX),\(minY),\(maxX),\(maxY);page=\(width)x\(height)",forKey:"fixture.manualPixels")
         return (PDFPageLayout(width:Double(width),height:Double(height),glyphs:glyphs,lines:rules),raster,image,uncertain)
     }
     static func seed(_ base:URL) throws {
@@ -70,29 +85,31 @@ enum SimulatorManualFixture {
         try bytes.write(to:source.url,options:.atomic)
     }
     static func prepare() async throws -> Prepared {
-        print("TAKUPOKE-MANUAL-QA stage=source")
+        trace("stage=source")
         guard let source=await ApplicationData.shared.materials.recoverySource() else { throw PDFParseError(code:.storage) }
-        print("TAKUPOKE-MANUAL-QA stage=raster")
+        trace("stage=raster")
         let (page,raster,_,low)=try input()
-        print("TAKUPOKE-MANUAL-QA stage=builder;width=\(raster.width);height=\(raster.height)")
+        trace("stage=builder;width=\(raster.width);height=\(raster.height)")
         let original=try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:source.digest,fromOCR:[1],rasters:[1:raster])
-        print("TAKUPOKE-MANUAL-QA stage=builder-returned;cells=\(original.cells.count)")
+        trace("stage=builder-returned;cells=\(original.cells.count)")
         let groups=Dictionary(grouping:page.glyphs,by:{$0.sourceLine!})
         let lines=groups.keys.sorted().map { key -> RecoveryOCRLine in
             let glyphs=groups[key]!.sorted{$0.sourceOrder!<$1.sourceOrder!}
             return RecoveryOCRLine(nativeOrder:key,candidates:[RecoveryOCRCandidate(text:glyphs.map(\.text).joined(),confidence:low.contains(key) ? 0.4:0.95,characters:glyphs.map{RecoveryOCRCharacter(text:$0.text,range:RecoveryOCRRange(x:$0.x,y:$0.y,width:$0.width,height:$0.height))})])
         }
         let capture=RecoveryOCRAcquisitionDraft(sourcePDFHash:source.digest,documentPageCount:1,requiredOCRPages:[1],pages:[RecoveryOCRPage(page:1,width:raster.width,height:raster.height,nativeDocumentCount:1,lines:lines,captureComplete:true)])
-        print("TAKUPOKE-MANUAL-QA stage=attach")
+        trace("stage=attach")
         let document=try RecoveryManualAssistance.attaching(capture,to:original)
-        print("TAKUPOKE-MANUAL-QA stage=prepare")
+        trace("stage=prepare")
         guard let draft=try RecoveryManualAssistance.prepare(document,os:"ios") else { throw PDFParseError(code:.ambiguous) }
-        print("TAKUPOKE-MANUAL-QA stage=prepared;fields=\(draft.fields.count)")
+        trace("stage=prepared;fields=\(draft.fields.count)")
         return Prepared(source:source,draft:draft,raster:raster)
     }
 }
 struct FixtureManualProbe:View {
     @ObservedObject private var materials=ApplicationData.shared.materials
+    @AppStorage("fixture.manualStage") private var manualStage="not-started"
+    @AppStorage("fixture.manualPixels") private var manualPixels="unmeasured"
     var body:some View {
         let analysis=materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue]
         let adopted=analysis?.recovery
@@ -101,7 +118,11 @@ struct FixtureManualProbe:View {
         let lastgood=currentHash != nil && priorHash != nil && currentHash==priorHash
         let corrections=adopted?.result.humanCorrections ?? []
         let valid=adopted.map{(try? RecoveryValidator.canReuse($0.acceptance,document:$0.document,result:$0.result))==true} ?? false
-        Text(adopted==nil ? (lastgood ? "lastgood-preserved":"lastgood-mismatch"):"adopted=\(corrections.count);valid=\(valid);values="+corrections.map(\.value).joined(separator:"|"))
-            .font(.caption2).accessibilityIdentifier("manual-persisted-proof").allowsHitTesting(false)
+        VStack {
+            Text(manualStage+";"+manualPixels).font(.caption2)
+                .accessibilityIdentifier("manual-qa-diagnostic").allowsHitTesting(false)
+            Text(adopted==nil ? (lastgood ? "lastgood-preserved":"lastgood-mismatch"):"adopted=\(corrections.count);valid=\(valid);values="+corrections.map(\.value).joined(separator:"|"))
+                .font(.caption2).accessibilityIdentifier("manual-persisted-proof").allowsHitTesting(false)
+        }
     }
 }

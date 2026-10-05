@@ -51,9 +51,20 @@ class ManualUIProjectTests(unittest.TestCase):
         for expected in ('x1:20*scale', 'x2:720*scale', 'y1:40*scale', 'y2:200*scale', 'UIFont.systemFont(ofSize:8*scale/3)'):
             self.assertIn(expected,source)
         self.assertEqual(source.count('width:1480,height:960'),2)
-        self.assertIn('TAKUPOKE-MANUAL-QA stage=attach',source)
+        self.assertIn('trace("stage=attach")',source)
         generated=module.coordinator((ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8"))
-        self.assertIn('TAKUPOKE-MANUAL-QA failure=\\(String(reflecting:error))',generated)
+        self.assertIn('SimulatorManualFixture.failed(error)',generated)
+
+    def test_actual_qa_failure_stage_and_bitmap_extent_are_observable_in_accessibility_tree(self):
+        source=(ROOT/"tests/ui/ManualAssistanceFixture.swift").read_text(encoding="utf-8")
+        self.assertIn('@AppStorage("fixture.manualStage")',source)
+        self.assertIn('@AppStorage("fixture.manualPixels")',source)
+        self.assertIn('accessibilityIdentifier("manual-qa-diagnostic")',source)
+        self.assertIn('String(reflecting:error)',source)
+        self.assertIn('raster.grayscale[y*width+x] < 200',source)
+        generated=module.coordinator((ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8"))
+        self.assertIn('SimulatorManualFixture.failed(error)',generated)
+        self.assertIn('架空資料の補助入力を拒否しました。前回の正常結果を保持しています。',generated)
 
     def test_fixture_uses_current_period_and_actual_builder_proof(self):
         source=(ROOT/"tests/ui/ManualAssistanceFixture.swift").read_text(encoding="utf-8")
