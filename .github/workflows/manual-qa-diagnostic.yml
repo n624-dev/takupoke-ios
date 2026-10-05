@@ -15,10 +15,11 @@ jobs:
   manual-qa:
     name: Fictional manual QA iOS 26
     runs-on: macos-26
-    timeout-minutes: 20
+    timeout-minutes: 35
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
       TKPK_TEST_IOS: '26'
+      TKPK_MANUAL_DIAGNOSTICS: '1'
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
