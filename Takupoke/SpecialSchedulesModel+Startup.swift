@@ -18,7 +18,8 @@ extension SpecialSchedulesModel {
                 guard let source = store.sources[kind] else { continue }
                 let diagnosticSource = FileRefreshDiagnostics.Source(rawValue: kind.rawValue)
                 FileRefreshDiagnostics.shared.record(.refreshStarted, source: diagnosticSource)
-                let saved = store.records[kind]
+                let record = store.records[kind]
+                let saved = record.flatMap { RecoveryConversion.trustsAcquisitionCache($0.analysis,hash:source.digest) ? $0:nil }
                 let needsAnalysis = PDFParseAttempt.needsAnalysis(digest: source.digest, parserVersion: SpecialScheduleAnalysis.parserVersion,
                     analysisDigest: saved?.digest, analysisVersion: saved?.analysis.version, attemptDigest: source.digest,
                     failure: source.failure, attemptVersion: source.attemptParserVersion)

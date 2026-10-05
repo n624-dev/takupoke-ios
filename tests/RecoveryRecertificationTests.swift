@@ -188,7 +188,7 @@ final class RecoveryRecertificationTests: XCTestCase {
     func testFormalProjectionMustBeIdenticalBeforeMetadataOnlyUpgrade() throws {
         let old = try oldGood(structured:true), original = try projection(old)
         let current = try XCTUnwrap(RecoveryValidator.recertifiedTimetable(original,hash:old.document.pdfHash))
-        XCTAssertEqual(current.version,24)
+        XCTAssertEqual(current.version,25)
         XCTAssertEqual(current.lessons,original.lessons)
         XCTAssertEqual(current.parsedAt,original.parsedAt)
         XCTAssertEqual(current.notices,original.notices)
@@ -225,11 +225,11 @@ final class RecoveryRecertificationTests: XCTestCase {
 
         let reopened = try MaterialLibrary(root:root) // The actual initialization handoff recertifies, no user adoption call.
         let current = try XCTUnwrap(reopened.state.pdfAnalyses?["timetable"])
-        XCTAssertEqual(current.version,24); XCTAssertEqual(current.lessons,original.lessons)
+        XCTAssertEqual(current.version,25); XCTAssertEqual(current.lessons,original.lessons)
         XCTAssertEqual(current.recovery?.previousAcceptance,old.acceptance)
         XCTAssertEqual(current.recovery?.acceptance.acceptedAt,acceptedAt)
         XCTAssertNil(reopened.state.pdfParseAttempts?["timetable"]?.recoveryJob)
-        XCTAssertEqual(reopened.state.pdfParseAttempts?["timetable"]?.parserVersion,24)
+        XCTAssertEqual(reopened.state.pdfParseAttempts?["timetable"]?.parserVersion,25)
         XCTAssertEqual(try Data(contentsOf:try XCTUnwrap(reopened.localURL(for:.timetable))),bytes)
         let again = try MaterialLibrary(root:root)
         XCTAssertEqual(try RecoveryValidator.fingerprint(again.state.pdfAnalyses),try RecoveryValidator.fingerprint(reopened.state.pdfAnalyses))
@@ -298,4 +298,69 @@ final class RecoveryRecertificationTests: XCTestCase {
         XCTAssertEqual(try RecoveryValidator.fingerprint(library.state),try RecoveryValidator.fingerprint(state))
         XCTAssertEqual(try Data(contentsOf:root.appendingPathComponent("library.json")),before)
     }
+    func testOldOCRConfirmationCannotAcquireCoverageFromMetadata() throws {
+        for version in [4,5] {
+            var (doc,result)=fixture()
+            for i in doc.sources.indices { doc.sources[i].fromOcr=true }
+            result.metadata.validatorVersion=version
+            let old=try accepted(doc,result)
+            XCTAssertTrue(RecoveryValidator.validate(doc,result).errors.contains("ocrCoverage"))
+            XCTAssertFalse(try RecoveryValidator.canReuse(old.acceptance,document:doc,result:result))
+            XCTAssertNil(try RecoveryValidator.recertify(old,hash:doc.pdfHash))
+            let decoded=try JSONDecoder().decode(RecoveryDocument.self,from:JSONEncoder().encode(doc))
+            XCTAssertNil(decoded.ocrCoverageProof) // Old optional absence remains absence.
+        }
+    }
+    func testOCRProofIsBoundToAcceptanceAndCannotBeFilledIntoAnOldAudit() throws {
+        var (doc,result)=fixture()
+        for i in doc.sources.indices { doc.sources[i].fromOcr=true }
+        let old=try accepted(doc,result)
+        // A shape-valid marker is not permission to rewrite an old scope fingerprint.
+        doc.ocrCoverageProof=RecoveryOCRCoverageProof(version:1,pages:[RecoveryOCRCoveragePage(page:1,width:700,height:1000,grayscaleSHA256:String(repeating:"b",count:64))])
+        XCTAssertFalse(try RecoveryValidator.canReuse(old.acceptance,document:doc,result:result))
+        var forged=old; forged.document=doc
+        XCTAssertNil(try RecoveryValidator.recertify(forged,hash:doc.pdfHash))
+        for mutation in 0..<7 {
+            var invalid=doc
+            switch mutation {
+            case 0: invalid.ocrCoverageProof!.version=2
+            case 1: invalid.ocrCoverageProof!.pages=[]
+            case 2: invalid.ocrCoverageProof!.pages.append(invalid.ocrCoverageProof!.pages[0])
+            case 3: invalid.ocrCoverageProof!.pages[0].page=2
+            case 4: invalid.ocrCoverageProof!.pages[0].grayscaleSHA256="not-a-hash"
+            case 5: invalid.ocrCoverageProof!.pages[0].width=1
+            default: invalid.sources[0].fromOcr=false
+            }
+            XCTAssertTrue(RecoveryValidator.validate(invalid,result).errors.contains("ocrCoverage"),"mutation \(mutation)")
+        }
+    }
+
+    func testAcquisitionCacheRechecksUnprovedOCRWhileKeepingVectorConfirmation() throws {
+        let vector=try oldGood(), original=try projection(vector)
+        XCTAssertTrue(RecoveryConversion.trustsAcquisitionCache(original,hash:vector.document.pdfHash))
+        var ocr=vector
+        for i in ocr.document.sources.indices { ocr.document.sources[i].fromOcr=true }
+        ocr.result.metadata.validatorVersion=RecoveryValidator.version
+        ocr=try accepted(ocr.document,ocr.result)
+        var stale=original; stale.version=PDFAnalysis.parserVersion; stale.recovery=ocr
+        XCTAssertFalse(RecoveryConversion.trustsAcquisitionCache(stale,hash:ocr.document.pdfHash))
+        let trusted=RecoveryConversion.trustsAcquisitionCache(stale,hash:ocr.document.pdfHash) ? stale:nil
+        XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:ocr.document.pdfHash,parserVersion:PDFAnalysis.parserVersion,
+            analysisDigest:trusted?.sourceDigest,analysisVersion:trusted?.version,attemptDigest:ocr.document.pdfHash,failure:nil,attemptVersion:PDFAnalysis.parserVersion))
+        var state=MaterialLibraryState(); state.pdfAnalyses=["timetable":stale]
+        let hidden=MaterialLibrary.displayableTimetables(state)
+        XCTAssertEqual(hidden.rejected,["timetable"]); XCTAssertNil(hidden.state.pdfAnalyses?["timetable"])
+        XCTAssertEqual(try RecoveryValidator.fingerprint(state.pdfAnalyses?["timetable"]),try RecoveryValidator.fingerprint(stale))
+        XCTAssertThrowsError(try RecoveryConversion.timetable(RecoveryPreview(document:ocr.document,result:ocr.result,source:source(ocr.document.pdfHash))))
+        var strict=stale; strict.recovery=nil
+        XCTAssertTrue(RecoveryConversion.trustsAcquisitionCache(strict,hash:strict.sourceDigest))
+        let special=SpecialScheduleAnalysis(kind:.exam,sourceDigest:ocr.document.pdfHash,sourceName:"fictional",parsedAt:acceptedAt,
+            schoolYear:2026,coveredDates:["2026-04-01"],coveredClasses:["3_CN"],periodTimes:[:],lessons:[])
+        XCTAssertTrue(RecoveryConversion.trustsAcquisitionCache(special,hash:special.sourceDigest))
+        var unprovedSpecial=special; unprovedSpecial.recovery=ocr
+        XCTAssertFalse(RecoveryConversion.trustsAcquisitionCache(unprovedSpecial,hash:special.sourceDigest))
+        XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:special.sourceDigest,parserVersion:SpecialScheduleAnalysis.parserVersion,
+            analysisDigest:nil,analysisVersion:nil,attemptDigest:special.sourceDigest,failure:nil,attemptVersion:SpecialScheduleAnalysis.parserVersion))
+    }
+
 }

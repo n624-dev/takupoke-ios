@@ -692,3 +692,79 @@ extension SpecialScheduleTests {
         XCTAssertTrue(RecoveryValidator.validate(changed,try XCTUnwrap(run.result)).errors.contains("normalSpanTimeCondition"))
     }
 }
+
+extension PDFParsingTests {
+    // Independent synthetic ink markers test coverage, not font recognition accuracy.
+    private func twoClassRasterCoverage(annotation:Bool = false,unknownAnnotation:Bool = false) throws -> (PDFPageLayout,RecoveryRasterGrid) {
+        let width=740,height=480
+ var glyphs=[PDFGlyph](),rules=[PDFRule](),sourceLine=0
+ func text(_ value:String,_ x:Double,_ y:Double,_ charWidth:Double=3,_ charHeight:Double=6) {
+  for (i,c) in value.enumerated() { glyphs.append(PDFGlyph(text:String(c),x:x+Double(i)*charWidth,y:y,width:charWidth,height:charHeight,sourceLine:sourceLine,sourceOrder:glyphs.count)) };sourceLine+=1
+ }
+ text("令和14年度",20,8,5,8);text("前期",80,8,5,8)
+ for y in [40.0,72.0,96.0,148.0,200.0] { rules.append(PDFRule(x1:20,y1:y,x2:720,y2:y)) }
+ for x in [20.0,44.0,80.0] { rules.append(PDFRule(x1:x,y1:40,x2:x,y2:200)) }
+ for p in 0...40 { let x=80+Double(p)*16; rules.append(PDFRule(x1:x,y1:p%8==0 ? 40:72,x2:x,y2:200)) }
+ for (day,label) in ["月曜日","火曜日","水曜日","木曜日","金曜日"].enumerated() {
+  text(label,80+Double(day)*128+55,48)
+  for p in 1...8 { text(String(p),80+Double(day*8+p-1)*16+6,78,4,8) }
+ }
+ for row in 0..<2 {
+  let top=96+Double(row)*52
+  text(String(row+1),28,top+22,4,8);text(row==0 ? "2":"CN",58,top+22,4,8)
+  for p in 0..<40 { for (line,value) in ["架空科","架空師","架空室"].enumerated() { text(value,80+Double(p)*16+3,top+6+Double(line)*16,3,6) } }
+ }
+ var gray=[UInt8](repeating:255,count:width*height)
+ for r in rules {
+  if r.horizontal { for x in Int(r.x1)...min(width-1,Int(r.x2)) { gray[Int(r.y1)*width+x]=0 } }
+  else { for y in Int(r.y1)...Int(r.y2) { gray[y*width+Int(r.x1)]=0 } }
+ }
+ for g in glyphs { gray[Int(g.cy)*width+Int(g.cx)]=0 }
+ if annotation {
+  text("架空注記",24,240,4,8)
+  for g in glyphs where g.y >= 240 { gray[Int(g.cy)*width+Int(g.cx)]=0 }
+ }
+ if unknownAnnotation { gray[260*width+24]=0 }
+ let raster=try RecoveryRasterGrid(width:width,height:height,grayscale:gray).preparingRules(rules)
+ return (PDFPageLayout(width:Double(width),height:Double(height),glyphs:glyphs,lines:rules),raster)
+
+    }
+    func testOCRRecoveryRejectsAnEntireUnobservedClassRow() throws {
+        let (original,raster)=try twoClassRasterCoverage()
+        var omitted=original; omitted.glyphs.removeAll { $0.cy >= 148 }
+        XCTAssertTrue(try raster.hasUncoveredInk(RecoveryBox(x:0,y:0,width:original.width,height:original.height),text:omitted.glyphs.map { RecoveryBox(x:$0.x,y:$0.y,width:$0.width,height:$0.height) },rules:original.lines,check:{}))
+        XCTAssertThrowsError(try RecoveryDocumentBuilder.build([omitted],kind:.timetable,hash:String(repeating:"b",count:64),fromOCR:[1],rasters:[1:raster])) {
+            XCTAssertEqual(($0 as? PDFParseError)?.code,.ambiguous)
+            XCTAssertEqual(($0 as? PDFParseError)?.stage,.rasterInput)
+        }
+    }
+    func testOCRRecoveryAccountsForBothClassRowsRulesAndKnownAnnotation() async throws {
+        for annotation in [false,true] {
+            let (page,raster)=try twoClassRasterCoverage(annotation:annotation)
+            let doc=try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:String(repeating:"b",count:64),fromOCR:[1],rasters:[1:raster])
+            XCTAssertEqual(doc.classes,["1_2","2_CN"]); XCTAssertEqual(doc.requiredSlots.count,80)
+            XCTAssertEqual(doc.annotations.count,annotation ? 1:0)
+            let proof=try XCTUnwrap(doc.ocrCoverageProof)
+            XCTAssertEqual(proof.version,1); XCTAssertEqual(proof.pages.count,1)
+            XCTAssertEqual(proof.pages[0].page,1); XCTAssertEqual(proof.pages[0].width,740); XCTAssertEqual(proof.pages[0].height,480)
+            XCTAssertEqual(proof.pages[0].grayscaleSHA256,SHA256.hash(data:Data(raster.grayscale)).map { String(format:"%02x",$0) }.joined())
+            let run=try await RecoveryEngine.run(doc,os:"ios",osMajor:27,foreground:true,providers:[],rule:{_ in nil},check:{})
+            let result=try XCTUnwrap(run.result); XCTAssertTrue(RecoveryValidator.validate(doc,result).canAdopt)
+            XCTAssertEqual(result.cells.flatMap(\.lessons).count,80)
+            for lesson in result.cells.flatMap(\.lessons) {
+                XCTAssertEqual(lesson.subject.value,"架空科"); XCTAssertEqual(lesson.teacher.value,"架空師"); XCTAssertEqual(lesson.room.value,"架空室")
+            }
+        }
+    }
+    func testOCRRecoveryRejectsUnobservedAnnotationInkOutsideRecognizedCells() throws {
+        let (page,raster)=try twoClassRasterCoverage(unknownAnnotation:true)
+        XCTAssertThrowsError(try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:String(repeating:"b",count:64),fromOCR:[1],rasters:[1:raster])) {
+            XCTAssertEqual(($0 as? PDFParseError)?.stage,.rasterInput)
+        }
+    }
+    func testVectorRecoveryDoesNotTreatUnrequestedRasterAsOCRProof() throws {
+        let (page,raster)=try twoClassRasterCoverage(unknownAnnotation:true)
+        let doc=try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:String(repeating:"b",count:64),rasters:[1:raster])
+        XCTAssertEqual(doc.requiredSlots.count,80); XCTAssertFalse(doc.sources.contains { $0.fromOcr }); XCTAssertNil(doc.ocrCoverageProof)
+    }
+}

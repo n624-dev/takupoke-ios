@@ -57,6 +57,13 @@ struct RecoveryCell: Codable, Equatable, Sendable {
     var roleScopes: [RecoveryRoleScope] = []
     var parallelSeparators: [String:String] = [:]
 }
+/// App-generated acquisition proof; never part of a model response schema.
+struct RecoveryOCRCoveragePage: Codable, Equatable, Sendable {
+    var page: Int; var width: Int; var height: Int; var grayscaleSHA256: String
+}
+struct RecoveryOCRCoverageProof: Codable, Equatable, Sendable {
+    var version: Int; var pages: [RecoveryOCRCoveragePage]
+}
 struct RecoveryDocument: Codable, Equatable, Sendable {
     var pdfHash: String; var kind: RecoveryDocumentKind; var schoolYear: Int; var term: String?
     var classes: [String]; var days: [String]; var requiredSlots: [RecoverySlot]; var cells: [RecoveryCell]
@@ -71,6 +78,7 @@ struct RecoveryDocument: Codable, Equatable, Sendable {
     var commonClockEvidence: [String] = []
     var commonClockRegions: [String: RecoveryHeaderRegion] = [:]
     var structureMetadata: RecoveryMetadata? = nil
+    var ocrCoverageProof: RecoveryOCRCoverageProof? = nil
 }
 struct RecoveryLesson: Codable, Equatable, Sendable {
     var subject: RecoveryField; var teacher: RecoveryField; var room: RecoveryField

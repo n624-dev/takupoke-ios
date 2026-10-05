@@ -160,3 +160,9 @@ bash tools/build-ios.sh ./dist
 - [GitHub の macOS runner 構成](https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md)
 - [GitHub のコミットメール設定](https://docs.github.com/en/account-and-profile/how-tos/email-preferences/setting-your-commit-email-address)
 - [actionlint](https://github.com/rhysd/actionlint)
+
+### OCRの全ページ取得証明
+
+OCR復旧では、認識できたセル内だけでなく、全ページの非罫線インクが取得文字の箱で覆われることを確認します。クラス行全体やセル外注記の未取得を、残りの文字だけで成功扱いしません。非OCR経路の条件、既存の32M上限・中止処理、認識信頼度のしきい値は維持します。
+
+取得成功後にアプリ内部の `ocrCoverageProof` version 1へページ番号・元グレースケール寸法・SHA256を記録します。モデル応答のSchema2は変更せず、受理時のscope fingerprintが文字・箱・順序・セル証明と取得証明全体を結び付けます。この証明は文字の正読率を保証しません。証明のない旧OCR監査はメタデータだけで移行・再利用せず、保存原文を削除せずに再取得が必要な状態として扱います。非OCRの合法な旧採用結果は従来どおりacceptedAtと確認履歴を保持して再検証できます。通常時間割Parser25で同一hashの旧解析も再検査し、イベントParser4・特殊時間割Parser22は維持します。

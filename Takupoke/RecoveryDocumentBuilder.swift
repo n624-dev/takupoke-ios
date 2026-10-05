@@ -1,4 +1,9 @@
 import Foundation
+#if canImport(CryptoKit)
+import CryptoKit
+#elseif canImport(Crypto)
+import Crypto
+#endif
 
 /// Preserves the reader's original identity comparison without rescanning the
 /// complete page for every source fragment. Duplicate identities stay visible.
@@ -74,7 +79,7 @@ enum RecoveryDocumentBuilder {
     }
     private static func buildLayout(_ pages: [PDFPageLayout], kind: RecoveryDocumentKind, hash: String,
                       fromOCR: Set<Int>, rasters: [Int:RecoveryRasterGrid], structureProposals: [String:[RecoveryLesson]], structureWork:RecoveryValidationWork, genericRuled: Bool = false, check: @escaping () throws -> Void) throws -> RecoveryDocument {
-        guard (1...12).contains(pages.count), pages.allSatisfy({ $0.width.isFinite && $0.height.isFinite && $0.width > 0 && $0.height > 0 && $0.glyphs.count <= 100000 }) else { throw PDFParseError(code: .limit) }
+        guard (1...12).contains(pages.count), fromOCR.isSubset(of:Set(1...pages.count)), pages.allSatisfy({ $0.width.isFinite && $0.height.isFinite && $0.width > 0 && $0.height > 0 && $0.glyphs.count <= 100000 }) else { throw PDFParseError(code: .limit) }
         var doc = RecoveryDocument(pdfHash: hash, kind: kind, schoolYear: 0, term: nil, classes: [], days: [], requiredSlots: [], cells: [], sources: [], complete: true, yearEvidence: [], termEvidence: [], dayEvidence: [:], classEvidence: [:], periodEvidence: [:], times: [:], timeEvidence: [], normalTimeNoteEvidence: [])
         let count = kind == .exam ? 6 : 8
         var sourceNumber = 0
@@ -490,8 +495,14 @@ enum RecoveryDocumentBuilder {
                 }
             }
             guard used.count == page.glyphs.count else { throw PDFParseError(code:.ambiguous) }
-            if genericRuled, fromOCR.contains(number) {
-                guard let raster = pageRaster, try !raster.hasUncoveredInk(RecoveryBox(x:0,y:0,width:page.width,height:page.height),text:page.glyphs.map { try box([$0]) },rules:page.lines,check:check) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
+            // OCR may omit an entire class row; account for ink beyond recognized cells.
+            if fromOCR.contains(number) {
+                guard let raster = pageRaster, Double(raster.width) == page.width, Double(raster.height) == page.height,
+                      try !raster.hasUncoveredInk(RecoveryBox(x:0,y:0,width:page.width,height:page.height),text:page.glyphs.map { try box([$0]) },rules:page.lines,check:check) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
+                let proof = RecoveryOCRCoveragePage(page:number,width:raster.width,height:raster.height,
+                    grayscaleSHA256:try rasterFingerprint(raster,work:structureWork))
+                if doc.ocrCoverageProof == nil { doc.ocrCoverageProof = RecoveryOCRCoverageProof(version:1,pages:[]) }
+                doc.ocrCoverageProof!.pages.append(proof)
             }
         }
         doc.classes = doc.classEvidence.keys.sorted(); doc.days = doc.dayEvidence.keys.sorted()
@@ -505,6 +516,21 @@ enum RecoveryDocumentBuilder {
         let errors = try RecoveryValidator.inputErrors(doc,check:check)
         guard errors.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
         return doc
+    }
+
+    private static func rasterFingerprint(_ raster:RecoveryRasterGrid,work:RecoveryValidationWork) throws -> String {
+        #if canImport(CryptoKit) || canImport(Crypto)
+        var hash = SHA256()
+        for offset in stride(from:0,to:raster.grayscale.count,by:65536) {
+            let end = min(offset+65536,raster.grayscale.count)
+            guard work.charge(end-offset) else { try work.finish(); throw PDFParseError(code:.limit) }
+            hash.update(data:Data(raster.grayscale[offset..<end]))
+        }
+        try work.finish()
+        return hash.finalize().map { String(format:"%02x",$0) }.joined()
+        #else
+        throw PDFParseError(code:.unsupported,stage:.rasterInput)
+        #endif
     }
 
     private struct RuledHeaders {

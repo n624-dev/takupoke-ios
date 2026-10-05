@@ -7,6 +7,14 @@ import Crypto
 
 /// One verified payload goes through the existing transactional Analysis save.
 enum RecoveryConversion {
+    /// Same-hash acquisition skips require the saved formal projection and its
+    /// recovery scope to remain proved; strict analyses use the existing path.
+    static func trustsAcquisitionCache(_ analysis:PDFAnalysis,hash:String) -> Bool {
+        analysis.recovery == nil || (try? RecoveryValidator.recertifiedTimetable(analysis,hash:hash)) != nil
+    }
+    static func trustsAcquisitionCache(_ analysis:SpecialScheduleAnalysis,hash:String) -> Bool {
+        analysis.recovery == nil || (try? recertifiedSpecial(analysis,hash:hash)) != nil
+    }
     static func matchesPeriod(_ document: RecoveryDocument, _ period: SchoolDataPeriod) -> Bool {
         guard document.schoolYear == period.schoolYear else { return false }
         if document.kind == .timetable { return document.term == (period.half == 1 ? "前期" : "後期") }

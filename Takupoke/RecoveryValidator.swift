@@ -44,6 +44,27 @@ enum RecoveryValidator {
         guard (1900...9998).contains(doc.schoolYear), (1...64).contains(doc.classes.count), (1...31).contains(doc.days.count), (1...20000).contains(doc.cells.count), doc.sources.count <= 100000, result.cells.count <= 20000 else { return RecoveryValidation(errors: ["inputLimit"]) }
         var errors = [String]()
         func check(_ ok: Bool, _ code: String) { if work.charge(), !ok && !errors.contains(code) { errors.append(code) } }
+        // Old OCR audits lack this acquisition proof and cannot be recertified
+        // from text/result metadata alone. Vector audits retain their prior path.
+        var ocrPages = Set<Int>()
+        for source in doc.sources {
+            guard work.charge() else { return RecoveryValidation(errors:["validationLimit"]) }
+            if source.fromOcr { ocrPages.insert(source.page) }
+        }
+        if ocrPages.isEmpty { check(doc.ocrCoverageProof == nil,"ocrCoverage") }
+        else if let proof = doc.ocrCoverageProof {
+            guard proof.pages.count <= 12, work.charge(proof.pages.count * 65) else { return RecoveryValidation(errors:["inputLimit"]) }
+            check(proof.version == 1 && Set(proof.pages.map(\.page)) == ocrPages && Set(proof.pages.map(\.page)).count == proof.pages.count,"ocrCoverage")
+            for page in proof.pages {
+                check((1...12).contains(page.page) && (1...4096).contains(page.width) && (1...4096).contains(page.height) &&
+                      page.grayscaleSHA256.utf8.count == 64 && page.grayscaleSHA256.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) },"ocrCoverage")
+                for source in doc.sources {
+                    guard work.charge() else { return RecoveryValidation(errors:["validationLimit"]) }
+                    if source.page != page.page { continue }
+                    check(source.fromOcr && source.box.x >= 0 && source.box.y >= 0 && source.box.x+source.box.width <= Double(page.width) && source.box.y+source.box.height <= Double(page.height),"ocrCoverage")
+                }
+            }
+        } else { check(false,"ocrCoverage") }
         // Bound all source-reference inventories before any flattening/joins. Counts
         // are charged even when the later proof rejects a reference.
         for cell in doc.cells {

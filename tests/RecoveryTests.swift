@@ -139,7 +139,7 @@ final class RecoveryTests: XCTestCase {
             attemptVersion:SpecialScheduleAnalysis.parserVersion))
     }
     func testOrdinaryRoleAliasVersionRetriesUnchangedEarlierSuccess() {
-        XCTAssertEqual(PDFAnalysis.currentVersion(for:.timetable),24)
+        XCTAssertEqual(PDFAnalysis.currentVersion(for:.timetable),25)
         XCTAssertEqual(PDFAnalysis.currentVersion(for:.events),4)
         XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"same",parserVersion:PDFAnalysis.parserVersion,analysisDigest:"same",analysisVersion:20,attemptDigest:"same",failure:nil,attemptVersion:20))
     }
@@ -153,16 +153,23 @@ final class RecoveryTests: XCTestCase {
         XCTAssertEqual(SpecialScheduleAnalysis.parserVersion, 22)
     }
     func testParallelAlignmentVersionRetriesEarlierSameHashSuccessAndFailure() {
-        XCTAssertEqual(PDFAnalysis.currentVersion(for: .timetable), 24)
+        XCTAssertEqual(PDFAnalysis.currentVersion(for: .timetable), 25)
         XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest: "same", parserVersion: PDFAnalysis.parserVersion,
             analysisDigest: "same", analysisVersion: 22, attemptDigest: "same", failure: nil, attemptVersion: 22))
         let failure = PDFParseError(code: .ambiguous, stage: .parallelLessons)
         XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest: "same", parserVersion: PDFAnalysis.parserVersion,
             analysisDigest: nil, analysisVersion: nil, attemptDigest: "same", failure: failure, attemptVersion: 22))
         XCTAssertFalse(PDFParseAttempt.needsAnalysis(digest: "same", parserVersion: PDFAnalysis.parserVersion,
-            analysisDigest: nil, analysisVersion: nil, attemptDigest: "same", failure: failure, attemptVersion: 24))
+            analysisDigest: nil, analysisVersion: nil, attemptDigest: "same", failure: failure, attemptVersion: PDFAnalysis.parserVersion))
         XCTAssertEqual(PDFAnalysis.currentVersion(for: .events), 4)
         XCTAssertEqual(SpecialScheduleAnalysis.parserVersion, 22)
+    }
+    func testOCRCoverageVersionRetriesPriorSameHashSuccessWithoutChangingEvents() {
+        XCTAssertEqual(PDFAnalysis.parserVersion,25)
+        XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"same",parserVersion:PDFAnalysis.parserVersion,
+            analysisDigest:"same",analysisVersion:24,attemptDigest:"same",failure:nil,attemptVersion:24))
+        XCTAssertEqual(PDFAnalysis.currentVersion(for:.events),4)
+        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion,22)
     }
     func testRecoverySourceRequiresCurrentStrictFailureForSameDocument() {
         let version = SpecialScheduleAnalysis.parserVersion

@@ -49,7 +49,9 @@ final class MaterialWorker {
                 guard ChangeParseAttempt.needsAnalysis(digest: current.digest, defaultYear: defaultYear,
                     analysis: state.changeAnalysis, attempt: state.changeParseAttempt) else { return false }
             } else {
-            let analysis = state.pdfAnalyses?[kind.rawValue], attempt = state.pdfParseAttempts?[kind.rawValue]
+            let saved = state.pdfAnalyses?[kind.rawValue]
+            let analysis = saved.flatMap { RecoveryConversion.trustsAcquisitionCache($0,hash:current.digest) ? $0:nil }
+            let attempt = state.pdfParseAttempts?[kind.rawValue]
             guard PDFParseAttempt.needsAnalysis(digest: current.digest, parserVersion: PDFAnalysis.parserVersion,
                 analysisDigest: analysis?.sourceDigest, analysisVersion: analysis?.version, attemptDigest: attempt?.sourceDigest,
                 failure: attempt?.failure, attemptVersion: attempt?.parserVersion) else { return false }
