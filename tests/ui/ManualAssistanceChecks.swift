@@ -1,6 +1,18 @@
 import XCTest
 import UIKit
 
+// QA geometry only: no value assignment or acknowledgement synthesis.
+private func manualAcknowledgementPoint(outer:CGRect,inner:CGRect,viewport:CGRect)->CGPoint? {
+    guard [outer,inner,viewport].allSatisfy({
+        !$0.isNull && !$0.isInfinite && $0.width>0 && $0.height>0
+            && [$0.minX,$0.minY,$0.maxX,$0.maxY].allSatisfy(\.isFinite)
+    }), [outer,viewport].allSatisfy({
+        inner.minX >= $0.minX && inner.maxX <= $0.maxX
+            && inner.minY >= $0.minY && inner.maxY <= $0.maxY
+    }) else { return nil }
+    return CGPoint(x:inner.midX,y:inner.midY)
+}
+
 final class ManualAssistanceChecks:XCTestCase {
     private var app:XCUIApplication!
     override func setUp() { continueAfterFailure=false;app=XCUIApplication() }
@@ -90,7 +102,26 @@ final class ManualAssistanceChecks:XCTestCase {
         let row=visible(ack(id))
         let control=row.switches.firstMatch
         XCTAssertTrue(control.exists,app.debugDescription)
-        visible(control).tap()
+        let actual=visible(control)
+        let list=app.collectionViews["manual-recovery-list"]
+        let navigation=app.navigationBars["時間割の復旧"]
+        let keyboard=app.keyboards.firstMatch
+        let appFrame=app.frame
+        let top=max(list.frame.minY,navigation.frame.maxY)+12
+        let bottom=min(list.frame.maxY,keyboard.exists ? keyboard.frame.minY-45:list.frame.maxY)-12
+        let viewport=CGRect(x:list.frame.minX,y:top,width:list.frame.width,height:max(0,bottom-top))
+        let outerFrame=row.frame,innerFrame=actual.frame
+        guard let point=manualAcknowledgementPoint(outer:outerFrame,inner:innerFrame,viewport:viewport) else {
+            print("TAKUPOKE-MANUAL-ACK invalid-hit-region;outer=\(outerFrame);inner=\(innerFrame);viewport=\(viewport)")
+            XCTFail(app.debugDescription);return
+        }
+        let diagnostic=app.staticTexts["manual-qa-diagnostic"].firstMatch
+        print("TAKUPOKE-MANUAL-ACK before;id=\(id);outer=\(outerFrame);inner=\(innerFrame);hittable=\(actual.isHittable);point=\(point);app=\(appFrame);viewport=\(viewport);keyboard=\(keyboard.exists ? String(describing:keyboard.frame):"absent");diagnostic=\(diagnostic.exists ? String(describing:diagnostic.frame):"absent");value=\(row.value as? String ?? "unknown")")
+        XCTAssertTrue(actual.isHittable,app.debugDescription)
+        // Exactly one physical tap at the recorded center of the actual inner widget.
+        app.coordinate(withNormalizedOffset:CGVector(dx:0,dy:0))
+            .withOffset(CGVector(dx:point.x-appFrame.minX,dy:point.y-appFrame.minY)).tap()
+        print("TAKUPOKE-MANUAL-ACK after;outer=\(row.frame);inner=\(actual.frame);value=\(row.value as? String ?? "unknown")")
         let changed=XCTNSPredicateExpectation(predicate:NSPredicate(format:"value == %@","1"),object:row)
         let outcome=XCTWaiter.wait(for:[changed],timeout:5)
         let state=app.staticTexts["manual-input-state"].firstMatch
