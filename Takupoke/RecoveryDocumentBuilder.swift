@@ -93,11 +93,20 @@ enum RecoveryDocumentBuilder {
             var used: Set<Int> = []
             func add(_ glyphs: [PDFGlyph], owner: String = "", value: String? = nil) throws -> String {
                 guard !glyphs.isEmpty else { throw PDFParseError(code: .ambiguous) }
+                if glyphs.contains(where: { $0.ocrLineAtom == true }) {
+                    guard fromOCR.contains(number), glyphs.count == 1, !owner.isEmpty,
+                          value == nil else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
+                }
                 let indices = try glyphIndex.indices(for:glyphs,check:check)
                 guard indices.count == glyphs.count, indices.allSatisfy({ !used.contains($0) }) else { throw PDFParseError(code: .ambiguous, page: number, stage: .textOrder) }
                 used.formUnion(indices); sourceNumber += 1
                 let id = "p\(number)-s\(sourceNumber)"
-                doc.sources.append(RecoverySource(id: id, cellId: owner, page: number, text: value ?? glyphs.map(\.text).joined(), box: try box(glyphs), fromOcr: fromOCR.contains(number), sourceLine:glyphs.first?.sourceLine, sourceOrder:glyphs.first?.sourceOrder))
+                let sourceBox: RecoveryBox
+                if glyphs[0].ocrLineAtom == true {
+                    let g = glyphs[0]
+                    sourceBox = RecoveryBox(x:g.x,y:g.y,width:g.width,height:g.height)
+                } else { sourceBox = try box(glyphs) }
+                doc.sources.append(RecoverySource(id: id, cellId: owner, page: number, text: value ?? glyphs.map(\.text).joined(), box: sourceBox, fromOcr: fromOCR.contains(number), sourceLine:glyphs.first?.sourceLine, sourceOrder:glyphs.first?.sourceOrder))
                 return id
             }
             func region(_ b: RecoveryBox, axis: RecoveryHeaderAxis) -> RecoveryHeaderRegion { .init(page: number, box: b, axis: axis) }

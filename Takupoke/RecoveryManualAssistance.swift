@@ -76,6 +76,10 @@ enum RecoveryManualAssistance {
             guard let line = source.sourceLine, let confidence = confidences["\(source.page):\(line)"] else { throw PDFParseError(code:.ambiguous,stage:.textOrder) }
             doc.sources[i].nativeConfidence = confidence
         }
+        // Atom lines must prove BODY ownership before becoming model/manual input.
+        if capture.pages.contains(where: { $0.lines.contains { $0.candidates[0].characters.contains { $0.range == nil } } }) {
+            _ = try fields(doc,check:check)
+        }
         return doc
     }
 
@@ -132,9 +136,36 @@ enum RecoveryManualAssistance {
         }
         let byLine = Dictionary(grouping:doc.sources.filter(\.fromOcr),by:{ "\($0.page):\($0.sourceLine ?? -1)" })
         for page in capture.pages {
+            var atomOrders = Set<Int>()
             for line in page.lines {
                 for source in byLine["\(page.page):\(line.nativeOrder)",default:[]] {
                     guard work.charge(), source.nativeConfidence == line.candidates[0].confidence else { try work.finish(); throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
+                }
+                let top1 = line.candidates[0]
+                let atom = try RecoveryOCRLineMapping.requiresAtom(top1,width:page.width,height:page.height,consume:{
+                    guard work.charge() else { try work.finish(); throw PDFParseError(code:.limit) }
+                })
+                if atom {
+                    let members = byLine["\(page.page):\(line.nativeOrder)",default:[]]
+                    guard members.count == 1, let source = members.first, let native = top1.lineRange,
+                          source.text.utf8.elementsEqual(top1.text.utf8),
+                          [source.box.x.bitPattern,source.box.y.bitPattern,source.box.width.bitPattern,source.box.height.bitPattern] ==
+                            [native.x.bitPattern,native.y.bitPattern,native.width.bitPattern,native.height.bitPattern],
+                          let target = ownership[source.id], target.cellId == source.cellId,
+                          let cell = cellsById[source.cellId], cell.page == page.page, cell.box.contains(source.box) else {
+                        throw PDFParseError(code:.ambiguous,stage:.characterMapping)
+                    }
+                    // Fixed three-line fields and verified role scopes remain the
+                    // independent authority. A whole line cannot cover another
+                    // role's ink, a label, another lesson, or a structural source.
+                    for id in cell.sourceIds where id != source.id {
+                        guard work.charge(), let other = index.byId[id] else { try work.finish(); throw PDFParseError(code:.ambiguous,stage:.gridCell) }
+                        if ownership[id] == target { continue }
+                        let overlaps = source.box.x < other.box.x+other.box.width && other.box.x < source.box.x+source.box.width &&
+                            source.box.y < other.box.y+other.box.height && other.box.y < source.box.y+source.box.height
+                        guard !overlaps else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
+                    }
+                    atomOrders.insert(line.nativeOrder)
                 }
             }
             let low = Set(assessment.lowConfidenceNativeOrders[page.page,default:[]])
@@ -149,19 +180,21 @@ enum RecoveryManualAssistance {
                       !ids.isEmpty, Set(members.map(\.id)).isSubset(of:Set(ids)) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
                 // Each original returned character must belong to exactly one
                 // original source in this field. Overlap or clipped ranges fail.
-                var assigned = [String:[String]]()
-                for character in line.candidates[0].characters {
-                    guard let range = character.range else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
-                    let b = RecoveryBox(x:range.x,y:range.y,width:range.width,height:range.height)
-                    var owners = [RecoverySource]()
-                    for source in members {
-                        guard work.charge() else { try work.finish(); throw PDFParseError(code:.limit) }
-                        if source.box.contains(b) { owners.append(source) }
+                if !atomOrders.contains(line.nativeOrder) {
+                    var assigned = [String:[String]]()
+                    for character in line.candidates[0].characters {
+                        guard let range = character.range else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
+                        let b = RecoveryBox(x:range.x,y:range.y,width:range.width,height:range.height)
+                        var owners = [RecoverySource]()
+                        for source in members {
+                            guard work.charge() else { try work.finish(); throw PDFParseError(code:.limit) }
+                            if source.box.contains(b) { owners.append(source) }
+                        }
+                        guard owners.count == 1 else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
+                        assigned[owners[0].id,default:[]].append(character.text)
                     }
-                    guard owners.count == 1 else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
-                    assigned[owners[0].id,default:[]].append(character.text)
+                    guard members.allSatisfy({ assigned[$0.id]?.joined().utf8.elementsEqual($0.text.utf8) == true }) else { throw PDFParseError(code:.ambiguous,stage:.textOrder) }
                 }
-                guard members.allSatisfy({ assigned[$0.id]?.joined().utf8.elementsEqual($0.text.utf8) == true }) else { throw PDFParseError(code:.ambiguous,stage:.textOrder) }
                 let originals = ids.compactMap { index.byId[$0] }
                 guard originals.count == ids.count, originals.allSatisfy({ $0.page == page.page && $0.cellId == cell.id }),
                       let originalText = index.original(ids,work:work),

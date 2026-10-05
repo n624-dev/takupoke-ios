@@ -114,6 +114,30 @@ final class RecoveryOCRAcquisitionTests: XCTestCase {
         fails(value, .characterMapping)
         XCTAssertNil(value.pages[0].lines[0].candidates[0].characters[1].range)
     }
+    func testNativeWholeLineRangeKeepsUnpositionedSpaceWithoutInventingItsBox() throws {
+        let native = RecoveryOCRCandidate(text:"架 空",confidence:0.85,characters:[
+            .init(text:"架",range:box),.init(text:" ",range:nil),
+            .init(text:"空",range:.init(x:25,y:10,width:10,height:10))],
+            lineRange:.init(x:10,y:10,width:25,height:10))
+        let value = draft([page(candidates:[native])])
+        XCTAssertTrue(try value.assess().directLayoutsAllowed)
+        XCTAssertEqual(try value.assess().top1CharacterCount,3)
+        XCTAssertNil(value.pages[0].lines[0].candidates[0].characters[1].range)
+        XCTAssertEqual(try JSONDecoder().decode(RecoveryOCRAcquisitionDraft.self,from:value.canonicalData()),value)
+        var low = native; low = .init(text:native.text,confidence:0.849999,characters:native.characters,lineRange:native.lineRange)
+        XCTAssertFalse(try draft([page(candidates:[low])]).assess().directLayoutsAllowed)
+    }
+    func testWholeLineRangeCannotRescueMissingInkInvalidSpaceOrMultilineText() {
+        for (text,characters,range) in [
+            ("架 空",[RecoveryOCRCharacter(text:"架",range:nil),.init(text:" ",range:nil),.init(text:"空",range:box)],box),
+            ("架 ",[.init(text:"架",range:box),.init(text:" ",range:.init(x:15,y:10,width:0,height:10))],box),
+            ("架 空",[.init(text:"架",range:box),.init(text:" ",range:nil),.init(text:"空",range:.init(x:25,y:10,width:10,height:10))],box),
+            ("  ",[.init(text:" ",range:box),.init(text:" ",range:nil)],box),
+            ("架 \n",[.init(text:"架",range:box),.init(text:" ",range:nil),.init(text:"\n",range:box)],box)
+        ] {
+            fails(draft([page(candidates:[.init(text:text,confidence:1,characters:characters,lineRange:range)])]),.characterMapping)
+        }
+    }
     func testNativeRangeOutsidePageRefusesWithoutClipping() {
         for range in [RecoveryOCRRange(x: 95, y: 10, width: 10, height: 10),
                       .init(x: 10, y: 95, width: 10, height: 10),

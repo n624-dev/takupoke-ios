@@ -73,6 +73,14 @@ enum PDFRecoveryRecognition {
                 guard let raster = rasters[page.page] else { throw PDFParseError(code: .unreadable, page: page.page) }
                 var glyphs = [PDFGlyph](), order = 0
                 for line in page.lines {
+                    let top1 = line.candidates[0]
+                    if try RecoveryOCRLineMapping.requiresAtom(top1, width: page.width, height: page.height, consume: check) {
+                        guard let range = top1.lineRange else { throw PDFParseError(code: .ambiguous, stage: .characterMapping) }
+                        glyphs.append(PDFGlyph(text: top1.text, x: range.x, y: range.y, width: range.width, height: range.height,
+                            sourceLine: line.nativeOrder, sourceOrder: order, ocrLineAtom: true))
+                        order += 1
+                        continue
+                    }
                     for character in line.candidates[0].characters {
                         if order % 128 == 0 { try check(); try Task.checkCancellation() }
                         guard let range = character.range else { throw PDFParseError(code: .ambiguous, stage: .characterMapping) }

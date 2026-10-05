@@ -15,6 +15,7 @@ struct PDFGlyph: Sendable {
     let text: String
     let x: Double; let y: Double; let width: Double; let height: Double
     let sourceLine: Int; let sourceOrder: Int
+    var ocrLineAtom: Bool? = nil
 }
 struct PDFRule: Sendable {}
 struct PDFPageLayout: Sendable {

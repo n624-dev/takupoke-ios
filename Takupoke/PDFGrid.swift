@@ -64,7 +64,13 @@ struct PDFGrid {
             for offset in first..<end {
                 try calibration.consume(check)
                 let index = indices[offset], glyph = page.glyphs[index]
-                if box.left+0.3 < glyph.cx && glyph.cx < box.right-0.3 { selected.append(index) }
+                if box.left+0.3 < glyph.cx && glyph.cx < box.right-0.3 {
+                    if glyph.ocrLineAtom == true {
+                        guard glyph.x >= box.left, glyph.y >= box.top, glyph.x + glyph.width <= box.right,
+                              glyph.y + glyph.height <= box.bottom else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
+                    }
+                    selected.append(index)
+                }
             }
         }
         // Spatial lookup cannot change the original PDF reading/drawing order.
@@ -96,7 +102,9 @@ struct PDFGrid {
     }
     func glyphs(in box: PDFBox) -> [PDFGlyph] {
         page.glyphs.filter { box.left + 0.3 < $0.cx && $0.cx < box.right - 0.3 &&
-            box.top + 0.3 < $0.cy && $0.cy < box.bottom - 0.3 }
+            box.top + 0.3 < $0.cy && $0.cy < box.bottom - 0.3 &&
+            ($0.ocrLineAtom != true || $0.x >= box.left && $0.y >= box.top &&
+                $0.x + $0.width <= box.right && $0.y + $0.height <= box.bottom) }
     }
     static func rows(_ glyphs: [PDFGlyph]) -> [[PDFGlyph]] {
         var rows: [[PDFGlyph]] = []

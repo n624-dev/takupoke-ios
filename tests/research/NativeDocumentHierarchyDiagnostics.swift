@@ -2,6 +2,29 @@ import Foundation
 
 /// Research metadata only. This never repairs a missing box or emits a layout.
 enum NativeDocumentHierarchyDiagnostics {
+    static func lineAtoms(_ page: RecoveryOCRPage) throws -> [String: Any] {
+        var atoms = 0, failures = 0, low = 0, samples = [[String: Any]]()
+        for line in page.lines {
+            try Task.checkCancellation()
+            guard let top1 = line.candidates.first else { throw RecoveryOCRAcquisitionFailure.invalidInventory }
+            var atom: Bool? = nil
+            do { atom = try RecoveryOCRLineMapping.requiresAtom(top1,width:page.width,height:page.height,consume:{ try Task.checkCancellation() }) }
+            catch RecoveryOCRAcquisitionFailure.characterMapping { failures += 1 }
+            if atom == true { atoms += 1 }
+            if top1.confidence < 0.85 { low += 1 }
+            if samples.count < 16 {
+                var sample: [String: Any] = ["lineOrder":line.nativeOrder,"confidenceDoubleBits":String(top1.confidence.bitPattern,radix:16),
+                    "mappingPassed":atom != nil,"requiresBodyAtomProof":atom == true]
+                if let range = top1.lineRange {
+                    sample["actualWholeCandidatePixelRangeBits"] = [range.x,range.y,range.width,range.height].map { String($0.bitPattern,radix:16) }
+                }
+                samples.append(sample)
+            }
+        }
+        return ["acquiredAtomLines":atoms,"mappingRefusedLines":failures,"lowConfidenceLines":low,
+            "firstLines":samples,"omittedLines":max(0,page.lines.count-samples.count),
+            "bodyOwnership": "NOT_ATTEMPTED; independent field/cell proof required; native table spans not physical authority"]
+    }
     static func rangeFailure(_ range: RecoveryOCRRange?, width: Int, height: Int) -> String? {
         guard let range else { return "missing" }
         guard [range.x, range.y, range.width, range.height, range.x + range.width,

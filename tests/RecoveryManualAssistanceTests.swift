@@ -3,6 +3,101 @@ import XCTest
 @testable import TakupokeParsing
 
 extension PDFParsingTests {
+    private func lineAtomFixture(atomCount:Int = 1,low:Bool = false) throws -> RecoveryDocument {
+        var (page,raster) = try twoClassRasterCoverage()
+        let groups = Dictionary(grouping:page.glyphs,by:{ $0.sourceLine! })
+        let eligible = groups.keys.sorted().filter { key in
+            let g = groups[key]!.first!
+            return g.x >= 83 && g.x <= 99 && g.y >= 102 && g.y <= 134
+        }
+        let atoms = Set(eligible.prefix(atomCount)), hash = String(repeating:"a",count:64)
+        var glyphs = [PDFGlyph](), lines = [RecoveryOCRLine]()
+        for key in groups.keys.sorted() {
+            let row = groups[key]!.sorted { $0.sourceOrder! < $1.sourceOrder! }
+            if atoms.contains(key) {
+                let first = row[0], width = row.last!.x+row.last!.width-first.x
+                let text = first.text+" "+row.dropFirst().map(\.text).joined()
+                let chars = [RecoveryOCRCharacter(text:first.text,range:.init(x:first.x,y:first.y,width:first.width,height:first.height)),.init(text:" ",range:nil)] + row.dropFirst().map { RecoveryOCRCharacter(text:$0.text,range:.init(x:$0.x,y:$0.y,width:$0.width,height:$0.height)) }
+                lines.append(.init(nativeOrder:key,candidates:[.init(text:text,confidence:low ? 0.4:0.95,characters:chars,
+                    lineRange:.init(x:first.x,y:first.y,width:width,height:first.height))]))
+                glyphs.append(.init(text:text,x:first.x,y:first.y,width:width,height:first.height,
+                    sourceLine:key,sourceOrder:first.sourceOrder,ocrLineAtom:true))
+            } else {
+                glyphs += row
+                lines.append(.init(nativeOrder:key,candidates:[.init(text:row.map(\.text).joined(),confidence:0.95,
+                    characters:row.map { .init(text:$0.text,range:.init(x:$0.x,y:$0.y,width:$0.width,height:$0.height)) })]))
+            }
+        }
+        page.glyphs = glyphs
+        let doc = try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:hash,fromOCR:[1],rasters:[1:raster])
+        let capture = RecoveryOCRAcquisitionDraft(sourcePDFHash:hash,documentPageCount:1,requiredOCRPages:[1],pages:[
+            .init(page:1,width:Int(page.width),height:Int(page.height),nativeDocumentCount:1,lines:lines,captureComplete:true)])
+        return try RecoveryManualAssistance.attaching(capture,to:doc)
+    }
+    func testBodyLineAtomsKeepEveryRawSpaceAndRealBoxThroughThreeManualFields() throws {
+        for count in 1...3 {
+            let doc = try lineAtomFixture(atomCount:count,low:true)
+            let draft = try XCTUnwrap(RecoveryManualAssistance.prepare(doc,os:"test"))
+            XCTAssertEqual(draft.fields.count,count)
+            XCTAssertTrue(draft.fields.allSatisfy { $0.originalText.contains(" ") })
+            let native = try XCTUnwrap(doc.nativeCapture)
+            XCTAssertEqual(native.pages[0].lines.filter { $0.candidates[0].characters.contains { $0.range == nil } }.count,count)
+            let result = try RecoveryManualAssistance.complete(draft,values:Dictionary(uniqueKeysWithValues:draft.fields.map { ($0.id,"架空確認 "+$0.target.role.rawValue) }))
+            XCTAssertTrue(RecoveryValidator.validate(doc,result).canAdopt)
+            XCTAssertEqual(draft.document.nativeCapture,native)
+            XCTAssertEqual(result.humanCorrections?.count,count)
+        }
+        XCTAssertThrowsError(try lineAtomFixture(atomCount:4,low:true))
+    }
+    func testHighConfidenceLineAtomStillRequiresWholeLiteralAndUniqueBodyOwner() async throws {
+        let original = try lineAtomFixture()
+        let run = try await RecoveryEngine.run(original,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
+        let result = try XCTUnwrap(run.result)
+        XCTAssertTrue(try RecoveryManualAssistance.fields(original).isEmpty)
+        let line = try XCTUnwrap(original.nativeCapture?.pages[0].lines.first { $0.candidates[0].characters.contains { $0.range == nil } })
+        let i = try XCTUnwrap(original.sources.firstIndex { $0.sourceLine == line.nativeOrder })
+        for mutation in 0..<3 {
+            var doc = original
+            if mutation == 0 { doc.sources[i].text = doc.sources[i].text.replacingOccurrences(of:" ",with:"") }
+            if mutation == 1 { doc.sources[i].cellId = "" }
+            if mutation == 2 {
+                let cell = try XCTUnwrap(doc.cells.firstIndex { $0.id == doc.sources[i].cellId })
+                doc.cells[cell].lessonBindings[0].teacher += [doc.sources[i].id]
+            }
+            XCTAssertThrowsError(try RecoveryManualAssistance.fields(doc),"mutation \(mutation)")
+            XCTAssertFalse(RecoveryValidator.validate(doc,result).canAdopt)
+        }
+    }
+    func testWholeLineRangeCrossingRolesFailsEvenWithAllInkCharactersInsideCell() async throws {
+        var doc = try lineAtomFixture()
+        let run = try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
+        let result = try XCTUnwrap(run.result)
+        let capture = try XCTUnwrap(doc.nativeCapture), page = capture.pages[0]
+        let lineIndex = try XCTUnwrap(page.lines.firstIndex { $0.candidates[0].characters.contains { $0.range == nil } })
+        let sourceIndex = try XCTUnwrap(doc.sources.firstIndex { $0.sourceLine == lineIndex })
+        let original = page.lines[lineIndex].candidates[0], range = try XCTUnwrap(original.lineRange)
+        let crossing = RecoveryOCRRange(x:range.x,y:range.y,width:range.width,height:40)
+        var lines = page.lines
+        lines[lineIndex] = .init(nativeOrder:lineIndex,candidates:[.init(text:original.text,confidence:original.confidence,characters:original.characters,lineRange:crossing)])
+        doc.nativeCapture = .init(sourcePDFHash:capture.sourcePDFHash,documentPageCount:1,requiredOCRPages:[1],pages:[
+            .init(page:1,width:page.width,height:page.height,nativeDocumentCount:1,lines:lines,captureComplete:true)])
+        doc.sources[sourceIndex].box.height = 40
+        XCTAssertTrue(try doc.nativeCapture!.assess().directLayoutsAllowed)
+        XCTAssertThrowsError(try RecoveryManualAssistance.fields(doc))
+        XCTAssertFalse(RecoveryValidator.validate(doc,result).canAdopt)
+    }
+    func testLineAtomCannotBeSelectedAcrossPhysicalCellOrUsedAsHeading() throws {
+        var (page,raster) = try twoClassRasterCoverage()
+        let i = try XCTUnwrap(page.glyphs.firstIndex { $0.x == 83 && $0.y == 102 })
+        page.glyphs[i].text = "架 空科"; page.glyphs[i].width = 30; page.glyphs[i].ocrLineAtom = true
+        XCTAssertThrowsError(try PDFGrid(page:page).glyphs(in:PDFBox(left:96,top:96,right:112,bottom:148),check:{}))
+        XCTAssertThrowsError(try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:String(repeating:"a",count:64),fromOCR:[1],rasters:[1:raster]))
+        var (headingPage,headingRaster) = try twoClassRasterCoverage()
+        let row = headingPage.glyphs.filter { $0.sourceLine == 0 }
+        headingPage.glyphs.removeAll { $0.sourceLine == 0 }
+        headingPage.glyphs.insert(.init(text:row.map(\.text).joined(),x:20,y:8,width:30,height:8,sourceLine:0,sourceOrder:0,ocrLineAtom:true),at:0)
+        XCTAssertThrowsError(try RecoveryDocumentBuilder.build([headingPage],kind:.timetable,hash:String(repeating:"a",count:64),fromOCR:[1],rasters:[1:headingRaster]))
+    }
     func testManualInputIdenticalRebindPreservesThreeIndividualAcknowledgements() {
         var values=["room":"架空室一","subject":"架空科目二","teacher":"架空教員三"]
         var acknowledged=Dictionary(uniqueKeysWithValues:values.keys.map { ($0,true) })

@@ -73,8 +73,29 @@ import CryptoKit
                     integer(1); for number in [box.x, box.y, box.width, box.height] { integer(number.bitPattern) }
                 } else { integer(0) }
             }
+            if let box = candidate.lineRange {
+                integer(1); for number in [box.x, box.y, box.width, box.height] { integer(number.bitPattern) }
+            } else { integer(0) }
         }
         return value
+    }
+    static func rawTop1Inventory(_ page: RecoveryOCRPage) throws -> [String: Any] {
+        var raw = Data(), samples = [[String: Any]]()
+        for line in page.lines {
+            try Task.checkCancellation()
+            guard let top1 = line.candidates.first else { throw RecoveryOCRAcquisitionFailure.invalidInventory }
+            var length = UInt64(top1.text.utf8.count).bigEndian
+            withUnsafeBytes(of:&length) { raw.append(contentsOf:$0) }
+            raw.append(contentsOf:top1.text.utf8)
+            guard raw.count <= 2_097_152 else { throw RecoveryOCRAcquisitionFailure.limit }
+            if samples.count < 16 {
+                samples.append(["lineOrder":line.nativeOrder,"top1UTF8":Array(top1.text.utf8.prefix(128)),
+                    "omittedTop1Bytes":max(0,top1.text.utf8.count-128)])
+            }
+        }
+        return ["rawTop1SHA256":SHA256.hash(data:raw).map { String(format:"%02x",$0) }.joined(),
+            "firstLines":samples,"omittedLines":max(0,page.lines.count-samples.count),
+            "comparisonScope":"ordered original top1 UTF8 boundaries only; not correctness or semantic quality"]
     }
     static func nativeSignature(_ line: RecognizedTextObservation) -> Data {
         // Also measure unscaled framework CGRect bits, separately from production
@@ -99,6 +120,11 @@ import CryptoKit
                     for number in [b.minX, b.minY, b.width, b.height] { integer(Double(number).bitPattern) }
                 } else { integer(0) }
             }
+            if let rectangle = candidate.boundingBox(for: string.startIndex..<string.endIndex) {
+                let b = rectangle.boundingBox.cgRect
+                integer(1)
+                for number in [b.minX, b.minY, b.width, b.height] { integer(Double(number).bitPattern) }
+            } else { integer(0) }
         }
         return value
     }
@@ -197,24 +223,42 @@ import CryptoKit
     }
     static func main() async {
         var outcomes = [[String: Any]](), compatible = true, acquisitionCompatible = true, attempted = 0
+        for languageProfile in ["default", "ja-en-auto"] {
         for merged in [false, true] {
             var result: [String: Any] = ["case": merged ? "independent-merged" : "independent-rectangular",
+                "languageProfile":languageProfile,
                 "rawSource": "independent CoreGraphics drawing", "semanticTimetableQuality": "UNASSESSED"]
             do {
                 try Task.checkCancellation()
                 let (image, hash) = try draw(merged: merged)
                 result["pixelSHA256"] = hash
+                var request = RecognizeDocumentsRequest()
+                let defaultOptions = try JSONEncoder().encode(request.textRecognitionOptions)
+                result["actualDefaultTextRecognitionOptions"] = try JSONSerialization.jsonObject(with:defaultOptions)
+                if languageProfile == "ja-en-auto" {
+                    guard request.supportedRecognitionLanguages.contains(where:{ $0.languageCode?.identifier == "ja" }) else {
+                        throw NSError(domain:"JapaneseLanguageUnsupported",code:1)
+                    }
+                    request.textRecognitionOptions.recognitionLanguages = [Locale.Language(identifier:"ja-JP"),Locale.Language(identifier:"en-US")]
+                    request.textRecognitionOptions.automaticallyDetectLanguage = true
+                }
+                result["effectiveTextRecognitionOptions"] = try JSONSerialization.jsonObject(with:JSONEncoder().encode(request.textRecognitionOptions))
                 attempted += 1
-                let observations = try await RecognizeDocumentsRequest().perform(on: image)
+                let observations = try await request.perform(on: image)
                 result["nativeDocumentCount"] = observations.count
                 var work = 0
                 let page = try RecoveryVisionCapture.page(1, width: width, height: height,
                     observations: observations, work: &work, check: { try Task.checkCancellation() })
                 result["captureWork"] = work
+                result["actualRawTop1Lines"] = try rawTop1Inventory(page)
                 let mapping = try NativeDocumentHierarchyDiagnostics.mapping(page)
                 result["top1CharacterMapping"] = mapping
                 result["nativeFirstFailureRanges"] = try nativeFailureRanges(mapping, observations: observations)
                 result["nativeRangeInventory"] = try NativeDocumentHierarchyDiagnostics.spans(page)
+                result["wholeLineCapture"] = try NativeDocumentHierarchyDiagnostics.lineAtoms(page)
+                result["legacyEveryCharacterRangeGatePassed"] = page.lines.allSatisfy { line in
+                    line.candidates[0].characters.allSatisfy { $0.range?.isInside(width:page.width,height:page.height) == true }
+                }
                 let counts = try measure(page, observations: observations)
                 result["correspondence"] = counts
                 var hierarchyPassed = false
@@ -231,10 +275,12 @@ import CryptoKit
                 do {
                     let draft = RecoveryOCRAcquisitionDraft(sourcePDFHash: hash, documentPageCount: 1, requiredOCRPages: [1], pages: [page])
                     let assessment = try draft.assess()
+                    result["fullMappingAssessmentPassed"] = true
                     result["fullAcquisitionDisposition"] = assessment.directLayoutsAllowed ? "DIRECT_LAYOUTS_ALLOWED" : "LOW_CONFIDENCE_REFUSED"
                     result["lowConfidenceNativeCount"] = assessment.lowConfidenceNativeOrders[1]?.count ?? 0
                     acquisitionPassed = assessment.directLayoutsAllowed
                 } catch {
+                    result["fullMappingAssessmentPassed"] = false
                     result["fullAcquisitionDisposition"] = "REFUSED"
                     result["fullAcquisitionFailure"] = String(describing: error).prefix(160).description
                 }
@@ -257,17 +303,28 @@ import CryptoKit
             }
             outcomes.append(result)
         }
+        }
+        let matched = ["independent-rectangular","independent-merged"].map { name -> [String: Any] in
+            let pair = outcomes.filter { $0["case"] as? String == name }
+            let hashes = pair.compactMap { ($0["actualRawTop1Lines"] as? [String: Any])?["rawTop1SHA256"] as? String }
+            return ["case":name,"bothProfilesReturnedRaw":hashes.count == 2,
+                "sameOrderedRawTop1Strings":hashes.count == 2 && hashes[0] == hashes[1],
+                "correctness":"UNASSESSED; matching raw strings does not establish correctness"]
+        }
         let report: [String: Any] = ["schemaVersion": 1, "sourceSHA": ProcessInfo.processInfo.environment["GITHUB_SHA"] ?? "",
             "runID": ProcessInfo.processInfo.environment["GITHUB_RUN_ID"] ?? "", "runAttempt": ProcessInfo.processInfo.environment["GITHUB_RUN_ATTEMPT"] ?? "",
-            "nativeCallsAttempted": attempted, "maximumNativeCalls": 2, "retries": 0,
-            "cases": outcomes, "nativeHierarchyCorrespondencePassed": compatible && attempted == 2,
-            "nativeFullAcquisitionControlsPassed": acquisitionCompatible && attempted == 2,
+            "nativeCallsAttempted": attempted, "maximumNativeCalls": 4, "retries": 0,
+            "matchedProspectiveLanguageProfiles":["default","ja-en-auto"],
+            "matchedRawTop1Comparison":matched,
+            "legacyAndAtomAssessmentReuseSameRawNativeOutput":true,
+            "cases": outcomes, "nativeHierarchyCorrespondencePassed": compatible && attempted == 4,
+            "nativeFullAcquisitionControlsPassed": acquisitionCompatible && attempted == 4,
             "wholeDocumentAdoption": "NOT_ATTEMPTED", "modelQualification": "UNASSESSED"]
         do {
             let data = try JSONSerialization.data(withJSONObject: report, options: [.sortedKeys])
             guard data.count <= 65_536 else { throw NSError(domain: "ReportBound", code: 1) }
             print("TAKUPOKE-NATIVE-HIERARCHY-1 " + String(decoding: data, as: UTF8.self))
         } catch { print("TAKUPOKE-NATIVE-HIERARCHY-REPORT-FAILED"); exit(2) }
-        if !compatible || !acquisitionCompatible || attempted != 2 { exit(1) }
+        if !compatible || !acquisitionCompatible || attempted != 4 { exit(1) }
     }
 }

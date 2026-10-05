@@ -53,6 +53,7 @@ enum RecoveryOCRStructure {
         let text: Data
         let confidence: UInt64
         let characters: [CharacterKey]
+        let lineRange: [UInt64]?
     }
     private struct CellRange: Hashable {
         let rowLower: Int; let rowUpper: Int
@@ -117,7 +118,8 @@ enum RecoveryOCRStructure {
                     return CharacterKey(text: raw, range: character.range.map { [$0.x.bitPattern, $0.y.bitPattern, $0.width.bitPattern, $0.height.bitPattern] })
                 }
                 guard !text.isEmpty, text == joined else { throw RecoveryOCRAcquisitionFailure.invalidInventory }
-                return CandidateKey(text: text, confidence: candidate.confidence.bitPattern, characters: characters)
+                return CandidateKey(text: text, confidence: candidate.confidence.bitPattern, characters: characters,
+                    lineRange: candidate.lineRange.map { [$0.x.bitPattern, $0.y.bitPattern, $0.width.bitPattern, $0.height.bitPattern] })
             }
         }
         var output = [RecoveryOCRNativeCellLink](), nextLine = 0

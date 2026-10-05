@@ -42,7 +42,7 @@ class ResearchLauncherTests(unittest.TestCase):
                 self.assertIn("/fictional/actual-iPhone-SDK", command)
                 self.assertIn(str(research.ROOT / "tests/research/NativeDocumentHierarchyDomainStubs.swift"), command)
 
-    def test_only_sdk26_executes_the_two_native_controls_without_full_app_or_retry(self):
+    def test_only_sdk26_executes_four_matched_native_controls_without_full_app_or_retry(self):
         with tempfile.TemporaryDirectory() as d:
             path=Path(d)
             native=research.commands(research.ROOT,path,"ios",26,"mac")
@@ -73,7 +73,8 @@ class ResearchLauncherTests(unittest.TestCase):
 
     def test_native_control_requires_observed_table_merged_span_and_actual_raw_mapping(self):
         probe=(research.ROOT/"tests/research/NativeDocumentHierarchyProbe.swift").read_text()
-        self.assertEqual(probe.count("RecognizeDocumentsRequest().perform(on: image)"),1)
+        self.assertEqual(probe.count("request.perform(on: image)"),1)
+        self.assertIn('for languageProfile in ["default", "ja-en-auto"]',probe)
         self.assertIn("for merged in [false, true]",probe)
         self.assertIn('counts["nativeTables", default: 0] > 0',probe)
         self.assertIn('counts["uniqueMergedSpans", default: 0] > 0',probe)
@@ -81,9 +82,9 @@ class ResearchLauncherTests(unittest.TestCase):
         self.assertIn('counts["ambiguousRawMatches", default: 0] == 0',probe)
         self.assertIn('counts["missingNativeRawMatches", default: 0] == 0',probe)
         self.assertIn('counts["ambiguousNativeRawMatches", default: 0] == 0',probe)
-        self.assertIn("compatible && attempted == 2",probe)
-        self.assertIn("if !compatible || !acquisitionCompatible || attempted != 2 { exit(1) }",probe)
-        self.assertIn('"nativeFullAcquisitionControlsPassed": acquisitionCompatible && attempted == 2',probe)
+        self.assertIn("compatible && attempted == 4",probe)
+        self.assertIn("if !compatible || !acquisitionCompatible || attempted != 4 { exit(1) }",probe)
+        self.assertIn('"nativeFullAcquisitionControlsPassed": acquisitionCompatible && attempted == 4',probe)
         self.assertIn("acquisitionPassed = assessment.directLayoutsAllowed",probe)
         self.assertIn('"fullAcquisitionDisposition"',probe)
         self.assertIn('"wholeDocumentAdoption": "NOT_ATTEMPTED"',probe)
