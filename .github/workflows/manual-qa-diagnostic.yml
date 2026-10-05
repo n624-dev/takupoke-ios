@@ -1,0 +1,31 @@
+name: Isolated manual QA stage diagnostic
+
+on:
+  push:
+    branches: [research/ios-manual-qa-stage-diagnostic-20261005]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  manual-qa:
+    name: Fictional manual QA iOS 26
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      TKPK_TEST_IOS: '26'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify exact diagnostic source
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Exercise existing three manual cases and retain exact completion guard
+        run: bash tools/test-manual-ui.sh
