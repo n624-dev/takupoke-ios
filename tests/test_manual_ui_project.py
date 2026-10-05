@@ -66,6 +66,21 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('SimulatorManualFixture.failed(error)',generated)
         self.assertIn('架空資料の補助入力を拒否しました。前回の正常結果を保持しています。',generated)
 
+    def test_raster_ab_preserves_old_rendering_and_uses_same_physical_predicate(self):
+        source=(ROOT/"tests/ui/ManualAssistanceFixture.swift").read_text(encoding="utf-8")
+        for text in ('input(integralRails:false)', 'path.lineWidth=1;path.stroke()', 'width:abs(r.x2-r.x1)+1,height:1',
+                     'width:1,height:abs(r.y2-r.y1)+1', 'raster.hasUncoveredInk(', 'text:text,rules:page.lines,check:check',
+                     'checks<=250000', 'firstUncovered=', 'fixture.manualOldInk', 'fixture.manualCandidateInk'):
+            self.assertIn(text,source)
+        checks=(ROOT/"tests/ui/ManualAssistanceChecks.swift").read_text(encoding="utf-8")
+        self.assertIn('"--manual-integral-rails"',checks)
+        self.assertNotIn('fromRGBA',checks)
+        self.assertIn('emitDiagnostic()',checks)
+        self.assertEqual(checks.count('XCTAssertTrue(fieldsExist()'),3)
+        self.assertIn('TAKUPOKE-MANUAL-QA ',checks)
+        self.assertIn('waitForExistence(timeout:15)',checks)
+        self.assertNotIn('inkDiagnostic(',source.split('static func prepare()')[1])
+
     def test_fixture_uses_current_period_and_actual_builder_proof(self):
         source=(ROOT/"tests/ui/ManualAssistanceFixture.swift").read_text(encoding="utf-8")
         for required in ('SchoolDataPeriod.current()', 'RecoveryDocumentBuilder.build(', 'fromOCR:[1]',
