@@ -10,10 +10,19 @@ final class ManualAssistanceChecks:XCTestCase {
         app.tabBars.buttons["設定"].tap();tap("時間割ファイル");tap("通常時間割の詳細を見る");tap("端末内で復旧する");tap("端末内で復旧を開始")
     }
     private func visible(_ e:XCUIElement)->XCUIElement {
-        let list=app.collectionViews.element(boundBy:max(0,app.collectionViews.count-1))
+        let recoveryList=app.collectionViews["manual-recovery-list"]
+        let list=recoveryList.exists ? recoveryList : app.collectionViews.firstMatch
         for _ in 0..<16 {
             if e.exists && e.isHittable { return e }
-            if e.exists && e.frame.minY<app.navigationBars.firstMatch.frame.maxY { list.swipeDown() } else { list.swipeUp() }
+            let top=max(list.frame.minY,app.navigationBars.allElementsBoundByIndex.last?.frame.maxY ?? list.frame.minY)+24
+            let bottom=min(list.frame.maxY,app.keyboards.firstMatch.exists ? app.keyboards.firstMatch.frame.minY-45 : list.frame.maxY)-24
+            guard bottom-top>80 else { break }
+            let base=list.coordinate(withNormalizedOffset:CGVector(dx:0,dy:0))
+            // The measured List rows start at x=16; its x=8 gutter avoids fields and switch thumbs.
+            let upper=base.withOffset(CGVector(dx:8,dy:top-list.frame.minY))
+            let lower=base.withOffset(CGVector(dx:8,dy:bottom-list.frame.minY))
+            if e.exists && e.frame.minY<top { upper.press(forDuration:0.1,thenDragTo:lower) }
+            else { lower.press(forDuration:0.1,thenDragTo:upper) }
         }
         XCTAssertTrue(e.exists && e.isHittable,app.debugDescription);return e
     }
@@ -31,7 +40,19 @@ final class ManualAssistanceChecks:XCTestCase {
     private var fieldIDs:[String] { app.staticTexts["manual-field-ids"].firstMatch.label.split(separator:"|").map(String.init) }
     private func input(_ id:String)->XCUIElement { app.descendants(matching:.any)["manual-value-"+id].firstMatch }
     private func ack(_ id:String)->XCUIElement { app.switches["manual-ack-"+id].firstMatch }
-    private var acks:XCUIElementQuery { app.switches.matching(NSPredicate(format:"identifier BEGINSWITH 'manual-ack-'")) }
+    private func acknowledge(_ id:String) {
+        let row=visible(ack(id))
+        let control=row.switches.firstMatch
+        XCTAssertTrue(control.exists,app.debugDescription)
+        visible(control).tap()
+        let changed=XCTNSPredicateExpectation(predicate:NSPredicate(format:"value == %@","1"),object:row)
+        XCTAssertEqual(XCTWaiter.wait(for:[changed],timeout:5),.completed,app.debugDescription)
+    }
+    private func assertSubmitEnabled(_ expected:Bool) {
+        let button=visible(submit)
+        let changed=XCTNSPredicateExpectation(predicate:NSPredicate(format:"enabled == %@",NSNumber(value:expected)),object:button)
+        XCTAssertEqual(XCTWaiter.wait(for:[changed],timeout:5),.completed,app.debugDescription)
+    }
     private func edit(_ e:XCUIElement,_ value:String) {
         visible(e).tap(); e.press(forDuration:1.1)
         if app.menuItems["すべてを選択"].waitForExistence(timeout:2) { app.menuItems["すべてを選択"].tap() }
@@ -40,21 +61,22 @@ final class ManualAssistanceChecks:XCTestCase {
         e.typeText(value)
     }
     func testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground() {
-        launch();XCTAssertTrue(fieldsExist(),app.debugDescription);let input=input(fieldIDs[0])
-        XCTAssertEqual(acks.count,1);XCTAssertEqual(acks.firstMatch.value as? String,"0")
-        XCTAssertFalse(visible(submit).isEnabled)
-        let value="架空手確認科目";edit(input,value);visible(acks.firstMatch).tap()
-        XCTAssertTrue(visible(submit).isEnabled)
+        launch();XCTAssertTrue(fieldsExist(),app.debugDescription);XCTAssertEqual(fieldIDs.count,1)
+        let key=fieldIDs[0];let input=input(key)
+        XCTAssertEqual(visible(ack(key)).value as? String,"0")
+        assertSubmitEnabled(false)
+        let value="架空手確認科目";edit(input,value);acknowledge(key)
+        assertSubmitEnabled(true)
         tap("架空検証");tap("表示サイズを変更")
-        XCTAssertEqual(visible(input).value as? String,value);XCTAssertEqual(visible(acks.firstMatch).value as? String,"1")
+        XCTAssertEqual(visible(input).value as? String,value);XCTAssertEqual(visible(ack(key)).value as? String,"1")
         tap("架空検証");tap("同じ原本の状態を再確認")
-        XCTAssertEqual(visible(input).value as? String,value);XCTAssertEqual(visible(acks.firstMatch).value as? String,"1")
+        XCTAssertEqual(visible(input).value as? String,value);XCTAssertEqual(visible(ack(key)).value as? String,"1")
         XCUIDevice.shared.press(.home);app.activate()
-        XCTAssertEqual(visible(input).value as? String,value);XCTAssertEqual(visible(acks.firstMatch).value as? String,"1")
-        edit(input,value+"改");XCTAssertEqual(visible(acks.firstMatch).value as? String,"0")
-        XCTAssertFalse(visible(submit).isEnabled)
+        XCTAssertEqual(visible(input).value as? String,value);XCTAssertEqual(visible(ack(key)).value as? String,"1")
+        edit(input,value+"改");XCTAssertEqual(visible(ack(key)).value as? String,"0")
+        assertSubmitEnabled(false)
         XCTAssertTrue(app.images.matching(NSPredicate(format:"identifier BEGINSWITH 'manual-crop-'")).firstMatch.exists)
-        visible(acks.firstMatch).tap();visible(submit).tap()
+        acknowledge(key);visible(submit).tap()
         XCTAssertTrue(app.staticTexts["採用する資料全体"].waitForExistence(timeout:20),app.debugDescription)
         XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("lastgood-preserved"))
         tap("この資料全体の結果を使用")
@@ -68,7 +90,7 @@ final class ManualAssistanceChecks:XCTestCase {
     }
     func testChangedOriginalCannotSubmitOrReplaceLastGood() {
         launch();XCTAssertTrue(fieldsExist())
-        let key=fieldIDs[0];edit(input(key),"架空変更前確認");visible(ack(key)).tap()
+        let key=fieldIDs[0];edit(input(key),"架空変更前確認");acknowledge(key)
         tap("架空検証");tap("架空原本のハッシュを変更")
         XCTAssertTrue(app.staticTexts["manual-mutation-complete"].waitForExistence(timeout:10),app.debugDescription)
         visible(submit).tap()
@@ -81,8 +103,8 @@ final class ManualAssistanceChecks:XCTestCase {
         XCTAssertTrue(fieldsExist());let ids=fieldIDs;XCTAssertEqual(ids.count,3)
         for i in 0..<3 {
             let input=input(ids[i]);edit(input,"架空手確認\(i)")
-            let ack=ack(ids[i]);XCTAssertEqual(visible(ack).value as? String,"0");visible(ack).tap()
-            XCTAssertEqual(visible(submit).isEnabled,i==2)
+            let ack=ack(ids[i]);XCTAssertEqual(visible(ack).value as? String,"0");acknowledge(ids[i])
+            assertSubmitEnabled(i==2)
         }
         visible(submit).tap();XCTAssertTrue(app.staticTexts["採用する資料全体"].waitForExistence(timeout:20))
         XCTAssertTrue(app.staticTexts["原本を確認して入力した3項目を含みます。"].exists)

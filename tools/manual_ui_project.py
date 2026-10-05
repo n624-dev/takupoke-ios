@@ -47,7 +47,8 @@ def coordinator(text):
 
 def view(text):
     text = once(text, '    @State private var selectedClass = ""', '    @State private var selectedClass = ""\n    @State private var manualQATypeSize:DynamicTypeSize = .large\n    @AppStorage("fixture.manualMutationComplete") private var manualQAMutationComplete = false')
-    text = once(text, '.navigationTitle(title)', '''.navigationTitle(title)
+    text = once(text, '.navigationTitle(title)', '''.accessibilityIdentifier("manual-recovery-list")
+            .navigationTitle(title)
             .dynamicTypeSize(manualQATypeSize)
             .toolbar { ToolbarItem(placement:.topBarTrailing) {
                 Menu("架空検証") {

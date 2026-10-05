@@ -93,4 +93,24 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertNotIn('2032',source)
         self.assertNotIn('https://',source)
 
+    def test_manual_controls_are_scrolled_and_acknowledged_without_keyboard_or_outer_switch_taps(self):
+        generated=module.view((ROOT/"Takupoke/PDFRecoveryView.swift").read_text(encoding="utf-8"))
+        self.assertEqual(generated.count('accessibilityIdentifier("manual-recovery-list")'),1)
+        checks=(ROOT/"tests/ui/ManualAssistanceChecks.swift").read_text(encoding="utf-8")
+        self.assertIn('app.collectionViews["manual-recovery-list"]',checks)
+        self.assertIn('app.keyboards.firstMatch.frame.minY-45',checks)
+        self.assertEqual(checks.count('CGVector(dx:8,dy:'),2)
+        self.assertNotIn('dx:list.frame.width-24',checks)
+        self.assertNotIn('app.collectionViews.count-1',checks)
+        self.assertNotIn('acks.count',checks)
+        self.assertIn('XCTAssertEqual(fieldIDs.count,1)',checks)
+        self.assertIn('XCTAssertEqual(ids.count,3)',checks)
+        acknowledge=checks.split('private func acknowledge(')[1].split('private func assertSubmitEnabled')[0]
+        self.assertIn('let control=row.switches.firstMatch',acknowledge)
+        self.assertEqual(acknowledge.count('visible(control).tap()'),1)
+        self.assertIn('XCTNSPredicateExpectation',acknowledge)
+        self.assertIn('timeout:5',acknowledge)
+        self.assertNotIn('row.tap()',acknowledge)
+        self.assertIn('acknowledge(ids[i])',checks)
+
 if __name__=="__main__":unittest.main()
