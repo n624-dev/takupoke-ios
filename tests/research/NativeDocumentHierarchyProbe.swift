@@ -55,6 +55,44 @@ import CryptoKit
         let hash = SHA256.hash(data: Data(rgba)).map { String(format: "%02x", $0) }.joined()
         return (image, hash)
     }
+    static func drawJapanese() throws -> (CGImage, String) {
+        // A new independent fictional control, fixed before any native result.
+        // These literals are drawing content, never recognizer language hints.
+        var rgba = [UInt8](repeating:255,count:width * height * 4)
+        let image = rgba.withUnsafeMutableBytes { bytes -> CGImage? in
+            guard let context = CGContext(data:bytes.baseAddress,width:width,height:height,bitsPerComponent:8,
+                bytesPerRow:width*4,space:CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue) else { return nil }
+            context.setFillColor(gray:1,alpha:1)
+            context.fill(CGRect(x:0,y:0,width:CGFloat(width),height:CGFloat(height)))
+            context.setStrokeColor(gray:0,alpha:1);context.setLineWidth(2)
+            for y in [140,280,420,560] {
+                context.move(to:CGPoint(x:90,y:CGFloat(y)));context.addLine(to:CGPoint(x:930,y:CGFloat(y)))
+            }
+            for x in [90,370,650,930] {
+                context.move(to:CGPoint(x:CGFloat(x),y:140));context.addLine(to:CGPoint(x:CGFloat(x),y:560))
+            }
+            context.strokePath()
+            let rows = [["架空理論甲","架空担当乙","架空室Q9"],
+                        ["架空理論丙","架空担当丁","架空室R8"],
+                        ["架空理論戊","架空担当己","架空室S7"]]
+            func text(_ value:String,_ x:Int,_ y:Int) {
+                let font = CTFontCreateWithName("HiraginoSans-W6" as CFString,23,nil)
+                let attributed = NSAttributedString(string:value,attributes:[
+                    NSAttributedString.Key(kCTFontAttributeName as String):font,
+                    NSAttributedString.Key(kCTForegroundColorAttributeName as String):CGColor(gray:0,alpha:1)])
+                context.textPosition = CGPoint(x:CGFloat(x),y:CGFloat(y))
+                CTLineDraw(CTLineCreateWithAttributedString(attributed as CFAttributedString),context)
+            }
+            text("独立架空の日本語表",90,635)
+            for (row,values) in rows.enumerated() {
+                for (column,value) in values.enumerated() { text(value,110+column*280,490-row*140) }
+            }
+            return context.makeImage()
+        }
+        guard let image else { throw NSError(domain:"JapaneseFictionalDrawing",code:1) }
+        return (image,SHA256.hash(data:Data(rgba)).map { String(format:"%02x",$0) }.joined())
+    }
     static func signature(_ candidates: [RecoveryOCRCandidate]) -> Data {
         // Diagnostic comparison independent of private production lookup keys.
         // Boundaries and native Double bits, not canonical Unicode or JSON numbers.
@@ -224,13 +262,14 @@ import CryptoKit
     static func main() async {
         var outcomes = [[String: Any]](), compatible = true, acquisitionCompatible = true, attempted = 0
         for languageProfile in ["default", "ja-en-auto"] {
-        for merged in [false, true] {
-            var result: [String: Any] = ["case": merged ? "independent-merged" : "independent-rectangular",
+        for fixture in ["independent-rectangular","independent-merged","independent-japanese-rectangular"] {
+            let merged = fixture == "independent-merged"
+            var result: [String: Any] = ["case": fixture,
                 "languageProfile":languageProfile,
                 "rawSource": "independent CoreGraphics drawing", "semanticTimetableQuality": "UNASSESSED"]
             do {
                 try Task.checkCancellation()
-                let (image, hash) = try draw(merged: merged)
+                let (image, hash) = try fixture == "independent-japanese-rectangular" ? drawJapanese() : draw(merged:merged)
                 result["pixelSHA256"] = hash
                 var request = RecognizeDocumentsRequest()
                 let defaultOptions = try JSONEncoder().encode(request.textRecognitionOptions)
@@ -251,7 +290,7 @@ import CryptoKit
                     observations: observations, work: &work, check: { try Task.checkCancellation() })
                 result["captureWork"] = work
                 result["actualRawTop1Lines"] = try rawTop1Inventory(page)
-                let mapping = try NativeDocumentHierarchyDiagnostics.mapping(page)
+                let mapping = try NativeDocumentHierarchyDiagnostics.mapping(page,failureSampleLimit:4)
                 result["top1CharacterMapping"] = mapping
                 result["nativeFirstFailureRanges"] = try nativeFailureRanges(mapping, observations: observations)
                 result["nativeRangeInventory"] = try NativeDocumentHierarchyDiagnostics.spans(page)
@@ -272,8 +311,15 @@ import CryptoKit
                     result["hierarchyFailure"] = String(describing: error).prefix(160).description
                 }
                 var acquisitionPassed = false
+                let draft = RecoveryOCRAcquisitionDraft(sourcePDFHash:hash,documentPageCount:1,requiredOCRPages:[1],pages:[page])
                 do {
-                    let draft = RecoveryOCRAcquisitionDraft(sourcePDFHash: hash, documentPageCount: 1, requiredOCRPages: [1], pages: [page])
+                    let strict = try draft.strictAssessment()
+                    result["strictParserAcquisitionDisposition"] = strict.directLayoutsAllowed ? "LEGACY_CHARACTER_MAPPING_ALLOWED" : "LOW_CONFIDENCE_REFUSED"
+                } catch {
+                    result["strictParserAcquisitionDisposition"] = "REFUSED_PENDING_BODY_PROOF_OR_INVALID_CAPTURE"
+                    result["strictParserAcquisitionFailure"] = String(describing:error).prefix(160).description
+                }
+                do {
                     let assessment = try draft.assess()
                     result["fullMappingAssessmentPassed"] = true
                     result["fullAcquisitionDisposition"] = assessment.directLayoutsAllowed ? "DIRECT_LAYOUTS_ALLOWED" : "LOW_CONFIDENCE_REFUSED"
@@ -304,7 +350,7 @@ import CryptoKit
             outcomes.append(result)
         }
         }
-        let matched = ["independent-rectangular","independent-merged"].map { name -> [String: Any] in
+        let matched = ["independent-rectangular","independent-merged","independent-japanese-rectangular"].map { name -> [String: Any] in
             let pair = outcomes.filter { $0["case"] as? String == name }
             let hashes = pair.compactMap { ($0["actualRawTop1Lines"] as? [String: Any])?["rawTop1SHA256"] as? String }
             return ["case":name,"bothProfilesReturnedRaw":hashes.count == 2,
@@ -313,18 +359,20 @@ import CryptoKit
         }
         let report: [String: Any] = ["schemaVersion": 1, "sourceSHA": ProcessInfo.processInfo.environment["GITHUB_SHA"] ?? "",
             "runID": ProcessInfo.processInfo.environment["GITHUB_RUN_ID"] ?? "", "runAttempt": ProcessInfo.processInfo.environment["GITHUB_RUN_ATTEMPT"] ?? "",
-            "nativeCallsAttempted": attempted, "maximumNativeCalls": 4, "retries": 0,
+            "nativeCallsAttempted": attempted, "maximumNativeCalls": 6, "retries": 0,
+            "diagnosticBounds":["firstCharacterFailuresPerCase":4,"firstRawTop1LinesPerCase":16,
+                "rawBytesPerLine":128,"firstWholeLineRangesPerCase":16,"firstNativeSpansPerTable":32,"reportBytes":65_536],
             "matchedProspectiveLanguageProfiles":["default","ja-en-auto"],
             "matchedRawTop1Comparison":matched,
             "legacyAndAtomAssessmentReuseSameRawNativeOutput":true,
-            "cases": outcomes, "nativeHierarchyCorrespondencePassed": compatible && attempted == 4,
-            "nativeFullAcquisitionControlsPassed": acquisitionCompatible && attempted == 4,
+            "cases": outcomes, "nativeHierarchyCorrespondencePassed": compatible && attempted == 6,
+            "nativeFullAcquisitionControlsPassed": acquisitionCompatible && attempted == 6,
             "wholeDocumentAdoption": "NOT_ATTEMPTED", "modelQualification": "UNASSESSED"]
         do {
             let data = try JSONSerialization.data(withJSONObject: report, options: [.sortedKeys])
             guard data.count <= 65_536 else { throw NSError(domain: "ReportBound", code: 1) }
             print("TAKUPOKE-NATIVE-HIERARCHY-1 " + String(decoding: data, as: UTF8.self))
         } catch { print("TAKUPOKE-NATIVE-HIERARCHY-REPORT-FAILED"); exit(2) }
-        if !compatible || !acquisitionCompatible || attempted != 4 { exit(1) }
+        if !compatible || !acquisitionCompatible || attempted != 6 { exit(1) }
     }
 }

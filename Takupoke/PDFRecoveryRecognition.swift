@@ -54,7 +54,7 @@ enum PDFRecoveryRecognition {
         }
         func strictLayouts(check: () throws -> Void) throws -> [LayoutPage] {
             let assessment: RecoveryOCRAcquisitionAssessment
-            do { assessment = try acquisition.assess(check: check) }
+            do { assessment = try acquisition.strictAssessment(check: check) }
             catch let failure as RecoveryOCRAcquisitionFailure {
                 switch failure {
                 case .limit: throw PDFParseError(code: .limit)

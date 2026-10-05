@@ -122,6 +122,24 @@ struct RecoveryOCRAcquisitionDraft: Codable, Equatable, Sendable {
         return try encoder.encode(self)
     }
 
+    /// The legacy strict parser has no independent BODY ownership proof.
+    /// Whole-line atoms therefore go through capturedLayouts and the recovery
+    /// builder/Validator instead, even when their native confidence is high.
+    func strictAssessment(check: () throws -> Void = {}) throws -> RecoveryOCRAcquisitionAssessment {
+        let assessment = try assess(check:check)
+        var work = 0
+        for page in pages {
+            for line in page.lines {
+                let atom = try RecoveryOCRLineMapping.requiresAtom(line.candidates[0],width:page.width,height:page.height,consume:{
+                    if work % 128 == 0 { try check(); try Task.checkCancellation() }
+                    work += 1
+                })
+                guard !atom else { throw RecoveryOCRAcquisitionFailure.characterMapping }
+            }
+        }
+        return assessment
+    }
+
     /// Full inventory and mapping validation precedes the confidence count. A page or
     /// candidate omitted after an early failure can never appear as one correctable item.
     func assess(check: () throws -> Void = {}) throws -> RecoveryOCRAcquisitionAssessment {

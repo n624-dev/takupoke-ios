@@ -33,7 +33,8 @@ enum NativeDocumentHierarchyDiagnostics {
         return range.isInside(width: width, height: height) ? nil : "outsidePage"
     }
 
-    static func mapping(_ page: RecoveryOCRPage) throws -> [String: Any] {
+    static func mapping(_ page: RecoveryOCRPage, failureSampleLimit: Int = 16) throws -> [String: Any] {
+        guard (0...16).contains(failureSampleLimit) else { throw RecoveryOCRAcquisitionFailure.limit }
         var counts = [String: Int](), samples = [[String: Any]](), total = 0
         for line in page.lines {
             guard let top1 = line.candidates.first else { throw RecoveryOCRAcquisitionFailure.invalidInventory }
@@ -45,7 +46,7 @@ enum NativeDocumentHierarchyDiagnostics {
                 let category = character.text.unicodeScalars.allSatisfy { CharacterSet.whitespacesAndNewlines.contains($0) }
                     ? "whitespace" : "nonWhitespace"
                 counts[kind + ":" + category, default: 0] += 1
-                if kind != "valid", samples.count < 16 {
+                if kind != "valid", samples.count < failureSampleLimit {
                     var sample: [String: Any] = ["lineOrder": line.nativeOrder, "characterIndex": index,
                         "category": category, "failure": kind,
                         "characterUTF8": Array(character.text.utf8.prefix(16)),

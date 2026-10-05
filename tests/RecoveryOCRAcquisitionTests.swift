@@ -138,6 +138,16 @@ final class RecoveryOCRAcquisitionTests: XCTestCase {
             fails(draft([page(candidates:[.init(text:text,confidence:1,characters:characters,lineRange:range)])]),.characterMapping)
         }
     }
+    func testHighConfidenceWholeLineStillRequiresBodyProofBeforeStrictParser() throws {
+        let chars = [RecoveryOCRCharacter(text:"架",range:box),.init(text:" ",range:nil),.init(text:"空",range:box)]
+        let raw = RecoveryOCRCandidate(text:"架 空",confidence:0.95,characters:chars,lineRange:box)
+        let captured = draft([page(candidates:[raw])])
+        XCTAssertTrue(try captured.assess().directLayoutsAllowed)
+        XCTAssertThrowsError(try captured.strictAssessment()) {
+            XCTAssertEqual($0 as? RecoveryOCRAcquisitionFailure,.characterMapping)
+        }
+        XCTAssertTrue(try draft([page()]).strictAssessment().directLayoutsAllowed)
+    }
     func testNativeRangeOutsidePageRefusesWithoutClipping() {
         for range in [RecoveryOCRRange(x: 95, y: 10, width: 10, height: 10),
                       .init(x: 10, y: 95, width: 10, height: 10),
