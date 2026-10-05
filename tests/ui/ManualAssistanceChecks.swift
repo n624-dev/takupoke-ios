@@ -276,6 +276,14 @@ final class ManualAssistanceChecks:XCTestCase {
         XCTAssertTrue(app.images.matching(NSPredicate(format:"identifier BEGINSWITH 'manual-crop-'")).firstMatch.exists)
         acknowledge(key);visible(submit).tap()
         requireReview([value+"改"],comparable:false)
+        XCUIDevice.shared.press(.home)
+        XCTAssertNotEqual(app.state,.notRunning,"Background must preserve the correction review; no relaunch")
+        guard app.state != .notRunning else { return }
+        app.activate()
+        XCTAssertTrue(app.wait(for:.runningForeground,timeout:10))
+        XCTAssertEqual(app.staticTexts["manual-process-launch"].firstMatch.label,processBefore)
+        requireReview([value+"改"],comparable:false)
+        print("TAKUPOKE-MANUAL-REVIEW-BACKGROUND same-process;review-retained;preview=false")
         // Reopening the editor retains literal input; a fresh edit clears ACK
         // and cannot reuse the previously validated correction review.
         tap("入力を見直す")
