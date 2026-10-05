@@ -1,0 +1,72 @@
+name: Observe one independent image-only PDF through seven physical regions
+on:
+  push:
+    branches: [research/ios-pdf-regional-text-20261005]
+    paths: ['tools/pdf-regional-text/**', '.github/workflows/pdf-regional-text.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ios-pdf-regional-text-20261005
+  cancel-in-progress: false
+jobs:
+  native-acquisition:
+    runs-on: xcode-27
+    timeout-minutes: 35
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Prepare only owned scratch and test accounting and transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/pdf-regional-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir "$work"
+          touch "$work/.pdf-regional-owned"
+          python3 -m venv "$work/python"
+          "$work/python/bin/python" -m pip install --disable-pip-version-check -r tools/unlabeled-pdf-input/requirements.txt
+          python3 -B tools/pdf-regional-text/prepare.py "$work/prepared"
+          cp tools/pdf-regional-text/literal-formal-oracle.json tools/pdf-regional-text/fixture-pins.json tools/unlabeled-pdf-input/input-pins.json "$work/"
+          "$work/python/bin/python" -B tools/pdf-regional-text/generate_input.py "$work"
+          PDF_REGION_TEST_PDF="$work/unlabeled-consumed-development.pdf" "$work/python/bin/python" -B -m unittest discover -s tools/pdf-regional-text -p 'test_*.py'
+      - name: Compile exact63ea raster/recovery source and ordinary Text regional observer
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/pdf-regional-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          architecture="$(uname -m)"
+          sdk="$(xcrun --sdk iphonesimulator --show-sdk-path)"
+          xcrun --sdk iphonesimulator --show-sdk-version
+          xcrun swiftc -swift-version 5 -sdk "$sdk" -target "$architecture-apple-ios27.0-simulator" -parse-as-library -O "$work/prepared/"*.swift tools/pdf-regional-text/*.swift -o "$work/PDFRegionalProbe"
+          codesign --force --sign - "$work/PDFRegionalProbe"
+      - name: Read one actual image-only PDF, verify original pixels and attempt at most seven Text requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/pdf-regional-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          "$work/python/bin/python" -B tools/pdf-regional-text/run_simulator.py "$work"
+      - name: Clean only this job's simulator and temporary generated PDF/font/image
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/pdf-regional-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          cleanup_status=0
+          if [[ -f "$work/owned-simulator.json" ]]; then
+            python3 - "$work/owned-simulator.json" <<'PY' || cleanup_status=$?
+          import json,os,re,subprocess,sys
+          v=json.load(open(sys.argv[1]));assert v['runId']==os.environ['GITHUB_RUN_ID'] and v['attempt']==os.environ['GITHUB_RUN_ATTEMPT']
+          u=v['udid'];assert re.fullmatch(r'[0-9A-Fa-f-]{36}',u)
+          listed=json.loads(subprocess.run(['xcrun','simctl','list','devices','-j'],check=True,capture_output=True,text=True).stdout)
+          if any(d['udid']==u for devices in listed['devices'].values() for d in devices):
+              subprocess.run(['xcrun','simctl','shutdown',u],check=False)
+              subprocess.run(['xcrun','simctl','delete',u],check=True)
+          PY
+          fi
+          if [[ -f "$work/.pdf-regional-owned" ]]; then rm -rf "$work"; fi
+          exit "$cleanup_status"

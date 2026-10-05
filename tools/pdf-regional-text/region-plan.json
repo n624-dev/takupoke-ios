@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "scope": "Consumed independent development semantic family; actual new image-only PDF endpoint, not a held-out qualification cohort",
+  "input": {
+    "representation": "Independently generated lossless image-only PDF embedding the original 1x raster; separate vector Reader control never an OCR source",
+    "originalRasterMaximumDimension": 4096,
+    "originalRasterScale": 1,
+    "plannedOriginalBasis": [
+      3740,
+      800
+    ],
+    "sourcePixelIdentity": "Generator pins original PNG decoded pixels; actual PDF 1x rendering comparison records equality or mismatch before OCR"
+  },
+  "planning": {
+    "input": "Actual coarse PDF raster rules only; metadata extent from original nonwhite pixels above measured band",
+    "coarseMaximumDimension": 2048,
+    "closedHeaderCells": 5,
+    "minimumCellAspectRatio": 4,
+    "maximumRelativeWidthVariation": 0.05,
+    "maximumRailEndpointGapCoarsePixels": 3,
+    "selection": "Unique minimum-height adjacent five-cell closed band; common supporting vertical rails extend to the same physical bottom rail",
+    "sourcePixelPadding": 2,
+    "failure": "Ambiguous, incomplete, oversized, out-of-bounds or cancelled plan stops without OCR; no drawing/gold/text role input",
+    "regions": [
+      "five measured weekday strips",
+      "measured left class margin",
+      "measured upper nonwhite metadata extent"
+    ],
+    "sharedPlanningWorkCap": 1000000,
+    "workPolicy": "Single nonreset budget charges rail inventory, edge construction, conservative sort work and all support/coverage comparisons; cancellation checked every128"
+  },
+  "render": {
+    "regionScale": 2,
+    "maximumRegionDimension": 2048,
+    "resizeAfterRender": false,
+    "detailClaim": "2x rendering interpolates the original 1x raster; no new source detail",
+    "coordinateReceipt": "One exact affine: localX=s*(originalX-boxX), localY=s*(originalY-boxY)+(ceil(boxHeight*s)-boxHeight*s). Inverse uses actual scalar and ceil padding, never width/height-ratio approximation."
+  },
+  "recognition": {
+    "api": "Vision RecognizeTextRequest",
+    "recognitionLevel": "accurate",
+    "recognitionLanguages": [
+      "ja-JP",
+      "en-US"
+    ],
+    "usesLanguageCorrection": false,
+    "automaticallyDetectsLanguage": false,
+    "customWords": [],
+    "minimumTextHeightFraction": 0.03125,
+    "minimumHeightPolicy": "Verify this equals the supported SDK request default before any perform; no lowering",
+    "supportedLanguagesPolicy": "Query actual supportedRecognitionLanguages before any perform; requested languages must be supported",
+    "requestPolicy": "Exactly one request per frozen derived region, maximum seven; no page-wide request, loop, retry, crop sweep or candidate adoption",
+    "confidencePolicy": "Finite candidate confidence 0.85 through 1 unchanged; cross-API calibration not assumed",
+    "rangePolicy": "Unmodified per-Swift-Character native range boxes; accurate word precision is not relabelled precise glyph ink",
+    "regionProvenancePolicy": "Additional strict local right/bottom <= actual CGImage dimensions; raw out-of-ROI ranges retained and refused even if inverse falls inside whole page. No clipping/tolerance."
+  },
+  "accounting": {
+    "wholePage": "Original 1x raster and inverse-mapped actual native boxes; existing full-page RecoveryRasterGrid guard within 4096 dimensions, no tile proof substitution",
+    "uniqueOwner": "Additional diagnostic accounts original nonrule pixels by actual returned candidate ranges; same-candidate character ranges share a candidate owner, cross-candidate overlap refuses",
+    "guards": "Original confidence/range, cancellation, work budget, physical ownership and complete raster coverage; missing periods/classes/roles never filled",
+    "partialSource": "Actual Reader capture/refusal preserved separately; returned regional observations alone never promote a partial source",
+    "oracle": "Assertion after actual Analysis only; no drawing roles, source cell indices, class/day/period gold or blank flags to OCR/Builder",
+    "formalQuality": "UNASSESSED: ordinary Text adapter/region acquisition and manual confirmation/storage are not automatically production-qualified"
+  },
+  "privacy": "Source-only generator/helper; no PDF/PNG/font binaries in Git; entire image-bearing native input records excluded from public selected output"
+}
