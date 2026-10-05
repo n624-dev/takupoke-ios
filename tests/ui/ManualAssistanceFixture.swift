@@ -53,7 +53,8 @@ enum SimulatorManualFixture {
             return "firstUncovered=\(x),\(y);gray=\(raster.grayscale[y*raster.width+x]);ruleDistance=\(distance);graySHA="+hash
         } catch { return "unassessed:"+String(reflecting:error)+";graySHA="+hash }
     }
-    static func input(integralRails:Bool = SimulatorManualFixture.integralRails) throws -> (PDFPageLayout,RecoveryRasterGrid,UIImage,Set<Int>) {
+    static func input(integralRails:Bool? = nil) throws -> (PDFPageLayout,RecoveryRasterGrid,UIImage,Set<Int>) {
+        let drawIntegral=integralRails ?? SimulatorManualFixture.integralRails
         let scale=2.0,width=1480,height=960
         var glyphs=[PDFGlyph](),rules=[PDFRule](),line=0,uncertain=Set<Int>()
         func text(_ value:String,_ x:Double,_ y:Double,_ w:Double=3,_ h:Double=6,low:Bool=false) {
@@ -80,7 +81,7 @@ enum SimulatorManualFixture {
         let format=UIGraphicsImageRendererFormat();format.scale=1;format.opaque=true
         let image=UIGraphicsImageRenderer(size:CGSize(width:width,height:height),format:format).image { context in
             UIColor.white.setFill();context.fill(CGRect(x:0,y:0,width:width,height:height));UIColor.black.setStroke()
-            if integralRails {
+            if drawIntegral {
                 // One physical pixel row/column, including both endpoints.
                 UIColor.black.setFill()
                 for r in rules {
