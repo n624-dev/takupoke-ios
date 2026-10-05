@@ -15,6 +15,8 @@ struct PDFGlyph: Codable, Sendable {
     var height: Double
     var sourceLine: Int? = nil
     var sourceOrder: Int? = nil
+    /// Whole native OCR literal; it cannot be split or assigned by its centre.
+    var ocrLineAtom: Bool? = nil
     var cx: Double { x + width / 2 }
     var cy: Double { y + height / 2 }
 }

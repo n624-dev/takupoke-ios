@@ -54,7 +54,7 @@ enum PDFRecoveryRecognition {
         }
         func strictLayouts(check: () throws -> Void) throws -> [LayoutPage] {
             let assessment: RecoveryOCRAcquisitionAssessment
-            do { assessment = try acquisition.assess(check: check) }
+            do { assessment = try acquisition.strictAssessment(check: check) }
             catch let failure as RecoveryOCRAcquisitionFailure {
                 switch failure {
                 case .limit: throw PDFParseError(code: .limit)
@@ -73,6 +73,14 @@ enum PDFRecoveryRecognition {
                 guard let raster = rasters[page.page] else { throw PDFParseError(code: .unreadable, page: page.page) }
                 var glyphs = [PDFGlyph](), order = 0
                 for line in page.lines {
+                    let top1 = line.candidates[0]
+                    if try RecoveryOCRLineMapping.requiresAtom(top1, width: page.width, height: page.height, consume: check) {
+                        guard let range = top1.observationRange else { throw PDFParseError(code: .ambiguous, stage: .characterMapping) }
+                        glyphs.append(PDFGlyph(text: top1.text, x: range.x, y: range.y, width: range.width, height: range.height,
+                            sourceLine: line.nativeOrder, sourceOrder: order, ocrLineAtom: true))
+                        order += 1
+                        continue
+                    }
                     for character in line.candidates[0].characters {
                         if order % 128 == 0 { try check(); try Task.checkCancellation() }
                         guard let range = character.range else { throw PDFParseError(code: .ambiguous, stage: .characterMapping) }
@@ -112,6 +120,7 @@ enum PDFRecoveryRecognition {
             throw PDFParseError(code: .ambiguous)
         }
         var output = [RecoveryOCRPage](), native = [RecoveryRecognizedPage](), rasters = [Int: RecoveryRasterGrid]()
+        var structureWork = 0
         for number in required {
             try check(); try Task.checkCancellation()
             guard let page = document.page(at: number - 1) else { throw PDFParseError(code: .unreadable, page: number) }
@@ -141,40 +150,12 @@ enum PDFRecoveryRecognition {
             let observations = try await RecognizeDocumentsRequest().perform(on: cg)
             try check(); try Task.checkCancellation()
             guard observations.count <= 1000 else { throw PDFParseError(code: .limit, page: number) }
-            var lines = [RecoveryOCRLine](), capturedCharacters = 0, capturedBytes = 0
-            for observation in observations {
-                for line in observation.document.text.lines {
-                    try check(); try Task.checkCancellation()
-                    guard lines.count < 100_000 else { throw PDFParseError(code: .limit, page: number) }
-                    var candidates = [RecoveryOCRCandidate]()
-                    for candidate in line.topCandidates(5) {
-                        var characters = [RecoveryOCRCharacter]()
-                        let text = candidate.string
-                        for start in text.indices {
-                            if capturedCharacters % 128 == 0 { try check(); try Task.checkCancellation() }
-                            capturedCharacters += 1
-                            guard capturedCharacters <= 100_000 else { throw PDFParseError(code: .limit, page: number) }
-                            let end = text.index(after: start), characterText = String(text[start..<end])
-                            for _ in characterText.utf8 {
-                                capturedBytes += 1
-                                guard capturedBytes <= 1_048_576 else { throw PDFParseError(code: .limit, page: number) }
-                                if capturedBytes % 128 == 0 { try check(); try Task.checkCancellation() }
-                            }
-                            let range = candidate.boundingBox(for: start..<end).map { rectangle -> RecoveryOCRRange in
-                                let b = rectangle.boundingBox.cgRect
-                                return RecoveryOCRRange(x: Double(b.minX * CGFloat(cg.width)),
-                                    y: Double((1 - b.maxY) * CGFloat(cg.height)),
-                                    width: Double(b.width * CGFloat(cg.width)), height: Double(b.height * CGFloat(cg.height)))
-                            }
-                            characters.append(RecoveryOCRCharacter(text: characterText, range: range))
-                        }
-                        candidates.append(RecoveryOCRCandidate(text: text, confidence: Double(candidate.confidence), characters: characters))
-                    }
-                    lines.append(RecoveryOCRLine(nativeOrder: lines.count, candidates: candidates))
-                }
+            do {
+                output.append(try RecoveryVisionCapture.page(number, width: cg.width, height: cg.height,
+                    observations: observations, work: &structureWork, check: check))
+            } catch RecoveryOCRAcquisitionFailure.limit {
+                throw PDFParseError(code: .limit, page: number)
             }
-            output.append(RecoveryOCRPage(page: number, width: cg.width, height: cg.height,
-                nativeDocumentCount: observations.count, lines: lines, captureComplete: true))
             native.append(RecoveryRecognizedPage(page: number, width: cg.width, height: cg.height, observations: observations))
             rasters[number] = raster
         }

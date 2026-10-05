@@ -34,6 +34,9 @@ struct RecoveryOCRRange: Codable, Equatable, Sendable {
         x >= 0 && y >= 0 && width > 0 && height > 0 &&
         x + width <= Double(pageWidth) && y + height <= Double(pageHeight)
     }
+    func contains(_ other: Self) -> Bool {
+        other.x >= x && other.y >= y && other.x + other.width <= x + width && other.y + other.height <= y + height
+    }
 }
 struct RecoveryOCRCharacter: Codable, Equatable, Sendable {
     let text: String
@@ -43,11 +46,50 @@ struct RecoveryOCRCandidate: Codable, Equatable, Sendable {
     let text: String
     let confidence: Double
     let characters: [RecoveryOCRCharacter]
+    /// Actual native box for this complete candidate range. Never a union of
+    /// character boxes or a fabricated position for an unpositioned separator.
+    var lineRange: RecoveryOCRRange? = nil
+    /// Actual bounding box of the returned RecognizedTextObservation. Retained
+    /// separately from the candidate substring rectangle, without expansion.
+    var observationRange: RecoveryOCRRange? = nil
 }
 struct RecoveryOCRLine: Codable, Equatable, Sendable {
     let nativeOrder: Int
     /// Original native ranking, without deduplication or alternate selection.
     let candidates: [RecoveryOCRCandidate]
+}
+
+enum RecoveryOCRLineMapping {
+    static func isSpace(_ text: String) -> Bool {
+        !text.isEmpty && text.unicodeScalars.allSatisfy { $0.properties.generalCategory == .spaceSeparator }
+    }
+    /// Returns true only for an indivisible raw line with unpositioned spaces.
+    /// This is acquisition evidence; independent BODY ownership is still required.
+    static func requiresAtom(_ top1: RecoveryOCRCandidate, width: Int, height: Int,
+                             consume: () throws -> Void) throws -> Bool {
+        var atom = false, positioned = 0
+        for character in top1.characters {
+            try consume()
+            if let range = character.range {
+                guard range.isInside(width: width, height: height) else { throw RecoveryOCRAcquisitionFailure.characterMapping }
+                if !isSpace(character.text) { positioned += 1 }
+            } else {
+                guard isSpace(character.text) else { throw RecoveryOCRAcquisitionFailure.characterMapping }
+                atom = true
+            }
+        }
+        if atom {
+            guard positioned > 0, !top1.text.contains(where: \.isNewline),
+                  let candidate = top1.lineRange, candidate.isInside(width:width,height:height),
+                  let observed = top1.observationRange, observed.isInside(width: width, height: height) else {
+                throw RecoveryOCRAcquisitionFailure.characterMapping
+            }
+            // The framework's independent box APIs need not contain one another.
+            // Every original box still needs the same independently proved BODY
+            // scope before any recovery/model/manual consumer can use this atom.
+        }
+        return atom
+    }
 }
 struct RecoveryOCRPage: Codable, Equatable, Sendable {
     let page: Int
@@ -56,6 +98,8 @@ struct RecoveryOCRPage: Codable, Equatable, Sendable {
     let nativeDocumentCount: Int
     let lines: [RecoveryOCRLine]
     let captureComplete: Bool
+    /// Optional acquisition evidence only. Nil preserves exact legacy JSON bytes.
+    var structure: RecoveryOCRPageStructure? = nil
 }
 
 enum RecoveryOCRAcquisitionFailure: Error, Equatable {
@@ -79,6 +123,24 @@ struct RecoveryOCRAcquisitionDraft: Codable, Equatable, Sendable {
     func canonicalData() throws -> Data {
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
         return try encoder.encode(self)
+    }
+
+    /// The legacy strict parser has no independent BODY ownership proof.
+    /// Whole-line atoms therefore go through capturedLayouts and the recovery
+    /// builder/Validator instead, even when their native confidence is high.
+    func strictAssessment(check: () throws -> Void = {}) throws -> RecoveryOCRAcquisitionAssessment {
+        let assessment = try assess(check:check)
+        var work = 0
+        for page in pages {
+            for line in page.lines {
+                let atom = try RecoveryOCRLineMapping.requiresAtom(line.candidates[0],width:page.width,height:page.height,consume:{
+                    if work % 128 == 0 { try check(); try Task.checkCancellation() }
+                    work += 1
+                })
+                guard !atom else { throw RecoveryOCRAcquisitionFailure.characterMapping }
+            }
+        }
+        return assessment
     }
 
     /// Full inventory and mapping validation precedes the confidence count. A page or
@@ -131,14 +193,12 @@ struct RecoveryOCRAcquisitionDraft: Codable, Equatable, Sendable {
                 }
                 let top1 = line.candidates[0]
                 // Alternate ranges remain raw observations, never a substitute for top1.
-                for character in top1.characters {
-                    try consume()
-                    guard character.range?.isInside(width: page.width, height: page.height) == true else {
-                        throw RecoveryOCRAcquisitionFailure.characterMapping
-                    }
-                }
+                _ = try RecoveryOCRLineMapping.requiresAtom(top1, width: page.width, height: page.height, consume: consume)
                 top1Count += 1; characterCount += top1.characters.count
                 if top1.confidence < 0.85 { low[page.page, default: []].append(order) }
+            }
+            if let structure = page.structure {
+                _ = try RecoveryOCRStructure.links(structure, page: page, consume: consume)
             }
         }
         try check(); try Task.checkCancellation()

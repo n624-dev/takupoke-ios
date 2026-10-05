@@ -7,7 +7,7 @@ import Crypto
 
 enum RecoveryValidator {
     static let schemaVersion = 2
-    static let version = 6
+    static let version = 7
     private static func text(_ value: String) -> String {
         value.precomposedStringWithCompatibilityMapping.components(separatedBy: .whitespacesAndNewlines).joined()
     }
@@ -39,6 +39,17 @@ enum RecoveryValidator {
         outcome.errors += try RecoveryManualAssistance.validationErrors(doc,result,inputOnly:inputOnly,check:{ try work.finish() },work:work)
         try work.finish()
         return outcome
+    }
+    /// Internal manual preparation only. Retains the original document and all
+    /// native markers; proves BODY ownership before checking the raw Rules result.
+    /// Returns errors/fields, never an adoption decision or marker-stripped copy.
+    static func pendingManualBaseline(_ doc:RecoveryDocument,_ result:RecoveryResult,index:RecoverySourceIndex,
+                                      work:RecoveryValidationWork) throws -> (errors:[String],fields:[RecoveryManualField]) {
+        guard result.humanCorrections == nil else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
+        let fields = try RecoveryManualAssistance.fields(doc,check:{ try work.finish() },work:work)
+        let errors = validation(doc,result,inputOnly:false,unresolvedCellIds:[],index:index,work:work).errors
+        try work.finish()
+        return (errors,fields)
     }
     private static func validation(_ doc:RecoveryDocument,_ result:RecoveryResult,inputOnly:Bool,unresolvedCellIds:Set<String>,index:RecoverySourceIndex,work:RecoveryValidationWork) -> RecoveryValidation {
         guard inputOnly || unresolvedCellIds.isEmpty else { return RecoveryValidation(errors:["unresolvedStructure"]) }
@@ -447,6 +458,28 @@ enum RecoveryValidator {
         }
         return RecoveryValidation(errors: errors)
     }
+    /// Builder-only structural preflight before the native capture can be attached.
+    /// The marked original document remains pending; this is never adoption proof.
+    static func pendingNativeCaptureInputErrors(_ doc:RecoveryDocument,unresolvedCellIds:Set<String> = [],
+                                                check:@escaping () throws -> Void) throws -> [String] {
+        guard doc.sources.count <= 100000, doc.cells.count <= 20000,
+              doc.nativeCapture == nil, doc.sources.allSatisfy({ $0.nativeConfidence == nil }),
+              let atoms = doc.ocrLineAtomSourceIds, !atoms.isEmpty,
+              atoms.count <= doc.sources.count, Set(atoms).count == atoms.count else {
+            throw PDFParseError(code:.ambiguous,stage:.characterMapping)
+        }
+        let work = RecoveryValidationWork(check:check), index = try RecoverySourceIndex(doc.sources,work:work)
+        guard atoms.allSatisfy({ index.byId[$0]?.fromOcr == true && index.byId[$0]?.cellId.isEmpty == false }) else {
+            throw PDFParseError(code:.ambiguous,stage:.characterMapping)
+        }
+        let placeholder = RecoveryResult(pdfHash:doc.pdfHash,kind:doc.kind,schoolYear:doc.schoolYear,term:doc.term,
+            cells:doc.cells.map { RecoveredCell(cellId:$0.id,state:.missing,lessons:[]) },
+            metadata:doc.structureMetadata ?? RecoveryMetadata(provider:"rule",modelId:"rules",modelVersion:"1",
+                runtimeVersion:"1",promptVersion:"1",recoverySchemaVersion:schemaVersion,validatorVersion:version,osVersion:"preflight"))
+        let errors = validation(doc,placeholder,inputOnly:true,unresolvedCellIds:unresolvedCellIds,index:index,work:work).errors
+        try work.finish()
+        return errors
+    }
     static func inputErrors(_ doc: RecoveryDocument, unresolvedCellIds:Set<String> = []) -> [String] {
         validate(doc, RecoveryResult(pdfHash: doc.pdfHash, kind: doc.kind, schoolYear: doc.schoolYear, term: doc.term, cells: doc.cells.map { RecoveredCell(cellId: $0.id, state: .missing, lessons: []) }, metadata: doc.structureMetadata ?? RecoveryMetadata(provider: "rule", modelId: "rules", modelVersion: "1", runtimeVersion: "1", promptVersion: "1", recoverySchemaVersion: schemaVersion, validatorVersion: version, osVersion: "preflight")), inputOnly: true,unresolvedCellIds:unresolvedCellIds).errors
     }
@@ -472,8 +505,8 @@ enum RecoveryValidator {
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
         return SHA256.hash(data: try encoder.encode(value)).map { String(format: "%02x", $0) }.joined()
     }
-    /// Only a proved, already accepted v4 payload can carry its confirmation
-    /// forward. Original field and structure provenance remain independent.
+    /// Only exact historical acceptance fingerprints plus full current validation
+    /// can carry confirmation forward. Native atom proof cannot be backdated.
     static func recertify(_ adopted: RecoveryAdopted, hash: String) throws -> RecoveryAdopted? {
         guard adopted.document.pdfHash == hash else { return nil }
         if adopted.result.metadata.validatorVersion == version {
@@ -487,22 +520,25 @@ enum RecoveryValidator {
             }
             return adopted
         }
-        if adopted.result.metadata.validatorVersion == 5, let original = adopted.previousAcceptance {
-            guard original.metadata.validatorVersion == 4 else { return nil }
+        if [5,6].contains(adopted.result.metadata.validatorVersion), let original = adopted.previousAcceptance {
+            guard [4,5].contains(original.metadata.validatorVersion),
+                  original.metadata.validatorVersion < adopted.result.metadata.validatorVersion else { return nil }
             var old = adopted; old.previousAcceptance = nil; old.acceptance = original
-            old.result.metadata.validatorVersion = 4
-            if old.document.structureMetadata != nil { old.document.structureMetadata!.validatorVersion = 4 }
+            old.result.metadata.validatorVersion = original.metadata.validatorVersion
+            if old.document.structureMetadata != nil { old.document.structureMetadata!.validatorVersion = original.metadata.validatorVersion }
             guard let upgraded = try recertify(old,hash:hash) else { return nil }
             var expected = upgraded
-            expected.result.metadata.validatorVersion = 5
-            if expected.document.structureMetadata != nil { expected.document.structureMetadata!.validatorVersion = 5 }
+            expected.result.metadata.validatorVersion = adopted.result.metadata.validatorVersion
+            if expected.document.structureMetadata != nil { expected.document.structureMetadata!.validatorVersion = adopted.result.metadata.validatorVersion }
             expected.acceptance = RecoveryAcceptance(pdfHash:hash,resultHash:try fingerprint(expected.result),scopeHash:try fingerprint(expected.document),metadata:expected.result.metadata,acceptedAt:original.acceptedAt)
             return expected == adopted ? upgraded : nil
         }
-        guard adopted.previousAcceptance == nil, adopted.document.nativeCapture == nil, adopted.result.humanCorrections == nil,
-              adopted.document.sources.allSatisfy({ $0.nativeConfidence == nil }),
-              adopted.document.structureMetadata == nil || adopted.document.structureMetadata == adopted.result.metadata,
-              [4,5].contains(adopted.result.metadata.validatorVersion),
+        guard adopted.previousAcceptance == nil, adopted.document.ocrLineAtomSourceIds == nil,
+              adopted.result.metadata.validatorVersion == 6 ||
+                (adopted.document.nativeCapture == nil && adopted.result.humanCorrections == nil &&
+                 adopted.document.sources.allSatisfy({ $0.nativeConfidence == nil })),
+              adopted.result.metadata.validatorVersion == 6 || adopted.document.structureMetadata == nil || adopted.document.structureMetadata == adopted.result.metadata,
+              [4,5,6].contains(adopted.result.metadata.validatorVersion),
               adopted.result.metadata.recoverySchemaVersion == schemaVersion,
               adopted.result.metadata.recoveryVersion == "2",
               adopted.acceptance.pdfHash == hash,
