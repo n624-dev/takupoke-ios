@@ -109,6 +109,13 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('models.cancel()',changed)
         self.assertEqual(changed.count('accessibilityIdentifier("manual-submit")'),1)
 
+    def test_review_readiness_measures_actual_coordinator_state(self):
+        changed=module.view((ROOT/"Takupoke/PDFRecoveryView.swift").read_text(encoding="utf-8"))
+        state=next(line for line in changed.splitlines() if 'Text("preview=' in line)
+        self.assertIn('review=\\(coordinator.manualReview != nil)',state)
+        self.assertIn('preview=\\(coordinator.preview != nil)',state)
+        self.assertEqual(changed.count('accessibilityIdentifier("manual-coordinator-state")'),1)
+
     def test_review_uses_production_japan_timestamp_without_device_timezone(self):
         original=(ROOT/"Takupoke/PDFRecoveryView.swift").read_text(encoding="utf-8")
         changed=module.view(original)

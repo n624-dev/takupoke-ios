@@ -70,7 +70,7 @@ def view(text):
                     VStack { FixtureManualProbe()
                         Text(SimulatorManualFixture.processIdentity).font(.system(size:1))
                             .accessibilityIdentifier("manual-process-launch").allowsHitTesting(false)
-                        Text("preview=\\(coordinator.preview != nil);running=\\(coordinator.running);draft=\\(coordinator.manualDraft?.id ?? "nil");failure=\\(coordinator.failure ?? "none")")
+                        Text("preview=\\(coordinator.preview != nil);review=\\(coordinator.manualReview != nil);running=\\(coordinator.running);draft=\\(coordinator.manualDraft?.id ?? "nil");failure=\\(coordinator.failure ?? "none")")
                             .font(.system(size:1)).accessibilityIdentifier("manual-coordinator-state").allowsHitTesting(false)
                         if manualQAMutationComplete { Text("変更完了").accessibilityIdentifier("manual-mutation-complete") }
                         if let draft = coordinator.manualDraft {
