@@ -363,4 +363,14 @@ final class RecoveryRecertificationTests: XCTestCase {
             analysisDigest:nil,analysisVersion:nil,attemptDigest:special.sourceDigest,failure:nil,attemptVersion:SpecialScheduleAnalysis.parserVersion))
     }
 
+    func testOCRCoverageProofSurvivesJSONRoundtripAndRemainsReusable() throws {
+        var (doc,result) = fixture()
+        for index in doc.sources.indices { doc.sources[index].fromOcr = true }
+        doc.ocrCoverageProof = RecoveryOCRCoverageProof(version:1,pages:[RecoveryOCRCoveragePage(page:1,width:700,height:1000,grayscaleSHA256:String(repeating:"b",count:64))])
+        let original = try accepted(doc,result)
+        let decoded = try JSONDecoder().decode(RecoveryAdopted.self,from:JSONEncoder().encode(original))
+        XCTAssertEqual(decoded.document.ocrCoverageProof,original.document.ocrCoverageProof)
+        XCTAssertTrue(try RecoveryValidator.canReuse(decoded.acceptance,document:decoded.document,result:decoded.result))
+    }
+
 }
