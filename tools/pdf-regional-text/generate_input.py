@@ -10,6 +10,7 @@ def generate(work):
     assert work.is_dir() and (work/'.pdf-regional-owned').is_file()
     font=work/'owned-public-font.ttc';out=work/'generated-input'
     assert not font.exists() and not out.exists()
+    print(json.dumps({'generatorRuntime':{'Python':platform.python_version(),'Pillow':PIL.__version__,'FreeType':PIL.features.version('freetype2'),'PillowZlib':PIL.features.version('zlib'),'pythonZlibBuild':zlib.ZLIB_VERSION,'pythonZlibRuntime':zlib.ZLIB_RUNTIME_VERSION,'PyMuPDF':fitz.VersionBind}}),flush=True)
     try:
         with urllib.request.urlopen(FONT_URL,timeout=60) as response,font.open('xb') as target:
             size=0;digest=hashlib.sha256()
