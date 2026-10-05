@@ -1,5 +1,7 @@
 import importlib.util
 import json
+import os
+import signal
 from pathlib import Path
 import subprocess
 import sys
@@ -22,6 +24,31 @@ class ManualDiagnosticsTests(unittest.TestCase):
         noisy = module.command([sys.executable, '-c', 'print("x"*8192)'], cap=512)
         self.assertEqual(noisy['limited'], 'output-cap')
         self.assertLessEqual(len(noisy['text']), 512)
+
+    def test_sigterm_reaps_owned_command_and_keeps_signal_exit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pid_file = Path(tmp) / 'child.pid'
+            child = 'import os,time;from pathlib import Path;Path(' + repr(str(pid_file)) + ').write_text(str(os.getpid()));time.sleep(10)'
+            script = ('import importlib.util,signal,sys;'
+                      's=importlib.util.spec_from_file_location("d",' + repr(str(ROOT / 'tools/manual_ui_diagnostics.py')) + ');'
+                      'd=importlib.util.module_from_spec(s);s.loader.exec_module(d);'
+                      'signal.signal(signal.SIGTERM,d.interrupted);'
+                      'd.command([sys.executable,"-c",' + repr(child) + '],timeout=10)')
+            parent = subprocess.Popen([sys.executable, '-c', script])
+            try:
+                until = time.monotonic() + 3
+                while not pid_file.exists() and time.monotonic() < until:
+                    time.sleep(.02)
+                self.assertTrue(pid_file.exists())
+                pid = int(pid_file.read_text())
+                parent.send_signal(signal.SIGTERM)
+                self.assertEqual(parent.wait(timeout=3), 143)
+                with self.assertRaises(ProcessLookupError):
+                    os.kill(pid, 0)
+            finally:
+                if parent.poll() is None:
+                    parent.kill()
+                    parent.wait(timeout=2)
 
     def test_crash_capture_filters_exact_app_time_size_and_symlinks(self):
         with tempfile.TemporaryDirectory() as tmp:

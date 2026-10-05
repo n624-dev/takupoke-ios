@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import signal
 from pathlib import Path
 import subprocess
 import tempfile
@@ -34,7 +35,6 @@ def command(args, *, timeout=15, cap=MAX_OUTPUT):
                     break
                 time.sleep(0.05)
             if reason:
-                import signal
                 try:
                     os.killpg(process.pid, signal.SIGKILL)
                 except ProcessLookupError:
@@ -48,7 +48,10 @@ def command(args, *, timeout=15, cap=MAX_OUTPUT):
                     "text": data[:cap].decode("utf-8", errors="replace")}
         finally:
             if process.poll() is None:
-                process.kill()
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
                 process.wait(timeout=2)
 
 
@@ -141,7 +144,14 @@ def collect(scratch, simulator, started, exit_code):
     print("TAKUPOKE-MANUAL-DIAGNOSTICS " + json.dumps(result, ensure_ascii=False), flush=True)
 
 
+def interrupted(signum, _frame):
+    # Unwind command() so its owned process group is killed/reaped before exiting.
+    raise SystemExit(128 + signum)
+
+
 if __name__ == "__main__":
+    for signum in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(signum, interrupted)
     parser = argparse.ArgumentParser()
     parser.add_argument("scratch", type=Path)
     parser.add_argument("simulator")
