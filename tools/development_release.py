@@ -1,11 +1,11 @@
 """Prepare or publish a verified feature IPA without changing AltStore/latest."""
 import argparse
 import json
+import os
 from pathlib import Path
 import re
 import shutil
 import tempfile
-import zipfile
 
 from publish import api, gh, get_draft, list_releases
 from release import inspect_ipa, read_config, sha256
@@ -16,10 +16,11 @@ BRANCH = "codex/pdf-local-recovery"
 REQUIRED = ALL_UI_REQUIRED_JOBS | {"Distribution tests", "Native PDF and recovery tests",
                             "Check iPhone build without publishing"}
 ASSETS = ("takupoke.ipa", "SHA256SUMS", "INSTALL.txt")
-MAX_ARCHIVE = 256 * 1024 * 1024
+STAGED_ASSETS = ("takupoke.ipa", "release.json")
+MAX_IPA = 256 * 1024 * 1024
 
 
-def check_snapshot(run, jobs, workflow, commit, run_id):
+def check_identity(run, workflow, commit, run_id):
     if not re.fullmatch(r"[0-9a-f]{40}", commit) or type(run_id) is not int or run_id <= 0:
         raise ValueError("A full commit and positive run ID are required")
     attempt = run.get("run_attempt")
@@ -27,10 +28,16 @@ def check_snapshot(run, jobs, workflow, commit, run_id):
             or run.get("head_sha") != commit or run.get("head_branch") != BRANCH
             or run.get("repository", {}).get("full_name") != REPO
             or run.get("event") != "workflow_dispatch"
-            or run.get("status") != "completed" or run.get("conclusion") != "success"
             or workflow.get("id") != run.get("workflow_id")
             or workflow.get("path") != ".github/workflows/ios-release.yml"):
-        raise ValueError("Development build does not match the completed feature workflow")
+        raise ValueError("Development build does not match the feature workflow")
+    return attempt
+
+
+def check_snapshot(run, jobs, workflow, commit, run_id):
+    attempt = check_identity(run, workflow, commit, run_id)
+    if run.get("status") != "completed" or run.get("conclusion") != "success":
+        raise ValueError("Development workflow is not completed successfully")
     found = {}
     for job in jobs:
         name = job.get("name")
@@ -60,23 +67,15 @@ def gate(run_id, commit):
     return check_snapshot(run, [job for page in pages for job in page["jobs"]], workflow, commit, run_id)
 
 
-def extract_build(archive_path, destination, commit):
-    if archive_path.stat().st_size > MAX_ARCHIVE:
-        raise ValueError("Artifact exceeds the download bound")
-    with zipfile.ZipFile(archive_path) as archive:
-        entries = archive.infolist()
-        if len(entries) != 2 or {e.filename for e in entries} != {"takupoke.ipa", "release.json"}:
-            raise ValueError("Artifact must contain exactly the IPA and build metadata")
-        for entry in entries:
-            limit = MAX_ARCHIVE if entry.filename == "takupoke.ipa" else 1024 * 1024
-            if entry.file_size <= 0 or entry.file_size > limit or entry.external_attr >> 16 & 0o170000 == 0o120000:
-                raise ValueError("Invalid artifact entry")
-            with archive.open(entry) as source, (destination / entry.filename).open("xb") as target:
-                shutil.copyfileobj(source, target, length=1024 * 1024)
+def inspect_build(destination, commit):
+    for name, cap in (("takupoke.ipa", MAX_IPA), ("release.json", 1024 * 1024)):
+        path = destination / name
+        if path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= cap:
+            raise ValueError("Invalid staged build file")
     metadata = json.loads((destination / "release.json").read_text(encoding="utf-8"))
     if (metadata.get("repository") != REPO or metadata.get("commit") != commit
             or metadata.get("sha256", {}).get("takupoke.ipa") != sha256(destination / "takupoke.ipa")):
-        raise ValueError("Artifact metadata or IPA checksum mismatch")
+        raise ValueError("Build metadata or IPA checksum mismatch")
     config = read_config()
     if config["repository"] != REPO:
         raise ValueError("Unexpected distribution configuration")
@@ -85,31 +84,127 @@ def extract_build(archive_path, destination, commit):
     return metadata
 
 
+def stage_identity(run_id, attempt, commit):
+    return "TAKUPOKE-DEVELOPMENT-STAGE\n" + json.dumps(
+        {"schemaVersion": 1, "repository": REPO, "branch": BRANCH,
+         "runId": run_id, "attempt": attempt, "commit": commit}, sort_keys=True)
+
+
+def tag_name(run_id, attempt, commit):
+    return f"dev-ios-{run_id}-{attempt}-{commit[:12]}"
+
+
+def owned_stage(draft_id, run_id, attempt, commit):
+    if type(draft_id) is not int or draft_id <= 0:
+        raise ValueError("Invalid owned draft ID")
+    draft = get_draft(REPO, draft_id, tag_name(run_id, attempt, commit), commit)
+    if draft.get("prerelease") is not True or draft.get("body") != stage_identity(run_id, attempt, commit):
+        raise ValueError("Draft does not carry the exact staging ownership proof")
+    return draft
+
+
+def find_stage(run_id, attempt, commit):
+    matches = [r for r in list_releases(REPO) if r.get("tag_name") == tag_name(run_id, attempt, commit)]
+    if len(matches) != 1:
+        raise ValueError("Missing or ambiguous staged development draft")
+    return owned_stage(matches[0].get("id"), run_id, attempt, commit)
+
+
+def cleanup_stage(draft_id, run_id, attempt, commit):
+    # The recorded ID, exact tag/SHA/body and still-private state must all match.
+    # Never search for/delete another draft, or remove a published release.
+    owned_stage(draft_id, run_id, attempt, commit)
+    gh("api", "--method", "DELETE", f"repos/{REPO}/releases/{draft_id}")
+
+
+def download_assets(draft, destination, expected):
+    assets = draft.get("assets", [])
+    if len(assets) != len(expected) or {a.get("name") for a in assets} != set(expected):
+        raise ValueError("Staged asset inventory mismatch")
+    for asset in assets:
+        name = asset["name"]
+        cap = MAX_IPA if name == "takupoke.ipa" else 1024 * 1024
+        if (type(asset.get("id")) is not int or asset["id"] <= 0 or asset.get("state") != "uploaded"
+                or type(asset.get("size")) is not int or not 0 < asset["size"] <= cap):
+            raise ValueError("Incomplete or oversized staged asset")
+        target = destination / name
+        gh("api", "--header", "Accept: application/octet-stream",
+           f"repos/{REPO}/releases/assets/{asset['id']}", output=target)
+        if target.stat().st_size != asset["size"]:
+            raise ValueError("Staged asset size readback mismatch")
+        digest = asset.get("digest")
+        if digest is not None and digest != "sha256:" + sha256(target):
+            raise ValueError("Staged asset digest readback mismatch")
+
+
+def stage(build, github_output):
+    # This creates a PRIVATE draft only. It never substitutes for the thirteen-
+    # completed-job gate used by prepare/publish.
+    if (os.environ.get("GITHUB_REPOSITORY") != REPO or os.environ.get("GITHUB_REF") != "refs/heads/" + BRANCH
+            or os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch"):
+        raise ValueError("Staging is restricted to the trusted feature dispatch")
+    run_id = int(os.environ["GITHUB_RUN_ID"])
+    commit = os.environ["GITHUB_SHA"]
+    attempt = int(os.environ["GITHUB_RUN_ATTEMPT"])
+    run = api(f"repos/{REPO}/actions/runs/{run_id}")
+    workflow = api(f"repos/{REPO}/actions/workflows/{run['workflow_id']}")
+    if check_identity(run, workflow, commit, run_id) != attempt or run.get("status") != "in_progress":
+        raise ValueError("Staging run/source/attempt is not current")
+    metadata = inspect_build(build, commit)
+    tag = tag_name(run_id, attempt, commit)
+    if any(r.get("tag_name") == tag for r in list_releases(REPO)):
+        raise ValueError("Development release collision; nothing will be replaced")
+    refs = api(f"repos/{REPO}/git/matching-refs/tags/{tag}")
+    if any(r.get("ref") == "refs/tags/" + tag for r in refs):
+        raise ValueError("Development tag already exists")
+    owned_id = None
+    with tempfile.TemporaryDirectory(prefix="takupoke-dev-stage-") as scratch:
+        scratch = Path(scratch)
+        request = scratch / "request.json"
+        request.write_text(json.dumps({"tag_name": tag, "target_commitish": commit,
+            "draft": True, "prerelease": True, "make_latest": "false",
+            "name": f"たくポケ iOS 開発版 {metadata['version']} ({metadata['build']})",
+            "body": stage_identity(run_id, attempt, commit)}, ensure_ascii=False), encoding="utf-8")
+        try:
+            created = api(f"repos/{REPO}/releases", "--method", "POST", "--input", str(request))
+            if type(created.get("id")) is not int or created["id"] <= 0:
+                raise ValueError("Invalid new draft ID")
+            owned_id = created["id"]
+            # Record ownership before any upload; Actions/root can clean this ID
+            # on failure/cancellation, without touching a preexisting release.
+            with github_output.open("a", encoding="utf-8") as handle:
+                handle.write(f"draft_id={owned_id}\n")
+            draft = owned_stage(owned_id, run_id, attempt, commit)
+            if draft.get("assets"):
+                raise ValueError("New staging draft is not empty")
+            for name in STAGED_ASSETS:
+                api(f"https://uploads.github.com/repos/{REPO}/releases/{owned_id}/assets?name={name}",
+                    "--method", "POST", "--header", "Content-Type: application/octet-stream", "--input", str(build / name))
+            downloaded = scratch / "verified"; downloaded.mkdir()
+            download_assets(owned_stage(owned_id, run_id, attempt, commit), downloaded, STAGED_ASSETS)
+            if any(sha256(downloaded / name) != sha256(build / name) for name in STAGED_ASSETS):
+                raise ValueError("Staging byte readback mismatch")
+            inspect_build(downloaded, commit)
+            print(f"Private development draft staged: {owned_id}; run={run_id}; attempt={attempt}; commit={commit}")
+        except BaseException:
+            if owned_id is not None:
+                try:
+                    cleanup_stage(owned_id, run_id, attempt, commit)
+                except Exception as cleanup:
+                    print(f"Owned draft cleanup was not completed: {type(cleanup).__name__}")
+            raise
+
+
 def prepare(run_id, commit, output):
     attempt = gate(run_id, commit)
-    pages = json.loads(gh("api", "--paginate", "--slurp",
-                         f"repos/{REPO}/actions/runs/{run_id}/artifacts?per_page=100"))
-    expected = "takupoke-ios-development-" + commit
-    artifacts = [a for page in pages for a in page["artifacts"] if a.get("name") == expected]
-    if len(artifacts) != 1:
-        raise ValueError("Missing or ambiguous development artifact")
-    artifact = artifacts[0]
-    if (type(artifact.get("id")) is not int or artifact["id"] <= 0 or artifact.get("expired") is not False
-            or not 0 < artifact.get("size_in_bytes", 0) <= MAX_ARCHIVE
-            or artifact.get("workflow_run", {}).get("id") != run_id
-            or artifact["workflow_run"].get("head_sha") != commit):
-        raise ValueError("Artifact identity, expiry or size mismatch")
-    with tempfile.TemporaryDirectory(prefix="takupoke-dev-artifact-") as scratch:
+    draft = find_stage(run_id, attempt, commit)
+    with tempfile.TemporaryDirectory(prefix="takupoke-dev-package-") as scratch:
         scratch = Path(scratch)
-        archive = scratch / "artifact.zip"
-        gh("api", f"repos/{REPO}/actions/artifacts/{artifact['id']}/zip", output=archive)
-        digest = artifact.get("digest")
-        if digest is not None and digest != "sha256:" + sha256(archive):
-            raise ValueError("Downloaded artifact digest mismatch")
         built = scratch / "built"; built.mkdir()
-        metadata = extract_build(archive, built, commit)
+        download_assets(draft, built, STAGED_ASSETS)
+        metadata = inspect_build(built, commit)
         if gate(run_id, commit) != attempt:
-            raise ValueError("Required run was rerun during artifact download")
+            raise ValueError("Required run was rerun during staged download")
         output.mkdir()  # Never replace an existing directory or caller files.
         try:
             shutil.copyfile(built / "takupoke.ipa", output / "takupoke.ipa")
@@ -137,39 +232,30 @@ def publish(output, metadata, run_id, attempt, commit):
             or sha256(output / "takupoke.ipa") != metadata["sha256"]["takupoke.ipa"]):
         raise ValueError("Prepared package changed before publication")
     inspect_ipa(output / "takupoke.ipa", read_config(), metadata["version"], metadata["build"], commit)
-    tag = f"dev-ios-{run_id}-{attempt}-{commit[:12]}"
-    if any(r.get("tag_name") == tag for r in list_releases(REPO)):
-        raise ValueError("Development release collision; nothing will be replaced")
-    refs = api(f"repos/{REPO}/git/matching-refs/tags/{tag}")
-    if any(r.get("ref") == "refs/tags/" + tag for r in refs):
-        raise ValueError("Development tag already exists")
+    tag = tag_name(run_id, attempt, commit)
+    if gate(run_id, commit) != attempt:
+        raise ValueError("Required run was rerun before publication")
+    draft = find_stage(run_id, attempt, commit)
+    owned_id = draft["id"]
     expected_hashes = {name: sha256(output / name) for name in ASSETS}
-    owned_id = None
     with tempfile.TemporaryDirectory(prefix="takupoke-dev-upload-") as scratch:
         scratch = Path(scratch)
-        request = scratch / "request.json"
-        request.write_text(json.dumps({"tag_name": tag, "target_commitish": commit,
-            "draft": True, "prerelease": True, "make_latest": "false",
-            "name": f"たくポケ iOS 開発版 {metadata['version']} ({metadata['build']})",
-            "body": (output / "INSTALL.txt").read_text(encoding="utf-8")}, ensure_ascii=False), encoding="utf-8")
         try:
-            if gate(run_id, commit) != attempt:
-                raise ValueError("Required run was rerun before publication")
-            created = api(f"repos/{REPO}/releases", "--method", "POST", "--input", str(request))
-            if type(created.get("id")) is not int or created["id"] <= 0:
-                raise ValueError("Invalid new draft ID")
-            owned_id = created["id"]
-            draft = get_draft(REPO, owned_id, tag, commit)
-            if not draft.get("prerelease") or draft.get("assets"):
-                raise ValueError("Unexpected newly created draft")
-            for name in ASSETS:
+            verified = scratch / "staged"; verified.mkdir()
+            download_assets(draft, verified, STAGED_ASSETS)
+            staged_metadata = inspect_build(verified, commit)
+            if staged_metadata != metadata or sha256(verified / "takupoke.ipa") != expected_hashes["takupoke.ipa"]:
+                raise ValueError("Prepared package no longer matches the owned staged build")
+            for name in ("INSTALL.txt", "SHA256SUMS"):
                 api(f"https://uploads.github.com/repos/{REPO}/releases/{owned_id}/assets?name={name}",
                     "--method", "POST", "--header", "Content-Type: application/octet-stream", "--input", str(output / name))
-            draft = get_draft(REPO, owned_id, tag, commit)
+            draft = owned_stage(owned_id, run_id, attempt, commit)
             assets = draft["assets"]
-            if len(assets) != 3 or {a["name"] for a in assets} != set(ASSETS):
+            if len(assets) != 4 or {a["name"] for a in assets} != set(ASSETS) | {"release.json"}:
                 raise ValueError("Uploaded asset inventory mismatch")
             for asset in assets:
+                if asset["name"] == "release.json":
+                    continue
                 if asset["state"] != "uploaded" or asset["size"] != (output / asset["name"]).stat().st_size:
                     raise ValueError("Incomplete upload")
                 saved = scratch / asset["name"]
@@ -179,8 +265,16 @@ def publish(output, metadata, run_id, attempt, commit):
                     raise ValueError("Uploaded byte readback mismatch")
             if gate(run_id, commit) != attempt:
                 raise ValueError("Required run changed during upload")
+            staged_json = next(a for a in assets if a["name"] == "release.json")
+            api(f"repos/{REPO}/releases/assets/{staged_json['id']}", "--method", "DELETE")
+            final = owned_stage(owned_id, run_id, attempt, commit)
+            if len(final.get("assets", [])) != 3 or {a["name"] for a in final["assets"]} != set(ASSETS):
+                raise ValueError("Final owned draft inventory mismatch")
+            if gate(run_id, commit) != attempt:
+                raise ValueError("Required run changed before finalization")
             response = api(f"repos/{REPO}/releases/{owned_id}", "--method", "PATCH",
-                           "--field", "draft=false", "--field", "prerelease=true", "--raw-field", "make_latest=false")
+                           "--field", "draft=false", "--field", "prerelease=true", "--raw-field", "make_latest=false",
+                           "--raw-field", "body=" + (output / "INSTALL.txt").read_text(encoding="utf-8"))
             if (response.get("id") != owned_id or response.get("draft") is not False
                     or response.get("prerelease") is not True or response.get("tag_name") != tag
                     or response.get("target_commitish") != commit):
@@ -199,24 +293,38 @@ def publish(output, metadata, run_id, attempt, commit):
                     raise ValueError("Published asset byte readback mismatch")
             print(f"Published https://github.com/{REPO}/releases/tag/{tag}")
         except BaseException:
-            if owned_id is not None:
-                # Never discover/delete another draft or remove a published release.
-                try:
-                    draft = get_draft(REPO, owned_id, tag, commit)
-                    if draft.get("prerelease"):
-                        gh("api", "--method", "DELETE", f"repos/{REPO}/releases/{owned_id}")
-                except Exception as cleanup:
-                    print(f"Owned draft cleanup was not completed: {type(cleanup).__name__}")
+            try:
+                cleanup_stage(owned_id, run_id, attempt, commit)
+            except Exception as cleanup:
+                print(f"Owned draft cleanup was not completed: {type(cleanup).__name__}")
             raise
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--run-id", type=int, required=True)
-    parser.add_argument("--commit", required=True)
-    parser.add_argument("--output", type=Path, required=True, help="A new caller-owned package directory")
-    parser.add_argument("--publish", action="store_true", help="Upload and publish after byte readback")
+    parser.add_argument("--run-id", type=int)
+    parser.add_argument("--commit")
+    parser.add_argument("--output", type=Path, help="A new caller-owned package directory")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--stage", type=Path, help="Stage a local build as a private owned draft only")
+    modes.add_argument("--cleanup-draft", type=int, help="Delete only the exact private owned draft")
+    modes.add_argument("--publish", action="store_true", help="Finalize only after all thirteen checks and byte readback")
     args = parser.parse_args()
+    if args.stage:
+        if not os.environ.get("GITHUB_OUTPUT"):
+            parser.error("Staging needs the Actions ownership-output path")
+        stage(args.stage, Path(os.environ["GITHUB_OUTPUT"]))
+        return
+    if args.run_id is None or args.commit is None:
+        parser.error("Preparation/cleanup requires exact run and commit")
+    if args.cleanup_draft is not None:
+        run = api(f"repos/{REPO}/actions/runs/{args.run_id}")
+        workflow = api(f"repos/{REPO}/actions/workflows/{run['workflow_id']}")
+        attempt = check_identity(run, workflow, args.commit, args.run_id)
+        cleanup_stage(args.cleanup_draft, args.run_id, attempt, args.commit)
+        return
+    if args.output is None:
+        parser.error("Preparation requires a new caller-owned output directory")
     metadata, attempt = prepare(args.run_id, args.commit, args.output)
     print(f"Verified development package: {args.output}")
     if args.publish:
