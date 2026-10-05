@@ -145,6 +145,16 @@ enum SimulatorManualFixture {
             context.beginPage();image.draw(in:CGRect(x:0,y:0,width:1480,height:960))
         }
         let library=try LocalMaterialDatabase.openLibrary(root:base.appendingPathComponent("SchoolMaterialsSQLite"))
+        if ProcessInfo.processInfo.arguments.contains("--manual-comparable-prior") {
+            guard let old=library.state.pdfAnalyses?[MaterialKind.timetable.rawValue] else { throw PDFParseError(code:.storage) }
+            let scope=try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:old.sourceDigest,fromOCR:[1],rasters:[1:raster])
+            // An explicit dense prior is a UI comparison control, not an OCR result.
+            // Every stored slot is represented; only the subsequently edited cell changes.
+            let lessons=scope.requiredSlots.map { slot in
+                PDFLesson(className:slot.className,weekday:Int(slot.day)!,period:slot.period,names:.init(subject:"架空科",teacher:"架空師",room:"架空室"),sourceText:"",page:1)
+            }
+            try library.savePDFAnalysis(PDFAnalysis(kind:.timetable,sourceDigest:old.sourceDigest,sourceName:old.sourceName,parsedAt:old.parsedAt,schoolYear:SchoolDataPeriod.current().schoolYear,term:SchoolDataPeriod.current().half == 1 ? "前期" : "後期",lessons:lessons,events:[],notices:[]))
+        }
         let staged=library.newStagingURL();try raw.write(to:staged)
         let hash=SHA256.hash(data:raw).map{String(format:"%02x",$0)}.joined()
         try library.commit(staged:staged,kind:.timetable,source:.init(grant:nil,childName:nil),originalName:"fictional-manual-source.pdf",byteCount:raw.count,digest:hash,modifiedAt:nil)

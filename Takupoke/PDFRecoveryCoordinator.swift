@@ -2,6 +2,18 @@ import Foundation
 import SwiftUI
 import UIKit
 
+struct RecoveryManualImage {
+    let image: UIImage
+    let highlight: RecoveryManualImageGeometry.Bounds
+}
+struct RecoveryManualReview: Identifiable {
+    let draftID: String
+    let candidate: RecoveryPreview
+    let comparison: RecoveryManualComparison.Result
+    let previousDate: Date?
+    var id: UUID { candidate.id }
+}
+
 @MainActor
 final class PDFRecoveryCoordinator: ObservableObject {
     @Published private(set) var running = false
@@ -11,6 +23,8 @@ final class PDFRecoveryCoordinator: ObservableObject {
     @Published private(set) var awaitingModel = false
     @Published private(set) var manualDraft: RecoveryManualDraft?
     @Published private(set) var manualImages = [String:UIImage]()
+    @Published private(set) var manualContextImages = [String:RecoveryManualImage]()
+    @Published private(set) var manualReview: RecoveryManualReview?
     var manualSourceURL: URL? { manualDraft == nil ? nil : source?.url }
     private var task: Task<Void,Never>?
     private var preparationControl: AcquisitionControl?
@@ -147,6 +161,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
                     guard let raster = prepared.rasters[field.page], let image = Self.crop(field.crop,raster:raster) else { throw PDFParseError(code:.unreadable,stage:.rasterInput) }
                     images[field.id] = image
                 }
+                manualContextImages = try Self.contextImages(draft,rasters:prepared.rasters)
                 manualDraft = draft; manualImages = images; running = false
                 pendingDocument = nil; pendingPages = nil
                 status = "原本と照合して、確認が必要な\(draft.fields.count)項目を入力してください。"
@@ -160,10 +175,13 @@ final class PDFRecoveryCoordinator: ObservableObject {
         }
     }
     func submitManual(_ values: [String:String], acknowledged:Set<String>) {
-        guard !running, let draft = manualDraft, let source,
+        guard !running, manualReview == nil, let draft = manualDraft, let source,
               acknowledged == Set(draft.fields.map(\.id)) else { return }
         running = true; failure = nil; status = "原本と入力内容を確認しています⋯"
         let operation = self.operation, control = AcquisitionControl(); preparationControl = control
+        let app = ApplicationData.shared
+        let previousTimetable = app.materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue]
+        let previousSpecial = app.specialSchedules.records[source.kind == .exam ? .exam : .examReturn]?.analysis
         task = Task { @MainActor in
             do {
                 try check(operation)
@@ -173,13 +191,47 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 }.value
                 try check(operation)
                 guard manualDraft?.id == draft.id else { throw CancellationError() }
-                preview = RecoveryPreview(document:draft.document,result:result,source:source)
-                manualDraft = nil; manualImages = [:]; running = false
+                let candidate = RecoveryPreview(document:draft.document,result:result,source:source)
+                let comparison = try await Task.detached(priority:.userInitiated) {
+                    try Self.comparison(candidate,previousTimetable:previousTimetable,previousSpecial:previousSpecial,check:{ try control.check(); try Task.checkCancellation() })
+                }.value
+                try check(operation)
+                guard manualDraft?.id == draft.id else { throw CancellationError() }
+                manualReview = RecoveryManualReview(draftID:draft.id,candidate:candidate,comparison:comparison,previousDate:source.kind == .timetable ? previousTimetable?.parsedAt : previousSpecial?.parsedAt)
+                running = false
+                status = "訂正箇所と前回からの変更を先に確認してください。"
+            } catch {
+                guard self.operation == operation else { return }
+                manualDraft = nil; manualImages = [:]; manualContextImages = [:]; manualReview = nil; pendingDocument = nil; pendingPages = nil; self.source = nil
+                running = false; failure = "原本または入力内容を確認できませんでした。前回の正常結果を保持しています。"
+            }
+        }
+    }
+    func editManualReview() {
+        guard !running, manualDraft != nil else { return }
+        manualReview = nil
+        status = "原本と入力内容を照合してください。"
+    }
+    func showManualPreview() {
+        guard !running, let review = manualReview, let draft = manualDraft,
+              draft.id == review.draftID else { return }
+        running = true; failure = nil
+        let operation = self.operation, control = AcquisitionControl(); preparationControl = control
+        task = Task { @MainActor in
+            do {
+                try check(operation)
+                try await Task.detached(priority:.userInitiated) {
+                    try RecoveryConversion.verifyFile(review.candidate.source,check:{ try control.check(); try Task.checkCancellation() })
+                }.value
+                try check(operation)
+                guard manualReview?.id == review.id, manualDraft?.id == draft.id else { throw CancellationError() }
+                preview = review.candidate
+                manualReview = nil; manualDraft = nil; manualImages = [:]; manualContextImages = [:]; running = false
                 status = "採用前に元のPDFと資料全体の内容を確認してください。"
             } catch {
                 guard self.operation == operation else { return }
-                manualDraft = nil; manualImages = [:]; pendingDocument = nil; pendingPages = nil; self.source = nil
-                running = false; failure = "原本または入力内容を確認できませんでした。前回の正常結果を保持しています。"
+                cancel()
+                failure = "原本または入力内容を確認できませんでした。前回の正常結果を保持しています。"
             }
         }
     }
@@ -203,6 +255,67 @@ final class PDFRecoveryCoordinator: ObservableObject {
         }
         let current = ApplicationData.shared.specialSchedules.sources[source.kind == .exam ? .exam : .examReturn]
         return current?.digest == source.digest && current?.storedName == source.storedName
+    }
+    private static func contextImages(_ draft:RecoveryManualDraft,rasters:[Int:RecoveryRasterGrid]) throws -> [String:RecoveryManualImage] {
+        var images = [String:RecoveryManualImage]()
+        for field in draft.fields {
+            guard let cell = draft.document.cells.first(where:{ $0.id == field.target.cellId }),
+                  let raster = rasters[field.page], let image = crop(cell.box,raster:raster) else { throw PDFParseError(code:.unreadable,stage:.rasterInput) }
+            let left=floor(cell.box.x),top=floor(cell.box.y)
+            let container=RecoveryManualImageGeometry.Bounds(x:left,y:top,width:ceil(cell.box.x+cell.box.width)-left,height:ceil(cell.box.y+cell.box.height)-top)
+            let target=RecoveryManualImageGeometry.Bounds(x:field.crop.x,y:field.crop.y,width:field.crop.width,height:field.crop.height)
+            guard let highlight=RecoveryManualImageGeometry.normalizedHighlight(container:container,target:target) else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
+            images[field.id]=RecoveryManualImage(image:image,highlight:highlight)
+        }
+        return images
+    }
+    nonisolated private static func snapshot(_ doc:RecoveryDocument,_ result:RecoveryResult) -> RecoveryManualComparison.Snapshot {
+        typealias C = RecoveryManualComparison
+        let slots=doc.requiredSlots.map { C.Slot(className:$0.className,day:$0.day,period:$0.period) }
+        var entries=[C.Slot:[C.Lesson]]()
+        for cell in doc.cells {
+            guard let output=result.cells.first(where:{ $0.cellId == cell.id }),let start=cell.slots.map(\.period).min(),let end=cell.slots.map(\.period).max() else { continue }
+            for slot in cell.slots {
+                let time=doc.kind == .timetable ? nil : (start == end ? doc.times["\(slot.day):\(start)"] : doc.spanTimes["\(slot.day):\(start)-\(end)"])
+                entries[C.Slot(className:slot.className,day:slot.day,period:slot.period)]=output.lessons.map { C.Lesson(subject:$0.subject.value,teacher:$0.teacher.value,room:$0.room.value,spanStart:start,spanEnd:end,time:time) }
+            }
+        }
+        return C.Snapshot(scope:C.Scope(kind:doc.kind.rawValue,schoolYear:doc.schoolYear,term:doc.term,classes:doc.classes,days:doc.days,slots:slots),entries:entries)
+    }
+    nonisolated private static func comparison(_ candidate:RecoveryPreview,previousTimetable:PDFAnalysis?,previousSpecial:SpecialScheduleAnalysis?,check:() throws -> Void) throws -> RecoveryManualComparison.Result {
+        typealias C = RecoveryManualComparison
+        try check()
+        let current=snapshot(candidate.document,candidate.result)
+        var previous:C.Snapshot?
+        if candidate.document.kind == .timetable, let old=previousTimetable,old.kind == .timetable {
+            if old.recovery != nil {
+                if let certified=try RecoveryValidator.recertifiedTimetable(old,hash:old.sourceDigest),let adopted=certified.recovery { previous=snapshot(adopted.document,adopted.result) }
+            } else if old.version == PDFAnalysis.parserVersion,MaterialLibrary.validPDFAnalysis(old) {
+                var entries=[C.Slot:[C.Lesson]]()
+                for lesson in old.lessons {
+                    try check()
+                    let slot=C.Slot(className:lesson.className,day:String(lesson.weekday),period:lesson.period)
+                    entries[slot,default:[]].append(C.Lesson(subject:lesson.names.subject,teacher:lesson.names.teacher,room:lesson.names.room,spanStart:lesson.period,spanEnd:lesson.period,time:nil))
+                }
+                // Strict storage does not enumerate blank cells. Compare only
+                // when every required slot is actually represented, never fill gaps.
+                previous=C.Snapshot(scope:C.Scope(kind:RecoveryDocumentKind.timetable.rawValue,schoolYear:old.schoolYear,term:old.term,classes:Array(Set(entries.keys.map(\.className))),days:Array(Set(entries.keys.map(\.day))),slots:Array(entries.keys)),entries:entries)
+            }
+        } else if let old=previousSpecial,(old.kind == .exam ? RecoveryDocumentKind.exam : .return) == candidate.document.kind {
+            if old.recovery != nil {
+                if let certified=try RecoveryConversion.recertifiedSpecial(old,hash:old.sourceDigest),let adopted=certified.recovery { previous=snapshot(adopted.document,adopted.result) }
+            } else if old.version == SpecialScheduleAnalysis.parserVersion {
+                var entries=[C.Slot:[C.Lesson]]()
+                for lesson in old.lessons {
+                    try check()
+                    let slot=C.Slot(className:lesson.className,day:lesson.date,period:lesson.period)
+                    entries[slot,default:[]].append(C.Lesson(subject:lesson.subject,teacher:lesson.teacher,room:lesson.room,spanStart:lesson.spanStart,spanEnd:lesson.spanEnd,time:old.timeRange(for:lesson)))
+                }
+                previous=C.Snapshot(scope:C.Scope(kind:(old.kind == .exam ? RecoveryDocumentKind.exam : .return).rawValue,schoolYear:old.schoolYear,term:nil,classes:old.coveredClasses,days:old.coveredDates,slots:Array(entries.keys)),entries:entries)
+            }
+        }
+        try check()
+        return C.compare(current,previous:previous)
     }
     private static func crop(_ box:RecoveryBox,raster:RecoveryRasterGrid) -> UIImage? {
         guard box.valid, box.x+box.width <= Double(raster.width), box.y+box.height <= Double(raster.height) else { return nil }
@@ -261,7 +374,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
     }
     func cancel() {
         task?.cancel(); preparationControl?.cancel(); preparationControl = nil; operation = UUID(); running = false
-        preview = nil; manualDraft = nil; manualImages = [:]; pendingDocument = nil; pendingPages = nil; source = nil; awaitingModel = false
+        preview = nil; manualDraft = nil; manualImages = [:]; manualContextImages = [:]; manualReview = nil; pendingDocument = nil; pendingPages = nil; source = nil; awaitingModel = false
         status = "復旧を開始してください。"; failure = nil
     }
     private func check(_ operation: UUID) throws {

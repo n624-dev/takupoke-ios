@@ -8,6 +8,7 @@ struct PDFRecoveryView: View {
     @Environment(\.scenePhase) private var phase
     @State private var selectedClass = ""
     @State private var showingSource = false
+    @State private var zoomedField: String?
     @State private var manualValues = [String:String]()
     @State private var manualAcknowledged = [String:Bool]()
     private var title: String { kind == .timetable ? "時間割の復旧" : kind == .exam ? "試験時間割の復旧" : "試験返却時間割の復旧" }
@@ -60,6 +61,45 @@ struct PDFRecoveryView: View {
                         Button("この資料全体の結果を使用",systemImage:"checkmark.circle") { coordinator.adopt() }
                             .buttonStyle(.glassProminent).disabled(coordinator.running)
                     }
+                } else if let review = coordinator.manualReview, let draft = coordinator.manualDraft {
+                    Section("訂正箇所を先に確認") {
+                        Text("この段階では採用しません。入力した本文と、比較できる前回の結果からの変更を確認してください。")
+                        Button("元のPDFを確認",systemImage:"doc.richtext") { showingSource = true }
+                    }
+                    ForEach(draft.fields) { field in
+                        Section(role(field.target.role)) {
+                            fieldLocation(field,draft:draft)
+                            VStack(alignment:.leading,spacing:4) {
+                                Text("自動読取").font(.caption).foregroundStyle(.secondary)
+                                Text(field.originalText).fixedSize(horizontal:false,vertical:true)
+                                Text("確認した入力").font(.caption).foregroundStyle(.secondary)
+                                Text(review.candidate.result.humanCorrections?.first(where:{ $0.target == field.target })?.value ?? "")
+                                    .fixedSize(horizontal:false,vertical:true).textSelection(.enabled)
+                            }
+                            Button("対象セルを拡大して確認",systemImage:"plus.magnifyingglass") { zoomedField = field.id }
+                                .disabled(coordinator.manualContextImages[field.id] == nil)
+                        }
+                    }
+                    Section("前回の結果からの変更") {
+                        if review.comparison.available {
+                            if let date = review.previousDate { LabeledContent("比較した前回の解析",value:date.formatted(date:.numeric,time:.shortened)) }
+                            Text(review.comparison.changes.isEmpty ? "比較できる本文に変更はありません。" : "本文の変更: \(review.comparison.changes.count)箇所")
+                            ForEach(review.comparison.changes) { change in
+                                VStack(alignment:.leading,spacing:8) {
+                                    Text("\(TimetableDisplayText.className(change.slot.className)) · \(day(change.slot.day)) · \(change.slot.period)限").font(.headline)
+                                    Text("前回: \(lessons(change.before))")
+                                    Text("今回: \(lessons(change.after))")
+                                }
+                            }
+                        } else {
+                            Text("前回の結果とは比較できません。年度・対象・本文の範囲を一致させて確認できないため、変更箇所は推測しません。")
+                        }
+                    }
+                    Section {
+                        Button("入力を見直す",systemImage:"pencil") { coordinator.editManualReview() }.disabled(coordinator.running)
+                        Button("訂正と変更を確認して資料全体へ",systemImage:"doc.text.magnifyingglass") { coordinator.showManualPreview() }
+                            .buttonStyle(.glassProminent).disabled(coordinator.running)
+                    }
                 } else if let draft = coordinator.manualDraft {
                     Section("原本との照合") {
                         Text("確認が必要な\(draft.fields.count)項目を原本と照合してください。入力後に資料全体の結果を確認し、採用を選べます。")
@@ -67,23 +107,22 @@ struct PDFRecoveryView: View {
                     }
                     ForEach(draft.fields) { field in
                         Section(role(field.target.role)) {
-                            if let cell = draft.document.cells.first(where:{ $0.id == field.target.cellId }), let slot = cell.slots.first {
-                                Text("\(TimetableDisplayText.className(slot.className)) · \(day(slot.day)) · \(cell.slots.map(\.period).sorted().map(String.init).joined(separator:"・"))限")
-                                    .font(.subheadline)
-                            }
+                            fieldLocation(field,draft:draft)
                             if let image = coordinator.manualImages[field.id] {
                                 Image(uiImage:image).resizable().interpolation(.none).scaledToFit()
                                     .accessibilityLabel("原本の該当箇所")
                             }
+                            Button("対象セルを拡大して確認",systemImage:"plus.magnifyingglass") { zoomedField = field.id }
+                                .disabled(coordinator.manualContextImages[field.id] == nil)
                             Text("自動読取: \(field.originalText)").font(.caption).foregroundStyle(.secondary)
-                            TextField("PDFに記載された全文",text:Binding(get:{ manualValues[field.id] ?? field.originalText },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; RecoveryManualInput.update($0,id:field.id,original:field.originalText,values:&manualValues,acknowledged:&manualAcknowledged) }),axis:.vertical)
+                            TextField("PDFに記載された全文",text:Binding(get:{ manualValues[field.id] ?? field.originalText },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; if coordinator.manualReview != nil { return }; RecoveryManualInput.update($0,id:field.id,original:field.originalText,values:&manualValues,acknowledged:&manualAcknowledged) }),axis:.vertical)
                                 .autocorrectionDisabled().textInputAutocapitalization(.never).disabled(coordinator.running)
-                            Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; manualAcknowledged[field.id] = $0 }))
+                            Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; if coordinator.manualReview != nil { return }; manualAcknowledged[field.id] = $0 }))
                                 .disabled(coordinator.running)
                         }
                     }
                     Section {
-                        Button("入力内容を確認して全体の結果へ",systemImage:"checkmark.circle") {
+                        Button("訂正箇所と前回からの変更を確認",systemImage:"checkmark.circle") {
                             coordinator.submitManual(Dictionary(uniqueKeysWithValues:draft.fields.map { ($0.id,manualValues[$0.id] ?? $0.originalText) }),acknowledged:Set(manualAcknowledged.filter(\.value).keys))
                         }.buttonStyle(.glassProminent)
                             .disabled(coordinator.running || draft.fields.contains { !(manualAcknowledged[$0.id] ?? false) || (manualValues[$0.id] ?? $0.originalText).trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || (manualValues[$0.id] ?? $0.originalText).utf16.count > RecoveryManualAssistance.maximumCorrectedUTF16 })
@@ -103,10 +142,15 @@ struct PDFRecoveryView: View {
             .sheet(isPresented:$showingSource) {
                 if let url = coordinator.preview?.source.url ?? coordinator.manualSourceURL { SavedPDFView(url:url,title:"元のPDF") }
             }
+            .sheet(isPresented:Binding(get:{ zoomedField != nil },set:{ if !$0 { zoomedField = nil } })) {
+                if let id = zoomedField, let image = coordinator.manualContextImages[id] {
+                    RecoveryManualImageView(context:image)
+                }
+            }
             .onChange(of:coordinator.preview?.id) { _,_ in selectedClass = coordinator.preview?.document.classes.first ?? "" }
             .onChange(of:coordinator.manualDraft?.id) { _,_ in
                 manualValues = Dictionary(uniqueKeysWithValues:coordinator.manualDraft?.fields.map { ($0.id,$0.originalText) } ?? [])
-                manualAcknowledged = [:]
+                manualAcknowledged = [:]; zoomedField = nil
             }
             .onChange(of:phase) { _,phase in
                 if phase != .active { coordinator.suspendForInactivity(); models.cancel() }
@@ -119,6 +163,16 @@ struct PDFRecoveryView: View {
         }
     }
     private var modelSection: some View { RecoveryModelControls(models:models) }
+    @ViewBuilder private func fieldLocation(_ field:RecoveryManualField,draft:RecoveryManualDraft) -> some View {
+        if let cell = draft.document.cells.first(where:{ $0.id == field.target.cellId }), let slot = cell.slots.first {
+            Text("\(TimetableDisplayText.className(slot.className)) · \(day(slot.day)) · \(cell.slots.map(\.period).sorted().map(String.init).joined(separator:"・"))限").font(.subheadline)
+        }
+    }
+    private func lessons(_ values:[RecoveryManualComparison.Lesson]) -> String {
+        values.isEmpty ? "空欄" : values.map {
+            "\($0.subject) / 教員: \($0.teacher.isEmpty ? "記載なし" : $0.teacher) / 教室: \($0.room.isEmpty ? "記載なし" : $0.room) / \($0.spanStart)-\($0.spanEnd)限" + ($0.time.map { " / " + $0 } ?? "")
+        }.joined(separator:"\n")
+    }
     private func role(_ value:RecoveryRole) -> String { switch value { case .subject: return "科目"; case .teacher: return "教員"; case .room: return "教室" } }
     private func day(_ value: String) -> String { kind == .timetable ? ["1":"月曜日","2":"火曜日","3":"水曜日","4":"木曜日","5":"金曜日"][value] ?? value : value }
 }
@@ -144,6 +198,44 @@ struct RecoveryModelControls: View {
             ForEach(models.installed.keys.sorted(),id:\.self) { runtime in
                 if let model = models.installed[runtime] { Button("\(model.modelId)を削除",role:.destructive) { models.delete(runtime) }.disabled(models.busy || models.isInUse) }
             }
+        }
+    }
+}
+private struct RecoveryManualImageView: View {
+    let context: RecoveryManualImage
+    @Environment(\.dismiss) private var dismiss
+    @State private var zoom = 1.0
+    var body: some View {
+        NavigationStack {
+            VStack(spacing:12) {
+                Text("オレンジの枠が訂正箇所です。原本の対象セルを拡大し、スクロールして確認できます。")
+                    .font(.subheadline).padding(.horizontal)
+                HStack {
+                    Slider(value:$zoom,in:1...4,step:0.5) { Text("原画像の拡大率") }
+                    Text("\(zoom,format:.number.precision(.fractionLength(1)))倍").monospacedDigit()
+                    Button("等倍") { zoom = 1 }.buttonStyle(.glass)
+                }.padding(.horizontal)
+                GeometryReader { geometry in
+                    let width=max(1,geometry.size.width-32)*zoom
+                    let height=width*context.image.size.height/max(1,context.image.size.width)
+                    ScrollView([.horizontal,.vertical]) {
+                        Image(uiImage:context.image).resizable().interpolation(.none)
+                            .frame(width:width,height:height)
+                            .overlay(alignment:.topLeading) {
+                                Rectangle().stroke(.orange,lineWidth:3)
+                                    .frame(width:width*context.highlight.width,height:height*context.highlight.height)
+                                    .offset(x:width*context.highlight.x,y:height*context.highlight.y)
+                                    .accessibilityElement().accessibilityLabel("訂正する本文の範囲")
+                                    .allowsHitTesting(false)
+                            }
+                            .accessibilityElement(children:.contain)
+                            .accessibilityLabel("原本の対象セル・訂正箇所を強調")
+                            .padding(16)
+                    }
+                }
+            }
+            .navigationTitle("原画像の確認")
+            .toolbar { ToolbarItem(placement:.confirmationAction) { Button("確認を終える") { dismiss() } } }
         }
     }
 }

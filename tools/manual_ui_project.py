@@ -32,6 +32,7 @@ def coordinator(text):
                         guard let image = Self.crop(field.crop,raster:prepared.raster) else { throw PDFParseError(code:.unreadable) }
                         images[field.id] = image
                     }
+                    manualContextImages = try Self.contextImages(prepared.draft,rasters:[1:prepared.raster])
                     source = prepared.source; manualDraft = prepared.draft; manualImages = images
                     running = false; status = "原本と入力内容を照合してください。"
                 } catch {
@@ -43,10 +44,12 @@ def coordinator(text):
             return
         }
 ''')
-    text = once(text, '                preview = RecoveryPreview(document:draft.document,result:result,source:source)',
-                '                if SimulatorManualFixture.enabled { SimulatorManualFixture.trace("stage=manual-preview-ready") }\n                preview = RecoveryPreview(document:draft.document,result:result,source:source)')
-    text = once(text, '                manualDraft = nil; manualImages = [:]; pendingDocument = nil; pendingPages = nil; self.source = nil',
-                '                if SimulatorManualFixture.enabled { SimulatorManualFixture.failed(error) }\n                manualDraft = nil; manualImages = [:]; pendingDocument = nil; pendingPages = nil; self.source = nil')
+    text = once(text, '                manualReview = RecoveryManualReview(draftID:draft.id,candidate:candidate',
+                '                if SimulatorManualFixture.enabled { SimulatorManualFixture.trace("stage=manual-review-ready") }\n                manualReview = RecoveryManualReview(draftID:draft.id,candidate:candidate')
+    text = once(text, '                preview = review.candidate',
+                '                if SimulatorManualFixture.enabled { SimulatorManualFixture.trace("stage=manual-preview-ready") }\n                preview = review.candidate')
+    text = once(text, '                manualDraft = nil; manualImages = [:]; manualContextImages = [:]; manualReview = nil; pendingDocument = nil; pendingPages = nil; self.source = nil',
+                '                if SimulatorManualFixture.enabled { SimulatorManualFixture.failed(error) }\n                manualDraft = nil; manualImages = [:]; manualContextImages = [:]; manualReview = nil; pendingDocument = nil; pendingPages = nil; self.source = nil')
     return text
 
 
@@ -89,12 +92,34 @@ def view(text):
     text = once(text, '                    }\n                    Section("読み取り結果") {', '                    } header: { Text("採用する資料全体").accessibilityIdentifier("manual-preview-header") }\n                    Section("読み取り結果") {')
     text = once(text, '.autocorrectionDisabled().textInputAutocapitalization(.never).disabled(coordinator.running)',
                 '.autocorrectionDisabled().textInputAutocapitalization(.never).disabled(coordinator.running).accessibilityIdentifier("manual-value-" + field.id)')
-    marker = '''                            Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; SimulatorManualFixture.event("ack",id:field.id,old:String(manualAcknowledged[field.id] ?? false),new:String($0)); manualAcknowledged[field.id] = $0 }))
+    marker = '''                            Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; if coordinator.manualReview != nil { return }; SimulatorManualFixture.event("ack",id:field.id,old:String(manualAcknowledged[field.id] ?? false),new:String($0)); manualAcknowledged[field.id] = $0 }))
                                 .disabled(coordinator.running)'''
     text = once(text, marker, marker + '.accessibilityIdentifier("manual-ack-" + field.id)')
     text = once(text, '.accessibilityLabel("原本の該当箇所")', '.accessibilityLabel("原本の該当箇所").accessibilityIdentifier("manual-crop-" + field.id)')
     text = once(text, '                        }.buttonStyle(.glassProminent)\n                            .disabled(coordinator.running || draft.fields.contains',
                 '                        }.buttonStyle(.glassProminent).accessibilityIdentifier("manual-submit")\n                            .disabled(coordinator.running || draft.fields.contains')
+    zoom_marker = 'Button("対象セルを拡大して確認",systemImage:"plus.magnifyingglass") { zoomedField = field.id }'
+    if text.count(zoom_marker) != 2:
+        raise ValueError("manual source zoom insertion point missing or duplicated")
+    text = text.replace(zoom_marker, zoom_marker + '.accessibilityIdentifier("manual-zoom-" + field.id)')
+    text = once(text, 'Text("この段階では採用しません。入力した本文と、比較できる前回の結果からの変更を確認してください。")',
+                'Text("この段階では採用しません。入力した本文と、比較できる前回の結果からの変更を確認してください。").accessibilityIdentifier("manual-review-header")')
+    text = once(text, 'Text(review.candidate.result.humanCorrections?.first(where:{ $0.target == field.target })?.value ?? "")',
+                'Text(review.candidate.result.humanCorrections?.first(where:{ $0.target == field.target })?.value ?? "").accessibilityIdentifier("manual-reviewed-" + field.id)')
+    text = once(text, 'Text(review.comparison.changes.isEmpty ? "比較できる本文に変更はありません。" : "本文の変更: \\(review.comparison.changes.count)箇所")',
+                'Text(review.comparison.changes.isEmpty ? "比較できる本文に変更はありません。" : "本文の変更: \\(review.comparison.changes.count)箇所").accessibilityIdentifier("manual-comparison-available")')
+    text = once(text, 'Text("前回の結果とは比較できません。年度・対象・本文の範囲を一致させて確認できないため、変更箇所は推測しません。")',
+                'Text("前回の結果とは比較できません。年度・対象・本文の範囲を一致させて確認できないため、変更箇所は推測しません。").accessibilityIdentifier("manual-comparison-unavailable")')
+    text = once(text, 'Text("前回: \\(lessons(change.before))")', 'Text("前回: \\(lessons(change.before))").accessibilityIdentifier("manual-change-before")')
+    text = once(text, 'Text("今回: \\(lessons(change.after))")', 'Text("今回: \\(lessons(change.after))").accessibilityIdentifier("manual-change-after")')
+    text = once(text, 'Slider(value:$zoom,in:1...4,step:0.5) { Text("原画像の拡大率") }',
+                'Slider(value:$zoom,in:1...4,step:0.5) { Text("原画像の拡大率") }.accessibilityIdentifier("manual-source-zoom")')
+    text = once(text, '.accessibilityElement().accessibilityLabel("訂正する本文の範囲")',
+                '.accessibilityElement().accessibilityLabel("訂正する本文の範囲").accessibilityIdentifier("manual-source-highlight")')
+    text = once(text, '.accessibilityLabel("原本の対象セル・訂正箇所を強調")',
+                '.accessibilityLabel("原本の対象セル・訂正箇所を強調").accessibilityIdentifier("manual-source-context")')
+    text = once(text, 'Text("\\(zoom,format:.number.precision(.fractionLength(1)))倍").monospacedDigit()',
+                'Text("\\(zoom,format:.number.precision(.fractionLength(1)))倍").monospacedDigit().accessibilityIdentifier("manual-source-scale")')
     return text
 
 

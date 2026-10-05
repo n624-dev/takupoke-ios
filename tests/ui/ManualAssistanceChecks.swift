@@ -131,6 +131,41 @@ final class ManualAssistanceChecks:XCTestCase {
         let events=app.staticTexts["manual-binding-events"].firstMatch
         print("TAKUPOKE-MANUAL-BINDINGS "+(events.exists ? events.label:"absent"))
     }
+    private func requireReview(_ expected:[String],comparable:Bool) {
+        let state=app.staticTexts["manual-coordinator-state"].firstMatch
+        let ready=XCTNSPredicateExpectation(predicate:NSPredicate(format:"label CONTAINS %@ AND label CONTAINS %@","review=true","preview=false"),object:state)
+        XCTAssertEqual(XCTWaiter.wait(for:[ready],timeout:20),.completed,app.debugDescription)
+        print("TAKUPOKE-MANUAL-REVIEW " + state.label)
+        XCTAssertFalse(app.buttons["この資料全体の結果を使用"].exists)
+        XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("lastgood-preserved"))
+        _=visible(app.staticTexts["manual-review-header"].firstMatch)
+        for value in expected { _=visible(app.staticTexts[value].firstMatch) }
+        if comparable {
+            XCTAssertEqual(visible(app.staticTexts["manual-comparison-available"].firstMatch).label,"本文の変更: 1箇所")
+            XCTAssertTrue(visible(app.staticTexts["manual-change-before"].firstMatch).label.contains("架空科"))
+            XCTAssertTrue(visible(app.staticTexts["manual-change-after"].firstMatch).label.contains(expected[0]))
+        } else { _=visible(app.staticTexts["manual-comparison-unavailable"].firstMatch) }
+    }
+    private func inspectSource(_ id:String) {
+        visible(app.buttons["manual-zoom-"+id]).tap()
+        let image=app.descendants(matching:.any)["manual-source-context"].firstMatch
+        XCTAssertTrue(image.waitForExistence(timeout:10),app.debugDescription)
+        XCTAssertGreaterThan(image.frame.width,0);XCTAssertGreaterThan(image.frame.height,0)
+        let highlight=app.descendants(matching:.any)["manual-source-highlight"].firstMatch
+        XCTAssertTrue(highlight.exists,app.debugDescription)
+        XCTAssertGreaterThan(highlight.frame.width,0);XCTAssertGreaterThan(highlight.frame.height,0)
+        XCTAssertTrue(image.frame.contains(highlight.frame),app.debugDescription)
+        let highlightBefore=highlight.frame
+        let scale=app.staticTexts["manual-source-scale"].firstMatch
+        let initial=scale.label
+        let slider=app.sliders["manual-source-zoom"]
+        XCTAssertTrue(slider.isHittable,app.debugDescription)
+        slider.adjust(toNormalizedSliderPosition:0.67)
+        XCTAssertNotEqual(scale.label,initial,app.debugDescription)
+        XCTAssertGreaterThan(highlight.frame.width,highlightBefore.width)
+        app.buttons["等倍"].tap();XCTAssertEqual(scale.label,initial)
+        app.buttons["確認を終える"].tap()
+    }
     private func requirePreview() {
         let state=app.staticTexts["manual-coordinator-state"].firstMatch
         let ready=XCTNSPredicateExpectation(predicate:NSPredicate(format:"label CONTAINS %@","preview=true"),object:state)
@@ -213,6 +248,7 @@ final class ManualAssistanceChecks:XCTestCase {
     func testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground() {
         launch();XCTAssertTrue(fieldsExist(),app.debugDescription);XCTAssertEqual(fieldIDs.count,1)
         let key=fieldIDs[0];let input=input(key)
+        inspectSource(key)
         XCTAssertEqual(visible(ack(key)).value as? String,"0")
         assertSubmitEnabled(false)
         let value="架空手確認科目";edit(input,value);acknowledge(key)
@@ -239,7 +275,16 @@ final class ManualAssistanceChecks:XCTestCase {
         assertSubmitEnabled(false)
         XCTAssertTrue(app.images.matching(NSPredicate(format:"identifier BEGINSWITH 'manual-crop-'")).firstMatch.exists)
         acknowledge(key);visible(submit).tap()
-        requirePreview()
+        requireReview([value+"改"],comparable:false)
+        // Reopening the editor retains literal input; a fresh edit clears ACK
+        // and cannot reuse the previously validated correction review.
+        tap("入力を見直す")
+        XCTAssertEqual(visible(input).value as? String,value+"改")
+        edit(input,value+"再確認");XCTAssertEqual(visible(ack(key)).value as? String,"0")
+        assertSubmitEnabled(false);acknowledge(key);visible(submit).tap()
+        requireReview([value+"再確認"],comparable:false)
+        inspectSource(key)
+        tap("訂正と変更を確認して資料全体へ");requirePreview()
         XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("lastgood-preserved"))
         tap("この資料全体の結果を使用")
         XCTAssertTrue(app.staticTexts["復旧結果を採用しました。"].waitForExistence(timeout:20),app.debugDescription)
@@ -259,16 +304,27 @@ final class ManualAssistanceChecks:XCTestCase {
         XCTAssertTrue(app.staticTexts["原本または入力内容を確認できませんでした。前回の正常結果を保持しています。"].waitForExistence(timeout:20),app.debugDescription)
         XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("lastgood-preserved"))
         XCTAssertFalse(app.buttons["この資料全体の結果を使用"].exists)
+        app.terminate();launch()
+        XCTAssertTrue(fieldsExist())
+        let second=fieldIDs[0];edit(input(second),"架空再照合");acknowledge(second);visible(submit).tap()
+        requireReview(["架空再照合"],comparable:false)
+        tap("架空検証");tap("架空原本のハッシュを変更")
+        XCTAssertTrue(app.staticTexts["manual-mutation-complete"].waitForExistence(timeout:10),app.debugDescription)
+        tap("訂正と変更を確認して資料全体へ")
+        XCTAssertTrue(app.staticTexts["原本または入力内容を確認できませんでした。前回の正常結果を保持しています。"].waitForExistence(timeout:20),app.debugDescription)
+        XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("lastgood-preserved"))
+        XCTAssertFalse(app.buttons["この資料全体の結果を使用"].exists)
     }
     func testThreeFieldsRequireEachAcknowledgementAndFourRefuses() {
-        launch(["--manual-three"])
+        launch(["--manual-three","--manual-comparable-prior"])
         XCTAssertTrue(fieldsExist());let ids=fieldIDs;XCTAssertEqual(ids.count,3)
         for i in 0..<3 {
             let input=input(ids[i]);edit(input,"架空手確認\(i)")
             let ack=ack(ids[i]);XCTAssertEqual(visible(ack).value as? String,"0");acknowledge(ids[i])
             assertSubmitEnabled(i==2)
         }
-        visible(submit).tap();requirePreview()
+        visible(submit).tap();requireReview((0..<3).map { "架空手確認\($0)" },comparable:true)
+        tap("訂正と変更を確認して資料全体へ");requirePreview()
         XCTAssertTrue(app.staticTexts["原本を確認して入力した3項目を含みます。"].exists)
         tap("閉じる");XCTAssertFalse(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("adopted="))
         app.terminate();launch(["--manual-four"])

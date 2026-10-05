@@ -39,6 +39,7 @@ final class Coordinator {
  var task:Work?=Work(), preparationControl:Work?=Work()
  var operation=UUID(), running=true, status="", failure:String?="failure"
  var manualDraft:String?="original-snapshot", manualImages=["field":"original-crop"]
+ var manualReview:String?="review",manualContextImages=["field":"actual-cell"]
  var preview:String?="preview", pendingDocument:String?="document", pendingPages:String?="pages", source:String?="source", awaitingModel=true
 ''' + block(coordinator, "    func suspendForInactivity()") + "\n" + block(coordinator, "    func cancel()") + '''
 }
@@ -52,6 +53,7 @@ app.recovery.operation=operation
 let task=app.recovery.task!, preparation=app.recovery.preparationControl!
 app.setFileMonitoring(false)
 precondition(app.recovery.manualDraft == "original-snapshot" && app.recovery.manualImages["field"] == "original-crop" && app.recovery.source == "source")
+precondition(app.recovery.manualReview == "review" && app.recovery.manualContextImages["field"] == "actual-cell")
 precondition(task.cancelled && preparation.cancelled && LocalRecoveryModelManager.shared.cancelled && !app.recovery.running && app.recovery.operation != operation)
 app.setFileMonitoring(false) // Both scene-phase and background notification can arrive.
 app.setFileMonitoring(true)
@@ -60,7 +62,7 @@ app.recovery.manualDraft=nil
 app.setFileMonitoring(false)
 precondition(app.recovery.source == nil && app.recovery.preview == nil)
 let other=Application(); other.recovery.cancel() // Retention/user cancellation still destroys private draft.
-precondition(other.recovery.manualDraft == nil && other.recovery.manualImages.isEmpty)
+precondition(other.recovery.manualDraft == nil && other.recovery.manualImages.isEmpty && other.recovery.manualReview == nil && other.recovery.manualContextImages.isEmpty)
 var values=["room":"架空室一","subject":"架空科目二","teacher":"架空教員三"]
 var ack=["room":true,"subject":true,"teacher":true]
 for key in ["room","subject","teacher","room","subject"] {
