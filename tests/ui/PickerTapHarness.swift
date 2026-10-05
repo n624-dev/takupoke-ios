@@ -55,6 +55,7 @@ private struct PickerTapFileList: View {
                 }
             }
         }
+        .accessibilityIdentifier("picker-file-list")
         .navigationTitle("ファイル選択")
         .background(
             MaterialDocumentPicker(item: $request, requestID: request?.id, type: { _ in .pdf },
