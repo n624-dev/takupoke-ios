@@ -26,7 +26,7 @@ def coordinator(text):
                 do {
                     let prepared = try await SimulatorManualFixture.prepare()
                     guard self.operation == fixtureOperation, !Task.isCancelled else { return }
-                    print("TAKUPOKE-MANUAL-QA stage=crop")
+                    SimulatorManualFixture.trace("stage=crop")
                     var images = [String:UIImage]()
                     for field in prepared.draft.fields {
                         guard let image = Self.crop(field.crop,raster:prepared.raster) else { throw PDFParseError(code:.unreadable) }
@@ -35,7 +35,7 @@ def coordinator(text):
                     source = prepared.source; manualDraft = prepared.draft; manualImages = images
                     running = false; status = "原本と入力内容を照合してください。"
                 } catch {
-                    print("TAKUPOKE-MANUAL-QA failure=\\(String(reflecting:error))")
+                    SimulatorManualFixture.failed(error)
                     guard self.operation == fixtureOperation else { return }
                     running = false; failure = "架空資料の補助入力を拒否しました。前回の正常結果を保持しています。"
                 }
