@@ -90,7 +90,7 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(len(manifest.selected_tests("all")), 26)
         self.assertEqual([len(manifest.SHARDS[shard]) for shard in ("A", "B")], [13, 13])
         self.assertFalse(set(manifest.SHARDS["A"]) & set(manifest.SHARDS["B"]))
-        self.assertEqual(release_gate.REQUIRED, manifest.REQUIRED_JOBS | {"Distribution tests", "Native PDF and recovery tests"})
+        self.assertEqual(release_gate.REQUIRED, manifest.ALL_UI_REQUIRED_JOBS | {"Distribution tests", "Native PDF and recovery tests"})
         self.assertIn(manifest.SYSTEM_SIZE_TEST, manifest.SHARDS["B"])
 
     def test_missing_obsolete_or_duplicate_source_tests_fail(self):
@@ -144,6 +144,37 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("needs: checks\n", release)
         self.assertIn("actions: read", release)
         self.assertLess(release.index("tools/release_gate.py"), release.index("tools/publish.py"))
+
+    def test_manual_matrix_requires_every_unchanged_case_on_both_os_separately(self):
+        workflow = (ROOT / ".github/workflows/ios-release.yml").read_text(encoding="utf-8")
+        manual = workflow.split("  manual:\n", 1)[1].split("  build-check:\n", 1)[0]
+        self.assertIn("ios: [26, 27]", manual)
+        cases = re.findall(r"^          - (test\w+)$", manual, re.MULTILINE)
+        self.assertEqual(cases, list(manifest.MANUAL_CASES))
+        declared = re.findall(r"\bfunc\s+(test\w+)\s*\(", (ROOT / "tests/ui/ManualAssistanceChecks.swift").read_text(encoding="utf-8"))
+        self.assertCountEqual(cases, declared)
+        self.assertEqual(len(declared), 3)
+        expanded = {f"Manual correction iOS {ios} / {case}" for ios in (26, 27) for case in cases}
+        self.assertEqual(expanded, manifest.MANUAL_REQUIRED_JOBS)
+        self.assertEqual(len(expanded), 6)
+        self.assertEqual(len(manifest.ALL_UI_REQUIRED_JOBS), 10)
+        self.assertEqual(len(release_gate.REQUIRED), 12)  # Main builds its IPA in the publishing job.
+        self.assertIn("name: Manual correction iOS ${{ matrix.ios }} / ${{ matrix.case }}", manual)
+        self.assertIn("TKPK_MANUAL_CASE: ${{ matrix.case }}", manual)
+        self.assertIn("TKPK_TEST_IOS: ${{ matrix.ios }}", manual)
+        self.assertIn("ref: ${{ github.sha }}", manual)
+        self.assertIn('test "$(git rev-parse HEAD)" = "$GITHUB_SHA"', manual)
+        self.assertIn("fail-fast: false", manual)
+        self.assertIn("timeout-minutes: 35", manual)
+        self.assertIn("bash tools/test-manual-ui.sh", manual)
+        self.assertNotIn("continue-on-error", manual)
+        self.assertNotIn("TKPK_MANUAL_DIAGNOSTICS", manual)
+        for ios, runner, xcode in ((26, "macos-26", "26.6"), (27, "xcode-27", "27.0")):
+            self.assertIn(f"- ios: {ios}\n            runner: {runner}\n            developer: /Applications/Xcode_{xcode}.app/Contents/Developer", manual)
+        simulator = workflow.split("  simulator:\n", 1)[1].split("  manual:\n", 1)[0]
+        self.assertIn("timeout-minutes: 45", simulator)
+        self.assertNotIn("test-manual-ui.sh", simulator)
+        self.assertIn("bash tools/test-app-ui.sh", simulator)
 
     def test_cli_selects_the_complete_shard_and_rejects_invalid_shard(self):
         command = [sys.executable, "-B", str(ROOT / "tools/ui_test_manifest.py")]

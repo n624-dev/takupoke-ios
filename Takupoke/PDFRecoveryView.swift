@@ -76,9 +76,9 @@ struct PDFRecoveryView: View {
                                     .accessibilityLabel("原本の該当箇所")
                             }
                             Text("自動読取: \(field.originalText)").font(.caption).foregroundStyle(.secondary)
-                            TextField("PDFに記載された全文",text:Binding(get:{ manualValues[field.id] ?? field.originalText },set:{ manualValues[field.id] = $0; manualAcknowledged[field.id] = false }),axis:.vertical)
+                            TextField("PDFに記載された全文",text:Binding(get:{ manualValues[field.id] ?? field.originalText },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; RecoveryManualInput.update($0,id:field.id,original:field.originalText,values:&manualValues,acknowledged:&manualAcknowledged) }),axis:.vertical)
                                 .autocorrectionDisabled().textInputAutocapitalization(.never).disabled(coordinator.running)
-                            Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ manualAcknowledged[field.id] = $0 }))
+                            Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; manualAcknowledged[field.id] = $0 }))
                                 .disabled(coordinator.running)
                         }
                     }

@@ -43,6 +43,15 @@ SHARDS = {
 REQUIRED_JOBS = frozenset(
     f"Application iOS {ios} UI {shard}" for ios in (26, 27) for shard in SHARDS
 )
+MANUAL_CASES = (
+    "testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground",
+    "testChangedOriginalCannotSubmitOrReplaceLastGood",
+    "testThreeFieldsRequireEachAcknowledgementAndFourRefuses",
+)
+MANUAL_REQUIRED_JOBS = frozenset(
+    f"Manual correction iOS {ios} / {case}" for ios in (26, 27) for case in MANUAL_CASES
+)
+ALL_UI_REQUIRED_JOBS = REQUIRED_JOBS | MANUAL_REQUIRED_JOBS
 RESULT = re.compile(
     r"Test Case '-\[PickerTapChecks\.ApplicationChecks (test\w+)\]' "
     r"(passed|skipped|failed) \([\d.]+ seconds\)\."

@@ -37,6 +37,17 @@ struct RecoveryManualDraft: Identifiable, Sendable {
     var id: String { snapshotHash }
 }
 
+/// UIKit may synchronize an unchanged TextField value when a List row is reused.
+/// Only a byte-level transcription change revokes the user's acknowledgement.
+enum RecoveryManualInput {
+    static func update(_ value:String, id:String, original:String,
+                       values:inout [String:String], acknowledged:inout [String:Bool]) {
+        guard !value.utf8.elementsEqual((values[id] ?? original).utf8) else { return }
+        values[id] = value
+        acknowledged[id] = false
+    }
+}
+
 /// Human transcription is a separate, bounded overlay. Native text, ranges,
 /// confidence and structural evidence remain unchanged in the saved document.
 enum RecoveryManualAssistance {

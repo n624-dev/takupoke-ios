@@ -99,11 +99,42 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - name: Exercise acknowledgement and separate adoption with fictional manual corrections
-        if: matrix.shard == 'A'
-        run: bash tools/test-manual-ui.sh
       - name: Exercise app screens with synthetic data
         run: bash tools/test-app-ui.sh
+
+  manual:
+    name: Manual correction iOS ${{ matrix.ios }} / ${{ matrix.case }}
+    needs: checks
+    strategy:
+      fail-fast: false
+      matrix:
+        ios: [26, 27]
+        case:
+          - testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground
+          - testChangedOriginalCannotSubmitOrReplaceLastGood
+          - testThreeFieldsRequireEachAcknowledgementAndFourRefuses
+        include:
+          - ios: 26
+            runner: macos-26
+            developer: /Applications/Xcode_26.6.app/Contents/Developer
+          - ios: 27
+            runner: xcode-27
+            developer: /Applications/Xcode_27.0.app/Contents/Developer
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    env:
+      DEVELOPER_DIR: ${{ matrix.developer }}
+      TKPK_TEST_IOS: ${{ matrix.ios }}
+      TKPK_MANUAL_CASE: ${{ matrix.case }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Require exact manual source
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Exercise one manual case and require its exact completion
+        run: bash tools/test-manual-ui.sh
 
   build-check:
     name: Check iPhone build without publishing

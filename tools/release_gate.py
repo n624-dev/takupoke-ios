@@ -4,10 +4,10 @@ import json
 import os
 import subprocess
 import time
-from ui_test_manifest import REQUIRED_JOBS
+from ui_test_manifest import ALL_UI_REQUIRED_JOBS
 
 REPOSITORY = "n624-dev/takupoke-ios"
-REQUIRED = REQUIRED_JOBS | {"Distribution tests", "Native PDF and recovery tests"}
+REQUIRED = ALL_UI_REQUIRED_JOBS | {"Distribution tests", "Native PDF and recovery tests"}
 
 
 def api(path, *, pages=False):

@@ -18,7 +18,7 @@ def once(text, marker, replacement):
 
 def coordinator(text):
     marker = "    func start(_ kind: RecoveryDocumentKind) {"
-    return once(text, marker, marker + '''
+    text = once(text, marker, marker + '''
         if SimulatorManualFixture.enabled {
             cancel(); failure = nil; running = true
             let fixtureOperation = self.operation
@@ -43,6 +43,11 @@ def coordinator(text):
             return
         }
 ''')
+    text = once(text, '                preview = RecoveryPreview(document:draft.document,result:result,source:source)',
+                '                if SimulatorManualFixture.enabled { SimulatorManualFixture.trace("stage=manual-preview-ready") }\n                preview = RecoveryPreview(document:draft.document,result:result,source:source)')
+    text = once(text, '                manualDraft = nil; manualImages = [:]; pendingDocument = nil; pendingPages = nil; self.source = nil',
+                '                if SimulatorManualFixture.enabled { SimulatorManualFixture.failed(error) }\n                manualDraft = nil; manualImages = [:]; pendingDocument = nil; pendingPages = nil; self.source = nil')
+    return text
 
 
 def view(text):
@@ -60,17 +65,31 @@ def view(text):
             .overlay(alignment: .topLeading) {
                 if SimulatorManualFixture.enabled {
                     VStack { FixtureManualProbe()
+                        Text(SimulatorManualFixture.processIdentity).font(.system(size:1))
+                            .accessibilityIdentifier("manual-process-launch").allowsHitTesting(false)
+                        Text("preview=\\(coordinator.preview != nil);running=\\(coordinator.running);draft=\\(coordinator.manualDraft?.id ?? "nil");failure=\\(coordinator.failure ?? "none")")
+                            .font(.system(size:1)).accessibilityIdentifier("manual-coordinator-state").allowsHitTesting(false)
                         if manualQAMutationComplete { Text("変更完了").accessibilityIdentifier("manual-mutation-complete") }
                         if let draft = coordinator.manualDraft {
+                            Text(draft.fields.map { field in
+                                field.id + "=" + (manualValues[field.id] ?? field.originalText) + ";ack=" + String(manualAcknowledged[field.id] ?? false)
+                            }.joined(separator:"|"))
+                                .font(.system(size:1)).accessibilityIdentifier("manual-input-state").allowsHitTesting(false)
                             Text(draft.fields.map(\\.id).joined(separator:"|"))
                                 .font(.system(size:1)).accessibilityIdentifier("manual-field-ids").allowsHitTesting(false)
                         }
                     }
                 }
             }''')
+    field_setter = 'RecoveryManualInput.update($0,id:field.id,original:field.originalText,values:&manualValues,acknowledged:&manualAcknowledged)'
+    text = once(text, field_setter, 'SimulatorManualFixture.event("text",id:field.id,old:manualValues[field.id] ?? field.originalText,new:$0); ' + field_setter)
+    text = once(text, 'manualAcknowledged[field.id] = $0', 'SimulatorManualFixture.event("ack",id:field.id,old:String(manualAcknowledged[field.id] ?? false),new:String($0)); manualAcknowledged[field.id] = $0')
+    text = once(text, '.onChange(of:coordinator.manualDraft?.id) { _,_ in', '.onChange(of:coordinator.manualDraft?.id) { old,new in SimulatorManualFixture.event("draft",id:"snapshot",old:old ?? "nil",new:new ?? "nil")')
+    text = once(text, 'Section("採用する資料全体") {', 'Section {')
+    text = once(text, '                    }\n                    Section("読み取り結果") {', '                    } header: { Text("採用する資料全体").accessibilityIdentifier("manual-preview-header") }\n                    Section("読み取り結果") {')
     text = once(text, '.autocorrectionDisabled().textInputAutocapitalization(.never).disabled(coordinator.running)',
                 '.autocorrectionDisabled().textInputAutocapitalization(.never).disabled(coordinator.running).accessibilityIdentifier("manual-value-" + field.id)')
-    marker = '''                            Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ manualAcknowledged[field.id] = $0 }))
+    marker = '''                            Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; SimulatorManualFixture.event("ack",id:field.id,old:String(manualAcknowledged[field.id] ?? false),new:String($0)); manualAcknowledged[field.id] = $0 }))
                                 .disabled(coordinator.running)'''
     text = once(text, marker, marker + '.accessibilityIdentifier("manual-ack-" + field.id)')
     text = once(text, '.accessibilityLabel("原本の該当箇所")', '.accessibilityLabel("原本の該当箇所").accessibilityIdentifier("manual-crop-" + field.id)')

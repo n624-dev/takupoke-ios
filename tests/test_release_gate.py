@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 import release_gate as gate
+import ui_test_manifest as manifest
 
 
 class ReleaseGateTests(unittest.TestCase):
@@ -25,6 +26,15 @@ class ReleaseGateTests(unittest.TestCase):
     def test_all_required_jobs_succeed_while_release_itself_is_running(self):
         self.jobs.append(dict(name="Build and publish AltStore release", status="in_progress"))
         self.assertEqual(self.snapshot(), [])
+
+    def test_all_six_manual_checks_reject_borrowed_source_or_attempt(self):
+        self.assertEqual(len(manifest.MANUAL_REQUIRED_JOBS),6)
+        for name in manifest.MANUAL_REQUIRED_JOBS:
+            for key,value in (("run_id",999),("run_attempt",1),("head_sha","b"*40)):
+                changed=copy.deepcopy(self.jobs)
+                next(job for job in changed if job["name"]==name)[key]=value
+                with self.subTest(name=name,key=key),self.assertRaisesRegex(ValueError,"another run"):
+                    gate.check_snapshot(self.run,changed,**self.context)
 
     def test_missing_and_running_jobs_wait(self):
         missing = self.jobs.pop()["name"]

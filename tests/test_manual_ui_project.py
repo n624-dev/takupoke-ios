@@ -2,6 +2,9 @@ import importlib.util
 from pathlib import Path
 import unittest
 import re
+import os
+import subprocess
+import tempfile
 
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location("manual_ui_project",ROOT/"tools/manual_ui_project.py")
@@ -12,6 +15,77 @@ class ManualUIProjectTests(unittest.TestCase):
         for text in ("", "marker marker"):
             with self.assertRaises(ValueError): module.once(text,"marker","new")
 
+    def test_binding_diagnostics_are_opt_in_hashed_and_explicitly_truncated(self):
+        fixture=(ROOT/"tests/ui/ManualAssistanceFixture.swift").read_text(encoding="utf-8")
+        event=fixture.split('    static func event(',1)[1].split('    static var enabled:',1)[0]
+        self.assertLess(event.index('guard enabled else { return }'),event.index('eventCount += 1'))
+        self.assertIn('guard eventCount <= 64 else',event)
+        self.assertIn('if eventCount == 65',event)
+        self.assertIn('previous+"limited=64\\n"',event)
+        self.assertIn('SHA256.hash(data:Data(text.utf8))',event)
+        self.assertNotIn('old=\\(old)',event)
+        self.assertNotIn('new=\\(new)',event)
+        checks=(ROOT/"tests/ui/ManualAssistanceChecks.swift").read_text(encoding="utf-8")
+        self.assertIn('XCTAssertEqual(app.staticTexts["manual-process-launch"].firstMatch.label,processBefore',checks)
+        self.assertIn('XCTAssertEqual(header.label,"採用する資料全体",app.debugDescription)',checks)
+
+    def test_editor_reacquires_real_hit_region_after_keyboard_focus(self):
+        checks=(ROOT/"tests/ui/ManualAssistanceChecks.swift").read_text(encoding="utf-8")
+        edit=checks.split('    private func edit(',1)[1].split('    private func editStage(',1)[0]
+        self.assertLess(edit.index('visible(e).tap()'),edit.index('let focused=visible(e)'))
+        self.assertLess(edit.index('let focused=visible(e)'),edit.index('focused.press(forDuration:1.1)'))
+        self.assertIn('menuItems["すべてを選択"]',edit)
+        self.assertIn('menuItems["Select All"]',edit)
+        self.assertIn('e.typeText(value)',edit)
+        self.assertNotIn('sleep(',edit)
+        self.assertIn('editStage("after-focus",e)',edit)
+        self.assertIn('editStage("before-selection",focused)',edit)
+        self.assertIn('TAKUPOKE-MANUAL-EDIT stage=',checks)
+
+    def test_manual_case_filter_is_exact_and_default_keeps_whole_suite(self):
+        runner=(ROOT/"tools/test-manual-ui.sh").read_text(encoding="utf-8")
+        prefix=runner.split('scratch_dir=',1)[0]
+        names=['testChangedOriginalCannotSubmitOrReplaceLastGood',
+               'testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground',
+               'testThreeFieldsRequireEachAcknowledgementAndFourRefuses']
+        for selected in ['']+names:
+            env=os.environ.copy();env['TKPK_MANUAL_CASE']=selected
+            result=subprocess.run(['bash','-c',prefix+'\nprintf "%s\\n" "$only_testing"'],
+                                  env=env,text=True,capture_output=True)
+            self.assertEqual(result.returncode,0,result.stderr)
+            expected='-only-testing:PickerTapChecks/ManualAssistanceChecks'+('/'+selected if selected else '')
+            self.assertEqual(result.stdout.strip(),expected)
+        for selected in ['testUnknown',names[0]+';printf BAD','ManualAssistanceChecks','../ApplicationChecks']:
+            env=os.environ.copy();env['TKPK_MANUAL_CASE']=selected
+            result=subprocess.run(['bash','-c',prefix+'\nprintf "%s\\n" "$only_testing"'],
+                                  env=env,text=True,capture_output=True)
+            self.assertEqual(result.returncode,2)
+            self.assertEqual(result.stdout,'')
+
+    def test_completion_guard_rejects_missing_duplicate_skipped_failed_or_other_case(self):
+        runner=(ROOT/"tools/test-manual-ui.sh").read_text(encoding="utf-8")
+        program=runner.split('python3 - "$scratch_dir/manual-ui.log" "$manual_case" <<\'PY\'\n',1)[1].split('\nPY',1)[0]
+        names=['testChangedOriginalCannotSubmitOrReplaceLastGood',
+               'testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground',
+               'testThreeFieldsRequireEachAcknowledgementAndFourRefuses']
+        def line(name,status='passed'):
+            return "Test Case '-[PickerTapChecks.ManualAssistanceChecks "+name+"]' "+status+" (1.0 seconds).\n"
+        with tempfile.TemporaryDirectory() as scratch:
+            log=Path(scratch)/'completed.log'
+            def run(selected,content):
+                log.write_text(content,encoding='utf-8')
+                return subprocess.run(['python3','-c',program,str(log),selected],capture_output=True,text=True)
+            for name in names:
+                self.assertEqual(run(name,line(name)).returncode,0)
+            whole=''.join(line(name) for name in names)
+            self.assertEqual(run('',whole).returncode,0)
+            negatives=[(names[0],''),(names[0],line(names[0])*2),
+                       (names[0],line(names[0],'skipped')),(names[0],line(names[0],'failed')),
+                       (names[0],line(names[1])),(names[0],whole),('',line(names[0])),
+                       ('',whole+line(names[0])),('',whole+line('testUnknown')),('testUnknown',whole)]
+            for selected,content in negatives:
+                self.assertNotEqual(run(selected,content).returncode,0,(selected,content))
+
     def test_coordinator_preserves_actual_submit_adopt_and_source_guards(self):
         original=(ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8")
         changed=module.coordinator(original)
@@ -19,13 +93,16 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('acknowledged == Set(draft.fields.map',changed)
         self.assertIn('selectedSourceIsCurrent',changed)
         self.assertIn('ApplicationData.shared.materials.adoptRecovery(preview)',changed)
-        self.assertEqual(changed.count('if SimulatorManualFixture.enabled'),1)
+        self.assertEqual(changed.count('if SimulatorManualFixture.enabled'),3)
+        self.assertEqual(changed.count('            cancel(); failure = nil; running = true'),1)
+        self.assertIn('if SimulatorManualFixture.enabled { SimulatorManualFixture.trace("stage=manual-preview-ready") }',changed)
+        self.assertIn('if SimulatorManualFixture.enabled { SimulatorManualFixture.failed(error) }',changed)
 
     def test_view_identifiers_do_not_precheck_or_bypass_existing_disabled_gate(self):
         original=(ROOT/"Takupoke/PDFRecoveryView.swift").read_text(encoding="utf-8")
         changed=module.view(original)
         self.assertIn('manualAcknowledged[field.id] ?? false',changed)
-        self.assertIn('manualAcknowledged[field.id] = false',changed)
+        self.assertIn('RecoveryManualInput.update(',changed)
         self.assertIn('coordinator.submitManual(',changed)
         self.assertIn('draft.fields.contains',changed)
         self.assertIn('coordinator.suspendForInactivity()',changed)
@@ -40,6 +117,27 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertEqual(len(anchors),1)
         source=(ROOT/"Takupoke/PDFRecoveryRecognition.swift").read_text(encoding="utf-8")
         self.assertEqual(source.count(anchors[0]),1)
+
+    def test_generated_host_preserves_production_background_task_registration(self):
+        import ast
+        generator=ast.parse((ROOT/"tools/app_test_project.py").read_text(encoding="utf-8"))
+        replacements=[node for node in ast.walk(generator) if isinstance(node,ast.Call) and
+                      isinstance(node.func,ast.Attribute) and ast.unparse(node.func)=="shutil.copyfile" and
+                      len(node.args)==2 and ast.unparse(node.args[1])=="copied / 'TakupokeApp.swift'"]
+        self.assertEqual(len(replacements),1)
+        self.assertEqual(ast.unparse(replacements[0].args[0]),"repo / 'tests/ui/ApplicationFixture.swift'")
+        fixture=(ROOT/"tests/ui/ApplicationFixture.swift").read_text(encoding="utf-8")
+        production=(ROOT/"Takupoke/TakupokeApp.swift").read_text(encoding="utf-8")
+        # Compare the selected QA entrypoint's Scene registration and callback
+        # against production. This establishes source parity, not crash cause
+        # or native BackgroundTasks execution on any SDK/device.
+        pattern=r'        \}\n        (\.backgroundTask\(\.appRefresh\(BackgroundRefresh\.identifier\)\) \{[^{}]*\})'
+        normalize=lambda text:"\n".join(line.strip() for line in text.splitlines())
+        expected=[normalize(block) for block in re.findall(pattern,production)]
+        self.assertEqual(len(expected),1)
+        scene=fixture.split("    private static func seed()",1)[0]
+        self.assertEqual([normalize(block) for block in re.findall(pattern,scene)],expected,
+                         "Generated QA host must register the production app-refresh handler")
 
     def test_fixture_dimensions_respect_native_capture_limit_and_uniform_rule_scale(self):
         source=(ROOT/"tests/ui/ManualAssistanceFixture.swift").read_text(encoding="utf-8")
@@ -119,7 +217,15 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('XCTAssertEqual(ids.count,3)',checks)
         acknowledge=checks.split('private func acknowledge(')[1].split('private func assertSubmitEnabled')[0]
         self.assertIn('let control=row.switches.firstMatch',acknowledge)
-        self.assertEqual(acknowledge.count('visible(control).tap()'),1)
+        self.assertEqual(acknowledge.count('.tap()'),1)
+        self.assertIn('let actual=visible(control)',acknowledge)
+        self.assertIn('manualAcknowledgementPoint(outer:outerFrame,inner:innerFrame,viewport:viewport)',acknowledge)
+        self.assertIn('dx:point.x-appFrame.minX,dy:point.y-appFrame.minY',acknowledge)
+        self.assertIn('TAKUPOKE-MANUAL-ACK before',acknowledge)
+        self.assertIn('TAKUPOKE-MANUAL-ACK after',acknowledge)
+        self.assertNotIn('typeText(',acknowledge)
+        self.assertNotIn('sleep(',acknowledge)
+        self.assertNotIn('for ',acknowledge)
         self.assertIn('XCTNSPredicateExpectation',acknowledge)
         self.assertIn('timeout:5',acknowledge)
         self.assertNotIn('row.tap()',acknowledge)
