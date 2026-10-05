@@ -56,6 +56,8 @@ struct RecoveryOCRPage: Codable, Equatable, Sendable {
     let nativeDocumentCount: Int
     let lines: [RecoveryOCRLine]
     let captureComplete: Bool
+    /// Optional acquisition evidence only. Nil preserves exact legacy JSON bytes.
+    var structure: RecoveryOCRPageStructure? = nil
 }
 
 enum RecoveryOCRAcquisitionFailure: Error, Equatable {
@@ -139,6 +141,9 @@ struct RecoveryOCRAcquisitionDraft: Codable, Equatable, Sendable {
                 }
                 top1Count += 1; characterCount += top1.characters.count
                 if top1.confidence < 0.85 { low[page.page, default: []].append(order) }
+            }
+            if let structure = page.structure {
+                _ = try RecoveryOCRStructure.links(structure, page: page, consume: consume)
             }
         }
         try check(); try Task.checkCancellation()

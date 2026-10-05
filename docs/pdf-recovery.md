@@ -108,3 +108,11 @@ SystemLanguageModel、llama.cpp、別ビルドのCoreAI runtimeのfieldExtractio
 追加経路の非空セルは3種類の完全な同一行ラベルと科目本文を必要とする。原文の行全体の高さと罫線内の空隙から役割帯を作り、文字bboxの拡大や隣セルからの補完を行わず、既存のinlineLabel証明・Validatorで唯一の所属を確認する。OCR入力の担当・教室の空欄は元画素で独立に証明し、全ページの未割当文字、OCRページの未読ink、未知クラスの罫線行を捨てない。この経路はAIへ構造を問い合わせない。独立した架空原本2件の各40コマと全正式授業値を、元PNGの画素と描画フォントの文字座標を保持したテストで確認し、Linux回帰317件が成功した。これはOCR出力のテストではなく、Visionの文字精度・実機動作・モデル品質の証明は含まない。
 
 研究branchの同一ソース3c90d6eを使ったCI37200758660では、Macのnative359件すべて成功し、iPhone向けSDK27のapp/runtimeビルドと、実app及びCoreAI SwiftPM bundle内の同一資産byte/SHA照合が成功した。推論は行っていないため、指示の整合性・組込み確認を精度向上や追加モデル品質合格とは扱わない。共通HEAD/COPY対照と評価済み利用者参照文は別課題として保存し、過去の弱い指示や実測出力を変更・再実行しない。資産と仕様は [tools/recovery-prompt-contracts](../tools/recovery-prompt-contracts/README.md) に記録する。
+
+### Vision文書の表・セル取得
+
+Visionの `Container.text` はコンテナ内の全文を返す。表の文字が欠けていたという実測ではなく、これまで平坦な行へ落としていたネイティブの表・結合セルの所属を取得記録へ保持する変更である。`tables`、表の `rows` / `columns`、セルの `rowRange` / `columnRange` と `content.text.lines`、元の正規化polygonをそのまま記録する。セルの原文・候補順位・信頼度・文字の元座標を平坦な行と一意に照合し、既存のページ内行順とSourceの所属を変更しない。両軸の不一致、別セルによる同じ行の重複所属、対応する行の欠落・曖昧さは拒否する。
+
+ネイティブの表番号や行・列範囲を時限・クラスへ変換せず、認識領域を罫線の代わりにしない。文字のないネイティブセルも、授業が空欄である証明にはならない。入れ子の表はこの取得経路では明示的に拒否する。従来の画素被覆・罫線による所属検証、0.85の認識信頼度、全体プレビューと別操作の採用を維持する。追加した取得記録も原本指紋へ含まれ、記録のない旧取得データのJSON byteは変更しない。
+
+Linuxでは本番の取得記録・照合コードを完全架空入力でコンパイルして検証した。Apple SDKによる追加adapterの型検証、Visionの実出力との対応と復旧精度、実機動作は未確認である。APIは [Appleの文書コンテナ](https://developer.apple.com/documentation/vision/documentobservation/container)、[表](https://developer.apple.com/documentation/vision/documentobservation/container/table)、[セル](https://developer.apple.com/documentation/vision/documentobservation/container/table/cell) の仕様に基づく。追加モデルの品質合格や配信承認には用いない。
