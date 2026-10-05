@@ -23,6 +23,7 @@ python3 -B tools/timed_command.py "Material compilation" swiftc -swift-version 5
     Takupoke/RecoveryRasterGrid.swift \
     Takupoke/RecoveryOCRAcquisition.swift \
     Takupoke/RecoveryOCRStructure.swift \
+    Takupoke/RecoveryVisionCapture.swift \
     Takupoke/RecoveryManualAssistance.swift \
     Takupoke/RecoveryValidator.swift \
     Takupoke/PDFAnalysis.swift \

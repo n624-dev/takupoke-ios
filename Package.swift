@@ -93,7 +93,7 @@ let package = Package(
                     "MainColor.swift",
                     "LocalMaterialDatabase.swift",
                     "LocalMaterialDatabase+Current.swift", "LocalMaterialDatabase+Snapshot.swift",
-                    "PDFAnalysis.swift", "RecoveryModels.swift", "RecoveryValidator.swift", "RecoveryPromptCatalog.swift", "RecoveryModelStore.swift", "RecoveryEngine.swift", "RecoveryStructure.swift", "RecoveryDocumentBuilder.swift", "RecoveryConversion.swift", "RecoveryRasterGrid.swift", "RecoveryOCRAcquisition.swift", "RecoveryOCRStructure.swift", "RecoveryManualAssistance.swift",
+                    "PDFAnalysis.swift", "RecoveryModels.swift", "RecoveryValidator.swift", "RecoveryPromptCatalog.swift", "RecoveryModelStore.swift", "RecoveryEngine.swift", "RecoveryStructure.swift", "RecoveryDocumentBuilder.swift", "RecoveryConversion.swift", "RecoveryRasterGrid.swift", "RecoveryOCRAcquisition.swift", "RecoveryOCRStructure.swift", "RecoveryVisionCapture.swift", "RecoveryManualAssistance.swift",
                     "PDFParseError.swift",
                     "PDFGrid.swift",
                     "PDFSchoolParser+Timetable.swift",
@@ -151,7 +151,7 @@ let package = Package(
                 ] + mappingSources, resources: [.copy("RecoveryPromptResources/field-extraction-v4.txt")]),
         .testTarget(name: "ParsingTests", dependencies: ["TakupokeParsing", "ZIPFoundation", .product(name: "GRDB", package: "GRDB.swift")], path: "tests",
                     exclude: [
-                    "ui",
+                    "ui", "research", "test_native_document_hierarchy_research.py",
                     "MaterialLibraryChecks.swift",
                     "WebPDFChecks.swift",
                     "test_distribution.py",

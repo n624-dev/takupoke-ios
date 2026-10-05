@@ -142,89 +142,12 @@ enum PDFRecoveryRecognition {
             let observations = try await RecognizeDocumentsRequest().perform(on: cg)
             try check(); try Task.checkCancellation()
             guard observations.count <= 1000 else { throw PDFParseError(code: .limit, page: number) }
-            var lines = [RecoveryOCRLine](), capturedCharacters = 0, capturedBytes = 0
-            var hierarchyCharacters = 0, hierarchyBytes = 0
-            func consumeStructure() throws {
-                structureWork += 1
-                guard structureWork <= 2_000_000 else { throw PDFParseError(code: .limit, page: number) }
-                if structureWork % 128 == 0 { try check(); try Task.checkCancellation() }
+            do {
+                output.append(try RecoveryVisionCapture.page(number, width: cg.width, height: cg.height,
+                    observations: observations, work: &structureWork, check: check))
+            } catch RecoveryOCRAcquisitionFailure.limit {
+                throw PDFParseError(code: .limit, page: number)
             }
-            func captureLine(_ line: RecognizedTextObservation, order: Int, hierarchy: Bool) throws -> RecoveryOCRLine {
-                try check(); try Task.checkCancellation()
-                var candidates = [RecoveryOCRCandidate]()
-                for candidate in line.topCandidates(5) {
-                    var characters = [RecoveryOCRCharacter]()
-                    let text = candidate.string
-                    for start in text.indices {
-                        if capturedCharacters % 128 == 0 { try check(); try Task.checkCancellation() }
-                        if hierarchy { hierarchyCharacters += 1 } else { capturedCharacters += 1 }
-                        guard capturedCharacters <= 100_000, hierarchyCharacters <= 200_000 else { throw PDFParseError(code: .limit, page: number) }
-                        let end = text.index(after: start), characterText = String(text[start..<end])
-                        for _ in characterText.utf8 {
-                            if hierarchy { hierarchyBytes += 1; try consumeStructure() } else { capturedBytes += 1 }
-                            guard capturedBytes <= 1_048_576, hierarchyBytes <= 2_097_152 else { throw PDFParseError(code: .limit, page: number) }
-                            if capturedBytes % 128 == 0 { try check(); try Task.checkCancellation() }
-                        }
-                        let range = candidate.boundingBox(for: start..<end).map { rectangle -> RecoveryOCRRange in
-                            let b = rectangle.boundingBox.cgRect
-                            return RecoveryOCRRange(x: Double(b.minX * CGFloat(cg.width)),
-                                y: Double((1 - b.maxY) * CGFloat(cg.height)),
-                                width: Double(b.width * CGFloat(cg.width)), height: Double(b.height * CGFloat(cg.height)))
-                        }
-                        characters.append(RecoveryOCRCharacter(text: characterText, range: range))
-                    }
-                    candidates.append(RecoveryOCRCandidate(text: text, confidence: Double(candidate.confidence), characters: characters))
-                }
-                return RecoveryOCRLine(nativeOrder: order, candidates: candidates)
-            }
-            func captureRegion(_ region: NormalizedRegion) throws -> [RecoveryOCRNativePoint] {
-                guard region.pointCount <= 4096 else { throw PDFParseError(code: .limit, page: number) }
-                return try region.normalizedPoints.map { point in
-                    try consumeStructure()
-                    return RecoveryOCRNativePoint(x: Double(point.x), y: Double(point.y))
-                }
-            }
-            func captureCell(_ cell: DocumentObservation.Container.Table.Cell) throws -> RecoveryOCRNativeCell {
-                try consumeStructure()
-                let content = cell.content
-                guard content.text.lines.count <= 100_000 else { throw PDFParseError(code: .limit, page: number) }
-                for _ in content.text.transcript.utf8 { try consumeStructure() }
-                let cellLines = try content.text.lines.enumerated().map {
-                    try captureLine($0.element, order: $0.offset, hierarchy: true)
-                }
-                return RecoveryOCRNativeCell(rowLower: cell.rowRange.lowerBound, rowUpper: cell.rowRange.upperBound,
-                    columnLower: cell.columnRange.lowerBound, columnUpper: cell.columnRange.upperBound,
-                    contentRegion: try captureRegion(content.text.boundingRegion), transcript: content.text.transcript,
-                    lines: cellLines, nestedTableCount: content.tables.count)
-            }
-            func captureAxis(_ groups: [[DocumentObservation.Container.Table.Cell]]) throws -> [[RecoveryOCRNativeCell]] {
-                guard groups.count <= 100_000 else { throw PDFParseError(code: .limit, page: number) }
-                return try groups.map { group in
-                    try consumeStructure()
-                    guard group.count <= 100_000 else { throw PDFParseError(code: .limit, page: number) }
-                    return try group.map(captureCell)
-                }
-            }
-            var documents = [RecoveryOCRNativeDocument]()
-            for (documentOrder, observation) in observations.enumerated() {
-                try consumeStructure()
-                let firstLine = lines.count
-                for line in observation.document.text.lines {
-                    guard lines.count < 100_000 else { throw PDFParseError(code: .limit, page: number) }
-                    lines.append(try captureLine(line, order: lines.count, hierarchy: false))
-                }
-                guard observation.document.tables.count <= 1000 else { throw PDFParseError(code: .limit, page: number) }
-                let tables = try observation.document.tables.enumerated().map { tableOrder, table in
-                    try consumeStructure()
-                    return RecoveryOCRNativeTable(nativeOrder: tableOrder, region: try captureRegion(table.boundingRegion),
-                        rows: try captureAxis(table.rows), columns: try captureAxis(table.columns))
-                }
-                documents.append(RecoveryOCRNativeDocument(nativeOrder: documentOrder, nativeUUID: observation.uuid.uuidString,
-                    lineOrders: Array(firstLine..<lines.count), tables: tables))
-            }
-            output.append(RecoveryOCRPage(page: number, width: cg.width, height: cg.height,
-                nativeDocumentCount: observations.count, lines: lines, captureComplete: true,
-                structure: RecoveryOCRPageStructure(documents: documents)))
             native.append(RecoveryRecognizedPage(page: number, width: cg.width, height: cg.height, observations: observations))
             rasters[number] = raster
         }

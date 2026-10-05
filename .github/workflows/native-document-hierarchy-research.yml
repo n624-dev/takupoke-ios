@@ -1,0 +1,45 @@
+name: Isolated native document hierarchy research
+
+on:
+  push:
+    branches: [codex/ios-native-document-hierarchy-validation-20261005]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+
+jobs:
+  apple-adapter:
+    name: Native hierarchy iPhone SDK ${{ matrix.sdk }}
+    if: github.repository == 'n624-dev/takupoke-ios' && github.event_name == 'push' && github.ref == 'refs/heads/codex/ios-native-document-hierarchy-validation-20261005'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sdk: 26
+            runner: macos-26
+            developer: /Applications/Xcode_26.6.app/Contents/Developer
+          - sdk: 27
+            runner: xcode-27
+            developer: /Applications/Xcode_27.0.app/Contents/Developer
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    env:
+      DEVELOPER_DIR: ${{ matrix.developer }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Require exact research commit
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Check bounded research launcher controls
+        run: python3 -B -m unittest discover -s tests -p test_native_document_hierarchy_research.py -v
+      - name: Typecheck actual adapter and exercise two native controls on SDK26 runner only
+        run: python3 -B tools/native_document_hierarchy_research.py --sdk-major ${{ matrix.sdk }}
