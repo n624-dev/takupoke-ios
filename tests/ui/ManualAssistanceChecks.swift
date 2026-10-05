@@ -61,6 +61,22 @@ final class ManualAssistanceChecks:XCTestCase {
         let diagnostic=app.staticTexts["manual-qa-diagnostic"].firstMatch
         print("TAKUPOKE-MANUAL-QA "+(diagnostic.exists ? diagnostic.label:"diagnostic-missing"))
     }
+    private func emitEvents() {
+        let events=app.staticTexts["manual-binding-events"].firstMatch
+        print("TAKUPOKE-MANUAL-BINDINGS "+(events.exists ? events.label:"absent"))
+    }
+    private func requirePreview() {
+        let state=app.staticTexts["manual-coordinator-state"].firstMatch
+        let ready=XCTNSPredicateExpectation(predicate:NSPredicate(format:"label CONTAINS %@","preview=true"),object:state)
+        let outcome=XCTWaiter.wait(for:[ready],timeout:20)
+        print("TAKUPOKE-MANUAL-COORDINATOR " + (state.exists ? state.label : "absent"))
+        emitDiagnostic()
+        emitEvents()
+        if outcome != .completed { print("TAKUPOKE-MANUAL-PREVIEW-FAIL " + app.debugDescription) }
+        XCTAssertEqual(outcome,.completed,app.debugDescription)
+        let header=visible(app.staticTexts["manual-preview-header"].firstMatch)
+        XCTAssertEqual(header.label,"採用する資料全体",app.debugDescription)
+    }
     private func fieldsExist()->Bool {
         let ready=app.staticTexts["manual-field-ids"].waitForExistence(timeout:15)
         emitDiagnostic()
@@ -79,6 +95,7 @@ final class ManualAssistanceChecks:XCTestCase {
         let outcome=XCTWaiter.wait(for:[changed],timeout:5)
         let state=app.staticTexts["manual-input-state"].firstMatch
         print("TAKUPOKE-MANUAL-INPUT " + (state.exists ? state.label : "absent"))
+        emitEvents()
         XCTAssertEqual(outcome,.completed,app.debugDescription)
     }
     private func assertSubmitEnabled(_ expected:Bool) {
@@ -107,6 +124,8 @@ final class ManualAssistanceChecks:XCTestCase {
         XCTAssertEqual(visible(input).value as? String,value);XCTAssertEqual(visible(ack(key)).value as? String,"1")
         tap("架空検証");tap("同じ原本の状態を再確認")
         XCTAssertEqual(visible(input).value as? String,value);XCTAssertEqual(visible(ack(key)).value as? String,"1")
+        let processBefore=app.staticTexts["manual-process-launch"].firstMatch.label
+        XCTAssertFalse(processBefore.isEmpty)
         print("TAKUPOKE-MANUAL-APP-STATE before-home=\(app.state.rawValue)")
         XCUIDevice.shared.press(.home)
         print("TAKUPOKE-MANUAL-APP-STATE after-home=\(app.state.rawValue)")
@@ -116,12 +135,14 @@ final class ManualAssistanceChecks:XCTestCase {
         print("TAKUPOKE-MANUAL-APP-STATE after-activate=\(app.state.rawValue)")
         XCTAssertTrue(app.wait(for:.runningForeground,timeout:10),"App must survive background; no relaunch or draft reset")
         print("TAKUPOKE-MANUAL-APP-STATE foreground=\(app.state.rawValue)")
+        print("TAKUPOKE-MANUAL-PROCESS expected=\(processBefore);observed=\(app.staticTexts["manual-process-launch"].firstMatch.label)")
+        XCTAssertEqual(app.staticTexts["manual-process-launch"].firstMatch.label,processBefore,"Background must preserve the original process; relaunch is not survival")
         XCTAssertEqual(visible(input).value as? String,value);XCTAssertEqual(visible(ack(key)).value as? String,"1")
         edit(input,value+"改");XCTAssertEqual(visible(ack(key)).value as? String,"0")
         assertSubmitEnabled(false)
         XCTAssertTrue(app.images.matching(NSPredicate(format:"identifier BEGINSWITH 'manual-crop-'")).firstMatch.exists)
         acknowledge(key);visible(submit).tap()
-        XCTAssertTrue(app.staticTexts["採用する資料全体"].waitForExistence(timeout:20),app.debugDescription)
+        requirePreview()
         XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("lastgood-preserved"))
         tap("この資料全体の結果を使用")
         XCTAssertTrue(app.staticTexts["復旧結果を採用しました。"].waitForExistence(timeout:20),app.debugDescription)
@@ -150,7 +171,7 @@ final class ManualAssistanceChecks:XCTestCase {
             let ack=ack(ids[i]);XCTAssertEqual(visible(ack).value as? String,"0");acknowledge(ids[i])
             assertSubmitEnabled(i==2)
         }
-        visible(submit).tap();XCTAssertTrue(app.staticTexts["採用する資料全体"].waitForExistence(timeout:20))
+        visible(submit).tap();requirePreview()
         XCTAssertTrue(app.staticTexts["原本を確認して入力した3項目を含みます。"].exists)
         tap("閉じる");XCTAssertFalse(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("adopted="))
         app.terminate();launch(["--manual-four"])

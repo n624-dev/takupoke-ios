@@ -2,6 +2,20 @@
 // native recognition and user-device OCR quality are deliberately unmeasured.
 @MainActor
 enum SimulatorManualFixture {
+    static let processIdentity = UUID().uuidString
+    private static var eventCount = 0
+    static func event(_ kind:String,id:String,old:String,new:String) {
+        eventCount += 1
+        guard eventCount <= 64 else {
+            if eventCount == 65 { print("TAKUPOKE-MANUAL-EVENT limited=64") }
+            return
+        }
+        func digest(_ text:String) -> String { SHA256.hash(data:Data(text.utf8)).map { String(format:"%02x",$0) }.joined() }
+        let record="count=\(eventCount);kind=\(kind);id=\(id);oldBytes=\(old.utf8.count);newBytes=\(new.utf8.count);oldSHA=\(digest(old));newSHA=\(digest(new));equalBytes=\(old.utf8.elementsEqual(new.utf8))"
+        let previous=UserDefaults.standard.string(forKey:"fixture.manualEvents") ?? ""
+        UserDefaults.standard.set(previous+record+"\n",forKey:"fixture.manualEvents")
+        print("TAKUPOKE-MANUAL-EVENT "+record)
+    }
     static var enabled:Bool { ProcessInfo.processInfo.arguments.contains("--manual-ui") }
     static var count:Int {
         let args=ProcessInfo.processInfo.arguments
@@ -111,6 +125,7 @@ enum SimulatorManualFixture {
         return (PDFPageLayout(width:Double(width),height:Double(height),glyphs:glyphs,lines:rules),raster,image,uncertain)
     }
     static func seed(_ base:URL) throws {
+        eventCount=0;UserDefaults.standard.removeObject(forKey:"fixture.manualEvents")
         // Never overwrite an already adopted result on relaunch.
         if !ProcessInfo.processInfo.arguments.contains("--reset-fixture") { return }
         let (page,raster,image,_)=try input()
@@ -166,6 +181,7 @@ struct FixtureManualProbe:View {
     @AppStorage("fixture.manualPixels") private var manualPixels="unmeasured"
     @AppStorage("fixture.manualOldInk") private var oldInk="unmeasured"
     @AppStorage("fixture.manualCandidateInk") private var candidateInk="unmeasured"
+    @AppStorage("fixture.manualEvents") private var events=""
     var body:some View {
         let analysis=materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue]
         let adopted=analysis?.recovery
@@ -175,6 +191,7 @@ struct FixtureManualProbe:View {
         let corrections=adopted?.result.humanCorrections ?? []
         let valid=adopted.map{(try? RecoveryValidator.canReuse($0.acceptance,document:$0.document,result:$0.result))==true} ?? false
         VStack {
+            Text(events).font(.system(size:1)).accessibilityIdentifier("manual-binding-events").allowsHitTesting(false)
             Text(manualStage+";"+manualPixels+";old="+oldInk+";candidate="+candidateInk).font(.caption2)
                 .accessibilityIdentifier("manual-qa-diagnostic").allowsHitTesting(false)
             Text(adopted==nil ? (lastgood ? "lastgood-preserved":"lastgood-mismatch"):"adopted=\(corrections.count);valid=\(valid);values="+corrections.map(\.value).joined(separator:"|"))
