@@ -768,3 +768,68 @@ extension PDFParsingTests {
         XCTAssertEqual(doc.requiredSlots.count,80); XCTAssertFalse(doc.sources.contains { $0.fromOcr }); XCTAssertNil(doc.ocrCoverageProof)
     }
 }
+
+extension PDFParsingTests {
+    private func coverageOrderScene(unknown: Bool) throws -> (RecoveryRasterGrid,[PDFRule]) {
+        let size = 64
+        var pixels = [UInt8](repeating:255,count:size*size)
+        for coordinate in 8...55 {
+            pixels[8*size+coordinate]=0; pixels[55*size+coordinate]=0
+            pixels[coordinate*size+8]=0; pixels[coordinate*size+55]=0
+        }
+        for y in 20..<28 { for x in 20..<28 { pixels[y*size+x]=0 } }
+        if unknown { pixels[7*size+32]=254 } // Faint ink beside a rail is not a continuous rail.
+        let rules=[PDFRule(x1:8,y1:8,x2:55,y2:8),PDFRule(x1:8,y1:55,x2:55,y2:55),
+                   PDFRule(x1:8,y1:8,x2:8,y2:55),PDFRule(x1:55,y1:8,x2:55,y2:55)]
+        return (try RecoveryRasterGrid(width:size,height:size,grayscale:pixels).preparingRules(rules),rules)
+    }
+    func testRasterCoverageMaskFirstKeepsUnionAndFractionalPixelSemantics() throws {
+        for unknown in [false,true] {
+            let (raster,rules)=try coverageOrderScene(unknown:unknown)
+            let ink=RecoveryBox(x:20,y:20,width:8,height:8),outside=RecoveryBox(x:100,y:100,width:8,height:8)
+            for boxes in [ [ink], [outside,ink], [ink,outside], [ink,ink], [outside] ] {
+                for query in [RecoveryBox(x:0,y:0,width:64,height:64),RecoveryBox(x:0.25,y:0.25,width:63.5,height:63.5)] {
+                    XCTAssertEqual(try raster.hasUncoveredInk(query,text:boxes,rules:rules,check:{}),unknown || !boxes.contains(ink))
+                }
+            }
+        }
+    }
+    func testRasterCoveragePreparedMaskCannotHideInkWhenRulesChange() throws {
+        let (raster,rules)=try coverageOrderScene(unknown:false)
+        let query=RecoveryBox(x:0,y:0,width:64,height:64),ink=RecoveryBox(x:20,y:20,width:8,height:8)
+        XCTAssertFalse(try raster.hasUncoveredInk(query,text:[ink],rules:Array(rules.reversed()),check:{}))
+        XCTAssertTrue(try raster.hasUncoveredInk(query,text:[ink],rules:Array(rules.dropFirst()),check:{}))
+        XCTAssertTrue(try raster.hasUncoveredInk(query,text:[ink],rules:[],check:{}))
+    }
+    func testRasterCoverageRulePixelsDoNotSpendTheTextComparisonBudget() throws {
+        let width=640,height=128
+        var pixels=[UInt8](repeating:255,count:width*height)
+        for y in 0..<100 { for x in 0..<width { pixels[y*width+x]=0 } }
+        let rules=(0..<100).map { PDFRule(x1:0,y1:Double($0),x2:639,y2:Double($0)) }
+        let raster=try RecoveryRasterGrid(width:width,height:height,grayscale:pixels).preparingRules(rules)
+        let outside=RecoveryBox(x:1000,y:1000,width:10,height:10),boxes=Array(repeating:outside,count:548)
+        XCTAssertFalse(try raster.hasUncoveredInk(RecoveryBox(x:0,y:0,width:640,height:128),text:boxes,rules:rules,check:{}))
+        pixels[110*width+300]=254
+        let unknown=try RecoveryRasterGrid(width:width,height:height,grayscale:pixels).preparingRules(rules)
+        XCTAssertTrue(try unknown.hasUncoveredInk(RecoveryBox(x:0,y:0,width:640,height:128),text:boxes,rules:rules,check:{}))
+    }
+    func testRasterCoverageMaskFirstStillBoundsUnmaskedTextSearch() {
+        let size=128,box=RecoveryBox(x:0,y:0,width:128,height:128)
+        let raster=RecoveryRasterGrid(width:size,height:size,grayscale:[UInt8](repeating:0,count:size*size))
+        let outside=RecoveryBox(x:200,y:200,width:10,height:10)
+        XCTAssertThrowsError(try raster.hasUncoveredInk(box,text:Array(repeating:outside,count:2000)+[box],rules:[],check:{})) {
+            XCTAssertEqual(($0 as? PDFParseError)?.code,.limit)
+        }
+    }
+    func testRasterCoverageMaskFirstChecksCancellationOnCertifiedRailPixels() throws {
+        let width=640,height=128
+        let pixels=[UInt8](repeating:0,count:width*height)
+        let rules=(0..<height).map { PDFRule(x1:0,y1:Double($0),x2:639,y2:Double($0)) }
+        let raster=try RecoveryRasterGrid(width:width,height:height,grayscale:pixels).preparingRules(rules)
+        var checks=0
+        XCTAssertThrowsError(try raster.hasUncoveredInk(RecoveryBox(x:0,y:0,width:640,height:128),text:[],rules:rules,check:{
+            checks+=1;if checks==3 { throw PDFParseError(code:.cancelled) }
+        })) { XCTAssertEqual(($0 as? PDFParseError)?.code,.cancelled) }
+        XCTAssertEqual(checks,3)
+    }
+}

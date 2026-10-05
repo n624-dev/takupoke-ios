@@ -171,8 +171,8 @@ struct RecoveryRasterGrid: Sendable {
                 if grayscale[y*width+x] == 255 { continue }
                 let px = Double(x)+0.5, py = Double(y)+0.5
                 guard box.x <= px, px <= box.x+box.width, box.y <= py, py <= box.y+box.height else { continue }
-                if try text.contains(where: { try consume(); return $0.x-1 <= px && px <= $0.x+$0.width+1 && $0.y-1 <= py && py <= $0.y+$0.height+1 }) { continue }
                 if mask?[y*width+x] == 1 { continue }
+                if try text.contains(where: { try consume(); return $0.x-1 <= px && px <= $0.x+$0.width+1 && $0.y-1 <= py && py <= $0.y+$0.height+1 }) { continue }
                 return true
             }
         }
