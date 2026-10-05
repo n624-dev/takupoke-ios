@@ -17,7 +17,43 @@ enum SimulatorManualFixture {
         trace(stage+";error="+String(reflecting:error))
     }
 
-    static func input() throws -> (PDFPageLayout,RecoveryRasterGrid,UIImage,Set<Int>) {
+    static var integralRails:Bool { ProcessInfo.processInfo.arguments.contains("--manual-integral-rails") }
+    static func inkDiagnostic(_ page:PDFPageLayout,_ raster:RecoveryRasterGrid) -> String {
+        let text=page.glyphs.map { RecoveryBox(x:$0.x,y:$0.y,width:$0.width,height:$0.height) }
+        let hash=SHA256.hash(data:Data(raster.grayscale)).map { String(format:"%02x",$0) }.joined()
+        let deadline=ProcessInfo.processInfo.systemUptime+8
+        var checks=0
+        func check() throws {
+            checks+=1
+            guard checks<=250000,ProcessInfo.processInfo.systemUptime<=deadline else { throw PDFParseError(code:.limit) }
+            try Task.checkCancellation()
+        }
+        func uncovered(_ x:Int,_ y:Int,_ w:Int,_ h:Int) throws -> Bool {
+            try check()
+            return try raster.hasUncoveredInk(RecoveryBox(x:Double(x),y:Double(y),width:Double(w),height:Double(h)),text:text,rules:page.lines,check:check)
+        }
+        do {
+            guard try uncovered(0,0,raster.width,raster.height) else { return "covered;graySHA="+hash }
+            var x=0,y=0,w=raster.width,h=raster.height
+            // Integer pixel partitions preserve the original predicate/mask.
+            // Find the first occupied uncovered row, then the first column.
+            while h>1 { let half=h/2
+                if try uncovered(x,y,w,half) { h=half } else { y+=half;h-=half }
+            }
+            while w>1 { let half=w/2
+                if try uncovered(x,y,half,h) { w=half } else { x+=half;w-=half }
+            }
+            guard try uncovered(x,y,1,1) else { return "unassessed:partition;graySHA="+hash }
+            let px=Double(x)+0.5,py=Double(y)+0.5
+            let distance=page.lines.map { rule -> Double in
+                let dx=rule.x2-rule.x1,dy=rule.y2-rule.y1, length=dx*dx+dy*dy
+                let t=length>0 ? max(0,min(1,((px-rule.x1)*dx+(py-rule.y1)*dy)/length)):0
+                return hypot(px-(rule.x1+t*dx),py-(rule.y1+t*dy))
+            }.min() ?? -1
+            return "firstUncovered=\(x),\(y);gray=\(raster.grayscale[y*raster.width+x]);ruleDistance=\(distance);graySHA="+hash
+        } catch { return "unassessed:"+String(reflecting:error)+";graySHA="+hash }
+    }
+    static func input(integralRails:Bool = SimulatorManualFixture.integralRails) throws -> (PDFPageLayout,RecoveryRasterGrid,UIImage,Set<Int>) {
         let scale=2.0,width=1480,height=960
         var glyphs=[PDFGlyph](),rules=[PDFRule](),line=0,uncertain=Set<Int>()
         func text(_ value:String,_ x:Double,_ y:Double,_ w:Double=3,_ h:Double=6,low:Bool=false) {
@@ -44,7 +80,17 @@ enum SimulatorManualFixture {
         let format=UIGraphicsImageRendererFormat();format.scale=1;format.opaque=true
         let image=UIGraphicsImageRenderer(size:CGSize(width:width,height:height),format:format).image { context in
             UIColor.white.setFill();context.fill(CGRect(x:0,y:0,width:width,height:height));UIColor.black.setStroke()
-            for r in rules { let path=UIBezierPath();path.move(to:CGPoint(x:r.x1,y:r.y1));path.addLine(to:CGPoint(x:r.x2,y:r.y2));path.lineWidth=1;path.stroke() }
+            if integralRails {
+                // One physical pixel row/column, including both endpoints.
+                UIColor.black.setFill()
+                for r in rules {
+                    if r.horizontal { context.fill(CGRect(x:min(r.x1,r.x2),y:r.y1,width:abs(r.x2-r.x1)+1,height:1)) }
+                    else { context.fill(CGRect(x:r.x1,y:min(r.y1,r.y2),width:1,height:abs(r.y2-r.y1)+1)) }
+                }
+            } else {
+                // Retained original renderer for the measured A/B control.
+                for r in rules { let path=UIBezierPath();path.move(to:CGPoint(x:r.x1,y:r.y1));path.addLine(to:CGPoint(x:r.x2,y:r.y2));path.lineWidth=1;path.stroke() }
+            }
             for g in glyphs { (g.text as NSString).draw(at:CGPoint(x:g.x+0.5,y:g.y+1),withAttributes:[.font:UIFont.systemFont(ofSize:8*scale/3),.foregroundColor:UIColor.black]) }
         }
         guard let cg=image.cgImage else { throw PDFParseError(code:.unreadable) }
@@ -66,7 +112,14 @@ enum SimulatorManualFixture {
     static func seed(_ base:URL) throws {
         // Never overwrite an already adopted result on relaunch.
         if !ProcessInfo.processInfo.arguments.contains("--reset-fixture") { return }
-        let (_,_,image,_)=try input()
+        let (page,raster,image,_)=try input()
+        // Run the two bounded measurements before fixture-ready, not while
+        // the UI waits its unchanged 15 seconds for editable fields.
+        if integralRails {
+            let (oldPage,oldRaster,_,_)=try input(integralRails:false)
+            UserDefaults.standard.set(inkDiagnostic(oldPage,oldRaster),forKey:"fixture.manualOldInk")
+        }
+        UserDefaults.standard.set(inkDiagnostic(page,raster),forKey:"fixture.manualCandidateInk")
         let raw=UIGraphicsPDFRenderer(bounds:CGRect(x:0,y:0,width:1480,height:960)).pdfData { context in
             context.beginPage();image.draw(in:CGRect(x:0,y:0,width:1480,height:960))
         }
@@ -110,6 +163,8 @@ struct FixtureManualProbe:View {
     @ObservedObject private var materials=ApplicationData.shared.materials
     @AppStorage("fixture.manualStage") private var manualStage="not-started"
     @AppStorage("fixture.manualPixels") private var manualPixels="unmeasured"
+    @AppStorage("fixture.manualOldInk") private var oldInk="unmeasured"
+    @AppStorage("fixture.manualCandidateInk") private var candidateInk="unmeasured"
     var body:some View {
         let analysis=materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue]
         let adopted=analysis?.recovery
@@ -119,7 +174,7 @@ struct FixtureManualProbe:View {
         let corrections=adopted?.result.humanCorrections ?? []
         let valid=adopted.map{(try? RecoveryValidator.canReuse($0.acceptance,document:$0.document,result:$0.result))==true} ?? false
         VStack {
-            Text(manualStage+";"+manualPixels).font(.caption2)
+            Text(manualStage+";"+manualPixels+";old="+oldInk+";candidate="+candidateInk).font(.caption2)
                 .accessibilityIdentifier("manual-qa-diagnostic").allowsHitTesting(false)
             Text(adopted==nil ? (lastgood ? "lastgood-preserved":"lastgood-mismatch"):"adopted=\(corrections.count);valid=\(valid);values="+corrections.map(\.value).joined(separator:"|"))
                 .font(.caption2).accessibilityIdentifier("manual-persisted-proof").allowsHitTesting(false)
