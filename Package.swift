@@ -169,7 +169,7 @@ let package = Package(
                     "ParsingTests+Preview.swift",
                     "ParsingTests+Persistence.swift",
                     "TimetableNameTests.swift", "MappingRulesTests.swift",
-                    "PDFParsingTests.swift", "RecoveryTests.swift", "RecoveryRecertificationTests.swift", "RecoveryBuilderTests.swift", "RecoveryStructureTests.swift", "RecoveryPromptCatalogTests.swift",
+                    "PDFParsingTests.swift", "RecoveryTests.swift", "RecoveryRecertificationTests.swift", "RecoveryBuilderTests.swift", "RecoveryFunctionalCoverageTests.swift", "RecoveryStructureTests.swift", "RecoveryPromptCatalogTests.swift",
                     "PDFParsingTests+Timetable.swift",
                     "PDFParsingTests+Diagnostics.swift",
                     "PDFParsingTests+Events.swift",

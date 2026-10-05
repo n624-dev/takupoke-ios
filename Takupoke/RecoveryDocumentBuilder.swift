@@ -196,7 +196,9 @@ enum RecoveryDocumentBuilder {
                     guard step > 5 else { throw PDFParseError(code:.ambiguous) }
                     first = PDFBox(left:periodRow[0].cx-step/2,top:0,right:periodRow[0].cx+step/2,bottom:headerY+2)
                 } else { first = try grid.box(periodRow[0].cx,periodRow[0].cy,check:check) }
-                let classBox = try grid.box(first.left-2, first.bottom+20,check:check)
+                let classBox = kind == .return
+                    ? try returnClassBox(page,grid:grid,x:first.left-2,below:first.bottom,work:structureWork,check:check)
+                    : try grid.box(first.left-2, first.bottom+20,check:check)
                 guard let bottom = page.lines.filter({ $0.vertical && abs($0.x1-classBox.right)<0.3 }).map(\.y2).max() else { throw PDFParseError(code:.unsupported) }
                 let rows = PDFGrid.rows(page.glyphs.filter { classBox.left < $0.cx && $0.cx < classBox.right && $0.cy > first.bottom && $0.cy < bottom })
                 var gradeSources = [PDFBox:(String,[PDFGlyph])]()
@@ -518,6 +520,32 @@ enum RecoveryDocumentBuilder {
         return doc
     }
 
+    /// Locate the first actual closed class row below the period header. A fixed
+    /// point offset can land in the unruled header gap after page/font scaling.
+    private static func returnClassBox(_ page:PDFPageLayout,grid:PDFGrid,x:Double,below:Double,work:RecoveryValidationWork,check:() throws -> Void) throws -> PDFBox {
+        var top:Double?, bottom:Double?
+        for line in page.lines {
+            guard work.charge() else { try work.finish(); throw PDFParseError(code:.limit) }
+            guard line.horizontal, line.x1 <= x, x <= line.x2, line.y1 > below else { continue }
+            let y = line.y1
+            if top == nil || y < top! { bottom = top; top = y }
+            else if y != top && (bottom == nil || y < bottom!) { bottom = y }
+        }
+        guard let top, let bottom, bottom > top else { throw PDFParseError(code:.unsupported,stage:.gridCell) }
+        let box = try grid.box(x,(top+bottom)/2,check:check)
+        guard box.top == top, box.bottom == bottom else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
+        var left = false, right = false, upper = false, lower = false
+        for line in page.lines {
+            guard work.charge(4) else { try work.finish(); throw PDFParseError(code:.limit) }
+            left = left || line.vertical && line.x1 == box.left && line.y1 <= top && line.y2 >= bottom
+            right = right || line.vertical && line.x1 == box.right && line.y1 <= top && line.y2 >= bottom
+            upper = upper || line.horizontal && line.y1 == top && line.x1 <= box.left && line.x2 >= box.right
+            lower = lower || line.horizontal && line.y1 == bottom && line.x1 <= box.left && line.x2 >= box.right
+        }
+        guard left && right && upper && lower else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
+        try work.finish()
+        return box
+    }
     private static func rasterFingerprint(_ raster:RecoveryRasterGrid,work:RecoveryValidationWork) throws -> String {
         #if canImport(CryptoKit) || canImport(Crypto)
         var hash = SHA256()
