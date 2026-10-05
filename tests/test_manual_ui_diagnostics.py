@@ -52,12 +52,15 @@ class ManualDiagnosticsTests(unittest.TestCase):
 
     def test_crash_capture_filters_exact_app_time_size_and_symlinks(self):
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / 'AppChecks.ips'
+            path = Path(tmp) / 'Takupoke.ips'
             now = time.time()
-            path.write_text('{"bundleID":"jp.n624.takupoke.app-checks","exception":"SIGABRT"}')
+            path.write_text('{"bundleID":"jp.n624.takupoke.app-checks","app_name":"Takupoke","exception":"SIGABRT"}')
             report = module.report_matches(path, now - 1)
             self.assertIn('SIGABRT', report['text'])
             self.assertEqual(report['bytes'], len(path.read_bytes()))
+            path.write_text(json.dumps({'app_name': module.PROCESS, 'bundleID': module.BUNDLE}) + '\n' +
+                            json.dumps({'procName': module.PROCESS, 'bundleInfo': {'CFBundleIdentifier': module.BUNDLE}, 'exception': 'SIGABRT'}))
+            self.assertEqual(module.report_matches(path, now - 1)['scope'], 'exact-app-crash')
             self.assertIsNone(module.report_matches(path, now + 10))
             alias = Path(tmp) / 'alias.ips'
             alias.symlink_to(path)
@@ -66,6 +69,44 @@ class ManualDiagnosticsTests(unittest.TestCase):
             self.assertIsNone(module.report_matches(path, now - 1))
             path.write_bytes(b'x' * (module.MAX_REPORT + 1))
             self.assertIsNone(module.report_matches(path, now - 1))
+
+    def test_crash_identity_rejects_prefix_helper_and_arbitrary_mentions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'Other.ips'
+            for payload in (
+                {'bundleID': module.BUNDLE + '-helper', 'app_name': 'DifferentApp'},
+                {'bundleID': 'com.example.other', 'app_name': 'DifferentApp', 'message': module.BUNDLE},
+                {'bundleID': module.BUNDLE, 'app_name': 'Takupoke-helper'},
+            ):
+                path.write_text(json.dumps(payload))
+                self.assertIsNone(module.report_matches(path, time.time() - 1))
+
+    def test_jetsam_exports_only_exact_app_entry(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'Jetsam.ips'
+            header = {'bug_type': '298', 'timestamp': 'fictional-time'}
+            payload = {'reason': 'memory-pressure', 'processes': [
+                {'name': 'Takupoke', 'pid': 123, 'reason': 'per-process-limit'},
+                {'name': 'OtherPrivateProcess', 'pid': 456},
+                {'name': 'Takupoke-helper', 'pid': 789},
+            ]}
+            path.write_text(json.dumps(header) + '\n' + json.dumps(payload))
+            self.assertIsNone(module.report_matches(path, time.time() - 1))
+            result = module.report_matches(path, time.time() - 1, allow_jetsam=True)
+            self.assertIsNotNone(result)
+            self.assertNotIn('OtherPrivateProcess', result['text'])
+            self.assertNotIn('Takupoke-helper', result['text'])
+            self.assertIn('per-process-limit', result['text'])
+            self.assertEqual(result['scope'], 'exact-app-jetsam-entry')
+
+    def test_legacy_crash_requires_exact_identity_lines(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'Takupoke.crash'
+            valid = 'Process: Takupoke [123]\nIdentifier: ' + module.BUNDLE + '\nException Type: SIGABRT\n'
+            path.write_text(valid)
+            self.assertIsNotNone(module.report_matches(path, time.time() - 1))
+            path.write_text('Process: DifferentApp [456]\nIdentifier: com.example.other\nMessage: ' + module.BUNDLE)
+            self.assertIsNone(module.report_matches(path, time.time() - 1))
 
     def test_legacy_failure_excludes_attachment_payloads(self):
         result = {'issues': {'testFailureSummaries': {'_values': [
@@ -115,6 +156,9 @@ rm() { echo delete-owned-scratch; }
         self.assertIn('-resultBundlePath "$scratch_dir/ManualResults.xcresult"', runner)
         self.assertIn('-collect-test-diagnostics on-failure', runner)
         self.assertIn('-collect-test-diagnostics never', runner)
+        project = (ROOT / 'Takupoke.xcodeproj/project.pbxproj').read_text()
+        self.assertIn('productName = ' + module.PROCESS + ';', project)
+        self.assertIn("settings['PRODUCT_BUNDLE_IDENTIFIER']='" + module.BUNDLE + "'", (ROOT / 'tools/app_test_project.py').read_text())
         self.assertIn('${TKPK_MANUAL_DIAGNOSTICS:-0}', runner)
         self.assertIn("any(status!='passed' for _,status in rows)", runner)
         self.assertIn('app.wait(for:.runningForeground,timeout:10)', checks)

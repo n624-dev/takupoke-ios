@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import signal
 from pathlib import Path
 import subprocess
@@ -14,6 +15,7 @@ import tempfile
 import time
 
 BUNDLE = "jp.n624.takupoke.app-checks"
+PROCESS = "Takupoke"  # Actual EXECUTABLE_NAME; AppChecks is the scheme only.
 MAX_OUTPUT = 262144
 MAX_REPORT = 524288
 
@@ -63,7 +65,48 @@ def legacy_failures(value):
             for item in issues[:32]]
 
 
-def report_matches(path, started):
+def app_report_text(text, suffix, *, allow_jetsam=False):
+    if suffix == ".crash":
+        process = re.search(r"^Process:\s+" + re.escape(PROCESS) + r"\s+\[\d+\]\s*$", text, re.MULTILINE)
+        identifier = re.search(r"^Identifier:\s+" + re.escape(BUNDLE) + r"\s*$", text, re.MULTILINE)
+        return (text, "exact-app-crash") if process and identifier else None
+    # Apple .ips files may contain a header JSON followed by a payload JSON.
+    # Inspect identity fields, never arbitrary mention strings or nested frames.
+    decoder = json.JSONDecoder()
+    docs = []
+    remaining = text.lstrip()
+    try:
+        while remaining and len(docs) < 3:
+            value, end = decoder.raw_decode(remaining)
+            if not isinstance(value, dict):
+                return None
+            docs.append(value)
+            remaining = remaining[end:].lstrip()
+    except ValueError:
+        return None
+    if remaining:
+        return None
+    for doc in docs:
+        processes = doc.get("processes")
+        if isinstance(processes, list):
+            matches = [entry for entry in processes if isinstance(entry, dict) and
+                       entry.get("name") == PROCESS and
+                       entry.get("bundleID", BUNDLE) == BUNDLE]
+            if matches and allow_jetsam:
+                # Jetsam includes other processes: export the exact app entries only.
+                return (json.dumps({"processes": matches}, ensure_ascii=False), "exact-app-jetsam-entry")
+    names = [d.get(key) for d in docs for key in ("app_name", "procName") if key in d]
+    identifiers = [d["bundleID"] for d in docs if "bundleID" in d]
+    for doc in docs:
+        bundle = doc.get("bundleInfo")
+        if isinstance(bundle, dict) and "CFBundleIdentifier" in bundle:
+            identifiers.append(bundle["CFBundleIdentifier"])
+    if names and identifiers and all(n == PROCESS for n in names) and all(i == BUNDLE for i in identifiers):
+        return text, "exact-app-crash"
+    return None
+
+
+def report_matches(path, started, *, allow_jetsam=False):
     if path.is_symlink() or not path.is_file() or path.suffix not in (".ips", ".crash"):
         return None
     stat = path.stat()
@@ -71,11 +114,11 @@ def report_matches(path, started):
         return None
     raw = path.read_bytes()
     text = raw.decode("utf-8", errors="strict")
-    # Jetsam is relevant only if this exact fictional process appears in the report.
-    if BUNDLE not in text and '"AppChecks"' not in text and "Process:             AppChecks" not in text:
+    selected = app_report_text(text, path.suffix, allow_jetsam=allow_jetsam)
+    if selected is None:
         return None
     return {"name": path.name, "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest(),
-            "text": text}
+            "scope": selected[1], "text": selected[0]}
 
 
 def collect(scratch, simulator, started, exit_code):
@@ -102,7 +145,7 @@ def collect(scratch, simulator, started, exit_code):
         except OSError as error:
             result["exportError"] = type(error).__name__
     if simulator and time.monotonic() < deadline:
-        predicate = ('process == "AppChecks" OR eventMessage CONTAINS "' + BUNDLE + '"')
+        predicate = ('process == "' + PROCESS + '" OR eventMessage CONTAINS "' + BUNDLE + '"')
         try:
             item = command(["xcrun", "simctl", "spawn", simulator, "log", "show", "--last", "35m",
                             "--style", "ndjson", "--predicate", predicate], timeout=15)
@@ -131,7 +174,8 @@ def collect(scratch, simulator, started, exit_code):
                 if scanned > 1000:
                     break
                 try:
-                    report = report_matches(Path(directory) / name, started)
+                    report = report_matches(Path(directory) / name, started,
+                                            allow_jetsam=root != Path.home() / "Library/Logs/DiagnosticReports")
                     if report and report["sha256"] not in seen:
                         seen.add(report["sha256"])
                         result["reports"].append(report)
