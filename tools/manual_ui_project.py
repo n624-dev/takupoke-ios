@@ -44,9 +44,9 @@ def coordinator(text):
         }
 ''')
     text = once(text, '                preview = RecoveryPreview(document:draft.document,result:result,source:source)',
-                '                SimulatorManualFixture.trace("stage=manual-preview-ready")\n                preview = RecoveryPreview(document:draft.document,result:result,source:source)')
+                '                if SimulatorManualFixture.enabled { SimulatorManualFixture.trace("stage=manual-preview-ready") }\n                preview = RecoveryPreview(document:draft.document,result:result,source:source)')
     text = once(text, '                manualDraft = nil; manualImages = [:]; pendingDocument = nil; pendingPages = nil; self.source = nil',
-                '                SimulatorManualFixture.failed(error)\n                manualDraft = nil; manualImages = [:]; pendingDocument = nil; pendingPages = nil; self.source = nil')
+                '                if SimulatorManualFixture.enabled { SimulatorManualFixture.failed(error) }\n                manualDraft = nil; manualImages = [:]; pendingDocument = nil; pendingPages = nil; self.source = nil')
     return text
 
 

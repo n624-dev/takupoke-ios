@@ -5,9 +5,14 @@ enum SimulatorManualFixture {
     static let processIdentity = UUID().uuidString
     private static var eventCount = 0
     static func event(_ kind:String,id:String,old:String,new:String) {
+        guard enabled else { return }
         eventCount += 1
         guard eventCount <= 64 else {
-            if eventCount == 65 { print("TAKUPOKE-MANUAL-EVENT limited=64") }
+            if eventCount == 65 {
+                let previous=UserDefaults.standard.string(forKey:"fixture.manualEvents") ?? ""
+                UserDefaults.standard.set(previous+"limited=64\n",forKey:"fixture.manualEvents")
+                print("TAKUPOKE-MANUAL-EVENT limited=64")
+            }
             return
         }
         func digest(_ text:String) -> String { SHA256.hash(data:Data(text.utf8)).map { String(format:"%02x",$0) }.joined() }

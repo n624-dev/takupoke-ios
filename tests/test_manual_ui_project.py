@@ -12,6 +12,20 @@ class ManualUIProjectTests(unittest.TestCase):
         for text in ("", "marker marker"):
             with self.assertRaises(ValueError): module.once(text,"marker","new")
 
+    def test_binding_diagnostics_are_opt_in_hashed_and_explicitly_truncated(self):
+        fixture=(ROOT/"tests/ui/ManualAssistanceFixture.swift").read_text(encoding="utf-8")
+        event=fixture.split('    static func event(',1)[1].split('    static var enabled:',1)[0]
+        self.assertLess(event.index('guard enabled else { return }'),event.index('eventCount += 1'))
+        self.assertIn('guard eventCount <= 64 else',event)
+        self.assertIn('if eventCount == 65',event)
+        self.assertIn('previous+"limited=64\\n"',event)
+        self.assertIn('SHA256.hash(data:Data(text.utf8))',event)
+        self.assertNotIn('old=\\(old)',event)
+        self.assertNotIn('new=\\(new)',event)
+        checks=(ROOT/"tests/ui/ManualAssistanceChecks.swift").read_text(encoding="utf-8")
+        self.assertIn('XCTAssertEqual(app.staticTexts["manual-process-launch"].firstMatch.label,processBefore',checks)
+        self.assertIn('XCTAssertEqual(header.label,"採用する資料全体",app.debugDescription)',checks)
+
     def test_coordinator_preserves_actual_submit_adopt_and_source_guards(self):
         original=(ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8")
         changed=module.coordinator(original)
@@ -19,7 +33,10 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('acknowledged == Set(draft.fields.map',changed)
         self.assertIn('selectedSourceIsCurrent',changed)
         self.assertIn('ApplicationData.shared.materials.adoptRecovery(preview)',changed)
-        self.assertEqual(changed.count('if SimulatorManualFixture.enabled'),1)
+        self.assertEqual(changed.count('if SimulatorManualFixture.enabled'),3)
+        self.assertEqual(changed.count('            cancel(); failure = nil; running = true'),1)
+        self.assertIn('if SimulatorManualFixture.enabled { SimulatorManualFixture.trace("stage=manual-preview-ready") }',changed)
+        self.assertIn('if SimulatorManualFixture.enabled { SimulatorManualFixture.failed(error) }',changed)
 
     def test_view_identifiers_do_not_precheck_or_bypass_existing_disabled_gate(self):
         original=(ROOT/"Takupoke/PDFRecoveryView.swift").read_text(encoding="utf-8")
