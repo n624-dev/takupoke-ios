@@ -1,0 +1,97 @@
+{
+  "expectedExact3Streams": true,
+  "fullLogBytes": 2575574,
+  "fullLogSHA256": "9d79ba7112c3db8580b672a751e8c996c134099d492ba65547690d86c392a627",
+  "receipt": {
+    "acquisitionGuardFailure": true,
+    "additionalPixelOwnershipFailure": false,
+    "all40LiteralMatched": false,
+    "assessedLiteralMismatch": false,
+    "failureStage": "originalAcquisitionGuardGate",
+    "invalidLines": 0,
+    "literalUnassessed": true,
+    "rawBytes": 1670971,
+    "rawSHA256": "d3db548b6105506f956d1312c7aaf1b880ee078dca3da58861b9a7f4ed2a8736",
+    "readableRecoveryFailure": false,
+    "recordSequenceComplete": true,
+    "recordTypes": [
+      "inputImage",
+      "inputImage",
+      "regionPlan",
+      "environment",
+      "inputImage",
+      "region",
+      "inputImage",
+      "region",
+      "inputImage",
+      "region",
+      "inputImage",
+      "region",
+      "inputImage",
+      "region",
+      "inputImage",
+      "region",
+      "inputImage",
+      "region",
+      "outcome",
+      "literalAssessment",
+      "summary"
+    ],
+    "scope": "Transport/execution receipt only; no formal-quality or semantic-refusal award from execution success.",
+    "summary": {
+      "DocumentRequests": 0,
+      "analysesReturned": 0,
+      "attemptedRequests": 7,
+      "capturedRegions": 7,
+      "externalModelInvocations": 0,
+      "formalQuality": "UNASSESSED",
+      "formalStorageWrites": 0,
+      "manualAdopted": false,
+      "ordinaryPDFReaderCalled": true,
+      "plannedRequests": 7,
+      "returnedRequests": 7,
+      "type": "summary"
+    }
+  },
+  "recordTypes": [
+    "inputImage",
+    "inputImage",
+    "regionPlan",
+    "environment",
+    "inputImage",
+    "region",
+    "inputImage",
+    "region",
+    "inputImage",
+    "region",
+    "inputImage",
+    "region",
+    "inputImage",
+    "region",
+    "inputImage",
+    "region",
+    "inputImage",
+    "region",
+    "outcome",
+    "literalAssessment",
+    "summary"
+  ],
+  "runId": 37253601341,
+  "streams": [
+    {
+      "bytes": 1670971,
+      "key": "native/stdout",
+      "sha256": "d3db548b6105506f956d1312c7aaf1b880ee078dca3da58861b9a7f4ed2a8736"
+    },
+    {
+      "bytes": 0,
+      "key": "native/stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 49817,
+      "key": "metadata/execution",
+      "sha256": "83297a7b7d83c094c5874c0c3bc072e135ee798ceff175479258b55f7d6188f0"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "omissionReason": "Entire image-bearing inputImage lines excluded. No reconstructed/repaired native output records. Operational prerequisite only; recognition0/Analysis0.",
+  "omissions": [
+    {
+      "bytes": 130824,
+      "entireRecordOmitted": true,
+      "id": "actual-PDF-original-1x",
+      "imageMetadataWithoutPayload": {
+        "alphaInfo": 1,
+        "bitmapInfo": 16385,
+        "bitsPerComponent": 8,
+        "bitsPerPixel": 32,
+        "bytesPerRow": 14960,
+        "colorSpace": "kCGColorSpaceDeviceRGB",
+        "height": 800,
+        "originalPixelIdentityAssessedSeparatelyBeforeOCR": true,
+        "pngBytes": 96240,
+        "pngSHA256": "70a461f53566ff0e2c4c7c7cd2643cdbaceda68a72fe7e8223a66f3b26a8cc0e",
+        "providerBytes": 11968000,
+        "providerSHA256": "1802dcad05a58b5c14371c415e5cf3730ac416d126fa1509b78ec4ea5ef317a5",
+        "source_generated": true,
+        "width": 3740
+      },
+      "index": 0,
+      "sha256": "d156b92b49def0e9206e37d4b4b58ab9cb7ace58563f169e0ff38ce0aa53c624",
+      "type": "inputImage"
+    }
+  ],
+  "rawBytes": 132082,
+  "rawSHA256": "128f961703bcf0454e2d1842ade2971a2fe71e6edfc03bc4ad2b498cce9b2f40",
+  "selectedBytes": 1258,
+  "selectedSHA256": "655ed13a89a9f42bc380027fab7bec098110d80182686f6ba5683d437ee2a59c"
+}

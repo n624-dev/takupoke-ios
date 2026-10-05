@@ -1,0 +1,13 @@
+{
+  "LinuxJob": 111586026554,
+  "MacJob": 111586061127,
+  "bothOwnedCleanupSteps": "SUCCESS",
+  "newLocalPNGPDFfontFilesWrittenDuringAssessment": 0,
+  "publicFontBinaries": 0,
+  "publicInputImages": 0,
+  "publicPDFs": 0,
+  "scope": "Only this helper owned simulator and CI scratch cleanup; shared independent fixture owner directories are retained for parent-controlled final cleanup. Full fictional image-bearing raw remains local for approved deterministic host-only investigation.",
+  "sharedInputDirectory": "/tmp/ios-unlabeled-pdf-input-20261005",
+  "sharedInputOwner": "qualify_ios_high",
+  "sharedInputsDeletionDeferredToParent": true
+}

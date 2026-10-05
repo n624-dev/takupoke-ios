@@ -1,0 +1,112 @@
+{
+  "files": [
+    {
+      "bytes": 6098,
+      "path": "README.md",
+      "sha256": "c22175caac83a993c6a8aa67311e7f407bc29323baebfcc4dbd9874416e90cb1"
+    },
+    {
+      "bytes": 7722,
+      "path": "analyze.py",
+      "sha256": "d82d55fe9be42abac5c1bb18c4701fd4a78bff163afe79cdb1f90cd8f3587700"
+    },
+    {
+      "bytes": 644,
+      "path": "cleanup.json",
+      "sha256": "cd86ed4d82a16fe9e4a18ce6dcf83b0e65ac4c4514edea1a8d2630c3da28ac1b"
+    },
+    {
+      "bytes": 1585,
+      "path": "cohort-ledger.json",
+      "sha256": "1f1806ef41a90fd3adf3c0b28474767c18148fd0d0c310714250756045b1ea2b"
+    },
+    {
+      "bytes": 2268983,
+      "path": "derived-evidence.json",
+      "sha256": "81c9514b0ea1cc2872b53919ecbdc80dde9443ab6a48610106e8cc62e3b04390"
+    },
+    {
+      "bytes": 49817,
+      "path": "execution.json",
+      "sha256": "83297a7b7d83c094c5874c0c3bc072e135ee798ceff175479258b55f7d6188f0"
+    },
+    {
+      "bytes": 172446,
+      "path": "field-position-diagnostics.json",
+      "sha256": "ed4fadcf260d00af37fa67376a80f36c08f39b394be5a35c03ff20222da1a166"
+    },
+    {
+      "bytes": 830,
+      "path": "initial-preparation-failure.json",
+      "sha256": "9709bad9d37e62bd6c5cd25d6be92575e728635262cbff85b1f0c5cdcd8d5c5a"
+    },
+    {
+      "bytes": 10127,
+      "path": "input-metadata.json",
+      "sha256": "25fab526bac596b25b68d85c3c20c83373b3e48a496c29f97ba9267804229e8b"
+    },
+    {
+      "bytes": 3228,
+      "path": "input-pixel-proof.json",
+      "sha256": "a88ce8b7784531e945107609291e9b2ac648e3f29b405ceb14d0b51bd71e52c7"
+    },
+    {
+      "bytes": 49510,
+      "path": "orientation-attempt-execution.json",
+      "sha256": "da748f76ad6d2aded5f04053e5ba9f1196266f09076f1e4bf2039b969b71f6e5"
+    },
+    {
+      "bytes": 1093,
+      "path": "orientation-attempt-pixel-proof.json",
+      "sha256": "dc4f4bedc580c7b92c79ae7123f69c362d75c1c6fc0f24f17855da080bb82f6f"
+    },
+    {
+      "bytes": 1827,
+      "path": "orientation-attempt-restoration.json",
+      "sha256": "fbabb8bb771d8fd0596f5b13cd5660cef8ed3e55ccfaa5891dec62f1c4be6ec3"
+    },
+    {
+      "bytes": 1283,
+      "path": "orientation-attempt-sanitize.json",
+      "sha256": "c1266c8fcd82271d6716ced84cf2db55eafb1e899a88b3fc663e286ce3c006bc"
+    },
+    {
+      "bytes": 1188,
+      "path": "orientation-attempt-selected-raw.json",
+      "sha256": "f8c947ae3944df8490b272319a50efcad51c486722f469d4787eb3d3287b72a0"
+    },
+    {
+      "bytes": 45235,
+      "path": "posthoc-drawing.json",
+      "sha256": "89fbc8dd00978bad541fe0255c3c7fed15ad0f0f0856ea68b809e36ec0db177a"
+    },
+    {
+      "bytes": 3000,
+      "path": "publication-sanitize.json",
+      "sha256": "3f059a09dd98bad24dba1d76bd0f841d9c92ca68367df63be80e91cdac1e7ec6"
+    },
+    {
+      "bytes": 108432,
+      "path": "raw-observations.json",
+      "sha256": "26534ce5170d2c3afaa6664c4fdbcec9688a8f5a80eb40ae942d3e8f43df0699"
+    },
+    {
+      "bytes": 1698,
+      "path": "restore.py",
+      "sha256": "ef7a0b6b00b98bdc2fdb85f9b9f9620b71044c6ec5255c2de6c0c7dae1a94ab4"
+    },
+    {
+      "bytes": 334,
+      "path": "selected-reproduction.json",
+      "sha256": "47ace508c26a7ab7a070e7a9954326b5ead9fbf98138cd9f89b64e01aa43cf3b"
+    },
+    {
+      "bytes": 2414,
+      "path": "transport-restoration.json",
+      "sha256": "406918727391fd3cde2d9bd7f973b22df9c7a7b4f05044f465378935e19ab68b"
+    }
+  ],
+  "runId": 37253601341,
+  "scope": "Data-only publication; no native trigger, public source and JSON observations only.",
+  "sourceCommit": "81d8cb0c94c4d2b40822034488404bdba5ba1412"
+}

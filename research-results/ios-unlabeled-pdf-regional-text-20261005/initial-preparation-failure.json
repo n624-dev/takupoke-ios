@@ -1,0 +1,24 @@
+{
+  "FreeTypeOrZlibActualVersions": "NOT_CAPTURED",
+  "OCRCalls": 0,
+  "ReaderCalls": 0,
+  "actualSDKCompilation": "SKIPPED",
+  "cleanup": "SUCCESS",
+  "compressionVersusGlyphCause": "UNKNOWN",
+  "failure": "Frozen generator rendered PNG pin mismatch",
+  "fullJobLogBytes": 54890,
+  "fullJobLogSHA256": "1c91954e22a5ad62cac6983138de48fc5b764992957b166c8695e7917efb97b2",
+  "jobId": 111582086334,
+  "knownActualRuntime": {
+    "Pillow": "12.3.0",
+    "PyMuPDF": "1.26.6",
+    "Python": "3.14.7"
+  },
+  "modelCalls": 0,
+  "nextFix": "Generate same frozen PDF on provenLinux3.12; bounded transient3part transport; noMacfontredrawing or input changes",
+  "pinsRelaxed": false,
+  "quality": "UNASSESSED",
+  "runId": 37252243938,
+  "sourceCommit": "21e9b4afc9f58372ee9d1c257c4107355d8c656a",
+  "stage": "sourceGenerationPrerequisite"
+}

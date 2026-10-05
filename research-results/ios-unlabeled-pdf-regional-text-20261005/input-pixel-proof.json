@@ -1,0 +1,105 @@
+{
+  "records": [
+    {
+      "PNGDecodeRGBAEqualsActualProviderBytes": true,
+      "allPixelsOpaque": true,
+      "decodedRGBABytes": 11968000,
+      "decodedRGBA_SHA256": "1840402f64f9e0343c414fa23d1d27f7528f9b225a66cd93a35c57d2e102f0df",
+      "dimensions": [
+        3740,
+        800
+      ],
+      "id": "actual-PDF-original-1x",
+      "originalConservativeGraySHA256": "3e6f962a25dc7efefa89551329fa09aeff88806b9396b806f4e56a3ca70ecd94"
+    },
+    {
+      "PNGDecodeRGBAEqualsActualProviderBytes": true,
+      "allPixelsOpaque": true,
+      "decodedRGBABytes": 3596288,
+      "decodedRGBA_SHA256": "3e3bbae61ad259fc579d0b9d3729d0650a5fd2db59dc5999dae18d7e9dc73081",
+      "dimensions": [
+        2048,
+        439
+      ],
+      "id": "actual-PDF-coarse-rails-only"
+    },
+    {
+      "PNGDecodeRGBAEqualsActualProviderBytes": true,
+      "allPixelsOpaque": true,
+      "decodedRGBABytes": 1948800,
+      "decodedRGBA_SHA256": "4ecbcb94bf7153d1dbd16c4e4de8c9ea297f6406b2cf0dfae9c88fdca454c9ee",
+      "dimensions": [
+        1450,
+        336
+      ],
+      "id": "measured-strip-0"
+    },
+    {
+      "PNGDecodeRGBAEqualsActualProviderBytes": true,
+      "allPixelsOpaque": true,
+      "decodedRGBABytes": 1946112,
+      "decodedRGBA_SHA256": "0cee71c1e46ac04a04d70059d0598aca165a99f250f4d94638835489688c7a0f",
+      "dimensions": [
+        1448,
+        336
+      ],
+      "id": "measured-strip-1"
+    },
+    {
+      "PNGDecodeRGBAEqualsActualProviderBytes": true,
+      "allPixelsOpaque": true,
+      "decodedRGBABytes": 1948800,
+      "decodedRGBA_SHA256": "ce8853c78b69fa297978b3bdc5754a3f0b3913c7496a878eefacc2ba3ce7f263",
+      "dimensions": [
+        1450,
+        336
+      ],
+      "id": "measured-strip-2"
+    },
+    {
+      "PNGDecodeRGBAEqualsActualProviderBytes": true,
+      "allPixelsOpaque": true,
+      "decodedRGBABytes": 1951488,
+      "decodedRGBA_SHA256": "c92e53bb7f165b9aa46f5856b03a0f4739ecbea659dcb3c376339055c8f2d4d3",
+      "dimensions": [
+        1452,
+        336
+      ],
+      "id": "measured-strip-3"
+    },
+    {
+      "PNGDecodeRGBAEqualsActualProviderBytes": true,
+      "allPixelsOpaque": true,
+      "decodedRGBABytes": 1946112,
+      "decodedRGBA_SHA256": "aa9e735eeb0ced1080dbdedc0fef80907f6392dc6417f9cd15f37de3a114eb43",
+      "dimensions": [
+        1448,
+        336
+      ],
+      "id": "measured-strip-4"
+    },
+    {
+      "PNGDecodeRGBAEqualsActualProviderBytes": true,
+      "allPixelsOpaque": true,
+      "decodedRGBABytes": 330624,
+      "decodedRGBA_SHA256": "f89c3df950b2d155c5d767eb2ae41ec58d8c22fdd94b8185ac29a82741ff51cf",
+      "dimensions": [
+        246,
+        336
+      ],
+      "id": "measured-left-margin"
+    },
+    {
+      "PNGDecodeRGBAEqualsActualProviderBytes": true,
+      "allPixelsOpaque": true,
+      "decodedRGBABytes": 197760,
+      "decodedRGBA_SHA256": "f1736ffb27358d1546d85b416d6288dd4dcaa545a08458b59d945b5022d7f1d4",
+      "dimensions": [
+        1030,
+        48
+      ],
+      "id": "measured-upper-ink"
+    }
+  ],
+  "scope": "All nine native PNGs decoded in memory only, exact opaque RGBA/provider equality. Source image detail is 1x, direct PDF region2x is interpolation and adds no source detail. No newly written PNG/PDF/font files."
+}

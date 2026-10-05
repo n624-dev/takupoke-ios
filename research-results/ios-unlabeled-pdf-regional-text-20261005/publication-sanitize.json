@@ -1,0 +1,92 @@
+{
+  "omittedEntireRecords": [
+    {
+      "bytesIncludingNewline": 132713,
+      "id": "actual-PDF-original-1x",
+      "rawLineIndexZeroBased": 0,
+      "sha256IncludingNewline": "8f93a8faae0268955afa1b3f0c7ea9b6c3da43fd51e2887dfa6ba32a1387ebe1",
+      "type": "inputImage"
+    },
+    {
+      "bytesIncludingNewline": 110196,
+      "id": "actual-PDF-coarse-rails-only",
+      "rawLineIndexZeroBased": 1,
+      "sha256IncludingNewline": "debaf0d8255f7fabb507d04345563afa3a5f349394acbaa9135d5969a71a9ae6",
+      "type": "inputImage"
+    },
+    {
+      "bytesIncludingNewline": 88347,
+      "id": "measured-strip-0",
+      "rawLineIndexZeroBased": 4,
+      "sha256IncludingNewline": "7537d3b472d6e0acd58e5d1f8e78e6478a35044cd403f8df3d9f0011f8dbf214",
+      "type": "inputImage"
+    },
+    {
+      "bytesIncludingNewline": 87498,
+      "id": "measured-strip-1",
+      "rawLineIndexZeroBased": 6,
+      "sha256IncludingNewline": "b02ad1051fbef510a1078d535842cc33cbc44a7c2956248eaed900cb612c7742",
+      "type": "inputImage"
+    },
+    {
+      "bytesIncludingNewline": 87086,
+      "id": "measured-strip-2",
+      "rawLineIndexZeroBased": 8,
+      "sha256IncludingNewline": "0aa47ee2f81383ed8fd83e85e6d94488d2730355400293a40771853159acc2de",
+      "type": "inputImage"
+    },
+    {
+      "bytesIncludingNewline": 91716,
+      "id": "measured-strip-3",
+      "rawLineIndexZeroBased": 10,
+      "sha256IncludingNewline": "5af212730b8a0b3221e1320c713b907ff9d1570d48b7b3decf932a5de1b7b1e4",
+      "type": "inputImage"
+    },
+    {
+      "bytesIncludingNewline": 90198,
+      "id": "measured-strip-4",
+      "rawLineIndexZeroBased": 12,
+      "sha256IncludingNewline": "b808032fc4c66ff6da251d3116860c8d382f36888a1cb1afb08c44ae4d22a738",
+      "type": "inputImage"
+    },
+    {
+      "bytesIncludingNewline": 7351,
+      "id": "measured-left-margin",
+      "rawLineIndexZeroBased": 14,
+      "sha256IncludingNewline": "0c3608657cf1e7f605736dd0f5a50d1f34437c9d900de03597dfa85129fc053a",
+      "type": "inputImage"
+    },
+    {
+      "bytesIncludingNewline": 21869,
+      "id": "measured-upper-ink",
+      "rawLineIndexZeroBased": 16,
+      "sha256IncludingNewline": "6616b9bdcf72b2d0e560180fdc8f3142246694635d1c9104b00c74115b6fbee0",
+      "type": "inputImage"
+    }
+  ],
+  "publicFontBinaries": 0,
+  "publicImagePayloads": 0,
+  "publicPDFPayloads": 0,
+  "rawBytes": 1670971,
+  "rawSHA256": "d3db548b6105506f956d1312c7aaf1b880ee078dca3da58861b9a7f4ed2a8736",
+  "reason": "Entire image-bearing inputImage records excluded. Selected lines preserve original bytes/order/newlines. Full job log is local-only because transient job-output PDF transport is present.",
+  "retainedRawLineIndexes": [
+    2,
+    3,
+    5,
+    7,
+    9,
+    11,
+    13,
+    15,
+    17,
+    18,
+    19,
+    20
+  ],
+  "retainedRecords": 12,
+  "runId": 37253601341,
+  "selectedBytes": 953997,
+  "selectedSHA256": "35edf2b1f9fc6570ddd8a425f5840c3c138d3bf231f1e29ed6f38b6ec38ac465",
+  "sourceCommit": "81d8cb0c94c4d2b40822034488404bdba5ba1412"
+}

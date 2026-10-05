@@ -1,0 +1,7 @@
+{
+  "derivedSHA256": "81c9514b0ea1cc2872b53919ecbdc80dde9443ab6a48610106e8cc62e3b04390",
+  "imageRecordsRequiredForDerived": false,
+  "selectedAnalyzerReproducesOriginalDerivedByteExactly": true,
+  "selectedRawPreservesOriginalLineBytes": true,
+  "selectedSHA256": "35edf2b1f9fc6570ddd8a425f5840c3c138d3bf231f1e29ed6f38b6ec38ac465"
+}

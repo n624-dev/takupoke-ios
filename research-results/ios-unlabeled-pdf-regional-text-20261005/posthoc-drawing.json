@@ -1,0 +1,2898 @@
+{
+  "posthocOnly": true,
+  "records": [
+    {
+      "id": "year",
+      "kind": "year",
+      "pixelPrintedBox": [
+        20,
+        2,
+        280,
+        50
+      ],
+      "rawText": "令和14年度",
+      "sourceInkBox": [
+        98,
+        13,
+        202,
+        33
+      ]
+    },
+    {
+      "id": "term",
+      "kind": "term",
+      "pixelPrintedBox": [
+        310,
+        2,
+        430,
+        50
+      ],
+      "rawText": "前期",
+      "sourceInkBox": [
+        351,
+        13,
+        389,
+        33
+      ]
+    },
+    {
+      "id": "title",
+      "kind": "title",
+      "pixelPrintedBox": [
+        480,
+        2,
+        680,
+        50
+      ],
+      "rawText": "時間割",
+      "sourceInkBox": [
+        551,
+        13,
+        609,
+        33
+      ]
+    },
+    {
+      "id": "grade",
+      "kind": "grade",
+      "pixelPrintedBox": [
+        20,
+        136,
+        60,
+        232
+      ],
+      "rawText": "1",
+      "sourceInkBox": [
+        35,
+        171,
+        44,
+        186
+      ]
+    },
+    {
+      "id": "class",
+      "kind": "class",
+      "pixelPrintedBox": [
+        60,
+        136,
+        120,
+        232
+      ],
+      "rawText": "2",
+      "sourceInkBox": [
+        84,
+        171,
+        95,
+        186
+      ]
+    },
+    {
+      "id": "day-0",
+      "kind": "day",
+      "pixelPrintedBox": [
+        120,
+        70,
+        840,
+        104
+      ],
+      "rawText": "月曜日",
+      "sourceInkBox": [
+        450,
+        74,
+        507,
+        93
+      ]
+    },
+    {
+      "id": "period-0-1",
+      "kind": "period",
+      "pixelPrintedBox": [
+        120,
+        104,
+        210,
+        136
+      ],
+      "rawText": "1",
+      "sourceInkBox": [
+        160,
+        107,
+        169,
+        122
+      ]
+    },
+    {
+      "id": "period-0-2",
+      "kind": "period",
+      "pixelPrintedBox": [
+        210,
+        104,
+        300,
+        136
+      ],
+      "rawText": "2",
+      "sourceInkBox": [
+        249,
+        107,
+        260,
+        122
+      ]
+    },
+    {
+      "id": "period-0-3",
+      "kind": "period",
+      "pixelPrintedBox": [
+        300,
+        104,
+        390,
+        136
+      ],
+      "rawText": "3",
+      "sourceInkBox": [
+        339,
+        107,
+        349,
+        122
+      ]
+    },
+    {
+      "id": "period-0-4",
+      "kind": "period",
+      "pixelPrintedBox": [
+        390,
+        104,
+        480,
+        136
+      ],
+      "rawText": "4",
+      "sourceInkBox": [
+        429,
+        107,
+        440,
+        122
+      ]
+    },
+    {
+      "id": "period-0-5",
+      "kind": "period",
+      "pixelPrintedBox": [
+        480,
+        104,
+        570,
+        136
+      ],
+      "rawText": "5",
+      "sourceInkBox": [
+        519,
+        107,
+        530,
+        122
+      ]
+    },
+    {
+      "id": "period-0-6",
+      "kind": "period",
+      "pixelPrintedBox": [
+        570,
+        104,
+        660,
+        136
+      ],
+      "rawText": "6",
+      "sourceInkBox": [
+        610,
+        107,
+        620,
+        122
+      ]
+    },
+    {
+      "id": "period-0-7",
+      "kind": "period",
+      "pixelPrintedBox": [
+        660,
+        104,
+        750,
+        136
+      ],
+      "rawText": "7",
+      "sourceInkBox": [
+        699,
+        107,
+        710,
+        122
+      ]
+    },
+    {
+      "id": "period-0-8",
+      "kind": "period",
+      "pixelPrintedBox": [
+        750,
+        104,
+        840,
+        136
+      ],
+      "rawText": "8",
+      "sourceInkBox": [
+        789,
+        107,
+        800,
+        122
+      ]
+    },
+    {
+      "id": "day-1",
+      "kind": "day",
+      "pixelPrintedBox": [
+        840,
+        70,
+        1560,
+        104
+      ],
+      "rawText": "火曜日",
+      "sourceInkBox": [
+        1171,
+        74,
+        1227,
+        93
+      ]
+    },
+    {
+      "id": "period-1-1",
+      "kind": "period",
+      "pixelPrintedBox": [
+        840,
+        104,
+        930,
+        136
+      ],
+      "rawText": "1",
+      "sourceInkBox": [
+        880,
+        107,
+        889,
+        122
+      ]
+    },
+    {
+      "id": "period-1-2",
+      "kind": "period",
+      "pixelPrintedBox": [
+        930,
+        104,
+        1020,
+        136
+      ],
+      "rawText": "2",
+      "sourceInkBox": [
+        969,
+        107,
+        980,
+        122
+      ]
+    },
+    {
+      "id": "period-1-3",
+      "kind": "period",
+      "pixelPrintedBox": [
+        1020,
+        104,
+        1110,
+        136
+      ],
+      "rawText": "3",
+      "sourceInkBox": [
+        1059,
+        107,
+        1069,
+        122
+      ]
+    },
+    {
+      "id": "period-1-4",
+      "kind": "period",
+      "pixelPrintedBox": [
+        1110,
+        104,
+        1200,
+        136
+      ],
+      "rawText": "4",
+      "sourceInkBox": [
+        1149,
+        107,
+        1160,
+        122
+      ]
+    },
+    {
+      "id": "period-1-5",
+      "kind": "period",
+      "pixelPrintedBox": [
+        1200,
+        104,
+        1290,
+        136
+      ],
+      "rawText": "5",
+      "sourceInkBox": [
+        1239,
+        107,
+        1250,
+        122
+      ]
+    },
+    {
+      "id": "period-1-6",
+      "kind": "period",
+      "pixelPrintedBox": [
+        1290,
+        104,
+        1380,
+        136
+      ],
+      "rawText": "6",
+      "sourceInkBox": [
+        1330,
+        107,
+        1340,
+        122
+      ]
+    },
+    {
+      "id": "period-1-7",
+      "kind": "period",
+      "pixelPrintedBox": [
+        1380,
+        104,
+        1470,
+        136
+      ],
+      "rawText": "7",
+      "sourceInkBox": [
+        1419,
+        107,
+        1430,
+        122
+      ]
+    },
+    {
+      "id": "period-1-8",
+      "kind": "period",
+      "pixelPrintedBox": [
+        1470,
+        104,
+        1560,
+        136
+      ],
+      "rawText": "8",
+      "sourceInkBox": [
+        1509,
+        107,
+        1520,
+        122
+      ]
+    },
+    {
+      "id": "day-2",
+      "kind": "day",
+      "pixelPrintedBox": [
+        1560,
+        70,
+        2280,
+        104
+      ],
+      "rawText": "水曜日",
+      "sourceInkBox": [
+        1890,
+        74,
+        1947,
+        94
+      ]
+    },
+    {
+      "id": "period-2-1",
+      "kind": "period",
+      "pixelPrintedBox": [
+        1560,
+        104,
+        1650,
+        136
+      ],
+      "rawText": "1",
+      "sourceInkBox": [
+        1600,
+        107,
+        1609,
+        122
+      ]
+    },
+    {
+      "id": "period-2-2",
+      "kind": "period",
+      "pixelPrintedBox": [
+        1650,
+        104,
+        1740,
+        136
+      ],
+      "rawText": "2",
+      "sourceInkBox": [
+        1689,
+        107,
+        1700,
+        122
+      ]
+    },
+    {
+      "id": "period-2-3",
+      "kind": "period",
+      "pixelPrintedBox": [
+        1740,
+        104,
+        1830,
+        136
+      ],
+      "rawText": "3",
+      "sourceInkBox": [
+        1779,
+        107,
+        1789,
+        122
+      ]
+    },
+    {
+      "id": "period-2-4",
+      "kind": "period",
+      "pixelPrintedBox": [
+        1830,
+        104,
+        1920,
+        136
+      ],
+      "rawText": "4",
+      "sourceInkBox": [
+        1869,
+        107,
+        1880,
+        122
+      ]
+    },
+    {
+      "id": "period-2-5",
+      "kind": "period",
+      "pixelPrintedBox": [
+        1920,
+        104,
+        2010,
+        136
+      ],
+      "rawText": "5",
+      "sourceInkBox": [
+        1959,
+        107,
+        1970,
+        122
+      ]
+    },
+    {
+      "id": "period-2-6",
+      "kind": "period",
+      "pixelPrintedBox": [
+        2010,
+        104,
+        2100,
+        136
+      ],
+      "rawText": "6",
+      "sourceInkBox": [
+        2050,
+        107,
+        2060,
+        122
+      ]
+    },
+    {
+      "id": "period-2-7",
+      "kind": "period",
+      "pixelPrintedBox": [
+        2100,
+        104,
+        2190,
+        136
+      ],
+      "rawText": "7",
+      "sourceInkBox": [
+        2139,
+        107,
+        2150,
+        122
+      ]
+    },
+    {
+      "id": "period-2-8",
+      "kind": "period",
+      "pixelPrintedBox": [
+        2190,
+        104,
+        2280,
+        136
+      ],
+      "rawText": "8",
+      "sourceInkBox": [
+        2229,
+        107,
+        2240,
+        122
+      ]
+    },
+    {
+      "id": "day-3",
+      "kind": "day",
+      "pixelPrintedBox": [
+        2280,
+        70,
+        3000,
+        104
+      ],
+      "rawText": "木曜日",
+      "sourceInkBox": [
+        2610,
+        74,
+        2667,
+        94
+      ]
+    },
+    {
+      "id": "period-3-1",
+      "kind": "period",
+      "pixelPrintedBox": [
+        2280,
+        104,
+        2370,
+        136
+      ],
+      "rawText": "1",
+      "sourceInkBox": [
+        2320,
+        107,
+        2329,
+        122
+      ]
+    },
+    {
+      "id": "period-3-2",
+      "kind": "period",
+      "pixelPrintedBox": [
+        2370,
+        104,
+        2460,
+        136
+      ],
+      "rawText": "2",
+      "sourceInkBox": [
+        2409,
+        107,
+        2420,
+        122
+      ]
+    },
+    {
+      "id": "period-3-3",
+      "kind": "period",
+      "pixelPrintedBox": [
+        2460,
+        104,
+        2550,
+        136
+      ],
+      "rawText": "3",
+      "sourceInkBox": [
+        2499,
+        107,
+        2509,
+        122
+      ]
+    },
+    {
+      "id": "period-3-4",
+      "kind": "period",
+      "pixelPrintedBox": [
+        2550,
+        104,
+        2640,
+        136
+      ],
+      "rawText": "4",
+      "sourceInkBox": [
+        2589,
+        107,
+        2600,
+        122
+      ]
+    },
+    {
+      "id": "period-3-5",
+      "kind": "period",
+      "pixelPrintedBox": [
+        2640,
+        104,
+        2730,
+        136
+      ],
+      "rawText": "5",
+      "sourceInkBox": [
+        2679,
+        107,
+        2690,
+        122
+      ]
+    },
+    {
+      "id": "period-3-6",
+      "kind": "period",
+      "pixelPrintedBox": [
+        2730,
+        104,
+        2820,
+        136
+      ],
+      "rawText": "6",
+      "sourceInkBox": [
+        2770,
+        107,
+        2780,
+        122
+      ]
+    },
+    {
+      "id": "period-3-7",
+      "kind": "period",
+      "pixelPrintedBox": [
+        2820,
+        104,
+        2910,
+        136
+      ],
+      "rawText": "7",
+      "sourceInkBox": [
+        2859,
+        107,
+        2870,
+        122
+      ]
+    },
+    {
+      "id": "period-3-8",
+      "kind": "period",
+      "pixelPrintedBox": [
+        2910,
+        104,
+        3000,
+        136
+      ],
+      "rawText": "8",
+      "sourceInkBox": [
+        2949,
+        107,
+        2960,
+        122
+      ]
+    },
+    {
+      "id": "day-4",
+      "kind": "day",
+      "pixelPrintedBox": [
+        3000,
+        70,
+        3720,
+        104
+      ],
+      "rawText": "金曜日",
+      "sourceInkBox": [
+        3330,
+        74,
+        3387,
+        93
+      ]
+    },
+    {
+      "id": "period-4-1",
+      "kind": "period",
+      "pixelPrintedBox": [
+        3000,
+        104,
+        3090,
+        136
+      ],
+      "rawText": "1",
+      "sourceInkBox": [
+        3040,
+        107,
+        3049,
+        122
+      ]
+    },
+    {
+      "id": "period-4-2",
+      "kind": "period",
+      "pixelPrintedBox": [
+        3090,
+        104,
+        3180,
+        136
+      ],
+      "rawText": "2",
+      "sourceInkBox": [
+        3129,
+        107,
+        3140,
+        122
+      ]
+    },
+    {
+      "id": "period-4-3",
+      "kind": "period",
+      "pixelPrintedBox": [
+        3180,
+        104,
+        3270,
+        136
+      ],
+      "rawText": "3",
+      "sourceInkBox": [
+        3219,
+        107,
+        3229,
+        122
+      ]
+    },
+    {
+      "id": "period-4-4",
+      "kind": "period",
+      "pixelPrintedBox": [
+        3270,
+        104,
+        3360,
+        136
+      ],
+      "rawText": "4",
+      "sourceInkBox": [
+        3309,
+        107,
+        3320,
+        122
+      ]
+    },
+    {
+      "id": "period-4-5",
+      "kind": "period",
+      "pixelPrintedBox": [
+        3360,
+        104,
+        3450,
+        136
+      ],
+      "rawText": "5",
+      "sourceInkBox": [
+        3399,
+        107,
+        3410,
+        122
+      ]
+    },
+    {
+      "id": "period-4-6",
+      "kind": "period",
+      "pixelPrintedBox": [
+        3450,
+        104,
+        3540,
+        136
+      ],
+      "rawText": "6",
+      "sourceInkBox": [
+        3490,
+        107,
+        3500,
+        122
+      ]
+    },
+    {
+      "id": "period-4-7",
+      "kind": "period",
+      "pixelPrintedBox": [
+        3540,
+        104,
+        3630,
+        136
+      ],
+      "rawText": "7",
+      "sourceInkBox": [
+        3579,
+        107,
+        3590,
+        122
+      ]
+    },
+    {
+      "id": "period-4-8",
+      "kind": "period",
+      "pixelPrintedBox": [
+        3630,
+        104,
+        3720,
+        136
+      ],
+      "rawText": "8",
+      "sourceInkBox": [
+        3669,
+        107,
+        3680,
+        122
+      ]
+    },
+    {
+      "id": "body-0-1-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        120,
+        136,
+        210,
+        168
+      ],
+      "rawText": "図研01",
+      "sourceInkBox": [
+        134,
+        139,
+        195,
+        158
+      ]
+    },
+    {
+      "id": "body-0-1-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        120,
+        168,
+        210,
+        200
+      ],
+      "rawText": "試師01",
+      "sourceInkBox": [
+        133,
+        171,
+        195,
+        191
+      ]
+    },
+    {
+      "id": "body-0-1-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        120,
+        200,
+        210,
+        232
+      ],
+      "rawText": "試域01",
+      "sourceInkBox": [
+        133,
+        203,
+        195,
+        223
+      ]
+    },
+    {
+      "id": "body-0-2-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        210,
+        136,
+        300,
+        168
+      ],
+      "rawText": "図研02",
+      "sourceInkBox": [
+        224,
+        139,
+        286,
+        158
+      ]
+    },
+    {
+      "id": "body-0-2-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        210,
+        168,
+        300,
+        200
+      ],
+      "rawText": "試師02",
+      "sourceInkBox": [
+        223,
+        171,
+        286,
+        191
+      ]
+    },
+    {
+      "id": "body-0-2-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        210,
+        200,
+        300,
+        232
+      ],
+      "rawText": "試域02",
+      "sourceInkBox": [
+        223,
+        203,
+        286,
+        223
+      ]
+    },
+    {
+      "id": "body-0-3-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        300,
+        136,
+        390,
+        168
+      ],
+      "rawText": "図研03",
+      "sourceInkBox": [
+        314,
+        139,
+        375,
+        158
+      ]
+    },
+    {
+      "id": "body-0-3-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        300,
+        168,
+        390,
+        200
+      ],
+      "rawText": "試師03",
+      "sourceInkBox": [
+        313,
+        171,
+        375,
+        191
+      ]
+    },
+    {
+      "id": "body-0-3-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        300,
+        200,
+        390,
+        232
+      ],
+      "rawText": "試域03",
+      "sourceInkBox": [
+        313,
+        203,
+        375,
+        223
+      ]
+    },
+    {
+      "id": "body-0-4-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        390,
+        136,
+        480,
+        168
+      ],
+      "rawText": "図研04",
+      "sourceInkBox": [
+        404,
+        139,
+        466,
+        158
+      ]
+    },
+    {
+      "id": "body-0-4-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        390,
+        168,
+        480,
+        200
+      ],
+      "rawText": "試師04",
+      "sourceInkBox": [
+        403,
+        171,
+        466,
+        191
+      ]
+    },
+    {
+      "id": "body-0-4-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        390,
+        200,
+        480,
+        232
+      ],
+      "rawText": "試域04",
+      "sourceInkBox": [
+        403,
+        203,
+        466,
+        223
+      ]
+    },
+    {
+      "id": "body-0-5-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        480,
+        136,
+        570,
+        168
+      ],
+      "rawText": "図研05",
+      "sourceInkBox": [
+        494,
+        139,
+        556,
+        158
+      ]
+    },
+    {
+      "id": "body-0-5-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        480,
+        168,
+        570,
+        200
+      ],
+      "rawText": "試師05",
+      "sourceInkBox": [
+        493,
+        171,
+        556,
+        191
+      ]
+    },
+    {
+      "id": "body-0-5-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        480,
+        200,
+        570,
+        232
+      ],
+      "rawText": "試域05",
+      "sourceInkBox": [
+        493,
+        203,
+        556,
+        223
+      ]
+    },
+    {
+      "id": "body-0-6-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        570,
+        136,
+        660,
+        168
+      ],
+      "rawText": "図研06",
+      "sourceInkBox": [
+        584,
+        139,
+        646,
+        158
+      ]
+    },
+    {
+      "id": "body-0-6-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        570,
+        168,
+        660,
+        200
+      ],
+      "rawText": "試師06",
+      "sourceInkBox": [
+        583,
+        171,
+        646,
+        191
+      ]
+    },
+    {
+      "id": "body-0-6-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        570,
+        200,
+        660,
+        232
+      ],
+      "rawText": "試域06",
+      "sourceInkBox": [
+        583,
+        203,
+        646,
+        223
+      ]
+    },
+    {
+      "id": "body-0-7-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        660,
+        136,
+        750,
+        168
+      ],
+      "rawText": "図研07",
+      "sourceInkBox": [
+        674,
+        139,
+        736,
+        158
+      ]
+    },
+    {
+      "id": "body-0-7-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        660,
+        168,
+        750,
+        200
+      ],
+      "rawText": "試師07",
+      "sourceInkBox": [
+        673,
+        171,
+        736,
+        191
+      ]
+    },
+    {
+      "id": "body-0-7-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        660,
+        200,
+        750,
+        232
+      ],
+      "rawText": "試域07",
+      "sourceInkBox": [
+        673,
+        203,
+        736,
+        223
+      ]
+    },
+    {
+      "id": "body-0-8-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        750,
+        136,
+        840,
+        168
+      ],
+      "rawText": "図研08",
+      "sourceInkBox": [
+        764,
+        139,
+        826,
+        158
+      ]
+    },
+    {
+      "id": "body-0-8-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        750,
+        168,
+        840,
+        200
+      ],
+      "rawText": "試師08",
+      "sourceInkBox": [
+        763,
+        171,
+        826,
+        191
+      ]
+    },
+    {
+      "id": "body-0-8-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        750,
+        200,
+        840,
+        232
+      ],
+      "rawText": "試域08",
+      "sourceInkBox": [
+        763,
+        203,
+        826,
+        223
+      ]
+    },
+    {
+      "id": "body-1-1-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        840,
+        136,
+        930,
+        168
+      ],
+      "rawText": "図研09",
+      "sourceInkBox": [
+        854,
+        139,
+        915,
+        158
+      ]
+    },
+    {
+      "id": "body-1-1-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        840,
+        168,
+        930,
+        200
+      ],
+      "rawText": "試師09",
+      "sourceInkBox": [
+        853,
+        171,
+        915,
+        191
+      ]
+    },
+    {
+      "id": "body-1-1-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        840,
+        200,
+        930,
+        232
+      ],
+      "rawText": "試域09",
+      "sourceInkBox": [
+        853,
+        203,
+        915,
+        223
+      ]
+    },
+    {
+      "id": "body-1-2-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        930,
+        136,
+        1020,
+        168
+      ],
+      "rawText": "図研10",
+      "sourceInkBox": [
+        944,
+        139,
+        1006,
+        158
+      ]
+    },
+    {
+      "id": "body-1-2-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        930,
+        168,
+        1020,
+        200
+      ],
+      "rawText": "試師10",
+      "sourceInkBox": [
+        943,
+        171,
+        1006,
+        191
+      ]
+    },
+    {
+      "id": "body-1-2-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        930,
+        200,
+        1020,
+        232
+      ],
+      "rawText": "試域10",
+      "sourceInkBox": [
+        943,
+        203,
+        1006,
+        223
+      ]
+    },
+    {
+      "id": "body-1-3-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1020,
+        136,
+        1110,
+        168
+      ],
+      "rawText": "図研11",
+      "sourceInkBox": [
+        1034,
+        139,
+        1095,
+        158
+      ]
+    },
+    {
+      "id": "body-1-3-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1020,
+        168,
+        1110,
+        200
+      ],
+      "rawText": "試師11",
+      "sourceInkBox": [
+        1033,
+        171,
+        1095,
+        191
+      ]
+    },
+    {
+      "id": "body-1-3-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1020,
+        200,
+        1110,
+        232
+      ],
+      "rawText": "試域11",
+      "sourceInkBox": [
+        1033,
+        203,
+        1095,
+        223
+      ]
+    },
+    {
+      "id": "body-1-4-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1110,
+        136,
+        1200,
+        168
+      ],
+      "rawText": "図研12",
+      "sourceInkBox": [
+        1124,
+        139,
+        1186,
+        158
+      ]
+    },
+    {
+      "id": "body-1-4-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1110,
+        168,
+        1200,
+        200
+      ],
+      "rawText": "試師12",
+      "sourceInkBox": [
+        1123,
+        171,
+        1186,
+        191
+      ]
+    },
+    {
+      "id": "body-1-4-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1110,
+        200,
+        1200,
+        232
+      ],
+      "rawText": "試域12",
+      "sourceInkBox": [
+        1123,
+        203,
+        1186,
+        223
+      ]
+    },
+    {
+      "id": "body-1-5-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1200,
+        136,
+        1290,
+        168
+      ],
+      "rawText": "図研13",
+      "sourceInkBox": [
+        1214,
+        139,
+        1275,
+        158
+      ]
+    },
+    {
+      "id": "body-1-5-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1200,
+        168,
+        1290,
+        200
+      ],
+      "rawText": "試師13",
+      "sourceInkBox": [
+        1213,
+        171,
+        1275,
+        191
+      ]
+    },
+    {
+      "id": "body-1-5-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1200,
+        200,
+        1290,
+        232
+      ],
+      "rawText": "試域13",
+      "sourceInkBox": [
+        1213,
+        203,
+        1275,
+        223
+      ]
+    },
+    {
+      "id": "body-1-6-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1290,
+        136,
+        1380,
+        168
+      ],
+      "rawText": "図研14",
+      "sourceInkBox": [
+        1304,
+        139,
+        1366,
+        158
+      ]
+    },
+    {
+      "id": "body-1-6-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1290,
+        168,
+        1380,
+        200
+      ],
+      "rawText": "試師14",
+      "sourceInkBox": [
+        1303,
+        171,
+        1366,
+        191
+      ]
+    },
+    {
+      "id": "body-1-6-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1290,
+        200,
+        1380,
+        232
+      ],
+      "rawText": "試域14",
+      "sourceInkBox": [
+        1303,
+        203,
+        1366,
+        223
+      ]
+    },
+    {
+      "id": "body-1-7-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1380,
+        136,
+        1470,
+        168
+      ],
+      "rawText": "図研15",
+      "sourceInkBox": [
+        1394,
+        139,
+        1456,
+        158
+      ]
+    },
+    {
+      "id": "body-1-7-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1380,
+        168,
+        1470,
+        200
+      ],
+      "rawText": "試師15",
+      "sourceInkBox": [
+        1393,
+        171,
+        1456,
+        191
+      ]
+    },
+    {
+      "id": "body-1-7-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1380,
+        200,
+        1470,
+        232
+      ],
+      "rawText": "試域15",
+      "sourceInkBox": [
+        1393,
+        203,
+        1456,
+        223
+      ]
+    },
+    {
+      "id": "body-1-8-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1470,
+        136,
+        1560,
+        168
+      ],
+      "rawText": "図研16",
+      "sourceInkBox": [
+        1484,
+        139,
+        1546,
+        158
+      ]
+    },
+    {
+      "id": "body-1-8-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1470,
+        168,
+        1560,
+        200
+      ],
+      "rawText": "試師16",
+      "sourceInkBox": [
+        1483,
+        171,
+        1546,
+        191
+      ]
+    },
+    {
+      "id": "body-1-8-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1470,
+        200,
+        1560,
+        232
+      ],
+      "rawText": "試域16",
+      "sourceInkBox": [
+        1483,
+        203,
+        1546,
+        223
+      ]
+    },
+    {
+      "id": "body-2-1-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1560,
+        136,
+        1650,
+        168
+      ],
+      "rawText": "図研17",
+      "sourceInkBox": [
+        1574,
+        139,
+        1636,
+        158
+      ]
+    },
+    {
+      "id": "body-2-1-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1560,
+        168,
+        1650,
+        200
+      ],
+      "rawText": "試師17",
+      "sourceInkBox": [
+        1573,
+        171,
+        1636,
+        191
+      ]
+    },
+    {
+      "id": "body-2-1-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1560,
+        200,
+        1650,
+        232
+      ],
+      "rawText": "試域17",
+      "sourceInkBox": [
+        1573,
+        203,
+        1636,
+        223
+      ]
+    },
+    {
+      "id": "body-2-2-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1650,
+        136,
+        1740,
+        168
+      ],
+      "rawText": "図研18",
+      "sourceInkBox": [
+        1664,
+        139,
+        1726,
+        158
+      ]
+    },
+    {
+      "id": "body-2-2-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1650,
+        168,
+        1740,
+        200
+      ],
+      "rawText": "試師18",
+      "sourceInkBox": [
+        1663,
+        171,
+        1726,
+        191
+      ]
+    },
+    {
+      "id": "body-2-2-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1650,
+        200,
+        1740,
+        232
+      ],
+      "rawText": "試域18",
+      "sourceInkBox": [
+        1663,
+        203,
+        1726,
+        223
+      ]
+    },
+    {
+      "id": "body-2-3-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1740,
+        136,
+        1830,
+        168
+      ],
+      "rawText": "図研19",
+      "sourceInkBox": [
+        1754,
+        139,
+        1815,
+        158
+      ]
+    },
+    {
+      "id": "body-2-3-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1740,
+        168,
+        1830,
+        200
+      ],
+      "rawText": "試師19",
+      "sourceInkBox": [
+        1753,
+        171,
+        1815,
+        191
+      ]
+    },
+    {
+      "id": "body-2-3-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1740,
+        200,
+        1830,
+        232
+      ],
+      "rawText": "試域19",
+      "sourceInkBox": [
+        1753,
+        203,
+        1815,
+        223
+      ]
+    },
+    {
+      "id": "body-2-4-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1830,
+        136,
+        1920,
+        168
+      ],
+      "rawText": "図研20",
+      "sourceInkBox": [
+        1844,
+        139,
+        1906,
+        158
+      ]
+    },
+    {
+      "id": "body-2-4-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1830,
+        168,
+        1920,
+        200
+      ],
+      "rawText": "試師20",
+      "sourceInkBox": [
+        1843,
+        171,
+        1906,
+        191
+      ]
+    },
+    {
+      "id": "body-2-4-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1830,
+        200,
+        1920,
+        232
+      ],
+      "rawText": "試域20",
+      "sourceInkBox": [
+        1843,
+        203,
+        1906,
+        223
+      ]
+    },
+    {
+      "id": "body-2-5-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1920,
+        136,
+        2010,
+        168
+      ],
+      "rawText": "図研21",
+      "sourceInkBox": [
+        1934,
+        139,
+        1995,
+        158
+      ]
+    },
+    {
+      "id": "body-2-5-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1920,
+        168,
+        2010,
+        200
+      ],
+      "rawText": "試師21",
+      "sourceInkBox": [
+        1933,
+        171,
+        1995,
+        191
+      ]
+    },
+    {
+      "id": "body-2-5-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        1920,
+        200,
+        2010,
+        232
+      ],
+      "rawText": "試域21",
+      "sourceInkBox": [
+        1933,
+        203,
+        1995,
+        223
+      ]
+    },
+    {
+      "id": "body-2-6-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2010,
+        136,
+        2100,
+        168
+      ],
+      "rawText": "図研22",
+      "sourceInkBox": [
+        2024,
+        139,
+        2086,
+        158
+      ]
+    },
+    {
+      "id": "body-2-6-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2010,
+        168,
+        2100,
+        200
+      ],
+      "rawText": "試師22",
+      "sourceInkBox": [
+        2023,
+        171,
+        2086,
+        191
+      ]
+    },
+    {
+      "id": "body-2-6-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2010,
+        200,
+        2100,
+        232
+      ],
+      "rawText": "試域22",
+      "sourceInkBox": [
+        2023,
+        203,
+        2086,
+        223
+      ]
+    },
+    {
+      "id": "body-2-7-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2100,
+        136,
+        2190,
+        168
+      ],
+      "rawText": "図研23",
+      "sourceInkBox": [
+        2114,
+        139,
+        2175,
+        158
+      ]
+    },
+    {
+      "id": "body-2-7-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2100,
+        168,
+        2190,
+        200
+      ],
+      "rawText": "試師23",
+      "sourceInkBox": [
+        2113,
+        171,
+        2175,
+        191
+      ]
+    },
+    {
+      "id": "body-2-7-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2100,
+        200,
+        2190,
+        232
+      ],
+      "rawText": "試域23",
+      "sourceInkBox": [
+        2113,
+        203,
+        2175,
+        223
+      ]
+    },
+    {
+      "id": "body-2-8-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2190,
+        136,
+        2280,
+        168
+      ],
+      "rawText": "図研24",
+      "sourceInkBox": [
+        2204,
+        139,
+        2266,
+        158
+      ]
+    },
+    {
+      "id": "body-2-8-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2190,
+        168,
+        2280,
+        200
+      ],
+      "rawText": "試師24",
+      "sourceInkBox": [
+        2203,
+        171,
+        2266,
+        191
+      ]
+    },
+    {
+      "id": "body-2-8-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2190,
+        200,
+        2280,
+        232
+      ],
+      "rawText": "試域24",
+      "sourceInkBox": [
+        2203,
+        203,
+        2266,
+        223
+      ]
+    },
+    {
+      "id": "body-3-1-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2280,
+        136,
+        2370,
+        168
+      ],
+      "rawText": "図研25",
+      "sourceInkBox": [
+        2294,
+        139,
+        2356,
+        158
+      ]
+    },
+    {
+      "id": "body-3-1-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2280,
+        168,
+        2370,
+        200
+      ],
+      "rawText": "試師25",
+      "sourceInkBox": [
+        2293,
+        171,
+        2356,
+        191
+      ]
+    },
+    {
+      "id": "body-3-1-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2280,
+        200,
+        2370,
+        232
+      ],
+      "rawText": "試域25",
+      "sourceInkBox": [
+        2293,
+        203,
+        2356,
+        223
+      ]
+    },
+    {
+      "id": "body-3-2-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2370,
+        136,
+        2460,
+        168
+      ],
+      "rawText": "図研26",
+      "sourceInkBox": [
+        2384,
+        139,
+        2446,
+        158
+      ]
+    },
+    {
+      "id": "body-3-2-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2370,
+        168,
+        2460,
+        200
+      ],
+      "rawText": "試師26",
+      "sourceInkBox": [
+        2383,
+        171,
+        2446,
+        191
+      ]
+    },
+    {
+      "id": "body-3-2-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2370,
+        200,
+        2460,
+        232
+      ],
+      "rawText": "試域26",
+      "sourceInkBox": [
+        2383,
+        203,
+        2446,
+        223
+      ]
+    },
+    {
+      "id": "body-3-3-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2460,
+        136,
+        2550,
+        168
+      ],
+      "rawText": "図研27",
+      "sourceInkBox": [
+        2474,
+        139,
+        2536,
+        158
+      ]
+    },
+    {
+      "id": "body-3-3-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2460,
+        168,
+        2550,
+        200
+      ],
+      "rawText": "試師27",
+      "sourceInkBox": [
+        2473,
+        171,
+        2536,
+        191
+      ]
+    },
+    {
+      "id": "body-3-3-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2460,
+        200,
+        2550,
+        232
+      ],
+      "rawText": "試域27",
+      "sourceInkBox": [
+        2473,
+        203,
+        2536,
+        223
+      ]
+    },
+    {
+      "id": "body-3-4-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2550,
+        136,
+        2640,
+        168
+      ],
+      "rawText": "図研28",
+      "sourceInkBox": [
+        2564,
+        139,
+        2626,
+        158
+      ]
+    },
+    {
+      "id": "body-3-4-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2550,
+        168,
+        2640,
+        200
+      ],
+      "rawText": "試師28",
+      "sourceInkBox": [
+        2563,
+        171,
+        2626,
+        191
+      ]
+    },
+    {
+      "id": "body-3-4-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2550,
+        200,
+        2640,
+        232
+      ],
+      "rawText": "試域28",
+      "sourceInkBox": [
+        2563,
+        203,
+        2626,
+        223
+      ]
+    },
+    {
+      "id": "body-3-5-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2640,
+        136,
+        2730,
+        168
+      ],
+      "rawText": "図研29",
+      "sourceInkBox": [
+        2654,
+        139,
+        2715,
+        158
+      ]
+    },
+    {
+      "id": "body-3-5-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2640,
+        168,
+        2730,
+        200
+      ],
+      "rawText": "試師29",
+      "sourceInkBox": [
+        2653,
+        171,
+        2715,
+        191
+      ]
+    },
+    {
+      "id": "body-3-5-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2640,
+        200,
+        2730,
+        232
+      ],
+      "rawText": "試域29",
+      "sourceInkBox": [
+        2653,
+        203,
+        2715,
+        223
+      ]
+    },
+    {
+      "id": "body-3-6-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2730,
+        136,
+        2820,
+        168
+      ],
+      "rawText": "図研30",
+      "sourceInkBox": [
+        2744,
+        139,
+        2806,
+        158
+      ]
+    },
+    {
+      "id": "body-3-6-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2730,
+        168,
+        2820,
+        200
+      ],
+      "rawText": "試師30",
+      "sourceInkBox": [
+        2743,
+        171,
+        2806,
+        191
+      ]
+    },
+    {
+      "id": "body-3-6-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2730,
+        200,
+        2820,
+        232
+      ],
+      "rawText": "試域30",
+      "sourceInkBox": [
+        2743,
+        203,
+        2806,
+        223
+      ]
+    },
+    {
+      "id": "body-3-7-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2820,
+        136,
+        2910,
+        168
+      ],
+      "rawText": "図研31",
+      "sourceInkBox": [
+        2834,
+        139,
+        2895,
+        158
+      ]
+    },
+    {
+      "id": "body-3-7-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2820,
+        168,
+        2910,
+        200
+      ],
+      "rawText": "試師31",
+      "sourceInkBox": [
+        2833,
+        171,
+        2895,
+        191
+      ]
+    },
+    {
+      "id": "body-3-7-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2820,
+        200,
+        2910,
+        232
+      ],
+      "rawText": "試域31",
+      "sourceInkBox": [
+        2833,
+        203,
+        2895,
+        223
+      ]
+    },
+    {
+      "id": "body-3-8-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2910,
+        136,
+        3000,
+        168
+      ],
+      "rawText": "図研32",
+      "sourceInkBox": [
+        2924,
+        139,
+        2986,
+        158
+      ]
+    },
+    {
+      "id": "body-3-8-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2910,
+        168,
+        3000,
+        200
+      ],
+      "rawText": "試師32",
+      "sourceInkBox": [
+        2923,
+        171,
+        2986,
+        191
+      ]
+    },
+    {
+      "id": "body-3-8-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        2910,
+        200,
+        3000,
+        232
+      ],
+      "rawText": "試域32",
+      "sourceInkBox": [
+        2923,
+        203,
+        2986,
+        223
+      ]
+    },
+    {
+      "id": "body-4-1-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3000,
+        136,
+        3090,
+        168
+      ],
+      "rawText": "図研33",
+      "sourceInkBox": [
+        3014,
+        139,
+        3075,
+        158
+      ]
+    },
+    {
+      "id": "body-4-1-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3000,
+        168,
+        3090,
+        200
+      ],
+      "rawText": "試師33",
+      "sourceInkBox": [
+        3013,
+        171,
+        3075,
+        191
+      ]
+    },
+    {
+      "id": "body-4-1-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3000,
+        200,
+        3090,
+        232
+      ],
+      "rawText": "試域33",
+      "sourceInkBox": [
+        3013,
+        203,
+        3075,
+        223
+      ]
+    },
+    {
+      "id": "body-4-2-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3090,
+        136,
+        3180,
+        168
+      ],
+      "rawText": "図研34",
+      "sourceInkBox": [
+        3104,
+        139,
+        3166,
+        158
+      ]
+    },
+    {
+      "id": "body-4-2-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3090,
+        168,
+        3180,
+        200
+      ],
+      "rawText": "試師34",
+      "sourceInkBox": [
+        3103,
+        171,
+        3166,
+        191
+      ]
+    },
+    {
+      "id": "body-4-2-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3090,
+        200,
+        3180,
+        232
+      ],
+      "rawText": "試域34",
+      "sourceInkBox": [
+        3103,
+        203,
+        3166,
+        223
+      ]
+    },
+    {
+      "id": "body-4-3-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3180,
+        136,
+        3270,
+        168
+      ],
+      "rawText": "図研35",
+      "sourceInkBox": [
+        3194,
+        139,
+        3256,
+        158
+      ]
+    },
+    {
+      "id": "body-4-3-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3180,
+        168,
+        3270,
+        200
+      ],
+      "rawText": "試師35",
+      "sourceInkBox": [
+        3193,
+        171,
+        3256,
+        191
+      ]
+    },
+    {
+      "id": "body-4-3-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3180,
+        200,
+        3270,
+        232
+      ],
+      "rawText": "試域35",
+      "sourceInkBox": [
+        3193,
+        203,
+        3256,
+        223
+      ]
+    },
+    {
+      "id": "body-4-4-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3270,
+        136,
+        3360,
+        168
+      ],
+      "rawText": "図研36",
+      "sourceInkBox": [
+        3284,
+        139,
+        3346,
+        158
+      ]
+    },
+    {
+      "id": "body-4-4-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3270,
+        168,
+        3360,
+        200
+      ],
+      "rawText": "試師36",
+      "sourceInkBox": [
+        3283,
+        171,
+        3346,
+        191
+      ]
+    },
+    {
+      "id": "body-4-4-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3270,
+        200,
+        3360,
+        232
+      ],
+      "rawText": "試域36",
+      "sourceInkBox": [
+        3283,
+        203,
+        3346,
+        223
+      ]
+    },
+    {
+      "id": "body-4-5-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3360,
+        136,
+        3450,
+        168
+      ],
+      "rawText": "図研37",
+      "sourceInkBox": [
+        3374,
+        139,
+        3436,
+        158
+      ]
+    },
+    {
+      "id": "body-4-5-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3360,
+        168,
+        3450,
+        200
+      ],
+      "rawText": "試師37",
+      "sourceInkBox": [
+        3373,
+        171,
+        3436,
+        191
+      ]
+    },
+    {
+      "id": "body-4-5-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3360,
+        200,
+        3450,
+        232
+      ],
+      "rawText": "試域37",
+      "sourceInkBox": [
+        3373,
+        203,
+        3436,
+        223
+      ]
+    },
+    {
+      "id": "body-4-6-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3450,
+        136,
+        3540,
+        168
+      ],
+      "rawText": "図研38",
+      "sourceInkBox": [
+        3464,
+        139,
+        3526,
+        158
+      ]
+    },
+    {
+      "id": "body-4-6-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3450,
+        168,
+        3540,
+        200
+      ],
+      "rawText": "試師38",
+      "sourceInkBox": [
+        3463,
+        171,
+        3526,
+        191
+      ]
+    },
+    {
+      "id": "body-4-6-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3450,
+        200,
+        3540,
+        232
+      ],
+      "rawText": "試域38",
+      "sourceInkBox": [
+        3463,
+        203,
+        3526,
+        223
+      ]
+    },
+    {
+      "id": "body-4-7-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3540,
+        136,
+        3630,
+        168
+      ],
+      "rawText": "図研39",
+      "sourceInkBox": [
+        3554,
+        139,
+        3615,
+        158
+      ]
+    },
+    {
+      "id": "body-4-7-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3540,
+        168,
+        3630,
+        200
+      ],
+      "rawText": "試師39",
+      "sourceInkBox": [
+        3553,
+        171,
+        3615,
+        191
+      ]
+    },
+    {
+      "id": "body-4-7-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3540,
+        200,
+        3630,
+        232
+      ],
+      "rawText": "試域39",
+      "sourceInkBox": [
+        3553,
+        203,
+        3615,
+        223
+      ]
+    },
+    {
+      "id": "body-4-8-subject",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3630,
+        136,
+        3720,
+        168
+      ],
+      "rawText": "図研40",
+      "sourceInkBox": [
+        3644,
+        139,
+        3706,
+        158
+      ]
+    },
+    {
+      "id": "body-4-8-teacher",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3630,
+        168,
+        3720,
+        200
+      ],
+      "rawText": "試師40",
+      "sourceInkBox": [
+        3643,
+        171,
+        3706,
+        191
+      ]
+    },
+    {
+      "id": "body-4-8-room",
+      "kind": "body",
+      "pixelPrintedBox": [
+        3630,
+        200,
+        3720,
+        232
+      ],
+      "rawText": "試域40",
+      "sourceInkBox": [
+        3643,
+        203,
+        3706,
+        223
+      ]
+    }
+  ],
+  "sourceDrawingGlyphSHA256": "662e9ce3d99c66a48fa5979ce122c4d6ec359a6f59425c55c06482abfa9a9427",
+  "sourceFamily": "Already consumed invented unlabeled40",
+  "source_generated": true
+}

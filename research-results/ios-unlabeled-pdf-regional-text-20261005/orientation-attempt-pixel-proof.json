@@ -1,0 +1,25 @@
+{
+  "PNGDecodeEqualsProviderBytes": true,
+  "decodedPNG_RGBA_SHA256": "1802dcad05a58b5c14371c415e5cf3730ac416d126fa1509b78ec4ea5ef317a5",
+  "directDifferentBytes": 734106,
+  "expectedRGBA_SHA256": "1840402f64f9e0343c414fa23d1d27f7528f9b225a66cd93a35c57d2e102f0df",
+  "nativeOriginalMetadata": {
+    "alphaInfo": 1,
+    "bitmapInfo": 16385,
+    "bitsPerComponent": 8,
+    "bitsPerPixel": 32,
+    "bytesPerRow": 14960,
+    "colorSpace": "kCGColorSpaceDeviceRGB",
+    "height": 800,
+    "originalPixelIdentityAssessedSeparatelyBeforeOCR": true,
+    "pngBytes": 96240,
+    "pngSHA256": "70a461f53566ff0e2c4c7c7cd2643cdbaceda68a72fe7e8223a66f3b26a8cc0e",
+    "providerBytes": 11968000,
+    "providerSHA256": "1802dcad05a58b5c14371c415e5cf3730ac416d126fa1509b78ec4ea5ef317a5",
+    "source_generated": true,
+    "width": 3740
+  },
+  "scope": "Posthoc actual retained image vs same immutable public fictionalPDF rendering. No OCR called. No image written/exported.",
+  "verticalFlipDifferentBytes": 0,
+  "verticalFlip_RGBA_SHA256": "1840402f64f9e0343c414fa23d1d27f7528f9b225a66cd93a35c57d2e102f0df"
+}

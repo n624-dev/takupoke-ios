@@ -1,0 +1,6223 @@
+{
+  "perKind": {
+    "body": {
+      "confidencePass": 107,
+      "literalExact": 120,
+      "printedBandContainment": 58,
+      "returned": 120,
+      "wholePhysicalSlotContainmentDiagnostic": 106
+    },
+    "class": {
+      "confidencePass": 0,
+      "literalExact": 1,
+      "printedBandContainment": 1,
+      "returned": 1,
+      "wholePhysicalSlotContainmentDiagnostic": 0
+    },
+    "grade": {
+      "confidencePass": 0,
+      "literalExact": 1,
+      "printedBandContainment": 1,
+      "returned": 1,
+      "wholePhysicalSlotContainmentDiagnostic": 0
+    },
+    "period": {
+      "confidencePass": 0,
+      "literalExact": 39,
+      "printedBandContainment": 39,
+      "returned": 40,
+      "wholePhysicalSlotContainmentDiagnostic": 0
+    },
+    "term": {
+      "confidencePass": 1,
+      "literalExact": 1,
+      "printedBandContainment": 1,
+      "returned": 1,
+      "wholePhysicalSlotContainmentDiagnostic": 0
+    },
+    "title": {
+      "confidencePass": 0,
+      "literalExact": 1,
+      "printedBandContainment": 1,
+      "returned": 1,
+      "wholePhysicalSlotContainmentDiagnostic": 0
+    },
+    "weekday": {
+      "confidencePass": 4,
+      "literalExact": 5,
+      "printedBandContainment": 5,
+      "returned": 5,
+      "wholePhysicalSlotContainmentDiagnostic": 0
+    },
+    "year": {
+      "confidencePass": 1,
+      "literalExact": 1,
+      "printedBandContainment": 1,
+      "returned": 1,
+      "wholePhysicalSlotContainmentDiagnostic": 0
+    }
+  },
+  "reviewSHA256": "aaa617bcadab07e422305e99350be9f9933839c26b11975f0af1a55902a6986b",
+  "rows": [
+    {
+      "candidateRangeUnion": [
+        157.06250004464286,
+        104.33333333333333,
+        17.187499754464284,
+        21.777777466666677
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "1",
+      "nativeObservationBox": [
+        157.062499921875,
+        104.33333370759684,
+        17.1875,
+        21.77777671813965
+      ],
+      "nativePath": "measured-strip-0.native[0].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "1",
+      "printedBand": [
+        120,
+        104,
+        210,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "period-0-1",
+      "suppliedNativeLine": 0,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        132.06250001266892,
+        137,
+        65.62499982263512,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研01",
+      "nativeObservationBox": [
+        132.06249992398648,
+        136.9999997544387,
+        65.62499999999999,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-0.native[1].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研01",
+      "printedBand": [
+        120,
+        136,
+        210,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-1-subject",
+      "suppliedNativeLine": 1,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        130.50000001201923,
+        168,
+        68.74999982371796,
+        26.555555487749302
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師01",
+      "nativeObservationBox": [
+        130.4999999238782,
+        168.0000002839883,
+        68.75,
+        26.55555534362793
+      ],
+      "nativePath": "measured-strip-0.native[2].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師01",
+      "printedBand": [
+        120,
+        168,
+        210,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-1-teacher",
+      "suppliedNativeLine": 2,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        130.36229187371362,
+        199.83919143260482,
+        69.14439456641543,
+        26.00826433846811
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域01",
+      "nativeObservationBox": [
+        130.3622921964721,
+        199.83919140239345,
+        69.14439392089844,
+        26.008264541625966
+      ],
+      "nativePath": "measured-strip-0.native[3].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域01",
+      "printedBand": [
+        120,
+        200,
+        210,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-1-room",
+      "suppliedNativeLine": 3,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        246.12500004464286,
+        104.33333333333333,
+        17.187499754464312,
+        20.22222193333333
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "2",
+      "nativeObservationBox": [
+        246.124999921875,
+        104.33333361274416,
+        17.187500000000004,
+        20.222221374511705
+      ],
+      "nativePath": "measured-strip-0.native[4].top1",
+      "originalCandidateConfidence": 0.30000001192092896,
+      "originalRawText": "2",
+      "printedBand": [
+        210,
+        104,
+        300,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "period-0-2",
+      "suppliedNativeLine": 4,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        220.18105117207804,
+        133.47834927836107,
+        69.0206256834002,
+        29.17709197744972
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        },
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "図研02",
+      "nativeObservationBox": [
+        220.18104907237188,
+        133.47787167699806,
+        69.0206298828125,
+        29.178047180175785
+      ],
+      "nativePath": "measured-strip-0.native[5].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "図研02",
+      "printedBand": [
+        210,
+        136,
+        300,
+        168
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-2-subject",
+      "suppliedNativeLine": 5,
+      "wholePhysicalSlotContainmentDiagnostic": false
+    },
+    {
+      "candidateRangeUnion": [
+        221.12500000801282,
+        168,
+        67.18749982772437,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師02",
+      "nativeObservationBox": [
+        221.12499992187497,
+        168.0000001800188,
+        67.1875,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-0.native[6].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師02",
+      "printedBand": [
+        210,
+        168,
+        300,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-2-teacher",
+      "suppliedNativeLine": 6,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        221.12500006696428,
+        199,
+        67.18749904017858,
+        26.666666288888877
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域02",
+      "nativeObservationBox": [
+        221.12499958705357,
+        198.99999959918347,
+        67.1875,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-0.native[7].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域02",
+      "printedBand": [
+        210,
+        200,
+        300,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-2-room",
+      "suppliedNativeLine": 7,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        336.7500000446429,
+        104.33333333333333,
+        15.624999776785728,
+        20.22222193333333
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "3",
+      "nativeObservationBox": [
+        336.7499999330357,
+        104.33333361274416,
+        15.62500000000001,
+        20.222221374511705
+      ],
+      "nativePath": "measured-strip-0.native[8].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "3",
+      "printedBand": [
+        300,
+        104,
+        390,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "period-0-3",
+      "suppliedNativeLine": 8,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        311.75000001201926,
+        137,
+        65.62499983173075,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研03",
+      "nativeObservationBox": [
+        311.7499999278847,
+        136.99999975616353,
+        65.62499999999999,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-0.native[9].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研03",
+      "printedBand": [
+        300,
+        136,
+        390,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-3-subject",
+      "suppliedNativeLine": 9,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        310.1875000078125,
+        168,
+        67.18749983203128,
+        26.55555548944443
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師03",
+      "nativeObservationBox": [
+        310.1874999238281,
+        168.0000002848359,
+        67.18749999999999,
+        26.55555534362793
+      ],
+      "nativePath": "measured-strip-0.native[10].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師03",
+      "printedBand": [
+        300,
+        168,
+        390,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-3-teacher",
+      "suppliedNativeLine": 10,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        310.1875000164474,
+        199,
+        68.74999981907894,
+        26.666666597076016
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域03",
+      "nativeObservationBox": [
+        310.1874999259869,
+        198.99999975327705,
+        68.74999999999997,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-0.native[11].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域03",
+      "printedBand": [
+        300,
+        200,
+        390,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-3-room",
+      "suppliedNativeLine": 11,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        449.2500003125,
+        71.5,
+        60.93749923828125,
+        23.5
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "月曜日",
+      "nativeObservationBox": [
+        449.2499999316406,
+        71.50000017205811,
+        60.937500000000014,
+        23.499999999999993
+      ],
+      "nativePath": "measured-strip-0.native[12].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "月曜日",
+      "printedBand": [
+        120,
+        70,
+        840,
+        104
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "day-0",
+      "suppliedNativeLine": 12,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        425.8125000390625,
+        104.33333333333333,
+        17.187499785156263,
+        20.222221969444462
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "4",
+      "nativeObservationBox": [
+        425.8124999316407,
+        104.33333363079969,
+        17.187500000000004,
+        20.222221374511722
+      ],
+      "nativePath": "measured-strip-0.native[13].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "4",
+      "printedBand": [
+        390,
+        104,
+        480,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "period-0-4",
+      "suppliedNativeLine": 13,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        400.8125000164474,
+        137,
+        67.1874998231907,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研04",
+      "nativeObservationBox": [
+        400.81249992804277,
+        136.99999975532384,
+        67.18749999999999,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-0.native[14].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研04",
+      "printedBand": [
+        390,
+        136,
+        480,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-4-subject",
+      "suppliedNativeLine": 14,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        400.8125000080129,
+        168,
+        67.18749982772431,
+        26.555555487749302
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師04",
+      "nativeObservationBox": [
+        400.81249992187503,
+        168.0000002839883,
+        67.18750000000003,
+        26.55555534362793
+      ],
+      "nativePath": "measured-strip-0.native[15].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師04",
+      "printedBand": [
+        390,
+        168,
+        480,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-4-teacher",
+      "suppliedNativeLine": 15,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        400.8125000120192,
+        199,
+        68.74999982371799,
+        26.666666598860388
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域04",
+      "nativeObservationBox": [
+        400.8124999238782,
+        198.99999975416924,
+        68.74999999999997,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-0.native[16].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域04",
+      "printedBand": [
+        390,
+        200,
+        480,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-4-room",
+      "suppliedNativeLine": 16,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        516.4375000520834,
+        105.88888888888887,
+        14.062499765625034,
+        18.666666355555577
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "5",
+      "nativeObservationBox": [
+        516.4374999348956,
+        105.88888905122477,
+        14.062500000000059,
+        18.666666030883796
+      ],
+      "nativePath": "measured-strip-0.native[17].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "5",
+      "printedBand": [
+        480,
+        104,
+        570,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "period-0-5",
+      "suppliedNativeLine": 17,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        491.4375000164474,
+        137,
+        67.1874998231907,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研05",
+      "nativeObservationBox": [
+        491.4374999280427,
+        136.99999975532384,
+        67.18750000000006,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-0.native[18].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研05",
+      "printedBand": [
+        480,
+        136,
+        570,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-5-subject",
+      "suppliedNativeLine": 18,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        491.4375000123355,
+        168,
+        67.18749982319093,
+        26.55555548596493
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師05",
+      "nativeObservationBox": [
+        491.43749992393083,
+        168.00000028309614,
+        67.18750000000006,
+        26.55555534362793
+      ],
+      "nativePath": "measured-strip-0.native[19].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師05",
+      "printedBand": [
+        480,
+        168,
+        570,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-5-teacher",
+      "suppliedNativeLine": 19,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        491.14884626526964,
+        199.83506770896764,
+        67.8379787559328,
+        25.99425489531893
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域05",
+      "nativeObservationBox": [
+        491.1488445543689,
+        199.83506772424406,
+        67.8379821777343,
+        25.99425506591797
+      ],
+      "nativePath": "measured-strip-0.native[20].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域05",
+      "printedBand": [
+        480,
+        200,
+        570,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-5-room",
+      "suppliedNativeLine": 20,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        607.0625000520834,
+        105.88888888888887,
+        15.624999739583359,
+        18.666666355555577
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "6",
+      "nativeObservationBox": [
+        607.062499921875,
+        105.88888905122477,
+        15.62500000000001,
+        18.666666030883796
+      ],
+      "nativePath": "measured-strip-0.native[21].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "6",
+      "printedBand": [
+        570,
+        104,
+        660,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "period-0-6",
+      "suppliedNativeLine": 21,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        582.0625000120192,
+        137,
+        67.18749982772442,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研06",
+      "nativeObservationBox": [
+        582.0624999258814,
+        136.99999975616353,
+        67.18749999999999,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-0.native[22].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研06",
+      "printedBand": [
+        570,
+        136,
+        660,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-6-subject",
+      "suppliedNativeLine": 22,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        580.5000000120193,
+        168,
+        68.74999982371787,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師06",
+      "nativeObservationBox": [
+        580.4999999238782,
+        168.0000001800188,
+        68.75000000000001,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-0.native[23].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師06",
+      "printedBand": [
+        570,
+        168,
+        660,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-6-teacher",
+      "suppliedNativeLine": 23,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        580.3622918600392,
+        199.83919238627914,
+        69.14439456641549,
+        26.00826428346818
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域06",
+      "nativeObservationBox": [
+        580.3622921827978,
+        199.83919230106784,
+        69.1443939208985,
+        26.008264541625984
+      ],
+      "nativePath": "measured-strip-0.native[24].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域06",
+      "printedBand": [
+        570,
+        200,
+        660,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-6-room",
+      "suppliedNativeLine": 24,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        697.6875000223215,
+        105.88888888888887,
+        14.062499799107059,
+        18.666666400000025
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "7",
+      "nativeObservationBox": [
+        697.6874999218751,
+        105.88888907344699,
+        14.062499999999979,
+        18.66666603088378
+      ],
+      "nativePath": "measured-strip-0.native[25].top1",
+      "originalCandidateConfidence": 0.30000001192092896,
+      "originalRawText": "7",
+      "printedBand": [
+        660,
+        104,
+        750,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "period-0-7",
+      "suppliedNativeLine": 25,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        671.125000078125,
+        137,
+        67.1874997600446,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研07",
+      "nativeObservationBox": [
+        671.1249999581473,
+        136.99999974362794,
+        67.18749999999999,
+        24.999999999999986
+      ],
+      "nativePath": "measured-strip-0.native[26].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研07",
+      "printedBand": [
+        660,
+        136,
+        750,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-7-subject",
+      "suppliedNativeLine": 26,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        671.1250000347221,
+        168,
+        65.62499927083354,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師07",
+      "nativeObservationBox": [
+        671.1249996701388,
+        168.00000007365603,
+        65.62500000000003,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-0.native[27].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師07",
+      "printedBand": [
+        660,
+        168,
+        750,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-7-teacher",
+      "suppliedNativeLine": 27,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        670.8851386302478,
+        199.83430836155367,
+        67.78917447292906,
+        25.99425469407663
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域07",
+      "nativeObservationBox": [
+        670.8851373962533,
+        199.834308175633,
+        67.78917694091794,
+        25.994255065917987
+      ],
+      "nativePath": "measured-strip-0.native[28].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域07",
+      "printedBand": [
+        660,
+        200,
+        750,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-7-room",
+      "suppliedNativeLine": 28,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        786.7500000520834,
+        105.88888888888887,
+        15.624999739583359,
+        18.666666355555577
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "8",
+      "nativeObservationBox": [
+        786.7499999218751,
+        105.88888905122477,
+        15.62499999999993,
+        18.666666030883796
+      ],
+      "nativePath": "measured-strip-0.native[29].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "8",
+      "printedBand": [
+        750,
+        104,
+        840,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "period-0-8",
+      "suppliedNativeLine": 29,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        761.7500000120193,
+        137,
+        67.1874998277242,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研08",
+      "nativeObservationBox": [
+        761.7499999258814,
+        136.99999975616353,
+        67.18749999999999,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-0.native[30].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研08",
+      "printedBand": [
+        750,
+        136,
+        840,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-8-subject",
+      "suppliedNativeLine": 30,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        760.1875000117187,
+        168,
+        68.74999982812506,
+        26.55555548944443
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師08",
+      "nativeObservationBox": [
+        760.1874999257813,
+        168.0000002848359,
+        68.75000000000001,
+        26.55555534362793
+      ],
+      "nativePath": "measured-strip-0.native[31].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師08",
+      "printedBand": [
+        750,
+        168,
+        840,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-8-teacher",
+      "suppliedNativeLine": 31,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        760.1875000205592,
+        199,
+        68.74999981907888,
+        26.666666597076016
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域08",
+      "nativeObservationBox": [
+        760.1874999300987,
+        198.99999975327705,
+        68.75000000000001,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-0.native[32].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域08",
+      "printedBand": [
+        750,
+        200,
+        840,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-0",
+      "sourceDiagnosticId": "body-0-8-room",
+      "suppliedNativeLine": 32,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        877.0086207342365,
+        104.33333333333333,
+        17.163792858251213,
+        21.777777466666677
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "1",
+      "nativeObservationBox": [
+        877.0086203814407,
+        104.33333370759684,
+        17.163793563842777,
+        21.77777671813965
+      ],
+      "nativePath": "measured-strip-1.native[0].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "1",
+      "printedBand": [
+        840,
+        104,
+        930,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "period-1-1",
+      "suppliedNativeLine": 33,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        852.0431034651444,
+        137,
+        67.09482740486953,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研09",
+      "nativeObservationBox": [
+        852.0431042952648,
+        136.9999997544387,
+        67.09482574462889,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-1.native[1].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研09",
+      "printedBand": [
+        840,
+        136,
+        930,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-1-subject",
+      "suppliedNativeLine": 34,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        849.7120512599096,
+        165.4663970394668,
+        70.24526438178009,
+        29.787404905546254
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師09",
+      "nativeObservationBox": [
+        849.7120523778016,
+        165.46611088292596,
+        70.2452621459961,
+        29.78797721862793
+      ],
+      "nativePath": "measured-strip-1.native[2].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師09",
+      "printedBand": [
+        840,
+        168,
+        930,
+        200
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-1-teacher",
+      "suppliedNativeLine": 35,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        850.482758956764,
+        199,
+        67.09482707009283,
+        26.66666646324788
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域09",
+      "nativeObservationBox": [
+        850.4827596194959,
+        198.99999968636297,
+        67.0948257446289,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-1.native[3].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域09",
+      "printedBand": [
+        840,
+        200,
+        930,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-1-room",
+      "suppliedNativeLine": 36,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        965.9482759010775,
+        104.33333333333333,
+        17.163792888900844,
+        20.222221969444462
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "2",
+      "nativeObservationBox": [
+        965.9482755636067,
+        104.33333363079969,
+        17.163793563842773,
+        20.222221374511722
+      ],
+      "nativePath": "measured-strip-1.native[4].top1",
+      "originalCandidateConfidence": 0.30000001192092896,
+      "originalRawText": "2",
+      "printedBand": [
+        930,
+        104,
+        1020,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "period-1-2",
+      "suppliedNativeLine": 37,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        940.9827589773399,
+        135.44444444444446,
+        67.09482662770938,
+        26.555555555555543
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研10",
+      "nativeObservationBox": [
+        940.9827594188802,
+        135.44444414959173,
+        67.0948257446289,
+        26.555556297302246
+      ],
+      "nativePath": "measured-strip-1.native[5].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研10",
+      "printedBand": [
+        930,
+        136,
+        1020,
+        168
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-2-subject",
+      "suppliedNativeLine": 38,
+      "wholePhysicalSlotContainmentDiagnostic": false
+    },
+    {
+      "candidateRangeUnion": [
+        940.9827586284914,
+        168,
+        67.09482741846978,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師10",
+      "nativeObservationBox": [
+        940.9827594654118,
+        168.00000018081653,
+        67.0948257446289,
+        24.999999999999986
+      ],
+      "nativePath": "measured-strip-1.native[6].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師10",
+      "printedBand": [
+        930,
+        168,
+        1020,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-2-teacher",
+      "suppliedNativeLine": 39,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        940.7428833491495,
+        199.81230333295198,
+        69.10904419910264,
+        25.99425469669984
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域10",
+      "nativeObservationBox": [
+        940.7428819806833,
+        199.81230314834292,
+        69.10904693603514,
+        25.99425506591797
+      ],
+      "nativePath": "measured-strip-1.native[7].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域10",
+      "printedBand": [
+        930,
+        200,
+        1020,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-2-room",
+      "suppliedNativeLine": 40,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1056.4482759066502,
+        104.33333333333333,
+        17.163792858251327,
+        20.22222193333333
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "3",
+      "nativeObservationBox": [
+        1056.4482755538545,
+        104.33333361274416,
+        17.163793563842773,
+        20.222221374511705
+      ],
+      "nativePath": "measured-strip-1.native[8].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "3",
+      "printedBand": [
+        1020,
+        104,
+        1110,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "period-1-3",
+      "suppliedNativeLine": 41,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        1031.4827590627874,
+        135.44444444444446,
+        67.09482646795982,
+        26.555555555555543
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研11",
+      "nativeObservationBox": [
+        1031.4827594244528,
+        135.44444411811028,
+        67.0948257446289,
+        26.555556297302246
+      ],
+      "nativePath": "measured-strip-1.native[9].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研11",
+      "printedBand": [
+        1020,
+        136,
+        1110,
+        168
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-3-subject",
+      "suppliedNativeLine": 42,
+      "wholePhysicalSlotContainmentDiagnostic": false
+    },
+    {
+      "candidateRangeUnion": [
+        1031.4827586284914,
+        168,
+        67.09482741846978,
+        25.0
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "試師11",
+      "nativeObservationBox": [
+        1031.4827594654118,
+        168.00000018081653,
+        67.0948257446289,
+        24.999999999999986
+      ],
+      "nativePath": "measured-strip-1.native[10].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "試師11",
+      "printedBand": [
+        1020,
+        168,
+        1110,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-3-teacher",
+      "suppliedNativeLine": 43,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1030.8323446602344,
+        198.72418581075502,
+        68.47026399211654,
+        28.190807523123823
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域11",
+      "nativeObservationBox": [
+        1030.832346346234,
+        198.72401996172124,
+        68.47026062011722,
+        28.1911392211914
+      ],
+      "nativePath": "measured-strip-1.native[11].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域11",
+      "printedBand": [
+        1020,
+        200,
+        1110,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-3-room",
+      "suppliedNativeLine": 44,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1168.7931034671892,
+        73,
+        60.853448091457494,
+        22.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "火曜日",
+      "nativeObservationBox": [
+        1168.7931040326935,
+        73.00000039085862,
+        60.853446960449176,
+        21.999999999999996
+      ],
+      "nativePath": "measured-strip-1.native[12].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "火曜日",
+      "printedBand": [
+        840,
+        70,
+        1560,
+        104
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "day-1",
+      "suppliedNativeLine": 45,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        1146.9482759066502,
+        104.33333333333333,
+        17.163792858251327,
+        21.777777466666677
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "4",
+      "nativeObservationBox": [
+        1146.9482755538545,
+        104.33333370759684,
+        17.163793563842773,
+        21.77777671813965
+      ],
+      "nativePath": "measured-strip-1.native[13].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "4",
+      "printedBand": [
+        1110,
+        104,
+        1200,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "period-1-4",
+      "suppliedNativeLine": 46,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        1120.422413805106,
+        137,
+        67.09482741416878,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研12",
+      "nativeObservationBox": [
+        1120.422414639876,
+        136.99999975616353,
+        67.0948257446289,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-1.native[14].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研12",
+      "printedBand": [
+        1110,
+        136,
+        1200,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-4-subject",
+      "suppliedNativeLine": 47,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1120.422413805422,
+        168,
+        67.09482740964154,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師12",
+      "nativeObservationBox": [
+        1120.4224146379283,
+        168.0000001791791,
+        67.0948257446289,
+        24.999999999999986
+      ],
+      "nativePath": "measured-strip-1.native[15].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師12",
+      "printedBand": [
+        1110,
+        168,
+        1200,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-4-teacher",
+      "suppliedNativeLine": 48,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1120.4224138971265,
+        199,
+        68.65517126954023,
+        26.666666225925923
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域12",
+      "nativeObservationBox": [
+        1120.422412404211,
+        198.999999567702,
+        68.6551742553711,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-1.native[16].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域12",
+      "printedBand": [
+        1110,
+        200,
+        1200,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-4-room",
+      "suppliedNativeLine": 49,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1235.8879310734915,
+        104.33333333333333,
+        17.163792888900844,
+        20.222221969444462
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "5",
+      "nativeObservationBox": [
+        1235.8879307360203,
+        104.33333363079969,
+        17.163793563842813,
+        20.222221374511722
+      ],
+      "nativePath": "measured-strip-1.native[17].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "5",
+      "printedBand": [
+        1200,
+        104,
+        1290,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "period-1-5",
+      "suppliedNativeLine": 50,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        1210.9224142352011,
+        135.44444444444446,
+        68.65517126954023,
+        26.555555555555543
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研13",
+      "nativeObservationBox": [
+        1210.9224127422858,
+        135.44444411811028,
+        68.6551742553711,
+        26.555556297302246
+      ],
+      "nativePath": "measured-strip-1.native[18].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研13",
+      "printedBand": [
+        1200,
+        136,
+        1290,
+        168
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-5-subject",
+      "suppliedNativeLine": 51,
+      "wholePhysicalSlotContainmentDiagnostic": false
+    },
+    {
+      "candidateRangeUnion": [
+        1210.9224138048062,
+        168,
+        68.655172242155,
+        26.55555548944443
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師13",
+      "nativeObservationBox": [
+        1210.9224127981981,
+        168.0000002848359,
+        68.6551742553711,
+        26.55555534362793
+      ],
+      "nativePath": "measured-strip-1.native[19].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師13",
+      "printedBand": [
+        1200,
+        168,
+        1290,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-5-teacher",
+      "suppliedNativeLine": 52,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1210.676530942793,
+        199.82991691367903,
+        69.22316849535468,
+        26.029473504216952
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域13",
+      "nativeObservationBox": [
+        1210.6765314807535,
+        199.82991664035853,
+        69.22316741943361,
+        26.029473304748542
+      ],
+      "nativePath": "measured-strip-1.native[20].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域13",
+      "printedBand": [
+        1200,
+        200,
+        1290,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-5-room",
+      "suppliedNativeLine": 53,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1327.9482758815734,
+        104.33333333333333,
+        15.603448080818907,
+        20.222221969444462
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "6",
+      "nativeObservationBox": [
+        1327.9482759649209,
+        104.33333363079969,
+        15.603447914123526,
+        20.222221374511722
+      ],
+      "nativePath": "measured-strip-1.native[21].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "6",
+      "printedBand": [
+        1290,
+        104,
+        1380,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "period-1-6",
+      "suppliedNativeLine": 54,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        1301.4224138095283,
+        137,
+        67.09482740964131,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研14",
+      "nativeObservationBox": [
+        1301.4224146420345,
+        136.99999975532384,
+        67.0948257446289,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-1.native[22].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研14",
+      "printedBand": [
+        1290,
+        136,
+        1380,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-6-subject",
+      "suppliedNativeLine": 55,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1301.4224138011052,
+        168,
+        67.09482741416878,
+        26.555555487749302
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "試師14",
+      "nativeObservationBox": [
+        1301.4224146358752,
+        168.0000002839883,
+        67.0948257446289,
+        26.55555534362793
+      ],
+      "nativePath": "measured-strip-1.native[23].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "試師14",
+      "printedBand": [
+        1290,
+        168,
+        1380,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-6-teacher",
+      "suppliedNativeLine": 56,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1301.422413809972,
+        199,
+        67.09482740486942,
+        26.66666659519518
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域14",
+      "nativeObservationBox": [
+        1301.4224146400925,
+        198.99999975233663,
+        67.0948257446289,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-1.native[24].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域14",
+      "printedBand": [
+        1290,
+        200,
+        1380,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-6-room",
+      "suppliedNativeLine": 57,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1416.88793105182,
+        104.33333333333333,
+        17.16379291273961,
+        20.222221997530866
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "7",
+      "nativeObservationBox": [
+        1416.8879307262682,
+        104.33333364484291,
+        17.163793563842734,
+        20.222221374511722
+      ],
+      "nativePath": "measured-strip-1.native[25].top1",
+      "originalCandidateConfidence": 0.30000001192092896,
+      "originalRawText": "7",
+      "printedBand": [
+        1380,
+        104,
+        1470,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "period-1-7",
+      "suppliedNativeLine": 58,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        1391.9224138711206,
+        137,
+        67.09482734658263,
+        25.0
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "図研15",
+      "nativeObservationBox": [
+        1391.9224146720976,
+        136.99999974362794,
+        67.0948257446289,
+        24.999999999999986
+      ],
+      "nativePath": "measured-strip-1.native[26].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "図研15",
+      "printedBand": [
+        1380,
+        136,
+        1470,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-7-subject",
+      "suppliedNativeLine": 59,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1390.3620689775198,
+        168,
+        67.09482741416878,
+        26.555555487749302
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師15",
+      "nativeObservationBox": [
+        1390.36206981229,
+        168.0000002839883,
+        67.0948257446289,
+        26.55555534362793
+      ],
+      "nativePath": "measured-strip-1.native[27].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師15",
+      "printedBand": [
+        1380,
+        168,
+        1470,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-7-teacher",
+      "suppliedNativeLine": 60,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1390.1716681855814,
+        199.85935970244947,
+        69.10904457102697,
+        25.945667741554132
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域15",
+      "nativeObservationBox": [
+        1390.1716670030773,
+        199.8593601497705,
+        69.10904693603511,
+        25.945667266845703
+      ],
+      "nativePath": "measured-strip-1.native[28].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域15",
+      "printedBand": [
+        1380,
+        200,
+        1470,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-7-room",
+      "suppliedNativeLine": 61,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1507.387931053987,
+        104.33333333333333,
+        15.603448080818907,
+        20.222221969444462
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "8",
+      "nativeObservationBox": [
+        1507.3879311373348,
+        104.33333363079969,
+        15.603447914123526,
+        20.222221374511722
+      ],
+      "nativePath": "measured-strip-1.native[29].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "8",
+      "printedBand": [
+        1470,
+        104,
+        1560,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "period-1-8",
+      "suppliedNativeLine": 62,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        1482.4224138711206,
+        137,
+        67.09482734658263,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研16",
+      "nativeObservationBox": [
+        1482.4224146720976,
+        136.99999974362794,
+        67.0948257446289,
+        24.999999999999986
+      ],
+      "nativePath": "measured-strip-1.native[30].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研16",
+      "printedBand": [
+        1470,
+        136,
+        1560,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-8-subject",
+      "suppliedNativeLine": 63,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1480.8620689775198,
+        168,
+        68.65517223775419,
+        26.555555487749302
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師16",
+      "nativeObservationBox": [
+        1480.8620679687115,
+        168.0000002839883,
+        68.6551742553711,
+        26.55555534362793
+      ],
+      "nativePath": "measured-strip-1.native[31].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師16",
+      "printedBand": [
+        1470,
+        168,
+        1560,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-8-teacher",
+      "suppliedNativeLine": 64,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1480.8620692775862,
+        199,
+        68.65517192339894,
+        26.666666477777767
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域16",
+      "nativeObservationBox": [
+        1480.8620681116001,
+        198.99999969362793,
+        68.6551742553711,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-1.native[32].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域16",
+      "printedBand": [
+        1470,
+        200,
+        1560,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-1",
+      "sourceDiagnosticId": "body-1-8-room",
+      "suppliedNativeLine": 65,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1596.0625000390626,
+        105.88888888888887,
+        17.187499785156206,
+        18.66666643333336
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "1",
+      "nativeObservationBox": [
+        1596.0624999316406,
+        105.88888909011365,
+        17.187500000000004,
+        18.666666030883796
+      ],
+      "nativePath": "measured-strip-2.native[0].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "1",
+      "printedBand": [
+        1560,
+        104,
+        1650,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "period-2-1",
+      "suppliedNativeLine": 66,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        1571.0625004427084,
+        135.44444444444446,
+        67.1874988802083,
+        26.555555555555543
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研17",
+      "nativeObservationBox": [
+        1571.0624998828125,
+        135.44444411811028,
+        67.1875,
+        26.555556297302246
+      ],
+      "nativePath": "measured-strip-2.native[1].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研17",
+      "printedBand": [
+        1560,
+        136,
+        1650,
+        168
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-1-subject",
+      "suppliedNativeLine": 67,
+      "wholePhysicalSlotContainmentDiagnostic": false
+    },
+    {
+      "candidateRangeUnion": [
+        1571.0625000078126,
+        168,
+        67.18749983203134,
+        26.55555548944443
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師17",
+      "nativeObservationBox": [
+        1571.0624999238282,
+        168.0000002848359,
+        67.1875,
+        26.55555534362793
+      ],
+      "nativePath": "measured-strip-2.native[2].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師17",
+      "printedBand": [
+        1560,
+        168,
+        1650,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-1-teacher",
+      "suppliedNativeLine": 68,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1570.7822904957814,
+        198.29782547916085,
+        69.23237782310025,
+        27.51804796641548
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        },
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "試域17",
+      "nativeObservationBox": [
+        1570.782291358015,
+        198.29782579598674,
+        69.23237609863281,
+        27.518047332763665
+      ],
+      "nativePath": "measured-strip-2.native[3].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "試域17",
+      "printedBand": [
+        1560,
+        200,
+        1650,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-1-room",
+      "suppliedNativeLine": 69,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1686.6875000195312,
+        104.33333333333333,
+        17.187499785156206,
+        20.222221969444462
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "2",
+      "nativeObservationBox": [
+        1686.6874999121094,
+        104.33333363079969,
+        17.187500000000004,
+        20.222221374511722
+      ],
+      "nativePath": "measured-strip-2.native[4].top1",
+      "originalCandidateConfidence": 0.30000001192092896,
+      "originalRawText": "2",
+      "printedBand": [
+        1650,
+        104,
+        1740,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "period-2-2",
+      "suppliedNativeLine": 70,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        1661.6875003571429,
+        135.44444444444446,
+        67.18749904017864,
+        26.555555555555543
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研18",
+      "nativeObservationBox": [
+        1661.687499877232,
+        135.44444414959173,
+        67.18749999999999,
+        26.555556297302246
+      ],
+      "nativePath": "measured-strip-2.native[5].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研18",
+      "printedBand": [
+        1650,
+        136,
+        1740,
+        168
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-2-subject",
+      "suppliedNativeLine": 71,
+      "wholePhysicalSlotContainmentDiagnostic": false
+    },
+    {
+      "candidateRangeUnion": [
+        1660.1250000120192,
+        168,
+        68.7499998237181,
+        26.555555487749302
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師18",
+      "nativeObservationBox": [
+        1660.1249999238782,
+        168.0000002839883,
+        68.75,
+        26.55555534362793
+      ],
+      "nativePath": "measured-strip-2.native[6].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師18",
+      "printedBand": [
+        1650,
+        168,
+        1740,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-2-teacher",
+      "suppliedNativeLine": 72,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1659.939953870957,
+        199.83847787542985,
+        69.28637357213506,
+        26.00826419578877
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域18",
+      "nativeObservationBox": [
+        1659.9399521804621,
+        199.83847770251123,
+        69.286376953125,
+        26.008264541625984
+      ],
+      "nativePath": "measured-strip-2.native[7].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域18",
+      "printedBand": [
+        1650,
+        200,
+        1740,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-2-room",
+      "suppliedNativeLine": 73,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1777.3125000223215,
+        105.88888888888887,
+        14.062499799107172,
+        18.666666400000025
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "3",
+      "nativeObservationBox": [
+        1777.312499921875,
+        105.88888907344699,
+        14.062500000000018,
+        18.66666603088378
+      ],
+      "nativePath": "measured-strip-2.native[8].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "3",
+      "printedBand": [
+        1740,
+        104,
+        1830,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "period-2-3",
+      "suppliedNativeLine": 74,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        1752.3125000123355,
+        137,
+        65.62499982730264,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研19",
+      "nativeObservationBox": [
+        1752.312499925987,
+        136.99999975532384,
+        65.62499999999999,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-2.native[9].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研19",
+      "printedBand": [
+        1740,
+        136,
+        1830,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-3-subject",
+      "suppliedNativeLine": 75,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1750.7500000123355,
+        168,
+        67.18749982319082,
+        25.0
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "試師19",
+      "nativeObservationBox": [
+        1750.749999923931,
+        168.0000001791791,
+        67.18749999999999,
+        24.999999999999986
+      ],
+      "nativePath": "measured-strip-2.native[10].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "試師19",
+      "printedBand": [
+        1740,
+        168,
+        1830,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-3-teacher",
+      "suppliedNativeLine": 76,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1750.5653232730192,
+        199.8627392001867,
+        67.67726277611473,
+        26.00826419515613
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域19",
+      "nativeObservationBox": [
+        1750.565323984807,
+        199.86273902695177,
+        67.67726135253906,
+        26.008264541625984
+      ],
+      "nativePath": "measured-strip-2.native[11].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域19",
+      "printedBand": [
+        1740,
+        200,
+        1830,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-3-room",
+      "suppliedNativeLine": 77,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1888.2500003125,
+        71.5,
+        60.937499238281134,
+        25.055555244444463
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "水曜日",
+      "nativeObservationBox": [
+        1888.2499999316406,
+        71.50000026829969,
+        60.937500000000014,
+        25.055555343627933
+      ],
+      "nativePath": "measured-strip-2.native[12].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "水曜日",
+      "printedBand": [
+        1560,
+        70,
+        2280,
+        104
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "day-2",
+      "suppliedNativeLine": 78,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        1866.3750000446428,
+        104.33333333333333,
+        17.187499754464397,
+        20.22222193333333
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "4",
+      "nativeObservationBox": [
+        1866.3749999218749,
+        104.33333361274416,
+        17.187500000000004,
+        20.222221374511705
+      ],
+      "nativePath": "measured-strip-2.native[13].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "4",
+      "printedBand": [
+        1830,
+        104,
+        1920,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "period-2-4",
+      "suppliedNativeLine": 79,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        1841.3750000120192,
+        137,
+        67.18749982772442,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研20",
+      "nativeObservationBox": [
+        1841.3749999258814,
+        136.99999975616353,
+        67.18749999999999,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-2.native[14].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研20",
+      "printedBand": [
+        1830,
+        136,
+        1920,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-4-subject",
+      "suppliedNativeLine": 80,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1840.6951218337813,
+        166.12151759119274,
+        68.59756183979198,
+        28.915121209434517
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        },
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "試師20",
+      "nativeObservationBox": [
+        1840.6951204050445,
+        166.1212840064569,
+        68.59756469726564,
+        28.91558742523194
+      ],
+      "nativePath": "measured-strip-2.native[15].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "試師20",
+      "printedBand": [
+        1830,
+        168,
+        1920,
+        200
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-4-teacher",
+      "suppliedNativeLine": 81,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1839.8125006835937,
+        199,
+        68.74999914062505,
+        26.66666633611112
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域20",
+      "nativeObservationBox": [
+        1839.8125002539064,
+        198.9999996227946,
+        68.75000000000001,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-2.native[16].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域20",
+      "printedBand": [
+        1830,
+        200,
+        1920,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-4-room",
+      "suppliedNativeLine": 82,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1957.000000044643,
+        104.33333333333333,
+        15.624999776785671,
+        20.22222193333333
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "5",
+      "nativeObservationBox": [
+        1956.9999999330357,
+        104.33333361274416,
+        15.62500000000001,
+        20.222221374511705
+      ],
+      "nativePath": "measured-strip-2.native[17].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "5",
+      "printedBand": [
+        1920,
+        104,
+        2010,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "period-2-5",
+      "suppliedNativeLine": 83,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        1932.0000000123355,
+        137,
+        65.62499982730264,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研21",
+      "nativeObservationBox": [
+        1931.9999999259867,
+        136.99999975532384,
+        65.62500000000003,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-2.native[18].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研21",
+      "printedBand": [
+        1920,
+        136,
+        2010,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-5-subject",
+      "suppliedNativeLine": 84,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1930.4375000120192,
+        168,
+        68.7499998237181,
+        26.555555487749302
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師21",
+      "nativeObservationBox": [
+        1930.4374999238782,
+        168.0000002839883,
+        68.74999999999994,
+        26.55555534362793
+      ],
+      "nativePath": "measured-strip-2.native[19].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師21",
+      "printedBand": [
+        1920,
+        168,
+        2010,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-5-teacher",
+      "suppliedNativeLine": 85,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        1930.4375007589285,
+        197.5,
+        68.74999901785714,
+        28.16666626666668
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域21",
+      "nativeObservationBox": [
+        1930.437500267857,
+        197.50000043578288,
+        68.75000000000001,
+        28.166666030883782
+      ],
+      "nativePath": "measured-strip-2.native[20].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域21",
+      "printedBand": [
+        1920,
+        200,
+        2010,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-5-room",
+      "suppliedNativeLine": 86,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2047.6250000195314,
+        104.33333333333333,
+        15.624999804687377,
+        20.222221969444462
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "6",
+      "nativeObservationBox": [
+        2047.6249999218749,
+        104.33333363079969,
+        15.62500000000001,
+        20.222221374511722
+      ],
+      "nativePath": "measured-strip-2.native[21].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "6",
+      "printedBand": [
+        2010,
+        104,
+        2100,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "period-2-6",
+      "suppliedNativeLine": 87,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        2020.613769143431,
+        134.90301222996302,
+        68.07804852349955,
+        25.86850478062263
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研22",
+      "nativeObservationBox": [
+        2020.6137690521534,
+        134.90301200525766,
+        68.07804870605474,
+        25.868504524230957
+      ],
+      "nativePath": "measured-strip-2.native[22].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研22",
+      "printedBand": [
+        2010,
+        136,
+        2100,
+        168
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-6-subject",
+      "suppliedNativeLine": 88,
+      "wholePhysicalSlotContainmentDiagnostic": false
+    },
+    {
+      "candidateRangeUnion": [
+        2021.0625000080129,
+        168,
+        67.1874998277242,
+        26.555555487749302
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師22",
+      "nativeObservationBox": [
+        2021.0624999218749,
+        168.0000002839883,
+        67.18750000000006,
+        26.55555534362793
+      ],
+      "nativePath": "measured-strip-2.native[23].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師22",
+      "printedBand": [
+        2010,
+        168,
+        2100,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-6-teacher",
+      "suppliedNativeLine": 89,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2021.0625000123355,
+        199,
+        67.18749982319059,
+        26.666666597076016
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域22",
+      "nativeObservationBox": [
+        2021.062499923931,
+        198.99999975327705,
+        67.18750000000006,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-2.native[24].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域22",
+      "printedBand": [
+        2010,
+        200,
+        2100,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-6-room",
+      "suppliedNativeLine": 90,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2136.6875001171875,
+        104.33333333333333,
+        15.624999609375209,
+        20.22222171666668
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "7",
+      "nativeObservationBox": [
+        2136.6874999218753,
+        104.3333335044108,
+        15.62500000000001,
+        20.222221374511722
+      ],
+      "nativePath": "measured-strip-2.native[25].top1",
+      "originalCandidateConfidence": 0.30000001192092896,
+      "originalRawText": "7",
+      "printedBand": [
+        2100,
+        104,
+        2190,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "period-2-7",
+      "suppliedNativeLine": 91,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        2111.6875000164473,
+        137,
+        67.18749982319105,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研23",
+      "nativeObservationBox": [
+        2111.6874999280426,
+        136.99999975532384,
+        67.18749999999999,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-2.native[26].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研23",
+      "printedBand": [
+        2100,
+        136,
+        2190,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-7-subject",
+      "suppliedNativeLine": 92,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2110.1250000120194,
+        168,
+        68.74999982371764,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師23",
+      "nativeObservationBox": [
+        2110.124999923878,
+        168.0000001800188,
+        68.75000000000001,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-2.native[27].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師23",
+      "printedBand": [
+        2100,
+        168,
+        2190,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-7-teacher",
+      "suppliedNativeLine": 93,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2110.1250009114583,
+        197.5,
+        68.74999885416719,
+        28.16666620000001
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域23",
+      "nativeObservationBox": [
+        2110.1250003385417,
+        197.50000040244953,
+        68.75000000000001,
+        28.166666030883782
+      ],
+      "nativePath": "measured-strip-2.native[28].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域23",
+      "printedBand": [
+        2100,
+        200,
+        2190,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-7-room",
+      "suppliedNativeLine": 94,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2227.312500044643,
+        104.33333333333333,
+        15.624999776785899,
+        20.22222193333333
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "8",
+      "nativeObservationBox": [
+        2227.3124999330357,
+        104.33333361274416,
+        15.62500000000001,
+        20.222221374511705
+      ],
+      "nativePath": "measured-strip-2.native[29].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "8",
+      "printedBand": [
+        2190,
+        104,
+        2280,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "period-2-8",
+      "suppliedNativeLine": 95,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        2202.312500016892,
+        137,
+        67.1874998184121,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研24",
+      "nativeObservationBox": [
+        2202.312499926098,
+        136.9999997544387,
+        67.18749999999999,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-2.native[30].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研24",
+      "printedBand": [
+        2190,
+        136,
+        2280,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-8-subject",
+      "suppliedNativeLine": 96,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2200.7500000120194,
+        168,
+        68.74999982371764,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師24",
+      "nativeObservationBox": [
+        2200.749999923878,
+        168.0000001800188,
+        68.75000000000001,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-2.native[31].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師24",
+      "printedBand": [
+        2190,
+        168,
+        2280,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-8-teacher",
+      "suppliedNativeLine": 97,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2200.167682774213,
+        198.74113820436241,
+        69.98628085124665,
+        28.133549675533118
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域24",
+      "nativeObservationBox": [
+        2200.167685840217,
+        198.74091360670417,
+        69.98627471923821,
+        28.133998870849606
+      ],
+      "nativePath": "measured-strip-2.native[32].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域24",
+      "printedBand": [
+        2190,
+        200,
+        2280,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-2",
+      "sourceDiagnosticId": "body-2-8-room",
+      "suppliedNativeLine": 98,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2317.681034508836,
+        107.44444444444443,
+        14.081896317025894,
+        17.111110825925948
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "1",
+      "nativeObservationBox": [
+        2317.6810342763883,
+        107.44444451377947,
+        14.08189678192139,
+        17.111110687255874
+      ],
+      "nativePath": "measured-strip-3.native[0].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "1",
+      "printedBand": [
+        2280,
+        104,
+        2370,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "period-3-1",
+      "suppliedNativeLine": 99,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        2289.8426352199644,
+        132.6705996214491,
+        69.85562097550928,
+        30.326450462040953
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研25",
+      "nativeObservationBox": [
+        2289.8426350387736,
+        132.66927502489392,
+        69.85562133789062,
+        30.329098701477044
+      ],
+      "nativePath": "measured-strip-3.native[1].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研25",
+      "printedBand": [
+        2280,
+        136,
+        2370,
+        168
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-1-subject",
+      "suppliedNativeLine": 100,
+      "wholePhysicalSlotContainmentDiagnostic": false
+    },
+    {
+      "candidateRangeUnion": [
+        2291.081896610399,
+        166.5,
+        67.280171572791,
+        28.055555205555578
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        },
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "試師25",
+      "nativeObservationBox": [
+        2291.081895269109,
+        166.50000003692764,
+        67.2801742553711,
+        28.055555343627944
+      ],
+      "nativePath": "measured-strip-3.native[2].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "試師25",
+      "printedBand": [
+        2280,
+        168,
+        2370,
+        200
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-1-teacher",
+      "suppliedNativeLine": 101,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2291.081896559547,
+        199,
+        67.2801722455929,
+        26.666666600555544
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域25",
+      "nativeObservationBox": [
+        2291.0818955546583,
+        198.9999997550168,
+        67.2801742553711,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-3.native[3].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域25",
+      "printedBand": [
+        2280,
+        200,
+        2370,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-1-room",
+      "suppliedNativeLine": 102,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2406.866379329903,
+        104.33333333333333,
+        15.646551528555847,
+        20.222221969444462
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "2",
+      "nativeObservationBox": [
+        2406.86637952808,
+        104.33333363079969,
+        15.646551132202138,
+        20.222221374511722
+      ],
+      "nativePath": "measured-strip-3.native[4].top1",
+      "originalCandidateConfidence": 0.30000001192092896,
+      "originalRawText": "2",
+      "printedBand": [
+        2370,
+        104,
+        2460,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "period-3-2",
+      "suppliedNativeLine": 103,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        2380.886645725419,
+        133.47514197302803,
+        69.18680002655537,
+        29.180299282782755
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研26",
+      "nativeObservationBox": [
+        2380.8866466908453,
+        133.4745180319609,
+        69.18679809570311,
+        29.181547164917
+      ],
+      "nativePath": "measured-strip-3.native[5].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研26",
+      "printedBand": [
+        2370,
+        136,
+        2460,
+        168
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-2-subject",
+      "suppliedNativeLine": 104,
+      "wholePhysicalSlotContainmentDiagnostic": false
+    },
+    {
+      "candidateRangeUnion": [
+        2380.267241446367,
+        166.5,
+        68.84482660270942,
+        26.5
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師26",
+      "nativeObservationBox": [
+        2380.2672418754073,
+        166.49999991707492,
+        68.84482574462889,
+        26.5
+      ],
+      "nativePath": "measured-strip-3.native[6].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師26",
+      "printedBand": [
+        2370,
+        168,
+        2460,
+        200
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-2-teacher",
+      "suppliedNativeLine": 105,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2380.2672413871337,
+        199,
+        68.84482741409465,
+        26.666666600555544
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域26",
+      "nativeObservationBox": [
+        2380.2672422218666,
+        198.9999997550168,
+        68.84482574462892,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-3.native[7].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域26",
+      "printedBand": [
+        2370,
+        200,
+        2460,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-2-room",
+      "suppliedNativeLine": 106,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2497.616379332697,
+        105.88888888888887,
+        14.081896350553961,
+        18.666666400000025
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "3",
+      "nativeObservationBox": [
+        2497.6163791170134,
+        105.88888907344699,
+        14.081896781921396,
+        18.66666603088378
+      ],
+      "nativePath": "measured-strip-3.native[8].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "3",
+      "printedBand": [
+        2460,
+        104,
+        2550,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "period-3-3",
+      "suppliedNativeLine": 107,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        2469.7067430402826,
+        132.5781158732387,
+        70.11561837526915,
+        30.495207434169117
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研27",
+      "nativeObservationBox": [
+        2469.706744305554,
+        132.5766055537632,
+        70.11561584472656,
+        30.498227119445794
+      ],
+      "nativePath": "measured-strip-3.native[9].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研27",
+      "printedBand": [
+        2460,
+        136,
+        2550,
+        168
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-3-subject",
+      "suppliedNativeLine": 108,
+      "wholePhysicalSlotContainmentDiagnostic": false
+    },
+    {
+      "candidateRangeUnion": [
+        2471.017241468719,
+        166.5,
+        67.28017145264766,
+        26.5
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        },
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "試師27",
+      "nativeObservationBox": [
+        2471.0172400673578,
+        166.49999991707492,
+        67.28017425537104,
+        26.5
+      ],
+      "nativePath": "measured-strip-3.native[10].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "試師27",
+      "printedBand": [
+        2460,
+        168,
+        2550,
+        200
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-3-teacher",
+      "suppliedNativeLine": 109,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2470.3162369599045,
+        197.2187571685369,
+        68.75862658142523,
+        29.696234067775208
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域27",
+      "nativeObservationBox": [
+        2470.3162358280097,
+        197.21842544906758,
+        68.75862884521482,
+        29.696897506713864
+      ],
+      "nativePath": "measured-strip-3.native[11].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域27",
+      "printedBand": [
+        2460,
+        200,
+        2550,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-3-room",
+      "suppliedNativeLine": 110,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2608.7068967864225,
+        71.5,
+        61.021551113922214,
+        25.055555306666662
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "木曜日",
+      "nativeObservationBox": [
+        2608.706897730957,
+        71.5000002994108,
+        61.02154922485348,
+        25.055555343627933
+      ],
+      "nativePath": "measured-strip-3.native[12].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "木曜日",
+      "printedBand": [
+        2280,
+        70,
+        3000,
+        104
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "day-3",
+      "suppliedNativeLine": 111,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        2586.8017241826356,
+        104.33333333333333,
+        15.646551500615715,
+        20.22222193333333
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "4",
+      "nativeObservationBox": [
+        2586.8017243668423,
+        104.33333361274416,
+        15.646551132202138,
+        20.222221374511705
+      ],
+      "nativePath": "measured-strip-3.native[13].top1",
+      "originalCandidateConfidence": 0.30000001192092896,
+      "originalRawText": "4",
+      "printedBand": [
+        2550,
+        104,
+        2640,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "period-3-4",
+      "suppliedNativeLine": 112,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        2561.767241653125,
+        135.44444444444446,
+        65.71551641993528,
+        26.555555555555543
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研28",
+      "nativeObservationBox": [
+        2561.7672422947335,
+        135.44444417320284,
+        65.71551513671874,
+        26.555556297302246
+      ],
+      "nativePath": "measured-strip-3.native[14].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研28",
+      "printedBand": [
+        2550,
+        136,
+        2640,
+        168
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-4-subject",
+      "suppliedNativeLine": 113,
+      "wholePhysicalSlotContainmentDiagnostic": false
+    },
+    {
+      "candidateRangeUnion": [
+        2560.202586265571,
+        166.5,
+        68.84482672564673,
+        26.5
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師28",
+      "nativeObservationBox": [
+        2560.20258675608,
+        166.49999994068602,
+        68.84482574462892,
+        26.5
+      ],
+      "nativePath": "measured-strip-3.native[15].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師28",
+      "printedBand": [
+        2550,
+        168,
+        2640,
+        200
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-4-teacher",
+      "suppliedNativeLine": 114,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2560.2025862186315,
+        199,
+        68.84482741409465,
+        26.666666600555544
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域28",
+      "nativeObservationBox": [
+        2560.2025870533644,
+        198.9999997550168,
+        68.84482574462888,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-3.native[16].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域28",
+      "printedBand": [
+        2550,
+        200,
+        2640,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-4-room",
+      "suppliedNativeLine": 115,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2675.987069017672,
+        105.88888888888887,
+        15.646551463361902,
+        18.666666355555577
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "5",
+      "nativeObservationBox": [
+        2675.987069183252,
+        105.88888905122477,
+        15.646551132202218,
+        18.666666030883796
+      ],
+      "nativePath": "measured-strip-3.native[17].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "5",
+      "printedBand": [
+        2640,
+        104,
+        2730,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "period-3-5",
+      "suppliedNativeLine": 116,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        2649.713324875137,
+        132.67748258700863,
+        69.75177253731727,
+        30.319567496481426
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研29",
+      "nativeObservationBox": [
+        2649.7133223193327,
+        132.67615736460726,
+        69.75177764892572,
+        30.32221698760987
+      ],
+      "nativePath": "measured-strip-3.native[18].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研29",
+      "printedBand": [
+        2640,
+        136,
+        2730,
+        168
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-5-subject",
+      "suppliedNativeLine": 117,
+      "wholePhysicalSlotContainmentDiagnostic": false
+    },
+    {
+      "candidateRangeUnion": [
+        2650.9525862963055,
+        166.5,
+        67.28017145264766,
+        28.055555155555567
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        },
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "試師29",
+      "nativeObservationBox": [
+        2650.952584894944,
+        166.50000001192763,
+        67.28017425537108,
+        28.055555343627923
+      ],
+      "nativePath": "measured-strip-3.native[19].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "試師29",
+      "printedBand": [
+        2640,
+        168,
+        2730,
+        200
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-5-teacher",
+      "suppliedNativeLine": 118,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2650.6706225661965,
+        198.34934291917205,
+        67.95144691662063,
+        26.831921577697045
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域29",
+      "nativeObservationBox": [
+        2650.670622757905,
+        198.3493433961309,
+        67.95144653320311,
+        26.831920623779304
+      ],
+      "nativePath": "measured-strip-3.native[20].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域29",
+      "printedBand": [
+        2640,
+        200,
+        2730,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-5-room",
+      "suppliedNativeLine": 119,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2766.7370690046337,
+        104.33333333333333,
+        17.211206681411568,
+        20.222221969444462
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "6",
+      "nativeObservationBox": [
+        2766.737069127261,
+        104.33333363079969,
+        17.21120643615729,
+        20.222221374511722
+      ],
+      "nativePath": "measured-strip-3.native[21].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "6",
+      "printedBand": [
+        2730,
+        104,
+        2820,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "period-3-6",
+      "suppliedNativeLine": 120,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        2741.702586219249,
+        137,
+        67.28017223674033,
+        23.5
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研30",
+      "nativeObservationBox": [
+        2741.7025852099337,
+        136.99999965140682,
+        67.28017425537116,
+        23.499999999999993
+      ],
+      "nativePath": "measured-strip-3.native[22].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研30",
+      "printedBand": [
+        2730,
+        136,
+        2820,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-6-subject",
+      "suppliedNativeLine": 121,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2740.1379310462175,
+        168,
+        68.84482741409465,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師30",
+      "nativeObservationBox": [
+        2740.1379318809504,
+        168.00000018081653,
+        68.84482574462899,
+        24.999999999999986
+      ],
+      "nativePath": "measured-strip-3.native[23].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師30",
+      "printedBand": [
+        2730,
+        168,
+        2820,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-6-teacher",
+      "suppliedNativeLine": 122,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2739.5563372961406,
+        197.23262870230383,
+        70.1591386403179,
+        29.00921332801269
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域30",
+      "nativeObservationBox": [
+        2739.5563396607326,
+        197.2323239435807,
+        70.15913391113281,
+        29.00982189178465
+      ],
+      "nativePath": "measured-strip-3.native[24].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域30",
+      "printedBand": [
+        2730,
+        200,
+        2820,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-6-room",
+      "suppliedNativeLine": 123,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2857.487069017672,
+        102.77777777777779,
+        15.646551463361902,
+        21.777777414814807
+      ],
+      "causes": [
+        {
+          "actual": "T",
+          "cause": "nativeTop1LiteralMismatch",
+          "certainty": "confirmed",
+          "expected": "7"
+        },
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        },
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "7",
+      "nativeObservationBox": [
+        2857.487069183252,
+        102.77777812611536,
+        15.646551132202218,
+        21.77777671813965
+      ],
+      "nativePath": "measured-strip-3.native[25].top1",
+      "originalCandidateConfidence": 0.30000001192092896,
+      "originalRawText": "T",
+      "printedBand": [
+        2820,
+        104,
+        2910,
+        136
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": false,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "period-3-7",
+      "suppliedNativeLine": 124,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        2830.887931050953,
+        137,
+        67.28017223674033,
+        23.5
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研31",
+      "nativeObservationBox": [
+        2830.8879300416374,
+        136.99999965140682,
+        67.28017425537108,
+        23.499999999999993
+      ],
+      "nativePath": "measured-strip-3.native[26].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研31",
+      "printedBand": [
+        2820,
+        136,
+        2910,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-7-subject",
+      "suppliedNativeLine": 125,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2830.8879310423063,
+        168,
+        67.28017224559244,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師31",
+      "nativeObservationBox": [
+        2830.887930037417,
+        168.00000018081653,
+        67.28017425537108,
+        24.999999999999986
+      ],
+      "nativePath": "measured-strip-3.native[27].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師31",
+      "printedBand": [
+        2820,
+        168,
+        2910,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-7-teacher",
+      "suppliedNativeLine": 126,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2830.8879310465186,
+        199,
+        67.28017224127962,
+        26.666666598860388
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域31",
+      "nativeObservationBox": [
+        2830.887930039473,
+        198.99999975416924,
+        67.28017425537108,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-3.native[28].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域31",
+      "printedBand": [
+        2820,
+        200,
+        2910,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-7-room",
+      "suppliedNativeLine": 127,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2946.6724138322197,
+        104.33333333333333,
+        17.211206681411568,
+        20.222221969444462
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "8",
+      "nativeObservationBox": [
+        2946.672413954847,
+        104.33333363079969,
+        17.21120643615721,
+        20.222221374511722
+      ],
+      "nativePath": "measured-strip-3.native[29].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "8",
+      "printedBand": [
+        2910,
+        104,
+        3000,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "period-3-8",
+      "suppliedNativeLine": 128,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        2921.637931477802,
+        135.44444444444446,
+        67.28017129245654,
+        26.555555555555543
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研32",
+      "nativeObservationBox": [
+        2921.6379299963446,
+        135.44444411811028,
+        67.28017425537108,
+        26.555556297302246
+      ],
+      "nativePath": "measured-strip-3.native[30].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研32",
+      "printedBand": [
+        2910,
+        136,
+        3000,
+        168
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-8-subject",
+      "suppliedNativeLine": 129,
+      "wholePhysicalSlotContainmentDiagnostic": false
+    },
+    {
+      "candidateRangeUnion": [
+        2920.073275878539,
+        166.5,
+        68.84482740503609,
+        26.5
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師32",
+      "nativeObservationBox": [
+        2920.073276708743,
+        166.50000007116847,
+        68.84482574462892,
+        26.5
+      ],
+      "nativePath": "measured-strip-3.native[31].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師32",
+      "printedBand": [
+        2910,
+        168,
+        3000,
+        200
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-8-teacher",
+      "suppliedNativeLine": 130,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        2919.4747380414433,
+        197.2187571685369,
+        70.19804471804036,
+        29.041348810988524
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域32",
+      "nativeObservationBox": [
+        2919.4747384888424,
+        197.21843357293255,
+        70.19804382324214,
+        29.041996002197276
+      ],
+      "nativePath": "measured-strip-3.native[32].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域32",
+      "printedBand": [
+        2910,
+        200,
+        3000,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-3",
+      "sourceDiagnosticId": "body-3-8-room",
+      "suppliedNativeLine": 131,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3037.0086207119457,
+        107.44444444444443,
+        14.043103247659928,
+        17.111110866666678
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "1",
+      "nativeObservationBox": [
+        3037.0086207267364,
+        107.44444453414985,
+        14.043103218078613,
+        17.111110687255856
+      ],
+      "nativePath": "measured-strip-4.native[0].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "1",
+      "printedBand": [
+        3000,
+        104,
+        3090,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "period-4-1",
+      "suppliedNativeLine": 132,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        3012.0431034605945,
+        137,
+        67.09482740964131,
+        25.0
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "図研33",
+      "nativeObservationBox": [
+        3012.043104293101,
+        136.99999975532384,
+        67.09482574462889,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-4.native[1].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "図研33",
+      "printedBand": [
+        3000,
+        136,
+        3090,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-1-subject",
+      "suppliedNativeLine": 133,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3010.4827586326924,
+        168,
+        68.65517223775396,
+        26.555555487749302
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師33",
+      "nativeObservationBox": [
+        3010.482757623884,
+        168.0000002839883,
+        68.6551742553711,
+        26.55555534362793
+      ],
+      "nativePath": "measured-strip-4.native[2].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師33",
+      "printedBand": [
+        3000,
+        168,
+        3090,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-1-teacher",
+      "suppliedNativeLine": 134,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3010.3452296390883,
+        199.83847806062877,
+        69.09628379722926,
+        26.008264195751565
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域33",
+      "nativeObservationBox": [
+        3010.3452300582107,
+        199.83847788769157,
+        69.09628295898436,
+        26.008264541625966
+      ],
+      "nativePath": "measured-strip-4.native[3].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域33",
+      "printedBand": [
+        3000,
+        200,
+        3090,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-1-room",
+      "suppliedNativeLine": 135,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3125.9482759010775,
+        104.33333333333333,
+        17.163792888900844,
+        20.222221969444462
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "2",
+      "nativeObservationBox": [
+        3125.948275563607,
+        104.33333363079969,
+        17.163793563842773,
+        20.222221374511722
+      ],
+      "nativePath": "measured-strip-4.native[4].top1",
+      "originalCandidateConfidence": 0.30000001192092896,
+      "originalRawText": "2",
+      "printedBand": [
+        3090,
+        104,
+        3180,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "period-4-2",
+      "suppliedNativeLine": 136,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        3099.667947272083,
+        132.47546371523737,
+        69.82741705919443,
+        30.708405640810753
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研34",
+      "nativeObservationBox": [
+        3099.667948068526,
+        132.47465841033755,
+        69.8274154663086,
+        30.710016250610344
+      ],
+      "nativePath": "measured-strip-4.native[5].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研34",
+      "printedBand": [
+        3090,
+        136,
+        3180,
+        168
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-2-subject",
+      "suppliedNativeLine": 137,
+      "wholePhysicalSlotContainmentDiagnostic": false
+    },
+    {
+      "candidateRangeUnion": [
+        3100.9827586286915,
+        168,
+        67.09482741416878,
+        26.555555487749302
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師34",
+      "nativeObservationBox": [
+        3100.982759463461,
+        168.0000002839883,
+        67.0948257446289,
+        26.55555534362793
+      ],
+      "nativePath": "measured-strip-4.native[6].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師34",
+      "printedBand": [
+        3090,
+        168,
+        3180,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-2-teacher",
+      "suppliedNativeLine": 138,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3100.9827586284914,
+        200.77777777777777,
+        67.09482741846978,
+        24.88888882666666
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域34",
+      "nativeObservationBox": [
+        3100.9827594654116,
+        200.77777753473902,
+        67.0948257446289,
+        24.888889312744126
+      ],
+      "nativePath": "measured-strip-4.native[7].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域34",
+      "printedBand": [
+        3090,
+        200,
+        3180,
+        232
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-2-room",
+      "suppliedNativeLine": 139,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3216.4482759066505,
+        104.33333333333333,
+        17.163792858251327,
+        20.22222193333333
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "3",
+      "nativeObservationBox": [
+        3216.4482755538547,
+        104.33333361274416,
+        17.163793563842773,
+        20.222221374511705
+      ],
+      "nativePath": "measured-strip-4.native[8].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "3",
+      "printedBand": [
+        3180,
+        104,
+        3270,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "period-4-3",
+      "suppliedNativeLine": 140,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        3191.4827586326924,
+        137,
+        67.09482741416878,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研35",
+      "nativeObservationBox": [
+        3191.4827594674625,
+        136.99999975616353,
+        67.0948257446289,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-4.native[9].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研35",
+      "printedBand": [
+        3180,
+        136,
+        3270,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-3-subject",
+      "suppliedNativeLine": 141,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3189.922413805106,
+        168,
+        68.65517223775441,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師35",
+      "nativeObservationBox": [
+        3189.9224127962975,
+        168.0000001800188,
+        68.6551742553711,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-4.native[10].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師35",
+      "printedBand": [
+        3180,
+        168,
+        3270,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-3-teacher",
+      "suppliedNativeLine": 142,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3189.9224138095283,
+        199,
+        68.65517223312145,
+        26.666666597076016
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域35",
+      "nativeObservationBox": [
+        3189.9224127984035,
+        198.99999975327705,
+        68.6551742553711,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-4.native[11].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域35",
+      "printedBand": [
+        3180,
+        200,
+        3270,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-3-room",
+      "suppliedNativeLine": 143,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3327.2327588980843,
+        71.5,
+        62.41379240996184,
+        25.055555279012353
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "金曜日",
+      "nativeObservationBox": [
+        3327.232759274818,
+        71.50000028558365,
+        62.413791656494105,
+        25.055555343627933
+      ],
+      "nativePath": "measured-strip-4.native[12].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "金曜日",
+      "printedBand": [
+        3000,
+        70,
+        3720,
+        104
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "day-4",
+      "suppliedNativeLine": 144,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        3306.9482759140806,
+        104.33333333333333,
+        15.603448015804588,
+        20.222221885185192
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "4",
+      "nativeObservationBox": [
+        3306.948275964921,
+        104.33333358867006,
+        15.603447914123526,
+        20.222221374511722
+      ],
+      "nativePath": "measured-strip-4.native[13].top1",
+      "originalCandidateConfidence": 0.30000001192092896,
+      "originalRawText": "4",
+      "printedBand": [
+        3270,
+        104,
+        3360,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "period-4-4",
+      "suppliedNativeLine": 145,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        3281.9827586326924,
+        137,
+        67.09482741416878,
+        25.0
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "図研36",
+      "nativeObservationBox": [
+        3281.9827594674625,
+        136.99999975616353,
+        67.0948257446289,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-4.native[14].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "図研36",
+      "printedBand": [
+        3270,
+        136,
+        3360,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-4-subject",
+      "suppliedNativeLine": 146,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3280.4224138009054,
+        168,
+        67.09482741846978,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師36",
+      "nativeObservationBox": [
+        3280.4224146378256,
+        168.00000018081653,
+        67.0948257446289,
+        24.999999999999986
+      ],
+      "nativePath": "measured-strip-4.native[15].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師36",
+      "printedBand": [
+        3270,
+        168,
+        3360,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-4-teacher",
+      "suppliedNativeLine": 147,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3280.4224138516165,
+        199,
+        68.65517155560337,
+        26.66666633611112
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域36",
+      "nativeObservationBox": [
+        3280.4224125017327,
+        198.9999996227946,
+        68.6551742553711,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-4.native[16].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域36",
+      "printedBand": [
+        3270,
+        200,
+        3360,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-4-room",
+      "suppliedNativeLine": 148,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3395.887931079064,
+        104.33333333333333,
+        17.163792858251327,
+        20.22222193333333
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "5",
+      "nativeObservationBox": [
+        3395.887930726268,
+        104.33333361274416,
+        17.163793563842813,
+        20.222221374511705
+      ],
+      "nativePath": "measured-strip-4.native[17].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "5",
+      "printedBand": [
+        3360,
+        104,
+        3450,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "period-4-5",
+      "suppliedNativeLine": 149,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        3370.9224138095283,
+        137,
+        67.09482740964131,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研37",
+      "nativeObservationBox": [
+        3370.9224146420347,
+        136.99999975532384,
+        67.0948257446289,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-4.native[18].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研37",
+      "printedBand": [
+        3360,
+        136,
+        3450,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-5-subject",
+      "suppliedNativeLine": 150,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3370.9224138051063,
+        168,
+        67.09482741416832,
+        26.555555487749302
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師37",
+      "nativeObservationBox": [
+        3370.922414639876,
+        168.0000002839883,
+        67.0948257446289,
+        26.55555534362793
+      ],
+      "nativePath": "measured-strip-4.native[19].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師37",
+      "printedBand": [
+        3360,
+        168,
+        3450,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-5-teacher",
+      "suppliedNativeLine": 151,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3370.9224140564115,
+        199,
+        68.65517198469797,
+        26.666666501388903
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域37",
+      "nativeObservationBox": [
+        3370.922412921075,
+        198.99999970543348,
+        68.6551742553711,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-4.native[20].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域37",
+      "printedBand": [
+        3360,
+        200,
+        3450,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-5-room",
+      "suppliedNativeLine": 152,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3487.9482758815734,
+        104.33333333333333,
+        15.603448080818907,
+        20.222221969444462
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "6",
+      "nativeObservationBox": [
+        3487.948275964921,
+        104.33333363079969,
+        15.603447914123526,
+        20.222221374511722
+      ],
+      "nativePath": "measured-strip-4.native[21].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "6",
+      "printedBand": [
+        3450,
+        104,
+        3540,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "period-4-6",
+      "suppliedNativeLine": 153,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        3461.422413809972,
+        137,
+        67.09482740486919,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研38",
+      "nativeObservationBox": [
+        3461.4224146400925,
+        136.9999997544387,
+        67.0948257446289,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-4.native[22].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研38",
+      "printedBand": [
+        3450,
+        136,
+        3540,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-6-subject",
+      "suppliedNativeLine": 154,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3459.86206897752,
+        168,
+        68.65517223775396,
+        26.555555487749302
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師38",
+      "nativeObservationBox": [
+        3459.8620679687115,
+        168.0000002839883,
+        68.6551742553711,
+        26.55555534362793
+      ],
+      "nativePath": "measured-strip-4.native[23].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師38",
+      "printedBand": [
+        3450,
+        168,
+        3540,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-6-teacher",
+      "suppliedNativeLine": 155,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3461.4224138971263,
+        199,
+        67.09482646795959,
+        26.666666225925923
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域38",
+      "nativeObservationBox": [
+        3461.422414258792,
+        198.999999567702,
+        67.0948257446289,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-4.native[24].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域38",
+      "printedBand": [
+        3450,
+        200,
+        3540,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-6-room",
+      "suppliedNativeLine": 156,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3576.887931086494,
+        105.88888888888887,
+        15.603448015804588,
+        18.666666355555577
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "7",
+      "nativeObservationBox": [
+        3576.887931137335,
+        105.88888905122477,
+        15.603447914123606,
+        18.666666030883796
+      ],
+      "nativePath": "measured-strip-4.native[25].top1",
+      "originalCandidateConfidence": 0.30000001192092896,
+      "originalRawText": "7",
+      "printedBand": [
+        3540,
+        104,
+        3630,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "period-4-7",
+      "suppliedNativeLine": 157,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        3551.922413809972,
+        137,
+        65.53448258150047,
+        25.0
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "図研39",
+      "nativeObservationBox": [
+        3551.9224126690815,
+        136.9999997544387,
+        65.5344848632813,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-4.native[26].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "図研39",
+      "printedBand": [
+        3540,
+        136,
+        3630,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-7-subject",
+      "suppliedNativeLine": 158,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3550.36206897752,
+        168,
+        68.65517223775396,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師39",
+      "nativeObservationBox": [
+        3550.3620679687115,
+        168.0000001800188,
+        68.6551742553711,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-4.native[27].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師39",
+      "printedBand": [
+        3540,
+        168,
+        3630,
+        200
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-7-teacher",
+      "suppliedNativeLine": 159,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3550.1709068517457,
+        199.81078430114474,
+        69.10904419910321,
+        25.994255001977308
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域39",
+      "nativeObservationBox": [
+        3550.17090548328,
+        199.81078442181314,
+        69.10904693603511,
+        25.99425506591797
+      ],
+      "nativePath": "measured-strip-4.native[28].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域39",
+      "printedBand": [
+        3540,
+        200,
+        3630,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-7-room",
+      "suppliedNativeLine": 160,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3667.387931053987,
+        104.33333333333333,
+        15.603448080818907,
+        20.222221969444462
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "8",
+      "nativeObservationBox": [
+        3667.387931137335,
+        104.33333363079969,
+        15.603447914123526,
+        20.222221374511722
+      ],
+      "nativePath": "measured-strip-4.native[29].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "8",
+      "printedBand": [
+        3630,
+        104,
+        3720,
+        136
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "period-4-8",
+      "suppliedNativeLine": 161,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        3642.422413805422,
+        137,
+        65.53448258616163,
+        25.0
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "図研40",
+      "nativeObservationBox": [
+        3642.4224126668623,
+        136.99999975532384,
+        65.5344848632813,
+        25.000000000000004
+      ],
+      "nativePath": "measured-strip-4.native[30].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "図研40",
+      "printedBand": [
+        3630,
+        136,
+        3720,
+        168
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-8-subject",
+      "suppliedNativeLine": 162,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3640.233364226973,
+        166.17008125931864,
+        68.42835281764928,
+        28.08802124824922
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試師40",
+      "nativeObservationBox": [
+        3640.2333644578193,
+        166.16992531850184,
+        68.42835235595705,
+        28.088333129882812
+      ],
+      "nativePath": "measured-strip-4.native[31].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試師40",
+      "printedBand": [
+        3630,
+        168,
+        3720,
+        200
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-8-teacher",
+      "suppliedNativeLine": 163,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        3640.862069246379,
+        199,
+        67.09482713890793,
+        26.666666490370375
+      ],
+      "causes": [
+        {
+          "cause": "printedRoleBandRangeOverhang",
+          "certainty": "confirmed",
+          "scope": "Posthoc printed band diagnostic; not proof of actual Builder refusal"
+        }
+      ],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "試域40",
+      "nativeObservationBox": [
+        3640.8620699435187,
+        198.99999969992422,
+        67.0948257446289,
+        26.666666984558105
+      ],
+      "nativePath": "measured-strip-4.native[32].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "試域40",
+      "printedBand": [
+        3630,
+        200,
+        3720,
+        232
+      ],
+      "printedBandContainmentDiagnostic": false,
+      "rawLiteralExact": true,
+      "region": "measured-strip-4",
+      "sourceDiagnosticId": "body-4-8-room",
+      "suppliedNativeLine": 164,
+      "wholePhysicalSlotContainmentDiagnostic": true
+    },
+    {
+      "candidateRangeUnion": [
+        34.00000002857143,
+        171,
+        11.999999828571426,
+        15.999999771428577
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "1",
+      "nativeObservationBox": [
+        33.999999942857144,
+        170.99999988571432,
+        11.999999999999996,
+        16
+      ],
+      "nativePath": "measured-left-margin.native[0].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "1",
+      "printedBand": [
+        20,
+        136,
+        60,
+        232
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-left-margin",
+      "sourceDiagnosticId": "grade",
+      "suppliedNativeLine": 165,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        83.00000004285714,
+        171,
+        12.999999814285701,
+        15.999999771428577
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "2",
+      "nativeObservationBox": [
+        82.99999994999999,
+        170.99999988571432,
+        13.000000000000002,
+        16
+      ],
+      "nativePath": "measured-left-margin.native[1].top1",
+      "originalCandidateConfidence": 0.5,
+      "originalRawText": "2",
+      "printedBand": [
+        60,
+        136,
+        120,
+        232
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-left-margin",
+      "sourceDiagnosticId": "class",
+      "suppliedNativeLine": 166,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        96.00000079279556,
+        12,
+        106.55172261576357,
+        22
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "令和14年度",
+      "nativeObservationBox": [
+        96.00000226791367,
+        11.999999844155845,
+        106.55171966552734,
+        22
+      ],
+      "nativePath": "measured-upper-ink.native[0].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "令和14年度",
+      "printedBand": [
+        20,
+        2,
+        280,
+        50
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-upper-ink",
+      "sourceDiagnosticId": "year",
+      "suppliedNativeLine": 167,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        349.06034484289535,
+        13,
+        41.066810203217926,
+        21
+      ],
+      "causes": [],
+      "confidencePass": true,
+      "expectedPosthocLiteral": "前期",
+      "nativeObservationBox": [
+        349.06034464054926,
+        12.999999530774998,
+        41.06681060791016,
+        21.000000000000004
+      ],
+      "nativePath": "measured-upper-ink.native[1].top1",
+      "originalCandidateConfidence": 1,
+      "originalRawText": "前期",
+      "printedBand": [
+        310,
+        2,
+        430,
+        50
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-upper-ink",
+      "sourceDiagnosticId": "term",
+      "suppliedNativeLine": 168,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    },
+    {
+      "candidateRangeUnion": [
+        549.9547413998644,
+        13,
+        59.935344605603404,
+        20
+      ],
+      "causes": [
+        {
+          "cause": "fixedConfidencePredicateRefusal",
+          "certainty": "confirmed",
+          "scope": "Native candidate confidence, not character probability or calibrated accuracy"
+        }
+      ],
+      "confidencePass": false,
+      "expectedPosthocLiteral": "時間割",
+      "nativeObservationBox": [
+        549.9547413546436,
+        12.99999996363636,
+        59.935344696044915,
+        20
+      ],
+      "nativePath": "measured-upper-ink.native[2].top1",
+      "originalCandidateConfidence": 0.30000001192092896,
+      "originalRawText": "時間割",
+      "printedBand": [
+        480,
+        2,
+        680,
+        50
+      ],
+      "printedBandContainmentDiagnostic": true,
+      "rawLiteralExact": true,
+      "region": "measured-upper-ink",
+      "sourceDiagnosticId": "title",
+      "suppliedNativeLine": 169,
+      "wholePhysicalSlotContainmentDiagnostic": null
+    }
+  ],
+  "scope": "Independent posthoc native range diagnostic. Printed BODY role bands are source-generated subdivisions, not actual Builder rejection or exact glyph ownership. Whole physical slots are a separate posthoc containment test."
+}

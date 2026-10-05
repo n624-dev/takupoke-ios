@@ -1,0 +1,358 @@
+{
+  "records": [
+    {
+      "actualAffine": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "scale": 1,
+        "sourceBox": {
+          "height": 800,
+          "width": 3740,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "id": "actual-PDF-original-1x",
+      "image": {
+        "alphaInfo": 1,
+        "bitmapInfo": 16385,
+        "bitsPerComponent": 8,
+        "bitsPerPixel": 32,
+        "bytesPerRow": 14960,
+        "colorSpace": "kCGColorSpaceDeviceRGB",
+        "height": 800,
+        "originalPixelIdentityAssessedSeparatelyBeforeOCR": true,
+        "pngBytes": 97710,
+        "pngSHA256": "88ffb3b72af6ec77fdd43d6d53d9ad9477cb7d70a1448d7fc28c52ff2115dfb6",
+        "providerBytes": 11968000,
+        "providerSHA256": "1840402f64f9e0343c414fa23d1d27f7528f9b225a66cd93a35c57d2e102f0df",
+        "source_generated": true,
+        "width": 3740
+      },
+      "originalBox": {
+        "height": 800,
+        "width": 3740,
+        "x": 0,
+        "y": 0
+      },
+      "pdfSHA256": "7ceb34d191dc48a5d6bc072e75898172cd20f356f6c9c312f558635d6a454323",
+      "scale": 1,
+      "sourceGeneratedPDF": true,
+      "type": "inputImage"
+    },
+    {
+      "OCRRequests": 0,
+      "actualAffine": {
+        "offsetX": 0,
+        "offsetY": 0.9251336898395834,
+        "scale": 0.5475935828877005,
+        "sourceBox": {
+          "height": 800,
+          "width": 3740,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "id": "actual-PDF-coarse-rails-only",
+      "image": {
+        "alphaInfo": 1,
+        "bitmapInfo": 16385,
+        "bitsPerComponent": 8,
+        "bitsPerPixel": 32,
+        "bytesPerRow": 8192,
+        "colorSpace": "kCGColorSpaceDeviceRGB",
+        "height": 439,
+        "originalPixelIdentityAssessedSeparatelyBeforeOCR": true,
+        "pngBytes": 80627,
+        "pngSHA256": "3ecb9547d1501cd3ad6e5b9122ef0942b46660256c4c9a569f8afd74259d30fd",
+        "providerBytes": 3596288,
+        "providerSHA256": "3e3bbae61ad259fc579d0b9d3729d0650a5fd2db59dc5999dae18d7e9dc73081",
+        "source_generated": true,
+        "width": 2048
+      },
+      "scale": 0.5475935828877005,
+      "type": "inputImage"
+    },
+    {
+      "actualAffine": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "scale": 2,
+        "sourceBox": {
+          "height": 168,
+          "width": 725,
+          "x": 118,
+          "y": 67
+        }
+      },
+      "id": "measured-strip-0",
+      "image": {
+        "alphaInfo": 1,
+        "bitmapInfo": 16385,
+        "bitsPerComponent": 8,
+        "bitsPerPixel": 32,
+        "bytesPerRow": 5800,
+        "colorSpace": "kCGColorSpaceDeviceRGB",
+        "height": 336,
+        "originalPixelIdentityAssessedSeparatelyBeforeOCR": true,
+        "pngBytes": 64264,
+        "pngSHA256": "b57b3c3829e2f992880393de407b17e2e2db365ab45d1938c2c3b48dff30a008",
+        "providerBytes": 1948800,
+        "providerSHA256": "4ecbcb94bf7153d1dbd16c4e4de8c9ea297f6406b2cf0dfae9c88fdca454c9ee",
+        "source_generated": true,
+        "width": 1450
+      },
+      "originalBox": {
+        "height": 168,
+        "width": 725,
+        "x": 118,
+        "y": 67
+      },
+      "sameCGImagePassedOnceToOCR": true,
+      "scale": 2,
+      "scale2AddsOriginalSourceDetail": false,
+      "type": "inputImage"
+    },
+    {
+      "actualAffine": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "scale": 2,
+        "sourceBox": {
+          "height": 168,
+          "width": 724,
+          "x": 838,
+          "y": 67
+        }
+      },
+      "id": "measured-strip-1",
+      "image": {
+        "alphaInfo": 1,
+        "bitmapInfo": 16385,
+        "bitsPerComponent": 8,
+        "bitsPerPixel": 32,
+        "bytesPerRow": 5792,
+        "colorSpace": "kCGColorSpaceDeviceRGB",
+        "height": 336,
+        "originalPixelIdentityAssessedSeparatelyBeforeOCR": true,
+        "pngBytes": 63587,
+        "pngSHA256": "d8d9a92ce10cbbaa25c0b5f97cf731dc56848636817190123272927ae5d1b58f",
+        "providerBytes": 1946112,
+        "providerSHA256": "0cee71c1e46ac04a04d70059d0598aca165a99f250f4d94638835489688c7a0f",
+        "source_generated": true,
+        "width": 1448
+      },
+      "originalBox": {
+        "height": 168,
+        "width": 724,
+        "x": 838,
+        "y": 67
+      },
+      "sameCGImagePassedOnceToOCR": true,
+      "scale": 2,
+      "scale2AddsOriginalSourceDetail": false,
+      "type": "inputImage"
+    },
+    {
+      "actualAffine": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "scale": 2,
+        "sourceBox": {
+          "height": 168,
+          "width": 725,
+          "x": 1557,
+          "y": 67
+        }
+      },
+      "id": "measured-strip-2",
+      "image": {
+        "alphaInfo": 1,
+        "bitmapInfo": 16385,
+        "bitsPerComponent": 8,
+        "bitsPerPixel": 32,
+        "bytesPerRow": 5800,
+        "colorSpace": "kCGColorSpaceDeviceRGB",
+        "height": 336,
+        "originalPixelIdentityAssessedSeparatelyBeforeOCR": true,
+        "pngBytes": 63248,
+        "pngSHA256": "03430e4294bd3190b2d3cef7066b9f2bdba1a235fc9064c1f888999a8bede17a",
+        "providerBytes": 1948800,
+        "providerSHA256": "ce8853c78b69fa297978b3bdc5754a3f0b3913c7496a878eefacc2ba3ce7f263",
+        "source_generated": true,
+        "width": 1450
+      },
+      "originalBox": {
+        "height": 168,
+        "width": 725,
+        "x": 1557,
+        "y": 67
+      },
+      "sameCGImagePassedOnceToOCR": true,
+      "scale": 2,
+      "scale2AddsOriginalSourceDetail": false,
+      "type": "inputImage"
+    },
+    {
+      "actualAffine": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "scale": 2,
+        "sourceBox": {
+          "height": 168,
+          "width": 726,
+          "x": 2277,
+          "y": 67
+        }
+      },
+      "id": "measured-strip-3",
+      "image": {
+        "alphaInfo": 1,
+        "bitmapInfo": 16385,
+        "bitsPerComponent": 8,
+        "bitsPerPixel": 32,
+        "bytesPerRow": 5808,
+        "colorSpace": "kCGColorSpaceDeviceRGB",
+        "height": 336,
+        "originalPixelIdentityAssessedSeparatelyBeforeOCR": true,
+        "pngBytes": 66671,
+        "pngSHA256": "ace0405557e9f9da0d56d8305dde9c8aa47c180e9c044e9abaff60b07c6eaadf",
+        "providerBytes": 1951488,
+        "providerSHA256": "c92e53bb7f165b9aa46f5856b03a0f4739ecbea659dcb3c376339055c8f2d4d3",
+        "source_generated": true,
+        "width": 1452
+      },
+      "originalBox": {
+        "height": 168,
+        "width": 726,
+        "x": 2277,
+        "y": 67
+      },
+      "sameCGImagePassedOnceToOCR": true,
+      "scale": 2,
+      "scale2AddsOriginalSourceDetail": false,
+      "type": "inputImage"
+    },
+    {
+      "actualAffine": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "scale": 2,
+        "sourceBox": {
+          "height": 168,
+          "width": 724,
+          "x": 2998,
+          "y": 67
+        }
+      },
+      "id": "measured-strip-4",
+      "image": {
+        "alphaInfo": 1,
+        "bitmapInfo": 16385,
+        "bitsPerComponent": 8,
+        "bitsPerPixel": 32,
+        "bytesPerRow": 5792,
+        "colorSpace": "kCGColorSpaceDeviceRGB",
+        "height": 336,
+        "originalPixelIdentityAssessedSeparatelyBeforeOCR": true,
+        "pngBytes": 65465,
+        "pngSHA256": "9880e7ed2b46cee71ff3dbd7cc9c147b3bfcb558c3becdbf5a2eea7e75e0b734",
+        "providerBytes": 1946112,
+        "providerSHA256": "aa9e735eeb0ced1080dbdedc0fef80907f6392dc6417f9cd15f37de3a114eb43",
+        "source_generated": true,
+        "width": 1448
+      },
+      "originalBox": {
+        "height": 168,
+        "width": 724,
+        "x": 2998,
+        "y": 67
+      },
+      "sameCGImagePassedOnceToOCR": true,
+      "scale": 2,
+      "scale2AddsOriginalSourceDetail": false,
+      "type": "inputImage"
+    },
+    {
+      "actualAffine": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "scale": 2,
+        "sourceBox": {
+          "height": 168,
+          "width": 123,
+          "x": 0,
+          "y": 67
+        }
+      },
+      "id": "measured-left-margin",
+      "image": {
+        "alphaInfo": 1,
+        "bitmapInfo": 16385,
+        "bitsPerComponent": 8,
+        "bitsPerPixel": 32,
+        "bytesPerRow": 984,
+        "colorSpace": "kCGColorSpaceDeviceRGB",
+        "height": 336,
+        "originalPixelIdentityAssessedSeparatelyBeforeOCR": true,
+        "pngBytes": 4876,
+        "pngSHA256": "e898a6cf02d3a9a5e4cf0ebfafdf394115db00734a1bfbd471be0baa6e30bca1",
+        "providerBytes": 330624,
+        "providerSHA256": "f89c3df950b2d155c5d767eb2ae41ec58d8c22fdd94b8185ac29a82741ff51cf",
+        "source_generated": true,
+        "width": 246
+      },
+      "originalBox": {
+        "height": 168,
+        "width": 123,
+        "x": 0,
+        "y": 67
+      },
+      "sameCGImagePassedOnceToOCR": true,
+      "scale": 2,
+      "scale2AddsOriginalSourceDetail": false,
+      "type": "inputImage"
+    },
+    {
+      "actualAffine": {
+        "offsetX": 0,
+        "offsetY": 0,
+        "scale": 2,
+        "sourceBox": {
+          "height": 24,
+          "width": 515,
+          "x": 96,
+          "y": 11
+        }
+      },
+      "id": "measured-upper-ink",
+      "image": {
+        "alphaInfo": 1,
+        "bitmapInfo": 16385,
+        "bitsPerComponent": 8,
+        "bitsPerPixel": 32,
+        "bytesPerRow": 4120,
+        "colorSpace": "kCGColorSpaceDeviceRGB",
+        "height": 48,
+        "originalPixelIdentityAssessedSeparatelyBeforeOCR": true,
+        "pngBytes": 15525,
+        "pngSHA256": "2aebd0918e85e81f9f3ab7f405410b3bfbcb901b110fe36e214409cf9d2a92a5",
+        "providerBytes": 197760,
+        "providerSHA256": "f1736ffb27358d1546d85b416d6288dd4dcaa545a08458b59d945b5022d7f1d4",
+        "source_generated": true,
+        "width": 1030
+      },
+      "originalBox": {
+        "height": 24,
+        "width": 515,
+        "x": 96,
+        "y": 11
+      },
+      "sameCGImagePassedOnceToOCR": true,
+      "scale": 2,
+      "scale2AddsOriginalSourceDetail": false,
+      "type": "inputImage"
+    }
+  ],
+  "scope": "Metadata-only export; entire original image-bearing records omitted from raw publication. Actual images never transformed for recognition beyond recorded PDF render affine."
+}

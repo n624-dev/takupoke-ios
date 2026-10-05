@@ -1,0 +1,63 @@
+{
+  "expectedExact3Streams": true,
+  "fullLogBytes": 435925,
+  "fullLogSHA256": "111877d070a1ae3d2a64b2c4fcabcf75d3e92feab0c3bb16f35a9badf1a508ec",
+  "receipt": {
+    "acquisitionGuardFailure": false,
+    "additionalPixelOwnershipFailure": false,
+    "all40LiteralMatched": false,
+    "assessedLiteralMismatch": false,
+    "failureStage": "actualCoreGraphicsPDFOriginalRender",
+    "invalidLines": 0,
+    "literalUnassessed": true,
+    "rawBytes": 132082,
+    "rawSHA256": "128f961703bcf0454e2d1842ade2971a2fe71e6edfc03bc4ad2b498cce9b2f40",
+    "readableRecoveryFailure": false,
+    "recordSequenceComplete": true,
+    "recordTypes": [
+      "inputImage",
+      "outcome",
+      "literalAssessment",
+      "summary"
+    ],
+    "scope": "Transport/execution receipt only; no formal-quality or semantic-refusal award from execution success.",
+    "summary": {
+      "DocumentRequests": 0,
+      "analysesReturned": 0,
+      "attemptedRequests": 0,
+      "capturedRegions": 0,
+      "externalModelInvocations": 0,
+      "formalQuality": "UNASSESSED",
+      "formalStorageWrites": 0,
+      "manualAdopted": false,
+      "ordinaryPDFReaderCalled": true,
+      "plannedRequests": 7,
+      "returnedRequests": 0,
+      "type": "summary"
+    }
+  },
+  "recordTypes": [
+    "inputImage",
+    "outcome",
+    "literalAssessment",
+    "summary"
+  ],
+  "runId": 37252882035,
+  "streams": [
+    {
+      "bytes": 132082,
+      "key": "native/stdout",
+      "sha256": "128f961703bcf0454e2d1842ade2971a2fe71e6edfc03bc4ad2b498cce9b2f40"
+    },
+    {
+      "bytes": 0,
+      "key": "native/stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 49510,
+      "key": "metadata/execution",
+      "sha256": "da748f76ad6d2aded5f04053e5ba9f1196266f09076f1e4bf2039b969b71f6e5"
+    }
+  ]
+}

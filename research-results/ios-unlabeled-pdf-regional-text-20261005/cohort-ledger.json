@@ -1,0 +1,46 @@
+{
+  "attempts": [
+    {
+      "cause": "compression versus glyph rendering UNKNOWN; pixel versions absent",
+      "cleanup": "success",
+      "readerCalls": 0,
+      "recognitionCalls": 0,
+      "run": 37252243938,
+      "source": "21e9b4afc9f58372ee9d1c257c4107355d8c656a",
+      "stage": "preparation PNG byte pin mismatch"
+    },
+    {
+      "cause": "actual decoded memory rows exactly vertically flipped versus immutable source",
+      "cleanup": "success",
+      "readerCalls": 1,
+      "recognitionCalls": 0,
+      "run": 37252882035,
+      "source": "6918683a93daab20a75bc2eeba36e3310f443b73",
+      "stage": "original Apple RGBA identity guard"
+    },
+    {
+      "analysisReturns": 0,
+      "cleanup": "success",
+      "performErrors": 0,
+      "readerCalls": 1,
+      "recognitionCalls": 7,
+      "run": 37253601341,
+      "serializationErrors": 0,
+      "source": "81d8cb0c94c4d2b40822034488404bdba5ba1412",
+      "stage": "7 native calls complete; original confidence acquisition guard refuses"
+    }
+  ],
+  "boxClippingOrCorrections": 0,
+  "fixedPDFSHA256": "7ceb34d191dc48a5d6bc072e75898172cd20f356f6c9c312f558635d6a454323",
+  "fixedSourceRGBA_SHA256": "1840402f64f9e0343c414fa23d1d27f7528f9b225a66cd93a35c57d2e102f0df",
+  "formalQuality": "UNASSESSED",
+  "formalStorageWrites": 0,
+  "generatorSource": "4b08662d3c4613b22ffad5c0263915a14771e324",
+  "guardRelaxations": 0,
+  "manualAdoptions": 0,
+  "models": 0,
+  "recognitionRepeats": 0,
+  "runtimeProductionSource": "63ea9c88212bfe6a3755743e9c6288ff7d62adfb",
+  "semanticAccuracy": null,
+  "totalRecognitionCalls": 7
+}
