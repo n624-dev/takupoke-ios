@@ -59,8 +59,10 @@ struct Oracle:Decodable { var schoolYear:Int; var term:String; var classes:[Stri
             // The original raster API/threshold/bounds remain unchanged. Never infer missing text as blank.
             stage="additionalGlobalInkDiagnostic"
             let allText=acquired.layout.glyphs.map {RecoveryBox(x:$0.x,y:$0.y,width:$0.width,height:$0.height)}
-            let unknown=try acquired.raster.hasUncoveredInk(RecoveryBox(x:0,y:0,width:Double(cg.width),height:Double(cg.height)),text:allText,rules:acquired.layout.lines,check:check)
-            record["additionalGlobalInkDiagnostic"]=["uncoveredInk":unknown,"legacyF8GlobalCallerGuard":false,"requiredForThisDiagnosticProjection":true]
+            let proof=try IndependentInkProof.measure(evaluate:{try acquired.raster.hasUncoveredInk(RecoveryBox(x:0,y:0,width:Double(cg.width),height:Double(cg.height)),text:allText,rules:acquired.layout.lines,check:check)},check:check)
+            var inkRecord:[String:Any]=["uncoveredInk":proof.uncoveredInk as Any? ?? NSNull(),"legacyF8GlobalCallerGuard":false,"requiredForThisDiagnosticProjection":true]
+            if let error=proof.error {inkRecord["diagnosticError"]=failure(error)}
+            record["additionalGlobalInkDiagnostic"]=inkRecord
             stage="actualRasterBuilder"
             let document=try RecoveryDocumentBuilder.build([acquired.layout],kind:.timetable,hash:digest,fromOCR:Set([1]),rasters:[1:acquired.raster],check:check)
             record["builderReturned"]=true;record["recoveryDocument"]=try object(document)
@@ -75,7 +77,7 @@ struct Oracle:Decodable { var schoolYear:Int; var term:String; var classes:[Stri
             record["validatorCanAdopt"]=validation.canAdopt;record["validatorErrors"]=validation.errors
             guard validation.canAdopt else {throw NSError(domain:"ValidatorRejected",code:1)}
             stage="additionalGlobalInkProjectionGate"
-            guard !unknown else {throw NSError(domain:"AdditionalGlobalInkUnproven",code:1)}
+            guard proof.uncoveredInk == false else {throw NSError(domain:"AdditionalGlobalInkUnproven",code:1)}
             stage="inMemoryConversion"
             guard let day=SchoolDate(year:document.schoolYear,month:document.term=="前期" ? 4:10,day:1),document.term=="前期" || document.term=="後期" else {throw PDFParseError(code:.ambiguous)}
             let source=RecoverySelectedSource(kind:.timetable,url:pngURL,digest:digest,originalName:pngURL.lastPathComponent,storedName:pngURL.lastPathComponent,period:SchoolDataPeriod(day:day),captured:[RecoveryReadPage(page:1,state:.complete,layout:acquired.layout)])

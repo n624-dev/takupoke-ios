@@ -4,6 +4,9 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import os
+import shutil
+import subprocess
 import prepare
 import log_transport
 import run_simulator
@@ -54,6 +57,32 @@ class PrepareTests(unittest.TestCase):
         for bad in ['', '\n'.join(lines[:-1]), '\n'.join(lines[:1]+lines[2:]), '\n'.join(lines+list(log_transport.encode(b'','unexpected')))]:
             with self.assertRaises((AssertionError,KeyError)):run_simulator.restore_complete(bad)
         self.assertFalse(run_simulator.receipt(b'{}\n')['recordSequenceComplete'])
+
+    def test_independent_ink_error_preserves_baseline_but_never_proves_projection(self):
+        compiler=os.environ.get('SWIFTC') or shutil.which('swiftc')
+        self.assertTrue(compiler,'Swift compiler required for actual diagnostic handoff test')
+        with tempfile.TemporaryDirectory(prefix='ios-forty-ink-policy-') as folder:
+            main=Path(folder)/'main.swift'
+            main.write_text('''enum Failure:Error {case diagnosticLimit, cancellation, deadline}
+let unavailable=try IndependentInkProof.measure(evaluate:{throw Failure.diagnosticLimit},check:{})
+precondition(unavailable.uncoveredInk == nil && unavailable.error != nil)
+precondition(unavailable.uncoveredInk != false)
+for value in [false,true] {
+    let proof=try IndependentInkProof.measure(evaluate:{value},check:{})
+    precondition(proof.uncoveredInk == value && proof.error == nil)
+}
+for terminal in [Failure.cancellation,Failure.deadline] {
+    do {
+        _=try IndependentInkProof.measure(evaluate:{throw Failure.diagnosticLimit},check:{throw terminal})
+        fatalError("Task cancellation/deadline must not resume baseline")
+    } catch let actual as Failure {precondition(String(describing:actual)==String(describing:terminal))}
+}
+print("independent diagnostic handoff PASS")
+''')
+            binary=Path(folder)/'ink-policy'
+            subprocess.run([compiler,str(prepare.HERE/'IndependentInkProof.swift'),str(main),'-o',str(binary)],check=True,capture_output=True)
+            result=subprocess.run([str(binary)],check=True,capture_output=True,text=True)
+            self.assertIn('handoff PASS',result.stdout)
 
 
 if __name__=='__main__':unittest.main()
