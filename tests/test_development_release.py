@@ -52,7 +52,7 @@ class DevelopmentReleaseTests(IPAFixture):
     def test_wrong_identity_attempt_or_skipped_failure_never_qualifies(self):
         run,jobs,workflow = self.context()
         for key,value in [("head_sha","b"*40),("head_branch","main"),("event","pull_request"),
-                          ("status","in_progress"),("conclusion","failure"),("run_attempt",1)]:
+                          ("status","in_progress"),("status","queued"),("conclusion","failure"),("run_attempt",1)]:
             with self.subTest(key=key), self.assertRaises(ValueError):
                 dev.check_snapshot(run|{key:value},jobs,workflow,COMMIT,123)
         for status in ("failure","cancelled","skipped",None):
@@ -74,15 +74,78 @@ class DevelopmentReleaseTests(IPAFixture):
 
     def stage(self,fake):
         fake.run.update(status="in_progress",conclusion=None)
+        job = next(job for job in fake.jobs if job["name"] == dev.STAGING_JOB)
+        previous_job = copy.deepcopy(job)
+        job.update(id=987, status="in_progress", conclusion=None,
+                   started_at="2026-10-05T12:00:00Z", completed_at=None)
         env={"GITHUB_REPOSITORY":dev.REPO,"GITHUB_REF":"refs/heads/"+dev.BRANCH,
              "GITHUB_EVENT_NAME":"workflow_dispatch","GITHUB_RUN_ID":"123",
-             "GITHUB_RUN_ATTEMPT":"2","GITHUB_SHA":COMMIT}
+             "GITHUB_RUN_ATTEMPT":"2","GITHUB_SHA":COMMIT,"GITHUB_JOB":"development-build"}
         output=Path(self.scratch.name)/"github-output"
         before=output.read_text() if output.exists() else ""
-        with patch.dict(os.environ,env),redirect_stdout(io.StringIO()):
-            dev.stage(self.output,output)
+        try:
+            with patch.dict(os.environ,env),redirect_stdout(io.StringIO()):
+                dev.stage(self.output,output)
+        finally:
+            job.clear();job.update(previous_job)
         self.assertEqual(output.read_text(),before+"draft_id=789\n")
         return fake.drafts[789]
+
+    def staging_context(self):
+        run,jobs,workflow = self.context()
+        run.update(status="queued", conclusion=None)
+        job = next(job for job in jobs if job["name"] == dev.STAGING_JOB)
+        job.update(id=987, status="in_progress", conclusion=None,
+                   started_at="2026-10-05T12:00:00Z", completed_at=None)
+        return run,jobs,workflow
+
+    def test_queued_aggregate_with_executing_exact_build_can_stage_but_never_publish(self):
+        run,jobs,workflow = self.staging_context()
+        for status in ("queued", "in_progress"):
+            run["status"] = status
+            self.assertEqual(dev.check_stage_snapshot(run,jobs,workflow,COMMIT,123,2,"development-build"),2)
+            with self.assertRaises(ValueError):dev.check_snapshot(run,jobs,workflow,COMMIT,123)
+
+    def test_staging_rejects_nonexecuting_foreign_or_duplicate_build_job(self):
+        run,jobs,workflow = self.staging_context()
+        changes=(("id",0),("id",True),("run_id",999),("run_attempt",1),
+                 ("head_sha","b"*40),("status","queued"),("status","completed"),
+                 ("conclusion","failure"),("started_at",None),
+                 ("completed_at","2026-10-05T12:05:00Z"))
+        for key,value in changes:
+            changed=copy.deepcopy(jobs)
+            next(job for job in changed if job["name"] == dev.STAGING_JOB)[key]=value
+            with self.subTest(key=key,value=value),self.assertRaises(ValueError):
+                dev.check_stage_snapshot(run,changed,workflow,COMMIT,123,2,"development-build")
+        build_job = next(job for job in jobs if job["name"] == dev.STAGING_JOB)
+        for changed in ([job for job in jobs if job is not build_job],jobs+[build_job]):
+            with self.assertRaises(ValueError):
+                dev.check_stage_snapshot(run,changed,workflow,COMMIT,123,2,"development-build")
+
+    def test_staging_rejects_terminal_run_wrong_attempt_or_wrong_job_key(self):
+        run,jobs,workflow = self.staging_context()
+        for status in ("completed","cancelled","waiting",None):
+            with self.subTest(status=status),self.assertRaises(ValueError):
+                dev.check_stage_snapshot(run|{"status":status},jobs,workflow,COMMIT,123,2,"development-build")
+        for attempt,key in ((1,"development-build"),(2,"build-check"),(2,None)):
+            with self.assertRaises(ValueError):
+                dev.check_stage_snapshot(run,jobs,workflow,COMMIT,123,attempt,key)
+
+    def test_queued_aggregate_stages_privately_and_refused_build_never_creates_draft(self):
+        self.build()
+        run,jobs,workflow = self.staging_context()
+        env={"GITHUB_REPOSITORY":dev.REPO,"GITHUB_REF":"refs/heads/"+dev.BRANCH,
+             "GITHUB_EVENT_NAME":"workflow_dispatch","GITHUB_RUN_ID":"123",
+             "GITHUB_RUN_ATTEMPT":"2","GITHUB_SHA":COMMIT,"GITHUB_JOB":"development-build"}
+        with FakeGitHub(run,jobs,workflow) as f,patch.dict(os.environ,env),redirect_stdout(io.StringIO()):
+            job=next(job for job in f.jobs if job["name"] == dev.STAGING_JOB)
+            job["status"]="queued"
+            with self.assertRaises(ValueError):dev.stage(self.output,Path(self.scratch.name)/"refused-output")
+            self.assertEqual(f.creations,[])
+            job["status"]="in_progress"
+            dev.stage(self.output,Path(self.scratch.name)/"accepted-output")
+            self.assertTrue(f.drafts[789]["draft"])
+            self.assertEqual(f.finalizations,[])
 
     def test_original_unsigned_device_metadata_and_bytes_are_inspected(self):
         expected=self.build()

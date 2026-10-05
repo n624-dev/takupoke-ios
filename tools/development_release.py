@@ -18,6 +18,7 @@ REQUIRED = ALL_UI_REQUIRED_JOBS | {"Distribution tests", "Native PDF and recover
 ASSETS = ("takupoke.ipa", "SHA256SUMS", "INSTALL.txt")
 STAGED_ASSETS = ("takupoke.ipa", "release.json")
 MAX_IPA = 256 * 1024 * 1024
+STAGING_JOB = "Check iPhone build without publishing"
 
 
 def check_identity(run, workflow, commit, run_id):
@@ -53,6 +54,33 @@ def check_snapshot(run, jobs, workflow, commit, run_id):
     return attempt
 
 
+def check_stage_snapshot(run, jobs, workflow, commit, run_id, attempt, job_key):
+    current = check_identity(run, workflow, commit, run_id)
+    # GitHub can report an aggregate run as queued while matrix siblings wait
+    # and this build job is already executing. Verify the actual executing job.
+    if (current != attempt or job_key != "development-build"
+            or run.get("status") not in ("queued", "in_progress")
+            or run.get("conclusion") is not None):
+        raise ValueError("Staging run/source/attempt is not current")
+    matches = [job for job in jobs if job.get("name") == STAGING_JOB]
+    if len(matches) != 1:
+        raise ValueError("Current development build job is missing or ambiguous")
+    job = matches[0]
+    if (type(job.get("id")) is not int or job["id"] <= 0
+            or job.get("run_id") != run_id or job.get("run_attempt") != attempt
+            or job.get("head_sha") != commit or job.get("status") != "in_progress"
+            or job.get("conclusion") is not None or not job.get("started_at")
+            or job.get("completed_at") is not None):
+        raise ValueError("Development build job is not executing for this source and attempt")
+    return current
+
+
+def fetch_jobs(run_id, attempt):
+    pages = json.loads(gh("api", "--paginate", "--slurp",
+        f"repos/{REPO}/actions/runs/{run_id}/attempts/{attempt}/jobs?per_page=100"))
+    return [job for page in pages for job in page["jobs"]]
+
+
 def gate(run_id, commit):
     run = api(f"repos/{REPO}/actions/runs/{run_id}")
     workflow_id = run.get("workflow_id")
@@ -62,9 +90,7 @@ def gate(run_id, commit):
     attempt = run.get("run_attempt")
     if type(attempt) is not int or attempt <= 0:
         raise ValueError("Invalid run attempt")
-    pages = json.loads(gh("api", "--paginate", "--slurp",
-        f"repos/{REPO}/actions/runs/{run_id}/attempts/{attempt}/jobs?per_page=100"))
-    return check_snapshot(run, [job for page in pages for job in page["jobs"]], workflow, commit, run_id)
+    return check_snapshot(run, fetch_jobs(run_id, attempt), workflow, commit, run_id)
 
 
 def inspect_build(destination, commit):
@@ -148,8 +174,8 @@ def stage(build, github_output):
     attempt = int(os.environ["GITHUB_RUN_ATTEMPT"])
     run = api(f"repos/{REPO}/actions/runs/{run_id}")
     workflow = api(f"repos/{REPO}/actions/workflows/{run['workflow_id']}")
-    if check_identity(run, workflow, commit, run_id) != attempt or run.get("status") != "in_progress":
-        raise ValueError("Staging run/source/attempt is not current")
+    check_stage_snapshot(run, fetch_jobs(run_id, attempt), workflow, commit, run_id,
+                         attempt, os.environ.get("GITHUB_JOB"))
     metadata = inspect_build(build, commit)
     tag = tag_name(run_id, attempt, commit)
     if any(r.get("tag_name") == tag for r in list_releases(REPO)):
