@@ -667,6 +667,50 @@ enum SimulatorRecoveryOCRFixture {
             print("SYNTHETIC_NATIVE_CROP_RESULT " + observed)
         }
     }
+    private static func checkTableCapture(_ root: URL) async throws {
+        let size = CGSize(width:600,height:400)
+        let format = UIGraphicsImageRendererFormat(); format.scale = 1; format.opaque = true
+        let expected = ["3_CN","月","1","架空光学","架空担当甲","R701"]
+        let image = UIGraphicsImageRenderer(size:size,format:format).image { context in
+            UIColor.white.setFill(); context.fill(CGRect(origin:.zero,size:size))
+            context.cgContext.setStrokeColor(UIColor.black.cgColor); context.cgContext.setLineWidth(2)
+            for x in [20,200,380,560] { context.cgContext.move(to:CGPoint(x:CGFloat(x),y:20));context.cgContext.addLine(to:CGPoint(x:CGFloat(x),y:380)) }
+            for y in [20,200,380] { context.cgContext.move(to:CGPoint(x:20,y:CGFloat(y)));context.cgContext.addLine(to:CGPoint(x:560,y:CGFloat(y))) }
+            context.cgContext.strokePath()
+            for (index,text) in expected.enumerated() {
+                let point=CGPoint(x:CGFloat(35+(index%3)*180),y:CGFloat(80+(index/3)*180))
+                (text as NSString).draw(at:point,withAttributes:[.font:UIFont.systemFont(ofSize:24),.foregroundColor:UIColor.black])
+            }
+        }
+        let url=root.appendingPathComponent("fictional-unlabelled-table.pdf")
+        try UIGraphicsPDFRenderer(bounds:CGRect(origin:.zero,size:size)).writePDF(to:url) { context in
+            context.beginPage();image.draw(in:CGRect(origin:.zero,size:size))
+        }
+        guard (PDFDocument(url:url)?.string ?? "").trimmingCharacters(in:.whitespacesAndNewlines).isEmpty else { throw PDFParseError(code:.ambiguous) }
+        let draft=try await PDFRecoveryRecognition.acquire(url,only:[1],check:{})
+        guard let captured=draft.acquisition.pages.first, let native=draft.nativePages.first,
+              let structure=captured.structure, structure.documents.count==native.observations.count else { throw PDFParseError(code:.ambiguous) }
+        let nativeTables=native.observations.flatMap { $0.document.tables }
+        let capturedTables=structure.documents.flatMap { $0.tables }
+        guard nativeTables.count==capturedTables.count else { throw PDFParseError(code:.ambiguous) }
+        for (table,copy) in zip(nativeTables,capturedTables) {
+            guard table.rows.count==copy.rows.count, table.columns.count==copy.columns.count else { throw PDFParseError(code:.ambiguous) }
+            for (row,copiedRow) in zip(table.rows,copy.rows) {
+                guard row.count==copiedRow.count else { throw PDFParseError(code:.ambiguous) }
+                for (cell,copiedCell) in zip(row,copiedRow) {
+                    guard cell.content.text.transcript==copiedCell.transcript,
+                          cell.content.text.lines.count==copiedCell.lines.count,
+                          cell.rowRange.lowerBound==copiedCell.rowLower, cell.rowRange.upperBound==copiedCell.rowUpper,
+                          cell.columnRange.lowerBound==copiedCell.columnLower, cell.columnRange.upperBound==copiedCell.columnUpper else { throw PDFParseError(code:.ambiguous) }
+                }
+            }
+        }
+        let raw=captured.lines.compactMap { $0.candidates.first?.text }
+        let exact=expected.filter { raw.contains($0) }.count
+        var linkStatus="accepted"
+        do { _ = try draft.acquisition.assess() } catch { linkStatus="refused: " + String(describing:error) }
+        print("SYNTHETIC_NATIVE_TABLE_CAPTURE expectedLiterals=6 rawExactLiterals=\(exact) nativeTables=\(nativeTables.count) capturedTables=\(capturedTables.count) rawLines=\(raw.count) linkStatus=\(linkStatus) wholeDocumentQuality=UNASSESSED")
+    }
     static func check() async throws -> String {
         for key in ["fixture.nativeOCRCandidates", "fixture.nativeOCRText", "fixture.nativeOCRConfidence", "fixture.nativeRasterProof"] { UserDefaults.standard.removeObject(forKey: key) }
 
@@ -684,6 +728,7 @@ enum SimulatorRecoveryOCRFixture {
             context.cgContext.fill(CGRect(x: 0, y: 140, width: 1, height: 361))
             context.cgContext.fill(CGRect(x: 599, y: 140, width: 1, height: 361))
         }
+        try await checkTableCapture(root)
         try await checkCrop(root, image: image, size: size)
         for key in ["fixture.nativeOCRCandidates", "fixture.nativeOCRText", "fixture.nativeOCRConfidence", "fixture.nativeRasterProof"] { UserDefaults.standard.removeObject(forKey: key) }
         let url = root.appendingPathComponent("fictional-image-only.pdf")

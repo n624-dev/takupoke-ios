@@ -23,7 +23,13 @@ def instrument_events_cache(text):
 NATIVE_OCR_DIAGNOSTIC = '''
                     if ProcessInfo.processInfo.arguments.contains("--recovery-ocr-probe") {
                         let captured = lines.last?.candidates.first
-                        let detail = captured.map { $0.text + " confidence=" + String($0.confidence) + " candidateBox=" + String(describing: $0.lineRange) + " observationBox=" + String(describing: $0.observationRange) } ?? "no-top1"
+                        let detail = captured.map {
+                            let text = $0.text
+                            let confidence = String($0.confidence)
+                            let candidateBox = String(describing: $0.lineRange)
+                            let observationBox = String(describing: $0.observationRange)
+                            return "\(text) confidence=\(confidence) candidateBox=\(candidateBox) observationBox=\(observationBox)"
+                        } ?? "no-top1"
                         let previous = UserDefaults.standard.stringArray(forKey: "fixture.nativeOCRCandidates") ?? []
                         UserDefaults.standard.set(previous + [detail], forKey: "fixture.nativeOCRCandidates")
                         if let probe = captured {

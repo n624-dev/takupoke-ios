@@ -117,32 +117,64 @@ struct RecoveryRasterGrid: Sendable {
     }
     static func connectedRules(_ candidates: [PDFRule],check: () throws -> Void) throws -> [PDFRule] {
         guard candidates.count <= 100000 else { throw PDFParseError(code:.limit) }
-        var connected = candidates, comparisons = 0
+        var comparisons = 0
         func compare() throws {
             comparisons += 1
             guard comparisons <= 1_000_000 else { throw PDFParseError(code:.limit) }
             if comparisons % 128 == 0 { try check() }
         }
-        // Isolated 一/I strokes are content, not borders. Remove dangling strokes
-        // repeatedly so a character H cannot prove its own pair of fake borders.
-        for _ in 0..<8 {
+        let certified = try filterConnected(candidates)
+        if !certified.isEmpty { return certified }
+        // Existing certified endpoints stay unchanged; retry topology only after
+        // the entire observed rule graph fails, with no pixel or OCR modification.
+        // Keep only observed spans between perpendicular intersections. An open
+        // outer tail must not erase independently closed interior cells, or hide ink.
+        var clipped = [PDFRule]()
+        for line in candidates {
             try check()
-            let next = try connected.filter { line in
-                if line.horizontal {
-                    return try [line.x1,line.x2].allSatisfy { x in try connected.contains { other in
+            var positions = [Double]()
+            for other in candidates {
+                try compare()
+                guard line.vertical != other.vertical else { continue }
+                let position = line.vertical ? other.y1 : other.x1
+                let start = line.vertical ? line.y1 : line.x1
+                let end = line.vertical ? line.y2 : line.x2
+                let axis = line.vertical ? line.x1 : line.y1
+                let crossingStart = line.vertical ? other.x1 : other.y1
+                let crossingEnd = line.vertical ? other.x2 : other.y2
+                if position >= start, position <= end, axis >= crossingStart - 2, axis <= crossingEnd + 2 {
+                    positions.append(position)
+                }
+            }
+            guard let first = positions.min(), let last = positions.max(), last - first >= 24 else { continue }
+            let span = line.vertical ? PDFRule(x1:line.x1,y1:first,x2:line.x2,y2:last)
+                : PDFRule(x1:first,y1:line.y1,x2:last,y2:line.y2)
+            clipped.append(span)
+        }
+        return try filterConnected(clipped)
+        func filterConnected(_ input: [PDFRule]) throws -> [PDFRule] {
+            var connected = input
+            // Isolated 一/I strokes are content, not borders. Remove dangling strokes
+            // repeatedly so a character H cannot prove its own pair of fake borders.
+            for _ in 0..<8 {
+                try check()
+                let next = try connected.filter { line in
+                    if line.horizontal {
+                        return try [line.x1,line.x2].allSatisfy { x in try connected.contains { other in
+                            try compare()
+                            return other.vertical && abs(other.x1-x) <= 2 && line.y1 >= other.y1-2 && line.y1 <= other.y2+2
+                        } }
+                    }
+                    return try [line.y1,line.y2].allSatisfy { y in try connected.contains { other in
                         try compare()
-                        return other.vertical && abs(other.x1-x) <= 2 && line.y1 >= other.y1-2 && line.y1 <= other.y2+2
+                        return other.horizontal && abs(other.y1-y) <= 2 && line.x1 >= other.x1-2 && line.x1 <= other.x2+2
                     } }
                 }
-                return try [line.y1,line.y2].allSatisfy { y in try connected.contains { other in
-                    try compare()
-                    return other.horizontal && abs(other.y1-y) <= 2 && line.x1 >= other.x1-2 && line.x1 <= other.x2+2
-                } }
+                if next.count == connected.count { return next }
+                connected = next
             }
-            if next.count == connected.count { return next }
-            connected = next
+            return [] // Unresolved chains cannot certify a table or conceal OCR ink.
         }
-        return [] // Unresolved chains cannot certify a table or conceal OCR ink.
     }
     func hasUncoveredInk(_ box: RecoveryBox, text: [RecoveryBox], rules: [PDFRule]) -> Bool {
         // Non-job callers have no cancellation source. Exhausting the work

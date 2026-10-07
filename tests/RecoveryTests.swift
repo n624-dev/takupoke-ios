@@ -489,3 +489,26 @@ extension RecoveryTests {
         XCTAssertThrowsError(try LocalAIFeaturePolicy.check(on, requireEnabled: true))
     }
 }
+
+extension RecoveryTests {
+    func testOpenRasterBorderKeepsClosedInteriorAndLeavesUnsupportedTailAsInk() throws {
+        let width = 240, height = 200
+        var pixels = [UInt8](repeating:255,count:width*height)
+        for y in [20,100,180] { for x in 20..<width { pixels[y*width+x] = 0 } }
+        for x in [20,100,180] { for y in 20...180 { pixels[y*width+x] = 0 } }
+        let raster = RecoveryRasterGrid(width:width,height:height,grayscale:pixels)
+        let rules = try raster.rules(check:{})
+        XCTAssertEqual(rules.count,6)
+        for rule in rules where rule.horizontal { XCTAssertEqual(rule.x1,20); XCTAssertEqual(rule.x2,180) }
+        let prepared = try raster.preparingRules(rules)
+        XCTAssertTrue(prepared.hasUncoveredInk(RecoveryBox(x:210,y:95,width:20,height:10),text:[],rules:rules))
+        XCTAssertEqual(raster.grayscale,pixels)
+    }
+    func testOpenHShapeCannotCertifyClosedInteriorRules() throws {
+        let size=200
+        var pixels=[UInt8](repeating:255,count:size*size)
+        for y in 20...180 { pixels[y*size+20]=0;pixels[y*size+180]=0 }
+        for x in 20...180 { pixels[100*size+x]=0 }
+        XCTAssertTrue(try RecoveryRasterGrid(width:size,height:size,grayscale:pixels).rules(check:{}).isEmpty)
+    }
+}

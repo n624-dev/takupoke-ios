@@ -160,7 +160,6 @@ struct PDFRecoveryView: View {
             .onReceive(ApplicationData.shared.specialSchedules.$sources) { _ in Task { @MainActor in coordinator.invalidateManualIfSourceChanged() } }
             .onReceive(ApplicationData.shared.$loadedPeriod) { _ in Task { @MainActor in coordinator.invalidateManualIfSourceChanged() } }
             .task { await models.refresh() }
-            .onChange(of:useAiFeatures) { _,enabled in if !enabled { models.cancel() } }
         }
     }
     private var modelSection: some View { RecoveryModelControls(models:models) }
@@ -252,6 +251,7 @@ struct RecoveryModelSettingsView: View {
         }
             .navigationTitle("端末内AIモデル")
             .task { await models.refresh() }
+            .onChange(of:useAiFeatures) { _,enabled in if !enabled { models.cancel() } }
             .onChange(of:phase) { _,phase in if phase != .active { models.cancel() } }
     }
 }
