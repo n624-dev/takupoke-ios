@@ -237,7 +237,16 @@ final class ManualAssistanceChecks:XCTestCase {
         editStage("after-selection",e)
         if app.menuItems["すべてを選択"].waitForExistence(timeout:2) { app.menuItems["すべてを選択"].tap() }
         else if app.menuItems["Select All"].exists { app.menuItems["Select All"].tap() }
-        else { e.typeText(String(repeating:XCUIKeyboardKey.delete.rawValue,count:(e.value as? String)?.count ?? 0)) }
+        else if app.buttons["すべてを選択"].firstMatch.exists { app.buttons["すべてを選択"].firstMatch.tap() }
+        else if app.buttons["Select All"].firstMatch.exists { app.buttons["Select All"].firstMatch.tap() }
+        else {
+            // A long press can leave the caret at the beginning. Backspacing
+            // there deletes nothing and prefixes the new text to the old value.
+            // A real tap after the final displayed line places it at the end.
+            let editor=visible(e)
+            editor.coordinate(withNormalizedOffset:CGVector(dx:0.97,dy:0.9)).tap()
+            e.typeText(String(repeating:XCUIKeyboardKey.delete.rawValue,count:(e.value as? String)?.count ?? 0))
+        }
         e.typeText(value)
         // End the native editor before the independent acknowledgement tap.
         // The product commits text and dismisses the keyboard; it never checks
@@ -248,6 +257,7 @@ final class ManualAssistanceChecks:XCTestCase {
         done.tap()
         let dismissed=XCTNSPredicateExpectation(predicate:NSPredicate(format:"exists == false"),object:app.keyboards.firstMatch)
         XCTAssertEqual(XCTWaiter.wait(for:[dismissed],timeout:5),.completed,app.debugDescription)
+        XCTAssertEqual(e.value as? String,value,"The physical edit must replace the full previous input before acknowledgement")
     }
     private func editStage(_ stage:String,_ e:XCUIElement) {
         let keyboard=app.keyboards.firstMatch
