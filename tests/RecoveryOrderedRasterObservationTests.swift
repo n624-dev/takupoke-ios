@@ -8,6 +8,43 @@ import AppKit
 import CryptoKit
 
 final class RecoveryOrderedRasterObservationTests:XCTestCase {
+    func testPairedImageFirstPageResolutionChangesOnlyRenderingDensity() async throws {
+        guard #available(macOS 26.0,*),let root=ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_FIXTURES"] else {
+            throw XCTSkip("Requires owned invented image cohort")
+        }
+        let directory=URL(fileURLWithPath:root,isDirectory:true)
+        let manifest=try XCTUnwrap(try JSONSerialization.jsonObject(with:Data(contentsOf:directory.appendingPathComponent("raster-manifest.json"))) as? [String:Any])
+        for item in try XCTUnwrap(manifest["cases"] as? [[String:Any]]) {
+            let file=try XCTUnwrap(item["file"] as? String),bytes=try Data(contentsOf:directory.appendingPathComponent(file))
+            XCTAssertEqual(SHA256.hash(data:bytes).map{String(format:"%02x",$0)}.joined(),item["sha256"] as? String)
+            let pdf=try XCTUnwrap(PDFDocument(data:bytes)),page=try XCTUnwrap(pdf.page(at:0)),bounds=page.bounds(for:.cropBox)
+            var outputs=[(String,Int,Int,[String],Int)]()
+            // No oracle, crop, confidence rule or capture limit enters recognition.
+            // Only PDFKit thumbnail density changes; this is a diagnostic, not
+            // permission to adopt larger pages or relax production limits.
+            for (name,scale) in [("long-edge-2048",min(2,2048/max(bounds.width,bounds.height))),("source-density-2x",CGFloat(2))] {
+                let image=page.thumbnail(of:CGSize(width:ceil(bounds.width*scale),height:ceil(bounds.height*scale)),for:.cropBox)
+                let cg=try XCTUnwrap(image.cgImage(forProposedRect:nil,context:nil,hints:nil))
+                let native=try await RecoveryVisionCapture.request().perform(on:cg)
+                let lines=native.flatMap{$0.document.text.lines}
+                outputs.append((name,cg.width,cg.height,lines.compactMap{$0.topCandidates(1).first?.string},lines.filter{($0.topCandidates(1).first?.confidence ?? 0)<0.85}.count))
+            }
+            // Expected literals are inspected only after both native calls return.
+            let gold=try XCTUnwrap(item["oracle"] as? [String:Any]),slots=try XCTUnwrap(gold["slots"] as? [[String:Any]])
+            let texts=slots.flatMap{($0["lessons"] as! [[String:String]]).flatMap{$0.values.map{Data($0.utf8)}}}
+            for (name,width,height,lines,below) in outputs {
+                let raw=lines.map{Data($0.utf8)}
+                let stripped=lines.map{Data($0.filter{!$0.isWhitespace}.utf8)}
+                let containing=texts.filter {text in raw.contains{$0.range(of:text) != nil}}.count
+                let spacingOnly=texts.filter {text in
+                    let comparable=Data(String(decoding:text,as:UTF8.self).filter{!$0.isWhitespace}.utf8)
+                    return stripped.contains{$0.range(of:comparable) != nil}
+                }.count
+                let row:[String:Any]=["case":item["case"]!,"condition":name,"page":1,"width":width,"height":height,"lines":lines.count,"below085":below,"bodyContainedOccurrencesAcrossDocument":containing,"spacingInsensitiveDiagnosticOccurrences":spacingOnly,"documentBodyObligations":2040,"nativeCalls":1,"llmCalls":0,"formalQuality":"UNASSESSED","firstInventedLines":Array(lines.prefix(8))]
+                print("ORDERED_RASTER_RESOLUTION "+String(decoding:try JSONSerialization.data(withJSONObject:row,options:[.sortedKeys]),as:UTF8.self))
+            }
+        }
+    }
     func testPairedImagePDFObservationRetainsFailuresAndWholeDocumentDenominators() async throws {
         guard #available(macOS 26.0,*),let root=ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_FIXTURES"] else {
             throw XCTSkip("Native observation requires the dedicated owned invented image cohort")
