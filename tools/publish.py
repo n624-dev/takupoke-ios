@@ -19,7 +19,14 @@ def gh(*args, output=None):
 
 
 def api(path, *options):
-    return json.loads(gh("api", "--header", "Cache-Control: no-cache", *options, path))
+    response = gh("api", "--header", "Cache-Control: no-cache", *options, path)
+    # GitHub's successful DELETE endpoints return HTTP 204 with no body.
+    # Empty read/write responses that require JSON still fail closed.
+    if not response and any(options[index] in ("--method", "-X")
+                            and options[index + 1] == "DELETE"
+                            for index in range(len(options) - 1)):
+        return None
+    return json.loads(response)
 
 
 def list_releases(repo):
