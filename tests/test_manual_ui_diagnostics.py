@@ -154,7 +154,7 @@ rm() { echo delete-owned-scratch; }
         runner = (ROOT / 'tools/test-manual-ui.sh').read_text()
         checks = (ROOT / 'tests/ui/ManualAssistanceChecks.swift').read_text()
         self.assertIn('-resultBundlePath "$scratch_dir/ManualResults.xcresult"', runner)
-        self.assertIn('-collect-test-diagnostics on-failure', runner)
+        self.assertNotIn('-collect-test-diagnostics on-failure', runner)
         self.assertIn('-collect-test-diagnostics never', runner)
         project = (ROOT / 'Takupoke.xcodeproj/project.pbxproj').read_text()
         self.assertIn('productName = ' + module.PROCESS + ';', project)

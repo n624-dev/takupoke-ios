@@ -47,7 +47,10 @@ xcrun simctl boot "$simulator_id"
 python3 -B tools/timed_command.py 'Manual simulator boot' xcrun simctl bootstatus "$simulator_id" -b
 diagnostic_args=(-collect-test-diagnostics never)
 if [[ "${TKPK_MANUAL_DIAGNOSTICS:-0}" == 1 ]]; then
-    diagnostic_args=(-collect-test-diagnostics on-failure -resultBundlePath "$scratch_dir/ManualResults.xcresult")
+    # The owned result bundle and bounded collector retain XCTest failures.
+    # Xcode's unbounded simulator-process diagnostic collection stalled for
+    # 600 seconds even after a completed passing case on this runner.
+    diagnostic_args=(-collect-test-diagnostics never -resultBundlePath "$scratch_dir/ManualResults.xcresult")
 fi
 python3 -B tools/timed_command.py 'Manual UI checks' xcodebuild \
     -project "$scratch_dir/project/AppChecks.xcodeproj" -scheme AppChecks \
