@@ -51,7 +51,7 @@ struct SettingsView: View {
                         LabeledContent("クラス", value: selectedClasses.isEmpty ? "未選択" :
                             TimetableDisplayText.classNames(selectedClasses.split(separator: "|").map(String.init)))
                     }
-                    Toggle("AI機能を使用する", isOn: Binding(get: { useAiFeatures }, set: { LocalAIFeaturePolicy.setEnabled($0) }))
+                    Toggle("AI機能を使用する", isOn: Binding(get: { useAiFeatures }, set: { useAiFeatures = $0; LocalAIFeaturePolicy.setEnabled($0) }))
                         .accessibilityIdentifier("use-ai-features")
                     Text("端末内の生成AIによるPDF復旧を許可します。OCRと通常解析はOFFでも利用できます。")
                         .font(.caption).foregroundStyle(.secondary)

@@ -269,6 +269,10 @@ final class ApplicationChecks: XCTestCase {
         let rejectedLowConfidence = observedConfidence.map { $0.isFinite && $0 >= 0 && $0 < 0.85 } ?? false
         XCTAssertTrue(result.label == accepted || rejectedLowConfidence, app.debugDescription)
         print("SYNTHETIC_NATIVE_OCR_RESULT " + result.label)
+        let table=app.staticTexts["fixture-native-table-capture"]
+        XCTAssertTrue(table.waitForExistence(timeout:5),app.debugDescription)
+        XCTAssertTrue(table.label.contains("wholeDocumentQuality=UNASSESSED"),app.debugDescription)
+        print(table.label)
     }
 
     func testMergedCardsFromAllSources() {
@@ -519,8 +523,12 @@ final class ApplicationChecks: XCTestCase {
         let ai = app.switches["use-ai-features"]
         _ = visible(ai)
         XCTAssertTrue(ai.waitForExistence(timeout: 10)); XCTAssertEqual(ai.value as? String, "0")
-        ai.tap(); XCTAssertEqual(ai.value as? String, "1")
-        ai.tap(); XCTAssertEqual(ai.value as? String, "0")
+        for value in ["1","0"] {
+            ai.coordinate(withNormalizedOffset:CGVector(dx:0.94,dy:0.5)).tap()
+            let reflected = expectation(for:NSPredicate(format:"value == %@",value),evaluatedWith:ai)
+            wait(for:[reflected],timeout:5)
+            XCTAssertEqual(ai.value as? String,value)
+        }
         for _ in 0..<4 { app.swipeDown() }
         tap("リンク・名称・授業時刻")
         screen("リンク・名称・授業時刻")

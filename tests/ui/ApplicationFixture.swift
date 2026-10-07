@@ -46,6 +46,7 @@ final class FixtureNetwork: URLProtocol {
 struct SimulatorApplication: App {
     @State private var notificationProbe = "待機中"
     @State private var recoveryOCRProbe = "OCR実行中"
+    @State private var recoveryTableProbe = ""
     @State private var applicationReady = false
     @State private var fixtureTypeSize: DynamicTypeSize = .large
     @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
@@ -85,8 +86,10 @@ struct SimulatorApplication: App {
                 }
                 .overlay(alignment: .bottomLeading) {
                     if ProcessInfo.processInfo.arguments.contains("--recovery-ocr-probe") {
-                        Text(recoveryOCRProbe).accessibilityIdentifier("fixture-ocr-result")
-                            .allowsHitTesting(false)
+                        VStack {
+                            Text(recoveryOCRProbe).accessibilityIdentifier("fixture-ocr-result")
+                            if !recoveryTableProbe.isEmpty { Text(recoveryTableProbe).accessibilityIdentifier("fixture-native-table-capture") }
+                        }.allowsHitTesting(false)
                     }
                     if ProcessInfo.processInfo.arguments.contains("--theme-probe") {
                         Text(UserDefaults.standard.string(forKey: MainColor.storageKey) ?? "未設定")
@@ -115,6 +118,7 @@ struct SimulatorApplication: App {
                     if ProcessInfo.processInfo.arguments.contains("--recovery-ocr-probe") {
                         do { recoveryOCRProbe = try await SimulatorRecoveryOCRFixture.check() }
                         catch { recoveryOCRProbe = "OCR検証失敗: \(error)" }
+                        recoveryTableProbe=UserDefaults.standard.string(forKey:"fixture.nativeTableCapture") ?? "未取得"
                     }
                     guard ProcessInfo.processInfo.arguments.contains("--notification-probe") else { return }
                     for _ in 0..<40 {
@@ -707,11 +711,14 @@ enum SimulatorRecoveryOCRFixture {
         }
         let raw=captured.lines.compactMap { $0.candidates.first?.text }
         let exact=expected.filter { raw.contains($0) }.count
-        var linkStatus="accepted"
-        do { _ = try draft.acquisition.assess() } catch { linkStatus="refused: " + String(describing:error) }
-        print("SYNTHETIC_NATIVE_TABLE_CAPTURE expectedLiterals=6 rawExactLiterals=\(exact) nativeTables=\(nativeTables.count) capturedTables=\(capturedTables.count) rawLines=\(raw.count) linkStatus=\(linkStatus) wholeDocumentQuality=UNASSESSED")
+        var linkStatus="inventory-accepted"
+        do { _ = try draft.acquisition.assess() } catch { linkStatus="inventory-refused: " + String(describing:error) }
+        let summary="SYNTHETIC_NATIVE_TABLE_CAPTURE expectedLiterals=6 rawExactLiterals=\(exact) nativeTables=\(nativeTables.count) capturedTables=\(capturedTables.count) rawLines=\(raw.count) linkStatus=\(linkStatus) wholeDocumentQuality=UNASSESSED"
+        UserDefaults.standard.set(summary,forKey:"fixture.nativeTableCapture")
+        print(summary)
     }
     static func check() async throws -> String {
+        UserDefaults.standard.removeObject(forKey:"fixture.nativeTableCapture")
         for key in ["fixture.nativeOCRCandidates", "fixture.nativeOCRText", "fixture.nativeOCRConfidence", "fixture.nativeRasterProof"] { UserDefaults.standard.removeObject(forKey: key) }
 
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-ocr-ui-\(UUID().uuidString)", isDirectory: true)
