@@ -249,7 +249,13 @@ final class ManualAssistanceChecks:XCTestCase {
             // there deletes nothing and prefixes the new text to the old value.
             // A real tap after the final displayed line places it at the end.
             let editor=visible(e)
-            editor.coordinate(withNormalizedOffset:CGVector(dx:0.97,dy:0.9)).tap()
+            let frame=editor.frame,appFrame=app.frame
+            // Freeze the safe hit point before XCTest re-resolves a recycled
+            // editor. Its lower edge can hit the surrounding List instead of
+            // the native editor and dismiss the keyboard.
+            app.coordinate(withNormalizedOffset:CGVector(dx:0,dy:0))
+                .withOffset(CGVector(dx:frame.maxX-12-appFrame.minX,dy:frame.midY-appFrame.minY)).tap()
+            editStage("after-end-tap",e)
             e.typeText(String(repeating:XCUIKeyboardKey.delete.rawValue,count:(e.value as? String)?.count ?? 0))
         }
         e.typeText(value)
