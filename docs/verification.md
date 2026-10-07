@@ -902,3 +902,10 @@ Linux / Swift 6.1.2の公開用架空データテスト96件が通過しまし�
 ## CIの並列実行
 
 UIシミュレーター検証と、保存・解析テスト＋iPhoneビルドを並列に実行します。両方の成功後にIPAを生成・公開します。失敗・中止時には並列処理を停止し、各処理の一時データを片付けます。並列開始と失敗伝播はPythonテストで確認します。
+
+
+## 2026-10-08: AI・OCRの初期OFFとStrictのみの動作
+
+ソース`14e3e32de6839426109363860ce17bfc7276e9fc`の[配布前Actions](https://github.com/n624-dev/takupoke-ios/actions/runs/37645923631)は同一実行・同一試行の全13必須ジョブが成功した。ネイティブPDF・復旧494件、iOS 26/27の画面4分割、原本変更・1項目訂正・3項目個別確認と4項目拒否の6ジョブ、iPhoneビルドを確認した。設定OFFの開始拒否とON/OFF/ONの保存、Strict優先、前回正常結果の保持を含む。
+
+[公開Actions](https://github.com/n624-dev/takupoke-ios/actions/runs/37662294496)も成功し、[開発版](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-37645923631-1-14e3e32de683)を公開した。公開SHA-256一覧とGitHub配布ハッシュを照合し、IPAの配信内容を保存せずハッシュ計算した。IPA SHA-256は`5687fe950bd1b8363bb99e2b41c9482dc809d94a80db8bf3be349f9683ed621c`。正式版`v0.1.239-build.239.1`・main・固定AltStore Sourceは変更していない。追加AIモデル、独立した文書全体のOCR品質、iPhone実機への導入確認を示すものではない。
