@@ -6,6 +6,7 @@ import Vision
 import PDFKit
 import AppKit
 import CryptoKit
+import ImageIO
 
 final class RecoveryOrderedRasterObservationTests:XCTestCase {
     func testPairedImageFirstPageResolutionChangesOnlyRenderingDensity() async throws {
@@ -37,6 +38,34 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                 textRequest.usesLanguageCorrection = true
                 let textLines=try await textRequest.perform(on:cg)
                 outputs.append((name+"-accurate-text",cg.width,cg.height,textLines.compactMap{$0.topCandidates(1).first?.string},textLines.filter{($0.topCandidates(1).first?.confidence ?? 0)<0.85}.count))
+                if name == "source-density-2x" {
+                    let stem=try XCTUnwrap(item["case"] as? String)
+                    let png=try Data(contentsOf:directory.appendingPathComponent(stem+".first-source.png"))
+                    let source=try XCTUnwrap(CGImageSourceCreateWithData(png as CFData,nil))
+                    let direct=try XCTUnwrap(CGImageSourceCreateImageAtIndex(source,0,nil))
+                    XCTAssertEqual(direct.width,cg.width);XCTAssertEqual(direct.height,cg.height)
+                    let directLines=try await textRequest.perform(on:direct)
+                    outputs.append(("embedded-source-png-accurate-text",direct.width,direct.height,directLines.compactMap{$0.topCandidates(1).first?.string},directLines.filter{($0.topCandidates(1).first?.confidence ?? 0)<0.85}.count))
+                    func rgba(_ image:CGImage)throws->[UInt8] {
+                        var pixels=[UInt8](repeating:255,count:image.width*image.height*4)
+                        let made=pixels.withUnsafeMutableBytes { bytes -> Bool in
+                            guard let context=CGContext(data:bytes.baseAddress,width:image.width,height:image.height,bitsPerComponent:8,bytesPerRow:image.width*4,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue|CGBitmapInfo.byteOrder32Big.rawValue) else {return false}
+                            context.draw(image,in:CGRect(x:0,y:0,width:image.width,height:image.height));return true
+                        }
+                        XCTAssertTrue(made);return pixels
+                    }
+                    let rendered=try rgba(cg),original=try rgba(direct)
+                    var changed=0,inkChanges=0,darkChanges=0
+                    for offset in stride(from:0,to:rendered.count,by:4) {
+                        let r=Int(rendered[offset]),g=Int(rendered[offset+1]),b=Int(rendered[offset+2])
+                        let sr=Int(original[offset]),sg=Int(original[offset+1]),sb=Int(original[offset+2])
+                        if r != sr || g != sg || b != sb {changed+=1}
+                        if (r != 255 || g != 255 || b != 255) != (sr != 255 || sg != 255 || sb != 255) {inkChanges+=1}
+                        if (r+g+b<480) != (sr+sg+sb<480) {darkChanges+=1}
+                    }
+                    let report:[String:Any]=["case":stem,"width":cg.width,"height":cg.height,"renderedRGBAHash":SHA256.hash(data:Data(rendered)).map{String(format:"%02x",$0)}.joined(),"directRGBAHash":SHA256.hash(data:Data(original)).map{String(format:"%02x",$0)}.joined(),"rgbChangedPixels":changed,"inkClassificationChanges":inkChanges,"dark160Changes":darkChanges,"renderedColorSpace":String(describing:cg.colorSpace?.name),"directColorSpace":String(describing:direct.colorSpace?.name),"renderedAlpha":cg.alphaInfo.rawValue,"directAlpha":direct.alphaInfo.rawValue,"minimumTextHeight":textRequest.minimumTextHeight,"scope":"Same-size PNG versus PDFKit acquisition; no formal adoption"]
+                    print("ORDERED_RASTER_PIXEL_COMPARE "+String(decoding:try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]),as:UTF8.self))
+                }
             }
             // Expected literals are inspected only after both native calls return.
             let gold=try XCTUnwrap(item["oracle"] as? [String:Any]),slots=try XCTUnwrap(gold["slots"] as? [[String:Any]])

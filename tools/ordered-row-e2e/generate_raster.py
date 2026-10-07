@@ -23,6 +23,9 @@ for item in original['cases']:
         for page in pdf:
             pixels=page.get_pixmap(matrix=fitz.Matrix(2,2),alpha=False)
             raw=pixels.tobytes('png')
+            if page.number == 0:
+                # Owned acquisition comparison only; the PDF bytes stay unchanged.
+                (a.fixtures/(item['case']+'-image.first-source.png')).write_bytes(raw)
             target=raster.new_page(width=page.rect.width,height=page.rect.height)
             target.insert_image(target.rect,stream=raw)
             pages.append({'width':pixels.width,'height':pixels.height,'rgbSha256':hashlib.sha256(pixels.samples).hexdigest()})
