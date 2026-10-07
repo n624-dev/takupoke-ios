@@ -239,6 +239,15 @@ final class ManualAssistanceChecks:XCTestCase {
         else if app.menuItems["Select All"].exists { app.menuItems["Select All"].tap() }
         else { e.typeText(String(repeating:XCUIKeyboardKey.delete.rawValue,count:(e.value as? String)?.count ?? 0)) }
         e.typeText(value)
+        // End the native editor before the independent acknowledgement tap.
+        // The product commits text and dismisses the keyboard; it never checks
+        // acknowledgement on the user's behalf.
+        let done=app.buttons["manual-edit-done"].firstMatch
+        XCTAssertTrue(done.waitForExistence(timeout:5),app.debugDescription)
+        XCTAssertTrue(done.isHittable,app.debugDescription)
+        done.tap()
+        let dismissed=XCTNSPredicateExpectation(predicate:NSPredicate(format:"exists == false"),object:app.keyboards.firstMatch)
+        XCTAssertEqual(XCTWaiter.wait(for:[dismissed],timeout:5),.completed,app.debugDescription)
     }
     private func editStage(_ stage:String,_ e:XCUIElement) {
         let keyboard=app.keyboards.firstMatch
