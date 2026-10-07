@@ -1,0 +1,28 @@
+name: Compare native document and text recognition on one fictional table
+on:
+  push:
+    branches: [research/ios-recognition-language-20261007]
+    paths: [tools/vision-text-secondary-probe.swift, .github/workflows/vision-text-secondary-native.yml]
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: macos-26
+    timeout-minutes: 10
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Compare exactly three fixed requests and clean owned files
+        shell: bash
+        run: |
+          set -euo pipefail
+          task_dir="$(mktemp -d "${TMPDIR:-/tmp}/takupoke-vision-text-secondary.XXXXXX")"
+          trap 'rm -rf "$task_dir"' EXIT
+          trap 'exit 130' INT
+          trap 'exit 143' TERM
+          swiftc -parse-as-library tools/vision-text-secondary-probe.swift -o "$task_dir/probe"
+          "$task_dir/probe" | tee "$task_dir/log"
+          test "$(grep -c '^VISION_TEXT_SECONDARY_COMPLETE_CALLS_3_NO_QUALIFICATION$' "$task_dir/log")" = 1
