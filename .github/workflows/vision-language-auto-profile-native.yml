@@ -1,0 +1,29 @@
+name: Compare explicit Japanese with automatic document-language detection
+on:
+  push:
+    branches: [research/ios-recognition-language-20261007]
+    paths: [tools/vision-language-auto-profile-probe.swift, .github/workflows/vision-language-auto-profile-native.yml]
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: macos-26
+    timeout-minutes: 12
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Run fixed profile and remove owned files
+        shell: bash
+        run: |
+          set -euo pipefail
+          task_dir="$(mktemp -d "${TMPDIR:-/tmp}/takupoke-vision-profile.XXXXXX")"
+          trap 'rm -rf "$task_dir"' EXIT
+          trap 'exit 130' INT
+          trap 'exit 143' TERM
+          swiftc -parse-as-library tools/vision-language-auto-profile-probe.swift -o "$task_dir/probe"
+          "$task_dir/probe" --preflight
+          "$task_dir/probe" | tee "$task_dir/log"
+          test "$(grep -c '^VISION_JA_EN_AUTO_COMPLETE_CALLS_80_NO_QUALIFICATION$' "$task_dir/log")" = 1
