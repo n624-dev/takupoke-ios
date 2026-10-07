@@ -80,7 +80,13 @@ final class ApplicationChecks: XCTestCase {
             // accessibility parent owns hit testing. Check visible geometry.
             if e.exists && e.frame.height > 0 && e.frame.minY >= app.navigationBars.firstMatch.frame.maxY &&
                 e.frame.maxY <= (app.tabBars.firstMatch.exists ? app.tabBars.firstMatch.frame.minY : app.frame.maxY) { break }
-            app.swipeUp()
+            // A List can expose a row just above the navigation bar while
+            // opening. Bring it down instead of scrolling it out of the tree.
+            if e.exists && e.frame.minY < app.navigationBars.firstMatch.frame.maxY {
+                app.swipeDown()
+            } else {
+                app.swipeUp()
+            }
         }
         XCTAssertTrue(e.exists, app.debugDescription)
         return e
