@@ -132,3 +132,16 @@ Research run [37687961129](https://github.com/n624-dev/takupoke-ios/actions/runs
 Corrected research run [37693394523](https://github.com/n624-dev/takupoke-ios/actions/runs/37693394523), source `e505f13`, passed505 native tests (one skipped). On both invented first pages, PDFKit2x and the embedded original PNG had exactly matching normalized RGBA hashes,0 RGB-changed pixels,0 nonwhite-classification changes and0 dark160 changes. Accurate Japanese/English text recognition produced the same line counts and occurrence diagnostics on either image:187/206 lines,137/168 below0.85, and0 body literal occurrences. These first-page occurrences use the2,040 whole-document denominator and are not first-page or complete-document accuracy. The larger original-image acquisition alone did not improve recognition; it is not promoted. Formal recovery remains0/2, with no model qualified.
 
 The recorded `RecognizeTextRequest.minimumTextHeightFraction` default was0.03125. The next separate research condition `68b4775` compares a fixed8-source-pixel detection minimum on the identical2x CGImage, changing no ROI, language, correction, confidence or adoption rule. This is a detection experiment, not a lowered acceptance threshold. The paired sources remain diagnostic documents, not independent qualification material. Final CI cleanup removed all owned image/PDF/font and Python intermediates.
+
+## Fixed eight-pixel text detection minimum: more text, not qualified recovery
+
+Research source `68b4775`, [37695296545](https://github.com/n624-dev/takupoke-ios/actions/runs/37695296545), completed505 native tests with one skipped and no failures. Both first-page comparisons used exactly the same CGImage as their accurate-text baseline, changing only `minimumTextHeightFraction` from0.03125 to8/imageHeight. Languages ja/en, accurate level, automatic language detectionOFF, correctionON and acceptance rules stayed fixed.
+
+| Invented source | Baseline lines | Eight-pixel lines | Baseline body literal occurrences | Eight-pixel body literal occurrences | Eight-pixel lines below0.85 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Development | 187 | 434 | 0 | 48 | 411 |
+| Unseen content | 206 | 434 | 0 | 54 | 395 |
+
+The year/term transcript also improved, but low confidence remains common. Counts are textual occurrences observed on only the first page against2,040 whole-document obligations. They are not verified field assignments, character accuracy or complete-document success. The full existing recovery result remains0/2. No additional model is qualified and production settings remain unchanged. Owned generated source images, PDFs, font and Python environment were removed by final CI cleanup.
+
+The next research source `964d9e9` compares the same height-only change inside RecognizeDocumentsRequest, recording root lines and row-axis table lines separately. This checks whether the native document hierarchy benefits rather than assuming the independent text reader's improvement transfers to table acquisition. The larger diagnostic raster remains outside the app's2,048px capture bound and cannot enter adoption.
