@@ -161,3 +161,13 @@ Research run [37698462486](https://github.com/n624-dev/takupoke-ios/actions/runs
 | Table body-literal occurrences |0/0|0/53|
 
 All root/table top candidates were below the unchanged0.85 floor. This aggregate does not reveal whether the native scores are0,0.5, missing or otherwise distributed; missing candidates must be measured separately rather than treated as zero. First-page occurrence counts against the whole-document2,040-value inventory are not field accuracy or complete-document success. The development table disappeared, and unseen table topology changed, so this setting is not promoted as a production improvement. Formal recovery remains0/2 and no additional model is qualified. Next diagnosis inspects actual native candidate confidence without transplanting a Text reader's score onto Documents text or lowering adoption thresholds.
+
+## Native confidence distribution: low candidate scores are real, not missing-as-zero
+
+Research run [37700542780](https://github.com/n624-dev/takupoke-ios/actions/runs/37700542780), source `8ceef06`, passed506 native tests (three skipped), completed exactly4 recognition calls and removed its owned generated cohort/dependencies. The closed density/whole-document conditions were skipped rather than repeated. Two first-page CGImages were each passed to Documents and accurate Text with the8px minimum, ja/en, autodetectionOFF and correctionON. No oracle entered recognition, and neither reader's text/score was substituted into the other's output.
+
+Documents root candidates were all present, finite and nonzero: development434scores ranged0.07689995–0.68293792; unseen434ranged0.11558640–0.58729869. The unseen433row-axis table candidates ranged0.11558640–0.50915205; development again had no table. These native values are genuinely below the unchanged0.85 floor. The enclosing `DocumentObservation.confidence` was0 on each page, a distinct API value which is not used to replace line-candidate confidence.
+
+Text candidates were also all present/finite/nonzero. Development returned410scores at0.5,23at1 and1at0.3; unseen393at0.5,39at1 and2at0.3. The native API distributions therefore differ. Neither0.5 nor1 is treated as a calibrated correctness probability, and these measurements do not authorize a threshold reduction or cross-reader score transfer. Full-document recovery and additional-model qualification remain unproved.
+
+The unseen numeric JSON was split by XCTest stdout/stderr interleaving. Both existing fragments were reassembled after the run, and histogram totals were checked against all observations; recognition was not rerun to repair logging. Future diagnostics limit displayed distinct-value entries while retaining observation/missing/nonfinite counts and exact min/max.
