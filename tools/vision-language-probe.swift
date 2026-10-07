@@ -18,15 +18,15 @@ import Vision
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { throw CocoaError(.fileReadCorruptFile) }
         context.setFillColor(CGColor(gray: 1, alpha: 1)); context.fill(CGRect(x: 0, y: 0, width: 1200, height: 800))
         context.setStrokeColor(CGColor(gray: 0, alpha: 1)); context.setLineWidth(4)
-        for x in [40,400,760,1120] { context.move(to:CGPoint(x:x,y:40)); context.addLine(to:CGPoint(x:x,y:760)) }
-        for y in [40,400,760] { context.move(to:CGPoint(x:40,y:y)); context.addLine(to:CGPoint(x:1120,y:y)) }
+        for x in [40,400,760,1120] { context.move(to:CGPoint(x:CGFloat(x),y:40)); context.addLine(to:CGPoint(x:CGFloat(x),y:760)) }
+        for y in [40,400,760] { context.move(to:CGPoint(x:40,y:CGFloat(y))); context.addLine(to:CGPoint(x:1120,y:CGFloat(y))) }
         context.strokePath()
         let font = CTFontCreateWithName("HiraginoSans-W3" as CFString, 48, nil)
         for (index,text) in expected.enumerated() {
             let attrs: [NSAttributedString.Key: Any] = [NSAttributedString.Key(kCTFontAttributeName as String):font,
                 NSAttributedString.Key(kCTForegroundColorAttributeName as String):CGColor(gray:0,alpha:1)]
-            let line = CTLineCreateWithAttributedString(NSAttributedString(string:text,attributes:attrs))
-            context.textPosition = CGPoint(x:70+(index%3)*360,y:800-(160+(index/3)*360)-48)
+            let line = CTLineCreateWithAttributedString(NSAttributedString(string:text,attributes:attrs) as CFAttributedString)
+            context.textPosition = CGPoint(x:CGFloat(70+(index%3)*360),y:CGFloat(800-(160+(index/3)*360)-48))
             CTLineDraw(line,context)
         }
         guard let image = context.makeImage() else { throw CocoaError(.fileReadCorruptFile) }
