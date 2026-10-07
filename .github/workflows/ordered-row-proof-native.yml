@@ -15,15 +15,18 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - run: python3 -m pip install --disable-pip-version-check -r tools/independent-wide-timetable/requirements.txt
+      - name: Prepare owned Python environment
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ordered-row-python-owned"
+          "$RUNNER_TEMP/ordered-row-python-owned/bin/python" -m pip install --no-cache-dir --disable-pip-version-check -r tools/independent-wide-timetable/requirements.txt
       - name: Generate independent temporary source PDFs
-        run: python3 -B tools/ordered-row-e2e/generate.py --output "$RUNNER_TEMP/ordered-row-e2e-owned"
+        run: '"$RUNNER_TEMP/ordered-row-python-owned/bin/python" -B tools/ordered-row-e2e/generate.py --output "$RUNNER_TEMP/ordered-row-e2e-owned"'
       - run: bash tools/test-parsing.sh
         env:
           TAKUPOKE_ORDERED_ROW_FIXTURES: ${{ runner.temp }}/ordered-row-e2e-owned
       - name: Remove all owned generated PDFs and fonts
         if: always()
-        run: rm -rf "$RUNNER_TEMP/ordered-row-e2e-owned"
+        run: rm -rf "$RUNNER_TEMP/ordered-row-e2e-owned" "$RUNNER_TEMP/ordered-row-python-owned"
   build:
     name: iOS SDK build without publication
     runs-on: xcode-27
