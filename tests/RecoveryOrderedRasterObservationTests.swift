@@ -28,6 +28,15 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                 let native=try await RecoveryVisionCapture.request().perform(on:cg)
                 let lines=native.flatMap{$0.document.text.lines}
                 outputs.append((name,cg.width,cg.height,lines.compactMap{$0.topCandidates(1).first?.string},lines.filter{($0.topCandidates(1).first?.confidence ?? 0)<0.85}.count))
+                // A separate diagnostic reader receives these exact same pixels.
+                // No topology or formal adoption is synthesized from text lines.
+                var textRequest=RecognizeTextRequest()
+                textRequest.recognitionLevel = .accurate
+                textRequest.recognitionLanguages = [Locale.Language(identifier:"ja"),Locale.Language(identifier:"en")]
+                textRequest.automaticallyDetectsLanguage = false
+                textRequest.usesLanguageCorrection = true
+                let textLines=try await textRequest.perform(on:cg)
+                outputs.append((name+"-accurate-text",cg.width,cg.height,textLines.compactMap{$0.topCandidates(1).first?.string},textLines.filter{($0.topCandidates(1).first?.confidence ?? 0)<0.85}.count))
             }
             // Expected literals are inspected only after both native calls return.
             let gold=try XCTUnwrap(item["oracle"] as? [String:Any]),slots=try XCTUnwrap(gold["slots"] as? [[String:Any]])
