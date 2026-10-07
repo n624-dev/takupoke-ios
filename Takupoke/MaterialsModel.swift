@@ -99,6 +99,14 @@ final class MaterialsModel: ObservableObject {
         perform(success: nil) { try $0.previewChanges(control: $1) }
     }
 
+    func correctWeekdays(_ preview: ChangePreview) {
+        let year = automaticChangeSchoolYear
+        guard preview.canCorrectWeekdays, preview.defaultYear == year else { return }
+        perform(success: "日付から求めた曜日で読み込みました。ファイルの内容が更新されるまで適用します。") {
+            try $0.correctWeekdays(preview, defaultYear: year, control: $1)
+        }
+    }
+
     func dismissPreview() { changePreview = nil }
 
     func closeForRetention() async {
@@ -226,6 +234,7 @@ extension MaterialsModel {
         }
     }
     func adoptRecovery(_ preview: RecoveryPreview) async -> Bool {
+        let ticket = LocalAIFeaturePolicy.capture()
         let cancelled = AcquisitionControl()
         return await withTaskCancellationHandler {
         await withCheckedContinuation { continuation in
@@ -240,7 +249,7 @@ extension MaterialsModel {
                 try RecoveryConversion.verifyFile(preview.source,check:{ try cancelled.check(); try control.check() })
                 let analysis = try RecoveryConversion.timetable(preview)
                 guard preview.source.period == SchoolDataPeriod.current() else { throw PDFParseError(code:.cancelled) }
-                try cancelled.check(); try control.check(); try library.savePDFAnalysis(analysis)
+                try cancelled.check(); try control.check(); try LocalAIFeaturePolicy.check(ticket, requireEnabled: LocalAIFeaturePolicy.usesAI(preview.document, preview.result)); try library.savePDFAnalysis(analysis)
             }
         }
         } onCancel: { cancelled.cancel() }

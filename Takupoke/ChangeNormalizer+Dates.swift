@@ -37,11 +37,19 @@ extension ChangeNormalizer {
         guard c.year == parts[0], c.month == parts[1], c.day == parts[2] else { throw ChangeParseError(code: .date) }
         return String(format: "%04d-%02d-%02d", parts[0], parts[1], parts[2])
     }
-    static func weekdayMatches(_ value: String, normalizedDate: String) -> Bool {
+    static func knownWeekday(_ value: String) -> Bool {
+        ["日", "月", "火", "水", "木", "金", "土"].contains { day in
+            [day, day + "曜", day + "曜日", "(" + day + ")"].contains(text(value))
+        }
+    }
+    static func weekday(_ normalizedDate: String) -> String? {
         let parts = normalizedDate.split(separator: "-").compactMap { Int($0) }
         guard parts.count == 3,
-              let date = calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2])) else { return false }
-        let weekday = ["日", "月", "火", "水", "木", "金", "土"][calendar.component(.weekday, from: date) - 1]
-        return [weekday, weekday + "曜", weekday + "曜日", "(" + weekday + ")"].contains(text(value))
+              let date = calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2])) else { return nil }
+        return ["日", "月", "火", "水", "木", "金", "土"][calendar.component(.weekday, from: date) - 1]
+    }
+    static func weekdayMatches(_ value: String, normalizedDate: String) -> Bool {
+        guard let day = weekday(normalizedDate) else { return false }
+        return [day, day + "曜", day + "曜日", "(" + day + ")"].contains(text(value))
     }
 }

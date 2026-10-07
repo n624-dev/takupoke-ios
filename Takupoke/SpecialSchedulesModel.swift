@@ -193,6 +193,7 @@ extension SpecialSchedulesModel {
     }
     func adoptRecovery(_ preview: RecoveryPreview) async -> Bool {
         let kind: SpecialScheduleKind = preview.document.kind == .exam ? .exam : .examReturn
+        let ticket = LocalAIFeaturePolicy.capture()
         let cancelled = AcquisitionControl()
         return await withTaskCancellationHandler {
         await withCheckedContinuation { continuation in
@@ -204,7 +205,7 @@ extension SpecialSchedulesModel {
                 try RecoveryConversion.verifyFile(preview.source,check:{ try cancelled.check(); try control.check() })
                 let analysis = try RecoveryConversion.special(preview)
                 guard preview.source.period == SchoolDataPeriod.current() else { throw PDFParseError(code:.cancelled) }
-                try cancelled.check(); try control.check(); try store.saveAnalysis(analysis)
+                try cancelled.check(); try control.check(); try LocalAIFeaturePolicy.check(ticket, requireEnabled: LocalAIFeaturePolicy.usesAI(preview.document, preview.result)); try store.saveAnalysis(analysis)
             }
         }
         } onCancel: { cancelled.cancel() }

@@ -15,9 +15,9 @@ enum XLSXReader {
     static let documentRelationships = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
     static let maximumXMLBytes = 8 * 1024 * 1024
 
-    static func read(_ url: URL, defaultYear: Int? = nil, check: @escaping () throws -> Void = {}) throws -> [[String]] {
+    static func read(_ url: URL, defaultYear: Int? = nil, check: @escaping () throws -> Void = {}, dateDerivedWeekdays: Bool = false) throws -> [[String]] {
         let table = try readForPreview(url, defaultYear: defaultYear, check: check)
-        if let warning = table.warnings.first { throw warning }
+        if let warning = table.warnings.first(where: { !dateDerivedWeekdays || !$0.canCorrectWeekday }) { throw warning }
         return table.rows
     }
 
@@ -108,6 +108,6 @@ extension MaterialLibrary {
         let records = try ChangeNormalizer.parse(table.rows, defaultYear: attempt.defaultYear, check: check)
         try check()
         return ChangePreview(sourceName: record.originalName, defaultYear: attempt.defaultYear,
-                             records: records, warnings: table.warnings)
+                             records: records, warnings: table.warnings, sourceIdentity: record.source.selectionID ?? record.storedName, sourceDigest: record.digest)
     }
 }

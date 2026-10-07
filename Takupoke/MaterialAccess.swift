@@ -47,7 +47,7 @@ final class MaterialWorker {
             guard let state = library?.state else { return false }
             if kind == .changes {
                 guard ChangeParseAttempt.needsAnalysis(digest: current.digest, defaultYear: defaultYear,
-                    analysis: state.changeAnalysis, attempt: state.changeParseAttempt) else { return false }
+                    analysis: state.changeAnalysis, attempt: state.changeParseAttempt, weekdayConsent: current.source.weekdayConsent) else { return false }
             } else {
             let saved = state.pdfAnalyses?[kind.rawValue]
             let analysis = saved.flatMap { RecoveryConversion.trustsAcquisitionCache($0,hash:current.digest) ? $0:nil }

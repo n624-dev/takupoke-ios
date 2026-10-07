@@ -471,3 +471,21 @@ final class RecoveryTests: XCTestCase {
     }
 
 }
+
+extension RecoveryTests {
+    func testAiFeaturePermissionDefaultsOffAndOldTicketsCannotRevive() throws {
+        let saved = UserDefaults.standard.object(forKey: LocalAIFeaturePolicy.storageKey)
+        defer {
+            if let saved { UserDefaults.standard.set(saved, forKey: LocalAIFeaturePolicy.storageKey) }
+            else { UserDefaults.standard.removeObject(forKey: LocalAIFeaturePolicy.storageKey) }
+        }
+        UserDefaults.standard.removeObject(forKey: LocalAIFeaturePolicy.storageKey)
+        XCTAssertFalse(LocalAIFeaturePolicy.enabled)
+        let off = LocalAIFeaturePolicy.capture(); XCTAssertNoThrow(try LocalAIFeaturePolicy.check(off))
+        XCTAssertThrowsError(try LocalAIFeaturePolicy.check(off, requireEnabled: true))
+        LocalAIFeaturePolicy.setEnabled(true); let on = LocalAIFeaturePolicy.capture()
+        XCTAssertNoThrow(try LocalAIFeaturePolicy.check(on, requireEnabled: true))
+        LocalAIFeaturePolicy.setEnabled(false); LocalAIFeaturePolicy.setEnabled(true)
+        XCTAssertThrowsError(try LocalAIFeaturePolicy.check(on, requireEnabled: true))
+    }
+}

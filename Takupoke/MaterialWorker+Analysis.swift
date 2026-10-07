@@ -1,7 +1,7 @@
 import Foundation
 
 extension MaterialWorker {
-    func analyzeChanges(defaultYear: Int?, control: AcquisitionControl) throws {
+    func analyzeChanges(defaultYear: Int?, control: AcquisitionControl, authorizeWeekdayCorrection: Bool = false) throws {
         guard let library = library, let record = library.state.record(for: .changes),
               let url = library.localURL(for: .changes) else { throw ChangeParseError(code: .invalidArchive) }
         do {
@@ -9,12 +9,17 @@ extension MaterialWorker {
                 do { try control.check() }
                 catch { throw ChangeParseError(code: .cancelled) }
             }
-            let rows = try XLSXReader.read(url, defaultYear: defaultYear, check: check)
+            if let saved = record.source.weekdayConsent, !saved.matches(digest: record.digest, defaultYear: defaultYear) {
+                try library.clearWeekdayConsent()
+            }
+            let useDate = authorizeWeekdayCorrection || library.state.record(for: .changes)?.source.weekdayConsent?.matches(digest: record.digest, defaultYear: defaultYear) == true
+            let rows = try XLSXReader.read(url, defaultYear: defaultYear, check: check, dateDerivedWeekdays: useDate)
             let changes = try ChangeNormalizer.parse(rows, defaultYear: defaultYear, check: check)
             try check()
-            let analysis = ChangeAnalysis(sourceDigest: record.digest, sourceName: record.originalName,
+            var analysis = ChangeAnalysis(sourceDigest: record.digest, sourceName: record.originalName,
                 defaultYear: defaultYear, parsedAt: Date(), records: changes)
-            do { try library.saveChangeAnalysis(analysis) }
+            if useDate { analysis.weekdayConsent = ChangeWeekdayConsent(digest: record.digest, defaultYear: defaultYear, parserVersion: ChangeAnalysis.parserVersion) }
+            do { try library.saveChangeAnalysis(analysis, authorizeWeekdayCorrection: authorizeWeekdayCorrection) }
             catch { throw ChangeParseError(code: .storage) }
         } catch {
             let failure = (error as? ChangeParseError) ?? ChangeParseError(code: .storage)
@@ -22,6 +27,15 @@ extension MaterialWorker {
             catch { throw ChangeParseError(code: .storage) }
             throw failure
         }
+    }
+
+    func correctWeekdays(_ preview: ChangePreview, defaultYear: Int, control: AcquisitionControl) throws {
+        guard preview.canCorrectWeekdays, preview.defaultYear == defaultYear else { throw ChangeParseError(code: .unsupported) }
+        try refresh(.changes, control: control)
+        guard let source = library?.state.record(for: .changes), source.digest == preview.sourceDigest,
+              (source.source.selectionID ?? source.storedName) == preview.sourceIdentity else { throw ChangeParseError(code: .cancelled) }
+        try control.check()
+        try analyzeChanges(defaultYear: defaultYear, control: control, authorizeWeekdayCorrection: true)
     }
 
     func analyzePDF(kind: MaterialKind, control: AcquisitionControl) throws {

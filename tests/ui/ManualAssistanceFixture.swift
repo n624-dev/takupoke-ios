@@ -189,7 +189,7 @@ enum SimulatorManualFixture {
             let lessons=scope.requiredSlots.map { slot in
                 PDFLesson(className:slot.className,weekday:Int(slot.day)!,period:slot.period,names:.init(subject:"架空科",teacher:"架空師",room:"架空室"),sourceText:"",page:1)
             }
-            try library.savePDFAnalysis(PDFAnalysis(kind:.timetable,sourceDigest:old.sourceDigest,sourceName:old.sourceName,parsedAt:old.parsedAt,schoolYear:SchoolDataPeriod.current().schoolYear,term:SchoolDataPeriod.current().half == 1 ? "前期" : "後期",lessons:lessons,events:[],notices:[]))
+            try library.savePDFAnalysis(PDFAnalysis(kind:.timetable,sourceDigest:old.sourceDigest,sourceName:old.sourceName,parsedAt:old.parsedAt.addingTimeInterval(1),schoolYear:SchoolDataPeriod.current().schoolYear,term:SchoolDataPeriod.current().half == 1 ? "前期" : "後期",lessons:lessons,events:[],notices:[]))
         }
         let staged=library.newStagingURL();try raw.write(to:staged)
         let hash=SHA256.hash(data:raw).map{String(format:"%02x",$0)}.joined()

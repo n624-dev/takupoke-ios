@@ -43,6 +43,9 @@ struct ChangeAnalysisView: View {
                         .disabled(model.busy || !model.ready)
                 }
             } header: { Text("状態") }
+            if model.state.record(for: .changes)?.source.weekdayConsent?.matches(digest: model.state.record(for: .changes)?.digest ?? "", defaultYear: defaultYear) == true {
+                Section { Text("曜日は日付から計算しています。ファイルの内容が更新されると解除されます。") }
+            }
             Section("操作") {
                 Button("同じファイルを再取得") { model.refresh(.changes) }
                     .disabled(model.busy || !model.ready || model.state.record(for: .changes) == nil)
@@ -108,7 +111,11 @@ struct ChangeAnalysisView: View {
             Text("日付と曜日が合わないか、曜日の計算結果が保存されていません。日付欄を基準に内容を表示しますが、正しい内容かは元ファイルで確認してください。前回の正常データは置き換えません。")
         }
         .sheet(isPresented: Binding(get: { model.changePreview != nil }, set: { if !$0 { model.dismissPreview() } })) {
-            if let preview = model.changePreview { ChangePreviewView(preview: preview, mappings: mappings) }
+            if let preview = model.changePreview {
+                ChangePreviewView(preview: preview, mappings: mappings, correctWeekdays: preview.canCorrectWeekdays ? {
+                    model.dismissPreview(); model.correctWeekdays(preview)
+                } : nil)
+            }
         }
     }
 

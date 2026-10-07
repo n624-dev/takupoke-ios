@@ -516,6 +516,12 @@ final class ApplicationChecks: XCTestCase {
     }
     func testSettingsAccountDataAndFileDetails() {
         tab("設定")
+        let ai = app.switches["use-ai-features"]
+        _ = visible(ai)
+        XCTAssertTrue(ai.waitForExistence(timeout: 10)); XCTAssertEqual(ai.value as? String, "0")
+        ai.tap(); XCTAssertEqual(ai.value as? String, "1")
+        ai.tap(); XCTAssertEqual(ai.value as? String, "0")
+        for _ in 0..<4 { app.swipeDown() }
         tap("リンク・名称・授業時刻")
         screen("リンク・名称・授業時刻")
         for title in ["リンク一覧", "名称データ", "授業時刻"] {

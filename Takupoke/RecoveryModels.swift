@@ -183,3 +183,24 @@ extension JSONEncoder {
         return try encoder.encode(value)
     }
 }
+
+/// OCR and deterministic recovery are independent of this generative-AI permission.
+enum LocalAIFeaturePolicy {
+    static let storageKey = "useAiFeatures"
+    static let changed = Notification.Name("TakupokeLocalAIFeatureChanged")
+    private static let lock = NSLock()
+    private static var generation: UInt64 = 0
+    static var enabled: Bool { UserDefaults.standard.bool(forKey: storageKey) }
+    static func capture() -> UInt64 { lock.lock(); defer { lock.unlock() }; return generation }
+    static func setEnabled(_ value: Bool) {
+        lock.lock(); generation &+= 1; UserDefaults.standard.set(value, forKey: storageKey); lock.unlock()
+        NotificationCenter.default.post(name: changed, object: nil)
+    }
+    static func check(_ ticket: UInt64, requireEnabled: Bool = false) throws {
+        lock.lock(); defer { lock.unlock() }
+        guard ticket == generation, !requireEnabled || enabled else { throw CancellationError() }
+    }
+    static func usesAI(_ document: RecoveryDocument, _ result: RecoveryResult) -> Bool {
+        result.metadata.provider != "rule" || document.structureMetadata.map { $0.provider != "rule" } == true
+    }
+}

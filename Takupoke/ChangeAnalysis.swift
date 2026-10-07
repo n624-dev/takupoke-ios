@@ -69,14 +69,24 @@ struct ScheduleChange: Codable, Equatable {
     }
 }
 
+struct ChangeWeekdayConsent: Codable, Equatable {
+    var digest: String
+    var defaultYear: Int?
+    var parserVersion: Int
+    func matches(digest: String, defaultYear: Int?) -> Bool {
+        self.digest == digest && self.defaultYear == defaultYear && parserVersion == ChangeAnalysis.parserVersion
+    }
+}
+
 struct ChangeAnalysis: Codable {
-    static let parserVersion = 4
+    static let parserVersion = 5
     var version = parserVersion
     var sourceDigest: String
     var sourceName: String
     var defaultYear: Int?
     var parsedAt: Date
     var records: [ScheduleChange]
+    var weekdayConsent: ChangeWeekdayConsent? = nil
 }
 
 struct ChangeParseAttempt: Codable {
@@ -86,9 +96,9 @@ struct ChangeParseAttempt: Codable {
     var failure: ChangeParseError?
     var parserVersion: Int? = nil
 
-    static func needsAnalysis(digest: String, defaultYear: Int, analysis: ChangeAnalysis?, attempt: ChangeParseAttempt?) -> Bool {
+    static func needsAnalysis(digest: String, defaultYear: Int, analysis: ChangeAnalysis?, attempt: ChangeParseAttempt?, weekdayConsent: ChangeWeekdayConsent? = nil) -> Bool {
         if analysis?.sourceDigest == digest, analysis?.version == ChangeAnalysis.parserVersion,
-           analysis?.defaultYear == defaultYear { return false }
+           analysis?.defaultYear == defaultYear, analysis?.weekdayConsent == weekdayConsent { return false }
         if attempt?.sourceDigest == digest, attempt?.defaultYear == defaultYear,
            attempt?.parserVersion == ChangeAnalysis.parserVersion, let failure = attempt?.failure,
            failure.code != .cancelled && failure.code != .storage { return false }
@@ -102,6 +112,9 @@ struct ChangePreview {
     var defaultYear: Int?
     var records: [ScheduleChange]
     var warnings: [ChangeParseError]
+    var sourceIdentity: String? = nil
+    var sourceDigest: String? = nil
+    var canCorrectWeekdays: Bool { sourceIdentity != nil && sourceDigest != nil && !warnings.isEmpty && warnings.allSatisfy(\.canCorrectWeekday) }
 }
 
 struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
@@ -112,6 +125,9 @@ struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
     }
     var code: Code
     var row: Int? = nil
+    var printedWeekday: String? = nil
+    var calculatedWeekday: String? = nil
+    var canCorrectWeekday: Bool { code == .weekdayMismatch && printedWeekday.map(ChangeNormalizer.knownWeekday) == true && calculatedWeekday != nil }
     var permitsPreview: Bool { code == .formulaCache || code == .weekdayMismatch }
     var errorDescription: String? {
         let detail: String

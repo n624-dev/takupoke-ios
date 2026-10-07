@@ -19,6 +19,55 @@ extension ParsingTests {
         return files
     }
 
+    func testLiteralWeekdayNeedsExplicitCorrectionAndKeepsOriginalText() throws {
+        try temporary { root in
+            for (index, printed) in ["日", "（日）", "架空曜日"].enumerated() {
+                let url = root.appendingPathComponent("literal-\(index).xlsx")
+                let rows = [["学 年", "学科・クラス", "月日", "曜日", "時限", "変更内容", "科目(担当教員)"],
+                            ["1", "ZZ", "2032/7/10", printed, "1", "休講", "架空科目A(架空教員A)"]]
+                try write(workbook(rows), to: url)
+                assertCode(.weekdayMismatch) { _ = try XLSXReader.read(url) }
+                let warning = try XCTUnwrap(XLSXReader.readForPreview(url).warnings.first)
+                XCTAssertEqual(warning.canCorrectWeekday, printed != "架空曜日")
+                if warning.canCorrectWeekday {
+                    let changes = try ChangeNormalizer.parse(XLSXReader.read(url, dateDerivedWeekdays: true), defaultYear: nil)
+                    XCTAssertEqual(changes.first?.change_date, "2032-07-10")
+                    XCTAssertTrue(changes.first?.raw_text.contains(ChangeNormalizer.text(printed)) == true)
+                } else { assertCode(.weekdayMismatch) { _ = try XLSXReader.read(url, dateDerivedWeekdays: true) } }
+            }
+            let url = root.appendingPathComponent("no-cache.xlsx")
+            try write(weekdayWorkbook(cached: nil), to: url)
+            assertCode(.formulaCache) { _ = try XLSXReader.read(url, dateDerivedWeekdays: true) }
+        }
+    }
+    func testWeekdayConsentIsAtomicAndLimitedToSelectedContent() throws {
+        try temporary { root in
+            let library = try MaterialLibrary(root: root.appendingPathComponent("consent-library"))
+            func acquire(_ digest: String, reuse: Bool) throws {
+                let staged = library.newStagingURL(); try write(weekdayWorkbook(cached: "日"), to: staged)
+                try library.commit(staged: staged, kind: .changes, source: MaterialSource(), originalName: "架空資料.xlsx",
+                    byteCount: try staged.resourceValues(forKeys: [.fileSizeKey]).fileSize!, digest: digest, modifiedAt: nil, reuseUnchanged: reuse)
+            }
+            try acquire("first", reuse: false)
+            let consent = ChangeWeekdayConsent(digest: "first", defaultYear: 2032, parserVersion: ChangeAnalysis.parserVersion)
+            var analysis = ChangeAnalysis(sourceDigest: "first", sourceName: "架空資料.xlsx", defaultYear: 2032, parsedAt: Date(), records: try ChangeNormalizer.parse(example, defaultYear: nil))
+            analysis.weekdayConsent = consent
+            assertCode(.storage) { try library.saveChangeAnalysis(analysis) }
+            XCTAssertNil(library.state.record(for: .changes)?.source.weekdayConsent)
+            try library.saveChangeAnalysis(analysis, authorizeWeekdayCorrection: true)
+            let selection = library.state.record(for: .changes)?.source.selectionID
+            try acquire("first", reuse: true)
+            XCTAssertEqual(library.state.record(for: .changes)?.source.weekdayConsent, consent)
+            XCTAssertEqual(library.state.record(for: .changes)?.source.selectionID, selection)
+            let reopened = try MaterialLibrary(root: root.appendingPathComponent("consent-library"))
+            XCTAssertEqual(reopened.state.record(for: .changes)?.source.weekdayConsent, consent)
+            try acquire("second", reuse: true); XCTAssertNil(library.state.record(for: .changes)?.source.weekdayConsent)
+            try acquire("first", reuse: true); XCTAssertNil(library.state.record(for: .changes)?.source.weekdayConsent)
+            XCTAssertEqual(library.state.changeAnalysis?.sourceDigest, "first")
+            try acquire("first", reuse: false); XCTAssertNotEqual(library.state.record(for: .changes)?.source.selectionID, selection)
+        }
+    }
+
     func testMetadataAndValidatedWeekdayFormulas() throws {
         try temporary { root in
             for (index, value) in ["土", "土曜", "土曜日", "（土）"].enumerated() {
@@ -86,7 +135,7 @@ extension ParsingTests {
                 XCTAssertEqual(preview.records.count, 1)
                 XCTAssertEqual(preview.records[0].change_date, "2032-07-10")
                 XCTAssertEqual(preview.records[0].before_subject, "架空科目A(架空教員A)")
-                XCTAssertEqual(preview.warnings, [ChangeParseError(code: cached == nil ? .formulaCache : .weekdayMismatch, row: 5)])
+                XCTAssertEqual(preview.warnings, [ChangeParseError(code: cached == nil ? .formulaCache : .weekdayMismatch, row: 5, printedWeekday: cached, calculatedWeekday: cached == nil ? nil : "土")])
                 XCTAssertEqual(try Data(contentsOf: manifest), previousBytes)
                 let reopened = try MaterialLibrary(root: directory)
                 XCTAssertEqual(reopened.state.changeAnalysis?.records, good.records)

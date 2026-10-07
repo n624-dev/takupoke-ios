@@ -110,3 +110,8 @@ SystemLanguageModel、llama.cpp、別ビルドのCoreAI runtimeのfieldExtractio
 追加経路の非空セルは3種類の完全な同一行ラベルと科目本文を必要とする。原文の行全体の高さと罫線内の空隙から役割帯を作り、文字bboxの拡大や隣セルからの補完を行わず、既存のinlineLabel証明・Validatorで唯一の所属を確認する。OCR入力の担当・教室の空欄は元画素で独立に証明し、全ページの未割当文字、OCRページの未読ink、未知クラスの罫線行を捨てない。この経路はAIへ構造を問い合わせない。独立した架空原本2件の各40コマと全正式授業値を、元PNGの画素と描画フォントの文字座標を保持したテストで確認し、Linux回帰317件が成功した。これはOCR出力のテストではなく、Visionの文字精度・実機動作・モデル品質の証明は含まない。
 
 研究branchの同一ソース3c90d6eを使ったCI37200758660では、Macのnative359件すべて成功し、iPhone向けSDK27のapp/runtimeビルドと、実app及びCoreAI SwiftPM bundle内の同一資産byte/SHA照合が成功した。推論は行っていないため、指示の整合性・組込み確認を精度向上や追加モデル品質合格とは扱わない。共通HEAD/COPY対照と評価済み利用者参照文は別課題として保存し、過去の弱い指示や実測出力を変更・再実行しない。資産と仕様は [tools/recovery-prompt-contracts](../tools/recovery-prompt-contracts/README.md) に記録する。
+
+
+### 生成AIの使用設定
+
+設定の「AI機能を使用する」は既定OFF。OFFでもStrict解析、Vision OCR、ルールによる復旧と原本照合は利用できる。構造提案・項目抽出の生成AI Providerは構築しない。ONにしただけでは解析やモデル取得を開始しない。OFFへの変更は実行中の復旧とモデル取得を取り消し、旧操作の応答や未採用結果を反映しない。採用済みの正常結果とモデルファイルは保持する。

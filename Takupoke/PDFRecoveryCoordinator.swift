@@ -31,13 +31,25 @@ final class PDFRecoveryCoordinator: ObservableObject {
     private var operation = UUID()
     private var source: RecoverySelectedSource?
     private var pendingDocument: RecoveryDocument?
+    private var aiTicket = LocalAIFeaturePolicy.capture()
+    private var permissionObserver: NSObjectProtocol?
+    init() {
+        permissionObserver = NotificationCenter.default.addObserver(forName: LocalAIFeaturePolicy.changed, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.cancel()
+                if !LocalAIFeaturePolicy.enabled { self.status = "生成AIはOFFです。OCRとルールによる復旧は利用できます。" }
+            }
+        }
+    }
+    deinit { if let permissionObserver { NotificationCenter.default.removeObserver(permissionObserver) } }
     private var pendingPages: RecoveryPreparedPages?
 
     func start(_ kind: RecoveryDocumentKind) {
         guard !running else { return }
         let previous = task
         cancel(); failure = nil; preview = nil; awaitingModel = false
-        let operation = UUID(); self.operation = operation
+        let operation = UUID(); self.operation = operation; aiTicket = LocalAIFeaturePolicy.capture()
         let preparationControl = AcquisitionControl(); self.preparationControl = preparationControl
         running = true; status = "保存済みのPDFを確認しています⋯"
         task = Task { @MainActor [weak self] in
@@ -105,10 +117,11 @@ final class PDFRecoveryCoordinator: ObservableObject {
     }
     private func buildAndRun(_ prepared: RecoveryPreparedPages,source:RecoverySelectedSource,operation:UUID,control:AcquisitionControl) async {
         defer { LocalRecoveryModelManager.shared.release(lease:operation) }
+        let ticket = aiTicket
         do {
             try check(operation)
             let attempt = try await Task.detached(priority:.userInitiated) { () throws -> RecoveryBuildAttempt in
-                do { return .document(try RecoveryDocumentBuilder.build(prepared.pages,kind:source.kind,hash:source.digest,fromOCR:prepared.fromOCR,rasters:prepared.rasters,check:{ try control.check(); try Task.checkCancellation() })) }
+                do { return .document(try RecoveryDocumentBuilder.build(prepared.pages,kind:source.kind,hash:source.digest,fromOCR:prepared.fromOCR,rasters:prepared.rasters,check:{ try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })) }
                 catch let input as RecoveryStructurePreparation { return .structure(input) }
             }.value
             try check(operation)
@@ -118,16 +131,19 @@ final class PDFRecoveryCoordinator: ObservableObject {
             case .structure(let input):
                 if let capture = prepared.nativeCapture, try !capture.assess().directLayoutsAllowed { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
                 let inputErrors = try await Task.detached(priority:.userInitiated) {
-                    try RecoveryValidator.inputErrors(input.document,unresolvedCellIds:Set(input.requests.map(\.ownerCellId)),check:{ try control.check(); try Task.checkCancellation() })
+                    try RecoveryValidator.inputErrors(input.document,unresolvedCellIds:Set(input.requests.map(\.ownerCellId)),check:{ try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
                 }.value
                 try check(operation)
                 guard RecoveryConversion.matchesPeriod(input.document,source.period), inputErrors.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.yearHeading) }
                 status = "折り返された見出しの構造を端末内で確認しています⋯"
+                guard LocalAIFeaturePolicy.enabled else {
+                    running = false; failure = "この資料の構造確認には生成AIが必要です。設定で「AI機能を使用する」をONにしてください。"; return
+                }
                 let providers:[any LocalRecoveryProvider] = [SystemLanguageRecoveryProvider()] + (await LocalRecoveryModelManager.shared.providers(lease:operation))
                 try check(operation)
                 let major = ProcessInfo.processInfo.operatingSystemVersion.majorVersion
                 let worker = Task.detached(priority:.userInitiated) {
-                    try await RecoveryStructure.resolve(input,providers:providers,os:"ios",osMajor:major,check:{ try control.check(); try Task.checkCancellation() })
+                    try await RecoveryStructure.resolve(input,providers:providers,os:"ios",osMajor:major,check:{ try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
                 }
                 let proposed = try await withTaskCancellationHandler(operation:{ try await worker.value },onCancel:{ worker.cancel() })
                 try check(operation)
@@ -138,21 +154,21 @@ final class PDFRecoveryCoordinator: ObservableObject {
                     return
                 }
                 var rebuilt = try await Task.detached(priority:.userInitiated) {
-                    try RecoveryDocumentBuilder.build(prepared.pages,kind:source.kind,hash:source.digest,fromOCR:prepared.fromOCR,rasters:prepared.rasters,structureProposals:proposals,check:{ try control.check(); try Task.checkCancellation() })
+                    try RecoveryDocumentBuilder.build(prepared.pages,kind:source.kind,hash:source.digest,fromOCR:prepared.fromOCR,rasters:prepared.rasters,structureProposals:proposals,check:{ try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
                 }.value
                 rebuilt.structureMetadata = metadata
                 doc = rebuilt
             }
-            doc = try RecoveryManualAssistance.attaching(prepared.nativeCapture,to:doc,check:{ try control.check(); try Task.checkCancellation() })
+            doc = try RecoveryManualAssistance.attaching(prepared.nativeCapture,to:doc,check:{ try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
             let completedDocument = doc
             try check(operation)
             let inputErrors = try await Task.detached(priority:.userInitiated) {
-                try RecoveryValidator.inputErrors(completedDocument,check:{ try control.check(); try Task.checkCancellation() })
+                try RecoveryValidator.inputErrors(completedDocument,check:{ try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
             }.value
             try check(operation)
             guard RecoveryConversion.matchesPeriod(doc,source.period), inputErrors.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
             let draft = try await Task.detached(priority:.userInitiated) {
-                try RecoveryManualAssistance.prepare(completedDocument,os:"ios",check:{ try control.check(); try Task.checkCancellation() })
+                try RecoveryManualAssistance.prepare(completedDocument,os:"ios",check:{ try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
             }.value
             try check(operation)
             if let draft {
@@ -179,6 +195,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
               acknowledged == Set(draft.fields.map(\.id)) else { return }
         running = true; failure = nil; status = "原本と入力内容を確認しています⋯"
         let operation = self.operation, control = AcquisitionControl(); preparationControl = control
+        let ticket = aiTicket
         let app = ApplicationData.shared
         let previousTimetable = app.materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue]
         let previousSpecial = app.specialSchedules.records[source.kind == .exam ? .exam : .examReturn]?.analysis
@@ -186,14 +203,14 @@ final class PDFRecoveryCoordinator: ObservableObject {
             do {
                 try check(operation)
                 let result = try await Task.detached(priority:.userInitiated) {
-                    try RecoveryConversion.verifyFile(source,check:{ try control.check(); try Task.checkCancellation() })
-                    return try RecoveryManualAssistance.complete(draft,values:values,check:{ try control.check(); try Task.checkCancellation() })
+                    try RecoveryConversion.verifyFile(source,check:{ try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
+                    return try RecoveryManualAssistance.complete(draft,values:values,check:{ try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
                 }.value
                 try check(operation)
                 guard manualDraft?.id == draft.id else { throw CancellationError() }
                 let candidate = RecoveryPreview(document:draft.document,result:result,source:source)
                 let comparison = try await Task.detached(priority:.userInitiated) {
-                    try Self.comparison(candidate,previousTimetable:previousTimetable,previousSpecial:previousSpecial,check:{ try control.check(); try Task.checkCancellation() })
+                    try Self.comparison(candidate,previousTimetable:previousTimetable,previousSpecial:previousSpecial,check:{ try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
                 }.value
                 try check(operation)
                 guard manualDraft?.id == draft.id else { throw CancellationError() }
@@ -217,11 +234,12 @@ final class PDFRecoveryCoordinator: ObservableObject {
               draft.id == review.draftID else { return }
         running = true; failure = nil
         let operation = self.operation, control = AcquisitionControl(); preparationControl = control
+        let ticket = aiTicket
         task = Task { @MainActor in
             do {
                 try check(operation)
                 try await Task.detached(priority:.userInitiated) {
-                    try RecoveryConversion.verifyFile(review.candidate.source,check:{ try control.check(); try Task.checkCancellation() })
+                    try RecoveryConversion.verifyFile(review.candidate.source,check:{ try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
                 }.value
                 try check(operation)
                 guard manualReview?.id == review.id, manualDraft?.id == draft.id else { throw CancellationError() }
@@ -335,13 +353,14 @@ final class PDFRecoveryCoordinator: ObservableObject {
     }
     private func run(_ doc: RecoveryDocument, source: RecoverySelectedSource, operation: UUID, control:AcquisitionControl) async {
         defer { LocalRecoveryModelManager.shared.release(lease:operation) }
+        let ticket = aiTicket
         do {
             try check(operation); status = "端末内で読み取り、原文を検証しています⋯"
             let major = ProcessInfo.processInfo.operatingSystemVersion.majorVersion
-            let providers: [any LocalRecoveryProvider] = [SystemLanguageRecoveryProvider()] + (await LocalRecoveryModelManager.shared.providers(lease:operation))
+            let providers: [any LocalRecoveryProvider] = LocalAIFeaturePolicy.enabled ? [SystemLanguageRecoveryProvider()] + (await LocalRecoveryModelManager.shared.providers(lease:operation)) : []
             try check(operation)
             let worker = Task.detached(priority:.userInitiated) {
-                try await RecoveryEngine.run(doc,os:"ios",osMajor:major,foreground:true,providers:providers,rule:{ _ in nil },check:{ try control.check(); try Task.checkCancellation() })
+                try await RecoveryEngine.run(doc,os:"ios",osMajor:major,foreground:true,providers:providers,rule:{ _ in nil },check:{ try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
             }
             let result = try await withTaskCancellationHandler(operation:{ try await worker.value },onCancel:{ worker.cancel() })
             try check(operation)
@@ -349,8 +368,9 @@ final class PDFRecoveryCoordinator: ObservableObject {
             if let result = result.result {
                 preview = RecoveryPreview(document:doc,result:result,source:source); status = "採用前に元のPDFと内容を確認してください。"
             } else if result.state == .awaitingModel {
-                awaitingModel = true
-                modelStatus(result.errors)
+                awaitingModel = LocalAIFeaturePolicy.enabled
+                if awaitingModel { modelStatus(result.errors) }
+                else { status = "この資料の復旧には生成AIが必要です。設定で「AI機能を使用する」をONにしてください。" }
                 // A temporarily unready system model never triggers an automatic download.
             } else { failure = "原文に基づいて結果を確認できませんでした。前回の正常結果を保持しています。" }
         } catch {
@@ -359,7 +379,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
         }
     }
     func adopt() {
-        guard !running, let preview else { return }
+        guard !running, let preview, !LocalAIFeaturePolicy.usesAI(preview.document, preview.result) || LocalAIFeaturePolicy.enabled else { return }
         running = true; status = "確認済みの結果を保存しています⋯"
         let operation = self.operation
         task = Task { @MainActor in
@@ -378,7 +398,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
         status = "復旧を開始してください。"; failure = nil
     }
     private func check(_ operation: UUID) throws {
-        try Task.checkCancellation()
+        try Task.checkCancellation(); try LocalAIFeaturePolicy.check(aiTicket)
         guard self.operation == operation, UIApplication.shared.applicationState == .active,
               UIApplication.shared.isProtectedDataAvailable,
               selectedSourceIsCurrent else { throw CancellationError() }

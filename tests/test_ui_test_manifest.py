@@ -68,7 +68,7 @@ class ManifestTests(unittest.TestCase):
                 "nativeDocumentCount: observations.count, lines: lines, captureComplete: true"):
             self.assertIn(retained, source)
         self.assertLess(generated.index("lines.append(try captureLine(line"), generated.index("SYNTHETIC_NATIVE_OCR"))
-        self.assertLess(generated.index("SYNTHETIC_NATIVE_OCR"), generated.index("let tables ="))
+        self.assertLess(generated.index("SYNTHETIC_NATIVE_OCR"), generated.index("var tables ="))
         self.assertIn("hierarchy: true", source)
         for retained in ("for number in required {", "RecoveryVisionCapture.page(", "requiredOCRPages: required, pages: output"):
             self.assertIn(retained, acquire)

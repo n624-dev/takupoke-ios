@@ -11,6 +11,13 @@ import CLlamaRecovery
 @MainActor
 final class LocalRecoveryModelManager: ObservableObject {
     static let shared = LocalRecoveryModelManager()
+    private var permissionObserver: NSObjectProtocol?
+    init() {
+        permissionObserver = NotificationCenter.default.addObserver(forName: LocalAIFeaturePolicy.changed, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in if !LocalAIFeaturePolicy.enabled { self?.cancel() } }
+        }
+    }
+    deinit { if let permissionObserver { NotificationCenter.default.removeObserver(permissionObserver) } }
     @Published private(set) var installed: [String:RecoveryModelManifest] = [:]
     @Published private(set) var busy = false
     @Published private(set) var isInUse = false
@@ -42,7 +49,7 @@ final class LocalRecoveryModelManager: ObservableObject {
         } catch { message = "保存済みAIモデルを確認できませんでした。" }
     }
     func providers(lease: UUID) async -> [any LocalRecoveryProvider] {
-        guard !busy else { return [] }
+        guard LocalAIFeaturePolicy.enabled, !busy else { return [] }
         leases.insert(lease); isInUse = true
         var providers = [any LocalRecoveryProvider]()
         #if canImport(CLlamaRecovery)
@@ -55,8 +62,9 @@ final class LocalRecoveryModelManager: ObservableObject {
     }
     func release(lease: UUID) { leases.remove(lease); isInUse = !leases.isEmpty }
     func install(_ manifest: RecoveryModelManifest) {
-        guard !busy, leases.isEmpty, catalog.contains(manifest), manifest.validated,
+        guard LocalAIFeaturePolicy.enabled, !busy, leases.isEmpty, catalog.contains(manifest), manifest.validated,
               UIApplication.shared.applicationState == .active else { return }
+        let ticket = LocalAIFeaturePolicy.capture()
         let control = AcquisitionControl(); self.control = control; busy = true; message = "AIモデルをダウンロードしています⋯"
         task = Task { @MainActor in
             var local: URL?
@@ -68,13 +76,14 @@ final class LocalRecoveryModelManager: ObservableObject {
                 let (temporary,response) = try await session.download(from:address)
                 defer { try? FileManager.default.removeItem(at:temporary) }
                 guard let http = response as? HTTPURLResponse, http.statusCode == 200, (http.expectedContentLength == -1 || http.expectedContentLength == manifest.size) else { throw RecoveryModelStore.Failure.invalidModel }
-                try control.check(); try Task.checkCancellation()
+                try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket, requireEnabled: true)
                 guard UIApplication.shared.applicationState == .active else { throw CancellationError() }
                 let major = ProcessInfo.processInfo.operatingSystemVersion
                 let memory = Self.availableMemory()
                 _ = try await store.install(manifest,runtime:manifest.runtime,availableMemory:memory,osSupported:manifest.supportsOs("\(major.majorVersion).\(major.minorVersion).\(major.patchVersion)"),foreground:true,openModel:{ _ in
                     guard let stream = InputStream(url:temporary) else { throw RecoveryModelStore.Failure.invalidModel }; return stream
                 },prepareAndSmokeTest:{ url in
+                    try LocalAIFeaturePolicy.check(ticket, requireEnabled: true)
                     if manifest.runtime == "coreAI" {
                         #if canImport(CCoreAIRecovery)
                         let bundle = url.appendingPathExtension("bundle")
@@ -94,7 +103,7 @@ final class LocalRecoveryModelManager: ObservableObject {
                         throw RecoveryModelStore.Failure.unavailable
                         #endif
                     } else { throw RecoveryModelStore.Failure.unavailable }
-                },check:{ try control.check(); try Task.checkCancellation() })
+                },check:{ try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket, requireEnabled: true) })
                 message = "AIモデルを準備しました。"; installed[manifest.runtime] = manifest
             } catch { message = "AIモデルを準備できませんでした。前のモデルを保持しています。" }
         }

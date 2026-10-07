@@ -101,10 +101,14 @@ enum RecoveryVisionCapture {
                 lines.append(try captureLine(line, order: lines.count, hierarchy: false))
             }
             guard observation.document.tables.count <= 1000 else { throw RecoveryOCRAcquisitionFailure.limit }
-            let tables = try observation.document.tables.enumerated().map { tableOrder, table in
+            var tables = [RecoveryOCRNativeTable]()
+            for (tableOrder, table) in observation.document.tables.enumerated() {
                 try consumeStructure()
-                return RecoveryOCRNativeTable(nativeOrder: tableOrder, region: try captureRegion(table.boundingRegion),
-                    rows: try captureAxis(table.rows), columns: try captureAxis(table.columns))
+                let region = try captureRegion(table.boundingRegion)
+                let rows = try captureAxis(table.rows)
+                let columns = try captureAxis(table.columns)
+                let capturedTable = RecoveryOCRNativeTable(nativeOrder: tableOrder, region: region, rows: rows, columns: columns)
+                tables.append(capturedTable)
             }
             documents.append(RecoveryOCRNativeDocument(nativeOrder: documentOrder, nativeUUID: observation.uuid.uuidString,
                 lineOrders: Array(firstLine..<lines.count), tables: tables))

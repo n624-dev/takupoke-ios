@@ -160,6 +160,7 @@ struct PDFRecoveryView: View {
             .onReceive(ApplicationData.shared.specialSchedules.$sources) { _ in Task { @MainActor in coordinator.invalidateManualIfSourceChanged() } }
             .onReceive(ApplicationData.shared.$loadedPeriod) { _ in Task { @MainActor in coordinator.invalidateManualIfSourceChanged() } }
             .task { await models.refresh() }
+            .onChange(of:useAiFeatures) { _,enabled in if !enabled { models.cancel() } }
         }
     }
     private var modelSection: some View { RecoveryModelControls(models:models) }
@@ -178,6 +179,7 @@ struct PDFRecoveryView: View {
 }
 
 struct RecoveryModelControls: View {
+    @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
     @ObservedObject var models: LocalRecoveryModelManager
     var body: some View {
         Section("追加AIモデル") {
@@ -192,7 +194,7 @@ struct RecoveryModelControls: View {
                     Text(manifest.modelId)
                     Text("約\(ByteCountFormatter.string(fromByteCount:manifest.size,countStyle:.file))のAIモデルをダウンロードします。学校の資料は外部へ送信されません。")
                         .font(.caption).foregroundStyle(.secondary)
-                    Button("モデルをダウンロード") { models.install(manifest) }.disabled(models.busy || models.isInUse || !manifest.validated)
+                    Button("モデルをダウンロード") { models.install(manifest) }.disabled(!useAiFeatures || models.busy || models.isInUse || !manifest.validated)
                 }
             }
             ForEach(models.installed.keys.sorted(),id:\.self) { runtime in
@@ -240,10 +242,14 @@ private struct RecoveryManualImageView: View {
     }
 }
 struct RecoveryModelSettingsView: View {
+    @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
     @ObservedObject private var models = LocalRecoveryModelManager.shared
     @Environment(\.scenePhase) private var phase
     var body: some View {
-        List { RecoveryModelControls(models:models) }
+        List {
+            if !useAiFeatures { Text("生成AIを使用・ダウンロードするには、設定で「AI機能を使用する」をONにしてください。OCRはOFFでも利用できます。") }
+            RecoveryModelControls(models:models)
+        }
             .navigationTitle("端末内AIモデル")
             .task { await models.refresh() }
             .onChange(of:phase) { _,phase in if phase != .active { models.cancel() } }

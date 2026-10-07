@@ -110,6 +110,14 @@ final class MaterialLibrary {
 
     func commit(staged: URL, kind: MaterialKind, source: MaterialSource,
                 originalName: String, byteCount: Int, digest: String, modifiedAt: Date?, reuseUnchanged: Bool = false) throws {
+        var source = source
+        if reuseUnchanged, let old = state.record(for: kind) {
+            source.selectionID = old.source.selectionID
+            source.weekdayConsent = old.digest == digest ? old.source.weekdayConsent : nil
+        } else {
+            source.selectionID = UUID().uuidString
+            source.weekdayConsent = nil
+        }
         guard staged.deletingLastPathComponent().standardizedFileURL == staging.standardizedFileURL,
               byteCount > 0, byteCount <= Self.maximumBytes else { throw MaterialError.invalidFile }
         if reuseUnchanged, let index = state.records.firstIndex(where: { $0.kind == kind }),

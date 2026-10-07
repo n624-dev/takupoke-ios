@@ -67,14 +67,25 @@ extension XLSXReader {
                   ["曜日", "曜"].contains(headers[formula.column]) else {
                 throw ChangeParseError(code: .formula, row: formula.row)
             }
-            guard rows[formula.row - 1].indices.contains(dateColumn) else { throw ChangeParseError(code: .date, row: formula.row) }
-            let date: String
-            do { date = try ChangeNormalizer.date(rows[formula.row - 1][dateColumn], defaultYear: defaultYear) }
-            catch { throw ChangeParseError(code: .date, row: formula.row) }
-            if !formula.hasCachedValue {
-                warnings.append(ChangeParseError(code: .formulaCache, row: formula.row))
-            } else if !ChangeNormalizer.weekdayMatches(rows[formula.row - 1][formula.column], normalizedDate: date) {
-                warnings.append(ChangeParseError(code: .weekdayMismatch, row: formula.row))
+        }
+        let weekdayColumns = headers.indices.filter { ["曜日", "曜"].contains(headers[$0]) }
+        guard weekdayColumns.count <= 1 else { throw ChangeParseError(code: .headers, row: header) }
+        if let column = weekdayColumns.first {
+            let weekdayFormulas = Dictionary(uniqueKeysWithValues: formulas.filter { $0.row > header && $0.column == column }.map { ($0.row, $0.hasCachedValue) })
+            for number in (header + 1)..<(rows.count + 1) {
+                try check()
+                let row = rows[number - 1]
+                let printed = row.indices.contains(column) ? row[column] : ""
+                if weekdayFormulas[number] == nil && printed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { continue }
+                guard row.indices.contains(dateColumn) else { throw ChangeParseError(code: .date, row: number) }
+                let date: String
+                do { date = try ChangeNormalizer.date(row[dateColumn], defaultYear: defaultYear) }
+                catch { throw ChangeParseError(code: .date, row: number) }
+                if weekdayFormulas[number] == false { warnings.append(ChangeParseError(code: .formulaCache, row: number)) }
+                else if !ChangeNormalizer.weekdayMatches(printed, normalizedDate: date) {
+                    warnings.append(ChangeParseError(code: .weekdayMismatch, row: number,
+                        printedWeekday: printed, calculatedWeekday: ChangeNormalizer.weekday(date)))
+                }
             }
         }
         for merge in sheet.child("mergeCells")?.children ?? [] where merge.name == "mergeCell" {

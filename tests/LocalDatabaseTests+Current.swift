@@ -4,6 +4,26 @@ import GRDB
 @testable import TakupokeParsing
 
 extension LocalDatabaseTests {
+    func testWeekdayConsentAndResultCommitTogetherAndRollbackTogether() throws {
+        let example = try fixture(); let (db, library) = try runtimeStore()
+        defer { try? db.close() }
+        try acquire(library, kind: .changes)
+        var analysis = try XCTUnwrap(example.changeAnalysis)
+        let consent = ChangeWeekdayConsent(digest: analysis.sourceDigest, defaultYear: analysis.defaultYear, parserVersion: ChangeAnalysis.parserVersion)
+        analysis.weekdayConsent = consent
+        db.beforeCommit = { throw MaterialError.invalidState }
+        XCTAssertThrowsError(try library.saveChangeAnalysis(analysis, authorizeWeekdayCorrection: true))
+        XCTAssertNil(library.state.changeAnalysis); XCTAssertNil(library.state.record(for: .changes)?.source.weekdayConsent)
+        XCTAssertNil(try db.load().record(for: .changes)?.source.weekdayConsent)
+        db.beforeCommit = {}
+        try library.saveChangeAnalysis(analysis, authorizeWeekdayCorrection: true)
+        XCTAssertEqual(try db.load().changeAnalysis?.weekdayConsent, consent)
+        XCTAssertEqual(try db.load().record(for: .changes)?.source.weekdayConsent, consent)
+        try acquire(library, kind: .changes, suffix: "updated")
+        XCTAssertNil(try db.load().record(for: .changes)?.source.weekdayConsent)
+        XCTAssertEqual(try db.load().changeAnalysis?.weekdayConsent, consent) // Previous normal result remains.
+    }
+
     func testRuntimeRoundTripAndRecordReordering() throws {
         let example = try fixture()
         let (db, library) = try runtimeStore()

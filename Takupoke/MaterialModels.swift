@@ -23,6 +23,8 @@ struct SourceGrant: Codable {
 struct MaterialSource: Codable {
     var grant: SourceGrant?
     var childName: String?
+    var selectionID: String? = nil
+    var weekdayConsent: ChangeWeekdayConsent? = nil
     var remoteURL: URL? = nil
     var remoteETag: String? = nil
     var remoteLastModified: String? = nil

@@ -12,13 +12,19 @@ extension MaterialLibrary {
         return (visible,rejected)
     }
 
-    func saveChangeAnalysis(_ analysis: ChangeAnalysis) throws {
+    func saveChangeAnalysis(_ analysis: ChangeAnalysis, authorizeWeekdayCorrection: Bool = false) throws {
         guard state.record(for: .changes)?.digest == analysis.sourceDigest,
               analysis.version == ChangeAnalysis.parserVersion,
               !analysis.records.isEmpty, analysis.records.count <= ChangeNormalizer.maximumRecords else {
             throw ChangeParseError(code: .storage)
         }
         var next = state
+        if let consent = analysis.weekdayConsent {
+            guard consent.matches(digest: analysis.sourceDigest, defaultYear: analysis.defaultYear),
+                  authorizeWeekdayCorrection || state.record(for: .changes)?.source.weekdayConsent == consent,
+                  let index = next.records.firstIndex(where: { $0.kind == .changes }) else { throw ChangeParseError(code: .storage) }
+            next.records[index].source.weekdayConsent = consent
+        }
         next.changeAnalysis = analysis
         next.changeParseAttempt = ChangeParseAttempt(date: analysis.parsedAt, sourceDigest: analysis.sourceDigest,
                                                      defaultYear: analysis.defaultYear, failure: nil, parserVersion: ChangeAnalysis.parserVersion)
@@ -67,6 +73,12 @@ extension MaterialLibrary {
                 RecoveryJob(pdfHash: $0.digest, kind: .timetable, state: .pending, createdAt: Date())
             } : nil, parserVersion: PDFAnalysis.currentVersion(for: kind))
         next.pdfParseAttempts = attempts
+        try persist(next)
+    }
+
+    func clearWeekdayConsent() throws {
+        guard let index = state.records.firstIndex(where: { $0.kind == .changes }), state.records[index].source.weekdayConsent != nil else { return }
+        var next = state; next.records[index].source.weekdayConsent = nil
         try persist(next)
     }
 

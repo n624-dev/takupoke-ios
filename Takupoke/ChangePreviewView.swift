@@ -3,6 +3,8 @@ import SwiftUI
 struct ChangePreviewView: View {
     let preview: ChangePreview
     @ObservedObject var mappings: MappingModel
+    var correctWeekdays: (() -> Void)? = nil
+    @State private var confirmingCorrection = false
     @Environment(\.dismiss) private var dismiss
     @State private var selectedClass = ""
 
@@ -21,8 +23,15 @@ struct ChangePreviewView: View {
                     Text(preview.sourceName)
                     LabeledContent("年なし日付の補完", value: preview.defaultYear.map { "\($0)年度" } ?? "指定なし")
                     LabeledContent("件数", value: "\(preview.records.count)件")
+                    if correctWeekdays != nil {
+                        Button("日付から曜日を求めて読み込む") { confirmingCorrection = true }
+                            .buttonStyle(.glassProminent)
+                    }
                     DisclosureGroup("曜日の警告：\(preview.warnings.count)件") {
                         ForEach(Array(preview.warnings.enumerated()), id: \.offset) { _, warning in
+                            if let printed = warning.printedWeekday, let calculated = warning.calculatedWeekday {
+                                Text("\(warning.row.map { "\($0)行目：" } ?? "")\(printed) → \(calculated)曜日")
+                            }
                             Text((warning.row.map { "\($0)行目：" } ?? "") +
                                  (warning.code == .formulaCache ? "曜日の計算結果がありません。" : "曜日と月日が一致しないか、曜日の表記を確認できません。"))
                         }
@@ -37,6 +46,12 @@ struct ChangePreviewView: View {
                 ForEach(Array(visible.enumerated()), id: \.offset) { _, record in
                     Section { ChangeRecordFields(record: record, names: mappings.names(for: record)) }
                 }
+            }
+            .alert("日付から求めた曜日で読み込む", isPresented: $confirmingCorrection) {
+                Button("この曜日で読み込む") { correctWeekdays?() }
+                Button("キャンセル", role: .cancel) {}
+            } message: {
+                Text("日付欄を基準に曜日を計算して、時間割変更へ反映します。ファイルの内容が更新されるまで自動的に適用します。")
             }
             .navigationTitle("プレビュー（閲覧のみ）")
             .navigationBarTitleDisplayMode(.inline)
