@@ -65,6 +65,14 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                     }
                     let report:[String:Any]=["case":stem,"width":cg.width,"height":cg.height,"renderedRGBAHash":SHA256.hash(data:Data(rendered)).map{String(format:"%02x",$0)}.joined(),"directRGBAHash":SHA256.hash(data:Data(original)).map{String(format:"%02x",$0)}.joined(),"rgbChangedPixels":changed,"inkClassificationChanges":inkChanges,"dark160Changes":darkChanges,"renderedColorSpace":String(describing:cg.colorSpace?.name),"directColorSpace":String(describing:direct.colorSpace?.name),"renderedAlpha":cg.alphaInfo.rawValue,"directAlpha":direct.alphaInfo.rawValue,"minimumTextHeightFraction":textRequest.minimumTextHeightFraction,"scope":"Same-size PNG versus PDFKit acquisition; no formal adoption"]
                     print("ORDERED_RASTER_PIXEL_COMPARE "+String(decoding:try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]),as:UTF8.self))
+                    // A fixed eight-source-pixel detection floor admits the
+                    // independently drawn 18/20px body without changing pixels,
+                    // ROI, language, correction or confidence/adoption rules.
+                    // This is a separate native request after the baseline.
+                    textRequest.minimumTextHeightFraction = 8 / Float(cg.height)
+                    let smallTextLines=try await textRequest.perform(on:cg)
+                    outputs.append(("source-density-2x-accurate-text-minimum8px",cg.width,cg.height,smallTextLines.compactMap{$0.topCandidates(1).first?.string},smallTextLines.filter{($0.topCandidates(1).first?.confidence ?? 0)<0.85}.count))
+                    print("ORDERED_RASTER_MINHEIGHT_INPUT case=\(stem) height=\(cg.height) fraction=\(textRequest.minimumTextHeightFraction) sourcePixels=8; identical CGImage and all other recognition options")
                 }
             }
             // Expected literals are inspected only after both native calls return.
