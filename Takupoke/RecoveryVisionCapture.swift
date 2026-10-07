@@ -12,6 +12,7 @@ enum RecoveryVisionCapture {
         // Source text includes Japanese names and Latin class/room symbols.
         // Keep native correction, candidate count and confidence unchanged.
         request.textRecognitionOptions.recognitionLanguages = [Locale.Language(identifier: "ja"), Locale.Language(identifier: "en")]
+        request.textRecognitionOptions.automaticallyDetectLanguage = false
         return request
     }
     static func page(_ number: Int, width: Int, height: Int, observations: [DocumentObservation],

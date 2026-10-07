@@ -54,7 +54,7 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
         let cases=try XCTUnwrap(manifest["cases"] as? [[String:Any]])
         XCTAssertEqual(cases.count,2)
         let defaults=RecognizeDocumentsRequest(),configured=RecoveryVisionCapture.request()
-        print("ORDERED_RASTER_LANGUAGE default=\(defaults.textRecognitionOptions.recognitionLanguages) configured=\(configured.textRecognitionOptions.recognitionLanguages) nativeCorrection=\(configured.textRecognitionOptions.useLanguageCorrection) nativeCandidates=\(configured.textRecognitionOptions.maximumCandidateCount); only requested recognition languages differ")
+        print("ORDERED_RASTER_LANGUAGE default=\(defaults.textRecognitionOptions.recognitionLanguages) configured=\(configured.textRecognitionOptions.recognitionLanguages) nativeAuto=\(configured.textRecognitionOptions.automaticallyDetectLanguage) nativeCorrection=\(configured.textRecognitionOptions.useLanguageCorrection) nativeCandidates=\(configured.textRecognitionOptions.maximumCandidateCount) os=\(ProcessInfo.processInfo.operatingSystemVersionString); auto-language only differs from preceding fixed-language comparison")
         for item in cases {
             let name=try XCTUnwrap(item["case"] as? String),file=try XCTUnwrap(item["file"] as? String)
             let url=directory.appendingPathComponent(file),bytes=try Data(contentsOf:url)
