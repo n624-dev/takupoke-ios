@@ -77,8 +77,11 @@ final class ManualAssistanceChecks:XCTestCase {
                 print("TAKUPOKE-MANUAL-SCROLL invalid-viewport;\(viewport)");break
             }
             let exists=e.exists,targetFrame=exists ? e.frame:nil
-            if exists && e.isHittable,let frame=targetFrame,ManualScrollNavigation.usable(frame),
-                frame.minY>=top,frame.maxY<=bottom { return e }
+            if exists && e.isHittable {
+                let editor=e.elementType == .textField || e.elementType == .textView
+                if !editor { return e }
+                if let frame=targetFrame,ManualScrollNavigation.usable(frame),frame.minY>=top,frame.maxY<=bottom { return e }
+            }
             if exists && targetID.isEmpty { targetID=e.identifier }
             // Resolve the unique actual containing Cell, even when its focused
             // child exposes an infinite/zero or stale in-viewport frame.
@@ -121,7 +124,7 @@ final class ManualAssistanceChecks:XCTestCase {
             let end=base.withOffset(CGVector(dx:100,dy:(upward ? viewport.minY+12:viewport.maxY-12)-list.frame.minY))
             start.press(forDuration:0.1,thenDragTo:end)
         }
-        XCTAssertTrue(e.exists && e.isHittable,app.debugDescription);return e
+        XCTFail("No safe visible hit region after bounded navigation: "+app.debugDescription);return e
     }
     private func tap(_ title:String) { visible(app.buttons[title].firstMatch).tap() }
     private func emitDiagnostic() {
