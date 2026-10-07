@@ -10,6 +10,9 @@ import ImageIO
 
 final class RecoveryOrderedRasterObservationTests:XCTestCase {
     func testNativeMinimumHeightCandidateConfidenceIsMeasuredWithoutSubstitution() async throws {
+        if ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_HEADER_TRACE"] == "1" {
+            throw XCTSkip("Native confidence recipe already measured; this observation traces only the failed header predicate")
+        }
         guard #available(macOS 26.0,*),
               (ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_CONFIDENCE_ONLY"] == "1" || ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_READABLE"] == "1"),
               let root=ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_FIXTURES"] else {
@@ -191,6 +194,7 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
             var stage="Reader/Strict",failure:String?=nil,formal:PDFAnalysis?=nil,document:RecoveryDocument?=nil
             var pages=[RecoveryOCRPage](),rasters=[Int:RecoveryRasterGrid](),pageReports=[[String:Any]]()
             var calls=0,work=0,executionError=false
+            var headerTrace=[[String:Any]]()
             do {
                 do {
                     let strict=try PDFKitReader.read(url,kind:.timetable)
@@ -252,7 +256,10 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                     layouts.append(PDFPageLayout(width:Double(page.width),height:Double(page.height),glyphs:glyphs,lines:rules))
                     prepared[page.page]=try raster.preparingRules(rules,check:{})
                 }
-                var doc=try RecoveryDocumentBuilder.build(layouts,kind:.timetable,hash:hash,fromOCR:Set(pages.map(\.page)),rasters:prepared)
+                var doc=try RecoveryDocumentBuilder.build(layouts,kind:.timetable,hash:hash,fromOCR:Set(pages.map(\.page)),rasters:prepared,observer:{ number,trace in
+                    headerTrace.append(["page":number,"stage":trace.stage,"texts":trace.texts,"lineIds":trace.lineIds,"checks":trace.checks,
+                        "boxes":trace.boxes.map { ["x":$0.x,"y":$0.y,"width":$0.width,"height":$0.height] }])
+                })
                 doc=try RecoveryManualAssistance.attaching(capture,to:doc);document=doc
                 stage="Engine/Validator"
                 let run=try await RecoveryEngine.run(doc,os:"ios",osMajor:27,foreground:true,providers:[],rule:{_ in nil},check:{})
@@ -275,6 +282,9 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
             let rootContained=expectedTexts.filter { expected in rootTexts.contains { $0.range(of:expected) != nil } }.count
             let tableContained=expectedTexts.filter { expected in tableTexts.contains { $0.range(of:expected) != nil } }.count
             print("ORDERED_RASTER_TEXT_DIAGNOSTIC \(name) rootExactOccurrences=\(expectedTexts.filter{rootTexts.contains($0)}.count)/2040 tableExactOccurrences=\(expectedTexts.filter{tableTexts.contains($0)}.count)/2040 rootContainedOccurrences=\(rootContained)/2040 tableContainedOccurrences=\(tableContained)/2040; textual occurrences do not establish correct cell or field ownership")
+            for trace in headerTrace {
+                print("ORDERED_RASTER_HEADER_TRACE \(name) "+String(decoding:try JSONSerialization.data(withJSONObject:trace,options:[.sortedKeys]),as:UTF8.self))
+            }
             var slotErrors=0,valueErrors=0,extraKeys=0
             if let formal {
                 let actual=Dictionary(grouping:formal.lessons,by:{"\($0.className):\($0.weekday):\($0.period)"});var keys=Set<String>()

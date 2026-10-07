@@ -28,6 +28,7 @@ jobs:
         env:
           TAKUPOKE_ORDERED_RASTER_FIXTURES: ${{ runner.temp }}/ordered-raster-owned
           TAKUPOKE_ORDERED_RASTER_READABLE: '1'
+          TAKUPOKE_ORDERED_RASTER_HEADER_TRACE: '1'
       - name: Remove all owned images and dependencies
         if: always()
         run: rm -rf "$RUNNER_TEMP/ordered-raster-owned" "$RUNNER_TEMP/ordered-raster-python-owned"
