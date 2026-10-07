@@ -5,6 +5,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ios-ordered-raster-observation
+  cancel-in-progress: true
 jobs:
   observe:
     runs-on: macos-26

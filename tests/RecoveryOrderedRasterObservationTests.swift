@@ -40,7 +40,8 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                     var rgba=[UInt8](repeating:255,count:cg.width*cg.height*4)
                     let made=rgba.withUnsafeMutableBytes { pixels -> Bool in
                         guard let context=CGContext(data:pixels.baseAddress,width:cg.width,height:cg.height,bitsPerComponent:8,bytesPerRow:cg.width*4,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue|CGBitmapInfo.byteOrder32Big.rawValue) else { return false }
-                        context.setFillColor(gray:1,alpha:1);context.fill(CGRect(x:0,y:0,width:cg.width,height:cg.height));context.draw(cg,in:CGRect(x:0,y:0,width:cg.width,height:cg.height));return true
+                        let rect=CGRect(x:0,y:0,width:CGFloat(cg.width),height:CGFloat(cg.height))
+                        context.setFillColor(gray:1,alpha:1);context.fill(rect);context.draw(cg,in:rect);return true
                     }
                     guard made else { throw PDFParseError(code:.unreadable) }
                     let raster=try RecoveryRasterGrid.fromRGBA(width:cg.width,height:cg.height,pixels:rgba,check:{})
@@ -48,9 +49,14 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                     let native=try await RecognizeDocumentsRequest().perform(on:cg)
                     let captured=try RecoveryVisionCapture.page(number,width:cg.width,height:cg.height,observations:native,work:&work,check:{})
                     pages.append(captured);rasters[number]=raster
-                    let atomCount=try captured.lines.filter { try RecoveryOCRLineMapping.requiresAtom($0.candidates[0],width:cg.width,height:cg.height,consume:{}) }.count
+                    var atomCount=0,mappingErrors=0
+                    for line in captured.lines {
+                        guard let top=line.candidates.first else {mappingErrors+=1;continue}
+                        do {if try RecoveryOCRLineMapping.requiresAtom(top,width:cg.width,height:cg.height,consume:{}) {atomCount+=1}}
+                        catch {mappingErrors+=1}
+                    }
                     let pixelHash=SHA256.hash(data:Data(rgba)).map { String(format:"%02x",$0) }.joined()
-                    pageReports.append(["page":number,"width":cg.width,"height":cg.height,"rgbaSha256":pixelHash,"nativeLines":captured.lines.count,"nativeCharacters":captured.lines.reduce(0){$0+$1.candidates[0].characters.count},"wholeLineAtoms":atomCount,"below085":captured.lines.filter{$0.candidates[0].confidence<0.85}.count])
+                    pageReports.append(["page":number,"width":cg.width,"height":cg.height,"rgbaSha256":pixelHash,"nativeLines":captured.lines.count,"nativeCharacters":captured.lines.reduce(0){$0+($1.candidates.first?.characters.count ?? 0)},"wholeLineAtoms":atomCount,"mappingErrors":mappingErrors,"below085":captured.lines.filter{($0.candidates.first?.confidence ?? 0)<0.85}.count])
                 }
                 stage="Acquisition inventory"
                 let capture=RecoveryOCRAcquisitionDraft(sourcePDFHash:hash,documentPageCount:5,requiredOCRPages:Array(1...5),pages:pages)
@@ -88,6 +94,14 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
               catch { failure=String(describing:error);executionError=true }
             // Assertion-only literals are not inspected until the pipeline returns.
             let gold=try XCTUnwrap(item["oracle"] as? [String:Any]),slots=try XCTUnwrap(gold["slots"] as? [[String:Any]])
+            let expectedTexts=slots.flatMap { ($0["lessons"] as! [[String:String]]).flatMap { $0.values.map {Data($0.utf8)} } }
+            let rootTexts=Set(pages.flatMap{$0.lines.compactMap{$0.candidates.first.map{Data($0.text.utf8)}}})
+            let tableTexts=Set(pages.flatMap { page in
+                (page.structure?.documents ?? []).flatMap { document in document.tables.flatMap { table in
+                    table.rows.flatMap { row in row.flatMap { cell in cell.lines.compactMap{$0.candidates.first.map{Data($0.text.utf8)}} } }
+                } }
+            })
+            print("ORDERED_RASTER_TEXT_DIAGNOSTIC \(name) rootExactOccurrences=\(expectedTexts.filter{rootTexts.contains($0)}.count)/2040 tableExactOccurrences=\(expectedTexts.filter{tableTexts.contains($0)}.count)/2040; textual occurrences do not establish correct cell or field ownership")
             var slotErrors=0,valueErrors=0,extraKeys=0
             if let formal {
                 let actual=Dictionary(grouping:formal.lessons,by:{"\($0.className):\($0.weekday):\($0.period)"});var keys=Set<String>()
