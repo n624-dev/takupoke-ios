@@ -130,6 +130,23 @@ final class PDFTextGeometryTests: XCTestCase {
                         defaultWidth: 1000, ascent: 800, descent: -200)
     }
 
+    func testRecoveryRetainsDrawnSpacesWithoutChangingStrictGlyphs() throws {
+        for width in [250.0,0.0] {
+            let font=try PDFTextFont(unicode:[32:" ",65:"A",66:"B"],codeBytes:1,
+                widths:[32:width,65:500,66:500],defaultWidth:1000,ascent:800,descent:-200)
+            let engine=PDFTextGeometry();try engine.operation("BT");try engine.font(font,size:10)
+            try engine.show(Array("A B".utf8));try engine.operation("ET")
+            XCTAssertEqual(try engine.finish(expectedText:"A B").map(\.text).joined(),"AB")
+            XCTAssertEqual(engine.recoveryComplete,width>0)
+            XCTAssertEqual(engine.recoveryGlyphs.count,width>0 ? 3:2)
+            if width>0 {
+                XCTAssertEqual(engine.recoveryGlyphs.map(\.text).joined(),"A B")
+                XCTAssertEqual(engine.recoveryGlyphs.map(\.sourceOrder),[0,1,2])
+                XCTAssertEqual(engine.recoveryGlyphs[1].width,2.5)
+            }
+        }
+    }
+
     func testFullTwoByteSingletonCodeDomainRemainsBoundedAndCancellable() throws {
         let codes = (0...65535).map { String(format:"<%04X>",$0) }
         let spaces = codes.map { $0+$0 }.joined()
