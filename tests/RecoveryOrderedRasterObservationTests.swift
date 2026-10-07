@@ -73,9 +73,33 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                     let smallTextLines=try await textRequest.perform(on:cg)
                     outputs.append(("source-density-2x-accurate-text-minimum8px",cg.width,cg.height,smallTextLines.compactMap{$0.topCandidates(1).first?.string},smallTextLines.filter{($0.topCandidates(1).first?.confidence ?? 0)<0.85}.count))
                     print("ORDERED_RASTER_MINHEIGHT_INPUT case=\(stem) height=\(cg.height) fraction=\(textRequest.minimumTextHeightFraction) sourcePixels=8; identical CGImage and all other recognition options")
+                    // Separate the Documents engine's height effect from the
+                    // Text engine comparison. Keep its native table hierarchy;
+                    // this oversized research raster cannot enter app capture.
+                    var documentRequest=RecoveryVisionCapture.request()
+                    let defaultHeight=documentRequest.textRecognitionOptions.minimumTextHeightFraction
+                    documentRequest.textRecognitionOptions.minimumTextHeightFraction = 8 / Float(cg.height)
+                    let smallDocuments=try await documentRequest.perform(on:cg)
+                    let smallDocumentLines=smallDocuments.flatMap{$0.document.text.lines}
+                    outputs.append(("source-density-2x-documents-minimum8px",cg.width,cg.height,smallDocumentLines.compactMap{$0.topCandidates(1).first?.string},smallDocumentLines.filter{($0.topCandidates(1).first?.confidence ?? 0)<0.85}.count))
+                    for (condition,documents) in [("default-height",native),("minimum8px",smallDocuments)] {
+                        let tables=documents.flatMap{$0.document.tables}
+                        XCTAssertLessThanOrEqual(tables.count,1000)
+                        let rowCells=tables.flatMap{$0.rows.flatMap{$0}}
+                        XCTAssertLessThanOrEqual(rowCells.count,100_000)
+                        let tableLines=rowCells.flatMap{$0.content.text.lines}
+                        outputs.append(("source-density-2x-documents-table-"+condition,cg.width,cg.height,tableLines.compactMap{$0.topCandidates(1).first?.string},tableLines.filter{($0.topCandidates(1).first?.confidence ?? 0)<0.85}.count))
+                        let report:[String:Any]=["case":stem,"condition":condition,"width":cg.width,"height":cg.height,
+                            "documents":documents.count,"tables":tables.count,"rows":tables.reduce(0){$0+$1.rows.count},
+                            "rowCells":rowCells.count,"mergedCells":rowCells.filter{$0.rowRange.count>1 || $0.columnRange.count>1}.count,
+                            "rootLines":documents.reduce(0){$0+$1.document.text.lines.count},"tableLines":tableLines.count,
+                            "minimumTextHeightFraction":condition == "default-height" ? defaultHeight : documentRequest.textRecognitionOptions.minimumTextHeightFraction,
+                            "formalQuality":"UNASSESSED","scope":"Root and row-axis table output counted separately; no column-axis duplicate or adoption"]
+                        print("ORDERED_RASTER_DOCUMENT_HEIGHT "+String(decoding:try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]),as:UTF8.self))
+                    }
                 }
             }
-            // Expected literals are inspected only after both native calls return.
+            // Expected literals are inspected only after all fixed requests return.
             let gold=try XCTUnwrap(item["oracle"] as? [String:Any]),slots=try XCTUnwrap(gold["slots"] as? [[String:Any]])
             let texts=slots.flatMap{($0["lessons"] as! [[String:String]]).flatMap{$0.values.map{Data($0.utf8)}}}
             for (name,width,height,lines,below) in outputs {
