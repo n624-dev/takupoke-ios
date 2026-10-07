@@ -9,7 +9,62 @@ import CryptoKit
 import ImageIO
 
 final class RecoveryOrderedRasterObservationTests:XCTestCase {
+    func testNativeMinimumHeightCandidateConfidenceIsMeasuredWithoutSubstitution() async throws {
+        guard #available(macOS 26.0,*),
+              ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_CONFIDENCE_ONLY"] == "1",
+              let root=ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_FIXTURES"] else {
+            throw XCTSkip("Requires dedicated owned confidence observation")
+        }
+        let directory=URL(fileURLWithPath:root,isDirectory:true)
+        let manifest=try XCTUnwrap(try JSONSerialization.jsonObject(with:Data(contentsOf:directory.appendingPathComponent("raster-manifest.json"))) as? [String:Any])
+        // No literals/oracle are consulted. These are native candidate scores,
+        // not calibrated probabilities or permission to adopt a text/table.
+        func distribution(_ candidates:[Float?]) -> [String:Any] {
+            let finite=candidates.compactMap{$0}.filter{$0.isFinite}
+            var values=[String:Int]()
+            for value in finite {values[String(value),default:0]+=1}
+            return ["observations":candidates.count,"missingTopCandidate":candidates.filter{$0 == nil}.count,
+                    "nonfinite":candidates.compactMap{$0}.filter{!$0.isFinite}.count,
+                    "zero":finite.filter{$0 == 0}.count,"below085":finite.filter{$0 < 0.85}.count,
+                    "minimum":finite.min().map{Double($0)} as Any? ?? NSNull(),
+                    "maximum":finite.max().map{Double($0)} as Any? ?? NSNull(),
+                    "nativeValueCounts":values]
+        }
+        for item in try XCTUnwrap(manifest["cases"] as? [[String:Any]]) {
+            let name=try XCTUnwrap(item["case"] as? String),file=try XCTUnwrap(item["file"] as? String)
+            let bytes=try Data(contentsOf:directory.appendingPathComponent(file))
+            XCTAssertEqual(SHA256.hash(data:bytes).map{String(format:"%02x",$0)}.joined(),item["sha256"] as? String)
+            let pdf=try XCTUnwrap(PDFDocument(data:bytes)),page=try XCTUnwrap(pdf.page(at:0)),bounds=page.bounds(for:.cropBox)
+            let image=page.thumbnail(of:CGSize(width:ceil(bounds.width*2),height:ceil(bounds.height*2)),for:.cropBox)
+            let cg=try XCTUnwrap(image.cgImage(forProposedRect:nil,context:nil,hints:nil))
+            var documentRequest=RecoveryVisionCapture.request()
+            documentRequest.textRecognitionOptions.minimumTextHeightFraction=8/Float(cg.height)
+            var textRequest=RecognizeTextRequest()
+            textRequest.recognitionLevel = .accurate
+            textRequest.recognitionLanguages=[Locale.Language(identifier:"ja"),Locale.Language(identifier:"en")]
+            textRequest.automaticallyDetectsLanguage=false
+            textRequest.usesLanguageCorrection=true
+            textRequest.minimumTextHeightFraction=8/Float(cg.height)
+            let documents=try await documentRequest.perform(on:cg)
+            let text=try await textRequest.perform(on:cg)
+            let rootLines=documents.flatMap{$0.document.text.lines}
+            let tables=documents.flatMap{$0.document.tables}
+            let tableLines=tables.flatMap{$0.rows.flatMap{$0}}.flatMap{$0.content.text.lines}
+            let report:[String:Any]=["case":name,"width":cg.width,"height":cg.height,"nativeCalls":2,
+                "minimumTextHeightFraction":8/Float(cg.height),"documents":documents.count,"tables":tables.count,
+                "documentObservationScores":distribution(documents.map{Optional($0.confidence)}),
+                "documentsRootCandidateScores":distribution(rootLines.map{$0.topCandidates(1).first?.confidence}),
+                "documentsTableCandidateScores":distribution(tableLines.map{$0.topCandidates(1).first?.confidence}),
+                "accurateTextCandidateScores":distribution(text.map{$0.topCandidates(1).first?.confidence}),
+                "missingIsNotZero":true,"crossReaderScoreSubstitution":false,"formalQuality":"UNASSESSED",
+                "scope":"Same first-page CGImage; native scores and hierarchy only, no oracle or adoption"]
+            print("ORDERED_RASTER_CONFIDENCE "+String(decoding:try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]),as:UTF8.self))
+        }
+    }
     func testPairedImageFirstPageResolutionChangesOnlyRenderingDensity() async throws {
+        if ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_CONFIDENCE_ONLY"] == "1" {
+            throw XCTSkip("Prior fixed recipes are not repeated in confidence-only observation")
+        }
         guard #available(macOS 26.0,*),let root=ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_FIXTURES"] else {
             throw XCTSkip("Requires owned invented image cohort")
         }
@@ -116,6 +171,9 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
         }
     }
     func testPairedImagePDFObservationRetainsFailuresAndWholeDocumentDenominators() async throws {
+        if ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_CONFIDENCE_ONLY"] == "1" {
+            throw XCTSkip("Prior whole-document recipe is not repeated in confidence-only observation")
+        }
         guard #available(macOS 26.0,*),let root=ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_FIXTURES"] else {
             throw XCTSkip("Native observation requires the dedicated owned invented image cohort")
         }
