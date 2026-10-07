@@ -145,3 +145,19 @@ Research source `68b4775`, [37695296545](https://github.com/n624-dev/takupoke-io
 The year/term transcript also improved, but low confidence remains common. Counts are textual occurrences observed on only the first page against2,040 whole-document obligations. They are not verified field assignments, character accuracy or complete-document success. The full existing recovery result remains0/2. No additional model is qualified and production settings remain unchanged. Owned generated source images, PDFs, font and Python environment were removed by final CI cleanup.
 
 The next research source `964d9e9` compares the same height-only change inside RecognizeDocumentsRequest, recording root lines and row-axis table lines separately. This checks whether the native document hierarchy benefits rather than assuming the independent text reader's improvement transfers to table acquisition. The larger diagnostic raster remains outside the app's2,048px capture bound and cannot enter adoption.
+
+## Documents minimum-height comparison: more text does not preserve the table
+
+Research run [37698462486](https://github.com/n624-dev/takupoke-ios/actions/runs/37698462486), source `964d9e9`, passed505 native tests (one skipped), with no execution error and successful owned-data cleanup. On the same two original-density first-page CGImages, only `RecognizeDocumentsRequest.textRecognitionOptions.minimumTextHeightFraction` changed from0.03125 to8/imageHeight. Japanese/English, language autodetectionOFF and the native correction/candidate settings remained fixed. Root text and row-axis table text were counted separately, without column-axis duplicates. These oversized research images still cannot enter production capture.
+
+| First-page diagnostic | Development default /8px | Unseen default /8px |
+| --- | --- | --- |
+| Root lines |182/434|207/434|
+| Tables |1/0|1/1|
+| Table rows |18/0|18/19|
+| Row-axis cell references |162/0|144/164|
+| Native merged cells |0/0|0/3|
+| Root body-literal occurrences |0/48|0/53|
+| Table body-literal occurrences |0/0|0/53|
+
+All root/table top candidates were below the unchanged0.85 floor. This aggregate does not reveal whether the native scores are0,0.5, missing or otherwise distributed; missing candidates must be measured separately rather than treated as zero. First-page occurrence counts against the whole-document2,040-value inventory are not field accuracy or complete-document success. The development table disappeared, and unseen table topology changed, so this setting is not promoted as a production improvement. Formal recovery remains0/2 and no additional model is qualified. Next diagnosis inspects actual native candidate confidence without transplanting a Text reader's score onto Documents text or lowering adoption thresholds.
