@@ -16,6 +16,8 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
         let manifest=try XCTUnwrap(try JSONSerialization.jsonObject(with:Data(contentsOf:directory.appendingPathComponent("raster-manifest.json"))) as? [String:Any])
         let cases=try XCTUnwrap(manifest["cases"] as? [[String:Any]])
         XCTAssertEqual(cases.count,2)
+        let defaults=RecognizeDocumentsRequest(),configured=RecoveryVisionCapture.request()
+        print("ORDERED_RASTER_LANGUAGE default=\(defaults.textRecognitionOptions.recognitionLanguages) configured=\(configured.textRecognitionOptions.recognitionLanguages) nativeCorrection=\(configured.textRecognitionOptions.useLanguageCorrection) nativeCandidates=\(configured.textRecognitionOptions.maximumCandidateCount); only requested recognition languages differ")
         for item in cases {
             let name=try XCTUnwrap(item["case"] as? String),file=try XCTUnwrap(item["file"] as? String)
             let url=directory.appendingPathComponent(file),bytes=try Data(contentsOf:url)
@@ -46,7 +48,7 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                     guard made else { throw PDFParseError(code:.unreadable) }
                     let raster=try RecoveryRasterGrid.fromRGBA(width:cg.width,height:cg.height,pixels:rgba,check:{})
                     calls+=1
-                    let native=try await RecognizeDocumentsRequest().perform(on:cg)
+                    let native=try await RecoveryVisionCapture.request().perform(on:cg)
                     let captured=try RecoveryVisionCapture.page(number,width:cg.width,height:cg.height,observations:native,work:&work,check:{})
                     pages.append(captured);rasters[number]=raster
                     var atomCount=0,mappingErrors=0
@@ -101,7 +103,9 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                     table.rows.flatMap { row in row.flatMap { cell in cell.lines.compactMap{$0.candidates.first.map{Data($0.text.utf8)}} } }
                 } }
             })
-            print("ORDERED_RASTER_TEXT_DIAGNOSTIC \(name) rootExactOccurrences=\(expectedTexts.filter{rootTexts.contains($0)}.count)/2040 tableExactOccurrences=\(expectedTexts.filter{tableTexts.contains($0)}.count)/2040; textual occurrences do not establish correct cell or field ownership")
+            let rootContained=expectedTexts.filter { expected in rootTexts.contains { $0.range(of:expected) != nil } }.count
+            let tableContained=expectedTexts.filter { expected in tableTexts.contains { $0.range(of:expected) != nil } }.count
+            print("ORDERED_RASTER_TEXT_DIAGNOSTIC \(name) rootExactOccurrences=\(expectedTexts.filter{rootTexts.contains($0)}.count)/2040 tableExactOccurrences=\(expectedTexts.filter{tableTexts.contains($0)}.count)/2040 rootContainedOccurrences=\(rootContained)/2040 tableContainedOccurrences=\(tableContained)/2040; textual occurrences do not establish correct cell or field ownership")
             var slotErrors=0,valueErrors=0,extraKeys=0
             if let formal {
                 let actual=Dictionary(grouping:formal.lessons,by:{"\($0.className):\($0.weekday):\($0.period)"});var keys=Set<String>()

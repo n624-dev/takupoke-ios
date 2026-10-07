@@ -7,6 +7,13 @@ import CoreGraphics
 /// on macOS. No table region becomes timetable topology and no candidate changes.
 @available(iOS 26.0, macOS 26.0, *)
 enum RecoveryVisionCapture {
+    static func request() -> RecognizeDocumentsRequest {
+        var request = RecognizeDocumentsRequest()
+        // Source text includes Japanese names and Latin class/room symbols.
+        // Keep native correction, candidate count and confidence unchanged.
+        request.textRecognitionOptions.recognitionLanguages = [Locale.Language(identifier: "ja"), Locale.Language(identifier: "en")]
+        return request
+    }
     static func page(_ number: Int, width: Int, height: Int, observations: [DocumentObservation],
                      work: inout Int, check: () throws -> Void) throws -> RecoveryOCRPage {
         guard (1...12).contains(number), (1...2048).contains(width), (1...2048).contains(height),

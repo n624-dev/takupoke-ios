@@ -33,7 +33,7 @@ enum PDFRecoveryRecognition {
             let image = page.thumbnail(of: CGSize(width: max(1, bounds.width * scale), height: max(1, bounds.height * scale)), for: .cropBox)
             guard let raster = image.cgImage else { throw PDFParseError(code: .unreadable, page: index + 1) }
             // One bounded page per request; no page image goes to a language model.
-            let observations = try await RecognizeDocumentsRequest().perform(on: raster)
+            let observations = try await RecoveryVisionCapture.request().perform(on: raster)
             try check(); try Task.checkCancellation()
             guard observations.count <= 1000 else { throw PDFParseError(code: .limit, page: index + 1) }
             pages.append(RecoveryRecognizedPage(page: index + 1, width: raster.width, height: raster.height, observations: observations))
@@ -147,7 +147,7 @@ enum PDFRecoveryRecognition {
             }
             guard made else { throw PDFParseError(code: .unreadable, page: number) }
             let raster = try RecoveryRasterGrid.fromRGBA(width: cg.width, height: cg.height, pixels: rgba, check: check)
-            let observations = try await RecognizeDocumentsRequest().perform(on: cg)
+            let observations = try await RecoveryVisionCapture.request().perform(on: cg)
             try check(); try Task.checkCancellation()
             guard observations.count <= 1000 else { throw PDFParseError(code: .limit, page: number) }
             do {
