@@ -56,7 +56,7 @@ struct RecoveryOrderedRowProof: Codable, Equatable, Sendable {
     var sourceIds: [String]
     var rows: [[RecoveryOrderedRowPiece]]
     static func singleRow(_ pieces: [RecoveryOrderedRowPiece], source: RecoverySource? = nil) -> Bool {
-        guard !pieces.isEmpty, pieces.count <= 256, pieces.allSatisfy({ $0.text.count == 1 && $0.box.valid && $0.sourceLine != nil && $0.sourceOrder != nil }),
+        guard !pieces.isEmpty, pieces.count <= 256, pieces.allSatisfy({ $0.text.count == 1 && $0.box.valid && ($0.sourceLine ?? -1) >= 0 && ($0.sourceOrder ?? -1) >= 0 }),
               Set(pieces.compactMap(\.sourceLine)).count == 1,
               zip(pieces,pieces.dropFirst()).allSatisfy({ $0.sourceOrder! < $1.sourceOrder! && $0.box.x+$0.box.width <= $1.box.x+0.1 }) else { return false }
         let ink = pieces.filter { !$0.text.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty }

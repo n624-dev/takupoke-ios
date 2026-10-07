@@ -58,6 +58,10 @@ final class PDFTextGeometry {
     private var inText = false
     private var line = 0, order = 0, operations = 0
     private(set) var glyphs: [PDFGlyph] = []
+    // Keep Strict's stream unchanged and preserve original drawn whitespace
+    // separately for Recovery. Incomplete whitespace geometry remains partial.
+    private(set) var recoveryGlyphs: [PDFGlyph] = []
+    private(set) var recoveryComplete = true
     private var drawnText = ""
     private var textUnits = 0
     let check: () throws -> Void
@@ -134,9 +138,13 @@ final class PDFTextGeometry {
                           total.point(0, top), total.point(width * state.scale, top)]
             let xs = points.map { Double($0.x) }, ys = points.map { Double($0.y) }
             guard (xs + ys).allSatisfy({ $0.isFinite && abs($0) < 10_000_000 }) else { throw PDFTextFailure.unsupported }
+            let x = xs.min()!, y = ys.min()!, right = xs.max()!, upper = ys.max()!
+            let validGeometry = width > 0 && right > x && upper > y
+            if validGeometry {
+                recoveryGlyphs.append(PDFGlyph(text:text,x:x,y:y,width:right-x,height:upper-y,sourceLine:line,sourceOrder:order))
+            } else { recoveryComplete = false }
             if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                guard width > 0, let x = xs.min(), let y = ys.min(), let right = xs.max(), let upper = ys.max(),
-                      right > x, upper > y else { throw PDFTextFailure.unsupported }
+                guard validGeometry else { throw PDFTextFailure.unsupported }
                 glyphs.append(PDFGlyph(text: text, x: x, y: y, width: right - x, height: upper - y,
                                        sourceLine: line, sourceOrder: order))
             }

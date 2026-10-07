@@ -6,10 +6,82 @@ import ZIPFoundation
 import PDFKit
 import CoreGraphics
 import CoreText
+import CryptoKit
 #endif
 
 #if canImport(PDFKit)
 extension PDFParsingTests {
+    func testIndependentOrderedRowSourcePDFsReachFormalOrRefuseWithoutOracleInput() async throws {
+        guard let root=ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_ROW_FIXTURES"] else {
+            throw XCTSkip("Independent temporary PDF cohort runs only in the native source workflow")
+        }
+        let directory=URL(fileURLWithPath:root,isDirectory:true)
+        let manifest=try XCTUnwrap(try JSONSerialization.jsonObject(with:Data(contentsOf:directory.appendingPathComponent("manifest.json"))) as? [String:Any])
+        let cases=try XCTUnwrap(manifest["cases"] as? [[String:Any]])
+        XCTAssertEqual(cases.count,6)
+        for item in cases {
+            let name=try XCTUnwrap(item["case"] as? String),file=try XCTUnwrap(item["file"] as? String)
+            XCTAssertEqual(URL(fileURLWithPath:file).lastPathComponent,file)
+            let url=directory.appendingPathComponent(file),bytes=try Data(contentsOf:url)
+            let hash=SHA256.hash(data:bytes).map { String(format:"%02x",$0) }.joined()
+            XCTAssertEqual(hash,item["sha256"] as? String)
+            let capture=RecoveryReadCapture()
+            var stage="Reader",failure:String?=nil,strictFailure:String?=nil,formal:PDFAnalysis?=nil,document:RecoveryDocument?=nil
+            var executionError=false
+            do {
+                do {
+                    let pages=try PDFKitReader.read(url,kind:.timetable,capture:capture)
+                    stage="Strict"
+                    formal=try PDFSchoolParser.parse(pages,kind:.timetable,digest:hash,name:file)
+                } catch let error as PDFParseError {
+                    strictFailure="\(error.code):\(String(describing:error.stage))"
+                    guard RecoveryPolicy.eligible(error),capture.complete else { throw error }
+                    stage="Builder"
+                    let pages=try capture.pages.map { try XCTUnwrap($0.layout) }
+                    let doc=try RecoveryDocumentBuilder.build(pages,kind:.timetable,hash:hash)
+                    document=doc;stage="Engine"
+                    let run=try await RecoveryEngine.run(doc,os:"ios",osMajor:27,foreground:true,providers:[],rule:{_ in nil},check:{})
+                    guard let result=run.result else { throw PDFParseError(code:.ambiguous) }
+                    stage="Validator"
+                    let validation=RecoveryValidator.validate(doc,result)
+                    guard validation.canAdopt else { throw PDFParseError(code:.ambiguous) }
+                    stage="Formal"
+                    let source=RecoverySelectedSource(kind:.timetable,url:url,digest:hash,originalName:file,storedName:file,period:SchoolDataPeriod(day:SchoolDate(iso8601:"2027-04-01")!))
+                    formal=try RecoveryConversion.timetable(RecoveryPreview(document:doc,result:result,source:source))
+                }
+            } catch let error as PDFParseError {
+                failure=String(describing:error)
+                executionError = [.cancelled,.limit,.storage].contains(error.code)
+            } catch { failure=String(describing:error);executionError=true }
+            // The independent oracle is first inspected after all runtime stages.
+            let gold=try XCTUnwrap(item["oracle"] as? [String:Any])
+            let slots=try XCTUnwrap(gold["slots"] as? [[String:Any]])
+            var errors=0,valueErrors=0,extraKeys=0
+            if let formal {
+                let actual=Dictionary(grouping:formal.lessons,by:{ "\($0.className):\($0.weekday):\($0.period)" })
+                var keys=Set<String>()
+                for slot in slots {
+                    let cls=try XCTUnwrap(slot["className"] as? String),day=try XCTUnwrap(slot["weekday"] as? Int),period=try XCTUnwrap(slot["period"] as? Int)
+                    let key="\(cls):\(day):\(period)";keys.insert(key)
+                    let expected=try XCTUnwrap(slot["lessons"] as? [[String:String]])
+                    guard expected.count==1,let lessons=actual[key],lessons.count==1 else { errors+=1;valueErrors+=3;continue }
+                    let values=["subject":lessons[0].names.subject,"teacher":lessons[0].names.teacher,"room":lessons[0].names.room]
+                    let wrong=values.filter { expected[0][$0.key] != $0.value }.count
+                    valueErrors+=wrong;if wrong>0 { errors+=1 }
+                }
+                extraKeys=Set(actual.keys).subtracting(keys).count
+                if formal.schoolYear != gold["schoolYear"] as? Int || formal.term != gold["term"] as? String { errors+=1 }
+            }
+            let expectExact=item["expect"] as? String == "exact"
+            let exact=formal != nil && errors==0 && extraKeys==0
+            let decision=expectExact ? exact:formal==nil && !executionError
+            let row:[String:Any]=["case":name,"pdfSha256":hash,"stage":stage,"failure":failure ?? NSNull(),"strictFailure":strictFailure ?? NSNull(),"readerComplete":capture.complete,"acquiredPages":capture.pages.count,"acquiredGlyphs":capture.pages.reduce(0){$0+($1.layout?.glyphs.count ?? 0)},"builderCells":document?.cells.count ?? 0,"orderedProofs":document?.cells.filter{$0.orderedRowProof != nil}.count ?? 0,"accepted":formal != nil,"literalExact":formal == nil ? NSNull():exact,"slotObligations":680,"bodyValueObligations":2040,"slotErrors":formal == nil ? NSNull():errors,"bodyValueErrors":formal == nil ? NSNull():valueErrors,"extraKeys":extraKeys,"correctDecision":decision,"nativeOcrCalls":0,"llmCalls":0]
+            print("ORDERED_ROW_NATIVE "+String(decoding:try JSONSerialization.data(withJSONObject:row,options:[.sortedKeys]),as:UTF8.self))
+            print("ORDERED_ROW_CLASSIFICATION \(name): \(executionError ? "execution-error":formal != nil ? (exact ? "correct-formal":"incorrect-formal"):expectExact ? "recovery-failure":"correct-refusal")")
+            XCTAssertTrue(decision,"Independent source case \(name) failed at \(stage): \(failure ?? "literal mismatch")")
+            if expectExact { XCTAssertNotNil(strictFailure);XCTAssertEqual(document?.cells.count,680) }
+        }
+    }
     func testVisibilityCollisionWorkAndCancellationAreBoundedWithinEachPaint() {
         // A giant distant glyph makes both broad-phase ranges non-selective.
         // The exact candidate scan must still exhaust the same page budget.

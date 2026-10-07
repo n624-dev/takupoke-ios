@@ -70,14 +70,20 @@ enum PDFKitReader {
             diagnostics?.record(.pageText, page: index + 1,
                 values: [Double(string.utf16.count), Double(page.numberOfCharacters), Double(rotation)], bounds: media)
             var glyphs: [PDFGlyph]
+            var recoveryGlyphs: [PDFGlyph]? = nil
+            var recoveryComplete = true
             if kind == .timetable {
                 do {
-                    glyphs = try PDFDrawnTextReader(check: check).read(ref, expectedText: string).map { glyph in
+                    let drawnReader = PDFDrawnTextReader(check:check)
+                    func transformed(_ glyph:PDFGlyph) -> PDFGlyph {
                         let b = transform.rect(CGRect(x: glyph.x, y: glyph.y, width: glyph.width, height: glyph.height))
                         return PDFGlyph(text: glyph.text, x: Double(b.minX), y: Double(b.minY),
                                         width: Double(b.width), height: Double(b.height),
                                         sourceLine: glyph.sourceLine, sourceOrder: glyph.sourceOrder)
                     }
+                    glyphs = try drawnReader.read(ref,expectedText:string).map(transformed)
+                    recoveryGlyphs = drawnReader.engine.recoveryGlyphs.map(transformed)
+                    recoveryComplete = drawnReader.engine.recoveryComplete
                 } catch var error as PDFParseError { error.page = index + 1; throw error }
             } else {
                 let ns = string as NSString
@@ -163,7 +169,9 @@ enum PDFKitReader {
                 do { try textLayout.requireVisibleBounds(check:check) }
                 catch var error as PDFParseError { error.page = index+1; throw error }
             }
-            capture?.record(page: index + 1, state: .partial, layout: textLayout)
+            var capturedText = textLayout
+            capturedText.glyphs = recoveryGlyphs ?? glyphs
+            capture?.record(page: index + 1, state: .partial, layout: capturedText)
             let reader = PDFPathReader(transform: transform, verifyVisibility: verifyVisibility || kind == .timetable, textBoxes:glyphs.map { PDFBox(left:$0.x,top:$0.y,right:$0.x+$0.width,bottom:$0.y+$0.height) }, check: check)
             diagnostics?.record(.paths, page: index + 1)
             let lines: [PDFRule]
@@ -176,7 +184,9 @@ enum PDFKitReader {
                 do { try layout.requireVisibleBounds(check:check) }
                 catch var error as PDFParseError { error.page = index+1; throw error }
             }
-            capture?.record(page: index + 1, state: glyphs.isEmpty ? .rasterOnly : .complete, layout: layout)
+            var capturedLayout = layout
+            capturedLayout.glyphs = recoveryGlyphs ?? glyphs
+            capture?.record(page: index + 1, state: glyphs.isEmpty ? .rasterOnly : recoveryComplete ? .complete : .partial, layout: capturedLayout)
             guard !glyphs.isEmpty else { throw PDFParseError(code: .unsupported, page: index + 1, stage: .rasterInput) }
             guard !lines.isEmpty else { throw PDFParseError(code: .unsupported, page: index + 1, stage: .gridCell) }
             diagnostics?.record(.pageComplete, page: index + 1,
