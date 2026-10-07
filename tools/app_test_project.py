@@ -252,6 +252,9 @@ def generate(destination):
     project=destination/'AppChecks.xcodeproj'
     project.mkdir()
     (project/'project.pbxproj').write_text('// !$*UTF8*$!\n'+encode(real))
+    package_lock=project/'project.xcworkspace/xcshareddata/swiftpm/Package.resolved'
+    package_lock.parent.mkdir(parents=True)
+    shutil.copyfile(repo/'Takupoke.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',package_lock)
     scheme=(destination/'PickerChecks.xcodeproj/xcshareddata/xcschemes/PickerChecks.xcscheme').read_text()
     old_app=next(k for k,v in generated['objects'].items() if v.get('productType')=='com.apple.product-type.application')
     scheme=scheme.replace(old_app,app_target).replace('PickerChecks.app','Takupoke.app').replace('BlueprintName="PickerChecks"','BlueprintName="Takupoke"').replace('container:PickerChecks.xcodeproj','container:AppChecks.xcodeproj')

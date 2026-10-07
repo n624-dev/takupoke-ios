@@ -30,6 +30,7 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 python3 -B tools/manual_ui_project.py "$scratch_dir/project"
+bash tools/resolve-xcode-packages.sh "$scratch_dir/project/AppChecks.xcodeproj" AppChecks "$scratch_dir"
 xcrun simctl list -j > "$scratch_dir/simulators.json"
 python3 - "$scratch_dir/simulators.json" "${TKPK_TEST_IOS:-26}" > "$scratch_dir/destination" <<'PY'
 import json,sys
@@ -51,6 +52,8 @@ fi
 python3 -B tools/timed_command.py 'Manual UI checks' xcodebuild \
     -project "$scratch_dir/project/AppChecks.xcodeproj" -scheme AppChecks \
     -destination "platform=iOS Simulator,id=$simulator_id" -derivedDataPath "$scratch_dir/DerivedData" \
+    -clonedSourcePackagesDirPath "$scratch_dir/SourcePackages" -packageCachePath "$scratch_dir/PackageCache" \
+    -disablePackageRepositoryCache -onlyUsePackageVersionsFromResolvedFile -disableAutomaticPackageResolution \
     -parallel-testing-enabled NO "${diagnostic_args[@]}" CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES \
     "$only_testing" test 2>&1 | tee "$scratch_dir/manual-ui.log"
 python3 - "$scratch_dir/manual-ui.log" "$manual_case" <<'PY'

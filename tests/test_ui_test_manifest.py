@@ -211,7 +211,7 @@ class ShellRunnerTests(unittest.TestCase):
             (repo / "tests/ui").mkdir(parents=True)
             (repo / "bin").mkdir()
             (repo / "scratch").mkdir()
-            for name in ("test-app-ui.sh", "ui_test_manifest.py", "timed_command.py"):
+            for name in ("test-app-ui.sh", "resolve-xcode-packages.sh", "ui_test_manifest.py", "timed_command.py"):
                 shutil.copyfile(ROOT / "tools" / name, repo / "tools" / name)
             shutil.copyfile(ROOT / "tests/ui/ApplicationChecks.swift", repo / "tests/ui/ApplicationChecks.swift")
             (repo / "tools/app_test_project.py").write_text(
@@ -266,7 +266,9 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                     result, calls = self.run_synthetic_runner(ios, shard)
                     self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                     self.assertIn(["project", "1" if ios == 27 else "0"], calls)
-                    builds = [call for call in calls if call[0] == "xcodebuild"]
+                    resolutions = [call for call in calls if call[0] == "xcodebuild" and "-resolvePackageDependencies" in call]
+                    self.assertEqual(len(resolutions), 1)
+                    builds = [call for call in calls if call[0] == "xcodebuild" and "-resolvePackageDependencies" not in call]
                     self.assertEqual(len(builds), 4 if shard == "B" else 1)
                     tests = [arg.rsplit("/", 1)[1] for arg in builds[0] if arg.startswith("-only-testing:")]
                     self.assertEqual(tests, list(manifest.SHARDS[shard]))
@@ -283,4 +285,4 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
         result, calls = self.run_synthetic_runner(27, "B", omit_result=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("XCTest completion differs", result.stderr)
-        self.assertEqual(len([call for call in calls if call[0] == "xcodebuild"]), 1)
+        self.assertEqual(len([call for call in calls if call[0] == "xcodebuild" and "-resolvePackageDependencies" not in call]), 1)

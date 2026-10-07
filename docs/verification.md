@@ -915,3 +915,11 @@ UIシミュレーター検証と、保存・解析テスト＋iPhoneビルドを
 ソース`3bd6340`の[検証実行37694375217](https://github.com/n624-dev/takupoke-ios/actions/runs/37694375217)では配布テスト、ネイティブPDF・復旧、iPhoneビルド、iOS26 UI Bが成功したが、iOS27 UI Bの通知ON検証が失敗した。許可ボタンを探す際にSpringBoardのリモート要素が`kAXErrorServerNotFound`となり、時間割変更スイッチのON確認に進めなかった。この実行は成功扱いにせず取消し、ビルドが作った所有確認済みの非公開draft406221241だけを削除した。公開版は変更していない。
 
 ソース`1924ac6`は、通知許可をXCTest標準のUIInterruptionMonitorで扱い、アプリへの操作で許可画面を解決する。許可済みの場合は操作のないナビゲーションタイトル部分へ触れ、スイッチを二重に押さない。アプリ本体の許可・保存規則と、ON・再起動後保存・通知送信の期待値は維持する。LinuxのSwift構文確認とPython122件（3件skip）が成功した。[同一ソースの再検証37698656382](https://github.com/n624-dev/takupoke-ios/actions/runs/37698656382)は進行中で、全13必須ジョブの成功前には配布しない。
+
+## 通知許可UIの修正確認と、依存取得だけの限定再試行
+
+実行[37698656382](https://github.com/n624-dev/takupoke-ios/actions/runs/37698656382)、ソース`1924ac62ca0356fde4d403158fe93acf2ab40ec2`のiOS27UI B（job113056787500）は13項目すべて成功し、OS文字サイズ3条件も各1項目成功しました。通知許可では標準AlertにUI interruption monitorが実際に応答し、`testNotificationControlsAndAppearance`が成功しました。前の直接SpringBoard検索の失敗を、アプリ側の通知設定変更や待ち時間延長で隠していません。
+
+同じ実行のiOS26単項目訂正（job113056787486）は、ZIPFoundationへのGitHub443接続が失敗し、`xcodebuild`が依存解決段階でexit74となりました。XCTestは始まっておらず、訂正操作の合否とは別です。残るジョブは確認中で、全13チェック成功・公開可能とは記載しません。
+
+この取得失敗への変更は、生成したUIプロジェクトへ既存の`Package.resolved`をコピーし、所有する一時SourcePackages/PackageCacheに限定して依存解決を最大3回行います。テスト本体は1回のままで、テスト失敗は再試行せず伝播させます。依存解決の取消130/143は直ちに終了し、3回失敗した場合も最後の失敗コードを保持します。永続Actions cache/artifactは使いません。LinuxのPython125件（環境固有3件skip）、Bash構文、差分空白検査は成功しました。新しい取得経路のネイティブ確認はまだ完了していません。

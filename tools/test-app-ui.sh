@@ -42,6 +42,7 @@ while read -r device_type runtime; do
     if [[ "$ios_major" == "27" ]]; then voiceover="1"; fi
     TKPK_VOICEOVER_AUTOMATION="$voiceover" python3 -B tools/timed_command.py "App test project iOS $ios_major" \
         python3 -B tools/app_test_project.py "$project_dir"
+    bash tools/resolve-xcode-packages.sh "$project_dir/AppChecks.xcodeproj" AppChecks "$scratch_dir"
     simulator_id="$(xcrun simctl create 'Takupoke App Checks' "$device_type" "$runtime")"
     xcrun simctl boot "$simulator_id"
     python3 -B tools/timed_command.py "App simulator boot" xcrun simctl bootstatus "$simulator_id" -b
@@ -49,6 +50,8 @@ while read -r device_type runtime; do
     xcode_args=(-project "$project_dir/AppChecks.xcodeproj" -scheme AppChecks
         -destination "platform=iOS Simulator,id=$simulator_id"
         -derivedDataPath "$scratch_dir/DerivedData"
+        -clonedSourcePackagesDirPath "$scratch_dir/SourcePackages" -packageCachePath "$scratch_dir/PackageCache"
+        -disablePackageRepositoryCache -onlyUsePackageVersionsFromResolvedFile -disableAutomaticPackageResolution
         -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1
         -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES)
     check_ui() {
