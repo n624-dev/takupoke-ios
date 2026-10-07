@@ -94,12 +94,22 @@ final class ApplicationChecks: XCTestCase {
     }
     private func enableChangeNotifications() {
         let toggle = app.switches["時間割変更"]
-        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
         let predicate = NSPredicate(format: "label BEGINSWITH[c] %@ OR label == %@ OR label == %@ OR label == %@", "Allow", "許可", "許可する", "通知を許可")
-        for host in [XCUIApplication(bundleIdentifier: "com.apple.springboard"), app!] {
-            let allow = host.buttons.matching(predicate).firstMatch
-            if allow.waitForExistence(timeout: 5) { allow.tap(); break }
+        // Permission UI can move between system processes on iOS 27. Let
+        // XCTest resolve the interrupting alert rather than retaining a
+        // SpringBoard element whose accessibility server has gone away.
+        let monitor = addUIInterruptionMonitor(withDescription: "Notification permission") { alert in
+            let allow = alert.buttons.matching(predicate).firstMatch
+            guard allow.exists else { return false }
+            allow.tap()
+            return true
         }
+        defer { removeUIInterruptionMonitor(monitor) }
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
+        // An app interaction dispatches the interruption monitor. The title
+        // area is inert when permission was already granted; do not tap the
+        // switch twice and undo the requested state.
+        app.navigationBars["通知"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         let enabled = expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: toggle)
         wait(for: [enabled], timeout: 15)
     }
