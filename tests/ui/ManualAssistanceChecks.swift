@@ -69,7 +69,6 @@ final class ManualAssistanceChecks:XCTestCase {
         let list=recoveryList.exists ? recoveryList : app.collectionViews.firstMatch
         var navigationState=ManualScrollNavigation(),targetID=""
         for attempt in 0..<16 {
-            if e.exists && e.isHittable { return e }
             let navigation=recoveryList.exists ? app.navigationBars["時間割の復旧"] : app.navigationBars.firstMatch
             let top=max(list.frame.minY,navigation.frame.maxY)+12
             let bottom=min(list.frame.maxY,app.keyboards.firstMatch.exists ? app.keyboards.firstMatch.frame.minY-45 : list.frame.maxY)-12
@@ -78,6 +77,8 @@ final class ManualAssistanceChecks:XCTestCase {
                 print("TAKUPOKE-MANUAL-SCROLL invalid-viewport;\(viewport)");break
             }
             let exists=e.exists,targetFrame=exists ? e.frame:nil
+            if exists && e.isHittable,let frame=targetFrame,ManualScrollNavigation.usable(frame),
+                frame.minY>=top,frame.maxY<=bottom { return e }
             if exists && targetID.isEmpty { targetID=e.identifier }
             // Resolve the unique actual containing Cell, even when its focused
             // child exposes an infinite/zero or stale in-viewport frame.
