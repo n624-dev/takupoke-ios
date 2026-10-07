@@ -51,10 +51,8 @@ struct SettingsView: View {
                         LabeledContent("クラス", value: selectedClasses.isEmpty ? "未選択" :
                             TimetableDisplayText.classNames(selectedClasses.split(separator: "|").map(String.init)))
                     }
-                    Toggle("AI機能を使用する", isOn: Binding(get: { useAiFeatures }, set: { useAiFeatures = $0; LocalAIFeaturePolicy.setEnabled($0) }))
+                    Toggle("AI・OCRを使用する", isOn: Binding(get: { useAiFeatures }, set: { useAiFeatures = $0; LocalAIFeaturePolicy.setEnabled($0) }))
                         .accessibilityIdentifier("use-ai-features")
-                    Text("端末内の生成AIによるPDF復旧を許可します。OCRと通常解析はOFFでも利用できます。")
-                        .font(.caption).foregroundStyle(.secondary)
                     NavigationLink("端末内AIモデル") { RecoveryModelSettingsView() }
                     NavigationLink("通知") { NotificationSettingsView() }
                     Picker("メインカラー", selection: colorSelection) {

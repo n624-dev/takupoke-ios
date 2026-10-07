@@ -184,7 +184,7 @@ extension JSONEncoder {
     }
 }
 
-/// OCR and deterministic recovery are independent of this generative-AI permission.
+/// Strict parsing stays available; every OCR/AI recovery operation requires opt-in.
 enum LocalAIFeaturePolicy {
     static let storageKey = "useAiFeatures"
     static let changed = Notification.Name("TakupokeLocalAIFeatureChanged")
@@ -196,7 +196,7 @@ enum LocalAIFeaturePolicy {
         lock.lock(); generation &+= 1; UserDefaults.standard.set(value, forKey: storageKey); lock.unlock()
         NotificationCenter.default.post(name: changed, object: nil)
     }
-    static func check(_ ticket: UInt64, requireEnabled: Bool = false) throws {
+    static func check(_ ticket: UInt64, requireEnabled: Bool = true) throws {
         lock.lock(); defer { lock.unlock() }
         guard ticket == generation, !requireEnabled || enabled else { throw CancellationError() }
     }

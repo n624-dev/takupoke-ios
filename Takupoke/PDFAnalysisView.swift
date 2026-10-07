@@ -4,6 +4,7 @@ import UIKit
 import UniformTypeIdentifiers
 
 struct PDFAnalysisView: View {
+    @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
     @ObservedObject var model: MaterialsModel
     @ObservedObject var mappings: MappingModel
     let kind: MaterialKind
@@ -51,8 +52,8 @@ struct PDFAnalysisView: View {
             if model.state.pdfParseAttempts?[kind.rawValue]?.recoveryJob?.pdfHash == model.state.record(for: kind)?.digest,
                model.state.pdfParseAttempts?[kind.rawValue]?.recoveryJob?.state == .pending {
                 Section("復旧") {
-                    Text("端末内AIによる復旧待ちです。新しい資料をまだ反映できていません。前回の正常結果を保持しています。")
-                    Button("端末内で復旧する",systemImage:"doc.text.magnifyingglass") { showingRecovery = true }.disabled(model.busy)
+                    Text("新しい資料は未反映です。")
+                    Button("端末内で復旧する",systemImage:"doc.text.magnifyingglass") { showingRecovery = true }.disabled(!useAiFeatures || model.busy)
                 }
             }
             Section("操作") {

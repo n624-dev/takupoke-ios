@@ -481,7 +481,7 @@ extension RecoveryTests {
         }
         UserDefaults.standard.removeObject(forKey: LocalAIFeaturePolicy.storageKey)
         XCTAssertFalse(LocalAIFeaturePolicy.enabled)
-        let off = LocalAIFeaturePolicy.capture(); XCTAssertNoThrow(try LocalAIFeaturePolicy.check(off))
+        let off = LocalAIFeaturePolicy.capture(); XCTAssertThrowsError(try LocalAIFeaturePolicy.check(off))
         XCTAssertThrowsError(try LocalAIFeaturePolicy.check(off, requireEnabled: true))
         LocalAIFeaturePolicy.setEnabled(true); let on = LocalAIFeaturePolicy.capture()
         XCTAssertNoThrow(try LocalAIFeaturePolicy.check(on, requireEnabled: true))

@@ -172,7 +172,7 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("ref: ${{ github.sha }}", manual)
         self.assertIn('test "$(git rev-parse HEAD)" = "$GITHUB_SHA"', manual)
         self.assertIn("fail-fast: false", manual)
-        self.assertIn("timeout-minutes: 35", manual)
+        self.assertIn("timeout-minutes: 45", manual)
         self.assertIn("bash tools/test-manual-ui.sh", manual)
         self.assertNotIn("continue-on-error", manual)
         self.assertEqual(manual.count("TKPK_MANUAL_DIAGNOSTICS: '1'"), 1)

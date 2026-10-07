@@ -47,6 +47,7 @@ struct SimulatorApplication: App {
     @State private var notificationProbe = "待機中"
     @State private var recoveryOCRProbe = "OCR実行中"
     @State private var recoveryTableProbe = ""
+    @State private var recoveryOffProbe = "未実行"
     @State private var applicationReady = false
     @State private var fixtureTypeSize: DynamicTypeSize = .large
     @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
@@ -84,6 +85,8 @@ struct SimulatorApplication: App {
                                 Text(LocalAIFeaturePolicy.enabled ? "1" : "0").id(useAiFeatures)
                                     .font(.caption2).accessibilityIdentifier("fixture-stored-ai-permission")
                                     .allowsHitTesting(false)
+                                Text(recoveryOffProbe).font(.caption2)
+                                    .accessibilityIdentifier("fixture-recovery-off-blocked").allowsHitTesting(false)
                             }
                             if ProcessInfo.processInfo.arguments.contains("--recovery-preview") || ProcessInfo.processInfo.arguments.contains("--recovery-probe") { FixtureRecoveryProbe() }
                             if ProcessInfo.processInfo.arguments.contains("--selection-snapshot") { FixtureSelectionProbe() }
@@ -116,6 +119,10 @@ struct SimulatorApplication: App {
                             data.schoolEvents.ready && data.links.ready && data.mappings.ready && data.times.ready &&
                             !data.materials.busy && !data.specialSchedules.busy &&
                             !data.schoolEvents.busy && !data.links.busy && !data.mappings.busy && !data.times.busy {
+                            if ProcessInfo.processInfo.arguments.contains("--ai-feature-probe"), !LocalAIFeaturePolicy.enabled {
+                                data.recovery.start(.timetable)
+                                recoveryOffProbe = !data.recovery.running && data.recovery.preview == nil && data.recovery.manualDraft == nil ? "1" : "0"
+                            }
                             applicationReady = true
                             break
                         }
@@ -269,7 +276,7 @@ struct SimulatorApplication: App {
             analysis.sourceDigest = digest; analysis.parsedAt = Date()
             try library.saveChangeAnalysis(analysis)
         }
-        if ProcessInfo.processInfo.arguments.contains("--recovery-preview") { try SimulatorRecoveryFixture.seed(base) }
+        if ProcessInfo.processInfo.arguments.contains("--recovery-preview") { LocalAIFeaturePolicy.setEnabled(true); try SimulatorRecoveryFixture.seed(base) }
         if ProcessInfo.processInfo.arguments.contains("--events-cache-corrupt") {
             try SimulatorEventsCacheFixture.seed(base)
         }

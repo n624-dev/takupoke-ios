@@ -90,14 +90,14 @@ def view(text):
     text = once(text, '.onChange(of:coordinator.manualDraft?.id) { _,_ in', '.onChange(of:coordinator.manualDraft?.id) { old,new in SimulatorManualFixture.event("draft",id:"snapshot",old:old ?? "nil",new:new ?? "nil")')
     text = once(text, 'Section("採用する資料全体") {', 'Section {')
     text = once(text, '                    }\n                    Section("読み取り結果") {', '                    } header: { Text("採用する資料全体").accessibilityIdentifier("manual-preview-header") }\n                    Section("読み取り結果") {')
-    text = once(text, '.autocorrectionDisabled().textInputAutocapitalization(.never).disabled(coordinator.running)',
-                '.autocorrectionDisabled().textInputAutocapitalization(.never).disabled(coordinator.running).accessibilityIdentifier("manual-value-" + field.id)')
+    text = once(text, '.autocorrectionDisabled().textInputAutocapitalization(.never).disabled(!useAiFeatures || coordinator.running)',
+                '.autocorrectionDisabled().textInputAutocapitalization(.never).disabled(!useAiFeatures || coordinator.running).accessibilityIdentifier("manual-value-" + field.id)')
     marker = '''                            Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; if coordinator.manualReview != nil { return }; SimulatorManualFixture.event("ack",id:field.id,old:String(manualAcknowledged[field.id] ?? false),new:String($0)); manualAcknowledged[field.id] = $0 }))
-                                .disabled(coordinator.running)'''
+                                .disabled(!useAiFeatures || coordinator.running)'''
     text = once(text, marker, marker + '.accessibilityIdentifier("manual-ack-" + field.id)')
     text = once(text, '.accessibilityLabel("原本の該当箇所")', '.accessibilityLabel("原本の該当箇所").accessibilityIdentifier("manual-crop-" + field.id)')
-    text = once(text, '                        }.buttonStyle(.glassProminent)\n                            .disabled(coordinator.running || draft.fields.contains',
-                '                        }.buttonStyle(.glassProminent).accessibilityIdentifier("manual-submit")\n                            .disabled(coordinator.running || draft.fields.contains')
+    text = once(text, '                        }.buttonStyle(.glassProminent)\n                            .disabled(!useAiFeatures || coordinator.running || draft.fields.contains',
+                '                        }.buttonStyle(.glassProminent).accessibilityIdentifier("manual-submit")\n                            .disabled(!useAiFeatures || coordinator.running || draft.fields.contains')
     zoom_marker = 'Button("対象セルを拡大して確認",systemImage:"plus.magnifyingglass") { zoomedField = field.id }'
     if text.count(zoom_marker) != 2:
         raise ValueError("manual source zoom insertion point missing or duplicated")
@@ -124,7 +124,7 @@ def view(text):
 
 
 def application(text):
-    marker = '        if ProcessInfo.processInfo.arguments.contains("--recovery-preview") { try SimulatorRecoveryFixture.seed(base) }'
+    marker = '        if ProcessInfo.processInfo.arguments.contains("--recovery-preview") { LocalAIFeaturePolicy.setEnabled(true); try SimulatorRecoveryFixture.seed(base) }'
     text = once(text, marker, marker + '\n        if SimulatorManualFixture.enabled { try SimulatorManualFixture.seed(base) }')
     # The comparable prior uses the actual builder after the first QA window
     # exists. Keep model/store consumers absent until both prior and source commit.

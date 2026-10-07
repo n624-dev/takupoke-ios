@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 import UIKit
 
 struct SpecialScheduleAnalysisView: View {
+    @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
     @ObservedObject var model: SpecialSchedulesModel
     let kind: SpecialScheduleKind
     @State private var showingSource = false
@@ -37,8 +38,8 @@ struct SpecialScheduleAnalysisView: View {
             }
             if source?.recoveryJob?.pdfHash == source?.digest, source?.recoveryJob?.state == .pending {
                 Section("復旧") {
-                    Button("端末内で復旧する",systemImage:"doc.text.magnifyingglass") { showingRecovery = true }.disabled(model.busy)
-                    Text("端末内AIによる復旧待ちです。新しい資料をまだ反映できていません。前回の正常結果を保持しています。") }
+                    Button("端末内で復旧する",systemImage:"doc.text.magnifyingglass") { showingRecovery = true }.disabled(!useAiFeatures || model.busy)
+                    Text("新しい資料は未反映です。") }
             }
             Section("操作") {
                 Button("保存済みのPDFを見る") { showingSource = true }

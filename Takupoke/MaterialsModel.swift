@@ -234,6 +234,7 @@ extension MaterialsModel {
         }
     }
     func adoptRecovery(_ preview: RecoveryPreview) async -> Bool {
+        guard LocalAIFeaturePolicy.enabled else { return false }
         let ticket = LocalAIFeaturePolicy.capture()
         let cancelled = AcquisitionControl()
         return await withTaskCancellationHandler {
@@ -249,7 +250,7 @@ extension MaterialsModel {
                 try RecoveryConversion.verifyFile(preview.source,check:{ try cancelled.check(); try control.check() })
                 let analysis = try RecoveryConversion.timetable(preview)
                 guard preview.source.period == SchoolDataPeriod.current() else { throw PDFParseError(code:.cancelled) }
-                try cancelled.check(); try control.check(); try LocalAIFeaturePolicy.check(ticket, requireEnabled: LocalAIFeaturePolicy.usesAI(preview.document, preview.result)); try library.savePDFAnalysis(analysis)
+                try cancelled.check(); try control.check(); try LocalAIFeaturePolicy.check(ticket); try library.savePDFAnalysis(analysis)
             }
         }
         } onCancel: { cancelled.cancel() }

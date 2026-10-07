@@ -530,6 +530,8 @@ final class ApplicationChecks: XCTestCase {
         let ai = app.switches["use-ai-features"]
         _ = visible(ai)
         XCTAssertTrue(ai.waitForExistence(timeout: 10)); XCTAssertEqual(ai.value as? String, "0")
+        XCTAssertTrue(ai.label.contains("OCR"))
+        XCTAssertEqual(app.staticTexts["fixture-recovery-off-blocked"].label,"1")
         let stored = app.staticTexts["fixture-stored-ai-permission"]
         XCTAssertEqual(stored.label, "0")
         func changeAI(to value: String) {
@@ -555,6 +557,7 @@ final class ApplicationChecks: XCTestCase {
         changeAI(to:"0")
         app.terminate(); launchReady(); tab("設定"); _ = visible(ai)
         XCTAssertEqual(ai.value as? String,"0"); XCTAssertEqual(stored.label,"0")
+        XCTAssertEqual(app.staticTexts["fixture-recovery-off-blocked"].label,"1")
         for _ in 0..<4 { app.swipeDown() }
         tap("リンク・名称・授業時刻")
         screen("リンク・名称・授業時刻")

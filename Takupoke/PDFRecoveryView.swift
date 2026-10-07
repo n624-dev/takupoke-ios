@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct PDFRecoveryView: View {
+    @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
     let kind: RecoveryDocumentKind
     @ObservedObject private var coordinator = ApplicationData.shared.recovery
     @ObservedObject private var models = LocalRecoveryModelManager.shared
@@ -59,7 +60,7 @@ struct PDFRecoveryView: View {
                     }
                     Section {
                         Button("この資料全体の結果を使用",systemImage:"checkmark.circle") { coordinator.adopt() }
-                            .buttonStyle(.glassProminent).disabled(coordinator.running)
+                            .buttonStyle(.glassProminent).disabled(!useAiFeatures || coordinator.running)
                     }
                 } else if let review = coordinator.manualReview, let draft = coordinator.manualDraft {
                     Section("訂正箇所を先に確認") {
@@ -96,9 +97,9 @@ struct PDFRecoveryView: View {
                         }
                     }
                     Section {
-                        Button("入力を見直す",systemImage:"pencil") { coordinator.editManualReview() }.disabled(coordinator.running)
+                        Button("入力を見直す",systemImage:"pencil") { coordinator.editManualReview() }.disabled(!useAiFeatures || coordinator.running)
                         Button("訂正と変更を確認して資料全体へ",systemImage:"doc.text.magnifyingglass") { coordinator.showManualPreview() }
-                            .buttonStyle(.glassProminent).disabled(coordinator.running)
+                            .buttonStyle(.glassProminent).disabled(!useAiFeatures || coordinator.running)
                     }
                 } else if let draft = coordinator.manualDraft {
                     Section("原本との照合") {
@@ -116,25 +117,25 @@ struct PDFRecoveryView: View {
                                 .disabled(coordinator.manualContextImages[field.id] == nil)
                             Text("自動読取: \(field.originalText)").font(.caption).foregroundStyle(.secondary)
                             TextField("PDFに記載された全文",text:Binding(get:{ manualValues[field.id] ?? field.originalText },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; if coordinator.manualReview != nil { return }; RecoveryManualInput.update($0,id:field.id,original:field.originalText,values:&manualValues,acknowledged:&manualAcknowledged) }),axis:.vertical)
-                                .autocorrectionDisabled().textInputAutocapitalization(.never).disabled(coordinator.running)
+                                .autocorrectionDisabled().textInputAutocapitalization(.never).disabled(!useAiFeatures || coordinator.running)
                             Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; if coordinator.manualReview != nil { return }; manualAcknowledged[field.id] = $0 }))
-                                .disabled(coordinator.running)
+                                .disabled(!useAiFeatures || coordinator.running)
                         }
                     }
                     Section {
                         Button("訂正箇所と前回からの変更を確認",systemImage:"checkmark.circle") {
                             coordinator.submitManual(Dictionary(uniqueKeysWithValues:draft.fields.map { ($0.id,manualValues[$0.id] ?? $0.originalText) }),acknowledged:Set(manualAcknowledged.filter(\.value).keys))
                         }.buttonStyle(.glassProminent)
-                            .disabled(coordinator.running || draft.fields.contains { !(manualAcknowledged[$0.id] ?? false) || (manualValues[$0.id] ?? $0.originalText).trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || (manualValues[$0.id] ?? $0.originalText).utf16.count > RecoveryManualAssistance.maximumCorrectedUTF16 })
+                            .disabled(!useAiFeatures || coordinator.running || draft.fields.contains { !(manualAcknowledged[$0.id] ?? false) || (manualValues[$0.id] ?? $0.originalText).trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || (manualValues[$0.id] ?? $0.originalText).utf16.count > RecoveryManualAssistance.maximumCorrectedUTF16 })
                     }
                 } else if coordinator.awaitingModel {
                     Section("端末内AI") {
                         Text(coordinator.status)
-                        Button("準備状況を再確認") { coordinator.retryModel() }.disabled(models.busy)
+                        Button("準備状況を再確認") { coordinator.retryModel() }.disabled(!useAiFeatures || models.busy)
                     }
                     modelSection
                 } else if !coordinator.running {
-                    Section { Button("端末内で復旧を開始",systemImage:"doc.text.magnifyingglass") { coordinator.start(kind) }.buttonStyle(.glassProminent) }
+                    Section { Button("端末内で復旧を開始",systemImage:"doc.text.magnifyingglass") { coordinator.start(kind) }.buttonStyle(.glassProminent).disabled(!useAiFeatures) }
                 }
             }
             .navigationTitle(title)
@@ -246,7 +247,6 @@ struct RecoveryModelSettingsView: View {
     @Environment(\.scenePhase) private var phase
     var body: some View {
         List {
-            if !useAiFeatures { Text("生成AIを使用・ダウンロードするには、設定で「AI機能を使用する」をONにしてください。OCRはOFFでも利用できます。") }
             RecoveryModelControls(models:models)
         }
             .navigationTitle("端末内AIモデル")

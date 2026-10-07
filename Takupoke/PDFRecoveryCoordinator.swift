@@ -38,7 +38,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
             Task { @MainActor in
                 guard let self else { return }
                 self.cancel()
-                if !LocalAIFeaturePolicy.enabled { self.status = "生成AIはOFFです。OCRとルールによる復旧は利用できます。" }
+                if !LocalAIFeaturePolicy.enabled { self.status = "復旧はOFFです。" }
             }
         }
     }
@@ -47,9 +47,11 @@ final class PDFRecoveryCoordinator: ObservableObject {
 
     func start(_ kind: RecoveryDocumentKind) {
         guard !running else { return }
+        guard LocalAIFeaturePolicy.enabled else { cancel(); status = "復旧はOFFです。"; return }
         let previous = task
         cancel(); failure = nil; preview = nil; awaitingModel = false
         let operation = UUID(); self.operation = operation; aiTicket = LocalAIFeaturePolicy.capture()
+        let ticket = aiTicket
         let preparationControl = AcquisitionControl(); self.preparationControl = preparationControl
         running = true; status = "保存済みのPDFを確認しています⋯"
         task = Task { @MainActor [weak self] in
@@ -70,13 +72,13 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 self.source = source
                 try self.check(operation)
                 let prepared = try await Task.detached(priority:.userInitiated) { () throws -> RecoveryPreparedPages in
-                    try RecoveryConversion.verifyFile(source,check:{ try preparationControl.check(); try Task.checkCancellation() })
+                    try RecoveryConversion.verifyFile(source,check:{ try preparationControl.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
                     let capture = RecoveryReadCapture()
                     var pages = source.captured
                     if pages.isEmpty {
                         do {
-                            if kind == .timetable { _ = try PDFKitReader.read(source.url,kind:.timetable,capture:capture,check:{ try preparationControl.check(); try Task.checkCancellation() }) }
-                            else { _ = try PDFKitReader.readSpecial(source.url,capture:capture,check:{ try preparationControl.check(); try Task.checkCancellation() }) }
+                            if kind == .timetable { _ = try PDFKitReader.read(source.url,kind:.timetable,capture:capture,check:{ try preparationControl.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) }) }
+                            else { _ = try PDFKitReader.readSpecial(source.url,capture:capture,check:{ try preparationControl.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) }) }
                         } catch let error as PDFParseError where error.code == .cancelled { throw error }
                         catch { /* The capture explicitly records incomplete pages. */ }
                         pages = capture.pages
@@ -87,9 +89,9 @@ final class PDFRecoveryCoordinator: ObservableObject {
                     var ocrPages = Set<Int>(), rasters = [Int:RecoveryRasterGrid]()
                     var nativeCapture: RecoveryOCRAcquisitionDraft?
                     if needsOCR {
-                        let acquisition = try await PDFRecoveryRecognition.acquire(source.url,only:pages.isEmpty ? nil : missing,expectedPDFHash:source.digest,check:{ try preparationControl.check(); try Task.checkCancellation() })
+                        let acquisition = try await PDFRecoveryRecognition.acquire(source.url,only:pages.isEmpty ? nil : missing,expectedPDFHash:source.digest,check:{ try preparationControl.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
                         nativeCapture = acquisition.acquisition
-                        let recognized = try acquisition.capturedLayouts(check:{ try preparationControl.check(); try Task.checkCancellation() })
+                        let recognized = try acquisition.capturedLayouts(check:{ try preparationControl.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
                         for p in recognized { layouts[p.page] = p.layout; ocrPages.insert(p.page); rasters[p.page] = p.raster }
                     }
                     guard !layouts.isEmpty, layouts.count == layouts.keys.max(), layouts.keys.sorted() == Array(1...layouts.count) else { throw PDFParseError(code:.ambiguous) }
@@ -106,7 +108,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
         }
     }
     func retryModel() {
-        guard !running, let source, pendingDocument != nil || pendingPages != nil else { return }
+        guard LocalAIFeaturePolicy.enabled, !running, let source, pendingDocument != nil || pendingPages != nil else { return }
         running = true; awaitingModel = false
         let operation = self.operation
         let control = AcquisitionControl(); preparationControl = control
@@ -137,7 +139,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 guard RecoveryConversion.matchesPeriod(input.document,source.period), inputErrors.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.yearHeading) }
                 status = "折り返された見出しの構造を端末内で確認しています⋯"
                 guard LocalAIFeaturePolicy.enabled else {
-                    running = false; failure = "この資料の構造確認には生成AIが必要です。設定で「AI機能を使用する」をONにしてください。"; return
+                    running = false; failure = "復旧はOFFです。"; return
                 }
                 let providers:[any LocalRecoveryProvider] = [SystemLanguageRecoveryProvider()] + (await LocalRecoveryModelManager.shared.providers(lease:operation))
                 try check(operation)
@@ -370,7 +372,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
             } else if result.state == .awaitingModel {
                 awaitingModel = LocalAIFeaturePolicy.enabled
                 if awaitingModel { modelStatus(result.errors) }
-                else { status = "この資料の復旧には生成AIが必要です。設定で「AI機能を使用する」をONにしてください。" }
+                else { status = "復旧はOFFです。" }
                 // A temporarily unready system model never triggers an automatic download.
             } else { failure = "原文に基づいて結果を確認できませんでした。前回の正常結果を保持しています。" }
         } catch {
@@ -379,7 +381,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
         }
     }
     func adopt() {
-        guard !running, let preview, !LocalAIFeaturePolicy.usesAI(preview.document, preview.result) || LocalAIFeaturePolicy.enabled else { return }
+        guard LocalAIFeaturePolicy.enabled, !running, let preview else { return }
         running = true; status = "確認済みの結果を保存しています⋯"
         let operation = self.operation
         task = Task { @MainActor in

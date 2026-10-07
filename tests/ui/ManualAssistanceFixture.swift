@@ -139,6 +139,7 @@ enum SimulatorManualFixture {
         eventCount=0;UserDefaults.standard.removeObject(forKey:"fixture.manualEvents")
         // Never overwrite an already adopted result on relaunch.
         if !ProcessInfo.processInfo.arguments.contains("--reset-fixture") { return }
+        LocalAIFeaturePolicy.setEnabled(true)
         if requiresAsyncSeed {
             deferredSeedBase=base;trace("stage=seed-deferred");return
         }
