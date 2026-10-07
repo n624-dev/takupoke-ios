@@ -22,13 +22,12 @@ jobs:
         run: |
           python3 -m venv "$RUNNER_TEMP/ordered-raster-python-owned"
           "$RUNNER_TEMP/ordered-raster-python-owned/bin/python" -m pip install --no-cache-dir --disable-pip-version-check -r tools/independent-wide-timetable/requirements.txt
-          "$RUNNER_TEMP/ordered-raster-python-owned/bin/python" -B tools/ordered-row-e2e/generate.py --output "$RUNNER_TEMP/ordered-raster-owned"
-          "$RUNNER_TEMP/ordered-raster-python-owned/bin/python" -B tools/ordered-row-e2e/generate_raster.py --fixtures "$RUNNER_TEMP/ordered-raster-owned"
-      - name: Inspect native candidate confidence without repeating closed recipes
+          "$RUNNER_TEMP/ordered-raster-python-owned/bin/python" -B tools/ordered-row-e2e/generate_readable.py --output "$RUNNER_TEMP/ordered-raster-owned"
+      - name: Measure independent readable documents and native confidence
         run: bash tools/test-parsing.sh
         env:
           TAKUPOKE_ORDERED_RASTER_FIXTURES: ${{ runner.temp }}/ordered-raster-owned
-          TAKUPOKE_ORDERED_RASTER_CONFIDENCE_ONLY: '1'
+          TAKUPOKE_ORDERED_RASTER_READABLE: '1'
       - name: Remove all owned images and dependencies
         if: always()
         run: rm -rf "$RUNNER_TEMP/ordered-raster-owned" "$RUNNER_TEMP/ordered-raster-python-owned"

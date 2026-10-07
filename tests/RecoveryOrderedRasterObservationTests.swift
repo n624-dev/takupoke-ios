@@ -11,7 +11,7 @@ import ImageIO
 final class RecoveryOrderedRasterObservationTests:XCTestCase {
     func testNativeMinimumHeightCandidateConfidenceIsMeasuredWithoutSubstitution() async throws {
         guard #available(macOS 26.0,*),
-              ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_CONFIDENCE_ONLY"] == "1",
+              (ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_CONFIDENCE_ONLY"] == "1" || ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_READABLE"] == "1"),
               let root=ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_FIXTURES"] else {
             throw XCTSkip("Requires dedicated owned confidence observation")
         }
@@ -28,7 +28,7 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                     "zero":finite.filter{$0 == 0}.count,"below085":finite.filter{$0 < 0.85}.count,
                     "minimum":finite.min().map{Double($0)} as Any? ?? NSNull(),
                     "maximum":finite.max().map{Double($0)} as Any? ?? NSNull(),
-                    "nativeValueCounts":values]
+                    "nativeDistinctValues":values.count,"mostCommonNativeValues":Dictionary(uniqueKeysWithValues:values.sorted { a,b in a.value != b.value ? a.value > b.value : a.key < b.key }.prefix(6).map{($0.key,$0.value)})]
         }
         for item in try XCTUnwrap(manifest["cases"] as? [[String:Any]]) {
             let name=try XCTUnwrap(item["case"] as? String),file=try XCTUnwrap(item["file"] as? String)
@@ -62,8 +62,8 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
         }
     }
     func testPairedImageFirstPageResolutionChangesOnlyRenderingDensity() async throws {
-        if ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_CONFIDENCE_ONLY"] == "1" {
-            throw XCTSkip("Prior fixed recipes are not repeated in confidence-only observation")
+        if ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_CONFIDENCE_ONLY"] == "1" || ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_READABLE"] == "1" {
+            throw XCTSkip("Prior fixed recipes are not repeated in this dedicated observation")
         }
         guard #available(macOS 26.0,*),let root=ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_FIXTURES"] else {
             throw XCTSkip("Requires owned invented image cohort")
@@ -197,7 +197,7 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                     _=try PDFSchoolParser.parse(strict,kind:.timetable,digest:hash,name:file)
                     XCTFail("Image-only input unexpectedly passed Strict");continue
                 } catch let error as PDFParseError { guard RecoveryPolicy.eligible(error) else { throw error } }
-                let pdf=try XCTUnwrap(PDFDocument(data:bytes));XCTAssertEqual(pdf.pageCount,5)
+                let pdf=try XCTUnwrap(PDFDocument(data:bytes));XCTAssertEqual(pdf.pageCount,ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_READABLE"] == "1" ? 10 : 5)
                 stage="PDF render/Vision capture"
                 for number in 1...pdf.pageCount {
                     let page=try XCTUnwrap(pdf.page(at:number-1)),bounds=page.bounds(for:.cropBox)
@@ -213,7 +213,11 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                     guard made else { throw PDFParseError(code:.unreadable) }
                     let raster=try RecoveryRasterGrid.fromRGBA(width:cg.width,height:cg.height,pixels:rgba,check:{})
                     calls+=1
-                    let native=try await RecoveryVisionCapture.request().perform(on:cg)
+                    var request=RecoveryVisionCapture.request()
+                    if ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_READABLE"] == "1" {
+                        request.textRecognitionOptions.minimumTextHeightFraction=8/Float(cg.height)
+                    }
+                    let native=try await request.perform(on:cg)
                     let captured=try RecoveryVisionCapture.page(number,width:cg.width,height:cg.height,observations:native,work:&work,check:{})
                     pages.append(captured);rasters[number]=raster
                     var atomCount=0,mappingErrors=0
@@ -226,7 +230,7 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                     pageReports.append(["page":number,"width":cg.width,"height":cg.height,"rgbaSha256":pixelHash,"nativeLines":captured.lines.count,"nativeCharacters":captured.lines.reduce(0){$0+($1.candidates.first?.characters.count ?? 0)},"wholeLineAtoms":atomCount,"mappingErrors":mappingErrors,"below085":captured.lines.filter{($0.candidates.first?.confidence ?? 0)<0.85}.count])
                 }
                 stage="Acquisition inventory"
-                let capture=RecoveryOCRAcquisitionDraft(sourcePDFHash:hash,documentPageCount:5,requiredOCRPages:Array(1...5),pages:pages)
+                let capture=RecoveryOCRAcquisitionDraft(sourcePDFHash:hash,documentPageCount:pdf.pageCount,requiredOCRPages:Array(1...pdf.pageCount),pages:pages)
                 _=try capture.assess(check:{})
                 stage="Original lines/Builder"
                 var layouts=[PDFPageLayout](),prepared=[Int:RecoveryRasterGrid]()
@@ -248,7 +252,7 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                     layouts.append(PDFPageLayout(width:Double(page.width),height:Double(page.height),glyphs:glyphs,lines:rules))
                     prepared[page.page]=try raster.preparingRules(rules,check:{})
                 }
-                var doc=try RecoveryDocumentBuilder.build(layouts,kind:.timetable,hash:hash,fromOCR:Set(1...5),rasters:prepared)
+                var doc=try RecoveryDocumentBuilder.build(layouts,kind:.timetable,hash:hash,fromOCR:Set(pages.map(\.page)),rasters:prepared)
                 doc=try RecoveryManualAssistance.attaching(capture,to:doc);document=doc
                 stage="Engine/Validator"
                 let run=try await RecoveryEngine.run(doc,os:"ios",osMajor:27,foreground:true,providers:[],rule:{_ in nil},check:{})
