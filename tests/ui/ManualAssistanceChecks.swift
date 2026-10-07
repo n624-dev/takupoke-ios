@@ -124,6 +124,7 @@ final class ManualAssistanceChecks:XCTestCase {
             let end=base.withOffset(CGVector(dx:100,dy:(upward ? viewport.minY+12:viewport.maxY-12)-list.frame.minY))
             start.press(forDuration:0.1,thenDragTo:end)
         }
+        XCTAssertTrue(e.exists && e.isHittable,app.debugDescription)
         XCTFail("No safe visible hit region after bounded navigation: "+app.debugDescription);return e
     }
     private func tap(_ title:String) { visible(app.buttons[title].firstMatch).tap() }
