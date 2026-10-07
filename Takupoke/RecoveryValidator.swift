@@ -7,7 +7,7 @@ import Crypto
 
 enum RecoveryValidator {
     static let schemaVersion = 2
-    static let version = 7
+    static let version = 8
     private static func text(_ value: String) -> String {
         value.precomposedStringWithCompatibilityMapping.components(separatedBy: .whitespacesAndNewlines).joined()
     }
@@ -400,6 +400,29 @@ enum RecoveryValidator {
                 }
                 for (i, scope) in cell.roleScopes.enumerated() { check(!cell.roleScopes.prefix(i).contains { min($0.box.x + $0.box.width, scope.box.x + scope.box.width) > max($0.box.x, scope.box.x) && min($0.box.y + $0.box.height, scope.box.y + scope.box.height) > max($0.box.y, scope.box.y) }, "roleScopeOverlap") }
             }
+            // The established full normal table keeps its role order even if
+            // an optional acquisition certificate is absent from older data.
+            if doc.kind == .timetable && doc.classes.count == 17 && doc.days.count == 5 && doc.requiredSlots.count == 680 &&
+               cell.bindingMode == .fixed && cell.parallelCount == 1 && cell.lessonBindings.count == 1 &&
+               [cell.lessonBindings[0].subject,cell.lessonBindings[0].teacher,cell.lessonBindings[0].room].allSatisfy({ $0.count == 1 }) {
+                let rows=bindingIds.compactMap { sources[$0] }
+                check(rows.count == 3 && zip(rows,rows.dropFirst()).allSatisfy { $0.box.y+$0.box.height < $1.box.y }, "orderedRowEvidence")
+            }
+            if let proof = cell.orderedRowProof {
+                guard proof.rows.count == 3, proof.rows.allSatisfy({ $0.count <= 256 }), work.charge(proof.sourceIds.count + proof.rows.reduce(0) { $0+$1.count } + doc.classes.count + doc.days.count + 1) else { return RecoveryValidation(errors:["validationLimit"]) }
+                check(proof.version == 1 && doc.kind == .timetable && Set(doc.classes) == Set(specialClasses) &&
+                      Set(doc.days) == Set(["1","2","3","4","5"]) && doc.requiredSlots.count == specialClasses.count*5*8 &&
+                      !bindingIncomplete && cell.bindingMode == .fixed && !cell.confirmedEmpty && cell.slots.count == 1 &&
+                      cell.parallelCount == 1 && cell.lessonBindings.count == 1 && cell.parallelSeparators.isEmpty &&
+                      cell.blankFields.isEmpty && proof.sourceIds.count == 3 && proof.sourceIds == bindingIds &&
+                      proof.sourceIds == cell.sourceIds, "orderedRowContract")
+                let rows = proof.sourceIds.count == 3 ? proof.sourceIds.compactMap { sources[$0] } : []
+                check(rows.count == 3 && rows.allSatisfy { !$0.text.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty &&
+                      !RecoveryRole.hasLabelPrefix($0.text) && !$0.text.contains(where:{ "・･/／".contains($0) }) &&
+                      $0.cellId == cell.id && $0.page == cell.page && cell.box.contains($0.box) } &&
+                      zip(rows,rows.dropFirst()).allSatisfy { $0.box.y+$0.box.height < $1.box.y } &&
+                      zip(proof.rows,rows).allSatisfy { RecoveryOrderedRowProof.singleRow($0,source:$1) }, "orderedRowEvidence")
+            }
             // A complete ownership certificate must identify each tuple. Two
             // plural BODY roles cannot be adopted as a single compound lesson.
             if !bindingIncomplete && !cell.confirmedEmpty {
@@ -520,8 +543,8 @@ enum RecoveryValidator {
             }
             return adopted
         }
-        if [5,6].contains(adopted.result.metadata.validatorVersion), let original = adopted.previousAcceptance {
-            guard [4,5].contains(original.metadata.validatorVersion),
+        if [5,6,7].contains(adopted.result.metadata.validatorVersion), let original = adopted.previousAcceptance {
+            guard [4,5,6].contains(original.metadata.validatorVersion),
                   original.metadata.validatorVersion < adopted.result.metadata.validatorVersion else { return nil }
             var old = adopted; old.previousAcceptance = nil; old.acceptance = original
             old.result.metadata.validatorVersion = original.metadata.validatorVersion
@@ -533,12 +556,13 @@ enum RecoveryValidator {
             expected.acceptance = RecoveryAcceptance(pdfHash:hash,resultHash:try fingerprint(expected.result),scopeHash:try fingerprint(expected.document),metadata:expected.result.metadata,acceptedAt:original.acceptedAt)
             return expected == adopted ? upgraded : nil
         }
-        guard adopted.previousAcceptance == nil, adopted.document.ocrLineAtomSourceIds == nil,
-              adopted.result.metadata.validatorVersion == 6 ||
+        guard adopted.previousAcceptance == nil, !adopted.document.cells.contains(where:{ $0.orderedRowProof != nil }),
+              adopted.result.metadata.validatorVersion == 7 || adopted.document.ocrLineAtomSourceIds == nil,
+              [6,7].contains(adopted.result.metadata.validatorVersion) ||
                 (adopted.document.nativeCapture == nil && adopted.result.humanCorrections == nil &&
                  adopted.document.sources.allSatisfy({ $0.nativeConfidence == nil })),
-              adopted.result.metadata.validatorVersion == 6 || adopted.document.structureMetadata == nil || adopted.document.structureMetadata == adopted.result.metadata,
-              [4,5,6].contains(adopted.result.metadata.validatorVersion),
+              [6,7].contains(adopted.result.metadata.validatorVersion) || adopted.document.structureMetadata == nil || adopted.document.structureMetadata == adopted.result.metadata,
+              [4,5,6,7].contains(adopted.result.metadata.validatorVersion),
               adopted.result.metadata.recoverySchemaVersion == schemaVersion,
               adopted.result.metadata.recoveryVersion == "2",
               adopted.acceptance.pdfHash == hash,

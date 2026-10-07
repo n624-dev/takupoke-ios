@@ -292,11 +292,19 @@ enum RecoveryDocumentBuilder {
                                 }
                                 return nil
                             }
-                            // This new physical-table family admits complete inline
-                            // labels only; uncertainty must not become a model request.
+                            // Preserve the established three-row normal-timetable
+                            // convention only for an unsplit, single-period cell.
+                            // Missing fields and plural tuples do not enter it.
                             if genericRuled {
-                                guard rows.count == 3, labeled.count == 3, Set(labeled.map { $0.0 }).count == 3,
-                                      labeled.contains(where:{ $0.0 == .subject && !$0.2.isEmpty }) else { throw PDFParseError(code:.ambiguous,stage:.lessonLines) }
+                                let inline = rows.count == 3 && labeled.count == 3 && Set(labeled.map { $0.0 }).count == 3 && labeled.contains(where:{ $0.0 == .subject && !$0.2.isEmpty })
+                                let values = rows.map { $0.map(\.text).joined() }
+                                let rowBoxes = try rows.map { try box($0) }
+                                let rowPieces = rows.map { row in row.map { RecoveryOrderedRowPiece(text:$0.text,box:RecoveryBox(x:$0.x,y:$0.y,width:$0.width,height:$0.height),sourceLine:$0.sourceLine,sourceOrder:$0.sourceOrder) } }
+                                let ordered = kind == .timetable && labeled.isEmpty && rows.count == 3 && lines == values &&
+                                    covered.count == 1 && Set(sub).count == 1 && rowPieces.allSatisfy { RecoveryOrderedRowProof.singleRow($0) } &&
+                                    values.allSatisfy { !$0.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && !RecoveryRole.hasLabelPrefix($0) && !$0.contains(where:{ "・･/／".contains($0) }) } &&
+                                    zip(rowBoxes,rowBoxes.dropFirst()).allSatisfy { $0.y+$0.height < $1.y }
+                                guard inline || ordered else { throw PDFParseError(code:.ambiguous,stage:.lessonLines) }
                             }
                             if labeled.count == 3, Set(labeled.map { $0.0 }).count == 3 {
                                 try requireSingleInlineTuple(labeled.map { $0.2.map(\.text).joined() })
@@ -383,6 +391,10 @@ enum RecoveryDocumentBuilder {
                                     let source = try add(rows[offset],owner:id); ids[i] = [source]; cell.sourceIds.append(source); offset += 1
                                 }
                                 bindings.append(RecoveryLessonBinding(subject:ids[0],teacher:ids[1],room:ids[2]))
+                                if genericRuled {
+                                    guard ids.allSatisfy({ $0.count == 1 }), bindings.count == 1 else { throw PDFParseError(code:.ambiguous,stage:.lessonLines) }
+                                    cell.orderedRowProof = RecoveryOrderedRowProof(version:1,sourceIds:ids.flatMap { $0 },rows:rows.map { row in row.map { RecoveryOrderedRowPiece(text:$0.text,box:RecoveryBox(x:$0.x,y:$0.y,width:$0.width,height:$0.height),sourceLine:$0.sourceLine,sourceOrder:$0.sourceOrder) } })
+                                }
                                 if ids[1].isEmpty { cell.blankFields.append("teacher") }; if ids[2].isEmpty { cell.blankFields.append("room") }
                             }
                         }
@@ -522,6 +534,12 @@ enum RecoveryDocumentBuilder {
         }
         doc.classes = doc.classEvidence.keys.sorted(); doc.days = doc.dayEvidence.keys.sorted()
         doc.requiredSlots = doc.classes.flatMap { cls in doc.days.flatMap { day in (1...count).map { RecoverySlot(className:cls,day:day,period:$0) } } }
+        if doc.cells.contains(where:{ $0.orderedRowProof != nil }) {
+            guard kind == .timetable, Set(doc.classes) == Set(RecoveryValidator.specialClasses),
+                  Set(doc.days) == Set(["1","2","3","4","5"]), doc.requiredSlots.count == 680 else {
+                throw PDFParseError(code:.ambiguous,stage:.classLabel)
+            }
+        }
         if !(doc.ocrLineAtomSourceIds ?? []).isEmpty {
             // Existing validators know this metadata guard even when they do not
             // know the optional atom marker. They must refuse this new contract.

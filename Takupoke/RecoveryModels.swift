@@ -46,6 +46,28 @@ struct RecoveryAnnotation: Codable, Equatable, Sendable {
     /// A region outside the independently bounded table; never an ignored body cell.
     var tableBox: RecoveryBox
 }
+/// App-owned proof of the existing normal-timetable subject/teacher/room row
+/// convention. This is acquisition data, never a model's declaration.
+struct RecoveryOrderedRowPiece: Codable, Equatable, Sendable {
+    var text: String; var box: RecoveryBox; var sourceLine: Int?; var sourceOrder: Int?
+}
+struct RecoveryOrderedRowProof: Codable, Equatable, Sendable {
+    var version: Int
+    var sourceIds: [String]
+    var rows: [[RecoveryOrderedRowPiece]]
+    static func singleRow(_ pieces: [RecoveryOrderedRowPiece], source: RecoverySource? = nil) -> Bool {
+        guard !pieces.isEmpty, pieces.count <= 256, pieces.allSatisfy({ $0.text.count == 1 && $0.box.valid && $0.sourceLine != nil && $0.sourceOrder != nil }),
+              Set(pieces.compactMap(\.sourceLine)).count == 1,
+              zip(pieces,pieces.dropFirst()).allSatisfy({ $0.sourceOrder! < $1.sourceOrder! && $0.box.x+$0.box.width <= $1.box.x+0.1 }) else { return false }
+        let ink = pieces.filter { !$0.text.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty }
+        guard !ink.isEmpty, zip(ink,ink.dropFirst()).allSatisfy({ $1.box.x-$0.box.x-$0.box.width <= max($0.box.height,$1.box.height)*1.5 }) else { return false }
+        guard let source else { return true }
+        let left=pieces.map(\.box.x).min()!, top=pieces.map(\.box.y).min()!
+        let right=pieces.map { $0.box.x+$0.box.width }.max()!, bottom=pieces.map { $0.box.y+$0.box.height }.max()!
+        return pieces.map(\.text).joined() == source.text && source.sourceLine == pieces[0].sourceLine && source.sourceOrder == pieces[0].sourceOrder &&
+            source.box == RecoveryBox(x:left,y:top,width:right-left,height:bottom-top)
+    }
+}
 struct RecoveryCell: Codable, Equatable, Sendable {
     var id: String; var page: Int; var box: RecoveryBox; var inputState: RecoveryInputState; var slots: [RecoverySlot]
     var sourceIds: [String]; var blankFields: [String]; var confirmedEmpty = false; var parallelCount = 1
@@ -56,6 +78,7 @@ struct RecoveryCell: Codable, Equatable, Sendable {
     var bindingMode: RecoveryBindingMode = .fixed
     var roleScopes: [RecoveryRoleScope] = []
     var parallelSeparators: [String:String] = [:]
+    var orderedRowProof: RecoveryOrderedRowProof? = nil
 }
 /// App-generated acquisition proof; never part of a model response schema.
 struct RecoveryOCRCoveragePage: Codable, Equatable, Sendable {
@@ -157,7 +180,7 @@ extension RecoveryCell {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.init(id: try c.decode(String.self, forKey: .id), page: try c.decode(Int.self, forKey: .page), box: try c.decode(RecoveryBox.self, forKey: .box), inputState: try c.decode(RecoveryInputState.self, forKey: .inputState), slots: try c.decode([RecoverySlot].self, forKey: .slots), sourceIds: try c.decode([String].self, forKey: .sourceIds), blankFields: try c.decode([String].self, forKey: .blankFields), confirmedEmpty: try c.decodeIfPresent(Bool.self, forKey: .confirmedEmpty) ?? false, parallelCount: try c.decodeIfPresent(Int.self, forKey: .parallelCount) ?? 1,
-            classHeaderIds: try c.decodeIfPresent([String].self, forKey: .classHeaderIds) ?? [], dayHeaderIds: try c.decodeIfPresent([String].self, forKey: .dayHeaderIds) ?? [], periodHeaderIds: try c.decodeIfPresent([String].self, forKey: .periodHeaderIds) ?? [], lessonBindings: try c.decodeIfPresent([RecoveryLessonBinding].self, forKey: .lessonBindings) ?? [], classRegion: try c.decodeIfPresent(RecoveryHeaderRegion.self, forKey: .classRegion), dayRegion: try c.decodeIfPresent(RecoveryHeaderRegion.self, forKey: .dayRegion), periodRegions: try c.decodeIfPresent([String: RecoveryHeaderRegion].self, forKey: .periodRegions) ?? [:], bindingMode: try c.decodeIfPresent(RecoveryBindingMode.self, forKey: .bindingMode) ?? .fixed, roleScopes: try c.decodeIfPresent([RecoveryRoleScope].self, forKey: .roleScopes) ?? [], parallelSeparators: try c.decodeIfPresent([String:String].self, forKey: .parallelSeparators) ?? [:])
+            classHeaderIds: try c.decodeIfPresent([String].self, forKey: .classHeaderIds) ?? [], dayHeaderIds: try c.decodeIfPresent([String].self, forKey: .dayHeaderIds) ?? [], periodHeaderIds: try c.decodeIfPresent([String].self, forKey: .periodHeaderIds) ?? [], lessonBindings: try c.decodeIfPresent([RecoveryLessonBinding].self, forKey: .lessonBindings) ?? [], classRegion: try c.decodeIfPresent(RecoveryHeaderRegion.self, forKey: .classRegion), dayRegion: try c.decodeIfPresent(RecoveryHeaderRegion.self, forKey: .dayRegion), periodRegions: try c.decodeIfPresent([String: RecoveryHeaderRegion].self, forKey: .periodRegions) ?? [:], bindingMode: try c.decodeIfPresent(RecoveryBindingMode.self, forKey: .bindingMode) ?? .fixed, roleScopes: try c.decodeIfPresent([RecoveryRoleScope].self, forKey: .roleScopes) ?? [], parallelSeparators: try c.decodeIfPresent([String:String].self, forKey: .parallelSeparators) ?? [:],orderedRowProof:try c.decodeIfPresent(RecoveryOrderedRowProof.self,forKey:.orderedRowProof))
     }
 }
 extension RecoveryDocument {

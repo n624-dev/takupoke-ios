@@ -1,0 +1,36 @@
+name: Verify bounded ordered-row recovery contracts
+on:
+  push:
+    branches: [research/ios-ordered-row-proof-20261007]
+permissions:
+  contents: read
+jobs:
+  native:
+    name: Native PDFKit and ordered-row regression
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: bash tools/test-parsing.sh
+  build:
+    name: iOS SDK build without publication
+    runs-on: xcode-27
+    timeout-minutes: 35
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - shell: bash
+        run: |
+          set -euo pipefail
+          task_dir="$(mktemp -d "${TMPDIR:-/tmp}/takupoke-ordered-build.XXXXXX")"
+          trap 'rm -rf "$task_dir"' EXIT
+          trap 'exit 130' INT
+          trap 'exit 143' TERM
+          xcodebuild -project Takupoke.xcodeproj -scheme Takupoke -configuration Debug -sdk iphonesimulator -derivedDataPath "$task_dir/build" -clonedSourcePackagesDirPath "$task_dir/packages" CODE_SIGNING_ALLOWED=NO build
