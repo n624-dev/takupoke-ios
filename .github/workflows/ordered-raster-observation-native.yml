@@ -1,5 +1,7 @@
 name: Observe paired invented image PDFs with native Vision
 on:
+  push:
+    branches: [research/ios-ordered-raster-observation-20261007]
   workflow_dispatch:
 permissions:
   contents: read
