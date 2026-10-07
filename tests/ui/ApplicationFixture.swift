@@ -50,6 +50,7 @@ struct SimulatorApplication: App {
     @State private var applicationReady = false
     @State private var fixtureTypeSize: DynamicTypeSize = .large
     @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
+    @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
     init() {
         URLProtocol.registerClass(FixtureNetwork.self)
         do { try Self.seed() } catch { fatalError("Synthetic fixture initialization failed: \(error)") }
@@ -79,6 +80,11 @@ struct SimulatorApplication: App {
                             Text("準備完了").font(.caption2)
                                 .accessibilityIdentifier("fixture-ready")
                                 .allowsHitTesting(false)
+                            if ProcessInfo.processInfo.arguments.contains("--ai-feature-probe") {
+                                Text(LocalAIFeaturePolicy.enabled ? "1" : "0").id(useAiFeatures)
+                                    .font(.caption2).accessibilityIdentifier("fixture-stored-ai-permission")
+                                    .allowsHitTesting(false)
+                            }
                             if ProcessInfo.processInfo.arguments.contains("--recovery-preview") || ProcessInfo.processInfo.arguments.contains("--recovery-probe") { FixtureRecoveryProbe() }
                             if ProcessInfo.processInfo.arguments.contains("--selection-snapshot") { FixtureSelectionProbe() }
                         }

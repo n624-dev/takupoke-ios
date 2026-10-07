@@ -9,6 +9,7 @@ final class ApplicationChecks: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["--reset-fixture", "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
         let initialConditions: [String: [String]] = [
+            "testSettingsAccountDataAndFileDetails": ["--ai-feature-probe"],
             "testTimetableDynamicTypeScalesAndRestoresStandardLayout": ["--grid-probe"],
             "testTimetableUsesSystemTextSize": ["--grid-probe", "--system-text-size"],
             "testTimetableCommonClocksAndEventOnlyWeekScale": ["--grid-probe", "--normal-only"],
@@ -529,12 +530,31 @@ final class ApplicationChecks: XCTestCase {
         let ai = app.switches["use-ai-features"]
         _ = visible(ai)
         XCTAssertTrue(ai.waitForExistence(timeout: 10)); XCTAssertEqual(ai.value as? String, "0")
-        for value in ["1","0"] {
-            ai.coordinate(withNormalizedOffset:CGVector(dx:0.94,dy:0.5)).tap()
+        let stored = app.staticTexts["fixture-stored-ai-permission"]
+        XCTAssertEqual(stored.label, "0")
+        func changeAI(to value: String) {
+            XCTAssertTrue(ai.isHittable, app.debugDescription)
+            XCTAssertGreaterThan(ai.frame.width, 40)
+            print("AI_SWITCH before frame=\(ai.frame) UI=\(String(describing: ai.value)) stored=\(stored.label)")
+            // Switch accessibility bounds can cover either the whole labelled
+            // row or just the control. The trailing control's centre is 26 px
+            // inside the right edge in both representations, unlike its edge.
+            ai.coordinate(withNormalizedOffset:CGVector(dx:1,dy:0.5))
+                .withOffset(CGVector(dx:-26,dy:0)).tap()
             let reflected = expectation(for:NSPredicate(format:"value == %@",value),evaluatedWith:ai)
-            wait(for:[reflected],timeout:5)
+            let saved = expectation(for:NSPredicate(format:"label == %@",value),evaluatedWith:stored)
+            wait(for:[reflected,saved],timeout:10)
             XCTAssertEqual(ai.value as? String,value)
+            XCTAssertEqual(stored.label,value)
+            print("AI_SWITCH after UI=\(String(describing: ai.value)) stored=\(stored.label)")
         }
+        for value in ["1","0","1"] { changeAI(to:value) }
+        app.terminate(); app.launchArguments.removeAll { $0 == "--reset-fixture" }; launchReady()
+        tab("設定"); _ = visible(ai)
+        XCTAssertEqual(ai.value as? String,"1"); XCTAssertEqual(stored.label,"1")
+        changeAI(to:"0")
+        app.terminate(); launchReady(); tab("設定"); _ = visible(ai)
+        XCTAssertEqual(ai.value as? String,"0"); XCTAssertEqual(stored.label,"0")
         for _ in 0..<4 { app.swipeDown() }
         tap("リンク・名称・授業時刻")
         screen("リンク・名称・授業時刻")
