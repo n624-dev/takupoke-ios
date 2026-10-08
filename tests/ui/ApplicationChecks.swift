@@ -97,6 +97,20 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertTrue(e.exists, app.debugDescription)
         return e
     }
+    private func openNotificationSettings() {
+        let row = app.buttons["通知"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10), app.debugDescription)
+        _ = visible(row)
+        XCTAssertTrue(row.isEnabled, app.debugDescription)
+        let bounds = row.frame
+        XCTAssertTrue(bounds.width > 0 && bounds.height > 0 &&
+                      bounds.minY >= app.navigationBars.firstMatch.frame.maxY &&
+                      bounds.maxY <= app.tabBars.firstMatch.frame.minY, app.debugDescription)
+        // iOS 27 can report a fully visible SwiftUI navigation row as
+        // non-hittable. Exercise its actual visible label, then require navigation.
+        row.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).tap()
+        screen("通知")
+    }
     private func enableChangeNotifications() {
         screen("通知")
         let toggle = app.switches["時間割変更"]
@@ -935,7 +949,7 @@ final class ApplicationChecks: XCTestCase {
     }
     func testNotificationControlsAndAppearance() {
         tab("設定")
-        tap("通知")
+        openNotificationSettings()
         XCTAssertTrue(app.switches["時間割変更"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.switches["試験・返却"].exists)
         enableChangeNotifications()
@@ -984,7 +998,7 @@ final class ApplicationChecks: XCTestCase {
     }
     func testChangedDataProducesOneLocalNotification() {
         tab("設定")
-        tap("通知")
+        openNotificationSettings()
         enableChangeNotifications()
         app.terminate()
         app.launchArguments = ["--updated-changes", "--notification-probe", "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
