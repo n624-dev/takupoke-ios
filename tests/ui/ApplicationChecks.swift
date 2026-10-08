@@ -880,18 +880,18 @@ final class ApplicationChecks: XCTestCase {
         let bar = app.navigationBars["一覧"]
         let tabs = app.tabBars.firstMatch
         recoveryScreenshot("link-context-before-" + title)
-        let ready = expectation(for: NSPredicate { _, _ in
-            guard bar.exists && tabs.exists && link.exists && link.isEnabled else { return false }
-            // Resolve each frame once: AX snapshots on a busy simulator can
-            // consume the former ten-second deadline before geometry is read.
-            let rowFrame = link.frame
-            let barFrame = bar.frame
-            let tabsFrame = tabs.frame
-            return rowFrame.width > 0 && rowFrame.height > 0 &&
-                rowFrame.minY >= barFrame.maxY && rowFrame.maxY <= tabsFrame.minY
-        }, evaluatedWith: link)
-        guard XCTWaiter.wait(for: [ready], timeout: 45) == .completed else {
-            print("LINK_CONTEXT boundaries row=\(link.frame);bar=\(bar.frame);tabs=\(tabs.frame);enabled=\(link.isEnabled)")
+        // Bound existence separately. A predicate with seven AX queries can
+        // expire while a query is still resolving, despite valid final frames.
+        guard bar.waitForExistence(timeout:45),tabs.waitForExistence(timeout:45),link.waitForExistence(timeout:45) else {
+            XCTFail("Link list controls are absent: " + app.debugDescription);return
+        }
+        let rowFrame=link.frame,barFrame=bar.frame,tabsFrame=tabs.frame
+        let enabled=link.isEnabled
+        guard enabled,[rowFrame,barFrame,tabsFrame].allSatisfy({
+            !$0.isNull && !$0.isInfinite && $0.width>0 && $0.height>0
+                && [$0.minX,$0.minY,$0.maxX,$0.maxY].allSatisfy(\.isFinite)
+        }),rowFrame.minY>=barFrame.maxY,rowFrame.maxY<=tabsFrame.minY else {
+            print("LINK_CONTEXT boundaries row=\(rowFrame);bar=\(barFrame);tabs=\(tabsFrame);enabled=\(enabled)")
             print("LINK_CONTEXT unresolved tree=\(app.debugDescription)")
             recoveryScreenshot("link-context-unresolved-" + title)
             XCTFail("Link row is not wholly visible on its actual list screen")
@@ -903,7 +903,7 @@ final class ApplicationChecks: XCTestCase {
         print("LINK_CONTEXT physical row=\(link.frame);AX-hittable=\(link.isHittable);action=\(title)")
         link.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).press(forDuration: 2)
         let action = app.buttons[title]
-        XCTAssertTrue(action.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(action.waitForExistence(timeout: 45), app.debugDescription)
         XCTAssertTrue(action.isHittable, app.debugDescription)
         action.tap()
     }
