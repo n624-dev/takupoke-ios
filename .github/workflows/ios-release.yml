@@ -116,7 +116,13 @@ jobs:
         with:
           persist-credentials: false
       - name: Exercise app screens with synthetic data
-        run: bash tools/test-app-ui.sh
+        run: |
+          set -euo pipefail
+          bash tools/test-app-ui.sh 2>&1 | tee "$RUNNER_TEMP/takupoke-app-ui-runner-owned.log"
+          python3 -B tools/ui_test_manifest.py --shard "$TKPK_UI_SHARD" --mode verify --ios "$TKPK_TEST_IOS" --runner-log --log "$RUNNER_TEMP/takupoke-app-ui-runner-owned.log"
+      - name: Remove the owned app runner log
+        if: always()
+        run: python3 -B -c 'import os; from pathlib import Path; (Path(os.environ["RUNNER_TEMP"])/"takupoke-app-ui-runner-owned.log").unlink(missing_ok=True)'
 
   manual:
     name: Manual correction iOS ${{ matrix.ios }} / ${{ matrix.case }}

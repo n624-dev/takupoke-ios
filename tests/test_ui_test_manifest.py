@@ -216,6 +216,22 @@ class ManifestTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             manifest.validate_results(focused, manifest.selected_tests("B"), 27)
 
+    def test_outer_runner_log_rejects_no_tests_and_missing_os_size_runs(self):
+        command = [sys.executable, "-B", str(ROOT / "tools/ui_test_manifest.py"),
+                   "--shard", "B", "--mode", "verify", "--runner-log"]
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "owned.log"
+            for ios in (26, 27):
+                base = "".join(result_line(test, "skipped" if ios == 26 and test == manifest.VOICEOVER_TEST else "passed")
+                               for test in manifest.selected_tests("B"))
+                complete = base + result_line(manifest.SYSTEM_SIZE_TEST) * 3
+                for contents, success in (("", False), (base, False), (complete, True),
+                                          (complete + result_line(manifest.SYSTEM_SIZE_TEST), False)):
+                    path.write_text(contents, encoding="utf-8")
+                    result = subprocess.run(command + ["--ios", str(ios), "--log", str(path)],
+                                            capture_output=True, text=True)
+                    self.assertEqual(result.returncode == 0, success, result.stderr)
+
 
 @unittest.skipUnless(os.name == "posix", "macOS CI Bash runner")
 class ShellRunnerTests(unittest.TestCase):

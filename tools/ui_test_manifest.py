@@ -99,10 +99,13 @@ def main():
     parser.add_argument("--ios", type=int, choices=(26, 27))
     parser.add_argument("--system-size-only", action="store_true")
     parser.add_argument("--relaunch-probe", action="store_true")
+    parser.add_argument("--runner-log", action="store_true")
     args = parser.parse_args()
     validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8"))
     if args.relaunch_probe and (args.shard != "all" or args.system_size_only):
         parser.error("Relaunch probe is separate from full shards and system-size checks")
+    if args.runner_log and args.system_size_only:
+        parser.error("A complete runner log is separate from a single system-size check")
     tests = RELAUNCH_PROBE_TESTS if args.relaunch_probe else selected_tests(args.shard)
     if args.mode == "selectors":
         for test in tests:
@@ -116,6 +119,8 @@ def main():
             if SYSTEM_SIZE_TEST not in tests:
                 parser.error("OS size check is not assigned to this shard")
             tests = (SYSTEM_SIZE_TEST,)
+        if args.runner_log and SYSTEM_SIZE_TEST in tests:
+            tests += (SYSTEM_SIZE_TEST,) * 3
         validate_results(args.log.read_text(encoding="utf-8", errors="replace"), tests, args.ios)
         print(f"Verified {len(tests)} XCTest completions on iOS {args.ios}.")
 

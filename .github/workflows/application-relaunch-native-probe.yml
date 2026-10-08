@@ -1,9 +1,6 @@
 name: Native application relaunch diagnosis
 
 on:
-  push:
-    branches: [codex/pdf-local-recovery]
-    paths: [.github/workflows/application-relaunch-native-probe.yml]
   workflow_dispatch:
 
 permissions:
@@ -36,4 +33,10 @@ jobs:
       - name: Require exact diagnostic source
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Exercise both physical relaunch cases without retry or adoption credit
-        run: bash tools/test-app-ui.sh
+        run: |
+          set -euo pipefail
+          bash tools/test-app-ui.sh 2>&1 | tee "$RUNNER_TEMP/takupoke-relaunch-runner-owned.log"
+          python3 -B tools/ui_test_manifest.py --relaunch-probe --mode verify --ios "$TKPK_TEST_IOS" --runner-log --log "$RUNNER_TEMP/takupoke-relaunch-runner-owned.log"
+      - name: Remove the owned relaunch runner log
+        if: always()
+        run: python3 -B -c 'import os; from pathlib import Path; (Path(os.environ["RUNNER_TEMP"])/"takupoke-relaunch-runner-owned.log").unlink(missing_ok=True)'
