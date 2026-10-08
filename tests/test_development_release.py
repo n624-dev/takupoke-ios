@@ -64,6 +64,7 @@ class DevelopmentReleaseTests(IPAFixture):
     def build(self):
         self.write_ipa()
         metadata={"repository":dev.REPO,"commit":COMMIT,"version":"0.1.12","build":"12.1",
+                  "releaseNotes":"架空の検証済み更新内容A。\n架空の検証済み更新内容B。",
                   "sha256":{"takupoke.ipa":dev.sha256(self.output/"takupoke.ipa")}}
         (self.output/"release.json").write_text(json.dumps(metadata),encoding="utf-8")
         return metadata
@@ -150,6 +151,11 @@ class DevelopmentReleaseTests(IPAFixture):
     def test_original_unsigned_device_metadata_and_bytes_are_inspected(self):
         expected=self.build()
         self.assertEqual(dev.inspect_build(self.output,COMMIT),expected)
+        for notes in (None,"","   ",[],3):
+            changed=expected|{"releaseNotes":notes}
+            (self.output/"release.json").write_text(json.dumps(changed),encoding="utf-8")
+            with self.subTest(notes=notes),self.assertRaisesRegex(ValueError,"Release notes"):
+                dev.inspect_build(self.output,COMMIT)
         self.info["TakupokeCommit"]="b"*40;self.write_ipa()
         expected["sha256"]["takupoke.ipa"]=dev.sha256(self.output/"takupoke.ipa")
         (self.output/"release.json").write_text(json.dumps(expected),encoding="utf-8")
@@ -245,6 +251,7 @@ class DevelopmentReleaseTests(IPAFixture):
             target=Path(self.scratch.name)/"prepared"
             metadata,attempt=dev.prepare(123,COMMIT,target)
             self.assertEqual(metadata,expected);self.assertEqual(attempt,2)
+            self.assertIn("更新:\n"+expected["releaseNotes"]+"\n\n",(target/"INSTALL.txt").read_text(encoding="utf-8"))
             dev.publish(target,metadata,123,attempt,COMMIT)
             release=f.drafts[789]
             self.assertFalse(release["draft"]);self.assertTrue(release["prerelease"])

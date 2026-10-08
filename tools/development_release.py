@@ -8,7 +8,7 @@ import shutil
 import tempfile
 
 from publish import api, gh, get_draft, list_releases
-from release import inspect_ipa, read_config, sha256
+from release import inspect_ipa, read_config, sha256, validate_notes
 from ui_test_manifest import ALL_UI_REQUIRED_JOBS
 
 REPO = "n624-dev/takupoke-ios"
@@ -102,6 +102,7 @@ def inspect_build(destination, commit):
     if (metadata.get("repository") != REPO or metadata.get("commit") != commit
             or metadata.get("sha256", {}).get("takupoke.ipa") != sha256(destination / "takupoke.ipa")):
         raise ValueError("Build metadata or IPA checksum mismatch")
+    validate_notes(metadata.get("releaseNotes"))
     config = read_config()
     if config["repository"] != REPO:
         raise ValueError("Unexpected distribution configuration")
@@ -237,7 +238,7 @@ def prepare(run_id, commit, output):
             (output / "INSTALL.txt").write_text(
                 f"たくポケ iOS 開発版 {metadata['version']} ({metadata['build']})\n"
                 f"Commit: {commit}\nCI: https://github.com/{REPO}/actions/runs/{run_id} (attempt {attempt})\n\n"
-                "更新: 原本と照合した最大3項目の訂正は、全体プレビュー後に別操作で採用します。Homeの授業表示は時間割カードと共通です。\n"
+                f"更新:\n{metadata['releaseNotes']}\n\n"
                 "追加の生成AIモデルは品質未合格のため配信していません。\n\n"
                 "iOS 26 以上向けの未署名 IPA です。直接インストールはできません。\n"
                 "AltStore Classic 等の署名・サイドロード手段で、この IPA を手動で取り込んでください。\n"

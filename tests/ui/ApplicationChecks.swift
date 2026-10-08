@@ -137,11 +137,15 @@ final class ApplicationChecks: XCTestCase {
         control.tap()
         // requestAuthorization is asynchronous. A single immediate gesture
         // can precede the system alert and never dispatch the monitor again.
-        // Only the inert title is revisited; never toggle twice or grant
+        // The navigation title lies outside the permission alert, so its
+        // coordinate tap need not invoke an interruption monitor. Exercise
+        // the application target instead, as XCTest's monitor API requires.
+        // Its center is below both notification controls on this screen.
+        // Never toggle twice or grant
         // permission through fixtures/system preference injection.
         var didEnable = false
         for _ in 0..<3 {
-            app.navigationBars["通知"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            app.tap()
             let enabled = expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: toggle)
             if XCTWaiter.wait(for: [enabled], timeout: 15) == .completed {
                 didEnable = true
