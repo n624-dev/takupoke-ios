@@ -126,7 +126,9 @@ struct PDFRecoveryView: View {
                                     guard useAiFeatures, !coordinator.running else { return }
                                     editingManualField = field.id
                                 })
-                            if editingManualField == field.id, !(manualValues[field.id] ?? field.originalText).isEmpty {
+                            // Keep the editor's width and row identity stable
+                            // when clearing its value or changing focus.
+                            let canClear = useAiFeatures && !coordinator.running && editingManualField == field.id && !(manualValues[field.id] ?? field.originalText).isEmpty
                                 Button {
                                     guard useAiFeatures, !coordinator.running, coordinator.manualDraft?.id == draft.id, coordinator.manualReview == nil else { return }
                                     RecoveryManualInput.update("",id:field.id,original:field.originalText,values:&manualValues,acknowledged:&manualAcknowledged)
@@ -136,7 +138,7 @@ struct PDFRecoveryView: View {
                                         .frame(minWidth:44,minHeight:44)
                                 }.buttonStyle(.borderless).accessibilityLabel("入力を消去")
                                     .accessibilityIdentifier("manual-clear-" + field.id)
-                            }
+                                    .opacity(canClear ? 1:0).disabled(!canClear).accessibilityHidden(!canClear)
                             }
                             Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; if coordinator.manualReview != nil { return }; manualAcknowledged[field.id] = $0 }))
                                 .disabled(!useAiFeatures || coordinator.running)

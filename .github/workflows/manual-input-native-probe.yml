@@ -5,6 +5,14 @@ on:
     branches: [codex/pdf-local-recovery]
     paths: [.github/workflows/manual-input-native-probe.yml]
   workflow_dispatch:
+    inputs:
+      case:
+        type: choice
+        default: testThreeFieldsRequireEachAcknowledgementAndFourRefuses
+        options:
+          - testThreeFieldsRequireEachAcknowledgementAndFourRefuses
+          - testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground
+          - testChangedOriginalCannotSubmitOrReplaceLastGood
 
 permissions:
   contents: read
@@ -27,7 +35,7 @@ jobs:
     env:
       DEVELOPER_DIR: ${{ matrix.developer }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
-      TKPK_MANUAL_CASE: testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground
+      TKPK_MANUAL_CASE: ${{ inputs.case || 'testThreeFieldsRequireEachAcknowledgementAndFourRefuses' }}
       TKPK_MANUAL_DIAGNOSTICS: '1'
       PYTHONDONTWRITEBYTECODE: '1'
     steps:

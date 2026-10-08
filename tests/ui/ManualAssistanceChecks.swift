@@ -239,7 +239,13 @@ final class ManualAssistanceChecks:XCTestCase {
         XCTAssertTrue(clear.waitForExistence(timeout:5),app.debugDescription)
         visible(clear).tap()
         let empty=XCTNSPredicateExpectation(predicate:NSPredicate(format:"value == %@ OR value == %@","","PDFに記載された全文"),object:e)
-        XCTAssertEqual(XCTWaiter.wait(for:[empty],timeout:5),.completed,"Native clear must remove the entire previous input")
+        let cleared=XCTWaiter.wait(for:[empty],timeout:5)
+        if cleared != .completed {
+            let state=app.staticTexts["manual-input-state"].firstMatch
+            print("TAKUPOKE-MANUAL-CLEAR id=\(id);value=\(String(describing:e.value));state=\(state.exists ? state.label:"absent")")
+            emitEvents()
+        }
+        XCTAssertEqual(cleared,.completed,"Native clear must remove the entire previous input")
         XCTAssertEqual(ack(id).value as? String,"0","Clearing text must revoke prior acknowledgement")
         visible(e).tap()
         e.typeText(value)
