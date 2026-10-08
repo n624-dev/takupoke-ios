@@ -234,24 +234,14 @@ final class ManualAssistanceChecks:XCTestCase {
     private func edit(_ e:XCUIElement,_ value:String) {
         visible(e).tap()
         editStage("after-focus",e)
-        // Focusing can move a recycled List row when the keyboard changes.
-        // Reacquire its real hit region before the existing selection gesture.
-        let focused=visible(e)
-        editStage("before-selection",focused)
-        // Press inside the first printed character. The middle of a wide
-        // multiline field can be empty; pressing it only opens an insertion
-        // menu with the caret at the beginning instead of selecting text.
-        let frame=focused.frame,appFrame=app.frame
-        app.coordinate(withNormalizedOffset:CGVector(dx:0,dy:0))
-            .withOffset(CGVector(dx:frame.minX+8-appFrame.minX,dy:frame.minY+min(10,frame.height/2)-appFrame.minY)).press(forDuration:1.1)
-        let selectAll=app.descendants(matching:.any).matching(NSPredicate(format:"label == %@ OR label == %@","すべてを選択","Select All")).firstMatch
-        if selectAll.waitForExistence(timeout:2) { selectAll.tap() }
-        else {
-            // No blind backspacing from an unverified insertion point. Retain
-            // bounded synthetic-only hierarchy evidence and stop this edit.
-            print("TAKUPOKE-MANUAL-SELECTION absent;"+String(app.debugDescription.prefix(12000)))
-            XCTFail("The native Select All action was unavailable for the printed input");return
-        }
+        let id=e.identifier.replacingOccurrences(of:"manual-value-",with:"")
+        let clear=app.buttons["manual-clear-"+id].firstMatch
+        XCTAssertTrue(clear.waitForExistence(timeout:5),app.debugDescription)
+        visible(clear).tap()
+        let empty=XCTNSPredicateExpectation(predicate:NSPredicate(format:"value == %@ OR value == %@","","PDFに記載された全文"),object:e)
+        XCTAssertEqual(XCTWaiter.wait(for:[empty],timeout:5),.completed,"Native clear must remove the entire previous input")
+        XCTAssertEqual(ack(id).value as? String,"0","Clearing text must revoke prior acknowledgement")
+        visible(e).tap()
         e.typeText(value)
         // End the native editor before the independent acknowledgement tap.
         // The product commits text and dismisses the keyboard; it never checks

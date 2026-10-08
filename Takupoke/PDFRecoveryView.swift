@@ -117,6 +117,7 @@ struct PDFRecoveryView: View {
                             Button("対象セルを拡大して確認",systemImage:"plus.magnifyingglass") { zoomedField = field.id }
                                 .disabled(coordinator.manualContextImages[field.id] == nil)
                             Text("自動読取: \(field.originalText)").font(.caption).foregroundStyle(.secondary)
+                            HStack(alignment:.top) {
                             TextField("PDFに記載された全文",text:Binding(get:{ manualValues[field.id] ?? field.originalText },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; if coordinator.manualReview != nil { return }; RecoveryManualInput.update($0,id:field.id,original:field.originalText,values:&manualValues,acknowledged:&manualAcknowledged) }),axis:.vertical)
                                 .autocorrectionDisabled().textInputAutocapitalization(.never).disabled(!useAiFeatures || coordinator.running)
                                 .focused($editingManualField,equals:field.id)
@@ -125,6 +126,18 @@ struct PDFRecoveryView: View {
                                     guard useAiFeatures, !coordinator.running else { return }
                                     editingManualField = field.id
                                 })
+                            if editingManualField == field.id, !(manualValues[field.id] ?? field.originalText).isEmpty {
+                                Button {
+                                    guard useAiFeatures, !coordinator.running, coordinator.manualDraft?.id == draft.id, coordinator.manualReview == nil else { return }
+                                    RecoveryManualInput.update("",id:field.id,original:field.originalText,values:&manualValues,acknowledged:&manualAcknowledged)
+                                    editingManualField = field.id
+                                } label: {
+                                    Image(systemName:"xmark.circle.fill").foregroundStyle(.secondary)
+                                        .frame(minWidth:44,minHeight:44)
+                                }.buttonStyle(.borderless).accessibilityLabel("入力を消去")
+                                    .accessibilityIdentifier("manual-clear-" + field.id)
+                            }
+                            }
                             Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; if coordinator.manualReview != nil { return }; manualAcknowledged[field.id] = $0 }))
                                 .disabled(!useAiFeatures || coordinator.running)
                         }
