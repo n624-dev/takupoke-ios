@@ -356,6 +356,24 @@ final class ManualAssistanceChecks:XCTestCase {
         let exists=e.exists
         print("TAKUPOKE-MANUAL-EDIT stage=\(stage);id=\(exists ? e.identifier:"absent");exists=\(exists);hittable=\(exists && e.isHittable);frame=\(exists ? String(describing:e.frame):"absent");focused=\(exists && e.debugDescription.contains("Keyboard Focused"));keyboard=\(keyboard.exists ? String(describing:keyboard.frame):"absent")")
     }
+    private func enterBackground()->Bool {
+        print("TAKUPOKE-MANUAL-APP-STATE before-home=\(app.state.rawValue)")
+        XCUIDevice.shared.press(.home)
+        let background=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
+            let state=self.app.state
+            return state == .runningBackground || state == .runningBackgroundSuspended
+        },object:app)
+        guard XCTWaiter.wait(for:[background],timeout:nativeStateTimeout) == .completed else {
+            XCTFail("Home must put the existing process in background before activation; observed=\(app.state.rawValue)")
+            return false
+        }
+        print("TAKUPOKE-MANUAL-APP-STATE background-observed=\(app.state.rawValue)")
+        guard app.state != .notRunning else {
+            XCTFail("Background must preserve the existing process; no relaunch")
+            return false
+        }
+        return true
+    }
     func testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground() {
         launch();XCTAssertTrue(fieldsExist(),app.debugDescription);XCTAssertEqual(fieldIDs.count,1)
         let key=fieldIDs[0];let input=input(key)
@@ -370,11 +388,7 @@ final class ManualAssistanceChecks:XCTestCase {
         XCTAssertEqual(visible(input).value as? String,value);XCTAssertEqual(visible(ack(key)).value as? String,"1")
         let processBefore=app.staticTexts["manual-process-launch"].firstMatch.label
         XCTAssertFalse(processBefore.isEmpty)
-        print("TAKUPOKE-MANUAL-APP-STATE before-home=\(app.state.rawValue)")
-        XCUIDevice.shared.press(.home)
-        print("TAKUPOKE-MANUAL-APP-STATE after-home=\(app.state.rawValue)")
-        XCTAssertNotEqual(app.state,.notRunning,"Background must not terminate the app; no relaunch")
-        guard app.state != .notRunning else { return }
+        guard enterBackground() else { return }
         app.activate()
         print("TAKUPOKE-MANUAL-APP-STATE after-activate=\(app.state.rawValue)")
         XCTAssertTrue(app.wait(for:.runningForeground,timeout:10),"App must survive background; no relaunch or draft reset")
@@ -387,9 +401,7 @@ final class ManualAssistanceChecks:XCTestCase {
         XCTAssertTrue(app.images.matching(NSPredicate(format:"identifier BEGINSWITH 'manual-crop-'")).firstMatch.exists)
         acknowledge(key);visible(submit).tap()
         requireReview([value+"改"],comparable:false)
-        XCUIDevice.shared.press(.home)
-        XCTAssertNotEqual(app.state,.notRunning,"Background must preserve the correction review; no relaunch")
-        guard app.state != .notRunning else { return }
+        guard enterBackground() else { return }
         app.activate()
         XCTAssertTrue(app.wait(for:.runningForeground,timeout:10))
         XCTAssertEqual(app.staticTexts["manual-process-launch"].firstMatch.label,processBefore)
