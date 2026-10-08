@@ -476,6 +476,13 @@ extension TimetableView {
 
 @MainActor
 enum SimulatorSelectionFixture {
+    private static var busyGate: DispatchSemaphore?
+    static func finishBusy() {
+        guard let busyGate else { return }
+        UserDefaults.standard.set(true, forKey: "fixture.selectionBusyReleased")
+        busyGate.signal()
+    }
+    static var hasBusyGate: Bool { busyGate != nil }
     static func recordTrace(_ event: String) {
         let defaults = UserDefaults.standard
         let previous = defaults.stringArray(forKey: "fixture.selectionEvents") ?? []
@@ -493,14 +500,29 @@ enum SimulatorSelectionFixture {
     }
     static func mutate(_ mode: String) {
         let model = ApplicationData.shared.materials
+        guard !model.busy else { return }
+        let gate = mode == "busy" ? DispatchSemaphore(value: 0) : nil
+        busyGate = gate
+        if gate != nil {
+            UserDefaults.standard.set(false, forKey: "fixture.selectionBusyReleased")
+            UserDefaults.standard.set("pending", forKey: "fixture.selectionBusyCompleted")
+        }
         let raw: Data? = mode == "source" ? UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 200, height: 200)).pdfData { context in
             context.beginPage()
             ("架空の更新原本 \(UUID().uuidString)" as NSString).draw(at: CGPoint(x: 10, y: 20), withAttributes: nil)
         } : nil
-        model.perform(success: nil) { worker, control in
+        model.perform(success: nil, completion: { success in
+            if gate != nil {
+                UserDefaults.standard.set(success ? "success" : "failure", forKey: "fixture.selectionBusyCompleted")
+            }
+            busyGate = nil
+        }) { worker, control in
             try control.check()
             guard let library = worker.library else { throw MaterialError.unavailable }
-            if mode == "busy" { Thread.sleep(forTimeInterval: 3); try control.check(); return }
+            if let gate {
+                guard gate.wait(timeout: .now() + 60) == .success else { throw MaterialError.unavailable }
+                try control.check(); return
+            }
             if let raw {
                 let digest = SHA256.hash(data: raw).map { String(format: "%02x", $0) }.joined()
                 let staging = library.newStagingURL(); try raw.write(to: staging)
@@ -523,9 +545,16 @@ enum SimulatorSelectionFixture {
 }
 struct FixtureSelectionMutationControls: View {
     @ObservedObject private var model = ApplicationData.shared.materials
+    @AppStorage("fixture.selectionBusyReleased") private var released = false
+    @AppStorage("fixture.selectionBusyCompleted") private var completed = "none"
     var body: some View {
         VStack {
             Text(model.busy ? "架空処理中" : "架空待機中").accessibilityIdentifier("fixture-selection-busy")
+            Text("released=\(released);completion=\(completed)")
+                .accessibilityIdentifier("fixture-selection-busy-outcome")
+            if model.busy && SimulatorSelectionFixture.hasBusyGate {
+                Button("架空処理を終了") { SimulatorSelectionFixture.finishBusy() }
+            }
             HStack {
                 Button("架空処理のみ") { SimulatorSelectionFixture.mutate("busy") }
                 Button("架空正式更新") { SimulatorSelectionFixture.mutate("formal") }

@@ -32,7 +32,7 @@ jobs:
           persist-credentials: false
       - name: Require exact diagnostic source
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-      - name: Exercise both native notification and relaunch cases without retry or adoption credit
+      - name: Exercise launch, native switches, permission, busy work and relaunch without retry or adoption credit
         run: |
           set -euo pipefail
           bash tools/test-app-ui.sh 2>&1 | tee "$RUNNER_TEMP/takupoke-relaunch-runner-owned.log"

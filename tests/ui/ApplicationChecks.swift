@@ -217,9 +217,15 @@ final class ApplicationChecks: XCTestCase {
         guard usable(page), page.contains(frame) else {
             XCTFail("Native switch is outside its application window"); return
         }
-        let point = CGPoint(x: frame.midX, y: frame.midY)
-        print("NATIVE_SWITCH row=\(outer);control=\(frame);point=\(point);before=\(String(describing: row.value))")
-        // Use the observed widget center in the app coordinate system. A
+        let state = control.value as? String
+        let rowState = row.value as? String
+        guard let state, let rowState, ["0", "1"].contains(state), rowState == state else {
+            XCTFail("Native switch state must be known and agree with its row"); return
+        }
+        let point = CGPoint(x: frame.minX + frame.width * (state == "0" ? 0.75 : 0.25), y: frame.midY)
+        print("NATIVE_SWITCH row=\(outer);control=\(frame);point=\(point);rowState=\(rowState);controlState=\(state)")
+        // Compare one point on the opposite side of the observed real track.
+        // This is a physical operation, not a requested-value injection. A
         // nested AX reference must not resolve a different origin at touch time.
         app.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: point.x - page.minX, dy: point.y - page.minY)).tap()
@@ -549,8 +555,14 @@ final class ApplicationChecks: XCTestCase {
             let started = expectation(for: NSPredicate(format: "label == %@", "架空処理中"), evaluatedWith: busy)
             wait(for: [started], timeout: 5)
             XCTAssertTrue(app.navigationBars["授業詳細"].exists, app.debugDescription)
+            let outcome = app.staticTexts["fixture-selection-busy-outcome"]
+            XCTAssertEqual(outcome.label, "released=false;completion=pending")
+            app.buttons["架空処理を終了"].tap()
             let finished = expectation(for: NSPredicate(format: "label == %@", "架空待機中"), evaluatedWith: busy)
             wait(for: [finished], timeout: 10)
+            let completed = expectation(for: NSPredicate(format: "label == %@", "released=true;completion=success"), evaluatedWith: outcome)
+            wait(for: [completed], timeout: 10)
+            XCTAssertEqual(app.staticTexts["fixture-selection-data"].label, initial)
             XCTAssertTrue(app.navigationBars["授業詳細"].exists, app.debugDescription)
             app.buttons["架空正式更新"].tap()
             XCTAssertTrue(app.navigationBars["授業詳細"].waitForNonExistence(timeout: 15), app.debugDescription)
