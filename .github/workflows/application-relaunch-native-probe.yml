@@ -1,6 +1,9 @@
 name: Native application relaunch diagnosis
 
 on:
+  push:
+    branches: [codex/pdf-local-recovery]
+    paths: [.github/workflows/application-relaunch-native-probe.yml]
   workflow_dispatch:
 
 permissions:
