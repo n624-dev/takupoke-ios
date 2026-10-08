@@ -239,7 +239,6 @@ final class ManualAssistanceChecks:XCTestCase {
         let focused=visible(e)
         editStage("before-selection",focused)
         focused.press(forDuration:1.1)
-        editStage("after-selection",e)
         if app.menuItems["すべてを選択"].waitForExistence(timeout:2) { app.menuItems["すべてを選択"].tap() }
         else if app.menuItems["Select All"].exists { app.menuItems["Select All"].tap() }
         else if app.buttons["すべてを選択"].firstMatch.exists { app.buttons["すべてを選択"].firstMatch.tap() }
@@ -256,6 +255,16 @@ final class ManualAssistanceChecks:XCTestCase {
             app.coordinate(withNormalizedOffset:CGVector(dx:0,dy:0))
                 .withOffset(CGVector(dx:frame.maxX-12-appFrame.minX,dy:frame.midY-appFrame.minY)).tap()
             editStage("after-end-tap",e)
+            // On iOS26 the first tap can dismiss the native edit-menu overlay
+            // instead of reaching the editor. Restore focus with one actual
+            // editor tap after that dismissal; never inject a text value.
+            if !app.keyboards.firstMatch.exists || !e.debugDescription.contains("Keyboard Focused") {
+                visible(e).tap()
+                editStage("after-native-refocus",e)
+            }
+            guard app.keyboards.firstMatch.exists && e.debugDescription.contains("Keyboard Focused") else {
+                XCTFail("The native editor did not regain keyboard focus after dismissing its edit menu");return
+            }
             e.typeText(String(repeating:XCUIKeyboardKey.delete.rawValue,count:(e.value as? String)?.count ?? 0))
         }
         e.typeText(value)
