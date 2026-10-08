@@ -39,7 +39,8 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('The physical edit must replace the full previous input',edit)
         self.assertIn('e.typeText(value)',edit)
         self.assertNotIn('sleep(',edit)
-        self.assertIn('editStage("after-focus",e)',edit)
+        self.assertIn('editStage("after-clear-focus",e)',edit)
+        self.assertNotIn('visible(e).tap()',edit)
         self.assertIn('TAKUPOKE-MANUAL-EDIT stage=',checks)
 
     def test_manual_case_filter_is_exact_and_default_keeps_whole_suite(self):

@@ -245,8 +245,7 @@ final class ManualAssistanceChecks:XCTestCase {
         XCTAssertEqual(outcome,.completed,app.debugDescription)
     }
     private func edit(_ e:XCUIElement,_ value:String) {
-        visible(e).tap()
-        editStage("after-focus",e)
+        _=visible(e)
         let id=e.identifier.replacingOccurrences(of:"manual-value-",with:"")
         let clear=app.buttons["manual-clear-"+id].firstMatch
         XCTAssertTrue(clear.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
@@ -263,7 +262,11 @@ final class ManualAssistanceChecks:XCTestCase {
         }
         XCTAssertEqual(cleared,.completed,"Native clear must remove the entire previous input")
         XCTAssertEqual(ack(id).value as? String,"0","Clearing text must revoke prior acknowledgement")
-        visible(e).tap()
+        // The real clear button focuses its associated native editor. Open
+        // the keyboard through that action, after locating the complete44px
+        // control, instead of covering it by focusing the text field first.
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
+        editStage("after-clear-focus",e)
         e.typeText(value)
         // End the native editor before the independent acknowledgement tap.
         // The product commits text and dismisses the keyboard; it never checks
