@@ -22,6 +22,12 @@ final class RecoveryNativeScoreBoundaryTests:XCTestCase {
         guard #available(macOS 26.0,*),ProcessInfo.processInfo.environment["TAKUPOKE_NATIVE_SCORE_BOUNDARY"] == "1" else {
             throw XCTSkip("Requires the dedicated nonadoptable native score experiment")
         }
+        let reportPath=try XCTUnwrap(ProcessInfo.processInfo.environment["TAKUPOKE_NATIVE_SCORE_REPORT"])
+        XCTAssertFalse(reportPath.isEmpty)
+        XCTAssertFalse(FileManager.default.fileExists(atPath:reportPath),"Never overwrite another measurement")
+        guard !reportPath.isEmpty,!FileManager.default.fileExists(atPath:reportPath) else { return }
+        var records=[String]()
+        func emit(_ value:String) { records.append(value);print(value) }
         let kinds=["ascii-header","japanese-header","japanese-body","code"]
         let literals=[
             ["AI_7","Al_7","1_Q3","I_Q3","4_X2","A_X2","0_Z6","O_Z6","3_K8","8_K3","2_T5","5_T2","B_R4","D_R4","6_N9","9_N6"],
@@ -93,11 +99,11 @@ final class RecoveryNativeScoreBoundaryTests:XCTestCase {
                 }
                 report["observations"]=observedRows
                 report["qualified"]=false;report["adoptionCalls"]=0
-                print("NATIVE_SCORE_ITEM "+String(decoding:try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]),as:UTF8.self))
+                emit("NATIVE_SCORE_ITEM "+String(decoding:try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]),as:UTF8.self))
             }
             cohorts.append(results)
             let outside=positioned.filter { observed in !items.contains { $0.box.contains(observed.0) } }.count
-            print("NATIVE_SCORE_SCOPE cohort=\(cohort) items=64 calls=1 lines=\(lines.count) notWhollyInOneRegion=\(outside) font=\(fontNames[cohort]); original1920px raster; native score; no adoption")
+            emit("NATIVE_SCORE_SCOPE cohort=\(cohort) items=64 calls=1 lines=\(lines.count) notWhollyInOneRegion=\(outside) font=\(fontNames[cohort]); original1920px raster; native score; no adoption")
         }
         // One monotone candidate is chosen on development only. Without at
         // least2 scored errors and4 exact observations, calibration is unknown.
@@ -115,8 +121,11 @@ final class RecoveryNativeScoreBoundaryTests:XCTestCase {
                 "calibrationMeasurable":measurable,"heldExact":held.filter(\.exact).count,
                 "heldAcceptedExact":accepted.filter(\.exact).count,"heldAcceptedWrong":accepted.filter{!$0.exact}.count,
                 "qualified":false,"productionThresholdChanged":false]
-            print("NATIVE_SCORE_BOUNDARY "+String(decoding:try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]),as:UTF8.self))
+            emit("NATIVE_SCORE_BOUNDARY "+String(decoding:try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]),as:UTF8.self))
         }
+        // XCTest's stderr can interrupt buffered stdout inside a JSON line.
+        // Persist the unchanged records once, separately from console output.
+        try Data((records.joined(separator:"\n")+"\n").utf8).write(to:URL(fileURLWithPath:reportPath),options:.withoutOverwriting)
     }
 }
 #endif

@@ -1,4 +1,4 @@
-name: Observe paired invented image PDFs with native Vision
+name: Measure independent native Vision score boundaries
 on:
   push:
     branches: [research/ios-ordered-raster-observation-20261007]
@@ -21,8 +21,9 @@ jobs:
       - name: Measure independent native confidence by item and original position
         run: |
           set -euo pipefail
+          export TAKUPOKE_NATIVE_SCORE_REPORT="$RUNNER_TEMP/native-score-boundary-records-owned.jsonl"
           bash tools/test-parsing.sh | tee "$RUNNER_TEMP/native-score-boundary-owned.log"
-          python3 -B - "$RUNNER_TEMP/native-score-boundary-owned.log" <<'PY'
+          python3 -B - "$TAKUPOKE_NATIVE_SCORE_REPORT" <<'PY'
           import json, sys
           from pathlib import Path
           lines=Path(sys.argv[1]).read_text().splitlines()
@@ -34,14 +35,17 @@ jobs:
           assert len(scopes)==2 and all('calls=1' in scope for scope in scopes), 'Missing fixed native calls'
           assert all(not row['qualified'] for row in items+boundaries)
           print('Native score measurement inventory verified:128 unique item IDs,4 boundaries,2 fixed calls; no qualification')
+          for record in boundaries:
+              print('VERIFIED_NATIVE_SCORE_BOUNDARY '+json.dumps(record,sort_keys=True))
           PY
         env:
           TAKUPOKE_NATIVE_SCORE_BOUNDARY: '1'
-      - name: Remove the owned temporary measurement log
+      - name: Remove the owned temporary measurement log and records
         if: always()
         run: |
           python3 -B - <<'PY'
           import os
           from pathlib import Path
-          (Path(os.environ['RUNNER_TEMP'])/'native-score-boundary-owned.log').unlink(missing_ok=True)
+          for name in ('native-score-boundary-owned.log','native-score-boundary-records-owned.jsonl'):
+              (Path(os.environ['RUNNER_TEMP'])/name).unlink(missing_ok=True)
           PY
