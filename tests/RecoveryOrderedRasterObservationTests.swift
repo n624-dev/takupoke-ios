@@ -42,16 +42,22 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
             let horizontal=rules.filter{$0.horizontal && $0.x1<=left+0.3 && $0.x2>=right-0.3}.map(\.y1).sorted()
             var captures=[(RecoveryBox,[[String:Any]],[[String:Any]])]()
             var calls=0
-            func observed(_ lines:[RecognizedTextObservation],crop:RecoveryBox) throws -> [[String:Any]] {
+            func observed(_ lines:[RecognizedTextObservation],crop:RecoveryBox,parent:RecoveryBox) throws -> [[String:Any]] {
                 try lines.enumerated().map { order,line in
                     let b=line.boundingBox.cgRect
                     let global=RecoveryBox(x:crop.x+Double(b.minX)*crop.width,
                         y:crop.y+Double(1-b.maxY)*crop.height,width:Double(b.width)*crop.width,height:Double(b.height)*crop.height)
                     XCTAssertTrue(global.valid)
-                    XCTAssertGreaterThanOrEqual(global.x,crop.x);XCTAssertGreaterThanOrEqual(global.y,crop.y)
-                    XCTAssertLessThanOrEqual(global.x+global.width,crop.x+crop.width+0.001)
-                    XCTAssertLessThanOrEqual(global.y+global.height,crop.y+crop.height+0.001)
+                    // Vision's observed quadrilateral may extend beyond the
+                    // supplied crop. Preserve it unchanged and distinguish that
+                    // diagnostic from escape into another physical cell.
+                    let insideCrop=global.x>=crop.x && global.y>=crop.y &&
+                        global.x+global.width<=crop.x+crop.width && global.y+global.height<=crop.y+crop.height
+                    XCTAssertGreaterThanOrEqual(global.x,parent.x);XCTAssertGreaterThanOrEqual(global.y,parent.y)
+                    XCTAssertLessThanOrEqual(global.x+global.width,parent.x+parent.width)
+                    XCTAssertLessThanOrEqual(global.y+global.height,parent.y+parent.height)
                     return ["lineOrder":order,"originalPageBox":[global.x,global.y,global.width,global.height],
+                        "containedInInputCrop":insideCrop,
                         "candidates":line.topCandidates(5).map{["text":$0.string,"nativeScore":Double($0.confidence)]}]
                 }
             }
@@ -85,7 +91,7 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                 text.automaticallyDetectsLanguage=false;text.usesLanguageCorrection=false
                 text.minimumTextHeightFraction=8/Float(pixels.height)
                 let textLines=try await text.perform(on:pixels);calls+=1
-                captures.append((crop,try observed(documentLines,crop:crop),try observed(textLines,crop:crop)))
+                captures.append((crop,try observed(documentLines,crop:crop,parent:physical),try observed(textLines,crop:crop,parent:physical)))
             }
             // Expected order is read only after every fixed recognition call.
             // Never use it to choose a candidate, rewrite a source or adopt.
