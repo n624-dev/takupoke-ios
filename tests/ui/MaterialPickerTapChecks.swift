@@ -88,7 +88,10 @@ final class MaterialPickerTapChecks: XCTestCase {
     }
 
     private func reveal(_ app: XCUIApplication, identifier: String) -> XCUIElement? {
-        let list = app.descendants(matching: .any).matching(identifier: "picker-file-list").firstMatch
+        // SwiftUI List is a native CollectionView on both supported OSes.
+        // A generic descendants query can expand retained picker/other-tab
+        // subtrees and time out after returning from Home. Scope the real list.
+        let list = app.collectionViews["picker-file-list"].firstMatch
         let button = list.buttons[identifier].firstMatch
         let navigation = app.navigationBars["ファイル選択"].firstMatch
         let tabs = app.tabBars.firstMatch
