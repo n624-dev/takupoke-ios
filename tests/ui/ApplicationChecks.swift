@@ -52,12 +52,24 @@ final class ApplicationChecks: XCTestCase {
         screen(title)
     }
     private func tab(_ title: String) {
-        let button = app.tabBars.buttons[title]
-        let tappable = expectation(for: NSPredicate { _, _ in button.isHittable }, evaluatedWith: button)
-        wait(for: [tappable], timeout: 10)
-        button.tap()
-        let selected = expectation(for: NSPredicate { _, _ in button.isSelected }, evaluatedWith: button)
-        wait(for: [selected], timeout: 10)
+        let tabs = app.tabBars.firstMatch
+        let button = tabs.buttons[title]
+        guard tabs.waitForExistence(timeout: 45), button.waitForExistence(timeout: 45),
+              usable(tabs.frame), contained(button, in: tabs.frame), button.isEnabled, button.isHittable else {
+            XCTFail("Tab has no visible native hit region: " + app.debugDescription); return
+        }
+        print("NATIVE_TAB title=\(title);bar=\(tabs.frame);button=\(button.frame)")
+        // Exactly one physical tap on the tab's recorded region. The native
+        // control can be recreated as its selected appearance changes.
+        button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        let selected = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            let current = self.app.tabBars.buttons[title]
+            return current.exists && current.isSelected
+        }, object: app)
+        guard XCTWaiter.wait(for: [selected], timeout: 45) == .completed else {
+            recoveryScreenshot("tab-selection-unresolved-" + title)
+            XCTFail("Native tab tap did not select its current control: " + app.debugDescription); return
+        }
         screen(title == "ホーム" ? "たくポケ" : title)
     }
     private func tap(_ title: String, searchEarlierRows: Bool = false) {

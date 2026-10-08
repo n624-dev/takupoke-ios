@@ -67,6 +67,7 @@ private struct ManualScrollNavigation {
 
 final class ManualAssistanceChecks:XCTestCase {
     private var app:XCUIApplication!
+    private var fixtureMenuOpen=false
     // AX snapshots on a loaded simulator can take longer than five seconds.
     // Keep every native state assertion, allowing bounded time to observe it.
     private let nativeStateTimeout:TimeInterval=45
@@ -171,7 +172,38 @@ final class ManualAssistanceChecks:XCTestCase {
         XCTAssertTrue(e.exists && e.isHittable,app.debugDescription)
         XCTFail("No safe visible hit region after bounded navigation: "+app.debugDescription);return e
     }
-    private func tap(_ title:String) { visible(app.buttons[title].firstMatch).tap() }
+    private let fixtureMenuActions=["表示サイズを変更","同じ原本の状態を再確認","架空原本のハッシュを変更"]
+    private func tap(_ title:String) {
+        if title == "架空検証" {
+            let bar=app.navigationBars["時間割の復旧"],button=app.navigationBars["時間割の復旧"].buttons[title]
+            guard bar.waitForExistence(timeout:nativeStateTimeout),button.waitForExistence(timeout:nativeStateTimeout),
+                  ManualScrollNavigation.usable(bar.frame),ManualScrollNavigation.usable(button.frame),
+                  bar.frame.contains(button.frame),button.isEnabled,button.isHittable else {
+                XCTFail("Fixture menu must be visible on its own recovery toolbar: "+app.debugDescription);return
+            }
+            button.tap()
+            for action in fixtureMenuActions {
+                XCTAssertTrue(app.buttons[action].waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
+            }
+            fixtureMenuOpen=true
+            return
+        }
+        if fixtureMenuActions.contains(title) {
+            guard fixtureMenuOpen else { XCTFail("Fixture action requires the explicitly opened menu");return }
+            let matches=app.buttons.matching(NSPredicate(format:"label == %@",title))
+            XCTAssertEqual(matches.count,1,"Fixture menu action must be unique")
+            let button=matches.element(boundBy:0)
+            guard button.exists,ManualScrollNavigation.usable(button.frame),app.frame.contains(button.frame),
+                  button.isEnabled,button.isHittable else {
+                XCTFail("Opened menu action must have its own visible hit region: "+app.debugDescription);return
+            }
+            // The popup has its own hit regions; scrolling the underlying List
+            // cannot reveal it and may dismiss the menu or the recovery sheet.
+            button.tap();fixtureMenuOpen=false
+            return
+        }
+        visible(app.buttons[title].firstMatch).tap()
+    }
     private func emitDiagnostic() {
         let diagnostic=app.staticTexts["manual-qa-diagnostic"].firstMatch
         print("TAKUPOKE-MANUAL-QA "+(diagnostic.exists ? diagnostic.label:"diagnostic-missing"))
