@@ -667,11 +667,16 @@ enum RecoveryDocumentBuilder {
         var classes = [(heading:Heading,value:String,row:PDFBox)]()
         for h in headings(page.glyphs.filter { $0.cx < headerBoxes[0].left && $0.cy > headerBoxes[0].bottom }) {
             let value = PDFSchoolParser.key(h.text).replacingOccurrences(of:"-",with:"_")
+            observer?(.init(stage:"class-candidate",texts:[h.text,value],boxes:[h.box],
+                lineIds:[h.glyphs.compactMap(\.sourceLine)],checks:["knownClass":RecoveryValidator.knownClasses.contains(value)]))
             guard RecoveryValidator.knownClasses.contains(value) else { continue }
             let row = try grid.box(h.box.x+h.box.width/2,h.box.y+h.box.height/2,check:check)
             guard work.charge(classes.count+1) else { try work.finish(); throw PDFParseError(code:.limit) }
-            guard try closed(row), rect(row).contains(h.box), row.right <= headerBoxes[0].left,
-                  classes.allSatisfy({ $0.value != value && $0.row != row }) else { throw PDFParseError(code:.ambiguous,stage:.classLabel) }
+            let classChecks=["closed":try closed(row),"containsPrintedClass":rect(row).contains(h.box),
+                "leftOfPeriods":row.right <= headerBoxes[0].left,"distinctClassAndRow":classes.allSatisfy({ $0.value != value && $0.row != row })]
+            observer?(.init(stage:"class-row",texts:[h.text,value],boxes:[h.box,rect(row)],
+                lineIds:[h.glyphs.compactMap(\.sourceLine)],checks:classChecks))
+            guard classChecks.values.allSatisfy({$0}) else { throw PDFParseError(code:.ambiguous,stage:.classLabel) }
             for b in headerBoxes {
                 let body = try grid.box((b.left+b.right)/2,(row.top+row.bottom)/2,check:check)
                 guard try closed(body), body.top == row.top, body.bottom == row.bottom,
@@ -688,6 +693,10 @@ enum RecoveryDocumentBuilder {
         }
         // Every measured full-width body row needs its own known printed class.
         // An unknown class row cannot disappear into outside-table annotations.
+        observer?(.init(stage:"class-coverage",texts:classes.map(\.value),boxes:classes.map{rect($0.row)},
+            lineIds:classes.map{$0.heading.glyphs.compactMap(\.sourceLine)},
+            checks:["oneClassPerMeasuredRow":measuredEdges.count == classes.count+1,
+                "firstClassStartsAtPeriodBottom":measuredEdges.min() == headerBoxes[0].bottom]))
         guard measuredEdges.count == classes.count+1 else { throw PDFParseError(code:.ambiguous,stage:.classLabel) }
         let rowEdges=measuredEdges.sorted()
         guard rowEdges.first == headerBoxes[0].bottom else { throw PDFParseError(code:.ambiguous,stage:.classLabel) }
