@@ -201,6 +201,21 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(len(result.stdout.splitlines()), len(manifest.SHARDS["A"]))
 
+    def test_relaunch_diagnosis_cannot_replace_the_full_shard_gate(self):
+        command = [sys.executable, "-B", str(ROOT / "tools/ui_test_manifest.py")]
+        selected = subprocess.check_output(command + ["--relaunch-probe", "--mode", "selectors"], text=True)
+        self.assertEqual(selected.splitlines(), [
+            "-only-testing:PickerTapChecks/ApplicationChecks/" + test for test in manifest.RELAUNCH_PROBE_TESTS])
+        self.assertEqual(subprocess.check_output(command + ["--relaunch-probe", "--mode", "system-size"], text=True).strip(), "0")
+        for incompatible in (["--shard", "B"], ["--system-size-only"]):
+            result = subprocess.run(command + ["--relaunch-probe", "--mode", "selectors"] + incompatible,
+                                    capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+        focused = "".join(result_line(test) for test in manifest.RELAUNCH_PROBE_TESTS)
+        manifest.validate_results(focused, manifest.RELAUNCH_PROBE_TESTS, 27)
+        with self.assertRaises(ValueError):
+            manifest.validate_results(focused, manifest.selected_tests("B"), 27)
+
 
 @unittest.skipUnless(os.name == "posix", "macOS CI Bash runner")
 class ShellRunnerTests(unittest.TestCase):

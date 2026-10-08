@@ -14,8 +14,14 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 xcrun simctl list -j > "$scratch_dir/simulators.json"
 shard="${TKPK_UI_SHARD:-all}"
-python3 -B tools/ui_test_manifest.py --shard "$shard" --mode selectors > "$scratch_dir/selectors"
-system_size_check="$(python3 -B tools/ui_test_manifest.py --shard "$shard" --mode system-size)"
+probe_args=()
+case "${TKPK_UI_RELAUNCH_PROBE:-0}" in
+    0) ;;
+    1) probe_args=(--relaunch-probe) ;;
+    *) exit 2 ;;
+esac
+python3 -B tools/ui_test_manifest.py --shard "$shard" "${probe_args[@]}" --mode selectors > "$scratch_dir/selectors"
+system_size_check="$(python3 -B tools/ui_test_manifest.py --shard "$shard" "${probe_args[@]}" --mode system-size)"
 selected_checks=()
 while IFS= read -r selector; do selected_checks+=("$selector"); done < "$scratch_dir/selectors"
 python3 - "$scratch_dir/simulators.json" "${TKPK_TEST_IOS:-}" > "$scratch_dir/destinations" <<'PY'
@@ -65,7 +71,7 @@ while read -r device_type runtime; do
         }
     }
     check_ui "$scratch_dir/suite.log" "${selected_checks[@]}" test
-    python3 -B tools/ui_test_manifest.py --shard "$shard" --mode verify --ios "$ios_major" --log "$scratch_dir/suite.log"
+    python3 -B tools/ui_test_manifest.py --shard "$shard" "${probe_args[@]}" --mode verify --ios "$ios_major" --log "$scratch_dir/suite.log"
     # Exercise the actual Simulator OS setting as well as live SwiftUI changes.
     if [[ "$system_size_check" == "1" ]]; then
         for content_size in extra-small extra-extra-extra-large accessibility-extra-extra-extra-large; do

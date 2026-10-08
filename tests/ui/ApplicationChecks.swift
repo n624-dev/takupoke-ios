@@ -544,10 +544,13 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertEqual(app.staticTexts["fixture-recovery-off-blocked"].label,"1")
         let stored = app.staticTexts["fixture-stored-ai-permission"]
         XCTAssertEqual(stored.label, "0")
+        var changeOrdinal = 0
         func changeAI(to value: String) {
+            changeOrdinal += 1
             XCTAssertTrue(ai.isHittable, app.debugDescription)
             XCTAssertGreaterThan(ai.frame.width, 40)
             print("AI_SWITCH before frame=\(ai.frame) UI=\(String(describing: ai.value)) stored=\(stored.label)")
+            recoveryScreenshot("ai-switch-before-\(changeOrdinal)")
             // Switch accessibility bounds can cover either the whole labelled
             // row or just the control. The trailing control's centre is 26 px
             // inside the right edge in both representations, unlike its edge.
@@ -555,7 +558,13 @@ final class ApplicationChecks: XCTestCase {
                 .withOffset(CGVector(dx:-26,dy:0)).tap()
             let reflected = expectation(for:NSPredicate(format:"value == %@",value),evaluatedWith:ai)
             let saved = expectation(for:NSPredicate(format:"label == %@",value),evaluatedWith:stored)
-            wait(for:[reflected,saved],timeout:10)
+            let completion = XCTWaiter.wait(for:[reflected,saved],timeout:10)
+            guard completion == .completed else {
+                print("AI_SWITCH unresolved UI=\(String(describing: ai.value)) stored=\(stored.label) tree=\(app.debugDescription)")
+                recoveryScreenshot("ai-switch-unresolved-\(changeOrdinal)")
+                XCTFail("Physical AI/OCR switch tap did not update both UI and stored permission")
+                return
+            }
             XCTAssertEqual(ai.value as? String,value)
             XCTAssertEqual(stored.label,value)
             print("AI_SWITCH after UI=\(String(describing: ai.value)) stored=\(stored.label)")
@@ -825,11 +834,19 @@ final class ApplicationChecks: XCTestCase {
         linkContextAction(restored, title: "お気に入りに追加")
     }
     private func linkContextAction(_ link: XCUIElement, title: String) {
+        let bar = app.navigationBars["一覧"]
+        let tabs = app.tabBars.firstMatch
+        recoveryScreenshot("link-context-before-" + title)
         let ready = expectation(for: NSPredicate { _, _ in
-            link.isHittable && link.frame.minY >= self.app.navigationBars.firstMatch.frame.maxY &&
-                link.frame.maxY <= self.app.tabBars.firstMatch.frame.minY
+            bar.exists && tabs.exists && link.exists && link.isHittable &&
+                link.frame.minY >= bar.frame.maxY && link.frame.maxY <= tabs.frame.minY
         }, evaluatedWith: link)
-        wait(for: [ready], timeout: 10)
+        guard XCTWaiter.wait(for: [ready], timeout: 10) == .completed else {
+            print("LINK_CONTEXT unresolved tree=\(app.debugDescription)")
+            recoveryScreenshot("link-context-unresolved-" + title)
+            XCTFail("Link row is not wholly visible on its actual list screen")
+            return
+        }
         link.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).press(forDuration: 2)
         let action = app.buttons[title]
         XCTAssertTrue(action.waitForExistence(timeout: 10), app.debugDescription)
