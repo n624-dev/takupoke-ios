@@ -1,0 +1,48 @@
+name: Bounded font recovery metadata checks
+on:
+  push:
+    branches: [codex/ios-embedded-font-recovery-20261008]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    name: Apple metadata tests and iOS SDK build
+    runs-on: macos-26
+    timeout-minutes: 25
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Require exact source and valid project
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          plutil -lint Takupoke.xcodeproj/project.pbxproj
+      - name: Run production metadata and existing parser tests
+        run: bash tools/test-parsing.sh
+      - name: Compile iOS SDK target without publication
+        run: |
+          set -euo pipefail
+          owned_dir="$RUNNER_TEMP/font-recovery-native-owned"
+          xcodebuild -project Takupoke.xcodeproj -scheme Takupoke -configuration Debug -sdk iphoneos \
+            -derivedDataPath "$owned_dir/build" -clonedSourcePackagesDirPath "$owned_dir/packages" \
+            -packageCachePath "$owned_dir/cache" -disablePackageRepositoryCache \
+            CODE_SIGNING_ALLOWED=NO build
+      - name: Remove owned build and package outputs
+        if: always()
+        run: |
+          python3 -B - <<'PY'
+          import os,shutil
+          from pathlib import Path
+          owned=Path(os.environ['RUNNER_TEMP'])/'font-recovery-native-owned'
+          if owned.is_symlink():
+              owned.unlink()
+          elif owned.exists():
+              shutil.rmtree(owned)
+          if owned.exists() or owned.is_symlink():
+              raise SystemExit('Owned font recovery outputs remain')
+          PY
