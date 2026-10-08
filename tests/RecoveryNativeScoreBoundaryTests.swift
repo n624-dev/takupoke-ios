@@ -1,5 +1,6 @@
 import Foundation
 import XCTest
+@testable import TakupokeParsing
 #if canImport(Vision) && canImport(AppKit)
 import Vision
 import AppKit
@@ -76,14 +77,22 @@ final class RecoveryNativeScoreBoundaryTests:XCTestCase {
                 let status=hits.isEmpty ? "missing":hits.count>1 ? "split-or-conflicting":hits[0].1 == nil ? "candidate-missing":contained ? "single-contained":"spanning-region"
                 let result=Result(item:item,observed:hits.count==1 ? hits[0].1:nil,score:hits.count==1 ? hits[0].2:nil,status:status)
                 results.append(result)
-                let report:[String:Any]=["cohort":cohort,"ordinal":ordinal,"kind":item.kind,"sourcePixels":Double(item.pixels),
-                    "expectedAfterRecognition":item.literal,"observed":result.observed as Any? ?? NSNull(),
-                    "nativeScore":result.score as Any? ?? NSNull(),"status":status,"exact":result.exact,
-                    "evaluationRegion":[Double(item.box.minX),Double(item.box.minY),Double(item.box.width),Double(item.box.height)],
-                    "observations":hits.map { hit -> [String:Any] in ["nativeOrder":hit.3,
-                        "originalPageBox":[Double(hit.0.minX),Double(hit.0.minY),Double(hit.0.width),Double(hit.0.height)],
-                        "text":hit.1 as Any? ?? NSNull(),"score":hit.2 as Any? ?? NSNull()] },
-                    "qualified":false,"adoptionCalls":0]
+                var report:[String:Any]=["cohort":cohort,"ordinal":ordinal,"kind":item.kind,
+                    "sourcePixels":Double(item.pixels),"expectedAfterRecognition":item.literal]
+                report["observed"]=result.observed as Any? ?? NSNull()
+                report["nativeScore"]=result.score as Any? ?? NSNull()
+                report["status"]=status;report["exact"]=result.exact
+                report["evaluationRegion"]=[Double(item.box.minX),Double(item.box.minY),Double(item.box.width),Double(item.box.height)]
+                var observedRows=[[String:Any]]()
+                for hit in hits {
+                    var observed:[String:Any]=["nativeOrder":hit.3]
+                    observed["originalPageBox"]=[Double(hit.0.minX),Double(hit.0.minY),Double(hit.0.width),Double(hit.0.height)]
+                    observed["text"]=hit.1 as Any? ?? NSNull()
+                    observed["score"]=hit.2 as Any? ?? NSNull()
+                    observedRows.append(observed)
+                }
+                report["observations"]=observedRows
+                report["qualified"]=false;report["adoptionCalls"]=0
                 print("NATIVE_SCORE_ITEM "+String(decoding:try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]),as:UTF8.self))
             }
             cohorts.append(results)

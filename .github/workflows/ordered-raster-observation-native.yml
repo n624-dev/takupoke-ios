@@ -20,6 +20,7 @@ jobs:
           persist-credentials: false
       - name: Measure independent native confidence by item and original position
         run: |
+          set -euo pipefail
           bash tools/test-parsing.sh | tee "$RUNNER_TEMP/native-score-boundary-owned.log"
           python3 -B - "$RUNNER_TEMP/native-score-boundary-owned.log" <<'PY'
           import json, sys
