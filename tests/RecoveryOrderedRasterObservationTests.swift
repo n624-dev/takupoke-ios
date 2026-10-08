@@ -9,6 +9,87 @@ import CryptoKit
 import ImageIO
 
 final class RecoveryOrderedRasterObservationTests:XCTestCase {
+    func testPhysicalClassColumnReadersRetainTheirOwnCandidatesAndScores() async throws {
+        guard #available(macOS 26.0,*),
+              ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_HEADER_PAIR"] == "1",
+              let root=ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_FIXTURES"] else {
+            throw XCTSkip("Requires the owned physical class-column comparison")
+        }
+        let directory=URL(fileURLWithPath:root,isDirectory:true)
+        let manifest=try XCTUnwrap(try JSONSerialization.jsonObject(with:Data(contentsOf:directory.appendingPathComponent("raster-manifest.json"))) as? [String:Any])
+        for item in try XCTUnwrap(manifest["cases"] as? [[String:Any]]) {
+            let bytes=try Data(contentsOf:directory.appendingPathComponent(try XCTUnwrap(item["file"] as? String)))
+            XCTAssertEqual(SHA256.hash(data:bytes).map{String(format:"%02x",$0)}.joined(),item["sha256"] as? String)
+            let pdf=try XCTUnwrap(PDFDocument(data:bytes)),page=try XCTUnwrap(pdf.page(at:0)),bounds=page.bounds(for:.cropBox)
+            let scale=min(2,2048/max(bounds.width,bounds.height))
+            let image=page.thumbnail(of:CGSize(width:ceil(bounds.width*scale),height:ceil(bounds.height*scale)),for:.cropBox)
+            let cg=try XCTUnwrap(image.cgImage(forProposedRect:nil,context:nil,hints:nil))
+            var rgba=[UInt8](repeating:255,count:cg.width*cg.height*4)
+            let made=rgba.withUnsafeMutableBytes { pixels -> Bool in
+                guard let context=CGContext(data:pixels.baseAddress,width:cg.width,height:cg.height,bitsPerComponent:8,bytesPerRow:cg.width*4,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue|CGBitmapInfo.byteOrder32Big.rawValue) else {return false}
+                let rect=CGRect(x:0,y:0,width:CGFloat(cg.width),height:CGFloat(cg.height))
+                context.setFillColor(gray:1,alpha:1);context.fill(rect);context.draw(cg,in:rect);return true
+            }
+            XCTAssertTrue(made)
+            let raster=try RecoveryRasterGrid.fromRGBA(width:cg.width,height:cg.height,pixels:rgba,check:{})
+            let rules=try raster.rules(check:{}),prepared=try raster.preparingRules(rules,check:{})
+            // Select every ink-bearing closed cell of the leftmost tall column
+            // solely from observed rules/pixels. No class vocabulary, OCR answer,
+            // generator dimensions or expected class order selects a crop.
+            let vertical=rules.filter{$0.vertical && $0.y2-$0.y1>Double(cg.height)/2}.sorted{$0.x1<$1.x1}
+            XCTAssertGreaterThanOrEqual(vertical.count,2)
+            let left=try XCTUnwrap(vertical.first).x1,right=try XCTUnwrap(vertical.dropFirst().first).x1
+            let horizontal=rules.filter{$0.horizontal && $0.x1<=left+0.3 && $0.x2>=right-0.3}.map(\.y1).sorted()
+            var captures=[(RecoveryBox,[[String:Any]],[[String:Any]])]()
+            var calls=0
+            func observed(_ lines:[RecognizedTextObservation],crop:RecoveryBox) throws -> [[String:Any]] {
+                try lines.enumerated().map { order,line in
+                    let b=line.boundingBox.cgRect
+                    let global=RecoveryBox(x:crop.x+Double(b.minX)*crop.width,
+                        y:crop.y+Double(1-b.maxY)*crop.height,width:Double(b.width)*crop.width,height:Double(b.height)*crop.height)
+                    XCTAssertTrue(global.valid)
+                    XCTAssertGreaterThanOrEqual(global.x,crop.x);XCTAssertGreaterThanOrEqual(global.y,crop.y)
+                    XCTAssertLessThanOrEqual(global.x+global.width,crop.x+crop.width+0.001)
+                    XCTAssertLessThanOrEqual(global.y+global.height,crop.y+crop.height+0.001)
+                    return ["lineOrder":order,"originalPageBox":[global.x,global.y,global.width,global.height],
+                        "candidates":line.topCandidates(5).map{["text":$0.string,"nativeScore":Double($0.confidence)]}]
+                }
+            }
+            for (top,bottom) in zip(horizontal,horizontal.dropFirst()) {
+                let cell=RecoveryBox(x:left,y:top,width:right-left,height:bottom-top)
+                guard cell.valid,cell.width>8,cell.height>8,
+                      !prepared.isBlank(cell,rules:rules) else {continue}
+                let crop=RecoveryBox(x:ceil(left)+2,y:ceil(top)+2,
+                    width:floor(right)-ceil(left)-4,height:floor(bottom)-ceil(top)-4)
+                XCTAssertTrue(crop.valid)
+                let pixels=try XCTUnwrap(cg.cropping(to:CGRect(x:crop.x,y:crop.y,width:crop.width,height:crop.height)))
+                var documents=RecoveryVisionCapture.request()
+                documents.textRecognitionOptions.minimumTextHeightFraction=8/Float(pixels.height)
+                let documentLines=try await documents.perform(on:pixels).flatMap{$0.document.text.lines};calls+=1
+                var text=RecognizeTextRequest()
+                text.recognitionLevel = .accurate
+                text.recognitionLanguages=[Locale.Language(identifier:"ja"),Locale.Language(identifier:"en")]
+                text.automaticallyDetectsLanguage=false;text.usesLanguageCorrection=false
+                text.minimumTextHeightFraction=8/Float(pixels.height)
+                let textLines=try await text.perform(on:pixels);calls+=1
+                captures.append((crop,try observed(documentLines,crop:crop),try observed(textLines,crop:crop)))
+            }
+            // Expected order is read only after every fixed recognition call.
+            // Never use it to choose a candidate, rewrite a source or adopt.
+            let layout=try XCTUnwrap(item["layout"] as? [String:Any])
+            let expected=Array(try XCTUnwrap(layout["classOrder"] as? [String]).prefix(9))
+            XCTAssertEqual(captures.count,expected.count)
+            for (index,capture) in captures.enumerated() {
+                let report:[String:Any]=["case":item["case"]!,"page":1,"physicalRow":index,
+                    "cropBox":[capture.0.x,capture.0.y,capture.0.width,capture.0.height],
+                    "documents":capture.1,"accurateNoCorrection":capture.2,
+                    "expectedAfterRecognition":index<expected.count ? expected[index]:"",
+                    "qualified":false,"scoreSubstitution":false,"adoptionCalls":0]
+                print("ORDERED_RASTER_CLASS_PAIR "+String(decoding:try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]),as:UTF8.self))
+            }
+            print("ORDERED_RASTER_CLASS_PAIR_SCOPE \(item["case"]!) crops=\(captures.count) nativeCalls=\(calls); two fixed local readers on original pixels; no resampling, vocabulary correction, formal topology or adoption")
+        }
+    }
     func testReadablePhysicalHeaderPixelsWithoutRepeatingOCR() throws {
         guard ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_RULE_PIXELS"] == "1",
               let root=ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_FIXTURES"] else {
@@ -60,6 +141,9 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
         }
     }
     func testNativeMinimumHeightCandidateConfidenceIsMeasuredWithoutSubstitution() async throws {
+        if ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_HEADER_PAIR"] == "1" {
+            throw XCTSkip("Closed whole-page scores are not repeated for the local header comparison")
+        }
         if ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_HEADER_TRACE"] == "1" {
             throw XCTSkip("Native confidence recipe already measured; this observation traces only the failed header predicate")
         }
@@ -224,6 +308,9 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
         }
     }
     func testPairedImagePDFObservationRetainsFailuresAndWholeDocumentDenominators() async throws {
+        if ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_HEADER_PAIR"] == "1" {
+            throw XCTSkip("Closed whole-document measurements are not repeated for the local header comparison")
+        }
         if ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_RULE_PIXELS_ONLY"] == "1" {
             throw XCTSkip("Closed whole-document OCR measurements are not repeated for physical-pixel diagnostics")
         }
