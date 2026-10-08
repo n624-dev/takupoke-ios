@@ -22,6 +22,7 @@ jobs:
         run: |
           set -euo pipefail
           export TAKUPOKE_NATIVE_SCORE_REPORT="$RUNNER_TEMP/native-score-boundary-records-owned.jsonl"
+          export TAKUPOKE_NATIVE_INK_REPORT="$RUNNER_TEMP/native-ink-color-records-owned.jsonl"
           bash tools/test-parsing.sh | tee "$RUNNER_TEMP/native-score-boundary-owned.log"
           python3 -B - "$TAKUPOKE_NATIVE_SCORE_REPORT" <<'PY'
           import json, sys
@@ -76,15 +77,17 @@ jobs:
               print('VERIFIED_NATIVE_PAIRED_OUTCOME '+json.dumps(row,sort_keys=True))
           print('Paired reader inventory verified:2 original image hashes,256 own-reader records,8 outcomes,4 total calls;0 new independent items;0 adoption')
           PY
+          python3 -B tools/verify_native_ink_color_report.py "$TAKUPOKE_NATIVE_INK_REPORT"
         env:
           TAKUPOKE_NATIVE_SCORE_BOUNDARY: '1'
           TAKUPOKE_NATIVE_PAIRED_READERS: '1'
+          TAKUPOKE_NATIVE_INK_COLORS: '1'
       - name: Remove the owned temporary measurement log and records
         if: always()
         run: |
           python3 -B - <<'PY'
           import os
           from pathlib import Path
-          for name in ('native-score-boundary-owned.log','native-score-boundary-records-owned.jsonl'):
+          for name in ('native-score-boundary-owned.log','native-score-boundary-records-owned.jsonl','native-ink-color-records-owned.jsonl'):
               (Path(os.environ['RUNNER_TEMP'])/name).unlink(missing_ok=True)
           PY

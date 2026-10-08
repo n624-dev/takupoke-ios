@@ -169,7 +169,7 @@ let package = Package(
                     "ParsingTests+Preview.swift",
                     "ParsingTests+Persistence.swift",
                     "TimetableNameTests.swift", "MappingRulesTests.swift",
-                    "PDFParsingTests.swift", "RecoveryTests.swift", "RecoveryRecertificationTests.swift", "RecoveryBuilderTests.swift", "RecoveryOCRAcquisitionTests.swift", "RecoveryOCRStructureTests.swift", "RecoveryManualAssistanceTests.swift", "RecoveryManualReviewTests.swift", "RecoveryFunctionalCoverageTests.swift", "RecoveryStructureTests.swift", "RecoveryPromptCatalogTests.swift", "RecoveryOrderedRasterObservationTests.swift", "RecoveryNativeScoreBoundaryTests.swift",
+                    "PDFParsingTests.swift", "RecoveryTests.swift", "RecoveryRecertificationTests.swift", "RecoveryBuilderTests.swift", "RecoveryOCRAcquisitionTests.swift", "RecoveryOCRStructureTests.swift", "RecoveryManualAssistanceTests.swift", "RecoveryManualReviewTests.swift", "RecoveryFunctionalCoverageTests.swift", "RecoveryStructureTests.swift", "RecoveryPromptCatalogTests.swift", "RecoveryOrderedRasterObservationTests.swift", "RecoveryNativeScoreBoundaryTests.swift", "RecoveryNativeInkColorTests.swift",
                     "PDFParsingTests+Timetable.swift",
                     "PDFParsingTests+Diagnostics.swift",
                     "PDFParsingTests+Events.swift",
