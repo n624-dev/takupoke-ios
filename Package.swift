@@ -172,6 +172,7 @@ let package = Package(
                     "TimetableNameTests.swift", "MappingRulesTests.swift",
                     "PDFParsingTests.swift", "RecoveryTests.swift", "RecoveryRecertificationTests.swift", "RecoveryBuilderTests.swift", "RecoveryOCRAcquisitionTests.swift", "RecoveryOCRStructureTests.swift", "RecoveryManualAssistanceTests.swift", "RecoveryManualReviewTests.swift", "RecoveryFunctionalCoverageTests.swift", "RecoveryStructureTests.swift", "RecoveryPromptCatalogTests.swift",
                     "PDFTrueTypeRecoveryMapTests.swift",
+                    "PDFMissingUnicodeNativeTests.swift",
                     "PDFParsingTests+Timetable.swift",
                     "PDFParsingTests+Diagnostics.swift",
                     "PDFParsingTests+Events.swift",

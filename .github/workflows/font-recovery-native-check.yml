@@ -2,6 +2,13 @@ name: Bounded font recovery metadata checks
 on:
   push:
     branches: [codex/ios-embedded-font-recovery-20261008]
+    paths:
+      - 'Takupoke/**'
+      - 'tests/**'
+      - 'Package.swift'
+      - 'Takupoke.xcodeproj/**'
+      - 'tools/test-parsing.sh'
+      - '.github/workflows/font-recovery-native-check.yml'
   workflow_dispatch:
 permissions:
   contents: read

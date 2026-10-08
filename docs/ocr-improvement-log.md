@@ -379,3 +379,7 @@ Linux Swift6.1.2では、新しい12件を含む466件のパッケージテス�
 ### 埋め込みTrueTypeメタデータのApple環境での検証
 
 研究ソース3fa2f96、実行37750873830のApple環境ではSwift517件（1skip、失敗0）、iPhone SDKのDebugビルドが成功しました。新規12件のフォント対応表・拒否ケースも実行されています。処理が所有するビルド領域は後処理で削除し、artifactを保存していません。Strictや資料取得へはまだ接続しておらず、時間割全体の復旧成功率や品質合格の結果ではありません。
+
+### 欠損ToUnicodeのPDFKit観測を切り分ける
+
+学校資料とは独立に、単純な四角形の字形・A/Bのcmapを持つTrueTypeをメモリ内で組み立てます。各tableのchecksumとfont全体のchecksum adjustmentを計算し、CoreTextのUnicode→GID対応と字形の有無を確認したうえで、ToUnicodeを含めないType0／Identity-HのPDFを生成します。PDFKitの抽出結果は架空入力のscalarと件数だけを記録します。Strictの拒否・未完了状態を維持し、この観測を抽出経路や時間割採用の合格には数えません。所有する一時PDFは試験内のdeferで削除します。LinuxではPDFKitを実行できないためSwift構文のみを確認し、Apple環境での型・ネイティブ実行を別に検証します。
