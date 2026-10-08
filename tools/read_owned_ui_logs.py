@@ -10,8 +10,8 @@ import tempfile
 from pathlib import Path
 
 REPO = "n624-dev/takupoke-ios"
-RUN = 37773544786
-SOURCE = "8b9e6d53d555b377aa9d4fbcae3b7f6e1c7eaaf6"
+RUN = 37781627582
+SOURCE = "e3d20ab0687d35c9508b15947d702f7359089325"
 MAX_BYTES = 64 * 1024 * 1024
 
 
@@ -67,7 +67,7 @@ def summarize(raw):
     # These jobs only run the pinned independent fictional fixtures. Never
     # emit screenshot payloads or URLs/credentials from runner/network errors.
     lines = [line for line in raw.splitlines() if "_IMAGE " not in line]
-    marker = re.compile(r"Test Case|Executed .* tests?|Verified .* completion|NATIVE_TAB|NATIVE_SWITCH|NOTIFICATION_SWITCH|AI_SWITCH|TAKUPOKE-MANUAL-(ACK|EDIT|REVIEW|APP-STATE|INPUT|COORDINATOR|PROCESS)|error:|XCTAssert|Assertion Failure|failed|unresolved|No safe visible|Fixture menu|Opened menu")
+    marker = re.compile(r"Test Case|Executed .* tests?|Verified .* completion|NATIVE_TAB|NATIVE_SWITCH|UI_LAUNCH|SETUP_FOOTER|TAKUPOKE_LIFECYCLE|NOTIFICATION_SWITCH|AI_SWITCH|TAKUPOKE-MANUAL-(ACK|EDIT|REVIEW|APP-STATE|INPUT|COORDINATOR|PROCESS)|error:|XCTAssert|Assertion Failure|failed|unresolved|No safe visible|Fixture menu|Opened menu")
     selected = set(i for i,line in enumerate(lines) if marker.search(line))
     for i,line in enumerate(lines):
         if re.search(r"error:|XCTAssert|Assertion Failure|Test Case.* failed|unresolved|No safe visible|Fixture menu|Opened menu",line):
