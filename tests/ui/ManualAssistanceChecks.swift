@@ -21,6 +21,8 @@ private struct ManualScrollNavigation {
     private var unchanged=0
     private var previousAnchor=""
 
+    init(initiallyUpward:Bool=true) { upward=initiallyUpward }
+
     static func usable(_ frame:CGRect)->Bool {
         !frame.isNull && !frame.isInfinite && frame.width>0 && frame.height>0
             && [frame.minX,frame.minY,frame.maxX,frame.maxY].allSatisfy(\.isFinite)
@@ -64,10 +66,10 @@ final class ManualAssistanceChecks:XCTestCase {
         app.launch();XCTAssertTrue(app.staticTexts["fixture-ready"].waitForExistence(timeout:45),app.debugDescription)
         app.tabBars.buttons["設定"].tap();tap("時間割ファイル");tap("通常時間割の詳細を見る");tap("端末内で復旧する");tap("端末内で復旧を開始")
     }
-    private func visible(_ e:XCUIElement)->XCUIElement {
+    private func visible(_ e:XCUIElement,towardTop:Bool=false)->XCUIElement {
         let recoveryList=app.collectionViews["manual-recovery-list"]
         let list=recoveryList.exists ? recoveryList : app.collectionViews.firstMatch
-        var navigationState=ManualScrollNavigation(),targetID=""
+        var navigationState=ManualScrollNavigation(initiallyUpward:!towardTop),targetID=""
         for attempt in 0..<16 {
             let navigation=recoveryList.exists ? app.navigationBars["時間割の復旧"] : app.navigationBars.firstMatch
             let top=max(list.frame.minY,navigation.frame.maxY)+12
@@ -147,7 +149,11 @@ final class ManualAssistanceChecks:XCTestCase {
         print("TAKUPOKE-MANUAL-REVIEW " + state.label)
         XCTAssertFalse(app.buttons["この資料全体の結果を使用"].exists)
         XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("lastgood-preserved"))
-        _=visible(app.staticTexts["manual-review-header"].firstMatch)
+        // This is the first review section, above the retained editor scroll
+        // position. A virtualized header has no usable frame; start toward the
+        // top until actual offscreen geometry can determine a direction.
+        let list=app.collectionViews["manual-recovery-list"]
+        _=visible(list.staticTexts["manual-review-header"].firstMatch,towardTop:true)
         for value in expected { _=visible(app.staticTexts[value].firstMatch) }
         if comparable {
             XCTAssertEqual(visible(app.staticTexts["manual-comparison-available"].firstMatch).label,"本文の変更: 1箇所")
@@ -184,7 +190,7 @@ final class ManualAssistanceChecks:XCTestCase {
         emitEvents()
         if outcome != .completed { print("TAKUPOKE-MANUAL-PREVIEW-FAIL " + app.debugDescription) }
         XCTAssertEqual(outcome,.completed,app.debugDescription)
-        let header=visible(app.staticTexts["manual-preview-header"].firstMatch)
+        let header=visible(app.collectionViews["manual-recovery-list"].staticTexts["manual-preview-header"].firstMatch,towardTop:true)
         XCTAssertEqual(header.label,"採用する資料全体",app.debugDescription)
     }
     private func fieldsExist()->Bool {

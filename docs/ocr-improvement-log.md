@@ -292,3 +292,10 @@ Both original weekday bands now have all four physically closed edges. Developme
 Focused native run37708947860 tested source957706f. iOS27 completed the independent edit/acknowledgement/background/adoption checks, while iOS26 failed because its native text-selection menu did not expose Select All. No pass is inferred from the other OS. The correction input now provides an explicit native clear operation using the same guarded text-update path; clearing revokes acknowledgement and never supplies replacement text. UI checks physically tap clear, require empty input and unchecked acknowledgement, type the complete correction, dismiss the keyboard and compare the entire value. Local Python125 tests pass (3 skips).
 
 Full run37711193104, source23e73b7, failed its iOS26 three-field case at the second field's empty-after-clear assertion. Its first field passed full replacement and independent acknowledgement. Because the failing log lacked the actual post-clear field/state, no binding-versus-AX diagnosis is claimed. The editor now retains the same row height/field width when the clear control becomes hidden, and failure diagnostics preserve the targeted field and draft value. Remaining checks of the rejected source were cancelled; its build job had not started and no owned staging draft existed. A focused three-field check on both OS versions precedes another full run. No verification or release pass is inferred from incomplete/cancelled jobs.
+
+### 配布前の確認画面上部へのQAスクロール（2026-10-08）
+
+- af3f380の全配布チェック37725047676で、iOS27の1項目訂正は全文入力・ACK取消/再確認・同一プロセスの背景復帰・未採用のreview=trueまで進んだ後、見出しのAX検索がタイムアウトした（job113141447527）。原本や採用データの不具合を証明したものではない。実機でも同じになるとは未確認。
+- ログでは、編集画面の位置を保持した確認画面から、上部の見出しが仮想化されているのに、QAが下の内容へ向かう上ドラッグを開始していた。上部のreview/preview見出しを探す場合だけ、実際のList内の型付きStaticTextを対象にし、最初は上部へ向かう下ドラッグとする。実際の領域情報が出た場合の方向修正・16回上限・一度だけの無進行反転・完全表示/操作可能性の検査を維持する。本文/ACK/採用状態を注入しない。製品のView・Coordinator・判定規則は変更していない。
+- 実QAと同じ純粋ナビゲーション状態17ケースをコンパイル/実行し、Python127件がLinuxで成功した。Native iOS26/27の画面チェックはこれからで、この変更だけでタイムアウトが解決したとは扱わない。
+- 同じaf3実行のiOS27・3項目訂正（job113141447541）は実XCTest853.872秒で成功した。これは他の失敗項目の代替合格にはしない。

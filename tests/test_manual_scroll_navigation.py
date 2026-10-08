@@ -94,10 +94,19 @@ final class GeometryControls:XCTestCase {
   var state=ManualScrollNavigation();for _ in 0..<3 { XCTAssertTrue(state.observe(anchor:"same")) }
   state.locate(target:nil,owner:below,viewport:viewport);XCTAssertTrue(state.upward);XCTAssertTrue(state.reversed)
  }
+ func testVirtualizedFirstSectionPreservesExplicitTopDirection() {
+  var state=ManualScrollNavigation(initiallyUpward:false)
+  state.locate(target:nil,owner:nil,viewport:viewport);XCTAssertFalse(state.upward)
+  state.locate(target:inside,owner:inside,viewport:viewport);XCTAssertFalse(state.upward)
+ }
+ func testActualBelowGeometryOverridesInitialTopDirection() {
+  var state=ManualScrollNavigation(initiallyUpward:false)
+  state.locate(target:below,owner:nil,viewport:viewport);XCTAssertTrue(state.upward)
+ }
 }
 '''.replace("HELPER", helper)
         cases = re.findall(r"func (test\w+)\(", controls)
-        self.assertEqual(len(cases), 15)
+        self.assertEqual(len(cases), 17)
         controls += "\nXCTMain([testCase([\n" + "".join(
             f'("{name}", GeometryControls.{name}),\n' for name in cases) + "])])\n"
         with tempfile.TemporaryDirectory(prefix="manual-scroll-controls-") as directory:
@@ -110,7 +119,7 @@ final class GeometryControls:XCTestCase {
             self.assertEqual(compiled.returncode, 0, compiled.stdout + compiled.stderr)
             actual = subprocess.run([str(scratch / "controls")], capture_output=True, text=True, timeout=30)
             self.assertEqual(actual.returncode, 0, actual.stdout + actual.stderr)
-            self.assertIn("Executed 15 tests, with 0 failures", actual.stdout)
+            self.assertIn("Executed 17 tests, with 0 failures", actual.stdout)
             print(actual.stdout)
 
     def test_qa_only_owner_resolution_and_existing_caps_are_preserved(self):
