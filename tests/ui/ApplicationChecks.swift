@@ -116,16 +116,21 @@ final class ApplicationChecks: XCTestCase {
         defer { removeUIInterruptionMonitor(monitor) }
         print("NOTIFICATION_SWITCH before frame=\(toggle.frame) value=\(String(describing: toggle.value))")
         recoveryScreenshot("notification-switch-before")
-        // The accessible bounds can be the whole row or just the switch.
-        // Tap the trailing control centre, as in the AI/OCR setting check.
-        toggle.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5))
-            .withOffset(CGVector(dx: -26, dy: 0)).tap()
+        // Use the native switch's activation point. The notification setting
+        // awaits authorization; a trailing coordinate that works for the
+        // synchronous AI setting did not complete enablement on iOS 27.
+        toggle.tap()
         // An app interaction dispatches the interruption monitor. The title
         // area is inert when permission was already granted; do not tap the
         // switch twice and undo the requested state.
         app.navigationBars["通知"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         let enabled = expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: toggle)
-        wait(for: [enabled], timeout: 15)
+        guard XCTWaiter.wait(for: [enabled], timeout: 15) == .completed else {
+            print("NOTIFICATION_SWITCH unresolved value=\(String(describing: toggle.value)) enabled=\(toggle.isEnabled) tree=\(app.debugDescription)")
+            recoveryScreenshot("notification-switch-unresolved")
+            XCTFail("Native notification switch activation did not complete permission and enablement")
+            return
+        }
         print("NOTIFICATION_SWITCH after value=\(String(describing: toggle.value))")
     }
     private func dismissLesson(title: String = "授業詳細") {
