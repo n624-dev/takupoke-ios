@@ -47,6 +47,15 @@ def instrument_native_ocr(text):
     assert text.count(marker) == 1, 'Native OCR probe insertion point missing'
     return text.replace(marker, marker + NATIVE_OCR_DIAGNOSTIC)
 
+AI_SWITCH_BEFORE = 'FixtureLaunchDiagnostics.recordAIChange($0, phase: "before"); '
+AI_SWITCH_AFTER = '; FixtureLaunchDiagnostics.recordAIChange($0, phase: "after")'
+
+def instrument_ai_switch(text):
+    # Observe the unchanged production setter only in the disposable app copy.
+    marker = 'useAiFeatures = $0; LocalAIFeaturePolicy.setEnabled($0)'
+    assert text.count(marker) == 1, 'AI switch setter diagnostic insertion point missing'
+    return text.replace(marker, AI_SWITCH_BEFORE + marker + AI_SWITCH_AFTER)
+
 def generate(destination):
     repo = Path(__file__).resolve().parents[1]
     destination = Path(destination)
@@ -72,6 +81,8 @@ def generate(destination):
                       lambda match: match[1] + "\n        " + match[2] + ".protocolClasses = [FixtureNetwork.self]", text)
         if path.name == 'SchoolEventsModel.swift':
             text = instrument_events_cache(text)
+        if path.name == 'SettingsView.swift':
+            text = instrument_ai_switch(text)
         if path.name in ('TimetableView.swift', 'TimetableView+Navigation.swift'):
             text = text.replace('SchoolDate.today()', '(SimulatorEventsYearFixture.enabled ? SimulatorEventsYearFixture.day : (ProcessInfo.processInfo.arguments.contains("--selection-snapshot") ? SimulatorSelectionFixture.day : SchoolDate.today()))')
         if path.name == 'HomeTodayView.swift':

@@ -325,12 +325,20 @@ enum FixtureNotificationDelivery {
 // Independent of AX: fixed lifecycle labels only, never school/user content.
 // This file belongs to the disposable fictional simulator app container.
 enum FixtureLaunchDiagnostics {
+    static func recordAIChange(_ requested: Bool, phase: String) {
+        guard ProcessInfo.processInfo.arguments.contains("--ai-feature-probe"),
+              phase == "before" || phase == "after" else { return }
+        append("TAKUPOKE_AI_SWITCH pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) phase=\(phase) requested=\(requested ? 1 : 0) stored=\(LocalAIFeaturePolicy.enabled ? 1 : 0)\n")
+    }
     static func record(_ stage: String) {
         let allowed: Set<String> = ["init-enter", "seed-enter", "seed-complete", "scene-construction",
             "content-appeared", "root-task-enter", "application-ready", "fixture-ready", "fixture-ready-timeout"]
         guard allowed.contains(stage) else { return }
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-fictional-launch-owned.log")
         let line = "TAKUPOKE_LIFECYCLE pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) stage=\(stage)\n"
+        append(line)
+    }
+    private static func append(_ line: String) {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-fictional-launch-owned.log")
         do {
             if !FileManager.default.fileExists(atPath: url.path) {
                 try Data().write(to: url, options: .withoutOverwriting)

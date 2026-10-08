@@ -179,9 +179,16 @@ final class ApplicationChecks: XCTestCase {
               control.isEnabled, control.isHittable else {
             XCTFail("Native switch has no safe hit region: " + app.debugDescription); return
         }
-        print("NATIVE_SWITCH row=\(outer);control=\(frame);before=\(String(describing: row.value))")
-        // One physical touch at the actual native widget center, never the row.
-        control.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        let page = app.frame
+        guard usable(page), page.contains(frame) else {
+            XCTFail("Native switch is outside its application window"); return
+        }
+        let point = CGPoint(x: frame.midX, y: frame.midY)
+        print("NATIVE_SWITCH row=\(outer);control=\(frame);point=\(point);before=\(String(describing: row.value))")
+        // Use the observed widget center in the app coordinate system. A
+        // nested AX reference must not resolve a different origin at touch time.
+        app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: point.x - page.minX, dy: point.y - page.minY)).tap()
     }
     private func openNotificationSettings() {
         let row = app.buttons["通知"].firstMatch

@@ -22,6 +22,19 @@ def result_line(test, status="passed"):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_ai_switch_probe_preserves_production_setter_and_rejects_marker_drift(self):
+        source = (ROOT / "Takupoke/SettingsView.swift").read_text(encoding="utf-8")
+        generated = app_test_project.instrument_ai_switch(source)
+        self.assertNotIn("FixtureLaunchDiagnostics", source)
+        self.assertEqual(generated.count(app_test_project.AI_SWITCH_BEFORE), 1)
+        self.assertEqual(generated.count(app_test_project.AI_SWITCH_AFTER), 1)
+        self.assertEqual(generated.replace(app_test_project.AI_SWITCH_BEFORE, "", 1)
+                         .replace(app_test_project.AI_SWITCH_AFTER, "", 1), source)
+        marker = 'useAiFeatures = $0; LocalAIFeaturePolicy.setEnabled($0)'
+        for changed in (source.replace(marker, ""), source + "\n" + marker):
+            with self.assertRaises(AssertionError):
+                app_test_project.instrument_ai_switch(changed)
+
     def test_picker_completion_rejects_missing_failed_skipped_duplicate_and_unknown_cases(self):
         runner = (ROOT / "tools/test-picker-ui.sh").read_text(encoding="utf-8")
         program = runner.split("<<'PY_PICKER'\n", 1)[1].split("\nPY_PICKER", 1)[0]
