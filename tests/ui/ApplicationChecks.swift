@@ -59,14 +59,19 @@ final class ApplicationChecks: XCTestCase {
         wait(for: [selected], timeout: 10)
         screen(title == "ホーム" ? "たくポケ" : title)
     }
-    private func tap(_ title: String) {
+    private func tap(_ title: String, searchEarlierRows: Bool = false) {
         let e = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
         for _ in 0..<6 {
             let footer = app.buttons["次へ"]
             let coveredByFooter = footer.exists && footer.isHittable && e.exists && title != "次へ" &&
                 e.frame.maxY > footer.frame.minY
-            if e.exists && e.isHittable && !coveredByFooter { break }
-            app.swipeUp()
+            let above = searchEarlierRows && e.exists && e.frame.height > 0 &&
+                e.frame.minY < app.navigationBars.firstMatch.frame.maxY
+            if e.exists && e.isHittable && !coveredByFooter && !above { break }
+            // Returning from a document can retain the List's scroll offset.
+            // A preceding row may be virtualized or above the navigation bar.
+            if above || (!e.exists && searchEarlierRows) { app.swipeDown() }
+            else { app.swipeUp() }
         }
         XCTAssertTrue(e.waitForExistence(timeout: 5), app.debugDescription)
         XCTAssertTrue(e.isHittable, app.debugDescription)
@@ -93,7 +98,11 @@ final class ApplicationChecks: XCTestCase {
         return e
     }
     private func enableChangeNotifications() {
+        screen("通知")
         let toggle = app.switches["時間割変更"]
+        _ = visible(toggle)
+        let ready = expectation(for: NSPredicate { _, _ in toggle.isEnabled && toggle.isHittable }, evaluatedWith: toggle)
+        wait(for: [ready], timeout: 10)
         let predicate = NSPredicate(format: "label BEGINSWITH[c] %@ OR label == %@ OR label == %@ OR label == %@", "Allow", "許可", "許可する", "通知を許可")
         // Permission UI can move between system processes on iOS 27. Let
         // XCTest resolve the interrupting alert rather than retaining a
@@ -105,13 +114,19 @@ final class ApplicationChecks: XCTestCase {
             return true
         }
         defer { removeUIInterruptionMonitor(monitor) }
-        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
+        print("NOTIFICATION_SWITCH before frame=\(toggle.frame) value=\(String(describing: toggle.value))")
+        recoveryScreenshot("notification-switch-before")
+        // The accessible bounds can be the whole row or just the switch.
+        // Tap the trailing control centre, as in the AI/OCR setting check.
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5))
+            .withOffset(CGVector(dx: -26, dy: 0)).tap()
         // An app interaction dispatches the interruption monitor. The title
         // area is inert when permission was already granted; do not tap the
         // switch twice and undo the requested state.
         app.navigationBars["通知"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         let enabled = expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: toggle)
         wait(for: [enabled], timeout: 15)
+        print("NOTIFICATION_SWITCH after value=\(String(describing: toggle.value))")
     }
     private func dismissLesson(title: String = "授業詳細") {
         let bar = app.navigationBars[title]
@@ -870,8 +885,8 @@ final class ApplicationChecks: XCTestCase {
         back(to: "このアプリについて")
         tap("オープンソースライセンス")
         screen("オープンソースライセンス")
-        for name in ["ZIPFoundation", "denpa-schedule-csv", "GRDB.swift"] {
-            tap(name)
+        for (index, name) in ["ZIPFoundation", "denpa-schedule-csv", "GRDB.swift"].enumerated() {
+            tap(name, searchEarlierRows: index > 0)
             XCTAssertFalse(app.staticTexts["ライセンス情報を読み取れません。"].exists)
             XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Copyright")).firstMatch.exists, app.debugDescription)
             back(to: "オープンソースライセンス")
