@@ -158,7 +158,7 @@ bash tools/build-ios.sh ./dist
 ## 参照
 
 - [PDF復旧・OCR・ローカルAIの未実装方針](https://github.com/n624-dev/takupoke-win/blob/codex/pdf-local-recovery/documentation/pdf-recovery-pending-policy.md)
-- [OCR精度改善の参考候補25案と色比較の条件](https://github.com/n624-dev/takupoke-win/blob/codex/pdf-local-recovery/documentation/ocr-improvement-reference.md)。参考案は今すぐ全項目を実装する指示ではない。OCR・AIの推論は端末内のみとし、学校資料・画像・OCR文字・Prompt・結果を外部へ送信しない。モデル取得通信を資料解析から分離し、Private Cloud Computeを含むリモート推論へ切り替えない。
+- [OCR・PDF精度改善の未実装参考候補と色比較の条件](https://github.com/n624-dev/takupoke-win/blob/codex/pdf-local-recovery/documentation/ocr-improvement-reference.md)。参考案は今すぐ全項目を実装する指示ではない。実装できた項目は参考一覧から削除する。OCR・AIの推論は端末内のみとし、学校資料・画像・OCR文字・Prompt・結果を外部へ送信しない。モデル取得通信を資料解析から分離し、Private Cloud Computeを含むリモート推論へ切り替えない。
 
 - [GitHub の macOS runner 構成](https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md)
 - [GitHub のコミットメール設定](https://docs.github.com/en/account-and-profile/how-tos/email-preferences/setting-your-commit-email-address)
