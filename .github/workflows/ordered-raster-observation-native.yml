@@ -19,6 +19,28 @@ jobs:
         with:
           persist-credentials: false
       - name: Measure independent native confidence by item and original position
-        run: bash tools/test-parsing.sh
+        run: |
+          bash tools/test-parsing.sh | tee "$RUNNER_TEMP/native-score-boundary-owned.log"
+          python3 -B - "$RUNNER_TEMP/native-score-boundary-owned.log" <<'PY'
+          import json, sys
+          from pathlib import Path
+          lines=Path(sys.argv[1]).read_text().splitlines()
+          items=[json.loads(line.removeprefix('NATIVE_SCORE_ITEM ')) for line in lines if line.startswith('NATIVE_SCORE_ITEM {')]
+          boundaries=[json.loads(line.removeprefix('NATIVE_SCORE_BOUNDARY ')) for line in lines if line.startswith('NATIVE_SCORE_BOUNDARY {')]
+          scopes=[line for line in lines if line.startswith('NATIVE_SCORE_SCOPE ')]
+          assert len(items)==128 and {(row['cohort'],row['ordinal']) for row in items}=={(cohort,ordinal) for cohort in range(2) for ordinal in range(64)}, 'Missing or duplicate native item IDs'
+          assert len(boundaries)==4 and {row['kind'] for row in boundaries}=={'ascii-header','japanese-header','japanese-body','code'}, 'Missing or duplicate item-kind boundaries'
+          assert len(scopes)==2 and all('calls=1' in scope for scope in scopes), 'Missing fixed native calls'
+          assert all(not row['qualified'] for row in items+boundaries)
+          print('Native score measurement inventory verified:128 unique item IDs,4 boundaries,2 fixed calls; no qualification')
+          PY
         env:
           TAKUPOKE_NATIVE_SCORE_BOUNDARY: '1'
+      - name: Remove the owned temporary measurement log
+        if: always()
+        run: |
+          python3 -B - <<'PY'
+          import os
+          from pathlib import Path
+          (Path(os.environ['RUNNER_TEMP'])/'native-score-boundary-owned.log').unlink(missing_ok=True)
+          PY
