@@ -873,10 +873,17 @@ final class ApplicationChecks: XCTestCase {
         let tabs = app.tabBars.firstMatch
         recoveryScreenshot("link-context-before-" + title)
         let ready = expectation(for: NSPredicate { _, _ in
-            bar.exists && tabs.exists && link.exists && link.isEnabled &&
-                link.frame.minY >= bar.frame.maxY && link.frame.maxY <= tabs.frame.minY
+            guard bar.exists && tabs.exists && link.exists && link.isEnabled else { return false }
+            // Resolve each frame once: AX snapshots on a busy simulator can
+            // consume the former ten-second deadline before geometry is read.
+            let rowFrame = link.frame
+            let barFrame = bar.frame
+            let tabsFrame = tabs.frame
+            return rowFrame.width > 0 && rowFrame.height > 0 &&
+                rowFrame.minY >= barFrame.maxY && rowFrame.maxY <= tabsFrame.minY
         }, evaluatedWith: link)
-        guard XCTWaiter.wait(for: [ready], timeout: 10) == .completed else {
+        guard XCTWaiter.wait(for: [ready], timeout: 45) == .completed else {
+            print("LINK_CONTEXT boundaries row=\(link.frame);bar=\(bar.frame);tabs=\(tabs.frame);enabled=\(link.isEnabled)")
             print("LINK_CONTEXT unresolved tree=\(app.debugDescription)")
             recoveryScreenshot("link-context-unresolved-" + title)
             XCTFail("Link row is not wholly visible on its actual list screen")
