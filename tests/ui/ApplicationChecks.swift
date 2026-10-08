@@ -101,7 +101,11 @@ final class ApplicationChecks: XCTestCase {
         screen("通知")
         let toggle = app.switches["時間割変更"]
         _ = visible(toggle)
-        let ready = expectation(for: NSPredicate { _, _ in toggle.isEnabled && toggle.isHittable }, evaluatedWith: toggle)
+        // SwiftUI exposes both the labeled row and its actual native switch.
+        // Target the descendant control, not the row's label/activation point.
+        let control = toggle.descendants(matching: .switch).firstMatch
+        XCTAssertTrue(control.waitForExistence(timeout: 5), app.debugDescription)
+        let ready = expectation(for: NSPredicate { _, _ in control.isEnabled && control.isHittable }, evaluatedWith: control)
         wait(for: [ready], timeout: 10)
         let predicate = NSPredicate(format: "label BEGINSWITH[c] %@ OR label == %@ OR label == %@ OR label == %@", "Allow", "許可", "許可する", "通知を許可")
         // Permission UI can move between system processes on iOS 27. Let
@@ -114,12 +118,9 @@ final class ApplicationChecks: XCTestCase {
             return true
         }
         defer { removeUIInterruptionMonitor(monitor) }
-        print("NOTIFICATION_SWITCH before frame=\(toggle.frame) value=\(String(describing: toggle.value))")
+        print("NOTIFICATION_SWITCH before row=\(toggle.frame) control=\(control.frame) value=\(String(describing: toggle.value))")
         recoveryScreenshot("notification-switch-before")
-        // Use the native switch's activation point. The notification setting
-        // awaits authorization; a trailing coordinate that works for the
-        // synchronous AI setting did not complete enablement on iOS 27.
-        toggle.tap()
+        control.tap()
         // An app interaction dispatches the interruption monitor. The title
         // area is inert when permission was already granted; do not tap the
         // switch twice and undo the requested state.

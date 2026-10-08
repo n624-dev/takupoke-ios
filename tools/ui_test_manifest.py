@@ -7,7 +7,7 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 SYSTEM_SIZE_TEST = "testTimetableUsesSystemTextSize"
 VOICEOVER_TEST = "testVoiceOverReadsTimetableCard"
-RELAUNCH_PROBE_TESTS = ("testChangedDataProducesOneLocalNotification", "testLinkPreferencesSurviveRelaunch", "testSettingsAccountDataAndFileDetails")
+RELAUNCH_PROBE_TESTS = ("testChangedDataProducesOneLocalNotification", "testNotificationControlsAndAppearance")
 # Balanced using measured case durations, including the three OS size reruns.
 SHARDS = {
     "A": (
