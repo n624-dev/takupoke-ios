@@ -9,6 +9,56 @@ import CryptoKit
 import ImageIO
 
 final class RecoveryOrderedRasterObservationTests:XCTestCase {
+    func testReadablePhysicalHeaderPixelsWithoutRepeatingOCR() throws {
+        guard ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_RULE_PIXELS_ONLY"] == "1",
+              let root=ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_FIXTURES"] else {
+            throw XCTSkip("Requires the dedicated physical-rule observation")
+        }
+        let directory=URL(fileURLWithPath:root,isDirectory:true)
+        let manifest=try XCTUnwrap(try JSONSerialization.jsonObject(with:Data(contentsOf:directory.appendingPathComponent("raster-manifest.json"))) as? [String:Any])
+        let cases=try XCTUnwrap(manifest["cases"] as? [[String:Any]])
+        XCTAssertEqual(cases.count,2)
+        for item in cases {
+            let bytes=try Data(contentsOf:directory.appendingPathComponent(try XCTUnwrap(item["file"] as? String)))
+            XCTAssertEqual(SHA256.hash(data:bytes).map{String(format:"%02x",$0)}.joined(),item["sha256"] as? String)
+            let pdf=try XCTUnwrap(PDFDocument(data:bytes)),page=try XCTUnwrap(pdf.page(at:0))
+            let bounds=page.bounds(for:.cropBox),scale=min(2,2048/max(bounds.width,bounds.height))
+            let image=page.thumbnail(of:CGSize(width:ceil(bounds.width*scale),height:ceil(bounds.height*scale)),for:.cropBox)
+            let cg=try XCTUnwrap(image.cgImage(forProposedRect:nil,context:nil,hints:nil))
+            var rgba=[UInt8](repeating:255,count:cg.width*cg.height*4)
+            let made=rgba.withUnsafeMutableBytes { pixels -> Bool in
+                guard let context=CGContext(data:pixels.baseAddress,width:cg.width,height:cg.height,bitsPerComponent:8,bytesPerRow:cg.width*4,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue|CGBitmapInfo.byteOrder32Big.rawValue) else { return false }
+                let rect=CGRect(x:0,y:0,width:CGFloat(cg.width),height:CGFloat(cg.height))
+                context.setFillColor(gray:1,alpha:1);context.fill(rect);context.draw(cg,in:rect);return true
+            }
+            XCTAssertTrue(made)
+            let raster=try RecoveryRasterGrid.fromRGBA(width:cg.width,height:cg.height,pixels:rgba,check:{})
+            let rules=try raster.rules(check:{})
+            let grid=PDFGrid(page:PDFPageLayout(width:Double(cg.width),height:Double(cg.height),glyphs:[],lines:rules))
+            // Probe points select printed bands in this independent source.
+            // They never become OCR text, Builder candidates or adoption evidence.
+            let day=try grid.box(Double(cg.width)/2,100,check:{}),period=try grid.box(300,150,check:{})
+            let checks=["top":rules.contains{$0.horizontal && abs($0.y1-day.top)<0.3 && $0.x1<=day.left+0.3 && $0.x2>=day.right-0.3},
+                        "bottom":rules.contains{$0.horizontal && abs($0.y1-day.bottom)<0.3 && $0.x1<=day.left+0.3 && $0.x2>=day.right-0.3},
+                        "left":rules.contains{$0.vertical && abs($0.x1-day.left)<0.3 && $0.y1<=day.top+0.3 && $0.y2>=day.bottom-0.3},
+                        "right":rules.contains{$0.vertical && abs($0.x1-day.right)<0.3 && $0.y1<=day.top+0.3 && $0.y2>=day.bottom-0.3}]
+            let neighbors=rules.filter { ($0.horizontal && $0.y1<=period.top+2) || ($0.vertical && (abs($0.x1-day.left)<2 || abs($0.x1-day.right)<2)) }
+            var scans=[[String:Any]]()
+            for y in Array(68...76)+Array(119...127) {
+                var runs=[[Int]](),start:Int?=nil
+                for x in 0...cg.width {
+                    if x<cg.width && raster.dark(x,y) { if start==nil {start=x} }
+                    else if let first=start { if x-first>=24 {runs.append([first,x-1])};start=nil }
+                }
+                scans.append(["y":y,"actualDarkRuns":runs])
+            }
+            let report:[String:Any]=["case":item["case"]!,"nativeOcrCalls":0,"llmCalls":0,"width":cg.width,"height":cg.height,
+                "rgbaSHA256":SHA256.hash(data:Data(rgba)).map{String(format:"%02x",$0)}.joined(),"closedEdges":checks,
+                "dayBox":[day.left,day.top,day.right,day.bottom],"periodBox":[period.left,period.top,period.right,period.bottom],
+                "originalPixelRows":scans,"rules":neighbors.map{[$0.x1,$0.y1,$0.x2,$0.y2]},"qualified":false]
+            print("ORDERED_RASTER_RULE_PIXELS "+String(decoding:try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]),as:UTF8.self))
+        }
+    }
     func testNativeMinimumHeightCandidateConfidenceIsMeasuredWithoutSubstitution() async throws {
         if ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_HEADER_TRACE"] == "1" {
             throw XCTSkip("Native confidence recipe already measured; this observation traces only the failed header predicate")
@@ -174,6 +224,9 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
         }
     }
     func testPairedImagePDFObservationRetainsFailuresAndWholeDocumentDenominators() async throws {
+        if ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_RULE_PIXELS_ONLY"] == "1" {
+            throw XCTSkip("Closed whole-document OCR measurements are not repeated for physical-pixel diagnostics")
+        }
         if ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_CONFIDENCE_ONLY"] == "1" {
             throw XCTSkip("Prior whole-document recipe is not repeated in confidence-only observation")
         }
