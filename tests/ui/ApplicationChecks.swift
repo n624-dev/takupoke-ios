@@ -853,7 +853,7 @@ final class ApplicationChecks: XCTestCase {
         let tabs = app.tabBars.firstMatch
         recoveryScreenshot("link-context-before-" + title)
         let ready = expectation(for: NSPredicate { _, _ in
-            bar.exists && tabs.exists && link.exists && link.isHittable &&
+            bar.exists && tabs.exists && link.exists && link.isEnabled &&
                 link.frame.minY >= bar.frame.maxY && link.frame.maxY <= tabs.frame.minY
         }, evaluatedWith: link)
         guard XCTWaiter.wait(for: [ready], timeout: 10) == .completed else {
@@ -862,6 +862,10 @@ final class ApplicationChecks: XCTestCase {
             XCTFail("Link row is not wholly visible on its actual list screen")
             return
         }
+        // A visible native context-menu row may report isHittable=false after
+        // relaunch on iOS27. Its actual coordinate gesture and menu/action
+        // assertions verify interaction, rather than that AX prerequisite.
+        print("LINK_CONTEXT physical row=\(link.frame);AX-hittable=\(link.isHittable);action=\(title)")
         link.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).press(forDuration: 2)
         let action = app.buttons[title]
         XCTAssertTrue(action.waitForExistence(timeout: 10), app.debugDescription)
