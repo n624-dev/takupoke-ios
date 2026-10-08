@@ -77,6 +77,16 @@ final class ManualAssistanceChecks:XCTestCase {
         app.launch();XCTAssertTrue(app.staticTexts["fixture-ready"].waitForExistence(timeout:45),app.debugDescription)
         app.tabBars.buttons["設定"].tap();tap("時間割ファイル");tap("通常時間割の詳細を見る");tap("端末内で復旧する");tap("端末内で復旧を開始")
     }
+    private func observedKeyboardFrame()->CGRect? {
+        // An optional, absent firstMatch can stall AX instead of returning
+        // false. Enumerate actual elements once; presence is never fabricated.
+        let keyboards=app.keyboards.allElementsBoundByIndex
+        XCTAssertLessThanOrEqual(keyboards.count,1,"Keyboard geometry must be unique")
+        guard keyboards.count==1 else { return nil }
+        let frame=keyboards[0].frame
+        XCTAssertTrue(ManualScrollNavigation.usable(frame),"Present keyboard must have finite positive geometry")
+        return frame
+    }
     private func visible(_ e:XCUIElement,towardTop:Bool=false,knownID:String="")->XCUIElement {
         let recoveryList=app.collectionViews["manual-recovery-list"]
         let inRecovery=recoveryList.exists || app.navigationBars["時間割の復旧"].exists
@@ -95,7 +105,8 @@ final class ManualAssistanceChecks:XCTestCase {
             let target=matches.first ?? e
             let navigation=inRecovery ? app.navigationBars["時間割の復旧"] : app.navigationBars.firstMatch
             let top=max(list.frame.minY,navigation.frame.maxY)+12
-            let bottom=min(list.frame.maxY,app.keyboards.firstMatch.exists ? app.keyboards.firstMatch.frame.minY-45 : list.frame.maxY)-12
+            let keyboardFrame=observedKeyboardFrame()
+            let bottom=min(list.frame.maxY,keyboardFrame.map { $0.minY-45 } ?? list.frame.maxY)-12
             let viewport=CGRect(x:list.frame.minX+100,y:top,width:1,height:max(0,bottom-top))
             guard ManualScrollNavigation.usable(viewport),viewport.height>36 else {
                 print("TAKUPOKE-MANUAL-SCROLL invalid-viewport;\(viewport)");break
@@ -285,10 +296,10 @@ final class ManualAssistanceChecks:XCTestCase {
         let actual=visible(control)
         let list=app.collectionViews["manual-recovery-list"]
         let navigation=app.navigationBars["時間割の復旧"]
-        let keyboard=app.keyboards.firstMatch
+        let keyboardFrame=observedKeyboardFrame()
         let appFrame=app.frame
         let top=max(list.frame.minY,navigation.frame.maxY)+12
-        let bottom=min(list.frame.maxY,keyboard.exists ? keyboard.frame.minY-45:list.frame.maxY)-12
+        let bottom=min(list.frame.maxY,keyboardFrame.map { $0.minY-45 } ?? list.frame.maxY)-12
         let viewport=CGRect(x:list.frame.minX,y:top,width:list.frame.width,height:max(0,bottom-top))
         let outerFrame=row.frame,innerFrame=actual.frame
         guard let point=manualAcknowledgementPoint(outer:outerFrame,inner:innerFrame,viewport:viewport) else {
@@ -296,7 +307,7 @@ final class ManualAssistanceChecks:XCTestCase {
             XCTFail(app.debugDescription);return
         }
         let diagnostic=app.staticTexts["manual-qa-diagnostic"].firstMatch
-        print("TAKUPOKE-MANUAL-ACK before;id=\(id);outer=\(outerFrame);inner=\(innerFrame);hittable=\(actual.isHittable);point=\(point);app=\(appFrame);viewport=\(viewport);keyboard=\(keyboard.exists ? String(describing:keyboard.frame):"absent");diagnostic=\(diagnostic.exists ? String(describing:diagnostic.frame):"absent");value=\(row.value as? String ?? "unknown")")
+        print("TAKUPOKE-MANUAL-ACK before;id=\(id);outer=\(outerFrame);inner=\(innerFrame);hittable=\(actual.isHittable);point=\(point);app=\(appFrame);viewport=\(viewport);keyboard=\(keyboardFrame.map { String(describing:$0) } ?? "absent");diagnostic=\(diagnostic.exists ? String(describing:diagnostic.frame):"absent");value=\(row.value as? String ?? "unknown")")
         XCTAssertTrue(actual.isHittable,app.debugDescription)
         // Exactly one physical tap at the recorded center of the actual inner widget.
         app.coordinate(withNormalizedOffset:CGVector(dx:0,dy:0))
@@ -347,14 +358,16 @@ final class ManualAssistanceChecks:XCTestCase {
         XCTAssertTrue(done.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
         XCTAssertTrue(done.isHittable,app.debugDescription)
         done.tap()
-        let dismissed=XCTNSPredicateExpectation(predicate:NSPredicate(format:"exists == false"),object:app.keyboards.firstMatch)
+        let dismissed=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
+            self.app.keyboards.allElementsBoundByIndex.isEmpty
+        },object:app)
         XCTAssertEqual(XCTWaiter.wait(for:[dismissed],timeout:nativeStateTimeout),.completed,app.debugDescription)
         XCTAssertEqual(e.value as? String,value,"The physical edit must replace the full previous input before acknowledgement")
     }
     private func editStage(_ stage:String,_ e:XCUIElement) {
-        let keyboard=app.keyboards.firstMatch
+        let keyboardFrame=observedKeyboardFrame()
         let exists=e.exists
-        print("TAKUPOKE-MANUAL-EDIT stage=\(stage);id=\(exists ? e.identifier:"absent");exists=\(exists);hittable=\(exists && e.isHittable);frame=\(exists ? String(describing:e.frame):"absent");focused=\(exists && e.debugDescription.contains("Keyboard Focused"));keyboard=\(keyboard.exists ? String(describing:keyboard.frame):"absent")")
+        print("TAKUPOKE-MANUAL-EDIT stage=\(stage);id=\(exists ? e.identifier:"absent");exists=\(exists);hittable=\(exists && e.isHittable);frame=\(exists ? String(describing:e.frame):"absent");focused=\(exists && e.debugDescription.contains("Keyboard Focused"));keyboard=\(keyboardFrame.map { String(describing:$0) } ?? "absent")")
     }
     private func enterBackground()->Bool {
         print("TAKUPOKE-MANUAL-APP-STATE before-home=\(app.state.rawValue)")

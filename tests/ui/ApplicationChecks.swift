@@ -150,12 +150,20 @@ final class ApplicationChecks: XCTestCase {
     private var contentViewport: CGRect {
         contentViewport(navigation: nil)
     }
+    private func observedKeyboardFrame() -> CGRect? {
+        let keyboards = app.keyboards.allElementsBoundByIndex
+        XCTAssertLessThanOrEqual(keyboards.count, 1, "Keyboard geometry must be unique")
+        guard keyboards.count == 1 else { return nil }
+        let frame = keyboards[0].frame
+        XCTAssertTrue(usable(frame), "Present keyboard must have finite positive geometry")
+        return frame
+    }
     private func contentViewport(navigation: String?) -> CGRect {
         let frame = app.frame
         let bar = navigation.map { app.navigationBars[$0] } ?? app.navigationBars.firstMatch
         let top = bar.frame.maxY
         var bottom = app.tabBars.firstMatch.exists ? app.tabBars.firstMatch.frame.minY : frame.maxY
-        if app.keyboards.firstMatch.exists { bottom = min(bottom, app.keyboards.firstMatch.frame.minY) }
+        if let keyboardFrame = observedKeyboardFrame() { bottom = min(bottom, keyboardFrame.minY) }
         return CGRect(x: frame.minX, y: top, width: frame.width, height: max(0, bottom - top))
     }
     private func contained(_ element: XCUIElement, in viewport: CGRect) -> Bool {
