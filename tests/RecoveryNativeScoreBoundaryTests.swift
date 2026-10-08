@@ -28,6 +28,7 @@ final class RecoveryNativeScoreBoundaryTests:XCTestCase {
         guard !reportPath.isEmpty,!FileManager.default.fileExists(atPath:reportPath) else { return }
         var records=[String]()
         func emit(_ value:String) { records.append(value);print(value) }
+        let pairedReaders=ProcessInfo.processInfo.environment["TAKUPOKE_NATIVE_PAIRED_READERS"] == "1"
         let kinds=["ascii-header","japanese-header","japanese-body","code"]
         let literals=[
             ["AI_7","Al_7","1_Q3","I_Q3","4_X2","A_X2","0_Z6","O_Z6","3_K8","8_K3","2_T5","5_T2","B_R4","D_R4","6_N9","9_N6"],
@@ -69,6 +70,16 @@ final class RecoveryNativeScoreBoundaryTests:XCTestCase {
             var request=RecoveryVisionCapture.request()
             request.textRecognitionOptions.minimumTextHeightFraction=8/Float(side)
             let lines=try await request.perform(on:image).flatMap{$0.document.text.lines}
+            var textRequest=RecognizeTextRequest()
+            var textLines=[RecognizedTextObservation]()
+            if pairedReaders {
+                textRequest.recognitionLevel = .accurate
+                textRequest.recognitionLanguages=request.textRecognitionOptions.recognitionLanguages
+                textRequest.automaticallyDetectsLanguage=false
+                textRequest.usesLanguageCorrection=request.textRecognitionOptions.useLanguageCorrection
+                textRequest.minimumTextHeightFraction=request.textRecognitionOptions.minimumTextHeightFraction
+                textLines=try await textRequest.perform(on:image)
+            }
             // Resolve observation locations after recognition, before looking at
             // expected text. A spanning observation stays ineligible, never split.
             let positioned=lines.enumerated().map { order,line -> (CGRect,String?,Double?,Int) in
@@ -100,6 +111,66 @@ final class RecoveryNativeScoreBoundaryTests:XCTestCase {
                 report["observations"]=observedRows
                 report["qualified"]=false;report["adoptionCalls"]=0
                 emit("NATIVE_SCORE_ITEM "+String(decoding:try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]),as:UTF8.self))
+            }
+            if pairedReaders {
+                // Recognize the same original image once per reader. Evaluation
+                // regions and answers are consulted only after both calls finish.
+                let pixels=try XCTUnwrap(image.dataProvider?.data) as Data
+                let imageHash=SHA256.hash(data:pixels).map{String(format:"%02x",$0)}.joined()
+                var readerResults=[[Result]]()
+                for (reader,readerLines) in [("documents",lines),("accurate-text",textLines)] {
+                    let located=readerLines.enumerated().map { order,line -> (CGRect,[(String,Double)],Int) in
+                        let b=line.boundingBox.cgRect
+                        return (CGRect(x:b.minX*CGFloat(side),y:(1-b.maxY)*CGFloat(side),width:b.width*CGFloat(side),height:b.height*CGFloat(side)),
+                            line.topCandidates(5).map{($0.string,Double($0.confidence))},order)
+                    }
+                    var measured=[Result]()
+                    for (ordinal,item) in items.enumerated() {
+                        let hits=located.filter{$0.0.intersects(item.box)}
+                        let contained=hits.count==1 && item.box.contains(hits[0].0)
+                        let status=hits.isEmpty ? "missing":hits.count>1 ? "split-or-conflicting":hits[0].1.isEmpty ? "candidate-missing":contained ? "single-contained":"spanning-region"
+                        let top=hits.count==1 ? hits[0].1.first:nil
+                        let result=Result(item:item,observed:top?.0,score:top?.1,status:status)
+                        measured.append(result)
+                        var report:[String:Any]=["cohort":cohort,"ordinal":ordinal,"kind":item.kind,"reader":reader,
+                            "sourcePixels":Double(item.pixels),"expectedAfterRecognition":item.literal,"imageRGBAHash":imageHash]
+                        report["observed"]=result.observed as Any? ?? NSNull()
+                        report["nativeScore"]=result.score as Any? ?? NSNull()
+                        report["status"]=status;report["exact"]=result.exact
+                        report["evaluationRegion"]=[Double(item.box.minX),Double(item.box.minY),Double(item.box.width),Double(item.box.height)]
+                        var observations=[[String:Any]]()
+                        for hit in hits {
+                            var observation:[String:Any]=["nativeOrder":hit.2,
+                                "originalPageBox":[Double(hit.0.minX),Double(hit.0.minY),Double(hit.0.width),Double(hit.0.height)]]
+                            observation["candidates"]=hit.1.map{["text":$0.0,"score":$0.1] as [String:Any]}
+                            observations.append(observation)
+                        }
+                        report["observations"]=observations;report["qualified"]=false;report["adoptionCalls"]=0
+                        report["crossReaderScoreSubstitution"]=false
+                        emit("NATIVE_PAIRED_ITEM "+String(decoding:try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]),as:UTF8.self))
+                    }
+                    readerResults.append(measured)
+                }
+                for kind in kinds {
+                    let pairs=zip(readerResults[0],readerResults[1]).filter{$0.0.item.kind==kind}
+                    let report:[String:Any]=["cohort":cohort,"kind":kind,"items":pairs.count,
+                        "bothExact":pairs.filter{$0.0.exact && $0.1.exact}.count,
+                        "documentsOnlyExact":pairs.filter{$0.0.exact && !$0.1.exact}.count,
+                        "textOnlyExact":pairs.filter{!$0.0.exact && $0.1.exact}.count,
+                        "neitherExact":pairs.filter{!$0.0.exact && !$0.1.exact}.count,
+                        "bothMissing":pairs.filter{$0.0.status=="missing" && $0.1.status=="missing"}.count,
+                        "sameWrongLiteral":pairs.filter{!$0.0.exact && !$0.1.exact && $0.0.observed != nil && $0.0.observed==$0.1.observed}.count,
+                        "qualified":false,"newIndependentItems":0,"productionThresholdChanged":false]
+                    emit("NATIVE_PAIRED_OUTCOME "+String(decoding:try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]),as:UTF8.self))
+                }
+                let scope:[String:Any]=["cohort":cohort,"items":64,"calls":2,"imageRGBAHash":imageHash,
+                    "width":image.width,"height":image.height,"bytesPerRow":image.bytesPerRow,"pixelBytes":pixels.count,
+                    "bitsPerComponent":image.bitsPerComponent,"bitsPerPixel":image.bitsPerPixel,"alphaInfo":image.alphaInfo.rawValue,
+                    "minimumTextHeightFraction":Double(textRequest.minimumTextHeightFraction),"languages":["ja","en"],
+                    "automaticLanguage":false,"languageCorrection":textRequest.usesLanguageCorrection,
+                    "documentsLanguageCorrection":request.textRecognitionOptions.useLanguageCorrection,"textRecognitionLevel":"accurate",
+                    "qualified":false,"newIndependentItems":0,"adoptionCalls":0]
+                emit("NATIVE_PAIRED_SCOPE "+String(decoding:try JSONSerialization.data(withJSONObject:scope,options:[.sortedKeys]),as:UTF8.self))
             }
             cohorts.append(results)
             let outside=positioned.filter { observed in !items.contains { $0.box.contains(observed.0) } }.count

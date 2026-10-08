@@ -1,4 +1,4 @@
-name: Measure independent native Vision score boundaries
+name: Compare fixed native Vision readers and own score boundaries
 on:
   push:
     branches: [research/ios-ordered-raster-observation-20261007]
@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - name: Measure independent native confidence by item and original position
+      - name: Compare the same original images with fixed native readers
         run: |
           set -euo pipefail
           export TAKUPOKE_NATIVE_SCORE_REPORT="$RUNNER_TEMP/native-score-boundary-records-owned.jsonl"
@@ -30,6 +30,9 @@ jobs:
           items=[json.loads(line.removeprefix('NATIVE_SCORE_ITEM ')) for line in lines if line.startswith('NATIVE_SCORE_ITEM {')]
           boundaries=[json.loads(line.removeprefix('NATIVE_SCORE_BOUNDARY ')) for line in lines if line.startswith('NATIVE_SCORE_BOUNDARY {')]
           scopes=[line for line in lines if line.startswith('NATIVE_SCORE_SCOPE ')]
+          paired=[json.loads(line.removeprefix('NATIVE_PAIRED_ITEM ')) for line in lines if line.startswith('NATIVE_PAIRED_ITEM {')]
+          outcomes=[json.loads(line.removeprefix('NATIVE_PAIRED_OUTCOME ')) for line in lines if line.startswith('NATIVE_PAIRED_OUTCOME {')]
+          paired_scopes=[json.loads(line.removeprefix('NATIVE_PAIRED_SCOPE ')) for line in lines if line.startswith('NATIVE_PAIRED_SCOPE {')]
           assert len(items)==128 and {(row['cohort'],row['ordinal']) for row in items}=={(cohort,ordinal) for cohort in range(2) for ordinal in range(64)}, 'Missing or duplicate native item IDs'
           assert len(boundaries)==4 and {row['kind'] for row in boundaries}=={'ascii-header','japanese-header','japanese-body','code'}, 'Missing or duplicate item-kind boundaries'
           assert len(scopes)==2 and all('calls=1' in scope for scope in scopes), 'Missing fixed native calls'
@@ -37,9 +40,45 @@ jobs:
           print('Native score measurement inventory verified:128 unique item IDs,4 boundaries,2 fixed calls; no qualification')
           for record in boundaries:
               print('VERIFIED_NATIVE_SCORE_BOUNDARY '+json.dumps(record,sort_keys=True))
+          kinds={'ascii-header','japanese-header','japanese-body','code'}
+          keys={(cohort,ordinal,reader) for cohort in range(2) for ordinal in range(64) for reader in ('documents','accurate-text')}
+          assert len(paired)==256 and {(row['cohort'],row['ordinal'],row['reader']) for row in paired}==keys, 'Missing or duplicate paired item IDs'
+          assert len(paired_scopes)==2 and {row['cohort'] for row in paired_scopes}=={0,1}, 'Missing paired image provenance'
+          scope_by_cohort={row['cohort']:row for row in paired_scopes}
+          assert all(row['calls']==2 and row['items']==64 and not row['qualified'] and row['newIndependentItems']==0 and row['adoptionCalls']==0 for row in paired_scopes)
+          assert all(row['languageCorrection']==row['documentsLanguageCorrection'] and not row['automaticLanguage'] and row['textRecognitionLevel']=='accurate' and row['languages']==['ja','en'] for row in paired_scopes)
+          assert all(row['width']==row['height']==1920 and row['bitsPerPixel']==32 and row['pixelBytes']==row['bytesPerRow']*row['height'] and len(row['imageRGBAHash'])==64 and all(c in '0123456789abcdef' for c in row['imageRGBAHash']) for row in paired_scopes)
+          assert len({row['imageRGBAHash'] for row in paired_scopes})==2, 'The two original cohorts must not reuse an image'
+          paired_by_id={(row['cohort'],row['ordinal'],row['reader']):row for row in paired}
+          original_by_id={(row['cohort'],row['ordinal']):row for row in items}
+          for row in paired:
+              assert not row['qualified'] and row['adoptionCalls']==0 and not row['crossReaderScoreSubstitution']
+              assert row['imageRGBAHash']==scope_by_cohort[row['cohort']]['imageRGBAHash'], 'Readers did not receive the same original image'
+              baseline=original_by_id[row['cohort'],row['ordinal']]
+              assert all(row[key]==baseline[key] for key in ('kind','sourcePixels','expectedAfterRecognition','evaluationRegion'))
+              assert row['exact']==(row['status']=='single-contained' and row['observed']==row['expectedAfterRecognition'])
+              observations=row['observations']
+              top=observations[0]['candidates'][0] if len(observations)==1 and observations[0]['candidates'] else None
+              assert row['observed']==(top['text'] if top else None) and row['nativeScore']==(top['score'] if top else None), 'Candidate or own reader score was replaced'
+              if row['reader']=='documents':
+                  assert all(row[key]==baseline[key] for key in ('observed','nativeScore','status','exact')), 'Documents output changed inside the pair'
+          assert len(outcomes)==8 and {(row['cohort'],row['kind']) for row in outcomes}=={(cohort,kind) for cohort in range(2) for kind in kinds}
+          for row in outcomes:
+              pairs=[(paired_by_id[row['cohort'],ordinal,'documents'],paired_by_id[row['cohort'],ordinal,'accurate-text']) for ordinal in range(64) if paired_by_id[row['cohort'],ordinal,'documents']['kind']==row['kind']]
+              assert row['items']==len(pairs)==16 and not row['qualified'] and row['newIndependentItems']==0 and not row['productionThresholdChanged']
+              counted={'bothExact':sum(a['exact'] and b['exact'] for a,b in pairs),
+                       'documentsOnlyExact':sum(a['exact'] and not b['exact'] for a,b in pairs),
+                       'textOnlyExact':sum(not a['exact'] and b['exact'] for a,b in pairs),
+                       'neitherExact':sum(not a['exact'] and not b['exact'] for a,b in pairs),
+                       'bothMissing':sum(a['status']==b['status']=='missing' for a,b in pairs),
+                       'sameWrongLiteral':sum(not a['exact'] and not b['exact'] and a['observed'] is not None and a['observed']==b['observed'] for a,b in pairs)}
+              assert all(row[key]==value for key,value in counted.items()), 'Outcome differs from its original per-reader records'
+              print('VERIFIED_NATIVE_PAIRED_OUTCOME '+json.dumps(row,sort_keys=True))
+          print('Paired reader inventory verified:2 original image hashes,256 own-reader records,8 outcomes,4 total calls;0 new independent items;0 adoption')
           PY
         env:
           TAKUPOKE_NATIVE_SCORE_BOUNDARY: '1'
+          TAKUPOKE_NATIVE_PAIRED_READERS: '1'
       - name: Remove the owned temporary measurement log and records
         if: always()
         run: |
