@@ -128,7 +128,10 @@ struct PDFRecoveryView: View {
                                 })
                             // Keep the editor's width and row identity stable
                             // when clearing its value or changing focus.
-                            let canClear = useAiFeatures && !coordinator.running && editingManualField == field.id && !(manualValues[field.id] ?? field.originalText).isEmpty
+                            // A button tap can end native text-field focus before
+                            // its action is delivered. Keep clear enabled from
+                            // the input value, rather than transient focus.
+                            let canClear = useAiFeatures && !coordinator.running && !(manualValues[field.id] ?? field.originalText).isEmpty
                                 Button {
                                     guard useAiFeatures, !coordinator.running, coordinator.manualDraft?.id == draft.id, coordinator.manualReview == nil else { return }
                                     RecoveryManualInput.update("",id:field.id,original:field.originalText,values:&manualValues,acknowledged:&manualAcknowledged)

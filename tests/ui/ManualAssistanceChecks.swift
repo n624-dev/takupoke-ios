@@ -237,7 +237,10 @@ final class ManualAssistanceChecks:XCTestCase {
         let id=e.identifier.replacingOccurrences(of:"manual-value-",with:"")
         let clear=app.buttons["manual-clear-"+id].firstMatch
         XCTAssertTrue(clear.waitForExistence(timeout:5),app.debugDescription)
-        visible(clear).tap()
+        let target=visible(clear)
+        print("TAKUPOKE-MANUAL-CLEAR-TAP id=\(id);frame=\(target.frame);enabled=\(target.isEnabled);hittable=\(target.isHittable)")
+        XCTAssertTrue(target.isEnabled)
+        target.tap()
         let empty=XCTNSPredicateExpectation(predicate:NSPredicate(format:"value == %@ OR value == %@","","PDFに記載された全文"),object:e)
         let cleared=XCTWaiter.wait(for:[empty],timeout:5)
         if cleared != .completed {

@@ -86,6 +86,8 @@ def view(text):
             }''')
     field_setter = 'RecoveryManualInput.update($0,id:field.id,original:field.originalText,values:&manualValues,acknowledged:&manualAcknowledged)'
     text = once(text, field_setter, 'SimulatorManualFixture.event("text",id:field.id,old:manualValues[field.id] ?? field.originalText,new:$0); ' + field_setter)
+    clear_setter = 'RecoveryManualInput.update("",id:field.id,original:field.originalText,values:&manualValues,acknowledged:&manualAcknowledged)'
+    text = once(text, clear_setter, 'SimulatorManualFixture.event("clear",id:field.id,old:manualValues[field.id] ?? field.originalText,new:""); ' + clear_setter)
     text = once(text, 'manualAcknowledged[field.id] = $0', 'SimulatorManualFixture.event("ack",id:field.id,old:String(manualAcknowledged[field.id] ?? false),new:String($0)); manualAcknowledged[field.id] = $0')
     text = once(text, '.onChange(of:coordinator.manualDraft?.id) { _,_ in', '.onChange(of:coordinator.manualDraft?.id) { old,new in SimulatorManualFixture.event("draft",id:"snapshot",old:old ?? "nil",new:new ?? "nil")')
     text = once(text, 'Section("採用する資料全体") {', 'Section {')

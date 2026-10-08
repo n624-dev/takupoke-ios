@@ -32,7 +32,8 @@ class ManualUIProjectTests(unittest.TestCase):
     def test_editor_uses_physical_clear_and_checks_full_replacement(self):
         checks=(ROOT/"tests/ui/ManualAssistanceChecks.swift").read_text(encoding="utf-8")
         edit=checks.split('    private func edit(',1)[1].split('    private func editStage(',1)[0]
-        self.assertLess(edit.index('visible(clear).tap()'),edit.index('e.typeText(value)'))
+        self.assertLess(edit.index('let target=visible(clear)'),edit.index('target.tap()'))
+        self.assertLess(edit.index('target.tap()'),edit.index('e.typeText(value)'))
         self.assertIn('Native clear must remove the entire previous input',edit)
         self.assertIn('Clearing text must revoke prior acknowledgement',edit)
         self.assertIn('The physical edit must replace the full previous input',edit)
