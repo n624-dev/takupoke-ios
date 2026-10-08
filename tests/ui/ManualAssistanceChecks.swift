@@ -79,7 +79,11 @@ final class ManualAssistanceChecks:XCTestCase {
             let exists=e.exists,targetFrame=exists ? e.frame:nil
             if exists && e.isHittable {
                 let editor=e.elementType == .textField || e.elementType == .textView
-                if !editor { return e }
+                // The44px clear control is taller than a single-line editor.
+                // Hittable alone can include a control straddling the keyboard
+                // accessory. Reveal the whole control before a native tap.
+                let boundedControl=editor || e.identifier.hasPrefix("manual-clear-")
+                if !boundedControl { return e }
                 if let frame=targetFrame,ManualScrollNavigation.usable(frame),frame.minY>=top,frame.maxY<=bottom { return e }
             }
             if exists && targetID.isEmpty { targetID=e.identifier }
