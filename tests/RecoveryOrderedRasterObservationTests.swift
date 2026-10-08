@@ -41,6 +41,34 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
             let left=try XCTUnwrap(vertical.first).x1,right=try XCTUnwrap(vertical.dropFirst().first).x1
             let horizontal=rules.filter{$0.horizontal && $0.x1<=left+0.3 && $0.x2>=right-0.3}.map(\.y1).sorted()
             var captures=[(RecoveryBox,[[String:Any]],[[String:Any]])]()
+            // Diagnostic only: quantify whether native character boxes share
+            // original ink. A shared baseline/cell is never a merge permission.
+            // Pixel centers and every original nonwhite pixel are used without
+            // clipping native boxes, suppressing faint ink or OCR-driven crops.
+            func characterInk(_ lines:[[String:Any]],crop:RecoveryBox) -> [String:Any] {
+                let characters=lines.flatMap { $0["topCandidateCharacters"] as? [[String:Any]] ?? [] }
+                let boxes=characters.compactMap { character -> (Int,[Double])? in
+                    guard let line=character["observationOrder"] as? Int,
+                          let b=character["originalPageBox"] as? [Double],b.count == 4,
+                          b.allSatisfy(\.isFinite),b[2]>0,b[3]>0 else {return nil}
+                    return (line,b)
+                }
+                var total=0,uncovered=0,once=0,shared=0,sharedObservations=0
+                for y in Int(crop.y)..<Int(crop.y+crop.height) {
+                    for x in Int(crop.x)..<Int(crop.x+crop.width) where raster.grayscale[y*cg.width+x]<255 {
+                        total+=1
+                        let centerX=Double(x)+0.5,centerY=Double(y)+0.5
+                        let owners=boxes.filter { _,b in centerX>=b[0] && centerX<b[0]+b[2] && centerY>=b[1] && centerY<b[1]+b[3] }
+                        if owners.isEmpty {uncovered+=1} else if owners.count==1 {once+=1} else {shared+=1}
+                        if Set(owners.map { $0.0 }).count>1 {sharedObservations+=1}
+                    }
+                }
+                XCTAssertEqual(total,uncovered+once+shared)
+                return ["characters":characters.count,"usableRawBoxes":boxes.count,
+                    "originalNonwhitePixels":total,"uncoveredInkPixels":uncovered,
+                    "singleOwnerInkPixels":once,"multipleCharacterOwnerInkPixels":shared,
+                    "multipleObservationOwnerInkPixels":sharedObservations,"assemblyPermitted":false]
+            }
             var calls=0
             func observed(_ lines:[RecognizedTextObservation],crop:RecoveryBox,parent:RecoveryBox) throws -> [[String:Any]] {
                 try lines.enumerated().map { order,line in
@@ -58,7 +86,18 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                     XCTAssertLessThanOrEqual(global.y+global.height,parent.y+parent.height)
                     return ["lineOrder":order,"originalPageBox":[global.x,global.y,global.width,global.height],
                         "containedInInputCrop":insideCrop,
-                        "candidates":line.topCandidates(5).map{["text":$0.string,"nativeScore":Double($0.confidence)]}]
+                        "candidates":line.topCandidates(5).map{["text":$0.string,"nativeScore":Double($0.confidence)]},
+                        "topCandidateCharacters":line.topCandidates(1).flatMap { candidate in
+                            candidate.string.indices.enumerated().map { characterOrder,start -> [String:Any] in
+                                let end=candidate.string.index(after:start)
+                                let range=candidate.boundingBox(for:start..<end)?.boundingBox.cgRect
+                                let rawBox=range.map { b in [crop.x+Double(b.minX)*crop.width,
+                                    crop.y+Double(1-b.maxY)*crop.height,Double(b.width)*crop.width,Double(b.height)*crop.height] }
+                                return ["sourceId":"line-\(order)-character-\(characterOrder)",
+                                    "observationOrder":order,"text":String(candidate.string[start..<end]),
+                                    "originalPageBox":rawBox as Any? ?? NSNull()]
+                            }
+                        }]
                 }
             }
             for (top,bottom) in zip(horizontal,horizontal.dropFirst()) {
@@ -102,6 +141,8 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                 let report:[String:Any]=["case":item["case"]!,"page":1,"physicalRow":index,
                     "cropBox":[capture.0.x,capture.0.y,capture.0.width,capture.0.height],
                     "documents":capture.1,"accurateNoCorrection":capture.2,
+                    "documentsCharacterInk":characterInk(capture.1,crop:capture.0),
+                    "accurateCharacterInk":characterInk(capture.2,crop:capture.0),
                     "expectedAfterRecognition":index<expected.count ? expected[index]:"",
                     "inputRegion":"all original nonwhite pixels plus fixed4px margin",
                     "qualified":false,"scoreSubstitution":false,"adoptionCalls":0]
