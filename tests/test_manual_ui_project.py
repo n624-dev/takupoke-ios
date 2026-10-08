@@ -267,7 +267,8 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertNotIn('sleep(',acknowledge)
         self.assertNotIn('for ',acknowledge)
         self.assertIn('XCTNSPredicateExpectation',acknowledge)
-        self.assertIn('timeout:5',acknowledge)
+        self.assertIn('private let nativeStateTimeout:TimeInterval=45',checks)
+        self.assertIn('timeout:nativeStateTimeout',acknowledge)
         self.assertNotIn('row.tap()',acknowledge)
         self.assertIn('acknowledge(ids[i])',checks)
 

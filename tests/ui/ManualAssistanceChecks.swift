@@ -60,6 +60,9 @@ private struct ManualScrollNavigation {
 
 final class ManualAssistanceChecks:XCTestCase {
     private var app:XCUIApplication!
+    // AX snapshots on a loaded simulator can take longer than five seconds.
+    // Keep every native state assertion, allowing bounded time to observe it.
+    private let nativeStateTimeout:TimeInterval=45
     override func setUp() { continueAfterFailure=false;app=XCUIApplication() }
     private func launch(_ flags:[String]=[]) {
         app.launchArguments=["--reset-fixture","--manual-ui","--manual-integral-rails","-AppleLanguages","(ja)","-AppleLocale","ja_JP"]+flags
@@ -227,7 +230,7 @@ final class ManualAssistanceChecks:XCTestCase {
             .withOffset(CGVector(dx:point.x-appFrame.minX,dy:point.y-appFrame.minY)).tap()
         print("TAKUPOKE-MANUAL-ACK after;outer=\(row.frame);inner=\(actual.frame);value=\(row.value as? String ?? "unknown")")
         let changed=XCTNSPredicateExpectation(predicate:NSPredicate(format:"value == %@","1"),object:row)
-        let outcome=XCTWaiter.wait(for:[changed],timeout:5)
+        let outcome=XCTWaiter.wait(for:[changed],timeout:nativeStateTimeout)
         let state=app.staticTexts["manual-input-state"].firstMatch
         print("TAKUPOKE-MANUAL-INPUT " + (state.exists ? state.label : "absent"))
         emitEvents()
@@ -236,7 +239,7 @@ final class ManualAssistanceChecks:XCTestCase {
     private func assertSubmitEnabled(_ expected:Bool) {
         let button=visible(submit)
         let changed=XCTNSPredicateExpectation(predicate:NSPredicate(format:"enabled == %@",NSNumber(value:expected)),object:button)
-        let outcome=XCTWaiter.wait(for:[changed],timeout:5)
+        let outcome=XCTWaiter.wait(for:[changed],timeout:nativeStateTimeout)
         let state=app.staticTexts["manual-input-state"].firstMatch
         print("TAKUPOKE-MANUAL-INPUT " + (state.exists ? state.label : "absent"))
         XCTAssertEqual(outcome,.completed,app.debugDescription)
@@ -246,13 +249,13 @@ final class ManualAssistanceChecks:XCTestCase {
         editStage("after-focus",e)
         let id=e.identifier.replacingOccurrences(of:"manual-value-",with:"")
         let clear=app.buttons["manual-clear-"+id].firstMatch
-        XCTAssertTrue(clear.waitForExistence(timeout:5),app.debugDescription)
+        XCTAssertTrue(clear.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
         let target=visible(clear)
         print("TAKUPOKE-MANUAL-CLEAR-TAP id=\(id);frame=\(target.frame);enabled=\(target.isEnabled);hittable=\(target.isHittable)")
         XCTAssertTrue(target.isEnabled)
         target.tap()
         let empty=XCTNSPredicateExpectation(predicate:NSPredicate(format:"value == %@ OR value == %@","","PDFに記載された全文"),object:e)
-        let cleared=XCTWaiter.wait(for:[empty],timeout:5)
+        let cleared=XCTWaiter.wait(for:[empty],timeout:nativeStateTimeout)
         if cleared != .completed {
             let state=app.staticTexts["manual-input-state"].firstMatch
             print("TAKUPOKE-MANUAL-CLEAR id=\(id);value=\(String(describing:e.value));state=\(state.exists ? state.label:"absent")")
@@ -266,11 +269,11 @@ final class ManualAssistanceChecks:XCTestCase {
         // The product commits text and dismisses the keyboard; it never checks
         // acknowledgement on the user's behalf.
         let done=app.buttons["manual-edit-done"].firstMatch
-        XCTAssertTrue(done.waitForExistence(timeout:5),app.debugDescription)
+        XCTAssertTrue(done.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
         XCTAssertTrue(done.isHittable,app.debugDescription)
         done.tap()
         let dismissed=XCTNSPredicateExpectation(predicate:NSPredicate(format:"exists == false"),object:app.keyboards.firstMatch)
-        XCTAssertEqual(XCTWaiter.wait(for:[dismissed],timeout:5),.completed,app.debugDescription)
+        XCTAssertEqual(XCTWaiter.wait(for:[dismissed],timeout:nativeStateTimeout),.completed,app.debugDescription)
         XCTAssertEqual(e.value as? String,value,"The physical edit must replace the full previous input before acknowledgement")
     }
     private func editStage(_ stage:String,_ e:XCUIElement) {
