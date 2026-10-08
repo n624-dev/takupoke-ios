@@ -135,12 +135,20 @@ final class ApplicationChecks: XCTestCase {
         print("NOTIFICATION_SWITCH before row=\(toggle.frame) control=\(control.frame) value=\(String(describing: toggle.value))")
         recoveryScreenshot("notification-switch-before")
         control.tap()
-        // An app interaction dispatches the interruption monitor. The title
-        // area is inert when permission was already granted; do not tap the
-        // switch twice and undo the requested state.
-        app.navigationBars["通知"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        let enabled = expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: toggle)
-        guard XCTWaiter.wait(for: [enabled], timeout: 15) == .completed else {
+        // requestAuthorization is asynchronous. A single immediate gesture
+        // can precede the system alert and never dispatch the monitor again.
+        // Only the inert title is revisited; never toggle twice or grant
+        // permission through fixtures/system preference injection.
+        var didEnable = false
+        for _ in 0..<3 {
+            app.navigationBars["通知"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            let enabled = expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: toggle)
+            if XCTWaiter.wait(for: [enabled], timeout: 15) == .completed {
+                didEnable = true
+                break
+            }
+        }
+        guard didEnable else {
             print("NOTIFICATION_SWITCH unresolved value=\(String(describing: toggle.value)) enabled=\(toggle.isEnabled) tree=\(app.debugDescription)")
             recoveryScreenshot("notification-switch-unresolved")
             XCTFail("Native notification switch activation did not complete permission and enablement")
