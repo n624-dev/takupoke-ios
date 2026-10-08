@@ -59,8 +59,21 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                 let cell=RecoveryBox(x:left,y:top,width:right-left,height:bottom-top)
                 guard cell.valid,cell.width>8,cell.height>8,
                       !prepared.isBlank(cell,rules:rules) else {continue}
-                let crop=RecoveryBox(x:ceil(left)+2,y:ceil(top)+2,
+                let physical=RecoveryBox(x:ceil(left)+2,y:ceil(top)+2,
                     width:floor(right)-ceil(left)-4,height:floor(bottom)-ceil(top)-4)
+                // New fixed recipe: retain every original nonwhite pixel and
+                // four pixels of margin, without resampling or OCR-driven bounds.
+                var minX=Int(physical.x+physical.width),minY=Int(physical.y+physical.height),maxX = -1,maxY = -1
+                for y in Int(physical.y)..<Int(physical.y+physical.height) {
+                    for x in Int(physical.x)..<Int(physical.x+physical.width) where raster.grayscale[y*cg.width+x]<255 {
+                        minX=min(minX,x);minY=min(minY,y);maxX=max(maxX,x);maxY=max(maxY,y)
+                    }
+                }
+                XCTAssertGreaterThanOrEqual(maxX,minX);XCTAssertGreaterThanOrEqual(maxY,minY)
+                let x=max(Int(physical.x),minX-4),y=max(Int(physical.y),minY-4)
+                let crop=RecoveryBox(x:Double(x),y:Double(y),
+                    width:Double(min(Int(physical.x+physical.width),maxX+5)-x),
+                    height:Double(min(Int(physical.y+physical.height),maxY+5)-y))
                 XCTAssertTrue(crop.valid)
                 let pixels=try XCTUnwrap(cg.cropping(to:CGRect(x:crop.x,y:crop.y,width:crop.width,height:crop.height)))
                 var documents=RecoveryVisionCapture.request()
@@ -84,6 +97,7 @@ final class RecoveryOrderedRasterObservationTests:XCTestCase {
                     "cropBox":[capture.0.x,capture.0.y,capture.0.width,capture.0.height],
                     "documents":capture.1,"accurateNoCorrection":capture.2,
                     "expectedAfterRecognition":index<expected.count ? expected[index]:"",
+                    "inputRegion":"all original nonwhite pixels plus fixed4px margin",
                     "qualified":false,"scoreSubstitution":false,"adoptionCalls":0]
                 print("ORDERED_RASTER_CLASS_PAIR "+String(decoding:try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]),as:UTF8.self))
             }
