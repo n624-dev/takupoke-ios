@@ -18,17 +18,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - name: Prepare owned Python and paired invented PDFs
-        run: |
-          python3 -m venv "$RUNNER_TEMP/ordered-raster-python-owned"
-          "$RUNNER_TEMP/ordered-raster-python-owned/bin/python" -m pip install --no-cache-dir --disable-pip-version-check -r tools/independent-wide-timetable/requirements.txt
-          "$RUNNER_TEMP/ordered-raster-python-owned/bin/python" -B tools/ordered-row-e2e/generate_readable.py --output "$RUNNER_TEMP/ordered-raster-owned"
-      - name: Compare every physical class-column crop without vocabulary repair
+      - name: Measure independent native confidence by item and original position
         run: bash tools/test-parsing.sh
         env:
-          TAKUPOKE_ORDERED_RASTER_FIXTURES: ${{ runner.temp }}/ordered-raster-owned
-          TAKUPOKE_ORDERED_RASTER_READABLE: '1'
-          TAKUPOKE_ORDERED_RASTER_HEADER_PAIR: '1'
-      - name: Remove all owned images and dependencies
-        if: always()
-        run: rm -rf "$RUNNER_TEMP/ordered-raster-owned" "$RUNNER_TEMP/ordered-raster-python-owned"
+          TAKUPOKE_NATIVE_SCORE_BOUNDARY: '1'
