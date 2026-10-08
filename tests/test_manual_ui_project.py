@@ -32,7 +32,7 @@ class ManualUIProjectTests(unittest.TestCase):
     def test_editor_uses_physical_clear_and_checks_full_replacement(self):
         checks=(ROOT/"tests/ui/ManualAssistanceChecks.swift").read_text(encoding="utf-8")
         edit=checks.split('    private func edit(',1)[1].split('    private func editStage(',1)[0]
-        self.assertLess(edit.index('let target=visible(clear)'),edit.index('target.tap()'))
+        self.assertLess(edit.index('let target=visible(clear,knownID:'),edit.index('target.tap()'))
         self.assertLess(edit.index('target.tap()'),edit.index('e.typeText(value)'))
         self.assertIn('Native clear must remove the entire previous input',edit)
         self.assertIn('Clearing text must revoke prior acknowledgement',edit)
@@ -245,7 +245,9 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('frame.intersection(viewport)',checks)
         self.assertIn('$0.pickers.count==0 && $0.pickerWheels.count==0',checks)
         self.assertIn('upward ? safe.maxY-12:safe.minY+12',checks)
-        self.assertIn('upward ? viewport.minY+12:viewport.maxY-12',checks)
+        self.assertIn('upward ? viewport.minY+12:min(viewport.maxY-12,startY+240)',checks)
+        self.assertIn('navigationState.observe(anchor:anchor,atTop:observedTop)',checks)
+        self.assertNotIn('if inRecovery && !navigationState.upward',checks)
         self.assertIn('app.navigationBars["時間割の復旧"]',checks)
         self.assertIn('unchanged>=2',checks)
         self.assertIn('guard !reversed',checks)

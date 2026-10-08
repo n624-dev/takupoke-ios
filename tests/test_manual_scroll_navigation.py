@@ -103,10 +103,32 @@ final class GeometryControls:XCTestCase {
   var state=ManualScrollNavigation(initiallyUpward:false)
   state.locate(target:below,owner:nil,viewport:viewport);XCTAssertTrue(state.upward)
  }
+ func testObservedFirstRowPreventsFurtherDownwardSearch() {
+  var state=ManualScrollNavigation(initiallyUpward:false)
+  state.locate(target:above,owner:above,viewport:viewport)
+  state.observeTopBoundary();XCTAssertTrue(state.upward)
+ }
+ func testObservedTopDoesNotGrantAnotherNoProgressReversal() {
+  var state=ManualScrollNavigation();for _ in 0..<3 { XCTAssertTrue(state.observe(anchor:"same")) }
+  XCTAssertTrue(state.reversed);state.observeTopBoundary();XCTAssertTrue(state.upward)
+  XCTAssertTrue(state.observe(anchor:"same"));XCTAssertFalse(state.observe(anchor:"same"))
+  XCTAssertTrue(state.reversed)
+ }
+ func testObservedTopOverridesAnIncompatibleSpeculativeReversal() {
+  var state=ManualScrollNavigation();for _ in 0..<3 { XCTAssertTrue(state.observe(anchor:"same")) }
+  XCTAssertFalse(state.upward);state.observeTopBoundary();XCTAssertTrue(state.upward)
+ }
+ func testUpToDownNoProgressReversalCannotDragPastObservedTop() {
+  var state=ManualScrollNavigation()
+  for _ in 0..<3 { XCTAssertTrue(state.observe(anchor:"same",atTop:true));XCTAssertTrue(state.upward) }
+  XCTAssertTrue(state.reversed)
+  XCTAssertTrue(state.observe(anchor:"same",atTop:true))
+  XCTAssertFalse(state.observe(anchor:"same",atTop:true))
+ }
 }
 '''.replace("HELPER", helper)
         cases = re.findall(r"func (test\w+)\(", controls)
-        self.assertEqual(len(cases), 17)
+        self.assertEqual(len(cases), 21)
         controls += "\nXCTMain([testCase([\n" + "".join(
             f'("{name}", GeometryControls.{name}),\n' for name in cases) + "])])\n"
         with tempfile.TemporaryDirectory(prefix="manual-scroll-controls-") as directory:
@@ -119,7 +141,7 @@ final class GeometryControls:XCTestCase {
             self.assertEqual(compiled.returncode, 0, compiled.stdout + compiled.stderr)
             actual = subprocess.run([str(scratch / "controls")], capture_output=True, text=True, timeout=30)
             self.assertEqual(actual.returncode, 0, actual.stdout + actual.stderr)
-            self.assertIn("Executed 17 tests, with 0 failures", actual.stdout)
+            self.assertIn("Executed 21 tests, with 0 failures", actual.stdout)
             print(actual.stdout)
 
     def test_qa_only_owner_resolution_and_existing_caps_are_preserved(self):

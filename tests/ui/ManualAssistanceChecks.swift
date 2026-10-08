@@ -46,13 +46,20 @@ private struct ManualScrollNavigation {
         // Unknown/zero/infinite/in-viewport geometry keeps the last direction,
         // including the one bounded no-progress reversal.
     }
-    mutating func observe(anchor:String)->Bool {
+    mutating func observeTopBoundary() {
+        // The actual first List row is visible: a further downward drag can
+        // move the sheet instead of its content. Search forward without adding
+        // another speculative no-progress reversal.
+        upward=true
+    }
+    mutating func observe(anchor:String,atTop:Bool=false)->Bool {
         unchanged=anchor==previousAnchor ? unchanged+1:0
         previousAnchor=anchor
         if unchanged>=2 {
             guard !reversed else { return false }
             upward.toggle();reversed=true;unchanged=0
         }
+        if atTop { observeTopBoundary() }
         return true
     }
 }
@@ -69,34 +76,57 @@ final class ManualAssistanceChecks:XCTestCase {
         app.launch();XCTAssertTrue(app.staticTexts["fixture-ready"].waitForExistence(timeout:45),app.debugDescription)
         app.tabBars.buttons["設定"].tap();tap("時間割ファイル");tap("通常時間割の詳細を見る");tap("端末内で復旧する");tap("端末内で復旧を開始")
     }
-    private func visible(_ e:XCUIElement,towardTop:Bool=false)->XCUIElement {
+    private func visible(_ e:XCUIElement,towardTop:Bool=false,knownID:String="")->XCUIElement {
         let recoveryList=app.collectionViews["manual-recovery-list"]
-        let list=recoveryList.exists ? recoveryList : app.collectionViews.firstMatch
-        var navigationState=ManualScrollNavigation(initiallyUpward:!towardTop),targetID=""
+        let inRecovery=recoveryList.exists || app.navigationBars["時間割の復旧"].exists
+        if inRecovery { XCTAssertTrue(recoveryList.waitForExistence(timeout:nativeStateTimeout)) }
+        let list=inRecovery ? recoveryList : app.collectionViews.firstMatch
+        var navigationState=ManualScrollNavigation(initiallyUpward:!towardTop),targetID=knownID
         for attempt in 0..<16 {
-            let navigation=recoveryList.exists ? app.navigationBars["時間割の復旧"] : app.navigationBars.firstMatch
+            if inRecovery {
+                guard recoveryList.exists,app.navigationBars["時間割の復旧"].exists else {
+                    XCTFail("The recovery sheet disappeared during navigation: "+app.debugDescription);return e
+                }
+            }
+            // SwiftUI can recycle the native editor when its row is offscreen.
+            // Resolve its known identifier again, without a cached native type.
+            let matches=targetID.isEmpty ? []:app.descendants(matching:.any).matching(identifier:targetID).allElementsBoundByIndex
+            let target=matches.first ?? e
+            let navigation=inRecovery ? app.navigationBars["時間割の復旧"] : app.navigationBars.firstMatch
             let top=max(list.frame.minY,navigation.frame.maxY)+12
             let bottom=min(list.frame.maxY,app.keyboards.firstMatch.exists ? app.keyboards.firstMatch.frame.minY-45 : list.frame.maxY)-12
             let viewport=CGRect(x:list.frame.minX+100,y:top,width:1,height:max(0,bottom-top))
             guard ManualScrollNavigation.usable(viewport),viewport.height>36 else {
                 print("TAKUPOKE-MANUAL-SCROLL invalid-viewport;\(viewport)");break
             }
-            let exists=e.exists,targetFrame=exists ? e.frame:nil
-            if exists && e.isHittable {
-                let editor=e.elementType == .textField || e.elementType == .textView
+            let exists=targetID.isEmpty ? target.exists:!matches.isEmpty
+            let targetFrame=exists ? target.frame:nil
+            if exists && target.isHittable {
+                let editor=target.elementType == .textField || target.elementType == .textView
                 // The44px clear control is taller than a single-line editor.
                 // Hittable alone can include a control straddling the keyboard
                 // accessory. Reveal the whole control before a native tap.
-                let boundedControl=editor || e.identifier.hasPrefix("manual-clear-")
-                if !boundedControl { return e }
-                if let frame=targetFrame,ManualScrollNavigation.usable(frame),frame.minY>=top,frame.maxY<=bottom { return e }
+                let boundedControl=editor || target.identifier.hasPrefix("manual-clear-")
+                if !boundedControl { return target }
+                if let frame=targetFrame,ManualScrollNavigation.usable(frame),frame.minY>=top,frame.maxY<=bottom { return target }
             }
-            if exists && targetID.isEmpty { targetID=e.identifier }
+            if exists && targetID.isEmpty { targetID=target.identifier }
             // Resolve the unique actual containing Cell, even when its focused
             // child exposes an infinite/zero or stale in-viewport frame.
             let owners=targetID.isEmpty ? []:list.cells.containing(.any,identifier:targetID).allElementsBoundByIndex
             let ownerFrame=owners.count==1 ? owners[0].frame:nil
             navigationState.locate(target:targetFrame,owner:ownerFrame,viewport:viewport)
+            var observedTop=false
+            if inRecovery {
+                let firstRows=list.staticTexts.matching(NSPredicate(format:"label == %@","学校の資料・OCR文字・授業情報は端末内で処理され、外部のAIへ送信されません。")).allElementsBoundByIndex
+                if firstRows.count==1 {
+                    let frame=firstRows[0].frame
+                    if ManualScrollNavigation.usable(frame),frame.minY>=top,frame.maxY<=bottom {
+                        observedTop=true
+                        navigationState.observeTopBoundary()
+                    }
+                }
+            }
             // Pick a real passive Cell on each attempt, including preview lesson/header rows.
             // Never start a drag on an editor, button, switch, keyboard or outer List gutter.
             let cells=list.cells.allElementsBoundByIndex.filter {
@@ -118,8 +148,9 @@ final class ManualAssistanceChecks:XCTestCase {
                 print("TAKUPOKE-MANUAL-SCROLL no-passive-cell;list=\(list.frame);viewport=\(viewport)")
                 break
             }
-            let anchor="\(firstCell.label);\(firstCell.staticTexts.firstMatch.exists ? firstCell.staticTexts.firstMatch.label:"");\(firstCell.images.firstMatch.exists ? firstCell.images.firstMatch.identifier:"");\(firstCell.frame)"
-            guard navigationState.observe(anchor:anchor) else {
+            let anchorFrame=firstCell.frame.offsetBy(dx:-list.frame.minX,dy:-list.frame.minY)
+            let anchor="\(firstCell.label);\(firstCell.staticTexts.firstMatch.exists ? firstCell.staticTexts.firstMatch.label:"");\(firstCell.images.firstMatch.exists ? firstCell.images.firstMatch.identifier:"");\(anchorFrame)"
+            guard navigationState.observe(anchor:anchor,atTop:observedTop) else {
                 print("TAKUPOKE-MANUAL-SCROLL no-progress-after-reverse;\(anchor)");break
             }
             // A reversal must also select the passive start Cell for its new direction.
@@ -128,9 +159,17 @@ final class ManualAssistanceChecks:XCTestCase {
             print("TAKUPOKE-MANUAL-SCROLL attempt=\(attempt);up=\(upward);anchor=\(anchor);target=\(targetFrame.map { String(describing:$0) } ?? "virtualized");owner=\(ownerFrame.map { String(describing:$0) } ?? "unknown");reversed=\(navigationState.reversed)")
             let base=list.coordinate(withNormalizedOffset:CGVector(dx:0,dy:0))
             // Touch begins inside the passive Cell; the pan can continue across the List.
-            // Viewport-sized drags retain the16-attempt cap for the complete40-slot preview.
-            let start=base.withOffset(CGVector(dx:100,dy:(upward ? safe.maxY-12:safe.minY+12)-list.frame.minY))
-            let end=base.withOffset(CGVector(dx:100,dy:(upward ? viewport.minY+12:viewport.maxY-12)-list.frame.minY))
+            // Upward viewport-sized drags cover the complete40-slot preview.
+            // Downward steps stay bounded, with the same16-attempt total cap.
+            let startY=upward ? safe.maxY-12:safe.minY+12
+            let endY=upward ? viewport.minY+12:min(viewport.maxY-12,startY+240)
+            if inRecovery {
+                guard recoveryList.exists,app.navigationBars["時間割の復旧"].exists else {
+                    XCTFail("The recovery sheet disappeared before its gesture: "+app.debugDescription);return e
+                }
+            }
+            let start=base.withOffset(CGVector(dx:100,dy:startY-list.frame.minY))
+            let end=base.withOffset(CGVector(dx:100,dy:endY-list.frame.minY))
             start.press(forDuration:0.1,thenDragTo:end)
         }
         XCTAssertTrue(e.exists && e.isHittable,app.debugDescription)
@@ -244,12 +283,11 @@ final class ManualAssistanceChecks:XCTestCase {
         print("TAKUPOKE-MANUAL-INPUT " + (state.exists ? state.label : "absent"))
         XCTAssertEqual(outcome,.completed,app.debugDescription)
     }
-    private func edit(_ e:XCUIElement,_ value:String) {
-        _=visible(e)
-        let id=e.identifier.replacingOccurrences(of:"manual-value-",with:"")
+    private func edit(_ original:XCUIElement,_ value:String,id:String) {
+        let e=visible(original,knownID:"manual-value-"+id)
         let clear=app.buttons["manual-clear-"+id].firstMatch
         XCTAssertTrue(clear.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
-        let target=visible(clear)
+        let target=visible(clear,knownID:"manual-clear-"+id)
         print("TAKUPOKE-MANUAL-CLEAR-TAP id=\(id);frame=\(target.frame);enabled=\(target.isEnabled);hittable=\(target.isHittable)")
         XCTAssertTrue(target.isEnabled)
         target.tap()
@@ -290,7 +328,7 @@ final class ManualAssistanceChecks:XCTestCase {
         inspectSource(key)
         XCTAssertEqual(visible(ack(key)).value as? String,"0")
         assertSubmitEnabled(false)
-        let value="架空手確認科目";edit(input,value);acknowledge(key)
+        let value="架空手確認科目";edit(input,value,id:key);acknowledge(key)
         assertSubmitEnabled(true)
         tap("架空検証");tap("表示サイズを変更")
         XCTAssertEqual(visible(input).value as? String,value);XCTAssertEqual(visible(ack(key)).value as? String,"1")
@@ -310,7 +348,7 @@ final class ManualAssistanceChecks:XCTestCase {
         print("TAKUPOKE-MANUAL-PROCESS expected=\(processBefore);observed=\(app.staticTexts["manual-process-launch"].firstMatch.label)")
         XCTAssertEqual(app.staticTexts["manual-process-launch"].firstMatch.label,processBefore,"Background must preserve the original process; relaunch is not survival")
         XCTAssertEqual(visible(input).value as? String,value);XCTAssertEqual(visible(ack(key)).value as? String,"1")
-        edit(input,value+"改");XCTAssertEqual(visible(ack(key)).value as? String,"0")
+        edit(input,value+"改",id:key);XCTAssertEqual(visible(ack(key)).value as? String,"0")
         assertSubmitEnabled(false)
         XCTAssertTrue(app.images.matching(NSPredicate(format:"identifier BEGINSWITH 'manual-crop-'")).firstMatch.exists)
         acknowledge(key);visible(submit).tap()
@@ -327,7 +365,7 @@ final class ManualAssistanceChecks:XCTestCase {
         // and cannot reuse the previously validated correction review.
         tap("入力を見直す")
         XCTAssertEqual(visible(input).value as? String,value+"改")
-        edit(input,value+"再確認");XCTAssertEqual(visible(ack(key)).value as? String,"0")
+        edit(input,value+"再確認",id:key);XCTAssertEqual(visible(ack(key)).value as? String,"0")
         assertSubmitEnabled(false);acknowledge(key);visible(submit).tap()
         requireReview([value+"再確認"],comparable:false)
         inspectSource(key)
@@ -344,7 +382,7 @@ final class ManualAssistanceChecks:XCTestCase {
     }
     func testChangedOriginalCannotSubmitOrReplaceLastGood() {
         launch();XCTAssertTrue(fieldsExist())
-        let key=fieldIDs[0];edit(input(key),"架空変更前確認");acknowledge(key)
+        let key=fieldIDs[0];edit(input(key),"架空変更前確認",id:key);acknowledge(key)
         tap("架空検証");tap("架空原本のハッシュを変更")
         XCTAssertTrue(app.staticTexts["manual-mutation-complete"].waitForExistence(timeout:10),app.debugDescription)
         visible(submit).tap()
@@ -353,7 +391,7 @@ final class ManualAssistanceChecks:XCTestCase {
         XCTAssertFalse(app.buttons["この資料全体の結果を使用"].exists)
         app.terminate();launch()
         XCTAssertTrue(fieldsExist())
-        let second=fieldIDs[0];edit(input(second),"架空再照合");acknowledge(second);visible(submit).tap()
+        let second=fieldIDs[0];edit(input(second),"架空再照合",id:second);acknowledge(second);visible(submit).tap()
         requireReview(["架空再照合"],comparable:false)
         tap("架空検証");tap("架空原本のハッシュを変更")
         XCTAssertTrue(app.staticTexts["manual-mutation-complete"].waitForExistence(timeout:10),app.debugDescription)
@@ -366,7 +404,7 @@ final class ManualAssistanceChecks:XCTestCase {
         launch(["--manual-three","--manual-comparable-prior"])
         XCTAssertTrue(fieldsExist());let ids=fieldIDs;XCTAssertEqual(ids.count,3)
         for i in 0..<3 {
-            let input=input(ids[i]);edit(input,"架空手確認\(i)")
+            let input=input(ids[i]);edit(input,"架空手確認\(i)",id:ids[i])
             let ack=ack(ids[i]);XCTAssertEqual(visible(ack).value as? String,"0");acknowledge(ids[i])
             assertSubmitEnabled(i==2)
         }
