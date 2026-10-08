@@ -146,7 +146,12 @@ final class ManualAssistanceChecks:XCTestCase {
                 break
             }
             let anchorFrame=firstCell.frame.offsetBy(dx:-list.frame.minX,dy:-list.frame.minY)
-            let anchor="\(firstCell.label);\(firstCell.staticTexts.firstMatch.exists ? firstCell.staticTexts.firstMatch.label:"");\(firstCell.images.firstMatch.exists ? firstCell.images.firstMatch.identifier:"");\(anchorFrame)"
+            // Use actual descendants from this passive row. Asking whether an
+            // absent firstMatch image exists can time out in iOS 27 AX even
+            // after the same row's real text was found successfully.
+            let anchorTexts=firstCell.staticTexts.allElementsBoundByIndex
+            let anchorImages=anchorTexts.isEmpty ? firstCell.images.allElementsBoundByIndex:[]
+            let anchor="\(firstCell.label);\(anchorTexts.first?.label ?? "");\(anchorImages.first?.identifier ?? "");\(anchorFrame)"
             guard navigationState.observe(anchor:anchor,atTop:observedTop) else {
                 print("TAKUPOKE-MANUAL-SCROLL no-progress-after-reverse;\(anchor)");break
             }

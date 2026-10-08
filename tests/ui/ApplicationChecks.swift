@@ -38,7 +38,17 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertTrue(app.tabBars.buttons["ホーム"].waitForExistence(timeout: 30), app.debugDescription)
     }
     private func launchReady() {
+        // One launch after confirmed process termination. A persistence check
+        // must not overlap the previous process or be rescued by a relaunch.
+        if app.state != .notRunning { app.terminate() }
+        guard app.wait(for: .notRunning, timeout: 45) else {
+            XCTFail("Previous fixture process did not terminate"); return
+        }
+        print("UI_LAUNCH terminated; starting one new process")
         app.launch()
+        guard app.wait(for: .runningForeground, timeout: 45) else {
+            XCTFail("New fixture process did not enter foreground"); return
+        }
         XCTAssertTrue(app.staticTexts["fixture-ready"].waitForExistence(timeout: 45), app.debugDescription)
     }
     private func screen(_ title: String) {
@@ -101,6 +111,23 @@ final class ApplicationChecks: XCTestCase {
             return
         }
         button.tap()
+    }
+    private func tapSetupNext(from title: String) {
+        let navigation = app.navigationBars[title]
+        let buttons = app.buttons.matching(NSPredicate(format: "label == %@", "次へ"))
+        guard navigation.waitForExistence(timeout: 45), buttons.count == 1 else {
+            XCTFail("Setup must expose one next button on its current page"); return
+        }
+        let button = buttons.element(boundBy: 0)
+        let frame = button.frame, page = app.frame, bar = navigation.frame
+        // The safe-area footer is outside the scrolling body. A tab bar from
+        // the presenting Settings page must not clip this sheet's hit region.
+        guard usable(frame), usable(page), usable(bar), page.contains(frame), frame.minY >= bar.maxY,
+              button.isEnabled, button.isHittable else {
+            XCTFail("Setup footer has no visible native hit region: " + app.debugDescription); return
+        }
+        print("SETUP_FOOTER page=\(title);button=\(frame)")
+        button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
     }
     private func heading(_ title: String) -> XCUIElement {
         visible(app.staticTexts[title].firstMatch)
@@ -1045,7 +1072,7 @@ final class ApplicationChecks: XCTestCase {
         tap("初期設定")
         screen("データを取得")
         XCTAssertTrue(app.buttons["あとで設定"].waitForExistence(timeout: 5))
-        tap("次へ")
+        tapSetupNext(from: "データを取得")
         screen("時間割ファイル")
         for name in ["通常時間割", "時間割変更", "試験時間割", "試験返却時間割"] {
             _ = heading(name)
@@ -1053,7 +1080,7 @@ final class ApplicationChecks: XCTestCase {
         tap("学校行事を取得")
         screen("学校行事")
         back(to: "時間割ファイル")
-        tap("次へ")
+        tapSetupNext(from: "時間割ファイル")
         screen("クラス")
         XCTAssertTrue(app.staticTexts["3 / 3"].exists, app.debugDescription)
         tapToolbar("あとで設定", bar: "クラス")
@@ -1119,6 +1146,8 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertTrue(result.waitForExistence(timeout: 30))
         let received = expectation(for: NSPredicate(format: "label == %@", "1件の時間割変更を確認してください。"), evaluatedWith: result)
         wait(for: [received], timeout: 30)
+        XCTAssertEqual(app.staticTexts["fixture-notification-delivery-proof"].label,
+                       "delivered=1;fresh=1;revision=true", "Require one actual new delivery carrying its source revision")
     }
     #if TAKUPOKE_VOICEOVER_AUTOMATION
     @MainActor func testVoiceOverReadsTimetableCard() throws {

@@ -6,6 +6,31 @@ import sys
 import time
 
 
+def terminate_owned_group(process, grace=15):
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        process.wait()
+        return
+    # wait() only observes the leader. A child can ignore TERM after its
+    # leader has already exited, so observe the owned group independently.
+    deadline = time.monotonic() + grace
+    while True:
+        process.poll()  # Reap our leader without mistaking it for the group.
+        try:
+            os.killpg(process.pid, 0)
+        except ProcessLookupError:
+            break
+        if time.monotonic() >= deadline:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            break
+        time.sleep(0.05)
+    process.wait()
+
+
 def run(label, command):
     started = time.monotonic()
     previous = {}
@@ -23,15 +48,7 @@ def run(label, command):
         return code if code >= 0 else 128 - code
     finally:
         if process is not None:
-            try:
-                os.killpg(process.pid, signal.SIGTERM)
-            except ProcessLookupError:
-                pass
-            try:
-                process.wait(timeout=15)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.wait()
+            terminate_owned_group(process)
         for sig, handler in previous.items():
             signal.signal(sig, handler)
         print(f"TIMING finish: {label}, elapsed={time.monotonic() - started:.1f}s", flush=True)

@@ -45,6 +45,7 @@ final class FixtureNetwork: URLProtocol {
 @main
 struct SimulatorApplication: App {
     @State private var notificationProbe = "待機中"
+    @State private var notificationDeliveryProof = "待機中"
     @State private var recoveryOCRProbe = "OCR実行中"
     @State private var recoveryTableProbe = ""
     @State private var recoveryOffProbe = "未実行"
@@ -53,12 +54,18 @@ struct SimulatorApplication: App {
     @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
     @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
     init() {
+        _ = FixtureNotificationDelivery.startedAt
+        FixtureLaunchDiagnostics.record("init-enter")
         URLProtocol.registerClass(FixtureNetwork.self)
+        FixtureLaunchDiagnostics.record("seed-enter")
         do { try Self.seed() } catch { fatalError("Synthetic fixture initialization failed: \(error)") }
+        FixtureLaunchDiagnostics.record("seed-complete")
     }
     var body: some Scene {
+        let _ = FixtureLaunchDiagnostics.record("scene-construction")
         WindowGroup {
             ContentView().environment(\.timeZone, JapaneseDateDisplay.timeZone).tint((MainColor(rawValue: mainColor) ?? .systemDefault).color)
+                .onAppear { FixtureLaunchDiagnostics.record("content-appeared") }
                 .modifier(FixtureTypeSize(enabled: ProcessInfo.processInfo.arguments.contains("--grid-probe") &&
                     !ProcessInfo.processInfo.arguments.contains("--system-text-size"),
                                           size: fixtureTypeSize))
@@ -112,12 +119,21 @@ struct SimulatorApplication: App {
                         FixtureNotificationPermissionTouch()
                     }
                     if ProcessInfo.processInfo.arguments.contains("--notification-probe") {
-                        Text(notificationProbe).accessibilityIdentifier("fixture-notification-result").allowsHitTesting(false)
+                        VStack {
+                            Text(notificationProbe).accessibilityIdentifier("fixture-notification-result")
+                            Text(notificationDeliveryProof).accessibilityIdentifier("fixture-notification-delivery-proof")
+                        }.allowsHitTesting(false)
                     }
                 }
                 .task {
+                    FixtureLaunchDiagnostics.record("root-task-enter")
                     let data = ApplicationData.shared
+                    var recordedApplicationReady = false
                     for _ in 0..<300 {
+                        if data.ready && !recordedApplicationReady {
+                            FixtureLaunchDiagnostics.record("application-ready")
+                            recordedApplicationReady = true
+                        }
                         if data.ready && data.materials.ready && data.specialSchedules.ready &&
                             data.schoolEvents.ready && data.links.ready && data.mappings.ready && data.times.ready &&
                             !data.materials.busy && !data.specialSchedules.busy &&
@@ -127,10 +143,12 @@ struct SimulatorApplication: App {
                                 recoveryOffProbe = !data.recovery.running && data.recovery.preview == nil && data.recovery.manualDraft == nil ? "1" : "0"
                             }
                             applicationReady = true
+                            FixtureLaunchDiagnostics.record("fixture-ready")
                             break
                         }
                         try? await Task.sleep(nanoseconds: 100_000_000)
                     }
+                    if !applicationReady { FixtureLaunchDiagnostics.record("fixture-ready-timeout") }
                     if ProcessInfo.processInfo.arguments.contains("--recovery-ocr-probe") {
                         do { recoveryOCRProbe = try await SimulatorRecoveryOCRFixture.check() }
                         catch { recoveryOCRProbe = "OCR検証失敗: \(error)" }
@@ -140,7 +158,13 @@ struct SimulatorApplication: App {
                     for _ in 0..<40 {
                         let delivered = await UNUserNotificationCenter.current().deliveredNotifications()
                         let changes = delivered.filter { $0.request.identifier == "takupoke.changes" }
-                        if !changes.isEmpty { notificationProbe = changes[0].request.content.body; return }
+                        let fresh = changes.filter { $0.date >= FixtureNotificationDelivery.startedAt }
+                        if let received = fresh.first {
+                            let revision = received.request.content.userInfo["revision"] as? String ?? ""
+                            notificationDeliveryProof = "delivered=\(delivered.count);fresh=\(fresh.count);revision=\(!revision.isEmpty)"
+                            notificationProbe = received.request.content.body
+                            return
+                        }
                         try? await Task.sleep(nanoseconds: 500_000_000)
                     }
                     notificationProbe = "通知なし"
@@ -290,6 +314,32 @@ struct SimulatorApplication: App {
             try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite"))
                 .recordFailure(PDFParseError(code: .unsupported), kind: .exam)
         }
+    }
+}
+
+enum FixtureNotificationDelivery {
+    // Initialized before seed/update and retained for this process only.
+    static let startedAt = Date()
+}
+
+// Independent of AX: fixed lifecycle labels only, never school/user content.
+// This file belongs to the disposable fictional simulator app container.
+enum FixtureLaunchDiagnostics {
+    static func record(_ stage: String) {
+        let allowed: Set<String> = ["init-enter", "seed-enter", "seed-complete", "scene-construction",
+            "content-appeared", "root-task-enter", "application-ready", "fixture-ready", "fixture-ready-timeout"]
+        guard allowed.contains(stage) else { return }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-fictional-launch-owned.log")
+        let line = "TAKUPOKE_LIFECYCLE pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) stage=\(stage)\n"
+        do {
+            if !FileManager.default.fileExists(atPath: url.path) {
+                try Data().write(to: url, options: .withoutOverwriting)
+            }
+            let handle = try FileHandle(forWritingTo: url)
+            defer { try? handle.close() }
+            try handle.seekToEnd()
+            try handle.write(contentsOf: Data(line.utf8))
+        } catch { print("TAKUPOKE_LIFECYCLE recording-unavailable") }
     }
 }
 

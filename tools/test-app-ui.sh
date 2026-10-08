@@ -2,9 +2,31 @@
 set -euo pipefail
 scratch_dir="$(mktemp -d "${TMPDIR:-/tmp}/takupoke-app-tests.XXXXXX")"
 simulator_id=""
+collect_launch_trace() {
+    python3 -B - "$simulator_id" <<'PY_TRACE'
+from pathlib import Path
+import re, subprocess, sys
+try:
+    result = subprocess.run(["xcrun", "simctl", "get_app_container", sys.argv[1], "jp.n624.takupoke.app-checks", "data"],
+                            capture_output=True, text=True, timeout=10)
+    if result.returncode == 0:
+        owned = Path(result.stdout.strip()) / "tmp/takupoke-fictional-launch-owned.log"
+        if not owned.is_symlink() and owned.is_file() and owned.stat().st_size <= 65536:
+            pattern = re.compile(r"TAKUPOKE_LIFECYCLE pid=\d+ time=\d+(?:\.\d+)? stage=(?:init-enter|seed-enter|seed-complete|scene-construction|content-appeared|root-task-enter|application-ready|fixture-ready|fixture-ready-timeout)")
+            for line in owned.read_text(encoding="utf-8").splitlines():
+                if pattern.fullmatch(line): print(line)
+        else:
+            print("TAKUPOKE_LIFECYCLE capture-missing-or-limited")
+    else:
+        print("TAKUPOKE_LIFECYCLE capture-unavailable")
+except (OSError, ValueError, subprocess.TimeoutExpired):
+    print("TAKUPOKE_LIFECYCLE capture-unavailable")
+PY_TRACE
+}
 cleanup() {
     local task_exit_status=$?
     if [[ -n "$simulator_id" ]]; then
+        collect_launch_trace || true
         xcrun simctl shutdown "$simulator_id" >/dev/null 2>&1 || true
         xcrun simctl delete "$simulator_id" >/dev/null 2>&1 || true
     fi
@@ -85,6 +107,7 @@ while read -r device_type runtime; do
             python3 -B tools/ui_test_manifest.py --shard "$shard" --mode verify --ios "$ios_major" --log "$scratch_dir/os-size.log" --system-size-only
         done
     fi
+    collect_launch_trace
     xcrun simctl shutdown "$simulator_id"
     xcrun simctl delete "$simulator_id"
     simulator_id=""
