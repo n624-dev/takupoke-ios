@@ -1,5 +1,9 @@
 """Read one immutable fictional QA run; emit bounded text, no images/artifacts."""
 import json
+import os
+import urllib.request
+import urllib.error
+from urllib.parse import urlsplit
 import re
 import subprocess
 import tempfile
@@ -18,30 +22,43 @@ def api(path):
     return json.loads(result.stdout)
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 def read_log(job_id):
-    # This process owns the temporary bytes; no artifact or cache is uploaded.
+    # Send the workflow credential only to GitHub. Read the temporary signed
+    # Azure location with an independent anonymous request, never forward auth.
+    request = urllib.request.Request(f"https://api.github.com/repos/{REPO}/actions/jobs/{job_id}/logs",
+        headers={"Authorization":"Bearer " + os.environ["GH_TOKEN"], "Accept":"application/vnd.github+json",
+                 "X-GitHub-Api-Version":"2022-11-28"})
+    try:
+        with urllib.request.build_opener(NoRedirect()).open(request,timeout=30) as response:
+            raise RuntimeError("Expected an owned GitHub log redirect")
+    except urllib.error.HTTPError as error:
+        if error.code not in (301,302,303,307,308):
+            print(f"Owned log redirect unavailable: HTTP {error.code}")
+            return None
+        location = error.headers.get("Location","")
+    host = urlsplit(location)
+    if host.scheme != "https" or not (host.hostname or "").endswith(".blob.core.windows.net"):
+        raise RuntimeError("Unexpected owned log redirect host")
     with tempfile.TemporaryDirectory(prefix="owned-fictional-ui-log-") as owned:
         target = Path(owned) / "job.txt"
-        with target.open("wb") as stream:
-            process = subprocess.Popen(["gh", "api", f"repos/{REPO}/actions/jobs/{job_id}/logs"],
-                                       stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-            try:
+        try:
+            with urllib.request.urlopen(location,timeout=60) as response, target.open("wb") as stream:
                 total = 0
                 while True:
-                    chunk = process.stdout.read(65536)
+                    chunk = response.read(65536)
                     if not chunk:
                         break
                     total += len(chunk)
                     if total > MAX_BYTES:
-                        process.kill()
                         raise RuntimeError("Owned log exceeds diagnostic byte cap")
                     stream.write(chunk)
-                status = process.wait(timeout=60)
-            finally:
-                if process.poll() is None:
-                    process.kill()
-                process.wait()
-        if status:
+        except urllib.error.HTTPError as error:
+            print(f"Owned log bytes unavailable: HTTP {error.code}")
             return None
         return target.read_text(encoding="utf-8", errors="replace")
 
