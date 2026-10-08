@@ -32,7 +32,7 @@ final class RecoveryNativeScoreBoundaryTests:XCTestCase {
             ["架空月曜","架空火曜","架空水曜","架空木曜","架空金曜","架空学期前","架空学期後","架空西暦","架空試験週","架空返却週","架空一時限","架空二時限","架空三時限","架空四時限","架空五時限","架空六時限"],
             ["架空科目伍","架空科目陸","架空科目漆","架空科目捌","架空講師戊","架空講師己","架空講師庚","架空講師辛","架空教室伍","架空教室陸","架空教室漆","架空教室捌","架空演習戊","架空演習己","架空実験庚","架空実験辛"],
             ["K305","K3O5","L112","Ll12","M407","MA07","N_16","N_I6","P-09","P-O9","R105","Rl05","S207","S2O7","T_14","T_IA"]]
-        let fontNames=["HiraginoSans-W3","HiraginoMinchoProN-W3"]
+        let fontNames=["HiraginoSans-W3","HiraMinProN-W3"]
         var cohorts=[[Result]]()
         for cohort in 0..<2 {
             let side=1920
