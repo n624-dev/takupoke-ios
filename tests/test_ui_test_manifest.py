@@ -22,6 +22,24 @@ def result_line(test, status="passed"):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_picker_completion_rejects_missing_failed_skipped_duplicate_and_unknown_cases(self):
+        runner = (ROOT / "tools/test-picker-ui.sh").read_text(encoding="utf-8")
+        program = runner.split("<<'PY_PICKER'\n", 1)[1].split("\nPY_PICKER", 1)[0]
+        names = ("testInstructionSurroundMatchesFilesBackground", "testReselectionWithMissingAppearanceReturn", "testReselectionThroughActualButtons")
+        def row(name, status="passed"):
+            return f"Test Case '-[PickerTapChecks.MaterialPickerTapChecks {name}]' {status} (1.0 seconds).\n"
+        complete = "".join(row(name) for name in names)
+        with tempfile.TemporaryDirectory() as scratch:
+            log = Path(scratch) / "picker.log"
+            cases = [(complete, True), ("", False), (row(names[0]), False),
+                     (complete + row(names[0]), False), (complete + row("testUnknown"), False),
+                     (complete.replace(row(names[0]), row(names[0], "failed")), False),
+                     (complete.replace(row(names[0]), row(names[0], "skipped")), False)]
+            for text, accepted in cases:
+                log.write_text(text, encoding="utf-8")
+                result = subprocess.run([sys.executable, "-c", program, str(log)], capture_output=True, text=True)
+                self.assertEqual(result.returncode == 0, accepted, result.stderr)
+
     def test_event_cache_probe_changes_only_automatic_startup_in_isolated_copy(self):
         source = (ROOT / "Takupoke/SchoolEventsModel.swift").read_text(encoding="utf-8")
         self.assertNotIn("--events-cache-", source)

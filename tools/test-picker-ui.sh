@@ -32,7 +32,7 @@ python3 -B tools/timed_command.py "Picker UI" xcodebuild -project "$scratch_dir/
     -derivedDataPath "$scratch_dir/DerivedData" \
     -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
     -collect-test-diagnostics never \
-    CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES test
+    CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES test 2>&1 | tee "$scratch_dir/picker-ui.log"
 ui_status=$?
 set -e
 app_data="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.picker-checks data)"
@@ -40,6 +40,16 @@ for trace_path in "$app_data"/Documents/trace-*.txt; do
     if [[ -f "$trace_path" ]]; then cat "$trace_path"; fi
 done
 if [[ "$ui_status" != 0 ]]; then exit "$ui_status"; fi
+python3 - "$scratch_dir/picker-ui.log" <<'PY_PICKER'
+from collections import Counter
+from pathlib import Path
+import re, sys
+expected = {"testInstructionSurroundMatchesFilesBackground", "testReselectionWithMissingAppearanceReturn", "testReselectionThroughActualButtons"}
+rows = re.findall(r"Test Case '-\[PickerTapChecks\.MaterialPickerTapChecks (test\w+)\]' (passed|failed|skipped) \([\d.]+ seconds\)\.", Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace"))
+if Counter(name for name, _ in rows) != Counter(expected) or any(status != "passed" for _, status in rows):
+    raise SystemExit("Picker UI completion mismatch")
+print("Verified three picker UI XCTest completions.")
+PY_PICKER
 # Retain the existing transition and geometry checks, then remove everything.
 xcrun simctl terminate "$simulator_id" jp.n624.takupoke.picker-checks >/dev/null 2>&1 || true
 rm -f "$app_data/Documents/result.txt"

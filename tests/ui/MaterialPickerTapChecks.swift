@@ -83,7 +83,10 @@ final class MaterialPickerTapChecks: XCTestCase {
         app.tabBars.buttons["設定"].tap()
         chooseAndCancel(app, kind: 1)
         XCUIDevice.shared.press(.home)
+        XCTAssertNotEqual(app.state, .notRunning, "Picker navigation must survive background without relaunch")
+        guard app.state != .notRunning else { return }
         app.activate()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
         chooseAndCancel(app, kind: 2)
     }
 
@@ -105,14 +108,17 @@ final class MaterialPickerTapChecks: XCTestCase {
             XCTFail("File list viewport did not return")
             return nil
         }
-        let barFrame = navigation.frame, tabFrame = tabs.frame
-        guard !barFrame.isEmpty, !tabFrame.isEmpty,
-              barFrame.maxY.isFinite, tabFrame.minY.isFinite,
-              barFrame.maxY + 4 < tabFrame.minY - 4 else {
-            XCTFail("File list viewport has invalid bounds")
-            return nil
+        func viewport() -> CGRect? {
+            guard navigation.exists, tabs.exists, list.exists else { return nil }
+            let bar = navigation.frame, tab = tabs.frame, bounds = list.frame
+            guard [bar, tab, bounds].allSatisfy({
+                !$0.isNull && !$0.isInfinite && $0.width > 0 && $0.height > 0 &&
+                    [$0.minX, $0.minY, $0.maxX, $0.maxY].allSatisfy(\.isFinite)
+            }) else { return nil }
+            let top = max(bar.maxY, bounds.minY) + 4, bottom = min(tab.minY, bounds.maxY) - 4
+            guard top < bottom else { return nil }
+            return CGRect(x: bounds.minX, y: top, width: bounds.width, height: bottom - top)
         }
-        let top = barFrame.maxY + 4, bottom = tabFrame.minY - 4
         // The fixture has four ordered rows. After row 3, row 0 may be recycled
         // above the viewport. Scroll back before asking XCTest for its
         // offscreen frame; the failed run blocked on that query before a swipe.
@@ -122,19 +128,21 @@ final class MaterialPickerTapChecks: XCTestCase {
             for _ in row..<previous { list.swipeDown() }
         }
         for _ in 0..<8 {
+            guard let area = viewport() else { XCTFail("File list lost its current viewport"); return nil }
             guard button.exists else { list.swipeUp(); continue }
             let frame = button.frame
-            if frame.minY < top { list.swipeDown() }
-            else if frame.maxY > bottom { list.swipeUp() }
-            else { break }
+            if area.contains(frame), !frame.isEmpty, !frame.isInfinite { break }
+            if frame.minY < area.minY { list.swipeDown() } else { list.swipeUp() }
         }
         guard button.waitForExistence(timeout: 5) else {
             XCTFail("File button did not appear: \(identifier)")
             return nil
         }
         let frame = button.frame
-        XCTAssertGreaterThanOrEqual(frame.minY, top, "Button is above file viewport: \(identifier)")
-        XCTAssertLessThanOrEqual(frame.maxY, bottom, "Button is below file viewport: \(identifier)")
+        guard let area = viewport(), !frame.isNull, !frame.isInfinite, frame.width > 0, frame.height > 0,
+              [frame.minX, frame.minY, frame.maxX, frame.maxY].allSatisfy(\.isFinite), area.contains(frame) else {
+            XCTFail("Button has no fully visible current hit region: \(identifier)"); return nil
+        }
         XCTAssertTrue(button.isHittable, "Button is not hittable: \(identifier)")
         lastRevealedRow = row
         return button

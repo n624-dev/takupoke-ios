@@ -130,7 +130,7 @@ def generate(destination):
         if path.name == 'PDFRecoveryView.swift':
             marker = '.navigationTitle(title)'
             assert marker in text, 'Recovery preview probe insertion point missing'
-            text = text.replace(marker, marker + """
+            text = text.replace(marker, ' .accessibilityIdentifier("fixture-recovery-list")\n' + marker + """
             .overlay(alignment: .topLeading) {
                 if ProcessInfo.processInfo.arguments.contains("--recovery-preview") { FixtureRecoveryProbe() }
             }

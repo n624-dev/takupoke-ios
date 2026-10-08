@@ -102,12 +102,8 @@ final class ManualAssistanceChecks:XCTestCase {
             let exists=targetID.isEmpty ? target.exists:!matches.isEmpty
             let targetFrame=exists ? target.frame:nil
             if exists && target.isHittable {
-                let editor=target.elementType == .textField || target.elementType == .textView
-                // The44px clear control is taller than a single-line editor.
-                // Hittable alone can include a control straddling the keyboard
-                // accessory. Reveal the whole control before a native tap.
-                let boundedControl=editor || target.identifier.hasPrefix("manual-clear-")
-                if !boundedControl { return target }
+                // Every interactive/readable target must be wholly below the
+                // navigation bar and above the keyboard accessory before use.
                 if let frame=targetFrame,ManualScrollNavigation.usable(frame),frame.minY>=top,frame.maxY<=bottom { return target }
             }
             if exists && targetID.isEmpty { targetID=target.identifier }
@@ -246,6 +242,7 @@ final class ManualAssistanceChecks:XCTestCase {
     private func ack(_ id:String)->XCUIElement { app.switches["manual-ack-"+id].firstMatch }
     private func acknowledge(_ id:String) {
         let row=visible(ack(id))
+        XCTAssertEqual(row.switches.count,1,"Acknowledgement must have one native control")
         let control=row.switches.firstMatch
         XCTAssertTrue(control.exists,app.debugDescription)
         let actual=visible(control)
@@ -411,7 +408,12 @@ final class ManualAssistanceChecks:XCTestCase {
         visible(submit).tap();requireReview((0..<3).map { "架空手確認\($0)" },comparable:true)
         tap("訂正と変更を確認して資料全体へ");requirePreview()
         XCTAssertTrue(app.staticTexts["原本を確認して入力した3項目を含みます。"].exists)
-        tap("閉じる");XCTAssertFalse(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("adopted="))
+        let navigation=app.navigationBars["時間割の復旧"],close=app.navigationBars["時間割の復旧"].buttons["閉じる"]
+        XCTAssertTrue(close.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
+        XCTAssertTrue(ManualScrollNavigation.usable(navigation.frame) && ManualScrollNavigation.usable(close.frame) &&
+                      navigation.frame.contains(close.frame) && close.isEnabled && close.isHittable,app.debugDescription)
+        close.tap();XCTAssertTrue(navigation.waitForNonExistence(timeout:nativeStateTimeout),app.debugDescription)
+        XCTAssertFalse(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("adopted="))
         app.terminate();launch(["--manual-four"])
         XCTAssertTrue(app.staticTexts["架空資料の補助入力を拒否しました。前回の正常結果を保持しています。"].waitForExistence(timeout:20),app.debugDescription)
         emitDiagnostic()

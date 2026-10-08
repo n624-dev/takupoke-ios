@@ -17,7 +17,8 @@ final class ApplicationChecks: XCTestCase {
             "testChangedAccountDataNoticeOpensSharedAcquisition": ["--updated-revisions"],
             "testFileFailuresKeepResultsAndStayInTheirOwnDetails": ["--failed-refresh"],
             "testVoiceOverReadsTimetableCard": ["--mapped-names"],
-            "testNotificationControlsAndAppearance": ["--theme-probe"],
+            "testNotificationControlsAndAppearance": ["--theme-probe", "--notification-permission-probe"],
+            "testChangedDataProducesOneLocalNotification": ["--notification-permission-probe"],
             "testRecoveryPreviewOriginalBlankFieldsAndExplicitAdoption": ["--recovery-preview"],
             "testParallelRecoveryKeepsBothLessonsInPreviewAndFormalAnalysis": ["--recovery-preview", "--recovery-parallel"],
             "testRecoveryClosingKeepsFormalAndModelManagementIsAccessible": ["--recovery-preview"],
@@ -62,40 +63,86 @@ final class ApplicationChecks: XCTestCase {
     private func tap(_ title: String, searchEarlierRows: Bool = false) {
         let e = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
         for _ in 0..<6 {
-            let footer = app.buttons["次へ"]
-            let coveredByFooter = footer.exists && footer.isHittable && e.exists && title != "次へ" &&
-                e.frame.maxY > footer.frame.minY
-            let above = searchEarlierRows && e.exists && e.frame.height > 0 &&
-                e.frame.minY < app.navigationBars.firstMatch.frame.maxY
-            if e.exists && e.isHittable && !coveredByFooter && !above { break }
-            // Returning from a document can retain the List's scroll offset.
-            // A preceding row may be virtualized or above the navigation bar.
+            let viewport = unobscuredViewport(for: e)
+            if contained(e, in: viewport) && e.isHittable { break }
+            let above = e.exists && usable(e.frame) && e.frame.minY < viewport.minY
+            // A virtualized preceding row keeps its known search direction;
+            // a real partial frame takes precedence over that initial hint.
             if above || (!e.exists && searchEarlierRows) { app.swipeDown() }
             else { app.swipeUp() }
         }
         XCTAssertTrue(e.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(contained(e, in: contentViewport), app.debugDescription)
+        let footer = app.buttons["次へ"]
+        XCTAssertFalse(title != "次へ" && footer.exists && footer.isHittable && e.frame.maxY > footer.frame.minY,
+                       "Target remains covered by the setup footer")
         XCTAssertTrue(e.isHittable, app.debugDescription)
         e.tap()
+    }
+    private func tapToolbar(_ title: String, bar: String) {
+        let navigation = app.navigationBars[bar]
+        XCTAssertTrue(navigation.waitForExistence(timeout: 10), app.debugDescription)
+        let button = navigation.buttons[title]
+        guard button.waitForExistence(timeout: 10), usable(navigation.frame),
+              contained(button, in: navigation.frame), button.isEnabled, button.isHittable else {
+            XCTFail("Toolbar control has no visible hit region on its own navigation bar: " + app.debugDescription)
+            return
+        }
+        button.tap()
     }
     private func heading(_ title: String) -> XCUIElement {
         visible(app.staticTexts[title].firstMatch)
     }
+    private func usable(_ frame: CGRect) -> Bool {
+        !frame.isNull && !frame.isInfinite && frame.width > 0 && frame.height > 0 &&
+            [frame.minX, frame.minY, frame.maxX, frame.maxY].allSatisfy(\.isFinite)
+    }
+    private var contentViewport: CGRect {
+        let frame = app.frame
+        let top = app.navigationBars.firstMatch.frame.maxY
+        var bottom = app.tabBars.firstMatch.exists ? app.tabBars.firstMatch.frame.minY : frame.maxY
+        if app.keyboards.firstMatch.exists { bottom = min(bottom, app.keyboards.firstMatch.frame.minY) }
+        return CGRect(x: frame.minX, y: top, width: frame.width, height: max(0, bottom - top))
+    }
+    private func contained(_ element: XCUIElement, in viewport: CGRect) -> Bool {
+        guard element.exists else { return false }
+        let frame = element.frame
+        return usable(frame) && usable(viewport) && viewport.contains(frame)
+    }
+    private func unobscuredViewport(for element: XCUIElement) -> CGRect {
+        var frame = contentViewport
+        let footer = app.buttons["次へ"]
+        let isFooter = element.exists && element.label.hasPrefix("次へ")
+        if footer.exists && footer.isHittable && !isFooter,
+           usable(footer.frame), footer.frame.minY > frame.minY {
+            frame.size.height = max(0, min(frame.maxY, footer.frame.minY) - frame.minY)
+        }
+        return frame
+    }
     private func visible(_ e: XCUIElement) -> XCUIElement {
         for _ in 0..<6 {
-            // LabeledContent's child text can be readable while its combined
-            // accessibility parent owns hit testing. Check visible geometry.
-            if e.exists && e.frame.height > 0 && e.frame.minY >= app.navigationBars.firstMatch.frame.maxY &&
-                e.frame.maxY <= (app.tabBars.firstMatch.exists ? app.tabBars.firstMatch.frame.minY : app.frame.maxY) { break }
-            // A List can expose a row just above the navigation bar while
-            // opening. Bring it down instead of scrolling it out of the tree.
-            if e.exists && e.frame.minY < app.navigationBars.firstMatch.frame.maxY {
-                app.swipeDown()
-            } else {
-                app.swipeUp()
-            }
+            let viewport = unobscuredViewport(for: e)
+            if contained(e, in: viewport) { return e }
+            if e.exists && usable(e.frame) && e.frame.minY < viewport.minY { app.swipeDown() }
+            else { app.swipeUp() }
         }
-        XCTAssertTrue(e.exists, app.debugDescription)
+        XCTAssertTrue(contained(e, in: unobscuredViewport(for: e)), "Element remains outside the visible content: " + app.debugDescription)
         return e
+    }
+    private func tapNativeSwitch(_ row: XCUIElement) {
+        _ = visible(row)
+        let controls = row.descendants(matching: .switch)
+        XCTAssertEqual(controls.count, 1, "The row must expose exactly one native switch")
+        let control = controls.element(boundBy: 0)
+        guard control.waitForExistence(timeout: 45) else { XCTFail("Native switch is absent"); return }
+        let frame = control.frame, outer = row.frame
+        guard usable(outer), usable(frame), outer.contains(frame), contentViewport.contains(frame),
+              control.isEnabled, control.isHittable else {
+            XCTFail("Native switch has no safe hit region: " + app.debugDescription); return
+        }
+        print("NATIVE_SWITCH row=\(outer);control=\(frame);before=\(String(describing: row.value))")
+        // One physical touch at the actual native widget center, never the row.
+        control.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
     }
     private func openNotificationSettings() {
         let row = app.buttons["通知"].firstMatch
@@ -115,12 +162,14 @@ final class ApplicationChecks: XCTestCase {
         screen("通知")
         let toggle = app.switches["時間割変更"]
         _ = visible(toggle)
-        // SwiftUI exposes both the labeled row and its actual native switch.
-        // Target the descendant control, not the row's label/activation point.
-        let control = toggle.descendants(matching: .switch).firstMatch
-        XCTAssertTrue(control.waitForExistence(timeout: 5), app.debugDescription)
-        let ready = expectation(for: NSPredicate { _, _ in control.isEnabled && control.isHittable }, evaluatedWith: control)
-        wait(for: [ready], timeout: 10)
+        let touch = app.buttons["fixture-notification-permission-touch"]
+        XCTAssertTrue(touch.waitForExistence(timeout: 45), app.debugDescription)
+        let touchFrame = touch.frame
+        guard usable(touchFrame), contentViewport.contains(touchFrame),
+              ["時間割変更", "試験・返却"].allSatisfy({ !touchFrame.intersects(app.switches[$0].frame) }) else {
+            XCTFail("Permission monitor trigger overlaps a real notification control"); return
+        }
+        let probe = app.staticTexts["fixture-notification-permission-state"]
         let predicate = NSPredicate(format: "label BEGINSWITH[c] %@ OR label == %@ OR label == %@ OR label == %@", "Allow", "許可", "許可する", "通知を許可")
         // Permission UI can move between system processes on iOS 27. Let
         // XCTest resolve the interrupting alert rather than retaining a
@@ -132,20 +181,16 @@ final class ApplicationChecks: XCTestCase {
             return true
         }
         defer { removeUIInterruptionMonitor(monitor) }
-        print("NOTIFICATION_SWITCH before row=\(toggle.frame) control=\(control.frame) value=\(String(describing: toggle.value))")
+        print("NOTIFICATION_SWITCH before row=\(toggle.frame) value=\(String(describing: toggle.value)) state=\(probe.label)")
         recoveryScreenshot("notification-switch-before")
-        control.tap()
-        // requestAuthorization is asynchronous. A single immediate gesture
-        // can precede the system alert and never dispatch the monitor again.
-        // The navigation title lies outside the permission alert, so its
-        // coordinate tap need not invoke an interruption monitor. Exercise
-        // the application target instead, as XCTest's monitor API requires.
-        // Its center is below both notification controls on this screen.
-        // Never toggle twice or grant
-        // permission through fixtures/system preference injection.
+        tapNativeSwitch(toggle)
+        // A dedicated QA-only no-op control dispatches the real alert monitor.
+        // Generic app.tap() has an unspecified activation point and may toggle
+        // a setting again. This target cannot grant permission or change state.
+        print("NOTIFICATION_SWITCH activated state=\(probe.label)")
         var didEnable = false
         for _ in 0..<3 {
-            app.tap()
+            touch.tap()
             let enabled = expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: toggle)
             if XCTWaiter.wait(for: [enabled], timeout: 15) == .completed {
                 didEnable = true
@@ -158,7 +203,10 @@ final class ApplicationChecks: XCTestCase {
             XCTFail("Native notification switch activation did not complete permission and enablement")
             return
         }
-        print("NOTIFICATION_SWITCH after value=\(String(describing: toggle.value))")
+        print("NOTIFICATION_SWITCH after value=\(String(describing: toggle.value)) state=\(probe.label)")
+        XCTAssertTrue(probe.label.contains("changes=true;saved=true"), probe.label)
+        if touch.exists { touch.tap() } // Close only the QA overlay after real enablement.
+        XCTAssertTrue(touch.waitForNonExistence(timeout: 10), app.debugDescription)
     }
     private func dismissLesson(title: String = "授業詳細") {
         let bar = app.navigationBars[title]
@@ -171,8 +219,8 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertTrue(app.staticTexts["fixture-recovery-formal"].firstMatch.label == "前回の正式結果を保持", app.debugDescription)
         tap("端末内で復旧する"); screen(recovery)
         tap("端末内で復旧を開始")
-        _ = heading("採用する資料全体")
-        _ = heading("選択クラスだけでなく、以下の資料全体を採用します。元のPDFと読み取り結果を確認してください。")
+        _ = recoveryVisible(app.staticTexts["採用する資料全体"].firstMatch)
+        _ = recoveryVisible(app.staticTexts["選択クラスだけでなく、以下の資料全体を採用します。元のPDFと読み取り結果を確認してください。"].firstMatch)
     }
     private func recoveryScreenshot(_ name: String, marker: String = "TAKUPOKE_UI_IMAGE") {
         let bytes = app.screenshot().pngRepresentation
@@ -188,30 +236,62 @@ final class ApplicationChecks: XCTestCase {
         print("\(marker) END \(name) \((characters.count + chunkSize - 1) / chunkSize)")
     }
     private var recoveryList: XCUIElement {
-        let lists = app.collectionViews
-        return lists.element(boundBy: max(0, lists.count - 1))
+        app.collectionViews["fixture-recovery-list"].firstMatch
+    }
+    private var recoveryBar: XCUIElement {
+        app.navigationBars.matching(NSPredicate(format: "identifier ENDSWITH %@", "の復旧")).firstMatch
+    }
+    private var recoveryViewport: CGRect {
+        let list = recoveryList.frame
+        let top = max(list.minY, recoveryBar.frame.maxY) + 12
+        let bottom = min(list.maxY, app.frame.maxY - 34) - 12
+        return CGRect(x: list.minX, y: top, width: list.width, height: max(0, bottom - top))
+    }
+    private func recoveryDrag(earlier: Bool, distance: CGFloat? = nil) {
+        guard recoveryBar.exists, recoveryList.exists else {
+            XCTFail("Recovery sheet disappeared before its gesture"); return
+        }
+        let viewport = recoveryViewport
+        guard usable(viewport) else { XCTFail("Invalid recovery viewport"); return }
+        let privacy = recoveryList.staticTexts["学校の資料・OCR文字・授業情報は端末内で処理され、外部のAIへ送信されません。"].firstMatch
+        guard !(earlier && contained(privacy, in: viewport)) else {
+            XCTFail("Target was not found before reaching the recovery list top"); return
+        }
+        // Begin on a passive row inside this sheet, never an editor/button,
+        // the covered underlying List, or the outer sheet's dismissible gutter.
+        let candidates = recoveryList.cells.allElementsBoundByIndex.filter {
+            let area = $0.frame.intersection(viewport)
+            return usable(area) && area.height > 36 && $0.buttons.count == 0 && $0.switches.count == 0 &&
+                $0.textFields.count == 0 && $0.textViews.count == 0 && $0.pickers.count == 0 &&
+                $0.pickerWheels.count == 0 && $0.staticTexts.count > 0
+        }
+        guard let cell = candidates.max(by: {
+            earlier ? $0.frame.minY > $1.frame.minY : $0.frame.maxY < $1.frame.maxY
+        }) else { XCTFail("No passive recovery row for a safe drag"); return }
+        let safe = cell.frame.intersection(viewport)
+        let x = max(safe.minX + 12, min(safe.maxX - 12, viewport.minX + 100))
+        let y = earlier ? safe.minY + 12 : safe.maxY - 12
+        let endY = earlier ? min(viewport.maxY - 12, y + (distance ?? 120)) :
+            max(viewport.minY + 12, y - (distance ?? viewport.height))
+        guard abs(endY - y) > 1 else { XCTFail("No room for a recovery drag"); return }
+        let base = app.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))
+        let origin = app.frame.origin
+        base.withOffset(CGVector(dx: x - origin.x, dy: y - origin.y)).press(forDuration: 0.1,
+            thenDragTo: base.withOffset(CGVector(dx: x - origin.x, dy: endY - origin.y)))
     }
     private func recoveryVisible(_ element: XCUIElement, searchEarlierRows: Bool = false) -> XCUIElement {
-        // The underlying tab bar remains in the accessibility tree while the
-        // sheet covers it. Use the sheet's viewport and scroll its own List.
-        let bar = app.navigationBars.matching(NSPredicate(format: "identifier ENDSWITH %@", "の復旧")).firstMatch
         for _ in 0..<12 {
-            guard bar.exists else {
+            guard recoveryBar.exists, recoveryList.exists else {
                 XCTFail("The recovery sheet disappeared while locating its row: " + app.debugDescription)
                 return element
             }
-            if element.exists && element.frame.height > 0 && element.frame.minY >= bar.frame.maxY &&
-                element.frame.maxY <= app.frame.maxY - 34 { break }
-            let earlier = element.exists && element.frame.height > 0 ? element.frame.minY < bar.frame.maxY : searchEarlierRows
-            if earlier {
-                // A lazy row above the viewport may have no accessibility
-                // node yet. Keep its known direction and avoid pulling the
-                // sheet down with a full swipe once the List reaches its top.
-                let start = recoveryList.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-                start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: 120)))
-            } else { recoveryList.swipeUp() }
+            let viewport = recoveryViewport
+            if contained(element, in: viewport) { return element }
+            let earlier = element.exists && usable(element.frame) ? element.frame.minY < viewport.minY : searchEarlierRows
+            recoveryDrag(earlier: earlier)
         }
-        XCTAssertTrue(element.exists, app.debugDescription)
+        XCTAssertTrue(recoveryBar.exists && recoveryList.exists && contained(element, in: recoveryViewport),
+                      "Recovery target remains outside its own sheet viewport: " + app.debugDescription)
         return element
     }
     func testRecoveryPreviewOriginalBlankFieldsAndExplicitAdoption() {
@@ -230,7 +310,7 @@ final class ApplicationChecks: XCTestCase {
         recoveryScreenshot("ios-recovery-original")
         app.navigationBars["元のPDF"].buttons["閉じる"].tap(); screen("時間割の復旧")
         let adoption = app.buttons["この資料全体の結果を使用"]
-        for _ in 0..<20 { if adoption.exists && adoption.isHittable { break }; recoveryList.swipeUp() }
+        _ = recoveryVisible(adoption)
         XCTAssertTrue(adoption.isHittable, app.debugDescription)
         XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].firstMatch.label, "前回の正式結果を保持")
         adoption.tap()
@@ -251,7 +331,7 @@ final class ApplicationChecks: XCTestCase {
             recoveryScreenshot(index == 0 ? "ios-recovery-exam-preview" : "ios-recovery-return-preview")
             XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].firstMatch.label, "前回の正式結果を保持")
             let adoption = app.buttons["この資料全体の結果を使用"]
-            for _ in 0..<20 { if adoption.exists && adoption.isHittable { break }; recoveryList.swipeUp() }
+            _ = recoveryVisible(adoption)
             XCTAssertTrue(adoption.isHittable, app.debugDescription); adoption.tap()
             XCTAssertTrue(app.staticTexts["復旧結果を採用しました。"].waitForExistence(timeout: 20), app.debugDescription)
             XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].firstMatch.label, "確認後に正式採用済み")
@@ -275,13 +355,16 @@ final class ApplicationChecks: XCTestCase {
         // Align the whole pair group before measuring it. Full-list swipes
         // used to expose the last field can move the first behind the bar.
         for _ in 0..<10 {
-            let top = app.navigationBars["時間割の復旧"].frame.maxY + 2
-            let bottom = app.frame.maxY - 34
+            let top = recoveryViewport.minY
+            let bottom = recoveryViewport.maxY
+            guard recoveryBar.exists, recoveryList.exists,
+                  pairedFields.allSatisfy({ $0.exists && usable($0.frame) }) else {
+                XCTFail("Parallel fields lost their recovery sheet or geometry"); return
+            }
             let first = pairedFields.first!.frame.minY, last = pairedFields.last!.frame.maxY
             if first >= top && last <= bottom { break }
             let delta = first < top ? min(140, top - first + 12) : -min(140, last - bottom + 12)
-            let start = recoveryList.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-            start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: delta)))
+            recoveryDrag(earlier: delta > 0, distance: abs(delta))
         }
         var previousBottom: CGFloat = 0
         for suffix in ["A", "B"] {
@@ -298,7 +381,7 @@ final class ApplicationChecks: XCTestCase {
         recoveryScreenshot("ios-recovery-parallel", marker: "TAKUPOKE_PARALLEL_UI_IMAGE")
         XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].firstMatch.label, "前回の正式結果を保持")
         let adoption = app.buttons["この資料全体の結果を使用"]
-        for _ in 0..<20 { if adoption.exists && adoption.isHittable { break }; recoveryList.swipeUp() }
+        _ = recoveryVisible(adoption)
         XCTAssertTrue(adoption.isHittable, app.debugDescription); adoption.tap()
         XCTAssertTrue(app.staticTexts["復旧結果を採用しました。"].waitForExistence(timeout: 20), app.debugDescription)
         app.terminate(); app.launchArguments = ["--recovery-probe", "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]; launchReady()
@@ -417,7 +500,7 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertTrue(calendar.waitForExistence(timeout: 5), app.debugDescription)
         calendar.tap()
         XCTAssertTrue(app.buttons["この週へ移動"].waitForExistence(timeout: 5))
-        tap("キャンセル")
+        tapToolbar("キャンセル", bar: "週を選ぶ")
         XCTAssertFalse(app.buttons["この週へ移動"].exists)
         if app.buttons["翌週"].exists { tap("翌週"); XCTAssertTrue(app.buttons["前週"].exists); tap("前週") }
     }
@@ -600,16 +683,7 @@ final class ApplicationChecks: XCTestCase {
             recoveryScreenshot("ai-switch-before-\(changeOrdinal)")
             // The labelled row and the inner native switch have different
             // accessibility bounds. Activate the unique real control directly.
-            let controls = ai.descendants(matching: .switch)
-            XCTAssertEqual(controls.count, 1, "The settings row must expose one native switch")
-            let control = controls.element(boundBy: 0)
-            XCTAssertTrue(control.waitForExistence(timeout: 45))
-            let rowFrame = ai.frame, controlFrame = control.frame
-            XCTAssertTrue([controlFrame.minX, controlFrame.minY, controlFrame.width, controlFrame.height].allSatisfy(\.isFinite))
-            XCTAssertFalse(controlFrame.isEmpty)
-            XCTAssertTrue(rowFrame.contains(controlFrame), "The native control must belong to this settings row")
-            XCTAssertTrue(control.isEnabled && control.isHittable, app.debugDescription)
-            control.tap()
+            tapNativeSwitch(ai)
             let reflected = expectation(for:NSPredicate(format:"value == %@",value),evaluatedWith:ai)
             let saved = expectation(for:NSPredicate(format:"label == %@",value),evaluatedWith:stored)
             let completion = XCTWaiter.wait(for:[reflected,saved],timeout:45)
@@ -912,7 +986,12 @@ final class ApplicationChecks: XCTestCase {
         // relaunch on iOS27. Its actual coordinate gesture and menu/action
         // assertions verify interaction, rather than that AX prerequisite.
         print("LINK_CONTEXT physical row=\(link.frame);AX-hittable=\(link.isHittable);action=\(title)")
-        link.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).press(forDuration: 2)
+        if link.isHittable { link.press(forDuration: 2) }
+        else if #available(iOS 27.0, *) {
+            link.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).press(forDuration: 2)
+        } else { XCTFail("The visible link is not hittable"); return }
+        recoveryScreenshot("link-context-after-press-" + title)
+        print("LINK_CONTEXT after-press tree=" + app.debugDescription)
         let action = app.buttons[title]
         XCTAssertTrue(action.waitForExistence(timeout: 45), app.debugDescription)
         XCTAssertTrue(action.isHittable, app.debugDescription)
@@ -957,12 +1036,7 @@ final class ApplicationChecks: XCTestCase {
         tap("次へ")
         screen("時間割ファイル")
         for name in ["通常時間割", "時間割変更", "試験時間割", "試験返却時間割"] {
-            let heading = app.staticTexts[name].firstMatch
-            for _ in 0..<6 {
-                if heading.exists && heading.isHittable { break }
-                app.swipeUp()
-            }
-            XCTAssertTrue(heading.exists, app.debugDescription)
+            _ = heading(name)
         }
         tap("学校行事を取得")
         screen("学校行事")
@@ -970,7 +1044,7 @@ final class ApplicationChecks: XCTestCase {
         tap("次へ")
         screen("クラス")
         XCTAssertTrue(app.staticTexts["3 / 3"].exists, app.debugDescription)
-        tap("あとで設定")
+        tapToolbar("あとで設定", bar: "クラス")
         XCTAssertTrue(app.tabBars.buttons["設定"].waitForExistence(timeout: 5))
     }
     func testNotificationControlsAndAppearance() {
@@ -980,7 +1054,7 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertTrue(app.switches["試験・返却"].exists)
         enableChangeNotifications()
         let specialToggle = app.switches["試験・返却"]
-        specialToggle.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
+        tapNativeSwitch(specialToggle)
         let enabled = expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: specialToggle)
         wait(for: [enabled], timeout: 10)
         app.navigationBars.buttons.element(boundBy: 0).tap()

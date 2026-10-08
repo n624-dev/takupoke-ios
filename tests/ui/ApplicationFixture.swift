@@ -108,8 +108,11 @@ struct SimulatorApplication: App {
                     }
                 }
                 .overlay {
+                    if ProcessInfo.processInfo.arguments.contains("--notification-permission-probe") {
+                        FixtureNotificationPermissionTouch()
+                    }
                     if ProcessInfo.processInfo.arguments.contains("--notification-probe") {
-                        Text(notificationProbe).accessibilityIdentifier("fixture-notification-result")
+                        Text(notificationProbe).accessibilityIdentifier("fixture-notification-result").allowsHitTesting(false)
                     }
                 }
                 .task {
@@ -794,5 +797,24 @@ enum SimulatorRecoveryOCRFixture {
             throw NSError(domain: "SyntheticOCRProbe", code: 2, userInfo: [NSLocalizedDescriptionKey: "ink: text=\(raster.hasUncoveredInk(textRegion, text: [], rules: layout.lines)), rule=\(raster.hasUncoveredInk(ruleRegion, text: [], rules: layout.lines)), blank=\(raster.isBlank(blankRegion)), blankInk=\(raster.hasUncoveredInk(blankRegion, text: [], rules: layout.lines))"])
         }
         return "CropBox/footer検証済み; OCR・上端座標・罫線・未読インク検証済み"
+    }
+}
+
+// Isolated QA interaction target. Permission and preferences remain production
+// state; this control never requests authorization or modifies either value.
+private struct FixtureNotificationPermissionTouch: View {
+    @ObservedObject private var notifications = ApplicationData.shared.notifications
+    @State private var dismissed = false
+    var body: some View {
+        VStack {
+            if !dismissed {
+                Button("許可画面を確認") {
+                    if notifications.changesEnabled { dismissed = true }
+                }.accessibilityIdentifier("fixture-notification-permission-touch")
+            }
+            Text("requesting=\(notifications.requestingPermission);changes=\(notifications.changesEnabled);saved=\(UserDefaults.standard.bool(forKey: "notifyScheduleChanges"));message=\(notifications.message ?? "none")")
+                .font(.system(size: 1)).allowsHitTesting(false)
+                .accessibilityIdentifier("fixture-notification-permission-state")
+        }
     }
 }

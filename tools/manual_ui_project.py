@@ -72,7 +72,7 @@ def view(text):
                             .accessibilityIdentifier("manual-process-launch").allowsHitTesting(false)
                         Text("preview=\\(coordinator.preview != nil);review=\\(coordinator.manualReview != nil);running=\\(coordinator.running);draft=\\(coordinator.manualDraft?.id ?? "nil");failure=\\(coordinator.failure ?? "none")")
                             .font(.system(size:1)).accessibilityIdentifier("manual-coordinator-state").allowsHitTesting(false)
-                        if manualQAMutationComplete { Text("変更完了").accessibilityIdentifier("manual-mutation-complete") }
+                        if manualQAMutationComplete { Text("変更完了").accessibilityIdentifier("manual-mutation-complete").allowsHitTesting(false) }
                         if let draft = coordinator.manualDraft {
                             Text(draft.fields.map { field in
                                 field.id + "=" + (manualValues[field.id] ?? field.originalText) + ";ack=" + String(manualAcknowledged[field.id] ?? false)
