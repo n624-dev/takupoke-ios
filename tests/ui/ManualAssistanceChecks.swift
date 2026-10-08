@@ -238,34 +238,19 @@ final class ManualAssistanceChecks:XCTestCase {
         // Reacquire its real hit region before the existing selection gesture.
         let focused=visible(e)
         editStage("before-selection",focused)
-        focused.press(forDuration:1.1)
-        if app.menuItems["すべてを選択"].waitForExistence(timeout:2) { app.menuItems["すべてを選択"].tap() }
-        else if app.menuItems["Select All"].exists { app.menuItems["Select All"].tap() }
-        else if app.buttons["すべてを選択"].firstMatch.exists { app.buttons["すべてを選択"].firstMatch.tap() }
-        else if app.buttons["Select All"].firstMatch.exists { app.buttons["Select All"].firstMatch.tap() }
+        // Press inside the first printed character. The middle of a wide
+        // multiline field can be empty; pressing it only opens an insertion
+        // menu with the caret at the beginning instead of selecting text.
+        let frame=focused.frame,appFrame=app.frame
+        app.coordinate(withNormalizedOffset:CGVector(dx:0,dy:0))
+            .withOffset(CGVector(dx:frame.minX+8-appFrame.minX,dy:frame.minY+min(10,frame.height/2)-appFrame.minY)).press(forDuration:1.1)
+        let selectAll=app.descendants(matching:.any).matching(NSPredicate(format:"label == %@ OR label == %@","すべてを選択","Select All")).firstMatch
+        if selectAll.waitForExistence(timeout:2) { selectAll.tap() }
         else {
-            // A long press can leave the caret at the beginning. Backspacing
-            // there deletes nothing and prefixes the new text to the old value.
-            // A real tap after the final displayed line places it at the end.
-            let editor=visible(e)
-            let frame=editor.frame,appFrame=app.frame
-            // Freeze the safe hit point before XCTest re-resolves a recycled
-            // editor. Its lower edge can hit the surrounding List instead of
-            // the native editor and dismiss the keyboard.
-            app.coordinate(withNormalizedOffset:CGVector(dx:0,dy:0))
-                .withOffset(CGVector(dx:frame.maxX-12-appFrame.minX,dy:frame.midY-appFrame.minY)).tap()
-            editStage("after-end-tap",e)
-            // On iOS26 the first tap can dismiss the native edit-menu overlay
-            // instead of reaching the editor. Restore focus with one actual
-            // editor tap after that dismissal; never inject a text value.
-            if !app.keyboards.firstMatch.exists || !e.debugDescription.contains("Keyboard Focused") {
-                visible(e).tap()
-                editStage("after-native-refocus",e)
-            }
-            guard app.keyboards.firstMatch.exists && e.debugDescription.contains("Keyboard Focused") else {
-                XCTFail("The native editor did not regain keyboard focus after dismissing its edit menu");return
-            }
-            e.typeText(String(repeating:XCUIKeyboardKey.delete.rawValue,count:(e.value as? String)?.count ?? 0))
+            // No blind backspacing from an unverified insertion point. Retain
+            // bounded synthetic-only hierarchy evidence and stop this edit.
+            print("TAKUPOKE-MANUAL-SELECTION absent;"+String(app.debugDescription.prefix(12000)))
+            XCTFail("The native Select All action was unavailable for the printed input");return
         }
         e.typeText(value)
         // End the native editor before the independent acknowledgement tap.

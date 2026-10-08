@@ -33,9 +33,8 @@ class ManualUIProjectTests(unittest.TestCase):
         checks=(ROOT/"tests/ui/ManualAssistanceChecks.swift").read_text(encoding="utf-8")
         edit=checks.split('    private func edit(',1)[1].split('    private func editStage(',1)[0]
         self.assertLess(edit.index('visible(e).tap()'),edit.index('let focused=visible(e)'))
-        self.assertLess(edit.index('let focused=visible(e)'),edit.index('focused.press(forDuration:1.1)'))
-        self.assertIn('menuItems["すべてを選択"]',edit)
-        self.assertIn('menuItems["Select All"]',edit)
+        self.assertLess(edit.index('let focused=visible(e)'),edit.index('let frame=focused.frame'))
+        self.assertIn('"すべてを選択","Select All"',edit)
         self.assertIn('e.typeText(value)',edit)
         self.assertNotIn('sleep(',edit)
         self.assertIn('editStage("after-focus",e)',edit)
