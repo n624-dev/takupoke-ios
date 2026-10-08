@@ -51,7 +51,7 @@ final class RecoveryNativeScoreBoundaryTests:XCTestCase {
                     let color=index%2==0 ? CGColor(gray:0,alpha:1):CGColor(red:0.05,green:0.1,blue:0.3,alpha:1)
                     let line=CTLineCreateWithAttributedString(NSAttributedString(string:literal,attributes:[
                         NSAttributedString.Key(kCTFontAttributeName as String):font,
-                        NSAttributedString.Key(kCTForegroundColorAttributeName as String):color]))
+                        NSAttributedString.Key(kCTForegroundColorAttributeName as String):color]) as CFAttributedString)
                     context.textMatrix = .identity
                     context.textPosition=CGPoint(x:box.minX+12,y:CGFloat(side)-box.minY-80)
                     CTLineDraw(line,context)
