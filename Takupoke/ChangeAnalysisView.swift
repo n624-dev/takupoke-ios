@@ -42,16 +42,16 @@ struct ChangeAnalysisView: View {
                     Button("警告を確認して内容を見る") { confirmingPreview = true }
                         .disabled(model.busy || !model.ready)
                 }
-            } header: { Text("状態") }
+            } header: { Text("状態").accessibilityIdentifier("material-state-section") }
             if model.state.record(for: .changes)?.source.weekdayConsent?.matches(digest: model.state.record(for: .changes)?.digest ?? "", defaultYear: defaultYear) == true {
                 Section { Text("曜日は日付から計算しています。ファイルの内容が更新されると解除されます。") }
             }
-            Section("操作") {
+            Section {
                 Button("同じファイルを再取得") { model.refresh(.changes) }
                     .disabled(model.busy || !model.ready || model.state.record(for: .changes) == nil)
-            }
+            } header: { Text("操作").accessibilityIdentifier("material-actions-section") }
             if let source = model.state.record(for: .changes) {
-                Section("ファイル情報") {
+                Section {
                     Text(source.originalName)
                     LabeledContent("サイズ", value: ByteCountFormatter.string(
                         fromByteCount: Int64(source.byteCount), countStyle: .file))
@@ -68,7 +68,7 @@ struct ChangeAnalysisView: View {
                             Text(date, format: JapaneseDateDisplay.timestamp)
                         }
                     }
-                }
+                } header: { Text("ファイル情報").accessibilityIdentifier("material-file-section") }
             }
             if let analysis = analysis {
                 Section {
@@ -79,7 +79,7 @@ struct ChangeAnalysisView: View {
                     if analysis.sourceDigest != model.state.record(for: .changes)?.digest || analysis.version != ChangeAnalysis.parserVersion {
                         Label("前回の解析結果です。現在のファイルを解析してください。", systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                     }
-                } header: { Text("解析結果") }
+                } header: { Text("解析結果").accessibilityIdentifier("material-analysis-section") }
                 Section {
                     Picker("クラス", selection: $selectedClass) {
                         Text("すべて").tag("")

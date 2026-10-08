@@ -26,7 +26,7 @@ struct PDFAnalysisView: View {
 
     var body: some View {
         List {
-            Section("状態") {
+            Section {
                 if let source = model.state.record(for: kind) {
                     LabeledContent("状態", value: model.analysisStatus(kind, record: source))
                 }
@@ -48,7 +48,7 @@ struct PDFAnalysisView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
 #endif
-            }
+            } header: { Text("状態").accessibilityIdentifier("material-state-section") }
             if model.state.pdfParseAttempts?[kind.rawValue]?.recoveryJob?.pdfHash == model.state.record(for: kind)?.digest,
                model.state.pdfParseAttempts?[kind.rawValue]?.recoveryJob?.state == .pending {
                 Section("復旧") {
@@ -56,14 +56,14 @@ struct PDFAnalysisView: View {
                     Button("端末内で復旧する",systemImage:"doc.text.magnifyingglass") { showingRecovery = true }.disabled(!useAiFeatures || model.busy)
                 }
             }
-            Section("操作") {
+            Section {
                 Button("同じファイルを再取得") { model.refresh(kind) }
                     .disabled(model.busy || !model.ready || model.state.record(for: kind) == nil)
                 Button("保存済みのPDFを見る") { showingSource = true }
                     .disabled(model.pdfURLs[kind.rawValue] == nil || model.busy)
-            }
+            } header: { Text("操作").accessibilityIdentifier("material-actions-section") }
             if let source = model.state.record(for: kind) {
-                Section("ファイル情報") {
+                Section {
                     Text(source.originalName)
                     LabeledContent("サイズ", value: ByteCountFormatter.string(
                         fromByteCount: Int64(source.byteCount), countStyle: .file))
@@ -80,10 +80,10 @@ struct PDFAnalysisView: View {
                             Text(date, format: JapaneseDateDisplay.timestamp)
                         }
                     }
-                }
+                } header: { Text("ファイル情報").accessibilityIdentifier("material-file-section") }
             }
             if let analysis = analysis {
-                Section("解析結果") {
+                Section {
                     Text(analysis.sourceName)
                     LabeledContent("学校年度", value: "\(analysis.schoolYear)年度")
                     if let term = analysis.term { LabeledContent("学期", value: term) }
@@ -97,7 +97,7 @@ struct PDFAnalysisView: View {
                             .foregroundStyle(.orange)
                     }
                     ForEach(analysis.notices, id: \.self) { Text($0).font(.caption).foregroundStyle(.secondary) }
-                }
+                } header: { Text("解析結果").accessibilityIdentifier("material-analysis-section") }
                 if kind == .timetable {
                     Section("絞り込み") {
                         Picker("クラス", selection: $selectedClass) {

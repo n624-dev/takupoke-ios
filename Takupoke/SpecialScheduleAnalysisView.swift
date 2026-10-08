@@ -15,7 +15,7 @@ struct SpecialScheduleAnalysisView: View {
 
     var body: some View {
         List {
-            Section("状態") {
+            Section {
                 if let source {
                     LabeledContent("状態", value: model.analysisStatus(kind, source: source))
                 }
@@ -35,18 +35,18 @@ struct SpecialScheduleAnalysisView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
 #endif
-            }
+            } header: { Text("状態").accessibilityIdentifier("material-state-section") }
             if source?.recoveryJob?.pdfHash == source?.digest, source?.recoveryJob?.state == .pending {
                 Section("復旧") {
                     Button("端末内で復旧する",systemImage:"doc.text.magnifyingglass") { showingRecovery = true }.disabled(!useAiFeatures || model.busy)
                     Text("新しい資料は未反映です。") }
             }
-            Section("操作") {
+            Section {
                 Button("保存済みのPDFを見る") { showingSource = true }
                     .disabled(model.busy || model.urls[kind] == nil)
-            }
+            } header: { Text("操作").accessibilityIdentifier("material-actions-section") }
             if let source {
-                Section("ファイル情報") {
+                Section {
                     Text(source.originalName)
                     if source.grant == nil {
                         Label("ファイルの自動更新確認には、このPDFをもう一度選んでください。", systemImage: "exclamationmark.triangle")
@@ -62,10 +62,10 @@ struct SpecialScheduleAnalysisView: View {
                             Text(date, format: JapaneseDateDisplay.timestamp)
                         }
                     }
-                }
+                } header: { Text("ファイル情報").accessibilityIdentifier("material-file-section") }
             }
             if let record {
-                Section("解析結果") {
+                Section {
                     LabeledContent("学校年度", value: "\(record.analysis.schoolYear)年度")
                     LabeledContent("件数", value: "\(record.analysis.lessons.count)件")
                     LabeledContent("最終解析成功") {
@@ -75,7 +75,7 @@ struct SpecialScheduleAnalysisView: View {
                         Label("前回の解析結果です。現在のファイルを解析してください。", systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
                     }
-                }
+                } header: { Text("解析結果").accessibilityIdentifier("material-analysis-section") }
                 Section("授業一覧") {
                     ForEach(Array(record.analysis.lessons.enumerated()), id: \.offset) { _, lesson in
                         NavigationLink {

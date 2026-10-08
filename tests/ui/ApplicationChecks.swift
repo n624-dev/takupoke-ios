@@ -132,13 +132,28 @@ final class ApplicationChecks: XCTestCase {
     private func heading(_ title: String) -> XCUIElement {
         visible(app.staticTexts[title].firstMatch)
     }
+    private func materialSection(_ title: String, on page: String) -> XCUIElement {
+        let identifiers = ["状態": "material-state-section", "操作": "material-actions-section",
+                           "ファイル情報": "material-file-section", "解析結果": "material-analysis-section"]
+        let matches = app.staticTexts.matching(identifier: identifiers[title]!)
+        let header = matches.element(boundBy: 0)
+        _ = visible(header, navigation: page)
+        // A List can omit an offscreen header from AX until it is scrolled in.
+        XCTAssertEqual(matches.count, 1, "Require the actual section header, not its row label")
+        XCTAssertEqual(header.label, title)
+        return header
+    }
     private func usable(_ frame: CGRect) -> Bool {
         !frame.isNull && !frame.isInfinite && frame.width > 0 && frame.height > 0 &&
             [frame.minX, frame.minY, frame.maxX, frame.maxY].allSatisfy(\.isFinite)
     }
     private var contentViewport: CGRect {
+        contentViewport(navigation: nil)
+    }
+    private func contentViewport(navigation: String?) -> CGRect {
         let frame = app.frame
-        let top = app.navigationBars.firstMatch.frame.maxY
+        let bar = navigation.map { app.navigationBars[$0] } ?? app.navigationBars.firstMatch
+        let top = bar.frame.maxY
         var bottom = app.tabBars.firstMatch.exists ? app.tabBars.firstMatch.frame.minY : frame.maxY
         if app.keyboards.firstMatch.exists { bottom = min(bottom, app.keyboards.firstMatch.frame.minY) }
         return CGRect(x: frame.minX, y: top, width: frame.width, height: max(0, bottom - top))
@@ -148,8 +163,8 @@ final class ApplicationChecks: XCTestCase {
         let frame = element.frame
         return usable(frame) && usable(viewport) && viewport.contains(frame)
     }
-    private func unobscuredViewport(for element: XCUIElement) -> CGRect {
-        var frame = contentViewport
+    private func unobscuredViewport(for element: XCUIElement, navigation: String? = nil) -> CGRect {
+        var frame = contentViewport(navigation: navigation)
         let footer = app.buttons["次へ"]
         let isFooter = element.exists && element.label.hasPrefix("次へ")
         if footer.exists && footer.isHittable && !isFooter,
@@ -158,14 +173,25 @@ final class ApplicationChecks: XCTestCase {
         }
         return frame
     }
-    private func visible(_ e: XCUIElement) -> XCUIElement {
+    private func visible(_ e: XCUIElement, navigation: String? = nil) -> XCUIElement {
         for _ in 0..<6 {
-            let viewport = unobscuredViewport(for: e)
+            let viewport = unobscuredViewport(for: e, navigation: navigation)
             if contained(e, in: viewport) { return e }
-            if e.exists && usable(e.frame) && e.frame.minY < viewport.minY { app.swipeDown() }
+            // Do not drag against a navigation transition or a returning
+            // scroll bounce. Strict full containment still decides success.
+            let settled = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                self.contained(e, in: self.unobscuredViewport(for: e, navigation: navigation))
+            }, object: app)
+            if XCTWaiter.wait(for: [settled], timeout: 2) == .completed { return e }
+            let current = unobscuredViewport(for: e, navigation: navigation)
+            let frame = e.exists ? e.frame : CGRect.null
+            print("UI_VISIBLE frame=\(frame);viewport=\(current);navigation=\(navigation ?? "current")")
+            if usable(frame) && frame.minY < current.minY { app.swipeDown() }
             else { app.swipeUp() }
         }
-        XCTAssertTrue(contained(e, in: unobscuredViewport(for: e)), "Element remains outside the visible content: " + app.debugDescription)
+        let viewport = unobscuredViewport(for: e, navigation: navigation)
+        print("UI_VISIBLE final-frame=\(e.exists ? e.frame : CGRect.null);viewport=\(viewport);navigation=\(navigation ?? "current")")
+        XCTAssertTrue(contained(e, in: viewport), "Element remains outside the visible content: " + app.debugDescription)
         return e
     }
     private func tapNativeSwitch(_ row: XCUIElement) {
@@ -777,11 +803,11 @@ final class ApplicationChecks: XCTestCase {
         for title in ["通常時間割", "時間割変更", "試験時間割", "試験返却時間割"] {
             tap("\(title)の詳細を見る")
             screen(title)
-            let stateY = heading("状態").frame.minY
-            let operationY = heading("操作").frame.minY
+            let stateY = materialSection("状態", on: title).frame.minY
+            let operationY = materialSection("操作", on: title).frame.minY
             XCTAssertLessThan(stateY, operationY)
-            _ = heading("ファイル情報")
-            _ = heading("解析結果")
+            _ = materialSection("ファイル情報", on: title)
+            _ = materialSection("解析結果", on: title)
             _ = heading("件数")
             XCTAssertFalse(app.staticTexts["解析件数"].exists)
             XCTAssertFalse(app.staticTexts["授業枠"].exists)
