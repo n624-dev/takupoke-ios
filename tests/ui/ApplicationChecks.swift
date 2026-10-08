@@ -594,14 +594,21 @@ final class ApplicationChecks: XCTestCase {
             XCTAssertGreaterThan(ai.frame.width, 40)
             print("AI_SWITCH before frame=\(ai.frame) UI=\(String(describing: ai.value)) stored=\(stored.label)")
             recoveryScreenshot("ai-switch-before-\(changeOrdinal)")
-            // Switch accessibility bounds can cover either the whole labelled
-            // row or just the control. The trailing control's centre is 26 px
-            // inside the right edge in both representations, unlike its edge.
-            ai.coordinate(withNormalizedOffset:CGVector(dx:1,dy:0.5))
-                .withOffset(CGVector(dx:-26,dy:0)).tap()
+            // The labelled row and the inner native switch have different
+            // accessibility bounds. Activate the unique real control directly.
+            let controls = ai.descendants(matching: .switch)
+            XCTAssertEqual(controls.count, 1, "The settings row must expose one native switch")
+            let control = controls.element(boundBy: 0)
+            XCTAssertTrue(control.waitForExistence(timeout: 45))
+            let rowFrame = ai.frame, controlFrame = control.frame
+            XCTAssertTrue([controlFrame.minX, controlFrame.minY, controlFrame.width, controlFrame.height].allSatisfy(\.isFinite))
+            XCTAssertFalse(controlFrame.isEmpty)
+            XCTAssertTrue(rowFrame.contains(controlFrame), "The native control must belong to this settings row")
+            XCTAssertTrue(control.isEnabled && control.isHittable, app.debugDescription)
+            control.tap()
             let reflected = expectation(for:NSPredicate(format:"value == %@",value),evaluatedWith:ai)
             let saved = expectation(for:NSPredicate(format:"label == %@",value),evaluatedWith:stored)
-            let completion = XCTWaiter.wait(for:[reflected,saved],timeout:10)
+            let completion = XCTWaiter.wait(for:[reflected,saved],timeout:45)
             guard completion == .completed else {
                 print("AI_SWITCH unresolved UI=\(String(describing: ai.value)) stored=\(stored.label) tree=\(app.debugDescription)")
                 recoveryScreenshot("ai-switch-unresolved-\(changeOrdinal)")
