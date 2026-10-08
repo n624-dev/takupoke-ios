@@ -10,7 +10,7 @@ import ImageIO
 
 final class RecoveryOrderedRasterObservationTests:XCTestCase {
     func testReadablePhysicalHeaderPixelsWithoutRepeatingOCR() throws {
-        guard ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_RULE_PIXELS_ONLY"] == "1",
+        guard ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_RULE_PIXELS"] == "1",
               let root=ProcessInfo.processInfo.environment["TAKUPOKE_ORDERED_RASTER_FIXTURES"] else {
             throw XCTSkip("Requires the dedicated physical-rule observation")
         }

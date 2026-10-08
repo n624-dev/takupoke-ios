@@ -491,6 +491,40 @@ extension RecoveryTests {
 }
 
 extension RecoveryTests {
+    func testThickBorderWithDifferentPixelLaneEndpointsSharesOneClosedJunction() throws {
+        let width=200,height=160
+        var pixels=[UInt8](repeating:255,count:width*height)
+        func horizontal(_ y:Int,_ left:Int,_ right:Int) { for x in left...right {pixels[y*width+x]=0} }
+        func vertical(_ x:Int,_ top:Int,_ bottom:Int) { for y in top...bottom {pixels[y*width+x]=0} }
+        horizontal(19,60,179);horizontal(20,59,180)
+        for y in [59,99,139] {horizontal(y,20,180);horizontal(y+1,19,180)}
+        vertical(59,20,139);vertical(60,19,140)
+        vertical(179,20,139);vertical(180,19,140)
+        vertical(19,60,139);vertical(20,59,140)
+        for x in [100,140] {vertical(x,59,140);vertical(x+1,60,139)}
+        let raster=RecoveryRasterGrid(width:width,height:height,grayscale:pixels),rules=try raster.rules(check:{})
+        let grid=PDFGrid(page:PDFPageLayout(width:Double(width),height:Double(height),glyphs:[],lines:rules))
+        let day=try grid.box(120,40,check:{}),period=try grid.box(80,80,check:{})
+        XCTAssertEqual(day.bottom,period.top)
+        XCTAssertEqual(rules.filter{$0.horizontal && (58...61).contains($0.y1)}.count,1)
+        XCTAssertTrue(rules.contains{$0.horizontal && abs($0.y1-day.top)<0.3 && $0.x1<=day.left+0.3 && $0.x2>=day.right-0.3})
+        XCTAssertTrue(rules.contains{$0.vertical && abs($0.x1-day.right)<0.3 && $0.y1<=day.top+0.3 && $0.y2>=day.bottom-0.3})
+        let dayRegion=RecoveryBox(x:day.left,y:day.top,width:day.right-day.left,height:day.bottom-day.top)
+        XCTAssertTrue(try raster.preparingRules(rules).isBlank(dayRegion,rules:rules))
+        XCTAssertEqual(raster.grayscale,pixels)
+    }
+    func testParallelBordersWithWhitePixelGapRemainTwoBoundaries() throws {
+        let size=120
+        var pixels=[UInt8](repeating:255,count:size*size)
+        for y in [20,60,62,100] {for x in 20...100 {pixels[y*size+x]=0}}
+        for x in [20,100] {for y in 20...100 {pixels[y*size+x]=0}}
+        let raster=RecoveryRasterGrid(width:size,height:size,grayscale:pixels),rules=try raster.rules(check:{})
+        XCTAssertEqual(rules.filter{$0.horizontal && (59...63).contains($0.y1)}.map(\.y1).sorted(),[60,62])
+        XCTAssertEqual(raster.grayscale[61*size+50],255)
+        let oneBorder=rules.filter{$0.horizontal && $0.y1==60}
+        let prepared=try raster.preparingRules(oneBorder)
+        XCTAssertTrue(prepared.hasUncoveredInk(RecoveryBox(x:40,y:62,width:20,height:1),text:[],rules:oneBorder))
+    }
     func testOpenRasterBorderKeepsClosedInteriorAndLeavesUnsupportedTailAsInk() throws {
         let width = 240, height = 200
         var pixels = [UInt8](repeating:255,count:width*height)
