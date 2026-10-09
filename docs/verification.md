@@ -2,6 +2,18 @@
 
 ## 2026-10-09 重複検査の整理と実コールバックの検証
 
+全体Linux Swiftは464件・失敗0、テスト本体59.464秒、
+依存取得・ビルド込み360.7秒だった。最初の実行はSQLiteヘッダーの参照漏れで
+ビルドを拒否され、実際の依存設置先をTKPK_ZLIB_PREFIXで指定して再実行した。
+テストを外したり、期待値を変更したりしていない。
+開発専用workflowへ全portable Swiftを追加し、対象ブランチの本体・テスト変更でも
+Pythonと並列に検証する。所有scratch以外のビルド再利用・保存artifact・cacheは使わない。
+mainの全13チェックと公開経路は変更しない。新workflowのAppleや配布の成功は意味しない。
+既存のtest_each_required_job_is_individually_requiredと
+test_job_metadata_must_match_the_same_attempt_and_commitが、
+軽い検証の成功で必須ジョブや検証済みコミットを代用できないことを検出する。
+この公開ゲートを変更していないため不要な期待値編集はせず、154件の実行結果を根拠とする。
+
 通知のQAは、許可前に実OSのnotificationSettingsが応答し、アプリがactiveであることを
 読み取り専用で観測する。応答前から止まる場合と許可要求後の停止を区別するためで、
 許可・保存値・完了結果は注入しない。通知設定への移動も行内の固定割合をやめ、

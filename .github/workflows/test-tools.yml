@@ -1,4 +1,4 @@
-name: Test tools and catalogue
+name: Development Swift and test tools
 
 on:
   push:
@@ -6,10 +6,15 @@ on:
     paths:
       - .github/workflows/test-tools.yml
       - tools/*.py
-      - tools/test-manual-ui.sh
+      - tools/*.sh
+      - Takupoke/**
+      - Package.swift
+      - Package.resolved
       - tests/test_*.py
+      - tests/*.swift
+      - tests/Support/**
       - tests/test-catalog.json
-      - tests/ui/ManualAssistance*.swift
+      - tests/ui/**
   workflow_dispatch:
 
 permissions:
@@ -29,3 +34,18 @@ jobs:
       - run: python3 -B -m unittest discover -s tests -v
       - run: bash -n tools/test-manual-ui.sh
       - run: git diff-tree --check HEAD
+  swift:
+    name: Development portable Swift checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Check the installed compiler and prepare Linux headers
+        run: |
+          swift --version
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends zlib1g-dev libsqlite3-dev pkg-config
+      - name: Run all portable production parsing and persistence checks in owned scratch
+        run: bash tools/test-parsing.sh
