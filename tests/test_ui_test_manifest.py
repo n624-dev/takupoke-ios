@@ -136,6 +136,8 @@ class ManifestTests(unittest.TestCase):
         probe = (ROOT / "tests/ui/ApplicationFixture+NotificationPermission.swift").read_text(encoding="utf-8")
         self.assertIn("ApplicationFixture+NotificationPermission.swift", manifest.FIXTURE_SOURCES)
         self.assertIn("UIApplication.shared.applicationState.rawValue", probe)
+        recorder = (ROOT / "tests/ui/ApplicationFixture.swift").read_text(encoding="utf-8")
+        self.assertIn('"notification-settings-not-requested"', recorder)
         self.assertIn("@Environment(\\.scenePhase)", probe)
         self.assertIn(".onDisappear { permission.invalidate() }", probe)
         self.assertNotRegex(probe, r"notificationSettings\(|getNotificationSettings|requestAuthorization|setEnabled|UserDefaults\.standard\.set\(")

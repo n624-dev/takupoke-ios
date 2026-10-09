@@ -340,6 +340,7 @@ enum FixtureLaunchDiagnostics {
         let allowed: Set<String> = ["init-enter", "seed-enter", "seed-complete", "scene-construction",
             "content-appeared", "root-task-enter", "application-ready", "fixture-ready", "fixture-ready-timeout",
             "notification-settings-enter", "notification-settings-complete", "notification-settings-cancelled",
+            "notification-settings-not-requested",
             "notification-on-binding", "notification-off-binding",
             "notification-native-request", "notification-native-callback"]
         guard allowed.contains(stage) else { return }
