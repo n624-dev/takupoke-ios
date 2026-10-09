@@ -95,6 +95,8 @@ BRIDGE
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
         bridge_start = source.index("    nonisolated private static func notificationSettings(")
         bridge_end = source.index("    func resetForRetention()", bridge_start)
+        permission_start = source.index("    func checkPermission() async {")
+        permission_end = source.index("    // Keep the actual OS response", permission_start)
         gate_start = source.index("    private func deliveryAllowed() async -> Bool {")
         gate_end = source.index("    private func apply(", gate_start)
         program = r'''import Foundation
@@ -122,11 +124,13 @@ final class UNUserNotificationCenter: @unchecked Sendable {
     let changesEnabled: Bool
     let specialsEnabled: Bool
     let center: UNUserNotificationCenter
+    var message: String?
     init(_ changes: Bool, _ specials: Bool, _ center: UNUserNotificationCenter) {
         changesEnabled = changes; specialsEnabled = specials; self.center = center
     }
 BRIDGE
 GATE
+PERMISSION
     func evaluate() async -> Bool { await deliveryAllowed() }
 }
 @main struct Probe {
@@ -135,6 +139,12 @@ GATE
         let disabled = Harness(false, false, unavailable)
         let disabledResult = await disabled.evaluate()
         precondition(!disabledResult && unavailable.count == 0)
+        disabled.message = "iPhoneの設定で通知を許可してください。"
+        await disabled.checkPermission()
+        precondition(disabled.message == nil && unavailable.count == 0)
+        disabled.message = "unrelated failure"
+        await disabled.checkPermission()
+        precondition(disabled.message == "unrelated failure" && unavailable.count == 0)
         for status in [Authorization.notDetermined, .denied, .authorized, .provisional, .ephemeral, .unknown] {
             for (changes, specials) in [(false, false), (true, false), (false, true), (true, true)] {
                 let center = UNUserNotificationCenter(UNNotificationSettings(status))
@@ -143,12 +153,23 @@ GATE
                 let allowed = [.authorized, .provisional, .ephemeral].contains(status)
                 precondition(result == (enabled && allowed))
                 precondition(center.count == (enabled ? 1 : 0))
+                let harness = Harness(changes, specials, center)
+                for previous in [nil, "iPhoneの設定で通知を許可してください。", "unrelated failure"] {
+                    harness.message = previous
+                    await harness.checkPermission()
+                    let expected = enabled && status == .denied
+                        ? "iPhoneの設定で通知を許可してください。"
+                        : (previous == "iPhoneの設定で通知を許可してください。" ? nil : previous)
+                    precondition(harness.message == expected)
+                }
+                precondition(center.count == (enabled ? 4 : 0))
             }
         }
         print("Verified production gate: disabled uses no OS request; enabled requires actual allowed status.")
     }
 }
-'''.replace("BRIDGE", source[bridge_start:bridge_end]).replace("GATE", source[gate_start:gate_end])
+'''.replace("BRIDGE", source[bridge_start:bridge_end]).replace("GATE", source[gate_start:gate_end]).replace(
+    "PERMISSION", source[permission_start:permission_end])
         self.run_probe(compiler, program)
 
     def run_probe(self, compiler, program):

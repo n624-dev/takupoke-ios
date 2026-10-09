@@ -44,7 +44,7 @@ extension ApplicationChecks {
         guard XCTWaiter.wait(for: [ready], timeout: 45) == .completed else {
             print("NOTIFICATION_READINESS unresolved=\(probe.label)")
             recoveryScreenshot("notification-readiness-unresolved", systemScreen: true)
-            XCTFail("OS notification settings did not respond while the app was active")
+            XCTFail("Notification check did not complete or explicitly skip its unnecessary OS read")
             return
         }
         let predicate = NSPredicate(
@@ -67,26 +67,37 @@ extension ApplicationChecks {
         recoveryScreenshot("notification-switch-before")
         let authorization = probe.label.components(separatedBy: ";authorization=").last?
             .components(separatedBy: ";").first
-        guard let authorization, ["0", "1", "2", "3", "4"].contains(authorization) else {
-            XCTFail("OS notification authorization must be observed before choosing the native touch point")
+        guard let authorization,
+            ["0", "1", "2", "3", "4", "notRequested"].contains(authorization),
+            authorization != "notRequested" || probe.label.contains(
+                "changes=false;saved=false;specials=false;savedSpecials=false;")
+        else {
+            XCTFail("Require an actual OS status or the observed disabled branch without an OS read")
             return
         }
-        // Compare the center only for the initial OS permission request.
-        // Retain the observed thumb-side operation for already-known permission.
-        tapNativeSwitch(toggle, atCenter: authorization == "0")
-        // A dedicated QA-only no-op control dispatches the real alert monitor.
-        // Generic app.tap() has an unspecified activation point and may toggle
-        // a setting again. This target cannot grant permission or change state.
+        tapNativeSwitch(toggle)
         print("NOTIFICATION_SWITCH activated state=\(probe.label)")
-        // Only the first permission dialog needs a subsequent interaction to
-        // dispatch XCTest's real interruption monitor. Already-granted choices
-        // must settle before another gesture touches the app.
-        if authorization == "0" { touch.tap() }
+        let deadline = Date().addingTimeInterval(45)
+        // Dispatch the interruption monitor only when the real permission request
+        // has made the application inactive. Already-granted requests settle first.
+        let transition = expectation(for: NSPredicate { _, _ in
+            let state = probe.label
+            let completed = state.hasPrefix("requesting=false;changes=true;saved=true;")
+            let modal = state.hasPrefix("requesting=true;")
+                && (state.hasSuffix(";application=1") || state.hasSuffix(";application=2"))
+            return completed || modal
+        }, evaluatedWith: probe)
+        guard XCTWaiter.wait(for: [transition], timeout: 45) == .completed else {
+            recoveryScreenshot("notification-transition-unresolved", systemScreen: true)
+            XCTFail("The physical switch did not reach enablement or a real permission interruption")
+            return
+        }
+        if probe.label.hasPrefix("requesting=true;") { touch.tap() }
         let enabled = expectation(for: NSPredicate { _, _ in
             (toggle.value as? String) == "1" && probe.exists
                 && probe.label.hasPrefix("requesting=false;changes=true;saved=true;")
         }, evaluatedWith: app)
-        let didEnable = XCTWaiter.wait(for: [enabled], timeout: 45) == .completed
+        let didEnable = XCTWaiter.wait(for: [enabled], timeout: max(0, deadline.timeIntervalSinceNow)) == .completed
         guard didEnable else {
             print(
                 "NOTIFICATION_SWITCH unresolved value=\(String(describing: toggle.value)) enabled=\(toggle.isEnabled) tree=\(app.debugDescription)"

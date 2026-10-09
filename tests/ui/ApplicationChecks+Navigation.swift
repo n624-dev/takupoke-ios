@@ -175,7 +175,7 @@ extension ApplicationChecks {
         )
         return e
     }
-    func tapNativeSwitch(_ row: XCUIElement, navigation: String? = nil, atCenter: Bool = false) {
+    func tapNativeSwitch(_ row: XCUIElement, navigation: String? = nil) {
         _ = visible(row, navigation: navigation)
         let controls = row.descendants(matching: .switch)
         XCTAssertEqual(controls.count, 1, "The row must expose exactly one native switch")
@@ -204,16 +204,9 @@ extension ApplicationChecks {
             XCTFail("Native switch state must be known and agree with its row")
             return
         }
-        print("NATIVE_SWITCH row=\(outer);control=\(frame);rowState=\(rowState);controlState=\(state);nativeElement=\(!atCenter)")
-        if atCenter {
-            // Only the initial notification permission uses the measured center.
-            let point = CGPoint(x: frame.midX, y: frame.midY)
-            app.coordinate(withNormalizedOffset: .zero)
-                .withOffset(CGVector(dx: point.x - page.minX, dy: point.y - page.minY)).tap()
-        } else {
-            // XCTest chooses the actual native element's hittable activation point.
-            // Do not infer the thumb's touch region from a fraction of its AX frame.
-            control.tap()
-        }
+        print("NATIVE_SWITCH row=\(outer);control=\(frame);rowState=\(rowState);controlState=\(state)")
+        // XCTest resolves the actual native element's hittable activation point.
+        // A single physical tap must produce the observed UI and saved transition.
+        control.tap()
     }
 }

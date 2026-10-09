@@ -83,8 +83,12 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     }
 
     func checkPermission() async {
-        let settings = await Self.notificationSettings(from: center)
         let deniedMessage = "iPhoneの設定で通知を許可してください。"
+        guard changesEnabled || specialsEnabled else {
+            if message == deniedMessage { message = nil }
+            return
+        }
+        let settings = await Self.notificationSettings(from: center)
         if (changesEnabled || specialsEnabled), settings.authorizationStatus == .denied {
             message = deniedMessage
         } else if message == deniedMessage { message = nil }

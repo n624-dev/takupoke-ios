@@ -104,15 +104,26 @@ NOTIFICATION_PERMISSION_END = (
 NOTIFICATION_NATIVE_REQUEST = '            FixtureLaunchDiagnostics.record("notification-native-request")\n'
 NOTIFICATION_NATIVE_CALLBACK = '                FixtureLaunchDiagnostics.record("notification-native-callback")\n'
 
+NOTIFICATION_PERMISSION_SKIPPED = (
+    '            FixtureNotificationAuthorization.shared.completeWithoutRead(fixturePermissionRead,\n'
+    '                cancelled: Task.isCancelled)\n')
+
 def instrument_notification_permission(text):
-    # Observe the actual production calls; add no OS requests or authorization writes.
-    marker = ('    func checkPermission() async {\n'
-              '        let settings = await Self.notificationSettings(from: center)\n')
-    assert text.count(marker) == 1, 'Notification permission read insertion point missing'
-    observed = ('    func checkPermission() async {\n' + NOTIFICATION_PERMISSION_BEGIN
-                + '        let settings = await Self.notificationSettings(from: center)\n'
-                + NOTIFICATION_PERMISSION_END)
-    text = text.replace(marker, observed)
+    # Observe actual branches and calls. Never supply an OS status or change settings.
+    start = '    func checkPermission() async {\n'
+    read = '        let settings = await Self.notificationSettings(from: center)\n'
+    disabled = ('            if message == deniedMessage { message = nil }\n'
+                '            return\n')
+    end = text.index('    // Keep the actual OS response')
+    permission = text[:end]
+    assert permission.count(start) == 1 and permission.count(read) == 1, (
+        'Notification permission read insertion point missing')
+    assert permission.count(disabled) == 1, 'Disabled permission branch insertion point missing'
+    permission = permission.replace(start, start + NOTIFICATION_PERMISSION_BEGIN)
+    permission = permission.replace(read, read + NOTIFICATION_PERMISSION_END)
+    permission = permission.replace(disabled, disabled.replace(
+        '            return\n', NOTIFICATION_PERMISSION_SKIPPED + '            return\n'))
+    text = permission + text[end:]
     request = '            center.getNotificationSettings { settings in\n'
     callback = '                continuation.resume(returning: settings)\n'
     assert text.count(request) == 1 and text.count(request.strip()) == 1, (

@@ -28,6 +28,15 @@ final class FixtureNotificationAuthorization: ObservableObject {
             + ";application=\(UIApplication.shared.applicationState.rawValue)")
     }
 
+    func completeWithoutRead(_ identifier: UUID, cancelled: Bool) {
+        guard request == identifier, !cancelled else {
+            FixtureLaunchDiagnostics.record("notification-settings-cancelled")
+            return
+        }
+        authorization = "notRequested"
+        FixtureLaunchDiagnostics.record("notification-settings-not-requested")
+    }
+
     func invalidate() {
         request = nil
         authorization = "pending"
@@ -44,6 +53,8 @@ struct FixtureNotificationPermissionTouch: View {
         "requesting=\(notifications.requestingPermission)"
             + ";changes=\(notifications.changesEnabled)"
             + ";saved=\(UserDefaults.standard.bool(forKey: "notifyScheduleChanges"))"
+            + ";specials=\(notifications.specialsEnabled)"
+            + ";savedSpecials=\(UserDefaults.standard.bool(forKey: "notifySpecialSchedules"))"
             + ";message=\(notifications.message ?? "none")"
             + ";authorization=\(permission.authorization);scene=\(String(describing: phase))"
             + ";application=\(UIApplication.shared.applicationState.rawValue)"

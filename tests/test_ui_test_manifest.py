@@ -116,6 +116,7 @@ class ManifestTests(unittest.TestCase):
         restored = generated
         for insertion in (app_test_project.NOTIFICATION_PERMISSION_BEGIN,
                           app_test_project.NOTIFICATION_PERMISSION_END,
+                          app_test_project.NOTIFICATION_PERMISSION_SKIPPED,
                           app_test_project.NOTIFICATION_NATIVE_REQUEST,
                           app_test_project.NOTIFICATION_NATIVE_CALLBACK):
             self.assertEqual(restored.count(insertion), 1)
@@ -141,21 +142,23 @@ class ManifestTests(unittest.TestCase):
         workflow = (ROOT / ".github/workflows/application-relaunch-native-probe.yml").read_text()
         self.assertNotIn("TKPK_NOTIFICATION_SETTINGS_READ", workflow)
         checks = (ROOT / "tests/ui/ApplicationChecks+Notifications.swift").read_text(encoding="utf-8")
-        self.assertLess(checks.index("OS notification settings did not respond"),
-                        checks.index('tapNativeSwitch(toggle, atCenter: authorization == "0")'))
-        self.assertEqual(checks.count('tapNativeSwitch(toggle, atCenter: authorization == "0")'), 1)
-        activation = checks.split('tapNativeSwitch(toggle, atCenter: authorization == "0")', 1)[1]
+        self.assertIn('"notRequested"', checks)
+        self.assertIn('changes=false;saved=false;specials=false;savedSpecials=false;', checks)
+        self.assertEqual(checks.count('tapNativeSwitch(toggle)'), 1)
+        activation = checks.split('tapNativeSwitch(toggle)', 1)[1]
         pending = activation.split('guard didEnable else {', 1)[0]
-        self.assertIn('if authorization == "0" { touch.tap() }', pending)
+        self.assertIn('if probe.label.hasPrefix("requesting=true;") { touch.tap() }', pending)
         self.assertEqual(pending.count("touch.tap()"), 1)
         self.assertNotIn("for _ in", pending)
         self.assertIn('(toggle.value as? String) == "1"', pending)
         self.assertIn('probe.label.hasPrefix("requesting=false;changes=true;saved=true;")', pending)
-        self.assertIn('timeout: 45', pending)
+        self.assertIn('Date().addingTimeInterval(45)', pending)
+        self.assertIn('deadline.timeIntervalSinceNow', pending)
+        self.assertIn('state.hasSuffix(";application=1")', pending)
         navigation = (ROOT / "tests/ui/ApplicationChecks+Navigation.swift").read_text()
         switch = navigation.split("func tapNativeSwitch(", 1)[1]
-        self.assertIn("if atCenter {", switch)
         self.assertEqual(switch.count("control.tap()"), 1)
+        self.assertNotIn("coordinate(", switch)
         self.assertNotIn("0.25", switch)
         self.assertNotIn("0.75", switch)
         self.assertIn("control.isEnabled, control.isHittable", switch)
@@ -176,7 +179,8 @@ class ManifestTests(unittest.TestCase):
         query = lifecycle.replace("application-ready", "notification-settings-enter")
         binding = lifecycle.replace("application-ready", "notification-on-binding")
         callbacks = "".join(lifecycle.replace("application-ready", stage) + "\n" for stage in (
-            "notification-native-request", "notification-native-callback"))
+            "notification-native-request", "notification-native-callback",
+            "notification-settings-not-requested"))
         removed = "TAKUPOKE_HIT_PATH pid=123 touch=UIView~UISwitch thumb=UIView~UISwitch opposite=UIView~UISwitch"
         with tempfile.TemporaryDirectory(prefix="takupoke-launch-collector-") as directory:
             root = Path(directory)
