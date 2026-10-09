@@ -108,14 +108,25 @@ class ManifestTests(unittest.TestCase):
                 app_test_project.instrument_notification_switch(changed)
 
     def test_notification_readiness_probe_observes_os_without_granting_or_saving(self):
-        fixture = (ROOT / "tests/ui/ApplicationFixture.swift").read_text(encoding="utf-8")
-        probe = fixture.split("private struct FixtureNotificationPermissionTouch: View", 1)[1]
-        self.assertIn("await UNUserNotificationCenter.current().notificationSettings()", probe)
-        self.assertIn("settings.authorizationStatus.rawValue", probe)
+        source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
+        generated = app_test_project.instrument_notification_permission(source)
+        self.assertNotIn("FixtureNotificationAuthorization", source)
+        self.assertEqual(generated.count("await center.notificationSettings()"),
+                         source.count("await center.notificationSettings()"))
+        self.assertEqual(generated.replace(app_test_project.NOTIFICATION_PERMISSION_BEGIN, "", 1)
+                         .replace(app_test_project.NOTIFICATION_PERMISSION_END, "", 1), source)
+        self.assertIn("settings.authorizationStatus.rawValue", generated)
+        self.assertIn("cancelled: Task.isCancelled", generated)
+        for changed in (source.replace("func checkPermission()", "func otherPermission()", 1),
+                        source + source):
+            with self.assertRaises(AssertionError):
+                app_test_project.instrument_notification_permission(changed)
+        probe = (ROOT / "tests/ui/ApplicationFixture+NotificationPermission.swift").read_text(encoding="utf-8")
+        self.assertIn("ApplicationFixture+NotificationPermission.swift", manifest.FIXTURE_SOURCES)
         self.assertIn("UIApplication.shared.applicationState.rawValue", probe)
         self.assertIn("@Environment(\\.scenePhase)", probe)
-        self.assertIn(".task(id:phase)", probe)
-        self.assertNotRegex(probe, r"requestAuthorization|setEnabled|UserDefaults\.standard\.set\(")
+        self.assertIn(".onDisappear { permission.invalidate() }", probe)
+        self.assertNotRegex(probe, r"notificationSettings\(|requestAuthorization|setEnabled|UserDefaults\.standard\.set\(")
         checks = (ROOT / "tests/ui/ApplicationChecks+Notifications.swift").read_text(encoding="utf-8")
         self.assertLess(checks.index("OS notification settings did not respond"),
                         checks.index('tapNativeSwitch(toggle, atCenter: authorization == "0")'))

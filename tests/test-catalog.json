@@ -434,6 +434,7 @@
         "tests/ui/ApplicationFixture+Events.swift",
         "tests/ui/ApplicationFixture+Grid.swift",
         "tests/ui/ApplicationFixture+OCR.swift",
+        "tests/ui/ApplicationFixture+NotificationPermission.swift",
         "tests/ui/ApplicationFixture+Recovery.swift",
         "tests/ui/ApplicationFixture+Selection.swift",
         "tests/ui/ApplicationFixture.swift",

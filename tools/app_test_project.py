@@ -95,6 +95,22 @@ def instrument_notification_switch(text):
     assert text.count(marker) == 2, 'Notification switch binding insertion points missing'
     return text.replace(marker, marker.replace('Task {', NOTIFICATION_BINDING_TRACE + 'Task {'))
 
+NOTIFICATION_PERMISSION_BEGIN = (
+    '        let fixturePermissionRead = FixtureNotificationAuthorization.shared.begin()\n')
+NOTIFICATION_PERMISSION_END = (
+    '        FixtureNotificationAuthorization.shared.complete(fixturePermissionRead,\n'
+    '            authorization: settings.authorizationStatus.rawValue, cancelled: Task.isCancelled)\n')
+
+def instrument_notification_permission(text):
+    # Observe the production read; never add another concurrent OS request.
+    marker = ('    func checkPermission() async {\n'
+              '        let settings = await center.notificationSettings()\n')
+    assert text.count(marker) == 1, 'Notification permission read insertion point missing'
+    observed = ('    func checkPermission() async {\n' + NOTIFICATION_PERMISSION_BEGIN
+                + '        let settings = await center.notificationSettings()\n'
+                + NOTIFICATION_PERMISSION_END)
+    return text.replace(marker, observed)
+
 def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
     repo = Path(__file__).resolve().parents[1]
     check_root = repo if check_root is None else Path(check_root)
@@ -116,6 +132,8 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         text = path.read_text()
         if path.name == 'NotificationSettingsView.swift':
             text = instrument_notification_switch(text)
+        if path.name == 'ScheduleNotifications.swift':
+            text = instrument_notification_permission(text)
         # A URLProtocol below rejects every request. Rewrite URLs as a second
         # guard against any production communication from the test app.
         text = rewrite_network_urls(text)

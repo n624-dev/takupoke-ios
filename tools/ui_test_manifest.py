@@ -23,6 +23,7 @@ FIXTURE_SOURCES = (
     "ApplicationFixture+Selection.swift",
     "ApplicationFixture+Recovery.swift",
     "ApplicationFixture+OCR.swift",
+    "ApplicationFixture+NotificationPermission.swift",
 )
 
 MANUAL_CHECK_SOURCES = (

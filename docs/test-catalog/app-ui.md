@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`0738ed2a7265c88ac8c35366247b49936011fbcd16f609ff4b5f36cbd7d63807`
+`0551073c371112c125550869820873e5a974a649c980afaf560f23969433adae`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -55,6 +55,7 @@ bash tools/test-app-ui.sh
 - [tests/ui/ApplicationFixture+Events.swift](../../tests/ui/ApplicationFixture+Events.swift)
 - [tests/ui/ApplicationFixture+Grid.swift](../../tests/ui/ApplicationFixture+Grid.swift)
 - [tests/ui/ApplicationFixture+OCR.swift](../../tests/ui/ApplicationFixture+OCR.swift)
+- [tests/ui/ApplicationFixture+NotificationPermission.swift](../../tests/ui/ApplicationFixture+NotificationPermission.swift)
 - [tests/ui/ApplicationFixture+Recovery.swift](../../tests/ui/ApplicationFixture+Recovery.swift)
 - [tests/ui/ApplicationFixture+Selection.swift](../../tests/ui/ApplicationFixture+Selection.swift)
 - [tests/ui/ApplicationFixture.swift](../../tests/ui/ApplicationFixture.swift)
