@@ -65,7 +65,7 @@ extension ApplicationChecks {
             "NOTIFICATION_SWITCH before row=\(toggle.frame) value=\(String(describing: toggle.value)) state=\(probe.label)"
         )
         recoveryScreenshot("notification-switch-before")
-        tapNativeSwitch(toggle)
+        tapNativeSwitch(toggle, atCenter: true)
         // A dedicated QA-only no-op control dispatches the real alert monitor.
         // Generic app.tap() has an unspecified activation point and may toggle
         // a setting again. This target cannot grant permission or change state.

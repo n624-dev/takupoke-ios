@@ -12,6 +12,7 @@ on:
           - testChangedDataProducesOneLocalNotification
           - testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork
           - testLinkPreferencesSurviveRelaunch
+          - testNotificationControlsAndAppearance
           - testSettingsAccountDataAndFileDetails
 
 permissions:

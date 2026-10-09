@@ -62,6 +62,7 @@ RELAUNCH_PROBE_TESTS = ("testChangedAccountDataNoticeOpensSharedAcquisition",
                         "testChangedDataProducesOneLocalNotification",
                         "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
                         "testLinkPreferencesSurviveRelaunch",
+                        "testNotificationControlsAndAppearance",
                         "testSettingsAccountDataAndFileDetails")
 # Balanced using measured case durations, including the three OS size reruns.
 SHARDS = {

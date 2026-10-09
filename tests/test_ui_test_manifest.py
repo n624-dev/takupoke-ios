@@ -118,8 +118,8 @@ class ManifestTests(unittest.TestCase):
         self.assertNotRegex(probe, r"requestAuthorization|setEnabled|UserDefaults\.standard\.set\(")
         checks = (ROOT / "tests/ui/ApplicationChecks+Notifications.swift").read_text(encoding="utf-8")
         self.assertLess(checks.index("OS notification settings did not respond"),
-                        checks.index("tapNativeSwitch(toggle)"))
-        self.assertEqual(checks.count("tapNativeSwitch(toggle)"), 1)
+                        checks.index("tapNativeSwitch(toggle, atCenter: true)"))
+        self.assertEqual(checks.count("tapNativeSwitch(toggle, atCenter: true)"), 1)
 
     def test_owned_launch_trace_filters_other_content_and_refuses_symlinks_and_large_files(self):
         runner = (ROOT / "tools/test-app-ui.sh").read_text(encoding="utf-8")
@@ -359,6 +359,7 @@ class ManifestTests(unittest.TestCase):
             "testChangedDataProducesOneLocalNotification",
             "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
             "testLinkPreferencesSurviveRelaunch",
+            "testNotificationControlsAndAppearance",
             "testSettingsAccountDataAndFileDetails"))
         command = [sys.executable, "-B", str(ROOT / "tools/ui_test_manifest.py")]
         selected = subprocess.check_output(command + ["--relaunch-probe", "--mode", "selectors"], text=True)
