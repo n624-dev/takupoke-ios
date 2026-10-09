@@ -212,6 +212,6 @@ extension ApplicationChecks {
         // This is a physical operation, not a requested-value injection. A
         // nested AX reference must not resolve a different origin at touch time.
         app.coordinate(withNormalizedOffset: .zero)
-            .withOffset(CGVector(dx: point.x - page.minX, dy: point.y - page.minY)).tap()
+            .withOffset(CGVector(dx: point.x - page.minX, dy: point.y - page.minY)).press(forDuration: 0.1)
     }
 }
