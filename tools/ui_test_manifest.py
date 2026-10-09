@@ -80,6 +80,7 @@ SHARDS = {
         "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair",
         "testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates",
         "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",
+        "testSpecialRecoveryShowsMergedAndDifferentDayClocksBeforeAdoption",
     ),
     "B": (
         "testSettingsAccountDataAndFileDetails",
@@ -94,7 +95,6 @@ SHARDS = {
         "testRecoveryPreviewOriginalBlankFieldsAndExplicitAdoption",
         "testRecoveryImageOnlyPDFUsesNativeOCRAndTopLeftRaster",
         "testParallelRecoveryKeepsBothLessonsInPreviewAndFormalAnalysis",
-        "testSpecialRecoveryShowsMergedAndDifferentDayClocksBeforeAdoption",
     ),
 }
 REQUIRED_JOBS = frozenset(
