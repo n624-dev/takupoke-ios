@@ -14,7 +14,14 @@ extension ApplicationChecks {
                 && bounds.maxY <= app.tabBars.firstMatch.frame.minY, app.debugDescription)
         // iOS 27 can report a fully visible SwiftUI navigation row as
         // non-hittable. Exercise its actual visible label, then require navigation.
-        row.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).tap()
+        let label = row.staticTexts["通知"]
+        guard label.exists, usable(label.frame), bounds.contains(label.frame) else {
+            XCTFail("Notification navigation row has no visible label")
+            return
+        }
+        let point = label.frame
+        app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: point.midX, dy: point.midY)).tap()
         screen("通知")
     }
     private func enableChangeNotifications() {
@@ -31,6 +38,15 @@ extension ApplicationChecks {
             return
         }
         let probe = app.staticTexts["fixture-notification-permission-state"]
+        let ready = expectation(for: NSPredicate(
+            format: "label CONTAINS %@ AND NOT (label CONTAINS %@) AND label ENDSWITH %@",
+            ";authorization=", ";authorization=pending", ";application=0"), evaluatedWith: probe)
+        guard XCTWaiter.wait(for: [ready], timeout: 45) == .completed else {
+            print("NOTIFICATION_READINESS unresolved=\(probe.label)")
+            recoveryScreenshot("notification-readiness-unresolved", systemScreen: true)
+            XCTFail("OS notification settings did not respond while the app was active")
+            return
+        }
         let predicate = NSPredicate(
             format: "label BEGINSWITH[c] %@ OR label == %@ OR label == %@ OR label == %@", "Allow", "許可",
             "許可する", "通知を許可")

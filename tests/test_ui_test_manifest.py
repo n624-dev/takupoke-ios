@@ -95,6 +95,18 @@ class ManifestTests(unittest.TestCase):
             with self.assertRaises(AssertionError):
                 app_test_project.instrument_ai_switch(changed)
 
+    def test_notification_readiness_probe_observes_os_without_granting_or_saving(self):
+        fixture = (ROOT / "tests/ui/ApplicationFixture.swift").read_text(encoding="utf-8")
+        probe = fixture.split("private struct FixtureNotificationPermissionTouch: View", 1)[1]
+        self.assertIn("await UNUserNotificationCenter.current().notificationSettings()", probe)
+        self.assertIn("settings.authorizationStatus.rawValue", probe)
+        self.assertIn("UIApplication.shared.applicationState.rawValue", probe)
+        self.assertNotRegex(probe, r"requestAuthorization|setEnabled|UserDefaults\.standard\.set\(")
+        checks = (ROOT / "tests/ui/ApplicationChecks+Notifications.swift").read_text(encoding="utf-8")
+        self.assertLess(checks.index("OS notification settings did not respond"),
+                        checks.index("tapNativeSwitch(toggle)"))
+        self.assertEqual(checks.count("tapNativeSwitch(toggle)"), 1)
+
     def test_picker_completion_rejects_missing_failed_skipped_duplicate_and_unknown_cases(self):
         runner = (ROOT / "tools/test-picker-ui.sh").read_text(encoding="utf-8")
         program = runner.split("<<'PY_PICKER'\n", 1)[1].split("\nPY_PICKER", 1)[0]

@@ -2,6 +2,13 @@
 
 ## 2026-10-09 重複検査の整理と実コールバックの検証
 
+通知のQAは、許可前に実OSのnotificationSettingsが応答し、アプリがactiveであることを
+読み取り専用で観測する。応答前から止まる場合と許可要求後の停止を区別するためで、
+許可・保存値・完了結果は注入しない。通知設定への移動も行内の固定割合をやめ、
+実際のラベルの観測中心を1回だけ操作する。
+Linux Python154件がskip・失敗0、変更Swiftの構文確認と一覧整合性検査が成功。
+Apple環境での要求・実許可・実配信の成功はまだ未確認。
+
 入力の同一再設定・生Unicode変更による確認解除は、既存Swiftの
 `testManualInputIdenticalRebindPreservesThreeIndividualAcknowledgements`と
 `testManualInputRawUnicodeChangeRequiresNewAcknowledgement`へ集約した。

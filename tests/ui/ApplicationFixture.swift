@@ -361,6 +361,7 @@ enum FixtureLaunchDiagnostics {
 private struct FixtureNotificationPermissionTouch: View {
     @ObservedObject private var notifications = ApplicationData.shared.notifications
     @State private var dismissed = false
+    @State private var authorization = "pending"
     var body: some View {
         VStack {
             if !dismissed {
@@ -368,9 +369,15 @@ private struct FixtureNotificationPermissionTouch: View {
                     if notifications.changesEnabled { dismissed = true }
                 }.accessibilityIdentifier("fixture-notification-permission-touch")
             }
-            Text("requesting=\(notifications.requestingPermission);changes=\(notifications.changesEnabled);saved=\(UserDefaults.standard.bool(forKey: "notifyScheduleChanges"));message=\(notifications.message ?? "none")")
+            Text("requesting=\(notifications.requestingPermission);changes=\(notifications.changesEnabled);saved=\(UserDefaults.standard.bool(forKey: "notifyScheduleChanges"));message=\(notifications.message ?? "none");authorization=\(authorization);application=\(UIApplication.shared.applicationState.rawValue)")
                 .font(.system(size: 1)).allowsHitTesting(false)
                 .accessibilityIdentifier("fixture-notification-permission-state")
+        }
+        .task {
+            // Observe OS readiness without granting permission or changing preferences.
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            authorization = String(settings.authorizationStatus.rawValue)
+            print("NOTIFICATION_READINESS authorization=\(authorization);application=\(UIApplication.shared.applicationState.rawValue)")
         }
     }
 }
