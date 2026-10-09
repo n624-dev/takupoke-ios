@@ -67,11 +67,6 @@ struct SimulatorApplication: App {
         WindowGroup {
             ContentView().environment(\.timeZone, JapaneseDateDisplay.timeZone).tint((MainColor(rawValue: mainColor) ?? .systemDefault).color)
                 .onAppear { FixtureLaunchDiagnostics.record("content-appeared") }
-                .background {
-                    if ProcessInfo.processInfo.arguments.contains("--ai-feature-probe") {
-                        FixtureTouchProbe().allowsHitTesting(false)
-                    }
-                }
                 .modifier(FixtureTypeSize(enabled: ProcessInfo.processInfo.arguments.contains("--grid-probe") &&
                     !ProcessInfo.processInfo.arguments.contains("--system-text-size"),
                                           size: fixtureTypeSize))
@@ -335,14 +330,6 @@ enum FixtureNotificationDelivery {
 // Independent of AX: fixed lifecycle labels only, never school/user content.
 // This file belongs to the disposable fictional simulator app container.
 enum FixtureLaunchDiagnostics {
-    static func recordHitPaths(touch: String, thumb: String, opposite: String) {
-        guard ProcessInfo.processInfo.arguments.contains("--ai-feature-probe") else { return }
-        append("TAKUPOKE_HIT_PATH pid=\(ProcessInfo.processInfo.processIdentifier) touch=\(touch) thumb=\(thumb) opposite=\(opposite)\n")
-    }
-    static func recordTouch(point: CGPoint, view: String, control: Bool, value: Int, enabled: Int) {
-        guard ProcessInfo.processInfo.arguments.contains("--ai-feature-probe") else { return }
-        append("TAKUPOKE_TOUCH pid=\(ProcessInfo.processInfo.processIdentifier) x=\(point.x) y=\(point.y) view=\(view) switch=\(control ? 1 : 0) value=\(value) enabled=\(enabled)\n")
-    }
     static func recordAIChange(_ requested: Bool, phase: String) {
         guard ProcessInfo.processInfo.arguments.contains("--ai-feature-probe"),
               phase == "before" || phase == "after" else { return }

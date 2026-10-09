@@ -208,7 +208,7 @@ extension ApplicationChecks {
         print(
             "NATIVE_SWITCH row=\(outer);control=\(frame);point=\(point);rowState=\(rowState);controlState=\(state)"
         )
-        // Compare the thumb side selected from the observed native state.
+        // Tap the current thumb selected from the observed native state.
         // This is a physical operation, not a requested-value injection. A
         // nested AX reference must not resolve a different origin at touch time.
         app.coordinate(withNormalizedOffset: .zero)

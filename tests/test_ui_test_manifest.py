@@ -109,12 +109,13 @@ class ManifestTests(unittest.TestCase):
                         checks.index("tapNativeSwitch(toggle)"))
         self.assertEqual(checks.count("tapNativeSwitch(toggle)"), 1)
 
-    def test_owned_touch_trace_filters_other_content_and_refuses_symlinks_and_large_files(self):
+    def test_owned_launch_trace_filters_other_content_and_refuses_symlinks_and_large_files(self):
         runner = (ROOT / "tools/test-app-ui.sh").read_text(encoding="utf-8")
         collector = runner.split("<<'PY_TRACE'\n", 1)[1].split("\nPY_TRACE", 1)[0]
-        allowed = "TAKUPOKE_TOUCH pid=123 x=347.25 y=499.0 view=_UISwitchVisualElement switch=1 value=0 enabled=1"
-        hit = "TAKUPOKE_HIT_PATH pid=123 touch=UIView~UISwitch thumb=UIView~UISwitch opposite=UIView~UISwitch"
-        with tempfile.TemporaryDirectory(prefix="takupoke-touch-collector-") as directory:
+        allowed = "TAKUPOKE_AI_SWITCH pid=123 time=1791534293.0 phase=before requested=1 stored=0"
+        lifecycle = "TAKUPOKE_LIFECYCLE pid=123 time=1791534293.0 stage=application-ready"
+        removed = "TAKUPOKE_HIT_PATH pid=123 touch=UIView~UISwitch thumb=UIView~UISwitch opposite=UIView~UISwitch"
+        with tempfile.TemporaryDirectory(prefix="takupoke-launch-collector-") as directory:
             root = Path(directory)
             owned = root / "tmp/takupoke-fictional-launch-owned.log"
             owned.parent.mkdir()
@@ -128,11 +129,11 @@ class ManifestTests(unittest.TestCase):
                     "xcrun", "simctl", "get_app_container", "owned-simulator",
                     "jp.n624.takupoke.app-checks", "data"])
                 return output.getvalue()
-            owned.write_text(allowed + "\n" + hit + "\n架空の診断対象外本文\n" +
-                hit.replace("UIView~UISwitch", "架空の本文") + "\n" +
-                allowed.replace("view=_UISwitchVisualElement", "view=架空の本文") + "\n",
+            owned.write_text(allowed + "\n" + lifecycle + "\n" + removed +
+                "\n架空の診断対象外本文\n" +
+                allowed.replace("requested=1", "requested=架空の本文") + "\n",
                 encoding="utf-8")
-            self.assertEqual(collect(), allowed + "\n" + hit + "\n")
+            self.assertEqual(collect(), allowed + "\n" + lifecycle + "\n")
             owned.write_bytes(b"x" * 65537)
             self.assertEqual(collect(), "TAKUPOKE_LIFECYCLE capture-missing-or-limited\n")
             owned.unlink()

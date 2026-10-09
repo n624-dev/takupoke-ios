@@ -436,7 +436,6 @@
         "tests/ui/ApplicationFixture+OCR.swift",
         "tests/ui/ApplicationFixture+Recovery.swift",
         "tests/ui/ApplicationFixture+Selection.swift",
-        "tests/ui/ApplicationFixture+Touches.swift",
         "tests/ui/ApplicationFixture.swift",
         "tools/app_test_project.py",
         "tools/test-app-ui.sh",
