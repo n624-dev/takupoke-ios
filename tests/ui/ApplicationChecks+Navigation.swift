@@ -205,10 +205,14 @@ extension ApplicationChecks {
             XCTFail("Native switch state must be known and agree with its row")
             return
         }
-        print("NATIVE_SWITCH row=\(outer);control=\(frame);rowState=\(rowState);controlState=\(state);target=labelled-switch")
-        // Activate the labelled Switch selected by the caller, rather than
-        // its anonymous implementation child. XCTest resolves the hit point.
-        // A single physical tap must produce the observed UI and saved transition.
-        row.tap()
+        let point = CGPoint(x: frame.minX + frame.width * (state == "0" ? 0.25 : 0.75), y: frame.midY)
+        print(
+            "NATIVE_SWITCH row=\(outer);control=\(frame);point=\(point);rowState=\(rowState);controlState=\(state);duration=0.1"
+        )
+        // Earlier read-only hit tests reached the Liquid Glass interaction
+        // surface on the current thumb side. Compare one short physical press
+        // there; do not retry or change the control's value directly.
+        app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: point.x - page.minX, dy: point.y - page.minY)).press(forDuration: 0.1)
     }
 }
