@@ -1,5 +1,21 @@
 # 検証記録
 
+## 2026-10-09 ActionsのNode.js 24移行
+
+checkoutは公式v7.0.1の3d3c42e5aac5ba805825da76410c181273ba90b1、
+setup-pythonは公式v7.0.0の5fda3b95a4ea91299a34e894583c3862153e4b97へ固定する。
+各SHAのaction.ymlでnode24を確認した。最低Runnerは2.327.1で、
+現在のUbuntu・iOS26・27の実ログは2.337.0だった。
+5 workflowのcheckout14箇所・setup-python5箇所を更新し、
+開発用Pythonジョブも同じsetup-pythonで3.12を指定して実Actionを検証する。
+キャッシュ、保存artifact、公開許可、必須ジョブ名、実行ソースの照合は変更しない。
+進行中の通常配布342のソースを途中で変えず、先に開発ブランチで検証する。
+
+既存の一覧14件と公開ゲートの各必須ジョブ・同じ試行／コミットの検査は、
+今回変更していない登録と公開契約を検証できるため、不要な期待値編集はしない。
+全Linux Python156件がskip・失敗0、一覧・差分検査も成功した。
+上流Actionの実際の動作と警告の解消は、新しいActions完了後に別途確認する。
+
 ## 2026-10-09 設定Switchの配送先比較と診断の撤去
 
 ソースf18f9f8の[37904076875](https://github.com/n624-dev/takupoke-ios/actions/runs/37904076875)は
