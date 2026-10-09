@@ -42,4 +42,4 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 | [ファイル選択・再選択・背景・キャンセル](test-catalog/picker.md) | 5 | Apple iOS26/27 UI＋Nativeレイアウト |
 | [IPA・AltStore・公開ゲート・ビルド・一時領域](test-catalog/release.md) | 83 | Linux Python／Apple iPhone SDK。AltStore導入は実機限定 |
 | [独立した架空PDF・原文契約・固定期待値](test-catalog/fixtures.md) | 13 | Linux契約検査。PDF描画・OCRはApple限定 |
-| [テスト一覧・対象検索・宣言整合性・CI接続](test-catalog/test-catalog.md) | 14 | Linux Python（隔離Gitリポジトリ） |
+| [テスト一覧・対象検索・宣言整合性・CI接続](test-catalog/test-catalog.md) | 40 | Linux Python（隔離Gitリポジトリ） |

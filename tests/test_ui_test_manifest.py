@@ -299,8 +299,11 @@ class ManifestTests(unittest.TestCase):
                          manifest.REQUIRED_JOBS)
         self.assertIn("name: Application iOS ${{ matrix.ios }} UI ${{ matrix.shard }}", simulator)
         self.assertIn("TKPK_UI_SHARD: ${{ matrix.shard }}", simulator)
-        release = workflow.split("  release:\n", 1)[1]
-        self.assertIn("needs: checks\n", release)
+        release = workflow.split("  release:\n", 1)[1].split("  development-publish:\n", 1)[0]
+        dependency = re.search(r"^    needs: \[([^\]]+)\]$", release, re.MULTILINE)
+        self.assertIsNotNone(dependency)
+        self.assertEqual({name.strip() for name in dependency.group(1).split(",")},
+                         {"checks", "native-parsing", "simulator", "manual"})
         self.assertIn("actions: read", release)
         self.assertLess(release.index("tools/release_gate.py"), release.index("tools/publish.py"))
 

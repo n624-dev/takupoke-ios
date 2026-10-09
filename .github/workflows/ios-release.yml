@@ -243,7 +243,7 @@ jobs:
 
   release:
     name: Build and publish AltStore release
-    needs: checks
+    needs: [checks, native-parsing, simulator, manual]
     if: github.repository == 'n624-dev/takupoke-ios' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && inputs.mode != 'development-publish'
     runs-on: xcode-27
     timeout-minutes: 45

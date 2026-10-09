@@ -549,7 +549,8 @@
       "title": "テスト一覧・対象検索・宣言整合性・CI接続",
       "environment": "Linux Python（隔離Gitリポジトリ）",
       "commands": [
-        "python3 -B -m unittest discover -s tests -p test_test_catalog.py -v"
+        "python3 -B -m unittest discover -s tests -p test_test_catalog.py -v",
+        "python3 -B -m unittest discover -s tests -p test_ui_test_manifest.py -v"
       ],
       "sources": [
         ".github/workflows/ios-release.yml",
@@ -559,7 +560,8 @@
         ".github/workflows/test-tools.yml"
       ],
       "checks": [
-        "tests/test_test_catalog.py"
+        "tests/test_test_catalog.py",
+        "tests/test_ui_test_manifest.py"
       ]
     }
   ]
