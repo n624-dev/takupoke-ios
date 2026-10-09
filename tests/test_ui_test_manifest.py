@@ -55,6 +55,18 @@ class ManifestTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'registered'):
                 manifest.check_source(root)
 
+    def test_manual_split_registers_all_helpers_and_refuses_unknown_files(self):
+        with tempfile.TemporaryDirectory(prefix='takupoke-manual-source-check-') as directory:
+            root = Path(directory)
+            folder = root / 'tests/ui'
+            folder.mkdir(parents=True)
+            for name in manifest.MANUAL_CHECK_SOURCES:
+                shutil.copyfile(ROOT / 'tests/ui' / name, folder / name)
+            self.assertEqual(manifest.manual_check_source(root), manifest.manual_check_source())
+            (folder / 'ManualAssistanceChecks+Unregistered.swift').write_text('func testMissing() {}')
+            with self.assertRaisesRegex(ValueError, 'registered'):
+                manifest.manual_check_source(root)
+
     def test_network_rewrite_preserves_standard_xlsx_identifiers_only(self):
         source = (ROOT / "Takupoke/XLSXReader.swift").read_text(encoding="utf-8")
         rewritten = app_test_project.rewrite_network_urls(source)
@@ -237,7 +249,7 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("ios: [26, 27]", manual)
         cases = re.findall(r"^          - (test\w+)$", manual, re.MULTILINE)
         self.assertEqual(cases, list(manifest.MANUAL_CASES))
-        declared = re.findall(r"\bfunc\s+(test\w+)\s*\(", (ROOT / "tests/ui/ManualAssistanceChecks.swift").read_text(encoding="utf-8"))
+        declared = re.findall(r"\bfunc\s+(test\w+)\s*\(", manifest.manual_check_source())
         self.assertCountEqual(cases, declared)
         self.assertEqual(len(declared), 3)
         expanded = {f"Manual correction iOS {ios} / {case}" for ios in (26, 27) for case in cases}

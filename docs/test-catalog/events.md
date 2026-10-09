@@ -1,7 +1,7 @@
 # 学校行事API・年度別保存
 
-対応ソース・テストのSHA-256：
-`7ac8b01cc708845d14a2e92bed3a844d262f58d7b9b3ed817b4b97e18b21d085`
+対応関係・宣言名・実行方法のSHA-256：
+`291dd51ee87de55c5c88ffcfc72b4ed3784c62c2eeec21f1b6d408ee40b1aa30`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -18,16 +18,16 @@ bash tools/test-parsing.sh
 
 ## [tests/SchoolEventsAPITests.swift](../../tests/SchoolEventsAPITests.swift)
 
-- `testAnnualCoverageUsesValidatedYearEvenWithoutEventsOnDisplayedDay`（宣言行 20）
-- `testWeekCoverageChecksEveryDayAcrossSchoolYearBoundary`（宣言行 44）
-- `testCorruptYearRetainsHealthyYearsAndOriginalUntilVerifiedSameYearRepair`（宣言行 58）
-- `testOversizedNonregularAndWrongYearCachesAreReportedIndividually`（宣言行 97）
-- `testSymlinkCacheIsNotFollowedAndAtomicRepairRetainsHealthyTarget`（宣言行 119）
-- `testDirectoryFailureDoesNotBecomeAvailableEmptyCache`（宣言行 134）
-- `testCancelledLoadCannotBecomeAvailableCache`（宣言行 143）
-- `testValidatesYearAndInclusiveDatesBeforeSaving`（宣言行 155）
-- `testLegacyPayloadWithoutETagLoadsButMalformedValidatorIsRejected`（宣言行 173）
-- `testSavedResultsSurviveInvalidReplacement`（宣言行 186）
-- `testOldSavedResultWithoutResponseETagCanLoad`（宣言行 204）
-- `testNotModifiedRequiresMatchingSavedValidatorAndEmptyBody`（宣言行 216）
-- `testWeekdayTagRequiresAnExplicitWeekday`（宣言行 236）
+- `testAnnualCoverageUsesValidatedYearEvenWithoutEventsOnDisplayedDay`
+- `testWeekCoverageChecksEveryDayAcrossSchoolYearBoundary`
+- `testCorruptYearRetainsHealthyYearsAndOriginalUntilVerifiedSameYearRepair`
+- `testOversizedNonregularAndWrongYearCachesAreReportedIndividually`
+- `testSymlinkCacheIsNotFollowedAndAtomicRepairRetainsHealthyTarget`
+- `testDirectoryFailureDoesNotBecomeAvailableEmptyCache`
+- `testCancelledLoadCannotBecomeAvailableCache`
+- `testValidatesYearAndInclusiveDatesBeforeSaving`
+- `testLegacyPayloadWithoutETagLoadsButMalformedValidatorIsRejected`
+- `testSavedResultsSurviveInvalidReplacement`
+- `testOldSavedResultWithoutResponseETagCanLoad`
+- `testNotModifiedRequiresMatchingSavedValidatorAndEmptyBody`
+- `testWeekdayTagRequiresAnExplicitWeekday`

@@ -1,7 +1,7 @@
 # 開発時の指針
 
 - 実装前に `docs/development-policy.md` と `docs/roadmap.md` を読む。
-- コード編集前に `docs/test-catalog.md` を読み、`python3 -B tools/test_catalog.py search <対象ファイル・機能>` で対応テストを検索する。対応テストの入力・期待値・実操作も更新し、対象検証後に `write` で一覧を再生成する。`check --base <編集前のコミット>` を必ず実行する。未登録コードと対応テストの更新漏れはCIで拒否する。コメント・整形だけの変更や、期待値の注入・検証条件の緩和で通さない。
+- コード編集前に `docs/test-maintenance-policy.md` と `docs/test-catalog.md` を読み、`python3 -B tools/test_catalog.py search <対象ファイル・機能>` で対応テストを検索する。新仕様・未検出の不具合にはテストを更新する。既存ケースで十分なら不要な編集をせず、該当ケース・十分性の理由・実行環境と結果を検証記録へ残す。対応関係・宣言名・実行方法が変わったら `write` し、`check --base <編集前のコミット>` を必ず実行する。未登録コード・未登録テスト・一覧の不整合はCIで拒否する。期待値の注入・検証条件の緩和で通さない。
 - LinuxのローカルSwiftと依存ライブラリの設置先・実行方法は `docs/development.md` の「このLinux環境のSwift」を参照する。PATH上にない場合も、記載された設置先を確認する。
 - AltStore Sourceによる導入・更新は版ごとに実機確認し、未確認の事項を完了済みと記載しない。
 - Swift / SwiftUI による独立した iOS アプリとして開発する。Microsoft Graph、Web 版のラップ、Windows 版へのコード共有は導入しない。

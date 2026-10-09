@@ -1,7 +1,7 @@
 # ファイル選択・再選択・背景・キャンセル
 
-対応ソース・テストのSHA-256：
-`fe8de2db5f1b1b2b02cf6b771e15233703c92deb7995e04bc94f588b0169a2a1`
+対応関係・宣言名・実行方法のSHA-256：
+`d1bb4ab73d0e278cf0d91e16811dd7aa154a09e78943212afd049ff4610b22ce`
 
 環境：Apple iOS26/27 UI＋Nativeレイアウト
 
@@ -21,11 +21,11 @@ bash tools/test-picker-ui.sh
 
 ## [tests/MaterialPickerLayoutTests.swift](../../tests/MaterialPickerLayoutTests.swift)
 
-- `testInstructionNeverCoversPickerAtPhoneSizes`（宣言行 5）
-- `testWrappedInstructionReservesMoreSpaceWithoutMovingBottomControls`（宣言行 25）
+- `testInstructionNeverCoversPickerAtPhoneSizes`
+- `testWrappedInstructionReservesMoreSpaceWithoutMovingBottomControls`
 
 ## [tests/ui/MaterialPickerTapChecks.swift](../../tests/ui/MaterialPickerTapChecks.swift)
 
-- `testInstructionSurroundMatchesFilesBackground`（宣言行 7）
-- `testReselectionWithMissingAppearanceReturn`（宣言行 54）
-- `testReselectionThroughActualButtons`（宣言行 66）
+- `testInstructionSurroundMatchesFilesBackground`
+- `testReselectionWithMissingAppearanceReturn`
+- `testReselectionThroughActualButtons`

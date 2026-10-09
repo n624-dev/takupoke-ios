@@ -52,13 +52,20 @@ if [[ "${TKPK_MANUAL_DIAGNOSTICS:-0}" == 1 ]]; then
     # 600 seconds even after a completed passing case on this runner.
     diagnostic_args=(-collect-test-diagnostics never -resultBundlePath "$scratch_dir/ManualResults.xcresult")
 fi
-python3 -B tools/timed_command.py 'Manual UI checks' xcodebuild \
+build_args=(
     -project "$scratch_dir/project/AppChecks.xcodeproj" -scheme AppChecks \
     -destination "platform=iOS Simulator,id=$simulator_id" -derivedDataPath "$scratch_dir/DerivedData" \
     -clonedSourcePackagesDirPath "$scratch_dir/SourcePackages" -packageCachePath "$scratch_dir/PackageCache" \
     -disablePackageRepositoryCache -onlyUsePackageVersionsFromResolvedFile -disableAutomaticPackageResolution \
-    -parallel-testing-enabled NO "${diagnostic_args[@]}" CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES \
-    "$only_testing" test 2>&1 | tee "$scratch_dir/manual-ui.log"
+    -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES
+)
+# The owned build is reused by every selected case in this job. Other jobs,
+# SDKs and generated source configurations never share it.
+python3 -B tools/timed_command.py 'Manual UI build' xcodebuild \
+    "${build_args[@]}" build-for-testing
+python3 -B tools/timed_command.py 'Manual UI checks without rebuilding' xcodebuild \
+    "${build_args[@]}" "${diagnostic_args[@]}" "$only_testing" test-without-building \
+    2>&1 | tee "$scratch_dir/manual-ui.log"
 python3 - "$scratch_dir/manual-ui.log" "$manual_case" <<'PY'
 from collections import Counter
 import re,sys

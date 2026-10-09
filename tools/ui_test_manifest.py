@@ -25,6 +25,27 @@ FIXTURE_SOURCES = (
     "ApplicationFixture+OCR.swift",
 )
 
+MANUAL_CHECK_SOURCES = (
+    "ManualAssistanceChecks.swift",
+    "ManualAssistanceGeometry.swift",
+    "ManualAssistanceChecks+Navigation.swift",
+    "ManualAssistanceChecks+Review.swift",
+    "ManualAssistanceChecks+Input.swift",
+    "ManualAssistanceChecks+Lifecycle.swift",
+    "ManualAssistanceChecks+Cases.swift",
+    "ManualAssistanceChecks+OneCorrection.swift",
+)
+
+
+def manual_check_source(root=ROOT):
+    folder = root / "tests/ui"
+    actual = {path.name for path in folder.glob("ManualAssistanceChecks*.swift")}
+    expected = set(MANUAL_CHECK_SOURCES) - {"ManualAssistanceGeometry.swift"}
+    if actual != expected:
+        raise ValueError("Manual UI test files differ from registered sources")
+    return "\n".join((folder / name).read_text(encoding="utf-8")
+                     for name in MANUAL_CHECK_SOURCES)
+
 
 def check_source(root=ROOT):
     folder = root / "tests/ui"

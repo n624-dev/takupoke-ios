@@ -1,3 +1,4 @@
+import sys
 import importlib.util
 from pathlib import Path
 import unittest
@@ -7,6 +8,9 @@ import subprocess
 import tempfile
 
 ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+from ui_test_manifest import manual_check_source
+
 spec=importlib.util.spec_from_file_location("manual_ui_project",ROOT/"tools/manual_ui_project.py")
 module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
 
@@ -25,13 +29,13 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('SHA256.hash(data:Data(text.utf8))',event)
         self.assertNotIn('old=\\(old)',event)
         self.assertNotIn('new=\\(new)',event)
-        checks=(ROOT/"tests/ui/ManualAssistanceChecks.swift").read_text(encoding="utf-8")
+        checks=manual_check_source()
         self.assertIn('XCTAssertEqual(app.staticTexts["manual-process-launch"].firstMatch.label,processBefore',checks)
         self.assertIn('XCTAssertEqual(header.label,"採用する資料全体",app.debugDescription)',checks)
 
     def test_editor_uses_physical_clear_and_checks_full_replacement(self):
-        checks=(ROOT/"tests/ui/ManualAssistanceChecks.swift").read_text(encoding="utf-8")
-        edit=checks.split('    private func edit(',1)[1].split('    private func editStage(',1)[0]
+        checks=manual_check_source()
+        edit=checks.split('    func edit(',1)[1].split('    func editStage(',1)[0]
         self.assertLess(edit.index('let target=visible(clear,knownID:'),edit.index('target.tap()'))
         self.assertLess(edit.index('target.tap()'),edit.index('e.typeText(value)'))
         self.assertIn('Native clear must remove the entire previous input',edit)
@@ -211,7 +215,7 @@ class ManualUIProjectTests(unittest.TestCase):
                      'width:1,height:abs(r.y2-r.y1)+1', 'raster.hasUncoveredInk(', 'text:text,rules:page.lines,check:check',
                      'checks<=250000', 'firstUncovered=', 'fixture.manualOldInk', 'fixture.manualCandidateInk'):
             self.assertIn(text,source)
-        checks=(ROOT/"tests/ui/ManualAssistanceChecks.swift").read_text(encoding="utf-8")
+        checks=manual_check_source()
         self.assertIn('"--manual-integral-rails"',checks)
         self.assertNotIn('fromRGBA',checks)
         self.assertIn('emitDiagnostic()',checks)
@@ -235,11 +239,14 @@ class ManualUIProjectTests(unittest.TestCase):
     def test_manual_controls_are_scrolled_and_acknowledged_without_keyboard_or_outer_switch_taps(self):
         generated=module.view((ROOT/"Takupoke/PDFRecoveryView.swift").read_text(encoding="utf-8"))
         self.assertEqual(generated.count('accessibilityIdentifier("manual-recovery-list")'),1)
-        checks=(ROOT/"tests/ui/ManualAssistanceChecks.swift").read_text(encoding="utf-8")
+        checks=manual_check_source()
         self.assertIn('app.collectionViews["manual-recovery-list"]',checks)
         self.assertIn('keyboardFrame.map { $0.minY-45 }',checks)
         self.assertNotIn('app.keyboards.firstMatch.exists',checks)
-        self.assertEqual(checks.count('CGVector(dx:100,dy:'),2)
+        self.assertEqual(checks.count('CGVector(dx:observedX,dy:'),2)
+        self.assertNotIn('CGVector(dx:100,dy:',checks)
+        self.assertIn('let observedX=safe.midX-list.frame.minX',checks)
+        self.assertIn('manualPassiveCell(cells:cells',checks)
         self.assertIn('list.cells.allElementsBoundByIndex',checks)
         self.assertIn('$0.buttons.count==0 && $0.switches.count==0',checks)
         self.assertIn('$0.textFields.count==0 && $0.textViews.count==0',checks)
@@ -259,7 +266,7 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertNotIn('acks.count',checks)
         self.assertIn('XCTAssertEqual(fieldIDs.count,1)',checks)
         self.assertIn('XCTAssertEqual(ids.count,3)',checks)
-        acknowledge=checks.split('private func acknowledge(')[1].split('private func assertSubmitEnabled')[0]
+        acknowledge=checks.split('func acknowledge(')[1].split('func assertSubmitEnabled')[0]
         self.assertIn('let control=row.switches.firstMatch',acknowledge)
         self.assertEqual(acknowledge.count('.tap()'),1)
         self.assertIn('let actual=visible(control)',acknowledge)
@@ -271,7 +278,7 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertNotIn('sleep(',acknowledge)
         self.assertNotIn('for ',acknowledge)
         self.assertIn('XCTNSPredicateExpectation',acknowledge)
-        self.assertIn('private let nativeStateTimeout:TimeInterval=45',checks)
+        self.assertIn('let nativeStateTimeout:TimeInterval=45',checks)
         self.assertIn('timeout:nativeStateTimeout',acknowledge)
         self.assertNotIn('row.tap()',acknowledge)
         self.assertIn('acknowledge(ids[i])',checks)

@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
-対応ソース・テストのSHA-256：
-`5bc294dc841b6d1cc7ddd1670a29aa2948a49d32ddfee2968791efdbe8377138`
+対応関係・宣言名・実行方法のSHA-256：
+`a77a339eba79451e6a5864cef9d62669096bcc3ee6a3d66b954eb9b4cec882f7`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -34,90 +34,90 @@ bash tools/test-parsing.sh
 
 ## [tests/PDFParsingTests+Diagnostics.swift](../../tests/PDFParsingTests+Diagnostics.swift)
 
-- `testTimetableFailureReportsLocationAndLineCountWithoutNames`（宣言行 12）
-- `testTimetableGeometryReportReproducesFailureWithoutSourceText`（宣言行 26）
-- `testGeometryDiagnosticHasBoundedSize`（宣言行 68）
-- `testTraceCoversP01AndAllFailureStagesWithInvalidRectangles`（宣言行 78）
-- `testTraceLimitsKeepStartupAndFinalFailureAndEncodeInvalidNumbers`（宣言行 104）
-- `testFullDiagnosticCopyPreservesAllTextAndGeometryLosslessly`（宣言行 118）
-- `testFailureStagesSurvivePageWrappingAndContainNoSourceText`（宣言行 148）
-- `testOldFailureDecodesAndNewFailureRetainsOnlyFixedDiagnostic`（宣言行 175）
-- `testPDFFailureReplacementAndManifestRollback`（宣言行 187）
+- `testTimetableFailureReportsLocationAndLineCountWithoutNames`
+- `testTimetableGeometryReportReproducesFailureWithoutSourceText`
+- `testGeometryDiagnosticHasBoundedSize`
+- `testTraceCoversP01AndAllFailureStagesWithInvalidRectangles`
+- `testTraceLimitsKeepStartupAndFinalFailureAndEncodeInvalidNumbers`
+- `testFullDiagnosticCopyPreservesAllTextAndGeometryLosslessly`
+- `testFailureStagesSurvivePageWrappingAndContainNoSourceText`
+- `testOldFailureDecodesAndNewFailureRetainsOnlyFixedDiagnostic`
+- `testPDFFailureReplacementAndManifestRollback`
 
 ## [tests/PDFParsingTests+Events.swift](../../tests/PDFParsingTests+Events.swift)
 
-- `testCloseCalendarLinesKeepTheirOrderAndExplicitTags`（宣言行 12）
-- `testTagsUseOnlyExplicitDeclarationsAndFlagConflicts`（宣言行 30）
-- `testCalendarScopesDatesPeriodsAndYearBoundary`（宣言行 55）
-- `testUnknownPeriodIsExplicitAndUnsupportedInputStops`（宣言行 71）
-- `testConflictingPeriodAndMismatchedYearAreNotAccepted`（宣言行 93）
+- `testCloseCalendarLinesKeepTheirOrderAndExplicitTags`
+- `testTagsUseOnlyExplicitDeclarationsAndFlagConflicts`
+- `testCalendarScopesDatesPeriodsAndYearBoundary`
+- `testUnknownPeriodIsExplicitAndUnsupportedInputStops`
+- `testConflictingPeriodAndMismatchedYearAreNotAccepted`
 
 ## [tests/PDFParsingTests+PDFKit.swift](../../tests/PDFParsingTests+PDFKit.swift)
 
-- `testIndependentOrderedRowSourcePDFsReachFormalOrRefuseWithoutOracleInput`（宣言行 14）
-- `testVisibilityCollisionWorkAndCancellationAreBoundedWithinEachPaint`（宣言行 85）
-- `testDisjointVisibilityCollisionIndexAvoidsTheFormerFullGlyphScan`（宣言行 109）
-- `testPDFPathPaintPreservesFilledRulesAndUniqueArrow`（宣言行 119）
-- `testPDFPathPaintPreservesStrokeRules`（宣言行 146）
-- `testPDFPathPaintChecksCancellationWithinFillAndStroke`（宣言行 157）
-- `testPDFPathPaintBoundsStemComparisonWork`（宣言行 176）
-- `testPDFPathPaintBudgetIsCumulativeAcrossCallbacks`（宣言行 188）
-- `testPDFKitTextSelectionsStayAlignedAcrossSpacesLinesAndRotations`（宣言行 209）
-- `testPDFKitFullDiagnosticCollectsAllTextWhitespaceAndMultiplePages`（宣言行 273）
-- `testPDFKitBridgeRecognizesFilledArrowGeometry`（宣言行 309）
-- `testPDFKitBridgeReadsSyntheticPDFAndRotation`（宣言行 340）
+- `testIndependentOrderedRowSourcePDFsReachFormalOrRefuseWithoutOracleInput`
+- `testVisibilityCollisionWorkAndCancellationAreBoundedWithinEachPaint`
+- `testDisjointVisibilityCollisionIndexAvoidsTheFormerFullGlyphScan`
+- `testPDFPathPaintPreservesFilledRulesAndUniqueArrow`
+- `testPDFPathPaintPreservesStrokeRules`
+- `testPDFPathPaintChecksCancellationWithinFillAndStroke`
+- `testPDFPathPaintBoundsStemComparisonWork`
+- `testPDFPathPaintBudgetIsCumulativeAcrossCallbacks`
+- `testPDFKitTextSelectionsStayAlignedAcrossSpacesLinesAndRotations`
+- `testPDFKitFullDiagnosticCollectsAllTextWhitespaceAndMultiplePages`
+- `testPDFKitBridgeRecognizesFilledArrowGeometry`
+- `testPDFKitBridgeReadsSyntheticPDFAndRotation`
 
 ## [tests/PDFParsingTests+Timetable.swift](../../tests/PDFParsingTests+Timetable.swift)
 
-- `testRelativeTimetableOutsideViewportCannotBecomeStrictSuccess`（宣言行 12）
-- `testTimetablePeriodsParallelLessonsAndEmptyRoom`（宣言行 20）
-- `testTimetableRejectsUnalignedParallelEvidenceAcrossAnyTwoRoles`（宣言行 42）
-- `testTimetableKeepsOneCompoundRoleLiteralWithoutInventingParallelTuples`（宣言行 55）
-- `testTimetableRoomCollapsesOnlyRepeatedHalfwidthVoicingMarks`（宣言行 69）
-- `testSourceOrderKeepsMixedSizeLessonNamesAndMetadataSeparate`（宣言行 93）
-- `testTimetableJoinsAlignedNonoverlappingLineFragments`（宣言行 111）
-- `testTimetableFragmentsDoNotMergeOverlapsOrNearbyDifferentLines`（宣言行 127）
-- `testTimetableBoundaryOverhangRequiresForwardTextAndGeometry`（宣言行 146）
-- `testCharacterBoundsKeepNeighbouringCellsOutOfTimetable`（宣言行 171）
-- `testCharacterGeometryValidatesUTF16RangesAndDoesNotDropInvalidBounds`（宣言行 218）
-- `testRemovingDisplayBreaksPreservesStoredLessonFields`（宣言行 243）
-- `testAmbiguousSourceOrderStopsInsteadOfFallingBackToCoordinates`（宣言行 254）
-- `testDamagedClassAndUnalignedParallelFieldsStopWholeTable`（宣言行 263）
+- `testRelativeTimetableOutsideViewportCannotBecomeStrictSuccess`
+- `testTimetablePeriodsParallelLessonsAndEmptyRoom`
+- `testTimetableRejectsUnalignedParallelEvidenceAcrossAnyTwoRoles`
+- `testTimetableKeepsOneCompoundRoleLiteralWithoutInventingParallelTuples`
+- `testTimetableRoomCollapsesOnlyRepeatedHalfwidthVoicingMarks`
+- `testSourceOrderKeepsMixedSizeLessonNamesAndMetadataSeparate`
+- `testTimetableJoinsAlignedNonoverlappingLineFragments`
+- `testTimetableFragmentsDoNotMergeOverlapsOrNearbyDifferentLines`
+- `testTimetableBoundaryOverhangRequiresForwardTextAndGeometry`
+- `testCharacterBoundsKeepNeighbouringCellsOutOfTimetable`
+- `testCharacterGeometryValidatesUTF16RangesAndDoesNotDropInvalidBounds`
+- `testRemovingDisplayBreaksPreservesStoredLessonFields`
+- `testAmbiguousSourceOrderStopsInsteadOfFallingBackToCoordinates`
+- `testDamagedClassAndUnalignedParallelFieldsStopWholeTable`
 
 ## [tests/PDFTextGeometryTests.swift](../../tests/PDFTextGeometryTests.swift)
 
-- `testCollisionIndexMatchesInclusiveBruteForceAcrossWidthsPadsAndBoundaryContacts`（宣言行 13）
-- `testCollisionIndexKeepsDenseDisjointTableSearchInsideOneOriginalPaintBudget`（宣言行 37）
-- `testCollisionIndexChargesConstructionSearchAndPreservesThrownCancellation`（宣言行 56）
-- `testStrokePaddingRequiresAnExactAnglePreservingTransform`（宣言行 77）
-- `testOnlyFilledTextModeHasAnIndependentGlyphExtentProof`（宣言行 85）
-- `testViewportChecksWholeGlyphsRulesAndFiniteEndpointSums`（宣言行 91）
-- `testStrictStrokeWidthBoundsIncludeTransformsAndHairlines`（宣言行 106）
-- `testStrictDeviceColorsRequireVisibleBlackComponents`（宣言行 115）
-- `testRecoveryRetainsDrawnSpacesWithoutChangingStrictGlyphs`（宣言行 133）
-- `testFullTwoByteSingletonCodeDomainRemainsBoundedAndCancellable`（宣言行 150）
-- `testUnicodeCharactersRangesAndSurrogatePairs`（宣言行 167）
-- `testMalformedOrUnsupportedUnicodeMapsFailClosed`（宣言行 178）
-- `testUnusedControlMappingsAreMetadataButDrawingThemFailsClosed`（宣言行 193）
-- `testUnusedUnsupportedFontStateAndGraphicsRestorePreserveReadableGlyphs`（宣言行 212）
-- `testEmptyShowRequiresSelectedValidTextStateAndRetainsCancellation`（宣言行 227）
-- `testSpacingAndTJKeepAdjacentCellsSeparate`（宣言行 243）
-- `testCompositeCode32DoesNotApplyWordSpacing`（宣言行 263）
-- `testTransformsRiseScalingAndSavedGraphicsState`（宣言行 274）
-- `testLineMatrixMovesIndependentlyOfStringAdvance`（宣言行 299）
-- `testCoverageRejectsDroppedDuplicatedOrChangedText`（宣言行 316）
-- `testUnsafeTextStateAndCancellationFailClosed`（宣言行 328）
-- `testNativeExplicitFontAndUnicodeResourcesDecodeIndependently`（宣言行 355）
-- `testNativeNearAxisMiterAndNonSimilarStrokeCannotCertifyPaintBounds`（宣言行 462）
-- `testNativeCrossedOrRetracedThinFillIsNotARectangularBorder`（宣言行 495）
-- `testNativeWhiteTextAndOpaqueRepaintUseRasterInsteadOfSelectableText`（宣言行 530）
-- `testNativeCroppedOutBodyCannotBecomeCompleteInput`（宣言行 571）
-- `testNativeOffCanvasSelectableTextCannotBecomeCompleteInput`（宣言行 616）
-- `testNativeThinStrokeCannotCrossAcquiredGlyphs`（宣言行 633）
-- `testNativeOutlinedTextUsesCompositedRasterInsteadOfSelectionBounds`（宣言行 644）
-- `testNativeDashedGhostRulesCannotBecomeACompleteTable`（宣言行 658）
-- `testNativeSpecialVisibilityScanRejectsHiddenAndUnverifiedText`（宣言行 691）
-- `testNativeSpecialVisibilityScanAllowsOpaqueTextAndRules`（宣言行 716）
-- `testNativeResourcesAndTJThroughPDFKitBridge`（宣言行 727）
-- `testNativeMissingMappingAndReplacementContentFailClosed`（宣言行 744）
-- `testNativeUnusedUnsupportedFontSetupAllowsCompleteReadableTextButUseRejects`（宣言行 756）
+- `testCollisionIndexMatchesInclusiveBruteForceAcrossWidthsPadsAndBoundaryContacts`
+- `testCollisionIndexKeepsDenseDisjointTableSearchInsideOneOriginalPaintBudget`
+- `testCollisionIndexChargesConstructionSearchAndPreservesThrownCancellation`
+- `testStrokePaddingRequiresAnExactAnglePreservingTransform`
+- `testOnlyFilledTextModeHasAnIndependentGlyphExtentProof`
+- `testViewportChecksWholeGlyphsRulesAndFiniteEndpointSums`
+- `testStrictStrokeWidthBoundsIncludeTransformsAndHairlines`
+- `testStrictDeviceColorsRequireVisibleBlackComponents`
+- `testRecoveryRetainsDrawnSpacesWithoutChangingStrictGlyphs`
+- `testFullTwoByteSingletonCodeDomainRemainsBoundedAndCancellable`
+- `testUnicodeCharactersRangesAndSurrogatePairs`
+- `testMalformedOrUnsupportedUnicodeMapsFailClosed`
+- `testUnusedControlMappingsAreMetadataButDrawingThemFailsClosed`
+- `testUnusedUnsupportedFontStateAndGraphicsRestorePreserveReadableGlyphs`
+- `testEmptyShowRequiresSelectedValidTextStateAndRetainsCancellation`
+- `testSpacingAndTJKeepAdjacentCellsSeparate`
+- `testCompositeCode32DoesNotApplyWordSpacing`
+- `testTransformsRiseScalingAndSavedGraphicsState`
+- `testLineMatrixMovesIndependentlyOfStringAdvance`
+- `testCoverageRejectsDroppedDuplicatedOrChangedText`
+- `testUnsafeTextStateAndCancellationFailClosed`
+- `testNativeExplicitFontAndUnicodeResourcesDecodeIndependently`
+- `testNativeNearAxisMiterAndNonSimilarStrokeCannotCertifyPaintBounds`
+- `testNativeCrossedOrRetracedThinFillIsNotARectangularBorder`
+- `testNativeWhiteTextAndOpaqueRepaintUseRasterInsteadOfSelectableText`
+- `testNativeCroppedOutBodyCannotBecomeCompleteInput`
+- `testNativeOffCanvasSelectableTextCannotBecomeCompleteInput`
+- `testNativeThinStrokeCannotCrossAcquiredGlyphs`
+- `testNativeOutlinedTextUsesCompositedRasterInsteadOfSelectionBounds`
+- `testNativeDashedGhostRulesCannotBecomeACompleteTable`
+- `testNativeSpecialVisibilityScanRejectsHiddenAndUnverifiedText`
+- `testNativeSpecialVisibilityScanAllowsOpaqueTextAndRules`
+- `testNativeResourcesAndTJThroughPDFKitBridge`
+- `testNativeMissingMappingAndReplacementContentFailClosed`
+- `testNativeUnusedUnsupportedFontSetupAllowsCompleteReadableTextButUseRejects`

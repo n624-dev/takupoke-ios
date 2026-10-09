@@ -343,7 +343,14 @@
         "tests/ui/ManualAssistanceFixture.swift",
         "tools/manual_ui_diagnostics.py",
         "tools/manual_ui_project.py",
-        "tools/test-manual-ui.sh"
+        "tools/test-manual-ui.sh",
+        "tests/ui/ManualAssistanceChecks.swift",
+        "tests/ui/ManualAssistanceGeometry.swift",
+        "tests/ui/ManualAssistanceChecks+Navigation.swift",
+        "tests/ui/ManualAssistanceChecks+Review.swift",
+        "tests/ui/ManualAssistanceChecks+Input.swift",
+        "tests/ui/ManualAssistanceChecks+Lifecycle.swift",
+        "tests/ui/ManualAssistanceChecks+OneCorrection.swift"
       ],
       "checks": [
         "tests/RecoveryManualAssistanceTests.swift",
@@ -353,7 +360,8 @@
         "tests/test_manual_scroll_navigation.py",
         "tests/test_manual_ui_diagnostics.py",
         "tests/test_manual_ui_project.py",
-        "tests/ui/ManualAssistanceChecks.swift"
+        "tests/ui/ManualAssistanceChecks+Cases.swift",
+        "tests/test_manual_ui_runner.py"
       ]
     },
     {
@@ -538,7 +546,7 @@
     },
     {
       "id": "test-catalog",
-      "title": "テスト一覧・対象検索・更新強制・CI接続",
+      "title": "テスト一覧・対象検索・宣言整合性・CI接続",
       "environment": "Linux Python（隔離Gitリポジトリ）",
       "commands": [
         "python3 -B -m unittest discover -s tests -p test_test_catalog.py -v"
@@ -547,7 +555,8 @@
         ".github/workflows/ios-release.yml",
         "tests/test-catalog.json",
         "tools/test_catalog.py",
-        "tools/test_catalog_inventory.py"
+        "tools/test_catalog_inventory.py",
+        ".github/workflows/test-tools.yml"
       ],
       "checks": [
         "tests/test_test_catalog.py"

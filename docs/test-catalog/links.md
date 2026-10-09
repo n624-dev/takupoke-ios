@@ -1,7 +1,7 @@
 # リンク・検索・設定保持
 
-対応ソース・テストのSHA-256：
-`a2db25042858813c38d1a7160cedcb5661e44f0801149e2785cb38ed2f4e4f9e`
+対応関係・宣言名・実行方法のSHA-256：
+`304fefe701feac01eb10cef748f20e25cc47e6297a03bde8cea06bf3474959ca`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -19,11 +19,11 @@ bash tools/test-parsing.sh
 
 ## [tests/LinksTests.swift](../../tests/LinksTests.swift)
 
-- `testLinkOpeningModeUsesHTTPSOnlyAndKeepsOverrideTemporary`（宣言行 8）
-- `testRecommendationsRespectVisibilityAndAstroOrdering`（宣言行 28）
-- `testValidatesResponseBeforeAdoptingIt`（宣言行 51）
-- `testWeakETagComparisonPreservesOpaqueEmbeddedMarker`（宣言行 61）
-- `test200304AndFailureKeepPreviousResult`（宣言行 66）
-- `testCacheReplacementOnlyAfterValidSave`（宣言行 79）
-- `testPreferencesFollowIDAndRetainMissingItems`（宣言行 90）
-- `testSearchMatchesKanaRomajiAndRanking`（宣言行 107）
+- `testLinkOpeningModeUsesHTTPSOnlyAndKeepsOverrideTemporary`
+- `testRecommendationsRespectVisibilityAndAstroOrdering`
+- `testValidatesResponseBeforeAdoptingIt`
+- `testWeakETagComparisonPreservesOpaqueEmbeddedMarker`
+- `test200304AndFailureKeepPreviousResult`
+- `testCacheReplacementOnlyAfterValidSave`
+- `testPreferencesFollowIDAndRetainMissingItems`
+- `testSearchMatchesKanaRomajiAndRanking`

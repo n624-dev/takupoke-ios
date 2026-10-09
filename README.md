@@ -5,7 +5,7 @@
 [インストール手順](docs/altstore-pal-install.md) · [Releases](https://github.com/n624-dev/takupoke-ios/releases) · [開発環境](docs/development.md) · [検証状況](docs/roadmap.md)
 
 開発時は[テスト一覧と変更時の必須手順](docs/test-catalog.md)から対応テストを検索してください。
-コード変更に対応するテストと一覧の更新をCIで検査します。
+[テスト保守方針](docs/test-maintenance-policy.md)に従い、未登録コードと一覧の整合性をCIで検査します。既存テストで十分なら、ケースと実行結果を記録し、不要なテスト編集は行いません。
 
 PDF端末内AI復旧は開発中です。前処理・Validator・開始・元PDF確認・プレビュー・明示採用・モデル管理と各iOS Runtime adapterを接続しました。安全な所属を確認できた読取文字だけ、資料全体で最大3項目を原本と照合する手動補助を追加しています。Apple SDK/実機検証は継続中で、追加モデルの配信は品質評価後です。[方針・実装状況・残る接続](docs/pdf-recovery.md)を参照してください。
 

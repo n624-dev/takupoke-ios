@@ -1,7 +1,7 @@
 # 通知許可・実配信・設定・バックグラウンド
 
-対応ソース・テストのSHA-256：
-`5b521f59b2dbfd6c83e2ab25691d2a7f36537b6d38ea28c0b6ab958b40ea9959`
+対応関係・宣言名・実行方法のSHA-256：
+`3bd6a8e8ecbef23b672160b581cd665cd16cb35549a11ee04b14f53be6523e85`
 
 環境：Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定
 
@@ -18,16 +18,16 @@ TKPK_UI_SHARD=A bash tools/test-app-ui.sh
 
 ## [tests/ScheduleNotificationTests.swift](../../tests/ScheduleNotificationTests.swift)
 
-- `testFirstImportAndUnchangedContentDoNotNotify`（宣言行 12）
-- `testUpdatesOnlyCountSelectedClassesTodayOrLaterAndCountReplacementsOnce`（宣言行 21）
-- `testSelectionChangeAndReorderingDoNotBecomeDataUpdates`（宣言行 34）
-- `testSavedBaselineSurvivesRestartAndSeparatesExamAndReturn`（宣言行 40）
-- `testFailedChangeSendCannotSurviveClassSwitchTargetExpiryOrChangedContent`（宣言行 54）
-- `testFailedRemovalNoticeRemainsRelevantOnlyWhileSlotIsAbsent`（宣言行 70）
-- `testInvalidDateCannotNotify`（宣言行 79）
-- `testFailedParseCannotReplaceNotificationBaselineWithPreviousAnalysis`（宣言行 84）
+- `testFirstImportAndUnchangedContentDoNotNotify`
+- `testUpdatesOnlyCountSelectedClassesTodayOrLaterAndCountReplacementsOnce`
+- `testSelectionChangeAndReorderingDoNotBecomeDataUpdates`
+- `testSavedBaselineSurvivesRestartAndSeparatesExamAndReturn`
+- `testFailedChangeSendCannotSurviveClassSwitchTargetExpiryOrChangedContent`
+- `testFailedRemovalNoticeRemainsRelevantOnlyWhileSlotIsAbsent`
+- `testInvalidDateCannotNotify`
+- `testFailedParseCannotReplaceNotificationBaselineWithPreviousAnalysis`
 
 ## [tests/ui/ApplicationChecks+Notifications.swift](../../tests/ui/ApplicationChecks+Notifications.swift)
 
-- `testNotificationControlsAndAppearance`（宣言行 80）
-- `testChangedDataProducesOneLocalNotification`（宣言行 148）
+- `testNotificationControlsAndAppearance`
+- `testChangedDataProducesOneLocalNotification`

@@ -1,3 +1,4 @@
+import sys
 """Compile the actual QA-only geometry state with fictional accessibility frames."""
 from pathlib import Path
 import re
@@ -7,14 +8,19 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+from ui_test_manifest import manual_check_source
+
 
 
 class ManualScrollNavigationTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which("swiftc"), "Swift compiler required for actual geometry controls")
     def test_actual_navigation_state_on_offscreen_virtualized_and_keyboard_frames(self):
-        source = (ROOT / "tests/ui/ManualAssistanceChecks.swift").read_text()
+        source = manual_check_source()
         helper = source.split("// BEGIN PURE MANUAL SCROLL NAVIGATION\n", 1)[1].split(
             "// END PURE MANUAL SCROLL NAVIGATION", 1)[0]
+        helper += source.split("// BEGIN PURE MANUAL PASSIVE SELECTION\n", 1)[1].split(
+            "// END PURE MANUAL PASSIVE SELECTION", 1)[0]
         controls = r'''
 import Foundation
 import XCTest
@@ -24,6 +30,23 @@ final class GeometryControls:XCTestCase {
  let inside=CGRect(x:32,y:194.33,width:329,height:23)
  let above=CGRect(x:16,y:-226,width:361,height:53)
  let below=CGRect(x:16,y:610,width:361,height:53)
+ func testPassiveSelectionInspectsOnlyTheFirstSafeCandidateInEachDirection() {
+  let frames=[CGRect(x:16,y:100,width:361,height:60),CGRect(x:16,y:200,width:361,height:60),CGRect(x:16,y:300,width:361,height:60)]
+  let area=CGRect(x:0,y:90,width:393,height:300)
+  for upward in [false,true] {
+   var inspected=[Int]()
+   let result=manualPassiveCell(cells:[0,1,2],viewport:area,upward:upward,frame:{ frames[$0] },isPassive:{ inspected.append($0);return $0==1 })
+   XCTAssertEqual(result,1)
+   XCTAssertEqual(inspected,upward ? [2,1]:[0,1])
+  }
+ }
+ func testPassiveSelectionRejectsClippedShortForeignAndInteractiveRows() {
+  let area=CGRect(x:0,y:100,width:393,height:200)
+  let frames=[CGRect(x:16,y:70,width:361,height:40),CGRect(x:500,y:120,width:30,height:60),CGRect(x:16,y:120,width:361,height:35),CGRect(x:16,y:160,width:361,height:60)]
+  var inspected=[Int]()
+  let result=manualPassiveCell(cells:[0,1,2,3],viewport:area,upward:true,frame:{ frames[$0] },isPassive:{ inspected.append($0);return false })
+  XCTAssertNil(result);XCTAssertEqual(inspected,[3])
+ }
  func testAboveOwnerRoutesDownDespiteStaleInViewportChild() {
   var state=ManualScrollNavigation();state.locate(target:inside,owner:above,viewport:viewport)
   XCTAssertFalse(state.upward)
@@ -128,7 +151,7 @@ final class GeometryControls:XCTestCase {
 }
 '''.replace("HELPER", helper)
         cases = re.findall(r"func (test\w+)\(", controls)
-        self.assertEqual(len(cases), 21)
+        self.assertEqual(len(cases), 23)
         controls += "\nXCTMain([testCase([\n" + "".join(
             f'("{name}", GeometryControls.{name}),\n' for name in cases) + "])])\n"
         with tempfile.TemporaryDirectory(prefix="manual-scroll-controls-") as directory:
@@ -141,12 +164,12 @@ final class GeometryControls:XCTestCase {
             self.assertEqual(compiled.returncode, 0, compiled.stdout + compiled.stderr)
             actual = subprocess.run([str(scratch / "controls")], capture_output=True, text=True, timeout=30)
             self.assertEqual(actual.returncode, 0, actual.stdout + actual.stderr)
-            self.assertIn("Executed 21 tests, with 0 failures", actual.stdout)
+            self.assertIn("Executed 23 tests, with 0 failures", actual.stdout)
             print(actual.stdout)
 
     def test_qa_only_owner_resolution_and_existing_caps_are_preserved(self):
-        source = (ROOT / "tests/ui/ManualAssistanceChecks.swift").read_text()
-        visible = source.split("private func visible(", 1)[1].split("private func tap(", 1)[0]
+        source = manual_check_source()
+        visible = source.split("func visible(", 1)[1].split("func tap(", 1)[0]
         self.assertIn("list.cells.containing(.any,identifier:targetID)", visible)
         self.assertIn("owners.count==1", visible)
         self.assertIn("for attempt in 0..<16", visible)

@@ -1,7 +1,7 @@
 # 原本取得・更新・保存・File Provider
 
-対応ソース・テストのSHA-256：
-`733aaf4bdda467413b17f90fa841f38a3c39356cd442f1aa00c0db9c44fa2f48`
+対応関係・宣言名・実行方法のSHA-256：
+`e7c7d4fe1a6839142d96762e90043006c90c6fd660e6c685c59793e9b65ea1f7`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -34,37 +34,37 @@ bash tools/test-parsing.sh
 
 ## [tests/FileRefreshTests.swift](../../tests/FileRefreshTests.swift)
 
-- `testUserSelectionsWaitAndPreserveOrderAcrossAllFourKinds`（宣言行 6）
-- `testPendingSelectionKeepsLeaseUntilCancellationOrRetentionClear`（宣言行 20）
-- `testCancellationDropsPendingAndLateCallbacksUntilForegroundReturn`（宣言行 36）
-- `testRefreshDiagnosticIsBoundedAndSafeUnderConcurrentEvents`（宣言行 52）
-- `testBusyOrLoadingDefersAndCoalescesNotifications`（宣言行 71）
-- `testBackgroundDropsPendingAndLateNotifications`（宣言行 85）
-- `testObservationIdentityIgnoresSuccessfulReadMetadata`（宣言行 98）
-- `testRepeatedAttributeNotificationsDoNotRestartRefresh`（宣言行 108）
-- `testReplacementAndUnsupportedVersionsStillGetHashChecked`（宣言行 124）
-- `testReadAcknowledgesMaterializedVersionAndStillDetectsLaterEdit`（宣言行 133）
-- `testFailedReadDoesNotAcknowledgeUnreadVersion`（宣言行 176）
-- `testSuspendedMonitorCannotRestartFromSourceUpdateOrLateWork`（宣言行 205）
-- `testEveryForegroundEntryChecksOnceAndUnchangedSourcesDoNotLoop`（宣言行 223）
-- `testBackgroundAndReselectionInvalidatePendingCallbacks`（宣言行 242）
-- `testPresenterRegistersBeforeInitialRefreshAndObservesCoordinatedWrite`（宣言行 257）
-- `testOwnFileOperationsDoNotFeedBackButExternalWritesStillNotify`（宣言行 291）
-- `testStopWhileResolvingCannotRegisterAfterBackground`（宣言行 336）
+- `testUserSelectionsWaitAndPreserveOrderAcrossAllFourKinds`
+- `testPendingSelectionKeepsLeaseUntilCancellationOrRetentionClear`
+- `testCancellationDropsPendingAndLateCallbacksUntilForegroundReturn`
+- `testRefreshDiagnosticIsBoundedAndSafeUnderConcurrentEvents`
+- `testBusyOrLoadingDefersAndCoalescesNotifications`
+- `testBackgroundDropsPendingAndLateNotifications`
+- `testObservationIdentityIgnoresSuccessfulReadMetadata`
+- `testRepeatedAttributeNotificationsDoNotRestartRefresh`
+- `testReplacementAndUnsupportedVersionsStillGetHashChecked`
+- `testReadAcknowledgesMaterializedVersionAndStillDetectsLaterEdit`
+- `testFailedReadDoesNotAcknowledgeUnreadVersion`
+- `testSuspendedMonitorCannotRestartFromSourceUpdateOrLateWork`
+- `testEveryForegroundEntryChecksOnceAndUnchangedSourcesDoNotLoop`
+- `testBackgroundAndReselectionInvalidatePendingCallbacks`
+- `testPresenterRegistersBeforeInitialRefreshAndObservesCoordinatedWrite`
+- `testOwnFileOperationsDoNotFeedBackButExternalWritesStillNotify`
+- `testStopWhileResolvingCannotRegisterAfterBackground`
 
 ## [tests/MaterialLibraryChecks.swift](../../tests/MaterialLibraryChecks.swift)
 
-- `main`（宣言行 16）
+- `main`
 
 ## [tests/WebPDFChecks.swift](../../tests/WebPDFChecks.swift)
 
-- `run`（宣言行 40）
+- `run`
 
 ## [tests/ParsingTests+RowSkips.swift](../../tests/ParsingTests+RowSkips.swift)
 
-- `testRowSkipsAreExplicitKeepRowNumbersAndExcludeWholeExpandedRow`（宣言行 17）
-- `testExcludedClassCannotBecomeEvidenceForRemainingAllRow`（宣言行 53）
-- `testWeekdayOnlyFormulaWithOrWithoutCacheCanBeInspectedButNeverAutoSkipped`（宣言行 73）
-- `testRowSkipsCannotHideDateClassFormulaOrStructuralErrors`（宣言行 98）
-- `testRowSkipConsentPersistsOnlyForSameSelectedContentAndNeverResurrects`（宣言行 135）
-- `testRowSkipsRejectStalePreviewCancellationAndAllExcludedWithoutSaving`（宣言行 182）
+- `testRowSkipsAreExplicitKeepRowNumbersAndExcludeWholeExpandedRow`
+- `testExcludedClassCannotBecomeEvidenceForRemainingAllRow`
+- `testWeekdayOnlyFormulaWithOrWithoutCacheCanBeInspectedButNeverAutoSkipped`
+- `testRowSkipsCannotHideDateClassFormulaOrStructuralErrors`
+- `testRowSkipConsentPersistsOnlyForSameSelectedContentAndNeverResurrects`
+- `testRowSkipsRejectStalePreviewCancellationAndAllExcludedWithoutSaving`

@@ -11,6 +11,9 @@ import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+from ui_test_manifest import manual_check_source
+
 spec = importlib.util.spec_from_file_location('diagnostics', ROOT / 'tools/manual_ui_diagnostics.py')
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
@@ -152,7 +155,7 @@ rm() { echo delete-owned-scratch; }
 
     def test_assertions_completion_guard_and_result_bundle_remain(self):
         runner = (ROOT / 'tools/test-manual-ui.sh').read_text()
-        checks = (ROOT / 'tests/ui/ManualAssistanceChecks.swift').read_text()
+        checks = manual_check_source()
         self.assertIn('-resultBundlePath "$scratch_dir/ManualResults.xcresult"', runner)
         self.assertNotIn('-collect-test-diagnostics on-failure', runner)
         self.assertIn('-collect-test-diagnostics never', runner)

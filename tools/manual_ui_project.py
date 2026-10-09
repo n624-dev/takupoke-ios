@@ -8,6 +8,8 @@ from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+from ui_test_manifest import MANUAL_CHECK_SOURCES, manual_check_source
 
 
 def once(text, marker, replacement):
@@ -157,7 +159,8 @@ def generate(destination, source_root=ROOT):
     spec = importlib.util.spec_from_file_location("app_test_project", source_root / "tools/app_test_project.py")
     sys.path.insert(0, str(source_root / "tools"))
     module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
-    module.generate(destination, check_sources=("ManualAssistanceChecks.swift",), check_root=ROOT)
+    manual_check_source(ROOT)
+    module.generate(destination, check_sources=MANUAL_CHECK_SOURCES, check_root=ROOT)
     destination = Path(destination)
     app = destination / "Takupoke"
     path = app / "PDFRecoveryCoordinator.swift"; path.write_text(coordinator(path.read_text(encoding="utf-8")), encoding="utf-8")

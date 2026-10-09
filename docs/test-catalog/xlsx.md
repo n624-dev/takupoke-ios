@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
-対応ソース・テストのSHA-256：
-`7376025e61e6b1497d0d9ee267ccd1d36965f905fe21fc7c637bb5e4bccfe447`
+対応関係・宣言名・実行方法のSHA-256：
+`139b087d7f18e268b471bef70a551415e89926dc5575faf4385124e2b8420b64`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -23,37 +23,37 @@ bash tools/test-parsing.sh
 
 ## [tests/ParsingTests+Normalization.swift](../../tests/ParsingTests+Normalization.swift)
 
-- `testReferenceFixturesThroughCompressedXLSX`（宣言行 7）
-- `testAIClassAliasesThroughXLSXKeepRowsAndSourceText`（宣言行 36）
-- `testLegacyAIClassDisplayDoesNotRewriteSavedResults`（宣言行 68）
-- `testDatesAndExplicitYear`（宣言行 103）
-- `testTableFailuresAndBounds`（宣言行 113）
+- `testReferenceFixturesThroughCompressedXLSX`
+- `testAIClassAliasesThroughXLSXKeepRowsAndSourceText`
+- `testLegacyAIClassDisplayDoesNotRewriteSavedResults`
+- `testDatesAndExplicitYear`
+- `testTableFailuresAndBounds`
 
 ## [tests/ParsingTests+Persistence.swift](../../tests/ParsingTests+Persistence.swift)
 
-- `testPersistenceFailureAndNewSourceKeepLastGoodResult`（宣言行 7）
+- `testPersistenceFailureAndNewSourceKeepLastGoodResult`
 
 ## [tests/ParsingTests+Preview.swift](../../tests/ParsingTests+Preview.swift)
 
-- `testLiteralWeekdayNeedsExplicitCorrectionAndKeepsOriginalText`（宣言行 28）
-- `testWeekdayConsentIsAtomicAndLimitedToSelectedContent`（宣言行 54）
-- `testMetadataAndValidatedWeekdayFormulas`（宣言行 91）
-- `testWeekdayFormulaMissingOrStaleCacheAndMajorColumnFormula`（宣言行 112）
-- `testWarningPreviewKeepsSuccessAndFailureUnchanged`（宣言行 132）
-- `testPreviewDoesNotBypassOtherErrors`（宣言行 188）
+- `testLiteralWeekdayNeedsExplicitCorrectionAndKeepsOriginalText`
+- `testWeekdayConsentIsAtomicAndLimitedToSelectedContent`
+- `testMetadataAndValidatedWeekdayFormulas`
+- `testWeekdayFormulaMissingOrStaleCacheAndMajorColumnFormula`
+- `testWarningPreviewKeepsSuccessAndFailureUnchanged`
+- `testPreviewDoesNotBypassOtherErrors`
 
 ## [tests/ParsingTests+RowSkips.swift](../../tests/ParsingTests+RowSkips.swift)
 
-- `testRowSkipsAreExplicitKeepRowNumbersAndExcludeWholeExpandedRow`（宣言行 17）
-- `testExcludedClassCannotBecomeEvidenceForRemainingAllRow`（宣言行 53）
-- `testWeekdayOnlyFormulaWithOrWithoutCacheCanBeInspectedButNeverAutoSkipped`（宣言行 73）
-- `testRowSkipsCannotHideDateClassFormulaOrStructuralErrors`（宣言行 98）
-- `testRowSkipConsentPersistsOnlyForSameSelectedContentAndNeverResurrects`（宣言行 135）
-- `testRowSkipsRejectStalePreviewCancellationAndAllExcludedWithoutSaving`（宣言行 182）
+- `testRowSkipsAreExplicitKeepRowNumbersAndExcludeWholeExpandedRow`
+- `testExcludedClassCannotBecomeEvidenceForRemainingAllRow`
+- `testWeekdayOnlyFormulaWithOrWithoutCacheCanBeInspectedButNeverAutoSkipped`
+- `testRowSkipsCannotHideDateClassFormulaOrStructuralErrors`
+- `testRowSkipConsentPersistsOnlyForSameSelectedContentAndNeverResurrects`
+- `testRowSkipsRejectStalePreviewCancellationAndAllExcludedWithoutSaving`
 
 ## [tests/ParsingTests+Workbook.swift](../../tests/ParsingTests+Workbook.swift)
 
-- `testUnsupportedAndMalformedWorkbooks`（宣言行 7）
-- `testSharedStringsExpansionLimit`（宣言行 53）
-- `testCancellationAndCorruption`（宣言行 65）
-- `testRichTextNumericDatesAndSparseCells`（宣言行 87）
+- `testUnsupportedAndMalformedWorkbooks`
+- `testSharedStringsExpansionLimit`
+- `testCancellationAndCorruption`
+- `testRichTextNumericDatesAndSparseCells`
