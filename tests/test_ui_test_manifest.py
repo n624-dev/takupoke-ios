@@ -156,7 +156,13 @@ class ManifestTests(unittest.TestCase):
         self.assertIn('probe.label.hasPrefix("requesting=false;changes=true;saved=true;")', pending)
         self.assertIn('Date().addingTimeInterval(45)', pending)
         self.assertIn('deadline.timeIntervalSinceNow', pending)
-        self.assertIn('state.hasSuffix(";application=1")', pending)
+        self.assertIn('self.permissionAlertIsVisible(predicate)', pending)
+        self.assertNotIn('state.hasSuffix(";application=', pending)
+        alert = checks.split('private func permissionAlertIsVisible(', 1)[1].split(
+            'private func openNotificationSettings()', 1)[0]
+        self.assertIn('guard alerts.count == 1', alert)
+        self.assertIn('allow.count == 1', alert)
+        self.assertIn('allow.element(boundBy: 0).isHittable', alert)
         navigation = (ROOT / "tests/ui/ApplicationChecks+Navigation.swift").read_text()
         switch = navigation.split("func tapNativeSwitch(", 1)[1]
         self.assertEqual(switch.count("control.tap()"), 1)

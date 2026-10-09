@@ -1,5 +1,28 @@
 # 検証記録
 
+## 2026-10-09 実ダイアログとactive状態が両立する27の検査修正
+
+fb43b6fの[通知2ケース](https://github.com/n624-dev/takupoke-ios/actions/runs/37971894052)は、
+26が2件成功（361.330秒）、27が初回1件失敗・外観1件成功（326.774秒）だった。
+27の実BindingはONへ到達しrequesting=trueとなったが、scene=active・application=0だった。
+失敗時のSystem画像257,383 bytes・SHA-256
+`af6a3f400a03e5db3a1934132fe000043f5109d72e508aa4960bef6c66e30d34`
+を照合し、実通知ダイアログとAllow／Don’t Allowが表示されていることを確認した。
+画像はGitへ保存しない。次ケースの起動時にXCTest既定handlerが実Allowを操作していた。
+これは初回ケースの救済ではなく、初回の保存・新規配信の検査は失敗として残す。
+
+こちらがmodal検出にapplicationのinactiveを要求した前提が誤っていた。
+実requesting=trueと、今回観測したSpringBoard上のアプリ名・通知に一致する一意のAlert、
+一意でhittableな実Allowの表示を要求する。要素は各観測で取り直し、古いサーバの要素を保持しない。
+その観測後だけ一回の補助操作で登録済みmonitorの実Allowを操作する。
+許可済みならUI／保存ONを待ち、Switchの押し直しや許可注入を行わない。
+共通45秒と最終ON・保存・新規配信1件・revision・再起動保持の期待値は維持する。
+両OSの実許可検証は新しいソースで再実行する。
+
+固定ログ補修f871a32の[開発検証](https://github.com/n624-dev/takupoke-ios/actions/runs/37972294255)は
+2ジョブ成功、Python159件60.188秒／Swift464件70.411秒が失敗0だった。
+今回の既存26生成検査、Swift構文・一覧333ファイル・差分検査も成功した。
+
 ## 2026-10-09 OFF経路の固定診断記録
 
 観測用notRequestedは製品の実guardから更新されるが、固定診断ログの出力許可リストに

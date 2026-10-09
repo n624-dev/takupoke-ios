@@ -3,6 +3,17 @@ import UIKit
 import CryptoKit
 
 extension ApplicationChecks {
+    private func permissionAlertIsVisible(_ allowPredicate: NSPredicate) -> Bool {
+        // Resolve the actual system surface afresh; never retain an element
+        // belonging to a previous permission alert or accessibility server.
+        let system = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let alerts = system.alerts.matching(NSPredicate(
+            format: "label CONTAINS %@ AND (label CONTAINS[c] %@ OR label CONTAINS %@)",
+            app.label, "notification", "通知"))
+        guard alerts.count == 1 else { return false }
+        let allow = alerts.element(boundBy: 0).buttons.matching(allowPredicate)
+        return allow.count == 1 && allow.element(boundBy: 0).isHittable
+    }
     private func openNotificationSettings() {
         let row = app.buttons["通知"].firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 10), app.debugDescription)
@@ -78,13 +89,13 @@ extension ApplicationChecks {
         tapNativeSwitch(toggle)
         print("NOTIFICATION_SWITCH activated state=\(probe.label)")
         let deadline = Date().addingTimeInterval(45)
-        // Dispatch the interruption monitor only when the real permission request
-        // has made the application inactive. Already-granted requests settle first.
+        // A real system permission alert can leave the app reported as active.
+        // Observe the unique alert and its actual Allow control instead.
         let transition = expectation(for: NSPredicate { _, _ in
             let state = probe.label
             let completed = state.hasPrefix("requesting=false;changes=true;saved=true;")
             let modal = state.hasPrefix("requesting=true;")
-                && (state.hasSuffix(";application=1") || state.hasSuffix(";application=2"))
+                && self.permissionAlertIsVisible(predicate)
             return completed || modal
         }, evaluatedWith: probe)
         guard XCTWaiter.wait(for: [transition], timeout: 45) == .completed else {
