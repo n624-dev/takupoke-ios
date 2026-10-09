@@ -31,6 +31,10 @@
 
 大きなテストは同じXCTestCaseのextensionへ移し、テスト名・入力・期待値・setUp/tearDownを保持します。PDFは通常時間割・行事・診断・PDFKit、時間割統合は変更・連続授業・行事、DBは旧形式・現在の保存、XLSXは正規化・ブック・プレビュー・保存、試験／返却は架空入力・解析・保存に分けています。
 
+復旧Builderのテストは `RecoveryBuilderTests+Ordered` / `Ruled` / `Calibration` / `Parallel` / `Special` / `Raster` に分け、XLSXの行除外は `ParsingTests+RowSkips` にまとめます。通常の画面テストは `ApplicationChecks` が起動と共通状態を持ち、`Navigation` / `Changes` / `Recovery` / `Timetable` / `Settings` / `Events` / `Notifications` のextensionが操作補助と各ケースを持ちます。架空入力・測定は `ApplicationFixture+Changes` / `Events` / `Grid` / `Selection` / `Recovery` / `OCR` に分け、Sceneの状態と背景処理の登録は元のentrypointに保持します。
+
+画面テストとfixtureのファイル一覧は `tools/ui_test_manifest.py` を共有し、使い捨てXcodeプロジェクトのSwiftコンパイル対象へ全ファイルを登録します。未登録ファイル・ケース欠落・重複は失敗させます。手動訂正テストは専用のケースファイルだけを登録し、通常画面テストのextensionを混ぜません。
+
 Xcodeプロジェクトと `Package.swift` の明示的なソース一覧を両方更新します。`tools/test-materials.sh` はSPMとは別にコンパイルするため、ここにも必要なモデルと処理を登録します。プラットフォームごとの `canImport` 条件とmacOS限定の対応表テストを維持します。
 
 移動前後の実装行、テスト名一覧、ファイル登録を照合します。CIのSwiftテスト・iPhoneビルドは実機の画面比較とは区別し、結果を[検証記録](verification.md)に残します。

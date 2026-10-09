@@ -5,6 +5,36 @@ from pathlib import Path
 import re
 
 ROOT = Path(__file__).resolve().parents[1]
+CHECK_SOURCES = (
+    "ApplicationChecks.swift",
+    "ApplicationChecks+Navigation.swift",
+    "ApplicationChecks+Changes.swift",
+    "ApplicationChecks+Recovery.swift",
+    "ApplicationChecks+Timetable.swift",
+    "ApplicationChecks+Settings.swift",
+    "ApplicationChecks+Events.swift",
+    "ApplicationChecks+Notifications.swift",
+)
+FIXTURE_SOURCES = (
+    "ApplicationFixture.swift",
+    "ApplicationFixture+Changes.swift",
+    "ApplicationFixture+Events.swift",
+    "ApplicationFixture+Grid.swift",
+    "ApplicationFixture+Selection.swift",
+    "ApplicationFixture+Recovery.swift",
+    "ApplicationFixture+OCR.swift",
+)
+
+
+def check_source(root=ROOT):
+    folder = root / "tests/ui"
+    actual = {path.name for path in folder.glob("ApplicationChecks*.swift")}
+    if actual != set(CHECK_SOURCES):
+        raise ValueError("UI test files differ from registered sources")
+    return "\n".join((folder / name).read_text(encoding="utf-8")
+                     for name in CHECK_SOURCES)
+
+
 SYSTEM_SIZE_TEST = "testTimetableUsesSystemTextSize"
 VOICEOVER_TEST = "testVoiceOverReadsTimetableCard"
 RELAUNCH_PROBE_TESTS = ("testChangedAccountDataNoticeOpensSharedAcquisition",
@@ -105,7 +135,7 @@ def main():
     parser.add_argument("--relaunch-probe", action="store_true")
     parser.add_argument("--runner-log", action="store_true")
     args = parser.parse_args()
-    validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8"))
+    validate_source(check_source())
     if args.relaunch_probe and (args.shard != "all" or args.system_size_only):
         parser.error("Relaunch probe is separate from full shards and system-size checks")
     if args.runner_log and args.system_size_only:

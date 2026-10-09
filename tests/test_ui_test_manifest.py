@@ -22,6 +22,37 @@ def result_line(test, status="passed"):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_split_sources_are_registered_in_the_selected_target_only(self):
+        project = {'rootObject': 'project', 'objects': {
+            'project': {'mainGroup': 'group'}, 'group': {'children': []},
+            'app': {'buildPhases': ['app-sources']},
+            'test': {'buildPhases': ['test-sources']},
+            'app-sources': {'isa': 'PBXSourcesBuildPhase', 'files': []},
+            'test-sources': {'isa': 'PBXSourcesBuildPhase', 'files': []},
+        }}
+        paths = [ROOT / 'tests/ui' / name for name in manifest.CHECK_SOURCES[1:]]
+        app_test_project.add_swift_sources(project, 'test', paths, '9B')
+        objects = project['objects']
+        registered = [objects[objects[key]['fileRef']]['path']
+                      for key in objects['test-sources']['files']]
+        self.assertEqual(registered, [str(path) for path in paths])
+        self.assertEqual(objects['app-sources']['files'], [])
+        self.assertEqual(len(objects['group']['children']), len(paths))
+        with self.assertRaisesRegex(ValueError, 'Duplicate'):
+            app_test_project.add_swift_sources(project, 'test', paths, '9B')
+
+    def test_unregistered_split_file_is_rejected(self):
+        with tempfile.TemporaryDirectory(prefix='takupoke-ui-source-check-') as directory:
+            root = Path(directory)
+            folder = root / 'tests/ui'
+            folder.mkdir(parents=True)
+            for name in manifest.CHECK_SOURCES:
+                shutil.copyfile(ROOT / 'tests/ui' / name, folder / name)
+            self.assertEqual(manifest.check_source(root), manifest.check_source())
+            (folder / 'ApplicationChecks+Unregistered.swift').write_text('func testForgotten() {}')
+            with self.assertRaisesRegex(ValueError, 'registered'):
+                manifest.check_source(root)
+
     def test_network_rewrite_preserves_standard_xlsx_identifiers_only(self):
         source = (ROOT / "Takupoke/XLSXReader.swift").read_text(encoding="utf-8")
         rewritten = app_test_project.rewrite_network_urls(source)
@@ -139,7 +170,7 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("return try await acquire(url, only: only, check: check).strictLayouts(check: check)", recognition)
 
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
-        manifest.validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8"))
+        manifest.validate_source(manifest.check_source())
         self.assertEqual(len(manifest.selected_tests("all")), 27)
         self.assertEqual([len(manifest.SHARDS[shard]) for shard in ("A", "B")], [14, 13])
         self.assertFalse(set(manifest.SHARDS["A"]) & set(manifest.SHARDS["B"]))
@@ -147,7 +178,7 @@ class ManifestTests(unittest.TestCase):
         self.assertIn(manifest.SYSTEM_SIZE_TEST, manifest.SHARDS["B"])
 
     def test_missing_obsolete_or_duplicate_source_tests_fail(self):
-        source = (ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8")
+        source = manifest.check_source()
         for altered in (source + "\nfunc testNewCase() {}",
                         source.replace("testMergedCardsFromAllSources", "testRenamedCase"),
                         source + "\nfunc testMergedCardsFromAllSources() {}"):
@@ -157,7 +188,7 @@ class ManifestTests(unittest.TestCase):
     def test_overlapping_manifest_is_rejected(self):
         with patch.dict(manifest.SHARDS, {"B": manifest.SHARDS["B"] + manifest.SHARDS["A"][:1]}):
             with self.assertRaisesRegex(ValueError, "duplicate tests"):
-                manifest.validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8"))
+                manifest.validate_source(manifest.check_source())
 
     def test_passed_results_with_only_the_declared_voiceover_exception(self):
         for ios in (26, 27):
@@ -290,7 +321,8 @@ class ShellRunnerTests(unittest.TestCase):
             (repo / "scratch").mkdir()
             for name in ("test-app-ui.sh", "resolve-xcode-packages.sh", "ui_test_manifest.py", "timed_command.py"):
                 shutil.copyfile(ROOT / "tools" / name, repo / "tools" / name)
-            shutil.copyfile(ROOT / "tests/ui/ApplicationChecks.swift", repo / "tests/ui/ApplicationChecks.swift")
+            for name in manifest.CHECK_SOURCES:
+                shutil.copyfile(ROOT / "tests/ui" / name, repo / "tests/ui" / name)
             (repo / "tools/app_test_project.py").write_text(
                 "import json, os\n"
                 "with open(os.environ['CALLS'], 'a') as output:\n"

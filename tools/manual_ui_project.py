@@ -157,16 +157,12 @@ def generate(destination, source_root=ROOT):
     spec = importlib.util.spec_from_file_location("app_test_project", source_root / "tools/app_test_project.py")
     sys.path.insert(0, str(source_root / "tools"))
     module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
-    module.generate(destination)
+    module.generate(destination, check_sources=("ManualAssistanceChecks.swift",), check_root=ROOT)
     destination = Path(destination)
     app = destination / "Takupoke"
     path = app / "PDFRecoveryCoordinator.swift"; path.write_text(coordinator(path.read_text(encoding="utf-8")), encoding="utf-8")
     path = app / "PDFRecoveryView.swift"; path.write_text(view(path.read_text(encoding="utf-8")), encoding="utf-8")
     path = app / "TakupokeApp.swift"; path.write_text(application(path.read_text(encoding="utf-8")), encoding="utf-8")
-    project = destination / "AppChecks.xcodeproj/project.pbxproj"
-    text = project.read_text(encoding="utf-8")
-    text = once(text, str(source_root / "tests/ui/ApplicationChecks.swift"), str(ROOT / "tests/ui/ManualAssistanceChecks.swift"))
-    project.write_text(text, encoding="utf-8")
 
 
 if __name__ == "__main__":

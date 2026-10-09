@@ -7,6 +7,26 @@ import shutil
 import subprocess
 import sys
 from picker_test_project import generate as generate_picker
+from ui_test_manifest import CHECK_SOURCES, FIXTURE_SOURCES
+
+
+def add_swift_sources(project, target, paths, prefix):
+    objects = project['objects']
+    phases = [objects[key] for key in objects[target]['buildPhases']
+              if objects[key]['isa'] == 'PBXSourcesBuildPhase']
+    if len(phases) != 1:
+        raise ValueError('Expected one Swift sources phase for the selected target')
+    group = objects[objects[project['rootObject']]['mainGroup']]
+    for index, path in enumerate(paths, start=1):
+        reference = f'{prefix}0{index:021X}'
+        build_file = f'{prefix}1{index:021X}'
+        if reference in objects or build_file in objects:
+            raise ValueError('Duplicate generated Swift source identifier')
+        objects[reference] = dict(isa='PBXFileReference', lastKnownFileType='sourcecode.swift',
+                                  path=str(path), sourceTree='<absolute>')
+        objects[build_file] = dict(isa='PBXBuildFile', fileRef=reference)
+        phases[0]['files'].append(build_file)
+        group['children'].append(reference)
 
 def instrument_events_cache(text):
     marker = '    func refreshAtStartup() {'
@@ -67,8 +87,9 @@ def instrument_ai_switch(text):
     assert text.count(marker) == 1, 'AI switch setter diagnostic insertion point missing'
     return text.replace(marker, AI_SWITCH_BEFORE + marker + AI_SWITCH_AFTER)
 
-def generate(destination):
+def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
     repo = Path(__file__).resolve().parents[1]
+    check_root = repo if check_root is None else Path(check_root)
     destination = Path(destination)
     # Reuse the standard UITest target/scheme machinery, not a second app UI.
     generate_picker(destination)
@@ -233,6 +254,13 @@ def generate(destination):
         ''')
         path.write_text(text)
     shutil.copyfile(repo/'tests/ui/ApplicationFixture.swift',copied/'TakupokeApp.swift')
+    actual = {path.name for path in (repo/'tests/ui').glob('ApplicationFixture*.swift')}
+    if actual != set(FIXTURE_SOURCES):
+        raise ValueError('UI fixture files differ from registered sources')
+    for name in FIXTURE_SOURCES[1:]:
+        shutil.copyfile(repo/'tests/ui'/name, copied/name)
+    add_swift_sources(real, 'D00000000000000000000001',
+                      (copied/name for name in FIXTURE_SOURCES[1:]), '9A')
     fixture_dir = destination/'recovery-fixtures'
     fixture_dir.mkdir()
     resources = next(obj for obj in real['objects'].values() if obj.get('isa') == 'PBXResourcesBuildPhase')
@@ -261,7 +289,7 @@ def generate(destination):
     for key,obj in generated['objects'].items():
         if obj.get('isa') in ['PBXProject','PBXNativeTarget','PBXGroup'] and key!=test_target: continue
         if obj.get('isa')=='PBXFileReference' and obj.get('path','').endswith('MaterialPickerTapChecks.swift'):
-            obj['path']=str(repo/'tests/ui/ApplicationChecks.swift')
+            obj['path']=str(check_root/'tests/ui'/check_sources[0])
         if obj.get('isa')=='PBXTargetDependency': obj['target']=app_target
         if obj.get('isa')=='PBXContainerItemProxy':
             obj['containerPortal']=real['rootObject']
@@ -272,6 +300,8 @@ def generate(destination):
             if os.environ.get('TKPK_VOICEOVER_AUTOMATION')=='1':
                 obj['buildSettings']['SWIFT_ACTIVE_COMPILATION_CONDITIONS']='TAKUPOKE_VOICEOVER_AUTOMATION'
         real['objects'][key]=obj
+    add_swift_sources(real, test_target,
+                      (check_root/'tests/ui'/name for name in check_sources[1:]), '9B')
     real['objects'][real['rootObject']]['targets'].append(test_target)
     real['objects'][real['rootObject']].setdefault('attributes',{}).setdefault('TargetAttributes',{})[test_target]={'CreatedOnToolsVersion':'27.0','TestTargetID':app_target}
     def encode(v):
