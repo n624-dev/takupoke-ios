@@ -51,7 +51,7 @@ def rewrite_network_urls(text):
     return re.sub(r'https?://[^"\s)]+',
                   lambda match: match[0] if match[0] in namespaces else 'https://fixture.example.test', text)
 
-NATIVE_OCR_DIAGNOSTIC = '''
+NATIVE_OCR_DIAGNOSTIC = r'''
                     if ProcessInfo.processInfo.arguments.contains("--recovery-ocr-probe") {
                         let captured = lines.last?.candidates.first
                         let detail = captured.map {
