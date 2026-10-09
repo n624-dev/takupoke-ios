@@ -1,5 +1,37 @@
 # 検証記録
 
+## 2026-10-09 二重取得除去の再評価とOSコールバック経路の比較
+
+ソース`c407ad2`の[関連6ケース](https://github.com/n624-dev/takupoke-ios/actions/runs/37944069066)は、
+26が6件・失敗0（729.975秒）、27が6件・失敗1（776.079秒）だった。
+27の初回通知では設定取得に入った後、応答がなく96.451秒で失敗した。
+後の通知・外観ケースでは同じ製品APIが約0.236秒で応答し、実許可・保存が成功した。
+[通知1ケースの初回起動](https://github.com/n624-dev/takupoke-ios/actions/runs/37945117177)でも、
+26は成功（129.079秒、OS応答約0.274秒）、27は97.211秒で失敗した。
+27はscene=active・application=0・authorization=pendingで、応答完了／取消の記録がなかった。
+二重取得除去だけでは解消しない。待機上限・Switch操作・許可・配信の条件は緩めない。
+開発[37944067171](https://github.com/n624-dev/takupoke-ios/actions/runs/37944067171)は
+Python157件とportable Swift464件が成功したが、関連UIの失敗を相殺しない。
+
+公開資料の調査では、このiOS27 Simulator初回設定照会に一致する既知問題は確認できなかった。
+Appleはasync版とcompletion-handler版を同じ設定取得操作として説明し、応答期限を保証していない。
+awaitはタスクを中断して実行threadを解放するため、MainActorでawaitしたことだけから
+同期ブロックとは断定しない。usernotificationsdに関する別条件の投稿も今回の原因の証明ではない。
+参照：[設定取得](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/getnotificationsettings%28completionhandler%3A%29)、
+[Swift concurrency](https://developer.apple.com/videos/play/wwdc2021/10254/?time=2259)。
+
+次の比較は明示dispatchした隔離テストアプリだけでcallback経路を選択する。
+標準は製品のasync経路のまま、配布経路・製品ソースは変更しない。
+設定画面と差分確認の元の2照会を1対1で置き換え、OSオブジェクトをそのまま返す。
+要求開始とOS callback到達を固定ラベルで記録し、ファイル書込をlockで直列化する。
+callback到達とMainActor側の観測完了を区別し、値の注入・許可付与・再試行は行わない。
+生成契約の既存ケースで、代替2照会と観測を除くと製品ソースへ戻ること、
+未知の経路・照会数の変化を拒否すること、公開ログは固定ラベルだけ通すことを検証する。
+この比較の成功だけで製品修正・全体合格・公開完了とは扱わない。
+Linuxの既存Python157件は失敗・skip0（11.812秒）。既存26件のUI生成契約、
+両経路のSwift構文、Bash構文、332ファイルの一覧整合性と差分検査が成功した。
+Apple SDKの型検査・両OSの実操作はこの比較のActionsで確認する。
+
 ## 2026-10-09 全体345の通知設定取得の再失敗
 
 ソース`4ac4d77`の[345](https://github.com/n624-dev/takupoke-ios/actions/runs/37934716695)は、

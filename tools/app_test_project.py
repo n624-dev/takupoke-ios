@@ -101,7 +101,8 @@ NOTIFICATION_PERMISSION_END = (
     '        FixtureNotificationAuthorization.shared.complete(fixturePermissionRead,\n'
     '            authorization: settings.authorizationStatus.rawValue, cancelled: Task.isCancelled)\n')
 
-def instrument_notification_permission(text):
+def instrument_notification_permission(text, settings_read="async"):
+    assert settings_read in ("async", "callback"), "Unknown notification settings read path"
     # Observe the production read; never add another concurrent OS request.
     marker = ('    func checkPermission() async {\n'
               '        let settings = await center.notificationSettings()\n')
@@ -109,7 +110,13 @@ def instrument_notification_permission(text):
     observed = ('    func checkPermission() async {\n' + NOTIFICATION_PERMISSION_BEGIN
                 + '        let settings = await center.notificationSettings()\n'
                 + NOTIFICATION_PERMISSION_END)
-    return text.replace(marker, observed)
+    text = text.replace(marker, observed)
+    if settings_read == "callback":
+        query = 'let settings = await center.notificationSettings()'
+        assert text.count(query) == 2, 'Expected permission and reconciliation OS reads'
+        text = text.replace(query, 'let settings = await FixtureNotificationSettings.read(center, permission: true)', 1)
+        text = text.replace(query, 'let settings = await FixtureNotificationSettings.read(center, permission: false)', 1)
+    return text
 
 def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
     repo = Path(__file__).resolve().parents[1]
@@ -133,7 +140,7 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         if path.name == 'NotificationSettingsView.swift':
             text = instrument_notification_switch(text)
         if path.name == 'ScheduleNotifications.swift':
-            text = instrument_notification_permission(text)
+            text = instrument_notification_permission(text, os.environ.get("TKPK_NOTIFICATION_SETTINGS_READ", "async"))
         # A URLProtocol below rejects every request. Rewrite URLs as a second
         # guard against any production communication from the test app.
         text = rewrite_network_urls(text)

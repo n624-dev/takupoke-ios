@@ -14,6 +14,11 @@ on:
           - testLinkPreferencesSurviveRelaunch
           - testNotificationControlsAndAppearance
           - testSettingsAccountDataAndFileDetails
+      settings_read:
+        description: Compare actual OS settings API routes in the disposable test app
+        type: choice
+        default: async
+        options: [async, callback]
 
 permissions:
   contents: read
@@ -38,6 +43,7 @@ jobs:
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_UI_RELAUNCH_PROBE: '1'
       TKPK_UI_PROBE_CASE: ${{ inputs.case }}
+      TKPK_NOTIFICATION_SETTINGS_READ: ${{ inputs.settings_read }}
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

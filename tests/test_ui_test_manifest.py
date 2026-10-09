@@ -115,6 +115,17 @@ class ManifestTests(unittest.TestCase):
                          source.count("await center.notificationSettings()"))
         self.assertEqual(generated.replace(app_test_project.NOTIFICATION_PERMISSION_BEGIN, "", 1)
                          .replace(app_test_project.NOTIFICATION_PERMISSION_END, "", 1), source)
+        callback = app_test_project.instrument_notification_permission(source, "callback")
+        original_query = "let settings = await center.notificationSettings()"
+        for permission in ("true", "false"):
+            replacement = "let settings = await FixtureNotificationSettings.read(center, permission: " + permission + ")"
+            self.assertEqual(callback.count(replacement), 1)
+            callback = callback.replace(replacement, original_query, 1)
+        self.assertEqual(callback, generated)
+        with self.assertRaises(AssertionError):
+            app_test_project.instrument_notification_permission(source, "unknown")
+        with self.assertRaises(AssertionError):
+            app_test_project.instrument_notification_permission(source + original_query, "callback")
         self.assertIn("settings.authorizationStatus.rawValue", generated)
         self.assertIn("cancelled: Task.isCancelled", generated)
         for changed in (source.replace("func checkPermission()", "func otherPermission()", 1),
@@ -126,7 +137,15 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("UIApplication.shared.applicationState.rawValue", probe)
         self.assertIn("@Environment(\\.scenePhase)", probe)
         self.assertIn(".onDisappear { permission.invalidate() }", probe)
-        self.assertNotRegex(probe, r"notificationSettings\(|requestAuthorization|setEnabled|UserDefaults\.standard\.set\(")
+        view = probe.split("struct FixtureNotificationPermissionTouch:", 1)[1].split("enum FixtureNotificationSettings", 1)[0]
+        self.assertNotRegex(view, r"notificationSettings\(|getNotificationSettings|requestAuthorization|setEnabled|UserDefaults\.standard\.set\(")
+        self.assertIn("nonisolated static func read", probe)
+        self.assertIn("center.getNotificationSettings { settings in", probe)
+        self.assertIn("continuation.resume(returning: settings)", probe)
+        self.assertNotRegex(probe, r"requestAuthorization|setEnabled|UserDefaults\.standard\.set\(")
+        workflow = (ROOT / ".github/workflows/application-relaunch-native-probe.yml").read_text()
+        self.assertIn("default: async", workflow)
+        self.assertIn("TKPK_NOTIFICATION_SETTINGS_READ: ${{ inputs.settings_read }}", workflow)
         checks = (ROOT / "tests/ui/ApplicationChecks+Notifications.swift").read_text(encoding="utf-8")
         self.assertLess(checks.index("OS notification settings did not respond"),
                         checks.index('tapNativeSwitch(toggle, atCenter: authorization == "0")'))
@@ -139,6 +158,9 @@ class ManifestTests(unittest.TestCase):
         lifecycle = "TAKUPOKE_LIFECYCLE pid=123 time=1791534293.0 stage=application-ready"
         query = lifecycle.replace("application-ready", "notification-settings-enter")
         binding = lifecycle.replace("application-ready", "notification-on-binding")
+        callbacks = "".join(lifecycle.replace("application-ready", stage) + "\n" for stage in (
+            "notification-settings-request", "notification-settings-callback",
+            "notification-reconcile-request", "notification-reconcile-callback"))
         removed = "TAKUPOKE_HIT_PATH pid=123 touch=UIView~UISwitch thumb=UIView~UISwitch opposite=UIView~UISwitch"
         with tempfile.TemporaryDirectory(prefix="takupoke-launch-collector-") as directory:
             root = Path(directory)
@@ -154,11 +176,11 @@ class ManifestTests(unittest.TestCase):
                     "xcrun", "simctl", "get_app_container", "owned-simulator",
                     "jp.n624.takupoke.app-checks", "data"])
                 return output.getvalue()
-            owned.write_text(allowed + "\n" + lifecycle + "\n" + query + "\n" + binding + "\n" + removed +
+            owned.write_text(allowed + "\n" + lifecycle + "\n" + query + "\n" + binding + "\n" + callbacks + removed +
                 "\n架空の診断対象外本文\n" +
                 allowed.replace("requested=1", "requested=架空の本文") + "\n",
                 encoding="utf-8")
-            self.assertEqual(collect(), allowed + "\n" + lifecycle + "\n" + query + "\n" + binding + "\n")
+            self.assertEqual(collect(), allowed + "\n" + lifecycle + "\n" + query + "\n" + binding + "\n" + callbacks)
             owned.write_bytes(b"x" * 65537)
             self.assertEqual(collect(), "TAKUPOKE_LIFECYCLE capture-missing-or-limited\n")
             owned.unlink()
