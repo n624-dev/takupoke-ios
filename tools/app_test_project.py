@@ -302,6 +302,7 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         real['objects'][key]=obj
     add_swift_sources(real, test_target,
                       (check_root/'tests/ui'/name for name in check_sources[1:]), '9B')
+    add_swift_sources(real, test_target, [repo/'tests/Support/ObservedScreenGeometry.swift'], '9C')
     real['objects'][real['rootObject']]['targets'].append(test_target)
     real['objects'][real['rootObject']].setdefault('attributes',{}).setdefault('TargetAttributes',{})[test_target]={'CreatedOnToolsVersion':'27.0','TestTargetID':app_target}
     def encode(v):

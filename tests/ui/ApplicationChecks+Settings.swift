@@ -265,18 +265,17 @@ extension ApplicationChecks {
             XCTFail("Link row is not wholly visible on its actual list screen")
             return
         }
-        // A visible native context-menu row may report isHittable=false after
-        // relaunch on iOS27. Its actual coordinate gesture and menu/action
-        // assertions verify interaction, rather than that AX prerequisite.
-        print("LINK_CONTEXT physical row=\(link.frame);AX-hittable=\(link.isHittable);action=\(title)")
-        if link.isHittable {
-            link.press(forDuration: 2)
-        } else if #available(iOS 27.0, *) {
-            link.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).press(forDuration: 2)
-        } else {
-            XCTFail("The visible link is not hittable")
+        let text = link.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", "架空リンクA")).firstMatch
+        guard text.waitForExistence(timeout: 10), contained(text, in: rowFrame) else {
+            XCTFail("Link text has no visible region inside its own row: " + app.debugDescription)
             return
         }
+        // Press the observed text region inside this row. No OS-specific
+        // guessed fraction of the row or second gesture rescues the result.
+        print("LINK_CONTEXT physical row=\(link.frame);AX-hittable=\(link.isHittable);action=\(title)")
+        print("LINK_CONTEXT text=\(text.frame)")
+        text.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 2)
         recoveryScreenshot("link-context-after-press-" + title)
         print("LINK_CONTEXT after-press tree=" + app.debugDescription)
         let action = app.buttons[title]

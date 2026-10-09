@@ -134,7 +134,8 @@ extension ApplicationChecks {
     func contained(_ element: XCUIElement, in viewport: CGRect) -> Bool {
         guard element.exists else { return false }
         let frame = element.frame
-        return usable(frame) && usable(viewport) && viewport.contains(frame)
+        return usable(frame) && usable(viewport)
+            && ObservedScreenGeometry.contains(frame, in: viewport, scale: UIScreen.main.scale)
     }
     private func unobscuredViewport(for element: XCUIElement, navigation: String? = nil) -> CGRect {
         var frame = contentViewport(navigation: navigation)

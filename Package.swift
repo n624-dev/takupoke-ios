@@ -159,6 +159,8 @@ let package = Package(
                     "test_release_gate.py",
                     "test_timed_command.py",
                     "test_ui_test_manifest.py",
+                    "test_test_catalog.py",
+                    "test-catalog.json",
                 ] + mappingTestExcludes,
                     sources: [
                     "MainColorTests.swift",
@@ -194,6 +196,7 @@ let package = Package(
                     "LocalDatabaseTests+Legacy.swift",
                     "LocalDatabaseTests+Current.swift",
                     "MaterialPickerLayoutTests.swift",
+                    "ObservedScreenGeometryTests.swift", "Support/ObservedScreenGeometry.swift",
                     "SchoolDateTests.swift", "JapaneseDateDisplayTests.swift",
                     "SchoolDataRetentionTests.swift",
                     "ScheduleNotificationTests.swift",

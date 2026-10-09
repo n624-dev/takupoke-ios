@@ -1,7 +1,7 @@
 # IPA・AltStore・公開ゲート・ビルド・一時領域
 
 対応ソース・テストのSHA-256：
-`f8876349717da30d3f47805b121ca7ef647232fabaf6daf334bacc2f4cb0e76c`
+`372f726feef3bf9e3a215876f6079831ef35cc0c9f1538a15ebc4b5ac4f7aa82`
 
 環境：Linux Python／Apple iPhone SDK。AltStore導入は実機限定
 
@@ -133,3 +133,9 @@ python3 -B -m unittest discover -s tests -v
 - `test_transient_dependency_failure_is_bounded_and_can_recover`（宣言行 53）
 - `test_exhausted_resolution_preserves_failure_status`（宣言行 60）
 - `test_cancellation_status_is_never_retried`（宣言行 65）
+
+## [tests/ObservedScreenGeometryTests.swift](../../tests/ObservedScreenGeometryTests.swift)
+
+- `testObservedEqualPhysicalEdgesSurviveFloatingPointArithmetic`（宣言行 5）
+- `testPhysicalAndFractionalPixelClippingIsStillRejectedOnEveryEdge`（宣言行 12）
+- `testEmptyNonFiniteAndInvalidScaleDoNotBecomeVisible`（宣言行 28）

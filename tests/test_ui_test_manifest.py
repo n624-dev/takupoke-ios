@@ -32,12 +32,14 @@ class ManifestTests(unittest.TestCase):
         }}
         paths = [ROOT / 'tests/ui' / name for name in manifest.CHECK_SOURCES[1:]]
         app_test_project.add_swift_sources(project, 'test', paths, '9B')
+        support = ROOT / 'tests/Support/ObservedScreenGeometry.swift'
+        app_test_project.add_swift_sources(project, 'test', [support], '9C')
         objects = project['objects']
         registered = [objects[objects[key]['fileRef']]['path']
                       for key in objects['test-sources']['files']]
-        self.assertEqual(registered, [str(path) for path in paths])
+        self.assertEqual(registered, [str(path) for path in paths] + [str(support)])
         self.assertEqual(objects['app-sources']['files'], [])
-        self.assertEqual(len(objects['group']['children']), len(paths))
+        self.assertEqual(len(objects['group']['children']), len(paths) + 1)
         with self.assertRaisesRegex(ValueError, 'Duplicate'):
             app_test_project.add_swift_sources(project, 'test', paths, '9B')
 
@@ -279,6 +281,12 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(len(result.stdout.splitlines()), len(manifest.SHARDS["A"]))
 
     def test_relaunch_diagnosis_cannot_replace_the_full_shard_gate(self):
+        self.assertEqual(manifest.RELAUNCH_PROBE_TESTS, (
+            "testChangedAccountDataNoticeOpensSharedAcquisition",
+            "testChangedDataProducesOneLocalNotification",
+            "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
+            "testLinkPreferencesSurviveRelaunch",
+            "testSettingsAccountDataAndFileDetails"))
         command = [sys.executable, "-B", str(ROOT / "tools/ui_test_manifest.py")]
         selected = subprocess.check_output(command + ["--relaunch-probe", "--mode", "selectors"], text=True)
         self.assertEqual(selected.splitlines(), [

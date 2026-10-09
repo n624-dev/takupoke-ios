@@ -46,9 +46,20 @@ extension ApplicationChecks {
                     app.swipeUp()
                 }
             }
-            XCTAssertTrue(card.exists && card.isHittable, app.debugDescription)
-            card.tap()
-            screen("授業詳細")
+            guard contained(card, in: contentViewport), card.isEnabled, card.isHittable else {
+                XCTFail("Lesson card has no fully visible hit region: " + app.debugDescription)
+                return
+            }
+            print("SELECTION_CARD surface=\(surface);frame=\(card.frame)")
+            // Use the actual visible card, once. Do not rely on the framework's
+            // inferred activation point or retry a missing presentation.
+            card.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            guard app.navigationBars["授業詳細"].waitForExistence(timeout: 10) else {
+                print("SELECTION_CARD trace=" + app.staticTexts["fixture-selection-trace"].label)
+                recoveryScreenshot("selection-detail-unresolved-" + surface)
+                XCTFail("One physical card tap did not open lesson detail: " + app.debugDescription)
+                return
+            }
         }
         for surface in ["ホーム", "時間割"] {
             // A changed raw source deliberately retains the last good analysis.

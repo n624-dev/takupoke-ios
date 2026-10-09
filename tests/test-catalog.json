@@ -431,7 +431,8 @@
         "tests/ui/ApplicationFixture.swift",
         "tools/app_test_project.py",
         "tools/test-app-ui.sh",
-        "tools/ui_test_manifest.py"
+        "tools/ui_test_manifest.py",
+        "tests/Support/ObservedScreenGeometry.swift"
       ],
       "checks": [
         "tests/MainColorTests.swift",
@@ -441,7 +442,8 @@
         "tests/ui/ApplicationChecks+Recovery.swift",
         "tests/ui/ApplicationChecks+Settings.swift",
         "tests/ui/ApplicationChecks+Timetable.swift",
-        "tests/ui/ApplicationChecks+Notifications.swift"
+        "tests/ui/ApplicationChecks+Notifications.swift",
+        "tests/ObservedScreenGeometryTests.swift"
       ]
     },
     {
@@ -498,7 +500,8 @@
         "tests/test_parallel_build.py",
         "tests/test_release_gate.py",
         "tests/test_timed_command.py",
-        "tests/test_xcode_package_resolution.py"
+        "tests/test_xcode_package_resolution.py",
+        "tests/ObservedScreenGeometryTests.swift"
       ]
     },
     {

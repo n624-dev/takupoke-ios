@@ -40,6 +40,7 @@ VOICEOVER_TEST = "testVoiceOverReadsTimetableCard"
 RELAUNCH_PROBE_TESTS = ("testChangedAccountDataNoticeOpensSharedAcquisition",
                         "testChangedDataProducesOneLocalNotification",
                         "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
+                        "testLinkPreferencesSurviveRelaunch",
                         "testSettingsAccountDataAndFileDetails")
 # Balanced using measured case durations, including the three OS size reruns.
 SHARDS = {
