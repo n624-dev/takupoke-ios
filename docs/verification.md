@@ -1,5 +1,35 @@
 # 検証記録
 
+## 2026-10-09 重複検査の整理と実コールバックの検証
+
+入力の同一再設定・生Unicode変更による確認解除は、既存Swiftの
+`testManualInputIdenticalRebindPreservesThreeIndividualAcknowledgements`と
+`testManualInputRawUnicodeChangeRequiresNewAcknowledgement`へ集約した。
+この2ケースは本体のRecoveryManualInputで実行して失敗0。
+Pythonは実際の背景処理・重い処理の中止・明示取消を引き続き実行する。
+guard文が2個あるという検査は、実Viewの入力・確認Bindingを実行し、
+別draft・draft消失・レビュー中の古い操作を拒否する動作検証へ置き換えた。
+Linuxの実Swiftコンパイラを使った全Python153件がskip・失敗とも0。
+UIKitのイベント配送や実機操作の合格とは区別する。
+
+ソース698dac4のtest-toolsはPython152件がskip・失敗0だったが、
+新規Swiftファイルの末尾空行を差分検査が拒否した。
+未追跡ファイルをgit diffだけでは検査できなかった見落としを修正し、
+stageした差分も確認した。修正0b74004の
+[37895520748](https://github.com/n624-dev/takupoke-ios/actions/runs/37895520748)は成功。
+一覧は宣言変更だけで更新し、末尾空行の修正では変更されなかった。
+
+ソースbe3adf5の[診断37893441851](https://github.com/n624-dev/takupoke-ios/actions/runs/37893441851)は
+iOS26の5ケースが成功、iOS27は5件中4件成功・通知許可1件失敗。
+ホーム／時間割の詳細保持・実保存後の閉鎖とリンクの実長押し・再起動保存は両OSで成功。
+iOS27はrequesting=true・Switch無効のままで、監視へのAlert通知がなかった。
+失敗時の全画面画像にも許可Alertはなく、原因は未確定。
+旧CI340にはrequesting=falseのまま操作が届かなかった別の失敗もある。
+両者を同じ原因と断定せず、配布前全13チェックの成功にも数えない。
+
+Windowsはmainのf920b6cの[37895742043](https://github.com/n624-dev/takupoke-win/actions/runs/37895742043)で
+必須7チェックすべて成功。iOSの公開条件と実機確認は別に管理する。
+
 ## 2026-10-09 テスト保守方針と準備の再利用（Apple確認前）
 
 [維持する方針](test-maintenance-policy.md)を利用者の追加指示に基づき保存した。
@@ -34,7 +64,7 @@ Linux Python152件（既存環境条件の3 skip）、変更Swiftの構文確認
 時間短縮率や新しい画面操作の成功はまだ報告しない。
 
 
-## 2026-10-09 テスト一覧と対応テスト更新の強制検査（CI確認中）
+## 2026-10-09 テスト一覧の初期実装と失敗調査（編集強制は後に廃止）
 
 `tests/test-catalog.json`の明示対応から、検索可能な一覧と機能別の宣言一覧を生成する。
 対応ソース・テストのSHAも保持し、宣言名・行・実行コマンド・必要環境を表示する。
