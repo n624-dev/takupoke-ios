@@ -45,6 +45,9 @@ case "${TKPK_UI_RELAUNCH_PROBE:-0}" in
     1) selection_args+=(--relaunch-probe) ;;
     *) exit 2 ;;
 esac
+if [[ "${TKPK_UI_PROBE_CASE:-all}" != "all" ]]; then
+    selection_args+=(--probe-case "$TKPK_UI_PROBE_CASE")
+fi
 python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --mode selectors > "$scratch_dir/selectors"
 system_size_check="$(python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --mode system-size)"
 selected_checks=()

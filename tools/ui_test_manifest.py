@@ -155,14 +155,19 @@ def main():
     parser.add_argument("--ios", type=int, choices=(26, 27))
     parser.add_argument("--system-size-only", action="store_true")
     parser.add_argument("--relaunch-probe", action="store_true")
+    parser.add_argument("--probe-case", choices=RELAUNCH_PROBE_TESTS)
     parser.add_argument("--runner-log", action="store_true")
     args = parser.parse_args()
     validate_source(check_source())
     if args.relaunch_probe and (args.shard != "all" or args.system_size_only):
         parser.error("Relaunch probe is separate from full shards and system-size checks")
+    if args.probe_case and not args.relaunch_probe:
+        parser.error("A focused case is only allowed in the diagnostic probe")
     if args.runner_log and args.system_size_only:
         parser.error("A complete runner log is separate from a single system-size check")
     tests = RELAUNCH_PROBE_TESTS if args.relaunch_probe else selected_tests(args.shard)
+    if args.probe_case:
+        tests = (args.probe_case,)
     if args.mode == "selectors":
         for test in tests:
             print("-only-testing:PickerTapChecks/ApplicationChecks/" + test)

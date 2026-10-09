@@ -325,6 +325,31 @@ class ManifestTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             manifest.validate_results(focused, manifest.selected_tests("B"), 27)
 
+    def test_single_diagnostic_case_requires_exact_completion_and_cannot_select_full_shards(self):
+        command = [sys.executable, "-B", str(ROOT / "tools/ui_test_manifest.py")]
+        case = "testChangedDataProducesOneLocalNotification"
+        selection = ["--relaunch-probe", "--probe-case", case]
+        self.assertEqual(subprocess.check_output(command + selection + ["--mode", "selectors"],
+                                                text=True).splitlines(),
+                         ["-only-testing:PickerTapChecks/ApplicationChecks/" + case])
+        for incompatible in (["--probe-case", case], selection + ["--shard", "A"],
+                             ["--relaunch-probe", "--probe-case", "testUnknown"]):
+            result = subprocess.run(command + incompatible + ["--mode", "selectors"],
+                                    capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+        with tempfile.TemporaryDirectory(prefix="takupoke-one-diagnostic-") as directory:
+            log = Path(directory) / "owned.log"
+            for contents, expected in (
+                (result_line(case), True), ("", False), (result_line(case, "failed"), False),
+                (result_line(case, "skipped"), False), (result_line(case) * 2, False),
+                (result_line("testLinkPreferencesSurviveRelaunch"), False),
+                (result_line(case) + result_line("testLinkPreferencesSurviveRelaunch"), False),
+            ):
+                log.write_text(contents, encoding="utf-8")
+                result = subprocess.run(command + selection + ["--mode", "verify", "--ios", "27",
+                    "--runner-log", "--log", str(log)], capture_output=True, text=True)
+                self.assertEqual(result.returncode == 0, expected, result.stderr)
+
     def test_outer_runner_log_rejects_no_tests_and_missing_os_size_runs(self):
         command = [sys.executable, "-B", str(ROOT / "tools/ui_test_manifest.py"),
                    "--shard", "B", "--mode", "verify", "--runner-log"]

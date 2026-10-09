@@ -2,6 +2,17 @@ name: Native application relaunch diagnosis
 
 on:
   workflow_dispatch:
+    inputs:
+      case:
+        type: choice
+        default: all
+        options:
+          - all
+          - testChangedAccountDataNoticeOpensSharedAcquisition
+          - testChangedDataProducesOneLocalNotification
+          - testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork
+          - testLinkPreferencesSurviveRelaunch
+          - testSettingsAccountDataAndFileDetails
 
 permissions:
   contents: read
@@ -25,6 +36,7 @@ jobs:
       DEVELOPER_DIR: ${{ matrix.developer }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_UI_RELAUNCH_PROBE: '1'
+      TKPK_UI_PROBE_CASE: ${{ inputs.case }}
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -36,7 +48,11 @@ jobs:
         run: |
           set -euo pipefail
           bash tools/test-app-ui.sh 2>&1 | tee "$RUNNER_TEMP/takupoke-relaunch-runner-owned.log"
-          python3 -B tools/ui_test_manifest.py --relaunch-probe --mode verify --ios "$TKPK_TEST_IOS" --runner-log --log "$RUNNER_TEMP/takupoke-relaunch-runner-owned.log"
+          selection=(--relaunch-probe)
+          if [[ "$TKPK_UI_PROBE_CASE" != all ]]; then
+            selection+=(--probe-case "$TKPK_UI_PROBE_CASE")
+          fi
+          python3 -B tools/ui_test_manifest.py "${selection[@]}" --mode verify --ios "$TKPK_TEST_IOS" --runner-log --log "$RUNNER_TEMP/takupoke-relaunch-runner-owned.log"
       - name: Remove the owned relaunch runner log
         if: always()
         run: python3 -B -c 'import os; from pathlib import Path; (Path(os.environ["RUNNER_TEMP"])/"takupoke-relaunch-runner-owned.log").unlink(missing_ok=True)'
