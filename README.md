@@ -13,7 +13,9 @@ PDF端末内AI復旧は開発中です。前処理・Validator・開始・元PDF
 
 設定の「AI・OCRを使用する」は初期OFFです。OFF時は従来の厳格な解析のみを使用し、ON時も厳格な解析に失敗したPDFだけ復旧します。時間割変更XLSXの曜日不一致は、日付からの補正を明示承認できます。曜日に問題がある行や、曜日だけが残った行は、元の記載を確認して行ごとに除外できます。補正・除外はファイル内容が更新されるまで同じ原本に適用します。詳しくは[XLSX仕様](docs/xlsx-specification.md)を参照してください。
 
-確認訂正と設定変更を含む[開発確認版IPA](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-37811661856-1-22c8ee2b5fa5)をGitHubから取得できます。検証済みソース`22c8ee2`の開発版で、正式版・固定AltStore Sourceの更新とは別です。
+[0.1.347（347.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.347-build.347.1)を通常Release・Latestとして公開しました。曜日の行除外を含み、固定AltStore Sourceもこの版を示します。同一ソースの全13必須チェックと、認証なしの添付取得・ハッシュ一致を確認しました。この版の実機導入・更新は未確認です。
+
+以前の[個別開発確認版IPA](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-37811661856-1-22c8ee2b5fa5)も引き続き公開しています。ソース`22c8ee2`の既存公開版で、現在のLatest・固定AltStore Sourceとは別です。
 
 ## 主な機能
 
