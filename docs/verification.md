@@ -1,5 +1,63 @@
 # 検証記録
 
+## 2026-10-09 通知OFF時の基準データ更新をOS照会から切り離す
+
+全体346は完了し、必須13のうち成功9・失敗3・公開skip1だった。
+失敗は27 AのOS照会、27 BのAI操作、26 Bのリンク操作で、公開は行っていない。
+手動訂正6ジョブは成功したが、27では3ケースすべてにInvalid frame dimension警告が残る。
+警告の原因は未確定で、条件を緩めたり解消済みと扱ったりしない。
+
+未応答だったpid24297では、通知が両方OFFの起動時にも最初の設定照会をしていた。
+OFF時は送信候補を作らず、差分の比較基準を更新するだけなので、その更新をOS応答に依存させない。
+製品applyは実`deliveryAllowed()`を使い、両方OFFならfalseで返し、基準保存を進める。
+どちらかONなら従来どおり実OS応答のauthorized／provisional／ephemeralだけ許可する。
+設定画面の実checkPermission、入力・年度・generation・保護状態の検証、取消と保存、
+送信前の再検証は保持する。OSのauthorization値を合成・注入しない。
+初回照会の根本原因は未確定で、この変更の実環境での効果はまだ評価していない。
+
+既存bridgeの実ソース動作テストを保持し、新しいgateの実ソースもコンパイルして検証した。
+OSが応答しない場合でも両方OFFは要求0件で終了すること、全4設定組合せ・
+実境界の0／1／2／3／4／未知99でON時は要求1件、許可判定が変わらないことを確認した。
+従来の即時・遅延・逆順・取消とオブジェクト同一性の検査も通過した。
+Linux Python159件は失敗・skip0（14.762秒）、Swift構文・一覧333ファイル・差分検査も成功した。
+新宣言を一覧へ登録し、通知関連の対応テストと実行コマンドを検索して確認した。
+この動作テストはAppleサービスのavailabilityやSimulator・実機の合格に数えない。
+
+## 2026-10-09 全体346でNative callbackも未応答
+
+同じc4df343の27 Aは15件中1件失敗、本体1950.053秒だった。
+初回通知のOS照会が45秒以内に完了せず、Switch操作前に失敗した。
+アプリpid24297の要求ログは、起動時1791564378.372421、通知画面1791564400.159186、
+画面入場は1791564400.1567411だった。どちらにもNative callback記録はなかった。
+観測値はauthorization=pending・scene=active・application=0で、要求自体はOS境界へ到達していた。
+明示的callback bridgeへ変更しただけでは未応答を解消していない。
+他14ケースとXLSX行除外は成功したが、通知の不合格を相殺せず、公開は行わない。
+原因と間欠性は未確定。今回のSwitch／contextMenu操作方法の比較を、その原因の修正とは扱わない。
+
+比較ソースbcfe6b8の27は既存5件が失敗0（713.427秒）で成功した。
+初回通知74.656秒、XLSX行除外148.500秒、リンク81.747秒、通知・外観145.644秒、
+AI設定262.879秒。実Allow・新規配信・UI／保存・再起動保持、AIの4回の実切替を確認した。
+26の比較と全体検証は未完了で、今回の限定した成功を一般的な品質合格へ広げない。
+
+## 2026-10-09 実操作点に関する公開仕様の確認
+
+利用者が許可したLuna Highの公開ネットワーク調査に続き、Appleの一次資料を確認した。
+[isHittable](https://developer.apple.com/documentation/xcuiautomation/xcuielement/ishittable)は
+システムが要素のhit pointを計算できるかを示す。
+[要素tap](https://developer.apple.com/documentation/xcuiautomation/xcuielement/tap())と
+[要素press](https://developer.apple.com/documentation/xcuiautomation/xcuielement/press(forduration:))は
+その要素について計算したhittable pointへ実イベントを送り、
+[座標tap](https://developer.apple.com/documentation/xcuiautomation/xcuicoordinate/tap())は
+指定座標へイベントを送る。要素操作は表示範囲外なら自動スクロールを試みる仕様のため、
+比較の前に行・control・viewport内の完全表示を引き続き要求する。
+これらはSwitchのBindingやメニューが期待どおり動いたという証明ではなく、
+今回の実UI・保存・再起動結果で確認する。座標の0.25が誤点だったとも断定しない。
+
+公開調査では今回のList SwitchとcontextMenu長押しに一致する既知問題を確認できなかった。
+[iOS27 Beta5の水平ScrollView内Buttonの報告](https://developer.apple.com/forums/thread/841926)は
+hittableでもactionが来ないという投稿だが、別のView構成・beta buildで、
+Apple確認済みの原因や今回の解決根拠としては扱わない。
+
 ## 2026-10-09 全体346の実操作失敗とNative要素による比較
 
 ソース`c4df34387063afba7d1ada0062135cf9ce543f2b`の

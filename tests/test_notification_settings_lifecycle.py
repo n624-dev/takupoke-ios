@@ -86,6 +86,72 @@ BRIDGE
     }
 }
 '''.replace("BRIDGE", bridge)
+        self.run_probe(compiler, program)
+
+    def test_disabled_delivery_never_reads_os_settings_and_enabled_delivery_requires_real_status(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the production delivery gate")
+        source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
+        bridge_start = source.index("    nonisolated private static func notificationSettings(")
+        bridge_end = source.index("    func resetForRetention()", bridge_start)
+        gate_start = source.index("    private func deliveryAllowed() async -> Bool {")
+        gate_end = source.index("    private func apply(", gate_start)
+        program = r'''import Foundation
+enum Authorization: Int {
+    case notDetermined = 0, denied = 1, authorized = 2, provisional = 3, ephemeral = 4, unknown = 99
+}
+final class UNNotificationSettings: @unchecked Sendable {
+    let authorizationStatus: Authorization
+    init(_ value: Authorization) { authorizationStatus = value }
+}
+final class UNUserNotificationCenter: @unchecked Sendable {
+    let response: UNNotificationSettings?
+    private let lock = NSLock()
+    private var reads = 0
+    init(_ response: UNNotificationSettings?) { self.response = response }
+    var count: Int { lock.lock(); defer { lock.unlock() }; return reads }
+    func getNotificationSettings(completionHandler: @escaping @Sendable (UNNotificationSettings) -> Void) {
+        lock.lock(); reads += 1; lock.unlock()
+        // nil models an OS service that never responds. The disabled branch
+        // must complete without touching it, not wait for a synthesized reply.
+        if let response { completionHandler(response) }
+    }
+}
+@MainActor final class Harness {
+    let changesEnabled: Bool
+    let specialsEnabled: Bool
+    let center: UNUserNotificationCenter
+    init(_ changes: Bool, _ specials: Bool, _ center: UNUserNotificationCenter) {
+        changesEnabled = changes; specialsEnabled = specials; self.center = center
+    }
+BRIDGE
+GATE
+    func evaluate() async -> Bool { await deliveryAllowed() }
+}
+@main struct Probe {
+    @MainActor static func main() async {
+        let unavailable = UNUserNotificationCenter(nil)
+        let disabled = Harness(false, false, unavailable)
+        let disabledResult = await disabled.evaluate()
+        precondition(!disabledResult && unavailable.count == 0)
+        for status in [Authorization.notDetermined, .denied, .authorized, .provisional, .ephemeral, .unknown] {
+            for (changes, specials) in [(false, false), (true, false), (false, true), (true, true)] {
+                let center = UNUserNotificationCenter(UNNotificationSettings(status))
+                let result = await Harness(changes, specials, center).evaluate()
+                let enabled = changes || specials
+                let allowed = [.authorized, .provisional, .ephemeral].contains(status)
+                precondition(result == (enabled && allowed))
+                precondition(center.count == (enabled ? 1 : 0))
+            }
+        }
+        print("Verified production gate: disabled uses no OS request; enabled requires actual allowed status.")
+    }
+}
+'''.replace("BRIDGE", source[bridge_start:bridge_end]).replace("GATE", source[gate_start:gate_end])
+        self.run_probe(compiler, program)
+
+    def run_probe(self, compiler, program):
         with tempfile.TemporaryDirectory(prefix="notification-settings-lifecycle-") as scratch:
             directory = Path(scratch)
             swift = directory / "Probe.swift"

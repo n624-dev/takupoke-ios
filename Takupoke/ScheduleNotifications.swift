@@ -155,6 +155,16 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         if pending != nil, !Task.isCancelled { await drainPending() }
     }
 
+    private func deliveryAllowed() async -> Bool {
+        // Keep the comparison baseline current even when notifications are off.
+        // No notification can be delivered in that state, so an OS settings read
+        // must not delay saving the baseline or the next input.
+        guard changesEnabled || specialsEnabled else { return false }
+        let settings = await Self.notificationSettings(from: center)
+        return settings.authorizationStatus == .authorized ||
+            settings.authorizationStatus == .provisional || settings.authorizationStatus == .ephemeral
+    }
+
     private func apply(_ input: Input) async {
         let operation = generation
         do {
@@ -168,11 +178,9 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
                 loaded = true
             }
             guard var next = baseline else { return }
-            let settings = await Self.notificationSettings(from: center)
+            let allowed = await deliveryAllowed()
             guard operation == generation, input.period == SchoolDataPeriod.current(),
                   UIApplication.shared.isProtectedDataAvailable else { return }
-            let allowed = settings.authorizationStatus == .authorized ||
-                settings.authorizationStatus == .provisional || settings.authorizationStatus == .ephemeral
             let classes = Set((UserDefaults.standard.string(forKey: "timetableSelectedClasses") ?? "")
                 .split(separator: "|").map { ChangeNormalizer.canonicalClassName(String($0)) })
             if let changes = input.changes {

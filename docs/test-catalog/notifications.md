@@ -1,7 +1,7 @@
 # 通知許可・実配信・設定・バックグラウンド
 
 対応関係・宣言名・実行方法のSHA-256：
-`17d15faa5439f4cdb8cf6295a0e69f4efbec53a120b50791133f7e968a716638`
+`f0548954c86dd8fbceb3085132d5a80e57a14f4b0a23cc4faf71e912ce80e9ed`
 
 環境：Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定
 
@@ -36,3 +36,4 @@ python3 -B -m unittest discover -s tests -p test_notification_settings_lifecycle
 ## [tests/test_notification_settings_lifecycle.py](../../tests/test_notification_settings_lifecycle.py)
 
 - `test_actual_bridge_preserves_os_objects_for_immediate_delayed_and_cancelled_reads`
+- `test_disabled_delivery_never_reads_os_settings_and_enabled_delivery_requires_real_status`
