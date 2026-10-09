@@ -147,7 +147,7 @@ extension ApplicationChecks {
         }
         return frame
     }
-    func visible(_ e: XCUIElement, navigation: String? = nil) -> XCUIElement {
+    func visible(_ e: XCUIElement, navigation: String? = nil, searchEarlierRows: Bool = false) -> XCUIElement {
         for _ in 0..<6 {
             let viewport = unobscuredViewport(for: e, navigation: navigation)
             if contained(e, in: viewport) { return e }
@@ -161,7 +161,9 @@ extension ApplicationChecks {
             let current = unobscuredViewport(for: e, navigation: navigation)
             let frame = e.exists ? e.frame : CGRect.null
             print("UI_VISIBLE frame=\(frame);viewport=\(current);navigation=\(navigation ?? "current")")
-            if usable(frame) && frame.minY < current.minY { app.swipeDown() } else { app.swipeUp() }
+            if (usable(frame) && frame.minY < current.minY) || (!usable(frame) && searchEarlierRows) {
+                app.swipeDown()
+            } else { app.swipeUp() }
         }
         let viewport = unobscuredViewport(for: e, navigation: navigation)
         print(

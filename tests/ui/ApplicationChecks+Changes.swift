@@ -22,17 +22,18 @@ extension ApplicationChecks {
         XCTAssertFalse(apply.isEnabled)
         for number in [3, 4] {
             let toggle = app.switches["change-skip-row-\(number)"]
+            _ = visible(toggle, navigation: "内容の確認")
             XCTAssertTrue(toggle.waitForExistence(timeout: 15), app.debugDescription)
             tapNativeSwitch(toggle, navigation: "内容の確認")
             let changed = expectation(for: NSPredicate(format: "value == %@", "1"), evaluatedWith: toggle)
             XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 15), .completed)
         }
-        visible(apply).tap()
+        visible(apply, navigation: "内容の確認", searchEarlierRows: true).tap()
         let alert = app.alerts["選んだ行を除外して読み込む"]
         XCTAssertTrue(alert.waitForExistence(timeout: 15))
         alert.buttons["キャンセル"].tap()
         XCTAssertTrue(app.navigationBars["内容の確認"].exists)
-        visible(apply).tap()
+        visible(apply, navigation: "内容の確認", searchEarlierRows: true).tap()
         alert.buttons["除外して読み込む"].tap()
         let count = app.staticTexts["change-skipped-count"]
         XCTAssertTrue(count.waitForExistence(timeout: 30), app.debugDescription)
