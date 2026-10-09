@@ -251,7 +251,7 @@ extension ApplicationChecks {
         let barFrame = bar.frame
         let tabsFrame = tabs.frame
         let enabled = link.isEnabled
-        guard enabled,
+        guard enabled, link.isHittable,
             [rowFrame, barFrame, tabsFrame].allSatisfy({
                 !$0.isNull && !$0.isInfinite && $0.width > 0 && $0.height > 0
                     && [$0.minX, $0.minY, $0.maxX, $0.maxY].allSatisfy(\.isFinite)
@@ -271,11 +271,11 @@ extension ApplicationChecks {
             XCTFail("Link text has no visible region inside its own row: " + app.debugDescription)
             return
         }
-        // Press the observed text region inside this row. No OS-specific
-        // guessed fraction of the row or second gesture rescues the result.
+        // Let XCTest resolve the context-menu owner's native hit point.
+        // A single physical long press must open the real menu.
         print("LINK_CONTEXT physical row=\(link.frame);AX-hittable=\(link.isHittable);action=\(title)")
         print("LINK_CONTEXT text=\(text.frame)")
-        text.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 2)
+        link.press(forDuration: 2)
         recoveryScreenshot("link-context-after-press-" + title)
         print("LINK_CONTEXT after-press tree=" + app.debugDescription)
         let action = app.buttons[title]

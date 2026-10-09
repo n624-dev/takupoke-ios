@@ -9,6 +9,7 @@ on:
         options:
           - all
           - notifications
+          - controls
           - testChangedAccountDataNoticeOpensSharedAcquisition
           - testChangedDataProducesOneLocalNotification
           - testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork

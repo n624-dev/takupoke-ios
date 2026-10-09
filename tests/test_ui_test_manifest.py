@@ -152,6 +152,21 @@ class ManifestTests(unittest.TestCase):
         self.assertIn('(toggle.value as? String) == "1"', pending)
         self.assertIn('probe.label.hasPrefix("requesting=false;changes=true;saved=true;")', pending)
         self.assertIn('timeout: 45', pending)
+        navigation = (ROOT / "tests/ui/ApplicationChecks+Navigation.swift").read_text()
+        switch = navigation.split("func tapNativeSwitch(", 1)[1]
+        self.assertIn("if atCenter {", switch)
+        self.assertEqual(switch.count("control.tap()"), 1)
+        self.assertNotIn("0.25", switch)
+        self.assertNotIn("0.75", switch)
+        self.assertIn("control.isEnabled, control.isHittable", switch)
+        self.assertIn("rowState == state", switch)
+        settings = (ROOT / "tests/ui/ApplicationChecks+Settings.swift").read_text()
+        context = settings.split("private func linkContextAction(", 1)[1].split(
+            "func testLegalDocumentsAndIndividualLicenses", 1)[0]
+        self.assertEqual(context.count("link.press(forDuration: 2)"), 1)
+        self.assertNotIn("coordinate(", context)
+        self.assertIn("rowFrame.minY >= barFrame.maxY", context)
+        self.assertIn("rowFrame.maxY <= tabsFrame.minY", context)
 
     def test_owned_launch_trace_filters_other_content_and_refuses_symlinks_and_large_files(self):
         runner = (ROOT / "tools/test-app-ui.sh").read_text(encoding="utf-8")
@@ -456,6 +471,32 @@ class ManifestTests(unittest.TestCase):
                 (complete.replace("passed", "failed", 1), False),
                 (complete.replace("passed", "skipped", 1), False),
                 (complete + result_line("testLinkPreferencesSurviveRelaunch"), False),
+            ):
+                log.write_text(contents, encoding="utf-8")
+                result = subprocess.run(command + selection + ["--mode", "verify", "--ios", "27",
+                    "--runner-log", "--log", str(log)], capture_output=True, text=True)
+                self.assertEqual(result.returncode == 0, expected, result.stderr)
+
+        controls = pair + ("testLinkPreferencesSurviveRelaunch",
+                       "testSettingsAccountDataAndFileDetails",
+                       "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch")
+        self.assertEqual(manifest.CONTROL_PROBE_TESTS, controls)
+        selection = ["--relaunch-probe", "--probe-case", "controls"]
+        self.assertEqual(subprocess.check_output(command + selection + ["--mode", "selectors"],
+                                                text=True).splitlines(),
+                         ["-only-testing:PickerTapChecks/ApplicationChecks/" + item for item in controls])
+        rejected = subprocess.run(command + ["--probe-case", "controls", "--mode", "selectors"],
+                                  capture_output=True, text=True)
+        self.assertNotEqual(rejected.returncode, 0)
+        with tempfile.TemporaryDirectory(prefix="takupoke-control-diagnostic-") as directory:
+            log = Path(directory) / "owned.log"
+            complete = "".join(result_line(item) for item in controls)
+            for contents, expected in (
+                (complete, True), (complete.replace(result_line(controls[0]), ""), False),
+                (complete + result_line(controls[0]), False),
+                (complete.replace("passed", "failed", 1), False),
+                (complete.replace("passed", "skipped", 1), False),
+                (complete + result_line("testHomeTimetableAndWeekCalendar"), False),
             ):
                 log.write_text(contents, encoding="utf-8")
                 result = subprocess.run(command + selection + ["--mode", "verify", "--ios", "27",

@@ -69,6 +69,12 @@ NOTIFICATION_PROBE_TESTS = (
     "testChangedDataProducesOneLocalNotification",
     "testNotificationControlsAndAppearance",
 )
+CONTROL_PROBE_TESTS = NOTIFICATION_PROBE_TESTS + (
+    "testLinkPreferencesSurviveRelaunch",
+    "testSettingsAccountDataAndFileDetails",
+    "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",
+)
+PROBE_GROUPS = {"notifications": NOTIFICATION_PROBE_TESTS, "controls": CONTROL_PROBE_TESTS}
 # Balanced using measured case durations, including the three OS size reruns.
 SHARDS = {
     "A": (
@@ -161,7 +167,7 @@ def main():
     parser.add_argument("--ios", type=int, choices=(26, 27))
     parser.add_argument("--system-size-only", action="store_true")
     parser.add_argument("--relaunch-probe", action="store_true")
-    parser.add_argument("--probe-case", choices=(*RELAUNCH_PROBE_TESTS, "notifications"))
+    parser.add_argument("--probe-case", choices=(*RELAUNCH_PROBE_TESTS, *PROBE_GROUPS))
     parser.add_argument("--runner-log", action="store_true")
     args = parser.parse_args()
     validate_source(check_source())
@@ -173,7 +179,7 @@ def main():
         parser.error("A complete runner log is separate from a single system-size check")
     tests = RELAUNCH_PROBE_TESTS if args.relaunch_probe else selected_tests(args.shard)
     if args.probe_case:
-        tests = NOTIFICATION_PROBE_TESTS if args.probe_case == "notifications" else (args.probe_case,)
+        tests = PROBE_GROUPS.get(args.probe_case, (args.probe_case,))
     if args.mode == "selectors":
         for test in tests:
             print("-only-testing:PickerTapChecks/ApplicationChecks/" + test)

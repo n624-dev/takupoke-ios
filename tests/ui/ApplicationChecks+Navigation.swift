@@ -204,15 +204,16 @@ extension ApplicationChecks {
             XCTFail("Native switch state must be known and agree with its row")
             return
         }
-        let x = atCenter ? frame.midX : frame.minX + frame.width * (state == "0" ? 0.25 : 0.75)
-        let point = CGPoint(x: x, y: frame.midY)
-        print(
-            "NATIVE_SWITCH row=\(outer);control=\(frame);point=\(point);rowState=\(rowState);controlState=\(state)"
-        )
-        // Keep the observed thumb-side operation for settings. Notification
-        // permission compares the native center without changing other switches.
-        // Both are one physical tap inside the measured control, with no value injection.
-        app.coordinate(withNormalizedOffset: .zero)
-            .withOffset(CGVector(dx: point.x - page.minX, dy: point.y - page.minY)).tap()
+        print("NATIVE_SWITCH row=\(outer);control=\(frame);rowState=\(rowState);controlState=\(state);nativeElement=\(!atCenter)")
+        if atCenter {
+            // Only the initial notification permission uses the measured center.
+            let point = CGPoint(x: frame.midX, y: frame.midY)
+            app.coordinate(withNormalizedOffset: .zero)
+                .withOffset(CGVector(dx: point.x - page.minX, dy: point.y - page.minY)).tap()
+        } else {
+            // XCTest chooses the actual native element's hittable activation point.
+            // Do not infer the thumb's touch region from a fraction of its AX frame.
+            control.tap()
+        }
     }
 }
