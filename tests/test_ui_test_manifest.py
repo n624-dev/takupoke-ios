@@ -113,6 +113,7 @@ class ManifestTests(unittest.TestCase):
         runner = (ROOT / "tools/test-app-ui.sh").read_text(encoding="utf-8")
         collector = runner.split("<<'PY_TRACE'\n", 1)[1].split("\nPY_TRACE", 1)[0]
         allowed = "TAKUPOKE_TOUCH pid=123 x=347.25 y=499.0 view=_UISwitchVisualElement switch=1 value=0 enabled=1"
+        hit = "TAKUPOKE_HIT_PATH pid=123 touch=UIView~UISwitch thumb=UIView~UISwitch opposite=UIView~UISwitch"
         with tempfile.TemporaryDirectory(prefix="takupoke-touch-collector-") as directory:
             root = Path(directory)
             owned = root / "tmp/takupoke-fictional-launch-owned.log"
@@ -127,10 +128,11 @@ class ManifestTests(unittest.TestCase):
                     "xcrun", "simctl", "get_app_container", "owned-simulator",
                     "jp.n624.takupoke.app-checks", "data"])
                 return output.getvalue()
-            owned.write_text(allowed + "\n架空の診断対象外本文\n" +
+            owned.write_text(allowed + "\n" + hit + "\n架空の診断対象外本文\n" +
+                hit.replace("UIView~UISwitch", "架空の本文") + "\n" +
                 allowed.replace("view=_UISwitchVisualElement", "view=架空の本文") + "\n",
                 encoding="utf-8")
-            self.assertEqual(collect(), allowed + "\n")
+            self.assertEqual(collect(), allowed + "\n" + hit + "\n")
             owned.write_bytes(b"x" * 65537)
             self.assertEqual(collect(), "TAKUPOKE_LIFECYCLE capture-missing-or-limited\n")
             owned.unlink()

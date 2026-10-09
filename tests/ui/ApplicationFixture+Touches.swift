@@ -55,5 +55,29 @@ private final class FixtureTouchObserver: UIGestureRecognizer {
             point: point, view: name, control: control != nil,
             value: control.map { $0.isOn ? 1 : 0 } ?? -1,
             enabled: control.map { $0.isEnabled ? 1 : 0 } ?? -1)
+        if let control {
+            let bounds = control.bounds
+            let thumb = CGPoint(x: bounds.minX + bounds.width * (control.isOn ? 0.75 : 0.25), y: bounds.midY)
+            let opposite = CGPoint(x: bounds.minX + bounds.width * (control.isOn ? 0.25 : 0.75), y: bounds.midY)
+            FixtureLaunchDiagnostics.recordHitPaths(
+                touch: path(touch.view, to: control),
+                thumb: path(control.hitTest(thumb, with: event), to: control),
+                opposite: path(control.hitTest(opposite, with: event), to: control))
+        }
+    }
+
+    private func path(_ view: UIView?, to control: UISwitch) -> String {
+        var result: [String] = []
+        var next = view
+        for _ in 0..<8 {
+            guard let current = next else { break }
+            let raw = NSStringFromClass(type(of: current))
+            result.append(String(raw.filter {
+                $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "_" || $0 == ".")
+            }.prefix(32)))
+            if current === control { break }
+            next = current.superview
+        }
+        return result.isEmpty ? "none" : result.joined(separator: "~")
     }
 }
