@@ -103,6 +103,8 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("await UNUserNotificationCenter.current().notificationSettings()", probe)
         self.assertIn("settings.authorizationStatus.rawValue", probe)
         self.assertIn("UIApplication.shared.applicationState.rawValue", probe)
+        self.assertIn("@Environment(\\.scenePhase)", probe)
+        self.assertIn(".task(id:phase)", probe)
         self.assertNotRegex(probe, r"requestAuthorization|setEnabled|UserDefaults\.standard\.set\(")
         checks = (ROOT / "tests/ui/ApplicationChecks+Notifications.swift").read_text(encoding="utf-8")
         self.assertLess(checks.index("OS notification settings did not respond"),
@@ -114,6 +116,7 @@ class ManifestTests(unittest.TestCase):
         collector = runner.split("<<'PY_TRACE'\n", 1)[1].split("\nPY_TRACE", 1)[0]
         allowed = "TAKUPOKE_AI_SWITCH pid=123 time=1791534293.0 phase=before requested=1 stored=0"
         lifecycle = "TAKUPOKE_LIFECYCLE pid=123 time=1791534293.0 stage=application-ready"
+        query = lifecycle.replace("application-ready", "notification-settings-enter")
         removed = "TAKUPOKE_HIT_PATH pid=123 touch=UIView~UISwitch thumb=UIView~UISwitch opposite=UIView~UISwitch"
         with tempfile.TemporaryDirectory(prefix="takupoke-launch-collector-") as directory:
             root = Path(directory)
@@ -129,11 +132,11 @@ class ManifestTests(unittest.TestCase):
                     "xcrun", "simctl", "get_app_container", "owned-simulator",
                     "jp.n624.takupoke.app-checks", "data"])
                 return output.getvalue()
-            owned.write_text(allowed + "\n" + lifecycle + "\n" + removed +
+            owned.write_text(allowed + "\n" + lifecycle + "\n" + query + "\n" + removed +
                 "\n架空の診断対象外本文\n" +
                 allowed.replace("requested=1", "requested=架空の本文") + "\n",
                 encoding="utf-8")
-            self.assertEqual(collect(), allowed + "\n" + lifecycle + "\n")
+            self.assertEqual(collect(), allowed + "\n" + lifecycle + "\n" + query + "\n")
             owned.write_bytes(b"x" * 65537)
             self.assertEqual(collect(), "TAKUPOKE_LIFECYCLE capture-missing-or-limited\n")
             owned.unlink()

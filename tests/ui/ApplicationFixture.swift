@@ -337,7 +337,8 @@ enum FixtureLaunchDiagnostics {
     }
     static func record(_ stage: String) {
         let allowed: Set<String> = ["init-enter", "seed-enter", "seed-complete", "scene-construction",
-            "content-appeared", "root-task-enter", "application-ready", "fixture-ready", "fixture-ready-timeout"]
+            "content-appeared", "root-task-enter", "application-ready", "fixture-ready", "fixture-ready-timeout",
+            "notification-settings-enter", "notification-settings-complete", "notification-settings-cancelled"]
         guard allowed.contains(stage) else { return }
         let line = "TAKUPOKE_LIFECYCLE pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) stage=\(stage)\n"
         append(line)
@@ -359,9 +360,18 @@ enum FixtureLaunchDiagnostics {
 // Isolated QA interaction target. Permission and preferences remain production
 // state; this control never requests authorization or modifies either value.
 private struct FixtureNotificationPermissionTouch: View {
+    @Environment(\.scenePhase) private var phase
     @ObservedObject private var notifications = ApplicationData.shared.notifications
     @State private var dismissed = false
     @State private var authorization = "pending"
+    private var permissionState: String {
+        "requesting=\(notifications.requestingPermission)"
+            + ";changes=\(notifications.changesEnabled)"
+            + ";saved=\(UserDefaults.standard.bool(forKey: "notifyScheduleChanges"))"
+            + ";message=\(notifications.message ?? "none")"
+            + ";authorization=\(authorization);scene=\(String(describing:phase))"
+            + ";application=\(UIApplication.shared.applicationState.rawValue)"
+    }
     var body: some View {
         VStack {
             if !dismissed {
@@ -369,14 +379,21 @@ private struct FixtureNotificationPermissionTouch: View {
                     if notifications.changesEnabled { dismissed = true }
                 }.accessibilityIdentifier("fixture-notification-permission-touch")
             }
-            Text("requesting=\(notifications.requestingPermission);changes=\(notifications.changesEnabled);saved=\(UserDefaults.standard.bool(forKey: "notifyScheduleChanges"));message=\(notifications.message ?? "none");authorization=\(authorization);application=\(UIApplication.shared.applicationState.rawValue)")
+            Text(permissionState)
                 .font(.system(size: 1)).allowsHitTesting(false)
                 .accessibilityIdentifier("fixture-notification-permission-state")
         }
-        .task {
+        .task(id:phase) {
             // Observe OS readiness without granting permission or changing preferences.
+            guard phase == .active else { return }
+            FixtureLaunchDiagnostics.record("notification-settings-enter")
             let settings = await UNUserNotificationCenter.current().notificationSettings()
+            guard !Task.isCancelled else {
+                FixtureLaunchDiagnostics.record("notification-settings-cancelled")
+                return
+            }
             authorization = String(settings.authorizationStatus.rawValue)
+            FixtureLaunchDiagnostics.record("notification-settings-complete")
             print("NOTIFICATION_READINESS authorization=\(authorization);application=\(UIApplication.shared.applicationState.rawValue)")
         }
     }
