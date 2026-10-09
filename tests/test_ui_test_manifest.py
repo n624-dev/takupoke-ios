@@ -111,21 +111,21 @@ class ManifestTests(unittest.TestCase):
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
         generated = app_test_project.instrument_notification_permission(source)
         self.assertNotIn("FixtureNotificationAuthorization", source)
-        self.assertEqual(generated.count("await center.notificationSettings()"),
-                         source.count("await center.notificationSettings()"))
-        self.assertEqual(generated.replace(app_test_project.NOTIFICATION_PERMISSION_BEGIN, "", 1)
-                         .replace(app_test_project.NOTIFICATION_PERMISSION_END, "", 1), source)
-        callback = app_test_project.instrument_notification_permission(source, "callback")
-        original_query = "let settings = await center.notificationSettings()"
-        for permission in ("true", "false"):
-            replacement = "let settings = await FixtureNotificationSettings.read(center, permission: " + permission + ")"
-            self.assertEqual(callback.count(replacement), 1)
-            callback = callback.replace(replacement, original_query, 1)
-        self.assertEqual(callback, generated)
-        with self.assertRaises(AssertionError):
-            app_test_project.instrument_notification_permission(source, "unknown")
-        with self.assertRaises(AssertionError):
-            app_test_project.instrument_notification_permission(source + original_query, "callback")
+        for operation in ("await Self.notificationSettings(from: center)", "center.getNotificationSettings"):
+            self.assertEqual(generated.count(operation), source.count(operation))
+        restored = generated
+        for insertion in (app_test_project.NOTIFICATION_PERMISSION_BEGIN,
+                          app_test_project.NOTIFICATION_PERMISSION_END,
+                          app_test_project.NOTIFICATION_NATIVE_REQUEST,
+                          app_test_project.NOTIFICATION_NATIVE_CALLBACK):
+            self.assertEqual(restored.count(insertion), 1)
+            restored = restored.replace(insertion, "", 1)
+        self.assertEqual(restored, source)
+        for marker in ("center.getNotificationSettings { settings in",
+                       "continuation.resume(returning: settings)"):
+            for changed in (source.replace(marker, ""), source + marker + "\n"):
+                with self.assertRaises(AssertionError):
+                    app_test_project.instrument_notification_permission(changed)
         self.assertIn("settings.authorizationStatus.rawValue", generated)
         self.assertIn("cancelled: Task.isCancelled", generated)
         for changed in (source.replace("func checkPermission()", "func otherPermission()", 1),
@@ -137,15 +137,9 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("UIApplication.shared.applicationState.rawValue", probe)
         self.assertIn("@Environment(\\.scenePhase)", probe)
         self.assertIn(".onDisappear { permission.invalidate() }", probe)
-        view = probe.split("struct FixtureNotificationPermissionTouch:", 1)[1].split("enum FixtureNotificationSettings", 1)[0]
-        self.assertNotRegex(view, r"notificationSettings\(|getNotificationSettings|requestAuthorization|setEnabled|UserDefaults\.standard\.set\(")
-        self.assertIn("nonisolated static func read", probe)
-        self.assertIn("center.getNotificationSettings { settings in", probe)
-        self.assertIn("continuation.resume(returning: settings)", probe)
-        self.assertNotRegex(probe, r"requestAuthorization|setEnabled|UserDefaults\.standard\.set\(")
+        self.assertNotRegex(probe, r"notificationSettings\(|getNotificationSettings|requestAuthorization|setEnabled|UserDefaults\.standard\.set\(")
         workflow = (ROOT / ".github/workflows/application-relaunch-native-probe.yml").read_text()
-        self.assertIn("default: async", workflow)
-        self.assertIn("TKPK_NOTIFICATION_SETTINGS_READ: ${{ inputs.settings_read }}", workflow)
+        self.assertNotIn("TKPK_NOTIFICATION_SETTINGS_READ", workflow)
         checks = (ROOT / "tests/ui/ApplicationChecks+Notifications.swift").read_text(encoding="utf-8")
         self.assertLess(checks.index("OS notification settings did not respond"),
                         checks.index('tapNativeSwitch(toggle, atCenter: authorization == "0")'))
@@ -159,8 +153,7 @@ class ManifestTests(unittest.TestCase):
         query = lifecycle.replace("application-ready", "notification-settings-enter")
         binding = lifecycle.replace("application-ready", "notification-on-binding")
         callbacks = "".join(lifecycle.replace("application-ready", stage) + "\n" for stage in (
-            "notification-settings-request", "notification-settings-callback",
-            "notification-reconcile-request", "notification-reconcile-callback"))
+            "notification-native-request", "notification-native-callback"))
         removed = "TAKUPOKE_HIT_PATH pid=123 touch=UIView~UISwitch thumb=UIView~UISwitch opposite=UIView~UISwitch"
         with tempfile.TemporaryDirectory(prefix="takupoke-launch-collector-") as directory:
             root = Path(directory)

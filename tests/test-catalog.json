@@ -369,7 +369,8 @@
       "title": "通知許可・実配信・設定・バックグラウンド",
       "environment": "Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定",
       "commands": [
-        "TKPK_UI_SHARD=A bash tools/test-app-ui.sh"
+        "TKPK_UI_SHARD=A bash tools/test-app-ui.sh",
+        "python3 -B -m unittest discover -s tests -p test_notification_settings_lifecycle.py -v"
       ],
       "sources": [
         "Takupoke/BackgroundRefresh.swift",
@@ -379,7 +380,8 @@
       ],
       "checks": [
         "tests/ScheduleNotificationTests.swift",
-        "tests/ui/ApplicationChecks+Notifications.swift"
+        "tests/ui/ApplicationChecks+Notifications.swift",
+        "tests/test_notification_settings_lifecycle.py"
       ]
     },
     {

@@ -83,11 +83,23 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     }
 
     func checkPermission() async {
-        let settings = await center.notificationSettings()
+        let settings = await Self.notificationSettings(from: center)
         let deniedMessage = "iPhoneの設定で通知を許可してください。"
         if (changesEnabled || specialsEnabled), settings.authorizationStatus == .denied {
             message = deniedMessage
         } else if message == deniedMessage { message = nil }
+    }
+
+    // Keep the actual OS response across the callback/concurrency boundary.
+    // This performs one read, without requesting permission or caching its value.
+    nonisolated private static func notificationSettings(
+        from center: UNUserNotificationCenter
+    ) async -> UNNotificationSettings {
+        await withCheckedContinuation { continuation in
+            center.getNotificationSettings { settings in
+                continuation.resume(returning: settings)
+            }
+        }
     }
 
     func resetForRetention() async {
@@ -156,7 +168,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
                 loaded = true
             }
             guard var next = baseline else { return }
-            let settings = await center.notificationSettings()
+            let settings = await Self.notificationSettings(from: center)
             guard operation == generation, input.period == SchoolDataPeriod.current(),
                   UIApplication.shared.isProtectedDataAvailable else { return }
             let allowed = settings.authorizationStatus == .authorized ||

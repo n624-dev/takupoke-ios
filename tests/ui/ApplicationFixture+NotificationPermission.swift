@@ -1,6 +1,5 @@
 import SwiftUI
 import UIKit
-import UserNotifications
 
 // Observe only the real checkPermission response in the disposable app copy.
 // Each read has its own identity; leaving the screen invalidates late responses.
@@ -62,22 +61,5 @@ struct FixtureNotificationPermissionTouch: View {
                 .accessibilityIdentifier("fixture-notification-permission-state")
         }
         .onDisappear { permission.invalidate() }
-    }
-}
-
-// Diagnostic alternative to the imported async API. Returns the OS object;
-// it never synthesizes authorization, retries, or changes notification choices.
-enum FixtureNotificationSettings {
-    nonisolated static func read(_ center: UNUserNotificationCenter,
-                                permission: Bool) async -> UNNotificationSettings {
-        await withCheckedContinuation { continuation in
-            FixtureLaunchDiagnostics.record(permission
-                ? "notification-settings-request" : "notification-reconcile-request")
-            center.getNotificationSettings { settings in
-                FixtureLaunchDiagnostics.record(permission
-                    ? "notification-settings-callback" : "notification-reconcile-callback")
-                continuation.resume(returning: settings)
-            }
-        }
     }
 }

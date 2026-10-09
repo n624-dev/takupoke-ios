@@ -101,22 +101,26 @@ NOTIFICATION_PERMISSION_END = (
     '        FixtureNotificationAuthorization.shared.complete(fixturePermissionRead,\n'
     '            authorization: settings.authorizationStatus.rawValue, cancelled: Task.isCancelled)\n')
 
-def instrument_notification_permission(text, settings_read="async"):
-    assert settings_read in ("async", "callback"), "Unknown notification settings read path"
-    # Observe the production read; never add another concurrent OS request.
+NOTIFICATION_NATIVE_REQUEST = '            FixtureLaunchDiagnostics.record("notification-native-request")\n'
+NOTIFICATION_NATIVE_CALLBACK = '                FixtureLaunchDiagnostics.record("notification-native-callback")\n'
+
+def instrument_notification_permission(text):
+    # Observe the actual production calls; add no OS requests or authorization writes.
     marker = ('    func checkPermission() async {\n'
-              '        let settings = await center.notificationSettings()\n')
+              '        let settings = await Self.notificationSettings(from: center)\n')
     assert text.count(marker) == 1, 'Notification permission read insertion point missing'
     observed = ('    func checkPermission() async {\n' + NOTIFICATION_PERMISSION_BEGIN
-                + '        let settings = await center.notificationSettings()\n'
+                + '        let settings = await Self.notificationSettings(from: center)\n'
                 + NOTIFICATION_PERMISSION_END)
     text = text.replace(marker, observed)
-    if settings_read == "callback":
-        query = 'let settings = await center.notificationSettings()'
-        assert text.count(query) == 2, 'Expected permission and reconciliation OS reads'
-        text = text.replace(query, 'let settings = await FixtureNotificationSettings.read(center, permission: true)', 1)
-        text = text.replace(query, 'let settings = await FixtureNotificationSettings.read(center, permission: false)', 1)
-    return text
+    request = '            center.getNotificationSettings { settings in\n'
+    callback = '                continuation.resume(returning: settings)\n'
+    assert text.count(request) == 1 and text.count(request.strip()) == 1, (
+        'Native settings request insertion point missing')
+    assert text.count(callback) == 1 and text.count(callback.strip()) == 1, (
+        'Native settings callback insertion point missing')
+    return text.replace(request, NOTIFICATION_NATIVE_REQUEST + request).replace(
+        callback, NOTIFICATION_NATIVE_CALLBACK + callback)
 
 def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
     repo = Path(__file__).resolve().parents[1]
@@ -140,7 +144,7 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         if path.name == 'NotificationSettingsView.swift':
             text = instrument_notification_switch(text)
         if path.name == 'ScheduleNotifications.swift':
-            text = instrument_notification_permission(text, os.environ.get("TKPK_NOTIFICATION_SETTINGS_READ", "async"))
+            text = instrument_notification_permission(text)
         # A URLProtocol below rejects every request. Rewrite URLs as a second
         # guard against any production communication from the test app.
         text = rewrite_network_urls(text)
