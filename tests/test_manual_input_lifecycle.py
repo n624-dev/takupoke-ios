@@ -67,7 +67,8 @@ print("Verified actual background preservation and heavy-work/cancel transitions
         with tempfile.TemporaryDirectory(prefix="manual-input-lifecycle-") as scratch:
             path = Path(scratch)
             (path / "main.swift").write_text(source, encoding="utf-8")
-            subprocess.run([compiler, "-swift-version", "5", str(path / "main.swift"), "-o", str(path / "probe")], check=True)
+            subprocess.run([compiler, "-swift-version", "5", "-module-cache-path", str(path / "modules"),
+                            str(path / "main.swift"), "-o", str(path / "probe")], check=True)
             subprocess.run([str(path / "probe")], check=True)
 
     def test_actual_field_callbacks_reject_replaced_missing_and_reviewed_drafts(self):
@@ -106,7 +107,8 @@ print("Verified actual stale/missing/review callback rejection and current callb
         with tempfile.TemporaryDirectory(prefix="manual-binding-callbacks-") as directory:
             path = Path(directory)
             (path / "main.swift").write_text(source, encoding="utf-8")
-            subprocess.run([compiler, "-swift-version", "5", str(path / "main.swift"),
+            subprocess.run([compiler, "-swift-version", "5", "-module-cache-path", str(path / "modules"),
+                            str(path / "main.swift"),
                             "-o", str(path / "probe")], check=True)
             subprocess.run([str(path / "probe")], check=True)
 

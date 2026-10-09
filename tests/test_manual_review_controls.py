@@ -13,7 +13,9 @@ class ManualReviewControlTests(unittest.TestCase):
         runner='\nXCTMain([testCase(['+','.join('("'+n+'",RecoveryManualReviewTests.'+n+')' for n in names)+'])])\n'
         with tempfile.TemporaryDirectory(prefix='manual-review-controls-') as scratch:
             path=Path(scratch);(path/'main.swift').write_text(tests+runner)
-            subprocess.run([compiler,'-swift-version','5',str(ROOT/'Takupoke/RecoveryManualReview.swift'),str(path/'main.swift'),'-o',str(path/'controls')],check=True)
+            subprocess.run([compiler, '-swift-version', '5', '-module-cache-path', str(path/'modules'),
+                            str(ROOT/'Takupoke/RecoveryManualReview.swift'), str(path/'main.swift'),
+                            '-o', str(path/'controls')], check=True)
             subprocess.run([str(path/'controls')],check=True)
 
 if __name__=='__main__': unittest.main()
