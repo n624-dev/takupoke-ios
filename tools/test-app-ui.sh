@@ -12,7 +12,7 @@ try:
     if result.returncode == 0:
         owned = Path(result.stdout.strip()) / "tmp/takupoke-fictional-launch-owned.log"
         if not owned.is_symlink() and owned.is_file() and owned.stat().st_size <= 65536:
-            pattern = re.compile(r"TAKUPOKE_LIFECYCLE pid=\d+ time=\d+(?:\.\d+)? stage=(?:init-enter|seed-enter|seed-complete|scene-construction|content-appeared|root-task-enter|application-ready|fixture-ready|fixture-ready-timeout|notification-settings-enter|notification-settings-complete|notification-settings-cancelled)")
+            pattern = re.compile(r"TAKUPOKE_LIFECYCLE pid=\d+ time=\d+(?:\.\d+)? stage=(?:init-enter|seed-enter|seed-complete|scene-construction|content-appeared|root-task-enter|application-ready|fixture-ready|fixture-ready-timeout|notification-settings-enter|notification-settings-complete|notification-settings-cancelled|notification-on-binding|notification-off-binding)")
             switch = re.compile(r"TAKUPOKE_AI_SWITCH pid=\d+ time=\d+(?:\.\d+)? phase=(?:before|after) requested=[01] stored=[01]")
             for line in owned.read_text(encoding="utf-8").splitlines():
                 if pattern.fullmatch(line) or switch.fullmatch(line): print(line)

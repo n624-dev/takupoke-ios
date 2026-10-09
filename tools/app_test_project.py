@@ -87,6 +87,14 @@ def instrument_ai_switch(text):
     assert text.count(marker) == 1, 'AI switch setter diagnostic insertion point missing'
     return text.replace(marker, AI_SWITCH_BEFORE + marker + AI_SWITCH_AFTER)
 
+NOTIFICATION_BINDING_TRACE = ('FixtureLaunchDiagnostics.record(value ? '
+                              '"notification-on-binding" : "notification-off-binding"); ')
+
+def instrument_notification_switch(text):
+    marker = 'set: { value in\n                    Task {'
+    assert text.count(marker) == 2, 'Notification switch binding insertion points missing'
+    return text.replace(marker, marker.replace('Task {', NOTIFICATION_BINDING_TRACE + 'Task {'))
+
 def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
     repo = Path(__file__).resolve().parents[1]
     check_root = repo if check_root is None else Path(check_root)
@@ -106,6 +114,8 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         shutil.copyfile(repo/'tools'/script, destination/'tools'/script)
     for path in copied.glob('*.swift'):
         text = path.read_text()
+        if path.name == 'NotificationSettingsView.swift':
+            text = instrument_notification_switch(text)
         # A URLProtocol below rejects every request. Rewrite URLs as a second
         # guard against any production communication from the test app.
         text = rewrite_network_urls(text)

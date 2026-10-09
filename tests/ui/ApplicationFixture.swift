@@ -338,7 +338,8 @@ enum FixtureLaunchDiagnostics {
     static func record(_ stage: String) {
         let allowed: Set<String> = ["init-enter", "seed-enter", "seed-complete", "scene-construction",
             "content-appeared", "root-task-enter", "application-ready", "fixture-ready", "fixture-ready-timeout",
-            "notification-settings-enter", "notification-settings-complete", "notification-settings-cancelled"]
+            "notification-settings-enter", "notification-settings-complete", "notification-settings-cancelled",
+            "notification-on-binding", "notification-off-binding"]
         guard allowed.contains(stage) else { return }
         let line = "TAKUPOKE_LIFECYCLE pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) stage=\(stage)\n"
         append(line)

@@ -204,11 +204,11 @@ extension ApplicationChecks {
             XCTFail("Native switch state must be known and agree with its row")
             return
         }
-        let point = CGPoint(x: frame.minX + frame.width * (state == "0" ? 0.25 : 0.75), y: frame.midY)
+        let point = CGPoint(x: frame.midX, y: frame.midY)
         print(
             "NATIVE_SWITCH row=\(outer);control=\(frame);point=\(point);rowState=\(rowState);controlState=\(state)"
         )
-        // Tap the current thumb selected from the observed native state.
+        // Compare one tap at the observed native control's center.
         // This is a physical operation, not a requested-value injection. A
         // nested AX reference must not resolve a different origin at touch time.
         app.coordinate(withNormalizedOffset: .zero)

@@ -97,6 +97,16 @@ class ManifestTests(unittest.TestCase):
             with self.assertRaises(AssertionError):
                 app_test_project.instrument_ai_switch(changed)
 
+    def test_notification_switch_trace_preserves_setters_and_rejects_marker_drift(self):
+        source = (ROOT / "Takupoke/NotificationSettingsView.swift").read_text(encoding="utf-8")
+        generated = app_test_project.instrument_notification_switch(source)
+        self.assertNotIn("FixtureLaunchDiagnostics", source)
+        self.assertEqual(generated.count(app_test_project.NOTIFICATION_BINDING_TRACE), 2)
+        self.assertEqual(generated.replace(app_test_project.NOTIFICATION_BINDING_TRACE, ""), source)
+        for changed in (source.replace("set: { value in", "set: { other in", 1), source + source):
+            with self.assertRaises(AssertionError):
+                app_test_project.instrument_notification_switch(changed)
+
     def test_notification_readiness_probe_observes_os_without_granting_or_saving(self):
         fixture = (ROOT / "tests/ui/ApplicationFixture.swift").read_text(encoding="utf-8")
         probe = fixture.split("private struct FixtureNotificationPermissionTouch: View", 1)[1]
@@ -117,6 +127,7 @@ class ManifestTests(unittest.TestCase):
         allowed = "TAKUPOKE_AI_SWITCH pid=123 time=1791534293.0 phase=before requested=1 stored=0"
         lifecycle = "TAKUPOKE_LIFECYCLE pid=123 time=1791534293.0 stage=application-ready"
         query = lifecycle.replace("application-ready", "notification-settings-enter")
+        binding = lifecycle.replace("application-ready", "notification-on-binding")
         removed = "TAKUPOKE_HIT_PATH pid=123 touch=UIView~UISwitch thumb=UIView~UISwitch opposite=UIView~UISwitch"
         with tempfile.TemporaryDirectory(prefix="takupoke-launch-collector-") as directory:
             root = Path(directory)
@@ -132,11 +143,11 @@ class ManifestTests(unittest.TestCase):
                     "xcrun", "simctl", "get_app_container", "owned-simulator",
                     "jp.n624.takupoke.app-checks", "data"])
                 return output.getvalue()
-            owned.write_text(allowed + "\n" + lifecycle + "\n" + query + "\n" + removed +
+            owned.write_text(allowed + "\n" + lifecycle + "\n" + query + "\n" + binding + "\n" + removed +
                 "\n架空の診断対象外本文\n" +
                 allowed.replace("requested=1", "requested=架空の本文") + "\n",
                 encoding="utf-8")
-            self.assertEqual(collect(), allowed + "\n" + lifecycle + "\n" + query + "\n")
+            self.assertEqual(collect(), allowed + "\n" + lifecycle + "\n" + query + "\n" + binding + "\n")
             owned.write_bytes(b"x" * 65537)
             self.assertEqual(collect(), "TAKUPOKE_LIFECYCLE capture-missing-or-limited\n")
             owned.unlink()
