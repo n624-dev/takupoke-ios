@@ -17,6 +17,21 @@ activeでのみ問い合わせるtaskへ整理する。取消された問い合�
 Linux Python156件と変更Swiftの構文検査が成功し、登録331ファイルの一覧は整合した。
 通知状態の長い文字列を観測項目ごとの連結へ分け、同じ値と順序を保持した。
 
+55cb6d5の[比較37909862093](https://github.com/n624-dev/takupoke-ios/actions/runs/37909862093)は
+iOS26・27とも成功した。本体は98.602秒・248.739秒だった。
+27の所有ログでactive時の設定問い合わせの入場と実応答の間は約0.12秒だった。
+実Switchの一回操作、実AlertのAllow、UIと保存値のON、今回の実通知配信を通過した。
+45秒の応答期限や許可・配信条件は変更していない。
+起動時の処理順序に合わせた比較は通ったが、旧失敗の原因や全体合格はまだ断定しない。
+
+許可されたLuna Highの公開調査では、この症状に一致するiOS27の既知問題は確認できなかった。
+Appleの[通知設定取得](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/getnotificationsettings(completionhandler:))は
+非同期の結果取得を定義するが、完了時間を保証しない。
+SwiftUIの[task](https://developer.apple.com/documentation/swiftui/view/task(priority:_:))と
+[ScenePhase](https://developer.apple.com/documentation/swiftui/scenephase)の仕様も、
+表示済み・inactive・問い合わせ未応答だけで描画前の検証を原因とする根拠にはしない。
+通知センターや別APIの不具合報告は今回の通知許可の証明として使用しない。
+
 生成器のSwift補間文字列はPythonのraw literalにし、invalid escapeのSyntaxWarningを解消した。
 変更前後の生成文字列はbyte単位で一致し、SHA256は
 8f4b7e8f57bc1f01ef6c1c7b2dc041eb918eab6626937de1f8b3c66cb05b0aebだった。
