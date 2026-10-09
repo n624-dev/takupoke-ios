@@ -38,6 +38,7 @@ extension ApplicationChecks {
         // XCTest resolve the interrupting alert rather than retaining a
         // SpringBoard element whose accessibility server has gone away.
         let monitor = addUIInterruptionMonitor(withDescription: "Notification permission") { alert in
+            print("NOTIFICATION_ALERT title=\(alert.label);buttons=\(alert.buttons.allElementsBoundByIndex.map(\.label))")
             let allow = alert.buttons.matching(predicate).firstMatch
             guard allow.exists else { return false }
             allow.tap()
@@ -67,6 +68,7 @@ extension ApplicationChecks {
                 "NOTIFICATION_SWITCH unresolved value=\(String(describing: toggle.value)) enabled=\(toggle.isEnabled) tree=\(app.debugDescription)"
             )
             recoveryScreenshot("notification-switch-unresolved")
+            recoveryScreenshot("notification-system-unresolved", systemScreen: true)
             XCTFail("Native notification switch activation did not complete permission and enablement")
             return
         }

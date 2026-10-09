@@ -38,15 +38,15 @@ extension ApplicationChecks {
         let count = app.staticTexts["change-skipped-count"]
         XCTAssertTrue(count.waitForExistence(timeout: 30), app.debugDescription)
         XCTAssertTrue(count.label.contains("2行"), count.label)
-        XCTAssertTrue(visible(app.staticTexts["架空科目C"]).exists)
-        XCTAssertFalse(app.staticTexts["架空除外科目B"].exists)
+        XCTAssertTrue(visible(app.staticTexts["変更後、架空科目C"]).exists)
+        XCTAssertFalse(app.staticTexts["変更後、架空除外科目B"].exists)
         app.terminate()
         app.launchArguments.removeAll { $0 == "--reset-fixture" }
         launchReady()
         openChanges()
         XCTAssertTrue(count.waitForExistence(timeout: 30), app.debugDescription)
         XCTAssertTrue(count.label.contains("2行"), count.label)
-        XCTAssertTrue(visible(app.staticTexts["架空科目C"]).exists)
-        XCTAssertFalse(app.staticTexts["架空除外科目B"].exists)
+        XCTAssertTrue(visible(app.staticTexts["変更後、架空科目C"]).exists)
+        XCTAssertFalse(app.staticTexts["変更後、架空除外科目B"].exists)
     }
 }

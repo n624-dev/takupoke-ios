@@ -23,8 +23,8 @@ extension ApplicationChecks {
         _ = recoveryVisible(app.staticTexts["採用する資料全体"].firstMatch)
         _ = recoveryVisible(app.staticTexts["選択クラスだけでなく、以下の資料全体を採用します。元のPDFと読み取り結果を確認してください。"].firstMatch)
     }
-    func recoveryScreenshot(_ name: String, marker: String = "TAKUPOKE_UI_IMAGE") {
-        let bytes = app.screenshot().pngRepresentation
+    func recoveryScreenshot(_ name: String, marker: String = "TAKUPOKE_UI_IMAGE", systemScreen: Bool = false) {
+        let bytes = (systemScreen ? XCUIScreen.main.screenshot() : app.screenshot()).pngRepresentation
         XCTAssertTrue((9...2 * 1024 * 1024).contains(bytes.count))
         let hash = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
         let encoded = bytes.base64EncodedString()
