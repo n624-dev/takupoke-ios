@@ -14,8 +14,9 @@ try:
         if not owned.is_symlink() and owned.is_file() and owned.stat().st_size <= 65536:
             pattern = re.compile(r"TAKUPOKE_LIFECYCLE pid=\d+ time=\d+(?:\.\d+)? stage=(?:init-enter|seed-enter|seed-complete|scene-construction|content-appeared|root-task-enter|application-ready|fixture-ready|fixture-ready-timeout)")
             switch = re.compile(r"TAKUPOKE_AI_SWITCH pid=\d+ time=\d+(?:\.\d+)? phase=(?:before|after) requested=[01] stored=[01]")
+            touch = re.compile(r"TAKUPOKE_TOUCH pid=\d+ x=-?\d+(?:\.\d+)? y=-?\d+(?:\.\d+)? view=[A-Za-z0-9_.]+ switch=[01] value=(?:-1|[01]) enabled=(?:-1|[01])")
             for line in owned.read_text(encoding="utf-8").splitlines():
-                if pattern.fullmatch(line) or switch.fullmatch(line): print(line)
+                if pattern.fullmatch(line) or switch.fullmatch(line) or touch.fullmatch(line): print(line)
         else:
             print("TAKUPOKE_LIFECYCLE capture-missing-or-limited")
     else:

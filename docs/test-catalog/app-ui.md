@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`d35508af7d70316faef8faeb89654ac12cc4257c616de9f8134753f9cb6d41ce`
+`3a2f448f5c65c4796686c3e9603c2903aed4d5a98b8672ddf507eb7deb1e9fe1`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -57,6 +57,7 @@ bash tools/test-app-ui.sh
 - [tests/ui/ApplicationFixture+OCR.swift](../../tests/ui/ApplicationFixture+OCR.swift)
 - [tests/ui/ApplicationFixture+Recovery.swift](../../tests/ui/ApplicationFixture+Recovery.swift)
 - [tests/ui/ApplicationFixture+Selection.swift](../../tests/ui/ApplicationFixture+Selection.swift)
+- [tests/ui/ApplicationFixture+Touches.swift](../../tests/ui/ApplicationFixture+Touches.swift)
 - [tests/ui/ApplicationFixture.swift](../../tests/ui/ApplicationFixture.swift)
 - [tools/app_test_project.py](../../tools/app_test_project.py)
 - [tools/test-app-ui.sh](../../tools/test-app-ui.sh)
@@ -78,6 +79,7 @@ bash tools/test-app-ui.sh
 - `test_network_rewrite_preserves_standard_xlsx_identifiers_only`
 - `test_ai_switch_probe_preserves_production_setter_and_rejects_marker_drift`
 - `test_notification_readiness_probe_observes_os_without_granting_or_saving`
+- `test_owned_touch_trace_filters_other_content_and_refuses_symlinks_and_large_files`
 - `test_picker_completion_rejects_missing_failed_skipped_duplicate_and_unknown_cases`
 - `test_event_cache_probe_changes_only_automatic_startup_in_isolated_copy`
 - `test_native_ocr_probe_preserves_actual_multiline_confidence_guard`

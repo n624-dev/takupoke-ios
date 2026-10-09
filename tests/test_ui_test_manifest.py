@@ -1,5 +1,7 @@
 """Test selection, completion checks and the shell runner without Apple tools."""
 import json
+import io
+from contextlib import redirect_stdout
 import os
 from pathlib import Path
 import re
@@ -106,6 +108,36 @@ class ManifestTests(unittest.TestCase):
         self.assertLess(checks.index("OS notification settings did not respond"),
                         checks.index("tapNativeSwitch(toggle)"))
         self.assertEqual(checks.count("tapNativeSwitch(toggle)"), 1)
+
+    def test_owned_touch_trace_filters_other_content_and_refuses_symlinks_and_large_files(self):
+        runner = (ROOT / "tools/test-app-ui.sh").read_text(encoding="utf-8")
+        collector = runner.split("<<'PY_TRACE'\n", 1)[1].split("\nPY_TRACE", 1)[0]
+        allowed = "TAKUPOKE_TOUCH pid=123 x=347.25 y=499.0 view=_UISwitchVisualElement switch=1 value=0 enabled=1"
+        with tempfile.TemporaryDirectory(prefix="takupoke-touch-collector-") as directory:
+            root = Path(directory)
+            owned = root / "tmp/takupoke-fictional-launch-owned.log"
+            owned.parent.mkdir()
+            def collect():
+                output = io.StringIO()
+                response = subprocess.CompletedProcess([], 0, stdout=str(root) + "\n")
+                with patch.object(subprocess, "run", return_value=response) as call, \
+                     patch.object(sys, "argv", ["collector", "owned-simulator"]), redirect_stdout(output):
+                    exec(compile(collector, "owned-trace-collector", "exec"), {})
+                self.assertEqual(call.call_args.args[0], [
+                    "xcrun", "simctl", "get_app_container", "owned-simulator",
+                    "jp.n624.takupoke.app-checks", "data"])
+                return output.getvalue()
+            owned.write_text(allowed + "\n架空の診断対象外本文\n" +
+                allowed.replace("view=_UISwitchVisualElement", "view=架空の本文") + "\n",
+                encoding="utf-8")
+            self.assertEqual(collect(), allowed + "\n")
+            owned.write_bytes(b"x" * 65537)
+            self.assertEqual(collect(), "TAKUPOKE_LIFECYCLE capture-missing-or-limited\n")
+            owned.unlink()
+            other = root / "other-owned.txt"
+            other.write_text(allowed, encoding="utf-8")
+            owned.symlink_to(other)
+            self.assertEqual(collect(), "TAKUPOKE_LIFECYCLE capture-missing-or-limited\n")
 
     def test_picker_completion_rejects_missing_failed_skipped_duplicate_and_unknown_cases(self):
         runner = (ROOT / "tools/test-picker-ui.sh").read_text(encoding="utf-8")
