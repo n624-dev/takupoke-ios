@@ -187,14 +187,15 @@ extension ApplicationChecks {
         let frame = control.frame
         let outer = row.frame
         guard usable(outer), usable(frame), outer.contains(frame),
-            contentViewport(navigation: navigation).contains(frame),
+            contentViewport(navigation: navigation).contains(outer),
+            row.isEnabled, row.isHittable,
             control.isEnabled, control.isHittable
         else {
             XCTFail("Native switch has no safe hit region: " + app.debugDescription)
             return
         }
         let page = app.frame
-        guard usable(page), page.contains(frame) else {
+        guard usable(page), page.contains(outer) else {
             XCTFail("Native switch is outside its application window")
             return
         }
@@ -204,9 +205,10 @@ extension ApplicationChecks {
             XCTFail("Native switch state must be known and agree with its row")
             return
         }
-        print("NATIVE_SWITCH row=\(outer);control=\(frame);rowState=\(rowState);controlState=\(state)")
-        // XCTest resolves the actual native element's hittable activation point.
+        print("NATIVE_SWITCH row=\(outer);control=\(frame);rowState=\(rowState);controlState=\(state);target=labelled-switch")
+        // Activate the labelled Switch selected by the caller, rather than
+        // its anonymous implementation child. XCTest resolves the hit point.
         // A single physical tap must produce the observed UI and saved transition.
-        control.tap()
+        row.tap()
     }
 }

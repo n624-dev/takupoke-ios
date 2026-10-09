@@ -1,5 +1,49 @@
 # 検証記録
 
+## 2026-10-09 初回許可は成功、許可済みの子Switch操作は失敗
+
+ソース5fb25e6の[独立した通知2ケース](https://github.com/n624-dev/takupoke-ios/actions/runs/37976233485)は、
+26が2件成功（293.008秒）、27が初回成功164.572秒／外観失敗95.127秒だった。
+27の初回は実Alert・Allow・UI／保存ON・新規通知1件・revision・再起動保持まで成功した。
+許可済みの別起動では、匿名の子Switchへ一回tapした後もBinding記録がなく、
+UI／保存OFFのまま共通45秒で失敗した。実OS要求やcallback待ちには入っていない。
+両ジョブの所有領域回収は成功した。失敗は相殺せず、公開へ進めない。
+
+操作前の完全架空画像155,257 bytes・SHA-256
+`ff95f45bf08641107e8eb35622fe345f7fd7b1053641ea0eaf49246a012fd242`
+を照合し、Switch全体の表示と重なりがないことを確認した。画像はGitへ保存しない。
+外側のラベル付きSwitchと匿名子Switchは0で一致し、子はenabled／hittableだった。
+要素tapの成功はBindingへ届いた証明ではなく、根本原因は未確定である。
+
+次の比較では、呼出側が実ラベルで選んだ外側SwitchへSDKのtapを一回だけ送る。
+行全体のviewport／window包含とenabled／hittableも要求し、子の一意性・状態一致を維持する。
+固定座標・押し直し・状態注入は使わず、実許可・保存・新規配信と再起動の期待値を維持する。
+既存の通知2件・AI設定・リンク・XLSX行除外の5件を両OSで比較し、配布前は別途全13を要求する。
+生成契約は外側への単一tapと両要素の安全条件を確認する。限定成功を全体や品質合格に数えない。
+Linuxの既存生成検査26件は失敗0（3.769秒）、Swift構文・一覧333ファイル・差分検査が成功した。
+Luna Highの公開調査では[標準switch style](https://developer.apple.com/documentation/swiftui/togglestyle/switch)に
+親子AX要素やラベル部分のtap動作の保証はなく、今回と一致する既知問題も確認できなかった。
+親のSDK hit pointが正しいという前提ではなく、実UIと保存の結果で比較する。
+
+## 2026-10-09 診断37974710845の27は実行前に終了
+
+ソース5fb25e6の[診断](https://github.com/n624-dev/takupoke-ios/actions/runs/37974710845)は、
+27のSwiftビルド後、PickerTapChecks-Runnerの初期化中に終了した。
+Xcodeは「Early unexpected exit, operation never finished bootstrapping」と
+XCTWaiter(StallHandling) handleStalledWaitを報告した。テストセッションは222.290秒だったが、
+ケース開始・完了の記録は0で、アプリ側診断もcapture-unavailableだった。
+実行エラーとして分類し、通知や新しいmodal検出の合否には数えない。原因は未確定。
+26は2件成功（263.220秒）、初回97.458秒／許可済み165.762秒だった。
+実ダイアログ・Allow・保存・新規配信・再起動保持を確認した。
+
+同じ不変ソースで[独立した実行](https://github.com/n624-dev/takupoke-ios/actions/runs/37976233485)を開始した。
+前の失敗を成功へ書き換えず、別の実行として両OSの2ケース・実許可・保存・新規配信を検証する。
+Luna Highの公開調査では、この内部frameと同じ条件に一致する既知問題を確認できなかった。
+[旧Runtimeの別のbootstrap問題](https://developer.apple.com/forums/thread/822916)と
+[macOSの型metadata問題](https://github.com/ml-explore/mlx-swift-lm/issues/539)は、
+OS・SDK・失敗条件が異なるため今回の原因には採用しない。
+押し直しや値注入、テスト省略、時間上限の緩和は行わない。実行中Actionsの取消も行わない。
+
 ## 2026-10-09 実ダイアログとactive状態が両立する27の検査修正
 
 fb43b6fの[通知2ケース](https://github.com/n624-dev/takupoke-ios/actions/runs/37971894052)は、

@@ -165,11 +165,15 @@ class ManifestTests(unittest.TestCase):
         self.assertIn('allow.element(boundBy: 0).isHittable', alert)
         navigation = (ROOT / "tests/ui/ApplicationChecks+Navigation.swift").read_text()
         switch = navigation.split("func tapNativeSwitch(", 1)[1]
-        self.assertEqual(switch.count("control.tap()"), 1)
+        self.assertEqual(switch.count("row.tap()"), 1)
+        self.assertNotIn("control.tap()", switch)
         self.assertNotIn("coordinate(", switch)
         self.assertNotIn("0.25", switch)
         self.assertNotIn("0.75", switch)
         self.assertIn("control.isEnabled, control.isHittable", switch)
+        self.assertIn("row.isEnabled, row.isHittable", switch)
+        self.assertIn("contentViewport(navigation: navigation).contains(outer)", switch)
+        self.assertIn("page.contains(outer)", switch)
         self.assertIn("rowState == state", switch)
         settings = (ROOT / "tests/ui/ApplicationChecks+Settings.swift").read_text()
         context = settings.split("private func linkContextAction(", 1)[1].split(

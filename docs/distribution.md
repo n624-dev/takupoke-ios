@@ -46,10 +46,10 @@
 ワークフローは [ios-release.yml](../.github/workflows/ios-release.yml) です。
 
 1. **checks**：架空データで配布スクリプトをテスト。
-2. **simulator**：iOS 26・27のUI検証を各2組に分け、計4台の専用Runnerで実行。
-3. **release ジョブ内のビルド**：シミュレーター検証と並行して、ホストテスト・ファイル選択UI検証・iPhone向けReleaseビルドを実行し、`Payload/Takupoke.app` をIPA化。署名用Secretsは不要。
+2. **Native・simulator・manual**：Native PDF／復旧検査、iOS 26・27の通常UI各2組、手動訂正各3ケースを専用Runnerで実行。
+3. **release ジョブ内のビルド**：公開前の全12検査が成功してから、ホストテスト・ファイル選択UI検証・iPhone向けReleaseビルドを実行し、`Payload/Takupoke.app` をIPA化。署名用Secretsは不要。
 4. **Source 生成**：IPA の Info.plist、対象 OS、実行ファイル、サイズを検査して Source を生成。不一致があれば停止。
-5. **公開前の検証確認**：`tools/release_gate.py`が同じ実行ID・再実行回・コミットの配布テストと両OSのUI検証の成功を確認します。未完了なら60秒間隔で待機し、失敗・中止・想定外のスキップ・APIエラー・時間切れでは公開を停止します。
+5. **公開前の検証確認**：`tools/release_gate.py`が同じ実行ID・再実行回・コミットの配布検査・Native・通常UI・手動訂正の全12検査の成功を確認します。未完了なら60秒間隔で待機し、失敗・中止・想定外のスキップ・APIエラー・時間切れでは公開を停止します。
 6. **同じ release ジョブ内の公開**：Releaseをdraftとして作成して4個の成果物をアップロード。再ダウンロードした内容のSHA-256が一致した後に公開し、Latestを切り替え。
 
 PR と配布対象外のブランチは、読み取り権限だけの `build-check` ジョブでビルドします。ジョブ間の IPA 受け渡し用 artifact は作成しません。
