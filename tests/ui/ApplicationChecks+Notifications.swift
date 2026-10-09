@@ -65,7 +65,15 @@ extension ApplicationChecks {
             "NOTIFICATION_SWITCH before row=\(toggle.frame) value=\(String(describing: toggle.value)) state=\(probe.label)"
         )
         recoveryScreenshot("notification-switch-before")
-        tapNativeSwitch(toggle, atCenter: true)
+        let authorization = probe.label.components(separatedBy: ";authorization=").last?
+            .components(separatedBy: ";").first
+        guard let authorization, ["0", "1", "2", "3", "4"].contains(authorization) else {
+            XCTFail("OS notification authorization must be observed before choosing the native touch point")
+            return
+        }
+        // Compare the center only for the initial OS permission request.
+        // Retain the observed thumb-side operation for already-known permission.
+        tapNativeSwitch(toggle, atCenter: authorization == "0")
         // A dedicated QA-only no-op control dispatches the real alert monitor.
         // Generic app.tap() has an unspecified activation point and may toggle
         // a setting again. This target cannot grant permission or change state.
