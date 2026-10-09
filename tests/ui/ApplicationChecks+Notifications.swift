@@ -78,15 +78,15 @@ extension ApplicationChecks {
         // Generic app.tap() has an unspecified activation point and may toggle
         // a setting again. This target cannot grant permission or change state.
         print("NOTIFICATION_SWITCH activated state=\(probe.label)")
-        var didEnable = false
-        for _ in 0..<3 {
-            touch.tap()
-            let enabled = expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: toggle)
-            if XCTWaiter.wait(for: [enabled], timeout: 15) == .completed {
-                didEnable = true
-                break
-            }
-        }
+        // Only the first permission dialog needs a subsequent interaction to
+        // dispatch XCTest's real interruption monitor. Already-granted choices
+        // must settle before another gesture touches the app.
+        if authorization == "0" { touch.tap() }
+        let enabled = expectation(for: NSPredicate { _, _ in
+            (toggle.value as? String) == "1" && probe.exists
+                && probe.label.hasPrefix("requesting=false;changes=true;saved=true;")
+        }, evaluatedWith: app)
+        let didEnable = XCTWaiter.wait(for: [enabled], timeout: 45) == .completed
         guard didEnable else {
             print(
                 "NOTIFICATION_SWITCH unresolved value=\(String(describing: toggle.value)) enabled=\(toggle.isEnabled) tree=\(app.debugDescription)"

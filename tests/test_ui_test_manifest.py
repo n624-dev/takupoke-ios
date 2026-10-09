@@ -144,6 +144,14 @@ class ManifestTests(unittest.TestCase):
         self.assertLess(checks.index("OS notification settings did not respond"),
                         checks.index('tapNativeSwitch(toggle, atCenter: authorization == "0")'))
         self.assertEqual(checks.count('tapNativeSwitch(toggle, atCenter: authorization == "0")'), 1)
+        activation = checks.split('tapNativeSwitch(toggle, atCenter: authorization == "0")', 1)[1]
+        pending = activation.split('guard didEnable else {', 1)[0]
+        self.assertIn('if authorization == "0" { touch.tap() }', pending)
+        self.assertEqual(pending.count("touch.tap()"), 1)
+        self.assertNotIn("for _ in", pending)
+        self.assertIn('(toggle.value as? String) == "1"', pending)
+        self.assertIn('probe.label.hasPrefix("requesting=false;changes=true;saved=true;")', pending)
+        self.assertIn('timeout: 45', pending)
 
     def test_owned_launch_trace_filters_other_content_and_refuses_symlinks_and_large_files(self):
         runner = (ROOT / "tools/test-app-ui.sh").read_text(encoding="utf-8")
@@ -404,7 +412,7 @@ class ManifestTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             manifest.validate_results(focused, manifest.selected_tests("B"), 27)
 
-    def test_single_diagnostic_case_requires_exact_completion_and_cannot_select_full_shards(self):
+    def test_diagnostic_selection_requires_exact_completion_and_cannot_select_full_shards(self):
         command = [sys.executable, "-B", str(ROOT / "tools/ui_test_manifest.py")]
         case = "testChangedDataProducesOneLocalNotification"
         selection = ["--relaunch-probe", "--probe-case", case]
@@ -423,6 +431,31 @@ class ManifestTests(unittest.TestCase):
                 (result_line(case, "skipped"), False), (result_line(case) * 2, False),
                 (result_line("testLinkPreferencesSurviveRelaunch"), False),
                 (result_line(case) + result_line("testLinkPreferencesSurviveRelaunch"), False),
+            ):
+                log.write_text(contents, encoding="utf-8")
+                result = subprocess.run(command + selection + ["--mode", "verify", "--ios", "27",
+                    "--runner-log", "--log", str(log)], capture_output=True, text=True)
+                self.assertEqual(result.returncode == 0, expected, result.stderr)
+
+
+        pair = ("testChangedDataProducesOneLocalNotification", "testNotificationControlsAndAppearance")
+        self.assertEqual(manifest.NOTIFICATION_PROBE_TESTS, pair)
+        selection = ["--relaunch-probe", "--probe-case", "notifications"]
+        self.assertEqual(subprocess.check_output(command + selection + ["--mode", "selectors"],
+                                                text=True).splitlines(),
+                         ["-only-testing:PickerTapChecks/ApplicationChecks/" + item for item in pair])
+        rejected = subprocess.run(command + ["--probe-case", "notifications", "--mode", "selectors"],
+                                  capture_output=True, text=True)
+        self.assertNotEqual(rejected.returncode, 0)
+        with tempfile.TemporaryDirectory(prefix="takupoke-two-diagnostic-") as directory:
+            log = Path(directory) / "owned.log"
+            complete = "".join(result_line(item) for item in pair)
+            for contents, expected in (
+                (complete, True), (result_line(pair[0]), False),
+                (complete + result_line(pair[0]), False),
+                (complete.replace("passed", "failed", 1), False),
+                (complete.replace("passed", "skipped", 1), False),
+                (complete + result_line("testLinkPreferencesSurviveRelaunch"), False),
             ):
                 log.write_text(contents, encoding="utf-8")
                 result = subprocess.run(command + selection + ["--mode", "verify", "--ios", "27",

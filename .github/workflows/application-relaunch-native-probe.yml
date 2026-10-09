@@ -8,6 +8,7 @@ on:
         default: all
         options:
           - all
+          - notifications
           - testChangedAccountDataNoticeOpensSharedAcquisition
           - testChangedDataProducesOneLocalNotification
           - testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork
