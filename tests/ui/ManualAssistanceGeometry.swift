@@ -79,4 +79,3 @@ func manualPassiveCell<T>(cells: [T], viewport: CGRect, upward: Bool,
     return candidates.first(where: { isPassive($0.0) })?.0
 }
 // END PURE MANUAL PASSIVE SELECTION
-
