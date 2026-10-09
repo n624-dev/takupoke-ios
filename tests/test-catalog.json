@@ -1,0 +1,554 @@
+{
+  "code_roots": [
+    "Takupoke",
+    "Takupoke.xcodeproj",
+    "Vendor",
+    "tools",
+    "tests",
+    ".github",
+    "Package.swift"
+  ],
+  "script": "tools/test_catalog.py",
+  "index": "docs/test-catalog.md",
+  "document_folder": "docs/test-catalog",
+  "groups": [
+    {
+      "id": "xlsx",
+      "title": "時間割変更・曜日・行除外・原文保持",
+      "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",
+      "commands": [
+        "bash tools/test-parsing.sh"
+      ],
+      "sources": [
+        "Takupoke/BoundedXML.swift",
+        "Takupoke/ChangeAnalysis.swift",
+        "Takupoke/ChangeAnalysisView.swift",
+        "Takupoke/ChangeNormalizer+Dates.swift",
+        "Takupoke/ChangeNormalizer.swift",
+        "Takupoke/ChangePreviewView.swift",
+        "Takupoke/XLSXReader+Worksheet.swift",
+        "Takupoke/XLSXReader.swift",
+        "tests/ParsingTests.swift"
+      ],
+      "checks": [
+        "tests/ParsingTests+Normalization.swift",
+        "tests/ParsingTests+Persistence.swift",
+        "tests/ParsingTests+Preview.swift",
+        "tests/ParsingTests+RowSkips.swift",
+        "tests/ParsingTests+Workbook.swift"
+      ]
+    },
+    {
+      "id": "material",
+      "title": "原本取得・更新・保存・File Provider",
+      "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",
+      "commands": [
+        "bash tools/test-parsing.sh"
+      ],
+      "sources": [
+        "Takupoke/FileRefreshDiagnostics.swift",
+        "Takupoke/MaterialAccess.swift",
+        "Takupoke/MaterialLibrary+Analysis.swift",
+        "Takupoke/MaterialLibrary+Validation.swift",
+        "Takupoke/MaterialLibrary.swift",
+        "Takupoke/MaterialModels.swift",
+        "Takupoke/MaterialWorker+Analysis.swift",
+        "Takupoke/MaterialWorker+Provider.swift",
+        "Takupoke/MaterialsModel+Updates.swift",
+        "Takupoke/MaterialsModel.swift",
+        "Takupoke/MaterialsView+FileSummary.swift",
+        "Takupoke/MaterialsView.swift",
+        "Takupoke/ScopedMaterialSelection.swift",
+        "Takupoke/SelectedFileMonitor.swift",
+        "Takupoke/SelectedFileObservation.swift",
+        "Takupoke/SelectedFilePresenter.swift",
+        "Takupoke/SelectedFileSource.swift",
+        "Takupoke/WebPDFDownloader.swift",
+        "tools/test-materials.sh",
+        "tools/test-parsing.sh"
+      ],
+      "checks": [
+        "tests/FileRefreshTests.swift",
+        "tests/MaterialLibraryChecks.swift",
+        "tests/WebPDFChecks.swift",
+        "tests/ParsingTests+RowSkips.swift"
+      ]
+    },
+    {
+      "id": "database",
+      "title": "ローカルDB・移行・半期削除",
+      "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",
+      "commands": [
+        "bash tools/test-parsing.sh"
+      ],
+      "sources": [
+        "Takupoke/LegacyDatabaseMigration.swift",
+        "Takupoke/LocalMaterialDatabase+Current.swift",
+        "Takupoke/LocalMaterialDatabase+Legacy.swift",
+        "Takupoke/LocalMaterialDatabase+Records.swift",
+        "Takupoke/LocalMaterialDatabase+Schema.swift",
+        "Takupoke/LocalMaterialDatabase+Snapshot.swift",
+        "Takupoke/LocalMaterialDatabase.swift",
+        "Takupoke/SchoolDataRetention.swift",
+        "tests/LocalDatabaseTests.swift"
+      ],
+      "checks": [
+        "tests/LocalDatabaseTests+Current.swift",
+        "tests/LocalDatabaseTests+Legacy.swift",
+        "tests/SchoolDataRetentionTests.swift"
+      ]
+    },
+    {
+      "id": "date",
+      "title": "日本時間・学校年度・日付表示",
+      "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",
+      "commands": [
+        "bash tools/test-parsing.sh"
+      ],
+      "sources": [
+        "Takupoke/JapaneseDateDisplay.swift",
+        "Takupoke/SchoolDate.swift"
+      ],
+      "checks": [
+        "tests/JapaneseDateDisplayTests.swift",
+        "tests/SchoolDateTests.swift"
+      ]
+    },
+    {
+      "id": "links",
+      "title": "リンク・検索・設定保持",
+      "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",
+      "commands": [
+        "bash tools/test-parsing.sh"
+      ],
+      "sources": [
+        "Takupoke/LinkSearch.swift",
+        "Takupoke/LinksAPI.swift",
+        "Takupoke/LinksModel.swift",
+        "Takupoke/LinksStore.swift",
+        "Takupoke/LinksView.swift"
+      ],
+      "checks": [
+        "tests/LinksTests.swift"
+      ]
+    },
+    {
+      "id": "mapping",
+      "title": "名称対応・パッケージ・認証取得",
+      "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",
+      "commands": [
+        "bash tools/test-parsing.sh"
+      ],
+      "sources": [
+        "Takupoke/MappingModel.swift",
+        "Takupoke/MappingModels.swift",
+        "Takupoke/MappingOIDC.swift",
+        "Takupoke/MappingPackage.swift",
+        "Takupoke/MappingRules+Changes.swift",
+        "Takupoke/MappingRules.swift",
+        "Takupoke/MappingService.swift",
+        "Takupoke/MappingSettingsView.swift",
+        "Takupoke/MappingStore.swift"
+      ],
+      "checks": [
+        "tests/MappingPackageTests.swift",
+        "tests/MappingRulesTests.swift",
+        "tests/MappingServiceTests.swift"
+      ]
+    },
+    {
+      "id": "events",
+      "title": "学校行事API・年度別保存",
+      "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",
+      "commands": [
+        "bash tools/test-parsing.sh"
+      ],
+      "sources": [
+        "Takupoke/SchoolEventsAPI.swift",
+        "Takupoke/SchoolEventsModel.swift",
+        "Takupoke/SchoolEventsStore.swift",
+        "Takupoke/SchoolEventsView.swift"
+      ],
+      "checks": [
+        "tests/SchoolEventsAPITests.swift"
+      ]
+    },
+    {
+      "id": "timetable",
+      "title": "時間割・今日の予定・授業時刻・授業名",
+      "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",
+      "commands": [
+        "bash tools/test-parsing.sh"
+      ],
+      "sources": [
+        "Takupoke/TimetableDaySchedule.swift",
+        "Takupoke/TimetableLessonNames.swift",
+        "Takupoke/TimetablePresentation+Details.swift",
+        "Takupoke/TimetablePresentation.swift",
+        "Takupoke/TimetableSchedule+Blocks.swift",
+        "Takupoke/TimetableSchedule+Events.swift",
+        "Takupoke/TimetableSchedule+Weeks.swift",
+        "Takupoke/TimetableSchedule.swift",
+        "Takupoke/TimetableTimes.swift",
+        "Takupoke/TimetableTimesModel.swift",
+        "Takupoke/TimetableTimesService.swift"
+      ],
+      "checks": [
+        "tests/HomeScheduleTests.swift",
+        "tests/TimetableNameTests.swift",
+        "tests/TimetableScheduleTests+Blocks.swift",
+        "tests/TimetableScheduleTests+Changes.swift",
+        "tests/TimetableScheduleTests+Events.swift",
+        "tests/TimetableScheduleTests.swift",
+        "tests/TimetableTimesServiceTests.swift",
+        "tests/TimetableTimesTests.swift"
+      ]
+    },
+    {
+      "id": "special",
+      "title": "試験・返却PDF",
+      "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",
+      "commands": [
+        "bash tools/test-parsing.sh"
+      ],
+      "sources": [
+        "Takupoke/SpecialSchedule.swift",
+        "Takupoke/SpecialScheduleAnalysisView.swift",
+        "Takupoke/SpecialScheduleParser+Pages.swift",
+        "Takupoke/SpecialScheduleParser+Times.swift",
+        "Takupoke/SpecialScheduleParser.swift",
+        "Takupoke/SpecialScheduleRecord.swift",
+        "Takupoke/SpecialScheduleStore.swift",
+        "Takupoke/SpecialSchedulesModel+Analysis.swift",
+        "Takupoke/SpecialSchedulesModel+Provider.swift",
+        "Takupoke/SpecialSchedulesModel+Startup.swift",
+        "Takupoke/SpecialSchedulesModel+Updates.swift",
+        "Takupoke/SpecialSchedulesModel.swift",
+        "tests/SpecialScheduleTests+Fixtures.swift"
+      ],
+      "checks": [
+        "tests/SpecialScheduleTests+Persistence.swift",
+        "tests/SpecialScheduleTests.swift"
+      ]
+    },
+    {
+      "id": "pdf",
+      "title": "Strict PDF・文字・位置・罫線",
+      "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",
+      "commands": [
+        "bash tools/test-parsing.sh"
+      ],
+      "sources": [
+        "Takupoke/PDFAnalysis.swift",
+        "Takupoke/PDFAnalysisView.swift",
+        "Takupoke/PDFCharacterGeometry.swift",
+        "Takupoke/PDFDiagnostics.swift",
+        "Takupoke/PDFDrawnTextReader+Fonts.swift",
+        "Takupoke/PDFDrawnTextReader.swift",
+        "Takupoke/PDFFullDiagnosticEncoding.swift",
+        "Takupoke/PDFFullReadDiagnostic.swift",
+        "Takupoke/PDFGrid.swift",
+        "Takupoke/PDFKitReader+Diagnostics.swift",
+        "Takupoke/PDFKitReader.swift",
+        "Takupoke/PDFLessonDetail.swift",
+        "Takupoke/PDFParseError.swift",
+        "Takupoke/PDFPathReader.swift",
+        "Takupoke/PDFSchoolParser+Events.swift",
+        "Takupoke/PDFSchoolParser+Timetable.swift",
+        "Takupoke/PDFSchoolParser.swift",
+        "Takupoke/PDFTextGeometry.swift",
+        "Takupoke/PDFUnicodeMap.swift",
+        "tests/PDFParsingTests.swift"
+      ],
+      "checks": [
+        "tests/PDFParsingTests+Diagnostics.swift",
+        "tests/PDFParsingTests+Events.swift",
+        "tests/PDFParsingTests+PDFKit.swift",
+        "tests/PDFParsingTests+Timetable.swift",
+        "tests/PDFTextGeometryTests.swift"
+      ]
+    },
+    {
+      "id": "recovery",
+      "title": "PDF復旧・OCR・構造・Validator・端末内Provider",
+      "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",
+      "commands": [
+        "bash tools/test-parsing.sh"
+      ],
+      "sources": [
+        "Takupoke/CoreAIRecoveryProvider.swift",
+        "Takupoke/LocalLlamaRecoveryProvider.swift",
+        "Takupoke/LocalRecoveryModelManager.swift",
+        "Takupoke/PDFRecoveryCoordinator.swift",
+        "Takupoke/PDFRecoveryRecognition.swift",
+        "Takupoke/RecoveryConversion.swift",
+        "Takupoke/RecoveryDocumentBuilder.swift",
+        "Takupoke/RecoveryEngine.swift",
+        "Takupoke/RecoveryModelStore.swift",
+        "Takupoke/RecoveryModels.swift",
+        "Takupoke/RecoveryOCRAcquisition.swift",
+        "Takupoke/RecoveryOCRStructure.swift",
+        "Takupoke/RecoveryPromptCatalog.swift",
+        "Takupoke/RecoveryRasterGrid.swift",
+        "Takupoke/RecoveryStructure.swift",
+        "Takupoke/RecoveryValidator.swift",
+        "Takupoke/RecoveryVisionCapture.swift",
+        "Takupoke/SystemLanguageRecoveryProvider.swift",
+        "Vendor/CoreAIRecoveryBridge/Package.swift",
+        "Vendor/CoreAIRecoveryBridge/Sources/CCoreAIRecovery/CCoreAIRecovery.m",
+        "Vendor/CoreAIRecoveryBridge/Sources/CCoreAIRecovery/include/CCoreAIRecovery.h",
+        "Vendor/CoreAIRecoveryRuntime/Package.swift",
+        "Vendor/CoreAIRecoveryRuntime/Sources/CoreAIRecoveryRuntime/CoreAIRecoveryRuntime.swift",
+        "Vendor/CoreAIRecoveryRuntime/Sources/CoreAIRecoveryRuntime/RecoveryPromptCatalog.swift",
+        "Vendor/LocalLlama/LICENSE.llama.cpp",
+        "Vendor/LocalLlama/Package.swift",
+        "Vendor/LocalLlama/Sources/CLlamaRecovery/CLlamaRecovery.cpp",
+        "Vendor/LocalLlama/Sources/CLlamaRecovery/PrivateHeaders/ggml-alloc.h",
+        "Vendor/LocalLlama/Sources/CLlamaRecovery/PrivateHeaders/ggml-backend.h",
+        "Vendor/LocalLlama/Sources/CLlamaRecovery/PrivateHeaders/ggml-cpu.h",
+        "Vendor/LocalLlama/Sources/CLlamaRecovery/PrivateHeaders/ggml-opt.h",
+        "Vendor/LocalLlama/Sources/CLlamaRecovery/PrivateHeaders/ggml.h",
+        "Vendor/LocalLlama/Sources/CLlamaRecovery/PrivateHeaders/gguf.h",
+        "Vendor/LocalLlama/Sources/CLlamaRecovery/PrivateHeaders/llama.h",
+        "Vendor/LocalLlama/Sources/CLlamaRecovery/include/CLlamaRecovery.h"
+      ],
+      "checks": [
+        "tests/RecoveryBuilderTests+Calibration.swift",
+        "tests/RecoveryBuilderTests+Ordered.swift",
+        "tests/RecoveryBuilderTests+Parallel.swift",
+        "tests/RecoveryBuilderTests+Raster.swift",
+        "tests/RecoveryBuilderTests+Ruled.swift",
+        "tests/RecoveryBuilderTests+Special.swift",
+        "tests/RecoveryFunctionalCoverageTests.swift",
+        "tests/RecoveryOCRAcquisitionTests.swift",
+        "tests/RecoveryOCRStructureTests.swift",
+        "tests/RecoveryPromptCatalogTests.swift",
+        "tests/RecoveryRecertificationTests.swift",
+        "tests/RecoveryStructureTests.swift",
+        "tests/RecoveryTests.swift"
+      ]
+    },
+    {
+      "id": "manual",
+      "title": "確認訂正・画像比較・入力変更・実操作",
+      "environment": "Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認",
+      "commands": [
+        "bash tools/test-manual-ui.sh"
+      ],
+      "sources": [
+        ".github/workflows/manual-input-native-probe.yml",
+        "Takupoke/PDFRecoveryView.swift",
+        "Takupoke/RecoveryManualAssistance.swift",
+        "Takupoke/RecoveryManualReview.swift",
+        "tests/ui/ManualAssistanceFixture.swift",
+        "tools/manual_ui_diagnostics.py",
+        "tools/manual_ui_project.py",
+        "tools/test-manual-ui.sh"
+      ],
+      "checks": [
+        "tests/RecoveryManualAssistanceTests.swift",
+        "tests/RecoveryManualReviewTests.swift",
+        "tests/test_manual_input_lifecycle.py",
+        "tests/test_manual_review_controls.py",
+        "tests/test_manual_scroll_navigation.py",
+        "tests/test_manual_ui_diagnostics.py",
+        "tests/test_manual_ui_project.py",
+        "tests/ui/ManualAssistanceChecks.swift"
+      ]
+    },
+    {
+      "id": "notifications",
+      "title": "通知許可・実配信・設定・バックグラウンド",
+      "environment": "Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定",
+      "commands": [
+        "TKPK_UI_SHARD=A bash tools/test-app-ui.sh"
+      ],
+      "sources": [
+        "Takupoke/BackgroundRefresh.swift",
+        "Takupoke/NotificationSettingsView.swift",
+        "Takupoke/ScheduleNotificationSnapshot.swift",
+        "Takupoke/ScheduleNotifications.swift"
+      ],
+      "checks": [
+        "tests/ScheduleNotificationTests.swift",
+        "tests/ui/ApplicationChecks+Notifications.swift"
+      ]
+    },
+    {
+      "id": "app-ui",
+      "title": "通常画面・設定・実Switch・UI fixture・登録一覧",
+      "environment": "Apple iOS26/27。LinuxはPython契約検査のみ",
+      "commands": [
+        "bash tools/test-app-ui.sh"
+      ],
+      "sources": [
+        ".github/workflows/application-relaunch-native-probe.yml",
+        ".github/workflows/ordered-row-proof-native.yml",
+        "Takupoke/AboutView.swift",
+        "Takupoke/AccountDataModel.swift",
+        "Takupoke/AccountDataSettingsView.swift",
+        "Takupoke/AppIcon.icon/icon.json",
+        "Takupoke/ApplicationData.swift",
+        "Takupoke/Assets.xcassets/AppIcon.appiconset/Contents.json",
+        "Takupoke/Assets.xcassets/Contents.json",
+        "Takupoke/ContentView.swift",
+        "Takupoke/HomeLessonRow.swift",
+        "Takupoke/HomeTodayView.swift",
+        "Takupoke/HomeView.swift",
+        "Takupoke/Info.plist",
+        "Takupoke/LegalDocumentView.swift",
+        "Takupoke/LinkRow.swift",
+        "Takupoke/LoadingRow.swift",
+        "Takupoke/MainColor.swift",
+        "Takupoke/OpenSourceLicensesView.swift",
+        "Takupoke/PrivacyInfo.xcprivacy",
+        "Takupoke/SafariLinkView.swift",
+        "Takupoke/SavedPDFView.swift",
+        "Takupoke/SettingsView.swift",
+        "Takupoke/SetupView.swift",
+        "Takupoke/TakupokeApp.swift",
+        "Takupoke/TimetableClassSelection.swift",
+        "Takupoke/TimetableView+Cards.swift",
+        "Takupoke/TimetableView+Changes.swift",
+        "Takupoke/TimetableView+DayColumns.swift",
+        "Takupoke/TimetableView+Details.swift",
+        "Takupoke/TimetableView+Grid.swift",
+        "Takupoke/TimetableView+GridHeaders.swift",
+        "Takupoke/TimetableView+Layout.swift",
+        "Takupoke/TimetableView+Navigation.swift",
+        "Takupoke/TimetableView+Times.swift",
+        "Takupoke/TimetableView+WeekSection.swift",
+        "Takupoke/TimetableView.swift",
+        "Takupoke/UsageHelpView.swift",
+        "tests/ui/ApplicationChecks+Navigation.swift",
+        "tests/ui/ApplicationChecks.swift",
+        "tests/ui/ApplicationFixture+Changes.swift",
+        "tests/ui/ApplicationFixture+Events.swift",
+        "tests/ui/ApplicationFixture+Grid.swift",
+        "tests/ui/ApplicationFixture+OCR.swift",
+        "tests/ui/ApplicationFixture+Recovery.swift",
+        "tests/ui/ApplicationFixture+Selection.swift",
+        "tests/ui/ApplicationFixture.swift",
+        "tools/app_test_project.py",
+        "tools/test-app-ui.sh",
+        "tools/ui_test_manifest.py"
+      ],
+      "checks": [
+        "tests/MainColorTests.swift",
+        "tests/test_ui_test_manifest.py",
+        "tests/ui/ApplicationChecks+Changes.swift",
+        "tests/ui/ApplicationChecks+Events.swift",
+        "tests/ui/ApplicationChecks+Recovery.swift",
+        "tests/ui/ApplicationChecks+Settings.swift",
+        "tests/ui/ApplicationChecks+Timetable.swift",
+        "tests/ui/ApplicationChecks+Notifications.swift"
+      ]
+    },
+    {
+      "id": "picker",
+      "title": "ファイル選択・再選択・背景・キャンセル",
+      "environment": "Apple iOS26/27 UI＋Nativeレイアウト",
+      "commands": [
+        "bash tools/test-picker-ui.sh"
+      ],
+      "sources": [
+        "Takupoke/GuidedDocumentPicker.swift",
+        "Takupoke/MaterialDocumentPicker.swift",
+        "Takupoke/MaterialPickerLayout.swift",
+        "tests/ui/MaterialPickerUIChecks.swift",
+        "tests/ui/PickerTapHarness.swift",
+        "tools/picker_test_project.py",
+        "tools/test-picker-ui.sh"
+      ],
+      "checks": [
+        "tests/MaterialPickerLayoutTests.swift",
+        "tests/ui/MaterialPickerTapChecks.swift"
+      ]
+    },
+    {
+      "id": "release",
+      "title": "IPA・AltStore・公開ゲート・ビルド・一時領域",
+      "environment": "Linux Python／Apple iPhone SDK。AltStore導入は実機限定",
+      "commands": [
+        "python3 -B -m unittest discover -s tests -v"
+      ],
+      "sources": [
+        "Package.swift",
+        "Takupoke.xcodeproj/project.pbxproj",
+        "Takupoke.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
+        "tools/build-ios-app.sh",
+        "tools/build-ios.sh",
+        "tools/development_publish_dispatch.py",
+        "tools/development_release.py",
+        "tools/parallel_build.py",
+        "tools/prepare-coreai-runtime.py",
+        "tools/prepare-llama-runtime.py",
+        "tools/publish.py",
+        "tools/release.py",
+        "tools/release_gate.py",
+        "tools/resolve-xcode-packages.sh",
+        "tools/timed_command.py"
+      ],
+      "checks": [
+        "tests/test_coreai_runtime_packaging.py",
+        "tests/test_development_publish_dispatch.py",
+        "tests/test_development_release.py",
+        "tests/test_distribution.py",
+        "tests/test_github_api_response.py",
+        "tests/test_parallel_build.py",
+        "tests/test_release_gate.py",
+        "tests/test_timed_command.py",
+        "tests/test_xcode_package_resolution.py"
+      ]
+    },
+    {
+      "id": "fixtures",
+      "title": "独立した架空PDF・原文契約・固定期待値",
+      "environment": "Linux契約検査。PDF描画・OCRはApple限定",
+      "commands": [
+        "python3 -B tools/recovery-prompt-contracts/test_shared_prompts.py"
+      ],
+      "sources": [
+        "tests/fixtures/normalization.json",
+        "tests/fixtures/recovery-exam.json",
+        "tests/fixtures/recovery-folded-preparation.json",
+        "tests/fixtures/recovery-generic-ruled-original-two.json",
+        "tests/fixtures/recovery-return.json",
+        "tools/generate-normalization-fixtures.py",
+        "tools/independent-wide-timetable/artifact-pins.json",
+        "tools/independent-wide-timetable/dense-artifact-pins.json",
+        "tools/independent-wide-timetable/expected.json",
+        "tools/independent-wide-timetable/generate.py",
+        "tools/independent-wide-timetable/generate_dense.py",
+        "tools/ordered-row-e2e/generate.py",
+        "tools/recovery-prompt-contracts/check_ios_adapters.py",
+        "tools/recovery-prompt-contracts/check_shared_prompts.py",
+        "tools/recovery-prompt-contracts/manifest.json",
+        "tools/recovery-prompt-contracts/protocol.json",
+        "tools/recovery-prompt-contracts/validation-fixtures.json"
+      ],
+      "checks": [
+        "tools/independent-wide-timetable/test_dense_generator.py",
+        "tools/independent-wide-timetable/test_generator.py",
+        "tools/recovery-prompt-contracts/test_shared_prompts.py"
+      ]
+    },
+    {
+      "id": "test-catalog",
+      "title": "テスト一覧・対象検索・更新強制・CI接続",
+      "environment": "Linux Python（隔離Gitリポジトリ）",
+      "commands": [
+        "python3 -B -m unittest discover -s tests -p test_test_catalog.py -v"
+      ],
+      "sources": [
+        ".github/workflows/ios-release.yml",
+        "tests/test-catalog.json",
+        "tools/test_catalog.py",
+        "tools/test_catalog_inventory.py"
+      ],
+      "checks": [
+        "tests/test_test_catalog.py"
+      ]
+    }
+  ]
+}
