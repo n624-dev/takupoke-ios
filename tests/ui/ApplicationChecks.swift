@@ -27,6 +27,7 @@ final class ApplicationChecks: XCTestCase {
             "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork": ["--selection-snapshot", "--normal-only"],
             "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair": ["--events-cache-corrupt"],
             "testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates": ["--events-year-coverage", "--normal-only"],
+            "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch": ["--change-row-skip"],
         ]
         for (method, arguments) in initialConditions where name.contains(method) {
             app.launchArguments += arguments
@@ -53,6 +54,46 @@ final class ApplicationChecks: XCTestCase {
     }
     private func screen(_ title: String) {
         XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 10), app.debugDescription)
+    }
+
+    func testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch() {
+        func openChanges() {
+            tab("設定")
+            visible(app.buttons["時間割ファイル"]).tap(); screen("時間割ファイル")
+            let detail = app.buttons["時間割変更の詳細を見る"]
+            XCTAssertTrue(detail.waitForExistence(timeout: 15), app.debugDescription)
+            visible(detail).tap(); screen("時間割変更")
+        }
+        openChanges()
+        visible(app.buttons["警告を確認して内容を見る"]).tap()
+        app.alerts.buttons["確認して表示"].tap(); screen("内容の確認")
+        let apply = app.buttons["change-apply-skips"]
+        XCTAssertTrue(apply.waitForExistence(timeout: 15), app.debugDescription)
+        XCTAssertFalse(apply.isEnabled)
+        for number in [3, 4] {
+            let toggle = app.switches["change-skip-row-\(number)"]
+            XCTAssertTrue(toggle.waitForExistence(timeout: 15), app.debugDescription)
+            tapNativeSwitch(toggle, navigation: "内容の確認")
+            let changed = expectation(for: NSPredicate(format: "value == %@", "1"), evaluatedWith: toggle)
+            XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 15), .completed)
+        }
+        visible(apply).tap()
+        let alert = app.alerts["選んだ行を除外して読み込む"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 15))
+        alert.buttons["キャンセル"].tap()
+        XCTAssertTrue(app.navigationBars["内容の確認"].exists)
+        visible(apply).tap(); alert.buttons["除外して読み込む"].tap()
+        let count = app.staticTexts["change-skipped-count"]
+        XCTAssertTrue(count.waitForExistence(timeout: 30), app.debugDescription)
+        XCTAssertTrue(count.label.contains("2行"), count.label)
+        XCTAssertTrue(visible(app.staticTexts["架空科目C"]).exists)
+        XCTAssertFalse(app.staticTexts["架空除外科目B"].exists)
+        app.terminate(); app.launchArguments.removeAll { $0 == "--reset-fixture" }; launchReady()
+        openChanges()
+        XCTAssertTrue(count.waitForExistence(timeout: 30), app.debugDescription)
+        XCTAssertTrue(count.label.contains("2行"), count.label)
+        XCTAssertTrue(visible(app.staticTexts["架空科目C"]).exists)
+        XCTAssertFalse(app.staticTexts["架空除外科目B"].exists)
     }
     private func back(to title: String) {
         let old = app.navigationBars.firstMatch
@@ -202,14 +243,14 @@ final class ApplicationChecks: XCTestCase {
         XCTAssertTrue(contained(e, in: viewport), "Element remains outside the visible content: " + app.debugDescription)
         return e
     }
-    private func tapNativeSwitch(_ row: XCUIElement) {
-        _ = visible(row)
+    private func tapNativeSwitch(_ row: XCUIElement, navigation: String? = nil) {
+        _ = visible(row, navigation: navigation)
         let controls = row.descendants(matching: .switch)
         XCTAssertEqual(controls.count, 1, "The row must expose exactly one native switch")
         let control = controls.element(boundBy: 0)
         guard control.waitForExistence(timeout: 45) else { XCTFail("Native switch is absent"); return }
         let frame = control.frame, outer = row.frame
-        guard usable(outer), usable(frame), outer.contains(frame), contentViewport.contains(frame),
+        guard usable(outer), usable(frame), outer.contains(frame), contentViewport(navigation: navigation).contains(frame),
               control.isEnabled, control.isHittable else {
             XCTFail("Native switch has no safe hit region: " + app.debugDescription); return
         }

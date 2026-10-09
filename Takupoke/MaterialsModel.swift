@@ -109,6 +109,14 @@ final class MaterialsModel: ObservableObject {
 
     func dismissPreview() { changePreview = nil }
 
+    func skipChangeRows(_ preview: ChangePreview, rows: Set<Int>) {
+        let year = automaticChangeSchoolYear
+        guard preview.canSkipRows, preview.defaultYear == year else { return }
+        perform(success: "選んだ\(rows.count)行を除外して読み込みました。ファイルの内容が更新されるまで適用します。") {
+            try $0.skipChangeRows(preview, rows: rows, defaultYear: year, control: $1)
+        }
+    }
+
     func closeForRetention() async {
         retired = true
         generation = UUID()

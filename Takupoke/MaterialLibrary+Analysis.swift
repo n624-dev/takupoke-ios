@@ -12,7 +12,7 @@ extension MaterialLibrary {
         return (visible,rejected)
     }
 
-    func saveChangeAnalysis(_ analysis: ChangeAnalysis, authorizeWeekdayCorrection: Bool = false) throws {
+    func saveChangeAnalysis(_ analysis: ChangeAnalysis, authorizeWeekdayCorrection: Bool = false, authorizeRowSkip: Bool = false) throws {
         guard state.record(for: .changes)?.digest == analysis.sourceDigest,
               analysis.version == ChangeAnalysis.parserVersion,
               !analysis.records.isEmpty, analysis.records.count <= ChangeNormalizer.maximumRecords else {
@@ -24,6 +24,17 @@ extension MaterialLibrary {
                   authorizeWeekdayCorrection || state.record(for: .changes)?.source.weekdayConsent == consent,
                   let index = next.records.firstIndex(where: { $0.kind == .changes }) else { throw ChangeParseError(code: .storage) }
             next.records[index].source.weekdayConsent = consent
+        }
+        if let consent = analysis.rowSkipConsent {
+            guard let index = next.records.firstIndex(where: { $0.kind == .changes }),
+                  consent.matches(sourceIdentity: next.records[index].source.selectionID ?? next.records[index].storedName,
+                                  digest: analysis.sourceDigest, defaultYear: analysis.defaultYear),
+                  authorizeRowSkip || state.records[index].source.rowSkipConsent == consent else { throw ChangeParseError(code: .storage) }
+            next.records[index].source.rowSkipConsent = consent
+        } else if let index = next.records.firstIndex(where: { $0.kind == .changes }),
+                  next.records[index].source.rowSkipConsent != nil {
+            // A success must never silently omit the exclusions used to obtain it.
+            throw ChangeParseError(code: .storage)
         }
         next.changeAnalysis = analysis
         next.changeParseAttempt = ChangeParseAttempt(date: analysis.parsedAt, sourceDigest: analysis.sourceDigest,
@@ -79,6 +90,12 @@ extension MaterialLibrary {
     func clearWeekdayConsent() throws {
         guard let index = state.records.firstIndex(where: { $0.kind == .changes }), state.records[index].source.weekdayConsent != nil else { return }
         var next = state; next.records[index].source.weekdayConsent = nil
+        try persist(next)
+    }
+
+    func clearRowSkipConsent() throws {
+        guard let index = state.records.firstIndex(where: { $0.kind == .changes }), state.records[index].source.rowSkipConsent != nil else { return }
+        var next = state; next.records[index].source.rowSkipConsent = nil
         try persist(next)
     }
 

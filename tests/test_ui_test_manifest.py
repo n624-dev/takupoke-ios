@@ -125,8 +125,8 @@ class ManifestTests(unittest.TestCase):
 
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source((ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8"))
-        self.assertEqual(len(manifest.selected_tests("all")), 26)
-        self.assertEqual([len(manifest.SHARDS[shard]) for shard in ("A", "B")], [13, 13])
+        self.assertEqual(len(manifest.selected_tests("all")), 27)
+        self.assertEqual([len(manifest.SHARDS[shard]) for shard in ("A", "B")], [14, 13])
         self.assertFalse(set(manifest.SHARDS["A"]) & set(manifest.SHARDS["B"]))
         self.assertEqual(release_gate.REQUIRED, manifest.ALL_UI_REQUIRED_JOBS | {"Distribution tests", "Native PDF and recovery tests"})
         self.assertIn(manifest.SYSTEM_SIZE_TEST, manifest.SHARDS["B"])

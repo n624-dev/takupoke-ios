@@ -75,8 +75,15 @@ extension XLSXReader {
             for number in (header + 1)..<(rows.count + 1) {
                 try check()
                 let row = rows[number - 1]
+                guard row.dropFirst(headers.count).allSatisfy({ ChangeNormalizer.text($0).isEmpty }) else {
+                    throw ChangeParseError(code: .headers, row: number)
+                }
                 let printed = row.indices.contains(column) ? row[column] : ""
                 if weekdayFormulas[number] == nil && printed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { continue }
+                if row.enumerated().allSatisfy({ $0.offset == column || ChangeNormalizer.text($0.element).isEmpty }) {
+                    warnings.append(ChangeParseError(code: .weekdayOnly, row: number, printedWeekday: printed))
+                    continue
+                }
                 guard row.indices.contains(dateColumn) else { throw ChangeParseError(code: .date, row: number) }
                 let date: String
                 do { date = try ChangeNormalizer.date(row[dateColumn], defaultYear: defaultYear) }

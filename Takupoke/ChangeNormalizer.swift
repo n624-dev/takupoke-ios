@@ -71,7 +71,7 @@ enum ChangeNormalizer {
         return index
     }
 
-    static func parse(_ rows: [[String]], defaultYear: Int?, check: () throws -> Void = {}) throws -> [ScheduleChange] {
+    static func parse(_ rows: [[String]], defaultYear: Int?, check: () throws -> Void = {}, allowEmptyPreview: Bool = false) throws -> [ScheduleChange] {
         guard rows.count <= maximumRows, rows.allSatisfy({ $0.count <= maximumColumns }),
               rows.flatMap({ $0 }).allSatisfy({ $0.utf8.count <= 4096 }) else { throw ChangeParseError(code: .limit) }
         guard rows.reduce(0, { total, row in total + row.reduce(0, { $0 + $1.utf8.count }) }) <= maximumTextBytes else {
@@ -142,7 +142,7 @@ enum ChangeNormalizer {
                 }
             }
         }
-        guard !output.isEmpty else { throw ChangeParseError(code: .empty) }
+        guard !output.isEmpty || allowEmptyPreview else { throw ChangeParseError(code: .empty) }
         return output
     }
 }

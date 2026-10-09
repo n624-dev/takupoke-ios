@@ -46,6 +46,14 @@ struct ChangeAnalysisView: View {
             if model.state.record(for: .changes)?.source.weekdayConsent?.matches(digest: model.state.record(for: .changes)?.digest ?? "", defaultYear: defaultYear) == true {
                 Section { Text("曜日は日付から計算しています。ファイルの内容が更新されると解除されます。") }
             }
+            if let source = model.state.record(for: .changes), let skip = source.source.rowSkipConsent,
+               skip.matches(sourceIdentity: source.source.selectionID ?? source.storedName, digest: source.digest, defaultYear: defaultYear) {
+                Section {
+                    Text("\(skip.rows.count)行を除外して読み込んでいます。ファイルの内容が更新されると解除されます。")
+                        .accessibilityIdentifier("change-skipped-count")
+                    Text("除外した行：" + skip.rows.map(String.init).joined(separator: "、"))
+                }
+            }
             Section {
                 Button("同じファイルを再取得") { model.refresh(.changes) }
                     .disabled(model.busy || !model.ready || model.state.record(for: .changes) == nil)
@@ -108,15 +116,18 @@ struct ChangeAnalysisView: View {
             Button("確認して表示") { model.previewChanges() }
             Button("キャンセル", role: .cancel) {}
         } message: {
-            Text("日付と曜日が合わないか、曜日の計算結果が保存されていません。日付欄を基準に内容を表示しますが、正しい内容かは元ファイルで確認してください。前回の正常データは置き換えません。")
+            Text("曜日に問題のある行があります。元の記載を確認してください。内容を見るだけでは前回の正常データは置き換えません。")
         }
         .sheet(isPresented: Binding(get: { model.changePreview != nil }, set: { if !$0 { model.dismissPreview() } })) {
             if let preview = model.changePreview {
                 ChangePreviewView(preview: preview, mappings: mappings, correctWeekdays: preview.canCorrectWeekdays ? {
                     model.dismissPreview(); model.correctWeekdays(preview)
+                } : nil, skipRows: preview.canSkipRows ? { rows in
+                    model.dismissPreview(); model.skipChangeRows(preview, rows: rows)
                 } : nil)
             }
         }
+        .onChange(of: year) { _, _ in model.dismissPreview() }
     }
 
     @ViewBuilder private var parseButton: some View {

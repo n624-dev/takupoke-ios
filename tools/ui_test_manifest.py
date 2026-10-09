@@ -27,6 +27,7 @@ SHARDS = {
         "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
         "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair",
         "testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates",
+        "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",
     ),
     "B": (
         "testSettingsAccountDataAndFileDetails",

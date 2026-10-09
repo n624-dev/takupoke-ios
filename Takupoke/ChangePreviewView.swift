@@ -4,7 +4,10 @@ struct ChangePreviewView: View {
     let preview: ChangePreview
     @ObservedObject var mappings: MappingModel
     var correctWeekdays: (() -> Void)? = nil
+    var skipRows: ((Set<Int>) -> Void)? = nil
     @State private var confirmingCorrection = false
+    @State private var confirmingSkip = false
+    @State private var excludedRows = Set<Int>()
     @Environment(\.dismiss) private var dismiss
     @State private var selectedClass = ""
 
@@ -19,7 +22,7 @@ struct ChangePreviewView: View {
                 Section {
                     Label("警告のあるファイルを閲覧しています", systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.orange)
-                    Text("曜日に不整合があります。日付を元ファイルで確認してください。")
+                    Text("曜日に問題のある行があります。元の記載を確認してください。")
                     Text(preview.sourceName)
                     LabeledContent("年なし日付の補完", value: preview.defaultYear.map { "\($0)年度" } ?? "指定なし")
                     LabeledContent("件数", value: "\(preview.records.count)件")
@@ -27,13 +30,34 @@ struct ChangePreviewView: View {
                         Button("日付から曜日を求めて読み込む") { confirmingCorrection = true }
                             .buttonStyle(.glassProminent)
                     }
+                    if skipRows != nil {
+                        Button("選んだ行を除外して読み込む") { confirmingSkip = true }
+                            .buttonStyle(.glassProminent)
+                            .disabled(excludedRows.isEmpty)
+                            .accessibilityIdentifier("change-apply-skips")
+                    }
                     DisclosureGroup("曜日の警告：\(preview.warnings.count)件") {
                         ForEach(Array(preview.warnings.enumerated()), id: \.offset) { _, warning in
                             if let printed = warning.printedWeekday, let calculated = warning.calculatedWeekday {
                                 Text("\(warning.row.map { "\($0)行目：" } ?? "")\(printed) → \(calculated)曜日")
                             }
                             Text((warning.row.map { "\($0)行目：" } ?? "") +
-                                 (warning.code == .formulaCache ? "曜日の計算結果がありません。" : "曜日と月日が一致しないか、曜日の表記を確認できません。"))
+                                 (warning.code == .weekdayOnly ? "曜日以外の値がありません。" :
+                                  warning.code == .formulaCache ? "曜日の計算結果がありません。" : "曜日と月日が一致しないか、曜日の表記を確認できません。"))
+                        }
+                    }
+                }
+                ForEach(preview.reviewRows) { row in
+                    Section("\(row.id)行目の元の記載") {
+                        ForEach(Array(row.fields.enumerated()), id: \.offset) { _, field in
+                            LabeledContent(field.title, value: field.value)
+                        }
+                        if row.fields.isEmpty { Text("曜日の数式があります。保存された値はありません。") }
+                        if skipRows != nil && row.canSkip {
+                            Toggle("この行を除外する", isOn: Binding(get: { excludedRows.contains(row.id) }, set: { value in
+                                if value { excludedRows.insert(row.id) } else { excludedRows.remove(row.id) }
+                            }))
+                            .accessibilityIdentifier("change-skip-row-\(row.id)")
                         }
                     }
                 }
@@ -53,7 +77,13 @@ struct ChangePreviewView: View {
             } message: {
                 Text("日付欄を基準に曜日を計算して、時間割変更へ反映します。ファイルの内容が更新されるまで自動的に適用します。")
             }
-            .navigationTitle("プレビュー（閲覧のみ）")
+            .navigationTitle(correctWeekdays == nil && skipRows == nil ? "プレビュー（閲覧のみ）" : "内容の確認")
+            .alert("選んだ行を除外して読み込む", isPresented: $confirmingSkip) {
+                Button("除外して読み込む") { skipRows?(excludedRows) }
+                Button("キャンセル", role: .cancel) {}
+            } message: {
+                Text("\(excludedRows.count)行を時間割変更から除外します。除外する行：\(excludedRows.sorted().map(String.init).joined(separator: "、"))。ファイルの内容が更新されるまで適用します。")
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("閉じる") { dismiss() } } }
         }

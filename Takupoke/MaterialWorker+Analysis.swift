@@ -12,13 +12,19 @@ extension MaterialWorker {
             if let saved = record.source.weekdayConsent, !saved.matches(digest: record.digest, defaultYear: defaultYear) {
                 try library.clearWeekdayConsent()
             }
+            if let saved = record.source.rowSkipConsent,
+               !saved.matches(sourceIdentity: record.source.selectionID ?? record.storedName, digest: record.digest, defaultYear: defaultYear) {
+                try library.clearRowSkipConsent()
+            }
             let useDate = authorizeWeekdayCorrection || library.state.record(for: .changes)?.source.weekdayConsent?.matches(digest: record.digest, defaultYear: defaultYear) == true
-            let rows = try XLSXReader.read(url, defaultYear: defaultYear, check: check, dateDerivedWeekdays: useDate)
+            let skip = library.state.record(for: .changes)?.source.rowSkipConsent
+            let rows = try XLSXReader.read(url, defaultYear: defaultYear, check: check, dateDerivedWeekdays: useDate, skippingRows: Set(skip?.rows ?? []))
             let changes = try ChangeNormalizer.parse(rows, defaultYear: defaultYear, check: check)
             try check()
             var analysis = ChangeAnalysis(sourceDigest: record.digest, sourceName: record.originalName,
                 defaultYear: defaultYear, parsedAt: Date(), records: changes)
             if useDate { analysis.weekdayConsent = ChangeWeekdayConsent(digest: record.digest, defaultYear: defaultYear, parserVersion: ChangeAnalysis.parserVersion) }
+            analysis.rowSkipConsent = skip
             do { try library.saveChangeAnalysis(analysis, authorizeWeekdayCorrection: authorizeWeekdayCorrection) }
             catch { throw ChangeParseError(code: .storage) }
         } catch {
@@ -27,6 +33,18 @@ extension MaterialWorker {
             catch { throw ChangeParseError(code: .storage) }
             throw failure
         }
+    }
+
+    func skipChangeRows(_ preview: ChangePreview, rows: Set<Int>, defaultYear: Int, control: AcquisitionControl) throws {
+        guard preview.canSkipRows, preview.defaultYear == defaultYear else { throw ChangeParseError(code: .unsupported) }
+        try refresh(.changes, control: control)
+        guard let library = library else { throw ChangeParseError(code: .storage) }
+        do {
+            try library.applyRowSkips(preview, rows: rows, defaultYear: defaultYear, check: {
+                do { try control.check() } catch { throw ChangeParseError(code: .cancelled) }
+            })
+        } catch let failure as ChangeParseError { throw failure }
+        catch { throw ChangeParseError(code: .storage) }
     }
 
     func correctWeekdays(_ preview: ChangePreview, defaultYear: Int, control: AcquisitionControl) throws {

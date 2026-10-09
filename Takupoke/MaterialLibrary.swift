@@ -114,9 +114,11 @@ final class MaterialLibrary {
         if reuseUnchanged, let old = state.record(for: kind) {
             source.selectionID = old.source.selectionID
             source.weekdayConsent = old.digest == digest ? old.source.weekdayConsent : nil
+            source.rowSkipConsent = old.digest == digest ? old.source.rowSkipConsent : nil
         } else {
             source.selectionID = UUID().uuidString
             source.weekdayConsent = nil
+            source.rowSkipConsent = nil
         }
         guard staged.deletingLastPathComponent().standardizedFileURL == staging.standardizedFileURL,
               byteCount > 0, byteCount <= Self.maximumBytes else { throw MaterialError.invalidFile }

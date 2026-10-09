@@ -25,6 +25,7 @@ struct MaterialSource: Codable {
     var childName: String?
     var selectionID: String? = nil
     var weekdayConsent: ChangeWeekdayConsent? = nil
+    var rowSkipConsent: ChangeRowSkipConsent? = nil
     var remoteURL: URL? = nil
     var remoteETag: String? = nil
     var remoteLastModified: String? = nil

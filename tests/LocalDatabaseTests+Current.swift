@@ -4,6 +4,36 @@ import GRDB
 @testable import TakupokeParsing
 
 extension LocalDatabaseTests {
+    func testRowSkipConsentAndResultRollbackTogetherAndOldPayloadRemainsReadable() throws {
+        let example = try fixture(); let (db, library) = try runtimeStore()
+        defer { try? db.close() }
+        try acquire(library, kind: .changes)
+        var analysis = try XCTUnwrap(example.changeAnalysis)
+        try library.saveChangeAnalysis(analysis)
+        let previous = try LocalMaterialDatabase.encode(library.state)
+        let source = try XCTUnwrap(library.state.record(for: .changes))
+        let consent = ChangeRowSkipConsent(sourceIdentity: source.source.selectionID ?? source.storedName,
+            digest: source.digest, defaultYear: analysis.defaultYear, parserVersion: ChangeAnalysis.parserVersion, rows: [3, 4])
+        analysis.rowSkipConsent = consent
+        analysis.parsedAt = time.addingTimeInterval(1)
+        XCTAssertThrowsError(try library.saveChangeAnalysis(analysis))
+        db.beforeCommit = { throw MaterialError.invalidState }
+        XCTAssertThrowsError(try library.saveChangeAnalysis(analysis, authorizeRowSkip: true))
+        XCTAssertEqual(try LocalMaterialDatabase.encode(library.state), previous)
+        XCTAssertEqual(try LocalMaterialDatabase.encode(db.load()), previous)
+        db.beforeCommit = {}
+        try library.saveChangeAnalysis(analysis, authorizeRowSkip: true)
+        XCTAssertEqual(try db.load().record(for: .changes)?.source.rowSkipConsent, consent)
+        XCTAssertEqual(try db.load().changeAnalysis?.rowSkipConsent, consent)
+        try library.clearRowSkipConsent()
+        XCTAssertNil(try db.load().record(for: .changes)?.source.rowSkipConsent)
+        XCTAssertEqual(try db.load().changeAnalysis?.rowSkipConsent, consent)
+        // Optional new fields are absent in existing installations.
+        let decoded = try JSONDecoder().decode(MaterialLibraryState.self, from: previous)
+        XCTAssertNil(decoded.record(for: .changes)?.source.rowSkipConsent)
+        XCTAssertNil(decoded.changeAnalysis?.rowSkipConsent)
+    }
+
     func testWeekdayConsentAndResultCommitTogetherAndRollbackTogether() throws {
         let example = try fixture(); let (db, library) = try runtimeStore()
         defer { try? db.close() }

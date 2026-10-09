@@ -81,6 +81,13 @@ def generate(destination):
                       lambda match: match[1] + "\n        " + match[2] + ".protocolClasses = [FixtureNetwork.self]", text)
         if path.name == 'SchoolEventsModel.swift':
             text = instrument_events_cache(text)
+        if path.name == 'ScopedMaterialSelection.swift':
+            # The synthetic workbook is owned by this sandbox, not a real File
+            # Provider. Substitute only the lease boundary in this disposable copy;
+            # acquisition, hashing, XLSX parsing and persistence remain unchanged.
+            marker = 'guard granted else { throw MaterialError.accessExpired }'
+            assert text.count(marker) == 1, 'Synthetic workbook lease insertion point missing'
+            text = text.replace(marker, 'guard granted || SimulatorChangeRowSkipFixture.owns(url) else { throw MaterialError.accessExpired }')
         if path.name == 'SettingsView.swift':
             text = instrument_ai_switch(text)
         if path.name in ('TimetableView.swift', 'TimetableView+Navigation.swift'):

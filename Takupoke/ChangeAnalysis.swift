@@ -79,7 +79,7 @@ struct ChangeWeekdayConsent: Codable, Equatable {
 }
 
 struct ChangeAnalysis: Codable {
-    static let parserVersion = 5
+    static let parserVersion = 6
     var version = parserVersion
     var sourceDigest: String
     var sourceName: String
@@ -87,6 +87,33 @@ struct ChangeAnalysis: Codable {
     var parsedAt: Date
     var records: [ScheduleChange]
     var weekdayConsent: ChangeWeekdayConsent? = nil
+    var rowSkipConsent: ChangeRowSkipConsent? = nil
+}
+
+struct ChangeRowSkipConsent: Codable, Equatable {
+    var sourceIdentity: String
+    var digest: String
+    var defaultYear: Int?
+    var parserVersion: Int
+    var rows: [Int]
+
+    func matches(sourceIdentity: String, digest: String, defaultYear: Int?) -> Bool {
+        self.sourceIdentity == sourceIdentity && self.digest == digest && self.defaultYear == defaultYear &&
+        parserVersion == ChangeAnalysis.parserVersion && !rows.isEmpty && rows == Array(Set(rows)).sorted() &&
+        rows.allSatisfy { (1...ChangeNormalizer.maximumRows).contains($0) }
+    }
+}
+
+struct ChangeReviewField: Equatable {
+    var title: String
+    var value: String
+}
+
+struct ChangeReviewRow: Equatable, Identifiable {
+    var id: Int
+    var warning: ChangeParseError
+    var fields: [ChangeReviewField]
+    var canSkip: Bool { warning.code == .weekdayMismatch || warning.code == .weekdayOnly }
 }
 
 struct ChangeParseAttempt: Codable {
@@ -96,9 +123,10 @@ struct ChangeParseAttempt: Codable {
     var failure: ChangeParseError?
     var parserVersion: Int? = nil
 
-    static func needsAnalysis(digest: String, defaultYear: Int, analysis: ChangeAnalysis?, attempt: ChangeParseAttempt?, weekdayConsent: ChangeWeekdayConsent? = nil) -> Bool {
+    static func needsAnalysis(digest: String, defaultYear: Int, analysis: ChangeAnalysis?, attempt: ChangeParseAttempt?, weekdayConsent: ChangeWeekdayConsent? = nil, rowSkipConsent: ChangeRowSkipConsent? = nil) -> Bool {
         if analysis?.sourceDigest == digest, analysis?.version == ChangeAnalysis.parserVersion,
-           analysis?.defaultYear == defaultYear, analysis?.weekdayConsent == weekdayConsent { return false }
+           analysis?.defaultYear == defaultYear, analysis?.weekdayConsent == weekdayConsent,
+           analysis?.rowSkipConsent == rowSkipConsent { return false }
         if attempt?.sourceDigest == digest, attempt?.defaultYear == defaultYear,
            attempt?.parserVersion == ChangeAnalysis.parserVersion, let failure = attempt?.failure,
            failure.code != .cancelled && failure.code != .storage { return false }
@@ -114,21 +142,24 @@ struct ChangePreview {
     var warnings: [ChangeParseError]
     var sourceIdentity: String? = nil
     var sourceDigest: String? = nil
+    var parserVersion: Int = ChangeAnalysis.parserVersion
+    var reviewRows: [ChangeReviewRow] = []
     var canCorrectWeekdays: Bool { sourceIdentity != nil && sourceDigest != nil && !warnings.isEmpty && warnings.allSatisfy(\.canCorrectWeekday) }
+    var canSkipRows: Bool { sourceIdentity != nil && sourceDigest != nil && reviewRows.contains(where: \.canSkip) }
 }
 
 struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
     enum Code: String, Codable {
         case invalidArchive, limit, invalidXML, missingSheet, unsupported, headers
         case date, year, classes, unknownAll, empty, cancelled, storage
-        case formula, formulaCache, weekdayMismatch, mergedCells, dateSystem, cellType
+        case formula, formulaCache, weekdayMismatch, weekdayOnly, mergedCells, dateSystem, cellType
     }
     var code: Code
     var row: Int? = nil
     var printedWeekday: String? = nil
     var calculatedWeekday: String? = nil
     var canCorrectWeekday: Bool { code == .weekdayMismatch && printedWeekday.map(ChangeNormalizer.knownWeekday) == true && calculatedWeekday != nil }
-    var permitsPreview: Bool { code == .formulaCache || code == .weekdayMismatch }
+    var permitsPreview: Bool { code == .formulaCache || code == .weekdayMismatch || code == .weekdayOnly }
     var errorDescription: String? {
         let detail: String
         switch code {
@@ -140,6 +171,7 @@ struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
         case .formula: detail = "見出し、または曜日以外の列に数式があります。この箇所の数式は解析できません。"
         case .formulaCache: detail = "曜日の計算結果が保存されていません。警告を確認して内容だけを見ることができます。"
         case .weekdayMismatch: detail = "曜日と月日が一致しないか、曜日の表記を確認できません。警告を確認して内容だけを見ることができます。"
+        case .weekdayOnly: detail = "曜日以外の値がない行があります。内容を確認して、その行を除外できます。"
         case .mergedCells: detail = "見出しや表の行に結合セルがあります。結合された値は推測して補えません。"
         case .dateSystem: detail = "1904年起点の日付を使用するXLSXは未対応です。"
         case .cellType: detail = "表に未対応のセル形式やExcelのエラー値があります。"
