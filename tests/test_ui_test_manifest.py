@@ -22,6 +22,21 @@ def result_line(test, status="passed"):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_network_rewrite_preserves_standard_xlsx_identifiers_only(self):
+        source = (ROOT / "Takupoke/XLSXReader.swift").read_text(encoding="utf-8")
+        rewritten = app_test_project.rewrite_network_urls(source)
+        for namespace in (
+            "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+            "http://schemas.openxmlformats.org/package/2006/relationships",
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+        ):
+            self.assertIn('"' + namespace + '"', rewritten)
+        endpoints = 'let url = "https://files.example.invalid/source"; let other = "http://schemas.openxmlformats.org/spreadsheetml/2006/main?fetch=1"'
+        changed = app_test_project.rewrite_network_urls(endpoints)
+        self.assertEqual(changed.count('"https://fixture.example.test"'), 2)
+        self.assertNotIn("files.example.invalid", changed)
+        self.assertNotIn("fetch=1", changed)
+
     def test_ai_switch_probe_preserves_production_setter_and_rejects_marker_drift(self):
         source = (ROOT / "Takupoke/SettingsView.swift").read_text(encoding="utf-8")
         generated = app_test_project.instrument_ai_switch(source)

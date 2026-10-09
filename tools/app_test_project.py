@@ -20,6 +20,17 @@ def instrument_events_cache(text):
         }
 ''')
 
+def rewrite_network_urls(text):
+    # These are XML identifiers, never network destinations. Keep the real XLSX
+    # namespace checks while the fixture URLProtocol still denies all network I/O.
+    namespaces = {
+        'http://schemas.openxmlformats.org/spreadsheetml/2006/main',
+        'http://schemas.openxmlformats.org/package/2006/relationships',
+        'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
+    }
+    return re.sub(r'https?://[^"\s)]+',
+                  lambda match: match[0] if match[0] in namespaces else 'https://fixture.example.test', text)
+
 NATIVE_OCR_DIAGNOSTIC = '''
                     if ProcessInfo.processInfo.arguments.contains("--recovery-ocr-probe") {
                         let captured = lines.last?.candidates.first
@@ -76,7 +87,7 @@ def generate(destination):
         text = path.read_text()
         # A URLProtocol below rejects every request. Rewrite URLs as a second
         # guard against any production communication from the test app.
-        text = re.sub(r'https?://[^"\s)]+', 'https://fixture.example.test', text)
+        text = rewrite_network_urls(text)
         text = re.sub(r'(\b(?:let|var) (\w+) = URLSessionConfiguration\.(?:ephemeral|default))',
                       lambda match: match[1] + "\n        " + match[2] + ".protocolClasses = [FixtureNetwork.self]", text)
         if path.name == 'SchoolEventsModel.swift':
