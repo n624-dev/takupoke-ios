@@ -4,7 +4,7 @@ on:
   push:
     branches: [codex/pdf-local-recovery]
     paths:
-      - .github/workflows/test-tools.yml
+      - .github/workflows/**
       - tools/*.py
       - tools/*.sh
       - Takupoke/**

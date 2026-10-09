@@ -16,6 +16,16 @@ setup-pythonは公式v7.0.0の5fda3b95a4ea91299a34e894583c3862153e4b97へ固定�
 全Linux Python156件がskip・失敗0、一覧・差分検査も成功した。
 上流Actionの実際の動作と警告の解消は、新しいActions完了後に別途確認する。
 
+a672135の[37906640294](https://github.com/n624-dev/takupoke-ios/actions/runs/37906640294)は
+開発2ジョブとも成功。新checkout・setup-pythonを使ったPython156件が成功し、
+Node.js 20の警告はなかった。portable Swiftも成功した。
+同時に自己のYAML変更だけで追加された手動診断37906640093は、
+両ジョブqueued・steps空を直前に確認してから、許可済みの未開始取消だけを行った。
+実行中の342と他の検証は取消していない。取消した診断を成功には数えない。
+手動診断はworkflow_dispatchで必要なケースを選ぶ経路へ整理し、
+開発の全workflow変更は軽いPython・Swift検査で確認する。
+配布前の手動6ジョブ、全13チェックと同一ソースの公開ゲートは維持する。
+
 ## 2026-10-09 設定Switchの配送先比較と診断の撤去
 
 ソースf18f9f8の[37904076875](https://github.com/n624-dev/takupoke-ios/actions/runs/37904076875)は

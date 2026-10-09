@@ -1,9 +1,6 @@
 name: Native manual input focus check
 
 on:
-  push:
-    branches: [codex/pdf-local-recovery]
-    paths: [.github/workflows/manual-input-native-probe.yml]
   workflow_dispatch:
     inputs:
       case:
