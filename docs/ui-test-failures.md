@@ -22,7 +22,8 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
   完了タップ前に失敗した。単に表示待ちが短かったとは断定できない。
   同じ349の3項目訂正27は成功しており、iOS27で毎回失敗するとは扱わない。
 - 試行：693cf079で製品の完了をsheetのnavigation barへ移した。
-  実ボタンの包含・enabled・hittableと一回のタップを要求する。効果は未確認。
+  実ボタンの包含・enabled・hittableと一回のタップを要求する。
+  350の原本変更27は成功。全体はU08・U09で失敗し、一般的な原因解消とは扱わない。
 - 根拠：[349失敗ジョブ](https://github.com/n624-dev/takupoke-ios/actions/runs/38023085810/job/114128234002)、
   [350の検証](https://github.com/n624-dev/takupoke-ios/actions/runs/38025452042)。
 
@@ -71,3 +72,21 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
   Actions表示だけではUI成功と認めない。
 - 根拠：[実行37724583586](https://github.com/n624-dev/takupoke-ios/actions/runs/37724583586)、
   [詳細](ocr-improvement-log.md#配布前の実行件数確認mac-bashの空配列で未実行成功を拒否)。
+
+## U08 実Switch操作後の通知許可待ち（iOS27、全体350）
+
+- 対象：`testChangedDataProducesOneLocalNotification`、`ApplicationChecks+Notifications.swift`、
+  `requestAuthorization`、requesting=true、notification-transition-unresolved。
+- 観測：一回の操作後にrequesting=trueになり、45秒内に許可画面・ONへ進まなかった。
+  失敗時のSystem画像にもダイアログがない。U04の操作不発、U06の事前照会とは別に扱う。
+- 状態：OS要求とcallbackのどこで止まったかは未確定。押し直し・許可注入で救済しない。
+- 根拠：[350失敗ジョブ](https://github.com/n624-dev/takupoke-ios/actions/runs/38025452042/job/114135377793)。
+
+## U09 行事注意文のAX照会停止（iOS27、全体350）
+
+- 対象：`testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates`、`ApplicationChecks+Events.swift`、
+  boundaryWeek、`firstMatch.exists`、snapshot timeout。
+- 観測：時間割への遷移と週表示を確認した後、注意文の存在照会で停止した。
+  文字の存在／不在の結果は未取得である。
+- 状態：U05の不在要素探索と比較する。存在・不在・個数の期待値を緩めない。
+- 根拠：[350失敗ジョブ](https://github.com/n624-dev/takupoke-ios/actions/runs/38025452042/job/114135377793)。
