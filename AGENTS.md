@@ -3,6 +3,7 @@
 - 実装前に `docs/development-policy.md` と `docs/roadmap.md` を読む。
 - コード編集前に `docs/test-maintenance-policy.md` と `docs/test-catalog.md` を読み、`python3 -B tools/test_catalog.py search <対象ファイル・機能>` で対応テストを検索する。新仕様・未検出の不具合にはテストを更新する。既存ケースで十分なら不要な編集をせず、該当ケース・十分性の理由・実行環境と結果を検証記録へ残す。対応関係・宣言名・実行方法が変わったら `write` し、`check --base <編集前のコミット>` を必ず実行する。未登録コード・未登録テスト・一覧の不整合はCIで拒否する。期待値の注入・検証条件の緩和で通さない。
 - LinuxのローカルSwiftと依存ライブラリの設置先・実行方法は `docs/development.md` の「このLinux環境のSwift」を参照する。PATH上にない場合も、記載された設置先を確認する。
+- UI関連の変更・テスト実行前には `rg -n -i '<ケース名|ファイル名|操作|エラー|OS>' docs/ui-test-failures.md` で失敗索引を検索し、関連項目の詳細記録を読む。検索語・該当ID・今回の違いを検証記録へ残す。該当がなければその旨も記録する。新しい失敗は次の試行前に索引へ短く追記し、原因未確定・候補修正・確認済みの範囲を区別する。同じ失敗済み条件を新しい根拠なく繰り返さない。
 - AltStore Sourceによる導入・更新は版ごとに実機確認し、未確認の事項を完了済みと記載しない。
 - Swift / SwiftUI による独立した iOS アプリとして開発する。Microsoft Graph、Web 版のラップ、Windows 版へのコード共有は導入しない。
 - 今後新規に追加するUIはApple標準のLiquid Glassを採用する。既存画面の全面的な置き換えは後の作業とし、新規画面の実装へ混在させない。対応SDK・OSと標準コンポーネントの利用方針は `docs/development-policy.md` に従う。
