@@ -105,8 +105,7 @@ extension ApplicationChecks {
         return header
     }
     func usable(_ frame: CGRect) -> Bool {
-        !frame.isNull && !frame.isInfinite && frame.width > 0 && frame.height > 0
-            && [frame.minX, frame.minY, frame.maxX, frame.maxY].allSatisfy(\.isFinite)
+        ObservedScreenGeometry.usable(frame)
     }
     var contentViewport: CGRect {
         contentViewport(navigation: nil)
@@ -134,25 +133,21 @@ extension ApplicationChecks {
             && ObservedScreenGeometry.contains(frame, in: viewport, scale: UIScreen.main.scale)
     }
     private func unobscuredViewport(for element: XCUIElement, navigation: String? = nil) -> CGRect {
-        var frame = contentViewport(navigation: navigation)
+        let frame = contentViewport(navigation: navigation)
         let isFooter = element.exists && element.label.hasPrefix("次へ")
-        if !isFooter, let footer = observedSetupFooterFrame(),
-            usable(frame), usable(frame.intersection(footer)), footer.minY > frame.minY
-        {
-            frame.size.height = max(0, min(frame.maxY, footer.minY) - frame.minY)
-        }
-        return frame
+        guard !isFooter else { return frame }
+        return ObservedScreenGeometry.excludingFooter(observedSetupFooterFrame(), from: frame)
     }
     private func observedSetupFooterFrame() -> CGRect? {
         let footers = app.buttons.matching(NSPredicate(format: "label == %@", "次へ"))
             .allElementsBoundByIndex
         XCTAssertLessThanOrEqual(footers.count, 1, "Setup footer geometry must be unique")
-        guard footers.count == 1 else { return nil }
+        guard !footers.isEmpty else { return nil }
+        guard footers.count == 1 else { return .null }
         let frame = footers[0].frame
-        XCTAssertTrue(usable(frame), "Present setup footer must have finite positive geometry")
         // A visible footer obscures the body even when it cannot be tapped.
         // Query interactive hittability only when actually operating a control.
-        return usable(frame) ? frame : nil
+        return usable(frame) ? frame : .null
     }
     func visible(_ e: XCUIElement, navigation: String? = nil, searchEarlierRows: Bool = false) -> XCUIElement {
         for _ in 0..<6 {
@@ -166,6 +161,10 @@ extension ApplicationChecks {
                 }, object: app)
             if XCTWaiter.wait(for: [settled], timeout: 2) == .completed { return e }
             let current = unobscuredViewport(for: e, navigation: navigation)
+            guard usable(current) else {
+                print("UI_VISIBLE unresolved-viewport;navigation=\(navigation ?? "current")")
+                continue
+            }
             let frame = e.exists ? e.frame : CGRect.null
             print("UI_VISIBLE frame=\(frame);viewport=\(current);navigation=\(navigation ?? "current")")
             if (usable(frame) && frame.minY < current.minY) || (!usable(frame) && searchEarlierRows) {

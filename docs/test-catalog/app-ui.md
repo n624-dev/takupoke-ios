@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`13d28214d7a11f11d731b875c660d804c82c8b2175093814ceaca39ccae1f1dd`
+`9ff371487d7bfff3ee94a3c1a0a12e5cd1baa73c5b3b959c6a1a55323df2f7f6`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -155,3 +155,5 @@ bash tools/test-app-ui.sh
 - `testObservedEqualPhysicalEdgesSurviveFloatingPointArithmetic`
 - `testPhysicalAndFractionalPixelClippingIsStillRejectedOnEveryEdge`
 - `testEmptyNonFiniteAndInvalidScaleDoNotBecomeVisible`
+- `testUnresolvedPresentFooterNeverMakesBodyVisible`
+- `testAbsentResolvedAndCoveringFooterHaveDifferentVisibleBounds`

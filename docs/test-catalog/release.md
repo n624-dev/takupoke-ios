@@ -1,7 +1,7 @@
 # IPA・AltStore・公開ゲート・ビルド・一時領域
 
 対応関係・宣言名・実行方法のSHA-256：
-`060c93785c6ac251cf955b74c27c631492d834a1878e245032e70b1b470a94a4`
+`5ecf74bc48b115fc320a2c83eb3a472d99b81bea9b4d1198a7b3be74ea461eca`
 
 環境：Linux Python／Apple iPhone SDK。AltStore導入は実機限定
 
@@ -139,3 +139,5 @@ python3 -B -m unittest discover -s tests -v
 - `testObservedEqualPhysicalEdgesSurviveFloatingPointArithmetic`
 - `testPhysicalAndFractionalPixelClippingIsStillRejectedOnEveryEdge`
 - `testEmptyNonFiniteAndInvalidScaleDoNotBecomeVisible`
+- `testUnresolvedPresentFooterNeverMakesBodyVisible`
+- `testAbsentResolvedAndCoveringFooterHaveDifferentVisibleBounds`

@@ -34,4 +34,35 @@ final class ObservedScreenGeometryTests: XCTestCase {
             XCTAssertFalse(ObservedScreenGeometry.contains(viewport, in: viewport, scale: scale))
         }
     }
+
+    func testUnresolvedPresentFooterNeverMakesBodyVisible() {
+        let viewport = CGRect(x: 0, y: 100, width: 100, height: 200)
+        let body = CGRect(x: 10, y: 120, width: 80, height: 30)
+        XCTAssertTrue(ObservedScreenGeometry.contains(body, in: viewport, scale: 3))
+        for footer in [CGRect.null, CGRect.infinite, .zero,
+            CGRect(x: CGFloat.nan, y: 200, width: 100, height: 30)]
+        {
+            let unresolved = ObservedScreenGeometry.excludingFooter(footer, from: viewport)
+            XCTAssertTrue(unresolved.isNull)
+            XCTAssertFalse(ObservedScreenGeometry.contains(body, in: unresolved, scale: 3))
+        }
+        XCTAssertTrue(ObservedScreenGeometry.excludingFooter(.null, from: .null).isNull)
+    }
+
+    func testAbsentResolvedAndCoveringFooterHaveDifferentVisibleBounds() {
+        let viewport = CGRect(x: 0, y: 100, width: 100, height: 200)
+        XCTAssertEqual(ObservedScreenGeometry.excludingFooter(nil, from: viewport), viewport)
+        for offscreen in [
+            CGRect(x: 0, y: 300, width: 100, height: 30),
+            CGRect(x: 100, y: 200, width: 100, height: 30),
+        ] {
+            XCTAssertEqual(ObservedScreenGeometry.excludingFooter(offscreen, from: viewport), viewport)
+        }
+        let footer = CGRect(x: 0, y: 250, width: 100, height: 50)
+        let visible = ObservedScreenGeometry.excludingFooter(footer, from: viewport)
+        XCTAssertEqual(visible, CGRect(x: 0, y: 100, width: 100, height: 150))
+        XCTAssertFalse(ObservedScreenGeometry.contains(footer, in: visible, scale: 3))
+        let covering = CGRect(x: 0, y: 90, width: 100, height: 210)
+        XCTAssertTrue(ObservedScreenGeometry.excludingFooter(covering, from: viewport).isNull)
+    }
 }
