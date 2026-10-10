@@ -12,7 +12,7 @@ try:
     if result.returncode == 0:
         owned = Path(result.stdout.strip()) / "tmp/takupoke-fictional-launch-owned.log"
         if not owned.is_symlink() and owned.is_file() and owned.stat().st_size <= 65536:
-            pattern = re.compile(r"TAKUPOKE_LIFECYCLE pid=\d+ time=\d+(?:\.\d+)? stage=(?:init-enter|seed-enter|seed-complete|scene-construction|content-appeared|root-task-enter|application-ready|fixture-ready|fixture-ready-timeout|notification-settings-enter|notification-settings-complete|notification-settings-cancelled|notification-settings-not-requested|notification-on-binding|notification-off-binding|notification-native-request|notification-native-callback|notification-auth-request|notification-auth-callback)")
+            pattern = re.compile(r"TAKUPOKE_LIFECYCLE pid=\d+ time=\d+(?:\.\d+)? stage=(?:init-enter|seed-enter|seed-complete|scene-construction|content-appeared|root-task-enter|application-ready|fixture-ready|fixture-ready-timeout|notification-settings-enter|notification-settings-complete|notification-settings-cancelled|notification-settings-not-requested|notification-on-binding|notification-off-binding|notification-native-request|notification-native-callback|notification-auth-request|notification-auth-callback|notification-auth-returned)")
             switch = re.compile(r"TAKUPOKE_AI_SWITCH pid=\d+ time=\d+(?:\.\d+)? phase=(?:before|after) requested=[01] stored=[01]")
             for line in owned.read_text(encoding="utf-8").splitlines():
                 if pattern.fullmatch(line) or switch.fullmatch(line): print(line)
@@ -27,7 +27,7 @@ PY_TRACE
 cleanup() {
     local task_exit_status=$?
     if [[ -n "$simulator_id" ]]; then
-        if [[ "$task_exit_status" != "0" ]]; then
+        if [[ "$task_exit_status" != "0" || "${TKPK_UI_PROBE_CASE:-all}" == "notifications" ]]; then
             python3 -B tools/notification_service_trace.py "$simulator_id" || true
         fi
         collect_launch_trace || true

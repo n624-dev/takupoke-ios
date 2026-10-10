@@ -105,6 +105,7 @@ NOTIFICATION_NATIVE_REQUEST = '            FixtureLaunchDiagnostics.record("noti
 NOTIFICATION_NATIVE_CALLBACK = '                FixtureLaunchDiagnostics.record("notification-native-callback")\n'
 NOTIFICATION_AUTH_REQUEST = '            FixtureLaunchDiagnostics.record("notification-auth-request")\n'
 NOTIFICATION_AUTH_CALLBACK = '                FixtureLaunchDiagnostics.record("notification-auth-callback")\n'
+NOTIFICATION_AUTH_RETURNED = '            FixtureLaunchDiagnostics.record("notification-auth-returned")\n'
 
 NOTIFICATION_PERMISSION_SKIPPED = (
     '            FixtureNotificationAuthorization.shared.completeWithoutRead(fixturePermissionRead,\n'
@@ -137,7 +138,11 @@ def instrument_notification_permission(text):
     auth = '            center.requestAuthorization(options: [.alert, .sound]) { granted, error in\n'
     assert text.count(auth) == 1 and text.count(auth.strip()) == 1, (
         'Native authorization request insertion point missing')
-    return text.replace(auth, NOTIFICATION_AUTH_REQUEST + auth + NOTIFICATION_AUTH_CALLBACK)
+    end = ('                else { continuation.resume(returning: granted) }\n'
+           '            }\n')
+    assert text.count(end) == 1, 'Native authorization return insertion point missing'
+    return text.replace(auth, NOTIFICATION_AUTH_REQUEST + auth + NOTIFICATION_AUTH_CALLBACK).replace(
+        end, end + NOTIFICATION_AUTH_RETURNED)
 
 def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
     repo = Path(__file__).resolve().parents[1]

@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`9ff371487d7bfff3ee94a3c1a0a12e5cd1baa73c5b3b959c6a1a55323df2f7f6`
+`e0dd5cfedeb05cf898fc5647213701fbce39e3dd61b1f0d443436cdc12957cb4`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -74,6 +74,8 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_ui_test_manifest.py](../../tests/test_ui_test_manifest.py)
 
+- `test_notification_window_uses_unanswered_request_even_when_failure_finishes_later`
+- `test_notification_window_collects_only_bounded_owned_trace_and_request_interval`
 - `test_notification_service_trace_keeps_only_known_processes_and_fixed_words`
 - `test_notification_service_trace_is_bounded_without_permission_mutation`
 - `test_split_sources_are_registered_in_the_selected_target_only`

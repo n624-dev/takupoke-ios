@@ -1,9 +1,12 @@
 """Observe the disposable Simulator's notification services without changing them."""
 import json
-from pathlib import PurePosixPath
+from datetime import datetime, timezone
+import math
+from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import sys
+import time
 
 SERVICES = ("usernotificationsd", "SpringBoard", "lsd")
 BUNDLE = "jp.n624.takupoke.app-checks"
@@ -41,7 +44,48 @@ def observations(entries):
     return result[-80:]
 
 
-def collect(simulator):
+def request_window(trace, now):
+    pattern = re.compile(r"TAKUPOKE_LIFECYCLE pid=(\d+) time=(\d+(?:\.\d+)?) "
+                         r"stage=notification-auth-(request|returned|callback)")
+    requests = {}
+    latest = None
+    for line in trace.splitlines():
+        match = pattern.fullmatch(line)
+        if not match:
+            continue
+        pid, stamp, stage = match.groups()
+        stamp = float(stamp)
+        if not math.isfinite(stamp) or not 0 <= now - stamp <= 7200:
+            continue
+        if stage == "request":
+            requests[pid] = {"time": stamp, "returned": False, "callback": False}
+            latest = requests[pid]
+        elif pid in requests and stamp >= requests[pid]["time"]:
+            if stage == "returned":
+                requests[pid]["returned"] = True
+            else:
+                requests[pid]["callback"] = True
+    request = next((request for request in requests.values() if not request["callback"]), latest)
+    if request is None:
+        return None
+    return {**request, "start": request["time"] - 5, "end": min(now, request["time"] + 75)}
+
+
+def owned_trace(simulator):
+    result = subprocess.run(["xcrun", "simctl", "get_app_container", simulator, BUNDLE, "data"],
+                            capture_output=True, text=True, timeout=5)
+    if result.returncode:
+        return ""
+    root = Path(result.stdout.strip())
+    if not root.is_absolute():
+        return ""
+    owned = root / "tmp/takupoke-fictional-launch-owned.log"
+    if owned.is_symlink() or owned.parent.is_symlink() or not owned.is_file() or owned.stat().st_size > 65536:
+        return ""
+    return owned.read_text(encoding="utf-8")
+
+
+def collect(simulator, *, trace=None, now=None):
     base = ["xcrun", "simctl", "spawn", simulator]
     health = subprocess.run(base + ["launchctl", "list"], capture_output=True,
                             text=True, timeout=5)
@@ -52,7 +96,14 @@ def collect(simulator):
             if re.fullmatch(r"\d+|-", fields[0]) and re.fullmatch(r"-?\d+", fields[1]):
                 statuses.append({"service": fields[2].rsplit(".", 1)[-1],
                                  "running": fields[0] != "-", "exit": int(fields[1])})
-    logs = subprocess.run(base + ["log", "show", "--last", "10m", "--style", "json", "--info",
+    window = request_window(owned_trace(simulator) if trace is None else trace,
+                            time.time() if now is None else now)
+    dates = ["--last", "10m"]
+    if window:
+        def formatted(stamp):
+            return datetime.fromtimestamp(stamp, timezone.utc).strftime("%Y-%m-%d %H:%M:%S%z")
+        dates = ["--start", formatted(window["start"]), "--end", formatted(window["end"])]
+    logs = subprocess.run(base + ["log", "show"] + dates + ["--style", "json", "--info",
                                   "--predicate", LOG_PREDICATE], capture_output=True,
                           text=True, timeout=10)
     byte_count = len(logs.stdout.encode())
@@ -67,7 +118,7 @@ def collect(simulator):
             events = "invalid-format"
     print("TAKUPOKE_NOTIFICATION_SERVICES " + json.dumps({"services": statuses,
         "healthExit": health.returncode, "logExit": logs.returncode, "logBytes": byte_count,
-        "errorWords": WORDS.findall(logs.stderr or "")[:24], "events": events}))
+        "errorWords": WORDS.findall(logs.stderr or "")[:24], "window": window, "events": events}))
 
 
 if __name__ == "__main__":

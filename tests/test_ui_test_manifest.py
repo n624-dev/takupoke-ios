@@ -25,6 +25,50 @@ def result_line(test, status="passed"):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_notification_window_uses_unanswered_request_even_when_failure_finishes_later(self):
+        def row(pid, stamp, stage):
+            return f"TAKUPOKE_LIFECYCLE pid={pid} time={stamp} stage=notification-auth-{stage}\n"
+        trace = (row(1, 1000, "request") + row(1, 1001, "returned")
+                 + row(2, 1200, "request") + row(2, 1201, "callback")
+                 + row(2, 1202, "returned"))
+        self.assertEqual(notification_service_trace.request_window(trace, 2800), {
+            "time": 1000.0, "returned": True, "callback": False, "start": 995.0, "end": 1075.0})
+        finished = notification_service_trace.request_window(trace + row(1, 1002, "callback"), 2800)
+        self.assertEqual(finished["time"], 1200.0)
+        self.assertTrue(finished["returned"] and finished["callback"])
+        for invalid in ("private-payload", row(1, 10001, "request"), row(1, 1, "request")):
+            self.assertIsNone(notification_service_trace.request_window(invalid, 10000))
+
+    def test_notification_window_collects_only_bounded_owned_trace_and_request_interval(self):
+        trace = "TAKUPOKE_LIFECYCLE pid=12 time=1000 stage=notification-auth-request\n"
+        with tempfile.TemporaryDirectory(prefix="takupoke-request-window-owned-") as directory:
+            root = Path(directory)
+            owned = root / "tmp/takupoke-fictional-launch-owned.log"
+            owned.parent.mkdir()
+            owned.write_text(trace)
+            response = subprocess.CompletedProcess([], 0, str(root) + "\n")
+            with patch.object(notification_service_trace.subprocess, "run", return_value=response):
+                self.assertEqual(notification_service_trace.owned_trace("owned-simulator"), trace)
+                owned.write_bytes(b"x" * 65537)
+                self.assertEqual(notification_service_trace.owned_trace("owned-simulator"), "")
+                owned.unlink()
+                other = root / "other-owned.txt"
+                other.write_text(trace)
+                owned.symlink_to(other)
+                self.assertEqual(notification_service_trace.owned_trace("owned-simulator"), "")
+        with patch.object(notification_service_trace.subprocess, "run") as run:
+            run.side_effect = [subprocess.CompletedProcess([], 0, ""),
+                               subprocess.CompletedProcess([], 0, "[]")]
+            with redirect_stdout(io.StringIO()) as output:
+                notification_service_trace.collect("owned-simulator", trace=trace, now=2800)
+            command = run.call_args_list[1].args[0]
+            self.assertNotIn("--last", command)
+            self.assertEqual(command[command.index("--start") + 1], "1970-01-01 00:16:35+0000")
+            self.assertEqual(command[command.index("--end") + 1], "1970-01-01 00:17:55+0000")
+            report = json.loads(output.getvalue().split(" ", 1)[1])
+            self.assertEqual(report["window"]["end"] - report["window"]["start"], 80)
+            self.assertNotIn("pid", output.getvalue())
+
     def test_notification_service_trace_keeps_only_known_processes_and_fixed_words(self):
         messages = [
             {"processImagePath": "/system/usernotificationsd", "eventMessage":
@@ -52,7 +96,7 @@ class ManifestTests(unittest.TestCase):
             run.side_effect = [subprocess.CompletedProcess([], 0, "12 0 com.apple.usernotificationsd\n"),
                                subprocess.CompletedProcess([], 0, json.dumps(messages))]
             with redirect_stdout(io.StringIO()) as output:
-                notification_service_trace.collect("owned-simulator")
+                notification_service_trace.collect("owned-simulator", trace="")
             self.assertIn('"running": true', output.getvalue())
             self.assertEqual(run.call_count, 2)
             commands = [call.args[0] for call in run.call_args_list]
@@ -68,7 +112,7 @@ class ManifestTests(unittest.TestCase):
             ):
                 run.side_effect = [subprocess.CompletedProcess([], 0, ""), result]
                 with redirect_stdout(io.StringIO()) as output:
-                    notification_service_trace.collect("owned-simulator")
+                    notification_service_trace.collect("owned-simulator", trace="")
                 report = json.loads(output.getvalue().split(" ", 1)[1])
                 self.assertEqual(report["events"], expected)
                 self.assertEqual(report["logExit"], result.returncode)
@@ -171,6 +215,7 @@ class ManifestTests(unittest.TestCase):
                           app_test_project.NOTIFICATION_NATIVE_REQUEST,
                           app_test_project.NOTIFICATION_NATIVE_CALLBACK,
                           app_test_project.NOTIFICATION_AUTH_REQUEST,
+                          app_test_project.NOTIFICATION_AUTH_RETURNED,
                           app_test_project.NOTIFICATION_AUTH_CALLBACK):
             self.assertEqual(restored.count(insertion), 1)
             restored = restored.replace(insertion, "", 1)
@@ -262,7 +307,7 @@ class ManifestTests(unittest.TestCase):
         binding = lifecycle.replace("application-ready", "notification-on-binding")
         callbacks = "".join(lifecycle.replace("application-ready", stage) + "\n" for stage in (
             "notification-native-request", "notification-native-callback",
-            "notification-auth-request", "notification-auth-callback",
+            "notification-auth-request", "notification-auth-callback", "notification-auth-returned",
             "notification-settings-not-requested"))
         removed = "TAKUPOKE_HIT_PATH pid=123 touch=UIView~UISwitch thumb=UIView~UISwitch opposite=UIView~UISwitch"
         with tempfile.TemporaryDirectory(prefix="takupoke-launch-collector-") as directory:
