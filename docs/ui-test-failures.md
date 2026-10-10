@@ -4,6 +4,24 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 各項目は観測、試した変更、確認範囲だけを短く記す。詳細はリンク先を読む。
 新しい失敗は次の試行前に追記する。未確認の原因を確定扱いしない。
 
+## U15 実通知要求後に許可画面が現れない（iOS27、全体352）
+
+- 対象：`testNotificationControlsAndAppearance`、requestAuthorization、SpringBoard。
+- 観測：実Switch一回でrequesting=true、実SDK要求記録あり。45秒内にcallbackも
+  Allowも現れず、SpringBoard照会はkAXErrorServerNotFound。期限後の画面画像にも
+  許可画面はない。許可タップには進んでいない。単なるタップ失敗とは扱わない。
+- 状態：原因未確定。同じ352の26 Bと27 Aは許可・保存まで成功した。
+  353はこのログ取得前に開始済みで、原因解消の新比較とは数えない。
+- 根拠：[352通常27 B](https://github.com/n624-dev/takupoke-ios/actions/runs/38033516782/job/114159252633)。
+
+## U16 一回の起動でプロセスIDを取得できない（iOS27、全体352）
+
+- 対象：`testSettingsAccountDataAndFileDetails`、ApplicationChecks.swift、app.launch。
+- 観測：前プロセス終了を確認した後、一回のlaunch中に約200秒を経て
+  「does not have a process ID」で停止。次の別ケースは起動して成功した。
+- 状態：原因未確定。押し直し・再起動による救済や成功扱いは行わない。
+- 根拠：[352通常27 B](https://github.com/n624-dev/takupoke-ios/actions/runs/38033516782/job/114159252633)。
+
 ## U14 原本再照合後のメニューが操作不可（iOS27、全体352）
 
 - 対象：`testChangedOriginalCannotSubmitOrReplaceLastGood`、
