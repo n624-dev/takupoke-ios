@@ -75,9 +75,13 @@ extension ManualAssistanceChecks {
         // End the native editor before the independent acknowledgement tap.
         // The product commits text and dismisses the keyboard; it never checks
         // acknowledgement on the user's behalf.
-        let done=app.buttons["manual-edit-done"].firstMatch
+        let navigation=app.navigationBars["時間割の復旧"]
+        let done=navigation.buttons["manual-edit-done"].firstMatch
         XCTAssertTrue(done.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
         XCTAssertTrue(done.isHittable,app.debugDescription)
+        let navigationFrame=navigation.frame,doneFrame=done.frame
+        XCTAssertTrue(ManualScrollNavigation.usable(navigationFrame) && ManualScrollNavigation.usable(doneFrame)
+                      && navigationFrame.contains(doneFrame) && done.isEnabled,app.debugDescription)
         done.tap()
         let dismissed=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
             self.app.keyboards.allElementsBoundByIndex.isEmpty

@@ -50,6 +50,17 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('editStage("after-clear-focus",e)',edit)
         self.assertNotIn('visible(e).tap()',edit)
         self.assertIn('TAKUPOKE-MANUAL-EDIT stage=',checks)
+        self.assertIn('navigation.buttons["manual-edit-done"]',edit)
+        self.assertIn('navigationFrame.contains(doneFrame)',edit)
+        self.assertIn('XCTAssertTrue(done.isHittable',edit)
+        self.assertEqual(edit.count('done.tap()'),1)
+        view=(ROOT/'Takupoke/PDFRecoveryView.swift').read_text(encoding='utf-8')
+        toolbar=view.split('            .toolbar {',1)[1].split('            .sheet(',1)[0]
+        self.assertIn('if editingManualField != nil',toolbar)
+        self.assertIn('ToolbarItem(placement:.confirmationAction)',toolbar)
+        self.assertIn('Button("完了") { editingManualField = nil }',toolbar)
+        self.assertNotIn('placement:.keyboard',toolbar)
+        self.assertNotIn('manualAcknowledged',toolbar)
 
     def test_manual_case_filter_is_exact_and_default_keeps_whole_suite(self):
         runner=(ROOT/"tools/test-manual-ui.sh").read_text(encoding="utf-8")

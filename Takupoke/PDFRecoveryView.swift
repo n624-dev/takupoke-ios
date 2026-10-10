@@ -166,9 +166,11 @@ struct PDFRecoveryView: View {
             .navigationTitle(title)
             .toolbar {
                 ToolbarItem(placement:.cancellationAction) { Button("閉じる") { coordinator.cancel(); dismiss() } }
-                ToolbarItemGroup(placement:.keyboard) {
-                    Spacer()
-                    Button("完了") { editingManualField = nil }.accessibilityIdentifier("manual-edit-done")
+                if editingManualField != nil {
+                    ToolbarItem(placement:.confirmationAction) {
+                        Button("完了") { editingManualField = nil }
+                            .accessibilityIdentifier("manual-edit-done")
+                    }
                 }
             }
             .sheet(isPresented:$showingSource) {
