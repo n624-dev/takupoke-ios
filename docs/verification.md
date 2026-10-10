@@ -18,6 +18,13 @@ Cal色、OS提供sRGB ICC色、未知の未使用色設定、使用中の未知�
 UI実行前の履歴をApplicationChecks／ManualAssistance／iOS 27で検索し、
 U17～U19と詳細記録を確認した。今回UI操作・期限・許可確認の変更は行わない。
 
+62decb4の開発検証38061089643／38061090687は完了し、ビルドで失敗した。
+Apple SDKではCGPDFStreamGetDictionaryのoptionalをunwrapしておらず、
+CGColorの成分配列の型推論でcompiler診断が生成できなかった。
+portableでも追加テストがexam／returnを持たないMaterialKindを使用していた。
+製品の受理条件や期待結果は変更せず、SDKの型とテスト対象の種類を修正する。
+未確認のコンパイルを成功として記録した箇所はない。
+
 最初のLinux Swiftビルドでは新しい再解析テストのtuple配列の型推論が失敗した。
 配列の型を明示し、入力・期待値・製品コードを変えずに修正する。
 
