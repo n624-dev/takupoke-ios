@@ -25,7 +25,10 @@
   この版の実機導入とAltStore更新は未確認です。
 - 個別の開発確認版：ソース22c8ee2の[公開IPA](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-37811661856-1-22c8ee2b5fa5)。
   同一ソースの全13チェックが成功しました。通常Latest・固定Sourceとは別の既存公開版です。
-- 現在の自動確認：ソース0e8e4deの[全体347・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/37984539555)で、
+- 未配布の変更：同じ曜日だけの連続行を一括除外し、PDFの表示に影響しない指定による
+  Strictの拒否を見直しました。ソース65767afの[全体355](https://github.com/n624-dev/takupoke-ios/actions/runs/38043348896)
+  は検証中です。報告された実際の通常・試験・返却PDFの原因と復旧は未確認です。
+- 配布版の自動確認：ソース0e8e4deの[全体347・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/37984539555)で、
   同じ実行・試行・コミットの全13必須チェックが成功しました。
   Python159件、Native515件（予定skip1・失敗0）、通常UI4ジョブ、手動訂正6ジョブ、
   VoiceOver・追加文字サイズとiPhone SDKビルドを確認しました。
