@@ -84,6 +84,24 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
   QAだけに要求開始・callback到達の固定ラベルを記録する。実OSでの効果は未確認。
 - 根拠：[350失敗ジョブ](https://github.com/n624-dev/takupoke-ios/actions/runs/38025452042/job/114135377793)。
 
+## U11 消去済み入力の古いAX照会が期限切れ（iOS27、全体351）
+
+- 対象：原本変更ケース、ManualAssistanceChecks+Input、clear、空入力のvalue照会。
+- 観測：一回の実clearで入力9bytesから0bytes・確認falseになったが、
+  変更前に取得した入力要素の照会が停止し、空値の期待が期限切れになった。
+- 次の比較：型の変化を固定せず、現在のIDに一致する実要素を一回ずつ取得する。
+  空値・確認解除・全文置換・実入力の条件と45秒は維持する。
+- 根拠：[351失敗ジョブ](https://github.com/n624-dev/takupoke-ios/actions/runs/38030340274/job/114149898742)。
+
+## U12 通知許可操作の中継が共通期限を消費（iOS27、全体351）
+
+- 対象：通知配信ケース、ApplicationChecks+Notifications、Allow、共通45秒。
+- 観測：実許可画面の観測後、QAボタン経由のinterrupt処理に進んだ。
+  実Allow・UIのON・保存trueまで到達したが、次の待機の残り時間が0になって失敗した。
+- 次の比較：現在の一意な実許可ボタンを一回操作し、許可待ちからON・保存まで
+  一つの45秒の検証で確認する。期限切れを成功にせず、押し直し・許可注入はしない。
+- 根拠：[351失敗ジョブ](https://github.com/n624-dev/takupoke-ios/actions/runs/38030340274/job/114149898669)。
+
 ## U10 初期設定footerの受動照会で操作点エラー（iOS27、全体350）
 
 - 対象：`testSetupCanBeSkippedAndOffersAllFiles`、`ApplicationChecks+Navigation.swift`、

@@ -53,23 +53,29 @@ extension ManualAssistanceChecks {
         // or fully inside the viewport; absent firstMatch queries can stall AX.
         let target=visible(clear,knownID:"manual-clear-"+id)
         XCTAssertTrue(target.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
-        let e=input(id) // Resolve the current editor after its row is visible.
         print("TAKUPOKE-MANUAL-CLEAR-TAP id=\(id);frame=\(target.frame);enabled=\(target.isEnabled);hittable=\(target.isHittable)")
         XCTAssertTrue(target.isEnabled)
         target.tap()
-        let empty=XCTNSPredicateExpectation(predicate:NSPredicate(format:"value == %@ OR value == %@","","PDFに記載された全文"),object:e)
+        let empty=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
+            let current=self.app.descendants(matching:.any)
+                .matching(identifier:"manual-value-"+id).allElementsBoundByIndex
+            guard current.count==1,let text=current[0].value as? String else { return false }
+            return text.isEmpty || text == "PDFに記載された全文"
+        },object:app)
         let cleared=XCTWaiter.wait(for:[empty],timeout:nativeStateTimeout)
         if cleared != .completed {
             let state=app.staticTexts["manual-input-state"].firstMatch
-            print("TAKUPOKE-MANUAL-CLEAR id=\(id);value=\(String(describing:e.value));state=\(state.exists ? state.label:"absent")")
+            print("TAKUPOKE-MANUAL-CLEAR id=\(id);state=\(state.exists ? state.label:"absent")")
             emitEvents()
         }
         XCTAssertEqual(cleared,.completed,"Native clear must remove the entire previous input")
+        guard cleared == .completed else { return }
         XCTAssertEqual(ack(id).value as? String,"0","Clearing text must revoke prior acknowledgement")
         // The real clear button focuses its associated native editor. Open
         // the keyboard through that action, after locating the complete44px
         // control, instead of covering it by focusing the text field first.
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
+        let e=input(id) // Resolve the current native editor after clearing and focus.
         editStage("after-clear-focus",e)
         e.typeText(value)
         // End the native editor before the independent acknowledgement tap.

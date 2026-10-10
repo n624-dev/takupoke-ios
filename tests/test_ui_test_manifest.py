@@ -154,20 +154,26 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(checks.count('tapNativeSwitch(toggle)'), 1)
         activation = checks.split('tapNativeSwitch(toggle)', 1)[1]
         pending = activation.split('guard didEnable else {', 1)[0]
-        self.assertIn('if probe.label.hasPrefix("requesting=true;") { touch.tap() }', pending)
-        self.assertEqual(pending.count("touch.tap()"), 1)
+        self.assertNotIn("touch.tap()", pending)
+        self.assertEqual(pending.count("allow.tap()"), 1)
+        self.assertEqual(pending.count("XCTWaiter.wait"), 1)
+        self.assertIn('!permissionHandled', pending)
+        self.assertLess(pending.index('permissionHandled = true'), pending.index('allow.tap()'))
         self.assertNotIn("for _ in", pending)
         self.assertIn('(toggle.value as? String) == "1"', pending)
-        self.assertIn('probe.label.hasPrefix("requesting=false;changes=true;saved=true;")', pending)
+        self.assertIn('state.hasPrefix("requesting=false;changes=true;saved=true;")', pending)
         self.assertIn('Date().addingTimeInterval(45)', pending)
         self.assertIn('deadline.timeIntervalSinceNow', pending)
-        self.assertIn('self.permissionAlertIsVisible(predicate)', pending)
+        self.assertIn('self.permissionAllowButton(predicate)', pending)
+        self.assertIn('Date() <= deadline', pending)
         self.assertNotIn('state.hasSuffix(";application=', pending)
-        alert = checks.split('private func permissionAlertIsVisible(', 1)[1].split(
+        alert = checks.split('private func permissionAllowButton(', 1)[1].split(
             'private func openNotificationSettings()', 1)[0]
-        self.assertIn('guard alerts.count == 1', alert)
+        self.assertIn('guard current.count == 1', alert)
         self.assertIn('allow.count == 1', alert)
-        self.assertIn('allow.element(boundBy: 0).isHittable', alert)
+        self.assertIn('button.isEnabled, button.isHittable', alert)
+        self.assertIn('current[0].frame.contains(button.frame)', alert)
+        self.assertNotIn('addUIInterruptionMonitor', pending)
         navigation = (ROOT / "tests/ui/ApplicationChecks+Navigation.swift").read_text()
         switch = navigation.split("func tapNativeSwitch(", 1)[1]
         self.assertEqual(switch.count(".press(forDuration: 0.1)"), 1)
@@ -199,6 +205,7 @@ class ManifestTests(unittest.TestCase):
         binding = lifecycle.replace("application-ready", "notification-on-binding")
         callbacks = "".join(lifecycle.replace("application-ready", stage) + "\n" for stage in (
             "notification-native-request", "notification-native-callback",
+            "notification-auth-request", "notification-auth-callback",
             "notification-settings-not-requested"))
         removed = "TAKUPOKE_HIT_PATH pid=123 touch=UIView~UISwitch thumb=UIView~UISwitch opposite=UIView~UISwitch"
         with tempfile.TemporaryDirectory(prefix="takupoke-launch-collector-") as directory:

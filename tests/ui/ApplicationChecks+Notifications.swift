@@ -3,16 +3,21 @@ import UIKit
 import CryptoKit
 
 extension ApplicationChecks {
-    private func permissionAlertIsVisible(_ allowPredicate: NSPredicate) -> Bool {
+    private func permissionAllowButton(_ allowPredicate: NSPredicate) -> XCUIElement? {
         // Resolve the actual system surface afresh; never retain an element
         // belonging to a previous permission alert or accessibility server.
         let system = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         let alerts = system.alerts.matching(NSPredicate(
             format: "label CONTAINS %@ AND (label CONTAINS[c] %@ OR label CONTAINS %@)",
             app.label, "notification", "通知"))
-        guard alerts.count == 1 else { return false }
-        let allow = alerts.element(boundBy: 0).buttons.matching(allowPredicate)
-        return allow.count == 1 && allow.element(boundBy: 0).isHittable
+        let current = alerts.allElementsBoundByIndex
+        guard current.count == 1 else { return nil }
+        let allow = current[0].buttons.matching(allowPredicate).allElementsBoundByIndex
+        guard allow.count == 1 else { return nil }
+        let button = allow[0]
+        guard usable(button.frame), current[0].frame.contains(button.frame),
+            button.isEnabled, button.isHittable else { return nil }
+        return button
     }
     private func openNotificationSettings() {
         let row = app.buttons["通知"].firstMatch
@@ -61,17 +66,6 @@ extension ApplicationChecks {
         let predicate = NSPredicate(
             format: "label BEGINSWITH[c] %@ OR label == %@ OR label == %@ OR label == %@", "Allow", "許可",
             "許可する", "通知を許可")
-        // Permission UI can move between system processes on iOS 27. Let
-        // XCTest resolve the interrupting alert rather than retaining a
-        // SpringBoard element whose accessibility server has gone away.
-        let monitor = addUIInterruptionMonitor(withDescription: "Notification permission") { alert in
-            print("NOTIFICATION_ALERT title=\(alert.label);buttons=\(alert.buttons.allElementsBoundByIndex.map(\.label))")
-            let allow = alert.buttons.matching(predicate).firstMatch
-            guard allow.exists else { return false }
-            allow.tap()
-            return true
-        }
-        defer { removeUIInterruptionMonitor(monitor) }
         print(
             "NOTIFICATION_SWITCH before row=\(toggle.frame) value=\(String(describing: toggle.value)) state=\(probe.label)"
         )
@@ -89,24 +83,22 @@ extension ApplicationChecks {
         tapNativeSwitch(toggle)
         print("NOTIFICATION_SWITCH activated state=\(probe.label)")
         let deadline = Date().addingTimeInterval(45)
-        // A real system permission alert can leave the app reported as active.
-        // Observe the unique alert and its actual Allow control instead.
-        let transition = expectation(for: NSPredicate { _, _ in
-            let state = probe.label
-            let completed = state.hasPrefix("requesting=false;changes=true;saved=true;")
-            let modal = state.hasPrefix("requesting=true;")
-                && self.permissionAlertIsVisible(predicate)
-            return completed || modal
-        }, evaluatedWith: probe)
-        guard XCTWaiter.wait(for: [transition], timeout: 45) == .completed else {
-            recoveryScreenshot("notification-transition-unresolved", systemScreen: true)
-            XCTFail("The physical switch did not reach enablement or a real permission interruption")
-            return
-        }
-        if probe.label.hasPrefix("requesting=true;") { touch.tap() }
+        var permissionHandled = false
+        // Observe the current system surface and tap its actual Allow once.
+        // Routing through another app button consumed the common deadline.
         let enabled = expectation(for: NSPredicate { _, _ in
-            (toggle.value as? String) == "1" && probe.exists
-                && probe.label.hasPrefix("requesting=false;changes=true;saved=true;")
+            guard Date() <= deadline else { return false }
+            let state = probe.label
+            if state.hasPrefix("requesting=false;changes=true;saved=true;") {
+                return (toggle.value as? String) == "1" && Date() <= deadline
+            }
+            if !permissionHandled, state.hasPrefix("requesting=true;"),
+                let allow = self.permissionAllowButton(predicate), Date() <= deadline {
+                permissionHandled = true
+                print("NOTIFICATION_ALLOW frame=\(allow.frame)")
+                allow.tap()
+            }
+            return false
         }, evaluatedWith: app)
         let didEnable = XCTWaiter.wait(for: [enabled], timeout: max(0, deadline.timeIntervalSinceNow)) == .completed
         guard didEnable else {
