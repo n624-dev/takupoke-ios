@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`2d7b07c980e039f8e1904b0c04fc708f077f6fcc00e91a7720b751399404f497`
+`9c186c04bb8c15a41a723a3b055f580e39b52e246cc6be2a216b591f652fc3fb`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -134,9 +134,9 @@ bash tools/test-parsing.sh
 
 ## [tests/PDFTextGeometryTests+Colors.swift](../../tests/PDFTextGeometryTests+Colors.swift)
 
-- `testNativeDeviceColorAssignmentsKeepOperationLimitAndCancellation`
 - `testPDFPaintNumbersExpandExponentsWithoutRoundingSmallValues`
 - `testVisibleDeviceColorsKeepOriginalGlyphOrderAndCoordinates`
+- `testNativeDeviceColorAssignmentsKeepOperationLimitAndCancellation`
 - `testNativeVisibleDeviceCalibratedAndUnusedUnknownColorsPreserveAcquisition`
 - `testNativeTrustedSRGBProfileSupportsExplicitAndDefaultColors`
 - `testNativeInvalidUsedColorAndWhiteCalibratedTextRemainRejected`

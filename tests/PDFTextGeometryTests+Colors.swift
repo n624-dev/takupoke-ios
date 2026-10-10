@@ -2,21 +2,6 @@ import Foundation
 import XCTest
 @testable import TakupokeParsing
 #if canImport(PDFKit)
-    func testNativeDeviceColorAssignmentsKeepOperationLimitAndCancellation() throws {
-        let data = syntheticPDF(content:String(repeating:"0 g\n",count:1_000_001)+
-            "BT /F1 10 Tf 30 350 Td (AB) Tj ET",simpleFont:true)
-        let provider = try XCTUnwrap(CGDataProvider(data:data as CFData))
-        let document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
-        XCTAssertThrowsError(try PDFDrawnTextReader(check:{}).read(page,expectedText:"AB")) {
-            XCTAssertEqual(($0 as? PDFParseError)?.code,.limit)
-        }
-        var checks = 0
-        XCTAssertThrowsError(try PDFDrawnTextReader(check:{
-            checks += 1; if checks == 17 { throw PDFParseError(code:.cancelled) }
-        }).read(page,expectedText:"AB")) { XCTAssertEqual(($0 as? PDFParseError)?.code,.cancelled) }
-        XCTAssertEqual(checks,17)
-    }
-
 import PDFKit
 import CoreGraphics
 #endif
@@ -46,6 +31,21 @@ extension PDFTextGeometryTests {
     }
 
 #if canImport(PDFKit)
+    func testNativeDeviceColorAssignmentsKeepOperationLimitAndCancellation() throws {
+        let data = syntheticPDF(content:String(repeating:"0 g\n",count:1_000_001) +
+            "BT /F1 10 Tf 30 350 Td (AB) Tj ET",simpleFont:true)
+        let provider = try XCTUnwrap(CGDataProvider(data:data as CFData))
+        let document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
+        XCTAssertThrowsError(try PDFDrawnTextReader(check:{}).read(page,expectedText:"AB")) {
+            XCTAssertEqual(($0 as? PDFParseError)?.code,.limit)
+        }
+        var checks = 0
+        XCTAssertThrowsError(try PDFDrawnTextReader(check:{
+            checks += 1; if checks == 17 { throw PDFParseError(code:.cancelled) }
+        }).read(page,expectedText:"AB")) { XCTAssertEqual(($0 as? PDFParseError)?.code,.cancelled) }
+        XCTAssertEqual(checks,17)
+    }
+
     private func assertVisibleColorAcquisition(_ data: Data, rulesOnly: Data, file: StaticString = #filePath, line: UInt = #line) throws {
         // The independent PDF renderer must show additional text ink beyond
         // the rule alone. A black rule cannot hide white or invisible text.
