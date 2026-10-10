@@ -9,8 +9,9 @@ struct PDFPaintSpace {
     let space: CGColorSpace?
     var device = false
     func rgb(_ values: [Double]) -> [Double]? {
-        guard let space, values.count == count,
-              let color = CGColor(colorSpace: space, components: values.map(CGFloat.init) + [1]),
+        guard let space, values.count == count else { return nil }
+        let samples: [CGFloat] = values.map { CGFloat($0) } + [CGFloat(1)]
+        guard let color = CGColor(colorSpace: space, components: samples),
               let converted = color.converted(to: CGColorSpaceCreateDeviceRGB(),
                   intent: .relativeColorimetric, options: nil),
               let components = converted.components, components.count == 4,
@@ -74,7 +75,7 @@ final class PDFPaintSpaceResolver {
         case "ICCBased":
             var stream: CGPDFStreamRef?
             guard CGPDFArrayGetStream(array,1,&stream), let stream else { return unsupported }
-            let dictionary = CGPDFStreamGetDictionary(stream)
+            guard let dictionary = CGPDFStreamGetDictionary(stream) else { return unsupported }
             var count: CGPDFInteger = 0, length: CGPDFInteger = 0
             guard CGPDFDictionaryGetInteger(dictionary,"N",&count), [1,3,4].contains(Int(count)) else { return unsupported }
             let invalid = PDFPaintSpace(count:Int(count),space:nil)

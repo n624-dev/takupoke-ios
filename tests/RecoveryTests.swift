@@ -173,7 +173,7 @@ final class RecoveryTests: XCTestCase {
     }
     func testVisibleColorVersionRetriesUnchangedP23FailureForAllThreePDFKinds() {
         let failure = PDFParseError(code: .unsupported, stage: .paintVisibility)
-        let cases: [(MaterialKind,Int)] = [(.timetable,26), (.exam,23), (.return,23)]
+        let cases: [(RecoveryDocumentKind,Int)] = [(.timetable,26), (.exam,23), (.return,23)]
         for (kind, previous) in cases {
             let version = kind == .timetable ? PDFAnalysis.parserVersion : SpecialScheduleAnalysis.parserVersion
             XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"same",parserVersion:version,
