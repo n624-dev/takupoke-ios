@@ -4,6 +4,19 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 各項目は観測、試した変更、確認範囲だけを短く記す。詳細はリンク先を読む。
 新しい失敗は次の試行前に追記する。未確認の原因を確定扱いしない。
 
+## U24 ビルド後のSimulator起動でも通知の応答停止が再発（iOS27、全体358）
+
+- 対象：`testChangedDataProducesOneLocalNotification`、5cfc575の27 A。
+- 観測：実Switch一回・requesting=true・実SDK要求を確認したが、45秒内に
+  Allow・callbackがなく103.590秒で失敗。全15件中14件成功・1件失敗だった。
+- 状態：U21・U22と同じ停止段階。1305b27の個別成功を一般的な解消とは扱わない。
+  ビルド後にSimulatorを起動しても再発したため、その順序だけを原因・解決としない。
+- 診断の限界：終了時は3サービス稼働、ログ取得終了0・3,860,984 bytesだった。
+  診断は終了直前10分で、約28分前の要求を含まない。要求時の状態の証明には使えない。
+- 次の検証：359はこの失敗ログ取得前に開始済み。表示枠のみの修正であり、
+  通知停止の修正比較としては数えない。再発時は要求時刻の局所ログが必要。
+- 根拠：[358通常27 A](https://github.com/n624-dev/takupoke-ios/actions/runs/38075094896/job/114280469251)。
+
 ## U23 初期設定footerの表示枠が取得できない（iOS27、全体358）
 
 - 対象：`testSetupCanBeSkippedAndOffersAllFiles`、`ApplicationChecks+Navigation.swift`。
