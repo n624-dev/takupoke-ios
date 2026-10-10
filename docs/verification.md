@@ -1,5 +1,30 @@
 # 検証記録
 
+## 2026-10-10 全体357の通知許可停止
+
+[357・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38068857906)、
+ソースc490e2dfcaf2a939c6ec10ec8928f12ffaf4db7fは事前12ジョブ中11成功・1失敗。
+全ジョブを中止せず完了まで確認した。公開ジョブはskipで、357は公開していない。
+Native530件・予定skip1・失敗0（116.927秒）、Python160件・失敗0。
+手動訂正6ジョブ、通常26 A/Bと27 B（追加文字サイズ3条件を含む）は成功した。
+26 Aは15件・失敗0・1416.003秒、26 Bは12件・予定skip1・失敗0・991.298秒。
+27 Bは12件・失敗0・1249.037秒だった。
+
+通常27 Aは15件中1失敗・2233.422秒。通知配信ケースだけが106.390秒で失敗した。
+一回の実Switch操作は16:58:58にSDKのrequestAuthorizationへ進んだが、45秒内に
+許可画面・Allow操作・実callbackはなかった。OFF・保存false・requesting=trueのまま。
+期限後のアプリ画像とSystem画像は同一SHAで、可視の許可画面はない。
+notification-native-request/callbackはgetNotificationSettingsの観測であり、
+requestAuthorizationのauth-request/callbackとは区別して確認した。
+
+次の比較前に`testChangedDataProducesOneLocalNotification|requestAuthorization|permission|iOS27`
+で失敗索引を検索し、U18・U15・U08・U06・U12を読んだ。
+今回はU20の操作前撮影停止ではなく、U18のOS要求後の停止がMainActor bridgeでも再発した。
+Appleの[UI割込みの説明](https://developer.apple.com/documentation/xctest/handling-ui-interruptions)
+は予期する許可画面を直接操作するよう案内しており、失敗済みのQA中継へ戻さない。
+原因は未確定。製品PDF・通知の採用条件、45秒、一回の要求、実許可・保存・配信の検査を
+変更せず、所有する架空Simulatorの通知サービスとOS要求経路を追加観測する。
+
 ## 2026-10-10 可視色の互換性修正
 
 最終ソース3e58684の[両SDK検証38064463486](https://github.com/n624-dev/takupoke-ios/actions/runs/38064463486)
@@ -13,7 +38,8 @@ portable Swift471件、Python160件は失敗0。開発検証38064461776も成功
 の通常26 Aは15件中1失敗だった。通知SwitchのOFF・保存false・前景を確認した後、
 操作前の診断用app.screenshotが約54秒で期限切れになり、Switch操作へ進んでいない。
 他の14件は成功。Native530件・予定skip1・失敗0（95.276秒、準備込み261.0秒）、
-手動訂正6ジョブ、通常27 Aと26 Bも成功した。残る27 Bは中止せず完了まで確認する。
+手動訂正6ジョブ、通常27 Aと26 Bも成功した。27 Bも中止せず完了し、成功した。
+事前12検査のうち11成功・1失敗で公開ジョブはskipとなり、この356は公開していない。
 公開の全体合格には数えず、別実行や失敗ジョブだけの再実行で代替しない。
 
 次のUI比較前にtestChangedDataProducesOneLocalNotification／screenshot／Timed out／

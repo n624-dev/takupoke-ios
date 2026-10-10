@@ -4,6 +4,18 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 各項目は観測、試した変更、確認範囲だけを短く記す。詳細はリンク先を読む。
 新しい失敗は次の試行前に追記する。未確認の原因を確定扱いしない。
 
+## U21 通知許可のOS応答停止が再発（iOS27、全体357）
+
+- 対象：`testChangedDataProducesOneLocalNotification`、実通知許可要求。
+- 観測：操作前の撮影を除いたc490e2dで、実Switch一回・requesting=true・SDK要求を
+  確認したが、45秒内に許可画面・Allow・callbackがない。106.390秒で失敗した。
+  期限後のアプリ画像とSystem画像は同一SHAで、許可画面がない。
+- 状態：U18と同じ停止段階がMainActor bridgeでも再発した。actor変更だけで一般的に
+  解消したとは扱わない。Simulatorの通知サービス側と要求経路を追加観測する。
+- 確認範囲：他の事前11ジョブは成功。26 Aは15件成功、27 Bの通知設定も成功した。
+  公開ジョブはskipで357は未公開。PDF修正・実資料の成否とは別に扱う。
+- 根拠：[357通常27 A](https://github.com/n624-dev/takupoke-ios/actions/runs/38068857906/job/114262118118)。
+
 ## U20 操作前の診断撮影が期限切れ（iOS26、全体356）
 
 - 対象：`testChangedDataProducesOneLocalNotification`、
@@ -29,6 +41,7 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
   動作検査は成功した。
 - 確認範囲：65767afの355通常27 Aで実Allow・callback・保存・配信まで成功
   （65.948秒）。一回の比較結果であり、一般的な原因解消や全体合格とは区別する。
+  357では同じ停止段階が再発した（U21）。
 - 根拠：[354通常27 A](https://github.com/n624-dev/takupoke-ios/actions/runs/38040538159/job/114179897970)。
 
 ## U19 行除外の実Switch操作後に値が変わらない（iOS27、全体354）
