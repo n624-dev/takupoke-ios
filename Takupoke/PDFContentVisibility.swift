@@ -56,14 +56,17 @@ enum PDFClipValidation {
 import CoreGraphics
 
 extension PDFDevicePaint {
-    static func requireStandardDefaults(_ scanner: CGPDFScannerRef) throws {
-        for (key, expected) in [("DefaultGray","DeviceGray"),("DefaultRGB","DeviceRGB"),("DefaultCMYK","DeviceCMYK")] {
+    static func unsupportedDefaultCounts(_ scanner: CGPDFScannerRef) -> Set<Int> {
+        var unsupported = Set<Int>()
+        for (key, expected, count) in [("DefaultGray","DeviceGray",1),("DefaultRGB","DeviceRGB",3),("DefaultCMYK","DeviceCMYK",4)] {
             guard let object = CGPDFContentStreamGetResource(CGPDFScannerGetContentStream(scanner),"ColorSpace",key) else { continue }
             var name: UnsafePointer<CChar>?
             guard CGPDFObjectGetValue(object,.name,&name), let name, String(cString:name) == expected else {
-                throw PDFParseError(code:.unsupported,stage:.paintVisibility)
+                unsupported.insert(count)
+                continue
             }
         }
+        return unsupported
     }
     mutating func space(_ scanner: CGPDFScannerRef) throws {
         var pointer: UnsafePointer<CChar>?

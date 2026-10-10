@@ -61,15 +61,27 @@ extension PDFTextGeometryTests {
             "/Artifact BMC "+text+rule+" EMC",
             "/Span << /MCID 0 /Lang (en) >> BDC "+text+rule+" EMC",
             "q 0 0 300 400 re W n "+text+rule+" Q",
-            "q -1 -1 302 402 re W* n /Span << /MCID 0 >> BDC "+text+rule+" EMC Q"
+            "q -1 -1 302 402 re W* n /Span << /MCID 0 >> BDC "+text+rule+" EMC Q",
+            text+rule // An unsupported but unused DefaultRGB must not reject DeviceGray ink.
         ]
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-inert-visibility-"+UUID().uuidString)
         try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
         defer { try? FileManager.default.removeItem(at:root) }
         for (index, content) in variants.enumerated() {
-            let data = syntheticPDF(content:content,simpleFont:true,colorSpaces:"/TextRGB /DeviceRGB /TextCMYK /DeviceCMYK /DefaultRGB /DeviceRGB")
+            let resources = index == variants.count-1 ? "/DefaultRGB [/ICCBased 4 0 R]"
+                : "/TextRGB /DeviceRGB /TextCMYK /DeviceCMYK /DefaultRGB /DeviceRGB"
+            let data = syntheticPDF(content:content,simpleFont:true,colorSpaces:resources)
             #if canImport(AppKit)
-            XCTAssertEqual(try thumbnailPixels(data,box:.mediaBox).pixels,try thumbnailPixels(reference,box:.mediaBox).pixels,"variant \(index)")
+            // DeviceCMYK's rendered black differs from DeviceGray. Independent
+            // references use canonical operators for that same paint, without
+            // aliases or unused state; every pixel must still match exactly.
+            let comparison: Data
+            if index == 5 {
+                comparison = syntheticPDF(content:text+" /DeviceCMYK CS 0 0 0 1 SCN "+rule,simpleFont:true)
+            } else if index == 6 {
+                comparison = syntheticPDF(content:"/DeviceCMYK cs 0 0 0 1 scn "+text+rule,simpleFont:true)
+            } else { comparison = reference }
+            XCTAssertTrue(try thumbnailPixels(data,box:.mediaBox).pixels == thumbnailPixels(comparison,box:.mediaBox).pixels,"variant \(index)")
             #endif
             let provider = try XCTUnwrap(CGDataProvider(data:data as CFData))
             let document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
@@ -115,7 +127,7 @@ extension PDFTextGeometryTests {
                 XCTAssertFalse(capture.pages.contains { $0.state == .complete })
             }
         }
-        for (prefix, resources) in [("", "/DefaultRGB [/ICCBased 4 0 R]"),
+        for (prefix, resources) in [("/DeviceRGB cs 0 0 0 sc ", "/DefaultRGB [/ICCBased 4 0 R]"),
                                     ("", "/DefaultGray [/CalGray << /WhitePoint [1 1 1] >>]"),
                                     ("/Cycle cs ", "/Cycle /Cycle")] {
             let url = root.appendingPathComponent("fictional.pdf")

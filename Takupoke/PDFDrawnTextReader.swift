@@ -12,6 +12,7 @@ final class PDFDrawnTextReader {
     private var clipPath = PDFRectangularClipPath()
     private var markedContent = PDFMarkedContent()
     private var pageBounds: PDFBox?
+    private var unsupportedDefaultCounts = Set<Int>()
     init(check: @escaping () throws -> Void) { engine = PDFTextGeometry(check: check) }
 
     private static func run(_ info: UnsafeMutableRawPointer?, _ action: (PDFDrawnTextReader) throws -> Void) {
@@ -43,6 +44,9 @@ final class PDFDrawnTextReader {
         let length = CGPDFStringGetLength(value)
         guard length <= 200_000 else { throw PDFParseError(code: .limit) }
         if length == 0 { try engine.show([]); return }
+        guard !unsupportedDefaultCounts.contains(engine.state.colors.fill.count) else {
+            throw PDFParseError(code:.unsupported,stage:.paintVisibility)
+        }
         guard let bytes = CGPDFStringGetBytePtr(value) else { throw PDFTextFailure.unsupported }
         try engine.show(Array(UnsafeBufferPointer(start: bytes, count: length)))
     }
@@ -205,7 +209,7 @@ final class PDFDrawnTextReader {
         defer { CGPDFContentStreamRelease(stream) }
         let scanner = CGPDFScannerCreate(stream, table, Unmanaged.passUnretained(self).toOpaque())
         defer { CGPDFScannerRelease(scanner) }
-        try PDFDevicePaint.requireStandardDefaults(scanner)
+        unsupportedDefaultCounts = PDFDevicePaint.unsupportedDefaultCounts(scanner)
         let succeeded = CGPDFScannerScan(scanner)
         if let failure = failure { throw failure }
         guard succeeded else { throw PDFTextFailure.unsupported }

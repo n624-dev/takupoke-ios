@@ -233,10 +233,10 @@ extension PDFParsingTests {
         let document = try XCTUnwrap(PDFDocument(data: data as Data))
         let nativePage = try XCTUnwrap(document.page(at: 0))
         XCTAssertTrue(try XCTUnwrap(nativePage.string).contains("\n"))
-        // CoreText's generated font is not a supported timetable font. The
-        // strict drawn-text reader rejects it; PDFKit selection remains usable.
+        // CoreText's generated color spaces/fonts are outside the supported
+        // timetable subset; PDFKit selection remains usable.
         XCTAssertThrowsError(try PDFKitReader.read(url, kind: .timetable)) { error in
-            XCTAssertEqual((error as? PDFParseError)?.stage, .characterMapping)
+            XCTAssertEqual((error as? PDFParseError)?.stage, .paintVisibility)
         }
         for kind in [MaterialKind.events] {
             nativePage.rotation = 0
@@ -368,7 +368,7 @@ extension PDFParsingTests {
         // CoreText's synthetic PDF is intentionally outside the strict
         // drawn-text subset; a separate explicit-ToUnicode fixture covers it.
         XCTAssertThrowsError(try PDFKitReader.read(url, kind: .timetable)) { error in
-            XCTAssertEqual((error as? PDFParseError)?.stage, .characterMapping)
+            XCTAssertEqual((error as? PDFParseError)?.stage, .paintVisibility)
         }
         // This test covers the legacy PDFKit selection bridge, whose generated
         // CoreText color spaces/fonts are outside the school visibility subset.

@@ -703,7 +703,9 @@ extension PDFTextGeometryTests {
             let reader = PDFPathReader(transform:PDFDisplayTransform(media:page.getBoxRect(.mediaBox),rotation:0),verifyVisibility:true,check:{})
             XCTAssertThrowsError(try reader.read(page),prefix) { error in
                 XCTAssertEqual((error as? PDFParseError)?.code,.unsupported)
-                XCTAssertEqual((error as? PDFParseError)?.stage,.vectorObjects)
+                let expected: PDFParseError.Stage = prefix.hasSuffix(" W n") ? .clippingBounds :
+                    prefix.hasSuffix("BMC") || prefix.hasSuffix("BDC") ? .contentTags : .vectorObjects
+                XCTAssertEqual((error as? PDFParseError)?.stage,expected)
             }
             XCTAssertThrowsError(try PDFDrawnTextReader(check:{}).read(page,expectedText:"AB"),prefix)
             let url = root.appendingPathComponent("fictional.pdf"); try data.write(to:url)
@@ -748,7 +750,7 @@ extension PDFTextGeometryTests {
             let document = try XCTUnwrap(CGPDFDocument(provider))
             let page = try XCTUnwrap(document.page(at: 1))
             XCTAssertThrowsError(try PDFDrawnTextReader(check: {}).read(page, expectedText: "A")) { error in
-                XCTAssertEqual((error as? PDFParseError)?.stage, .characterMapping)
+                XCTAssertEqual((error as? PDFParseError)?.stage, extra.contains("ActualText") ? .contentTags : .characterMapping)
             }
         }
     }

@@ -98,6 +98,7 @@ final class PDFPathReader {
     private var markedContent = PDFMarkedContent()
     private var clips: [PDFBox] = []
     private var paintedBoxes: [PDFBox] = []
+    private var unsupportedDefaultCounts = Set<Int>()
     var paths: [[CGPoint]] = []
     var lines: [PDFRule] = []
     var arrows: [PDFArrow] = []
@@ -191,6 +192,10 @@ final class PDFPathReader {
         guard failure == nil else { return }
         do { try check() } catch { failure = error; return }
         if verifyVisibility && !paths.isEmpty {
+            guard (!fill || !unsupportedDefaultCounts.contains(colors.fill.count)) &&
+                  (!stroke || !unsupportedDefaultCounts.contains(colors.stroke.count)) else {
+                failure = PDFParseError(code:.unsupported,stage:.paintVisibility); return
+            }
             // A white page background is harmless only before any retained ink.
             if fill && !stroke && colors.fill.isWhite && !textSeen && lines.isEmpty && arrows.isEmpty && paintedBoxes.isEmpty,
                paths.count == 1, let box = rectangularPathBox(),
@@ -452,7 +457,9 @@ final class PDFPathReader {
                 CGPDFOperatorTableSetCallback(table, op) { _, p in
                     guard let s = PDFPathReader.state(p) else { return }
                     s.textSeen = true
-                    if !s.colors.fill.isBlack { s.failure = PDFParseError(code:.unsupported,stage:.paintVisibility) }
+                    if !s.colors.fill.isBlack || s.unsupportedDefaultCounts.contains(s.colors.fill.count) {
+                        s.failure = PDFParseError(code:.unsupported,stage:.paintVisibility)
+                    }
                 }
             }
             CGPDFOperatorTableSetCallback(table,"g") { scanner,p in PDFPathReader.state(p)?.color(scanner,stroke:false,count:1) }
@@ -495,7 +502,7 @@ final class PDFPathReader {
         defer { CGPDFContentStreamRelease(stream) }
         let scanner = CGPDFScannerCreate(stream, table, Unmanaged.passUnretained(self).toOpaque())
         defer { CGPDFScannerRelease(scanner) }
-        if verifyVisibility { try PDFDevicePaint.requireStandardDefaults(scanner) }
+        if verifyVisibility { unsupportedDefaultCounts = PDFDevicePaint.unsupportedDefaultCounts(scanner) }
         let succeeded = CGPDFScannerScan(scanner)
         if let failure = failure { throw failure }
         try check()
