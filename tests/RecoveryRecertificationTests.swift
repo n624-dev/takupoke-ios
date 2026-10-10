@@ -197,7 +197,7 @@ final class RecoveryRecertificationTests: XCTestCase {
     func testFormalProjectionMustBeIdenticalBeforeMetadataOnlyUpgrade() throws {
         let old = try oldGood(structured:true), original = try projection(old)
         let current = try XCTUnwrap(RecoveryValidator.recertifiedTimetable(original,hash:old.document.pdfHash))
-        XCTAssertEqual(current.version,25)
+        XCTAssertEqual(current.version,PDFAnalysis.parserVersion)
         XCTAssertEqual(current.lessons,original.lessons)
         XCTAssertEqual(current.parsedAt,original.parsedAt)
         XCTAssertEqual(current.notices,original.notices)
@@ -234,11 +234,11 @@ final class RecoveryRecertificationTests: XCTestCase {
 
         let reopened = try MaterialLibrary(root:root) // The actual initialization handoff recertifies, no user adoption call.
         let current = try XCTUnwrap(reopened.state.pdfAnalyses?["timetable"])
-        XCTAssertEqual(current.version,25); XCTAssertEqual(current.lessons,original.lessons)
+        XCTAssertEqual(current.version,PDFAnalysis.parserVersion); XCTAssertEqual(current.lessons,original.lessons)
         XCTAssertEqual(current.recovery?.previousAcceptance,old.acceptance)
         XCTAssertEqual(current.recovery?.acceptance.acceptedAt,acceptedAt)
         XCTAssertNil(reopened.state.pdfParseAttempts?["timetable"]?.recoveryJob)
-        XCTAssertEqual(reopened.state.pdfParseAttempts?["timetable"]?.parserVersion,25)
+        XCTAssertEqual(reopened.state.pdfParseAttempts?["timetable"]?.parserVersion,PDFAnalysis.parserVersion)
         XCTAssertEqual(try Data(contentsOf:try XCTUnwrap(reopened.localURL(for:.timetable))),bytes)
         let again = try MaterialLibrary(root:root)
         XCTAssertEqual(try RecoveryValidator.fingerprint(again.state.pdfAnalyses),try RecoveryValidator.fingerprint(reopened.state.pdfAnalyses))

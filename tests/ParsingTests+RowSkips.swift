@@ -4,6 +4,48 @@ import ZIPFoundation
 @testable import TakupokeParsing
 
 extension ParsingTests {
+    func testConsecutiveIdenticalWeekdayPlaceholdersGroupWithoutHidingPopulatedOrSeparatedRows() throws {
+        func row(_ id: Int, _ day: String, populated: Bool = false) -> ChangeReviewRow {
+            ChangeReviewRow(id:id,warning:ChangeParseError(code:populated ? .weekdayMismatch : .weekdayOnly,row:id,printedWeekday:day),
+                            fields:[ChangeReviewField(title:"曜日",value:day)] + (populated ? [ChangeReviewField(title:"備考",value:"架空備考")] : []))
+        }
+        let block = (200...300).map { row($0,"土") }
+        let rows = [row(198,"土",populated:true)] + block +
+            [row(301,"日"),row(302,"土",populated:true),row(303,"土"),row(305,"土")]
+        let groups = ChangeReviewGroup.group(rows)
+        XCTAssertEqual(groups.map { $0.rows.count },[1,101,1,1,1,1])
+        XCTAssertEqual(groups[1].rowIDs,Set(200...300))
+        XCTAssertEqual(groups[1].rangeLabel,"200〜300行目")
+        XCTAssertEqual(groups[1].accessibilityID,"change-skip-group-200-300")
+        XCTAssertEqual(groups[0].accessibilityID,"change-skip-row-198")
+        XCTAssertEqual(groups.flatMap(\.rows),rows)
+        XCTAssertEqual(ChangeReviewGroup.rangeLabel([300,200,201,203,203]),"200〜201行目、203行目、300行目")
+        XCTAssertEqual(ChangeReviewGroup.rangeLabel([]),"")
+        var malformed = row(304,"土")
+        malformed.fields.append(ChangeReviewField(title:"備考",value:"架空備考"))
+        XCTAssertEqual(ChangeReviewGroup.group([row(303,"土"),malformed,row(305,"土")]).count,3)
+    }
+
+    func testGroupedWeekdayPlaceholdersStillRequireExplicitFullRowConsent() throws {
+        try temporary { root in
+            var rows = [skipRowsFixture[0],skipRowsFixture[1]]
+            rows += Array(repeating:[],count:197)
+            rows += Array(repeating:["","","","土"],count:101)
+            let url = root.appendingPathComponent("fictional-long-weekday-block.xlsx")
+            try write(workbook(rows),to:url)
+            let table = try XLSXReader.readForPreview(url,defaultYear:2032)
+            let groups = ChangeReviewGroup.group(table.reviewRows)
+            XCTAssertEqual(groups.count,1)
+            XCTAssertEqual(groups[0].rowIDs,Set(200...300))
+            assertCode(.weekdayOnly) { _ = try XLSXReader.read(url,defaultYear:2032) }
+            assertCode(.weekdayOnly) { _ = try XLSXReader.read(url,defaultYear:2032,skippingRows:Set(200...299)) }
+            let records = try ChangeNormalizer.parse(XLSXReader.read(url,defaultYear:2032,skippingRows:groups[0].rowIDs),defaultYear:2032)
+            XCTAssertEqual(records.count,1)
+            XCTAssertEqual(records[0].change_date,"2032-07-10")
+            XCTAssertEqual(records[0].class_name,"1_ZZ")
+        }
+    }
+
     var skipRowsFixture: [[String]] {
         [
             ["学 年", "学科・クラス", "月日", "曜日", "時限", "変更内容", "科目(担当教員)"],

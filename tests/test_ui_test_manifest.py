@@ -499,27 +499,28 @@ class ManifestTests(unittest.TestCase):
                        "testSettingsAccountDataAndFileDetails",
                        "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch")
         self.assertEqual(manifest.CONTROL_PROBE_TESTS, controls)
-        selection = ["--relaunch-probe", "--probe-case", "controls"]
-        self.assertEqual(subprocess.check_output(command + selection + ["--mode", "selectors"],
-                                                text=True).splitlines(),
-                         ["-only-testing:PickerTapChecks/ApplicationChecks/" + item for item in controls])
-        rejected = subprocess.run(command + ["--probe-case", "controls", "--mode", "selectors"],
-                                  capture_output=True, text=True)
-        self.assertNotEqual(rejected.returncode, 0)
-        with tempfile.TemporaryDirectory(prefix="takupoke-control-diagnostic-") as directory:
-            log = Path(directory) / "owned.log"
-            complete = "".join(result_line(item) for item in controls)
-            for contents, expected in (
-                (complete, True), (complete.replace(result_line(controls[0]), ""), False),
-                (complete + result_line(controls[0]), False),
-                (complete.replace("passed", "failed", 1), False),
-                (complete.replace("passed", "skipped", 1), False),
-                (complete + result_line("testHomeTimetableAndWeekCalendar"), False),
-            ):
-                log.write_text(contents, encoding="utf-8")
-                result = subprocess.run(command + selection + ["--mode", "verify", "--ios", "27",
-                    "--runner-log", "--log", str(log)], capture_output=True, text=True)
-                self.assertEqual(result.returncode == 0, expected, result.stderr)
+        for group_name, selected in (("controls", controls), ("rows", (controls[-1],))):
+            selection = ["--relaunch-probe", "--probe-case", group_name]
+            self.assertEqual(subprocess.check_output(command + selection + ["--mode", "selectors"],
+                                                    text=True).splitlines(),
+                             ["-only-testing:PickerTapChecks/ApplicationChecks/" + item for item in selected])
+            rejected = subprocess.run(command + ["--probe-case", group_name, "--mode", "selectors"],
+                                      capture_output=True, text=True)
+            self.assertNotEqual(rejected.returncode, 0)
+            with tempfile.TemporaryDirectory(prefix="takupoke-control-diagnostic-") as directory:
+                log = Path(directory) / "owned.log"
+                complete = "".join(result_line(item) for item in selected)
+                for contents, expected in (
+                    (complete, True), (complete.replace(result_line(selected[0]), ""), False),
+                    (complete + result_line(selected[0]), False),
+                    (complete.replace("passed", "failed", 1), False),
+                    (complete.replace("passed", "skipped", 1), False),
+                    (complete + result_line("testHomeTimetableAndWeekCalendar"), False),
+                ):
+                    log.write_text(contents, encoding="utf-8")
+                    result = subprocess.run(command + selection + ["--mode", "verify", "--ios", "27",
+                        "--runner-log", "--log", str(log)], capture_output=True, text=True)
+                    self.assertEqual(result.returncode == 0, expected, result.stderr)
 
     def test_outer_runner_log_rejects_no_tests_and_missing_os_size_runs(self):
         command = [sys.executable, "-B", str(ROOT / "tools/ui_test_manifest.py"),

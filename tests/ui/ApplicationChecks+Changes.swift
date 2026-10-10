@@ -28,16 +28,23 @@ extension ApplicationChecks {
             let changed = expectation(for: NSPredicate(format: "value == %@", "1"), evaluatedWith: toggle)
             XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 15), .completed)
         }
+        let group = app.switches["change-skip-group-200-300"]
+        _ = visible(group,navigation:"内容の確認")
+        XCTAssertTrue(app.staticTexts["200〜300行目の元の記載"].exists)
+        tapNativeSwitch(group,navigation:"内容の確認")
+        let groupSelected = expectation(for:NSPredicate(format:"value == %@","1"),evaluatedWith:group)
+        XCTAssertEqual(XCTWaiter.wait(for:[groupSelected],timeout:15),.completed)
         visible(apply, navigation: "内容の確認", searchEarlierRows: true).tap()
         let alert = app.alerts["選んだ行を除外して読み込む"]
         XCTAssertTrue(alert.waitForExistence(timeout: 15))
+        XCTAssertTrue(alert.staticTexts.containing(NSPredicate(format:"label CONTAINS %@","200〜300行目")).firstMatch.exists)
         alert.buttons["キャンセル"].tap()
         XCTAssertTrue(app.navigationBars["内容の確認"].exists)
         visible(apply, navigation: "内容の確認", searchEarlierRows: true).tap()
         alert.buttons["除外して読み込む"].tap()
         let count = app.staticTexts["change-skipped-count"]
         XCTAssertTrue(count.waitForExistence(timeout: 30), app.debugDescription)
-        XCTAssertTrue(count.label.contains("2行"), count.label)
+        XCTAssertTrue(count.label.contains("103行"), count.label)
         XCTAssertTrue(visible(app.staticTexts["変更後、架空科目C"]).exists)
         XCTAssertFalse(app.staticTexts["変更後、架空除外科目B"].exists)
         app.terminate()
@@ -45,7 +52,7 @@ extension ApplicationChecks {
         launchReady()
         openChanges()
         XCTAssertTrue(count.waitForExistence(timeout: 30), app.debugDescription)
-        XCTAssertTrue(count.label.contains("2行"), count.label)
+        XCTAssertTrue(count.label.contains("103行"), count.label)
         XCTAssertTrue(visible(app.staticTexts["変更後、架空科目C"]).exists)
         XCTAssertFalse(app.staticTexts["変更後、架空除外科目B"].exists)
     }

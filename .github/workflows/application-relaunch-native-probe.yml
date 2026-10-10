@@ -10,6 +10,7 @@ on:
           - all
           - notifications
           - controls
+          - rows
           - testChangedAccountDataNoticeOpensSharedAcquisition
           - testChangedDataProducesOneLocalNotification
           - testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork

@@ -24,13 +24,15 @@ enum SimulatorChangeRowSkipFixture {
         let ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
         let rel = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
         let pkg = "http://schemas.openxmlformats.org/package/2006/relationships"
-        let rows = [
+        var rows = [
             ["学 年", "学科・クラス", "月日", "曜日", "時限", "変更内容", "科目(担当教員)"],
             ["1", "ZZ", "2032/7/10", "土", "1", "補講", "架空科目A"],
             ["1", "ZZ", "2032/7/11", "月", "2", "補講", "架空除外科目B"],
             ["", "", "", "火"],
             ["1", "ZZ", "2032/7/12", "月", "3", "補講", "架空科目C"],
         ]
+        rows += Array(repeating:[],count:194)
+        rows += Array(repeating:["","","","土"],count:101)
         let sheet = rows.enumerated().map { index, cells in
             "<row r=\"\(index + 1)\">"
                 + cells.enumerated().map { column, value in

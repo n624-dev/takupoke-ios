@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`139b087d7f18e268b471bef70a551415e89926dc5575faf4385124e2b8420b64`
+`a0200a115b9152fec2eebbfe2b15103ab57c9be53bddeb4357282c05f56bf8c1`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -44,6 +44,8 @@ bash tools/test-parsing.sh
 
 ## [tests/ParsingTests+RowSkips.swift](../../tests/ParsingTests+RowSkips.swift)
 
+- `testConsecutiveIdenticalWeekdayPlaceholdersGroupWithoutHidingPopulatedOrSeparatedRows`
+- `testGroupedWeekdayPlaceholdersStillRequireExplicitFullRowConsent`
 - `testRowSkipsAreExplicitKeepRowNumbersAndExcludeWholeExpandedRow`
 - `testExcludedClassCannotBecomeEvidenceForRemainingAllRow`
 - `testWeekdayOnlyFormulaWithOrWithoutCacheCanBeInspectedButNeverAutoSkipped`

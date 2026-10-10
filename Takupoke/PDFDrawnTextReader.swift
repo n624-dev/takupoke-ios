@@ -9,6 +9,9 @@ final class PDFDrawnTextReader {
     private var failure: Error?
     var fonts: [String: PDFTextFont] = [:]
     var selectedFontKeys: Set<String> = []
+    private var clipPath = PDFRectangularClipPath()
+    private var markedContent = PDFMarkedContent()
+    private var pageBounds: PDFBox?
     init(check: @escaping () throws -> Void) { engine = PDFTextGeometry(check: check) }
 
     private static func run(_ info: UnsafeMutableRawPointer?, _ action: (PDFDrawnTextReader) throws -> Void) {
@@ -64,8 +67,7 @@ final class PDFDrawnTextReader {
         }
         var lineWidth: CGPDFReal = 0, widthObject: CGPDFObjectRef?
         if CGPDFDictionaryGetNumber(dict,"LW",&lineWidth) {
-            let m = engine.state.ctm
-            guard PDFTextVisibility.strokePad(Double(lineWidth),a:m.a,b:m.b,c:m.c,d:m.d) != nil else { throw PDFTextFailure.unsupported }
+            guard lineWidth.isFinite, lineWidth >= 0 else { throw PDFTextFailure.unsupported }
         } else if CGPDFDictionaryGetObject(dict,"LW",&widthObject) { throw PDFTextFailure.unsupported }
         var blendMode: UnsafePointer<CChar>?, blendObject: CGPDFObjectRef?
         if CGPDFDictionaryGetName(dict,"BM",&blendMode), let blendMode {
@@ -76,6 +78,9 @@ final class PDFDrawnTextReader {
         }
     }
     func read(_ page: CGPDFPage, expectedText: String) throws -> [PDFGlyph] {
+        let media = page.getBoxRect(.mediaBox)
+        pageBounds = PDFBox(left: Double(media.minX), top: Double(media.minY),
+                            right: Double(media.maxX), bottom: Double(media.maxY))
         guard let table = CGPDFOperatorTableCreate() else { throw PDFTextFailure.unsupported }
         defer { CGPDFOperatorTableRelease(table) }
         CGPDFOperatorTableSetCallback(table, "q") { scanner, p in
@@ -140,43 +145,71 @@ final class PDFDrawnTextReader {
         }
         CGPDFOperatorTableSetCallback(table, "gs") { scanner, p in PDFDrawnTextReader.run(p) { try $0.graphicsState(scanner) } }
         CGPDFOperatorTableSetCallback(table, "w") { scanner, p in PDFDrawnTextReader.run(p) { s in
-            let width = try s.numbers(scanner,1)[0], m = s.engine.state.ctm
-            guard PDFTextVisibility.strokePad(width,a:m.a,b:m.b,c:m.c,d:m.d) != nil else { throw PDFTextFailure.unsupported }
+            guard try s.numbers(scanner,1)[0] >= 0 else { throw PDFTextFailure.unsupported }
         } }
-        for op in ["g", "G"] {
-            CGPDFOperatorTableSetCallback(table, op) { scanner, p in PDFDrawnTextReader.run(p) { s in
-                guard PDFTextVisibility.blackColor(try s.numbers(scanner,1),count:1) else { throw PDFTextFailure.unsupported }
-            } }
-        }
-        for op in ["rg", "RG"] {
-            CGPDFOperatorTableSetCallback(table, op) { scanner, p in PDFDrawnTextReader.run(p) { s in
-                guard PDFTextVisibility.blackColor(try s.numbers(scanner,3),count:3) else { throw PDFTextFailure.unsupported }
-            } }
-        }
-        for op in ["k", "K"] {
-            CGPDFOperatorTableSetCallback(table, op) { scanner, p in PDFDrawnTextReader.run(p) { s in
-                guard PDFTextVisibility.blackColor(try s.numbers(scanner,4),count:4) else { throw PDFTextFailure.unsupported }
-            } }
-        }
+        CGPDFOperatorTableSetCallback(table, "g") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.operation("g", $0.numbers(scanner,1)) } }
+        CGPDFOperatorTableSetCallback(table, "G") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.operation("G", $0.numbers(scanner,1)) } }
+        CGPDFOperatorTableSetCallback(table, "rg") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.operation("rg", $0.numbers(scanner,3)) } }
+        CGPDFOperatorTableSetCallback(table, "RG") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.operation("RG", $0.numbers(scanner,3)) } }
+        CGPDFOperatorTableSetCallback(table, "k") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.operation("k", $0.numbers(scanner,4)) } }
+        CGPDFOperatorTableSetCallback(table, "K") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.operation("K", $0.numbers(scanner,4)) } }
         // A later fill may replace an earlier subject while PDFKit continues
         // to expose the covered text. Geometry is not a visibility certificate.
         for op in ["f", "F", "f*", "B", "B*", "b", "b*"] {
             CGPDFOperatorTableSetCallback(table, op) { _, p in PDFDrawnTextReader.run(p) { s in
                 guard s.engine.glyphs.isEmpty else { throw PDFTextFailure.unsupported }
+                s.clipPath.reset()
             } }
         }
+        CGPDFOperatorTableSetCallback(table, "cs") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.state.colors.fill.space(scanner) } }
+        CGPDFOperatorTableSetCallback(table, "CS") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.state.colors.stroke.space(scanner) } }
+        for op in ["sc", "scn"] {
+            CGPDFOperatorTableSetCallback(table, op) { scanner, p in PDFDrawnTextReader.run(p) { s in
+                let count = s.engine.state.colors.fill.count
+                try s.engine.state.colors.fill.set(s.numbers(scanner,count),count:count)
+            } }
+        }
+        for op in ["SC", "SCN"] {
+            CGPDFOperatorTableSetCallback(table, op) { scanner, p in PDFDrawnTextReader.run(p) { s in
+                let count = s.engine.state.colors.stroke.count
+                try s.engine.state.colors.stroke.set(s.numbers(scanner,count),count:count)
+            } }
+        }
+        CGPDFOperatorTableSetCallback(table, "re") { scanner, p in PDFDrawnTextReader.run(p) { s in
+            try s.clipPath.rectangle(s.numbers(scanner,4),matrix:s.engine.state.ctm)
+        } }
+        for op in ["m", "l", "c", "v", "y"] {
+            CGPDFOperatorTableSetCallback(table, op) { _, p in PDFDrawnTextReader.run(p) { $0.clipPath.invalidate() } }
+        }
+        for op in ["n", "S", "s"] {
+            CGPDFOperatorTableSetCallback(table, op) { _, p in PDFDrawnTextReader.run(p) { $0.clipPath.reset() } }
+        }
+        for op in ["W", "W*"] {
+            CGPDFOperatorTableSetCallback(table, op) { _, p in PDFDrawnTextReader.run(p) { s in
+                let clip = try s.clipPath.clippingBox()
+                guard let page = s.pageBounds, PDFClipValidation.contains(clip, page) else {
+                    throw PDFParseError(code:.unsupported,stage:.clippingBounds)
+                }
+                try s.engine.clip(clip)
+            } }
+        }
+        CGPDFOperatorTableSetCallback(table, "BMC") { scanner, p in PDFDrawnTextReader.run(p) { try $0.markedContent.begin(scanner,properties:false) } }
+        CGPDFOperatorTableSetCallback(table, "BDC") { scanner, p in PDFDrawnTextReader.run(p) { try $0.markedContent.begin(scanner,properties:true) } }
+        CGPDFOperatorTableSetCallback(table, "EMC") { _, p in PDFDrawnTextReader.run(p) { try $0.markedContent.end() } }
         // Form XObjects, optional/replacement text and clipping can conceal or
         // replace drawn text. Do not silently emit a partial timetable.
-        for op in ["Do", "BDC", "BMC", "W", "W*", "BI", "ID", "EI", "sh", "cs", "CS", "sc", "SC", "scn", "SCN"] {
+        for op in ["Do", "BI", "ID", "EI", "sh"] {
             CGPDFOperatorTableSetCallback(table, op) { _, p in PDFDrawnTextReader.run(p) { _ in throw PDFTextFailure.unsupported } }
         }
         let stream = CGPDFContentStreamCreateWithPage(page)
         defer { CGPDFContentStreamRelease(stream) }
         let scanner = CGPDFScannerCreate(stream, table, Unmanaged.passUnretained(self).toOpaque())
         defer { CGPDFScannerRelease(scanner) }
+        try PDFDevicePaint.requireStandardDefaults(scanner)
         let succeeded = CGPDFScannerScan(scanner)
         if let failure = failure { throw failure }
         guard succeeded else { throw PDFTextFailure.unsupported }
+        try markedContent.finish()
         return try engine.finish(expectedText: expectedText)
     }
 }

@@ -228,7 +228,8 @@
       ],
       "checks": [
         "tests/SpecialScheduleTests+Persistence.swift",
-        "tests/SpecialScheduleTests.swift"
+        "tests/SpecialScheduleTests.swift",
+        "tests/PDFTextGeometryTests+Visibility.swift"
       ]
     },
     {
@@ -258,14 +259,16 @@
         "Takupoke/PDFSchoolParser.swift",
         "Takupoke/PDFTextGeometry.swift",
         "Takupoke/PDFUnicodeMap.swift",
-        "tests/PDFParsingTests.swift"
+        "tests/PDFParsingTests.swift",
+        "Takupoke/PDFContentVisibility.swift"
       ],
       "checks": [
         "tests/PDFParsingTests+Diagnostics.swift",
         "tests/PDFParsingTests+Events.swift",
         "tests/PDFParsingTests+PDFKit.swift",
         "tests/PDFParsingTests+Timetable.swift",
-        "tests/PDFTextGeometryTests.swift"
+        "tests/PDFTextGeometryTests.swift",
+        "tests/PDFTextGeometryTests+Visibility.swift"
       ]
     },
     {

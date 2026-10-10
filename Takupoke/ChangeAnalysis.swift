@@ -116,6 +116,47 @@ struct ChangeReviewRow: Equatable, Identifiable {
     var canSkip: Bool { warning.code == .weekdayMismatch || warning.code == .weekdayOnly }
 }
 
+struct ChangeReviewGroup: Identifiable {
+    var rows: [ChangeReviewRow]
+    var id: Int { rows[0].id }
+    var rowIDs: Set<Int> { Set(rows.map(\.id)) }
+    var rangeLabel: String { Self.rangeLabel(rows.map(\.id)) }
+    var accessibilityID: String {
+        rows.count == 1 ? "change-skip-row-\(id)" : "change-skip-group-\(id)-\(rows.last!.id)"
+    }
+
+    static func group(_ rows: [ChangeReviewRow]) -> [Self] {
+        var groups: [Self] = []
+        for row in rows {
+            if let previous = groups.last?.rows.last,
+               previous.id < Int.max, row.id == previous.id+1,
+               placeholder(previous), placeholder(row), previous.fields == row.fields,
+               previous.warning.printedWeekday == row.warning.printedWeekday {
+                groups[groups.count-1].rows.append(row)
+            } else { groups.append(Self(rows:[row])) }
+        }
+        return groups
+    }
+
+    private static func placeholder(_ row: ChangeReviewRow) -> Bool {
+        row.warning.code == .weekdayOnly && row.fields.count <= 1 &&
+        row.fields.allSatisfy { ["曜日", "曜"].contains(ChangeNormalizer.token($0.title)) }
+    }
+
+    static func rangeLabel(_ rowIDs: [Int]) -> String {
+        let sorted = Set(rowIDs).sorted()
+        guard let first = sorted.first else { return "" }
+        var ranges: [String] = [], start = first, end = first
+        func appendRange() { ranges.append(start == end ? "\(start)行目" : "\(start)〜\(end)行目") }
+        for row in sorted.dropFirst() {
+            if end < Int.max, row == end+1 { end = row }
+            else { appendRange(); start = row; end = row }
+        }
+        appendRange()
+        return ranges.joined(separator:"、")
+    }
+}
+
 struct ChangeParseAttempt: Codable {
     var date: Date
     var sourceDigest: String?
@@ -144,6 +185,7 @@ struct ChangePreview {
     var sourceDigest: String? = nil
     var parserVersion: Int = ChangeAnalysis.parserVersion
     var reviewRows: [ChangeReviewRow] = []
+    var reviewGroups: [ChangeReviewGroup] { ChangeReviewGroup.group(reviewRows) }
     var canCorrectWeekdays: Bool { sourceIdentity != nil && sourceDigest != nil && !warnings.isEmpty && warnings.allSatisfy(\.canCorrectWeekday) }
     var canSkipRows: Bool { sourceIdentity != nil && sourceDigest != nil && reviewRows.contains(where: \.canSkip) }
 }

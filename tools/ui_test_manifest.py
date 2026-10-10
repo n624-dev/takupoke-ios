@@ -74,7 +74,11 @@ CONTROL_PROBE_TESTS = NOTIFICATION_PROBE_TESTS + (
     "testSettingsAccountDataAndFileDetails",
     "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",
 )
-PROBE_GROUPS = {"notifications": NOTIFICATION_PROBE_TESTS, "controls": CONTROL_PROBE_TESTS}
+PROBE_GROUPS = {
+    "notifications": NOTIFICATION_PROBE_TESTS,
+    "controls": CONTROL_PROBE_TESTS,
+    "rows": ("testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",),
+}
 # Balanced using measured case durations, including the three OS size reruns.
 SHARDS = {
     "A": (

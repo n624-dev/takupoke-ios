@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`a77a339eba79451e6a5864cef9d62669096bcc3ee6a3d66b954eb9b4cec882f7`
+`f6dcf2d5b0f6553e4d4df016363914807ad4c1ffdaaeed9416634266567cf858`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -31,6 +31,7 @@ bash tools/test-parsing.sh
 - [Takupoke/PDFTextGeometry.swift](../../Takupoke/PDFTextGeometry.swift)
 - [Takupoke/PDFUnicodeMap.swift](../../Takupoke/PDFUnicodeMap.swift)
 - [tests/PDFParsingTests.swift](../../tests/PDFParsingTests.swift)
+- [Takupoke/PDFContentVisibility.swift](../../Takupoke/PDFContentVisibility.swift)
 
 ## [tests/PDFParsingTests+Diagnostics.swift](../../tests/PDFParsingTests+Diagnostics.swift)
 
@@ -121,3 +122,10 @@ bash tools/test-parsing.sh
 - `testNativeResourcesAndTJThroughPDFKitBridge`
 - `testNativeMissingMappingAndReplacementContentFailClosed`
 - `testNativeUnusedUnsupportedFontSetupAllowsCompleteReadableTextButUseRejects`
+
+## [tests/PDFTextGeometryTests+Visibility.swift](../../tests/PDFTextGeometryTests+Visibility.swift)
+
+- `testUnusedDevicePaintDoesNotRejectBlackTextAndSavedColorRestores`
+- `testClipContainmentHasNoToleranceAndPreservesLimitsAndCancellation`
+- `testNativeInertTagsContainedClipsDeviceSpacesAndUnusedStylesPreserveDirectAcquisition`
+- `testNativeConcealingClipsOptionalReplacementAndUnbalancedTagsRemainRejected`

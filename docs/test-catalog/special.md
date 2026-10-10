@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`3896a18a729d161cd9cb74e93cead3febdc87b0fe2382efc6fe2bd74a307b24b`
+`cd6bc5601f2e45dca9e2c1940cdd2761fc09ea758a8e3f91ed4fa82290c5cf3c`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -44,3 +44,10 @@ bash tools/test-parsing.sh
 - `testExamParsesDatesClassesAndDocumentTimes`
 - `testSpecialLessonSeparatesDocumentSubjectTeacherAndRoom`
 - `testFullCopyIncludesSpecialKindContentAndFailure`
+
+## [tests/PDFTextGeometryTests+Visibility.swift](../../tests/PDFTextGeometryTests+Visibility.swift)
+
+- `testUnusedDevicePaintDoesNotRejectBlackTextAndSavedColorRestores`
+- `testClipContainmentHasNoToleranceAndPreservesLimitsAndCancellation`
+- `testNativeInertTagsContainedClipsDeviceSpacesAndUnusedStylesPreserveDirectAcquisition`
+- `testNativeConcealingClipsOptionalReplacementAndUnbalancedTagsRemainRejected`

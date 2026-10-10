@@ -41,6 +41,16 @@ Xcodeプロジェクトと `Package.swift` の明示的なソース一覧を両�
 
 移動前後の実装行、テスト名一覧、ファイル登録を照合します。CIのSwiftテスト・iPhoneビルドは実機の画面比較とは区別し、結果を[検証記録](verification.md)に残します。
 
+## PDFの表示検証と変更行の表示
+
+`PDFContentVisibility` はdevice color、矩形クリップの包含、表示を変えないタグの検証を共用する。
+`PDFDrawnTextReader` は文字を直接取得し、`PDFPathReader` は実際に描画した罫線との重なりを調べる。
+可視性の条件は[PDF仕様](pdf-specification.md)、架空入力の検証結果は[検証記録](verification.md)へ置く。
+
+`ChangeReviewGroup` は元行IDを保ったまま、連続する同一の曜日のみの行を表示上まとめる。
+`ChangePreviewView` は範囲ごとの選択を元行ID集合へ戻し、既存の確認・保存経路を使う。
+XLSXの構造や除外の許可条件をグループから推測しない。
+
 ## ホームと時間割の共用処理
 
 `HomeTodayView` は今日の行事・クラスごとの授業・詳細への操作を担当し、既存の行Viewは `HomeLessonRow` に置きます。`TimetableDaySchedule` は保存済み解析からの授業・時刻・不足状態と、日本時間での授業中判定を担当します。`TimetablePresentation` は両画面の変更前後の情報を共用し、`Details` に既存の授業詳細を置きます。週グリッドの描画は既存の `TimetableView` に残します。

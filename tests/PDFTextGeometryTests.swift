@@ -408,7 +408,7 @@ extension PDFTextGeometryTests {
     }
     // Entirely invented PDF, with explicit resources and text operators. This
     // checks the Core Graphics adapter rather than relying on Quartz's font choice.
-    private func syntheticPDF(content: String, unicode: Bool = true, graphicsState: String = "", simpleFont: Bool = false, crop: String = "", unusedFont: Bool = false, unusedFontEntry: String = "") -> Data {
+    func syntheticPDF(content: String, unicode: Bool = true, graphicsState: String = "", simpleFont: Bool = false, crop: String = "", unusedFont: Bool = false, unusedFontEntry: String = "", colorSpaces: String = "") -> Data {
         func stream(_ s: String) -> String { "<< /Length \(s.utf8.count) >>\nstream\n\(s)\nendstream" }
         let simpleMap = """
         /CIDInit /ProcSet findresource begin 12 dict begin begincmap
@@ -429,7 +429,7 @@ extension PDFTextGeometryTests {
         var objects = [
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] \(crop) /Resources << /Font << /F1 4 0 R \(unusedFont ? "/FU 9 0 R" : "") >> /ExtGState << /Visibility << \(graphicsState) >> >> >> /Contents 8 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] \(crop) /Resources << /Font << /F1 4 0 R \(unusedFont ? "/FU 9 0 R" : "") >> /ColorSpace << \(colorSpaces) >> /ExtGState << /Visibility << \(graphicsState) >> >> >> /Contents 8 0 R >>",
             simpleFont ? "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 65 /LastChar 67 /Widths [667 667 667] /FontDescriptor 6 0 R \(unicode ? "/ToUnicode 7 0 R" : "") >>" : "<< /Type /Font /Subtype /Type0 /BaseFont /Synthetic /Encoding /Identity-H /DescendantFonts [5 0 R] \(unicode ? "/ToUnicode 7 0 R" : "") >>",
             "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Synthetic /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 6 0 R /DW 1000 /W [1 [500] 2 3 600] /CIDToGIDMap /Identity >>",
             "<< /Type /FontDescriptor /FontName /\(simpleFont ? "Helvetica" : "Synthetic") /Flags \(simpleFont ? 32:4) /FontBBox [0 -200 1000 800] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 >>",
@@ -449,7 +449,7 @@ extension PDFTextGeometryTests {
         return data
     }
 
-    private func paintedInk(_ data: Data,minimumX: Int = 0) throws -> Int {
+    func paintedInk(_ data: Data,minimumX: Int = 0) throws -> Int {
         let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
         var pixels = [UInt8](repeating:255,count:300*400)
         return try pixels.withUnsafeMutableBytes { buffer in
@@ -509,7 +509,7 @@ extension PDFTextGeometryTests {
         }
     }
 #if canImport(AppKit)
-    private func thumbnailPixels(_ data: Data, box: PDFDisplayBox) throws -> (width: Int, height: Int, pixels: [UInt8]) {
+    func thumbnailPixels(_ data: Data, box: PDFDisplayBox) throws -> (width: Int, height: Int, pixels: [UInt8]) {
         let document = try XCTUnwrap(PDFDocument(data:data)), page = try XCTUnwrap(document.page(at:0))
         let bounds = page.bounds(for:box)
         // The same PDFKit thumbnail API and display box used by the production
@@ -689,7 +689,7 @@ extension PDFTextGeometryTests {
         }
     }
     func testNativeSpecialVisibilityScanRejectsHiddenAndUnverifiedText() throws {
-        let variants: [(String,String)] = [("/BM /Multiply", "/Visibility gs"), ("/BM [/Normal /Multiply]", "/Visibility gs"), ("/ca 0", "/Visibility gs"), ("/CA 0", "/Visibility gs"), ("/SMask /None", "/Visibility gs"), ("/TR /Identity", "/Visibility gs"), ("/TR2 /Identity", "/Visibility gs"), ("", "3 Tr"), ("", "4 Tr"), ("", "0 0 10 10 re W n"), ("", "/Artifact BMC"), ("", "/Span << /ActualText (Different) >> BDC")]
+        let variants: [(String,String)] = [("/BM /Multiply", "/Visibility gs"), ("/BM [/Normal /Multiply]", "/Visibility gs"), ("/ca 0", "/Visibility gs"), ("/CA 0", "/Visibility gs"), ("/SMask /None", "/Visibility gs"), ("/TR /Identity", "/Visibility gs"), ("/TR2 /Identity", "/Visibility gs"), ("", "3 Tr"), ("", "4 Tr"), ("", "0 0 10 10 re W n"), ("", "/OC BMC"), ("", "/Span << /ActualText (Different) >> BDC")]
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-visibility-"+UUID().uuidString)
         try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
         defer { try? FileManager.default.removeItem(at:root) }

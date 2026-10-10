@@ -37,27 +37,32 @@ struct ChangePreviewView: View {
                             .accessibilityIdentifier("change-apply-skips")
                     }
                     DisclosureGroup("曜日の警告：\(preview.warnings.count)件") {
-                        ForEach(Array(preview.warnings.enumerated()), id: \.offset) { _, warning in
+                        ForEach(preview.reviewGroups) { group in
+                            let warning = group.rows[0].warning
                             if let printed = warning.printedWeekday, let calculated = warning.calculatedWeekday {
-                                Text("\(warning.row.map { "\($0)行目：" } ?? "")\(printed) → \(calculated)曜日")
+                                Text("\(group.rangeLabel)：\(printed) → \(calculated)曜日")
                             }
-                            Text((warning.row.map { "\($0)行目：" } ?? "") +
+                            Text(group.rangeLabel + "：" +
                                  (warning.code == .weekdayOnly ? "曜日以外の値がありません。" :
                                   warning.code == .formulaCache ? "曜日の計算結果がありません。" : "曜日と月日が一致しないか、曜日の表記を確認できません。"))
                         }
                     }
                 }
-                ForEach(preview.reviewRows) { row in
-                    Section("\(row.id)行目の元の記載") {
+                ForEach(preview.reviewGroups) { group in
+                    let row = group.rows[0]
+                    Section("\(group.rangeLabel)の元の記載") {
                         ForEach(Array(row.fields.enumerated()), id: \.offset) { _, field in
                             LabeledContent(field.title, value: field.value)
                         }
                         if row.fields.isEmpty { Text("曜日の数式があります。保存された値はありません。") }
+                        if group.rows.count > 1 {
+                            Text("\(group.rows.count)行とも、曜日以外の値はありません。")
+                        }
                         if skipRows != nil && row.canSkip {
-                            Toggle("この行を除外する", isOn: Binding(get: { excludedRows.contains(row.id) }, set: { value in
-                                if value { excludedRows.insert(row.id) } else { excludedRows.remove(row.id) }
+                            Toggle(group.rows.count == 1 ? "この行を除外する" : "この\(group.rows.count)行をまとめて除外する", isOn: Binding(get: { group.rowIDs.isSubset(of: excludedRows) }, set: { value in
+                                if value { excludedRows.formUnion(group.rowIDs) } else { excludedRows.subtract(group.rowIDs) }
                             }))
-                            .accessibilityIdentifier("change-skip-row-\(row.id)")
+                            .accessibilityIdentifier(group.accessibilityID)
                         }
                     }
                 }
@@ -82,7 +87,7 @@ struct ChangePreviewView: View {
                 Button("除外して読み込む") { skipRows?(excludedRows) }
                 Button("キャンセル", role: .cancel) {}
             } message: {
-                Text("\(excludedRows.count)行を時間割変更から除外します。除外する行：\(excludedRows.sorted().map(String.init).joined(separator: "、"))。ファイルの内容が更新されるまで適用します。")
+                Text("\(excludedRows.count)行を時間割変更から除外します。除外する行：\(ChangeReviewGroup.rangeLabel(Array(excludedRows)))。ファイルの内容が更新されるまで適用します。")
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("閉じる") { dismiss() } } }

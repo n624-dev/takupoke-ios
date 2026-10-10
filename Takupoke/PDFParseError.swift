@@ -21,6 +21,7 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
         case gridColumn, gridRow, gridCell, eventColumns, calendarDates, monthHeading, vectorObjects, textOrder
         case classLabel, gradeLabel, duplicateClass, lessonLines, parallelLessons, emptySubject
         case fragmentOverlap, fragmentAlignment, rasterInput
+        case paintVisibility, clippingBounds, contentTags
 
         var label: String {
             switch self {
@@ -46,6 +47,9 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
             case .fragmentOverlap: return "文字列断片の位置と読み順（P20）"
             case .rasterInput: return "画像からの文字認識が必要（P22）"
             case .fragmentAlignment: return "文字列断片が属する行（P21）"
+            case .paintVisibility: return "文字・罫線・背景の表示（P23）"
+            case .clippingBounds: return "表示範囲内の文字と罫線（P24）"
+            case .contentTags: return "PDFの表示に関わる情報（P25）"
             }
         }
     }

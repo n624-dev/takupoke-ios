@@ -51,6 +51,7 @@ final class PDFTextGeometry {
         var font: PDFTextFont?
         var size = 0.0, spacing = 0.0, wordSpacing = 0.0, scale = 1.0, leading = 0.0, rise = 0.0
         var rendering = 0.0
+        var colors = PDFPaintColors()
     }
     var state = State()
     private var stack: [State] = []
@@ -64,6 +65,7 @@ final class PDFTextGeometry {
     private(set) var recoveryComplete = true
     private var drawnText = ""
     private var textUnits = 0
+    private var clips: [PDFBox] = []
     let check: () throws -> Void
     init(check: @escaping () throws -> Void = {}) { self.check = check }
 
@@ -72,9 +74,12 @@ final class PDFTextGeometry {
         guard operations <= 1_000_000 else { throw PDFParseError(code: .limit) }
         if operations % 128 == 0 { try check() }
         let counts = ["q": 0, "Q": 0, "cm": 6, "BT": 0, "ET": 0, "Tm": 6, "Td": 2, "TD": 2,
-                      "T*": 0, "Tc": 1, "Tw": 1, "Tz": 1, "TL": 1, "Ts": 1, "Tr": 1]
+                      "T*": 0, "Tc": 1, "Tw": 1, "Tz": 1, "TL": 1, "Ts": 1, "Tr": 1,
+                      "g": 1, "G": 1, "rg": 3, "RG": 3, "k": 4, "K": 4]
         guard let count = counts[op], n.count == count, n.allSatisfy(\.isFinite) else { throw PDFTextFailure.unsupported }
         switch op {
+        case "g", "rg", "k": try state.colors.fill.set(n, count: n.count)
+        case "G", "RG", "K": try state.colors.stroke.set(n, count: n.count)
         case "q":
             guard stack.count < 64 else { throw PDFParseError(code: .limit) }
             stack.append(state)
@@ -120,6 +125,7 @@ final class PDFTextGeometry {
         try check()
         guard inText, state.size > 0, state.scale > 0 else { throw PDFTextFailure.unsupported }
         if bytes.isEmpty { return }
+        guard state.colors.fill.isBlack else { throw PDFParseError(code:.unsupported,stage:.paintVisibility) }
         guard let font = state.font,
               bytes.count % font.codeBytes == 0, order + bytes.count / font.codeBytes <= 100_000 else {
             throw PDFTextFailure.unsupported
@@ -165,6 +171,14 @@ final class PDFTextGeometry {
         // PDFKit can reorder lines and insert whitespace. It must nevertheless
         // account for every visible scalar drawn by the supported text operators.
         guard content(drawnText) == content(expectedText) else { throw PDFTextFailure.unsupported }
+        try PDFClipValidation.requireContains(glyphs.map {
+            PDFBox(left: $0.x, top: $0.y, right: $0.x+$0.width, bottom: $0.y+$0.height)
+        }, clips: clips, check: check)
         return glyphs
+    }
+
+    func clip(_ box: PDFBox) throws {
+        guard clips.count < 128 else { throw PDFParseError(code: .limit) }
+        clips.append(box)
     }
 }
