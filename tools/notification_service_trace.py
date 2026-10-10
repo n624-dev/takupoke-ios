@@ -7,15 +7,24 @@ import sys
 
 SERVICES = ("usernotificationsd", "SpringBoard", "lsd")
 BUNDLE = "jp.n624.takupoke.app-checks"
+LOG_PREDICATE = (
+    f'((process == "SpringBoard" OR process == "lsd") AND eventMessage CONTAINS "{BUNDLE}")'
+    ' OR (process == "usernotificationsd" AND ('
+    + " OR ".join(f'eventMessage CONTAINS[c] "{word}"'
+                  for word in ("authoriz", "connection", "error", "fail", "timeout", BUNDLE)) + '))'
+)
 WORDS = re.compile(
     r"\b(?:authorization|authorized|notDetermined|denied|granted|request|requested|"
     r"notification|notifications|connection|service|client|invalid|invalidated|"
     r"interrupted|failed|failure|error|timeout|timed|out|registered|registration|"
     r"present|presentation|alert|pending|response|reply|completion|cancelled|"
-    r"foreground|background|active|inactive|suspended|terminated|running)\b", re.I)
+    r"foreground|background|active|inactive|suspended|terminated|running|"
+    r"unrecognized|unknown|unsupported|predicate|argument|format|option|memory|limit)\b", re.I)
 
 
 def observations(entries):
+    if not isinstance(entries, list):
+        raise ValueError("Expected an OS log array")
     result = []
     for entry in entries:
         if not isinstance(entry, dict):
@@ -43,16 +52,22 @@ def collect(simulator):
             if re.fullmatch(r"\d+|-", fields[0]) and re.fullmatch(r"-?\d+", fields[1]):
                 statuses.append({"service": fields[2].rsplit(".", 1)[-1],
                                  "running": fields[0] != "-", "exit": int(fields[1])})
-    predicate = " OR ".join(f'process == "{name}"' for name in SERVICES)
-    logs = subprocess.run(base + ["log", "show", "--last", "10m", "--style", "json",
-                                  "--predicate", predicate], capture_output=True,
+    logs = subprocess.run(base + ["log", "show", "--last", "10m", "--style", "json", "--info",
+                                  "--predicate", LOG_PREDICATE], capture_output=True,
                           text=True, timeout=10)
-    if logs.returncode or len(logs.stdout.encode()) > 4 * 1024 * 1024:
-        events = "unavailable-or-limited"
+    byte_count = len(logs.stdout.encode())
+    if logs.returncode:
+        events = "failed"
+    elif byte_count > 4 * 1024 * 1024:
+        events = "limited"
     else:
-        events = observations(json.loads(logs.stdout))
+        try:
+            events = observations(json.loads(logs.stdout))
+        except (ValueError, TypeError):
+            events = "invalid-format"
     print("TAKUPOKE_NOTIFICATION_SERVICES " + json.dumps({"services": statuses,
-                                                          "events": events}))
+        "healthExit": health.returncode, "logExit": logs.returncode, "logBytes": byte_count,
+        "errorWords": WORDS.findall(logs.stderr or "")[:24], "events": events}))
 
 
 if __name__ == "__main__":

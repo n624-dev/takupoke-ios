@@ -38,6 +38,9 @@ class ManifestTests(unittest.TestCase):
             {"process": "usernotificationsd", "words": ["connection", "invalidated"]},
         ])
         self.assertEqual(notification_service_trace.observations([None, 123]), [])
+        for malformed in ("text", {}, None):
+            with self.assertRaises(ValueError):
+                notification_service_trace.observations(malformed)
 
     def test_notification_service_trace_is_bounded_without_permission_mutation(self):
         messages = [{"processImagePath": "/system/usernotificationsd", "eventMessage":
@@ -55,7 +58,22 @@ class ManifestTests(unittest.TestCase):
             commands = [call.args[0] for call in run.call_args_list]
             self.assertEqual(commands[0], ["xcrun", "simctl", "spawn", "owned-simulator", "launchctl", "list"])
             self.assertEqual(commands[1][:6], ["xcrun", "simctl", "spawn", "owned-simulator", "log", "show"])
+            self.assertIn("--info", commands[1])
+            self.assertEqual(commands[1][-2:], ["--predicate", notification_service_trace.LOG_PREDICATE])
             self.assertEqual([call.kwargs["timeout"] for call in run.call_args_list], [5, 10])
+            for result, expected in (
+                (subprocess.CompletedProcess([], 7, "", "unknown option private-token"), "failed"),
+                (subprocess.CompletedProcess([], 0, "x" * (4 * 1024 * 1024 + 1)), "limited"),
+                (subprocess.CompletedProcess([], 0, "not-json"), "invalid-format"),
+            ):
+                run.side_effect = [subprocess.CompletedProcess([], 0, ""), result]
+                with redirect_stdout(io.StringIO()) as output:
+                    notification_service_trace.collect("owned-simulator")
+                report = json.loads(output.getvalue().split(" ", 1)[1])
+                self.assertEqual(report["events"], expected)
+                self.assertEqual(report["logExit"], result.returncode)
+                self.assertEqual(report["logBytes"], len(result.stdout.encode()))
+                self.assertNotIn("private-token", output.getvalue())
 
     def test_split_sources_are_registered_in_the_selected_target_only(self):
         project = {'rootObject': 'project', 'objects': {
