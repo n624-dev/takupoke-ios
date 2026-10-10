@@ -75,9 +75,10 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         }
     }
 
-    // Keep one real OS request and its result across the callback boundary.
+    // Start the permission UI on this object's MainActor, then transport the
+    // actual callback result. A nonisolated async entry would leave that actor.
     // Denial and errors never enable or persist a notification setting.
-    nonisolated private static func requestAuthorization(
+    private static func requestAuthorization(
         from center: UNUserNotificationCenter
     ) async throws -> Bool {
         try await withCheckedThrowingContinuation { continuation in

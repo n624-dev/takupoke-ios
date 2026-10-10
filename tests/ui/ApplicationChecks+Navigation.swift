@@ -213,12 +213,12 @@ extension ApplicationChecks {
         }
         let point = CGPoint(x: frame.minX + frame.width * (state == "0" ? 0.25 : 0.75), y: frame.midY)
         print(
-            "NATIVE_SWITCH row=\(outer);control=\(frame);point=\(point);rowState=\(rowState);controlState=\(state);duration=0.1"
+            "NATIVE_SWITCH row=\(outer);control=\(frame);observedPoint=\(point);rowState=\(rowState);controlState=\(state);target=native-element;method=tap"
         )
-        // Earlier read-only hit tests reached the Liquid Glass interaction
-        // surface on the current thumb side. Compare one short physical press
-        // there; do not retry or change the control's value directly.
-        app.coordinate(withNormalizedOffset: .zero)
-            .withOffset(CGVector(dx: point.x - page.minX, dy: point.y - page.minY)).press(forDuration: 0.1)
+        // Keep the single tap bound to the native track. XCTest resolves its
+        // current geometry when synthesizing the event instead of retaining
+        // the application coordinate measured before its idle wait.
+        control.coordinate(withNormalizedOffset: CGVector(
+            dx: state == "0" ? 0.25 : 0.75, dy: 0.5)).tap()
     }
 }

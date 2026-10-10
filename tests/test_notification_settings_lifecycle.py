@@ -18,7 +18,7 @@ class NotificationSettingsLifecycleTests(unittest.TestCase):
         if not compiler:
             self.skipTest("Swift required to execute the production authorization bridge")
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
-        start = source.index("    nonisolated private static func requestAuthorization(")
+        start = source.index("    private static func requestAuthorization(")
         end = source.index("    func enableFromSetup()", start)
         program = r'''import Foundation
 struct UNAuthorizationOptions: OptionSet, Sendable {
@@ -36,6 +36,7 @@ final class UNUserNotificationCenter: @unchecked Sendable {
     var count: Int { lock.lock(); defer { lock.unlock() }; return calls }
     var options: UNAuthorizationOptions { lock.lock(); defer { lock.unlock() }; return requested }
     func requestAuthorization(options: UNAuthorizationOptions, completionHandler: @escaping Callback) {
+        MainActor.assertIsolated()
         lock.lock(); calls += 1; callback = completionHandler; requested = options; lock.unlock()
         if let immediate { completionHandler(immediate.0, immediate.1) }
     }
@@ -50,7 +51,7 @@ final class Completion: @unchecked Sendable {
     func finish() { lock.lock(); finished = true; lock.unlock() }
     var value: Bool { lock.lock(); defer { lock.unlock() }; return finished }
 }
-final class Harness {
+@MainActor final class Harness {
 BRIDGE
     nonisolated static func request(_ center: UNUserNotificationCenter) async throws -> Bool {
         try await requestAuthorization(from: center)
