@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`1e732d9ae626db9e79be9a3a23e7cfd7f0720c0cf39bd1c8c3fb3f5c121895f4`
+`fa791cf84de97d4dce2d6b59d7b8a6412708a00f6ae8c5ca053aad89aa6cc3e8`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -65,3 +65,4 @@ python3 -B -m unittest discover -s tests -p test_ui_test_manifest.py -v
 - `test_outer_runner_log_rejects_no_tests_and_missing_os_size_runs`
 - `test_both_shards_on_both_os_preserve_selection_and_os_size_checks`
 - `test_missing_xctest_completion_fails_shell_and_cleans_up`
+- `test_failed_ui_build_does_not_boot_or_run_tests_and_still_cleans_up`

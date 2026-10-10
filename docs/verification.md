@@ -32,8 +32,23 @@ Appleの[UI割込みの説明](https://developer.apple.com/documentation/xctest/
 通常経路への事前OS読出しや待機は追加しない。
 既存の通知2ケース（保存・実配信・再起動を含む）を両OSのfocusedで比較する。
 これは失敗原因を観測する診断であり、全体合格・改善済みとは扱わない。
+診断ソース9e28e63の[開発検証38073320290](https://github.com/n624-dev/takupoke-ios/actions/runs/38073320290)
+はPython162件・skip0・失敗0（52.173秒）とportable Swift471件・失敗0
+（74.317秒、準備込み240.1秒）で完了した。任意Nativeジョブは予定skipだった。
 Linuxで固定語彙の秘匿・処理上限・読取り専用コマンドと既存runnerの終了／清掃を
 検証する28件は成功した。Swiftなし環境の結果はAppleでの実OS検証と区別する。
+
+通常UIの準備も、依頼済みの同一ジョブ内ビルド再利用へ整理する。
+`test-app-ui.sh|build|boot|notification|iOS27`で一覧・失敗索引を検索し、U21/U18と
+ci-performanceの初回起動・コンパイル競合の記録を読んだ。現在は先にSimulatorを
+起動してからSwiftコンパイルとテストを行っている。今回の比較では同じ所有宛先で
+build-for-testingを完了してからboot/bootstatusへ進み、選択した全ケースと追加文字サイズを
+test-without-buildingで実行する。条件・順序・OS・コントロール操作は変えない。
+Appleの[コマンドライン手順](https://developer.apple.com/library/archive/technotes/tn2339/_index.html)
+に従う。失敗したビルドの再利用を拒否し、所有するSimulatorと作業領域は回収する。
+この準備順序の比較は通知停止の確定修正とは扱わない。
+Linuxのrunner契約29件は成功し、両OS・両組の全選択、3文字サイズ、ビルド前の起動禁止、
+ビルド失敗42の保持とテスト未実行・回収を確認した。Appleでの実測は別に確認する。
 
 ## 2026-10-10 可視色の互換性修正
 

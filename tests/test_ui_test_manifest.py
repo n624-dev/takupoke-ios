@@ -592,7 +592,7 @@ class ManifestTests(unittest.TestCase):
 
 @unittest.skipUnless(os.name == "posix", "macOS CI Bash runner")
 class ShellRunnerTests(unittest.TestCase):
-    def run_synthetic_runner(self, ios, shard, *, omit_result=False):
+    def run_synthetic_runner(self, ios, shard, *, omit_result=False, fail_build=False):
         with tempfile.TemporaryDirectory(prefix="takupoke-shard-check-") as directory:
             repo = Path(directory)
             (repo / "tools").mkdir()
@@ -615,6 +615,7 @@ args = sys.argv[1:]
 with open(os.environ['CALLS'], 'a') as output:
     output.write(json.dumps([Path(sys.argv[0]).name] + args) + '\\n')
 if Path(sys.argv[0]).name == 'xcodebuild':
+    if 'build-for-testing' in args and os.environ.get('FAIL_BUILD'): sys.exit(42)
     tests = [arg.rsplit('/', 1)[1] for arg in args if arg.startswith('-only-testing:')]
     if os.environ.get('OMIT_RESULT'): tests = tests[1:]
     for test in tests:
@@ -641,6 +642,8 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
             }
             if omit_result:
                 environment["OMIT_RESULT"] = "1"
+            if fail_build:
+                environment["FAIL_BUILD"] = "1"
             result = subprocess.run(["bash", "tools/test-app-ui.sh"], cwd=repo, env=environment,
                                     capture_output=True, text=True, timeout=15)
             calls = [json.loads(line) for line in calls_file.read_text().splitlines()]
@@ -659,15 +662,20 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                     resolutions = [call for call in calls if call[0] == "xcodebuild" and "-resolvePackageDependencies" in call]
                     self.assertEqual(len(resolutions), 1)
                     builds = [call for call in calls if call[0] == "xcodebuild" and "-resolvePackageDependencies" not in call]
-                    self.assertEqual(len(builds), 4 if shard == "B" else 1)
-                    tests = [arg.rsplit("/", 1)[1] for arg in builds[0] if arg.startswith("-only-testing:")]
+                    self.assertEqual(len(builds), 5 if shard == "B" else 2)
+                    self.assertEqual(builds[0][-1], "build-for-testing")
+                    self.assertFalse(any(arg.startswith("-only-testing:") for arg in builds[0]))
+                    boot = ["xcrun", "simctl", "boot", "synthetic-simulator"]
+                    self.assertLess(calls.index(builds[0]), calls.index(boot))
+                    self.assertLess(calls.index(boot), calls.index(builds[1]))
+                    self.assertTrue(all(build[-1] == "test-without-building" for build in builds[1:]))
+                    tests = [arg.rsplit("/", 1)[1] for arg in builds[1] if arg.startswith("-only-testing:")]
                     self.assertEqual(tests, list(manifest.SHARDS[shard]))
-                    self.assertEqual(builds[0][-1], "test")
                     sizes = [call[-1] for call in calls if call[:2] == ["xcrun", "simctl"]
                              and "content_size" in call]
                     self.assertEqual(sizes, ["large"] + (["extra-small", "extra-extra-extra-large",
                         "accessibility-extra-extra-extra-large"] if shard == "B" else []))
-                    for build in builds[1:]:
+                    for build in builds[2:]:
                         self.assertEqual(build[-1], "test-without-building")
                         self.assertIn("-only-testing:PickerTapChecks/ApplicationChecks/" + manifest.SYSTEM_SIZE_TEST, build)
 
@@ -675,4 +683,12 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
         result, calls = self.run_synthetic_runner(27, "B", omit_result=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("XCTest completion differs", result.stderr)
-        self.assertEqual(len([call for call in calls if call[0] == "xcodebuild" and "-resolvePackageDependencies" not in call]), 1)
+        self.assertEqual(len([call for call in calls if call[0] == "xcodebuild" and "-resolvePackageDependencies" not in call]), 2)
+
+    def test_failed_ui_build_does_not_boot_or_run_tests_and_still_cleans_up(self):
+        result, calls = self.run_synthetic_runner(27, "A", fail_build=True)
+        self.assertEqual(result.returncode, 42, result.stdout + result.stderr)
+        self.assertNotIn(["xcrun", "simctl", "boot", "synthetic-simulator"], calls)
+        builds = [call for call in calls if call[0] == "xcodebuild" and "-resolvePackageDependencies" not in call]
+        self.assertEqual(len(builds), 1)
+        self.assertEqual(builds[0][-1], "build-for-testing")

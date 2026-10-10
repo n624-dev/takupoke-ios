@@ -81,9 +81,6 @@ while read -r device_type runtime; do
         python3 -B tools/app_test_project.py "$project_dir"
     bash tools/resolve-xcode-packages.sh "$project_dir/AppChecks.xcodeproj" AppChecks "$scratch_dir"
     simulator_id="$(xcrun simctl create 'Takupoke App Checks' "$device_type" "$runtime")"
-    xcrun simctl boot "$simulator_id"
-    python3 -B tools/timed_command.py "App simulator boot" xcrun simctl bootstatus "$simulator_id" -b
-    xcrun simctl ui "$simulator_id" content_size large
     xcode_args=(-project "$project_dir/AppChecks.xcodeproj" -scheme AppChecks
         -destination "platform=iOS Simulator,id=$simulator_id"
         -derivedDataPath "$scratch_dir/DerivedData"
@@ -91,6 +88,13 @@ while read -r device_type runtime; do
         -disablePackageRepositoryCache -onlyUsePackageVersionsFromResolvedFile -disableAutomaticPackageResolution
         -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1
         -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES)
+    # Finish compilation before booting the owned Simulator. Its first startup
+    # must not compete with our Swift compilation; all runs reuse this build.
+    python3 -B tools/timed_command.py "App UI build iOS $ios_major" \
+        xcodebuild "${xcode_args[@]}" build-for-testing
+    xcrun simctl boot "$simulator_id"
+    python3 -B tools/timed_command.py "App simulator boot" xcrun simctl bootstatus "$simulator_id" -b
+    xcrun simctl ui "$simulator_id" content_size large
     check_ui() {
         local log_path="$1"
         shift
@@ -101,7 +105,7 @@ while read -r device_type runtime; do
             exit 1
         }
     }
-    check_ui "$scratch_dir/suite.log" "${selected_checks[@]}" test
+    check_ui "$scratch_dir/suite.log" "${selected_checks[@]}" test-without-building
     python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --mode verify --ios "$ios_major" --log "$scratch_dir/suite.log"
     # Exercise the actual Simulator OS setting as well as live SwiftUI changes.
     if [[ "$system_size_check" == "1" ]]; then
