@@ -4,6 +4,26 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 各項目は観測、試した変更、確認範囲だけを短く記す。詳細はリンク先を読む。
 新しい失敗は次の試行前に追記する。未確認の原因を確定扱いしない。
 
+## U14 原本再照合後のメニューが操作不可（iOS27、全体352）
+
+- 対象：`testChangedOriginalCannotSubmitOrReplaceLastGood`、
+  `ManualAssistanceChecks+Navigation.swift`、架空原本のハッシュを変更。
+- 観測：消去・全文入力・完了を2回通過。2回目のメニューは一意に存在し、
+  画面内の250×42の領域を持つが、操作可能性の即時検査で失敗した。
+  enabledとhittableの個別値は未記録で、アニメーション原因とは断定しない。
+- 次の比較：既存45秒以内で現在の一意なボタンの包含・enabled・hittableを
+  観測し、成立した場合だけ一回タップする。不成立なら最後の観測値を残す。
+- 根拠：[352失敗ジョブ](https://github.com/n624-dev/takupoke-ios/actions/runs/38033516782/job/114159252608)。
+
+## U13 通常画面15件成功後にジョブ予算で中断（iOS26、全体352）
+
+- 対象：Application iOS 26 UI A、ios-release.yml、timeout-minutes、清掃。
+- 観測：15件すべて成功したが、準備・ビルドを含む45分のジョブ予算で
+  清掃中に自動中断した。外側の完了照合には到達せず、公開合格へ数えない。
+- 次の比較：通常UIジョブの準備・検査・清掃の総予算を60分にする。
+  各操作の45秒、全ケース、完了件数照合、cancelledの公開拒否は維持する。
+- 根拠：[352中断ジョブ](https://github.com/n624-dev/takupoke-ios/actions/runs/38033516782/job/114159252535)。
+
 ## U01 消去ボタンのAX取得停止（iOS27、全体348）
 
 - 対象：`testChangedOriginalCannotSubmitOrReplaceLastGood`、

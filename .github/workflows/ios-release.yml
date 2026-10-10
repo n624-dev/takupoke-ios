@@ -110,7 +110,9 @@ jobs:
             developer: /Applications/Xcode_27.0.app/Contents/Developer
             voiceover: '1'
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 45
+    # Includes dependency resolution, build, simulator tests and owned cleanup.
+    # Individual UI operation deadlines and completion checks stay unchanged.
+    timeout-minutes: 60
     env:
       DEVELOPER_DIR: ${{ matrix.developer }}
       TKPK_TEST_IOS: ${{ matrix.ios }}

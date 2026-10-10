@@ -414,7 +414,7 @@ class ManifestTests(unittest.TestCase):
         for ios, runner, xcode in ((26, "macos-26", "26.6"), (27, "xcode-27", "27.0")):
             self.assertIn(f"- ios: {ios}\n            runner: {runner}\n            developer: /Applications/Xcode_{xcode}.app/Contents/Developer", manual)
         simulator = workflow.split("  simulator:\n", 1)[1].split("  manual:\n", 1)[0]
-        self.assertIn("timeout-minutes: 45", simulator)
+        self.assertIn("timeout-minutes: 60", simulator)
         self.assertNotIn("test-manual-ui.sh", simulator)
         self.assertIn("bash tools/test-app-ui.sh", simulator)
 

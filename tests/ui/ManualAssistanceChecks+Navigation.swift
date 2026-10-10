@@ -130,12 +130,25 @@ extension ManualAssistanceChecks {
         }
         if fixtureMenuActions.contains(title) {
             guard fixtureMenuOpen else { XCTFail("Fixture action requires the explicitly opened menu");return }
-            let matches=app.buttons.matching(NSPredicate(format:"label == %@",title))
-            XCTAssertEqual(matches.count,1,"Fixture menu action must be unique")
-            let button=matches.element(boundBy:0)
-            guard button.exists,ManualScrollNavigation.usable(button.frame),app.frame.contains(button.frame),
-                  button.isEnabled,button.isHittable else {
-                XCTFail("Opened menu action must have its own visible hit region: "+app.debugDescription);return
+            var readyButton:XCUIElement?
+            var observation="not-observed"
+            let ready=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
+                let current=self.app.buttons.matching(NSPredicate(format:"label == %@",title))
+                    .allElementsBoundByIndex
+                guard current.count==1 else {
+                    observation="matches=\(current.count)";return false
+                }
+                let button=current[0],frame=button.frame
+                let contained=self.app.frame.contains(frame)
+                let enabled=button.isEnabled,hittable=button.isHittable
+                observation="frame=\(frame);contained=\(contained);enabled=\(enabled);hittable=\(hittable)"
+                guard ManualScrollNavigation.usable(frame),contained,enabled,hittable else { return false }
+                readyButton=button
+                return true
+            },object:app)
+            let result=XCTWaiter.wait(for:[ready],timeout:nativeStateTimeout)
+            guard result == .completed,let button=readyButton else {
+                XCTFail("Opened menu action must have its own visible hit region: "+observation);return
             }
             // The popup has its own hit regions; scrolling the underlying List
             // cannot reveal it and may dismiss the menu or the recovery sheet.
