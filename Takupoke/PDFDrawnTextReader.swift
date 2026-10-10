@@ -81,11 +81,11 @@ final class PDFDrawnTextReader {
     }
     private func deviceColor(_ scanner: CGPDFScannerRef, stroke: Bool, count: Int) throws {
         let values = try numbers(scanner,count)
+        let operation = count == 1 ? (stroke ? "G" : "g") : count == 3 ? (stroke ? "RG" : "rg") : (stroke ? "K" : "k")
+        try engine.operation(operation,values)
         if stroke {
-            try engine.state.colors.stroke.device(values,count:count)
             try engine.state.colors.stroke.applyDefault(scanner,resolver:paintResolver)
         } else {
-            try engine.state.colors.fill.device(values,count:count)
             try engine.state.colors.fill.applyDefault(scanner,resolver:paintResolver)
         }
     }
