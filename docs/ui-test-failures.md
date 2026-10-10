@@ -84,6 +84,16 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
   QAだけに要求開始・callback到達の固定ラベルを記録する。実OSでの効果は未確認。
 - 根拠：[350失敗ジョブ](https://github.com/n624-dev/takupoke-ios/actions/runs/38025452042/job/114135377793)。
 
+## U10 初期設定footerの受動照会で操作点エラー（iOS27、全体350）
+
+- 対象：`testSetupCanBeSkippedAndOffersAllFiles`、`ApplicationChecks+Navigation.swift`、
+  unobscuredViewport、次へ、`Activation point invalid`、hittability。
+- 観測：試験時間割の見出しを表示するviewport計算中、footerのisHittable照会が失敗した。
+  この箇所では次へを押していない。見出しの存在・不在だけの失敗とも分ける。
+- 次の比較：受動的な遮蔽範囲は実footerの一意な有限の表示枠から計算する。
+  実Buttonを押す際の有効・操作可能・包含と一回操作の条件は維持する。
+- 根拠：[350 B失敗ジョブ](https://github.com/n624-dev/takupoke-ios/actions/runs/38025452042/job/114135377831)。
+
 ## U09 行事注意文のAX照会停止（iOS27、全体350）
 
 - 対象：`testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates`、`ApplicationChecks+Events.swift`、

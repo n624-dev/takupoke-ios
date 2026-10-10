@@ -131,6 +131,22 @@ U08・U09をrequestAuthorization／requesting=true／firstMatch.exists／boundar
 一覧335ファイルの整合性と差分検査は成功した。現在のホストにはSwift compilerがなく、
 独立したSwift環境を準備中である。未実行のbridge検査を成功とは数えない。
 350のNative521件は予定skip1・失敗0（88.303秒）だった。通知比較の効果は別の新ソースで確認する。
+Swift6.1.2の独立環境で、変更したSwift3ファイルの構文確認とPython160件・失敗/skip0（15.360秒）を確認した。
+実bridgeを抜き出した許可callback検査も実行し、一回の要求・即時/遅延・拒否/エラー・取消を確認した。
+これは実OSの応答やSDKのiPhoneコンパイルの検証とは別である。
+350の通常27 Bは12件・失敗1（1352.916秒）だった。通知の実AllowとONは成功していた。
+失敗は初期設定の見出し探索中、footer「次へ」のisHittableを受動照会した時の操作点エラーで、
+実Buttonのタップ時ではない。失敗索引へU10を次の試行前に追記した。
+Navigationの編集前にunobscuredViewport／Activation point／次へ／hittabilityでU10を検索し、
+一覧から対応する通常画面ケースとgeometry検査を確認した。
+受動的なviewport計算は一回取得した一意なfooterの有限の表示枠と実viewportの交差を使い、
+操作可能かどうかを照会しない。操作不可でも表示されているfooterは遮蔽として扱う。
+実Buttonを操作する包含・enabled・hittable・一回tapと、有界6回の探索は維持する。
+既存testSetupCanBeSkippedAndOffersAllFilesが全4資料の見出し、実Next、skipと再表示を通すため、
+同じシナリオを増やさず、共通補助処理の変更は新ソースの両OS全体検査で確認する。
+footer修正後も独立Swift6.1.2環境で変更4ファイルの構文確認とPython160件・失敗/skip0
+（15.344秒）が成功した。一覧335ファイルと差分検査も成功した。
+実OSの通知応答・行事AX・footer表示は、次の同一ソース全体検査で確認する。
 
 ## 2026-10-09 通常Release・Latest公開：全体347
 

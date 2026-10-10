@@ -48,11 +48,7 @@ extension ApplicationChecks {
             if above || (!e.exists && searchEarlierRows) { app.swipeDown() } else { app.swipeUp() }
         }
         XCTAssertTrue(e.waitForExistence(timeout: 5), app.debugDescription)
-        XCTAssertTrue(contained(e, in: contentViewport), app.debugDescription)
-        let footer = app.buttons["次へ"]
-        XCTAssertFalse(
-            title != "次へ" && footer.exists && footer.isHittable && e.frame.maxY > footer.frame.minY,
-            "Target remains covered by the setup footer")
+        XCTAssertTrue(contained(e, in: unobscuredViewport(for: e)), app.debugDescription)
         XCTAssertTrue(e.isHittable, app.debugDescription)
         e.tap()
     }
@@ -139,14 +135,24 @@ extension ApplicationChecks {
     }
     private func unobscuredViewport(for element: XCUIElement, navigation: String? = nil) -> CGRect {
         var frame = contentViewport(navigation: navigation)
-        let footer = app.buttons["次へ"]
         let isFooter = element.exists && element.label.hasPrefix("次へ")
-        if footer.exists && footer.isHittable && !isFooter,
-            usable(footer.frame), footer.frame.minY > frame.minY
+        if !isFooter, let footer = observedSetupFooterFrame(),
+            usable(frame), usable(frame.intersection(footer)), footer.minY > frame.minY
         {
-            frame.size.height = max(0, min(frame.maxY, footer.frame.minY) - frame.minY)
+            frame.size.height = max(0, min(frame.maxY, footer.minY) - frame.minY)
         }
         return frame
+    }
+    private func observedSetupFooterFrame() -> CGRect? {
+        let footers = app.buttons.matching(NSPredicate(format: "label == %@", "次へ"))
+            .allElementsBoundByIndex
+        XCTAssertLessThanOrEqual(footers.count, 1, "Setup footer geometry must be unique")
+        guard footers.count == 1 else { return nil }
+        let frame = footers[0].frame
+        XCTAssertTrue(usable(frame), "Present setup footer must have finite positive geometry")
+        // A visible footer obscures the body even when it cannot be tapped.
+        // Query interactive hittability only when actually operating a control.
+        return usable(frame) ? frame : nil
     }
     func visible(_ e: XCUIElement, navigation: String? = nil, searchEarlierRows: Bool = false) -> XCUIElement {
         for _ in 0..<6 {
