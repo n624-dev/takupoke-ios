@@ -45,6 +45,9 @@ extension ApplicationChecks {
         let count = app.staticTexts["change-skipped-count"]
         XCTAssertTrue(count.waitForExistence(timeout: 30), app.debugDescription)
         XCTAssertTrue(count.label.contains("103行"), count.label)
+        let ranges = app.staticTexts["change-skipped-rows"]
+        XCTAssertTrue(ranges.waitForExistence(timeout:15))
+        XCTAssertEqual(ranges.label,"除外した行：3〜4行目、200〜300行目")
         XCTAssertTrue(visible(app.staticTexts["変更後、架空科目C"]).exists)
         XCTAssertFalse(app.staticTexts["変更後、架空除外科目B"].exists)
         app.terminate()
@@ -53,6 +56,8 @@ extension ApplicationChecks {
         openChanges()
         XCTAssertTrue(count.waitForExistence(timeout: 30), app.debugDescription)
         XCTAssertTrue(count.label.contains("103行"), count.label)
+        XCTAssertTrue(ranges.waitForExistence(timeout:15))
+        XCTAssertEqual(ranges.label,"除外した行：3〜4行目、200〜300行目")
         XCTAssertTrue(visible(app.staticTexts["変更後、架空科目C"]).exists)
         XCTAssertFalse(app.staticTexts["変更後、架空除外科目B"].exists)
     }

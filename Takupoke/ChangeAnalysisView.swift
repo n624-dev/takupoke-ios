@@ -51,7 +51,8 @@ struct ChangeAnalysisView: View {
                 Section {
                     Text("\(skip.rows.count)行を除外して読み込んでいます。ファイルの内容が更新されると解除されます。")
                         .accessibilityIdentifier("change-skipped-count")
-                    Text("除外した行：" + skip.rows.map(String.init).joined(separator: "、"))
+                    Text("除外した行：" + ChangeReviewGroup.rangeLabel(skip.rows))
+                        .accessibilityIdentifier("change-skipped-rows")
                 }
             }
             Section {
