@@ -20,6 +20,7 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
   `manual-edit-done`、keyboard toolbar、`isHittable`。
 - 観測：入力値・確認解除は正しく、完了ボタンは存在したがhittable=false。
   完了タップ前に失敗した。単に表示待ちが短かったとは断定できない。
+  同じ349の3項目訂正27は成功しており、iOS27で毎回失敗するとは扱わない。
 - 試行：693cf079で製品の完了をsheetのnavigation barへ移した。
   実ボタンの包含・enabled・hittableと一回のタップを要求する。効果は未確認。
 - 根拠：[349失敗ジョブ](https://github.com/n624-dev/takupoke-ios/actions/runs/38023085810/job/114128234002)、
