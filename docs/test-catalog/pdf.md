@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`f6dcf2d5b0f6553e4d4df016363914807ad4c1ffdaaeed9416634266567cf858`
+`464ee7938a4baff8cfb822bd2827ce025f63e9b08921ed0ec305f51bf1fa069c`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -32,6 +32,7 @@ bash tools/test-parsing.sh
 - [Takupoke/PDFUnicodeMap.swift](../../Takupoke/PDFUnicodeMap.swift)
 - [tests/PDFParsingTests.swift](../../tests/PDFParsingTests.swift)
 - [Takupoke/PDFContentVisibility.swift](../../Takupoke/PDFContentVisibility.swift)
+- [Takupoke/PDFPaintSpace.swift](../../Takupoke/PDFPaintSpace.swift)
 
 ## [tests/PDFParsingTests+Diagnostics.swift](../../tests/PDFParsingTests+Diagnostics.swift)
 
@@ -94,7 +95,7 @@ bash tools/test-parsing.sh
 - `testOnlyFilledTextModeHasAnIndependentGlyphExtentProof`
 - `testViewportChecksWholeGlyphsRulesAndFiniteEndpointSums`
 - `testStrictStrokeWidthBoundsIncludeTransformsAndHairlines`
-- `testStrictDeviceColorsRequireVisibleBlackComponents`
+- `testCanonicalBlackClassificationIsSeparateFromVisibleColorEligibility`
 - `testRecoveryRetainsDrawnSpacesWithoutChangingStrictGlyphs`
 - `testFullTwoByteSingletonCodeDomainRemainsBoundedAndCancellable`
 - `testUnicodeCharactersRangesAndSurrogatePairs`
@@ -129,3 +130,11 @@ bash tools/test-parsing.sh
 - `testClipContainmentHasNoToleranceAndPreservesLimitsAndCancellation`
 - `testNativeInertTagsContainedClipsDeviceSpacesAndUnusedStylesPreserveDirectAcquisition`
 - `testNativeConcealingClipsOptionalReplacementAndUnbalancedTagsRemainRejected`
+
+## [tests/PDFTextGeometryTests+Colors.swift](../../tests/PDFTextGeometryTests+Colors.swift)
+
+- `testVisibleDeviceColorsKeepOriginalGlyphOrderAndCoordinates`
+- `testNativeVisibleDeviceCalibratedAndUnusedUnknownColorsPreserveAcquisition`
+- `testNativeTrustedSRGBProfileSupportsExplicitAndDefaultColors`
+- `testNativeInvalidUsedColorAndWhiteCalibratedTextRemainRejected`
+- `testNativeMalformedMismatchedAndWhiteICCColorsDoNotCertifyText`

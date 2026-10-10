@@ -1,13 +1,50 @@
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 
 // Device color assignments are state, not paint. Reject unsupported visible
 // paint when used; an unused white stroke must not reject black filled text.
 struct PDFDevicePaint {
     var components = [0.0]
     var count = 1
+    #if canImport(CoreGraphics)
+    var resolvedSpace: PDFPaintSpace?
+    private var interpretedSpace: PDFPaintSpace? {
+        if let resolvedSpace { return resolvedSpace }
+        switch count {
+        case 1: return PDFPaintSpace(count:1,space:CGColorSpaceCreateDeviceGray())
+        case 3: return PDFPaintSpace(count:3,space:CGColorSpaceCreateDeviceRGB())
+        case 4: return PDFPaintSpace(count:4,space:CGColorSpaceCreateDeviceCMYK())
+        default: return nil
+        }
+    }
+    #endif
     var isBlack: Bool { PDFTextVisibility.blackColor(components, count: count) }
     var isWhite: Bool {
-        count == 4 ? components == [0, 0, 0, 0] : components.allSatisfy { $0 == 1 }
+        #if canImport(CoreGraphics)
+        if let interpretedSpace {
+            guard let rgb = interpretedSpace.rgb(components) else { return false }
+            return rgb.allSatisfy { $0 >= 254.5 / 255 }
+        }
+        #endif
+        return count == 4 ? components == [0, 0, 0, 0] : components.allSatisfy { $0 == 1 }
+    }
+    var isVisibleInk: Bool {
+        #if canImport(CoreGraphics)
+        if let interpretedSpace {
+            guard let rgb = interpretedSpace.rgb(components) else { return false }
+            return rgb.contains { $0 < 254.5 / 255 }
+        }
+        #endif
+        guard !isWhite else { return false }
+        return count == 4 || components.contains { $0 < 254.5 / 255 }
+    }
+    mutating func device(_ values: [Double], count: Int) throws {
+        #if canImport(CoreGraphics)
+        resolvedSpace = nil
+        #endif
+        try set(values, count: count)
     }
     mutating func set(_ values: [Double], count: Int) throws {
         guard [1, 3, 4].contains(count), values.count == count,
@@ -18,9 +55,9 @@ struct PDFDevicePaint {
     }
     mutating func space(_ name: String) throws {
         switch name {
-        case "DeviceGray": try set([0], count: 1)
-        case "DeviceRGB": try set([0, 0, 0], count: 3)
-        case "DeviceCMYK": try set([0, 0, 0, 1], count: 4)
+        case "DeviceGray": try device([0], count: 1)
+        case "DeviceRGB": try device([0, 0, 0], count: 3)
+        case "DeviceCMYK": try device([0, 0, 0, 1], count: 4)
         default: throw PDFParseError(code:.unsupported,stage:.paintVisibility)
         }
     }
@@ -56,31 +93,39 @@ enum PDFClipValidation {
 import CoreGraphics
 
 extension PDFDevicePaint {
-    static func unsupportedDefaultCounts(_ scanner: CGPDFScannerRef) -> Set<Int> {
-        var unsupported = Set<Int>()
-        for (key, expected, count) in [("DefaultGray","DeviceGray",1),("DefaultRGB","DeviceRGB",3),("DefaultCMYK","DeviceCMYK",4)] {
-            guard let object = CGPDFContentStreamGetResource(CGPDFScannerGetContentStream(scanner),"ColorSpace",key) else { continue }
-            var name: UnsafePointer<CChar>?
-            guard CGPDFObjectGetValue(object,.name,&name), let name, String(cString:name) == expected else {
-                unsupported.insert(count)
-                continue
-            }
-        }
-        return unsupported
+    mutating func applyDefault(_ scanner: CGPDFScannerRef, resolver: PDFPaintSpaceResolver) throws {
+        resolvedSpace = try resolver.deviceDefault(scanner, count: count)
     }
-    mutating func space(_ scanner: CGPDFScannerRef) throws {
+    mutating func space(_ scanner: CGPDFScannerRef, resolver: PDFPaintSpaceResolver) throws {
         var pointer: UnsafePointer<CChar>?
         guard CGPDFScannerPopName(scanner,&pointer), let pointer else { throw PDFParseError(code:.unsupported,stage:.paintVisibility) }
-        var name = String(cString:pointer), visited = Set<String>()
-        for _ in 0..<8 {
-            if ["DeviceGray","DeviceRGB","DeviceCMYK"].contains(name) { try space(name); return }
-            var resourceName: UnsafePointer<CChar>?
-            guard visited.insert(name).inserted,
-                  let object = CGPDFContentStreamGetResource(CGPDFScannerGetContentStream(scanner),"ColorSpace",name),
-                  CGPDFObjectGetValue(object,.name,&resourceName), let resourceName else { throw PDFParseError(code:.unsupported,stage:.paintVisibility) }
-            name = String(cString:resourceName)
+        let name = String(cString:pointer)
+        if ["DeviceGray", "DeviceRGB", "DeviceCMYK"].contains(name) {
+            try space(name); try applyDefault(scanner, resolver: resolver)
+        } else {
+            let space = try resolver.named(scanner, name: name)
+            count = space.count
+            components = count == 4 ? [0,0,0,1] : Array(repeating:0,count:count)
+            resolvedSpace = space.device ? try resolver.deviceDefault(scanner,count:count) : space
         }
-        throw PDFParseError(code:.limit)
+    }
+    mutating func color(_ scanner: CGPDFScannerRef) throws {
+        if count == 0 {
+            // Unsupported unused state may be superseded before any paint.
+            // Consume its bounded operands without certifying that color.
+            for _ in 0..<32 {
+                var object: CGPDFObjectRef?
+                if !CGPDFScannerPopObject(scanner,&object) { return }
+            }
+            throw PDFParseError(code:.limit)
+        }
+        var values = [Double]()
+        for _ in 0..<count {
+            var value: CGPDFReal = 0
+            guard CGPDFScannerPopNumber(scanner,&value) else { throw PDFParseError(code:.unsupported,stage:.paintVisibility) }
+            values.insert(Double(value),at:0)
+        }
+        try set(values,count:count)
     }
 }
 

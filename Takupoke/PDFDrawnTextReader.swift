@@ -12,7 +12,7 @@ final class PDFDrawnTextReader {
     private var clipPath = PDFRectangularClipPath()
     private var markedContent = PDFMarkedContent()
     private var pageBounds: PDFBox?
-    private var unsupportedDefaultCounts = Set<Int>()
+    private let paintResolver = PDFPaintSpaceResolver()
     init(check: @escaping () throws -> Void) { engine = PDFTextGeometry(check: check) }
 
     private static func run(_ info: UnsafeMutableRawPointer?, _ action: (PDFDrawnTextReader) throws -> Void) {
@@ -44,9 +44,6 @@ final class PDFDrawnTextReader {
         let length = CGPDFStringGetLength(value)
         guard length <= 200_000 else { throw PDFParseError(code: .limit) }
         if length == 0 { try engine.show([]); return }
-        guard !unsupportedDefaultCounts.contains(engine.state.colors.fill.count) else {
-            throw PDFParseError(code:.unsupported,stage:.paintVisibility)
-        }
         guard let bytes = CGPDFStringGetBytePtr(value) else { throw PDFTextFailure.unsupported }
         try engine.show(Array(UnsafeBufferPointer(start: bytes, count: length)))
     }
@@ -79,6 +76,16 @@ final class PDFDrawnTextReader {
         } else if CGPDFDictionaryGetObject(dict,"BM",&blendObject) { throw PDFTextFailure.unsupported }
         guard try number(dict, "ca", fallback: 1) == 1, try number(dict, "CA", fallback: 1) == 1 else {
             throw PDFTextFailure.unsupported
+        }
+    }
+    private func deviceColor(_ scanner: CGPDFScannerRef, stroke: Bool, count: Int) throws {
+        let values = try numbers(scanner,count)
+        if stroke {
+            try engine.state.colors.stroke.device(values,count:count)
+            try engine.state.colors.stroke.applyDefault(scanner,resolver:paintResolver)
+        } else {
+            try engine.state.colors.fill.device(values,count:count)
+            try engine.state.colors.fill.applyDefault(scanner,resolver:paintResolver)
         }
     }
     func read(_ page: CGPDFPage, expectedText: String) throws -> [PDFGlyph] {
@@ -151,12 +158,12 @@ final class PDFDrawnTextReader {
         CGPDFOperatorTableSetCallback(table, "w") { scanner, p in PDFDrawnTextReader.run(p) { s in
             guard try s.numbers(scanner,1)[0] >= 0 else { throw PDFTextFailure.unsupported }
         } }
-        CGPDFOperatorTableSetCallback(table, "g") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.operation("g", $0.numbers(scanner,1)) } }
-        CGPDFOperatorTableSetCallback(table, "G") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.operation("G", $0.numbers(scanner,1)) } }
-        CGPDFOperatorTableSetCallback(table, "rg") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.operation("rg", $0.numbers(scanner,3)) } }
-        CGPDFOperatorTableSetCallback(table, "RG") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.operation("RG", $0.numbers(scanner,3)) } }
-        CGPDFOperatorTableSetCallback(table, "k") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.operation("k", $0.numbers(scanner,4)) } }
-        CGPDFOperatorTableSetCallback(table, "K") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.operation("K", $0.numbers(scanner,4)) } }
+        CGPDFOperatorTableSetCallback(table,"g") { scanner,p in PDFDrawnTextReader.run(p) { try $0.deviceColor(scanner,stroke:false,count:1) } }
+        CGPDFOperatorTableSetCallback(table,"G") { scanner,p in PDFDrawnTextReader.run(p) { try $0.deviceColor(scanner,stroke:true,count:1) } }
+        CGPDFOperatorTableSetCallback(table,"rg") { scanner,p in PDFDrawnTextReader.run(p) { try $0.deviceColor(scanner,stroke:false,count:3) } }
+        CGPDFOperatorTableSetCallback(table,"RG") { scanner,p in PDFDrawnTextReader.run(p) { try $0.deviceColor(scanner,stroke:true,count:3) } }
+        CGPDFOperatorTableSetCallback(table,"k") { scanner,p in PDFDrawnTextReader.run(p) { try $0.deviceColor(scanner,stroke:false,count:4) } }
+        CGPDFOperatorTableSetCallback(table,"K") { scanner,p in PDFDrawnTextReader.run(p) { try $0.deviceColor(scanner,stroke:true,count:4) } }
         // A later fill may replace an earlier subject while PDFKit continues
         // to expose the covered text. Geometry is not a visibility certificate.
         for op in ["f", "F", "f*", "B", "B*", "b", "b*"] {
@@ -165,18 +172,16 @@ final class PDFDrawnTextReader {
                 s.clipPath.reset()
             } }
         }
-        CGPDFOperatorTableSetCallback(table, "cs") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.state.colors.fill.space(scanner) } }
-        CGPDFOperatorTableSetCallback(table, "CS") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.state.colors.stroke.space(scanner) } }
+        CGPDFOperatorTableSetCallback(table, "cs") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.state.colors.fill.space(scanner,resolver:$0.paintResolver) } }
+        CGPDFOperatorTableSetCallback(table, "CS") { scanner, p in PDFDrawnTextReader.run(p) { try $0.engine.state.colors.stroke.space(scanner,resolver:$0.paintResolver) } }
         for op in ["sc", "scn"] {
             CGPDFOperatorTableSetCallback(table, op) { scanner, p in PDFDrawnTextReader.run(p) { s in
-                let count = s.engine.state.colors.fill.count
-                try s.engine.state.colors.fill.set(s.numbers(scanner,count),count:count)
+                try s.engine.state.colors.fill.color(scanner)
             } }
         }
         for op in ["SC", "SCN"] {
             CGPDFOperatorTableSetCallback(table, op) { scanner, p in PDFDrawnTextReader.run(p) { s in
-                let count = s.engine.state.colors.stroke.count
-                try s.engine.state.colors.stroke.set(s.numbers(scanner,count),count:count)
+                try s.engine.state.colors.stroke.color(scanner)
             } }
         }
         CGPDFOperatorTableSetCallback(table, "re") { scanner, p in PDFDrawnTextReader.run(p) { s in
@@ -209,7 +214,8 @@ final class PDFDrawnTextReader {
         defer { CGPDFContentStreamRelease(stream) }
         let scanner = CGPDFScannerCreate(stream, table, Unmanaged.passUnretained(self).toOpaque())
         defer { CGPDFScannerRelease(scanner) }
-        unsupportedDefaultCounts = PDFDevicePaint.unsupportedDefaultCounts(scanner)
+        try engine.state.colors.fill.applyDefault(scanner,resolver:paintResolver)
+        try engine.state.colors.stroke.applyDefault(scanner,resolver:paintResolver)
         let succeeded = CGPDFScannerScan(scanner)
         if let failure = failure { throw failure }
         guard succeeded else { throw PDFTextFailure.unsupported }

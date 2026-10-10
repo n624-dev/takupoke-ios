@@ -260,7 +260,8 @@
         "Takupoke/PDFTextGeometry.swift",
         "Takupoke/PDFUnicodeMap.swift",
         "tests/PDFParsingTests.swift",
-        "Takupoke/PDFContentVisibility.swift"
+        "Takupoke/PDFContentVisibility.swift",
+        "Takupoke/PDFPaintSpace.swift"
       ],
       "checks": [
         "tests/PDFParsingTests+Diagnostics.swift",
@@ -268,7 +269,8 @@
         "tests/PDFParsingTests+PDFKit.swift",
         "tests/PDFParsingTests+Timetable.swift",
         "tests/PDFTextGeometryTests.swift",
-        "tests/PDFTextGeometryTests+Visibility.swift"
+        "tests/PDFTextGeometryTests+Visibility.swift",
+        "tests/PDFTextGeometryTests+Colors.swift"
       ]
     },
     {

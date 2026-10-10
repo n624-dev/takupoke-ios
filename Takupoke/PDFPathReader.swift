@@ -98,7 +98,7 @@ final class PDFPathReader {
     private var markedContent = PDFMarkedContent()
     private var clips: [PDFBox] = []
     private var paintedBoxes: [PDFBox] = []
-    private var unsupportedDefaultCounts = Set<Int>()
+    private let paintResolver = PDFPaintSpaceResolver()
     var paths: [[CGPoint]] = []
     var lines: [PDFRule] = []
     var arrows: [PDFArrow] = []
@@ -192,15 +192,11 @@ final class PDFPathReader {
         guard failure == nil else { return }
         do { try check() } catch { failure = error; return }
         if verifyVisibility && !paths.isEmpty {
-            guard (!fill || !unsupportedDefaultCounts.contains(colors.fill.count)) &&
-                  (!stroke || !unsupportedDefaultCounts.contains(colors.stroke.count)) else {
-                failure = PDFParseError(code:.unsupported,stage:.paintVisibility); return
-            }
             // A white page background is harmless only before any retained ink.
             if fill && !stroke && colors.fill.isWhite && !textSeen && lines.isEmpty && arrows.isEmpty && paintedBoxes.isEmpty,
                paths.count == 1, let box = rectangularPathBox(),
                box == PDFBox(left:0,top:0,right:Double(transform.width),bottom:Double(transform.height)) { return }
-            guard (!fill || colors.fill.isBlack) && (!stroke || colors.stroke.isBlack) else {
+            guard (!fill || colors.fill.isVisibleInk) && (!stroke || colors.stroke.isVisibleInk) else {
                 failure = PDFParseError(code:.unsupported,stage:.paintVisibility); return
             }
         }
@@ -329,10 +325,13 @@ final class PDFPathReader {
         do {
             var paint = stroke ? colors.stroke : colors.fill
             if space {
-                try paint.space(scanner)
+                try paint.space(scanner,resolver:paintResolver)
             } else {
-                guard let n = numbers(scanner,count ?? paint.count) else { return }
-                try paint.set(n.map(Double.init),count:count ?? paint.count)
+                if let count {
+                    guard let n = numbers(scanner,count) else { return }
+                    try paint.device(n.map(Double.init),count:count)
+                    try paint.applyDefault(scanner,resolver:paintResolver)
+                } else { try paint.color(scanner) }
             }
             if stroke { colors.stroke = paint } else { colors.fill = paint }
         } catch { failure = error }
@@ -457,7 +456,7 @@ final class PDFPathReader {
                 CGPDFOperatorTableSetCallback(table, op) { _, p in
                     guard let s = PDFPathReader.state(p) else { return }
                     s.textSeen = true
-                    if !s.colors.fill.isBlack || s.unsupportedDefaultCounts.contains(s.colors.fill.count) {
+                    if !s.colors.fill.isVisibleInk {
                         s.failure = PDFParseError(code:.unsupported,stage:.paintVisibility)
                     }
                 }
@@ -502,7 +501,10 @@ final class PDFPathReader {
         defer { CGPDFContentStreamRelease(stream) }
         let scanner = CGPDFScannerCreate(stream, table, Unmanaged.passUnretained(self).toOpaque())
         defer { CGPDFScannerRelease(scanner) }
-        if verifyVisibility { unsupportedDefaultCounts = PDFDevicePaint.unsupportedDefaultCounts(scanner) }
+        if verifyVisibility {
+            try colors.fill.applyDefault(scanner,resolver:paintResolver)
+            try colors.stroke.applyDefault(scanner,resolver:paintResolver)
+        }
         let succeeded = CGPDFScannerScan(scanner)
         if let failure = failure { throw failure }
         try check()

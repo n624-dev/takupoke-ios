@@ -112,7 +112,7 @@ final class PDFTextGeometryTests: XCTestCase {
         XCTAssertNil(PDFTextVisibility.strokePad(-1,a:1,b:0,c:0,d:1))
         XCTAssertNil(PDFTextVisibility.strokePad(1,a:Double.infinity,b:0,c:0,d:1))
     }
-    func testStrictDeviceColorsRequireVisibleBlackComponents() {
+    func testCanonicalBlackClassificationIsSeparateFromVisibleColorEligibility() {
         XCTAssertTrue(PDFTextVisibility.blackColor([0],count:1))
         XCTAssertTrue(PDFTextVisibility.blackColor([0,0,0],count:3))
         XCTAssertTrue(PDFTextVisibility.blackColor([0,0,0,1],count:4))
@@ -408,7 +408,7 @@ extension PDFTextGeometryTests {
     }
     // Entirely invented PDF, with explicit resources and text operators. This
     // checks the Core Graphics adapter rather than relying on Quartz's font choice.
-    func syntheticPDF(content: String, unicode: Bool = true, graphicsState: String = "", simpleFont: Bool = false, crop: String = "", unusedFont: Bool = false, unusedFontEntry: String = "", colorSpaces: String = "") -> Data {
+    func syntheticPDF(content: String, unicode: Bool = true, graphicsState: String = "", simpleFont: Bool = false, crop: String = "", unusedFont: Bool = false, unusedFontEntry: String = "", colorSpaces: String = "", additionalObjects: [Data] = []) -> Data {
         func stream(_ s: String) -> String { "<< /Length \(s.utf8.count) >>\nstream\n\(s)\nendstream" }
         let simpleMap = """
         /CIDInit /ProcSet findresource begin 12 dict begin begincmap
@@ -437,9 +437,11 @@ extension PDFTextGeometryTests {
         ]
         if unusedFont { objects.append("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding \(unusedFontEntry) >>") }
         var data = Data("%PDF-1.4\n".utf8), offsets: [Int] = [0]
-        for (i, object) in objects.enumerated() {
+        for (i, object) in (objects.map { Data($0.utf8) } + additionalObjects).enumerated() {
             offsets.append(data.count)
-            data.append(Data("\(i + 1) 0 obj\n\(object)\nendobj\n".utf8))
+            data.append(Data("\(i + 1) 0 obj\n".utf8))
+            data.append(object)
+            data.append(Data("\nendobj\n".utf8))
         }
         let start = data.count
         var tail = "xref\n0 \(offsets.count)\n0000000000 65535 f \n"
@@ -537,7 +539,6 @@ extension PDFTextGeometryTests {
         let cases = [white,repaint,
             syntheticPDF(content:"1 1 1 rg "+text,simpleFont:true),
             syntheticPDF(content:"0 0 0 0 k "+text,simpleFont:true),
-            syntheticPDF(content:"1 0 0 rg "+text,simpleFont:true),
             syntheticPDF(content:"0 g 0 0 300 400 re f "+text,simpleFont:true),
             syntheticPDF(content:"0 g "+text+" 0 g 0 0 300 400 re f",simpleFont:true),
             syntheticPDF(content:"0 g "+text+" 0 G 25 w 20 355 m 70 355 l S",simpleFont:true),

@@ -21,7 +21,7 @@ extension PDFTextGeometryTests {
             try engine.operation("Tm",[1,0,0,1,30,350]); try engine.show([65]); try engine.operation("ET")
             XCTAssertEqual(try engine.finish(expectedText:"A").map(\.text),["A"])
         }
-        for components in [[1.0], [1.0,0,0], [0.0,0,0,0]] {
+        for components in [[1.0], [1.0,1,1], [0.0,0,0,0]] {
             let engine = PDFTextGeometry()
             try engine.operation(components.count == 1 ? "g" : components.count == 3 ? "rg" : "k",components)
             try engine.operation("BT"); try engine.font(font,size:10)
@@ -128,7 +128,7 @@ extension PDFTextGeometryTests {
             }
         }
         for (prefix, resources) in [("/DeviceRGB cs 0 0 0 sc ", "/DefaultRGB [/ICCBased 4 0 R]"),
-                                    ("", "/DefaultGray [/CalGray << /WhitePoint [1 1 1] >>]"),
+                                    ("", "/DefaultGray [/CalGray << /WhitePoint [1 0 1] >>]"),
                                     ("/Cycle cs ", "/Cycle /Cycle")] {
             let url = root.appendingPathComponent("fictional.pdf")
             try syntheticPDF(content:prefix+text,simpleFont:true,colorSpaces:resources).write(to:url)

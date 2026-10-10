@@ -1,5 +1,30 @@
 # 検証記録
 
+## 2026-10-10 可視色の互換性修正（検証中）
+
+239.1で存在しなかった黒色限定の拒否を、対応する白背景上の可視色判定へ変更した。
+DeviceGray／RGB／CMYK、CalGray／CalRGB、検証できるICCBasedを対象とし、
+Core Graphicsの色変換を使う。未対応の色設定は使用前に上書きできるが、実使用は拒否する。
+文字の対応・位置・順序・セル解析は変更せず、白文字、透明・不可視、上塗り、
+切れるclip、任意表示、構造不明の拒否を維持する。OCR／AIでStrictを代替しない。
+ICCのN・成分数・入力長と色空間aliasの循環・深さ・件数を確認する。
+対象PDFのcmapや学校原本を色の対照／テストに用いていない。
+
+一覧のPDFContentVisibility／PDFPathReader／RecoveryTestsを検索し、可視赤文字を
+隠れた文字の負例から独立した正例へ移した。架空A/B文字と罫線の原文・順序・座標、
+Cal色、OS提供sRGB ICC色、未知の未使用色設定、使用中の未知／不正色を追加した。
+通常Parser27・特別Parser24への更新で、同じSHAの旧P23を一度再解析する。
+行事Parser4は変更しない。共通ReaderのP23はAI設定より前の処理である。
+UI実行前の履歴をApplicationChecks／ManualAssistance／iOS 27で検索し、
+U17～U19と詳細記録を確認した。今回UI操作・期限・許可確認の変更は行わない。
+
+最初のLinux Swiftビルドでは新しい再解析テストのtuple配列の型推論が失敗した。
+配列の型を明示し、入力・期待値・製品コードを変えずに修正する。
+
+ローカルPython160件は7件がSwift非設置による予定skipで失敗0だった。
+全160件の成功とは扱わず、Swift設置コンテナとApple SDKで追って確認する。
+Appleの新しい色空間処理と実機の3文書はまだ未確認であり、修正完了や復旧率に加算しない。
+
 ## 2026-10-10 公開後の3種類のPDFでP23継続
 
 利用者から通常・試験・試験返却の3種類ともP23になると報告された。
@@ -2168,3 +2193,5 @@ UI検証の置換操作は、編集メニューを閉じた後にフォーカス
 [公開実行37824028785](https://github.com/n624-dev/takupoke-ios/actions/runs/37824028785)も成功し、[開発確認版](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-37811661856-1-22c8ee2b5fa5)を公開した。添付は`takupoke.ipa`・`INSTALL.txt`・`SHA256SUMS`の3件で、途中の`release.json`は残していない。IPAと導入手順を認証なしでストリーム取得し、SHA256SUMSと一致した。IPAは16,794,385 bytes、SHA-256 `3039654254167cdeb009e7fdcf1c043a80b530f545fed3feeb5d2c1cf841d1c7`。正式版`v0.1.239-build.239.1`、main、固定AltStore Sourceは変更していない。
 
 iOS27の手動訂正ではInvalid frame dimension警告が残り、原因・解消は未確認。追加AIモデルの品質合格、独立した文書全体のOCR品質、iPhone実機への導入確認も示さない。今回の公開後は改善を継続し、改善が完了するまで追加配布しない。
+
+Swift設置コンテナのPython160件は失敗0・skip0（17.693秒）で成功した。

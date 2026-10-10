@@ -6,8 +6,9 @@ enum PDFTextFailure {
     static var unsupported: PDFParseError { PDFParseError(code: .unsupported, stage: .characterMapping) }
 }
 
-/// The strict drawn subset accepts black device colors only. Other colors need
-/// a composited raster: selecting a glyph does not prove contrast or visibility.
+/// Paint visibility is independent of canonical black classification. Supported
+/// colors must remain visible on the certified white background; opacity,
+/// clipping and later paint are checked separately by the readers.
 enum PDFTextVisibility {
     static func similarStrokeTransform(a: Double,b: Double,c: Double,d: Double) -> Bool {
         guard [a,b,c,d].allSatisfy(\.isFinite) else { return false }
@@ -78,8 +79,8 @@ final class PDFTextGeometry {
                       "g": 1, "G": 1, "rg": 3, "RG": 3, "k": 4, "K": 4]
         guard let count = counts[op], n.count == count, n.allSatisfy(\.isFinite) else { throw PDFTextFailure.unsupported }
         switch op {
-        case "g", "rg", "k": try state.colors.fill.set(n, count: n.count)
-        case "G", "RG", "K": try state.colors.stroke.set(n, count: n.count)
+        case "g", "rg", "k": try state.colors.fill.device(n, count: n.count)
+        case "G", "RG", "K": try state.colors.stroke.device(n, count: n.count)
         case "q":
             guard stack.count < 64 else { throw PDFParseError(code: .limit) }
             stack.append(state)
@@ -125,7 +126,7 @@ final class PDFTextGeometry {
         try check()
         guard inText, state.size > 0, state.scale > 0 else { throw PDFTextFailure.unsupported }
         if bytes.isEmpty { return }
-        guard state.colors.fill.isBlack else { throw PDFParseError(code:.unsupported,stage:.paintVisibility) }
+        guard state.colors.fill.isVisibleInk else { throw PDFParseError(code:.unsupported,stage:.paintVisibility) }
         guard let font = state.font,
               bytes.count % font.codeBytes == 0, order + bytes.count / font.codeBytes <= 100_000 else {
             throw PDFTextFailure.unsupported
