@@ -118,12 +118,15 @@ class ManifestTests(unittest.TestCase):
                           app_test_project.NOTIFICATION_PERMISSION_END,
                           app_test_project.NOTIFICATION_PERMISSION_SKIPPED,
                           app_test_project.NOTIFICATION_NATIVE_REQUEST,
-                          app_test_project.NOTIFICATION_NATIVE_CALLBACK):
+                          app_test_project.NOTIFICATION_NATIVE_CALLBACK,
+                          app_test_project.NOTIFICATION_AUTH_REQUEST,
+                          app_test_project.NOTIFICATION_AUTH_CALLBACK):
             self.assertEqual(restored.count(insertion), 1)
             restored = restored.replace(insertion, "", 1)
         self.assertEqual(restored, source)
         for marker in ("center.getNotificationSettings { settings in",
-                       "continuation.resume(returning: settings)"):
+                       "continuation.resume(returning: settings)",
+                       "center.requestAuthorization(options: [.alert, .sound]) { granted, error in"):
             for changed in (source.replace(marker, ""), source + marker + "\n"):
                 with self.assertRaises(AssertionError):
                     app_test_project.instrument_notification_permission(changed)
@@ -138,6 +141,8 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("UIApplication.shared.applicationState.rawValue", probe)
         recorder = (ROOT / "tests/ui/ApplicationFixture.swift").read_text(encoding="utf-8")
         self.assertIn('"notification-settings-not-requested"', recorder)
+        self.assertIn('"notification-auth-request"', recorder)
+        self.assertIn('"notification-auth-callback"', recorder)
         self.assertIn("@Environment(\\.scenePhase)", probe)
         self.assertIn(".onDisappear { permission.invalidate() }", probe)
         self.assertNotRegex(probe, r"notificationSettings\(|getNotificationSettings|requestAuthorization|setEnabled|UserDefaults\.standard\.set\(")

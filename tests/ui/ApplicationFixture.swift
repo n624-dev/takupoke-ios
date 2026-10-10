@@ -342,7 +342,8 @@ enum FixtureLaunchDiagnostics {
             "notification-settings-enter", "notification-settings-complete", "notification-settings-cancelled",
             "notification-settings-not-requested",
             "notification-on-binding", "notification-off-binding",
-            "notification-native-request", "notification-native-callback"]
+            "notification-native-request", "notification-native-callback",
+            "notification-auth-request", "notification-auth-callback"]
         guard allowed.contains(stage) else { return }
         let line = "TAKUPOKE_LIFECYCLE pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) stage=\(stage)\n"
         append(line)

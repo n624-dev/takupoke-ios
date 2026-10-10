@@ -41,7 +41,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             requestingPermission = true
             defer { requestingPermission = false }
             do {
-                guard try await center.requestAuthorization(options: [.alert, .sound]) else {
+                guard try await Self.requestAuthorization(from: center) else {
                     message = "iPhoneの設定で通知を許可してください。"
                     return
                 }
@@ -72,6 +72,19 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             }
             center.removePendingNotificationRequests(withIdentifiers: ids)
             center.removeDeliveredNotifications(withIdentifiers: ids)
+        }
+    }
+
+    // Keep one real OS request and its result across the callback boundary.
+    // Denial and errors never enable or persist a notification setting.
+    nonisolated private static func requestAuthorization(
+        from center: UNUserNotificationCenter
+    ) async throws -> Bool {
+        try await withCheckedThrowingContinuation { continuation in
+            center.requestAuthorization(options: [.alert, .sound]) { granted, error in
+                if let error { continuation.resume(throwing: error) }
+                else { continuation.resume(returning: granted) }
+            }
         }
     }
 

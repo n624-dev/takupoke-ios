@@ -89,21 +89,30 @@ extension ApplicationChecks {
             tab("ホーム")
             _ = heading("今日の予定")
             XCTAssertTrue(app.staticTexts["3月31日（木）"].exists, app.debugDescription)
-            XCTAssertEqual(app.staticTexts[notice].firstMatch.exists, hasNotice, app.debugDescription)
-            XCTAssertEqual(app.staticTexts[noClasses].firstMatch.exists, saysNoClasses, app.debugDescription)
+            assertPresence(notice, expected: hasNotice)
+            assertPresence(noClasses, expected: saysNoClasses)
             let lesson = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "架空年度確認科目A"))
                 .firstMatch
             if hasLesson {
                 XCTAssertTrue(lesson.waitForExistence(timeout: 10), app.debugDescription)
                 XCTAssertTrue(lesson.isHittable, app.debugDescription)
             } else {
-                XCTAssertFalse(lesson.exists, app.debugDescription)
+                let actual = app.buttons.matching(NSPredicate(
+                    format: "label CONTAINS %@", "架空年度確認科目A")).allElementsBoundByIndex
+                XCTAssertTrue(actual.isEmpty, app.debugDescription)
             }
         }
         func boundaryWeek(hasNotice: Bool) {
             tab("時間割")
             XCTAssertTrue(app.buttons["3月28日から4月3日"].waitForExistence(timeout: 10), app.debugDescription)
-            XCTAssertEqual(app.staticTexts[notice].firstMatch.exists, hasNotice, app.debugDescription)
+            assertPresence(notice, expected: hasNotice)
+        }
+        func assertPresence(_ label: String, expected: Bool) {
+            // Resolve actual matches once. An absent firstMatch.exists query
+            // can stall iOS27 AX; an empty observation still means absent.
+            let actual = app.staticTexts.matching(NSPredicate(
+                format: "label == %@", label)).allElementsBoundByIndex
+            XCTAssertEqual(!actual.isEmpty, expected, app.debugDescription)
         }
         // The only saved year is 2031; current 2032 lessons stay usable.
         home(hasNotice: true, hasLesson: true, saysNoClasses: false)

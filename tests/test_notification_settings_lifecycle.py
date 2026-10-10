@@ -13,6 +13,87 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class NotificationSettingsLifecycleTests(unittest.TestCase):
+    def test_authorization_bridge_requires_one_real_callback_and_preserves_denial_and_errors(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the production authorization bridge")
+        source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
+        start = source.index("    nonisolated private static func requestAuthorization(")
+        end = source.index("    func enableFromSetup()", start)
+        program = r'''import Foundation
+struct UNAuthorizationOptions: OptionSet, Sendable {
+    let rawValue: Int
+    static let alert = Self(rawValue: 4), sound = Self(rawValue: 2)
+}
+final class UNUserNotificationCenter: @unchecked Sendable {
+    typealias Callback = @Sendable (Bool, Error?) -> Void
+    private let lock = NSLock()
+    private var calls = 0
+    private var callback: Callback?
+    private var requested: UNAuthorizationOptions = []
+    let immediate: (Bool, Error?)?
+    init(_ immediate: (Bool, Error?)? = nil) { self.immediate = immediate }
+    var count: Int { lock.lock(); defer { lock.unlock() }; return calls }
+    var options: UNAuthorizationOptions { lock.lock(); defer { lock.unlock() }; return requested }
+    func requestAuthorization(options: UNAuthorizationOptions, completionHandler: @escaping Callback) {
+        lock.lock(); calls += 1; callback = completionHandler; requested = options; lock.unlock()
+        if let immediate { completionHandler(immediate.0, immediate.1) }
+    }
+    func complete(_ granted: Bool, _ error: Error? = nil) {
+        lock.lock(); let handler = callback; lock.unlock()
+        precondition(handler != nil); handler?(granted, error)
+    }
+}
+final class Completion: @unchecked Sendable {
+    private let lock = NSLock()
+    private var finished = false
+    func finish() { lock.lock(); finished = true; lock.unlock() }
+    var value: Bool { lock.lock(); defer { lock.unlock() }; return finished }
+}
+final class Harness {
+BRIDGE
+    nonisolated static func request(_ center: UNUserNotificationCenter) async throws -> Bool {
+        try await requestAuthorization(from: center)
+    }
+}
+@main struct Probe {
+    static func main() async throws {
+        let failure = NSError(domain: "fictional-authorization", code: 7)
+        for granted in [false, true] {
+            let center = UNUserNotificationCenter((granted, nil))
+            let result = try await Harness.request(center)
+            precondition(result == granted && center.count == 1 && center.options == [.alert, .sound])
+            // The actual OS error wins even if its Boolean is contradictory.
+            let failing = UNUserNotificationCenter((granted, failure))
+            do {
+                _ = try await Harness.request(failing)
+                preconditionFailure("An OS error must not grant permission")
+            } catch { precondition((error as NSError) === failure && failing.count == 1) }
+        }
+        for granted in [false, true] {
+            let center = UNUserNotificationCenter(), observed = Completion()
+            let task = Task {
+                let result = try await Harness.request(center)
+                observed.finish(); return result
+            }
+            let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+            while center.count == 0 {
+                precondition(ContinuousClock.now < deadline); await Task.yield()
+            }
+            precondition(center.count == 1 && !observed.value)
+            task.cancel()
+            // Cancellation cannot fabricate a result or a second OS request.
+            precondition(!observed.value && center.count == 1)
+            center.complete(granted)
+            let result = try await task.value
+            precondition(result == granted && task.isCancelled && center.count == 1 && observed.value)
+        }
+        print("Verified production authorization bridge: one request, actual callback, denial and exact errors.")
+    }
+}
+'''.replace("BRIDGE", source[start:end])
+        self.run_probe(compiler, program)
+
     def test_actual_bridge_preserves_os_objects_for_immediate_delayed_and_cancelled_reads(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
