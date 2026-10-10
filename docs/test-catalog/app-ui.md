@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`3f693c758213bbceccbf1115a5d3dbcc8d4e2632d57d6ca74bb55b8660d416e9`
+`2678e26da9c410324a8551297ecfb8ab090923286e3bafc16238449bd3cdbc7b`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -49,20 +49,21 @@ bash tools/test-app-ui.sh
 - [Takupoke/TimetableView+WeekSection.swift](../../Takupoke/TimetableView+WeekSection.swift)
 - [Takupoke/TimetableView.swift](../../Takupoke/TimetableView.swift)
 - [Takupoke/UsageHelpView.swift](../../Takupoke/UsageHelpView.swift)
+- [tests/Support/ObservedScreenGeometry.swift](../../tests/Support/ObservedScreenGeometry.swift)
 - [tests/ui/ApplicationChecks+Navigation.swift](../../tests/ui/ApplicationChecks+Navigation.swift)
 - [tests/ui/ApplicationChecks.swift](../../tests/ui/ApplicationChecks.swift)
 - [tests/ui/ApplicationFixture+Changes.swift](../../tests/ui/ApplicationFixture+Changes.swift)
 - [tests/ui/ApplicationFixture+Events.swift](../../tests/ui/ApplicationFixture+Events.swift)
 - [tests/ui/ApplicationFixture+Grid.swift](../../tests/ui/ApplicationFixture+Grid.swift)
-- [tests/ui/ApplicationFixture+OCR.swift](../../tests/ui/ApplicationFixture+OCR.swift)
 - [tests/ui/ApplicationFixture+NotificationPermission.swift](../../tests/ui/ApplicationFixture+NotificationPermission.swift)
+- [tests/ui/ApplicationFixture+OCR.swift](../../tests/ui/ApplicationFixture+OCR.swift)
 - [tests/ui/ApplicationFixture+Recovery.swift](../../tests/ui/ApplicationFixture+Recovery.swift)
 - [tests/ui/ApplicationFixture+Selection.swift](../../tests/ui/ApplicationFixture+Selection.swift)
 - [tests/ui/ApplicationFixture.swift](../../tests/ui/ApplicationFixture.swift)
 - [tools/app_test_project.py](../../tools/app_test_project.py)
+- [tools/notification_service_trace.py](../../tools/notification_service_trace.py)
 - [tools/test-app-ui.sh](../../tools/test-app-ui.sh)
 - [tools/ui_test_manifest.py](../../tools/ui_test_manifest.py)
-- [tests/Support/ObservedScreenGeometry.swift](../../tests/Support/ObservedScreenGeometry.swift)
 
 ## [tests/MainColorTests.swift](../../tests/MainColorTests.swift)
 
@@ -73,6 +74,8 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_ui_test_manifest.py](../../tests/test_ui_test_manifest.py)
 
+- `test_notification_service_trace_keeps_only_known_processes_and_fixed_words`
+- `test_notification_service_trace_is_bounded_without_permission_mutation`
 - `test_split_sources_are_registered_in_the_selected_target_only`
 - `test_unregistered_split_file_is_rejected`
 - `test_manual_split_registers_all_helpers_and_refuses_unknown_files`

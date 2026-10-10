@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 import release_gate
 import ui_test_manifest as manifest
 import app_test_project
+import notification_service_trace
 
 
 def result_line(test, status="passed"):
@@ -24,6 +25,38 @@ def result_line(test, status="passed"):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_notification_service_trace_keeps_only_known_processes_and_fixed_words(self):
+        messages = [
+            {"processImagePath": "/system/usernotificationsd", "eventMessage":
+             "authorization request " + notification_service_trace.BUNDLE + " secret-payload-123"},
+            {"processImagePath": "/system/SpringBoard", "eventMessage": "unrelated authorization"},
+            {"processImagePath": "/system/unknown", "eventMessage": notification_service_trace.BUNDLE},
+            {"processImagePath": "/system/usernotificationsd", "eventMessage": "connection invalidated"},
+        ]
+        self.assertEqual(notification_service_trace.observations(messages), [
+            {"process": "usernotificationsd", "words": ["authorization", "request"]},
+            {"process": "usernotificationsd", "words": ["connection", "invalidated"]},
+        ])
+        self.assertEqual(notification_service_trace.observations([None, 123]), [])
+
+    def test_notification_service_trace_is_bounded_without_permission_mutation(self):
+        messages = [{"processImagePath": "/system/usernotificationsd", "eventMessage":
+                     "authorization " + "request " * 40}] * 100
+        result = notification_service_trace.observations(messages)
+        self.assertEqual(len(result), 80)
+        self.assertTrue(all(len(entry["words"]) == 24 for entry in result))
+        with patch.object(notification_service_trace.subprocess, "run") as run:
+            run.side_effect = [subprocess.CompletedProcess([], 0, "12 0 com.apple.usernotificationsd\n"),
+                               subprocess.CompletedProcess([], 0, json.dumps(messages))]
+            with redirect_stdout(io.StringIO()) as output:
+                notification_service_trace.collect("owned-simulator")
+            self.assertIn('"running": true', output.getvalue())
+            self.assertEqual(run.call_count, 2)
+            commands = [call.args[0] for call in run.call_args_list]
+            self.assertEqual(commands[0], ["xcrun", "simctl", "spawn", "owned-simulator", "launchctl", "list"])
+            self.assertEqual(commands[1][:6], ["xcrun", "simctl", "spawn", "owned-simulator", "log", "show"])
+            self.assertEqual([call.kwargs["timeout"] for call in run.call_args_list], [5, 10])
+
     def test_split_sources_are_registered_in_the_selected_target_only(self):
         project = {'rootObject': 'project', 'objects': {
             'project': {'mainGroup': 'group'}, 'group': {'children': []},
@@ -566,7 +599,8 @@ class ShellRunnerTests(unittest.TestCase):
             (repo / "tests/ui").mkdir(parents=True)
             (repo / "bin").mkdir()
             (repo / "scratch").mkdir()
-            for name in ("test-app-ui.sh", "resolve-xcode-packages.sh", "ui_test_manifest.py", "timed_command.py"):
+            for name in ("test-app-ui.sh", "resolve-xcode-packages.sh", "ui_test_manifest.py", "timed_command.py",
+                         "notification_service_trace.py"):
                 shutil.copyfile(ROOT / "tools" / name, repo / "tools" / name)
             for name in manifest.CHECK_SOURCES:
                 shutil.copyfile(ROOT / "tests/ui" / name, repo / "tests/ui" / name)

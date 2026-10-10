@@ -27,6 +27,9 @@ PY_TRACE
 cleanup() {
     local task_exit_status=$?
     if [[ -n "$simulator_id" ]]; then
+        if [[ "$task_exit_status" != "0" ]]; then
+            python3 -B tools/notification_service_trace.py "$simulator_id" || true
+        fi
         collect_launch_trace || true
         xcrun simctl shutdown "$simulator_id" >/dev/null 2>&1 || true
         xcrun simctl delete "$simulator_id" >/dev/null 2>&1 || true
