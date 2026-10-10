@@ -4,6 +4,16 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 各項目は観測、試した変更、確認範囲だけを短く記す。詳細はリンク先を読む。
 新しい失敗は次の試行前に追記する。未確認の原因を確定扱いしない。
 
+## U17 入力直前の診断照会がAX停止（iOS27、全体353）
+
+- 対象：単項目訂正の背景復帰後、Lifecycle.swiftのeditStage、Input.swift。
+- 観測：実消去・空欄・確認解除・キーボードを確認した後、診断用のAny.existsが
+  約200秒停止した。次のtypeTextより前の失敗。ケース679.908秒・失敗1。
+- 次の比較：診断は既知の段階・IDだけを記録し、成功経路で追加のexists・
+  debugDescriptionを照会しない。入力には現在の一意な要素配列を使う。
+  実入力の全文・確認解除・背景の同一プロセス・保存の検査は維持する。
+- 根拠：[353単項目27](https://github.com/n624-dev/takupoke-ios/actions/runs/38036952573/job/114169411384)。
+
 ## U15 実通知要求後に許可画面が現れない（iOS27、全体352）
 
 - 対象：`testNotificationControlsAndAppearance`、requestAuthorization、SpringBoard。

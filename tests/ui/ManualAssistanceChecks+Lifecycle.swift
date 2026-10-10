@@ -2,10 +2,9 @@ import XCTest
 import UIKit
 
 extension ManualAssistanceChecks {
-    func editStage(_ stage:String,_ e:XCUIElement) {
-        let keyboardFrame=observedKeyboardFrame()
-        let exists=e.exists
-        print("TAKUPOKE-MANUAL-EDIT stage=\(stage);id=\(exists ? e.identifier:"absent");exists=\(exists);hittable=\(exists && e.isHittable);frame=\(exists ? String(describing:e.frame):"absent");focused=\(exists && e.debugDescription.contains("Keyboard Focused"));keyboard=\(keyboardFrame.map { String(describing:$0) } ?? "absent")")
+    func editStage(_ stage:String,id:String) {
+        // Diagnostics must not add AX queries between verified focus and typing.
+        print("TAKUPOKE-MANUAL-EDIT stage=\(stage);id=manual-value-\(id)")
     }
     func enterBackground()->Bool {
         print("TAKUPOKE-MANUAL-APP-STATE before-home=\(app.state.rawValue)")

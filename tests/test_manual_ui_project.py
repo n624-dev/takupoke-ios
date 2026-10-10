@@ -38,11 +38,12 @@ class ManualUIProjectTests(unittest.TestCase):
         edit=checks.split('    func edit(',1)[1].split('    func editStage(',1)[0]
         self.assertLess(edit.index('let target=visible(clear,knownID:'),edit.index('target.tap()'))
         self.assertLess(edit.index('let target=visible(clear,knownID:'),edit.index('target.waitForExistence'))
-        self.assertLess(edit.index('let target=visible(clear,knownID:'),edit.index('let e=input(id)'))
+        self.assertLess(edit.index('let target=visible(clear,knownID:'),edit.index('let e=editors[0]'))
         self.assertNotIn('clear.waitForExistence',edit)
         self.assertNotIn('visible(original',edit)
         self.assertLess(edit.index('target.tap()'),edit.index('e.typeText(value)'))
-        self.assertLess(edit.index('guard cleared == .completed'),edit.index('let e=input(id)'))
+        self.assertLess(edit.index('guard cleared == .completed'),edit.index('let e=editors[0]'))
+        self.assertIn('guard editors.count==1',edit)
         self.assertIn('.matching(identifier:"manual-value-"+id).allElementsBoundByIndex',edit)
         self.assertIn('guard current.count==1',edit)
         self.assertIn('text.isEmpty || text == "PDFに記載された全文"',edit)
@@ -51,7 +52,10 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('The physical edit must replace the full previous input',edit)
         self.assertIn('e.typeText(value)',edit)
         self.assertNotIn('sleep(',edit)
-        self.assertIn('editStage("after-clear-focus",e)',edit)
+        self.assertIn('editStage("after-clear-focus",id:id)',edit)
+        diagnostic=checks.split('    func editStage(',1)[1].split('    func enterBackground()',1)[0]
+        for query in ('e.exists','e.isHittable','e.frame','e.debugDescription','observedKeyboardFrame()'):
+            self.assertNotIn(query,diagnostic)
         self.assertNotIn('visible(e).tap()',edit)
         self.assertIn('TAKUPOKE-MANUAL-EDIT stage=',checks)
         self.assertIn('navigation.buttons["manual-edit-done"]',edit)

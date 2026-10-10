@@ -75,8 +75,13 @@ extension ManualAssistanceChecks {
         // the keyboard through that action, after locating the complete44px
         // control, instead of covering it by focusing the text field first.
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
-        let e=input(id) // Resolve the current native editor after clearing and focus.
-        editStage("after-clear-focus",e)
+        let editors=app.descendants(matching:.any)
+            .matching(identifier:"manual-value-"+id).allElementsBoundByIndex
+        guard editors.count==1 else {
+            XCTFail("Focused editor must be unique; matches=\(editors.count)");return
+        }
+        let e=editors[0]
+        editStage("after-clear-focus",id:id)
         e.typeText(value)
         // End the native editor before the independent acknowledgement tap.
         // The product commits text and dismisses the keyboard; it never checks
