@@ -4,6 +4,19 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 各項目は観測、試した変更、確認範囲だけを短く記す。詳細はリンク先を読む。
 新しい失敗は次の試行前に追記する。未確認の原因を確定扱いしない。
 
+## U20 操作前の診断撮影が期限切れ（iOS26、全体356）
+
+- 対象：`testChangedDataProducesOneLocalNotification`、
+  `ApplicationChecks+Notifications.swift`、`recoveryScreenshot`。
+- 観測：OFFと保存false・notRequested・前景を確認した後、操作前の
+  `app.screenshot()`が約54秒で「Timed out while requesting screenshot」となった。
+  実Switch・OS許可要求には進んでいない。15件中1失敗、14件成功。
+- 状態：XCTestの撮影停止の原因は未確定。同じ356の27 Aと26 Bの通知ケースは成功した。
+- 次の比較：正常経路にある不要な診断撮影だけを外す。実コントロールの現在の枠・
+  0/1から決める一回tap、実Allow、45秒、保存・実配信・再起動の検証は維持する。
+  失敗時の撮影と原本確認などの画像検証は残す。条件緩和・押し直し・許可注入は行わない。
+- 根拠：[356通常26 A](https://github.com/n624-dev/takupoke-ios/actions/runs/38064917285/job/114250712952)。
+
 ## U18 実通知要求の後に許可画面・callbackがない（iOS27、全体354）
 
 - 対象：`testChangedDataProducesOneLocalNotification`、ScheduleNotificationsの許可要求。
