@@ -152,6 +152,11 @@ class ManifestTests(unittest.TestCase):
         self.assertIn('"notRequested"', checks)
         self.assertIn('changes=false;saved=false;specials=false;savedSpecials=false;', checks)
         self.assertEqual(checks.count('tapNativeSwitch(toggle)'), 1)
+        before = checks.index('"NOTIFICATION_SWITCH before row=')
+        single_tap = checks.index('tapNativeSwitch(toggle)', before)
+        self.assertNotIn('recoveryScreenshot(', checks[before:single_tap])
+        self.assertIn('recoveryScreenshot("notification-switch-unresolved")', checks)
+        self.assertIn('recoveryScreenshot("notification-system-unresolved", systemScreen: true)', checks)
         activation = checks.split('tapNativeSwitch(toggle)', 1)[1]
         pending = activation.split('guard didEnable else {', 1)[0]
         self.assertNotIn("touch.tap()", pending)

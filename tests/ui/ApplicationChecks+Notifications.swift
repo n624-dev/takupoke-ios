@@ -69,7 +69,8 @@ extension ApplicationChecks {
         print(
             "NOTIFICATION_SWITCH before row=\(toggle.frame) value=\(String(describing: toggle.value)) state=\(probe.label)"
         )
-        recoveryScreenshot("notification-switch-before")
+        // Native geometry and the observed 0/1 state determine the single tap.
+        // Keep diagnostic image requests on failure paths, away from activation.
         let authorization = probe.label.components(separatedBy: ";authorization=").last?
             .components(separatedBy: ";").first
         guard let authorization,
