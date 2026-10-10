@@ -261,7 +261,8 @@
         "Takupoke/PDFUnicodeMap.swift",
         "tests/PDFParsingTests.swift",
         "Takupoke/PDFContentVisibility.swift",
-        "Takupoke/PDFPaintSpace.swift"
+        "Takupoke/PDFPaintSpace.swift",
+        "Takupoke/PDFPaintSample.swift"
       ],
       "checks": [
         "tests/PDFParsingTests+Diagnostics.swift",

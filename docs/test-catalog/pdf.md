@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`4fbedc5808f1ad435a18708bb2c2094671414b0ce2161ec6e15dd68d1710848e`
+`0add9e9707ca0e019f5413a629db2fae444aaf12c0a6f2cc78288d906c5da153`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -33,6 +33,7 @@ bash tools/test-parsing.sh
 - [tests/PDFParsingTests.swift](../../tests/PDFParsingTests.swift)
 - [Takupoke/PDFContentVisibility.swift](../../Takupoke/PDFContentVisibility.swift)
 - [Takupoke/PDFPaintSpace.swift](../../Takupoke/PDFPaintSpace.swift)
+- [Takupoke/PDFPaintSample.swift](../../Takupoke/PDFPaintSample.swift)
 
 ## [tests/PDFParsingTests+Diagnostics.swift](../../tests/PDFParsingTests+Diagnostics.swift)
 
@@ -133,6 +134,7 @@ bash tools/test-parsing.sh
 
 ## [tests/PDFTextGeometryTests+Colors.swift](../../tests/PDFTextGeometryTests+Colors.swift)
 
+- `testPDFPaintNumbersExpandExponentsWithoutRoundingSmallValues`
 - `testVisibleDeviceColorsKeepOriginalGlyphOrderAndCoordinates`
 - `testNativeVisibleDeviceCalibratedAndUnusedUnknownColorsPreserveAcquisition`
 - `testNativeTrustedSRGBProfileSupportsExplicitAndDefaultColors`

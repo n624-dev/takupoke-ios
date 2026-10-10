@@ -7,6 +7,14 @@ import CoreGraphics
 #endif
 
 extension PDFTextGeometryTests {
+    func testPDFPaintNumbersExpandExponentsWithoutRoundingSmallValues() {
+        for value in [0.0,1,0.000001,Double.leastNonzeroMagnitude,Double.greatestFiniteMagnitude,-1e200,-Double.leastNonzeroMagnitude] {
+            let literal = PDFPaintNumber.literal(value)
+            XCTAssertFalse(literal.lowercased().contains("e"))
+            XCTAssertEqual(Double(literal),value)
+            XCTAssertLessThan(literal.count,350)
+        }
+    }
     func testVisibleDeviceColorsKeepOriginalGlyphOrderAndCoordinates() throws {
         let font = try PDFTextFont(unicode:[65:"A",66:"B"],codeBytes:1,
             widths:[65:667,66:667],defaultWidth:667,ascent:800,descent:-200)
@@ -120,9 +128,10 @@ extension PDFTextGeometryTests {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-invalid-icc-"+UUID().uuidString)
         try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
         defer { try? FileManager.default.removeItem(at:root) }
-        for (bytes, count, color) in [(profile,1,"0"), (Data("invented-invalid-profile".utf8),3,"0 0 0"),
-                                      (profile,3,"1 1 1")] {
-            var stream = Data("<< /N \(count) /Length \(bytes.count) >>\nstream\n".utf8)
+        for (bytes, count, color, parameters) in [(profile,1,"0",""), (Data("invented-invalid-profile".utf8),3,"0 0 0",""),
+            (profile,3,"1 1 1",""), (profile,3,"0 0 0","/Range [1 1 1 1 1 1]"),
+            (profile,3,"0 0 0","/Alternate /DeviceCMYK")] {
+            var stream = Data("<< /N \(count) /Length \(bytes.count) \(parameters) >>\nstream\n".utf8)
             stream.append(bytes); stream.append(Data("\nendstream".utf8))
             let url = root.appendingPathComponent("fictional.pdf")
             try syntheticPDF(content:"/Profile cs \(color) sc "+text,simpleFont:true,

@@ -7,21 +7,30 @@ import CoreGraphics
 struct PDFPaintSpace {
     let count: Int
     let space: CGColorSpace?
-    var device = false
-    func rgb(_ values: [Double], intent: CGColorRenderingIntent) -> [Double]? {
-        guard let space, values.count == count else { return nil }
-        let samples: [CGFloat] = values.map { CGFloat($0) } + [CGFloat(1)]
-        guard let color = CGColor(colorSpace: space, components: samples) else { return nil }
-        var pixels = [UInt8](repeating:255,count:4)
-        return pixels.withUnsafeMutableBytes { buffer in
-            guard let context = CGContext(data:buffer.baseAddress,width:1,height:1,
-                bitsPerComponent:8,bytesPerRow:4,space:CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo:CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
-            context.setRenderingIntent(intent); context.setFillColor(color)
-            context.fill(CGRect(x:0,y:0,width:1,height:1))
-            guard buffer[3] == 255 else { return nil }
-            return (0..<3).map { Double(buffer[$0]) / 255 }
+    let device: Bool
+    private let definition: String
+    private let profile: Data?
+    private final class Samples { var values = [String:Double]() }
+    private let samples = Samples()
+    init(count: Int, space: CGColorSpace?, device: Bool = false, definition: String = "", profile: Data? = nil) {
+        self.count = count; self.space = space; self.device = device
+        self.definition = definition; self.profile = profile
+    }
+    static func device(_ count: Int) -> PDFPaintSpace {
+        switch count {
+        case 1: return PDFPaintSpace(count:1,space:CGColorSpaceCreateDeviceGray(),device:true,definition:"/DeviceGray")
+        case 3: return PDFPaintSpace(count:3,space:CGColorSpaceCreateDeviceRGB(),device:true,definition:"/DeviceRGB")
+        case 4: return PDFPaintSpace(count:4,space:CGColorSpaceCreateDeviceCMYK(),device:true,definition:"/DeviceCMYK")
+        default: return PDFPaintSpace(count:0,space:nil)
         }
+    }
+    func brightness(_ values: [Double], intent: CGColorRenderingIntent) -> Double? {
+        guard space != nil, !definition.isEmpty, values.count == count else { return nil }
+        let key = String(intent.rawValue) + ":" + values.map { String($0) }.joined(separator:",")
+        if let sample = samples.values[key] { return sample }
+        let sample = PDFPaintSample.brightness(definition:definition,profile:profile,count:count,values:values,intent:intent)
+        if let sample, samples.values.count < 256 { samples.values[key] = sample }
+        return sample
     }
 }
 
@@ -38,9 +47,9 @@ final class PDFPaintSpaceResolver {
     func named(_ scanner: CGPDFScannerRef, name: String, visited: Set<String> = []) throws -> PDFPaintSpace {
         guard visited.count < 8, !visited.contains(name) else { return PDFPaintSpace(count:0,space:nil) }
         switch name {
-        case "DeviceGray": return PDFPaintSpace(count:1,space:CGColorSpaceCreateDeviceGray(),device:true)
-        case "DeviceRGB": return PDFPaintSpace(count:3,space:CGColorSpaceCreateDeviceRGB(),device:true)
-        case "DeviceCMYK": return PDFPaintSpace(count:4,space:CGColorSpaceCreateDeviceCMYK(),device:true)
+        case "DeviceGray": return .device(1)
+        case "DeviceRGB": return .device(3)
+        case "DeviceCMYK": return .device(4)
         default: break
         }
         if let result = cache[name] { return result }
@@ -84,6 +93,19 @@ final class PDFPaintSpaceResolver {
             var count: CGPDFInteger = 0, length: CGPDFInteger = 0
             guard CGPDFDictionaryGetInteger(dictionary,"N",&count), [1,3,4].contains(Int(count)) else { return unsupported }
             let invalid = PDFPaintSpace(count:Int(count),space:nil)
+            // A nondefault Range can turn apparently dark component values
+            // into white. Do not certify a profile after dropping that setting.
+            var rangeObject: CGPDFObjectRef?, alternateObject: CGPDFObjectRef?
+            if CGPDFDictionaryGetObject(dictionary,"Range",&rangeObject) {
+                guard let range = vector(dictionary,"Range",count:2*Int(count)),
+                      range.enumerated().allSatisfy({ $0.element == ($0.offset % 2 == 0 ? 0 : 1) }) else { return invalid }
+            }
+            if CGPDFDictionaryGetObject(dictionary,"Alternate",&alternateObject) {
+                var name: UnsafePointer<CChar>?
+                let expected = count == 1 ? "DeviceGray" : count == 3 ? "DeviceRGB" : "DeviceCMYK"
+                guard CGPDFDictionaryGetName(dictionary,"Alternate",&name), let name,
+                      String(cString:name) == expected else { return invalid }
+            }
             guard CGPDFDictionaryGetInteger(dictionary,"Length",&length), length > 0 else { return invalid }
             guard length <= 1_048_576 else { throw PDFParseError(code:.limit) }
             var format = CGPDFDataFormat.raw
@@ -92,7 +114,7 @@ final class PDFPaintSpaceResolver {
             guard bytes <= 1_048_576, profileBytes <= 4_194_304 - bytes else { throw PDFParseError(code:.limit) }
             profileBytes += bytes
             guard let space = CGColorSpace(iccData:data), space.numberOfComponents == Int(count) else { return invalid }
-            return PDFPaintSpace(count:Int(count),space:space)
+            return PDFPaintSpace(count:Int(count),space:space,definition:"[/ICCBased 5 0 R]",profile:data as Data)
         case "CalRGB", "CalGray":
             let rgb = String(cString:name) == "CalRGB", count = rgb ? 3 : 1
             let invalid = PDFPaintSpace(count:count,space:nil)
@@ -104,16 +126,21 @@ final class PDFPaintSpaceResolver {
             if rgb {
                 guard let gamma = vector(dictionary,"Gamma",count:3,fallback:[1,1,1]), gamma.allSatisfy({ $0 > 0 }),
                       let matrix = vector(dictionary,"Matrix",count:9,fallback:[1,0,0,0,1,0,0,0,1]) else { return invalid }
+                let definition = "[/CalRGB << /WhitePoint \(literal(white)) /BlackPoint \(literal(black)) /Gamma \(literal(gamma)) /Matrix \(literal(matrix)) >>]"
                 return PDFPaintSpace(count:3,space:CGColorSpace(calibratedRGBWhitePoint:white,
-                    blackPoint:black,gamma:gamma,matrix:matrix))
+                    blackPoint:black,gamma:gamma,matrix:matrix),definition:definition)
             }
             var gamma: CGPDFReal = 1, object: CGPDFObjectRef?
             if CGPDFDictionaryGetObject(dictionary,"Gamma",&object) {
                 guard CGPDFDictionaryGetNumber(dictionary,"Gamma",&gamma), gamma.isFinite, gamma > 0 else { return invalid }
             }
-            return PDFPaintSpace(count:1,space:CGColorSpace(calibratedGrayWhitePoint:white,blackPoint:black,gamma:gamma))
+            let definition = "[/CalGray << /WhitePoint \(literal(white)) /BlackPoint \(literal(black)) /Gamma \(PDFPaintNumber.literal(Double(gamma))) >>]"
+            return PDFPaintSpace(count:1,space:CGColorSpace(calibratedGrayWhitePoint:white,blackPoint:black,gamma:gamma),definition:definition)
         default: return unsupported
         }
+    }
+    private func literal(_ values: [CGFloat]) -> String {
+        "[" + values.map { PDFPaintNumber.literal(Double($0)) }.joined(separator:" ") + "]"
     }
 }
 #endif

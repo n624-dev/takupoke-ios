@@ -11,12 +11,13 @@ struct PDFDevicePaint {
     #if canImport(CoreGraphics)
     var resolvedSpace: PDFPaintSpace?
     var renderingIntent = CGColorRenderingIntent.defaultIntent
+    private let deviceSpaces = [PDFPaintSpace.device(1),PDFPaintSpace.device(3),PDFPaintSpace.device(4)]
     private var interpretedSpace: PDFPaintSpace? {
         if let resolvedSpace { return resolvedSpace }
         switch count {
-        case 1: return PDFPaintSpace(count:1,space:CGColorSpaceCreateDeviceGray())
-        case 3: return PDFPaintSpace(count:3,space:CGColorSpaceCreateDeviceRGB())
-        case 4: return PDFPaintSpace(count:4,space:CGColorSpaceCreateDeviceCMYK())
+        case 1: return deviceSpaces[0]
+        case 3: return deviceSpaces[1]
+        case 4: return deviceSpaces[2]
         default: return nil
         }
     }
@@ -24,10 +25,11 @@ struct PDFDevicePaint {
     var isBlack: Bool { PDFTextVisibility.blackColor(components, count: count) }
     var isWhite: Bool {
         #if canImport(CoreGraphics)
+        if resolvedSpace == nil && isBlack { return false }
         if resolvedSpace == nil && (count == 4 ? components == [0,0,0,0] : components.allSatisfy({ $0 == 1 })) { return true }
         if let interpretedSpace {
-            guard let rgb = interpretedSpace.rgb(components,intent:renderingIntent) else { return false }
-            return rgb.allSatisfy { $0 >= 254.5 / 255 }
+            guard let sample = interpretedSpace.brightness(components,intent:renderingIntent) else { return false }
+            return sample >= 254.5 / 255
         }
         #endif
         return count == 4 ? components == [0, 0, 0, 0] : components.allSatisfy { $0 == 1 }
@@ -35,9 +37,10 @@ struct PDFDevicePaint {
     var isVisibleInk: Bool {
         guard !isWhite else { return false }
         #if canImport(CoreGraphics)
+        if resolvedSpace == nil && isBlack { return true }
         if let interpretedSpace {
-            guard let rgb = interpretedSpace.rgb(components,intent:renderingIntent) else { return false }
-            return rgb.contains { $0 < 254.5 / 255 }
+            guard let sample = interpretedSpace.brightness(components,intent:renderingIntent) else { return false }
+            return sample < 254.5 / 255
         }
         #endif
         return count == 4 || components.contains { $0 < 254.5 / 255 }
