@@ -37,6 +37,10 @@ class ManualUIProjectTests(unittest.TestCase):
         checks=manual_check_source()
         edit=checks.split('    func edit(',1)[1].split('    func editStage(',1)[0]
         self.assertLess(edit.index('let target=visible(clear,knownID:'),edit.index('target.tap()'))
+        self.assertLess(edit.index('let target=visible(clear,knownID:'),edit.index('target.waitForExistence'))
+        self.assertLess(edit.index('let target=visible(clear,knownID:'),edit.index('let e=input(id)'))
+        self.assertNotIn('clear.waitForExistence',edit)
+        self.assertNotIn('visible(original',edit)
         self.assertLess(edit.index('target.tap()'),edit.index('e.typeText(value)'))
         self.assertIn('Native clear must remove the entire previous input',edit)
         self.assertIn('Clearing text must revoke prior acknowledgement',edit)

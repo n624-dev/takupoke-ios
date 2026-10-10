@@ -46,11 +46,14 @@ extension ManualAssistanceChecks {
         print("TAKUPOKE-MANUAL-INPUT " + (state.exists ? state.label : "absent"))
         XCTAssertEqual(outcome,.completed,app.debugDescription)
     }
-    func edit(_ original:XCUIElement,_ value:String,id:String) {
-        let e=visible(original,knownID:"manual-value-"+id)
+    func edit(_:XCUIElement,_ value:String,id:String) {
         let clear=app.buttons["manual-clear-"+id].firstMatch
-        XCTAssertTrue(clear.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
+        // Reveal the actual 44px clear control before querying it. A visible
+        // editor alone does not prove that its sibling button is materialized
+        // or fully inside the viewport; absent firstMatch queries can stall AX.
         let target=visible(clear,knownID:"manual-clear-"+id)
+        XCTAssertTrue(target.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
+        let e=input(id) // Resolve the current editor after its row is visible.
         print("TAKUPOKE-MANUAL-CLEAR-TAP id=\(id);frame=\(target.frame);enabled=\(target.isEnabled);hittable=\(target.isHittable)")
         XCTAssertTrue(target.isEnabled)
         target.tap()
