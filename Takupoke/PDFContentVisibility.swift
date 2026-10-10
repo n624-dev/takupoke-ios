@@ -10,6 +10,7 @@ struct PDFDevicePaint {
     var count = 1
     #if canImport(CoreGraphics)
     var resolvedSpace: PDFPaintSpace?
+    var renderingIntent = CGColorRenderingIntent.defaultIntent
     private var interpretedSpace: PDFPaintSpace? {
         if let resolvedSpace { return resolvedSpace }
         switch count {
@@ -23,21 +24,22 @@ struct PDFDevicePaint {
     var isBlack: Bool { PDFTextVisibility.blackColor(components, count: count) }
     var isWhite: Bool {
         #if canImport(CoreGraphics)
+        if resolvedSpace == nil && (count == 4 ? components == [0,0,0,0] : components.allSatisfy({ $0 == 1 })) { return true }
         if let interpretedSpace {
-            guard let rgb = interpretedSpace.rgb(components) else { return false }
+            guard let rgb = interpretedSpace.rgb(components,intent:renderingIntent) else { return false }
             return rgb.allSatisfy { $0 >= 254.5 / 255 }
         }
         #endif
         return count == 4 ? components == [0, 0, 0, 0] : components.allSatisfy { $0 == 1 }
     }
     var isVisibleInk: Bool {
+        guard !isWhite else { return false }
         #if canImport(CoreGraphics)
         if let interpretedSpace {
-            guard let rgb = interpretedSpace.rgb(components) else { return false }
+            guard let rgb = interpretedSpace.rgb(components,intent:renderingIntent) else { return false }
             return rgb.contains { $0 < 254.5 / 255 }
         }
         #endif
-        guard !isWhite else { return false }
         return count == 4 || components.contains { $0 < 254.5 / 255 }
     }
     mutating func device(_ values: [Double], count: Int) throws {
@@ -91,6 +93,31 @@ enum PDFClipValidation {
 
 #if canImport(CoreGraphics)
 import CoreGraphics
+
+extension PDFPaintColors {
+    mutating func intent(_ name: String) throws {
+        let value: CGColorRenderingIntent
+        switch name {
+        case "Perceptual": value = .perceptual
+        case "RelativeColorimetric": value = .relativeColorimetric
+        case "Saturation": value = .saturation
+        case "AbsoluteColorimetric": value = .absoluteColorimetric
+        default: throw PDFParseError(code:.unsupported,stage:.paintVisibility)
+        }
+        fill.renderingIntent = value; stroke.renderingIntent = value
+    }
+    mutating func intent(_ scanner: CGPDFScannerRef) throws {
+        var name: UnsafePointer<CChar>?
+        guard CGPDFScannerPopName(scanner,&name), let name else { throw PDFParseError(code:.unsupported,stage:.paintVisibility) }
+        try intent(String(cString:name))
+    }
+    mutating func applyIntent(_ dictionary: CGPDFDictionaryRef) throws {
+        var object: CGPDFObjectRef?, name: UnsafePointer<CChar>?
+        guard CGPDFDictionaryGetObject(dictionary,"RI",&object) else { return }
+        guard CGPDFDictionaryGetName(dictionary,"RI",&name), let name else { throw PDFParseError(code:.unsupported,stage:.paintVisibility) }
+        try intent(String(cString:name))
+    }
+}
 
 extension PDFDevicePaint {
     mutating func applyDefault(_ scanner: CGPDFScannerRef, resolver: PDFPaintSpaceResolver) throws {

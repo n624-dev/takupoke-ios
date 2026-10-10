@@ -8,15 +8,20 @@ struct PDFPaintSpace {
     let count: Int
     let space: CGColorSpace?
     var device = false
-    func rgb(_ values: [Double]) -> [Double]? {
+    func rgb(_ values: [Double], intent: CGColorRenderingIntent) -> [Double]? {
         guard let space, values.count == count else { return nil }
         let samples: [CGFloat] = values.map { CGFloat($0) } + [CGFloat(1)]
-        guard let color = CGColor(colorSpace: space, components: samples),
-              let converted = color.converted(to: CGColorSpaceCreateDeviceRGB(),
-                  intent: .relativeColorimetric, options: nil),
-              let components = converted.components, components.count == 4,
-              components.allSatisfy({ $0.isFinite }), components[3] == 1 else { return nil }
-        return components.prefix(3).map { min(1,max(0,Double($0))) }
+        guard let color = CGColor(colorSpace: space, components: samples) else { return nil }
+        var pixels = [UInt8](repeating:255,count:4)
+        return pixels.withUnsafeMutableBytes { buffer in
+            guard let context = CGContext(data:buffer.baseAddress,width:1,height:1,
+                bitsPerComponent:8,bytesPerRow:4,space:CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo:CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+            context.setRenderingIntent(intent); context.setFillColor(color)
+            context.fill(CGRect(x:0,y:0,width:1,height:1))
+            guard buffer[3] == 255 else { return nil }
+            return (0..<3).map { Double(buffer[$0]) / 255 }
+        }
     }
 }
 

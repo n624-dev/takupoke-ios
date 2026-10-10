@@ -233,11 +233,15 @@ extension PDFParsingTests {
         let document = try XCTUnwrap(PDFDocument(data: data as Data))
         let nativePage = try XCTUnwrap(document.page(at: 0))
         XCTAssertTrue(try XCTUnwrap(nativePage.string).contains("\n"))
-        // CoreText's generated color spaces/fonts are outside the supported
-        // timetable subset; PDFKit selection remains usable.
-        XCTAssertThrowsError(try PDFKitReader.read(url, kind: .timetable)) { error in
-            XCTAssertEqual((error as? PDFParseError)?.stage, .paintVisibility)
+        // Color compatibility must not certify an unsupported font mapping.
+        let ref = try XCTUnwrap(nativePage.pageRef)
+        XCTAssertFalse(try PDFPathReader(transform:PDFDisplayTransform(media:ref.getBoxRect(.mediaBox),rotation:0),
+            verifyVisibility:true,check:{}).read(ref).isEmpty)
+        let capture = RecoveryReadCapture()
+        XCTAssertThrowsError(try PDFKitReader.read(url, kind: .timetable, capture:capture)) { error in
+            XCTAssertEqual((error as? PDFParseError)?.stage, .characterMapping)
         }
+        XCTAssertFalse(capture.complete)
         for kind in [MaterialKind.events] {
             nativePage.rotation = 0
             try XCTUnwrap(document.dataRepresentation()).write(to: url)
@@ -365,15 +369,25 @@ extension PDFParsingTests {
         context.closePDF()
         let url = root.appendingPathComponent("synthetic.pdf")
         try (data as Data).write(to: url)
-        // CoreText's synthetic PDF is intentionally outside the strict
-        // drawn-text subset; a separate explicit-ToUnicode fixture covers it.
-        XCTAssertThrowsError(try PDFKitReader.read(url, kind: .timetable)) { error in
-            XCTAssertEqual((error as? PDFParseError)?.stage, .paintVisibility)
+        let drawnDocument = try XCTUnwrap(PDFDocument(data:data as Data))
+        let ref = try XCTUnwrap(try XCTUnwrap(drawnDocument.page(at:0)).pageRef)
+        XCTAssertEqual(try PDFPathReader(transform:PDFDisplayTransform(media:ref.getBoxRect(.mediaBox),rotation:0),
+            verifyVisibility:true,check:{}).read(ref).count,page.lines.count)
+        // Generated font mapping remains outside the drawn-text subset. Its
+        // earlier color rejection must not hide that independent limitation.
+        let capture = RecoveryReadCapture()
+        XCTAssertThrowsError(try PDFKitReader.read(url, kind: .timetable, capture:capture)) { error in
+            XCTAssertEqual((error as? PDFParseError)?.stage, .characterMapping)
         }
-        // This test covers the legacy PDFKit selection bridge, whose generated
-        // CoreText color spaces/fonts are outside the school visibility subset.
+        XCTAssertFalse(capture.complete)
+        // The original selection geometry and whole invented timetable remain
+        // independently verifiable through the special visibility reader.
         let normal = try PDFKitReader.read(url,kind:.events)
         let parsed = try parse(normal, kind: .timetable)
+        let visibleCapture = RecoveryReadCapture()
+        let visible = try PDFKitReader.readSpecial(url,capture:visibleCapture)
+        XCTAssertTrue(visibleCapture.complete)
+        XCTAssertEqual(try parse(visible,kind:.timetable).lessons,parsed.lessons)
         XCTAssertEqual(parsed.lessons.count, 8)
         XCTAssertEqual(Set(parsed.lessons.map(\.names.subject)), ["架空科目Q", "架空X", "架空Y", "架空科目Z"])
         let independent = try XCTUnwrap(parsed.lessons.first { $0.className == "1_ZZ" })

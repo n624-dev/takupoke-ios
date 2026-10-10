@@ -345,6 +345,7 @@ final class PDFPathReader {
               let object = CGPDFContentStreamGetResource(CGPDFScannerGetContentStream(scanner), "ExtGState", String(cString:name)) else { return false }
         var dictionary: CGPDFDictionaryRef?
         guard CGPDFObjectGetValue(object, .dictionary, &dictionary), let dictionary else { return false }
+        do { try colors.applyIntent(dictionary) } catch { return false }
         for key in ["Font", "SMask", "TR", "TR2"] {
             var value: CGPDFObjectRef?
             if CGPDFDictionaryGetObject(dictionary,key,&value) { return false }
@@ -462,6 +463,10 @@ final class PDFPathReader {
                 }
             }
             CGPDFOperatorTableSetCallback(table,"g") { scanner,p in PDFPathReader.state(p)?.color(scanner,stroke:false,count:1) }
+            CGPDFOperatorTableSetCallback(table,"ri") { scanner,p in
+                guard let s = PDFPathReader.state(p) else { return }
+                do { try s.colors.intent(scanner) } catch { s.failure = error }
+            }
             CGPDFOperatorTableSetCallback(table,"G") { scanner,p in PDFPathReader.state(p)?.color(scanner,stroke:true,count:1) }
             CGPDFOperatorTableSetCallback(table,"rg") { scanner,p in PDFPathReader.state(p)?.color(scanner,stroke:false,count:3) }
             CGPDFOperatorTableSetCallback(table,"RG") { scanner,p in PDFPathReader.state(p)?.color(scanner,stroke:true,count:3) }

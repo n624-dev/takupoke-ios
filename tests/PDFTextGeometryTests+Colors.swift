@@ -23,8 +23,10 @@ extension PDFTextGeometryTests {
     }
 
 #if canImport(PDFKit)
-    private func assertVisibleColorAcquisition(_ data: Data, file: StaticString = #filePath, line: UInt = #line) throws {
-        XCTAssertGreaterThan(try paintedInk(data),0,file:file,line:line)
+    private func assertVisibleColorAcquisition(_ data: Data, rulesOnly: Data, file: StaticString = #filePath, line: UInt = #line) throws {
+        // The independent PDF renderer must show additional text ink beyond
+        // the rule alone. A black rule cannot hide white or invisible text.
+        XCTAssertGreaterThan(try paintedInk(data),try paintedInk(rulesOnly),file:file,line:line)
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-visible-color-"+UUID().uuidString)
         try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
         defer { try? FileManager.default.removeItem(at:root) }
@@ -59,7 +61,8 @@ extension PDFTextGeometryTests {
             ("/Unknown cs 0.2 0.3 0.4 scn 0 g ","/Unknown [/Lab << /WhitePoint [1 1 1] >>]"),
             ("q /Unknown cs 0.2 0.3 0.4 scn Q ","/Unknown [/Lab << /WhitePoint [1 1 1] >>]")
         ] {
-            try assertVisibleColorAcquisition(syntheticPDF(content:setup+text+rule,simpleFont:true,colorSpaces:resources))
+            try assertVisibleColorAcquisition(syntheticPDF(content:setup+text+rule,simpleFont:true,colorSpaces:resources),
+                rulesOnly:syntheticPDF(content:setup+rule,simpleFont:true,colorSpaces:resources))
         }
     }
 
@@ -70,13 +73,18 @@ extension PDFTextGeometryTests {
         let profile = try XCTUnwrap(space.copyICCData()) as Data
         var stream = Data("<< /N 3 /Length \(profile.count) >>\nstream\n".utf8)
         stream.append(profile); stream.append(Data("\nendstream".utf8))
-        let text = "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET 10 10 m 290 10 l S"
+        let text = "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET"
+        let rule = " 10 10 m 290 10 l S"
         for (setup, resources) in [
             ("/Profile cs 1 0 0 sc /Profile CS 0 0 1 SC ","/Profile [/ICCBased 9 0 R]"),
             ("1 0 0 rg 0 0 1 RG ","/DefaultRGB [/ICCBased 9 0 R]")
         ] {
-            try assertVisibleColorAcquisition(syntheticPDF(content:setup+text,simpleFont:true,
-                colorSpaces:resources,additionalObjects:[stream]))
+            for intent in ["Perceptual","RelativeColorimetric","Saturation","AbsoluteColorimetric"] {
+                let prefix = "/\(intent) ri "+setup
+                try assertVisibleColorAcquisition(syntheticPDF(content:prefix+text+rule,simpleFont:true,
+                    colorSpaces:resources,additionalObjects:[stream]),
+                    rulesOnly:syntheticPDF(content:prefix+rule,simpleFont:true,colorSpaces:resources,additionalObjects:[stream]))
+            }
         }
     }
 
@@ -126,6 +134,31 @@ extension PDFTextGeometryTests {
                     XCTAssertEqual(($0 as? PDFParseError)?.stage,.paintVisibility)
                 }
                 XCTAssertFalse(capture.complete)
+            }
+        }
+    }
+    func testNativeCMYKVisibilityMatchesFictionalRenderedTextIncludingFaintInk() throws {
+        let text = "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET"
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-faint-ink-"+UUID().uuidString)
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
+        defer { try? FileManager.default.removeItem(at:root) }
+        for color in ["0 0 0 0", "0 0.000001 0 0", "0 0 0 0.000001", "0.5 0 0 0"] {
+            let textOnly = syntheticPDF(content:color+" k "+text,simpleFont:true)
+            let visible = try paintedInk(textOnly) > 0
+            if color == "0 0 0 0" { XCTAssertFalse(visible) }
+            let url = root.appendingPathComponent("fictional.pdf")
+            try syntheticPDF(content:color+" k "+text+" 10 10 m 290 10 l S",simpleFont:true).write(to:url)
+            for special in [false,true] {
+                let capture = RecoveryReadCapture()
+                if visible {
+                    let pages = special ? try PDFKitReader.readSpecial(url,capture:capture)
+                        : try PDFKitReader.read(url,kind:.timetable,capture:capture)
+                    XCTAssertTrue(capture.complete); XCTAssertEqual(pages[0].glyphs.map(\.text).joined(),"AB")
+                } else {
+                    XCTAssertThrowsError(try special ? PDFKitReader.readSpecial(url,capture:capture)
+                        : PDFKitReader.read(url,kind:.timetable,capture:capture))
+                    XCTAssertFalse(capture.complete)
+                }
             }
         }
     }

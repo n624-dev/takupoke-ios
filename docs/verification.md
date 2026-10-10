@@ -18,6 +18,14 @@ Cal色、OS提供sRGB ICC色、未知の未使用色設定、使用中の未知�
 UI実行前の履歴をApplicationChecks／ManualAssistance／iOS 27で検索し、
 U17～U19と詳細記録を確認した。今回UI操作・期限・許可確認の変更は行わない。
 
+239ソースbfc599fの同じ2つのCoreTextケースを再確認した。
+いずれも当時の期待値はcharacterMappingであり、paintVisibilityへの変更は後の追加だった。
+元の具体的なfont拒否を復元し、色の独立検証・capture未完了・選択経路の全授業一致を追加した。
+これは未対応fontを受理する変更ではなく、239からの既存負例の目的の復元である。
+DeviceCMYK白の定義を維持し、色の判定を白背景の1pixel描画へ変更する。
+PDFのri／ExtGState RIの4種とq/Qの色状態を使い、単独CGColor変換の結果は採用しない。
+極薄CMYKは独立した架空PDFの実描画と照合し、罫線だけが可視でも白文字を受理しない。
+
 3f7d7dfのSDK27は527件・予定skip1・失敗6（73.781秒）だった。
 追加した可視色・Cal・ICC・不正色のケースは成功した。一方、DeviceCMYKのゼロ成分を
 CGColor.convertedで変換すると白の判定が変わり、既存の白文字拒否が4箇所で失敗した。

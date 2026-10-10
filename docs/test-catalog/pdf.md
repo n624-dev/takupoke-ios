@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`464ee7938a4baff8cfb822bd2827ce025f63e9b08921ed0ec305f51bf1fa069c`
+`4fbedc5808f1ad435a18708bb2c2094671414b0ce2161ec6e15dd68d1710848e`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -138,3 +138,4 @@ bash tools/test-parsing.sh
 - `testNativeTrustedSRGBProfileSupportsExplicitAndDefaultColors`
 - `testNativeInvalidUsedColorAndWhiteCalibratedTextRemainRejected`
 - `testNativeMalformedMismatchedAndWhiteICCColorsDoNotCertifyText`
+- `testNativeCMYKVisibilityMatchesFictionalRenderedTextIncludingFaintInk`

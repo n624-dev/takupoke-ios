@@ -61,6 +61,7 @@ final class PDFDrawnTextReader {
     }
     private func graphicsState(_ scanner: CGPDFScannerRef) throws {
         let dict = try resource(scanner, "ExtGState", name(scanner))
+        try engine.state.colors.applyIntent(dict)
         // These entries change text state or visibility beyond this interpreter.
         for key in ["Font", "SMask", "TR", "TR2"] {
             var object: CGPDFObjectRef?
@@ -155,6 +156,7 @@ final class PDFDrawnTextReader {
             }
         }
         CGPDFOperatorTableSetCallback(table, "gs") { scanner, p in PDFDrawnTextReader.run(p) { try $0.graphicsState(scanner) } }
+        CGPDFOperatorTableSetCallback(table,"ri") { scanner,p in PDFDrawnTextReader.run(p) { try $0.engine.state.colors.intent(scanner) } }
         CGPDFOperatorTableSetCallback(table, "w") { scanner, p in PDFDrawnTextReader.run(p) { s in
             guard try s.numbers(scanner,1)[0] >= 0 else { throw PDFTextFailure.unsupported }
         } }
