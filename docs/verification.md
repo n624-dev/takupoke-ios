@@ -4,7 +4,9 @@
 
 利用者から通常・試験・試験返却の3種類ともP23になると報告された。
 前回の表示条件の修正が実際の3資料の読み取りを解消したとは扱わない。
-この報告時点の端末の版番号とエラーのページ番号は確認中である。
+利用者は端末のbuildが355.1で、全て1ページ目と確認した。
+最後に動いていた版は、利用者も239.1だと考えている。比較基準を239.1とするが、
+過去の端末バイナリや資料を再取得して証明したものではない。
 学校原本の再取得・直接テストは行っていない。
 
 最新Release 0.1.355、release.json、固定AltStore Source、成功した全体355・試行1を
@@ -12,7 +14,7 @@
 IPAも認証なしで再取得してストリームでハッシュ計算し、16,841,794 bytesと
 SHA-256 `e9e42427bbd7e2c91c81dcd45321d94946b5bd75c94e622ea37635db96d311b4`
 が一致した。IPAはローカルへ保存していない。現在HEADとの差分は文書だけである。
-端末に導入されたバイナリまで確認したという意味ではない。
+端末buildの申告は355.1だが、端末バイナリそのもののハッシュは取得していない。
 
 P23はpaintVisibilityで、現在の文字・罫線・背景の色と対応する色空間の検査から出る。
 以前正常だった239の読取器との差分に、この検査の追加がある。
@@ -21,6 +23,25 @@ P23はpaintVisibilityで、現在の文字・罫線・背景の色と対応す�
 3資料の具体的な拒否分岐は未特定であり、色や作成ソフトを推測で断定しない。
 この確認では製品・テスト・採用条件を変更していない。OCR／AI改善より先に
 Strictの退行を調査し、検査の一律解除や期待値変更で通さない。
+
+追加の読取経路調査では、通常はMaterialWorker.analyzePDF→PDFKitReader.read、
+試験・返却はSpecialSchedulesModelの解析→PDFKitReader.readSpecialとなる。
+これらのStrict呼出しはAI設定に依存しない。後者のverifyVisibility=trueと、
+通常を含むPDFPathReaderへのverifyVisibilityの適用は15ce2a2で追加された。
+同じコミットで黒device color限定のPDFTextVisibilityが追加され、現在も文字show、
+罫線／背景paint、文字描画callbackで非黒を拒否する。239の読取器にはこの条件がない。
+PDFDevicePaint.spaceはdevice名またはdevice名へのaliasだけを認め、ICCBased／CalRGB等の
+配列形式の色空間を、実際の描画より前のcs／CS設定時にも拒否する。
+未使用DefaultRGBの回避と、未使用の任意cs／CSの拒否は別の問題である。
+
+復旧はPDFRecoveryCoordinator.startのAI設定ON guard、最新のStrict失敗・SHA・Parser版を
+確認するrecoverySourceを経て開始する。pending RecoveryJobの記録はOCR実行ではない。
+P23はその前の共通Readerから出るため、OCR／AI実行結果がStrictへ混入してP23を生成する
+経路は確認できない。一方、復旧開発中に共通Readerの合否条件が変更された事実は確認した。
+既存のtestNativeWhiteTextAndOpaqueRepaintUseRasterInsteadOfSelectableTextには可視の赤文字も
+拒否ケースとして含まれ、testUnusedDevicePaintDoesNotRejectBlackTextAndSavedColorRestoresも
+赤のshowを拒否する。成功CIは現行の狭い条件を検証しており、239の可読色の互換性を証明しない。
+具体的な3資料の分岐は未特定。未実装の調査・修正方針は[退行対応方針](strict-pdf-regression-plan.md)へ分離した。
 
 ## 2026-10-10 訂正入力直前の診断照会を削減
 
