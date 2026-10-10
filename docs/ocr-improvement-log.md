@@ -35,6 +35,18 @@ clearボタン取得時のAX snapshot timeoutで失敗した（本体201.614秒�
 Strict・OCR・モデル・Validatorの採用規則は変更しない。Native521件の成功をOCR品質へ加算しない。
 
 
+## 2026-10-10 同じソースの全体検証と通常公開
+
+ソース65767afの[全体355・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38043348896)は
+全13必須チェックが成功した。Python160件、Native521件（予定skip1・失敗0）、
+通常26／27の4ジョブ、手動訂正6ジョブ、VoiceOverと文字サイズ、iPhone SDKビルドを確認した。
+曜日だけの連続行103件の取消し・保存・再起動、実通知許可・callback・配信も通過した。
+348〜354の失敗は[失敗索引](ui-test-failures.md)と[検証履歴](verification.md)に保持する。
+0.1.355を通常Release・Latestとして公開し、4添付の匿名取得・ハッシュと固定Sourceを照合した。
+実機導入と、報告された通常P01・試験P12・返却P12の実際の改善は未評価である。
+独立した架空資料の直接取得・拒否条件とUIの成功を、OCR精度・モデル品質・実資料の復旧率へ加算しない。
+Invalid frame dimensionの原因と一般的な解消も未確認である。
+
 ## 配布前の実行件数確認：Mac Bashの空配列で未実行成功を拒否
 
 全体実行 [37724583586](https://github.com/n624-dev/takupoke-ios/actions/runs/37724583586)、`9e1bec0` のiOS26 UI Aは約10秒でsuccess表示でしたが、rootが完了ログを読むとMac標準Bashの `probe_args[@]: unbound variable` でテスト前に終了していました。追加した診断切り替え用の空配列が原因で、清掃trap後の終了が成功として扱われています。XCTest完了は0で、UI合格・配布合格には数えません。残る実行は中止します。
