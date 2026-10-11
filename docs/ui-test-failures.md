@@ -8,6 +8,22 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U41 最初のケースでapp.launchが期限切れ（全体365、iOS27 B）
+
+- 対象：710d0c4の`testChangedAccountDataNoticeOpensSharedAcquisition`。
+  27側の準備・device共有・順序は成功した364から変更していない。
+- 観測：bootstatus終了後、最初のapp.launchがXcodeの起動timeoutで失敗した。
+  217.268秒・失敗1。後続10件は成功したが、元の11件区間は不合格。
+  通知区間・追加文字サイズ・対応26 Bには進まなかった。
+- 比較：U40は26の2区間目の起動。今回は27の最初の起動であり、
+  許可要求前の停止。debugger-versionのnoURLは成功した364にもあるため原因と断定しない。
+- 状態：26のdevice分離は未評価。必須27 Bの失敗とソースを照合後、
+  公開不可が確定した365の残りを、利用者の既存許可に従って中止した。
+  既存の成功や後続10件で、このケースの失敗を救済しない。
+- 方針：順序・SDK・再起動の往復はしない。fixtureと起動構成の整合性を先に確認する。
+  下位原因は未確定。製品APIの変更、期限延長、許可注入、ケースの再試行は行わない。
+- 根拠：[365通常27 B](https://github.com/n624-dev/takupoke-ios/actions/runs/38127078166/job/114433735062)。
+
 ## U40 通常14件成功後の別Runnerでアプリ起動失敗（全体364、iOS26 A）
 
 - 対象：83d3fb5の`testChangedDataProducesOneLocalNotification`。
