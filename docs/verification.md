@@ -1,5 +1,32 @@
 # 検証記録
 
+## 2026-10-11 対象47：初期発話取得は不合格
+
+ソースb114a0fの対象47・試行1はfailureで完了した。元の2実ケースは設定300.740秒が成功、
+VoiceOver70.403秒が失敗、計371.142秒。enable後isEnabled1だが初期currentSpeechに
+com.apple.xctest.voiceoverservice Code3／No speech available、移動0回。
+戻り値の破棄、元の最大60回・3項目期待値・throwは維持していた。
+取得1回だけでは改善せず、全体検査を開始していない。未確認のfocus不在を原因確定しない。
+ビルド66.2秒、bootstatus121.1秒、UI444.2秒。取消せず所有領域の回収まで確認した。
+詳細は[U47](ui-test-failures.md)。
+
+Appleの[VoiceOver操作](https://support.apple.com/guide/iphone/iph3e2e2281/ios)は、
+画面の実項目へtouch／tapして選択・発話し、次の項目へ移動する操作を説明している。
+次は有効化後の実見出しへの1回の物理tapで開始位置を選ぶ小さい比較とする。
+実要素と表示frameを使い、画面座標を決め打ちせず、期待値やfocusを直接注入しない。
+初期発話を3項目の成功へ含めず、元の移動結果で検証する。効果は未確認。
+変更前にVoiceOver／currentSpeech／No speech／U46〜U47をUI索引で検索し、
+test_catalogの同じ通常画面グループの対応ケースを確認した。
+
+## 2026-10-11 初期発話取得の開発83
+
+ソースb114a0f4a88a9a03e488ca4e9fc5c14f8e9473dfの
+[開発83・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38158568258)は成功。
+実ログでPython178件・90.075秒、portable Swift474件・75.639秒（準備込み239.8秒）、失敗0。
+任意Nativeは予定skip。実VoiceOverの結果・Apple PDF535件・全体合格とは区別する。
+同じソースの[対象47](https://github.com/n624-dev/takupoke-ios/actions/runs/38158591600)で
+元の設定／VoiceOver2ケースを確認する。製品PDFの643be57からの変更はない。
+
 ## 2026-10-11 U46の比較根拠と公開前の失敗
 
 Web検索でAXVoiceOverAutomationErrorDomain／Failed to send／moveForwardと
@@ -40,6 +67,8 @@ Nativeの実XCTestは535件・予定skip1・失敗0、124.411秒（outer124.537�
 通常27Bの実11件は10件成功・1件失敗、1172.909秒。設定295.521秒は成功。
 VoiceOver55.523秒はisEnabled1／最初のmove index0でCode3、完了move0件だった。
 370は公開不可。Actionsは停止せず、残りを監視する。詳細は[U46](ui-test-failures.md)。
+通常27Aは元の14件1811.776秒＋別Runnerの新規通知1件80.751秒、すべて成功。
+対応26Aへ進んだ。27B対応26B・手動訂正26・公開は依存失敗による未実行であり成功に数えない。
 以降の結果は完了ログを確認後に記録する。
 
 ## 2026-10-11 観測46の完了：再発なし、原因解消は未証明

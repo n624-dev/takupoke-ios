@@ -8,6 +8,23 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U47 初期発話取得だけでもNo speech available（対象47、iOS27）
+
+- 対象：b114a0fの設定／VoiceOver2件。設定300.740秒は成功、VoiceOver70.403秒は失敗。
+- 観測：enable後isEnabled1、currentSpeech開始後にcom.apple.xctest.voiceoverservice
+  Code3／No speech available。speech-completeも移動開始も0件。
+  U46のAXVoiceOverAutomationErrorDomain Code3とは別domainで、整数だけで同一原因としない。
+- 比較：初期発話の取得1回では解消しなかった。非空の追加条件は導入前レビューで撤回済み。
+  現在focusがないことや、Simulatorの下位不具合までを証明した結果ではない。
+- 次の比較：VoiceOver有効化後、実画面の受動的な時間割見出しへ物理tapを1回行う。
+  実要素・有限で表示されたframeから操作点を求め、画面位置を決め打ちしない。
+  その後の実発話取得と最大60回の移動、元の3項目の期待値を維持する。
+  tapの再試行・focus値や発話の注入・SDK変更は行わない。効果は未確認。
+- 状態：対象47はfailure、取消なし。新ソースの全体検査・公開は開始していない。
+- 根拠：[対象47](https://github.com/n624-dev/takupoke-ios/actions/runs/38158591600/job/114526584843)。
+  [Apple VoiceOver gestures](https://support.apple.com/guide/iphone/iph3e2e2281/ios)は
+  実項目へのtap／touchで項目を選択し発話する操作を説明する。APIエラーの解消保証ではない。
+
 ## U46 有効化後の最初のVoiceOver移動が失敗（全体370、iOS27 B）
 
 - 対象：2b94d1cの通常27B、元の11件。10件成功、VoiceOverのみ55.523秒で失敗。
