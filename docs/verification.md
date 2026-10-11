@@ -21,8 +21,9 @@ nil debugger warningは成功ログにもあり、Schemeや製品APIをその警
 対応する既存ケース`testChangedAccountDataNoticeOpensSharedAcquisition`は共通setUpを通り、
 初回起動と更新案内の実操作を検証する。ほかの通常UIも同じ準備を通るため、
 期待値だけの新規ケースやPythonのソース文字列検査は追加しない。
-LinuxではPython178件16.255秒・失敗0（環境依存skip7）、Swift 5モードの構文確認、
-一覧341ファイルと差分の空白検査が成功した。UIKitの型検証・実操作はApple環境で確認する。
+LinuxではPython178件16.255秒・失敗0（環境依存skip7）、一覧341ファイルと差分の空白検査が成功した。
+記載されたSwift設置先は現環境に存在せず、構文確認は未実施。先の成功記載を訂正する。
+UIKitの型検証・実操作はApple環境で確認する。
 focusedの選択が失敗した1件だけで、通知区間の選択0件であることも確認した。
 
 ## 2026-10-11 全体365の最初のapp.launch失敗
