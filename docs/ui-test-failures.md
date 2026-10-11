@@ -8,6 +8,23 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U40 通常14件成功後の別Runnerでアプリ起動失敗（全体364、iOS26 A）
+
+- 対象：83d3fb5の`testChangedDataProducesOneLocalNotification`。
+  同じ所有Simulatorで通常14件1707.475秒・失敗0を確認後、別Runnerへ移った。
+- 観測：`app.launch()`中にDTServiceHubのprocess再開が失敗した。
+  XCTestの再起動後は0件・失敗0と表示されたが、対象ケースはfailing testで終了した。
+  許可要求・Allow・保存・配信へ進んだ証拠はない。0件の集計を成功とは扱わない。
+- 比較：27 A/B・26 Bと手動訂正6件、Native・配布検査は成功した。
+  U38と同じく事後診断はdevice-not-booted／unknown-sessionだが、
+  今回は設定タブ操作前の起動で停止した。Simulator停止の下位原因は未確定。
+- 状態：11/12事前検査成功、26 A失敗、公開ジョブskip。364は未公開。
+  通知の先頭・最後を往復して再実行しない。許可APIの未返答とも区別する。
+- 次の比較：26の通知区間だけ新しい所有Simulatorへ分離する案を評価する。
+  成功済み区間を再試行せず、ビルド・ケース・実操作・期限・全体の照合を維持する。
+  既存deviceの再起動を繰り返すU35の案とは区別し、解消済みとは扱わない。
+- 根拠：[364通常26 A](https://github.com/n624-dev/takupoke-ios/actions/runs/38122306542/job/114425991933)。
+
 ## U39 通知を先頭へ分離すると初回未返答が再発（全体363、iOS27 B）
 
 - 対象：2f68a90の`testNotificationControlsAndAppearance`。同じビルドとdeviceを使い、
