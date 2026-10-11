@@ -16,14 +16,17 @@ XCTest失敗名0件は未実行成功を意味せず、準備停止・完了未�
 
 対象154実行のrun_attemptを全件取得した（取得失敗0）。複数試行は37670677438だけで、
 試行2だった。試行1の16ジョブを列挙し、失敗2件の原ログを取得・再読した（取得失敗0）。
-新しい364の失敗1件も追加確認した。最新試行253件＋過去試行2件＋後続364の1件で、
-原ログの照合は計256ジョブ。ケース数・原因数・失敗率の集計ではない。
+後続364・365・366の失敗各1件も追加確認した。最新試行253件＋過去試行2件＋後続3件で、
+原ログの照合は計258ジョブ。ケース数・原因数・失敗率の集計ではない。
 
 | 実行／ジョブ原ログ | 試行 | 対象 | 停止の観測 |
 |---|---:|---|---|
 | [37670677438／112961694035](https://github.com/n624-dev/takupoke-ios/actions/runs/37670677438/job/112961694035) | 1 | Application iOS 26 UI B | リンク長押し後の解除メニュー不在。通知停止ではない |
 | [37670677438／112961694056](https://github.com/n624-dev/takupoke-ios/actions/runs/37670677438/job/112961694056) | 1 | Manual correction iOS 26 / testChangedOriginalCannotSubmitOrReplaceLastGood | ACKの実tap後に確認状態1を観測できず期限切れ。U04の操作配送と比較 |
 | [38122306542／114425991933](https://github.com/n624-dev/takupoke-ios/actions/runs/38122306542/job/114425991933) | 1 | Application iOS 26 UI A | 14件成功後、通知区間のapp.launch失敗。U40、許可要求前 |
+
+| [38127078166／114433735062](https://github.com/n624-dev/takupoke-ios/actions/runs/38127078166/job/114433735062) | 1 | Application iOS 27 UI B | 最初のapp.launch期限切れ。U41、通知要求前 |
+| [38130333787／114449755554](https://github.com/n624-dev/takupoke-ios/actions/runs/38130333787/job/114449755554) | 1 | Application iOS 26 UI B | 実長押し後にBrowserView、解除メニュー不在。U42、通知区間前 |
 
 対象154実行内には、このほかの過去試行はなかった。確認済み成功を別試行へ流用しない。
 

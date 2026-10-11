@@ -1,5 +1,36 @@
 # 検証記録
 
+## 2026-10-11 全体366のリンク長押し失敗
+
+ソースe4f2fbfefb24ad060e4ff2a4363f3ecc79f97a2cの
+[366・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38130333787)は公開条件未達。
+27通常Aは15件・失敗0、XCTest2区間の合計2389.425秒。
+27通常Bは12件・失敗0、2区間1455.723秒、追加文字サイズ3条件も成功した。
+実Allow・保存・再起動・配信を確認。前回の最初の起動失敗ケースは今回29.308秒で成功した。
+順序・準備の根本原因や恒常的安定性、時間短縮の証明にはしない。
+
+26 Bのリンク長押しは114.294秒で失敗。予定skip1を含む11件区間は失敗1・1334.036秒。
+行とテキストが表示されている操作前画像、Buttonへの物理長押し一回、
+操作後の白い画面、失敗時のBrowserView／Closeを確認した。
+解除メニューがないため、保存・再起動へ進めない。通知停止とは別のU42へ記録した。
+長押しが通常リンクを開く下位原因は未確定。画像・原ログ全文は公開記録へコピーしない。
+
+配布Python178件・Native532件（予定skip1）・手動訂正27の3ケース・
+26の原本変更275.777秒と通常27の2組、計8/12事前検査は成功した。
+残りの26通常A・手動訂正2ケースと公開ジョブは、必須失敗とソース照合後に中止した。
+過去や部分区間の成功で欠けた完了を補わず、Latestは355.1のまま。
+
+次の対象検索は`ApplicationChecks`・`LinkRow`。
+失敗検索は`LinkPreferences|長押し|解除メニュー`で、全体339・346と過去試行2件の記録を再読した。
+Native所有Buttonの操作と、過去のテキスト座標操作の失敗を踏まえ、操作点の往復をしない。
+メニュー所有ButtonへcontentShapeを明示する小さい比較を行う。
+[AppleのcontentShape契約](https://developer.apple.com/documentation/swiftui/view/contentshape(_:eofill:))と
+[interactionの契約](https://developer.apple.com/documentation/swiftui/contentshapekinds/interaction)は
+hit-testingの定義であり、今回のOS不具合や修正成功の証明ではない。
+WebのButton／contextMenu関連検索も行ったが、今回と一致する公式修正は確認できなかった。
+既存ケースが今回の誤動作を検出済みのため、値・ケース数・期待結果を変えず実操作を確認する。
+
+
 ## 2026-10-11 システム画面準備の診断42成功と開発76完了
 
 e4f2fbfの[診断42・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38129691120)は
