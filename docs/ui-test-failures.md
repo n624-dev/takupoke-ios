@@ -8,6 +8,22 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U53 設定ボタンの文言再照会が停止（全体372、iOS27 A）
+
+- 対象：bf1749aの`testFileFailuresKeepResultsAndStayInTheirOwnDetails`。
+  実14件中13成功・1失敗、1981.480秒。失敗ケース274.900秒。
+- 観測：設定タブ選択と時間割ファイルの存在は確認したが、tap前の表示範囲計算で
+  `unobscuredViewport`の`element.label`照会がsnapshot timeoutになった。
+  取得エラーの分離・前回結果保持の画面検証へは未到達。製品PDF解析失敗とは別。
+- 比較：U05／U09のAX照会停止と関連する。初期設定footerの操作は専用の
+  `tapSetupNext`を使い、スクロール本文のhelperから次へは操作していない。
+  文言再照会を除く候補を検討する。原因・候補の効果は未確定。
+- 観測追加：失敗後のAXサービス観測は実行した。logBytes4194305で上限超過し
+  eventsはlimited、直近10分は失敗発生時刻を含まない。稼働状態から原因は証明できない。
+  VoiceOverTouchの非稼働はこのAでは異常の証拠ではない。
+- 状態：372は公開不可。26 Bを停止せず完了まで確認する。未実行の26 A／訂正26は未評価。
+- 根拠：[372通常27 A](https://github.com/n624-dev/takupoke-ios/actions/runs/38170244888/job/114561354480)。
+
 ## U52 発話観測待ちでも移動失敗・再起動後Switchも未反映（対象50、iOS27）
 
 - 対象：a87f9a9の元の設定／VoiceOver2件。2失敗・244.509秒。取消なし。
