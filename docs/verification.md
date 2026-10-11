@@ -1,5 +1,20 @@
 # 検証記録
 
+## 2026-10-11: Xcode27の起動アプリ変更を確認（U33）
+
+利用者の指示で既知問題をネット検索した。Appleの[Device Hub案内](https://developer.apple.com/documentation/xcode/device-hub)
+と[Xcode27 release notes](https://developer.apple.com/documentation/xcode-release-notes/xcode-27-release-notes)、
+[argentの当事者報告](https://github.com/software-mansion/argent/issues/406)を確認した。
+Xcode27では従来のSimulatorの場所にアプリがなく、Device Hubへ変わっている。
+aa73758の全体361の通常27 A／Bも、旧パスのファイル不存在で終了1だった。
+この追加した起動処理は修正ミスで、元の通知許可停止の検証に到達していない。
+361のPython169件とNative532件（予定skip1・失敗0）は成功したが、公開条件は満たさない。
+Native本体105.042秒・準備込み229.3秒。開発検証のPython169件は46.228秒・失敗／skip0、
+Swift473件は71.928秒・失敗0（準備込み224.9秒）で、全ジョブ完了している。
+関連するiOS27 Simulatorの許可画面報告もあったが、AlarmKitの拒否応答の例であり、
+今回のUserNotificationsのcallback未返答とは異なる。API名だけで同じバグと断定しない。
+APNS token取得失敗も今回の端末内通知とは違う。検索だけでXcode更新の効果を保証しない。
+
 ## 2026-10-11: 所有Simulatorを画面付きで開く起動手順の候補
 
 一覧を`tools/test-app-ui.sh`、失敗索引を`Simulator.app|open -a|frontend|GUI|許可画面|U32`で

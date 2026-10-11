@@ -4,6 +4,19 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 各項目は観測、試した変更、確認範囲だけを短く記す。詳細はリンク先を読む。
 新しい失敗は次の試行前に追記する。未確認の原因を確定扱いしない。
 
+## U33 Xcode27にないSimulator.appの起動で停止（全体361）
+
+- 対象：aa73758の通常27 A／B。UIビルドは成功したが、追加した画面起動で
+  `Simulator.app`がないため終了1。XCTestを開始しておらず通知停止の再現評価ではない。
+- 原因：Xcode27のDevice Hubへの変更を考慮せず、旧Simulatorのパスを使用した修正ミス。
+  起動処理を選択Xcode内の実在するアプリに合わせる。Device Hubに旧UDID引数は渡さない。
+- 根拠：[361通常27 A](https://github.com/n624-dev/takupoke-ios/actions/runs/38111810296/job/114388890989)、
+  [通常27 B](https://github.com/n624-dev/takupoke-ios/actions/runs/38111810296/job/114388890984)、
+  [AppleのDevice Hub案内](https://developer.apple.com/documentation/xcode/device-hub)、
+  [argentの当事者報告](https://github.com/software-mansion/argent/issues/406)。
+- 状態：361の他ジョブは取消さず監視する。全13条件は維持し、361は公開不可。
+  従来の通知callback停止（U32）をこの新しい起動エラーと同一原因にしない。
+
 ## U32 標準タブ操作でも通知許可が未返答（診断37、iOS27）
 
 - 対象：f4c656a（製品とテスト実装は1e220d7と同じ）の両通知ケース。
