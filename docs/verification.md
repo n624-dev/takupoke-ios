@@ -7,11 +7,17 @@ Python171件は57.869秒・skip0・失敗0、portable Swift473件は72.664秒・
 Swiftの準備・build・検査を含む区間は232.6秒。任意Native SDKジョブは予定skipで、
 この実行でApple PDFKitやiPhone SDKを検証したという意味ではない。
 
-[通知UI比較40](https://github.com/n624-dev/takupoke-ios/actions/runs/38114822271)は実行中。
-27の実SDK27.1とRuntime27.0の事前照合は成功したが、UI結果は未確定。
+[通知UI比較40](https://github.com/n624-dev/takupoke-ios/actions/runs/38114822271)も完了した。
+27の実SDK27.1とRuntime27.0の事前照合・ビルドは成功したが、通知2件は失敗した。
+90.421／115.772秒、計206.194秒。実要求の同期戻りあり・callbackなし、Allow・保存ONなし。
+26は113.338／176.167秒、計289.505秒で2件成功。初回の実Allow・配信・保存・再起動を確認。
+OSログ取得は27が409,568 bytes・終了0、26が919,956 bytes・終了0だった。
+26のサービス健康照会はtimeoutだが、実UIの許可・配信検証は成功した。
 Apple公表値から設置済み27A9269は旧beta、RCは別buildの27A9275と確認した。
 通常配布SDK27.0・全13条件は変更せず、製品の通知・PDFコードも変更していない。
 横断調査の根拠と適用範囲は[失敗傾向の記録](ui-failure-patterns-20261011.md)に残した。
+失敗U36を保存した。旧27.1 betaへの切替は通常配布へ採用しない。
+このコードpushの全Actionsは完了済みで、新しいIPA・Release・AltStore更新は作っていない。
 
 ## 2026-10-11: 通常配布を変えず27.1ツールチェーンを追加比較
 
