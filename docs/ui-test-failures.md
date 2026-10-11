@@ -8,6 +8,20 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U48 実見出しtap後も初期発話取得で失敗（対象48、iOS27）
+
+- 対象：70cb0f5の設定／VoiceOver2件。設定317.960秒は成功、VoiceOver47.495秒は失敗。
+- 観測：enable1、実見出し一意・frame包含・hittableを確認し、1回の物理tapを完了。
+  currentSpeechはNo speech available、speech-complete0・移動0。
+- 比較：U47の取得単独に加えてtouchも成立したが、初期取得は解消しなかった。
+  初期発話取得を移動前の必須条件としたため、touch後の実移動はまだ評価していない。
+  発話の取得失敗から、focusがないことや後続移動が必ず失敗することは証明できない。
+- 次の比較：不採用の初期currentSpeechと前後ログ3行を撤回する。
+  実見出し1回touchを保持し、元の最大60回の実移動・3項目の期待値で検証する。
+  これはtouchなしのU46へ戻す試行ではない。初期発話による救済も再試行も行わない。
+- 状態：対象48はfailure、取消なし。新ソースの全体・公開は開始していない。
+- 根拠：[対象48](https://github.com/n624-dev/takupoke-ios/actions/runs/38160134344/job/114531118898)。
+
 ## U47 初期発話取得だけでもNo speech available（対象47、iOS27）
 
 - 対象：b114a0fの設定／VoiceOver2件。設定300.740秒は成功、VoiceOver70.403秒は失敗。

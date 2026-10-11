@@ -1,5 +1,41 @@
 # 検証記録
 
+## 2026-10-11 対象48：touch成立後の初期取得は不合格
+
+ソース70cb0f5の対象48・試行1はfailureで完了した。元の2実ケースは設定317.960秒が成功、
+VoiceOver47.495秒が失敗、計365.455秒。enable後1、見出し取得・包含・hittableと
+物理tap1回は成立した。currentSpeechは9秒後にNo speech available、移動0回。
+前の47と同じcom.apple.xctest.voiceoverservice Code3で、AX移動エラーとは区別する。
+初期取得1回とtouchを改善成功に数えず、全体検査を開始していない。取消なし、清掃成功。
+ビルド68.7秒、bootstatus87.9秒、UI481.6秒。詳細は[U48](ui-test-failures.md)。
+
+初期currentSpeechを独自の必須条件にしたことで、後続移動を試せていない。
+Appleの現在focus発話取得の説明は、元の移動検証に必須という契約を示していない。
+初期発話が取得できないことから移動不可能とは断定できず、実移動結果の3項目検証が目的である。
+この不採用のAPI取得と前後ログ3行だけを撤回し、実見出しtouch後の移動を直接確認する。
+無操作で最初の移動が失敗したU46と同じ条件には戻さない。実move・throw・最大60回・
+元の読み上げ3項目・SDKは固定し、skip・retry・期待値注入で救済しない。
+変更前にVoiceOver／currentSpeech／No speech／U46〜U48とtest_catalogで関連を検索した。
+
+## 2026-10-11 次の全体開始前のコード差分確認
+
+main2b94d1c→実行候補70cb0f5のコード差分は実VoiceOverケース21行のみ。
+同じGPT-6.1 Sol／Highの1エージェントが差分だけを再確認し、開始を止める重大な
+実装不整合・成功データ注入・項目期待値の弱体化の指摘はなかった。
+開始操作は「enable後、無操作で移動」から「実見出しを選択してから移動」へ意図して変更する。
+有効化直後の自動focusや無操作の最初の命令成功を、このケースが証明するとは記録しない。
+実際の項目touch後のVoiceOver移動と科目・教員・教室の読み上げは引き続き必須。
+AX取得・発話取得・Code3への効果は未証明。対象48の厳密成功後にだけ、同じソースで全13へ進む。
+
+## 2026-10-11 見出しtouch条件の開発84
+
+ソース70cb0f5e3e59526e22a3643b1593b2a9e9ff6756の
+[開発84・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38160104202)は成功。
+実ログでPython178件・54.773秒、portable Swift474件・71.079秒（準備込み214.1秒）、失敗0。
+任意Nativeは予定skip。実VoiceOverの見出し取得・発話・移動の成功とは区別する。
+同じソースの[対象48](https://github.com/n624-dev/takupoke-ios/actions/runs/38160134344)で
+元の設定／VoiceOver2ケースを確認する。製品PDFの限定修正は643be57から変えていない。
+
 ## 2026-10-11 U47後：実見出しのtouchを開始位置にする比較
 
 VoiceOver有効化後、時間割navigation bar内の実staticTextを一意に取得する。
