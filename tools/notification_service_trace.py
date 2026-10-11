@@ -26,13 +26,20 @@ WORDS = re.compile(
     r"presented|presenting|dismissed|deferred|suppressed|queued|queue|busy|ready|visible|"
     r"hidden|waiting|blocking|blocked|approved|allowed|enabled|disabled|permission|prompt|"
     r"dialog|rejected|reason|session|assertion|transaction|locked|unlocked|connected|"
-    r"display|screen|interactive|unavailable|attempt|delegate|true|false)\b", re.I)
+    r"display|screen|interactive|unavailable|attempt|delegate|true|false|not)\b", re.I)
+
+
+def fixed_words(message):
+    # Framework type names use camel case; expose only the same fixed terms.
+    separated = re.sub(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ", message)
+    return WORDS.findall(separated)[:24]
 
 
 def observations(entries):
     if not isinstance(entries, list):
         raise ValueError("Expected an OS log array")
     result = []
+    important = []
     for entry in entries:
         if not isinstance(entry, dict):
             continue
@@ -44,8 +51,27 @@ def observations(entries):
         ):
             continue
         # Publish only a fixed vocabulary, never identifiers, payloads or raw OS text.
-        result.append({"process": process, "words": WORDS.findall(message)[:24]})
-    return result[-80:]
+        result.append({"process": process, "words": fixed_words(message)})
+        if re.search(r"authoriz|permission|notif|alert|prompt|timeout|fail|error|invalidated|interrupted",
+                     message, re.I):
+            important.append(len(result) - 1)
+    # Preserve request evidence before repeated accessibility-client messages.
+    # Keep chronology even when the bounded selection favours relevant events.
+    selected = set(important if len(important) <= 80 else important[:60] + important[-20:])
+    for index in range(len(result) - 1, -1, -1):
+        if len(selected) >= 80:
+            break
+        selected.add(index)
+    return [result[index] for index in sorted(selected)]
+
+
+def observe_command(command, timeout):
+    try:
+        return subprocess.run(command, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(command, -1, "", "timeout")
+    except OSError:
+        return subprocess.CompletedProcess(command, -1, "", "unavailable")
 
 
 def request_window(trace, now):
@@ -91,8 +117,7 @@ def owned_trace(simulator):
 
 def collect(simulator, *, trace=None, now=None):
     base = ["xcrun", "simctl", "spawn", simulator]
-    health = subprocess.run(base + ["launchctl", "list"], capture_output=True,
-                            text=True, timeout=5)
+    health = observe_command(base + ["launchctl", "list"], 5)
     statuses = []
     for line in health.stdout.splitlines():
         fields = line.split()
@@ -100,16 +125,22 @@ def collect(simulator, *, trace=None, now=None):
             if re.fullmatch(r"\d+|-", fields[0]) and re.fullmatch(r"-?\d+", fields[1]):
                 statuses.append({"service": fields[2].rsplit(".", 1)[-1],
                                  "running": fields[0] != "-", "exit": int(fields[1])})
-    window = request_window(owned_trace(simulator) if trace is None else trace,
-                            time.time() if now is None else now)
+    trace_error = None
+    if trace is None:
+        try:
+            trace = owned_trace(simulator)
+        except subprocess.TimeoutExpired:
+            trace, trace_error = "", "timeout"
+        except (OSError, ValueError):
+            trace, trace_error = "", "unavailable"
+    window = request_window(trace, time.time() if now is None else now)
     dates = ["--last", "10m"]
     if window:
         def formatted(stamp):
             return datetime.fromtimestamp(stamp, timezone.utc).strftime("%Y-%m-%d %H:%M:%S%z")
         dates = ["--start", formatted(window["start"]), "--end", formatted(window["end"])]
-    logs = subprocess.run(base + ["log", "show"] + dates + ["--style", "json", "--info",
-                                  "--predicate", LOG_PREDICATE], capture_output=True,
-                          text=True, timeout=10)
+    logs = observe_command(base + ["log", "show"] + dates + ["--style", "json", "--info",
+                           "--predicate", LOG_PREDICATE], 10)
     byte_count = len(logs.stdout.encode())
     if logs.returncode:
         events = "failed"
@@ -122,7 +153,8 @@ def collect(simulator, *, trace=None, now=None):
             events = "invalid-format"
     print("TAKUPOKE_NOTIFICATION_SERVICES " + json.dumps({"services": statuses,
         "healthExit": health.returncode, "logExit": logs.returncode, "logBytes": byte_count,
-        "errorWords": WORDS.findall(logs.stderr or "")[:24], "window": window, "events": events}))
+        "healthErrorWords": fixed_words(health.stderr or ""), "traceError": trace_error,
+        "errorWords": fixed_words(logs.stderr or ""), "window": window, "events": events}))
 
 
 if __name__ == "__main__":

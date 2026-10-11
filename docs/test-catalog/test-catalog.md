@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`f249a920061655eda20c0183288dafb37f2caadcd1d10146d462104810b4334c`
+`5cd61cecb06271536058dc11511c32ed649ea71238626185e69c70d6267183ca`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -37,10 +37,6 @@ python3 -B -m unittest discover -s tests -p test_ui_test_manifest.py -v
 
 ## [tests/test_ui_test_manifest.py](../../tests/test_ui_test_manifest.py)
 
-- `test_notification_window_uses_unanswered_request_even_when_failure_finishes_later`
-- `test_notification_window_collects_only_bounded_owned_trace_and_request_interval`
-- `test_notification_service_trace_keeps_only_known_processes_and_fixed_words`
-- `test_notification_service_trace_is_bounded_without_permission_mutation`
 - `test_split_sources_are_registered_in_the_selected_target_only`
 - `test_unregistered_split_file_is_rejected`
 - `test_manual_split_registers_all_helpers_and_refuses_unknown_files`

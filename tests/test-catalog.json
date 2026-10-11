@@ -461,7 +461,8 @@
         "tests/ui/ApplicationChecks+Settings.swift",
         "tests/ui/ApplicationChecks+Timetable.swift",
         "tests/ui/ApplicationChecks+Notifications.swift",
-        "tests/ObservedScreenGeometryTests.swift"
+        "tests/ObservedScreenGeometryTests.swift",
+        "tests/test_notification_service_trace.py"
       ]
     },
     {
