@@ -3,6 +3,7 @@ import UIKit
 import CryptoKit
 
 final class ApplicationChecks: XCTestCase {
+    private static var systemReadyInThisRunner: Bool?
     var app: XCUIApplication!
     override func setUp() {
         continueAfterFailure = false
@@ -43,8 +44,42 @@ final class ApplicationChecks: XCTestCase {
         #if !TAKUPOKE_VOICEOVER_AUTOMATION
             if name.contains("testVoiceOverReadsTimetableCard") { return }
         #endif
+        guard prepareSystemUI() else { return }
         launchReady()
         XCTAssertTrue(app.tabBars.buttons["ホーム"].waitForExistence(timeout: 30), app.debugDescription)
+    }
+    private func prepareSystemUI() -> Bool {
+        if let ready = Self.systemReadyInThisRunner {
+            if !ready { XCTFail("System UI preparation already failed in this Runner") }
+            return ready
+        }
+        Self.systemReadyInThisRunner = false
+        // U41: bootstatus completed, but the first Xcode app launch timed out.
+        // Verify the actual automation surface before one cold target launch.
+        let deadline = Date().addingTimeInterval(45)
+        print("UI_AUTOMATION_PREPARATION home-once;target-not-prelaunched")
+        XCUIDevice.shared.press(.home)
+        let system = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        var observedFrame = CGRect.null
+        var observedState = -1
+        let ready = expectation(for: NSPredicate { _, _ in
+            guard Date() <= deadline else { return false }
+            let state = system.state
+            observedState = Int(state.rawValue)
+            guard state == .runningForeground else { return false }
+            observedFrame = system.frame
+            return self.usable(observedFrame) && Date() <= deadline
+        }, evaluatedWith: system)
+        let remaining = deadline.timeIntervalSinceNow
+        guard remaining > 0, XCTWaiter.wait(for: [ready], timeout: remaining) == .completed,
+            Date() <= deadline else {
+            print("UI_AUTOMATION_PREPARATION failed;state=\(observedState);frame=\(observedFrame)")
+            XCTFail("System UI did not respond before the target's first launch")
+            return false
+        }
+        Self.systemReadyInThisRunner = true
+        print("UI_AUTOMATION_READY state=\(observedState);frame=\(observedFrame)")
+        return true
     }
     func launchReady() {
         // One launch after confirmed process termination. A persistence check

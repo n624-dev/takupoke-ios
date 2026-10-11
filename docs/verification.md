@@ -1,5 +1,30 @@
 # 検証記録
 
+## 2026-10-11 U41後のシステム画面準備確認
+
+編集前に`test_catalog.py search tests/ui/ApplicationChecks.swift`と、失敗索引の
+app.launch／起動／Runner／iOS27検索を行い、U40・U41と元ログを確認した。
+365の最初のapp.launchは失敗したが、後続10件は成功した。bootstatusだけでなく、
+XCTestによるシステム画面の操作・観測も応答する条件を準備として追加比較する。
+各Runnerで一度だけHomeへ移動し、SpringBoardの実foregroundと有限の正寸法frameを
+45秒内に確認する。準備失敗は保持し、そのRunnerで再試行しない。
+準備中には対象アプリを起動せず、既存の一度のcold起動・終了確認・foreground・fixture-readyを維持する。
+ケース内の保存後再起動、通知実許可、配信と各期限も変更しない。
+
+[Appleの状態待機API](https://developer.apple.com/documentation/xcuiautomation/xcuiapplication/wait(for:timeout:))と
+[状態の更新契約](https://developer.apple.com/documentation/xcuiautomation/xcuiapplication/state-swift.property)を確認した。
+これらは準備条件のAPI契約で、今回のOS停止や最善の対処を証明する資料ではない。
+nil debugger warningは成功ログにもあり、Schemeや製品APIをその警告だけで書き換えない。
+26のdevice分離は未評価のまま保持する。順序・SDK・既存device再起動の往復は行わない。
+先に27の失敗ケース1件を既存のfocused経路で確認し、全体検証の代用にはしない。
+
+対応する既存ケース`testChangedAccountDataNoticeOpensSharedAcquisition`は共通setUpを通り、
+初回起動と更新案内の実操作を検証する。ほかの通常UIも同じ準備を通るため、
+期待値だけの新規ケースやPythonのソース文字列検査は追加しない。
+LinuxではPython178件16.255秒・失敗0（環境依存skip7）、Swift 5モードの構文確認、
+一覧341ファイルと差分の空白検査が成功した。UIKitの型検証・実操作はApple環境で確認する。
+focusedの選択が失敗した1件だけで、通知区間の選択0件であることも確認した。
+
 ## 2026-10-11 全体365の最初のapp.launch失敗
 
 710d0c4・38127078166・試行1の27 Bは、最初のケースのapp.launchが期限切れになった。
