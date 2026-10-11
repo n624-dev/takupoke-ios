@@ -8,6 +8,24 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U44 VoiceOver移動命令だけが再発（全体369、iOS27 B）
+
+- 対象：643be57の`testVoiceOverReadsTimetableCard`。元の11件区間は
+  1235.630秒、他10件成功、VoiceOverのみ失敗。読み上げ期待値は変更していない。
+- 観測：実System UI準備・cold起動・時間割遷移後、moveForwardが
+  AXVoiceOverAutomationErrorDomain Code3で失敗。ケース全体132.691秒。
+  失敗した移動回数と下位原因は未確定。ラベルの存在で読み上げを代替しない。
+- 比較：U43と同じ命令エラーだが、再起動後を含むSwitch4回のUI・保存値は
+  今回すべて1→0→1→0で成功。各cold起動前の準備だけでは再発を防げなかった。
+  PDF修正以外のUI構成・SDK・操作・ケースは368と同じ。製品の原因とは断定しない。
+- 次の比較：VoiceOverの同じケースを別Runner・新しい所有27Simulatorへ分離する。
+  同じビルドを再利用し、実移動・3項目の読み上げ・全選択の完了照合を維持する。
+  再試行・skip・期限延長で救済しない。成功するか、最善の方式かは未証明。
+- 状態：5事前ジョブ成功、27B失敗。旧許可に基づく取消要求が新しい禁止指示の
+  直前に送信され、369はcancelled、27Aと後続検証は未完了。369は未公開。
+  以後は失敗後もActionsを停止せず、残りの結果を確認する。
+- 根拠：[369通常27 B](https://github.com/n624-dev/takupoke-ios/actions/runs/38149074887/job/114498668741)。
+
 ## U43 再起動後のSwitch入力未反映とVoiceOver命令失敗（全体367、iOS27 B）
 
 - 対象：4c43707の`testSettingsAccountDataAndFileDetails`と
