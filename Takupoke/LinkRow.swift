@@ -78,6 +78,7 @@ struct LinkRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .contentShape(.interaction, Rectangle())
         .contextMenu {
             if item.url?.scheme?.lowercased() == "https" {
                 Button {
