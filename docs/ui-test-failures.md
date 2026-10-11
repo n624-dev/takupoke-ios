@@ -4,6 +4,22 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 各項目は観測、試した変更、確認範囲だけを短く記す。詳細はリンク先を読む。
 新しい失敗は次の試行前に追記する。未確認の原因を確定扱いしない。
 
+全項目と過去の関連記録の比較は[2026-10-11の横断確認](ui-failure-patterns-20261011.md)を参照する。
+
+## U34 Device Hubを開いても初回の許可が未返答（診断38、iOS27）
+
+- 対象：249037bの通知2ケース。27は初回110.116秒で失敗、次の通知設定は
+  実Allow・callback・保存・再起動まで222.650秒で成功。計332.767秒、1失敗。
+- 観測：初回要求は同期戻りあり・callbackなし。局所OSログ取得は終了0・401,299 bytes。
+  Device Hubの不存在エラーはなく、画面を開くだけでは未返答が解消しない。
+  26は2件成功（232.329秒）。初回・次プロセスの違いは原因の確定ではない。
+- 新しい根拠：[Apple Forums 849449の返信](https://developer.apple.com/forums/thread/849449)に
+  同じUserNotificationsの未返答とSimulator再起動での改善報告がある。本文のAlarmKitとは区別する。
+- 次の比較：初回テスト前に実アプリinstall後、所有Simulatorを一度再起動する準備案。
+  効果は未評価。製品・実許可・操作数・45秒・全13条件を維持する。
+- 根拠：[38通常27](https://github.com/n624-dev/takupoke-ios/actions/runs/38112276765/job/114390139488)、
+  [全履歴の比較](ui-failure-patterns-20261011.md)。
+
 ## U33 Xcode27にないSimulator.appの起動で停止（全体361）
 
 - 対象：aa73758の通常27 A／B。UIビルドは成功したが、追加した画面起動で
@@ -14,7 +30,8 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
   [通常27 B](https://github.com/n624-dev/takupoke-ios/actions/runs/38111810296/job/114388890984)、
   [AppleのDevice Hub案内](https://developer.apple.com/documentation/xcode/device-hub)、
   [argentの当事者報告](https://github.com/software-mansion/argent/issues/406)。
-- 状態：361の他ジョブは取消さず監視する。全13条件は維持し、361は公開不可。
+- 状態：公開不可が確定した旧実行の中止を利用者が追加許可し、361はcancelledまで確認。
+  全13条件は維持し、361は未公開。
   従来の通知callback停止（U32）をこの新しい起動エラーと同一原因にしない。
 
 ## U32 標準タブ操作でも通知許可が未返答（診断37、iOS27）
