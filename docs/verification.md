@@ -1,5 +1,15 @@
 # 検証記録
 
+## 2026-10-11 対象52：資料詳細／初期設定の2件を先に確認
+
+候補ソース16062226956b3c4faa220fc802ef0cc60ec8a277を凍結し、
+[対象52・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38173617315)で
+同じiOS27.0・Xcode27.0の既存2ケースを実行する。
+[開発88](https://github.com/n624-dev/takupoke-ios/actions/runs/38173613582)も監視する。
+U53に対して変えたのは本文viewportの対象文言再取得だけ。SDK・期待値・再試行を変えない。
+対象52が成功しても配布前の全13検査には代用しない。mainはbf1749a・公開版は368のまま。
+全体372の26 Bも取消しせず完了まで確認する。実資料3種は未確認。
+
 ## 2026-10-11 U53後：本文viewportから文言再照会を除く候補
 
 編集前にtest_catalogでApplicationChecks+Navigation、失敗索引で
