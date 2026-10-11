@@ -8,6 +8,20 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U49 除外保存後の再起動でprocess取得失敗（全体370、iOS26 A）
+
+- 対象：2b94d1cの`testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch`。
+  除外選択・確認・保存後、terminateから再起動する1回のapp.launchで失敗した。
+- 観測：前processのnotRunningとSpringBoardの応答を確認した後、
+  NSPOSIXErrorDomain Code3／No such process、Failed to get launch progress。
+  ケース213.588秒。初回起動・操作は成立しており、起動後の保持確認は未評価。
+- 比較：U40／U41の起動系と関連するが、今回は同じケースの保存後再起動である。
+  U46のAXVoiceOverAutomationErrorDomainとは別domain。製品やSDKの下位原因は未確定。
+- 状態：元の14件中13成功・1失敗、1894.654秒。通知区間は未実行。
+  残りを取消せず完了まで確認した。370はfailure、公開skipで新しい配布物なし。
+  起動再試行・期限延長・case省略は行わず、VoiceOver候補の成功にも加算しない。
+- 根拠：[370通常26 A](https://github.com/n624-dev/takupoke-ios/actions/runs/38156030685/job/114528035630)。
+
 ## U48 実見出しtap後も初期発話取得で失敗（対象48、iOS27）
 
 - 対象：70cb0f5の設定／VoiceOver2件。設定317.960秒は成功、VoiceOver47.495秒は失敗。
