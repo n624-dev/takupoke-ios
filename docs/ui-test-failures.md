@@ -8,6 +8,18 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U50 実見出しtap後も最初の移動が失敗（全体371、iOS27 B）
+
+- 対象：694a862の通常27B、元の11件。10成功・VoiceOverのみ46.665秒で失敗。
+- 観測：enable1、実見出しの一意・表示包含・hittableと物理tap1回を確認。
+  最初のmove index0でAXVoiceOverAutomationErrorDomain Code3、完了move0。
+- 比較：同じソースの対象49では18回の移動と元の3項目検査が成功した。
+  enableからtap完了まで対象49は36.568秒、371は1.897秒。タップだけでは安定しない。
+  差は実要素照会と実操作の所要時間で、sleepは導入していない。時間差は因果の証明ではない。
+  U48はtap後のcurrentSpeechを1回試してNo speech available、移動自体は未評価だった。
+- 状態：371は公開不可。残りのActionsは停止せず監視する。読み上げ期待値の救済なし。
+- 根拠：[371通常27B](https://github.com/n624-dev/takupoke-ios/actions/runs/38163060293/job/114540080074)。
+
 ## U49 除外保存後の再起動でprocess取得失敗（全体370、iOS26 A）
 
 - 対象：2b94d1cの`testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch`。
