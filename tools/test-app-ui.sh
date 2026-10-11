@@ -77,39 +77,45 @@ while read -r device_type runtime; do
     TKPK_VOICEOVER_AUTOMATION="$voiceover" python3 -B tools/timed_command.py "App test project iOS $ios_major" \
         python3 -B tools/app_test_project.py "$project_dir"
     bash tools/resolve-xcode-packages.sh "$project_dir/AppChecks.xcodeproj" AppChecks "$scratch_dir"
-    simulator_id="$(xcrun simctl create 'Takupoke App Checks' "$device_type" "$runtime")"
-    xcode_args=(-project "$project_dir/AppChecks.xcodeproj" -scheme AppChecks
-        -destination "platform=iOS Simulator,id=$simulator_id"
-        -derivedDataPath "$scratch_dir/DerivedData"
-        -clonedSourcePackagesDirPath "$scratch_dir/SourcePackages" -packageCachePath "$scratch_dir/PackageCache"
-        -disablePackageRepositoryCache -onlyUsePackageVersionsFromResolvedFile -disableAutomaticPackageResolution
-        -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1
-        -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES)
-    # Finish compilation before booting the owned Simulator. Its first startup
-    # must not compete with our Swift compilation; all runs reuse this build.
+    create_simulator() {
+        simulator_id="$(xcrun simctl create 'Takupoke App Checks' "$device_type" "$runtime")"
+        xcode_args=(-project "$project_dir/AppChecks.xcodeproj" -scheme AppChecks
+            -destination "platform=iOS Simulator,id=$simulator_id"
+            -derivedDataPath "$scratch_dir/DerivedData"
+            -clonedSourcePackagesDirPath "$scratch_dir/SourcePackages" -packageCachePath "$scratch_dir/PackageCache"
+            -disablePackageRepositoryCache -onlyUsePackageVersionsFromResolvedFile -disableAutomaticPackageResolution
+            -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1
+            -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES)
+    }
+    boot_simulator() {
+        # Finish compilation before booting the owned Simulator. Its first startup
+        # must not compete with our Swift compilation; all runs reuse this build.
+        xcrun simctl boot "$simulator_id"
+        # Resolve the frontend inside the selected Xcode, not another installation.
+        # Device Hub does not support the legacy Simulator's device-selection flag.
+        developer_dir="$(xcode-select -p)"
+        device_hub=""
+        if [[ -d "$developer_dir/Applications/Simulator.app" ]]; then
+            open -a "$developer_dir/Applications/Simulator.app" --args -CurrentDeviceUDID "$simulator_id"
+        elif [[ -d "$developer_dir/../Applications/DeviceHub.app" ]]; then
+            device_hub="$developer_dir/../Applications/DeviceHub.app"
+            open -a "$device_hub"
+        else
+            printf '%s\n' 'No supported simulator frontend in the selected Xcode' >&2
+            exit 1
+        fi
+        python3 -B tools/timed_command.py "App simulator boot" xcrun simctl bootstatus "$simulator_id" -b
+        if [[ -n "$device_hub" ]]; then
+            # Opening Device Hub alone shows its manager, not this device's window.
+            # Route the owned, booted device to the selected Xcode's display host.
+            open -a "$device_hub" "devices://device/open?id=$simulator_id"
+        fi
+        xcrun simctl ui "$simulator_id" content_size large
+    }
+    create_simulator
     python3 -B tools/timed_command.py "App UI build iOS $ios_major" \
         xcodebuild "${xcode_args[@]}" build-for-testing
-    xcrun simctl boot "$simulator_id"
-    # Resolve the frontend inside the selected Xcode, not another installation.
-    # Device Hub does not support the legacy Simulator's device-selection flag.
-    developer_dir="$(xcode-select -p)"
-    device_hub=""
-    if [[ -d "$developer_dir/Applications/Simulator.app" ]]; then
-        open -a "$developer_dir/Applications/Simulator.app" --args -CurrentDeviceUDID "$simulator_id"
-    elif [[ -d "$developer_dir/../Applications/DeviceHub.app" ]]; then
-        device_hub="$developer_dir/../Applications/DeviceHub.app"
-        open -a "$device_hub"
-    else
-        printf '%s\n' 'No supported simulator frontend in the selected Xcode' >&2
-        exit 1
-    fi
-    python3 -B tools/timed_command.py "App simulator boot" xcrun simctl bootstatus "$simulator_id" -b
-    if [[ -n "$device_hub" ]]; then
-        # Opening Device Hub alone shows its manager, not this device's window.
-        # Route the owned, booted device to the selected Xcode's display host.
-        open -a "$device_hub" "devices://device/open?id=$simulator_id"
-    fi
-    xcrun simctl ui "$simulator_id" content_size large
+    boot_simulator
     check_ui() {
         local log_path="$1"
         shift
@@ -121,7 +127,7 @@ while read -r device_type runtime; do
         }
     }
     # Keep other UI scenarios first, then isolate notification automation.
-    # Reuse the build and owned device, but execute each selected case only once.
+    # Reuse the build, but execute each selected case only once.
     : > "$scratch_dir/suite.log"
     for phase in remaining notifications; do
         python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --phase "$phase" \
@@ -129,6 +135,16 @@ while read -r device_type runtime; do
         selected_checks=()
         while IFS= read -r selector; do selected_checks+=("$selector"); done < "$scratch_dir/selectors"
         if [[ "${#selected_checks[@]}" == "0" ]]; then continue; fi
+        if [[ "$ios_major" == "26" && "$phase" == "notifications" && -s "$scratch_dir/suite.log" ]]; then
+            # U40: the second Runner lost the app during launch after a long
+            # successful batch. Isolate its device state, without retrying tests.
+            collect_launch_trace
+            xcrun simctl shutdown "$simulator_id"
+            xcrun simctl delete "$simulator_id"
+            simulator_id=""
+            create_simulator
+            boot_simulator
+        fi
         check_ui "$scratch_dir/$phase.log" "${selected_checks[@]}" test-without-building
         python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --phase "$phase" \
             --mode verify --ios "$ios_major" --log "$scratch_dir/$phase.log"

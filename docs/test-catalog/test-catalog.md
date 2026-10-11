@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`b0a053fd5f82976b2e62f66674efe7dab80cd1ef6a6a4e05bfe932b712af6a6d`
+`c54fc78c0b6cb0d878d7838ae79cdc4adb2a47ea30aebf121bafc491e39acaa9`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -78,3 +78,4 @@ python3 -B -m unittest discover -s tests -p test_application_ui_runner.py -v
 - `test_failed_owned_device_window_does_not_run_ui_and_cleans_up`
 - `test_failed_or_duplicate_first_batch_stops_without_retry_or_size_checks`
 - `test_failed_final_notification_batch_is_not_rescued_by_passed_scenarios`
+- `test_failed_fresh_notification_device_boot_stops_and_cleans_both_devices`
