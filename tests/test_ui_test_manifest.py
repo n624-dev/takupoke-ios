@@ -559,7 +559,12 @@ class ManifestTests(unittest.TestCase):
                        "testSettingsAccountDataAndFileDetails",
                        "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch")
         self.assertEqual(manifest.CONTROL_PROBE_TESTS, controls)
-        for group_name, selected in (("controls", controls), ("rows", (controls[-1],))):
+        groups = (
+            ("controls", controls),
+            ("rows", (controls[-1],)),
+            ("input-delivery", ("testSettingsAccountDataAndFileDetails", manifest.VOICEOVER_TEST)),
+        )
+        for group_name, selected in groups:
             selection = ["--relaunch-probe", "--probe-case", group_name]
             self.assertEqual(subprocess.check_output(command + selection + ["--mode", "selectors"],
                                                     text=True).splitlines(),

@@ -78,6 +78,7 @@ PROBE_GROUPS = {
     "notifications": NOTIFICATION_PROBE_TESTS,
     "controls": CONTROL_PROBE_TESTS,
     "rows": ("testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",),
+    "input-delivery": ("testSettingsAccountDataAndFileDetails", VOICEOVER_TEST),
 }
 # Balanced using measured case durations, including the three OS size reruns.
 SHARDS = {
