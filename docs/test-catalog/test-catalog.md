@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`0c5babc5be074246d9d47deefa6e6fe31b4bf51f31f2f4dd9b35bc505131385b`
+`f249a920061655eda20c0183288dafb37f2caadcd1d10146d462104810b4334c`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -65,6 +65,7 @@ python3 -B -m unittest discover -s tests -p test_ui_test_manifest.py -v
 - `test_relaunch_diagnosis_cannot_replace_the_full_shard_gate`
 - `test_diagnostic_selection_requires_exact_completion_and_cannot_select_full_shards`
 - `test_outer_runner_log_rejects_no_tests_and_missing_os_size_runs`
+- `test_successful_notification_probe_observes_os_before_deleting_simulator`
 - `test_both_shards_on_both_os_preserve_selection_and_os_size_checks`
 - `test_missing_xctest_completion_fails_shell_and_cleans_up`
 - `test_failed_ui_build_does_not_boot_or_run_tests_and_still_cleans_up`

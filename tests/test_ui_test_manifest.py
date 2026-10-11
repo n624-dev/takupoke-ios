@@ -76,10 +76,13 @@ class ManifestTests(unittest.TestCase):
             {"processImagePath": "/system/SpringBoard", "eventMessage": "unrelated authorization"},
             {"processImagePath": "/system/unknown", "eventMessage": notification_service_trace.BUNDLE},
             {"processImagePath": "/system/usernotificationsd", "eventMessage": "connection invalidated"},
+            {"processImagePath": "/system/SpringBoard", "eventMessage":
+             notification_service_trace.BUNDLE + " permission prompt queued visible false private-detail"},
         ]
         self.assertEqual(notification_service_trace.observations(messages), [
             {"process": "usernotificationsd", "words": ["authorization", "request"]},
             {"process": "usernotificationsd", "words": ["connection", "invalidated"]},
+            {"process": "SpringBoard", "words": ["permission", "prompt", "queued", "visible", "false"]},
         ])
         self.assertEqual(notification_service_trace.observations([None, 123]), [])
         for malformed in ("text", {}, None):
@@ -655,7 +658,7 @@ class ManifestTests(unittest.TestCase):
 
 @unittest.skipUnless(os.name == "posix", "macOS CI Bash runner")
 class ShellRunnerTests(unittest.TestCase):
-    def run_synthetic_runner(self, ios, shard, *, omit_result=False, fail_build=False):
+    def run_synthetic_runner(self, ios, shard, *, omit_result=False, fail_build=False, probe_case=None):
         with tempfile.TemporaryDirectory(prefix="takupoke-shard-check-") as directory:
             repo = Path(directory)
             (repo / "tools").mkdir()
@@ -707,6 +710,8 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                 environment["OMIT_RESULT"] = "1"
             if fail_build:
                 environment["FAIL_BUILD"] = "1"
+            if probe_case:
+                environment.update(TKPK_UI_RELAUNCH_PROBE="1", TKPK_UI_PROBE_CASE=probe_case)
             result = subprocess.run(["bash", "tools/test-app-ui.sh"], cwd=repo, env=environment,
                                     capture_output=True, text=True, timeout=15)
             calls = [json.loads(line) for line in calls_file.read_text().splitlines()]
@@ -714,6 +719,23 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
             self.assertIn(["xcrun", "simctl", "shutdown", "synthetic-simulator"], calls)
             self.assertIn(["xcrun", "simctl", "delete", "synthetic-simulator"], calls)
             return result, calls
+
+    def test_successful_notification_probe_observes_os_before_deleting_simulator(self):
+        for ios in (26, 27):
+            with self.subTest(ios=ios):
+                result, calls = self.run_synthetic_runner(ios, "all", probe_case="notifications")
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                build = next(call for call in calls if call[0] == "xcodebuild" and
+                             "test-without-building" in call)
+                tests = [arg.rsplit("/", 1)[1] for arg in build if arg.startswith("-only-testing:")]
+                self.assertEqual(tests, list(manifest.NOTIFICATION_PROBE_TESTS))
+                observation = [call for call in calls if call[:6] ==
+                    ["xcrun", "simctl", "spawn", "synthetic-simulator", "log", "show"]]
+                self.assertEqual(len(observation), 1)
+                self.assertLess(calls.index(build), calls.index(observation[0]))
+                self.assertLess(calls.index(observation[0]), calls.index(
+                    ["xcrun", "simctl", "shutdown", "synthetic-simulator"]))
+                self.assertIn("TAKUPOKE_NOTIFICATION_SERVICES ", result.stdout)
 
     def test_both_shards_on_both_os_preserve_selection_and_os_size_checks(self):
         for ios in (26, 27):

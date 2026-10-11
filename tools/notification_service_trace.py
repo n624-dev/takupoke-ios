@@ -22,7 +22,11 @@ WORDS = re.compile(
     r"interrupted|failed|failure|error|timeout|timed|out|registered|registration|"
     r"present|presentation|alert|pending|response|reply|completion|cancelled|"
     r"foreground|background|active|inactive|suspended|terminated|running|"
-    r"unrecognized|unknown|unsupported|predicate|argument|format|option|memory|limit)\b", re.I)
+    r"unrecognized|unknown|unsupported|predicate|argument|format|option|memory|limit|"
+    r"presented|presenting|dismissed|deferred|suppressed|queued|queue|busy|ready|visible|"
+    r"hidden|waiting|blocking|blocked|approved|allowed|enabled|disabled|permission|prompt|"
+    r"dialog|rejected|reason|session|assertion|transaction|locked|unlocked|connected|"
+    r"display|screen|interactive|unavailable|attempt|delegate|true|false)\b", re.I)
 
 
 def observations(entries):

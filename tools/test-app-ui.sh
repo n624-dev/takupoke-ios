@@ -118,6 +118,9 @@ while read -r device_type runtime; do
             python3 -B tools/ui_test_manifest.py --shard "$shard" --mode verify --ios "$ios_major" --log "$scratch_dir/os-size.log" --system-size-only
         done
     fi
+    if [[ "${TKPK_UI_PROBE_CASE:-all}" == "notifications" ]]; then
+        python3 -B tools/notification_service_trace.py "$simulator_id" || true
+    fi
     collect_launch_trace
     xcrun simctl shutdown "$simulator_id"
     xcrun simctl delete "$simulator_id"

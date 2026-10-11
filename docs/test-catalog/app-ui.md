@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`e0dd5cfedeb05cf898fc5647213701fbce39e3dd61b1f0d443436cdc12957cb4`
+`01c8a7f6c8b5f94bbe82e00d5ad22bda1b3feb4817cbd9c43ec144dd553d2c49`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -102,6 +102,7 @@ bash tools/test-app-ui.sh
 - `test_relaunch_diagnosis_cannot_replace_the_full_shard_gate`
 - `test_diagnostic_selection_requires_exact_completion_and_cannot_select_full_shards`
 - `test_outer_runner_log_rejects_no_tests_and_missing_os_size_runs`
+- `test_successful_notification_probe_observes_os_before_deleting_simulator`
 - `test_both_shards_on_both_os_preserve_selection_and_os_size_checks`
 - `test_missing_xctest_completion_fails_shell_and_cleans_up`
 - `test_failed_ui_build_does_not_boot_or_run_tests_and_still_cleans_up`
