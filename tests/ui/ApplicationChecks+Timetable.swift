@@ -323,7 +323,7 @@ extension ApplicationChecks {
         }
     }
     #if TAKUPOKE_VOICEOVER_AUTOMATION
-        @MainActor func testVoiceOverReadsTimetableCard() throws {
+        @MainActor func testVoiceOverReadsTimetableCard() async throws {
             guard #available(iOS 27.0, *) else { throw XCTSkip("VoiceOver automation requires iOS 27") }
             tab("時間割")
             let service = XCUIDevice.shared.voiceOverService
@@ -348,6 +348,23 @@ extension ApplicationChecks {
             }
             heading.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             print("UI_VOICEOVER phase=heading-touched")
+            let deadline = Date().addingTimeInterval(45)
+            var speechAvailable = false
+            while Date() < deadline && !speechAvailable {
+                do {
+                    _ = try service.currentSpeech()
+                    speechAvailable = Date() <= deadline
+                } catch {
+                    let failure = error as NSError
+                    guard failure.domain == XCUIVoiceOverService.Error.errorDomain,
+                        failure.code == XCUIVoiceOverService.Error.noSpeech.rawValue
+                    else { throw error }
+                }
+                if !speechAvailable && Date() < deadline {
+                    try await Task.sleep(for: .milliseconds(100))
+                }
+            }
+            print("UI_VOICEOVER phase=speech-observed;value=\(speechAvailable ? 1 : 0)")
             var utterances: [String] = []
             for move in 0..<60 {
                 print("UI_VOICEOVER phase=move-start;index=\(move)")
