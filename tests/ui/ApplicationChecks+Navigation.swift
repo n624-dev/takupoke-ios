@@ -22,9 +22,9 @@ extension ApplicationChecks {
             return
         }
         print("NATIVE_TAB title=\(title);bar=\(tabs.frame);button=\(button.frame)")
-        // Exactly one physical tap on the tab's recorded region. The native
-        // control can be recreated as its selected appearance changes.
-        button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        // Use the system's current hittable point on this visible native tab.
+        // Send one physical tap; selection must still complete within 45 seconds.
+        button.tap()
         let selected = XCTNSPredicateExpectation(
             predicate: NSPredicate { _, _ in
                 let current = self.app.tabBars.buttons[title]

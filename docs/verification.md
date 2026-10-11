@@ -1,5 +1,18 @@
 # 検証記録
 
+## 2026-10-11: タブの標準hit pointによる一回操作の比較
+
+一覧を`ApplicationChecks+Navigation.swift`、失敗索引を`タブ|tab|U30|操作点|tap`で
+検索し、U30と実操作点の公開仕様を再読した。U30をpushした後に編集する。
+表示枠の中央への座標tapを、同じ実タブの`button.tap()`へ変更する候補比較とした。
+Appleの[要素tap](https://developer.apple.com/documentation/xcuiautomation/xcuielement/tap/)
+は現在のhittable pointを使う。中央点が実hit pointと一致するとは保証されない。
+今回の原因が中央点だったとは未確定で、実際の両OSの結果で確認する。
+表示枠・包含・enabled・hittableを確認し、一回だけ操作する。現在のタブの選択と
+遷移先の画面、45秒、実Allow、保存、再起動、新規配信の期待結果は維持する。
+製品コード・Switch操作・通知APIは変えない。
+既存の通知2ケースが同じタブ操作と結果を直接検証するため、新しい期待値は追加しない。
+
 ## 2026-10-11: 診断36の初回タブ選択失敗（U30）
 
 185a65fの診断36の26は完了し、配信88.320秒で失敗、通知設定144.637秒で成功、
