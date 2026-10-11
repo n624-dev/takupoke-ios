@@ -12,6 +12,7 @@ on:
           - controls
           - rows
           - input-delivery
+          - file-details
           - testChangedAccountDataNoticeOpensSharedAcquisition
           - testChangedDataProducesOneLocalNotification
           - testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork

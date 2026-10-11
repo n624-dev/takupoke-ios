@@ -1,5 +1,25 @@
 # 検証記録
 
+## 2026-10-11 U53後：本文viewportから文言再照会を除く候補
+
+編集前にtest_catalogでApplicationChecks+Navigation、失敗索引で
+時間割ファイル／testFileFailures／snapshot／viewportを検索し、U05・U09・U53を確認した。
+372は対象Buttonの存在確認後、viewport計算のlabel再取得で停止した。
+本文のtap／visibleがfooter対象かを文言で読み直す処理だけを除き、bodyViewportへ整理した。
+現行呼出しは本文の表示・操作用であり、次へは専用tapSetupNextで実枠・一意性・
+hittableを検証して一回操作する。本文はfooterの実表示枠を引いたまま、
+全包含・6回探索・待機値・hittability・1回tapと全ケースの期待値を維持する。
+製品・SDK・VoiceOver・通知・配布gateは変更しない。AX下位原因や候補の効果は未確認。
+
+既存の取得失敗分離と初期設定2ケースをfile-detailsとして個別実行できるようにした。
+既存シナリオは十分であり重複追加しない。manifestの既存選択契約へこの2件を加え、
+欠落・重複・失敗・skip・余分ケースの拒否を検証する。配布shardの選択は変更しない。
+Linuxのmanifest26検査は1.953秒・失敗0。一覧341登録と差分検査は成功した。
+全Python182件・16.981秒は失敗0・予定skip7。
+同じGPT-6.1 Sol／Highの1エージェントがimmutableなコード4ファイル差分だけを確認し、
+重大な懸念・検査弱体化は確認されなかった。全呼出しのfooter専用経路は主担当が検索した。
+このLinuxホストにSwift compiler／Xcodeはなく、Appleでの操作確認は別のActionsで行う。
+
 ## 2026-10-11 全体372：通常27 Aの設定ボタン照会停止
 
 同じbf1749a・試行1の27 Aは実14件・1失敗、1981.480秒。

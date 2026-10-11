@@ -40,7 +40,7 @@ extension ApplicationChecks {
     func tap(_ title: String, searchEarlierRows: Bool = false) {
         let e = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
         for _ in 0..<6 {
-            let viewport = unobscuredViewport(for: e)
+            let viewport = bodyViewport()
             if contained(e, in: viewport) && e.isHittable { break }
             let above = e.exists && usable(e.frame) && e.frame.minY < viewport.minY
             // A virtualized preceding row keeps its known search direction;
@@ -48,7 +48,7 @@ extension ApplicationChecks {
             if above || (!e.exists && searchEarlierRows) { app.swipeDown() } else { app.swipeUp() }
         }
         XCTAssertTrue(e.waitForExistence(timeout: 5), app.debugDescription)
-        XCTAssertTrue(contained(e, in: unobscuredViewport(for: e)), app.debugDescription)
+        XCTAssertTrue(contained(e, in: bodyViewport()), app.debugDescription)
         XCTAssertTrue(e.isHittable, app.debugDescription)
         e.tap()
     }
@@ -132,10 +132,10 @@ extension ApplicationChecks {
         return usable(frame) && usable(viewport)
             && ObservedScreenGeometry.contains(frame, in: viewport, scale: UIScreen.main.scale)
     }
-    private func unobscuredViewport(for element: XCUIElement, navigation: String? = nil) -> CGRect {
+    private func bodyViewport(navigation: String? = nil) -> CGRect {
         let frame = contentViewport(navigation: navigation)
-        let isFooter = element.exists && element.label.hasPrefix("次へ")
-        guard !isFooter else { return frame }
+        // These helpers search scrolling content. The separate tapSetupNext
+        // observes and operates the footer without using the body viewport.
         return ObservedScreenGeometry.excludingFooter(observedSetupFooterFrame(), from: frame)
     }
     private func observedSetupFooterFrame() -> CGRect? {
@@ -151,16 +151,16 @@ extension ApplicationChecks {
     }
     func visible(_ e: XCUIElement, navigation: String? = nil, searchEarlierRows: Bool = false) -> XCUIElement {
         for _ in 0..<6 {
-            let viewport = unobscuredViewport(for: e, navigation: navigation)
+            let viewport = bodyViewport(navigation: navigation)
             if contained(e, in: viewport) { return e }
             // Do not drag against a navigation transition or a returning
             // scroll bounce. Strict full containment still decides success.
             let settled = XCTNSPredicateExpectation(
                 predicate: NSPredicate { _, _ in
-                    self.contained(e, in: self.unobscuredViewport(for: e, navigation: navigation))
+                    self.contained(e, in: self.bodyViewport(navigation: navigation))
                 }, object: app)
             if XCTWaiter.wait(for: [settled], timeout: 2) == .completed { return e }
-            let current = unobscuredViewport(for: e, navigation: navigation)
+            let current = bodyViewport(navigation: navigation)
             guard usable(current) else {
                 print("UI_VISIBLE unresolved-viewport;navigation=\(navigation ?? "current")")
                 continue
@@ -171,7 +171,7 @@ extension ApplicationChecks {
                 app.swipeDown()
             } else { app.swipeUp() }
         }
-        let viewport = unobscuredViewport(for: e, navigation: navigation)
+        let viewport = bodyViewport(navigation: navigation)
         print(
             "UI_VISIBLE final-frame=\(e.exists ? e.frame : CGRect.null);viewport=\(viewport);navigation=\(navigation ?? "current")"
         )

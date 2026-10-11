@@ -563,6 +563,8 @@ class ManifestTests(unittest.TestCase):
             ("controls", controls),
             ("rows", (controls[-1],)),
             ("input-delivery", ("testSettingsAccountDataAndFileDetails", manifest.VOICEOVER_TEST)),
+            ("file-details", ("testFileFailuresKeepResultsAndStayInTheirOwnDetails",
+                              "testSetupCanBeSkippedAndOffersAllFiles")),
         )
         for group_name, selected in groups:
             selection = ["--relaunch-probe", "--probe-case", group_name]

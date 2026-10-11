@@ -79,6 +79,10 @@ PROBE_GROUPS = {
     "controls": CONTROL_PROBE_TESTS,
     "rows": ("testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",),
     "input-delivery": ("testSettingsAccountDataAndFileDetails", VOICEOVER_TEST),
+    "file-details": (
+        "testFileFailuresKeepResultsAndStayInTheirOwnDetails",
+        "testSetupCanBeSkippedAndOffersAllFiles",
+    ),
 }
 # Balanced using measured case durations, including the three OS size reruns.
 SHARDS = {
