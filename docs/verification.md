@@ -1,5 +1,25 @@
 # 検証記録
 
+## 2026-10-11: iOS27の初回通知許可と許可済み経路の区別
+
+利用者のiPhone14・iOS27.0.1・355.1では、すでに通知許可済みで、
+時間割変更の通知をONにできると回答があった。初回の許可画面は未確認である。
+Appleの[許可要求の説明](https://developer.apple.com/documentation/usernotifications/asking-permission-to-use-notifications)
+と[API仕様](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/requestauthorization(options:completionhandler:))
+の最新Markdown本文を確認した。引き続き同じrequestAuthorizationを使用し、初回に画面を
+提示し、以降は再提示せず実結果を返す仕様で、callback版も利用可能と記載されている。
+iOS27専用の別APIやsceneから要求する必須条件への変更は、この仕様と確認済みの
+iOS27／Xcode27 release notesでは見つからなかった。SDKヘッダ差分は未評価であり、
+仕様に記載がないことをOS内部の変更・不具合がない証明とはしない。
+製品はSwiftUIのWindowGroupとSceneManifestを持ち、MainActorで実要求を一回行う。
+27の失敗では要求の同期戻り後にcallbackが未到達で、初回提示・Simulator側の問題は
+候補として残る。推測で製品コードを変更せず、進行中の比較38の結果を確認する。
+
+249037bの[開発検証](https://github.com/n624-dev/takupoke-ios/actions/runs/38112264081)は
+全ジョブ完了。Python170件は56.028秒・skip／失敗0、Swift473件は
+58.897秒・失敗0（準備込み186.5秒）。旧361はcancelledまで確認し、公開していない。
+CI成功・許可済み実機の回答を、初回許可や実資料PDF3種類の成功へ代用しない。
+
 ## 2026-10-11: 公開不可が確定した旧361の中止許可
 
 利用者が「確実に駄目な前のジョブ」のキャンセルを追加許可した。
