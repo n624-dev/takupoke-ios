@@ -329,9 +329,12 @@ extension ApplicationChecks {
             let service = XCUIDevice.shared.voiceOverService
             try service.enable()
             defer { try? service.disable() }
+            print("UI_VOICEOVER phase=enabled;value=\(service.isEnabled ? 1 : 0)")
             var utterances: [String] = []
-            for _ in 0..<60 {
+            for move in 0..<60 {
+                print("UI_VOICEOVER phase=move-start;index=\(move)")
                 let output = try service.moveForward()
+                print("UI_VOICEOVER phase=move-complete;index=\(move)")
                 utterances.append(output.utterance)
                 if output.utterance.contains("架空科目甲") { break }
             }

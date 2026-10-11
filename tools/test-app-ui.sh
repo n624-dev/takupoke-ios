@@ -126,21 +126,18 @@ while read -r device_type runtime; do
             exit 1
         }
     }
-    # Keep ordinary scenarios first, then isolate OS service automation.
+    # Keep other UI scenarios first, then isolate notification automation.
     # Reuse the build, but execute each selected case only once.
     : > "$scratch_dir/suite.log"
-    for phase in remaining voiceover notifications; do
+    for phase in remaining notifications; do
         python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --phase "$phase" \
             --mode selectors > "$scratch_dir/selectors"
         selected_checks=()
         while IFS= read -r selector; do selected_checks+=("$selector"); done < "$scratch_dir/selectors"
         if [[ "${#selected_checks[@]}" == "0" ]]; then continue; fi
-        if [[ -s "$scratch_dir/suite.log" ]] && {
-            [[ "$ios_major" == "26" && "$phase" == "notifications" ]] ||
-            [[ "$ios_major" == "27" && "$phase" == "voiceover" ]];
-        }; then
-            # U40/U44: isolate the device state of the next OS-service Runner.
-            # This is a new comparison, never a retry of a failed case.
+        if [[ "$ios_major" == "26" && "$phase" == "notifications" && -s "$scratch_dir/suite.log" ]]; then
+            # U40: the second Runner lost the app during launch after a long
+            # successful batch. Isolate its device state, without retrying tests.
             collect_launch_trace
             xcrun simctl shutdown "$simulator_id"
             xcrun simctl delete "$simulator_id"
