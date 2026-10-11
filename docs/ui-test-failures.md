@@ -8,6 +8,21 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U45 新規SimulatorでもVoiceOver命令失敗（診断45、iOS27）
+
+- 対象：1c86938の設定→VoiceOver、元の2ケース。設定は298.766秒で成功、
+  VoiceOverは73.107秒でmoveForwardの同じAXVoiceOverAutomationErrorDomain Code3。
+- 観測：設定区間の厳密な1件完了照合後、別の所有Simulatorへ移り、
+  同じビルドで次のRunnerを実行した。bootstatus109.1秒。実分離は通ったが解消しない。
+  失敗した移動回数とenable後の実isEnabledは記録がなく未確定。
+- 比較：U44の長い前区間や同一deviceだけではエラーを説明できない。
+  新規device分離を合格した改善として維持せず、同じ条件の全体再実行は行わない。
+  読み上げ期待値・操作・SDKは固定。命令エラーをskip・AXラベルで救済しない。
+- 状態：診断45はfailure。人による取消は行わず終了まで確認した。全体検査・公開へ進めない。
+- 根拠：[診断45](https://github.com/n624-dev/takupoke-ios/actions/runs/38152235655/job/114507889386)。
+  途中取得ログは更新が遅れ、設定後の終了停止と誤って説明したが、最終ログでは
+  次区間へ進んでいた。遅れたログから処理停止を断定しない。
+
 ## U44 VoiceOver移動命令だけが再発（全体369、iOS27 B）
 
 - 対象：643be57の`testVoiceOverReadsTimetableCard`。元の11件区間は

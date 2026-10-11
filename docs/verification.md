@@ -1,5 +1,30 @@
 # 検証記録
 
+## 2026-10-11 診断45：VoiceOverのdevice分離は不採用
+
+凍結1c86938の[診断45・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38152235655)は失敗。
+設定1件298.766秒・失敗0の区間完了を厳密に照合した後、新しい所有27Simulatorへ移り、
+同じビルドを再利用した。2回目のbootstatus109.1秒、次のVoiceOver1件は73.107秒で
+AXVoiceOverAutomationErrorDomain Code3、Failed to send moveForward command。
+元の実移動と架空3項目の読み上げ期待値は変えていない。
+移動回数とenable後の実isEnabledは未記録であり、下位原因は未確定。
+分離処理自体は通ったが解消しなかった。全体検査・公開は開始しない。
+取消は行わずfailureの完了まで確認した。[U45](ui-test-failures.md#u45-新規simulatorでもvoiceover命令失敗診断45ios27)へ保存する。
+
+途中取得の原ログは更新が遅れ、設定完了後に進まないと説明したが、最終ログでは
+次区間が実行されていた。ログの古さと実処理の停止を区別する。
+直接ログ取得は接続先で拒否され、認証済みメタデータとconnectorの最終原ログで照合した。
+学校資料は扱わず、signed URLやサービス詳細を検証文書に転載しない。
+
+Appleの[XCUIVoiceOverService](https://developer.apple.com/documentation/xcuiautomation/xcuivoiceoverservice)と
+[enable](https://developer.apple.com/documentation/xcuiautomation/xcuivoiceoverservice/enable())、
+[isEnabled](https://developer.apple.com/documentation/xcuiautomation/xcuivoiceoverservice/isenabled)、
+[currentSpeech](https://developer.apple.com/documentation/xcuiautomation/xcuivoiceoverservice/currentspeech())、
+[moveForward](https://developer.apple.com/documentation/xcuiautomation/xcuivoiceoverservice/moveforward())の
+公開JSONを取得した。実在するAPIの型・availabilityは確認できたが、
+Code3の下位原因や環境分離・固定待機で解消するという公式の根拠は見つからない。
+Codeの整数だけからnotRunningやnoSpeechへ対応付けない。
+
 ## 2026-10-11 Actions前の差分レビューとVoiceOver環境分離
 
 利用者の指示により、GPT-6.1 Sol／Highの1エージェントへコード差分だけを渡し、
@@ -32,6 +57,13 @@ Code3とdevice状態の因果、最善の方式、恒常的解消は未証明。
 全Python19.274秒、shell構文・catalog341登録と差分検査も成功。
 実AppleのVoiceOver成功を意味しない。
 
+凍結ソース1c86938の[開発81・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38152230276)は成功。
+実ログでPython179件・47.413秒、portable Swift474件・43.911秒（準備込み154.3秒）を確認した。
+任意Nativeの予定skipはApple PDFの成功に数えない。
+公開368のd402ed5→1c86938の統合コード差分も同じエージェントが開始前に確認し、
+重大な取りこぼし・相互作用の指摘はなかった。既存保存データの再解析とUI、
+新deviceでの通知・文字サイズの実影響は全体検証が必要との限定を記録する。
+
 ## 2026-10-11 全体369：VoiceOver命令エラーとActions停止禁止
 
 ソース643be57811899c025a4a44a42143af13e53659bbの
@@ -44,6 +76,8 @@ VoiceOverのmoveForwardがAXVoiceOverAutomationErrorDomain Code3で失敗した�
 原因未確定・次の限定比較は[U44](ui-test-failures.md#u44-voiceover移動命令だけが再発全体369ios27-b)。
 
 旧許可に基づく取消要求を新しい停止禁止指示の直前に送信し、runはcancelledとなった。
+取消済み27Aの原ログも読み、13件の成功完了と、使い方ケース途中での取消を確認した。
+残る使い方・通知の2件は未確認であり、取消済みジョブを成功として扱わない。
 27Aと後続検査の未完了を成功に数えない。残りを調べる機会を失ったため、
 以後は失敗後もActionsを停止しない。開始前には実行対象のコード差分を
 GPT-6.1 Sol／Highの1エージェントが確認し、主担当が指摘を処理する。
