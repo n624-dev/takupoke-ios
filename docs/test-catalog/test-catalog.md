@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`a5f3138627f56f2ebc5fc7c542bf7a496cb8d3cf4025e476929818e020740e58`
+`221d961cac22f94677f1264fe61062e4f094dfa7d543a87c8882a912feb1bd46`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -65,10 +65,10 @@ python3 -B -m unittest discover -s tests -p test_application_ui_runner.py -v
 
 ## [tests/test_application_ui_runner.py](../../tests/test_application_ui_runner.py)
 
+- `test_alternate_toolchain_preflight_requires_requested_sdk_and_same_runtime`
 - `test_successful_notification_probe_observes_os_before_deleting_simulator`
 - `test_both_shards_on_both_os_preserve_selection_and_os_size_checks`
 - `test_missing_xctest_completion_fails_shell_and_cleans_up`
 - `test_failed_ui_build_does_not_boot_or_run_tests_and_still_cleans_up`
 - `test_failed_frontend_launch_does_not_run_ui_and_cleans_owned_device`
 - `test_missing_selected_xcode_frontend_fails_without_running_ui`
-- `test_failed_pretest_restart_does_not_run_ui_and_cleans_owned_device`

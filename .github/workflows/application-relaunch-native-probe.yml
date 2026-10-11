@@ -17,6 +17,13 @@ on:
           - testLinkPreferencesSurviveRelaunch
           - testNotificationControlsAndAppearance
           - testSettingsAccountDataAndFileDetails
+      sdk27:
+        description: Additional iOS 27 toolchain comparison; distribution stays unchanged
+        type: choice
+        default: '27.0'
+        options:
+          - '27.0'
+          - '27.1'
 
 permissions:
   contents: read
@@ -37,8 +44,9 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     env:
-      DEVELOPER_DIR: ${{ matrix.developer }}
+      DEVELOPER_DIR: ${{ matrix.ios == 27 && inputs.sdk27 == '27.1' && '/Applications/Xcode_27.1.app/Contents/Developer' || matrix.developer }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
+      TKPK_UI_PROBE_SDK27: ${{ inputs.sdk27 }}
       TKPK_UI_RELAUNCH_PROBE: '1'
       TKPK_UI_PROBE_CASE: ${{ inputs.case }}
       PYTHONDONTWRITEBYTECODE: '1'
@@ -48,6 +56,24 @@ jobs:
           persist-credentials: false
       - name: Require exact diagnostic source
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Require comparison toolchain and unchanged runtime
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          actual_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          printf 'Comparison simulator SDK: %s\n' "$actual_sdk"
+          if [[ "$TKPK_TEST_IOS" == 27 && "$TKPK_UI_PROBE_SDK27" == 27.1 ]]; then
+            test "$actual_sdk" = 27.1
+            xcrun simctl list runtimes -j | python3 -c '
+          import json, sys
+          runtimes = json.load(sys.stdin)["runtimes"]
+          versions = [tuple(map(int, r["version"].split("."))) for r in runtimes
+                      if r.get("isAvailable") and r["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS-")
+                      and r["version"].split(".")[0] == "27"]
+          if not versions or max(versions) != (27, 0):
+              raise SystemExit("Comparison requires unchanged iOS 27.0 runtime")
+          print("Comparison runtime: iOS 27.0")'
+          fi
       - name: Exercise launch, native switches, permission, busy work and relaunch without retry or adoption credit
         run: |
           set -euo pipefail
