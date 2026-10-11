@@ -7,7 +7,7 @@
 iOS26の`testLinkPreferencesSurviveRelaunch`1件・失敗0・skip0、95.367秒で成功した。
 同じNative Buttonへ解除・再追加それぞれ2秒の長押しを一回ずつ行い、
 実メニュー・保存・再起動後の保持を確認。既存のチェック、撮影、操作先は変えていない。
-UIのビルド106.1秒、bootstatus125.5秒、テスト区間214.2秒。SDK26.6／Runtime26.5で確認した。
+UIのビルド106.1秒、bootstatus125.5秒、テスト区間214.2秒。Xcode26.6（17F113）・Simulator SDK26.5／Runtime26.5で確認した。
 所有Buttonのinteraction形状一行だけを追加した比較で、恒常的安定性や下位原因の証明ではない。
 [開発77](https://github.com/n624-dev/takupoke-ios/actions/runs/38135042418)も同じソースで完了。
 Ubuntu24.04のSwift473件・失敗0・72.767秒、準備込み220.2秒。
