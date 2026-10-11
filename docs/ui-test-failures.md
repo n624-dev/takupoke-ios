@@ -8,6 +8,27 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U43 再起動後のSwitch入力未反映とVoiceOver命令失敗（全体367、iOS27 B）
+
+- 対象：4c43707の`testSettingsAccountDataAndFileDetails`と
+  `testVoiceOverReadsTimetableCard`。元の11件区間は2失敗・1065.248秒。
+- Switchの観測：同じ最初のプロセスのON→OFF→ONはUI／保存値とも成功。
+  再起動後の4回目ON→OFFだけ、一回の実tap後45秒経っても両方1のままだった。
+  行／Native trackは表示・hittable・状態一致を確認。新しいpidでsetter記録がない。
+  123.856秒で失敗し、押し直しや期待値注入で救済しない。
+- VoiceOverの観測：別の新規起動後、moveForwardがAXVoiceOverAutomationErrorDomain
+  Code3で失敗。41.526秒。失敗した移動回数・下位原因は未確定。
+  再取得した過去253原ログに同じdomainはなかった。全履歴の不存在証明ではない。
+- 比較：U04／U19の入力未反映は参照するが、初回ではなく再起動後であることを保持。
+  初回だけ成功したSystem UI準備を新規プロセスへキャッシュしていた。
+  次は各cold起動前に実System UIを確認する小さい比較とする。
+  操作点・SDK・通知順序・実スイッチ／読み上げの期待値は固定する。
+  2件が同じ原因であることも、この候補で解消することも未証明。
+- 状態：リンクの長押し74.740秒と最初の起動は成功。5/12事前検査は成功したが、
+  通知区間・文字サイズ・対応26へは未到達。必須失敗とソース照合後に残りを中止。
+  367は未公開。元の成功を新しいソースの全体合格に流用しない。
+- 根拠：[367通常27 B](https://github.com/n624-dev/takupoke-ios/actions/runs/38135873350/job/114459721158)。
+
 ## U42 長押しがメニューではなくブラウザを開く（全体366、iOS26 B）
 
 - 対象：e4f2fbfの`testLinkPreferencesSurviveRelaunch`。
