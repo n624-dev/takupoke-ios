@@ -8,6 +8,20 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U54 再起動後のリンク追加メニューが出ない（全体372、iOS26 B）
+
+- 対象：bf1749aの`testLinkPreferencesSurviveRelaunch`。ケース176.396秒で失敗。
+  最初の実長押し・お気に入り解除は成功。terminate／一回launch後の追加メニューが45秒内にない。
+- 観測：二回目も行は全表示・hittableで、所有Buttonへ2秒の長押しを一回送った。
+  操作後の架空画面は白く、後続AXは一覧を返す。BrowserView／Closeは観測していない。
+  U42のブラウザへの遷移と同じ原因だとは断定しない。初回と再起動後の状態を区別する。
+- 記録：操作後画像55495bytes、SHA256
+  `3f7a16bd86a563f9e8c5838bf81d5d5eb90db66b0c99cf94e5e12be5fb544d71`を照合して確認した。
+  架空画像はGitへ保存しない。リンク判定領域の既存修正は維持し、操作点を往復しない。
+- 状態：この時点で26 Bの残りは実行中。取消・再試行・メニュー期待値の緩和はしない。
+  原因は未確定。元の失敗を保持し、別ケースの候補成功に加算しない。
+- 根拠：[372通常26 B](https://github.com/n624-dev/takupoke-ios/actions/runs/38170244888/job/114567895714)。
+
 ## U53 設定ボタンの文言再照会が停止（全体372、iOS27 A）
 
 - 対象：bf1749aの`testFileFailuresKeepResultsAndStayInTheirOwnDetails`。

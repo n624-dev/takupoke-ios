@@ -1,5 +1,21 @@
 # 検証記録
 
+## 2026-10-11 開発88成功・全体372の26 Bリンク失敗
+
+ソース1606222の開発88は2必須ジョブ成功。Python182件・91.530秒、
+portable Swift474件・71.278秒で失敗0。Nativeオプションは予定未実行。
+対象52の実UI2件はまだ実行中で、開発検証をUI成功へ流用しない。
+372の26 Bで元のリンク再起動ケースが176.396秒で失敗し、U54へ保存した。
+独立した架空画像をハッシュ照合して確認し、原画像をGitへ保存しない。
+
+公開検索でAppleのcontentShape／contextMenu契約とXcode27 release notesを再確認した。
+[contentShape](https://developer.apple.com/documentation/swiftui/view/contentshape(_:_:eofill:))は
+interactionとcontextMenuPreviewを区別し、preview形状はhit-testingを変えない。
+今回に一致する公式修正・原因の根拠は見つからず、preview形状やSDKの変更はしない。
+[XCTestのフォーラム809989](https://developer.apple.com/forums/thread/809989)は
+asyncテスト失敗後のRunner再起動とretryの問題で、この同期リンクcaseの長押し不発は証明しない。
+他環境の対処を根拠なく適用せず、対象52と26 Bの残りを取消しせず監視する。
+
 ## 2026-10-11 対象52：資料詳細／初期設定の2件を先に確認
 
 候補ソース16062226956b3c4faa220fc802ef0cc60ec8a277を凍結し、
