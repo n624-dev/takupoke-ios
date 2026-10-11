@@ -1,5 +1,16 @@
 # 検証記録
 
+## 2026-10-11 全体363の対象と順序
+
+ソース2f68a90ffdc795d51eec3f9bebd259e15e89413fをmainへpushし、
+[全体363・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38120972871)を開始した。
+27A→26A、27B→26Bの依存順と通知区間のRunner分離をこのソースで検証する。
+配布検査のPython176件は48.957秒・失敗0で成功した。全13成功・公開はまだ示さない。
+[開発73](https://github.com/n624-dev/takupoke-ios/actions/runs/38120971077)の
+Python176件も31.459秒・失敗0。portable Swiftの結果は完了後に別に記録する。
+製品は3e58684と差分0。全体362と363の検査結果を混合して公開しない。
+
+
 ## 2026-10-11 通知ケースを別Runnerへ分離する比較
 
 test-app-ui.sh／ui_test_manifest.pyの対応テストを検索し、U38の設定タブtap後の
