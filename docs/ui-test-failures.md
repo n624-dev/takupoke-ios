@@ -8,6 +8,21 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U55 再起動後4回目のAI/OCR操作が未反映（全体373、iOS27 B）
+
+- 対象：1606222の`testSettingsAccountDataAndFileDetails`、184.277秒で失敗。
+  元の11件中10成功・1失敗、1379.984秒。VoiceOverは65.424秒・18move・元の3項目で成功。
+- 観測：最初のpid50822で0→1→0→1のUI／保存と各setterが成功。
+  再起動後pid52848では状態1一致・全表示・hittableのnative trackを一回操作したが、
+  45秒後も双方1、新pidのsetter記録なし。U43／U52と同じ操作段階で再発した。
+- 状態：373は公開不可。通知Runner／追加文字サイズ／対応26 Bは未実行。
+  27 Aは停止せず確認する。発話待ち、System UI準備、文言照会除去をこの失敗の解消としない。
+- 比較候補：このcaseは最初の起動で作ったai／storedのXCUIElementを再起動後も保持している。
+  新プロセス・設定画面に入った後に同じIDのqueryを作り直す小さい比較を検討する。
+  古いqueryが原因とは未証明。操作点・一回操作・45秒・保存／再起動条件は固定する。
+- AX診断：失敗時刻は観測10分内だが、4MiB超過でeventsはlimited。原因の証明には使えない。
+- 根拠：[373通常27 B](https://github.com/n624-dev/takupoke-ios/actions/runs/38174507842/job/114574170292)。
+
 ## U54 再起動後のリンク追加メニューが出ない（全体372、iOS26 B）
 
 - 対象：bf1749aの`testLinkPreferencesSurviveRelaunch`。ケース176.396秒で失敗。
