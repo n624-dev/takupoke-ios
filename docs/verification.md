@@ -1,5 +1,22 @@
 # 検証記録
 
+## 2026-10-11 対象53成功・同じソースの全体374へ
+
+[対象53](https://github.com/n624-dev/takupoke-ios/actions/runs/38177340677)は
+元の設定ケース1件・330.491秒、失敗0。4回の物理操作と0→1→0→1→0のUI／保存を確認。
+再起動後の新pid29194で実setterのbefore1／after0、次の再起動でもOFFの保持が成立した。
+build50.3秒・bootstatus73.8秒・UI402.7秒。query再取得の原因や安定性はまだ証明しない。
+[開発89](https://github.com/n624-dev/takupoke-ios/actions/runs/38177159870)も成功。
+Python182件・60.940秒、Swift474件・72.902秒、失敗0。Nativeオプションは予定未実行。
+
+同じbd5ddb76b12440dfd7ab123df353fbf24efeedd7を凍結したままmainへpushした。
+[全体374・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38178184681)で
+元の全13必須チェックを確認する。開始前に同じ1エージェントがmain1606222との
+コード差分1ファイルだけを再確認し、重大な意図外変更・検証弱体化は確認されなかった。
+主担当がimmutable差分一致、clean、未送信11コミットの差分検査を確認した。
+対象53の成功を全体合格に代用せず、373の26 Aも停止せず最後まで確認する。
+公開版／固定AltStore Sourceは368のまま。実資料3種・実機導入は未確認。
+
 ## 2026-10-11 対象53：再起動後の設定queryだけを比較
 
 ソースbd5ddb76b12440dfd7ab123df353fbf24efeedd7を凍結し、
