@@ -183,6 +183,7 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                 with self.subTest(ios=ios, shard=shard):
                     result, calls = self.run_synthetic_runner(ios, shard)
                     self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertNotIn("TAKUPOKE_AX_SERVICES ", result.stdout)
                     self.assertIn(["project", "1" if ios == 27 else "0"], calls)
                     resolutions = [call for call in calls if call[0] == "xcodebuild" and "-resolvePackageDependencies" in call]
                     self.assertEqual(len(resolutions), 1)
@@ -282,6 +283,10 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                 self.assertNotEqual(result.returncode, 0)
                 if message:
                     self.assertIn(message, result.stderr)
+                self.assertIn("TAKUPOKE_AX_SERVICES ", result.stdout)
+                observations = [i for i, call in enumerate(calls) if call[-2:] == ["launchctl", "list"]]
+                deletion = calls.index(["xcrun", "simctl", "delete", "synthetic-simulator"])
+                self.assertTrue(observations and all(i < deletion for i in observations))
                 attempts = [call for call in calls if "test-without-building" in call]
                 self.assertEqual(len(attempts), 1)
                 selected = [arg.rsplit("/", 1)[1] for arg in attempts[0]

@@ -14,7 +14,101 @@ sys.path.insert(0, str(ROOT / "tools"))
 import notification_service_trace
 
 
+def spooled_responses(*responses):
+    remaining = iter(responses)
+
+    def run(command, **kwargs):
+        response = next(remaining)
+        if isinstance(response, Exception):
+            raise response
+        kwargs["stdout"].write((response.stdout or "").encode())
+        kwargs["stderr"].write((response.stderr or "").encode())
+        return subprocess.CompletedProcess(command, response.returncode)
+    return run
+
+
 class NotificationServiceTraceTests(unittest.TestCase):
+    def test_accessibility_observation_has_only_known_services_and_fixed_words_in_order(self):
+        messages = [
+            {"processImagePath": "/system/VoiceOverTouch", "eventMessage":
+             "speech service not ready private-opaque-123 架空の非公開文字列"},
+            {"processImagePath": "/system/SpringBoard", "eventMessage": "unrelated private-detail"},
+            {"processImagePath": "/system/unknown", "eventMessage": "VoiceOver failed"},
+            {"processImagePath": "/system/backboardd", "eventMessage": "HID port failed private-token"},
+        ]
+        with patch.object(notification_service_trace.subprocess, "run") as run:
+            run.side_effect = spooled_responses(subprocess.CompletedProcess([], 0,
+                               "12 0 com.apple.VoiceOverTouch\n- -2 com.apple.accessibilityd\n"
+                               "13 0 com.apple.VoiceOverTouch\n"
+                               "- 2147483648 com.apple.voiceservicesd\n"
+                               "- " + "9" * 5000 + " com.apple.AXUIServer\n"
+                               "4 0 private-unknown-service\n"),
+                               subprocess.CompletedProcess([], 0, json.dumps(messages)))
+            with redirect_stdout(io.StringIO()) as output:
+                notification_service_trace.collect_accessibility("owned-simulator")
+            report = json.loads(output.getvalue().split(" ", 1)[1])
+            self.assertEqual(report["services"], [
+                {"service": "VoiceOverTouch", "running": True, "exit": 0},
+                {"service": "accessibilityd", "running": False, "exit": -2}])
+            self.assertEqual(report["events"], [
+                {"process": "VoiceOverTouch", "words": ["speech", "service", "not", "ready"]},
+                {"process": "backboardd", "words": ["HID", "port", "failed"]}])
+            for private in ("private", "opaque", "token", "架空の非公開文字列"):
+                self.assertNotIn(private, output.getvalue())
+            self.assertEqual([call.kwargs["timeout"] for call in run.call_args_list], [5, 10])
+            commands = [call.args[0] for call in run.call_args_list]
+            self.assertEqual(commands[0][-2:], ["launchctl", "list"])
+            self.assertEqual(commands[1][:6],
+                             ["xcrun", "simctl", "spawn", "owned-simulator", "log", "show"])
+            self.assertIn("--info", commands[1])
+
+    def test_accessibility_failure_limits_do_not_emit_raw_text_or_mutate_os_state(self):
+        entries = [{"processImagePath": "/system/VoiceOverTouch", "eventMessage":
+                    "speech " * 40 + "private-payload"}] * 100
+        timeout = subprocess.TimeoutExpired("private-command-detail", 5)
+        for response, expected in (
+            (subprocess.CompletedProcess([], 0, json.dumps(entries)), "bounded"),
+            (subprocess.CompletedProcess([], 7, "private-output", "error private-token"), "failed"),
+            (subprocess.CompletedProcess([], 0, "x" * (4 * 1024 * 1024 + 1)), "limited"),
+            (subprocess.CompletedProcess([], 0, "{}"), "invalid-format"),
+            (timeout, "failed"),
+        ):
+            with self.subTest(expected=expected), \
+                 patch.object(notification_service_trace.subprocess, "run") as run:
+                run.side_effect = spooled_responses(timeout, response)
+                with redirect_stdout(io.StringIO()) as output:
+                    notification_service_trace.collect_accessibility("owned-simulator")
+                report = json.loads(output.getvalue().split(" ", 1)[1])
+                self.assertEqual(report["healthExit"], -1)
+                if expected == "bounded":
+                    self.assertEqual(len(report["events"]), 80)
+                    self.assertTrue(all(len(row["words"]) == 24 for row in report["events"]))
+                else:
+                    self.assertEqual(report["events"], expected)
+                self.assertNotIn("private", output.getvalue())
+                self.assertEqual(run.call_count, 2)
+
+    def test_accessibility_service_report_rejects_oversized_health_output(self):
+        health = "12 0 com.apple.VoiceOverTouch\n" * 3000
+        with patch.object(notification_service_trace.subprocess, "run",
+                          side_effect=spooled_responses(
+                              subprocess.CompletedProcess([], 0, health),
+                              subprocess.CompletedProcess([], 0, "[]"))):
+            with redirect_stdout(io.StringIO()) as output:
+                notification_service_trace.collect_accessibility("owned-simulator")
+        report = json.loads(output.getvalue().split(" ", 1)[1])
+        self.assertTrue(report["healthLimited"])
+        self.assertEqual(report["services"], [])
+        self.assertEqual(report["events"], [])
+
+    def test_spooled_observation_bounds_real_stdout_stderr_and_keeps_exit_status(self):
+        command = [sys.executable, "-c", "import sys; "
+                   "sys.stdout.write('x' * 10000); sys.stderr.write('y' * 70000); sys.exit(7)"]
+        result = notification_service_trace.observe_command(command, 5, max_bytes=1024)
+        self.assertEqual(result.returncode, 7)
+        self.assertEqual(result.stdout, "x" * 1025)
+        self.assertEqual(result.stderr, "y" * 65536)
+
     def test_notification_evidence_survives_later_accessibility_noise_in_original_order(self):
         def entry(message):
             return {"processImagePath": "/system/SpringBoard", "eventMessage":

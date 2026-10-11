@@ -27,6 +27,9 @@ PY_TRACE
 cleanup() {
     local task_exit_status=$?
     if [[ -n "$simulator_id" ]]; then
+        if [[ "$task_exit_status" != "0" ]]; then
+            python3 -B tools/notification_service_trace.py --accessibility "$simulator_id" || true
+        fi
         if [[ "$task_exit_status" != "0" || "${TKPK_UI_PROBE_CASE:-all}" == "notifications" ]]; then
             python3 -B tools/notification_service_trace.py "$simulator_id" || true
         fi

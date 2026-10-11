@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`6a48b6cb49dd6fac0968f8a6ef3d5600c77dca9906892d1a3828c2fef83892b1`
+`9395b753f18b2259e352738487295c9a4335e0680b5d10243e3cf2c733886da2`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -157,6 +157,10 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_notification_service_trace.py](../../tests/test_notification_service_trace.py)
 
+- `test_accessibility_observation_has_only_known_services_and_fixed_words_in_order`
+- `test_accessibility_failure_limits_do_not_emit_raw_text_or_mutate_os_state`
+- `test_accessibility_service_report_rejects_oversized_health_output`
+- `test_spooled_observation_bounds_real_stdout_stderr_and_keeps_exit_status`
 - `test_notification_evidence_survives_later_accessibility_noise_in_original_order`
 - `test_notification_observation_failures_preserve_the_other_readonly_phases`
 - `test_notification_window_uses_unanswered_request_even_when_failure_finishes_later`

@@ -6,6 +6,7 @@ from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import sys
+import tempfile
 import time
 
 SERVICES = ("usernotificationsd", "SpringBoard", "lsd")
@@ -29,10 +30,72 @@ WORDS = re.compile(
     r"display|screen|interactive|unavailable|attempt|delegate|true|false|not)\b", re.I)
 
 
-def fixed_words(message):
+def fixed_words(message, pattern=WORDS):
     # Framework type names use camel case; expose only the same fixed terms.
     separated = re.sub(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ", message)
-    return WORDS.findall(separated)[:24]
+    return pattern.findall(separated)[:24]
+
+
+AX_SERVICES = ("VoiceOverTouch", "AccessibilityUIServer", "AXUIServer", "accessibilityd",
+               "voiceservicesd", "SpringBoard", "backboardd")
+AX_WORDS = re.compile(WORDS.pattern +
+                     r"|\b(?:voiceover|speech|focus|utterance|touch|gesture|hid|event|port|initialize)\b", re.I)
+AX_PREDICATE = (
+    '(' + ' OR '.join(f'process == "{name}"' for name in AX_SERVICES[:5]) + ')'
+    ' OR ((process == "SpringBoard" OR process == "backboardd") AND ('
+    + ' OR '.join(f'eventMessage CONTAINS[c] "{word}"'
+                  for word in ("voiceover", "accessib", "HID", "touch", "gesture")) + '))'
+)
+
+
+def collect_accessibility(simulator):
+    """Read OS state after failure; never enable a service or resend an input."""
+    base = ["xcrun", "simctl", "spawn", simulator]
+    health = observe_command(base + ["launchctl", "list"], 5, max_bytes=65536)
+    statuses = []
+    seen = set()
+    for line in health.stdout.splitlines() if len(health.stdout.encode()) <= 65536 else []:
+        fields = line.split()
+        service = fields[2].rsplit(".", 1)[-1] if len(fields) == 3 else None
+        if service in AX_SERVICES and service not in seen:
+            if (re.fullmatch(r"\d+|-", fields[0]) and len(fields[1]) <= 11 and
+                    re.fullmatch(r"-?\d+", fields[1])):
+                code = int(fields[1])
+                if not -(2**31) <= code < 2**31:
+                    continue
+                seen.add(service)
+                statuses.append({"service": service, "running": fields[0] != "-", "exit": code})
+    logs = observe_command(base + ["log", "show", "--last", "10m", "--style", "json", "--info",
+                                  "--predicate", AX_PREDICATE], 10, max_bytes=4 * 1024 * 1024)
+    size = len(logs.stdout.encode())
+    events = "failed"
+    if logs.returncode == 0:
+        if size > 4 * 1024 * 1024:
+            events = "limited"
+        else:
+            try:
+                entries = json.loads(logs.stdout)
+                if not isinstance(entries, list):
+                    raise ValueError("Expected an OS log array")
+                events = []
+                for entry in entries:
+                    if not isinstance(entry, dict):
+                        continue
+                    process = PurePosixPath(str(entry.get("processImagePath", ""))).name
+                    message = str(entry.get("eventMessage", ""))
+                    if process not in AX_SERVICES or (process in AX_SERVICES[-2:] and
+                            not re.search(r"voiceover|accessib|HID|touch|gesture", message, re.I)):
+                        continue
+                    # Only fixed words and known process names leave the owned Simulator.
+                    events.append({"process": process, "words": fixed_words(message, AX_WORDS)})
+                events = events[:40] + events[-40:] if len(events) > 80 else events
+            except (ValueError, TypeError):
+                events = "invalid-format"
+    print("TAKUPOKE_AX_SERVICES " + json.dumps({"services": statuses,
+        "healthLimited": len(health.stdout.encode()) > 65536,
+        "healthExit": health.returncode, "logExit": logs.returncode, "logBytes": size,
+        "healthErrorWords": fixed_words(health.stderr or "", AX_WORDS),
+        "errorWords": fixed_words(logs.stderr or "", AX_WORDS), "events": events}))
 
 
 def observations(entries):
@@ -65,8 +128,18 @@ def observations(entries):
     return [result[index] for index in sorted(selected)]
 
 
-def observe_command(command, timeout):
+def observe_command(command, timeout, *, max_bytes=None):
     try:
+        if max_bytes is not None:
+            # Anonymous owned files keep subprocess output out of memory while it runs.
+            # Close/unlink even on timeout; read only the bounded prefix afterward.
+            with tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as errors:
+                result = subprocess.run(command, stdout=output, stderr=errors, timeout=timeout)
+                output.seek(0)
+                errors.seek(0)
+                return subprocess.CompletedProcess(command, result.returncode,
+                    output.read(max_bytes + 1).decode("utf-8", errors="replace"),
+                    errors.read(65536).decode("utf-8", errors="replace"))
         return subprocess.run(command, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         return subprocess.CompletedProcess(command, -1, "", "timeout")
@@ -158,7 +231,12 @@ def collect(simulator, *, trace=None, now=None):
 
 
 if __name__ == "__main__":
+    accessibility = sys.argv[1:2] == ["--accessibility"]
     try:
-        collect(sys.argv[1])
+        if accessibility:
+            collect_accessibility(sys.argv[2])
+        else:
+            collect(sys.argv[1])
     except (OSError, ValueError, IndexError, subprocess.TimeoutExpired):
-        print("TAKUPOKE_NOTIFICATION_SERVICES unavailable")
+        print(("TAKUPOKE_AX_SERVICES" if accessibility else
+               "TAKUPOKE_NOTIFICATION_SERVICES") + " unavailable")
