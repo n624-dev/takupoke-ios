@@ -5,13 +5,13 @@ import CryptoKit
 extension ApplicationChecks {
     func testSettingsAccountDataAndFileDetails() {
         tab("設定")
-        let ai = app.switches["use-ai-features"]
+        var ai = app.switches["use-ai-features"]
         _ = visible(ai)
         XCTAssertTrue(ai.waitForExistence(timeout: 10))
         XCTAssertEqual(ai.value as? String, "0")
         XCTAssertTrue(ai.label.contains("OCR"))
         XCTAssertEqual(app.staticTexts["fixture-recovery-off-blocked"].label, "1")
-        let stored = app.staticTexts["fixture-stored-ai-permission"]
+        var stored = app.staticTexts["fixture-stored-ai-permission"]
         XCTAssertEqual(stored.label, "0")
         var changeOrdinal = 0
         func changeAI(to value: String) {
@@ -45,6 +45,9 @@ extension ApplicationChecks {
         app.launchArguments.removeAll { $0 == "--reset-fixture" }
         launchReady()
         tab("設定")
+        // Rebuild both queries on the current Settings page after relaunch.
+        ai = app.switches["use-ai-features"]
+        stored = app.staticTexts["fixture-stored-ai-permission"]
         _ = visible(ai)
         XCTAssertEqual(ai.value as? String, "1")
         XCTAssertEqual(stored.label, "1")
@@ -52,6 +55,9 @@ extension ApplicationChecks {
         app.terminate()
         launchReady()
         tab("設定")
+        // Rebuild both queries on the current Settings page after relaunch.
+        ai = app.switches["use-ai-features"]
+        stored = app.staticTexts["fixture-stored-ai-permission"]
         _ = visible(ai)
         XCTAssertEqual(ai.value as? String, "0")
         XCTAssertEqual(stored.label, "0")
