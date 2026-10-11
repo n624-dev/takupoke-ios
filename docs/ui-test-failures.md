@@ -27,6 +27,10 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - 根拠：[366通常26 B](https://github.com/n624-dev/takupoke-ios/actions/runs/38130333787/job/114449755554)。
   架空画像は所有一時領域だけで確認し、Gitへ保存しない。
 
+- 小さい比較の結果：ee9ef9fの[診断43](https://github.com/n624-dev/takupoke-ios/actions/runs/38135043792)で
+  同じ26の1ケースが95.367秒・失敗0で完了。Button自身のinteraction形状だけを追加し、
+  元の長押し・実メニュー・保存・再起動を確認。全体合格や下位原因の確定ではない。
+
 ## U41 最初のケースでapp.launchが期限切れ（全体365、iOS27 B）
 
 - 対象：710d0c4の`testChangedAccountDataNoticeOpensSharedAcquisition`。
