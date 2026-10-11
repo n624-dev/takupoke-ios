@@ -1,5 +1,62 @@
 # 検証記録
 
+## 2026-10-11 U46の比較根拠と公開前の失敗
+
+Web検索でAXVoiceOverAutomationErrorDomain／Failed to send／moveForwardと
+Xcode27 VoiceOver既知問題を確認した。APIの存在はAppleで再確認できたが、
+今回のCode3に対応する公開済みの解消手順は見つからなかった。
+Appleの[Xcode27 release notes](https://developer.apple.com/documentation/xcode-release-notes/xcode-27-release-notes)の
+Device HubのVoiceOver toggle不具合は別経路であり、現在のAPI有効状態1を説明しない。
+複数processのstdout／stderrが遅れる既知問題も掲載されているが、Code3の原因とは扱わない。
+公開の独立したbeta SDK例にはcurrentSpeechから始める読み上げ探索もあるが、
+別betaでの型確認であり、この環境の修正成功の根拠へ昇格しない。
+
+次の小さい比較は、AppleのcurrentSpeechで最初の実発話を一度確認してから、
+元の最大60回の実移動と3項目の期待値を実行する。初期発話を3項目の成功へ流用しない。
+初期取得のthrow／空発話も失敗とし、再試行・待機延長・環境分離・SDK切替は追加しない。
+有効化フラグが実発話を証明しない観測が根拠であり、下位原因や効果は未証明。
+変更前にtest_catalogでVoiceOver、UI索引でVoiceOver／moveForward／U43〜U46を検索した。
+
+## 2026-10-11 全体370：同じソースで公開前検査
+
+観測46／開発82の成功後、コードを固定した2b94d1ce94944ad9877350a791ae7961fa1ba7c8を
+mainへpushし、[全体370・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38156030685)を開始した。
+全13・公開ゲートの成功と匿名配布物照合が済むまで公開完了とは扱わない。
+失敗後もActionsを停止せず、依存関係による未実行は成功に数えない。
+実資料3種の実機解析、OCR品質、Invalid frame dimensionの解消は未確認のまま。
+
+配布Pythonは178件・36.298秒・失敗0、catalog341登録も成功。
+Nativeの実XCTestは535件・予定skip1・失敗0、124.411秒（outer124.537秒）。
+原本変更27は実1件・282.159秒・失敗0。原本変更後の送信と前回正常結果の置換を拒否した。
+3項目27は実1件・418.903秒・失敗0、個別ACKと4項目拒否の既存条件を維持した。
+単一訂正27は実1件・597.678秒・失敗0。27の手動訂正3ジョブはすべて成功した。
+通常27Bの実11件は10件成功・1件失敗、1172.909秒。設定295.521秒は成功。
+VoiceOver55.523秒はisEnabled1／最初のmove index0でCode3、完了move0件だった。
+370は公開不可。Actionsは停止せず、残りを監視する。詳細は[U46](ui-test-failures.md)。
+以降の結果は完了ログを確認後に記録する。
+
+## 2026-10-11 観測46の完了：再発なし、原因解消は未証明
+
+ソース2b94d1ce94944ad9877350a791ae7961fa1ba7c8の
+[観測46・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38154486014)は成功。
+実ログの2件は設定477.538秒・VoiceOver57.121秒、失敗0・skip0。
+欠落・重複・選択外なしの厳密な2件完了照合も通った。
+再起動後を含むSwitch4回のUI・保存値は1→0→1→0、VoiceOver有効直後1、
+実moveの開始・完了は0〜18の19回。元の架空3項目の読み上げ期待値で成功した。
+SDK27.0／Runtime27.0、同じRunnerと元の順序。環境分離・期待値変更・救済なし。
+ビルド88.0秒、bootstatus111.3秒、UI区間608.3秒、所有領域の清掃も成功。
+
+Code3は再発せず、失敗回数は観測できなかった。ログの追加が改善したという因果も、
+恒常的な解消も証明しない。同じ観測を無根拠に繰り返さず、公開に必要な全体を確認する。
+開始前のmain643be57→実行対象2b94d1cのコード差分18行も、全体開始前に同じ
+GPT-6.1 Sol／Highの1エージェントが再確認した。
+固定数値ログとループ番号以外の変更、検証弱体化、結果注入の指摘はなかった。
+全13・公開ゲートを同じソースで検証し、focused結果を全体の代わりにしない。
+
+同じソースの[開発82](https://github.com/n624-dev/takupoke-ios/actions/runs/38154425577)も成功。
+Python178件・51.663秒、portable Swift474件・58.353秒（準備込み191.5秒）、失敗0。
+任意Nativeは予定skip。製品PDFのApple535件成功は前の643be57／両SDK80と区別する。
+
 ## 2026-10-11 U45後：環境分離を撤回し、未観測の移動回数だけを記録
 
 効果が確認できなかった1c86938の実行環境分離を撤回した。

@@ -8,6 +8,22 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U46 有効化後の最初のVoiceOver移動が失敗（全体370、iOS27 B）
+
+- 対象：2b94d1cの通常27B、元の11件。10件成功、VoiceOverのみ55.523秒で失敗。
+- 観測：enable後のisEnabledは1。move-start index0の直後にCode3で失敗し、
+  move-completeは0件。失敗は最初の命令で、名前の期待値判定には到達していない。
+- 比較：観測46では同じソースの設定／VoiceOverが成功し、19回の実移動が完了した。
+  短い成功は全体での安定性を証明しなかった。U45の新規device分離も不採用のまま。
+- 次の比較：最初の移動前に実currentSpeechを一度取得し、非空の発話を確認する。
+  有効フラグだけで実際の発話・focus準備を証明できない不足を対象にする。
+  改善効果は未証明。命令再試行・固定待機・skip・AXラベル代替は導入しない。
+  3項目の期待値は元の実移動結果に対して維持し、初期発話で代替しない。
+- 状態：27Bはfailure。残りのActionsを取消せず確認する。370は公開不可。
+- 根拠：[370通常27B](https://github.com/n624-dev/takupoke-ios/actions/runs/38156030685/job/114519233325)。
+  [Apple currentSpeech](https://developer.apple.com/documentation/xcuiautomation/xcuivoiceoverservice/currentspeech())は
+  現在focus中の要素の発話を返すAPI。Code3の一般的な解消条件ではない。
+
 ## U45 新規SimulatorでもVoiceOver命令失敗（診断45、iOS27）
 
 - 対象：1c86938の設定→VoiceOver、元の2ケース。設定は298.766秒で成功、
