@@ -4,6 +4,12 @@
 
 ソースa87f9a9499c1c40eed92e6ff2ac0b188008b32d8を凍結し、
 [対象50・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38166330630)を開始した。
+最終結果はfailure。設定151.508秒・VoiceOver93.000秒、実2件とも失敗、244.509秒。
+VoiceOverは観測0のまま元のmoveへ進み、最初のAX Code3が再発した。
+待機の効果は確認できず、見出し選択・初期化の下位原因は未確定。
+設定は最初の3操作成功後、再起動後4回目の実tapだけUI／保存値が1のまま。
+新pidのsetter記録がなく、各cold起動のSystem UI確認でも再発した。詳細は[U52](ui-test-failures.md)。
+build66.0秒・bootstatus137.6秒・UI374.1秒。main／公開物は更新しない。
 元の設定・VoiceOver実2ケースと、完了件数・欠落・重複の照合を維持する。
 [開発86・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38166125303)は成功。
 実ログでPython178件・56.532秒、portable Swift474件・42.761秒、失敗0。

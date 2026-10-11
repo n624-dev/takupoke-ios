@@ -8,6 +8,20 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U52 発話観測待ちでも移動失敗・再起動後Switchも未反映（対象50、iOS27）
+
+- 対象：a87f9a9の元の設定／VoiceOver2件。2失敗・244.509秒。取消なし。
+- VoiceOver：実見出しtap後45秒のquery開始期限内に発話取得なし、観測0。
+  元の実moveへ進んだがindex0でAX Code3、完了move0。ケース93.000秒。
+  観測待ちだけでは解消せず、見出し選択や初期化状態の原因は未確定。
+- Switch：最初のON→OFF→ONはUI・保存値とも成功。再起動後4回目ON→OFFだけ未反映。
+  行とnative controlは状態1一致・hittable・表示包含。実tap1回後45秒でも双方1。
+  新pidのsetter記録がなく、設定case151.508秒で失敗。U43と同じ操作段階で再発した。
+  各cold起動のSystem UI準備は確認済みで、その観測だけでは実入力の成立を保証しない。
+- 状態：候補は不合格。main／Release／AltStore Sourceは更新しない。
+  待機を成功した改善にせず、再tap・SDK変更・期待値注入で救済しない。
+- 根拠：[対象50](https://github.com/n624-dev/takupoke-ios/actions/runs/38166330630/job/114549542656)。
+
 ## U51 手動訂正3項目がjob期限で終了（全体371、iOS27）
 
 - 対象：694a862の`testThreeFieldsRequireEachAcknowledgementAndFourRefuses`。
