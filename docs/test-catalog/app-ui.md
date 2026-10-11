@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`b5850dca85eb9fd6746d0794cd53e2994b0de61a0e32b18a83696c2022543ca5`
+`bbb9836c4c75904b5329855ad5730586673eb4b10185c909ae102951dd6e2bfb`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -74,6 +74,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_ui_test_manifest.py](../../tests/test_ui_test_manifest.py)
 
+- `test_phases_partition_every_shard_and_focused_selection_without_duplicates`
 - `test_split_sources_are_registered_in_the_selected_target_only`
 - `test_unregistered_split_file_is_rejected`
 - `test_manual_split_registers_all_helpers_and_refuses_unknown_files`
@@ -174,3 +175,4 @@ bash tools/test-app-ui.sh
 - `test_failed_frontend_launch_does_not_run_ui_and_cleans_owned_device`
 - `test_missing_selected_xcode_frontend_fails_without_running_ui`
 - `test_failed_owned_device_window_does_not_run_ui_and_cleans_up`
+- `test_failed_or_duplicate_notification_batch_stops_without_retry_or_size_checks`

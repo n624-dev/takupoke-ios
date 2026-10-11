@@ -25,6 +25,22 @@ def result_line(test, status="passed"):
 
 class ManifestTests(unittest.TestCase):
 
+    def test_phases_partition_every_shard_and_focused_selection_without_duplicates(self):
+        for tests in (*manifest.SHARDS.values(), manifest.selected_tests("all"),
+                      manifest.NOTIFICATION_PROBE_TESTS, manifest.CONTROL_PROBE_TESTS,
+                      (manifest.SYSTEM_SIZE_TEST,)):
+            with self.subTest(tests=tests):
+                notifications = manifest.phase_tests(tests, "notifications")
+                remaining = manifest.phase_tests(tests, "remaining")
+                self.assertEqual(set(notifications) & set(remaining), set())
+                self.assertEqual(sorted(notifications + remaining), sorted(tests))
+                self.assertEqual(len(notifications + remaining), len(tests))
+                self.assertEqual(manifest.phase_tests(tests, "all"), tuple(tests))
+                for test in notifications:
+                    self.assertIn(test, manifest.NOTIFICATION_PROBE_TESTS)
+                for test in remaining:
+                    self.assertNotIn(test, manifest.NOTIFICATION_PROBE_TESTS)
+
     def test_split_sources_are_registered_in_the_selected_target_only(self):
         project = {'rootObject': 'project', 'objects': {
             'project': {'mainGroup': 'group'}, 'group': {'children': []},

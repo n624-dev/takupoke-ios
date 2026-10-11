@@ -152,6 +152,13 @@ def selected_tests(shard):
     return SHARDS[shard]
 
 
+def phase_tests(tests, phase):
+    if phase == "all":
+        return tuple(tests)
+    return tuple(test for test in tests
+                 if (test in NOTIFICATION_PROBE_TESTS) == (phase == "notifications"))
+
+
 def validate_results(log, expected, ios):
     results = RESULT.findall(log)
     counts = Counter(test for test, _ in results)
@@ -167,6 +174,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--shard", choices=(*SHARDS, "all"), default="all")
     parser.add_argument("--mode", choices=("selectors", "system-size", "verify"), required=True)
+    parser.add_argument("--phase", choices=("all", "notifications", "remaining"), default="all")
     parser.add_argument("--log", type=Path)
     parser.add_argument("--ios", type=int, choices=(26, 27))
     parser.add_argument("--system-size-only", action="store_true")
@@ -184,6 +192,9 @@ def main():
     tests = RELAUNCH_PROBE_TESTS if args.relaunch_probe else selected_tests(args.shard)
     if args.probe_case:
         tests = PROBE_GROUPS.get(args.probe_case, (args.probe_case,))
+    if args.phase != "all" and (args.runner_log or args.system_size_only):
+        parser.error("Runner and OS size verification require the full selection")
+    tests = phase_tests(tests, args.phase)
     if args.mode == "selectors":
         for test in tests:
             print("-only-testing:PickerTapChecks/ApplicationChecks/" + test)

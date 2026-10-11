@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`57d69b07b1d09345487c898580ecf54aedc01e9c9c57d6b54205fb639ee8fdd0`
+`edf8901059dca3b1843612df967b6b7358b73144b8c3b35798eb2c3508100b2a`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -38,6 +38,7 @@ python3 -B -m unittest discover -s tests -p test_application_ui_runner.py -v
 
 ## [tests/test_ui_test_manifest.py](../../tests/test_ui_test_manifest.py)
 
+- `test_phases_partition_every_shard_and_focused_selection_without_duplicates`
 - `test_split_sources_are_registered_in_the_selected_target_only`
 - `test_unregistered_split_file_is_rejected`
 - `test_manual_split_registers_all_helpers_and_refuses_unknown_files`
@@ -75,3 +76,4 @@ python3 -B -m unittest discover -s tests -p test_application_ui_runner.py -v
 - `test_failed_frontend_launch_does_not_run_ui_and_cleans_owned_device`
 - `test_missing_selected_xcode_frontend_fails_without_running_ui`
 - `test_failed_owned_device_window_does_not_run_ui_and_cleans_up`
+- `test_failed_or_duplicate_notification_batch_stops_without_retry_or_size_checks`

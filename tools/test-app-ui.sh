@@ -51,10 +51,7 @@ esac
 if [[ "${TKPK_UI_PROBE_CASE:-all}" != "all" ]]; then
     selection_args+=(--probe-case "$TKPK_UI_PROBE_CASE")
 fi
-python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --mode selectors > "$scratch_dir/selectors"
 system_size_check="$(python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --mode system-size)"
-selected_checks=()
-while IFS= read -r selector; do selected_checks+=("$selector"); done < "$scratch_dir/selectors"
 python3 - "$scratch_dir/simulators.json" "${TKPK_TEST_IOS:-}" > "$scratch_dir/destinations" <<'PY'
 import json, sys
 s = json.load(open(sys.argv[1]))
@@ -123,7 +120,20 @@ while read -r device_type runtime; do
             exit 1
         }
     }
-    check_ui "$scratch_dir/suite.log" "${selected_checks[@]}" test-without-building
+    # Give notification automation a fresh Runner before other UI scenarios.
+    # Reuse the build and owned device, but execute each selected case only once.
+    : > "$scratch_dir/suite.log"
+    for phase in notifications remaining; do
+        python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --phase "$phase" \
+            --mode selectors > "$scratch_dir/selectors"
+        selected_checks=()
+        while IFS= read -r selector; do selected_checks+=("$selector"); done < "$scratch_dir/selectors"
+        if [[ "${#selected_checks[@]}" == "0" ]]; then continue; fi
+        check_ui "$scratch_dir/$phase.log" "${selected_checks[@]}" test-without-building
+        python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --phase "$phase" \
+            --mode verify --ios "$ios_major" --log "$scratch_dir/$phase.log"
+        cat "$scratch_dir/$phase.log" >> "$scratch_dir/suite.log"
+    done
     python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --mode verify --ios "$ios_major" --log "$scratch_dir/suite.log"
     # Exercise the actual Simulator OS setting as well as live SwiftUI changes.
     if [[ "$system_size_check" == "1" ]]; then
