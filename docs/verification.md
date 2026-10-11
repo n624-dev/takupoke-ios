@@ -1,5 +1,21 @@
 # 検証記録
 
+## 2026-10-11: 初回テスト前の所有Simulator再起動を比較
+
+7b76261で横断確認とU34をpushしてから、一覧を`tools/test-app-ui.sh`、
+失敗索引を`U34|再起動|Device Hub|requestAuthorization`で検索した。
+27だけ、ビルド・初回bootstatusの後に実アプリをinstallし、所有deviceを一度shutdown／bootし、
+再起動のbootstatusが完了してから最初のXCTestを始める。26の準備は維持する。
+初回installをOSに登録した状態での再起動を比較し、許可・保存値を注入しない。
+ケース失敗後の再起動・再実行、押し直し、操作期限・SDK・製品変更は含めない。
+
+Linuxのshell runner7件は6.822秒・失敗0。両OS・両shardで準備順・所有deviceと
+実アプリの対象・実行前のbootstatus、再起動失敗時のUI未実行・回収を検証した。
+既存通知probeはOS観測が最終shutdownより前にあることを維持する。
+全Python171件は12.282秒・失敗0・予定skip7で、このホストのSwift未設置に由来する。
+一覧341ファイル、Bash構文、差分検査も成功。Apple実OSでの効果は未評価である。
+両OSの関連ケースを実行し、個別成功を配布前の同一ソース全13検査へ代用しない。
+
 ## 2026-10-11: 過去の失敗とWebの横断確認・診断38完了
 
 利用者の指示でU01〜U33の全索引と関連する旧記録を比較した。

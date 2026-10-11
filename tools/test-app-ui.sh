@@ -105,6 +105,17 @@ while read -r device_type runtime; do
         exit 1
     fi
     python3 -B tools/timed_command.py "App simulator boot" xcrun simctl bootstatus "$simulator_id" -b
+    if [[ "$ios_major" == "27" ]]; then
+        # Compare the reported Simulator restart workaround before any case runs.
+        # Register the real built app first; preserve its untouched permission state.
+        # Never restart to rescue a failed permission request or retry a test.
+        xcrun simctl install "$simulator_id" \
+            "$scratch_dir/DerivedData/Build/Products/Debug-iphonesimulator/Takupoke.app"
+        xcrun simctl shutdown "$simulator_id"
+        xcrun simctl boot "$simulator_id"
+        python3 -B tools/timed_command.py "App simulator restart before first test" \
+            xcrun simctl bootstatus "$simulator_id" -b
+    fi
     xcrun simctl ui "$simulator_id" content_size large
     check_ui() {
         local log_path="$1"
