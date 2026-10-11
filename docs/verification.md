@@ -1,5 +1,19 @@
 # 検証記録
 
+## 2026-10-11 全体373の監視完了・374の途中確認
+
+[373・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38174507842)は最終failure。
+残っていた26 Aは元の14件・1724.871秒、別Runnerの通知1件・79.566秒で失敗0。
+373の全ジョブを最後まで確認し、主担当による取消しはない。
+既知のU55／27 B失敗は保持し、依存条件で26 B・訂正26の3ジョブ・publisherは未実行。
+373の新しいIPA／Release／固定Source更新はない。
+
+[374](https://github.com/n624-dev/takupoke-ios/actions/runs/38178184681)は同じbd5ddb7・試行1で監視中。
+DistributionのPython182件・114.769秒、Native535件・予定skip1・93.382秒が失敗0。
+Nativeのbuild／test全体は233.4秒。同じP01/P12の一回再解析も成功した。
+原本変更拒否27は1件・413.654秒、単一訂正27は1件・702.306秒で失敗0。
+実資料3種・全文復旧率・モデル品質の合格とは分ける。残りは未完了で公開しない。
+
 ## 2026-10-11 対象53成功・同じソースの全体374へ
 
 [対象53](https://github.com/n624-dev/takupoke-ios/actions/runs/38177340677)は
