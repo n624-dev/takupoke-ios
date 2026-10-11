@@ -18,6 +18,10 @@ CGColor単独変換は白CMYKの拒否で失敗し、CGContextの単色塗りも
 報告された実際の3文書の復旧率には加算しない。実資料のP23下位原因と端末での結果は未評価。
 残る未実装方針は[退行対応方針](strict-pdf-regression-plan.md)へ分離する。
 
+同じソースの[全体368・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38139451725)は全13チェックが成功し、
+[0.1.368](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.368-build.368.1)を通常Release・Latest・固定AltStore Sourceへ公開した。
+4添付の匿名取得・ハッシュ・IPA内コミットと版の一致を確認した。実際の3資料は未評価のまま。
+
 ## 2026-10-10 公開後も3資料がP23になるとの報告
 
 利用者から通常・試験・試験返却の全てがP23になると報告された。

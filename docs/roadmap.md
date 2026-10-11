@@ -19,16 +19,17 @@
 
 ## 最新の確認状況
 
-- 通常配布版：[0.1.355（355.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.355-build.355.1)。
-  曜日だけの連続行の一括除外とPDFの表示条件の修正を含み、通常Release・Latest・固定AltStore Sourceを更新しました。
+- 通常配布版：[0.1.368（368.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.368-build.368.1)。
+  Strictの可視色判定を修正し、同じSHAの旧P23も再解析します。
+  リンクの長押し判定領域も修正しました。通常Release・Latest・固定AltStore Sourceを更新しました。
   認証なしで4添付を取得し、サイズ・ハッシュ・ソース・版の一致を確認しました。
   この版の実機導入とAltStore更新は未確認です。
 - 個別の開発確認版：ソース22c8ee2の[公開IPA](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-37811661856-1-22c8ee2b5fa5)。
   同一ソースの全13チェックが成功しました。通常Latest・固定Sourceとは別の既存公開版です。
 - PDFの実資料：報告された実際の通常・試験・返却PDFの原因と復旧は未確認です。
-- 配布版の自動確認：ソース65767afの[全体355・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38043348896)で、
+- 配布版の自動確認：ソースd402ed5の[全体368・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38139451725)で、
   同じ実行・試行・コミットの全13必須チェックが成功しました。
-  Python160件、Native521件（予定skip1・失敗0）、通常UI4ジョブ、手動訂正6ジョブ、
+  Python178件、Native532件（予定skip1・失敗0）、通常UI4ジョブ、手動訂正6ジョブ、
   VoiceOver・追加文字サイズとiPhone SDKビルドを確認しました。
   実通知許可・配信・設定保存・再起動と103行の除外・取消し・保存を、実UIの操作で検証しています。
   過去のiOS 27のInvalid frame dimension警告は原因・一般的な解消が未確認です。
