@@ -201,9 +201,12 @@ final class PDFPathReader {
             }
         }
         if verifyVisibility && fill && !paths.isEmpty {
-            guard !textSeen else { failure = PDFParseError(code:.unsupported,stage:.vectorObjects); return }
-            // Only independent thin rectangular table rules are supported before
-            // text. A broad background fill may make black text invisible too.
+            guard !textSeen || !textBoxes.isEmpty else {
+                failure = PDFParseError(code:.unsupported,stage:.vectorObjects); return
+            }
+            // Thin rectangular rules may be painted before or after text. Check
+            // their actual bounds against every original glyph, including text
+            // drawn later. Broad fills and unknown shapes remain unsupported.
             for path in paths {
                 guard let first = path.first, path.count == 5, path.last == first,
                       Set(path.map(\.x)).count == 2, Set(path.map(\.y)).count == 2,

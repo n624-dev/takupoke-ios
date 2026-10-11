@@ -13,7 +13,11 @@ final class PDFDrawnTextReader {
     private var markedContent = PDFMarkedContent()
     private var pageBounds: PDFBox?
     private let paintResolver = PDFPaintSpaceResolver()
-    init(check: @escaping () throws -> Void) { engine = PDFTextGeometry(check: check) }
+    private let deferFillValidation: Bool
+    init(deferFillValidation: Bool = false, check: @escaping () throws -> Void) {
+        self.deferFillValidation = deferFillValidation
+        engine = PDFTextGeometry(check: check)
+    }
 
     private static func run(_ info: UnsafeMutableRawPointer?, _ action: (PDFDrawnTextReader) throws -> Void) {
         guard let info = info else { return }
@@ -166,11 +170,12 @@ final class PDFDrawnTextReader {
         CGPDFOperatorTableSetCallback(table,"RG") { scanner,p in PDFDrawnTextReader.run(p) { try $0.deviceColor(scanner,stroke:true,count:3) } }
         CGPDFOperatorTableSetCallback(table,"k") { scanner,p in PDFDrawnTextReader.run(p) { try $0.deviceColor(scanner,stroke:false,count:4) } }
         CGPDFOperatorTableSetCallback(table,"K") { scanner,p in PDFDrawnTextReader.run(p) { try $0.deviceColor(scanner,stroke:true,count:4) } }
-        // A later fill may replace an earlier subject while PDFKit continues
-        // to expose the covered text. Geometry is not a visibility certificate.
+        // Standalone extraction cannot certify a later fill. PDFKitReader may
+        // defer this check to its mandatory path scan with all original glyph
+        // boxes; that scan must succeed before returning or completing capture.
         for op in ["f", "F", "f*", "B", "B*", "b", "b*"] {
             CGPDFOperatorTableSetCallback(table, op) { _, p in PDFDrawnTextReader.run(p) { s in
-                guard s.engine.glyphs.isEmpty else { throw PDFTextFailure.unsupported }
+                guard s.engine.glyphs.isEmpty || s.deferFillValidation else { throw PDFTextFailure.unsupported }
                 s.clipPath.reset()
             } }
         }

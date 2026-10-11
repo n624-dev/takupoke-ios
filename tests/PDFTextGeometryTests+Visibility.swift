@@ -46,6 +46,72 @@ extension PDFTextGeometryTests {
     }
 
 #if canImport(PDFKit)
+    func testNativeDisjointFilledRulesPreserveTextAndGeometryInEitherPaintOrder() throws {
+        let text = "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET"
+        let rules = [
+            "10 10 280 1 re f 10 10 1 280 re f",
+            "10 10 m 290 10 l 290 11 l 10 11 l h f 10 10 1 280 re f"
+        ]
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("takupoke-filled-rule-order-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("fictional.pdf")
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        for rule in rules {
+            for special in [false, true] {
+                var originalGlyphs: Data?
+                for content in [rule + " " + text, text + " " + rule] {
+                    try syntheticPDF(content: content, simpleFont: true).write(to: url)
+                    let capture = RecoveryReadCapture()
+                    let pages: [PDFPageLayout]
+                    if special { pages = try PDFKitReader.readSpecial(url, capture: capture) }
+                    else { pages = try PDFKitReader.read(url, kind: .timetable, capture: capture) }
+                    let page = try XCTUnwrap(pages.first)
+                    XCTAssertEqual(pages.count, 1)
+                    XCTAssertEqual(page.glyphs.map(\.text).joined(), "AB")
+                    XCTAssertEqual(page.lines.count, 2)
+                    XCTAssertEqual(page.lines[0].y1, 389.5)
+                    XCTAssertEqual(page.lines[1].x1, 10.5)
+                    XCTAssertTrue(capture.complete)
+                    let glyphs = try encoder.encode(page.glyphs)
+                    if let originalGlyphs { XCTAssertEqual(glyphs, originalGlyphs) }
+                    else { originalGlyphs = glyphs }
+                }
+            }
+        }
+    }
+
+    func testNativeOverlappingFilledRulesNeverCompleteDeferredCapture() throws {
+        let text = "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET"
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("takupoke-filled-rule-overlap-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("fictional.pdf")
+        // Thin fills through text fail in either order. A broad later fill still
+        // fails even when it misses text; partial extraction is never complete.
+        let contents = [
+            text + " 20 350 70 1 re f",
+            "20 350 70 1 re f " + text,
+            text + " 150 150 40 40 re f"
+        ]
+        for content in contents {
+            try syntheticPDF(content: content, simpleFont: true).write(to: url)
+            for special in [false, true] {
+                let capture = RecoveryReadCapture()
+                if special {
+                    XCTAssertThrowsError(try PDFKitReader.readSpecial(url, capture: capture))
+                } else {
+                    XCTAssertThrowsError(try PDFKitReader.read(url, kind: .timetable, capture: capture))
+                }
+                XCTAssertFalse(capture.complete)
+                XCTAssertFalse(capture.pages.contains { $0.state == .complete })
+            }
+        }
+    }
+
     func testNativeInertTagsContainedClipsDeviceSpacesAndUnusedStylesPreserveDirectAcquisition() throws {
         let text = "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET"
         let rule = " 10 10 m 290 10 l S"

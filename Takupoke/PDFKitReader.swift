@@ -74,7 +74,7 @@ enum PDFKitReader {
             var recoveryComplete = true
             if kind == .timetable {
                 do {
-                    let drawnReader = PDFDrawnTextReader(check:check)
+                    let drawnReader = PDFDrawnTextReader(deferFillValidation: true, check: check)
                     func transformed(_ glyph:PDFGlyph) -> PDFGlyph {
                         let b = transform.rect(CGRect(x: glyph.x, y: glyph.y, width: glyph.width, height: glyph.height))
                         return PDFGlyph(text: glyph.text, x: Double(b.minX), y: Double(b.minY),
