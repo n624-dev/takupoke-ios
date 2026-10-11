@@ -155,4 +155,3 @@ class NotificationServiceTraceTests(unittest.TestCase):
                 self.assertEqual(report["logExit"], result.returncode)
                 self.assertEqual(report["logBytes"], len(result.stdout.encode()))
                 self.assertNotIn("private-token", output.getvalue())
-
