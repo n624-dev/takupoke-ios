@@ -1,5 +1,27 @@
 # 検証記録
 
+## 2026-10-11 所有SimulatorのDevice Hub画面を指定する比較
+
+公開まで継続する利用者の指示を受け、通知停止の修正を続ける。
+編集・UI実行前にtest-app-ui.shで対応一覧を検索し、DeviceHub／Simulator.app／U33〜U36で
+失敗索引を確認した。従来はDevice Hub本体を開くが、所有deviceの画面は指定していなかった。
+
+[ascelerateの実装](https://github.com/keremerkan/ascelerate/blob/main/Sources/ascelerate/Screenshot/SimulatorManager.swift)は
+所有deviceのboot後、devices://device/open?id=UDIDを選択XcodeのDevice Hubへ渡している。
+当事者の確認対象は27.1で、27.0での効果やAppleの安定した公開契約を証明するものではない。
+[別の報告](https://github.com/getsentry/MobileBuildMCP/issues/535)のmanage/select経路は開けず、
+本体起動だけでは画面が開かないという観測がある。異なるURLを同一視しない。
+
+bootstatus後に、作成・所有しているSimulatorのUDIDだけを上記経路へ渡す。
+製品・SDK27.0・許可状態・実操作・45秒・全13条件は維持する。
+26の従来経路も維持する。画面指定コマンドが失敗したらUIを開始せず所有領域を回収する。
+Linuxのrunner契約検査では、対象UDID・boot完了後／UI前の順序と、画面指定失敗を確認する。
+Apple環境での実画面・通知停止への効果は未評価で、関連2ケースを両OSで実行して確認する。
+
+Linuxのrunner8件は6.703秒・失敗0、全Python172件は10.910秒・失敗0。
+このホストにSwiftがないため7件は予定skipで、Apple CIの実Swift検査へ代用しない。
+一覧341ファイル・check --base 61246cc・Bash構文・差分検査が成功した。
+
 ## 2026-10-11 追加SDK比較ソースの開発検査
 
 ソース4bba1b6の[開発70](https://github.com/n624-dev/takupoke-ios/actions/runs/38114821551)は完了した。

@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`3719ef19a408ffdd9760cd60ca9563132416057e03a667d0d2c9f766ddb34520`
+`3e4a1e830cdb864769a12474c8c8a0611dde0d6ffa9d34ed28111707970f97df`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -171,3 +171,4 @@ bash tools/test-app-ui.sh
 - `test_failed_ui_build_does_not_boot_or_run_tests_and_still_cleans_up`
 - `test_failed_frontend_launch_does_not_run_ui_and_cleans_owned_device`
 - `test_missing_selected_xcode_frontend_fails_without_running_ui`
+- `test_failed_owned_device_window_does_not_run_ui_and_cleans_up`

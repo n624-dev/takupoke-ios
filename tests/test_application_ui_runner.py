@@ -48,7 +48,8 @@ else: print('Synthetic Xcode version')
                     self.assertEqual(result.returncode == 0, success, result.stdout + result.stderr)
 
     def run_synthetic_runner(self, ios, shard, *, omit_result=False, fail_build=False,
-                             fail_frontend=False, missing_frontend=False, probe_case=None):
+                             fail_frontend=False, fail_device_window=False,
+                             missing_frontend=False, probe_case=None):
         with tempfile.TemporaryDirectory(prefix="takupoke-shard-check-") as directory:
             repo = Path(directory)
             (repo / "tools").mkdir()
@@ -80,6 +81,8 @@ if Path(sys.argv[0]).name == 'xcodebuild':
               file=sys.stderr if os.environ['TKPK_TEST_IOS'] == '26' else sys.stdout)
 elif Path(sys.argv[0]).name == 'xcode-select': print(os.environ['SYNTHETIC_DEVELOPER'])
 elif Path(sys.argv[0]).name == 'open' and os.environ.get('FAIL_FRONTEND'): sys.exit(43)
+elif (Path(sys.argv[0]).name == 'open' and os.environ.get('FAIL_DEVICE_WINDOW')
+      and any(arg.startswith('devices://') for arg in args)): sys.exit(44)
 elif args[:2] == ['simctl', 'list']:
     major = os.environ['TKPK_TEST_IOS']
     print(json.dumps({'runtimes': [{'isAvailable': True, 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-' + major + '-5', 'version': major + '.5'}],
@@ -110,6 +113,8 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                 environment["FAIL_BUILD"] = "1"
             if fail_frontend:
                 environment["FAIL_FRONTEND"] = "1"
+            if fail_device_window:
+                environment["FAIL_DEVICE_WINDOW"] = "1"
             if probe_case:
                 environment.update(TKPK_UI_RELAUNCH_PROBE="1", TKPK_UI_PROBE_CASE=probe_case)
             result = subprocess.run(["bash", "tools/test-app-ui.sh"], cwd=repo, env=environment,
@@ -153,13 +158,20 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                     boot = ["xcrun", "simctl", "boot", "synthetic-simulator"]
                     self.assertLess(calls.index(builds[0]), calls.index(boot))
                     frontends = [call for call in calls if call[0] == "open"]
-                    self.assertEqual(len(frontends), 1)
+                    self.assertEqual(len(frontends), 1 if ios == 26 else 2)
                     frontend = frontends[0]
                     self.assertEqual(Path(frontend[2]).name, "Simulator.app" if ios == 26 else "DeviceHub.app")
                     self.assertEqual(frontend[3:], ["--args", "-CurrentDeviceUDID", "synthetic-simulator"]
                                      if ios == 26 else [])
                     self.assertLess(calls.index(boot), calls.index(frontend))
                     self.assertLess(calls.index(frontend), calls.index(builds[1]))
+                    if ios == 27:
+                        window = frontends[1]
+                        self.assertEqual(window[1:3], frontend[1:3])
+                        self.assertEqual(window[3:], ["devices://device/open?id=synthetic-simulator"])
+                        ready = ["xcrun", "simctl", "bootstatus", "synthetic-simulator", "-b"]
+                        self.assertLess(calls.index(ready), calls.index(window))
+                        self.assertLess(calls.index(window), calls.index(builds[1]))
                     self.assertTrue(all(build[-1] == "test-without-building" for build in builds[1:]))
                     tests = [arg.rsplit("/", 1)[1] for arg in builds[1] if arg.startswith("-only-testing:")]
                     self.assertEqual(tests, list(manifest.SHARDS[shard]))
@@ -197,3 +209,9 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
         self.assertIn("No supported simulator frontend", result.stderr)
         self.assertFalse(any("test-without-building" in call for call in calls))
         self.assertFalse(any(call[0] == "open" for call in calls))
+
+    def test_failed_owned_device_window_does_not_run_ui_and_cleans_up(self):
+        result, calls = self.run_synthetic_runner(27, "A", fail_device_window=True)
+        self.assertEqual(result.returncode, 44, result.stdout + result.stderr)
+        self.assertFalse(any("test-without-building" in call for call in calls))
+        self.assertTrue(any("devices://device/open?id=synthetic-simulator" in call for call in calls))

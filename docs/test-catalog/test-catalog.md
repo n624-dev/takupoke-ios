@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`221d961cac22f94677f1264fe61062e4f094dfa7d543a87c8882a912feb1bd46`
+`8221dd909ccf2a03e4bf28c7c2ac9787b69e25f4b5a1ef2ef4e64d50656a6754`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -72,3 +72,4 @@ python3 -B -m unittest discover -s tests -p test_application_ui_runner.py -v
 - `test_failed_ui_build_does_not_boot_or_run_tests_and_still_cleans_up`
 - `test_failed_frontend_launch_does_not_run_ui_and_cleans_owned_device`
 - `test_missing_selected_xcode_frontend_fails_without_running_ui`
+- `test_failed_owned_device_window_does_not_run_ui_and_cleans_up`

@@ -96,15 +96,22 @@ while read -r device_type runtime; do
     # Resolve the frontend inside the selected Xcode, not another installation.
     # Device Hub does not support the legacy Simulator's device-selection flag.
     developer_dir="$(xcode-select -p)"
+    device_hub=""
     if [[ -d "$developer_dir/Applications/Simulator.app" ]]; then
         open -a "$developer_dir/Applications/Simulator.app" --args -CurrentDeviceUDID "$simulator_id"
     elif [[ -d "$developer_dir/../Applications/DeviceHub.app" ]]; then
-        open -a "$developer_dir/../Applications/DeviceHub.app"
+        device_hub="$developer_dir/../Applications/DeviceHub.app"
+        open -a "$device_hub"
     else
         printf '%s\n' 'No supported simulator frontend in the selected Xcode' >&2
         exit 1
     fi
     python3 -B tools/timed_command.py "App simulator boot" xcrun simctl bootstatus "$simulator_id" -b
+    if [[ -n "$device_hub" ]]; then
+        # Opening Device Hub alone shows its manager, not this device's window.
+        # Route the owned, booted device to the selected Xcode's display host.
+        open -a "$device_hub" "devices://device/open?id=$simulator_id"
+    fi
     xcrun simctl ui "$simulator_id" content_size large
     check_ui() {
         local log_path="$1"
