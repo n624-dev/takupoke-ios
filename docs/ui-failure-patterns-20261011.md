@@ -125,3 +125,12 @@ Webの報告は再起動の厳密な手順を示しておらず、今回の事�
 イメージの[固定版一覧](https://github.com/actions/runner-images/blob/xcode-27-arm64/20261006.0244/images/macos/xcode-27-arm64-Readme.md)は
 27.1 build 27A9269を掲載しているが、安定版として配布へ採用済みとは扱わない。
 通常配布SDK・製品・実操作と45秒・全13条件は維持する。
+
+## 27.1のbuildをApple公表値と照合
+
+Appleの[9月18日の発表](https://developer.apple.com/jp/news/releases/?id=09182026a)は
+27A9269をXcode 27.1 betaとして掲載している。
+[公開一覧](https://developer.apple.com/news/releases/)の10月5日の27.1 RCは27A9275で、別buildである。
+Runner内の27.1という版名・aliasや、現行release notesのRC表題だけでは
+設置済み27A9269をRC／安定版と扱えない。今回の追加比較は旧betaの比較であり、
+成功しても通常配布SDKの更新や、通知問題の一般的解消の証明にはしない。

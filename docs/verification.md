@@ -1,5 +1,18 @@
 # 検証記録
 
+## 2026-10-11 追加SDK比較ソースの開発検査
+
+ソース4bba1b6の[開発70](https://github.com/n624-dev/takupoke-ios/actions/runs/38114821551)は完了した。
+Python171件は57.869秒・skip0・失敗0、portable Swift473件は72.664秒・失敗0。
+Swiftの準備・build・検査を含む区間は232.6秒。任意Native SDKジョブは予定skipで、
+この実行でApple PDFKitやiPhone SDKを検証したという意味ではない。
+
+[通知UI比較40](https://github.com/n624-dev/takupoke-ios/actions/runs/38114822271)は実行中。
+27の実SDK27.1とRuntime27.0の事前照合は成功したが、UI結果は未確定。
+Apple公表値から設置済み27A9269は旧beta、RCは別buildの27A9275と確認した。
+通常配布SDK27.0・全13条件は変更せず、製品の通知・PDFコードも変更していない。
+横断調査の根拠と適用範囲は[失敗傾向の記録](ui-failure-patterns-20261011.md)に残した。
+
 ## 2026-10-11: 通常配布を変えず27.1ツールチェーンを追加比較
 
 dc64684でU35をpushしてから、一覧を`application-relaunch-native-probe.yml`、
