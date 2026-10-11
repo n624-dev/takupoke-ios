@@ -93,6 +93,9 @@ while read -r device_type runtime; do
     python3 -B tools/timed_command.py "App UI build iOS $ios_major" \
         xcodebuild "${xcode_args[@]}" build-for-testing
     xcrun simctl boot "$simulator_id"
+    # Open the owned device in the selected Xcode frontend before testing
+    # system permission UI; never select an unrelated Simulator.
+    open -a "$(xcode-select -p)/Applications/Simulator.app" --args -CurrentDeviceUDID "$simulator_id"
     python3 -B tools/timed_command.py "App simulator boot" xcrun simctl bootstatus "$simulator_id" -b
     xcrun simctl ui "$simulator_id" content_size large
     check_ui() {

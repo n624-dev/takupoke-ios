@@ -462,7 +462,8 @@
         "tests/ui/ApplicationChecks+Timetable.swift",
         "tests/ui/ApplicationChecks+Notifications.swift",
         "tests/ObservedScreenGeometryTests.swift",
-        "tests/test_notification_service_trace.py"
+        "tests/test_notification_service_trace.py",
+        "tests/test_application_ui_runner.py"
       ]
     },
     {
@@ -561,7 +562,8 @@
       "environment": "Linux Python（隔離Gitリポジトリ）",
       "commands": [
         "python3 -B -m unittest discover -s tests -p test_test_catalog.py -v",
-        "python3 -B -m unittest discover -s tests -p test_ui_test_manifest.py -v"
+        "python3 -B -m unittest discover -s tests -p test_ui_test_manifest.py -v",
+        "python3 -B -m unittest discover -s tests -p test_application_ui_runner.py -v"
       ],
       "sources": [
         ".github/workflows/ios-release.yml",
@@ -572,7 +574,8 @@
       ],
       "checks": [
         "tests/test_test_catalog.py",
-        "tests/test_ui_test_manifest.py"
+        "tests/test_ui_test_manifest.py",
+        "tests/test_application_ui_runner.py"
       ]
     }
   ]

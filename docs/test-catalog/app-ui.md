@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`21c67d6f893526d8def6304a0f15959720ee76f8902dba5105a7bf197e238687`
+`7b35d54e8e7763eb389678b975e9373d5bca1112b6b70c11bd9e7823a75750bc`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -98,10 +98,6 @@ bash tools/test-app-ui.sh
 - `test_relaunch_diagnosis_cannot_replace_the_full_shard_gate`
 - `test_diagnostic_selection_requires_exact_completion_and_cannot_select_full_shards`
 - `test_outer_runner_log_rejects_no_tests_and_missing_os_size_runs`
-- `test_successful_notification_probe_observes_os_before_deleting_simulator`
-- `test_both_shards_on_both_os_preserve_selection_and_os_size_checks`
-- `test_missing_xctest_completion_fails_shell_and_cleans_up`
-- `test_failed_ui_build_does_not_boot_or_run_tests_and_still_cleans_up`
 
 ## [tests/ui/ApplicationChecks+Changes.swift](../../tests/ui/ApplicationChecks+Changes.swift)
 
@@ -165,3 +161,11 @@ bash tools/test-app-ui.sh
 - `test_notification_window_collects_only_bounded_owned_trace_and_request_interval`
 - `test_notification_service_trace_keeps_only_known_processes_and_fixed_words`
 - `test_notification_service_trace_is_bounded_without_permission_mutation`
+
+## [tests/test_application_ui_runner.py](../../tests/test_application_ui_runner.py)
+
+- `test_successful_notification_probe_observes_os_before_deleting_simulator`
+- `test_both_shards_on_both_os_preserve_selection_and_os_size_checks`
+- `test_missing_xctest_completion_fails_shell_and_cleans_up`
+- `test_failed_ui_build_does_not_boot_or_run_tests_and_still_cleans_up`
+- `test_failed_frontend_launch_does_not_run_ui_and_cleans_owned_device`

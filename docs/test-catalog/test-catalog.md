@@ -1,13 +1,14 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`5cd61cecb06271536058dc11511c32ed649ea71238626185e69c70d6267183ca`
+`3987b31980b13623a35b42a29d337b1000631c03482a9aae197d5dd005519dc5`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
 ```bash
 python3 -B -m unittest discover -s tests -p test_test_catalog.py -v
 python3 -B -m unittest discover -s tests -p test_ui_test_manifest.py -v
+python3 -B -m unittest discover -s tests -p test_application_ui_runner.py -v
 ```
 
 ## 変更時に確認するソース
@@ -61,7 +62,11 @@ python3 -B -m unittest discover -s tests -p test_ui_test_manifest.py -v
 - `test_relaunch_diagnosis_cannot_replace_the_full_shard_gate`
 - `test_diagnostic_selection_requires_exact_completion_and_cannot_select_full_shards`
 - `test_outer_runner_log_rejects_no_tests_and_missing_os_size_runs`
+
+## [tests/test_application_ui_runner.py](../../tests/test_application_ui_runner.py)
+
 - `test_successful_notification_probe_observes_os_before_deleting_simulator`
 - `test_both_shards_on_both_os_preserve_selection_and_os_size_checks`
 - `test_missing_xctest_completion_fails_shell_and_cleans_up`
 - `test_failed_ui_build_does_not_boot_or_run_tests_and_still_cleans_up`
+- `test_failed_frontend_launch_does_not_run_ui_and_cleans_owned_device`

@@ -1,5 +1,20 @@
 # 検証記録
 
+## 2026-10-11: 所有Simulatorを画面付きで開く起動手順の候補
+
+一覧を`tools/test-app-ui.sh`、失敗索引を`Simulator.app|open -a|frontend|GUI|許可画面|U32`で
+検索し、U18・U21・U22・U24〜U32を確認した。従来はCoreSimulatorのbootとbootstatusだけで、
+XcodeのSimulatorフロントエンドを明示的に開いていなかった。
+今回の比較では選択済みXcodeからアプリの場所を解決し、自分が作成したdevice IDを指定して
+画面を開く。製品のPDF・通知コード、45秒、一回の操作、実Allow・保存・再起動・配信の
+検証は変更しない。OS応答停止の原因が画面セッションだったとは未確定で、追加診断はしない。
+失敗した画面起動ではUIを開始せず、所有Simulatorと作業領域を回収する検査を追加した。
+既存の4つのrunnerケースを別ファイルへそのまま移し、起動順・対象deviceを検証する。
+Linuxの5件は5.502秒、残るUI契約24件は1.412秒で成功。全Python169件も
+10.053秒・予定skip7・失敗0。skipはこのホストにSwift実行環境がないケースで、
+Apple環境の成功へ数えない。一覧・Bash構文・差分検査も成功。
+Swift/PDF・実通知許可はApple環境での検証が必要で、このローカル成功へ含めない。
+
 ## 2026-10-11: 標準タブ操作の比較でも27の通知許可が未返答（U32）
 
 1e220d7の[開発検証](https://github.com/n624-dev/takupoke-ios/actions/runs/38110423916)は
