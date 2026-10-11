@@ -8,6 +8,23 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U56 年度入力操作後に4桁の一致が成立しない（全体374、iOS27 A）
+
+- 対象：bd5ddb7の`testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair`。
+  71.211秒で失敗。実tap後にKeyboardが存在し、typeText後の10秒内に2032との一致が成立しなかった。
+- 状態：focus不足・入力欠落・古いvalue照会のいずれかは未確定。実入力値は未記録。
+  製品変更・期限延長・値注入で補わず、失敗時の現在の値／focusを観測して区別する。
+- 根拠：[374 A](https://github.com/n624-dev/takupoke-ios/actions/runs/38178184681/job/114585332317)。
+
+## U57 worker開始後の実終了操作で待機へ戻らない（全体374、iOS27 A）
+
+- 対象：bd5ddb7の`testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork`。
+  67.670秒で失敗。ホームでbusy開始とfalse／pendingを確認後、実終了Buttonを一回操作。
+  その後10秒内の待機表示が成立しなかった。開始の失敗ではない。
+- 状態：終了操作未到達かworker完了待ちかは、失敗時の解放／完了値が未記録で判断できない。
+  元の60秒gate・実終了操作・successと元データ保持を維持し、期限切れを救済しない。
+- 根拠：[374 A](https://github.com/n624-dev/takupoke-ios/actions/runs/38178184681/job/114585332317)。
+
 ## U55 再起動後4回目のAI/OCR操作が未反映（全体373、iOS27 B）
 
 - 対象：1606222の`testSettingsAccountDataAndFileDetails`、184.277秒で失敗。
