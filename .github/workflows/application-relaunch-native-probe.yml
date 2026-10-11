@@ -17,6 +17,11 @@ on:
           - testLinkPreferencesSurviveRelaunch
           - testNotificationControlsAndAppearance
           - testSettingsAccountDataAndFileDetails
+      ios:
+        description: Diagnose iOS 27 first; include 26 only for a confirmed comparison
+        type: choice
+        default: '27'
+        options: ['27', '26', 'both']
       sdk27:
         description: Additional iOS 27 toolchain comparison; distribution stays unchanged
         type: choice
@@ -34,17 +39,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - ios: 26
-            runner: macos-26
-            developer: /Applications/Xcode_26.6.app/Contents/Developer
-          - ios: 27
-            runner: xcode-27
-            developer: /Applications/Xcode_27.0.app/Contents/Developer
-    runs-on: ${{ matrix.runner }}
+        ios: ${{ fromJSON(inputs.ios == 'both' && '[27,26]' || inputs.ios == '26' && '[26]' || '[27]') }}
+    runs-on: ${{ matrix.ios == 26 && 'macos-26' || 'xcode-27' }}
     timeout-minutes: 30
     env:
-      DEVELOPER_DIR: ${{ matrix.ios == 27 && inputs.sdk27 == '27.1' && '/Applications/Xcode_27.1.app/Contents/Developer' || matrix.developer }}
+      DEVELOPER_DIR: >-
+        ${{ matrix.ios == 26 && '/Applications/Xcode_26.6.app/Contents/Developer'
+          || inputs.sdk27 == '27.1' && '/Applications/Xcode_27.1.app/Contents/Developer'
+          || '/Applications/Xcode_27.0.app/Contents/Developer' }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_UI_PROBE_SDK27: ${{ inputs.sdk27 }}
       TKPK_UI_RELAUNCH_PROBE: '1'

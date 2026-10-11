@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`8221dd909ccf2a03e4bf28c7c2ac9787b69e25f4b5a1ef2ef4e64d50656a6754`
+`57d69b07b1d09345487c898580ecf54aedc01e9c9c57d6b54205fb639ee8fdd0`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -56,6 +56,7 @@ python3 -B -m unittest discover -s tests -p test_application_ui_runner.py -v
 - `test_empty_missing_extra_and_duplicate_results_fail`
 - `test_failure_and_unexpected_skip_fail`
 - `test_workflow_matrix_matches_gate_and_publish_follows_gate`
+- `test_application_lanes_wait_only_for_the_matching_27_lane`
 - `test_manual_matrix_requires_every_unchanged_case_on_both_os_separately`
 - `test_cli_selects_the_complete_shard_and_rejects_invalid_shard`
 - `test_cli_reads_japanese_source_with_non_utf8_default_encoding`
@@ -65,6 +66,7 @@ python3 -B -m unittest discover -s tests -p test_application_ui_runner.py -v
 
 ## [tests/test_application_ui_runner.py](../../tests/test_application_ui_runner.py)
 
+- `test_diagnosis_defaults_to_27_without_adding_26_matrix_rows`
 - `test_alternate_toolchain_preflight_requires_requested_sdk_and_same_runtime`
 - `test_successful_notification_probe_observes_os_before_deleting_simulator`
 - `test_both_shards_on_both_os_preserve_selection_and_os_size_checks`

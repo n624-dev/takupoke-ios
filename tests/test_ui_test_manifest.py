@@ -25,11 +25,6 @@ def result_line(test, status="passed"):
 
 class ManifestTests(unittest.TestCase):
 
-
-
-
-
-
     def test_split_sources_are_registered_in_the_selected_target_only(self):
         project = {'rootObject': 'project', 'objects': {
             'project': {'mainGroup': 'group'}, 'group': {'children': []},
@@ -384,7 +379,7 @@ class ManifestTests(unittest.TestCase):
 
     def test_workflow_matrix_matches_gate_and_publish_follows_gate(self):
         workflow = (ROOT / ".github/workflows/ios-release.yml").read_text(encoding="utf-8")
-        simulator = workflow.split("  simulator:\n", 1)[1].split("  build-check:\n", 1)[0]
+        simulator = workflow.split("  simulator-27-a:\n", 1)[1].split("  manual-27:\n", 1)[0]
         entries = re.findall(r"- ios: (26|27)\n\s+shard: ([AB])", simulator)
         self.assertEqual(len(entries), 4)
         self.assertEqual({f"Application iOS {ios} UI {shard}" for ios, shard in entries},
@@ -395,18 +390,42 @@ class ManifestTests(unittest.TestCase):
         dependency = re.search(r"^    needs: \[([^\]]+)\]$", release, re.MULTILINE)
         self.assertIsNotNone(dependency)
         self.assertEqual({name.strip() for name in dependency.group(1).split(",")},
-                         {"checks", "native-parsing", "simulator", "manual"})
+                         {"checks", "native-parsing", "simulator-27-a", "simulator-27-b",
+                          "simulator-26-a", "simulator-26-b", "manual-27", "manual-26"})
         self.assertIn("actions: read", release)
         self.assertLess(release.index("tools/release_gate.py"), release.index("tools/publish.py"))
 
+    def test_application_lanes_wait_only_for_the_matching_27_lane(self):
+        workflow = (ROOT / ".github/workflows/ios-release.yml").read_text()
+        jobs = dict(re.findall(r"^  ([\w-]+):\n(.*?)(?=^  [\w-]+:|\Z)",
+                               workflow, re.MULTILINE | re.DOTALL))
+        for shard in ("a", "b"):
+            with self.subTest(shard=shard):
+                first = jobs[f"simulator-27-{shard}"]
+                second = jobs[f"simulator-26-{shard}"]
+                self.assertIn("    needs: checks\n", first)
+                self.assertIn(f"    needs: [checks, simulator-27-{shard}]\n", second)
+                self.assertIsNone(re.search(r"^    if:", first + second, re.MULTILINE))
+                self.assertNotIn("continue-on-error", first + second)
+                for ios, block in ((27, first), (26, second)):
+                    self.assertIn(f"- ios: {ios}\n            shard: {shard.upper()}", block)
+                    self.assertIn("bash tools/test-app-ui.sh", block)
+                    self.assertIn("--runner-log", block)
+        # Native PDF verification remains independent of Simulator UI availability.
+        self.assertIn("    needs: checks\n", jobs["native-parsing"])
+        self.assertIn("    needs: [checks, manual-27, simulator-27-a, simulator-27-b]\n",
+                      jobs["manual-26"])
+        self.assertNotIn("continue-on-error", jobs["manual-26"])
+
     def test_manual_matrix_requires_every_unchanged_case_on_both_os_separately(self):
         workflow = (ROOT / ".github/workflows/ios-release.yml").read_text(encoding="utf-8")
-        manual = workflow.split("  manual:\n", 1)[1].split("  build-check:\n", 1)[0]
-        self.assertIn("ios: [26, 27]", manual)
+        manual = workflow.split("  manual-27:\n", 1)[1].split("  build-check:\n", 1)[0]
+        self.assertIn("ios: [27]", manual)
+        self.assertIn("ios: [26]", manual)
         cases = re.findall(r"^          - (test\w+)$", manual, re.MULTILINE)
-        self.assertEqual(cases, list(manifest.MANUAL_CASES))
+        self.assertEqual(cases, list(manifest.MANUAL_CASES) * 2)
         declared = re.findall(r"\bfunc\s+(test\w+)\s*\(", manifest.manual_check_source())
-        self.assertCountEqual(cases, declared)
+        self.assertCountEqual(cases, declared * 2)
         self.assertEqual(len(declared), 3)
         expanded = {f"Manual correction iOS {ios} / {case}" for ios in (26, 27) for case in cases}
         self.assertEqual(expanded, manifest.MANUAL_REQUIRED_JOBS)
@@ -422,11 +441,11 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("timeout-minutes: 45", manual)
         self.assertIn("bash tools/test-manual-ui.sh", manual)
         self.assertNotIn("continue-on-error", manual)
-        self.assertEqual(manual.count("TKPK_MANUAL_DIAGNOSTICS: '1'"), 1)
-        self.assertEqual(workflow.count("TKPK_MANUAL_DIAGNOSTICS"), 1)
+        self.assertEqual(manual.count("TKPK_MANUAL_DIAGNOSTICS: '1'"), 2)
+        self.assertEqual(workflow.count("TKPK_MANUAL_DIAGNOSTICS"), 2)
         for ios, runner, xcode in ((26, "macos-26", "26.6"), (27, "xcode-27", "27.0")):
             self.assertIn(f"- ios: {ios}\n            runner: {runner}\n            developer: /Applications/Xcode_{xcode}.app/Contents/Developer", manual)
-        simulator = workflow.split("  simulator:\n", 1)[1].split("  manual:\n", 1)[0]
+        simulator = workflow.split("  simulator-27-a:\n", 1)[1].split("  manual-27:\n", 1)[0]
         self.assertIn("timeout-minutes: 60", simulator)
         self.assertNotIn("test-manual-ui.sh", simulator)
         self.assertIn("bash tools/test-app-ui.sh", simulator)

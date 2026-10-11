@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`3e4a1e830cdb864769a12474c8c8a0611dde0d6ffa9d34ed28111707970f97df`
+`b5850dca85eb9fd6746d0794cd53e2994b0de61a0e32b18a83696c2022543ca5`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -92,6 +92,7 @@ bash tools/test-app-ui.sh
 - `test_empty_missing_extra_and_duplicate_results_fail`
 - `test_failure_and_unexpected_skip_fail`
 - `test_workflow_matrix_matches_gate_and_publish_follows_gate`
+- `test_application_lanes_wait_only_for_the_matching_27_lane`
 - `test_manual_matrix_requires_every_unchanged_case_on_both_os_separately`
 - `test_cli_selects_the_complete_shard_and_rejects_invalid_shard`
 - `test_cli_reads_japanese_source_with_non_utf8_default_encoding`
@@ -164,6 +165,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_application_ui_runner.py](../../tests/test_application_ui_runner.py)
 
+- `test_diagnosis_defaults_to_27_without_adding_26_matrix_rows`
 - `test_alternate_toolchain_preflight_requires_requested_sdk_and_same_runtime`
 - `test_successful_notification_probe_observes_os_before_deleting_simulator`
 - `test_both_shards_on_both_os_preserve_selection_and_os_size_checks`

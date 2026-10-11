@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -16,6 +17,19 @@ import ui_test_manifest as manifest
 
 @unittest.skipUnless(os.name == "posix", "macOS CI Bash runner")
 class ShellRunnerTests(unittest.TestCase):
+    def test_diagnosis_defaults_to_27_without_adding_26_matrix_rows(self):
+        workflow = (ROOT / ".github/workflows/application-relaunch-native-probe.yml").read_text()
+        selection = workflow.split("      ios:\n", 1)[1].split("      sdk27:\n", 1)[0]
+        self.assertIn("default: '27'", selection)
+        self.assertIn("options: ['27', '26', 'both']", selection)
+        matrix = workflow.split("      matrix:\n", 1)[1].split("    runs-on:", 1)[0]
+        arrays = re.findall(r"'(\[[\d,]+\])'", matrix)
+        self.assertEqual([json.loads(value) for value in arrays], [[27, 26], [26], [27]])
+        self.assertIn("inputs.ios == 'both'", matrix)
+        self.assertIn("inputs.ios == '26'", matrix)
+        self.assertNotIn("include:", matrix)
+        self.assertIn("runs-on: ${{ matrix.ios == 26 && 'macos-26' || 'xcode-27' }}", workflow)
+
     def test_alternate_toolchain_preflight_requires_requested_sdk_and_same_runtime(self):
         workflow = (ROOT / ".github/workflows/application-relaunch-native-probe.yml").read_text()
         block = workflow.split("- name: Require comparison toolchain and unchanged runtime\n        run: |\n", 1)[1]
