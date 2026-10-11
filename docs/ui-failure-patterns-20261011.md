@@ -42,6 +42,8 @@ Xcode build `27A266a`、Simulator SDK build `24A430`だった。
 SDK buildは実行時OSのbuildと同じではない。Runtime識別子はiOS-27-0で、
 実行時OSの詳細buildは今回の照合では未評価である。
 
+秒数はXCTestケース全体の時間で、許可API単体の応答時間ではない。
+
 | 実行・ジョブ | 対象 | 実測結果 |
 |---|---|---|
 | [355 27 A](https://github.com/n624-dev/takupoke-ios/actions/runs/38043348896/job/114187984624) | 初回許可・配信 | 65.948秒、実Allow・callback・保存・新規配信成功 |
