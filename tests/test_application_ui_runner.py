@@ -63,7 +63,7 @@ else: print('Synthetic Xcode version')
 
     def run_synthetic_runner(self, ios, shard, *, omit_result=False, fail_build=False,
                              fail_frontend=False, fail_device_window=False,
-                             missing_frontend=False, probe_case=None, fail_tests=False, duplicate_result=False):
+                             missing_frontend=False, probe_case=None, fail_tests=False, duplicate_result=False, fail_notification=False):
         with tempfile.TemporaryDirectory(prefix="takupoke-shard-check-") as directory:
             repo = Path(directory)
             (repo / "tools").mkdir()
@@ -95,6 +95,7 @@ if Path(sys.argv[0]).name == 'xcodebuild':
         print(f"Test Case '-[PickerTapChecks.ApplicationChecks {test}]' {status} (1.234 seconds).",
               file=sys.stderr if os.environ['TKPK_TEST_IOS'] == '26' else sys.stdout)
     if 'test-without-building' in args and os.environ.get('FAIL_TESTS'): sys.exit(45)
+    if os.environ.get('FAIL_NOTIFICATION') and tests == ['testNotificationControlsAndAppearance']: sys.exit(46)
 elif Path(sys.argv[0]).name == 'xcode-select': print(os.environ['SYNTHETIC_DEVELOPER'])
 elif Path(sys.argv[0]).name == 'open' and os.environ.get('FAIL_FRONTEND'): sys.exit(43)
 elif (Path(sys.argv[0]).name == 'open' and os.environ.get('FAIL_DEVICE_WINDOW')
@@ -123,6 +124,8 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                 "TKPK_UI_SHARD": shard, "CALLS": str(calls_file),
                 "APP_CONTAINER": str(repo / "container"), "SYNTHETIC_DEVELOPER": str(developer),
             }
+            if fail_notification:
+                environment["FAIL_NOTIFICATION"] = "1"
             if fail_tests:
                 environment["FAIL_TESTS"] = "1"
             if duplicate_result:
@@ -193,13 +196,13 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                         self.assertLess(calls.index(ready), calls.index(window))
                         self.assertLess(calls.index(window), calls.index(builds[1]))
                     self.assertTrue(all(build[-1] == "test-without-building" for build in builds[1:]))
-                    tests = [arg.rsplit("/", 1)[1] for arg in builds[1] if arg.startswith("-only-testing:")]
-                    self.assertEqual(tests, [test for test in manifest.SHARDS[shard]
-                                             if test in manifest.NOTIFICATION_PROBE_TESTS])
-                    remaining = [arg.rsplit("/", 1)[1] for arg in builds[2]
+                    remaining = [arg.rsplit("/", 1)[1] for arg in builds[1]
                                  if arg.startswith("-only-testing:")]
                     self.assertEqual(remaining, [test for test in manifest.SHARDS[shard]
                                                 if test not in manifest.NOTIFICATION_PROBE_TESTS])
+                    tests = [arg.rsplit("/", 1)[1] for arg in builds[2] if arg.startswith("-only-testing:")]
+                    self.assertEqual(tests, [test for test in manifest.SHARDS[shard]
+                                             if test in manifest.NOTIFICATION_PROBE_TESTS])
                     self.assertEqual(set(tests) & set(remaining), set())
                     self.assertEqual(len(tests + remaining), len(manifest.SHARDS[shard]))
                     self.assertEqual(sorted(tests + remaining), sorted(manifest.SHARDS[shard]))
@@ -244,7 +247,7 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
         self.assertFalse(any("test-without-building" in call for call in calls))
         self.assertTrue(any("devices://device/open?id=synthetic-simulator" in call for call in calls))
 
-    def test_failed_or_duplicate_notification_batch_stops_without_retry_or_size_checks(self):
+    def test_failed_or_duplicate_first_batch_stops_without_retry_or_size_checks(self):
         for flags, message in (({"fail_tests": True}, None),
                                ({"duplicate_result": True}, "XCTest completion differs")):
             with self.subTest(flags=flags):
@@ -256,6 +259,17 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                 self.assertEqual(len(attempts), 1)
                 selected = [arg.rsplit("/", 1)[1] for arg in attempts[0]
                             if arg.startswith("-only-testing:")]
-                self.assertEqual(selected, ["testNotificationControlsAndAppearance"])
+                self.assertEqual(selected, [test for test in manifest.SHARDS["B"]
+                                            if test not in manifest.NOTIFICATION_PROBE_TESTS])
                 sizes = [call[-1] for call in calls if "content_size" in call]
                 self.assertEqual(sizes, ["large"])
+
+    def test_failed_final_notification_batch_is_not_rescued_by_passed_scenarios(self):
+        result, calls = self.run_synthetic_runner(27, "B", fail_notification=True)
+        self.assertNotEqual(result.returncode, 0)
+        attempts = [call for call in calls if "test-without-building" in call]
+        self.assertEqual(len(attempts), 2)
+        selected = [arg.rsplit("/", 1)[1] for arg in attempts[-1]
+                    if arg.startswith("-only-testing:")]
+        self.assertEqual(selected, ["testNotificationControlsAndAppearance"])
+        self.assertEqual([call[-1] for call in calls if "content_size" in call], ["large"])

@@ -120,10 +120,10 @@ while read -r device_type runtime; do
             exit 1
         }
     }
-    # Give notification automation a fresh Runner before other UI scenarios.
+    # Keep other UI scenarios first, then isolate notification automation.
     # Reuse the build and owned device, but execute each selected case only once.
     : > "$scratch_dir/suite.log"
-    for phase in notifications remaining; do
+    for phase in remaining notifications; do
         python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --phase "$phase" \
             --mode selectors > "$scratch_dir/selectors"
         selected_checks=()
