@@ -29,6 +29,11 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
   367は未公開。元の成功を新しいソースの全体合格に流用しない。
 - 根拠：[367通常27 B](https://github.com/n624-dev/takupoke-ios/actions/runs/38135873350/job/114459721158)。
 
+- 小さい比較の結果：d402ed5の[診断44](https://github.com/n624-dev/takupoke-ios/actions/runs/38138647623)で
+  同じ27の設定・VoiceOver2件が失敗0で完了。準備を各cold起動前に確認し、
+  再起動後のOFFと実読み上げを元の操作・期待値で確認した。
+  全体368は確認中であり、2失敗の共通原因や一般的解消の証明ではない。
+
 ## U42 長押しがメニューではなくブラウザを開く（全体366、iOS26 B）
 
 - 対象：e4f2fbfの`testLinkPreferencesSurviveRelaunch`。
