@@ -348,9 +348,6 @@ extension ApplicationChecks {
             }
             heading.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             print("UI_VOICEOVER phase=heading-touched")
-            print("UI_VOICEOVER phase=speech-start")
-            _ = try service.currentSpeech()
-            print("UI_VOICEOVER phase=speech-complete")
             var utterances: [String] = []
             for move in 0..<60 {
                 print("UI_VOICEOVER phase=move-start;index=\(move)")
