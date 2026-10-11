@@ -79,7 +79,20 @@ extension ApplicationChecks {
             XCTAssertEqual(outcome.label, "released=false;completion=pending")
             app.buttons["架空処理を終了"].tap()
             let finished = expectation(for: NSPredicate(format: "label == %@", "架空待機中"), evaluatedWith: busy)
-            wait(for: [finished], timeout: 10)
+            let finishedResult = XCTWaiter.wait(for: [finished], timeout: 10)
+            if finishedResult != .completed {
+                let currentBusy = app.staticTexts["fixture-selection-busy"].label
+                let currentOutcome = app.staticTexts["fixture-selection-busy-outcome"].label
+                let busyState = ["架空処理中": "running", "架空待機中": "idle"][currentBusy] ?? "unknown"
+                let allowedOutcomes = ["none", "pending", "success", "failure"].flatMap { completion in
+                    ["false", "true"].map { "released=\($0);completion=\(completion)" }
+                }
+                let outcomeState = allowedOutcomes.contains(currentOutcome) ? currentOutcome : "unknown"
+                let surfaceState = ["ホーム": "home", "時間割": "timetable"][surface] ?? "unknown"
+                print("SYNTHETIC_BUSY_RELEASE failed;surface=\(surfaceState);busy=\(busyState);"
+                    + "outcome=\(outcomeState)")
+            }
+            XCTAssertEqual(finishedResult, .completed, "Actual released worker must return to idle")
             let completed = expectation(
                 for: NSPredicate(format: "label == %@", "released=true;completion=success"),
                 evaluatedWith: outcome)

@@ -565,6 +565,8 @@ class ManifestTests(unittest.TestCase):
             ("input-delivery", ("testSettingsAccountDataAndFileDetails", manifest.VOICEOVER_TEST)),
             ("file-details", ("testFileFailuresKeepResultsAndStayInTheirOwnDetails",
                               "testSetupCanBeSkippedAndOffersAllFiles")),
+            ("updates", ("testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair",
+                         "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork")),
         )
         for group_name, selected in groups:
             selection = ["--relaunch-probe", "--probe-case", group_name]

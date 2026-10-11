@@ -83,6 +83,10 @@ PROBE_GROUPS = {
         "testFileFailuresKeepResultsAndStayInTheirOwnDetails",
         "testSetupCanBeSkippedAndOffersAllFiles",
     ),
+    "updates": (
+        "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair",
+        "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
+    ),
 }
 # Balanced using measured case durations, including the three OS size reruns.
 SHARDS = {

@@ -22,7 +22,20 @@ extension ApplicationChecks {
                 for: NSPredicate { _, _ in
                     field.exists && field.value as? String == digits
                 }, evaluatedWith: field)
-            wait(for: [entered], timeout: 10)
+            let enteredResult = XCTWaiter.wait(for: [entered], timeout: 10)
+            if enteredResult != .completed {
+                let current = app.textFields["学校年度（空欄なら現在の学校年度）"]
+                let present = current.exists
+                let value = present ? current.value as? String : nil
+                let digits = value.flatMap { value in
+                    value.utf8.count <= 16 && value.utf8.allSatisfy { (48...57).contains($0) }
+                        ? value : nil
+                }
+                let keyboardCount = app.keyboards.allElementsBoundByIndex.count
+                print("SYNTHETIC_YEAR_INPUT failed;present=\(present);digits=\(digits ?? "unavailable");"
+                    + "keyboards=\(keyboardCount)")
+            }
+            XCTAssertEqual(enteredResult, .completed, "Actual school-year input must match all four digits")
             XCTAssertEqual(field.value as? String, digits, app.debugDescription)
             app.swipeUp()  // Dismiss the number pad through the List's standard behavior.
         }

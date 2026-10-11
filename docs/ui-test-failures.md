@@ -13,7 +13,7 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - 対象：bd5ddb7の`testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair`。
   71.211秒で失敗。実tap後にKeyboardが存在し、typeText後の10秒内に2032との一致が成立しなかった。
 - 状態：focus不足・入力欠落・古いvalue照会のいずれかは未確定。実入力値は未記録。
-  製品変更・期限延長・値注入で補わず、失敗時の現在の値／focusを観測して区別する。
+  製品変更・期限延長・値注入で補わず、失敗時の現在の値／keyboard個数を観測して区別する。
 - 根拠：[374 A](https://github.com/n624-dev/takupoke-ios/actions/runs/38178184681/job/114585332317)。
 
 ## U57 worker開始後の実終了操作で待機へ戻らない（全体374、iOS27 A）
