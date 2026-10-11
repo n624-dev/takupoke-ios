@@ -330,6 +330,9 @@ extension ApplicationChecks {
             try service.enable()
             defer { try? service.disable() }
             print("UI_VOICEOVER phase=enabled;value=\(service.isEnabled ? 1 : 0)")
+            print("UI_VOICEOVER phase=speech-start")
+            _ = try service.currentSpeech()
+            print("UI_VOICEOVER phase=speech-complete")
             var utterances: [String] = []
             for move in 0..<60 {
                 print("UI_VOICEOVER phase=move-start;index=\(move)")
