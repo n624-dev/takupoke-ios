@@ -8,6 +8,18 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U51 手動訂正3項目がjob期限で終了（全体371、iOS27）
+
+- 対象：694a862の`testThreeFieldsRequireEachAcknowledgementAndFourRefuses`。
+- 観測：GitHubのcheck annotationは「The job has exceeded the maximum execution time of 45m0s」。
+  jobは18:16:58〜19:11:58 UTCでcancelled。こちらから停止操作はしていない。
+  個別caseの完了ログは取得できず、成功件数・処理中断点・清掃完了は未確認。
+- 比較：同じcaseの全体370は成功。371の他2訂正27も成功した。
+  VoiceOverのAX Code3とは別の実行エラーで、アプリ・Simulatorの下位原因は未確定。
+- 状態：訂正仕様の成否は未評価。期限の延長・期待値変更・再試行の救済は行わない。
+  残りの26 Aと対象50は停止しない。新しい実行前にU51と起動系の記録を検索する。
+- 根拠：[371手動訂正3項目](https://github.com/n624-dev/takupoke-ios/actions/runs/38163060293/job/114540080170)。
+
 ## U50 実見出しtap後も最初の移動が失敗（全体371、iOS27 B）
 
 - 対象：694a862の通常27B、元の11件。10成功・VoiceOverのみ46.665秒で失敗。
