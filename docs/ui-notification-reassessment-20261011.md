@@ -1,0 +1,88 @@
+# 通知UIの方針再評価（2026-10-11）
+
+通知を最後の別Runnerへ移す方法を、最善の修正・原因解消と判断する証拠はない。
+「先頭へ移した判断は不適切」との説明も、順序の因果を断定しすぎた。
+同じ363の先頭通知は27 Aで成功、27 Bで失敗している。
+現行364は比較案の検証であり、成功しても順序が下位原因だったとは扱わない。
+
+## 原ログを確認した範囲
+
+失敗索引U01〜U39と詳細記録を再読した。さらにGitHubに残るfailureの147実行を
+日付で限定せず列挙し、索引のcancelled・成功比較を加えた154実行の最新試行を照合した。
+その中のfailure／timed_outの253ジョブは、原ログを全件取得し、失敗箇所を再照合した。
+取得エラーは0。個別リンクと観測分類は[原ログ照合一覧](ui-failure-log-audit-20261011.md)に残す。
+削除済み実行、過去の全再実行回、索引外のcancelled実行は網羅したと主張しない。
+実資料の本文・画像・抽出値は今回の調査に使用していない。
+
+253はUIケース数でも通知不具合数でもない。ビルド、研究の実行契約、Picker、
+公開ゲートの上流拒否も含む。後続の成功やXcodeの再起動後の集計で、欠けたケースを補わない。
+
+## 同じ失敗としてまとめない段階
+
+| 観測 | 索引 | 判断 |
+|---|---|---|
+| Switchの実操作が設定へ届かない | U04など | 許可API未返答と同一視しない |
+| 許可要求前のOS設定照会が返らない | U06 | 初回許可待ちとは分ける |
+| 実要求の同期戻り後、Allow・callbackがない | U34〜U37、U39など | 現在の未解消例。OS／XCTest／fixtureの下位原因は未確定 |
+| 実Allow・callback・保存は成功したが共通期限切れ | U12 | 未提示ではなく操作中継の問題 |
+| 設定タブのtap後、Runnerが再起動した | U38 | 実要求に着いた記録がなく、通知未返答と分ける |
+| Runner準備中にhandleStalledWaitで終了 | U13など | ケースの実行完了を示さない |
+| 旧Simulator.appが存在しない | U33 | こちらの準備不備。通知APIの変更で修正しない |
+| 画面外・不在・古いAX要素への照会停止 | U05、U09〜U11など | UI参照・操作配送の問題として比較する |
+
+26にも通知関連失敗があり、27でも成功がある。同じRunner image・Xcode buildで
+成否が分かれているため、OS番号やイメージ更新だけでは説明できない。
+接続invalidatedなどの単語は成功ログにもあり、それだけで原因としない。
+製品全体は3e58684以後差分0。通知・アプリ起動・Info.plistも355の65767af以後差分0を再確認した。
+この比較は239から製品が不変だったという意味ではない。
+
+## Webで確認した一致と限界
+
+- [Appleの許可要求説明](https://developer.apple.com/documentation/usernotifications/asking-permission-to-use-notifications)：
+  初回要求時に提示して回答を記録し、以後は再提示しない。27専用の代替要求経路は記載されていない。
+- [Xcode 27 release notes](https://developer.apple.com/documentation/xcode-release-notes/xcode-27-release-notes)、
+  [27.1 notes](https://developer.apple.com/documentation/xcode-release-notes/xcode-27_1-release-notes)、
+  [iOS 27 notes](https://developer.apple.com/documentation/ios-ipados-release-notes/ios-ipados-27-release-notes)：
+  取得した本文に、今回と一致するUserNotifications未提示・callback未返答の修正は見つからない。
+  XCTestの別の修正やDevice Hubの表示問題を、その修正として扱わない。
+- [Apple Forums 849449](https://developer.apple.com/forums/thread/849449)：本文はAlarmKitで別問題。
+  返信にはUserNotificationsの未提示・completion未到達とSimulator再起動の改善報告がある。
+  停止段階は似るが、build・再現条件・Apple確認がなく、最後へ移す根拠にはならない。
+- [Cabalmail 872](https://github.com/cabalmail/cabal-infra/issues/872)：通知はvisionOSの表示済み画面のAX、
+  iOSはContacts。今回のiOS UserNotifications未提示と同一視しない。
+
+公式文書、Forums、runner-images、当事者のGitHub報告を再検索した。
+検索軸はrequestAuthorization／completion not called／Simulator／Xcode27／idle／permission。
+APNS token、ATT、AlarmKit、Computer UseのDevice Hub入力timeoutは別経路として除外した。
+検索で未発見であることは、OS不具合が存在しない証明ではない。
+
+## 比較済み条件と採否
+
+| 案・ソース | 実測 | 採否・限界 |
+|---|---|---|
+| 実install後に事前再起動、b34bd1f・診断39 | 27初回失敗、次の実要求成功 | 追加準備は不採用。再試行しない |
+| 旧27.1 beta、4bba1b6・診断40 | 同じ27.0 Runtimeで通知2件失敗 | 不採用。RCや安定版と読み替えない |
+| 所有Device Hub画面指定、d2ccbd4 | 診断41初回失敗。全体362の27 A/B成功、26 BはRunner停止 | 正しいフロントエンド準備を維持するが、通知解消とは扱わない |
+| 通知先頭・別Runner、2f68a90・363 | 27 A先頭成功、27 B未返答 | 公開条件未達。不採用は構成の結果であり、順序原因の証明ではない |
+| 他ケース→別Runnerの通知、83d3fb5・364 | 検証中 | 比較案。効果・安定性は未評価 |
+
+元の362は27 A/Bの通知が成功した一方で26 BのRunnerが停止した。
+そこから別Runnerへの分離を比較する理由はあるが、先頭・最後の最適性までは導けない。
+363→364では分離を保ったまま順序を変えた。ただし同一条件の反復対照ではなく、
+間欠性・経過時間・先行するアプリ起動も変わるため、結果から単一要因を断定しない。
+
+## 今後の判断
+
+追加のコード変更・診断実行は止め、有効な364を完了まで監視する。
+全13条件・実タップ・45秒・各ケース一回・通知配信と保存・再起動確認を維持する。
+各区間と元の全選択の厳密な完了照合により、別Runnerの成功で他の失敗を救済しない。
+
+364が成功した場合は、そのソースの配布検証成功として記録する。
+通知停止の一般的解消や「最善」を主張せず、同一ソースの公開処理を完了させる。
+失敗した場合は停止段階を先に記録し、先頭へ戻すなどの順序往復を行わない。
+新しい根拠がなければ、再起動・旧SDK・同じ準備条件を繰り返さない。
+必要な切り分けは実許可経路を維持した小さな再現へ限定し、既存検査の代用にしない。
+
+製品の許可APIを推測で書き換えず、固定sleep・期限延長・許可注入・テスト再試行は使わない。
+真に新しいSDK／Runtimeを比較する場合も設置buildと対応する公式修正を先に確認する。
+利用者実機355.1での許可済みON成功は、初回許可や新しい配布版の実機合格とは区別する。
