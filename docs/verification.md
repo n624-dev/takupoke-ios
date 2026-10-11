@@ -1,5 +1,22 @@
 # 検証記録
 
+## 2026-10-11: 通知観測修正の開発検証完了
+
+285e98eの[開発検証](https://github.com/n624-dev/takupoke-ios/actions/runs/38109825165)は
+全ジョブ完了。Python168件は37.594秒・skip／失敗0、portable Swift473件は
+75.225秒・失敗0（準備込み248.9秒）だった。任意のNative追加ジョブは予定skip。
+185a65fでもSwift473件は68.462秒・失敗0（準備込み220.5秒）。
+同ソースのPython168件成功後の末尾空行によるジョブ失敗は、285e98eで解消した。
+両OSの通知2ケース診断36は185a65fで開始済み。285e98eとの差は末尾空行のみで、
+製品・観測・UIケースの実行内容は同じ。実行中の診断は中止せず結果を区別する。
+
+ネット上を`iOS simulator requestAuthorization completion not called notification alert
+SpringBoard XCTest`と`iOS 27 Simulator usernotificationsd requestAuthorization hangs
+permission`で検索した。Appleの[通知許可API](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/requestauthorization(options:completionhandler:)/)
+には実許可要求と返答の契約があるが、今回と一致するOS側原因の根拠は見つからなかった。
+別のSDK世代や第三者の事例を今回の原因確定や修正理由には使わない。
+開発CI成功を通知UI・全13公開検証・実資料・実機の成功に加算しない。
+
 ## 2026-10-11: 開発検証で新規テストの末尾空行を修正
 
 185a65fの開発検証はPython168件が48.138秒・skip／失敗0で成功したが、
