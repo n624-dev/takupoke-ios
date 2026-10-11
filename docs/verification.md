@@ -1,5 +1,21 @@
 # 検証記録
 
+## 2026-10-11 システム画面準備の診断42成功と開発76完了
+
+e4f2fbfの[診断42・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38129691120)は
+27だけで`testChangedAccountDataNoticeOpensSharedAcquisition`1件35.615秒・失敗0。
+実Xcode27.0・build27A266a、SDK27.0、Runtime identifier iOS-27-0で実行した。
+Home一回の後、SpringBoardの実foreground・有限の正寸法frameを3.712秒で確認した。
+準備の後に対象アプリを一度cold起動し、更新案内の実操作が成功した。
+予備の対象起動、許可・結果注入、再試行、期限延長は使っていない。
+ビルド56.1秒、bootstatus84.8秒、テスト区間115.2秒。ケースの完了を選択1件と照合した。
+この一回で初回起動timeoutの一般的解消や最善の準備とは主張しない。
+
+同じコードe1cd6a1の[開発76](https://github.com/n624-dev/takupoke-ios/actions/runs/38129613269)も完了成功。
+Python178件51.760秒・失敗0、portable Swift473件75.157秒・失敗0（準備込み222.2秒）。
+e4f2fbfとの差分はローカルSwift未設置の記載訂正だけで、コードは同じ。
+e4f2fbfをmainへ送り、同じソースの全13必須チェックと公開を引き続き確認する。
+
 ## 2026-10-11 U41後のシステム画面準備確認
 
 編集前に`test_catalog.py search tests/ui/ApplicationChecks.swift`と、失敗索引の
