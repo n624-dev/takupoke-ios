@@ -1,5 +1,16 @@
 # 検証記録
 
+## 2026-10-11: 選択Xcode内の実在するフロントエンドへ訂正
+
+U33を記録・pushしてから、一覧を`tools/test-app-ui.sh`、索引を`U33|Device Hub|Simulator.app`で
+検索した。選択Xcode内のSimulator／Device Hubの実在を確認し、旧Simulatorにだけ
+所有device IDの引数を渡す。Device Hubはアプリを開くだけで、旧引数を渡さない。
+XCTestの対象は従来どおり所有device ID。Device Hub内で対象画面が選択されたとは主張しない。
+どちらもない場合と起動失敗時はUIを開始せず、所有作業領域とdeviceを回収する。
+Linuxのrunner6件は5.589秒・失敗0。各OSで異なるアプリ構成と引数、対象、失敗時の回収を
+動作検証した。製品コード・全13チェック・45秒・一回操作は変更しない。
+この訂正はU33への対応であり、以前からの通知停止の解消は別に検証する。
+
 ## 2026-10-11: Xcode27の起動アプリ変更を確認（U33）
 
 利用者の指示で既知問題をネット検索した。Appleの[Device Hub案内](https://developer.apple.com/documentation/xcode/device-hub)

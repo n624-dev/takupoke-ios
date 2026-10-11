@@ -93,9 +93,17 @@ while read -r device_type runtime; do
     python3 -B tools/timed_command.py "App UI build iOS $ios_major" \
         xcodebuild "${xcode_args[@]}" build-for-testing
     xcrun simctl boot "$simulator_id"
-    # Open the owned device in the selected Xcode frontend before testing
-    # system permission UI; never select an unrelated Simulator.
-    open -a "$(xcode-select -p)/Applications/Simulator.app" --args -CurrentDeviceUDID "$simulator_id"
+    # Resolve the frontend inside the selected Xcode, not another installation.
+    # Device Hub does not support the legacy Simulator's device-selection flag.
+    developer_dir="$(xcode-select -p)"
+    if [[ -d "$developer_dir/Applications/Simulator.app" ]]; then
+        open -a "$developer_dir/Applications/Simulator.app" --args -CurrentDeviceUDID "$simulator_id"
+    elif [[ -d "$developer_dir/../Applications/DeviceHub.app" ]]; then
+        open -a "$developer_dir/../Applications/DeviceHub.app"
+    else
+        printf '%s\n' 'No supported simulator frontend in the selected Xcode' >&2
+        exit 1
+    fi
     python3 -B tools/timed_command.py "App simulator boot" xcrun simctl bootstatus "$simulator_id" -b
     xcrun simctl ui "$simulator_id" content_size large
     check_ui() {

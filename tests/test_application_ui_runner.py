@@ -15,7 +15,8 @@ import ui_test_manifest as manifest
 
 @unittest.skipUnless(os.name == "posix", "macOS CI Bash runner")
 class ShellRunnerTests(unittest.TestCase):
-    def run_synthetic_runner(self, ios, shard, *, omit_result=False, fail_build=False, fail_frontend=False, probe_case=None):
+    def run_synthetic_runner(self, ios, shard, *, omit_result=False, fail_build=False,
+                             fail_frontend=False, missing_frontend=False, probe_case=None):
         with tempfile.TemporaryDirectory(prefix="takupoke-shard-check-") as directory:
             repo = Path(directory)
             (repo / "tools").mkdir()
@@ -45,7 +46,7 @@ if Path(sys.argv[0]).name == 'xcodebuild':
         status = 'skipped' if os.environ['TKPK_TEST_IOS'] == '26' and test == 'testVoiceOverReadsTimetableCard' else 'passed'
         print(f"Test Case '-[PickerTapChecks.ApplicationChecks {test}]' {status} (1.234 seconds).",
               file=sys.stderr if os.environ['TKPK_TEST_IOS'] == '26' else sys.stdout)
-elif Path(sys.argv[0]).name == 'xcode-select': print('/synthetic/developer')
+elif Path(sys.argv[0]).name == 'xcode-select': print(os.environ['SYNTHETIC_DEVELOPER'])
 elif Path(sys.argv[0]).name == 'open' and os.environ.get('FAIL_FRONTEND'): sys.exit(43)
 elif args[:2] == ['simctl', 'list']:
     major = os.environ['TKPK_TEST_IOS']
@@ -58,12 +59,18 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                 path = repo / "bin" / tool
                 path.write_text(fake)
                 path.chmod(0o755)
+            developer = repo / "Xcode.app/Contents/Developer"
+            developer.mkdir(parents=True)
+            frontend = (developer / "Applications/Simulator.app" if ios == 26 else
+                        developer.parent / "Applications/DeviceHub.app")
+            if not missing_frontend:
+                frontend.mkdir(parents=True)
             calls_file = repo / "calls"
             environment = os.environ | {
                 "PATH": str(repo / "bin") + os.pathsep + os.environ["PATH"],
                 "TMPDIR": str(repo / "scratch"), "TKPK_TEST_IOS": str(ios),
                 "TKPK_UI_SHARD": shard, "CALLS": str(calls_file),
-                "APP_CONTAINER": str(repo / "container"),
+                "APP_CONTAINER": str(repo / "container"), "SYNTHETIC_DEVELOPER": str(developer),
             }
             if omit_result:
                 environment["OMIT_RESULT"] = "1"
@@ -113,8 +120,12 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                     self.assertFalse(any(arg.startswith("-only-testing:") for arg in builds[0]))
                     boot = ["xcrun", "simctl", "boot", "synthetic-simulator"]
                     self.assertLess(calls.index(builds[0]), calls.index(boot))
-                    frontend = ["open", "-a", "/synthetic/developer/Applications/Simulator.app",
-                                "--args", "-CurrentDeviceUDID", "synthetic-simulator"]
+                    frontends = [call for call in calls if call[0] == "open"]
+                    self.assertEqual(len(frontends), 1)
+                    frontend = frontends[0]
+                    self.assertEqual(Path(frontend[2]).name, "Simulator.app" if ios == 26 else "DeviceHub.app")
+                    self.assertEqual(frontend[3:], ["--args", "-CurrentDeviceUDID", "synthetic-simulator"]
+                                     if ios == 26 else [])
                     self.assertLess(calls.index(boot), calls.index(frontend))
                     self.assertLess(calls.index(frontend), calls.index(builds[1]))
                     self.assertTrue(all(build[-1] == "test-without-building" for build in builds[1:]))
@@ -147,3 +158,10 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
         self.assertEqual(result.returncode, 43, result.stdout + result.stderr)
         self.assertFalse(any("test-without-building" in call for call in calls))
         self.assertTrue(any(call[0] == "open" for call in calls))
+
+    def test_missing_selected_xcode_frontend_fails_without_running_ui(self):
+        result, calls = self.run_synthetic_runner(27, "A", missing_frontend=True)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("No supported simulator frontend", result.stderr)
+        self.assertFalse(any("test-without-building" in call for call in calls))
+        self.assertFalse(any(call[0] == "open" for call in calls))
