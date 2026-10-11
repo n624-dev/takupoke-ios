@@ -330,6 +330,24 @@ extension ApplicationChecks {
             try service.enable()
             defer { try? service.disable() }
             print("UI_VOICEOVER phase=enabled;value=\(service.isEnabled ? 1 : 0)")
+            let navigation = app.navigationBars["時間割"]
+            let headings = navigation.staticTexts.matching(identifier: "時間割")
+            guard headings.count == 1 else {
+                XCTFail("VoiceOver needs one visible timetable heading")
+                return
+            }
+            let heading = headings.element(boundBy: 0)
+            let headingFrame = heading.frame
+            let navigationFrame = navigation.frame
+            let pageFrame = app.frame
+            guard usable(headingFrame), usable(navigationFrame), usable(pageFrame),
+                navigationFrame.contains(headingFrame), pageFrame.contains(headingFrame), heading.isHittable
+            else {
+                XCTFail("VoiceOver heading has no visible physical hit region")
+                return
+            }
+            heading.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            print("UI_VOICEOVER phase=heading-touched")
             print("UI_VOICEOVER phase=speech-start")
             _ = try service.currentSpeech()
             print("UI_VOICEOVER phase=speech-complete")
