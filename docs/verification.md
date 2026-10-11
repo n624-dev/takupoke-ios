@@ -1,5 +1,37 @@
 # 検証記録
 
+## 2026-10-11 Actions前の差分レビューとVoiceOver環境分離
+
+利用者の指示により、GPT-6.1 Sol／Highの1エージェントへコード差分だけを渡し、
+実装・試験・外部通信を委任せず、Actions開始前に確認する。
+43c8814→643be57のPDF差分には重大・具体的な懸念、失敗期待値の成功化、
+結果注入は見つからなかった。既定falseの単独Reader拒否と版本更新の整合を確認した。
+必須PathReaderや全glyph boxes受渡しの全体は差分に出ないため証明不能との限定がある。
+主担当は既存呼出しの必須検証を別途確認し、架空Native検査の結果だけを記録する。
+
+実行環境変更前にtest_catalogでtest-app-ui.sh／ui_test_manifest.pyと対応する
+Python契約検査を検索。UI索引はVoiceOver／moveForward／U43／U40で検索し、
+U44の再発、U43の2件失敗、U40の26後続Runner失敗を区別した。
+変更はremaining→voiceover→notificationsのphase分割と、前区間成功後の
+27 VoiceOver用の新しい所有Simulatorだけ。元の相対順、同じビルド再利用、
+実ケース・操作・期限・読み上げ3項目・全選択の厳密な完了照合を維持する。
+アプリ本体・PDF・通知許可API・読み上げテスト自体はこの追加変更では編集しない。
+26のVoiceOverは元の予定skip、通知用のdevice分離も維持する。
+
+エージェントはphaseの網羅・非重複、失敗時の非zero、清掃・非再試行に
+重大な不整合は見つけなかったが、VoiceOverだけのprobeでは前区間が空なので
+新device分岐を通らないと指摘した。この追加選択肢は削除した。
+既存input-deliveryの設定→VoiceOverで実分離を通し、その後は全体を確認する。
+focused成功から因果や全体成功を断定しない。後続27通知と文字サイズも同じ
+新deviceを引き継ぐため、公開にはその全体結果が必要である。
+Code3とdevice状態の因果、最善の方式、恒常的解消は未証明。
+
+ローカルの追加失敗経路検査で、一度shellの既存失敗終了1を下位xcodebuildの
+48と誤って期待し1件失敗。shellの既存のexit1は変えず、期待値をその契約へ修正した。
+対象Runner契約13件と全Python179件（Apple限定の予定skip7）が失敗0。
+全Python19.274秒、shell構文・catalog341登録と差分検査も成功。
+実AppleのVoiceOver成功を意味しない。
+
 ## 2026-10-11 全体369：VoiceOver命令エラーとActions停止禁止
 
 ソース643be57811899c025a4a44a42143af13e53659bbの

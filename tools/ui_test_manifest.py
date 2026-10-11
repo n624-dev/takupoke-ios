@@ -156,8 +156,13 @@ def selected_tests(shard):
 def phase_tests(tests, phase):
     if phase == "all":
         return tuple(tests)
-    return tuple(test for test in tests
-                 if (test in NOTIFICATION_PROBE_TESTS) == (phase == "notifications"))
+    def test_phase(test):
+        if test == VOICEOVER_TEST:
+            return "voiceover"
+        if test in NOTIFICATION_PROBE_TESTS:
+            return "notifications"
+        return "remaining"
+    return tuple(test for test in tests if test_phase(test) == phase)
 
 
 def validate_results(log, expected, ios):
@@ -175,7 +180,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--shard", choices=(*SHARDS, "all"), default="all")
     parser.add_argument("--mode", choices=("selectors", "system-size", "verify"), required=True)
-    parser.add_argument("--phase", choices=("all", "notifications", "remaining"), default="all")
+    parser.add_argument("--phase", choices=("all", "notifications", "voiceover", "remaining"), default="all")
     parser.add_argument("--log", type=Path)
     parser.add_argument("--ios", type=int, choices=(26, 27))
     parser.add_argument("--system-size-only", action="store_true")
