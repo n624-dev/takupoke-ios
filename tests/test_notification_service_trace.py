@@ -28,6 +28,39 @@ def spooled_responses(*responses):
 
 
 class NotificationServiceTraceTests(unittest.TestCase):
+    def test_launch_observation_keeps_nested_codes_without_private_error_details(self):
+        bundle = notification_service_trace.BUNDLE
+        message = (bundle + ' Error Domain=FBSOpenApplicationServiceErrorDomain Code=1 '
+                   'UserInfo={private-token="架空の非公開文字列", '
+                   'NSUnderlyingError={Error Domain=FBProcessExit Code=64 '
+                   'NSUnderlyingError={Error Domain=RBSRequestErrorDomain Code=5 '
+                   'NSUnderlyingError={Error Domain=NSPOSIXErrorDomain Code=153}}}}')
+        result = notification_service_trace.observations([
+            {"processImagePath": "/system/runningboardd", "eventMessage": message},
+            {"processImagePath": "/system/launchd", "eventMessage": message},
+            {"processImagePath": "/system/unknown", "eventMessage": message},
+            {"processImagePath": "/system/launchd", "eventMessage":
+             message.replace(bundle, "unknown-bundle")},
+        ])
+        self.assertEqual([row["process"] for row in result], ["runningboardd", "launchd"])
+        self.assertEqual(result[0]["launchErrors"], [
+            {"domain": "FBSOpenApplicationServiceErrorDomain", "code": 1},
+            {"domain": "FBProcessExit", "code": 64},
+            {"domain": "RBSRequestErrorDomain", "code": 5},
+            {"domain": "NSPOSIXErrorDomain", "code": 153},
+        ])
+        for private in (bundle, "private-token", "架空の非公開文字列", "NSUnderlyingError", "UserInfo"):
+            self.assertNotIn(private, json.dumps(result, ensure_ascii=False))
+
+    def test_launch_error_codes_are_bounded_and_reject_unknown_domains_and_large_values(self):
+        self.assertEqual(notification_service_trace.launch_error_codes(
+            "Error Domain=PrivateDomain Code=1 Error Domain=NSPOSIXErrorDomain Code=2147483648 "
+            "Error Domain=NSPOSIXErrorDomain Code=-2147483649 "
+            "Error Domain=NSPOSIXErrorDomain Code=1234567890123"), [])
+        result = notification_service_trace.launch_error_codes(
+            "Error Domain=NSPOSIXErrorDomain Code=-1 " * 30)
+        self.assertEqual(result, [{"domain": "NSPOSIXErrorDomain", "code": -1}] * 8)
+
     def test_accessibility_observation_has_only_known_services_and_fixed_words_in_order(self):
         messages = [
             {"processImagePath": "/system/VoiceOverTouch", "eventMessage":

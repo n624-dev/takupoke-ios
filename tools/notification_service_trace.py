@@ -9,10 +9,11 @@ import sys
 import tempfile
 import time
 
-SERVICES = ("usernotificationsd", "SpringBoard", "lsd")
+SERVICES = ("usernotificationsd", "SpringBoard", "lsd", "runningboardd", "launchd")
 BUNDLE = "jp.n624.takupoke.app-checks"
 LOG_PREDICATE = (
-    f'((process == "SpringBoard" OR process == "lsd") AND eventMessage CONTAINS "{BUNDLE}")'
+    '(' + ' OR '.join(f'process == "{name}"' for name in SERVICES[1:])
+    + f') AND eventMessage CONTAINS "{BUNDLE}"'
     ' OR (process == "usernotificationsd" AND ('
     + " OR ".join(f'eventMessage CONTAINS[c] "{word}"'
                   for word in ("authoriz", "connection", "error", "fail", "timeout", BUNDLE)) + '))'
@@ -28,6 +29,24 @@ WORDS = re.compile(
     r"hidden|waiting|blocking|blocked|approved|allowed|enabled|disabled|permission|prompt|"
     r"dialog|rejected|reason|session|assertion|transaction|locked|unlocked|connected|"
     r"display|screen|interactive|unavailable|attempt|delegate|true|false|not)\b", re.I)
+
+LAUNCH_ERROR = re.compile(
+    r"\b(?:Error\s+)?Domain=(FBSOpenApplicationServiceErrorDomain|FBProcessExit|"
+    r"RBSRequestErrorDomain|NSPOSIXErrorDomain|NSMachErrorDomain)\s+Code=(-?\d{1,10})\b"
+)
+
+
+def launch_error_codes(message):
+    """Keep nested OS error codes; never copy failure reasons or UserInfo."""
+    result = []
+    for match in LAUNCH_ERROR.finditer(message):
+        domain, raw_code = match.groups()
+        code = int(raw_code)
+        if -(2**31) <= code < 2**31:
+            result.append({"domain": domain, "code": code})
+        if len(result) == 8:
+            break
+    return result
 
 
 def fixed_words(message, pattern=WORDS):
@@ -114,7 +133,11 @@ def observations(entries):
         ):
             continue
         # Publish only a fixed vocabulary, never identifiers, payloads or raw OS text.
-        result.append({"process": process, "words": fixed_words(message)})
+        observation = {"process": process, "words": fixed_words(message)}
+        codes = launch_error_codes(message)
+        if codes:
+            observation["launchErrors"] = codes
+        result.append(observation)
         if re.search(r"authoriz|permission|notif|alert|prompt|timeout|fail|error|invalidated|interrupted",
                      message, re.I):
             important.append(len(result) - 1)

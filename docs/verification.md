@@ -1,5 +1,30 @@
 # 検証記録
 
+## 2026-10-12 U58の下位エラー観測を補強
+
+編集前にtest_catalogでtools/test-app-ui.sh／notification_service_traceを検索し、
+UI失敗索引をlaunch／RequestDenied／NoSuchProcess／U40／U41／U49で検索した。
+375の失敗U58は次の試行前にc7df8b9で記録・push済み。
+U40の同一device長時間batch後と異なり新しいdeviceであり、U49の保存後再起動とも異なる。
+SpringBoardと通知serviceは事後もrunning。アプリinit到達の証拠はない。
+既存診断は下位NSErrorを固定語へ変換してcodeを落としていたため、下位原因を判別できない。
+
+Apple Forumsの[750079](https://developer.apple.com/forums/thread/750079)と
+[741154](https://developer.apple.com/forums/thread/741154)も同じ上位domain群を報告するが、
+下位POSIX codeは153／111と異なり、Xcode15・別プロジェクトの事例である。
+この一致を今回の原因やRosetta・SDK変更の根拠とはしない。
+
+変更は既存の読み取り専用OSログ観測だけ。対象bundleに限ってrunningboardd／launchdも読む。
+既存の固定語と件数上限を維持し、固定5domainのInt32範囲codeを1event最大8件追加する。
+UserInfo・failure reason・bundle名・任意文字列は出力しない。
+アプリ、fixture、実操作、SDK、期限、case選択、合格条件は変更していない。
+同じ挙動を直したとの主張はせず、再発時に下位原因を判別するための観測変更である。
+
+既存の観測contractと追加2件で、ネストしたcode、対象bundle／service限定、
+未知domain・範囲外・過大値の拒否、最大件数、非公開文字列の非出力を確認した。
+Linux Python184件（host依存skip7）、18.235秒・失敗0。
+catalog341ファイル、差分空白も成功。Apple上の観測と全体検証は未実行。
+
 ## 2026-10-12 全体375完了：通知caseの初回起動失敗で公開不可
 
 同じb9289ae・実行38182423428・試行1はfailureで全ジョブ完了した。取消しはない。
