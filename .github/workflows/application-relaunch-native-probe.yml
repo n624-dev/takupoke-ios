@@ -93,10 +93,12 @@ jobs:
               with tempfile.TemporaryDirectory(prefix="takupoke-runtime-owned-", dir=os.environ["RUNNER_TEMP"]) as owned:
                   subprocess.run(["xcodebuild", "-downloadPlatform", "iOS", "-buildVersion", "26.5",
                                   "-exportPath", owned], check=True, timeout=600)
-                  images = list(Path(owned).glob("*.dmg"))
-                  if len(images) != 1 or images[0].is_symlink() or not images[0].is_file():
-                      raise SystemExit("Comparison requires exactly one exported runtime image")
-                  subprocess.run(["xcodebuild", "-importPlatform", str(images[0])], check=True, timeout=180)
+                  versions, _ = available26()
+                  if not versions:
+                      images = list(Path(owned).glob("*.dmg"))
+                      if len(images) != 1 or images[0].is_symlink() or not images[0].is_file():
+                          raise SystemExit("Comparison requires installed runtime or one exported image")
+                      subprocess.run(["xcodebuild", "-importPlatform", str(images[0])], check=True, timeout=180)
               versions, _ = available26()
           if not versions or max(versions) != (26, 5):
               raise SystemExit("Comparison requires unchanged iOS 26.5 runtime")

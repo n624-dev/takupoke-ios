@@ -56,7 +56,11 @@ elif sys.argv[1:2] == ['simctl']:
 elif args[:1] == ['-downloadPlatform']:
     if os.environ['IMPORT_MODE'] == 'download-fails': sys.exit(9)
     exported = Path(args[args.index('-exportPath') + 1])
-    if os.environ['IMPORT_MODE'] != 'no-image':
+    if os.environ['IMPORT_MODE'] in ('auto-install', 'auto-wrong-version'):
+        (exported / 'fictional-runtime.exportedBundle').mkdir()
+        version = '26.6' if os.environ['IMPORT_MODE'] == 'auto-wrong-version' else '26.5'
+        Path(os.environ['IMPORT_MARKER']).write_text(version)
+    elif os.environ['IMPORT_MODE'] != 'no-image':
         (exported / 'fictional-runtime.dmg').write_bytes(b'fictional image')
 elif args[:1] == ['-importPlatform']:
     if os.environ['IMPORT_MODE'] == 'import-fails': sys.exit(10)
@@ -80,6 +84,8 @@ else: print('Synthetic Xcode version')
                 (26, "27.0", "27.0", "26.6", "unused", False),
                 (26, "27.0", "27.0", "26.4", "registered-unavailable", False),
                 (26, "27.0", "27.0", "27.0", "success", True),
+                (26, "27.0", "27.0", "27.0", "auto-install", True),
+                (26, "27.0", "27.0", "27.0", "auto-wrong-version", False),
                 (26, "27.0", "27.0", "27.0", "download-fails", False),
                 (26, "27.0", "27.0", "27.0", "import-fails", False),
                 (26, "27.0", "27.0", "27.0", "no-image", False),
@@ -110,7 +116,8 @@ else: print('Synthetic Xcode version')
                         self.assertEqual(len(downloads), 1)
                         self.assertEqual(downloads[0][:5],
                                          ["-downloadPlatform", "iOS", "-buildVersion", "26.5", "-exportPath"])
-                        self.assertEqual(len(imports), 0 if mode in ("download-fails", "no-image") else 1)
+                        no_import = mode in ("download-fails", "no-image", "auto-install", "auto-wrong-version")
+                        self.assertEqual(len(imports), 0 if no_import else 1)
                     self.assertEqual(list(root.glob("takupoke-runtime-owned-*")), [])
 
     def run_synthetic_runner(self, ios, shard, *, omit_result=False, fail_build=False,
