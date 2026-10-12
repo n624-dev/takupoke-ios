@@ -1,5 +1,19 @@
 # 検証記録
 
+## 2026-10-12 起動観測ソースで全体376と開発91を開始
+
+ソース373da5f50b421838bbd5f190a3cc39b3c222f978をfeature／mainへpushした。
+開始前にGPT-6.1 Sol／Highが固定した2ファイルのコード差分だけを確認し、
+mainのb9289aeとの差分も同一であることを再確認した。重大指摘なし。
+未送信の各コミットと作業差分の空白検査も成功した。
+
+[全体376](https://github.com/n624-dev/takupoke-ios/actions/runs/38188845694)と
+[開発91](https://github.com/n624-dev/takupoke-ios/actions/runs/38188845455)は同じソース・試行1で進行中。
+観測は補強したが、起動の下位原因と一般的な解消は未確認。
+製品のPDF修正、元の全case・実操作・期限・期待値・公開ゲートは変更していない。
+Focusedは今回追加せず、配布前の全検証を確認する。Actionsは失敗しても取り消さない。
+376のIPA・Release・固定Sourceはまだ公開しておらず、通常Latestは368のまま。
+
 ## 2026-10-12 U58の下位エラー観測を補強
 
 編集前にtest_catalogでtools/test-app-ui.sh／notification_service_traceを検索し、
