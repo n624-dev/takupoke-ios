@@ -1,5 +1,18 @@
 # 検証記録
 
+## 2026-10-12 U64比較：開発99成功・設定caseの両OS比較を開始
+
+[開発99](https://github.com/n624-dev/takupoke-ios/actions/runs/38212354475)・760304f・試行1は成功。
+Python184件・76.299秒、Swift474件・74.099秒・build込み238.5秒で失敗0。
+予定されたNative省略は合格へ代用しない。
+別Actions前にもGPT-6.1 Sol／Highが同じ固定コード差分を確認し、重大な問題を認めなかった。
+[設定比較60](https://github.com/n624-dev/takupoke-ios/actions/runs/38212443898)・917e807・試行1で
+既存testSettingsAccountDataAndFileDetailsを26／27各1回開始した。
+917e807は760304fから文書だけで、実行対象コードとレビューpatchはbyte一致。
+26は失敗378 Bと同じSDK26.5／Runtime26.5、27はSDK／Runtime27.0。
+結果未完了。製品Strictは固定し、開発成功を画面や資料全体の復旧成功へ代用しない。
+
+
 ## 2026-10-12 全体378：手動訂正26の3ジョブ成功
 
 841a389・38207478769・試行1の26原本変更・job114682824265は360.175秒、
