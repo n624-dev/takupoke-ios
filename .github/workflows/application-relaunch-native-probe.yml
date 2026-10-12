@@ -32,6 +32,11 @@ on:
         options:
           - '27.0'
           - '27.1'
+      sdk26:
+        description: Compare iOS 26.5 using the shipping SDK; distribution stays unchanged
+        type: choice
+        default: '26.6'
+        options: ['26.6', '27.0']
 
 permissions:
   contents: read
@@ -43,15 +48,16 @@ jobs:
       fail-fast: false
       matrix:
         ios: ${{ fromJSON(inputs.ios == 'both' && '[27,26]' || inputs.ios == '26' && '[26]' || '[27]') }}
-    runs-on: ${{ matrix.ios == 26 && 'macos-26' || 'xcode-27' }}
+    runs-on: ${{ matrix.ios == 26 && inputs.sdk26 == '26.6' && 'macos-26' || 'xcode-27' }}
     timeout-minutes: 30
     env:
       DEVELOPER_DIR: >-
-        ${{ matrix.ios == 26 && '/Applications/Xcode_26.6.app/Contents/Developer'
-          || inputs.sdk27 == '27.1' && '/Applications/Xcode_27.1.app/Contents/Developer'
+        ${{ matrix.ios == 26 && inputs.sdk26 == '26.6' && '/Applications/Xcode_26.6.app/Contents/Developer'
+          || matrix.ios == 27 && inputs.sdk27 == '27.1' && '/Applications/Xcode_27.1.app/Contents/Developer'
           || '/Applications/Xcode_27.0.app/Contents/Developer' }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_UI_PROBE_SDK27: ${{ inputs.sdk27 }}
+      TKPK_UI_PROBE_SDK26: ${{ inputs.sdk26 }}
       TKPK_UI_RELAUNCH_PROBE: '1'
       TKPK_UI_PROBE_CASE: ${{ inputs.case }}
       PYTHONDONTWRITEBYTECODE: '1'
@@ -67,6 +73,18 @@ jobs:
           xcodebuild -version
           actual_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
           printf 'Comparison simulator SDK: %s\n' "$actual_sdk"
+          if [[ "$TKPK_TEST_IOS" == 26 && "$TKPK_UI_PROBE_SDK26" == 27.0 ]]; then
+            test "$actual_sdk" = 27.0
+            xcrun simctl list runtimes -j | python3 -c '
+          import json, sys
+          runtimes = json.load(sys.stdin)["runtimes"]
+          versions = [tuple(map(int, r["version"].split("."))) for r in runtimes
+                      if r.get("isAvailable") and r["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS-")
+                      and r["version"].split(".")[0] == "26"]
+          if not versions or max(versions) != (26, 5):
+              raise SystemExit("Comparison requires unchanged iOS 26.5 runtime")
+          print("Comparison runtime: iOS 26.5")'
+          fi
           if [[ "$TKPK_TEST_IOS" == 27 && "$TKPK_UI_PROBE_SDK27" == 27.1 ]]; then
             test "$actual_sdk" = 27.1
             xcrun simctl list runtimes -j | python3 -c '

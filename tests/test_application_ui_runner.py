@@ -28,7 +28,12 @@ class ShellRunnerTests(unittest.TestCase):
         self.assertIn("inputs.ios == 'both'", matrix)
         self.assertIn("inputs.ios == '26'", matrix)
         self.assertNotIn("include:", matrix)
-        self.assertIn("runs-on: ${{ matrix.ios == 26 && 'macos-26' || 'xcode-27' }}", workflow)
+        self.assertIn(
+            "runs-on: ${{ matrix.ios == 26 && inputs.sdk26 == '26.6' && 'macos-26' || 'xcode-27' }}",
+            workflow)
+        sdk26 = workflow.split("      sdk26:\n", 1)[1].split("\npermissions:", 1)[0]
+        self.assertIn("default: '26.6'", sdk26)
+        self.assertIn("options: ['26.6', '27.0']", sdk26)
 
     def test_alternate_toolchain_preflight_requires_requested_sdk_and_same_runtime(self):
         workflow = (ROOT / ".github/workflows/application-relaunch-native-probe.yml").read_text()
@@ -48,14 +53,22 @@ else: print('Synthetic Xcode version')
                 path = root / name
                 path.write_text(fake)
                 path.chmod(0o755)
-            for ios, sdk, runtime, success in ((27, "27.1", "27.0", True),
-                                             (27, "27.0", "27.0", False),
-                                             (27, "27.1", "27.1", False),
-                                             (27, "27.1", "26.5", False),
-                                             (26, "26.6", "26.5", True)):
-                with self.subTest(ios=ios, sdk=sdk, runtime=runtime):
+            cases = (
+                (27, "26.6", "27.1", "27.0", True),
+                (27, "26.6", "27.0", "27.0", False),
+                (27, "26.6", "27.1", "27.1", False),
+                (27, "26.6", "27.1", "26.5", False),
+                (26, "26.6", "26.6", "26.5", True),
+                (26, "27.0", "27.0", "26.5", True),
+                (26, "27.0", "26.6", "26.5", False),
+                (26, "27.0", "27.0", "27.0", False),
+                (26, "27.0", "27.0", "26.6", False),
+            )
+            for ios, sdk26, sdk, runtime, success in cases:
+                with self.subTest(ios=ios, sdk26=sdk26, sdk=sdk, runtime=runtime):
                     env = os.environ | {"PATH": directory + os.pathsep + os.environ["PATH"],
                         "TKPK_TEST_IOS": str(ios), "TKPK_UI_PROBE_SDK27": "27.1",
+                        "TKPK_UI_PROBE_SDK26": sdk26,
                         "OBSERVED_SDK": sdk, "OBSERVED_RUNTIME": runtime}
                     result = subprocess.run(["bash", "-c", script], env=env,
                                             capture_output=True, text=True, timeout=5)
