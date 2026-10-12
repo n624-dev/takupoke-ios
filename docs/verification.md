@@ -1,5 +1,25 @@
 # 検証記録
 
+## 2026-10-12 U63対象比較58：27成功・26同じ選択失敗
+
+325674f・[38204887186](https://github.com/n624-dev/takupoke-ios/actions/runs/38204887186)・
+試行1はfailure。27・job114666069823は108.648秒で成功し、通常／行事のみ両方の
+一回の実tap・selected・表示・3文字サイズ条件を確認した。
+26・job114666069709は82.609秒で失敗。SDK27.0・Runtime26.5、実Image中心
+（観測された枠から算出）への一回tapを実際に合成したが、45秒内のselectedは未成立。
+期限後の階層でもホームが選択されている。画面表示・時刻の検証へ進んでいないため未評価。
+標準hit pointを変えるだけでは解決しない。候補をmainへ取り込まず全体Actionsも開始しない。
+両ジョブを取消さず最後まで確認した。公開版と固定Sourceは368のまま。
+同ソースの[Development97](https://github.com/n624-dev/takupoke-ios/actions/runs/38204645043)は
+Python184件・63.752秒、portable Swift474件・73.365秒（準備込み234.0秒）で成功。
+任意Nativeの予定skipをSDK検査の成功に加算しない。
+WebでAppleのTabView/XCTest報告とXcode27公式Release Notesも確認した。
+[Apple Forumsの報告](https://developer.apple.com/forums/thread/800367)は識別子が見つからない失敗で、
+今回の存在・hittable・実tap後の未選択と同じ原因の証明にはならない。
+[公式Release Notes](https://developer.apple.com/documentation/xcode-release-notes/xcode-27-release-notes)からも
+今回に対応する修正済み不具合は特定できなかった。未確認のSDKバグを理由に検査を外さない。
+製品・Parser・更新文面は4fb54a8から差分0。元の3資料は実機未確認。
+
 ## 2026-10-12 U63対象の比較開始
 
 ソース325674f・[対象比較58](https://github.com/n624-dev/takupoke-ios/actions/runs/38204887186)・
