@@ -1,5 +1,21 @@
 # 検証記録
 
+## 2026-10-12 U63候補：実native iconの中心を一回操作する
+
+一覧をApplicationChecks+Navigation.swift／共通時刻case、失敗索引をtab tap／selected／
+U30で検索した。標準hit pointの失敗に対し、同じbuttonに属する一意なImageの
+包含・hittableを観測して、その実Image中心を一回だけtapする候補を実装した。
+screen座標の固定値、旧外枠中心、押し直し、選択の注入は使わない。
+元の45秒current native selected待機と画面遷移の確認は維持する。
+既存の共通時刻／行事のみ週caseへ入る診断groupだけを追加した。
+既存のselector検査の表で、一件完了と欠落・重複・失敗・skip・余分な結果の拒否を確認する。
+通常case・shard・全13ゲート・SDKは変えない。一覧write／checkは342登録ファイルで成功。
+ローカルPython184件・20.400秒・環境限定skip7と差分空白検査は成功した。
+実UIの効果は未評価。GPT-6.1 Sol／Highの中立コード差分確認で重大指摘はなかったが、
+共通helperのImage新条件が他caseでも得られるかは未知であり、focusedだけでは判断しない。
+同じSDK／Runtimeの対象caseを26／27で比較した後、同一ソースの全13必須検査を行う。
+製品・Parser・更新文面は4fb54a8から差分0。公開版と固定Sourceは368のまま。
+
 ## 2026-10-12 全体377完了：10事前検査成功・2失敗で公開skip
 
 4fb54a8・[38197595058](https://github.com/n624-dev/takupoke-ios/actions/runs/38197595058)・

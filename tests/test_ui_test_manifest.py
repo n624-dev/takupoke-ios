@@ -576,6 +576,7 @@ class ManifestTests(unittest.TestCase):
                               "testSetupCanBeSkippedAndOffersAllFiles")),
             ("updates", ("testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair",
                          "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork")),
+            ("timetable-clocks", ("testTimetableCommonClocksAndEventOnlyWeekScale",)),
         )
         for group_name, selected in groups:
             selection = ["--relaunch-probe", "--probe-case", group_name]

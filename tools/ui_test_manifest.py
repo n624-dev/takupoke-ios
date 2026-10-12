@@ -87,6 +87,7 @@ PROBE_GROUPS = {
         "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair",
         "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
     ),
+    "timetable-clocks": ("testTimetableCommonClocksAndEventOnlyWeekScale",),
 }
 # Balanced using measured case durations, including the three OS size reruns.
 SHARDS = {

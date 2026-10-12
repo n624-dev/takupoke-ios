@@ -21,10 +21,17 @@ extension ApplicationChecks {
             XCTFail("Tab has no visible native hit region: " + app.debugDescription)
             return
         }
-        print("NATIVE_TAB title=\(title);bar=\(tabs.frame);button=\(button.frame)")
-        // Use the system's current hittable point on this visible native tab.
+        let icons = button.images.allElementsBoundByIndex
+        guard icons.count == 1, contained(icons[0], in: button.frame),
+            contained(icons[0], in: tabs.frame), icons[0].isHittable
+        else {
+            XCTFail("Tab requires one visible native icon inside its current button: " + app.debugDescription)
+            return
+        }
+        print("NATIVE_TAB title=\(title);bar=\(tabs.frame);button=\(button.frame);icon=\(icons[0].frame)")
+        // Observe the unique icon inside this same native button for each tap.
         // Send one physical tap; selection must still complete within 45 seconds.
-        button.tap()
+        icons[0].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         let selected = XCTNSPredicateExpectation(
             predicate: NSPredicate { _, _ in
                 let current = self.app.tabBars.buttons[title]
