@@ -1,5 +1,16 @@
 # OCR改善の検証記録
 
+## 2026-10-12 Strict塗り罫線修正版の公開・実資料は未評価
+
+643be57の製品修正を維持したbfdf7c5の[全体380・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38227922801)は
+全13必須チェックが成功し、[0.1.380（380.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.380-build.380.1)を
+通常Release・Latest・固定AltStore Sourceへ公開した。匿名取得で配布ソース・版・ハッシュを確認した。
+文字に重ならない細い塗り罫線の許可と旧P01／P12の同じSHA再解析を配布した。
+UI検証の対処によってOCR／AI・認識値・正式保存規則を変更していない。
+Native535件（予定skip1・失敗0）と全UIの成功は、元の3資料の復旧証明ではない。
+実資料・iPhone実機／AltStore更新・OCR／モデル品質は未評価。復旧率へ加算しない。
+失敗済み条件と比較の根拠、U65の今回の成功範囲は検証記録と失敗索引へ保持した。
+
 ## 2026-10-11 VoiceOver環境分離の失敗
 
 1c86938の診断45は、設定成功後に別の新規所有27Simulator・別Runnerへ実際に移ったが、

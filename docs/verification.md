@@ -1,5 +1,33 @@
 # 検証記録
 
+## 2026-10-12 Strict塗り罫線修正版0.1.380の公開完了
+
+ソース`bfdf7c51b31d5331a9308ac8cb4ae28388aaa897`の[全体380・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38227922801)は、
+同じコミット・実行・試行の全13必須チェックが成功した。Actionsの取消しはない。
+Python184件、Native535件（予定skip1・失敗0）、通常26／27 A・B、
+手動訂正両OSの6ジョブ、通知・追加文字サイズ・27のVoiceOverを確認した。
+公開job114771899429のファイル選択UI3件、ホスト検査とiPhone Releaseビルドも成功した。
+公開ジョブ内のNative再実行は535件・予定skip1・失敗0・116.894秒で、品質件数へ重複加算しない。
+iPhone Releaseビルドは425.4秒、公開と所有出力の削除も成功した。
+
+[0.1.380（380.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.380-build.380.1)を通常Release・Latestへ公開し、固定AltStore Sourceを更新した。
+4添付（takupoke.ipa／altstore-source.json／icon.png／release.json）を認証なしで取得し、
+GitHubのサイズ・digest、release.jsonのハッシュと照合した。
+IPAは16,863,273 bytes、SHA-256は
+`b21111aebd28bb7d54848d5a71f3af7d109bd2a5cf8b2bdf9b56685dbdab6a6b`。
+IPA内のソース・版・build、SDK`iphoneos27.0`・最低OS`26.0`、更新文面を照合した。
+固定Sourceと添付Sourceのbytesも一致し、検証用に所有した一時ダウンロード領域は削除済み。
+既存の22c8ee2開発確認Releaseは保持している。
+
+製品変更は、原文字に重ならない細い塗り罫線を実位置で検証して許可するStrict修正と、
+同じSHAの旧P01／P12を新Parser版で再解析する経路。上塗り・交差・不明構造の拒否は維持する。
+以後のUIテスト対処でStrict・OCR／AI・正式保存規則は変更していない。
+U65のホーム起動は今回の全体26 Bで成功したが、SDKが下位原因との証明や恒常的解消ではない。
+実資料3種類の復旧、iPhone実機への導入・AltStore更新、OCR／モデル品質は未評価。
+失敗時の「観測を先に保存・push→過去の全文と当時のコードを照合→根拠ある対処」の手順は、
+AGENTS.mdとテスト保守方針へ保存している。詳細と過去の失敗は索引へ保持する。
+
+
 ## 2026-10-12 全体380：全12事前検査が成功・iPhoneビルド／公開を開始
 
 bfdf7c5・38227922801・試行1の通常26 A・job114756475831はsuccess。
