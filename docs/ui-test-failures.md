@@ -8,6 +8,21 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U58 通知用の新規deviceで初回launchタイムアウト（全体375、iOS26 A）
+
+- 対象：b9289aeの`testChangedDataProducesOneLocalNotification`、83.592秒で失敗。
+  元の通常14件は1542.733秒・失敗0。通知は別Runner・別の所有deviceの初回起動で失敗した。
+- 観測：boot174.6秒の完了後、SpringBoardのforegroundと有限frameを確認。
+  `ApplicationChecks.swift:86`の一回の`app.launch()`がXcode経由の起動タイムアウト。
+  FBSOpenApplicationServiceErrorDomain1／RequestDenied、FBProcessExit64、RBSRequestErrorDomain5。
+  lifecycleはcapture-missing-or-limited。アプリ初期化到達と下位原因は未確定。
+- 比較：U40の長いbatch後の別Runner、U49の保存後再起動と区別する。
+  U08の通知許可要求には到達しておらず、許可経路やPDF解析の失敗とは扱わない。
+  同じ375の26 B通知、27 A／B通知、手動訂正6ジョブは成功した。
+- 状態：375の全ジョブ完了を取消しなしで確認。公開ジョブskip、配布物なし。
+  launch再試行・待ち時間延長・case省略・製品変更はまだ行っていない。
+- 根拠：[375通常26 A](https://github.com/n624-dev/takupoke-ios/actions/runs/38182423428/job/114607278933)。
+
 ## U56 年度入力操作後に4桁の一致が成立しない（全体374、iOS27 A）
 
 - 対象：bd5ddb7の`testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair`。
