@@ -8,6 +8,21 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+
+## U65 通常ホームcaseでアプリ起動のprocess handleを取得できない（全体379、iOS26 B）
+
+- 対象：983e523・38218043172・試行1、job114718041872の
+  testHomeTimetableAndWeekCalendar。進行中の取得ログで20.503秒のfailedを確認した。
+- 観測：SDK26.5／Runtime26.5のSimulatorがjp.n624.takupoke.app-checksを起動できず、
+  NSPOSIXErrorDomain Code3「No such process」、process handleもlaunch errorも返らない記録がある。
+  下位原因、操作前の状態、最終の失敗件数はまだ未確定。
+- 状態：他ケースは継続中。以後の設定caseでは初回0→1→0のUI／保存更新まで観測したが、
+  それでホームcaseの失敗を救済しない。正式なジョブ／全体結果は未完了。
+- 手順：対処案を決める前にこの観測事実を保存・pushする。
+  その後で過去の起動失敗記録と当時／今回のコードを照合し、同一条件の再試行を避ける。
+  main983e523を固定し、残りのActionsは取消さない。新しい試行や修正は開始していない。
+- 根拠：[379通常26 B](https://github.com/n624-dev/takupoke-ios/actions/runs/38218043172/job/114718041872)。
+
 ## U64 初回AI／OCRのnative Switch操作が反映されない（全体378、iOS26 B）
 
 - 比較結果：[focused60](https://github.com/n624-dev/takupoke-ios/actions/runs/38212443898)・917e807で
