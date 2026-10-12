@@ -8,6 +8,18 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U61 Runtime取得物の形式を誤って固定した（診断56）
+
+- 対象：607631d・診断38195655722・試行1、rows／26／SDK27.0。
+- 観測：26.5／23F77／arm64・8.52GBの取得は成功した。
+  Installing／Doneの後、exportedBundleとしてexportされたが、
+  事前処理が従来のdmg一件を要求したため失敗。UIは未実行。
+- 誤り：Apple手順の旧形式を現在SDKへ固定した。Runtime取得失敗ではない。
+- 修正対象：取得後に実際のavailable Runtimeを照会する。
+  既に26.5が利用可能なら再importせず、所有export領域回収後にも26.5を検査する。
+  未installのdmgだけ従来import経路を使い、別版・欠落は拒否する。
+- 根拠：[診断56](https://github.com/n624-dev/takupoke-ios/actions/runs/38195655722/job/114637584557)。
+
 ## U60 配布SDK比較に必要なiOS26.5 Runtimeがない（診断55）
 
 - 対象：acf884a・診断38195173505・試行1、rows／26／SDK27.0。

@@ -1,5 +1,16 @@
 # 検証記録
 
+## 2026-10-12 診断56：版指定取得成功、旧形式の要求で事前停止
+
+607631d・[38195655722](https://github.com/n624-dev/takupoke-ios/actions/runs/38195655722)・
+試行1はfailure。26.5／23F77／arm64を8.52GB取得しInstalling／Doneとなった。
+exportはexportedBundle形式だが、事前処理がdmg一件を要求して停止した。
+取得後の実際のinstall状態を確認せず旧形式へ固定した実装の誤りである。
+rowsの起動・保存・再起動は未評価。所有export領域の回収は完了。
+詳細は[U61](ui-test-failures.md)。公開版・製品・UI操作は変更なし。
+Development93はPython184件・54.444秒、Swift474件・56.056秒で成功。
+任意Native jobの予定skipをSDK検査の成功へ加算しない。
+
 ## 2026-10-12 診断26.5 Runtimeの版指定準備
 
 U60を記録・pushした後、一覧を診断workflow名、失敗索引をU60／runtime／SDKで検索。
