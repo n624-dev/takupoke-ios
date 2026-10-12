@@ -8,6 +8,19 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U60 配布SDK比較に必要なiOS26.5 Runtimeがない（診断55）
+
+- 対象：acf884a・診断38195173505・試行1、rows／26／SDK27.0。
+- 観測：実Xcode27.0・build27A266a・実SDK27.0は確認できたが、
+  最高available26系Runtimeが26.5である条件に不合格。UIは未実行。
+  Runnerはxcode-27-arm64／20261006.0244.1。
+- 照合：この版の公式搭載一覧のiOS Runtimeは27.0のみ。
+  Xcode27の26.5対応や起動品質の不合格を示す結果ではない。
+- 次の条件：Apple公式の版指定取得・importで26.5を用意できるか確認する。
+  別OSへ切り替えず、取得後も実SDKと26.5の検査を維持する。
+- 根拠：[診断55](https://github.com/n624-dev/takupoke-ios/actions/runs/38195173505/job/114636120558)、
+  [Runner搭載一覧](https://github.com/actions/runner-images/blob/xcode-27-arm64/20261006.0244/images/macos/xcode-27-arm64-Readme.md)。
+
 ## U59 通常区間の初回launch timeoutと次ケースのpid 0（全体376、iOS26 A）
 
 - 対象：373da5fの最初の`testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch`。

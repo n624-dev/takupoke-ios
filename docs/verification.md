@@ -1,5 +1,14 @@
 # 検証記録
 
+## 2026-10-12 診断55：26.5 Runtimeを用意できず、UI未実行
+
+acf884a・[38195173505](https://github.com/n624-dev/takupoke-ios/actions/runs/38195173505)・
+試行1は事前検査でfailure。実Xcode27.0／build27A266a／SDK27.0は一致したが、
+26系の最高available Runtime26.5という条件を満たさなかった。
+rowsの起動・保存・再起動は未評価。条件を緩めて別OSへ変更しない。
+Runner版20261006.0244.1の公式搭載一覧にはiOS27.0のみがある。
+詳細は[U60](ui-test-failures.md)。公開版・製品実装は変更していない。
+
 ## 2026-10-12 iOS26起動失敗：配布SDKとの一致を局所比較する準備
 
 一覧を`application-relaunch-native-probe`で検索し、失敗索引をSDK／Debugger／
