@@ -1,5 +1,17 @@
 # 検証記録
 
+## 2026-10-12 U63対象の比較開始
+
+ソース325674f・[対象比較58](https://github.com/n624-dev/takupoke-ios/actions/runs/38204887186)・
+試行1で既存の共通時刻／行事のみ週caseを26／27とも一回実行する。
+26は全体377と同じSDK27.0・Runtime26.5、27はSDK27.0を使用する。
+コードpush前と対象Actions開始前にそれぞれGPT-6.1 Sol／Highへ中立なコード差分確認を依頼し、
+実コミットの差分が確認用patchと一致し、意図外変更・期待値注入・検査弱体化がないと確認した。
+共通helperに追加したImage条件の成立と他caseへの影響はまだ不明。
+対象だけの成功を配布可と扱わず、必須全13検査を維持する。
+同ソースの[Development97](https://github.com/n624-dev/takupoke-ios/actions/runs/38204645043)も監視する。
+公開版と固定Sourceは368のまま。実資料3種と実機導入は未確認。
+
 ## 2026-10-12 U63候補：実native iconの中心を一回操作する
 
 一覧をApplicationChecks+Navigation.swift／共通時刻case、失敗索引をtab tap／selected／
