@@ -1,5 +1,26 @@
 # 検証記録
 
+## 2026-10-12 診断26.5 Runtimeの版指定準備
+
+U60を記録・pushした後、一覧を診断workflow名、失敗索引をU60／runtime／SDKで検索。
+Appleの[追加コンポーネント手順](https://developer.apple.com/documentation/xcode/downloading-and-installing-additional-xcode-components)
+に従い、診断26／SDK27.0で26系Runtimeがない場合だけ26.5を一度取得・importする。
+取得600秒・import180秒を上限とし、失敗を伝播する。
+exportは所有TemporaryDirectoryへ限定し、成否にかかわらず回収する。
+インストールしたRuntimeは使い捨てHosted Runnerの廃棄時に回収される。
+既存26系が別版なら上書きせず拒否。取得後も実Runtime26.5を要求する。
+配布構成・製品・fixture・UIの操作と期待値は変えない。
+
+Linuxの実Bash事前検査を架空コマンドで確認し、指定版の一度の取得、
+取得／import失敗、画像欠落、別版、import後の非availableを拒否した。
+最終差分のrunner契約12件・13.170秒で失敗0。登録済みだが利用不可の26系も
+取得せず拒否するよう中立レビューの指摘を反映した。最初のローカル実行は架空コマンドの
+改行escape不足で失敗し、escapeを修正した。ネイティブ取得・UIはまだ未評価。
+最終差分のPython184件・18.860秒・環境限定skip7、一覧341登録ファイルと
+差分空白検査は成功。GPT-6.1 Sol／Highの修正差分レビューで重大指摘なし。
+先行Development92はPython184件・46.685秒、Swift474件・73.929秒で成功。
+任意Native jobは予定skipであり、SDK検査や配布前全体検査の代用にしない。
+
 ## 2026-10-12 診断55：26.5 Runtimeを用意できず、UI未実行
 
 acf884a・[38195173505](https://github.com/n624-dev/takupoke-ios/actions/runs/38195173505)・
@@ -22,7 +43,7 @@ SDK27.0の選択を追加した。実SDK27.0と利用可能な26系Runtimeの最
 ツールチェーンの既知不具合や修正効果は未確認であり、比較成功も原因の証明とはしない。
 
 Linuxのrunner契約12件・12.141秒、Python184件・18.873秒・環境限定skip7、
-一覧341宣言の整合性と差分空白検査は成功した。
+一覧341登録ファイルの整合性と差分空白検査は成功した。
 実SDK／RuntimeとネイティブUIは未評価。
 GPT-6.1 Sol／Highがコード差分2ファイルを確認し、重大指摘はなかった。
 

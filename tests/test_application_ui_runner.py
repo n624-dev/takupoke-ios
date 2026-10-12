@@ -43,10 +43,26 @@ class ShellRunnerTests(unittest.TestCase):
             root = Path(directory)
             fake = "#!" + sys.executable + "\n" + '''
 import json, os, sys
+from pathlib import Path
+args = sys.argv[1:]
+with open(os.environ['COMMAND_LOG'], 'a') as log:
+    log.write(json.dumps(args) + '\\n')
 if sys.argv[1:2] == ['--sdk']: print(os.environ['OBSERVED_SDK'])
 elif sys.argv[1:2] == ['simctl']:
-    print(json.dumps({'runtimes': [{'isAvailable': True, 'version': os.environ['OBSERVED_RUNTIME'],
-        'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-' + os.environ['OBSERVED_RUNTIME'].replace('.', '-')}]}))
+    marker = Path(os.environ['IMPORT_MARKER'])
+    runtime = marker.read_text() if marker.exists() else os.environ['OBSERVED_RUNTIME']
+    print(json.dumps({'runtimes': [{'isAvailable': os.environ['IMPORT_MODE'] != 'registered-unavailable', 'version': runtime,
+        'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-' + runtime.replace('.', '-')}]}))
+elif args[:1] == ['-downloadPlatform']:
+    if os.environ['IMPORT_MODE'] == 'download-fails': sys.exit(9)
+    exported = Path(args[args.index('-exportPath') + 1])
+    if os.environ['IMPORT_MODE'] != 'no-image':
+        (exported / 'fictional-runtime.dmg').write_bytes(b'fictional image')
+elif args[:1] == ['-importPlatform']:
+    if os.environ['IMPORT_MODE'] == 'import-fails': sys.exit(10)
+    if os.environ['IMPORT_MODE'] == 'unavailable': sys.exit(0)
+    version = '26.6' if os.environ['IMPORT_MODE'] == 'wrong-version' else '26.5'
+    Path(os.environ['IMPORT_MARKER']).write_text(version)
 else: print('Synthetic Xcode version')
 '''
             for name in ("xcodebuild", "xcrun"):
@@ -54,25 +70,48 @@ else: print('Synthetic Xcode version')
                 path.write_text(fake)
                 path.chmod(0o755)
             cases = (
-                (27, "26.6", "27.1", "27.0", True),
-                (27, "26.6", "27.0", "27.0", False),
-                (27, "26.6", "27.1", "27.1", False),
-                (27, "26.6", "27.1", "26.5", False),
-                (26, "26.6", "26.6", "26.5", True),
-                (26, "27.0", "27.0", "26.5", True),
-                (26, "27.0", "26.6", "26.5", False),
-                (26, "27.0", "27.0", "27.0", False),
-                (26, "27.0", "27.0", "26.6", False),
+                (27, "26.6", "27.1", "27.0", "unused", True),
+                (27, "26.6", "27.0", "27.0", "unused", False),
+                (27, "26.6", "27.1", "27.1", "unused", False),
+                (27, "26.6", "27.1", "26.5", "unused", False),
+                (26, "26.6", "26.6", "26.5", "unused", True),
+                (26, "27.0", "27.0", "26.5", "unused", True),
+                (26, "27.0", "26.6", "26.5", "unused", False),
+                (26, "27.0", "27.0", "26.6", "unused", False),
+                (26, "27.0", "27.0", "26.4", "registered-unavailable", False),
+                (26, "27.0", "27.0", "27.0", "success", True),
+                (26, "27.0", "27.0", "27.0", "download-fails", False),
+                (26, "27.0", "27.0", "27.0", "import-fails", False),
+                (26, "27.0", "27.0", "27.0", "no-image", False),
+                (26, "27.0", "27.0", "27.0", "wrong-version", False),
+                (26, "27.0", "27.0", "27.0", "unavailable", False),
             )
-            for ios, sdk26, sdk, runtime, success in cases:
-                with self.subTest(ios=ios, sdk26=sdk26, sdk=sdk, runtime=runtime):
+            command_log, marker = root / "commands.jsonl", root / "imported-version"
+            for ios, sdk26, sdk, runtime, mode, success in cases:
+                with self.subTest(ios=ios, sdk26=sdk26, sdk=sdk, runtime=runtime, mode=mode):
+                    command_log.unlink(missing_ok=True)
+                    marker.unlink(missing_ok=True)
                     env = os.environ | {"PATH": directory + os.pathsep + os.environ["PATH"],
                         "TKPK_TEST_IOS": str(ios), "TKPK_UI_PROBE_SDK27": "27.1",
                         "TKPK_UI_PROBE_SDK26": sdk26,
+                        "RUNNER_TEMP": directory, "IMPORT_MODE": mode,
+                        "COMMAND_LOG": str(command_log), "IMPORT_MARKER": str(marker),
                         "OBSERVED_SDK": sdk, "OBSERVED_RUNTIME": runtime}
                     result = subprocess.run(["bash", "-c", script], env=env,
                                             capture_output=True, text=True, timeout=5)
                     self.assertEqual(result.returncode == 0, success, result.stdout + result.stderr)
+                    commands = [json.loads(line) for line in command_log.read_text().splitlines()]
+                    downloads = [args for args in commands if args[:1] == ["-downloadPlatform"]]
+                    imports = [args for args in commands if args[:1] == ["-importPlatform"]]
+                    if mode in ("unused", "registered-unavailable"):
+                        self.assertEqual(downloads, [])
+                        self.assertEqual(imports, [])
+                    else:
+                        self.assertEqual(len(downloads), 1)
+                        self.assertEqual(downloads[0][:5],
+                                         ["-downloadPlatform", "iOS", "-buildVersion", "26.5", "-exportPath"])
+                        self.assertEqual(len(imports), 0 if mode in ("download-fails", "no-image") else 1)
+                    self.assertEqual(list(root.glob("takupoke-runtime-owned-*")), [])
 
     def run_synthetic_runner(self, ios, shard, *, omit_result=False, fail_build=False,
                              fail_frontend=False, fail_device_window=False,
