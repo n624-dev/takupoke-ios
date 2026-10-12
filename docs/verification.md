@@ -1,5 +1,27 @@
 # 検証記録
 
+## 2026-10-12 U65終端と過去の起動条件を照合
+
+379の26 Bは元の11件・983.760秒・予定VoiceOver skip1・失敗1で終了した。
+ホームcase以外の実行9件は成功。設定caseは263.900秒で再起動後も含む4操作が成功した。
+通知Runnerと追加文字サイズは未実行。379は公開不可で、残る26 Aと単項目26は取消さない。
+手動訂正26の3項目は544.451秒、原本変更は335.916秒・各失敗0で成功した。
+
+U65を先に保存・push後、U40／U41／U49／U59の本文と旧2b94d1c／373da5fの
+launchReadyを読み、今回の実コード／実ログと照合した。終了・SpringBoard・一回起動は同じ。
+今回の失敗は成功した直前caseのprocess10358をterminateし、notRunningとSpringBoardを確認後の
+次caseのsetUp内。SDK26.5／Runtime26.5で、U49と同じNSPOSIXErrorDomain Code3。
+U49の同一case再起動、U59の最初のcaseと区別する。debugger-version欠落だけで原因を断定しない。
+
+次候補は26 Bだけを配布と同じSDK27.0＋実Runtime26.5に揃え、
+直前の既存testChangedAccountDataNoticeOpensSharedAcquisitionと
+失敗した既存testHomeTimetableAndWeekCalendarを同じ順序で比較する。
+26 Aでは既に対象57と全体378で、同じ配布SDK／26.5の起動・再起動成功を実測している。
+手動訂正・27・Native・製品Strict・UI操作・期限・全13gateを変更しない。
+単なるSDK往復や、focused成功を全体合格へ代用する対処にしない。
+まだ候補は実装／評価前。次の試行前にこの根拠を作業ブランチへpushする。
+
+
 ## 2026-10-12 全体379：26 Bのホームcase起動失敗を先に保存
 
 983e523・38218043172・試行1・job114718041872の進行中ログで

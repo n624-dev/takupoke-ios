@@ -16,6 +16,17 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - 観測：SDK26.5／Runtime26.5のSimulatorがjp.n624.takupoke.app-checksを起動できず、
   NSPOSIXErrorDomain Code3「No such process」、process handleもlaunch errorも返らない記録がある。
   下位原因、操作前の状態、最終の失敗件数はまだ未確定。
+- 終端：元の11件は983.760秒・予定VoiceOver skip1・失敗1。ホームcaseだけが失敗。
+  設定caseは263.900秒でUI／保存0→1→0→1と再起動後1→0まで成功した。
+  通知Runner／追加文字サイズは未実行。379は公開不可で、他のActionsは取消さない。
+- 照合：U40／U41／U49／U59の起動記録と旧2b94d1c／373da5fのlaunchReady本文を読んだ。
+  U49と同じNSPOSIX domainだが、今回は同一caseの再起動でなく、次caseのsetUp。
+  前caseは成功し、前processのterminate／notRunningとSpringBoard応答後に一回launchが失敗。
+  U41のdebugger-version欠落は成功時にもあり、この記録だけで原因とは判定しない。
+- 候補の根拠：26 Bは旧SDK26.5、配布IPAと26 AはSDK27.0。
+  同じRuntime26.5の26 Aは対象57・全体378で起動／再起動を含め成功した実測がある。
+  Bだけを配布SDKに合わせ、失敗の直前case＋ホームcaseを元の順序で比較する案を評価する。
+  SDK不具合の証明とは扱わず、起動の再試行・期限延長・期待値変更・SDK往復はしない。
 - 状態：他ケースは継続中。以後の設定caseでは初回0→1→0のUI／保存更新まで観測したが、
   それでホームcaseの失敗を救済しない。正式なジョブ／全体結果は未完了。
 - 手順：対処案を決める前にこの観測事実を保存・pushする。
