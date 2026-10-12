@@ -449,6 +449,7 @@
         "tests/ui/ApplicationFixture.swift",
         "tools/app_test_project.py",
         "tools/notification_service_trace.py",
+        "tools/prepare-ios26-runtime.py",
         "tools/test-app-ui.sh",
         "tools/ui_test_manifest.py"
       ],

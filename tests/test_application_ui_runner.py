@@ -103,7 +103,7 @@ else: print('Synthetic Xcode version')
                         "RUNNER_TEMP": directory, "IMPORT_MODE": mode,
                         "COMMAND_LOG": str(command_log), "IMPORT_MARKER": str(marker),
                         "OBSERVED_SDK": sdk, "OBSERVED_RUNTIME": runtime}
-                    result = subprocess.run(["bash", "-c", script], env=env,
+                    result = subprocess.run(["bash", "-c", script], env=env, cwd=ROOT,
                                             capture_output=True, text=True, timeout=5)
                     self.assertEqual(result.returncode == 0, success, result.stdout + result.stderr)
                     commands = [json.loads(line) for line in command_log.read_text().splitlines()]
