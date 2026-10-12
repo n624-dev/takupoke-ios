@@ -30,7 +30,8 @@ extension ManualAssistanceChecks {
         // Exactly one physical tap at the recorded center of the actual inner widget.
         app.coordinate(withNormalizedOffset:CGVector(dx:0,dy:0))
             .withOffset(CGVector(dx:point.x-appFrame.minX,dy:point.y-appFrame.minY)).tap()
-        print("TAKUPOKE-MANUAL-ACK after;outer=\(row.frame);inner=\(actual.frame);value=\(row.value as? String ?? "unknown")")
+        // Post-tap diagnostics must not add AX queries before the native state check.
+        print("TAKUPOKE-MANUAL-ACK after;id=\(id)")
         let changed=XCTNSPredicateExpectation(predicate:NSPredicate(format:"value == %@","1"),object:row)
         let outcome=XCTWaiter.wait(for:[changed],timeout:nativeStateTimeout)
         let state=app.staticTexts["manual-input-state"].firstMatch
