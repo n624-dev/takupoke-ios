@@ -429,15 +429,11 @@ class ManifestTests(unittest.TestCase):
                     self.assertIn(f"- ios: {ios}\n            shard: {shard.upper()}", block)
                     self.assertIn("bash tools/test-app-ui.sh", block)
                     self.assertIn("--runner-log", block)
-                if shard == "a":
-                    self.assertIn("runner: xcode-27", second)
-                    self.assertIn("developer: /Applications/Xcode_27.0.app/Contents/Developer", second)
-                    prepare = "python3 -B tools/prepare-ios26-runtime.py"
-                    self.assertIn(prepare, second)
-                    self.assertLess(second.index(prepare), second.index("bash tools/test-app-ui.sh"))
-                else:
-                    self.assertIn("runner: macos-26", second)
-                    self.assertIn("developer: /Applications/Xcode_26.6.app/Contents/Developer", second)
+                self.assertIn("runner: xcode-27", second)
+                self.assertIn("developer: /Applications/Xcode_27.0.app/Contents/Developer", second)
+                prepare = "python3 -B tools/prepare-ios26-runtime.py"
+                self.assertIn(prepare, second)
+                self.assertLess(second.index(prepare), second.index("bash tools/test-app-ui.sh"))
         # Native PDF verification remains independent of Simulator UI availability.
         self.assertIn("    needs: checks\n", jobs["native-parsing"])
         self.assertIn("    needs: [checks, manual-27, simulator-27-a, simulator-27-b]\n",
@@ -579,6 +575,8 @@ class ManifestTests(unittest.TestCase):
             ("updates", ("testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair",
                          "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork")),
             ("timetable-clocks", ("testTimetableCommonClocksAndEventOnlyWeekScale",)),
+            ("home-launch", ("testChangedAccountDataNoticeOpensSharedAcquisition",
+                             "testHomeTimetableAndWeekCalendar")),
         )
         for group_name, selected in groups:
             selection = ["--relaunch-probe", "--probe-case", group_name]

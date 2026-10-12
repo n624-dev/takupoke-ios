@@ -88,6 +88,8 @@ PROBE_GROUPS = {
         "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
     ),
     "timetable-clocks": ("testTimetableCommonClocksAndEventOnlyWeekScale",),
+    "home-launch": ("testChangedAccountDataNoticeOpensSharedAcquisition",
+                    "testHomeTimetableAndWeekCalendar"),
 }
 # Balanced using measured case durations, including the three OS size reruns.
 SHARDS = {

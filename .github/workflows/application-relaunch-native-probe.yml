@@ -15,6 +15,7 @@ on:
           - file-details
           - updates
           - timetable-clocks
+          - home-launch
           - testChangedAccountDataNoticeOpensSharedAcquisition
           - testChangedDataProducesOneLocalNotification
           - testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork

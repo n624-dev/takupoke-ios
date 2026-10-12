@@ -195,8 +195,8 @@ jobs:
         include:
           - ios: 26
             shard: B
-            runner: macos-26
-            developer: /Applications/Xcode_26.6.app/Contents/Developer
+            runner: xcode-27
+            developer: /Applications/Xcode_27.0.app/Contents/Developer
             voiceover: '0'
     runs-on: ${{ matrix.runner }}
     # Includes dependency resolution, build, simulator tests and owned cleanup.
@@ -211,6 +211,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Prepare exact iOS 26.5 with the shipping SDK
+        run: python3 -B tools/prepare-ios26-runtime.py
       - name: Exercise app screens with synthetic data
         run: |
           set -euo pipefail
