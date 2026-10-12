@@ -1,5 +1,34 @@
 # 検証記録
 
+## 2026-10-12 表示／内部経路の再照合：設定OFFとエラーの粒度
+
+利用者はAI・OCR設定OFFと回答。端末の版番号は回答待ち。
+設定ToggleのAppStorageとLocalAIFeaturePolicy.enabledは同じuseAiFeaturesキーと
+UserDefaults.standardを使い、別suite/defaultAppStorageはない。
+Coordinator.startはenabledがfalseなら準備・OCR・モデル呼出し前に終了する。
+Strict入口（通常MaterialWorker.analyzePDF／特別SpecialSchedulesModel.analyzeとStartup）は
+この設定で分岐せずPDFKitReaderを呼ぶ。capture作成自体はOCR／AI実行ではない。
+
+通常のエラー表示はmodel.timetableFailureを優先し、無ければDBのpdfParseAttempt.failure。
+特別は保存したsource.failure。自動更新は同じSHA／同じParser版の既存失敗なら再解析を省く。
+通常の明示的な「同じファイルを再取得」はrefresh→analyzeAfterAcquisition→analyzePDFで、
+この省略条件を使わない。取得失敗なら解析へ到達せず古いエラーが残る可能性は別に扱う。
+Aboutの版番号はサーバーからでなく端末Bundle.mainから取得する。
+端末の実値は未確認であり、配布物の一致だけからインストール版の一致を断定しない。
+
+PDFTextFailure.unsupportedは文字だけでなく描画state等もP01に集約する。
+PDFPathReaderのP12もfill・curve・dash・gs・Tr・inline描画等の複数分岐を集約する。
+番号と内部stageは対応するが、表示から下位原因を一意に特定できない。
+239.1のPDFTextGeometry.operation(Tr)は0／1／2を許可し、380は0だけを許可する。
+特別PDFには239.1で無かったverifyVisibility=trueのPathReader走査が常時追加され、
+こちらも非0のTrをP12で拒否する。設定OFFでも適用される。
+同じ描画mode差が通常P01／特別P12を生むコード経路は確認したが、
+実資料がその命令を含むとの証拠はない。まだ原因確定・許可拡大・修正済みとしない。
+字体のadvance／ascentだけでstroke輪郭の範囲を証明できない既存の拒否理由も保持する。
+次の判断には既存の表示／キャッシュと実拒否分岐を区別する必要がある。
+PDF本文・全文診断・原本再取得は求めていない。
+
+
 ## 2026-10-12 0.1.380公開後も通常P01・試験／返却P12が継続
 
 利用者が公開後に更新して確認したところ、通常時間割P01、試験時間割P12、
