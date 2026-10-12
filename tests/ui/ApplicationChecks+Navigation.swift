@@ -30,8 +30,9 @@ extension ApplicationChecks {
         }
         print("NATIVE_TAB title=\(title);bar=\(tabs.frame);button=\(button.frame);icon=\(icons[0].frame)")
         // Observe the unique icon inside this same native button for each tap.
-        // Send one physical tap; selection must still complete within 45 seconds.
-        icons[0].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        // U63: compare one bounded contact with the unsuccessful tap() route.
+        // Keep the same observed point and the original 45-second selection check.
+        icons[0].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.1)
         let selected = XCTNSPredicateExpectation(
             predicate: NSPredicate { _, _ in
                 let current = self.app.tabBars.buttons[title]

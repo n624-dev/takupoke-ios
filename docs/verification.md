@@ -1,5 +1,19 @@
 # 検証記録
 
+## 2026-10-12 U63次比較：同じ実点で一回の接触を0.1秒保持
+
+一覧をApplicationChecks+Navigation.swift、失敗索引をU63／tap／selectedで再検索した。
+標準tapと実Image中央tapの両方が26で未選択だったため、位置の変更だけは改善と扱わない。
+次候補は同じ実Image中心で、一回の接触を標準press(forDuration: 0.1)へ変える一点だけ。
+[Appleの座標press仕様](https://developer.apple.com/documentation/xcuiautomation/xcuicoordinate/press(forduration:))
+に従う物理的な接触で、選択の代入、押し直し、時間切れの救済ではない。
+接触が短かったことやSDKが原因であることは未確定で、効果は実測前には主張しない。
+所属・可視・hittable、一回操作、元の45秒selectedと画面遷移、全13の公開条件を維持する。
+同じSDK／Runtime・既存共通時刻caseを比較し、失敗した標準tapをそのまま再試行しない。
+製品・Parser・通知・Strict・期待値は変更しない。実UIは未評価。
+ローカルPython184件・20.218秒・環境限定skip7、一覧342登録と空白検査は成功。
+中立コード差分確認で重大な懸念なし。成功しても通常tapの成立・原因の証明にしない。
+
 ## 2026-10-12 U63対象比較58：27成功・26同じ選択失敗
 
 325674f・[38204887186](https://github.com/n624-dev/takupoke-ios/actions/runs/38204887186)・
