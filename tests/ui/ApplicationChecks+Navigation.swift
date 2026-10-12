@@ -220,12 +220,11 @@ extension ApplicationChecks {
         }
         let point = CGPoint(x: frame.minX + frame.width * (state == "0" ? 0.25 : 0.75), y: frame.midY)
         print(
-            "NATIVE_SWITCH row=\(outer);control=\(frame);observedPoint=\(point);rowState=\(rowState);controlState=\(state);target=native-element;method=tap"
+            "NATIVE_SWITCH row=\(outer);control=\(frame);observedPoint=\(point);rowState=\(rowState);controlState=\(state);target=native-element;method=brief-contact;duration=0.1"
         )
-        // Keep the single tap bound to the native track. XCTest resolves its
-        // current geometry when synthesizing the event instead of retaining
-        // the application coordinate measured before its idle wait.
+        // U64: compare one brief contact at the same observed native track.
+        // The caller must still verify actual UI and saved values within 45 seconds.
         control.coordinate(withNormalizedOffset: CGVector(
-            dx: state == "0" ? 0.25 : 0.75, dy: 0.5)).tap()
+            dx: state == "0" ? 0.25 : 0.75, dy: 0.5)).press(forDuration: 0.1)
     }
 }
