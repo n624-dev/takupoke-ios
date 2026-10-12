@@ -8,6 +8,21 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 順序の因果を断定しない最新判断は[方針再評価](ui-notification-reassessment-20261011.md)、
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
+## U59 通常区間の初回launch timeoutと次ケースのpid 0（全体376、iOS26 A）
+
+- 対象：373da5fの最初の`testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch`。
+  setUp内の一回のapp.launchが71.998秒でtimeout。除外操作・保存・再起動には未到達。
+  直後の`testEmptyDataCanBeConfigured`はpid 0のbackground assertion取得失敗、15.105秒。
+- 観測：両方ともSpringBoardのforeground・有限frameを確認した後に失敗。
+  初回timeoutの後、DTServiceHubがpid18555へのsignal19送信でerror3を記録。
+  次のケースではpid18577をterminateした後に起動・操作が成立している。
+  timeout後のlaunch workerが次ケースへ影響したか、アプリ終了原因は未確定。
+- 比較：U49は同名caseの保存後再起動であり、今回は初回setUp。
+  U58の通知用新規deviceとも区間が異なる。U40／U41と起動系の症状を比較する。
+- 状態：途中で起動失敗2件を確認し、376は公開不可。残りは取消さず確認する。
+  製品・SDK・期限・実操作を変更せず、終了時のlifecycleと下位エラーを確認する。
+- 根拠：[376通常26 A](https://github.com/n624-dev/takupoke-ios/actions/runs/38188845694/job/114624106481)。
+
 ## U58 通知用の新規deviceで初回launchタイムアウト（全体375、iOS26 A）
 
 - 対象：b9289aeの`testChangedDataProducesOneLocalNotification`、83.592秒で失敗。
