@@ -1,3 +1,13 @@
+## 2026-10-13 ローカルSwiftコンテナの準備不足
+
+Swift 6.1.2の公式nobleイメージ（digest 9096456b6dd5f3dcb1f64152601de3d96f40e48ac98354fefa9ffa9abf2dd6bf）で
+未コミットの互換性修正を検証しようとしたが、Pythonがなくtest-parsing.shの計時呼び出しで停止した。
+Linux・Docker、ローカル試行1。Swiftコンパイル／テストケースの実行前であり、製品の失敗ではない。
+既存development.mdの準備済みホストSwiftは現在の実行環境に存在しないことを確認した。
+観測保存後、Python・SQLite・zlibの開発依存を所有コンテナに導入して実行する。
+サブエージェントのActions前差分レビューでは、追加Nativeケースがimport側の条件コンパイル節へ
+置かれた点を指摘された。XCTest型のextension内へ移動し、開始前に再レビューする。
+
 # 検証記録
 
 ## 2026-10-12 Strict全差分の再調査：エラー番号で限定しない
