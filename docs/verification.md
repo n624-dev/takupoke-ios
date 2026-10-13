@@ -1,3 +1,27 @@
+## 2026-10-13 Strict互換性修正版0.1.382の公開・匿名照合完了
+
+ソース708556af1b039bd789996a69ee3bce9e0850c6bb、
+[全体382・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38337201706)は同じ実行・試行・コミットの全13必須チェックsuccess。
+通常26／27 A・B、手動訂正両OSの6ジョブ、Native548件（予定skip1・失敗0）、
+通知・27のVoiceOver・追加文字サイズ・公開ジョブのファイル選択UI3件とiPhone SDKビルドを確認した。
+公開job115117174230のPicker3件300.785秒・失敗0、ホストNative再実行548件・予定skip1・失敗0、
+本体76.035秒・準備込み158.2秒、iPhone Releaseビルド301.6秒。重複実行を品質件数へ加算しない。
+全Actionsを取消さず、公開と所有build出力の削除まで確認した。
+
+[0.1.382（382.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.382-build.382.1)を
+通常Release・Latestへ公開し、固定AltStore Sourceを更新した。
+4添付を認証なしで取得し、GitHubサイズ／digest、release.jsonのハッシュ、IPAのsource／版／buildを照合。
+IPA16,880,402 bytes、SHA256 `0475b533445f3fffa2295803f04370b521f4679fd87519d6bf0e2bfdacea0d27`。
+SDK iphoneos27.0・最低OS26.0、更新文面と固定Source／添付Sourceのbytes一致を確認した。
+所有検証ダウンロードは削除済み。既存の22c8ee2公開開発版と3添付は保持を再確認した。
+
+修正点はstrict-pdf-compatibility-repair.mdへまとめた。製品の文字・原座標・順序・セル所属と
+年／日付／時刻／役割の検証を保持し、過剰な描画拒否と全字体境界の過大判定を修正した。
+239.1と修正版の同じ独立架空9PDFは両SDKで完全解析・独立正解と一致した。
+U66は一回の見出し接触を変更した今回の全体でも成功したが、下位原因や恒常的解消は未証明。
+実資料3種類の復旧、iPhoneへの導入・AltStore更新、OCR／モデル品質は未評価である。
+公開後の文書のみを作業ブランチへpushし、配布済みsource／mainは固定する。
+
 ## 2026-10-13 全体382：全12事前検査が成功、配布ビルド開始
 
 708556af1b039bd789996a69ee3bce9e0850c6bb・

@@ -93,7 +93,7 @@ Windowsでは最後のコマンドを `py -3 -B -m unittest discover -s tests -v
 | 導入・配布 | [PAL経由の導入](docs/altstore-pal-install.md)、[PC経由の導入・配布](docs/distribution.md) |
 | 画面・操作 | [ホーム](docs/home.md)、[時間割](docs/timetable-tab.md)、[一覧](docs/links-tab.md) |
 | 取得・保存 | [ファイル選択と取得](docs/materials.md)、[名称データの配信](docs/mapping-distribution.md)、[端末内保存](docs/local-database-design.md)、[保存期限](docs/private-data-lifecycle.md) |
-| 解析・通知 | [PDF](docs/pdf-specification.md)、[239.1→380.1のStrict差分](docs/strict-pdf-diff-audit-239-380.md)、[XLSX](docs/xlsx-specification.md)、[通知・バックグラウンド確認](docs/notifications-background.md) |
+| 解析・通知 | [PDF](docs/pdf-specification.md)、[239.1→380.1のStrict差分](docs/strict-pdf-diff-audit-239-380.md)、[Strict互換性の修正点](docs/strict-pdf-compatibility-repair.md)、[XLSX](docs/xlsx-specification.md)、[通知・バックグラウンド確認](docs/notifications-background.md) |
 | 開発 | [開発方針](docs/development-policy.md)、[開発環境](docs/development.md)、[コードの構成](docs/source-structure.md)、[CIの実行時間](docs/ci-performance.md)、[アイコン](docs/app-icon.md)、[貢献ガイド](CONTRIBUTING.md) |
 | 検証・情報管理 | [実装と残る確認](docs/roadmap.md)、[シミュレーター検証](docs/simulator-verification.md)、[検証履歴](docs/verification.md)、[公開時の情報管理](docs/public-repository.md) |
 
