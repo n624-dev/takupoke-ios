@@ -1,3 +1,23 @@
+## 2026-10-13 U67の既往照合：待機後の診断一行だけを変更する候補
+
+5bca6aeの観測をpush後、U62・U17・U11の詳細、4fb54a8とc60f872のInput.swift、
+今回のReview.swift／Cases.swift／OneCorrection.swift全文とU67原ログの末尾を読んだ。
+U62は実ACK後の診断frame照会、U17は診断exists、U11は古い入力要素の照会で停止していた。
+今回はpreview=trueの元のpredicate照会の後、診断print内の同じstate.existsで停止している。
+元predicateの成功値はログに出ていないため、preview成立済みとは断定しない。
+
+変更候補はReview.swift:56の診断だけを、追加exists／labelの取得から、
+既に取得したXCTWaiter結果の固定marker出力へ置き換える一行。
+20秒の元predicate、outcome==completed、実画面のpreview header確認、3項目確認、
+採用せず閉じる・再起動・4項目拒否・前回正常結果保持はすべて維持する。
+入力／許可／処理結果を注入せず、SDK・操作数・待機・fixture・製品Strictを変更しない。
+新しい同一ソースの全13を実行し、focusedや旧Native成功で公開条件を代用しない。
+旧383の残りも取消さず確認する。今回の候補から一般的なAX原因解消を断定しない。
+
+編集前にtest_catalogでManualAssistanceChecks+Review.swiftを検索した。
+既存の3項目と単項目は実preview predicate・header・後続の拒否／保存を直接検証し、
+追加の同型ケースや期待値変更は不要。差分だけのレビュー担当は再び新規作成する。
+
 ## 2026-10-13 全体383の3項目27：preview復帰のUI queryで失敗
 
 ソース1f128eb、38347122608・試行1、job115131299235、SDK27.0。
