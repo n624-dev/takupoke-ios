@@ -27,9 +27,11 @@ extension ManualAssistanceChecks {
         let diagnostic=app.staticTexts["manual-qa-diagnostic"].firstMatch
         print("TAKUPOKE-MANUAL-ACK before;id=\(id);outer=\(outerFrame);inner=\(innerFrame);hittable=\(actual.isHittable);point=\(point);app=\(appFrame);viewport=\(viewport);keyboard=\(keyboardFrame.map { String(describing:$0) } ?? "absent");diagnostic=\(diagnostic.exists ? String(describing:diagnostic.frame):"absent");value=\(row.value as? String ?? "unknown")")
         XCTAssertTrue(actual.isHittable,app.debugDescription)
-        // Exactly one physical tap at the recorded center of the actual inner widget.
-        app.coordinate(withNormalizedOffset:CGVector(dx:0,dy:0))
-            .withOffset(CGVector(dx:point.x-appFrame.minX,dy:point.y-appFrame.minY)).tap()
+        // U71: one brief contact at the same verified center, relative to the
+        // actual inner widget rather than a saved application-screen position.
+        actual.coordinate(withNormalizedOffset:CGVector(
+            dx:(point.x-innerFrame.minX)/innerFrame.width,
+            dy:(point.y-innerFrame.minY)/innerFrame.height)).press(forDuration:0.1)
         // Post-tap diagnostics must not add AX queries before the native state check.
         print("TAKUPOKE-MANUAL-ACK after;id=\(id)")
         let changed=XCTNSPredicateExpectation(predicate:NSPredicate(format:"value == %@","1"),object:row)
