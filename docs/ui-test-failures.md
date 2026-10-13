@@ -1,3 +1,12 @@
+## U73 初期設定caseの可視領域照会がsnapshot timeout（全体390、iOS27 B）
+
+- 対象：ca32c41・38394647214・試行1、job115287057618、SDK／Runtime27.0。
+  testSetupCanBeSkippedAndOffersAllFiles、ApplicationChecks+Navigation.swift:139。
+- 観測：Failed to get matching snapshot: Timed out while evaluating UI query。
+  元11ケースは失敗1・1466.729秒。対応26 Bは依存でskip。
+- 状態：具体操作・行139の値取得・旧関連失敗を原ログとコードで照合してから判断する。
+  390は公開不可。条件の緩和・ケース除外・再試行をせず、残りを取消さず確認する。
+
 ## U72 単項目訂正のUI照会がsnapshot timeout（全体389、iOS27）
 
 - 対象：1b368f5・38390616754・試行1、job115273821054、SDK／Runtime27.0。

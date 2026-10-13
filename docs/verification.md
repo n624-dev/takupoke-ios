@@ -1,3 +1,12 @@
+## 2026-10-13 全体390・通常27 Bの初期設定が照会失敗
+
+ca32c410dcf55c572b30c7d60512cb09726d0313・[38394647214・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38394647214)、
+job115287057618はtestSetupCanBeSkippedAndOffersAllFilesで失敗した。
+Navigation.swift:139にUI snapshot timeout。元11件・失敗1・1466.729秒。
+まず索引U73へ保存。具体操作・既取得値は原ログとコードの全文を照合するまで断定しない。
+通知／追加文字サイズと対応26 Bは今回成功として数えず、残りも取消さず確認する。
+全13必須未達で390は未公開。Strictの原本や私的診断を取得していない。
+
 ## 2026-10-13 固定sourceの新390と開発119
 
 ca32c41・[全体390・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38394647214)を確認中。
