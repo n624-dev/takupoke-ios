@@ -1,3 +1,16 @@
+## 2026-10-13 全字体の境界による過剰拒否の照合
+
+7956fb2の失敗観測をpush後、239.1／現行の字体読取と罫線衝突、既存の輪郭拒否履歴を読んだ。
+公開Notoから独立生成した通常PDFの埋め込みsubsetはTrueType、Encodingなし、Mac 1/0 cmap6。
+字体全体のFontBBox [-1002 -1048 2928 1808]を全glyphへ使うと、描かない字形の範囲まで
+罫線に衝突する。例えば左余白8pt・文字7ptでは左端が罫線から0.486ptとなり、
+0.5ptの罫線範囲へ入る。元のglyphのadvanceや位置を動かす対処は行わない。
+PDFコード→GIDが明示できる埋め込みTrueTypeだけ、実字形のCoreText path境界を使う。
+Encodingなしのsymbolic字体は唯一のMac cmap0／6、CIDFontType2 Identity-HはCIDToGIDMapを
+有界に読み、Unicodeの正解推定には使わない。ToUnicode・PDFKit照合は従来どおり必須。
+未対応の字体では安全な全字体境界を維持し、GID0・欠落・範囲不明は輪郭で採用しない。
+資料・位置・期待値・9表現を維持したまま、同じ比較と既存の拒否検査を次に実行する。
+
 ## 2026-10-13 旧版を通る架空3文書を現行がP12で拒否
 
 ソースe5bfedf35dc2283463fba4814c58cddee238fbe0、dispatch38329077111・試行1。
