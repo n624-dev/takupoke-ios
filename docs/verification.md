@@ -1,3 +1,13 @@
+## 2026-10-13 Native矢印検査のoptional配列でコンパイル停止
+
+ソースb6e45de86be8d3f1920952de3b289149f9c77fe9、dispatch38328220618・試行1。
+SDK27 job115071755176、SDK26 job115071755180。旧239.1の比較3宣言・全9PDFは成功した。
+現行テストのコンパイルで、新規矢印ケースがoptionalなPDFPageLayout.arrowsへ
+直接first／countを参照し、PDFTextGeometryTests+Visibility.swift:128／129で停止した。
+現行のNativeテストは未実行であり、製品の復旧成功に数えない。
+検査を除外せず、観測を先に保存・pushしてから型定義・既存の矢印検査を照合する。
+portableとcatalogueは成功。残りも取消さず終端まで確認する。
+
 ## 2026-10-13 返却資料の旧注記条件との照合
 
 失敗記録をb976c5dでpush後、239.1と現行のparseReturnPageの注記guardと、
