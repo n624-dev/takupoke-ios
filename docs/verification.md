@@ -1,3 +1,17 @@
+## 2026-10-13 U72の旧契約を対応させ、同じ検査を再確認
+
+旧editor契約の添字表記をmatching queryへ、直接hittable文を実enabled／hittableの
+元包含guardへ対応させた。現在の一意なButton・一回の属性取得・一回tapを
+同じ既存editorケースで検査し、別ケースへの同型検査追加は撤回した。
+LinuxのPython186件・環境skip7・失敗0（20.166秒）。最後の一意性のscope確認追加後、
+同じproject契約17件・失敗0（0.272秒）も成功。348登録と差分検査も成功。
+
+最初の新規担当は旧契約の残存を指摘し、その版のActionsは開始しなかった。
+修正後は別の新規GPT-6.1 Sol／Highが固定CODE差分
+cb4816dc2e9f84d71b804c6f447e7920cae7b6b91a413e45cf5bacdaaa353ef0を確認し、
+元の存在／包含／enabled／hittable／一回tapの維持と、弱体化・値注入のないことを確認した。
+主担当が差分を再照合し、開発検証へ送る。UIの効果・公開はまだ未評価。
+
 ## 2026-10-13 U72候補のローカル契約は旧文字列1件で失敗
 
 未コミットのInput.swift／test_manual_ui_project.py候補をLinuxで検査したところ、

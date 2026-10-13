@@ -90,12 +90,19 @@ extension ManualAssistanceChecks {
         // The product commits text and dismisses the keyboard; it never checks
         // acknowledgement on the user's behalf.
         let navigation=app.navigationBars["時間割の復旧"]
-        let done=navigation.buttons["manual-edit-done"].firstMatch
-        XCTAssertTrue(done.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
-        XCTAssertTrue(done.isHittable,app.debugDescription)
+        let buttons=navigation.buttons.matching(identifier:"manual-edit-done")
+        XCTAssertTrue(buttons.firstMatch.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
+        // U72: use the current unique native element for all required geometry
+        // and state checks rather than repeatedly resolving a firstMatch query.
+        let current=buttons.allElementsBoundByIndex
+        guard current.count==1 else {
+            XCTFail("The native completion button must be unique; matches=\(current.count)");return
+        }
+        let done=current[0]
         let navigationFrame=navigation.frame,doneFrame=done.frame
+        let enabled=done.isEnabled,hittable=done.isHittable
         XCTAssertTrue(ManualScrollNavigation.usable(navigationFrame) && ManualScrollNavigation.usable(doneFrame)
-                      && navigationFrame.contains(doneFrame) && done.isEnabled,app.debugDescription)
+                      && navigationFrame.contains(doneFrame) && enabled && hittable,app.debugDescription)
         done.tap()
         let dismissed=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
             self.app.keyboards.allElementsBoundByIndex.isEmpty
