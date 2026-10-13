@@ -1,3 +1,15 @@
+## 2026-10-13 固定番号追加のLinux検査：診断JSONの許可キーで失敗
+
+ソース718b35e76430d916c06cce55d19855c9d54687ce。
+Linux x86_64・Swift6.1.2 Dockerの全481件で失敗1、本体62.856秒・準備込み319.4秒。
+PDFParsingTests.testTimetableGeometryReportReproducesFailureWithoutSourceText、
+PDFParsingTests+Diagnostics.swift:51のJSONキー完全一致が失敗。
+観測キーはbranch／page／geometry／code／stage／cell、検査の許可キーはbranchなしの5項目。
+固定enum追加によるJSONにbranchがあることを既存契約ケースが検出した。
+旧保存復元・新しい固定番号検査を含め他480件は成功した。Nativeと実機は未評価。
+観測を先に保存・pushし、既存診断契約と当時のコードを比較してから対処を決める。
+開発Actions38345963532のportableは進行中、取り消さず終端を確認する。
+
 ## 2026-10-13 Strict全262箇所の固定番号：公開前の変更確認
 
 18ソースの固定番号metadataとPDFTextFailureの番号転送helperを除去すると、
