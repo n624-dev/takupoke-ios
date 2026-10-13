@@ -1,3 +1,21 @@
+## 2026-10-13 U73の全文照合と一行のquery候補
+
+原ログ、Setup case／Navigation helper全文とc82cd3aの旧case、U05／U09／U10／U53／U70の
+詳細と当時のコードを照合した。4資料の見出しは取得済み。初期設定から学校行事へ
+移動するButtonの探索中、表示範囲外のため一回scrollした後のframe照会が停止した。
+行139はtarget element.frameで、footerのhittableや余白取得ではない。
+イベントButtonのframe値はこの区間に出ておらず、既取得frameの省略では対処しない。
+このcase・helper・製品は今回のmanual修正と差分ゼロ。U72接触への失敗とは数えない。
+
+候補はgeneric tapのlabel-prefix queryが選ぶ最初の要素について、firstMatchを
+element(boundBy:0)へ変える一行だけ。既存section helperでも使用するindexed queryと比較する。
+選ぶlabel・要素順・6回の有界scroll・5秒存在待機・全包含・hittable・一回tap、
+後続の学校行事／戻る／Next／skip／設定復帰を維持し、固定画面座標を導入しない。
+取得不能なframeは失敗のままで、viewport判定を削らずSDKや待機を変更しない。
+firstMatchの探索方式との比較候補であり、下位原因や改善をまだ断定しない。
+同じ既存caseとgeneric tapを通る全通常ケースで検出するため、同型ケースや
+実装文字列だけの新テストを増やさず、両OSの全13チェックで効果を確認する。
+
 ## 2026-10-13 全体390・通常27 Bの初期設定が照会失敗
 
 ca32c410dcf55c572b30c7d60512cb09726d0313・[38394647214・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38394647214)、

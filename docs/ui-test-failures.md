@@ -3,9 +3,14 @@
 - 対象：ca32c41・38394647214・試行1、job115287057618、SDK／Runtime27.0。
   testSetupCanBeSkippedAndOffersAllFiles、ApplicationChecks+Navigation.swift:139。
 - 観測：Failed to get matching snapshot: Timed out while evaluating UI query。
-  元11ケースは失敗1・1466.729秒。対応26 Bは依存でskip。
+  元11ケースは失敗1・1466.729秒。case本体254.639秒、対応26 Bは依存でskip。
+  4資料の見出し取得後、学校行事Buttonの探索でscrollした後のtarget.frameが停止。
+  学校行事へ移動する実tap前。footerや既取得のframe省略で解決したとは扱わない。
 - 状態：具体操作・行139の値取得・旧関連失敗を原ログとコードで照合してから判断する。
   390は公開不可。条件の緩和・ケース除外・再試行をせず、残りを取消さず確認する。
+- 候補：同じlabel-prefix queryの最初の要素をindexed queryで取得する一行。
+  frame・全包含・hittable・6回scroll・5秒存在待機・一回tapの条件は維持。
+  既存sectionの方式と比較し、製品／SDKは追加変更しない。効果は未確認。
 
 ## U72 単項目訂正のUI照会がsnapshot timeout（全体389、iOS27）
 
