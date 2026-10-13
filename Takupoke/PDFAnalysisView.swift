@@ -3,6 +3,27 @@ import PDFKit
 import UIKit
 import UniformTypeIdentifiers
 
+struct PDFAnalysisFailureRows: View {
+    let failure: PDFParseError
+
+    var body: some View {
+        Group {
+            VStack(alignment: .leading, spacing: 6) {
+                Label(failure.userMessage, systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+                    .accessibilityIdentifier("pdf-failure-message")
+                Text(failure.retentionMessage).font(.footnote).foregroundStyle(.secondary)
+            }
+            if let code = failure.userCode {
+                LabeledContent("エラーコード") {
+                    Text(code).fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("pdf-failure-code")
+                }
+            }
+        }
+    }
+}
+
 struct PDFAnalysisView: View {
     @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
     @ObservedObject var model: MaterialsModel
@@ -35,7 +56,7 @@ struct PDFAnalysisView: View {
                     Label(failure, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 }
                 if let failure = failure {
-                    Label(failure.localizedDescription, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                    PDFAnalysisFailureRows(failure: failure)
                 }
 #if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
                 if kind == .timetable, let report = model.timetableReadReport {

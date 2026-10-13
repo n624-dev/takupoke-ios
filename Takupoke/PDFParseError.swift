@@ -23,6 +23,38 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
         case fragmentOverlap, fragmentAlignment, rasterInput
         case paintVisibility, clippingBounds, contentTags
 
+        var diagnosticCode: String {
+            let number: Int
+            switch self {
+            case .characterMapping: number = 1
+            case .pageRotation: number = 2
+            case .yearHeading: number = 3
+            case .documentHeading: number = 4
+            case .periodHeading: number = 5
+            case .gridColumn: number = 6
+            case .gridRow: number = 7
+            case .gridCell: number = 8
+            case .eventColumns: number = 9
+            case .calendarDates: number = 10
+            case .monthHeading: number = 11
+            case .vectorObjects: number = 12
+            case .textOrder: number = 13
+            case .classLabel: number = 14
+            case .gradeLabel: number = 15
+            case .duplicateClass: number = 16
+            case .lessonLines: number = 17
+            case .parallelLessons: number = 18
+            case .emptySubject: number = 19
+            case .fragmentOverlap: number = 20
+            case .fragmentAlignment: number = 21
+            case .rasterInput: number = 22
+            case .paintVisibility: number = 23
+            case .clippingBounds: number = 24
+            case .contentTags: number = 25
+            }
+            return String(format: "P%02d", number)
+        }
+
         var label: String {
             switch self {
             case .characterMapping: return "文字と位置の対応（P01）"
@@ -169,19 +201,25 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
         guard let data = try? encoder.encode(self), let json = String(data: data, encoding: .utf8) else { return nil }
         return (trace == nil ? "TAKUPOKE-PDF-GEOMETRY-1\n" : "TAKUPOKE-PDF-TRACE-1\n") + json
     }
-    var errorDescription: String? {
-        let reason: String
+    var userMessage: String {
         switch code {
-        case .unreadable: reason = "PDFを読み取れません。暗号化・破損などにより原本を確認できません。"
-        case .unsupported: reason = "未対応のPDF書式です。年度・見出し・表の構造を確認できません。"
-        case .ambiguous: reason = "表の内容を一意に読み取れません。推測せず解析を停止しました。"
-        case .limit: reason = "PDFの解析上限を超えています。"
-        case .cancelled: reason = "PDF解析を中止しました。"
-        case .storage: reason = "PDF解析結果を保存できませんでした。"
+        case .unreadable: return "PDFを読み取れませんでした。"
+        case .unsupported: return "PDFを解析できませんでした。対応していない書式が含まれています。"
+        case .ambiguous: return "PDFの内容を確実に読み取れないため、解析を停止しました。"
+        case .limit: return "PDFの解析上限を超えています。"
+        case .cancelled: return "PDF解析を中止しました。"
+        case .storage: return "PDF解析結果を保存できませんでした。"
         }
-        return (page.map { "\($0)ページ目：" } ?? "") + reason +
-            (stage.map { "確認箇所：\($0.label)。" } ?? "") +
-            (cell.map { "対象：\($0.label)。" } ?? "") +
-            (branch.map { "詳細番号：\($0.rawValue)。" } ?? "") + "前回の正常な解析結果は保持しています。"
+    }
+    var retentionMessage: String { "前回の正常な解析結果は保持しています。" }
+    var userCode: String? {
+        let parts = [stage?.diagnosticCode, branch?.rawValue].compactMap { $0 }
+        let code = parts.joined(separator: " / ")
+        if let page { return code.isEmpty ? "\(page)ページ目" : "\(code)（\(page)ページ目）" }
+        return code.isEmpty ? nil : code
+    }
+    var errorDescription: String? {
+        [userMessage, retentionMessage, userCode.map { "エラーコード：\($0)" }]
+            .compactMap { $0 }.joined(separator: " ")
     }
 }

@@ -9,16 +9,18 @@ final class StrictPDFCompatibilityTests: XCTestCase {
                            "5_CN", "5_ES", "5_IT", "AI_1", "AI_2"]
     private let fields = ["架空科目甲", "架空教員乙", "仮想教室丙"]
 
-    private func file(_ kind: String, _ mode: Int) throws -> URL {
+    private func files(_ kind: String) throws -> [URL] {
         let path = try XCTUnwrap(ProcessInfo.processInfo.environment["TAKUPOKE_STRICT_COMPATIBILITY_FIXTURES"])
         let root = URL(fileURLWithPath:path)
         XCTAssertTrue(FileManager.default.fileExists(atPath:root.appendingPathComponent(".strict-compatibility-owned").path))
-        return root.appendingPathComponent("\(kind)-\(mode).pdf")
+        return (0...2).flatMap { mode in
+            ["", "-before", "-after"].map { root.appendingPathComponent("\(kind)-\(mode)\($0).pdf") }
+        }
     }
 
     func testNormalDocumentModesPreserveEveryLessonTuple() throws {
-        for mode in 0...2 {
-            let pages = try PDFKitReader.read(file("normal",mode),kind:.timetable)
+        for url in try files("normal") {
+            let pages = try PDFKitReader.read(url,kind:.timetable)
             let result = try PDFSchoolParser.parse(pages,kind:.timetable,digest:"independent",name:"fictional.pdf")
             XCTAssertEqual(result.schoolYear,2032); XCTAssertEqual(result.term,"前期")
             XCTAssertEqual(result.lessons.count,3)
@@ -33,8 +35,8 @@ final class StrictPDFCompatibilityTests: XCTestCase {
     }
 
     func testSixExamPagesPreserveClassesDatesTimesAndEveryLessonTuple() throws {
-        for mode in 0...2 {
-            let pages = try PDFKitReader.readSpecial(file("exam",mode))
+        for url in try files("exam") {
+            let pages = try PDFKitReader.readSpecial(url)
             let result = try SpecialScheduleParser.parse(pages,kind:.exam,digest:"independent",name:"fictional.pdf")
             XCTAssertEqual(result.schoolYear,2032)
             XCTAssertEqual(result.coveredClasses,classes.sorted())
@@ -57,8 +59,8 @@ final class StrictPDFCompatibilityTests: XCTestCase {
     }
 
     func testReturnDocumentPreservesFirstDayAndOrdinaryDayTimes() throws {
-        for mode in 0...2 {
-            let pages = try PDFKitReader.readSpecial(file("return",mode))
+        for url in try files("return") {
+            let pages = try PDFKitReader.readSpecial(url)
             let result = try SpecialScheduleParser.parse(pages,kind:.examReturn,digest:"independent",name:"fictional.pdf")
             XCTAssertEqual(result.schoolYear,2032); XCTAssertEqual(result.coveredClasses,classes.sorted())
             XCTAssertEqual(result.coveredDates,(1...5).map { "2032-04-0\($0)" })

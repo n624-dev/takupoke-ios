@@ -181,6 +181,19 @@ def generate(output):
     for mode in range(3):
         for name, draw in [("normal", normal), ("exam", exam), ("return", returned)]:
             draw(output/f"{name}-{mode}.pdf", mode)
+            # Separate decoration variants; leave the original nine inputs intact.
+            decoration = b"q 0.2 0.35 0.6 rg 15 5 60 10 re f Q\n"
+            for order in ("before", "after"):
+                with fitz.open(output/f"{name}-{mode}.pdf") as pdf:
+                    for page in pdf:
+                        content = page.read_contents()
+                        xref = pdf.get_new_xref()
+                        pdf.update_object(xref, "<<>>")
+                        painted = decoration+content if order == "before" else content+b"\n"+decoration
+                        pdf.update_stream(xref, painted)
+                        page.set_contents(xref)
+                    destination = output/f"{name}-{mode}-{order}.pdf"
+                    destination.write_bytes(pdf.tobytes(garbage=4,deflate=True))
     (output/"design.json").write_text(json.dumps({"values":VALUES,"classes":CLASSES}, ensure_ascii=False)+"\n")
 
 

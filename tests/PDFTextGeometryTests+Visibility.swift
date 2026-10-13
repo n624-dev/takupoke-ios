@@ -133,11 +133,13 @@ extension PDFTextGeometryTests {
         }
     }
 
-    func testNativeDisjointFilledRulesPreserveTextAndGeometryInEitherPaintOrder() throws {
+    func testNativeDisjointFilledRulesAndDecorationsPreserveTextAndGeometryInEitherPaintOrder() throws {
         let text = "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET"
         let rules = [
             "10 10 280 1 re f 10 10 1 280 re f",
-            "10 10 m 290 10 l 290 11 l 10 11 l h f 10 10 1 280 re f"
+            "10 10 m 290 10 l 290 11 l 10 11 l h f 10 10 1 280 re f",
+            "10 10 280 1 re f 10 10 1 280 re f q 0.2 0.35 0.6 rg 150 150 40 40 re f Q",
+            "10 10 280 1 re f 10 10 1 280 re f 150 150 2 2 re f"
         ]
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("takupoke-filled-rule-order-" + UUID().uuidString)
@@ -177,12 +179,13 @@ extension PDFTextGeometryTests {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
         let url = root.appendingPathComponent("fictional.pdf")
-        // Thin fills through text fail in either order. A broad later fill still
-        // fails even when it misses text; partial extraction is never complete.
+        // Both thin rules and broad rectangles through text fail in either
+        // order; none may turn partial extraction into a complete capture.
         let contents = [
             text + " 20 350 70 1 re f",
             "20 350 70 1 re f " + text,
-            text + " 150 150 40 40 re f"
+            text + " 20 345 70 20 re f",
+            "20 345 70 20 re f " + text
         ]
         for content in contents {
             try syntheticPDF(content: content, simpleFont: true).write(to: url)

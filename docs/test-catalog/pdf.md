@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`dd9c018eb8aacf87cac536256d3055079f41406af245faa5a7454f5dffeb8023`
+`7aaadf197cac9ad2e8c54df7e3294010dbb5c952c2004b8d8c4a3721e6ac6cda`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -51,6 +51,7 @@ python3 -B tools/pdf_branch_catalog.py check
 - `testFailureStagesSurvivePageWrappingAndContainNoSourceText`
 - `testOldFailureDecodesAndNewFailureRetainsOnlyFixedDiagnostic`
 - `testFixedBranchCodesRoundTripWithoutChangingLegacyFailures`
+- `testHumanReadableFailureSeparatesCodesWithoutExposingInternalStages`
 - `testPDFFailureReplacementAndManifestRollback`
 
 ## [tests/PDFParsingTests+Events.swift](../../tests/PDFParsingTests+Events.swift)
@@ -146,7 +147,7 @@ python3 -B tools/pdf_branch_catalog.py check
 - `testNativeOutlineFontBoundsCannotCrossGridOutsideTheAdvanceBox`
 - `testNativeDiscardedCurvesUnusedDashAndRestoredDashKeepTheVisibleTable`
 - `testNativeVerifiedFilledArrowRetainsItsOriginalGeometryInStrictReaders`
-- `testNativeDisjointFilledRulesPreserveTextAndGeometryInEitherPaintOrder`
+- `testNativeDisjointFilledRulesAndDecorationsPreserveTextAndGeometryInEitherPaintOrder`
 - `testNativeOverlappingFilledRulesNeverCompleteDeferredCapture`
 - `testNativeInertTagsContainedClipsDeviceSpacesAndUnusedStylesPreserveDirectAcquisition`
 - `testNativeConcealingClipsOptionalReplacementAndUnbalancedTagsRemainRejected`

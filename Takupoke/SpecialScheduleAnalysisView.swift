@@ -24,8 +24,7 @@ struct SpecialScheduleAnalysisView: View {
                 }
                 if let failure = source?.acquisitionFailure { Label(failure, systemImage: "exclamationmark.triangle") }
                 if let failure = source?.failure {
-                    Label(failure.localizedDescription, systemImage: "exclamationmark.triangle")
-                        .foregroundStyle(.orange)
+                    PDFAnalysisFailureRows(failure: failure)
                 }
 #if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
                 if let report = model.fullReadReports[kind] {

@@ -313,7 +313,8 @@ struct SimulatorApplication: App {
             let library = try LocalMaterialDatabase.openLibrary(root: base.appendingPathComponent("SchoolMaterialsSQLite"))
             try library.recordFailure(.changes, message: "架空の変更ファイル取得エラー")
             try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite"))
-                .recordFailure(PDFParseError(code: .unsupported), kind: .exam)
+                .recordFailure(PDFParseError(code: .unsupported, page: 1,
+                    stage: .vectorObjects, branch: .b126), kind: .exam)
         }
         if ProcessInfo.processInfo.arguments.contains("--change-row-skip"),
            ProcessInfo.processInfo.arguments.contains("--reset-fixture") {

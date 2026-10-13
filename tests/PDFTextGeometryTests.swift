@@ -756,7 +756,7 @@ extension PDFTextGeometryTests {
         let cases: [(String,PDFParseError.Branch)] = [
             ("10 10 m 20 20 l 30 30 40 40 50 50 c S",.b121),
             ("[1 2] 0 d 10 10 m 20 10 l S",.b121),
-            ("10 10 50 50 re f",.b126),
+            ("10 10 m 60 60 l 10 60 l 60 10 l h f",.b126),
             ("10 10 m 20 20 l S",.b128),
             ("3 Tr",.b145),
             ("q",.b150)

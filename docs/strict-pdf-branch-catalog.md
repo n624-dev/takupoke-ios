@@ -1,7 +1,7 @@
 # Strict PDF解析の詳細番号
 
 通常・試験・試験返却のStrict解析と共通判定の拒否箇所を示す一覧。
-原PDFは239.1で読めた時から不変。382.1の実機では3種類すべてP12で、原因は未特定。
+原PDFは239.1で読めた時から不変。番号付き版の実機では3種類すべてP12／R126で拒否された。
 
 画面のP01〜P25は大分類、R番号は実装内の失敗生成箇所を示す。
 例えばP12とR127なら、罫線の変換・線幅を確認する条件で拒否された。
@@ -12,7 +12,7 @@
 番号は固定enum。既存番号を別の条件へ転用せず、新しい箇所は未使用番号を追加する。
 本文・座標・フォント名・色・原本情報を番号に含めず、自動送信や診断コピーを追加しない。
 旧保存エラーは番号なしで復元する。手動の解析は新たにReaderを実行する。
-この変更は拒否理由の識別であり、解析規則の変更・実資料の復旧完了ではない。
+番号は拒否理由の識別用。幅広矩形の扱いを修正しても、実資料の復旧は別に確認する。
 
 外部エラーが診断helperで変換された場合、番号は変換箇所を示す。元エラーの原因までは示さない。
 共通ヘルパーを復旧処理が使う場合も同じ番号になるため、番号だけで経路は判断しない。
@@ -196,34 +196,34 @@
 | R123 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L216) |
 | R124 | P12 | `塗り矢印が元文字に重なる、または範囲を取得できない` | [確認条件](../Takupoke/PDFPathReader.swift#L225) |
 | R125 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L233) |
-| R126 | P12 | `矩形の角・辺・太さが支持範囲外、または文字と重なる` | [確認条件](../Takupoke/PDFPathReader.swift#L241) |
-| R127 | P12 | `罫線の変換が角度保持でない、または変換後の線幅が支持範囲外` | [確認条件](../Takupoke/PDFPathReader.swift#L249) |
-| R128 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L257) |
-| R129 | 分類なし／呼出元 | `if collisionBoxes.count > 100_000 { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L264) |
-| R130 | 分類なし／呼出元 | `if failure == nil { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L272) |
-| R131 | P24 | `guard let box = rectangularPathBox() else { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L363) |
-| R132 | P24 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L366) |
-| R133 | 分類なし／呼出元 | `guard clips.count < 128 else { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L368) |
-| R134 | 分類なし／呼出元 | `guard let table = CGPDFOperatorTableCreate() else { throw` | [確認条件](../Takupoke/PDFPathReader.swift#L423) |
-| R135 | 分類なし／呼出元 | `if s.stack.count >= 64 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L427) |
-| R136 | 分類なし／呼出元 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L438) |
-| R137 | 分類なし／呼出元 | `if s.paths.count > 10000 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L447) |
-| R138 | 分類なし／呼出元 | `if s.paths[s.paths.count - 1].count > 10000 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L452) |
-| R139 | 分類なし／呼出元 | `if s.paths.count > 10000 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L458) |
-| R140 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L484) |
-| R141 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L491) |
-| R142 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L494) |
-| R143 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L498) |
-| R144 | P12 | `ExtGStateの透明度・mask・blend・字体・線幅等が支持範囲外` | [確認条件](../Takupoke/PDFPathReader.swift#L503) |
-| R145 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L508) |
-| R146 | P23 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L517) |
-| R147 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L522) |
-| R148 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L563) |
-| R149 | 分類なし／呼出元 | `guard succeeded else { throw` | [確認条件](../Takupoke/PDFPathReader.swift#L578) |
-| R150 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L580) |
-| R151 | 分類なし／呼出元 | `guard self.consumePaintWork() else { throw self.failure ??` | [確認条件](../Takupoke/PDFPathReader.swift#L584) |
-| R152 | 分類なし／呼出元 | `guard consumePaintWork() else { throw failure ??` | [確認条件](../Takupoke/PDFPathReader.swift#L596) |
-| R153 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L603) |
+| R126 | P12 | `矩形の角・辺が支持範囲外、または文字と重なる（幅広の装飾は罫線に使わない）` | [確認条件](../Takupoke/PDFPathReader.swift#L240) |
+| R127 | P12 | `罫線の変換が角度保持でない、または変換後の線幅が支持範囲外` | [確認条件](../Takupoke/PDFPathReader.swift#L248) |
+| R128 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L256) |
+| R129 | 分類なし／呼出元 | `if collisionBoxes.count > 100_000 { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L263) |
+| R130 | 分類なし／呼出元 | `if failure == nil { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L271) |
+| R131 | P24 | `guard let box = rectangularPathBox() else { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L362) |
+| R132 | P24 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L365) |
+| R133 | 分類なし／呼出元 | `guard clips.count < 128 else { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L367) |
+| R134 | 分類なし／呼出元 | `guard let table = CGPDFOperatorTableCreate() else { throw` | [確認条件](../Takupoke/PDFPathReader.swift#L422) |
+| R135 | 分類なし／呼出元 | `if s.stack.count >= 64 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L426) |
+| R136 | 分類なし／呼出元 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L437) |
+| R137 | 分類なし／呼出元 | `if s.paths.count > 10000 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L446) |
+| R138 | 分類なし／呼出元 | `if s.paths[s.paths.count - 1].count > 10000 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L451) |
+| R139 | 分類なし／呼出元 | `if s.paths.count > 10000 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L457) |
+| R140 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L483) |
+| R141 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L490) |
+| R142 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L493) |
+| R143 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L497) |
+| R144 | P12 | `ExtGStateの透明度・mask・blend・字体・線幅等が支持範囲外` | [確認条件](../Takupoke/PDFPathReader.swift#L502) |
+| R145 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L507) |
+| R146 | P23 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L516) |
+| R147 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L521) |
+| R148 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L562) |
+| R149 | 分類なし／呼出元 | `guard succeeded else { throw` | [確認条件](../Takupoke/PDFPathReader.swift#L577) |
+| R150 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L579) |
+| R151 | 分類なし／呼出元 | `guard self.consumePaintWork() else { throw self.failure ??` | [確認条件](../Takupoke/PDFPathReader.swift#L583) |
+| R152 | 分類なし／呼出元 | `guard consumePaintWork() else { throw failure ??` | [確認条件](../Takupoke/PDFPathReader.swift#L595) |
+| R153 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L602) |
 
 ### 旧行事PDFの列・日付・行
 

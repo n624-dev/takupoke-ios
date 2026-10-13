@@ -204,6 +204,14 @@ extension ApplicationChecks {
         tap("試験時間割の詳細を見る")
         screen("試験時間割")
         XCTAssertFalse(app.staticTexts["架空の変更ファイル取得エラー"].exists)
+        let message = app.staticTexts["pdf-failure-message"]
+        _ = visible(message)
+        XCTAssertEqual(message.label,"PDFを解析できませんでした。対応していない書式が含まれています。")
+        let code = app.staticTexts["pdf-failure-code"]
+        _ = visible(code)
+        XCTAssertEqual(code.label,"P12 / R126（1ページ目）")
+        XCTAssertFalse(message.label.contains("P12"))
+        XCTAssertFalse(message.label.contains("確認箇所"))
         XCTAssertTrue(
             app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "解析失敗（前回結果あり）")).firstMatch
                 .exists, app.debugDescription)

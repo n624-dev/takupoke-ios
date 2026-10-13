@@ -197,7 +197,8 @@ extension PDFParsingTests {
             let restored = try JSONDecoder().decode(PDFParseError.self,from:encoded)
             XCTAssertEqual(restored,failure)
             XCTAssertTrue(restored.localizedDescription.contains("P12"))
-            XCTAssertTrue(restored.localizedDescription.contains("詳細番号：\(branch.rawValue)"))
+            XCTAssertEqual(restored.userCode,"P12 / \(branch.rawValue)（1ページ目）")
+            XCTAssertTrue(restored.localizedDescription.contains(branch.rawValue))
         }
         XCTAssertThrowsError(try JSONDecoder().decode(PDFParseError.self,
             from:Data(#"{"code":"unsupported","branch":"school-supplied-value"}"#.utf8)))
@@ -206,6 +207,29 @@ extension PDFParsingTests {
         XCTAssertEqual(attached.branch,source.branch)
         XCTAssertEqual(attached.code,source.code)
         XCTAssertEqual(attached.stage,source.stage)
+    }
+    func testHumanReadableFailureSeparatesCodesWithoutExposingInternalStages() throws {
+        let error = PDFParseError(code:.unsupported,page:1,stage:.vectorObjects,
+            cell:.init(classRow:2,weekday:3,period:4),branch:.b126)
+        XCTAssertEqual(error.userMessage,"PDFを解析できませんでした。対応していない書式が含まれています。")
+        XCTAssertEqual(error.userCode,"P12 / R126（1ページ目）")
+        for text in [error.userMessage,error.localizedDescription] {
+            for hidden in ["確認箇所", "塗り図形", "埋め込み描画", "年度", "見出し", "クラス", "\n"] {
+                XCTAssertFalse(text.contains(hidden))
+            }
+        }
+        let restored = try JSONDecoder().decode(PDFParseError.self,from:JSONEncoder().encode(error))
+        XCTAssertEqual(restored,error)
+        XCTAssertEqual(restored.cell,error.cell)
+        let old = PDFParseError(code:.unreadable)
+        XCTAssertNil(old.userCode)
+        XCTAssertEqual(PDFParseError(code:.limit,page:2).userCode,"2ページ目")
+        XCTAssertEqual(PDFParseError(code:.cancelled,branch:.b150).userCode,"R150")
+        for stage in PDFParseError.Stage.allCases {
+            XCTAssertTrue(stage.label.contains(stage.diagnosticCode))
+        }
+        XCTAssertEqual(PDFParseError.Stage.fragmentAlignment.diagnosticCode,"P21")
+        XCTAssertEqual(PDFParseError.Stage.rasterInput.diagnosticCode,"P22")
     }
     func testPDFFailureReplacementAndManifestRollback() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

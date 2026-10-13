@@ -215,9 +215,9 @@ final class PDFPathReader {
             guard !textSeen || !textBoxes.isEmpty else {
                 failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b123); return
             }
-            // Thin rectangular rules may be painted before or after text. Check
-            // their actual bounds against every original glyph, including text
-            // drawn later. Broad fills and unknown shapes remain unsupported.
+            // Certify rectangles against all original text, including later
+            // glyphs. Only thin fills become rules below; a disjoint decoration
+            // must not fail merely because it is too broad to be a table rule.
             for path in paths {
                 if !stroke && isSupportedArrowHead(path) {
                     guard let box = bounds(of:path),
@@ -232,11 +232,10 @@ final class PDFPathReader {
                       let box = bounds(of:path) else {
                     if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b125) }; return
                 }
-                let width = box.right-box.left, height = box.bottom-box.top
                 let corners = [CGPoint(x:box.left,y:box.top),CGPoint(x:box.right,y:box.top),CGPoint(x:box.right,y:box.bottom),CGPoint(x:box.left,y:box.bottom)]
                 let uniqueCorners = corners.allSatisfy { corner in path.dropLast().filter { $0 == corner }.count == 1 }
                 let axisEdges = zip(path,path.dropFirst()).allSatisfy { a,b in (a.x == b.x) != (a.y == b.y) }
-                guard uniqueCorners, axisEdges, ((width <= 2.1 && height > 3) || (height <= 2.1 && width > 3)),
+                guard uniqueCorners, axisEdges,
                       !overlapsText(left:box.left,top:box.top,right:box.right,bottom:box.bottom,pad:0) else {
                     if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b126) }; return
                 }
