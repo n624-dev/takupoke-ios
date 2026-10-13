@@ -46,7 +46,7 @@ extension ApplicationChecks {
         screen(title == "ホーム" ? "たくポケ" : title)
     }
     func tap(_ title: String, searchEarlierRows: Bool = false) {
-        let e = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
+        let e = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title)).element(boundBy: 0)
         for _ in 0..<6 {
             let viewport = bodyViewport()
             if contained(e, in: viewport) && e.isHittable { break }
