@@ -53,7 +53,7 @@ extension ManualAssistanceChecks {
         let state=app.staticTexts["manual-coordinator-state"].firstMatch
         let ready=XCTNSPredicateExpectation(predicate:NSPredicate(format:"label CONTAINS %@","preview=true"),object:state)
         let outcome=XCTWaiter.wait(for:[ready],timeout:20)
-        print("TAKUPOKE-MANUAL-COORDINATOR " + (state.exists ? state.label : "absent"))
+        print("TAKUPOKE-MANUAL-COORDINATOR wait-outcome=\(outcome.rawValue)")
         emitDiagnostic()
         emitEvents()
         if outcome != .completed { print("TAKUPOKE-MANUAL-PREVIEW-FAIL " + app.debugDescription) }
