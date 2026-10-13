@@ -235,7 +235,11 @@ final class PDFPathReader {
                 let corners = [CGPoint(x:box.left,y:box.top),CGPoint(x:box.right,y:box.top),CGPoint(x:box.right,y:box.bottom),CGPoint(x:box.left,y:box.bottom)]
                 let uniqueCorners = corners.allSatisfy { corner in path.dropLast().filter { $0 == corner }.count == 1 }
                 let axisEdges = zip(path,path.dropFirst()).allSatisfy { a,b in (a.x == b.x) != (a.y == b.y) }
-                guard uniqueCorners, axisEdges,
+                let width = box.right-box.left, height = box.bottom-box.top
+                let thinRule = (width <= 2.1 && height > 3) || (height <= 2.1 && width > 3)
+                // Standalone scans without acquired text bounds cannot certify
+                // a decoration against text that may be painted later.
+                guard uniqueCorners, axisEdges, (thinRule || !textBoxes.isEmpty),
                       !overlapsText(left:box.left,top:box.top,right:box.right,bottom:box.bottom,pad:0) else {
                     if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b126) }; return
                 }

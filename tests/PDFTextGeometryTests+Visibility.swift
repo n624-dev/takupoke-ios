@@ -138,7 +138,7 @@ extension PDFTextGeometryTests {
         let rules = [
             "10 10 280 1 re f 10 10 1 280 re f",
             "10 10 m 290 10 l 290 11 l 10 11 l h f 10 10 1 280 re f",
-            "10 10 280 1 re f 10 10 1 280 re f q 0.2 0.35 0.6 rg 150 150 40 40 re f Q",
+            "10 10 280 1 re f 10 10 1 280 re f 0.2 0.35 0.6 rg 150 150 40 40 re f 0 g",
             "10 10 280 1 re f 10 10 1 280 re f 150 150 2 2 re f"
         ]
         let root = FileManager.default.temporaryDirectory
