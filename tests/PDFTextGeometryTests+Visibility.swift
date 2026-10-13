@@ -226,7 +226,7 @@ extension PDFTextGeometryTests {
                 XCTAssertEqual(pages[0].glyphs.map(\.sourceOrder), reference[0].glyphs.map(\.sourceOrder))
                 XCTAssertEqual(pages[0].lines.count, 1)
                 XCTAssertTrue(capture.complete)
-                try syntheticPDF(content: text + background + rule, simpleFont: true).write(to: url)
+                try syntheticPDF(content: text + " " + background + rule, simpleFont: true).write(to: url)
                 let rejected = RecoveryReadCapture()
                 XCTAssertThrowsError(try special ? PDFKitReader.readSpecial(url, capture: rejected)
                     : PDFKitReader.read(url, kind: .timetable, capture: rejected)) {
@@ -244,15 +244,16 @@ extension PDFTextGeometryTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let url = root.appendingPathComponent("fictional.pdf")
         let text = "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET"
+        let laterText = "BT /F1 10 Tf 1 0 0 1 30 310 Tm (AB) Tj ET"
         let light = "q 0.9 g 20 335 75 40 re f Q "
         let cases: [(String, PDFParseError.Branch)] = [
             ("q 0 g 20 335 75 40 re f Q " + text, .b267),
             (light + "0.9 g " + text, .b267),
             (light + "0.8 g " + text, .b267),
-            (text + " " + light + text, .b265),
+            (text + " " + light + laterText, .b265),
             ("0.9 g 20 350 75 1 re f 0 g " + text, .b265),
             ("/Visibility gs " + light + text, .b144),
-            (light + "0 g " + text + " 0.9 g " + text, .b267),
+            (light + "0 g " + text + " 0.9 g " + laterText, .b267),
             (light + "q 0.1 g 20 335 75 40 re f Q 0 g " + text, .b267),
             ("0 g 20 335 75 40 re 20 335 75 40 re f* 0.8 g " + text, .b270),
             ("0 g 20 335 75 40 re 20 375 75 -40 re f 0.8 g " + text, .b270),
