@@ -29,38 +29,38 @@ final class PDFDrawnTextReader {
         var result: [Double] = []
         for _ in 0..<count {
             var value: CGPDFReal = 0
-            guard CGPDFScannerPopNumber(scanner, &value), value.isFinite else { throw PDFTextFailure.unsupported }
+            guard CGPDFScannerPopNumber(scanner, &value), value.isFinite else { throw PDFTextFailure.unsupported(.b055) }
             result.insert(Double(value), at: 0)
         }
         return result
     }
     func name(_ scanner: CGPDFScannerRef) throws -> String {
         var pointer: UnsafePointer<CChar>?
-        guard CGPDFScannerPopName(scanner, &pointer), let pointer = pointer else { throw PDFTextFailure.unsupported }
+        guard CGPDFScannerPopName(scanner, &pointer), let pointer = pointer else { throw PDFTextFailure.unsupported(.b056) }
         return String(cString: pointer)
     }
     private func string(_ scanner: CGPDFScannerRef) throws {
         var value: CGPDFStringRef?
-        guard CGPDFScannerPopString(scanner, &value), let value = value else { throw PDFTextFailure.unsupported }
+        guard CGPDFScannerPopString(scanner, &value), let value = value else { throw PDFTextFailure.unsupported(.b057) }
         try show(value)
     }
     private func show(_ value: CGPDFStringRef) throws {
         let length = CGPDFStringGetLength(value)
-        guard length <= 200_000 else { throw PDFParseError(code: .limit) }
+        guard length <= 200_000 else { throw PDFParseError(code: .limit, branch:.b058) }
         if length == 0 { try engine.show([]); return }
-        guard let bytes = CGPDFStringGetBytePtr(value) else { throw PDFTextFailure.unsupported }
+        guard let bytes = CGPDFStringGetBytePtr(value) else { throw PDFTextFailure.unsupported(.b059) }
         try engine.show(Array(UnsafeBufferPointer(start: bytes, count: length)))
     }
     private func array(_ scanner: CGPDFScannerRef) throws {
         var array: CGPDFArrayRef?
         guard CGPDFScannerPopArray(scanner, &array), let array = array,
-              CGPDFArrayGetCount(array) <= 100_000 else { throw PDFTextFailure.unsupported }
+              CGPDFArrayGetCount(array) <= 100_000 else { throw PDFTextFailure.unsupported(.b060) }
         for index in 0..<CGPDFArrayGetCount(array) {
             try engine.check()
             var text: CGPDFStringRef?, amount: CGPDFReal = 0
             if CGPDFArrayGetString(array, index, &text), let text = text { try show(text) }
             else if CGPDFArrayGetNumber(array, index, &amount) { try engine.adjust(Double(amount)) }
-            else { throw PDFTextFailure.unsupported }
+            else { throw PDFTextFailure.unsupported(.b061) }
         }
     }
     private func graphicsState(_ scanner: CGPDFScannerRef) throws {
@@ -69,28 +69,28 @@ final class PDFDrawnTextReader {
         // These entries change text state or visibility beyond this interpreter.
         for key in ["Font", "SMask", "TR", "TR2"] {
             var object: CGPDFObjectRef?
-            guard !CGPDFDictionaryGetObject(dict, key, &object) else { throw PDFTextFailure.unsupported }
+            guard !CGPDFDictionaryGetObject(dict, key, &object) else { throw PDFTextFailure.unsupported(.b062) }
         }
         var lineWidth: CGPDFReal = 0, widthObject: CGPDFObjectRef?
         if CGPDFDictionaryGetNumber(dict,"LW",&lineWidth) {
             try engine.operation("w", [Double(lineWidth)])
-        } else if CGPDFDictionaryGetObject(dict,"LW",&widthObject) { throw PDFTextFailure.unsupported }
+        } else if CGPDFDictionaryGetObject(dict,"LW",&widthObject) { throw PDFTextFailure.unsupported(.b063) }
         for (key, op) in [("LJ", "j"), ("ML", "M")] {
             var value: CGPDFReal = 0, object: CGPDFObjectRef?
             if CGPDFDictionaryGetNumber(dict, key, &value) { try engine.operation(op, [Double(value)]) }
-            else if CGPDFDictionaryGetObject(dict, key, &object) { throw PDFTextFailure.unsupported }
+            else if CGPDFDictionaryGetObject(dict, key, &object) { throw PDFTextFailure.unsupported(.b064) }
         }
         var dashObject: CGPDFObjectRef?
         if CGPDFDictionaryGetObject(dict,"D",&dashObject) {
             var dash: CGPDFArrayRef?, pattern: CGPDFArrayRef?, phase: CGPDFReal = 0
             guard CGPDFDictionaryGetArray(dict,"D",&dash), let dash, CGPDFArrayGetCount(dash) == 2,
                   CGPDFArrayGetArray(dash,0,&pattern), let pattern,
-                  CGPDFArrayGetNumber(dash,1,&phase) else { throw PDFTextFailure.unsupported }
+                  CGPDFArrayGetNumber(dash,1,&phase) else { throw PDFTextFailure.unsupported(.b065) }
             engine.state.solidDash = try PDFPaintColors.isSolidDash(pattern,phase:Double(phase))
         }
-        guard PDFPaintColors.hasNormalBlendMode(dict) else { throw PDFTextFailure.unsupported }
+        guard PDFPaintColors.hasNormalBlendMode(dict) else { throw PDFTextFailure.unsupported(.b066) }
         guard try number(dict, "ca", fallback: 1) == 1, try number(dict, "CA", fallback: 1) == 1 else {
-            throw PDFTextFailure.unsupported
+            throw PDFTextFailure.unsupported(.b067)
         }
     }
     private func deviceColor(_ scanner: CGPDFScannerRef, stroke: Bool, count: Int) throws {
@@ -107,7 +107,7 @@ final class PDFDrawnTextReader {
         let media = page.getBoxRect(.mediaBox)
         pageBounds = PDFBox(left: Double(media.minX), top: Double(media.minY),
                             right: Double(media.maxX), bottom: Double(media.maxY))
-        guard let table = CGPDFOperatorTableCreate() else { throw PDFTextFailure.unsupported }
+        guard let table = CGPDFOperatorTableCreate() else { throw PDFTextFailure.unsupported(.b068) }
         defer { CGPDFOperatorTableRelease(table) }
         CGPDFOperatorTableSetCallback(table, "q") { scanner, p in
             PDFDrawnTextReader.run(p) { s in try s.engine.operation("q", s.numbers(scanner, 0)) }
@@ -163,7 +163,7 @@ final class PDFDrawnTextReader {
         CGPDFOperatorTableSetCallback(table, "\"") { scanner, p in
             PDFDrawnTextReader.run(p) { s in
                 var text: CGPDFStringRef?
-                guard CGPDFScannerPopString(scanner, &text), let text = text else { throw PDFTextFailure.unsupported }
+                guard CGPDFScannerPopString(scanner, &text), let text = text else { throw PDFTextFailure.unsupported(.b069) }
                 let n = try s.numbers(scanner, 2)
                 try s.engine.operation("Tw", [n[0]]); try s.engine.operation("Tc", [n[1]])
                 try s.engine.operation("T*"); try s.show(text)
@@ -183,7 +183,7 @@ final class PDFDrawnTextReader {
         CGPDFOperatorTableSetCallback(table, "d") { scanner, p in PDFDrawnTextReader.run(p) { s in
             let phase = try s.numbers(scanner,1)[0]
             var pattern: CGPDFArrayRef?
-            guard CGPDFScannerPopArray(scanner,&pattern), let pattern else { throw PDFTextFailure.unsupported }
+            guard CGPDFScannerPopArray(scanner,&pattern), let pattern else { throw PDFTextFailure.unsupported(.b070) }
             s.engine.state.solidDash = try PDFPaintColors.isSolidDash(pattern,phase:phase)
         } }
         CGPDFOperatorTableSetCallback(table,"g") { scanner,p in PDFDrawnTextReader.run(p) { try $0.deviceColor(scanner,stroke:false,count:1) } }
@@ -197,7 +197,7 @@ final class PDFDrawnTextReader {
         // boxes; that scan must succeed before returning or completing capture.
         for op in ["f", "F", "f*", "B", "B*", "b", "b*"] {
             CGPDFOperatorTableSetCallback(table, op) { _, p in PDFDrawnTextReader.run(p) { s in
-                guard s.engine.glyphs.isEmpty || s.deferFillValidation else { throw PDFTextFailure.unsupported }
+                guard s.engine.glyphs.isEmpty || s.deferFillValidation else { throw PDFTextFailure.unsupported(.b071) }
                 s.clipPath.reset()
             } }
         }
@@ -226,7 +226,7 @@ final class PDFDrawnTextReader {
             CGPDFOperatorTableSetCallback(table, op) { _, p in PDFDrawnTextReader.run(p) { s in
                 let clip = try s.clipPath.clippingBox()
                 guard let page = s.pageBounds, PDFClipValidation.contains(clip, page) else {
-                    throw PDFParseError(code:.unsupported,stage:.clippingBounds)
+                    throw PDFParseError(code:.unsupported,stage:.clippingBounds, branch:.b072)
                 }
                 try s.engine.clip(clip)
             } }
@@ -237,7 +237,7 @@ final class PDFDrawnTextReader {
         // Form XObjects, optional/replacement text and clipping can conceal or
         // replace drawn text. Do not silently emit a partial timetable.
         for op in ["Do", "BI", "ID", "EI", "sh"] {
-            CGPDFOperatorTableSetCallback(table, op) { _, p in PDFDrawnTextReader.run(p) { _ in throw PDFTextFailure.unsupported } }
+            CGPDFOperatorTableSetCallback(table, op) { _, p in PDFDrawnTextReader.run(p) { _ in throw PDFTextFailure.unsupported(.b073) } }
         }
         let stream = CGPDFContentStreamCreateWithPage(page)
         defer { CGPDFContentStreamRelease(stream) }
@@ -247,7 +247,7 @@ final class PDFDrawnTextReader {
         try engine.state.colors.stroke.applyDefault(scanner,resolver:paintResolver)
         let succeeded = CGPDFScannerScan(scanner)
         if let failure = failure { throw failure }
-        guard succeeded else { throw PDFTextFailure.unsupported }
+        guard succeeded else { throw PDFTextFailure.unsupported(.b074) }
         try markedContent.finish()
         return try engine.finish(expectedText: expectedText)
     }

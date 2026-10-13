@@ -12,7 +12,7 @@ struct PDFGrid {
         var invalid = Set<PDFBox>()
         func consume(_ check: () throws -> Void) throws {
             visits += 1
-            guard visits <= 64_000_000 else { throw PDFParseError(code:.limit,stage:.gridCell) }
+            guard visits <= 64_000_000 else { throw PDFParseError(code:.limit,stage:.gridCell, branch:.b075) }
             if visits % 128 == 0 { try check() }
         }
     }
@@ -31,7 +31,7 @@ struct PDFGrid {
               let r = vs.filter({ $0.x1 > x+0.5 }).map(\.x1).min(),
               let t = hs.filter({ $0.y1 < y-0.5 }).map(\.y1).max(),
               let b = hs.filter({ $0.y1 > y+0.5 }).map(\.y1).min() else {
-            throw PDFParseError(code:.unsupported,stage:.gridCell)
+            throw PDFParseError(code:.unsupported,stage:.gridCell, branch:.b076)
         }
         return PDFBox(left:l,top:t,right:r,bottom:b)
     }
@@ -67,7 +67,7 @@ struct PDFGrid {
                 if box.left+0.3 < glyph.cx && glyph.cx < box.right-0.3 {
                     if glyph.ocrLineAtom == true {
                         guard glyph.x >= box.left, glyph.y >= box.top, glyph.x + glyph.width <= box.right,
-                              glyph.y + glyph.height <= box.bottom else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
+                              glyph.y + glyph.height <= box.bottom else { throw PDFParseError(code:.ambiguous,stage:.gridCell, branch:.b077) }
                     }
                     selected.append(index)
                 }
@@ -80,12 +80,12 @@ struct PDFGrid {
     func column(_ x: Double, _ y: Double) throws -> PDFBox {
         let vs = page.lines.filter { $0.vertical && $0.y1 - 0.8 <= y && y <= $0.y2 + 0.8 }
         guard let l = vs.filter({ $0.x1 < x - 0.5 }).map(\.x1).max(),
-              let r = vs.filter({ $0.x1 > x + 0.5 }).map(\.x1).min() else { throw PDFParseError(code: .unsupported, stage: .gridColumn) }
+              let r = vs.filter({ $0.x1 > x + 0.5 }).map(\.x1).min() else { throw PDFParseError(code: .unsupported, stage: .gridColumn, branch:.b078) }
         return PDFBox(left: l, top: 0, right: r, bottom: page.height)
     }
     func dateRow(_ x: Double, _ y: Double, headerBottom: Double) throws -> PDFBox {
         let hs = page.lines.filter { $0.horizontal && $0.x1 - 0.8 <= x && x <= $0.x2 + 0.8 }
-        guard let b = hs.filter({ $0.y1 > y + 0.5 }).map(\.y1).min() else { throw PDFParseError(code: .unsupported, stage: .gridRow) }
+        guard let b = hs.filter({ $0.y1 > y + 0.5 }).map(\.y1).min() else { throw PDFParseError(code: .unsupported, stage: .gridRow, branch:.b079) }
         let t = max(headerBottom + 1, hs.filter({ $0.y1 < y - 0.5 }).map(\.y1).max() ?? headerBottom + 1)
         return PDFBox(left: 0, top: t, right: page.width, bottom: b)
     }
@@ -96,7 +96,7 @@ struct PDFGrid {
               let r = vs.filter({ $0.x1 > x + 0.5 }).map(\.x1).min(),
               let t = hs.filter({ $0.y1 < y - 0.5 }).map(\.y1).max(),
               let b = hs.filter({ $0.y1 > y + 0.5 }).map(\.y1).min() else {
-            throw PDFParseError(code: .unsupported, stage: .gridCell)
+            throw PDFParseError(code: .unsupported, stage: .gridCell, branch:.b080)
         }
         return PDFBox(left: l, top: t, right: r, bottom: b)
     }
@@ -121,7 +121,7 @@ struct PDFGrid {
         guard glyphs.contains(where: { $0.sourceLine != nil || $0.sourceOrder != nil }) else { return rows(glyphs) }
         guard glyphs.allSatisfy({ ($0.sourceLine ?? -1) >= 0 && ($0.sourceOrder ?? -1) >= 0 }),
               Set(glyphs.compactMap(\.sourceOrder)).count == glyphs.count else {
-            throw PDFParseError(code: .ambiguous, stage: .textOrder)
+            throw PDFParseError(code: .ambiguous, stage: .textOrder, branch:.b081)
         }
         let groups = Dictionary(grouping: glyphs, by: { $0.sourceLine! })
             .values.map { $0.sorted { $0.sourceOrder! < $1.sourceOrder! } }
@@ -150,7 +150,7 @@ struct PDFGrid {
         try timetableText(try glyphs(in:box,check:check),check:check)
     }
     private func timetableText(_ input: [PDFGlyph], check: () throws -> Void) throws -> [String] {
-        guard input.reduce(0, { $0 + $1.text.utf8.count }) <= 4096 else { throw PDFParseError(code: .limit) }
+        guard input.reduce(0, { $0 + $1.text.utf8.count }) <= 4096 else { throw PDFParseError(code: .limit, branch:.b082) }
         let rows = try Self.contentRows(input)
         guard input.contains(where: { $0.sourceLine != nil }) else { return rows.map { $0.map(\.text).joined() } }
         struct Fragment {
@@ -178,12 +178,12 @@ struct PDFGrid {
             let aligned = bands.indices.filter { index in
                 bands[index].allSatisfy { abs($0.top - fragment.top) <= 0.35 && abs($0.bottom - fragment.bottom) <= 0.35 }
             }
-            guard aligned.count <= 1 else { throw PDFParseError(code: .ambiguous, stage: .fragmentAlignment) }
+            guard aligned.count <= 1 else { throw PDFParseError(code: .ambiguous, stage: .fragmentAlignment, branch:.b083) }
             if let index = aligned.first {
                 guard bands[index].allSatisfy({ existing in
                     existing.left < fragment.left ? existing.precedes(fragment) : fragment.precedes(existing)
                 }) else {
-                    throw PDFParseError(code: .ambiguous, stage: .fragmentOverlap)
+                    throw PDFParseError(code: .ambiguous, stage: .fragmentOverlap, branch:.b084)
                 }
                 bands[index].append(fragment)
             } else { bands.append([fragment]) }
@@ -204,9 +204,9 @@ struct PDFGrid {
                 let edges = [row.top]+cuts+[row.bottom]
                 for index in 0..<(edges.count-1) where edges[index+1]-edges[index] >= 2 {
                     let cell = try box(x,(edges[index]+edges[index+1])/2,check:check)
-                    guard cell.top >= row.top-0.8, cell.bottom <= row.bottom+0.8 else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
+                    guard cell.top >= row.top-0.8, cell.bottom <= row.bottom+0.8 else { throw PDFParseError(code:.ambiguous,stage:.gridCell, branch:.b085) }
                     boxes.insert(cell)
-                    guard boxes.count <= 10_000 else { throw PDFParseError(code:.limit) }
+                    guard boxes.count <= 10_000 else { throw PDFParseError(code:.limit, branch:.b086) }
                 }
             }
         }
@@ -217,14 +217,14 @@ struct PDFGrid {
     func lessonFields(_ box: PDFBox, lines: [String], referenceBoxes: [PDFBox], check: () throws -> Void = {}) throws -> [String] {
         try check()
         if lines.count == 3 { return lines }
-        guard !lines.isEmpty, lines.count < 3 else { throw PDFParseError(code: .ambiguous, stage: .lessonLines) }
+        guard !lines.isEmpty, lines.count < 3 else { throw PDFParseError(code: .ambiguous, stage: .lessonLines, branch:.b087) }
         let height = box.bottom - box.top
         var references: [[Double]] = []
         var seen = Set<PDFBox>()
         for other in referenceBoxes {
             try calibration.consume(check)
             guard seen.insert(other).inserted else { continue }
-            guard seen.count <= 10000 else { throw PDFParseError(code:.limit,stage:.gridCell) }
+            guard seen.count <= 10000 else { throw PDFParseError(code:.limit,stage:.gridCell, branch:.b088) }
             guard abs(other.bottom-other.top-height) < 0.5, !calibration.invalid.contains(other) else { continue }
             if let cached = calibration.valid[other] { references.append(cached); continue }
             let input = try glyphs(in:other,check:check)
@@ -241,7 +241,7 @@ struct PDFGrid {
             calibration.valid[other] = centers; references.append(centers)
         }
         let rows = Self.rows(try glyphs(in:box,check:check))
-        guard rows.count == lines.count else { throw PDFParseError(code:.ambiguous,stage:.lessonLines) }
+        guard rows.count == lines.count else { throw PDFParseError(code:.ambiguous,stage:.lessonLines, branch:.b089) }
         var candidates = [[String]]()
         for reference in references {
             try calibration.consume(check)
@@ -259,7 +259,7 @@ struct PDFGrid {
             if valid { candidates.append(fields) }
         }
         guard let fields = candidates.first, !fields[0].isEmpty, candidates.allSatisfy({ $0 == fields }) else {
-            throw PDFParseError(code: .ambiguous, stage: .lessonLines)
+            throw PDFParseError(code: .ambiguous, stage: .lessonLines, branch:.b090)
         }
         return fields
     }

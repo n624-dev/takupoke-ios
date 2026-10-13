@@ -7,13 +7,13 @@ extension PDFSchoolParser {
             key($0.map(\.text).joined()) == String(repeating: "12345678", count: 5)
         }
         guard headers.count == 1, headers[0].count == 40 else {
-            throw PDFParseError(code: .unsupported, page: 1, stage: .periodHeading)
+            throw PDFParseError(code: .unsupported, page: 1, stage: .periodHeading, branch:.b158)
         }
         let header = headers[0]
         let first = try grid.box(header[0].cx, header[0].cy,check:check)
         let classBox = try grid.box(first.left - 2, first.bottom + 20,check:check)
         guard let bodyBottom = page.lines.filter({ $0.vertical && abs($0.x1 - classBox.right) < 0.3 }).map(\.y2).max() else {
-            throw PDFParseError(code: .unsupported, page: 1, stage: .gridColumn)
+            throw PDFParseError(code: .unsupported, page: 1, stage: .gridColumn, branch:.b159)
         }
         let classRows = PDFGrid.rows(page.glyphs.filter { classBox.left < $0.cx && $0.cx < classBox.right &&
             $0.cy > first.bottom && $0.cy < bodyBottom })
@@ -30,16 +30,16 @@ extension PDFSchoolParser {
             try check()
             let label = key(glyphs.map(\.text).joined())
             guard label.range(of: "^(?:[1-9]|[A-Z]{2,8})$", options: .regularExpression) != nil else {
-                throw PDFParseError(code: .ambiguous, page: 1, stage: .classLabel)
+                throw PDFParseError(code: .ambiguous, page: 1, stage: .classLabel, branch:.b160)
             }
             let y = glyphs.map(\.cy).reduce(0, +) / Double(glyphs.count)
             var row = try grid.box((classBox.left + classBox.right) / 2, y,check:check)
             let grade = try key(grid.text(grid.box(classBox.left - 2, y,check:check),check:check).joined())
             guard grade == "AI" || grade.range(of: "^[1-9]$", options: .regularExpression) != nil else {
-                throw PDFParseError(code: .ambiguous, page: 1, stage: .gradeLabel)
+                throw PDFParseError(code: .ambiguous, page: 1, stage: .gradeLabel, branch:.b161)
             }
             let name = ChangeNormalizer.canonicalClassName(grade + "_" + label)
-            guard classes.insert(name).inserted else { throw PDFParseError(code: .ambiguous, page: 1, stage: .duplicateClass) }
+            guard classes.insert(name).inserted else { throw PDFParseError(code: .ambiguous, page: 1, stage: .duplicateClass, branch:.b162) }
             // The first class spans the supplementary period header as well.
             // Use the top of its first actual subject cell to exclude that header.
             row.top = max(row.top, try grid.box(header[0].cx, y,check:check).top)
@@ -64,16 +64,16 @@ extension PDFSchoolParser {
                     }
                     if lines.isEmpty { continue }
                     cell.detectedLines = lines.count
-                    guard lines.reduce(0, { $0 + $1.utf8.count }) <= 4096 else { throw PDFParseError(code: .limit, page: 1) }
-                    guard lines.count <= 3, !lines[0].isEmpty else { throw PDFParseError(code: .ambiguous, page: 1, stage: .lessonLines, cell: cell) }
-                    guard !lines.contains(where:RecoveryRole.hasLabelPrefix) else { throw PDFParseError(code: .unsupported, stage: .lessonLines, cell: cell) }
+                    guard lines.reduce(0, { $0 + $1.utf8.count }) <= 4096 else { throw PDFParseError(code: .limit, page: 1, branch:.b163) }
+                    guard lines.count <= 3, !lines[0].isEmpty else { throw PDFParseError(code: .ambiguous, page: 1, stage: .lessonLines, cell: cell, branch:.b164) }
+                    guard !lines.contains(where:RecoveryRole.hasLabelPrefix) else { throw PDFParseError(code: .unsupported, stage: .lessonLines, cell: cell, branch:.b165) }
                     let fields = try grid.lessonFields(box, lines: lines,referenceBoxes:referenceBoxes,check:check)
                     let parts = fields.map { $0.replacingOccurrences(of: "･", with: "・").components(separatedBy: "・") }
                     let parallel = lines.count == 3 && parts.allSatisfy { $0.count == 2 }
                     if parts.filter({ $0.count > 1 }).count >= 2 && !parallel {
-                        throw PDFParseError(code: .ambiguous, page: 1, stage: .parallelLessons, cell: cell)
+                        throw PDFParseError(code: .ambiguous, page: 1, stage: .parallelLessons, cell: cell, branch:.b166)
                     }
-                    if parallel && parts[0].contains(where: { $0.isEmpty }) { throw PDFParseError(code: .ambiguous, page: 1, stage: .emptySubject, cell: cell) }
+                    if parallel && parts[0].contains(where: { $0.isEmpty }) { throw PDFParseError(code: .ambiguous, page: 1, stage: .emptySubject, cell: cell, branch:.b167) }
                     for variant in 0..<(parallel ? 2 : 1) {
                         let f = parallel ? parts.map { $0[variant] } : fields
                         output.append(PDFLesson(className: name, weekday: column / 8 + 1, period: column % 8 + 1,
@@ -81,11 +81,11 @@ extension PDFSchoolParser {
                                                                             room: PDFTimetableRoomText.collapsingRepeatedVoicingMarks(f[2])),
                                                 sourceText: lines.joined(separator: "\n"), page: 1))
                     }
-                    if output.count > maximumRecords { throw PDFParseError(code: .limit) }
+                    if output.count > maximumRecords { throw PDFParseError(code: .limit, branch:.b168) }
                 }
             }
         }
-        guard !classes.isEmpty, !output.isEmpty else { throw PDFParseError(code: .unsupported, page: 1) }
+        guard !classes.isEmpty, !output.isEmpty else { throw PDFParseError(code: .unsupported, page: 1, branch:.b169) }
         return output
     }
 }

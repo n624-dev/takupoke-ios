@@ -3,7 +3,7 @@ import Foundation
 extension SpecialScheduleParser {
     static func readPeriodTimes(_ page: PDFPageLayout, count: Int,
                                         pageNumber: Int) throws -> Times {
-        guard (1...8).contains(count) else { throw PDFParseError(code:.unsupported,page:pageNumber,stage:.periodHeading) }
+        guard (1...8).contains(count) else { throw PDFParseError(code:.unsupported,page:pageNumber,stage:.periodHeading, branch:.b245) }
         let pattern = try NSRegularExpression(pattern: "([1-8])時限目([0-9]{1,2}:[0-9]{2})[~〜]([0-9]{1,2}:[0-9]{2})")
         let consecutivePattern = try NSRegularExpression(pattern: "([1-8])[・･]([1-8])時限連続([0-9]{1,2}:[0-9]{2})[~〜]([0-9]{1,2}:[0-9]{2})")
         var times: [Int: String] = [:]
@@ -18,7 +18,7 @@ extension SpecialScheduleParser {
                 guard period <= count, let startTime = clockMinutes(start),
                       let endTime = clockMinutes(end), startTime < endTime,
                       times[period] == nil else {
-                    throw PDFParseError(code: .ambiguous, page: pageNumber, stage: .periodHeading)
+                    throw PDFParseError(code: .ambiguous, page: pageNumber, stage: .periodHeading, branch:.b246)
                 }
                 times[period] = String(format: "%02d:%02d〜%02d:%02d",
                                        startTime / 60, startTime % 60, endTime / 60, endTime % 60)
@@ -32,21 +32,21 @@ extension SpecialScheduleParser {
                 guard first < last, last <= count,
                       let startTime = clockMinutes(start), let endTime = clockMinutes(end),
                       startTime < endTime, consecutive[key] == nil else {
-                    throw PDFParseError(code: .ambiguous, page: pageNumber, stage: .periodHeading)
+                    throw PDFParseError(code: .ambiguous, page: pageNumber, stage: .periodHeading, branch:.b247)
                 }
                 consecutive[key] = String(format: "%02d:%02d〜%02d:%02d",
                                           startTime / 60, startTime % 60, endTime / 60, endTime % 60)
             }
         }
         guard times.count == count else {
-            throw PDFParseError(code: .unsupported, page: pageNumber, stage: .periodHeading)
+            throw PDFParseError(code: .unsupported, page: pageNumber, stage: .periodHeading, branch:.b248)
         }
         for period in 1..<count {
             // Canonical HH:mm strings have the same order as clock minutes.
             // Explicit consecutive periods remain their own PDF-backed chart.
             guard let previous = times[period], let current = times[period+1],
                   String(previous.suffix(5)) <= String(current.prefix(5)) else {
-                throw PDFParseError(code:.ambiguous,page:pageNumber,stage:.periodHeading)
+                throw PDFParseError(code:.ambiguous,page:pageNumber,stage:.periodHeading, branch:.b249)
             }
         }
         return Times(single: times, consecutive: consecutive)

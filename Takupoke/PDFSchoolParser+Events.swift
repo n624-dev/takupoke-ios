@@ -16,7 +16,7 @@ extension PDFSchoolParser {
         guard common.count == 6, takuma.count == 6, takamatsu.count == 6,
               let headerBottom = common.map(\.bottom).max(),
               let dayHeader = grid.anchors("日", above: headerBottom + 1).filter({ $0.right < common[0].left }).min(by: { $0.left < $1.left }) else {
-            throw PDFParseError(code: .unsupported, stage: .eventColumns)
+            throw PDFParseError(code: .unsupported, stage: .eventColumns, branch:.b154)
         }
         let dayX = (dayHeader.left + dayHeader.right) / 2
         let dateGlyphs = page.glyphs.filter { abs($0.cx - dayX) < 7 && $0.cy > headerBottom + 2 }
@@ -24,7 +24,7 @@ extension PDFSchoolParser {
             guard let day = Int(key(row.map(\.text).joined())), (1...31).contains(day) else { return nil }
             return (day, row.map(\.cy).reduce(0, +) / Double(row.count))
         }
-        guard dateRows.map(\.0) == Array(1...31) else { throw PDFParseError(code: .unsupported, stage: .calendarDates) }
+        guard dateRows.map(\.0) == Array(1...31) else { throw PDFParseError(code: .unsupported, stage: .calendarDates, branch:.b155) }
         var output: [PDFSchoolEvent] = []
         var arrows: [CalendarArrow] = []
         var months: Set<Int> = []
@@ -35,10 +35,10 @@ extension PDFSchoolParser {
             let left = common[i].left, right = takuma[i].right
             let monthTexts = PDFGrid.rows(page.glyphs.filter { left < $0.cx && $0.cx < right &&
                 $0.cy < common[i].top && $0.cy > common[i].top - 22 }).map { key($0.map(\.text).joined()) }.filter { $0.range(of: "^(?:[1-9]|1[0-2])月$", options: .regularExpression) != nil }
-            guard monthTexts.count == 1 else { throw PDFParseError(code: .unsupported, stage: .monthHeading) }
+            guard monthTexts.count == 1 else { throw PDFParseError(code: .unsupported, stage: .monthHeading, branch:.b156) }
             let monthText = monthTexts[0]
             guard monthText.range(of: "^(?:[1-9]|1[0-2])月$", options: .regularExpression) != nil,
-                  let month = Int(monthText.dropLast()), months.insert(month).inserted else { throw PDFParseError(code: .unsupported, stage: .monthHeading) }
+                  let month = Int(monthText.dropLast()), months.insert(month).inserted else { throw PDFParseError(code: .unsupported, stage: .monthHeading, branch:.b157) }
             for (scope, anchor) in [("共通", common[i]), ("詫間", takuma[i])] {
                 var column: PDFBox
                 if scope == "詫間" {

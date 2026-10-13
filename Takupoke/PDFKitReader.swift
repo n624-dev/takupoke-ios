@@ -36,11 +36,11 @@ enum PDFKitReader {
         diagnostics?.record(.file)
         let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize
         diagnostics?.record(.file, values: [Double(size ?? -1)])
-        guard let size = size, size > 0, size <= MaterialLibrary.maximumBytes else { throw PDFParseError(code: .unreadable) }
+        guard let size = size, size > 0, size <= MaterialLibrary.maximumBytes else { throw PDFParseError(code: .unreadable, branch:.b091) }
         let opened = PDFDocument(url: url)
         diagnostics?.record(.document, values: [Double(opened?.pageCount ?? -1), opened?.isLocked == true ? 1 : 0])
         guard let document = opened, !document.isLocked,
-              document.pageCount > 0, document.pageCount <= 12 else { throw PDFParseError(code: .unreadable) }
+              document.pageCount > 0, document.pageCount <= 12 else { throw PDFParseError(code: .unreadable, branch:.b092) }
         capture?.begin(pageCount: document.pageCount)
         var output: [PDFPageLayout] = []
         for index in 0..<document.pageCount {
@@ -48,23 +48,23 @@ enum PDFKitReader {
             diagnostics?.record(.page, page: index + 1)
             guard let page = document.page(at: index), let ref = page.pageRef,
                   page.numberOfCharacters <= 100000 else {
-                throw PDFParseError(code: .unreadable, page: index + 1)
+                throw PDFParseError(code: .unreadable, page: index + 1, branch:.b093)
             }
             if verifyVisibility || kind == .timetable {
                 let media = ref.getBoxRect(.mediaBox), crop = ref.getBoxRect(.cropBox)
                 guard media == crop else {
                     // The viewer displays CropBox. Selectable content outside it
                     // must never become a complete timetable through MediaBox.
-                    throw PDFParseError(code:.unsupported,page:index+1,stage:.rasterInput)
+                    throw PDFParseError(code:.unsupported,page:index+1,stage:.rasterInput, branch:.b094)
                 }
             }
             guard let string = page.string, !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                throw PDFParseError(code: .unsupported, page: index + 1, stage: .rasterInput)
+                throw PDFParseError(code: .unsupported, page: index + 1, stage: .rasterInput, branch:.b095)
             }
             let media = ref.getBoxRect(.mediaBox)
             let rotation = ((page.rotation % 360) + 360) % 360
             guard [0, 90, 180, 270].contains(rotation) else {
-                throw PDFParseError(code: .unsupported, page: index + 1, stage: .pageRotation)
+                throw PDFParseError(code: .unsupported, page: index + 1, stage: .pageRotation, branch:.b096)
             }
             let transform = PDFDisplayTransform(media: media, rotation: rotation)
             diagnostics?.record(.pageText, page: index + 1,
@@ -94,38 +94,38 @@ enum PDFKitReader {
             } else {
                 let ns = string as NSString
                 guard ns.length == page.numberOfCharacters else {
-                    throw PDFParseError(code: .unsupported, page: index + 1, stage: .characterMapping)
+                    throw PDFParseError(code: .unsupported, page: index + 1, stage: .characterMapping, branch:.b097)
                 }
                 diagnostics?.record(.pageSelection, page: index + 1)
                 guard ns.length > 0, let pageSelection = page.selection(for: NSRange(location: 0, length: ns.length)) else {
-                    throw PDFParseError(code: .unsupported, page: index + 1, stage: .textOrder)
+                    throw PDFParseError(code: .unsupported, page: index + 1, stage: .textOrder, branch:.b098)
                 }
                 var sourceLines = [Int?](repeating: nil, count: ns.length)
                 let textLines = pageSelection.selectionsByLine()
                 diagnostics?.record(.lines, page: index + 1, values: [Double(textLines.count)])
-                guard textLines.count <= 100000 else { throw PDFParseError(code: .limit, page: index + 1) }
+                guard textLines.count <= 100000 else { throw PDFParseError(code: .limit, page: index + 1, branch:.b099) }
                 var coveredUnits = 0
                 for (lineID, line) in textLines.enumerated() {
                     try check()
                     let count = line.numberOfTextRanges(on: page)
                     diagnostics?.record(.lineRanges, page: index + 1, line: lineID, values: [Double(count)])
-                    guard count <= 100000 else { throw PDFParseError(code: .limit, page: index + 1) }
+                    guard count <= 100000 else { throw PDFParseError(code: .limit, page: index + 1, branch:.b100) }
                     for rangeIndex in 0..<count {
                         let range = line.range(at: rangeIndex, on: page)
                         diagnostics?.record(.lineRange, page: index + 1, index: range.location, length: range.length, line: lineID)
                         guard range.location >= 0, range.location <= ns.length,
                               range.length >= 0, range.length <= ns.length - range.location else {
-                            throw PDFParseError(code: .unsupported, page: index + 1, stage: .textOrder)
+                            throw PDFParseError(code: .unsupported, page: index + 1, stage: .textOrder, branch:.b101)
                         }
                         coveredUnits += range.length
-                        guard coveredUnits <= ns.length * 2 else { throw PDFParseError(code: .limit, page: index + 1) }
+                        guard coveredUnits <= ns.length * 2 else { throw PDFParseError(code: .limit, page: index + 1, branch:.b102) }
                         for offset in range.location..<NSMaxRange(range) {
                             if let scalar = UnicodeScalar(UInt32(ns.character(at: offset))),
                                CharacterSet.whitespacesAndNewlines.contains(scalar) { continue }
                             guard sourceLines[offset] == nil || sourceLines[offset] == lineID else {
                                 diagnostics?.record(.lineOffset, page: index + 1, index: offset, line: lineID,
                                                     values: [Double(sourceLines[offset] ?? -1)])
-                                throw PDFParseError(code: .ambiguous, page: index + 1, stage: .textOrder)
+                                throw PDFParseError(code: .ambiguous, page: index + 1, stage: .textOrder, branch:.b103)
                             }
                             sourceLines[offset] = lineID
                         }
@@ -143,7 +143,7 @@ enum PDFKitReader {
                     if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         guard let sourceLine = sourceLines[cursor],
                               (range.location..<NSMaxRange(range)).allSatisfy({ sourceLines[$0] == sourceLine }) else {
-                            throw PDFParseError(code: .unsupported, page: index + 1, stage: .textOrder)
+                            throw PDFParseError(code: .unsupported, page: index + 1, stage: .textOrder, branch:.b104)
                         }
                         // Keep the calendar's UTF-16 selection verification.
                         let selected = page.selection(for: range)
@@ -151,14 +151,14 @@ enum PDFKitReader {
                             line: sourceLine, values: [selected == nil ? 0 : 1, selected?.string == text ? 1 : 0],
                             bounds: selected?.bounds(for: page))
                         guard let selection = selected, selection.string == text else {
-                            throw PDFParseError(code: .unsupported, page: index + 1, stage: .characterMapping)
+                            throw PDFParseError(code: .unsupported, page: index + 1, stage: .characterMapping, branch:.b105)
                         }
                         // The calendar path is intentionally kept unchanged.
                         let box = selection.bounds(for: page)
                         guard !box.isNull, !box.isEmpty,
                               [box.minX, box.minY, box.width, box.height].allSatisfy(\.isFinite) else {
                             // Dropping a visible character could silently change a subject or date.
-                            throw PDFParseError(code: .unsupported, page: index + 1, stage: .characterMapping)
+                            throw PDFParseError(code: .unsupported, page: index + 1, stage: .characterMapping, branch:.b106)
                         }
                         let b = transform.rect(box)
                         diagnostics?.record(.displayBounds, page: index + 1, index: range.location, length: range.length,
@@ -201,8 +201,8 @@ enum PDFKitReader {
             var capturedLayout = layout
             capturedLayout.glyphs = recoveryGlyphs ?? glyphs
             capture?.record(page: index + 1, state: glyphs.isEmpty ? .rasterOnly : recoveryComplete ? .complete : .partial, layout: capturedLayout)
-            guard !glyphs.isEmpty else { throw PDFParseError(code: .unsupported, page: index + 1, stage: .rasterInput) }
-            guard !lines.isEmpty else { throw PDFParseError(code: .unsupported, page: index + 1, stage: .gridCell) }
+            guard !glyphs.isEmpty else { throw PDFParseError(code: .unsupported, page: index + 1, stage: .rasterInput, branch:.b107) }
+            guard !lines.isEmpty else { throw PDFParseError(code: .unsupported, page: index + 1, stage: .gridCell, branch:.b108) }
             diagnostics?.record(.pageComplete, page: index + 1,
                 values: [Double(glyphs.count), Double(lines.count), Double(reader.arrows.count), Double(reader.operations)])
             output.append(layout)

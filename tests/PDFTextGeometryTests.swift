@@ -600,6 +600,7 @@ extension PDFTextGeometryTests {
             let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
             XCTAssertThrowsError(try PDFPathReader(transform:transform,verifyVisibility:true,check:{}).read(page)) {
                 XCTAssertEqual(($0 as? PDFParseError)?.stage,.vectorObjects)
+                XCTAssertEqual(($0 as? PDFParseError)?.branch,index == 0 ? .b128 : .b127)
             }
             let url = root.appendingPathComponent("fictional-\(index).pdf"); try data.write(to:url)
             let normal = RecoveryReadCapture(), special = RecoveryReadCapture()
@@ -749,6 +750,34 @@ extension PDFTextGeometryTests {
                 XCTAssertFalse(capture.complete); XCTAssertFalse(capture.pages.contains { $0.state == .complete })
             }
         }
+    }
+    func testNativeRejectionBranchIsFixedAndPositiveControlStillReads() throws {
+        let transform = PDFDisplayTransform(media:CGRect(x:0,y:0,width:300,height:400),rotation:0)
+        let cases: [(String,PDFParseError.Branch)] = [
+            ("10 10 m 20 20 l 30 30 40 40 50 50 c S",.b121),
+            ("[1 2] 0 d 10 10 m 20 10 l S",.b121),
+            ("10 10 50 50 re f",.b126),
+            ("10 10 m 20 20 l S",.b128),
+            ("3 Tr",.b145),
+            ("q",.b150)
+        ]
+        for (content,branch) in cases {
+            let data = syntheticPDF(content:content,simpleFont:true)
+            let provider = try XCTUnwrap(CGDataProvider(data:data as CFData))
+            let document = try XCTUnwrap(CGPDFDocument(provider))
+            let page = try XCTUnwrap(document.page(at:1))
+            XCTAssertThrowsError(try PDFPathReader(transform:transform,verifyVisibility:true,check:{}).read(page)) {
+                let error = $0 as? PDFParseError
+                XCTAssertEqual(error?.code,.unsupported)
+                XCTAssertEqual(error?.stage,.vectorObjects)
+                XCTAssertEqual(error?.branch,branch)
+            }
+        }
+        let data = syntheticPDF(content:"10 10 m 20 10 l S",simpleFont:true)
+        let provider = try XCTUnwrap(CGDataProvider(data:data as CFData))
+        let document = try XCTUnwrap(CGPDFDocument(provider))
+        let page = try XCTUnwrap(document.page(at:1))
+        XCTAssertEqual(try PDFPathReader(transform:transform,verifyVisibility:true,check:{}).read(page).count,1)
     }
     func testNativeThinStrokeCannotCrossAcquiredGlyphs() throws {
         let data = syntheticPDF(content:"0 g BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET 0 G 1 w 20 355 m 70 355 l S",simpleFont:true)

@@ -41,17 +41,17 @@ struct PDFPageLayout: Codable, Sendable {
         func inside(_ x: Double, _ y: Double) -> Bool {
             x.isFinite && y.isFinite && x >= 0 && y >= 0 && x <= width && y <= height
         }
-        guard width.isFinite, height.isFinite, width > 0, height > 0 else { throw PDFParseError(code:.unsupported,stage:.rasterInput) }
+        guard width.isFinite, height.isFinite, width > 0, height > 0 else { throw PDFParseError(code:.unsupported,stage:.rasterInput, branch:.b001) }
         for (index,glyph) in glyphs.enumerated() {
             if index % 128 == 0 { try check() }
             guard glyph.width.isFinite, glyph.height.isFinite, glyph.width >= 0, glyph.height >= 0,
                   inside(glyph.x,glyph.y), inside(glyph.x+glyph.width,glyph.y+glyph.height) else {
-                throw PDFParseError(code:.unsupported,stage:.rasterInput)
+                throw PDFParseError(code:.unsupported,stage:.rasterInput, branch:.b002)
             }
         }
         for (index,line) in lines.enumerated() {
             if index % 128 == 0 { try check() }
-            guard inside(line.x1,line.y1), inside(line.x2,line.y2) else { throw PDFParseError(code:.unsupported,stage:.rasterInput) }
+            guard inside(line.x1,line.y1), inside(line.x2,line.y2) else { throw PDFParseError(code:.unsupported,stage:.rasterInput, branch:.b003) }
         }
     }
 }

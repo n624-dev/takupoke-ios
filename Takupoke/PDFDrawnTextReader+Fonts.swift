@@ -5,9 +5,9 @@ import CoreGraphics
 extension PDFDrawnTextReader {
     func resource(_ scanner: CGPDFScannerRef, _ category: String, _ name: String) throws -> CGPDFDictionaryRef {
         let stream = CGPDFScannerGetContentStream(scanner)
-        guard let object = CGPDFContentStreamGetResource(stream, category, name) else { throw PDFTextFailure.unsupported }
+        guard let object = CGPDFContentStreamGetResource(stream, category, name) else { throw PDFTextFailure.unsupported(.b033) }
         var dict: CGPDFDictionaryRef?
-        guard CGPDFObjectGetValue(object, .dictionary, &dict), let dict = dict else { throw PDFTextFailure.unsupported }
+        guard CGPDFObjectGetValue(object, .dictionary, &dict), let dict = dict else { throw PDFTextFailure.unsupported(.b034) }
         return dict
     }
     private func named(_ dict: CGPDFDictionaryRef, _ key: String) -> String? {
@@ -18,30 +18,30 @@ extension PDFDrawnTextReader {
     func number(_ dict: CGPDFDictionaryRef, _ key: String, fallback: Double? = nil) throws -> Double {
         var value: CGPDFReal = 0, object: CGPDFObjectRef?
         if CGPDFDictionaryGetNumber(dict, key, &value), value.isFinite { return Double(value) }
-        guard !CGPDFDictionaryGetObject(dict, key, &object), let fallback = fallback else { throw PDFTextFailure.unsupported }
+        guard !CGPDFDictionaryGetObject(dict, key, &object), let fallback = fallback else { throw PDFTextFailure.unsupported(.b035) }
         return fallback
     }
     func font(_ scanner: CGPDFScannerRef) throws {
         let size = try numbers(scanner, 1)[0], key = try name(scanner)
         if !selectedFontKeys.contains(key) {
-            guard selectedFontKeys.count < 128 else { throw PDFParseError(code: .limit) }
+            guard selectedFontKeys.count < 128 else { throw PDFParseError(code: .limit, branch:.b036) }
             selectedFontKeys.insert(key)
         }
         if let cached = fonts[key] { try engine.font(cached, size:size); return }
-        guard fonts.count < 128 else { throw PDFParseError(code: .limit) }
+        guard fonts.count < 128 else { throw PDFParseError(code: .limit, branch:.b037) }
         let dict = try resource(scanner, "Font", key)
         var mapStream: CGPDFStreamRef?
         if !CGPDFDictionaryGetStream(dict, "ToUnicode", &mapStream) {
             // Only an absent map can be an unused setup font. An explicitly
             // malformed map, broken resource, cancellation, or limit still fails.
             var object: CGPDFObjectRef?
-            guard !CGPDFDictionaryGetObject(dict, "ToUnicode", &object) else { throw PDFTextFailure.unsupported }
+            guard !CGPDFDictionaryGetObject(dict, "ToUnicode", &object) else { throw PDFTextFailure.unsupported(.b038) }
             try engine.font(nil, size: size)
             return
         }
-        guard let mapStream = mapStream else { throw PDFTextFailure.unsupported }
+        guard let mapStream = mapStream else { throw PDFTextFailure.unsupported(.b039) }
         var format = CGPDFDataFormat.raw
-        guard let data = CGPDFStreamCopyData(mapStream, &format), format == .raw else { throw PDFTextFailure.unsupported }
+        guard let data = CGPDFStreamCopyData(mapStream, &format), format == .raw else { throw PDFTextFailure.unsupported(.b040) }
         let mapping = try PDFUnicodeMap.read(data as Data,check:engine.check)
         var metrics = dict
         let composite = named(dict, "Subtype") == "Type0"
@@ -52,35 +52,35 @@ extension PDFDrawnTextReader {
                   CGPDFArrayGetCount(descendants) == 1,
                   CGPDFArrayGetDictionary(descendants, 0, &descendant), let descendant = descendant,
                   ["CIDFontType0", "CIDFontType2"].contains(named(descendant, "Subtype") ?? "") else {
-                throw PDFTextFailure.unsupported
+                throw PDFTextFailure.unsupported(.b041)
             }
             metrics = descendant
         } else {
             guard ["TrueType", "Type1"].contains(named(dict, "Subtype") ?? ""), mapping.bytes == 1 else {
-                throw PDFTextFailure.unsupported
+                throw PDFTextFailure.unsupported(.b042)
             }
         }
         var descriptor: CGPDFDictionaryRef?
         guard CGPDFDictionaryGetDictionary(metrics, "FontDescriptor", &descriptor), let descriptor = descriptor else {
-            throw PDFTextFailure.unsupported
+            throw PDFTextFailure.unsupported(.b043)
         }
         var widths: [Int: Double] = [:]
         var array: CGPDFArrayRef?
         if composite {
             if CGPDFDictionaryGetArray(metrics, "W", &array), let array = array {
                 let count = CGPDFArrayGetCount(array)
-                guard count <= 200_000 else { throw PDFParseError(code: .limit) }
+                guard count <= 200_000 else { throw PDFParseError(code: .limit, branch:.b044) }
                 var i = 0
                 func integer(_ index: Int) throws -> Int {
                     var n: CGPDFInteger = 0
                     guard index < count, CGPDFArrayGetInteger(array, index, &n), (0...65535).contains(n) else {
-                        throw PDFTextFailure.unsupported
+                        throw PDFTextFailure.unsupported(.b045)
                     }
                     return n
                 }
                 func put(_ cid: Int, _ value: Double) throws {
                     guard (0...65535).contains(cid), value.isFinite, value >= 0, widths[cid] == nil else {
-                        throw PDFTextFailure.unsupported
+                        throw PDFTextFailure.unsupported(.b046)
                     }
                     widths[cid] = value
                 }
@@ -88,39 +88,39 @@ extension PDFDrawnTextReader {
                     try engine.check()
                     let start = try integer(i); i += 1
                     var list: CGPDFArrayRef?
-                    guard i < count else { throw PDFTextFailure.unsupported }
+                    guard i < count else { throw PDFTextFailure.unsupported(.b047) }
                     if CGPDFArrayGetArray(array, i, &list), let list = list {
                         let length = CGPDFArrayGetCount(list)
-                        guard length > 0, length <= 65536 - start else { throw PDFTextFailure.unsupported }
+                        guard length > 0, length <= 65536 - start else { throw PDFTextFailure.unsupported(.b048) }
                         for offset in 0..<length {
                             var value: CGPDFReal = 0
-                            guard CGPDFArrayGetNumber(list, offset, &value) else { throw PDFTextFailure.unsupported }
+                            guard CGPDFArrayGetNumber(list, offset, &value) else { throw PDFTextFailure.unsupported(.b049) }
                             try put(start + offset, Double(value))
                         }
                         i += 1
                     } else {
                         let end = try integer(i); i += 1
                         var value: CGPDFReal = 0
-                        guard end >= start, i < count, CGPDFArrayGetNumber(array, i, &value) else { throw PDFTextFailure.unsupported }
+                        guard end >= start, i < count, CGPDFArrayGetNumber(array, i, &value) else { throw PDFTextFailure.unsupported(.b050) }
                         for cid in start...end { try put(cid, Double(value)) }
                         i += 1
                     }
                 }
             } else {
                 var object: CGPDFObjectRef?
-                guard !CGPDFDictionaryGetObject(metrics, "W", &object) else { throw PDFTextFailure.unsupported }
+                guard !CGPDFDictionaryGetObject(metrics, "W", &object) else { throw PDFTextFailure.unsupported(.b051) }
             }
         } else {
             let first = try number(dict, "FirstChar"), last = try number(dict, "LastChar")
             guard first.rounded() == first, last.rounded() == last, first >= 0, last <= 255, last >= first,
                   CGPDFDictionaryGetArray(dict, "Widths", &array), let array = array,
-                  CGPDFArrayGetCount(array) == Int(last - first + 1) else { throw PDFTextFailure.unsupported }
+                  CGPDFArrayGetCount(array) == Int(last - first + 1) else { throw PDFTextFailure.unsupported(.b052) }
             for index in 0..<CGPDFArrayGetCount(array) {
                 var value: CGPDFReal = 0
-                guard CGPDFArrayGetNumber(array, index, &value) else { throw PDFTextFailure.unsupported }
+                guard CGPDFArrayGetNumber(array, index, &value) else { throw PDFTextFailure.unsupported(.b053) }
                 widths[Int(first) + index] = Double(value)
             }
-            guard mapping.values.keys.allSatisfy({ widths[$0] != nil }) else { throw PDFTextFailure.unsupported }
+            guard mapping.values.keys.allSatisfy({ widths[$0] != nil }) else { throw PDFTextFailure.unsupported(.b054) }
         }
         var outlineBounds: PDFBox?
         var fontBox: CGPDFArrayRef?

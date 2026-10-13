@@ -3,7 +3,9 @@ import Foundation
 /// Timetable geometry comes from PDF text drawing instructions, not selection
 /// highlights or PDFKit's synthetic newline indices. All failures are text-free.
 enum PDFTextFailure {
-    static var unsupported: PDFParseError { PDFParseError(code: .unsupported, stage: .characterMapping) }
+    static func unsupported(_ branch: PDFParseError.Branch) -> PDFParseError {
+        PDFParseError(code:.unsupported,stage:.characterMapping,branch:branch)
+    }
 }
 
 /// Paint visibility is independent of canonical black classification. Supported
@@ -35,7 +37,7 @@ enum PDFTextVisibility {
 struct PDFTextMatrix {
     var a = 1.0, b = 0.0, c = 0.0, d = 1.0, tx = 0.0, ty = 0.0
     init(_ n: [Double] = [1, 0, 0, 1, 0, 0]) throws {
-        guard n.count == 6, n.allSatisfy(\.isFinite) else { throw PDFTextFailure.unsupported }
+        guard n.count == 6, n.allSatisfy(\.isFinite) else { throw PDFTextFailure.unsupported(.b186) }
         a = n[0]; b = n[1]; c = n[2]; d = n[3]; tx = n[4]; ty = n[5]
     }
     func point(_ x: Double, _ y: Double) -> CGPoint { CGPoint(x: a * x + c * y + tx, y: b * x + d * y + ty) }
@@ -78,33 +80,33 @@ final class PDFTextGeometry {
 
     func operation(_ op: String, _ n: [Double] = []) throws {
         operations += 1
-        guard operations <= 1_000_000 else { throw PDFParseError(code: .limit) }
+        guard operations <= 1_000_000 else { throw PDFParseError(code: .limit, branch:.b187) }
         if operations % 128 == 0 { try check() }
         let counts = ["q": 0, "Q": 0, "cm": 6, "BT": 0, "ET": 0, "Tm": 6, "Td": 2, "TD": 2,
                       "T*": 0, "Tc": 1, "Tw": 1, "Tz": 1, "TL": 1, "Ts": 1, "Tr": 1,
                       "g": 1, "G": 1, "rg": 3, "RG": 3, "k": 4, "K": 4,
                       "w": 1, "j": 1, "M": 1]
-        guard let count = counts[op], n.count == count, n.allSatisfy(\.isFinite) else { throw PDFTextFailure.unsupported }
+        guard let count = counts[op], n.count == count, n.allSatisfy(\.isFinite) else { throw PDFTextFailure.unsupported(.b188) }
         switch op {
         case "g", "rg", "k": try state.colors.fill.device(n, count: n.count)
         case "G", "RG", "K": try state.colors.stroke.device(n, count: n.count)
         case "q":
-            guard stack.count < 64 else { throw PDFParseError(code: .limit) }
+            guard stack.count < 64 else { throw PDFParseError(code: .limit, branch:.b189) }
             stack.append(state)
         case "Q":
-            guard let saved = stack.popLast() else { throw PDFTextFailure.unsupported }; state = saved
+            guard let saved = stack.popLast() else { throw PDFTextFailure.unsupported(.b190) }; state = saved
             line += 1
         case "cm": state.ctm = try PDFTextMatrix(n).followed(by: state.ctm); line += 1
         case "BT":
-            guard !inText else { throw PDFTextFailure.unsupported }
+            guard !inText else { throw PDFTextFailure.unsupported(.b191) }
             inText = true; matrix = try PDFTextMatrix(); lineMatrix = matrix; line += 1
         case "ET":
-            guard inText else { throw PDFTextFailure.unsupported }; inText = false
+            guard inText else { throw PDFTextFailure.unsupported(.b192) }; inText = false
         case "Tm":
-            guard inText else { throw PDFTextFailure.unsupported }
+            guard inText else { throw PDFTextFailure.unsupported(.b193) }
             matrix = try PDFTextMatrix(n); lineMatrix = matrix; line += 1
         case "Td", "TD", "T*":
-            guard inText else { throw PDFTextFailure.unsupported }
+            guard inText else { throw PDFTextFailure.unsupported(.b194) }
             if op == "TD" { state.leading = -n[1] }
             lineMatrix.translate(op == "T*" ? 0 : n[0], op == "T*" ? -state.leading : n[1])
             matrix = lineMatrix; line += 1
@@ -114,47 +116,47 @@ final class PDFTextGeometry {
         case "TL": state.leading = n[0]
         case "Ts": state.rise = n[0]; line += 1
         case "w":
-            guard n[0] >= 0 else { throw PDFTextFailure.unsupported }
+            guard n[0] >= 0 else { throw PDFTextFailure.unsupported(.b195) }
             state.lineWidth = n[0]
         case "j":
-            guard [0.0, 1, 2].contains(n[0]) else { throw PDFTextFailure.unsupported }
+            guard [0.0, 1, 2].contains(n[0]) else { throw PDFTextFailure.unsupported(.b196) }
             state.lineJoin = n[0]
         case "M":
-            guard n[0] >= 1 else { throw PDFTextFailure.unsupported }
+            guard n[0] >= 1 else { throw PDFTextFailure.unsupported(.b197) }
             state.miterLimit = n[0]
         case "Tr":
             // Restore the visible modes supported by the original reader.
             // Stroke color and extent are checked when text is actually drawn.
-            guard [0.0, 1, 2].contains(n[0]) else { throw PDFTextFailure.unsupported }
+            guard [0.0, 1, 2].contains(n[0]) else { throw PDFTextFailure.unsupported(.b198) }
             state.rendering = n[0]
-        default: throw PDFTextFailure.unsupported
+        default: throw PDFTextFailure.unsupported(.b199)
         }
     }
     func font(_ font: PDFTextFont?, size: Double) throws {
-        guard size.isFinite, size > 0 else { throw PDFTextFailure.unsupported }
+        guard size.isFinite, size > 0 else { throw PDFTextFailure.unsupported(.b200) }
         state.font = font; state.size = size
     }
     func adjust(_ amount: Double) throws {
-        guard inText, amount.isFinite else { throw PDFTextFailure.unsupported }
+        guard inText, amount.isFinite else { throw PDFTextFailure.unsupported(.b201) }
         matrix.translate(-amount / 1000 * state.size * state.scale, 0)
     }
     func show(_ bytes: [UInt8]) throws {
         try check()
-        guard inText, state.size > 0, state.scale > 0 else { throw PDFTextFailure.unsupported }
+        guard inText, state.size > 0, state.scale > 0 else { throw PDFTextFailure.unsupported(.b202) }
         if bytes.isEmpty { return }
         guard state.colors.canPaintText(mode:state.rendering) else {
-            throw PDFParseError(code:.unsupported,stage:.paintVisibility)
+            throw PDFParseError(code:.unsupported,stage:.paintVisibility, branch:.b203)
         }
         guard let font = state.font,
               bytes.count % font.codeBytes == 0, order + bytes.count / font.codeBytes <= 100_000 else {
-            throw PDFTextFailure.unsupported
+            throw PDFTextFailure.unsupported(.b204)
         }
         for offset in stride(from: 0, to: bytes.count, by: font.codeBytes) {
             if order % 128 == 0 { try check() }
             let cid = bytes[offset..<(offset + font.codeBytes)].reduce(0) { $0 * 256 + Int($1) }
             guard let text = font.unicode[cid], !text.isEmpty,
                   !text.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }),
-                  textUnits + text.utf16.count <= 100_000 else { throw PDFTextFailure.unsupported }
+                  textUnits + text.utf16.count <= 100_000 else { throw PDFTextFailure.unsupported(.b205) }
             let width = (font.widths[cid] ?? font.defaultWidth) / 1000 * state.size
             let total = try matrix.followed(by: state.ctm)
             let bottom = font.descent / 1000 * state.size + state.rise
@@ -162,21 +164,21 @@ final class PDFTextGeometry {
             let points = [total.point(0, bottom), total.point(width * state.scale, bottom),
                           total.point(0, top), total.point(width * state.scale, top)]
             let xs = points.map { Double($0.x) }, ys = points.map { Double($0.y) }
-            guard (xs + ys).allSatisfy({ $0.isFinite && abs($0) < 10_000_000 }) else { throw PDFTextFailure.unsupported }
+            guard (xs + ys).allSatisfy({ $0.isFinite && abs($0) < 10_000_000 }) else { throw PDFTextFailure.unsupported(.b206) }
             let x = xs.min()!, y = ys.min()!, right = xs.max()!, upper = ys.max()!
             let validGeometry = width > 0 && right > x && upper > y
             if validGeometry {
                 recoveryGlyphs.append(PDFGlyph(text:text,x:x,y:y,width:right-x,height:upper-y,sourceLine:line,sourceOrder:order))
             } else { recoveryComplete = false }
             if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                guard validGeometry else { throw PDFTextFailure.unsupported }
+                guard validGeometry else { throw PDFTextFailure.unsupported(.b207) }
                 var painted = PDFBox(left:x, top:y, right:right, bottom:upper)
                 let ink = outlineBox(font, code:cid, matrix:total)
                 if state.rendering != 0 {
                     let ctm = state.ctm
                     guard state.solidDash, let ink,
                           let strokePad = PDFTextVisibility.strokePad(state.lineWidth, a:ctm.a, b:ctm.b, c:ctm.c, d:ctm.d) else {
-                        throw PDFTextFailure.unsupported
+                        throw PDFTextFailure.unsupported(.b208)
                     }
                     // Use the encoded glyph path where available; otherwise the
                     // conservative font box, never the advance alone.
@@ -185,7 +187,7 @@ final class PDFTextGeometry {
                     painted = PDFBox(left:min(painted.left,ink.left - pad), top:min(painted.top,ink.top - pad),
                                      right:max(painted.right,ink.right + pad), bottom:max(painted.bottom,ink.bottom + pad))
                     guard [painted.left,painted.top,painted.right,painted.bottom].allSatisfy({ $0.isFinite && abs($0) < 10_000_000 }) else {
-                        throw PDFTextFailure.unsupported
+                        throw PDFTextFailure.unsupported(.b209)
                     }
                 }
                 if state.rendering == 2 && state.colors.fill.isWhite { whiteFillGlyphs.append(occlusionBounds.count) }
@@ -217,24 +219,24 @@ final class PDFTextGeometry {
     private func requireNoWhiteGlyphOcclusion() throws {
         guard !whiteFillGlyphs.isEmpty else { return }
         let boxes = occlusionBounds.compactMap { $0 }
-        guard boxes.count == occlusionBounds.count else { throw PDFTextFailure.unsupported }
+        guard boxes.count == occlusionBounds.count else { throw PDFTextFailure.unsupported(.b210) }
         var workCount = 0
         let work = { [self] in
             workCount += 1
-            guard workCount <= 1_000_000 else { throw PDFParseError(code:.limit) }
+            guard workCount <= 1_000_000 else { throw PDFParseError(code:.limit, branch:.b211) }
             if workCount % 128 == 0 { try check() }
         }
         let index = try PDFTextCollisionIndex(boxes,work:work)
         for glyph in whiteFillGlyphs {
             try check()
             if try index.overlaps(boxes[glyph],pad:0,excluding:glyph,work:work) {
-                throw PDFTextFailure.unsupported
+                throw PDFTextFailure.unsupported(.b212)
             }
         }
     }
     func finish(expectedText: String) throws -> [PDFGlyph] {
         try check()
-        guard !inText, stack.isEmpty, !glyphs.isEmpty, expectedText.utf16.count <= 100_000 else { throw PDFTextFailure.unsupported }
+        guard !inText, stack.isEmpty, !glyphs.isEmpty, expectedText.utf16.count <= 100_000 else { throw PDFTextFailure.unsupported(.b213) }
         func content(_ text: String) -> [UInt32: Int] {
             text.precomposedStringWithCanonicalMapping.unicodeScalars.reduce(into: [:]) {
                 if !CharacterSet.whitespacesAndNewlines.contains($1) { $0[$1.value, default: 0] += 1 }
@@ -242,14 +244,14 @@ final class PDFTextGeometry {
         }
         // PDFKit can reorder lines and insert whitespace. It must nevertheless
         // account for every visible scalar drawn by the supported text operators.
-        guard content(drawnText) == content(expectedText) else { throw PDFTextFailure.unsupported }
+        guard content(drawnText) == content(expectedText) else { throw PDFTextFailure.unsupported(.b214) }
         try requireNoWhiteGlyphOcclusion()
         try PDFClipValidation.requireContains(paintedGlyphBounds, clips: clips, check: check)
         return glyphs
     }
 
     func clip(_ box: PDFBox) throws {
-        guard clips.count < 128 else { throw PDFParseError(code: .limit) }
+        guard clips.count < 128 else { throw PDFParseError(code: .limit, branch:.b215) }
         clips.append(box)
     }
 }

@@ -15,20 +15,20 @@ struct PDFTextFont {
         guard [1, 2].contains(codeBytes), !unicode.isEmpty, unicode.count <= 65536,
               [defaultWidth, ascent, descent].allSatisfy(\.isFinite), defaultWidth >= 0,
               ascent > descent, widths.values.allSatisfy({ $0.isFinite && $0 >= 0 }) else {
-            throw PDFTextFailure.unsupported
+            throw PDFTextFailure.unsupported(.b216)
         }
         self.unicode = unicode; self.codeBytes = codeBytes; self.widths = widths
         self.defaultWidth = defaultWidth; self.ascent = ascent; self.descent = descent
         if let box = outlineBounds {
             guard [box.left, box.top, box.right, box.bottom].allSatisfy(\.isFinite),
-                  box.left < box.right, box.top < box.bottom else { throw PDFTextFailure.unsupported }
+                  box.left < box.right, box.top < box.bottom else { throw PDFTextFailure.unsupported(.b217) }
         }
         self.outlineBounds = outlineBounds
         if let encodedGlyphBounds {
             guard encodedGlyphBounds.count <= 65536, encodedGlyphBounds.allSatisfy({ key, box in
                 (0...65535).contains(key) && [box.left,box.top,box.right,box.bottom].allSatisfy(\.isFinite) &&
                 box.left < box.right && box.top < box.bottom
-            }) else { throw PDFTextFailure.unsupported }
+            }) else { throw PDFTextFailure.unsupported(.b218) }
         }
         self.encodedGlyphBounds = encodedGlyphBounds
     }
@@ -40,7 +40,7 @@ enum PDFUnicodeMap {
     static func read(_ data: Data, check: () throws -> Void = {}) throws -> (bytes: Int, values: [Int: String]) {
         try check()
         guard data.count <= 2_000_000, let source = String(data: data, encoding: .ascii) else {
-            throw PDFTextFailure.unsupported
+            throw PDFTextFailure.unsupported(.b219)
         }
         let noComments = source.replacingOccurrences(of: "%[^\\r\\n]*", with: "", options: .regularExpression)
         let regex = try NSRegularExpression(pattern: "<[^<>]*>|\\[|\\]|[^\\s<>\\[\\]]+")
@@ -52,7 +52,7 @@ enum PDFUnicodeMap {
             tokens.append(ns.substring(with:match.range))
         }
         guard !tokens.contains("usecmap"), !tokens.contains("beginnotdefrange"),
-              !tokens.contains("beginnotdefchar") else { throw PDFTextFailure.unsupported }
+              !tokens.contains("beginnotdefchar") else { throw PDFTextFailure.unsupported(.b220) }
         // The code domain is finite. Each valid disjoint range marks at most
         // 65,536 positions in total; membership no longer rescans every range.
         var covered = [Bool](repeating:false,count:65536)
@@ -63,20 +63,20 @@ enum PDFUnicodeMap {
             if work % 128 == 0 { try check() }
         }
         func hex(_ value: String) throws -> [UInt8] {
-            guard value.first == "<", value.last == ">" else { throw PDFTextFailure.unsupported }
+            guard value.first == "<", value.last == ">" else { throw PDFTextFailure.unsupported(.b221) }
             let body = value.dropFirst().dropLast().filter { !$0.isWhitespace }
-            guard !body.isEmpty, body.count % 2 == 0, body.count <= 128 else { throw PDFTextFailure.unsupported }
+            guard !body.isEmpty, body.count % 2 == 0, body.count <= 128 else { throw PDFTextFailure.unsupported(.b222) }
             var result: [UInt8] = [], cursor = body.startIndex
             while cursor < body.endIndex {
                 let end = body.index(cursor, offsetBy: 2)
-                guard let b = UInt8(body[cursor..<end], radix: 16) else { throw PDFTextFailure.unsupported }
+                guard let b = UInt8(body[cursor..<end], radix: 16) else { throw PDFTextFailure.unsupported(.b223) }
                 result.append(b); cursor = end
             }
             return result
         }
         func code(_ token: String) throws -> Int {
             let b = try hex(token)
-            guard let count = byteCount, b.count == count else { throw PDFTextFailure.unsupported }
+            guard let count = byteCount, b.count == count else { throw PDFTextFailure.unsupported(.b224) }
             return b.reduce(0) { $0 * 256 + Int($1) }
         }
         func insert(_ key: Int, _ bytes: [UInt8]) throws {
@@ -84,7 +84,7 @@ enum PDFUnicodeMap {
             guard values[key] == nil, values.count < 65536, bytes.count % 2 == 0,
                   covered.indices.contains(key), covered[key],
                   let text = String(data: Data(bytes), encoding: .utf16BigEndian), !text.isEmpty else {
-                throw PDFTextFailure.unsupported
+                throw PDFTextFailure.unsupported(.b225)
             }
             // Unused entries (including the conventional .notdef NUL) are
             // metadata. PDFTextGeometry rejects a control mapping at actual use.
@@ -92,27 +92,27 @@ enum PDFUnicodeMap {
         }
         func next() throws -> String {
             try consume()
-            guard i < tokens.count else { throw PDFTextFailure.unsupported }
+            guard i < tokens.count else { throw PDFTextFailure.unsupported(.b226) }
             defer { i += 1 }; return tokens[i]
         }
         while i < tokens.count {
             let token = try next()
             if token == "/WMode" {
-                guard try next() == "0" else { throw PDFTextFailure.unsupported }
+                guard try next() == "0" else { throw PDFTextFailure.unsupported(.b227) }
             }
             guard ["begincodespacerange", "beginbfchar", "beginbfrange"].contains(token) else { continue }
-            guard i >= 2, let count = Int(tokens[i - 2]), (1...65536).contains(count) else { throw PDFTextFailure.unsupported }
+            guard i >= 2, let count = Int(tokens[i - 2]), (1...65536).contains(count) else { throw PDFTextFailure.unsupported(.b228) }
             for _ in 0..<count {
                 if token == "begincodespacerange" {
                     let low = try hex(next()), high = try hex(next())
                     guard [1, 2].contains(low.count), high.count == low.count,
-                          byteCount == nil || byteCount == low.count else { throw PDFTextFailure.unsupported }
+                          byteCount == nil || byteCount == low.count else { throw PDFTextFailure.unsupported(.b229) }
                     byteCount = low.count
                     let l = low.reduce(0) { $0 * 256 + Int($1) }, h = high.reduce(0) { $0 * 256 + Int($1) }
-                    guard l <= h else { throw PDFTextFailure.unsupported }
+                    guard l <= h else { throw PDFTextFailure.unsupported(.b230) }
                     for code in l...h {
                         try consume()
-                        guard !covered[code] else { throw PDFTextFailure.unsupported }
+                        guard !covered[code] else { throw PDFTextFailure.unsupported(.b231) }
                         covered[code] = true
                     }
                 } else if token == "beginbfchar" {
@@ -120,11 +120,11 @@ enum PDFUnicodeMap {
                     try insert(key, bytes)
                 } else {
                     let low = try code(next()), high = try code(next())
-                    guard high >= low, high - low < 65536 else { throw PDFTextFailure.unsupported }
+                    guard high >= low, high - low < 65536 else { throw PDFTextFailure.unsupported(.b232) }
                     let destination = try next()
                     if destination == "[" {
                         for key in low...high { try insert(key, hex(next())) }
-                        guard try next() == "]" else { throw PDFTextFailure.unsupported }
+                        guard try next() == "]" else { throw PDFTextFailure.unsupported(.b233) }
                     } else {
                         var bytes = try hex(destination)
                         for key in low...high {
@@ -134,16 +134,16 @@ enum PDFUnicodeMap {
                                 for index in bytes.indices.reversed() where carry {
                                     if bytes[index] == 255 { bytes[index] = 0 } else { bytes[index] += 1; carry = false }
                                 }
-                                guard !carry else { throw PDFTextFailure.unsupported }
+                                guard !carry else { throw PDFTextFailure.unsupported(.b234) }
                             }
                         }
                     }
                 }
             }
             let ending = token.replacingOccurrences(of: "begin", with: "end")
-            guard try next() == ending else { throw PDFTextFailure.unsupported }
+            guard try next() == ending else { throw PDFTextFailure.unsupported(.b235) }
         }
-        guard let bytes = byteCount, !values.isEmpty else { throw PDFTextFailure.unsupported }
+        guard let bytes = byteCount, !values.isEmpty else { throw PDFTextFailure.unsupported(.b236) }
         return (bytes, values)
     }
 }

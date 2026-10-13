@@ -22,7 +22,7 @@ enum SpecialScheduleParser {
     static func parse(_ pages: [PDFPageLayout], kind: SpecialScheduleKind, digest: String,
                       name: String, check: () throws -> Void = {}) throws -> SpecialScheduleAnalysis {
         guard !pages.isEmpty, pages.count == (kind == .exam ? 6 : 1) else {
-            throw PDFParseError(code: .unsupported, stage: .documentHeading)
+            throw PDFParseError(code: .unsupported, stage: .documentHeading, branch:.b250)
         }
         var year: Int?
         var lessons: [SpecialScheduleLesson] = []
@@ -35,7 +35,7 @@ enum SpecialScheduleParser {
                   page.glyphs.count <= 100000, page.lines.count <= 100000,
                   page.glyphs.allSatisfy({ [$0.x, $0.y, $0.width, $0.height].allSatisfy(\.isFinite) &&
                       $0.text.utf8.count <= 64 }) else {
-                throw PDFParseError(code: .limit, page: index + 1)
+                throw PDFParseError(code: .limit, page: index + 1, branch:.b251)
             }
             do { try page.requireVisibleBounds(check:check) }
             catch var error as PDFParseError { error.page = index+1; throw error }
@@ -44,19 +44,19 @@ enum SpecialScheduleParser {
             let header = PDFSchoolParser.key(rawHeader)
             guard header.contains("試験"),
                   header.contains("返却") == (kind == .examReturn) else {
-                throw PDFParseError(code: .unsupported, page: index + 1, stage: .documentHeading)
+                throw PDFParseError(code: .unsupported, page: index + 1, stage: .documentHeading, branch:.b252)
             }
             let pageYear: Int
             do { pageYear = try PDFSchoolParser.uniqueTitleYear(rawHeader,check:check) }
             catch var error as PDFParseError { error.page = index+1; throw error }
             guard year == nil || year == pageYear else {
-                throw PDFParseError(code: .ambiguous, page: index + 1, stage: .yearHeading)
+                throw PDFParseError(code: .ambiguous, page: index + 1, stage: .yearHeading, branch:.b253)
             }
             year = pageYear
             let pageTimes = try readPeriodTimes(page, count: kind == .exam ? 6 : 8,
                                                 pageNumber: index + 1)
             guard periodTimes == nil || periodTimes == pageTimes else {
-                throw PDFParseError(code: .ambiguous, page: index + 1, stage: .periodHeading)
+                throw PDFParseError(code: .ambiguous, page: index + 1, stage: .periodHeading, branch:.b254)
             }
             periodTimes = pageTimes
             let parsed = try kind == .exam
@@ -65,18 +65,18 @@ enum SpecialScheduleParser {
                 : parseReturnPage(page, schoolYear: pageYear, times: pageTimes, check: check)
             let dates = parsed.dates.sorted()
             guard expectedDates == nil || expectedDates == dates else {
-                throw PDFParseError(code: .ambiguous, page: index + 1, stage: .calendarDates)
+                throw PDFParseError(code: .ambiguous, page: index + 1, stage: .calendarDates, branch:.b255)
             }
             expectedDates = dates
             guard coveredClasses.isDisjoint(with: parsed.classes) else {
-                throw PDFParseError(code: .ambiguous, page: index + 1, stage: .duplicateClass)
+                throw PDFParseError(code: .ambiguous, page: index + 1, stage: .duplicateClass, branch:.b256)
             }
             coveredClasses.formUnion(parsed.classes)
             lessons += parsed.lessons
-            guard lessons.count <= PDFSchoolParser.maximumRecords else { throw PDFParseError(code: .limit) }
+            guard lessons.count <= PDFSchoolParser.maximumRecords else { throw PDFParseError(code: .limit, branch:.b257) }
         }
         guard let year, let dates = expectedDates, let periodTimes,
-              coveredClasses == Set(RecoveryValidator.specialClasses), !lessons.isEmpty else { throw PDFParseError(code: .unsupported) }
+              coveredClasses == Set(RecoveryValidator.specialClasses), !lessons.isEmpty else { throw PDFParseError(code: .unsupported, branch:.b258) }
         return SpecialScheduleAnalysis(kind: kind, sourceDigest: digest, sourceName: name,
                                        parsedAt: Date(), schoolYear: year, coveredDates: dates,
                                        coveredClasses: coveredClasses.sorted(), periodTimes: periodTimes.single,
@@ -108,7 +108,7 @@ enum SpecialScheduleParser {
         let rows = PDFGrid.rows(page.glyphs.filter { $0.cy < page.height / 4 })
         let matching = rows.filter { PDFSchoolParser.key($0.map(\.text).joined()) == String(repeating: sequence, count: repeats) }
         guard matching.count == 1, matching[0].count == sequence.count * repeats else {
-            throw PDFParseError(code: .unsupported, stage: .periodHeading)
+            throw PDFParseError(code: .unsupported, stage: .periodHeading, branch:.b259)
         }
         return matching[0]
     }
@@ -130,15 +130,15 @@ enum SpecialScheduleParser {
         let rawLines = try grid.timetableText(box,check:check).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
         guard rawLines.count <= 3, rawLines.reduce(0, { $0 + $1.utf8.count }) <= 4096 else {
-            throw PDFParseError(code: .ambiguous, page: pageNumber, stage: .lessonLines)
+            throw PDFParseError(code: .ambiguous, page: pageNumber, stage: .lessonLines, branch:.b260)
         }
         guard !rawLines.isEmpty else { return [] }
-        guard !rawLines.contains(where:RecoveryRole.hasLabelPrefix) else { throw PDFParseError(code: .unsupported, page: pageNumber, stage: .lessonLines) }
+        guard !rawLines.contains(where:RecoveryRole.hasLabelPrefix) else { throw PDFParseError(code: .unsupported, page: pageNumber, stage: .lessonLines, branch:.b261) }
         let lines = try grid.lessonFields(box, lines: rawLines,referenceBoxes:referenceBoxes,check:check)
         let covered = periodXs.enumerated().filter { box.left + 0.5 < $0.element &&
             $0.element < box.right - 0.5 }.map { $0.offset + 1 }
         guard let first = covered.first, let last = covered.last, covered.contains(period) else {
-            throw PDFParseError(code: .ambiguous, page: pageNumber, stage: .gridCell)
+            throw PDFParseError(code: .ambiguous, page: pageNumber, stage: .gridCell, branch:.b262)
         }
         let time: String?
         if first == last {

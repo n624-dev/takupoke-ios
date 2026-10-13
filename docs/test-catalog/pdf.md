@@ -1,12 +1,13 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`752917b0075ae7e87328394a532328bb75d02845182ca6f595e4cceb9c9b49d0`
+`dd9c018eb8aacf87cac536256d3055079f41406af245faa5a7454f5dffeb8023`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
 ```bash
 bash tools/test-parsing.sh
+python3 -B tools/pdf_branch_catalog.py check
 ```
 
 ## 変更時に確認するソース
@@ -37,6 +38,7 @@ bash tools/test-parsing.sh
 - [tools/strict_pdf_compatibility_fixtures.py](../../tools/strict_pdf_compatibility_fixtures.py)
 - [Takupoke/PDFEncodedGlyphMap.swift](../../Takupoke/PDFEncodedGlyphMap.swift)
 - [Takupoke/PDFDrawnTextReader+GlyphBounds.swift](../../Takupoke/PDFDrawnTextReader+GlyphBounds.swift)
+- [tools/pdf_branch_catalog.py](../../tools/pdf_branch_catalog.py)
 
 ## [tests/PDFParsingTests+Diagnostics.swift](../../tests/PDFParsingTests+Diagnostics.swift)
 
@@ -48,6 +50,7 @@ bash tools/test-parsing.sh
 - `testFullDiagnosticCopyPreservesAllTextAndGeometryLosslessly`
 - `testFailureStagesSurvivePageWrappingAndContainNoSourceText`
 - `testOldFailureDecodesAndNewFailureRetainsOnlyFixedDiagnostic`
+- `testFixedBranchCodesRoundTripWithoutChangingLegacyFailures`
 - `testPDFFailureReplacementAndManifestRollback`
 
 ## [tests/PDFParsingTests+Events.swift](../../tests/PDFParsingTests+Events.swift)
@@ -125,6 +128,7 @@ bash tools/test-parsing.sh
 - `testNativeWhiteTextAndOpaqueRepaintUseRasterInsteadOfSelectableText`
 - `testNativeCroppedOutBodyCannotBecomeCompleteInput`
 - `testNativeOffCanvasSelectableTextCannotBecomeCompleteInput`
+- `testNativeRejectionBranchIsFixedAndPositiveControlStillReads`
 - `testNativeThinStrokeCannotCrossAcquiredGlyphs`
 - `testNativeOutlinedTextUsesCompositedRasterInsteadOfSelectionBounds`
 - `testNativeDashedGhostRulesCannotBecomeACompleteTable`
@@ -163,3 +167,8 @@ bash tools/test-parsing.sh
 - `testNormalDocumentModesPreserveEveryLessonTuple`
 - `testSixExamPagesPreserveClassesDatesTimesAndEveryLessonTuple`
 - `testReturnDocumentPreservesFirstDayAndOrdinaryDayTimes`
+
+## [tests/test_pdf_branch_catalog.py](../../tests/test_pdf_branch_catalog.py)
+
+- `test_document_matches_every_fixed_source_branch`
+- `test_missing_reused_and_undeclared_branches_are_rejected`

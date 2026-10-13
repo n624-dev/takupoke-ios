@@ -237,7 +237,8 @@
       "title": "Strict PDF・文字・位置・罫線",
       "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",
       "commands": [
-        "bash tools/test-parsing.sh"
+        "bash tools/test-parsing.sh",
+        "python3 -B tools/pdf_branch_catalog.py check"
       ],
       "sources": [
         "Takupoke/PDFAnalysis.swift",
@@ -265,7 +266,8 @@
         "Takupoke/PDFPaintSample.swift",
         "tools/strict_pdf_compatibility_fixtures.py",
         "Takupoke/PDFEncodedGlyphMap.swift",
-        "Takupoke/PDFDrawnTextReader+GlyphBounds.swift"
+        "Takupoke/PDFDrawnTextReader+GlyphBounds.swift",
+        "tools/pdf_branch_catalog.py"
       ],
       "checks": [
         "tests/PDFParsingTests+Diagnostics.swift",
@@ -275,7 +277,8 @@
         "tests/PDFTextGeometryTests.swift",
         "tests/PDFTextGeometryTests+Visibility.swift",
         "tests/PDFTextGeometryTests+Colors.swift",
-        "tests/StrictPDFCompatibilityTests.swift"
+        "tests/StrictPDFCompatibilityTests.swift",
+        "tests/test_pdf_branch_catalog.py"
       ]
     },
     {

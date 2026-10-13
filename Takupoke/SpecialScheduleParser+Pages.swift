@@ -11,7 +11,7 @@ extension SpecialScheduleParser {
                 if pageNumber == 6 { return run.text.range(of: "^[12]年$", options: .regularExpression) != nil }
                 return run.text.range(of: "^[1-5]-(?:[1-3]|[A-Z]{2})$", options: .regularExpression) != nil
             }.sorted { $0.cx < $1.cx }
-        guard labels.count == columns else { throw PDFParseError(code: .unsupported, page: pageNumber, stage: .classLabel) }
+        guard labels.count == columns else { throw PDFParseError(code: .unsupported, page: pageNumber, stage: .classLabel, branch:.b237) }
         let names = labels.map { pageNumber == 6 ? "AI_" + String($0.text.prefix(1)) : $0.text.replacingOccurrences(of: "-", with: "_") }
         let dateRuns = runs(page.glyphs.filter { $0.cy > headerY + 5 && $0.cy < page.height * 0.7 })
             .compactMap { run -> (Run, SchoolDate)? in
@@ -19,7 +19,7 @@ extension SpecialScheduleParser {
                 return (run, day)
             }.sorted { $0.0.cy < $1.0.cy }
         guard dateRuns.count == 5, Set(dateRuns.map { $0.1 }).count == 5 else {
-            throw PDFParseError(code: .unsupported, page: pageNumber, stage: .calendarDates)
+            throw PDFParseError(code: .unsupported, page: pageNumber, stage: .calendarDates, branch:.b238)
         }
         let grid = PDFGrid(page: page)
         let referenceBoxes = try grid.lessonBoxes(rows:dateRuns.map { try grid.box($0.0.cx,$0.0.cy,check:check) },columns:periods.map(\.cx),check:check)
@@ -53,7 +53,7 @@ extension SpecialScheduleParser {
         let periods = try periodHeader(page, sequence: "12345678", repeats: 5)
         let headerY = periods[0].cy
         let step = periods[1].cx - periods[0].cx
-        guard step > 5 else { throw PDFParseError(code: .unsupported, page: 1, stage: .periodHeading) }
+        guard step > 5 else { throw PDFParseError(code: .unsupported, page: 1, stage: .periodHeading, branch:.b239) }
         let dates = runs(page.glyphs.filter { $0.cy < headerY && $0.cy > headerY - page.height / 20 })
             .compactMap { run -> (Run, SchoolDate)? in
                 guard let day = date(run.text, schoolYear: schoolYear, slash: true) else { return nil }
@@ -61,7 +61,7 @@ extension SpecialScheduleParser {
             }.sorted { $0.0.cx < $1.0.cx }
         guard dates.count == 5, Set(dates.map { $0.1 }).count == 5,
               zip(dates,dates.dropFirst()).allSatisfy({ $0.0.1 < $0.1.1 }) else {
-            throw PDFParseError(code: .unsupported, page: 1, stage: .calendarDates)
+            throw PDFParseError(code: .unsupported, page: 1, stage: .calendarDates, branch:.b240)
         }
         let note = PDFSchoolParser.key(PDFGrid.rows(page.glyphs).map { $0.map(\.text).joined() }.joined())
             .replacingOccurrences(of: "～", with: "~")
@@ -71,7 +71,7 @@ extension SpecialScheduleParser {
               ordinaryStart.month == ordinaryEnd.month,
               note.contains("\(specialDay.month)月\(specialDay.day)日の時間割は以下のとおり"),
               note.contains("\(ordinaryStart.month)月\(ordinaryStart.day)日~\(ordinaryEnd.day)日は通常の授業日どおりの授業時間") else {
-            throw PDFParseError(code: .unsupported, page: 1, stage: .periodHeading)
+            throw PDFParseError(code: .unsupported, page: 1, stage: .periodHeading, branch:.b241)
         }
         let ordinaryTimes = Times(single: Dictionary(uniqueKeysWithValues:
             TimetableSchedule.normalPeriodTimes.enumerated().map { ($0.offset + 1, $0.element) }),
@@ -85,7 +85,7 @@ extension SpecialScheduleParser {
             $0.text.range(of: "^(?:[1-3]|CN|ES|IT)$", options: .regularExpression) != nil }
             .sorted { $0.cy < $1.cy }
         guard grades.count == 6, classRuns.count == 17 else {
-            throw PDFParseError(code: .unsupported, page: 1, stage: .classLabel)
+            throw PDFParseError(code: .unsupported, page: 1, stage: .classLabel, branch:.b242)
         }
         let grid = PDFGrid(page: page)
         let referenceBoxes = try grid.lessonBoxes(rows:classRuns.map { try grid.box($0.cx,$0.cy,check:check) },columns:periods.map(\.cx),check:check)
@@ -95,10 +95,10 @@ extension SpecialScheduleParser {
             try check()
             guard let grade = grades.min(by: { abs($0.cy - run.cy) < abs($1.cy - run.cy) }),
                   abs(grade.cy - run.cy) < step * 2.5 else {
-                throw PDFParseError(code: .ambiguous, page: 1, stage: .gradeLabel)
+                throw PDFParseError(code: .ambiguous, page: 1, stage: .gradeLabel, branch:.b243)
             }
             let name = grade.text == "AI" ? "AI_" + run.text : grade.text + "_" + run.text
-            guard seenClasses.insert(name).inserted else { throw PDFParseError(code: .ambiguous, page: 1, stage: .duplicateClass) }
+            guard seenClasses.insert(name).inserted else { throw PDFParseError(code: .ambiguous, page: 1, stage: .duplicateClass, branch:.b244) }
             let row = try grid.box(run.cx, run.cy,check:check)
             for (dayIndex, (_, day)) in dates.enumerated() {
                 let dayTimes = dayIndex == 0 ? times : ordinaryTimes

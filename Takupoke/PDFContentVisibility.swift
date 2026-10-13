@@ -54,7 +54,7 @@ struct PDFDevicePaint {
     mutating func set(_ values: [Double], count: Int) throws {
         guard [1, 3, 4].contains(count), values.count == count,
               values.allSatisfy({ $0.isFinite && (0...1).contains($0) }) else {
-            throw PDFParseError(code:.unsupported,stage:.paintVisibility)
+            throw PDFParseError(code:.unsupported,stage:.paintVisibility, branch:.b006)
         }
         self.count = count; components = values
     }
@@ -63,7 +63,7 @@ struct PDFDevicePaint {
         case "DeviceGray": try device([0], count: 1)
         case "DeviceRGB": try device([0, 0, 0], count: 3)
         case "DeviceCMYK": try device([0, 0, 0, 1], count: 4)
-        default: throw PDFParseError(code:.unsupported,stage:.paintVisibility)
+        default: throw PDFParseError(code:.unsupported,stage:.paintVisibility, branch:.b007)
         }
     }
 }
@@ -92,14 +92,14 @@ enum PDFClipValidation {
         inner.right <= outer.right && inner.bottom <= outer.bottom
     }
     static func requireContains(_ boxes: [PDFBox], clips: [PDFBox], work: () throws -> Void = {}, check: () throws -> Void) throws {
-        guard clips.count <= 128 else { throw PDFParseError(code: .limit) }
+        guard clips.count <= 128 else { throw PDFParseError(code: .limit, branch:.b008) }
         var comparisons = 0
         for clip in clips { for box in boxes {
             try work()
             comparisons += 1
-            guard comparisons <= 1_000_000 else { throw PDFParseError(code: .limit) }
+            guard comparisons <= 1_000_000 else { throw PDFParseError(code: .limit, branch:.b009) }
             if comparisons % 128 == 0 { try check() }
-            guard contains(clip, box) else { throw PDFParseError(code:.unsupported,stage:.clippingBounds) }
+            guard contains(clip, box) else { throw PDFParseError(code:.unsupported,stage:.clippingBounds, branch:.b010) }
         } }
         try check()
     }
@@ -111,16 +111,16 @@ import CoreGraphics
 extension PDFPaintColors {
     static func isSolidDash(_ pattern: CGPDFArrayRef, phase: Double) throws -> Bool {
         let count = CGPDFArrayGetCount(pattern)
-        guard phase.isFinite, phase >= 0, count <= 256 else { throw PDFTextFailure.unsupported }
+        guard phase.isFinite, phase >= 0, count <= 256 else { throw PDFTextFailure.unsupported(.b011) }
         var hasPositive = count == 0
         for index in 0..<count {
             var value: CGPDFReal = 0
             guard CGPDFArrayGetNumber(pattern,index,&value), value.isFinite, value >= 0 else {
-                throw PDFTextFailure.unsupported
+                throw PDFTextFailure.unsupported(.b012)
             }
             hasPositive = hasPositive || value > 0
         }
-        guard hasPositive else { throw PDFTextFailure.unsupported }
+        guard hasPositive else { throw PDFTextFailure.unsupported(.b013) }
         return count == 0
     }
     // A singleton /Normal array has the same effective blend mode as /Normal.
@@ -145,19 +145,19 @@ extension PDFPaintColors {
         case "RelativeColorimetric": value = .relativeColorimetric
         case "Saturation": value = .saturation
         case "AbsoluteColorimetric": value = .absoluteColorimetric
-        default: throw PDFParseError(code:.unsupported,stage:.paintVisibility)
+        default: throw PDFParseError(code:.unsupported,stage:.paintVisibility, branch:.b014)
         }
         fill.renderingIntent = value; stroke.renderingIntent = value
     }
     mutating func intent(_ scanner: CGPDFScannerRef) throws {
         var name: UnsafePointer<CChar>?
-        guard CGPDFScannerPopName(scanner,&name), let name else { throw PDFParseError(code:.unsupported,stage:.paintVisibility) }
+        guard CGPDFScannerPopName(scanner,&name), let name else { throw PDFParseError(code:.unsupported,stage:.paintVisibility, branch:.b015) }
         try intent(String(cString:name))
     }
     mutating func applyIntent(_ dictionary: CGPDFDictionaryRef) throws {
         var object: CGPDFObjectRef?, name: UnsafePointer<CChar>?
         guard CGPDFDictionaryGetObject(dictionary,"RI",&object) else { return }
-        guard CGPDFDictionaryGetName(dictionary,"RI",&name), let name else { throw PDFParseError(code:.unsupported,stage:.paintVisibility) }
+        guard CGPDFDictionaryGetName(dictionary,"RI",&name), let name else { throw PDFParseError(code:.unsupported,stage:.paintVisibility, branch:.b016) }
         try intent(String(cString:name))
     }
 }
@@ -168,7 +168,7 @@ extension PDFDevicePaint {
     }
     mutating func space(_ scanner: CGPDFScannerRef, resolver: PDFPaintSpaceResolver) throws {
         var pointer: UnsafePointer<CChar>?
-        guard CGPDFScannerPopName(scanner,&pointer), let pointer else { throw PDFParseError(code:.unsupported,stage:.paintVisibility) }
+        guard CGPDFScannerPopName(scanner,&pointer), let pointer else { throw PDFParseError(code:.unsupported,stage:.paintVisibility, branch:.b017) }
         let name = String(cString:pointer)
         if ["DeviceGray", "DeviceRGB", "DeviceCMYK"].contains(name) {
             try space(name); try applyDefault(scanner, resolver: resolver)
@@ -187,12 +187,12 @@ extension PDFDevicePaint {
                 var object: CGPDFObjectRef?
                 if !CGPDFScannerPopObject(scanner,&object) { return }
             }
-            throw PDFParseError(code:.limit)
+            throw PDFParseError(code:.limit, branch:.b018)
         }
         var values = [Double]()
         for _ in 0..<count {
             var value: CGPDFReal = 0
-            guard CGPDFScannerPopNumber(scanner,&value) else { throw PDFParseError(code:.unsupported,stage:.paintVisibility) }
+            guard CGPDFScannerPopNumber(scanner,&value) else { throw PDFParseError(code:.unsupported,stage:.paintVisibility, branch:.b019) }
             values.insert(Double(value),at:0)
         }
         try set(values,count:count)
@@ -220,7 +220,7 @@ struct PDFRectangularClipPath {
                            right: Double(p.map(\.x).max()!), bottom: Double(p.map(\.y).max()!))
     }
     func clippingBox() throws -> PDFBox {
-        guard let candidate else { throw PDFParseError(code:.unsupported,stage:.clippingBounds) }
+        guard let candidate else { throw PDFParseError(code:.unsupported,stage:.clippingBounds, branch:.b020) }
         return candidate
     }
 }
@@ -228,44 +228,44 @@ struct PDFRectangularClipPath {
 struct PDFMarkedContent {
     private var depth = 0
     mutating func begin(_ scanner: CGPDFScannerRef, properties: Bool) throws {
-        guard depth < 64 else { throw PDFParseError(code: .limit) }
+        guard depth < 64 else { throw PDFParseError(code: .limit, branch:.b021) }
         if properties {
             var object: CGPDFObjectRef?
-            guard CGPDFScannerPopObject(scanner, &object), let object else { throw PDFParseError(code:.unsupported,stage:.contentTags) }
+            guard CGPDFScannerPopObject(scanner, &object), let object else { throw PDFParseError(code:.unsupported,stage:.contentTags, branch:.b022) }
             var dictionary: CGPDFDictionaryRef?
             if CGPDFObjectGetType(object) == .name {
                 var name: UnsafePointer<CChar>?
                 guard CGPDFObjectGetValue(object, .name, &name), let name,
                       let resource = CGPDFContentStreamGetResource(CGPDFScannerGetContentStream(scanner), "Properties", String(cString: name)),
-                      CGPDFObjectGetValue(resource, .dictionary, &dictionary) else { throw PDFParseError(code:.unsupported,stage:.contentTags) }
-            } else if !CGPDFObjectGetValue(object, .dictionary, &dictionary) { throw PDFParseError(code:.unsupported,stage:.contentTags) }
-            guard let dictionary else { throw PDFParseError(code:.unsupported,stage:.contentTags) }
+                      CGPDFObjectGetValue(resource, .dictionary, &dictionary) else { throw PDFParseError(code:.unsupported,stage:.contentTags, branch:.b023) }
+            } else if !CGPDFObjectGetValue(object, .dictionary, &dictionary) { throw PDFParseError(code:.unsupported,stage:.contentTags, branch:.b024) }
+            guard let dictionary else { throw PDFParseError(code:.unsupported,stage:.contentTags, branch:.b025) }
             // Only structure ID and language metadata are inert. Replacement,
             // optional-content membership, and unknown entries remain rejected.
             var known = 0, metadataObject: CGPDFObjectRef?
             if CGPDFDictionaryGetObject(dictionary, "MCID", &metadataObject) {
                 var value: CGPDFInteger = 0
-                guard CGPDFDictionaryGetInteger(dictionary, "MCID", &value), value >= 0 else { throw PDFParseError(code:.unsupported,stage:.contentTags) }
+                guard CGPDFDictionaryGetInteger(dictionary, "MCID", &value), value >= 0 else { throw PDFParseError(code:.unsupported,stage:.contentTags, branch:.b026) }
                 known += 1
             }
             if CGPDFDictionaryGetObject(dictionary, "Lang", &metadataObject) {
                 var language: CGPDFStringRef?
                 guard CGPDFDictionaryGetString(dictionary, "Lang", &language), let language,
-                      CGPDFStringGetLength(language) <= 256 else { throw PDFParseError(code:.unsupported,stage:.contentTags) }
+                      CGPDFStringGetLength(language) <= 256 else { throw PDFParseError(code:.unsupported,stage:.contentTags, branch:.b027) }
                 known += 1
             }
-            guard CGPDFDictionaryGetCount(dictionary) == known else { throw PDFParseError(code:.unsupported,stage:.contentTags) }
+            guard CGPDFDictionaryGetCount(dictionary) == known else { throw PDFParseError(code:.unsupported,stage:.contentTags, branch:.b028) }
         }
         var tag: UnsafePointer<CChar>?
-        guard CGPDFScannerPopName(scanner, &tag), let tag, String(cString: tag) != "OC" else { throw PDFParseError(code:.unsupported,stage:.contentTags) }
+        guard CGPDFScannerPopName(scanner, &tag), let tag, String(cString: tag) != "OC" else { throw PDFParseError(code:.unsupported,stage:.contentTags, branch:.b029) }
         depth += 1
     }
     mutating func end() throws {
-        guard depth > 0 else { throw PDFParseError(code:.unsupported,stage:.contentTags) }
+        guard depth > 0 else { throw PDFParseError(code:.unsupported,stage:.contentTags, branch:.b030) }
         depth -= 1
     }
     func finish() throws {
-        guard depth == 0 else { throw PDFParseError(code:.unsupported,stage:.contentTags) }
+        guard depth == 0 else { throw PDFParseError(code:.unsupported,stage:.contentTags, branch:.b031) }
     }
 }
 #endif

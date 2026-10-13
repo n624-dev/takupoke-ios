@@ -10,13 +10,13 @@ struct PDFTextCollisionIndex {
     private let maximumHeight: Double
 
     init(_ boxes: [PDFBox], work: () throws -> Void) throws {
-        guard boxes.count <= 100000 else { throw PDFParseError(code:.limit) }
+        guard boxes.count <= 100000 else { throw PDFParseError(code:.limit, branch:.b113) }
         var width = 0.0, height = 0.0
         for box in boxes {
             try work()
             guard [box.left,box.top,box.right,box.bottom].allSatisfy(\.isFinite),
                   box.left <= box.right, box.top <= box.bottom,
-                  (box.right-box.left).isFinite, (box.bottom-box.top).isFinite else { throw PDFParseError(code:.unreadable) }
+                  (box.right-box.left).isFinite, (box.bottom-box.top).isFinite else { throw PDFParseError(code:.unreadable, branch:.b114) }
             width = max(width,box.right-box.left); height = max(height,box.bottom-box.top)
         }
         self.boxes = boxes; maximumWidth = width.nextUp; maximumHeight = height.nextUp
@@ -41,7 +41,7 @@ struct PDFTextCollisionIndex {
         guard [query.left,query.top,query.right,query.bottom,pad].allSatisfy(\.isFinite),
               query.left <= query.right, query.top <= query.bottom, pad >= 0,
               (query.left-pad).isFinite, (query.top-pad).isFinite,
-              (query.right+pad).isFinite, (query.bottom+pad).isFinite else { throw PDFParseError(code:.unreadable) }
+              (query.right+pad).isFinite, (query.bottom+pad).isFinite else { throw PDFParseError(code:.unreadable, branch:.b115) }
         // An overlapping box starts no earlier than query-min minus the largest
         // original extent. Outward rounding only broadens candidates; the exact
         // collision predicate below still includes the same touching edges.
@@ -132,7 +132,7 @@ final class PDFPathReader {
         let s = Unmanaged<PDFPathReader>.fromOpaque(info).takeUnretainedValue()
         guard s.failure == nil else { return nil }
         s.operations += 1
-        if s.operations > 1000000 { s.failure = PDFParseError(code: .limit); return nil }
+        if s.operations > 1000000 { s.failure = PDFParseError(code: .limit, branch:.b116); return nil }
         if s.operations % 128 == 0 { do { try s.check() } catch { s.failure = error } }
         return s.failure == nil ? s : nil
     }
@@ -140,7 +140,7 @@ final class PDFPathReader {
         var result: [CGFloat] = []
         for _ in 0..<count {
             var n: CGPDFReal = 0
-            guard CGPDFScannerPopNumber(scanner, &n), n.isFinite else { failure = PDFParseError(code: .unreadable); return nil }
+            guard CGPDFScannerPopNumber(scanner, &n), n.isFinite else { failure = PDFParseError(code: .unreadable, branch:.b117); return nil }
             result.insert(CGFloat(n), at: 0)
         }
         return result
@@ -155,7 +155,7 @@ final class PDFPathReader {
         } else if abs(a.y - b.y) < 0.2, abs(a.x - b.x) > 0.1 {
             lines.append(PDFRule(x1: Double(min(a.x, b.x)), y1: Double((a.y + b.y) / 2), x2: Double(max(a.x, b.x)), y2: Double((a.y + b.y) / 2)))
         }
-        if lines.count > 100000 { failure = PDFParseError(code: .limit) }
+        if lines.count > 100000 { failure = PDFParseError(code: .limit, branch:.b118) }
     }
     // Operator limits do not cover work within one paint callback. Charge point
     // visits, path visits, stem comparisons and stroke segments across the page.
@@ -163,7 +163,7 @@ final class PDFPathReader {
         guard failure == nil else { return false }
         paintWork += 1
         guard paintWork <= Self.maximumPaintWork else {
-            failure = PDFParseError(code: .limit)
+            failure = PDFParseError(code: .limit, branch:.b119)
             return false
         }
         if paintWork % 128 == 0 {
@@ -186,7 +186,7 @@ final class PDFPathReader {
     private func overlapsText(left: CGFloat, top: CGFloat, right: CGFloat, bottom: CGFloat, pad: Double) -> Bool {
         do {
             let work = { [self] in
-                guard consumePaintWork() else { throw failure ?? PDFParseError(code:.limit) }
+                guard consumePaintWork() else { throw failure ?? PDFParseError(code:.limit, branch:.b120) }
             }
             if textIndex == nil { textIndex = try PDFTextCollisionIndex(textBoxes,work:work) }
             return try textIndex!.overlaps(PDFBox(left:Double(left),top:Double(top),right:Double(right),bottom:Double(bottom)),pad:pad,work:work)
@@ -200,7 +200,7 @@ final class PDFPathReader {
         guard failure == nil else { return }
         do { try check() } catch { failure = error; return }
         if verifyVisibility && (curvedPath || stroke && !solidDash && !paths.isEmpty) {
-            failure = PDFParseError(code:.unsupported,stage:.vectorObjects); return
+            failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b121); return
         }
         if verifyVisibility && !paths.isEmpty {
             // A white page background is harmless only before any retained ink.
@@ -208,12 +208,12 @@ final class PDFPathReader {
                paths.count == 1, let box = rectangularPathBox(),
                box == PDFBox(left:0,top:0,right:Double(transform.width),bottom:Double(transform.height)) { return }
             guard (!fill || colors.fill.isVisibleInk) && (!stroke || colors.stroke.isVisibleInk) else {
-                failure = PDFParseError(code:.unsupported,stage:.paintVisibility); return
+                failure = PDFParseError(code:.unsupported,stage:.paintVisibility, branch:.b122); return
             }
         }
         if verifyVisibility && fill && !paths.isEmpty {
             guard !textSeen || !textBoxes.isEmpty else {
-                failure = PDFParseError(code:.unsupported,stage:.vectorObjects); return
+                failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b123); return
             }
             // Thin rectangular rules may be painted before or after text. Check
             // their actual bounds against every original glyph, including text
@@ -222,7 +222,7 @@ final class PDFPathReader {
                 if !stroke && isSupportedArrowHead(path) {
                     guard let box = bounds(of:path),
                           !overlapsText(left:box.left,top:box.top,right:box.right,bottom:box.bottom,pad:0) else {
-                        if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }; return
+                        if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b124) }; return
                     }
                     collisionBoxes.append(PDFBox(left:Double(box.left),top:Double(box.top),right:Double(box.right),bottom:Double(box.bottom)))
                     continue
@@ -230,7 +230,7 @@ final class PDFPathReader {
                 guard let first = path.first, path.count == 5, path.last == first,
                       Set(path.map(\.x)).count == 2, Set(path.map(\.y)).count == 2,
                       let box = bounds(of:path) else {
-                    if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }; return
+                    if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b125) }; return
                 }
                 let width = box.right-box.left, height = box.bottom-box.top
                 let corners = [CGPoint(x:box.left,y:box.top),CGPoint(x:box.right,y:box.top),CGPoint(x:box.right,y:box.bottom),CGPoint(x:box.left,y:box.bottom)]
@@ -238,7 +238,7 @@ final class PDFPathReader {
                 let axisEdges = zip(path,path.dropFirst()).allSatisfy { a,b in (a.x == b.x) != (a.y == b.y) }
                 guard uniqueCorners, axisEdges, ((width <= 2.1 && height > 3) || (height <= 2.1 && width > 3)),
                       !overlapsText(left:box.left,top:box.top,right:box.right,bottom:box.bottom,pad:0) else {
-                    if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }; return
+                    if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b126) }; return
                 }
                 collisionBoxes.append(PDFBox(left:Double(box.left),top:Double(box.top),right:Double(box.right),bottom:Double(box.bottom)))
             }
@@ -246,7 +246,7 @@ final class PDFPathReader {
         if verifyVisibility && stroke && !paths.isEmpty {
             guard PDFTextVisibility.similarStrokeTransform(a:Double(ctm.a),b:Double(ctm.b),c:Double(ctm.c),d:Double(ctm.d)),
                   let pad = PDFTextVisibility.strokePad(lineWidth,a:Double(ctm.a),b:Double(ctm.b),c:Double(ctm.c),d:Double(ctm.d)) else {
-                failure = PDFParseError(code:.unsupported,stage:.vectorObjects); return
+                failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b127); return
             }
             for path in paths where path.count >= 2 {
                 for index in 1..<path.count {
@@ -254,14 +254,14 @@ final class PDFPathReader {
                     let a = path[index-1], b = path[index]
                     guard (a.x == b.x || a.y == b.y),
                           !overlapsText(left:min(a.x,b.x),top:min(a.y,b.y),right:max(a.x,b.x),bottom:max(a.y,b.y),pad:pad) else {
-                        if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }; return
+                        if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b128) }; return
                     }
                     collisionBoxes.append(PDFBox(left:Double(min(a.x,b.x))-pad,top:Double(min(a.y,b.y))-pad,
                                                  right:Double(max(a.x,b.x))+pad,bottom:Double(max(a.y,b.y))+pad))
                 }
             }
         }
-        if collisionBoxes.count > 100_000 { failure = PDFParseError(code:.limit); return }
+        if collisionBoxes.count > 100_000 { failure = PDFParseError(code:.limit, branch:.b129); return }
         if verifyVisibility {
             let pad: Double
             if stroke {
@@ -269,7 +269,7 @@ final class PDFPathReader {
             } else { pad = 0 }
             for path in paths where path.count >= 2 {
                 guard let box = bounds(of:path), paintedBoxes.count < 100_000 else {
-                    if failure == nil { failure = PDFParseError(code:.limit) }; return
+                    if failure == nil { failure = PDFParseError(code:.limit, branch:.b130) }; return
                 }
                 paintedBoxes.append(PDFBox(left:Double(box.left)-pad,top:Double(box.top)-pad,
                                            right:Double(box.right)+pad,bottom:Double(box.bottom)+pad))
@@ -360,12 +360,12 @@ final class PDFPathReader {
                       right:Double(path.map(\.x).max()!),bottom:Double(path.map(\.y).max()!))
     }
     private func recordClip() {
-        guard let box = rectangularPathBox() else { failure = PDFParseError(code:.unsupported,stage:.clippingBounds); return }
+        guard let box = rectangularPathBox() else { failure = PDFParseError(code:.unsupported,stage:.clippingBounds, branch:.b131); return }
         let page = PDFBox(left:0,top:0,right:Double(transform.width),bottom:Double(transform.height))
         guard PDFClipValidation.contains(box,page) else {
-            failure = PDFParseError(code:.unsupported,stage:.clippingBounds); return
+            failure = PDFParseError(code:.unsupported,stage:.clippingBounds, branch:.b132); return
         }
-        guard clips.count < 128 else { failure = PDFParseError(code:.limit); return }
+        guard clips.count < 128 else { failure = PDFParseError(code:.limit, branch:.b133); return }
         clips.append(box)
     }
     private func color(_ scanner: CGPDFScannerRef, stroke: Bool, count: Int? = nil, space: Bool = false) {
@@ -420,11 +420,11 @@ final class PDFPathReader {
         return true
     }
     func read(_ page: CGPDFPage) throws -> [PDFRule] {
-        guard let table = CGPDFOperatorTableCreate() else { throw PDFParseError(code: .unreadable) }
+        guard let table = CGPDFOperatorTableCreate() else { throw PDFParseError(code: .unreadable, branch:.b134) }
         defer { CGPDFOperatorTableRelease(table) }
         CGPDFOperatorTableSetCallback(table, "q") { _, p in
             guard let s = PDFPathReader.state(p) else { return }
-            if s.stack.count >= 64 { s.failure = PDFParseError(code: .limit) } else {
+            if s.stack.count >= 64 { s.failure = PDFParseError(code: .limit, branch:.b135) } else {
                 s.stack.append(s.ctm); s.widthStack.append(s.lineWidth); s.colorStack.append(s.colors)
                 s.textModeStack.append(s.textMode); s.dashStack.append(s.solidDash)
             }
@@ -435,7 +435,7 @@ final class PDFPathReader {
                let mode = s.textModeStack.popLast(), let dash = s.dashStack.popLast() {
                 s.ctm = value; s.lineWidth = width; s.colors = colors
                 s.textMode = mode; s.solidDash = dash
-            } else { s.failure = PDFParseError(code: .unreadable) }
+            } else { s.failure = PDFParseError(code: .unreadable, branch:.b136) }
         }
         CGPDFOperatorTableSetCallback(table, "cm") { scanner, p in
             guard let s = PDFPathReader.state(p), let n = s.numbers(scanner, 6) else { return }
@@ -444,18 +444,18 @@ final class PDFPathReader {
         CGPDFOperatorTableSetCallback(table, "m") { scanner, p in
             guard let s = PDFPathReader.state(p), let n = s.numbers(scanner, 2) else { return }
             s.paths.append([s.position(n[0], n[1])])
-            if s.paths.count > 10000 { s.failure = PDFParseError(code: .limit) }
+            if s.paths.count > 10000 { s.failure = PDFParseError(code: .limit, branch:.b137) }
         }
         CGPDFOperatorTableSetCallback(table, "l") { scanner, p in
             guard let s = PDFPathReader.state(p), let n = s.numbers(scanner, 2), !s.paths.isEmpty else { return }
             s.paths[s.paths.count - 1].append(s.position(n[0], n[1]))
-            if s.paths[s.paths.count - 1].count > 10000 { s.failure = PDFParseError(code: .limit) }
+            if s.paths[s.paths.count - 1].count > 10000 { s.failure = PDFParseError(code: .limit, branch:.b138) }
         }
         CGPDFOperatorTableSetCallback(table, "re") { scanner, p in
             guard let s = PDFPathReader.state(p), let n = s.numbers(scanner, 4) else { return }
             let x = n[0], y = n[1], w = n[2], h = n[3]
             s.paths.append([s.position(x, y), s.position(x + w, y), s.position(x + w, y + h), s.position(x, y + h), s.position(x, y)])
-            if s.paths.count > 10000 { s.failure = PDFParseError(code: .limit) }
+            if s.paths.count > 10000 { s.failure = PDFParseError(code: .limit, branch:.b139) }
         }
         CGPDFOperatorTableSetCallback(table, "h") { _, p in PDFPathReader.state(p)?.close() }
         CGPDFOperatorTableSetCallback(table, "S") { _, p in PDFPathReader.state(p)?.paint(fill: false, stroke: true) }
@@ -481,31 +481,31 @@ final class PDFPathReader {
         }
         // Form XObjects may contain an otherwise unseen part of the table. Fail closed.
         CGPDFOperatorTableSetCallback(table, "Do") { _, p in
-            PDFPathReader.state(p)?.failure = PDFParseError(code: .unsupported, stage: .vectorObjects)
+            PDFPathReader.state(p)?.failure = PDFParseError(code: .unsupported, stage: .vectorObjects, branch:.b140)
         }
         if verifyVisibility {
             CGPDFOperatorTableSetCallback(table,"d") { scanner, p in
                 guard let s = PDFPathReader.state(p), let phase = s.numbers(scanner,1)?.first else { return }
                 var pattern: CGPDFArrayRef?
                 guard CGPDFScannerPopArray(scanner,&pattern), let pattern else {
-                    s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects); return
+                    s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b141); return
                 }
                 do { s.solidDash = try PDFPaintColors.isSolidDash(pattern,phase:Double(phase)) }
-                catch { s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }
+                catch { s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b142) }
             }
             CGPDFOperatorTableSetCallback(table, "w") { scanner, p in
                 guard let s = PDFPathReader.state(p), let width = s.numbers(scanner,1)?.first else { return }
-                guard width >= 0 else { s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects); return }
+                guard width >= 0 else { s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b143); return }
                 s.lineWidth = Double(width)
             }
             CGPDFOperatorTableSetCallback(table, "gs") { scanner, p in
                 guard let s = PDFPathReader.state(p) else { return }
-                if !s.graphicsStateIsVisible(scanner) { s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }
+                if !s.graphicsStateIsVisible(scanner) { s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b144) }
             }
             CGPDFOperatorTableSetCallback(table, "Tr") { scanner, p in
                 guard let s = PDFPathReader.state(p), let mode = s.numbers(scanner,1)?.first else { return }
                 guard [0.0,1,2].contains(Double(mode)) else {
-                    s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects); return
+                    s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b145); return
                 }
                 s.textMode = Double(mode)
             }
@@ -514,12 +514,12 @@ final class PDFPathReader {
                     guard let s = PDFPathReader.state(p) else { return }
                     s.textSeen = true
                     if !s.colors.canPaintText(mode:s.textMode) {
-                        s.failure = PDFParseError(code:.unsupported,stage:.paintVisibility)
+                        s.failure = PDFParseError(code:.unsupported,stage:.paintVisibility, branch:.b146)
                     }
                     if s.textMode != 0 {
                         s.hasOutlinedText = true
                         if !s.solidDash || PDFTextVisibility.strokePad(s.lineWidth,a:Double(s.ctm.a),b:Double(s.ctm.b),c:Double(s.ctm.c),d:Double(s.ctm.d)) == nil {
-                            s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects)
+                            s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b147)
                         }
                     }
                 }
@@ -560,7 +560,7 @@ final class PDFPathReader {
             // Unsupported painted objects still require separate verification.
             for op in ["BI", "ID", "EI", "sh"] {
                 CGPDFOperatorTableSetCallback(table, op) { _, p in
-                    PDFPathReader.state(p)?.failure = PDFParseError(code:.unsupported,stage:.vectorObjects)
+                    PDFPathReader.state(p)?.failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b148)
                 }
             }
         }
@@ -575,13 +575,13 @@ final class PDFPathReader {
         let succeeded = CGPDFScannerScan(scanner)
         if let failure = failure { throw failure }
         try check()
-        guard succeeded else { throw PDFParseError(code: .unreadable) }
+        guard succeeded else { throw PDFParseError(code: .unreadable, branch:.b149) }
         if verifyVisibility {
-            guard stack.isEmpty else { throw PDFParseError(code:.unsupported,stage:.vectorObjects) }
+            guard stack.isEmpty else { throw PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b150) }
             do {
                 try markedContent.finish()
                 try PDFClipValidation.requireContains(textBoxes+paintedBoxes,clips:clips,work:{
-                    guard self.consumePaintWork() else { throw self.failure ?? PDFParseError(code:.limit) }
+                    guard self.consumePaintWork() else { throw self.failure ?? PDFParseError(code:.limit, branch:.b151) }
                 },check:check)
             } catch var error as PDFParseError {
                 if error.stage == .characterMapping { error.stage = .vectorObjects }
@@ -593,14 +593,14 @@ final class PDFPathReader {
 
     func validateTextPaintBounds(_ boxes: [PDFBox]) throws {
         let work = { [self] in
-            guard consumePaintWork() else { throw failure ?? PDFParseError(code:.limit) }
+            guard consumePaintWork() else { throw failure ?? PDFParseError(code:.limit, branch:.b152) }
         }
         let page = PDFBox(left:0,top:0,right:Double(transform.width),bottom:Double(transform.height))
         try PDFClipValidation.requireContains(boxes,clips:[page]+clips,work:work,check:check)
         let index = try PDFTextCollisionIndex(boxes,work:work)
         for box in collisionBoxes {
             if try index.overlaps(box,pad:0,work:work) {
-                throw PDFParseError(code:.unsupported,stage:.vectorObjects)
+                throw PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b153)
             }
         }
     }

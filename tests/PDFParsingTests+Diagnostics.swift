@@ -184,6 +184,27 @@ extension PDFParsingTests {
             XCTAssertTrue(failure.localizedDescription.contains("前回の正常な解析結果は保持しています"))
         }
     }
+    func testFixedBranchCodesRoundTripWithoutChangingLegacyFailures() throws {
+        let old = try JSONDecoder().decode(PDFParseError.self,
+            from:Data(#"{"code":"unsupported","page":1,"stage":"vectorObjects"}"#.utf8))
+        XCTAssertNil(old.branch)
+        XCTAssertFalse(old.localizedDescription.contains("詳細番号"))
+        for branch in PDFParseError.Branch.allCases {
+            let failure = PDFParseError(code:.unsupported,page:1,stage:.vectorObjects,branch:branch)
+            let encoded = try JSONEncoder().encode(failure)
+            let restored = try JSONDecoder().decode(PDFParseError.self,from:encoded)
+            XCTAssertEqual(restored,failure)
+            XCTAssertTrue(restored.localizedDescription.contains("P12"))
+            XCTAssertTrue(restored.localizedDescription.contains("詳細番号：\(branch.rawValue)"))
+        }
+        XCTAssertThrowsError(try JSONDecoder().decode(PDFParseError.self,
+            from:Data(#"{"code":"unsupported","branch":"school-supplied-value"}"#.utf8)))
+        let source = PDFParseError(code:.ambiguous,page:2,stage:.gridCell,branch:.b001)
+        let attached = PDFDiagnosticRecorder().attaching(to:source)
+        XCTAssertEqual(attached.branch,source.branch)
+        XCTAssertEqual(attached.code,source.code)
+        XCTAssertEqual(attached.stage,source.stage)
+    }
     func testPDFFailureReplacementAndManifestRollback() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

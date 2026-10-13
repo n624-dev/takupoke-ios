@@ -23,7 +23,7 @@ enum PDFSchoolParser {
                 normalized.append(character); originalRanges.append(original)
             }
         }
-        guard normalized.count == originalRanges.count else { throw PDFParseError(code:.unsupported,stage:.yearHeading) }
+        guard normalized.count == originalRanges.count else { throw PDFParseError(code:.unsupported,stage:.yearHeading, branch:.b170) }
         let originals = Dictionary(uniqueKeysWithValues:zip(normalized.indices,originalRanges))
         var markers = [YearMarker](), remainder = normalized.startIndex..<normalized.endIndex
         while let range = normalized.range(of:"(?<![\\p{N}])(?:令和[^年]*?|[\\p{N}]+)年度",options:.regularExpression,range:remainder) {
@@ -32,11 +32,11 @@ enum PDFSchoolParser {
             let digits = String(era ? token.dropFirst(2).dropLast(2) : token.dropLast(2)).precomposedStringWithCompatibilityMapping
             guard (era ? (1...2).contains(digits.count) : digits.count == 4),
                   digits.utf8.allSatisfy({ (48...57).contains($0) }), let value = Int(digits),
-                  !era || (1...99).contains(value) else { throw PDFParseError(code:.unsupported,stage:.yearHeading) }
+                  !era || (1...99).contains(value) else { throw PDFParseError(code:.unsupported,stage:.yearHeading, branch:.b171) }
             let year = era ? 2018+value:value
-            guard (1900...9998).contains(year) else { throw PDFParseError(code:.unsupported,stage:.yearHeading) }
+            guard (1900...9998).contains(year) else { throw PDFParseError(code:.unsupported,stage:.yearHeading, branch:.b172) }
             guard let first = originals[range.lowerBound], let last = originals[normalized.index(before:range.upperBound)] else {
-                throw PDFParseError(code:.unsupported,stage:.yearHeading)
+                throw PDFParseError(code:.unsupported,stage:.yearHeading, branch:.b173)
             }
             markers.append(YearMarker(year:year,range:first.lowerBound..<last.upperBound,isReiwa:era))
             remainder = range.upperBound..<normalized.endIndex
@@ -45,8 +45,8 @@ enum PDFSchoolParser {
     }
     static func uniqueTitleYear(_ header: String,check: () throws -> Void = {}) throws -> Int {
         let markers = try yearMarkers(header,check:check)
-        guard let first = markers.first, markers.contains(where:\.isReiwa) else { throw PDFParseError(code:.unsupported,stage:.yearHeading) }
-        guard markers.allSatisfy({ $0.year == first.year }) else { throw PDFParseError(code:.ambiguous,stage:.yearHeading) }
+        guard let first = markers.first, markers.contains(where:\.isReiwa) else { throw PDFParseError(code:.unsupported,stage:.yearHeading, branch:.b174) }
+        guard markers.allSatisfy({ $0.year == first.year }) else { throw PDFParseError(code:.ambiguous,stage:.yearHeading, branch:.b175) }
         return first.year
     }
     static func key(_ s: String) -> String {
@@ -54,7 +54,7 @@ enum PDFSchoolParser {
     }
     static func parse(_ pages: [PDFPageLayout], kind: MaterialKind, digest: String, name: String,
                       check: () throws -> Void = {}) throws -> PDFAnalysis {
-        guard kind != .changes, !pages.isEmpty, pages.count <= 12 else { throw PDFParseError(code: .unsupported) }
+        guard kind != .changes, !pages.isEmpty, pages.count <= 12 else { throw PDFParseError(code: .unsupported, branch:.b176) }
         for (index, page) in pages.enumerated() {
             try check()
             guard page.width.isFinite, page.height.isFinite, page.width > 0, page.height > 0,
@@ -65,7 +65,7 @@ enum PDFSchoolParser {
                   page.lines.allSatisfy({ [$0.x1, $0.y1, $0.x2, $0.y2].allSatisfy(\.isFinite) }),
                   (page.arrows?.count ?? 0) <= 1000,
                   (page.arrows ?? []).allSatisfy({ [$0.x, $0.top, $0.bottom].allSatisfy(\.isFinite) && $0.top < $0.bottom }) else {
-                throw PDFParseError(code: .limit, page: index + 1)
+                throw PDFParseError(code: .limit, page: index + 1, branch:.b177)
             }
             if kind == .timetable {
                 do { try page.requireVisibleBounds(check:check) }
@@ -82,7 +82,7 @@ enum PDFSchoolParser {
             // Legacy event PDFs retain their original header contract.
             guard let range = normalized.range(of: "令和[0-9]{1,2}年度", options: .regularExpression),
                   let era = Int(normalized[range].dropFirst(2).dropLast(2)), (1...99).contains(era) else {
-                throw PDFParseError(code: .unsupported, page: 1, stage: .yearHeading)
+                throw PDFParseError(code: .unsupported, page: 1, stage: .yearHeading, branch:.b178)
             }
             year = 2018+era
         }
@@ -90,12 +90,12 @@ enum PDFSchoolParser {
             let rawHeading = PDFGrid.rows(page.glyphs.filter { $0.cy < page.height / 8 }).map { $0.map(\.text).joined() }.joined()
             let heading = key(rawHeading)
             if kind == .timetable {
-                do { guard try uniqueTitleYear(rawHeading,check:check) == year else { throw PDFParseError(code:.ambiguous,stage:.yearHeading) } }
+                do { guard try uniqueTitleYear(rawHeading,check:check) == year else { throw PDFParseError(code:.ambiguous,stage:.yearHeading, branch:.b179) } }
                 catch var error as PDFParseError { error.page = index+1; throw error }
             } else {
                 guard let range = heading.range(of: "令和[0-9]{1,2}年度", options: .regularExpression),
                       Int(heading[range].dropFirst(2).dropLast(2)) == year-2018 else {
-                    throw PDFParseError(code: .unsupported, page: index + 1, stage: .yearHeading)
+                    throw PDFParseError(code: .unsupported, page: index + 1, stage: .yearHeading, branch:.b180)
                 }
             }
         }
@@ -104,7 +104,7 @@ enum PDFSchoolParser {
         if kind == .timetable {
             guard pages.count == 1, normalized.contains("時間割"),
                   normalized.contains("前期") != normalized.contains("後期") else {
-                throw PDFParseError(code: .unsupported, page: 1, stage: .documentHeading)
+                throw PDFParseError(code: .unsupported, page: 1, stage: .documentHeading, branch:.b181)
             }
             result.term = normalized.contains("前期") ? "前期" : "後期"
             do { result.lessons = try timetable(pages[0], check: check) }
@@ -113,27 +113,27 @@ enum PDFSchoolParser {
                               "適用開始日・終了日はPDFの学期名から推測していません。時間割変更は日付ごとの表示時に反映します。"]
         } else {
             guard normalized.contains("行事予定表"), pages.count == 2 else {
-                throw PDFParseError(code: .unsupported, page: 1, stage: .documentHeading)
+                throw PDFParseError(code: .unsupported, page: 1, stage: .documentHeading, branch:.b182)
             }
             var months: Set<Int> = []
             var arrows: [CalendarArrow] = []
             for (i, page) in pages.enumerated() {
                 do {
                     let parsed = try events(page, year: year, pageNumber: i + 1, check: check)
-                    guard months.isDisjoint(with: parsed.months) else { throw PDFParseError(code: .ambiguous) }
+                    guard months.isDisjoint(with: parsed.months) else { throw PDFParseError(code: .ambiguous, branch:.b183) }
                     months.formUnion(parsed.months)
                     result.events += parsed.records
                     arrows += parsed.arrows
                 } catch var error as PDFParseError { error.page = i + 1; throw error }
             }
-            guard months == Set(1...12), !result.events.isEmpty else { throw PDFParseError(code: .unsupported) }
+            guard months == Set(1...12), !result.events.isEmpty else { throw PDFParseError(code: .unsupported, branch:.b184) }
             result.events.sort { ($0.date, $0.scope) < ($1.date, $1.scope) }
             attachPeriods(to: &result.events, arrows: arrows)
             for i in result.events.indices { result.events[i].classification = .fromExplicitText(result.events[i].title) }
             result.notices = ["共通・詫間欄の記載を日付ごとに表示しています。休業・祝日・曜日振替・補講日・確認済みの校内行事にタグを付け、それ以外の授業の有無は未判定です。授業なしは登校不要という意味ではありません。",
                               "休業の終了日は期間表記・矢印から確認し、その日を含む期間として表示します。終了日未確認の項目は元PDFで確認してください。日別の休講反映はまだ行いません。"]
         }
-        guard result.lessons.count + result.events.count <= maximumRecords else { throw PDFParseError(code: .limit) }
+        guard result.lessons.count + result.events.count <= maximumRecords else { throw PDFParseError(code: .limit, branch:.b185) }
         try check()
         return result
     }

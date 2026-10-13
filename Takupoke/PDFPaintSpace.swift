@@ -53,9 +53,9 @@ final class PDFPaintSpaceResolver {
         default: break
         }
         if let result = cache[name] { return result }
-        guard cache.count < 128 else { throw PDFParseError(code:.limit) }
+        guard cache.count < 128 else { throw PDFParseError(code:.limit, branch:.b109) }
         guard let object = CGPDFContentStreamGetResource(CGPDFScannerGetContentStream(scanner),"ColorSpace",name) else {
-            throw PDFParseError(code:.unsupported,stage:.paintVisibility)
+            throw PDFParseError(code:.unsupported,stage:.paintVisibility, branch:.b110)
         }
         var next = visited; next.insert(name)
         var alias: UnsafePointer<CChar>?, array: CGPDFArrayRef?
@@ -107,11 +107,11 @@ final class PDFPaintSpaceResolver {
                       String(cString:name) == expected else { return invalid }
             }
             guard CGPDFDictionaryGetInteger(dictionary,"Length",&length), length > 0 else { return invalid }
-            guard length <= 1_048_576 else { throw PDFParseError(code:.limit) }
+            guard length <= 1_048_576 else { throw PDFParseError(code:.limit, branch:.b111) }
             var format = CGPDFDataFormat.raw
             guard let data = CGPDFStreamCopyData(stream,&format), format == .raw else { return invalid }
             let bytes = CFDataGetLength(data)
-            guard bytes <= 1_048_576, profileBytes <= 4_194_304 - bytes else { throw PDFParseError(code:.limit) }
+            guard bytes <= 1_048_576, profileBytes <= 4_194_304 - bytes else { throw PDFParseError(code:.limit, branch:.b112) }
             profileBytes += bytes
             guard let space = CGColorSpace(iccData:data), space.numberOfComponents == Int(count) else { return invalid }
             return PDFPaintSpace(count:Int(count),space:space,definition:"[/ICCBased 5 0 R]",profile:data as Data)
