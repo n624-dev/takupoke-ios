@@ -1,3 +1,13 @@
+## U71 3項目訂正のforeground待機が期限切れ（全体388、iOS26）
+
+- 対象：f6e13a6・38382434192・試行1、job115263683048、Xcode26.6の手動訂正26。
+  testThreeFieldsRequireEachAcknowledgementAndFourRefuses、321.968秒。
+- 観測：ManualAssistanceChecks+Input.swift:40でXCTWaiter結果2（期限切れ）が
+  期待1（完了）と不一致。診断はApplication pid17907を含む。ケース1件・失敗1。
+- 状態：先に観測を保存。発生した具体操作・前後のstate・下位原因は原ログ全文と
+  既往／当時のコードを照合してから判断する。待機延長・期待値変更・自動再試行はしない。
+  388の必須チェックは未達で公開不可。残りのActionsは取消さず確認する。
+
 # UIテストの失敗索引
 
 ## U69 コード欄の標準AX結合ラベルと旧期待の不一致（全体386、iOS27 A）
