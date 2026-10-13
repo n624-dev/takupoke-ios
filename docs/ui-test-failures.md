@@ -9,16 +9,19 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
 
-## U68 単項目の背景復帰後、process診断のlabel照会が停止（全体384、iOS27）
+## U68 単項目の背景復帰後、process一致検査の再照会が停止（全体384、iOS27）
 
 - 対象：1ead97ba9029a5f9370c26cd2f22d957b57a32e1、38350398047・試行1、job115141547638、SDK27.0。
   testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground。
 - 観測：入力・表示の173.534秒は完了し、実背景state3と復帰state4を観測。
-  OneCorrection.swift:31のprocess診断label照会でsnapshot timeout。
-  ケース447.324秒・失敗1、準備込み498.9秒。実プロセス一致assertより前の停止。
+  process診断の実取得は成功し、expectedとobservedが一致。直後のOneCorrection.swift:31で
+  同じlabelを一致assert用に再取得しsnapshot timeout。ケース447.324秒・失敗1、準備込み498.9秒。
 - 状態：下位原因未確定。U67候補のrequirePreviewへ到達しておらず、その変更の失敗とは扱わない。
   先に観測を保存・pushし、U17の背景復帰後診断と旧／現コードを比較する。
   恒常的原因を断定せず、残りのActionsは取消さない。今回の公開条件は未達。
+- 補足：原ログ全文で最初の取得・同一IDの診断を確認し、初報の「診断照会の停止」を訂正した。
+  候補は復帰後の実label取得を一回にして、同じ実測値を診断と元の一致assertで共用する。
+  期待IDの注入、プロセス比較の削除、背景／再編集／保存条件の変更は行わない。
 - 根拠：[384単項目27](https://github.com/n624-dev/takupoke-ios/actions/runs/38350398047/job/115141547638)。
 
 ## U67 3項目訂正のpreview復帰確認でUI query timeout（全体383、iOS27）
