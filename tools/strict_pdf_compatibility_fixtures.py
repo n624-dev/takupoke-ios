@@ -168,7 +168,7 @@ def returned(path, mode):
     d.lesson(body+9*width, top+4*row_h, pitch=8)
     d.lesson(body+39*width, top+16*row_h, pitch=8)
     d.text("4月1日の時間割は以下のとおりです。", 1300, 920, 9)
-    d.text("4月2日~4月5日は通常の授業日どおりの授業時間です。", 1300, 942, 9)
+    d.text("4月2日~5日は通常の授業日どおりの授業時間です。", 1300, 942, 9)
     for p in range(8):
         d.text(f"{p+1}時限目{TIMES[p]}", 20, 1000+p*17, 9)
     d.c.showPage(); d.save()
