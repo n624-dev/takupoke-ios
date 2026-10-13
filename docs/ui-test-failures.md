@@ -1,3 +1,14 @@
+## U74 AI／OCR確認未反映とVoiceOver命令失敗の再発（全体391、iOS27 B）
+
+- 対象：ea8401d・38400839141・試行1、job115308282486、SDK／Runtime27.0。
+- 観測：testSettingsAccountDataAndFileDetailsのSettings.swift:36で
+  Physical AI/OCR switch tap did not update both UI and stored permission。
+  testVoiceOverReadsTimetableCardでAXVoiceOverAutomationErrorDomain Code3、
+  Failed to send moveForward command。元11件・失敗2（予期しない失敗1）・1234.173秒。
+- 状態：同じ症状はU43／U52／U55／U64／U66にある。今回の操作回数と
+  同一条件かは原ログ・旧コードを照合してから判断する。再発を新しい原因と断定しない。
+  391は公開不可。残りを取消さず確認し、待機延長・注入・条件緩和・除外を行わない。
+
 ## U73 初期設定caseの可視領域照会がsnapshot timeout（全体390、iOS27 B）
 
 - 対象：ca32c41・38394647214・試行1、job115287057618、SDK／Runtime27.0。
