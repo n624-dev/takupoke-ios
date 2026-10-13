@@ -19,9 +19,9 @@
 
 ## 最新の確認状況
 
-- 通常配布版：[0.1.382（382.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.382-build.382.1)。
-  Strictの可視輪郭／等価設定の過剰拒否と、全字体境界の誤衝突を修正し、旧失敗も再解析します。
-  [修正点](strict-pdf-compatibility-repair.md)に原文／所属の検証を維持する範囲を記載しました。
+- 通常配布版：[0.1.385（385.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.385-build.385.1)。
+  Strictの全262箇所へ固定の詳細番号を追加しました。解析条件は382.1と同じです。
+  [詳細番号一覧](strict-pdf-branch-catalog.md)で拒否箇所を確認できます。
   通常Release・Latest・固定AltStore Sourceを更新しました。
   認証なしで4添付を取得し、サイズ・ハッシュ・IPA内ソースと版・固定Sourceの一致を確認しました。
   この版の実機導入とAltStore更新は未確認です。
@@ -30,13 +30,14 @@
 - PDFの実資料：380.1で今回実行した解析でも通常P01・試験／返却P12が継続しています。
   AI／OCR設定はOFFです。
   382.1へ更新後も3種類すべてP12と実機報告があり、復旧していません。下位分岐は未特定です。
-- 配布版の自動確認：ソース708556aの[全体382・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38337201706)で、
+- 配布版の自動確認：ソースc82cd3aの[全体385・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38353061658)で、
   同じ実行・試行・コミットの全13必須チェックが成功しました。
-  Python184件、Native548件（予定skip1・失敗0）、通常UI4ジョブ、手動訂正6ジョブ、
+  Python186件、Native550件（予定skip1・失敗0）、通常UI4ジョブ、手動訂正6ジョブ、
   通知・27のVoiceOver・追加文字サイズ・ファイル選択UI3件とiPhone SDKビルドを確認しました。
   実UIの操作、除外行の確認・取消し・保存、再起動後の保持を検証しています。
   過去のiOS27のInvalid frame dimension警告は原因・一般的な解消が未確認です。
   U66のVoiceOverは一回の見出し接触を変更して成功しましたが、下位原因や恒常的解消は未証明です。
+  U67／U68の重複した診断照会を整理し、実取得値と元の合否条件を維持して両OSで成功しました。
   239.1と同じ独立架空9PDFを両SDKで最後まで解析して独立正解と一致しました。
   配布ビルドは全12検査成功後に開始し、公開前の照合と所有領域の回収も成功しました。
   関連UIの比較と失敗は[検証記録](verification.md)と[失敗索引](ui-test-failures.md)、
