@@ -209,7 +209,7 @@ extension ApplicationChecks {
         XCTAssertEqual(message.label,"PDFを解析できませんでした。対応していない書式が含まれています。")
         let code = app.staticTexts["pdf-failure-code"]
         _ = visible(code)
-        XCTAssertEqual(code.label,"P12 / R126（1ページ目）")
+        XCTAssertEqual(code.label,"エラーコード、P12 / R126（1ページ目）")
         XCTAssertFalse(message.label.contains("P12"))
         XCTAssertFalse(message.label.contains("確認箇所"))
         XCTAssertTrue(
