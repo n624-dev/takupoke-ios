@@ -16,7 +16,8 @@ extension PDFParsingTests {
             guard let failure = error as? PDFParseError else { return XCTFail("Unexpected error type") }
             XCTAssertEqual(failure.stage, .lessonLines)
             XCTAssertEqual(failure.cell, PDFParseError.Cell(classRow: 1, weekday: 1, period: 1, detectedLines: 4))
-            XCTAssertTrue(failure.localizedDescription.contains("検出4行"))
+            XCTAssertTrue(failure.localizedDescription.contains("P17"))
+            XCTAssertFalse(failure.localizedDescription.contains("検出4行"))
             XCTAssertFalse(failure.localizedDescription.contains("架空"))
             let encoded = try? JSONEncoder().encode(failure)
             let decoded = encoded.flatMap { try? JSONDecoder().decode(PDFParseError.self, from: $0) }
@@ -154,7 +155,9 @@ extension PDFParsingTests {
                 guard let failure = error as? PDFParseError else { return XCTFail("Unexpected error type", file: file, line: line) }
                 XCTAssertEqual(failure.page, page, file: file, line: line)
                 XCTAssertEqual(failure.stage, stage, file: file, line: line)
-                XCTAssertTrue(failure.localizedDescription.contains(stage.label), file: file, line: line)
+                XCTAssertTrue(failure.localizedDescription.contains(stage.diagnosticCode), file: file, line: line)
+                XCTAssertTrue(failure.localizedDescription.contains("\(page)ページ目"), file: file, line: line)
+                XCTAssertFalse(failure.localizedDescription.contains(stage.label), file: file, line: line)
                 XCTAssertFalse(failure.localizedDescription.contains("架空"), file: file, line: line)
             }
         }
