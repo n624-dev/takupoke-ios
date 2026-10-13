@@ -3,10 +3,15 @@
 - 対象：1b368f5・38390616754・試行1、job115273821054、SDK／Runtime27.0。
   testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground、504.261秒。
 - 観測：ManualAssistanceChecks+Input.swift:96でTimed out while evaluating UI query。
-  ケース1件・失敗1。具体操作の前後と、追加した接触への到達は未照合。
+  ケース1件・失敗1。最初のACK・実背景3／復帰4・同じprocessは成立。
+  復帰後の再入力で、完了ボタンの存在・hittable照会後にframe再照会が停止。
+  完了tapと二度目のACKは未実行。frame値の取得成功は未記録。
 - 状態：先に観測を保存し、原ログ全文・行96のコード・過去の同じ照会失敗を
   読んでから対処を決める。待機延長・ケース省略・再試行はしない。
   389は必須チェック未達で公開不可。残りを取消さず確認する。
+- 候補：存在待機後、現在の実Button配列の一意な要素を使う。
+  元のframe包含・enabled・hittableを省かず、45秒・一回tap・入力全文／保存を維持。
+  U11等の実要素方式と比較し、取得不能は失敗のまま。効果／原因は未確認。
 
 ## U71 3項目訂正の確認SwitchがONにならない（全体388、iOS26）
 

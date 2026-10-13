@@ -1,3 +1,23 @@
+## 2026-10-13 U72の全文照合：復帰後の完了ボタンframe再照会
+
+原ログとInput.swift／OneCorrection.swift／Cases.swift全文、c82cd3aの旧Input.swift、
+U02／U11／U17／U62／U67／U68の詳細と当時のコードを照合した。
+最初の入力と新しい相対ACK接触はvalue1まで成立。実背景state3・復帰4と同じprocessを確認。
+再入力のtypeText後、完了ボタンの存在待機とisHittable照会は終わり、
+行96のnavigation.frame／done.frameでsnapshot再照会が停止した。
+直前のframe値は未記録で、どちらの幾何条件も通過したとは扱わない。
+その後の完了tap・二度目のACKへ未到達で、新しいACK接触の失敗とは数えない。
+
+U02はkeyboard内の完了ボタンがhittable=false、今回はnav内の一意IDを探した後の照会停止。
+U11は古い入力queryの停止で、現在IDの実要素配列取得を比較済み。
+U62／U67／U68の診断や一致照会とは違い、今回のframeは所属確認に必要なので削除しない。
+候補は45秒の元存在待機後、nav内の現在の実Button配列を取得し、一意な要素へ束縛する。
+同じButtonのframe・enabled・hittableを一回ずつ読み、元の全包含条件を確認して一回tapする。
+幾何／hittable・45秒・keyboard非表示・入力全文・確認解除・背景と保存の期待は固定。
+取得不能や複数Buttonは引き続き失敗とし、firstMatchの繰返し探索をgeometryに使わない。
+これは既存の入力／メニューの実要素取得方式と合わせる小さい候補であり、
+AXの下位原因・効果は未確認。製品・SDK・ACK接触と公開ゲートは変更しない。
+
 ## 2026-10-13 全体389・iOS27単項目の照会失敗を観測
 
 1b368f5fa6bd0f48b331ba4fdf0d8323b63c807f・[38390616754・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38390616754)、
