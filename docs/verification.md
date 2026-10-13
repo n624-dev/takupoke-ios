@@ -4817,3 +4817,10 @@ UI検証の置換操作は、編集メニューを閉じた後にフォーカス
 iOS27の手動訂正ではInvalid frame dimension警告が残り、原因・解消は未確認。追加AIモデルの品質合格、独立した文書全体のOCR品質、iPhone実機への導入確認も示さない。今回の公開後は改善を継続し、改善が完了するまで追加配布しない。
 
 Swift設置コンテナのPython160件は失敗0・skip0（17.693秒）で成功した。
+# 2026-10-13 Strict互換性資料の生成時エラー
+
+現行Linux上で新規の完全架空PDFを生成した際、ReportLabのResourcesが直接dictionaryだったため、
+生成器のxref限定処理が`Independent generator resource shape changed`で停止した。
+ソースは未コミットの`tools/strict_pdf_compatibility_fixtures.py`、Actions開始前のローカル生成。
+製品Parserの実行・実資料の取得・採否評価には到達していない。
+観測を保存した後、既存記録を検索し、直接dictionaryとxrefの両方を正しく扱う変更を検討する。
