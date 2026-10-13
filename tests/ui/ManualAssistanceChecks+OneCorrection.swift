@@ -27,8 +27,9 @@ extension ManualAssistanceChecks {
         print("TAKUPOKE-MANUAL-APP-STATE after-activate=\(app.state.rawValue)")
         XCTAssertTrue(app.wait(for:.runningForeground,timeout:10),"App must survive background; no relaunch or draft reset")
         print("TAKUPOKE-MANUAL-APP-STATE foreground=\(app.state.rawValue)")
-        print("TAKUPOKE-MANUAL-PROCESS expected=\(processBefore);observed=\(app.staticTexts["manual-process-launch"].firstMatch.label)")
-        XCTAssertEqual(app.staticTexts["manual-process-launch"].firstMatch.label,processBefore,"Background must preserve the original process; relaunch is not survival")
+        let observedProcess=app.staticTexts["manual-process-launch"].firstMatch.label
+        print("TAKUPOKE-MANUAL-PROCESS expected=\(processBefore);observed=\(observedProcess)")
+        XCTAssertEqual(observedProcess,processBefore,"Background must preserve the original process; relaunch is not survival")
         XCTAssertEqual(visible(input).value as? String,value);XCTAssertEqual(visible(ack(key)).value as? String,"1")
         edit(input,value+"改",id:key);XCTAssertEqual(visible(ack(key)).value as? String,"0")
         assertSubmitEnabled(false)
