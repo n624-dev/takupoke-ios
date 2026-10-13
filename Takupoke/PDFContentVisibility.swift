@@ -23,6 +23,13 @@ struct PDFDevicePaint {
     }
     #endif
     var isBlack: Bool { PDFTextVisibility.blackColor(components, count: count) }
+    #if canImport(CoreGraphics)
+    // Use Quartz's interpretation, including calibrated/ICC/default spaces.
+    // Raw component equality cannot certify contrast against a colored fill.
+    var renderedBrightness: Double? {
+        interpretedSpace?.brightness(components, intent: renderingIntent)
+    }
+    #endif
     var isWhite: Bool {
         #if canImport(CoreGraphics)
         if resolvedSpace == nil && isBlack { return false }

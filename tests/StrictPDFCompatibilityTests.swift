@@ -14,7 +14,7 @@ final class StrictPDFCompatibilityTests: XCTestCase {
         let root = URL(fileURLWithPath:path)
         XCTAssertTrue(FileManager.default.fileExists(atPath:root.appendingPathComponent(".strict-compatibility-owned").path))
         return (0...2).flatMap { mode in
-            ["", "-before", "-after"].map { root.appendingPathComponent("\(kind)-\(mode)\($0).pdf") }
+            ["", "-before", "-after", "-background"].map { root.appendingPathComponent("\(kind)-\(mode)\($0).pdf") }
         }
     }
 

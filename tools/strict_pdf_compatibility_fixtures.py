@@ -194,6 +194,18 @@ def generate(output):
                         page.set_contents(xref)
                     destination = output/f"{name}-{mode}-{order}.pdf"
                     destination.write_bytes(pdf.tobytes(garbage=4,deflate=True))
+            # Independently generated light page background, before every
+            # original drawing operation. All old representations stay intact.
+            with fitz.open(output/f"{name}-{mode}.pdf") as pdf:
+                for page in pdf:
+                    background = (f"q 0.85 0.9 1 rg 0 0 {page.rect.width} "
+                                  f"{page.rect.height} re f Q\n").encode()
+                    xref = pdf.get_new_xref()
+                    pdf.update_object(xref, "<<>>")
+                    pdf.update_stream(xref, background+page.read_contents())
+                    page.set_contents(xref)
+                (output/f"{name}-{mode}-background.pdf").write_bytes(
+                    pdf.tobytes(garbage=4,deflate=True))
     (output/"design.json").write_text(json.dumps({"values":VALUES,"classes":CLASSES}, ensure_ascii=False)+"\n")
 
 

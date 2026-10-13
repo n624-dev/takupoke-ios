@@ -192,6 +192,11 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
         case b256 = "R256", b257 = "R257", b258 = "R258"
         case b259 = "R259", b260 = "R260", b261 = "R261"
         case b262 = "R262"
+        case b263 = "R263", b264 = "R264", b265 = "R265"
+        case b266 = "R266", b267 = "R267"
+        case b268 = "R268", b269 = "R269"
+        case b270 = "R270"
+        case b271 = "R271"
     }
     var branch: Branch? = nil
     var diagnosticReport: String? {

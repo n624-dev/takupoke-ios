@@ -7,6 +7,7 @@
 例えばP12とR127なら、罫線の変換・線幅を確認する条件で拒否された。
 資料の種類・P番号・R番号・ページ番号だけを伝えればよく、本文や画像は不要。
 複合guardは1箇所として扱う。その中のどの条件かまでは番号だけで断定しない。
+R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離した。旧保存番号は変更しない。
 呼出元が分類を付け直した場合、画面のP番号と表の生成時分類が異なる場合がある。
 
 番号は固定enum。既存番号を別の条件へ転用せず、新しい箇所は未使用番号を追加する。
@@ -20,7 +21,7 @@
 更新: `python3 -B tools/pdf_branch_catalog.py write`。
 整合性: `python3 -B tools/pdf_branch_catalog.py check`。学校資料は読み込まない。
 
-## 対応一覧（262箇所）
+## 対応一覧（271箇所）
 
 ### ページの文字・罫線が表示範囲に入るか
 
@@ -41,32 +42,32 @@
 
 | 詳細番号 | 生成時分類 | 拒否条件／コード抜粋 | 実装 |
 |---|---|---|---|
-| R006 | P23 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFContentVisibility.swift#L57) |
-| R007 | P23 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFContentVisibility.swift#L66) |
-| R008 | 分類なし／呼出元 | `guard clips.count <= 128 else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L95) |
-| R009 | 分類なし／呼出元 | `guard comparisons <= 1_000_000 else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L100) |
-| R010 | P24 | `guard contains(clip, box) else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L102) |
-| R011 | P01 | `guard phase.isFinite, phase >= 0, count <= 256 else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L114) |
-| R012 | P01 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFContentVisibility.swift#L119) |
-| R013 | P01 | `guard hasPositive else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L123) |
-| R014 | P23 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFContentVisibility.swift#L148) |
-| R015 | P23 | `guard CGPDFScannerPopName(scanner,&name), let name else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L154) |
-| R016 | P23 | `guard CGPDFDictionaryGetName(dictionary,"RI",&name), let name else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L160) |
-| R017 | P23 | `guard CGPDFScannerPopName(scanner,&pointer), let pointer else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L171) |
-| R018 | 分類なし／呼出元 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFContentVisibility.swift#L190) |
-| R019 | P23 | `guard CGPDFScannerPopNumber(scanner,&value) else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L195) |
-| R020 | P24 | `guard let candidate else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L223) |
-| R021 | 分類なし／呼出元 | `guard depth < 64 else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L231) |
-| R022 | P25 | `guard CGPDFScannerPopObject(scanner, &object), let object else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L234) |
-| R023 | P25 | `CGPDFObjectGetValue(resource, .dictionary, &dictionary) else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L240) |
-| R024 | P25 | `} else if !CGPDFObjectGetValue(object, .dictionary, &dictionary) { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L241) |
-| R025 | P25 | `guard let dictionary else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L242) |
-| R026 | P25 | `guard CGPDFDictionaryGetInteger(dictionary, "MCID", &value), value >= 0 else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L248) |
-| R027 | P25 | `CGPDFStringGetLength(language) <= 256 else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L254) |
-| R028 | P25 | `guard CGPDFDictionaryGetCount(dictionary) == known else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L257) |
-| R029 | P25 | `guard CGPDFScannerPopName(scanner, &tag), let tag, String(cString: tag) != "OC" else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L260) |
-| R030 | P25 | `guard depth > 0 else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L264) |
-| R031 | P25 | `guard depth == 0 else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L268) |
+| R006 | P23 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFContentVisibility.swift#L64) |
+| R007 | P23 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFContentVisibility.swift#L73) |
+| R008 | 分類なし／呼出元 | `guard clips.count <= 128 else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L102) |
+| R009 | 分類なし／呼出元 | `guard comparisons <= 1_000_000 else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L107) |
+| R010 | P24 | `guard contains(clip, box) else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L109) |
+| R011 | P01 | `guard phase.isFinite, phase >= 0, count <= 256 else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L121) |
+| R012 | P01 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFContentVisibility.swift#L126) |
+| R013 | P01 | `guard hasPositive else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L130) |
+| R014 | P23 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFContentVisibility.swift#L155) |
+| R015 | P23 | `guard CGPDFScannerPopName(scanner,&name), let name else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L161) |
+| R016 | P23 | `guard CGPDFDictionaryGetName(dictionary,"RI",&name), let name else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L167) |
+| R017 | P23 | `guard CGPDFScannerPopName(scanner,&pointer), let pointer else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L178) |
+| R018 | 分類なし／呼出元 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFContentVisibility.swift#L197) |
+| R019 | P23 | `guard CGPDFScannerPopNumber(scanner,&value) else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L202) |
+| R020 | P24 | `guard let candidate else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L230) |
+| R021 | 分類なし／呼出元 | `guard depth < 64 else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L238) |
+| R022 | P25 | `guard CGPDFScannerPopObject(scanner, &object), let object else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L241) |
+| R023 | P25 | `CGPDFObjectGetValue(resource, .dictionary, &dictionary) else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L247) |
+| R024 | P25 | `} else if !CGPDFObjectGetValue(object, .dictionary, &dictionary) { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L248) |
+| R025 | P25 | `guard let dictionary else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L249) |
+| R026 | P25 | `guard CGPDFDictionaryGetInteger(dictionary, "MCID", &value), value >= 0 else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L255) |
+| R027 | P25 | `CGPDFStringGetLength(language) <= 256 else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L261) |
+| R028 | P25 | `guard CGPDFDictionaryGetCount(dictionary) == known else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L264) |
+| R029 | P25 | `guard CGPDFScannerPopName(scanner, &tag), let tag, String(cString: tag) != "OC" else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L267) |
+| R030 | P25 | `guard depth > 0 else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L271) |
+| R031 | P25 | `guard depth == 0 else { throw` | [確認条件](../Takupoke/PDFContentVisibility.swift#L275) |
 
 ### PDF以外のエラーを失敗表示へ変換
 
@@ -186,44 +187,53 @@
 | R113 | 分類なし／呼出元 | `guard boxes.count <= 100000 else { throw` | [確認条件](../Takupoke/PDFPathReader.swift#L13) |
 | R114 | 分類なし／呼出元 | `(box.right-box.left).isFinite, (box.bottom-box.top).isFinite else { throw` | [確認条件](../Takupoke/PDFPathReader.swift#L19) |
 | R115 | 分類なし／呼出元 | `(query.right+pad).isFinite, (query.bottom+pad).isFinite else { throw` | [確認条件](../Takupoke/PDFPathReader.swift#L44) |
-| R116 | 分類なし／呼出元 | `if s.operations > 1000000 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L135) |
-| R117 | 分類なし／呼出元 | `guard CGPDFScannerPopNumber(scanner, &n), n.isFinite else { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L143) |
-| R118 | 分類なし／呼出元 | `if lines.count > 100000 { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L158) |
-| R119 | 分類なし／呼出元 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L166) |
-| R120 | 分類なし／呼出元 | `guard consumePaintWork() else { throw failure ??` | [確認条件](../Takupoke/PDFPathReader.swift#L189) |
-| R121 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L203) |
-| R122 | P23 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L211) |
-| R123 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L216) |
-| R124 | P12 | `塗り矢印が元文字に重なる、または範囲を取得できない` | [確認条件](../Takupoke/PDFPathReader.swift#L225) |
-| R125 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L233) |
-| R126 | P12 | `矩形の角・辺が支持範囲外、文字と重なる、または装飾に原文字範囲の根拠がない` | [確認条件](../Takupoke/PDFPathReader.swift#L244) |
-| R127 | P12 | `罫線の変換が角度保持でない、または変換後の線幅が支持範囲外` | [確認条件](../Takupoke/PDFPathReader.swift#L252) |
-| R128 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L260) |
-| R129 | 分類なし／呼出元 | `if collisionBoxes.count > 100_000 { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L267) |
-| R130 | 分類なし／呼出元 | `if failure == nil { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L275) |
-| R131 | P24 | `guard let box = rectangularPathBox() else { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L366) |
-| R132 | P24 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L369) |
-| R133 | 分類なし／呼出元 | `guard clips.count < 128 else { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L371) |
-| R134 | 分類なし／呼出元 | `guard let table = CGPDFOperatorTableCreate() else { throw` | [確認条件](../Takupoke/PDFPathReader.swift#L426) |
-| R135 | 分類なし／呼出元 | `if s.stack.count >= 64 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L430) |
-| R136 | 分類なし／呼出元 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L441) |
-| R137 | 分類なし／呼出元 | `if s.paths.count > 10000 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L450) |
-| R138 | 分類なし／呼出元 | `if s.paths[s.paths.count - 1].count > 10000 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L455) |
-| R139 | 分類なし／呼出元 | `if s.paths.count > 10000 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L461) |
-| R140 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L487) |
-| R141 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L494) |
-| R142 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L497) |
-| R143 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L501) |
-| R144 | P12 | `ExtGStateの透明度・mask・blend・字体・線幅等が支持範囲外` | [確認条件](../Takupoke/PDFPathReader.swift#L506) |
-| R145 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L511) |
-| R146 | P23 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L520) |
-| R147 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L525) |
-| R148 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L566) |
-| R149 | 分類なし／呼出元 | `guard succeeded else { throw` | [確認条件](../Takupoke/PDFPathReader.swift#L581) |
-| R150 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L583) |
-| R151 | 分類なし／呼出元 | `guard self.consumePaintWork() else { throw self.failure ??` | [確認条件](../Takupoke/PDFPathReader.swift#L587) |
-| R152 | 分類なし／呼出元 | `guard consumePaintWork() else { throw failure ??` | [確認条件](../Takupoke/PDFPathReader.swift#L599) |
-| R153 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L606) |
+| R116 | 分類なし／呼出元 | `if s.operations > 1000000 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L138) |
+| R117 | 分類なし／呼出元 | `guard CGPDFScannerPopNumber(scanner, &n), n.isFinite else { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L146) |
+| R118 | 分類なし／呼出元 | `if lines.count > 100000 { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L161) |
+| R119 | 分類なし／呼出元 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L169) |
+| R120 | 分類なし／呼出元 | `guard consumePaintWork() else { throw failure ??` | [確認条件](../Takupoke/PDFPathReader.swift#L192) |
+| R121 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L206) |
+| R122 | P23 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L214) |
+| R123 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L219) |
+| R124 | P12 | `塗り矢印が元文字に重なる、または範囲を取得できない` | [確認条件](../Takupoke/PDFPathReader.swift#L229) |
+| R125 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L237) |
+| R126 | P12 | `矩形の四隅が各1回の対応でない。旧版では辺・原文字範囲・重なりも同じ番号` | [確認条件](../Takupoke/PDFPathReader.swift#L247) |
+| R263 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L250) |
+| R264 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L253) |
+| R265 | P12 | `文字と重なる塗りが文字描画後、線付き、または細い罫線` | [確認条件](../Takupoke/PDFPathReader.swift#L262) |
+| R270 | P12 | `背景の塗りに複数subpathがあり、偶奇／windingの穴や消去を除外できない` | [確認条件](../Takupoke/PDFPathReader.swift#L267) |
+| R271 | P23 | `背景の単色描画だけでは有効／未知のoverprint合成を確認できない` | [確認条件](../Takupoke/PDFPathReader.swift#L270) |
+| R268 | P12 | `背景より前の罫線・矢印・他の描画が背景で消える可能性がある` | [確認条件](../Takupoke/PDFPathReader.swift#L275) |
+| R266 | P23 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L279) |
+| R127 | P12 | `罫線の変換が角度保持でない、または変換後の線幅が支持範囲外` | [確認条件](../Takupoke/PDFPathReader.swift#L299) |
+| R128 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L307) |
+| R129 | 分類なし／呼出元 | `if collisionBoxes.count > 100_000 { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L314) |
+| R130 | 分類なし／呼出元 | `if failure == nil { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L322) |
+| R269 | P23 | `背景と後続の罫線・矢印・装飾の色のコントラストを保証できない` | [確認条件](../Takupoke/PDFPathReader.swift#L419) |
+| R131 | P24 | `guard let box = rectangularPathBox() else { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L440) |
+| R132 | P24 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L443) |
+| R133 | 分類なし／呼出元 | `guard clips.count < 128 else { failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L445) |
+| R134 | 分類なし／呼出元 | `guard let table = CGPDFOperatorTableCreate() else { throw` | [確認条件](../Takupoke/PDFPathReader.swift#L512) |
+| R135 | 分類なし／呼出元 | `if s.stack.count >= 64 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L516) |
+| R136 | 分類なし／呼出元 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L530) |
+| R137 | 分類なし／呼出元 | `if s.paths.count > 10000 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L539) |
+| R138 | 分類なし／呼出元 | `if s.paths[s.paths.count - 1].count > 10000 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L544) |
+| R139 | 分類なし／呼出元 | `if s.paths.count > 10000 { s.failure =` | [確認条件](../Takupoke/PDFPathReader.swift#L550) |
+| R140 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L576) |
+| R141 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L583) |
+| R142 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L586) |
+| R143 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L590) |
+| R144 | P12 | `ExtGStateの透明度・mask・blend・字体・線幅等が支持範囲外` | [確認条件](../Takupoke/PDFPathReader.swift#L595) |
+| R145 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L600) |
+| R146 | P23 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L609) |
+| R267 | P23 | `背景と後続文字の実描画色のコントラストを保証できない` | [確認条件](../Takupoke/PDFPathReader.swift#L612) |
+| R147 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L617) |
+| R148 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L658) |
+| R149 | 分類なし／呼出元 | `guard succeeded else { throw` | [確認条件](../Takupoke/PDFPathReader.swift#L673) |
+| R150 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L675) |
+| R151 | 分類なし／呼出元 | `guard self.consumePaintWork() else { throw self.failure ??` | [確認条件](../Takupoke/PDFPathReader.swift#L679) |
+| R152 | 分類なし／呼出元 | `guard consumePaintWork() else { throw failure ??` | [確認条件](../Takupoke/PDFPathReader.swift#L691) |
+| R153 | P12 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFPathReader.swift#L698) |
 
 ### 旧行事PDFの列・日付・行
 

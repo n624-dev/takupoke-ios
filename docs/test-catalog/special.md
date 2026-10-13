@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`1ebf2da1b2e1965a7e349fba0aa217da217f66f2462f522ae22fc8cf5012538c`
+`ab10543a4bad3f4b29a7ba0f04b401f4a089958b1ea71f2c373520ed9a4ca851`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -55,5 +55,9 @@ bash tools/test-parsing.sh
 - `testNativeVerifiedFilledArrowRetainsItsOriginalGeometryInStrictReaders`
 - `testNativeDisjointFilledRulesAndDecorationsPreserveTextAndGeometryInEitherPaintOrder`
 - `testNativeOverlappingFilledRulesNeverCompleteDeferredCapture`
+- `testNativeLightBackgroundBeforeTextPreservesAcquisitionAndRejectsOverpaint`
+- `testNativeBackgroundContrastCannotCertifyHiddenLowContrastOrLateBackgroundText`
+- `testNativeBackgroundCannotEraseOrHideStructuralRules`
+- `testNativeBackgroundOverprintRequiresKnownNormalCompositingAndRestoresGraphicsState`
 - `testNativeInertTagsContainedClipsDeviceSpacesAndUnusedStylesPreserveDirectAcquisition`
 - `testNativeConcealingClipsOptionalReplacementAndUnbalancedTagsRemainRejected`

@@ -202,6 +202,147 @@ extension PDFTextGeometryTests {
         }
     }
 
+    func testNativeLightBackgroundBeforeTextPreservesAcquisitionAndRejectsOverpaint() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("takupoke-background-contrast-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("fictional.pdf")
+        let background = "q 0.85 0.9 1 rg 20 335 75 40 re f Q "
+        let rule = " 10 10 m 290 10 l S"
+        for mode in [0, 1, 2] {
+            let text = "0 g 0 G 0.5 w 1 j BT /F1 10 Tf \(mode) Tr 1 0 0 1 30 350 Tm (AB) Tj ET"
+            for special in [false, true] {
+                try syntheticPDF(content: text + rule, simpleFont: true).write(to: url)
+                let reference = try special ? PDFKitReader.readSpecial(url)
+                    : PDFKitReader.read(url, kind: .timetable)
+                try syntheticPDF(content: background + text + rule, simpleFont: true).write(to: url)
+                let capture = RecoveryReadCapture()
+                let pages = try special ? PDFKitReader.readSpecial(url, capture: capture)
+                    : PDFKitReader.read(url, kind: .timetable, capture: capture)
+                XCTAssertEqual(pages[0].glyphs.map(\.text), reference[0].glyphs.map(\.text))
+                XCTAssertEqual(pages[0].glyphs.map(\.x), reference[0].glyphs.map(\.x))
+                XCTAssertEqual(pages[0].glyphs.map(\.y), reference[0].glyphs.map(\.y))
+                XCTAssertEqual(pages[0].glyphs.map(\.sourceOrder), reference[0].glyphs.map(\.sourceOrder))
+                XCTAssertEqual(pages[0].lines.count, 1)
+                XCTAssertTrue(capture.complete)
+                try syntheticPDF(content: text + background + rule, simpleFont: true).write(to: url)
+                let rejected = RecoveryReadCapture()
+                XCTAssertThrowsError(try special ? PDFKitReader.readSpecial(url, capture: rejected)
+                    : PDFKitReader.read(url, kind: .timetable, capture: rejected)) {
+                    XCTAssertEqual(($0 as? PDFParseError)?.branch, .b265)
+                }
+                XCTAssertFalse(rejected.complete)
+            }
+        }
+    }
+
+    func testNativeBackgroundContrastCannotCertifyHiddenLowContrastOrLateBackgroundText() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("takupoke-background-rejection-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("fictional.pdf")
+        let text = "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET"
+        let light = "q 0.9 g 20 335 75 40 re f Q "
+        let cases: [(String, PDFParseError.Branch)] = [
+            ("q 0 g 20 335 75 40 re f Q " + text, .b267),
+            (light + "0.9 g " + text, .b267),
+            (light + "0.8 g " + text, .b267),
+            (text + " " + light + text, .b265),
+            ("0.9 g 20 350 75 1 re f 0 g " + text, .b265),
+            ("/Visibility gs " + light + text, .b144),
+            (light + "0 g " + text + " 0.9 g " + text, .b267),
+            (light + "q 0.1 g 20 335 75 40 re f Q 0 g " + text, .b267),
+            ("0 g 20 335 75 40 re 20 335 75 40 re f* 0.8 g " + text, .b270),
+            ("0 g 20 335 75 40 re 20 375 75 -40 re f 0.8 g " + text, .b270),
+            ("q 0 g 30 345 4 20 re f Q 0.9 g " + text, .b267)
+        ]
+        for (content, branch) in cases {
+            try syntheticPDF(content: content + " 10 10 m 290 10 l S",
+                graphicsState: "/ca 0.5", simpleFont: true).write(to: url)
+            for special in [false, true] {
+                let capture = RecoveryReadCapture()
+                XCTAssertThrowsError(try special ? PDFKitReader.readSpecial(url, capture: capture)
+                    : PDFKitReader.read(url, kind: .timetable, capture: capture)) {
+                    // Normal text reads ExtGState before the path scan; the
+                    // special reader rejects it at the path scan instead.
+                    let expected = branch == .b144 && !special ? PDFParseError.Branch.b067 : branch
+                    XCTAssertEqual(($0 as? PDFParseError)?.branch, expected)
+                }
+                XCTAssertFalse(capture.complete)
+                XCTAssertFalse(capture.pages.contains { $0.state == .complete })
+            }
+        }
+    }
+
+    func testNativeBackgroundCannotEraseOrHideStructuralRules() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("takupoke-background-grid-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("fictional.pdf")
+        let background = "q 0.9 g 0 0 300 400 re f Q "
+        let text = "0 g BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET"
+        let cases: [(String, PDFParseError.Branch)] = [
+            ("10 10 m 290 10 l S " + background + text, .b268),
+            ("10 10 280 1 re f " + background + text, .b268),
+            (background + "0.9 G 10 10 m 290 10 l S " + text, .b269),
+            (background + "0.9 g 10 10 280 1 re f " + text, .b269),
+            (background + "0.9 g 100 250 1 30 re 97.5 250 m 103.5 250 l 100.5 244 l h f " + text, .b269)
+        ]
+        for (content, branch) in cases {
+            try syntheticPDF(content: content, simpleFont: true).write(to: url)
+            for special in [false, true] {
+                let capture = RecoveryReadCapture()
+                XCTAssertThrowsError(try special ? PDFKitReader.readSpecial(url, capture: capture)
+                    : PDFKitReader.read(url, kind: .timetable, capture: capture)) {
+                    XCTAssertEqual(($0 as? PDFParseError)?.branch, branch)
+                }
+                XCTAssertFalse(capture.complete)
+                XCTAssertFalse(capture.pages.contains { $0.state == .complete })
+            }
+        }
+    }
+
+    func testNativeBackgroundOverprintRequiresKnownNormalCompositingAndRestoresGraphicsState() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("takupoke-background-overprint-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("fictional.pdf")
+        let background = "q 0.9 g 20 335 75 40 re f Q "
+        let text = "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET"
+        let rule = " 10 10 m 290 10 l S"
+        for state in ["/OP true", "/op true /OPM 1", "/op /Unknown"] {
+            for special in [false, true] {
+                try syntheticPDF(content: "/Visibility gs " + background + text + rule,
+                    graphicsState: state, simpleFont: true).write(to: url)
+                let capture = RecoveryReadCapture()
+                XCTAssertThrowsError(try special ? PDFKitReader.readSpecial(url, capture: capture)
+                    : PDFKitReader.read(url, kind: .timetable, capture: capture)) {
+                    XCTAssertEqual(($0 as? PDFParseError)?.branch, .b271)
+                }
+                XCTAssertFalse(capture.complete)
+                try syntheticPDF(content: "q /Visibility gs Q " + background + text + rule,
+                    graphicsState: state, simpleFont: true).write(to: url)
+                let restored = try special ? PDFKitReader.readSpecial(url)
+                    : PDFKitReader.read(url, kind: .timetable)
+                XCTAssertEqual(restored[0].glyphs.map(\.text).joined(), "AB")
+                try syntheticPDF(content: background + "/Visibility gs " + text + rule,
+                    graphicsState: state, simpleFont: true).write(to: url)
+                XCTAssertThrowsError(try special ? PDFKitReader.readSpecial(url)
+                    : PDFKitReader.read(url, kind: .timetable)) {
+                    XCTAssertEqual(($0 as? PDFParseError)?.branch, .b267)
+                }
+            }
+        }
+        try syntheticPDF(content: "/Visibility gs " + background + text + rule,
+            graphicsState: "/OP false /op false /OPM 1", simpleFont: true).write(to: url)
+        XCTAssertEqual(try PDFKitReader.read(url, kind: .timetable)[0].lines.count, 1)
+        XCTAssertEqual(try PDFKitReader.readSpecial(url)[0].lines.count, 1)
+    }
+
     func testNativeInertTagsContainedClipsDeviceSpacesAndUnusedStylesPreserveDirectAcquisition() throws {
         let text = "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET"
         let rule = " 10 10 m 290 10 l S"

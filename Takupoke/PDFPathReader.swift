@@ -96,10 +96,13 @@ final class PDFPathReader {
     private var lineWidth = 1.0
     private var colors = PDFPaintColors()
     private var colorStack: [PDFPaintColors] = []
+    private var uncertifiedOverprint = false
+    private var overprintStack: [Bool] = []
     private var markedContent = PDFMarkedContent()
     private var clips: [PDFBox] = []
     private var paintedBoxes: [PDFBox] = []
     private var collisionBoxes: [PDFBox] = []
+    private var backgroundBrightness: ClosedRange<Double>?
     private let paintResolver = PDFPaintSpaceResolver()
     var paths: [[CGPoint]] = []
     var lines: [PDFRule] = []
@@ -220,6 +223,7 @@ final class PDFPathReader {
             // must not fail merely because it is too broad to be a table rule.
             for path in paths {
                 if !stroke && isSupportedArrowHead(path) {
+                    guard requireBackgroundContrast(colors.fill) else { return }
                     guard let box = bounds(of:path),
                           !overlapsText(left:box.left,top:box.top,right:box.right,bottom:box.bottom,pad:0) else {
                         if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b124) }; return
@@ -239,14 +243,57 @@ final class PDFPathReader {
                 let thinRule = (width <= 2.1 && height > 3) || (height <= 2.1 && width > 3)
                 // Standalone scans without acquired text bounds cannot certify
                 // a decoration against text that may be painted later.
-                guard uniqueCorners, axisEdges, (thinRule || !textBoxes.isEmpty),
-                      !overlapsText(left:box.left,top:box.top,right:box.right,bottom:box.bottom,pad:0) else {
+                guard uniqueCorners else {
                     if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b126) }; return
                 }
-                collisionBoxes.append(PDFBox(left:Double(box.left),top:Double(box.top),right:Double(box.right),bottom:Double(box.bottom)))
+                guard axisEdges else {
+                    failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b263); return
+                }
+                guard thinRule || !textBoxes.isEmpty else {
+                    failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b264); return
+                }
+                let overlaps = overlapsText(left:box.left,top:box.top,right:box.right,bottom:box.bottom,pad:0)
+                guard failure == nil else { return }
+                if overlaps {
+                    // A broad opaque rectangle before the first text operation
+                    // is a background, never a rule. Subsequent text must also
+                    // prove contrast; paint order alone does not prove visibility.
+                    guard !textSeen, !stroke, !thinRule else {
+                        failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b265); return
+                    }
+                    // One simple rectangle fills under both winding rules.
+                    // Multiple subpaths can cancel or cut holes (f / f*).
+                    guard paths.count == 1 else {
+                        failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b270); return
+                    }
+                    guard !uncertifiedOverprint else {
+                        failure = PDFParseError(code:.unsupported,stage:.paintVisibility, branch:.b271); return
+                    }
+                    // Do not retain grid ink which an opaque background could
+                    // have erased. Earlier certified backgrounds alone are safe.
+                    guard lines.isEmpty, arrows.isEmpty, collisionBoxes.isEmpty else {
+                        failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b268); return
+                    }
+                    guard let brightness = colors.fill.renderedBrightness,
+                          brightness.isFinite, (0...1).contains(brightness) else {
+                        failure = PDFParseError(code:.unsupported,stage:.paintVisibility, branch:.b266); return
+                    }
+                    if let previous = backgroundBrightness {
+                        backgroundBrightness = min(previous.lowerBound,brightness)...max(previous.upperBound,brightness)
+                    } else {
+                        // White remains a possible surface outside a partial
+                        // background; do not certify light text against dark
+                        // paint which might belong to a different cell.
+                        backgroundBrightness = brightness...1
+                    }
+                } else {
+                    guard requireBackgroundContrast(colors.fill) else { return }
+                    collisionBoxes.append(PDFBox(left:Double(box.left),top:Double(box.top),right:Double(box.right),bottom:Double(box.bottom)))
+                }
             }
         }
         if verifyVisibility && stroke && !paths.isEmpty {
+            guard requireBackgroundContrast(colors.stroke) else { return }
             guard PDFTextVisibility.similarStrokeTransform(a:Double(ctm.a),b:Double(ctm.b),c:Double(ctm.c),d:Double(ctm.d)),
                   let pad = PDFTextVisibility.strokePad(lineWidth,a:Double(ctm.a),b:Double(ctm.b),c:Double(ctm.c),d:Double(ctm.d)) else {
                 failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b127); return
@@ -354,6 +401,33 @@ final class PDFPathReader {
         }
         return matches == 1
     }
+    private func contrastsWithBackground(_ paint: PDFDevicePaint) -> Bool {
+        guard let background = backgroundBrightness else { return true }
+        guard !uncertifiedOverprint else { return false }
+        func linear(_ value: Double) -> Double {
+            value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055,2.4)
+        }
+        guard let value = paint.renderedBrightness, value.isFinite, (0...1).contains(value) else { return false }
+        // Check the nearest brightness in the entire background interval,
+        // including combinations conservatively, without per-glyph guesses.
+        let nearest = min(max(value,background.lowerBound),background.upperBound)
+        let a = linear(value), b = linear(nearest)
+        return (max(a,b)+0.05)/(min(a,b)+0.05) >= 4.5
+    }
+    private func requireBackgroundContrast(_ paint: PDFDevicePaint) -> Bool {
+        guard contrastsWithBackground(paint) else {
+            failure = PDFParseError(code:.unsupported,stage:.paintVisibility, branch:.b269); return false
+        }
+        return true
+    }
+    private func textContrastsWithBackground() -> Bool {
+        switch textMode {
+        case 0: return contrastsWithBackground(colors.fill)
+        case 1: return contrastsWithBackground(colors.stroke)
+        case 2: return contrastsWithBackground(colors.fill) && contrastsWithBackground(colors.stroke)
+        default: return false
+        }
+    }
     private func rectangularPathBox() -> PDFBox? {
         guard paths.count == 1, let path = paths.first, path.count == 5, path.first == path.last,
               Set(path.map(\.x)).count == 2, Set(path.map(\.y)).count == 2,
@@ -396,6 +470,18 @@ final class PDFPathReader {
         var dictionary: CGPDFDictionaryRef?
         guard CGPDFObjectGetValue(object, .dictionary, &dictionary), let dictionary else { return false }
         do { try colors.applyIntent(dictionary) } catch { return false }
+        // The single-color probe does not model overprint compositing. Keep
+        // existing no-background reads unchanged, but do not certify a new
+        // background or subsequent ink under enabled/unknown overprint.
+        for key in ["OP", "op"] {
+            var object: CGPDFObjectRef?
+            if CGPDFDictionaryGetObject(dictionary,key,&object) {
+                var value: CGPDFBoolean = 0
+                if !CGPDFDictionaryGetBoolean(dictionary,key,&value) || value != 0 {
+                    uncertifiedOverprint = true
+                }
+            }
+        }
         for key in ["Font", "SMask", "TR", "TR2"] {
             var value: CGPDFObjectRef?
             if CGPDFDictionaryGetObject(dictionary,key,&value) { return false }
@@ -429,14 +515,17 @@ final class PDFPathReader {
             guard let s = PDFPathReader.state(p) else { return }
             if s.stack.count >= 64 { s.failure = PDFParseError(code: .limit, branch:.b135) } else {
                 s.stack.append(s.ctm); s.widthStack.append(s.lineWidth); s.colorStack.append(s.colors)
+                s.overprintStack.append(s.uncertifiedOverprint)
                 s.textModeStack.append(s.textMode); s.dashStack.append(s.solidDash)
             }
         }
         CGPDFOperatorTableSetCallback(table, "Q") { _, p in
             guard let s = PDFPathReader.state(p) else { return }
             if let value = s.stack.popLast(), let width = s.widthStack.popLast(), let colors = s.colorStack.popLast(),
-               let mode = s.textModeStack.popLast(), let dash = s.dashStack.popLast() {
+               let mode = s.textModeStack.popLast(), let dash = s.dashStack.popLast(),
+               let overprint = s.overprintStack.popLast() {
                 s.ctm = value; s.lineWidth = width; s.colors = colors
+                s.uncertifiedOverprint = overprint
                 s.textMode = mode; s.solidDash = dash
             } else { s.failure = PDFParseError(code: .unreadable, branch:.b136) }
         }
@@ -518,6 +607,9 @@ final class PDFPathReader {
                     s.textSeen = true
                     if !s.colors.canPaintText(mode:s.textMode) {
                         s.failure = PDFParseError(code:.unsupported,stage:.paintVisibility, branch:.b146)
+                    }
+                    if s.failure == nil && !s.textContrastsWithBackground() {
+                        s.failure = PDFParseError(code:.unsupported,stage:.paintVisibility, branch:.b267)
                     }
                     if s.textMode != 0 {
                         s.hasOutlinedText = true

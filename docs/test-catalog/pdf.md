@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`7aaadf197cac9ad2e8c54df7e3294010dbb5c952c2004b8d8c4a3721e6ac6cda`
+`bf2728210a15a580791e2620470b696b5f024ded6b8560a67d2a25ef080a23df`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -149,6 +149,10 @@ python3 -B tools/pdf_branch_catalog.py check
 - `testNativeVerifiedFilledArrowRetainsItsOriginalGeometryInStrictReaders`
 - `testNativeDisjointFilledRulesAndDecorationsPreserveTextAndGeometryInEitherPaintOrder`
 - `testNativeOverlappingFilledRulesNeverCompleteDeferredCapture`
+- `testNativeLightBackgroundBeforeTextPreservesAcquisitionAndRejectsOverpaint`
+- `testNativeBackgroundContrastCannotCertifyHiddenLowContrastOrLateBackgroundText`
+- `testNativeBackgroundCannotEraseOrHideStructuralRules`
+- `testNativeBackgroundOverprintRequiresKnownNormalCompositingAndRestoresGraphicsState`
 - `testNativeInertTagsContainedClipsDeviceSpacesAndUnusedStylesPreserveDirectAcquisition`
 - `testNativeConcealingClipsOptionalReplacementAndUnbalancedTagsRemainRejected`
 
