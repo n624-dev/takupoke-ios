@@ -47,3 +47,7 @@ Actions保存用artifactやキャッシュへ残さない。
 
 CI成功と実機の3資料の改善は分けて記録する。
 実行結果・失敗・対応根拠は[検証記録](verification.md)と[改善記録](ocr-improvement-log.md)へ残す。
+
+両SDK比較は[38331543392](https://github.com/n624-dev/takupoke-ios/actions/runs/38331543392)で成功した。
+239.1と修正版の同じ9PDFが全解析・独立正解と一致し、現行548件は予定skip1・失敗0。
+公開前の全必須検査と実資料の実機復旧はこの比較から完了扱いにしない。
