@@ -1,3 +1,13 @@
+## 2026-10-13 Runner分割の凍結sourceをmainへ送る前の独立確認
+
+source `8219fa5d85bca04ef20f2c8fd56fbe2c63e54a7e`をmainへ送った。
+別の新規GPT-6.1 Sol／Highが同じCODE4ファイルの固定差分
+`a84b096489063daeb4a2b32edf5a506eeed8f884255482e751f6aa10d5f4e7aa`を確認し、
+欠落・重複・期待値緩和・対象外変更の具体的ブロッカーはなかった。
+主担当がbyte差分とdiff-treeを再照合し、非force・旧main leaseで更新した。
+同じsourceの新しい全13必須検査と公開を確認する。個別成功を全体へ流用しない。
+391の残り26 Aも取消せず監視する。現在の公開は385のままである。
+
 ## 2026-10-13 Runner分割候補のローカル検査と開発開始前レビュー
 
 コード差分はmanifest、実shell、既存manifestテストとshell doublesの4ファイルだけ。
