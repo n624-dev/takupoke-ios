@@ -1,3 +1,13 @@
+## U72 単項目訂正のUI照会がsnapshot timeout（全体389、iOS27）
+
+- 対象：1b368f5・38390616754・試行1、job115273821054、SDK／Runtime27.0。
+  testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground、504.261秒。
+- 観測：ManualAssistanceChecks+Input.swift:96でTimed out while evaluating UI query。
+  ケース1件・失敗1。具体操作の前後と、追加した接触への到達は未照合。
+- 状態：先に観測を保存し、原ログ全文・行96のコード・過去の同じ照会失敗を
+  読んでから対処を決める。待機延長・ケース省略・再試行はしない。
+  389は必須チェック未達で公開不可。残りを取消さず確認する。
+
 ## U71 3項目訂正の確認SwitchがONにならない（全体388、iOS26）
 
 - 対象：f6e13a6・38382434192・試行1、job115263683048、Xcode26.6の手動訂正26。
