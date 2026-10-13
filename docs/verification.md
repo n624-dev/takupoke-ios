@@ -1,3 +1,15 @@
+## 2026-10-13 改訂候補の開発CI完了・UI失敗索引の確認
+
+[38346686997](https://github.com/n624-dev/takupoke-ios/actions/runs/38346686997)・563a72f・試行1はsuccessで全ジョブ完了。
+catalogue/Pythonとportableが成功。Nativeは非dispatchの予定未選択skipで成功へ換算しない。
+失敗した38345963532も全ジョブ完了しており、Actionsの取消しは行っていない。
+
+全体UIの開始前にui-test-failures.mdをVoiceOver／0.1秒／通知／U66で検索し、
+U66とU65の詳細、公開済み382での元ケース・追加通知／文字サイズの完了を再読した。
+main708556からtests/ui・workflow・UI manifest・実行scriptの差分はゼロ。
+今回の変更はStrict拒否の固定番号で、UI操作・SDK・待機・順序・全13ゲートは変更しない。
+旧の成功を今回の成功に代用せず、新しい同一ソースの全体結果を確認する。
+
 ## 2026-10-13 固定番号のLinux再検証と全体公開検査への移行
 
 改訂候補のLinux Swift6.1.2・x86_64全481件は失敗0、本体64.167秒・準備込み341.3秒。
