@@ -1,3 +1,43 @@
+## 2026-10-13 U74全文照合とRunner分割の限定比較
+
+391 Bの全文、Settings／VoiceOver／launchReady／Switch helperと当時のコード、
+U43／U44／U45／U47〜U52／U55／U64／U66を照合した。
+実0→1→0→1後、terminate／cold起動したpid41698の4回目1→0だけ45秒後も双方1。
+実画像でもONのまま。観測frameと子control相対の0.1秒接触は以前と同じで、
+query再構築済み。U43／U52／U55の再発を別条件と言い換えない。
+VoiceOverはenable1・見出しへの実0.1秒接触後、発話観測0、最初の移動Code3・完了0。
+旧U66の方式が再発。後処理のAXとsetter記録は取得不能で、setter不在は証明していない。
+設定の製品Bindingと生成時診断を再読し、値注入や製品setter変更の根拠は得られていない。
+
+次は操作点・接触時間・SDK・製品を変えず、長い通常Runnerから設定とVoiceOverを
+それぞれ一回だけ別Runnerへ切り出す比較に限定する。同じ所有Simulatorと同じビルドを使う。
+他の元ケースは設定の前後へ分け、元のケース名順を保つ。Aには区間を増やさない。
+4回のSwitch／二度の保存・再起動、実VoiceOver移動最大60回と3項目読み上げ、
+元のcase・通知・追加文字サイズ・各区間と全選択の厳密な完了照合を維持する。
+失敗した区間を再試行しない。ケース途中の端末／Runner切替や状態の再注入も行わない。
+
+U45は別Runnerと新しい端末へ移してもVoiceOver失敗だったため、端末分離を繰り返さない。
+当時は見出し接触・実発話観測を導入する前であり、今回の比較は現在の操作を固定して
+Runnerの継続状態だけを区切る。解消や最善を先に保証しない。設定case内部の再起動が
+原因なら分割でも残り得る。元のケースはそれを失敗として検出する。
+同じinput-deliveryの2ケースも別Runnerへ分かれるよう共通manifestで制御し、
+小さい成功を包括検査の代用にしない。新しい合成入力や期待値の変更は加えない。
+
+WebでAppleのXCUIVoiceOverService、Xcode27 release notes、Device HubとForumsを再確認した。
+今回のCode3／再起動後Switchを解消すると明記された修正は見つかっていない。
+他のタブ識別や多指入力の報告から同一原因を断定せず、SDKの往復もしない。
+参照：[VoiceOver API](https://developer.apple.com/documentation/xcuiautomation/xcuivoiceoverservice)、
+[Xcode27](https://developer.apple.com/documentation/xcode-release-notes/xcode-27-release-notes)、
+[Device Hub](https://developer.apple.com/videos/play/wwdc2026/260/)。
+対応一覧はui_test_manifest.py／test-app-ui.sh、索引はRunner／新規端末／Switch／VoiceOverで検索。
+現行完了照合・実shell doublesを更新して分割／重複・欠落・区間失敗を検証する。
+
+旧389は取消しなしでfailureまで全結果確認。26 Bは931.266秒＋通知223.934秒と追加3サイズ成功、
+26 Aは1526.068秒＋通知132.922秒成功。単項目27のU72失敗と依存skipは成功にしない。
+旧390もfailureまで全結果確認。26 Aは1741.580秒＋通知68.519秒成功。
+BのU73失敗で26 B／手動26／公開は未実行。391の原本変更27は224.046秒で成功した。
+手動26のU71改善は依存skipのためまだ評価していない。最新公開は385のまま。
+
 ## 2026-10-13 全体391・通常27 Bで既往の2症状が再発
 
 ea8401d420606680e8d296277600c2928b7aa002・[38400839141・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38400839141)、

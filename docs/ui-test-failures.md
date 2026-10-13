@@ -5,8 +5,11 @@
   Physical AI/OCR switch tap did not update both UI and stored permission。
   testVoiceOverReadsTimetableCardでAXVoiceOverAutomationErrorDomain Code3、
   Failed to send moveForward command。元11件・失敗2（予期しない失敗1）・1234.173秒。
-- 状態：同じ症状はU43／U52／U55／U64／U66にある。今回の操作回数と
-  同一条件かは原ログ・旧コードを照合してから判断する。再発を新しい原因と断定しない。
+- 全文照合：初回0→1→0→1は成立。再起動後pid41698の4回目1→0だけ、
+  同じ子Switch相対点へ0.1秒接触一回後もUI／保存値が1。U43／U52／U55の段階が再発。
+  heading接触と45秒の発話観測0の後、最初のmoveForwardが失敗、完了move0。
+  U66と同じ接触方式。新しい原因や失敗済み条件との違いを捏造しない。
+  後処理のAXサービスとsetterログはtimeoutで取得不能。不在の証拠ではない。
   391は公開不可。残りを取消さず確認し、待機延長・注入・条件緩和・除外を行わない。
 
 ## U73 初期設定caseの可視領域照会がsnapshot timeout（全体390、iOS27 B）
@@ -21,7 +24,8 @@
   390は公開不可。条件の緩和・ケース除外・再試行をせず、残りを取消さず確認する。
 - 候補：同じlabel-prefix queryの最初の要素をindexed queryで取得する一行。
   frame・全包含・hittable・6回scroll・5秒存在待機・一回tapの条件は維持。
-  既存sectionの方式と比較し、製品／SDKは追加変更しない。効果は未確認。
+  既存sectionの方式と比較し、製品／SDKは追加変更しない。
+  391の元ケースは88.710秒で成功した。一回の通過で恒常的解消を証明しない。
 
 ## U72 単項目訂正のUI照会がsnapshot timeout（全体389、iOS27）
 
