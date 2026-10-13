@@ -129,10 +129,12 @@ while read -r device_type runtime; do
             exit 1
         }
     }
-    # Keep other UI scenarios first, then isolate notification automation.
-    # Reuse the build, but execute each selected case only once.
+    # Reuse the build and owned device. Split the input scenarios into their
+    # own Runners without changing gestures, case order or case initial data.
+    # Notification automation remains last. Never retry a failed phase.
     : > "$scratch_dir/suite.log"
-    for phase in remaining notifications; do
+    python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --mode phases > "$scratch_dir/phases"
+    while IFS= read -r phase; do
         python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --phase "$phase" \
             --mode selectors > "$scratch_dir/selectors"
         selected_checks=()
@@ -152,7 +154,7 @@ while read -r device_type runtime; do
         python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --phase "$phase" \
             --mode verify --ios "$ios_major" --log "$scratch_dir/$phase.log"
         cat "$scratch_dir/$phase.log" >> "$scratch_dir/suite.log"
-    done
+    done < "$scratch_dir/phases"
     python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --mode verify --ios "$ios_major" --log "$scratch_dir/suite.log"
     # Exercise the actual Simulator OS setting as well as live SwiftUI changes.
     if [[ "$system_size_check" == "1" ]]; then

@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`49498245fcddf6b9002950dac0827594e0557ec0719357449ee4250f56f75736`
+`81b176f8a4de6ec716204f294d6da9e2c8d83f84d86c1b92b897dd0d506bfd57`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -175,6 +175,7 @@ bash tools/test-app-ui.sh
 
 - `test_diagnosis_defaults_to_27_without_adding_26_matrix_rows`
 - `test_alternate_toolchain_preflight_requires_requested_sdk_and_same_runtime`
+- `test_input_probe_runs_each_original_case_once_on_the_same_owned_device`
 - `test_successful_notification_probe_observes_os_before_deleting_simulator`
 - `test_both_shards_on_both_os_preserve_selection_and_os_size_checks`
 - `test_missing_xctest_completion_fails_shell_and_cleans_up`

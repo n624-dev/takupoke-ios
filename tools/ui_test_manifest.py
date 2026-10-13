@@ -59,6 +59,8 @@ def check_source(root=ROOT):
 
 SYSTEM_SIZE_TEST = "testTimetableUsesSystemTextSize"
 VOICEOVER_TEST = "testVoiceOverReadsTimetableCard"
+SETTINGS_TEST = "testSettingsAccountDataAndFileDetails"
+INPUT_PHASES = ("before-settings", "settings", "after-settings", "voiceover", "notifications")
 RELAUNCH_PROBE_TESTS = ("testChangedAccountDataNoticeOpensSharedAcquisition",
                         "testChangedDataProducesOneLocalNotification",
                         "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
@@ -167,8 +169,27 @@ def selected_tests(shard):
 def phase_tests(tests, phase):
     if phase == "all":
         return tuple(tests)
-    return tuple(test for test in tests
-                 if (test in NOTIFICATION_PROBE_TESTS) == (phase == "notifications"))
+    if phase == "notifications":
+        return tuple(test for test in tests if test in NOTIFICATION_PROBE_TESTS)
+    ordinary = tuple(test for test in tests if test not in NOTIFICATION_PROBE_TESTS)
+    if phase == "remaining":
+        return ordinary
+    if phase == "settings":
+        return tuple(test for test in ordinary if test == SETTINGS_TEST)
+    if phase == "voiceover":
+        return tuple(test for test in ordinary if test == VOICEOVER_TEST)
+    if phase in ("before-settings", "after-settings"):
+        return tuple(test for test in ordinary if test not in (SETTINGS_TEST, VOICEOVER_TEST)
+                     and (test < SETTINGS_TEST) == (phase == "before-settings"))
+    raise ValueError("Unknown UI runner phase")
+
+
+def runner_phases(tests):
+    # Preserve XCTest's case-name order, but do not retain a long Runner's
+    # automation session for the relaunch switch and VoiceOver scenarios.
+    phases = INPUT_PHASES if SETTINGS_TEST in tests or VOICEOVER_TEST in tests else (
+        "remaining", "notifications")
+    return tuple(phase for phase in phases if phase_tests(tests, phase))
 
 
 def validate_results(log, expected, ios):
@@ -185,8 +206,8 @@ def validate_results(log, expected, ios):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--shard", choices=(*SHARDS, "all"), default="all")
-    parser.add_argument("--mode", choices=("selectors", "system-size", "verify"), required=True)
-    parser.add_argument("--phase", choices=("all", "notifications", "remaining"), default="all")
+    parser.add_argument("--mode", choices=("selectors", "system-size", "verify", "phases"), required=True)
+    parser.add_argument("--phase", choices=("all", "remaining", *INPUT_PHASES), default="all")
     parser.add_argument("--log", type=Path)
     parser.add_argument("--ios", type=int, choices=(26, 27))
     parser.add_argument("--system-size-only", action="store_true")
@@ -206,8 +227,13 @@ def main():
         tests = PROBE_GROUPS.get(args.probe_case, (args.probe_case,))
     if args.phase != "all" and (args.runner_log or args.system_size_only):
         parser.error("Runner and OS size verification require the full selection")
+    if args.mode == "phases" and args.phase != "all":
+        parser.error("Runner phases require the full selection")
     tests = phase_tests(tests, args.phase)
-    if args.mode == "selectors":
+    if args.mode == "phases":
+        for phase in runner_phases(tests):
+            print(phase)
+    elif args.mode == "selectors":
         for test in tests:
             print("-only-testing:PickerTapChecks/ApplicationChecks/" + test)
     elif args.mode == "system-size":

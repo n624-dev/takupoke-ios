@@ -28,7 +28,7 @@ class ManifestTests(unittest.TestCase):
     def test_phases_partition_every_shard_and_focused_selection_without_duplicates(self):
         for tests in (*manifest.SHARDS.values(), manifest.selected_tests("all"),
                       manifest.NOTIFICATION_PROBE_TESTS, manifest.CONTROL_PROBE_TESTS,
-                      (manifest.SYSTEM_SIZE_TEST,)):
+                      *manifest.PROBE_GROUPS.values(), (manifest.SYSTEM_SIZE_TEST,)):
             with self.subTest(tests=tests):
                 notifications = manifest.phase_tests(tests, "notifications")
                 remaining = manifest.phase_tests(tests, "remaining")
@@ -40,6 +40,23 @@ class ManifestTests(unittest.TestCase):
                     self.assertIn(test, manifest.NOTIFICATION_PROBE_TESTS)
                 for test in remaining:
                     self.assertNotIn(test, manifest.NOTIFICATION_PROBE_TESTS)
+                phases = manifest.runner_phases(tests)
+                partition = tuple(test for phase in phases for test in manifest.phase_tests(tests, phase))
+                self.assertEqual(sorted(partition), sorted(tests))
+                self.assertEqual(len(partition), len(tests))
+                ordered = tuple(test for phase in phases if phase != "notifications"
+                                for test in sorted(manifest.phase_tests(tests, phase)))
+                self.assertEqual(ordered, tuple(sorted(remaining)))
+                for phase, test in (("settings", manifest.SETTINGS_TEST),
+                                    ("voiceover", manifest.VOICEOVER_TEST)):
+                    if test in tests:
+                        self.assertIn(phase, phases)
+                        self.assertEqual(manifest.phase_tests(tests, phase), (test,))
+        self.assertEqual(manifest.runner_phases(manifest.SHARDS["A"]), ("remaining", "notifications"))
+        self.assertEqual(manifest.runner_phases(manifest.PROBE_GROUPS["input-delivery"]),
+                         ("settings", "voiceover"))
+        with self.assertRaisesRegex(ValueError, "Unknown"):
+            manifest.phase_tests(manifest.SHARDS["B"], "unregistered")
 
     def test_split_sources_are_registered_in_the_selected_target_only(self):
         project = {'rootObject': 'project', 'objects': {
