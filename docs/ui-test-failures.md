@@ -39,6 +39,8 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - 比較：U62／U17／U11の全文と当時のInput.swiftを読み、今回は元predicateの後の診断existsと照合。
   候補は追加state照会の一行だけを、取得済み待機結果の出力へ変更する。元20秒・completed・
   実preview headerと後続の拒否／正常結果保持は維持。preview成立自体は観測できていない。
+- 候補実測：1ead97bの384・job115141547791は567.596秒・失敗0。wait-outcome=1と元の
+  実header・閉じる／4項目拒否まで成功。一般的AX原因・恒常的解消・全体公開合格は未証明。
 - 根拠：[383の3項目27](https://github.com/n624-dev/takupoke-ios/actions/runs/38347122608/job/115131299235)。
 
 ## U66 VoiceOverのmoveForwardが返答エラー（全体381、iOS27 B）
