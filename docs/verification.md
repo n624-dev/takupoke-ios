@@ -1,3 +1,14 @@
+## 2026-10-13 公開前UI条件の再照合
+
+UI実行前にnotification／launch／VoiceOver／NSPOSIX／27 B／26 Bで失敗索引を検索し、
+U65／U64／U63全文、通知の方針再評価と全体380の詳細結果を再読した。
+SDK往復や順序・待機時間・操作の変更で救済しない。tests/ui、通常／手動UIスクリプト、
+manifestとios-release.ymlは配布380のbfdf7c5からbytes差分ゼロである。
+同じ全13条件を新しいStrictソースで検証し、focusedや旧成功で未実行を補わない。
+統合コード差分のGPT-6.1 Sol／Highレビューにも確定ブロッカーなし。
+SHA256: 42d36b428042695043caa42fa9ef9495ec0271e2ab125fcdc6bc27b9569ce689。
+旧版比較と現行全Nativeの両SDK成功後、mainの全必須検査を開始する。
+
 ## 2026-10-13 実glyph境界への修正・Actions前確認
 
 独立Noto subsetのFlags4／Encodingなし／FontFile2とMac cmap6を確認した。
