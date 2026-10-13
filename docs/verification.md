@@ -1,3 +1,12 @@
+## 2026-10-13 旧386の通常27 A追加失敗
+
+7211993・38372705306・試行1、job115213800552は通常27 Aで失敗。
+testFileFailuresKeepResultsAndStayInTheirOwnDetailsは80.436秒、コードの実AX labelが
+「エラーコード、P12 / R126（1ページ目）」で値だけの期待と不一致（Settings.swift:212、U69）。
+同じjobのtestRecoveryClosingKeepsFormalAndModelManagementIsAccessibleも207.575秒で失敗した。
+まず観測を保存し、原ログ全文とケース・過去の関連記録を比較する。待機・SDKや条件を緩めない。
+残りの386／387は取消さず確認する。配布は全13必須チェック成功まで行わない。
+
 ## 2026-10-13 新387のNative対処結果
 
 71cdb45・[全体387・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38374819322)、
