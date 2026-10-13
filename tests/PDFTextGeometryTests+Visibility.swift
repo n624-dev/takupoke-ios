@@ -125,8 +125,9 @@ extension PDFTextGeometryTests {
             let capture = RecoveryReadCapture()
             let pages = try special ? PDFKitReader.readSpecial(url,capture:capture)
                 : PDFKitReader.read(url,kind:.timetable,capture:capture)
-            let arrow = try XCTUnwrap(pages[0].arrows.first)
-            XCTAssertEqual(pages[0].arrows.count,1); XCTAssertEqual(arrow.x,100.5)
+            let arrows = try XCTUnwrap(pages[0].arrows)
+            let arrow = try XCTUnwrap(arrows.first)
+            XCTAssertEqual(arrows.count,1); XCTAssertEqual(arrow.x,100.5)
             XCTAssertEqual(arrow.top,120); XCTAssertEqual(arrow.bottom,156)
             XCTAssertTrue(capture.complete)
         }

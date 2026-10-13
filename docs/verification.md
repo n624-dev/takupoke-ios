@@ -1,3 +1,10 @@
+## 2026-10-13 矢印ケースの型契約を維持する修正
+
+失敗観測を042dba6でpush後、PDFPageLayout.arrowsが[PDFArrow]?であることと、
+既存Native矢印検査のXCTUnwrapを確認した。新規ケースも配列をXCTUnwrapしてから参照する。
+nilを空配列へ救済せず、矢印1本・x100.5／top120／bottom156とcompleteの期待値は維持する。
+製品と架空資料、既存ケースは変更しない。過去記録にも同じNativeケースのoptional不具合はない。
+
 ## 2026-10-13 Native矢印検査のoptional配列でコンパイル停止
 
 ソースb6e45de86be8d3f1920952de3b289149f9c77fe9、dispatch38328220618・試行1。
