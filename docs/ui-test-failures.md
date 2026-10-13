@@ -1,9 +1,12 @@
-## U71 3項目訂正のforeground待機が期限切れ（全体388、iOS26）
+## U71 3項目訂正の確認SwitchがONにならない（全体388、iOS26）
 
 - 対象：f6e13a6・38382434192・試行1、job115263683048、Xcode26.6の手動訂正26。
   testThreeFieldsRequireEachAcknowledgementAndFourRefuses、321.968秒。
-- 観測：ManualAssistanceChecks+Input.swift:40でXCTWaiter結果2（期限切れ）が
-  期待1（完了）と不一致。診断はApplication pid17907を含む。ケース1件・失敗1。
+- 観測：第2項目の科目Switchを一回tap後、45秒のvalue1待機が期限切れ。
+  第1項目の教室は確認ON。第2項目は入力全文の一致とkeyboard非表示、子Switchの
+  可視・一意性・包含・hittableを確認し、実frame中心をtapしたが、valueは0のまま。
+  保存診断も科目ack=falseで、科目のack Bindingイベントはない。ケース1件・失敗1。
+  Input.swift:40はacknowledge内の待機であり、初報のforegroundという見出しを訂正した。
 - 状態：先に観測を保存。発生した具体操作・前後のstate・下位原因は原ログ全文と
   既往／当時のコードを照合してから判断する。待機延長・期待値変更・自動再試行はしない。
   388の必須チェックは未達で公開不可。残りのActionsは取消さず確認する。

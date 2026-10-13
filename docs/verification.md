@@ -1,3 +1,16 @@
+## 2026-10-13 U71の原ログで具体操作を訂正
+
+388・job115263683048の失敗はforeground待機でなく、第2項目の科目確認Switchの
+value1待機だった。Input.swift:40はacknowledge関数。最初の索引見出しを訂正した。
+11:19:16の実frameは子Switchが63×28、包含・hittable・row value0を確認し、
+中心へ一回の画面座標tapを実行。45秒内にも期限後にもvalue0と保存ack=falseのまま。
+科目のack Bindingイベントがない。第1項目の教室は同じ方式でONとBindingを実測した。
+原文入力・キーボード解除の失敗やPDF解析失敗と混同しない。
+
+検索語はacknowledge／Input.swift／Switch／Binding／value0／iOS26。
+関連U04・U19・U43・U52・U55・U62・U64を読み、過去のtap／接触方式・
+画面座標／子control相対・再照会の違いを照合する。待機延長や期待値注入では対処しない。
+
 ## 2026-10-13 全体388・iOS26の3項目訂正が待機失敗
 
 f6e13a628d0cde9ffa50c1bad42e703225ada8c2・[38382434192・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38382434192)、
