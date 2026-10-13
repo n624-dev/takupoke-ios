@@ -1,3 +1,14 @@
+## 2026-10-13 全体384の単項目27：背景復帰のprocess診断で失敗
+
+1ead97b・38350398047・試行1、job115141547638、SDK27.0、U68。
+入力・表示は173.534秒で完了。実背景state3、復帰state4を観測後、
+OneCorrection.swift:31の診断print内manual-process-launch labelでsnapshot timeout。
+実ケース447.324秒・失敗1、準備込み498.9秒。元のプロセス一致assertへ進んでいない。
+U67候補のrequirePreviewの変更には未到達であり、その候補の効果はこの失敗から判断できない。
+失敗観測を先に保存・pushし、既往の背景復帰／診断labelの記録とコードを次に比較する。
+製品Strictは1f128ebと変更なし。新384のNative550件・予定skip1・失敗0も、今回の失敗を相殺しない。
+残りを取消さず、新しい配布は必須検査が全部成功するまで行わない。
+
 ## 2026-10-13 U67候補のActions前確認
 
 差分はReview.swiftの診断print一行のみで、製品Takupoke・Strict・fixture・workflowは
