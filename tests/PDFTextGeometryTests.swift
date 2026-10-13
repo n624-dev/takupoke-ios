@@ -527,8 +527,12 @@ extension PDFTextGeometryTests {
     }
     // Entirely invented PDF, with explicit resources and text operators. This
     // checks the Core Graphics adapter rather than relying on Quartz's font choice.
-    func syntheticPDF(content: String, unicode: Bool = true, graphicsState: String = "", simpleFont: Bool = false, crop: String = "", unusedFont: Bool = false, unusedFontEntry: String = "", colorSpaces: String = "", additionalObjects: [Data] = []) -> Data {
+    func syntheticPDF(content: String, unicode: Bool = true, graphicsState: String = "",
+                      simpleFont: Bool = false, crop: String = "", unusedFont: Bool = false,
+                      unusedFontEntry: String = "", colorSpaces: String = "",
+                      additionalObjects: [Data] = [], extraGraphicsStates: String = "") -> Data {
         func stream(_ s: String) -> String { "<< /Length \(s.utf8.count) >>\nstream\n\(s)\nendstream" }
+        let extraStates = extraGraphicsStates.isEmpty ? "" : " " + extraGraphicsStates
         let simpleMap = """
         /CIDInit /ProcSet findresource begin 12 dict begin begincmap
         /CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def
@@ -548,7 +552,7 @@ extension PDFTextGeometryTests {
         var objects = [
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] \(crop) /Resources << /Font << /F1 4 0 R \(unusedFont ? "/FU 9 0 R" : "") >> /ColorSpace << \(colorSpaces) >> /ExtGState << /Visibility << \(graphicsState) >> >> >> /Contents 8 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] \(crop) /Resources << /Font << /F1 4 0 R \(unusedFont ? "/FU 9 0 R" : "") >> /ColorSpace << \(colorSpaces) >> /ExtGState << /Visibility << \(graphicsState) >>\(extraStates) >> >> /Contents 8 0 R >>",
             simpleFont ? "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 65 /LastChar 67 /Widths [667 667 667] /FontDescriptor 6 0 R \(unicode ? "/ToUnicode 7 0 R" : "") >>" : "<< /Type /Font /Subtype /Type0 /BaseFont /Synthetic /Encoding /Identity-H /DescendantFonts [5 0 R] \(unicode ? "/ToUnicode 7 0 R" : "") >>",
             "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Synthetic /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 6 0 R /DW 1000 /W [1 [500] 2 3 600] /CIDToGIDMap /Identity >>",
             "<< /Type /FontDescriptor /FontName /\(simpleFont ? "Helvetica" : "Synthetic") /Flags \(simpleFont ? 32:4) /FontBBox [0 -200 1000 800] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 >>",

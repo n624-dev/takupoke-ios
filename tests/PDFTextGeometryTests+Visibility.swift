@@ -335,6 +335,20 @@ extension PDFTextGeometryTests {
                     : PDFKitReader.read(url, kind: .timetable)) {
                     XCTAssertEqual(($0 as? PDFParseError)?.branch, .b267)
                 }
+                for content in [
+                    "/Visibility gs /Disabled gs " + background + text + rule,
+                    background + "/Visibility gs /Disabled gs " + text + rule,
+                    background + "/Visibility gs /Disabled gs " + rule + " " + text
+                ] {
+                    try syntheticPDF(content: content, graphicsState: state, simpleFont: true,
+                        extraGraphicsStates: "/Disabled << /OP false /op false >>").write(to: url)
+                    let cleared = RecoveryReadCapture()
+                    let pages = try special ? PDFKitReader.readSpecial(url, capture: cleared)
+                        : PDFKitReader.read(url, kind: .timetable, capture: cleared)
+                    XCTAssertEqual(pages[0].glyphs.map(\.text).joined(), "AB")
+                    XCTAssertEqual(pages[0].lines.count, 1)
+                    XCTAssertTrue(cleared.complete)
+                }
             }
         }
         try syntheticPDF(content: "/Visibility gs " + background + text + rule,

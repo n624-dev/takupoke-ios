@@ -473,15 +473,19 @@ final class PDFPathReader {
         // The single-color probe does not model overprint compositing. Keep
         // existing no-background reads unchanged, but do not certify a new
         // background or subsequent ink under enabled/unknown overprint.
+        var explicitlyDisabled = 0
         for key in ["OP", "op"] {
             var object: CGPDFObjectRef?
             if CGPDFDictionaryGetObject(dictionary,key,&object) {
                 var value: CGPDFBoolean = 0
                 if !CGPDFDictionaryGetBoolean(dictionary,key,&value) || value != 0 {
                     uncertifiedOverprint = true
-                }
+                } else { explicitlyDisabled += 1 }
             }
         }
+        // Both channels explicitly off replace an earlier enabled or unknown
+        // setting. A one-sided update cannot certify the other channel.
+        if explicitlyDisabled == 2 { uncertifiedOverprint = false }
         for key in ["Font", "SMask", "TR", "TR2"] {
             var value: CGPDFObjectRef?
             if CGPDFDictionaryGetObject(dictionary,key,&value) { return false }
