@@ -1,3 +1,17 @@
+## 2026-10-13 全体392と開発121の実行記録
+
+凍結source `8219fa5d85bca04ef20f2c8fd56fbe2c63e54a7e`の
+[全体392・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38408608816)を監視中。
+[開発121](https://github.com/n624-dev/takupoke-ios/actions/runs/38408301971)は成功した。
+Python187件・失敗0（57.273秒）、portable482件・失敗0（74.845秒）。
+任意Nativeの未選択skipは実UIや公開の合格へ代用しない。
+
+全体392の配布検査もPython187件・失敗0（108.275秒）。
+Native551件・予定skip1・失敗0（129.383秒）、手動3項目27は689.572秒で成功。
+通常UI4ジョブ・残る手動訂正・公開は同じsourceでの実結果を別途確認する。
+学校原本を取得せず、既存の元ケース・遮蔽拒否・全体の正式保存条件を維持している。
+旧391はBのU74失敗を保持し、26 Aの残りも取消さず確認する。公開は385のまま。
+
 ## 2026-10-13 Runner分割の凍結sourceをmainへ送る前の独立確認
 
 source `8219fa5d85bca04ef20f2c8fd56fbe2c63e54a7e`をmainへ送った。
