@@ -1,3 +1,25 @@
+## 2026-10-13 U66の既往失敗との照合・接触方式だけの候補
+
+観測97860bcをpush後、U43〜U50／U52と対象50／51の全文、a87f9a9のVoiceOver本文を読んだ。
+現在のVoiceOver本文はa87f9a9から不変で、今回もenable1→実見出しtap→発話観測0→move0の
+AX Code3である。単独発話取得、見出しtap、発話待ち、新規Simulator分離はいずれも既往で
+失敗している。同じ設定の再実行や待機延長・分離への往復を対処にしない。
+
+U63／U64の実tab／Switchでは同じ観測点で一回0.1秒接触が成功したが、VoiceOverへの効果は
+未評価。git履歴に見出しのpress導入はない。次の候補は見出しの同じ相対点での
+一回tapだけをpress(forDuration:0.1)に置き換える。固定画面座標、入力やfocus値の代入、
+再tap、命令再送、SDK変更、60move／実発話3項目／45秒の観測の変更は行わない。
+AppleのVoiceOver操作案内はtouchによる項目選択、座標press仕様は指定時間の物理接触を説明する。
+moveForward／currentSpeechの公式APIも確認したが、このCode3の解消保証はない。
+タッチが短かったとの原因断定や最善の主張はせず、元の設定→VoiceOver2件で候補を評価する。
+
+編集前にtest_catalogでApplicationChecks+Timetable.swiftを検索した。元のVoiceOverケースが
+実サービスの移動・3つの読み上げを直接検査するため、新しい同型のケースは追加しない。
+製品Strictと既存9PDF比較のcode、配布全13ゲートは固定する。失敗した381の残りも取消さない。
+参照： https://support.apple.com/guide/iphone/iph3e2e2281/ios 、
+https://developer.apple.com/documentation/xcuiautomation/xcuicoordinate/press(forduration:) 、
+https://developer.apple.com/documentation/xcuiautomation/xcuivoiceoverservice/moveforward() 。
+
 ## 2026-10-13 全体381のVoiceOver命令送信で停止
 
 4fb4480a0a7859a0273a94024919eaba0521f745・38332379818・試行1。
