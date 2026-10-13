@@ -32,6 +32,12 @@ pythonとzlib／SQLite開発ファイルを導入した。Foundation側482件・
 q／Q復元・背景後の有効化・true／unknown拒否・false許可のNative対照を追加し、
 最終差分は別の新規レビュー21へ渡した。枝一覧271箇所とテスト一覧348ファイルの確認、
 枝一覧のPython2件（0.015秒）が成功した。Apple実行はまだ開始していない。
+
+新規レビュー21はCODE差分SHA29002be2f284c32122423450c3fa7c0896f6c4df09f136e5a25ba0722f3e5afdで
+確定blockerなし。DefaultGrayの初期解決候補は、主担当がPDFPathReader.readのscan直前の
+fill／stroke applyDefaultとq／Qのcolors保存復元を確認した。初期色も解決する既存経路があり、
+明示色操作時しか解決しないとの候補説明とは一致しないため、その理由でコードを追加変更しない。
+最終CODE artifactとのコミット差分のSHA一致と、コミット内の空白検査を確認して開発CIへ進む。
 配布前UIの索引はU69〜U75と392の確認範囲を読み、検索語はsettings／VoiceOver／通知／ACK／完了Button。
 今回のUI／Runner差分はゼロで、392と同じ実操作・元条件を維持する。
 索引の個別成功を恒常的解消と扱わず、新規失敗があれば次の試行前に原ログと比較する。
