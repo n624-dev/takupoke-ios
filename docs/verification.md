@@ -1,3 +1,12 @@
+## 2026-10-13 表示仕様変更に対応する旧期待の照合
+
+旧testFailureStagesSurvivePageWrappingAndContainNoSourceTextを全文照合した。
+内部stageの保存とpage付け直しは引き続き必要だが、通常表示へstage.labelを含める期待は
+利用者指定の「内部確認箇所を表示しない」と両立しないため、P番号とページの保持・内部名の非表示へ変更する。
+stageとpageの元の完全一致、資料文字を含めない期待、全拒否入力は維持する。
+同型の表示期待を全Swiftテストから検索し、意味の変わらない保存・拒否条件を変更しない。
+観測を先にpushしてからこの根拠を保存し、製品ParserやSDK・UI操作を追加修正しない。
+
 ## 2026-10-13 ローカル表示契約の旧期待を検出
 
 4e66fa9の候補をSwift6.1.2で実行し、PDFParsingTests.testFailureStagesSurvivePageWrappingAndContainNoSourceTextが
