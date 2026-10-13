@@ -1,3 +1,12 @@
+## 2026-10-13 一行candidateの全体391と開発120
+
+ea8401d・[全体391・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38400839141)を確認中。
+同じsourceの[開発120](https://github.com/n624-dev/takupoke-ios/actions/runs/38400450740)は成功。
+Python186件・失敗0（63.221秒）、portable482件・失敗0（72.633秒、準備込み247.9秒）。
+未選択Nativeのskipを公開合格へ代用せず、同じsourceの全13を確認する。
+旧389の26 A／B、旧390の26 Aも取消さず終了まで確認する。
+製品のStrict・error UI・SDKと、検査済みのmanual helperを追加変更しない。
+
 ## 2026-10-13 U73一行候補のmain前独立確認
 
 sourceea8401d420606680e8d296277600c2928b7aa002をmainへ送った。
