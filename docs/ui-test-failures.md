@@ -9,6 +9,18 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
 
+## U66 VoiceOverのmoveForwardが返答エラー（全体381、iOS27 B）
+
+- 対象：4fb4480a0a7859a0273a94024919eaba0521f745、38332379818・試行1、job115085118202。
+  SDK27.0／Runtime27.0。testVoiceOverReadsTimetableCard・ApplicationChecks+Timetable.swift:0。
+- 観測：AXVoiceOverAutomationErrorDomain Code3「Failed to send moveForward command」。
+  ケース95.164秒・失敗1。通常の元11件は1219.128秒・他10件成功・失敗1。
+  通知Runnerと追加文字サイズは未実行であり、今回の公開条件は未達。
+- 状態：下位原因は未確定。Strict・UIと配布workflowを380と照合した時点ではUI差分ゼロ。
+  先に観測を保存・pushし、関連する全文・当時のコードと今回を次に読む。
+  残るActionsは取消さず確認する。Native548件と手動訂正27の3件は成功している。
+- 根拠：[381通常27 B](https://github.com/n624-dev/takupoke-ios/actions/runs/38332379818/job/115085118202)。
+
 ## U65 通常ホームcaseでアプリ起動のprocess handleを取得できない（全体379、iOS26 B）
 
 - 対象：983e523・38218043172・試行1、job114718041872の

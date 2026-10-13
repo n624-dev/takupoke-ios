@@ -1,3 +1,13 @@
+## 2026-10-13 全体381のVoiceOver命令送信で停止
+
+4fb4480a0a7859a0273a94024919eaba0521f745・38332379818・試行1。
+通常27 B・job115085118202はSDK27.0／Runtime27.0でVoiceOverケースが95.164秒の失敗。
+AXVoiceOverAutomationErrorDomain Code3・Failed to send moveForward commandを観測した。
+元11件は1219.128秒、他10件成功・失敗1。別Runner通知／追加サイズは未実行。
+Native548件・予定skip1・失敗0と手動訂正27の3件は成功だが、公開成功へ換算しない。
+失敗観測をU66へ先に保存し、対処案を決める前にpushする。
+27 A等の残りは取消さず確認する。下位原因と次の対処はまだ未決定である。
+
 ## 2026-10-13 同じ架空9PDFを239.1と修正版が両SDKで完全解析
 
 ソース1b09d2b4e5ba939f8a7796ef73c374c4d48f3666。
