@@ -1,3 +1,13 @@
+## 2026-10-13 U71候補の新しい全体389と開発118
+
+1b368f5・[全体389・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38390616754)は確認中。
+同じsourceの[開発118](https://github.com/n624-dev/takupoke-ios/actions/runs/38390390550)は成功。
+Python186件（60.284秒）、portable482件・失敗0（47.972秒、準備込み145.5秒）。
+未選択のNativeはskipで、手動確認操作の効果や配布合格には代用しない。
+公開するコードは1b368f5へ固定し、旧388の全結果も取消さず確認する。
+旧388の26 B・単項目も成功したが、26の3項目U71は不合格のままである。
+同じsource／run／attemptの全13必須成功を確認するまで、新しい公開物は作らない。
+
 ## 2026-10-13 U71候補の固定差分を別担当でmain前確認
 
 source1b368f5fa6bd0f48b331ba4fdf0d8323b63c807fをmainへ送った。
