@@ -73,12 +73,22 @@ final class PDFDrawnTextReader {
         }
         var lineWidth: CGPDFReal = 0, widthObject: CGPDFObjectRef?
         if CGPDFDictionaryGetNumber(dict,"LW",&lineWidth) {
-            guard lineWidth.isFinite, lineWidth >= 0 else { throw PDFTextFailure.unsupported }
+            try engine.operation("w", [Double(lineWidth)])
         } else if CGPDFDictionaryGetObject(dict,"LW",&widthObject) { throw PDFTextFailure.unsupported }
-        var blendMode: UnsafePointer<CChar>?, blendObject: CGPDFObjectRef?
-        if CGPDFDictionaryGetName(dict,"BM",&blendMode), let blendMode {
-            guard String(cString:blendMode) == "Normal" else { throw PDFTextFailure.unsupported }
-        } else if CGPDFDictionaryGetObject(dict,"BM",&blendObject) { throw PDFTextFailure.unsupported }
+        for (key, op) in [("LJ", "j"), ("ML", "M")] {
+            var value: CGPDFReal = 0, object: CGPDFObjectRef?
+            if CGPDFDictionaryGetNumber(dict, key, &value) { try engine.operation(op, [Double(value)]) }
+            else if CGPDFDictionaryGetObject(dict, key, &object) { throw PDFTextFailure.unsupported }
+        }
+        var dashObject: CGPDFObjectRef?
+        if CGPDFDictionaryGetObject(dict,"D",&dashObject) {
+            var dash: CGPDFArrayRef?, pattern: CGPDFArrayRef?, phase: CGPDFReal = 0
+            guard CGPDFDictionaryGetArray(dict,"D",&dash), let dash, CGPDFArrayGetCount(dash) == 2,
+                  CGPDFArrayGetArray(dash,0,&pattern), let pattern,
+                  CGPDFArrayGetNumber(dash,1,&phase) else { throw PDFTextFailure.unsupported }
+            engine.state.solidDash = try PDFPaintColors.isSolidDash(pattern,phase:Double(phase))
+        }
+        guard PDFPaintColors.hasNormalBlendMode(dict) else { throw PDFTextFailure.unsupported }
         guard try number(dict, "ca", fallback: 1) == 1, try number(dict, "CA", fallback: 1) == 1 else {
             throw PDFTextFailure.unsupported
         }
@@ -162,7 +172,19 @@ final class PDFDrawnTextReader {
         CGPDFOperatorTableSetCallback(table, "gs") { scanner, p in PDFDrawnTextReader.run(p) { try $0.graphicsState(scanner) } }
         CGPDFOperatorTableSetCallback(table,"ri") { scanner,p in PDFDrawnTextReader.run(p) { try $0.engine.state.colors.intent(scanner) } }
         CGPDFOperatorTableSetCallback(table, "w") { scanner, p in PDFDrawnTextReader.run(p) { s in
-            guard try s.numbers(scanner,1)[0] >= 0 else { throw PDFTextFailure.unsupported }
+            try s.engine.operation("w", s.numbers(scanner,1))
+        } }
+        CGPDFOperatorTableSetCallback(table, "j") { scanner, p in PDFDrawnTextReader.run(p) { s in
+            try s.engine.operation("j", s.numbers(scanner,1))
+        } }
+        CGPDFOperatorTableSetCallback(table, "M") { scanner, p in PDFDrawnTextReader.run(p) { s in
+            try s.engine.operation("M", s.numbers(scanner,1))
+        } }
+        CGPDFOperatorTableSetCallback(table, "d") { scanner, p in PDFDrawnTextReader.run(p) { s in
+            let phase = try s.numbers(scanner,1)[0]
+            var pattern: CGPDFArrayRef?
+            guard CGPDFScannerPopArray(scanner,&pattern), let pattern else { throw PDFTextFailure.unsupported }
+            s.engine.state.solidDash = try PDFPaintColors.isSolidDash(pattern,phase:phase)
         } }
         CGPDFOperatorTableSetCallback(table,"g") { scanner,p in PDFDrawnTextReader.run(p) { try $0.deviceColor(scanner,stroke:false,count:1) } }
         CGPDFOperatorTableSetCallback(table,"G") { scanner,p in PDFDrawnTextReader.run(p) { try $0.deviceColor(scanner,stroke:true,count:1) } }

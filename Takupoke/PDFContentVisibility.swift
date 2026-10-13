@@ -70,6 +70,17 @@ struct PDFDevicePaint {
 
 struct PDFPaintColors {
     var fill = PDFDevicePaint(), stroke = PDFDevicePaint()
+
+    func canPaintText(mode: Double) -> Bool {
+        switch mode {
+        case 0: return fill.isVisibleInk
+        case 1: return stroke.isVisibleInk
+        // Fill is drawn first. A white fill still leaves the subsequent visible
+        // outline; an unknown fill or a white erasing outline is not certified.
+        case 2: return stroke.isVisibleInk && (fill.isVisibleInk || fill.isWhite)
+        default: return false
+        }
+    }
 }
 
 enum PDFClipValidation {
@@ -98,6 +109,35 @@ enum PDFClipValidation {
 import CoreGraphics
 
 extension PDFPaintColors {
+    static func isSolidDash(_ pattern: CGPDFArrayRef, phase: Double) throws -> Bool {
+        let count = CGPDFArrayGetCount(pattern)
+        guard phase.isFinite, phase >= 0, count <= 256 else { throw PDFTextFailure.unsupported }
+        var hasPositive = count == 0
+        for index in 0..<count {
+            var value: CGPDFReal = 0
+            guard CGPDFArrayGetNumber(pattern,index,&value), value.isFinite, value >= 0 else {
+                throw PDFTextFailure.unsupported
+            }
+            hasPositive = hasPositive || value > 0
+        }
+        guard hasPositive else { throw PDFTextFailure.unsupported }
+        return count == 0
+    }
+    // A singleton /Normal array has the same effective blend mode as /Normal.
+    // Mixed alternatives remain outside the supported subset.
+    static func hasNormalBlendMode(_ dictionary: CGPDFDictionaryRef) -> Bool {
+        var object: CGPDFObjectRef?
+        guard CGPDFDictionaryGetObject(dictionary, "BM", &object) else { return true }
+        var name: UnsafePointer<CChar>?
+        if CGPDFDictionaryGetName(dictionary, "BM", &name), let name {
+            return String(cString: name) == "Normal"
+        }
+        var array: CGPDFArrayRef?
+        guard CGPDFDictionaryGetArray(dictionary, "BM", &array), let array,
+              CGPDFArrayGetCount(array) == 1,
+              CGPDFArrayGetName(array, 0, &name), let name else { return false }
+        return String(cString: name) == "Normal"
+    }
     mutating func intent(_ name: String) throws {
         let value: CGColorRenderingIntent
         switch name {

@@ -46,6 +46,92 @@ extension PDFTextGeometryTests {
     }
 
 #if canImport(PDFKit)
+    func testNativeBoundedOutlinesAndSingletonNormalBlendPreserveDirectText() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-outline-compatibility-"+UUID().uuidString)
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let url = root.appendingPathComponent("fictional.pdf")
+        for (mode,fill) in [(1,0),(1,1),(2,0),(2,1)] {
+            let spacing = mode == 2 && fill == 1 ? "10 Tc" : "0 Tc"
+            let content = "/Visibility gs \(fill) g 0 G 0.5 w 1 j BT /F1 10 Tf \(mode) Tr \(spacing) 1 0 0 1 30 350 Tm (AB) Tj ET 10 10 m 290 10 l S"
+            let data = syntheticPDF(content:content,graphicsState:"/BM [/Normal] /ca 1 /CA 1",simpleFont:true)
+            XCTAssertGreaterThan(try paintedInk(data),0)
+            try data.write(to:url)
+            for special in [false,true] {
+                let capture = RecoveryReadCapture()
+                let pages = try special ? PDFKitReader.readSpecial(url,capture:capture)
+                    : PDFKitReader.read(url,kind:.timetable,capture:capture)
+                XCTAssertEqual(pages.count,1); XCTAssertEqual(pages[0].glyphs.map(\.text).joined(),"AB")
+                XCTAssertEqual(pages[0].lines.count,1); XCTAssertTrue(capture.complete)
+                XCTAssertTrue(pages[0].glyphs.allSatisfy { $0.sourceLine != nil && $0.sourceOrder != nil })
+            }
+        }
+    }
+
+    func testNativeOutlineFontBoundsCannotCrossGridOutsideTheAdvanceBox() throws {
+        // Advance ends at 43.34; the declared outline bound reaches 46.67 before padding.
+        let content = "0.5 w 1 j BT /F1 10 Tf 1 Tr 1 0 0 1 30 350 Tm (AB) Tj ET 46 340 m 46 365 l S"
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-outline-boundary-"+UUID().uuidString)
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let url = root.appendingPathComponent("fictional.pdf")
+        try syntheticPDF(content:content,simpleFont:true).write(to:url)
+        for special in [false,true] {
+            let capture = RecoveryReadCapture()
+            if special { XCTAssertThrowsError(try PDFKitReader.readSpecial(url,capture:capture)) }
+            else { XCTAssertThrowsError(try PDFKitReader.read(url,kind:.timetable,capture:capture)) }
+            XCTAssertFalse(capture.complete)
+        }
+    }
+
+    func testNativeDiscardedCurvesUnusedDashAndRestoredDashKeepTheVisibleTable() throws {
+        let text = "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET"
+        let rule = " 10 10 m 290 10 l S"
+        let variants: [(String,String)] = [
+            ("", "0 0 m 1 1 2 2 3 3 c n "+text+rule),
+            ("", "[1 3] 0 d "+text+" [] 0 d"+rule),
+            ("/D [[1 3] 0]", "q /Visibility gs "+text+" Q"+rule),
+            ("", "[] 7 d "+text+rule)
+        ]
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-unused-style-"+UUID().uuidString)
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let reference = syntheticPDF(content:text+rule,simpleFont:true)
+        for (state,content) in variants {
+            let data = syntheticPDF(content:content,graphicsState:state,simpleFont:true)
+            #if canImport(AppKit)
+            XCTAssertEqual(try thumbnailPixels(data,box:.mediaBox).pixels,try thumbnailPixels(reference,box:.mediaBox).pixels)
+            #endif
+            let url = root.appendingPathComponent("fictional.pdf"); try data.write(to:url)
+            for special in [false,true] {
+                let capture = RecoveryReadCapture()
+                let pages = try special ? PDFKitReader.readSpecial(url,capture:capture)
+                    : PDFKitReader.read(url,kind:.timetable,capture:capture)
+                XCTAssertEqual(pages[0].glyphs.map(\.text).joined(),"AB")
+                XCTAssertEqual(pages[0].lines.count,1); XCTAssertTrue(capture.complete)
+            }
+        }
+    }
+
+    func testNativeVerifiedFilledArrowRetainsItsOriginalGeometryInStrictReaders() throws {
+        let content = "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET 10 10 m 290 10 l S "
+            + "100 250 1 30 re 97.5 250 m 103.5 250 l 100.5 244 l h f"
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-strict-arrow-"+UUID().uuidString)
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let url = root.appendingPathComponent("fictional.pdf")
+        try syntheticPDF(content:content,simpleFont:true).write(to:url)
+        for special in [false,true] {
+            let capture = RecoveryReadCapture()
+            let pages = try special ? PDFKitReader.readSpecial(url,capture:capture)
+                : PDFKitReader.read(url,kind:.timetable,capture:capture)
+            let arrow = try XCTUnwrap(pages[0].arrows.first)
+            XCTAssertEqual(pages[0].arrows.count,1); XCTAssertEqual(arrow.x,100.5)
+            XCTAssertEqual(arrow.top,120); XCTAssertEqual(arrow.bottom,156)
+            XCTAssertTrue(capture.complete)
+        }
+    }
+
     func testNativeDisjointFilledRulesPreserveTextAndGeometryInEitherPaintOrder() throws {
         let text = "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET"
         let rules = [

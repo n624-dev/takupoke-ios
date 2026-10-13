@@ -37,7 +37,7 @@ struct PDFTextCollisionIndex {
         }
         return try bound(lower,afterEqual:false)..<bound(upper,afterEqual:true)
     }
-    func overlaps(_ query: PDFBox, pad: Double, work: () throws -> Void) throws -> Bool {
+    func overlaps(_ query: PDFBox, pad: Double, excluding: Int? = nil, work: () throws -> Void) throws -> Bool {
         guard [query.left,query.top,query.right,query.bottom,pad].allSatisfy(\.isFinite),
               query.left <= query.right, query.top <= query.bottom, pad >= 0,
               (query.left-pad).isFinite, (query.top-pad).isFinite,
@@ -51,6 +51,7 @@ struct PDFTextCollisionIndex {
         let selected = horizontal ? xs : ys, order = horizontal ? xOrder : yOrder
         for index in selected {
             try work()
+            if order[index] == excluding { continue }
             let box = boxes[order[index]]
             if box.left <= query.right+pad && query.left-pad <= box.right &&
                box.top <= query.bottom+pad && query.top-pad <= box.bottom { return true }
@@ -98,6 +99,7 @@ final class PDFPathReader {
     private var markedContent = PDFMarkedContent()
     private var clips: [PDFBox] = []
     private var paintedBoxes: [PDFBox] = []
+    private var collisionBoxes: [PDFBox] = []
     private let paintResolver = PDFPaintSpaceResolver()
     var paths: [[CGPoint]] = []
     var lines: [PDFRule] = []
@@ -105,6 +107,12 @@ final class PDFPathReader {
     var failure: Error?
     var operations = 0
     private var textSeen = false
+    private var textMode = 0.0
+    private var textModeStack: [Double] = []
+    private var solidDash = true
+    private var dashStack: [Bool] = []
+    private var curvedPath = false
+    private(set) var hasOutlinedText = false
     private(set) var paintWork = 0
     private var textIndex: PDFTextCollisionIndex?
     private static let maximumPaintWork = 1_000_000
@@ -188,9 +196,12 @@ final class PDFPathReader {
         }
     }
     func paint(fill: Bool, stroke: Bool) {
-        defer { paths.removeAll(keepingCapacity: true) }
+        defer { paths.removeAll(keepingCapacity: true); curvedPath = false }
         guard failure == nil else { return }
         do { try check() } catch { failure = error; return }
+        if verifyVisibility && (curvedPath || stroke && !solidDash && !paths.isEmpty) {
+            failure = PDFParseError(code:.unsupported,stage:.vectorObjects); return
+        }
         if verifyVisibility && !paths.isEmpty {
             // A white page background is harmless only before any retained ink.
             if fill && !stroke && colors.fill.isWhite && !textSeen && lines.isEmpty && arrows.isEmpty && paintedBoxes.isEmpty,
@@ -208,6 +219,14 @@ final class PDFPathReader {
             // their actual bounds against every original glyph, including text
             // drawn later. Broad fills and unknown shapes remain unsupported.
             for path in paths {
+                if !stroke && isSupportedArrowHead(path) {
+                    guard let box = bounds(of:path),
+                          !overlapsText(left:box.left,top:box.top,right:box.right,bottom:box.bottom,pad:0) else {
+                        if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }; return
+                    }
+                    collisionBoxes.append(PDFBox(left:Double(box.left),top:Double(box.top),right:Double(box.right),bottom:Double(box.bottom)))
+                    continue
+                }
                 guard let first = path.first, path.count == 5, path.last == first,
                       Set(path.map(\.x)).count == 2, Set(path.map(\.y)).count == 2,
                       let box = bounds(of:path) else {
@@ -221,6 +240,7 @@ final class PDFPathReader {
                       !overlapsText(left:box.left,top:box.top,right:box.right,bottom:box.bottom,pad:0) else {
                     if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }; return
                 }
+                collisionBoxes.append(PDFBox(left:Double(box.left),top:Double(box.top),right:Double(box.right),bottom:Double(box.bottom)))
             }
         }
         if verifyVisibility && stroke && !paths.isEmpty {
@@ -236,9 +256,12 @@ final class PDFPathReader {
                           !overlapsText(left:min(a.x,b.x),top:min(a.y,b.y),right:max(a.x,b.x),bottom:max(a.y,b.y),pad:pad) else {
                         if failure == nil { failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }; return
                     }
+                    collisionBoxes.append(PDFBox(left:Double(min(a.x,b.x))-pad,top:Double(min(a.y,b.y))-pad,
+                                                 right:Double(max(a.x,b.x))+pad,bottom:Double(max(a.y,b.y))+pad))
                 }
             }
         }
+        if collisionBoxes.count > 100_000 { failure = PDFParseError(code:.limit); return }
         if verifyVisibility {
             let pad: Double
             if stroke {
@@ -307,6 +330,27 @@ final class PDFPathReader {
             }
         }
     }
+    private func isSupportedArrowHead(_ path: [CGPoint]) -> Bool {
+        var vertices = path
+        if vertices.count == 4, vertices.first == vertices.last { vertices.removeLast() }
+        guard vertices.count == 3 else { return false }
+        let sorted = vertices.sorted { $0.y < $1.y }
+        let a = sorted[0], b = sorted[1], tip = sorted[2]
+        guard abs(a.y-b.y) < 1, (3...12).contains(abs(a.x-b.x)),
+              (3...12).contains(tip.y-max(a.y,b.y)), abs(tip.x-(a.x+b.x)/2) < 1 else { return false }
+        var matches = 0
+        for stem in paths {
+            guard consumePaintWork() else { return false }
+            guard stem.count == 5, stem.first == stem.last,
+                  Set(stem.map(\.x)).count == 2, Set(stem.map(\.y)).count == 2,
+                  zip(stem,stem.dropFirst()).allSatisfy({ a,b in (a.x == b.x) != (a.y == b.y) }),
+                  let box = bounds(of:stem), box.right-box.left < 2.1, box.bottom-box.top > 5,
+                  abs((box.left+box.right)/2-tip.x) < 2, abs(box.bottom-max(a.y,b.y)) < 2 else { continue }
+            matches += 1
+            if matches > 1 { return false }
+        }
+        return matches == 1
+    }
     private func rectangularPathBox() -> PDFBox? {
         guard paths.count == 1, let path = paths.first, path.count == 5, path.first == path.last,
               Set(path.map(\.x)).count == 2, Set(path.map(\.y)).count == 2,
@@ -357,18 +401,16 @@ final class PDFPathReader {
         if CGPDFDictionaryGetObject(dictionary,"D",&dashObject) {
             var dash: CGPDFArrayRef?, pattern: CGPDFArrayRef?, phase: CGPDFReal = 0
             guard CGPDFDictionaryGetArray(dictionary,"D",&dash), let dash, CGPDFArrayGetCount(dash) == 2,
-                  CGPDFArrayGetArray(dash,0,&pattern), let pattern, CGPDFArrayGetCount(pattern) == 0,
-                  CGPDFArrayGetNumber(dash,1,&phase), phase == 0 else { return false }
+                  CGPDFArrayGetArray(dash,0,&pattern), let pattern,
+                  CGPDFArrayGetNumber(dash,1,&phase) else { return false }
+            do { solidDash = try PDFPaintColors.isSolidDash(pattern,phase:Double(phase)) } catch { return false }
         }
         var width: CGPDFReal = 0, widthObject: CGPDFObjectRef?
         if CGPDFDictionaryGetNumber(dictionary,"LW",&width) {
             guard width.isFinite, width >= 0 else { return false }
             lineWidth = Double(width)
         } else if CGPDFDictionaryGetObject(dictionary,"LW",&widthObject) { return false }
-        var blendMode: UnsafePointer<CChar>?, blendObject: CGPDFObjectRef?
-        if CGPDFDictionaryGetName(dictionary,"BM",&blendMode), let blendMode {
-            guard String(cString:blendMode) == "Normal" else { return false }
-        } else if CGPDFDictionaryGetObject(dictionary,"BM",&blendObject) { return false }
+        guard PDFPaintColors.hasNormalBlendMode(dictionary) else { return false }
         for key in ["ca", "CA"] {
             var value: CGPDFReal = 0, object: CGPDFObjectRef?
             if CGPDFDictionaryGetNumber(dictionary,key,&value) {
@@ -384,12 +426,15 @@ final class PDFPathReader {
             guard let s = PDFPathReader.state(p) else { return }
             if s.stack.count >= 64 { s.failure = PDFParseError(code: .limit) } else {
                 s.stack.append(s.ctm); s.widthStack.append(s.lineWidth); s.colorStack.append(s.colors)
+                s.textModeStack.append(s.textMode); s.dashStack.append(s.solidDash)
             }
         }
         CGPDFOperatorTableSetCallback(table, "Q") { _, p in
             guard let s = PDFPathReader.state(p) else { return }
-            if let value = s.stack.popLast(), let width = s.widthStack.popLast(), let colors = s.colorStack.popLast() {
+            if let value = s.stack.popLast(), let width = s.widthStack.popLast(), let colors = s.colorStack.popLast(),
+               let mode = s.textModeStack.popLast(), let dash = s.dashStack.popLast() {
                 s.ctm = value; s.lineWidth = width; s.colors = colors
+                s.textMode = mode; s.solidDash = dash
             } else { s.failure = PDFParseError(code: .unreadable) }
         }
         CGPDFOperatorTableSetCallback(table, "cm") { scanner, p in
@@ -422,12 +467,15 @@ final class PDFPathReader {
         CGPDFOperatorTableSetCallback(table, "B*") { _, p in PDFPathReader.state(p)?.paint(fill: true, stroke: true) }
         CGPDFOperatorTableSetCallback(table, "b") { _, p in let s = PDFPathReader.state(p); s?.close(); s?.paint(fill: true, stroke: true) }
         CGPDFOperatorTableSetCallback(table, "b*") { _, p in let s = PDFPathReader.state(p); s?.close(); s?.paint(fill: true, stroke: true) }
-        CGPDFOperatorTableSetCallback(table, "n") { _, p in PDFPathReader.state(p)?.paths.removeAll(keepingCapacity: true) }
+        CGPDFOperatorTableSetCallback(table, "n") { _, p in
+            guard let s = PDFPathReader.state(p) else { return }
+            s.paths.removeAll(keepingCapacity:true); s.curvedPath = false
+        }
         // Curves cannot form supported table rules. Drop that subpath instead of joining across a curve.
         for op in ["c", "v", "y"] {
             CGPDFOperatorTableSetCallback(table, op) { _, p in
                 guard let s = PDFPathReader.state(p) else { return }
-                if s.verifyVisibility { s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects); return }
+                if s.verifyVisibility { s.curvedPath = true }
                 if !s.paths.isEmpty { s.paths[s.paths.count - 1].removeAll() }
             }
         }
@@ -439,9 +487,11 @@ final class PDFPathReader {
             CGPDFOperatorTableSetCallback(table,"d") { scanner, p in
                 guard let s = PDFPathReader.state(p), let phase = s.numbers(scanner,1)?.first else { return }
                 var pattern: CGPDFArrayRef?
-                guard CGPDFScannerPopArray(scanner,&pattern), let pattern, CGPDFArrayGetCount(pattern) == 0, phase == 0 else {
+                guard CGPDFScannerPopArray(scanner,&pattern), let pattern else {
                     s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects); return
                 }
+                do { s.solidDash = try PDFPaintColors.isSolidDash(pattern,phase:Double(phase)) }
+                catch { s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }
             }
             CGPDFOperatorTableSetCallback(table, "w") { scanner, p in
                 guard let s = PDFPathReader.state(p), let width = s.numbers(scanner,1)?.first else { return }
@@ -454,14 +504,23 @@ final class PDFPathReader {
             }
             CGPDFOperatorTableSetCallback(table, "Tr") { scanner, p in
                 guard let s = PDFPathReader.state(p), let mode = s.numbers(scanner,1)?.first else { return }
-                if mode != 0 { s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects) }
+                guard [0.0,1,2].contains(Double(mode)) else {
+                    s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects); return
+                }
+                s.textMode = Double(mode)
             }
             for op in ["Tj", "TJ", "'", "\""] {
                 CGPDFOperatorTableSetCallback(table, op) { _, p in
                     guard let s = PDFPathReader.state(p) else { return }
                     s.textSeen = true
-                    if !s.colors.fill.isVisibleInk {
+                    if !s.colors.canPaintText(mode:s.textMode) {
                         s.failure = PDFParseError(code:.unsupported,stage:.paintVisibility)
+                    }
+                    if s.textMode != 0 {
+                        s.hasOutlinedText = true
+                        if !s.solidDash || PDFTextVisibility.strokePad(s.lineWidth,a:Double(s.ctm.a),b:Double(s.ctm.b),c:Double(s.ctm.c),d:Double(s.ctm.d)) == nil {
+                            s.failure = PDFParseError(code:.unsupported,stage:.vectorObjects)
+                        }
                     }
                 }
             }
@@ -530,6 +589,20 @@ final class PDFPathReader {
             }
         }
         return lines
+    }
+
+    func validateTextPaintBounds(_ boxes: [PDFBox]) throws {
+        let work = { [self] in
+            guard consumePaintWork() else { throw failure ?? PDFParseError(code:.limit) }
+        }
+        let page = PDFBox(left:0,top:0,right:Double(transform.width),bottom:Double(transform.height))
+        try PDFClipValidation.requireContains(boxes,clips:[page]+clips,work:work,check:check)
+        let index = try PDFTextCollisionIndex(boxes,work:work)
+        for box in collisionBoxes {
+            if try index.overlaps(box,pad:0,work:work) {
+                throw PDFParseError(code:.unsupported,stage:.vectorObjects)
+            }
+        }
     }
 }
 #endif

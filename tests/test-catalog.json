@@ -262,7 +262,8 @@
         "tests/PDFParsingTests.swift",
         "Takupoke/PDFContentVisibility.swift",
         "Takupoke/PDFPaintSpace.swift",
-        "Takupoke/PDFPaintSample.swift"
+        "Takupoke/PDFPaintSample.swift",
+        "tools/strict_pdf_compatibility_fixtures.py"
       ],
       "checks": [
         "tests/PDFParsingTests+Diagnostics.swift",
@@ -271,7 +272,8 @@
         "tests/PDFParsingTests+Timetable.swift",
         "tests/PDFTextGeometryTests.swift",
         "tests/PDFTextGeometryTests+Visibility.swift",
-        "tests/PDFTextGeometryTests+Colors.swift"
+        "tests/PDFTextGeometryTests+Colors.swift",
+        "tests/StrictPDFCompatibilityTests.swift"
       ]
     },
     {

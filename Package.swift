@@ -172,6 +172,7 @@ let package = Package(
                     "ParsingTests+Persistence.swift",
                     "TimetableNameTests.swift", "MappingRulesTests.swift",
                     "PDFParsingTests.swift",
+                    "StrictPDFCompatibilityTests.swift",
                     "RecoveryTests.swift",
                     "RecoveryRecertificationTests.swift",
                     "RecoveryBuilderTests+Ordered.swift",

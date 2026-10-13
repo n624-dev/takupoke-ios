@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`f87f66e00625db9e85e253f62a8fedc024b96d837e793d0c82520f3b966a2468`
+`dd1342edcce34bb5b41c7fc888bbe136716c62543dc4785db1678a0e4ebc2371`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -34,6 +34,7 @@ bash tools/test-parsing.sh
 - [Takupoke/PDFContentVisibility.swift](../../Takupoke/PDFContentVisibility.swift)
 - [Takupoke/PDFPaintSpace.swift](../../Takupoke/PDFPaintSpace.swift)
 - [Takupoke/PDFPaintSample.swift](../../Takupoke/PDFPaintSample.swift)
+- [tools/strict_pdf_compatibility_fixtures.py](../../tools/strict_pdf_compatibility_fixtures.py)
 
 ## [tests/PDFParsingTests+Diagnostics.swift](../../tests/PDFParsingTests+Diagnostics.swift)
 
@@ -93,7 +94,11 @@ bash tools/test-parsing.sh
 - `testCollisionIndexKeepsDenseDisjointTableSearchInsideOneOriginalPaintBudget`
 - `testCollisionIndexChargesConstructionSearchAndPreservesThrownCancellation`
 - `testStrokePaddingRequiresAnExactAnglePreservingTransform`
-- `testOnlyFilledTextModeHasAnIndependentGlyphExtentProof`
+- `testVisibleTextModesKeepOriginalGeometryAndBoundOutlinesSeparately`
+- `testOutlinedTextRejectsUnknownBoundsWideOrDashedStrokeAndInvisibleInk`
+- `testOutlinedTextStateRestoresWidthModeJoinMiterAndDash`
+- `testWhiteFillWithVisibleOutlineIsNotInvisibleText`
+- `testWhiteOutlinedGlyphCannotConcealAnotherGlyph`
 - `testViewportChecksWholeGlyphsRulesAndFiniteEndpointSums`
 - `testStrictStrokeWidthBoundsIncludeTransformsAndHairlines`
 - `testCanonicalBlackClassificationIsSeparateFromVisibleColorEligibility`
@@ -129,6 +134,10 @@ bash tools/test-parsing.sh
 
 - `testUnusedDevicePaintDoesNotRejectBlackTextAndSavedColorRestores`
 - `testClipContainmentHasNoToleranceAndPreservesLimitsAndCancellation`
+- `testNativeBoundedOutlinesAndSingletonNormalBlendPreserveDirectText`
+- `testNativeOutlineFontBoundsCannotCrossGridOutsideTheAdvanceBox`
+- `testNativeDiscardedCurvesUnusedDashAndRestoredDashKeepTheVisibleTable`
+- `testNativeVerifiedFilledArrowRetainsItsOriginalGeometryInStrictReaders`
 - `testNativeDisjointFilledRulesPreserveTextAndGeometryInEitherPaintOrder`
 - `testNativeOverlappingFilledRulesNeverCompleteDeferredCapture`
 - `testNativeInertTagsContainedClipsDeviceSpacesAndUnusedStylesPreserveDirectAcquisition`
@@ -144,3 +153,9 @@ bash tools/test-parsing.sh
 - `testNativeInvalidUsedColorAndWhiteCalibratedTextRemainRejected`
 - `testNativeMalformedMismatchedAndWhiteICCColorsDoNotCertifyText`
 - `testNativeCMYKVisibilityMatchesFictionalRenderedTextIncludingFaintInk`
+
+## [tests/StrictPDFCompatibilityTests.swift](../../tests/StrictPDFCompatibilityTests.swift)
+
+- `testNormalDocumentModesPreserveEveryLessonTuple`
+- `testSixExamPagesPreserveClassesDatesTimesAndEveryLessonTuple`
+- `testReturnDocumentPreservesFirstDayAndOrdinaryDayTimes`

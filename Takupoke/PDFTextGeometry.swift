@@ -52,6 +52,9 @@ final class PDFTextGeometry {
         var font: PDFTextFont?
         var size = 0.0, spacing = 0.0, wordSpacing = 0.0, scale = 1.0, leading = 0.0, rise = 0.0
         var rendering = 0.0
+        var lineWidth = 1.0
+        var lineJoin = 0.0, miterLimit = 10.0
+        var solidDash = true
         var colors = PDFPaintColors()
     }
     var state = State()
@@ -64,6 +67,9 @@ final class PDFTextGeometry {
     // separately for Recovery. Incomplete whitespace geometry remains partial.
     private(set) var recoveryGlyphs: [PDFGlyph] = []
     private(set) var recoveryComplete = true
+    private(set) var paintedGlyphBounds: [PDFBox] = []
+    private var occlusionBounds: [PDFBox?] = []
+    private var whiteFillGlyphs: [Int] = []
     private var drawnText = ""
     private var textUnits = 0
     private var clips: [PDFBox] = []
@@ -76,7 +82,8 @@ final class PDFTextGeometry {
         if operations % 128 == 0 { try check() }
         let counts = ["q": 0, "Q": 0, "cm": 6, "BT": 0, "ET": 0, "Tm": 6, "Td": 2, "TD": 2,
                       "T*": 0, "Tc": 1, "Tw": 1, "Tz": 1, "TL": 1, "Ts": 1, "Tr": 1,
-                      "g": 1, "G": 1, "rg": 3, "RG": 3, "k": 4, "K": 4]
+                      "g": 1, "G": 1, "rg": 3, "RG": 3, "k": 4, "K": 4,
+                      "w": 1, "j": 1, "M": 1]
         guard let count = counts[op], n.count == count, n.allSatisfy(\.isFinite) else { throw PDFTextFailure.unsupported }
         switch op {
         case "g", "rg", "k": try state.colors.fill.device(n, count: n.count)
@@ -106,10 +113,19 @@ final class PDFTextGeometry {
         case "Tz": state.scale = n[0] / 100
         case "TL": state.leading = n[0]
         case "Ts": state.rise = n[0]; line += 1
+        case "w":
+            guard n[0] >= 0 else { throw PDFTextFailure.unsupported }
+            state.lineWidth = n[0]
+        case "j":
+            guard [0.0, 1, 2].contains(n[0]) else { throw PDFTextFailure.unsupported }
+            state.lineJoin = n[0]
+        case "M":
+            guard n[0] >= 1 else { throw PDFTextFailure.unsupported }
+            state.miterLimit = n[0]
         case "Tr":
-            // Glyph advance/ascent bounds do not certify a stroked outline's
-            // painted extent or contrast. Composite those modes in raster.
-            guard n[0] == 0 else { throw PDFTextFailure.unsupported }
+            // Restore the visible modes supported by the original reader.
+            // Stroke color and extent are checked when text is actually drawn.
+            guard [0.0, 1, 2].contains(n[0]) else { throw PDFTextFailure.unsupported }
             state.rendering = n[0]
         default: throw PDFTextFailure.unsupported
         }
@@ -126,7 +142,9 @@ final class PDFTextGeometry {
         try check()
         guard inText, state.size > 0, state.scale > 0 else { throw PDFTextFailure.unsupported }
         if bytes.isEmpty { return }
-        guard state.colors.fill.isVisibleInk else { throw PDFParseError(code:.unsupported,stage:.paintVisibility) }
+        guard state.colors.canPaintText(mode:state.rendering) else {
+            throw PDFParseError(code:.unsupported,stage:.paintVisibility)
+        }
         guard let font = state.font,
               bytes.count % font.codeBytes == 0, order + bytes.count / font.codeBytes <= 100_000 else {
             throw PDFTextFailure.unsupported
@@ -152,6 +170,26 @@ final class PDFTextGeometry {
             } else { recoveryComplete = false }
             if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 guard validGeometry else { throw PDFTextFailure.unsupported }
+                var painted = PDFBox(left:x, top:y, right:right, bottom:upper)
+                let ink = outlineBox(font, matrix:total)
+                if state.rendering != 0 {
+                    let ctm = state.ctm
+                    guard state.solidDash, let ink,
+                          let strokePad = PDFTextVisibility.strokePad(state.lineWidth, a:ctm.a, b:ctm.b, c:ctm.c, d:ctm.d) else {
+                        throw PDFTextFailure.unsupported
+                    }
+                    // FontBBox encloses every outline, unlike a glyph's advance.
+                    // Include the configured miter reach before collision/clip checks.
+                    let pad = strokePad * (state.lineJoin == 0 ? state.miterLimit : 1)
+                    painted = PDFBox(left:min(painted.left,ink.left - pad), top:min(painted.top,ink.top - pad),
+                                     right:max(painted.right,ink.right + pad), bottom:max(painted.bottom,ink.bottom + pad))
+                    guard [painted.left,painted.top,painted.right,painted.bottom].allSatisfy({ $0.isFinite && abs($0) < 10_000_000 }) else {
+                        throw PDFTextFailure.unsupported
+                    }
+                }
+                if state.rendering == 2 && state.colors.fill.isWhite { whiteFillGlyphs.append(occlusionBounds.count) }
+                occlusionBounds.append(state.rendering == 0 ? ink : painted)
+                paintedGlyphBounds.append(painted)
                 glyphs.append(PDFGlyph(text: text, x: x, y: y, width: right - x, height: upper - y,
                                        sourceLine: line, sourceOrder: order))
             }
@@ -159,6 +197,37 @@ final class PDFTextGeometry {
             // Word spacing applies only to a single-byte character code 32 (PDF 9.3.3).
             let word = font.codeBytes == 1 && cid == 32 ? state.wordSpacing : 0
             matrix.translate((width + state.spacing + word) * state.scale, 0)
+        }
+    }
+    private func outlineBox(_ font: PDFTextFont, matrix: PDFTextMatrix) -> PDFBox? {
+        guard let bounds = font.outlineBounds else { return nil }
+        let left = bounds.left / 1000 * state.size * state.scale
+        let right = bounds.right / 1000 * state.size * state.scale
+        let low = bounds.top / 1000 * state.size + state.rise
+        let high = bounds.bottom / 1000 * state.size + state.rise
+        let points = [matrix.point(left,low), matrix.point(left,high),
+                      matrix.point(right,low), matrix.point(right,high)]
+        let xs = points.map { Double($0.x) }, ys = points.map { Double($0.y) }
+        guard (xs+ys).allSatisfy({ $0.isFinite && abs($0) < 10_000_000 }) else { return nil }
+        return PDFBox(left:xs.min()!,top:ys.min()!,right:xs.max()!,bottom:ys.max()!)
+    }
+
+    private func requireNoWhiteGlyphOcclusion() throws {
+        guard !whiteFillGlyphs.isEmpty else { return }
+        let boxes = occlusionBounds.compactMap { $0 }
+        guard boxes.count == occlusionBounds.count else { throw PDFTextFailure.unsupported }
+        var workCount = 0
+        let work = { [self] in
+            workCount += 1
+            guard workCount <= 1_000_000 else { throw PDFParseError(code:.limit) }
+            if workCount % 128 == 0 { try check() }
+        }
+        let index = try PDFTextCollisionIndex(boxes,work:work)
+        for glyph in whiteFillGlyphs {
+            try check()
+            if try index.overlaps(boxes[glyph],pad:0,excluding:glyph,work:work) {
+                throw PDFTextFailure.unsupported
+            }
         }
     }
     func finish(expectedText: String) throws -> [PDFGlyph] {
@@ -172,9 +241,8 @@ final class PDFTextGeometry {
         // PDFKit can reorder lines and insert whitespace. It must nevertheless
         // account for every visible scalar drawn by the supported text operators.
         guard content(drawnText) == content(expectedText) else { throw PDFTextFailure.unsupported }
-        try PDFClipValidation.requireContains(glyphs.map {
-            PDFBox(left: $0.x, top: $0.y, right: $0.x+$0.width, bottom: $0.y+$0.height)
-        }, clips: clips, check: check)
+        try requireNoWhiteGlyphOcclusion()
+        try PDFClipValidation.requireContains(paintedGlyphBounds, clips: clips, check: check)
         return glyphs
     }
 

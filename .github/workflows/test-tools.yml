@@ -43,10 +43,12 @@ jobs:
     timeout-minutes: 20
     env:
       DEVELOPER_DIR: ${{ matrix.developer }}
+      TAKUPOKE_STRICT_BASELINE_REF: bfc599fd5a552ced0c140497c703199547c30fd4
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Check the exact source and all fictional PDF regressions in owned scratch
         run: |
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"

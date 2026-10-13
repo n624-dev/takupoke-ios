@@ -23,7 +23,7 @@ struct SpecialScheduleLesson: Codable, Equatable {
 }
 
 struct SpecialScheduleAnalysis: Codable, Equatable {
-    static let parserVersion = 25
+    static let parserVersion = 26
     var version = parserVersion
     let kind: SpecialScheduleKind
     let sourceDigest: String

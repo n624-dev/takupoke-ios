@@ -82,11 +82,82 @@ final class PDFTextGeometryTests: XCTestCase {
             XCTAssertFalse(PDFTextVisibility.similarStrokeTransform(a:m[0],b:m[1],c:m[2],d:m[3]))
         }
     }
-    func testOnlyFilledTextModeHasAnIndependentGlyphExtentProof() throws {
+    func testVisibleTextModesKeepOriginalGeometryAndBoundOutlinesSeparately() throws {
+        let font = try PDFTextFont(unicode:[65:"A"],codeBytes:1,widths:[65:500],defaultWidth:500,
+            ascent:800,descent:-200,outlineBounds:PDFBox(left:-100,top:-300,right:1000,bottom:900))
+        for mode in [0.0,1,2] {
+            let engine = PDFTextGeometry()
+            try engine.operation("Tr",[mode]); try engine.operation("w",[0.5])
+            try engine.operation("BT"); try engine.font(font,size:10)
+            try engine.operation("Tm",[1,0,0,1,30,350]); try engine.show([65]); try engine.operation("ET")
+            let glyph = try XCTUnwrap(engine.finish(expectedText:"A").first)
+            XCTAssertEqual(glyph.text,"A"); XCTAssertEqual(glyph.x,30); XCTAssertEqual(glyph.y,348)
+            XCTAssertEqual(glyph.width,5); XCTAssertEqual(glyph.height,10)
+            let ink = try XCTUnwrap(engine.paintedGlyphBounds.first)
+            if mode == 0 { XCTAssertEqual(ink,PDFBox(left:30,top:348,right:35,bottom:358)) }
+            else {
+                XCTAssertLessThan(ink.left,29); XCTAssertGreaterThan(ink.right,40)
+                XCTAssertLessThan(ink.top,347); XCTAssertGreaterThan(ink.bottom,359)
+            }
+        }
+        for mode in [3.0,4,5,6,7,0.5] {
+            XCTAssertThrowsError(try PDFTextGeometry().operation("Tr",[mode]))
+        }
+    }
+    func testOutlinedTextRejectsUnknownBoundsWideOrDashedStrokeAndInvisibleInk() throws {
+        for defect in ["bounds","width","dash","color","transform"] {
+            let engine = PDFTextGeometry()
+            let bounds = defect == "bounds" ? nil : PDFBox(left:0,top:-200,right:1000,bottom:800)
+            let font = try PDFTextFont(unicode:[65:"A"],codeBytes:1,widths:[65:500],defaultWidth:500,
+                ascent:800,descent:-200,outlineBounds:bounds)
+            try engine.operation("Tr",[1]); try engine.operation("w",[defect == "width" ? 25:0.5])
+            if defect == "color" { try engine.operation("G",[1]) }
+            if defect == "transform" { try engine.operation("cm",[100,0,0,100,0,0]) }
+            engine.state.solidDash = defect != "dash"
+            try engine.operation("BT"); try engine.font(font,size:10)
+            XCTAssertThrowsError(try engine.show([65]),defect)
+            XCTAssertTrue(engine.glyphs.isEmpty,defect)
+        }
+    }
+    func testOutlinedTextStateRestoresWidthModeJoinMiterAndDash() throws {
         let engine = PDFTextGeometry()
-        XCTAssertNoThrow(try engine.operation("Tr",[0]))
-        for mode in 1...7 { XCTAssertThrowsError(try engine.operation("Tr",[Double(mode)])) }
-        XCTAssertThrowsError(try engine.operation("Tr",[0.5]))
+        try engine.operation("Tr",[1]); try engine.operation("w",[0.5])
+        try engine.operation("j",[2]); try engine.operation("M",[3])
+        try engine.operation("q")
+        try engine.operation("Tr",[0]); try engine.operation("w",[25])
+        try engine.operation("j",[0]); try engine.operation("M",[10]); engine.state.solidDash = false
+        try engine.operation("Q")
+        XCTAssertEqual(engine.state.rendering,1); XCTAssertEqual(engine.state.lineWidth,0.5)
+        XCTAssertEqual(engine.state.lineJoin,2); XCTAssertEqual(engine.state.miterLimit,3)
+        XCTAssertTrue(engine.state.solidDash)
+    }
+    func testWhiteFillWithVisibleOutlineIsNotInvisibleText() throws {
+        let font = try PDFTextFont(unicode:[65:"A"],codeBytes:1,widths:[65:500],defaultWidth:500,
+            ascent:800,descent:-200,outlineBounds:PDFBox(left:0,top:-200,right:1000,bottom:800))
+        for mode in [1.0,2] {
+            let engine = PDFTextGeometry()
+            try engine.operation("g",[1]); try engine.operation("G",[0])
+            try engine.operation("Tr",[mode]); try engine.operation("w",[0.5])
+            try engine.operation("BT"); try engine.font(font,size:10)
+            try engine.show([65]); try engine.operation("ET")
+            XCTAssertEqual(try engine.finish(expectedText:"A").map(\.text),["A"])
+        }
+        var colors = PDFPaintColors()
+        try colors.fill.device([1],count:1); try colors.stroke.device([1],count:1)
+        for mode in [0.0,1,2] { XCTAssertFalse(colors.canPaintText(mode:mode)) }
+    }
+    func testWhiteOutlinedGlyphCannotConcealAnotherGlyph() throws {
+        let font = try PDFTextFont(unicode:[65:"A",66:"B"],codeBytes:1,widths:[65:500,66:500],defaultWidth:500,
+            ascent:800,descent:-200,outlineBounds:PDFBox(left:0,top:-200,right:1000,bottom:800))
+        for split in [false,true] {
+            let engine = PDFTextGeometry()
+            try engine.operation("w",[0.5]); try engine.operation("j",[1])
+            try engine.operation("BT"); try engine.font(font,size:10)
+            if split { try engine.show([65]); try engine.operation("Td",[5,0]) }
+            try engine.operation("g",[1]); try engine.operation("Tr",[2])
+            try engine.show(split ? [66]:[65,66]); try engine.operation("ET")
+            XCTAssertThrowsError(try engine.finish(expectedText:"AB"))
+        }
     }
     func testViewportChecksWholeGlyphsRulesAndFiniteEndpointSums() throws {
         let glyph = PDFGlyph(text:"A",x:0,y:0,width:10,height:10)

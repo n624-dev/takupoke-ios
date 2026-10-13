@@ -7,9 +7,10 @@ struct PDFTextFont {
     let defaultWidth: Double
     let ascent: Double
     let descent: Double
+    let outlineBounds: PDFBox?
 
     init(unicode: [Int: String], codeBytes: Int, widths: [Int: Double], defaultWidth: Double,
-         ascent: Double, descent: Double) throws {
+         ascent: Double, descent: Double, outlineBounds: PDFBox? = nil) throws {
         guard [1, 2].contains(codeBytes), !unicode.isEmpty, unicode.count <= 65536,
               [defaultWidth, ascent, descent].allSatisfy(\.isFinite), defaultWidth >= 0,
               ascent > descent, widths.values.allSatisfy({ $0.isFinite && $0 >= 0 }) else {
@@ -17,6 +18,11 @@ struct PDFTextFont {
         }
         self.unicode = unicode; self.codeBytes = codeBytes; self.widths = widths
         self.defaultWidth = defaultWidth; self.ascent = ascent; self.descent = descent
+        if let box = outlineBounds {
+            guard [box.left, box.top, box.right, box.bottom].allSatisfy(\.isFinite),
+                  box.left < box.right, box.top < box.bottom else { throw PDFTextFailure.unsupported }
+        }
+        self.outlineBounds = outlineBounds
     }
 }
 

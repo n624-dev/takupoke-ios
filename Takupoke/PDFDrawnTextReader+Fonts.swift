@@ -122,9 +122,23 @@ extension PDFDrawnTextReader {
             }
             guard mapping.values.keys.allSatisfy({ widths[$0] != nil }) else { throw PDFTextFailure.unsupported }
         }
+        var outlineBounds: PDFBox?
+        var fontBox: CGPDFArrayRef?
+        if CGPDFDictionaryGetArray(descriptor, "FontBBox", &fontBox), let fontBox,
+           CGPDFArrayGetCount(fontBox) == 4 {
+            var values = [Double]()
+            for index in 0..<4 {
+                var value: CGPDFReal = 0
+                guard CGPDFArrayGetNumber(fontBox, index, &value) else { values.removeAll(); break }
+                values.append(Double(value))
+            }
+            if values.count == 4, values.allSatisfy(\.isFinite), values[0] < values[2], values[1] < values[3] {
+                outlineBounds = PDFBox(left:values[0], top:values[1], right:values[2], bottom:values[3])
+            }
+        }
         let decoded = try PDFTextFont(unicode: mapping.values, codeBytes: mapping.bytes, widths: widths,
             defaultWidth: composite ? number(metrics, "DW", fallback: 1000) : 0,
-            ascent: number(descriptor, "Ascent"), descent: number(descriptor, "Descent"))
+            ascent: number(descriptor, "Ascent"), descent: number(descriptor, "Descent"), outlineBounds:outlineBounds)
         fonts[key] = decoded
         try engine.font(decoded, size: size)
     }

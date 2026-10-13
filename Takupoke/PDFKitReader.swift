@@ -72,6 +72,11 @@ enum PDFKitReader {
             var glyphs: [PDFGlyph]
             var recoveryGlyphs: [PDFGlyph]? = nil
             var recoveryComplete = true
+            var textPaintBounds: [PDFBox] = []
+            func displayedBox(_ box: PDFBox) -> PDFBox {
+                let b = transform.rect(CGRect(x:box.left,y:box.top,width:box.right-box.left,height:box.bottom-box.top))
+                return PDFBox(left:Double(b.minX),top:Double(b.minY),right:Double(b.maxX),bottom:Double(b.maxY))
+            }
             if kind == .timetable {
                 do {
                     let drawnReader = PDFDrawnTextReader(deferFillValidation: true, check: check)
@@ -82,6 +87,7 @@ enum PDFKitReader {
                                         sourceLine: glyph.sourceLine, sourceOrder: glyph.sourceOrder)
                     }
                     glyphs = try drawnReader.read(ref,expectedText:string).map(transformed)
+                    textPaintBounds = drawnReader.engine.paintedGlyphBounds.map(displayedBox)
                     recoveryGlyphs = drawnReader.engine.recoveryGlyphs.map(transformed)
                     recoveryComplete = drawnReader.engine.recoveryComplete
                 } catch var error as PDFParseError { error.page = index + 1; throw error }
@@ -178,6 +184,14 @@ enum PDFKitReader {
             do {
                 defer { diagnostics?.record(.paths,page:index+1,values:[Double(reader.operations),Double(reader.paintWork)]) }
                 lines = try reader.read(ref)
+                if reader.hasOutlinedText && kind != .timetable {
+                    // Preserve the validated PDFKit selections and their source
+                    // order. Reuse direct drawing only to bound outlined ink.
+                    let outlineReader = PDFDrawnTextReader(deferFillValidation:true,check:check)
+                    _ = try outlineReader.read(ref,expectedText:string)
+                    textPaintBounds = outlineReader.engine.paintedGlyphBounds.map(displayedBox)
+                }
+                if reader.hasOutlinedText { try reader.validateTextPaintBounds(textPaintBounds) }
             } catch var error as PDFParseError { error.page = index + 1; throw error }
             let layout = PDFPageLayout(width: Double(transform.width), height: Double(transform.height), glyphs: glyphs, lines: lines, arrows: reader.arrows)
             if verifyVisibility || kind == .timetable {

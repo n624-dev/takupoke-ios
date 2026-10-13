@@ -1,3 +1,39 @@
+## 2026-10-13 Actions前の最終差分レビュー
+
+GPT-6.1 Sol／Highに固定コード差分だけを渡した。
+最終patch SHA-256は6bafd5c49db4342c05e37173c9d191c016056173979b7096ad2a44f9653dcafc。
+確定ブロッカー・期待値注入・検証弱体化は見つからないとの結果を主担当が確認した。
+FontBBoxは保守的なので、白fillの密な輪郭文字は実際に重ならなくても拒否し得る。
+この範囲外を合格扱いせず、実際のSDK比較と実機復旧はまだ未確認とする。
+同じコード差分の開発pushを先に行い、独立架空資料の239.1比較を両SDKで実行してから
+公開前の全必須検査へ進む。Actionsは失敗後もキャンセルしない。
+
+## 2026-10-13 Strict互換性修正の開始前検証
+
+239.1と380.1の全Strict監査を基に、Tr 1／2・Normal単独配列・nで破棄する曲線・
+未使用のdash・文字と重ならない一意な塗り矢印への過剰拒否を修正する。
+単に描画modeを許可するのではなく、原文位置とは別にFontBBoxとstrokeの範囲を検証する。
+科目・教員・教室・年度・クラス・日付・時刻の推定やOCR／AIの接続変更は行わない。
+実資料の具体的な拒否分岐と実機の改善は未評価。詳細はstrict-pdf-compatibility-repair.md。
+
+編集前にtest_catalog.py searchでPDFTextGeometry／PDFPathReader／PDFSchoolParser／
+SpecialScheduleParserの対応テストを確認した。LinuxのPython184件は失敗0、OS依存7件skip。
+共有Promptのbyte／adapter検査と7件の契約検査、一覧check --base 0ef8c6a、Bash構文を確認した。
+Linuxで生成した架空PDFは3設計・9表現・24ページ。生成成功はPDFKit解析成功に数えない。
+生成器初回の直接Resources dictionaryへの対応不足は既に記録・pushした後に修正した。
+
+Actions前の差分レビューでNative4関数の配置、Tr2の白fill＋黒strokeの過剰拒否、
+Parser版の固定assert整合を確認した。配置をXCTest extension内へ修正し、
+白fill後の可視strokeを認める共通判定と正例・不可視拒否を追加した。
+既存の現在版assertだけを29／26へ更新し、旧28／25の同じSHAの失敗の再解析条件を追加した。
+過去の拒否ケース・期待値、前回正常結果保持と同版の無限再試行防止は削除しない。
+再レビューで指摘された白fillによるglyph同士の遮蔽には、全字体範囲と描画paddingを使った
+有界な自己除外付き衝突検査を追加し、遮蔽や範囲不明では成功させない。
+比較資料のSourceは独立設計で、期待値をReader・Parserの入力へ渡さない。
+所有コンテナのPython・SQLite・zlibを準備後、Linux Swift 6.1.2で477件が失敗0。
+これは最後のglyph遮蔽対策より前のスナップショットであり、最終コードの検証とは区別する。
+学校資料・サイトへの通信、保存用artifact・キャッシュ、公開はまだ行っていない。
+
 ## 2026-10-13 ローカルSwiftコンテナの準備不足
 
 Swift 6.1.2の公式nobleイメージ（digest 9096456b6dd5f3dcb1f64152601de3d96f40e48ac98354fefa9ffa9abf2dd6bf）で
