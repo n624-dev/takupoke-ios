@@ -600,7 +600,7 @@ extension PDFTextGeometryTests {
             let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
             XCTAssertThrowsError(try PDFPathReader(transform:transform,verifyVisibility:true,check:{}).read(page)) {
                 XCTAssertEqual(($0 as? PDFParseError)?.stage,.vectorObjects)
-                XCTAssertEqual(($0 as? PDFParseError)?.branch,index == 0 ? .b128 : .b127)
+                XCTAssertEqual(($0 as? PDFParseError)?.branch,.b127)
             }
             let url = root.appendingPathComponent("fictional-\(index).pdf"); try data.write(to:url)
             let normal = RecoveryReadCapture(), special = RecoveryReadCapture()

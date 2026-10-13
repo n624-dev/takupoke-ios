@@ -48,7 +48,9 @@ extension PDFParsingTests {
         }
         let data = Data(report.split(separator: "\n", maxSplits: 1)[1].utf8)
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        XCTAssertEqual(Set(json.keys), ["code", "page", "stage", "cell", "geometry"])
+        XCTAssertEqual(Set(json.keys), ["code", "page", "stage", "cell", "geometry", "branch"])
+        XCTAssertEqual(failure.branch,.b084)
+        XCTAssertEqual(json["branch"] as? String,"R084")
         let geometryJSON = try XCTUnwrap(json["geometry"] as? [String: Any])
         XCTAssertEqual(Set(geometryJSON.keys), ["parserVersion", "width", "height", "totalGlyphs", "glyphs"])
         let glyphJSON = try XCTUnwrap(geometryJSON["glyphs"] as? [[String: Any]])
