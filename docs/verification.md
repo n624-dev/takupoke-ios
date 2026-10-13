@@ -1,3 +1,23 @@
+## 2026-10-14 Native126の両SDK比較成功と配布前全検査開始
+
+配布予定source8fdaac45467086c29115f95c04977fbc829d0fc5。
+[開発126・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38435717614)の4ジョブ全成功。
+SDK26.6は555件・予定skip1・失敗0、126.571秒。SDK27.0も555件・予定skip1・失敗0、94.578秒。
+Native124の5assert失敗は元のR265／R267の拒否期待を維持して、入力の区切りと重複配置だけを修正した。
+後塗り3モード、同色・低contrast・先行構造消去・複合fill・overprintの元対照が成立した。
+36表現96ページ／3独立設計を通す文書全体oracleは旧239.1と修正版で両SDKとも全成功。
+SDK26の旧版比較2.729秒・修正版2.962秒、SDK27は旧版2.331秒・修正版3.018秒。
+取得文字／位置／順序／クラス・曜日／日付・時限・科目・教員・教室と文書全体の授業数を確認した。
+学校原本の読み取り・復旧率・モデル品質の評価ではない。実資料3PDFはまだこの版で未確認。
+
+同一sourceのpush125もPython187件（予定skip7）62.093秒・portable Swift482件60.963秒で全成功。
+Native126のPython187件（予定skip7）73.707秒、portable482件47.216秒も成功。
+新規レビュー26をfixture修正push前、27をNative126手動実行前、28をmain全検査前に使用し、
+各CODE差分に確定blockerなし。新しいUI変更、SDK変更、期待値注入・条件緩和はない。
+mainとの差分SHA1921ead00661f09d71dccc73fe935406873722b7e53f8c2bcbf9b9fd1c156d8fを保持し、
+main8219fa5から8fdaac4へlease付き／forceなしで更新した。同一sourceの全13検査と公開を待つ。
+Actionsは取消せず2分間隔で監視し、未実行／未完了を合格へ数えない。
+
 ## 2026-10-14 Native124の拒否対照が狙った箇所に届かない
 
 [source4b2465f・開発124・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38432130056)。
