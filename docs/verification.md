@@ -1,3 +1,50 @@
+## 2026-10-13 R126修正とエラー表示の公開・匿名照合完了
+
+[0.1.392（392.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.392-build.392.1)を通常Release・Latestとして公開した。
+配布sourceは`8219fa5d85bca04ef20f2c8fd56fbe2c63e54a7e`。
+[全体392・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38408608816)の同一source・同一試行で全13必須チェックが成功。
+全12事前検査成功後に配布Runnerが開始し、公開前の同一run／attempt／commit照合も成功した。
+
+修正点は次のとおり。
+
+- R126：閉じた軸平行の塗り矩形について、全原文字との非重複を確認した装飾を
+  罫線の太さだけで拒否しない。幅広／小さい装飾は罫線へ転用しない。
+  元文字範囲不足・遮蔽・未知構造・色／透明度・上限の拒否は維持。
+- 通常30・試験／返却27へParser版を更新し、同じSHAの旧失敗を再解析する。
+  行事Parser4・XLSX6・Strict優先・OFF経路・AI採用条件は変更していない。
+- エラー説明・前回正常結果保持の説明と、P／R／ページを別の標準UI要素へ分けた。
+  改行による固定配置や内部分類名を表示せず、stage／cell／branchの保存と旧エラー復元は維持。
+- テストのみ：標準コード欄の完全AXラベルに対応。実ACKの相対接触、
+  現在の一意な完了Button、generic tapのindexed取得と、設定／VoiceOverの別Runnerを検証。
+  元の実操作・入力全文・個別ACK・背景・再起動・保存・読み上げ・全選択照合は省かない。
+
+Python187件・失敗0。Native SDK26の551件は予定skip1・失敗0（129.383秒）。
+配布RunnerのSDK27ホストでも551件・予定skip1・失敗0（91.170秒）。
+独立した3設計・元9PDFと非重複装飾18派生、27表現・72ページの全Parserが同じ全文正解と一致。
+これは27個の独立した実資料やOCR復旧成功数ではない。既存の拒否対照を維持した範囲の検証である。
+通常26／27のA・B、手動訂正全6ジョブ、通知、実VoiceOver27の18移動・3項目、
+追加文字サイズ各3条件、実ピッカー3ケース（450.997秒）をすべて確認した。
+同じ入力条件のU75は今回26 Aで通過し、過去の失敗を消さず恒常的原因は未確定とする。
+全監視対象は取消しなしで終端まで確認し、386〜391の失敗を392の成功へ合算していない。
+
+iPhone Release buildは329.4秒で成功。IPAのSDKはiphoneos27.0、最低OS26.0。
+公開・所有build出力の削除stepも成功し、保存用artifact・Actionsキャッシュは使用していない。
+認証ヘッダーなしで4添付を取得し、GitHub digest・release.json・IPA内source／版／SDK、
+ReleaseのLatest／非draft／非prereleaseと、固定AltStore Sourceのbyte一致を確認した。
+
+| 添付 | bytes | SHA-256 |
+| --- | ---: | --- |
+| altstore-source.json | 2,498 | `59f298f1d47f009a59b829bb03c518a73a190790e2291b09c50eecbdde4ca0d6` |
+| icon.png | 130,461 | `7ed41c1462f9bd46427b11e1045caddd95c10bea459a5984298c60776ab6177f` |
+| release.json | 709 | `1a87aa29cef1a7f0d40a530560bade406f662cffc54d8d72355e6f25aa4cc79a` |
+| takupoke.ipa | 16,893,931 | `111d2bf21d0a7b789a845c197ea47df073ae470cce280b1b49628b4a9726893c` |
+
+照合用の所有download領域は削除済み。古い公開dev-ios-37811661856-1-22c8ee2b5fa5は保持した。
+実機導入・AltStoreからの更新と、利用者の変更されていない3PDFの解析成功は未評価。
+原本・本文・画像を取り込まず、全CI成功や架空27表現を実資料の復旧率やモデル品質へ加算しない。
+更新後の実機で各資料の「解析する」を確認し、失敗時は種類・P／R・ページだけで照合する。
+mainは配布sourceへ固定し、公開後の記録更新は文書だけの開発branchへpushする。
+
 ## 2026-10-13 全体392の全12事前検査が成功
 
 凍結8219fa5・38408608816・試行1の配布検査、Native、通常26／27 A・B、
