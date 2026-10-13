@@ -9,6 +9,20 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 253失敗ジョブの原ログ再取得範囲は[照合一覧](ui-failure-log-audit-20261011.md)に記録する。
 
 
+## U67 3項目訂正のpreview復帰確認でUI query timeout（全体383、iOS27）
+
+- 対象：1f128ebf60204a906d6fe25add79d8b5ad35a696、38347122608・試行1、job115131299235。
+  SDK27.0、testThreeFieldsRequireEachAcknowledgementAndFourRefuses。
+- 観測：ManualAssistanceChecks+Review.swift:56、requirePreviewのUI照会で
+  Failed to get matching snapshots: Timed out while evaluating UI query。
+  実ケース877.056秒・1件失敗、UI準備込み944.9秒。
+- 直前：3項目の入力と個別ACKは成立し、レビューへの移行を観測した。
+  その後のpreview復帰確認で停止。正常保存・再起動・4項目拒否は今回完了したと扱わない。
+- 状態：下位原因は未確定。製品Strictの固定番号以外、UI操作・fixture・workflowは382と差分ゼロ。
+  先に観測を保存・pushし、既往のUI query／preview／3項目ケースと当時のコードを比較する。
+  残りのActionsは取消さず確認する。Native550件・予定skip1・失敗0を公開合格へ代用しない。
+- 根拠：[383の3項目27](https://github.com/n624-dev/takupoke-ios/actions/runs/38347122608/job/115131299235)。
+
 ## U66 VoiceOverのmoveForwardが返答エラー（全体381、iOS27 B）
 
 - 対象：4fb4480a0a7859a0273a94024919eaba0521f745、38332379818・試行1、job115085118202。

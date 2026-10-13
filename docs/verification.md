@@ -1,3 +1,14 @@
+## 2026-10-13 全体383の3項目27：preview復帰のUI queryで失敗
+
+ソース1f128eb、38347122608・試行1、job115131299235、SDK27.0。
+U67として観測を先に保存する。ManualAssistanceChecks+Review.swift:56のrequirePreviewで
+Failed to get matching snapshots: Timed out while evaluating UI query。
+実ケース877.056秒・1件失敗、準備込み944.9秒。3項目の実入力・個別ACKとレビューを観測後の停止。
+保存・再起動・4項目拒否の正常完了や、新しい配布は未達である。
+下位原因は未確定。Native550件・予定skip1・失敗0と原本変更27の成功はこの失敗を相殺しない。
+観測を先にpushし、その後で過去のquery timeout／preview／3項目の記録全文とコードを比較する。
+他のActionsは取消さず残し、未実行を成功へ換算しない。
+
 ## 2026-10-13 全体383のNative：固定番号・旧保存・元拒否・架空9PDFが成功
 
 ソース1f128ebf60204a906d6fe25add79d8b5ad35a696、
