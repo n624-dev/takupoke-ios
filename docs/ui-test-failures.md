@@ -1,3 +1,14 @@
+## U75 通知caseのfixture-readyが期限内に成立しない（旧全体391、iOS26 A）
+
+- 対象：ea8401d・38400839141・試行1、job115332787120、配布SDK27.0／Runtime26.5。
+  testChangedDataProducesOneLocalNotification、ApplicationChecks.swift:94。
+- 観測：通常14件は1573.521秒・失敗0。別Runner／新所有Simulatorの通知caseは
+  fixture-readyの存在待機でXCTAssertTrue失敗。1件・失敗1・109.373秒。
+  実通知許可／配信の成立は原ログ・コードを確認してから判断する。
+- 状態：旧391はBのU74に加えてAのこの失敗でも公開不可、取消しなしで終端まで確認。
+  原ログとU06／U32／U35／U40／U41／U49／U59／U65の具体条件を比較する。
+  既に開始済み392の同じA経路の結果を確認し、根拠なく起動・SDK・待機を変更しない。
+
 ## U74 AI／OCR確認未反映とVoiceOver命令失敗の再発（全体391、iOS27 B）
 
 - 対象：ea8401d・38400839141・試行1、job115308282486、SDK／Runtime27.0。
