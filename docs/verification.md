@@ -1,3 +1,13 @@
+## 2026-10-13 U72候補のローカル契約は旧文字列1件で失敗
+
+未コミットのInput.swift／test_manual_ui_project.py候補をLinuxで検査したところ、
+Python186件・環境skip7・失敗1（20.760秒）。
+test_editor_uses_physical_clear_and_checks_full_replacement:61が
+旧navigation.buttons添字表記を要求しており、新しいmatchingクエリで不一致となった。
+Actionsはこの候補で未開始。新規の差分担当も同じ旧契約と旧直接hittable文の残存を指摘した。
+まず観測を保存し、旧契約の全文を読んでから、同じButton所属／必須hittable検査へ
+表記を対応させる。ケースの削除やUI結果の期待値変更は行わない。
+
 ## 2026-10-13 U72の全文照合：復帰後の完了ボタンframe再照会
 
 原ログとInput.swift／OneCorrection.swift／Cases.swift全文、c82cd3aの旧Input.swift、
