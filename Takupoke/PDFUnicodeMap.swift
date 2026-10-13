@@ -8,9 +8,10 @@ struct PDFTextFont {
     let ascent: Double
     let descent: Double
     let outlineBounds: PDFBox?
+    let encodedGlyphBounds: [Int: PDFBox]?
 
     init(unicode: [Int: String], codeBytes: Int, widths: [Int: Double], defaultWidth: Double,
-         ascent: Double, descent: Double, outlineBounds: PDFBox? = nil) throws {
+         ascent: Double, descent: Double, outlineBounds: PDFBox? = nil, encodedGlyphBounds: [Int: PDFBox]? = nil) throws {
         guard [1, 2].contains(codeBytes), !unicode.isEmpty, unicode.count <= 65536,
               [defaultWidth, ascent, descent].allSatisfy(\.isFinite), defaultWidth >= 0,
               ascent > descent, widths.values.allSatisfy({ $0.isFinite && $0 >= 0 }) else {
@@ -23,6 +24,13 @@ struct PDFTextFont {
                   box.left < box.right, box.top < box.bottom else { throw PDFTextFailure.unsupported }
         }
         self.outlineBounds = outlineBounds
+        if let encodedGlyphBounds {
+            guard encodedGlyphBounds.count <= 65536, encodedGlyphBounds.allSatisfy({ key, box in
+                (0...65535).contains(key) && [box.left,box.top,box.right,box.bottom].allSatisfy(\.isFinite) &&
+                box.left < box.right && box.top < box.bottom
+            }) else { throw PDFTextFailure.unsupported }
+        }
+        self.encodedGlyphBounds = encodedGlyphBounds
     }
 }
 

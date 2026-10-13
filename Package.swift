@@ -122,7 +122,7 @@ let package = Package(
                     "PDFKitReader+Diagnostics.swift",
                     "PDFPathReader.swift",
                     "PDFTextGeometry.swift", "PDFContentVisibility.swift", "PDFPaintSpace.swift", "PDFPaintSample.swift",
-                    "PDFUnicodeMap.swift",
+                    "PDFUnicodeMap.swift", "PDFEncodedGlyphMap.swift", "PDFDrawnTextReader+GlyphBounds.swift",
                     "PDFDrawnTextReader.swift",
                     "PDFDrawnTextReader+Fonts.swift",
                     "PDFDiagnostics.swift",

@@ -1,3 +1,20 @@
+## 2026-10-13 実glyph境界への修正・Actions前確認
+
+独立Noto subsetのFlags4／Encodingなし／FontFile2とMac cmap6を確認した。
+前失敗の通常traceのファイル長14504は生成normal-1.pdfと一致し、塗りmode0の後の輪郭mode1である。
+字体全体の境界の代わりに、明示された物理GIDの埋め込みCoreText path境界を別途保持する。
+元文字・位置・ascent／advance・順序は変更しない。未対応は全字体境界、対応mapでGID0・
+欠落・empty pathは輪郭時に拒否。ToUnicodeの意味を字体や描画一致から証明する処理ではない。
+
+Linux Swift6.1.2：480件・失敗0・本体62.756秒・準備込み336.0秒。
+Python184件・失敗0・OS依存skip7、共有Prompt7件とbyte／adapter照合も成功した。
+一覧346登録、check --base7956fb2、差分空白とBash構文を確認。Appleの実path実行はまだ未評価。
+GPT-6.1 Sol／Highの固定コード差分レビューに確定ブロッカーなし。
+patch SHA256: 9980b36dea172be944812e53cb3aafe646a5244815b312151d4a236a52013052。
+既存FontsのIdentity-H・2byte保証を主担当が再確認し、custom CMapを通さないことも照合した。
+同じ資料・期待値で両SDKの239.1比較と現行全検査を実行し、その後に公開前の全13へ進む。
+Actionsを取消さず、失敗した場合は観測を先に保存してから対処する。
+
 ## 2026-10-13 全字体の境界による過剰拒否の照合
 
 7956fb2の失敗観測をpush後、239.1／現行の字体読取と罫線衝突、既存の輪郭拒否履歴を読んだ。

@@ -171,14 +171,15 @@ final class PDFTextGeometry {
             if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 guard validGeometry else { throw PDFTextFailure.unsupported }
                 var painted = PDFBox(left:x, top:y, right:right, bottom:upper)
-                let ink = outlineBox(font, matrix:total)
+                let ink = outlineBox(font, code:cid, matrix:total)
                 if state.rendering != 0 {
                     let ctm = state.ctm
                     guard state.solidDash, let ink,
                           let strokePad = PDFTextVisibility.strokePad(state.lineWidth, a:ctm.a, b:ctm.b, c:ctm.c, d:ctm.d) else {
                         throw PDFTextFailure.unsupported
                     }
-                    // FontBBox encloses every outline, unlike a glyph's advance.
+                    // Use the encoded glyph path where available; otherwise the
+                    // conservative font box, never the advance alone.
                     // Include the configured miter reach before collision/clip checks.
                     let pad = strokePad * (state.lineJoin == 0 ? state.miterLimit : 1)
                     painted = PDFBox(left:min(painted.left,ink.left - pad), top:min(painted.top,ink.top - pad),
@@ -199,8 +200,9 @@ final class PDFTextGeometry {
             matrix.translate((width + state.spacing + word) * state.scale, 0)
         }
     }
-    private func outlineBox(_ font: PDFTextFont, matrix: PDFTextMatrix) -> PDFBox? {
-        guard let bounds = font.outlineBounds else { return nil }
+    private func outlineBox(_ font: PDFTextFont, code: Int, matrix: PDFTextMatrix) -> PDFBox? {
+        let selected = font.encodedGlyphBounds.map { $0[code] } ?? font.outlineBounds
+        guard let bounds = selected else { return nil }
         let left = bounds.left / 1000 * state.size * state.scale
         let right = bounds.right / 1000 * state.size * state.scale
         let low = bounds.top / 1000 * state.size + state.rise

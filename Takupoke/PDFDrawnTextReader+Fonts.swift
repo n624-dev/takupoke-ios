@@ -27,7 +27,7 @@ extension PDFDrawnTextReader {
             guard selectedFontKeys.count < 128 else { throw PDFParseError(code: .limit) }
             selectedFontKeys.insert(key)
         }
-        if let cached = fonts[key] { try engine.font(cached, size: size); return }
+        if let cached = fonts[key] { try engine.font(cached, size:size); return }
         guard fonts.count < 128 else { throw PDFParseError(code: .limit) }
         let dict = try resource(scanner, "Font", key)
         var mapStream: CGPDFStreamRef?
@@ -136,9 +136,11 @@ extension PDFDrawnTextReader {
                 outlineBounds = PDFBox(left:values[0], top:values[1], right:values[2], bottom:values[3])
             }
         }
+        let glyphBounds = try embeddedGlyphBounds(font:dict, metrics:metrics, descriptor:descriptor,
+            composite:composite, codes:Array(mapping.values.keys))
         let decoded = try PDFTextFont(unicode: mapping.values, codeBytes: mapping.bytes, widths: widths,
             defaultWidth: composite ? number(metrics, "DW", fallback: 1000) : 0,
-            ascent: number(descriptor, "Ascent"), descent: number(descriptor, "Descent"), outlineBounds:outlineBounds)
+            ascent: number(descriptor, "Ascent"), descent: number(descriptor, "Descent"), outlineBounds:outlineBounds, encodedGlyphBounds:glyphBounds)
         fonts[key] = decoded
         try engine.font(decoded, size: size)
     }

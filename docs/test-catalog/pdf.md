@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`dd1342edcce34bb5b41c7fc888bbe136716c62543dc4785db1678a0e4ebc2371`
+`752917b0075ae7e87328394a532328bb75d02845182ca6f595e4cceb9c9b49d0`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -35,6 +35,8 @@ bash tools/test-parsing.sh
 - [Takupoke/PDFPaintSpace.swift](../../Takupoke/PDFPaintSpace.swift)
 - [Takupoke/PDFPaintSample.swift](../../Takupoke/PDFPaintSample.swift)
 - [tools/strict_pdf_compatibility_fixtures.py](../../tools/strict_pdf_compatibility_fixtures.py)
+- [Takupoke/PDFEncodedGlyphMap.swift](../../Takupoke/PDFEncodedGlyphMap.swift)
+- [Takupoke/PDFDrawnTextReader+GlyphBounds.swift](../../Takupoke/PDFDrawnTextReader+GlyphBounds.swift)
 
 ## [tests/PDFParsingTests+Diagnostics.swift](../../tests/PDFParsingTests+Diagnostics.swift)
 
@@ -94,6 +96,8 @@ bash tools/test-parsing.sh
 - `testCollisionIndexKeepsDenseDisjointTableSearchInsideOneOriginalPaintBudget`
 - `testCollisionIndexChargesConstructionSearchAndPreservesThrownCancellation`
 - `testStrokePaddingRequiresAnExactAnglePreservingTransform`
+- `testEncodedGlyphBoundsDoNotUseUnrelatedFontExtentsOrRescueMissingGlyphs`
+- `testEncodedSymbolicGlyphMapIsBoundedAndNeverUsesUnicode`
 - `testVisibleTextModesKeepOriginalGeometryAndBoundOutlinesSeparately`
 - `testOutlinedTextRejectsUnknownBoundsWideOrDashedStrokeAndInvisibleInk`
 - `testOutlinedTextStateRestoresWidthModeJoinMiterAndDash`

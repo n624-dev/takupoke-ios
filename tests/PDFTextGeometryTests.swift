@@ -82,6 +82,54 @@ final class PDFTextGeometryTests: XCTestCase {
             XCTAssertFalse(PDFTextVisibility.similarStrokeTransform(a:m[0],b:m[1],c:m[2],d:m[3]))
         }
     }
+    func testEncodedGlyphBoundsDoNotUseUnrelatedFontExtentsOrRescueMissingGlyphs() throws {
+        let large = PDFBox(left:-1002,top:-1048,right:2928,bottom:1808)
+        let exact = PDFBox(left:50,top:0,right:450,bottom:700)
+        for missing in [false,true] {
+            let font = try PDFTextFont(unicode:[65:"A"],codeBytes:1,widths:[65:500],defaultWidth:500,
+                ascent:800,descent:-200,outlineBounds:large,encodedGlyphBounds:missing ? [:]:[65:exact])
+            let engine = PDFTextGeometry()
+            try engine.operation("BT"); try engine.font(font,size:10)
+            // Tr may follow Tf, as it does in the independent ReportLab fixture.
+            try engine.operation("Tr",[1]); try engine.operation("j",[1]); try engine.operation("w",[0.2])
+            try engine.operation("Tm",[1,0,0,1,20,100])
+            if missing { XCTAssertThrowsError(try engine.show([65])); continue }
+            try engine.show([65]); try engine.operation("ET")
+            let glyph = try XCTUnwrap(engine.finish(expectedText:"A").first)
+            XCTAssertEqual(glyph.x,20); XCTAssertEqual(glyph.width,5)
+            let ink = try XCTUnwrap(engine.paintedGlyphBounds.first)
+            XCTAssertEqual(ink.left,20); XCTAssertEqual(ink.right,25)
+            XCTAssertEqual(ink.top,98); XCTAssertEqual(ink.bottom,108)
+        }
+    }
+
+    func testEncodedSymbolicGlyphMapIsBoundedAndNeverUsesUnicode() throws {
+        func font(_ cmap: [UInt8], competing: Bool = false) -> Data {
+            func word(_ n: Int) -> [UInt8] { [UInt8(n >> 8),UInt8(n & 255)] }
+            func long(_ n: Int) -> [UInt8] { word(n >> 16) + word(n & 65535) }
+            let count = competing ? 2:1
+            let offset = 4 + count * 8
+            let table = word(0) + word(count) + word(1) + word(0) + long(offset) +
+                (competing ? word(3) + word(0) + long(offset):[]) + cmap
+            return Data(long(0x10000) + word(1) + [UInt8](repeating:0,count:6) +
+                long(0x636d6170) + long(0) + long(28) + long(table.count) + table)
+        }
+        let format6: [UInt8] = [0,6,0,14,0,0,0,65,0,2,0,7,0,9]
+        XCTAssertEqual(try PDFEncodedGlyphMap.symbolicTrueType(font(format6)),[65:7,66:9])
+        XCTAssertNil(try PDFEncodedGlyphMap.symbolicTrueType(font(format6,competing:true)))
+        XCTAssertNil(try PDFEncodedGlyphMap.symbolicTrueType(font([0,6,0,14,0,0,0,255,0,2,0,7,0,9])))
+        XCTAssertNil(try PDFEncodedGlyphMap.symbolicTrueType(font([0,4,0,14,0,0,0,65,0,2,0,7,0,9])))
+        let format0 = [UInt8]([0,0,1,6,0,0]) + [UInt8](repeating:3,count:256)
+        XCTAssertEqual(try PDFEncodedGlyphMap.symbolicTrueType(font(format0))?[65],3)
+        let good = font(format6)
+        for count in 0..<good.count { XCTAssertNil(try PDFEncodedGlyphMap.symbolicTrueType(good.prefix(count))) }
+        XCTAssertThrowsError(try PDFEncodedGlyphMap.symbolicTrueType(good,check:{ throw PDFParseError(code:.cancelled) }))
+        XCTAssertEqual(try PDFEncodedGlyphMap.cidToGID(Data([0,0,0,9,1,0])),[0:0,1:9,2:256])
+        XCTAssertNil(try PDFEncodedGlyphMap.cidToGID(Data([0])))
+        XCTAssertNil(try PDFEncodedGlyphMap.cidToGID(Data(repeating:0,count:131074)))
+        XCTAssertThrowsError(try PDFEncodedGlyphMap.cidToGID(Data([0,1]),check:{ throw PDFParseError(code:.cancelled) }))
+    }
+
     func testVisibleTextModesKeepOriginalGeometryAndBoundOutlinesSeparately() throws {
         let font = try PDFTextFont(unicode:[65:"A"],codeBytes:1,widths:[65:500],defaultWidth:500,
             ascent:800,descent:-200,outlineBounds:PDFBox(left:-100,top:-300,right:1000,bottom:900))

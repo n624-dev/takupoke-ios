@@ -8,7 +8,8 @@
 ## 修正範囲
 
 - Tr 1／2の一律拒否を撤回。元のUnicode・文字順・座標を保持し、
-  FontBBoxと変換後の線幅、join／miterから別の描画範囲を作る。
+  埋め込みTrueTypeのPDFコード→GIDが明示できる場合は実glyphのpath境界、
+  その他はFontBBoxと変換後の線幅、join／miterから別の描画範囲を作る。
   その範囲もページ・clipに入ること、罫線・塗り図形と重ならないことを確認する。
   不明なFontBBox、太い／破線の輪郭、不可視色、Tr 3〜7は受理しない。
   Tr2の白fillは、全glyphの字体範囲が分かり、他のglyphと重ならない場合だけ認める。

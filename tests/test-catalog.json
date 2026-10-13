@@ -263,7 +263,9 @@
         "Takupoke/PDFContentVisibility.swift",
         "Takupoke/PDFPaintSpace.swift",
         "Takupoke/PDFPaintSample.swift",
-        "tools/strict_pdf_compatibility_fixtures.py"
+        "tools/strict_pdf_compatibility_fixtures.py",
+        "Takupoke/PDFEncodedGlyphMap.swift",
+        "Takupoke/PDFDrawnTextReader+GlyphBounds.swift"
       ],
       "checks": [
         "tests/PDFParsingTests+Diagnostics.swift",
