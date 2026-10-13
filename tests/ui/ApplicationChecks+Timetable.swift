@@ -359,7 +359,7 @@ extension ApplicationChecks {
                 XCTFail("VoiceOver heading has no visible physical hit region")
                 return
             }
-            heading.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            heading.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.1)
             print("UI_VOICEOVER phase=heading-touched")
             let deadline = Date().addingTimeInterval(45)
             var speechAvailable = false
