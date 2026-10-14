@@ -1,5 +1,42 @@
 ## 2026-10-14 Strict全復元候補のローカル依存取得がTLSで停止
 
+## 2026-10-14 復元版ローカルと開発Actions127の成功
+
+ローカルSwift6.1.2 Linux再検証は487件・失敗0・64.051秒、準備／build含む370.3秒。
+初回の失敗を記録した2文書コミット後、最新版assertと架空クラス位置だけを訂正した。
+通常の年度・空欄・座標と、試験の8行／非固定17件・保存全文・9行拒否・時刻／返却日順の
+旧Strict対照も成功。PDFKitの可視性・実ファイルReaderはLinuxでは実行対象外であり、
+この成功をApple・実機・OCR品質として扱わない。
+
+開発Actions127／38489805136、source b2721dc7d8a3597b96c21ec881cc74391de5a8ff、試行1は成功。
+portable Swift487件・失敗0・72.484秒、tools Python187件・予定skip7・失敗0・68.227秒。
+このpushでは任意のnative jobは条件付きskipであり、Apple検証成功に加算しない。
+全13公開用Actions394／38489953961を同じsourceで開始した。
+Distribution Python187件・予定skip7・失敗0・65.193秒は成功し、Nativeと27 UIは継続中。
+新規完了jobの原ログを接続ツールで取得・確認した。CLIのログredirect取得に接続失敗が
+あったためローカル監視だけを切替え、GitHub Actionsは取消していない。
+状態確認120秒、同じ完了jobは再取得しない。署名付きログURLや認証値は記録・公開しない。
+
+
+## 2026-10-14 復元ソースのコードpushとmain公開検証開始
+
+復元ソースはb2721dc7d8a3597b96c21ec881cc74391de5a8ff。
+featureのコードpush直前に新規review29、main更新直前に別の新規review30を使用。
+両者GPT-6.1 Sol／High、読取専用CODE差分204,774 bytes、
+SHA256 17f2b8ca717555bfcc45cf2219968c53fafdb8f15fba3157641edbd09141ced4、Blockingなし。
+API経由のblob登録は一時的にHTTP401になったが、通常git pushが同じコミットで成功し、
+feature refを全40桁一致で確認した。認証値の表示・TLS無効化・別authorのcommit生成はしていない。
+開発Actions127／38489805136を開始、完了まで監視する。
+mainは8fdaac45467086c29115f95c04977fbc829d0fc5から同じb2721dcへ、
+expected SHAとforce=falseでfast-forwardし、remote mainとの全40桁一致を確認した。
+既存workflowで全13必須検証を通す。SDK26 NativeとSDK27配布Runnerが、
+同じ36表現・96ページの本番Strict全文比較を含むSwift全検査を実行する。
+旧239.1の同一fixtureと固定oracleは、変更していない独立生成器で両SDKのNative126にて
+既に成功している。不要な別dispatch・UI構成変更は追加しない。
+状態確認は120秒間隔、新しい完了jobだけ原ログを読む。失敗後も取消しない。
+公開・匿名hash照合・AltStore実機・利用者の3PDFの成功はこの時点で未確認。
+
+
 ## 2026-10-14 Actions前の新規差分レビュー29
 
 新規GPT-6.1 Sol／Highが読取専用でCODE差分を確認した。
