@@ -24,7 +24,8 @@
   通常Parser32・試験／返却29で、同じ内容の旧失敗も再解析します。
   同一ソースの全13必須チェックと、通常Release・Latest・固定AltStore Sourceの匿名照合が成功。
   SDK26.6／27.0の各Native561件（予定skip1、失敗0）、36文書・96ページの全文比較が成功しました。
-  実際の3PDFの解析とAltStore実機更新は未確認。393.1での3拒否は履歴へ保持します。
+  利用者から実際の3PDFの解析が戻った報告を受けました。AltStore更新経路は未確認。
+  393.1での3拒否は履歴へ保持します。[原因調査](strict-pdf-regression-cause.md)を記録しました。
 - 個別の開発確認版：ソース22c8ee2の[公開IPA](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-37811661856-1-22c8ee2b5fa5)。
   同一ソースの全13チェックが成功しました。通常Latest・固定Sourceとは別の既存公開版です。
 - PDFの実資料：原PDFは239.1から不変。AI／OCRはOFFです。

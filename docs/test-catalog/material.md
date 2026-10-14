@@ -1,7 +1,7 @@
 # 原本取得・更新・保存・File Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`4e51bd319cb0038fba3a8c433b9f63a41b64b6c4e6144a0e080fbdc12c5e8bb1`
+`1daf69316d59822cb37dfbed5b98d3da212255fff7656ad36a39b0f228dd40d8`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -70,3 +70,6 @@ bash tools/test-parsing.sh
 - `testRowSkipsCannotHideDateClassFormulaOrStructuralErrors`
 - `testRowSkipConsentPersistsOnlyForSameSelectedContentAndNeverResurrects`
 - `testRowSkipsRejectStalePreviewCancellationAndAllExcludedWithoutSaving`
+- `testOldRowSkipDecisionSurvivesSQLiteUpgradeAndCurrentRevalidation`
+- `testRowSkipRevalidationFailureCancellationAndSaveFailureKeepDecision`
+- `testRenewedBookmarkMatchesOnlyTheSelectedOriginal`

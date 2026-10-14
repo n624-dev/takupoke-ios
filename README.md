@@ -12,7 +12,7 @@ PDF端末内AI復旧は開発中です。前処理・Validator・開始・元PDF
 [Strict PDFの詳細番号一覧](docs/strict-pdf-branch-catalog.md)で、P／R番号から拒否箇所を確認できます。
 393.1の通常R265・試験R267・返却R270という報告を受け、[239.1のStrictを復元](docs/strict239-restoration.md)しました。
 通常・試験・返却の解析を旧仕様へ戻し、追加の表示・Evidence検査は復旧専用に分離しています。
-実際の3PDFでの394.1の成功は実機未確認です。
+394.1公開後、利用者から3種類の解析が戻った実機報告を受けました。[原因調査](docs/strict-pdf-regression-cause.md)を記録しています。
 
 [OCRの実測と不採用にした比較](docs/ocr-improvement-log.md)を記録しています。小さな取得テストと文書全体の品質は分けて評価します。
 
@@ -23,7 +23,7 @@ PDF端末内AI復旧は開発中です。前処理・Validator・開始・元PDF
 通常Parser32・試験／返却29により、同じPDFでも更新後の処理で再解析します。
 同一ソースの全13必須チェックと、認証なしの4添付取得・ハッシュ一致を確認しました。
 SDK26.6／27.0の各Native561件（予定skip1、失敗0）で、独立した36文書・96ページの全文比較も成功しています。
-実際の3PDFとAltStore更新経路は実機未確認です。更新後に各資料の「解析する」で確認できます。
+実際の3PDFが再び読めた実機報告があります。AltStore更新経路と全授業項目の照合は未確認です。
 修正範囲は[239.1の復元](docs/strict239-restoration.md)、実測・失敗は[検証記録](docs/verification.md)に記載しています。
 
 以前の[個別開発確認版IPA](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-37811661856-1-22c8ee2b5fa5)も引き続き公開しています。ソース`22c8ee2`の既存公開版で、現在のLatest・固定AltStore Sourceとは別です。

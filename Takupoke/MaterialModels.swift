@@ -18,6 +18,18 @@ struct SourceGrant: Codable {
     var bookmark: Data
     var name: String
     var isFolder: Bool
+
+    #if os(iOS) || os(macOS)
+    /// A renewed picker grant can retain the decision only for the bookmarked
+    /// original. A matching filename or digest alone is insufficient.
+    func references(_ selectedURL: URL) -> Bool {
+        guard !isFolder, selectedURL.isFileURL else { return false }
+        var stale = false
+        guard let original = try? URL(resolvingBookmarkData: bookmark, options: [], relativeTo: nil,
+                                      bookmarkDataIsStale: &stale), original.isFileURL else { return false }
+        return original.standardizedFileURL == selectedURL.standardizedFileURL
+    }
+    #endif
 }
 
 struct MaterialSource: Codable {

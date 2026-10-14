@@ -2,8 +2,9 @@ import Foundation
 
 extension MaterialWorker {
     func analyzeChanges(defaultYear: Int?, control: AcquisitionControl, authorizeWeekdayCorrection: Bool = false) throws {
-        guard let library = library, let record = library.state.record(for: .changes),
-              let url = library.localURL(for: .changes) else { throw ChangeParseError(code: .invalidArchive) }
+        guard let library = library, let record = library.state.record(for: .changes) else {
+            throw ChangeParseError(code: .invalidArchive)
+        }
         do {
             let check = {
                 do { try control.check() }
@@ -12,21 +13,9 @@ extension MaterialWorker {
             if let saved = record.source.weekdayConsent, !saved.matches(digest: record.digest, defaultYear: defaultYear) {
                 try library.clearWeekdayConsent()
             }
-            if let saved = record.source.rowSkipConsent,
-               !saved.matches(sourceIdentity: record.source.selectionID ?? record.storedName, digest: record.digest, defaultYear: defaultYear) {
-                try library.clearRowSkipConsent()
-            }
             let useDate = authorizeWeekdayCorrection || library.state.record(for: .changes)?.source.weekdayConsent?.matches(digest: record.digest, defaultYear: defaultYear) == true
-            let skip = library.state.record(for: .changes)?.source.rowSkipConsent
-            let rows = try XLSXReader.read(url, defaultYear: defaultYear, check: check, dateDerivedWeekdays: useDate, skippingRows: Set(skip?.rows ?? []))
-            let changes = try ChangeNormalizer.parse(rows, defaultYear: defaultYear, check: check)
-            try check()
-            var analysis = ChangeAnalysis(sourceDigest: record.digest, sourceName: record.originalName,
-                defaultYear: defaultYear, parsedAt: Date(), records: changes)
-            if useDate { analysis.weekdayConsent = ChangeWeekdayConsent(digest: record.digest, defaultYear: defaultYear, parserVersion: ChangeAnalysis.parserVersion) }
-            analysis.rowSkipConsent = skip
-            do { try library.saveChangeAnalysis(analysis, authorizeWeekdayCorrection: authorizeWeekdayCorrection) }
-            catch { throw ChangeParseError(code: .storage) }
+            try library.reanalyzeChanges(defaultYear: defaultYear, dateDerivedWeekdays: useDate,
+                authorizeWeekdayCorrection: authorizeWeekdayCorrection, check: check)
         } catch {
             let failure = (error as? ChangeParseError) ?? ChangeParseError(code: .storage)
             do { try library.recordParseFailure(failure, defaultYear: defaultYear) }

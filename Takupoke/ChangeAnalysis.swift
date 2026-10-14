@@ -97,10 +97,18 @@ struct ChangeRowSkipConsent: Codable, Equatable {
     var parserVersion: Int
     var rows: [Int]
 
-    func matches(sourceIdentity: String, digest: String, defaultYear: Int?) -> Bool {
+    /// The user's decision belongs to the original rows, not an app release.
+    /// Reuse still requires a fresh read and validation by the current parser.
+    func identifies(sourceIdentity: String, digest: String, defaultYear: Int?) -> Bool {
         self.sourceIdentity == sourceIdentity && self.digest == digest && self.defaultYear == defaultYear &&
-        parserVersion == ChangeAnalysis.parserVersion && !rows.isEmpty && rows == Array(Set(rows)).sorted() &&
+        (1...ChangeAnalysis.parserVersion).contains(parserVersion) &&
+        !rows.isEmpty && rows == Array(Set(rows)).sorted() &&
         rows.allSatisfy { (1...ChangeNormalizer.maximumRows).contains($0) }
+    }
+
+    func matches(sourceIdentity: String, digest: String, defaultYear: Int?) -> Bool {
+        parserVersion == ChangeAnalysis.parserVersion &&
+        identifies(sourceIdentity: sourceIdentity, digest: digest, defaultYear: defaultYear)
     }
 }
 

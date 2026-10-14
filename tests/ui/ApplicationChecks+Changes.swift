@@ -17,8 +17,10 @@ extension ApplicationChecks {
         visible(app.buttons["警告を確認して内容を見る"]).tap()
         app.alerts.buttons["確認して表示"].tap()
         screen("内容の確認")
-        let apply = app.buttons["change-apply-skips"]
+        let navigation = app.navigationBars["内容の確認"]
+        let apply = navigation.buttons["change-apply-skips"]
         XCTAssertTrue(apply.waitForExistence(timeout: 15), app.debugDescription)
+        XCTAssertTrue(navigation.buttons["キャンセル"].exists)
         XCTAssertFalse(apply.isEnabled)
         for number in [3, 4] {
             let toggle = app.switches["change-skip-row-\(number)"]
@@ -34,13 +36,14 @@ extension ApplicationChecks {
         tapNativeSwitch(group,navigation:"内容の確認")
         let groupSelected = expectation(for:NSPredicate(format:"value == %@","1"),evaluatedWith:group)
         XCTAssertEqual(XCTWaiter.wait(for:[groupSelected],timeout:15),.completed)
-        visible(apply, navigation: "内容の確認", searchEarlierRows: true).tap()
+        XCTAssertTrue(apply.isEnabled)
+        tapToolbar("除外して読み込む", bar: "内容の確認")
         let alert = app.alerts["選んだ行を除外して読み込む"]
         XCTAssertTrue(alert.waitForExistence(timeout: 15))
         XCTAssertTrue(alert.staticTexts.containing(NSPredicate(format:"label CONTAINS %@","200〜300行目")).firstMatch.exists)
         alert.buttons["キャンセル"].tap()
         XCTAssertTrue(app.navigationBars["内容の確認"].exists)
-        visible(apply, navigation: "内容の確認", searchEarlierRows: true).tap()
+        tapToolbar("除外して読み込む", bar: "内容の確認")
         alert.buttons["除外して読み込む"].tap()
         let count = app.staticTexts["change-skipped-count"]
         XCTAssertTrue(count.waitForExistence(timeout: 30), app.debugDescription)

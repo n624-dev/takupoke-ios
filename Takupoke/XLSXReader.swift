@@ -130,6 +130,34 @@ enum XLSXReader {
 // A preview is read-only and is available only for the exact source/year of a
 // failed weekday check. Kept with the reader so this path is tested on Linux too.
 extension MaterialLibrary {
+    /// Retain the decision while checking the current original. Only a complete
+    /// successful parse can replace it and the last good result atomically.
+    func reanalyzeChanges(defaultYear: Int?, dateDerivedWeekdays: Bool = false,
+                          authorizeWeekdayCorrection: Bool = false,
+                          check: @escaping () throws -> Void = {}) throws {
+        guard let record = state.record(for: .changes), let url = localURL(for: .changes) else {
+            throw ChangeParseError(code: .invalidArchive)
+        }
+        let identity = record.source.selectionID ?? record.storedName
+        var skip = record.source.rowSkipConsent.flatMap {
+            $0.identifies(sourceIdentity: identity, digest: record.digest, defaultYear: defaultYear) ? $0 : nil
+        }
+        let rows = try XLSXReader.read(url, defaultYear: defaultYear, check: check,
+            dateDerivedWeekdays: dateDerivedWeekdays, skippingRows: Set(skip?.rows ?? []))
+        let changes = try ChangeNormalizer.parse(rows, defaultYear: defaultYear, check: check)
+        skip?.parserVersion = ChangeAnalysis.parserVersion
+        var analysis = ChangeAnalysis(sourceDigest: record.digest, sourceName: record.originalName,
+            defaultYear: defaultYear, parsedAt: Date(), records: changes)
+        if dateDerivedWeekdays {
+            analysis.weekdayConsent = ChangeWeekdayConsent(digest: record.digest,
+                defaultYear: defaultYear, parserVersion: ChangeAnalysis.parserVersion)
+        }
+        analysis.rowSkipConsent = skip
+        try check()
+        do { try saveChangeAnalysis(analysis, authorizeWeekdayCorrection: authorizeWeekdayCorrection) }
+        catch { throw ChangeParseError(code: .storage) }
+    }
+
     func previewChanges(check: @escaping () throws -> Void = {}) throws -> ChangePreview {
         guard let record = state.record(for: .changes),
               let attempt = state.changeParseAttempt, attempt.failure?.permitsPreview == true,

@@ -30,12 +30,6 @@ struct ChangePreviewView: View {
                         Button("日付から曜日を求めて読み込む") { confirmingCorrection = true }
                             .buttonStyle(.glassProminent)
                     }
-                    if skipRows != nil {
-                        Button("選んだ行を除外して読み込む") { confirmingSkip = true }
-                            .buttonStyle(.glassProminent)
-                            .disabled(excludedRows.isEmpty)
-                            .accessibilityIdentifier("change-apply-skips")
-                    }
                     DisclosureGroup("曜日の警告：\(preview.warnings.count)件") {
                         ForEach(preview.reviewGroups) { group in
                             let warning = group.rows[0].warning
@@ -90,7 +84,19 @@ struct ChangePreviewView: View {
                 Text("\(excludedRows.count)行を時間割変更から除外します。除外する行：\(ChangeReviewGroup.rangeLabel(Array(excludedRows)))。ファイルの内容が更新されるまで適用します。")
             }
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("閉じる") { dismiss() } } }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(correctWeekdays == nil && skipRows == nil ? "閉じる" : "キャンセル") { dismiss() }
+                }
+                if skipRows != nil {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("除外して読み込む") { confirmingSkip = true }
+                            .buttonStyle(.glassProminent)
+                            .disabled(excludedRows.isEmpty)
+                            .accessibilityIdentifier("change-apply-skips")
+                    }
+                }
+            }
         }
     }
 }

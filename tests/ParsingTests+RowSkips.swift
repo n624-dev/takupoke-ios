@@ -259,4 +259,105 @@ extension ParsingTests {
         }
     }
 
+    func testOldRowSkipDecisionSurvivesSQLiteUpgradeAndCurrentRevalidation() throws {
+        try temporary { root in
+            let databaseURL = root.appendingPathComponent("library.sqlite")
+            let db = try LocalMaterialDatabase(url: databaseURL, create: true)
+            try db.initializeCurrentLibrary()
+            let library = try MaterialLibrary(root: root, persistence: db)
+            let staged = library.newStagingURL()
+            try write(workbook(skipRowsFixture), to: staged)
+            let size = try XCTUnwrap(staged.resourceValues(forKeys: [.fileSizeKey]).fileSize)
+            try library.commit(staged: staged, kind: .changes, source: MaterialSource(),
+                originalName: "完全架空変更.xlsx", byteCount: size, digest: "first", modifiedAt: nil)
+            try library.recordParseFailure(ChangeParseError(code: .weekdayMismatch, row: 3), defaultYear: 2032)
+            try library.applyRowSkips(library.previewChanges(), rows: [3, 4], defaultYear: 2032)
+            let records = try XCTUnwrap(library.state.changeAnalysis?.records)
+            var old = library.state
+            old.records[0].source.rowSkipConsent?.parserVersion -= 1
+            old.changeAnalysis?.version -= 1
+            old.changeAnalysis?.rowSkipConsent = old.records[0].source.rowSkipConsent
+            old.changeParseAttempt?.parserVersion = ChangeAnalysis.parserVersion - 1
+            try library.persist(old)
+            try db.close()
+
+            let reopenedDB = try LocalMaterialDatabase(url: databaseURL)
+            defer { try? reopenedDB.close() }
+            let reopened = try MaterialLibrary(root: root, persistence: reopenedDB)
+            XCTAssertEqual(reopened.state.records[0].source.rowSkipConsent?.parserVersion,
+                           ChangeAnalysis.parserVersion - 1)
+            try reopened.reanalyzeChanges(defaultYear: 2032)
+            let consent = try XCTUnwrap(reopened.state.records[0].source.rowSkipConsent)
+            XCTAssertEqual(consent.rows, [3, 4])
+            XCTAssertEqual(consent.parserVersion, ChangeAnalysis.parserVersion)
+            XCTAssertEqual(reopened.state.changeAnalysis?.records, records)
+            XCTAssertEqual(reopened.state.changeAnalysis?.rowSkipConsent, consent)
+            XCTAssertEqual(try reopenedDB.load().records[0].source.rowSkipConsent, consent)
+
+            let refresh = reopened.newStagingURL()
+            try write(workbook(skipRowsFixture), to: refresh)
+            defer { reopened.discardStaging(refresh) }
+            try reopened.commit(staged: refresh, kind: .changes, source: MaterialSource(),
+                originalName: "完全架空変更.xlsx", byteCount: size, digest: "first",
+                modifiedAt: nil, reuseUnchanged: true)
+            try reopened.reanalyzeChanges(defaultYear: 2032)
+            XCTAssertEqual(try reopenedDB.load().records[0].source.rowSkipConsent, consent)
+        }
+    }
+
+    func testRowSkipRevalidationFailureCancellationAndSaveFailureKeepDecision() throws {
+        try temporary { root in
+            var failSave = false
+            let library = try MaterialLibrary(root: root) { data, url in
+                if failSave { throw ChangeParseError(code: .storage) }
+                try data.write(to: url, options: .atomic)
+            }
+            let staged = library.newStagingURL()
+            try write(workbook(skipRowsFixture), to: staged)
+            try library.commit(staged: staged, kind: .changes, source: MaterialSource(),
+                originalName: "完全架空変更.xlsx",
+                byteCount: try staged.resourceValues(forKeys: [.fileSizeKey]).fileSize!,
+                digest: "first", modifiedAt: nil)
+            try library.recordParseFailure(ChangeParseError(code: .weekdayMismatch, row: 3), defaultYear: 2032)
+            try library.applyRowSkips(library.previewChanges(), rows: [3, 4], defaultYear: 2032)
+            var old = library.state
+            old.records[0].source.rowSkipConsent?.parserVersion -= 1
+            old.changeAnalysis?.version -= 1
+            old.changeAnalysis?.rowSkipConsent = old.records[0].source.rowSkipConsent
+            try library.persist(old)
+            let before = try LocalMaterialDatabase.encode(library.state)
+            assertCode(.weekdayMismatch) { try library.reanalyzeChanges(defaultYear: 2033) }
+            assertCode(.cancelled) {
+                try library.reanalyzeChanges(defaultYear: 2032, check: { throw ChangeParseError(code: .cancelled) })
+            }
+            failSave = true
+            assertCode(.storage) { try library.reanalyzeChanges(defaultYear: 2032) }
+            failSave = false
+            XCTAssertEqual(try LocalMaterialDatabase.encode(library.state), before)
+            XCTAssertEqual(try LocalMaterialDatabase.encode(MaterialLibrary(root: root).state), before)
+        }
+    }
+
+    #if os(macOS)
+    func testRenewedBookmarkMatchesOnlyTheSelectedOriginal() throws {
+        try temporary { root in
+            let original = root.appendingPathComponent("one/完全架空変更.xlsx")
+            let other = root.appendingPathComponent("two/完全架空変更.xlsx")
+            for url in [original, other] {
+                try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try write(workbook(skipRowsFixture), to: url)
+            }
+            let grant = SourceGrant(bookmark: try original.bookmarkData(options: .minimalBookmark,
+                includingResourceValuesForKeys: nil, relativeTo: nil), name: original.lastPathComponent, isFolder: false)
+            XCTAssertTrue(grant.references(original))
+            XCTAssertFalse(grant.references(other))
+            var invalid = grant
+            invalid.bookmark = Data([0, 1, 2])
+            XCTAssertFalse(invalid.references(original))
+            var folder = grant
+            folder.isFolder = true
+            XCTAssertFalse(folder.references(original))
+        }
+    }
+    #endif
 }

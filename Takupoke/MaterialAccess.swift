@@ -20,7 +20,9 @@ final class MaterialWorker {
     }
 
     func selectFile(_ selection: ScopedMaterialSelection, kind: MaterialKind, control: AcquisitionControl) throws {
-        try acquire(kind, control: control) { staged in
+        let sameOriginal = kind == .changes &&
+            library?.state.record(for: kind)?.source.grant?.references(selection.url) == true
+        try acquire(kind, control: control, reuseUnchanged: sameOriginal) { staged in
             try selection.access { url in
                 guard url.pathExtension.lowercased() == kind.fileExtension else { throw MaterialError.invalidFile }
                 let result = try copyProviderFile(url, to: staged, kind: kind, control: control)

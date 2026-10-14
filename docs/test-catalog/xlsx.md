@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`a0200a115b9152fec2eebbfe2b15103ab57c9be53bddeb4357282c05f56bf8c1`
+`06daa394fedc3d5fd6172aa57c3789a9eedb30449aef52d42ba1eea4cf0c33f6`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -52,6 +52,9 @@ bash tools/test-parsing.sh
 - `testRowSkipsCannotHideDateClassFormulaOrStructuralErrors`
 - `testRowSkipConsentPersistsOnlyForSameSelectedContentAndNeverResurrects`
 - `testRowSkipsRejectStalePreviewCancellationAndAllExcludedWithoutSaving`
+- `testOldRowSkipDecisionSurvivesSQLiteUpgradeAndCurrentRevalidation`
+- `testRowSkipRevalidationFailureCancellationAndSaveFailureKeepDecision`
+- `testRenewedBookmarkMatchesOnlyTheSelectedOriginal`
 
 ## [tests/ParsingTests+Workbook.swift](../../tests/ParsingTests+Workbook.swift)
 

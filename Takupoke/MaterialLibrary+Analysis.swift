@@ -26,15 +26,25 @@ extension MaterialLibrary {
             next.records[index].source.weekdayConsent = consent
         }
         if let consent = analysis.rowSkipConsent {
+            let saved = state.record(for: .changes)?.source.rowSkipConsent
+            let revalidated = saved.map {
+                $0.parserVersion < ChangeAnalysis.parserVersion && $0.rows == consent.rows &&
+                $0.identifies(sourceIdentity: consent.sourceIdentity, digest: consent.digest,
+                              defaultYear: consent.defaultYear)
+            } == true
             guard let index = next.records.firstIndex(where: { $0.kind == .changes }),
                   consent.matches(sourceIdentity: next.records[index].source.selectionID ?? next.records[index].storedName,
                                   digest: analysis.sourceDigest, defaultYear: analysis.defaultYear),
-                  authorizeRowSkip || state.records[index].source.rowSkipConsent == consent else { throw ChangeParseError(code: .storage) }
+                  authorizeRowSkip || saved == consent || revalidated else { throw ChangeParseError(code: .storage) }
             next.records[index].source.rowSkipConsent = consent
         } else if let index = next.records.firstIndex(where: { $0.kind == .changes }),
-                  next.records[index].source.rowSkipConsent != nil {
+                  let saved = next.records[index].source.rowSkipConsent {
             // A success must never silently omit the exclusions used to obtain it.
-            throw ChangeParseError(code: .storage)
+            guard !saved.identifies(sourceIdentity: next.records[index].source.selectionID ?? next.records[index].storedName,
+                                   digest: analysis.sourceDigest, defaultYear: analysis.defaultYear) else {
+                throw ChangeParseError(code: .storage)
+            }
+            next.records[index].source.rowSkipConsent = nil
         }
         next.changeAnalysis = analysis
         next.changeParseAttempt = ChangeParseAttempt(date: analysis.parsedAt, sourceDigest: analysis.sourceDigest,
