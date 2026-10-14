@@ -46,9 +46,12 @@ extension ApplicationChecks {
         tapToolbar("除外して読み込む", bar: "内容の確認")
         alert.buttons["除外して読み込む"].tap()
         let count = app.staticTexts["change-skipped-count"]
+        let status = app.descendants(matching: .any)["change-analysis-status"]
         XCTAssertTrue(count.waitForExistence(timeout: 30), app.debugDescription)
         XCTAssertTrue(count.label.contains("103行"), count.label)
-        XCTAssertTrue(app.staticTexts["解析済み"].waitForExistence(timeout: 15))
+        let initiallyParsed = expectation(for: NSPredicate(
+            format: "label ENDSWITH %@ OR value == %@", "解析済み", "解析済み"), evaluatedWith: status)
+        XCTAssertEqual(XCTWaiter.wait(for: [initiallyParsed], timeout: 15), .completed)
         let ranges = app.staticTexts["change-skipped-rows"]
         XCTAssertTrue(ranges.waitForExistence(timeout:15))
         XCTAssertEqual(ranges.label,"除外した行：3〜4行目、200〜300行目")
@@ -60,7 +63,9 @@ extension ApplicationChecks {
         openChanges()
         XCTAssertTrue(count.waitForExistence(timeout: 30), app.debugDescription)
         XCTAssertTrue(count.label.contains("103行"), count.label)
-        XCTAssertTrue(app.staticTexts["解析済み"].waitForExistence(timeout: 15))
+        let parsedAfterRelaunch = expectation(for: NSPredicate(
+            format: "label ENDSWITH %@ OR value == %@", "解析済み", "解析済み"), evaluatedWith: status)
+        XCTAssertEqual(XCTWaiter.wait(for: [parsedAfterRelaunch], timeout: 15), .completed)
         XCTAssertTrue(ranges.waitForExistence(timeout:15))
         XCTAssertEqual(ranges.label,"除外した行：3〜4行目、200〜300行目")
         XCTAssertTrue(visible(app.staticTexts["変更後、架空科目C"]).exists)

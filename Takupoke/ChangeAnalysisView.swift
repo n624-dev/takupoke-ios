@@ -28,6 +28,7 @@ struct ChangeAnalysisView: View {
                 if !validYear { Text("西暦1900〜9998の学校年度を入力してください。").foregroundStyle(.orange) }
                 if let source = model.state.record(for: .changes) {
                     LabeledContent("状態", value: model.analysisStatus(.changes, record: source))
+                        .accessibilityIdentifier("change-analysis-status")
                 }
                 if model.busy {
                     LoadingRow(title: "処理中⋯", cancel: { model.cancel() })
