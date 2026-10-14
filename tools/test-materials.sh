@@ -17,6 +17,10 @@ python3 -B tools/timed_command.py "Material compilation" swiftc -swift-version 5
     Takupoke/ChangeAnalysis.swift \
     Takupoke/TimetableLessonNames.swift \
     Takupoke/PDFSchoolParser.swift \
+    Takupoke/PDF239SchoolParser.swift \
+    Takupoke/PDF239SchoolParser+Timetable.swift \
+    Takupoke/PDF239SchoolParser+Events.swift \
+    Takupoke/PDF239Grid.swift \
     Takupoke/RecoveryModels.swift \
     Takupoke/RecoveryEngine.swift \
     Takupoke/RecoveryStructure.swift \

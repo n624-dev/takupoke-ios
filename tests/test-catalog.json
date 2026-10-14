@@ -267,7 +267,20 @@
         "tools/strict_pdf_compatibility_fixtures.py",
         "Takupoke/PDFEncodedGlyphMap.swift",
         "Takupoke/PDFDrawnTextReader+GlyphBounds.swift",
-        "tools/pdf_branch_catalog.py"
+        "tools/pdf_branch_catalog.py",
+        "Takupoke/PDF239DrawnTextReader.swift",
+        "Takupoke/PDF239DrawnTextReader+Fonts.swift",
+        "Takupoke/PDF239TextGeometry.swift",
+        "Takupoke/PDF239UnicodeMap.swift",
+        "Takupoke/PDF239PathReader.swift",
+        "Takupoke/PDF239Grid.swift",
+        "Takupoke/PDF239SchoolParser.swift",
+        "Takupoke/PDF239SchoolParser+Timetable.swift",
+        "Takupoke/PDF239SchoolParser+Events.swift",
+        "Takupoke/PDF239SpecialScheduleParser.swift",
+        "Takupoke/PDF239SpecialScheduleParser+Pages.swift",
+        "Takupoke/PDF239SpecialScheduleParser+Times.swift",
+        "Takupoke/PDF239KitReader.swift"
       ],
       "checks": [
         "tests/PDFParsingTests+Diagnostics.swift",

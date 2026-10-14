@@ -9,6 +9,32 @@ import CoreText
 #endif
 
 extension PDFParsingTests {
+    func testStrict239RetainsFirstYearMarkerAndOriginalCoordinateContract() throws {
+        var page = timetable()
+        page.glyphs += text("2040年度",x:500,y:20)
+        let result = try PDFSchoolParser.parse([page],kind:.timetable,digest:"fictional",name:"fictional.pdf")
+        XCTAssertEqual(result.schoolYear,2032)
+        XCTAssertEqual(result.lessons.count,8)
+        XCTAssertThrowsError(try PDFSchoolParser.parseCertified([page],kind:.timetable,digest:"fictional",name:"fictional.pdf"))
+        var shifted = timetable()
+        for index in shifted.glyphs.indices { shifted.glyphs[index].x += 2000 }
+        for index in shifted.lines.indices { shifted.lines[index].x1 += 2000; shifted.lines[index].x2 += 2000 }
+        let shiftedResult = try PDFSchoolParser.parse([shifted],kind:.timetable,digest:"fictional",name:"fictional.pdf")
+        XCTAssertEqual(shiftedResult.lessons.map(\.names),try PDFSchoolParser.parse([timetable()],kind:.timetable,digest:"fictional",name:"fictional.pdf").lessons.map(\.names))
+        XCTAssertThrowsError(try PDFSchoolParser.parseCertified([shifted],kind:.timetable,digest:"fictional",name:"fictional.pdf"))
+    }
+
+    func testStrict239RestoresTrailingEmptyFieldsWithoutRoleCalibration() throws {
+        let page = timetableReplacingParallelFields(["架空項目A","架空項目B"])
+        let result = try PDFSchoolParser.parse([page],kind:.timetable,digest:"fictional",name:"fictional.pdf")
+        let lesson = try XCTUnwrap(result.lessons.first { $0.className == "2_YY" && $0.period == 1 })
+        XCTAssertEqual(lesson.names.subject,"架空項目A")
+        XCTAssertEqual(lesson.names.teacher,"架空項目B")
+        XCTAssertEqual(lesson.names.room,"")
+        XCTAssertEqual(lesson.sourceText,"架空項目A\n架空項目B")
+        XCTAssertNil(result.recovery)
+    }
+
     func testRelativeTimetableOutsideViewportCannotBecomeStrictSuccess() {
         for shift in [-2000.0,2000.0] {
             var page = timetable()

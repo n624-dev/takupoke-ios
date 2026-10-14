@@ -30,9 +30,9 @@ extension PDFParsingTests {
             var executionError=false
             do {
                 do {
-                    let pages=try PDFKitReader.read(url,kind:.timetable,capture:capture)
+                    let pages=try PDFKitReader.readCertified(url,kind:.timetable,capture:capture)
                     stage="Strict"
-                    formal=try PDFSchoolParser.parse(pages,kind:.timetable,digest:hash,name:file)
+                    formal=try PDFSchoolParser.parseCertified(pages,kind:.timetable,digest:hash,name:file)
                 } catch let error as PDFParseError {
                     strictFailure="\(error.code):\(String(describing:error.stage))"
                     guard RecoveryPolicy.eligible(error),capture.complete else { throw error }
@@ -238,14 +238,14 @@ extension PDFParsingTests {
         XCTAssertFalse(try PDFPathReader(transform:PDFDisplayTransform(media:ref.getBoxRect(.mediaBox),rotation:0),
             verifyVisibility:true,check:{}).read(ref).isEmpty)
         let capture = RecoveryReadCapture()
-        XCTAssertThrowsError(try PDFKitReader.read(url, kind: .timetable, capture:capture)) { error in
+        XCTAssertThrowsError(try PDFKitReader.readCertified(url, kind: .timetable, capture:capture)) { error in
             XCTAssertEqual((error as? PDFParseError)?.stage, .characterMapping)
         }
         XCTAssertFalse(capture.complete)
         for kind in [MaterialKind.events] {
             nativePage.rotation = 0
             try XCTUnwrap(document.dataRepresentation()).write(to: url)
-            let original = try XCTUnwrap(PDFKitReader.read(url, kind: kind).first)
+            let original = try XCTUnwrap(PDFKitReader.readCertified(url, kind: kind).first)
             XCTAssertEqual(PDFGrid.rows(original.glyphs).map { $0.map(\.text).joined() }, ["ABCD", "EFGH", "IJKL"])
             XCTAssertEqual(try PDFGrid.contentRows(original.glyphs).map { $0.map(\.text).joined() }, ["ABCD", "EFGH", "IJKL"])
             XCTAssertTrue(original.glyphs.allSatisfy { $0.sourceLine != nil && $0.sourceOrder != nil })
@@ -257,7 +257,7 @@ extension PDFParsingTests {
             for rotation in [90, 180, 270] {
                 nativePage.rotation = rotation
                 try XCTUnwrap(document.dataRepresentation()).write(to: url)
-                let rotated = try XCTUnwrap(PDFKitReader.read(url, kind: kind).first)
+                let rotated = try XCTUnwrap(PDFKitReader.readCertified(url, kind: kind).first)
                 XCTAssertEqual(rotated.glyphs.count, original.glyphs.count)
                 for before in original.glyphs {
                     let after = try XCTUnwrap(rotated.glyphs.first { $0.text == before.text })
@@ -335,7 +335,7 @@ extension PDFParsingTests {
         context.closePDF()
         let url = root.appendingPathComponent("synthetic-arrow.pdf")
         try (data as Data).write(to: url)
-        let result = try PDFKitReader.read(url, kind: .events)
+        let result = try PDFKitReader.readCertified(url, kind: .events)
         let arrow = try XCTUnwrap(result.first?.arrows?.first)
         XCTAssertEqual(arrow.x, 100, accuracy: 0.1)
         XCTAssertEqual(arrow.top, 100, accuracy: 0.1)
@@ -376,16 +376,16 @@ extension PDFParsingTests {
         // Generated font mapping remains outside the drawn-text subset. Its
         // earlier color rejection must not hide that independent limitation.
         let capture = RecoveryReadCapture()
-        XCTAssertThrowsError(try PDFKitReader.read(url, kind: .timetable, capture:capture)) { error in
+        XCTAssertThrowsError(try PDFKitReader.readCertified(url, kind: .timetable, capture:capture)) { error in
             XCTAssertEqual((error as? PDFParseError)?.stage, .characterMapping)
         }
         XCTAssertFalse(capture.complete)
         // The original selection geometry and whole invented timetable remain
         // independently verifiable through the special visibility reader.
-        let normal = try PDFKitReader.read(url,kind:.events)
+        let normal = try PDFKitReader.readCertified(url,kind:.events)
         let parsed = try parse(normal, kind: .timetable)
         let visibleCapture = RecoveryReadCapture()
-        let visible = try PDFKitReader.readSpecial(url,capture:visibleCapture)
+        let visible = try PDFKitReader.readCertifiedSpecial(url,capture:visibleCapture)
         XCTAssertTrue(visibleCapture.complete)
         XCTAssertEqual(try parse(visible,kind:.timetable).lessons,parsed.lessons)
         XCTAssertEqual(parsed.lessons.count, 8)
@@ -396,7 +396,7 @@ extension PDFParsingTests {
         let document = try XCTUnwrap(PDFDocument(data: data as Data))
         try XCTUnwrap(document.page(at: 0)).rotation = 90
         try XCTUnwrap(document.dataRepresentation()).write(to: url)
-        let rotated = try PDFKitReader.read(url,kind:.events)
+        let rotated = try PDFKitReader.readCertified(url,kind:.events)
         XCTAssertEqual(rotated[0].width, normal[0].height, accuracy: 0.1)
         XCTAssertEqual(rotated[0].height, normal[0].width, accuracy: 0.1)
         let before = try XCTUnwrap(normal[0].glyphs.first { $0.text == "令" })

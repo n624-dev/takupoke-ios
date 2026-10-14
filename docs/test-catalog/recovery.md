@@ -1,7 +1,7 @@
 # PDF復旧・OCR・構造・Validator・端末内Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`7e4c75a21cfdf186b96902e52cf73f90beff788199f5e978ff58201b0638d01f`
+`ab77ac6e31edbbc69ab941e8fdaac8c3535279f81e39887821de94ffad126c70`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -254,6 +254,7 @@ bash tools/test-parsing.sh
 - `testFilledRuleVersionRetriesUnchangedP01AndP12WithoutLooping`
 - `testVisibleColorVersionRetriesUnchangedP23FailureForAllThreePDFKinds`
 - `testRecoverySourceRequiresCurrentStrictFailureForSameDocument`
+- `testLegacyTextAndGridFailureOnlyOffersRevalidatedOptInRecovery`
 - `testRecoveryDocumentCannotReplaceAnotherYearOrHalf`
 - `testFixedBindingCannotHideAnExplicitRoleLabel`
 - `testManifestRequiresKnownBackendAndMinimumOS`

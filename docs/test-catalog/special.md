@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`ab10543a4bad3f4b29a7ba0f04b401f4a089958b1ea71f2c373520ed9a4ca851`
+`d1918e18903b89aaa061d7a10a0748dde60c762f67a8085fc055f32d0547e9d4`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -35,6 +35,8 @@ bash tools/test-parsing.sh
 
 ## [tests/SpecialScheduleTests.swift](../../tests/SpecialScheduleTests.swift)
 
+- `testStrict239RetainsEightCellLinesAndNonFixedSeventeenClassSet`
+- `testStrict239RetainsPDFPeriodOrderAndReturnDateOrder`
 - `testRelativeSpecialSchedulesOutsideViewportCannotBecomeStrictSuccess`
 - `testReturnColumnsMustBeInDateOrderBeforeSelectingFirstDayTimes`
 - `testReturnScheduleTreatsHorizontallyDividedCellAsTwoLessons`
@@ -49,6 +51,7 @@ bash tools/test-parsing.sh
 
 - `testUnusedDevicePaintDoesNotRejectBlackTextAndSavedColorRestores`
 - `testClipContainmentHasNoToleranceAndPreservesLimitsAndCancellation`
+- `testStrict239ReadDoesNotPromoteLegacySuccessToCertifiedRecovery`
 - `testNativeBoundedOutlinesAndSingletonNormalBlendPreserveDirectText`
 - `testNativeOutlineFontBoundsCannotCrossGridOutsideTheAdvanceBox`
 - `testNativeDiscardedCurvesUnusedDashAndRestoredDashKeepTheVisibleTable`

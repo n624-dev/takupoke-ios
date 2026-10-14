@@ -10,6 +10,23 @@ import CoreGraphics
 enum PDFKitReader {
     static func read(_ url: URL, kind: MaterialKind, diagnostics: PDFDiagnosticRecorder? = nil, capture: RecoveryReadCapture? = nil,
                      check: @escaping () throws -> Void = {}) throws -> [PDFPageLayout] {
+        guard kind == .timetable else {
+            return try readCertified(url,kind:kind,diagnostics:diagnostics,capture:capture,check:check)
+        }
+        // Strict uses the complete 239.1 contract. A successful legacy read is
+        // not evidence that Recovery's added visibility conditions are met.
+        capture?.reset()
+        return try PDF239KitReader.read(url,kind:kind,diagnostics:diagnostics,check:check)
+    }
+
+    static func readSpecial(_ url: URL, diagnostics: PDFDiagnosticRecorder? = nil, capture: RecoveryReadCapture? = nil,
+                            check: @escaping () throws -> Void = {}) throws -> [PDFPageLayout] {
+        capture?.reset()
+        return try PDF239KitReader.readSpecial(url,diagnostics:diagnostics,check:check)
+    }
+
+    static func readCertified(_ url: URL, kind: MaterialKind, diagnostics: PDFDiagnosticRecorder? = nil, capture: RecoveryReadCapture? = nil,
+                     check: @escaping () throws -> Void = {}) throws -> [PDFPageLayout] {
         let recorder = kind == .timetable ? (diagnostics ?? PDFDiagnosticRecorder()) : nil
         do { return try readPages(url, kind: kind, diagnostics: recorder, capture: capture, check: check) }
         catch {
@@ -21,7 +38,7 @@ enum PDFKitReader {
     /// Special schedules use individually validated PDFKit selections plus an
     /// independent content-stream visibility check. Unsupported visibility is
     /// recovered from raster pages, rather than from selectable hidden text.
-    static func readSpecial(_ url: URL, diagnostics: PDFDiagnosticRecorder? = nil, capture: RecoveryReadCapture? = nil,
+    static func readCertifiedSpecial(_ url: URL, diagnostics: PDFDiagnosticRecorder? = nil, capture: RecoveryReadCapture? = nil,
                             check: @escaping () throws -> Void = {}) throws -> [PDFPageLayout] {
         do { return try readPages(url, kind: .events, diagnostics: diagnostics, capture: capture, verifyVisibility: true, check: check) }
         catch {

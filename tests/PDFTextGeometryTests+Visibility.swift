@@ -1,6 +1,9 @@
 import Foundation
 import XCTest
 @testable import TakupokeParsing
+
+// Added acquisition/role safety checks use the certified Recovery contract.
+// Explicit testStrict239 cases and StrictPDFCompatibilityTests exercise app Strict.
 #if canImport(PDFKit)
 import PDFKit
 import CoreGraphics
@@ -46,6 +49,32 @@ extension PDFTextGeometryTests {
     }
 
 #if canImport(PDFKit)
+    func testStrict239ReadDoesNotPromoteLegacySuccessToCertifiedRecovery() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-strict239-"+UUID().uuidString)
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let url = root.appendingPathComponent("fictional.pdf")
+        let text = "BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET"
+        let cases = [text+" q 0.9 g 20 335 75 40 re f Q", "0 g 20 335 75 40 re f "+text,
+                     "0 g 20 335 75 40 re 20 335 75 40 re f* "+text]
+        for content in cases {
+            try syntheticPDF(content:content+" 10 10 m 290 10 l S",simpleFont:true).write(to:url)
+            for special in [false,true] {
+                let capture = RecoveryReadCapture()
+                let pages = try special ? PDFKitReader.readSpecial(url,capture:capture)
+                    : PDFKitReader.read(url,kind:.timetable,capture:capture)
+                XCTAssertEqual(pages[0].glyphs.map(\.text).joined(),"AB")
+                XCTAssertEqual(pages[0].lines.count,1)
+                XCTAssertFalse(capture.complete)
+                XCTAssertTrue(capture.pages.isEmpty)
+                let certified = RecoveryReadCapture()
+                XCTAssertThrowsError(try special ? PDFKitReader.readCertifiedSpecial(url,capture:certified)
+                    : PDFKitReader.readCertified(url,kind:.timetable,capture:certified))
+                XCTAssertFalse(certified.complete)
+            }
+        }
+    }
+
     func testNativeBoundedOutlinesAndSingletonNormalBlendPreserveDirectText() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-outline-compatibility-"+UUID().uuidString)
         try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
@@ -59,8 +88,8 @@ extension PDFTextGeometryTests {
             try data.write(to:url)
             for special in [false,true] {
                 let capture = RecoveryReadCapture()
-                let pages = try special ? PDFKitReader.readSpecial(url,capture:capture)
-                    : PDFKitReader.read(url,kind:.timetable,capture:capture)
+                let pages = try special ? PDFKitReader.readCertifiedSpecial(url,capture:capture)
+                    : PDFKitReader.readCertified(url,kind:.timetable,capture:capture)
                 XCTAssertEqual(pages.count,1); XCTAssertEqual(pages[0].glyphs.map(\.text).joined(),"AB")
                 XCTAssertEqual(pages[0].lines.count,1); XCTAssertTrue(capture.complete)
                 XCTAssertTrue(pages[0].glyphs.allSatisfy { $0.sourceLine != nil && $0.sourceOrder != nil })
@@ -78,8 +107,8 @@ extension PDFTextGeometryTests {
         try syntheticPDF(content:content,simpleFont:true).write(to:url)
         for special in [false,true] {
             let capture = RecoveryReadCapture()
-            if special { XCTAssertThrowsError(try PDFKitReader.readSpecial(url,capture:capture)) }
-            else { XCTAssertThrowsError(try PDFKitReader.read(url,kind:.timetable,capture:capture)) }
+            if special { XCTAssertThrowsError(try PDFKitReader.readCertifiedSpecial(url,capture:capture)) }
+            else { XCTAssertThrowsError(try PDFKitReader.readCertified(url,kind:.timetable,capture:capture)) }
             XCTAssertFalse(capture.complete)
         }
     }
@@ -105,8 +134,8 @@ extension PDFTextGeometryTests {
             let url = root.appendingPathComponent("fictional.pdf"); try data.write(to:url)
             for special in [false,true] {
                 let capture = RecoveryReadCapture()
-                let pages = try special ? PDFKitReader.readSpecial(url,capture:capture)
-                    : PDFKitReader.read(url,kind:.timetable,capture:capture)
+                let pages = try special ? PDFKitReader.readCertifiedSpecial(url,capture:capture)
+                    : PDFKitReader.readCertified(url,kind:.timetable,capture:capture)
                 XCTAssertEqual(pages[0].glyphs.map(\.text).joined(),"AB")
                 XCTAssertEqual(pages[0].lines.count,1); XCTAssertTrue(capture.complete)
             }
@@ -123,8 +152,8 @@ extension PDFTextGeometryTests {
         try syntheticPDF(content:content,simpleFont:true).write(to:url)
         for special in [false,true] {
             let capture = RecoveryReadCapture()
-            let pages = try special ? PDFKitReader.readSpecial(url,capture:capture)
-                : PDFKitReader.read(url,kind:.timetable,capture:capture)
+            let pages = try special ? PDFKitReader.readCertifiedSpecial(url,capture:capture)
+                : PDFKitReader.readCertified(url,kind:.timetable,capture:capture)
             let arrows = try XCTUnwrap(pages[0].arrows)
             let arrow = try XCTUnwrap(arrows.first)
             XCTAssertEqual(arrows.count,1); XCTAssertEqual(arrow.x,100.5)
@@ -155,8 +184,8 @@ extension PDFTextGeometryTests {
                     try syntheticPDF(content: content, simpleFont: true).write(to: url)
                     let capture = RecoveryReadCapture()
                     let pages: [PDFPageLayout]
-                    if special { pages = try PDFKitReader.readSpecial(url, capture: capture) }
-                    else { pages = try PDFKitReader.read(url, kind: .timetable, capture: capture) }
+                    if special { pages = try PDFKitReader.readCertifiedSpecial(url, capture: capture) }
+                    else { pages = try PDFKitReader.readCertified(url, kind: .timetable, capture: capture) }
                     let page = try XCTUnwrap(pages.first)
                     XCTAssertEqual(pages.count, 1)
                     XCTAssertEqual(page.glyphs.map(\.text).joined(), "AB")
@@ -192,9 +221,9 @@ extension PDFTextGeometryTests {
             for special in [false, true] {
                 let capture = RecoveryReadCapture()
                 if special {
-                    XCTAssertThrowsError(try PDFKitReader.readSpecial(url, capture: capture))
+                    XCTAssertThrowsError(try PDFKitReader.readCertifiedSpecial(url, capture: capture))
                 } else {
-                    XCTAssertThrowsError(try PDFKitReader.read(url, kind: .timetable, capture: capture))
+                    XCTAssertThrowsError(try PDFKitReader.readCertified(url, kind: .timetable, capture: capture))
                 }
                 XCTAssertFalse(capture.complete)
                 XCTAssertFalse(capture.pages.contains { $0.state == .complete })
@@ -214,12 +243,12 @@ extension PDFTextGeometryTests {
             let text = "0 g 0 G 0.5 w 1 j BT /F1 10 Tf \(mode) Tr 1 0 0 1 30 350 Tm (AB) Tj ET"
             for special in [false, true] {
                 try syntheticPDF(content: text + rule, simpleFont: true).write(to: url)
-                let reference = try special ? PDFKitReader.readSpecial(url)
-                    : PDFKitReader.read(url, kind: .timetable)
+                let reference = try special ? PDFKitReader.readCertifiedSpecial(url)
+                    : PDFKitReader.readCertified(url, kind: .timetable)
                 try syntheticPDF(content: background + text + rule, simpleFont: true).write(to: url)
                 let capture = RecoveryReadCapture()
-                let pages = try special ? PDFKitReader.readSpecial(url, capture: capture)
-                    : PDFKitReader.read(url, kind: .timetable, capture: capture)
+                let pages = try special ? PDFKitReader.readCertifiedSpecial(url, capture: capture)
+                    : PDFKitReader.readCertified(url, kind: .timetable, capture: capture)
                 XCTAssertEqual(pages[0].glyphs.map(\.text), reference[0].glyphs.map(\.text))
                 XCTAssertEqual(pages[0].glyphs.map(\.x), reference[0].glyphs.map(\.x))
                 XCTAssertEqual(pages[0].glyphs.map(\.y), reference[0].glyphs.map(\.y))
@@ -228,8 +257,8 @@ extension PDFTextGeometryTests {
                 XCTAssertTrue(capture.complete)
                 try syntheticPDF(content: text + " " + background + rule, simpleFont: true).write(to: url)
                 let rejected = RecoveryReadCapture()
-                XCTAssertThrowsError(try special ? PDFKitReader.readSpecial(url, capture: rejected)
-                    : PDFKitReader.read(url, kind: .timetable, capture: rejected)) {
+                XCTAssertThrowsError(try special ? PDFKitReader.readCertifiedSpecial(url, capture: rejected)
+                    : PDFKitReader.readCertified(url, kind: .timetable, capture: rejected)) {
                     XCTAssertEqual(($0 as? PDFParseError)?.branch, .b265)
                 }
                 XCTAssertFalse(rejected.complete)
@@ -264,8 +293,8 @@ extension PDFTextGeometryTests {
                 graphicsState: "/ca 0.5", simpleFont: true).write(to: url)
             for special in [false, true] {
                 let capture = RecoveryReadCapture()
-                XCTAssertThrowsError(try special ? PDFKitReader.readSpecial(url, capture: capture)
-                    : PDFKitReader.read(url, kind: .timetable, capture: capture)) {
+                XCTAssertThrowsError(try special ? PDFKitReader.readCertifiedSpecial(url, capture: capture)
+                    : PDFKitReader.readCertified(url, kind: .timetable, capture: capture)) {
                     // Normal text reads ExtGState before the path scan; the
                     // special reader rejects it at the path scan instead.
                     let expected = branch == .b144 && !special ? PDFParseError.Branch.b067 : branch
@@ -296,8 +325,8 @@ extension PDFTextGeometryTests {
             try syntheticPDF(content: content, simpleFont: true).write(to: url)
             for special in [false, true] {
                 let capture = RecoveryReadCapture()
-                XCTAssertThrowsError(try special ? PDFKitReader.readSpecial(url, capture: capture)
-                    : PDFKitReader.read(url, kind: .timetable, capture: capture)) {
+                XCTAssertThrowsError(try special ? PDFKitReader.readCertifiedSpecial(url, capture: capture)
+                    : PDFKitReader.readCertified(url, kind: .timetable, capture: capture)) {
                     XCTAssertEqual(($0 as? PDFParseError)?.branch, branch)
                 }
                 XCTAssertFalse(capture.complete)
@@ -320,20 +349,20 @@ extension PDFTextGeometryTests {
                 try syntheticPDF(content: "/Visibility gs " + background + text + rule,
                     graphicsState: state, simpleFont: true).write(to: url)
                 let capture = RecoveryReadCapture()
-                XCTAssertThrowsError(try special ? PDFKitReader.readSpecial(url, capture: capture)
-                    : PDFKitReader.read(url, kind: .timetable, capture: capture)) {
+                XCTAssertThrowsError(try special ? PDFKitReader.readCertifiedSpecial(url, capture: capture)
+                    : PDFKitReader.readCertified(url, kind: .timetable, capture: capture)) {
                     XCTAssertEqual(($0 as? PDFParseError)?.branch, .b271)
                 }
                 XCTAssertFalse(capture.complete)
                 try syntheticPDF(content: "q /Visibility gs Q " + background + text + rule,
                     graphicsState: state, simpleFont: true).write(to: url)
-                let restored = try special ? PDFKitReader.readSpecial(url)
-                    : PDFKitReader.read(url, kind: .timetable)
+                let restored = try special ? PDFKitReader.readCertifiedSpecial(url)
+                    : PDFKitReader.readCertified(url, kind: .timetable)
                 XCTAssertEqual(restored[0].glyphs.map(\.text).joined(), "AB")
                 try syntheticPDF(content: background + "/Visibility gs " + text + rule,
                     graphicsState: state, simpleFont: true).write(to: url)
-                XCTAssertThrowsError(try special ? PDFKitReader.readSpecial(url)
-                    : PDFKitReader.read(url, kind: .timetable)) {
+                XCTAssertThrowsError(try special ? PDFKitReader.readCertifiedSpecial(url)
+                    : PDFKitReader.readCertified(url, kind: .timetable)) {
                     XCTAssertEqual(($0 as? PDFParseError)?.branch, .b267)
                 }
                 for content in [
@@ -344,8 +373,8 @@ extension PDFTextGeometryTests {
                     try syntheticPDF(content: content, graphicsState: state, simpleFont: true,
                         extraGraphicsStates: "/Disabled << /OP false /op false >>").write(to: url)
                     let cleared = RecoveryReadCapture()
-                    let pages = try special ? PDFKitReader.readSpecial(url, capture: cleared)
-                        : PDFKitReader.read(url, kind: .timetable, capture: cleared)
+                    let pages = try special ? PDFKitReader.readCertifiedSpecial(url, capture: cleared)
+                        : PDFKitReader.readCertified(url, kind: .timetable, capture: cleared)
                     XCTAssertEqual(pages[0].glyphs.map(\.text).joined(), "AB")
                     XCTAssertEqual(pages[0].lines.count, 1)
                     XCTAssertTrue(cleared.complete)
@@ -354,8 +383,8 @@ extension PDFTextGeometryTests {
         }
         try syntheticPDF(content: "/Visibility gs " + background + text + rule,
             graphicsState: "/OP false /op false /OPM 1", simpleFont: true).write(to: url)
-        XCTAssertEqual(try PDFKitReader.read(url, kind: .timetable)[0].lines.count, 1)
-        XCTAssertEqual(try PDFKitReader.readSpecial(url)[0].lines.count, 1)
+        XCTAssertEqual(try PDFKitReader.readCertified(url, kind: .timetable)[0].lines.count, 1)
+        XCTAssertEqual(try PDFKitReader.readCertifiedSpecial(url)[0].lines.count, 1)
     }
 
     func testNativeInertTagsContainedClipsDeviceSpacesAndUnusedStylesPreserveDirectAcquisition() throws {
@@ -402,8 +431,8 @@ extension PDFTextGeometryTests {
             for special in [false,true] {
                 let capture = RecoveryReadCapture()
                 let pages: [PDFPageLayout]
-                if special { pages = try PDFKitReader.readSpecial(url,capture:capture) }
-                else { pages = try PDFKitReader.read(url,kind:.timetable,capture:capture) }
+                if special { pages = try PDFKitReader.readCertifiedSpecial(url,capture:capture) }
+                else { pages = try PDFKitReader.readCertified(url,kind:.timetable,capture:capture) }
                 XCTAssertTrue(capture.complete,"variant \(index), special \(special)")
                 XCTAssertEqual(pages[0].glyphs.map(\.text).joined(),"AB")
                 XCTAssertEqual(pages[0].lines.count,1)
@@ -433,8 +462,8 @@ extension PDFTextGeometryTests {
             try syntheticPDF(content:content,simpleFont:true).write(to:url)
             for special in [false,true] {
                 let capture = RecoveryReadCapture()
-                if special { XCTAssertThrowsError(try PDFKitReader.readSpecial(url,capture:capture),"variant \(index)") }
-                else { XCTAssertThrowsError(try PDFKitReader.read(url,kind:.timetable,capture:capture),"variant \(index)") }
+                if special { XCTAssertThrowsError(try PDFKitReader.readCertifiedSpecial(url,capture:capture),"variant \(index)") }
+                else { XCTAssertThrowsError(try PDFKitReader.readCertified(url,kind:.timetable,capture:capture),"variant \(index)") }
                 XCTAssertFalse(capture.complete)
                 XCTAssertFalse(capture.pages.contains { $0.state == .complete })
             }
@@ -446,8 +475,8 @@ extension PDFTextGeometryTests {
             try syntheticPDF(content:prefix+text,simpleFont:true,colorSpaces:resources).write(to:url)
             for special in [false,true] {
                 let capture = RecoveryReadCapture()
-                if special { XCTAssertThrowsError(try PDFKitReader.readSpecial(url,capture:capture)) }
-                else { XCTAssertThrowsError(try PDFKitReader.read(url,kind:.timetable,capture:capture)) }
+                if special { XCTAssertThrowsError(try PDFKitReader.readCertifiedSpecial(url,capture:capture)) }
+                else { XCTAssertThrowsError(try PDFKitReader.readCertified(url,kind:.timetable,capture:capture)) }
                 XCTAssertFalse(capture.complete)
             }
         }

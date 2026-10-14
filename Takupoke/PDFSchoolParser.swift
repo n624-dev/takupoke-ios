@@ -54,6 +54,18 @@ enum PDFSchoolParser {
     }
     static func parse(_ pages: [PDFPageLayout], kind: MaterialKind, digest: String, name: String,
                       check: () throws -> Void = {}) throws -> PDFAnalysis {
+        if kind == .timetable {
+            var result = try PDF239SchoolParser.parse(pages,kind:kind,digest:digest,name:name,check:check)
+            // These notices describe the current app, not PDF acceptance rules.
+            result.notices = ["PDFの記載名を解析結果として保存しています。正式名称の対応は表示時に適用します。",
+                              "適用開始日・終了日はPDFの学期名から推測していません。時間割変更は日付ごとの表示時に反映します。"]
+            return result
+        }
+        return try parseCertified(pages,kind:kind,digest:digest,name:name,check:check)
+    }
+
+    static func parseCertified(_ pages: [PDFPageLayout], kind: MaterialKind, digest: String, name: String,
+                      check: () throws -> Void = {}) throws -> PDFAnalysis {
         guard kind != .changes, !pages.isEmpty, pages.count <= 12 else { throw PDFParseError(code: .unsupported, branch:.b176) }
         for (index, page) in pages.enumerated() {
             try check()

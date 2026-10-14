@@ -5,6 +5,20 @@ import re
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCES = {
+    'PDF239DrawnTextReader.swift': "239.1のStrict判定（原条件と固定番号）",
+    'PDF239DrawnTextReader+Fonts.swift': "239.1のStrict判定（原条件と固定番号）",
+    'PDF239TextGeometry.swift': "239.1のStrict判定（原条件と固定番号）",
+    'PDF239UnicodeMap.swift': "239.1のStrict判定（原条件と固定番号）",
+    'PDF239PathReader.swift': "239.1のStrict判定（原条件と固定番号）",
+    'PDF239Grid.swift': "239.1のStrict判定（原条件と固定番号）",
+    'PDF239SchoolParser.swift': "239.1のStrict判定（原条件と固定番号）",
+    'PDF239SchoolParser+Timetable.swift': "239.1のStrict判定（原条件と固定番号）",
+    'PDF239SchoolParser+Events.swift': "239.1のStrict判定（原条件と固定番号）",
+    'PDF239SpecialScheduleParser.swift': "239.1のStrict判定（原条件と固定番号）",
+    'PDF239SpecialScheduleParser+Pages.swift': "239.1のStrict判定（原条件と固定番号）",
+    'PDF239SpecialScheduleParser+Times.swift': "239.1のStrict判定（原条件と固定番号）",
+    'PDF239KitReader.swift': "239.1のStrict判定（原条件と固定番号）",
+
     "PDFAnalysis.swift": "ページの文字・罫線が表示範囲に入るか",
     "PDFCharacterGeometry.swift": "文字と選択範囲の対応",
     "PDFContentVisibility.swift": "色・破線・clip・表示タグ",
@@ -70,9 +84,9 @@ def document(root=ROOT):
         source = (root / "Takupoke" / name).read_text()
         # Every failure creation site owns one fixed code. The text helper alone
         # forwards its caller's code, instead of replacing it with a shared code.
-        creation_count = len(re.findall(r'PDFParseError\(|PDFTextFailure\.unsupported\(', source))
+        creation_count = len(re.findall(r'PDFParseError\(|PDF(?:239)?TextFailure\.unsupported\(', source))
         identifiers = list(re.finditer(r'(?:branch:\s*|unsupported\()\.b(\d{3})', source))
-        if name == "PDFTextGeometry.swift":
+        if name in {"PDFTextGeometry.swift", "PDF239TextGeometry.swift"}:
             creation_count -= 1
         if creation_count != len(identifiers):
             raise ValueError(f"Missing or extra Strict branch: {name}")
@@ -87,7 +101,7 @@ def document(root=ROOT):
             text = source[start:end if end >= 0 else len(source)]
             stage = re.search(r'stage:\s*\.(\w+)', text)
             label = STAGES.get(stage[1], "呼出元") if stage else (
-                "P01" if "PDFTextFailure.unsupported" in text else "分類なし／呼出元")
+                "P01" if re.search(r"PDF(?:239)?TextFailure\.unsupported",text) else "分類なし／呼出元")
             # The source excerpt identifies the exact check without duplicating
             # its expected result in a test. Links remain the full condition.
             condition = text.split("PDFParseError(")[0].split("PDFTextFailure.unsupported")[0]

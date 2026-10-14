@@ -21,6 +21,11 @@ enum SpecialScheduleParser {
 
     static func parse(_ pages: [PDFPageLayout], kind: SpecialScheduleKind, digest: String,
                       name: String, check: () throws -> Void = {}) throws -> SpecialScheduleAnalysis {
+        try PDF239SpecialScheduleParser.parse(pages,kind:kind,digest:digest,name:name,check:check)
+    }
+
+    static func parseCertified(_ pages: [PDFPageLayout], kind: SpecialScheduleKind, digest: String,
+                      name: String, check: () throws -> Void = {}) throws -> SpecialScheduleAnalysis {
         guard !pages.isEmpty, pages.count == (kind == .exam ? 6 : 1) else {
             throw PDFParseError(code: .unsupported, stage: .documentHeading, branch:.b250)
         }

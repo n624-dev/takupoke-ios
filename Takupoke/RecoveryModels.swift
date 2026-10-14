@@ -151,6 +151,12 @@ enum RecoveryPolicy {
         }
     }
     static func eligible(_ failure: PDFParseError) -> Bool {
+        // The 239 reader reports unavailable text/grid as unreadable. Only
+        // these sites may enter opt-in acquisition; opening/size failures may not.
+        // Eligibility is not proof: certified acquisition rechecks the PDF limits.
+        if failure.code == .unreadable {
+            return failure.branch == .b420 || failure.branch == .b408
+        }
         guard failure.code == .unsupported || failure.code == .ambiguous else { return false }
         return failure.stage != .duplicateClass && failure.stage != .eventColumns && failure.stage != .monthHeading
     }

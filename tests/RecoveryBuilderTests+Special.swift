@@ -219,7 +219,7 @@ extension SpecialScheduleTests {
             }
             for years in ["令和8年度令和8年度", "2026年度令和8年度", "令 和 8 年 度2 0 2 6 年 度", "㋿8年度2026年度", "令和8年度𝟚𝟘𝟚𝟞年度"] {
                 XCTAssertEqual(
-                    try SpecialScheduleParser.parse(
+                    try SpecialScheduleParser.parseCertified(
                         pages(years), kind: kind, digest: "fictional", name: "fictional.pdf"
                     ).schoolYear, 2026)
             }
@@ -230,7 +230,7 @@ extension SpecialScheduleTests {
                 "令和8年度㋿9年度", "令和8年度𝟚𝟘𝟚𝟟年度", "令和8年度令和九年度", "令和8年度令和年度",
             ] {
                 XCTAssertThrowsError(
-                    try SpecialScheduleParser.parse(
+                    try SpecialScheduleParser.parseCertified(
                         pages(years), kind: kind, digest: "fictional", name: "fictional.pdf")
                 ) {
                     XCTAssertEqual(($0 as? PDFParseError)?.stage, .yearHeading)

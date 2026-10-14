@@ -2,6 +2,9 @@ import Foundation
 import XCTest
 import ZIPFoundation
 @testable import TakupokeParsing
+
+// Added acquisition/role safety checks use the certified Recovery contract.
+// Explicit testStrict239 cases and StrictPDFCompatibilityTests exercise app Strict.
 #if canImport(PDFKit)
 import PDFKit
 import CoreGraphics
@@ -70,6 +73,6 @@ final class PDFParsingTests: XCTestCase {
         return PDFPageLayout(width: 1100, height: 800, glyphs: gs, lines: lines, arrows: arrows)
     }
     func parse(_ pages: [PDFPageLayout], kind: MaterialKind) throws -> PDFAnalysis {
-        try PDFSchoolParser.parse(pages, kind: kind, digest: "synthetic-digest", name: "synthetic.pdf")
+        try PDFSchoolParser.parseCertified(pages, kind: kind, digest: "synthetic-digest", name: "synthetic.pdf")
     }
 }

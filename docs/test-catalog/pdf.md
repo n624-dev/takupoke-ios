@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`bf2728210a15a580791e2620470b696b5f024ded6b8560a67d2a25ef080a23df`
+`356ffc159429293d460f7b1ae3885c9ff498d4a5dfea8af272a546b55ec4f945`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -39,6 +39,19 @@ python3 -B tools/pdf_branch_catalog.py check
 - [Takupoke/PDFEncodedGlyphMap.swift](../../Takupoke/PDFEncodedGlyphMap.swift)
 - [Takupoke/PDFDrawnTextReader+GlyphBounds.swift](../../Takupoke/PDFDrawnTextReader+GlyphBounds.swift)
 - [tools/pdf_branch_catalog.py](../../tools/pdf_branch_catalog.py)
+- [Takupoke/PDF239DrawnTextReader.swift](../../Takupoke/PDF239DrawnTextReader.swift)
+- [Takupoke/PDF239DrawnTextReader+Fonts.swift](../../Takupoke/PDF239DrawnTextReader+Fonts.swift)
+- [Takupoke/PDF239TextGeometry.swift](../../Takupoke/PDF239TextGeometry.swift)
+- [Takupoke/PDF239UnicodeMap.swift](../../Takupoke/PDF239UnicodeMap.swift)
+- [Takupoke/PDF239PathReader.swift](../../Takupoke/PDF239PathReader.swift)
+- [Takupoke/PDF239Grid.swift](../../Takupoke/PDF239Grid.swift)
+- [Takupoke/PDF239SchoolParser.swift](../../Takupoke/PDF239SchoolParser.swift)
+- [Takupoke/PDF239SchoolParser+Timetable.swift](../../Takupoke/PDF239SchoolParser+Timetable.swift)
+- [Takupoke/PDF239SchoolParser+Events.swift](../../Takupoke/PDF239SchoolParser+Events.swift)
+- [Takupoke/PDF239SpecialScheduleParser.swift](../../Takupoke/PDF239SpecialScheduleParser.swift)
+- [Takupoke/PDF239SpecialScheduleParser+Pages.swift](../../Takupoke/PDF239SpecialScheduleParser+Pages.swift)
+- [Takupoke/PDF239SpecialScheduleParser+Times.swift](../../Takupoke/PDF239SpecialScheduleParser+Times.swift)
+- [Takupoke/PDF239KitReader.swift](../../Takupoke/PDF239KitReader.swift)
 
 ## [tests/PDFParsingTests+Diagnostics.swift](../../tests/PDFParsingTests+Diagnostics.swift)
 
@@ -79,6 +92,8 @@ python3 -B tools/pdf_branch_catalog.py check
 
 ## [tests/PDFParsingTests+Timetable.swift](../../tests/PDFParsingTests+Timetable.swift)
 
+- `testStrict239RetainsFirstYearMarkerAndOriginalCoordinateContract`
+- `testStrict239RestoresTrailingEmptyFieldsWithoutRoleCalibration`
 - `testRelativeTimetableOutsideViewportCannotBecomeStrictSuccess`
 - `testTimetablePeriodsParallelLessonsAndEmptyRoom`
 - `testTimetableRejectsUnalignedParallelEvidenceAcrossAnyTwoRoles`
@@ -143,6 +158,7 @@ python3 -B tools/pdf_branch_catalog.py check
 
 - `testUnusedDevicePaintDoesNotRejectBlackTextAndSavedColorRestores`
 - `testClipContainmentHasNoToleranceAndPreservesLimitsAndCancellation`
+- `testStrict239ReadDoesNotPromoteLegacySuccessToCertifiedRecovery`
 - `testNativeBoundedOutlinesAndSingletonNormalBlendPreserveDirectText`
 - `testNativeOutlineFontBoundsCannotCrossGridOutsideTheAdvanceBox`
 - `testNativeDiscardedCurvesUnusedDashAndRestoredDashKeepTheVisibleTable`

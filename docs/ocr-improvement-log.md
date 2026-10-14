@@ -1,5 +1,20 @@
 ## 2026-10-14 Strict全復元候補のローカル依存取得がTLSで停止
 
+## 2026-10-14 Actions前の新規差分レビュー29
+
+新規GPT-6.1 Sol／Highが読取専用でCODE差分を確認した。
+初回200,974 bytes SHA256 c0f4f107359a779f77e7f2afc8dc4a3a7371684a6116a90a3d6d326f9107b571。
+最終204,774 bytes SHA256 17f2b8ca717555bfcc45cf2219968c53fafdb8f15fba3157641edbd09141ced4。
+両方Blockingなし。旧Strict／復旧専用入口・capture未昇格・限定候補・上限拒否・
+保存受入・ビルド登録・既存対照の移動を確認した。
+修正差分はRecoveryTestsの最新版assert7件とSpecialScheduleTestsの3-ES位置だけ。
+旧版・再試行可否・行事4・8行・17件・certified拒否・保存全文・9行拒否は維持した。
+主担当がfixtureの文字位置と各assertを確認し、ローカル再検証を開始した。
+レビューの成功はビルド・PDF品質・実機の成功を意味しない。
+この確認をfeatureコードpushの自動Actions開始前のレビューとして使う。
+次のActions開始には別の新規agentを使用する。
+
+
 ## 2026-10-14 ローカルSwift初回の完了と追加の架空入力位置不一致
 
 初回は487件、8assertion失敗、64.254秒（準備・ビルド含む369.7秒）。

@@ -77,9 +77,13 @@ final class PDFRecoveryCoordinator: ObservableObject {
                     var pages = source.captured
                     if pages.isEmpty {
                         do {
-                            if kind == .timetable { _ = try PDFKitReader.read(source.url,kind:.timetable,capture:capture,check:{ try preparationControl.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) }) }
-                            else { _ = try PDFKitReader.readSpecial(source.url,capture:capture,check:{ try preparationControl.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) }) }
-                        } catch let error as PDFParseError where error.code == .cancelled { throw error }
+                            if kind == .timetable { _ = try PDFKitReader.readCertified(source.url,kind:.timetable,capture:capture,check:{ try preparationControl.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) }) }
+                            else { _ = try PDFKitReader.readCertifiedSpecial(source.url,capture:capture,check:{ try preparationControl.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) }) }
+                        } catch let error as PDFParseError where [.cancelled, .limit, .unreadable].contains(error.code) {
+                            // Invalid documents/pages and exhausted limits cannot
+                            // fall through into OCR after a legacy unreadable error.
+                            throw error
+                        }
                         catch { /* The capture explicitly records incomplete pages. */ }
                         pages = capture.pages
                     }
