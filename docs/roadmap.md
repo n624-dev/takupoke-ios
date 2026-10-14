@@ -19,12 +19,13 @@
 
 ## 最新の確認状況
 
-- 通常配布版：[0.1.394（394.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.394-build.394.1)。
+- 通常配布版：[0.1.395（395.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.395-build.395.1)。
+  XLSXの除外判断を更新後・同一原本再選択後も保持し、確認画面の右上へ実行、左上へキャンセルを配置しました。
   [239.1のStrictを復元](strict239-restoration.md)し、復旧の追加証明を独立した経路へ分離しました。
   通常Parser32・試験／返却29で、同じ内容の旧失敗も再解析します。
   同一ソースの全13必須チェックと、通常Release・Latest・固定AltStore Sourceの匿名照合が成功。
-  SDK26.6／27.0の各Native561件（予定skip1、失敗0）、36文書・96ページの全文比較が成功しました。
-  利用者から実際の3PDFの解析が戻った報告を受けました。AltStore更新経路は未確認。
+  SDK26.6／27.0の各Native564件（予定skip1、失敗0）、36文書・96ページの全文比較と両OSの除外UIが成功しました。
+  394.1では利用者から実際の3PDFの解析が戻った報告を受けました。395.1の実機更新後の除外保持は未確認。
   393.1での3拒否は履歴へ保持します。[原因調査](strict-pdf-regression-cause.md)を記録しました。
 - 個別の開発確認版：ソース22c8ee2の[公開IPA](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-37811661856-1-22c8ee2b5fa5)。
   同一ソースの全13チェックが成功しました。通常Latest・固定Sourceとは別の既存公開版です。
