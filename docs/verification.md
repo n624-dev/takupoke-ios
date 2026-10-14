@@ -33,6 +33,18 @@ Swift6.1.2 Linux：489件・失敗0、63.963秒（依存取得・build含む374.
 SHA256 fc482458ee54e88059d85ce05ca986cd02959185c5fbe47dabd5fdfb718e61b4を読取専用で確認し、Blockingなし。
 同じ差分のfeature push前レビューとして使用する。次のActions開始には別の新規agentを使う。
 
+ソース23e562a0bbc69bb530ff844ce0dd420f4c188817をfeatureへpushし、
+[開発128](https://github.com/n624-dev/takupoke-ios/actions/runs/38504040235)は試行1で成功。
+portable Swift489件・失敗0・48.032秒（build含む149.0秒）、Python187件・予定skip7・60.574秒。
+完了jobの原ログを確認した。optional nativeは条件付きskipでApple成功には数えない。
+main更新前に新規review32（GPT-6.1 Sol／High）が同じCODE差分を独立して確認、Blockingなし。
+非Blockingは、旧判断適用中の再検証失敗と解析後の中止の専用対照がないというテスト範囲の指摘。
+主担当は現Readerの除外適格性／全行検証、保存前check、例外時にpersistを呼ばない経路を確認した。
+既存の除外不能行の拒否と今回の失敗保持の動作対照を併せて使う。
+専用対照がない範囲を実測済みとは記載せず、結果・取消・保存期待値を緩めない。
+同じ23e562aをmainへfast-forwardし、[全体395](https://github.com/n624-dev/takupoke-ios/actions/runs/38504385862)
+の全13必須検証を開始した。再試行・取消はしない。
+
 ## 2026-10-14 Strict全復元候補のローカル依存取得がTLSで停止
 
 ## 2026-10-14 239.1のStrict復元版394.1：全13チェック・公開・匿名照合完了
