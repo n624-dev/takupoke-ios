@@ -1,3 +1,13 @@
+## 2026-10-14 Strict全復元候補のローカル依存取得がTLSで停止
+
+編集中の239.1復元候補を、所有するswift:6.1.2-noble Dockerで検証した。
+Python187件は25.860秒・予定skip7・失敗0。
+SwiftはZIPFoundationのcloneでserver certificate verification failed（CAfile:none）となり、
+テスト開始前に停止した。アプリのテスト失敗やSwiftコンパイル失敗として集計しない。
+Dockerは--rm、コピーとコンパイルは所有する一時領域内で、原本PDFは使っていない。
+実行ログを先に保存し、証明書・Dockerの既存記録と環境を照合してから再試行する。
+TLS検証は無効にしない。製品コードをこの依存取得エラーの対処として変更しない。
+
 ## 2026-10-14 239.1から393.1に残るStrict差分の再確認
 
 比較元bfc599fd5a552ced0c140497c703199547c30fd4、比較先8fdaac45467086c29115f95c04977fbc829d0fc5。
