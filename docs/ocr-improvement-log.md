@@ -1,5 +1,47 @@
 ## 2026-10-14 Strict全復元候補のローカル依存取得がTLSで停止
 
+## 2026-10-14 ローカルSwift初回：Parser版の固定値検査が旧版のまま
+
+対象は239.1復元の未コミットCODE（初回差分SHA256 c0f4f107359a779f77e7f2afc8dc4a3a7371684a6116a90a3d6d326f9107b571）。
+所有Docker Swift6.1.2 Linux、SDK/PDFKitなし。RecoveryTestsの旧更新契約5ケースで、
+新しいParser32／29に対し最新値31／28を要求する7assertionが失敗した。
+旧SHA／旧版の再試行可否のassertionは通過し、Strict239の年度・空欄対照も成功。
+テストを除外せず、最後まで実行を継続する。Actionsはまだ開始していない。
+最終件数は完了後に記録する。
+対処を決める前に観測を保存した。過去のParser更新記録と当該5ケースを照合する。
+
+
+## 2026-10-14 239.1 Strict復元の実装・ローカル検証
+
+利用者が全Strict差分を戻す方針を承認。通常・試験・返却の既定Reader／Parserを
+固定239.1のPDF239経路へ切り替え、追加の表示・所属検査を復旧専用入口へ分離した。
+旧13ソースは型名と固定失敗番号を逆変換すると元blobと全bytes一致した。
+通常Parser32・試験／返却29で同じ内容の旧失敗を再解析し、行事4・XLSX6は維持。
+現在機能の説明noticesだけは旧版の未実装説明を返さず、採否・授業値を変えない。
+Strict成功のcaptureはcompleteにせず、ON時だけ復旧Readerで独立して再取得する。
+R420／R408のみ旧unreadableを復旧候補にし、復旧Readerの文書不正・上限・中止をOCRで回避しない。
+
+編集前にAGENTS、開発方針、ロードマップ、テスト保守・一覧を読み、
+`test_catalog.py search PDFKitReader`とRecoveryPolicyの対応・既存テストを検索した。
+UI失敗索引をnotification／background／NativeOCR／27で検索し、U75・U74・U73等の
+最新観測と393の検証記録を再確認。製品UI・UI操作・SDK・workflowの変更はしない。
+既存の保存・再起動・失敗保持ケースは処理経路が共通で十分なため期待値を変えない。
+追加判定のReader／Parser対照だけを復旧専用入口へ移し、入力・期待値・検査条件は維持。
+Strict本番入口の36表現・96ページの全文比較はそのまま残し、旧8行・非固定17件・保存、
+旧年度・空欄・座標・日付・時刻、capture未昇格、候補限定と旧失敗再試行の対照を追加。
+
+ローカルPython：187件、予定skip7、失敗0、24.799秒。
+所有する公式Swift6.1.2 UbuntuコンテナでMaterial compilation 25.1秒、execution0.2秒。
+commit／rollback／reload／failure／isolation／recovery／corruption、架空HTTPの
+streaming／conditional request／304／変更／失敗／上限が成功。
+前回のTLS clone失敗を読んでから、継承proxyとホストCAをread-onlyで渡して再開した。
+TLS検証は有効のままで、依存取得は成功。前回中断は利用者の方針説明要求による
+所有ローカル処理停止であり、テスト失敗やActions取消ではない。
+Swift package／Apple PDFKit／全13チェック／公開はこの記録時点で未完了。
+学校原本の再取得・直接テスト・外部送信・artifact・cache保存はない。
+実際の3PDFの成功とAltStore実機更新は未確認で、CIから実機成功を推定しない。
+
+
 編集中の239.1復元候補を、所有するswift:6.1.2-noble Dockerで検証した。
 Python187件は25.860秒・予定skip7・失敗0。
 SwiftはZIPFoundationのcloneでserver certificate verification failed（CAfile:none）となり、
