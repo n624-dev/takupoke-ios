@@ -1,5 +1,60 @@
 ## 2026-10-14 Strict全復元候補のローカル依存取得がTLSで停止
 
+## 2026-10-14 239.1のStrict復元版394.1：全13チェック・公開・匿名照合完了
+
+配布ソース `b2721dc7d8a3597b96c21ec881cc74391de5a8ff`。
+[Actions394](https://github.com/n624-dev/takupoke-ios/actions/runs/38489953961)、試行1、全13必須job成功。
+コードpush前に新規review29、main更新前に別の新規review30（各GPT-6.1 Sol／High）を使用した。
+コードの再push・Actionsの再試行・取消はなく、各完了jobの原ログを取得して確認した。
+CLIの一時的な状態取得失敗は接続ツールで照合し、回復後に同じ120秒間隔で監視を継続した。
+
+SDK26.6 Native：561件、予定skip1、失敗0、122.446秒。
+配布SDK27.0 Native：561件、予定skip1、失敗0、94.267秒。iPhone Release build成功、377.2秒。
+両SDKで本番Strictの通常・6ページ試験・返却の全文oracle3ケースが成功した。
+独立3設計・36文書・96ページで、授業のまとまり・日付・時限・科目・教員・教室・時刻を検査した。
+239.1の同じ入力・同じ固定oracleは、変更していない生成器と旧ソースのNative126にて両SDKで成功済み。
+復元13ソースは型名と固定失敗IDを逆変換すると旧blobと全bytes一致する。
+共有依存のSchoolDateは差分なし、TimetableLessonNamesは表示helper追加だけ、
+TimetableScheduleの通常時刻配列は旧版と同一で、Strictの値生成へ別の新判定は混入していない。
+旧8行・非固定17件・9行拒否・保存全文、年度・空欄・座標・日付・時刻、
+capture未昇格、候補限定・旧失敗再解析の追加対照も成功した。
+
+通常UIは27 A／B→26 A／Bの順で成功。通知・文字サイズ・27 VoiceOverも成功。
+手動訂正は26／27の全6ケースが成功。pickerの実3ケースも配布Runnerで成功した。
+今回の取得ログではInvalid frame dimensionの文字列を観測していないが、
+過去のU03の原因や恒常的解消は未確定のままとする。製品UI・UI操作・SDK・workflowは変更していない。
+
+| 必須job | 結果 |
+|---|---|
+| [Distribution tests](https://github.com/n624-dev/takupoke-ios/actions/runs/38489953961/job/115612544029) | 成功 |
+| [Application iOS 27 UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/38489953961/job/115612922266) | 成功 |
+| [Application iOS 27 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/38489953961/job/115612922307) | 成功 |
+| [Manual correction iOS 27 / testChangedOriginalCannotSubmitOrReplaceLastGood](https://github.com/n624-dev/takupoke-ios/actions/runs/38489953961/job/115612922339) | 成功 |
+| [Native PDF and recovery tests](https://github.com/n624-dev/takupoke-ios/actions/runs/38489953961/job/115612922375) | 成功 |
+| [Manual correction iOS 27 / testThreeFieldsRequireEachAcknowledgementAndFourRefuses](https://github.com/n624-dev/takupoke-ios/actions/runs/38489953961/job/115612922438) | 成功 |
+| [Manual correction iOS 27 / testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground](https://github.com/n624-dev/takupoke-ios/actions/runs/38489953961/job/115612922515) | 成功 |
+| [Application iOS 26 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/38489953961/job/115623839768) | 成功 |
+| [Manual correction iOS 26 / testThreeFieldsRequireEachAcknowledgementAndFourRefuses](https://github.com/n624-dev/takupoke-ios/actions/runs/38489953961/job/115625335527) | 成功 |
+| [Application iOS 26 UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/38489953961/job/115625335578) | 成功 |
+| [Manual correction iOS 26 / testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground](https://github.com/n624-dev/takupoke-ios/actions/runs/38489953961/job/115625335580) | 成功 |
+| [Manual correction iOS 26 / testChangedOriginalCannotSubmitOrReplaceLastGood](https://github.com/n624-dev/takupoke-ios/actions/runs/38489953961/job/115625335600) | 成功 |
+| [Build and publish AltStore release](https://github.com/n624-dev/takupoke-ios/actions/runs/38489953961/job/115636119100) | 成功 |
+
+[0.1.394（394.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.394-build.394.1)を
+通常Release・Latestとして公開し、固定AltStore Sourceも更新した。
+4添付（IPA、Source、icon、release.json）を認証なしで取得し、GitHub側のdigestと全bytesのSHAを照合した。
+IPA内のソース・版・build394.1・SDK27.0・最低OS26.0、共通更新内容、固定Sourceの全bytes一致も確認した。
+所有する照合用ダウンロードは削除済み。元の公開開発版22c8ee2は削除していない。
+
+IPA：16,970,891 bytes。
+SHA-256：`34ef706597efb21cf574a768240c0394024d8f002a38e9909fae470a0c676302`。
+
+利用者の不変の3PDFは再取得・直接テスト・Git登録・外部送信していない。
+393.1の通常R265・試験R267・返却R270という実機報告は履歴として保持する。
+394.1の実資料3PDFの成功、AltStoreの実機更新、実機のモデル・OCR品質は未確認。
+CI・架空Strict互換の成功を復旧率や実機合格へ加算しない。
+
+
 ## 2026-10-14 復元版ローカルと開発Actions127の成功
 
 ローカルSwift6.1.2 Linux再検証は487件・失敗0・64.051秒、準備／build含む370.3秒。

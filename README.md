@@ -10,22 +10,21 @@
 PDF端末内AI復旧は開発中です。前処理・Validator・開始・元PDF確認・プレビュー・明示採用・モデル管理と各iOS Runtime adapterを接続しました。安全な所属を確認できた読取文字だけ、資料全体で最大3項目を原本と照合する手動補助を追加しています。Apple SDK/実機検証は継続中で、追加モデルの配信は品質評価後です。[方針・実装状況・残る接続](docs/pdf-recovery.md)を参照してください。
 
 [Strict PDFの詳細番号一覧](docs/strict-pdf-branch-catalog.md)で、P／R番号から拒否箇所を確認できます。
-393.1でも通常P12／R265・試験P23／R267・返却P12／R270の実機報告があります。
-[239.1のStrictを復元する変更](docs/strict239-restoration.md)を実装し、追加検査を復旧専用へ分離しています。
-公開済み393.1と次の復元版の検証を区別します。実際の3PDFでの復元成功は未確認です。
+393.1の通常R265・試験R267・返却R270という報告を受け、[239.1のStrictを復元](docs/strict239-restoration.md)しました。
+通常・試験・返却の解析を旧仕様へ戻し、追加の表示・Evidence検査は復旧専用に分離しています。
+実際の3PDFでの394.1の成功は実機未確認です。
 
 [OCRの実測と不採用にした比較](docs/ocr-improvement-log.md)を記録しています。小さな取得テストと文書全体の品質は分けて評価します。
 
 設定の「AI・OCRを使用する」は初期OFFです。OFF時は従来の厳格な解析のみを使用し、ON時も厳格な解析に失敗したPDFだけ復旧します。時間割変更XLSXの曜日不一致は、日付からの補正を明示承認できます。曜日に問題がある行は、元の記載を確認して除外できます。同じ曜日だけが残った連続行は、200〜300行目などの範囲をまとめて選べます。補正・除外はファイル内容が更新されるまで同じ原本に適用します。詳しくは[XLSX仕様](docs/xlsx-specification.md)を参照してください。
 
-[0.1.393（393.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.393-build.393.1)を通常Release・Latestとして公開し、固定AltStore Sourceも更新しました。
-全文字より先に描かれた背景を扱い、文字を隠す後塗り・同色・低コントラスト等は拒否します。
-R126の条件を分離し、通常Parser31・試験／返却28へ更新しました。
+[0.1.394（394.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.394-build.394.1)を通常Release・Latestとして公開し、固定AltStore Sourceも更新しました。
+通常・試験・試験返却のStrictを、以前動作していた239.1の仕様へ戻しました。
+通常Parser32・試験／返却29により、同じPDFでも更新後の処理で再解析します。
 同一ソースの全13必須チェックと、認証なしの4添付取得・ハッシュ一致を確認しました。
-SDK26.6／27.0で239.1と修正版を同じ独立架空資料36表現・96ページで全文比較しました。
-実資料3PDFの393.1での解析とAltStore更新経路は、実機未確認です。
-更新後に各資料の「解析する」で確認できます。失敗時は種類・P／R番号・ページだけを共有してください。
-修正・失敗・検証の詳細は[互換性修正](docs/strict-pdf-compatibility-repair.md)と[検証記録](docs/verification.md)に残しています。
+SDK26.6／27.0の各Native561件（予定skip1、失敗0）で、独立した36文書・96ページの全文比較も成功しています。
+実際の3PDFとAltStore更新経路は実機未確認です。更新後に各資料の「解析する」で確認できます。
+修正範囲は[239.1の復元](docs/strict239-restoration.md)、実測・失敗は[検証記録](docs/verification.md)に記載しています。
 
 以前の[個別開発確認版IPA](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-37811661856-1-22c8ee2b5fa5)も引き続き公開しています。ソース`22c8ee2`の既存公開版で、現在のLatest・固定AltStore Sourceとは別です。
 

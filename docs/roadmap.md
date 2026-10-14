@@ -19,15 +19,12 @@
 
 ## 最新の確認状況
 
-- [239.1のStrict復元](strict239-restoration.md)を実装。通常Parser32・試験／返却29。
-  旧13ソースの逆変換後の全bytes一致を確認し、復旧の追加証明は別経路へ分離しています。
-  Apple検証・公開・実機確認の状況は検証記録に分けます。
-
-- 通常配布版：[0.1.393（393.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.393-build.393.1)。
-  全文字より先の背景を後塗りと区別し、文字・罫線等との色差を確認します。
-  R126を条件ごとに分離し、通常Parser31・試験／返却28へ更新しました。
-  通常Release・Latest・固定AltStore Sourceを更新し、4添付とIPA内ソース・版を匿名照合しました。
-  通常R265・試験R267・返却R270の実機報告があります。AltStoreの実機更新は未確認です。
+- 通常配布版：[0.1.394（394.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.394-build.394.1)。
+  [239.1のStrictを復元](strict239-restoration.md)し、復旧の追加証明を独立した経路へ分離しました。
+  通常Parser32・試験／返却29で、同じ内容の旧失敗も再解析します。
+  同一ソースの全13必須チェックと、通常Release・Latest・固定AltStore Sourceの匿名照合が成功。
+  SDK26.6／27.0の各Native561件（予定skip1、失敗0）、36文書・96ページの全文比較が成功しました。
+  実際の3PDFの解析とAltStore実機更新は未確認。393.1での3拒否は履歴へ保持します。
 - 個別の開発確認版：ソース22c8ee2の[公開IPA](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-37811661856-1-22c8ee2b5fa5)。
   同一ソースの全13チェックが成功しました。通常Latest・固定Sourceとは別の既存公開版です。
 - PDFの実資料：原PDFは239.1から不変。AI／OCRはOFFです。
