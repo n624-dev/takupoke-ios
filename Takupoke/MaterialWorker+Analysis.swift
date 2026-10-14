@@ -32,8 +32,17 @@ extension MaterialWorker {
             try library.applyRowSkips(preview, rows: rows, defaultYear: defaultYear, check: {
                 do { try control.check() } catch { throw ChangeParseError(code: .cancelled) }
             })
-        } catch let failure as ChangeParseError { throw failure }
-        catch { throw ChangeParseError(code: .storage) }
+        } catch {
+            let failure = (error as? ChangeParseError) ?? ChangeParseError(code: .storage)
+            // A stale confirmation did not parse the newly acquired source.
+            if let record = library.state.record(for: .changes),
+               record.digest == preview.sourceDigest,
+               (record.source.selectionID ?? record.storedName) == preview.sourceIdentity {
+                do { try library.recordParseFailure(failure, defaultYear: defaultYear) }
+                catch { throw ChangeParseError(code: .storage) }
+            }
+            throw failure
+        }
     }
 
     func correctWeekdays(_ preview: ChangePreview, defaultYear: Int, control: AcquisitionControl) throws {

@@ -14,8 +14,8 @@ SOURCES = {
     'PDF239SchoolParser.swift': "239.1のStrict判定（原条件と固定番号）",
     'PDF239SchoolParser+Timetable.swift': "239.1のStrict判定（原条件と固定番号）",
     'PDF239SchoolParser+Events.swift': "239.1のStrict判定（原条件と固定番号）",
-    'PDF239SpecialScheduleParser.swift': "239.1のStrict判定（原条件と固定番号）",
-    'PDF239SpecialScheduleParser+Pages.swift': "239.1のStrict判定（原条件と固定番号）",
+    'PDF239SpecialScheduleParser.swift': "239.1のStrictと返却のみの見出し取得範囲分離",
+    'PDF239SpecialScheduleParser+Pages.swift': "239.1のStrictと返却のみのクラス表上端",
     'PDF239SpecialScheduleParser+Times.swift': "239.1のStrict判定（原条件と固定番号）",
     'PDF239KitReader.swift': "239.1のStrict判定（原条件と固定番号）",
 

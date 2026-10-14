@@ -1,3 +1,13 @@
+## N01 非UI：特殊Parser版の固定期待値が旧29（2026-10-14、ローカルSwift）
+
+- 2558df1からの実装中差分、Swift6.1.2/Linux、492件中4失敗。
+  RecoveryTestsのSpecialScopeVersion／UnusedFontReaderVersion／ParallelAlignmentVersion／
+  OCRCoverageVersionで、設定30と期待29が不一致。UI・端末・モデルの失敗ではない。
+- 同種の版更新記録（verificationの2026-10-13）とソースを比較。
+  返却ラベルの変更を同一SHAでも反映する版更新であり、旧解析29の再解析を追加で検査する。
+  元の旧成功／失敗の再解析と現行版での無限再解析拒否は保持する。
+- 再実行結果は[検証記録](verification.md)へ残す。最初の失敗を成功へ置き換えない。
+
 ## 2026-10-13 全体392での候補確認範囲
 
 source8219fa5・38408608816・試行1の全13と公開が成功。

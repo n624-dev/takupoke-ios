@@ -8,6 +8,60 @@ import GRDB
 // Explicit testStrict239 cases and StrictPDFCompatibilityTests exercise app Strict.
 
 final class SpecialScheduleTests: XCTestCase {
+    func testReturnColumnHeadingsAreExcludedWithoutChangingLessonFields() throws {
+        let original = try SpecialScheduleParser.parse([returnPageWithColumnHeadings(includeHeadings: false)],
+            kind: .examReturn, digest: "fictional", name: "fictional.pdf")
+        for text in ["4ｺﾏ", "４コマ", "4コマ目"] {
+            let page = returnPageWithColumnHeadings(text)
+            let rawBox = try PDF239Grid(page: page).box(270, 132)
+            XCTAssertEqual(rawBox.top, 110)
+            XCTAssertTrue(try PDF239Grid(page: page).timetableText(rawBox).first?.contains(text) == true)
+            let result = try SpecialScheduleParser.parse([page], kind: .examReturn,
+                digest: "fictional", name: "fictional.pdf")
+            XCTAssertEqual(result.lessons, original.lessons)
+            XCTAssertEqual(result.coveredClasses, original.coveredClasses)
+            XCTAssertEqual(result.coveredDates, original.coveredDates)
+            XCTAssertEqual(result.periodTimes, original.periodTimes)
+            let lesson = try XCTUnwrap(result.lessons.first {
+                $0.className == "1_1" && $0.date == "2026-04-01" && $0.period == 4
+            })
+            XCTAssertEqual(lesson.lines, ["架空科目L", "架空教員L", "架空教室L"])
+            XCTAssertNil(result.recovery)
+        }
+    }
+
+    func testMatchingPeriodWordsInsideTheClassTableAreRetained() throws {
+        for text in ["4ｺﾏ", "４コマ", "架空4コマ科目"] {
+            var page = returnPageWithSplitCell()
+            page.glyphs.append(PDFGlyph(text: text, x: 265, y: 210, width: 28, height: 6))
+            let result = try SpecialScheduleParser.parse([page], kind: .examReturn,
+                digest: "fictional", name: "fictional.pdf")
+            let lesson = try XCTUnwrap(result.lessons.first {
+                $0.className == "2_CN" && $0.date == "2026-04-01" && $0.period == 4
+            })
+            XCTAssertEqual(lesson.lines, [text])
+        }
+    }
+
+#if canImport(PDFKit)
+    func testReturnColumnHeadingSeparationThroughNativePDFKit() throws {
+        let path = try XCTUnwrap(ProcessInfo.processInfo.environment["TAKUPOKE_STRICT_COMPATIBILITY_FIXTURES"])
+        let pages = try PDFKitReader.readSpecial(URL(fileURLWithPath: path)
+            .appendingPathComponent("heading-return.pdf"))
+        let page = try XCTUnwrap(pages.first), grid = PDF239Grid(page: page)
+        let header = try grid.timetableText(PDFBox(left: 356, top: 108, right: 428, bottom: 120)).joined()
+        XCTAssertEqual(PDF239SchoolParser.key(header), "4コマ")
+        let result = try SpecialScheduleParser.parse(pages, kind: .examReturn,
+            digest: "independent", name: "fictional.pdf")
+        XCTAssertEqual(result.lessons.count, 4)
+        XCTAssertEqual(result.lessons.map(\.lines), Array(repeating:
+            ["架空科目甲", "架空教員乙", "仮想教室丙"], count: 4))
+        XCTAssertEqual(Set(result.lessons.map { "\($0.className)/\($0.date)/\($0.period)" }),
+            ["1_1/2032-04-01/1", "1_1/2032-04-01/4", "2_ES/2032-04-02/2", "AI_2/2032-04-05/8"])
+        XCTAssertNil(result.recovery)
+    }
+#endif
+
     func testStrict239RetainsEightCellLinesAndNonFixedSeventeenClassSet() throws {
         var pages = (1...6).map { examPage($0) }
         // A independently invented first cell with eight explicit PDF rows.

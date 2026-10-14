@@ -1,5 +1,6 @@
 // Strict parsing contract from 239.1 (bfc599fd5a552ced0c140497c703199547c30fd4).
-// Only type names and fixed failure IDs are adapted; no recovery proof is implied.
+// Return cells exclude the header band above the class table.
+// Other conditions remain from 239.1; no recovery proof is implied.
 import Foundation
 
 enum PDF239SpecialScheduleParser {
@@ -124,9 +125,12 @@ enum PDF239SpecialScheduleParser {
 
     static func lessons(in page: PDFPageLayout, box: PDFBox, date: SchoolDate,
                                 className: String, period: Int, periodXs: [Double],
-                                times: Times, pageNumber: Int) throws -> [SpecialScheduleLesson] {
+                                times: Times, pageNumber: Int,
+                                contentTop: Double? = nil) throws -> [SpecialScheduleLesson] {
         let grid = PDF239Grid(page: page)
-        let lines = try grid.timetableText(box).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        let content = PDFBox(left: box.left, top: max(box.top, contentTop ?? box.top),
+                             right: box.right, bottom: box.bottom)
+        let lines = try grid.timetableText(content).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
         guard lines.count <= 8, lines.reduce(0, { $0 + $1.utf8.count }) <= 4096 else {
             throw PDFParseError(code: .ambiguous, page: pageNumber, stage: .lessonLines, branch:.b386)

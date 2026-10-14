@@ -32,10 +32,12 @@ struct ChangeAnalysisView: View {
                 if model.busy {
                     LoadingRow(title: "処理中⋯", cancel: { model.cancel() })
                 }
-                if let failure = model.state.attempts[MaterialKind.changes.rawValue]?.failure {
+                if model.failed, let message = model.message {
+                    Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                } else if let failure = model.state.attempts[MaterialKind.changes.rawValue]?.failure {
                     Label(failure, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 }
-                if let failure = model.state.changeParseAttempt?.failure {
+                if !model.failed, let failure = model.state.changeParseAttempt?.failure {
                     Label(failure.localizedDescription, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 }
                 if model.canPreviewChanges {
@@ -121,10 +123,12 @@ struct ChangeAnalysisView: View {
         }
         .sheet(isPresented: Binding(get: { model.changePreview != nil }, set: { if !$0 { model.dismissPreview() } })) {
             if let preview = model.changePreview {
-                ChangePreviewView(preview: preview, mappings: mappings, correctWeekdays: preview.canCorrectWeekdays ? {
-                    model.dismissPreview(); model.correctWeekdays(preview)
+                ChangePreviewView(preview: preview, mappings: mappings,
+                    actionFailure: model.changePreviewActionFailure(preview),
+                    correctWeekdays: preview.canCorrectWeekdays ? {
+                    model.correctWeekdays(preview)
                 } : nil, skipRows: preview.canSkipRows ? { rows in
-                    model.dismissPreview(); model.skipChangeRows(preview, rows: rows)
+                    model.skipChangeRows(preview, rows: rows)
                 } : nil)
             }
         }

@@ -144,7 +144,7 @@ def exam(path, mode):
     d.save()
 
 
-def returned(path, mode):
+def returned(path, mode, column_headings=False):
     d = Drawing(path, 3100, 1200, mode); d.page()
     body, width, top, row_h = 140, 72, 120, 40
     right, bottom = body+40*width, top+17*row_h
@@ -157,8 +157,14 @@ def returned(path, mode):
             d.text(f"4/{col//8+1}", x+2*width, 78, 9)
     d.line(0, top, 0, bottom); d.line(110, top, 110, bottom)
     d.line(right, top, right, bottom)
+    if column_headings:
+        d.line(110, top-12, right, top-12)
     for row in range(18):
-        d.line(0, top+row*row_h, right, top+row*row_h)
+        if column_headings and row == 0:
+            d.line(0, top, body+2*width, top)
+            d.line(body+4*width, top, right, top)
+        else:
+            d.line(0, top+row*row_h, right, top+row*row_h)
     for row, cls in enumerate(CLASSES):
         grade, name = cls.split("_")
         d.text(name, 120, top+row*row_h+24, 9)
@@ -167,6 +173,10 @@ def returned(path, mode):
     d.lesson(body, top, pitch=8)
     d.lesson(body+9*width, top+4*row_h, pitch=8)
     d.lesson(body+39*width, top+16*row_h, pitch=8)
+    if column_headings:
+        d.text("3ｺﾏ", body+2*width+20, top-4, 7)
+        d.text("4ｺﾏ", body+3*width+20, top-4, 7)
+        d.lesson(body+3*width, top, pitch=8)
     d.text("4月1日の時間割は以下のとおりです。", 1300, 920, 9)
     d.text("4月2日~5日は通常の授業日どおりの授業時間です。", 1300, 942, 9)
     for p in range(8):
@@ -207,6 +217,8 @@ def generate(output):
                 (output/f"{name}-{mode}-background.pdf").write_bytes(
                     pdf.tobytes(garbage=4,deflate=True))
     (output/"design.json").write_text(json.dumps({"values":VALUES,"classes":CLASSES}, ensure_ascii=False)+"\n")
+    # Separate from the unchanged 36-document compatibility corpus.
+    returned(output/"heading-return.pdf", 0, column_headings=True)
 
 
 if __name__ == "__main__":

@@ -5,6 +5,33 @@ import GRDB
 @testable import TakupokeParsing
 
 extension SpecialScheduleTests {
+    func returnPageWithColumnHeadings(_ heading: String = "4ｺﾏ",
+                                      includeHeadings: Bool = true) -> PDFPageLayout {
+        var page = returnPageWithSplitCell()
+        // An independently drawn header band; its rule stops at periods 3/4.
+        // The class-column border still establishes the body starting at y=120.
+        page.lines.append(PDFRule(x1: 110, y1: 110, x2: 1740, y2: 110))
+        page.lines = page.lines.flatMap { rule -> [PDFRule] in
+            guard rule.horizontal, rule.y1 == 120 else { return [rule] }
+            return [PDFRule(x1: rule.x1, y1: 120, x2: 220, y2: 120),
+                    PDFRule(x1: 300, y1: 120, x2: rule.x2, y2: 120)]
+        }
+        func write(_ text: String, x: Double, y: Double, height: Double = 3) {
+            for (offset, character) in text.enumerated() {
+                page.glyphs.append(PDFGlyph(text: String(character), x: x + Double(offset) * 3,
+                    y: y, width: 3, height: height))
+            }
+        }
+        if includeHeadings {
+            write("3ｺﾏ", x: 232, y: 113)
+            write(heading, x: 272, y: 113)
+        }
+        write("架空科目L", x: 266, y: 126)
+        write("架空教員L", x: 266, y: 133)
+        write("架空教室L", x: 266, y: 140)
+        return page
+    }
+
     func examPage(_ number: Int, omitLastTime: Bool = false,
                           mergedFirstTwo: Bool = false,
                           metadataOnFirstCell: Bool = false, timingOverride: [String]? = nil) -> PDFPageLayout {

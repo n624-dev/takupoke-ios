@@ -17,7 +17,7 @@ extension MaterialsModel {
         let requested = fileRefreshQueue.take(ready: ready, busy: busy)
         guard !requested.isEmpty else { return }
         let year = automaticChangeSchoolYear
-        perform(success: "保存済みファイルの変更を確認しました。") { worker, control in
+        perform(success: "保存済みファイルの変更を確認しました。", preserveChangePreview: true) { worker, control in
             try Self.refreshSelectedFiles(worker, requested: requested, year: year, control: control)
         }
     }

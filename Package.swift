@@ -168,6 +168,7 @@ let package = Package(
                     "MaterialLibraryChecks.swift",
                     "WebPDFChecks.swift",
                     "test_distribution.py",
+                    "test_change_preview_actions.py",
                     "test_parallel_build.py",
                     "test_release_gate.py",
                     "test_timed_command.py",

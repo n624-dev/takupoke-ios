@@ -31,6 +31,7 @@
         "tests/ParsingTests.swift"
       ],
       "checks": [
+        "tests/test_change_preview_actions.py",
         "tests/ParsingTests+Normalization.swift",
         "tests/ParsingTests+Persistence.swift",
         "tests/ParsingTests+Preview.swift",

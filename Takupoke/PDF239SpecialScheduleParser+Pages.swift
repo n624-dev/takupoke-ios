@@ -1,5 +1,6 @@
 // Strict parsing contract from 239.1 (bfc599fd5a552ced0c140497c703199547c30fd4).
-// Only type names and fixed failure IDs are adapted; no recovery proof is implied.
+// Return-only: separate column headings from class-table content.
+// Other conditions remain from 239.1; no recovery proof is implied.
 import Foundation
 
 extension PDF239SpecialScheduleParser {
@@ -90,6 +91,8 @@ extension PDF239SpecialScheduleParser {
         let grid = PDF239Grid(page: page)
         var seenClasses: Set<String> = []
         var result: [SpecialScheduleLesson] = []
+        let firstClass = classRuns[0]
+        let contentTop = try grid.box(firstClass.cx, firstClass.cy).top
         for run in classRuns {
             try check()
             guard let grade = grades.min(by: { abs($0.cy - run.cy) < abs($1.cy - run.cy) }),
@@ -113,7 +116,7 @@ extension PDF239SpecialScheduleParser {
                         guard seen.insert(box).inserted else { continue }
                         result += try lessons(in: page, box: box, date: day, className: name,
                                               period: period, periodXs: periodXs,
-                                              times: dayTimes, pageNumber: 1)
+                                              times: dayTimes, pageNumber: 1, contentTop: contentTop)
                     }
                 }
             }

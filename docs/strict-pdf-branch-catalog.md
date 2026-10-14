@@ -181,35 +181,35 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 | R382 | P11 | `guard monthTexts.count == 1 else { throw` | [確認条件](../Takupoke/PDF239SchoolParser+Events.swift#L40) |
 | R381 | P11 | `let month = Int(monthText.dropLast()), months.insert(month).inserted else { throw` | [確認条件](../Takupoke/PDF239SchoolParser+Events.swift#L43) |
 
-### 239.1のStrict判定（原条件と固定番号）
+### 239.1のStrictと返却のみの見出し取得範囲分離
 
 | 詳細番号 | 生成時分類 | 拒否条件／コード抜粋 | 実装 |
 |---|---|---|---|
-| R396 | P04 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L27) |
-| R395 | 分類なし／呼出元 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L40) |
-| R394 | P04 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L48) |
-| R393 | P03 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L52) |
-| R392 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L58) |
-| R391 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L67) |
-| R390 | P16 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L71) |
-| R389 | 分類なし／呼出元 | `guard lessons.count <= PDF239SchoolParser.maximumRecords else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L75) |
-| R388 | 分類なし／呼出元 | `coveredClasses.count == 17, !lessons.isEmpty else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L78) |
-| R387 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L110) |
-| R386 | P17 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L132) |
-| R385 | P08 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L138) |
+| R396 | P04 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L28) |
+| R395 | 分類なし／呼出元 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L41) |
+| R394 | P04 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L49) |
+| R393 | P03 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L53) |
+| R392 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L59) |
+| R391 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L68) |
+| R390 | P16 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L72) |
+| R389 | 分類なし／呼出元 | `guard lessons.count <= PDF239SchoolParser.maximumRecords else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L76) |
+| R388 | 分類なし／呼出元 | `coveredClasses.count == 17, !lessons.isEmpty else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L79) |
+| R387 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L111) |
+| R386 | P17 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L136) |
+| R385 | P08 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L142) |
 
-### 239.1のStrict判定（原条件と固定番号）
+### 239.1のStrictと返却のみのクラス表上端
 
 | 詳細番号 | 生成時分類 | 拒否条件／コード抜粋 | 実装 |
 |---|---|---|---|
-| R404 | P14 | `guard labels.count == columns else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L16) |
-| R403 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L24) |
-| R402 | P05 | `guard step > 5 else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L57) |
-| R401 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L64) |
-| R400 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L74) |
-| R399 | P14 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L88) |
-| R398 | P15 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L97) |
-| R397 | P16 | `guard seenClasses.insert(name).inserted else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L100) |
+| R404 | P14 | `guard labels.count == columns else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L17) |
+| R403 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L25) |
+| R402 | P05 | `guard step > 5 else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L58) |
+| R401 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L65) |
+| R400 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L75) |
+| R399 | P14 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L89) |
+| R398 | P15 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L100) |
+| R397 | P16 | `guard seenClasses.insert(name).inserted else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L103) |
 
 ### 239.1のStrict判定（原条件と固定番号）
 

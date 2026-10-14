@@ -99,22 +99,41 @@ final class MaterialsModel: ObservableObject {
         perform(success: nil) { try $0.previewChanges(control: $1) }
     }
 
-    func correctWeekdays(_ preview: ChangePreview) {
+    func changePreviewActionFailure(_ preview: ChangePreview) -> String? {
+        if retired { return "資料の画面を開き直してください。" }
+        if busy { return "処理が終わってから、もう一度確定してください。" }
+        guard let record = state.record(for: .changes),
+              preview.sourceDigest == record.digest,
+              preview.sourceIdentity == (record.source.selectionID ?? record.storedName),
+              preview.defaultYear == automaticChangeSchoolYear,
+              preview.parserVersion == ChangeAnalysis.parserVersion else {
+            return "資料または補完年度が変わりました。内容を確認し直してください。"
+        }
+        return nil
+    }
+
+    @discardableResult
+    func correctWeekdays(_ preview: ChangePreview) -> String? {
+        if let failure = changePreviewActionFailure(preview) { return failure }
         let year = automaticChangeSchoolYear
-        guard preview.canCorrectWeekdays, preview.defaultYear == year else { return }
+        guard preview.canCorrectWeekdays else { return "曜日の確認内容を開き直してください。" }
         perform(success: "日付から求めた曜日で読み込みました。ファイルの内容が更新されるまで適用します。") {
             try $0.correctWeekdays(preview, defaultYear: year, control: $1)
         }
+        return nil
     }
 
     func dismissPreview() { changePreview = nil }
 
-    func skipChangeRows(_ preview: ChangePreview, rows: Set<Int>) {
+    @discardableResult
+    func skipChangeRows(_ preview: ChangePreview, rows: Set<Int>) -> String? {
+        if let failure = changePreviewActionFailure(preview) { return failure }
         let year = automaticChangeSchoolYear
-        guard preview.canSkipRows, preview.defaultYear == year else { return }
+        guard preview.canSkipRows, !rows.isEmpty else { return "除外する行を確認してください。" }
         perform(success: "選んだ\(rows.count)行を除外して読み込みました。ファイルの内容が更新されるまで適用します。") {
             try $0.skipChangeRows(preview, rows: rows, defaultYear: year, control: $1)
         }
+        return nil
     }
 
     func closeForRetention() async {
@@ -175,12 +194,13 @@ final class MaterialsModel: ObservableObject {
     }
 
     func perform(success: String?, completion: ((Bool) -> Void)? = nil,
+                 preserveChangePreview: Bool = false,
                  operation: @escaping (MaterialWorker, AcquisitionControl) throws -> Void) {
         guard !busy, !retired else { completion?(false); return }
         busy = true
         failed = false
         message = nil
-        changePreview = nil
+        if !preserveChangePreview { changePreview = nil }
         let worker = self.worker
         let operationGeneration = generation
         let control = AcquisitionControl()
@@ -210,7 +230,7 @@ final class MaterialsModel: ObservableObject {
                 switch result {
                 case .success:
                     self.message = success
-                    self.changePreview = preview
+                    if !preserveChangePreview || preview != nil { self.changePreview = preview }
                 case .failure(let error):
                     self.failed = true
                     self.message = (error as? ChangeParseError)?.localizedDescription

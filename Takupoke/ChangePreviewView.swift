@@ -3,8 +3,10 @@ import SwiftUI
 struct ChangePreviewView: View {
     let preview: ChangePreview
     @ObservedObject var mappings: MappingModel
-    var correctWeekdays: (() -> Void)? = nil
-    var skipRows: ((Set<Int>) -> Void)? = nil
+    var actionFailure: String? = nil
+    var correctWeekdays: (() -> String?)? = nil
+    var skipRows: ((Set<Int>) -> String?)? = nil
+    @State private var rejectedAction: String?
     @State private var confirmingCorrection = false
     @State private var confirmingSkip = false
     @State private var excludedRows = Set<Int>()
@@ -24,11 +26,15 @@ struct ChangePreviewView: View {
                         .foregroundStyle(.orange)
                     Text("曜日に問題のある行があります。元の記載を確認してください。")
                     Text(preview.sourceName)
+                    if let failure = actionFailure ?? rejectedAction {
+                        Label(failure, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                    }
                     LabeledContent("年なし日付の補完", value: preview.defaultYear.map { "\($0)年度" } ?? "指定なし")
                     LabeledContent("件数", value: "\(preview.records.count)件")
                     if correctWeekdays != nil {
                         Button("日付から曜日を求めて読み込む") { confirmingCorrection = true }
                             .buttonStyle(.glassProminent)
+                            .disabled(actionFailure != nil)
                     }
                     DisclosureGroup("曜日の警告：\(preview.warnings.count)件") {
                         ForEach(preview.reviewGroups) { group in
@@ -71,14 +77,16 @@ struct ChangePreviewView: View {
                 }
             }
             .alert("日付から求めた曜日で読み込む", isPresented: $confirmingCorrection) {
-                Button("この曜日で読み込む") { correctWeekdays?() }
+                Button("この曜日で読み込む") { rejectedAction = correctWeekdays?() }
+                    .disabled(actionFailure != nil)
                 Button("キャンセル", role: .cancel) {}
             } message: {
                 Text("日付欄を基準に曜日を計算して、時間割変更へ反映します。ファイルの内容が更新されるまで自動的に適用します。")
             }
             .navigationTitle(correctWeekdays == nil && skipRows == nil ? "プレビュー（閲覧のみ）" : "内容の確認")
             .alert("選んだ行を除外して読み込む", isPresented: $confirmingSkip) {
-                Button("除外して読み込む") { skipRows?(excludedRows) }
+                Button("除外して読み込む") { rejectedAction = skipRows?(excludedRows) }
+                    .disabled(actionFailure != nil)
                 Button("キャンセル", role: .cancel) {}
             } message: {
                 Text("\(excludedRows.count)行を時間割変更から除外します。除外する行：\(ChangeReviewGroup.rangeLabel(Array(excludedRows)))。ファイルの内容が更新されるまで適用します。")
@@ -92,7 +100,7 @@ struct ChangePreviewView: View {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("除外して読み込む") { confirmingSkip = true }
                             .buttonStyle(.glassProminent)
-                            .disabled(excludedRows.isEmpty)
+                            .disabled(excludedRows.isEmpty || actionFailure != nil)
                             .accessibilityIdentifier("change-apply-skips")
                     }
                 }

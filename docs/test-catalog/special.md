@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`d1918e18903b89aaa061d7a10a0748dde60c762f67a8085fc055f32d0547e9d4`
+`a37fe1bfb765cf42835a249d9e11247b095d75c56f80aa605dd39f4911dc19f8`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -35,6 +35,9 @@ bash tools/test-parsing.sh
 
 ## [tests/SpecialScheduleTests.swift](../../tests/SpecialScheduleTests.swift)
 
+- `testReturnColumnHeadingsAreExcludedWithoutChangingLessonFields`
+- `testMatchingPeriodWordsInsideTheClassTableAreRetained`
+- `testReturnColumnHeadingSeparationThroughNativePDFKit`
 - `testStrict239RetainsEightCellLinesAndNonFixedSeventeenClassSet`
 - `testStrict239RetainsPDFPeriodOrderAndReturnDateOrder`
 - `testRelativeSpecialSchedulesOutsideViewportCannotBecomeStrictSuccess`

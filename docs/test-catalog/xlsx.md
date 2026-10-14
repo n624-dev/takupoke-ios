@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`06daa394fedc3d5fd6172aa57c3789a9eedb30449aef52d42ba1eea4cf0c33f6`
+`5f5cef79aa89ac4213786fbedb45f04cad737002e8dd1c585cab550adf5cbcd8`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -20,6 +20,11 @@ bash tools/test-parsing.sh
 - [Takupoke/XLSXReader+Worksheet.swift](../../Takupoke/XLSXReader+Worksheet.swift)
 - [Takupoke/XLSXReader.swift](../../Takupoke/XLSXReader.swift)
 - [tests/ParsingTests.swift](../../tests/ParsingTests.swift)
+
+## [tests/test_change_preview_actions.py](../../tests/test_change_preview_actions.py)
+
+- `test_actual_callbacks_preserve_rejected_preview_and_dispatch_accepted_action_once`
+- `test_actual_worker_records_failure_only_for_the_reviewed_original`
 
 ## [tests/ParsingTests+Normalization.swift](../../tests/ParsingTests+Normalization.swift)
 
