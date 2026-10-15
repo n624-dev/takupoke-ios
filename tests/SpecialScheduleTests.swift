@@ -8,6 +8,45 @@ import GRDB
 // Explicit testStrict239 cases and StrictPDFCompatibilityTests exercise app Strict.
 
 final class SpecialScheduleTests: XCTestCase {
+    func testRepeatedLowerHeaderBandBelowMergedClassBorderUsesItsOwnRule() throws {
+        let original = try SpecialScheduleParser.parse([returnPageWithMergedClassHeader(includeHeadings:false)],
+            kind:.examReturn,digest:"fictional",name:"fictional.pdf")
+        for scale in [1.0,1.3] {
+            var page = returnPageWithMergedClassHeader()
+            page.glyphs = page.glyphs.map { g in
+                var n=g; n.x=17+g.x*scale; n.y=9+g.y*scale; n.width*=scale; n.height*=scale; return n
+            }
+            page.lines = page.lines.map { PDFRule(x1:17+$0.x1*scale,y1:9+$0.y1*scale,x2:17+$0.x2*scale,y2:9+$0.y2*scale) }
+            page.width=17+page.width*scale; page.height=9+page.height*scale
+            let result = try SpecialScheduleParser.parse([page],kind:.examReturn,digest:"fictional",name:"fictional.pdf")
+            XCTAssertEqual(result.lessons,original.lessons)
+            XCTAssertEqual(result.coveredClasses,original.coveredClasses)
+            XCTAssertEqual(result.periodTimes,original.periodTimes)
+            let target = try XCTUnwrap(result.lessons.first { $0.className == "1_1" && $0.period == 4 })
+            let recorder = PDFReturnGeometryRecorder(lesson:target)
+            _ = try PDF239SpecialScheduleParser.parse([page],kind:.examReturn,digest:"fictional",name:"fictional.pdf",geometry:recorder)
+            let snapshot = try XCTUnwrap(recorder.snapshot)
+            XCTAssertEqual(snapshot.firstClassCell.top,9+110*scale,accuracy:0.001)
+            XCTAssertEqual(snapshot.contentTop,9+120*scale,accuracy:0.001)
+            let headings = Set(snapshot.periodHeadingIDs)
+            XCTAssertGreaterThan(headings.count,40)
+            XCTAssertTrue(snapshot.cells.flatMap(\.adoptedRows).flatMap { $0 }.allSatisfy { !headings.contains($0) })
+        }
+    }
+
+    func testSingleDayPeriodWordAndPartialSeparatorDoNotMoveTheBodyBoundary() throws {
+        for page in [returnPageWithMergedClassHeader(repeatedDays:false),
+                     returnPageWithMergedClassHeader(fullSeparator:false),
+                     returnPageWithMergedClassHeader(centerOnlySeparator:true)] {
+            let result = try SpecialScheduleParser.parse([page],kind:.examReturn,digest:"fictional",name:"fictional.pdf")
+            XCTAssertTrue(result.lessons.contains { $0.lines.contains("3ｺﾏ") })
+            let target = try XCTUnwrap(result.lessons.first { $0.className == "1_1" && $0.period == 3 })
+            let recorder = PDFReturnGeometryRecorder(lesson:target)
+            _ = try PDF239SpecialScheduleParser.parse([page],kind:.examReturn,digest:"fictional",name:"fictional.pdf",geometry:recorder)
+            XCTAssertEqual(recorder.snapshot?.contentTop,110)
+        }
+    }
+
     func testReturnColumnHeadingsAreExcludedWithoutChangingLessonFields() throws {
         let original = try SpecialScheduleParser.parse([returnPageWithColumnHeadings(includeHeadings: false)],
             kind: .examReturn, digest: "fictional", name: "fictional.pdf")
@@ -46,8 +85,9 @@ final class SpecialScheduleTests: XCTestCase {
 #if canImport(PDFKit)
     func testReturnColumnHeadingSeparationThroughNativePDFKit() throws {
         let path = try XCTUnwrap(ProcessInfo.processInfo.environment["TAKUPOKE_STRICT_COMPATIBILITY_FIXTURES"])
+        for filename in ["heading-return.pdf","merged-class-heading-return.pdf"] {
         let pages = try PDFKitReader.readSpecial(URL(fileURLWithPath: path)
-            .appendingPathComponent("heading-return.pdf"))
+            .appendingPathComponent(filename))
         let page = try XCTUnwrap(pages.first), grid = PDF239Grid(page: page)
         let header = try grid.timetableText(PDFBox(left: 356, top: 108, right: 428, bottom: 120)).joined()
         XCTAssertEqual(PDF239SchoolParser.key(header), "4コマ")
@@ -65,9 +105,19 @@ final class SpecialScheduleTests: XCTestCase {
         XCTAssertEqual(reread.lessons,result.lessons)
         let snapshot = try XCTUnwrap(recorder.snapshot)
         XCTAssertFalse(snapshot.limited)
-        XCTAssertEqual(snapshot.cells.count,1)
-        XCTAssertEqual(snapshot.cells[0].adoptedRows.count,3)
+        if filename == "merged-class-heading-return.pdf" {
+            XCTAssertEqual(snapshot.firstClassCell.top,108,accuracy:0.1)
+            XCTAssertEqual(snapshot.contentTop,120,accuracy:0.1)
+            XCTAssertEqual(snapshot.cells.count,2)
+            XCTAssertTrue(snapshot.cells[0].adoptedRows.isEmpty)
+            XCTAssertEqual(snapshot.cells[1].adoptedRows.count,3)
+            XCTAssertTrue(Set(snapshot.cells.flatMap(\.adoptedRows).flatMap { $0 }).isDisjoint(with:Set(snapshot.periodHeadingIDs)))
+        } else {
+            XCTAssertEqual(snapshot.cells.count,1)
+            XCTAssertEqual(snapshot.cells[0].adoptedRows.count,3)
+        }
         XCTAssertNotNil(recorder.report())
+        }
     }
 #endif
 

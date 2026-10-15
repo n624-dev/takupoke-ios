@@ -127,11 +127,25 @@ extension ApplicationChecks {
         first.tap()
         XCTAssertTrue(app.staticTexts["架空教員A"].firstMatch.waitForExistence(timeout: 5), app.debugDescription)
         dismissLesson()
-        let calendar = app.buttons.matching(
+        let calendars = app.buttons.matching(
             NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "月", "日から")
-        ).firstMatch
-        XCTAssertTrue(calendar.waitForExistence(timeout: 5), app.debugDescription)
-        calendar.tap()
+        )
+        // A background calendar can exist before the detail sheet has closed.
+        // Keep the original five-second budget and require the current visible,
+        // unique native control before one physical contact; never retry it.
+        let calendarReady = XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
+            guard !self.app.navigationBars["授業詳細"].exists, calendars.count == 1 else { return false }
+            let button = calendars.element(boundBy:0)
+            return button.exists && button.isEnabled && button.isHittable &&
+                self.contained(button,in:self.bodyViewport())
+        },object:app)
+        guard XCTWaiter.wait(for:[calendarReady],timeout:5) == .completed else {
+            recoveryScreenshot("calendar-not-ready-after-lesson-dismissal")
+            XCTFail("Detail must close and expose one usable calendar within five seconds: " + app.debugDescription)
+            return
+        }
+        let calendar = calendars.element(boundBy:0)
+        calendar.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).tap()
         XCTAssertTrue(app.buttons["この週へ移動"].waitForExistence(timeout: 5))
         tapToolbar("キャンセル", bar: "週を選ぶ")
         XCTAssertFalse(app.buttons["この週へ移動"].exists)

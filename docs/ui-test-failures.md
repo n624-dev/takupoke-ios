@@ -1,3 +1,21 @@
+## 2026-10-15 全体398：週範囲ボタンがhittableでない
+
+- 対象：7f340c8c34eebbd627c887ebdad40785f0e23def、Actions38686133870・試行1、job116270999395。
+- OS／SDK：iOS26.5 Simulator、Xcode27.0。通常UI BのtestHomeTimetableAndWeekCalendar。
+- 観測：ApplicationChecks+Timetable.swift:134で週範囲Buttonのhittable検査が失敗。
+  表示文字は「10月12日から10月18日」、frameは{{114.3,332.0},{164.3,32.0}}。
+  XCTestは6件中1失敗、730.539秒。テスト開始前の失敗ではない。
+- 原因未確定。対処案・次の実行を決める前に記録した。
+  全体398を成功・配布可能と扱わず、残るジョブは取消さず確認する。
+- 照合：U65の同caseは起動前process handle失敗、今回は起動・詳細表示・dismissジェスチャ後の段階。
+  U73のindexed-query修正とea8401d時点のNavigation／Recovery helperを全文で比較した。
+  今回のcalendarはfirstMatchのままで、dismissLessonはdrag後のsheet消失を確認していない。
+  398の原ログにはXCTest標準tapの内部scroll／3回再試行とhit point {-1,-1}がある。
+  同条件の397は成功しており、製品のカレンダーやdismissの原因解明とは断定しない。
+- 候補：元の5秒の存在待機を、詳細sheetの消失・一意・表示包含・enabled・hittableの待機へ強化する。
+  現在のindexed要素を取り、実frame中心へ一回だけ物理tapする。押し直し・固定画面座標・期限延長はしない。
+  元の週選択表示・キャンセル・前後週操作の期待を維持する。改善は未確認、次の両OSで評価する。
+
 ## N03 追加した復旧テストのコンパイルエラー（2026-10-15）
 
 - 対象：f188972ベース作業差分の2回目、Debian13/Swift6.1.2/Linux、SQLite3.53.4。

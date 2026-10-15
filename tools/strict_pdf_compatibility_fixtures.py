@@ -144,7 +144,7 @@ def exam(path, mode):
     d.save()
 
 
-def returned(path, mode, column_headings=False):
+def returned(path, mode, column_headings=False, merged_class_header=False):
     d = Drawing(path, 3100, 1200, mode); d.page()
     body, width, top, row_h = 140, 72, 120, 40
     right, bottom = body+40*width, top+17*row_h
@@ -152,15 +152,20 @@ def returned(path, mode, column_headings=False):
     for col in range(40):
         x = body+col*width
         d.text(str(col % 8+1), x+width/2, 106, 9)
-        d.line(x, top, x, bottom)
+        d.line(x, top-12 if merged_class_header else top, x, bottom)
         if col % 8 == 0:
             d.text(f"4/{col//8+1}", x+2*width, 78, 9)
-    d.line(0, top, 0, bottom); d.line(110, top, 110, bottom)
-    d.line(right, top, right, bottom)
+    d.line(0, top-12 if merged_class_header else top, 0, bottom)
+    d.line(110, top-12 if merged_class_header else top, 110, bottom)
+    d.line(right, top-12 if merged_class_header else top, right, bottom)
     if column_headings:
         d.line(110, top-12, right, top-12)
+    if merged_class_header:
+        d.line(0, top-12, right, top-12)
     for row in range(18):
-        if column_headings and row == 0:
+        if merged_class_header and row == 0:
+            d.line(body, top, right, top)
+        elif column_headings and row == 0:
             d.line(0, top, body+2*width, top)
             d.line(body+4*width, top, right, top)
         else:
@@ -173,10 +178,12 @@ def returned(path, mode, column_headings=False):
     d.lesson(body, top, pitch=8)
     d.lesson(body+9*width, top+4*row_h, pitch=8)
     d.lesson(body+39*width, top+16*row_h, pitch=8)
-    if column_headings:
+    if column_headings or merged_class_header:
         d.text("3ｺﾏ", body+2*width+20, top-4, 7)
         d.text("4ｺﾏ", body+3*width+20, top-4, 7)
         d.lesson(body+3*width, top, pitch=8)
+    if merged_class_header:
+        d.text("2コマ(仮想注記)", body+11*width+20, top-4, 7)
     d.text("4月1日の時間割は以下のとおりです。", 1300, 920, 9)
     d.text("4月2日~5日は通常の授業日どおりの授業時間です。", 1300, 942, 9)
     for p in range(8):
@@ -219,6 +226,7 @@ def generate(output):
     (output/"design.json").write_text(json.dumps({"values":VALUES,"classes":CLASSES}, ensure_ascii=False)+"\n")
     # Separate from the unchanged 36-document compatibility corpus.
     returned(output/"heading-return.pdf", 0, column_headings=True)
+    returned(output/"merged-class-heading-return.pdf", 0, merged_class_header=True)
 
 
 if __name__ == "__main__":

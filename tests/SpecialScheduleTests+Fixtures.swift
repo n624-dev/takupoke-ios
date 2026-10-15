@@ -5,6 +5,32 @@ import GRDB
 @testable import TakupokeParsing
 
 extension SpecialScheduleTests {
+    func returnPageWithMergedClassHeader(includeHeadings: Bool = true, repeatedDays: Bool = true,
+                                        fullSeparator: Bool = true, centerOnlySeparator: Bool = false) -> PDFPageLayout {
+        // Extend an existing independently fictional table, not a transformed
+        // or renamed school document. The class cell begins ABOVE this band.
+        var page = returnPageWithSplitCell()
+        page.lines = page.lines.map { rule in
+            guard rule.horizontal, rule.y1 == 120 else { return rule }
+            return PDFRule(x1:centerOnlySeparator ? 152 : 140,y1:120,
+                x2:centerOnlySeparator ? 1712 : (fullSeparator ? 1740 : 460),y2:120)
+        }
+        page.lines.append(PDFRule(x1:0,y1:110,x2:1740,y2:110))
+        func write(_ value: String, x: Double, y: Double) {
+            for (i,c) in value.enumerated() {
+                page.glyphs.append(PDFGlyph(text:String(c),x:x+Double(i)*3,y:y,width:3,height:3))
+            }
+        }
+        if includeHeadings {
+            write("3ｺﾏ",x:230,y:113); write("4コマ目",x:270,y:113)
+            if repeatedDays { write("2コマ(仮想注記)",x:590,y:113) }
+        }
+        write("架空追加科目",x:266,y:125)
+        write("架空追加教員",x:266,y:132)
+        write("架空追加教室",x:266,y:139)
+        return page
+    }
+
     func returnPageWithColumnHeadings(_ heading: String = "4ｺﾏ",
                                       includeHeadings: Bool = true) -> PDFPageLayout {
         var page = returnPageWithSplitCell()

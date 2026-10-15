@@ -93,7 +93,8 @@ extension PDF239SpecialScheduleParser {
         var result: [SpecialScheduleLesson] = []
         let firstClass = classRuns[0]
         let firstClassCell = try grid.box(firstClass.cx, firstClass.cy)
-        let contentTop = firstClassCell.top
+        let (contentTop, lowerHeadings) = try returnContentBand(page, firstClass: firstClass,
+            classCell: firstClassCell, periods: periods, check: check)
         for (classIndex, run) in classRuns.enumerated() {
             try check()
             guard let grade = grades.min(by: { abs($0.cy - run.cy) < abs($1.cy - run.cy) }),
@@ -119,7 +120,7 @@ extension PDF239SpecialScheduleParser {
                             $0.className == name && $0.date == day.iso8601 && $0.period == period ? $0 : nil
                         }
                         target?.begin(page:page,firstClass:firstClass.box,firstClassCell:firstClassCell,label:run.box,grade:grade.box,
-                            row:row,original:box,classRow:classIndex+1,contentTop:contentTop,headings:periods,day:dayIndex,periodXs:periodXs)
+                            row:row,original:box,classRow:classIndex+1,contentTop:contentTop,headings:periods+lowerHeadings,day:dayIndex,periodXs:periodXs)
                         result += try lessons(in: page, box: box, date: day, className: name,
                                               period: period, periodXs: periodXs,
                                               times: dayTimes, pageNumber: 1, contentTop: contentTop,
@@ -130,5 +131,34 @@ extension PDF239SpecialScheduleParser {
         }
         return ParsedPage(dates: dates.map { $0.1.iso8601 },
                           classes: seenClasses.sorted(), lessons: result)
+    }
+
+    /// The class-label cell can extend upwards through a second header band.
+    /// Use its actual lower rule only when it crosses all period columns and
+    /// the intervening band has explicit koma headings in multiple day groups.
+    /// This does not filter lesson strings or alter original cell/span geometry.
+    static func returnContentBand(_ page: PDFPageLayout, firstClass: Run,
+                                  classCell: PDFBox, periods: [PDFGlyph],
+                                  check: () throws -> Void) throws -> (Double, [PDFGlyph]) {
+        let grid = PDF239Grid(page:page)
+        guard let firstColumn = try? grid.column(periods[0].cx,firstClass.cy),
+              let lastColumn = try? grid.column(periods.last!.cx,firstClass.cy) else { return (classCell.top,[]) }
+        let separators = Set(page.lines.filter { $0.horizontal &&
+            $0.x1 - 0.8 <= firstColumn.left && lastColumn.right <= $0.x2 + 0.8 &&
+            classCell.top + 0.3 < $0.y1 && $0.y1 < firstClass.box.top
+        }.map(\.y1)).sorted()
+        for bottom in separators {
+            try check()
+            let glyphs = grid.glyphs(in:PDFBox(left:firstColumn.left,top:classCell.top,
+                right:lastColumn.right,bottom:bottom))
+            let annotations = runs(glyphs).filter {
+                $0.text.range(of:"^[1-8]コマ(?:目)?(?:\\([^\\r\\n]*\\))?$",options:.regularExpression) != nil
+            }
+            let days = Set(annotations.map { run in
+                periods.indices.min { abs(periods[$0].cx-run.cx) < abs(periods[$1].cx-run.cx) }! / 8
+            })
+            if days.count > 1 { return (bottom,glyphs) }
+        }
+        return (classCell.top,[])
     }
 }
