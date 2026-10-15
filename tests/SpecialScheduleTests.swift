@@ -321,8 +321,13 @@ extension SpecialScheduleTests {
             XCTAssertEqual(saved.lessons,[assigned]); XCTAssertFalse(saved.lessons.contains { $0.className == "1_1" })
             // Blank special cells suppress ordinary lessons for both affiliations.
             let day = try XCTUnwrap(SchoolDate(iso8601:original.date))
-            let base = PDFAnalysis(kind:.timetable,sourceDigest:"t",sourceName:"fictional.pdf",parsedAt:Date(),schoolYear:2026,term:"前期",lessons:[PDFLesson(className:"1_CN",weekday:day.schoolWeekday,period:8,names:TimetableLessonNames(subject:"架空通常",teacher:"",room:""),sourceText:"架空通常",page:1)],events:[],notices:[])
-            for name in ["1_1","1_CN","1_ES","1_IT"] {
+            let names = ["1_1","1_CN","1_ES","1_IT"]
+            let base = PDFAnalysis(kind:.timetable,sourceDigest:"t",sourceName:"fictional.pdf",parsedAt:Date(),schoolYear:2026,term:"前期",lessons:names.map {
+                PDFLesson(className:$0,weekday:day.schoolWeekday,period:8,names:TimetableLessonNames(subject:"架空通常",teacher:"",room:""),sourceText:"架空通常",page:1)
+            },events:[],notices:[])
+            for name in names {
+                let ordinary = TimetableSchedule.slot(on:day,period:8,className:name,timetable:base,changes:nil,includesChanges:false)
+                XCTAssertEqual(ordinary.baseLessons.count,1)
                 let slot = TimetableSchedule.slot(on:day,period:8,className:name,timetable:base,changes:nil,includesChanges:false,specials:[saved])
                 XCTAssertTrue(slot.baseLessons.isEmpty); XCTAssertTrue(slot.specialLessons.isEmpty)
             }
