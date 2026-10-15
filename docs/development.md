@@ -10,10 +10,14 @@
 | 配布処理のローカルテスト | Python 3.11 以降、標準ライブラリのみ |
 | ワークフローの追加チェック | 任意で actionlint |
 | iOS ビルド | Actions の `xcode-27` と Xcode 27.0 |
-| アプリ画面の検証 | iOS 26：`macos-26`・Xcode 26.6、iOS 27：`xcode-27`・Xcode 27.0 |
+| 通常アプリ画面の検証 | 両OSとも`xcode-27`・Xcode 27.0。実Runtime26.5／27.0を事前確認 |
+| 手動訂正の検証 | iOS 26：`macos-26`・Xcode 26.6、iOS 27：`xcode-27`・Xcode 27.0 |
 | 実機導入・更新 | iOS 26・27のiPhone、AltStore Classic。[導入手順](altstore-pal-install.md)を参照 |
 
 Linux / Windows では SwiftUI のビルドを行わず、配布スクリプトのテストとソース編集を行います。XLSX展開にはZIPFoundation 0.9.20、SQLite保存基盤にはGRDB 7.11.1をコミット固定のSwift Packageとして使用します。共通ソースのテストにはSwift 6.1以降が必要です。
+
+現在の作業はiOSだけを対象に、このLinux環境とActionsで進めます。Androidは凍結し、Windows作業も再開しません。
+下のWindows手順は既存環境向けの参考として保持します。
 
 Actionsでは `/Applications/Xcode_27.0.app/Contents/Developer` を指定し、正式版のXcode 27.0を使用します。`xcode-27` runnerは公開プレビューです。最低対応OSはiOS 26、アプリのSwift言語モードは5を維持します。
 
@@ -94,7 +98,7 @@ Xcode側も依存のcheckout・キャッシュをビルド用一時ディレク�
 
 ### 復旧の負荷と中止を確認する入力
 
-`RecoveryBuilderTests` は680セル・各3項目24群の完全架空の返却PDFレイアウトから、前処理・Rules・Validatorを通す。iOSでは固定項目の行をSourceへまとめるため、実Builderの出力は2,388件。49,308の独立Source入力は同じ架空文字と群の位置を使う別の契約回帰であり、Builderの実到達件数やモデルの精度として報告しない。背の高い跨セルSource、原順、共有の比較・文字列上限、内側取消、上限時に次のモデルを読み込まないことも検証する。最新検証ではLinux295件、Native Mac343件が成功した。Apple SDKのiPhoneビルドでworkerと各Providerの接続を確認し、OS26/27の実アプリUIで安定した詳細表示、採用・再起動後の保持を確認した。物理端末のモデル推論・メモリ・取消は別に確認する。
+`RecoveryBuilderTests` は680セル・各3項目24群の完全架空の返却PDFレイアウトから、前処理・Rules・Validatorを通す。iOSでは固定項目の行をSourceへまとめるため、実Builderの出力は2,388件。49,308の独立Source入力は同じ架空文字と群の位置を使う別の契約回帰であり、Builderの実到達件数やモデルの精度として報告しない。背の高い跨セルSource、原順、共有の比較・文字列上限、内側取消、上限時に次のモデルを読み込まないことも検証する。初期接続時にはLinux295件、Native Mac343件が成功した。最新の件数・ソース別結果は[検証記録](verification.md)を参照する。Apple SDKのiPhoneビルドでworkerと各Providerの接続を確認し、OS26/27の実アプリUIで安定した詳細表示、採用・再起動後の保持を確認した。物理端末のモデル推論・メモリ・取消は別に確認する。
 
 ## このLinux環境のSwift
 
@@ -159,6 +163,10 @@ UI検証用のXcodeプロジェクトは `tools/picker_test_project.py` が一�
 
 `main` への push でテスト・iOS ビルド・配布を実行します。Pull Request はテスト・ビルドのみで公開しません。Actions の手動実行も可能ですが、公開するのはこのリポジトリの `main` だけです。
 
+既存の`GH_TOKEN`が利用できてもGitのcredential helperが未設定なら、HTTPSのpushだけが認証エラーになる場合があります。
+秘密値を表示せず認証の有効性とhelper設定を確認し、既存認証が使える場合はコマンド限定で
+`git -c credential.helper='!gh auth git-credential' push`を使えます。グローバル設定の変更や利用者の再接続を先に求めません。
+
 コード変更後は対象コミットのActionsが完了するまで確認し、失敗時はログを調べて修正します。文書のみのpushではActionsを監視しません。取得したログは確認後に削除し、共有する情報に個人情報を含めないでください。
 
 ## Mac が利用できる場合の任意のビルド
@@ -187,4 +195,4 @@ bash tools/build-ios.sh ./dist
 
 OCR復旧では、認識できたセル内だけでなく、全ページの非罫線インクが取得文字の箱で覆われることを確認します。クラス行全体やセル外注記の未取得を、残りの文字だけで成功扱いしません。非OCR経路の条件、既存の32M上限・中止処理、認識信頼度のしきい値は維持します。
 
-取得成功後にアプリ内部の `ocrCoverageProof` version 1へページ番号・元グレースケール寸法・SHA256を記録します。モデル応答のSchema2は変更せず、受理時のscope fingerprintが文字・箱・順序・セル証明と取得証明全体を結び付けます。この証明は文字の正読率を保証しません。証明のない旧OCR監査はメタデータだけで移行・再利用せず、保存原文を削除せずに再取得が必要な状態として扱います。非OCRの合法な旧採用結果は従来どおりacceptedAtと確認履歴を保持して再検証できます。通常時間割Parser25で同一hashの旧解析も再検査し、イベントParser4・特殊時間割Parser22は維持します。
+取得成功後にアプリ内部の `ocrCoverageProof` version 1へページ番号・元グレースケール寸法・SHA256を記録します。モデル応答のSchema2は変更せず、受理時のscope fingerprintが文字・箱・順序・セル証明と取得証明全体を結び付けます。この証明は文字の正読率を保証しません。証明のない旧OCR監査はメタデータだけで移行・再利用せず、保存原文を削除せずに再取得が必要な状態として扱います。非OCRの合法な旧採用結果は従来どおりacceptedAtと確認履歴を保持して再検証できます。この証明の導入時は通常Parser25・特殊Parser22でした。現行の開発ソースは通常33・特殊32・行事4で、同一hashの旧結果の再検査も維持します。

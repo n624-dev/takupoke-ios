@@ -8,6 +8,7 @@
 - N03のコンパイル失敗記録と、Navigationの実宣言・既存contentViewport／footer除外処理を照合した。
   テストmodule内のbodyViewportをinternalへ変え、元の包含・footer除外条件をそのまま共有する。
   呼出側を弱い範囲判定へ置き換えず、待機・操作・期待を変えない。実行評価は次のCIで確認する。
+- 同じ399のUI A job116287218594も同じアクセス制御でビルド失敗（76.5秒）、XCTest未開始。
 
 ## 2026-10-15 全体398：週範囲ボタンがhittableでない
 

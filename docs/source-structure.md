@@ -2,6 +2,12 @@
 
 表示・解析規則・保存形式を維持したリファクタリングの配置です。ファイル数や行数だけを基準にせず、処理が分かれる境界で既存コードを移動します。SwiftUIの型、状態の所有者、ViewBuilder、modifierの順序を維持し、再解析・DB移行・設定初期化は伴いません。
 
+現行Strictの既定入口は`PDFKitReader.read`／`readSpecial`と`PDFSchoolParser.parse`／`SpecialScheduleParser.parse`で、
+内部では`PDF239KitReader`・`PDF239SchoolParser`・`PDF239SpecialScheduleParser`を使います。
+`readCertified`／`parseCertified`の追加検査は復旧用です。1年の所属移行は`PDFAnalysis`内の共通`PDFClassAssignment`で行い、
+原本セルの検証用所属と有効授業の所属を分けます。返却の数値専用診断は`PDFReturnGeometryDiagnostic`です。
+下の2026-09-29節は分割当時の履歴であり、現行の実行順は[開発環境](development.md#ui検証とビルドの並列実行)を参照してください。
+
 ## アプリ本体
 
 | 領域 | 配置と役割 |
