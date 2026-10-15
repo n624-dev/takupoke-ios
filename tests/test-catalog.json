@@ -389,7 +389,8 @@
         "tests/test_manual_ui_diagnostics.py",
         "tests/test_manual_ui_project.py",
         "tests/ui/ManualAssistanceChecks+Cases.swift",
-        "tests/test_manual_ui_runner.py"
+        "tests/test_manual_ui_runner.py",
+        "tests/RecoveryFunctionalCoverageTests.swift"
       ]
     },
     {

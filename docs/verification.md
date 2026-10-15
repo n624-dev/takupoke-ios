@@ -66,6 +66,39 @@ CLIのjobログ取得は一時URLへのアクセスで403となり、通常のru
 診断はStrict成功結果だけが対象で、UI自動検査は入口まで、生成・エンコードはNativeで検査する。
 端末上の取得・コピー操作は未確認で、今回の配布後に利用者の操作が必要となる。
 
+配布コミット0b2eb844156f7c252fd4f4c8c5af6412761a1e5dをmainへ反映。
+[全体397](https://github.com/n624-dev/takupoke-ios/actions/runs/38684317869)、試行1。
+配布Python190件・失敗0（51.337秒）と共通契約7件が成功。
+SDK26.6 Native573件、予定skip1、失敗0（84.171秒、準備込み184.6秒）が成功。
+Nativeでは実PDFKitからの採用行取得、数値型のみの出力、4所属の通常授業あり／特殊空欄対照も成功した。
+既存の独立36文書のStrict oracleを維持した。実資料の改善・実機操作・OCR品質とは区別する。
+残るUI・SDK27.0 Native・iPhoneビルド・公開物検査は進行中。
+
+開発ブランチへ強化した空欄テストを同期する前にも、新規GPT-6.1 Sol／Highが20行のコード差分だけを確認した。
+確定指摘なし。各未送信コミットの空白検査とレビュー済みartifactの一致を確認してpushした。
+同一0b2eb84の[開発CI38684846470](https://github.com/n624-dev/takupoke-ios/actions/runs/38684846470)を監視する。
+CLIの一部照会は401となったが、認証設定を変更せず、公開APIの読取とGitHubコネクターで監視を継続する。
+環境はconnected／running、ネットワークはenforced。環境の再起動や利用者の再認証は依頼していない。
+
+配布待機中の追加静的確認で、手動訂正の前回比較がStrictの有効classNameを元セルslotへ直接使っていることを確認。
+移行した元セルのsourceClassNameが使われないため、範囲不一致で比較不可になり得る。
+採用・保存の検証は通り、元データ消去や誤採用の観測ではないが、比較の退行を防ぐため共通sourceSlotで元所属へ戻す。
+元のPDF／Evidence／有効所属は変更しない。通常・特殊・CN／ES／ITで元セル比較できる対照を追加する。
+テスト一覧はRecoveryManualReviewで検索し、失敗索引はRecoveryManualComparison／comparison／比較／previousで検索した。
+一致する前例の失敗条件はなし。既存の比較coreとCoordinatorのprevious生成を読んで変更箇所を2呼出しへ限定する。
+
+新規GPT-6.1 Sol／Highが比較修正の86行だけを中立確認。確定した本番不具合・弱体化・期待値注入の指摘なし。
+追加テストはComparison coreの元セルキーを検査し、Coordinator呼出し全体を直接通す検査ではないとの制限を指摘した。
+主担当が通常・特殊の2呼出しでsourceClassName・元のday／periodを渡すことを確認し、既存UI検査を維持する。
+特殊のテストmetadataもexam／return・term nil・元のtimeへ揃える。比較不可を成功へ変える条件の緩和はない。
+
+比較修正後のLinux Swift498件は失敗0・skip0（102.339秒、準備込み336.1秒）。
+このローカル実行は特殊テストmetadataを揃える前のコピーであり、metadataの最終差分は次の同一ソースCIで確認する。
+Python190件も失敗0・skip0（61.960秒）。一覧・差分空白検査が成功した。
+新規レビュー4はmetadataの追加差分も確認し、確定指摘なし。
+開発0b2eb84のActions38684846470は試行1で完了success。
+Python190件（78.230秒）、Linux Swift497件・失敗0（76.687秒、準備込み230.3秒）を原ログで確認した。
+
 ## 2026-10-14 除外初回操作・返却PDF時限見出し：396.1公開完了
 
 配布ソース6bc600d73fb2c20f0d2988499c7714200dc1a6fa。

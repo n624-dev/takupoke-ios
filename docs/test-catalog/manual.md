@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`94e39704b802e5134e39ea519a66cdadb993d35ac68b396e989bad056d0a4a10`
+`7aedc473bc63c78c50a5bf5b080562826dfc8af4b0a27d35b379af6a014bec6e`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -128,3 +128,15 @@ bash tools/test-manual-ui.sh
 - `test_selected_case_uses_the_same_build_without_retesting_others`
 - `test_failed_build_never_starts_tests_or_becomes_success`
 - `test_missing_completion_refuses_even_after_successful_build`
+
+## [tests/RecoveryFunctionalCoverageTests.swift](../../tests/RecoveryFunctionalCoverageTests.swift)
+
+- `testFunctionalUnlabeledTeacherAndRoomBlanksReachFormalConversionWithoutShifting`
+- `testFunctionalMergedUnlabeledParallelTuplesRetainSeparatorAndEveryFormalSlot`
+- `testFunctionalExamMergedClockAndBlankRolesReachFormalConversion`
+- `testFunctionalReturnSplitParallelBlankRoomAndMergedNormalClockReachFormalConversion`
+- `testFunctionalSpecialHeaderEvidenceCannotBeRemovedOrBorrowedForConversion`
+- `testFunctionalReturnClassRowMustHaveCompletePhysicalBoundarySupport`
+- `testFunctionalReturnClassRowIncludesBoundaryAtPeriodHeaderBottom`
+- `testSpecialMarkedRawSubjectMovesAcrossStrictAndValidatedRecoveryProjections`
+- `testMigratedStrictLessonsStillCompareAtTheirOriginalPDFCells`

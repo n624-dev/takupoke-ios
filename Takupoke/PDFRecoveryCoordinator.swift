@@ -318,7 +318,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 var entries=[C.Slot:[C.Lesson]]()
                 for lesson in old.lessons {
                     try check()
-                    let slot=C.Slot(className:lesson.className,day:String(lesson.weekday),period:lesson.period)
+                    let slot=C.sourceSlot(className:lesson.className,sourceClassName:lesson.sourceClassName,day:String(lesson.weekday),period:lesson.period)
                     entries[slot,default:[]].append(C.Lesson(subject:lesson.names.subject,teacher:lesson.names.teacher,room:lesson.names.room,spanStart:lesson.period,spanEnd:lesson.period,time:nil))
                 }
                 // Strict storage does not enumerate blank cells. Compare only
@@ -332,7 +332,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 var entries=[C.Slot:[C.Lesson]]()
                 for lesson in old.lessons {
                     try check()
-                    let slot=C.Slot(className:lesson.className,day:lesson.date,period:lesson.period)
+                    let slot=C.sourceSlot(className:lesson.className,sourceClassName:lesson.sourceClassName,day:lesson.date,period:lesson.period)
                     entries[slot,default:[]].append(C.Lesson(subject:lesson.subject,teacher:lesson.teacher,room:lesson.room,spanStart:lesson.spanStart,spanEnd:lesson.spanEnd,time:old.timeRange(for:lesson)))
                 }
                 previous=C.Snapshot(scope:C.Scope(kind:(old.kind == .exam ? RecoveryDocumentKind.exam : .return).rawValue,schoolYear:old.schoolYear,term:nil,classes:old.coveredClasses,days:old.coveredDates,slots:Array(entries.keys)),entries:entries)

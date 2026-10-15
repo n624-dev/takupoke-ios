@@ -179,3 +179,33 @@ extension SpecialScheduleTests {
         }
     }
 }
+
+
+extension SpecialScheduleTests {
+    func testMigratedStrictLessonsStillCompareAtTheirOriginalPDFCells() {
+        typealias C = RecoveryManualComparison
+        for department in ["CN","ES","IT"] {
+            let original = PDFLesson(className:"1_1",weekday:1,period:1,names:TimetableLessonNames(subject:"架空科目（"+department+"）",teacher:"架空教員",room:"架空室"),sourceText:"架空原文",page:1)
+            let moved = PDFClassAssignment.assign(original)
+            let special = PDFClassAssignment.assign(SpecialScheduleLesson(date:"2032-04-01",className:"1_1",period:1,spanStart:1,spanEnd:1,timeRange:"09:00〜09:40",lines:[original.names.subject,"架空教員","架空室"],page:1))
+            XCTAssertEqual(moved.className,"1_"+department); XCTAssertEqual(special.className,moved.className)
+            for kind in ["timetable","exam","return"] {
+                let effective = kind == "timetable" ? moved.className : special.className
+                let source = kind == "timetable" ? moved.sourceClassName : special.sourceClassName
+                let day = kind == "timetable" ? "1" : special.date
+                let time = kind == "timetable" ? nil : special.timeRange
+                let raw = C.Slot(className:"1_1",day:day,period:1)
+                let restored = C.sourceSlot(className:effective,sourceClassName:source,day:day,period:1)
+                let scope = C.Scope(kind:kind,schoolYear:2032,term:kind == "timetable" ? "前期" : nil,classes:["1_1"],days:[day],slots:[raw])
+                let literal = C.Lesson(subject:original.names.subject,teacher:"架空教員",room:"架空室",spanStart:1,spanEnd:1,time:time)
+                let current = C.Snapshot(scope:scope,entries:[raw:[literal]])
+                let previous = C.Snapshot(scope:scope,entries:[restored:[literal]])
+                XCTAssertTrue(C.compare(current,previous:previous).available)
+                XCTAssertTrue(C.compare(current,previous:previous).changes.isEmpty)
+                let wrong = C.Snapshot(scope:scope,entries:[C.Slot(className:effective,day:day,period:1):[literal]])
+                XCTAssertFalse(C.compare(current,previous:wrong).available)
+                XCTAssertEqual(C.sourceSlot(className:effective,sourceClassName:nil,day:day,period:1).className,effective)
+            }
+        }
+    }
+}

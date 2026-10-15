@@ -11,6 +11,11 @@ enum RecoveryManualComparison {
             (a.className,a.day,a.period) < (b.className,b.day,b.period)
         }
     }
+    /// Review compares original PDF cells, even after their effective lessons
+    /// moved to a department. It must not treat that cell as a missing prior.
+    static func sourceSlot(className:String,sourceClassName:String?,day:String,period:Int) -> Slot {
+        Slot(className:sourceClassName ?? className,day:day,period:period)
+    }
     struct Scope: Equatable, Sendable {
         let kind: String
         let schoolYear: Int

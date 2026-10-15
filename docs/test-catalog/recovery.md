@@ -1,7 +1,7 @@
 # PDF復旧・OCR・構造・Validator・端末内Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`44578944d3b28dbacef201d93138d3103c1be87e1f0c74d53a5a5a5bf4aec8b3`
+`e0e48254e7c31a6a5e11f4f06567ed02173b02202ca511cbd0ceaf6addbc54cb`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -126,6 +126,7 @@ bash tools/test-parsing.sh
 - `testFunctionalReturnClassRowMustHaveCompletePhysicalBoundarySupport`
 - `testFunctionalReturnClassRowIncludesBoundaryAtPeriodHeaderBottom`
 - `testSpecialMarkedRawSubjectMovesAcrossStrictAndValidatedRecoveryProjections`
+- `testMigratedStrictLessonsStillCompareAtTheirOriginalPDFCells`
 
 ## [tests/RecoveryOCRAcquisitionTests.swift](../../tests/RecoveryOCRAcquisitionTests.swift)
 
