@@ -1,3 +1,14 @@
+## N04 UI readiness追加のSwiftアクセス制御エラー（全体399）
+
+- 対象：52a945e1dfb905efcd3e56dc79864dd48f9a7fa3、Actions38694211705・試行1、job116287218592。
+- SDK／OS：Xcode27.0、iOS27 UI Bのビルド。ApplicationChecks+Timetable.swift:140。
+- 観測：bodyViewportが別ファイルのprivate宣言であり呼び出せず、UIビルドが失敗した（55.0秒）。
+  XCTest未開始。週範囲操作候補の実行評価にも未到達で、398の操作失敗とは区別する。
+- 対処を決める前に記録。全体399は公開不可、残りを取消さず確認する。
+- N03のコンパイル失敗記録と、Navigationの実宣言・既存contentViewport／footer除外処理を照合した。
+  テストmodule内のbodyViewportをinternalへ変え、元の包含・footer除外条件をそのまま共有する。
+  呼出側を弱い範囲判定へ置き換えず、待機・操作・期待を変えない。実行評価は次のCIで確認する。
+
 ## 2026-10-15 全体398：週範囲ボタンがhittableでない
 
 - 対象：7f340c8c34eebbd627c887ebdad40785f0e23def、Actions38686133870・試行1、job116270999395。

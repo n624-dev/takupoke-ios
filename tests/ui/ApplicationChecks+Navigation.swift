@@ -140,7 +140,7 @@ extension ApplicationChecks {
         return usable(frame) && usable(viewport)
             && ObservedScreenGeometry.contains(frame, in: viewport, scale: UIScreen.main.scale)
     }
-    private func bodyViewport(navigation: String? = nil) -> CGRect {
+    func bodyViewport(navigation: String? = nil) -> CGRect {
         let frame = contentViewport(navigation: navigation)
         // These helpers search scrolling content. The separate tapSetupNext
         // observes and operates the footer without using the body viewport.

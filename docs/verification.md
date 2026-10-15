@@ -31,6 +31,20 @@ Python190件は失敗0・skip0（77.053秒）。独立架空PDFの旧／追加�
 中止伝播の追加とUI readinessは構文検査が成功し、同一ソースCIで実行検証する。
 UI修正後のPython190件は失敗0・skip0（62.114秒）。一覧・固定枝番号・レビュー済みartifactの一致と空白を確認した。
 
+52a945e1dfb905efcd3e56dc79864dd48f9a7fa3をmainへ反映し、
+[全体399](https://github.com/n624-dev/takupoke-ios/actions/runs/38694211705)・試行1を開始した。
+開発同期前には新規Sol6.1 Highレビュー7が同じ332行のコード差分を確認し、確定指摘なし。
+Git pushの認証が利用不能となったため、GitHubコネクターで旧HEAD 7f340c8を条件に非force更新し、
+同一52a945eの[開発CI38694414756](https://github.com/n624-dev/takupoke-ios/actions/runs/38694414756)・試行1を開始した。
+公開リモートをfetchしてHEADの一致を確認。認証情報の書換えや環境再起動は行っていない。
+399はUI Bのビルドで別ファイルprivate helperへの呼出しが不可能となった。N04へ対処前に記録した。
+既存bodyViewportの実装とN03を照合し、テストmodule内のinternal共有へ変更する1行だけを追加する。
+元のfooter除外・可視包含・期限と実操作を維持する。Linuxの構文検査は型・アクセス検証の代替ではない。
+次のmain開始前の新規Sol6.1 Highレビュー8は、その1行だけを確認し、確定指摘なし。
+一覧とSwift構文と空白検査は成功。送信時の作者・コミッターを指定のnoreplyに保つため、
+Git CLI用の書込み認証の再接続を依頼した。GitHubコネクターのcommit APIは両者の指定を提供しないため、
+作者が保証できないサーバー既定のコミットを作る回避は行っていない。
+
 今回の環境は最初pending／offlineだったが、起動完了後にpwdを実行できた。
 /workspaceに以前のcheckoutはなく、指定リモートを新規cloneした。
 開発HEAD f1889724155b44263eef49df38330c42f0768bdd・main 6bc600d・変更なしを確認。
