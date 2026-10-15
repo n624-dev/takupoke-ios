@@ -72,10 +72,13 @@ struct PDF239Grid {
     /// selections. Selection rectangles can overlap at a character boundary;
     /// that alone does not imply two conflicting lines of text.
     func timetableText(_ box: PDFBox) throws -> [String] {
+        try timetableRows(box).map { $0.map(\.text).joined() }
+    }
+    func timetableRows(_ box: PDFBox) throws -> [[PDFGlyph]] {
         let input = glyphs(in: box)
         guard input.reduce(0, { $0 + $1.text.utf8.count }) <= 4096 else { throw PDFParseError(code: .limit, branch:.b356) }
         let rows = try Self.contentRows(input)
-        guard input.contains(where: { $0.sourceLine != nil }) else { return rows.map { $0.map(\.text).joined() } }
+        guard input.contains(where: { $0.sourceLine != nil }) else { return rows }
         struct Fragment {
             let glyphs: [PDFGlyph]
             var left: Double { glyphs.map(\.x).min()! }
@@ -111,7 +114,7 @@ struct PDF239Grid {
             } else { bands.append([fragment]) }
         }
         return bands.map { band in
-            band.sorted { $0.left < $1.left }.flatMap(\.glyphs).map(\.text).joined()
+            band.sorted { $0.left < $1.left }.flatMap(\.glyphs)
         }
     }
     func anchors(_ word: String, above: Double) -> [PDFBox] {

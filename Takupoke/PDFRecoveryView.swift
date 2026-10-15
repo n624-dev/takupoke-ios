@@ -49,6 +49,11 @@ struct PDFRecoveryView: View {
                                     if result.state == .empty { Text("空欄").foregroundStyle(.secondary) }
                                     ForEach(Array(result.lessons.enumerated()),id:\.offset) { _,lesson in
                                         Text(lesson.subject.value)
+                                        let destination = PDFClassAssignment.destination(sourceClass:slot.className,rawSubject:lesson.subject.value)
+                                        if destination != slot.className {
+                                            LabeledContent("保存先クラス",value:TimetableDisplayText.className(destination))
+                                                .font(.caption)
+                                        }
                                         Text("教員: \(lesson.teacher.state == .empty ? "記載なし" : lesson.teacher.value) / 教室: \(lesson.room.state == .empty ? "記載なし" : lesson.room.value)")
                                             .font(.caption).foregroundStyle(.secondary)
                                     }

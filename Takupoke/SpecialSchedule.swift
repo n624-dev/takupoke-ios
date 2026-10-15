@@ -16,6 +16,7 @@ struct SpecialScheduleLesson: Codable, Equatable {
     let timeRange: String?
     let lines: [String]
     let page: Int
+    var sourceClassName: String? = nil
 
     var subject: String { lines.first ?? "" }
     var teacher: String { lines.count > 1 ? lines[1] : "" }
@@ -23,7 +24,7 @@ struct SpecialScheduleLesson: Codable, Equatable {
 }
 
 struct SpecialScheduleAnalysis: Codable, Equatable {
-    static let parserVersion = 30
+    static let parserVersion = 31
     var version = parserVersion
     let kind: SpecialScheduleKind
     let sourceDigest: String
@@ -33,11 +34,13 @@ struct SpecialScheduleAnalysis: Codable, Equatable {
     let coveredDates: [String]
     let coveredClasses: [String]
     let periodTimes: [Int: String]
-    let lessons: [SpecialScheduleLesson]
+    var lessons: [SpecialScheduleLesson]
     var recovery: RecoveryAdopted? = nil
 
     func applies(date: String, className: String) -> Bool {
-        coveredDates.contains(date) && coveredClasses.contains(className)
+        coveredDates.contains(date) && (coveredClasses.contains(className) ||
+            (version >= 31 && TimetableSchedule.firstYearDepartments.contains(className) &&
+             coveredClasses.contains(where: { $0.hasPrefix("1_") })))
     }
 
     func periodTime(on date: String, period: Int) -> String? {
@@ -85,3 +88,13 @@ enum SpecialScheduleDiagnosticReport {
 }
 
 #endif
+
+extension PDFClassAssignment {
+    static func assign(_ lesson: SpecialScheduleLesson) -> SpecialScheduleLesson {
+        let origin = lesson.sourceClassName ?? lesson.className
+        let target = destination(sourceClass: origin, rawSubject: lesson.subject)
+        return SpecialScheduleLesson(date: lesson.date, className: target, period: lesson.period,
+            spanStart: lesson.spanStart, spanEnd: lesson.spanEnd, timeRange: lesson.timeRange,
+            lines: lesson.lines, page: lesson.page, sourceClassName: target == origin ? nil : origin)
+    }
+}

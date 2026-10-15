@@ -27,19 +27,19 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 |---|---:|---|
 | [時間割変更・曜日・行除外・原文保持](test-catalog/xlsx.md) | 29 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [原本取得・更新・保存・File Provider](test-catalog/material.md) | 30 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
-| [ローカルDB・移行・半期削除](test-catalog/database.md) | 34 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
+| [ローカルDB・移行・半期削除](test-catalog/database.md) | 35 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [日本時間・学校年度・日付表示](test-catalog/date.md) | 7 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [リンク・検索・設定保持](test-catalog/links.md) | 8 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [名称対応・パッケージ・認証取得](test-catalog/mapping.md) | 22 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [学校行事API・年度別保存](test-catalog/events.md) | 13 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [時間割・今日の予定・授業時刻・授業名](test-catalog/timetable.md) | 47 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
-| [試験・返却PDF](test-catalog/special.md) | 34 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
-| [Strict PDF・文字・位置・罫線](test-catalog/pdf.md) | 114 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
-| [PDF復旧・OCR・構造・Validator・端末内Provider](test-catalog/recovery.md) | 207 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
+| [試験・返却PDF](test-catalog/special.md) | 36 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
+| [Strict PDF・文字・位置・罫線](test-catalog/pdf.md) | 115 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
+| [PDF復旧・OCR・構造・Validator・端末内Provider](test-catalog/recovery.md) | 209 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [確認訂正・画像比較・入力変更・実操作](test-catalog/manual.md) | 75 | Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認 |
 | [通知許可・実配信・設定・バックグラウンド](test-catalog/notifications.md) | 13 | Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定 |
 | [通常画面・設定・実Switch・UI fixture・登録一覧](test-catalog/app-ui.md) | 88 | Apple iOS26/27。LinuxはPython契約検査のみ |
 | [ファイル選択・再選択・背景・キャンセル](test-catalog/picker.md) | 5 | Apple iOS26/27 UI＋Nativeレイアウト |
-| [IPA・AltStore・公開ゲート・ビルド・一時領域](test-catalog/release.md) | 85 | Linux Python／Apple iPhone SDK。AltStore導入は実機限定 |
+| [IPA・AltStore・公開ゲート・ビルド・一時領域](test-catalog/release.md) | 86 | Linux Python／Apple iPhone SDK。AltStore導入は実機限定 |
 | [独立した架空PDF・原文契約・固定期待値](test-catalog/fixtures.md) | 13 | Linux契約検査。PDF描画・OCRはApple限定 |
 | [テスト一覧・対象検索・宣言整合性・CI接続](test-catalog/test-catalog.md) | 53 | Linux Python（隔離Gitリポジトリ） |

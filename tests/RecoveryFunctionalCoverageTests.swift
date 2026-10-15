@@ -152,3 +152,30 @@ extension SpecialScheduleTests {
         XCTAssertEqual(first.box.y,120)
     }
 }
+
+extension SpecialScheduleTests {
+    func testSpecialMarkedRawSubjectMovesAcrossStrictAndValidatedRecoveryProjections() async throws {
+        for kind: SpecialScheduleKind in [.exam,.examReturn] {
+            var pages = kind == .exam ? (1...6).map { examPage($0) } : [returnPageWithSplitCell()]
+            let y = kind == .exam ? 126.0 : 130.0
+            let x = kind == .exam ? 106.0 : 302.0
+            let index = try XCTUnwrap(pages[0].glyphs.firstIndex { $0.x == x && $0.y == y })
+            pages[0].glyphs[index].text += "（CN）"
+            let strict = try SpecialScheduleParser.parse(pages,kind:kind,digest:"fictional",name:"fictional.pdf")
+            XCTAssertTrue(strict.lessons.contains { $0.className == "1_CN" && $0.sourceClassName == "1_1" })
+            XCTAssertFalse(strict.lessons.contains { $0.className == "1_1" && $0.subject.contains("CN") })
+            let doc = try RecoveryDocumentBuilder.build(pages.map(functionalLayout),kind:kind == .exam ? .exam:.return,hash:String(repeating:"e",count:64))
+            let run = try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{_ in nil},check:{})
+            let result = try XCTUnwrap(run.result)
+            XCTAssertTrue(RecoveryValidator.validate(doc,result).canAdopt)
+            let preview = try functionalPreview(doc,result)
+            let formal = try RecoveryConversion.special(preview)
+            XCTAssertTrue(formal.lessons.contains { $0.className == "1_CN" && $0.sourceClassName == "1_1" })
+            XCTAssertEqual(formal.recovery?.document,doc); XCTAssertEqual(formal.recovery?.result,result)
+            var old = try RecoveryConversion.special(preview,remapFirstYear:false); old.version = 30
+            let migrated = try XCTUnwrap(RecoveryConversion.recertifiedSpecial(old,hash:doc.pdfHash))
+            XCTAssertEqual(migrated.lessons,formal.lessons); XCTAssertEqual(migrated.coveredClasses.count,17)
+            XCTAssertEqual(migrated.recovery,old.recovery)
+        }
+    }
+}

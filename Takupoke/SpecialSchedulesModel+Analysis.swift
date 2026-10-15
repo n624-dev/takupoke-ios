@@ -1,6 +1,25 @@
 import SwiftUI
 
 extension SpecialSchedulesModel {
+    /// Manual telemetry is deliberately separate from analysis saving and from
+    /// the internal full-text export. Re-reads only the saved original locally.
+    func diagnoseReturnLesson(_ lesson: SpecialScheduleLesson) {
+        perform(success: "位置情報を取得しました。コピーして開発相談へ貼り付けてください。") { store, control, capture in
+            guard let url = store.savedURL(for:.examReturn),
+                  let record = store.records[.examReturn], record.analysis.lessons.contains(lesson) else {
+                throw PDFParseError(code:.storage)
+            }
+            let check: () throws -> Void = { try control.check() }
+            let pages = try PDFKitReader.readSpecial(url,check:check)
+            let recorder = PDFReturnGeometryRecorder(lesson:lesson)
+            _ = try PDF239SpecialScheduleParser.parse(pages,kind:.examReturn,digest:record.digest,
+                name:record.originalName,geometry:recorder,check:check)
+            try check()
+            guard let report = recorder.report() else { throw PDFParseError(code:.unsupported) }
+            capture.positionsReport = report
+        }
+    }
+
     func analyze(kind: SpecialScheduleKind, selection: ScopedMaterialSelection?) {
         guard !busy else { return }
         fullReadReports[kind] = nil

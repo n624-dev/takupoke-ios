@@ -98,6 +98,21 @@ Xcode側も依存のcheckout・キャッシュをビルド用一時ディレク�
 
 ## このLinux環境のSwift
 
+2026-10-15の管理環境はDebian13/x86_64。公式Swift6.1.2を`/workspace/toolchains/swift-6.1.2`へ導入した。
+SQLite3.53.4のheaderと共有library、Ubuntu ICU74を`/workspace/toolchains/build-deps`へ展開した。
+システムSQLite3.46.1と新header／static libraryが混ざる構成ではDB検査が異常終了したため、同じ版の共有libraryを使う。
+
+```sh
+export PATH="/workspace/toolchains/swift-6.1.2/usr/bin:$PATH"
+export LD_LIBRARY_PATH="/workspace/toolchains/build-deps/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export TKPK_ZLIB_PREFIX="/workspace/toolchains/build-deps"
+swift --version
+bash tools/test-materials.sh
+bash tools/test-parsing.sh
+```
+
+以下は以前の環境の設置場所。今回の環境では存在しなかった。
+
 この開発環境ではSwift 6.1.2を `/home/ubuntu/.local/share/swift-6.1.2` に配置しています。既定のPATHには含まれていません。zlib・SQLiteの開発ファイルは `/home/ubuntu/.local/share/takupoke-build-deps` にあります。
 
 現在のOSにはSwift Package Managerが必要とする `libxml2.so.2` がないため、Ubuntuの公式パッケージ `libxml2`・`libicu74` を `/home/ubuntu/.local/share/swift-6.1.2-compat` に展開しています。システムのライブラリは変更せず、実行時だけ参照します。

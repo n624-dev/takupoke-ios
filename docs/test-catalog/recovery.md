@@ -1,7 +1,7 @@
 # PDF復旧・OCR・構造・Validator・端末内Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`ab77ac6e31edbbc69ab941e8fdaac8c3535279f81e39887821de94ffad126c70`
+`44578944d3b28dbacef201d93138d3103c1be87e1f0c74d53a5a5a5bf4aec8b3`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -125,6 +125,7 @@ bash tools/test-parsing.sh
 - `testFunctionalSpecialHeaderEvidenceCannotBeRemovedOrBorrowedForConversion`
 - `testFunctionalReturnClassRowMustHaveCompletePhysicalBoundarySupport`
 - `testFunctionalReturnClassRowIncludesBoundaryAtPeriodHeaderBottom`
+- `testSpecialMarkedRawSubjectMovesAcrossStrictAndValidatedRecoveryProjections`
 
 ## [tests/RecoveryOCRAcquisitionTests.swift](../../tests/RecoveryOCRAcquisitionTests.swift)
 
@@ -179,6 +180,7 @@ bash tools/test-parsing.sh
 
 ## [tests/RecoveryRecertificationTests.swift](../../tests/RecoveryRecertificationTests.swift)
 
+- `testFirstYearRecoveryMigrationKeepsEvidenceAndRejectsAChangedProjection`
 - `testLegalOldConfirmationCarriesForwardExactlyWithoutAnotherConfirmation`
 - `testFixedAndScopedInlineCompoundCannotRetainOldOrForgedCurrentConfirmation`
 - `testStaleAcceptanceFingerprintsCannotRecertifyChangedSourceOrResult`

@@ -281,7 +281,8 @@
         "Takupoke/PDF239SpecialScheduleParser.swift",
         "Takupoke/PDF239SpecialScheduleParser+Pages.swift",
         "Takupoke/PDF239SpecialScheduleParser+Times.swift",
-        "Takupoke/PDF239KitReader.swift"
+        "Takupoke/PDF239KitReader.swift",
+        "Takupoke/PDFReturnGeometryDiagnostic.swift"
       ],
       "checks": [
         "tests/PDFParsingTests+Diagnostics.swift",

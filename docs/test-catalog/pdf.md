@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`356ffc159429293d460f7b1ae3885c9ff498d4a5dfea8af272a546b55ec4f945`
+`9b76b9d79ec367fe904ee3912badec1c1ef885883f604ce9b47fe124e9386aa5`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -52,6 +52,7 @@ python3 -B tools/pdf_branch_catalog.py check
 - [Takupoke/PDF239SpecialScheduleParser+Pages.swift](../../Takupoke/PDF239SpecialScheduleParser+Pages.swift)
 - [Takupoke/PDF239SpecialScheduleParser+Times.swift](../../Takupoke/PDF239SpecialScheduleParser+Times.swift)
 - [Takupoke/PDF239KitReader.swift](../../Takupoke/PDF239KitReader.swift)
+- [Takupoke/PDFReturnGeometryDiagnostic.swift](../../Takupoke/PDFReturnGeometryDiagnostic.swift)
 
 ## [tests/PDFParsingTests+Diagnostics.swift](../../tests/PDFParsingTests+Diagnostics.swift)
 
@@ -108,6 +109,7 @@ python3 -B tools/pdf_branch_catalog.py check
 - `testRemovingDisplayBreaksPreservesStoredLessonFields`
 - `testAmbiguousSourceOrderStopsInsteadOfFallingBackToCoordinates`
 - `testDamagedClassAndUnalignedParallelFieldsStopWholeTable`
+- `testFirstYearPDFClassAssignmentUsesOnlyTheUnconvertedRawSubject`
 
 ## [tests/PDFTextGeometryTests.swift](../../tests/PDFTextGeometryTests.swift)
 

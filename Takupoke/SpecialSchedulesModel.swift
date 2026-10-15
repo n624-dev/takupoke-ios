@@ -4,6 +4,7 @@ import SwiftUI
 /// Written only by the serial import worker, then read once on the main queue.
 final class SpecialDiagnosticCapture {
     var report: String?
+    var positionsReport: String?
     var failure: PDFParseError?
     var store: SpecialScheduleStore?
     var recoveryPages: [RecoveryReadPage]?
@@ -19,6 +20,7 @@ final class SpecialSchedulesModel: ObservableObject {
     @Published private(set) var message: String?
     @Published private(set) var failed = false
     private(set) var rejectedRecoveryKinds = Set<SpecialScheduleKind>()
+    @Published private(set) var returnPositionsReport: String?
     @Published var fullReadReports: [SpecialScheduleKind: String] = [:]
 
     private let queue = DispatchQueue(label: "io.github.n624dev.takupoke.special-schedules", qos: .userInitiated)
@@ -65,7 +67,7 @@ final class SpecialSchedulesModel: ObservableObject {
                 DispatchQueue.main.async { continuation.resume() }
             }
         }
-        store = nil; recoveryCaptures = [:]; records = [:]; sources = [:]; urls = [:]; fullReadReports = [:]
+        store = nil; recoveryCaptures = [:]; records = [:]; sources = [:]; urls = [:]; fullReadReports = [:]; returnPositionsReport = nil
         ready = false; busy = false; control = nil; message = nil; failed = false
         fileMonitor.update([])
     }
@@ -113,6 +115,7 @@ final class SpecialSchedulesModel: ObservableObject {
                                                SpecialDiagnosticCapture) throws -> Void) {
         guard !busy, !retired else { completion?(false); return }
         busy = true
+        returnPositionsReport = nil
         failed = false
         message = nil
         let operationGeneration = generation
@@ -144,6 +147,7 @@ final class SpecialSchedulesModel: ObservableObject {
                 guard !self.retired, operationGeneration == self.generation else { completion?(false); return }
                 self.busy = false
                 self.control = nil
+                self.returnPositionsReport = capture.positionsReport
                 if let kind { self.fullReadReports[kind] = capture.report }
                 if let store = capture.store {
                     self.store = store

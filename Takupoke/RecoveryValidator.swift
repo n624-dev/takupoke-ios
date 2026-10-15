@@ -595,8 +595,8 @@ enum RecoveryValidator {
                 }
             }
         }
-        guard analysis.lessons == lessons else { return nil }
-        var next = analysis; next.version = PDFAnalysis.parserVersion; next.recovery = current
+        guard analysis.lessons == (analysis.version >= 33 ? lessons.map(PDFClassAssignment.assign) : lessons) else { return nil }
+        var next = analysis; next.version = PDFAnalysis.parserVersion; next.lessons = lessons.map(PDFClassAssignment.assign); next.recovery = current
         return next
     }
     static func canReuse(_ acceptance: RecoveryAcceptance, document: RecoveryDocument, result: RecoveryResult) throws -> Bool {

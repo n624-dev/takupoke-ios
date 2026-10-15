@@ -40,9 +40,9 @@ enum RecoveryConversion {
                 }
             }
         }
-        return PDFAnalysis(kind:.timetable,sourceDigest:preview.source.digest,sourceName:preview.source.originalName,parsedAt:adopted.acceptance.acceptedAt,schoolYear:preview.document.schoolYear,term:preview.document.term,lessons:lessons,events:[],notices:["端末内の復旧結果を確認して採用しました。"],recovery:adopted)
+        return PDFAnalysis(kind:.timetable,sourceDigest:preview.source.digest,sourceName:preview.source.originalName,parsedAt:adopted.acceptance.acceptedAt,schoolYear:preview.document.schoolYear,term:preview.document.term,lessons:lessons.map(PDFClassAssignment.assign),events:[],notices:["端末内の復旧結果を確認して採用しました。"],recovery:adopted)
     }
-    static func special(_ preview: RecoveryPreview) throws -> SpecialScheduleAnalysis {
+    static func special(_ preview: RecoveryPreview, remapFirstYear: Bool = true) throws -> SpecialScheduleAnalysis {
         guard preview.document.kind != .timetable else { throw PDFParseError(code:.storage) }
         let adopted = try adopted(preview), doc = preview.document
         let cells = Dictionary(uniqueKeysWithValues:doc.cells.map { ($0.id,$0) })
@@ -58,19 +58,19 @@ enum RecoveryConversion {
         }
         guard let day = doc.days.sorted().first else { throw PDFParseError(code:.storage) }
         let periodTimes = Dictionary(uniqueKeysWithValues:(1...(doc.kind == .exam ? 6 : 8)).compactMap { p in doc.times["\(day):\(p)"].map { (p,$0) } })
-        return SpecialScheduleAnalysis(kind:doc.kind == .exam ? .exam : .examReturn,sourceDigest:preview.source.digest,sourceName:preview.source.originalName,parsedAt:adopted.acceptance.acceptedAt,schoolYear:doc.schoolYear,coveredDates:doc.days.sorted(),coveredClasses:doc.classes.sorted(),periodTimes:periodTimes,lessons:lessons,recovery:adopted)
+        return SpecialScheduleAnalysis(kind:doc.kind == .exam ? .exam : .examReturn,sourceDigest:preview.source.digest,sourceName:preview.source.originalName,parsedAt:adopted.acceptance.acceptedAt,schoolYear:doc.schoolYear,coveredDates:doc.days.sorted(),coveredClasses:doc.classes.sorted(),periodTimes:periodTimes,lessons:remapFirstYear ? lessons.map(PDFClassAssignment.assign) : lessons,recovery:adopted)
     }
     static func recertifiedSpecial(_ analysis: SpecialScheduleAnalysis, hash: String) throws -> SpecialScheduleAnalysis? {
         guard (4...SpecialScheduleAnalysis.parserVersion).contains(analysis.version), analysis.sourceDigest == hash, let original = analysis.recovery,
               let current = try RecoveryValidator.recertify(original,hash:hash),
               let first = current.document.days.sorted().first, let day = SchoolDate(iso8601:first) else { return nil }
         let source = RecoverySelectedSource(kind:current.document.kind,url:URL(fileURLWithPath:"/"),digest:hash,originalName:analysis.sourceName,storedName:"",period:SchoolDataPeriod(day:day))
-        let projection = try special(RecoveryPreview(document:current.document,result:current.result,source:source))
+        let projection = try special(RecoveryPreview(document:current.document,result:current.result,source:source), remapFirstYear: analysis.version >= 31)
         guard analysis.kind == projection.kind, analysis.schoolYear == projection.schoolYear,
               analysis.coveredDates == projection.coveredDates, analysis.coveredClasses == projection.coveredClasses,
               analysis.periodTimes == projection.periodTimes, analysis.lessons == projection.lessons,
               analysis.parsedAt == original.acceptance.acceptedAt else { return nil }
-        var next = analysis; next.recovery = current
+        var next = analysis; next.version = SpecialScheduleAnalysis.parserVersion; next.lessons = projection.lessons.map(PDFClassAssignment.assign); next.recovery = current
         return next
     }
     static func verifyFile(_ source: RecoverySelectedSource, currentPeriod: () -> SchoolDataPeriod = { SchoolDataPeriod.current() }, check: () throws -> Void) throws {

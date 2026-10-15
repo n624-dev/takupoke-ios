@@ -1,3 +1,25 @@
+## N03 追加した復旧テストのコンパイルエラー（2026-10-15）
+
+- 対象：f188972ベース作業差分の2回目、Debian13/Swift6.1.2/Linux、SQLite3.53.4。
+- 観測：製品moduleのビルド後、追加したRecoveryFunctionalCoverageTestsのfunctionalPreview呼出しにtry不足。
+  RecoveryRecertificationTestsはTimetableLessonNames.subject（let）を直接代入していた。
+  テスト実行前に終了1、219.8秒。SQLite異常終了の再評価には未到達。
+- 修正：既存helperのthrowsと名称型の不変性を読み、try追加と名称値全体の置換に限定する。
+  期待値・採用条件を変えず、改変拒否のassertを維持する。3回目は全497件・失敗0。
+- 対処前に記録。N01の固定版期待の問題とN02のDB実行時Signal11とは別のコンパイル問題。
+
+## N02 ローカルSQLite検査でSignal11（2026-10-15）
+
+- 対象：f188972ベースの未コミット作業差分、Debian13/x86_64、公式Swift6.1.2、Linux。
+- 実行：初回tools/test-parsing.sh。古いtest版期待更新前のsnapshotでビルド成功。
+- 観測：LocalDatabaseTests.testConstraintsRejectWrongKindMutationAndReferencedOriginalDeletion開始直後にSignal11。
+  Swiftのbacktraceは取得不能。プロセス終了まで234.9秒。全体成功として扱わない。
+- SQLite開発headerは3.53.4、リンク先symlinkの本体は未設置、システムは別版。原因は未確定。
+- 実測：システムSQLite3.46.1と、導入したheader／static library3.53.4が異なる。
+  symlink先に対応する3.53.4の共有libraryを同じ配布元から導入し、次の検査は同じ版へ揃える。
+  3回目は対象DB検査を含む全497件・失敗0。環境の版整合を確認した結果であり、製品の解消とは扱わない。
+- 対処前に記録。既存N01のParser固定期待値失敗とは異なり、XCTestのassert到達前の異常終了。
+
 ## N01 非UI：特殊Parser版の固定期待値が旧29（2026-10-14、ローカルSwift）
 
 - 2558df1からの実装中差分、Swift6.1.2/Linux、492件中4失敗。

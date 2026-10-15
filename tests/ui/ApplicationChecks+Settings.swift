@@ -99,6 +99,19 @@ extension ApplicationChecks {
             XCTAssertFalse(app.staticTexts["授業枠"].exists)
             XCTAssertTrue(
                 app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "解析する")).firstMatch.exists)
+            if title == "試験返却時間割" {
+                let lesson = app.buttons.matching(NSPredicate(format:"label CONTAINS %@", "架空返却A")).firstMatch
+                _ = visible(lesson)
+                lesson.tap()
+                screen("授業詳細")
+                _ = heading("見出し混入の調査")
+                let positions = app.buttons["位置情報を取得"]
+                _ = visible(positions)
+                XCTAssertTrue(positions.isHittable)
+                XCTAssertFalse(app.buttons["位置情報をコピー"].exists)
+                XCTAssertFalse(app.buttons["読み取り結果をすべてコピー"].exists)
+                back(to:title)
+            }
             back(to: "時間割ファイル")
         }
         // Actual picker interactions are exercised by the dedicated picker suite.

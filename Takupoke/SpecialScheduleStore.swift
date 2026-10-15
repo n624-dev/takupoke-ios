@@ -100,7 +100,7 @@ final class SpecialScheduleStore {
     func recertifyAccepted(kind: SpecialScheduleKind) throws -> Bool {
         guard let old = records[kind], sources[kind]?.digest == old.digest,
               let proved = try RecoveryConversion.recertifiedSpecial(old.analysis,hash:old.digest) else { return false }
-        guard proved.recovery != old.analysis.recovery else { return true }
+        guard proved != old.analysis else { return true }
         let current = SpecialScheduleRecord(kind:old.kind,originalName:old.originalName,storedName:old.storedName,byteCount:old.byteCount,digest:old.digest,acquiredAt:old.acquiredAt,analysis:proved)
         let currentData = try JSONEncoder().encode(current)
         try queue.write { db in
@@ -251,6 +251,9 @@ final class SpecialScheduleStore {
             analysis.lessons.allSatisfy { (1...count).contains($0.period) &&
                 (1...$0.period).contains($0.spanStart) &&
                 ($0.period...count).contains($0.spanEnd) &&
+                analysis.coveredDates.contains($0.date) &&
+                analysis.coveredClasses.contains($0.sourceClassName ?? $0.className) &&
+                (analysis.version < 31 || PDFClassAssignment.assign($0) == $0) &&
                 analysis.applies(date: $0.date, className: $0.className) &&
                 (analysis.version < 6 || analysis.timeRange(for: $0) != nil) }
     }

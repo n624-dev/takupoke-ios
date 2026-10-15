@@ -7,7 +7,7 @@ enum PDFDisplayText {
     }
 }
 
-struct PDFGlyph: Codable, Sendable {
+struct PDFGlyph: Codable, Sendable, Hashable {
     var text: String
     var x: Double
     var y: Double
@@ -101,6 +101,8 @@ struct PDFLesson: Codable, Equatable {
     var names: TimetableLessonNames
     var sourceText: String
     var page: Int
+    /// Original PDF cell class, present only when the effective class moved.
+    var sourceClassName: String? = nil
 }
 struct PDFSchoolEvent: Codable, Equatable {
     var date: String
@@ -176,7 +178,7 @@ struct PDFEventClassification: Codable, Equatable {
     }
 }
 struct PDFAnalysis: Codable {
-    static let parserVersion = 32
+    static let parserVersion = 33
     // Timetable fixes must not ask users to reparse an unchanged calendar.
     static func currentVersion(for kind: MaterialKind) -> Int { kind == .events ? 4 : parserVersion }
     var version = parserVersion
@@ -190,4 +192,21 @@ struct PDFAnalysis: Codable {
     var events: [PDFSchoolEvent]
     var notices: [String]
     var recovery: RecoveryAdopted? = nil
+}
+
+/// A PDF-only projection after parsing / Evidence validation. It never changes
+/// original cell slots, source text, names or recovery evidence.
+enum PDFClassAssignment {
+    static func destination(sourceClass: String, rawSubject: String) -> String {
+        guard sourceClass.hasPrefix("1_") else { return sourceClass }
+        let departments = ["CN", "ES", "IT"].filter { rawSubject.range(of:"(?<![A-Za-z])" + $0 + "(?![A-Za-z])", options:.regularExpression) != nil }
+        return departments.count == 1 ? "1_" + departments[0] : sourceClass
+    }
+    static func assign(_ lesson: PDFLesson) -> PDFLesson {
+        var next = lesson
+        let origin = lesson.sourceClassName ?? lesson.className
+        next.className = destination(sourceClass: origin, rawSubject: lesson.names.subject)
+        next.sourceClassName = next.className == origin ? nil : origin
+        return next
+    }
 }

@@ -21,7 +21,9 @@ enum SpecialScheduleParser {
 
     static func parse(_ pages: [PDFPageLayout], kind: SpecialScheduleKind, digest: String,
                       name: String, check: () throws -> Void = {}) throws -> SpecialScheduleAnalysis {
-        try PDF239SpecialScheduleParser.parse(pages,kind:kind,digest:digest,name:name,check:check)
+        var analysis = try PDF239SpecialScheduleParser.parse(pages,kind:kind,digest:digest,name:name,check:check)
+        analysis.lessons = analysis.lessons.map(PDFClassAssignment.assign)
+        return analysis
     }
 
     static func parseCertified(_ pages: [PDFPageLayout], kind: SpecialScheduleKind, digest: String,
@@ -85,7 +87,7 @@ enum SpecialScheduleParser {
         return SpecialScheduleAnalysis(kind: kind, sourceDigest: digest, sourceName: name,
                                        parsedAt: Date(), schoolYear: year, coveredDates: dates,
                                        coveredClasses: coveredClasses.sorted(), periodTimes: periodTimes.single,
-                                       lessons: lessons.sorted { ($0.date, $0.className, $0.period, $0.page) <
+                                       lessons: lessons.map(PDFClassAssignment.assign).sorted { ($0.date, $0.className, $0.period, $0.page) <
                                            ($1.date, $1.className, $1.period, $1.page) })
     }
 

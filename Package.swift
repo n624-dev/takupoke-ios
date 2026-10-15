@@ -138,7 +138,7 @@ let package = Package(
                     "PDFUnicodeMap.swift", "PDFEncodedGlyphMap.swift", "PDFDrawnTextReader+GlyphBounds.swift",
                     "PDFDrawnTextReader.swift",
                     "PDFDrawnTextReader+Fonts.swift",
-                    "PDFDiagnostics.swift",
+                    "PDFDiagnostics.swift", "PDFReturnGeometryDiagnostic.swift",
                     "PDFFullReadDiagnostic.swift",
                     "PDFFullDiagnosticEncoding.swift",
                     "MaterialPickerLayout.swift",

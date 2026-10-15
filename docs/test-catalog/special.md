@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`a37fe1bfb765cf42835a249d9e11247b095d75c56f80aa605dd39f4911dc19f8`
+`76004c3bb96a5a235611c29e38521743227a0a52f222ea74cad6f54bd1390cc5`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -49,6 +49,8 @@ bash tools/test-parsing.sh
 - `testExamParsesDatesClassesAndDocumentTimes`
 - `testSpecialLessonSeparatesDocumentSubjectTeacherAndRoom`
 - `testFullCopyIncludesSpecialKindContentAndFailure`
+- `testReturnPositionsExportUsesExactAdoptedRowsAndContainsOnlyNumbers`
+- `testSpecialFirstYearMovesOnlyTheLessonAndKeepsSeventeenSourceClasses`
 
 ## [tests/PDFTextGeometryTests+Visibility.swift](../../tests/PDFTextGeometryTests+Visibility.swift)
 

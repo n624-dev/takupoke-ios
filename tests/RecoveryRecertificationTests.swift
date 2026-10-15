@@ -65,6 +65,37 @@ final class RecoveryRecertificationTests: XCTestCase {
         return analysis
     }
 
+    func testFirstYearRecoveryMigrationKeepsEvidenceAndRejectsAChangedProjection() throws {
+        let (originalDocument,originalResult) = fixture()
+        func firstYear<T: Codable>(_ value: T) throws -> T {
+            let json = String(decoding:try JSONEncoder().encode(value),as:UTF8.self)
+                .replacingOccurrences(of:"3_CN",with:"1_1")
+                .replacingOccurrences(of:"架空科目A",with:"架空科目A（CN）")
+            return try JSONDecoder().decode(T.self,from:Data(json.utf8))
+        }
+        let document = try firstYear(originalDocument)
+        for provider in ["rule","ocr","systemLanguageModel","localAI"] {
+            var result = try firstYear(originalResult); result.metadata.provider = provider
+            XCTAssertTrue(RecoveryValidator.validate(document,result).canAdopt)
+            let preview = RecoveryPreview(document:document,result:result,source:source(document.pdfHash))
+            let formal = try RecoveryConversion.timetable(preview)
+            XCTAssertEqual(formal.lessons.map(\.className),["1_CN"])
+            XCTAssertEqual(formal.lessons.map(\.sourceClassName),["1_1"])
+            XCTAssertEqual(formal.recovery?.document,document); XCTAssertEqual(formal.recovery?.result,result)
+            XCTAssertEqual(try RecoveryValidator.recertifiedTimetable(formal,hash:document.pdfHash)?.lessons,formal.lessons)
+            var legacy = formal; legacy.version = 32
+            legacy.lessons[0].className = "1_1"; legacy.lessons[0].sourceClassName = nil
+            let migrated = try XCTUnwrap(RecoveryValidator.recertifiedTimetable(legacy,hash:document.pdfHash))
+            XCTAssertEqual(migrated.lessons,formal.lessons)
+            XCTAssertEqual(migrated.recovery,legacy.recovery)
+            var forged = legacy; forged.lessons[0].names = TimetableLessonNames(subject:"架空別科目",teacher:"架空教員A",room:"架空教室A")
+            XCTAssertNil(try RecoveryValidator.recertifiedTimetable(forged,hash:document.pdfHash))
+            forged = formal; forged.lessons[0].className = "1_IT"
+            XCTAssertNil(try RecoveryValidator.recertifiedTimetable(forged,hash:document.pdfHash))
+            XCTAssertTrue(RecoveryValidator.validate(document,result).canAdopt)
+        }
+    }
+
     func testLegalOldConfirmationCarriesForwardExactlyWithoutAnotherConfirmation() throws {
         for structured in [false,true] {
             let old = try oldGood(structured: structured)

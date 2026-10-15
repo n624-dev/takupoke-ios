@@ -23,7 +23,7 @@ enum PDF239SpecialScheduleParser {
     }
 
     static func parse(_ pages: [PDFPageLayout], kind: SpecialScheduleKind, digest: String,
-                      name: String, check: () throws -> Void = {}) throws -> SpecialScheduleAnalysis {
+                      name: String, geometry: PDFReturnGeometryRecorder? = nil, check: () throws -> Void = {}) throws -> SpecialScheduleAnalysis {
         guard !pages.isEmpty, pages.count == (kind == .exam ? 6 : 1) else {
             throw PDFParseError(code: .unsupported, stage: .documentHeading, branch:.b396)
         }
@@ -62,7 +62,7 @@ enum PDF239SpecialScheduleParser {
             let parsed = try kind == .exam
                 ? parseExamPage(page, schoolYear: pageYear, pageNumber: index + 1,
                                 times: pageTimes, check: check)
-                : parseReturnPage(page, schoolYear: pageYear, times: pageTimes, check: check)
+                : parseReturnPage(page, schoolYear: pageYear, times: pageTimes, geometry: geometry, check: check)
             let dates = parsed.dates.sorted()
             guard expectedDates == nil || expectedDates == dates else {
                 throw PDFParseError(code: .ambiguous, page: index + 1, stage: .calendarDates, branch:.b391)
@@ -126,11 +126,15 @@ enum PDF239SpecialScheduleParser {
     static func lessons(in page: PDFPageLayout, box: PDFBox, date: SchoolDate,
                                 className: String, period: Int, periodXs: [Double],
                                 times: Times, pageNumber: Int,
-                                contentTop: Double? = nil) throws -> [SpecialScheduleLesson] {
+                                contentTop: Double? = nil, geometry: PDFReturnGeometryRecorder? = nil, dayIndex: Int = 0) throws -> [SpecialScheduleLesson] {
         let grid = PDF239Grid(page: page)
         let content = PDFBox(left: box.left, top: max(box.top, contentTop ?? box.top),
                              right: box.right, bottom: box.bottom)
-        let lines = try grid.timetableText(content).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        let adoptedRows = try grid.timetableRows(content)
+        geometry?.record(box:box,content:content,rows:adoptedRows.filter {
+            !$0.map(\.text).joined().trimmingCharacters(in:.whitespacesAndNewlines).isEmpty
+        },day:dayIndex,period:period)
+        let lines = adoptedRows.map { $0.map(\.text).joined() }.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
         guard lines.count <= 8, lines.reduce(0, { $0 + $1.utf8.count }) <= 4096 else {
             throw PDFParseError(code: .ambiguous, page: pageNumber, stage: .lessonLines, branch:.b386)

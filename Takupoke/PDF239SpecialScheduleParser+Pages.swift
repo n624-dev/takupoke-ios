@@ -51,7 +51,7 @@ extension PDF239SpecialScheduleParser {
     }
 
     static func parseReturnPage(_ page: PDFPageLayout, schoolYear: Int,
-                                        times: Times, check: () throws -> Void) throws -> ParsedPage {
+                                        times: Times, geometry: PDFReturnGeometryRecorder? = nil, check: () throws -> Void) throws -> ParsedPage {
         let periods = try periodHeader(page, sequence: "12345678", repeats: 5)
         let headerY = periods[0].cy
         let step = periods[1].cx - periods[0].cx
@@ -92,8 +92,9 @@ extension PDF239SpecialScheduleParser {
         var seenClasses: Set<String> = []
         var result: [SpecialScheduleLesson] = []
         let firstClass = classRuns[0]
-        let contentTop = try grid.box(firstClass.cx, firstClass.cy).top
-        for run in classRuns {
+        let firstClassCell = try grid.box(firstClass.cx, firstClass.cy)
+        let contentTop = firstClassCell.top
+        for (classIndex, run) in classRuns.enumerated() {
             try check()
             guard let grade = grades.min(by: { abs($0.cy - run.cy) < abs($1.cy - run.cy) }),
                   abs(grade.cy - run.cy) < step * 2.5 else {
@@ -114,9 +115,15 @@ extension PDF239SpecialScheduleParser {
                     for i in 0..<(edges.count - 1) where edges[i + 1] - edges[i] >= 2 {
                         let box = try grid.box(x, (edges[i] + edges[i + 1]) / 2)
                         guard seen.insert(box).inserted else { continue }
+                        let target = geometry.flatMap {
+                            $0.className == name && $0.date == day.iso8601 && $0.period == period ? $0 : nil
+                        }
+                        target?.begin(page:page,firstClass:firstClass.box,firstClassCell:firstClassCell,label:run.box,grade:grade.box,
+                            row:row,original:box,classRow:classIndex+1,contentTop:contentTop,headings:periods,day:dayIndex,periodXs:periodXs)
                         result += try lessons(in: page, box: box, date: day, className: name,
                                               period: period, periodXs: periodXs,
-                                              times: dayTimes, pageNumber: 1, contentTop: contentTop)
+                                              times: dayTimes, pageNumber: 1, contentTop: contentTop,
+                                              geometry:target, dayIndex:dayIndex)
                     }
                 }
             }

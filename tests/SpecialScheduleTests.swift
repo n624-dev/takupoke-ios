@@ -59,6 +59,15 @@ final class SpecialScheduleTests: XCTestCase {
         XCTAssertEqual(Set(result.lessons.map { "\($0.className)/\($0.date)/\($0.period)" }),
             ["1_1/2032-04-01/1", "1_1/2032-04-01/4", "2_ES/2032-04-02/2", "AI_2/2032-04-05/8"])
         XCTAssertNil(result.recovery)
+        let target = try XCTUnwrap(result.lessons.first { $0.className == "1_1" && $0.period == 4 })
+        let recorder = PDFReturnGeometryRecorder(lesson:target)
+        let reread = try PDF239SpecialScheduleParser.parse(pages,kind:.examReturn,digest:"independent",name:"fictional.pdf",geometry:recorder)
+        XCTAssertEqual(reread.lessons,result.lessons)
+        let snapshot = try XCTUnwrap(recorder.snapshot)
+        XCTAssertFalse(snapshot.limited)
+        XCTAssertEqual(snapshot.cells.count,1)
+        XCTAssertEqual(snapshot.cells[0].adoptedRows.count,3)
+        XCTAssertNotNil(recorder.report())
     }
 #endif
 
@@ -252,4 +261,75 @@ final class SpecialScheduleTests: XCTestCase {
         }
     }
 #endif
+}
+
+extension SpecialScheduleTests {
+    func testReturnPositionsExportUsesExactAdoptedRowsAndContainsOnlyNumbers() throws {
+        let page = returnPageWithColumnHeadings()
+        let analysis = try SpecialScheduleParser.parse([page],kind:.examReturn,digest:"secret-digest",name:"private-name.pdf")
+        let lesson = try XCTUnwrap(analysis.lessons.first { $0.className == "1_1" && $0.period == 4 })
+        let recorder = PDFReturnGeometryRecorder(lesson:lesson)
+        let direct = try PDF239SpecialScheduleParser.parse([page],kind:.examReturn,digest:"secret-digest",name:"private-name.pdf",geometry:recorder)
+        XCTAssertEqual(direct.lessons,analysis.lessons)
+        let snapshot = try XCTUnwrap(recorder.snapshot)
+        XCTAssertEqual(snapshot.classRow,1); XCTAssertEqual(snapshot.contentTop,120)
+        let cell = try XCTUnwrap(snapshot.cells.first)
+        XCTAssertLessThan(cell.original.top,cell.content.top)
+        XCTAssertEqual(cell.content.top,120)
+        let ids = cell.adoptedRows.flatMap { $0 }
+        XCTAssertFalse(ids.isEmpty)
+        XCTAssertEqual(Set(ids).count,ids.count)
+        XCTAssertTrue(Set(ids).isSubset(of:Set(snapshot.contextGlyphs.map(\.id))))
+        XCTAssertFalse(snapshot.limited)
+        let report = try XCTUnwrap(recorder.report())
+        for value in ["secret-digest","private-name.pdf","架空科目","架空教員","架空教室","3ｺﾏ","4ｺﾏ","1_1",lesson.date] {
+            XCTAssertFalse(report.contains(value))
+        }
+        let json = try JSONSerialization.jsonObject(with:Data(report.split(separator:"\n",maxSplits:1)[1].utf8))
+        func check(_ value: Any) {
+            if let object = value as? [String:Any] { object.values.forEach(check) }
+            else if let array = value as? [Any] { array.forEach(check) }
+            else { XCTAssertTrue(value is NSNumber || value is NSNull,"Unexpected serialized value") }
+        }
+        check(json)
+        // A diagnostic request does not change any parse result or add a filter.
+        let ordinary = try SpecialScheduleParser.parse([page],kind:.examReturn,digest:"secret-digest",name:"private-name.pdf")
+        XCTAssertEqual(ordinary.lessons,analysis.lessons)
+    }
+
+    func testSpecialFirstYearMovesOnlyTheLessonAndKeepsSeventeenSourceClasses() throws {
+        for kind: SpecialScheduleKind in [.exam,.examReturn] {
+            let pages = kind == .exam ? (1...6).map { examPage($0) } : [returnPageWithSplitCell()]
+            var analysis = try SpecialScheduleParser.parse(pages,kind:kind,digest:"fictional",name:"fictional.pdf")
+            let original = try XCTUnwrap(analysis.lessons.first { $0.className == "1_1" })
+            let marked = SpecialScheduleLesson(date:original.date,className:original.className,period:original.period,
+                spanStart:original.spanStart,spanEnd:original.spanEnd,timeRange:original.timeRange,
+                lines:["架空科目（CN）","架空教員IT","架空教室ES"],page:original.page)
+            let assigned = PDFClassAssignment.assign(marked)
+            XCTAssertEqual(assigned.className,"1_CN"); XCTAssertEqual(assigned.sourceClassName,"1_1")
+            XCTAssertEqual(assigned.lines,marked.lines)
+            analysis.lessons = [assigned]
+            XCTAssertEqual(analysis.coveredClasses.count,17)
+            XCTAssertTrue(analysis.applies(date:original.date,className:"1_CN"))
+            XCTAssertNotNil(analysis.timeRange(for:assigned))
+            let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer { try? FileManager.default.removeItem(at:root) }
+            let store = try SpecialScheduleStore(root:root), staged = store.newStagingURL()
+            let bytes = Data("%PDF-fictional".utf8); try bytes.write(to:staged)
+            try store.save(staged:staged,analysis:analysis,originalName:"fictional.pdf",byteCount:bytes.count,digest:"fictional")
+            let saved = try XCTUnwrap(SpecialScheduleStore(root:root).records[kind]?.analysis)
+            XCTAssertEqual(saved.lessons,[assigned]); XCTAssertFalse(saved.lessons.contains { $0.className == "1_1" })
+            // Blank special cells suppress ordinary lessons for both affiliations.
+            let day = try XCTUnwrap(SchoolDate(iso8601:original.date))
+            let base = PDFAnalysis(kind:.timetable,sourceDigest:"t",sourceName:"fictional.pdf",parsedAt:Date(),schoolYear:2026,term:"前期",lessons:[PDFLesson(className:"1_CN",weekday:day.schoolWeekday,period:8,names:TimetableLessonNames(subject:"架空通常",teacher:"",room:""),sourceText:"架空通常",page:1)],events:[],notices:[])
+            for name in ["1_1","1_CN","1_ES","1_IT"] {
+                let slot = TimetableSchedule.slot(on:day,period:8,className:name,timetable:base,changes:nil,includesChanges:false,specials:[saved])
+                XCTAssertTrue(slot.baseLessons.isEmpty); XCTAssertTrue(slot.specialLessons.isEmpty)
+            }
+            var invalid = saved
+            invalid.lessons = [SpecialScheduleLesson(date:assigned.date,className:"1_IT",period:assigned.period,spanStart:assigned.spanStart,spanEnd:assigned.spanEnd,timeRange:assigned.timeRange,lines:assigned.lines,page:assigned.page,sourceClassName:"1_1")]
+            XCTAssertThrowsError(try store.saveAnalysis(invalid))
+            XCTAssertEqual(try SpecialScheduleStore(root:root).records[kind]?.analysis.lessons,[assigned])
+        }
+    }
 }

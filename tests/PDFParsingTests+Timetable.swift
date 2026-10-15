@@ -296,3 +296,33 @@ extension PDFParsingTests {
         XCTAssertThrowsError(try parse([parallel], kind: .timetable))
     }
 }
+
+extension PDFParsingTests {
+    func testFirstYearPDFClassAssignmentUsesOnlyTheUnconvertedRawSubject() throws {
+        let cases: [(String,String)] = [
+            ("架空科目（CN）","1_CN"),("CN架空CN","1_CN"),("架空IT演習","1_IT"),
+            ("架空科目 ES","1_ES"),("架空CN／IT","1_1"),("CN ES IT","1_1"),
+            ("架空科目","1_1"),("架空 DESIGN","1_1"),("架空科目 it","1_1")]
+        for (subject, expected) in cases {
+            for source in ["1_1","1_2","1_3","2_CN","AI_1"] {
+                let original = PDFLesson(className:source,weekday:1,period:1,
+                    names:TimetableLessonNames(subject:subject,teacher:"架空CN",room:"架空IT",subjectFullName:"架空正式ES"),
+                    sourceText:subject+"\n架空CN\n架空IT",page:1)
+                let moved = PDFClassAssignment.assign(original)
+                XCTAssertEqual(moved.className,source.hasPrefix("1_") && expected != "1_1" ? expected:source)
+                XCTAssertEqual(moved.names,original.names); XCTAssertEqual(moved.sourceText,original.sourceText)
+                XCTAssertEqual(PDFClassAssignment.assign(moved),moved)
+                XCTAssertEqual(moved.sourceClassName,moved.className == source ? nil:source)
+            }
+        }
+        var page = timetable()
+        let index = try XCTUnwrap(page.glyphs.firstIndex { $0.x == 104 && $0.y == 109 })
+        page.glyphs[index].text += "（CN）"
+        for parse in [PDFSchoolParser.parse, PDFSchoolParser.parseCertified] {
+            let result = try parse([page],.timetable,"fictional","fictional.pdf",{})
+            let first = try XCTUnwrap(result.lessons.first { $0.weekday == 1 && $0.period == 1 })
+            XCTAssertEqual(first.className,"1_CN"); XCTAssertEqual(first.sourceClassName,"1_ZZ")
+            XCTAssertTrue(first.names.subject.contains("CN"))
+        }
+    }
+}

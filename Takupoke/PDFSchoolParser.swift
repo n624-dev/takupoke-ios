@@ -59,6 +59,7 @@ enum PDFSchoolParser {
             // These notices describe the current app, not PDF acceptance rules.
             result.notices = ["PDFの記載名を解析結果として保存しています。正式名称の対応は表示時に適用します。",
                               "適用開始日・終了日はPDFの学期名から推測していません。時間割変更は日付ごとの表示時に反映します。"]
+            result.lessons = result.lessons.map(PDFClassAssignment.assign)
             return result
         }
         return try parseCertified(pages,kind:kind,digest:digest,name:name,check:check)
@@ -147,6 +148,7 @@ enum PDFSchoolParser {
         }
         guard result.lessons.count + result.events.count <= maximumRecords else { throw PDFParseError(code: .limit, branch:.b185) }
         try check()
+        if kind == .timetable { result.lessons = result.lessons.map(PDFClassAssignment.assign) }
         return result
     }
 

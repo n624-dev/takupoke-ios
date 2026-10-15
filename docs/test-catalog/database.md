@@ -1,7 +1,7 @@
 # ローカルDB・移行・半期削除
 
 対応関係・宣言名・実行方法のSHA-256：
-`5edddb8fd8475b22b64dd3488897a81a390b051ecd026b7dba24143ccab4c787`
+`cb8bb0d5ef2596a827b873a5f63195f37eaea03ad1ac7deadad93095fc45ab61`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -40,6 +40,7 @@ bash tools/test-parsing.sh
 - `testSecondRuntimeOwnerCannotCollectActiveStaging`
 - `testRuntimeBindsReparseToExactAcquisitionEvenWhenBytesMatch`
 - `testRuntimeProjectionCorruptionRefusesLoadAndWrite`
+- `testFirstYearMoveCommitsOnlyDestinationAndRollbackKeepsOriginalLessons`
 
 ## [tests/LocalDatabaseTests+Legacy.swift](../../tests/LocalDatabaseTests+Legacy.swift)
 

@@ -297,3 +297,34 @@ extension LocalDatabaseTests {
         XCTAssertEqual(library.state.pdfAnalyses?["timetable"]?.lessons.count, 2)
     }
 }
+
+extension LocalDatabaseTests {
+    func testFirstYearMoveCommitsOnlyDestinationAndRollbackKeepsOriginalLessons() throws {
+        let example = try fixture(), (db,library) = try runtimeStore()
+        defer { try? db.close() }
+        try acquire(library,kind:.timetable)
+        var old = try XCTUnwrap(example.pdfAnalyses?["timetable"])
+        old.version = 32
+        old.lessons = [PDFLesson(className:"1_1",weekday:1,period:1,names:TimetableLessonNames(subject:"架空科目（CN）",teacher:"架空教員",room:"架空室"),sourceText:"架空原文",page:1),
+                       PDFLesson(className:"1_1",weekday:1,period:2,names:TimetableLessonNames(subject:"架空共通科目",teacher:"",room:""),sourceText:"架空共通原文",page:1)]
+        try library.savePDFAnalysis(old)
+        let before = try LocalMaterialDatabase.encode(db.load())
+        var migrated = old; migrated.version = PDFAnalysis.parserVersion
+        migrated.lessons = old.lessons.map(PDFClassAssignment.assign)
+        db.beforeCommit = { throw MaterialError.invalidState }
+        XCTAssertThrowsError(try library.savePDFAnalysis(migrated))
+        XCTAssertEqual(try LocalMaterialDatabase.encode(db.load()),before)
+        XCTAssertEqual(library.state.pdfAnalyses?["timetable"]?.lessons,old.lessons)
+        db.beforeCommit = {}
+        try library.savePDFAnalysis(migrated)
+        XCTAssertEqual(try db.load().pdfAnalyses?["timetable"]?.lessons,migrated.lessons)
+        let sql = try DatabaseQueue(path:runtime.appendingPathComponent("library.sqlite").path)
+        try sql.read { db in
+            XCTAssertEqual(try String.fetchAll(db,sql:"SELECT className FROM lesson ORDER BY ordinal"),["1_CN","1_1"])
+            XCTAssertEqual(try Int.fetchOne(db,sql:"SELECT count(*) FROM analysis"),1)
+        }
+        var forged = migrated; forged.lessons[0].className = "1_IT"
+        XCTAssertThrowsError(try library.savePDFAnalysis(forged))
+        XCTAssertEqual(try db.load().pdfAnalyses?["timetable"]?.lessons,migrated.lessons)
+    }
+}

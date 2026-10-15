@@ -94,6 +94,7 @@ def inspect_ipa(ipa, config, version, build, commit):
         if any(marker in executable_bytes for marker in (
             b"TAKUPOKE-PDF-FULL-ZIP-1", b"TAKUPOKE-PDF-FULL-JSON-1",
             "更新確認の診断をコピー".encode(), "全文診断をコピー".encode(),
+            "読み取り結果をすべてコピー".encode(), "診断情報をコピー".encode(),
         )):
             raise ValueError("Internal diagnostics must not be included in public builds")
         for policy in ("terms", "privacy"):

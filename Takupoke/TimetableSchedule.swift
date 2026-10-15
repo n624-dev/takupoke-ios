@@ -77,7 +77,7 @@ enum TimetableSchedule {
     static func classes(in state: MaterialLibraryState, specials: [SpecialScheduleAnalysis] = []) -> [String] {
         let lessonClasses = state.pdfAnalyses?[MaterialKind.timetable.rawValue]?.lessons.map(\.className) ?? []
         let changeClasses = state.changeAnalysis?.records.map(\.displayClassName) ?? []
-        let specialClasses = specials.flatMap(\.coveredClasses)
+        let specialClasses = specials.flatMap { $0.coveredClasses + $0.lessons.map(\.className) }
         return Set(lessonClasses + changeClasses + specialClasses).sorted()
     }
 

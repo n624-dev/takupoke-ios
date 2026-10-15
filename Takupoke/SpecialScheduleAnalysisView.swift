@@ -9,6 +9,8 @@ struct SpecialScheduleAnalysisView: View {
     @State private var showingSource = false
     @State private var showingRecovery = false
     @State private var copiedReport: String?
+    @State private var positionsLesson: SpecialScheduleLesson?
+    @State private var positionsCopied = false
 
     private var source: SpecialScheduleSource? { model.sources[kind] }
     private var record: SpecialScheduleRecord? { model.records[kind] }
@@ -88,6 +90,26 @@ struct SpecialScheduleAnalysisView: View {
                                 LabeledContent("教室", value: lesson.room.isEmpty ? "記載なし" : PDFDisplayText.continuous(lesson.room))
                                 DisclosureGroup("元のセルの記載") {
                                     Text(lesson.lines.joined(separator: "\n")).textSelection(.enabled)
+                                }
+                                if kind == .examReturn {
+                                    Section("見出し混入の調査") {
+                                        Text("この授業の見出し・クラス欄・罫線・採用行の位置だけを取得します。本文・教員名・教室名・画像は含みません。自動送信はしません。")
+                                            .font(.caption).foregroundStyle(.secondary)
+                                        Button("位置情報を取得", systemImage:"ruler") {
+                                            positionsLesson = lesson; positionsCopied = false
+                                            model.diagnoseReturnLesson(lesson)
+                                        }.buttonStyle(.glass).disabled(model.busy)
+                                        if positionsLesson == lesson, let report = model.returnPositionsReport {
+                                            Button("位置情報をコピー", systemImage:"doc.on.doc") {
+                                                UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier:report]],
+                                                    options:[.localOnly:true,.expirationDate:Date().addingTimeInterval(600)])
+                                                positionsCopied = true
+                                            }.buttonStyle(.glass).disabled(model.busy)
+                                            if positionsCopied { Text("位置情報をコピーしました。") }
+                                        }
+                                        if model.busy { LoadingRow(title:"位置情報を取得中⋯",cancel:{ model.cancel() }) }
+                                        if let message = model.message, positionsLesson == lesson { Text(message).font(.caption) }
+                                    }
                                 }
                             }
                             .navigationTitle("授業詳細")

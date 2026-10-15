@@ -31,7 +31,8 @@ extension MaterialLibrary {
               analysis.lessons.count + analysis.events.count <= PDFSchoolParser.maximumRecords else { return false }
         switch analysis.kind {
         case .timetable: return !analysis.lessons.isEmpty && analysis.events.isEmpty &&
-            analysis.lessons.allSatisfy { (1...5).contains($0.weekday) && (1...8).contains($0.period) && !$0.names.subject.isEmpty }
+            analysis.lessons.allSatisfy { (1...5).contains($0.weekday) && (1...8).contains($0.period) && !$0.names.subject.isEmpty &&
+                (analysis.version < 33 || PDFClassAssignment.assign($0) == $0) }
         case .events: return !analysis.events.isEmpty && analysis.lessons.isEmpty &&
             analysis.events.allSatisfy { ["共通", "詫間"].contains($0.scope) && !$0.title.isEmpty }
         case .changes: return false

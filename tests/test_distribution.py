@@ -124,12 +124,20 @@ class DistributionTests(IPAFixture):
             release.inspect_ipa(self.output / "takupoke.ipa", self.config, "0.1.12", "12.1", COMMIT)
 
     def test_public_release_excludes_diagnostics_and_requires_bundled_policies(self):
-        for marker in (b"TAKUPOKE-PDF-FULL-ZIP-1", b"TAKUPOKE-PDF-FULL-JSON-1"):
+        for marker in (b"TAKUPOKE-PDF-FULL-ZIP-1", b"TAKUPOKE-PDF-FULL-JSON-1",
+                       "読み取り結果をすべてコピー".encode(), "診断情報をコピー".encode()):
             self.write_ipa(executable=marker)
             with self.assertRaisesRegex(ValueError, "Internal diagnostics"):
                 release.inspect_ipa(self.output / "takupoke.ipa", self.config, "0.1.12", "12.1", COMMIT)
         self.write_ipa(policies=False)
         with self.assertRaisesRegex(ValueError, "legal documents"):
+            release.inspect_ipa(self.output / "takupoke.ipa", self.config, "0.1.12", "12.1", COMMIT)
+
+    def test_numeric_return_positions_does_not_enable_internal_exports(self):
+        self.write_ipa(executable=b"TAKUPOKE-RETURN-POSITIONS-1")
+        release.inspect_ipa(self.output / "takupoke.ipa", self.config, "0.1.12", "12.1", COMMIT)
+        self.write_ipa(executable=b"TAKUPOKE-RETURN-POSITIONS-1 TAKUPOKE-PDF-FULL-ZIP-1")
+        with self.assertRaisesRegex(ValueError, "Internal diagnostics"):
             release.inspect_ipa(self.output / "takupoke.ipa", self.config, "0.1.12", "12.1", COMMIT)
 
     def test_modified_ipa_and_source_fail_validation(self):
