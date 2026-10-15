@@ -34,7 +34,7 @@
   原文授業名のCN／ES／ITによる1年授業の所属移行、原本所属の検証・旧有効行の原子的な置換、
   返却の実罫線による下段見出し分離、数値だけの手動位置診断を実装しました。
   [開発CI・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38695221711)はSwift500件・Python190件とも失敗0。
-  [全体400・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38695099094)の配布検証は継続中です。
+  [全体400・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38695099094)は、手動訂正27の初回launch準備中にSpringBoardがクラッシュし、公開不可です。製品・テスト条件を変更せず、次の実行で全必須検査を行います。
   実機の所属移行・見出し改善・診断コピー・AltStore更新を確認済みとは扱いません。
 - 実資料の解析履歴：239.1からPDF不変・AI／OCR OFFという利用者報告のもと、
   380.1〜393.1で3種類のStrict拒否があり、394.1で3種類が再び読めたとの実機報告を受けました。

@@ -1,3 +1,22 @@
+## U76 手動訂正3項目の実行中にSpringBoardがクラッシュ（全体400、iOS27）
+
+- 対象：fd6e42cc254a6c1e2e7ed134b1a425d37b3c5919、Actions38695099094・試行1、job116290206394。
+- 環境：Xcode27.0・iOS27 Simulator、testThreeFieldsRequireEachAcknowledgementAndFourRefuses。
+- 観測：buildは成功。07:11:09 UTCにXCTestが「Critical process SpringBoard crashed in (null)」を報告し、
+  1件・1失敗（400.883秒）、処理全体469.2秒で終了した。ビルド失敗ではない。
+- 対処案・次の実行を決める前に記録。クラッシュの下位原因・その時点のUI操作は未特定。
+  全体400は公開不可。残りのジョブを取り消さず、新しい完了ログを確認する。
+- 詳細：最初のlaunchのautomation session準備で発生し、fixture-ready・3項目入力前。
+  診断collectorはmatchingTextReports0、crashCause unassessedで、SpringBoardのクラッシュ原因は分からない。
+- 照合：U65のNSPOSIX launch失敗とU51の同caseのjob期限超過、および各詳細記録・当時の条件を読んだ。
+  今回は別のOSプロセスのクラッシュであり、同じ原因とは断定しない。
+  成功した399の同case（474.543秒）から400まで、製品・手動case・実行scriptの差分は0。
+  400の差分は通常UIのhelper公開範囲1行だけで、手動プロジェクトはそのファイルをコンパイルしない。
+- 次の評価：この記録と文書更新をmainへ反映するときに、新規Runner・所有Simulatorで全必須検査を行う。
+  製品修正の根拠はなく、SDK・操作・待機・期待値・公開条件は変更しない。
+  400の失敗を上書きせず、別実行・同一ソース／試行の全13成功を要求する。
+  部分的な再実行の成功を旧試行の成功と組み合わせて公開せず、旧400も取消しない。
+
 ## N04 UI readiness追加のSwiftアクセス制御エラー（全体399）
 
 - 対象：52a945e1dfb905efcd3e56dc79864dd48f9a7fa3、Actions38694211705・試行1、job116287218592。
