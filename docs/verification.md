@@ -1,4 +1,66 @@
-## 2026-10-15 引き継ぎ・位置診断と1年所属移行（配布検証を継続）
+## 2026-10-15 401.1公開・全13必須検査と配布物照合完了
+
+配布ソース：`bb87a5be860956b7ba460c90b87f3fc38d01362c`。
+[全体401](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123)・試行1で、同じ実行ID・試行・commitの全13必須jobが成功した。
+公開APIのrun／attemptの全jobを取得し、既存release_gate.check_snapshotと配布job自身の一致・成功を別途検査した。
+[0.1.401（401.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.401-build.401.1)を通常Release・Latestとして公開し、固定AltStore Sourceも更新した。
+
+実装した変更：原文授業名による1年授業の学科所属移行、保存成功時の旧所属有効行の除去、
+クラス欄が下段見出しまで結合する返却PDFの実罫線による本文分離、本文なし数値位置診断の手動取得・コピー。
+通常・試験のStrictに復旧専用条件を追加せず、試験・返却の原本17クラス・Evidence・元セル所属の検証を維持した。
+XLSX・学校行事APIは学科移行の対象外。通常Parser33・特殊32で旧Strict保存を再解析し、失敗時は旧正常結果を保護する。
+
+SDK26.6 Native：576件・予定skip1・失敗0、126.224秒（準備込み304.2秒）。
+配布SDK27.0 Native：576件・予定skip1・失敗0、106.261秒（準備込み217.2秒）。
+既存の独立36文書・96ページの全文比較と、別の独立見出し対照を維持した。
+通常UI4ジョブ・手動訂正6ジョブが成功し、通知・27の実VoiceOver・追加3文字サイズも完了した。
+ファイル選択UI3件：540.859秒（UI処理894.3秒）。iPhone Release build472.8秒。
+配布Python190件・失敗0（87.911秒）と共通契約7件が成功。
+文書以外のコードが同じfd6e42cの開発CIはSwift500件・失敗0（77.448秒）とPython190件・失敗0（63.222秒）。
+
+| 必須job | 結果 |
+|---|---|
+| [Distribution tests](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116301196792) | 成功 |
+| [Application iOS 27 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116301791595) | 成功 |
+| [Manual correction iOS 27 / testThreeFieldsRequireEachAcknowledgementAndFourRefuses](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116301791616) | 成功 |
+| [Application iOS 27 UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116301791732) | 成功 |
+| [Manual correction iOS 27 / testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116301791786) | 成功 |
+| [Native PDF and recovery tests](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116301791889) | 成功 |
+| [Manual correction iOS 27 / testChangedOriginalCannotSubmitOrReplaceLastGood](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116301791933) | 成功 |
+| [Application iOS 26 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116313927738) | 成功 |
+| [Manual correction iOS 26 / testThreeFieldsRequireEachAcknowledgementAndFourRefuses](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116316743524) | 成功 |
+| [Application iOS 26 UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116316743656) | 成功 |
+| [Manual correction iOS 26 / testChangedOriginalCannotSubmitOrReplaceLastGood](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116316743659) | 成功 |
+| [Manual correction iOS 26 / testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116316743664) | 成功 |
+| [Build and publish AltStore release](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116340378911) | 成功 |
+
+4添付をAuthorizationヘッダーなしの公開URLから取得し、サイズ・全bytesのSHA-256とGitHubの全4 digestを照合した。
+既存release.validateでmanifestの3添付、IPAのソース・版・build401.1・SDK27.0・最低OS26.0・iPhone・署名なし・
+プライバシー宣言・全文診断混入禁止・Source・iconを確認した。Release本文と共通更新内容も一致。
+固定Source URLとタグ側Sourceは全bytes一致し、実行ファイルには数値専用診断のマーカーが存在した。
+照合のダウンロードは所有TemporaryDirectoryで回収した。
+
+| 添付 | bytes | SHA-256 |
+|---|---:|---|
+| altstore-source.json | 2,856 | `52f486e00f29fa39a5cc6e112e178691545637f7563adc7882b7be4e8977d5d1` |
+| icon.png | 130,461 | `7ed41c1462f9bd46427b11e1045caddd95c10bea459a5984298c60776ab6177f` |
+| release.json | 1,067 | `1191d35ef1cc38d924aad90274a48e124a0e7b485da4be62d010367e29092582` |
+| takupoke.ipa | 17,029,227 | `90986be389484e81d9fd84a202ddb2903d05b50bd5e51a05e0fd34d2d07cfef7` |
+
+機密PDF3件は今回添付された資料だけをリポジトリ外でローカル確認し、作業用コピーと空の個別領域を削除した。
+学校サイトから削除済み旧PDFを再取得していない。原本・抽出本文・画像・実座標・digestをGit・CI・公開物へ転記せず、
+リモートOCR・クラウドAI・Private Cloud Computeへ送っていない。
+原本のPDFKit解析、iPhone14／iOS27.0.1での見出し改善・学科移行・診断取得とコピー・AltStore更新は未確認。
+混入が残る場合は、返却の「詳細を見る」→対象授業→「位置情報を取得」→「位置情報をコピー」で非公開の開発相談へ共有する。
+
+旧397は全13成功後に新しいmainを検出して公開を見送り、旧398〜400は失敗で未公開。
+いずれも取消さず終端と残るログを確認した。401の成功で旧失敗や依存skipを上書きしない。
+U76／U77は401では再発しなかったが、SpringBoard・入力配送の下位原因と恒常的解消は未証明。
+結果文書の追記は公開完了後、文書のみのcommitに`[skip ci]`を付けてmain・開発ブランチへ反映する。
+検証済み配布ソースとのコード差分0を確認し、文書の追記だけで別の配布を起動しない。製品・検査条件・workflowは変更しない。
+最終文書更新後のローカルファイル参照1109件、テスト一覧363登録、固定枝番号一覧と差分空白も確認した。
+
+### 実装・失敗照合から公開までの経緯
 
 全体400の手動訂正27・3項目は、最初のapp.launchのautomation session準備中に
 SpringBoardのcritical process crashで失敗した。U76へ対処前に記録した。
@@ -16,6 +78,48 @@ U65とU51の詳細・コードを照合し、成功した399から製品・手�
 旧399は残る単一訂正27も781.207秒で成功して完了failure。UIのN04を失敗として保持し、依存skipを成功へ数えない。
 旧399は終端まで確認したため監視対象から除く。GitHub状態は次に約15分後、完了ログだけを取得する。
 文書21ファイルの更新dd46a9cは開発ブランチへpush済み。path条件により新しいActionsは発生していない。
+
+失敗記録・照合根拠と文書更新をbb87a5be860956b7ba460c90b87f3fc38d01362cとして開発ブランチへ先にpushし、
+その後mainへ非forceで反映した。fd6e42cからの文書以外の差分は0 bytes、各未送信コミットの空白検査も成功。
+[全体401](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123)・試行1を開始した。
+07:36 UTCの確認で配布Python190件・失敗0（87.911秒）と共通契約7件が成功。
+27のUI Bと3項目訂正が実行中、残るApple検証は実行枠待ち。次のまとめ確認は約20分後とする。
+全体400は残る通常27 A／B・単一訂正を続行しており、取消していない。
+
+07:56 UTCのまとめ確認：401はNative SDK26.6が576件・予定skip1・失敗0（126.224秒、準備込み304.2秒）。
+3項目訂正27は381.511秒・失敗0で成功し、400のSpringBoardクラッシュはこの実行では再発しなかった。
+原本変更27も247.473秒で成功。通常27 A／Bと単一訂正が継続中で、全体成功・公開は未達。
+400の通常27 A／B・単一訂正も成功した。Aは14件1616.394秒と通知69.637秒、単一訂正680.740秒。
+400は3項目訂正の失敗を保持し、手動26は依存skip。通常26 A／Bを取消さず継続し、完了後に終端を確認する。
+401の残る通常UIの開始からの経過を踏まえ、次のまとめ確認は約20分後とする。
+
+08:16 UTC：401の通常27 A／Bと単一訂正も成功し、全7事前検査が成功した。
+Aは14件1225.804秒と通知49.928秒、単一訂正812.421秒。通常26 Aは枠待ち、Bと手動26の3ケースが進行中。
+通常26の所要時間から次のまとめ確認は約25分後とする。完了済みログを反復取得しない。
+旧400の通常26 Bは、通知用の新所有Simulatorで設定tabへの一回接触後も選択されず失敗した（U77）。
+観測を先に索引へ記録し、U63／U75の詳細と9ffdf0eのtab実装を照合、現行のtab本文と全bytes一致を確認した。
+同じ400の週カレンダーcaseは54.896秒で成功し、通常6件・設定・残り3件は成功、予定VoiceOver skipも完了。
+U77と398のカレンダー失敗を同じ原因とは扱わず、401の実行条件も根拠なく変えない。
+
+08:41 UTC：401は9事前検査が成功、通常26 A／B・単一訂正26が実行中。
+手動26の3項目634.742秒・原本変更338.678秒が成功し、全検査・公開はまだ未達。
+通常26 Aは08:24頃の開始で、過去の所要時間から次の確認は約20分後とする。
+旧400は残る通常26 Aも14件1509.631秒と通知138.864秒で成功して、実行全体はfailureで終端。
+U76・U77を失敗として保持し、手動26と配布の依存skipを成功へ数えない。取消なしで残りも確認した。
+旧400は終端まで確認できたため、以後の監視対象から除く。
+
+09:01 UTC：401の事前検査は11成功、残りは通常26 Aだけ。
+通常26 Bは通知設定case202.613秒と追加3文字サイズを含め成功し、U77はこの実行では再発しなかった。
+単一訂正26も701.792秒・失敗0で成功、手動訂正は両OSの6件すべて成功した。
+通常26 Aの開始からの経過を踏まえ、次は約10分後にまとめ確認する。
+監視対象は401だけなので、未完了のjobsを1回取得し、新しい完了ログだけを読んだ。
+
+09:11 UTC：401の全12事前検査が成功し、job116340378911の配布ビルドが開始した。
+通常26 Aは14件1484.478秒と追加通知81.351秒が成功。両OSの通常UI4ジョブ・手動訂正6ジョブを完了した。
+公開jobのSDK27.0 Native・ピッカー・iPhone Release build・配布物照合はこれから確認する。
+旧397などの同種job所要時間を踏まえ、次のまとめ確認は約25分後とする。
+最終文書の結果追記は公開完了後に行い、配布ソースとの差分が文書だけであることを確認する。
+09:36 UTCは公開jobが引き続き実行中。新しい完了がないためログは取得せず、次の確認を約10分後とした。
 
 配布検証中に、利用者が問題の返却PDFを添付し、確認・修正と作業後の削除を指示した。
 リポジトリ外の専用添付領域だけでMuPDFを使い、本文・画像を出力せず位置関係を確認した。

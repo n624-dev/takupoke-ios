@@ -4,6 +4,34 @@
 GitHubの手動監視は開始時刻と過去の所要時間から次の確認時刻を決め、固定2分間隔にしません。
 以下の実測は各版の履歴です。最新のソース・配布状況は[検証記録](verification.md)を参照してください。
 
+## 全体401の実測（2026-10-15）
+
+source`bb87a5b`・[全体401／試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123)の全13必須jobと公開が成功した。
+下表は公開APIのjob開始から完了までで、準備・build・test・回収を含み、開始前の待機を含まない。
+並列実行のため、表の合計を全体の経過時間とは扱わない。文書以外のコードが同じ400はU76／U77で未公開。
+一回の全体成功からSimulatorの恒常的安定性・時間短縮率・実資料の改善は断定しない。
+
+| 必須job | 実行時間 | 結果 |
+|---|---:|---|
+| [Distribution tests](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116301196792) | 1分35秒 | 成功 |
+| [Application iOS 27 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116301791595) | 32分32秒 | 成功 |
+| [Manual correction iOS 27 / testThreeFieldsRequireEachAcknowledgementAndFourRefuses](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116301791616) | 13分10秒 | 成功 |
+| [Application iOS 27 UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116301791732) | 26分53秒 | 成功 |
+| [Manual correction iOS 27 / testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116301791786) | 27分05秒 | 成功 |
+| [Native PDF and recovery tests](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116301791889) | 5分33秒 | 成功 |
+| [Manual correction iOS 27 / testChangedOriginalCannotSubmitOrReplaceLastGood](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116301791933) | 11分02秒 | 成功 |
+| [Application iOS 26 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116313927738) | 43分36秒 | 成功 |
+| [Manual correction iOS 26 / testThreeFieldsRequireEachAcknowledgementAndFourRefuses](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116316743524) | 28分47秒 | 成功 |
+| [Application iOS 26 UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116316743656) | 42分23秒 | 成功 |
+| [Manual correction iOS 26 / testChangedOriginalCannotSubmitOrReplaceLastGood](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116316743659) | 16分45秒 | 成功 |
+| [Manual correction iOS 26 / testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116316743664) | 26分19秒 | 成功 |
+| [Build and publish AltStore release](https://github.com/n624-dev/takupoke-ios/actions/runs/38698658123/job/116340378911) | 32分06秒 | 成功 |
+
+Native本体はSDK26.6で126.224秒・SDK27.0で106.261秒、各576件・予定skip1・失敗0。
+ピッカー本体3件540.859秒（UI処理894.3秒）、iPhone Release build472.8秒。
+手動監視は所要時間から10〜25分など次回を決め、完了済みjobのログは再取得しなかった。
+必須条件・同一試行の公開ゲートを維持し、Actionsの取消・cache・保存用artifactは使用しなかった。
+
 ## 全体393の実測（2026-10-14）
 
 source8fdaac4・[全体393／試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/38436832427)の全13が成功した。
