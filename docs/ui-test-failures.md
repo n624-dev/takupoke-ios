@@ -1,3 +1,11 @@
+## N24 新規完了ログ保存用JavaScriptの構文エラー（2026-10-16）
+
+- ソース82ca252の完了Native job117117707173を取得するJavaScriptがmissing ) after argument listで停止した。
+  解析時の停止なのでログ要求・保存は開始していない。jobはmetadata上successで、CI失敗ではない。
+- 対処前に事実を記録し、N17の同じログ取得準備の失敗と今回の入力を照合する。
+- 保存用map式が文字列連結の記号を欠いていた。取得条件・ログ内容・検証は変えず、その一文字を修正する。
+  この記録を先にpushしてから新しい完了ログを一回取得する。Actionsの再試行・取消はしない。
+
 ## N23 文書patchの行照合が失敗（2026-10-16、Linux）
 
 - HEAD 057abb4の未コミットN22改訂中、apply_patchがpdf-recovery.mdのexpected lines不一致で停止した。
