@@ -8,6 +8,7 @@ from pathlib import Path
 import queue
 import subprocess
 import threading
+import time
 
 
 ROOT = Path(__file__).resolve().parent
@@ -37,16 +38,46 @@ def compare_probabilities(expected, actual, dictionary, tolerance):
     return maximum, native
 
 
-def command(*args, timeout=120):
-    return subprocess.check_output(args, text=True, timeout=timeout).strip()
+def command(*args, timeout=120, allow_nonzero=False):
+    started = time.monotonic()
+    label = list(args[:4])
+    print('ORT_IOS_STAGE ' + json.dumps(dict(command=label, state='start', timeout=timeout)), flush=True)
+    try:
+        value = subprocess.check_output(args, text=True, timeout=timeout).strip()
+    except Exception as error:
+        print('ORT_IOS_STAGE ' + json.dumps(dict(command=label, state='failure',
+              seconds=time.monotonic()-started, error=type(error).__name__)), flush=True)
+        if allow_nonzero and isinstance(error, subprocess.CalledProcessError):
+            return (error.output or '').strip()
+        raise
+    print('ORT_IOS_STAGE ' + json.dumps(dict(command=label, state='success',
+          seconds=time.monotonic()-started)), flush=True)
+    return value
+
+
+def boot_owned_simulator(identity, developer):
+    # Match the existing successful UI harness's selected-Xcode frontend.
+    # This is a different launch context, not a retry or a relaxed boot check.
+    simulator = developer / 'Applications/Simulator.app'
+    hub = developer.parent / 'Applications/DeviceHub.app'
+    if not simulator.is_dir() and not hub.is_dir():
+        raise ValueError('No supported simulator frontend in the selected Xcode')
+    command('xcrun', 'simctl', 'boot', identity)
+    if simulator.is_dir():
+        command('open', '-a', str(simulator), '--args', '-CurrentDeviceUDID', identity)
+    else:
+        command('open', '-a', str(hub))
+    command('xcrun', 'simctl', 'bootstatus', identity, '-b', timeout=360)
+    if not simulator.is_dir():
+        command('open', '-a', str(hub), 'devices://device/open?id=' + identity)
 
 
 def remove_owned_simulator(identity):
     # Deletion must still be attempted when boot/shutdown already failed.
     try:
-        subprocess.run(['xcrun', 'simctl', 'shutdown', identity], capture_output=True, timeout=60, check=False)
+        command('xcrun', 'simctl', 'shutdown', identity, timeout=60, allow_nonzero=True)
     finally:
-        subprocess.run(['xcrun', 'simctl', 'delete', identity], capture_output=True, timeout=60, check=True)
+        command('xcrun', 'simctl', 'delete', identity, timeout=60)
 
 
 def main():
@@ -104,8 +135,7 @@ def main():
     owned = None; process = None
     try:
         owned = command('xcrun', 'simctl', 'create', 'Takupoke owned OCR CPU parity', device['identifier'], runtime['identifier'])
-        command('xcrun', 'simctl', 'boot', owned)
-        command('xcrun', 'simctl', 'bootstatus', owned, '-b', timeout=360)
+        boot_owned_simulator(owned, Path(command('xcode-select', '-p')))
         devices = json.loads(command('xcrun', 'simctl', 'list', 'devices', '-j'))['devices']
         if not any(d['udid'] == owned and d['state'] == 'Booted' for d in devices.get(runtime['identifier'], [])):
             raise ValueError('Owned simulator did not boot in the selected Runtime')

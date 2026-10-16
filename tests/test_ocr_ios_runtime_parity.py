@@ -68,16 +68,51 @@ class IOSRuntimeParityTests(unittest.TestCase):
 
     def test_owned_simulator_delete_still_runs_after_shutdown_timeout(self):
         failure = subprocess.TimeoutExpired(['xcrun', 'simctl', 'shutdown'], 60)
-        with patch.object(compare.subprocess, 'run', side_effect=[failure, subprocess.CompletedProcess([], 0)]) as run:
+        with patch.object(compare, 'command', side_effect=[failure, '']) as run:
             with self.assertRaises(subprocess.TimeoutExpired):
                 compare.remove_owned_simulator('owned-fictional-id')
-        self.assertEqual(run.call_args_list[1].args[0], ['xcrun', 'simctl', 'delete', 'owned-fictional-id'])
+        self.assertEqual(run.call_args_list[1].args, ('xcrun', 'simctl', 'delete', 'owned-fictional-id'))
 
     def test_failed_owned_delete_is_not_counted_as_clean_success(self):
-        with patch.object(compare.subprocess, 'run', side_effect=[subprocess.CompletedProcess([], 1),
+        with patch.object(compare.subprocess, 'check_output', side_effect=[
+                  subprocess.CalledProcessError(1, ['xcrun', 'simctl', 'shutdown']),
                   subprocess.CalledProcessError(1, ['xcrun', 'simctl', 'delete'])]):
             with self.assertRaises(subprocess.CalledProcessError):
                 compare.remove_owned_simulator('owned-fictional-id')
+
+    def test_shutdown_nonzero_does_not_replace_successful_owned_delete(self):
+        with patch.object(compare.subprocess, 'check_output', side_effect=[
+                  subprocess.CalledProcessError(1, ['xcrun', 'simctl', 'shutdown']), '']) as run:
+            compare.remove_owned_simulator('owned-fictional-id')
+        self.assertEqual(run.call_args_list[1].args[0], ('xcrun', 'simctl', 'delete', 'owned-fictional-id'))
+
+    def test_selected_xcode_frontend_preserves_bootstatus_and_owned_device(self):
+        for frontend in ['legacy', 'hub']:
+            with self.subTest(frontend=frontend), tempfile.TemporaryDirectory() as temporary:
+                developer = Path(temporary) / 'Contents/Developer'
+                app = (developer / 'Applications/Simulator.app' if frontend == 'legacy'
+                       else developer.parent / 'Applications/DeviceHub.app')
+                app.mkdir(parents=True)
+                with patch.object(compare, 'command', return_value='') as run:
+                    compare.boot_owned_simulator('owned-fictional-id', developer)
+                calls = run.call_args_list
+                self.assertEqual(calls[0].args, ('xcrun', 'simctl', 'boot', 'owned-fictional-id'))
+                self.assertEqual(calls[1].args[:3], ('open', '-a', str(app)))
+                self.assertEqual(calls[2].args, ('xcrun', 'simctl', 'bootstatus', 'owned-fictional-id', '-b'))
+                self.assertEqual(calls[2].kwargs, dict(timeout=360))
+                if frontend == 'legacy':
+                    self.assertEqual(calls[1].args[3:], ('--args', '-CurrentDeviceUDID', 'owned-fictional-id'))
+                    self.assertEqual(len(calls), 3)
+                else:
+                    self.assertEqual(calls[3].args, ('open', '-a', str(app),
+                                     'devices://device/open?id=owned-fictional-id'))
+                    self.assertEqual(len(calls), 4)
+
+    def test_missing_frontend_fails_before_boot_instead_of_substituting_xcode(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.object(compare, 'command') as run:
+            with self.assertRaisesRegex(ValueError, 'No supported simulator frontend'):
+                compare.boot_owned_simulator('owned-fictional-id', Path(temporary))
+            run.assert_not_called()
 
 
 if __name__ == '__main__':

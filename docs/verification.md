@@ -1,3 +1,18 @@
+## 2026-10-16 N07起動条件の限定比較を準備
+
+3839b98で事実・過去照合・次条件を先にpushした後、研究compare.pyだけに既存UIと同じ
+選択Xcodeのフロントエンド起動と段階計測を追加した。アプリ・Strictと入口・切替は不変。
+bootstatus360秒、状態照会120秒、各288回・全確率5e-5・CTC・0.85条件は維持する。
+shutdown失敗も記録し、finallyでdeleteを必ず試みる。delete失敗は成功にしない。
+
+一覧検索ocr-ios-runtime-parityの既存確率／清掃ケースを維持し、実在する両frontendと所有UDID、
+元のbootstatus期限、不在時拒否・shutdown非ゼロ後のdeleteを検査する3宣言を追加した。Linuxで対象10件・失敗0、
+一覧384ファイルのwrite／check、空白検査、保護対象の基準8bf6c8aとの全差分0を確認した。
+N08のmock引数形状の誤期待は先に事実をpushして訂正後、10件成功した。
+新規GPT-6.1 Sol／Highのコード差分レビューでshutdown非ゼロの挙動変更を指摘され、
+従来の許容を保持して失敗stageだけを記録する形へ修正。修正差分の再レビューは指摘なし。
+mockによる準備契約はSimulator実動作の成功ではなく、Appleでの次の比較は未実行。
+
 ## 2026-10-16 N07の過去照合と次の起動条件比較
 
 失敗索引をsimctl／bootstatus／CoreSimulator／U65／U51で検索し、U33・U34・U35・U65の本文、

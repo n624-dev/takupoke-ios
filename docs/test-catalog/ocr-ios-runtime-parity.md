@@ -1,7 +1,7 @@
 # iOS CPU Runtimeの原確率・CTC照合（研究）
 
 対応関係・宣言名・実行方法のSHA-256：
-`3b363068ef240a7497e9b58340da4f5dceb50bc495b9c2f658c448cd92d32513`
+`8042cf4972f938f3115f03a0181ffeb20da04d628ffea5aef46d4774513f2486`
 
 環境：iOS26／27 Simulator実プロセス＋実iPhoneSDKリンク。物理iPhone・全文書採用は別確認
 
@@ -29,3 +29,6 @@ python3 -B -m unittest discover -s tests -p test_ocr_ios_runtime_parity.py -v
 - `test_framework_archive_cannot_escape_the_owned_slice`
 - `test_owned_simulator_delete_still_runs_after_shutdown_timeout`
 - `test_failed_owned_delete_is_not_counted_as_clean_success`
+- `test_shutdown_nonzero_does_not_replace_successful_owned_delete`
+- `test_selected_xcode_frontend_preserves_bootstatus_and_owned_device`
+- `test_missing_frontend_fails_before_boot_instead_of_substituting_xcode`
