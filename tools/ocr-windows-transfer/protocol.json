@@ -1,0 +1,116 @@
+{
+  "study": "ios-windows-recognizer-screen-v1",
+  "seed": 202610161702,
+  "sourceIOS": "8bf6c8a45c6b41b3e78ae9e5615424fd827d4cfc",
+  "sourceWindows": "fce8bb496bd997cf1bb4c48ecb91b222cd00abf8",
+  "scope": "Recognizer-only discovery screening on independently fictional image-only PDFs. No application adoption, full-document success or iPhone execution claim.",
+  "fontExposure": "These two font files were consumed by previous Windows trials. Random literals are independently generated; no unseen-font, pretraining-disjoint or training-disjoint claim.",
+  "pagePixels": [
+    1920,
+    1620
+  ],
+  "fontSizes": [
+    24,
+    32,
+    40
+  ],
+  "groups": [
+    "mixed-code",
+    "alphabetic",
+    "numeric",
+    "japanese",
+    "variant-japanese",
+    "english"
+  ],
+  "itemsPerGroupPerFont": 12,
+  "itemsPerPage": 24,
+  "fonts": [
+    {
+      "file": "KaiseiOpti-Regular.ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/295d98a7a0c17c68f1341eaeea354e7960ea70d3/ofl/kaiseiopti/KaiseiOpti-Regular.ttf",
+      "bytes": 4503024,
+      "sha256": "990cfb1fb00f311c8975c2c5f4778b2fe5462fd5eabf0884828a323dad3f18c0",
+      "family": "kaiseiopti"
+    },
+    {
+      "file": "kaiseiopti-OFL.txt",
+      "url": "https://raw.githubusercontent.com/google/fonts/295d98a7a0c17c68f1341eaeea354e7960ea70d3/ofl/kaiseiopti/OFL.txt",
+      "bytes": 4383,
+      "sha256": "6c5445d4febbf6d84025b874a85c51e7e4bfa7495279eccdb4c317a6de857b46",
+      "family": "kaiseiopti"
+    },
+    {
+      "file": "ZenKakuGothicAntique-Medium.ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/295d98a7a0c17c68f1341eaeea354e7960ea70d3/ofl/zenkakugothicantique/ZenKakuGothicAntique-Medium.ttf",
+      "bytes": 2337952,
+      "sha256": "02bdc45744fd357b04c1a8fb0f2392a8c31b3a9250acb9899252a933ec66f4b6",
+      "family": "zenkakugothicantique"
+    },
+    {
+      "file": "zenkakugothicantique-OFL.txt",
+      "url": "https://raw.githubusercontent.com/google/fonts/295d98a7a0c17c68f1341eaeea354e7960ea70d3/ofl/zenkakugothicantique/OFL.txt",
+      "bytes": 4401,
+      "sha256": "0fac78a235c98d640cb06332eb5362c211d86fa03c011df438c35005d22ad2c7",
+      "family": "zenkakugothicantique"
+    }
+  ],
+  "models": [
+    {
+      "file": "rec.onnx",
+      "url": "https://huggingface.co/PaddlePaddle/PP-OCRv6_medium_rec_onnx/resolve/50c7eacafc52fa7bcf4194e8cd08e46f8558504b/inference.onnx",
+      "bytes": 76554979,
+      "sha256": "9c09abf0957f7968c7586464b7397b84ad2387a0497a351af40e9acc71b673ba"
+    },
+    {
+      "file": "ascii-rec.onnx",
+      "url": "https://raw.githubusercontent.com/n624-dev/takupoke-win/5826ffe2f1f2717deaf5ca03e2506996d4b3241c/model-artifacts/ascii-english-v5-font-balanced-v1/model.onnx",
+      "bytes": 22183975,
+      "sha256": "9dd3ed77db4f2af171cf434d200c666033c9bdfe5f33446bc47dbfecac90d703"
+    },
+    {
+      "file": "ascii-dictionary.json",
+      "url": "https://raw.githubusercontent.com/n624-dev/takupoke-win/5826ffe2f1f2717deaf5ca03e2506996d4b3241c/model-artifacts/ascii-english-v5-font-balanced-v1/dictionary.json",
+      "bytes": 3614,
+      "sha256": "fbf156ed886e4c46075f599651e60a0c38953dce89e10d999c765014477a7368"
+    },
+    {
+      "file": "manual-code-rec.onnx",
+      "url": "https://raw.githubusercontent.com/n624-dev/takupoke-win/4ff7d2c4c894c8748d9c6c4182d15dde2e962904/model-artifacts/ascii-english-v5-japanese-fonts-v3-epoch1-exploratory/model.onnx",
+      "bytes": 22183975,
+      "sha256": "95bab179e0d6cc75269419078d68696cd4679661f94f6128b858b7a074fe2971"
+    },
+    {
+      "file": "japanese-uncertain-rec.onnx",
+      "url": "https://huggingface.co/tobiichioriguchi/japan_PP-OCRv3_mobile_rec_onnx/resolve/1c772b3dd782e6ac4e61aba8bfe9683bee3334fc/inference.onnx",
+      "bytes": 10089078,
+      "sha256": "2e397c27461751befc82eca78c9b19e87322ebee34e7316468b21856f9977d64"
+    },
+    {
+      "file": "japanese-uncertain-dictionary.json",
+      "url": "https://raw.githubusercontent.com/n624-dev/takupoke-win/fad0717ef25f507632cb13ed7da1f0abab0c994a/model-artifacts/japanese-v3-conditional-expert/dictionary.json",
+      "bytes": 26140,
+      "sha256": "0cda0d37debec2f0481bb5bb7bf3223b159d8268d288781eef1668455a811f1d"
+    },
+    {
+      "file": "dictionary-v6.json",
+      "url": "https://raw.githubusercontent.com/n624-dev/takupoke-win/fce8bb496bd997cf1bb4c48ecb91b222cd00abf8/src/Takupoke.Win/Assets/Recovery/ocr-characters-v6.json",
+      "bytes": 112374,
+      "sha256": "a49d51120786924a642c9e8a14b2a2ab73c019699abf5b2b6970ec7355c0415f"
+    }
+  ],
+  "frames": [
+    "physical-interior",
+    "observed-ink-margin-2"
+  ],
+  "readers": [
+    "vision-documents-page-default",
+    "vision-documents-crop-default",
+    "vision-text-crop-accurate-default",
+    "paddle-v6",
+    "english-v1",
+    "english-v3",
+    "japanese-v3"
+  ],
+  "comparison": "All declared readers and frames, font and group breakdown, exact raw text, Levenshtein/CER, gains/losses and own native scores. No best-of oracle selection, normalizing or score transfer. A promising recognition result still requires independent whole-document and real iOS runtime qualification; this study cannot enable a model manifest or authorize deployment.",
+  "maximumFields": 144
+}

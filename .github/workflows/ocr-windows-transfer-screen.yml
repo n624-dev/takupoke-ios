@@ -1,0 +1,44 @@
+name: Compare OCR recognizers on fictional source pixels
+on:
+  push:
+    branches: [codex/pdf-local-recovery]
+    paths:
+      - .github/workflows/ocr-windows-transfer-screen.yml
+      - tools/ocr-windows-transfer/**
+      - tests/test_ocr_windows_transfer.py
+permissions:
+  contents: read
+jobs:
+  native-screen:
+    name: OCR recognizer screen SDK ${{ matrix.sdk }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sdk: 26
+            runner: macos-26
+            developer: /Applications/Xcode_26.6.app/Contents/Developer
+          - sdk: 27
+            runner: xcode-27
+            developer: /Applications/Xcode_27.0.app/Contents/Developer
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: ${{ matrix.developer }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Verify source identity and run recognizer-only comparison
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --exit-code 8bf6c8a45c6b41b3e78ae9e5615424fd827d4cfc "$GITHUB_SHA" -- \
+            Takupoke Takupoke.xcodeproj Package.swift Package.resolved Vendor
+          xcodebuild -version
+          sw_vers
+          bash tools/ocr-windows-transfer/run.sh

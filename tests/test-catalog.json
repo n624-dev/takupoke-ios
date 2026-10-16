@@ -601,6 +601,29 @@
         "tests/test_ui_test_manifest.py",
         "tests/test_application_ui_runner.py"
       ]
+    },
+    {
+      "id": "ocr-transfer-screen",
+      "title": "Windows OCR候補のApple原画素比較（認識器の研究）",
+      "environment": "Apple macOS26／配布SDK27。iPhone・文書全体・採用合格は対象外",
+      "commands": [
+        "bash tools/ocr-windows-transfer/run.sh",
+        "python3 -B -m unittest discover -s tests -p test_ocr_windows_transfer.py -v"
+      ],
+      "sources": [
+        ".github/workflows/ocr-windows-transfer-screen.yml",
+        "tools/ocr-windows-transfer/compare.py",
+        "tools/ocr-windows-transfer/frames.py",
+        "tools/ocr-windows-transfer/infer.py",
+        "tools/ocr-windows-transfer/prepare.py",
+        "tools/ocr-windows-transfer/protocol.json",
+        "tools/ocr-windows-transfer/requirements.txt",
+        "tools/ocr-windows-transfer/run.sh",
+        "tools/ocr-windows-transfer/vision.swift"
+      ],
+      "checks": [
+        "tests/test_ocr_windows_transfer.py"
+      ]
     }
   ]
 }
