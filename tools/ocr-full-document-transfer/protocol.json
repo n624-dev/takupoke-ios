@@ -1,5 +1,5 @@
 {
-  "study": "ios-ocr-full-source-discovery-v2",
+  "study": "ios-ocr-full-source-discovery-v3",
   "seed": 202610162901,
   "sourceIOS": "e8694d2e34ff3cdb857d35d4f9a8d040374e48d6",
   "fontsProtocol": "tools/ocr-windows-transfer/protocol.json",
@@ -43,6 +43,7 @@
       "maximumPixelsPerPDFPoint": 2
     }
   ],
-  "nativeVisionCalls": 12,
-  "requiredBodyFieldsAcrossVariants": 888
+  "nativeVisionCalls": 6,
+  "requiredBodyFieldsAcrossVariants": 888,
+  "nativeVisionBaseline": "Only current2048 uses the unchanged production native capture adapter. source2x4096 has no Vision call/capture. Compare original Vision at its own original2048 geometry, not a rescaled or fabricated capture; separate V6 resolution effect from same-pixel engine comparison."
 }

@@ -51,7 +51,7 @@ from pathlib import Path
 import re
 import sys
 text=Path(sys.argv[1]).read_text()
-if text.count('FULL_SOURCE_CAPTURE_FINISHED pages=12 actualVisionCalls=12')!=1:
+if text.count('FULL_SOURCE_CAPTURE_FINISHED pages=12 actualVisionCalls=6')!=1:
     raise ValueError('Actual full-source capture did not finish exactly once')
 if len(re.findall(r'Test Case .*testAcquireFullOriginalPixelsNativeVisionAndPhysicalRules.*passed',text))!=1:
     raise ValueError('The native research test did not actually pass exactly once')
@@ -63,5 +63,5 @@ for whole_variant in current2048 source2x4096; do
 done
 # The oracle becomes accessible only to this separate, post-inference process.
 for whole_variant in current2048 source2x4096; do
-    "$whole_python" -B tools/ocr-full-document-transfer/compare.py --acquisition "$whole_dir/acquisition/$whole_variant" --oracle "$whole_dir/inputs/oracle.json"
+    "$whole_python" -B tools/ocr-full-document-transfer/compare.py --acquisition "$whole_dir/acquisition/$whole_variant" --oracle "$whole_dir/inputs/oracle.json" --vision-acquisition "$whole_dir/acquisition/current2048"
 done

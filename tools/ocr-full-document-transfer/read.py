@@ -115,6 +115,16 @@ def native_records(identity, variant, capture):
     return result
 
 
+def has_native_capture(document, variant):
+    expected = 'captured' if variant == 'current2048' else 'notRequestedDimensionBound'
+    present = 'nativeCapture' in document and 'nativeCaptureSHA256' in document
+    if document.get('nativeVisionState') != expected or present != (variant == 'current2048'):
+        raise ValueError('Original native acquisition state is inconsistent')
+    if variant != 'current2048' and ('nativeCapture' in document or 'nativeCaptureSHA256' in document):
+        raise ValueError('Unrequested Vision is not an empty or fabricated capture')
+    return present
+
+
 def main():
     import numpy as np
     import onnxruntime as ort
@@ -150,12 +160,16 @@ def main():
         checked_file(root, document, 'image')
         gray_data = checked_file(root, document, 'grayscale')
         mask_data = checked_file(root, document, 'mask')
-        original_capture = checked_file(root, document, 'nativeCapture')
-        native = native_records(document['id'], variant, json.loads(original_capture))
-        for record in native:
-            print('FULL_SOURCE_VISION ' + json.dumps(record, ensure_ascii=False, sort_keys=True), flush=True)
-        print('FULL_SOURCE_NATIVE_CAPTURE ' + json.dumps(dict(id=document['id'], variant=variant,
-            originalNativeLineCount=len(native), nativeCaptureSHA256=document['nativeCaptureSHA256']), sort_keys=True), flush=True)
+        if has_native_capture(document, variant):
+            original_capture = checked_file(root, document, 'nativeCapture')
+            native = native_records(document['id'], variant, json.loads(original_capture))
+            for record in native:
+                print('FULL_SOURCE_VISION ' + json.dumps(record, ensure_ascii=False, sort_keys=True), flush=True)
+            print('FULL_SOURCE_NATIVE_CAPTURE ' + json.dumps(dict(id=document['id'], variant=variant,
+                originalNativeLineCount=len(native), nativeCaptureSHA256=document['nativeCaptureSHA256']), sort_keys=True), flush=True)
+        else:
+            print('FULL_SOURCE_NATIVE_UNREQUESTED ' + json.dumps(dict(id=document['id'], variant=variant,
+                reason='Original Vision adapter retains its 2048px dimension bound; use unchanged current2048 baseline.'), sort_keys=True), flush=True)
         height, width = document['height'], document['width']
         gray = np.frombuffer(gray_data, dtype=np.uint8).reshape(height, width)
         mask = np.frombuffer(mask_data, dtype=np.uint8).reshape(height, width)

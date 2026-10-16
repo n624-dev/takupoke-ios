@@ -93,6 +93,36 @@ class FullDocumentSourceTests(unittest.TestCase):
 
 
 class FullSourceAcquisitionTests(unittest.TestCase):
+    def test_unrequested_vision_is_not_an_empty_or_fabricated_native_result(self):
+        self.assertFalse(reader.has_native_capture(dict(nativeVisionState='notRequestedDimensionBound'), 'source2x4096'))
+        self.assertTrue(reader.has_native_capture(dict(nativeVisionState='captured', nativeCapture='a', nativeCaptureSHA256='b'), 'current2048'))
+        for variant, doc in [('current2048', dict(nativeVisionState='captured')),
+            ('source2x4096', dict(nativeVisionState='captured', nativeCapture='a', nativeCaptureSHA256='b')),
+            ('source2x4096', dict(nativeVisionState='notRequestedDimensionBound', nativeCapture='a'))]:
+            with self.assertRaises(ValueError):
+                reader.has_native_capture(doc, variant)
+
+    def test_native_baseline_keeps_its_own_source_geometry_and_refuses_another_pdf(self):
+        expected = dict(width=200, height=100, sourcePDFSHA256='a'*64, records=[
+            dict(text=value, category='body', box=[4, y*2, 8, 6], cell=[0, 0, 40, 50],
+                 target=dict(className='1_1', day='1', period=1, role=role))
+            for value, y, role in [('架空A', 3, 'subject'), ('架空B', 10, 'teacher'), ('架空C', 17, 'room')]])
+        capture = dict(width=100, height=50, lines=[dict(nativeOrder=n, candidates=[dict(text=value,
+            confidence=.99, observationRange=dict(x=2, y=y, width=4, height=3))])
+            for n, (value, y) in enumerate([('架空A', 3), ('架空B', 10), ('架空C', 17)])])
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder); data=json.dumps(capture, ensure_ascii=False).encode()
+            (root/'original.json').write_bytes(data)
+            document = dict(width=100, height=50, sourcePDFSHA256='a'*64, nativeVisionState='captured',
+                nativeCapture='original.json', nativeCaptureSHA256=hashlib.sha256(data).hexdigest())
+            fields, records = compare.vision_inputs(root, document, expected)
+            result, extra, body_extra = compare.assignment(fields, [[0, 0, 20, 25]], records)
+            self.assertEqual([r['exact'] for r in result], [True, True, True])
+            self.assertEqual((extra, body_extra), (0, 0))
+            self.assertEqual(records[0]['box'], [2, 3, 4, 3])
+            with self.assertRaisesRegex(ValueError, 'another source'):
+                compare.vision_inputs(root, document, dict(expected, sourcePDFSHA256='b'*64))
+
     def test_post_test_capture_report_keeps_original_rank_unicode_probability_and_box(self):
         capture = dict(lines=[dict(nativeOrder=0, candidates=[
             dict(text='架空髙 I', confidence=.500000001,

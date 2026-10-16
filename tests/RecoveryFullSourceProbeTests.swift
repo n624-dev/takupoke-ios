@@ -60,6 +60,7 @@ final class RecoveryFullSourceProbeTests: XCTestCase {
         XCTAssertEqual(Set(manifest.keys), ["documents"])
         let entries = try XCTUnwrap(manifest["documents"] as? [[String: Any]])
         XCTAssertEqual(entries.count, 6)
+        var visionCalls = 0
         for (variant, maximumDimension) in [("current2048", 2048), ("source2x4096", 4096)] {
             let destination = output.appendingPathComponent(variant, isDirectory: true)
             try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: false)
@@ -95,30 +96,40 @@ final class RecoveryFullSourceProbeTests: XCTestCase {
                 let prepared = try raster.preparingRules(rules, check: { try Task.checkCancellation() })
                 let mask = try XCTUnwrap(prepared.fullSourceStudyMask)
                 let cells = try physicalCells(.init(width: Double(cg.width), height: Double(cg.height), glyphs: [], lines: rules))
-                let request = RecognizeDocumentsRequest()
-                let observations = try await request.perform(on: cg)
-                let capture = try RecoveryVisionCapture.page(1, width: cg.width, height: cg.height,
-                    observations: observations, work: &work, check: { try Task.checkCancellation() })
                 let pngName = id + ".png", grayName = id + ".gray", maskName = id + ".mask", captureName = id + "-vision.json"
                 try png(cg, to: destination.appendingPathComponent(pngName))
                 let gray = Data(raster.grayscale), maskData = Data(mask)
                 try gray.write(to: destination.appendingPathComponent(grayName), options: .withoutOverwriting)
                 try maskData.write(to: destination.appendingPathComponent(maskName), options: .withoutOverwriting)
-                let encoded = try JSONEncoder().encode(capture)
-                try encoded.write(to: destination.appendingPathComponent(captureName), options: .withoutOverwriting)
-                documents.append(["id": id, "kind": kind, "sourcePDFSHA256": digest,
+                var record: [String: Any] = ["id": id, "kind": kind, "sourcePDFSHA256": digest,
                     "width": cg.width, "height": cg.height, "pdfWidth": Double(bounds.width), "pdfHeight": Double(bounds.height),
                     "image": pngName, "imageSHA256": hash(try Data(contentsOf: destination.appendingPathComponent(pngName))),
                     "grayscale": grayName, "grayscaleSHA256": hash(gray), "mask": maskName, "maskSHA256": hash(maskData),
-                    "nativeCapture": captureName, "nativeCaptureSHA256": hash(encoded),
                     "rules": rules.map { [$0.x1, $0.y1, $0.x2, $0.y2] },
-                    "cells": cells.map { [$0.left, $0.top, $0.right-$0.left, $0.bottom-$0.top] }])
+                    "cells": cells.map { [$0.left, $0.top, $0.right-$0.left, $0.bottom-$0.top] }]
+                if variant == "current2048" {
+                    // The native adapter's original 2048px contract stays intact.
+                    let observations = try await RecognizeDocumentsRequest().perform(on: cg)
+                    visionCalls += 1
+                    let capture = try RecoveryVisionCapture.page(1, width: cg.width, height: cg.height,
+                        observations: observations, work: &work, check: { try Task.checkCancellation() })
+                    let encoded = try JSONEncoder().encode(capture)
+                    try encoded.write(to: destination.appendingPathComponent(captureName), options: .withoutOverwriting)
+                    record["nativeVisionState"] = "captured"
+                    record["nativeCapture"] = captureName
+                    record["nativeCaptureSHA256"] = hash(encoded)
+                } else {
+                    // This is only a V6 raster condition, NOT an empty Vision result.
+                    record["nativeVisionState"] = "notRequestedDimensionBound"
+                }
+                documents.append(record)
             }
             XCTAssertEqual(Set(documents.compactMap { $0["id"] as? String }).count, 6)
             let result = try JSONSerialization.data(withJSONObject: ["variant": variant, "documents": documents], options: .sortedKeys)
             try result.write(to: destination.appendingPathComponent("acquisition.json"), options: .withoutOverwriting)
         }
-        print("FULL_SOURCE_CAPTURE_FINISHED pages=12 actualVisionCalls=12")
+        XCTAssertEqual(visionCalls, 6)
+        print("FULL_SOURCE_CAPTURE_FINISHED pages=12 actualVisionCalls=\(visionCalls)")
     }
 }
 #endif
