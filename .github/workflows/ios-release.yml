@@ -233,6 +233,7 @@ jobs:
           - testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground
           - testChangedOriginalCannotSubmitOrReplaceLastGood
           - testThreeFieldsRequireEachAcknowledgementAndFourRefuses
+          - testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch
         include:
           - ios: 27
             runner: xcode-27
@@ -265,6 +266,7 @@ jobs:
           - testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground
           - testChangedOriginalCannotSubmitOrReplaceLastGood
           - testThreeFieldsRequireEachAcknowledgementAndFourRefuses
+          - testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch
         include:
           - ios: 26
             runner: macos-26

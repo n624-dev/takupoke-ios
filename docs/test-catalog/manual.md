@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`ed5f7871d36aa7585ce0c6f0312c3bc5395c37533f11f3a28ef91bb78170ac87`
+`128d66a116dc450289dde9474b1abd50e8c66f2bc79d4b91ad49133f14f5a352`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -125,6 +125,7 @@ bash tools/test-manual-ui.sh
 - `testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground`
 - `testChangedOriginalCannotSubmitOrReplaceLastGood`
 - `testThreeFieldsRequireEachAcknowledgementAndFourRefuses`
+- `testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch`
 
 ## [tests/test_manual_ui_runner.py](../../tests/test_manual_ui_runner.py)
 

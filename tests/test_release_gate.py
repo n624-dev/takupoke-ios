@@ -27,8 +27,8 @@ class ReleaseGateTests(unittest.TestCase):
         self.jobs.append(dict(name="Build and publish AltStore release", status="in_progress"))
         self.assertEqual(self.snapshot(), [])
 
-    def test_all_six_manual_checks_reject_borrowed_source_or_attempt(self):
-        self.assertEqual(len(manifest.MANUAL_REQUIRED_JOBS),6)
+    def test_all_eight_manual_checks_reject_borrowed_source_or_attempt(self):
+        self.assertEqual(len(manifest.MANUAL_REQUIRED_JOBS),8)
         for name in manifest.MANUAL_REQUIRED_JOBS:
             for key,value in (("run_id",999),("run_attempt",1),("head_sha","b"*40)):
                 changed=copy.deepcopy(self.jobs)

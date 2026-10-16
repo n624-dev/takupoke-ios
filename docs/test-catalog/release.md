@@ -1,7 +1,7 @@
 # IPA・AltStore・公開ゲート・ビルド・一時領域
 
 対応関係・宣言名・実行方法のSHA-256：
-`62f2361b8f201607bc7d21f27c81466109ba631ba9ad75c9018a866128992a3b`
+`75c26365b9c961f17d32ca678f98c59ddfa2f57e2b8c43ff90fb68bb8fdd03ca`
 
 環境：Linux Python／Apple iPhone SDK。AltStore導入は実機限定
 
@@ -45,7 +45,7 @@ python3 -B -m unittest discover -s tests -v
 ## [tests/test_development_release.py](../../tests/test_development_release.py)
 
 - `test_exact_successful_run_including_device_build_is_required`
-- `test_all_thirteen_checks_include_six_manual_cases_without_historical_pass_credit`
+- `test_all_fifteen_checks_preserve_thirteen_and_require_both_selected_cases`
 - `test_wrong_identity_attempt_or_skipped_failure_never_qualifies`
 - `test_queued_aggregate_with_executing_exact_build_can_stage_but_never_publish`
 - `test_staging_rejects_nonexecuting_foreign_or_duplicate_build_job`
@@ -110,7 +110,7 @@ python3 -B -m unittest discover -s tests -v
 ## [tests/test_release_gate.py](../../tests/test_release_gate.py)
 
 - `test_all_required_jobs_succeed_while_release_itself_is_running`
-- `test_all_six_manual_checks_reject_borrowed_source_or_attempt`
+- `test_all_eight_manual_checks_reject_borrowed_source_or_attempt`
 - `test_missing_and_running_jobs_wait`
 - `test_each_required_job_is_individually_required`
 - `test_unsuccessful_completion_is_never_accepted`

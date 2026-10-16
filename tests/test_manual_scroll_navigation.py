@@ -177,7 +177,7 @@ final class GeometryControls:XCTestCase {
         self.assertNotIn("upward=e.frame", visible)
         self.assertNotIn("typeText(", visible)
         self.assertNotIn(".tap()", visible)
-        self.assertEqual(source.count("func test"), 3)
+        self.assertEqual(source.count("func test"), 4)
 
 
 if __name__ == "__main__":

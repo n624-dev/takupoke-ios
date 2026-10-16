@@ -33,12 +33,21 @@ class DevelopmentReleaseTests(IPAFixture):
             with self.subTest(job=jobs[index]["name"]), self.assertRaises(ValueError):
                 dev.check_snapshot(run,jobs[:index]+jobs[index+1:],workflow,COMMIT,123)
 
-    def test_all_thirteen_checks_include_six_manual_cases_without_historical_pass_credit(self):
+    def test_all_fifteen_checks_preserve_thirteen_and_require_both_selected_cases(self):
         run,jobs,workflow = self.context()
-        self.assertEqual(len(dev.REQUIRED),13)
+        self.assertEqual(len(dev.REQUIRED),15)
         self.assertEqual(dev.REQUIRED,release_gate.REQUIRED|{"Check iPhone build without publishing"})
         ordinary = [job for job in jobs if job["name"] not in manifest.MANUAL_REQUIRED_JOBS]
         self.assertEqual(len(ordinary),7)
+        old_cases={"testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground",
+                   "testChangedOriginalCannotSubmitOrReplaceLastGood",
+                   "testThreeFieldsRequireEachAcknowledgementAndFourRefuses"}
+        old_manual={f"Manual correction iOS {ios} / {case}" for ios in (26,27) for case in old_cases}
+        self.assertTrue(old_manual.issubset(dev.REQUIRED))
+        prior_thirteen=ordinary+[job for job in jobs if job["name"] in old_manual]
+        self.assertEqual(len(prior_thirteen),13)
+        with self.assertRaises(ValueError):
+            dev.check_snapshot(run,prior_thirteen,workflow,COMMIT,123)
         with self.assertRaises(ValueError):
             dev.check_snapshot(run,ordinary,workflow,COMMIT,123)
         for name in manifest.MANUAL_REQUIRED_JOBS:

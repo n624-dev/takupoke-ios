@@ -82,7 +82,8 @@ class ManualUIProjectTests(unittest.TestCase):
         prefix=runner.split('scratch_dir=',1)[0]
         names=['testChangedOriginalCannotSubmitOrReplaceLastGood',
                'testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground',
-               'testThreeFieldsRequireEachAcknowledgementAndFourRefuses']
+               'testThreeFieldsRequireEachAcknowledgementAndFourRefuses',
+               'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch']
         for selected in ['']+names:
             env=os.environ.copy();env['TKPK_MANUAL_CASE']=selected
             result=subprocess.run(['bash','-c',prefix+'\nprintf "%s\\n" "$only_testing"'],
@@ -102,7 +103,8 @@ class ManualUIProjectTests(unittest.TestCase):
         program=runner.split('python3 - "$scratch_dir/manual-ui.log" "$manual_case" <<\'PY\'\n',1)[1].split('\nPY',1)[0]
         names=['testChangedOriginalCannotSubmitOrReplaceLastGood',
                'testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground',
-               'testThreeFieldsRequireEachAcknowledgementAndFourRefuses']
+               'testThreeFieldsRequireEachAcknowledgementAndFourRefuses',
+               'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch']
         def line(name,status='passed'):
             return "Test Case '-[PickerTapChecks.ManualAssistanceChecks "+name+"]' "+status+" (1.0 seconds).\n"
         with tempfile.TemporaryDirectory() as scratch:
@@ -114,7 +116,7 @@ class ManualUIProjectTests(unittest.TestCase):
                 self.assertEqual(run(name,line(name)).returncode,0)
             whole=''.join(line(name) for name in names)
             self.assertEqual(run('',whole).returncode,0)
-            negatives=[(names[0],''),(names[0],line(names[0])*2),
+            negatives=[('', ''.join(line(name) for name in names[:-1])),(names[0],''),(names[0],line(names[0])*2),
                        (names[0],line(names[0],'skipped')),(names[0],line(names[0],'failed')),
                        (names[0],line(names[1])),(names[0],whole),('',line(names[0])),
                        ('',whole+line(names[0])),('',whole+line('testUnknown')),('testUnknown',whole)]

@@ -10,6 +10,7 @@ on:
           - testThreeFieldsRequireEachAcknowledgementAndFourRefuses
           - testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground
           - testChangedOriginalCannotSubmitOrReplaceLastGood
+          - testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch
 
 permissions:
   contents: read
@@ -28,7 +29,7 @@ jobs:
             runner: xcode-27
             developer: /Applications/Xcode_27.0.app/Contents/Developer
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 35
+    timeout-minutes: ${{ inputs.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' && 45 || 35 }}
     env:
       DEVELOPER_DIR: ${{ matrix.developer }}
       TKPK_TEST_IOS: ${{ matrix.ios }}

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Opt-in focused checks; root chooses when to add this to existing CI batching.
 set -euo pipefail
-# Exact allowlist only; the unset default still requires all three completions.
+# Exact allowlist only; the unset default requires all four completions.
 manual_case="${TKPK_MANUAL_CASE:-}"
 case "$manual_case" in
     "") only_testing="-only-testing:PickerTapChecks/ManualAssistanceChecks" ;;
-    testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground|testChangedOriginalCannotSubmitOrReplaceLastGood|testThreeFieldsRequireEachAcknowledgementAndFourRefuses)
+    testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground|testChangedOriginalCannotSubmitOrReplaceLastGood|testThreeFieldsRequireEachAcknowledgementAndFourRefuses|testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch)
         only_testing="-only-testing:PickerTapChecks/ManualAssistanceChecks/$manual_case" ;;
     *) printf '%s\n' 'Invalid manual UI case selection' >&2; exit 2 ;;
 esac
@@ -70,12 +70,12 @@ python3 - "$scratch_dir/manual-ui.log" "$manual_case" <<'PY'
 from collections import Counter
 import re,sys
 log=open(sys.argv[1],encoding='utf-8').read()
-expected={'testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground','testChangedOriginalCannotSubmitOrReplaceLastGood','testThreeFieldsRequireEachAcknowledgementAndFourRefuses'}
+expected={'testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground','testChangedOriginalCannotSubmitOrReplaceLastGood','testThreeFieldsRequireEachAcknowledgementAndFourRefuses','testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch'}
 selected=sys.argv[2]
 if selected:
     if selected not in expected:raise SystemExit('Invalid manual UI case selection')
     expected={selected}
 rows=re.findall(r"Test Case '-\[PickerTapChecks\.ManualAssistanceChecks (test\w+)\]' (passed|failed|skipped) \([\d.]+ seconds\)\.",log)
 if Counter(name for name,_ in rows)!=Counter(expected) or any(status!='passed' for _,status in rows):raise SystemExit('Manual UI completion mismatch')
-print('Verified three manual UI XCTest completions.' if not selected else 'Verified selected manual UI XCTest completion: '+selected)
+print('Verified four manual UI XCTest completions.' if not selected else 'Verified selected manual UI XCTest completion: '+selected)
 PY

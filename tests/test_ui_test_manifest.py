@@ -466,12 +466,17 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(cases, list(manifest.MANUAL_CASES) * 2)
         declared = re.findall(r"\bfunc\s+(test\w+)\s*\(", manifest.manual_check_source())
         self.assertCountEqual(cases, declared * 2)
-        self.assertEqual(len(declared), 3)
+        self.assertEqual(len(declared), 4)
+        original={"testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground",
+                  "testChangedOriginalCannotSubmitOrReplaceLastGood",
+                  "testThreeFieldsRequireEachAcknowledgementAndFourRefuses"}
+        selected="testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch"
+        self.assertEqual(set(declared),original|{selected})
         expanded = {f"Manual correction iOS {ios} / {case}" for ios in (26, 27) for case in cases}
         self.assertEqual(expanded, manifest.MANUAL_REQUIRED_JOBS)
-        self.assertEqual(len(expanded), 6)
-        self.assertEqual(len(manifest.ALL_UI_REQUIRED_JOBS), 10)
-        self.assertEqual(len(release_gate.REQUIRED), 12)  # Main builds its IPA in the publishing job.
+        self.assertEqual(len(expanded), 8)
+        self.assertEqual(len(manifest.ALL_UI_REQUIRED_JOBS), 12)
+        self.assertEqual(len(release_gate.REQUIRED), 14)  # Main builds its IPA in the publishing job.
         self.assertIn("name: Manual correction iOS ${{ matrix.ios }} / ${{ matrix.case }}", manual)
         self.assertIn("TKPK_MANUAL_CASE: ${{ matrix.case }}", manual)
         self.assertIn("TKPK_TEST_IOS: ${{ matrix.ios }}", manual)
@@ -488,6 +493,10 @@ class ManifestTests(unittest.TestCase):
         simulator = workflow.split("  simulator-27-a:\n", 1)[1].split("  manual-27:\n", 1)[0]
         self.assertIn("timeout-minutes: 60", simulator)
         self.assertNotIn("test-manual-ui.sh", simulator)
+        probe=(ROOT/".github/workflows/manual-input-native-probe.yml").read_text(encoding="utf-8")
+        for case in original|{selected}:
+            self.assertIn("          - "+case+"\n",probe)
+        self.assertIn("timeout-minutes: ${{ inputs.case == '"+selected+"' && 45 || 35 }}",probe)
         self.assertIn("bash tools/test-app-ui.sh", simulator)
 
     def test_cli_selects_the_complete_shard_and_rejects_invalid_shard(self):

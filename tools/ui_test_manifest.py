@@ -134,6 +134,7 @@ MANUAL_CASES = (
     "testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground",
     "testChangedOriginalCannotSubmitOrReplaceLastGood",
     "testThreeFieldsRequireEachAcknowledgementAndFourRefuses",
+    "testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch",
 )
 MANUAL_REQUIRED_JOBS = frozenset(
     f"Manual correction iOS {ios} / {case}" for ios in (26, 27) for case in MANUAL_CASES

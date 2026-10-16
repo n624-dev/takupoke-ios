@@ -71,14 +71,16 @@ elif args[:2] == ['simctl', 'create']: print('fictional-owned-simulator')
         for option in ("-project", "-destination", "-derivedDataPath"):
             values = [call[call.index(option) + 1] for call in calls[1:]]
             self.assertEqual(values[0], values[1])
-        self.assertIn("Verified three manual UI XCTest completions.", result.stdout)
+        self.assertIn("Verified four manual UI XCTest completions.", result.stdout)
 
     def test_selected_case_uses_the_same_build_without_retesting_others(self):
-        result, calls = self.run_runner(selected=MANUAL_CASES[0])
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(sum(call[-1] == "build-for-testing" for call in calls), 1)
-        self.assertEqual(sum(call[-1] == "test-without-building" for call in calls), 1)
-        self.assertIn("Verified selected manual UI XCTest completion: " + MANUAL_CASES[0], result.stdout)
+        for name in MANUAL_CASES:
+            with self.subTest(case=name):
+                result, calls = self.run_runner(selected=name)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(sum(call[-1] == "build-for-testing" for call in calls), 1)
+                self.assertEqual(sum(call[-1] == "test-without-building" for call in calls), 1)
+                self.assertIn("Verified selected manual UI XCTest completion: " + name, result.stdout)
 
     def test_failed_build_never_starts_tests_or_becomes_success(self):
         result, calls = self.run_runner(build_status=7)
