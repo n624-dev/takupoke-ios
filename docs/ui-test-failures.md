@@ -1,3 +1,15 @@
+## N08 清掃回帰テストのmock呼出し形状期待が不一致（2026-10-16、ローカル）
+
+- 3839b98を基準にした未コミット差分、Linux／Python3.12、対象10件中1失敗。
+  test_shutdown_nonzero_does_not_replace_successful_owned_deleteの87行でassertEqualが失敗した。
+- 観測：shutdown非ゼロ後にdeleteは実際に呼ばれた。mockのargsはコマンドtupleを
+  第1引数に持つ形で、テストはその外側のtupleがない形を期待していた。
+  Apple実行・製品・モデルの失敗ではない。対処を決める前に記録した。
+
+- N05のテスト宣言問題と今回のassert失敗を分け、compare.commandのcheck_output(args, ...)と
+  新規mockのcall_args_listを照合した。delete実行の期待内容は維持し、検査対象をargs[0]へ直す。
+  先にこの事実・根拠をpushし、その後に再検査する。期限・認識・清掃条件は変更しない。
+
 ## N07 iOS27 CPU照合がSimulator状態照会で時間切れ（2026-10-16）
 
 - ソース40e1aabe68cafd2419cf52d0c707a9546e5080f5、実行38910595845・試行1。
