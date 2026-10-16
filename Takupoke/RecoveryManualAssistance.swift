@@ -24,6 +24,8 @@ struct RecoveryHumanCorrection: Codable, Equatable, Sendable {
     let value: String
     let provenance: RecoveryHumanProvenance
     let confirmedAt: Date
+    /// Nil for legacy schema1; schema2 binds the actual explicit request set.
+    var selectedTargets: [RecoveryManualTarget]? = nil
 }
 struct RecoveryManualField: Identifiable, Equatable, Sendable {
     let target: RecoveryManualTarget
@@ -297,6 +299,7 @@ enum RecoveryManualAssistance {
               draft.snapshotHash == (try fingerprint(draft.document)),
               draft.fields == currentFields else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
         var result = draft.originalResult, corrections = [RecoveryHumanCorrection]()
+        let selected: [RecoveryManualTarget]? = draft.selectedTargets.isEmpty ? nil : draft.selectedTargets.sorted { $0.key < $1.key }
         for field in draft.fields {
             guard let value = values[field.id], !value.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty, value.utf16.count <= maximumCorrectedUTF16,
                   let cellIndex = result.cells.firstIndex(where:{ $0.cellId == field.target.cellId }),
@@ -309,7 +312,7 @@ enum RecoveryManualAssistance {
             }
             corrections.append(RecoveryHumanCorrection(schemaVersion:draft.selectedTargets.isEmpty ? schemaVersion : selectedSchemaVersion,target:field.target,pdfHash:draft.document.pdfHash,
                 acquisitionHash:draft.acquisitionHash,documentSnapshotHash:draft.snapshotHash,page:field.page,parentSourceIds:field.parentSourceIds,
-                crop:field.crop,value:value,provenance:.user,confirmedAt:now))
+                crop:field.crop,value:value,provenance:.user,confirmedAt:now,selectedTargets:selected))
         }
         result.humanCorrections = corrections
         guard try RecoveryValidator.validate(draft.document,result,check:check).canAdopt else { throw PDFParseError(code:.ambiguous) }
@@ -358,7 +361,18 @@ enum RecoveryManualAssistance {
         guard doc.nativeCapture != nil else { return ["manualCapture"] }
         let edits = result.humanCorrections ?? []
         let explicitlySelected = !edits.isEmpty && edits.allSatisfy({ $0.schemaVersion == selectedSchemaVersion })
-        let selected = explicitlySelected ? Set(edits.map(\.target)) : []
+        let selected: Set<RecoveryManualTarget>
+        if explicitlySelected {
+            guard edits.count <= maximumFields, let requested = edits.first?.selectedTargets,
+                  !requested.isEmpty, requested.count <= maximumFields,
+                  Set(requested).count == requested.count,
+                  requested == requested.sorted(by:{ $0.key < $1.key }),
+                  edits.allSatisfy({ $0.selectedTargets == requested }) else { return ["manualProvenance"] }
+            selected = Set(requested)
+        } else {
+            guard edits.allSatisfy({ $0.selectedTargets == nil }) else { return ["manualProvenance"] }
+            selected = []
+        }
         let fields = try fields(doc,selected:selected,check:check,work:work)
         if inputOnly { return result.humanCorrections == nil ? [] : ["manualInput"] }
         guard !fields.isEmpty else { return result.humanCorrections == nil ? [] : ["manualUnexpected"] }

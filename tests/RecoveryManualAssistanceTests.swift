@@ -273,6 +273,12 @@ extension PDFParsingTests {
         XCTAssertTrue(RecoveryValidator.validate(document,result).canAdopt)
         XCTAssertEqual(result.humanCorrections?.first?.schemaVersion,RecoveryManualAssistance.selectedSchemaVersion)
         XCTAssertEqual(result.humanCorrections?.first?.provenance,.user)
+        XCTAssertEqual(result.humanCorrections?.first?.selectedTargets,[target])
+        for requested in [nil,[],[target,target],[RecoveryManualTarget(cellId:"fictional-unknown",lessonIndex:0,role:.room)]] as [[RecoveryManualTarget]?] {
+            var changed = result
+            changed.humanCorrections?[0].selectedTargets = requested
+            XCTAssertFalse(RecoveryValidator.validate(document,changed).canAdopt)
+        }
         XCTAssertEqual(draft.document.nativeCapture,document.nativeCapture)
         XCTAssertEqual(try RecoveryValidator.fingerprint(draft.document),original)
         let source = RecoverySelectedSource(kind:.timetable,url:URL(fileURLWithPath:"/fictional-unused.pdf"),digest:document.pdfHash,originalName:"fictional",storedName:"",period:SchoolDataPeriod(day:SchoolDate(year:2032,month:4,day:1)!))
@@ -284,6 +290,11 @@ extension PDFParsingTests {
         let correction = try XCTUnwrap(result.humanCorrections?.first)
         legacy.humanCorrections = [.init(schemaVersion:1,target:correction.target,pdfHash:correction.pdfHash,acquisitionHash:correction.acquisitionHash,documentSnapshotHash:correction.documentSnapshotHash,page:correction.page,parentSourceIds:correction.parentSourceIds,crop:correction.crop,value:correction.value,provenance:.user,confirmedAt:correction.confirmedAt)]
         XCTAssertFalse(RecoveryValidator.validate(document,legacy).canAdopt)
+        let oldDraft = try XCTUnwrap(RecoveryManualAssistance.prepare(manualFixture(lowCount:1),os:"test"))
+        let old = try RecoveryManualAssistance.complete(oldDraft,values:[oldDraft.fields[0].id:"架空従来確認"])
+        let oldCorrection = try XCTUnwrap(old.humanCorrections?.first)
+        let oldJSON = try XCTUnwrap(JSONSerialization.jsonObject(with:JSONEncoder().encode(oldCorrection)) as? [String:Any])
+        XCTAssertNil(oldJSON["selectedTargets"])
     }
 
     func testExplicitSelectionRetainsAllMandatoryFieldsAndThreeFieldUnionLimit() throws {
@@ -296,6 +307,11 @@ extension PDFParsingTests {
         XCTAssertTrue(Set(mandatory.fields.map(\.id)).isSubset(of:Set(draft.fields.map(\.id))))
         let result = try RecoveryManualAssistance.complete(draft,values:Dictionary(uniqueKeysWithValues:draft.fields.map { ($0.id,"架空確認"+$0.target.role.rawValue) }))
         XCTAssertTrue(RecoveryValidator.validate(document,result).canAdopt)
+        for i in 0..<3 {
+            var changed = result
+            changed.humanCorrections?[i].selectedTargets = [draft.fields[i].target]
+            XCTAssertFalse(RecoveryValidator.validate(document,changed).canAdopt)
+        }
         let other = try XCTUnwrap(document.cells.first { $0.id != cell.id && !$0.confirmedEmpty && !$0.lessonBindings.isEmpty })
         XCTAssertThrowsError(try RecoveryManualAssistance.prepare(document,os:"test",selected:requests.union([.init(cellId:other.id,lessonIndex:0,role:.room)])))
         XCTAssertThrowsError(try RecoveryManualAssistance.prepare(document,os:"test",selected:[.init(cellId:"fictional-unknown-cell",lessonIndex:0,role:.room)]))
