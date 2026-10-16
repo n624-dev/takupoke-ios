@@ -1,0 +1,11 @@
+{
+  "study": "ios-ocr-legacy-line-screen-v1",
+  "sourceIOS": "8729dcd48d671a2440a13201e3a0a78735a5ad2e",
+  "sourceProtocol": "tools/ocr-windows-transfer/protocol.json",
+  "fields": 144,
+  "factors": [1, 4],
+  "nativeCalls": 288,
+  "revision": 3,
+  "languages": ["ja-JP", "en-US"],
+  "scope": "Consumed recognizer-only fictional screen, generator-provided physical regions then observed ink+2. Legacy VNRecognizeTextRequest revision3 accurate ja/en correctionOFF; original and exact nearest-neighbor4x pixels. Not actual field acquisition, whole-source quality, a V6 engine comparison, app adoption or physical-phone qualification. Raw API errors remain errors; all calls attempted, then any native error fails the study."
+}

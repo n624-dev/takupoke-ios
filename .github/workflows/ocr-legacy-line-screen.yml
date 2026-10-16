@@ -1,0 +1,39 @@
+name: Compare legacy Vision on original and pixel-repeated fictional lines
+on:
+  push:
+    branches: [codex/pdf-local-recovery]
+    paths:
+      - .github/workflows/ocr-legacy-line-screen.yml
+      - tools/ocr-legacy-line-screen/**
+      - tools/ocr-windows-transfer/prepare.py
+      - tools/ocr-windows-transfer/frames.py
+      - tools/ocr-windows-transfer/protocol.json
+      - tools/ocr-windows-transfer/requirements.txt
+      - tools/ocr-ios-runtime-parity/rasterize.swift
+      - tests/test_ocr_legacy_line_screen.py
+permissions:
+  contents: read
+jobs:
+  legacy-line-screen:
+    name: Legacy Vision original versus exact4x SDK26
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Protect all app code and compare the fixed fictional line cohort
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --exit-code 8bf6c8a45c6b41b3e78ae9e5615424fd827d4cfc "$GITHUB_SHA" -- \
+            Takupoke Takupoke.xcodeproj Package.swift Package.resolved Vendor
+          xcodebuild -version
+          sw_vers
+          bash tools/ocr-legacy-line-screen/run.sh

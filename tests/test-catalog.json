@@ -747,6 +747,25 @@
         "tests/RecoveryDocumentQualificationTests.swift",
         "tests/test_ocr_research_receipt.py"
       ]
+    },
+    {
+      "id": "ocr-legacy-line-screen",
+      "title": "従来型Vision・原画素4倍反復の認識器探索",
+      "environment": "Linux比較器／Mac SDK26 Native Vision（研究専用）",
+      "commands": [
+        "bash tools/ocr-legacy-line-screen/run.sh",
+        "python3 -B -m unittest discover -s tests -p test_ocr_legacy_line_screen.py -v"
+      ],
+      "sources": [
+        ".github/workflows/ocr-legacy-line-screen.yml",
+        "tools/ocr-legacy-line-screen/protocol.json",
+        "tools/ocr-legacy-line-screen/read.swift",
+        "tools/ocr-legacy-line-screen/compare.py",
+        "tools/ocr-legacy-line-screen/run.sh"
+      ],
+      "checks": [
+        "tests/test_ocr_legacy_line_screen.py"
+      ]
     }
   ]
 }
