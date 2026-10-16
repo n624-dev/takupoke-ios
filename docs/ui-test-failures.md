@@ -1,3 +1,22 @@
+## N22 import修正後のSwift jobも失敗（2026-10-16）
+
+- e03069dの開発38941894390、Swift job117111324746が17:47:35UTCにfailureとなり全job終端。
+  N20のimportは追加済み。現時点はmetadataのみで、コンパイル・新テスト・既存退行のどこかは未確認。
+- 対処を決める前に事実を記録し、この新規完了ログを一回取得して過去詳細・実コードと照合する。
+  後続7d0b172はtest stubだけの修正であり、このSwift failureの修正済みとは扱わない。
+- 新規ログを一回取得し、Swift504件が63.399秒で完了、失敗1・他503成功だった。
+  既存testManualEverySourceHashSnapshotParentCropAndTargetIsBoundのmutation0だけが、
+  RecoveryManualAssistanceTests.swift:366のXCTAssertFalseで失敗した。新規4ケースは成功。
+  mutationの内容・新schema2との関係は実コードを照合してから判断する。
+- 旧基準8bf6c8aと現コードを照合した。mutation0は有効な従来schema1記録の版番号だけを2へ変える。
+  新validationErrorsはschema2という番号だけで訂正集合全体を明示選択と見なし、その変更を受理していた。
+  不明版の期待値を3へずらして通さず、この既存拒否テストはそのまま維持する。
+- 新schema2記録には実際に要求した選択対象の順序付き集合も保持し、全記録で同じ非空・重複なし・
+  最大3・正規順の集合が存在することを必須にする。必須低信頼欄は引き続き別に追加・検証する。
+  旧schema1はこの追加値nilだけを許し、nilは保存JSONへ出力しない。番号だけの変更を拒否する。
+  元document／取得／Source／crop／値の検査と最大3を維持し、新記録の集合欠落・変更・重複も検査する。
+  この原因・対処を先にpushし、実装改訂と新規レビュー19の改訂確認後に次の試行へ進む。
+
 ## N21 新訂正ソースの開発CIが失敗（2026-10-16）
 
 - 98a1dfbの38941628612は全job終端。Python job117110426999が17:43:00UTCにfailure、
