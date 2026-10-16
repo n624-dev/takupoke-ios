@@ -1,3 +1,20 @@
+## 2026-10-16 OCR明示訂正の開発CI成功、Apple全13の前
+
+ソース861615662abc3d1f0f8ab5fc9b6ef992adc8ea37、
+[開発38942820388](https://github.com/n624-dev/takupoke-ios/actions/runs/38942820388)は必須2job成功。
+Swift504件・失敗0（80.784秒）、Python250件・失敗0（58.398秒、予定skip21）。
+全jobの終端を確認し、取消していない。任意Native PDFは未起動skip。
+旧98a1dfb／e03069d／7d0b172の失敗はN20〜N22へ保持し、後から成功へ書き換えない。
+e03069dの全13実行38942018267はDistribution失敗で残り未実行、配布合格ではない。
+
+Foundation-only依存stubの新しい2状態不足は、背景保持／明示取消の実precondition追加で検証した。
+schema1の版番号だけを2へ変える既存拒否テストを変更せず、schema2へ実要求集合の記録・検証を追加した。
+欠落・重複・未知対象・全訂正で不一致の集合は拒否し、schema1の追加keyはnilでJSONへ出ない。
+原文・原raster・union最大3・全ACK・別採用は維持する。
+他205本体・Strict239.1とその全入口／経路・Recognition／Validator本体・Package／projectは基準8bf6c8aと一致。
+新規GPT-6.1 Sol／Highレビュー20はコード差分限定でblockingなし。要求集合には既に照合した必須欄も含む。
+両OS UI・iPhone SDK・全13必須チェック・新配布・物理iPhone確認はこの時点では未達。
+
 ## 2026-10-16 全範囲2x比較完了と英数字モデル両iOS実行
 
 ソース8729dcd48d671a2440a13201e3a0a78735a5ad2eの
