@@ -51,3 +51,4 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 | [OCR研究の有限数値レシート・原文の非送信](test-catalog/ocr-research-receipt.md) | 5 | Linux Python。実推論／精度合格は各Apple研究jobで別検証 |
 | [全17クラス・5日・全時限の原PDF2x固定比較](test-catalog/ocr-full-scope-source2x.md) | 9 | Apple SDK26。既使用の独立架空6資料、現行2048 V6の失敗とは別条件 |
 | [従来型Vision・原画素4倍反復の認識器探索](test-catalog/ocr-legacy-line-screen.md) | 5 | Linux比較器／Mac SDK26 Native Vision（研究専用） |
+| [原教室コード・英語専用VisionとEnglishV1の独立比較](test-catalog/ocr-code-english-screen.md) | 8 | Linux契約検査／Mac SDK26 Native Vision（研究専用） |

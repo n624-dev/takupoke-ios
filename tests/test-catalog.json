@@ -766,6 +766,28 @@
       "checks": [
         "tests/test_ocr_legacy_line_screen.py"
       ]
+    },
+    {
+      "id": "ocr-code-english-screen",
+      "title": "原教室コード・英語専用VisionとEnglishV1の独立比較",
+      "environment": "Linux契約検査／Mac SDK26 Native Vision（研究専用）",
+      "commands": [
+        "bash tools/ocr-code-english-screen/run.sh",
+        "python3 -B -m unittest discover -s tests -p test_ocr_code_english_screen.py -v"
+      ],
+      "sources": [
+        ".github/workflows/ocr-code-english-screen.yml",
+        "tools/ocr-code-english-screen/protocol.json",
+        "tools/ocr-code-english-screen/code_english_contract.py",
+        "tools/ocr-code-english-screen/prepare.py",
+        "tools/ocr-code-english-screen/read.py",
+        "tools/ocr-code-english-screen/read.swift",
+        "tools/ocr-code-english-screen/compare.py",
+        "tools/ocr-code-english-screen/run.sh"
+      ],
+      "checks": [
+        "tests/test_ocr_code_english_screen.py"
+      ]
     }
   ]
 }

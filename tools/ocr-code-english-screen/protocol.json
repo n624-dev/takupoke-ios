@@ -1,0 +1,11 @@
+{
+  "study": "ios-original-code-english-screen-v1",
+  "fields": 192,
+  "sizes": [10, 14, 20, 24, 32, 40],
+  "words": ["O0", "0O", "I1", "1I", "O010", "I110", "S510", "B810", "270I", "R09I", "G71I", "48I", "O027", "Z10O", "A0I1", "407"],
+  "fonts": ["KaiseiOpti-Regular.ttf", "ZenKakuGothicAntique-Medium.ttf"],
+  "native": "VNRecognizeTextRequest revision3 accurate en-US only, correctionOFF, no customWords, original RGB8 pixels without enlargement",
+  "model": "Fixed EnglishV1, original Windows RGB transform, CPU; own piece0.85/reject0.05/padding conditions remain distinct from native confidence",
+  "exposure": "Development screen targeting already observed I/O/0 failures. Both fonts already consumed. New frozen literal list; NOT held-out, whole-document, iOS runtime or adoption qualification.",
+  "readerBoundary": "Readers receive only numbered RGB files, original dimensions and byte hashes. Expected words, fonts and sizes are in the separate oracle, first read after both readers complete. No school data."
+}

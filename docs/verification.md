@@ -1,3 +1,24 @@
+## 2026-10-16 教室コードの英語専用OCR比較準備（Native実測前）
+
+残る教室コードのI欠落・O/0混同を対象に、独立した192画像（16短コード×6サイズ×既使用2字体）を固定した。
+原RGB8をそのままVNRecognizeTextRequest revision3・accurate・en-USのみ・補正OFF・語彙追加なしへ渡し、
+同じbytesへ固定EnglishV1を実行する。新規学習・拡大・辞書補完・アプリ組込みは行わない。
+Readerは番号付きRGB・寸法・SHAのみを読み、期待文字・字体・サイズは両Reader完了後の比較器だけが読む。
+原画素readback、全候補・全文字枠・APIエラー・元confidence・CTC pieceを保持し、全192呼出しを要求する。
+
+literal一致と自身の高スコア誤読を別集計する。Native0.85とEnglishV1のpiece0.85／reject0.05／paddingは混ぜない。
+小crop外のNative枠はclampせず別計数し、この新しいliteral指標を旧crop包含込み指標の改善へ読み替えない。
+同画素・異文字も除外せず報告する。物理セル所属・全文書・未見字体・iOS実行・物理iPhone・採用の合格ではない。
+旧混合言語NativeとV6の補完5件（高スコア2件）はすべて異体字群で、教室の改善根拠へ流用しない。
+旧V1末尾候補の正しい未選択9件／描画条件はすべてpiece下限で拒否され、長さ制限だけが障害ではなかった。
+
+一覧検索OCRで旧群を照合し、新群ocr-code-english-screenを登録した。
+Linuxの比較器契約8件・失敗0（0.058秒）、shell構文、一覧430・base bcb31fe・空白検査成功。
+ローカルの原画像生成は192件・618891 bytes、異なるliteralで同一RGBになる群0。
+この入力確認と模擬出力による契約検査は、実OCR精度の実測ではない。Native Swift／新192推論は未実行。
+アプリは8616156と同じ3ファイル変更の状態を固定し、他205本体・Strict全経路・Package／project／Vendorは不変。
+別の全13実行38943603378は82ca252のまま継続し、新研究と配布判定を混ぜない。
+
 ## 2026-10-16 OCR明示訂正の開発CI成功、Apple全13の前
 
 ソース861615662abc3d1f0f8ab5fc9b6ef992adc8ea37、
