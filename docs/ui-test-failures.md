@@ -18,6 +18,12 @@
   既存の原入力・画像・レビュー・取消・実callback・保持のassertは省略しない。
   LinuxローカルにはSwiftがなく予定skipとなるため、このコンパイルをローカル成功とは扱わない。
   この診断を先にpushしてからstubを修正し、新規差分レビューの後に新ソースで再検証する。
+- e03069dの全13実行38942018267も17:45:53UTCにDistribution testsがfailure、
+  残るnative／UI／iPhoneは依存失敗によるskipで全体終端となった。必須合格0として扱う。
+  新規のDistributionログを一回取得し、同じstub不備かを照合する。
+- Distributionも250件・errors1・予定skip21で、同じ2宣言の不足だった。
+  改訂後のLinux manual系37件・失敗0（1.946秒、Swift未設置の予定skip4）、一覧421・空白検査は成功。
+  これは失敗したSwift stub実行の合格ではない。新規レビュー18はblockingなし。
 
 ## N20 新規SHA256参照のimport不足を静的検出（2026-10-16）
 

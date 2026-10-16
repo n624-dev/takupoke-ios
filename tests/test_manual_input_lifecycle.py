@@ -39,6 +39,7 @@ final class Coordinator {
  var operation=UUID(), running=true, status="", failure:String?="failure"
  var manualDraft:String?="original-snapshot", manualImages=["field":"original-crop"]
  var manualReview:String?="review",manualContextImages=["field":"actual-cell"]
+ var previewRasters=[1:"original-raster"],manualInitialValues=["field":"prior-transcription"]
  var preview:String?="preview", pendingDocument:String?="document", pendingPages:String?="pages", source:String?="source", awaitingModel=true
 ''' + block(coordinator, "    func suspendForInactivity()") + "\n" + block(coordinator, "    func cancel()") + '''
 }
@@ -52,6 +53,7 @@ let task=app.recovery.task!, preparation=app.recovery.preparationControl!
 app.setFileMonitoring(false)
 precondition(app.recovery.manualDraft == "original-snapshot" && app.recovery.manualImages["field"] == "original-crop" && app.recovery.source == "source")
 precondition(app.recovery.manualReview == "review" && app.recovery.manualContextImages["field"] == "actual-cell")
+precondition(app.recovery.previewRasters[1] == "original-raster" && app.recovery.manualInitialValues["field"] == "prior-transcription")
 precondition(task.cancelled && preparation.cancelled && LocalRecoveryModelManager.shared.cancelled && !app.recovery.running && app.recovery.operation != operation)
 app.setFileMonitoring(false) // Both scene-phase and background notification can arrive.
 app.setFileMonitoring(true)
@@ -59,8 +61,10 @@ precondition(app.recovery.manualDraft != nil && app.materials.enabled && app.spe
 app.recovery.manualDraft=nil
 app.setFileMonitoring(false)
 precondition(app.recovery.source == nil && app.recovery.preview == nil)
+precondition(app.recovery.previewRasters.isEmpty && app.recovery.manualInitialValues.isEmpty)
 let other=Application(); other.recovery.cancel() // Retention/user cancellation still destroys private draft.
 precondition(other.recovery.manualDraft == nil && other.recovery.manualImages.isEmpty && other.recovery.manualReview == nil && other.recovery.manualContextImages.isEmpty)
+precondition(other.recovery.previewRasters.isEmpty && other.recovery.manualInitialValues.isEmpty)
 print("Verified actual background preservation and heavy-work/cancel transitions.")
 '''
         # All scratch belongs to this invocation, including its generated executable.
