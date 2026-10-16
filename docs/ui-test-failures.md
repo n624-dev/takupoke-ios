@@ -1,3 +1,24 @@
+## N21 新訂正ソースの開発CIが失敗（2026-10-16）
+
+- 98a1dfbの38941628612は全job終端。Python job117110426999が17:43:00UTCにfailure、
+  Swift job117110427480が17:44:31にfailure、任意Native PDFは未起動skip。
+- import修正後e03069dの38941894390もPython job117111324776が17:44:58にfailure。
+  Swiftは進行中。e03069dの全13実行38942018267はDistribution testsが進行中。
+- 現段階はmetadata上の失敗で、詳細・同じ原因かは未確認。N20のimportだけが原因と断定しない。
+  対処を決める前に事実を記録し、新しく完了した各ログを一回取得して過去詳細・実コードと照合する。
+  全実行を取消さず、未実行を成功に数えない。
+- 新規3ログを各1回取得。旧SwiftはRecoveryManualAssistance.swift:330のSHA256未解決で停止し、
+  N20の静的指摘と一致。Pythonは両ソースとも250件・errors1・予定skip21で、
+  test_actual_background_methods_preserve_idle_draft_and_cancel_heavy_workが生成するmain.swift:19で
+  previewRasters／manualInitialValuesを見つけられずコンパイル停止した。動作assertへは未到達。
+- 旧／現test_manual_input_lifecycle.pyと製品cancel／suspendForInactivity、U68／U72の背景保持詳細を照合した。
+  このPythonは製品メソッドをFoundationだけの依存stubへ切り出して実コンパイル・実行するが、
+  cancelに追加した2つの保持状態がstubの宣言になかった。製品の背景処理自体を変更した結果ではない。
+  stubへ2つの非空状態を追加し、背景保持・明示cancelでの両方の消去を実assertする。
+  既存の原入力・画像・レビュー・取消・実callback・保持のassertは省略しない。
+  LinuxローカルにはSwiftがなく予定skipとなるため、このコンパイルをローカル成功とは扱わない。
+  この診断を先にpushしてからstubを修正し、新規差分レビューの後に新ソースで再検証する。
+
 ## N20 新規SHA256参照のimport不足を静的検出（2026-10-16）
 
 - ソース98a1dfb、開発CI38941628612は進行中で、失敗ログはまだ取得していない。
