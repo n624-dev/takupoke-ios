@@ -94,7 +94,7 @@ def view(text):
     text = once(text, 'manualAcknowledged[field.id] = $0', 'SimulatorManualFixture.event("ack",id:field.id,old:String(manualAcknowledged[field.id] ?? false),new:String($0)); manualAcknowledged[field.id] = $0')
     text = once(text, '.onChange(of:coordinator.manualDraft?.id) { _,_ in', '.onChange(of:coordinator.manualDraft?.id) { old,new in SimulatorManualFixture.event("draft",id:"snapshot",old:old ?? "nil",new:new ?? "nil")')
     text = once(text, 'Section("採用する資料全体") {', 'Section {')
-    text = once(text, '                    }\n                    Section("読み取り結果") {', '                    } header: { Text("採用する資料全体").accessibilityIdentifier("manual-preview-header") }\n                    Section("読み取り結果") {')
+    text = once(text, '        }\n        Section("読み取り結果") {', '        } header: { Text("採用する資料全体").accessibilityIdentifier("manual-preview-header") }\n        Section("読み取り結果") {')
     text = once(text, '.autocorrectionDisabled().textInputAutocapitalization(.never).disabled(!useAiFeatures || coordinator.running)',
                 '.autocorrectionDisabled().textInputAutocapitalization(.never).disabled(!useAiFeatures || coordinator.running).accessibilityIdentifier("manual-value-" + field.id)')
     marker = '''                            Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; if coordinator.manualReview != nil { return }; SimulatorManualFixture.event("ack",id:field.id,old:String(manualAcknowledged[field.id] ?? false),new:String($0)); manualAcknowledged[field.id] = $0 }))

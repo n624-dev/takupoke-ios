@@ -120,6 +120,9 @@ extension ManualAssistanceChecks {
         XCTAssertNotNil(divide)
         guard let divide else { return }
         selectCorrectionFromPreview(cell:String(suffix[..<divide]),lesson:String(suffix[suffix.index(after:divide)...]),role:"room")
+        // The menu was in a lesson row; the status is at the top of the List.
+        // Reveal it with the existing bounded native navigation before checking.
+        _=visible(app.staticTexts["訂正できる本文は、確認が必要な項目を含め合計3項目までです。"],towardTop:true)
         XCTAssertTrue(app.staticTexts["訂正できる本文は、確認が必要な項目を含め合計3項目までです。"].waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
         requirePreview()
         XCTAssertTrue(app.staticTexts["原本を確認して入力した3項目を含みます。"].exists)

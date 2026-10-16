@@ -25,59 +25,7 @@ struct PDFRecoveryView: View {
                     else { Text(coordinator.status) }
                 }
                 if let preview = coordinator.preview {
-                    Section("採用する資料全体") {
-                        LabeledContent("年度",value:"\(preview.document.schoolYear)年度")
-                        if let term = preview.document.term { LabeledContent("学期",value:term) }
-                        LabeledContent("対象",value:"\(preview.document.classes.count)クラス・\(preview.document.days.count)日分")
-                        Text("選択クラスだけでなく、以下の資料全体を採用します。元のPDFと読み取り結果を確認してください。")
-                            .font(.caption).foregroundStyle(.secondary)
-                        Button("元のPDFを確認",systemImage:"doc.richtext") { showingSource = true }
-                        if let corrections = preview.result.humanCorrections {
-                            Text("原本を確認して入力した\(corrections.count)項目を含みます。")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    Section("読み取り結果") {
-                        if preview.document.nativeCapture != nil {
-                            Text("訂正する授業の科目名を長押しすると、科目・教員・教室を選べます。確認が必要な項目を含め合計3項目まで、原本を見て訂正できます。")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                        Picker("クラス",selection:$selectedClass) {
-                            ForEach(preview.document.classes,id:\.self) { Text(TimetableDisplayText.className($0)).tag($0) }
-                        }
-                        let input = Dictionary(uniqueKeysWithValues:preview.document.cells.map { ($0.id,$0) })
-                        ForEach(preview.result.cells.filter { input[$0.cellId]?.slots.first?.className == (selectedClass.isEmpty ? preview.document.classes.first : selectedClass) },id:\.cellId) { result in
-                            if let cell = input[result.cellId], let slot = cell.slots.first {
-                                VStack(alignment:.leading,spacing:5) {
-                                    Text("\(day(slot.day)) · \(cell.slots.map(\.period).sorted().map(String.init).joined(separator:"・"))限").font(.headline)
-                                    if result.state == .empty { Text("空欄").foregroundStyle(.secondary) }
-                                    ForEach(Array(result.lessons.enumerated()),id:\.offset) { lessonIndex,lesson in
-                                        Text(lesson.subject.value)
-                                            .accessibilityIdentifier("recovery-correction-menu-"+cell.id+"-\(lessonIndex)")
-                                            .contextMenu {
-                                                if preview.document.nativeCapture != nil {
-                                                    manualCorrectionMenu(lesson,cellId:cell.id,lessonIndex:lessonIndex)
-                                                }
-                                            }
-                                        let destination = PDFClassAssignment.destination(sourceClass:slot.className,rawSubject:lesson.subject.value)
-                                        if destination != slot.className {
-                                            LabeledContent("保存先クラス",value:TimetableDisplayText.className(destination))
-                                                .font(.caption)
-                                        }
-                                        Text("教員: \(lesson.teacher.state == .empty ? "記載なし" : lesson.teacher.value) / 教室: \(lesson.room.state == .empty ? "記載なし" : lesson.room.value)")
-                                            .font(.caption).foregroundStyle(.secondary)
-                                    }
-                                    let periods = cell.slots.map(\.period).sorted()
-                                    let key = periods.count > 1 ? "\(slot.day):\(periods.first!)-\(periods.last!)" : "\(slot.day):\(slot.period)"
-                                    if let time = periods.count > 1 ? preview.document.spanTimes[key] : preview.document.times[key] { Text(time).font(.caption).foregroundStyle(.secondary) }
-                                }
-                            }
-                        }
-                    }
-                    Section {
-                        Button("この資料全体の結果を使用",systemImage:"checkmark.circle") { coordinator.adopt() }
-                            .buttonStyle(.glassProminent).disabled(!useAiFeatures || coordinator.running)
-                    }
+                    previewSections(preview)
                 } else if let review = coordinator.manualReview, let draft = coordinator.manualDraft {
                     Section("訂正箇所を先に確認") {
                         Text("この段階では採用しません。入力した本文と、比較できる前回の結果からの変更を確認してください。")
@@ -209,6 +157,61 @@ struct PDFRecoveryView: View {
             .onReceive(ApplicationData.shared.specialSchedules.$sources) { _ in Task { @MainActor in coordinator.invalidateManualIfSourceChanged() } }
             .onReceive(ApplicationData.shared.$loadedPeriod) { _ in Task { @MainActor in coordinator.invalidateManualIfSourceChanged() } }
             .task { await models.refresh() }
+        }
+    }
+    @ViewBuilder private func previewSections(_ preview:RecoveryPreview) -> some View {
+        Section("採用する資料全体") {
+            LabeledContent("年度",value:"\(preview.document.schoolYear)年度")
+            if let term = preview.document.term { LabeledContent("学期",value:term) }
+            LabeledContent("対象",value:"\(preview.document.classes.count)クラス・\(preview.document.days.count)日分")
+            Text("選択クラスだけでなく、以下の資料全体を採用します。元のPDFと読み取り結果を確認してください。")
+                .font(.caption).foregroundStyle(.secondary)
+            Button("元のPDFを確認",systemImage:"doc.richtext") { showingSource = true }
+            if let corrections = preview.result.humanCorrections {
+                Text("原本を確認して入力した\(corrections.count)項目を含みます。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        Section("読み取り結果") {
+            if preview.document.nativeCapture != nil {
+                Text("訂正する授業の科目名を長押しすると、科目・教員・教室を選べます。確認が必要な項目を含め合計3項目まで、原本を見て訂正できます。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Picker("クラス",selection:$selectedClass) {
+                ForEach(preview.document.classes,id:\.self) { Text(TimetableDisplayText.className($0)).tag($0) }
+            }
+            let input = Dictionary(uniqueKeysWithValues:preview.document.cells.map { ($0.id,$0) })
+            ForEach(preview.result.cells.filter { input[$0.cellId]?.slots.first?.className == (selectedClass.isEmpty ? preview.document.classes.first : selectedClass) },id:\.cellId) { result in
+                if let cell = input[result.cellId], let slot = cell.slots.first {
+                    VStack(alignment:.leading,spacing:5) {
+                        Text("\(day(slot.day)) · \(cell.slots.map(\.period).sorted().map(String.init).joined(separator:"・"))限").font(.headline)
+                        if result.state == .empty { Text("空欄").foregroundStyle(.secondary) }
+                        ForEach(Array(result.lessons.enumerated()),id:\.offset) { lessonIndex,lesson in
+                            Text(lesson.subject.value)
+                                .accessibilityIdentifier("recovery-correction-menu-"+cell.id+"-\(lessonIndex)")
+                                .contextMenu {
+                                    if preview.document.nativeCapture != nil {
+                                        manualCorrectionMenu(lesson,cellId:cell.id,lessonIndex:lessonIndex)
+                                    }
+                                }
+                            let destination = PDFClassAssignment.destination(sourceClass:slot.className,rawSubject:lesson.subject.value)
+                            if destination != slot.className {
+                                LabeledContent("保存先クラス",value:TimetableDisplayText.className(destination))
+                                    .font(.caption)
+                            }
+                            Text("教員: \(lesson.teacher.state == .empty ? "記載なし" : lesson.teacher.value) / 教室: \(lesson.room.state == .empty ? "記載なし" : lesson.room.value)")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        let periods = cell.slots.map(\.period).sorted()
+                        let key = periods.count > 1 ? "\(slot.day):\(periods.first!)-\(periods.last!)" : "\(slot.day):\(slot.period)"
+                        if let time = periods.count > 1 ? preview.document.spanTimes[key] : preview.document.times[key] { Text(time).font(.caption).foregroundStyle(.secondary) }
+                    }
+                }
+            }
+        }
+        Section {
+            Button("この資料全体の結果を使用",systemImage:"checkmark.circle") { coordinator.adopt() }
+                .buttonStyle(.glassProminent).disabled(!useAiFeatures || coordinator.running)
         }
     }
     private var modelSection: some View { RecoveryModelControls(models:models) }
