@@ -1,3 +1,13 @@
+## N05 OCR比較用Pythonテストの宣言名が一覧に登録されない（2026-10-16、ローカル）
+
+- 基準8bf6c8aからの未コミット研究差分、Linux／Python3.12。
+  `tools/test_catalog.py write`と`check --base 8bf6c8a45c6b41b3e78ae9e5615424fd827d4cfc`が
+  `No test declarations: tests/test_ocr_windows_transfer.py`で失敗した。
+- 続けて実行された対象unittestは9件・失敗0だが、一覧生成／検査の成功には数えない。
+  Apple SDK・Vision・ONNXの実比較はまだ実行していない。
+- 研究追加だけでアプリ・Strict・呼び出し経路に変更はない。
+  対処を選ぶ前に観測を記録した。原因・対処は過去の一覧検査と登録コードの照合後に記載する。
+
 ## U77 通知設定caseのタブ操作が選択へ反映されない（旧全体400、iOS26 B）
 
 - 対象：fd6e42cc254a6c1e2e7ed134b1a425d37b3c5919、Actions38695099094・試行1、job116306569871。
