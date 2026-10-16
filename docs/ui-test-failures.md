@@ -1,3 +1,21 @@
+## N25 明示訂正追加後のiOS27・1項目UIが失敗（2026-10-16）
+
+- ソース82ca25222a6a7dce880f0feb3c1378b2fea4b144、全13実行38943603378・attempt1、
+  job117117707227のtestOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackgroundが
+  18:29:57UTCにfailureとなった。iOS27／Xcode27の対象である。
+- 現在はmetadata上の結果だけで、既存背景保持・新規明示選択・保存・再起動のどの段階かは未確認。
+  対処を決める前に事実を記録し、新規完了ログを一回取得して過去の詳細と実コードを照合する。
+  同実行の他jobは取り消さず、未実行・依存skipを成功に数えない。配布は保留する。
+- 新規完了ログを一回取得した。1427.616秒・1件失敗で、既存の背景保持／再編集／1項目保存／再起動は通過。
+  新しい教員／教室の実メニュー操作・3項目入力・個別ACK・再レビューも通過し、
+  OneCorrection.swift:113の「現在とは別の訂正メニューがある」検査で失敗した。3項目保存は未実行。
+  直前にrequirePreviewが先頭見出しへ戻しており、全メニューの無スクロール列挙は0件。
+  失敗時AXにはpreview=true・running=false・lastgood-preservedと先頭の採用見出しがある。
+- U05の画面外List要素、U67／U72の復帰・照会停止と現在のNavigation／OneCorrection／Viewを照合する。
+  今回はsnapshot timeoutではなく、先頭へ移動した状態で仮想化された授業行を未表示のまま列挙した段階。
+  未表示を実フィールド不在と決めず、第四項目の実メニュー操作・拒否・保存を省かない修正を検討する。
+  この事実と照合記録を次のUI試行前にpushし、閾値・待機・Strictは変更しない。
+
 ## N24 新規完了ログ保存用JavaScriptの構文エラー（2026-10-16）
 
 - ソース82ca252の完了Native job117117707173を取得するJavaScriptがmissing ) after argument listで停止した。
