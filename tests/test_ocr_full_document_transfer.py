@@ -23,6 +23,7 @@ def module(name):
 
 reader, compare = module('read'), module('compare')
 tails = module('code_tail')
+class_cells = module('class_cell')
 
 
 class FullDocumentSourceTests(unittest.TestCase):
@@ -94,6 +95,79 @@ class FullDocumentSourceTests(unittest.TestCase):
 
 
 class FullSourceAcquisitionTests(unittest.TestCase):
+    def test_class_column_uses_actual_top_left_label_and_contiguous_physical_cells(self):
+        cells = [[0, 0, 30, 20], [30, 0, 70, 20], [0, 20, 30, 20], [30, 20, 70, 20]]
+        label = dict(index=0, ownerCell=0, text='クラス', ownPieceFloor085=True, paddingSupported=True)
+        owners, proof = class_cells.column(cells, [label])
+        self.assertEqual(owners, [2]); self.assertEqual(proof['headerCell'], 0)
+        # The same word printed in a body cell is insufficient.
+        self.assertEqual(class_cells.column(cells, [dict(label, ownerCell=2)])[0], [])
+        self.assertEqual(class_cells.column(cells, [dict(label, ownerCell=1)])[0], [])
+        self.assertEqual(class_cells.column(cells, [dict(label, ownPieceFloor085=False)])[0], [])
+        self.assertEqual(class_cells.column(cells, [label, label])[0], [])
+        self.assertEqual(class_cells.column(cells, [label, dict(label, text='別の印字')])[0], [])
+
+    def test_class_column_does_not_skip_missing_or_competing_cells(self):
+        label = dict(index=0, ownerCell=0, text='クラス', ownPieceFloor085=True, paddingSupported=True)
+        for cells in [[[0, 0, 30, 20], [0, 30, 30, 20]],
+                      [[0, 0, 30, 20], [0, 20, 30, 20], [0, 40, 40, 20]]]:
+            with self.subTest(cells=cells):
+                self.assertEqual(class_cells.column(cells, [label])[0], [])
+
+    def test_whole_class_frame_preserves_detached_underscore_and_all_original_ink(self):
+        np = self.arrays()
+        gray = np.full((30, 40), 255, dtype=np.uint8); mask = np.zeros_like(gray)
+        gray[8:18, 10:14] = 0; gray[8:18, 23:27] = 0; gray[19, 16:22] = 0
+        original = gray.copy()
+        cells = [[0, 0, 40, 30]]
+        records, _ = reader.regions(gray, mask, cells)
+        records = [dict(r, index=i) for i, r in enumerate(records)]
+        self.assertGreater(len(records), 1)
+        framed, proof = class_cells.frame(gray, mask, cells, records, 0)
+        self.assertEqual(proof['state'], 'framedAllOriginalClassCellInk')
+        self.assertEqual(framed['originalInkPixels'], 86)
+        x, y, w, h = framed['frameBox']
+        self.assertEqual(int((gray[y:y+h, x:x+w] != 255).sum()), 86)
+        self.assertEqual(framed['inkBox'], [10, 8, 17, 12])
+        np.testing.assert_array_equal(gray, original)
+        self.assertEqual(framed['originalRecordIndices'], list(range(len(records))))
+
+    def test_class_frame_rejects_two_actual_text_lines_empty_cells_and_inventory_loss(self):
+        np = self.arrays()
+        gray = np.full((40, 40), 255, dtype=np.uint8); mask = np.zeros_like(gray)
+        cells = [[0, 0, 40, 40]]
+        gray[4:12, 10:20] = 0; gray[22:30, 10:20] = 0
+        records, _ = reader.regions(gray, mask, cells)
+        records = [dict(r, index=i) for i, r in enumerate(records)]
+        framed, proof = class_cells.frame(gray, mask, cells, records, 0)
+        self.assertIsNone(framed); self.assertEqual(proof['state'], 'multipleMeasuredTextBands')
+        with self.assertRaisesRegex(ValueError, 'original ink inventory changed'):
+            class_cells.frame(gray, mask, cells, records[:-1], 0)
+        gray[:] = 255
+        self.assertEqual(class_cells.frame(gray, mask, cells, [], 0)[1]['state'], 'emptyMeasuredClassCell')
+
+    def test_class_assertion_uses_actual_cell_ownership_and_keeps_extra_ink_visible(self):
+        cells = [[0, 0, 40, 40], [40, 0, 40, 40]]
+        fields = [dict(text='7_ZQ', box=[10, 8, 20, 12])]
+        raw = [dict(ownerCell=0, inkBox=[10, 8, 20, 10], text='7 ZQ', ownPieceFloor085=True, paddingSupported=True),
+               dict(ownerCell=0, inkBox=[15, 19, 5, 1], text='一', ownPieceFloor085=True, paddingSupported=True)]
+        candidate = dict(ownerCell=0, inkBox=[10, 8, 20, 12], text='7_ZQ', actualCall=True,
+                         state='recognized', ownPieceFloor085=False, paddingSupported=True, originalInkPixels=30)
+        before = json.dumps([fields, cells, raw, candidate], ensure_ascii=False, sort_keys=True)
+        original, _ = compare.class_assignment(fields, cells, raw, [])
+        trial, extra = compare.class_assignment(fields, cells, raw, [candidate])
+        self.assertFalse(original[0]['exact']); self.assertTrue(trial[0]['exact'])
+        with self.assertRaisesRegex(ValueError, 'ownership differs'):
+            compare.class_assignment(fields, cells, raw, [dict(candidate, ownerCell=1)])
+        self.assertFalse(trial[0]['eligible']); self.assertEqual(extra, 0)
+        self.assertEqual(compare.class_assignment(fields, cells, raw, [dict(candidate, ownerCell=1, inkBox=[50, 8, 20, 12])])[1], 1)
+        other_ink = dict(raw[0], ownerCell=1, inkBox=[50, 8, 20, 10], originalInkPixels=25)
+        refused = dict(ownerCell=1, state='multipleMeasuredTextBands', actualCall=False)
+        self.assertEqual(compare.class_assignment(fields, cells, [*raw, other_ink], [refused])[1], 1)
+        self.assertEqual(json.dumps([fields, cells, raw, candidate], ensure_ascii=False, sort_keys=True), before)
+        with self.assertRaisesRegex(ValueError, 'no unique actual physical cell'):
+            compare.class_assignment([dict(fields[0], box=[35, 8, 10, 12])], cells, raw, [])
+
     def test_composed_trial_preserves_original_unicode_records_and_low_prefix_score(self):
         primary = dict(text='髙003', ownPieceFloor085=True, paddingSupported=True,
                        pieces=[dict(text=c, confidence=.99) for c in '髙003'])

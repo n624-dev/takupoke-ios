@@ -39,10 +39,7 @@ module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
 pins=json.loads(Path('tools/ocr-ios-runtime-parity/protocol.json').read_text())
 for pin in [pins['model'],pins['dictionary']]:
     module.fetch(pin,root/'models')
-ascii_pins=json.loads(Path('tools/ocr-windows-transfer/protocol.json').read_text())['models']
-for pin in ascii_pins:
-    if pin['file'] in ['ascii-rec.onnx','ascii-dictionary.json']:
-        module.fetch(pin,root/'models')
+
 PY
 TAKUPOKE_OCR_FULL_INPUTS="$whole_dir/inputs" TAKUPOKE_OCR_FULL_OUTPUT="$whole_dir/acquisition" \
 TMPDIR="$whole_dir/tmp" CLANG_MODULE_CACHE_PATH="$whole_dir/modules" SWIFTPM_MODULECACHE_OVERRIDE="$whole_dir/modules" \

@@ -1,5 +1,5 @@
 {
-  "study": "ios-ocr-full-source-discovery-v4",
+  "study": "ios-ocr-full-source-discovery-v5",
   "seed": 202610162901,
   "sourceIOS": "e8694d2e34ff3cdb857d35d4f9a8d040374e48d6",
   "fontsProtocol": "tools/ocr-windows-transfer/protocol.json",
@@ -46,5 +46,7 @@
   "nativeVisionCalls": 6,
   "requiredBodyFieldsAcrossVariants": 888,
   "nativeVisionBaseline": "Only current2048 uses the unchanged production native capture adapter. source2x4096 has no Vision call/capture. Compare original Vision at its own original2048 geometry, not a rescaled or fabricated capture; separate V6 resolution effect from same-pixel engine comparison.",
-  "asciiTrial": "Pinned EnglishV1 only on observed non-ASCII-prefix printable ASCII tails length2..32 with a digit and an original all-white band in the original CTC boundary window. No standalone class fragments, oracle or name maps. Retain originalV6, select only same-length ASCII alnum/_/- with own piece>=.85, reject<=.05 and original padding support. Prefix probabilities unchanged. Consumed discovery; not native-iOS ASCII IO qualification or app adoption."
+  "asciiTrial": "Not requested in v5: the completed fixed v4 tail trial measured zero literal/ownership gains. Original V6 records remain the body baseline; no lowered confidence or guessed insertion.",
+  "classTrial": "Use only a uniquely observed high-own-score クラス label in the measured top-left cell, with a contiguous unambiguous measured column. Frame all nonrule ink of each cell below it with original RGB and margin2. Declared single observed text-height bound (overallheight<=1.5*largest occupied-rowband); refuse wider/multiple-height/empty/competing cases. No expected class whitelist, oracle-driven frames or normalization; keep originals and alternative CTC outputs separate. Alternative frames are not additional original ink coverage or formal adoption.",
+  "classNameFieldsPerVariant": 70
 }

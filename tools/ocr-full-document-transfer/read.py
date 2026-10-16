@@ -149,8 +149,7 @@ def main():
     session = ort.InferenceSession(str(args.models / pins['model']['file']), sess_options=options, providers=['CPUExecutionProvider'])
     dictionary = json.loads((args.models / pins['dictionary']['file']).read_text())
     infer = shared_infer()
-    from code_tail import ASCIITailReader
-    ascii_tail = ASCIITailReader(args.models, infer, ort, np, options)
+    from class_cell import column, frame as class_frame
     acquisition = json.loads((root / 'acquisition.json').read_text())
     variant, documents = acquisition['variant'], acquisition['documents']
     if variant not in ['current2048', 'source2x4096']:
@@ -202,18 +201,44 @@ def main():
                         validWidth=valid, inputWidth=padded, timeCount=int(probability.shape[1]),
                         paddingSupported=all(p['end']*padded <= valid*probability.shape[1] for p in pieces),
                         ownPieceFloor085=bool(pieces) and all(p['confidence'] >= .85 for p in pieces))
-                # Original V6 text/pieces stay untouched; the separately tagged
-                # suffix candidate is an empirical trial, not native Vision.
-                record.update(ascii_tail.refine(source, record))
+                # v4 measured no gain from the ASCII specialist. Keep original
+                # V6 and its own scores; do not request that model in this trial.
+                record.update(selectedText=record['text'], selectedEligible=bool(record.get('ownPieceFloor085') and record.get('paddingSupported')),
+                              asciiTail=dict(state='notRequestedNoMeasuredGain', actualCall=False))
                 captured.append(record)
                 print('FULL_SOURCE_RECOGNITION ' + json.dumps(dict(id=document['id'], variant=variant, **record), ensure_ascii=False, sort_keys=True), flush=True)
-            results.append(dict(id=document['id'], sourcePDFSHA256=document['sourcePDFSHA256'], coverage=coverage, records=captured))
-    if calls != sum(r['state'] == 'recognized' for d in results for r in d['records']):
+            owners, class_column = column(document['cells'], captured)
+            class_candidates = []
+            for owner in owners:
+                region, proof = class_frame(gray, mask, document['cells'], captured, owner)
+                if region is None:
+                    candidate = dict(ownerCell=owner, state=proof['state'], actualCall=False)
+                else:
+                    x, y, w, h = region['frameBox']
+                    source = rgb[y:y+h, x:x+w]
+                    candidate = dict(region, sourcePixelsSHA256=hashlib.sha256(source.tobytes()).hexdigest())
+                    if math.floor(48 * max(320/48, w/h)) > 960:
+                        candidate.update(state='unsupported-width', actualCall=False)
+                    else:
+                        tensor, valid, padded = infer.transform(source)
+                        started = time.monotonic()
+                        probability = session.run(None, {'x': tensor})[0]
+                        calls += 1
+                        pieces = infer.decode(probability, dictionary)
+                        candidate.update(state='recognized', actualCall=True, text=''.join(p['text'] for p in pieces), pieces=pieces,
+                            inputSHA256=hashlib.sha256(tensor.tobytes()).hexdigest(), seconds=time.monotonic()-started,
+                            validWidth=valid, inputWidth=padded, timeCount=int(probability.shape[1]),
+                            paddingSupported=all(p['end']*padded <= valid*probability.shape[1] for p in pieces),
+                            ownPieceFloor085=bool(pieces) and all(p['confidence'] >= .85 for p in pieces))
+                class_candidates.append(candidate)
+                print('FULL_SOURCE_CLASS_RECOGNITION ' + json.dumps(dict(id=document['id'], variant=variant, **candidate), ensure_ascii=False, sort_keys=True), flush=True)
+            print('FULL_SOURCE_CLASS_COLUMN ' + json.dumps(dict(id=document['id'], variant=variant, **class_column), sort_keys=True), flush=True)
+            results.append(dict(id=document['id'], sourcePDFSHA256=document['sourcePDFSHA256'], coverage=coverage,
+                                records=captured, classColumn=class_column, classCandidates=class_candidates))
+    if calls != sum(r['state'] == 'recognized' for d in results for r in [*d['records'], *d['classCandidates']]):
         raise ValueError('Actual model-call inventory is incomplete')
-    if ascii_tail.calls != sum(r['asciiTail']['actualCall'] for d in results for r in d['records']):
-        raise ValueError('Actual ASCII model-call inventory is incomplete')
-    target.write_text(json.dumps(dict(variant=variant, documents=results, actualCalls=calls, actualASCIICalls=ascii_tail.calls, runtime=ort.__version__), ensure_ascii=False, sort_keys=True)+'\n')
-    print('FULL_SOURCE_RECOGNITION_FINISHED ' + json.dumps(dict(variant=variant, documents=len(results), actualV6Calls=calls, actualASCIICalls=ascii_tail.calls)), flush=True)
+    target.write_text(json.dumps(dict(variant=variant, documents=results, actualCalls=calls, actualASCIICalls=0, runtime=ort.__version__), ensure_ascii=False, sort_keys=True)+'\n')
+    print('FULL_SOURCE_RECOGNITION_FINISHED ' + json.dumps(dict(variant=variant, documents=len(results), actualV6Calls=calls, actualASCIICalls=0)), flush=True)
 
 
 if __name__ == '__main__':

@@ -668,7 +668,8 @@
         "tools/ocr-full-document-transfer/protocol.json",
         "tools/ocr-full-document-transfer/read.py",
         "tools/ocr-full-document-transfer/run.sh",
-        "tools/ocr-full-document-transfer/code_tail.py"
+        "tools/ocr-full-document-transfer/code_tail.py",
+        "tools/ocr-full-document-transfer/class_cell.py"
       ],
       "checks": [
         "tests/test_ocr_full_document_transfer.py",

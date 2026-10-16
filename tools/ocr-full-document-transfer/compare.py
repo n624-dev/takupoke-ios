@@ -68,6 +68,33 @@ def assignment(fields, cells, records):
     return outcome, unassigned, unassigned_body
 
 
+def class_assignment(fields, cells, raw, candidates):
+    replacements = {r['ownerCell']: r for r in candidates if r.get('actualCall') and r.get('state') == 'recognized'}
+    records = [r for r in raw if r['ownerCell'] not in replacements] + list(replacements.values())
+    for record in records:
+        owner = record.get('ownerCell')
+        if owner is not None and [i for i, cell in enumerate(cells) if contains(cell, record['inkBox'])] != [owner]:
+            raise ValueError('Class record ownership differs from its actual measured box')
+    rows, expected_owners = [], set()
+    for field in fields:
+        owners = [i for i, c in enumerate(cells) if contains(c, field['box'])]
+        if len(owners) != 1:
+            raise ValueError('Assertion class name has no unique actual physical cell')
+        owner = owners[0]
+        if owner in expected_owners:
+            raise ValueError('Two assertion class names share an actual physical cell')
+        expected_owners.add(owner)
+        parts = sorted([r for r in records if r['ownerCell'] == owner], key=lambda r: (r['inkBox'][1], r['inkBox'][0]))
+        text = ''.join(r.get('text') or '' for r in parts)
+        rows.append(dict(expected=field['text'], predicted=text, ownerCell=owner,
+            exact=bool(parts) and all(r.get('text') for r in parts) and text.encode() == field['text'].encode(),
+            eligible=bool(parts) and all(r.get('text') and r.get('ownPieceFloor085') and r.get('paddingSupported') for r in parts),
+            contributingRecords=len(parts)))
+    extra = len({r['ownerCell'] for r in candidates if r['ownerCell'] not in expected_owners and
+                 (r.get('originalInkPixels', 0) > 0 or any(p.get('originalInkPixels', 0) > 0 for p in raw if p['ownerCell'] == r['ownerCell']))})
+    return rows, extra
+
+
 def vision_inputs(root, document, expected):
     if (document['sourcePDFSHA256'] != expected['sourcePDFSHA256'] or document['nativeVisionState'] != 'captured' or
             not 0 < document['width'] <= 2048 or not 0 < document['height'] <= 2048):
@@ -128,6 +155,12 @@ def main():
         base, base_extra, base_body_extra = assignment(vision_fields, original_document['cells'], vision)
         trial, trial_extra, trial_body_extra = assignment(fields, document['cells'], paddle)
         selected, selected_extra, selected_body_extra = assignment(fields, document['cells'], hybrid)
+        class_fields = [dict(r, box=scale(r['box'], sx, sy)) for r in expected['records'] if r['category'] == 'class']
+        class_base, _ = class_assignment(class_fields, document['cells'], predicted['records'], [])
+        class_trial, class_extra = class_assignment(class_fields, document['cells'], predicted['records'], predicted['classCandidates'])
+        for field, original, candidate in zip(class_fields, class_base, class_trial):
+            print('FULL_SOURCE_CLASS_FIELD ' + json.dumps(dict(id=document['id'], variant=variant, field=field,
+                  original=original, candidate=candidate), ensure_ascii=False, sort_keys=True), flush=True)
         row = dict(id=document['id'], variant=variant, fields=len(fields), visionExact=sum(r['exact'] for r in base),
                    visionInputVariant='current2048', visionAllocationUsesOwnOriginalGeometry=True,
                    paddleExact=sum(r['exact'] for r in trial), gains=sum(not a['exact'] and b['exact'] for a, b in zip(base, trial)),
@@ -144,6 +177,15 @@ def main():
                    hybridOwnScoresEligibleWrong=sum(r['eligible'] and not r['exact'] for r in selected),
                    hybridUnassignedIncludingHeaders=selected_extra, hybridUnassignedInBody=selected_body_extra,
                    hybridAllDeclaredBodyExactAndNoUnassignedRegion=all(r['exact'] for r in selected) and selected_body_extra == 0,
+                   classNameFields=len(class_fields), classOriginalExact=sum(r['exact'] for r in class_base),
+                   classCandidateExact=sum(r['exact'] for r in class_trial),
+                   classCandidateGains=sum(not a['exact'] and b['exact'] for a, b in zip(class_base, class_trial)),
+                   classCandidateLosses=sum(a['exact'] and not b['exact'] for a, b in zip(class_base, class_trial)),
+                   classOriginalEligibleExact=sum(r['eligible'] and r['exact'] for r in class_base),
+                   classCandidateEligibleExact=sum(r['eligible'] and r['exact'] for r in class_trial),
+                   classCandidateRefusedCells=sum(not r.get('actualCall') for r in predicted['classCandidates']),
+                   classCandidateEligibleWrong=sum(r['eligible'] and not r['exact'] for r in class_trial),
+                   classCandidateUnexpectedCellInk=class_extra,
                    actualPhysicalCells=len(document['cells']), originalInkCoverage=predicted['coverage'])
         summaries.append(row)
         all_pairs.append(dict(id=document['id'], vision=base, paddle=trial, hybrid=selected))
@@ -154,8 +196,9 @@ def main():
         print('FULL_SOURCE_SUMMARY ' + json.dumps(row, sort_keys=True), flush=True)
     if sum(r['fields'] for r in summaries) != 444:
         raise ValueError('Incomplete required assertion fields')
-    receipt = dict(study='ios-ocr-full-source-discovery-v4', variant=variant, documents=len(summaries), requiredBodyFields=444,
+    receipt = dict(study='ios-ocr-full-source-discovery-v5', variant=variant, documents=len(summaries), requiredBodyFields=444,
                    actualONNXCalls=recognition['actualCalls']+recognition['actualASCIICalls'],
+                   actualClassCellCalls=sum(r.get('actualCall', False) for d in recognition['documents'] for r in d['classCandidates']),
                    actualV6Calls=recognition['actualCalls'], actualASCIICalls=recognition['actualASCIICalls'],
                    actualVisionCalls=6 if variant == 'current2048' else 0,
                    visionInputVariant='current2048', visionAllocationUsesOwnOriginalGeometry=True,

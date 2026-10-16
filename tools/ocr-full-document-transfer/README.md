@@ -70,3 +70,27 @@ cache／artifact／追加Releaseは作成しない。原出力と比較値は完
 ```sh
 bash tools/ocr-full-document-transfer/run.sh
 ```
+
+## v5: actual class-column ink framing
+
+The v4 fixed EnglishV1 suffix trial added no exact body fields at its fixed
+conditions. v5 does not download or run it; body metrics remain the original V6
+baseline. The helper and negative tests are retained as historical research.
+
+An actual high-own-score `クラス` observation must uniquely belong to the top-left
+measured cell. Only the contiguous, unambiguous physical column below that cell
+is eligible for a second V6 input. The recognizer receives all original non-rule
+ink of each selected cell plus the same bounded two-pixel margin, including
+underscores detached by row projection. Original RGB is never erased or rewritten.
+A declared overall-height <=1.5 times largest occupied-row-band bound refuses
+separated multi-height text. This geometric bound does not prove that arbitrary
+ink is one semantic class name. Empty cells, competing columns, additional header
+ink, absent labels or unsupported widths remain explicit unsupported outcomes.
+
+Alternative class-cell CTC/probabilities and original projection records are kept
+separately. This rereads the same original ink; it does not add original coverage.
+Only after all inference is finished does the comparator read the 70 class-name
+assertions and measure literal plus actual cell ownership, gain/loss, wrong eligible
+outputs and unexpected candidate-cell ink. No candidate is chosen by a class list,
+expected literal or oracle coordinates. Body444, header70, mandatory low scores,
+full Builder/Validator and physical phone qualification remain distinct.
