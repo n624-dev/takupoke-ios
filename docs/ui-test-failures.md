@@ -1,5 +1,15 @@
 ## N06 Apple OCR認識器比較のSDK27が完了失敗（2026-10-16）
 
+- 限定診断ソース65fafd2、実行38908560099も完了failure。
+  2026-10-16T13:32:58UTCの最初の予定確認で観測した。
+  この時点では対照中の認識例外か準備／ビルドかをまだ確定せず、対処前に追記した。
+  完了原ログ確認後、コンパイル成功・全12呼出し／全12エラーと確定した。
+  元thumbnailは既に8bit／32bpp、PNG往復・DeviceRGBへのRGBA8コピーでも同じ元画素SHAで、
+  別の512×160 CoreText対照も含めてDocumentsはunknownError、accurate Textは
+  `e5rt_e5_compiler_compile call failed`（11）。
+  特定PDFの形式だけでは説明できず、Mac27の認識Runtime実行失敗として保持する。
+  iPhoneにも同じ失敗があるとは断定せず、同条件での再試行・OS再起動依頼は行わない。
+
 - ソースdff1e9d8b618099304c544ee42ec0e7c01a5cb4a、研究実行38907039537・試行1、
   SDK27 job116993096462は13:21:06UTCにfailureで完了した。
   SDK26は最初の完了確認時点で実行中で、取消していない。
