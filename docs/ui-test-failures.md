@@ -1,3 +1,20 @@
+## N31 独立した明示選択訂正のfocused iOS26が失敗（2026-10-16）
+
+- source f1abea00ac91c6898ca1c8fe5128bef1f3ac7e17、run38956671414／attempt1、job117161156858。
+- Native input iOS26は19:40:50開始、19:51:16にfailure終端。同じ実行のiOS27は19:59照会時点で実行中で、取り消さない。
+- 指定ケースはtestSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch。失敗段階・原因はログ取得前で未確定。成功・未完了を推測しない。
+- 原ログと過去の詳細・当時コードを照合してから対処を決め、次の試行前に根拠をpushする。
+- 新規完了ログではXcode26.6／arm64 simulatorのPDFRecoveryView.swift:64の訂正Buttonで、
+  the compiler is unable to type-check this expression in reasonable time。ビルド失敗でXCTestは未開始。
+  iOS27の途中状態やSwift504件の成功は、このSDK26.6のコンパイル成功へ読み替えない。
+- type-check／ViewBuilder／コンパイル／PDFRecoveryViewで索引を検索し、N03・N20・N21の詳細と実コードを読んだ。
+  過去はtry・import・生成stub宣言の不足で、今回はネストしたForEach／contextMenu内の式の診断である。
+  引継ぎ8bf6c8aのViewにはこの訂正メニューがなく、現在のQA生成は追加メニュー自体を置換していない。
+- 同じPDFRecoveryView内の型を明示した小さなmenu／button関数へ追加部分だけ分ける。
+  nativeCapture条件・役割集合・対象ID・無効条件・表示・標準contextMenu・操作は維持する。
+  Strict・Coordinator・認識／採用条件・テスト期限は変えない。新規の模擬コンパイル成功は作らず、両SDKで再検証する。
+  この根拠を先にpushしてから分割する。
+
 ## N30 UIケース追加後のローカル契約検査2件が旧件数で失敗（2026-10-16）
 
 - HEADbbf1980の未コミットUI分割、Linux Python258件・30.813秒、失敗2・予定skip11。
