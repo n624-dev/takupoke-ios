@@ -107,12 +107,15 @@ extension ManualAssistanceChecks {
         acknowledge(roomKey);assertSubmitEnabled(true)
         visible(submit).tap();requireReview([subject,teacher,room],comparable:false)
         tap("訂正と変更を確認して資料全体へ");requirePreview()
-        let menus = app.descendants(matching:.any).matching(NSPredicate(format:"identifier BEGINSWITH %@","recovery-correction-menu-")).allElementsBoundByIndex
         let current = "recovery-correction-menu-"+cell+"-"+lesson
-        let other = menus.filter { $0.identifier != current }
-        XCTAssertFalse(other.isEmpty,app.debugDescription)
-        guard let next = other.first else { return }
-        let suffix = String(next.identifier.dropFirst("recovery-correction-menu-".count))
+        // Preview starts at its header; offscreen lesson rows are virtualized.
+        // Reveal an actual other lesson before inspecting or operating its menu.
+        let next = visible(app.descendants(matching:.any).matching(NSPredicate(
+            format:"identifier BEGINSWITH %@ AND identifier != %@","recovery-correction-menu-",current)).firstMatch)
+        let nextID = next.identifier
+        XCTAssertTrue(nextID.hasPrefix("recovery-correction-menu-"),app.debugDescription)
+        XCTAssertNotEqual(nextID,current,app.debugDescription)
+        let suffix = String(nextID.dropFirst("recovery-correction-menu-".count))
         let divide = suffix.lastIndex(of:"-")
         XCTAssertNotNil(divide)
         guard let divide else { return }
