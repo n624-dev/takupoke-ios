@@ -22,6 +22,7 @@ def module(name):
 
 
 reader, compare = module('read'), module('compare')
+tails = module('code_tail')
 
 
 class FullDocumentSourceTests(unittest.TestCase):
@@ -93,6 +94,70 @@ class FullDocumentSourceTests(unittest.TestCase):
 
 
 class FullSourceAcquisitionTests(unittest.TestCase):
+    def test_composed_trial_preserves_original_unicode_records_and_low_prefix_score(self):
+        primary = dict(text='髙003', ownPieceFloor085=True, paddingSupported=True,
+                       pieces=[dict(text=c, confidence=.99) for c in '髙003'])
+        proof = dict(prefixPieceCount=1, originalSuffix='003')
+        expert = dict(text='O03', pieces=[dict(text=c, confidence=.99) for c in 'O03'],
+                      paddingSupported=True, rejectProbability=.01)
+        before = json.dumps([primary, proof, expert], ensure_ascii=False, sort_keys=True)
+        trial = tails.compose(primary, proof, expert)
+        self.assertEqual(trial['selectedText'].encode(), '髙O03'.encode())
+        self.assertTrue(trial['selectedEligible'])
+        self.assertTrue(trial['asciiTail']['selected'])
+        self.assertEqual(json.dumps([primary, proof, expert], ensure_ascii=False, sort_keys=True), before)
+        low = dict(primary, ownPieceFloor085=False, pieces=[dict(text='髙', confidence=.4), *primary['pieces'][1:]])
+        trial = tails.compose(low, proof, expert)
+        self.assertEqual(trial['selectedText'], '髙O03')
+        self.assertFalse(trial['selectedEligible'])
+        for rejected in [dict(expert, rejectProbability=.5),
+                         dict(expert, text='O003', pieces=[dict(text=c, confidence=.99) for c in 'O003'])]:
+            trial = tails.compose(primary, proof, rejected)
+            self.assertFalse(trial['asciiTail']['selected'])
+            self.assertEqual(trial['selectedText'], '髙003')
+            self.assertTrue(trial['selectedEligible'])
+        with self.assertRaisesRegex(ValueError, 'provenance'):
+            tails.compose(primary, dict(proof, originalSuffix='O03'), expert)
+
+    def test_ascii_tail_selection_does_not_infer_missing_letters_or_rename_codes(self):
+        expert = dict(text='O03', pieces=[dict(confidence=.99)]*3,
+                      paddingSupported=True, rejectProbability=.01)
+        self.assertTrue(tails.selects('003', expert))
+        self.assertFalse(tails.selects('03', expert))
+        for change in [dict(rejectProbability=.051), dict(paddingSupported=False),
+                       dict(pieces=[dict(confidence=.8499)]), dict(text='O 3'), dict(text='髙03')]:
+            self.assertFalse(tails.selects('003', dict(expert, **change)))
+        self.assertTrue(tails.selects('003', dict(expert, text='003')))
+
+    def test_tail_candidate_keeps_raw_non_ascii_prefix_and_needs_original_white_columns(self):
+        np = self.arrays()
+        rgb = np.full((8, 24, 3), 255, dtype=np.uint8)
+        rgb[2:6, 2:8] = 0; rgb[2:6, 14:21] = 0
+        primary = dict(frameBox=[100, 200, 24, 8], inputWidth=320, validWidth=144, timeCount=40,
+            paddingSupported=True, pieces=[dict(text='髙', start=1, end=6),
+                dict(text='0', start=12, end=13), dict(text='0', start=14, end=15), dict(text='3', start=16, end=17)])
+        before = json.dumps(primary, ensure_ascii=False, sort_keys=True)
+        image, proof = tails.tail_frame(rgb, primary)
+        self.assertIsNotNone(image)
+        self.assertEqual(proof['originalSuffix'], '003')
+        self.assertEqual(proof['prefixPieceCount'], 1)
+        self.assertEqual(proof['originalSuffixInkPixels'], 28)
+        self.assertTrue(np.all(rgb[:, proof['splitX']-100] == 255))
+        self.assertEqual(json.dumps(primary, ensure_ascii=False, sort_keys=True), before)
+        rgb[:, 8:17] = 0
+        image, proof = tails.tail_frame(rgb, primary)
+        self.assertIsNone(image)
+        self.assertEqual(proof['state'], 'noOriginalWhiteGap')
+
+    def test_padding_or_standalone_class_fragments_are_not_ascii_tail_trials(self):
+        np = self.arrays()
+        rgb = np.full((8, 24, 3), 255, dtype=np.uint8)
+        for primary in [dict(pieces=[dict(text='1 1')]),
+                        dict(pieces=[dict(text='髙'), dict(text='1')]),
+                        dict(paddingSupported=False, pieces=[dict(text='髙'), dict(text='0'), dict(text='3')])]:
+            image, _ = tails.tail_frame(rgb, primary)
+            self.assertIsNone(image)
+
     def test_unrequested_vision_is_not_an_empty_or_fabricated_native_result(self):
         self.assertFalse(reader.has_native_capture(dict(nativeVisionState='notRequestedDimensionBound'), 'source2x4096'))
         self.assertTrue(reader.has_native_capture(dict(nativeVisionState='captured', nativeCapture='a', nativeCaptureSHA256='b'), 'current2048'))

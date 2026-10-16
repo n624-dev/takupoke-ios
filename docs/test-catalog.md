@@ -45,4 +45,4 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 | [テスト一覧・対象検索・宣言整合性・CI接続](test-catalog/test-catalog.md) | 53 | Linux Python（隔離Gitリポジトリ） |
 | [Windows OCR候補のApple原画素比較（認識器の研究）](test-catalog/ocr-transfer-screen.md) | 9 | Apple macOS26／配布SDK27。iPhone・文書全体・採用合格は対象外 |
 | [iOS CPU Runtimeの原確率・CTC照合（研究）](test-catalog/ocr-ios-runtime-parity.md) | 13 | iOS26／27 Simulator実プロセス＋実iPhoneSDKリンク。物理iPhone・全文書採用は別確認 |
-| [全PDF原画素・実罫線からのOCR領域取得比較（研究）](test-catalog/ocr-full-source-transfer.md) | 15 | macOS26/PDFKit/Vision・実RecoveryRasterGrid。各条件444値×2描画条件、初期探索であり正式採用・iPhone品質ではない |
+| [全PDF原画素・実罫線からのOCR領域取得比較（研究）](test-catalog/ocr-full-source-transfer.md) | 19 | macOS26/PDFKit/Vision・実RecoveryRasterGrid。各条件444値×2描画条件、初期探索であり正式採用・iPhone品質ではない |

@@ -123,8 +123,11 @@ def main():
         vision_fields, vision = vision_inputs(args.vision_acquisition, original_document, expected)
         paddle = [dict(box=r['inkBox'], order=r['index'], text=r['text'],
                        eligible=r.get('ownPieceFloor085', False) and r.get('paddingSupported', False)) for r in predicted['records']]
+        hybrid = [dict(box=r['inkBox'], order=r['index'], text=r['selectedText'],
+                       eligible=r['selectedEligible']) for r in predicted['records']]
         base, base_extra, base_body_extra = assignment(vision_fields, original_document['cells'], vision)
         trial, trial_extra, trial_body_extra = assignment(fields, document['cells'], paddle)
+        selected, selected_extra, selected_body_extra = assignment(fields, document['cells'], hybrid)
         row = dict(id=document['id'], variant=variant, fields=len(fields), visionExact=sum(r['exact'] for r in base),
                    visionInputVariant='current2048', visionAllocationUsesOwnOriginalGeometry=True,
                    paddleExact=sum(r['exact'] for r in trial), gains=sum(not a['exact'] and b['exact'] for a, b in zip(base, trial)),
@@ -135,18 +138,26 @@ def main():
                    visionUnassignedInBody=base_body_extra, paddleUnassignedInBody=trial_body_extra,
                    visionAllDeclaredBodyExactAndNoUnassignedRegion=all(r['exact'] for r in base) and base_body_extra == 0,
                    paddleAllDeclaredBodyExactAndNoUnassignedRegion=all(r['exact'] for r in trial) and trial_body_extra == 0,
+                   hybridExact=sum(r['exact'] for r in selected),
+                   hybridGainsOverV6=sum(not a['exact'] and b['exact'] for a, b in zip(trial, selected)),
+                   hybridLossesOverV6=sum(a['exact'] and not b['exact'] for a, b in zip(trial, selected)),
+                   hybridOwnScoresEligibleWrong=sum(r['eligible'] and not r['exact'] for r in selected),
+                   hybridUnassignedIncludingHeaders=selected_extra, hybridUnassignedInBody=selected_body_extra,
+                   hybridAllDeclaredBodyExactAndNoUnassignedRegion=all(r['exact'] for r in selected) and selected_body_extra == 0,
                    actualPhysicalCells=len(document['cells']), originalInkCoverage=predicted['coverage'])
         summaries.append(row)
-        all_pairs.append(dict(id=document['id'], vision=base, paddle=trial))
+        all_pairs.append(dict(id=document['id'], vision=base, paddle=trial, hybrid=selected))
         print('FULL_SOURCE_GEOMETRY ' + json.dumps(dict(variant=variant, **document), sort_keys=True), flush=True)
-        for field, vision_field, original, candidate in zip(fields, vision_fields, base, trial):
+        for field, vision_field, original, candidate, combined in zip(fields, vision_fields, base, trial, selected):
             print('FULL_SOURCE_FIELD ' + json.dumps(dict(id=document['id'], variant=variant, field=field, visionField=vision_field,
-                  vision=original, paddle=candidate), ensure_ascii=False, sort_keys=True), flush=True)
+                  vision=original, paddle=candidate, hybrid=combined), ensure_ascii=False, sort_keys=True), flush=True)
         print('FULL_SOURCE_SUMMARY ' + json.dumps(row, sort_keys=True), flush=True)
     if sum(r['fields'] for r in summaries) != 444:
         raise ValueError('Incomplete required assertion fields')
-    receipt = dict(study='ios-ocr-full-source-discovery-v3', variant=variant, documents=len(summaries), requiredBodyFields=444,
-                   actualONNXCalls=recognition['actualCalls'], actualVisionCalls=6 if variant == 'current2048' else 0,
+    receipt = dict(study='ios-ocr-full-source-discovery-v4', variant=variant, documents=len(summaries), requiredBodyFields=444,
+                   actualONNXCalls=recognition['actualCalls']+recognition['actualASCIICalls'],
+                   actualV6Calls=recognition['actualCalls'], actualASCIICalls=recognition['actualASCIICalls'],
+                   actualVisionCalls=6 if variant == 'current2048' else 0,
                    visionInputVariant='current2048', visionAllocationUsesOwnOriginalGeometry=True,
                    recognizedFileSHA256=hashlib.sha256(result_bytes).hexdigest(),
                    scope='Initial declared whole-source acquisition/body ownership discovery. Source-only raw pixels; not formal Builder/Validator adoption, held-out qualification, app change or physical iPhone execution. Own scores are not calibrated or interchangeable.')

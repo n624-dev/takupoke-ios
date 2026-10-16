@@ -149,6 +149,8 @@ def main():
     session = ort.InferenceSession(str(args.models / pins['model']['file']), sess_options=options, providers=['CPUExecutionProvider'])
     dictionary = json.loads((args.models / pins['dictionary']['file']).read_text())
     infer = shared_infer()
+    from code_tail import ASCIITailReader
+    ascii_tail = ASCIITailReader(args.models, infer, ort, np, options)
     acquisition = json.loads((root / 'acquisition.json').read_text())
     variant, documents = acquisition['variant'], acquisition['documents']
     if variant not in ['current2048', 'source2x4096']:
@@ -200,13 +202,18 @@ def main():
                         validWidth=valid, inputWidth=padded, timeCount=int(probability.shape[1]),
                         paddingSupported=all(p['end']*padded <= valid*probability.shape[1] for p in pieces),
                         ownPieceFloor085=bool(pieces) and all(p['confidence'] >= .85 for p in pieces))
+                # Original V6 text/pieces stay untouched; the separately tagged
+                # suffix candidate is an empirical trial, not native Vision.
+                record.update(ascii_tail.refine(source, record))
                 captured.append(record)
                 print('FULL_SOURCE_RECOGNITION ' + json.dumps(dict(id=document['id'], variant=variant, **record), ensure_ascii=False, sort_keys=True), flush=True)
             results.append(dict(id=document['id'], sourcePDFSHA256=document['sourcePDFSHA256'], coverage=coverage, records=captured))
     if calls != sum(r['state'] == 'recognized' for d in results for r in d['records']):
         raise ValueError('Actual model-call inventory is incomplete')
-    target.write_text(json.dumps(dict(variant=variant, documents=results, actualCalls=calls, runtime=ort.__version__), ensure_ascii=False, sort_keys=True)+'\n')
-    print('FULL_SOURCE_RECOGNITION_FINISHED ' + json.dumps(dict(variant=variant, documents=len(results), actualCalls=calls)), flush=True)
+    if ascii_tail.calls != sum(r['asciiTail']['actualCall'] for d in results for r in d['records']):
+        raise ValueError('Actual ASCII model-call inventory is incomplete')
+    target.write_text(json.dumps(dict(variant=variant, documents=results, actualCalls=calls, actualASCIICalls=ascii_tail.calls, runtime=ort.__version__), ensure_ascii=False, sort_keys=True)+'\n')
+    print('FULL_SOURCE_RECOGNITION_FINISHED ' + json.dumps(dict(variant=variant, documents=len(results), actualV6Calls=calls, actualASCIICalls=ascii_tail.calls)), flush=True)
 
 
 if __name__ == '__main__':
