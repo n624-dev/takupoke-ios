@@ -1,4 +1,9 @@
 import Foundation
+#if canImport(CryptoKit)
+import CryptoKit
+#elseif canImport(Crypto)
+import Crypto
+#endif
 
 struct RecoveryManualTarget: Codable, Hashable, Sendable {
     let cellId: String
