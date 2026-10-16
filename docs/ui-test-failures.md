@@ -1,3 +1,13 @@
+## N29 UI分割patchのrunner行照合が失敗（2026-10-16、Linux）
+
+- HEAD0943e0aからの未コミット分割patchが、tools/test-manual-ui.shのexpected行不一致で停止した。
+  テスト・Actionsの新規試行は開始していない。適用範囲はstatusと実差分で確認する。
+- 対処前に記録し、N23の段落照合失敗と、今回のrunnerの実際の完了集合行・patchを照合する。
+  検証の期待値を減らさず、実在する行を指定して4ケース全件の登録へ進む。
+- statusは索引Markdownだけの変更で、分割コードは一切適用されていなかった。
+  実際のexpected集合は1行で、patchが複数行の断片として指定していた。N23と同じ完全行照合の誤り。
+  この記録を先にpushし、実際の1行全体を指定して編集する。期待集合と照合は4件へ追加するだけとする。
+
 ## N28 過去コード照合用のGit objectがローカルにない（2026-10-16）
 
 - N27調査でgit show 694a862:tools/manual_ui_project.pyがinvalid object nameで停止した。
