@@ -1,3 +1,14 @@
+## N20 新規SHA256参照のimport不足を静的検出（2026-10-16）
+
+- ソース98a1dfb、開発CI38941628612は進行中で、失敗ログはまだ取得していない。
+  主担当がRecoveryManualAssistance.swiftの新規SHA256参照と、先頭のimport Foundationのみを照合した。
+  CryptoKit／CryptoのimportとSHA256 alias／再exportは当該ファイル・本体に見つからなかった。
+  現時点は静的に判明したコンパイル不備で、CIの終了結果やUI失敗とは記載しない。
+- 対処前に事実を記録。既存RecoveryValidator.swiftはcanImportに応じたCryptoKit／Crypto importを使う。
+  同じ条件付きimportを新規参照のあるOCR手動補助ファイルだけへ追加する。
+  ハッシュの種類・検査・Strict全経路は変えない。文書を先にpushし、新規レビュー16で改訂差分を確認する。
+  進行中の旧ソースCIは取消せず完了確認し、新ソースの実行結果と区別する。
+
 ## N19 配布前文書の空白検査で末尾空行を検出（2026-10-16、Linux）
 
 - HEAD 4a0294fの未コミット文書追加後、git diff --checkがocr-improvement-log.md:1234と
