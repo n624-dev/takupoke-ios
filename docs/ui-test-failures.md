@@ -1,3 +1,14 @@
+## N28 過去コード照合用のGit objectがローカルにない（2026-10-16）
+
+- N27調査でgit show 694a862:tools/manual_ui_project.pyがinvalid object nameで停止した。
+  現在のソース・テスト・進行中Actionsは変更していない。旧コードの実照合はこの時点で未完了。
+- 対処前に記録した。索引・詳細にある完全SHA694a862d7599fa678c28f1f29a71d9707137523bを対象に、
+  現在のbranch／worktreeを変えず読み取り用に必要なcommitだけ取得し、その実ソースと照合する。
+  N27の当時コード照合の記載は、この取得・照合を終えるまで完了と扱わない。次のUI試行前に根拠をpushする。
+- ローカルcloneはshallowだった。完全SHAだけをdepth1でfetchし、当時の手動訂正ケース・runner・workflowを読んだ。
+  当時も元3ケースを別job・45分で検証しており、新しい選択シナリオはなかった。
+  元branch／HEAD／worktreeを変更せず照合できた。旧U51は途中ログ不明のまま保持し、今回と同じ下位原因とは断定しない。
+
 ## N27 明示訂正追加ケースのjobがcancelled終端（2026-10-16、iOS27）
 
 - ソース20a1c0f70461988443d74acc2a5bdb83be88622b、全13実行38948658443・attempt1、
