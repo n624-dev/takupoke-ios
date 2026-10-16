@@ -1,3 +1,14 @@
+## N34 プレビュー式移動後のQA生成markerが不一致（2026-10-16、Linux）
+
+- HEAD7c3a067の未コミットView分割／statusナビゲーション、manual系37件・2.945秒、errors4・予定skip4。
+- tools/manual_ui_project.pyのonceがmanual UI fixture insertion point missing or duplicatedで停止した。
+  この差分の新しいActionsは未開始。SDK成功やUI品質の失敗とは扱わない。
+- 対処前に記録した。N29の完全行照合、生成器の実markerと移動したViewの実行を照合してから改訂する。
+- 全4errorsは同じmanual_ui_project.py:97のプレビュー見出しmarkerで、20個の字下げを含む完全行が一致しなかった。
+  Sectionの本文はN33の移動前後で字下げ除去後の全bytesが一致している。
+  N29と実際の完全行照合規則を読んだうえで、marker／replacementの字下げだけを新しい8個へ合わせる。
+  onceの一意・存在検査、実見出しの識別子、表示・操作・合格条件は維持する。先にpushしてから修正する。
+
 ## N33 式分割後のfocused iOS26が再び失敗終端（2026-10-16）
 
 - source f5bb0f242330967fb1450db90945b26900971cee、run38959258252／attempt1、job117169905187。
