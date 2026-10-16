@@ -608,7 +608,8 @@
       "environment": "Apple macOS26／配布SDK27。iPhone・文書全体・採用合格は対象外",
       "commands": [
         "bash tools/ocr-windows-transfer/run.sh",
-        "python3 -B -m unittest discover -s tests -p test_ocr_windows_transfer.py -v"
+        "python3 -B -m unittest discover -s tests -p test_ocr_windows_transfer.py -v",
+        "bash tools/ocr-apple-native-diagnostic/run.sh"
       ],
       "sources": [
         ".github/workflows/ocr-windows-transfer-screen.yml",
@@ -619,7 +620,10 @@
         "tools/ocr-windows-transfer/protocol.json",
         "tools/ocr-windows-transfer/requirements.txt",
         "tools/ocr-windows-transfer/run.sh",
-        "tools/ocr-windows-transfer/vision.swift"
+        "tools/ocr-windows-transfer/vision.swift",
+        ".github/workflows/ocr-apple-native-diagnostic.yml",
+        "tools/ocr-apple-native-diagnostic/diagnose.swift",
+        "tools/ocr-apple-native-diagnostic/run.sh"
       ],
       "checks": [
         "tests/test_ocr_windows_transfer.py"

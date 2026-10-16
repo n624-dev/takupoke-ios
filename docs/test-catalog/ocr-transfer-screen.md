@@ -1,13 +1,14 @@
 # Windows OCR候補のApple原画素比較（認識器の研究）
 
 対応関係・宣言名・実行方法のSHA-256：
-`4f3157c2b4da46f4c4abb5e9d3bff9db5070887ab8fc316d405b729c394a4cd7`
+`daf4e80a454281cc99c636686f0b774772f0ace6200521fb6a688d9aa4ecd5cc`
 
 環境：Apple macOS26／配布SDK27。iPhone・文書全体・採用合格は対象外
 
 ```bash
 bash tools/ocr-windows-transfer/run.sh
 python3 -B -m unittest discover -s tests -p test_ocr_windows_transfer.py -v
+bash tools/ocr-apple-native-diagnostic/run.sh
 ```
 
 ## 変更時に確認するソース
@@ -21,6 +22,9 @@ python3 -B -m unittest discover -s tests -p test_ocr_windows_transfer.py -v
 - [tools/ocr-windows-transfer/requirements.txt](../../tools/ocr-windows-transfer/requirements.txt)
 - [tools/ocr-windows-transfer/run.sh](../../tools/ocr-windows-transfer/run.sh)
 - [tools/ocr-windows-transfer/vision.swift](../../tools/ocr-windows-transfer/vision.swift)
+- [.github/workflows/ocr-apple-native-diagnostic.yml](../../.github/workflows/ocr-apple-native-diagnostic.yml)
+- [tools/ocr-apple-native-diagnostic/diagnose.swift](../../tools/ocr-apple-native-diagnostic/diagnose.swift)
+- [tools/ocr-apple-native-diagnostic/run.sh](../../tools/ocr-apple-native-diagnostic/run.sh)
 
 ## [tests/test_ocr_windows_transfer.py](../../tests/test_ocr_windows_transfer.py)
 
