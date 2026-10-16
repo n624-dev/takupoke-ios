@@ -1,8 +1,8 @@
 {
-  "study": "ios-paddle-v6-cpu-runtime-parity-v1",
-  "sourceIOS": "1eb6950a641c9a0687b1d052f789a473067e6802",
+  "study": "ios-paddle-v6-cpu-native-input-parity-v2",
+  "sourceIOS": "782ad0d2bf60e9bf9bfd100cc496a64fc703b43d",
   "recognizerProtocol": "tools/ocr-windows-transfer/protocol.json",
-  "scope": "Runtime parity on already consumed entirely fictional source pixels, not fresh OCR accuracy or full-document qualification. No app/Strict changes. Simulator execution and iPhone SDK crosscompile do not prove physical iPhone execution.",
+  "scope": "Native Swift RGB8-to-FP32 byte equality and CPU runtime parity on already consumed entirely fictional source pixels, not native image decoding, fresh OCR accuracy or full-document qualification. No app/Strict changes. Simulator execution and iPhone SDK crosscompile do not prove physical iPhone execution.",
   "runtime": {
     "version": "1.23.2",
     "api": 23,
@@ -37,5 +37,6 @@
     "intra": 2,
     "inter": 1
   },
-  "minimumIOSTarget": "26.0"
+  "minimumIOSTarget": "26.0",
+  "nativeRGBTransforms": 292
 }

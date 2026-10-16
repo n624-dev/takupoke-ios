@@ -1,6 +1,8 @@
 """Integrity, native-probability and owned-resource boundaries for iOS research."""
 import importlib.util
 import io
+import hashlib
+import json
 from pathlib import Path
 import subprocess
 import tempfile
@@ -113,6 +115,41 @@ class IOSRuntimeParityTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'No supported simulator frontend'):
                 compare.boot_owned_simulator('owned-fictional-id', Path(temporary))
             run.assert_not_called()
+
+    def test_native_transform_claim_cannot_hide_different_tensor_bytes(self):
+        expected = dict(rgbSHA256='fictional-rgb-sha', validWidth=1, inputWidth=320, bytes=b'expected-f32')
+        data = b'changed-f32'
+        record = dict(index=0, rgbSHA256=expected['rgbSHA256'], validWidth=1, inputWidth=320,
+                      tensorSHA256=hashlib.sha256(data).hexdigest())
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); (root / '0.native.f32').write_bytes(data)
+            with self.assertRaisesRegex(ValueError, 'RGB-to-tensor transform changed'):
+                compare.verify_native_tensors('ORT_IOS_TENSOR ' + json.dumps(record), [expected], root)
+
+    def test_native_transform_requires_inventory_and_actual_widths(self):
+        expected = dict(rgbSHA256='fictional-rgb-sha', validWidth=1, inputWidth=320, bytes=b'original-f32')
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); (root / '0.native.f32').write_bytes(expected['bytes'])
+            with self.assertRaisesRegex(ValueError, 'inventory changed'):
+                compare.verify_native_tensors('', [expected], root)
+            record = dict(index=0, rgbSHA256=expected['rgbSHA256'], validWidth=2, inputWidth=320,
+                          tensorSHA256=hashlib.sha256(expected['bytes']).hexdigest())
+            with self.assertRaisesRegex(ValueError, 'RGB-to-tensor transform changed'):
+                compare.verify_native_tensors('ORT_IOS_TENSOR ' + json.dumps(record), [expected], root)
+            record['validWidth'] = 1
+            self.assertEqual(compare.verify_native_tensors('ORT_IOS_TENSOR ' + json.dumps(record), [expected], root), 1)
+
+    def test_native_process_identity_rejects_another_device_or_host_os(self):
+        record = dict(udid='owned-fictional-id', runtime='26.5.0', simulatorCompileTarget=True, pid=123)
+        self.assertEqual(compare.verify_native_identity('ORT_IOS_IDENTITY ' + json.dumps(record),
+                         'owned-fictional-id', '26.5'), record)
+        for changed in [dict(udid='another-device'), dict(runtime='27.0.0'),
+                        dict(simulatorCompileTarget=False), dict(pid=0)]:
+            with self.subTest(changed=changed), self.assertRaisesRegex(ValueError, 'identity or Runtime changed'):
+                compare.verify_native_identity('ORT_IOS_IDENTITY ' + json.dumps(record | changed),
+                                               'owned-fictional-id', '26.5')
+        with self.assertRaisesRegex(ValueError, 'Missing real simulator process identity'):
+            compare.verify_native_identity('Booted', 'owned-fictional-id', '26.5')
 
 
 if __name__ == '__main__':

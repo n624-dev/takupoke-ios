@@ -38,6 +38,37 @@ def compare_probabilities(expected, actual, dictionary, tolerance):
     return maximum, native
 
 
+def verify_native_tensors(output, expected, root):
+    lines = output.splitlines()
+    if len(lines) != len(expected):
+        raise ValueError('Native transform inventory changed')
+    for index, (line, original) in enumerate(zip(lines, expected)):
+        if not line.startswith('ORT_IOS_TENSOR '):
+            raise ValueError('Native transform output changed')
+        record = json.loads(line.split(' ', 1)[1])
+        data = (root / f'{index}.native.f32').read_bytes()
+        if (record['index'] != index or record['rgbSHA256'] != original['rgbSHA256'] or
+                record['validWidth'] != original['validWidth'] or record['inputWidth'] != original['inputWidth'] or
+                record['tensorSHA256'] != hashlib.sha256(data).hexdigest() or data != original['bytes']):
+            raise ValueError('Native RGB-to-tensor transform changed')
+    return len(expected)
+
+
+def verify_native_identity(line, owned, runtime):
+    if not line.startswith('ORT_IOS_IDENTITY '):
+        raise ValueError('Missing real simulator process identity')
+    record = json.loads(line.split(' ', 1)[1])
+    def version(value):
+        parts = tuple(map(int, value.split('.')))
+        if len(parts) not in (2, 3):
+            raise ValueError('Invalid native Runtime version')
+        return parts + (0,) * (3-len(parts))
+    if (record['udid'] != owned or version(record['runtime']) != version(runtime) or
+            record['simulatorCompileTarget'] is not True or type(record['pid']) is not int or record['pid'] <= 0):
+        raise ValueError('Real simulator process identity or Runtime changed')
+    return record
+
+
 def command(*args, timeout=120, allow_nonzero=False):
     started = time.monotonic()
     label = list(args[:4])
@@ -88,6 +119,7 @@ def main():
     parser.add_argument('--study', type=Path, required=True)
     parser.add_argument('--assets', type=Path, required=True)
     parser.add_argument('--runner', type=Path, required=True)
+    parser.add_argument('--transform-runner', type=Path, required=True)
     parser.add_argument('--ios', type=int, choices=[26, 27], required=True)
     args = parser.parse_args()
     protocol = json.loads((ROOT / 'protocol.json').read_text())
@@ -107,19 +139,37 @@ def main():
         raise ValueError('Incomplete input inventory')
     tensors, probabilities = args.study / 'native-tensors', args.study / 'native-probabilities'
     tensors.mkdir(); probabilities.mkdir()
+    native_pixels = args.study / 'native-pixels'
+    native_pixels.mkdir()
+    pixel_inputs, expected_tensors = [], []
+    def prepare_transform(rgb):
+        tensor, valid, width = infer.transform(rgb)
+        index = len(pixel_inputs)
+        pixels = rgb.tobytes()
+        digest = hashlib.sha256(pixels).hexdigest()
+        (native_pixels / f'{index}.rgb').write_bytes(pixels)
+        pixel_inputs.append(dict(index=index, width=rgb.shape[1], height=rgb.shape[0], file=f'{index}.rgb', sha256=digest))
+        expected_tensors.append(dict(rgbSHA256=digest, validWidth=valid, inputWidth=width, bytes=tensor.tobytes()))
+        return tensor, valid, width
     manifest_lines, inventory = [], []
     for index, frame in enumerate(frames):
         path = args.study / frame['file']
         if hashlib.sha256(path.read_bytes()).hexdigest() != frame['sha256']:
             raise ValueError('Original source crop changed')
         with Image.open(path) as image:
-            tensor, valid, width = infer.transform(np.asarray(image.convert('RGB')))
+            tensor, valid, width = prepare_transform(np.asarray(image.convert('RGB')))
         data = tensor.tobytes()
         digest = hashlib.sha256(data).hexdigest()
         target = tensors / f'{index}.f32'
         target.write_bytes(data)
-        manifest_lines.append(f'{index}\t{width}\t{target}\t{digest}\n')
+        manifest_lines.append(f'{index}\t{width}\t{native_pixels / (str(index) + ".native.f32")}\t{digest}\n')
         inventory.append(dict(frame=frame, inputSHA256=digest, valid=valid, width=width, tensor=target))
+    # Asymmetric colors and odd sizes expose channel/row/rounding/padding bugs
+    # that grayscale text crops cannot detect. No recognition oracle is used.
+    for width, height in [(1, 1), (7, 5), (960, 48), (319, 47)]:
+        rgb = (np.arange(width * height * 3, dtype=np.uint32) * 37 + 11).astype(np.uint8).reshape(height, width, 3)
+        prepare_transform(rgb)
+    (native_pixels / 'inputs.json').write_text(json.dumps(pixel_inputs))
     manifest = args.study / 'native-inputs.tsv'
     manifest.write_text(''.join(manifest_lines))
     ort.disable_telemetry_events()
@@ -136,9 +186,18 @@ def main():
     try:
         owned = command('xcrun', 'simctl', 'create', 'Takupoke owned OCR CPU parity', device['identifier'], runtime['identifier'])
         boot_owned_simulator(owned, Path(command('xcode-select', '-p')))
-        devices = json.loads(command('xcrun', 'simctl', 'list', 'devices', '-j'))['devices']
-        if not any(d['udid'] == owned and d['state'] == 'Booted' for d in devices.get(runtime['identifier'], [])):
-            raise ValueError('Owned simulator did not boot in the selected Runtime')
+        transformed = command('xcrun', 'simctl', 'spawn', owned, str(args.transform_runner), str(native_pixels))
+        identity_line, separator, tensor_lines = transformed.partition('\n')
+        native_identity = verify_native_identity(identity_line, owned, runtime['version'])
+        if not separator:
+            raise ValueError('Native transform inventory is missing after identity')
+        native_transforms = verify_native_tensors(tensor_lines, expected_tensors, native_pixels)
+        if native_transforms != protocol['nativeRGBTransforms']:
+            raise ValueError('Native transform protocol inventory changed')
+        print(identity_line, flush=True)
+        print('ORT_IOS_TENSORS_VERIFIED ' + json.dumps(dict(nativeTransforms=native_transforms,
+              identicalBytes=True, scope='Explicit RGB8 to FP32 only; not native image decoding')), flush=True)
+        del expected_tensors
         with (args.study / 'native-stderr.txt').open('w') as errors:
             process = subprocess.Popen(['xcrun', 'simctl', 'spawn', owned, str(args.runner),
                                         str(models / protocol['model']['file']), str(manifest), str(probabilities)],
@@ -199,6 +258,8 @@ def main():
                        nativePeakRSSBytes=rss, nativeBatchSeconds=seconds, runtime=protocol['runtime']['version'],
                        scope=protocol['scope'], sameGreedyTextAndIntervals=True, same085Floor=True,
                        physicalIPhoneExecution=False, applicationChanged=False)
+        receipt['nativeRGBTransforms'] = native_transforms
+        receipt['verifiedNativeProcessIdentity'] = native_identity
         (args.study / 'runtime-receipt.json').write_text(json.dumps(receipt, sort_keys=True)+'\n')
         print('ORT_IOS_RECEIPT ' + json.dumps(receipt, sort_keys=True), flush=True)
     finally:

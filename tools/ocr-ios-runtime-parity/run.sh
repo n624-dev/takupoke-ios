@@ -42,5 +42,22 @@ xcrun --sdk iphonesimulator clang++ -std=c++17 -O2 -target "$(uname -m)-apple-io
 codesign --force --sign - --timestamp=none "$parity_dir/simulator-probe"
 xcrun vtool -show-build "$parity_dir/iphone-probe"
 xcrun vtool -show-build "$parity_dir/simulator-probe"
+# Native Swift preprocessing receives original RGB8, never reference tensors.
+# No app sources or entry points are compiled into either research executable.
+for tensor_platform in iphoneos iphonesimulator; do
+    tensor_sdk="$(xcrun --sdk "$tensor_platform" --show-sdk-path)"
+    if [[ "$tensor_platform" = iphoneos ]]; then
+        tensor_target=arm64-apple-ios26.0
+    else
+        tensor_target="$(uname -m)-apple-ios26.0-simulator"
+    fi
+    xcrun --sdk "$tensor_platform" swiftc -parse-as-library -O -sdk "$tensor_sdk" \
+        -target "$tensor_target" -module-cache-path "$parity_dir/modules" \
+        tools/ocr-ios-runtime-parity/tensor.swift tools/ocr-ios-runtime-parity/tensor-main.swift \
+        -o "$parity_dir/tensor-$tensor_platform"
+    codesign --force --sign - --timestamp=none "$parity_dir/tensor-$tensor_platform"
+    xcrun vtool -show-build "$parity_dir/tensor-$tensor_platform"
+done
 "$parity_python" -B tools/ocr-ios-runtime-parity/compare.py --assets "$parity_dir/assets" \
-    --study "$parity_dir/inputs" --runner "$parity_dir/simulator-probe" --ios "$TKPK_PARITY_IOS"
+    --study "$parity_dir/inputs" --runner "$parity_dir/simulator-probe" --ios "$TKPK_PARITY_IOS" \
+    --transform-runner "$parity_dir/tensor-iphonesimulator"

@@ -644,7 +644,9 @@
         "tools/ocr-ios-runtime-parity/protocol.json",
         "tools/ocr-ios-runtime-parity/rasterize.swift",
         "tools/ocr-ios-runtime-parity/run.sh",
-        "tools/ocr-ios-runtime-parity/runner.cpp"
+        "tools/ocr-ios-runtime-parity/runner.cpp",
+        "tools/ocr-ios-runtime-parity/tensor-main.swift",
+        "tools/ocr-ios-runtime-parity/tensor.swift"
       ],
       "checks": [
         "tests/test_ocr_ios_runtime_parity.py"

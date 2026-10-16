@@ -1,3 +1,16 @@
+## 2026-10-16 native入力v2と所有端末の実プロセス照合
+
+N07の継続失敗・特定UDIDの清掃応答・次条件を4d8e6baで先にpushした。
+研究v2では全deviceの状態一覧を、所有UDID内の一回のSwiftプロセスによる独立照合へ置換する。
+実プロセスが自分のSIMULATOR_UDID・ProcessInfo OS版・Simulatorコンパイル条件・PIDを返し、
+呼出側で所有UDID・選択Runtimeとの一致を要求する。端末IDやOSの期待値は実行器へ渡さない。
+bootstatus360秒・実spawn120秒、292入力全bytes・288全確率／CTC／0.85の条件は維持する。
+
+端末違い・OS違い・hostビルド・PID不正・応答欠落を拒否する追加ケースを含め、
+ローカルの対象13件・失敗0。一覧386・shell構文・空白検査・保護対象の全差分0を確認した。
+新規GPT-6.1 Sol／Highのreview05は初版・今回の修正差分ともblocking／nonblockingなし。
+実Appleビルド・プロセス・入力変換・推論結果は未確認。公開版401.1と全Strict経路を維持する。
+
 ## 2026-10-16 N07：画面起動後も全device一覧で停止
 
 782ad0d、研究38912610294のiOS27 job117011938274はfailure。

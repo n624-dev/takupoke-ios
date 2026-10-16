@@ -34,3 +34,18 @@ N07後の限定比較では、既存UI検証と同じ選択Xcode内の実在フ�
 bootstatus・実UDIDのBooted照合・全確率検査と元の期限は維持する。
 各コマンドの開始／完了／失敗と所要時間、所有deviceのshutdown／delete結果を記録する。
 画面起動を原因・解消と断定せず、モデル呼出し前の失敗も成功へ救済しない。
+
+次のv2比較はiOS SwiftのRGB8→BGR／48px／bilinear丸め／正規化／ゼロ余白も対象にする。
+Pythonの参照テンソルをnative推論へ直接渡さず、iOSで元RGB8から独立に全テンソルを作る。
+元の288原画像と、色順序・非対称行・奇数寸法・最大幅を含む4つの架空画素対照の計292件について、
+幅・有効幅・SHAだけでなく全FP32bytesの完全一致を必要とする。
+一致したiOS製テンソルだけをnativeの288回の推論に使用し、Mac参照は別に保存した参照テンソルを使う。
+これは明示RGB8の数値変換の照合であり、CGImageの色空間・alpha・上下方向の取得証明ではない。
+追加のSwift実行器も実iPhone SDK／Simulator SDKでコンパイルし、Simulatorだけで実行する。
+Swift変換・モデル・Parserをアプリへ接続する変更は含めない。
+
+v2ではN07で停止した全device一覧を使わず、所有UDIDへSwift実行器を一回spawnし、
+そのプロセスのSIMULATOR_UDID・実OS版・Simulatorビルド条件・正のPIDを照合する。
+呼出側が端末IDやOS版を実行器へ渡して返答させる方式ではない。
+bootstatus360秒とspawn120秒を維持し、実応答・ID・OSが一致しない場合は失敗する。
+元の一覧timeoutを捕捉して救済するfallbackや、起動し直す処理は加えない。
