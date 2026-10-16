@@ -1,0 +1,14 @@
+{
+  "study": "ios-ocr-full-source-discovery-v1",
+  "seed": 202610162901,
+  "sourceIOS": "e8694d2e34ff3cdb857d35d4f9a8d040374e48d6",
+  "fontsProtocol": "tools/ocr-windows-transfer/protocol.json",
+  "sourcePixelsPerPDFPoint": 2,
+  "documents": 6,
+  "bodyFields": 444,
+  "normalClasses": ["1_1"],
+  "specialClasses": ["1_1", "1_2", "1_3", "2_CN", "2_ES", "2_IT", "3_CN", "3_ES", "3_IT", "4_CN", "4_ES", "4_IT", "5_CN", "5_ES", "5_IT", "AI_1", "AI_2"],
+  "scope": "Initial full-source acquisition discovery only. Normal has one class, five weekdays and eight periods; exam/return each has all seventeen classes but one day and one period. No merged/parallel/blank/rotation qualification yet. No production adoption or physical-phone claim.",
+  "exposure": "Independent source designs and literals; both fonts already consumed. No pretraining-disjoint or unseen-font claim. Not an untouched final qualification cohort.",
+  "readerInput": "Only image-only PDFs, IDs, document kind and file hashes. No oracle, region coordinates, class lists, font names or expected strings enter acquisition."
+}

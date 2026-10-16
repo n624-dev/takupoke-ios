@@ -1,0 +1,2 @@
+-r ../ocr-windows-transfer/requirements.txt
+PyMuPDF==1.26.6
