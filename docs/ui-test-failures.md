@@ -1,3 +1,18 @@
+## N33 式分割後のfocused iOS26が再び失敗終端（2026-10-16）
+
+- source f5bb0f242330967fb1450db90945b26900971cee、run38959258252／attempt1、job117169905187。
+- Native input iOS26は20:02:07開始、20:12:53にfailure終端。20:17照会で確認した。同runの27は実行中で取り消さない。
+- ログ取得前で失敗段階は未確定。N31のメニュー式分割をSDK26での解消と扱わない。
+- 対処前に事実を記録し、新規完了ログとN31の原ログ・実コードを照合してから次の対処を決める。
+- 原ログではXcode26.6／arm64 simulatorのPDFRecoveryView.swift:124の既存補助入力説明Textで、
+  同じtype-check時間の診断となった。ビルド失敗、XCTest未開始。先の小分割だけでは不十分だった。
+  N31のButton診断と異なる式へ移ったこと、現在も大きいbodyに全分岐が入っていることを実コードで照合した。
+- 引継ぎView・現在の生成View・開発方針のView分割条件を照合した。同じView型・State所有者・List・条件・modifier順序を保ち、
+  読取結果プレビューの3個のSectionだけを同型のprivate @ViewBuilder関数へそのまま移す。
+  新しいcontainerやAnyViewは加えず、手動編集／レビュー・Coordinator・Strict全経路・テスト条件は変更しない。
+  N32のstatus表示用の実スクロール追加と合わせ、次の新規レビュー後に両SDKで再検証する。
+  この記録を先にpushしてから分割し、SDK26.6の成功を確認するまで解消と記載しない。
+
 ## N32 独立した明示選択訂正のfocused iOS27も失敗終端（2026-10-16）
 
 - source f1abea00ac91c6898ca1c8fe5128bef1f3ac7e17、run38956671414／attempt1、job117161157407。
