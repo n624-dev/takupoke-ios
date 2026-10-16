@@ -56,13 +56,7 @@ struct PDFRecoveryView: View {
                                             .accessibilityIdentifier("recovery-correction-menu-"+cell.id+"-\(lessonIndex)")
                                             .contextMenu {
                                                 if preview.document.nativeCapture != nil {
-                                                    ForEach(RecoveryRole.allCases,id:\.self) { role in
-                                                        let field = role == .subject ? lesson.subject : role == .teacher ? lesson.teacher : lesson.room
-                                                        let target = RecoveryManualTarget(cellId:cell.id,lessonIndex:lessonIndex,role:role)
-                                                        Button("\(self.role(role))を訂正") { coordinator.selectManualCorrection(target) }
-                                                            .disabled(!useAiFeatures || coordinator.running || field.state != .present)
-                                                            .accessibilityIdentifier("recovery-select-"+target.key)
-                                                    }
+                                                    manualCorrectionMenu(lesson,cellId:cell.id,lessonIndex:lessonIndex)
                                                 }
                                             }
                                         let destination = PDFClassAssignment.destination(sourceClass:slot.className,rawSubject:lesson.subject.value)
@@ -218,6 +212,18 @@ struct PDFRecoveryView: View {
         }
     }
     private var modelSection: some View { RecoveryModelControls(models:models) }
+    private func manualCorrectionMenu(_ lesson:RecoveryLesson,cellId:String,lessonIndex:Int) -> some View {
+        ForEach(RecoveryRole.allCases,id:\.self) { value in
+            let field:RecoveryField = value == .subject ? lesson.subject : value == .teacher ? lesson.teacher : lesson.room
+            let target = RecoveryManualTarget(cellId:cellId,lessonIndex:lessonIndex,role:value)
+            manualCorrectionButton(target,field:field)
+        }
+    }
+    private func manualCorrectionButton(_ target:RecoveryManualTarget,field:RecoveryField) -> some View {
+        Button("\(role(target.role))を訂正") { coordinator.selectManualCorrection(target) }
+            .disabled(!useAiFeatures || coordinator.running || field.state != .present)
+            .accessibilityIdentifier("recovery-select-"+target.key)
+    }
     @ViewBuilder private func fieldLocation(_ field:RecoveryManualField,draft:RecoveryManualDraft) -> some View {
         if let cell = draft.document.cells.first(where:{ $0.id == field.target.cellId }), let slot = cell.slots.first {
             Text("\(TimetableDisplayText.className(slot.className)) · \(day(slot.day)) · \(cell.slots.map(\.period).sorted().map(String.init).joined(separator:"・"))限").font(.subheadline)
