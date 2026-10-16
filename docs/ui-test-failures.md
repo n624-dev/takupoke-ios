@@ -1,3 +1,16 @@
+## N30 UIケース追加後のローカル契約検査2件が旧件数で失敗（2026-10-16）
+
+- HEADbbf1980の未コミットUI分割、Linux Python258件・30.813秒、失敗2・予定skip11。
+  test_qa_only_owner_resolution_and_existing_caps_are_preservedがfunc testの4対旧3、
+  test_all_six_manual_checks_reject_borrowed_source_or_attemptがmanual jobの8対旧6で失敗した。
+  新しいApple実行・コードpushはまだ開始していない。製品／Strictは8616156と同じ。
+- 対処前に記録し、N18の登録件数不一致・元の2検査・追加した第4ケースと両OSの必須集合を照合する。
+  元3ケースと元13必須jobの包含、借用source／attempt・未完了・欠落の拒否を維持する。
+- 実コードではどちらも固定された旧件数のassertで、幾何helperや公開判定の失敗ではなかった。
+  新しい宣言4／手動8へ更新し、元の借用source／attempt拒否のloopは8件すべてへ拡張する。
+  元13件だけでは新しい15件の配布条件を通れない追加検査と、元3ケースの本文byte一致も確認する。
+  この事実・対処を先にpushしてから再検証する。実操作・幾何・時間・完了のassertは除かない。
+
 ## N29 UI分割patchのrunner行照合が失敗（2026-10-16、Linux）
 
 - HEAD0943e0aからの未コミット分割patchが、tools/test-manual-ui.shのexpected行不一致で停止した。
