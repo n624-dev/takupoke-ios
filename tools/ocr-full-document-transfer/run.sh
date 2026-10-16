@@ -51,13 +51,17 @@ from pathlib import Path
 import re
 import sys
 text=Path(sys.argv[1]).read_text()
-if text.count('FULL_SOURCE_CAPTURE_FINISHED pages=6 actualVisionCalls=6')!=1:
+if text.count('FULL_SOURCE_CAPTURE_FINISHED pages=12 actualVisionCalls=12')!=1:
     raise ValueError('Actual full-source capture did not finish exactly once')
 if len(re.findall(r'Test Case .*testAcquireFullOriginalPixelsNativeVisionAndPhysicalRules.*passed',text))!=1:
     raise ValueError('The native research test did not actually pass exactly once')
 if 'Executed 1 test, with 0 failures' not in text:
     raise ValueError('Missing completed native test inventory')
 PY
-"$whole_python" -B tools/ocr-full-document-transfer/read.py --acquisition "$whole_dir/acquisition" --models "$whole_dir/models"
+for whole_variant in current2048 source2x4096; do
+    "$whole_python" -B tools/ocr-full-document-transfer/read.py --acquisition "$whole_dir/acquisition/$whole_variant" --models "$whole_dir/models"
+done
 # The oracle becomes accessible only to this separate, post-inference process.
-"$whole_python" -B tools/ocr-full-document-transfer/compare.py --acquisition "$whole_dir/acquisition" --oracle "$whole_dir/inputs/oracle.json"
+for whole_variant in current2048 source2x4096; do
+    "$whole_python" -B tools/ocr-full-document-transfer/compare.py --acquisition "$whole_dir/acquisition/$whole_variant" --oracle "$whole_dir/inputs/oracle.json"
+done

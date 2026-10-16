@@ -60,71 +60,65 @@ final class RecoveryFullSourceProbeTests: XCTestCase {
         XCTAssertEqual(Set(manifest.keys), ["documents"])
         let entries = try XCTUnwrap(manifest["documents"] as? [[String: Any]])
         XCTAssertEqual(entries.count, 6)
-        var documents = [[String: Any]](), work = 0
-        for entry in entries {
-            XCTAssertEqual(Set(entry.keys), ["id", "kind", "pdf", "pdfSHA256", "pageCount"])
-            let id = try XCTUnwrap(entry["id"] as? String), kind = try XCTUnwrap(entry["kind"] as? String)
-            XCTAssertTrue(["f1-timetable", "f1-exam", "f1-return", "f2-timetable", "f2-exam", "f2-return"].contains(id))
-            XCTAssertTrue(["timetable", "exam", "return"].contains(kind))
-            let filename = try XCTUnwrap(entry["pdf"] as? String), digest = try XCTUnwrap(entry["pdfSHA256"] as? String)
-            XCTAssertEqual(filename, id + ".pdf")
-            let bytes = try Data(contentsOf: root.appendingPathComponent(filename))
-            XCTAssertEqual(hash(bytes), digest)
-            let pdf = try XCTUnwrap(PDFDocument(data: bytes))
-            XCTAssertEqual(pdf.pageCount, 1)
-            let page = try XCTUnwrap(pdf.page(at: 0))
-            XCTAssertEqual(page.rotation, 0) // This initial cohort does not qualify rotations.
-            let bounds = page.bounds(for: .cropBox), scale = min(2, 2048/max(bounds.width, bounds.height))
-            let thumbnail = page.thumbnail(of: NSSize(width: ceil(bounds.width*scale), height: ceil(bounds.height*scale)), for: .cropBox)
-            let cg = try XCTUnwrap(thumbnail.cgImage(forProposedRect: nil, context: nil, hints: nil))
-            XCTAssertLessThanOrEqual(max(cg.width, cg.height), 2048)
-            var rgba = [UInt8](repeating: 255, count: cg.width*cg.height*4)
-            try rgba.withUnsafeMutableBytes { buffer in
-                let context = try XCTUnwrap(CGContext(data: buffer.baseAddress, width: cg.width, height: cg.height,
-                    bitsPerComponent: 8, bytesPerRow: cg.width*4, space: CGColorSpaceCreateDeviceRGB(),
-                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue))
-                context.setFillColor(gray: 1, alpha: 1)
-                context.fill(CGRect(x: 0, y: 0, width: CGFloat(cg.width), height: CGFloat(cg.height)))
-                context.draw(cg, in: CGRect(x: 0, y: 0, width: CGFloat(cg.width), height: CGFloat(cg.height)))
+        for (variant, maximumDimension) in [("current2048", 2048), ("source2x4096", 4096)] {
+            let destination = output.appendingPathComponent(variant, isDirectory: true)
+            try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: false)
+            var documents = [[String: Any]](), work = 0
+            for entry in entries {
+                XCTAssertEqual(Set(entry.keys), ["id", "kind", "pdf", "pdfSHA256", "pageCount"])
+                let id = try XCTUnwrap(entry["id"] as? String), kind = try XCTUnwrap(entry["kind"] as? String)
+                XCTAssertTrue(["f1-timetable", "f1-exam", "f1-return", "f2-timetable", "f2-exam", "f2-return"].contains(id))
+                XCTAssertTrue(["timetable", "exam", "return"].contains(kind))
+                let filename = try XCTUnwrap(entry["pdf"] as? String), digest = try XCTUnwrap(entry["pdfSHA256"] as? String)
+                XCTAssertEqual(filename, id + ".pdf")
+                let bytes = try Data(contentsOf: root.appendingPathComponent(filename))
+                XCTAssertEqual(hash(bytes), digest)
+                let pdf = try XCTUnwrap(PDFDocument(data: bytes))
+                XCTAssertEqual(pdf.pageCount, 1)
+                let page = try XCTUnwrap(pdf.page(at: 0))
+                XCTAssertEqual(page.rotation, 0) // This initial cohort does not qualify rotations.
+                let bounds = page.bounds(for: .cropBox), scale = min(2, CGFloat(maximumDimension)/max(bounds.width, bounds.height))
+                let thumbnail = page.thumbnail(of: NSSize(width: ceil(bounds.width*scale), height: ceil(bounds.height*scale)), for: .cropBox)
+                let cg = try XCTUnwrap(thumbnail.cgImage(forProposedRect: nil, context: nil, hints: nil))
+                XCTAssertLessThanOrEqual(max(cg.width, cg.height), maximumDimension)
+                var rgba = [UInt8](repeating: 255, count: cg.width*cg.height*4)
+                try rgba.withUnsafeMutableBytes { buffer in
+                    let context = try XCTUnwrap(CGContext(data: buffer.baseAddress, width: cg.width, height: cg.height,
+                        bitsPerComponent: 8, bytesPerRow: cg.width*4, space: CGColorSpaceCreateDeviceRGB(),
+                        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue))
+                    context.setFillColor(gray: 1, alpha: 1)
+                    context.fill(CGRect(x: 0, y: 0, width: CGFloat(cg.width), height: CGFloat(cg.height)))
+                    context.draw(cg, in: CGRect(x: 0, y: 0, width: CGFloat(cg.width), height: CGFloat(cg.height)))
+                }
+                let raster = try RecoveryRasterGrid.fromRGBA(width: cg.width, height: cg.height, pixels: rgba)
+                let rules = try raster.rules(check: { try Task.checkCancellation() })
+                let prepared = try raster.preparingRules(rules, check: { try Task.checkCancellation() })
+                let mask = try XCTUnwrap(prepared.fullSourceStudyMask)
+                let cells = try physicalCells(.init(width: Double(cg.width), height: Double(cg.height), glyphs: [], lines: rules))
+                let request = RecognizeDocumentsRequest()
+                let observations = try await request.perform(on: cg)
+                let capture = try RecoveryVisionCapture.page(1, width: cg.width, height: cg.height,
+                    observations: observations, work: &work, check: { try Task.checkCancellation() })
+                let pngName = id + ".png", grayName = id + ".gray", maskName = id + ".mask", captureName = id + "-vision.json"
+                try png(cg, to: destination.appendingPathComponent(pngName))
+                let gray = Data(raster.grayscale), maskData = Data(mask)
+                try gray.write(to: destination.appendingPathComponent(grayName), options: .withoutOverwriting)
+                try maskData.write(to: destination.appendingPathComponent(maskName), options: .withoutOverwriting)
+                let encoded = try JSONEncoder().encode(capture)
+                try encoded.write(to: destination.appendingPathComponent(captureName), options: .withoutOverwriting)
+                documents.append(["id": id, "kind": kind, "sourcePDFSHA256": digest,
+                    "width": cg.width, "height": cg.height, "pdfWidth": Double(bounds.width), "pdfHeight": Double(bounds.height),
+                    "image": pngName, "imageSHA256": hash(try Data(contentsOf: destination.appendingPathComponent(pngName))),
+                    "grayscale": grayName, "grayscaleSHA256": hash(gray), "mask": maskName, "maskSHA256": hash(maskData),
+                    "nativeCapture": captureName, "nativeCaptureSHA256": hash(encoded),
+                    "rules": rules.map { [$0.x1, $0.y1, $0.x2, $0.y2] },
+                    "cells": cells.map { [$0.left, $0.top, $0.right-$0.left, $0.bottom-$0.top] }])
             }
-            let raster = try RecoveryRasterGrid.fromRGBA(width: cg.width, height: cg.height, pixels: rgba)
-            let rules = try raster.rules(check: { try Task.checkCancellation() })
-            let prepared = try raster.preparingRules(rules, check: { try Task.checkCancellation() })
-            let mask = try XCTUnwrap(prepared.fullSourceStudyMask)
-            let cells = try physicalCells(.init(width: Double(cg.width), height: Double(cg.height), glyphs: [], lines: rules))
-            let request = RecognizeDocumentsRequest()
-            let observations = try await request.perform(on: cg)
-            let capture = try RecoveryVisionCapture.page(1, width: cg.width, height: cg.height,
-                observations: observations, work: &work, check: { try Task.checkCancellation() })
-            let pngName = id + ".png", grayName = id + ".gray", maskName = id + ".mask", captureName = id + "-vision.json"
-            try png(cg, to: output.appendingPathComponent(pngName))
-            let gray = Data(raster.grayscale), maskData = Data(mask)
-            try gray.write(to: output.appendingPathComponent(grayName), options: .withoutOverwriting)
-            try maskData.write(to: output.appendingPathComponent(maskName), options: .withoutOverwriting)
-            let encoded = try JSONEncoder().encode(capture)
-            try encoded.write(to: output.appendingPathComponent(captureName), options: .withoutOverwriting)
-            for line in capture.lines {
-                let first = try XCTUnwrap(line.candidates.first), box = try XCTUnwrap(first.observationRange)
-                let raw: [String: Any] = ["id": id, "nativeOrder": line.nativeOrder,
-                    "text": first.text, "confidence": first.confidence,
-                    "box": [box.x, box.y, box.width, box.height],
-                    "nativeCandidates": line.candidates.map { ["text": $0.text, "confidence": $0.confidence] as [String: Any] }]
-                let data = try JSONSerialization.data(withJSONObject: raw, options: .sortedKeys)
-                print("FULL_SOURCE_VISION " + String(decoding: data, as: UTF8.self))
-            }
-            documents.append(["id": id, "kind": kind, "sourcePDFSHA256": digest,
-                "width": cg.width, "height": cg.height, "pdfWidth": Double(bounds.width), "pdfHeight": Double(bounds.height),
-                "image": pngName, "imageSHA256": hash(try Data(contentsOf: output.appendingPathComponent(pngName))),
-                "grayscale": grayName, "grayscaleSHA256": hash(gray), "mask": maskName, "maskSHA256": hash(maskData),
-                "nativeCapture": captureName, "nativeCaptureSHA256": hash(encoded),
-                "rules": rules.map { [$0.x1, $0.y1, $0.x2, $0.y2] },
-                "cells": cells.map { [$0.left, $0.top, $0.right-$0.left, $0.bottom-$0.top] }])
-            print("FULL_SOURCE_ACQUIRED id=\(id) cells=\(cells.count) nativeLines=\(capture.lines.count) rules=\(rules.count)")
+            XCTAssertEqual(Set(documents.compactMap { $0["id"] as? String }).count, 6)
+            let result = try JSONSerialization.data(withJSONObject: ["variant": variant, "documents": documents], options: .sortedKeys)
+            try result.write(to: destination.appendingPathComponent("acquisition.json"), options: .withoutOverwriting)
         }
-        XCTAssertEqual(Set(documents.compactMap { $0["id"] as? String }).count, 6)
-        let result = try JSONSerialization.data(withJSONObject: ["documents": documents], options: .sortedKeys)
-        try result.write(to: output.appendingPathComponent("acquisition.json"), options: .withoutOverwriting)
-        print("FULL_SOURCE_CAPTURE_FINISHED pages=6 actualVisionCalls=6")
+        print("FULL_SOURCE_CAPTURE_FINISHED pages=12 actualVisionCalls=12")
     }
 }
 #endif

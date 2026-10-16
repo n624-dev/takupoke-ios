@@ -655,7 +655,7 @@
     {
       "id": "ocr-full-source-transfer",
       "title": "全PDF原画素・実罫線からのOCR領域取得比較（研究）",
-      "environment": "macOS26/PDFKit/Vision・実RecoveryRasterGrid。本文444値の初期探索、正式採用・iPhone品質ではない",
+      "environment": "macOS26/PDFKit/Vision・実RecoveryRasterGrid。各条件444値×2描画条件、初期探索であり正式採用・iPhone品質ではない",
       "commands": [
         "bash tools/ocr-full-document-transfer/run.sh",
         "TAKUPOKE_OCR_FULL_FONTS=<owned-pinned-fonts> python3 -B -m unittest discover -s tests -p test_ocr_full_document_transfer.py -v"

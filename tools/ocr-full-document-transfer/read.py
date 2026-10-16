@@ -97,6 +97,24 @@ def checked_file(root, entry, name):
     return data
 
 
+def native_records(identity, variant, capture):
+    """Report the saved original capture only after XCTest has exited."""
+    lines = capture['lines']
+    if len(lines) > 100000 or [line['nativeOrder'] for line in lines] != list(range(len(lines))):
+        raise ValueError('Original native line inventory changed')
+    result = []
+    for line in lines:
+        first = line['candidates'][0]
+        box = first.get('observationRange')
+        if box is None:
+            raise ValueError('Original native observation range is missing')
+        result.append(dict(id=identity, variant=variant, nativeOrder=line['nativeOrder'],
+            text=first['text'], confidence=first['confidence'],
+            box=[box[k] for k in ['x', 'y', 'width', 'height']],
+            nativeCandidates=[dict(text=c['text'], confidence=c['confidence']) for c in line['candidates']]))
+    return result
+
+
 def main():
     import numpy as np
     import onnxruntime as ort
@@ -121,7 +139,10 @@ def main():
     session = ort.InferenceSession(str(args.models / pins['model']['file']), sess_options=options, providers=['CPUExecutionProvider'])
     dictionary = json.loads((args.models / pins['dictionary']['file']).read_text())
     infer = shared_infer()
-    documents = json.loads((root / 'acquisition.json').read_text())['documents']
+    acquisition = json.loads((root / 'acquisition.json').read_text())
+    variant, documents = acquisition['variant'], acquisition['documents']
+    if variant not in ['current2048', 'source2x4096']:
+        raise ValueError('Undeclared acquisition comparison condition')
     if len(documents) != 6 or len({d['id'] for d in documents}) != 6:
         raise ValueError('Incomplete actual acquisition')
     results, calls = [], 0
@@ -129,7 +150,12 @@ def main():
         checked_file(root, document, 'image')
         gray_data = checked_file(root, document, 'grayscale')
         mask_data = checked_file(root, document, 'mask')
-        checked_file(root, document, 'nativeCapture')
+        original_capture = checked_file(root, document, 'nativeCapture')
+        native = native_records(document['id'], variant, json.loads(original_capture))
+        for record in native:
+            print('FULL_SOURCE_VISION ' + json.dumps(record, ensure_ascii=False, sort_keys=True), flush=True)
+        print('FULL_SOURCE_NATIVE_CAPTURE ' + json.dumps(dict(id=document['id'], variant=variant,
+            originalNativeLineCount=len(native), nativeCaptureSHA256=document['nativeCaptureSHA256']), sort_keys=True), flush=True)
         height, width = document['height'], document['width']
         gray = np.frombuffer(gray_data, dtype=np.uint8).reshape(height, width)
         mask = np.frombuffer(mask_data, dtype=np.uint8).reshape(height, width)
@@ -161,12 +187,12 @@ def main():
                         paddingSupported=all(p['end']*padded <= valid*probability.shape[1] for p in pieces),
                         ownPieceFloor085=bool(pieces) and all(p['confidence'] >= .85 for p in pieces))
                 captured.append(record)
-                print('FULL_SOURCE_RECOGNITION ' + json.dumps(dict(id=document['id'], **record), ensure_ascii=False, sort_keys=True), flush=True)
+                print('FULL_SOURCE_RECOGNITION ' + json.dumps(dict(id=document['id'], variant=variant, **record), ensure_ascii=False, sort_keys=True), flush=True)
             results.append(dict(id=document['id'], sourcePDFSHA256=document['sourcePDFSHA256'], coverage=coverage, records=captured))
     if calls != sum(r['state'] == 'recognized' for d in results for r in d['records']):
         raise ValueError('Actual model-call inventory is incomplete')
-    target.write_text(json.dumps(dict(documents=results, actualCalls=calls, runtime=ort.__version__), ensure_ascii=False, sort_keys=True)+'\n')
-    print('FULL_SOURCE_RECOGNITION_FINISHED ' + json.dumps(dict(documents=len(results), actualCalls=calls)), flush=True)
+    target.write_text(json.dumps(dict(variant=variant, documents=results, actualCalls=calls, runtime=ort.__version__), ensure_ascii=False, sort_keys=True)+'\n')
+    print('FULL_SOURCE_RECOGNITION_FINISHED ' + json.dumps(dict(variant=variant, documents=len(results), actualCalls=calls)), flush=True)
 
 
 if __name__ == '__main__':

@@ -77,7 +77,10 @@ def main():
     # The recognition process is already finished; no model is imported here.
     result_bytes = (root / 'recognized.json').read_bytes()
     recognition = json.loads(result_bytes)
-    acquired = json.loads((root / 'acquisition.json').read_text())['documents']
+    acquisition = json.loads((root / 'acquisition.json').read_text())
+    variant, acquired = acquisition['variant'], acquisition['documents']
+    if variant != recognition['variant']:
+        raise ValueError('Original acquisition condition differs from the completed recognition')
     oracle = json.loads(args.oracle.read_text())['documents']
     if len(acquired) != len(oracle) or len(recognition['documents']) != len(acquired):
         raise ValueError('Completed source inventory differs from the assertion cohort')
@@ -104,7 +107,7 @@ def main():
                        eligible=r.get('ownPieceFloor085', False) and r.get('paddingSupported', False)) for r in predicted['records']]
         base, base_extra, base_body_extra = assignment(fields, document['cells'], vision)
         trial, trial_extra, trial_body_extra = assignment(fields, document['cells'], paddle)
-        row = dict(id=document['id'], fields=len(fields), visionExact=sum(r['exact'] for r in base),
+        row = dict(id=document['id'], variant=variant, fields=len(fields), visionExact=sum(r['exact'] for r in base),
                    paddleExact=sum(r['exact'] for r in trial), gains=sum(not a['exact'] and b['exact'] for a, b in zip(base, trial)),
                    losses=sum(a['exact'] and not b['exact'] for a, b in zip(base, trial)),
                    visionOwnScoreEligibleWrong=sum(r['eligible'] and not r['exact'] for r in base),
@@ -116,14 +119,14 @@ def main():
                    actualPhysicalCells=len(document['cells']), originalInkCoverage=predicted['coverage'])
         summaries.append(row)
         all_pairs.append(dict(id=document['id'], vision=base, paddle=trial))
-        print('FULL_SOURCE_GEOMETRY ' + json.dumps(document, sort_keys=True), flush=True)
+        print('FULL_SOURCE_GEOMETRY ' + json.dumps(dict(variant=variant, **document), sort_keys=True), flush=True)
         for field, original, candidate in zip(fields, base, trial):
-            print('FULL_SOURCE_FIELD ' + json.dumps(dict(id=document['id'], field=field,
+            print('FULL_SOURCE_FIELD ' + json.dumps(dict(id=document['id'], variant=variant, field=field,
                   vision=original, paddle=candidate), ensure_ascii=False, sort_keys=True), flush=True)
         print('FULL_SOURCE_SUMMARY ' + json.dumps(row, sort_keys=True), flush=True)
     if sum(r['fields'] for r in summaries) != 444:
         raise ValueError('Incomplete required assertion fields')
-    receipt = dict(study='ios-ocr-full-source-discovery-v1', documents=len(summaries), requiredBodyFields=444,
+    receipt = dict(study='ios-ocr-full-source-discovery-v2', variant=variant, documents=len(summaries), requiredBodyFields=444,
                    actualONNXCalls=recognition['actualCalls'], actualVisionCalls=6,
                    recognizedFileSHA256=hashlib.sha256(result_bytes).hexdigest(),
                    scope='Initial declared whole-source acquisition/body ownership discovery. Source-only raw pixels; not formal Builder/Validator adoption, held-out qualification, app change or physical iPhone execution. Own scores are not calibrated or interchangeable.')

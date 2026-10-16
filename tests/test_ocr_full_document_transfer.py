@@ -93,6 +93,25 @@ class FullDocumentSourceTests(unittest.TestCase):
 
 
 class FullSourceAcquisitionTests(unittest.TestCase):
+    def test_post_test_capture_report_keeps_original_rank_unicode_probability_and_box(self):
+        capture = dict(lines=[dict(nativeOrder=0, candidates=[
+            dict(text='架空髙 I', confidence=.500000001,
+                 observationRange=dict(x=1.25, y=2.5, width=8.75, height=9.125)),
+            dict(text='架空高 l', confidence=.99),
+            dict(text='架空髙 I', confidence=.49)])])
+        before = json.dumps(capture, ensure_ascii=False, sort_keys=True)
+        records = reader.native_records('fictional', 'current2048', capture)
+        self.assertEqual(records, [dict(id='fictional', variant='current2048', nativeOrder=0,
+            text='架空髙 I', confidence=.500000001, box=[1.25, 2.5, 8.75, 9.125],
+            nativeCandidates=[dict(text='架空髙 I', confidence=.500000001),
+                dict(text='架空高 l', confidence=.99), dict(text='架空髙 I', confidence=.49)])])
+        self.assertEqual(json.dumps(capture, ensure_ascii=False, sort_keys=True), before)
+
+    def test_post_test_capture_report_refuses_duplicate_or_missing_original_orders(self):
+        for orders in [[0, 0], [1], [0, 2]]:
+            with self.assertRaisesRegex(ValueError, 'inventory changed'):
+                reader.native_records('fictional', 'current2048', dict(lines=[dict(nativeOrder=n) for n in orders]))
+
     def arrays(self):
         try:
             import numpy as np
