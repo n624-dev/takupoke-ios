@@ -46,10 +46,10 @@
 ワークフローは [ios-release.yml](../.github/workflows/ios-release.yml) です。
 
 1. **checks**：架空データで配布スクリプトをテスト。
-2. **Native・simulator・manual**：Native PDF／復旧検査、iOS 26・27の通常UI各2組、手動訂正各3ケースを専用Runnerで実行。
-3. **release ジョブ内のビルド**：公開前の全12検査が成功してから、ホストテスト・ファイル選択UI検証・iPhone向けReleaseビルドを実行し、`Payload/Takupoke.app` をIPA化。署名用Secretsは不要。
+2. **Native・simulator・manual**：Native PDF／復旧検査、iOS 26・27の通常UI各2組、手動訂正各4ケースを専用Runnerで実行。
+3. **release ジョブ内のビルド**：公開前の全14検査が成功してから、ホストテスト・ファイル選択UI検証・iPhone向けReleaseビルドを実行し、`Payload/Takupoke.app` をIPA化。署名用Secretsは不要。
 4. **Source 生成**：IPA の Info.plist、対象 OS、実行ファイル、サイズを検査して Source を生成。不一致があれば停止。
-5. **公開前の検証確認**：`tools/release_gate.py`が同じ実行ID・再実行回・コミットの配布検査・Native・通常UI・手動訂正の全12検査の成功を確認します。未完了なら60秒間隔で待機し、失敗・中止・想定外のスキップ・APIエラー・時間切れでは公開を停止します。
+5. **公開前の検証確認**：`tools/release_gate.py`が同じ実行ID・再実行回・コミットの配布検査・Native・通常UI・手動訂正の全14検査の成功を確認します。未完了なら60秒間隔で待機し、失敗・中止・想定外のスキップ・APIエラー・時間切れでは公開を停止します。
 6. **同じ release ジョブ内の公開**：Releaseをdraftとして作成して4個の成果物をアップロード。再ダウンロードした内容のSHA-256が一致した後に公開し、Latestを切り替え。
 
 PR と配布対象外のブランチは、読み取り権限だけの `build-check` ジョブでビルドします。ジョブ間の IPA 受け渡し用 artifact は作成しません。
@@ -110,9 +110,9 @@ GitHub 側の配信キャッシュをこのリポジトリから完全に無効�
 
 ## 研究branchの開発版をCIから公開する
 
-`codex/pdf-local-recovery` の手動実行では、`mode=build` が既定です。同じrun・再実行回・コミットの必須13ジョブを実行し、iPhoneビルドは所有情報付きの非公開draftへIPAと検査情報を保存します。
+`codex/pdf-local-recovery` の手動実行では、`mode=build` が既定です。同じrun・再実行回・コミットの必須15ジョブを実行し、iPhoneビルドは所有情報付きの非公開draftへIPAと検査情報を保存します。従来13ジョブを残し、明示選択訂正の両OSの2ジョブを追加しています。
 
-全13ジョブの成功後、同じbranchで `mode=development-publish` を選び、`development_run_id` に完了済みrunのID、`development_source` にその40文字のコミットを指定します。公開専用ジョブは実行中ワークフローのコミットに固定したhelperで、前回runの所属・コミット・再実行回・全13件の成功をGitHubから再確認します。公開run自体はテストの成功根拠にせず、ビルドも行いません。
+全15ジョブの成功後、同じbranchで `mode=development-publish` を選び、`development_run_id` に完了済みrunのID、`development_source` にその40文字のコミットを指定します。公開専用ジョブは実行中ワークフローのコミットに固定したhelperで、前回runの所属・コミット・再実行回・全15件の成功をGitHubから再確認します。公開run自体はテストの成功根拠にせず、ビルドも行いません。
 
 所有draftからIPAを取得し、未署名のiPhoneビルド・埋込コミット・ハッシュを検査します。公開添付は `takupoke.ipa`、`SHA256SUMS`、`INSTALL.txt` の3件です。非公開時と公開後に全ファイルの実byteを照合し、開発版prereleaseとして公開します。正式latest・AltStore Source・mainを更新せず、失敗や中止時の削除は記録した同一runの所有draftがまだ非公開である場合に限ります。実機動作・実資料の復旧品質・追加モデル品質の確認は別途必要です。
 
