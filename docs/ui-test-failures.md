@@ -1,3 +1,22 @@
+## N32 独立した明示選択訂正のfocused iOS27も失敗終端（2026-10-16）
+
+- source f1abea00ac91c6898ca1c8fe5128bef1f3ac7e17、run38956671414／attempt1、job117161157407。
+- Native input iOS27は19:40:48開始、20:01:59にfailure終端。20:15の照会で確認した。
+- 同じrunの26はN31のSDKコンパイル失敗。27の失敗段階・原因はログ取得前で未確定で、同じ原因とは扱わない。
+- 対処前に事実を記録した。新規完了ログと過去の詳細・当時コードを照合し、次の試行前に根拠をpushする。
+- 両OSが終端となった。新source f5bb0f2のfocused38959258252は進行中で、取消さない。
+- 新規原ログではコンパイル成功後858.692秒・1件失敗。追加2／3項目の入力・全ACK・レビューを通過し、
+  別授業の実IDを表示して、第四項目の実メニューを一回長押し・実Buttonを一回tapした。
+  その後OneCorrection.swift:123の上限statusのwaitForExistenceが失敗。保存／再起動は未到達。
+  AXはpreview=true／draft=nil／running=false／lastgood-preservedで、3項目説明はy40.7（navigation下より上）、
+  授業行側が表示されている。上限status自体はAXに存在せず、拒否メッセージ表示の成功とはまだ数えない。
+- U05の詳細リンク・N25・旧82ca252と現OneCorrection／Navigation／Viewを照合した。
+  N25は第四メニューの表示前だったが、今回は表示・実操作後の先頭status確認である。
+  旧コードからこのstatusだけを無スクロールで存在待ちしていた。既存review／previewは有界visibleで上側を表示している。
+- 対処候補はstatus照会の前にも既存visible(towardTop:true)を使い、実スクロールで表示することだけ。
+  元の正確な文言・wait期限・第四項目一回操作・3項目保持・保存／再起動のassertは維持する。
+  製品コード・共通Navigation・時間上限・合格条件は変えない。根拠を先にpushしてから追加する。
+
 ## N31 独立した明示選択訂正のfocused iOS26が失敗（2026-10-16）
 
 - source f1abea00ac91c6898ca1c8fe5128bef1f3ac7e17、run38956671414／attempt1、job117161156858。
