@@ -1,0 +1,41 @@
+{
+  "study": "ios-paddle-v6-cpu-runtime-parity-v1",
+  "sourceIOS": "1eb6950a641c9a0687b1d052f789a473067e6802",
+  "recognizerProtocol": "tools/ocr-windows-transfer/protocol.json",
+  "scope": "Runtime parity on already consumed entirely fictional source pixels, not fresh OCR accuracy or full-document qualification. No app/Strict changes. Simulator execution and iPhone SDK crosscompile do not prove physical iPhone execution.",
+  "runtime": {
+    "version": "1.23.2",
+    "api": 23,
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.ml.onnxruntime/1.23.2/microsoft.ml.onnxruntime.1.23.2.nupkg",
+    "packageBytes": 123371574,
+    "entry": "runtimes/ios/native/onnxruntime.xcframework.zip",
+    "frameworkBytes": 46790152,
+    "frameworkSHA256": "60cd467b88cbe61142dd3f9f6c1e5f4e1d88e3c48a943335aea7587324d48bb6",
+    "upstreamLicense": "MIT"
+  },
+  "model": {
+    "file": "rec.onnx",
+    "url": "https://huggingface.co/PaddlePaddle/PP-OCRv6_medium_rec_onnx/resolve/50c7eacafc52fa7bcf4194e8cd08e46f8558504b/inference.onnx",
+    "bytes": 76554979,
+    "sha256": "9c09abf0957f7968c7586464b7397b84ad2387a0497a351af40e9acc71b673ba"
+  },
+  "dictionary": {
+    "file": "dictionary-v6.json",
+    "url": "https://raw.githubusercontent.com/n624-dev/takupoke-win/fce8bb496bd997cf1bb4c48ecb91b222cd00abf8/src/Takupoke.Win/Assets/Recovery/ocr-characters-v6.json",
+    "bytes": 112374,
+    "sha256": "a49d51120786924a642c9e8a14b2a2ab73c019699abf5b2b6970ec7355c0415f"
+  },
+  "fields": 144,
+  "frames": 288,
+  "nativeCalls": 288,
+  "referenceCalls": 288,
+  "maximumAllProbabilityDifference": 5e-05,
+  "requireSameGreedyTextAndIntervals": true,
+  "requireSame085FloorForEverySelectedPiece": true,
+  "backend": "CPU only, with no additional execution provider registered",
+  "threads": {
+    "intra": 2,
+    "inter": 1
+  },
+  "minimumIOSTarget": "26.0"
+}

@@ -1,3 +1,28 @@
+## 2026-10-16 日本語V6のiOS CPU Runtime照合を準備
+
+Mac27 Visionの全対照エラーは未解決として保持し、画像や判定条件を変えて成功へ置き換えない。
+SDK26で有望だった日本語V6を、別のiOS専用CPU実行器で検証する。
+固定ONNX Runtime1.23.2の公式iOS Frameworkは、既存の同一配布archiveを読取専用で照合し、
+SHA256 `60cd467b88cbe61142dd3f9f6c1e5f4e1d88e3c48a943335aea7587324d48bb6`、
+46,790,152bytes、API23、最低iOS15.1、device arm64とSimulator arm64/x86_64を確認した。
+Framework内はfat形式のstatic archiveであり、Appleの依存を明示リンクする。
+モデルの実iOS実行やリンク成功は、このファイル形式の確認だけでは主張しない。
+
+同じ使用済みの架空原画素から固定288入力を作り、iOS26／27 SimulatorのC APIとMac CPUへ
+各1回だけ渡す。元画像／入力／native確率のハッシュ、全確率差5e-5、全greedy文字列・CTC区間、
+各選択文字の0.85判定の一致を必要とする。正解やoracleは両実行器へ渡さない。
+実iPhoneSDKのarm64リンクとSimulator実行を分け、物理iPhoneの推論・メモリと混同しない。
+
+ローカルは公式C API headerによるLinux C++ syntax、新規Python7件、shell syntax、
+一覧384ファイルのwrite／checkが成功。Apple側のリンク・native実行は未確認。
+新しい検査は新規GPT-6.1 Sol／High review03を使用し、対象差分だけのSHA256は
+`031dee5b6311b525e109d8d8d6c7dbfffe19aaf4b077a075970b4356c0a7976a`、blockingなし。
+製品・Strict・経路・Parser33／32・配信Manifest・公開版401.1は変更しない。
+
+前段65fafd2の開発CI38908559884は必須2job成功、任意Nativeは条件付きskip。
+Swift500件・失敗0・77.416秒、Python199件・予定skip3・失敗0・76.592秒。
+診断38908560099は12実行エラーによるfailureを維持し、CI成功へ合算しない。
+
 ## 2026-10-16 SDK27限定対照：全12条件でnative実行エラー
 
 ソース65fafd2・実行38908560099・job116998263336は、準備・コンパイルを通過し、

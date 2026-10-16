@@ -44,3 +44,4 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 | [独立した架空PDF・原文契約・固定期待値](test-catalog/fixtures.md) | 13 | Linux契約検査。PDF描画・OCRはApple限定 |
 | [テスト一覧・対象検索・宣言整合性・CI接続](test-catalog/test-catalog.md) | 53 | Linux Python（隔離Gitリポジトリ） |
 | [Windows OCR候補のApple原画素比較（認識器の研究）](test-catalog/ocr-transfer-screen.md) | 9 | Apple macOS26／配布SDK27。iPhone・文書全体・採用合格は対象外 |
+| [iOS CPU Runtimeの原確率・CTC照合（研究）](test-catalog/ocr-ios-runtime-parity.md) | 7 | iOS26／27 Simulator実プロセス＋実iPhoneSDKリンク。物理iPhone・全文書採用は別確認 |
