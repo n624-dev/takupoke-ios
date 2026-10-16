@@ -17,6 +17,19 @@ extension ManualAssistanceChecks {
         }) else { return }
         measuredStep("reedit-and-review") { reeditAndReviewCorrection(key,input,value) }
         measuredStep("save-and-relaunch") { adoptAndRequirePersistedCorrection() }
+        // Separate new source controls after the original one-field flow has
+        // completed successfully. This is not a retry of a failed operation.
+        measuredStep("select-high-confidence-fields") {
+            app.terminate();launch()
+            XCTAssertTrue(fieldsExist(),app.debugDescription);XCTAssertEqual(fieldIDs.count,1)
+            let selectedKey = fieldIDs[0], selectedSubject = "架空選択科目"
+            inspectSource(selectedKey)
+            edit(self.input(selectedKey),selectedSubject,id:selectedKey)
+            acknowledge(selectedKey);assertSubmitEnabled(true);visible(submit).tap()
+            requireReview([selectedSubject],comparable:false)
+            selectHighConfidenceFieldsAndRequireThreeFieldLimit(selectedKey,subject:selectedSubject)
+            adoptAndRequirePersistedSelectedCorrections()
+        }
     }
     func testChangedOriginalCannotSubmitOrReplaceLastGood() {
         launch();XCTAssertTrue(fieldsExist())

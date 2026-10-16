@@ -38,6 +38,10 @@ struct PDFRecoveryView: View {
                         }
                     }
                     Section("読み取り結果") {
+                        if preview.document.nativeCapture != nil {
+                            Text("訂正する授業の科目名を長押しすると、科目・教員・教室を選べます。確認が必要な項目を含め合計3項目まで、原本を見て訂正できます。")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
                         Picker("クラス",selection:$selectedClass) {
                             ForEach(preview.document.classes,id:\.self) { Text(TimetableDisplayText.className($0)).tag($0) }
                         }
@@ -47,8 +51,20 @@ struct PDFRecoveryView: View {
                                 VStack(alignment:.leading,spacing:5) {
                                     Text("\(day(slot.day)) · \(cell.slots.map(\.period).sorted().map(String.init).joined(separator:"・"))限").font(.headline)
                                     if result.state == .empty { Text("空欄").foregroundStyle(.secondary) }
-                                    ForEach(Array(result.lessons.enumerated()),id:\.offset) { _,lesson in
+                                    ForEach(Array(result.lessons.enumerated()),id:\.offset) { lessonIndex,lesson in
                                         Text(lesson.subject.value)
+                                            .accessibilityIdentifier("recovery-correction-menu-"+cell.id+"-\(lessonIndex)")
+                                            .contextMenu {
+                                                if preview.document.nativeCapture != nil {
+                                                    ForEach(RecoveryRole.allCases,id:\.self) { role in
+                                                        let field = role == .subject ? lesson.subject : role == .teacher ? lesson.teacher : lesson.room
+                                                        let target = RecoveryManualTarget(cellId:cell.id,lessonIndex:lessonIndex,role:role)
+                                                        Button("\(self.role(role))を訂正") { coordinator.selectManualCorrection(target) }
+                                                            .disabled(!useAiFeatures || coordinator.running || field.state != .present)
+                                                            .accessibilityIdentifier("recovery-select-"+target.key)
+                                                    }
+                                                }
+                                            }
                                         let destination = PDFClassAssignment.destination(sourceClass:slot.className,rawSubject:lesson.subject.value)
                                         if destination != slot.className {
                                             LabeledContent("保存先クラス",value:TimetableDisplayText.className(destination))
@@ -188,7 +204,7 @@ struct PDFRecoveryView: View {
             }
             .onChange(of:coordinator.preview?.id) { _,_ in selectedClass = coordinator.preview?.document.classes.first ?? "" }
             .onChange(of:coordinator.manualDraft?.id) { _,_ in
-                manualValues = Dictionary(uniqueKeysWithValues:coordinator.manualDraft?.fields.map { ($0.id,$0.originalText) } ?? [])
+                manualValues = Dictionary(uniqueKeysWithValues:coordinator.manualDraft?.fields.map { ($0.id,coordinator.manualInitialValues[$0.id] ?? $0.originalText) } ?? [])
                 manualAcknowledged = [:]; zoomedField = nil; editingManualField = nil
             }
             .onChange(of:phase) { _,phase in

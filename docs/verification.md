@@ -7545,3 +7545,43 @@ Swift設置コンテナのPython160件は失敗0・skip0（17.693秒）で成功
 ソースは未コミットの`tools/strict_pdf_compatibility_fixtures.py`、Actions開始前のローカル生成。
 製品Parserの実行・実資料の取得・採否評価には到達していない。
 観測を保存した後、既存記録を検索し、直接dictionaryとxrefの両方を正しく扱う変更を検討する。
+## 2026-10-16 OCR本文の明示選択訂正：実装と配布前の確認範囲
+
+編集前HEADは4a0294f086fa8999d1b663b4dcc5fade7348111f。
+Strict239.1・全Strict入口／経路・Parser33／32・R423予約・RecoveryValidator.swiftを変更しない。
+変更する本体はRecoveryManualAssistance.swift、PDFRecoveryCoordinator.swift、PDFRecoveryView.swiftのみ。
+高信頼でも誤読する本文を、既存のOCRプレビューで利用者が明示選択し原本照合できる。
+見出し／未知所属／空欄は対象外、必須の低信頼欄と過去訂正を含め最大3欄。
+元PDF／document／取得記録／元grayscale rasterのSHAを検証し、保持した原画像を使う。
+OCR・新render・外部送信を追加せず、全ACKと別の全体採用を必須とする。
+従来のManualAssistanceSchema1の既定経路・既存監査は維持し、明示選択だけschema2で再検証する。
+
+テスト一覧のRecoveryManualAssistance検索と、失敗索引の手動訂正／contextMenu／ACK／再起動を確認した。
+N18の詳細と既存U07・手動入力の過去詳細を照合し、元の1件の背景保持・編集・正式保存・再起動を保持した。
+その成功後、launch()の既存--reset-fixtureが独立した架空初期状態を作ることをコードで確認し、
+新しい別段階で2／3欄の明示追加、以前の入力保持、全ACK解除、4件目拒否、保存3件と再起動を検査する。
+OSごとの3ケースと全13必須チェックは減らさない。新UIは標準contextMenuを使う。
+新規Swift4ケースは高信頼本文、必須低信頼とのunion、原raster不一致／取消、隣欄へ跨る文字を検査する。
+
+Linuxのmanual系Python37件、失敗0・予定skip4、1.893秒。Swift／Xcodeは設置済みとされる2箇所にもなく、
+新SwiftケースとApple UIを実行したとはしない。一覧421ファイル・check --base 4a0294f・空白検査は成功。
+新規GPT-6.1 Sol／Highレビュー15は提示したコード差分のみでblockingなし。
+新しいApple実行・13必須チェック・実機確認・追加モデル品質合格は未達である。
+
+### 従来型Vision screenの結果と境界指標の制限
+
+ソースf8df9708670b02c1fe2f696853b6a97089fd5054、
+[研究38938197150](https://github.com/n624-dev/takupoke-ios/actions/runs/38938197150)、
+job117098899710は17:14:56〜17:17:25UTCに成功。288実API、native／文字枠エラー0。
+同じ既使用144架空値の元墨+2px画像と正確なnearest4倍を比較した。
+原crop内の枠包含込み指標は3→35/144、自身native0.85の一致0→24、誤読0→2、改善34／悪化2。
+包含外の観測が元133件／4倍96件あり、この数を文字認識の改善とは呼ばない。
+条件を変えない診断としてraw top1単一観測の文字だけを数えると121→114/144、自身0.85誤読1→2。
+枠のclamp・epsilon・条件緩和はせず、4倍を製品へ採用しない。
+元frame SHAを旧manifestへ照合し、288原出力から全field・summary・pairedを再計算して一致した。
+報告された元JSON SHAは1a305d3188176ea2c885d3442cc81a204e86a128403585a31e8562b41d15633a。
+そのJSON bytesの独立再構成や実取得／文書全体の所属合格は主張しない。
+
+同じf8df970の[開発CI38938197052](https://github.com/n624-dev/takupoke-ios/actions/runs/38938197052)は必須2job成功。
+Swift500件・失敗0（50.183秒）、Python250件・失敗0（60.904秒、予定skip21）。任意Native PDFは未起動skip。
+全f8df970の実行は取消せず完了確認した。本体208ファイル不変はこの研究ソースの記録である。

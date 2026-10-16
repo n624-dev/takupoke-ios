@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`7aedc473bc63c78c50a5bf5b080562826dfc8af4b0a27d35b379af6a014bec6e`
+`ed5f7871d36aa7585ce0c6f0312c3bc5395c37533f11f3a28ef91bb78170ac87`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -42,6 +42,10 @@ bash tools/test-manual-ui.sh
 - `testManualInputRawUnicodeChangeRequiresNewAcknowledgement`
 - `testManualOneTwoThreeFieldsReachFormalConversionWithSeparateHumanProvenance`
 - `testManualFourthFieldAndAnyHeaderUncertaintyAreTerminal`
+- `testExplicitHighConfidenceBodySelectionPreservesNativeCaptureAndLegacyDefault`
+- `testExplicitSelectionRetainsAllMandatoryFieldsAndThreeFieldUnionLimit`
+- `testSelectedCorrectionUsesOnlyHashMatchedOriginalRasterAndNativeCapture`
+- `testExplicitHighConfidenceSelectionStillRefusesUnownedOrAlteredNativeCharacters`
 - `testManualPendingRawLowConfidenceCannotBeAdoptedWithoutCorrections`
 - `testManualPrintedFieldCannotBecomeBlankOrPartialOverlay`
 - `testManualEverySourceHashSnapshotParentCropAndTargetIsBound`

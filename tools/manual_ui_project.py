@@ -35,6 +35,7 @@ def coordinator(text):
                         images[field.id] = image
                     }
                     manualContextImages = try Self.contextImages(prepared.draft,rasters:[1:prepared.raster])
+                    previewRasters = [1:prepared.raster]
                     source = prepared.source; manualDraft = prepared.draft; manualImages = images
                     running = false; status = "原本と入力内容を照合してください。"
                 } catch {

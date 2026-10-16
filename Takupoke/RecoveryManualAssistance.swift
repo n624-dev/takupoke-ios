@@ -34,7 +34,8 @@ struct RecoveryManualDraft: Identifiable, Sendable {
     let fields: [RecoveryManualField]
     let acquisitionHash: String
     let snapshotHash: String
-    var id: String { snapshotHash }
+    var selectedTargets: Set<RecoveryManualTarget> = []
+    var id: String { selectedTargets.isEmpty ? snapshotHash : snapshotHash+":"+fields.map(\.id).joined(separator:";") }
 }
 
 /// UIKit may synchronize an unchanged TextField value when a List row is reused.
@@ -52,6 +53,8 @@ enum RecoveryManualInput {
 /// confidence and structural evidence remain unchanged in the saved document.
 enum RecoveryManualAssistance {
     static let schemaVersion = 1
+    /// Explicit user selection is distinct from legacy mandatory-low transcription.
+    static let selectedSchemaVersion = 2
     static let maximumFields = 3
     static let maximumCorrectedUTF16 = 256
     private static func fingerprint<T:Encodable>(_ value:T) throws -> String {
@@ -98,9 +101,10 @@ enum RecoveryManualAssistance {
         }
     }
 
-    static func fields(_ doc: RecoveryDocument, check: @escaping () throws -> Void = {}, work suppliedWork: RecoveryValidationWork? = nil) throws -> [RecoveryManualField] {
+    static func fields(_ doc: RecoveryDocument, selected: Set<RecoveryManualTarget> = [], check: @escaping () throws -> Void = {}, work suppliedWork: RecoveryValidationWork? = nil) throws -> [RecoveryManualField] {
+        guard selected.count <= maximumFields else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
         guard let capture = doc.nativeCapture else {
-            guard (doc.ocrLineAtomSourceIds ?? []).isEmpty else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
+            guard selected.isEmpty, (doc.ocrLineAtomSourceIds ?? []).isEmpty else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
             return []
         }
         let assessment = try capture.assess(check: check)
@@ -144,6 +148,15 @@ enum RecoveryManualAssistance {
             } }
         }
         let byLine = Dictionary(grouping:doc.sources.filter(\.fromOcr),by:{ "\($0.page):\($0.sourceLine ?? -1)" })
+        var selectedLines = Set<String>()
+        if !selected.isEmpty {
+            for source in doc.sources where source.fromOcr {
+                guard work.charge() else { try work.finish(); throw PDFParseError(code:.limit) }
+                if let target = ownership[source.id], selected.contains(target), let line = source.sourceLine {
+                    selectedLines.insert("\(source.page):\(line)")
+                }
+            }
+        }
         for page in capture.pages {
             var atomOrders = Set<Int>()
             for line in page.lines {
@@ -204,7 +217,7 @@ enum RecoveryManualAssistance {
                 }
             }
             let low = Set(assessment.lowConfidenceNativeOrders[page.page,default:[]])
-            for line in page.lines where low.contains(line.nativeOrder) {
+            for line in page.lines where low.contains(line.nativeOrder) || selectedLines.contains("\(page.page):\(line.nativeOrder)") {
                 guard work.charge() else { try work.finish(); throw PDFParseError(code:.limit) }
                 let members = byLine["\(page.page):\(line.nativeOrder)",default:[]]
                 let mapped = Set(members.compactMap { ownership[$0.id] })
@@ -242,13 +255,13 @@ enum RecoveryManualAssistance {
         }
         try work.finish()
         guard provenAtomIds == requiredAtomIds else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
-        guard targets.count <= maximumFields else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
+        guard targets.count <= maximumFields, selected.isSubset(of:Set(targets.keys)) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
         return targets.values.sorted { $0.id < $1.id }
     }
 
-    static func prepare(_ document: RecoveryDocument, os: String, check:@escaping () throws -> Void = {}) throws -> RecoveryManualDraft? {
+    static func prepare(_ document: RecoveryDocument, os: String, selected: Set<RecoveryManualTarget> = [], check:@escaping () throws -> Void = {}) throws -> RecoveryManualDraft? {
         guard let capture = document.nativeCapture else {
-            guard (document.ocrLineAtomSourceIds ?? []).isEmpty else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
+            guard selected.isEmpty, (document.ocrLineAtomSourceIds ?? []).isEmpty else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
             return nil
         }
         _ = try capture.assess(check:check)
@@ -263,16 +276,18 @@ enum RecoveryManualAssistance {
                                     metadata:document.structureMetadata ?? RecoveryMetadata(provider:"rule",modelId:"rules",modelVersion:"3",runtimeVersion:"3",promptVersion:"1",recoverySchemaVersion:RecoveryValidator.schemaVersion,validatorVersion:RecoveryValidator.version,osVersion:os))
         let proof = try RecoveryValidator.pendingManualBaseline(document,result,index:index,work:work)
         guard proof.errors.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
-        let fields = proof.fields
+        let fields: [RecoveryManualField]
+        if selected.isEmpty { fields = proof.fields }
+        else { fields = try self.fields(document,selected:selected,check:check,work:work) }
         guard !fields.isEmpty else { return nil }
         return RecoveryManualDraft(document:document,originalResult:result,fields:fields,
-                                   acquisitionHash:try fingerprint(document.nativeCapture!),snapshotHash:try fingerprint(document))
+                                   acquisitionHash:try fingerprint(document.nativeCapture!),snapshotHash:try fingerprint(document),selectedTargets:selected)
     }
 
     static func complete(_ draft: RecoveryManualDraft, values: [String:String], now: Date = Date(),
                          check:@escaping () throws -> Void = {}) throws -> RecoveryResult {
         try check()
-        let currentFields = try fields(draft.document,check:check)
+        let currentFields = try fields(draft.document,selected:draft.selectedTargets,check:check)
         guard values.count == draft.fields.count, Set(values.keys) == Set(draft.fields.map(\.id)),
               draft.snapshotHash == (try fingerprint(draft.document)),
               draft.fields == currentFields else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
@@ -287,12 +302,45 @@ enum RecoveryManualAssistance {
             case .teacher: result.cells[cellIndex].lessons[field.target.lessonIndex].teacher = corrected
             case .room: result.cells[cellIndex].lessons[field.target.lessonIndex].room = corrected
             }
-            corrections.append(RecoveryHumanCorrection(schemaVersion:schemaVersion,target:field.target,pdfHash:draft.document.pdfHash,
+            corrections.append(RecoveryHumanCorrection(schemaVersion:draft.selectedTargets.isEmpty ? schemaVersion : selectedSchemaVersion,target:field.target,pdfHash:draft.document.pdfHash,
                 acquisitionHash:draft.acquisitionHash,documentSnapshotHash:draft.snapshotHash,page:field.page,parentSourceIds:field.parentSourceIds,
                 crop:field.crop,value:value,provenance:.user,confirmedAt:now))
         }
         result.humanCorrections = corrections
         guard try RecoveryValidator.validate(draft.document,result,check:check).canAdopt else { throw PDFParseError(code:.ambiguous) }
+        return result
+    }
+
+    /// Reuse only the original in-memory acquisition pixels. Selecting a field
+    /// must not rerun OCR or substitute an unrelated crop for source evidence.
+    static func verifiedRasters(_ draft:RecoveryManualDraft, rasters:[Int:RecoveryRasterGrid],
+                                check:() throws -> Void = {}) throws -> [Int:RecoveryRasterGrid] {
+        guard let capture = draft.document.nativeCapture, let proof = draft.document.ocrCoverageProof,
+              proof.version == 1, draft.snapshotHash == (try fingerprint(draft.document)),
+              draft.acquisitionHash == (try fingerprint(capture)) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
+        _ = try capture.assess(check:check)
+        var result = [Int:RecoveryRasterGrid]()
+        for number in Set(draft.fields.map(\.page)) {
+            try check()
+            let pages = capture.pages.filter { $0.page == number }, originals = proof.pages.filter { $0.page == number }
+            guard pages.count == 1, originals.count == 1, let raster = rasters[number],
+                  raster.width == pages[0].width, raster.height == pages[0].height,
+                  raster.width == originals[0].width, raster.height == originals[0].height else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
+            #if canImport(CryptoKit) || canImport(Crypto)
+            var digest = SHA256()
+            for offset in stride(from:0,to:raster.grayscale.count,by:65536) {
+                try check(); try Task.checkCancellation()
+                digest.update(data:Data(raster.grayscale[offset..<min(offset+65536,raster.grayscale.count)]))
+            }
+            guard digest.finalize().map({ String(format:"%02x",$0) }).joined() == originals[0].grayscaleSHA256 else {
+                throw PDFParseError(code:.ambiguous,stage:.rasterInput)
+            }
+            #else
+            throw PDFParseError(code:.unsupported,stage:.rasterInput)
+            #endif
+            result[number] = raster
+        }
+        try check()
         return result
     }
 
@@ -303,7 +351,10 @@ enum RecoveryManualAssistance {
             return doc.sources.allSatisfy({ $0.nativeConfidence == nil }) ? [] : ["nativeConfidence"]
         }
         guard doc.nativeCapture != nil else { return ["manualCapture"] }
-        let fields = try fields(doc,check:check,work:work)
+        let edits = result.humanCorrections ?? []
+        let explicitlySelected = !edits.isEmpty && edits.allSatisfy({ $0.schemaVersion == selectedSchemaVersion })
+        let selected = explicitlySelected ? Set(edits.map(\.target)) : []
+        let fields = try fields(doc,selected:selected,check:check,work:work)
         if inputOnly { return result.humanCorrections == nil ? [] : ["manualInput"] }
         guard !fields.isEmpty else { return result.humanCorrections == nil ? [] : ["manualUnexpected"] }
         guard let corrections = result.humanCorrections, corrections.count == fields.count,
@@ -311,7 +362,7 @@ enum RecoveryManualAssistance {
               Set(corrections.map(\.target)) == Set(fields.map(\.target)) else { return ["manualMissing"] }
         let snapshot = try fingerprint(doc), capture = try fingerprint(doc.nativeCapture!)
         for field in fields {
-            guard let edit = corrections.first(where:{ $0.target == field.target }), edit.schemaVersion == schemaVersion,
+            guard let edit = corrections.first(where:{ $0.target == field.target }), edit.schemaVersion == (explicitlySelected ? selectedSchemaVersion : schemaVersion),
                   edit.pdfHash == doc.pdfHash, edit.acquisitionHash == capture, edit.documentSnapshotHash == snapshot,
                   edit.page == field.page, edit.parentSourceIds == field.parentSourceIds, edit.crop == field.crop,
                   edit.provenance == .user, edit.confirmedAt.timeIntervalSince1970.isFinite, edit.confirmedAt.timeIntervalSince1970 > 0,

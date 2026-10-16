@@ -249,7 +249,9 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('"--manual-integral-rails"',checks)
         self.assertNotIn('fromRGBA',checks)
         self.assertIn('emitDiagnostic()',checks)
-        self.assertEqual(checks.count('XCTAssertTrue(fieldsExist()'),4)
+        # Four original guards, a fresh selected-field source, and both actual
+        # high-score selections must all wait for real editor inventory.
+        self.assertEqual(checks.count('XCTAssertTrue(fieldsExist()'),7)
         self.assertIn('TAKUPOKE-MANUAL-QA ',checks)
         self.assertIn('input(integralRails:Bool? = nil)',source)
         self.assertIn('let drawIntegral=integralRails ?? SimulatorManualFixture.integralRails',source)

@@ -259,6 +259,81 @@ extension PDFParsingTests {
         XCTAssertThrowsError(try RecoveryManualAssistance.prepare(manualFixture(lowCount:4),os:"test"))
         XCTAssertThrowsError(try RecoveryManualAssistance.prepare(manualFixture(lowHeader:true),os:"test"))
     }
+
+    func testExplicitHighConfidenceBodySelectionPreservesNativeCaptureAndLegacyDefault() throws {
+        let document = try manualFixture(lowCount:0)
+        XCTAssertNil(try RecoveryManualAssistance.prepare(document,os:"test"))
+        let cell = try XCTUnwrap(document.cells.first { !$0.confirmedEmpty && !$0.lessonBindings.isEmpty })
+        let target = RecoveryManualTarget(cellId:cell.id,lessonIndex:0,role:.room)
+        let original = try RecoveryValidator.fingerprint(document)
+        let draft = try XCTUnwrap(RecoveryManualAssistance.prepare(document,os:"test",selected:[target]))
+        XCTAssertEqual(draft.fields.map(\.target),[target])
+        XCTAssertNotEqual(draft.id,draft.snapshotHash)
+        let result = try RecoveryManualAssistance.complete(draft,values:[target.key:"架空確認室R7"])
+        XCTAssertTrue(RecoveryValidator.validate(document,result).canAdopt)
+        XCTAssertEqual(result.humanCorrections?.first?.schemaVersion,RecoveryManualAssistance.selectedSchemaVersion)
+        XCTAssertEqual(result.humanCorrections?.first?.provenance,.user)
+        XCTAssertEqual(draft.document.nativeCapture,document.nativeCapture)
+        XCTAssertEqual(try RecoveryValidator.fingerprint(draft.document),original)
+        let source = RecoverySelectedSource(kind:.timetable,url:URL(fileURLWithPath:"/fictional-unused.pdf"),digest:document.pdfHash,originalName:"fictional",storedName:"",period:SchoolDataPeriod(day:SchoolDate(year:2032,month:4,day:1)!))
+        let formal = try RecoveryConversion.timetable(RecoveryPreview(document:document,result:result,source:source))
+        let saved = try JSONDecoder().decode(RecoveryAdopted.self,from:JSONEncoder().encode(try XCTUnwrap(formal.recovery)))
+        XCTAssertEqual(saved.document,document)
+        XCTAssertTrue(try RecoveryValidator.canReuse(saved.acceptance,document:saved.document,result:saved.result))
+        var legacy = result
+        let correction = try XCTUnwrap(result.humanCorrections?.first)
+        legacy.humanCorrections = [.init(schemaVersion:1,target:correction.target,pdfHash:correction.pdfHash,acquisitionHash:correction.acquisitionHash,documentSnapshotHash:correction.documentSnapshotHash,page:correction.page,parentSourceIds:correction.parentSourceIds,crop:correction.crop,value:correction.value,provenance:.user,confirmedAt:correction.confirmedAt)]
+        XCTAssertFalse(RecoveryValidator.validate(document,legacy).canAdopt)
+    }
+
+    func testExplicitSelectionRetainsAllMandatoryFieldsAndThreeFieldUnionLimit() throws {
+        let document = try manualFixture(lowCount:1)
+        let mandatory = try XCTUnwrap(RecoveryManualAssistance.prepare(document,os:"test"))
+        let cell = try XCTUnwrap(document.cells.first { $0.id == mandatory.fields[0].target.cellId })
+        let requests = Set(RecoveryRole.allCases.map { RecoveryManualTarget(cellId:cell.id,lessonIndex:0,role:$0) })
+        let draft = try XCTUnwrap(RecoveryManualAssistance.prepare(document,os:"test",selected:requests))
+        XCTAssertEqual(Set(draft.fields.map(\.target)),requests)
+        XCTAssertTrue(Set(mandatory.fields.map(\.id)).isSubset(of:Set(draft.fields.map(\.id))))
+        let result = try RecoveryManualAssistance.complete(draft,values:Dictionary(uniqueKeysWithValues:draft.fields.map { ($0.id,"架空確認"+$0.target.role.rawValue) }))
+        XCTAssertTrue(RecoveryValidator.validate(document,result).canAdopt)
+        let other = try XCTUnwrap(document.cells.first { $0.id != cell.id && !$0.confirmedEmpty && !$0.lessonBindings.isEmpty })
+        XCTAssertThrowsError(try RecoveryManualAssistance.prepare(document,os:"test",selected:requests.union([.init(cellId:other.id,lessonIndex:0,role:.room)])))
+        XCTAssertThrowsError(try RecoveryManualAssistance.prepare(document,os:"test",selected:[.init(cellId:"fictional-unknown-cell",lessonIndex:0,role:.room)]))
+        XCTAssertThrowsError(try RecoveryManualAssistance.prepare(document,os:"test",selected:[.init(cellId:cell.id,lessonIndex:4,role:.room)]))
+    }
+
+    func testSelectedCorrectionUsesOnlyHashMatchedOriginalRasterAndNativeCapture() throws {
+        let document = try manualFixture(lowCount:0)
+        let cell = try XCTUnwrap(document.cells.first { !$0.confirmedEmpty && !$0.lessonBindings.isEmpty })
+        let target = RecoveryManualTarget(cellId:cell.id,lessonIndex:0,role:.room)
+        let draft = try XCTUnwrap(RecoveryManualAssistance.prepare(document,os:"test",selected:[target]))
+        let (_,raster) = try twoClassRasterCoverage()
+        let original = try RecoveryManualAssistance.verifiedRasters(draft,rasters:[1:raster])
+        XCTAssertEqual(original[1]?.grayscale,raster.grayscale)
+        XCTAssertThrowsError(try RecoveryManualAssistance.verifiedRasters(draft,rasters:[:]))
+        var changed = raster.grayscale
+        changed[0] = changed[0] == 255 ? 0 : 255
+        XCTAssertThrowsError(try RecoveryManualAssistance.verifiedRasters(draft,rasters:[1:.init(width:raster.width,height:raster.height,grayscale:changed)]))
+        XCTAssertThrowsError(try RecoveryManualAssistance.verifiedRasters(draft,rasters:[1:.init(width:raster.width-1,height:raster.height,grayscale:raster.grayscale)]))
+        XCTAssertThrowsError(try RecoveryManualAssistance.verifiedRasters(draft,rasters:[1:raster],check:{ throw CancellationError() }))
+    }
+
+    func testExplicitHighConfidenceSelectionStillRefusesUnownedOrAlteredNativeCharacters() throws {
+        var document = try manualFixture(lowCount:0)
+        let cell = try XCTUnwrap(document.cells.first { !$0.confirmedEmpty && !$0.lessonBindings.isEmpty })
+        let target = RecoveryManualTarget(cellId:cell.id,lessonIndex:0,role:.room)
+        let parents = Set(cell.lessonBindings[0].room)
+        let source = try XCTUnwrap(document.sources.first { parents.contains($0.id) })
+        let capture = try XCTUnwrap(document.nativeCapture), page = capture.pages[0]
+        let i = try XCTUnwrap(page.lines.firstIndex { $0.nativeOrder == source.sourceLine })
+        let raw = page.lines[i].candidates[0]
+        var chars = raw.characters
+        chars[0] = .init(text:chars[0].text,range:.init(x:cell.box.x+cell.box.width+1,y:source.box.y,width:1,height:1))
+        var lines = page.lines
+        lines[i] = .init(nativeOrder:page.lines[i].nativeOrder,candidates:[.init(text:raw.text,confidence:raw.confidence,characters:chars)])
+        document.nativeCapture = .init(sourcePDFHash:capture.sourcePDFHash,documentPageCount:1,requiredOCRPages:[1],pages:[.init(page:1,width:page.width,height:page.height,nativeDocumentCount:1,lines:lines,captureComplete:true)])
+        XCTAssertThrowsError(try RecoveryManualAssistance.prepare(document,os:"test",selected:[target]))
+    }
     func testManualPendingRawLowConfidenceCannotBeAdoptedWithoutCorrections() async throws {
         let doc = try manualFixture(lowCount:1)
         let run = try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})

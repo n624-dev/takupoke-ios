@@ -59,16 +59,91 @@ extension ManualAssistanceChecks {
         inspectSource(key)
     }
 
-    func adoptAndRequirePersistedCorrection() {
+    func selectCorrectionFromPreview(cell:String,lesson:String,role:String) {
+        let menu = app.descendants(matching:.any)["recovery-correction-menu-"+cell+"-"+lesson]
+        visible(menu).press(forDuration:0.6)
+        let names = ["subject":"科目","teacher":"教員","room":"教室"]
+        let name = names[role]
+        XCTAssertNotNil(name)
+        guard let name else { return }
+        // Require a real unique action with the visible label and native frame.
+        let label = name+"を訂正", choice = app.buttons[label]
+        XCTAssertTrue(choice.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
+        let buttons = app.buttons.matching(NSPredicate(format:"label == %@",label)).allElementsBoundByIndex
+        XCTAssertEqual(buttons.count,1,app.debugDescription)
+        guard buttons.count == 1 else { return }
+        XCTAssertTrue(ManualScrollNavigation.usable(buttons[0].frame) && buttons[0].isEnabled && buttons[0].isHittable,app.debugDescription)
+        buttons[0].tap()
+    }
+
+    func selectHighConfidenceFieldsAndRequireThreeFieldLimit(_ subjectKey:String,subject:String) {
+        let parts = subjectKey.split(separator:":",omittingEmptySubsequences:false)
+        XCTAssertGreaterThanOrEqual(parts.count,3)
+        guard parts.count >= 3 else { return }
+        XCTAssertEqual(parts.last,"subject")
+        let cell = parts.dropLast(2).joined(separator:":"), lesson = String(parts[parts.count-2])
+        let teacherKey = cell+":"+lesson+":teacher", roomKey = cell+":"+lesson+":room"
+        let teacher = "架空選択教員", room = "架空選択室R7"
         tap("訂正と変更を確認して資料全体へ");requirePreview()
+        selectCorrectionFromPreview(cell:cell,lesson:lesson,role:"teacher")
+        XCTAssertTrue(fieldsExist(),app.debugDescription)
+        XCTAssertEqual(Set(fieldIDs),Set([subjectKey,teacherKey]))
+        XCTAssertEqual(visible(input(subjectKey)).value as? String,subject)
+        for key in [subjectKey,teacherKey] { XCTAssertEqual(visible(ack(key)).value as? String,"0") }
+        assertSubmitEnabled(false)
+        inspectSource(teacherKey);edit(input(teacherKey),teacher,id:teacherKey)
+        acknowledge(subjectKey);assertSubmitEnabled(false);acknowledge(teacherKey);assertSubmitEnabled(true)
+        visible(submit).tap();requireReview([subject,teacher],comparable:false)
+        tap("訂正と変更を確認して資料全体へ");requirePreview()
+        selectCorrectionFromPreview(cell:cell,lesson:lesson,role:"room")
+        XCTAssertTrue(fieldsExist(),app.debugDescription)
+        XCTAssertEqual(Set(fieldIDs),Set([subjectKey,teacherKey,roomKey]))
+        XCTAssertEqual(visible(input(subjectKey)).value as? String,subject)
+        XCTAssertEqual(visible(input(teacherKey)).value as? String,teacher)
+        for key in [subjectKey,teacherKey,roomKey] { XCTAssertEqual(visible(ack(key)).value as? String,"0") }
+        inspectSource(roomKey);edit(input(roomKey),room,id:roomKey)
+        acknowledge(subjectKey);assertSubmitEnabled(false)
+        acknowledge(teacherKey);assertSubmitEnabled(false)
+        acknowledge(roomKey);assertSubmitEnabled(true)
+        visible(submit).tap();requireReview([subject,teacher,room],comparable:false)
+        tap("訂正と変更を確認して資料全体へ");requirePreview()
+        let menus = app.descendants(matching:.any).matching(NSPredicate(format:"identifier BEGINSWITH %@","recovery-correction-menu-")).allElementsBoundByIndex
+        let current = "recovery-correction-menu-"+cell+"-"+lesson
+        let other = menus.filter { $0.identifier != current }
+        XCTAssertFalse(other.isEmpty,app.debugDescription)
+        guard let next = other.first else { return }
+        let suffix = String(next.identifier.dropFirst("recovery-correction-menu-".count))
+        let divide = suffix.lastIndex(of:"-")
+        XCTAssertNotNil(divide)
+        guard let divide else { return }
+        selectCorrectionFromPreview(cell:String(suffix[..<divide]),lesson:String(suffix[suffix.index(after:divide)...]),role:"room")
+        XCTAssertTrue(app.staticTexts["訂正できる本文は、確認が必要な項目を含め合計3項目までです。"].waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
+        requirePreview()
+        XCTAssertTrue(app.staticTexts["原本を確認して入力した3項目を含みます。"].exists)
+        XCTAssertFalse(app.staticTexts["manual-field-ids"].exists)
+        XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("lastgood-preserved"))
+    }
+
+    func adoptAndRequirePersistedCorrection() {
+        tap("訂正と変更を確認して資料全体へ")
+        requirePreview()
+        persistAndRequireProof("adopted=1;valid=true")
+    }
+
+    func adoptAndRequirePersistedSelectedCorrections() {
+        requirePreview()
+        persistAndRequireProof("adopted=3;valid=true")
+    }
+
+    func persistAndRequireProof(_ proof:String) {
         XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("lastgood-preserved"))
         tap("この資料全体の結果を使用")
         XCTAssertTrue(app.staticTexts["復旧結果を採用しました。"].waitForExistence(timeout:20),app.debugDescription)
-        XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("adopted=1;valid=true"))
+        XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains(proof))
         app.terminate();app.launchArguments=["--manual-ui","-AppleLanguages","(ja)","-AppleLocale","ja_JP"];app.launch()
         XCTAssertTrue(app.staticTexts["fixture-ready"].waitForExistence(timeout:45))
         // The fixture probe also needs an app-root copy to inspect persisted results without reopening a recovery draft.
         XCTAssertTrue(app.staticTexts["manual-persisted-proof"].waitForExistence(timeout:10),app.debugDescription)
-        XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("adopted=1;valid=true"))
+        XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains(proof))
     }
 }
