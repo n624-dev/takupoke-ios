@@ -694,6 +694,59 @@
         "tests/test_ocr_document_qualification.py",
         "tests/RecoveryDocumentQualificationTests.swift"
       ]
+    },
+    {
+      "id": "ocr-ios-ascii-runtime-parity",
+      "title": "ASCII OCRのiOS 2入力・2出力CPU照合（研究）",
+      "environment": "iOS26／27 Simulatorのnative Swift前処理＋C API。iPhone SDKリンクと実機実行は別",
+      "commands": [
+        "bash tools/ocr-ios-ascii-runtime-parity/run.sh",
+        "python3 -B -m unittest discover -s tests -p 'test_ocr_ios*runtime_parity.py' -v"
+      ],
+      "sources": [
+        ".github/workflows/ocr-ios-ascii-runtime-parity.yml",
+        "tools/ocr-ios-ascii-runtime-parity/compare.py",
+        "tools/ocr-ios-ascii-runtime-parity/prepare.py",
+        "tools/ocr-ios-ascii-runtime-parity/protocol.json",
+        "tools/ocr-ios-ascii-runtime-parity/run.sh",
+        "tools/ocr-ios-ascii-runtime-parity/runner.cpp"
+      ],
+      "checks": [
+        "tests/test_ocr_ios_ascii_runtime_parity.py",
+        "tests/test_ocr_ios_runtime_parity.py"
+      ]
+    },
+    {
+      "id": "ocr-research-receipt",
+      "title": "OCR研究の有限数値レシート・原文の非送信",
+      "environment": "Linux Python。実推論／精度合格は各Apple研究jobで別検証",
+      "commands": [
+        "python3 -B -m unittest discover -s tests -p test_ocr_research_receipt.py -v"
+      ],
+      "sources": [
+        "tools/ocr-research-receipt.py"
+      ],
+      "checks": [
+        "tests/test_ocr_research_receipt.py"
+      ]
+    },
+    {
+      "id": "ocr-full-scope-source2x",
+      "title": "全17クラス・5日・全時限の原PDF2x固定比較",
+      "environment": "Apple SDK26。既使用の独立架空6資料、現行2048 V6の失敗とは別条件",
+      "commands": [
+        "bash tools/ocr-full-scope-source2x/run.sh"
+      ],
+      "sources": [
+        ".github/workflows/ocr-full-scope-source2x.yml",
+        "tools/ocr-full-scope-source2x/protocol.json",
+        "tools/ocr-full-scope-source2x/run.sh"
+      ],
+      "checks": [
+        "tests/test_ocr_document_qualification.py",
+        "tests/RecoveryDocumentQualificationTests.swift",
+        "tests/test_ocr_research_receipt.py"
+      ]
     }
   ]
 }

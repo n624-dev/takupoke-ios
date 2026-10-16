@@ -1,0 +1,49 @@
+name: Measure complete OCR scope at the fixed source2x candidate
+on:
+  push:
+    branches: [codex/pdf-local-recovery]
+    paths:
+      - .github/workflows/ocr-full-scope-source2x.yml
+      - tools/ocr-full-document-transfer/**
+      - tools/ocr-document-qualification/**
+      - tools/ocr-full-scope-source2x/**
+      - tools/ocr-research-receipt.py
+      - tools/ocr-windows-transfer/infer.py
+      - tools/ocr-windows-transfer/prepare.py
+      - tools/ocr-windows-transfer/protocol.json
+      - tools/ocr-windows-transfer/requirements.txt
+      - tools/ocr-ios-runtime-parity/protocol.json
+      - tests/test_ocr_document_qualification.py
+      - tests/test_ocr_research_receipt.py
+      - tests/RecoveryDocumentQualificationTests.swift
+permissions:
+  contents: read
+jobs:
+  full-source:
+    name: Source2x complete ${{ matrix.case }} SDK26
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [f1-timetable, f1-exam, f1-return, f2-timetable, f2-exam, f2-return]
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      PYTHONDONTWRITEBYTECODE: '1'
+      TKPK_OCR_QUALIFICATION_CASE: ${{ matrix.case }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Verify unchanged app and measure fixed whole-source discovery
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --exit-code 8bf6c8a45c6b41b3e78ae9e5615424fd827d4cfc "$GITHUB_SHA" -- \
+            Takupoke Takupoke.xcodeproj Package.swift Package.resolved Vendor
+          xcodebuild -version
+          sw_vers
+          bash tools/ocr-full-scope-source2x/run.sh

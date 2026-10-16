@@ -1,0 +1,43 @@
+{
+  "study": "ios-ascii-v1-cpu-native-input-parity-v1",
+  "sourceIOS": "5605be7cc8b19a342020d5cb340e2d4073005cf5",
+  "recognizerProtocol": "tools/ocr-windows-transfer/protocol.json",
+  "scope": "Native Swift RGB8-to-FP32 input and two-input/two-output CPU parity of fixed EnglishV1, on already consumed independently fictional screen frames. All probability values, CTC, piece .85, reject output and .05 decision are checked. Separate transform process Runtime/identity and inference process UDID/PID/compiled Simulator target are checked. No fresh accuracy, source acquisition, physical phone, app or Strict qualification.",
+  "runtime": {
+    "version": "1.23.2",
+    "api": 23,
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.ml.onnxruntime/1.23.2/microsoft.ml.onnxruntime.1.23.2.nupkg",
+    "packageBytes": 123371574,
+    "entry": "runtimes/ios/native/onnxruntime.xcframework.zip",
+    "frameworkBytes": 46790152,
+    "frameworkSHA256": "60cd467b88cbe61142dd3f9f6c1e5f4e1d88e3c48a943335aea7587324d48bb6",
+    "upstreamLicense": "MIT"
+  },
+  "model": {
+    "file": "ascii-rec.onnx",
+    "url": "https://raw.githubusercontent.com/n624-dev/takupoke-win/5826ffe2f1f2717deaf5ca03e2506996d4b3241c/model-artifacts/ascii-english-v5-font-balanced-v1/model.onnx",
+    "bytes": 22183975,
+    "sha256": "9dd3ed77db4f2af171cf434d200c666033c9bdfe5f33446bc47dbfecac90d703"
+  },
+  "dictionary": {
+    "file": "ascii-dictionary.json",
+    "url": "https://raw.githubusercontent.com/n624-dev/takupoke-win/5826ffe2f1f2717deaf5ca03e2506996d4b3241c/model-artifacts/ascii-english-v5-font-balanced-v1/dictionary.json",
+    "bytes": 3614,
+    "sha256": "fbf156ed886e4c46075f599651e60a0c38953dce89e10d999c765014477a7368"
+  },
+  "fields": 144,
+  "frames": 288,
+  "nativeCalls": 288,
+  "referenceCalls": 288,
+  "maximumAllProbabilityDifference": 5e-05,
+  "requireSameGreedyTextAndIntervals": true,
+  "requireSame085FloorForEverySelectedPiece": true,
+  "backend": "CPU only, with no additional execution provider registered",
+  "threads": {
+    "intra": 2,
+    "inter": 1
+  },
+  "minimumIOSTarget": "26.0",
+  "nativeRGBTransforms": 292,
+  "requireSameReject005Decision": true
+}

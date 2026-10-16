@@ -1,0 +1,17 @@
+{
+  "study": "ios-ocr-full-scope-source2x-v1",
+  "sourceIOS": "5605be7cc8b19a342020d5cb340e2d4073005cf5",
+  "datasetProtocol": "tools/ocr-document-qualification/protocol.json",
+  "datasetProtocolSHA256": "49353597054d57ab68fc11c66feea986962bfc60e05943a45d67f8ff2bd24465",
+  "candidateVariant": "source2x4096",
+  "nativeVisionBaseline": "current2048 unchanged original capture, compared at its own original coordinates",
+  "cases": [
+    "f1-timetable",
+    "f1-exam",
+    "f1-return",
+    "f2-timetable",
+    "f2-exam",
+    "f2-return"
+  ],
+  "scope": "Same already consumed independent fullscope documents; target V6 original-PDF2x input only. All17classes/fivedays/normal8exam6return8 retained. Initial dual-V6-raster study failures remain failures. No changed ownership/confidence/native-limit guards, no missed-field success, no Builder/app/real-school/physical-phone claim."
+}
