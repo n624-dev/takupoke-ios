@@ -1,3 +1,16 @@
+## N37 訂正探索改訂commitのpushがHTTP401で失敗（2026-10-16）
+
+- ローカル968deb0329e5f1d6514827ef914098bdd509a63b作成後、既存のgh credential helper指定pushがHTTP401で終了1。
+  RPC failed／unexpected disconnect／Everything up-to-dateが混在し、remote到達は未確認。
+- コード差分レビュー31・空白検査は完了済み。新規Actionsの開始を推測しない。
+- 対処前に記録し、N14の認証詳細・既存GH_TOKEN／保存helper／remoteの実状態を秘密値を出さず確認する。
+  API回数制限や認証失効をこの応答だけから断定せず、再接続依頼を先に行わない。
+- 既存GH_TOKENのuser APIは終了0・n624-dev。保存credentialはなく、明示helperのcredential fillは成功し、
+  そのpasswordと既存GH_TOKENは一致（値は出力しない）。http extraheader設定はない。
+  読取りremoteはa58a83dで、968deb0は未反映だった。N14にもAPI要求ごとに応答が異なる記録がある。
+  原因は未確定のため認証を置換せず、次は同じhelperにHTTP/1.1とCache-Control:no-cacheだけをコマンド単位で指定する。
+  新規コード差分レビュー・未送信各commitの空白検査後に一回試し、remote到達とActions開始を別に確認する。
+
 ## N36 全15実行の明示選択iOS26が失敗終端（2026-10-16）
 
 - source9274ca7711fcc970eb87c9dfa10a788e45ae30e1、run38965830079／attempt1、job117206109045。
