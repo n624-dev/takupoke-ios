@@ -123,9 +123,10 @@ def main():
     parser.add_argument('--acquisition', type=Path, required=True)
     parser.add_argument('--oracle', type=Path, required=True)
     parser.add_argument('--vision-acquisition', type=Path, required=True)
+    parser.add_argument('--cohort', choices=['discovery', 'full-scope'], default='discovery')
     args = parser.parse_args()
     root = args.acquisition
-    # The recognition process is already finished; no model is imported here.
+    # The recognition process is already finished; no inference session is created here.
     result_bytes = (root / 'recognized.json').read_bytes()
     recognition = json.loads(result_bytes)
     acquisition = json.loads((root / 'acquisition.json').read_text())
@@ -134,11 +135,21 @@ def main():
         raise ValueError('Original acquisition condition differs from the completed recognition')
     oracle = json.loads(args.oracle.read_text())['documents']
     baseline = json.loads((args.vision_acquisition / 'acquisition.json').read_text())
-    if baseline['variant'] != 'current2048' or len(baseline['documents']) != 6 or len({d['id'] for d in baseline['documents']}) != 6:
+    required_documents = 6 if args.cohort == 'discovery' else 1
+    required_body, study = 444, 'ios-ocr-full-source-discovery-v6'
+    if args.cohort == 'full-scope':
+        declared = json.loads((Path(__file__).resolve().parent.parent/'ocr-document-qualification/protocol.json').read_text())
+        if (len(acquired) != 1 or acquired[0]['id'] not in ['qualification-'+c for c in declared['cases']] or
+                acquired[0].get('kind') not in declared['requiredBodyFields'] or not acquired[0]['id'].endswith('-'+acquired[0]['kind'])):
+            raise ValueError('Undeclared complete-source identity')
+        required_body, study = declared['requiredBodyFields'][acquired[0]['kind']], declared['study']
+    if baseline['variant'] != 'current2048' or len(baseline['documents']) != required_documents or len({d['id'] for d in baseline['documents']}) != required_documents:
         raise ValueError('Original native baseline inventory changed')
     baseline_by_id = {d['id']: d for d in baseline['documents']}
     if len(acquired) != len(oracle) or len(recognition['documents']) != len(acquired):
         raise ValueError('Completed source inventory differs from the assertion cohort')
+    from class_cell import select_ascii_candidates
+    from code_tail import selects
     summaries, all_pairs = [], []
     for document, predicted, expected in zip(acquired, recognition['documents'], oracle):
         if (document['id'] != predicted['id'] or document['id'] != expected['id'] or
@@ -158,9 +169,11 @@ def main():
         class_fields = [dict(r, box=scale(r['box'], sx, sy)) for r in expected['records'] if r['category'] == 'class']
         class_base, _ = class_assignment(class_fields, document['cells'], predicted['records'], [])
         class_trial, class_extra = class_assignment(class_fields, document['cells'], predicted['records'], predicted['classCandidates'])
-        for field, original, candidate in zip(class_fields, class_base, class_trial):
+        ascii_chosen = select_ascii_candidates(predicted['classCandidates'], predicted['asciiClassCandidates'], selects)
+        class_ascii, class_ascii_extra = class_assignment(class_fields, document['cells'], predicted['records'], ascii_chosen)
+        for field, original, candidate, combined in zip(class_fields, class_base, class_trial, class_ascii):
             print('FULL_SOURCE_CLASS_FIELD ' + json.dumps(dict(id=document['id'], variant=variant, field=field,
-                  original=original, candidate=candidate), ensure_ascii=False, sort_keys=True), flush=True)
+                  original=original, candidate=candidate, asciiCandidate=combined), ensure_ascii=False, sort_keys=True), flush=True)
         row = dict(id=document['id'], variant=variant, fields=len(fields), visionExact=sum(r['exact'] for r in base),
                    visionInputVariant='current2048', visionAllocationUsesOwnOriginalGeometry=True,
                    paddleExact=sum(r['exact'] for r in trial), gains=sum(not a['exact'] and b['exact'] for a, b in zip(base, trial)),
@@ -186,6 +199,12 @@ def main():
                    classCandidateRefusedCells=sum(not r.get('actualCall') for r in predicted['classCandidates']),
                    classCandidateEligibleWrong=sum(r['eligible'] and not r['exact'] for r in class_trial),
                    classCandidateUnexpectedCellInk=class_extra,
+                   classASCIIExact=sum(r['exact'] for r in class_ascii),
+                   classASCIIEligibleExact=sum(r['eligible'] and r['exact'] for r in class_ascii),
+                   classASCIIGainsOverCellV6=sum(not a['exact'] and b['exact'] for a,b in zip(class_trial,class_ascii)),
+                   classASCIILossesOverCellV6=sum(a['exact'] and not b['exact'] for a,b in zip(class_trial,class_ascii)),
+                   classASCIIEligibleWrong=sum(r['eligible'] and not r['exact'] for r in class_ascii),
+                   classASCIIUnexpectedCellInk=class_ascii_extra,
                    actualPhysicalCells=len(document['cells']), originalInkCoverage=predicted['coverage'])
         summaries.append(row)
         all_pairs.append(dict(id=document['id'], vision=base, paddle=trial, hybrid=selected))
@@ -194,16 +213,19 @@ def main():
             print('FULL_SOURCE_FIELD ' + json.dumps(dict(id=document['id'], variant=variant, field=field, visionField=vision_field,
                   vision=original, paddle=candidate, hybrid=combined), ensure_ascii=False, sort_keys=True), flush=True)
         print('FULL_SOURCE_SUMMARY ' + json.dumps(row, sort_keys=True), flush=True)
-    if sum(r['fields'] for r in summaries) != 444:
+    if args.cohort == 'full-scope' and sum(r['classNameFields'] for r in summaries) != declared['requiredClassNames']:
+        raise ValueError('Incomplete required assertion class names')
+    if sum(r['fields'] for r in summaries) != required_body:
         raise ValueError('Incomplete required assertion fields')
-    receipt = dict(study='ios-ocr-full-source-discovery-v5', variant=variant, documents=len(summaries), requiredBodyFields=444,
+    receipt = dict(study=study, variant=variant, documents=len(summaries), requiredBodyFields=required_body,
                    actualONNXCalls=recognition['actualCalls']+recognition['actualASCIICalls'],
                    actualClassCellCalls=sum(r.get('actualCall', False) for d in recognition['documents'] for r in d['classCandidates']),
                    actualV6Calls=recognition['actualCalls'], actualASCIICalls=recognition['actualASCIICalls'],
-                   actualVisionCalls=6 if variant == 'current2048' else 0,
+                   actualVisionCalls=required_documents if variant == 'current2048' else 0,
                    visionInputVariant='current2048', visionAllocationUsesOwnOriginalGeometry=True,
                    recognizedFileSHA256=hashlib.sha256(result_bytes).hexdigest(),
-                   scope='Initial declared whole-source acquisition/body ownership discovery. Source-only raw pixels; not formal Builder/Validator adoption, held-out qualification, app change or physical iPhone execution. Own scores are not calibrated or interchangeable.')
+                   scope=declared['scope'] if args.cohort == 'full-scope' else
+                       'Initial declared whole-source acquisition/body ownership discovery. Source-only raw pixels; not formal Builder/Validator adoption, held-out qualification, app change or physical iPhone execution. Own scores are not calibrated or interchangeable.')
     (root / 'comparison.json').write_text(json.dumps(dict(receipt=receipt, summaries=summaries, pairs=all_pairs), ensure_ascii=False, sort_keys=True)+'\n')
     print('FULL_SOURCE_RECEIPT ' + json.dumps(receipt, sort_keys=True), flush=True)
 

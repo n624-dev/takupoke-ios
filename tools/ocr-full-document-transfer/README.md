@@ -94,3 +94,15 @@ assertions and measure literal plus actual cell ownership, gain/loss, wrong elig
 outputs and unexpected candidate-cell ink. No candidate is chosen by a class list,
 expected literal or oracle coordinates. Body444, header70, mandatory low scores,
 full Builder/Validator and physical phone qualification remain distinct.
+
+## v6: independent ASCII reading of the whole class-cell frame
+
+v5 left four high-own-score `AI` to `Al` confusions in the exploratory class cohort.
+v6 compares fixed EnglishV1 on the same actual class-cell RGB, separately from V6.
+Only a V6 printable-ASCII literal of length2..32 containing a digit is eligible.
+The expert recomputes its received source RGB SHA before transformation; selection
+rechecks original V6/expert/candidate frame hashes, original results and fixed
+same-length alnum/_/- / piece>=.85 / reject<=.05 / padding conditions. Expected
+class lists never choose frames or replace literals. Original V6 metrics remain;
+selected ASCII class metrics are separate. This is not the failed body-tail trial,
+new training, native iOS two-input/output qualification or application adoption.

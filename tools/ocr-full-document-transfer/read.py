@@ -132,6 +132,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--acquisition', type=Path, required=True)
     parser.add_argument('--models', type=Path, required=True)
+    parser.add_argument('--cohort', choices=['discovery', 'full-scope'], default='discovery')
     args = parser.parse_args()
     root = args.acquisition
     target = root / 'recognized.json'
@@ -149,12 +150,20 @@ def main():
     session = ort.InferenceSession(str(args.models / pins['model']['file']), sess_options=options, providers=['CPUExecutionProvider'])
     dictionary = json.loads((args.models / pins['dictionary']['file']).read_text())
     infer = shared_infer()
-    from class_cell import column, frame as class_frame
+    from class_cell import column, frame as class_frame, ascii_eligible
+    from code_tail import ASCIITailReader, selects
+    ascii_reader = ASCIITailReader(args.models, infer, ort, np, options)
     acquisition = json.loads((root / 'acquisition.json').read_text())
     variant, documents = acquisition['variant'], acquisition['documents']
     if variant not in ['current2048', 'source2x4096']:
         raise ValueError('Undeclared acquisition comparison condition')
-    if len(documents) != 6 or len({d['id'] for d in documents}) != 6:
+    required_documents = 6 if args.cohort == 'discovery' else 1
+    if args.cohort == 'full-scope':
+        declared = json.loads((ROOT.parent/'ocr-document-qualification/protocol.json').read_text())
+        if any(d['id'] not in ['qualification-'+c for c in declared['cases']] or
+               d.get('kind') not in declared['requiredBodyFields'] or not d['id'].endswith('-'+d['kind']) for d in documents):
+            raise ValueError('Undeclared complete-source identity')
+    if len(documents) != required_documents or len({d['id'] for d in documents}) != required_documents:
         raise ValueError('Incomplete actual acquisition')
     results, calls = [], 0
     for document in documents:
@@ -208,7 +217,7 @@ def main():
                 captured.append(record)
                 print('FULL_SOURCE_RECOGNITION ' + json.dumps(dict(id=document['id'], variant=variant, **record), ensure_ascii=False, sort_keys=True), flush=True)
             owners, class_column = column(document['cells'], captured)
-            class_candidates = []
+            class_candidates, ascii_candidates = [], []
             for owner in owners:
                 region, proof = class_frame(gray, mask, document['cells'], captured, owner)
                 if region is None:
@@ -230,15 +239,31 @@ def main():
                             validWidth=valid, inputWidth=padded, timeCount=int(probability.shape[1]),
                             paddingSupported=all(p['end']*padded <= valid*probability.shape[1] for p in pieces),
                             ownPieceFloor085=bool(pieces) and all(p['confidence'] >= .85 for p in pieces))
+                if ascii_eligible(candidate):
+                    # The same original physical-cell RGB is passed to a separate
+                    # model. No expected class list or body-tail hypothesis is used.
+                    expert = ascii_reader.recognize(source)
+                    selected = selects(candidate['text'], expert)
+                    ascii_candidate = dict(ownerCell=owner, state='recognized', actualCall=True, selected=selected,
+                        inkBox=candidate['inkBox'], frameBox=candidate['frameBox'],
+                        sourcePixelsSHA256=expert['sourcePixelsSHA256'], originalInkPixels=candidate['originalInkPixels'],
+                        text=expert['text'], ownPieceFloor085=bool(expert['pieces']) and all(p['confidence'] >= .85 for p in expert['pieces']),
+                        paddingSupported=expert['paddingSupported'], expert=expert)
+                else:
+                    ascii_candidate = dict(ownerCell=owner, state='outsideDeclaredASCIIClass', actualCall=False, selected=False)
+                ascii_candidates.append(ascii_candidate)
+                print('FULL_SOURCE_CLASS_ASCII ' + json.dumps(dict(id=document['id'], variant=variant, **ascii_candidate), ensure_ascii=False, sort_keys=True), flush=True)
                 class_candidates.append(candidate)
                 print('FULL_SOURCE_CLASS_RECOGNITION ' + json.dumps(dict(id=document['id'], variant=variant, **candidate), ensure_ascii=False, sort_keys=True), flush=True)
             print('FULL_SOURCE_CLASS_COLUMN ' + json.dumps(dict(id=document['id'], variant=variant, **class_column), sort_keys=True), flush=True)
             results.append(dict(id=document['id'], sourcePDFSHA256=document['sourcePDFSHA256'], coverage=coverage,
-                                records=captured, classColumn=class_column, classCandidates=class_candidates))
+                                records=captured, classColumn=class_column, classCandidates=class_candidates, asciiClassCandidates=ascii_candidates))
     if calls != sum(r['state'] == 'recognized' for d in results for r in [*d['records'], *d['classCandidates']]):
         raise ValueError('Actual model-call inventory is incomplete')
-    target.write_text(json.dumps(dict(variant=variant, documents=results, actualCalls=calls, actualASCIICalls=0, runtime=ort.__version__), ensure_ascii=False, sort_keys=True)+'\n')
-    print('FULL_SOURCE_RECOGNITION_FINISHED ' + json.dumps(dict(variant=variant, documents=len(results), actualV6Calls=calls, actualASCIICalls=0)), flush=True)
+    if ascii_reader.calls != sum(r['actualCall'] for d in results for r in d['asciiClassCandidates']):
+        raise ValueError('Actual ASCII class-call inventory is incomplete')
+    target.write_text(json.dumps(dict(variant=variant, documents=results, actualCalls=calls, actualASCIICalls=ascii_reader.calls, runtime=ort.__version__), ensure_ascii=False, sort_keys=True)+'\n')
+    print('FULL_SOURCE_RECOGNITION_FINISHED ' + json.dumps(dict(variant=variant, documents=len(results), actualV6Calls=calls, actualASCIICalls=ascii_reader.calls)), flush=True)
 
 
 if __name__ == '__main__':

@@ -111,6 +111,11 @@ class ASCIITailReader:
             return dict(fallback, asciiTail=dict(proof, actualCall=False))
         if math.floor(48*max(320/48, image.shape[1]/image.shape[0])) > 960:
             return dict(fallback, asciiTail=dict(proof, state='unsupportedSuffixWidth', actualCall=False))
+        return compose(primary, proof, self.recognize(image))
+
+    def recognize(self, image):
+        """Run the fixed specialist on an already independently framed image."""
+        source_hash = hashlib.sha256(image.tobytes()).hexdigest()
         tensor, valid, padded = self.infer.transform(image)
         started = time.monotonic()
         output = dict(zip((v.name for v in self.session.get_outputs()), self.session.run(None,
@@ -120,9 +125,8 @@ class ASCIITailReader:
         if list(reject.shape) != [1] or not math.isfinite(float(reject[0])) or not 0 <= reject[0] <= 1:
             raise ValueError('Original ASCII reject probability changed domain')
         pieces = self.infer.decode(probability, self.dictionary)
-        expert = dict(reader='english-v1', text=''.join(p['text'] for p in pieces), pieces=pieces,
+        return dict(sourcePixelsSHA256=source_hash, reader='english-v1', text=''.join(p['text'] for p in pieces), pieces=pieces,
             timeCount=int(probability.shape[1]), validWidth=valid, inputWidth=padded,
             paddingSupported=all(p['end']*padded <= valid*probability.shape[1] for p in pieces),
             rejectProbability=float(reject[0]), inputSHA256=hashlib.sha256(tensor.tobytes()).hexdigest(),
             seconds=time.monotonic()-started)
-        return compose(primary, proof, expert)

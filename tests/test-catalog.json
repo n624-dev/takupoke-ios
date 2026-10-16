@@ -675,6 +675,25 @@
         "tests/test_ocr_full_document_transfer.py",
         "tests/RecoveryFullSourceProbeTests.swift"
       ]
+    },
+    {
+      "id": "ocr-document-qualification",
+      "title": "独立架空PDFの17クラス・5日全時限比較（研究）",
+      "environment": "Apple SDK26、2字体×通常／試験／返却の6job。本文・クラス取得の比較で正式採用や実機合格とは別",
+      "commands": [
+        "bash tools/ocr-document-qualification/run.sh",
+        "TAKUPOKE_OCR_FULL_FONTS=<owned-pinned-fonts> python3 -B -m unittest discover -s tests -p test_ocr_document_qualification.py -v"
+      ],
+      "sources": [
+        ".github/workflows/ocr-document-qualification.yml",
+        "tools/ocr-document-qualification/generate.py",
+        "tools/ocr-document-qualification/protocol.json",
+        "tools/ocr-document-qualification/run.sh"
+      ],
+      "checks": [
+        "tests/test_ocr_document_qualification.py",
+        "tests/RecoveryDocumentQualificationTests.swift"
+      ]
     }
   ]
 }

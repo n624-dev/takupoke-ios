@@ -95,6 +95,40 @@ class FullDocumentSourceTests(unittest.TestCase):
 
 
 class FullSourceAcquisitionTests(unittest.TestCase):
+    def test_ascii_class_selection_keeps_both_raw_results_and_original_frame_provenance(self):
+        primary = dict(ownerCell=3, state='recognized', actualCall=True, text='7_ZO', inkBox=[10,20,30,12],
+                       frameBox=[8,18,34,16], sourcePixelsSHA256='original-rgb-hash', originalInkPixels=50,
+                       ownPieceFloor085=True, paddingSupported=True)
+        expert = dict(sourcePixelsSHA256='original-rgb-hash', text='7_ZQ', pieces=[dict(text=c, confidence=.99) for c in '7_ZQ'],
+                      rejectProbability=.01, paddingSupported=True)
+        candidate = dict(primary, text=expert['text'], selected=True, expert=expert)
+        before = json.dumps([primary,candidate], ensure_ascii=False, sort_keys=True)
+        chosen = class_cells.select_ascii_candidates([primary], [candidate], tails.selects)
+        self.assertEqual(chosen, [candidate])
+        self.assertEqual(json.dumps([primary,candidate], ensure_ascii=False, sort_keys=True), before)
+        for key, value in [('frameBox',[8,18,35,16]), ('sourcePixelsSHA256','different'), ('ownerCell',4)]:
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                class_cells.select_ascii_candidates([primary], [dict(candidate, **{key:value})], tails.selects)
+        with self.assertRaisesRegex(ValueError, 'original result changed'):
+            class_cells.select_ascii_candidates([primary], [dict(candidate, expert=dict(expert, sourcePixelsSHA256='different-actual-RGB'))], tails.selects)
+        refused = dict(ownerCell=3, state='notExecuted', actualCall=False, selected=False)
+        with self.assertRaisesRegex(ValueError, 'declared eligibility'):
+            class_cells.select_ascii_candidates([primary], [refused], tails.selects)
+
+    def test_ascii_class_refusal_cannot_lower_score_or_inject_expected_class_names(self):
+        primary = dict(ownerCell=2, state='recognized', actualCall=True, text='Al_1', inkBox=[1,1,8,8],
+                       frameBox=[0,0,10,10], sourcePixelsSHA256='original', originalInkPixels=12)
+        expert = dict(sourcePixelsSHA256='original', text='AI_1', pieces=[dict(text=c, confidence=.84) for c in 'AI_1'],
+                      rejectProbability=.01, paddingSupported=True)
+        candidate = dict(primary, text='AI_1', selected=False, ownPieceFloor085=False, paddingSupported=True, expert=expert)
+        self.assertEqual(class_cells.select_ascii_candidates([primary], [candidate], tails.selects), [primary])
+        with self.assertRaisesRegex(ValueError, 'fixed conditions'):
+            class_cells.select_ascii_candidates([primary], [dict(candidate, selected=True)], tails.selects)
+        self.assertFalse(class_cells.ascii_eligible(dict(primary, text='架空1')))
+        self.assertFalse(class_cells.ascii_eligible(dict(primary, text='Class')))
+        self.assertFalse(class_cells.ascii_eligible(dict(primary, state='unsupported-width')))
+        self.assertTrue(class_cells.ascii_eligible(dict(primary, text='7_ZQ')))
+
     def test_class_column_uses_actual_top_left_label_and_contiguous_physical_cells(self):
         cells = [[0, 0, 30, 20], [30, 0, 70, 20], [0, 20, 30, 20], [30, 20, 70, 20]]
         label = dict(index=0, ownerCell=0, text='クラス', ownPieceFloor085=True, paddingSupported=True)

@@ -1,0 +1,46 @@
+{
+  "study": "ios-ocr-independent-full-scope-v1",
+  "seed": 202610163901,
+  "sourceIOS": "bc52f56d26d2399305950f88714229815513d886",
+  "fontsProtocol": "tools/ocr-windows-transfer/protocol.json",
+  "cases": [
+    "f1-timetable",
+    "f1-exam",
+    "f1-return",
+    "f2-timetable",
+    "f2-exam",
+    "f2-return"
+  ],
+  "classes": [
+    "1_1",
+    "1_2",
+    "1_3",
+    "2_CN",
+    "2_ES",
+    "2_IT",
+    "3_CN",
+    "3_ES",
+    "3_IT",
+    "4_CN",
+    "4_ES",
+    "4_IT",
+    "5_CN",
+    "5_ES",
+    "5_IT",
+    "AI_1",
+    "AI_2"
+  ],
+  "requiredBodyFields": {
+    "timetable": 2040,
+    "exam": 1530,
+    "return": 2040
+  },
+  "requiredClassNames": 17,
+  "days": 5,
+  "periods": {
+    "timetable": 8,
+    "exam": 6,
+    "return": 8
+  },
+  "scope": "New independent complete basic layouts: all17 classes, five days, eight normal/return or six exam periods. Previously consumed fonts; no unseen-font, pretraining-disjoint, merged/parallel/blank/rotation, Builder/Validator, app, real-school or physical-phone claim. Frozen before inference; literals/layouts independently invented, not renamed school sources."
+}

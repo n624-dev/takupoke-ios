@@ -1,7 +1,7 @@
 # 全PDF原画素・実罫線からのOCR領域取得比較（研究）
 
 対応関係・宣言名・実行方法のSHA-256：
-`d9ccc81a6a3447a9841d55e363d5018b56752f97fc3d21358cc00dc9cbdc7d7c`
+`8969da5fb4263c356f18b8c2bd99c8b62cfe4f5cf851bada917692d9a89d3b07`
 
 環境：macOS26/PDFKit/Vision・実RecoveryRasterGrid。各条件444値×2描画条件、初期探索であり正式採用・iPhone品質ではない
 
@@ -28,6 +28,8 @@ TAKUPOKE_OCR_FULL_FONTS=<owned-pinned-fonts> python3 -B -m unittest discover -s 
 - `test_all_six_sources_are_image_only_and_keep_the_complete_declared_scope`
 - `test_same_independent_normal_design_reproduces_pdf_and_source_pixels`
 - `test_prior_source_is_never_overwritten`
+- `test_ascii_class_selection_keeps_both_raw_results_and_original_frame_provenance`
+- `test_ascii_class_refusal_cannot_lower_score_or_inject_expected_class_names`
 - `test_class_column_uses_actual_top_left_label_and_contiguous_physical_cells`
 - `test_class_column_does_not_skip_missing_or_competing_cells`
 - `test_whole_class_frame_preserves_detached_underscore_and_all_original_ink`

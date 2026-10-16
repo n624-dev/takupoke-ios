@@ -57,3 +57,36 @@ def frame(gray, mask, cells, records, owner):
     ink_box = [left+int(xx.min()), top+int(yy.min()), int(xx.max()-xx.min()+1), ink_height]
     return dict(ownerCell=owner, inkBox=ink_box, frameBox=[a, b, c-a, d-b], originalInkPixels=expected,
                 originalRecordIndices=[r['index'] for r in records if r['ownerCell'] == owner]), dict(state='framedAllOriginalClassCellInk')
+
+
+def ascii_eligible(primary):
+    text = primary.get('text') or ''
+    return primary.get('state') == 'recognized' and 2 <= len(text) <= 32 and (
+        all(32 <= ord(c) <= 126 for c in text) and any('0' <= c <= '9' for c in text))
+
+
+def select_ascii_candidates(originals, ascii_records, selects):
+    if ([r['ownerCell'] for r in originals] != [r['ownerCell'] for r in ascii_records] or
+            len({r['ownerCell'] for r in originals}) != len(originals)):
+        raise ValueError('ASCII class inventory differs from original cells')
+    output = []
+    for primary, candidate in zip(originals, ascii_records):
+        if bool(candidate['actualCall']) != bool(ascii_eligible(primary)):
+            raise ValueError('ASCII class call does not match declared eligibility')
+        if candidate['actualCall']:
+            if any(candidate[k] != primary[k] for k in ['inkBox', 'frameBox', 'sourcePixelsSHA256', 'originalInkPixels']):
+                raise ValueError('ASCII class did not use the same original source frame')
+            expert = candidate['expert']
+            if (candidate['sourcePixelsSHA256'] != expert['sourcePixelsSHA256'] or candidate['text'] != expert['text'] or expert['text'] != ''.join(p['text'] for p in expert['pieces']) or
+                    candidate['ownPieceFloor085'] != (bool(expert['pieces']) and all(p['confidence'] >= .85 for p in expert['pieces'])) or
+                    candidate['paddingSupported'] != expert['paddingSupported']):
+                raise ValueError('ASCII class original result changed')
+            selected = selects(primary['text'], expert)
+            if candidate['selected'] != selected:
+                raise ValueError('ASCII class selection differs from fixed conditions')
+            output.append(candidate if selected else primary)
+        else:
+            if candidate['selected']:
+                raise ValueError('Unexecuted ASCII class cannot be selected')
+            output.append(primary)
+    return output
