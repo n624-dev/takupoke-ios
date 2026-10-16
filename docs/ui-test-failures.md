@@ -1,3 +1,26 @@
+## N07 iOS27 CPU照合がSimulator状態照会で時間切れ（2026-10-16）
+
+- ソース40e1aabe68cafd2419cf52d0c707a9546e5080f5、実行38910595845・試行1。
+  job117005147744は13:55:47UTCにfailureで完了。予定確認13:58UTCで初めて観測した。
+- 実iPhone SDK27／Simulator SDK27のC++リンクは成功。完全架空PDFの6ページ／144領域を描画した。
+  `simctl bootstatus -b`後の`simctl list devices -j`が120秒で時間切れになった。
+  native推論開始・ORT_IOS_READY・確率照合の完了記録はなく、iOS27のモデル実行成功に数えない。
+- 清掃の所有Simulator shutdownも60秒で時間切れ。finallyのdeleteはコード上で実行されるが、
+  完了ログにdeleteの出力がないため、当該UDIDの消去完了をログだけから独立確認できない。
+- 対処を選ぶ前に事実を記録。原因は未確定で、N06のMac Vision認識例外とは失敗段階が異なる。
+  同実行のiOS26 job117005147322は成功。別OSの成功でiOS27の失敗を上書きしない。
+  本体・Strict・その経路は不変、公開版も変更していない。
+
+- 照合：U33／U34／U35とverificationのDevice Hub準備・U65詳細、
+  現行tools/test-app-ui.shのboot_simulatorを読んだ。通知未返答・アプリlaunch失敗と
+  今回のsimctl状態照会停止は異なる。画面起動は通知問題の解消を証明していない。
+  一方、既存の成功したUI実行は選択Xcodeの実在フロントエンドを起動しているが、今回のCLI研究は開いていない。
+- 次の限定比較：研究だけに同じ選択XcodeのSimulator／Device Hub起動を追加し、
+  元のbootstatus・実UDIDのBooted照合・120秒・全288確率検査を維持する。
+  各simctl段階・実所要時間・終了状態と所有device消去結果を記録する。
+  OS停止の原因がフロントエンド不在だったとの断定ではなく、起動条件の差を一つ比較する。
+  再起動・再実行による救済や期限延長はしない。製品の経路は変えない。
+
 ## N06 Apple OCR認識器比較のSDK27が完了失敗（2026-10-16）
 
 - 限定診断ソース65fafd2、実行38908560099も完了failure。

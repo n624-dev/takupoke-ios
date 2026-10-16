@@ -1,3 +1,28 @@
+## 2026-10-16 N07の過去照合と次の起動条件比較
+
+失敗索引をsimctl／bootstatus／CoreSimulator／U65／U51で検索し、U33・U34・U35・U65の本文、
+verificationのDevice Hub起動・U65の詳細、現行test-app-ui.shと研究compare.pyを照合した。
+既存UIは選択Xcode内の実在するSimulator.appまたはDeviceHub.appを起動するが、研究CLIは開いていない。
+この差を研究専用に比較する。過去の通知未返答が画面起動で解消したとは記録せず、
+今回の状態照会停止も同じ原因とは扱わない。boot／bootstatus／Booted確認・全確率条件と期限を維持し、
+段階の開始・完了・実時間・失敗、および所有Simulatorの清掃結果を追加記録する。
+N07の事実・差・根拠は次の試行前にpushする。実装効果は未確認。
+
+## 2026-10-16 iOS CPU照合の完了とiOS27の未到達
+
+ソース40e1aab、[研究38910595845](https://github.com/n624-dev/takupoke-ios/actions/runs/38910595845)は全体failure。
+iOS26.5 job117005147322は288回のnative実推論と288回のMac CPU参照を完了した。
+全確率の最大差0、greedy文字列・全CTC区間・各文字0.85判定がすべて一致した。
+Simulatorのbatch79.7608秒、process peak RSS159,121,408bytesであり、物理iPhoneの速度・メモリではない。
+iPhone SDK向けリンクも成功したが、実機起動は未確認。
+
+iOS27 job117005147744はSDKビルド後、Simulatorの状態一覧120秒と清掃shutdown60秒の時間切れで失敗（N07）。
+モデル呼出しへ到達しておらず、iOS27の認識精度・互換性は未確認。
+次の対処を決める前に失敗索引へ記録した。条件を緩めて成功にせず、過去の詳細とコードを照合する。
+
+同一ソースの開発CI38910595740は必須2件成功。Swift500件・失敗0、Python206件・予定skip7。
+既存アプリとStrictを維持した研究コードの検査であり、全文書OCR・実資料改善・実機合格・新配布ではない。
+
 ## 2026-10-16 日本語V6のiOS CPU Runtime照合を準備
 
 Mac27 Visionの全対照エラーは未解決として保持し、画像や判定条件を変えて成功へ置き換えない。
