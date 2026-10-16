@@ -21,11 +21,38 @@ class ManualScrollNavigationTests(unittest.TestCase):
             "// END PURE MANUAL SCROLL NAVIGATION", 1)[0]
         helper += source.split("// BEGIN PURE MANUAL PASSIVE SELECTION\n", 1)[1].split(
             "// END PURE MANUAL PASSIVE SELECTION", 1)[0]
+        helper += source.split("// BEGIN PURE MANUAL VISIBLE CANDIDATE\n", 1)[1].split(
+            "// END PURE MANUAL VISIBLE CANDIDATE", 1)[0]
         controls = r'''
 import Foundation
 import XCTest
 HELPER
 final class GeometryControls:XCTestCase {
+ func testVisibleCandidateSkipsInViewportUnhittableFirstMatch() {
+  let area=CGRect(x:0,y:141,width:393,height:699)
+  let frames=[CGRect(x:32,y:215.33,width:48,height:20.33),CGRect(x:32,y:310.33,width:48,height:20.33),CGRect(x:32,y:405.33,width:48,height:20.33)]
+  var framesRead=[Int](),hitTests=[Int]()
+  let result=manualVisibleCandidate(candidates:[0,1,2],viewport:area,frame:{ framesRead.append($0);return frames[$0] },isHittable:{ hitTests.append($0);return $0==1 })
+  XCTAssertEqual(result,1);XCTAssertEqual(framesRead,[0,1]);XCTAssertEqual(hitTests,[0,1])
+ }
+ func testVisibleCandidateRejectsClippedForeignInvalidAndUnhittable() {
+  let area=CGRect(x:0,y:141,width:393,height:699)
+  let frames:[CGRect]=[.zero,.null,.infinite,CGRect(x:-1,y:200,width:48,height:20),CGRect(x:380,y:200,width:48,height:20),CGRect(x:32,y:130,width:48,height:20),CGRect(x:32,y:830,width:48,height:20),CGRect(x:32,y:200,width:48,height:20)]
+  var hitTests=[Int]()
+  let result=manualVisibleCandidate(candidates:Array(frames.indices),viewport:area,frame:{ frames[$0] },isHittable:{ hitTests.append($0);return false })
+  XCTAssertNil(result);XCTAssertEqual(hitTests,[7])
+ }
+ func testVisibleCandidateRequiresValidViewport() {
+  for area in [CGRect.zero,CGRect.null,CGRect.infinite] {
+   var inspected=false
+   let result=manualVisibleCandidate(candidates:[0],viewport:area,frame:{ _ in inspected=true;return CGRect(x:32,y:200,width:48,height:20) },isHittable:{ _ in true })
+   XCTAssertNil(result);XCTAssertFalse(inspected)
+  }
+ }
+ func testVisibleCandidateAcceptsFullyContainedBoundary() {
+  let area=CGRect(x:0,y:141,width:393,height:699)
+  XCTAssertEqual(manualVisibleCandidate(candidates:[7],viewport:area,frame:{ _ in area },isHittable:{ _ in true }),7)
+ }
  let viewport=CGRect(x:100,y:141,width:1,height:363)
  let inside=CGRect(x:32,y:194.33,width:329,height:23)
  let above=CGRect(x:16,y:-226,width:361,height:53)
@@ -151,7 +178,7 @@ final class GeometryControls:XCTestCase {
 }
 '''.replace("HELPER", helper)
         cases = re.findall(r"func (test\w+)\(", controls)
-        self.assertEqual(len(cases), 23)
+        self.assertEqual(len(cases), 27)
         controls += "\nXCTMain([testCase([\n" + "".join(
             f'("{name}", GeometryControls.{name}),\n' for name in cases) + "])])\n"
         with tempfile.TemporaryDirectory(prefix="manual-scroll-controls-") as directory:
@@ -164,7 +191,7 @@ final class GeometryControls:XCTestCase {
             self.assertEqual(compiled.returncode, 0, compiled.stdout + compiled.stderr)
             actual = subprocess.run([str(scratch / "controls")], capture_output=True, text=True, timeout=30)
             self.assertEqual(actual.returncode, 0, actual.stdout + actual.stderr)
-            self.assertIn("Executed 23 tests, with 0 failures", actual.stdout)
+            self.assertIn("Executed 27 tests, with 0 failures", actual.stdout)
             print(actual.stdout)
 
     def test_qa_only_owner_resolution_and_existing_caps_are_preserved(self):

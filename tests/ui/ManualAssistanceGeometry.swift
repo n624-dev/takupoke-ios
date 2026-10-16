@@ -79,3 +79,14 @@ func manualPassiveCell<T>(cells: [T], viewport: CGRect, upward: Bool,
     return candidates.first(where: { isPassive($0.0) })?.0
 }
 // END PURE MANUAL PASSIVE SELECTION
+
+// BEGIN PURE MANUAL VISIBLE CANDIDATE
+func manualVisibleCandidate<T>(candidates:[T],viewport:CGRect,
+                               frame:(T)->CGRect,isHittable:(T)->Bool)->T? {
+    guard ManualScrollNavigation.usable(viewport) else { return nil }
+    return candidates.first { candidate in
+        let bounds=frame(candidate)
+        return ManualScrollNavigation.usable(bounds) && viewport.contains(bounds) && isHittable(candidate)
+    }
+}
+// END PURE MANUAL VISIBLE CANDIDATE

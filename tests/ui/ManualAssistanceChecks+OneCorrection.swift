@@ -110,8 +110,9 @@ extension ManualAssistanceChecks {
         let current = "recovery-correction-menu-"+cell+"-"+lesson
         // Preview starts at its header; offscreen lesson rows are virtualized.
         // Reveal an actual other lesson before inspecting or operating its menu.
-        let next = visible(app.descendants(matching:.any).matching(NSPredicate(
-            format:"identifier BEGINSWITH %@ AND identifier != %@","recovery-correction-menu-",current)).firstMatch)
+        let otherMenus = app.staticTexts.matching(NSPredicate(
+            format:"identifier BEGINSWITH %@ AND identifier != %@","recovery-correction-menu-",current))
+        let next = visible(otherMenus.firstMatch,alternatives:otherMenus)
         let nextID = next.identifier
         XCTAssertTrue(nextID.hasPrefix("recovery-correction-menu-"),app.debugDescription)
         XCTAssertNotEqual(nextID,current,app.debugDescription)

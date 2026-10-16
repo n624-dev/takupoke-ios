@@ -12,7 +12,7 @@ extension ManualAssistanceChecks {
         XCTAssertTrue(ManualScrollNavigation.usable(frame),"Present keyboard must have finite positive geometry")
         return frame
     }
-    func visible(_ e:XCUIElement,towardTop:Bool=false,knownID:String="")->XCUIElement {
+    func visible(_ e:XCUIElement,towardTop:Bool=false,knownID:String="",alternatives:XCUIElementQuery?=nil)->XCUIElement {
         let started = ProcessInfo.processInfo.systemUptime
         var attempts = 0
         defer {
@@ -42,14 +42,17 @@ extension ManualAssistanceChecks {
             guard ManualScrollNavigation.usable(viewport),viewport.height>36 else {
                 print("TAKUPOKE-MANUAL-SCROLL invalid-viewport;\(viewport)");break
             }
+            if let alternatives,let actual=manualVisibleCandidate(
+                candidates:alternatives.allElementsBoundByIndex,viewport:viewport,
+                frame:{ $0.frame },isHittable:{ $0.isHittable }) { return actual }
             let exists=targetID.isEmpty ? target.exists:!matches.isEmpty
             let targetFrame=exists ? target.frame:nil
-            if exists && target.isHittable {
+            if alternatives==nil && exists && target.isHittable {
                 // Every interactive/readable target must be wholly below the
                 // navigation bar and above the keyboard accessory before use.
                 if let frame=targetFrame,ManualScrollNavigation.usable(frame),frame.minY>=top,frame.maxY<=bottom { return target }
             }
-            if exists && targetID.isEmpty { targetID=target.identifier }
+            if alternatives==nil && exists && targetID.isEmpty { targetID=target.identifier }
             // Resolve the unique actual containing Cell, even when its focused
             // child exposes an infinite/zero or stale in-viewport frame.
             let owners=targetID.isEmpty ? []:list.cells.containing(.any,identifier:targetID).allElementsBoundByIndex
