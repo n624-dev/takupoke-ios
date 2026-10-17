@@ -7943,3 +7943,41 @@ U42は初回のブラウザ遷移がAXでも確認され、U54は再起動後の
 本体229ファイルを編集前eb4f7c7とbytes比較し、名称表示の2ファイル以外227ファイルが不変だった。
 焦点26.6の結果は配布27.0の代用にならないため、正式な全15条件の検査も独立して開始する。
 焦点検査・旧409の結果を正式検査の合格へ加算せず、いずれも取消さず終端まで確認する。
+
+409／39060029511・attempt1は全jobの終端を確認した。26BのN44以外の事前13条件は成功し、
+配布buildは依存skipで公開していない。失敗後も取消しは行っていない。26Aは103行の初回除外を含む
+既存シナリオを通過したが、実File Providerでの利用者報告の解消を示すものではない。
+
+焦点39064952158／7828256・attempt1は26.6 SDK／Runtime26.5で1件・失敗0。
+実解除・再起動・再追加まで96.550秒で完了した。観測順序を変えた一回の成功であり、
+SDK27.0でのN44の一般的な解消や本体LinkRowの修正を意味しない。
+正式410／39065168877・source79dcf62では全15条件を独立して検証中。
+Distribution260件（予定skip21）・Native580件（予定skip1）は失敗0。
+
+## 2026-10-18 正式410.1の全15成功・固定Source更新
+
+[39065168877・attempt1](https://github.com/n624-dev/takupoke-ios/actions/runs/39065168877)、
+source `79dcf62530da6b62004ebc7bbd145b32d803751f`、main pushによる正式410。
+Distribution・Native・両OS通常UI4組・手動訂正8件・配布buildの全15必須条件が同じsource／run／attemptで成功。
+全jobの終端と保存用Actions artifactが0であることを確認した。取消し・旧成功の流用はない。
+Python260件・予定skip21・失敗0、Native580件・予定skip1・失敗0。
+配布buildでもNative580件・予定skip1・失敗0、実ピッカー3件とiPhone SDK27のRelease構築が成功した。
+26 A／Bは配布SDK27.0・Runtime26.5、27はSDK27.0・Runtime27.0である。
+リンク検査は27が157.527秒・26が88.675秒。観測干渉の比較一回が通過した結果を、恒常的な原因解消とはしない。
+
+本体229ファイルのうち変更は正式名称表示の2ファイルだけで、他227ファイルはeb4f7c7とbytes不変。
+Strict・全入口／通過経路・共有取得・通常Parser33・特殊32・モデル構成は維持した。
+原文と保存結果を変更せず、未対応の正式名称は原名へfallbackする。
+行除外の「中止」・年度や古い失敗表示の指摘は[未修正の調査結果](change-row-exclusion-audit-20261018.md)として残す。
+学校資料・削除済み添付は再取得していない。
+
+[0.1.410（410.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.410-build.410.1)を通常Release／Latestとして公開。
+4添付を認証なしで取得し、APIのsize／digestと各SHA-256、IPA内部の版・build・sourceを照合した。
+IPAは17,058,335 bytes、SHA-256 `9634fa9a5981edcb3c1d3be7e22adf38ee3c312f8fb3c33f6546a578edb83ce0`。
+固定Sourceの実bytesはRelease添付Sourceと一致し、旧408.1とSource／Bundle ID・最低OS・権限が同じ。
+更新内容2項目の一致と410への版上昇を確認し、所有する取得用一時ディレクトリは回収した。
+AltStore実機の更新操作・学校資料の全項目精度は未確認。CIと匿名配布照合の成功を代用しない。
+
+Windowsも正式名称に対応した10448を公開し、全8チェックと6添付を照合済み。
+Windowsは除外確認の画面・選択・具体的失敗理由をすでに保持する一方、年度と古い失敗の表示には共通課題が残る。
+Windowsの検証件数・配布と未修正範囲はWindows側の `documentation/formal-change-names-20261018.md` に記録した。
