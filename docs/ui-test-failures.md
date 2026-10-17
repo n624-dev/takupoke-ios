@@ -1,3 +1,16 @@
+## N38 配布記録更新時のworkflow参照パス誤り（2026-10-17）
+
+- source d40ba835の配布後、文書だけのpush対象を確認するローカル読取りで、
+  `sed .github/workflows/development.yml` が「No such file or directory」となった。
+  全15検証・開発版公開・公開添付照合はその前に成功しており、テストや配布の失敗ではない。
+- 対処前に事実を記録した。存在するworkflow名と発火対象はまだ再照合していない。
+  コード・検査条件・Actionsの再実行は変更しない。
+- N28の不足Git objectと当時の取得方針を読み、今回は旧commitではなく参照ファイル名の誤りと区別した。
+  `rg --files .github/workflows` と実コードを照合すると、開発検査は `test-tools.yml` で、
+  `ios-release.yml` はmainへのpushまたは明示dispatchが対象だった。
+  現在の各push対象にもMarkdownはなく、今回の文書だけのpushで新規Actionsを開始しないことを確認した。
+  workflowの編集・再実行・Git objectの追加取得は不要だった。
+
 ## N37 訂正探索改訂commitのpushがHTTP401で失敗（2026-10-16）
 
 - ローカル968deb0329e5f1d6514827ef914098bdd509a63b作成後、既存のgh credential helper指定pushがHTTP401で終了1。

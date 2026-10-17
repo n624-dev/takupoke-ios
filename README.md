@@ -7,7 +7,7 @@
 開発時は[テスト一覧と変更時の必須手順](docs/test-catalog.md)から対応テストを検索してください。
 [テスト保守方針](docs/test-maintenance-policy.md)に従い、未登録コードと一覧の整合性をCIで検査します。既存テストで十分なら、ケースと実行結果を記録し、不要なテスト編集は行いません。
 
-PDF端末内AI復旧は開発中です。前処理・Validator・開始・元PDF確認・プレビュー・明示採用・モデル管理と各iOS Runtime adapterを接続しました。安全な所属を確認できた読取文字だけ、資料全体で最大3項目を原本と照合する手動補助を追加しています。Apple SDK/実機検証は継続中で、追加モデルの配信は品質評価後です。[方針・実装状況・残る接続](docs/pdf-recovery.md)を参照してください。
+PDF端末内AI復旧は開発中です。前処理・Validator・開始・元PDF確認・プレビュー・明示採用・モデル管理と各iOS Runtime adapterを接続しました。OCR復旧後のプレビューでは、科目を長押しすると、その授業の科目・教員・教室を原本と照合して訂正できます。高信頼の誤読も対象ですが、安全な所属を確認できた本文だけ、必須の確認項目と合わせて資料全体で最大3項目です。追加時は入力を保持し、全項目の原本一致を確認し直します。追加モデルはまだ配信していません。[方針・実装状況・残る確認](docs/pdf-recovery.md)を参照してください。
 
 [Strict PDFの詳細番号一覧](docs/strict-pdf-branch-catalog.md)で、P／R番号から拒否箇所を確認できます。
 393.1の通常R265・試験R267・返却R270という報告を受け、[239.1のStrictを復元](docs/strict239-restoration.md)しました。
@@ -27,6 +27,8 @@ PDF端末内AI復旧は開発中です。前処理・Validator・開始・元PDF
 401.1公開後、利用者から返却の時限見出しが授業名へ混入せず、1年授業の学科移行もできたとの実機報告を受けました。
 診断コピー、AltStore Source経由の更新方法と全授業項目の網羅的な照合は引き続き未確認です。
 実装範囲は[PDF仕様](docs/pdf-specification.md)、実測・旧実行の失敗・未確認事項は[検証記録](docs/verification.md)に記載しています。
+
+[OCR訂正の開発版0.1.406（406.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-38978574667-1-d40ba83544a5)を別途公開しています。ソース`d40ba835`の全15必須チェックが同一実行・試行で成功し、公開3添付の匿名取得・全ハッシュ・IPA内部のソースを確認しました。Releaseの`takupoke.ipa`をAltStore Classicへ手動で取り込んでください。通常Latest・固定Sourceは401.1のままです。この開発版の物理iPhoneでの導入／更新と、実資料のOCR精度は未確認です。
 
 以前の[個別開発確認版IPA](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-37811661856-1-22c8ee2b5fa5)も引き続き公開しています。ソース`22c8ee2`の既存公開版で、現在のLatest・固定AltStore Sourceとは別です。
 

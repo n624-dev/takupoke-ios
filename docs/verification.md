@@ -1,3 +1,40 @@
+## 2026-10-17 OCRプレビューの明示訂正・全15チェック成功と開発406.1公開
+
+source `d40ba83544a544409d0a9ec82e952af0862fa9a8` の
+[全体38978574667](https://github.com/n624-dev/takupoke-ios/actions/runs/38978574667)・attempt1は、
+同一ソース・実行・試行の15必須チェックがすべて成功し、全jobが終端した。
+従来13件と新しい明示選択訂正の26／27各1件を含み、旧実行・focused成功との合算ではない。
+
+- DistributionはPython258件・失敗0・予定skip21（79.998秒）。実ソースの純粋Swift27対照も失敗0（0.004秒）、一覧430の整合性検査も成功。
+- Nativeは580件・失敗0・予定skip1（118.461秒）。239.1のアーカイブとの対実行は環境未設定でskipし、実行した互換性検査と区別する。
+- SDK27.0のiPhone向けReleaseビルドと実ファイル選択3件が成功。構築ジョブ内のhost検査も580件・失敗0・予定skip1（85.538秒）。
+- 通常UIは26／27のA・Bすべて成功し、各組の正確な15回の完了照合とOS文字サイズの追加確認を通過した。27のVoiceOverは実行成功、26の専用ケースは従来どおり予定skip。
+- 手動訂正4ケース×両OSすべて成功。元3ケースを保持し、新しい高信頼項目の明示訂正は26で1027.402秒、27で1103.922秒、各1件・失敗0・正確な完了照合まで成功。
+  教員／教室の追加、既入力保持、全ACK解除と再確認、実メニューからの第四項目拒否と正確なstatus、3項目の正式保存・再起動後の保持を確認した。
+
+変更した本体はOCR専用のCoordinator・View・ManualAssistanceの3ファイルだけ。
+それ以外の本体205ファイル、resources・Package・project・Vendorは引継ぎ元8bf6c8aと同じ。
+Coordinatorの開始・モデル再試行も元のbytesを維持し、Strict本体・入口・通過経路・取得共有処理は変更していない。
+通常Parser33・試験／返却32、Native信頼度0.85・最大3項目を維持する。
+
+今回の合格は架空資料の契約・UI操作・保存とビルドの検証である。
+追加OCRモデルは製品へ導入しておらず、自動認識精度の向上、実資料の復旧率、物理iPhoneでの推論・メモリ・導入／更新の成功は未確認。
+N36など過去のAX問題の一般原因・恒常的解消も断定しない。
+
+新規GPT-6.1 Sol／Highレビュー36で対象コード差分だけを再確認し、blocking findingなし。
+その後の[公開38989902909](https://github.com/n624-dev/takupoke-ios/actions/runs/38989902909)・attempt1は、
+同じD40を実行ソースとして、先行run38978574667・attempt1の全15成功と所有draft415458329を再検証し、30秒で成功した。
+公開run自体のテストskipには検証の加点をせず、全job終端を確認した。main／正式latestの公開前後一致ゲートも通過した。
+
+[開発0.1.406（406.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-38978574667-1-d40ba83544a5)は
+prerelease・公開Release ID415458329。認証を付けず3添付すべての実bytesを再取得し、サイズ・GitHub digest・SHA256SUMSを照合した。
+IPAは17,058,016 bytes、SHA256 `c01905274be53f6554b1cdf1c0ac01ad951a6f1461fd7399b544eefe99fb1911`。
+INSTALL.txtは1,177 bytes、SHA256 `48edd99103454b0d35c9556a067b4227c03f0f7e9ac659df9ac525f927cf8962`。
+SHA256SUMSは157 bytes、SHA256 `555e26f9a96b73c419c79e085e69361fa32ea445aa12ccb8667ec3b701ea0ee7`。
+IPA内の0.1.406／406.1・D40・iPhoneOS・最低OS・署名なし構成・法務／Privacy同梱・公開診断除外も実検査した。
+匿名の正式latest再取得も401.1と一致。通常Latest・固定AltStore Sourceは変更せず、開発IPAをAltStore Classicへ手動取込する配布である。
+照合はメモリ内で行い、ローカルにIPA・インストール用一時ファイルを残していない。
+
 ## 2026-10-16 任意メニュー選択の改訂が両OSで完了（新しい全15・配布前）
 
 source465a11d8a1fc57090ba04c7ebfc527ef6b4ae379の[focused38974530183](https://github.com/n624-dev/takupoke-ios/actions/runs/38974530183)・attempt1は両OS成功、全job終端。
