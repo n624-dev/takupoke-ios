@@ -179,7 +179,8 @@
       "title": "時間割・今日の予定・授業時刻・授業名",
       "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",
       "commands": [
-        "bash tools/test-parsing.sh"
+        "bash tools/test-parsing.sh",
+        "python3 -B -m unittest discover -s tests -p test_timetable_change_names.py"
       ],
       "sources": [
         "Takupoke/TimetableDaySchedule.swift",
@@ -202,7 +203,8 @@
         "tests/TimetableScheduleTests+Events.swift",
         "tests/TimetableScheduleTests.swift",
         "tests/TimetableTimesServiceTests.swift",
-        "tests/TimetableTimesTests.swift"
+        "tests/TimetableTimesTests.swift",
+        "tests/test_timetable_change_names.py"
       ]
     },
     {

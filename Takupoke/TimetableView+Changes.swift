@@ -65,7 +65,7 @@ extension TimetableView {
 
     private func changeSummary(_ selection: ChangeSelection) -> String {
         let before = beforeSubject(selection)
-        let parsedAfter = mappings.names(for: selection.change).after.cellSubject
+        let parsedAfter = mappings.names(for: selection.change).after.detailSubject
         let after = parsedAfter.isEmpty ? "記載なし" : parsedAfter
         return "\(before) → \(after)"
     }

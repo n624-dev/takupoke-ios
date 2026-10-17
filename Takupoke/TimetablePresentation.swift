@@ -15,9 +15,9 @@ struct TimetablePresentation {
 
     func beforeSubject(_ selection: ChangeSelection) -> String {
         if !selection.change.before_subject.isEmpty {
-            return mappings.names(for: selection.change).before.cellSubject
+            return mappings.names(for: selection.change).before.detailSubject
         }
-        let names = selection.baseLessons.map(\.names.cellSubject).reduce(into: [String]()) { result, name in
+        let names = selection.baseLessons.map { mappings.names(for: $0).detailSubject }.reduce(into: [String]()) { result, name in
             if !name.isEmpty && !result.contains(name) { result.append(name) }
         }
         return names.isEmpty ? "記載なし" : names.joined(separator: "・")
