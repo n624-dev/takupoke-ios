@@ -1,3 +1,11 @@
+## N43 システム依存導入が非管理者権限で拒否（2026-10-18）
+
+- N42の不足依存導入を試みた `apt-get update` は、apt設定の読取りとlists領域への書込みを
+  Permission deniedとしてexit100。install段階は未実行、製品・テストは変更なし。
+- 対処前に記録。N42／既存Linux開発手順の「システムを変更せず専用prefixへ展開」を照合した。
+  現OSのSQLite runtimeは3.46.1-7+deb13u1。次は同じ版の公式Debian開発packageを所有領域へ展開し、
+  headerとruntimeの版を合わせる。管理者権限や環境再接続を要求しない。
+
 ## N42 Linux再導入環境の解析テストがSQLite header不足で停止（2026-10-18）
 
 - source eb4f7c7、Debian13／公式Swift6.1.2、`bash tools/test-parsing.sh` の初回実行。
