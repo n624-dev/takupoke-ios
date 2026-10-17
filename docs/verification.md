@@ -1,3 +1,39 @@
+## 2026-10-17 正式408.1を固定AltStore Sourceへ公開・実bytes照合成功
+
+利用者の指示に従い、[0.1.408（408.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.408-build.408.1)を正式Release・Latestとして公開した。
+ソース`da1c7a4b81b3298644e2a8ea15896dbf8f637252`、
+[実行39014002201](https://github.com/n624-dev/takupoke-ios/actions/runs/39014002201)・attempt1の全15必須チェックが成功し、全job終端。
+前段14件に加えて、公開job内の実ピッカー3件・ホスト検査・iPhone向けビルド・Source生成・公開照合を完了した。
+旧D40の成功との合算や再実行回の借用は行っていない。
+
+- 配布検査：Python258件・失敗0・予定skip21（68.056秒）、実ソースの純粋Swift27対照・失敗0（0.104秒）、一覧430。
+- Native SDK26.6：580件・失敗0・予定skip1（126.418秒）。旧239.1アーカイブの対実行は未設定のためskipし、実行した互換性検査とは区別する。
+- 通常UI26／27 A・B：4組すべて成功し、各15回の正確な完了照合も成功。27のVoiceOver実行と両OSの文字サイズ各3追加確認を含む。26のVoiceOver専用項目は予定どおりskip。
+- 手動訂正：4ケース×両OSすべて成功。新しい明示選択訂正は26で1403.763秒、27で929.306秒、各1件・失敗0・正確な完了照合まで成功。
+  入力保持・全ACK解除／再確認・第四項目拒否・3項目の保存と再起動後保持を省いていない。
+- 配布job117357496306：25分12秒で成功。ピッカー3件は482.413秒、SDK27.0のホスト580件は失敗0・予定skip1（82.579秒）、iPhone向けReleaseビルドも成功。
+  同一run／source／attemptの全14前段成功を再確認してから公開し、Release ID415698148は通常Release・Latestになった。
+
+公開後、認証なしで4添付すべてを再取得し、サイズ・GitHub digest・release.jsonのハッシュ・IPA内部の版／ソース／iPhoneOS・最低OS・署名なし構成・Privacy／法務・公開診断除外を照合した。
+
+| 添付 | bytes | SHA256 |
+|---|---:|---|
+| takupoke.ipa | 17,058,025 | `f032fcc2732b1ea957f3256ed1ad93847f1f91746c7ffe4833730e64cedd4310` |
+| altstore-source.json | 2,703 | `f0de99a9f6bcf5eb33420d336b9a4fe3baac1e07f6105b55ddb038efefc2b8be` |
+| icon.png | 130,461 | `7ed41c1462f9bd46427b11e1045caddd95c10bea459a5984298c60776ab6177f` |
+| release.json | 914 | `071fd178305a21a1e71ffffa67f475b220394c701d07212fe955dc24b805827b` |
+
+固定URL `https://github.com/n624-dev/takupoke-ios/releases/latest/download/altstore-source.json` の再取得bytesも、このReleaseのSourceと完全一致した。
+Source内の0.1.408／408.1・固有IPA URL・サイズ・更新内容は公開IPAと一致。
+更新前401.1の実Sourceと比較し、Source識別子・Bundle ID・最低OS・権限は同一、新しいversionは大きい。
+Sourceの再登録・アプリの削除・個別IPAの手動取込を要求しない、既存Sourceからの更新用配布である。
+照合用ダウンロードは所有TemporaryDirectory内だけに保存し、終了時に削除した。
+
+今回の配布作業では新しいアプリコード・テスト・公開条件を変更していない。
+208本体／Package／projectの205ファイルとVendor21ファイルは引継ぎ8bf6c8aとbytes一致し、差分は既に検証済みのOCR専用3ファイルだけ。
+Strictの開始・モデル再試行のメソッドも元のbytesと一致し、Strict全入口／経路・共有取得処理は維持する。
+追加モデル・追加学習はなく、実資料精度と物理iPhoneでのAltStore更新操作・動作は未確認。
+
 ## 2026-10-17 固定AltStore Sourceから更新できる正式配布へ進む（公開前）
 
 利用者の追加指示により、開発IPAの手動取込に限定した配布を改め、既存の固定Sourceへ新しい版を掲載する。

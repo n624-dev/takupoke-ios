@@ -18,7 +18,12 @@ PDF端末内AI復旧は開発中です。前処理・Validator・開始・元PDF
 
 設定の「AI・OCRを使用する」は初期OFFです。OFF時は従来の厳格な解析のみを使用し、ON時も厳格な解析に失敗したPDFだけ復旧します。時間割変更XLSXの曜日不一致は、日付からの補正を明示承認できます。曜日に問題がある行は、元の記載を確認して除外できます。同じ曜日だけが残った連続行は、200〜300行目などの範囲をまとめて選べます。補正・除外はファイル内容が更新されるまで同じ原本に適用します。詳しくは[XLSX仕様](docs/xlsx-specification.md)を参照してください。
 
-[0.1.401（401.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.401-build.401.1)を通常Release・Latestとして公開し、固定AltStore Sourceも更新しました。
+[0.1.408（408.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.408-build.408.1)を通常Release・Latestとして公開し、固定AltStore Sourceを更新しました。
+AltStore ClassicでSource／更新一覧を更新すると、OCRプレビューの訂正機能を含む版へアップデートできます。Sourceの再登録やアプリの削除は不要です。
+同一コミット・実行・試行の全15必須チェックが成功し、公開4添付の全ハッシュ・IPA内部の版とソース・固定Sourceの実bytesも照合済みです。
+厳格な解析とその全入口／経路は維持し、追加モデルは導入していません。物理iPhoneでのSource更新操作と実資料のOCR精度は未確認です。
+
+以前の[401.1](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.401-build.401.1)では、次の修正と実機報告がありました。
 1年のPDF授業は、原文授業名のCN／ES／ITの1種類に応じた学科へ移し、保存成功後は移行先だけに残します。
 返却はクラス欄が下段のコマ見出しまで結合する構造に対処し、本文を含まない位置情報の手動取得も追加しました。
 通常・試験のStrictは239.1の復元を維持し、復旧の原本所属・Evidence検証も保持しています。
@@ -28,7 +33,7 @@ PDF端末内AI復旧は開発中です。前処理・Validator・開始・元PDF
 診断コピー、AltStore Source経由の更新方法と全授業項目の網羅的な照合は引き続き未確認です。
 実装範囲は[PDF仕様](docs/pdf-specification.md)、実測・旧実行の失敗・未確認事項は[検証記録](docs/verification.md)に記載しています。
 
-[OCR訂正の開発版0.1.406（406.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-38978574667-1-d40ba83544a5)を別途公開しています。ソース`d40ba835`の全15必須チェックが同一実行・試行で成功し、公開3添付の匿名取得・全ハッシュ・IPA内部のソースを確認しました。Releaseの`takupoke.ipa`をAltStore Classicへ手動で取り込んでください。通常Latest・固定Sourceは401.1のままです。この開発版の物理iPhoneでの導入／更新と、実資料のOCR精度は未確認です。
+先行確認用の[開発406.1](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-38978574667-1-d40ba83544a5)も保持しています。現在は同じOCR訂正機能を、固定Sourceの正式408.1から更新できます。
 
 以前の[個別開発確認版IPA](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-37811661856-1-22c8ee2b5fa5)も引き続き公開しています。ソース`22c8ee2`の既存公開版で、現在のLatest・固定AltStore Sourceとは別です。
 
