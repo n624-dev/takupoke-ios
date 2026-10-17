@@ -239,6 +239,97 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("rowFrame.minY >= barFrame.maxY", context)
         self.assertIn("rowFrame.maxY <= tabsFrame.minY", context)
 
+    def test_link_menu_observes_one_press_before_diagnostics_and_never_accepts_timeout(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the actual link-menu helper")
+        from test_manual_input_lifecycle import block
+        source = (ROOT / "tests/ui/ApplicationChecks+Settings.swift").read_text()
+        method = block(source, "private func linkContextAction(")
+        program = '''import Foundation
+enum Trace { static var events=[String](); static var failures=0 }
+struct NSPredicate { init(format: String, _ value: String) {} }
+func XCTFail(_ message: String) { Trace.failures += 1 }
+final class Elements {
+    let element: XCUIElement
+    init(_ element: XCUIElement) { self.element=element }
+    subscript(_ key: String) -> XCUIElement { element }
+    var firstMatch: XCUIElement { element }
+    func matching(_ predicate: NSPredicate) -> Elements { self }
+}
+final class XCUIElement {
+    let id: String
+    var frame: CGRect, isEnabled=true, isHittable=true, present=true
+    init(_ id: String, _ frame: CGRect) { self.id=id; self.frame=frame }
+    var staticTexts: Elements { Elements(XCUIElement("text", CGRect(x:1,y:21,width:10,height:5))) }
+    func waitForExistence(timeout: TimeInterval) -> Bool {
+        Trace.events.append("wait:\\(id):\\(timeout)"); return present
+    }
+    func press(forDuration: TimeInterval) {
+        precondition(forDuration==2); Trace.events.append("press")
+    }
+    func tap() { Trace.events.append("tap:"+id) }
+}
+final class XCUIApplication {
+    let system: Bool
+    init(bundleIdentifier: String = "fixture") { system=bundleIdentifier=="com.apple.springboard" }
+    let action=XCUIElement("action",CGRect(x:1,y:30,width:20,height:10))
+    var navigationBars: Elements { Elements(XCUIElement("bar",CGRect(x:0,y:0,width:100,height:10))) }
+    var tabBars: Elements { Elements(XCUIElement("tabs",CGRect(x:0,y:90,width:100,height:10))) }
+    var buttons: Elements { Elements(action) }
+    var state: State { State() }; struct State { var rawValue=4 }
+    var debugDescription: String {
+        Trace.events.append(system ? "snapshot-system" : "snapshot-app"); return "fictional tree"
+    }
+}
+final class Probe {
+    let app=XCUIApplication()
+    func recoveryScreenshot(_ name: String, systemScreen: Bool = false) {
+        Trace.events.append(systemScreen ? "image-system" : "image-app")
+    }
+    func contained(_ element: XCUIElement, in frame: CGRect) -> Bool { frame.contains(element.frame) }
+METHOD
+    func run(_ row: XCUIElement) { linkContextAction(row,title:"fictional action") }
+}
+@main struct Main {
+    static func main() {
+        // Pure dependency doubles verify control flow, not UIKit input delivery.
+        for present in [true,false] {
+            Trace.events=[]; Trace.failures=0
+            let probe=Probe(),row=XCUIElement("row",CGRect(x:0,y:20,width:100,height:20))
+            probe.app.action.present=present
+            probe.run(row)
+            let events=Trace.events,press=events.firstIndex(of:"press")!
+            precondition(events.filter { $0=="press" }.count==1)
+            precondition(events[press+1]=="wait:action:45.0")
+            if present {
+                precondition(events.last=="tap:action" && Trace.failures==0)
+                precondition(!events.contains("snapshot-app") && !events.contains("snapshot-system"))
+                precondition(events.filter { $0=="image-app" }.count==1)
+            } else {
+                precondition(!events.contains("tap:action") && Trace.failures==1)
+                precondition(events.contains("image-system") && events.contains("snapshot-system"))
+            }
+        }
+        for disabledTarget in [false,true] {
+            Trace.events=[]; Trace.failures=0
+            let probe=Probe(),row=XCUIElement("row",CGRect(x:0,y:20,width:100,height:20))
+            if disabledTarget { probe.app.action.isHittable=false } else { row.isHittable=false }
+            probe.run(row)
+            precondition(!Trace.events.contains("tap:action") && Trace.failures==1)
+            precondition(Trace.events.contains("press")==disabledTarget)
+        }
+    }
+}
+'''.replace("METHOD", method)
+        with tempfile.TemporaryDirectory(prefix="link-menu-order-") as directory:
+            path = Path(directory)
+            (path / "probe.swift").write_text(program)
+            subprocess.run([compiler, "-swift-version", "5", "-parse-as-library",
+                            "-module-cache-path", str(path / "modules"), str(path / "probe.swift"),
+                            "-o", str(path / "probe")], check=True)
+            subprocess.run([str(path / "probe")], check=True)
+
     def test_owned_launch_trace_filters_other_content_and_refuses_symlinks_and_large_files(self):
         runner = (ROOT / "tools/test-app-ui.sh").read_text(encoding="utf-8")
         collector = runner.split("<<'PY_TRACE'\n", 1)[1].split("\nPY_TRACE", 1)[0]

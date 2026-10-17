@@ -303,11 +303,23 @@ extension ApplicationChecks {
         print("LINK_CONTEXT physical row=\(link.frame);AX-hittable=\(link.isHittable);action=\(title)")
         print("LINK_CONTEXT text=\(text.frame)")
         link.press(forDuration: 2)
-        recoveryScreenshot("link-context-after-press-" + title)
-        print("LINK_CONTEXT after-press tree=" + app.debugDescription)
         let action = app.buttons[title]
-        XCTAssertTrue(action.waitForExistence(timeout: 45), app.debugDescription)
-        XCTAssertTrue(action.isHittable, app.debugDescription)
+        // Observe the requested menu before taking app snapshots. Capturing a
+        // transient presentation must not intervene between input and its result.
+        guard action.waitForExistence(timeout: 45) else {
+            recoveryScreenshot("link-context-menu-missing-app-" + title)
+            recoveryScreenshot("link-context-menu-missing-system-" + title, systemScreen: true)
+            print("LINK_CONTEXT menu-missing appState=\(app.state.rawValue)")
+            print("LINK_CONTEXT missing-app=" + String(app.debugDescription.prefix(12000)))
+            let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+            print("LINK_CONTEXT missing-system=" + String(springboard.debugDescription.prefix(12000)))
+            XCTFail("Link menu did not appear after one native long press within 45 seconds")
+            return
+        }
+        guard action.isHittable else {
+            XCTFail("Link menu action is not hittable: " + app.debugDescription)
+            return
+        }
         action.tap()
     }
     func testLegalDocumentsAndIndividualLicenses() {
