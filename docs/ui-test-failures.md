@@ -5,6 +5,8 @@
 - 対処前に記録。N42／既存Linux開発手順の「システムを変更せず専用prefixへ展開」を照合した。
   現OSのSQLite runtimeは3.46.1-7+deb13u1。次は同じ版の公式Debian開発packageを所有領域へ展開し、
   headerとruntimeの版を合わせる。管理者権限や環境再接続を要求しない。
+- 同版の推定Debian URLはHTTP404で、展開には進まなかった。配布索引の現存版を確認してから、
+  同じ版のheaderと共有libraryを一組で展開する。製品テストの再実行はまだ行っていない。
 
 ## N42 Linux再導入環境の解析テストがSQLite header不足で停止（2026-10-18）
 
