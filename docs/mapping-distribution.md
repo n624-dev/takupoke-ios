@@ -8,12 +8,12 @@
 
 名称データは起動時に一度確認し、手動操作とバックグラウンド確認でもrevisionを確認します。リンク一覧と授業時刻はアプリ復帰時にも確認します。更新案内はホームと設定の「データ」→「リンク・名称・授業時刻」に表示します。
 
-取得操作では3種類のrevisionを再確認し、必要な更新があれば一回のOIDC認証でリンク一覧・名称データ・授業時刻を取得します。
+取得操作の開始時に対象を選び、選択した種類のrevisionだけを再確認します。名称・授業時刻を含む操作はMicrosoft/strict一回でまとめ、一覧だけは学内standardまたは学外Microsoftを一回使用します。初期選択は三種類すべてです。
 
 - `ASWebAuthenticationSession`によるAuthorization Code + PKCE S256。
 - `client_id=takupoke-ios`、callbackは`jp.n624.takupoke:/oauth/callback`。
-- 要求scopeは`openid mapping.read links.read`。Microsoftの既存SSOを許可します。
-- ID Tokenの署名・issuer・audience・nonce・期限を検証し、APIにはAccess Tokenを送ります。Tokenは永続保存しません。
+- scopeは対象に応じて`openid`と`mapping.read`/`links.read`を組み合わせます。名称・時刻には常にMicrosoft/strictを使い、standardを流用しません。Microsoftの既存SSOを許可します。
+- ID Tokenの署名・issuer・audience・nonce・期限を検証し、APIにはAccess Tokenを送ります。Tokenは永続保存せず、権限と期限を満たすものだけメモリで再利用し、取消・半期切替では破棄します。
 
 認証後の`GET /mappings/current`はZIPを直接返します。`X-Mapping-Revision`が直前に確認した公開revisionと一致する場合だけ取り込みます。取得中に版が切り替わった場合や認証キャンセル・通信失敗時は旧版を保持します。3種類の保存は独立しています。
 

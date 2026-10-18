@@ -175,7 +175,13 @@ extension ApplicationChecks {
             }
             let frame = e.exists ? e.frame : CGRect.null
             print("UI_VISIBLE frame=\(frame);viewport=\(current);navigation=\(navigation ?? "current")")
-            if (usable(frame) && frame.minY < current.minY) || (!usable(frame) && searchEarlierRows) {
+            if let drag = ObservedScreenGeometry.scrollDrag(for: frame, in: current) {
+                let origin = app.coordinate(withNormalizedOffset: .zero)
+                let appFrame = app.frame
+                let start = origin.withOffset(CGVector(dx: drag.start.x - appFrame.minX, dy: drag.start.y - appFrame.minY))
+                let end = origin.withOffset(CGVector(dx: drag.end.x - appFrame.minX, dy: drag.end.y - appFrame.minY))
+                start.press(forDuration: 0.1, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0)
+            } else if (usable(frame) && frame.minY < current.minY) || (!usable(frame) && searchEarlierRows) {
                 app.swipeDown()
             } else { app.swipeUp() }
         }

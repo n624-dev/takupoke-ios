@@ -14,7 +14,7 @@ Strictは394.1で239.1へ復元済みで、復旧専用の取得・Evidence検�
 
 順序はStrict Parser、決定論的なルール復旧、OSの端末内モデル、追加取得した端末内モデル、安全な失敗。取得済みの文字・座標・罫線・読み順を再利用する。Readerの途中成果にはcomplete / partial / rasterOnlyを付け、Reader全体の完了と個別ページの状態を区別する。未取得ページや部分取得を完全な文書として扱わない。画像化は必要なページごとに行い、文書認識の結果からセル候補を作る。ページ画像をLLMへ送らない。
 
-この作業の対象はiOSだけとし、Windows・Androidの開発は再開しない。別OSのコードや推論Runtimeは共有しない。
+このリポジトリの対象はiOSとし、Androidは凍結する。利用者が別途承認したWindows開発は別リポジトリで扱い、別OSのコードや推論Runtimeは共有しない。
 RecoveryDocument / RecoveryResult / RecoveryValidator / RecoveryJob / RecoveryMetadataの意味を対応させる設計は維持する。
 各言語のenumやJSONの表記は内部形式とし、Providerが返す自由形式のデータを正式Analysisとして保存しない。
 

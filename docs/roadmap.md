@@ -64,7 +64,7 @@
 
 ## 後続の検討項目
 
-- iOSの開発からAltStore経由の実機更新までの手順確認。Androidは凍結し、Windows作業も再開しない。
+- iOSの開発からAltStore経由の実機更新までの手順確認。Androidは凍結し、利用者承認済みのWindows開発は別リポジトリで扱う。
 
 ## PDF端末内復旧（開発中）
 

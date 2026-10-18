@@ -1,3 +1,14 @@
+## N47 正式411のiOS27通常UI A・単項目訂正がfailure終端（2026-10-19）
+
+- sourcea0fed9b4666ec692b136823eff9482bb2a69849c、run39149191816／attempt1、SDK27。通常UI A job117739517081は17:22:59Z開始・17:58:43Z failure。単項目訂正job117739517113は17:34:33Z開始・17:58:16Z failure。18:00Zのメタデータで確認。
+- 対処前に記録。ケース内の段階・原因は完了ログ取得前で未確定。通常UI Bと他の訂正3件・Native・Distributionは成功。iOS26 Bは実行中で取消しない。依存skippedは成功にしない。
+- 411は全必須条件が揃わず公開できない。原ログと失敗索引の関連詳細・同じコードを照合してから対処する。Strict・検査条件・待機上限は緩めない。
+
+- 完了ログSHAはA d6803817f30529e3d2a78c2a57d6c505a0e649045d79796845695eed714041b1、単項目04b90e08a70643eae9ccd49520c4370bf4837f14d41a77abeb746c13eee4faea。AはtestChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch、Navigation:186。除外groupのy730.33〜782.67に対しviewport129〜769、次の大swipeでy62.67〜115へ行き過ぎ、6回上限で完全包含しなかった。通常他ケースは続行した。
+- 単項目は背景復帰と再入力・完了を通過し、assertSubmitEnabled(false)の元predicate評価後にInput:49の追加manual-input-state.exists照会でsnapshot timeout。実submitの待機結果は失敗前に出力しておらず成功と断定しない。
+- 検索語：testChangeRows／visible／scroll／manual-input-state／Input、U73/U67/U62/U17の詳細と当時のコードを照合。今回は大スクロールの反復行き過ぎと、元待機後の追加診断。既往の必須frame照会・ACK操作不発とは分ける。
+- 比較候補：既に実frameを取得できた対象は観測viewport中心との差だけを上限付きdragで補正し、不在の探索は元swipeを維持する。6回・2秒・完全包含・実control一回操作は維持。純粋geometryの往復対照と無効frame拒否を追加する。単項目は追加診断existsを取得済みoutcome出力へ置換し、元enabled predicate／期限／completed assertと後続全操作を保持する。製品・Strict・入口は変更しない。次の実行前に根拠もpushする。ローカルで実geometry XCTest7件が0失敗、Python262件0失敗・予定skip15（PATH上のSwiftなし等）、Swift UIソースの構文解析・catalog整合が成功。実UI通過を意味しない。
+
 ## N46 公開前レビューで除外全解除・認証取消のcache条件を検出（2026-10-19）
 
 - 補正済み資料で再レビューすると除外全解除の確定が無効になる。初回L token後のM/T認証シート取消で既存cacheが残る。WindowsレビューのJWKS待ち時間によるcache期限延長もiOSで同じ構造を確認。公開前、Actions未開始。レビュー48/49の現行差分を記録し、既存の全体再解析と期限・取消条件を緩めずに修正する。

@@ -45,8 +45,7 @@ extension ManualAssistanceChecks {
         let button=visible(submit)
         let changed=XCTNSPredicateExpectation(predicate:NSPredicate(format:"enabled == %@",NSNumber(value:expected)),object:button)
         let outcome=XCTWaiter.wait(for:[changed],timeout:nativeStateTimeout)
-        let state=app.staticTexts["manual-input-state"].firstMatch
-        print("TAKUPOKE-MANUAL-INPUT " + (state.exists ? state.label : "absent"))
+        print("TAKUPOKE-MANUAL-INPUT submit=\(expected);wait-outcome=\(outcome.rawValue)")
         XCTAssertEqual(outcome,.completed,app.debugDescription)
     }
     func edit(_:XCUIElement,_ value:String,id:String) {

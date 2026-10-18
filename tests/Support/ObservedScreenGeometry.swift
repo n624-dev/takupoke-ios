@@ -20,6 +20,19 @@ enum ObservedScreenGeometry {
         )
     }
 
+    // Center an observed row with a bounded drag inside the observed body.
+    // Unknown geometry remains a search; no stored screen position is used.
+    static func scrollDrag(for target: CGRect, in viewport: CGRect) -> (start: CGPoint, end: CGPoint)? {
+        guard usable(target), usable(viewport), target.height <= viewport.height,
+            target.minX >= viewport.minX, target.maxX <= viewport.maxX,
+            target.minY < viewport.minY || target.maxY > viewport.maxY else { return nil }
+        let limit = viewport.height / 3
+        let offset = max(-limit, min(limit, viewport.midY - target.midY))
+        guard offset != 0 else { return nil }
+        let start = CGPoint(x: viewport.midX, y: viewport.midY)
+        return (start, CGPoint(x: start.x, y: start.y + offset))
+    }
+
     private static func edge(_ value: CGFloat, scale: CGFloat) -> CGFloat {
         let pixels = value * scale
         let integer = pixels.rounded()

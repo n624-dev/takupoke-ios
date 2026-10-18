@@ -35,6 +35,33 @@ final class ObservedScreenGeometryTests: XCTestCase {
         }
     }
 
+    func testObservedClippedRowsUseBoundedDragTowardBodyCenter() {
+        let viewport = CGRect(x: 0, y: 129, width: 393, height: 640)
+        for target in [CGRect(x: 16, y: 730.333, width: 361, height: 52.333),
+                       CGRect(x: 16, y: 62.667, width: 361, height: 52.333)] {
+            guard let drag = ObservedScreenGeometry.scrollDrag(for: target, in: viewport) else {
+                return XCTFail("Observed clipped row must produce a scroll")
+            }
+            XCTAssertTrue(viewport.contains(drag.start))
+            XCTAssertTrue(viewport.contains(drag.end))
+            let offset = drag.end.y - drag.start.y
+            XCTAssertLessThanOrEqual(abs(offset), viewport.height / 3 + 0.001)
+            XCTAssertGreaterThan(offset * (viewport.midY - target.midY), 0)
+            XCTAssertTrue(ObservedScreenGeometry.contains(target.offsetBy(dx: 0, dy: offset), in: viewport, scale: 3))
+        }
+    }
+
+    func testUnusableOversizeOrAlreadyVisibleRowsNeverInventScrollGeometry() {
+        let viewport = CGRect(x: 0, y: 100, width: 100, height: 200)
+        for target in [CGRect.null, .infinite, .zero,
+                       CGRect(x: 10, y: 120, width: 80, height: 30),
+                       CGRect(x: 10, y: 80, width: 80, height: 250),
+                       CGRect(x: -1, y: 80, width: 80, height: 30)] {
+            XCTAssertNil(ObservedScreenGeometry.scrollDrag(for: target, in: viewport))
+        }
+        XCTAssertNil(ObservedScreenGeometry.scrollDrag(for: viewport, in: .null))
+    }
+
     func testUnresolvedPresentFooterNeverMakesBodyVisible() {
         let viewport = CGRect(x: 0, y: 100, width: 100, height: 200)
         let body = CGRect(x: 10, y: 120, width: 80, height: 30)
