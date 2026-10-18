@@ -3,6 +3,31 @@ import XCTest
 @testable import TakupokeParsing
 
 final class LinksTests: XCTestCase {
+    func testAllPrivateResourceCombinationsUseOneAppropriateAuthentication() {
+        for mask in 0..<8 {
+            let selection = AccountDataSelection(rawValue: mask)
+            XCTAssertEqual(selection.permitsSchoolNetwork, mask == 1)
+            XCTAssertEqual(selection.scope.contains("links.read"), mask & 1 != 0)
+            XCTAssertEqual(selection.scope.contains("mapping.read"), mask & 6 != 0)
+            XCTAssertTrue(selection.acceptsAssurance(acr: "urn:takunin:assurance:strict", amr: ["microsoft"]))
+            XCTAssertEqual(selection.acceptsAssurance(acr: "urn:takunin:assurance:standard", amr: ["school_network"]), mask == 1)
+            XCTAssertFalse(selection.acceptsAssurance(acr: "urn:takunin:assurance:standard", amr: ["microsoft"]))
+        }
+    }
+
+    func testSyllabusDepartmentOnlyResolvesKnownLinkAndUsesCalendarYear() throws {
+        let original = try XCTUnwrap(URL(string: "https://l.n624.jp/gSBBt"))
+        for department in SyllabusLinkPolicy.departments {
+            XCTAssertEqual(SyllabusLinkPolicy.resolve(label: "高専Webシラバス", original: original, departmentID: department.id, year: 2033).absoluteString,
+                           "https://l.n624.jp/KCWgd?department_id=\(department.id)&year=2033")
+        }
+        for department in ["", "unknown"] {
+            XCTAssertEqual(SyllabusLinkPolicy.resolve(label: "高専Webシラバス", original: original, departmentID: department, year: 2033), original)
+        }
+        let unrelated = try XCTUnwrap(URL(string: "https://example.invalid/gSBBt"))
+        XCTAssertEqual(SyllabusLinkPolicy.resolve(label: "高専Webシラバス", original: unrelated, departmentID: "49", year: 2033), unrelated)
+        XCTAssertEqual(SyllabusLinkPolicy.resolve(label: "架空リンク", original: original, departmentID: "49", year: 2033), original)
+    }
     private let tag = "W/\"fictional-links-etag\""
 
     func testLinkOpeningModeUsesHTTPSOnlyAndKeepsOverrideTemporary() throws {

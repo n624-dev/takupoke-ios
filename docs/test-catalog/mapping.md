@@ -1,7 +1,7 @@
 # 名称対応・パッケージ・認証取得
 
 対応関係・宣言名・実行方法のSHA-256：
-`4039dfbec55ef2c413eac4d957e842dc7532bf720433f06fdda626d2a601cbaa`
+`65b2932c1832d8401ad88d40e6f98996fb3183f2bdefe0510f22782e40de75b8`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -51,3 +51,16 @@ bash tools/test-parsing.sh
 - `testDifferentPrivateRevisionCannotBeAdopted`
 - `testBothRevisionEndpointsDistinguishMissingSameAndChangedData`
 - `testRevisionFailureIsNotReportedAsCurrentForEitherEndpoint`
+
+## [tests/LinksTests.swift](../../tests/LinksTests.swift)
+
+- `testAllPrivateResourceCombinationsUseOneAppropriateAuthentication`
+- `testSyllabusDepartmentOnlyResolvesKnownLinkAndUsesCalendarYear`
+- `testLinkOpeningModeUsesHTTPSOnlyAndKeepsOverrideTemporary`
+- `testRecommendationsRespectVisibilityAndAstroOrdering`
+- `testValidatesResponseBeforeAdoptingIt`
+- `testWeakETagComparisonPreservesOpaqueEmbeddedMarker`
+- `test200304AndFailureKeepPreviousResult`
+- `testCacheReplacementOnlyAfterValidSave`
+- `testPreferencesFollowIDAndRetainMissingItems`
+- `testSearchMatchesKanaRomajiAndRanking`

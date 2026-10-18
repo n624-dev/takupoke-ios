@@ -12,12 +12,16 @@ final class MaterialsModel: ObservableObject {
     @Published private(set) var pdfURLs: [String: URL] = [:]
     @Published private(set) var timetableReadReport: String?
     @Published private(set) var timetableFailure: PDFParseError?
+    private var changeFailureContext: (identity: String, digest: String, year: Int)?
     private(set) var rejectedRecoveryKinds = Set<String>()
 
     var canPreviewChanges: Bool {
-        guard let attempt = state.changeParseAttempt, attempt.failure?.permitsPreview == true,
-              let record = state.record(for: .changes) else { return false }
-        return attempt.sourceDigest == record.digest
+        guard let record = state.record(for: .changes), let attempt = state.changeParseAttempt,
+              attempt.sourceDigest == record.digest, attempt.parserVersion == ChangeAnalysis.parserVersion else { return false }
+        if record.source.rowSkipConsent?.matches(sourceIdentity: record.source.selectionID ?? record.storedName,
+            digest: record.digest, defaultYear: automaticChangeSchoolYear) == true { return true }
+        guard attempt.failure.map({ $0.permitsPreview || [.cancelled, .storage, .staleConfirmation].contains($0.code) }) == true else { return false }
+        return attempt.matches(digest: record.digest, defaultYear: automaticChangeSchoolYear)
     }
 
     private let worker = MaterialWorker()
@@ -75,6 +79,13 @@ final class MaterialsModel: ObservableObject {
             today: SchoolDate.today())
     }
 
+    var changeFailureMessage: String? {
+        guard failed, let context = changeFailureContext, let record = state.record(for: .changes),
+              context.identity == (record.source.selectionID ?? record.storedName),
+              context.digest == record.digest, context.year == automaticChangeSchoolYear else { return nil }
+        return message
+    }
+
     private nonisolated static func analyzeAfterAcquisition(_ kind: MaterialKind, year: Int,
                                                             worker: MaterialWorker,
                                                             control: AcquisitionControl) throws {
@@ -83,7 +94,7 @@ final class MaterialsModel: ObservableObject {
     }
 
     func analyzeChanges(defaultYear: Int?) {
-        perform(success: "時間割変更を解析しました。") {
+        perform(success: "時間割変更を解析しました。", changeYear: defaultYear ?? automaticChangeSchoolYear) {
             try $0.analyzeChanges(defaultYear: defaultYear, control: $1)
         }
     }
@@ -96,7 +107,8 @@ final class MaterialsModel: ObservableObject {
 
     func previewChanges() {
         guard canPreviewChanges else { return }
-        perform(success: nil) { try $0.previewChanges(control: $1) }
+        let year = automaticChangeSchoolYear
+        perform(success: nil, changeYear: year) { try $0.previewChanges(defaultYear: year, control: $1) }
     }
 
     func changePreviewActionFailure(_ preview: ChangePreview) -> String? {
@@ -117,7 +129,7 @@ final class MaterialsModel: ObservableObject {
         if let failure = changePreviewActionFailure(preview) { return failure }
         let year = automaticChangeSchoolYear
         guard preview.canCorrectWeekdays else { return "曜日の確認内容を開き直してください。" }
-        perform(success: "日付から求めた曜日で読み込みました。ファイルの内容が更新されるまで適用します。") {
+        perform(success: "日付から求めた曜日で読み込みました。ファイルの内容が更新されるまで適用します。", preserveChangePreview: true, dismissChangePreviewOnSuccess: true, changeYear: year) {
             try $0.correctWeekdays(preview, defaultYear: year, control: $1)
         }
         return nil
@@ -126,12 +138,12 @@ final class MaterialsModel: ObservableObject {
     func dismissPreview() { changePreview = nil }
 
     @discardableResult
-    func skipChangeRows(_ preview: ChangePreview, rows: Set<Int>) -> String? {
+    func skipChangeRows(_ preview: ChangePreview, rows: Set<Int>, correctWeekdays: Bool = false) -> String? {
         if let failure = changePreviewActionFailure(preview) { return failure }
         let year = automaticChangeSchoolYear
-        guard preview.canSkipRows, !rows.isEmpty else { return "除外する行を確認してください。" }
-        perform(success: "選んだ\(rows.count)行を除外して読み込みました。ファイルの内容が更新されるまで適用します。") {
-            try $0.skipChangeRows(preview, rows: rows, defaultYear: year, control: $1)
+        guard preview.canSkipRows, !rows.isEmpty || correctWeekdays || preview.usesDateDerivedWeekdays else { return "除外する行を確認してください。" }
+        perform(success: "選んだ\(rows.count)行を除外して読み込みました。ファイルの内容が更新されるまで適用します。", preserveChangePreview: true, dismissChangePreviewOnSuccess: true, changeYear: year) {
+            try $0.skipChangeRows(preview, rows: rows, defaultYear: year, control: $1, correctWeekdays: correctWeekdays)
         }
         return nil
     }
@@ -195,11 +207,16 @@ final class MaterialsModel: ObservableObject {
 
     func perform(success: String?, completion: ((Bool) -> Void)? = nil,
                  preserveChangePreview: Bool = false,
+                 dismissChangePreviewOnSuccess: Bool = false,
+                 changeYear: Int? = nil,
                  operation: @escaping (MaterialWorker, AcquisitionControl) throws -> Void) {
         guard !busy, !retired else { completion?(false); return }
         busy = true
         failed = false
         message = nil
+        changeFailureContext = changeYear.flatMap { year in
+            state.record(for: .changes).map { (identity: $0.source.selectionID ?? $0.storedName, digest: $0.digest, year: year) }
+        }
         if !preserveChangePreview { changePreview = nil }
         let worker = self.worker
         let operationGeneration = generation
@@ -230,7 +247,7 @@ final class MaterialsModel: ObservableObject {
                 switch result {
                 case .success:
                     self.message = success
-                    if !preserveChangePreview || preview != nil { self.changePreview = preview }
+                    if !preserveChangePreview || preview != nil || dismissChangePreviewOnSuccess { self.changePreview = preview }
                 case .failure(let error):
                     self.failed = true
                     self.message = (error as? ChangeParseError)?.localizedDescription

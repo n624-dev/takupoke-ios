@@ -12,6 +12,39 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class TimetableChangeNameTests(unittest.TestCase):
+    def test_home_subject_rendering_uses_formal_name_for_all_content_kinds_without_changing_cell_names(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute home subject presentation")
+        source = (ROOT / "Takupoke/HomeLessonRow.swift").read_text()
+        program = '''import Foundation
+enum PDFDisplayText { static func continuous(_ value: String) -> String { value } }
+struct Row {
+    var names: TimetableLessonNames
+    var usesRawMetadata: Bool
+SUBJECT
+    var rendered: String { subjectText }
+}
+@main struct Probe {
+    static func main() {
+        for raw in [true, false] {
+            let names = TimetableLessonNames(subject: "架空略A", subjectFullName: "架空正式科目A・B")
+            precondition(Row(names: names, usesRawMetadata: raw).rendered == "架空正式科目A•B")
+            precondition(names.cellSubject == "架空略A" && names.subject == "架空略A")
+            let fallback = TimetableLessonNames(subject: "架空未登録C", subjectFullName: " ")
+            precondition(Row(names: fallback, usesRawMetadata: raw).rendered == "架空未登録C")
+            precondition(Row(names: TimetableLessonNames(subject: ""), usesRawMetadata: raw).rendered == "変更を確認")
+        }
+    }
+}
+'''.replace("SUBJECT", block(source, "private var subjectText:"))
+        with tempfile.TemporaryDirectory(prefix="home-formal-names-") as scratch:
+            path = Path(scratch)
+            (path / "probe.swift").write_text(program)
+            subprocess.run([compiler, "-swift-version", "5", "-parse-as-library", "-module-cache-path", str(path / "modules"),
+                            str(ROOT / "Takupoke/TimetableLessonNames.swift"), str(path / "probe.swift"), "-o", str(path / "probe")], check=True)
+            subprocess.run([str(path / "probe")], check=True)
+
     def test_list_uses_formal_names_for_explicit_and_inferred_subjects_with_source_fallback(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:

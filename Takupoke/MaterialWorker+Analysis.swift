@@ -24,12 +24,13 @@ extension MaterialWorker {
         }
     }
 
-    func skipChangeRows(_ preview: ChangePreview, rows: Set<Int>, defaultYear: Int, control: AcquisitionControl) throws {
+    func skipChangeRows(_ preview: ChangePreview, rows: Set<Int>, defaultYear: Int, control: AcquisitionControl, correctWeekdays: Bool = false) throws {
         guard preview.canSkipRows, preview.defaultYear == defaultYear else { throw ChangeParseError(code: .unsupported) }
+        try library?.stabilizeLegacyChangeSelection()
         try refresh(.changes, control: control)
         guard let library = library else { throw ChangeParseError(code: .storage) }
         do {
-            try library.applyRowSkips(preview, rows: rows, defaultYear: defaultYear, check: {
+            try library.applyRowSkips(preview, rows: rows, defaultYear: defaultYear, correctWeekdays: correctWeekdays, check: {
                 do { try control.check() } catch { throw ChangeParseError(code: .cancelled) }
             })
         } catch {
@@ -47,9 +48,10 @@ extension MaterialWorker {
 
     func correctWeekdays(_ preview: ChangePreview, defaultYear: Int, control: AcquisitionControl) throws {
         guard preview.canCorrectWeekdays, preview.defaultYear == defaultYear else { throw ChangeParseError(code: .unsupported) }
+        try library?.stabilizeLegacyChangeSelection()
         try refresh(.changes, control: control)
         guard let source = library?.state.record(for: .changes), source.digest == preview.sourceDigest,
-              (source.source.selectionID ?? source.storedName) == preview.sourceIdentity else { throw ChangeParseError(code: .cancelled) }
+              (source.source.selectionID ?? source.storedName) == preview.sourceIdentity else { throw ChangeParseError(code: .staleConfirmation) }
         try control.check()
         try analyzeChanges(defaultYear: defaultYear, control: control, authorizeWeekdayCorrection: true)
     }
@@ -119,13 +121,14 @@ extension MaterialWorker {
 
     func pdfURL(for kind: MaterialKind) -> URL? { library?.localURL(for: kind) }
 
-    func previewChanges(control: AcquisitionControl) throws {
+    func previewChanges(defaultYear: Int? = nil, control: AcquisitionControl) throws {
         guard let library = library else { throw ChangeParseError(code: .storage) }
+        try library.stabilizeLegacyChangeSelection()
         let check = {
             do { try control.check() }
             catch { throw ChangeParseError(code: .cancelled) }
         }
-        changePreview = try library.previewChanges(check: check)
+        changePreview = try library.previewChanges(defaultYear: defaultYear, check: check)
         // No manifest write: neither the last success nor the failed attempt changes.
     }
 }

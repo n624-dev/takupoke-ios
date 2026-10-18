@@ -6,6 +6,7 @@ struct AccountDataSettingsView: View {
     @EnvironmentObject private var links: LinksModel
     @EnvironmentObject private var mappings: MappingModel
     var setupMode = false
+    @State private var selectedData: AccountDataSelection = .all
 
     private var busy: Bool { account.busy || links.busy || mappings.busy || times.busy }
 
@@ -17,11 +18,19 @@ struct AccountDataSettingsView: View {
                 }
             }
             Section {
-                if busy { LoadingRow(title: "取得中⋯") }
+                Toggle("リンク一覧", isOn: selectionBinding(.links)).disabled(busy)
+                Toggle("名称データ", isOn: selectionBinding(.mappings)).disabled(busy)
+                Toggle("授業時刻", isOn: selectionBinding(.times)).disabled(busy)
+                Text(selectedData == .links
+                     ? "一覧だけ取得します。学内ネットワークではMicrosoft認証を省略できます。"
+                     : "名称データ・授業時刻には学校アカウントでの認証が必要です。選択したデータを1回の認証で取得します。")
+                    .font(.caption).foregroundStyle(.secondary)
+                if busy { LoadingRow(title: "取得中⋯", cancel: { account.cancel() }) }
                 Button(links.saved == nil || mappings.current == nil || times.current == nil ? "学校アカウントで取得" : "更新を確認") {
-                    Task { await account.refresh(mappings: mappings, links: links, times: times) }
+                    let selection = selectedData
+                    Task { await account.refresh(mappings: mappings, links: links, times: times, selection: selection) }
                 }
-                .disabled(busy)
+                .disabled(busy || selectedData.isEmpty)
             }
             Section("データ") {
                 NavigationLink { LinksDataDetailView() } label: {
@@ -47,6 +56,12 @@ struct AccountDataSettingsView: View {
         }
         .navigationTitle(setupMode ? "データを取得" : "リンク・名称・授業時刻")
         .task { links.loadIfNeeded(); mappings.loadIfNeeded(); times.loadIfNeeded() }
+    }
+
+    private func selectionBinding(_ item: AccountDataSelection) -> Binding<Bool> {
+        Binding(get: { selectedData.contains(item) }, set: { selected in
+            if selected { selectedData.insert(item) } else { selectedData.remove(item) }
+        })
     }
 }
 

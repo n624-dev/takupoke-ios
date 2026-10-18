@@ -33,12 +33,14 @@ struct ChangeAnalysisView: View {
                 if model.busy {
                     LoadingRow(title: "処理中⋯", cancel: { model.cancel() })
                 }
-                if model.failed, let message = model.message {
+                if let message = model.changeFailureMessage {
                     Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 } else if let failure = model.state.attempts[MaterialKind.changes.rawValue]?.failure {
                     Label(failure, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 }
-                if !model.failed, let failure = model.state.changeParseAttempt?.failure {
+                if model.changeFailureMessage == nil, let source = model.state.record(for: .changes),
+                   model.state.changeParseAttempt?.matches(digest: source.digest, defaultYear: defaultYear) == true,
+                   let failure = model.state.changeParseAttempt?.failure {
                     Label(failure.localizedDescription, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 }
                 if model.canPreviewChanges {
@@ -88,7 +90,7 @@ struct ChangeAnalysisView: View {
                     LabeledContent("最終解析成功") { Text(analysis.parsedAt, format: JapaneseDateDisplay.timestamp) }
                     LabeledContent("年なし日付の補完", value: analysis.defaultYear.map { "\($0)年度" } ?? "指定なし")
                     LabeledContent("件数", value: "\(analysis.records.count)件")
-                    if analysis.sourceDigest != model.state.record(for: .changes)?.digest || analysis.version != ChangeAnalysis.parserVersion {
+                    if model.state.record(for: .changes).map({ analysis.matches(record: $0, defaultYear: defaultYear) }) != true {
                         Label("前回の解析結果です。現在のファイルを解析してください。", systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                     }
                 } header: { Text("解析結果").accessibilityIdentifier("material-analysis-section") }
@@ -126,10 +128,14 @@ struct ChangeAnalysisView: View {
             if let preview = model.changePreview {
                 ChangePreviewView(preview: preview, mappings: mappings,
                     actionFailure: model.changePreviewActionFailure(preview),
+                    operationFailure: model.changeFailureMessage,
+                    processing: model.busy, cancelProcessing: { model.cancel() },
                     correctWeekdays: preview.canCorrectWeekdays ? {
                     model.correctWeekdays(preview)
                 } : nil, skipRows: preview.canSkipRows ? { rows in
                     model.skipChangeRows(preview, rows: rows)
+                } : nil, skipRowsWithCorrection: preview.canSkipRows ? { rows, correct in
+                    model.skipChangeRows(preview, rows: rows, correctWeekdays: correct)
                 } : nil)
             }
         }

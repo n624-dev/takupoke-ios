@@ -4,12 +4,17 @@ struct ChangePreviewView: View {
     let preview: ChangePreview
     @ObservedObject var mappings: MappingModel
     var actionFailure: String? = nil
+    var operationFailure: String? = nil
+    var processing = false
+    var cancelProcessing: (() -> Void)? = nil
     var correctWeekdays: (() -> String?)? = nil
     var skipRows: ((Set<Int>) -> String?)? = nil
+    var skipRowsWithCorrection: ((Set<Int>, Bool) -> String?)? = nil
     @State private var rejectedAction: String?
     @State private var confirmingCorrection = false
     @State private var confirmingSkip = false
     @State private var excludedRows = Set<Int>()
+    @State private var correctRemainingWeekdays = false
     @Environment(\.dismiss) private var dismiss
     @State private var selectedClass = ""
 
@@ -28,6 +33,19 @@ struct ChangePreviewView: View {
                     Text(preview.sourceName)
                     if let failure = actionFailure ?? rejectedAction {
                         Label(failure, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                    }
+                    if let operationFailure {
+                        Label(operationFailure, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                    }
+                    if processing { LoadingRow(title: "確認した原本を再取得・解析中⋯", cancel: cancelProcessing) }
+                    if skipRows != nil {
+                        Text("選択した行を今回の除外対象として保存します。以前の除外対象も選択済みで表示します。")
+                        if preview.usesDateDerivedWeekdays {
+                            Text("この資料の曜日は、確認済みの日付から計算します。")
+                        } else if skipRowsWithCorrection != nil && preview.warnings.contains(where: \.canCorrectWeekday) {
+                            Toggle("残す行の曜日を日付から求める", isOn: $correctRemainingWeekdays)
+                                .disabled(actionFailure != nil)
+                        }
                     }
                     LabeledContent("年なし日付の補完", value: preview.defaultYear.map { "\($0)年度" } ?? "指定なし")
                     LabeledContent("件数", value: "\(preview.records.count)件")
@@ -63,6 +81,7 @@ struct ChangePreviewView: View {
                                 if value { excludedRows.formUnion(group.rowIDs) } else { excludedRows.subtract(group.rowIDs) }
                             }))
                             .accessibilityIdentifier(group.accessibilityID)
+                            .disabled(actionFailure != nil)
                         }
                     }
                 }
@@ -85,27 +104,39 @@ struct ChangePreviewView: View {
             }
             .navigationTitle(correctWeekdays == nil && skipRows == nil ? "プレビュー（閲覧のみ）" : "内容の確認")
             .alert("選んだ行を除外して読み込む", isPresented: $confirmingSkip) {
-                Button("除外して読み込む") { rejectedAction = skipRows?(excludedRows) }
+                Button("除外して読み込む") {
+                    if let skipRowsWithCorrection {
+                        rejectedAction = skipRowsWithCorrection(excludedRows, correctRemainingWeekdays)
+                    } else { rejectedAction = skipRows?(excludedRows) }
+                }
                     .disabled(actionFailure != nil)
                 Button("キャンセル", role: .cancel) {}
             } message: {
                 Text("\(excludedRows.count)行を時間割変更から除外します。除外する行：\(ChangeReviewGroup.rangeLabel(Array(excludedRows)))。ファイルの内容が更新されるまで適用します。")
+                if correctRemainingWeekdays { Text("残す行の曜日は日付から計算します。") }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(correctWeekdays == nil && skipRows == nil ? "閉じる" : "キャンセル") { dismiss() }
+                    Button(processing ? "解析を中止" : (correctWeekdays == nil && skipRows == nil ? "閉じる" : "キャンセル")) {
+                        if processing { cancelProcessing?() } else { dismiss() }
+                    }
                 }
                 if skipRows != nil {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("除外して読み込む") { confirmingSkip = true }
                             .buttonStyle(.glassProminent)
-                            .disabled(excludedRows.isEmpty || actionFailure != nil)
+                            .disabled((excludedRows.isEmpty && !correctRemainingWeekdays) || actionFailure != nil)
                             .accessibilityIdentifier("change-apply-skips")
                     }
                 }
             }
         }
+        .onAppear {
+            excludedRows = preview.excludedRows
+            correctRemainingWeekdays = preview.usesDateDerivedWeekdays
+        }
+        .interactiveDismissDisabled(processing)
     }
 }
 

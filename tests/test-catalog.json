@@ -154,7 +154,8 @@
       "checks": [
         "tests/MappingPackageTests.swift",
         "tests/MappingRulesTests.swift",
-        "tests/MappingServiceTests.swift"
+        "tests/MappingServiceTests.swift",
+        "tests/LinksTests.swift"
       ]
     },
     {
@@ -489,7 +490,8 @@
         "tests/ui/ApplicationChecks+Notifications.swift",
         "tests/ObservedScreenGeometryTests.swift",
         "tests/test_notification_service_trace.py",
-        "tests/test_application_ui_runner.py"
+        "tests/test_application_ui_runner.py",
+        "tests/test_timetable_change_names.py"
       ]
     },
     {

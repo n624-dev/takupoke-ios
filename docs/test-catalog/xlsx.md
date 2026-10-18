@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`5f5cef79aa89ac4213786fbedb45f04cad737002e8dd1c585cab550adf5cbcd8`
+`bab5f101fb0658e1609fca8db1939cbabfa02b1f14e37c355ed7853a45f92848`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -23,6 +23,7 @@ bash tools/test-parsing.sh
 
 ## [tests/test_change_preview_actions.py](../../tests/test_change_preview_actions.py)
 
+- `test_actual_dispatch_retains_review_after_failure_and_closes_only_after_success`
 - `test_actual_callbacks_preserve_rejected_preview_and_dispatch_accepted_action_once`
 - `test_actual_worker_records_failure_only_for_the_reviewed_original`
 
@@ -49,6 +50,9 @@ bash tools/test-parsing.sh
 
 ## [tests/ParsingTests+RowSkips.swift](../../tests/ParsingTests+RowSkips.swift)
 
+- `testSuccessfulExclusionsCanBeReviewedAndExplicitlyRemovedWithWeekdayCorrection`
+- `testSkipAndExplicitWeekdayCorrectionReparseAllRemainingRowsAndRetainDecisions`
+- `testLegacyChangeIdentitySurvivesRenamedLocalCopyWithoutWeakeningStaleChecks`
 - `testConsecutiveIdenticalWeekdayPlaceholdersGroupWithoutHidingPopulatedOrSeparatedRows`
 - `testGroupedWeekdayPlaceholdersStillRequireExplicitFullRowConsent`
 - `testRowSkipsAreExplicitKeepRowNumbersAndExcludeWholeExpandedRow`

@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
     @AppStorage("linkOpeningMode") private var linkOpeningMode = LinkOpeningMode.inApp.rawValue
+    @AppStorage(SyllabusLinkPolicy.storageKey) private var syllabusDepartmentID = ""
     @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
     @AppStorage("timetableSelectedClasses") private var selectedClasses = ""
     @ObservedObject var materials: MaterialsModel
@@ -61,6 +62,14 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.menu)
+                    Picker("シラバスの学科", selection: $syllabusDepartmentID) {
+                        Text("学科を選択しない").tag("")
+                        ForEach(SyllabusLinkPolicy.departments) { department in
+                            Text(department.name).tag(department.id)
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
+                    .accessibilityIdentifier("syllabus-department")
                     Picker("リンクの開き方", selection: $linkOpeningMode) {
                         Text("デフォルトのブラウザ").tag(LinkOpeningMode.external.rawValue)
                         Text("アプリ内で開く").tag(LinkOpeningMode.inApp.rawValue)

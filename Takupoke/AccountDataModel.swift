@@ -1,14 +1,16 @@
 import SwiftUI
 
 /// A single user-initiated authorization supplies the private data sets.
-/// Tokens live only inside this task; each validated data set commits independently.
+/// Tokens are cached only in memory until expiry; each validated data set commits independently.
 @MainActor
 final class AccountDataModel: ObservableObject {
     @Published private(set) var busy = false
     private let oidc = MappingOIDC()
     private var task: Task<Void, Never>?
 
-    func refresh(mappings: MappingModel, links: LinksModel, times: TimetableTimesModel) async {
+    func refresh(mappings: MappingModel, links: LinksModel, times: TimetableTimesModel,
+                 selection: AccountDataSelection = .all) async {
+        guard !selection.isEmpty, selection.subtracting(.all).isEmpty else { return }
         guard !busy, !mappings.busy, !links.busy, !times.busy else { return }
         busy = true
         let operation = Task {
@@ -18,17 +20,17 @@ final class AccountDataModel: ObservableObject {
             var linkRevision: String?
             var timesRevision: String?
             do {
-                if case .available(let revision) = try await mappings.revision(using: network) { mappingRevision = revision }
+                if selection.contains(.mappings), case .available(let revision) = try await mappings.revision(using: network) { mappingRevision = revision }
             } catch { if !Task.isCancelled { mappings.report(error) } }
             do {
-                if case .available(let revision) = try await links.revision(using: network) { linkRevision = revision }
+                if selection.contains(.links), case .available(let revision) = try await links.revision(using: network) { linkRevision = revision }
             } catch { if !Task.isCancelled { links.report(error) } }
             do {
-                if case .available(let revision) = try await times.revision(using: network) { timesRevision = revision }
+                if selection.contains(.times), case .available(let revision) = try await times.revision(using: network) { timesRevision = revision }
             } catch { if !Task.isCancelled { times.report(error) } }
             guard !Task.isCancelled, mappingRevision != nil || linkRevision != nil || timesRevision != nil else { return }
             do {
-                let token = try await oidc.accessToken(using: network)
+                let token = try await oidc.accessToken(using: network, selection: selection)
                 try Task.checkCancellation()
                 if let revision = mappingRevision {
                     do { try await mappings.download(token: token, revision: revision, network: network) }
@@ -57,8 +59,12 @@ final class AccountDataModel: ObservableObject {
     }
 
     func stopForRetention() async {
+        cancel()
+        await task?.value
+    }
+
+    func cancel() {
         task?.cancel()
         oidc.cancel()
-        await task?.value
     }
 }

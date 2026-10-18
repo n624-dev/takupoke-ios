@@ -1,7 +1,7 @@
 # 時間割・今日の予定・授業時刻・授業名
 
 対応関係・宣言名・実行方法のSHA-256：
-`3f23f772667e7148bdb590bf783dad1842054533455d5371f2a444322b6e26a5`
+`abd8e149e54569439f0ef66dca7029590be36cf268da7f803ae80680915d6b1f`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -97,4 +97,5 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 
 ## [tests/test_timetable_change_names.py](../../tests/test_timetable_change_names.py)
 
+- `test_home_subject_rendering_uses_formal_name_for_all_content_kinds_without_changing_cell_names`
 - `test_list_uses_formal_names_for_explicit_and_inferred_subjects_with_source_fallback`

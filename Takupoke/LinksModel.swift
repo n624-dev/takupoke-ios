@@ -82,7 +82,7 @@ final class LinksModel: ObservableObject {
         guard operation == generation else { throw CancellationError() }
         updateAvailable = result != .unchanged
         failed = false
-        message = updateAvailable ? (saved == nil ? "学校アカウントで認証して一覧を取得してください。" : "一覧に更新があります。") : "一覧は最新です。"
+        message = updateAvailable ? (saved == nil ? "認証して一覧を取得してください。学内ネットワークではMicrosoft認証を省略できます。" : "一覧に更新があります。") : "一覧は最新です。"
         return result
     }
 

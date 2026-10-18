@@ -36,6 +36,7 @@ struct LinkRow: View {
     @ObservedObject var model: LinksModel
     let openInApp: (URL) -> Void
     @AppStorage("linkOpeningMode") private var linkOpeningMode = LinkOpeningMode.inApp.rawValue
+    @AppStorage(SyllabusLinkPolicy.storageKey) private var syllabusDepartmentID = ""
     @Environment(\.openURL) private var openURL
     @State private var openFailed = false
 
@@ -44,7 +45,9 @@ struct LinkRow: View {
     }
 
     private func open(opposite: Bool = false) {
-        guard let url = item.url else { openFailed = true; return }
+        guard let original = item.url else { openFailed = true; return }
+        let url = SyllabusLinkPolicy.resolve(label: item.label, original: original,
+            departmentID: syllabusDepartmentID, year: SchoolDate.today().year)
         switch preferredMode.destination(for: url, opposite: opposite) {
         case .inApp:
             openInApp(url)

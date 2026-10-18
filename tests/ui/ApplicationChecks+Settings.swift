@@ -5,6 +5,28 @@ import CryptoKit
 extension ApplicationChecks {
     func testSettingsAccountDataAndFileDetails() {
         tab("設定")
+        let department = "通信ネットワーク工学科（2026年度以降入学者）"
+        let syllabus = app.buttons["syllabus-department"]
+        _ = visible(syllabus)
+        syllabus.tap()
+        screen("シラバスの学科")
+        tap(department)
+        if app.navigationBars["シラバスの学科"].exists { back(to: "設定") }
+        screen("設定")
+        _ = visible(syllabus)
+        XCTAssertTrue(syllabus.label.contains(department) || (syllabus.value as? String)?.contains(department) == true, app.debugDescription)
+        app.terminate()
+        app.launchArguments.removeAll { $0 == "--reset-fixture" }
+        launchReady()
+        tab("設定")
+        let persistedSyllabus = app.buttons["syllabus-department"]
+        _ = visible(persistedSyllabus)
+        XCTAssertTrue(persistedSyllabus.label.contains(department) || (persistedSyllabus.value as? String)?.contains(department) == true, app.debugDescription)
+        persistedSyllabus.tap()
+        screen("シラバスの学科")
+        tap("学科を選択しない")
+        if app.navigationBars["シラバスの学科"].exists { back(to: "設定") }
+        screen("設定")
         var ai = app.switches["use-ai-features"]
         _ = visible(ai)
         XCTAssertTrue(ai.waitForExistence(timeout: 10))

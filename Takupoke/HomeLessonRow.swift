@@ -19,7 +19,7 @@ struct HomeLessonRow: View {
     }
 
     private var subjectText: String {
-        let source = names.cellSubject.isEmpty ? "変更を確認" : (usesRawMetadata ? names.subject : names.cellSubject)
+        let source = names.detailSubject.isEmpty ? "変更を確認" : names.detailSubject
         let text = usesRawMetadata ? TimetableDisplayText.cardLine(TimetableDisplayText.kana(source)) : TimetableDisplayText.continuous(source)
         return TimetableDisplayText.cellSubject(text)
     }

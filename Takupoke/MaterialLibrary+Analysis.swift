@@ -40,7 +40,7 @@ extension MaterialLibrary {
         } else if let index = next.records.firstIndex(where: { $0.kind == .changes }),
                   let saved = next.records[index].source.rowSkipConsent {
             // A success must never silently omit the exclusions used to obtain it.
-            guard !saved.identifies(sourceIdentity: next.records[index].source.selectionID ?? next.records[index].storedName,
+            guard authorizeRowSkip || !saved.identifies(sourceIdentity: next.records[index].source.selectionID ?? next.records[index].storedName,
                                    digest: analysis.sourceDigest, defaultYear: analysis.defaultYear) else {
                 throw ChangeParseError(code: .storage)
             }

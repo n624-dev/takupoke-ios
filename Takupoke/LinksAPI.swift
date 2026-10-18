@@ -1,5 +1,53 @@
 import Foundation
 
+struct AccountDataSelection: OptionSet {
+    let rawValue: Int
+    static let links = Self(rawValue: 1)
+    static let mappings = Self(rawValue: 2)
+    static let times = Self(rawValue: 4)
+    static let all: Self = [.links, .mappings, .times]
+    var scope: String {
+        (["openid"] + (!intersection([.mappings, .times]).isEmpty ? ["mapping.read"] : []) +
+         (contains(.links) ? ["links.read"] : [])).joined(separator: " ")
+    }
+    var permitsSchoolNetwork: Bool { self == .links }
+    func acceptsAssurance(acr: String, amr: [String]) -> Bool {
+        (acr == "urn:takunin:assurance:strict" && amr == ["microsoft"]) ||
+        (permitsSchoolNetwork && acr == "urn:takunin:assurance:standard" && amr == ["school_network"])
+    }
+}
+
+enum SyllabusLinkPolicy {
+    static let storageKey = "syllabusDepartmentID"
+    struct Department: Identifiable {
+        let id: String
+        let name: String
+    }
+    static let departments: [Department] = [
+        .init(id: "49", name: "通信ネットワーク工学科（2026年度以降入学者）"),
+        .init(id: "50", name: "電子システム工学科（2026年度以降入学者）"),
+        .init(id: "51", name: "情報工学科（2026年度以降入学者）"),
+        .init(id: "35", name: "通信ネットワーク工学科（2019〜2025年度入学者）"),
+        .init(id: "36", name: "電子システム工学科（2019〜2025年度入学者）"),
+        .init(id: "37", name: "情報工学科（2019〜2025年度入学者）"),
+        .init(id: "38", name: "電子情報通信工学専攻（2024年度以降入学者）"),
+        .init(id: "27", name: "電子情報通信工学専攻（2023年度以前入学者）"),
+        .init(id: "17", name: "通信ネットワーク工学科（2018年度以前入学者）"),
+        .init(id: "18", name: "電子システム工学科（2018年度以前入学者）"),
+        .init(id: "19", name: "情報工学科（2018年度以前入学者）")
+    ]
+
+    static func resolve(label: String, original: URL, departmentID: String, year: Int) -> URL {
+        guard label == "高専Webシラバス", original.scheme == "https", original.host == "l.n624.jp",
+              original.user == nil, original.password == nil, original.port == nil,
+              ["/gSBBt", "/KCWgd"].contains(original.path),
+              departments.contains(where: { $0.id == departmentID }), (1900...9999).contains(year) else { return original }
+        var url = URLComponents(string: "https://l.n624.jp/KCWgd")!
+        url.queryItems = [.init(name: "department_id", value: departmentID), .init(name: "year", value: String(year))]
+        return url.url ?? original
+    }
+}
+
 enum LinkOpeningMode: String {
     case external
     case inApp

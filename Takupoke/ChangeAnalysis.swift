@@ -88,6 +88,12 @@ struct ChangeAnalysis: Codable {
     var records: [ScheduleChange]
     var weekdayConsent: ChangeWeekdayConsent? = nil
     var rowSkipConsent: ChangeRowSkipConsent? = nil
+
+    func matches(record: MaterialRecord, defaultYear: Int) -> Bool {
+        sourceDigest == record.digest && version == Self.parserVersion &&
+        self.defaultYear == defaultYear && weekdayConsent == record.source.weekdayConsent &&
+        rowSkipConsent == record.source.rowSkipConsent
+    }
 }
 
 struct ChangeRowSkipConsent: Codable, Equatable {
@@ -172,13 +178,17 @@ struct ChangeParseAttempt: Codable {
     var failure: ChangeParseError?
     var parserVersion: Int? = nil
 
+    func matches(digest: String, defaultYear: Int) -> Bool {
+        sourceDigest == digest && self.defaultYear == defaultYear && parserVersion == ChangeAnalysis.parserVersion
+    }
+
     static func needsAnalysis(digest: String, defaultYear: Int, analysis: ChangeAnalysis?, attempt: ChangeParseAttempt?, weekdayConsent: ChangeWeekdayConsent? = nil, rowSkipConsent: ChangeRowSkipConsent? = nil) -> Bool {
         if analysis?.sourceDigest == digest, analysis?.version == ChangeAnalysis.parserVersion,
            analysis?.defaultYear == defaultYear, analysis?.weekdayConsent == weekdayConsent,
            analysis?.rowSkipConsent == rowSkipConsent { return false }
         if attempt?.sourceDigest == digest, attempt?.defaultYear == defaultYear,
            attempt?.parserVersion == ChangeAnalysis.parserVersion, let failure = attempt?.failure,
-           failure.code != .cancelled && failure.code != .storage { return false }
+           failure.code != .cancelled && failure.code != .storage && failure.code != .staleConfirmation { return false }
         return true
     }
 }
@@ -193,6 +203,8 @@ struct ChangePreview {
     var sourceDigest: String? = nil
     var parserVersion: Int = ChangeAnalysis.parserVersion
     var reviewRows: [ChangeReviewRow] = []
+    var excludedRows: Set<Int> = []
+    var usesDateDerivedWeekdays = false
     var reviewGroups: [ChangeReviewGroup] { ChangeReviewGroup.group(reviewRows) }
     var canCorrectWeekdays: Bool { sourceIdentity != nil && sourceDigest != nil && !warnings.isEmpty && warnings.allSatisfy(\.canCorrectWeekday) }
     var canSkipRows: Bool { sourceIdentity != nil && sourceDigest != nil && reviewRows.contains(where: \.canSkip) }
@@ -201,7 +213,7 @@ struct ChangePreview {
 struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
     enum Code: String, Codable {
         case invalidArchive, limit, invalidXML, missingSheet, unsupported, headers
-        case date, year, classes, unknownAll, empty, cancelled, storage
+        case date, year, classes, unknownAll, empty, cancelled, storage, staleConfirmation
         case formula, formulaCache, weekdayMismatch, weekdayOnly, mergedCells, dateSystem, cellType
     }
     var code: Code
@@ -232,6 +244,7 @@ struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
         case .unknownAll: detail = "「全」の対象クラスをファイル内の記載から確定できません。"
         case .empty: detail = "時間割変更の行がありません。空の結果では前回の解析結果を置き換えません。"
         case .cancelled: detail = "解析を中止しました。"
+        case .staleConfirmation: detail = "資料・補完年度・確認内容が変わりました。現在の資料を解析して、内容を確認し直してください。"
         case .storage: detail = "解析結果を保存できません。"
         }
         return (row.map { "\($0)行目：" } ?? "") + detail + " 前回の正常な解析結果は保持しています。"

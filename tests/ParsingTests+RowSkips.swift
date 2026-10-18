@@ -4,6 +4,85 @@ import ZIPFoundation
 @testable import TakupokeParsing
 
 extension ParsingTests {
+    func testSuccessfulExclusionsCanBeReviewedAndExplicitlyRemovedWithWeekdayCorrection() throws {
+        try temporary { root in
+            let library = try MaterialLibrary(root: root.appendingPathComponent("library"))
+            var rows = skipRowsFixture; rows.remove(at: 3)
+            let staged = library.newStagingURL()
+            try write(workbook(rows), to: staged)
+            try library.commit(staged: staged, kind: .changes, source: MaterialSource(), originalName: "完全架空変更.xlsx",
+                byteCount: try staged.resourceValues(forKeys: [.fileSizeKey]).fileSize!, digest: "fictional", modifiedAt: nil)
+            try library.recordParseFailure(ChangeParseError(code: .weekdayMismatch, row: 3), defaultYear: 2032)
+            try library.applyRowSkips(library.previewChanges(), rows: [3], defaultYear: 2032)
+            let review = try library.previewChanges(defaultYear: 2032)
+            XCTAssertEqual(review.excludedRows, [3])
+            XCTAssertNil(library.state.changeParseAttempt?.failure)
+            try library.applyRowSkips(review, rows: [], defaultYear: 2032, correctWeekdays: true)
+            XCTAssertEqual(library.state.changeAnalysis?.records.count, 3)
+            XCTAssertNil(library.state.changeAnalysis?.rowSkipConsent)
+            XCTAssertNil(library.state.record(for: .changes)?.source.rowSkipConsent)
+            XCTAssertNotNil(library.state.changeAnalysis?.weekdayConsent)
+            XCTAssertTrue(library.state.changeAnalysis!.matches(record: library.state.record(for: .changes)!, defaultYear: 2032))
+            try library.applyRowSkips(review, rows: [3], defaultYear: 2032)
+            let correctedReview = try library.previewChanges(defaultYear: 2032)
+            XCTAssertTrue(correctedReview.usesDateDerivedWeekdays)
+            XCTAssertEqual(correctedReview.excludedRows, [3])
+            try library.applyRowSkips(correctedReview, rows: [], defaultYear: 2032)
+            XCTAssertEqual(library.state.changeAnalysis?.records.count, 3)
+            XCTAssertNil(library.state.changeAnalysis?.rowSkipConsent)
+            XCTAssertNotNil(library.state.changeAnalysis?.weekdayConsent)
+        }
+    }
+    func testSkipAndExplicitWeekdayCorrectionReparseAllRemainingRowsAndRetainDecisions() throws {
+        try temporary { root in
+            let library = try MaterialLibrary(root: root.appendingPathComponent("library"))
+            let staged = library.newStagingURL()
+            try write(workbook(skipRowsFixture), to: staged)
+            try library.commit(staged: staged, kind: .changes, source: MaterialSource(), originalName: "完全架空変更.xlsx",
+                byteCount: try staged.resourceValues(forKeys: [.fileSizeKey]).fileSize!, digest: "fictional", modifiedAt: nil)
+            try library.recordParseFailure(ChangeParseError(code: .weekdayMismatch, row: 3), defaultYear: 2032)
+            let preview = try library.previewChanges()
+            assertCode(.weekdayMismatch) { try library.applyRowSkips(preview, rows: [4], defaultYear: 2032) }
+            try library.applyRowSkips(preview, rows: [4], defaultYear: 2032, correctWeekdays: true)
+            XCTAssertEqual(library.state.changeAnalysis?.records.count, 3)
+            XCTAssertEqual(library.state.changeAnalysis?.rowSkipConsent?.rows, [4])
+            XCTAssertNotNil(library.state.changeAnalysis?.weekdayConsent)
+            let record = try XCTUnwrap(library.state.record(for: .changes))
+            XCTAssertTrue(library.state.changeAnalysis!.matches(record: record, defaultYear: 2032))
+            XCTAssertFalse(library.state.changeAnalysis!.matches(record: record, defaultYear: 2033))
+            try library.recordParseFailure(ChangeParseError(code: .cancelled), defaultYear: 2032)
+            let reopenedPreview = try library.previewChanges()
+            XCTAssertEqual(reopenedPreview.excludedRows, [4])
+            XCTAssertEqual(library.state.changeAnalysis?.records.count, 3)
+            try library.applyRowSkips(reopenedPreview, rows: [3, 4], defaultYear: 2032)
+            XCTAssertEqual(library.state.changeAnalysis?.records.count, 2)
+            XCTAssertEqual(library.state.changeAnalysis?.rowSkipConsent?.rows, [3, 4])
+        }
+    }
+
+    func testLegacyChangeIdentitySurvivesRenamedLocalCopyWithoutWeakeningStaleChecks() throws {
+        try temporary { root in
+            let library = try MaterialLibrary(root: root.appendingPathComponent("library"))
+            func acquire(_ name: String, reuse: Bool) throws {
+                let staged = library.newStagingURL()
+                try write(workbook(skipRowsFixture), to: staged)
+                try library.commit(staged: staged, kind: .changes, source: MaterialSource(), originalName: name,
+                    byteCount: try staged.resourceValues(forKeys: [.fileSizeKey]).fileSize!, digest: "fictional", modifiedAt: nil, reuseUnchanged: reuse)
+            }
+            try acquire("架空旧名.xlsx", reuse: false)
+            var legacy = library.state; legacy.records[0].source.selectionID = nil
+            try library.persist(legacy)
+            try library.recordParseFailure(ChangeParseError(code: .weekdayMismatch, row: 3), defaultYear: 2032)
+            let old = try library.previewChanges()
+            try library.stabilizeLegacyChangeSelection()
+            try acquire("架空新名.xlsx", reuse: true)
+            XCTAssertNotEqual(old.sourceIdentity, library.state.records[0].storedName)
+            try library.applyRowSkips(old, rows: [3, 4], defaultYear: 2032)
+            XCTAssertEqual(library.state.changeAnalysis?.records.count, 2)
+            try acquire("別の明示選択.xlsx", reuse: false)
+            assertCode(.staleConfirmation) { try library.applyRowSkips(old, rows: [3, 4], defaultYear: 2032) }
+        }
+    }
     func testConsecutiveIdenticalWeekdayPlaceholdersGroupWithoutHidingPopulatedOrSeparatedRows() throws {
         func row(_ id: Int, _ day: String, populated: Bool = false) -> ChangeReviewRow {
             ChangeReviewRow(id:id,warning:ChangeParseError(code:populated ? .weekdayMismatch : .weekdayOnly,row:id,printedWeekday:day),
@@ -212,12 +291,12 @@ extension ParsingTests {
             XCTAssertEqual(reopened.state.record(for: .changes)?.source.rowSkipConsent, consent)
             try acquire("second")
             XCTAssertNil(library.state.record(for: .changes)?.source.rowSkipConsent)
-            assertCode(.cancelled) { try library.applyRowSkips(preview, rows: [3, 4], defaultYear: 2032) }
+            assertCode(.staleConfirmation) { try library.applyRowSkips(preview, rows: [3, 4], defaultYear: 2032) }
             try acquire("first")
             XCTAssertNil(library.state.record(for: .changes)?.source.rowSkipConsent)
             XCTAssertEqual(library.state.changeAnalysis?.rowSkipConsent, consent)  // Last successful result is kept.
             try acquire("first", reuse: false)
-            assertCode(.cancelled) { try library.applyRowSkips(preview, rows: [3, 4], defaultYear: 2032) }
+            assertCode(.staleConfirmation) { try library.applyRowSkips(preview, rows: [3, 4], defaultYear: 2032) }
         }
     }
 
@@ -238,11 +317,11 @@ extension ParsingTests {
             let before = try encoder.encode(library.state)
             var changed = preview
             changed.reviewRows[0].fields[0].value = "架空の別値"
-            assertCode(.cancelled) { try library.applyRowSkips(changed, rows: [3, 4], defaultYear: 2032) }
+            assertCode(.staleConfirmation) { try library.applyRowSkips(changed, rows: [3, 4], defaultYear: 2032) }
             changed = preview
             changed.parserVersion -= 1
-            assertCode(.cancelled) { try library.applyRowSkips(changed, rows: [3, 4], defaultYear: 2032) }
-            assertCode(.cancelled) { try library.applyRowSkips(preview, rows: [3, 4], defaultYear: 2033) }
+            assertCode(.staleConfirmation) { try library.applyRowSkips(changed, rows: [3, 4], defaultYear: 2032) }
+            assertCode(.staleConfirmation) { try library.applyRowSkips(preview, rows: [3, 4], defaultYear: 2033) }
             assertCode(.cancelled) {
                 try library.applyRowSkips(
                     preview, rows: [3, 4], defaultYear: 2032,

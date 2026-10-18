@@ -130,6 +130,15 @@ enum XLSXReader {
 // A preview is read-only and is available only for the exact source/year of a
 // failed weekday check. Kept with the reader so this path is tested on Linux too.
 extension MaterialLibrary {
+    /// Preserve the existing legacy identity before a provider refresh can
+    /// replace the local copy's filename. This applies to XLSX selection only.
+    func stabilizeLegacyChangeSelection() throws {
+        guard let index = state.records.firstIndex(where: { $0.kind == .changes }),
+              state.records[index].source.selectionID == nil else { return }
+        var next = state
+        next.records[index].source.selectionID = next.records[index].storedName
+        try persist(next)
+    }
     /// Retain the decision while checking the current original. Only a complete
     /// successful parse can replace it and the last good result atomically.
     func reanalyzeChanges(defaultYear: Int?, dateDerivedWeekdays: Bool = false,
@@ -158,40 +167,52 @@ extension MaterialLibrary {
         catch { throw ChangeParseError(code: .storage) }
     }
 
-    func previewChanges(check: @escaping () throws -> Void = {}) throws -> ChangePreview {
+    func previewChanges(defaultYear: Int? = nil, check: @escaping () throws -> Void = {}) throws -> ChangePreview {
+        let previewYear = defaultYear ?? state.changeParseAttempt?.defaultYear
         guard let record = state.record(for: .changes),
-              let attempt = state.changeParseAttempt, attempt.failure?.permitsPreview == true,
+              let attempt = state.changeParseAttempt,
+              ((attempt.defaultYear == previewYear && attempt.failure.map({ $0.permitsPreview || [.cancelled, .storage, .staleConfirmation].contains($0.code) }) == true) ||
+               record.source.rowSkipConsent?.matches(sourceIdentity: record.source.selectionID ?? record.storedName,
+                   digest: record.digest, defaultYear: previewYear) == true),
               attempt.sourceDigest == record.digest,
+              attempt.parserVersion == ChangeAnalysis.parserVersion,
               let url = localURL(for: .changes) else { throw ChangeParseError(code: .unsupported) }
-        let table = try XLSXReader.readForPreview(url, defaultYear: attempt.defaultYear, check: check)
+        let table = try XLSXReader.readForPreview(url, defaultYear: previewYear, check: check)
         let placeholders = Set(table.warnings.filter { $0.code == .weekdayOnly }.compactMap(\.row))
-        let records = try ChangeNormalizer.parse(table.rowsExcluding(placeholders), defaultYear: attempt.defaultYear,
+        let records = try ChangeNormalizer.parse(table.rowsExcluding(placeholders), defaultYear: previewYear,
                                                 check: check, allowEmptyPreview: true)
         try check()
-        return ChangePreview(sourceName: record.originalName, defaultYear: attempt.defaultYear,
+        return ChangePreview(sourceName: record.originalName, defaultYear: previewYear,
                              records: records, warnings: table.warnings, sourceIdentity: record.source.selectionID ?? record.storedName,
-                             sourceDigest: record.digest, reviewRows: table.reviewRows)
+                             sourceDigest: record.digest, reviewRows: table.reviewRows,
+                             excludedRows: record.source.rowSkipConsent.flatMap {
+                                 $0.matches(sourceIdentity: record.source.selectionID ?? record.storedName,
+                                            digest: record.digest, defaultYear: previewYear) ? Set($0.rows) : nil
+                             } ?? [], usesDateDerivedWeekdays: record.source.weekdayConsent?.matches(digest: record.digest, defaultYear: previewYear) == true)
     }
 
     func applyRowSkips(_ preview: ChangePreview, rows: Set<Int>, defaultYear: Int,
+                      correctWeekdays: Bool = false,
                       check: @escaping () throws -> Void = {}) throws {
         guard preview.canSkipRows, preview.defaultYear == defaultYear,
               preview.parserVersion == ChangeAnalysis.parserVersion,
               let record = state.record(for: .changes), record.digest == preview.sourceDigest,
               (record.source.selectionID ?? record.storedName) == preview.sourceIdentity,
-              let url = localURL(for: .changes), !rows.isEmpty else { throw ChangeParseError(code: .cancelled) }
+              let url = localURL(for: .changes), !rows.isEmpty || correctWeekdays ||
+                record.source.weekdayConsent?.matches(digest: record.digest, defaultYear: defaultYear) == true else { throw ChangeParseError(code: .staleConfirmation) }
         let table = try XLSXReader.readForPreview(url, defaultYear: defaultYear, check: check)
-        guard table.reviewRows == preview.reviewRows, table.warnings == preview.warnings else { throw ChangeParseError(code: .cancelled) }
+        guard table.reviewRows == preview.reviewRows, table.warnings == preview.warnings else { throw ChangeParseError(code: .staleConfirmation) }
         let identity = record.source.selectionID ?? record.storedName
-        let useDate = record.source.weekdayConsent?.matches(digest: record.digest, defaultYear: defaultYear) == true
+        let useDate = correctWeekdays || record.source.weekdayConsent?.matches(digest: record.digest, defaultYear: defaultYear) == true
         let filtered = try table.acceptedRows(defaultYear: defaultYear, check: check, dateDerivedWeekdays: useDate, skippingRows: rows)
         let records = try ChangeNormalizer.parse(filtered, defaultYear: defaultYear, check: check)
         var analysis = ChangeAnalysis(sourceDigest: record.digest, sourceName: record.originalName,
                                       defaultYear: defaultYear, parsedAt: Date(), records: records)
-        analysis.weekdayConsent = useDate ? record.source.weekdayConsent : nil
-        analysis.rowSkipConsent = ChangeRowSkipConsent(sourceIdentity: identity, digest: record.digest,
+        analysis.weekdayConsent = useDate ? ChangeWeekdayConsent(digest: record.digest, defaultYear: defaultYear,
+                                                               parserVersion: ChangeAnalysis.parserVersion) : nil
+        analysis.rowSkipConsent = rows.isEmpty ? nil : ChangeRowSkipConsent(sourceIdentity: identity, digest: record.digest,
             defaultYear: defaultYear, parserVersion: ChangeAnalysis.parserVersion, rows: rows.sorted())
         try check()
-        try saveChangeAnalysis(analysis, authorizeRowSkip: true)
+        try saveChangeAnalysis(analysis, authorizeWeekdayCorrection: correctWeekdays, authorizeRowSkip: true)
     }
 }
