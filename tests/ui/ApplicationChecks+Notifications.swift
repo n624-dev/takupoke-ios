@@ -35,9 +35,10 @@ extension ApplicationChecks {
             XCTFail("Notification navigation row has no visible label")
             return
         }
-        let point = label.frame
-        app.coordinate(withNormalizedOffset: .zero)
-            .withOffset(CGVector(dx: point.midX, dy: point.midY)).tap()
+        print("NOTIFICATION_ROW row=\(bounds);label=\(label.frame);method=native-label-brief-contact;duration=0.1")
+        // N48/U75: keep one contact at the observed label center, bound to
+        // its native element, as with the existing tab and switch controls.
+        label.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.1)
         screen("通知")
     }
     private func enableChangeNotifications() {

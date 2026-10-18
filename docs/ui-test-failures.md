@@ -1,3 +1,15 @@
+## N48 正式412のiOS26通常Aがfailure終端（2026-10-19）
+
+- source98838f2c1d4aa8c46312c533c0fe4279fa1e83d0、run39152448603/attempt1、iOS26 UI A job117757628234。18:43:29Z開始・19:27:33Z failure。完了ログ取得前でケース/操作/原因は未確定。他の13事前gateは成功し、公開job117767674058は依存skipped。412は公開されていない。単項目訂正26は19:24:39Z成功。
+- 対処を決める前に記録。N47と過去のUI失敗の詳細、当該コード、新しい完了ログを照合し、同じ条件の無変更再試行や検査緩和をしない。Strictとその入口・通過経路は変更しない。
+
+- 完了ログSHAae32986d8c8c2bb19e45ab66bef128963a70ee09a50113a561dde1fd152148d5。通常Aの14テストは失敗0/1499.660秒で成功。分離したtestChangedDataProducesOneLocalNotificationがApplicationChecks.swift:94のXCTAssertTrueで73.636秒失敗した。除外の操作ではなく通知単体ケースの待機失敗。サービス診断はSpringBoard/runningboardd/lsd/usernotificationsdが全running・exit0であり、特定サービス停止とは断定しない。
+
+- 検索語：testChangedDataProducesOneLocalNotification／通知行／ApplicationChecks.swift:94／native tap。U75の同じSDK27.0・Runtime26.5・同じ(48,603.5)へのapp-relative tap失敗、U30/U63の実接触未反映、U06の許可前OS照会を詳細まで照合した。ea8401dのopenNotificationSettingsは現988とbytes同じで、起動・設定tab・全包含までは今回も成功した。失敗後のlabelは(32,593.3,32,20.3)、rowは(16,577.3,361,52.3)で位置が一致し、スクロール不足や通知許可未返答の証拠ではない。
+- 次の比較は同じ観測labelの中心を実native elementへ結び、tab/Switchで既に使用している0.1秒のbrief contactを一回行う。app-relative座標のtapから入力方法だけを変える。保存した画面位置・押し直し・ナビゲーション注入を使わず、元の10秒nav待機・45秒実Allow／保存・新規実通知1件とrevisionの証明を維持する。既存の当該UIcaseが遷移不成立を検出しており、重複caseは追加しない。製品・Strict・入口は不変。恒常的解消や下位原因を検証前に断定しない。
+
+- Swift UI構文解析とcatalog整合（431登録）が成功。Python UI manifest27件はSwiftをPATHへ指定してskipなし/失敗0（7.867秒）、runner13件も失敗0（34.421秒）。fresh68のコード差分レビューにblockingなし。実UIは次の正式413で全15条件を確認し、412の成功部分を合算しない。
+
 ## N47 正式411のiOS27通常UI A・単項目訂正がfailure終端（2026-10-19）
 
 - sourcea0fed9b4666ec692b136823eff9482bb2a69849c、run39149191816／attempt1、SDK27。通常UI A job117739517081は17:22:59Z開始・17:58:43Z failure。単項目訂正job117739517113は17:34:33Z開始・17:58:16Z failure。18:00Zのメタデータで確認。
