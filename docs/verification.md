@@ -7997,3 +7997,10 @@ Windowsの検証件数・配布と未修正範囲はWindows側の `documentation
 bfefc8c798ace4bb764d3cff6f0299fe1fbae2bd、run39166116513・attempt1／job117789289759は21:18:03Zにfailure。fixtureはAppleでbuildでき、最初の設定tab・通知行・実SwitchからOS要求まで到達したが、45秒内のAllowとcallbackがなく127.467秒で失敗した。入力対象の限定を一般的解消とも、focus全体成功とも扱わない。対処前にN50へ記録し、新ログ・U08/U12/U31〜39・方針再評価の全文と現codeを照合した。
 
 単独通知caseと正式Bの前提case群が違うが、順序が原因とは断定しない。許可API・タブ操作・45秒・実Allow・保存条件を維持し、SDK／再起動を根拠なく往復させない。N49の失敗OS26で同候補の別比較を行い、以後の正式全15にもこの未返答を含む実操作条件を残す。失敗した比較を別成功と合算しない。
+
+
+## 2026-10-19 N49候補の26比較成功と正式全体への確認
+
+[比較run39167760582](https://github.com/n624-dev/takupoke-ios/actions/runs/39167760582)・attempt1／aa1be44676497a75249bbeaf9359387f2eaf71fcはsuccess終端。SDK27.0／実Runtime26.5、既存testNotificationControlsAndAppearance一件222.888秒・skip0・失敗0、選択と完了の厳密照合も成功した。元と同じ設定iconの一点・一回0.1秒操作、45秒selected、通知行10秒、実Switch・Allow・callback・UI／保存値・再起動保持・外観設定が通過した。製品Takupokeと全期待値はa0fed9bから変更していない。
+
+27の単独比較N50は実許可未返答のfailureとして残す。今回の26成功で救済せず、原因や恒常的解消も断定しない。次の正式414では、通常の前提case群と全15公開条件を維持して実許可を両OSで再検証する。単独の小さい成功と正式全体の合格・公開を区別する。

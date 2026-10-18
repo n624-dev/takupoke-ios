@@ -8,6 +8,8 @@
 - U08/U12、U31〜U39、ui-failure-patterns-20261011、ui-notification-reassessment-20261011と当時の詳細・現ScheduleNotificationsを照合。旧SDK・install後再起動・Device Hub追加だけでは未返答を解消できなかった記録を再採用しない。許可APIを推測変更せず、固定sleep・許可注入・時間延長・押し直しは行わない。
 - このfocusは通知case一件だけの新規Simulatorで、正式Bのbefore/settings/after/VoiceOver後の通知区間とは準備履歴が違う。先頭／最後の因果や最適性は再評価文書のとおり未証明であり、順序を修正原因としない。N50を成功へ読み替えず保持する。次はN49の実失敗OS26で同じ候補の入力／許可caseを独立比較する。27の全case成功は未達のままで、正式全15の公開条件を維持する。小さい対象が完了した段階だけを根拠に製品の許可経路を変更しない。
 
+- 26の独立比較run39167760582／attempt1、sourceaa1be44676497a75249bbeaf9359387f2eaf71fc、job117794202427はSDK27.0／Runtime26.5で21:42:28Z成功。既存case一件222.888秒・失敗0・skip0、厳密な完了件数も一致。初回設定tab・通知行・実Allow（frameから一回）・callback・UI1／保存true・再起動保持・外観操作が通過。ログSHAe972e0519b64c4899528dbd3ae38decf84d7cd9cde91fa0abe1e5f636ff977cd。27単独のN50失敗と合算しない。候補の元失敗OSでの動作を確認したが、入力配送やOS未返答の原因解消の証明ではない。次は前提case群を維持した正式全体414で同じsourceの全15条件を確認する。
+
 ## N49 正式413のiOS26通常Bがfailure終端（2026-10-19）
 
 - source3e172c29f0b782dab9a0fed20eebc0e8c1a04618、run39159687367/attempt1、SDK27.0／runtime26.5、通常B job117778439248。20:15:26Z開始・20:47:55Z failure、20:56Zのまとめ照会で確認。ケース・失敗段階・原因は完了ログ取得前で未確定。
