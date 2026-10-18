@@ -1,3 +1,13 @@
+## N50 QA panelのpassive比較27がfailure終端（2026-10-19）
+
+- sourcebfefc8c798ace4bb764d3cff6f0299fe1fbae2bd、workflow_dispatch run39166116513/attempt1、iOS27／SDK27.0、job117789289759。21:03:41Z開始・21:18:03Z failure、21:22Zのまとめ照会で確認。選択caseはtestNotificationControlsAndAppearance。失敗段階・原因は完了ログ取得前で未確定。
+- 対処前に記録した。N49候補は実checkPermission開始前のQA panelをhit-testing無効にしたfixture差分だけ。タブ・通知の操作と合格条件は変更していない。この結果で26比較や正式公開へ進めず、新完了ログ・過去詳細・実コードを照合する。同じ条件の無変更再試行・押し直し・期限や期待の緩和はしない。
+
+- 完了ログSHA64ea7c33154eff23e36079a5caf862c47e508467d0d7c1313655244ebf6e2257。127.467秒・1件失敗。初回設定tabの45秒selectedと通知行10秒navigationは成功し、実Switch一回のBindingとrequestAuthorizationの同期戻りまで進んだ。その後45秒内のAllow・callback・保存ONはない。requesting=true／value0／enabledfalseを観測。N49のtab段階の失敗とは異なる。
+- app/Systemの失敗画像は同一SHA93d0909a0e66d131bb8c284944ad942a5fb1b8c4c0d3ca2884130a9763cea2d4・155281bytes。実OS要求時刻windowはreturned=true／callback=falseで、通知設定entry・not-requested・on-binding・auth-request・auth-returnedを記録した。SpringBoard/runningboardd/lsd/usernotificationsdはrunning/exit0。これだけで特定OS停止・fixtureが原因とは断定しない。
+- U08/U12、U31〜U39、ui-failure-patterns-20261011、ui-notification-reassessment-20261011と当時の詳細・現ScheduleNotificationsを照合。旧SDK・install後再起動・Device Hub追加だけでは未返答を解消できなかった記録を再採用しない。許可APIを推測変更せず、固定sleep・許可注入・時間延長・押し直しは行わない。
+- このfocusは通知case一件だけの新規Simulatorで、正式Bのbefore/settings/after/VoiceOver後の通知区間とは準備履歴が違う。先頭／最後の因果や最適性は再評価文書のとおり未証明であり、順序を修正原因としない。N50を成功へ読み替えず保持する。次はN49の実失敗OS26で同じ候補の入力／許可caseを独立比較する。27の全case成功は未達のままで、正式全15の公開条件を維持する。小さい対象が完了した段階だけを根拠に製品の許可経路を変更しない。
+
 ## N49 正式413のiOS26通常Bがfailure終端（2026-10-19）
 
 - source3e172c29f0b782dab9a0fed20eebc0e8c1a04618、run39159687367/attempt1、SDK27.0／runtime26.5、通常B job117778439248。20:15:26Z開始・20:47:55Z failure、20:56Zのまとめ照会で確認。ケース・失敗段階・原因は完了ログ取得前で未確定。

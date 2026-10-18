@@ -7990,3 +7990,10 @@ Windowsの検証件数・配布と未修正範囲はWindows側の `documentation
 失敗事実を先にN49へ記録し、U77と400〜401、U63比較58/59、U30の詳細・過去tab helperと現コードを照合した。初回設定tabの一回0.1秒接触後もHomeのままであり、通知許可待ちではない。通常アプリにない対話QA overlayを設定の外から設置していたため、実checkPermissionの既存begin観測前だけpanelをpassiveにする比較候補。原因・恒常的解消は未証明。タブ操作点・時間・回数、45秒selected、実許可と保存・配信の条件は維持する。
 
 対象一覧をApplicationFixture+NotificationPermission.swiftで検索し、対応する既存の通知設定／配信caseを使用する。新仕様・製品変更ではなく、既存caseが入力未反映を検出しているため重複caseを作らない。fixtureのSwift構文解析、catalog431、UI manifest27件・失敗0・skip0（8.843秒）が成功。runner13件も失敗0（34.907秒）。fresh69の対象コード差分レビューにblockingなし。実OS比較結果は後から区別して記録する。
+
+
+## 2026-10-19 N49候補の27単独比較は許可未返答で失敗
+
+bfefc8c798ace4bb764d3cff6f0299fe1fbae2bd、run39166116513・attempt1／job117789289759は21:18:03Zにfailure。fixtureはAppleでbuildでき、最初の設定tab・通知行・実SwitchからOS要求まで到達したが、45秒内のAllowとcallbackがなく127.467秒で失敗した。入力対象の限定を一般的解消とも、focus全体成功とも扱わない。対処前にN50へ記録し、新ログ・U08/U12/U31〜39・方針再評価の全文と現codeを照合した。
+
+単独通知caseと正式Bの前提case群が違うが、順序が原因とは断定しない。許可API・タブ操作・45秒・実Allow・保存条件を維持し、SDK／再起動を根拠なく往復させない。N49の失敗OS26で同候補の別比較を行い、以後の正式全15にもこの未返答を含む実操作条件を残す。失敗した比較を別成功と合算しない。
