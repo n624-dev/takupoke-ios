@@ -1,3 +1,16 @@
+## N49 正式413のiOS26通常Bがfailure終端（2026-10-19）
+
+- source3e172c29f0b782dab9a0fed20eebc0e8c1a04618、run39159687367/attempt1、SDK27.0／runtime26.5、通常B job117778439248。20:15:26Z開始・20:47:55Z failure、20:56Zのまとめ照会で確認。ケース・失敗段階・原因は完了ログ取得前で未確定。
+- 他13事前gateは成功し、公開job117786122622は依存skipped。413は公開されていない。26通常A・訂正4件も成功した。別実行の成功を合算しない。
+- 対処前に事実を記録。新しい完了ログ、過去の失敗索引の詳細と当時／現行コードを照合してから候補を決める。同条件の無変更再試行、固定座標、押し直し、時間切れ成功、検査条件の緩和は行わない。Strict本体・入口・通過経路は変更しない。
+
+- 完了ログSHA98dd50049d40516a8da2c966dec96233f2a9c68a916c49c8f516cd7bb9bf5666。通常6件・設定1件・残り3件は失敗0、26のVoiceOverは予定skip。別RunnerのtestNotificationControlsAndAppearanceだけが80.801秒で失敗した。Navigation:43、初回の設定iconへの一回0.1秒接触後も45秒内に選択されず、通知行・許可要求には未到達。fixture-ready、Home準備、包含／hittable、実event合成までは成功した。
+- 実iconは(306.25,779,28,28)、barは(0,769,393,83)、buttonは(272.25,773,95.75,54)。失敗後の画像SHA59d88719e472d3384847243f3ecd19862a688e047000ec24752800b96c09641d（300377bytes）とAXはいずれもHome選択。QA許可panelは開始時から中央に表示され、authorization=pending／scene=active／application=0。panelのButton自体はtabと重ならず、画像だけでoverlayの入力妨害とは断定できない。SpringBoard等の診断はrunning/exit0で、特定OS停止の証明もない。
+- 検索語：testNotificationControlsAndAppearance／Native tab tap／U77／U63／U30。U77全文とverificationの400〜401、U63の標準tap・icon中心tap失敗と同点0.1秒比較59、U30を詳細まで読んだ。現tab helperは9ffdf0e／fd6e42cとbytes一致し、413の他caseでも同点が通過している。N48の26通知行・実配信も今回成功したが、今回Bの入力失敗を成功へ置き換えない。
+- 次の比較候補は、通知設定へ入る前のテスト専用panelをhit-testing無効にする。実checkPermissionの既存begin観測が始まった後だけ従来のQA Buttonを入力対象に戻し、許可値・設定値を作らない。現在は通知画面の外でも対話overlayが存在し、通常アプリとの差があるため、その差を限定する比較である。overlayが原因とは未確定。タブの操作点・0.1秒・一回操作・45秒、通知画面10秒・実Allow／保存・実通知の条件、全15公開gateを維持する。実装後、既存の同じケースを小さい実OS比較で確認してから正式全体へ進む。
+
+- 候補はfixtureだけ。既存requestをPublishedとして、その有無からQA panelのhasEnteredSettingsを観測し、最初の実checkPermissionより前はallowsHitTesting(false)にする。実タブ入力・製品・全期待値は変更なし。Swift構文／catalog431、UI manifest27件（Swift指定・skip0）8.843秒が成功。runner13件も失敗0（34.907秒）、fresh69はblockingなし。通知用UIの27比較を先に一回実行し、26は次の独立比較とする。既存testNotificationControlsAndAppearanceがタブ・実許可・保存・外観を通し、testChangedDataProducesOneLocalNotificationが実配信を別に確認するため、重複ケースは追加しない。
+
 ## N48 正式412のiOS26通常Aがfailure終端（2026-10-19）
 
 - source98838f2c1d4aa8c46312c533c0fe4279fa1e83d0、run39152448603/attempt1、iOS26 UI A job117757628234。18:43:29Z開始・19:27:33Z failure。完了ログ取得前でケース/操作/原因は未確定。他の13事前gateは成功し、公開job117767674058は依存skipped。412は公開されていない。単項目訂正26は19:24:39Z成功。

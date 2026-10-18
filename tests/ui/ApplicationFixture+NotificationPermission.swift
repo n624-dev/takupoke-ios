@@ -7,7 +7,11 @@ import UIKit
 final class FixtureNotificationAuthorization: ObservableObject {
     static let shared = FixtureNotificationAuthorization()
     @Published private(set) var authorization = "pending"
-    private var request: UUID?
+    @Published private var request: UUID?
+
+    // Remain passive until the actual notification screen starts its read.
+    // This is an observation of that entry, never a supplied permission result.
+    var hasEnteredSettings: Bool { request != nil }
 
     func begin() -> UUID {
         let identifier = UUID()
@@ -71,6 +75,9 @@ struct FixtureNotificationPermissionTouch: View {
                 .font(.system(size: 1)).allowsHitTesting(false)
                 .accessibilityIdentifier("fixture-notification-permission-state")
         }
+        // The panel is attached above ContentView for observation. Before the
+        // real settings entry, it must not participate in root/tab hit testing.
+        .allowsHitTesting(permission.hasEnteredSettings)
         .onDisappear { permission.invalidate() }
     }
 }

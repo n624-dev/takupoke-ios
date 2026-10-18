@@ -7981,3 +7981,12 @@ AltStore実機の更新操作・学校資料の全項目精度は未確認。CI�
 Windowsも正式名称に対応した10448を公開し、全8チェックと6添付を照合済み。
 Windowsは除外確認の画面・選択・具体的失敗理由をすでに保持する一方、年度と古い失敗の表示には共通課題が残る。
 Windowsの検証件数・配布と未修正範囲はWindows側の `documentation/formal-change-names-20261018.md` に記録した。
+
+
+## 2026-10-19 正式413の終端とN49比較候補
+
+3e172c29f0b782dab9a0fed20eebc0e8c1a04618／run39159687367・attempt1は全終端failure、13事前gate成功・通常26 Bの通知設定caseだけ失敗、公開は依存skip。保存用artifact0。全非空の新完了ログを一回保存した。N48の26通知行・実配信は今回成功したが、別ケースのN49失敗を救済しない。
+
+失敗事実を先にN49へ記録し、U77と400〜401、U63比較58/59、U30の詳細・過去tab helperと現コードを照合した。初回設定tabの一回0.1秒接触後もHomeのままであり、通知許可待ちではない。通常アプリにない対話QA overlayを設定の外から設置していたため、実checkPermissionの既存begin観測前だけpanelをpassiveにする比較候補。原因・恒常的解消は未証明。タブ操作点・時間・回数、45秒selected、実許可と保存・配信の条件は維持する。
+
+対象一覧をApplicationFixture+NotificationPermission.swiftで検索し、対応する既存の通知設定／配信caseを使用する。新仕様・製品変更ではなく、既存caseが入力未反映を検出しているため重複caseを作らない。fixtureのSwift構文解析、catalog431、UI manifest27件・失敗0・skip0（8.843秒）が成功。runner13件も失敗0（34.907秒）。fresh69の対象コード差分レビューにblockingなし。実OS比較結果は後から区別して記録する。
