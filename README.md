@@ -18,12 +18,12 @@ PDF端末内AI復旧は開発中です。前処理・Validator・開始・元PDF
 
 設定の「AI・OCRを使用する」は初期OFFです。OFF時は従来の厳格な解析のみを使用し、ON時も厳格な解析に失敗したPDFだけ復旧します。時間割変更XLSXの曜日不一致は、日付からの補正を明示承認できます。曜日に問題がある行は、元の記載を確認して除外できます。同じ曜日だけが残った連続行は、200〜300行目などの範囲をまとめて選べます。補正・除外はファイル内容が更新されるまで同じ原本に適用します。詳しくは[XLSX仕様](docs/xlsx-specification.md)を参照してください。
 
-[0.1.410（410.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.410-build.410.1)を通常Release・Latestとして公開し、固定AltStore Sourceを更新しました。
-時間割変更一覧の変更前・変更後は正式名称を優先し、対応がない科目は原名を表示します。変更前が空欄の場合も、元の通常授業を現在の名称対応表へ通します。
-AltStore ClassicでSource／更新一覧を更新すると、既存のOCRプレビュー訂正機能も含めてアップデートできます。Sourceの再登録やアプリの削除は不要です。
-同一コミット・実行・試行の全15必須チェックが成功し、公開4添付の全ハッシュ・IPA内部の版とソース・固定Sourceの実bytesも照合済みです。
-厳格な解析とその全入口／経路は維持し、追加モデルは導入していません。物理iPhoneでのSource更新操作と実資料のOCR精度は未確認です。
-行除外・ホーム正式名称・シラバス設定・一覧専用学内認証の次回変更は[実装と検証の記録](docs/account-links-changes-20261019.md)を参照してください。公開済み410.1の実績と、新しいソースの確認を区別します。
+[0.1.414（414.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.414-build.414.1)を通常Release・Latestとして公開し、固定AltStore Sourceを更新しました。
+時間割変更の除外を確定すると、選択元を再取得して全体を再解析します。失敗・中止時も確認画面と選択を保持します。以前の除外は再確認・全解除でき、残す行に曜日の警告がある場合は補正を明示確認します。
+ホームの今日の予定は正式名称を優先し、設定にシラバスの学科を追加しました。初回一括取得はMicrosoft認証一回、一覧だけなら学内ネットワーク認証を利用できます。学外・判定不能時はMicrosoft認証へ進みます。
+[同一ソースのCI](https://github.com/n624-dev/takupoke-ios/actions/runs/39169498233)全15必須チェックと、公開4添付の匿名取得・全ハッシュ・IPA内部の版とソース・固定Sourceの一致を確認済みです。[変更と検証の詳細](docs/account-links-changes-20261019.md)。
+AltStore ClassicのSource／更新一覧を更新するとアップデートできます。Sourceの再登録やアプリの削除は不要です。
+厳格な解析とその全入口／経路、追加モデルは変更していません。物理iPhoneの更新操作、新しい学内認証の実機完了、実資料のOCR精度は今回未確認です。
 
 以前の[401.1](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.401-build.401.1)では、次の修正と実機報告がありました。
 1年のPDF授業は、原文授業名のCN／ES／ITの1種類に応じた学科へ移し、保存成功後は移行先だけに残します。
@@ -35,7 +35,7 @@ AltStore ClassicでSource／更新一覧を更新すると、既存のOCRプレ�
 診断コピー、AltStore Source経由の更新方法と全授業項目の網羅的な照合は引き続き未確認です。
 実装範囲は[PDF仕様](docs/pdf-specification.md)、実測・旧実行の失敗・未確認事項は[検証記録](docs/verification.md)に記載しています。
 
-先行確認用の[開発406.1](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-38978574667-1-d40ba83544a5)も保持しています。現在は同じOCR訂正機能を、固定Sourceの正式410.1から更新できます。
+先行確認用の[開発406.1](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-38978574667-1-d40ba83544a5)も保持しています。現在は同じOCR訂正機能を、固定Sourceの正式414.1から更新できます。
 
 以前の[個別開発確認版IPA](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-37811661856-1-22c8ee2b5fa5)も引き続き公開しています。ソース`22c8ee2`の既存公開版で、現在のLatest・固定AltStore Sourceとは別です。
 

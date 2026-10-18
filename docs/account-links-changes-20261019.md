@@ -1,6 +1,6 @@
 # 2026-10-19 一覧認証・表示・時間割変更の検証
 
-この記録の開始時点は公開410.1・配布ソース79dcf625。新しい変更は実装済み・配布前で、公開・CI・実資料・物理iPhoneの確認を分けて追記する。
+この記録の開始時点は公開410.1・配布ソース79dcf625。変更を414.1として公開済み。公開・CIの結果と、今回未確認の実資料・物理iPhoneを分けて記録する。
 
 ## 変更と境界
 
@@ -25,7 +25,7 @@ PDF Strictの本文・入口・通過経路、通常Parser33・試験/返却32�
 - 実production `perform` を抽出した非同期Swift検査: 3件・失敗0。失敗時保持、成功時だけ閉じる、一般の保持操作では勝手に閉じないことを確認。
 - 実HomeLessonRowの科目計算と名称モデル: 2件・失敗0。正式名称・原名fallback、metadataの有無、週カードと元値の保持。
 - Python全262件・失敗0・予定skip2（85.550秒）。公開前レビューで除外の全解除・シート取消時cache・JWKS待ち時間の期限起点を見直し、追加修正を同じ開始前レビューで確認。追加の実perform検査3件・失敗0（9.770秒）。
-- iOSのnative Picker・保存・再起動と全UIはApple CIでこれから確認する。Linuxの成功ではSwiftUI/AuthenticationServicesやiPhone動作を確認した扱いにしない。
+- このローカル検証時点では、native Picker・保存・再起動と全UIはApple CIで未確認だった。正式414の結果は末尾に記録する。Linuxの成功だけでSwiftUI/AuthenticationServicesやiPhone動作を確認した扱いにしない。
 
 ## サーバーと実運用の区別
 
@@ -34,7 +34,7 @@ PDF Strictの本文・入口・通過経路、通常Parser33・試験/返却32�
 
 独立した架空資料・CIの成功は、新しい実学校資料の精度や利用者のiPhone/AltStore更新操作の成功率ではない。
 
-レビュー後の最新ソースa0fed9bをLinuxで再実行し、Swift509件・失敗0（114.355秒、準備/build込み360.7秒）。本番run39149191816のDistribution job117739164318もPython262件・失敗0・予定skip21（85.731秒）で成功。ローカルのskip2とCIのskip21は実行環境の違いであり、予定skipを成功件数へ足さない。Apple UI・ビルド・公開の全15終端は確認中。
+レビュー後の最新ソースa0fed9bをLinuxで再実行し、Swift509件・失敗0（114.355秒、準備/build込み360.7秒）。本番run39149191816のDistribution job117739164318もPython262件・失敗0・予定skip21（85.731秒）で成功。ローカルのskip2とCIのskip21は実行環境の違いであり、予定skipを成功件数へ足さない。この時点ではApple UI・ビルド・公開の全15終端を確認中だった。正式414の終端結果は末尾に記録する。
 
 正式411のiOS27訂正UIは、原本変更ケース218.800秒、3項目/4項目拒否423.855秒で各1件・失敗0、選択したXCTestの正確な完了照合も成功。別OS・残りケース・正式公開へ加算して完了とはしない。
 
@@ -42,3 +42,11 @@ PDF Strictの本文・入口・通過経路、通常Parser33・試験/返却32�
 
 
 正式412／run39152448603は全終端で、13事前gateが成功、26Aの後続通知case1件が失敗し公開skip。通常26Aの14件は失敗0（1499.660秒）、単項目訂正26も成功した。通知rowの実label中心へのtap後も設定画面に留まるU75と同じ段階を観測した。製品を変更せず、同じ実native labelへ0.1秒の接触一回を行う候補を次の正式413で検査する。10秒の遷移・実Allow・保存・新規通知1件とrevision証明を維持。Swift UI構文・catalog整合、UI manifest27件（Swift指定・skipなし）とrunner13件が失敗0、fresh68にblockingなし。下位原因・恒常的解消は未確定。
+
+## 2026-10-19 正式414.1の公開完了
+
+source `6c054df5c590dd5d6d05f2cca06936d79855df99`、[run39169498233・attempt1](https://github.com/n624-dev/takupoke-ios/actions/runs/39169498233)の全15必須チェックが成功し、[0.1.414（414.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.414-build.414.1)を通常Release／Latestとして公開した。Native587件・予定skip1、Python262件・予定skip21はいずれも失敗0。両OSそれぞれの通常UIと訂正4ケース、実ピッカー、iPhone Release buildと公開直前の同一ソースゲートが成功した。
+
+認証なしで4添付を取得し、全ハッシュ・IPA内部の版／ソース・固定AltStore Sourceの実bytesを照合。Source／Bundle ID、最低OSと権限は410.1と同一で、Sourceの版が414へ上昇した。保存用Actions artifactは0件。製品Takupoke全体はレビュー済みa0fed9bとbytes一致し、414の追加差分はテスト補助・記録だけである。
+
+N47の除外操作・単項目訂正、N48の通知画面遷移、N49の初回設定tabとN50で未完了だった実許可を含め、この同一の正式実行の全必須条件を満たした。27単独比較N50はfailureの記録を保持し、別実行の成功へ読み替えない。単独成功をAXの恒常的解消や実資料の品質へ一般化しない。物理iPhoneのAltStore更新・学内standard／Microsoft callbackの新フロー・実資料改善は今回未確認。学校PDFは再取得していない。

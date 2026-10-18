@@ -8001,6 +8001,23 @@ bfefc8c798ace4bb764d3cff6f0299fe1fbae2bd、run39166116513・attempt1／job117789
 
 ## 2026-10-19 N49候補の26比較成功と正式全体への確認
 
-[比較run39167760582](https://github.com/n624-dev/takupoke-ios/actions/runs/39167760582)・attempt1／aa1be44676497a75249bbeaf9359387f2eaf71fcはsuccess終端。SDK27.0／実Runtime26.5、既存testNotificationControlsAndAppearance一件222.888秒・skip0・失敗0、選択と完了の厳密照合も成功した。元と同じ設定iconの一点・一回0.1秒操作、45秒selected、通知行10秒、実Switch・Allow・callback・UI／保存値・再起動保持・外観設定が通過した。製品Takupokeと全期待値はa0fed9bから変更していない。
+[比較run39167760582](https://github.com/n624-dev/takupoke-ios/actions/runs/39167760582)・attempt1／aa1be44676497a75249bbeaf9359387f2eaf71fcはsuccess終端。SDK27.0／実Runtime26.5、既存testNotificationControlsAndAppearance一件222.888秒・skip0・失敗0、選択と完了の厳密照合も成功した。元と同じ設定iconの一点・一回0.1秒操作、45秒selected、通知行10秒、実Switch・Allow・callback・UI／保存値・再起動保持・外観設定が通過した。製品Takupokeと既存の合格条件はa0fed9bから変更していない。
 
 27の単独比較N50は実許可未返答のfailureとして残す。今回の26成功で救済せず、原因や恒常的解消も断定しない。次の正式414では、通常の前提case群と全15公開条件を維持して実許可を両OSで再検証する。単独の小さい成功と正式全体の合格・公開を区別する。
+
+## 2026-10-19 正式414.1の公開完了
+
+source `6c054df5c590dd5d6d05f2cca06936d79855df99`、[run39169498233・attempt1](https://github.com/n624-dev/takupoke-ios/actions/runs/39169498233)の全15必須チェックが成功し、[0.1.414（414.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.414-build.414.1)を通常Release／Latestとして公開した。Native587件・予定skip1、Python262件・予定skip21はいずれも失敗0。両OSそれぞれの通常UIと訂正4ケース、実ピッカー、iPhone Release buildと公開直前の同一ソースゲートが成功した。
+
+認証なしで4添付を取得し、全ハッシュ・IPA内部の版／ソース・固定AltStore Sourceの実bytesを照合。Source／Bundle ID、最低OSと権限は410.1と同一で、Sourceの版が414へ上昇した。保存用Actions artifactは0件。製品Takupoke全体はレビュー済みa0fed9bとbytes一致し、414の追加差分はテスト補助・記録だけである。
+
+N47の除外操作・単項目訂正、N48の通知画面遷移、N49の初回設定tabとN50で未完了だった実許可を含め、この同一の正式実行の全必須条件を満たした。27単独比較N50はfailureの記録を保持し、別実行の成功へ読み替えない。単独成功をAXの恒常的解消や実資料の品質へ一般化しない。物理iPhoneのAltStore更新・学内standard／Microsoft callbackの新フロー・実資料改善は今回未確認。学校PDFは再取得していない。
+
+公開4添付の匿名SHA-256照合：
+
+| 添付 | SHA-256 |
+| --- | --- |
+| altstore-source.json | `7d18ef41a22ac208b19e2b328fb21d187ffc84d4e3fb1ce844a305916d0a8faf` |
+| icon.png | `7ed41c1462f9bd46427b11e1045caddd95c10bea459a5984298c60776ab6177f` |
+| release.json | `0d8e157cf532ea26199472e058c063ee54e9dbac22e35e5013b3073088add911` |
+| takupoke.ipa | `c742b96e3dd39b644ecaa36782adab0945b63a1f99bb4c09fc04eaf69bbad8ab` |
