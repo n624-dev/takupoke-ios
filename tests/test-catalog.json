@@ -512,7 +512,8 @@
       ],
       "checks": [
         "tests/MaterialPickerLayoutTests.swift",
-        "tests/ui/MaterialPickerTapChecks.swift"
+        "tests/ui/MaterialPickerTapChecks.swift",
+        "tests/test_picker_ui_runner.py"
       ]
     },
     {

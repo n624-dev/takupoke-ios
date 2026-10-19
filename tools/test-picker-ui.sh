@@ -24,15 +24,19 @@ PY
 )
 simulator_id="$(xcrun simctl create "Takupoke Picker Checks" "$device_type" "$runtime")"
 python3 -B tools/picker_test_project.py "$scratch_dir"
+# Match the application UI runner: compile while this owned device is still
+# shut down, then boot and run the same three cases using that exact build.
+xcode_args=(-project "$scratch_dir/PickerChecks.xcodeproj" -scheme PickerChecks
+    -destination "platform=iOS Simulator,id=$simulator_id"
+    -derivedDataPath "$scratch_dir/DerivedData"
+    -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1
+    -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES)
+python3 -B tools/timed_command.py "Picker build for testing" xcodebuild "${xcode_args[@]}" build-for-testing
 xcrun simctl boot "$simulator_id"
 python3 -B tools/timed_command.py "Picker simulator boot" xcrun simctl bootstatus "$simulator_id" -b
 set +e
-python3 -B tools/timed_command.py "Picker UI" xcodebuild -project "$scratch_dir/PickerChecks.xcodeproj" -scheme PickerChecks \
-    -destination "platform=iOS Simulator,id=$simulator_id" \
-    -derivedDataPath "$scratch_dir/DerivedData" \
-    -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
-    -collect-test-diagnostics never \
-    CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES test 2>&1 | tee "$scratch_dir/picker-ui.log"
+python3 -B tools/timed_command.py "Picker UI" xcodebuild "${xcode_args[@]}" test-without-building \
+    2>&1 | tee "$scratch_dir/picker-ui.log"
 ui_status=$?
 set -e
 app_data="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.picker-checks data)"

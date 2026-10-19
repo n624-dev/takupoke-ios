@@ -21,11 +21,32 @@ on:
         description: Verify direct PDF visibility on both supported Apple SDKs without publishing
         type: boolean
         default: false
+      picker:
+        description: Compare picker preparation without publishing
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
+  picker:
+    name: Development picker preparation comparison
+    if: github.event_name == 'workflow_dispatch' && inputs.picker
+    runs-on: xcode-27
+    timeout-minutes: 25
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Require the exact source and unchanged simulator SDK
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(xcrun --sdk iphonesimulator --show-sdk-version)" = 27.0
+      - name: Run all three picker cases and transition checks in owned scratch
+        run: bash tools/test-picker-ui.sh
   native-pdf:
     name: Development native PDF SDK ${{ matrix.sdk }}
     if: github.event_name == 'workflow_dispatch' && inputs.native_pdf

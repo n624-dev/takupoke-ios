@@ -1,3 +1,17 @@
+## N53 正式416の公開ジョブがfailure終端（2026-10-20）
+
+- sourcec8bc05136c11c53a9df18ac28b5593ac1cb8a970、run39277679329／attempt1、SDK27.0、公開job118197006764。17:16:18Z開始・17:33:03Z failure、17:40:11Zのまとめ照会で全実job終端を確認。失敗step・段階・原因と、Releaseの実際の公開状態は完了ログ取得前で未確定。
+- 同じsource/attemptの14事前検査はすべて成功したが、全15必須の成功・公開確認には数えない。旧415やfocusの成功と合算せず、取消しも行っていない。
+- 対処前に事実を記録。新完了ログと過去の同step／同ケース・当時／現行コードを照合してから候補を決める。公開条件・検査・待機の緩和、結果注入、押し直し、時間切れ成功、根拠のない同条件再試行はしない。Strict本文・全入口／通過経路は維持する。
+
+- 完了ログSHAee735b1be299572cd2fdb6715d9461c1d654f323dddc3c324bbeb1a74613ab9c。Build unsigned IPA and matching AltStore Source内のPicker UIが失敗した。SDK27.0／iOS27、testReselectionThroughActualButtonsは260.666秒、MaterialPickerTapChecks.swift:157の標準Cancel存在30秒待機が失敗。ほか2ケースは成功、3件445.015秒／失敗1。実ボタン操作後の案内は存在するが、AXには標準Filesの操作部品がなく空containerだった。具体的な下位原因は未確定。
+- 公開前照合とRelease添付stepはskipped、416は公開されていない。全15実job終端・保存artifact0を確認した。14事前成功（Native591件・予定skip1、Python262件・予定skip21、通常UI4組・訂正8件）は今回の失敗を置き換えない。
+
+- 検索語：MaterialPickerTapChecks／Picker／Cancel／選び直し／ファイル選択。現索引に同じCancel存在待機の登録はない。verificationの2026-09-29／09-30、失敗監査のPicker群とe6b431a／9dcc93bの実コードを照合した。旧件は要求の破棄・appearance・対象viewportであり、今回は5回目の表示でBUTTONとUIKit表示完了が記録され、案内だけ存在する。スクロール不成立や要求未発火を原因としない。
+- 比較候補は製品ではなく準備手順に限定する。今回の初回bootは218.0秒で、その後に稼働中SimulatorとテストアプリのSwiftコンパイルが同居した。既存application UI runnerと同じく、停止中の所有Simulator向けにbuild-for-testingを完了し、その後bootstatus・同じビルドのtest-without-buildingへ分ける。初期化とコンパイルの競合を除く比較で、原因・改善は未確定。SDK27.0／Runtime27.0、元3ケースと全連続操作、Cancel30秒、厳密な完了件数と遷移検査は維持する。失敗時の同条件押し直し・自動再試行はしない。独立したshell比較でビルド／boot／実行失敗・欠落／重複／skip／遷移不成立をすべて拒否してから、限定Apple比較で評価する。
+
+- 候補のLinux shell比較は1メソッド・8独立モードが成功（2.759秒）。ビルド／boot失敗で実行しないこと、同一引数のビルド再利用、UI非zeroと欠落・重複・skipの拒否、遷移失敗の拒否と所有領域の回収を確認した。catalog432とBash構文も成功。fresh75の対象コード差分レビューはblockingなし。標準FilesとCancelの実動作はLinuxでは確認しておらず、次の限定Apple比較を待つ。
+
 ## N52 正式415のiOS27三項目訂正がfailure終端（2026-10-19）
 
 - source095e4d9f69718f37a08b5640d951bf82ea8b5460、run39267940809／attempt1、iOS27／SDK27.0、job118113079971。14:21:13Z開始・14:39:31Z failure、14:53:39Zのまとめ照会で確認。ケースはtestThreeFieldsRequireEachAcknowledgementAndFourRefuses。失敗段階・原因は完了ログ取得前で未確定。
