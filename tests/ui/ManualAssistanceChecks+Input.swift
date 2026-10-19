@@ -72,7 +72,13 @@ extension ManualAssistanceChecks {
         }
         XCTAssertEqual(cleared,.completed,"Native clear must remove the entire previous input")
         guard cleared == .completed else { return }
-        XCTAssertEqual(ack(id).value as? String,"0","Clearing text must revoke prior acknowledgement")
+        // N52: the clear action can recycle a SwiftUI row. Resolve the current
+        // native control once instead of re-evaluating an absent/stale firstMatch.
+        let clearedAcknowledgements=app.switches.matching(identifier:"manual-ack-"+id).allElementsBoundByIndex
+        guard clearedAcknowledgements.count==1 else {
+            XCTFail("Cleared input must have one native acknowledgement control; matches=\(clearedAcknowledgements.count)");return
+        }
+        XCTAssertEqual(clearedAcknowledgements[0].value as? String,"0","Clearing text must revoke prior acknowledgement")
         // The real clear button focuses its associated native editor. Open
         // the keyboard through that action, after locating the complete44px
         // control, instead of covering it by focusing the text field first.
