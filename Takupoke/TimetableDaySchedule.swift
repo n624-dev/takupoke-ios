@@ -20,6 +20,8 @@ struct TimetableDaySchedule {
                                                   timetable: timetable, changes: changes,
                                                   includesChanges: includesChanges, events: events,
                                                   specials: specials)
+                    .filteringChanges(isInternationalStudent: international,
+                                      matchedByRule: matchedByRule)
                 let visible = slot.displayedLessons.contains { TimetableSchedule.shouldDisplay($0, isInternationalStudent: international,
                                                                                                 matchedByRule: matchedByRule) } ||
                     slot.displayedSpecialLessons.contains { TimetableSchedule.shouldDisplay($0, isInternationalStudent: international,

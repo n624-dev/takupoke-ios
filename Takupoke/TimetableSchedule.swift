@@ -66,6 +66,15 @@ enum TimetableSchedule {
         /// remain available for the detail sheet, including parallel lessons.
         var displayedLessons: [PDFLesson] { changes.isEmpty ? baseLessons : [] }
         var displayedSpecialLessons: [SpecialItem] { changes.isEmpty ? specialLessons : [] }
+
+        /// Apply the display scope before deciding whether a change replaces
+        /// a lesson. The unfiltered slot remains available to detail views.
+        func filteringChanges(isInternationalStudent: Bool,
+                              matchedByRule: ((String, String) -> Bool)? = nil) -> Slot {
+            Slot(baseLessons: baseLessons, specialLessons: specialLessons,
+                 changes: changes.filter { TimetableSchedule.shouldDisplay($0,
+                     isInternationalStudent: isInternationalStudent, matchedByRule: matchedByRule) })
+        }
     }
 
     /// Match the merged-week source: the last makeup wins; otherwise the last row wins.

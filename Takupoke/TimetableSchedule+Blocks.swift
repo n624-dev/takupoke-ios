@@ -26,6 +26,8 @@ extension TimetableSchedule {
         for period in 1...8 {
             let item = slot(on: day, period: period, className: className, timetable: timetable,
                             changes: changes, includesChanges: includesChanges, events: events, specials: specials)
+                .filteringChanges(isInternationalStudent: isInternationalStudent,
+                                  matchedByRule: matchedByRule)
             for lesson in item.displayedLessons where shouldDisplay(lesson, isInternationalStudent: isInternationalStudent,
                                                                     matchedByRule: matchedByRule) {
                 if let previous = result.indices.last(where: { index in

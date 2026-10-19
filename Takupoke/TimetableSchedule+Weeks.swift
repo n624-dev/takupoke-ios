@@ -15,6 +15,8 @@ extension TimetableSchedule {
                     let item = slot(on: day, period: period, className: className, timetable: timetable,
                                     changes: changes, includesChanges: includesChanges, events: events,
                                     specials: specials)
+                        .filteringChanges(isInternationalStudent: isInternationalStudent,
+                                          matchedByRule: matchedByRule)
                     return item.displayedLessons.contains { shouldDisplay($0, isInternationalStudent: isInternationalStudent,
                                                                             matchedByRule: matchedByRule) } ||
                         item.displayedSpecialLessons.contains { shouldDisplay($0, isInternationalStudent: isInternationalStudent,
