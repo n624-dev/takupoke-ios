@@ -1,3 +1,16 @@
+## N54 正式417のiOS27単項目訂正がfailure終端（2026-10-20）
+
+- source5dc52055dbcbf05f1a141c0f9159c5a57bff163c、run39299509568／attempt1、SDK27.0／iOS27、job118221535692。18:06:32Z開始・18:31:12Z failure、18:35頃のまとめ照会で確認。選択caseはtestOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground。失敗段階・原因は完了ログ未読で未確定。
+- 対処前に事実を記録した。Distribution・Native・原本変更訂正・三項目訂正27は成功、通常UI A/Bと明示訂正27は継続中。取消しは行わず全終端まで確認する。417は全15必須の成功が揃わず、この時点で公開できない。
+- 新完了ログと同ケース／同操作段階の過去詳細・実コードを照合してから候補を決める。N53の準備変更はまだ正式Pickerに到達しておらず、今回の失敗へ因果を推測しない。Strict本文・入口・通過経路、期待値・期限・実操作を変更せず、押し直しや無根拠の同条件再実行をしない。
+
+- 完了ログSHA1c7160e69c69f28fe72b79f8e7e30025575b755c4d9818e1e41e14a5f32a5b00。857.626秒・1件失敗。入力・ACK・実背景／復帰・再入力後のreview遷移までは進み、比較不能表示manual-comparison-unavailableを探すvisibleのNavigation.swift:48 target.existsがsnapshot timeoutになった。最初の非存在から一回の実scroll後も対象がvirtualizedで、629.60秒からAX照会が停止した。比較不能表示の可視確認とその後の採用／保存は完了したと扱わない。下位原因は未確定。
+
+- 検索語：Navigation.swift:48／manual-comparison-unavailable／target.exists／knownID／snapshot。N35・U11・U17・U62・U67・U72を詳細まで読み、引継ぎ8bf6c8aのNavigation／Reviewと現行を照合した。Reviewは引継ぎと同一で、既知IDを渡さずfirstMatch.existsを評価していた。N35は必須ACK、今回は比較不能の必須表示で、診断ではないため省略しない。
+- 候補はReview内の明示された6つの識別IDに、既存visibleのknownID引数を渡すだけ。画面外の非存在firstMatchへexistsを照会せず、現在の一致要素配列から実要素を取得する。本文期待値の行は元のlabel検索を維持する。16回scroll・有限frame・viewport全包含・hittable、全review値と比較不能表示の必須確認、20秒状態待機、同一process・実入力／ACK・採用／保存を維持する。製品やshared navigation本体、Strict全経路を編集しない。元単項目caseが今回の失敗を検出しており、両OSの同じcaseで候補を比較する。新しい期待値や成功値を注入しない。効果と下位原因の解消は未確認。
+
+- Linuxの生成／契約17件（0.398秒）と既存ナビゲーション検査2件・実Swift geometry27件（失敗0、準備込み2.196秒）、Swift UI構文解析、catalog432が成功した。元caseが比較不能表示とその後の採用・保存を実際に検査するため重複ケースを増やさず、両OSの同じ単項目caseを限定比較する。fresh77のコード差分レビューはblockingなし。実UI成功と根本原因解消はまだ未確認。
+
 ## N53 正式416の公開ジョブがfailure終端（2026-10-20）
 
 - sourcec8bc05136c11c53a9df18ac28b5593ac1cb8a970、run39277679329／attempt1、SDK27.0、公開job118197006764。17:16:18Z開始・17:33:03Z failure、17:40:11Zのまとめ照会で全実job終端を確認。失敗step・段階・原因と、Releaseの実際の公開状態は完了ログ取得前で未確定。

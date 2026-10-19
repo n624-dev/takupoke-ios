@@ -21,13 +21,13 @@ extension ManualAssistanceChecks {
         // position. A virtualized header has no usable frame; start toward the
         // top until actual offscreen geometry can determine a direction.
         let list=app.collectionViews["manual-recovery-list"]
-        _=visible(list.staticTexts["manual-review-header"].firstMatch,towardTop:true)
+        _=visible(list.staticTexts["manual-review-header"].firstMatch,towardTop:true,knownID:"manual-review-header")
         for value in expected { _=visible(app.staticTexts[value].firstMatch) }
         if comparable {
-            XCTAssertEqual(visible(app.staticTexts["manual-comparison-available"].firstMatch).label,"本文の変更: 1箇所")
-            XCTAssertTrue(visible(app.staticTexts["manual-change-before"].firstMatch).label.contains("架空科"))
-            XCTAssertTrue(visible(app.staticTexts["manual-change-after"].firstMatch).label.contains(expected[0]))
-        } else { _=visible(app.staticTexts["manual-comparison-unavailable"].firstMatch) }
+            XCTAssertEqual(visible(app.staticTexts["manual-comparison-available"].firstMatch,knownID:"manual-comparison-available").label,"本文の変更: 1箇所")
+            XCTAssertTrue(visible(app.staticTexts["manual-change-before"].firstMatch,knownID:"manual-change-before").label.contains("架空科"))
+            XCTAssertTrue(visible(app.staticTexts["manual-change-after"].firstMatch,knownID:"manual-change-after").label.contains(expected[0]))
+        } else { _=visible(app.staticTexts["manual-comparison-unavailable"].firstMatch,knownID:"manual-comparison-unavailable") }
     }
     func inspectSource(_ id:String) {
         visible(app.buttons["manual-zoom-"+id]).tap()
@@ -58,7 +58,7 @@ extension ManualAssistanceChecks {
         emitEvents()
         if outcome != .completed { print("TAKUPOKE-MANUAL-PREVIEW-FAIL " + app.debugDescription) }
         XCTAssertEqual(outcome,.completed,app.debugDescription)
-        let header=visible(app.collectionViews["manual-recovery-list"].staticTexts["manual-preview-header"].firstMatch,towardTop:true)
+        let header=visible(app.collectionViews["manual-recovery-list"].staticTexts["manual-preview-header"].firstMatch,towardTop:true,knownID:"manual-preview-header")
         XCTAssertEqual(header.label,"採用する資料全体",app.debugDescription)
     }
     func fieldsExist()->Bool {
