@@ -2042,3 +2042,14 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 ## N47〜N50 候補差分の正式414での結果
 
 [run39169498233・attempt1](https://github.com/n624-dev/takupoke-ios/actions/runs/39169498233)／source `6c054df5c590dd5d6d05f2cca06936d79855df99`は、両OSの通常A/Bと訂正4ケースを含む全15必須チェックが成功。候補は観測範囲に基づくbounded drag、追加診断照会の削除、通知行の一回接触とQA panelの入力対象の限定。この正式実行では除外操作・単項目訂正・設定tabと実許可／配信が通過した。N49のQA panelは実checkPermission開始までpassiveにし、26の小さい比較は成功したが27単独比較N50は未返答で失敗した事実を残す。製品・期待条件は維持し、同じAX症状の恒常的解消とは断定しない。
+
+## N55 正式418の選択訂正27と通常UI26Bで失敗（2026-10-20確認）
+
+- source882a9c2b762fd735e3c5599d1a8d457f2c43d95d、run39308527009／attempt1。全実ジョブ終端、公開ジョブskipped。
+- Manual correction iOS27 / testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch（job118252477631）とApplication iOS26 UI B（job118270964051）がfailure。具体的操作・原因は完了ログ照合前で未確定。依存する訂正26の4ケースは展開されず、成功に数えない。
+- 対処を決める前に事実を記録。新しい完了ログだけを保存し、過去の同名ケース・操作の詳細とコードを照合する。正常Strict・入口・通過経路は変更しない。
+
+- 完了ログ照合：27選択訂正はケース開始・完了0、Runnerのbootstrap中にEarly unexpected exit／XCTWaiter(StallHandling)で終了。ビルド142.4秒は成功し、実訂正には未到達。2026-10-09診断37974710845（verification）と同じ開始前の症状で、製品の訂正失敗とは数えない。現runnerはboot後にコンパイルするが、既存App／Picker runnerは停止中にビルドする。次はManualも同じ順に揃え、同一ビルド・全操作・厳密な完了条件を維持して比較する。原因確定ではない。
+- 26BはtestLinkPreferencesSurviveRelaunchの最初の解除で87.134秒失敗。実row・hittable・全表示を確認し一回2秒長押ししたが、45秒内にメニューなし。失敗画像127723bytes／SHA256 7af983702f67c677ec14f54a1984e9a484086e90888152e7ed03bea0d8ee461aを照合すると架空URLのSafari画面へ遷移しており、AXの一覧だけから画面が変わらなかったとは判断しない。
+- 検索語LinkPreferences／長押し／bootstrap／StallHandlingでN44・U42・U54とverificationの2026-10-09／10-11詳細、当時e4f2fbf／bf1749aと現LinkRow／Settings.swiftを照合した。U42と同じprimary actionへの遷移が、interaction形状の追加とN44観測順序変更後にも再発した。操作点を往復しない。
+- 次の比較は製品の標準Menu(primaryAction:)へタップと長押しを同じ所有controlとしてまとめる。Apple公式Menu文書はtap/clickをprimary action、long pressをmenu表示として明記する（https://developer.apple.com/documentation/swiftui/menu）。Button＋別contextMenuの組合せから変更し、実メニューの解除・追加、再起動保持と45秒、長押し一回を維持する。候補の実効果・下位原因は未確認。Strictには触れない。

@@ -59,30 +59,7 @@ struct LinkRow: View {
     }
 
     var body: some View {
-        Button { open() } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "link")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .frame(width: 34, height: 34)
-                    .background(LinkPalette.color(model.color(for: item)), in: RoundedRectangle(cornerRadius: 9))
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.label).foregroundStyle(.primary)
-                    if let subtitle { Text(subtitle).font(.caption).foregroundStyle(.secondary) }
-                }
-                Spacer(minLength: 4)
-                if model.isFavorite(item.id) {
-                    Image(systemName: "star.fill").foregroundStyle(.yellow).accessibilityLabel("お気に入り")
-                }
-                Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .contentShape(.interaction, Rectangle())
-        .contextMenu {
+        Menu {
             if item.url?.scheme?.lowercased() == "https" {
                 Button {
                     open(opposite: true)
@@ -113,7 +90,32 @@ struct LinkRow: View {
                     Label("非表示", systemImage: "eye.slash")
                 }
             }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "link")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .frame(width: 34, height: 34)
+                    .background(LinkPalette.color(model.color(for: item)), in: RoundedRectangle(cornerRadius: 9))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.label).foregroundStyle(.primary)
+                    if let subtitle { Text(subtitle).font(.caption).foregroundStyle(.secondary) }
+                }
+                Spacer(minLength: 4)
+                if model.isFavorite(item.id) {
+                    Image(systemName: "star.fill").foregroundStyle(.yellow).accessibilityLabel("お気に入り")
+                }
+                Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+            }
+            .contentShape(Rectangle())
+        } primaryAction: {
+            open()
         }
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .contentShape(.interaction, Rectangle())
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             if model.preferencesReady {
                 Button(role: .destructive) { model.hide(item.id) } label: {

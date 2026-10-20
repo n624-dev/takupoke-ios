@@ -61,6 +61,17 @@ elif args[:2] == ['simctl', 'create']: print('fictional-owned-simulator')
             recorded = [json.loads(line) for line in calls.read_text().splitlines()]
             self.assertEqual(list((root / "scratch").iterdir()), [])
             self.assertIn(["xcrun", "simctl", "delete", "fictional-owned-simulator"], recorded)
+            build = next(i for i, call in enumerate(recorded)
+                         if call[0] == "xcodebuild" and call[-1] == "build-for-testing")
+            boots = [i for i, call in enumerate(recorded) if call[:3] == ["xcrun", "simctl", "boot"]]
+            if build_status:
+                self.assertEqual(boots, [])
+            else:
+                self.assertEqual(len(boots), 1)
+                run = next(i for i, call in enumerate(recorded)
+                           if call[0] == "xcodebuild" and call[-1] == "test-without-building")
+                self.assertLess(build, boots[0])
+                self.assertLess(boots[0], run)
             return result, [call for call in recorded if call[0] == "xcodebuild"]
 
     def test_whole_suite_uses_one_successful_owned_build(self):

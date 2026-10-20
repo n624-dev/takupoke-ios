@@ -283,6 +283,26 @@ extension ApplicationChecks {
         let restored = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "架空リンクA")).firstMatch
         XCTAssertTrue(restored.waitForExistence(timeout: 10))
         linkContextAction(restored, title: "お気に入りに追加")
+        // The same native control must keep its primary tap action, too.
+        XCTAssertTrue(restored.waitForExistence(timeout: 10))
+        guard restored.isHittable else {
+            XCTFail("Restored link is not hittable after adding its favorite")
+            return
+        }
+        restored.tap()
+        let browser = app.otherElements.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "BrowserView?")).firstMatch
+        XCTAssertTrue(browser.waitForExistence(timeout: 30), app.debugDescription)
+        let close = app.buttons["Close"]
+        guard close.waitForExistence(timeout: 10), close.isHittable else {
+            XCTFail("The primary tap did not present the native browser close control")
+            return
+        }
+        close.tap()
+        XCTAssertTrue(browser.waitForNonExistence(timeout: 10))
+        let list = app.navigationBars["一覧"]
+        XCTAssertTrue(list.waitForExistence(timeout: 10))
+        XCTAssertTrue(list.isHittable)
     }
     private func linkContextAction(_ link: XCUIElement, title: String) {
         let bar = app.navigationBars["一覧"]

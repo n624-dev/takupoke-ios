@@ -43,8 +43,6 @@ print(device['identifier'],runtime['identifier'])
 PY
 read -r device_type runtime < "$scratch_dir/destination"
 simulator_id="$(xcrun simctl create 'Takupoke Manual Checks' "$device_type" "$runtime")"
-xcrun simctl boot "$simulator_id"
-python3 -B tools/timed_command.py 'Manual simulator boot' xcrun simctl bootstatus "$simulator_id" -b
 diagnostic_args=(-collect-test-diagnostics never)
 if [[ "${TKPK_MANUAL_DIAGNOSTICS:-0}" == 1 ]]; then
     # The owned result bundle and bounded collector retain XCTest failures.
@@ -63,6 +61,10 @@ build_args=(
 # SDKs and generated source configurations never share it.
 python3 -B tools/timed_command.py 'Manual UI build' xcodebuild \
     "${build_args[@]}" build-for-testing
+# Complete compilation before the owned simulator's first startup, as in
+# the application and picker runners. Reuse this exact successful build.
+xcrun simctl boot "$simulator_id"
+python3 -B tools/timed_command.py 'Manual simulator boot' xcrun simctl bootstatus "$simulator_id" -b
 python3 -B tools/timed_command.py 'Manual UI checks without rebuilding' xcodebuild \
     "${build_args[@]}" "${diagnostic_args[@]}" "$only_testing" test-without-building \
     2>&1 | tee "$scratch_dir/manual-ui.log"
