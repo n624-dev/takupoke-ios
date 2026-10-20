@@ -2053,3 +2053,5 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - 26BはtestLinkPreferencesSurviveRelaunchの最初の解除で87.134秒失敗。実row・hittable・全表示を確認し一回2秒長押ししたが、45秒内にメニューなし。失敗画像127723bytes／SHA256 7af983702f67c677ec14f54a1984e9a484086e90888152e7ed03bea0d8ee461aを照合すると架空URLのSafari画面へ遷移しており、AXの一覧だけから画面が変わらなかったとは判断しない。
 - 検索語LinkPreferences／長押し／bootstrap／StallHandlingでN44・U42・U54とverificationの2026-10-09／10-11詳細、当時e4f2fbf／bf1749aと現LinkRow／Settings.swiftを照合した。U42と同じprimary actionへの遷移が、interaction形状の追加とN44観測順序変更後にも再発した。操作点を往復しない。
 - 次の比較は製品の標準Menu(primaryAction:)へタップと長押しを同じ所有controlとしてまとめる。Apple公式Menu文書はtap/clickをprimary action、long pressをmenu表示として明記する（https://developer.apple.com/documentation/swiftui/menu）。Button＋別contextMenuの組合せから変更し、実メニューの解除・追加、再起動保持と45秒、長押し一回を維持する。候補の実効果・下位原因は未確認。Strictには触れない。
+
+- N55候補の両OS限定比較は、リンクrun39392202975と元選択訂正run39392461496・各試行1で全job成功・artifact0。元の実操作と追加したprimary tap／nativeブラウザ／Close復帰を確認し、正確な完了件数・logを照合した。正式の同source全15と公開は次に確認し、限定成功や旧418を全体合格へ流用しない。
