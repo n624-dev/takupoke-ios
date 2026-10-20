@@ -20,12 +20,11 @@
 
 ## 最新の確認状況
 
-- 通常配布版：[0.1.414（414.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.414-build.414.1)。配布ソース`6c054df5c590dd5d6d05f2cca06936d79855df99`、通常Parser33・試験／返却32。
-  行除外の原本再取得・全体再解析と失敗時保持、ホーム正式名称、シラバス11区分、取得対象選択と一覧専用学内認証を含みます。
-  [全体414・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/39169498233)は同一ソースの全15必須チェックが成功。
-  Native587件（予定skip1）・Python262件（予定skip21）は失敗0、両OSの通常UI4組・手動訂正8ケース、実ピッカーとiPhoneビルドも成功。
-  公開4添付を匿名取得して全ハッシュ・IPA内部・固定Sourceを照合し、Source／Bundle ID・最低OS・権限は410.1と一致しました。保存用Actions artifactは0件です。
-  Strictの本体・入口／通過経路と追加モデルは変更していません。物理iPhoneのSource更新、新認証の実機完了、実資料精度は未確認です。[詳細記録](account-links-changes-20261019.md)。
+- 正式配布：[0.1.419（419.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.419-build.419.1)を通常Release・Latestとして公開し、固定AltStore Sourceを更新しました。
+  非表示の留学生向け変更が通常・試験／返却授業を消す問題を修正し、一覧リンクを標準Menuへ統一しました。
+  [同一ソースのCI](https://github.com/n624-dev/takupoke-ios/actions/runs/39397264222)全15必須チェック・全job終端・保存artifact0、Native591件（予定skip1）・Python263件（予定skip21）の失敗0を確認しました。
+  両OS通常UI4組・訂正8ケース・実Picker・iPhoneビルドと、匿名4添付／IPA内部／固定Sourceの照合が成功。Strict本文・全入口／経路と追加モデルは不変です。
+  独立架空入力・CI・公開物照合と、物理iPhoneの更新・修正再確認・学校OCR品質は区別します。後者は未確認です。[詳細](verification.md)。
 - 実資料と実機：394.1で通常・試験・返却の解析が戻った利用者報告があります。396.1の返却見出し混入は継続しました。
   今回添付された返却PDFの位置関係をローカルで調べ、クラス欄が下段見出し帯まで結合する混入経路に対処しました。
   3添付のローカル作業用PDFは確認後に削除し、本文・画像・座標ファイルは作成していません。

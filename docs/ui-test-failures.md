@@ -1,3 +1,8 @@
+## N51〜N55の正式419.1での確認結果
+
+- source1e3fe81ecad3890ba9086b88c0b0afb373ea5688／run39397264222・試行1の全15必須成功・全job終端・保存artifact0を確認し公開。Nativeの新4回帰、両OS通常UI・訂正8件、実Picker・iPhoneビルドも成功。匿名4添付／IPA内部／固定Sourceを照合した。
+- N55候補の限定2実行は両OSとも成功し、元リンクの長押し・再起動保持と追加のprimary tap／Close復帰、元選択訂正caseの実入力／ACK／採用／保存を確認した。限定成功を正式検証へ合算せず、旧415〜418の失敗も保持する。AX・Files・bootstrapの下位原因や恒常的解消は断定しない。修正版の実機再確認は未確認。
+
 ## N54 正式417のiOS27単項目訂正がfailure終端（2026-10-20）
 
 - source5dc52055dbcbf05f1a141c0f9159c5a57bff163c、run39299509568／attempt1、SDK27.0／iOS27、job118221535692。18:06:32Z開始・18:31:12Z failure、18:35頃のまとめ照会で確認。選択caseはtestOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground。失敗段階・原因は完了ログ未読で未確定。

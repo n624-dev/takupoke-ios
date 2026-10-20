@@ -1,3 +1,25 @@
+## 2026-10-20 留学生向け変更の空欄修正を419.1へ公開
+
+source `1e3fe81ecad3890ba9086b88c0b0afb373ea5688`、[run39397264222・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/39397264222)の全15必須チェックが成功、全job終端・保存Actions artifact0。公開後に通常Release／Latestと固定AltStore Sourceを照合した。
+
+N51の原因は、非表示の変更も通常・特別授業の置換判断に含め、後から変更を隠す順序だった。表示対象の変更だけで置換を決める読取り専用projectionに修正。元のSlot・詳細・保存内容、表示対象の休講／補講の優先と試験／返却の空欄を保持する。解析・取得・保存は変更せず、再解析は不要。
+独立架空入力では変更前515件中3ケース7assertion失敗、修正後515件・失敗0。今回同sourceのNative591件（skip1／失敗0、149.136秒）で新4回帰を個別に確認した。Python263件（skip21／失敗0）。両OS通常UI・訂正8ケース、Picker3件・遷移、iPhoneビルドも同じ実行で成功した。
+
+N52のACK照会、N53のPicker準備、N54の既知ID照会の候補を継承。旧415・416・417の失敗は履歴として保持し、限定成功を今回の全体成功へ合算していない。
+N55の旧418は選択訂正27のRunner bootstrap開始前異常終了と、26Bの長押しでSafariへ進む失敗により未公開。全実job終端／artifact0を確認し、未展開の必須4名を成功や実skipに数えない。
+Manual runnerは停止中に同一buildを完成してからboot、同じbuildで実行。LinkRowはApple標準Menu(primaryAction:)へまとめ、元メニュー・行内容・スワイプを維持した。同じリンクcaseの実長押し・お気に入り解除・再起動保持・再追加を残し、実タップ→nativeブラウザ→Close→ブラウザ消失／一覧操作可能も追加。N55の両OS限定比較と今回の全15成功を別々に確認した。下位原因・OS全般の恒常的解消は未証明。
+製品の差分は表示用の時間割4ファイルとLinkRowだけで、他197製品ファイルはN51前とbytes不変。Strict本体・全入口／経路、Parser33／32、追加モデルは不変。
+
+| 添付 | bytes | SHA-256 |
+|---|---:|---|
+| altstore-source.json | 2843 | `5659d20a529ad03bfbdd873173cc257bf456be8d65ce7ab954e6ae11762589af` |
+| icon.png | 130461 | `7ed41c1462f9bd46427b11e1045caddd95c10bea459a5984298c60776ab6177f` |
+| release.json | 1054 | `e44969aa153b192fc8fdb14efb252e1f57732dfc502fc0266c5192788b3277d6` |
+| takupoke.ipa | 17097183 | `9e6d72652a6771d3229f0419828465757fd23e2ef265f2250869d35a26f34d1e` |
+
+公開4添付の全bytes／GitHub digest／ハッシュ、IPA内部のversion・build・source、固定Source実bytesが一致。Source／Bundle ID・最低OS・権限は414.1と不変。AltStoreのSource／更新一覧を更新して導入でき、再登録・削除・資料選び直しは不要。
+修正版の実機確認・物理iPhoneの更新、新認証の実機完了、学校OCR品質は未確認。利用者の切替による原因切り分けと今回の架空回帰／CI／公開物照合を区別する。学校PDFを再取得せず、資料／画像／本文は公開せず、追加学習も行っていない。
+
 ## 2026-10-20 N55の限定比較結果（正式配布前）
 
 候補source`dfb185c2ae4beb4d3d0d67bd5cd8e75c6e41d7b7`。リンク比較run39392202975・試行1は両OSの元の長押し・お気に入り解除・再起動保持・再追加と、追加した実tap→nativeブラウザ→Close→消失／一覧hittableが成功（27 154.355秒、26 135.767秒）。
