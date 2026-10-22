@@ -27,14 +27,14 @@ struct TimetablePresentation {
         guard let day = SchoolDate(iso8601: change.change_date) else {
             return ChangeSelection(change: change, baseLessons: [], baseSpecialLessons: [], relatedChanges: [])
         }
-        let periods = change.gridPeriods ?? []
+        let periods = change.detailPeriods ?? []
         let originals = periods.map { period in
             TimetableSchedule.slot(on: day, period: period, className: change.displayClassName,
                                    timetable: timetable, changes: nil, includesChanges: false,
                                    events: events, specials: specials)
         }
         let related = TimetableSchedule.changes(on: day, className: change.displayClassName, analysis: changes)
-            .filter { $0 != change && !Set($0.gridPeriods ?? []).isDisjoint(with: periods) }
+            .filter { $0 != change && !Set($0.detailPeriods ?? []).isDisjoint(with: periods) }
         return ChangeSelection(change: change, baseLessons: originals.flatMap(\.baseLessons),
                                baseSpecialLessons: originals.flatMap(\.specialLessons), relatedChanges: related)
     }

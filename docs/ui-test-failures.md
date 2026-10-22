@@ -2067,3 +2067,8 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - 次の比較は製品の標準Menu(primaryAction:)へタップと長押しを同じ所有controlとしてまとめる。Apple公式Menu文書はtap/clickをprimary action、long pressをmenu表示として明記する（https://developer.apple.com/documentation/swiftui/menu）。Button＋別contextMenuの組合せから変更し、実メニューの解除・追加、再起動保持と45秒、長押し一回を維持する。候補の実効果・下位原因は未確認。Strictには触れない。
 
 - N55候補の両OS限定比較は、リンクrun39392202975と元選択訂正run39392461496・各試行1で全job成功・artifact0。元の実操作と追加したprimary tap／nativeブラウザ／Close復帰を確認し、正確な完了件数・logを照合した。正式の同source全15と公開は次に確認し、限定成功や旧418を全体合格へ流用しない。
+## N57 Issue 41の初回Linuxコンパイルがthrow式で停止（2026-10-22）
+
+- 基点f38831e、作業ブランチcodex/fix-issues-41-43、Debian13/x86_64・Swift6.1.2、`bash tools/test-parsing.sh`の初回。製品SpecialScheduleStore.swift:42の`existingDatabase && !(try db.tableExists(...))`で、短絡演算子のrethrowsに対するtry不足をコンパイラが検出した。テスト実行前のコンパイル失敗であり、PDF削除・実資料通信・UI実行は発生していない。
+- 対処前に記録。`operator can throw|rethrows|tableExists|Swift6.1.2`で索引を照合する。候補は条件を入れ子のifへ分ける通常のSwift構文修正で、DB欠損時の停止条件や回帰期待値を変えない。次の試行の前に候補と記録をブランチへpushする。
+- 照合では同じ短絡演算子のエラーは既存記録になく、過去のLinuxコンパイル停止・SQLite異常終了とは発生箇所と段階が異なる。基点のstoreには今回追加したthrow条件自体がない。入れ子のif／guardへ分け、欠損時にthrowする判定を維持した。修正後の実行結果は未確認。

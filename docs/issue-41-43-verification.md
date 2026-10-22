@@ -1,0 +1,13 @@
+# Issue 41〜43の対応（2026-10-22）
+
+基点`f38831ea60e554f24f67f0b7107e4d376a73addf`。学校資料・実認証・本番通信は使わず、完全架空データと専用一時保存先を使った。
+
+- #41：PDFコピーが残る保存先でDBが欠損した場合、DBを新設せず停止する。既存DBの管理表欠損時にもコピーを保護する。旧specialScheduleだけのDBは、検証済みレコードが残る全コピーを説明できる場合にのみ互換読出しを維持する。新規の空保存先と正常な管理情報による不要コピー回収は維持した。
+- #42：保存先の準備完了とキャッシュの検証成功を分けた。不正JSON・revision・内容・容量上限のエラーでも利用者の更新操作へ進める。認証・応答検証・atomic保存の成功までは既存ファイルを保持する。保存先の準備失敗ではreadyにせず、保存失敗でもcurrentを更新しない。
+- #43：TimetablePresentationの変更詳細だけをdetailPeriodsに変更した。非連続時限の通常／試験／返却授業と重なる変更を調べる。週グリッドはgridPeriodsのままである。
+
+実装前にdevelopment-policy・roadmap・test-maintenance-policy・test-catalogを読み、TimetablePresentation・TimetableTimes・SpecialScheduleStoreで対応テストを検索した。既存のHomeScheduleTestsは時刻を検査するがpresentationの原授業取得を検査しないため、実際のモデルとpresentationをコンパイルするmacOSホスト検査を追加した。通常・単独／非連続の関連変更・別クラス／別日・空欄補完・明記値優先・試験／返却・週グリッド非反映を検査する。時刻モデルも実ファイルと偽URLProtocolで破損からの復旧・再読込、通信／認証／応答／保存失敗の保持を検査する。SPMのmacOS入力へモデルと必要な名称／一覧モデルを登録し、Linuxの既存除外条件は維持した。
+
+UI関連の失敗索引は`TimetablePresentation|TimetableTimesModel|非連続|DB欠損`で事前検索し、既存の該当項目はなかった。新規UIやUIテストの操作は変更していない。Linux初回Swiftコンパイルのtry構文エラーは索引N57へ、修正前に記録した。既存N42・N03・N02のビルド／SQLite障害と比較し、今回は新規throw条件の短絡演算子だけを入れ子のifへ修正した。
+
+Debian13/x86_64へSwift6.1.2・ICU74・SQLite3.53.4のheader／共有libraryを専用prefixに導入した。Python263件（skip2・失敗0）とSwiftUI関連変更の構文解析は成功。Swift全体・Appleのモデル／UI／iPhoneビルドは実行結果が出てから追記する。物理iPhoneでの操作は未確認。

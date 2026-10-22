@@ -2,16 +2,16 @@
 import PackageDescription
 
 #if os(macOS)
-let mappingSources = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift"]
-let mappingTests = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift"]
+let mappingSources = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift"]
+let mappingTests = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift", "TimetableModelTests.swift"]
 let mappingExcludes: [String] = []
 let mappingTestExcludes: [String] = []
 #else
 // CryptoKit and URLSession host tests run on the macOS release runner.
 let mappingSources: [String] = []
 let mappingTests: [String] = []
-let mappingExcludes = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift"]
-let mappingTestExcludes = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift"]
+let mappingExcludes = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift"]
+let mappingTestExcludes = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift", "TimetableModelTests.swift"]
 #endif
 
 // Host tests compile the same Foundation-based sources used by the iOS target.
@@ -34,12 +34,12 @@ let package = Package(
                     "OpenSourceLicensesView.swift",
                     "TakupokeApp.swift",
                     "ContentView.swift",
-                    "ApplicationData.swift", "BackgroundRefresh.swift", "TimetableTimesModel.swift",
+                    "ApplicationData.swift", "BackgroundRefresh.swift",
                     "ScheduleNotifications.swift", "NotificationSettingsView.swift",
                     "SettingsView.swift",
                     "HomeView.swift",
                     "HomeTodayView.swift", "HomeLessonRow.swift",
-                    "TimetablePresentation.swift", "TimetablePresentation+Details.swift",
+                    "TimetablePresentation+Details.swift",
                     "LoadingRow.swift",
                     "AboutView.swift",
                     "UsageHelpView.swift",
@@ -82,9 +82,7 @@ let package = Package(
                     "SchoolEventsModel.swift",
                     "SchoolEventsView.swift",
                     "MappingOIDC.swift",
-                    "MappingModel.swift",
                     "MappingSettingsView.swift",
-                    "LinksModel.swift",
                     "LinksView.swift",
                     "SafariLinkView.swift",
                     "LinkRow.swift",

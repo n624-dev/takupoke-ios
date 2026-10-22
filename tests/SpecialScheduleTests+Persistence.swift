@@ -5,6 +5,64 @@ import GRDB
 @testable import TakupokeParsing
 
 extension SpecialScheduleTests {
+    func testMissingDatabaseOrTablesPreserveRetainedPDFCopies() throws {
+        for missing in ["database", "specialSchedule", "specialSource"] {
+            let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer { try? FileManager.default.removeItem(at: root) }
+            let bytes = Data("%PDF-fictional-preserved".utf8)
+            let selected: URL
+            do {
+                let store = try SpecialScheduleStore(root: root)
+                let staged = store.newStagingURL(); try bytes.write(to: staged)
+                try store.saveSelection(staged: staged, kind: .exam, originalName: "fictional.pdf",
+                    byteCount: bytes.count, digest: "fictional")
+                selected = try XCTUnwrap(store.selectedURL(for: .exam))
+            }
+            let database = root.appendingPathComponent("specials.sqlite")
+            if missing == "database" { try FileManager.default.removeItem(at: database) }
+            else {
+                let db = try DatabaseQueue(path: database.path)
+                try db.write { try $0.execute(sql: "DROP TABLE \(missing)") }
+            }
+            XCTAssertThrowsError(try SpecialScheduleStore(root: root))
+            XCTAssertEqual(try Data(contentsOf: selected), bytes)
+            if missing == "database" { XCTAssertFalse(FileManager.default.fileExists(atPath: database.path)) }
+        }
+    }
+
+    func testFreshStoreCollectsOrphansOnlyAfterValidMetadataAndUpgradesLegacyRecords() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let bytes = Data("%PDF-fictional-legacy".utf8)
+        let selected: URL
+        do {
+            let store = try SpecialScheduleStore(root: root)
+            XCTAssertTrue(store.sources.isEmpty); XCTAssertTrue(store.records.isEmpty)
+            let analysis = try SpecialScheduleParser.parse((1...6).map { examPage($0) }, kind: .exam,
+                digest: "fictional", name: "fictional.pdf")
+            let staged = store.newStagingURL(); try bytes.write(to: staged)
+            try store.save(staged: staged, analysis: analysis, originalName: "fictional.pdf", byteCount: bytes.count, digest: "fictional")
+            selected = try XCTUnwrap(store.savedURL(for: .exam))
+        }
+        do {
+            let db = try DatabaseQueue(path: root.appendingPathComponent("specials.sqlite").path)
+            try db.write { try $0.execute(sql: "DROP TABLE specialSource") }
+        }
+        do {
+            let legacy = try SpecialScheduleStore(root: root)
+            XCTAssertEqual(legacy.selectedURL(for: .exam), selected)
+            XCTAssertEqual(try Data(contentsOf: selected), bytes)
+        }
+        let orphan = root.appendingPathComponent("files").appendingPathComponent(UUID().uuidString + ".pdf")
+        let staged = root.appendingPathComponent("staging").appendingPathComponent(UUID().uuidString)
+        try bytes.write(to: orphan); try bytes.write(to: staged)
+        let reopened = try SpecialScheduleStore(root: root)
+        XCTAssertEqual(reopened.selectedURL(for: .exam), selected)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: orphan.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: staged.path))
+        XCTAssertEqual(try Data(contentsOf: selected), bytes)
+    }
+
     func testIncompleteSpecialTimesDoNotReplacePreviousStoreResult() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

@@ -9,20 +9,36 @@ final class TimetableTimesModel: ObservableObject {
     @Published private(set) var failed = false
     @Published private(set) var message: String?
     private var generation = UUID()
-    private let baseURL = URL(string: "https://takupoke-api.n624.jp")!
+    private let baseURL: URL
     private var file: URL?
+    private let directoryOverride: URL?
+
+    init(directory: URL? = nil, baseURL: URL = URL(string: "https://takupoke-api.n624.jp")!) {
+        directoryOverride = directory
+        self.baseURL = baseURL
+    }
 
     func loadIfNeeded() {
         guard !ready else { return }
         do {
-            let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-            let directory = base.appendingPathComponent("TimetableTimes", isDirectory: true)
+            let directory: URL
+            if let directoryOverride { directory = directoryOverride }
+            else {
+                let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+                directory = base.appendingPathComponent("TimetableTimes", isDirectory: true)
+            }
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            #if os(iOS)
             try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: directory.path)
+            #endif
             var protectedDirectory = directory
             var values = URLResourceValues(); values.isExcludedFromBackup = true
             try protectedDirectory.setResourceValues(values)
             let file = directory.appendingPathComponent("current.json")
+            // An unreadable cache must not prevent a user-requested replacement.
+            // Directory setup failures still leave the model unavailable.
+            self.file = file
+            ready = true
             if FileManager.default.fileExists(atPath: file.path) {
                 guard let size = try file.resourceValues(forKeys: [.fileSizeKey]).fileSize, size <= 132 * 1024 else { throw TimetableTimesError.storage }
                 let saved = try JSONDecoder().decode(SavedTimetableTimes.self, from: Data(contentsOf: file))

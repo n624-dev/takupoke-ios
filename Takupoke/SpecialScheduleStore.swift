@@ -33,16 +33,20 @@ final class SpecialScheduleStore {
         #endif
         var config = Configuration()
         config.publicStatementArguments = false
-        queue = try DatabaseQueue(path: root.appendingPathComponent("specials.sqlite").path, configuration: config)
+        let database = root.appendingPathComponent("specials.sqlite")
+        let existingDatabase = manager.fileExists(atPath: database.path)
+        let storedFiles = try manager.contentsOfDirectory(at: files, includingPropertiesForKeys: nil)
+        guard existingDatabase || storedFiles.isEmpty else { throw StoreError.invalidState }
+        queue = try DatabaseQueue(path: database.path, configuration: config)
+        let hasSources = try queue.read { db in
+            if existingDatabase {
+                guard try db.tableExists("specialSchedule") else { throw StoreError.invalidState }
+            }
+            return try db.tableExists("specialSource")
+        }
         try queue.write { db in
             try db.execute(sql: """
                 CREATE TABLE IF NOT EXISTS specialSchedule (
-                    kind TEXT PRIMARY KEY NOT NULL CHECK (kind IN ('exam', 'examReturn')),
-                    payload BLOB NOT NULL
-                )
-                """)
-            try db.execute(sql: """
-                CREATE TABLE IF NOT EXISTS specialSource (
                     kind TEXT PRIMARY KEY NOT NULL CHECK (kind IN ('exam', 'examReturn')),
                     payload BLOB NOT NULL
                 )
@@ -66,6 +70,20 @@ final class SpecialScheduleStore {
                 result[kind] = record
             }
             return result
+        }
+        // The legacy schema had only accepted analyses. Upgrade it only when
+        // those validated records account for every retained PDF copy.
+        if !hasSources {
+            let known = Set(records.values.map(\.storedName))
+            guard storedFiles.allSatisfy({ known.contains($0.lastPathComponent) }) else { throw StoreError.invalidState }
+            try queue.write { db in
+                try db.execute(sql: """
+                    CREATE TABLE specialSource (
+                        kind TEXT PRIMARY KEY NOT NULL CHECK (kind IN ('exam', 'examReturn')),
+                        payload BLOB NOT NULL
+                    )
+                    """)
+            }
         }
         sources = try queue.read { db in
             var result: [SpecialScheduleKind: SpecialScheduleSource] = [:]
