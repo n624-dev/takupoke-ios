@@ -16,3 +16,5 @@
 Linux Swift6.1.2/SQLite3.53.4の正規SPM530件が失敗0（実行75.818秒、準備込み258.7秒）。Mac固有・SwiftUI・OS通知と実File Providerはこの結果に含まない。PythonはSwift PATHなしの初回263件がskip15だったため、Swiftを有効にして再確認する。Apple CIはこれから確認する。
 
 Swiftを有効にしたPython全263件は予定skip2・失敗0。さらに選択キューが不正年度の変更で止まらないよう修正し、製品メソッドを抽出して実行する年度入口／preview／completionの4件（既存3＋新規1）も成功した。新規コード差分を同じ開始前レビューへ追加確認する。Mac固有の登録callback検査はTask.yield依存を避け、main dispatchの実完了を待つ。
+
+全体425はN67のApple側のoptional年度型エラーとN68の追加非同期テストのawait不足で停止した。失敗cacheの年度契約を修正したLinux正規SPMは531件・失敗0、年度入口の4件も成功。Mac回帰の3箇所のSQLite書込みにはawaitを追加し、実トランザクション・保存失敗の検証を維持する。次のApple全体実行で確認する。
