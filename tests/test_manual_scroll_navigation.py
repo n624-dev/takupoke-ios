@@ -212,7 +212,7 @@ final class GeometryControls:XCTestCase {
             self.assertEqual(compiled.returncode, 0, compiled.stdout + compiled.stderr)
             actual = subprocess.run([str(scratch / "controls")], capture_output=True, text=True, timeout=30)
             self.assertEqual(actual.returncode, 0, actual.stdout + actual.stderr)
-            self.assertIn("Executed 27 tests, with 0 failures", actual.stdout)
+            self.assertIn("Executed 29 tests, with 0 failures", actual.stdout)
             print(actual.stdout)
 
     def test_qa_only_owner_resolution_and_existing_caps_are_preserved(self):
