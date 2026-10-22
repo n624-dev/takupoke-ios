@@ -10,4 +10,4 @@
 
 UI関連の失敗索引は`TimetablePresentation|TimetableTimesModel|非連続|DB欠損`で事前検索し、既存の該当項目はなかった。新規UIやUIテストの操作は変更していない。Linux初回Swiftコンパイルのtry構文エラーは索引N57へ、修正前に記録した。既存N42・N03・N02のビルド／SQLite障害と比較し、今回は新規throw条件の短絡演算子だけを入れ子のifへ修正した。
 
-Debian13/x86_64へSwift6.1.2・ICU74・SQLite3.53.4のheader／共有libraryを専用prefixに導入した。Python263件（skip2・失敗0）とSwiftUI関連変更の構文解析は成功。Swift全体・Appleのモデル／UI／iPhoneビルドは実行結果が出てから追記する。物理iPhoneでの操作は未確認。
+Debian13/x86_64へSwift6.1.2・ICU74・SQLite3.53.4のheader／共有libraryを専用prefixに導入した。Python263件（skip2・失敗0）とSwiftUI関連変更の構文解析は成功。Linuxの正規Swift全体は517件・失敗0（実行77.237秒、準備込み255.4秒）。Appleのモデル／UI／iPhoneビルドは実行結果が出てから追記する。物理iPhoneでの操作は未確認。
