@@ -116,7 +116,7 @@ extension ManualAssistanceChecks {
         XCTAssertTrue(e.exists && e.isHittable,app.debugDescription)
         XCTFail("No safe visible hit region after bounded navigation: "+app.debugDescription);return e
     }
-    func tap(_ title:String) {
+    func tap(_ title:String,knownID:String="") {
         if title == "架空検証" {
             let bar=app.navigationBars["時間割の復旧"],button=app.navigationBars["時間割の復旧"].buttons[title]
             guard bar.waitForExistence(timeout:nativeStateTimeout),button.waitForExistence(timeout:nativeStateTimeout),
@@ -158,6 +158,6 @@ extension ManualAssistanceChecks {
             button.tap();fixtureMenuOpen=false
             return
         }
-        visible(app.buttons[title].firstMatch).tap()
+        visible(app.buttons[title].firstMatch,knownID:knownID).tap()
     }
 }

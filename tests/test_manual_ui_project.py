@@ -151,6 +151,10 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('coordinator.suspendForInactivity()',changed)
         self.assertIn('models.cancel()',changed)
         self.assertEqual(changed.count('accessibilityIdentifier("manual-submit")'),1)
+        self.assertEqual(changed.count('accessibilityIdentifier("manual-review-submit")'),1)
+        checks=manual_check_source()
+        self.assertEqual(checks.count('tap("訂正と変更を確認して資料全体へ",knownID:"manual-review-submit")'),2)
+        self.assertIn('visible(app.buttons[title].firstMatch,knownID:knownID).tap()',checks)
 
     def test_review_readiness_measures_actual_coordinator_state(self):
         changed=module.view((ROOT/"Takupoke/PDFRecoveryView.swift").read_text(encoding="utf-8"))

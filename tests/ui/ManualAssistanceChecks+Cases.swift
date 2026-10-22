@@ -33,7 +33,7 @@ extension ManualAssistanceChecks {
         requireReview(["架空再照合"],comparable:false)
         tap("架空検証");tap("架空原本のハッシュを変更")
         XCTAssertTrue(app.staticTexts["manual-mutation-complete"].waitForExistence(timeout:10),app.debugDescription)
-        tap("訂正と変更を確認して資料全体へ")
+        tap("訂正と変更を確認して資料全体へ",knownID:"manual-review-submit")
         XCTAssertTrue(app.staticTexts["原本または入力内容を確認できませんでした。前回の正常結果を保持しています。"].waitForExistence(timeout:20),app.debugDescription)
         XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("lastgood-preserved"))
         XCTAssertFalse(app.buttons["この資料全体の結果を使用"].exists)
@@ -47,7 +47,7 @@ extension ManualAssistanceChecks {
             assertSubmitEnabled(i==2)
         }
         visible(submit).tap();requireReview((0..<3).map { "架空手確認\($0)" },comparable:true)
-        tap("訂正と変更を確認して資料全体へ");requirePreview()
+        tap("訂正と変更を確認して資料全体へ",knownID:"manual-review-submit");requirePreview()
         XCTAssertTrue(app.staticTexts["原本を確認して入力した3項目を含みます。"].exists)
         let navigation=app.navigationBars["時間割の復旧"],close=app.navigationBars["時間割の復旧"].buttons["閉じる"]
         XCTAssertTrue(close.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)

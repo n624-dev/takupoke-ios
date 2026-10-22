@@ -2077,3 +2077,12 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 
 - source4a856ba、Debian13／Swift6.1.2。実行中のSPM一時ビルドのobject群へ、SwiftUI importだけを外したpresentationと名称stubを直接リンクする補助検査を一回試した。swiftcがexit1で、検査本体の実行には到達していない。stderrを表示せずにCalledProcessErrorへ変換したため詳細は保持できず、原因は未確定。補助検査は成功件数に含めない。
 - 対処前に記録。正規SPMのN57構文失敗と、独立手動リンクの今回の準備失敗を区別する。同じ条件で再試行せず、製品・期待値を変えない。追加したpresentation／モデル回帰は、元から予定したmacOSの正規SPM／Actionsで確認する。実行中のLinux正式検査は変更・中止していない。
+
+## N59 追加Issue対応後のiOS27原本変更訂正ケースがfailure終端（2026-10-22）
+
+- sourcec7994b7892d61b30356b6e9b04d7bc6d545830fc、run39706417881／試行1、iOS27・SDK27.0、job119587932866。testChangedOriginalCannotSubmitOrReplaceLastGoodがfailure終端。02:25頃の予定照会で確認した。ログ取得前で失敗段階・原因は未確定。
+- 対処前に記録。DistributionとNative600件（予定skip1・失敗0）は成功、他UIとiPhoneビルドは継続中／待機。実行はキャンセルせず残る結果も確認する。新完了ログを読み、過去の同ケース・操作段階・OSと当時／今回のコードを照合してから対処を決める。期待値・実操作・期限を緩めない。
+
+- 完了ログでは、実入力・ACK・レビュー遷移・比較不能表示の可視確認と、架空原本ハッシュ変更の一回の実タップ・mutation-complete確認まで通過した。その後Cases.swift:36のレビュー再確認ボタンをtapするvisible(app.buttons[title].firstMatch)が、既知IDを渡さず存在／frameを照会し、Navigation.swift:49のsnapshot timeoutになった。591.928秒・1件失敗。再確認の実タップと以降の旧正常結果保持は未確認。クラッシュ報告0、AXの下位原因は未確定。
+- 検索語：manual-submit／target.exists／Navigation.swift:49／原本変更／snapshot。N54・U01・U02・U11・U14を詳細まで読み、5fd0805の既知ID委譲と現行Navigation／Review／Inputを照合した。初期のInput.assertSubmitEnabled(false)という仮説は、実際のCases.swift:36とログのボタンlabelに一致せず棄却した。N54は比較不能表示、今回は原本変更後のレビュー再確認ボタンであり、U14のメニュー操作・U11の消去後valueとも段階が異なる。N54後の共有visible／Reviewは今回も維持され、再確認ボタン本体だけにはQA識別IDがなかった。
+- 候補はQA生成viewだけにmanual-review-submit識別IDを追加し、既存tap helperからvisibleのknownIDへ渡す。原本変更と三項目訂正の同じ再確認ボタン2呼出しをそろえる。実際の一致要素配列から取得し、16回以内の有界scroll・実frame・viewport包含・hittable・一回の物理tap・既存の状態待機と全期待値を維持する。製品、入力／ACK／原本変更／旧正常結果保持の検証条件は変更しない。一般的なAX問題の解消を断定せず、既存ケースの両OS結果で確認する。

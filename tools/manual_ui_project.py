@@ -103,6 +103,8 @@ def view(text):
     text = once(text, '.accessibilityLabel("原本の該当箇所")', '.accessibilityLabel("原本の該当箇所").accessibilityIdentifier("manual-crop-" + field.id)')
     text = once(text, '                        }.buttonStyle(.glassProminent)\n                            .disabled(!useAiFeatures || coordinator.running || draft.fields.contains',
                 '                        }.buttonStyle(.glassProminent).accessibilityIdentifier("manual-submit")\n                            .disabled(!useAiFeatures || coordinator.running || draft.fields.contains')
+    review_submit = 'Button("訂正と変更を確認して資料全体へ",systemImage:"doc.text.magnifyingglass") { coordinator.showManualPreview() }'
+    text = once(text, review_submit, review_submit + '.accessibilityIdentifier("manual-review-submit")')
     zoom_marker = 'Button("対象セルを拡大して確認",systemImage:"plus.magnifyingglass") { zoomedField = field.id }'
     if text.count(zoom_marker) != 2:
         raise ValueError("manual source zoom insertion point missing or duplicated")
