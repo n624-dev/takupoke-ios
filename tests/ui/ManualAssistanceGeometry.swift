@@ -39,11 +39,19 @@ struct ManualScrollNavigation {
         }
         return nil
     }
-    mutating func locate(target:CGRect?,owner:CGRect?,viewport:CGRect) {
+    @discardableResult
+    mutating func locate(target:CGRect?,owner:CGRect?,viewport:CGRect,needsHitRegion:Bool=false)->CGFloat? {
+        if needsHitRegion,let target,Self.usable(target),Self.usable(viewport),viewport.contains(target) {
+            let limit=min(240,viewport.height/3)
+            let delta=max(-limit,min(limit,viewport.midY-target.midY))
+            upward=delta<0
+            return delta
+        }
         if let direction=Self.direction(owner,viewport:viewport)
             ?? Self.direction(target,viewport:viewport) { upward=direction }
         // Unknown/zero/infinite/in-viewport geometry keeps the last direction,
         // including the one bounded no-progress reversal.
+        return nil
     }
     mutating func observeTopBoundary() {
         // The actual first List row is visible: a further downward drag can

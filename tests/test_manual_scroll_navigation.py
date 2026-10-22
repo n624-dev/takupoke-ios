@@ -28,6 +28,27 @@ import Foundation
 import XCTest
 HELPER
 final class GeometryControls:XCTestCase {
+ func testKnownUnhittableTargetMovesTowardCenterWithoutChangingIdentity() {
+  let area=CGRect(x:0,y:141,width:393,height:699)
+  for frame in [CGRect(x:32,y:194,width:96,height:20.333),CGRect(x:32,y:750,width:96,height:20.333)] {
+   var state=ManualScrollNavigation()
+   let delta=state.locate(target:frame,owner:nil,viewport:area,needsHitRegion:true)
+   XCTAssertNotNil(delta)
+   XCTAssertLessThanOrEqual(abs(delta!),min(240,area.height/3))
+   XCTAssertGreaterThan(delta!*(area.midY-frame.midY),0)
+   XCTAssertEqual(state.upward,delta!<0)
+   XCTAssertTrue(area.contains(frame.offsetBy(dx:0,dy:delta!)))
+  }
+ }
+ func testCenteringDoesNotInventHitRegionOrChangeUnknownSearch() {
+  let area=CGRect(x:0,y:141,width:393,height:699)
+  var state=ManualScrollNavigation()
+  let centered=CGRect(x:32,y:area.midY-10,width:96,height:20)
+  XCTAssertEqual(state.locate(target:centered,owner:nil,viewport:area,needsHitRegion:true),0)
+  XCTAssertNil(state.locate(target:nil,owner:nil,viewport:area,needsHitRegion:true))
+  XCTAssertNil(state.locate(target:.infinite,owner:nil,viewport:area,needsHitRegion:true))
+  XCTAssertNil(state.locate(target:centered,owner:nil,viewport:area))
+ }
  func testVisibleCandidateSkipsInViewportUnhittableFirstMatch() {
   let area=CGRect(x:0,y:141,width:393,height:699)
   let frames=[CGRect(x:32,y:215.33,width:48,height:20.33),CGRect(x:32,y:310.33,width:48,height:20.33),CGRect(x:32,y:405.33,width:48,height:20.33)]

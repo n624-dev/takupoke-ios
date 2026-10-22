@@ -47,7 +47,8 @@ extension ManualAssistanceChecks {
                 frame:{ $0.frame },isHittable:{ $0.isHittable }) { return actual }
             let exists=targetID.isEmpty ? target.exists:!matches.isEmpty
             let targetFrame=exists ? target.frame:nil
-            if alternatives==nil && exists && target.isHittable {
+            let targetHittable=alternatives==nil && exists && target.isHittable
+            if targetHittable {
                 // Every interactive/readable target must be wholly below the
                 // navigation bar and above the keyboard accessory before use.
                 if let frame=targetFrame,ManualScrollNavigation.usable(frame),frame.minY>=top,frame.maxY<=bottom { return target }
@@ -57,7 +58,8 @@ extension ManualAssistanceChecks {
             // child exposes an infinite/zero or stale in-viewport frame.
             let owners=targetID.isEmpty ? []:list.cells.containing(.any,identifier:targetID).allElementsBoundByIndex
             let ownerFrame=owners.count==1 ? owners[0].frame:nil
-            navigationState.locate(target:targetFrame,owner:ownerFrame,viewport:viewport)
+            let alignment=navigationState.locate(target:targetFrame,owner:ownerFrame,viewport:viewport,
+                needsHitRegion:alternatives==nil && exists && !targetHittable)
             var observedTop=false
             if inRecovery {
                 let firstRows=list.staticTexts.matching(NSPredicate(format:"label == %@","学校の資料・OCR文字・授業情報は端末内で処理され、外部のAIへ送信されません。")).allElementsBoundByIndex
@@ -102,7 +104,11 @@ extension ManualAssistanceChecks {
             // Upward viewport-sized drags cover the complete40-slot preview.
             // Downward steps stay bounded, with the same16-attempt total cap.
             let startY=upward ? safe.maxY-12:safe.minY+12
-            let endY=upward ? viewport.minY+12:min(viewport.maxY-12,startY+240)
+            let endY=alignment.map { min(viewport.maxY-12,max(viewport.minY+12,startY+$0)) }
+                ?? (upward ? viewport.minY+12:min(viewport.maxY-12,startY+240))
+            guard abs(endY-startY)>1 else {
+                XCTFail("The centered target has no safe hit region: "+targetID);return e
+            }
             if inRecovery {
                 guard recoveryList.exists,app.navigationBars["時間割の復旧"].exists else {
                     XCTFail("The recovery sheet disappeared before its gesture: "+app.debugDescription);return e
