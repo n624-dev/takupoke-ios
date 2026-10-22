@@ -155,6 +155,11 @@ final class FileRefreshTests: XCTestCase {
             func stop() { stops += 1 }
             func refreshCompleted() {}
         }
+        func drainCallbacks() async {
+            await withCheckedContinuation { continuation in
+                DispatchQueue.main.async { continuation.resume() }
+            }
+        }
         var observations: [Fake] = []; var callbacks: [(Bool) -> Void] = []
         let monitor = SelectedFileMonitor(changed: { _ in XCTFail("Unexpected refresh") }, factory: { _, _, registered in
             let fake = Fake(); observations.append(fake); callbacks.append(registered); return fake
@@ -163,15 +168,15 @@ final class FileRefreshTests: XCTestCase {
         monitor.update([source]); monitor.setForeground(true)
         XCTAssertEqual(observations.count, 1)
         monitor.update([source]); XCTAssertEqual(observations.count, 1)
-        callbacks[0](false); await Task.yield(); await Task.yield()
+        callbacks[0](false); await drainCallbacks()
         monitor.update([source], retryFailed: false); XCTAssertEqual(observations.count, 1)
         monitor.update([source], retryFailed: true)
         XCTAssertEqual(observations.count, 2); XCTAssertEqual(observations[1].starts, [false])
-        callbacks[1](true); await Task.yield(); await Task.yield()
+        callbacks[1](true); await drainCallbacks()
         monitor.update([source]); XCTAssertEqual(observations.count, 2)
-        callbacks[0](false); await Task.yield(); await Task.yield()
+        callbacks[0](false); await drainCallbacks()
         XCTAssertEqual(monitor.registrations["changes"], .registered)
-        monitor.setForeground(false); callbacks[1](true); await Task.yield(); await Task.yield()
+        monitor.setForeground(false); callbacks[1](true); await drainCallbacks()
         XCTAssertEqual(monitor.registrations["changes"], .stopped)
         monitor.update([source]); XCTAssertEqual(observations.count, 2)
         monitor.setForeground(true); XCTAssertEqual(observations.count, 3)

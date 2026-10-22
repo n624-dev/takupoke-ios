@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`f3f9f5fa191129dd6b0376c52e6fcb7159c01ba1877fbf79c86d592738a709c2`
+`f6c338e7b1cd6973150c18fafbfebbe1c5dbcdbf71e69f1733b7690b69a4c295`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -26,6 +26,7 @@ bash tools/test-parsing.sh
 - `test_actual_dispatch_retains_review_after_failure_and_closes_only_after_success`
 - `test_actual_callbacks_preserve_rejected_preview_and_dispatch_accepted_action_once`
 - `test_actual_worker_records_failure_only_for_the_reviewed_original`
+- `test_invalid_year_blocks_change_acquisition_without_stalling_other_queued_materials`
 
 ## [tests/ParsingTests+Normalization.swift](../../tests/ParsingTests+Normalization.swift)
 

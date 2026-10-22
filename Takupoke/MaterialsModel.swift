@@ -49,13 +49,15 @@ final class MaterialsModel: ObservableObject {
     }
 
     private func runPendingSelection() {
-        guard !retired, let selected = pendingSelections.take(busy: busy) else { return }
-        let (kind, url) = selected
-        guard acceptsChangeYear(kind) else { return }
-        let year = automaticChangeSchoolYear
-        perform(success: "\(kind.title)を取得して解析しました。") { worker, control in
-            try worker.selectFile(url, kind: kind, control: control)
-            try Self.analyzeAfterAcquisition(kind, year: year, worker: worker, control: control)
+        while !retired, let selected = pendingSelections.take(busy: busy) {
+            let (kind, url) = selected
+            guard acceptsChangeYear(kind) else { continue }
+            let year = automaticChangeSchoolYear
+            perform(success: "\(kind.title)を取得して解析しました。") { worker, control in
+                try worker.selectFile(url, kind: kind, control: control)
+                try Self.analyzeAfterAcquisition(kind, year: year, worker: worker, control: control)
+            }
+            return
         }
     }
 

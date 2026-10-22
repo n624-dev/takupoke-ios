@@ -52,7 +52,7 @@ final class MaterialWorker {
     var control: AcquisitionControl?, pdfURLs: [String: URL] = [:]
     var timetableReadReport: String?, timetableFailure: PDFParseError?
     let worker = MaterialWorker(), queue = DispatchQueue(label: "fictional-review-worker")
-    func updateFileMonitoring() {}
+    func updateFileMonitoring(retryFailed: Bool = false) {}
     func runPendingSelection() {}
     func runPendingFileRefresh() {}
 METHOD
@@ -102,7 +102,7 @@ METHOD
         correct = correct[correct.index("{"):]
         program = '''import Foundation
 enum MaterialKind { case changes }
-enum ChangeAnalysis { static let parserVersion = 6 }
+enum ChangeAnalysis { static let parserVersion = 7 }
 struct Source { var selectionID: String? = "original" }
 struct Record { var digest = "same"; var storedName = "stored"; var source = Source() }
 struct State {
@@ -114,12 +114,18 @@ struct ChangePreview {
     var defaultYear: Int? = 2032, parserVersion = ChangeAnalysis.parserVersion
     var canSkipRows = true, canCorrectWeekdays = true, usesDateDerivedWeekdays = false
 }
+struct ChangeParseError: Error, LocalizedError {
+    enum Code { case defaultYear }
+    var code: Code
+    var errorDescription: String? { "invalid-year" }
+}
 struct Worker {
     func correctWeekdays(_ p: ChangePreview, defaultYear: Int, control: Int) throws {}
     func skipChangeRows(_ p: ChangePreview, rows: Set<Int>, defaultYear: Int, control: Int, correctWeekdays: Bool = false) throws {}
 }
 final class MaterialsModel {
-    var busy = false, retired = false, automaticChangeSchoolYear = 2032
+    var busy = false, retired = false
+    var automaticChangeSchoolYear: Int? = 2032
     var state = State(), changePreview: ChangePreview? = ChangePreview(), dispatches = 0
     func dismissPreview() { changePreview = nil }
     // The probe tests admission, not acquisition or persistence.
@@ -137,7 +143,9 @@ METHODS
         }
         model.busy = true; rejected(); model.busy = false
         model.retired = true; rejected(); model.retired = false
-        model.automaticChangeSchoolYear = 2033; rejected(); model.automaticChangeSchoolYear = 2032
+        model.automaticChangeSchoolYear = 2033; rejected()
+        model.automaticChangeSchoolYear = nil; rejected()
+        model.automaticChangeSchoolYear = 2032
         model.state.current?.digest = "changed"; rejected(); model.state = State()
         model.state.current?.source.selectionID = "different"; rejected(); model.state = State()
         model.state.current = nil; rejected(); model.state = State()
@@ -214,6 +222,75 @@ METHOD
 }
 '''.replace("METHOD", method)
         with tempfile.TemporaryDirectory(prefix="change-preview-worker-") as scratch:
+            path = Path(scratch)
+            (path / "probe.swift").write_text(program)
+            subprocess.run([compiler, "-swift-version", "5", "-parse-as-library",
+                            "-module-cache-path", str(path / "modules"), str(path / "probe.swift"),
+                            "-o", str(path / "probe")], check=True)
+            subprocess.run([str(path / "probe")], check=True)
+
+    def test_invalid_year_blocks_change_acquisition_without_stalling_other_queued_materials(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute production year admission")
+        source = (ROOT / "Takupoke/MaterialsModel.swift").read_text()
+        methods = "\n".join(block(source, marker) for marker in [
+            "func selectFile(", "private func runPendingSelection(", "func refresh(",
+            "private func acceptsChangeYear(", "private nonisolated static func analyzeAfterAcquisition(",
+            "func analyzeChanges("])
+        pending = (ROOT / "Takupoke/SelectedFileSource.swift").read_text()
+        queue = block(pending, "struct PendingFileSelections<")
+        program = r'''import Foundation
+enum MaterialKind: String { case timetable, changes; var title: String { rawValue } }
+struct ScopedMaterialSelection {}
+struct AcquisitionControl {}
+struct ChangeParseError: Error, LocalizedError {
+    enum Code { case defaultYear }
+    var code: Code
+    var errorDescription: String? { "invalid-year" }
+}
+final class MaterialWorker {
+    var reads: [MaterialKind] = [], pdfs: [MaterialKind] = [], years: [Int?] = []
+    func selectFile(_ url: ScopedMaterialSelection, kind: MaterialKind, control: AcquisitionControl) throws { reads.append(kind) }
+    func refresh(_ kind: MaterialKind, control: AcquisitionControl) throws { reads.append(kind) }
+    func analyzeChanges(defaultYear: Int?, control: AcquisitionControl) throws { years.append(defaultYear) }
+    func analyzePDF(kind: MaterialKind, control: AcquisitionControl) throws { pdfs.append(kind) }
+}
+QUEUE
+@MainActor final class MaterialsModel {
+    var retired = false, busy = false, failed = false, message: String?
+    var automaticChangeSchoolYear: Int? = nil
+    var pendingSelections = PendingFileSelections<MaterialKind, ScopedMaterialSelection>()
+    let worker = MaterialWorker()
+    var dispatches = 0
+    func perform(success: String?, changeYear: Int? = nil, operation: (MaterialWorker, AcquisitionControl) throws -> Void) {
+        dispatches += 1; try! operation(worker, AcquisitionControl())
+    }
+METHODS
+}
+@main struct Probe {
+    @MainActor static func main() {
+        let model = MaterialsModel()
+        model.refresh(.changes); model.analyzeChanges(defaultYear: nil); model.analyzeChanges(defaultYear: 203)
+        model.selectFile(ScopedMaterialSelection(), kind: .changes)
+        precondition(model.dispatches == 0 && model.failed && model.message == "invalid-year")
+        model.busy = true
+        model.selectFile(ScopedMaterialSelection(), kind: .changes)
+        model.selectFile(ScopedMaterialSelection(), kind: .timetable)
+        model.busy = false
+        // Append a final item to drain the same production queue after a busy operation.
+        model.selectFile(ScopedMaterialSelection(), kind: .changes)
+        precondition(model.worker.reads == [.timetable] && model.worker.pdfs == [.timetable])
+        model.refresh(.timetable)
+        precondition(model.worker.reads == [.timetable, .timetable])
+        model.automaticChangeSchoolYear = 2032
+        model.refresh(.changes); model.analyzeChanges(defaultYear: nil)
+        precondition(model.worker.years == [2032, 2032])
+        precondition(model.dispatches == 4)
+    }
+}
+'''.replace("METHODS", methods).replace("QUEUE", queue)
+        with tempfile.TemporaryDirectory(prefix="change-year-admission-") as scratch:
             path = Path(scratch)
             (path / "probe.swift").write_text(program)
             subprocess.run([compiler, "-swift-version", "5", "-parse-as-library",
