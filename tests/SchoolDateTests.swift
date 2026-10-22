@@ -66,7 +66,8 @@ final class SchoolDateTests: XCTestCase {
     func testUnknownConfiguredYearCannotMatchAttemptOrRequestAutomaticReanalysis() {
         let failure = ChangeParseAttempt(date: Date(), sourceDigest: "fictional", defaultYear: 2032,
             failure: ChangeParseError(code: .date), parserVersion: ChangeAnalysis.parserVersion)
-        for year: Int? in [nil, 203, 1899, 9999] {
+        let invalidYears: [Int?] = [nil, 203, 1899, 9999]
+        for year in invalidYears {
             XCTAssertFalse(failure.matches(digest: "fictional", defaultYear: year))
             XCTAssertFalse(ChangeParseAttempt.needsAnalysis(digest: "fictional", defaultYear: year, analysis: nil, attempt: nil))
         }
