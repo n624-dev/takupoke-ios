@@ -19,3 +19,5 @@ HomeScheduleTestsに、試験単独・返却単独・同時／逆順・同時刻
 実装前に一覧をMappingRules・TimetableDayScheduleで検索した。失敗索引の検索語は`TimetableDaySchedule|cardTime|教員|留学生|N51`。N51は置換順序の問題で、今回はcallbackの照合条件と個別カードの根拠の問題である。既存のStrict／PDF解析・通知・認証・保存は変更しない。
 
 一覧を再生成し、check --base b8583f1とSwift構文解析を確認。LinuxのPython263件（skip2・失敗0）は成功した。Linux Swift520件・失敗0（実行73.009秒、準備込み256.3秒）も成功した。変更後のApple検証は完了後に追記する。物理iPhoneの操作は未確認。
+
+最新c7994b7のNativeは600件（予定skip1・失敗0）で、新しい名称文脈と個別カード時刻の回帰も成功。既存の原本変更UIケースはレビュー再確認ボタンのAX照会で失敗したため、N59に観測・過去比較を記録し、QA識別IDの候補だけを追加した。製品と全期待値は維持し、両OSの全体CIで再確認する。

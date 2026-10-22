@@ -2086,3 +2086,5 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - 完了ログでは、実入力・ACK・レビュー遷移・比較不能表示の可視確認と、架空原本ハッシュ変更の一回の実タップ・mutation-complete確認まで通過した。その後Cases.swift:36のレビュー再確認ボタンをtapするvisible(app.buttons[title].firstMatch)が、既知IDを渡さず存在／frameを照会し、Navigation.swift:49のsnapshot timeoutになった。591.928秒・1件失敗。再確認の実タップと以降の旧正常結果保持は未確認。クラッシュ報告0、AXの下位原因は未確定。
 - 検索語：manual-submit／target.exists／Navigation.swift:49／原本変更／snapshot。N54・U01・U02・U11・U14を詳細まで読み、5fd0805の既知ID委譲と現行Navigation／Review／Inputを照合した。初期のInput.assertSubmitEnabled(false)という仮説は、実際のCases.swift:36とログのボタンlabelに一致せず棄却した。N54は比較不能表示、今回は原本変更後のレビュー再確認ボタンであり、U14のメニュー操作・U11の消去後valueとも段階が異なる。N54後の共有visible／Reviewは今回も維持され、再確認ボタン本体だけにはQA識別IDがなかった。
 - 候補はQA生成viewだけにmanual-review-submit識別IDを追加し、既存tap helperからvisibleのknownIDへ渡す。原本変更と三項目訂正の同じ再確認ボタン2呼出しをそろえる。実際の一致要素配列から取得し、16回以内の有界scroll・実frame・viewport包含・hittable・一回の物理tap・既存の状態待機と全期待値を維持する。製品、入力／ACK／原本変更／旧正常結果保持の検証条件は変更しない。一般的なAX問題の解消を断定せず、既存ケースの両OS結果で確認する。
+
+- 候補b1ca475のローカル確認：Pythonのmanual UI生成／runner／scroll検査23件と、その中で実行するSwift GeometryControls27件は失敗0。変更したSwift2ファイルの構文解析、一覧check --base c7994b7、空白検査も成功。QA差分のみを新規GPT-6.1 Sol／Highでレビューし、意図外変更・検証弱体化の指摘なし。実シミュレータ上の効果は次の全体CIで確認する。
