@@ -2135,3 +2135,5 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - source4164a14、Debian13／Swift6.1.2、Python manual_scroll_navigation／manual_ui_project／manual_ui_runnerの候補初回実行。コマンド終了1を確認し、詳細ログを読む前に記録した。原因・失敗したケースは未確定。実シミュレータのActionsは未開始。過去詳細とログを照合し、対処根拠をpushするまで再実行しない。
 
 - ログは新規幾何2ケースの追加後、埋込みSwift実行前の宣言数guard（期待27・実29）で停止。製品や幾何のassert失敗ではない。N05の宣言一覧不一致の詳細と当時の登録方針を照合し、今回はPython内の厳密な実行数guardだけが旧値だった。新規2件を含む29を要求し、全ケース完了照合は維持する。N63の中央寄せ後に既存のno-progress反転が選ばれた場合も、passive開始行と同じ方向のpanを使うよう整合させた。
+
+- N63候補bcd672fの修正後ローカル検査はPython23件・埋込みSwift幾何29件が失敗0。Swift構文解析とcatalog check --base 60d71bfも成功。コード差分だけの新規GPT-6.1 Sol／Highレビューはblockingなし。まず既存の選択訂正ケースを両OSだけで実行し、追加Issueの製品変更とはソースと結果を分ける。
