@@ -2088,3 +2088,12 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - 候補はQA生成viewだけにmanual-review-submit識別IDを追加し、既存tap helperからvisibleのknownIDへ渡す。原本変更と三項目訂正の同じ再確認ボタン2呼出しをそろえる。実際の一致要素配列から取得し、16回以内の有界scroll・実frame・viewport包含・hittable・一回の物理tap・既存の状態待機と全期待値を維持する。製品、入力／ACK／原本変更／旧正常結果保持の検証条件は変更しない。一般的なAX問題の解消を断定せず、既存ケースの両OS結果で確認する。
 
 - 候補b1ca475のローカル確認：Pythonのmanual UI生成／runner／scroll検査23件と、その中で実行するSwift GeometryControls27件は失敗0。変更したSwift2ファイルの構文解析、一覧check --base c7994b7、空白検査も成功。QA差分のみを新規GPT-6.1 Sol／Highでレビューし、意図外変更・検証弱体化の指摘なし。実シミュレータ上の効果は次の全体CIで確認する。
+
+## N60 追加Issue対応後の通常UI27Bがfailure終端（2026-10-22）
+
+- sourcec7994b7892d61b30356b6e9b04d7bc6d545830fc、run39706417881／試行1、iOS27・SDK27、job119587932831。02:44の予定照会でApplication iOS27 UI Bのfailureを確認。ケース名・段階・原因はログ取得前で未確定。対処を決める前に記録し、新完了ログと過去の詳細／コードを照合する。
+- N59候補の全体run39712114838はこの失敗の観測前02:34に開始済みで、現在ランナー待機。通常UI Bには候補変更がなく、同じ失敗への再試行として意図的に開始したものではない。いずれもキャンセルせず、依存skipを成功に数えない。
+
+- 完了ログの6件中1失敗はtestRecoveryPreviewOriginalBlankFieldsAndExplicitAdoption、Recovery.swift:113、201.010秒。プレビュー表示・架空PNG（273788bytes／SHA256 aace16348301e1a680c6ff0ad0666e6e862ee9f121e01548d0fe508f2efa8f70）取得まで成功。画像では教員／教室欄が下端にあり、AXでも最初に実frameを取得したが、recoveryVisibleの最初のdragがy794→205の589pt。直後に対象がAXから消え、その後は不在の前方探索を続けて末尾100%へ到達した。シート自体は残り、採用ボタンは未操作。Strict・復旧処理の失敗や対象データ消失とは断定しない。
+- 検索語RecoveryPreviewOriginalBlank／Recovery target／sheet viewport／recoveryVisible／bounded dragで索引と詳細を照合。N47の実frame取得済み行を大swipeが通り越す問題、U05の仮想化した画面外要素、9dcc93bのsheet所有範囲とocr-improvement-logの当時詳細、現NavigationのN47幾何補正を読んだ。Recovery helperは9dcc93bから同じ大drag分岐で、一般画面だけに適用したN47補正がなかった。今回もsheet所有範囲・passive rowの安全条件は必要なので、一般画面の座標操作をそのまま移さない。
+- 候補は既存ObservedScreenGeometry.scrollDragが実frameから返す中心方向・viewport高さ1/3以内の距離を、既存recoveryDragへ渡す。対象不在の探索、12回上限、完全包含、実PDF表示・採用前保持・実採用・再起動保持の期待は維持する。既存の幾何7件は上下補正／上限／無効frameを検査し、元の実UIケースが今回の探索失敗を検出しているため、同じ内容のテストは追加しない。両OSでの実効果は未確認。

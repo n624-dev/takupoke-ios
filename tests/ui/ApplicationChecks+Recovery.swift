@@ -105,10 +105,15 @@ extension ApplicationChecks {
             }
             let viewport = recoveryViewport
             if contained(element, in: viewport) { return element }
-            let earlier =
-                element.exists && usable(element.frame)
-                ? element.frame.minY < viewport.minY : searchEarlierRows
-            recoveryDrag(earlier: earlier)
+            let frame = element.exists ? element.frame : CGRect.null
+            if let drag = ObservedScreenGeometry.scrollDrag(for: frame, in: viewport) {
+                // Keep the gesture on this sheet's passive row, but avoid
+                // scrolling a known clipped target out of the virtualized List.
+                let offset = drag.end.y - drag.start.y
+                recoveryDrag(earlier: offset > 0, distance: abs(offset))
+            } else {
+                recoveryDrag(earlier: usable(frame) ? frame.minY < viewport.minY : searchEarlierRows)
+            }
         }
         XCTAssertTrue(
             recoveryBar.exists && recoveryList.exists && contained(element, in: recoveryViewport),
