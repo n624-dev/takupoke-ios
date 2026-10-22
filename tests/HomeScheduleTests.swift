@@ -11,7 +11,7 @@ final class HomeScheduleTests: XCTestCase {
                     spanStart: joined ? 1 : index + 1, spanEnd: joined ? clocks.count : index + 1,
                     timeRange: joined ? clocks.first!.components(separatedBy: "〜")[0] + "〜" + clocks.last!.components(separatedBy: "〜")[1] : clock,
                     lines: ["架空特別科目A", "架空教員A"], page: 1)
-            })
+            }, dedicatedTimeDate: kind == .examReturn ? day.iso8601 : nil)
     }
 
     func testOverlappingSpecialCardsRetainIndividualClocksAndProgressWhileCommonAndChangeStayAmbiguous() throws {
@@ -119,7 +119,7 @@ final class HomeScheduleTests: XCTestCase {
             periodTimes: [1: "09:10〜09:30", 2: "09:30〜09:50"],
             lessons: (1...2).map { SpecialScheduleLesson(date: day.iso8601, className: fixtureClass,
                 period: $0, spanStart: 1, spanEnd: 2, timeRange: "09:10〜09:50",
-                lines: ["架空科目C", "架空教員C", "架空教室C"], page: 1) })
+                lines: ["架空科目C", "架空教員C", "架空教室C"], page: 1) }, dedicatedTimeDate: kind == .examReturn ? day.iso8601 : nil)
     }
 
     func testChangeDetailsJoinSeparateExamSlotsAndKeepDisjointPeriodsSeparate() {

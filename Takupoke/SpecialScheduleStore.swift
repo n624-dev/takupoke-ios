@@ -262,10 +262,25 @@ final class SpecialScheduleStore {
 
     private static func valid(_ analysis: SpecialScheduleAnalysis) -> Bool {
         let count = analysis.kind == .exam ? 6 : 8
+        func hasStoredTime(_ lesson: SpecialScheduleLesson) -> Bool {
+            if analysis.timeRange(for: lesson) != nil { return true }
+            // Preserve the previous acceptance contract for legacy cache loads.
+            // This validates old bytes only; display never guesses their PDF order.
+            guard analysis.version < 33, analysis.kind == .examReturn, analysis.dedicatedTimeDate == nil else { return false }
+            func oldClock(_ period: Int) -> String? {
+                if lesson.date == analysis.coveredDates.first { return analysis.periodTimes[period] }
+                guard (1...TimetableSchedule.normalPeriodTimes.count).contains(period) else { return nil }
+                return TimetableSchedule.normalPeriodTimes[period - 1]
+            }
+            return oldClock(lesson.spanStart)?.components(separatedBy: "〜").first != nil &&
+                oldClock(lesson.spanEnd)?.components(separatedBy: "〜").last != nil
+        }
         return (4...SpecialScheduleAnalysis.parserVersion).contains(analysis.version) &&
             analysis.coveredDates.count == 5 && Set(analysis.coveredDates).count == 5 &&
             analysis.coveredClasses.count == 17 && Set(analysis.coveredClasses).count == 17 &&
             analysis.periodTimes.count == count && !analysis.lessons.isEmpty &&
+            (analysis.dedicatedTimeDate.map { analysis.coveredDates.contains($0) } ?? true) &&
+            (analysis.version < 33 || analysis.kind != .examReturn || analysis.recovery != nil || analysis.dedicatedTimeDate != nil) &&
             analysis.lessons.allSatisfy { (1...count).contains($0.period) &&
                 (1...$0.period).contains($0.spanStart) &&
                 ($0.period...count).contains($0.spanEnd) &&
@@ -273,7 +288,7 @@ final class SpecialScheduleStore {
                 analysis.coveredClasses.contains($0.sourceClassName ?? $0.className) &&
                 (analysis.version < 31 || PDFClassAssignment.assign($0) == $0) &&
                 analysis.applies(date: $0.date, className: $0.className) &&
-                (analysis.version < 6 || analysis.timeRange(for: $0) != nil) }
+                (analysis.version < 6 || hasStoredTime($0)) }
     }
 
     private func removeUnreferencedFiles() throws {

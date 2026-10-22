@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`472169f43c7045f4ff84233bef00937be08ebb0d8c773d48ead1f9309f258c11`
+`efb7ec4e84446807a960fb463b4777408d59be3570cc75af4e013c1eb74bf31c`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -34,6 +34,7 @@ bash tools/test-parsing.sh
 - `testUnchangedSpecialPDFCheckPersistsWithoutReplacingAcquisitionOrAnalysis`
 - `testSameBytesProviderRenamePreservesOriginalAnalysisAndPendingFailure`
 - `testPreviousVersionAnalysisStillProvidesSelectedSource`
+- `testReturnClockDateAndLegacyRawTimesSurviveSqliteReopen`
 
 ## [tests/SpecialScheduleTests.swift](../../tests/SpecialScheduleTests.swift)
 
@@ -56,6 +57,7 @@ bash tools/test-parsing.sh
 - `testFullCopyIncludesSpecialKindContentAndFailure`
 - `testReturnPositionsExportUsesExactAdoptedRowsAndContainsOnlyNumbers`
 - `testSpecialFirstYearMovesOnlyTheLessonAndKeepsSeventeenSourceClasses`
+- `testReturnColumnClockDateSurvivesSortedDatesCardsChangesAndPersistence`
 
 ## [tests/PDFTextGeometryTests+Visibility.swift](../../tests/PDFTextGeometryTests+Visibility.swift)
 

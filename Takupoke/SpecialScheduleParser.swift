@@ -34,6 +34,7 @@ enum SpecialScheduleParser {
         var year: Int?
         var lessons: [SpecialScheduleLesson] = []
         var expectedDates: [String]?
+        var dedicatedTimeDate: String?
         var coveredClasses: Set<String> = []
         var periodTimes: Times?
         for (index, page) in pages.enumerated() {
@@ -70,6 +71,7 @@ enum SpecialScheduleParser {
                 ? parseExamPage(page, schoolYear: pageYear, pageNumber: index + 1,
                                 times: pageTimes, check: check)
                 : parseReturnPage(page, schoolYear: pageYear, times: pageTimes, check: check)
+            if kind == .examReturn { dedicatedTimeDate = parsed.dates.first }
             let dates = parsed.dates.sorted()
             guard expectedDates == nil || expectedDates == dates else {
                 throw PDFParseError(code: .ambiguous, page: index + 1, stage: .calendarDates, branch:.b255)
@@ -88,7 +90,7 @@ enum SpecialScheduleParser {
                                        parsedAt: Date(), schoolYear: year, coveredDates: dates,
                                        coveredClasses: coveredClasses.sorted(), periodTimes: periodTimes.single,
                                        lessons: lessons.map(PDFClassAssignment.assign).sorted { ($0.date, $0.className, $0.period, $0.page) <
-                                           ($1.date, $1.className, $1.period, $1.page) })
+                                           ($1.date, $1.className, $1.period, $1.page) }, dedicatedTimeDate: dedicatedTimeDate)
     }
 
     static func runs(_ glyphs: [PDFGlyph]) -> [Run] {

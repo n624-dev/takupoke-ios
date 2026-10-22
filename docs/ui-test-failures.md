@@ -2165,3 +2165,13 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - source0f15eba、run39742405286/試行1、macOS26/Apple Swift、job119703281016。07:55予定照会でfailureを確認。失敗段階・ケースはログ取得前で未確定。N67修正候補は旧Nativeの結果確認前に作成しており別ソースでローカル検査中。対処前に記録し、全失敗と過去詳細を照合してから判断する。iPhone buildは未完了で取消さない。
 
 - Nativeログの失敗は追加MappingPackageTests:251/267/270の3つのqueue.writeだけで、async testからGRDBのasync overloadが選ばれたがawaitがなかった。テスト本体実行前のコンパイル停止。N03/N57の詳細とGRDBのwrite定義・既存同期storeを照合し、今回は非同期テスト側の呼出し契約の差だった。3つの実SQLite書込みをtry awaitにし、認証・ZIP検証・triggerによる保存失敗・bytes保持・復旧・再起動の条件は維持する。製品storeの同期トランザクションは変更しない。
+
+- 08:08の予定まとめ照会で425は取消しなしで全job終端。最後のiPhone build/job119703281082もfailure。具体的な段階はログ取得前で未確定、対処前に記録した。最新修正fcc6ee2の全体426/run39744113444はqueuedで、開始前を成功扱いしない。
+
+- iPhone buildの完了ログもHost testsのMappingPackageTests同3箇所のawait不足で停止しており、N68と同じ修正対象だった。Picker UI等は継続して完了し、ジョブは取消していない。最新426のNativeは08:03:36にsuccessとなり、型契約・追加Mac回帰の候補がAppleホストで通過した。残るUI・iPhone buildは別途確認する。
+
+## N69 Issue59の初回Linux回帰で既存セル時刻テストが失敗（2026-10-22）
+
+- sourcefcc6ee2からの未コミットIssue59差分、Debian13/Swift6.1.2、tools/test-parsing.sh。533件中1 assertion失敗。SpecialScheduleTests.swift:231、testReturnScheduleTreatsHorizontallyDividedCellAsTwoLessonsで実値11:10〜11:50／期待13:35〜14:20。ログ/tmp/issue59-ios-parsing.log。対処前に記録した。既存テストの入力・過去失敗詳細・当時コードを確認してから判断し、根拠と修正をpushするまで再試行しない。
+
+- N01・N65・N67・N68の詳細とfcc6ee2のSpecialSchedule.timeRange、該当テスト全文を照合した。失敗は実parserの通常日・専用日・結合セルassertionではなく、最後の架空oldSingleに保存済み11:10〜11:50を与えつつ通常時刻への上書きを要求した既存期待だけだった。#59はまさに保存済み時計を日付sortで上書きしない仕様であり、この1期待を明示入力11:10〜11:50の保持へ更新する。実parserの全日・全時限、通常日13:35〜14:20、結合セル、時刻未保存のoldPair12:50〜14:20は維持する。新たな独立回帰は元列順[2,1,3,4,5]と通常列順、保存再読込、空枠、変更、進捗、fragmentを検査し、製品の誤動作に合わせて期待値を生成しない。

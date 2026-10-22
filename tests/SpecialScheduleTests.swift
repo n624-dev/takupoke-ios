@@ -228,7 +228,8 @@ final class SpecialScheduleTests: XCTestCase {
             spanStart: 6, spanEnd: 6, timeRange: "11:10〜11:50", lines: ["架空科目F"], page: 1)
         let oldPair = SpecialScheduleLesson(date: "2026-04-02", className: "3_IT", period: 5,
             spanStart: 5, spanEnd: 6, timeRange: nil, lines: ["架空科目G"], page: 1)
-        XCTAssertEqual(result.timeRange(for: oldSingle), "13:35〜14:20")
+        // A recorded source range remains authoritative even on a later sorted date.
+        XCTAssertEqual(result.timeRange(for: oldSingle), "11:10〜11:50")
         XCTAssertEqual(result.timeRange(for: oldPair), "12:50〜14:20")
     }
 
@@ -402,4 +403,37 @@ extension SpecialScheduleTests {
             XCTAssertEqual(try SpecialScheduleStore(root:root).records[kind]?.analysis.lessons,[assigned])
         }
     }
+    func testReturnColumnClockDateSurvivesSortedDatesCardsChangesAndPersistence() throws {
+        let dedicated = ["07:00〜07:40", "07:50〜08:30", "08:40〜09:20", "09:30〜10:10", "10:30〜11:10", "11:10〜11:50", "12:00〜12:40", "12:40〜13:20"]
+        let ordinary = ["08:50〜09:35", "09:35〜10:20", "10:30〜11:15", "11:15〜12:00", "12:50〜13:35", "13:35〜14:20", "14:30〜15:15", "15:15〜16:00"]
+        for order in [[1,2,3,4,5], [2,1,3,4,5]] {
+            let result = try SpecialScheduleParser.parse([returnPageWithSplitCell(dateDays: order)], kind: .examReturn, digest: "fictional", name: "fictional.pdf")
+            XCTAssertEqual(result.dedicatedTimeDate, "2026-04-0\(order[0])")
+            XCTAssertEqual(result.coveredDates, (1...5).map { "2026-04-0\($0)" })
+            let restored = try JSONDecoder().decode(SpecialScheduleAnalysis.self, from: JSONEncoder().encode(result))
+            XCTAssertEqual(restored, result)
+            for date in restored.coveredDates {
+                let first = date == "2026-04-0\(order[0])"
+                let day = try XCTUnwrap(SchoolDate(iso8601: date))
+                let schedule = TimetableDaySchedule(timetable: nil, changes: nil, events: nil, specials: [restored], includesChanges: true)
+                for period in 1...8 {
+                    let expected = (first ? dedicated : ordinary)[period - 1]
+                    XCTAssertEqual(restored.periodTime(on: date, period: period), expected)
+                    let empty = ScheduleChange(change_date: date, class_name: "2_CN", period: String(period), before_subject: "", after_subject: "架空変更科目A", teacher: "", room: "", note: "変更", raw_text: "", canonical_text: "")
+                    XCTAssertEqual(schedule.changeTimeRanges(empty), [expected])
+                }
+                if ["2026-04-01", "2026-04-02"].contains(date) {
+                    let block = try XCTUnwrap(schedule.blocks(on: day, className: "1_1", international: false).first { $0.startPeriod == 5 && $0.endPeriod == 6 })
+                    XCTAssertEqual(schedule.cardTime(block, on: day, className: "1_1"), first ? "10:30〜11:50" : "12:50〜14:20")
+                    let now = try XCTUnwrap(ISO8601DateFormatter().date(from: date + "T10:45:00+09:00"))
+                    XCTAssertEqual(schedule.isInProgress(block, on: day, className: "1_1", now: now), first)
+                    let row = try XCTUnwrap(restored.lessons.first { $0.date == date && $0.className == "1_1" && $0.period == 5 })
+                    XCTAssertEqual(restored.timeRange(for: row), row.timeRange)
+                    let fragment = TimetableSchedule.GridBlock(startPeriod: 6, endPeriod: 6, content: block.content)
+                    XCTAssertEqual(schedule.cardTime(fragment, on: day, className: "1_1"), first ? "11:10〜11:50" : "13:35〜14:20")
+                }
+            }
+        }
+    }
+
 }

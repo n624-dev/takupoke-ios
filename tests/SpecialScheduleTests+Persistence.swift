@@ -212,4 +212,39 @@ extension SpecialScheduleTests {
         XCTAssertEqual(reopened.selectedURL(for: .exam), reopened.savedURL(for: .exam))
         XCTAssertEqual(reopened.records[.exam]?.analysis.version, 4)
     }
+    func testReturnClockDateAndLegacyRawTimesSurviveSqliteReopen() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let bytes = Data("%PDF-fictional-return".utf8)
+        let analysis = try SpecialScheduleParser.parse([returnPageWithSplitCell(dateDays: [2,1,3,4,5])], kind: .examReturn, digest: "fictional", name: "fictional.pdf")
+        do {
+            let store = try SpecialScheduleStore(root: root)
+            let staged = store.newStagingURL(); try bytes.write(to: staged)
+            try store.save(staged: staged, analysis: analysis, originalName: "fictional.pdf", byteCount: bytes.count, digest: "fictional")
+        }
+        let reopened = try SpecialScheduleStore(root: root)
+        let current = try XCTUnwrap(reopened.records[.examReturn])
+        XCTAssertEqual(current.analysis.dedicatedTimeDate, "2026-04-02")
+        XCTAssertEqual(current.analysis.periodTime(on: "2026-04-02", period: 5), "10:30〜11:10")
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(current)) as? [String: Any])
+        var saved = try XCTUnwrap(legacy["analysis"] as? [String: Any])
+        saved.removeValue(forKey: "dedicatedTimeDate"); saved["version"] = 32
+        var oldLessons = try XCTUnwrap(saved["lessons"] as? [[String: Any]])
+        oldLessons[0].removeValue(forKey: "timeRange")
+        saved["lessons"] = oldLessons
+        legacy["analysis"] = saved
+        let oldBytes = try JSONSerialization.data(withJSONObject: legacy)
+        let queue = try DatabaseQueue(path: root.appendingPathComponent("specials.sqlite").path)
+        try queue.write { try $0.execute(sql: "UPDATE specialSchedule SET payload=? WHERE kind='examReturn'", arguments: [oldBytes]) }
+        let old = try SpecialScheduleStore(root: root)
+        let retained = try XCTUnwrap(old.records[.examReturn]?.analysis)
+        XCTAssertNil(retained.dedicatedTimeDate)
+        XCTAssertNil(retained.periodTime(on: "2026-04-01", period: 5))
+        XCTAssertNil(retained.periodTime(on: "2026-04-02", period: 5))
+        let joined = try XCTUnwrap(retained.lessons.first { $0.date == "2026-04-02" && $0.period == 5 && $0.className == "1_1" })
+        XCTAssertEqual(retained.timeRange(for: joined), "10:30〜11:50")
+        XCTAssertEqual(try Data(contentsOf: XCTUnwrap(old.savedURL(for: .examReturn))), bytes)
+        XCTAssertEqual(try queue.read { try Data.fetchOne($0, sql: "SELECT payload FROM specialSchedule WHERE kind='examReturn'") }, oldBytes)
+    }
+
 }

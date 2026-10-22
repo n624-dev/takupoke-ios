@@ -24,7 +24,7 @@ struct SpecialScheduleLesson: Codable, Equatable {
 }
 
 struct SpecialScheduleAnalysis: Codable, Equatable {
-    static let parserVersion = 32
+    static let parserVersion = 33
     var version = parserVersion
     let kind: SpecialScheduleKind
     let sourceDigest: String
@@ -36,6 +36,7 @@ struct SpecialScheduleAnalysis: Codable, Equatable {
     let periodTimes: [Int: String]
     var lessons: [SpecialScheduleLesson]
     var recovery: RecoveryAdopted? = nil
+    var dedicatedTimeDate: String? = nil
 
     func applies(date: String, className: String) -> Bool {
         coveredDates.contains(date) && (coveredClasses.contains(className) ||
@@ -46,9 +47,13 @@ struct SpecialScheduleAnalysis: Codable, Equatable {
     func periodTime(on date: String, period: Int) -> String? {
         guard coveredDates.contains(date) else { return nil }
         if let recovered = recovery?.document.times["\(date):\(period)"] { return recovered }
-        if kind == .examReturn && date != coveredDates.first {
-            guard (1...TimetableSchedule.normalPeriodTimes.count).contains(period) else { return nil }
-            return TimetableSchedule.normalPeriodTimes[period - 1]
+        if kind == .examReturn {
+            // Old sorted date lists cannot prove the original first PDF column.
+            guard let dedicatedTimeDate, coveredDates.contains(dedicatedTimeDate) else { return nil }
+            if date != dedicatedTimeDate {
+                guard (1...TimetableSchedule.normalPeriodTimes.count).contains(period) else { return nil }
+                return TimetableSchedule.normalPeriodTimes[period - 1]
+            }
         }
         return periodTimes[period]
     }
@@ -63,8 +68,7 @@ struct SpecialScheduleAnalysis: Codable, Equatable {
 
     func timeRange(for lesson: SpecialScheduleLesson) -> String? {
         guard applies(date: lesson.date, className: lesson.className) else { return nil }
-        if kind != .examReturn || lesson.date == coveredDates.first,
-           let recorded = lesson.timeRange { return recorded }
+        if let recorded = lesson.timeRange { return recorded }
         guard let start = periodTime(on: lesson.date, period: lesson.spanStart)?
             .components(separatedBy: "〜").first,
               let end = periodTime(on: lesson.date, period: lesson.spanEnd)?

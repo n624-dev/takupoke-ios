@@ -242,7 +242,7 @@ struct SimulatorApplication: App {
                     coveredClasses: ["3_IT"] + (1...16).map { "fictional_\($0)" },
                     periodTimes: Dictionary(uniqueKeysWithValues: (1...(kind == .exam ? 6 : 8)).map {
                         ($0, String(format: "%02d:00〜%02d:40", $0 + 7, $0 + 7))
-                    }), lessons: lessons)
+                    }), lessons: lessons, dedicatedTimeDate: kind == .examReturn ? monday.addingDays(offset)!.iso8601 : nil)
                 try specialStore.save(staged: staged, analysis: special, originalName: name, byteCount: raw.count, digest: digest)
             }
             let eventDay = monday.addingDays(4)!.iso8601
