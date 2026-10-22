@@ -1,7 +1,7 @@
 # 通知許可・実配信・設定・バックグラウンド
 
 対応関係・宣言名・実行方法のSHA-256：
-`08ce7c24440686338aac8a421d09d6b0d29c550bfcdfbddabcf54d7fbc540c19`
+`babe5125e3704c1e2510c0a27cf93469000d31bb73ca9da0b353d3943b12c1df`
 
 環境：Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定
 
@@ -25,6 +25,7 @@ python3 -B -m unittest discover -s tests -p test_notification_settings_lifecycle
 - `testSavedBaselineSurvivesRestartAndSeparatesExamAndReturn`
 - `testFailedChangeSendCannotSurviveClassSwitchTargetExpiryOrChangedContent`
 - `testFailedRemovalNoticeRemainsRelevantOnlyWhileSlotIsAbsent`
+- `testPersistedPendingSurvivesPartialStartupAndOnlyConfirmedAbsenceClearsIt`
 - `testInvalidDateCannotNotify`
 - `testFailedParseCannotReplaceNotificationBaselineWithPreviousAnalysis`
 

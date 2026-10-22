@@ -213,4 +213,25 @@ final class MappingRulesTests: XCTestCase {
         XCTAssertEqual(presented.after.detailTeacher, "架空正式教員B,架空正式教員A")
         XCTAssertEqual(source.after_subject, "架空略科A(架空教員B,架空教員A)")
     }
+    func testContextualTeacherAndConfirmedRoomSeparateInEitherSuffixOrder() throws {
+        let context: [String: Any] = ["alias": "架空姓", "fullName": "架空正式教員C", "subject": "架空正式科目A", "className": "3_IT", "schoolYear": 2032]
+        let mapping = try rules(teachers: [], contexts: [context])
+        for (open, close) in [("(", ")"), ("（", "）")] {
+            for suffixes in [["架空姓", "架空室A"], ["架空室A", "架空姓"]] {
+                let source = "架空略科A" + suffixes.map { open + $0 + close }.joined()
+                let names = mapping.separatingChangeField(source, className: "3_IT", schoolYear: 2032)
+                XCTAssertEqual(names.subject, "架空略科A"); XCTAssertEqual(names.teacher, "架空姓"); XCTAssertEqual(names.room, "架空室A")
+                let shown = mapping.presenting(change(source, className: "3_IT", date: "2032-10-01")).after
+                XCTAssertEqual(shown.detailSubject, "架空正式科目A"); XCTAssertEqual(shown.detailTeacher, "架空正式教員C"); XCTAssertEqual(shown.detailRoom, "架空正式教室A")
+                XCTAssertTrue(mapping.separatingChangeField(source, className: "3_IT", schoolYear: 2033).teacher.isEmpty)
+                XCTAssertTrue(mapping.separatingChangeField(source, className: "2_IT", schoolYear: 2032).teacher.isEmpty)
+            }
+        }
+        let unknown = "架空略科A(架空未登録室)(架空姓)"
+        XCTAssertEqual(mapping.separatingChangeField(unknown, className: "3_IT", schoolYear: 2032).subject, unknown)
+        var second = context; second["fullName"] = "架空別教員D"
+        let ambiguous = try rules(teachers: [], contexts: [context, second])
+        XCTAssertEqual(ambiguous.separatingChangeField("架空略科A(架空室A)(架空姓)", className: "3_IT", schoolYear: 2032).teacher, "")
+    }
+
 }

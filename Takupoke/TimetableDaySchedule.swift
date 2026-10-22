@@ -39,13 +39,18 @@ struct TimetableDaySchedule {
     func slotTime(_ slot: TimetableSchedule.Slot, on day: SchoolDate,
                           className: String, period: Int) -> String? {
         if !slot.specialLessons.isEmpty {
-            let times = Set(slot.specialLessons.compactMap(\.timeRange))
-            return times.count == 1 && slot.specialLessons.allSatisfy({ $0.timeRange != nil })
-                ? times.first : nil
+            let clocks = slot.specialLessons.map { item -> String? in
+                let sources = specials.filter { $0.kind == item.kind && $0.lessons.contains(item.lesson) }
+                let values = sources.map { $0.displayTime(for: item.lesson, in: period...period) }
+                let confirmed = values.compactMap { $0 }
+                return !values.isEmpty && values.count == confirmed.count && Set(confirmed).count == 1 ? confirmed.first : nil
+            }
+            let times = clocks.compactMap { $0 }
+            return times.count == clocks.count && Set(times).count == 1 ? times.first : nil
         }
         let sourceTimes = Set(specials.flatMap { analysis in
             analysis.lessons.filter { $0.date == day.iso8601 && $0.className == className &&
-                $0.period == period }.compactMap { analysis.timeRange(for: $0) }
+                $0.period == period }.compactMap { analysis.displayTime(for: $0, in: period...period) }
         })
         if sourceTimes.count == 1 { return sourceTimes.first }
         if sourceTimes.count > 1 { return nil }
@@ -62,7 +67,7 @@ struct TimetableDaySchedule {
     func cardTime(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
                           className: String) -> String? {
         if case .special(let item) = block.content {
-            if block.startPeriod == block.endPeriod { return item.timeRange }
+            if block.startPeriod == block.endPeriod && item.lesson.spanStart == item.lesson.spanEnd { return item.timeRange }
             let sources = specials.filter { $0.kind == item.kind && $0.lessons.contains(item.lesson) }
             let ranges = sources.map { source -> String? in
                 var clocks: [String] = []
@@ -70,7 +75,7 @@ struct TimetableDaySchedule {
                     let lessons = source.lessons.filter { $0.date == day.iso8601 && $0.className == className &&
                         $0.period == period && $0.subject == item.lesson.subject &&
                         $0.teacher == item.lesson.teacher && $0.room == item.lesson.room }
-                    let times = lessons.compactMap { source.timeRange(for: $0) }
+                    let times = lessons.compactMap { source.displayTime(for: $0, in: block.startPeriod...block.endPeriod) }
                     guard !lessons.isEmpty, times.count == lessons.count, Set(times).count == 1,
                           let time = times.first else { return nil }
                     clocks.append(time)
@@ -161,7 +166,7 @@ extension TimetableDaySchedule {
     /// Missing input must not be presented as a confirmed day without lessons.
     func missingMessages(on day: SchoolDate, className: String) -> [String] {
         let plan = TimetableSchedule.dayPlan(on: day, events: events)
-        var messages: [String] = []
+        var messages: [String] = plan.weekdayOverrideWarning.map { [$0] } ?? []
         for kind in SpecialScheduleKind.allCases {
             let expected = kind == .exam ? plan.apiTest : plan.apiTestReturn
             if expected && !specials.contains(where: { $0.kind == kind && $0.applies(date: day.iso8601, className: className) }) {

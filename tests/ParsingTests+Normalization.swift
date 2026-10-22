@@ -23,7 +23,12 @@ extension ParsingTests {
                             adjusted.canonical_text = reference.change_date + " | " + alias + reference.canonical_text.dropFirst(prefix.count)
                             return adjusted
                         }
-                        XCTAssertEqual(try ChangeNormalizer.parse(rows, defaultYear: item.defaultYear), expected, item.id)
+                        // The pinned reference predates the independent kind field.
+                        // Keep every original field comparison; new kinds have XLSX regressions below.
+                        let actual = try ChangeNormalizer.parse(rows, defaultYear: item.defaultYear).map { row in
+                            var legacy = row; legacy.change_kind = nil; return legacy
+                        }
+                        XCTAssertEqual(actual, expected, item.id)
                     } else {
                         assertCode(item.id == "all-without-known-classes" ? .unknownAll : .date) {
                             _ = try ChangeNormalizer.parse(rows, defaultYear: item.defaultYear)

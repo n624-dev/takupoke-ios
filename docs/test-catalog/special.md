@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`6897c98a6801986cfcc8b05f0416d7ce350f086c9ad6ba7cff2684cc4b5d328f`
+`472169f43c7045f4ff84233bef00937be08ebb0d8c773d48ead1f9309f258c11`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -37,6 +37,7 @@ bash tools/test-parsing.sh
 
 ## [tests/SpecialScheduleTests.swift](../../tests/SpecialScheduleTests.swift)
 
+- `testParsedMergedCellRetainsRawClockButItsRemainingFragmentUsesPeriodClock`
 - `testRepeatedLowerHeaderBandBelowMergedClassBorderUsesItsOwnRule`
 - `testSingleDayPeriodWordAndPartialSeparatorDoNotMoveTheBodyBoundary`
 - `testReturnColumnHeadingsAreExcludedWithoutChangingLessonFields`

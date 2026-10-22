@@ -27,6 +27,8 @@ final class ApplicationData: ObservableObject {
     private var observations = Set<AnyCancellable>()
 
     init() {
+        materials.$ready.sink { [weak self] _ in self?.checkNotificationsWhenActive() }.store(in: &observations)
+        specialSchedules.$ready.sink { [weak self] _ in self?.checkNotificationsWhenActive() }.store(in: &observations)
         materials.$state.sink { [weak self] _ in self?.checkNotificationsWhenActive() }.store(in: &observations)
         specialSchedules.$records.sink { [weak self] _ in self?.checkNotificationsWhenActive() }.store(in: &observations)
         specialSchedules.$sources.sink { [weak self] _ in self?.checkNotificationsWhenActive() }.store(in: &observations)
@@ -37,7 +39,8 @@ final class ApplicationData: ObservableObject {
             guard let self, self.ready, UIApplication.shared.applicationState == .active,
                   let period = self.loadedPeriod else { return }
             await self.notifications.reconcile(state: self.materials.state, records: self.specialSchedules.records,
-                                                sources: self.specialSchedules.sources, period: period)
+                                                sources: self.specialSchedules.sources, period: period,
+                                                materialsReady: self.materials.ready, specialsReady: self.specialSchedules.ready)
         }
     }
 
@@ -126,7 +129,8 @@ final class ApplicationData: ObservableObject {
             _ = await (materials, specials, events, revisions)
             if !Task.isCancelled, let period = self.loadedPeriod {
                 await self.notifications.reconcile(state: self.materials.state, records: self.specialSchedules.records,
-                                                    sources: self.specialSchedules.sources, period: period)
+                                                    sources: self.specialSchedules.sources, period: period,
+                                                materialsReady: self.materials.ready, specialsReady: self.specialSchedules.ready)
             }
         }
         backgroundRefresh = task

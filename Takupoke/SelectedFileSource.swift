@@ -50,16 +50,36 @@ struct FileContentVersion: Equatable {
 }
 
 struct FileContentChangeGate {
-    private var previous: FileContentVersion?
+    private var acknowledged: FileContentVersion?
+    private var observed: FileContentVersion?
+    private var awaitingRead = false
+    private var lastNotification: TimeInterval?
+    private var retryAfter: TimeInterval?
 
-    mutating func record(_ version: FileContentVersion?) { previous = version }
+    mutating func record(_ version: FileContentVersion?) {
+        acknowledged = version
+        if version == observed || version == nil {
+            observed = nil; awaitingRead = false; retryAfter = nil
+        }
+    }
 
-    mutating func shouldRefresh(_ version: FileContentVersion?) -> Bool {
-        // Some volumes do not expose these identifiers. Never infer unchanged
-        // content from a timestamp or file size in that case.
-        guard let version else { previous = nil; return true }
-        guard previous != version else { return false }
-        previous = version
+    mutating func readFailed(now: TimeInterval = ProcessInfo.processInfo.systemUptime) {
+        guard awaitingRead else { return }
+        awaitingRead = false; retryAfter = now + 1
+    }
+
+    mutating func shouldRefresh(_ version: FileContentVersion?, now: TimeInterval = ProcessInfo.processInfo.systemUptime) -> Bool {
+        // Unsupported metadata still requires a hash read; notifications never
+        // acknowledge bytes, even when the provider reports a new generation.
+        guard let version else { return true }
+        guard acknowledged != version else { return false }
+        let previousNotification = lastNotification
+        lastNotification = now
+        if observed == version {
+            if awaitingRead { return false }
+            if let retryAfter, now < retryAfter || previousNotification.map({ now - $0 < 1 }) == true { return false }
+        }
+        observed = version; awaitingRead = true; retryAfter = nil
         return true
     }
 }

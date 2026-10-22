@@ -172,4 +172,26 @@ extension TimetableScheduleTests {
         XCTAssertEqual(TimetableSchedule.events(on: day, analysis: events).count, 3)
     }
 
+    func testConflictingWeekdayOverridesWarnPreserveTagsAndFallBackToRealWeekday() throws {
+        let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
+        func override(_ weekday: Int) -> PDFSchoolEvent {
+            PDFSchoolEvent(date: day.iso8601, scope: "全クラス", title: "架空振替A", page: 0,
+                endDate: "2032-04-07", classification: .init(type: .weekdayOverride, scheduleDay: weekday), apiTag: "曜日振替")
+        }
+        var events = PDFAnalysis(kind: .events, sourceDigest: "fictional", sourceName: "fictional", parsedAt: Date(),
+            schoolYear: 2032, term: nil, lessons: [], events: [override(2), override(3),
+                PDFSchoolEvent(date: day.iso8601, scope: "全クラス", title: "架空メモA", page: 0, apiTag: "行事メモ")], notices: [])
+        let plan = TimetableSchedule.dayPlan(on: day, events: events)
+        XCTAssertEqual(plan.weekdayOverrideWarning, "曜日振替を確定できません")
+        XCTAssertNil(plan.weekdayOverride)
+        XCTAssertEqual(plan.events.count, 3)
+        XCTAssertEqual(TimetableSchedule.slot(on: day, period: 1, className: "1_A", timetable: timetable(term: "前期"),
+            changes: nil, includesChanges: false, events: events).displayedLessons.count, 1)
+        XCTAssertEqual(TimetableSchedule.dayPlan(on: day.addingDays(1)!, events: events).weekdayOverrideWarning, "曜日振替を確定できません")
+        for replacements in [[override(2), override(2)], [override(2)], []] {
+            events.events = replacements
+            XCTAssertNil(TimetableSchedule.dayPlan(on: day, events: events).weekdayOverrideWarning)
+        }
+    }
+
 }

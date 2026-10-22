@@ -47,4 +47,37 @@ extension ParsingTests {
             XCTAssertEqual(reopened.state.changeParseAttempt?.failure?.code, .unsupported)
         }
     }
+    func testInvalidYearCannotReplaceAcceptedSqliteDatesAndFreshnessUsesYearAndConsents() throws {
+        try temporary { root in
+            let rows = [headers, ["1", "ZZ", "7/10", "1", "補講", "架空科目A"], ["1", "ZZ", "1/10", "2", "休講", "架空科目B"]]
+            let file = root.appendingPathComponent("fictional.xlsx")
+            try write(workbook(rows), to: file)
+            let table = try XLSXReader.read(file)
+            do {
+            let library = try LocalMaterialDatabase.openLibrary(root: root.appendingPathComponent("db"))
+            let staged = library.newStagingURL(), bytes = try Data(contentsOf: file)
+            try bytes.write(to: staged)
+            try library.commit(staged: staged, kind: .changes, source: MaterialSource(), originalName: "fictional.xlsx", byteCount: bytes.count, digest: "fictional", modifiedAt: nil)
+            let records = try ChangeNormalizer.parse(table, defaultYear: 2032)
+            let analysis = ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx", defaultYear: 2032, parsedAt: Date(), records: records)
+            try library.saveChangeAnalysis(analysis)
+            for invalid in [203, 1899, 9999] {
+                assertCode(.defaultYear) { try library.reanalyzeChanges(defaultYear: invalid) }
+                XCTAssertEqual(library.state.changeAnalysis?.records.map(\.change_date), ["2032-07-10", "2033-01-10"])
+            }
+            let source = try XCTUnwrap(library.state.record(for: .changes))
+            XCTAssertTrue(analysis.matches(record: source, defaultYear: 2032))
+            XCTAssertFalse(analysis.matches(record: source, defaultYear: 2033))
+            XCTAssertFalse(analysis.matches(record: source, defaultYear: nil))
+            var changed = source; changed.digest = "other"
+            XCTAssertFalse(analysis.matches(record: changed, defaultYear: 2032))
+            changed = source; changed.source.weekdayConsent = ChangeWeekdayConsent(digest: source.digest, defaultYear: 2032, parserVersion: ChangeAnalysis.parserVersion)
+            XCTAssertFalse(analysis.matches(record: changed, defaultYear: 2032))
+            var stale = analysis; stale.version -= 1
+            XCTAssertFalse(stale.matches(record: source, defaultYear: 2032))
+            }
+            XCTAssertEqual(try LocalMaterialDatabase.openLibrary(root: root.appendingPathComponent("db")).state.changeAnalysis?.records.map(\.change_date), ["2032-07-10", "2033-01-10"])
+        }
+    }
+
 }

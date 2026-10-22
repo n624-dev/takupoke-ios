@@ -31,27 +31,38 @@ extension MappingRules {
     /// subject component such as 「架空科目X（分野A）」 remains part of the subject.
     func separatingChangeField(_ source: String, className: String? = nil,
                                schoolYear: Int? = nil) -> TimetableLessonNames {
+        func suffix(_ value: String) -> (subject: String, token: String)? {
+            guard let closing = value.last, closing == ")" || closing == "）" else { return nil }
+            let opening: Character = closing == ")" ? "(" : "（"
+            var depth = 0
+            for index in value.indices.reversed() {
+                if value[index] == closing { depth += 1 }
+                else if value[index] == opening {
+                    depth -= 1
+                    if depth == 0 {
+                        return (String(value[..<index]).trimmingCharacters(in: .whitespacesAndNewlines),
+                            String(value[value.index(after: index)..<value.index(before: value.endIndex)]).trimmingCharacters(in: .whitespacesAndNewlines))
+                    }
+                }
+            }
+            return nil
+        }
+        func contextualSubject(_ subject: String) -> String {
+            guard let className, canonicalSubject(subject, className: className) == nil,
+                  let tail = suffix(subject), confirmsMetadata(tail.token, in: rooms),
+                  !confirmsMetadata(tail.token, in: teachers, contextual: {
+                      contextualTeacher($0, subject: tail.subject, className: className, schoolYear: schoolYear)
+                  }), canonicalSubject(tail.subject, className: className) != nil else { return subject }
+            return tail.subject
+        }
         var remaining = source.trimmingCharacters(in: .whitespacesAndNewlines)
         var teacher = ""
         var room = ""
-        while let closing = remaining.last, closing == ")" || closing == "）" {
-            let opening: Character = closing == ")" ? "(" : "（"
-            var depth = 0
-            var openingIndex: String.Index?
-            for index in remaining.indices.reversed() {
-                let character = remaining[index]
-                if character == closing { depth += 1 }
-                else if character == opening {
-                    depth -= 1
-                    if depth == 0 { openingIndex = index; break }
-                }
-            }
-            guard let openingIndex, depth == 0 else { break }
-            let token = String(remaining[remaining.index(after: openingIndex)..<remaining.index(before: remaining.endIndex)])
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            let subject = String(remaining[..<openingIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
+        while let tail = suffix(remaining) {
+            let token = tail.token
+            let subject = tail.subject
             let isTeacher = confirmsMetadata(token, in: teachers, contextual: { alias in
-                className.flatMap { contextualTeacher(alias, subject: subject,
+                className.flatMap { contextualTeacher(alias, subject: contextualSubject(subject),
                     className: $0, schoolYear: schoolYear) }
             })
             let isRoom = confirmsMetadata(token, in: rooms)
@@ -63,7 +74,7 @@ extension MappingRules {
                 guard room.isEmpty else { break }
                 room = token
             }
-            remaining = String(remaining[..<openingIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
+            remaining = subject
         }
         return TimetableLessonNames(subject: remaining, teacher: teacher, room: room)
     }

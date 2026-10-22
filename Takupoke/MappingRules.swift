@@ -53,19 +53,16 @@ struct MappingRules: Codable, Equatable {
     }
 
     func isInternationalStudentSubject(_ alias: String, className: String) -> Bool {
-        guard !alias.isEmpty else { return false }
-        func matching(_ rules: [MappingRule]) -> MappingRule? {
-            rules.first(where: { $0.classes?.contains(className) == true }) ??
-                rules.first(where: { $0.classes == nil })
+        let source = Self.comparable(alias)
+        guard !source.isEmpty else { return false }
+        let candidates = subjects.filter { rule in
+            guard rule.classes == nil || rule.classes?.contains(className) == true else { return false }
+            let key = Self.comparable(rule.alias)
+            return key == source || (rule.internationalStudent == true && key.hasPrefix("留 ") && String(key.dropFirst(2)) == source)
         }
-        if let exact = matching(subjects.filter({ $0.alias == alias })) {
-            return exact.internationalStudent == true
-        }
-        let derived = subjects.filter { rule in
-            rule.internationalStudent == true && rule.alias.hasPrefix("留 ") &&
-                String(rule.alias.dropFirst(2)) == alias
-        }
-        return matching(derived)?.internationalStudent == true
+        let specific = candidates.filter { $0.classes?.contains(className) == true }
+        let flags = Set((specific.isEmpty ? candidates : specific).compactMap(\.internationalStudent))
+        return flags == [true]
     }
 
     /// Preserve the source separators and unregistered names. Whole-field

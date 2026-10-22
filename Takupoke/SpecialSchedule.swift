@@ -53,6 +53,14 @@ struct SpecialScheduleAnalysis: Codable, Equatable {
         return periodTimes[period]
     }
 
+    /// A retained fragment must use individual verified period clocks. The
+    /// original merged range remains available when the whole source cell is shown.
+    func displayTime(for lesson: SpecialScheduleLesson, in periods: ClosedRange<Int>) -> String? {
+        guard periods.contains(lesson.period), applies(date: lesson.date, className: lesson.className) else { return nil }
+        if periods.lowerBound <= lesson.spanStart && periods.upperBound >= lesson.spanEnd { return timeRange(for: lesson) }
+        return periodTime(on: lesson.date, period: lesson.period)
+    }
+
     func timeRange(for lesson: SpecialScheduleLesson) -> String? {
         guard applies(date: lesson.date, className: lesson.className) else { return nil }
         if kind != .examReturn || lesson.date == coveredDates.first,

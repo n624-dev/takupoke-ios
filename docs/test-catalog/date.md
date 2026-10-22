@@ -1,7 +1,7 @@
 # 日本時間・学校年度・日付表示
 
 対応関係・宣言名・実行方法のSHA-256：
-`c92efb6636688d1fe4f1bc87e0370c30234ff6d99e164fed4a7ba81a5a20ef0e`
+`9e3b7f770d1025680e7d2dba34942b31ba2ad92a7b8c9ab84c7f14de192ffb24`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -22,6 +22,7 @@ bash tools/test-parsing.sh
 ## [tests/SchoolDateTests.swift](../../tests/SchoolDateTests.swift)
 
 - `testJapaneseSchoolYearAndAutomaticChangeYear`
+- `testInvalidNonemptyConfiguredYearNeverFallsBackToToday`
 - `testStrictCivilDateParsingAcrossLeapAndSchoolYearBoundary`
 - `testApplicabilityBoundariesAndOverlap`
 - `testMondayAndWeekNavigationAcrossYearBoundary`

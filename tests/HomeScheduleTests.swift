@@ -60,6 +60,32 @@ final class HomeScheduleTests: XCTestCase {
         XCTAssertNil(schedule.cardTime(unknown, on: day, className: fixtureClass))
     }
 
+
+    func testFragmentsOfMergedSpecialsUseOnlyVerifiedIndividualClocks() throws {
+        let clocks = ["08:50〜09:35", "09:50〜10:35", "10:50〜11:35"]
+        for kind in SpecialScheduleKind.allCases {
+            let source = clockSource(kind, clocks: clocks, joined: true)
+            for replaced in [[], [1], [3], [2], [1, 3]] as [[Int]] {
+                let rows = replaced.map { period -> ScheduleChange in
+                    var row = change(); row.period = String(period); return row
+                }
+                let changed = ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx", defaultYear: 2032, parsedAt: Date(), records: rows)
+                let schedule = TimetableDaySchedule(timetable: nil, changes: changed, events: nil, specials: [source], includesChanges: true)
+                for block in schedule.blocks(on: day, className: fixtureClass, international: false) {
+                    let expected = clocks[block.startPeriod-1].components(separatedBy: "〜")[0] + "〜" + clocks[block.endPeriod-1].components(separatedBy: "〜")[1]
+                    XCTAssertEqual(schedule.cardTime(block, on: day, className: fixtureClass), expected)
+                    if block.startPeriod > 1 { XCTAssertFalse(schedule.isInProgress(block, on: day, className: fixtureClass, now: date("2032-04-05T09:00:00+09:00"))) }
+                }
+                XCTAssertEqual(source.lessons.map(\.timeRange), Array(repeating: "08:50〜11:35", count: 3))
+            }
+            let missing = SpecialScheduleAnalysis(kind: source.kind, sourceDigest: source.sourceDigest, sourceName: source.sourceName, parsedAt: source.parsedAt, schoolYear: source.schoolYear, coveredDates: source.coveredDates, coveredClasses: source.coveredClasses, periodTimes: [:], lessons: source.lessons)
+            let schedule = TimetableDaySchedule(timetable: timetable(), changes: nil, events: nil, specials: [missing], includesChanges: true)
+            let fragment = TimetableSchedule.GridBlock(startPeriod: 2, endPeriod: 2, content: .special(TimetableSchedule.SpecialItem(kind: kind, lesson: missing.lessons[1], timeRange: missing.lessons[1].timeRange)))
+            XCTAssertNil(schedule.cardTime(fragment, on: day, className: fixtureClass))
+            XCTAssertNil(schedule.commonPeriodTime(2, days: [day], classes: [fixtureClass], international: false))
+        }
+    }
+
     private let day = SchoolDate(iso8601: "2032-04-05")!
     private let fixtureClass = "1_ZZ"
 

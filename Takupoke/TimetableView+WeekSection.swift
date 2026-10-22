@@ -52,8 +52,8 @@ extension TimetableView {
                 Label("通常時間割は前回の解析結果です。", systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.orange)
             }
-            if let changes, changes.sourceDigest != model.state.record(for: .changes)?.digest ||
-                changes.version != ChangeAnalysis.parserVersion {
+            if let changes, model.state.record(for: .changes).map({ changes.matches(record: $0,
+                defaultYear: ChangeNormalizer.effectiveSchoolYear(configured: changeSchoolYear, today: today)) }) != true {
                 Label("時間割変更は前回の解析結果です。", systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.orange)
             }

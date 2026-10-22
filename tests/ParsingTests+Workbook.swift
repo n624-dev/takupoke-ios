@@ -96,4 +96,75 @@ extension ParsingTests {
             XCTAssertEqual(records[0].before_subject, "架空科目A")
         }
     }
+    func testWorkbookChangeKindsRemainIndependentOfRemarksAndPersist() throws {
+        try temporary { root in
+            for shared in [false, true] {
+                for kind in ["休講", "補講", "変更", ""] {
+                    for remark in ["", "架空備考A", "休講"] {
+                        let rows = [headers + ["備考"], ["1", "ZZ", "2032/4/5", "1", kind, "架空科目A", remark]]
+                        let file = root.appendingPathComponent(UUID().uuidString + ".xlsx")
+                        try write(workbook(rows, shared: shared), to: file)
+                        let changes = try ChangeNormalizer.parse(XLSXReader.read(file), defaultYear: 2032)
+                        let row = try XCTUnwrap(changes.first)
+                        XCTAssertEqual(row.change_kind, kind)
+                        XCTAssertEqual(row.note, remark.isEmpty ? kind : remark)
+                        XCTAssertEqual(row.isCancellation, kind == "休講")
+                        XCTAssertEqual(row.isMakeup, kind == "補講")
+                        XCTAssertEqual(row.cardKindLabel, kind == "休講" || kind == "補講" ? kind : "変更")
+                        let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
+                        let analysis = ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx", defaultYear: 2032, parsedAt: Date(), records: changes)
+                        let schedule = TimetableDaySchedule(timetable: nil, changes: analysis, events: nil, specials: [], includesChanges: true)
+                        let block = try XCTUnwrap(schedule.blocks(on: day, className: "1_ZZ", international: false).first)
+                        XCTAssertEqual(schedule.isInProgress(block, on: day, className: "1_ZZ", now: ISO8601DateFormatter().date(from: "2032-04-05T09:00:00+09:00")!), kind != "休講")
+                        let dbRoot = root.appendingPathComponent(UUID().uuidString)
+                        do {
+                            let library = try LocalMaterialDatabase.openLibrary(root: dbRoot)
+                            let bytes = try Data(contentsOf: file), staged = library.newStagingURL()
+                            try bytes.write(to: staged)
+                            try library.commit(staged: staged, kind: .changes, source: MaterialSource(), originalName: "fictional.xlsx", byteCount: bytes.count, digest: "fictional", modifiedAt: nil)
+                            try library.saveChangeAnalysis(analysis)
+                        }
+                        XCTAssertEqual(try LocalMaterialDatabase.openLibrary(root: dbRoot).state.changeAnalysis?.records, changes)
+                    }
+                }
+            }
+            let rows = [headers + ["備考"], ["1", "ZZ", "2032/4/5", "1", "補講", "架空補講科目A", "架空備考A"],
+                        ["1", "ZZ", "2032/4/5", "1", "休講", "架空休講科目B", "架空備考B"]]
+            let file = root.appendingPathComponent("priority.xlsx")
+            try write(workbook(rows), to: file)
+            let changes = try ChangeNormalizer.parse(XLSXReader.read(file), defaultYear: 2032)
+            XCTAssertEqual(TimetableSchedule.effectiveChange(changes)?.after_subject, "架空補講科目A")
+            let legacy = ScheduleChange(change_date: "2032-04-05", class_name: "1_ZZ", period: "1", before_subject: "架空科目A", after_subject: "", teacher: "", room: "", note: "休講", raw_text: "", canonical_text: "")
+            XCTAssertTrue(try JSONDecoder().decode(ScheduleChange.self, from: JSONEncoder().encode(legacy)).isCancellation)
+        }
+    }
+
+    func testOoxmlEscapesDecodeOnceAcrossSharedInlineAndRichStrings() throws {
+        try temporary { root in
+            for form in ["inline", "shared", "rich"] {
+                for (encoded, expected) in [("休講_x000D_", "休講"), ("補講_x000A_", "補講"), ("休講_x000D__x000A_", "休講")] {
+                    let rows = [["学 年", "学科・クラス", "月日", "時限", "変更内容", "科目", "教員", "教室"],
+                                ["1", "ZZ", "2032/4/5", "1", encoded, "架空科目_x0041_", "架空教員_x0042_", "架空室_x005F_x0043_"]]
+                    var files = workbook(rows, shared: form != "inline")
+                    if form == "shared" {
+                        mutate(&files, "xl/sharedStrings.xml", "<si><r><t>", "<si><t>")
+                        mutate(&files, "xl/sharedStrings.xml", "</t></r></si>", "</t></si>")
+                    }
+                    let file = root.appendingPathComponent(UUID().uuidString + ".xlsx")
+                    try write(files, to: file)
+                    let row = try XCTUnwrap(ChangeNormalizer.parse(XLSXReader.read(file), defaultYear: 2032).first)
+                    XCTAssertEqual(row.change_kind, expected)
+                    XCTAssertEqual(row.cardKindLabel, expected)
+                    XCTAssertEqual(row.before_subject.isEmpty ? row.after_subject : row.before_subject, "架空科目A")
+                    XCTAssertEqual(row.teacher, "架空教員B")
+                    XCTAssertEqual(row.room, "架空室_x0043_")
+                }
+            }
+            for (encoded, expected) in [("_x005F_x0041_", "_x0041_"), ("_x000Z_", "_x000Z_"), ("_X000D_", "_X000D_"), ("_xD83D__xDE00_", "😀")] {
+                XCTAssertEqual(try XLSXReader.decodedString(encoded), expected)
+            }
+            XCTAssertThrowsError(try XLSXReader.decodedString("_xD800_"))
+        }
+    }
+
 }

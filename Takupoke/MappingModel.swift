@@ -13,14 +13,23 @@ final class MappingModel: ObservableObject {
     private var store: MappingStore?
     private var checkedAtStartup = false
     private var generation = UUID()
-    private let baseURL = URL(string: "https://takupoke-api.n624.jp")!
+    private let directory: URL?
+    private let baseURL: URL
+
+    init(directory: URL? = nil, baseURL: URL = URL(string: "https://takupoke-api.n624.jp")!) {
+        self.directory = directory; self.baseURL = baseURL
+    }
 
     func loadIfNeeded() {
         guard !ready else { return }
         do {
-            let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
-                                                   appropriateFor: nil, create: true)
-            let directory = base.appendingPathComponent("NameMappings", isDirectory: true)
+            let directory: URL
+            if let configured = self.directory { directory = configured }
+            else {
+                let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
+                    appropriateFor: nil, create: true)
+                directory = base.appendingPathComponent("NameMappings", isDirectory: true)
+            }
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             var protectedDirectory = directory
             var values = URLResourceValues()
@@ -31,15 +40,18 @@ final class MappingModel: ObservableObject {
             #endif
             let file = directory.appendingPathComponent("mappings.sqlite")
             let store = try MappingStore(url: file)
-            let saved = try store.load()
             #if os(iOS)
             try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: file.path)
             #endif
+            do {
+                current = try store.load()
+                failed = false; message = nil
+            } catch is MappingStore.InvalidPayload {
+                current = nil; failed = true
+                message = MappingError.storage.localizedDescription
+            }
             self.store = store
-            current = saved
             ready = true
-            failed = false
-            message = nil
         } catch {
             failed = true
             message = MappingError.storage.localizedDescription

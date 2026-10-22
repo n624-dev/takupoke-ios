@@ -58,6 +58,10 @@ extension TimetableView {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(day.month)月\(day.day)日、\(weekdayNames[day.schoolWeekday - 1])曜日" +
                                 (day == today ? "、今日" : ""))
+            if let warning = plan.weekdayOverrideWarning {
+                Label(warning, systemImage: "exclamationmark.triangle")
+                    .font(.caption2).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+            }
             ForEach(Array(plan.headerEvents(hasFullDayCard: hasFullDayCard).enumerated()), id: \.offset) { _, event in
                 Text(TimetableDisplayText.kana(event.title))
                     .font(.caption2)

@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`bab5f101fb0658e1609fca8db1939cbabfa02b1f14e37c355ed7853a45f92848`
+`f3f9f5fa191129dd6b0376c52e6fcb7159c01ba1877fbf79c86d592738a709c2`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -38,6 +38,7 @@ bash tools/test-parsing.sh
 ## [tests/ParsingTests+Persistence.swift](../../tests/ParsingTests+Persistence.swift)
 
 - `testPersistenceFailureAndNewSourceKeepLastGoodResult`
+- `testInvalidYearCannotReplaceAcceptedSqliteDatesAndFreshnessUsesYearAndConsents`
 
 ## [tests/ParsingTests+Preview.swift](../../tests/ParsingTests+Preview.swift)
 
@@ -71,3 +72,5 @@ bash tools/test-parsing.sh
 - `testSharedStringsExpansionLimit`
 - `testCancellationAndCorruption`
 - `testRichTextNumericDatesAndSparseCells`
+- `testWorkbookChangeKindsRemainIndependentOfRemarksAndPersist`
+- `testOoxmlEscapesDecodeOnceAcrossSharedInlineAndRichStrings`

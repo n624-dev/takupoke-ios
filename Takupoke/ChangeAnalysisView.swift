@@ -7,12 +7,11 @@ struct ChangeAnalysisView: View {
     @AppStorage("changeAnalysisSelectedClass") private var selectedClass = ""
     @State private var confirmingPreview = false
 
-    private var defaultYear: Int {
+    private var defaultYear: Int? {
         ChangeNormalizer.effectiveSchoolYear(configured: year, today: SchoolDate.today())
     }
     private var validYear: Bool {
-        year.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-            Int(year.trimmingCharacters(in: .whitespacesAndNewlines)).map { (1900...9998).contains($0) } == true
+        defaultYear != nil
     }
     private var analysis: ChangeAnalysis? { model.state.changeAnalysis }
     private var classes: [String] { Set(analysis?.records.map(\.displayClassName) ?? []).sorted() }
@@ -62,7 +61,7 @@ struct ChangeAnalysisView: View {
             }
             Section {
                 Button("同じファイルを再取得") { model.refresh(.changes) }
-                    .disabled(model.busy || !model.ready || model.state.record(for: .changes) == nil)
+                    .disabled(model.busy || !model.ready || !validYear || model.state.record(for: .changes) == nil)
             } header: { Text("操作").accessibilityIdentifier("material-actions-section") }
             if let source = model.state.record(for: .changes) {
                 Section {

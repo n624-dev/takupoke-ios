@@ -1,7 +1,7 @@
 # 原本取得・更新・保存・File Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`231bd778133539fc1b4641d20397a5672a20e84639bf66b570090e6450b1e7a7`
+`5870db0dea2771e5fdceeecd4b3a476882285753a171c0536ab23f86888689bc`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -41,8 +41,10 @@ bash tools/test-parsing.sh
 - `testBusyOrLoadingDefersAndCoalescesNotifications`
 - `testBackgroundDropsPendingAndLateNotifications`
 - `testObservationIdentityIgnoresSuccessfulReadMetadata`
+- `testFailedVersionRetriesOnlyAfterQuietPeriodAndSuccessfulReadAcknowledgesIt`
 - `testRepeatedAttributeNotificationsDoNotRestartRefresh`
 - `testReplacementAndUnsupportedVersionsStillGetHashChecked`
+- `testFailedRegistrationRetriesSameSourceWithoutInitialRefreshAndRejectsLateCallbacks`
 - `testReadAcknowledgesMaterializedVersionAndStillDetectsLaterEdit`
 - `testFailedReadDoesNotAcknowledgeUnreadVersion`
 - `testSuspendedMonitorCannotRestartFromSourceUpdateOrLateWork`

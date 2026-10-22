@@ -8,6 +8,21 @@ import GRDB
 // Explicit testStrict239 cases and StrictPDFCompatibilityTests exercise app Strict.
 
 final class SpecialScheduleTests: XCTestCase {
+
+    func testParsedMergedCellRetainsRawClockButItsRemainingFragmentUsesPeriodClock() throws {
+        let parsed = try SpecialScheduleParser.parse((1...6).map { examPage($0, mergedFirstTwo: $0 == 1) }, kind: .exam, digest: "fictional", name: "fictional.pdf")
+        let original = try XCTUnwrap(parsed.lessons.first { $0.date == "2026-04-01" && $0.className == "1_1" && $0.period == 2 })
+        XCTAssertEqual(original.spanStart, 1); XCTAssertEqual(original.spanEnd, 2)
+        XCTAssertEqual(original.timeRange, "08:50〜10:20")
+        let day = try XCTUnwrap(SchoolDate(iso8601: original.date))
+        let row = ScheduleChange(change_date: day.iso8601, class_name: "1_1", period: "1", before_subject: "", after_subject: "架空変更科目A", teacher: "", room: "", note: "補講", raw_text: "", canonical_text: "")
+        let schedule = TimetableDaySchedule(timetable: nil, changes: ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx", defaultYear: 2026, parsedAt: Date(), records: [row]), events: nil, specials: [parsed], includesChanges: true)
+        let fragment = try XCTUnwrap(schedule.blocks(on: day, className: "1_1", international: false).first { $0.startPeriod == 2 })
+        XCTAssertEqual(schedule.cardTime(fragment, on: day, className: "1_1"), "09:50〜10:35")
+        XCTAssertFalse(schedule.isInProgress(fragment, on: day, className: "1_1", now: ISO8601DateFormatter().date(from: "2026-04-01T09:00:00+09:00")!))
+        XCTAssertEqual(parsed.lessons.first { $0 == original }?.timeRange, "08:50〜10:20")
+    }
+
     func testRepeatedLowerHeaderBandBelowMergedClassBorderUsesItsOwnRule() throws {
         let original = try SpecialScheduleParser.parse([returnPageWithMergedClassHeader(includeHeadings:false)],
             kind:.examReturn,digest:"fictional",name:"fictional.pdf")

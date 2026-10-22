@@ -39,7 +39,8 @@ final class MaterialWorker {
 
     /// Reads the selected provider file again, then reparses only if its content
     /// digest changed, analysis was interrupted, or the parser changed. An unavailable provider preserves the previous result.
-    func refreshIfChanged(_ kind: MaterialKind, defaultYear: Int, control: AcquisitionControl) throws -> Bool {
+    func refreshIfChanged(_ kind: MaterialKind, defaultYear: Int?, control: AcquisitionControl) throws -> Bool {
+        if kind == .changes, defaultYear.map({ (1900...9998).contains($0) }) != true { throw ChangeParseError(code: .defaultYear) }
         guard kind == .timetable || kind == .changes,
               let previous = library?.state.record(for: kind), previous.source.grant != nil else { return false }
         try refresh(kind, control: control)

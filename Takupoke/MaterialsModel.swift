@@ -16,12 +16,12 @@ final class MaterialsModel: ObservableObject {
     private(set) var rejectedRecoveryKinds = Set<String>()
 
     var canPreviewChanges: Bool {
-        guard let record = state.record(for: .changes), let attempt = state.changeParseAttempt,
+        guard let year = automaticChangeSchoolYear, let record = state.record(for: .changes), let attempt = state.changeParseAttempt,
               attempt.sourceDigest == record.digest, attempt.parserVersion == ChangeAnalysis.parserVersion else { return false }
         if record.source.rowSkipConsent?.matches(sourceIdentity: record.source.selectionID ?? record.storedName,
-            digest: record.digest, defaultYear: automaticChangeSchoolYear) == true { return true }
+            digest: record.digest, defaultYear: year) == true { return true }
         guard attempt.failure.map({ $0.permitsPreview || [.cancelled, .storage, .staleConfirmation].contains($0.code) }) == true else { return false }
-        return attempt.matches(digest: record.digest, defaultYear: automaticChangeSchoolYear)
+        return attempt.matches(digest: record.digest, defaultYear: year)
     }
 
     private let worker = MaterialWorker()
@@ -51,6 +51,7 @@ final class MaterialsModel: ObservableObject {
     private func runPendingSelection() {
         guard !retired, let selected = pendingSelections.take(busy: busy) else { return }
         let (kind, url) = selected
+        guard acceptsChangeYear(kind) else { return }
         let year = automaticChangeSchoolYear
         perform(success: "\(kind.title)を取得して解析しました。") { worker, control in
             try worker.selectFile(url, kind: kind, control: control)
@@ -59,6 +60,7 @@ final class MaterialsModel: ObservableObject {
     }
 
     func refresh(_ kind: MaterialKind) {
+        guard acceptsChangeYear(kind) else { return }
         let year = automaticChangeSchoolYear
         perform(success: "\(kind.title)を再取得して解析しました。") { worker, control in
             try worker.refresh(kind, control: control)
@@ -73,7 +75,7 @@ final class MaterialsModel: ObservableObject {
         }
     }
 
-    var automaticChangeSchoolYear: Int {
+    var automaticChangeSchoolYear: Int? {
         ChangeNormalizer.effectiveSchoolYear(
             configured: UserDefaults.standard.string(forKey: ChangeNormalizer.schoolYearSettingKey),
             today: SchoolDate.today())
@@ -86,16 +88,28 @@ final class MaterialsModel: ObservableObject {
         return message
     }
 
-    private nonisolated static func analyzeAfterAcquisition(_ kind: MaterialKind, year: Int,
+    private func acceptsChangeYear(_ kind: MaterialKind) -> Bool {
+        guard kind == .changes, automaticChangeSchoolYear == nil else { return true }
+        failed = true; message = ChangeParseError(code: .defaultYear).localizedDescription
+        return false
+    }
+
+    private nonisolated static func analyzeAfterAcquisition(_ kind: MaterialKind, year: Int?,
                                                             worker: MaterialWorker,
                                                             control: AcquisitionControl) throws {
-        if kind == .changes { try worker.analyzeChanges(defaultYear: year, control: control) }
+        if kind == .changes {
+            guard let year else { throw ChangeParseError(code: .defaultYear) }
+            try worker.analyzeChanges(defaultYear: year, control: control)
+        }
         else { try worker.analyzePDF(kind: kind, control: control) }
     }
 
     func analyzeChanges(defaultYear: Int?) {
-        perform(success: "時間割変更を解析しました。", changeYear: defaultYear ?? automaticChangeSchoolYear) {
-            try $0.analyzeChanges(defaultYear: defaultYear, control: $1)
+        guard let year = defaultYear ?? automaticChangeSchoolYear, (1900...9998).contains(year) else {
+            failed = true; message = ChangeParseError(code: .defaultYear).localizedDescription; return
+        }
+        perform(success: "時間割変更を解析しました。", changeYear: year) {
+            try $0.analyzeChanges(defaultYear: year, control: $1)
         }
     }
 
@@ -107,7 +121,7 @@ final class MaterialsModel: ObservableObject {
 
     func previewChanges() {
         guard canPreviewChanges else { return }
-        let year = automaticChangeSchoolYear
+        guard let year = automaticChangeSchoolYear else { return }
         perform(success: nil, changeYear: year) { try $0.previewChanges(defaultYear: year, control: $1) }
     }
 
@@ -127,7 +141,7 @@ final class MaterialsModel: ObservableObject {
     @discardableResult
     func correctWeekdays(_ preview: ChangePreview) -> String? {
         if let failure = changePreviewActionFailure(preview) { return failure }
-        let year = automaticChangeSchoolYear
+        guard let year = automaticChangeSchoolYear else { return ChangeParseError(code: .defaultYear).localizedDescription }
         guard preview.canCorrectWeekdays else { return "曜日の確認内容を開き直してください。" }
         perform(success: "日付から求めた曜日で読み込みました。ファイルの内容が更新されるまで適用します。", preserveChangePreview: true, dismissChangePreviewOnSuccess: true, changeYear: year) {
             try $0.correctWeekdays(preview, defaultYear: year, control: $1)
@@ -140,7 +154,7 @@ final class MaterialsModel: ObservableObject {
     @discardableResult
     func skipChangeRows(_ preview: ChangePreview, rows: Set<Int>, correctWeekdays: Bool = false) -> String? {
         if let failure = changePreviewActionFailure(preview) { return failure }
-        let year = automaticChangeSchoolYear
+        guard let year = automaticChangeSchoolYear else { return ChangeParseError(code: .defaultYear).localizedDescription }
         guard preview.canSkipRows, !rows.isEmpty || correctWeekdays || preview.usesDateDerivedWeekdays else { return "除外する行を確認してください。" }
         perform(success: "選んだ\(rows.count)行を除外して読み込みました。ファイルの内容が更新されるまで適用します。", preserveChangePreview: true, dismissChangePreviewOnSuccess: true, changeYear: year) {
             try $0.skipChangeRows(preview, rows: rows, defaultYear: year, control: $1, correctWeekdays: correctWeekdays)
@@ -242,7 +256,9 @@ final class MaterialsModel: ObservableObject {
                 self.timetableFailure = timetableFailure
                 self.busy = false
                 self.control = nil
-                self.updateFileMonitoring()
+                let succeeded: Bool
+                if case .success = result { succeeded = true } else { succeeded = false }
+                self.updateFileMonitoring(retryFailed: succeeded)
                 defer { self.runPendingSelection(); self.runPendingFileRefresh() }
                 switch result {
                 case .success:

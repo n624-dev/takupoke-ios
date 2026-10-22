@@ -4,6 +4,7 @@ import GRDB
 /// The validated package and its corresponding public revision change in one SQLite transaction.
 
 final class MappingStore {
+    enum InvalidPayload: Error { case corrupt }
     private let queue: DatabaseQueue
 
     init(url: URL) throws {
@@ -22,12 +23,12 @@ final class MappingStore {
     func load() throws -> SavedMapping? {
         try queue.read { db in
             guard let data = try Data.fetchOne(db, sql: "SELECT payload FROM currentMapping WHERE id = 1") else { return nil }
-            let saved = try JSONDecoder().decode(SavedMapping.self, from: data)
-            guard [1, 2].contains(saved.schemaVersion), MappingPackage.validRevision(saved.revision) else {
-                throw MappingError.storage
-            }
-            try MappingPackage.validate(saved.rules, schemaVersion: saved.schemaVersion)
-            return saved
+            do {
+                let saved = try JSONDecoder().decode(SavedMapping.self, from: data)
+                guard [1, 2].contains(saved.schemaVersion), MappingPackage.validRevision(saved.revision) else { throw InvalidPayload.corrupt }
+                try MappingPackage.validate(saved.rules, schemaVersion: saved.schemaVersion)
+                return saved
+            } catch { throw InvalidPayload.corrupt }
         }
     }
 

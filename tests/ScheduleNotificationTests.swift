@@ -76,6 +76,33 @@ final class ScheduleNotificationTests: XCTestCase {
         XCTAssertTrue(baseline.validTargets(targets,in:[change("restored")],today:today,classes:["3_XY"]).isEmpty)
     }
 
+    func testPersistedPendingSurvivesPartialStartupAndOnlyConfirmedAbsenceClearsIt() throws {
+        let old: Set = [change("old")], current: Set = [change("new")]
+        let loaded = ScheduleNotificationSnapshot(changes: old, specialDigests: ["exam": "old-exam", "examReturn": "old-return"])
+        let ready = ScheduleNotificationSnapshot.Availability(changes: .available, specials: ["exam": .available, "examReturn": .available])
+        let pending = try loaded.reconciling(changes: current, specials: ["exam": "new-exam", "examReturn": "new-return"], availability: ready,
+            today: today, classes: ["3_XY"], changesEnabled: true, specialsEnabled: true)
+        XCTAssertEqual(pending.pending.count, 3)
+        let reopened = try JSONDecoder().decode(ScheduleNotificationSnapshot.self, from: JSONEncoder().encode(pending))
+        for kind in ["changes", "exam", "examReturn"] {
+            var partial = ScheduleNotificationSnapshot.Availability(changes: .unavailable, specials: [:])
+            if kind == "changes" { partial.changes = .available } else { partial.specials[kind] = .available }
+            let reconciled = try reopened.reconciling(changes: current, specials: ["exam": "new-exam", "examReturn": "new-return"], availability: partial,
+                today: today, classes: ["3_XY"], changesEnabled: true, specialsEnabled: true)
+            XCTAssertEqual(reconciled, reopened)
+        }
+        let removed = try reopened.reconciling(changes: nil, specials: [:], availability: .init(changes: .absent, specials: ["exam": .absent]),
+            today: today, classes: ["3_XY"], changesEnabled: true, specialsEnabled: true)
+        XCTAssertNil(removed.changes); XCTAssertNil(removed.pending["changes"]); XCTAssertNil(removed.pending["exam"])
+        XCTAssertNotNil(removed.pending["examReturn"])
+        let disabled = try reopened.reconciling(changes: nil, specials: [:], availability: .init(changes: .unavailable, specials: [:]),
+            today: today, classes: [], changesEnabled: false, specialsEnabled: false)
+        XCTAssertTrue(disabled.pending.isEmpty)
+        let filtered = try reopened.reconciling(changes: current, specials: [:], availability: ready,
+            today: today, classes: ["4_XY"], changesEnabled: true, specialsEnabled: true)
+        XCTAssertNil(filtered.pending["changes"])
+    }
+
     func testInvalidDateCannotNotify() {
         let saved = ScheduleNotificationSnapshot(changes: [])
         XCTAssertEqual(saved.changeCount(comparedWith: [change("a", date: "invalid")], today: today, classes: ["3_XY"]), 0)

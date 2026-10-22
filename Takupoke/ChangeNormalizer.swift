@@ -7,10 +7,11 @@ enum ChangeNormalizer {
     static let maximumTextBytes = 16 * 1024 * 1024
     static let schoolYearSettingKey = "changeDefaultSchoolYear"
 
-    static func effectiveSchoolYear(configured: String?, today: SchoolDate) -> Int {
+    static func effectiveSchoolYear(configured: String?, today: SchoolDate) -> Int? {
         let value = configured?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if let year = Int(value), (1900...9998).contains(year) { return year }
-        return today.schoolYear
+        if value.isEmpty { return today.schoolYear }
+        guard value.allSatisfy({ $0.isASCII && $0.isNumber }), let year = Int(value), (1900...9998).contains(year) else { return nil }
+        return year
     }
 
     static func replace(_ text: String, _ pattern: String, _ replacement: String) -> String {
@@ -77,7 +78,7 @@ enum ChangeNormalizer {
         guard rows.reduce(0, { total, row in total + row.reduce(0, { $0 + $1.utf8.count }) }) <= maximumTextBytes else {
             throw ChangeParseError(code: .limit)
         }
-        if let year = defaultYear, !(1900...9999).contains(year) { throw ChangeParseError(code: .date) }
+        if let year = defaultYear, !(1900...9998).contains(year) { throw ChangeParseError(code: .defaultYear) }
         let index = try headerIndex(rows)
         let headers = rows[index].map { text($0) == "時限" ? $0 : text($0) }
         let nonempty = headers.filter { !$0.isEmpty }
@@ -138,7 +139,7 @@ enum ChangeNormalizer {
                     guard output.count < maximumRecords, textBytes <= maximumTextBytes else { throw ChangeParseError(code: .limit) }
                     output.append(ScheduleChange(change_date: normalizedDate, class_name: name, period: period,
                         before_subject: before, after_subject: after, teacher: teacher, room: room,
-                        note: note, raw_text: raw, canonical_text: canonical))
+                        note: note, raw_text: raw, canonical_text: canonical, change_kind: content))
                 }
             }
         }

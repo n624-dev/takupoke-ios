@@ -10,6 +10,7 @@ struct HomeTodayView: View {
     @EnvironmentObject private var mappings: MappingModel
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("timetableSelectedClasses") private var classesValue = ""
+    @AppStorage(ChangeNormalizer.schoolYearSettingKey) private var changeSchoolYear = ""
     @AppStorage("timetableInternationalStudent") private var international = false
     @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
     @State private var now = Date()
@@ -29,7 +30,7 @@ struct HomeTodayView: View {
             includesChanges: true, customTimes: times.current?.data)
     }
     private var presentation: TimetablePresentation { TimetablePresentation(schedule: schedule, mappings: mappings) }
-    private var ready: Bool { materials.ready && specialSchedules.ready && schoolEvents.ready && mappings.ready }
+    private var ready: Bool { materials.ready && specialSchedules.ready && schoolEvents.ready }
     private var eventsAvailable: Bool {
         SchoolEventsCoverage(savedYears: Set(schoolEvents.saved.keys)).contains(day: day)
     }
@@ -37,8 +38,7 @@ struct HomeTodayView: View {
     private var loadFailed: Bool {
         (!materials.ready && !materials.busy && materials.failed) ||
         (!specialSchedules.ready && !specialSchedules.busy && specialSchedules.failed) ||
-        (!schoolEvents.ready && !schoolEvents.busy && schoolEvents.failed) ||
-        (!mappings.ready && !mappings.busy && mappings.failed)
+        (!schoolEvents.ready && !schoolEvents.busy && schoolEvents.failed)
     }
 
     private func retryLoading() {
@@ -54,7 +54,8 @@ struct HomeTodayView: View {
             let a = materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue]
             if a?.sourceDigest != source.digest || a?.version != PDFAnalysis.currentVersion(for:.timetable) { values.append(MaterialKind.timetable.title) }
         }
-        if let source = materials.state.record(for:.changes), materials.state.changeAnalysis?.sourceDigest != source.digest || materials.state.changeAnalysis?.version != ChangeAnalysis.parserVersion { values.append(MaterialKind.changes.title) }
+        if let source = materials.state.record(for:.changes), materials.state.changeAnalysis?.matches(record: source,
+            defaultYear: ChangeNormalizer.effectiveSchoolYear(configured: changeSchoolYear, today: day)) != true { values.append(MaterialKind.changes.title) }
         for kind in SpecialScheduleKind.allCases {
             if let source = specialSchedules.sources[kind], specialSchedules.records[kind]?.digest != source.digest || specialSchedules.records[kind]?.analysis.version != SpecialScheduleAnalysis.parserVersion { values.append(kind.title) }
         }
@@ -152,7 +153,8 @@ struct HomeTodayView: View {
             guard let rules = mappings.current?.rules else { return false }
             return rules.isInternationalStudentChangeField(subject, className: name, schoolYear: schoolYear)
         }
-        let missing = schedule.missingMessages(on: day, className: className)
+        let missing = schedule.missingMessages(on: day, className: className) + (mappings.failed && mappings.current == nil
+            ? ["名称データを読み込めません。資料に記載された名称で表示しています。"] : [])
         Text(TimetableDisplayText.className(className))
             .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
         ForEach(missing, id: \.self) { status($0) }

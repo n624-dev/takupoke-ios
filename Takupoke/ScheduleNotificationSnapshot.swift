@@ -1,4 +1,9 @@
 import Foundation
+#if canImport(CryptoKit)
+import CryptoKit
+#else
+import Crypto
+#endif
 
 /// Fingerprints contain no subject, teacher, room, file name or original text.
 /// Keeping all classes as a baseline prevents class selection from becoming a
@@ -27,6 +32,63 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
     var changes: Set<Change>?
     var specialDigests: [String: String] = [:]
     var pending: [String: Pending] = [:]
+
+    enum Readiness { case unavailable, absent, available }
+    struct Availability {
+        var changes: Readiness
+        var specials: [String: Readiness]
+        func state(for kind: String) -> Readiness { kind == "changes" ? changes : specials[kind] ?? .unavailable }
+    }
+
+    static func availability(materialsReady: Bool, specialsReady: Bool, state: MaterialLibraryState,
+                             records: [SpecialScheduleKind: SpecialScheduleRecord], sources: [SpecialScheduleKind: SpecialScheduleSource]) -> Availability {
+        let changes: Readiness = !materialsReady ? .unavailable : state.record(for: .changes) == nil ? .absent
+            : acceptedChanges(in: state) == nil ? .unavailable : .available
+        let accepted = acceptedSpecialDigests(records: records, sources: sources)
+        return Availability(changes: changes, specials: Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.map { kind in
+            (kind.rawValue, !specialsReady ? .unavailable : sources[kind] == nil ? .absent
+                : accepted[kind.rawValue] == nil ? .unavailable : .available)
+        }))
+    }
+
+    static func notice(_ targets: [ChangeTarget]) throws -> Pending {
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+        let hash = SHA256.hash(data: try encoder.encode(targets)).map { String(format: "%02x", $0) }.joined()
+        return Pending(fingerprint: hash, count: targets.count, changeTargets: targets)
+    }
+
+    func reconciling(changes nextChanges: Set<Change>?, specials: [String: String], availability: Availability,
+                     today: SchoolDate, classes: Set<String>, changesEnabled: Bool, specialsEnabled: Bool) throws -> Self {
+        var next = self
+        switch availability.changes {
+        case .available:
+            if let nextChanges {
+                let targets = next.pendingChangeTargets(in: nextChanges, today: today, classes: classes)
+                if changesEnabled, !targets.isEmpty { next.pending["changes"] = try Self.notice(targets) }
+                else { next.pending.removeValue(forKey: "changes") }
+                next.changes = nextChanges
+            }
+        case .absent:
+            next.pending.removeValue(forKey: "changes"); next.changes = nil
+        case .unavailable: break
+        }
+        for kind in SpecialScheduleKind.allCases {
+            switch availability.state(for: kind.rawValue) {
+            case .available:
+                guard let digest = specials[kind.rawValue] else { continue }
+                if specialsEnabled, next.specialChanged(kind: kind.rawValue, digest: digest) {
+                    next.pending[kind.rawValue] = Pending(fingerprint: digest, count: 1)
+                } else if next.pending[kind.rawValue]?.fingerprint != digest { next.pending.removeValue(forKey: kind.rawValue) }
+                next.specialDigests[kind.rawValue] = digest
+            case .absent:
+                next.pending.removeValue(forKey: kind.rawValue); next.specialDigests.removeValue(forKey: kind.rawValue)
+            case .unavailable: break
+            }
+        }
+        if !changesEnabled { next.pending.removeValue(forKey: "changes") }
+        if !specialsEnabled { for kind in SpecialScheduleKind.allCases { next.pending.removeValue(forKey: kind.rawValue) } }
+        return next
+    }
 
     static func acceptedChanges(in state: MaterialLibraryState) -> [ScheduleChange]? {
         guard let analysis = state.changeAnalysis, analysis.version == ChangeAnalysis.parserVersion,

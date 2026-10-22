@@ -18,6 +18,7 @@ struct TimetableView: View {
     @State var navigationHalfAnchor = SchoolDate.today()
     @State var today = SchoolDate.today()
     private let clock = Timer.publish(every: 15, on: .main, in: .common).autoconnect()
+    @AppStorage(ChangeNormalizer.schoolYearSettingKey) var changeSchoolYear = ""
     @AppStorage("timetableIncludesChanges") var includesChanges = true
     @AppStorage("timetableChangeRange") var changeRangeValue = ChangeRange.today.rawValue
     @State var selectedLesson: LessonSelection?

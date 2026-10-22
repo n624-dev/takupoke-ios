@@ -2,7 +2,7 @@
 import Foundation
 
 /// One foreground registration. Stop also invalidates an in-flight registration.
-final class SelectedFileObservation: @unchecked Sendable {
+final class SelectedFileObservation: SelectedFileObserving, @unchecked Sendable {
     private let lock = NSLock()
     private var stopped = false
     private var coordinator: NSFileCoordinator?
@@ -10,10 +10,11 @@ final class SelectedFileObservation: @unchecked Sendable {
     private var scopedURL: URL?
     private let resolve: () throws -> (url: URL, scope: URL?)
     private let changed: () -> Void
+    private let registered: (Bool) -> Void
     private let diagnosticSource: FileRefreshDiagnostics.Source?
 
-    init(source: SelectedFileSource, changed: @escaping () -> Void) {
-        self.changed = changed
+    init(source: SelectedFileSource, registered: @escaping (Bool) -> Void = { _ in }, changed: @escaping () -> Void) {
+        self.changed = changed; self.registered = registered
         diagnosticSource = .init(rawValue: source.id)
         resolve = {
             guard let bookmark = source.bookmark else { throw MaterialError.accessExpired }
@@ -32,13 +33,13 @@ final class SelectedFileObservation: @unchecked Sendable {
     }
 
     // Local-file injection exercises the real coordination lifecycle in host tests.
-    init(resolve: @escaping () throws -> (url: URL, scope: URL?), changed: @escaping () -> Void) {
+    init(resolve: @escaping () throws -> (url: URL, scope: URL?), registered: @escaping (Bool) -> Void = { _ in }, changed: @escaping () -> Void) {
         self.resolve = resolve
-        self.changed = changed
+        self.changed = changed; self.registered = registered
         diagnosticSource = nil
     }
 
-    func start() {
+    func start(requestInitialRefresh: Bool = true) {
         DispatchQueue.global(qos: .utility).async { [self] in
             do {
                 let target = try resolve()
@@ -64,23 +65,27 @@ final class SelectedFileObservation: @unchecked Sendable {
                         guard scope.startAccessingSecurityScopedResource() else { return }
                         self.scopedURL = scope
                     }
-                    newPresenter.recordContentVersion(at: safeURL)
+                    // Metadata at registration is not a successful content read.
                     NSFileCoordinator.addFilePresenter(newPresenter)
                     self.presenter = newPresenter
                     FileRefreshDiagnostics.shared.record(.registrationComplete, source: self.diagnosticSource)
                 }
                 lock.lock()
                 coordinator = nil
+                let active = !stopped, succeeded = presenter != nil
                 lock.unlock()
-                if error != nil {
+                if active { registered(succeeded) }
+                if !succeeded {
                     FileRefreshDiagnostics.shared.record(.registrationFailure, source: diagnosticSource)
                 }
-                notifyIfActive()
+                if requestInitialRefresh { notifyIfActive() }
             } catch {
                 FileRefreshDiagnostics.shared.record(.registrationFailure, source: diagnosticSource)
                 // The normal refresh records an actionable failure while retaining
                 // the last successful analysis. Registration failure is not success.
-                notifyIfActive()
+                lock.lock(); let active = !stopped; lock.unlock()
+                if active { registered(false) }
+                if requestInitialRefresh { notifyIfActive() }
             }
         }
     }
@@ -93,6 +98,11 @@ final class SelectedFileObservation: @unchecked Sendable {
             FileRefreshDiagnostics.shared.record(.initialRefresh, source: diagnosticSource)
             changed()
         }
+    }
+
+    func refreshCompleted() {
+        lock.lock(); let current = stopped ? nil : presenter; lock.unlock()
+        current?.refreshCompleted()
     }
 
     func stop() {

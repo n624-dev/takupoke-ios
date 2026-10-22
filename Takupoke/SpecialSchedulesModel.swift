@@ -160,7 +160,9 @@ final class SpecialSchedulesModel: ObservableObject {
                     self.ready = true
                     if let kind, let pages = capture.recoveryPages, let source = store.sources[kind] { self.recoveryCaptures[kind] = (source.storedName,pages) }
                 }
-                self.updateFileMonitoring()
+                let succeeded: Bool
+                if case .success = result { succeeded = true } else { succeeded = false }
+                self.updateFileMonitoring(retryFailed: succeeded)
                 defer { self.runPendingSelection(); self.runPendingFileRefresh() }
                 switch result {
                 case .success:

@@ -1,7 +1,7 @@
 # 時間割・今日の予定・授業時刻・授業名
 
 対応関係・宣言名・実行方法のSHA-256：
-`78ef6c6bdddfcf80cabd10c55b0374c88afc98efbe9bb638880890078742f061`
+`ce04d2804f1fac6f465df89c3485cd0b4814f46220f54857dd2ba41c11569a87`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -28,6 +28,7 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 
 - `testOverlappingSpecialCardsRetainIndividualClocksAndProgressWhileCommonAndChangeStayAmbiguous`
 - `testMergedSpecialCardClocksUseOnlyTheirOwnDocumentAndNeverBorrowMissingTimes`
+- `testFragmentsOfMergedSpecialsUseOnlyVerifiedIndividualClocks`
 - `testChangeDetailsJoinSeparateExamSlotsAndKeepDisjointPeriodsSeparate`
 - `testJapaneseDayAtMidnightAndWeekendWeek`
 - `testAllDayKeepsEndedMergedLessonsAndChecksExactClockBoundaries`
@@ -76,6 +77,7 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 - `testWeekendEventAndSupplementaryDaysAppearWithoutLessons`
 - `testWeekendMemoAndPlainNoClassTagDoNotAddColumns`
 - `testWeekdaySupplementaryCardAndHeaderAvoidDuplicateTitles`
+- `testConflictingWeekdayOverridesWarnPreserveTagsAndFallBackToRealWeekday`
 
 ## [tests/TimetableScheduleTests.swift](../../tests/TimetableScheduleTests.swift)
 
@@ -125,3 +127,4 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 - `testChangeSuffixRequiresAllMembersToHaveOneConfirmedRole`
 - `testContextualTeacherWithinListRequiresMatchingYearClassAndSubject`
 - `testParentheticalCommaIsNotSplitAndBothChangeSidesAreMapped`
+- `testContextualTeacherAndConfirmedRoomSeparateInEitherSuffixOrder`

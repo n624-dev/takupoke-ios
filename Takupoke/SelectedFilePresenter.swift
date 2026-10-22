@@ -87,6 +87,11 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
         return version != nil
     }
 
+    func refreshCompleted() {
+        lock.lock(); defer { lock.unlock() }
+        if active { contentGate.readFailed() }
+    }
+
     private static func contentVersion(at url: URL) -> FileContentVersion? {
         // A new URL value avoids reusing cached resource values from a previous
         // notification. Both keys must exist before an event can be skipped.
@@ -106,13 +111,18 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
         /// Call inside the coordinated accessor, after all source handles close.
         /// A later external write cannot be mistaken for the bytes just read.
         func read<T>(at url: URL, body: () throws -> T) rethrows -> T {
-            let result = try body()
-            if let presenter {
-                let recorded = presenter.recordContentVersion(at: url)
-                FileRefreshDiagnostics.shared.record(recorded ? .readVersionRecorded : .readVersionUnavailable,
-                                                     source: presenter.diagnosticSource)
+            do {
+                let result = try body()
+                if let presenter {
+                    let recorded = presenter.recordContentVersion(at: url)
+                    FileRefreshDiagnostics.shared.record(recorded ? .readVersionRecorded : .readVersionUnavailable,
+                                                         source: presenter.diagnosticSource)
+                }
+                return result
+            } catch {
+                presenter?.refreshCompleted()
+                throw error
             }
-            return result
         }
     }
 

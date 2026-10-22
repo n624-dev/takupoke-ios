@@ -105,6 +105,23 @@ final class FileRefreshTests: XCTestCase {
                           SelectedFileSource(id: "exam", grant: folder, childName: "B.pdf"))
     }
 
+    func testFailedVersionRetriesOnlyAfterQuietPeriodAndSuccessfulReadAcknowledgesIt() {
+        var gate = FileContentChangeGate()
+        let a = FileContentVersion(identity: NSNumber(value: 1), generation: NSNumber(value: 1))
+        let b = FileContentVersion(identity: NSNumber(value: 1), generation: NSNumber(value: 2))
+        gate.record(a)
+        XCTAssertTrue(gate.shouldRefresh(b, now: 0))
+        XCTAssertFalse(gate.shouldRefresh(b, now: 0.1))
+        gate.readFailed(now: 0.2)
+        for tick in 1...20 { XCTAssertFalse(gate.shouldRefresh(b, now: Double(tick) / 10 + 0.2)) }
+        XCTAssertTrue(gate.shouldRefresh(b, now: 3.3))
+        gate.record(b)
+        XCTAssertFalse(gate.shouldRefresh(b, now: 5))
+        XCTAssertTrue(gate.shouldRefresh(a, now: 5.1))
+        gate.readFailed(now: 5.2)
+        XCTAssertTrue(gate.shouldRefresh(FileContentVersion(identity: NSNumber(value: 2), generation: NSNumber(value: 1)), now: 5.3))
+    }
+
     func testRepeatedAttributeNotificationsDoNotRestartRefresh() {
         let version = FileContentVersion(identity: NSNumber(value: 1), generation: NSNumber(value: 10))
         var gate = FileContentChangeGate()
@@ -130,6 +147,37 @@ final class FileRefreshTests: XCTestCase {
     }
 
 #if canImport(Darwin)
+    @MainActor
+    func testFailedRegistrationRetriesSameSourceWithoutInitialRefreshAndRejectsLateCallbacks() async throws {
+        final class Fake: SelectedFileObserving {
+            var starts: [Bool] = []; var stops = 0
+            func start(requestInitialRefresh: Bool) { starts.append(requestInitialRefresh) }
+            func stop() { stops += 1 }
+            func refreshCompleted() {}
+        }
+        var observations: [Fake] = []; var callbacks: [(Bool) -> Void] = []
+        let monitor = SelectedFileMonitor(changed: { _ in XCTFail("Unexpected refresh") }, factory: { _, _, registered in
+            let fake = Fake(); observations.append(fake); callbacks.append(registered); return fake
+        })
+        let source = SelectedFileSource(id: "changes", grant: SourceGrant(bookmark: Data([1]), name: "fictional.xlsx", isFolder: false))
+        monitor.update([source]); monitor.setForeground(true)
+        XCTAssertEqual(observations.count, 1)
+        monitor.update([source]); XCTAssertEqual(observations.count, 1)
+        callbacks[0](false); await Task.yield(); await Task.yield()
+        monitor.update([source], retryFailed: false); XCTAssertEqual(observations.count, 1)
+        monitor.update([source], retryFailed: true)
+        XCTAssertEqual(observations.count, 2); XCTAssertEqual(observations[1].starts, [false])
+        callbacks[1](true); await Task.yield(); await Task.yield()
+        monitor.update([source]); XCTAssertEqual(observations.count, 2)
+        callbacks[0](false); await Task.yield(); await Task.yield()
+        XCTAssertEqual(monitor.registrations["changes"], .registered)
+        monitor.setForeground(false); callbacks[1](true); await Task.yield(); await Task.yield()
+        XCTAssertEqual(monitor.registrations["changes"], .stopped)
+        monitor.update([source]); XCTAssertEqual(observations.count, 2)
+        monitor.setForeground(true); XCTAssertEqual(observations.count, 3)
+        monitor.setForeground(false)
+    }
+
     func testReadAcknowledgesMaterializedVersionAndStillDetectsLaterEdit() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)

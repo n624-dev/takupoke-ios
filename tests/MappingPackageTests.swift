@@ -2,6 +2,7 @@ import XCTest
 import Foundation
 import CryptoKit
 import ZIPFoundation
+import GRDB
 @testable import TakupokeParsing
 
 final class MappingPackageTests: XCTestCase {
@@ -189,4 +190,91 @@ final class MappingPackageTests: XCTestCase {
             lesson("3_IT", "架空略科A"), lesson("3_IT", "架空略科B")
         ]))
     }
+    func testScopedInternationalRuleSurvivesGenericExactAliasBeforeLessonReplacement() throws {
+        let scoped: [String: Any] = ["alias": "留 架空科目A", "fullName": "架空科目A", "classes": ["3_IT"], "internationalStudent": true]
+        let generic: [String: Any] = ["alias": "架空科目A", "fullName": "架空科目A"]
+        let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
+        for rows in [[generic], [scoped], [generic, scoped], [scoped, generic]] {
+            let rules = try MappingPackage.decode(package(subjects: rows), version: "v1", revision: revision, archiveETag: "\"zip\"").rules
+            for cls in ["3_IT", "2_IT"] {
+                let hidden = cls == "3_IT" && rows.contains { $0["internationalStudent"] as? Bool == true }
+                XCTAssertEqual(rules.isInternationalStudentSubject("架空科目A", className: cls), hidden)
+                for kind in ["休講", "補講", "変更"] {
+                    let row = ScheduleChange(change_date: day.iso8601, class_name: cls, period: "1", before_subject: "", after_subject: "架空科目A", teacher: "", room: "", note: "架空備考A", raw_text: "", canonical_text: "", change_kind: kind)
+                    let timetable = PDFAnalysis(kind: .timetable, sourceDigest: "fictional", sourceName: "fictional.pdf", parsedAt: Date(), schoolYear: 2032, term: "前期", lessons: [PDFLesson(className: cls, weekday: 1, period: 1, names: TimetableLessonNames(subject: "架空一般科目B"), sourceText: "", page: 1)], events: [], notices: [])
+                    let schedule = TimetableDaySchedule(timetable: timetable, changes: ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx", defaultYear: 2032, parsedAt: Date(), records: [row]), events: nil, specials: [], includesChanges: true)
+                    for international in [false, true] {
+                        let block = try XCTUnwrap(schedule.blocks(on: day, className: cls, international: international, matchedByRule: { rules.isInternationalStudentChangeField($0, className: $1, schoolYear: $2) }).first)
+                        if hidden && !international {
+                            guard case .normal(let normal) = block.content else { return XCTFail("Hidden change must preserve the ordinary lesson") }
+                            XCTAssertEqual(normal.names.subject, "架空一般科目B")
+                        } else {
+                            guard case .change(let actual) = block.content else { return XCTFail("Expected explicit change") }
+                            XCTAssertEqual(actual, row)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private final class RepairProtocol: URLProtocol {
+        static var payload = Data()
+        override class func canInit(with request: URLRequest) -> Bool { true }
+        override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+        override func startLoading() {
+            guard let url = request.url, ["mapping.example.test", "failure.example.test", "invalid.example.test"].contains(url.host ?? "") else {
+                client?.urlProtocol(self, didFailWithError: URLError(.unsupportedURL)); return
+            }
+            let revision = String(repeating: "A", count: 43)
+            let checking = url.path == "/mapping-revision"
+            if checking { precondition(request.value(forHTTPHeaderField: "If-None-Match") == nil) }
+            let status = url.host == "failure.example.test" ? 503 : checking ? 200 :
+                request.value(forHTTPHeaderField: "Authorization") == "Bearer synthetic-token" ? 200 : 401
+            let headers = checking ? ["ETag": "\"\(revision)\""] : ["Content-Type": "application/zip", "X-Mapping-Version": "v1", "X-Mapping-Revision": revision, "ETag": "\"zip\""]
+            client?.urlProtocol(self, didReceive: HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers)!, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: checking ? Data() : url.host == "invalid.example.test" ? Data("fictional invalid archive".utf8) : Self.payload)
+            client?.urlProtocolDidFinishLoading(self)
+        }
+        override func stopLoading() {}
+    }
+
+    @MainActor
+    func testCorruptMappingPayloadAllowsRepairAndFailuresPreserveItsBytes() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root); RepairProtocol.payload = Data() }
+        let file = root.appendingPathComponent("mappings.sqlite")
+        _ = try MappingStore(url: file)
+        let queue = try DatabaseQueue(path: file.path)
+        let bytes = Data("{fictional corrupt mapping".utf8)
+        try queue.write { try $0.execute(sql: "INSERT INTO currentMapping (id,payload) VALUES (1,?)", arguments: [bytes]) }
+        func preserved() throws { XCTAssertEqual(try queue.read { try Data.fetchOne($0, sql: "SELECT payload FROM currentMapping WHERE id=1") }, bytes) }
+        RepairProtocol.payload = try package()
+        let config = URLSessionConfiguration.ephemeral; config.protocolClasses = [RepairProtocol.self]
+        let network = URLSession(configuration: config); defer { network.invalidateAndCancel() }
+        for (host, token) in [("failure.example.test", "synthetic-token"), ("invalid.example.test", "synthetic-token"), ("mapping.example.test", "invalid-token")] {
+            let model = MappingModel(directory: root, baseURL: URL(string: "https://\(host)")!)
+            model.loadIfNeeded(); XCTAssertTrue(model.ready); XCTAssertTrue(model.failed); XCTAssertNil(model.current)
+            try preserved()
+            do { try await model.download(token: token, revision: revision, network: network); XCTFail("Invalid response must not replace cache") } catch { }
+            try preserved(); XCTAssertNil(model.current)
+        }
+        let model = MappingModel(directory: root, baseURL: URL(string: "https://mapping.example.test")!)
+        model.loadIfNeeded()
+        let result = try await model.revision(using: network)
+        XCTAssertEqual(result, .available(revision)); try preserved()
+        try queue.write { try $0.execute(sql: "CREATE TRIGGER fictional_save_failure BEFORE INSERT ON currentMapping BEGIN SELECT RAISE(ABORT,'fictional failure'); END") }
+        do { try await model.download(token: "synthetic-token", revision: revision, network: network); XCTFail("Failed save must not replace cache") } catch { }
+        try preserved(); XCTAssertNil(model.current)
+        try queue.write { try $0.execute(sql: "DROP TRIGGER fictional_save_failure") }
+        try await model.download(token: "synthetic-token", revision: revision, network: network)
+        XCTAssertFalse(model.failed); XCTAssertNotNil(model.current)
+        let reopened = MappingModel(directory: root); reopened.loadIfNeeded()
+        XCTAssertTrue(reopened.ready); XCTAssertFalse(reopened.failed); XCTAssertEqual(reopened.current?.revision, revision)
+        let blocked = root.appendingPathComponent("blocked"); try Data([1]).write(to: blocked)
+        let unavailable = MappingModel(directory: blocked); unavailable.loadIfNeeded()
+        XCTAssertFalse(unavailable.ready); XCTAssertTrue(unavailable.failed)
+    }
+
 }

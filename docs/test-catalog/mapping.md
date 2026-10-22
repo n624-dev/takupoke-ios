@@ -1,7 +1,7 @@
 # 名称対応・パッケージ・認証取得
 
 対応関係・宣言名・実行方法のSHA-256：
-`dcf8c1c459aa0853144669a67c91873eed61c6f4c48042788343154d19a97c9a`
+`007b4e5d4cda059b086de78df2401b9ec4dc671b1a999a3f2bbc041e41934b71`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -31,6 +31,8 @@ bash tools/test-parsing.sh
 - `testChangePresentationSeparatesBothSidesAndKeepsSourceFields`
 - `testContextualTeacherSplitsOnlyMatchingYearClassAndSubject`
 - `testChangeShortSubjectUsesOnlyOneAliasFromSameClass`
+- `testScopedInternationalRuleSurvivesGenericExactAliasBeforeLessonReplacement`
+- `testCorruptMappingPayloadAllowsRepairAndFailuresPreserveItsBytes`
 
 ## [tests/MappingRulesTests.swift](../../tests/MappingRulesTests.swift)
 
@@ -44,6 +46,7 @@ bash tools/test-parsing.sh
 - `testChangeSuffixRequiresAllMembersToHaveOneConfirmedRole`
 - `testContextualTeacherWithinListRequiresMatchingYearClassAndSubject`
 - `testParentheticalCommaIsNotSplitAndBothChangeSidesAreMapped`
+- `testContextualTeacherAndConfirmedRoomSeparateInEitherSuffixOrder`
 
 ## [tests/MappingServiceTests.swift](../../tests/MappingServiceTests.swift)
 

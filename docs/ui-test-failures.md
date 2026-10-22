@@ -2137,3 +2137,10 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - ログは新規幾何2ケースの追加後、埋込みSwift実行前の宣言数guard（期待27・実29）で停止。製品や幾何のassert失敗ではない。N05の宣言一覧不一致の詳細と当時の登録方針を照合し、今回はPython内の厳密な実行数guardだけが旧値だった。新規2件を含む29を要求し、全ケース完了照合は維持する。N63の中央寄せ後に既存のno-progress反転が選ばれた場合も、passive開始行と同じ方向のpanを使うよう整合させた。
 
 - N63候補bcd672fの修正後ローカル検査はPython23件・埋込みSwift幾何29件が失敗0。Swift構文解析とcatalog check --base 60d71bfも成功。コード差分だけの新規GPT-6.1 Sol／Highレビューはblockingなし。まず既存の選択訂正ケースを両OSだけで実行し、追加Issueの製品変更とはソースと結果を分ける。
+
+## N65 追加Issue47〜58の初回Linux検査（2026-10-22）
+
+- source2a22448からの未コミット追加Issue差分、Debian13/Swift6.1.2、正規tools/test-parsing.sh初回。529件中29 assertion失敗（27 unexpected）、全体failure。観測後・対処前に記録。ログ /tmp/additional-ios-parsing.log。Workbook種別保存の再読込でinvalidStateが複数発生した。他の失敗はこれから全件を読み、過去の詳細と当時コードを照合する。次の試行前に根拠と修正をpushする。
+
+- 全失敗は追加した2テストに限定。年度203/1899は既存の先行guardが.dateを投げ、新設.defaultYearより先に終了した。9999は新guardで拒否した。2a22448のparse全文を照合し、同じ入力を二重検査せず先頭の年度guardを1900〜9998/.defaultYearへ統一する。入力保護を緩めない。
+- 27件のunexpectedは、稼働中のMaterialLibraryを保持したままopenLibraryを2回呼んだため。LocalDatabaseTests.testSecondRuntimeOwnerCannotCollectActiveStagingのとおり同時owner拒否は既存の必要条件で、SQLite破損や新kindのdecode失敗ではない。所有スコープを終了してから再読込する回帰に修正する。N02のSQLite header/runtime異常終了・N57のコンパイル停止・N03のテスト記述誤りを詳細照合し、今回のlock拒否と区別した。製品の二重起動拒否・永続化条件は変更しない。

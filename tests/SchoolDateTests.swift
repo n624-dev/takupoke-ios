@@ -12,6 +12,16 @@ final class SchoolDateTests: XCTestCase {
         XCTAssertEqual(ChangeNormalizer.effectiveSchoolYear(configured: "2032", today: march), 2032)
         XCTAssertEqual(try ChangeNormalizer.date("3/31", defaultYear: march.schoolYear), "2027-03-31")
     }
+    func testInvalidNonemptyConfiguredYearNeverFallsBackToToday() throws {
+        let today = try XCTUnwrap(SchoolDate(iso8601: "2031-03-01"))
+        for text in ["203", "1899", "9999", "架空", "+2032", "２０３２"] {
+            XCTAssertNil(ChangeNormalizer.effectiveSchoolYear(configured: text, today: today), text)
+        }
+        for (text, expected) in [("", 2030), ("  ", 2030), ("1900", 1900), ("9998", 9998), (" 2032 ", 2032)] {
+            XCTAssertEqual(ChangeNormalizer.effectiveSchoolYear(configured: text, today: today), expected)
+        }
+    }
+
     func testStrictCivilDateParsingAcrossLeapAndSchoolYearBoundary() throws {
         XCTAssertEqual(SchoolDate(iso8601: "2032-02-29")?.iso8601, "2032-02-29")
         XCTAssertNil(SchoolDate(iso8601: "2033-02-29"))

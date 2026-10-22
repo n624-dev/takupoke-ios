@@ -12,18 +12,19 @@ struct ScheduleChange: Codable, Equatable {
     var note: String
     var raw_text: String
     var canonical_text: String
+    var change_kind: String? = nil
 
     // Old successful results remain on disk until an explicit reparse, but their
     // class picker, filtering and labels use the same identity as new results.
     var displayClassName: String { ChangeNormalizer.canonicalClassName(class_name) }
 
     var isCancellation: Bool {
-        note.precomposedStringWithCompatibilityMapping
+        (change_kind ?? note).precomposedStringWithCompatibilityMapping
             .trimmingCharacters(in: .whitespacesAndNewlines) == "休講"
     }
 
     var isMakeup: Bool {
-        note.precomposedStringWithCompatibilityMapping
+        (change_kind ?? note).precomposedStringWithCompatibilityMapping
             .trimmingCharacters(in: .whitespacesAndNewlines) == "補講"
     }
 
@@ -79,7 +80,7 @@ struct ChangeWeekdayConsent: Codable, Equatable {
 }
 
 struct ChangeAnalysis: Codable {
-    static let parserVersion = 6
+    static let parserVersion = 7
     var version = parserVersion
     var sourceDigest: String
     var sourceName: String
@@ -89,8 +90,9 @@ struct ChangeAnalysis: Codable {
     var weekdayConsent: ChangeWeekdayConsent? = nil
     var rowSkipConsent: ChangeRowSkipConsent? = nil
 
-    func matches(record: MaterialRecord, defaultYear: Int) -> Bool {
-        sourceDigest == record.digest && version == Self.parserVersion &&
+    func matches(record: MaterialRecord, defaultYear: Int?) -> Bool {
+        guard let defaultYear else { return false }
+        return sourceDigest == record.digest && version == Self.parserVersion &&
         self.defaultYear == defaultYear && weekdayConsent == record.source.weekdayConsent &&
         rowSkipConsent == record.source.rowSkipConsent
     }
@@ -213,7 +215,7 @@ struct ChangePreview {
 struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
     enum Code: String, Codable {
         case invalidArchive, limit, invalidXML, missingSheet, unsupported, headers
-        case date, year, classes, unknownAll, empty, cancelled, storage, staleConfirmation
+        case date, defaultYear, year, classes, unknownAll, empty, cancelled, storage, staleConfirmation
         case formula, formulaCache, weekdayMismatch, weekdayOnly, mergedCells, dateSystem, cellType
     }
     var code: Code
@@ -239,6 +241,7 @@ struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
         case .cellType: detail = "表に未対応のセル形式やExcelのエラー値があります。"
         case .headers: detail = "必要な見出し（学 年・学科・クラス・月日）がないか、見出しが重複しています。"
         case .date: detail = "日付を確定できません。年なし日付の場合は補完する年を指定してください。"
+        case .defaultYear: detail = "西暦1900〜9998の学校年度を入力してください。"
         case .year: detail = "学年の指定を読み取れません。"
         case .classes: detail = "クラスの指定を読み取れません。"
         case .unknownAll: detail = "「全」の対象クラスをファイル内の記載から確定できません。"

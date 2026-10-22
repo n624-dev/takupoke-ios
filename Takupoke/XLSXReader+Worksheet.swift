@@ -107,13 +107,42 @@ extension XLSXReader {
 
     static func richText(_ node: XMLNode) throws -> String {
         // rPh is a phonetic guide, not the displayed value.
-        let result = node.children.map { child -> String in
-            if child.name == "t" { return child.text }
-            if child.name == "r" { return child.children.filter { $0.name == "t" }.map(\.text).joined() }
+        let result = try node.children.map { child -> String in
+            if child.name == "t" { return try decodedString(child.text) }
+            if child.name == "r" { return try child.children.filter { $0.name == "t" }.map { try decodedString($0.text) }.joined() }
             return ""
         }.joined()
         guard result.utf8.count <= 4096 else { throw ChangeParseError(code: .limit) }
         return result
+    }
+
+    /// SpreadsheetML escapes UTF-16 code units. Scan once so an escaped
+    /// underscore protects a literal escape-looking string from a second pass.
+    static func decodedString(_ source: String) throws -> String {
+        let input = Array(source.utf16)
+        var output: [UInt16] = []
+        var i = 0
+        while i < input.count {
+            if i + 6 < input.count, input[i] == 95, input[i+1] == 120, input[i+6] == 95 {
+                let digits = input[(i+2)..<(i+6)]
+                if digits.allSatisfy({ (48...57).contains($0) || (65...70).contains($0) || (97...102).contains($0) }),
+                   let unit = UInt16(String(decoding: digits, as: UTF16.self), radix: 16) {
+                    output.append(unit); i += 7; continue
+                }
+            }
+            output.append(input[i]); i += 1
+        }
+        i = 0
+        while i < output.count {
+            if (0xD800...0xDBFF).contains(output[i]) {
+                guard i + 1 < output.count, (0xDC00...0xDFFF).contains(output[i+1]) else { throw ChangeParseError(code: .invalidXML) }
+                i += 2
+            } else {
+                guard !(0xDC00...0xDFFF).contains(output[i]) else { throw ChangeParseError(code: .invalidXML) }
+                i += 1
+            }
+        }
+        return String(decoding: output, as: UTF16.self)
     }
 
     private static func coordinate(_ ref: String) throws -> (row: Int, column: Int) {

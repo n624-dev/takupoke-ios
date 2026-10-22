@@ -6,11 +6,11 @@ extension MaterialsModel {
         fileMonitor.setForeground(foreground)
     }
 
-    func updateFileMonitoring() {
+    func updateFileMonitoring(retryFailed: Bool = false) {
         fileMonitor.update([MaterialKind.timetable, .changes].compactMap { kind in
             guard let source = state.record(for: kind)?.source, source.grant != nil else { return nil }
             return SelectedFileSource(id: kind.rawValue, grant: source.grant, childName: source.childName)
-        })
+        }, retryFailed: retryFailed)
     }
 
     func runPendingFileRefresh() {
@@ -23,7 +23,7 @@ extension MaterialsModel {
     }
 
     nonisolated static func refreshSelectedFiles(_ worker: MaterialWorker, requested: Set<String>,
-                                                 year: Int, control: AcquisitionControl) throws {
+                                                 year: Int?, control: AcquisitionControl) throws {
             var failed = false
             for kind in [MaterialKind.timetable, .changes] where requested.contains(kind.rawValue) {
                 try control.check()
@@ -37,6 +37,9 @@ extension MaterialsModel {
                     failed = true
                 }
             }
-            if failed { throw MaterialError.providerReadFailed }
+            if failed {
+                if year == nil && requested.contains(MaterialKind.changes.rawValue) { throw ChangeParseError(code: .defaultYear) }
+                throw MaterialError.providerReadFailed
+            }
     }
 }
