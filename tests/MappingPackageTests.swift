@@ -248,7 +248,7 @@ final class MappingPackageTests: XCTestCase {
         _ = try MappingStore(url: file)
         let queue = try DatabaseQueue(path: file.path)
         let bytes = Data("{fictional corrupt mapping".utf8)
-        try queue.write { try $0.execute(sql: "INSERT INTO currentMapping (id,payload) VALUES (1,?)", arguments: [bytes]) }
+        try await queue.write { try $0.execute(sql: "INSERT INTO currentMapping (id,payload) VALUES (1,?)", arguments: [bytes]) }
         func preserved() throws { XCTAssertEqual(try queue.read { try Data.fetchOne($0, sql: "SELECT payload FROM currentMapping WHERE id=1") }, bytes) }
         RepairProtocol.payload = try package()
         let config = URLSessionConfiguration.ephemeral; config.protocolClasses = [RepairProtocol.self]
@@ -264,10 +264,10 @@ final class MappingPackageTests: XCTestCase {
         model.loadIfNeeded()
         let result = try await model.revision(using: network)
         XCTAssertEqual(result, .available(revision)); try preserved()
-        try queue.write { try $0.execute(sql: "CREATE TRIGGER fictional_save_failure BEFORE INSERT ON currentMapping BEGIN SELECT RAISE(ABORT,'fictional failure'); END") }
+        try await queue.write { try $0.execute(sql: "CREATE TRIGGER fictional_save_failure BEFORE INSERT ON currentMapping BEGIN SELECT RAISE(ABORT,'fictional failure'); END") }
         do { try await model.download(token: "synthetic-token", revision: revision, network: network); XCTFail("Failed save must not replace cache") } catch { }
         try preserved(); XCTAssertNil(model.current)
-        try queue.write { try $0.execute(sql: "DROP TRIGGER fictional_save_failure") }
+        try await queue.write { try $0.execute(sql: "DROP TRIGGER fictional_save_failure") }
         try await model.download(token: "synthetic-token", revision: revision, network: network)
         XCTAssertFalse(model.failed); XCTAssertNotNil(model.current)
         let reopened = MappingModel(directory: root); reopened.loadIfNeeded()

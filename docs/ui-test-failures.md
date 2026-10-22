@@ -2159,3 +2159,9 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 
 - 6ジョブの完了ログは全てテスト開始前のコンパイル失敗。MaterialsView+FileSummary:58、MaterialAccess:52、ChangeAnalysisView:41が不正年度を区別するInt?を、旧ChangeParseAttemptのInt専用matches/needsAnalysisへ渡していた。N57/N03のコンパイル失敗詳細と60d71bfの各呼出しを照合。今回のSwiftUI/workerはLinux SPM対象外なので構文検査では検出できなかった。N66の実接触未反映とは別で、UIケースは未実行。
 - 候補は成功解析と同じく、失敗解析cacheにも「現在年度を確定できない」状態を渡せるようにし、nil/範囲外はcache一致・自動解析要求の双方をfalseにする。不正年度を今日へ戻さず、valid年のdigest/version/同意比較と失敗cache抑制を維持する。SPM内の実関数でnil・範囲外・validの対照を追加する。製品の型契約に合わせる修正で、UI操作・期待を変更しない。
+
+## N68 追加Issue全体425のNativeがfailure終端（2026-10-22）
+
+- source0f15eba、run39742405286/試行1、macOS26/Apple Swift、job119703281016。07:55予定照会でfailureを確認。失敗段階・ケースはログ取得前で未確定。N67修正候補は旧Nativeの結果確認前に作成しており別ソースでローカル検査中。対処前に記録し、全失敗と過去詳細を照合してから判断する。iPhone buildは未完了で取消さない。
+
+- Nativeログの失敗は追加MappingPackageTests:251/267/270の3つのqueue.writeだけで、async testからGRDBのasync overloadが選ばれたがawaitがなかった。テスト本体実行前のコンパイル停止。N03/N57の詳細とGRDBのwrite定義・既存同期storeを照合し、今回は非同期テスト側の呼出し契約の差だった。3つの実SQLite書込みをtry awaitにし、認証・ZIP検証・triggerによる保存失敗・bytes保持・復旧・再起動の条件は維持する。製品storeの同期トランザクションは変更しない。
