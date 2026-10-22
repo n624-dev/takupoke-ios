@@ -3,6 +3,54 @@ import XCTest
 @testable import TakupokeParsing
 
 final class MappingRulesTests: XCTestCase {
+    func testContextualInternationalChangesUseTheirOwnClassAndSchoolYearBeforeReplacement() throws {
+        let payload: [String: Any] = [
+            "subjects": [["alias": "留 架空正式科目A", "fullName": "架空正式科目A", "classes": ["2_IT", "3_IT"], "internationalStudent": true]],
+            "teachers": [], "rooms": [],
+            "teacherContexts": [["alias": "架空教員A", "fullName": "架空正式教員A", "subject": "架空正式科目A", "className": "2_IT", "schoolYear": 2032]],
+        ]
+        let rules = try JSONDecoder().decode(MappingRules.self, from: JSONSerialization.data(withJSONObject: payload))
+        let match: (String, String, Int?) -> Bool = { rules.isInternationalStudentChangeField($0, className: $1, schoolYear: $2) }
+        for (date, cls, subject, hidden) in [
+            ("2032-04-05", "2_IT", "架空正式科目A（架空教員A）", true),
+            ("2033-03-07", "2_IT", "架空正式科目A（架空教員A）", true),
+            ("2033-04-04", "2_IT", "架空正式科目A（架空教員A）", false),
+            ("2032-04-05", "3_IT", "架空正式科目A（架空教員A）", false),
+            ("2032-04-05", "2_IT", "架空正式科目A（架空未確認教員B）", false),
+            ("2032-04-05", "2_IT", "架空正式科目A", true),
+        ] {
+            let day = try XCTUnwrap(SchoolDate(iso8601: date))
+            let row = ScheduleChange(change_date: date, class_name: cls, period: "1", before_subject: "",
+                after_subject: subject, teacher: "", room: "", note: "補講", raw_text: "架空元行A", canonical_text: "架空正規化A")
+            let normal = PDFAnalysis(kind: .timetable, sourceDigest: "fictional", sourceName: "fictional.pdf", parsedAt: Date(),
+                schoolYear: day.schoolYear, term: day.month < 4 ? "後期" : "前期", lessons: [
+                    PDFLesson(className: cls, weekday: day.schoolWeekday, period: 1, names: TimetableLessonNames(subject: "架空一般科目A"), sourceText: "", page: 1)
+                ], events: [], notices: [])
+            let analysis = ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx", defaultYear: 2032, parsedAt: Date(), records: [row])
+            let schedule = TimetableDaySchedule(timetable: normal, changes: analysis, events: nil, specials: [], includesChanges: true)
+            let block = try XCTUnwrap(schedule.blocks(on: day, className: cls, international: false, matchedByRule: match).first)
+            if hidden {
+                guard case .normal(let lesson) = block.content else { return XCTFail("Hidden change must retain the ordinary lesson") }
+                XCTAssertEqual(lesson.names.subject, "架空一般科目A")
+            } else {
+                guard case .change(let visible) = block.content else { return XCTFail("Unconfirmed context must not hide a change") }
+                XCTAssertEqual(visible, row)
+            }
+            XCTAssertEqual(TimetableSchedule.shouldDisplay(row, isInternationalStudent: false, matchedByRule: match), !hidden)
+            let included = try XCTUnwrap(schedule.blocks(on: day, className: cls, international: true, matchedByRule: match).first)
+            guard case .change(let visible) = included.content else { return XCTFail("Explicit international display must include the row") }
+            XCTAssertEqual(visible, row)
+            XCTAssertEqual(analysis.records, [row])
+        }
+        XCTAssertEqual(rules.separatingChangeField("架空正式科目A（架空教員A）").subject, "架空正式科目A（架空教員A）")
+        XCTAssertTrue(rules.isInternationalStudentChangeField("架空正式科目A（架空教員A）", className: "2_IT", schoolYear: 2032))
+        var standardPayload = payload
+        standardPayload["teachers"] = [["alias": "架空教員A", "fullName": "架空正式教員A"]]
+        standardPayload["teacherContexts"] = []
+        let standard = try JSONDecoder().decode(MappingRules.self, from: JSONSerialization.data(withJSONObject: standardPayload))
+        XCTAssertTrue(standard.isInternationalStudentChangeField("架空正式科目A（架空教員A）", className: "2_IT", schoolYear: 2033))
+    }
+
     private func rules(teachers: [[String: Any]]? = nil, rooms: [[String: Any]]? = nil,
                        contexts: [[String: Any]] = []) throws -> MappingRules {
         let bytes = try JSONSerialization.data(withJSONObject: [

@@ -46,10 +46,9 @@ struct TimetableView: View {
         changeClassesValue.isEmpty ? selectedClasses : savedChangeClasses.filter(classes.contains)
     }
     var changeRange: ChangeRange { ChangeRange(rawValue: changeRangeValue) ?? .today }
-    func isMappedInternational(_ subject: String, _ className: String) -> Bool {
+    func isMappedInternational(_ subject: String, _ className: String, _ schoolYear: Int?) -> Bool {
         guard let rules = mappings.current?.rules else { return false }
-        return rules.isInternationalStudentSubject(rules.separatingChangeField(subject).subject,
-                                                   className: className)
+        return rules.isInternationalStudentChangeField(subject, className: className, schoolYear: schoolYear)
     }
     let weekdayNames = ["月", "火", "水", "木", "金", "土", "日"]
     var standardDayColumnWidth: CGFloat {

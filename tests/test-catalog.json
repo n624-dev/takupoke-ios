@@ -206,7 +206,8 @@
         "tests/TimetableTimesServiceTests.swift",
         "tests/TimetableTimesTests.swift",
         "tests/test_timetable_change_names.py",
-        "tests/TimetableModelTests.swift"
+        "tests/TimetableModelTests.swift",
+        "tests/MappingRulesTests.swift"
       ]
     },
     {

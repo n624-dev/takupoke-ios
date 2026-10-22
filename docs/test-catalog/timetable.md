@@ -1,7 +1,7 @@
 # 時間割・今日の予定・授業時刻・授業名
 
 対応関係・宣言名・実行方法のSHA-256：
-`966eaa7966f8751840285f17ecdef460bb6c3055ee6d16b665ea6893c5014811`
+`78ef6c6bdddfcf80cabd10c55b0374c88afc98efbe9bb638880890078742f061`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -26,6 +26,8 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 
 ## [tests/HomeScheduleTests.swift](../../tests/HomeScheduleTests.swift)
 
+- `testOverlappingSpecialCardsRetainIndividualClocksAndProgressWhileCommonAndChangeStayAmbiguous`
+- `testMergedSpecialCardClocksUseOnlyTheirOwnDocumentAndNeverBorrowMissingTimes`
 - `testChangeDetailsJoinSeparateExamSlotsAndKeepDisjointPeriodsSeparate`
 - `testJapaneseDayAtMidnightAndWeekendWeek`
 - `testAllDayKeepsEndedMergedLessonsAndChecksExactClockBoundaries`
@@ -110,3 +112,16 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 - `testFailedTimeDownloadsPreserveCorruptCacheAndOfferRetry`
 - `testUnavailableDirectoryAndFailedSaveNeverPublishSuccess`
 - `testDisjointChangeDetailsFindOriginalsAndRelatedChangesWithoutChangingGrid`
+
+## [tests/MappingRulesTests.swift](../../tests/MappingRulesTests.swift)
+
+- `testContextualInternationalChangesUseTheirOwnClassAndSchoolYearBeforeReplacement`
+- `testNameMatchingAcceptsWidthVariantsAndKeepsSourceSpelling`
+- `testWidthEquivalentAliasesDoNotResolveAnAmbiguousName`
+- `testClassSpecificWidthEquivalentSubjectPrecedesGenericExactAlias`
+- `testCommaSeparatedTeachersAndRoomsMapMembersAndRetainSeparators`
+- `testPartialMetadataKeepsUnknownNamesOrderWhitespaceAndEmptyMembers`
+- `testWholeFieldAliasPrecedesMemberMappingAndSubjectIsNotSplit`
+- `testChangeSuffixRequiresAllMembersToHaveOneConfirmedRole`
+- `testContextualTeacherWithinListRequiresMatchingYearClassAndSubject`
+- `testParentheticalCommaIsNotSplitAndBothChangeSidesAreMapped`

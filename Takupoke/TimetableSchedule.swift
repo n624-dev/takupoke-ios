@@ -28,25 +28,27 @@ enum TimetableSchedule {
     }
 
     private static func isInternationalStudentSubject(_ value: String, className: String,
-                                                       matchedByRule: ((String, String) -> Bool)?) -> Bool {
+                                                       schoolYear: Int? = nil,
+                                                       matchedByRule: ((String, String, Int?) -> Bool)?) -> Bool {
         isInternationalStudentSubject(value) ||
-            (matchedByRule?(value, className) == true)
+            (matchedByRule?(value, className, schoolYear) == true)
     }
 
     static func shouldDisplay(_ lesson: PDFLesson, isInternationalStudent: Bool,
-                              matchedByRule: ((String, String) -> Bool)? = nil) -> Bool {
+                              matchedByRule: ((String, String, Int?) -> Bool)? = nil) -> Bool {
         isInternationalStudent || ![lesson.names.subject, lesson.names.subjectFullName ?? ""]
             .contains(where: { isInternationalStudentSubject($0, className: lesson.className, matchedByRule: matchedByRule) })
     }
 
     static func shouldDisplay(_ change: ScheduleChange, isInternationalStudent: Bool,
-                              matchedByRule: ((String, String) -> Bool)? = nil) -> Bool {
+                              matchedByRule: ((String, String, Int?) -> Bool)? = nil) -> Bool {
         isInternationalStudent || ![change.before_subject, change.after_subject]
-            .contains(where: { isInternationalStudentSubject($0, className: change.displayClassName, matchedByRule: matchedByRule) })
+            .contains(where: { isInternationalStudentSubject($0, className: change.displayClassName,
+                schoolYear: SchoolDate(iso8601: change.change_date)?.schoolYear, matchedByRule: matchedByRule) })
     }
 
     static func shouldDisplay(_ item: SpecialItem, isInternationalStudent: Bool,
-                              matchedByRule: ((String, String) -> Bool)? = nil) -> Bool {
+                              matchedByRule: ((String, String, Int?) -> Bool)? = nil) -> Bool {
         isInternationalStudent || !isInternationalStudentSubject(item.lesson.subject,
             className: item.lesson.className, matchedByRule: matchedByRule)
     }
@@ -70,7 +72,7 @@ enum TimetableSchedule {
         /// Apply the display scope before deciding whether a change replaces
         /// a lesson. The unfiltered slot remains available to detail views.
         func filteringChanges(isInternationalStudent: Bool,
-                              matchedByRule: ((String, String) -> Bool)? = nil) -> Slot {
+                              matchedByRule: ((String, String, Int?) -> Bool)? = nil) -> Slot {
             Slot(baseLessons: baseLessons, specialLessons: specialLessons,
                  changes: changes.filter { TimetableSchedule.shouldDisplay($0,
                      isInternationalStudent: isInternationalStudent, matchedByRule: matchedByRule) })

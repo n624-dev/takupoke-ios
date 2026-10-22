@@ -81,7 +81,7 @@ final class TimetableScheduleTests: XCTestCase {
     }
 
     func testInternationalStudentMappingFlagHidesNonPrefixedSubjectsAcrossSources() throws {
-        let matchedByRule: (String, String) -> Bool = { subject, className in
+        let matchedByRule: (String, String, Int?) -> Bool = { subject, className, _ in
             subject == "架空科目D" && className == "1_ZZ"
         }
         let lesson = PDFLesson(className: "1_ZZ", weekday: 1, period: 1,

@@ -1,7 +1,7 @@
 # 名称対応・パッケージ・認証取得
 
 対応関係・宣言名・実行方法のSHA-256：
-`65b2932c1832d8401ad88d40e6f98996fb3183f2bdefe0510f22782e40de75b8`
+`dcf8c1c459aa0853144669a67c91873eed61c6f4c48042788343154d19a97c9a`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -34,6 +34,7 @@ bash tools/test-parsing.sh
 
 ## [tests/MappingRulesTests.swift](../../tests/MappingRulesTests.swift)
 
+- `testContextualInternationalChangesUseTheirOwnClassAndSchoolYearBeforeReplacement`
 - `testNameMatchingAcceptsWidthVariantsAndKeepsSourceSpelling`
 - `testWidthEquivalentAliasesDoNotResolveAnAmbiguousName`
 - `testClassSpecificWidthEquivalentSubjectPrecedesGenericExactAlias`

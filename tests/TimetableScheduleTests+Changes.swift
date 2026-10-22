@@ -18,7 +18,7 @@ extension TimetableScheduleTests {
 
     func testHiddenInternationalCancellationPreservesOrdinaryLessonsAndClock() throws {
         let (day, normal, cancellation) = try hiddenChangeFixture()
-        let mapped: (String, String) -> Bool = { $0 == "架空科目C" && $1 == "1_A" }
+        let mapped: (String, String, Int?) -> Bool = { subject, className, _ in subject == "架空科目C" && className == "1_A" }
         var nonPrefixed = cancellation
         nonPrefixed.before_subject = "架空科目C"
         for (row, match) in [(cancellation, nil), (nonPrefixed, Optional(mapped))] {

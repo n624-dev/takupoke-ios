@@ -1,6 +1,11 @@
 import Foundation
 
 extension MappingRules {
+    func isInternationalStudentChangeField(_ source: String, className: String, schoolYear: Int?) -> Bool {
+        isInternationalStudentSubject(separatingChangeField(source, className: className,
+            schoolYear: schoolYear).subject, className: className)
+    }
+
     private func contextualTeacher(_ alias: String, subject: String, className: String,
                                    schoolYear: Int?) -> String? {
         guard let schoolYear, let canonical = canonicalSubject(subject, className: className) else { return nil }

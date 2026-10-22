@@ -21,7 +21,7 @@ extension TimetableSchedule {
     static func blocks(on day: SchoolDate, className: String, timetable: PDFAnalysis?,
                        changes: ChangeAnalysis?, includesChanges: Bool, events: PDFAnalysis? = nil,
                        specials: [SpecialScheduleAnalysis] = [], isInternationalStudent: Bool = false,
-                       matchedByRule: ((String, String) -> Bool)? = nil) -> [GridBlock] {
+                       matchedByRule: ((String, String, Int?) -> Bool)? = nil) -> [GridBlock] {
         var result: [GridBlock] = []
         for period in 1...8 {
             let item = slot(on: day, period: period, className: className, timetable: timetable,

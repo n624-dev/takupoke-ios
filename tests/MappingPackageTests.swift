@@ -96,9 +96,9 @@ final class MappingPackageTests: XCTestCase {
         let lesson = PDFLesson(className: "4_XY", weekday: 1, period: 1,
                                names: TimetableLessonNames(subject: "架空科目A"), sourceText: "", page: 1)
         XCTAssertFalse(TimetableSchedule.shouldDisplay(lesson, isInternationalStudent: false,
-            matchedByRule: { saved.rules.isInternationalStudentSubject($0, className: $1) }))
+            matchedByRule: { subject, className, _ in saved.rules.isInternationalStudentSubject(subject, className: className) }))
         XCTAssertTrue(TimetableSchedule.shouldDisplay(lesson, isInternationalStudent: true,
-            matchedByRule: { saved.rules.isInternationalStudentSubject($0, className: $1) }))
+            matchedByRule: { subject, className, _ in saved.rules.isInternationalStudentSubject(subject, className: className) }))
     }
 
     func testChangeFieldSeparatesOnlyMappedTrailingTeacherAndRoom() throws {

@@ -148,9 +148,9 @@ struct HomeTodayView: View {
     }
 
     @ViewBuilder private func classRows(_ className: String) -> some View {
-        let blocks = schedule.blocks(on: day, className: className, international: international) { subject, name in
+        let blocks = schedule.blocks(on: day, className: className, international: international) { subject, name, schoolYear in
             guard let rules = mappings.current?.rules else { return false }
-            return rules.isInternationalStudentSubject(rules.separatingChangeField(subject).subject, className: name)
+            return rules.isInternationalStudentChangeField(subject, className: name, schoolYear: schoolYear)
         }
         let missing = schedule.missingMessages(on: day, className: className)
         Text(TimetableDisplayText.className(className))

@@ -10,7 +10,7 @@ struct TimetableDaySchedule {
     var customTimes: TimetableTimes? = nil
 
     func commonPeriodTime(_ period: Int, days: [SchoolDate], classes: [String],
-                          international: Bool, matchedByRule: ((String, String) -> Bool)? = nil) -> String? {
+                          international: Bool, matchedByRule: ((String, String, Int?) -> Bool)? = nil) -> String? {
         var times: Set<String> = []
         for day in days {
             let plan = TimetableSchedule.dayPlan(on: day, events: events)
@@ -61,6 +61,27 @@ struct TimetableDaySchedule {
 
     func cardTime(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
                           className: String) -> String? {
+        if case .special(let item) = block.content {
+            if block.startPeriod == block.endPeriod { return item.timeRange }
+            let sources = specials.filter { $0.kind == item.kind && $0.lessons.contains(item.lesson) }
+            let ranges = sources.map { source -> String? in
+                var clocks: [String] = []
+                for period in block.startPeriod...block.endPeriod {
+                    let lessons = source.lessons.filter { $0.date == day.iso8601 && $0.className == className &&
+                        $0.period == period && $0.subject == item.lesson.subject &&
+                        $0.teacher == item.lesson.teacher && $0.room == item.lesson.room }
+                    let times = lessons.compactMap { source.timeRange(for: $0) }
+                    guard !lessons.isEmpty, times.count == lessons.count, Set(times).count == 1,
+                          let time = times.first else { return nil }
+                    clocks.append(time)
+                }
+                guard let first = clocks.first?.components(separatedBy: "〜").first,
+                      let last = clocks.last?.components(separatedBy: "〜").last else { return nil }
+                return "\(first)〜\(last)"
+            }
+            let confirmed = ranges.compactMap { $0 }
+            return !ranges.isEmpty && confirmed.count == ranges.count && Set(confirmed).count == 1 ? confirmed.first : nil
+        }
         let firstSlot = TimetableSchedule.slot(on: day, period: block.startPeriod, className: className,
                                                timetable: timetable, changes: changes,
                                                includesChanges: includesChanges, events: events, specials: specials)
@@ -109,7 +130,7 @@ extension TimetableDaySchedule {
     }
 
     func blocks(on day: SchoolDate, className: String, international: Bool,
-                matchedByRule: ((String, String) -> Bool)? = nil) -> [TimetableSchedule.GridBlock] {
+                matchedByRule: ((String, String, Int?) -> Bool)? = nil) -> [TimetableSchedule.GridBlock] {
         TimetableSchedule.positioned(TimetableSchedule.blocks(on: day, className: className,
             timetable: timetable, changes: changes, includesChanges: includesChanges, events: events,
             specials: specials, isInternationalStudent: international, matchedByRule: matchedByRule))

@@ -2,6 +2,64 @@ import XCTest
 @testable import TakupokeParsing
 
 final class HomeScheduleTests: XCTestCase {
+    private func clockSource(_ kind: SpecialScheduleKind, clocks: [String], joined: Bool = false) -> SpecialScheduleAnalysis {
+        SpecialScheduleAnalysis(kind: kind, sourceDigest: "fictional-\(kind.rawValue)", sourceName: "fictional.pdf",
+            parsedAt: Date(), schoolYear: 2032, coveredDates: [day.iso8601], coveredClasses: [fixtureClass],
+            periodTimes: Dictionary(uniqueKeysWithValues: clocks.enumerated().map { ($0.offset + 1, $0.element) }),
+            lessons: clocks.enumerated().map { index, clock in
+                SpecialScheduleLesson(date: day.iso8601, className: fixtureClass, period: index + 1,
+                    spanStart: joined ? 1 : index + 1, spanEnd: joined ? clocks.count : index + 1,
+                    timeRange: joined ? clocks.first!.components(separatedBy: "〜")[0] + "〜" + clocks.last!.components(separatedBy: "〜")[1] : clock,
+                    lines: ["架空特別科目A", "架空教員A"], page: 1)
+            })
+    }
+
+    func testOverlappingSpecialCardsRetainIndividualClocksAndProgressWhileCommonAndChangeStayAmbiguous() throws {
+        let exam = clockSource(.exam, clocks: ["09:00〜09:40"])
+        let returns = clockSource(.examReturn, clocks: ["10:00〜10:20"])
+        for sources in [[exam], [returns], [exam, returns], [returns, exam], [exam, clockSource(.examReturn, clocks: ["09:00〜09:40"])]] {
+            let schedule = TimetableDaySchedule(timetable: timetable(), changes: nil, events: nil, specials: sources, includesChanges: true)
+            let blocks = schedule.blocks(on: day, className: fixtureClass, international: false)
+            XCTAssertEqual(blocks.count, sources.count)
+            for block in blocks {
+                guard case .special(let item) = block.content else { return XCTFail("Expected special card") }
+                XCTAssertEqual(schedule.cardTime(block, on: day, className: fixtureClass), item.timeRange)
+                XCTAssertEqual(schedule.isInProgress(block, on: day, className: fixtureClass, now: date("2032-04-05T09:10:00+09:00")), item.timeRange == "09:00〜09:40")
+            }
+            let ambiguous = sources.count == 2 && sources[0].periodTimes != sources[1].periodTimes
+            let common = schedule.commonPeriodTime(1, days: [day], classes: [fixtureClass], international: false)
+            XCTAssertEqual(common, ambiguous ? nil : sources[0].periodTimes[1])
+            let replacement = TimetableSchedule.GridBlock(startPeriod: 1, endPeriod: 1, content: .change(change()))
+            XCTAssertEqual(schedule.cardTime(replacement, on: day, className: fixtureClass), common)
+        }
+    }
+
+    func testMergedSpecialCardClocksUseOnlyTheirOwnDocumentAndNeverBorrowMissingTimes() throws {
+        for joined in [false, true] {
+            let exam = clockSource(.exam, clocks: ["09:00〜09:20", "09:20〜09:40"], joined: joined)
+            let returns = clockSource(.examReturn, clocks: ["10:00〜10:10", "10:10〜10:20"], joined: joined)
+            let schedule = TimetableDaySchedule(timetable: timetable(), changes: nil, events: nil, specials: [exam, returns], includesChanges: true)
+            let blocks = schedule.blocks(on: day, className: fixtureClass, international: false)
+            XCTAssertEqual(blocks.count, 2)
+            for block in blocks {
+                XCTAssertEqual(block.startPeriod, 1); XCTAssertEqual(block.endPeriod, 2)
+                guard case .special(let item) = block.content else { return XCTFail("Expected special card") }
+                XCTAssertEqual(schedule.cardTime(block, on: day, className: fixtureClass), item.kind == .exam ? "09:00〜09:40" : "10:00〜10:20")
+            }
+            XCTAssertEqual(schedule.changeTimeRanges(change()), [nil])
+        }
+        var missing = clockSource(.exam, clocks: ["09:00〜09:40", "09:40〜10:20"])
+        missing = SpecialScheduleAnalysis(kind: missing.kind, sourceDigest: missing.sourceDigest, sourceName: missing.sourceName,
+            parsedAt: missing.parsedAt, schoolYear: missing.schoolYear, coveredDates: missing.coveredDates, coveredClasses: missing.coveredClasses,
+            periodTimes: [:], lessons: missing.lessons.map {
+                SpecialScheduleLesson(date: $0.date, className: $0.className, period: $0.period, spanStart: $0.spanStart, spanEnd: $0.spanEnd, timeRange: nil, lines: $0.lines, page: $0.page)
+            })
+        let schedule = TimetableDaySchedule(timetable: timetable(), changes: nil, events: nil,
+            specials: [missing, clockSource(.examReturn, clocks: ["10:00〜10:10", "10:10〜10:20"])], includesChanges: true)
+        let unknown = try XCTUnwrap(schedule.blocks(on: day, className: fixtureClass, international: false).first)
+        XCTAssertNil(schedule.cardTime(unknown, on: day, className: fixtureClass))
+    }
+
     private let day = SchoolDate(iso8601: "2032-04-05")!
     private let fixtureClass = "1_ZZ"
 
@@ -160,7 +218,7 @@ final class HomeScheduleTests: XCTestCase {
     func testMappedInternationalSubjectFilterIsShared() {
         let schedule = TimetableDaySchedule(timetable: timetable(), changes: changes([]), events: nil,
                                             specials: [], includesChanges: true)
-        let match: (String, String) -> Bool = { $0 == "架空科目A" && $1 == "1_ZZ" }
+        let match: (String, String, Int?) -> Bool = { subject, className, _ in subject == "架空科目A" && className == "1_ZZ" }
         XCTAssertTrue(schedule.blocks(on: day, className: fixtureClass, international: false, matchedByRule: match).isEmpty)
         XCTAssertEqual(schedule.blocks(on: day, className: fixtureClass, international: true, matchedByRule: match).count, 1)
     }
