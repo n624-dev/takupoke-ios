@@ -20,7 +20,7 @@
 
 ## 最新の確認状況
 
-- 正式配布：[0.1.419（419.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.419-build.419.1)を通常Release・Latestとして公開し、固定AltStore Sourceを更新しました。
+- 前回公開の確認：[0.1.419（419.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.419-build.419.1)を通常Releaseとして公開し、固定AltStore Sourceを更新しました。
   非表示の留学生向け変更が通常・試験／返却授業を消す問題を修正し、一覧リンクを標準Menuへ統一しました。
   [同一ソースのCI](https://github.com/n624-dev/takupoke-ios/actions/runs/39397264222)全15必須チェック・全job終端・保存artifact0、Native591件（予定skip1）・Python263件（予定skip21）の失敗0を確認しました。
   両OS通常UI4組・訂正8ケース・実Picker・iPhoneビルドと、匿名4添付／IPA内部／固定Sourceの照合が成功。Strict本文・全入口／経路と追加モデルは不変です。
