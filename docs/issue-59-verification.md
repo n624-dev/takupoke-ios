@@ -7,3 +7,5 @@
 事前にtest catalog・失敗索引を検索した（/tmp/issue59-ios-catalog-search.log、/tmp/issue59-ios-failure-search.log）。実parserから各5日×8時限の独立期待、JSON往復、空枠の変更時計、5〜6限結合カード・授業中・6限fragment、実SQLite保存と再起動、旧32形式の原文保持と不明時計を検査する。初回533件中1失敗はN69へ記録し、旧期待と今回の確定仕様との差を明記した。Apple環境・実機での確認は別途記録する。
 
 修正記録push後、Linux正規SPM533件が失敗0（実行76.913秒、準備込み256.2秒）。Swiftを有効にしたPython264件も予定skip2・失敗0。初回の生成枝一覧のリンク不一致はN70へ記録し、23箇所の行リンクだけを更新した。枝番号・分類・受理条件は変更していない。test catalogのmain基点check、枝一覧check、共有指示bytesとiOS adapter検査、差分空白検査も成功。Actions開始前に新規GPT-6.1 Sol/Highへ両環境のコード差分だけを渡し、N69後の1 assertion修正も同じレビューで確認しblockingなし。最新Apple全体結果はこれから確認する。
+
+Apple PR全体427/run39750668724のsourceee6720dではNative616件（予定skip1・失敗0）、iPhone build、両OS通常UI4組、訂正7ケースが初回成功した。選択26だけは初回起動のbackground assertion timeoutで止まり、N72の比較・記録push・新規レビュー後に同sourceのその1ジョブを独立検証し成功した。初回失敗や旧426のclear未成立は失敗索引へ保持する。利用者の公開指示に従い、公開用mainの全検証・ビルド・配布照合へ進む。物理iPhoneでの更新は未確認。
