@@ -186,17 +186,17 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 | 詳細番号 | 生成時分類 | 拒否条件／コード抜粋 | 実装 |
 |---|---|---|---|
 | R396 | P04 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L28) |
-| R395 | 分類なし／呼出元 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L41) |
-| R394 | P04 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L49) |
-| R393 | P03 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L53) |
-| R392 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L59) |
-| R391 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L68) |
-| R390 | P16 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L72) |
-| R389 | 分類なし／呼出元 | `guard lessons.count <= PDF239SchoolParser.maximumRecords else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L76) |
-| R388 | 分類なし／呼出元 | `coveredClasses.count == 17, !lessons.isEmpty else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L79) |
-| R387 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L111) |
-| R386 | P17 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L140) |
-| R385 | P08 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L146) |
+| R395 | 分類なし／呼出元 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L42) |
+| R394 | P04 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L50) |
+| R393 | P03 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L54) |
+| R392 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L60) |
+| R391 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L70) |
+| R390 | P16 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L74) |
+| R389 | 分類なし／呼出元 | `guard lessons.count <= PDF239SchoolParser.maximumRecords else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L78) |
+| R388 | 分類なし／呼出元 | `coveredClasses.count == 17, !lessons.isEmpty else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L81) |
+| R387 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L113) |
+| R386 | P17 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L142) |
+| R385 | P08 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L148) |
 
 ### 239.1のStrictと返却のみのクラス表上端
 
@@ -587,15 +587,15 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 | 詳細番号 | 生成時分類 | 拒否条件／コード抜粋 | 実装 |
 |---|---|---|---|
 | R250 | P04 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L32) |
-| R251 | 分類なし／呼出元 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L45) |
-| R252 | P04 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L54) |
-| R253 | P03 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L60) |
-| R254 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L66) |
-| R255 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L75) |
-| R256 | P16 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L79) |
-| R257 | 分類なし／呼出元 | `guard lessons.count <= PDFSchoolParser.maximumRecords else { throw` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L83) |
-| R258 | 分類なし／呼出元 | `coveredClasses == Set(RecoveryValidator.specialClasses), !lessons.isEmpty else { throw` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L86) |
-| R259 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L118) |
-| R260 | P17 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L140) |
-| R261 | P17 | `guard !rawLines.contains(where:RecoveryRole.hasLabelPrefix) else { throw` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L143) |
-| R262 | P08 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L148) |
+| R251 | 分類なし／呼出元 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L46) |
+| R252 | P04 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L55) |
+| R253 | P03 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L61) |
+| R254 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L67) |
+| R255 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L77) |
+| R256 | P16 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L81) |
+| R257 | 分類なし／呼出元 | `guard lessons.count <= PDFSchoolParser.maximumRecords else { throw` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L85) |
+| R258 | 分類なし／呼出元 | `coveredClasses == Set(RecoveryValidator.specialClasses), !lessons.isEmpty else { throw` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L88) |
+| R259 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L120) |
+| R260 | P17 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L142) |
+| R261 | P17 | `guard !rawLines.contains(where:RecoveryRole.hasLabelPrefix) else { throw` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L145) |
+| R262 | P08 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser.swift#L150) |

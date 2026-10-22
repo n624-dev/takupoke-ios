@@ -2175,3 +2175,9 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - sourcefcc6ee2からの未コミットIssue59差分、Debian13/Swift6.1.2、tools/test-parsing.sh。533件中1 assertion失敗。SpecialScheduleTests.swift:231、testReturnScheduleTreatsHorizontallyDividedCellAsTwoLessonsで実値11:10〜11:50／期待13:35〜14:20。ログ/tmp/issue59-ios-parsing.log。対処前に記録した。既存テストの入力・過去失敗詳細・当時コードを確認してから判断し、根拠と修正をpushするまで再試行しない。
 
 - N01・N65・N67・N68の詳細とfcc6ee2のSpecialSchedule.timeRange、該当テスト全文を照合した。失敗は実parserの通常日・専用日・結合セルassertionではなく、最後の架空oldSingleに保存済み11:10〜11:50を与えつつ通常時刻への上書きを要求した既存期待だけだった。#59はまさに保存済み時計を日付sortで上書きしない仕様であり、この1期待を明示入力11:10〜11:50の保持へ更新する。実parserの全日・全時限、通常日13:35〜14:20、結合セル、時刻未保存のoldPair12:50〜14:20は維持する。新たな独立回帰は元列順[2,1,3,4,5]と通常列順、保存再読込、空枠、変更、進捗、fragmentを検査し、製品の誤動作に合わせて期待値を生成しない。
+
+## N70 Issue59のPython検査で生成一覧の行リンク不一致（2026-10-22）
+
+- source8d2c7f9、Debian13/Swift6.1.2、Python全264件・skip2中1失敗。ログ/tmp/issue59-ios-python.log。Strict一覧の文字列比較にL41/L42の差を観測した。対処前に記録し、失敗ケース・生成内容と既存の一覧規則を確認してから判断する。SPMは同時点でコンパイル中。
+
+- N05の生成一覧と宣言規約の詳細、test_pdf_branch_catalog.pyの全文比較、tools/pdf_branch_catalog.pyの生成規則、fcc6ee2からのparser差分を照合した。今回は宣言漏れではなく、先頭日を保存する2行追加で既存枝の位置だけが移った。生成コマンドwrite/checkで23箇所の行リンクだけを更新し、枝番号・分類・条件・件数は不変。テスト本文や比較条件は変更しない。
