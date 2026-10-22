@@ -63,4 +63,17 @@ final class SchoolDateTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(SchoolDate(iso8601: "2033-12-31")).displayWeekStart.iso8601, "2034-01-02")
         XCTAssertEqual(try XCTUnwrap(SchoolDate(iso8601: "2034-01-01")).displayWeekStart.iso8601, "2034-01-02")
     }
+    func testUnknownConfiguredYearCannotMatchAttemptOrRequestAutomaticReanalysis() {
+        let failure = ChangeParseAttempt(date: Date(), sourceDigest: "fictional", defaultYear: 2032,
+            failure: ChangeParseError(code: .date), parserVersion: ChangeAnalysis.parserVersion)
+        for year: Int? in [nil, 203, 1899, 9999] {
+            XCTAssertFalse(failure.matches(digest: "fictional", defaultYear: year))
+            XCTAssertFalse(ChangeParseAttempt.needsAnalysis(digest: "fictional", defaultYear: year, analysis: nil, attempt: nil))
+        }
+        XCTAssertTrue(failure.matches(digest: "fictional", defaultYear: 2032))
+        XCTAssertFalse(failure.matches(digest: "fictional", defaultYear: 2033))
+        XCTAssertFalse(ChangeParseAttempt.needsAnalysis(digest: "fictional", defaultYear: 2032, analysis: nil, attempt: failure))
+        XCTAssertTrue(ChangeParseAttempt.needsAnalysis(digest: "fictional", defaultYear: 2033, analysis: nil, attempt: failure))
+    }
+
 }

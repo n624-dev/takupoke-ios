@@ -180,11 +180,14 @@ struct ChangeParseAttempt: Codable {
     var failure: ChangeParseError?
     var parserVersion: Int? = nil
 
-    func matches(digest: String, defaultYear: Int) -> Bool {
-        sourceDigest == digest && self.defaultYear == defaultYear && parserVersion == ChangeAnalysis.parserVersion
+    func matches(digest: String, defaultYear: Int?) -> Bool {
+        guard let defaultYear, (1900...9998).contains(defaultYear) else { return false }
+        return sourceDigest == digest && self.defaultYear == defaultYear && parserVersion == ChangeAnalysis.parserVersion
     }
 
-    static func needsAnalysis(digest: String, defaultYear: Int, analysis: ChangeAnalysis?, attempt: ChangeParseAttempt?, weekdayConsent: ChangeWeekdayConsent? = nil, rowSkipConsent: ChangeRowSkipConsent? = nil) -> Bool {
+    static func needsAnalysis(digest: String, defaultYear: Int?, analysis: ChangeAnalysis?, attempt: ChangeParseAttempt?, weekdayConsent: ChangeWeekdayConsent? = nil, rowSkipConsent: ChangeRowSkipConsent? = nil) -> Bool {
+        // An invalid configured year must be corrected before acquisition/parse.
+        guard let defaultYear, (1900...9998).contains(defaultYear) else { return false }
         if analysis?.sourceDigest == digest, analysis?.version == ChangeAnalysis.parserVersion,
            analysis?.defaultYear == defaultYear, analysis?.weekdayConsent == weekdayConsent,
            analysis?.rowSkipConsent == rowSkipConsent { return false }

@@ -1,7 +1,7 @@
 # 日本時間・学校年度・日付表示
 
 対応関係・宣言名・実行方法のSHA-256：
-`9e3b7f770d1025680e7d2dba34942b31ba2ad92a7b8c9ab84c7f14de192ffb24`
+`f92c0df0b0fe51e65236b9a7b104f7ae063eb43e8f4d54f1d7dfea344bb1b8b5`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -27,3 +27,4 @@ bash tools/test-parsing.sh
 - `testApplicabilityBoundariesAndOverlap`
 - `testMondayAndWeekNavigationAcrossYearBoundary`
 - `testDisplayedWeekAdvancesOnWeekend`
+- `testUnknownConfiguredYearCannotMatchAttemptOrRequestAutomaticReanalysis`
