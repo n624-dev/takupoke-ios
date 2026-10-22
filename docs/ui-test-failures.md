@@ -2181,3 +2181,5 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - source8d2c7f9、Debian13/Swift6.1.2、Python全264件・skip2中1失敗。ログ/tmp/issue59-ios-python.log。Strict一覧の文字列比較にL41/L42の差を観測した。対処前に記録し、失敗ケース・生成内容と既存の一覧規則を確認してから判断する。SPMは同時点でコンパイル中。
 
 - N05の生成一覧と宣言規約の詳細、test_pdf_branch_catalog.pyの全文比較、tools/pdf_branch_catalog.pyの生成規則、fcc6ee2からのparser差分を照合した。今回は宣言漏れではなく、先頭日を保存する2行追加で既存枝の位置だけが移った。生成コマンドwrite/checkで23箇所の行リンクだけを更新し、枝番号・分類・条件・件数は不変。テスト本文や比較条件は変更しない。
+
+- N69/N70修正後のLinux正規SPM533件は失敗0、Python264件は予定skip2・失敗0。新規の保存再起動回帰は旧形式でtimeRangeのないレコードも含めて通過した。Apple UI・PDFKit・実機はこの結果には含めない。
