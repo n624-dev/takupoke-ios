@@ -2099,3 +2099,11 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - 候補は既存ObservedScreenGeometry.scrollDragが実frameから返す中心方向・viewport高さ1/3以内の距離を、既存recoveryDragへ渡す。対象不在の探索、12回上限、完全包含、実PDF表示・採用前保持・実採用・再起動保持の期待は維持する。既存の幾何7件は上下補正／上限／無効frameを検査し、元の実UIケースが今回の探索失敗を検出しているため、同じ内容のテストは追加しない。両OSでの実効果は未確認。
 
 - 候補fa2efa1のDebian13／Swift6.1.2ローカル検査はObservedScreenGeometry7件とPython UI manifest／runner40件が失敗0。変更Swiftの構文解析・catalog check --base b9df827も成功。コード差分だけの新規GPT-6.1 Sol／Highレビューはblockingなし。これらは実UI通過ではなく、次の全体CIで確認する。
+
+## N61 初回修正の単項目訂正26がfailure終端（2026-10-22）
+
+- source4a856ba25309fdd370ceb62a74c90fd74326370e、run39702652277／試行1、job119589878745。単項目訂正iOS26が02:57:43にfailure終端、03:12の予定照会で確認。ログ取得前で具体的な段階・原因は未確定。対処を決める前に記録した。
+- 同じ実行の原本変更26と三項目26は成功、選択訂正26は継続。追加IssueとN59／N60候補の全体実行はこの失敗の観測前に開始済み。キャンセルせず、次の修正／試行を判断する前に新完了ログと過去詳細を照合する。
+
+- 完了ログはManualAssistanceChecks.swift:13の最初のapp.launchで、pid30773へのbackground assertion取得がtimeout。43.638秒・失敗1、fixture-ready待機・訂正入力・背景復帰には未到達。クラッシュ報告は0で、下位原因は未確定。
+- 検索語background assertion／launch／U40／U41／U49／U59／U65で各詳細とverificationの376、2b94d1cの起動helperと現Manual.launch／runnerを照合した。U59は通常26の初回timeout後にpid0、今回は単独訂正の最初の起動で非zero pid。U49の保存後再起動、U40の長いbatch後とも段階が異なる。今回のIssue修正とN59／N60候補はManualAssistanceChecks.swift・runnerを変更していない。証拠から製品やSDKを推測変更せず、既に開始済みの実行結果を確認する。新しい起動再試行や期限延長は追加しない。
