@@ -2107,3 +2107,13 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 
 - 完了ログはManualAssistanceChecks.swift:13の最初のapp.launchで、pid30773へのbackground assertion取得がtimeout。43.638秒・失敗1、fixture-ready待機・訂正入力・背景復帰には未到達。クラッシュ報告は0で、下位原因は未確定。
 - 検索語background assertion／launch／U40／U41／U49／U59／U65で各詳細とverificationの376、2b94d1cの起動helperと現Manual.launch／runnerを照合した。U59は通常26の初回timeout後にpid0、今回は単独訂正の最初の起動で非zero pid。U49の保存後再起動、U40の長いbatch後とも段階が異なる。今回のIssue修正とN59／N60候補はManualAssistanceChecks.swift・runnerを変更していない。証拠から製品やSDKを推測変更せず、既に開始済みの実行結果を確認する。新しい起動再試行や期限延長は追加しない。
+
+## N62 スクロール候補の三項目訂正27がfailure終端（2026-10-22）
+
+- source60d71bf94d13e7a7b5e0d7d03b6a07abb8777058、run39713366215／試行1、job119610118487。04:10の予定照会で03:59:39のfailure終端を確認。具体的な段階・原因はログ取得前で未確定。対処を決める前に記録し、同じソース条件の直前b9df827での三項目27成功と、過去詳細／コードを照合する。
+- 最新の原本変更27・Nativeは成功、他UIは継続中。N60差分はApplicationChecks+Recoveryだけで、この訂正ケースの実装はb9df827と同じ。新しい実行は開始せず、既存実行は取消しない。
+
+- 完了ログはケース開始・完了0で、PickerTapChecks-Runnerが準備中のEarly unexpected exit／XCTWaiter(StallHandling) handleStalledWaitで停止。診断はreportsScanned7／matchingTextReports0／xcresultFailures空で、下位原因を確定できない。N55と2026-10-09の診断37974710845詳細、旧／現runnerのbuild-before-bootを照合し、N55候補後にも同じ開始前症状が出たことを記録する。直前b9df827の同ケースは実入力・ACK・再確認・4項目拒否まで成功したが、その成功を最新の未実行へ合算しない。新たな根拠のないSDK往復・起動再試行・期待の変更は行わず、開始済み実行の残る結果を確認する。
+
+- N59候補b9df827の原本変更27は316.218秒で成功し、実manual-review-submitタップと原本不一致表示・旧正常結果保持が成立。Native600件（skip1・失敗0）と27の通常A/B・訂正4件・iPhoneビルドはすべて成功した。N60候補60d71bfの原本変更27も成功。これらを一般的なAX問題の恒常的解消とは扱わず、未完了の26や最新全体成功へ流用しない。
+- 初回4a856baのrun39702652277は取消しなしで全ジョブ終端。必須15件中14成功、N61の起動失敗1件、公開skip。全体成功とは扱わない。
