@@ -2209,3 +2209,12 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - GitHub check-runのfailure annotationは「The hosted runner lost communication with the server」。通常のXCTest assertion failureではなく、ホストとの通信断がジョブの終端理由と確認した。どのケースまで実行できたかと、通信断の下位原因（ネットワーク・資源不足・runner終了等）はログ取得不能のため未確定。これらを製品の修正完了として扱わない。
 - lost communication/hosted runner/heartbeat/通信断で索引・検証記録・CI計測を検索し、同じhost通信断の過去項目はなかった。N61/N72の初回app.launch失敗とは、ジョブ全体のホスト接続喪失という段階が異なる。ee6720dの全体427では通常26Aが成功しており、ee6720dと現在d713ed6の製品・全テスト・tools/workflowは同一bytes（差分0）と確認した。現在428の他13事前検査も成功している。
 - この新しいホスト障害の注記と同一コードでの成功に基づき、同じd713ed6の通常26Aと依存する公開ジョブだけを新しいhostで独立検証する。製品・QA・SDK・操作・期限や公開ゲートを変更せず、初回失敗を保持する。公開ジョブ自身のAPIゲートが同じrun/attempt/sourceの全必須成功を確認できたときだけ公開する。新規開始前レビューを行い、記録push後に開始する。
+
+## N74 全体428/試行2の公開ビルドがfailure終端（2026-10-22）
+
+- sourced713ed6、run39771133485/試行2、公開job119869233348（SDK27.0）。14:35の予定照会で14:09:09のfailure終端を確認。具体的な段階・原因はログ未取得で未確定。対処前に記録した。N73の通常26Aは新しいhostで13:58:54にsuccessとなり、他13事前検査も成功。公開処理の成否はログを確認するまで断定せず、失敗段階と過去詳細・当時コードを照合してから対処を決める。
+
+- 完了ログの失敗は公開ビルド内のPicker UI。MaterialPickerTapChecks.testReselectionThroughActualButtons、277.719秒、137行のchoose-1 ButtonのwaitForExistence(5)がAX snapshot timeoutになった。直前のchoose-0のCancelと案内消失、navbar/tab/list存在、choose-1.existsとframe取得までは成立。次のButton実tapには未到達。3件中他2件は成功、総377.949秒、IPA生成・公開照合には進んでいない。
+- MaterialPickerTapChecks/Picker/Cancel/選び直し/ファイル選択で索引・監査・検証を検索し、N53、verificationの233〜237、U72/N54の実要素再照会の詳細を読んだ。N53は5回目のFiles Cancel不在、今回は次の元リストButton存在照会の停止で、製品presentation未成立とは区別する。233で同一コードの再実行が別段階でも停止した過去も保持し、待ち期限や一般的なAX改善を推測しない。
+- 新たに取得したee6720d/全体427のiPhone buildログでは、同じPicker3件と完了件数検査が全成功（本ケース313.966秒）。ee6720dとd713ed6の全製品・テスト・tools/workflowは同一bytesで、Pickerの製品とUI helperは前回公開419からも未変更とgit差分で照合した。最新mainの通常・訂正両OSも全成功している。
+- 新しい同一実装の完了ログと今回の失敗段階に基づき、製品・QA・SDK・元3ケース・連続実操作・30/8/5秒の期限・全完了照合・公開ゲートを変えず、公開jobだけを新しいhost/所有Simulatorで独立検証する。初回失敗を保持し、候補を恒常的解消とは呼ばない。同じ停止が再発した場合はこの根拠だけで再実行を繰り返さず、観測方法の修正を改めて評価する。コード差分0行の新規レビューと記録push後に開始する。
