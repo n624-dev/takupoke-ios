@@ -199,7 +199,7 @@ final class GeometryControls:XCTestCase {
 }
 '''.replace("HELPER", helper)
         cases = re.findall(r"func (test\w+)\(", controls)
-        self.assertEqual(len(cases), 27)
+        self.assertEqual(len(cases), 29)
         controls += "\nXCTMain([testCase([\n" + "".join(
             f'("{name}", GeometryControls.{name}),\n' for name in cases) + "])])\n"
         with tempfile.TemporaryDirectory(prefix="manual-scroll-controls-") as directory:

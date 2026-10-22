@@ -104,7 +104,8 @@ extension ManualAssistanceChecks {
             // Upward viewport-sized drags cover the complete40-slot preview.
             // Downward steps stay bounded, with the same16-attempt total cap.
             let startY=upward ? safe.maxY-12:safe.minY+12
-            let endY=alignment.map { min(viewport.maxY-12,max(viewport.minY+12,startY+$0)) }
+            let endY=alignment.flatMap { ($0<0)==upward ? $0:nil }
+                .map { min(viewport.maxY-12,max(viewport.minY+12,startY+$0)) }
                 ?? (upward ? viewport.minY+12:min(viewport.maxY-12,startY+240))
             guard abs(endY-startY)>1 else {
                 XCTFail("The centered target has no safe hit region: "+targetID);return e
