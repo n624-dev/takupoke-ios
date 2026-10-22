@@ -2183,3 +2183,15 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - N05の生成一覧と宣言規約の詳細、test_pdf_branch_catalog.pyの全文比較、tools/pdf_branch_catalog.pyの生成規則、fcc6ee2からのparser差分を照合した。今回は宣言漏れではなく、先頭日を保存する2行追加で既存枝の位置だけが移った。生成コマンドwrite/checkで23箇所の行リンクだけを更新し、枝番号・分類・条件・件数は不変。テスト本文や比較条件は変更しない。
 
 - N69/N70修正後のLinux正規SPM533件は失敗0、Python264件は予定skip2・失敗0。新規の保存再起動回帰は旧形式でtimeRangeのないレコードも含めて通過した。Apple UI・PDFKit・実機はこの結果には含めない。
+
+## N71 全体426の選択訂正26がfailure終端（2026-10-22）
+
+- sourcefcc6ee2、run39744113444/試行1、iOS26、job119728249451。09:05の予定まとめ照会でfailure終端を確認。具体的な失敗段階はログ未取得で未確定。対処前に記録した。27系・Native・iPhone buildは成功、残る26は継続中。Issue59を含む別sourceee6720dの全体427/run39750668724は、この観測前に開始済みで現在待機。いずれも取消せず、失敗ログと過去詳細・当時コードを照合してから判断する。
+
+## N72 Issue59込み全体427の選択訂正26がfailure終端（2026-10-22）
+
+- sourceee6720d、run39750668724/試行1、iOS26、job119760813849。次の作業再開時のまとめ照会で10:22:01のfailure終端を確認。具体的な段階はログ未取得で未確定。対処前に記録。最新27の6UI・Native・iPhone buildと26の通常B・原本変更・三項目は成功、26の通常Aと単項目は継続中。全体成功ではなく、残りを取消さず確認し、新旧の選択26のログと過去詳細・コードを照合する。
+
+- N71完了ログは236.064秒・1件失敗。最初の科目clearのButtonはframe(317,587.33,44,44)、enabled/hittable=trueで一回tapしたが、45秒後も入力「架空科」・ack=false、Binding診断は初期draft1件のみでclearイベントなし。U11（消去済み古いAX照会）とN52（消去後ACK照会）とは異なり、消去actionの成立を確認できない。事後診断のsimctl logは回収timeoutで停止し、下位原因は未確定。全体426は取消しなしで全終端し、必須14成功・選択26失敗1・公開skip。
+- N72完了ログはManualAssistanceChecks.swift:13の最初のapp.launchでpid21857へのbackground assertion取得がtimeout、19.649秒・1件失敗。fixture-ready・入力・clear・ACKには未到達。診断reportsScanned5、matchingTextReports0、xcresultとunified-log取得は15秒timeoutで、下位原因を確定できない。N61・U40/U41/U49/U59/U65の詳細と2a22448・fcc6ee2・ee6720dのlaunch/Input全文を照合した。N61と同じ初回非zero pid、U49の保存後再起動やU59の直前timeout後pid0とは異なる。Issue59はこのlaunch/Input/runnerを変更しておらず、fccとeeの各ファイルSHAも同一。
+- 最新427の選択27は同じ操作と入力を成功している。起動の未成立と旧426の消去未成立を同じ障害と断定せず、製品・SDK・入力やACKの期待・期限・操作を推測変更しない。最新427の残る通常26A・単項目26を終端まで確認してから、初回失敗を保持した同一sourceの選択26だけの独立検証を判断する。
