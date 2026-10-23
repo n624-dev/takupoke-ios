@@ -115,3 +115,15 @@ QAフラグだけでUIWindowの実touch phase／座標／native view classを最
 13:50 UTCの予定照会で単項目訂正run39960896830／attempt1も全終端。26/job120438323687は13:44:28、27/job120438324206は13:44:36にsuccess。実ケースは26が698.196秒、27が664.923秒、両方で選択ケースの厳密な完了照合が成功した。表示サイズ変更後の実入力、背景後の同一process、再編集によるACK取消し、各一回の実接触、確認画面での背景復帰、再確認、保存と再起動後の実proofを通過した。QA traceは両OSの3回の実ACKでUISwitchの実viewへのbegan/endedを記録し、約0.11〜0.13秒の接触と実Bindingのack=trueを確認した。N87の失敗processにはtraceがなく下位原因は未確定のままで、今回の成功から恒常的な解消とはしない。
 
 新しい観測候補の焦点2実行がすべて成功したため、main専用に新規作成し未使用だったGPT-6.1 Sol／Highの指摘なしレビューを、このmain更新一回だけへ使用する。immutableコード差分443行のSHA256はf0fc99a1fbd36d9e91596a3758806a4beed190f8e479827eba68f86511860366。source6156e4c以降は結果文書だけでコードは同一。mainの期待旧先頭9945e154を指定しforceなしで反映し、次の同source・run・attempt全15必須チェックで公開を判断する。焦点や旧runの成功を公開ゲートへ流用せず、全ケース・Picker・iPhone Release・未確認の実機導入の区別を維持する。
+
+## main433の途中結果と消去操作の比較
+
+main433/run39964623999／attempt1／source1d0e4f9は、14:35 UTCの予定照会で27系が全成功。Distribution268件・予定skip21（86.545秒）、Native627件・予定skip1（133.172秒）、通常27Aの17完了と27Bの15完了、訂正27の3項目354.049秒／明示選択1296.538秒／原本変更272.624秒／単項目782.142秒を確認した。通常の通知・VoiceOver・文字サイズ別の元検査と厳密な完了照合を維持した。
+
+14:58 UTCの予定照会では原本変更26が405.854秒・完了照合も成功したが、明示選択／三項目／単項目26がfailure。対処前にN90〜N92へ記録し、完了ログ、N71/U01/U11/N52/N83の詳細、fcc6ee2／1b368f5／現在のコードを読んで照合した。通常26Bは14:25:06、通常26Aは待ち行列の後14:44:38に開始して継続中で、取消ししない。公開条件は満たしておらず、この実行では公開できない。
+
+9cd3842の候補は、既存消去Buttonラベルの同じ44pt frameへRectangleのhit領域を一行明示したもの。失敗時の実接触は正しい中心に届いたがcancelled、成功した原本変更の同じ位置ではendedと実clearを確認した。Buttonの見た目・borderless・guard・値／ACK／focus処理を変更せず、下位原因を断定しない。QA生成時だけ元guardを維持したまま拒否のBool hashを記録する。三項目の失敗は全アプリAny queryだったため、既知clearだけを元Listの実Buttonとして検索し、重複を拒否する候補も加えた。既存visibleの直後の重複存在待機を、現在の有限frame／enabled／hittableを満たさなければ失敗する検証へ置き換えた。元の一回tap・空文字45秒・ACK取消し・実typing全文・完了・背景／再起動は保持する。
+
+候補・失敗根拠を隔離ブランチへpush後、Debian13／Swift6.1.2でproject17件（0.438秒）、manifest28件（5.124秒）、runner5件（3.438秒）、実入力／背景lifecycle3件（3.549秒）、geometry2メソッド内の実Swift29件が成功。Swift構文解析、catalog438のwrite/check --base1d0e4f9も成功した。小さいhit領域変更には既存4ケースの実clear・原本変更拒否・ACK・保存／再起動が必要で、ローカルの成功を実UIKit入力の証明へ代用しない。
+
+新規GPT-6.1 Sol／Highは今回のimmutableコード差分138行（SHA256 f646bf1cf0397c3a14f18e9d2a77593df43055a9c99c0255bec5ae14fd2674e9）だけを確認し、指摘なし。この未使用レビューをmanual-input-native-probe case=allの単一dispatch一回だけに用いる。元4ケース×両OSを独立jobに展開し、各caseの45／35分・厳密な完了照合を維持する。全体の公開workflowや同source全15ゲートは変更していない。main用には別の新規レビューが必要である。
