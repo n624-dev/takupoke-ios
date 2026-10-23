@@ -4,6 +4,30 @@ import ZIPFoundation
 @testable import TakupokeParsing
 
 extension ParsingTests {
+    func testTypedDateCellsUseTheirWrittenCalendarDateAndBomIsAccepted() throws {
+        try temporary { root in
+            let url = root.appendingPathComponent("fictional-typed-date.xlsx")
+            for value in ["2032-07-10", "2032-07-10T00:00:00.000", "2032-07-10T23:59:59.123456789+14:00", "2032-07-10T00:00:00-12:00", "2032-07-10T01:02:03Z"] {
+                var files = workbook(example)
+                let old = "<c r=\"C2\" t=\"inlineStr\"><is><t xml:space=\"preserve\">2032/7/10</t></is></c>"
+                mutate(&files, "xl/worksheets/sheet1.xml", old, "<c r=\"C2\" t=\"d\"><v>\(value)</v></c>")
+                for name in ["xl/workbook.xml", "xl/worksheets/sheet1.xml"] {
+                    files[name] = Data([0xEF, 0xBB, 0xBF]) + files[name]!
+                }
+                try write(files, to: url)
+                let result = try ChangeNormalizer.parse(XLSXReader.read(url), defaultYear: 2032)
+                XCTAssertEqual(result.first?.change_date, "2032-07-10")
+                XCTAssertEqual(result.first?.before_subject, "架空科目A")
+            }
+            for value in ["2032-07-10T24:00:00", "2032-07-10T01:60:00", "2032-07-10T01:00:60", "2032-02-30T00:00:00", "2032-07-10T01:00:00+14:01", "2032-07-10T01:00:00junk"] {
+                var files = workbook(example)
+                mutate(&files, "xl/worksheets/sheet1.xml", "<c r=\"C2\" t=\"inlineStr\"><is><t xml:space=\"preserve\">2032/7/10</t></is></c>", "<c r=\"C2\" t=\"d\"><v>\(value)</v></c>")
+                try write(files, to: url)
+                XCTAssertThrowsError(try ChangeNormalizer.parse(XLSXReader.read(url), defaultYear: 2032))
+            }
+        }
+    }
+
     func testUnsupportedAndMalformedWorkbooks() throws {
         try temporary { root in
             var variants: [([String: Data], ChangeParseError.Code)] = []
