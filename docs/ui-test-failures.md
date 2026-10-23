@@ -2519,3 +2519,11 @@ N118照合:checkPermission/deliveryAllowed/拒否警告で索引を検索し、�
 source250f4af＋追加実境界回帰、Linux Python3.12/NumPy2.3.5。2件/3assert失敗（0.064秒）。collectの実log呼出しを6MiBの架空stdout子processへ接続するとcaptured=6291456文字で4MiB+1の上限を超過。ASCII比較は0.05直前Float32と丸め後Float32の両方向で本番selectorの判断が異なるのにcompare_rejectが例外を出さない。実Simulator/実OCR/実学校通信なし。対処選択前の観測記録。
 
 N119照合:notification_service_trace/4MiB/reject/Float32で索引を検索し、N58時点の診断limited記録と現observe_commandの匿名spool分岐、旧aa6450f/currentのcollect/compare_rejectを比較。N58は大容量ログの証拠欠落で、収集前メモリ上限は未検証だった。候補82は既存のmax_bytes=4MiBを通知logにも渡すだけとし、既存fake OS境界は匿名fileへの書込みを再現する既存spooled_responsesへ接続。期限/失敗/形式不正/limitedの分類と機密出力拒否を保持する。候補97はselectorと同じPython floatへ変換後に0.05を照合し、独立の数値差/shape/finite/unit-domainとbyte照合は維持する。両方とも研究・診断toolであり、アプリ認識品質や実Vision取消の成功を主張しない。候補と根拠をpush後に関連全検査を再実行する。
+
+## N120 完全被覆の密なOCR画素が照合の処理上限に達する（2026-10-23）
+
+source1f69939＋追加RecoveryBuilder Raster回帰、Linux Swift6.1.2。1000x1000/2000文字領域/96000黒画素、query全体、順序正逆×未取得1画素の有無4条件すべてPDFParseError.limit（1件/4unexpected、11.449秒）。同期取消対照は保持。完全被覆の条件もlimitとなることを観測した。Builder/Vision/実機の測定ではない。対処選択前に記録する。
+
+N120照合:hasUncoveredInk/RasterCoverage/32_000_000で索引を検索し、該当する密な文字面積の以前の試行はない。aa6450f/currentのmask優先・pixel-center・±1比較と既存rule mask/取消/上限回帰を比較。候補は最初の未maskインクでだけquery範囲の文字被覆maskを有界構築し、各画素の全box探索を置換する。全てruleで覆われた場合は文字maskも作らず、既存mask優先を保つ。構築とscanは同じ32Mと128workごとのcheckを共有し、pixel-center/±1/union/順序を変えない。
+
+既存上限ケース「2000個の領域外box＋全queryの1box」は、実際には完全被覆を二乗探索で落としていたため、新実装では安全な成功を確認する対照へ変更する。上限自体は同じ2000個のquery全体boxでmask構築32Mを超える独立対照を保持し、単なる上限引上げで通さない。元の未取得画素/罫線変更/取消/小数境界も維持する。候補と根拠をpush後に関連Raster回帰を再実行する。

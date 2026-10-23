@@ -235,6 +235,27 @@ struct RecoveryRasterGrid: Sendable {
             try consume(); return a.x1 == b.x1 && a.y1 == b.y1 && a.x2 == b.x2 && a.y2 == b.y2
         }
         let mask = try sameRules ? preparedRuleMask : preparingRules(rules,check:check).preparedRuleMask
+        let rowWidth = right - left
+        func makeTextMask() throws -> [UInt8] {
+            var covered = [UInt8](repeating: 0, count: rowWidth * (bottom - top))
+            for item in text {
+                try consume()
+                // The original predicate compares pixel centers with a one-pixel
+                // margin. Clamp in Double before converting out-of-page bounds.
+                let minX = item.x - 1.5, maxX = item.x + item.width + 0.5
+                let minY = item.y - 1.5, maxY = item.y + item.height + 0.5
+                if [minX, maxX, minY, maxY].contains(where: \.isNaN) { continue }
+                let x0 = max(Double(left), ceil(minX)), x1 = min(Double(right - 1), floor(maxX))
+                let y0 = max(Double(top), ceil(minY)), y1 = min(Double(bottom - 1), floor(maxY))
+                guard x0 <= x1, y0 <= y1 else { continue }
+                for y in Int(y0)...Int(y1) { for x in Int(x0)...Int(x1) {
+                    try consume()
+                    covered[(y - top) * rowWidth + x - left] = 1
+                } }
+            }
+            return covered
+        }
+        var textMask: [UInt8]?
         for y in top..<bottom {
             for x in left..<right {
                 try consume()
@@ -242,7 +263,10 @@ struct RecoveryRasterGrid: Sendable {
                 let px = Double(x)+0.5, py = Double(y)+0.5
                 guard box.x <= px, px <= box.x+box.width, box.y <= py, py <= box.y+box.height else { continue }
                 if mask?[y*width+x] == 1 { continue }
-                if try text.contains(where: { try consume(); return $0.x-1 <= px && px <= $0.x+$0.width+1 && $0.y-1 <= py && py <= $0.y+$0.height+1 }) { continue }
+                if !text.isEmpty {
+                    if textMask == nil { textMask = try makeTextMask() }
+                    if textMask![(y - top) * rowWidth + x - left] == 1 { continue }
+                }
                 return true
             }
         }

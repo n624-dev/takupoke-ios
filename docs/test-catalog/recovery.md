@@ -1,7 +1,7 @@
 # PDF復旧・OCR・構造・Validator・端末内Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`336ce403456580942ee2e0d308be8836e40a6dc17a69d827a9f42fe7b45dae94`
+`6f804257969970eb793c385aef8d581b9750ccd5b19bb4527145891cea5889d6`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -95,7 +95,8 @@ bash tools/test-parsing.sh
 - `testRasterCoverageMaskFirstKeepsUnionAndFractionalPixelSemantics`
 - `testRasterCoveragePreparedMaskCannotHideInkWhenRulesChange`
 - `testRasterCoverageRulePixelsDoNotSpendTheTextComparisonBudget`
-- `testRasterCoverageMaskFirstStillBoundsUnmaskedTextSearch`
+- `testRasterCoverageDenseRecognizedPageKeepsAllInkAndRejectsOneUnknownPixel`
+- `testRasterCoverageStillBoundsTextMaskConstruction`
 - `testRasterCoverageMaskFirstChecksCancellationOnCertifiedRailPixels`
 
 ## [tests/RecoveryBuilderTests+Ruled.swift](../../tests/RecoveryBuilderTests+Ruled.swift)

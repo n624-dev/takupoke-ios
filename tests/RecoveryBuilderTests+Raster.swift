@@ -207,15 +207,44 @@ extension PDFParsingTests {
             try unknown.hasUncoveredInk(
                 RecoveryBox(x: 0, y: 0, width: 640, height: 128), text: boxes, rules: rules, check: {}))
     }
-    func testRasterCoverageMaskFirstStillBoundsUnmaskedTextSearch() {
+    func testRasterCoverageDenseRecognizedPageKeepsAllInkAndRejectsOneUnknownPixel() throws {
+        let size = 1000
+        var pixels = [UInt8](repeating: 255, count: size * size)
+        var boxes = [RecoveryBox]()
+        for row in 0..<50 { for column in 0..<40 {
+            let x = 5 + column * 24, y = 5 + row * 18
+            boxes.append(RecoveryBox(x: Double(x), y: Double(y), width: 6, height: 8))
+            for py in y..<(y + 8) { for px in x..<(x + 6) { pixels[py * size + px] = 0 } }
+        } }
+        let query = RecoveryBox(x: 0, y: 0, width: 1000, height: 1000)
+        for unknown in [false, true] {
+            var input = pixels
+            if unknown { input[size * size - 1] = 0 }
+            let raster = RecoveryRasterGrid(width: size, height: size, grayscale: input)
+            for text in [boxes, Array(boxes.reversed())] {
+                XCTAssertEqual(try raster.hasUncoveredInk(query, text: text, rules: [], check: {}), unknown)
+            }
+        }
+        let raster = RecoveryRasterGrid(width: size, height: size, grayscale: pixels)
+        var checks = 0
+        XCTAssertThrowsError(try raster.hasUncoveredInk(query, text: boxes, rules: [], check: {
+            checks += 1
+            if checks == 3 { throw PDFParseError(code: .cancelled) }
+        })) { XCTAssertEqual(($0 as? PDFParseError)?.code, .cancelled) }
+        XCTAssertEqual(checks, 3)
+    }
+
+    func testRasterCoverageStillBoundsTextMaskConstruction() throws {
         let size = 128
         let box = RecoveryBox(x: 0, y: 0, width: 128, height: 128)
         let raster = RecoveryRasterGrid(
             width: size, height: size, grayscale: [UInt8](repeating: 0, count: size * size))
         let outside = RecoveryBox(x: 200, y: 200, width: 10, height: 10)
+        XCTAssertFalse(try raster.hasUncoveredInk(
+            box, text: Array(repeating: outside, count: 2000) + [box], rules: [], check: {}))
         XCTAssertThrowsError(
             try raster.hasUncoveredInk(
-                box, text: Array(repeating: outside, count: 2000) + [box], rules: [], check: {})
+                box, text: Array(repeating: box, count: 2000), rules: [], check: {})
         ) {
             XCTAssertEqual(($0 as? PDFParseError)?.code, .limit)
         }
