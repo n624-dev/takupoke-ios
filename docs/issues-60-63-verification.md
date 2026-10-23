@@ -156,3 +156,15 @@ N95の詳細に記した過去記録と旧／現コードを照合し、通常UI
 N97の観測を先に記録し、U11/N85/N88/N94、旧1b368f5／9cd340e差分と現Navigation/Inputを照合。26d6e86はviewport観測を既知IDの列挙より前に移し、外側は同Listの論理Switchとして検索、内側の一回接触は元のaccessibility identityを維持する候補。旧global Anyの入れ子index接触・元の入力取消しとは同条件に戻さず、16探索・受動条件・全包含・hittable・一意性・実入力／ACK／保存proof・各期限を維持する。既存4実ケースがこの未取得を検出するため模倣ケースは増やさない。push後、project17件（0.319秒）・実Swift幾何29件（0.103秒）・Swift構文2ファイル・catalog438のwrite/check --base00bdafcが成功。N96候補のmanifest28件（4.372秒）と実幾何7件（0.002秒）も成功済み。
 
 新規GPT-6.1 Sol／HighはN96/N97のコードのみのimmutable差分（SHA256 e858de6959e8b8df55df78c79bcea8feace36c25069f1409200c3b353839fb0d）を確認しblockingなし。次のmain開始一回だけに使用する。既に公開不可の435の残りは取消しせず、通常27Bの60分上限18:26:56と新mainの開始からの準備／実行時間に合わせ18:27 UTCにまとめて確認する。製品はこの差分で変更せず、Strict・全15公開gate・追加issueは公開後という利用者の順序を維持する。
+
+## 正式436の全事前検証
+
+2026-10-23 20:06 UTCの予定一括確認で、[run39999724291／attempt1](https://github.com/n624-dev/takupoke-ios/actions/runs/39999724291)、source `c8156402150920086e4c4c6130eec4537e8466e8` の全14事前検証が成功した。Distribution・Native・iOS26/27各A/B・訂正4種類ずつが同じsource／run／attemptで成功し、取消し・以前の成功の合算はない。配布job120626275482は19:57:34開始、20:22:18にsuccess終端し、全15必須条件と公開ゲートが同じsource／run／attemptで成功した。20:31の予定一括確認で全job終端・保存artifact0を確認した。
+
+変更対象の成功ログだけを追加取得した。通常27Aは元16件1921.494秒と実通知1件83.324秒、26Aは16件1436.046秒と通知1件119.009秒で、それぞれ厳密な17完了照合が成功。N96の警告から両資料の詳細へ進む実ケースは27が63.169秒、26が53.793秒で成功した。N97の明示選択訂正は27が1290.871秒、26が1274.409秒で、実選択・入力／ACK・3項目保持・第4項目拒否・採用と保存後再起動proofを通して元ケースの厳密な完了照合に成功した。ほかの訂正6ジョブも元の厳密完了を必須にした同じworkflowでsuccess。未変更の成功ログを件数の再集計だけのために反復取得せず、ジョブ結果で確認した。
+
+N98の旧435は8事前成功・2失敗・訂正26の4件依存skipで全終端、公開skip。新436の26Bは元のHomeから時間割へのtab操作を含む同じ全体検証でsuccessとなったが、旧失敗のnative入力traceはなく下位原因を解明したとは扱わない。N95の初回起動・N93のtouch取消しも記録を保持し、今回の事前検証の成功から恒常的な解消を断定しない。Strict・ユーザーが取り下げたFile Provider処理中の製品経路・全15公開条件は維持する。AltStoreの実機更新は未確認。
+
+[0.1.436（436.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.436-build.436.1)を通常Release／Latestとして公開した。配布jobの実Picker3件342.333秒・厳密な3完了、Host Native627件（予定skip1・104.098秒）、iPhone Release build413.1秒と公開直前の同source gateが成功。4添付を認証なしで取得し、APIのsize／digest、全SHA-256、IPA内部の版／build／source、固定Sourceの実bytes一致を照合した。IPAは17,146,213 bytes、SHA256 `5fa2ffe7e3f38c67b4f0105efda1d6bc0b2a366c72b93ce2179fcf0a467a751c`。Sourceは2,915 bytes、SHA256 `11fab0fe7d464f60bf32ce8da0fa053188585b3d6043dda2b64d1527b4ccfa02`。所有する取得用一時ディレクトリは回収した。物理iPhoneのAltStore更新を確認済みとはしない。
+
+最初の公開完了後20:31 UTCに両OSの追加issueを一括取得し、iOS65〜103の39件とWindows20〜44の25件を確認した。以降はこの保存した本文を使って相互確認し、問い合わせを反復しない。APIサーバーは利用者の指示により完了扱いで、後続はクライアントと各OSの追加issueに限定する。

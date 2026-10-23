@@ -20,11 +20,12 @@
 
 ## 最新の確認状況
 
-- 前回公開の確認：[0.1.419（419.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.419-build.419.1)を通常Releaseとして公開し、固定AltStore Sourceを更新しました。
-  非表示の留学生向け変更が通常・試験／返却授業を消す問題を修正し、一覧リンクを標準Menuへ統一しました。
-  [同一ソースのCI](https://github.com/n624-dev/takupoke-ios/actions/runs/39397264222)全15必須チェック・全job終端・保存artifact0、Native591件（予定skip1）・Python263件（予定skip21）の失敗0を確認しました。
-  両OS通常UI4組・訂正8ケース・実Picker・iPhoneビルドと、匿名4添付／IPA内部／固定Sourceの照合が成功。Strict本文・全入口／経路と追加モデルは不変です。
-  独立架空入力・CI・公開物照合と、物理iPhoneの更新・修正再確認・学校OCR品質は区別します。後者は未確認です。[詳細](verification.md)。
+- 最新公開の確認：[0.1.436（436.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.436-build.436.1)を通常Releaseとして公開し、固定AltStore Sourceを更新しました。
+  試験・返却の結合変更の専用時刻、通常授業の休憩中判定、週の資料状態の案内、保存期限管理情報の復旧とOCR入力の消去領域を修正しました。
+  [同一ソースのCI](https://github.com/n624-dev/takupoke-ios/actions/runs/39999724291)の全15必須条件・全job終端・保存artifact0を確認しました。配布jobでもNative627件（予定skip1・失敗0）、実Picker3件とiPhone Releaseビルドが成功しました。
+  両OS通常UI4組・訂正8ケースと、匿名4添付／IPA内部の版・ソース／固定Sourceの照合が成功。Strictと追加モデルは維持しています。
+  物理iPhoneの更新・修正再確認・学校OCR品質は未確認です。[詳細](issues-60-63-verification.md)。
+- 後続の追加issueはiOSとWindowsで相互確認して扱います。APIサーバー側は利用者から完了済みと指示されており、完了したサーバー作業は再開しません。iOS側の新しい状態取得契約の利用は、クライアントの追加issueとして区別します。
 - 実資料と実機：394.1で通常・試験・返却の解析が戻った利用者報告があります。396.1の返却見出し混入は継続しました。
   今回添付された返却PDFの位置関係をローカルで調べ、クラス欄が下段見出し帯まで結合する混入経路に対処しました。
   3添付のローカル作業用PDFは確認後に削除し、本文・画像・座標ファイルは作成していません。

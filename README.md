@@ -18,7 +18,7 @@ PDF端末内AI復旧は開発中です。前処理・Validator・開始・元PDF
 
 設定の「AI・OCRを使用する」は初期OFFです。OFF時は従来の厳格な解析のみを使用し、ON時も厳格な解析に失敗したPDFだけ復旧します。時間割変更XLSXの曜日不一致は、日付からの補正を明示承認できます。曜日に問題がある行は、元の記載を確認して除外できます。同じ曜日だけが残った連続行は、200〜300行目などの範囲をまとめて選べます。補正・除外はファイル内容が更新されるまで同じ原本に適用します。詳しくは[XLSX仕様](docs/xlsx-specification.md)を参照してください。
 
-最新版は[Latest Release](https://github.com/n624-dev/takupoke-ios/releases/latest)と固定AltStore Sourceから確認できます。今回の修正は、連続しない変更時限、試験・返却の時刻、備考のある休講・補講、不正年度と鮮度警告、名称データの復旧、通知・ファイル監視を対象とします。返却PDFは元の先頭列と専用時刻の対応を保存し、日付順の並べ替えで時刻を変えません。[修正と検証](docs/issue-59-verification.md)、[追加Issueの検証](docs/issue-47-58-verification.md)を記録しています。物理iPhoneでの確認は別途必要です。
+最新版は[0.1.436（436.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.436-build.436.1)です。[Latest Release](https://github.com/n624-dev/takupoke-ios/releases/latest)と固定AltStore Sourceから更新できます。試験・返却の結合授業全体を変更した場合の専用時刻、結合した通常授業の休憩中判定、週の資料状態の案内、保存期限の管理情報が破損した場合の復旧を修正しました。OCR確認入力の消去ボタンは、同じ44ptの範囲を押せるよう明示しています。同じソース・実行・試行の全15必須条件と、匿名取得した4添付・IPA内部の版とソース・固定Sourceの一致を確認しました。[修正と検証](docs/issues-60-63-verification.md)を参照してください。AltStoreの物理iPhoneでの更新操作は未確認です。
 
 以前の[0.1.419（419.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.419-build.419.1)を通常Releaseとして公開した際には、固定AltStore Sourceを更新しました。
 留学生向けの休講・変更を非表示にした際、通常授業や試験／返却授業まで空欄になる問題を修正しました。ホーム・時間割・共通時刻・振替土曜へ同じ表示条件を適用し、元資料の詳細と表示対象の休講・補講の優先を保持します。再解析は不要です。
@@ -38,7 +38,7 @@ AltStore ClassicのSource／更新一覧を更新するとアップデートで�
 診断コピー、AltStore Source経由の更新方法と全授業項目の網羅的な照合は引き続き未確認です。
 実装範囲は[PDF仕様](docs/pdf-specification.md)、実測・旧実行の失敗・未確認事項は[検証記録](docs/verification.md)に記載しています。
 
-先行確認用の[開発406.1](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-38978574667-1-d40ba83544a5)も保持しています。現在は同じOCR訂正機能を、固定Sourceの正式419.1から更新できます。
+先行確認用の[開発406.1](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-38978574667-1-d40ba83544a5)も保持しています。現在は同じOCR訂正機能を、固定Sourceの最新正式Releaseから更新できます。
 
 以前の[個別開発確認版IPA](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-37811661856-1-22c8ee2b5fa5)も引き続き公開しています。ソース`22c8ee2`の既存公開版で、現在のLatest・固定AltStore Sourceとは別です。
 
