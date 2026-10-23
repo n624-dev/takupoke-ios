@@ -2349,3 +2349,24 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - 製品の既存borderless ButtonはImageラベルに44ptのframeだけを持ち、明示したcontentShapeがなかった。候補はその同じラベルの全44ptをRectangleで明示する一行だけ。見た目、Buttonの種類、元action、canClear／draft一致／reviewなし等のguard、値・ACK・focus操作は維持する。hit領域が下位原因だったとの断定はせず、QA生成コピーだけでguard拒否を2つのBoolのhashとして記録し、実clear未発火と区別できるようにする。guardはそのまま残し、値や入力を注入しない。
 - N91は最初のroomのclearを探す1回目の実passive Cellドラッグ後、全アプリAny descendantsの一致ID配列照会が約45秒停止した。有限なviewport・受動行の実frameと16探索を維持し、既知のclearだけは同じ復旧Listの実Buttonとして検索する候補。editorのnative型は固定せず他の経路は維持する。重複IDは新たに拒否する。N83と同じく、既にvisibleが確認したclearの直後の重複存在待機を除き、現在の実frame／enabled／hittableを一度確認して一回tapする。45秒の空文字待機・ACK取消し・実keyboard・全文入力・完了・保存は変更しない。AX下位原因は未確定。
 - 新しい製品hit領域を扱うため、個別成功だけで判断せず、既存4ケースを各26／27の独立jobで比較する。診断workflowにallを追加して元4件×両OSへ展開し、各caseの元45／35分と厳密な完了照合を維持する。公開workflow・全15必須gateは変更しない。候補と根拠を隔離ブランチへpushしてからローカル検査し、新規GPT-6.1 Sol／Highのimmutable差分レビュー後だけActionsを開始する。
+
+
+## N93 消去領域比較の原本変更訂正26が失敗
+
+2026-10-23 15:30 UTCの予定まとめ照会で、sourced2b1c40dc9abac4dcb5a1670b6613f1a4501de3f、run39975811589／attempt1、job120489977754、iOS26／SDK26.6、testChangedOriginalCannotSubmitOrReplaceLastGoodの実操作step（15:09:24〜15:25:12 UTC）がfailure、job全体も15:25:23にfailure終端と確認した。完了ログは未読で、具体的な操作・失敗箇所・Runtime・原因は未確定として対処前に記録する。同じ比較の単項目26はsuccess、他は継続中で取消ししない。新完了ログと過去詳細／当時と現在のコードを照合し、根拠と候補をpushする前に再試行しない。
+
+## N94 消去領域比較の三項目訂正26の実操作stepが失敗
+
+2026-10-23 15:30 UTCの予定まとめ照会で、sourced2b1c40dc9abac4dcb5a1670b6613f1a4501de3f、run39975811589／attempt1、job120489977827、iOS26／SDK26.6、testThreeFieldsRequireEachAcknowledgementAndFourRefusesの実操作step（15:09:27〜15:30:10 UTC）がfailure、jobはComplete job進行中と確認した。完了ログは未読で、具体的な操作・失敗箇所・Runtime・原因は未確定として対処前に記録する。同じ比較の単項目26はsuccess、他は継続中で取消ししない。新完了ログと過去詳細／当時と現在のコードを照合し、根拠と候補をpushする前に再試行しない。
+
+
+### N93／N94の新しい完了ログの観測
+
+両件の実Runtimeは26.5。N93は最初のclearと全文入力・完了後の全文一致を通過した。ACKの外側実枠(16,646.33,361,52.33)／内側(300,658.67,63,28)・enabled/hittable・包含を確認して一回0.1秒pressしたが、45秒でnative value1にならず、Input.swift:49、227.365秒で失敗。実traceは(331.67,672.67)のUISwitch内部へbegan後、約0.146秒でcancelled。診断は入力「架空変更前確認」／ack=false、clearとtextのBindingはあるがackはない。消去の元guard拒否とも、N89の完了Button消失とも異なる。原因と対処はまだ選んでいない。
+
+N94は最初のroomの実clear・全文入力・完了後の全文一致と、ACKの枠／包含／hittable確認まで通過した。Input.swift:35の一回の内側Switch相対pressを合成する際、無名の「0」Switchを祖先Any一致→配列index0→Switch子配列index0として再解決し、複数のsnapshot query timeoutで止まった。afterログと実ACKへのtouchはなく、45秒state待機にも未到達（326.136秒）。N91のclear探索とは違い、既に取得した内側native Switchの接触前再解決である。同じrunの単項目26は732.497秒・失敗0で元ケース完了照合を通過した。この個別成功を全件の解消とはしない。
+
+検索語ack／cancelled／allElementsBoundByAccessibilityElement／Input.swift:35でU19、U64、U71、N66、N87、N88の詳細とf6e13a6／1b368f5／現行Inputを読んだ。従来は子Switch firstMatchから、現行は配列indexで得た子要素から同じ実中心へ0.1秒接触している。取得後もqueryがindexと親子の経路を再評価することが今回のログで判明した。接触方式自体とN93のcancelled原因は別に評価する。
+
+- N94の候補は既知ACKの検索を同じ復旧ListのSwitchへ限定し、外側と内側の取得にXCTestのallElementsBoundByAccessibilityElementを使う。index位置で祖先を再評価する経路から、実際に観測したaccessibility要素のidentityへ結び付ける。内側の一意性・finite frame・外側とviewportへの完全包含、enabled/hittable、同じ実中心・一回0.1秒接触・native value1の45秒・全文／保存／再起動を維持する。前状態0も接触前のguardへ追加する。追加の診断用exists/frameと二重hittable照会は接触直前から除き、元の実枠・値・enabled/hittableを一回ずつ観測して出力する。
+- N93のcancelled原因をidentity取得だけで修復できるとは主張しない。N87/N66の同症状を保持し、接触時間／点を変更せず、次はN94の明確な再解決停止を避ける候補の同じhelperと、残る4ケース×両OSを正式全体で評価する。N93の個別成功を得るためだけの同条件再試行はしない。製品は既に比較中の44pt領域の一行から追加変更せず、Strict・元case・全15必須公開gateを維持する。候補と根拠を隔離ブランチへpushしてから局所検査し、予約済みの未使用main専用レビューに追加差分を提示してから開始する。

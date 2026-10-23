@@ -314,7 +314,7 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('XCTAssertEqual(fieldIDs.count,1)',checks)
         self.assertIn('XCTAssertEqual(ids.count,3)',checks)
         acknowledge=checks.split('func acknowledge(')[1].split('func assertSubmitEnabled')[0]
-        self.assertIn('let controls=row.switches.allElementsBoundByIndex',acknowledge)
+        self.assertIn('let controls=row.switches.allElementsBoundByAccessibilityElement',acknowledge)
         self.assertIn('guard controls.count==1',acknowledge)
         self.assertNotIn('.tap()',acknowledge)
         self.assertEqual(acknowledge.count('press(forDuration:0.1)'),1)

@@ -8,7 +8,7 @@ extension ManualAssistanceChecks {
     func ack(_ id:String)->XCUIElement { app.switches["manual-ack-"+id].firstMatch }
     func acknowledge(_ id:String) {
         let row=visible(ack(id),knownID:"manual-ack-"+id)
-        let controls=row.switches.allElementsBoundByIndex
+        let controls=row.switches.allElementsBoundByAccessibilityElement
         guard controls.count==1 else {
             XCTFail("Acknowledgement must have one current native control");return
         }
@@ -25,9 +25,14 @@ extension ManualAssistanceChecks {
             print("TAKUPOKE-MANUAL-ACK invalid-hit-region;outer=\(outerFrame);inner=\(innerFrame);viewport=\(viewport)")
             XCTFail(app.debugDescription);return
         }
-        let diagnostic=app.staticTexts["manual-qa-diagnostic"].firstMatch
-        print("TAKUPOKE-MANUAL-ACK before;id=\(id);outer=\(outerFrame);inner=\(innerFrame);hittable=\(actual.isHittable);point=\(point);app=\(appFrame);viewport=\(viewport);keyboard=\(keyboardFrame.map { String(describing:$0) } ?? "absent");diagnostic=\(diagnostic.exists ? String(describing:diagnostic.frame):"absent");value=\(row.value as? String ?? "unknown")")
-        XCTAssertTrue(actual.isEnabled && actual.isHittable,app.debugDescription)
+        let enabled=actual.isEnabled,hittable=actual.isHittable
+        let priorValue=row.value as? String
+        print("TAKUPOKE-MANUAL-ACK before;id=\(id);outer=\(outerFrame);inner=\(innerFrame);enabled=\(enabled);hittable=\(hittable);point=\(point);app=\(appFrame);viewport=\(viewport);keyboard=\(keyboardFrame.map { String(describing:$0) } ?? "absent");value=\(priorValue ?? "unknown")")
+        guard enabled,hittable,priorValue == "0" else {
+            XCTFail("The unique native acknowledgement must be operable and unchecked");return
+        }
+        // Bind the native element by accessibility identity. Index-bound child
+        // queries re-traversed recycled ancestors during event synthesis (N94).
         // U71: one brief contact at the same verified center, relative to the
         // actual inner widget rather than a saved application-screen position.
         actual.coordinate(withNormalizedOffset:CGVector(

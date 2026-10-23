@@ -127,3 +127,6 @@ main433/run39964623999／attempt1／source1d0e4f9は、14:35 UTCの予定照会�
 候補・失敗根拠を隔離ブランチへpush後、Debian13／Swift6.1.2でproject17件（0.438秒）、manifest28件（5.124秒）、runner5件（3.438秒）、実入力／背景lifecycle3件（3.549秒）、geometry2メソッド内の実Swift29件が成功。Swift構文解析、catalog438のwrite/check --base1d0e4f9も成功した。小さいhit領域変更には既存4ケースの実clear・原本変更拒否・ACK・保存／再起動が必要で、ローカルの成功を実UIKit入力の証明へ代用しない。
 
 新規GPT-6.1 Sol／Highは今回のimmutableコード差分138行（SHA256 f646bf1cf0397c3a14f18e9d2a77593df43055a9c99c0255bec5ae14fd2674e9）だけを確認し、指摘なし。この未使用レビューをmanual-input-native-probe case=allの単一dispatch一回だけに用いる。元4ケース×両OSを独立jobに展開し、各caseの45／35分・厳密な完了照合を維持する。全体の公開workflowや同source全15ゲートは変更していない。main用には別の新規レビューが必要である。
+
+
+2026-10-23 15:30 UTCの比較では、単項目26が732.497秒で元case完了、旧main433の通常26Bが15件完了でsuccess。比較の原本変更26は実clear／全文入力後のACK touchがcancelled、三項目26は同じ入力後のACK接触合成中の子Switch再解決で停止した（N93／N94）。他の実行は取消さず待つ。N94候補は既知ACKのList.Switch検索と外側／内側のaccessibility identityによる取得、接触前の重複診断照会除去と前状態0 guard。元の一回0.1秒接触、実中心、包含・hittable、45秒でUI1、全case／保存／再起動は保持する。N93の未発火原因は未確定で、修復済みとはしない。既存の同じ元4caseが今回の失敗を検出しており、新しい期待値や模倣テストは追加しない。

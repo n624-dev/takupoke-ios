@@ -34,10 +34,13 @@ extension ManualAssistanceChecks {
             // Resolve its known identifier again, without a cached native type.
             // A clear control has a known native Button role inside this List.
             // Avoid traversing unrelated sheets and editors for an offscreen Button.
+            let acknowledgement=inRecovery && targetID.hasPrefix("manual-ack-")
             let query=inRecovery && targetID.hasPrefix("manual-clear-")
                 ? list.buttons.matching(identifier:targetID)
+                : acknowledgement ? list.switches.matching(identifier:targetID)
                 : app.descendants(matching:.any).matching(identifier:targetID)
-            let matches=targetID.isEmpty ? []:query.allElementsBoundByIndex
+            let matches=targetID.isEmpty ? [] : acknowledgement
+                ? query.allElementsBoundByAccessibilityElement : query.allElementsBoundByIndex
             guard matches.count<=1 else {
                 XCTFail("Known manual control must be unique: "+targetID);return e
             }
