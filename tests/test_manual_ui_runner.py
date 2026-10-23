@@ -14,7 +14,7 @@ from ui_test_manifest import MANUAL_CASES
 
 
 class ManualRunnerTests(unittest.TestCase):
-    def run_runner(self, *, selected="", build_status=0, omit_result=False, ios=26):
+    def run_runner(self, *, selected="", build_status=0, omit_result=False, ios=26, record_all=False):
         with tempfile.TemporaryDirectory(prefix="takupoke-manual-runner-") as directory:
             root = Path(directory)
             for folder in ("tools", "bin", "scratch"):
@@ -72,7 +72,7 @@ elif args[:2] == ['simctl', 'create']: print('fictional-owned-simulator')
                            if call[0] == "xcodebuild" and call[-1] == "test-without-building")
                 self.assertLess(build, boots[0])
                 self.assertLess(boots[0], run)
-            return result, [call for call in recorded if call[0] == "xcodebuild"]
+            return result, recorded if record_all else [call for call in recorded if call[0] == "xcodebuild"]
 
     def test_whole_suite_uses_one_successful_owned_build(self):
         result, calls = self.run_runner()
@@ -94,7 +94,7 @@ elif args[:2] == ['simctl', 'create']: print('fictional-owned-simulator')
                 self.assertIn("Verified selected manual UI XCTest completion: " + name, result.stdout)
 
     def test_shipping_27_uses_exact_27_0_when_newer_minor_is_available(self):
-        result, calls = self.run_runner(ios=27)
+        result, calls = self.run_runner(ios=27, record_all=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         creates = [call for call in calls if call[:3] == ["xcrun", "simctl", "create"]]
         self.assertEqual(len(creates), 1)
