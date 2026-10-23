@@ -5,6 +5,8 @@ on:
     paths:
       - .github/workflows/ocr-code-english-screen.yml
       - tools/ocr-code-english-screen/**
+      - tools/ocr-full-document-transfer/code_tail.py
+      - tools/ocr-windows-transfer/**
       - tests/test_ocr_code_english_screen.py
 permissions:
   contents: read

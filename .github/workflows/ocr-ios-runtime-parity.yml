@@ -5,6 +5,8 @@ on:
     paths:
       - .github/workflows/ocr-ios-runtime-parity.yml
       - tools/ocr-ios-runtime-parity/**
+      - tools/ocr-windows-transfer/**
+      - tests/test_ocr_simulator_cancellation.py
       - tests/test_ocr_ios_runtime_parity.py
 permissions:
   contents: read

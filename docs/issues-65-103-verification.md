@@ -71,3 +71,5 @@ parallel_build/timed_command/SIGTERMの失敗索引を検索。正常/失敗/sta
 73/88の修正後はparallel4件/失敗0（1.069秒）、timed4件/失敗0（4.575秒）。正常/失敗/単回取消/終了済みleader・子孫/二重signalを確認。Windowsには同じPOSIX wrapperはなく、本変更をWindowsアプリの挙動改善とは扱わない。
 
 103は両研究compareの実owned-device try/finallyをASTから無変更で取り出し、Apple command/bootだけをfakeにした独立process検査を追加する。初回TERMをcreate応答の前とboot後に送信し、回収中の追加INTも制御する。モデル準備/実推論/実Simulatorは動かさない。実shared shutdown/deleteの呼出しと所有IDを確認する。
+
+103の修正後、両compare×create/bootの4条件は1件/失敗0（0.223秒）。create中の取消もUDIDを受け取ってから所有try/finallyをunwindし、boot後の取消とcleanup中の再中止もshutdown/deleteへ到達。実Simulator/モデル推論の合格へ一般化しない。102はN111で実pathsの9非選択を確認し、共有実装と入れ子が必要な消費側検査を選ぶようfilterを修正した。現在の隔離branchは実Actions対象branchではなく、発火させて確認したとは記載しない。

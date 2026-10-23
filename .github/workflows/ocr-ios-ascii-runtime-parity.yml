@@ -11,6 +11,7 @@ on:
       - tools/ocr-research-receipt.py
       - tests/test_ocr_research_receipt.py
       - tests/test_ocr_ios_ascii_runtime_parity.py
+      - tests/test_ocr_simulator_cancellation.py
 permissions:
   contents: read
 jobs:

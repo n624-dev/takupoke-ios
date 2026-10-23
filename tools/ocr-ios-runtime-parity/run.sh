@@ -10,6 +10,7 @@ python3 -m venv "$parity_dir/python"
 parity_python="$parity_dir/python/bin/python"
 "$parity_python" -m pip install --no-cache-dir --disable-pip-version-check -r tools/ocr-windows-transfer/requirements.txt
 "$parity_python" -B -m unittest discover -s tests -p test_ocr_ios_runtime_parity.py -v
+"$parity_python" -B -m unittest discover -s tests -p test_ocr_simulator_cancellation.py -v
 "$parity_python" -B tools/ocr-ios-runtime-parity/prepare.py "$parity_dir/assets"
 "$parity_python" -B tools/ocr-windows-transfer/prepare.py --output "$parity_dir/inputs"
 CLANG_MODULE_CACHE_PATH="$parity_dir/modules" swiftc -parse-as-library \

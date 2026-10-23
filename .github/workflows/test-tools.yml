@@ -5,8 +5,7 @@ on:
     branches: [codex/pdf-local-recovery]
     paths:
       - .github/workflows/**
-      - tools/*.py
-      - tools/*.sh
+      - tools/**
       - Takupoke/**
       - Package.swift
       - Package.resolved
