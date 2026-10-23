@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location('ios_cpu_parity_helpers', ROOT.parent/'ocr-ios-runtime-parity/compare.py')
 shared = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(shared)
+OwnedSimulatorCancellation = shared.OwnedSimulatorCancellation
 shared_infer = shared.shared_infer
 compare_probabilities = shared.compare_probabilities
 verify_native_tensors = shared.verify_native_tensors
@@ -122,9 +123,12 @@ def main():
         raise ValueError('Required iOS Runtime is unavailable; never substitute another OS')
     runtime = max(available, key=lambda r: tuple(map(int, r['version'].split('.'))))
     device = next(d for d in simulation['devicetypes'] if d['name'] == 'iPhone 16')
+    cancel_scope = OwnedSimulatorCancellation()
     owned = None; process = None
     try:
+        cancel_scope.check()
         owned = command('xcrun', 'simctl', 'create', 'Takupoke owned OCR CPU parity', device['identifier'], runtime['identifier'])
+        cancel_scope.created()
         boot_owned_simulator(owned, Path(command('xcode-select', '-p')))
         transformed = command('xcrun', 'simctl', 'spawn', owned, str(args.transform_runner), str(native_pixels))
         identity_line, separator, tensor_lines = transformed.partition('\n')
@@ -226,17 +230,23 @@ def main():
         (args.study / 'runtime-receipt.json').write_text(json.dumps(receipt, sort_keys=True)+'\n')
         print('ORT_IOS_RECEIPT ' + json.dumps(receipt, sort_keys=True), flush=True)
     finally:
-        if process and process.poll() is None:
-            process.terminate()
+        cancel_scope.begin_cleanup()
+        try:
+            if process and process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill(); process.wait()
+            stderr = args.study / 'native-stderr.txt'
+            if stderr.exists() and stderr.stat().st_size:
+                print('ORT_IOS_STDERR ' + stderr.read_text(errors='replace')[-10000:], flush=True)
+        finally:
             try:
-                process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                process.kill(); process.wait()
-        stderr = args.study / 'native-stderr.txt'
-        if stderr.exists() and stderr.stat().st_size:
-            print('ORT_IOS_STDERR ' + stderr.read_text(errors='replace')[-10000:], flush=True)
-        if owned:
-            remove_owned_simulator(owned)
+                if owned:
+                    remove_owned_simulator(owned)
+            finally:
+                cancel_scope.close()
 
 
 if __name__ == '__main__':

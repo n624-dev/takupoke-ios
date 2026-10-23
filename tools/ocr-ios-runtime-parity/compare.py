@@ -6,6 +6,7 @@ import importlib.util
 import json
 from pathlib import Path
 import queue
+import signal
 import subprocess
 import threading
 import time
@@ -84,6 +85,39 @@ def command(*args, timeout=120, allow_nonzero=False):
     print('ORT_IOS_STAGE ' + json.dumps(dict(command=label, state='success',
           seconds=time.monotonic()-started)), flush=True)
     return value
+
+
+class OwnedSimulatorCancellation:
+    """Unwind TERM, retaining ownership through create and all cleanup steps."""
+    def __init__(self):
+        self.previous = {}
+        self.signum = None
+        self.creating = True
+        self.cleaning = False
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            self.previous[sig] = signal.signal(sig, self.interrupted)
+
+    def interrupted(self, signum, _frame):
+        if self.signum is None:
+            self.signum = signum
+        if not self.creating and not self.cleaning:
+            self.check()
+
+    def check(self):
+        if self.signum is not None:
+            raise SystemExit(128 + self.signum)
+
+    def created(self):
+        self.creating = False
+        self.check()
+
+    def begin_cleanup(self):
+        self.cleaning = True
+
+    def close(self):
+        for sig, handler in self.previous.items():
+            signal.signal(sig, handler)
+        self.check()
 
 
 def boot_owned_simulator(identity, developer):
@@ -182,9 +216,12 @@ def main():
         raise ValueError('Required iOS Runtime is unavailable; never substitute another OS')
     runtime = max(available, key=lambda r: tuple(map(int, r['version'].split('.'))))
     device = next(d for d in simulation['devicetypes'] if d['name'] == 'iPhone 16')
+    cancel_scope = OwnedSimulatorCancellation()
     owned = None; process = None
     try:
+        cancel_scope.check()
         owned = command('xcrun', 'simctl', 'create', 'Takupoke owned OCR CPU parity', device['identifier'], runtime['identifier'])
+        cancel_scope.created()
         boot_owned_simulator(owned, Path(command('xcode-select', '-p')))
         transformed = command('xcrun', 'simctl', 'spawn', owned, str(args.transform_runner), str(native_pixels))
         identity_line, separator, tensor_lines = transformed.partition('\n')
@@ -263,17 +300,23 @@ def main():
         (args.study / 'runtime-receipt.json').write_text(json.dumps(receipt, sort_keys=True)+'\n')
         print('ORT_IOS_RECEIPT ' + json.dumps(receipt, sort_keys=True), flush=True)
     finally:
-        if process and process.poll() is None:
-            process.terminate()
+        cancel_scope.begin_cleanup()
+        try:
+            if process and process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill(); process.wait()
+            stderr = args.study / 'native-stderr.txt'
+            if stderr.exists() and stderr.stat().st_size:
+                print('ORT_IOS_STDERR ' + stderr.read_text(errors='replace')[-10000:], flush=True)
+        finally:
             try:
-                process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                process.kill(); process.wait()
-        stderr = args.study / 'native-stderr.txt'
-        if stderr.exists() and stderr.stat().st_size:
-            print('ORT_IOS_STDERR ' + stderr.read_text(errors='replace')[-10000:], flush=True)
-        if owned:
-            remove_owned_simulator(owned)
+                if owned:
+                    remove_owned_simulator(owned)
+            finally:
+                cancel_scope.close()
 
 
 if __name__ == '__main__':
