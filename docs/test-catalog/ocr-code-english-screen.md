@@ -1,13 +1,14 @@
 # 原教室コード・英語専用VisionとEnglishV1の独立比較
 
 対応関係・宣言名・実行方法のSHA-256：
-`77fe15f394f06fa4c761dc5ef43d84067201dd12b70b3fbf135afc0dd9be53cc`
+`e732d8158bb741c382af9a823f4dd376786cb2769249e90d03200ccc120ecc1e`
 
 環境：Linux契約検査／Mac SDK26 Native Vision（研究専用）
 
 ```bash
 bash tools/ocr-code-english-screen/run.sh
 python3 -B -m unittest discover -s tests -p test_ocr_code_english_screen.py -v
+python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 ```
 
 ## 変更時に確認するソース
@@ -31,3 +32,9 @@ python3 -B -m unittest discover -s tests -p test_ocr_code_english_screen.py -v
 - `test_geometry_remains_original_and_outside_is_not_clamped_or_hidden`
 - `test_input_inventory_rejects_expected_text_and_original_byte_drift`
 - `test_native_api_error_is_retained_and_cli_fails_after_complete_raw_report`
+
+## [tests/test_workflow_source_paths.py](../../tests/test_workflow_source_paths.py)
+
+- `test_new_nested_code_starts_development_catalog_checks`
+- `test_original_code_recognition_tracks_its_shared_implementations`
+- `test_v6_parity_tracks_shared_input_preparation_and_numerical_runtime`

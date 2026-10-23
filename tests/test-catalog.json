@@ -603,7 +603,8 @@
       "commands": [
         "python3 -B -m unittest discover -s tests -p test_test_catalog.py -v",
         "python3 -B -m unittest discover -s tests -p test_ui_test_manifest.py -v",
-        "python3 -B -m unittest discover -s tests -p test_application_ui_runner.py -v"
+        "python3 -B -m unittest discover -s tests -p test_application_ui_runner.py -v",
+        "python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py"
       ],
       "sources": [
         ".github/workflows/ios-release.yml",
@@ -615,7 +616,8 @@
       "checks": [
         "tests/test_test_catalog.py",
         "tests/test_ui_test_manifest.py",
-        "tests/test_application_ui_runner.py"
+        "tests/test_application_ui_runner.py",
+        "tests/test_workflow_source_paths.py"
       ]
     },
     {
@@ -652,7 +654,8 @@
       "commands": [
         "bash tools/ocr-ios-runtime-parity/run.sh",
         "python3 -B -m unittest discover -s tests -p test_ocr_ios_runtime_parity.py -v",
-        "python3 -B -m unittest discover -s tests -p test_ocr_simulator_cancellation.py"
+        "python3 -B -m unittest discover -s tests -p test_ocr_simulator_cancellation.py",
+        "python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py"
       ],
       "sources": [
         ".github/workflows/ocr-ios-runtime-parity.yml",
@@ -667,7 +670,8 @@
       ],
       "checks": [
         "tests/test_ocr_ios_runtime_parity.py",
-        "tests/test_ocr_simulator_cancellation.py"
+        "tests/test_ocr_simulator_cancellation.py",
+        "tests/test_workflow_source_paths.py"
       ]
     },
     {
@@ -720,7 +724,8 @@
       "commands": [
         "bash tools/ocr-ios-ascii-runtime-parity/run.sh",
         "python3 -B -m unittest discover -s tests -p 'test_ocr_ios*runtime_parity.py' -v",
-        "python3 -B -m unittest discover -s tests -p test_ocr_simulator_cancellation.py"
+        "python3 -B -m unittest discover -s tests -p test_ocr_simulator_cancellation.py",
+        "python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py"
       ],
       "sources": [
         ".github/workflows/ocr-ios-ascii-runtime-parity.yml",
@@ -733,7 +738,8 @@
       "checks": [
         "tests/test_ocr_ios_ascii_runtime_parity.py",
         "tests/test_ocr_ios_runtime_parity.py",
-        "tests/test_ocr_simulator_cancellation.py"
+        "tests/test_ocr_simulator_cancellation.py",
+        "tests/test_workflow_source_paths.py"
       ]
     },
     {
@@ -793,7 +799,8 @@
       "environment": "Linux契約検査／Mac SDK26 Native Vision（研究専用）",
       "commands": [
         "bash tools/ocr-code-english-screen/run.sh",
-        "python3 -B -m unittest discover -s tests -p test_ocr_code_english_screen.py -v"
+        "python3 -B -m unittest discover -s tests -p test_ocr_code_english_screen.py -v",
+        "python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py"
       ],
       "sources": [
         ".github/workflows/ocr-code-english-screen.yml",
@@ -806,7 +813,8 @@
         "tools/ocr-code-english-screen/run.sh"
       ],
       "checks": [
-        "tests/test_ocr_code_english_screen.py"
+        "tests/test_ocr_code_english_screen.py",
+        "tests/test_workflow_source_paths.py"
       ]
     }
   ]

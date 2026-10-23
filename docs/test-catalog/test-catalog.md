@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`13e3aac7b88fe004b7eb058e2a3d2995a62c91dd5d33d5183bad3b08bf5eead4`
+`f9e37b897a1e60bbde27a628a93afac88f7e8c53c307d41aa8688a69d0f22e89`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -9,6 +9,7 @@
 python3 -B -m unittest discover -s tests -p test_test_catalog.py -v
 python3 -B -m unittest discover -s tests -p test_ui_test_manifest.py -v
 python3 -B -m unittest discover -s tests -p test_application_ui_runner.py -v
+python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 ```
 
 ## 変更時に確認するソース
@@ -82,3 +83,9 @@ python3 -B -m unittest discover -s tests -p test_application_ui_runner.py -v
 - `test_failed_or_duplicate_first_batch_stops_without_retry_or_size_checks`
 - `test_failed_final_notification_batch_is_not_rescued_by_passed_scenarios`
 - `test_failed_fresh_notification_device_boot_stops_and_cleans_both_devices`
+
+## [tests/test_workflow_source_paths.py](../../tests/test_workflow_source_paths.py)
+
+- `test_new_nested_code_starts_development_catalog_checks`
+- `test_original_code_recognition_tracks_its_shared_implementations`
+- `test_v6_parity_tracks_shared_input_preparation_and_numerical_runtime`
