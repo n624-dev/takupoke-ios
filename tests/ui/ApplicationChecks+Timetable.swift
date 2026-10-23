@@ -14,9 +14,9 @@ extension ApplicationChecks {
             _ = visible(app.staticTexts[warning])
             XCTAssertTrue(app.staticTexts[warning].exists, app.debugDescription)
             let buttons=app.buttons.matching(identifier:title + "の資料を確認")
-            XCTAssertEqual(buttons.count,1,"The warning must expose one material detail button")
             let details=visible(buttons.element(boundBy:0))
-            guard details.waitForExistence(timeout:5),contained(details,in:bodyViewport()),
+            guard details.waitForExistence(timeout:5),buttons.count == 1,
+                  contained(details,in:bodyViewport()),
                   details.isEnabled,details.isHittable else {
                 XCTFail("The material detail button must be fully visible and operable: "+app.debugDescription)
                 return
