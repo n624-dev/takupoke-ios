@@ -8,7 +8,8 @@ struct PDFRecoveryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var phase
     @State private var selectedClass = ""
-    @State private var showingSource = false
+    private struct SourcePage: Identifiable { let id = UUID(); let url: URL }
+    @State private var sourcePage: SourcePage?
     @State private var zoomedField: String?
     @State private var manualValues = [String:String]()
     @State private var manualAcknowledged = [String:Bool]()
@@ -29,7 +30,7 @@ struct PDFRecoveryView: View {
                 } else if let review = coordinator.manualReview, let draft = coordinator.manualDraft {
                     Section("訂正箇所を先に確認") {
                         Text("この段階では採用しません。入力した本文と、比較できる前回の結果からの変更を確認してください。")
-                        Button("元のPDFを確認",systemImage:"doc.richtext") { showingSource = true }
+                        Button("元のPDFを確認",systemImage:"doc.richtext") { showSource() }
                     }
                     ForEach(draft.fields) { field in
                         Section(role(field.target.role)) {
@@ -68,7 +69,7 @@ struct PDFRecoveryView: View {
                 } else if let draft = coordinator.manualDraft {
                     Section("原本との照合") {
                         Text("確認が必要な\(draft.fields.count)項目を原本と照合してください。入力後に資料全体の結果を確認し、採用を選べます。")
-                        Button("元のPDFを確認",systemImage:"doc.richtext") { showingSource = true }
+                        Button("元のPDFを確認",systemImage:"doc.richtext") { showSource() }
                     }
                     ForEach(draft.fields) { field in
                         Section(role(field.target.role)) {
@@ -137,21 +138,21 @@ struct PDFRecoveryView: View {
                     }
                 }
             }
-            .sheet(isPresented:$showingSource) {
-                if let url = coordinator.preview?.source.url ?? coordinator.manualSourceURL { SavedPDFView(url:url,title:"元のPDF") }
+            .sheet(item:$sourcePage) { page in
+                SavedPDFView(url:page.url,title:"元のPDF")
             }
             .sheet(isPresented:Binding(get:{ zoomedField != nil },set:{ if !$0 { zoomedField = nil } })) {
                 if let id = zoomedField, let image = coordinator.manualContextImages[id] {
                     RecoveryManualImageView(context:image)
                 }
             }
-            .onChange(of:coordinator.preview?.id) { _,_ in selectedClass = coordinator.preview?.document.classes.first ?? "" }
+            .onChange(of:coordinator.preview?.id) { _,_ in sourcePage = nil; selectedClass = coordinator.preview?.document.classes.first ?? "" }
             .onChange(of:coordinator.manualDraft?.id) { _,_ in
                 manualValues = Dictionary(uniqueKeysWithValues:coordinator.manualDraft?.fields.map { ($0.id,coordinator.manualInitialValues[$0.id] ?? $0.originalText) } ?? [])
-                manualAcknowledged = [:]; zoomedField = nil; editingManualField = nil
+                manualAcknowledged = [:]; zoomedField = nil; editingManualField = nil; sourcePage = nil
             }
             .onChange(of:phase) { _,phase in
-                if phase != .active { coordinator.suspendForInactivity(); models.cancel() }
+                if phase != .active { sourcePage = nil; coordinator.suspendForInactivity(); models.cancel() }
                 else { coordinator.invalidateManualIfSourceChanged() }
             }
             .onReceive(ApplicationData.shared.materials.$state) { _ in Task { @MainActor in coordinator.invalidateManualIfSourceChanged() } }
@@ -160,6 +161,10 @@ struct PDFRecoveryView: View {
             .task { await models.refresh() }
         }
     }
+    private func showSource() {
+        guard let url = coordinator.preview?.source.url ?? coordinator.manualSourceURL else { return }
+        sourcePage = SourcePage(url:url)
+    }
     @ViewBuilder private func previewSections(_ preview:RecoveryPreview) -> some View {
         Section("採用する資料全体") {
             LabeledContent("年度",value:"\(preview.document.schoolYear)年度")
@@ -167,7 +172,7 @@ struct PDFRecoveryView: View {
             LabeledContent("対象",value:"\(preview.document.classes.count)クラス・\(preview.document.days.count)日分")
             Text("選択クラスだけでなく、以下の資料全体を採用します。元のPDFと読み取り結果を確認してください。")
                 .font(.caption).foregroundStyle(.secondary)
-            Button("元のPDFを確認",systemImage:"doc.richtext") { showingSource = true }
+            Button("元のPDFを確認",systemImage:"doc.richtext") { showSource() }
             if let corrections = preview.result.humanCorrections {
                 Text("原本を確認して入力した\(corrections.count)項目を含みます。")
                     .font(.caption).foregroundStyle(.secondary)

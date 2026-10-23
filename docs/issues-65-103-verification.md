@@ -75,3 +75,9 @@ parallel_build/timed_command/SIGTERMの失敗索引を検索。正常/失敗/sta
 103の修正後、両compare×create/bootの4条件は1件/失敗0（0.223秒）。create中の取消もUDIDを受け取ってから所有try/finallyをunwindし、boot後の取消とcleanup中の再中止もshutdown/deleteへ到達。実Simulator/モデル推論の合格へ一般化しない。102はN111で実pathsの9非選択を確認し、共有実装と入れ子が必要な消費側検査を選ぶようfilterを修正した。現在の隔離branchは実Actions対象branchではなく、発火させて確認したとは記載しない。
 
 c18c138の追加修正群はLinux Swift全564件/失敗0（76.632秒）。Python全275件/skip2は1件失敗（62.517秒）、N113として記録。差分は75/86のhelper挿入によるR032文書リンクの5行ずれだけで、固定番号/拒否条件に変更はない。generatorで文書を更新し、その整合性2件を再確認する。Apple環境の結果とは区別する。
+
+## 復旧元PDFのシート寿命（92、Win36との交差確認）
+
+UI編集前にPDFRecoveryView/元のPDF/RecoveryClosing/背景/sheetを失敗索引で検索し、N60のRecovery originalケースと旧c7994b7/現在のsheet内容・N60のviewport対処を読んだ。N60は画面外要素探索であり、今回のBoolが残る寿命問題とは別。候補は元PDFのURLをpresentation itemへ捕捉し、preview/manual draftの変更と非activeでitem自体を解除すること。常に実SavedPDFViewが閉じる操作を持ち、空の条件付きsheetを残さない。背景で保持する手動入力・ACKの既存policyは変更しない。既存RecoveryClosingの実UIに、元PDFを開いたままHomeへ移動→同じprocessへ復帰→sheet消失/前回正式結果保持を追加し、元の終了/モデル管理の検査も維持する。実Apple UI通過はまだ未確認。
+
+95の親取消回帰は修正後2件/失敗0（0.002秒）。CoordinatorのSwift構文parseはtoolchainを明示sourceして成功（最初は親shellのPATHにswiftcがなく未実行、製品のコンパイル失敗ではない）。Win32交差のiOS actual XLSX回帰は修正後1件/失敗0（0.037秒）、7表記と正逆range/全展開を確認。92のmanual UI生成17件/失敗0（0.275秒）、変更したView/実UIケースの構文parse成功。Apple型検査/実タップ/実Visionの停止時間は未確認。

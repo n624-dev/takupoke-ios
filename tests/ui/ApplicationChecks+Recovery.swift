@@ -270,6 +270,19 @@ extension ApplicationChecks {
     }
     func testRecoveryClosingKeepsFormalAndModelManagementIsAccessible() {
         openRecoveryPreview()
+        let original = recoveryVisible(app.buttons["元のPDFを確認"].firstMatch, searchEarlierRows: true)
+        XCTAssertTrue(original.isHittable, app.debugDescription)
+        original.tap()
+        screen("元のPDF")
+        XCUIDevice.shared.press(.home)
+        XCTAssertTrue(app.wait(for: .runningBackground, timeout: 30), app.debugDescription)
+        app.activate()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 30), app.debugDescription)
+        screen("時間割の復旧")
+        XCTAssertFalse(app.navigationBars["元のPDF"].exists, app.debugDescription)
+        let close = app.navigationBars["時間割の復旧"].buttons["閉じる"]
+        XCTAssertTrue(close.isHittable, "An invalidated PDF sheet must not cover the recovery close action: " + app.debugDescription)
+        XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].firstMatch.label, "前回の正式結果を保持")
         app.navigationBars["時間割の復旧"].buttons["閉じる"].tap()
         screen("通常時間割")
         XCTAssertEqual(app.staticTexts["fixture-recovery-formal"].firstMatch.label, "前回の正式結果を保持")
