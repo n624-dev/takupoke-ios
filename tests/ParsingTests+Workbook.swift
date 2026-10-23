@@ -4,6 +4,22 @@ import ZIPFoundation
 @testable import TakupokeParsing
 
 extension ParsingTests {
+    func testLeadingZeroGradesFromWorkbookProduceSelectableCanonicalClasses() throws {
+        try temporary { root in
+            for grade in ["1", "01", "001", "００１", "1.0", "01.0", "０１．０"] {
+                let rows = [["学 年", "学科・クラス", "月日", "時限", "変更後"],
+                            [grade, "CN", "2032/7/10", "1", "架空科目A"],
+                            ["1", "全", "2032/7/11", "2", "架空科目B"]]
+                let url = root.appendingPathComponent("fictional-grade-" + UUID().uuidString + ".xlsx")
+                try write(workbook(rows), to: url)
+                let changes = try ChangeNormalizer.parse(XLSXReader.read(url), defaultYear: 2032)
+                XCTAssertEqual(changes.map(\.class_name), ["1_CN", "1_CN"], grade)
+            }
+            XCTAssertEqual(try ChangeNormalizer.years("01～03"), ["1", "2", "3"])
+            XCTAssertEqual(try ChangeNormalizer.years("03～01"), ["3", "2", "1"])
+        }
+    }
+
     func testTypedDateCellsUseTheirWrittenCalendarDateAndBomIsAccepted() throws {
         try temporary { root in
             for value in ["2032-07-10", "2032-07-10T00:00:00.000", "2032-07-10T23:59:59.123456789+14:00", "2032-07-10T00:00:00-12:00", "2032-07-10T01:02:03Z"] {
