@@ -2410,3 +2410,9 @@ Native tab／HomeTimetable／時間割／U63でN49/U77/U63と398の詳細、9ffd
 - 20:44:03 UTC、SpecialScheduleTests.testInterruptedEmptySpecialDatabaseCanFinishInitializationWithoutLosingSources は最初のstore作成でinvalidState。原本0件、空SQLiteをGRDBで作成してcloseした初期化中断状態。20:44:12全体終了、546件・3失敗（1unexpected）、実行73.944秒・準備込み241.1秒。両新規ケースのみ失敗（行事2assert、DB1throw）。物理iOS/SwiftUI検査ではない。
 
 - 対処前に検索語SchoolEventsStore／SpecialScheduleStore／missing database／initial／1.000.000で索引を検索。行事のこの境界失敗は既存記録なし。DBはN57詳細と基点f38831e、Issue41修正後・現行e623598を比較した。f38831eは既存欠損でもCREATEし原本を孤児扱いできたため、その再初期化へ戻さない。新候補は原本がなく、sqlite_masterが完全に空かつuser_version/application_idが0の場合だけ初回の二表を単一transactionで作成する。任意の他schema/非zero version/原本ありの拒否とlegacy移行を維持する。行事はpayloadの1MB検証を維持し、保存全体には2048bytesのメタデータ枠を追加、同じ上限をsave/load双方へ適用する。候補・負の対照・記録を隔離branchへpushしてから次のローカル実行を行う。
+
+## N100 追加Issue69/99の修正前回帰確認（2026-10-23）
+
+- 0f97ce8525f3c6208272bf2c84368335a86abc30のsource/testsを隔離コピーしたLinux Swift6.1.2の一回目（`bash tools/test-parsing.sh`、ログ/tmp/takupoke-post436-strings-before.log）。20:53:07 UTC LinksTests.testLateSearchTermsRemainMatchesWithExactPrefixAndSubstringPriorityが後方の完全/前方/部分・かな展開一致で4assert失敗、score=-1。20:53:53 ParsingTests.testCachedStringWeekdayDecodesSpreadsheetEscapesOnceは最初の土_x000D_でweekdayMismatch、printedWeekdayは未復号、calculatedWeekday土。対処選択前に記録。全体は終了待ち。学校本番通信・実機UIは未実施。typed-date/BOM新規回帰7d16c28はこのコピー後に追加され、本実行には含まれない。
+
+- N100全体は549件/5失敗（1unexpected）、実行73秒台・準備込み240.9秒で終了。検索語decodedString／_x000／escape／文字列復号／検索減点／LinkSearchで既存索引を照合したが同じ分岐の失敗記録なし。Issue47〜58検証本文とb781311当時のWorksheet/LinkSearch、現行0f97ce8を読んだ。前回shared/inline/richへの復号追加ではstr分岐が残り、同じ既存decoderをstrへ一回適用する候補とする。検索減点は199までに制限し、完全一致の最小801が前方一致最大800を上回り、部分一致も非負を保つ。元順は現行LinksViewのposition比較を維持。期待値・許容payload上限・数式許可・未復号literal保護を緩めない。候補と記録をpushしてから次を実行する。次の全体は新規typed-date回帰も初めて含めるが、その製品分岐は未変更。

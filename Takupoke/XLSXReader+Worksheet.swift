@@ -34,7 +34,8 @@ extension XLSXReader {
                 case "b":
                     guard ["0", "1"].contains(value) else { throw ChangeParseError(code: .invalidXML, row: number) }
                     decoded = value == "1" ? "TRUE" : "FALSE"
-                case "n", "str", "d": decoded = value
+                case "str": decoded = try decodedString(value)
+                case "n", "d": decoded = value
                 default:
                     // Formula metadata above the header is not part of the table.
                     // Formula errors within the table are handled after locating that header.

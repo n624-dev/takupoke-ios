@@ -99,9 +99,12 @@ enum LinkSearch {
         return expanded.enumerated().reduce(-1) { best, entry in
             let (index, term) = entry
             guard !term.isEmpty else { return best }
-            if term == query { return max(best, 1000 - index) }
-            if term.hasPrefix(query) { return max(best, 800 - index) }
-            if term.contains(query) { return max(best, 500 - index) }
+            // Match kind takes priority over term position. A late match must
+            // remain nonnegative, and even a late exact match beats any prefix.
+            let penalty = min(index, 199)
+            if term == query { return max(best, 1000 - penalty) }
+            if term.hasPrefix(query) { return max(best, 800 - penalty) }
+            if term.contains(query) { return max(best, 500 - penalty) }
             return best
         }
     }
