@@ -67,3 +67,7 @@ SelectedFileSource/MaterialsModel+Updates/PDFDiagnosticsをcatalog検索し、�
 ## 所有process groupの回収（73/88）
 
 parallel_build/timed_command/SIGTERMの失敗索引を検索。正常/失敗/status保持の既存検査と現行cleanupを比較する。production既定grace15秒は変えず、限定検査でgraceを指定できる入口だけを追加する段階。親exit7/TERM無視の子孫と、初回SIGINTが実childへ届いたmarkerを待って二回目SIGTERMを送る独立process検査を追加。固定sleepでcleanup段階を推定せず、失敗時も所有child PIDだけをfinallyで回収する。実Actionsを中止して試さない。
+
+73/88の修正後はparallel4件/失敗0（1.069秒）、timed4件/失敗0（4.575秒）。正常/失敗/単回取消/終了済みleader・子孫/二重signalを確認。Windowsには同じPOSIX wrapperはなく、本変更をWindowsアプリの挙動改善とは扱わない。
+
+103は両研究compareの実owned-device try/finallyをASTから無変更で取り出し、Apple command/bootだけをfakeにした独立process検査を追加する。初回TERMをcreate応答の前とboot後に送信し、回収中の追加INTも制御する。モデル準備/実推論/実Simulatorは動かさない。実shared shutdown/deleteの呼出しと所有IDを確認する。

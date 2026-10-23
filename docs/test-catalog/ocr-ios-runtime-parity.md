@@ -1,13 +1,14 @@
 # iOS CPU Runtimeの原確率・CTC照合（研究）
 
 対応関係・宣言名・実行方法のSHA-256：
-`3cc5c1c216f19bf4e5e230c94594d7ad5d068618ba9bfb18c96a7c99b4fc1b4c`
+`4ce567769de2b2bf6374760178a4d6d72a187c1a9617bef4b40765754aae2bf1`
 
 環境：iOS26／27 Simulator実プロセス＋実iPhoneSDKリンク。物理iPhone・全文書採用は別確認
 
 ```bash
 bash tools/ocr-ios-runtime-parity/run.sh
 python3 -B -m unittest discover -s tests -p test_ocr_ios_runtime_parity.py -v
+python3 -B -m unittest discover -s tests -p test_ocr_simulator_cancellation.py
 ```
 
 ## 変更時に確認するソース
@@ -37,3 +38,7 @@ python3 -B -m unittest discover -s tests -p test_ocr_ios_runtime_parity.py -v
 - `test_native_transform_claim_cannot_hide_different_tensor_bytes`
 - `test_native_transform_requires_inventory_and_actual_widths`
 - `test_native_process_identity_rejects_another_device_or_host_os`
+
+## [tests/test_ocr_simulator_cancellation.py](../../tests/test_ocr_simulator_cancellation.py)
+
+- `test_term_during_create_and_boot_removes_only_the_owned_device`

@@ -1,13 +1,14 @@
 # ASCII OCRのiOS 2入力・2出力CPU照合（研究）
 
 対応関係・宣言名・実行方法のSHA-256：
-`f4d3e01fa5366cdbb42ea39765864af3f126d3a0b50ca282f00f695a5cf019cb`
+`cfb7a5cb1ae888f5772cc84fbb054cefac4b746fbb88da27c2b5e50834346224`
 
 環境：iOS26／27 Simulatorのnative Swift前処理＋C API。iPhone SDKリンクと実機実行は別
 
 ```bash
 bash tools/ocr-ios-ascii-runtime-parity/run.sh
 python3 -B -m unittest discover -s tests -p 'test_ocr_ios*runtime_parity.py' -v
+python3 -B -m unittest discover -s tests -p test_ocr_simulator_cancellation.py
 ```
 
 ## 変更時に確認するソース
@@ -44,3 +45,7 @@ python3 -B -m unittest discover -s tests -p 'test_ocr_ios*runtime_parity.py' -v
 - `test_native_transform_claim_cannot_hide_different_tensor_bytes`
 - `test_native_transform_requires_inventory_and_actual_widths`
 - `test_native_process_identity_rejects_another_device_or_host_os`
+
+## [tests/test_ocr_simulator_cancellation.py](../../tests/test_ocr_simulator_cancellation.py)
+
+- `test_term_during_create_and_boot_removes_only_the_owned_device`

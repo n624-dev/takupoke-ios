@@ -651,7 +651,8 @@
       "environment": "iOS26／27 Simulator実プロセス＋実iPhoneSDKリンク。物理iPhone・全文書採用は別確認",
       "commands": [
         "bash tools/ocr-ios-runtime-parity/run.sh",
-        "python3 -B -m unittest discover -s tests -p test_ocr_ios_runtime_parity.py -v"
+        "python3 -B -m unittest discover -s tests -p test_ocr_ios_runtime_parity.py -v",
+        "python3 -B -m unittest discover -s tests -p test_ocr_simulator_cancellation.py"
       ],
       "sources": [
         ".github/workflows/ocr-ios-runtime-parity.yml",
@@ -665,7 +666,8 @@
         "tools/ocr-ios-runtime-parity/tensor.swift"
       ],
       "checks": [
-        "tests/test_ocr_ios_runtime_parity.py"
+        "tests/test_ocr_ios_runtime_parity.py",
+        "tests/test_ocr_simulator_cancellation.py"
       ]
     },
     {
@@ -717,7 +719,8 @@
       "environment": "iOS26／27 Simulatorのnative Swift前処理＋C API。iPhone SDKリンクと実機実行は別",
       "commands": [
         "bash tools/ocr-ios-ascii-runtime-parity/run.sh",
-        "python3 -B -m unittest discover -s tests -p 'test_ocr_ios*runtime_parity.py' -v"
+        "python3 -B -m unittest discover -s tests -p 'test_ocr_ios*runtime_parity.py' -v",
+        "python3 -B -m unittest discover -s tests -p test_ocr_simulator_cancellation.py"
       ],
       "sources": [
         ".github/workflows/ocr-ios-ascii-runtime-parity.yml",
@@ -729,7 +732,8 @@
       ],
       "checks": [
         "tests/test_ocr_ios_ascii_runtime_parity.py",
-        "tests/test_ocr_ios_runtime_parity.py"
+        "tests/test_ocr_ios_runtime_parity.py",
+        "tests/test_ocr_simulator_cancellation.py"
       ]
     },
     {
