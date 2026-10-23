@@ -77,6 +77,7 @@ CONTROL_PROBE_TESTS = NOTIFICATION_PROBE_TESTS + (
     "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",
 )
 PROBE_GROUPS = {
+    "retention": ("testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData",),
     "notifications": NOTIFICATION_PROBE_TESTS,
     "controls": CONTROL_PROBE_TESTS,
     "rows": ("testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",),

@@ -163,6 +163,10 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         shutil.copyfile(repo/'tools'/script, destination/'tools'/script)
     for path in copied.glob('*.swift'):
         text = path.read_text()
+        if path.name == 'ContentView.swift':
+            marker = 'Button("保存期間の管理情報を復旧") { confirmingRetentionRecovery = true }'
+            assert text.count(marker) == 1, 'Retention action observation insertion point missing'
+            text = text.replace(marker, 'Button("保存期間の管理情報を復旧") { confirmingRetentionRecovery = true; print("RETENTION_RECOVERY_ACTION presented=1") }')
         if path.name == 'NotificationSettingsView.swift':
             text = instrument_notification_switch(text)
         if path.name == 'ScheduleNotifications.swift':

@@ -8,6 +8,7 @@ on:
         default: all
         options:
           - all
+          - retention
           - notifications
           - controls
           - rows
@@ -69,6 +70,9 @@ jobs:
           persist-credentials: false
       - name: Require exact diagnostic source
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Prepare shipping iOS 27.0 for the focused comparison
+        if: matrix.ios == 27 && inputs.sdk27 == '27.0'
+        run: python3 -B tools/prepare-ios27-runtime.py
       - name: Require comparison toolchain and unchanged runtime
         run: |
           set -euo pipefail

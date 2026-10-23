@@ -2245,3 +2245,15 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 2026-10-23、Debian13 / Python3.12.14、source3054127、隔離ブランチcodex/fix-ios27-runtime-compatibility。`python3 -B -m unittest discover -s tests -p 'test_*ui_runner.py'` の19件中、追加test_shipping_27_uses_exact_27_0_when_newer_minor_is_availableだけが失敗。runner自体のexit0 assertionは通過したが、テスト100行のsimctl create件数が期待1に対して0。ログ/tmp/ios-runtime-runners-first.log。準備helperの独立9モードは成功。テストの観測範囲・製品の選択のどちらが原因かは対処方針決定前の時点で未確定。
 
 - c133487のrun_runnerは返却前に観測をxcodebuildだけへ絞っており、新しいsimctl assertionが対象を受け取っていなかった。N75のprobe抽出範囲不一致とN03の追加テストコンパイル失敗の詳細を照合した。今回は実runnerの失敗でもruntime不一致でもない。既存テストの返却契約は維持し、新ケースだけ全コマンド観測を要求する。simctl create1回・27.0必須、他のbuild/boot/実行/回収・欠落拒否条件は変更しない。修正/記録を隔離ブランチへpush後に再試行する。
+
+## N78 追加issue比較の原本変更訂正テストが失敗
+
+2026-10-23、sourcee33a3cd583b62a3945ab5a8a02ce989f4e2ccf0f、run39907749454／試行1、iOS27 / Xcode27.0。testChangedOriginalCannotSubmitOrReplaceLastGoodのjob120264024705が06:02:37〜06:18:13 UTCでfailure終端した。06:30の予定照会で観測し、対処方針の決定前に記録した。完了ログ未読で、失敗操作・下位原因は未確定。他の訂正3件・Native・iPhone/Pickerは成功。通常27 A/Bと依存26は未完了で、取消しは行わず確認する。
+
+## N79 追加issue比較の通常iOS27 Aの画面操作stepが失敗
+
+2026-10-23 06:30 UTCのjob metadataで、sourcee33a3cd／run39907749454／試行1、job120264024511のExercise app screens with synthetic dataがfailure終端、後処理成功・Complete job進行中と観測した。job全体の終端と失敗case/操作は完了ログ未読で未確定。対処方針決定前にこの観測を記録する。残りのjobは取消しせず確認する。
+
+- N78完了ログはNavigation.swift:92の選択済み受動CellのstaticTexts再列挙でUI query timeout、562.561秒・1件失敗。直前に原本変更後の再照合まで進み、受動Cellの実際の子要素を調べた後で同じ列挙を繰り返していた。N54/N59の詳細と5fd0805/e33a3cdの実Navigation/Review/ケースを照合。既知IDの無いsubmit照会とは異なり、今回はスクロール開始点の観測の再取得。候補は1回の実要素/枠観測をその試行内だけ保持し、反転しなければ同じ受動行を再検査しないこと。16操作・包含・hittable・受動条件・反転上限と最終必須確認を維持する。AXの下位原因は未確定。
+- N79完了ログは新しい復旧UIケースのSettings.swift:13、復旧ボタンの1回のtap後、Cancelが10秒で存在しない。初期marker=0/old=1とボタンhittableは通過し、確認操作・初期化・復旧の保存には未到達。通常16件中この1件のみ失敗、全体1846.299秒。U30/U63の一回の標準tapが未反映の詳細/旧コードと比較し、今回はタブではなく標準Textボタンであり、実action成立は未確認。候補は現在の実枠・画面包含・enabled/hittableから一回の0.1秒接触を行い、QA生成コピーだけで元のaction成立を数値記録すること。押し直し・状態注入・待機延長はせず、Cancel10秒・前後の実bytes・実初期化・再起動の期待を維持する。製品のconfirmationDialogは推測変更しない。
+- 最初は限定の復旧1ケースと、同じ原本変更訂正を両OSで比較する。通常29件・元訂正4件×両OS・公開ゲートは維持する。候補/記録を隔離ブランチへpush後にローカル検査し、新規Actions前に同じ開始前レビューへ修正差分を渡す。

@@ -74,30 +74,45 @@ extension ManualAssistanceChecks {
             // Pick a real passive Cell on each attempt, including preview lesson/header rows.
             // Never start a drag on an editor, button, switch, keyboard or outer List gutter.
             let cells=list.cells.allElementsBoundByIndex
-            func passiveCell(_ upward:Bool)->XCUIElement? {
-                manualPassiveCell(cells:cells,viewport:viewport,upward:upward,frame:{ $0.frame },isPassive:{
-                    $0.buttons.count==0 && $0.switches.count==0 && $0.textFields.count==0 && $0.textViews.count==0
-                        && $0.pickers.count==0 && $0.pickerWheels.count==0
-                        && ($0.images.count>0 || $0.staticTexts.count>0)
+            typealias PassiveRow = (cell:XCUIElement,frame:CGRect,anchor:String)
+            var rowFrames:[ObjectIdentifier:CGRect]=[:],rowAnchors:[ObjectIdentifier:String]=[:]
+            func passiveCell(_ upward:Bool)->PassiveRow? {
+                let selected=manualPassiveCell(cells:cells,viewport:viewport,upward:upward,frame:{ cell in
+                    let id=ObjectIdentifier(cell)
+                    if let frame=rowFrames[id] { return frame }
+                    let frame=cell.frame;rowFrames[id]=frame;return frame
+                },isPassive:{ cell in
+                    let id=ObjectIdentifier(cell)
+                    if rowAnchors[id] != nil { return true }
+                    guard cell.buttons.count==0 && cell.switches.count==0 && cell.textFields.count==0 && cell.textViews.count==0
+                        && cell.pickers.count==0 && cell.pickerWheels.count==0 else { return false }
+                    // Capture the real descendants while proving this row is
+                    // passive. Re-querying the same Cell afterward stalled AX.
+                    let texts=cell.staticTexts.allElementsBoundByIndex
+                    let images=texts.isEmpty ? cell.images.allElementsBoundByIndex:[]
+                    guard !texts.isEmpty || !images.isEmpty,let frame=rowFrames[id] else { return false }
+                    let relative=frame.offsetBy(dx:-list.frame.minX,dy:-list.frame.minY)
+                    rowAnchors[id]="\(cell.label);\(texts.first?.label ?? "");\(images.first?.identifier ?? "");\(relative)"
+                    return true
                 })
+                guard let selected,let frame=rowFrames[ObjectIdentifier(selected)],let anchor=rowAnchors[ObjectIdentifier(selected)] else { return nil }
+                return (selected,frame,anchor)
             }
-            guard let firstCell=passiveCell(navigationState.upward) else {
+            let initialDirection=navigationState.upward
+            guard let first=passiveCell(initialDirection) else {
                 print("TAKUPOKE-MANUAL-SCROLL no-passive-cell;list=\(list.frame);viewport=\(viewport)")
                 break
             }
-            let anchorFrame=firstCell.frame.offsetBy(dx:-list.frame.minX,dy:-list.frame.minY)
-            // Use actual descendants from this passive row. Asking whether an
-            // absent firstMatch image exists can time out in iOS 27 AX even
-            // after the same row's real text was found successfully.
-            let anchorTexts=firstCell.staticTexts.allElementsBoundByIndex
-            let anchorImages=anchorTexts.isEmpty ? firstCell.images.allElementsBoundByIndex:[]
-            let anchor="\(firstCell.label);\(anchorTexts.first?.label ?? "");\(anchorImages.first?.identifier ?? "");\(anchorFrame)"
+            let anchor=first.anchor
             guard navigationState.observe(anchor:anchor,atTop:observedTop) else {
                 print("TAKUPOKE-MANUAL-SCROLL no-progress-after-reverse;\(anchor)");break
             }
-            // A reversal must also select the passive start Cell for its new direction.
-            guard let cell=passiveCell(navigationState.upward) else { break }
-            let safe=cell.frame.intersection(viewport),upward=navigationState.upward
+            // No UI action occurred since the observation. Reuse it unless
+            // the bounded no-progress rule actually reversed the direction.
+            let selected:PassiveRow
+            if navigationState.upward==initialDirection { selected=first }
+            else { guard let reversed=passiveCell(navigationState.upward) else { break };selected=reversed }
+            let safe=selected.frame.intersection(viewport),upward=navigationState.upward
             print("TAKUPOKE-MANUAL-SCROLL attempt=\(attempt);up=\(upward);anchor=\(anchor);target=\(targetFrame.map { String(describing:$0) } ?? "virtualized");owner=\(ownerFrame.map { String(describing:$0) } ?? "unknown");reversed=\(navigationState.reversed)")
             let base=list.coordinate(withNormalizedOffset:CGVector(dx:0,dy:0))
             // Touch begins inside the passive Cell; the pan can continue across the List.

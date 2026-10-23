@@ -42,5 +42,8 @@ jobs:
           persist-credentials: false
       - name: Require exact source
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Prepare shipping iOS 27.0 for the focused comparison
+        if: matrix.ios == 27
+        run: python3 -B tools/prepare-ios27-runtime.py
       - name: Exercise physical replacement, independent acknowledgement and saved adoption
         run: bash tools/test-manual-ui.sh
