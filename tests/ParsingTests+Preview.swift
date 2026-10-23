@@ -90,18 +90,20 @@ extension ParsingTests {
 
     func testCachedStringWeekdayDecodesSpreadsheetEscapesOnce() throws {
         try temporary { root in
-            let url = root.appendingPathComponent("fictional-escaped-cache.xlsx")
-            for cached in ["土_x000D_", "_x571F__x000D_"] {
+            for (index, cached) in ["土_x000D_", "_x571F__x000D_"].enumerated() {
+                let url = root.appendingPathComponent("fictional-escaped-cache-\(index).xlsx")
                 try write(weekdayWorkbook(cached: cached), to: url)
                 let rows = try XLSXReader.read(url)
                 XCTAssertEqual(rows[4][3], "土\r")
                 XCTAssertEqual(try ChangeNormalizer.parse(rows, defaultYear: nil).count, 1)
             }
+            let url = root.appendingPathComponent("fictional-protected-cache.xlsx")
             try write(weekdayWorkbook(cached: "土_x005F_x000D_"), to: url)
             let preview = try XLSXReader.readForPreview(url)
             XCTAssertEqual(preview.warnings.first?.printedWeekday, "土_x000D_")
-            try write(weekdayWorkbook(cached: "_xD800_"), to: url)
-            assertCode(.invalidXML) { _ = try XLSXReader.read(url) }
+            let invalid = root.appendingPathComponent("fictional-invalid-surrogate.xlsx")
+            try write(weekdayWorkbook(cached: "_xD800_"), to: invalid)
+            assertCode(.invalidXML) { _ = try XLSXReader.read(invalid) }
         }
     }
 
