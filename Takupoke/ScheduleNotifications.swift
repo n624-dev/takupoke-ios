@@ -121,13 +121,17 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         }
     }
 
-    func resetForRetention() async {
+    func suspendForUnavailableData() async {
         generation = UUID()
         pending = nil
         reconcileTask?.cancel()
         await reconcileTask?.value
         baseline = nil
         loaded = false
+    }
+
+    func resetForRetention() async {
+        await suspendForUnavailableData()
         center.removeAllPendingNotificationRequests()
         center.removeAllDeliveredNotifications()
     }

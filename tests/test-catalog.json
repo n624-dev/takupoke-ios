@@ -96,7 +96,8 @@
       "checks": [
         "tests/LocalDatabaseTests+Current.swift",
         "tests/LocalDatabaseTests+Legacy.swift",
-        "tests/SchoolDataRetentionTests.swift"
+        "tests/SchoolDataRetentionTests.swift",
+        "tests/SchoolDataRecoveryTests.swift"
       ]
     },
     {
@@ -207,7 +208,8 @@
         "tests/TimetableTimesTests.swift",
         "tests/test_timetable_change_names.py",
         "tests/TimetableModelTests.swift",
-        "tests/MappingRulesTests.swift"
+        "tests/MappingRulesTests.swift",
+        "tests/TimetableClockEvidenceTests.swift"
       ]
     },
     {
@@ -235,7 +237,8 @@
       "checks": [
         "tests/SpecialScheduleTests+Persistence.swift",
         "tests/SpecialScheduleTests.swift",
-        "tests/PDFTextGeometryTests+Visibility.swift"
+        "tests/PDFTextGeometryTests+Visibility.swift",
+        "tests/SpecialAvailabilityTests.swift"
       ]
     },
     {
@@ -493,7 +496,9 @@
         "tests/ObservedScreenGeometryTests.swift",
         "tests/test_notification_service_trace.py",
         "tests/test_application_ui_runner.py",
-        "tests/test_timetable_change_names.py"
+        "tests/test_timetable_change_names.py",
+        "tests/SchoolDataRecoveryTests.swift",
+        "tests/SpecialAvailabilityTests.swift"
       ]
     },
     {

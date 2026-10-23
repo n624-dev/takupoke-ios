@@ -101,7 +101,7 @@ BRIDGE
             self.skipTest("Swift required to execute the production callback bridge")
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
         start = source.index("    nonisolated private static func notificationSettings(")
-        end = source.index("    func resetForRetention()", start)
+        end = source.index("\n    func ", start)
         bridge = source[start:end]
         program = r'''import Foundation
 final class UNNotificationSettings: @unchecked Sendable {
@@ -176,7 +176,7 @@ BRIDGE
             self.skipTest("Swift required to execute the production delivery gate")
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
         bridge_start = source.index("    nonisolated private static func notificationSettings(")
-        bridge_end = source.index("    func resetForRetention()", bridge_start)
+        bridge_end = source.index("\n    func ", bridge_start)
         permission_start = source.index("    func checkPermission() async {")
         permission_end = source.index("    // Keep the actual OS response", permission_start)
         gate_start = source.index("    private func deliveryAllowed() async -> Bool {")

@@ -14,6 +14,7 @@ struct ContentView: View {
     private var retentionNotice: Bool { application.retentionNotice }
     @AppStorage("setupPresented") private var setupPresented = false
     @State private var showingSetup = false
+    @State private var confirmingRetentionRecovery = false
     @StateObject private var materials = ApplicationData.shared.materials
     @StateObject private var specialSchedules = ApplicationData.shared.specialSchedules
     @StateObject private var schoolEvents = ApplicationData.shared.schoolEvents
@@ -28,11 +29,21 @@ struct ContentView: View {
             else {
                 VStack(spacing: 16) {
                     if retentionFailure {
-                        Text("保存データを削除できませんでした。古いデータの利用を停止しています。")
+                        Text(application.retentionFailureMessage)
+                        if application.canRecoverRetention {
+                            Button("保存期間の管理情報を復旧") { confirmingRetentionRecovery = true }
+                                .buttonStyle(.bordered)
+                        }
                         Button("再試行") { Task { await activate() } }
                     } else { LoadingRow(title: "読み込み中⋯") }
                 }.padding()
             }
+        }
+        .confirmationDialog("学校データを初期化して復旧しますか？", isPresented: $confirmingRetentionRecovery, titleVisibility: .visible) {
+            Button("学校データを初期化して復旧", role: .destructive) { Task { await application.recoverRetention() } }
+            Button("キャンセル", role: .cancel) { }
+        } message: {
+            Text("破損した管理情報を隔離し、保存済みの学校データを削除して保存期間を設定し直します。個人設定・公開行事・OneDriveなどの元ファイルは保持します。資料の再選択と再取得が必要です。")
         }
         .environmentObject(account)
         .environmentObject(links)

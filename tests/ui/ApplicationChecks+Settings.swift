@@ -3,6 +3,33 @@ import UIKit
 import CryptoKit
 
 extension ApplicationChecks {
+    func testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData() {
+        let recovery = app.buttons["保存期間の管理情報を復旧"]
+        XCTAssertTrue(recovery.isHittable, app.debugDescription)
+        let before = "marker=0;old=1;prefs=1;public=1;original=1"
+        XCTAssertEqual(app.staticTexts["fixture-retention-proof"].label, before)
+        recovery.tap()
+        let cancel = app.buttons["キャンセル"]
+        XCTAssertTrue(cancel.waitForExistence(timeout: 10)); cancel.tap()
+        XCTAssertTrue(recovery.waitForExistence(timeout: 10))
+        XCTAssertEqual(app.staticTexts["fixture-retention-proof"].label, before)
+        recovery.tap()
+        let confirm = app.buttons["学校データを初期化して復旧"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 10)); confirm.tap()
+        let notice = app.alerts["保存データを削除しました"]
+        XCTAssertTrue(notice.waitForExistence(timeout: 30), app.debugDescription)
+        notice.buttons["あとで"].tap()
+        XCTAssertTrue(app.staticTexts["fixture-ready"].waitForExistence(timeout: 45), app.debugDescription)
+        XCTAssertTrue(app.tabBars.buttons["ホーム"].exists)
+        XCTAssertEqual(app.staticTexts["fixture-retention-proof"].label,
+            "marker=1;old=0;prefs=1;public=1;original=1")
+        app.terminate()
+        app.launchArguments.removeAll { $0 == "--reset-fixture" || $0 == "--retention-corrupt" }
+        launchReady()
+        XCTAssertTrue(app.tabBars.buttons["ホーム"].exists)
+        XCTAssertFalse(app.buttons["保存期間の管理情報を復旧"].exists)
+    }
+
     func testSettingsAccountDataAndFileDetails() {
         tab("設定")
         let department = "通信ネットワーク工学科（2026年度以降入学者）"

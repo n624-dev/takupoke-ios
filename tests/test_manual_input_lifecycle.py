@@ -118,8 +118,10 @@ print("Verified actual stale/missing/review callback rejection and current callb
 
     def test_retention_route_keeps_explicit_draft_cancellation(self):
         application = (ROOT / "Takupoke/ApplicationData.swift").read_text(encoding="utf-8")
-        retention = application.split("if try retention.installedPeriod() != period {")[1].split("loadedPeriod = period")[0]
-        self.assertIn("recovery.cancel()", retention)
+        retention = application.split("if installed != period {")[1].split("loadedPeriod = period")[0]
+        self.assertIn("await stopPrivateWork(resetNotifications: true)", retention)
+        stopping = application.split("private func stopPrivateWork(")[1].split("func recoverRetention()")[0]
+        self.assertIn("recovery.cancel()", stopping)
 
 
 if __name__ == "__main__":

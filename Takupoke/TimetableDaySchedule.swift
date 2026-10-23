@@ -87,6 +87,28 @@ struct TimetableDaySchedule {
             let confirmed = ranges.compactMap { $0 }
             return !ranges.isEmpty && confirmed.count == ranges.count && Set(confirmed).count == 1 ? confirmed.first : nil
         }
+        if case .change = block.content {
+            let applicable = specials.filter { $0.applies(date: day.iso8601, className: className) }
+            if !applicable.isEmpty {
+                let range = block.startPeriod...block.endPeriod
+                let ranges = applicable.map { source -> String? in
+                    var clocks: [String] = []
+                    for period in range {
+                        let lessons = source.lessons.filter { $0.date == day.iso8601 && $0.className == className && $0.period == period }
+                        let values = lessons.isEmpty ? [source.periodTime(on: day.iso8601, period: period)] :
+                            lessons.map { source.displayTime(for: $0, in: range) }
+                        let confirmed = values.compactMap { $0 }
+                        guard confirmed.count == values.count, Set(confirmed).count == 1, let clock = confirmed.first else { return nil }
+                        clocks.append(clock)
+                    }
+                    guard let start = clocks.first?.components(separatedBy: "〜").first,
+                          let end = clocks.last?.components(separatedBy: "〜").last else { return nil }
+                    return "\(start)〜\(end)"
+                }
+                let confirmed = ranges.compactMap { $0 }
+                return confirmed.count == ranges.count && Set(confirmed).count == 1 ? confirmed.first : nil
+            }
+        }
         let firstSlot = TimetableSchedule.slot(on: day, period: block.startPeriod, className: className,
                                                timetable: timetable, changes: changes,
                                                includesChanges: includesChanges, events: events, specials: specials)
@@ -145,15 +167,22 @@ extension TimetableDaySchedule {
     func isInProgress(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
                       className: String, now: Date) -> Bool {
         if case .change(let change) = block.content, change.isCancellation { return false }
-        guard day == Self.schoolDay(at: now),
-              let time = cardTime(block, on: day, className: className) else { return false }
-        let ends = time.components(separatedBy: "〜")
-        guard ends.count == 2, let start = Self.minutes(ends[0]), let end = Self.minutes(ends[1]),
-              start < end else { return false }
+        guard day == Self.schoolDay(at: now) else { return false }
+        let clocks: [String?]
+        if case .normal = block.content {
+            // Normal cards are a visual merge; their internal breaks remain.
+            clocks = (block.startPeriod...block.endPeriod).map { period in
+                customTimes?.time(on: day, period: period) ?? TimetableSchedule.normalPeriodTimes[period - 1]
+            }
+        } else { clocks = [cardTime(block, on: day, className: className)] }
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
         let minute = calendar.component(.hour, from: now) * 60 + calendar.component(.minute, from: now)
-        return start <= minute && minute < end
+        return clocks.contains { clock in
+            guard let ends = clock?.components(separatedBy: "〜"), ends.count == 2,
+                  let start = Self.minutes(ends[0]), let end = Self.minutes(ends[1]), start < end else { return false }
+            return start <= minute && minute < end
+        }
     }
 
     private static func minutes(_ value: String) -> Int? {

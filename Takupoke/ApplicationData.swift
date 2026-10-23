@@ -22,6 +22,9 @@ final class ApplicationData: ObservableObject {
     @Published private(set) var loadedPeriod: SchoolDataPeriod?
     @Published private(set) var retentionFailure = false
     @Published var retentionNotice = false
+    @Published private(set) var retentionFailureReason: SchoolDataRetention.Failure?
+    var canRecoverRetention: Bool { retentionFailureReason == .invalidMarker }
+    var retentionFailureMessage: String { retentionFailureReason?.message ?? SchoolDataRetention.Failure.cleanup.message }
     private var preparing = false
     private var backgroundRefresh: Task<Void, Never>?
     private var observations = Set<AnyCancellable>()
@@ -44,7 +47,7 @@ final class ApplicationData: ObservableObject {
         }
     }
 
-    func prepare() async -> Bool {
+    func prepare(recoverInvalidMarker: Bool = false) async -> Bool {
         guard UIApplication.shared.isProtectedDataAvailable else { return false }
         guard !preparing else { return false }
         preparing = true
@@ -54,38 +57,65 @@ final class ApplicationData: ObservableObject {
                                                   appropriateFor: nil, create: true)
             let retention = SchoolDataRetention(root: base)
             let period = SchoolDataPeriod.current()
-            if try retention.installedPeriod() != period {
+            let installed: SchoolDataPeriod?
+            do { installed = try retention.installedPeriod() }
+            catch SchoolDataRetention.Failure.invalidMarker {
+                guard recoverInvalidMarker else { throw SchoolDataRetention.Failure.invalidMarker }
+                installed = nil
+            }
+            if installed != period {
                 let hadPrivateData = SchoolDataRetention.privatePaths.contains {
                     FileManager.default.fileExists(atPath: base.appendingPathComponent($0).path)
                 }
                 ready = false
-                recovery.cancel()
-                setFileMonitoring(false)
-                await notifications.resetForRetention()
-                await account.stopForRetention()
-                await materials.closeForRetention()
-                await specialSchedules.closeForRetention()
-                mappings.resetForRetention()
-                links.resetForRetention()
-                times.resetForRetention()
+                await stopPrivateWork(resetNotifications: true)
                 try Task.checkCancellation()
                 // Protected data can become unavailable while workers unwind.
                 guard UIApplication.shared.isProtectedDataAvailable else { return false }
+                if recoverInvalidMarker {
+                    do { _ = try retention.installedPeriod() }
+                    catch SchoolDataRetention.Failure.invalidMarker { try retention.quarantineInvalidMarker() }
+                }
                 try retention.replace(with: period)
                 FileRefreshDiagnostics.shared.clear()
                 materials.resumeAfterRetention()
                 specialSchedules.resumeAfterRetention()
                 retentionNotice = hadPrivateData
             }
+            try retention.finishRecovery()
+            materials.resumeAfterRetention()
+            specialSchedules.resumeAfterRetention()
             loadedPeriod = period
             retentionFailure = false
+            retentionFailureReason = nil
             ready = true
             return true
         } catch {
             ready = false
             retentionFailure = !Task.isCancelled
+            retentionFailureReason = error as? SchoolDataRetention.Failure
+            loadedPeriod = nil
+            await stopPrivateWork()
             return false
         }
+    }
+
+    private func stopPrivateWork(resetNotifications: Bool = false) async {
+        recovery.cancel()
+        setFileMonitoring(false)
+        if resetNotifications { await notifications.resetForRetention() }
+        else { await notifications.suspendForUnavailableData() }
+        await account.stopForRetention()
+        await materials.closeForRetention()
+        await specialSchedules.closeForRetention()
+        mappings.resetForRetention()
+        links.resetForRetention()
+        times.resetForRetention()
+    }
+
+    func recoverRetention() async {
+        guard canRecoverRetention, UIApplication.shared.isProtectedDataAvailable else { return }
+        if await prepare(recoverInvalidMarker: true) { await activate() }
     }
 
     func activate() async {

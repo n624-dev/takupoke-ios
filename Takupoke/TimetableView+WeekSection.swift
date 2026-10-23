@@ -65,14 +65,7 @@ extension TimetableView {
                 Label(sourceCheckMessage, systemImage: "exclamationmark.triangle")
                     .font(.caption).foregroundStyle(.orange)
             }
-            ForEach(SpecialScheduleKind.allCases) { kind in
-                if let source = specialSchedules.sources[kind],
-                   let record = specialSchedules.records[kind],
-                   source.digest != record.digest || record.analysis.version != SpecialScheduleAnalysis.parserVersion {
-                    Label("\(kind.title)は前回の解析結果です。", systemImage: "exclamationmark.triangle")
-                        .foregroundStyle(.orange)
-                }
-            }
+            SpecialScheduleWarnings(model: specialSchedules)
             if selectedClasses.isEmpty {
                 Text(savedClasses.isEmpty ? "クラスを設定すると時間割を表示します。" :
                      "保存したクラスは現在の資料に見つかりません。資料を再解析するか、クラスを選び直してください。")

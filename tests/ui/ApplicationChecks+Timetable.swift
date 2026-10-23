@@ -3,6 +3,27 @@ import UIKit
 import CryptoKit
 
 extension ApplicationChecks {
+    func testFirstFailedSpecialDocumentsWarnOnHomeAndWeekAndOpenTheirDetails() {
+        for title in ["試験時間割", "試験返却時間割"] {
+            let warning = title + "の選択した資料をまだ反映できていません。正常な解析結果がありません。"
+            XCTAssertTrue(app.staticTexts[warning].waitForExistence(timeout: 10), app.debugDescription)
+        }
+        tab("時間割")
+        for title in ["試験時間割", "試験返却時間割"] {
+            let warning = title + "の選択した資料をまだ反映できていません。正常な解析結果がありません。"
+            _ = visible(app.staticTexts[warning])
+            XCTAssertTrue(app.staticTexts[warning].exists, app.debugDescription)
+            tap(title + "の資料を確認")
+            screen(title)
+            XCTAssertTrue(app.buttons["保存済みのPDFを見る"].exists)
+            XCTAssertTrue(app.buttons["解析する"].exists)
+            back(to: "時間割")
+        }
+        app.terminate(); app.launchArguments.removeAll { $0 == "--reset-fixture" }
+        launchReady()
+        XCTAssertTrue(app.staticTexts["試験時間割の選択した資料をまだ反映できていません。正常な解析結果がありません。"].exists)
+    }
+
     func testMergedCardsFromAllSources() {
         tab("時間割")
         for subject in ["架空科目A", "架空試験A", "架空返却A", "架空変更A"] {

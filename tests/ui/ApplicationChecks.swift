@@ -10,12 +10,14 @@ final class ApplicationChecks: XCTestCase {
         app.launchArguments = ["--reset-fixture", "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
         let initialConditions: [String: [String]] = [
             "testSettingsAccountDataAndFileDetails": ["--ai-feature-probe"],
+            "testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData": ["--retention-corrupt"],
             "testTimetableDynamicTypeScalesAndRestoresStandardLayout": ["--grid-probe"],
             "testTimetableUsesSystemTextSize": ["--grid-probe", "--system-text-size"],
             "testTimetableCommonClocksAndEventOnlyWeekScale": ["--grid-probe", "--normal-only"],
             "testEmptyDataCanBeConfigured": ["--empty-fixture"],
             "testChangedAccountDataNoticeOpensSharedAcquisition": ["--updated-revisions"],
             "testFileFailuresKeepResultsAndStayInTheirOwnDetails": ["--failed-refresh"],
+            "testFirstFailedSpecialDocumentsWarnOnHomeAndWeekAndOpenTheirDetails": ["--first-failed-special"],
             "testVoiceOverReadsTimetableCard": ["--mapped-names"],
             "testNotificationControlsAndAppearance": ["--theme-probe", "--notification-permission-probe"],
             "testChangedDataProducesOneLocalNotification": ["--notification-permission-probe"],
@@ -43,6 +45,10 @@ final class ApplicationChecks: XCTestCase {
         #if !TAKUPOKE_VOICEOVER_AUTOMATION
             if name.contains("testVoiceOverReadsTimetableCard") { return }
         #endif
+        if name.contains("testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData") {
+            launchReady(expectDataReady: false)
+            return
+        }
         launchReady()
         XCTAssertTrue(app.tabBars.buttons["ホーム"].waitForExistence(timeout: 30), app.debugDescription)
     }
@@ -73,7 +79,7 @@ final class ApplicationChecks: XCTestCase {
         print("UI_AUTOMATION_READY state=\(observedState);frame=\(observedFrame)")
         return true
     }
-    func launchReady() {
+    func launchReady(expectDataReady: Bool = true) {
         // One launch after confirmed process termination. A persistence check
         // must not overlap the previous process or be rescued by a relaunch.
         if app.state != .notRunning { app.terminate() }
@@ -88,7 +94,12 @@ final class ApplicationChecks: XCTestCase {
             XCTFail("New fixture process did not enter foreground")
             return
         }
-        XCTAssertTrue(app.staticTexts["fixture-ready"].waitForExistence(timeout: 45), app.debugDescription)
+        if expectDataReady {
+            XCTAssertTrue(app.staticTexts["fixture-ready"].waitForExistence(timeout: 45), app.debugDescription)
+        } else {
+            XCTAssertTrue(app.buttons["保存期間の管理情報を復旧"].waitForExistence(timeout: 45), app.debugDescription)
+            XCTAssertFalse(app.tabBars.buttons["ホーム"].exists, app.debugDescription)
+        }
     }
     func screen(_ title: String) {
         XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 10), app.debugDescription)

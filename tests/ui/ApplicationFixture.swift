@@ -60,6 +60,7 @@ struct SimulatorApplication: App {
         URLProtocol.registerClass(FixtureNetwork.self)
         FixtureLaunchDiagnostics.record("seed-enter")
         do { try Self.seed() } catch { fatalError("Synthetic fixture initialization failed: \(error)") }
+        do { try SimulatorRetentionFixture.prepare() } catch { fatalError("Synthetic retention setup failed") }
         FixtureLaunchDiagnostics.record("seed-complete")
     }
     var body: some Scene {
@@ -81,6 +82,12 @@ struct SimulatorApplication: App {
                             }
                         }
                         .font(.system(size: 12)).accessibilityIdentifier("fixture-type-size")
+                    }
+                }
+                .overlay(alignment: .bottomTrailing) {
+                    if ProcessInfo.processInfo.arguments.contains("--retention-corrupt") {
+                        Text(SimulatorRetentionFixture.proof).font(.caption2)
+                            .accessibilityIdentifier("fixture-retention-proof").allowsHitTesting(false)
                     }
                 }
                 .overlay(alignment: .topLeading) {
@@ -243,7 +250,12 @@ struct SimulatorApplication: App {
                     periodTimes: Dictionary(uniqueKeysWithValues: (1...(kind == .exam ? 6 : 8)).map {
                         ($0, String(format: "%02d:00〜%02d:40", $0 + 7, $0 + 7))
                     }), lessons: lessons, dedicatedTimeDate: kind == .examReturn ? monday.addingDays(offset)!.iso8601 : nil)
-                try specialStore.save(staged: staged, analysis: special, originalName: name, byteCount: raw.count, digest: digest)
+                if ProcessInfo.processInfo.arguments.contains("--first-failed-special") {
+                    try specialStore.saveSelection(staged: staged, kind: kind, originalName: name, byteCount: raw.count, digest: digest)
+                    try specialStore.recordFailure(PDFParseError(code: .unsupported, page: 1, stage: .vectorObjects, branch: .b126), kind: kind)
+                } else {
+                    try specialStore.save(staged: staged, analysis: special, originalName: name, byteCount: raw.count, digest: digest)
+                }
             }
             let eventDay = monday.addingDays(4)!.iso8601
             let eventRows: [SchoolEventsPayload.Event]
@@ -256,7 +268,7 @@ struct SimulatorApplication: App {
                 // The API requires at least one event. A teaching-day event
                 // keeps all normal lessons and exercises unequal header text.
                 eventRows = [.init(startDate: eventDay, endDate: eventDay, title: "架空行事A",
-                    tag: ProcessInfo.processInfo.arguments.contains("--normal-only") ?
+                    tag: (ProcessInfo.processInfo.arguments.contains("--normal-only") || ProcessInfo.processInfo.arguments.contains("--first-failed-special")) ?
                         "行事（授業あり）" : "行事（授業なし）")]
             }
             let events = SchoolEventsPayload(version: "v1", schoolYear: period.schoolYear, sourcePdfSha256: digest,
@@ -362,5 +374,29 @@ enum FixtureLaunchDiagnostics {
             try handle.seekToEnd()
             try handle.write(contentsOf: Data(line.utf8))
         } catch { print("TAKUPOKE_LIFECYCLE recording-unavailable") }
+    }
+}
+
+
+enum SimulatorRetentionFixture {
+    private static var base: URL { FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0] }
+    static func prepare() throws {
+        guard ProcessInfo.processInfo.arguments.contains("--retention-corrupt") else { return }
+        let manager = FileManager.default
+        for name in ["NameMappings/fixture-retention-old", "SchoolEventsAPI/fixture-retention-public", "fixture-retention-original"] {
+            let url = base.appendingPathComponent(name)
+            try manager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data("fictional retained bytes".utf8).write(to: url)
+        }
+        try Data("{fictional invalid period marker".utf8).write(to: base.appendingPathComponent("school-data-period.json"))
+    }
+    static var proof: String {
+        let manager = FileManager.default
+        let old = manager.fileExists(atPath: base.appendingPathComponent("NameMappings/fixture-retention-old").path)
+        let current = (try? SchoolDataRetention(root: base).installedPeriod()) == SchoolDataPeriod.current()
+        let prefs = UserDefaults.standard.string(forKey: "timetableSelectedClasses") == "3_IT"
+        let publicOK = (try? Data(contentsOf: base.appendingPathComponent("SchoolEventsAPI/fixture-retention-public"))) == Data("fictional retained bytes".utf8)
+        let originalOK = (try? Data(contentsOf: base.appendingPathComponent("fixture-retention-original"))) == Data("fictional retained bytes".utf8)
+        return "marker=\(current ? 1 : 0);old=\(old ? 1 : 0);prefs=\(prefs ? 1 : 0);public=\(publicOK ? 1 : 0);original=\(originalOK ? 1 : 0)"
     }
 }

@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`efb7ec4e84446807a960fb463b4777408d59be3570cc75af4e013c1eb74bf31c`
+`76d31a14b53fb867b16b972a4cfed3da9dabb8b7d1644004459decc48f876174`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -76,3 +76,8 @@ bash tools/test-parsing.sh
 - `testNativeBackgroundOverprintRequiresKnownNormalCompositingAndRestoresGraphicsState`
 - `testNativeInertTagsContainedClipsDeviceSpacesAndUnusedStylesPreserveDirectAcquisition`
 - `testNativeConcealingClipsOptionalReplacementAndUnbalancedTagsRemainRejected`
+
+## [tests/SpecialAvailabilityTests.swift](../../tests/SpecialAvailabilityTests.swift)
+
+- `testLoadingFailureAndUnselectedAreDistinctForBothKinds`
+- `testFirstFailedAnalysisAndPreviousSuccessUseDifferentWarnings`

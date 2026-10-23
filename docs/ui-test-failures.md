@@ -2220,3 +2220,12 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - 新しい同一実装の完了ログと今回の失敗段階に基づき、製品・QA・SDK・元3ケース・連続実操作・30/8/5秒の期限・全完了照合・公開ゲートを変えず、公開jobだけを新しいhost/所有Simulatorで独立検証する。初回失敗を保持し、候補を恒常的解消とは呼ばない。同じ停止が再発した場合はこの根拠だけで再実行を繰り返さず、観測方法の修正を改めて評価する。コード差分0行の新規レビューと記録push後に開始する。
 
 - N74後の公開job単独検証/試行3/job119887900316は成功。元Picker3件・全連続操作と厳密な完了照合、Host616件（予定skip1・失敗0）、iPhone Release buildが通過した。公開ゲートは14:58:59に同じrun/attempt/sourceの全必須成功をAPIで確認し、14:59:16に428.3を公開した。N73のhost通信断とN74のAX停止を成功へ書き換えず保持し、恒常的解消は主張しない。
+
+## N75 追加issue 60〜63の初回Python検査（2026-10-23）
+
+- source7e5712cを基点とする未コミット差分、codex/fix-issues-60-63、Debian13／Swift6.1.2、`python3 -B -m unittest discover -s tests -p 'test_*.py'`。264件、failure1／error2／予定skip2。ログ /tmp/followup-ios-python-first.log。
+- 対処前の観測: UI manifestのallが29件で、既存の固定期待27件と不一致。通知設定ライフサイクル2件は実ソースから抽出したSwift probeのコンパイル段階でerror。製品のAppleビルド・実UIの失敗と同一視しない。通知probeの具体的なコンパイル診断はこれから照合する。
+- Foundationの別実行は544件すべて成功したが、Pythonの失敗を成功へ読み替えない。過去の該当詳細とprobe抽出元、追加2件の登録・必須ゲートを照合してから対処し、次の試行前に記録・修正をpushする。
+
+- N75照合: コンパイル診断はgeneration/pending/reconcileTask/baseline/loadedの未定義。OS bridgeの終端を従来の次メソッドresetForRetentionで探すprobeが、新しく間に置いたsuspendForUnavailableDataも抽出していた。N57の製品throw構文・N68の非同期GRDB呼出しと詳細/旧コードを照合し、今回はprobeの関数抽出範囲の差であると確認した。実bridgeの直後のinstanceメソッドを境界とし、実OSオブジェクト・取消・許可のassertionは維持する。
+- manifestは初回失敗資料の警告導線と、破損マーカーの明示確認復旧の2ケースを新設したため27→29へ更新する。2ケースのA登録を個別assertし、全ソース宣言の一意性・両OS・既存公開ゲートは維持する。記録と候補をCI対象外ブランチへpushしてからPythonを再実行する。

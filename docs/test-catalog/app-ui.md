@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`71496a2e44c4fbd0b5104e198fd1ecee29d06f49a07064f225658c36c8bc721f`
+`0298c2007552a768b4d8d3a5d56bad27fc14d401f87f6ba21808f0c09d6491b8`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -122,6 +122,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/ui/ApplicationChecks+Settings.swift](../../tests/ui/ApplicationChecks+Settings.swift)
 
+- `testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData`
 - `testSettingsAccountDataAndFileDetails`
 - `testUsageHelpIsOrganizedByTask`
 - `testSettingsGroupsAndCompactDataOverviews`
@@ -135,6 +136,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/ui/ApplicationChecks+Timetable.swift](../../tests/ui/ApplicationChecks+Timetable.swift)
 
+- `testFirstFailedSpecialDocumentsWarnOnHomeAndWeekAndOpenTheirDetails`
 - `testMergedCardsFromAllSources`
 - `testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork`
 - `testHomeTimetableAndWeekCalendar`
@@ -194,3 +196,16 @@ bash tools/test-app-ui.sh
 
 - `test_home_subject_rendering_uses_formal_name_for_all_content_kinds_without_changing_cell_names`
 - `test_list_uses_formal_names_for_explicit_and_inferred_subjects_with_source_fallback`
+
+## [tests/SchoolDataRecoveryTests.swift](../../tests/SchoolDataRecoveryTests.swift)
+
+- `testMalformedMarkersRemainBlockedUntilExplicitQuarantineAndCleanup`
+- `testReadFailureAndNonFileMarkerNeverOfferDestructiveRecovery`
+- `testQuarantineFailureDoesNotDeleteMarkerOrPrivateData`
+- `testInterruptedRecoveryAndDeletionFailureRetainEvidenceUntilRetryCommits`
+- `testMarkerWriteFailureKeepsQuarantineAndNeverCommitsAPeriod`
+
+## [tests/SpecialAvailabilityTests.swift](../../tests/SpecialAvailabilityTests.swift)
+
+- `testLoadingFailureAndUnselectedAreDistinctForBothKinds`
+- `testFirstFailedAnalysisAndPreviousSuccessUseDifferentWarnings`

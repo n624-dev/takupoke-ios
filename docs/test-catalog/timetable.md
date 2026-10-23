@@ -1,7 +1,7 @@
 # 時間割・今日の予定・授業時刻・授業名
 
 対応関係・宣言名・実行方法のSHA-256：
-`ce04d2804f1fac6f465df89c3485cd0b4814f46220f54857dd2ba41c11569a87`
+`ca04a56d1555ab8e14a4d528eade59c955645d58bdebc99da13ae5ece0b0a539`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -128,3 +128,10 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 - `testContextualTeacherWithinListRequiresMatchingYearClassAndSubject`
 - `testParentheticalCommaIsNotSplitAndBothChangeSidesAreMapped`
 - `testContextualTeacherAndConfirmedRoomSeparateInEitherSuffixOrder`
+
+## [tests/TimetableClockEvidenceTests.swift](../../tests/TimetableClockEvidenceTests.swift)
+
+- `testWholeSpecialReplacementPreservesRecordedContinuousClockAndDetailBoundaries`
+- `testPartialReplacementAndUnrecordedWholeRangeUseOnlyVerifiedPeriodClocks`
+- `testWholeReplacementRequiresEveryApplicableDocumentToAgree`
+- `testNormalVisualMergesRespectBreaksAndLunchWithDefaultAndDateSpecificClocks`

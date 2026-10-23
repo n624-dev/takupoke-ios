@@ -30,14 +30,14 @@ struct HomeTodayView: View {
             includesChanges: true, customTimes: times.current?.data)
     }
     private var presentation: TimetablePresentation { TimetablePresentation(schedule: schedule, mappings: mappings) }
-    private var ready: Bool { materials.ready && specialSchedules.ready && schoolEvents.ready }
+    private var ready: Bool { materials.ready && specialSchedules.availability.ready && schoolEvents.ready }
     private var eventsAvailable: Bool {
         SchoolEventsCoverage(savedYears: Set(schoolEvents.saved.keys)).contains(day: day)
     }
 
     private var loadFailed: Bool {
         (!materials.ready && !materials.busy && materials.failed) ||
-        (!specialSchedules.ready && !specialSchedules.busy && specialSchedules.failed) ||
+        specialSchedules.availability.loadFailed ||
         (!schoolEvents.ready && !schoolEvents.busy && schoolEvents.failed)
     }
 
@@ -56,9 +56,6 @@ struct HomeTodayView: View {
         }
         if let source = materials.state.record(for:.changes), materials.state.changeAnalysis?.matches(record: source,
             defaultYear: ChangeNormalizer.effectiveSchoolYear(configured: changeSchoolYear, today: day)) != true { values.append(MaterialKind.changes.title) }
-        for kind in SpecialScheduleKind.allCases {
-            if let source = specialSchedules.sources[kind], specialSchedules.records[kind]?.digest != source.digest || specialSchedules.records[kind]?.analysis.version != SpecialScheduleAnalysis.parserVersion { values.append(kind.title) }
-        }
         return values
     }
 
@@ -107,6 +104,7 @@ struct HomeTodayView: View {
                 Label("\(title)の新しい資料をまだ反映できていません。前回の正常結果を表示しています。",systemImage:"exclamationmark.triangle")
                     .font(.caption).foregroundStyle(.orange)
             }
+            SpecialScheduleWarnings(model: specialSchedules, showLoadState: false)
             if loadFailed {
                 Text("データを読み込めませんでした。")
                     .font(.subheadline).foregroundStyle(.secondary)
@@ -193,5 +191,34 @@ struct HomeTodayView: View {
     private func status(_ message: String) -> some View {
         Text(message).font(.subheadline).foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+
+struct SpecialScheduleWarnings: View {
+    @ObservedObject var model: SpecialSchedulesModel
+    var showLoadState = true
+
+    var body: some View {
+        let availability = model.availability
+        if !availability.ready && showLoadState {
+            if availability.loadFailed {
+                Label("試験・返却資料の保存情報を読み込めませんでした。通常時間割は参考表示です。", systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+                Button("試験・返却資料を再読み込み") { model.loadIfNeeded() }
+            } else {
+                LoadingRow(title: "試験・返却資料を読み込み中⋯")
+                Text("試験・返却資料は未確認です。通常時間割は参考表示です。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        ForEach(SpecialScheduleKind.allCases) { kind in
+            if let message = availability.message(for: kind) {
+                Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                NavigationLink("\(kind.title)の資料を確認") {
+                    SpecialScheduleAnalysisView(model: model, kind: kind)
+                }
+            }
+        }
     }
 }

@@ -37,6 +37,10 @@ final class SpecialSchedulesModel: ObservableObject {
         self?.runPendingFileRefresh()
     }
 
+    var availability: SpecialScheduleAvailability {
+        SpecialScheduleAvailability(ready: ready, busy: busy, failed: failed, sources: sources, records: records)
+    }
+
     func loadIfNeeded() {
         guard !ready, !busy else { return }
         perform(success: nil) { store, _, _ in _ = store }

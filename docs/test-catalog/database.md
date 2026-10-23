@@ -1,7 +1,7 @@
 # ローカルDB・移行・半期削除
 
 対応関係・宣言名・実行方法のSHA-256：
-`cb8bb0d5ef2596a827b873a5f63195f37eaea03ad1ac7deadad93095fc45ab61`
+`d02cd87dc72f756f184ad1c7ed5cb6fff7b81547c391cc2dfc189e8d8354389c`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -64,3 +64,11 @@ bash tools/test-parsing.sh
 - `testDeletesOnlyOwnedPrivateDataAndCommitsPeriodAfterCleanup`
 - `testFailureDoesNotCommitNewPeriodAndRetryCompletes`
 - `testHalfYearDeletionPreservesPreferencesPublicEventsAndExternalOriginal`
+
+## [tests/SchoolDataRecoveryTests.swift](../../tests/SchoolDataRecoveryTests.swift)
+
+- `testMalformedMarkersRemainBlockedUntilExplicitQuarantineAndCleanup`
+- `testReadFailureAndNonFileMarkerNeverOfferDestructiveRecovery`
+- `testQuarantineFailureDoesNotDeleteMarkerOrPrivateData`
+- `testInterruptedRecoveryAndDeletionFailureRetainEvidenceUntilRetryCommits`
+- `testMarkerWriteFailureKeepsQuarantineAndNeverCommitsAPeriod`
