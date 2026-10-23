@@ -3,6 +3,63 @@ import XCTest
 @testable import TakupokeParsing
 
 final class MappingRulesTests: XCTestCase {
+    private func subjectRules(_ subjects: [[String: Any]], contexts: [[String: Any]] = []) throws -> MappingRules {
+        try JSONDecoder().decode(MappingRules.self, from: JSONSerialization.data(withJSONObject: [
+            "subjects": subjects, "teachers": [], "rooms": [], "teacherContexts": contexts]))
+    }
+
+    func testExactSubjectSpellingResolvesContextDespiteAnotherWidthEquivalentAlias() throws {
+        let rules = try subjectRules([
+            ["alias": "架空科目A", "fullName": "架空正式科目A", "classes": ["3_IT"]],
+            ["alias": "架空科目Ａ", "fullName": "架空別科目A", "classes": ["3_IT"]],
+            ["alias": "架空科目A", "fullName": "架空共通科目A"],
+        ], contexts: [["alias": "架空姓", "fullName": "架空正式教員A", "subject": "架空正式科目A", "className": "3_IT", "schoolYear": 2032]])
+        XCTAssertEqual(rules.canonicalSubject("架空科目A", className: "3_IT"), "架空正式科目A")
+        XCTAssertEqual(rules.canonicalSubject("架空科目Ａ", className: "3_IT"), "架空別科目A")
+        XCTAssertNil(rules.canonicalSubject("架空科目𝔸", className: "3_IT"))
+        XCTAssertEqual(rules.canonicalSubject("架空科目A", className: "2_IT"), "架空共通科目A")
+        let field = rules.separatingChangeField("架空科目A（架空姓）", className: "3_IT", schoolYear: 2032)
+        XCTAssertEqual(field.subject, "架空科目A"); XCTAssertEqual(field.teacher, "架空姓")
+        XCTAssertEqual(rules.separatingChangeField("架空科目A（架空姓）", className: "3_IT", schoolYear: 2033).teacher, "")
+    }
+
+    func testExplicitOrdinarySubjectIsNeverHiddenByAnOmittedInternationalPrefix() throws {
+        for generalClasses in [[], ["2_IT"]] {
+            var ordinary: [String: Any] = ["alias": "架空科目A", "fullName": "架空一般科目A"]
+            if !generalClasses.isEmpty { ordinary["classes"] = generalClasses }
+            let rules = try subjectRules([ordinary,
+                ["alias": "留 架空科目A", "fullName": "架空留学生科目A", "classes": ["2_IT"], "internationalStudent": true]])
+            XCTAssertFalse(rules.isInternationalStudentSubject("架空科目A", className: "2_IT"))
+            XCTAssertTrue(rules.isInternationalStudentSubject("留 架空科目A", className: "2_IT"))
+            XCTAssertFalse(rules.isInternationalStudentSubject("架空科目A", className: "3_IT"))
+        }
+    }
+
+    func testConditionalTeacherUsesExactThenUniqueWidthMatchWithinItsContext() throws {
+        let subject: [String: Any] = ["alias": "留 架空正式科目A", "fullName": "架空正式科目A", "classes": ["2_IT"], "internationalStudent": true]
+        let context: [String: Any] = ["alias": "架空姓Ａ", "fullName": "架空正式教員A", "subject": "架空正式科目A", "className": "2_IT", "schoolYear": 2032]
+        let rules = try subjectRules([subject], contexts: [context])
+        let field = rules.separatingChangeField("架空正式科目A(架空姓A)", className: "2_IT", schoolYear: 2032)
+        XCTAssertEqual(field.subject, "架空正式科目A"); XCTAssertEqual(field.teacher, "架空姓A")
+        XCTAssertTrue(rules.isInternationalStudentChangeField("架空正式科目A(架空姓A)", className: "2_IT", schoolYear: 2032))
+        XCTAssertFalse(rules.isInternationalStudentChangeField("架空正式科目A(架空姓A)", className: "2_IT", schoolYear: 2033))
+        var other = context; other["alias"] = "架空姓A"; other["fullName"] = "架空別教員B"
+        let ambiguous = try subjectRules([subject], contexts: [context, other])
+        let change = ScheduleChange(change_date: "2032-04-05", class_name: "2_IT", period: "1", before_subject: "", after_subject: "架空正式科目A(架空姓A)", teacher: "", room: "", note: "", raw_text: "架空原文", canonical_text: "架空正規化")
+        XCTAssertEqual(ambiguous.presenting(change).after.detailTeacher, "架空別教員B")
+        XCTAssertEqual(ambiguous.separatingChangeField("架空正式科目A(架空姓𝔸)", className: "2_IT", schoolYear: 2032).teacher, "")
+    }
+
+    func testOmittedInternationalShortSubjectStillResolvesItsConditionalTeacher() throws {
+        let rules = try subjectRules([
+            ["alias": "留 架空略科A", "fullName": "架空正式科目A", "classes": ["2_IT"], "internationalStudent": true]
+        ], contexts: [["alias": "架空姓", "fullName": "架空正式教員A", "subject": "架空正式科目A", "className": "2_IT", "schoolYear": 2032]])
+        XCTAssertEqual(rules.canonicalSubject("架空略科A", className: "2_IT"), "架空正式科目A")
+        XCTAssertEqual(rules.separatingChangeField("架空略科A（架空姓）", className: "2_IT", schoolYear: 2032).teacher, "架空姓")
+        XCTAssertTrue(rules.isInternationalStudentChangeField("架空略科A（架空姓）", className: "2_IT", schoolYear: 2032))
+        XCTAssertFalse(rules.isInternationalStudentChangeField("架空略科A（架空姓）", className: "3_IT", schoolYear: 2032))
+    }
+
     func testContextualInternationalChangesUseTheirOwnClassAndSchoolYearBeforeReplacement() throws {
         let payload: [String: Any] = [
             "subjects": [["alias": "留 架空正式科目A", "fullName": "架空正式科目A", "classes": ["2_IT", "3_IT"], "internationalStudent": true]],

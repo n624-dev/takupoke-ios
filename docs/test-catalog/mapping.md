@@ -1,7 +1,7 @@
 # 名称対応・パッケージ・認証取得
 
 対応関係・宣言名・実行方法のSHA-256：
-`2781195a2b40a0bf7a45f991d9464a26a0fabdb0fc53b711be28876e40551dee`
+`d9a4c1288d4f7c04bb2d3c63bfabae27ec7bf002247014af0611d205287334fd`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -36,6 +36,10 @@ bash tools/test-parsing.sh
 
 ## [tests/MappingRulesTests.swift](../../tests/MappingRulesTests.swift)
 
+- `testExactSubjectSpellingResolvesContextDespiteAnotherWidthEquivalentAlias`
+- `testExplicitOrdinarySubjectIsNeverHiddenByAnOmittedInternationalPrefix`
+- `testConditionalTeacherUsesExactThenUniqueWidthMatchWithinItsContext`
+- `testOmittedInternationalShortSubjectStillResolvesItsConditionalTeacher`
 - `testContextualInternationalChangesUseTheirOwnClassAndSchoolYearBeforeReplacement`
 - `testNameMatchingAcceptsWidthVariantsAndKeepsSourceSpelling`
 - `testWidthEquivalentAliasesDoNotResolveAnAmbiguousName`

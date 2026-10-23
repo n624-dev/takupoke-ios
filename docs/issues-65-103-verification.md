@@ -21,3 +21,7 @@ Windows対照:PublicEventsStoreのファイル上限は2MBとpayload1MBで既に
 69/99の修正前549件/5失敗（準備込み240.9秒）。strは既存decoderへ一回だけ分岐し、検索の位置減点を199までに制限。途中N101のfixture同名/括弧期待を訂正した後、限定3件中この2件は成功した。typed-dateはN102としてiOSにも実行再現し、t=dに限る厳密なISO日時→記載暦日の正規化を追加。parserVersion8として旧解析を再評価する。iOSのBOM date-only対照は成功済み。
 
 Windows68交差確認は2MBの保存上限でもsurrogate escapeにより失敗すると反証された。1800件×100emojiを実API decodeが受理して保存し再読込が失敗、保存形式の有限最大を考慮した3MB共通save/load上限で修正後6件が成功。両OSの異なるserializerをそのまま同じ上限と見なさない。
+
+858da7eのLinux全550件/失敗0（72.666秒）、Python268件/予定skip2/失敗0（49.218秒）。Actions開始前にAGENTSに従う新規GPT6.1Sol/Highのcode-only immutable diff reviewを実施、指摘なし。858da7eのtest-tools native_pdf=trueをdispatchし、Apple26/27のNativeとportable/toolsを確認中。公開gateや配布には未使用。元branchを固定したまま次の名称対応を別branchで進める。
+
+70/83/89/96はWindowsにも同じ候補選択/条件付き教員の生alias照合があり、両OSへ別の架空回帰を追加して修正前確認する。クラス優先・完全一致優先・幅正規化一意性・一般規則のnilを留学生trueと混同しないこと・明示の留 prefix省略を照合対象にすることが既存の契約。76の条件付き教員件数も両UIを照合する。
