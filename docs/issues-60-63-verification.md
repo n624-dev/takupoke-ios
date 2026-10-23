@@ -20,3 +20,11 @@ Python全264件は修正後50.662秒・失敗0・予定skip2。catalog436ファ�
 PR64のrun39906381266／試行1はNative627件（予定skip1、112.511秒）とDistributionが成功。通常/訂正/PickerはXcode27.0で最新minorの27.1を自動選択し、simctl createのIncompatible deviceで実操作前に失敗した（N76）。下位原因をアプリの不具合と推測せず、成功済み比較と同じ27.0を明示して準備/選択する。全実job終端を確認し、取消しなし・公開なし。
 
 隔離ブランチへN76と候補をpushしてから比較した。準備helperの9モードは成功。最初のrunner検査は新ケースの観測範囲不一致で失敗しN77へ記録、旧helperと過去詳細を照合して観測だけを修正・pushした。再比較はrunner19件（27.372秒）、manifest/ゲート27件（4.337秒）成功。新規GPT-6.1 Sol / Highのコード差分レビューと修正差分の再レビューも指摘なし。元のbuild/boot/全ケース・失敗/skip/欠落拒否・公開条件を維持する。Apple環境でのruntime準備・画面操作は次の実行で確認する。
+
+## 27.0へ固定した比較の途中結果
+
+sourcee33a3cd、[run39907749454](https://github.com/n624-dev/takupoke-ios/actions/runs/39907749454)。Native627件（予定skip1、94.543秒）成功。iOS27の三項目訂正は実Runtime27.0で365.386秒・1件・失敗0、厳密な完了照合まで成功した。新しいhelperの準備を通過して他の画面操作も進行中で、初回27.1のsimctl create失敗とは段階が異なる。全体の成功・公開・恒常的安定性へ一般化しない。
+
+次のActions開始前の新規GPT-6.1 Sol / Highによる対main全コード差分1357行のレビューも指摘なし（read-only、実装/テスト実行なし）。現在のPRに修正が必要なら変更差分も確認してから開始し、コードが変わらなければmain反映前の確認として扱う。
+
+利用者が追加報告した通常時間割の「処理中」はFile Provider側の問題と判断して修正不要と指定したため、busy寿命・Strict・取得処理へ推測の変更は加えていない。学校行事の案内はAPI側の元PDF ETagのみの変化で、本文SHA-256が登録済みと完全一致した。[API PR46](https://github.com/n624-dev/takupoke-api/pull/46)／main6563ff2で元PDF情報を更新し、本番JSON/ETag/304と学校サイトHEADの一致を確認済み。学校行事の再取得で反映でき、iOSバイナリの修正は不要。
