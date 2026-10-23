@@ -12,14 +12,36 @@ extension ApplicationChecks {
         XCTAssertTrue(usable(bounds) && app.frame.contains(bounds) && recovery.isEnabled && recovery.isHittable,app.debugDescription)
         print("RETENTION_RECOVERY_CONTACT bounds=\(bounds)")
         recovery.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).press(forDuration:0.1)
+        let confirm = app.buttons["学校データを初期化して復旧"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(confirm.isHittable, app.debugDescription)
         let cancel = app.buttons["キャンセル"]
-        XCTAssertTrue(cancel.waitForExistence(timeout: 10), app.debugDescription); cancel.tap()
+        if cancel.exists {
+            XCTAssertTrue(cancel.isHittable, app.debugDescription)
+            cancel.tap()
+        } else {
+            // Native popovers omit the cancel action. Use their actual system
+            // dismissal region once, never the underlying recovery button.
+            let popovers=app.popovers.allElementsBoundByIndex
+            let dismissals=app.otherElements.matching(identifier:"PopoverDismissRegion").allElementsBoundByIndex
+            guard popovers.count==1,dismissals.count==1 else {
+                XCTFail("Confirmation needs a real cancel button or native popover dismissal: "+app.debugDescription);return
+            }
+            let popover=popovers[0].frame,dismissal=dismissals[0],frame=dismissal.frame
+            let point=CGPoint(x:frame.midX,y:frame.midY)
+            guard usable(popover),usable(frame),app.frame.contains(popover),app.frame.contains(point),
+                  !popover.contains(point),!recovery.frame.contains(point),dismissal.isEnabled,dismissal.isHittable else {
+                XCTFail("Native dismissal must have a visible point outside the confirmation: "+app.debugDescription);return
+            }
+            dismissal.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).press(forDuration:0.1)
+        }
+        let dismissed=expectation(for:NSPredicate(format:"exists == false"),evaluatedWith:confirm)
+        XCTAssertEqual(XCTWaiter.wait(for:[dismissed],timeout:10),.completed,app.debugDescription)
         XCTAssertTrue(recovery.waitForExistence(timeout: 10))
         XCTAssertEqual(app.staticTexts["fixture-retention-proof"].label, before)
         let currentBounds=recovery.frame
         XCTAssertTrue(usable(currentBounds) && app.frame.contains(currentBounds) && recovery.isEnabled && recovery.isHittable,app.debugDescription)
         recovery.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).press(forDuration:0.1)
-        let confirm = app.buttons["学校データを初期化して復旧"]
         XCTAssertTrue(confirm.waitForExistence(timeout: 10), app.debugDescription); confirm.tap()
         let notice = app.alerts["保存データを削除しました"]
         XCTAssertTrue(notice.waitForExistence(timeout: 30), app.debugDescription)
