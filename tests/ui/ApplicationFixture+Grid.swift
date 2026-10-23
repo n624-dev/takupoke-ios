@@ -35,8 +35,12 @@ extension TimetableView {
                     let actual =
                         heights[(block.startPeriod - 1)..<block.endPeriod].reduce(0, +) + CGFloat(
                             block.endPeriod - block.startPeriod) * gridSpacing
+                    let isCancellation: Bool = {
+                        if case .change(let item) = block.content { return item.isCancellation }
+                        return false
+                    }()
                     let renderedTime =
-                        block.startPeriod != block.endPeriod
+                        isCancellation || block.startPeriod != block.endPeriod
                         || commonPeriodTime(block.startPeriod, days: days) == nil
                     var card: [String: Any] = [
                         "source": source, "start": block.startPeriod, "end": block.endPeriod,

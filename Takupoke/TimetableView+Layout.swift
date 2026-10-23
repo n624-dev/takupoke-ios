@@ -115,7 +115,11 @@ extension TimetableView {
             }
             if !names.cellRoom.isEmpty { parts.append((cardRoom(names.cellRoom), gridUIFont(9), 1)) }
         }
-        if (block.startPeriod != block.endPeriod || commonPeriodTime(block.startPeriod, days: days) == nil),
+        let isCancellation: Bool = {
+            if case .change(let change) = block.content { return change.isCancellation }
+            return false
+        }()
+        if (isCancellation || block.startPeriod != block.endPeriod || commonPeriodTime(block.startPeriod, days: days) == nil),
            let time = cardTime(block, on: day, className: className) {
             let timeIndex: Int
             if case .change = block.content { timeIndex = 2 }

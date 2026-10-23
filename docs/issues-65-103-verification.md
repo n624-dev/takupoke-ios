@@ -37,3 +37,9 @@ ApplicationData/ContentViewの表示gateは保存期間準備で、Special DBの
 先行858da7eのSDK26も21:24:35成功。Native633件/予定skip1/失敗0、229.304秒（現行SPM準備込み642.4秒）、固定239.1 baseline3件成功（7.295秒/準備込み254.6秒）。test-tools40024529647/1は選択した4ジョブ全成功、pickerは非選択skipped。新branch全体のLinux558件/失敗0（73.767秒）、Python268件/予定skip2/失敗0（50.819秒）。旧実行と新branchを混同しない。
 
 N105の純粋条件は3件/18assertで修正前再現。c43e576では通常資料のready/failedだけをHomeの一覧gateへ使い、特別/行事に独立した警告と再読込を表示する。週の行事読込失敗も未取得と区別する。nativeケースは実SQLiteを不正bytesへ、実行事directoryをfileへ置換する所有fixtureを追加。正常資料は実保存から読み、実再読込が失敗しても授業詳細を開けること、週の警告、元ファイル復帰後の一回再起動を検査する。ready/failed/解析結果の注入は行わない。fixture-readyはこのケースに限り実失敗状態とbusy終端を要求し、他の全ready要件を維持する。既存ケース・期限・UI操作helperは変更しない。Windowsは38修正で同種の公開行事列挙失敗を独立させ、PR45の実MSIX436 checks成功済み。
+
+## 単独休講の時刻行（74、Windows交差）
+
+索引を休講/カード高さ/DynamicTypeで検索しN51のscopeと現在のframe/required-height検査を照合。元解析・優先順位と区別し、Cards/高さ計算の既知時計行だけを単独休講でも含める。nil時計を作らず、既存のVoiceOver用labelは既知時計を含むまま維持。既存Dynamic Typeケースの独立架空3限休講と各文字サイズで時計font>0と単独時限の存在を追加し、実frame>=必要高さの元検査を維持する。これはmetricsの検査であり、実画面の時計Textや実機VoiceOverの確認と同一とは主張しない。WindowsのLessonButtonにも同じcommon時計による省略があり交差修正する。
+
+N105修正後の純粋条件3件/失敗0（0.002秒）。新UIの登録検査28件/予定skip1/失敗0（2.842秒）、全変更SwiftUI/fixtureの構文parse成功。Appleでの型検査とUI実行は未確認。

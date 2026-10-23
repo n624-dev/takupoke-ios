@@ -227,6 +227,12 @@ extension ApplicationChecks {
             XCTAssertTrue(heights.allSatisfy { $0 >= 72 * scale })
             let cards = try XCTUnwrap(metrics["cards"] as? [[String: Any]])
             XCTAssertTrue(cards.contains { ($0["cancellation"] as? Bool) == true })
+            let cancellations = cards.filter { ($0["cancellation"] as? Bool) == true }
+            XCTAssertTrue(cancellations.contains { ($0["start"] as? Int) == ($0["end"] as? Int) })
+            for card in cancellations {
+                XCTAssertGreaterThan(try number("timeFont", in: card), 0,
+                    "Known cancellation clocks require a visible time row at every text size")
+            }
             XCTAssertEqual(
                 Set(cards.compactMap { $0["source"] as? String }),
                 Set(["normal", "change", "exam", "examReturn"]))

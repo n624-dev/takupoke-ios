@@ -13,7 +13,7 @@ extension TimetableView {
             if case .change(let change) = block.content { return change.isCancellation }
             return false
         }()
-        let showTime = block.startPeriod != block.endPeriod ||
+        let showTime = isCancellation || block.startPeriod != block.endPeriod ||
             commonPeriodTime(block.startPeriod, days: days) == nil
         return Button {
             switch block.content {
