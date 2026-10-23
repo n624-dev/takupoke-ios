@@ -94,3 +94,16 @@ run39922166418は全job終端。Picker/job120309749791は配布SDK／Runtime27.0
 公開に向けた実行順を更新する。修正済みPickerの独立全3件成功、両OSの復旧／原本変更焦点成功、同じ製品bytesのNative627件・iPhone Release成功、最新27全画面成功と、新しいmain用の全コードレビューを根拠として、追加修正を含む隔離ブランチ先頭をmainへfast-forwardし、main自身の全必須検査を実行する。追加のPR全体実行を重ねてから同じmain全体を実行する二重起動はしない。従来の全15項目・同run/attempt/source・失敗／欠落／skip拒否・Picker全3件・公開前照合をすべて維持し、古いPRの部分成功をmainのゲートへ流用しない。mainは期待する旧先頭d713ed6を指定し、forceなしで更新する。
 
 main操作専用に新規作成して未使用のGPT-6.1 Sol／Highは、対main全コード差分と追加Picker観測差分を確認して指摘なし。今回のmain開始だけに使用し、焦点dispatch用レビューを再利用しない。製品はe33a3cdからbytes不変、焦点source c66d127から現在先頭への差は記録文書のみ。AltStore実機での更新導入は未確認のままとする。
+
+
+## main432の終端と現要素観測の比較
+
+再開時のまとめ照会でmain432/run39924632738の全job終端を確認した。Distribution／Native、27通常A/B、三項目／明示選択／原本変更27と通常26Aはsuccess。単項目27と通常26Bがfailure、手動26は未展開の依存skip、公開もskipで、新版は公開していない。旧PR/run39917995520も全終端し、26通常A/Bと三項目26はsuccess、単項目／明示選択／原本変更26はfailure、公開skip。いずれも取消しなし。失敗をN85〜N89へ対処前に記録した。
+
+N85/N88/N89では古いAX要素・二段階照会を使う箇所を特定した。特にN88は実Bindingのfalse→true、実内外Switch value1を確認し、未発火との推測を棄却した。候補3a9b052は既知IDから現在の一意な入力／Switchを取得し、完了Buttonも同じ45秒のnative predicate内で実一意性・finite frame・包含・enabled/hittableを捕捉する。実入力全文、ACK、背景後の同一process、採用／保存／再起動は維持する。N87の二回目ACK value0とN86の2秒長押し後Safariへの遷移は別に保持し、座標や時間・製品を推測変更しない。
+
+QAフラグだけでUIWindowの実touch phase／座標／native view classを最大128件観測する。元sendEventを一回通し、追加gestureやaction、状態注入はしない。所有一時ファイルを容量・symlink・文字列形式で制限して取得し、学校情報やUI本文をログへ含めない。N86の画像はSHA照合した架空URLのものだけを一時領域で見た。
+
+候補と根拠を3a9b052として隔離ブランチへpush後、Debian13/Swift6.1.2でmanual project17件（0.326秒）、診断11件（0.238秒）、runner19件（26.263秒）、実Swift幾何29件が失敗0。Swift構文解析とcatalog438のwrite/check --base9945e15も成功した。これらはUIKitでの入力到達の証明へ読み替えない。
+
+次の二つの焦点実行には別々に新規作成したGPT-6.1 Sol／Highが同じ443行のコード差分だけを確認し、それぞれ指摘なし。片方は単項目訂正の両OS比較、もう片方は配布と同じSDK27.0／Runtime26.5のリンク実長押しだけの診断に使用する。両レビューとも未使用で、この操作以外に使い回さない。未解明の操作失敗を焦点成功だけで恒常的解消とは主張せず、公開は次の同source全15ゲートに従う。
