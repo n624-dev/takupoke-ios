@@ -45,6 +45,8 @@ jobs:
         run: |
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$(xcrun --sdk iphonesimulator --show-sdk-version)" = 27.0
+      - name: Prepare exact shipping iOS 27.0 for the comparison
+        run: python3 -B tools/prepare-ios27-runtime.py
       - name: Run all three picker cases and transition checks in owned scratch
         run: bash tools/test-picker-ui.sh
   native-pdf:

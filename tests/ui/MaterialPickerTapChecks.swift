@@ -95,7 +95,7 @@ final class MaterialPickerTapChecks: XCTestCase {
         // A generic descendants query can expand retained picker/other-tab
         // subtrees and time out after returning from Home. Scope the real list.
         let list = app.collectionViews["picker-file-list"].firstMatch
-        let button = list.buttons[identifier].firstMatch
+        let buttons = list.buttons.matching(identifier: identifier)
         let navigation = app.navigationBars["ファイル選択"].firstMatch
         let tabs = app.tabBars.firstMatch
         guard let row = Int(identifier.split(separator: "-").last ?? ""), (0..<4).contains(row) else {
@@ -127,25 +127,40 @@ final class MaterialPickerTapChecks: XCTestCase {
         if let previous = lastRevealedRow, row < previous {
             for _ in row..<previous { list.swipeDown() }
         }
-        for _ in 0..<8 {
+        func finish(_ button: XCUIElement, frame: CGRect, area: CGRect, attempt: Int) -> XCUIElement? {
+            guard !frame.isNull, !frame.isInfinite, frame.width > 0, frame.height > 0,
+                  [frame.minX, frame.minY, frame.maxX, frame.maxY].allSatisfy(\.isFinite), area.contains(frame) else {
+                XCTFail("Button has no fully visible current hit region: \(identifier)"); return nil
+            }
+            print("PICKER REVEAL id=\(identifier);attempt=\(attempt);frame=\(frame);viewport=\(area)")
+            guard button.isHittable else {
+                XCTFail("Button is not hittable: \(identifier)"); return nil
+            }
+            lastRevealedRow = row
+            return button
+        }
+        for attempt in 0..<8 {
             guard let area = viewport() else { XCTFail("File list lost its current viewport"); return nil }
-            guard button.exists else { list.swipeUp(); continue }
+            let matches = buttons.allElementsBoundByIndex
+            guard matches.count <= 1 else { XCTFail("File button is ambiguous: \(identifier)"); return nil }
+            guard let button = matches.first else { list.swipeUp(); continue }
             let frame = button.frame
-            if area.contains(frame), !frame.isEmpty, !frame.isInfinite { break }
+            if area.contains(frame), !frame.isEmpty, !frame.isInfinite {
+                // No gesture followed this observation. Use the unique actual
+                // element and viewport instead of repeating the same AX queries.
+                return finish(button, frame: frame, area: area, attempt: attempt)
+            }
             if frame.minY < area.minY { list.swipeDown() } else { list.swipeUp() }
         }
-        guard button.waitForExistence(timeout: 5) else {
+        guard buttons.firstMatch.waitForExistence(timeout: 5) else {
             XCTFail("File button did not appear: \(identifier)")
             return nil
         }
-        let frame = button.frame
-        guard let area = viewport(), !frame.isNull, !frame.isInfinite, frame.width > 0, frame.height > 0,
-              [frame.minX, frame.minY, frame.maxX, frame.maxY].allSatisfy(\.isFinite), area.contains(frame) else {
-            XCTFail("Button has no fully visible current hit region: \(identifier)"); return nil
+        let matches = buttons.allElementsBoundByIndex
+        guard matches.count == 1, let button = matches.first, let area = viewport() else {
+            XCTFail("File button has no unique current viewport: \(identifier)"); return nil
         }
-        XCTAssertTrue(button.isHittable, "Button is not hittable: \(identifier)")
-        lastRevealedRow = row
-        return button
+        return finish(button, frame: button.frame, area: area, attempt: 8)
     }
 
     private func chooseAndCancel(_ app: XCUIApplication, kind: Int) {
