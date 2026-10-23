@@ -9,6 +9,7 @@ final class ApplicationChecks: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["--reset-fixture", "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
         let initialConditions: [String: [String]] = [
+            "testLinkPreferencesSurviveRelaunch": ["--fixture-input-trace"],
             "testSettingsAccountDataAndFileDetails": ["--ai-feature-probe"],
             "testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData": ["--retention-corrupt"],
             "testTimetableDynamicTypeScalesAndRestoresStandardLayout": ["--grid-probe"],

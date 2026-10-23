@@ -121,10 +121,36 @@ def report_matches(path, started, *, allow_jetsam=False):
             "scope": selected[1], "text": selected[0]}
 
 
+def input_trace_lines(path):
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > 65536:
+        return []
+    pattern = re.compile(r"TAKUPOKE_INPUT pid=\d+ time=\d+(?:\.\d+)? phase=(?:began|ended|cancelled) x=-?\d+(?:\.\d+)? y=-?\d+(?:\.\d+)? views=[A-Za-z0-9_.,]{1,163}")
+    try:
+        with path.open("rb") as stream:
+            raw = stream.read(65537)
+        if len(raw) > 65536:
+            return []
+        return [line for line in raw.decode("utf-8").splitlines() if pattern.fullmatch(line)][:128]
+    except (OSError, UnicodeError):
+        return []
+
+
 def collect(scratch, simulator, started, exit_code):
     deadline = time.monotonic() + 70
     result = {"originalExit": exit_code, "simulator": simulator,
               "crashCause": "unassessed", "commands": [], "reports": []}
+    if simulator:
+        try:
+            item = command(["xcrun", "simctl", "get_app_container", simulator, BUNDLE, "data"], timeout=10)
+            container = item.pop("text").strip()
+            result["commands"].append({"kind": "owned-input-log-path", **item})
+            if item["exit"] == 0 and item["limited"] is None and Path(container).is_absolute():
+                lines = input_trace_lines(Path(container) / "tmp/takupoke-fictional-launch-owned.log")
+                result["inputDeliveryLines"] = len(lines)
+                for line in lines:
+                    print(line, flush=True)
+        except OSError as error:
+            result["inputTraceError"] = type(error).__name__
     bundle = scratch / "ManualResults.xcresult"
     if bundle.exists():
         try:

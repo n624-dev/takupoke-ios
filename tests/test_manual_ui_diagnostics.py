@@ -20,6 +20,24 @@ spec.loader.exec_module(module)
 
 
 class ManualDiagnosticsTests(unittest.TestCase):
+    def test_owned_input_trace_is_bounded_and_rejects_body_symlinks_and_invalid_encoding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'owned.log'
+            valid = 'TAKUPOKE_INPUT pid=123 time=42.25 phase=began x=331.50 y=672.67 views=UIKit.UISwitch,UIKit.UIView'
+            invalid = [valid.replace('phase=began', 'phase=changed'), valid.replace('x=331.50', 'x=nan'),
+                       valid + ' arbitrary-body', '{"unrelated":"content"}', valid.replace('views=UIKit.UISwitch,UIKit.UIView', 'views=invalid value')]
+            path.write_text('\n'.join([valid] + invalid), encoding='utf-8')
+            self.assertEqual(module.input_trace_lines(path), [valid])
+            alias = Path(tmp) / 'alias.log'
+            alias.symlink_to(path)
+            self.assertEqual(module.input_trace_lines(alias), [])
+            path.write_text((valid + '\n') * 129, encoding='utf-8')
+            self.assertEqual(len(module.input_trace_lines(path)), 128)
+            path.write_bytes(b'x' * 65537)
+            self.assertEqual(module.input_trace_lines(path), [])
+            path.write_bytes(b'\xff')
+            self.assertEqual(module.input_trace_lines(path), [])
+
     def test_command_timeout_and_output_cap_are_explicit(self):
         slow = module.command([sys.executable, '-c', 'import time;time.sleep(2)'], timeout=.1)
         self.assertEqual(slow['limited'], 'timeout')

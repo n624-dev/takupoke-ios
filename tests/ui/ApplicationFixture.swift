@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import ObjectiveC
 import CryptoKit
 import UserNotifications
 import PDFKit
@@ -55,6 +56,7 @@ struct SimulatorApplication: App {
     @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
     @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
     init() {
+        FixtureInputDelivery.install()
         _ = FixtureNotificationDelivery.startedAt
         FixtureLaunchDiagnostics.record("init-enter")
         URLProtocol.registerClass(FixtureNetwork.self)
@@ -364,6 +366,11 @@ enum FixtureLaunchDiagnostics {
         let line = "TAKUPOKE_LIFECYCLE pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) stage=\(stage)\n"
         append(line)
     }
+    static func recordInput(_ phase:String,point:CGPoint,views:String) {
+        guard ["began","ended","cancelled"].contains(phase),point.x.isFinite,point.y.isFinite else { return }
+        let x=String(format:"%.2f",Double(point.x)),y=String(format:"%.2f",Double(point.y))
+        append("TAKUPOKE_INPUT pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) phase=\(phase) x=\(x) y=\(y) views=\(views)\n")
+    }
     private static func append(_ line: String) {
         writeLock.lock()
         defer { writeLock.unlock() }
@@ -432,5 +439,49 @@ struct SimulatorRetentionProofView:View {
             Text(observation.sample.fingerprints).accessibilityIdentifier("fixture-retention-bytes")
             Text(String(observation.sample.closes)).accessibilityIdentifier("fixture-retention-closes")
         }.font(.system(size:1)).allowsHitTesting(false)
+    }
+}
+
+
+// QA-only observer: preserves the original event path and never adds a gesture.
+@MainActor
+private enum FixtureInputDelivery {
+    private static var installed=false,records=0
+    static func install() {
+        guard ProcessInfo.processInfo.arguments.contains("--fixture-input-trace"),!installed,
+              let original=class_getInstanceMethod(UIWindow.self,#selector(UIWindow.sendEvent(_:))),
+              let observer=class_getInstanceMethod(UIWindow.self,#selector(UIWindow.fixtureObservedSendEvent(_:))) else { return }
+        method_exchangeImplementations(original,observer)
+        installed=true
+    }
+    static func observe(_ event:UIEvent) {
+        guard records<128,event.type == .touches else { return }
+        for touch in event.allTouches ?? [] {
+            guard records<128,let window=touch.window else { continue }
+            let phase:String
+            switch touch.phase {
+            case .began:phase="began"
+            case .ended:phase="ended"
+            case .cancelled:phase="cancelled"
+            default:continue
+            }
+            var view=touch.view,names:[String]=[]
+            let allowed="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_."
+            while let current=view,names.count<4 {
+                let name=String(reflecting:type(of:current)).filter { allowed.contains($0) }
+                names.append(String(name.prefix(40)));view=current.superview
+            }
+            guard !names.isEmpty else { continue }
+            records+=1
+            FixtureLaunchDiagnostics.recordInput(phase,point:touch.location(in:window),views:names.joined(separator:","))
+        }
+    }
+}
+
+private extension UIWindow {
+    @objc func fixtureObservedSendEvent(_ event:UIEvent) {
+        FixtureInputDelivery.observe(event)
+        // Exchanged implementation: invokes UIKit's original sendEvent once.
+        fixtureObservedSendEvent(event)
     }
 }

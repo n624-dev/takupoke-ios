@@ -11,7 +11,7 @@ extension ManualAssistanceChecks {
         guard measuredStep("editor-background", {
             requireEditorSurvivesBackground(key,input,value,processBefore:processBefore)
         }) else { return }
-        acknowledge(key);visible(submit).tap()
+        acknowledge(key);visible(submit,knownID:"manual-submit").tap()
         guard measuredStep("review-background", {
             requireReviewSurvivesBackground(value,processBefore:processBefore)
         }) else { return }
@@ -23,13 +23,13 @@ extension ManualAssistanceChecks {
         let key=fieldIDs[0];edit(input(key),"架空変更前確認",id:key);acknowledge(key)
         tap("架空検証");tap("架空原本のハッシュを変更")
         XCTAssertTrue(app.staticTexts["manual-mutation-complete"].waitForExistence(timeout:10),app.debugDescription)
-        visible(submit).tap()
+        visible(submit,knownID:"manual-submit").tap()
         XCTAssertTrue(app.staticTexts["原本または入力内容を確認できませんでした。前回の正常結果を保持しています。"].waitForExistence(timeout:20),app.debugDescription)
         XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("lastgood-preserved"))
         XCTAssertFalse(app.buttons["この資料全体の結果を使用"].exists)
         app.terminate();launch()
         XCTAssertTrue(fieldsExist())
-        let second=fieldIDs[0];edit(input(second),"架空再照合",id:second);acknowledge(second);visible(submit).tap()
+        let second=fieldIDs[0];edit(input(second),"架空再照合",id:second);acknowledge(second);visible(submit,knownID:"manual-submit").tap()
         requireReview(["架空再照合"],comparable:false)
         tap("架空検証");tap("架空原本のハッシュを変更")
         XCTAssertTrue(app.staticTexts["manual-mutation-complete"].waitForExistence(timeout:10),app.debugDescription)
@@ -43,10 +43,10 @@ extension ManualAssistanceChecks {
         XCTAssertTrue(fieldsExist());let ids=fieldIDs;XCTAssertEqual(ids.count,3)
         for i in 0..<3 {
             let input=input(ids[i]);edit(input,"架空手確認\(i)",id:ids[i])
-            let ack=ack(ids[i]);XCTAssertEqual(visible(ack).value as? String,"0");acknowledge(ids[i])
+            let ack=ack(ids[i]);XCTAssertEqual(visible(ack,knownID:"manual-ack-"+ids[i]).value as? String,"0");acknowledge(ids[i])
             assertSubmitEnabled(i==2)
         }
-        visible(submit).tap();requireReview((0..<3).map { "架空手確認\($0)" },comparable:true)
+        visible(submit,knownID:"manual-submit").tap();requireReview((0..<3).map { "架空手確認\($0)" },comparable:true)
         tap("訂正と変更を確認して資料全体へ",knownID:"manual-review-submit");requirePreview()
         XCTAssertTrue(app.staticTexts["原本を確認して入力した3項目を含みます。"].exists)
         let navigation=app.navigationBars["時間割の復旧"],close=app.navigationBars["時間割の復旧"].buttons["閉じる"]
@@ -71,7 +71,7 @@ extension ManualAssistanceChecks {
             let selectedKey = fieldIDs[0], selectedSubject = "架空選択科目"
             inspectSource(selectedKey)
             edit(self.input(selectedKey),selectedSubject,id:selectedKey)
-            acknowledge(selectedKey);assertSubmitEnabled(true);visible(submit).tap()
+            acknowledge(selectedKey);assertSubmitEnabled(true);visible(submit,knownID:"manual-submit").tap()
             requireReview([selectedSubject],comparable:false)
             selectHighConfidenceFieldsAndRequireThreeFieldLimit(selectedKey,subject:selectedSubject)
             adoptAndRequirePersistedSelectedCorrections()

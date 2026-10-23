@@ -11,14 +11,14 @@ extension ManualAssistanceChecks {
 
     func prepareOneCorrection(_ key:String,_ input:XCUIElement,_ value:String) {
         inspectSource(key)
-        XCTAssertEqual(visible(ack(key)).value as? String,"0")
+        XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"0")
         assertSubmitEnabled(false)
         edit(input,value,id:key);acknowledge(key)
         assertSubmitEnabled(true)
         tap("架空検証");tap("表示サイズを変更")
-        XCTAssertEqual(visible(input).value as? String,value);XCTAssertEqual(visible(ack(key)).value as? String,"1")
+        XCTAssertEqual(visible(input,knownID:"manual-value-"+key).value as? String,value);XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"1")
         tap("架空検証");tap("同じ原本の状態を再確認")
-        XCTAssertEqual(visible(input).value as? String,value);XCTAssertEqual(visible(ack(key)).value as? String,"1")
+        XCTAssertEqual(visible(input,knownID:"manual-value-"+key).value as? String,value);XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"1")
     }
 
     func requireEditorSurvivesBackground(_ key:String,_ input:XCUIElement,_ value:String,processBefore:String)->Bool {
@@ -30,8 +30,8 @@ extension ManualAssistanceChecks {
         let observedProcess=app.staticTexts["manual-process-launch"].firstMatch.label
         print("TAKUPOKE-MANUAL-PROCESS expected=\(processBefore);observed=\(observedProcess)")
         XCTAssertEqual(observedProcess,processBefore,"Background must preserve the original process; relaunch is not survival")
-        XCTAssertEqual(visible(input).value as? String,value);XCTAssertEqual(visible(ack(key)).value as? String,"1")
-        edit(input,value+"改",id:key);XCTAssertEqual(visible(ack(key)).value as? String,"0")
+        XCTAssertEqual(visible(input,knownID:"manual-value-"+key).value as? String,value);XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"1")
+        edit(input,value+"改",id:key);XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"0")
         assertSubmitEnabled(false)
         XCTAssertTrue(app.images.matching(NSPredicate(format:"identifier BEGINSWITH 'manual-crop-'")).firstMatch.exists)
         return true
@@ -52,9 +52,9 @@ extension ManualAssistanceChecks {
         // Reopening the editor retains literal input; a fresh edit clears ACK
         // and cannot reuse the previously validated correction review.
         tap("入力を見直す")
-        XCTAssertEqual(visible(input).value as? String,value+"改")
-        edit(input,value+"再確認",id:key);XCTAssertEqual(visible(ack(key)).value as? String,"0")
-        assertSubmitEnabled(false);acknowledge(key);visible(submit).tap()
+        XCTAssertEqual(visible(input,knownID:"manual-value-"+key).value as? String,value+"改")
+        edit(input,value+"再確認",id:key);XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"0")
+        assertSubmitEnabled(false);acknowledge(key);visible(submit,knownID:"manual-submit").tap()
         requireReview([value+"再確認"],comparable:false)
         inspectSource(key)
     }
@@ -89,23 +89,23 @@ extension ManualAssistanceChecks {
         XCTAssertTrue(fieldsExist(),app.debugDescription)
         XCTAssertEqual(Set(fieldIDs),Set([subjectKey,teacherKey]))
         XCTAssertEqual(visible(input(subjectKey)).value as? String,subject)
-        for key in [subjectKey,teacherKey] { XCTAssertEqual(visible(ack(key)).value as? String,"0") }
+        for key in [subjectKey,teacherKey] { XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"0") }
         assertSubmitEnabled(false)
         inspectSource(teacherKey);edit(input(teacherKey),teacher,id:teacherKey)
         acknowledge(subjectKey);assertSubmitEnabled(false);acknowledge(teacherKey);assertSubmitEnabled(true)
-        visible(submit).tap();requireReview([subject,teacher],comparable:false)
+        visible(submit,knownID:"manual-submit").tap();requireReview([subject,teacher],comparable:false)
         tap("訂正と変更を確認して資料全体へ");requirePreview()
         selectCorrectionFromPreview(cell:cell,lesson:lesson,role:"room")
         XCTAssertTrue(fieldsExist(),app.debugDescription)
         XCTAssertEqual(Set(fieldIDs),Set([subjectKey,teacherKey,roomKey]))
         XCTAssertEqual(visible(input(subjectKey)).value as? String,subject)
         XCTAssertEqual(visible(input(teacherKey)).value as? String,teacher)
-        for key in [subjectKey,teacherKey,roomKey] { XCTAssertEqual(visible(ack(key)).value as? String,"0") }
+        for key in [subjectKey,teacherKey,roomKey] { XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"0") }
         inspectSource(roomKey);edit(input(roomKey),room,id:roomKey)
         acknowledge(subjectKey);assertSubmitEnabled(false)
         acknowledge(teacherKey);assertSubmitEnabled(false)
         acknowledge(roomKey);assertSubmitEnabled(true)
-        visible(submit).tap();requireReview([subject,teacher,room],comparable:false)
+        visible(submit,knownID:"manual-submit").tap();requireReview([subject,teacher,room],comparable:false)
         tap("訂正と変更を確認して資料全体へ");requirePreview()
         let current = "recovery-correction-menu-"+cell+"-"+lesson
         // Preview starts at its header; offscreen lesson rows are virtualized.

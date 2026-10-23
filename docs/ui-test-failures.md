@@ -2294,3 +2294,37 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 2026-10-23、source2ecf52dからの未コミットPicker観測候補、Debian13／Python3.12.14。`python3 -B tools/test_catalog.py write`がDuplicate source ownership: .github/workflows/test-tools.ymlでexit1。新しいPicker対応表へ追加したworkflowが既に別groupに登録されていたという観測で、UI実行や候補の局所テストには未到達。対処前に記録した。現在とHEADの所有group・チェック対応を読んで重複と必要な検証の差を照合し、修正・根拠を隔離ブランチへpushしてから一覧生成を再試行する。
 
 - N84照合ではHEADのtest-catalog groupがworkflow全体の単独所有元で、test_test_catalog／manifest／application runnerの既存検査へ対応付けていた。Picker groupへの二重追加だけを取り消し、既存の所有・チェックを維持する。変更するPicker観測コード自体は既存Picker groupの3実UIケース／runnerへ登録済みで、今回のSDK準備helperも既存9モードで確認済み。対応を減らす修正ではなく、誤った二重所有の取消しである。候補全体と記録をpush後に一覧write/checkを再実行する。
+
+
+## N85 main432の単項目訂正27が失敗
+
+2026-10-23 13:08 UTCの再開時まとめ照会で、source9945e1544cf2b88221952c7fa22e63ca6af0ea82、run39924632738／試行1、job120318445518、iOS27 / SDK27.0 / Runtime27.0、testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackgroundの実操作step（08:43:00〜08:56:53 UTC）がfailure終端と確認。ログ未読で、具体的な操作・失敗箇所・原因は未確定として対処前に記録した。全job終端を確認し、取消しなし。main432は単項目27と通常26Bの失敗により手動26／公開が依存skip、公開は未実施。旧PRもPickerと訂正26の失敗を保持する。これから新完了ログを読み、索引の過去詳細と当時／現在コードを照合し、修正根拠をpushする前に再試行しない。
+
+
+## N86 main432の通常26Bが失敗
+
+2026-10-23 13:08 UTCの再開時まとめ照会で、source9945e1544cf2b88221952c7fa22e63ca6af0ea82、run39924632738／試行1、job120333009228、iOS26.5 / SDK27.0、通常UI Bの実操作step（09:05:55〜09:23:42 UTC）がfailure終端と確認。ログ未読で、具体的な操作・失敗箇所・原因は未確定として対処前に記録した。全job終端を確認し、取消しなし。main432は単項目27と通常26Bの失敗により手動26／公開が依存skip、公開は未実施。旧PRもPickerと訂正26の失敗を保持する。これから新完了ログを読み、索引の過去詳細と当時／現在コードを照合し、修正根拠をpushする前に再試行しない。
+
+
+## N87 旧PR全体の単項目訂正26が失敗
+
+2026-10-23 13:08 UTCの再開時まとめ照会で、source2ecf52d2850420638c51ec5d490987d6bc97006f、run39917995520／試行1、job120315291565、iOS26.5 / SDK26.6、testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackgroundの実操作step（08:19:41〜08:30:36 UTC）がfailure終端と確認。ログ未読で、具体的な操作・失敗箇所・原因は未確定として対処前に記録した。全job終端を確認し、取消しなし。main432は単項目27と通常26Bの失敗により手動26／公開が依存skip、公開は未実施。旧PRもPickerと訂正26の失敗を保持する。これから新完了ログを読み、索引の過去詳細と当時／現在コードを照合し、修正根拠をpushする前に再試行しない。
+
+
+## N88 旧PR全体の明示選択訂正26が失敗
+
+2026-10-23 13:08 UTCの再開時まとめ照会で、source2ecf52d2850420638c51ec5d490987d6bc97006f、run39917995520／試行1、job120315291599、iOS26.5 / SDK26.6、testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunchの実操作step（08:20:26〜08:36:15 UTC）がfailure終端と確認。ログ未読で、具体的な操作・失敗箇所・原因は未確定として対処前に記録した。全job終端を確認し、取消しなし。main432は単項目27と通常26Bの失敗により手動26／公開が依存skip、公開は未実施。旧PRもPickerと訂正26の失敗を保持する。これから新完了ログを読み、索引の過去詳細と当時／現在コードを照合し、修正根拠をpushする前に再試行しない。
+
+
+## N89 旧PR全体の原本変更訂正26が失敗
+
+2026-10-23 13:08 UTCの再開時まとめ照会で、source2ecf52d2850420638c51ec5d490987d6bc97006f、run39917995520／試行1、job120315291673、iOS26.5 / SDK26.6、testChangedOriginalCannotSubmitOrReplaceLastGoodの実操作step（08:19:41〜08:30:04 UTC）がfailure終端と確認。ログ未読で、具体的な操作・失敗箇所・原因は未確定として対処前に記録した。全job終端を確認し、取消しなし。main432は単項目27と通常26Bの失敗により手動26／公開が依存skip、公開は未実施。旧PRもPickerと訂正26の失敗を保持する。これから新完了ログを読み、索引の過去詳細と当時／現在コードを照合し、修正根拠をpushする前に再試行しない。
+
+
+### N85〜N89の完了ログと過去詳細の照合
+
+- N85は表示サイズ変更の実menu操作後、同じ入力を古いAny/firstMatchで存在照会して停止（Navigation.swift:48、422.439秒）。ACKとsubmit=trueは成立。U11/U72/N59の詳細、1b368f5/2a22448/現在のInput・OneCorrectionを読んだ。既知IDを持つclear/reviewと異なり、サイズ変更後のinputだけknownIDを渡していなかった。候補は入力／ACK／submitの既知IDを明示して、その試行の実要素を取得する変更。全包含・hittable・16探索・入力全文・背景／同一process・保存は維持する。
+- N88は最初のACK後の古いrow照会が約30秒ずつ停止し45秒待機を消費（255.306秒）。取得後の実AXは外側／内側Switchともvalue1、実診断ack=true、継続行にkind=ackのfalse→trueイベントを含んだ。Binding未発火ではない。U11/U72の詳細と同じ現要素方式へ、各native predicate評価で一致IDの実Switchを一度取得してvalue1を必須にする。期限45秒・一回の実接触・期待値は維持する。
+- N87は最初のACKは成功し、背景後の再編集とkeyboard消失・入力全文も成立したが、二度目の接触後は実AX value0／診断ack=false、イベントは再編集までで二度目ackなし（312.742秒）。N88とは区別する。U71/U64/N66の詳細と当時のInputを読み、接触時間・点を往復せず現状維持する。新しい現要素取得で通るとは断定せず、native入力の届き先をQAだけの観測で調べる。
+- N89は実clear・全文typing後、完了Buttonの45秒存在待機はtrue、その直後の別配列照会が0件（Input.swift:104、141.889秒）。U72/当時1b368f5と現在の二段階照会を比較し、現在一意な実Buttonと有効・hittable・包含を同じ45秒native predicateで捕捉し、その一個を一回tapする候補。0件で成功扱いせず、曖昧も拒否し、keyboard消失と現在入力全文を必須にする。
+- N86は最初のリンク解除の実2秒長押し後に45秒menu不在（84.107秒）。失敗画面127329bytes／SHA256 87935bbd87611075c6cdb4058768a89820350575c273a824c29215ca74ff744eは架空URLのSafariを表示した。一方AXは元の一覧を返しており、画像を照合してprimary actionへの遷移を確認した。U42/U54/N44/N55とverification 7999以降、旧dfb185cの標準Menu変更と現在LinkRowを照合した。Menu(primaryAction:)変更後にも再発した段階。製品や操作点・長押し時間を推測変更せず、QA限定のUIWindow入力観測で実touchのphase／座標／native view classを固定形式だけ記録する。元のsendEventを必ず一回通し、値／状態の代入・gesture追加・再入力はしない。公開製品へ観測コードを含めない。候補・根拠を隔離ブランチへpushしてから局所検査し、新規レビュー後に焦点比較する。

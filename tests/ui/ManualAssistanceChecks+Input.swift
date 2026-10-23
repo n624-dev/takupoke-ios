@@ -7,11 +7,12 @@ extension ManualAssistanceChecks {
     func input(_ id:String)->XCUIElement { app.descendants(matching:.any)["manual-value-"+id].firstMatch }
     func ack(_ id:String)->XCUIElement { app.switches["manual-ack-"+id].firstMatch }
     func acknowledge(_ id:String) {
-        let row=visible(ack(id))
-        XCTAssertEqual(row.switches.count,1,"Acknowledgement must have one native control")
-        let control=row.switches.firstMatch
-        XCTAssertTrue(control.exists,app.debugDescription)
-        let actual=visible(control)
+        let row=visible(ack(id),knownID:"manual-ack-"+id)
+        let controls=row.switches.allElementsBoundByIndex
+        guard controls.count==1 else {
+            XCTFail("Acknowledgement must have one current native control");return
+        }
+        let actual=controls[0]
         let list=app.collectionViews["manual-recovery-list"]
         let navigation=app.navigationBars["時間割の復旧"]
         let keyboardFrame=observedKeyboardFrame()
@@ -26,7 +27,7 @@ extension ManualAssistanceChecks {
         }
         let diagnostic=app.staticTexts["manual-qa-diagnostic"].firstMatch
         print("TAKUPOKE-MANUAL-ACK before;id=\(id);outer=\(outerFrame);inner=\(innerFrame);hittable=\(actual.isHittable);point=\(point);app=\(appFrame);viewport=\(viewport);keyboard=\(keyboardFrame.map { String(describing:$0) } ?? "absent");diagnostic=\(diagnostic.exists ? String(describing:diagnostic.frame):"absent");value=\(row.value as? String ?? "unknown")")
-        XCTAssertTrue(actual.isHittable,app.debugDescription)
+        XCTAssertTrue(actual.isEnabled && actual.isHittable,app.debugDescription)
         // U71: one brief contact at the same verified center, relative to the
         // actual inner widget rather than a saved application-screen position.
         actual.coordinate(withNormalizedOffset:CGVector(
@@ -34,15 +35,21 @@ extension ManualAssistanceChecks {
             dy:(point.y-innerFrame.minY)/innerFrame.height)).press(forDuration:0.1)
         // Post-tap diagnostics must not add AX queries before the native state check.
         print("TAKUPOKE-MANUAL-ACK after;id=\(id)")
-        let changed=XCTNSPredicateExpectation(predicate:NSPredicate(format:"value == %@","1"),object:row)
+        var ambiguous=false
+        let changed=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
+            let current=self.app.switches.matching(identifier:"manual-ack-"+id).allElementsBoundByIndex
+            if current.count>1 { ambiguous=true;return true }
+            return current.count==1 && current[0].value as? String == "1"
+        },object:app)
         let outcome=XCTWaiter.wait(for:[changed],timeout:nativeStateTimeout)
         let state=app.staticTexts["manual-input-state"].firstMatch
         print("TAKUPOKE-MANUAL-INPUT " + (state.exists ? state.label : "absent"))
         emitEvents()
+        XCTAssertFalse(ambiguous,"Acknowledgement identifier must remain unique")
         XCTAssertEqual(outcome,.completed,app.debugDescription)
     }
     func assertSubmitEnabled(_ expected:Bool) {
-        let button=visible(submit)
+        let button=visible(submit,knownID:"manual-submit")
         let changed=XCTNSPredicateExpectation(predicate:NSPredicate(format:"enabled == %@",NSNumber(value:expected)),object:button)
         let outcome=XCTWaiter.wait(for:[changed],timeout:nativeStateTimeout)
         print("TAKUPOKE-MANUAL-INPUT submit=\(expected);wait-outcome=\(outcome.rawValue)")
@@ -96,23 +103,29 @@ extension ManualAssistanceChecks {
         // acknowledgement on the user's behalf.
         let navigation=app.navigationBars["時間割の復旧"]
         let buttons=navigation.buttons.matching(identifier:"manual-edit-done")
-        XCTAssertTrue(buttons.firstMatch.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
-        // U72: use the current unique native element for all required geometry
-        // and state checks rather than repeatedly resolving a firstMatch query.
-        let current=buttons.allElementsBoundByIndex
-        guard current.count==1 else {
-            XCTFail("The native completion button must be unique; matches=\(current.count)");return
+        var readyButton:XCUIElement?,ambiguous=false
+        let ready=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
+            let current=buttons.allElementsBoundByIndex
+            if current.count>1 { ambiguous=true;return true }
+            guard current.count==1 else { return false }
+            let done=current[0]
+            let navigationFrame=navigation.frame,doneFrame=done.frame
+            let enabled=done.isEnabled,hittable=done.isHittable
+            guard ManualScrollNavigation.usable(navigationFrame) && ManualScrollNavigation.usable(doneFrame)
+                  && navigationFrame.contains(doneFrame) && enabled && hittable else { return false }
+            readyButton=done;return true
+        },object:app)
+        let result=XCTWaiter.wait(for:[ready],timeout:nativeStateTimeout)
+        guard !ambiguous,result == .completed,let done=readyButton else {
+            XCTFail("The native completion button must be unique, visible and operable within the original deadline: "+app.debugDescription);return
         }
-        let done=current[0]
-        let navigationFrame=navigation.frame,doneFrame=done.frame
-        let enabled=done.isEnabled,hittable=done.isHittable
-        XCTAssertTrue(ManualScrollNavigation.usable(navigationFrame) && ManualScrollNavigation.usable(doneFrame)
-                      && navigationFrame.contains(doneFrame) && enabled && hittable,app.debugDescription)
         done.tap()
         let dismissed=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
             self.app.keyboards.allElementsBoundByIndex.isEmpty
         },object:app)
         XCTAssertEqual(XCTWaiter.wait(for:[dismissed],timeout:nativeStateTimeout),.completed,app.debugDescription)
-        XCTAssertEqual(e.value as? String,value,"The physical edit must replace the full previous input before acknowledgement")
+        let completed=self.app.descendants(matching:.any).matching(identifier:"manual-value-"+id).allElementsBoundByIndex
+        guard completed.count==1 else { XCTFail("Completed input must remain unique");return }
+        XCTAssertEqual(completed[0].value as? String,value,"The physical edit must replace the full previous input before acknowledgement")
     }
 }

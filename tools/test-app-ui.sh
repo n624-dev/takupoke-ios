@@ -14,8 +14,9 @@ try:
         if not owned.is_symlink() and owned.is_file() and owned.stat().st_size <= 65536:
             pattern = re.compile(r"TAKUPOKE_LIFECYCLE pid=\d+ time=\d+(?:\.\d+)? stage=(?:init-enter|seed-enter|seed-complete|scene-construction|content-appeared|root-task-enter|application-ready|fixture-ready|fixture-ready-timeout|notification-settings-enter|notification-settings-complete|notification-settings-cancelled|notification-settings-not-requested|notification-on-binding|notification-off-binding|notification-native-request|notification-native-callback|notification-auth-request|notification-auth-callback|notification-auth-returned|retention-recovery-action|retention-dialog-on|retention-dialog-off)")
             switch = re.compile(r"TAKUPOKE_AI_SWITCH pid=\d+ time=\d+(?:\.\d+)? phase=(?:before|after) requested=[01] stored=[01]")
+            delivery = re.compile(r"TAKUPOKE_INPUT pid=\d+ time=\d+(?:\.\d+)? phase=(?:began|ended|cancelled) x=-?\d+(?:\.\d+)? y=-?\d+(?:\.\d+)? views=[A-Za-z0-9_.,]{1,163}")
             for line in owned.read_text(encoding="utf-8").splitlines():
-                if pattern.fullmatch(line) or switch.fullmatch(line): print(line)
+                if pattern.fullmatch(line) or switch.fullmatch(line) or delivery.fullmatch(line): print(line)
         else:
             print("TAKUPOKE_LIFECYCLE capture-missing-or-limited")
     else:

@@ -9,7 +9,7 @@ final class ManualAssistanceChecks:XCTestCase {
     let nativeStateTimeout:TimeInterval=45
     override func setUp() { continueAfterFailure=false;app=XCUIApplication() }
     func launch(_ flags:[String]=[]) {
-        app.launchArguments=["--reset-fixture","--manual-ui","--manual-integral-rails","-AppleLanguages","(ja)","-AppleLocale","ja_JP"]+flags
+        app.launchArguments=["--reset-fixture","--manual-ui","--fixture-input-trace","--manual-integral-rails","-AppleLanguages","(ja)","-AppleLocale","ja_JP"]+flags
         app.launch();XCTAssertTrue(app.staticTexts["fixture-ready"].waitForExistence(timeout:45),app.debugDescription)
         app.tabBars.buttons["設定"].tap();tap("時間割ファイル");tap("通常時間割の詳細を見る");tap("端末内で復旧する");tap("端末内で復旧を開始")
     }
