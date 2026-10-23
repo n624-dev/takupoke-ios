@@ -32,7 +32,15 @@ extension ManualAssistanceChecks {
             }
             // SwiftUI can recycle the native editor when its row is offscreen.
             // Resolve its known identifier again, without a cached native type.
-            let matches=targetID.isEmpty ? []:app.descendants(matching:.any).matching(identifier:targetID).allElementsBoundByIndex
+            // A clear control has a known native Button role inside this List.
+            // Avoid traversing unrelated sheets and editors for an offscreen Button.
+            let query=inRecovery && targetID.hasPrefix("manual-clear-")
+                ? list.buttons.matching(identifier:targetID)
+                : app.descendants(matching:.any).matching(identifier:targetID)
+            let matches=targetID.isEmpty ? []:query.allElementsBoundByIndex
+            guard matches.count<=1 else {
+                XCTFail("Known manual control must be unique: "+targetID);return e
+            }
             let target=matches.first ?? e
             let navigation=inRecovery ? app.navigationBars["時間割の復旧"] : app.navigationBars.firstMatch
             let top=max(list.frame.minY,navigation.frame.maxY)+12

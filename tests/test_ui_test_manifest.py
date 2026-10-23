@@ -604,7 +604,12 @@ METHOD
         probe=(ROOT/".github/workflows/manual-input-native-probe.yml").read_text(encoding="utf-8")
         for case in original|{selected}:
             self.assertIn("          - "+case+"\n",probe)
-        self.assertIn("timeout-minutes: ${{ inputs.case == '"+selected+"' && 45 || 35 }}",probe)
+        self.assertIn("timeout-minutes: ${{ matrix.case == '"+selected+"' && 45 || 35 }}",probe)
+        all_cases=json.loads(re.search(r"inputs.case == 'all' && '([^']+)'",probe).group(1))
+        self.assertCountEqual(all_cases,original|{selected})
+        self.assertIn("ios: [26, 27]",probe)
+        self.assertIn("TKPK_MANUAL_CASE: ${{ matrix.case }}",probe)
+        self.assertNotIn("continue-on-error",probe)
         self.assertIn("bash tools/test-app-ui.sh", simulator)
 
     def test_cli_selects_the_complete_shard_and_rejects_invalid_shard(self):

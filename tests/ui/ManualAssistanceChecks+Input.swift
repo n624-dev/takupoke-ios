@@ -61,9 +61,11 @@ extension ManualAssistanceChecks {
         // editor alone does not prove that its sibling button is materialized
         // or fully inside the viewport; absent firstMatch queries can stall AX.
         let target=visible(clear,knownID:"manual-clear-"+id)
-        XCTAssertTrue(target.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
-        print("TAKUPOKE-MANUAL-CLEAR-TAP id=\(id);frame=\(target.frame);enabled=\(target.isEnabled);hittable=\(target.isHittable)")
-        XCTAssertTrue(target.isEnabled)
+        let clearFrame=target.frame,enabled=target.isEnabled,hittable=target.isHittable
+        print("TAKUPOKE-MANUAL-CLEAR-TAP id=\(id);frame=\(clearFrame);enabled=\(enabled);hittable=\(hittable)")
+        guard ManualScrollNavigation.usable(clearFrame),enabled,hittable else {
+            XCTFail("The revealed native clear Button must remain operable");return
+        }
         target.tap()
         let empty=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
             let current=self.app.descendants(matching:.any)

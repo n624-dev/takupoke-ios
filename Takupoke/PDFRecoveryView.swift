@@ -102,6 +102,7 @@ struct PDFRecoveryView: View {
                                 } label: {
                                     Image(systemName:"xmark.circle.fill").foregroundStyle(.secondary)
                                         .frame(minWidth:44,minHeight:44)
+                                        .contentShape(Rectangle())
                                 }.buttonStyle(.borderless).accessibilityLabel("入力を消去")
                                     .accessibilityIdentifier("manual-clear-" + field.id)
                                     .opacity(canClear ? 1:0).disabled(!canClear).accessibilityHidden(!canClear)

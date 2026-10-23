@@ -37,7 +37,8 @@ class ManualUIProjectTests(unittest.TestCase):
         checks=manual_check_source()
         edit=checks.split('    func edit(',1)[1].split('    func editStage(',1)[0]
         self.assertLess(edit.index('let target=visible(clear,knownID:'),edit.index('target.tap()'))
-        self.assertLess(edit.index('let target=visible(clear,knownID:'),edit.index('target.waitForExistence'))
+        self.assertNotIn('target.waitForExistence',edit)
+        self.assertIn('guard ManualScrollNavigation.usable(clearFrame),enabled,hittable',edit)
         self.assertLess(edit.index('let target=visible(clear,knownID:'),edit.index('let e=editors[0]'))
         self.assertNotIn('clear.waitForExistence',edit)
         self.assertNotIn('visible(original',edit)

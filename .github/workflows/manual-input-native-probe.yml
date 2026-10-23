@@ -7,6 +7,7 @@ on:
         type: choice
         default: testThreeFieldsRequireEachAcknowledgementAndFourRefuses
         options:
+          - all
           - testThreeFieldsRequireEachAcknowledgementAndFourRefuses
           - testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground
           - testChangedOriginalCannotSubmitOrReplaceLastGood
@@ -17,10 +18,12 @@ permissions:
 
 jobs:
   focus:
-    name: Native input iOS ${{ matrix.ios }}
+    name: Native input iOS ${{ matrix.ios }} / ${{ matrix.case }}
     strategy:
       fail-fast: false
       matrix:
+        ios: [26, 27]
+        case: ${{ fromJSON(inputs.case == 'all' && '["testThreeFieldsRequireEachAcknowledgementAndFourRefuses","testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground","testChangedOriginalCannotSubmitOrReplaceLastGood","testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch"]' || format('["{0}"]', inputs.case)) }}
         include:
           - ios: 26
             runner: macos-26
@@ -29,11 +32,11 @@ jobs:
             runner: xcode-27
             developer: /Applications/Xcode_27.0.app/Contents/Developer
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: ${{ inputs.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' && 45 || 35 }}
+    timeout-minutes: ${{ matrix.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' && 45 || 35 }}
     env:
       DEVELOPER_DIR: ${{ matrix.developer }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
-      TKPK_MANUAL_CASE: ${{ inputs.case || 'testThreeFieldsRequireEachAcknowledgementAndFourRefuses' }}
+      TKPK_MANUAL_CASE: ${{ matrix.case }}
       TKPK_MANUAL_DIAGNOSTICS: '1'
       PYTHONDONTWRITEBYTECODE: '1'
     steps:

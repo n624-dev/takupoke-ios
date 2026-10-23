@@ -2328,3 +2328,24 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 - N87は最初のACKは成功し、背景後の再編集とkeyboard消失・入力全文も成立したが、二度目の接触後は実AX value0／診断ack=false、イベントは再編集までで二度目ackなし（312.742秒）。N88とは区別する。U71/U64/N66の詳細と当時のInputを読み、接触時間・点を往復せず現状維持する。新しい現要素取得で通るとは断定せず、native入力の届き先をQAだけの観測で調べる。
 - N89は実clear・全文typing後、完了Buttonの45秒存在待機はtrue、その直後の別配列照会が0件（Input.swift:104、141.889秒）。U72/当時1b368f5と現在の二段階照会を比較し、現在一意な実Buttonと有効・hittable・包含を同じ45秒native predicateで捕捉し、その一個を一回tapする候補。0件で成功扱いせず、曖昧も拒否し、keyboard消失と現在入力全文を必須にする。
 - N86は最初のリンク解除の実2秒長押し後に45秒menu不在（84.107秒）。失敗画面127329bytes／SHA256 87935bbd87611075c6cdb4058768a89820350575c273a824c29215ca74ff744eは架空URLのSafariを表示した。一方AXは元の一覧を返しており、画像を照合してprimary actionへの遷移を確認した。U42/U54/N44/N55とverification 7999以降、旧dfb185cの標準Menu変更と現在LinkRowを照合した。Menu(primaryAction:)変更後にも再発した段階。製品や操作点・長押し時間を推測変更せず、QA限定のUIWindow入力観測で実touchのphase／座標／native view classを固定形式だけ記録する。元のsendEventを必ず一回通し、値／状態の代入・gesture追加・再入力はしない。公開製品へ観測コードを含めない。候補・根拠を隔離ブランチへpushしてから局所検査し、新規レビュー後に焦点比較する。
+
+## N90 main433の明示選択訂正26が失敗
+
+2026-10-23 14:58 UTCの予定まとめ照会で、source1d0e4f91aa80d62da09807c835928882bbce077f、run39964623999／attempt1、job120471460199、iOS26／SDK26.6（実Runtimeは完了ログで照合予定）、testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunchの実操作step（14:32:19〜14:46:10 UTC）がfailure終端と確認した。完了ログは未読で、具体的な操作・失敗段階・原因は未確定として対処前に記録する。同じmainの原本変更26はsuccess、ほか通常26 A/Bは継続中で取消ししない。これから新しい完了ログ、過去の詳細記録、当時と現在のコードを照合し、根拠と候補をpushする前に再試行しない。
+
+## N91 main433の三項目訂正26が失敗
+
+2026-10-23 14:58 UTCの予定まとめ照会で、source1d0e4f91aa80d62da09807c835928882bbce077f、run39964623999／attempt1、job120471460227、iOS26／SDK26.6（実Runtimeは完了ログで照合予定）、testThreeFieldsRequireEachAcknowledgementAndFourRefusesの実操作step（14:32:21〜14:44:28 UTC）がfailure終端と確認した。完了ログは未読で、具体的な操作・失敗段階・原因は未確定として対処前に記録する。同じmainの原本変更26はsuccess、ほか通常26 A/Bは継続中で取消ししない。これから新しい完了ログ、過去の詳細記録、当時と現在のコードを照合し、根拠と候補をpushする前に再試行しない。
+
+## N92 main433の単項目訂正26が失敗
+
+2026-10-23 14:58 UTCの予定まとめ照会で、source1d0e4f91aa80d62da09807c835928882bbce077f、run39964623999／attempt1、job120471460316、iOS26／SDK26.6（実Runtimeは完了ログで照合予定）、testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackgroundの実操作step（14:32:19〜14:47:23 UTC）がfailure終端と確認した。完了ログは未読で、具体的な操作・失敗段階・原因は未確定として対処前に記録する。同じsourceの直前の両OS焦点では成功しており、恒常的解消とは主張していない。mainの原本変更26はsuccess、ほか通常26 A/Bは継続中で取消ししない。これから新しい完了ログ、過去の詳細記録、当時と現在のコードを照合し、根拠と候補をpushする前に再試行しない。
+
+### N90〜N92の完了ログで確認した段階
+
+全3件の実Runtimeは26.5。N90は最初の科目clearのButton実枠(317,587.33,44,44)・enabled/hittable確認後、一回tapの45秒native空文字待機がtimeout。実診断は元入力「架空科」のまま（Input.swift:80、203.473秒）で、入力／ACKには未到達。N92も最初のclearで同じ枠と条件を通過し、45秒後も元入力「架空科」のまま（Input.swift:80、214.103秒）。N91はNavigation.swift:35のUI照会timeout、132.555秒で、具体的な照会先は周辺ログと現在の行番号をこれから照合する。これらの観測後も対処はまだ選んでいない。原本変更26/job120471460166は405.854秒、clear2回・実ACK・完了照合を通過してsuccess。単一の成功から失敗が解消したとはせず、過去のclear／現要素取得の詳細と旧コードを読んで比較する。
+
+- 検索語clear／消去／contentShape／borderless／Navigation.swift:35／descendantsでN71、U01、U11、N52、N83と該当詳細を読み、fcc6ee2／1b368f5と現行のView・Input・Navigationを照合した。N90/N92はN71と同じ未消去だが、今回は実入力traceがある。実接触はどちらも(339,609.33)のCellHostingViewに届いた後、約0.12秒でcancelled。Bindingは初期draft1件だけでclearなし。同じ実枠で成功した原本変更26の2回は約0.058／0.080秒後にendedと実clearを記録した。U11の「消去は成立した後の古いAX」と異なる。触れた位置の誤りやguard拒否は未確定で、接触時間・点の変更はしない。
+- 製品の既存borderless ButtonはImageラベルに44ptのframeだけを持ち、明示したcontentShapeがなかった。候補はその同じラベルの全44ptをRectangleで明示する一行だけ。見た目、Buttonの種類、元action、canClear／draft一致／reviewなし等のguard、値・ACK・focus操作は維持する。hit領域が下位原因だったとの断定はせず、QA生成コピーだけでguard拒否を2つのBoolのhashとして記録し、実clear未発火と区別できるようにする。guardはそのまま残し、値や入力を注入しない。
+- N91は最初のroomのclearを探す1回目の実passive Cellドラッグ後、全アプリAny descendantsの一致ID配列照会が約45秒停止した。有限なviewport・受動行の実frameと16探索を維持し、既知のclearだけは同じ復旧Listの実Buttonとして検索する候補。editorのnative型は固定せず他の経路は維持する。重複IDは新たに拒否する。N83と同じく、既にvisibleが確認したclearの直後の重複存在待機を除き、現在の実frame／enabled／hittableを一度確認して一回tapする。45秒の空文字待機・ACK取消し・実keyboard・全文入力・完了・保存は変更しない。AX下位原因は未確定。
+- 新しい製品hit領域を扱うため、個別成功だけで判断せず、既存4ケースを各26／27の独立jobで比較する。診断workflowにallを追加して元4件×両OSへ展開し、各caseの元45／35分と厳密な完了照合を維持する。公開workflow・全15必須gateは変更しない。候補と根拠を隔離ブランチへpushしてからローカル検査し、新規GPT-6.1 Sol／Highのimmutable差分レビュー後だけActionsを開始する。
