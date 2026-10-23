@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`dbf92910904c33833f86462306b8f976ed790e14ea72a49b1f9c96c51526a350`
+`306462d8c4f2a07864ba5dc7b4e451ee0253274d15dd7438bc012c0649d56457`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -111,6 +111,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/ui/ApplicationChecks+Events.swift](../../tests/ui/ApplicationChecks+Events.swift)
 
+- `testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover`
 - `testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair`
 - `testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates`
 

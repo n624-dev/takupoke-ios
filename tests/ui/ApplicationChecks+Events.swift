@@ -1,6 +1,57 @@
 import XCTest
 
 extension ApplicationChecks {
+    func testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover() {
+        let warnings = [
+            "試験・返却資料の保存情報を読み込めませんでした。通常時間割は参考表示です。",
+            "学校行事の保存情報を読み込めませんでした。通常時間割は参考表示です。",
+        ]
+        func lesson() -> XCUIElement {
+            visible(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "架空科目A")).firstMatch)
+        }
+        func checkFailureWarnings() {
+            for warning in warnings {
+                let row = visible(app.staticTexts[warning])
+                XCTAssertTrue(row.waitForExistence(timeout: 10), app.debugDescription)
+            }
+            XCTAssertFalse(app.staticTexts["学校行事は未取得です。"].exists, app.debugDescription)
+        }
+        func retry(_ title: String, warning: String) {
+            let button = visible(app.buttons[title])
+            guard button.waitForExistence(timeout: 5), contained(button, in: bodyViewport()),
+                button.isEnabled, button.isHittable else {
+                XCTFail("The real reload action must be operable: " + app.debugDescription)
+                return
+            }
+            button.tap()
+            XCTAssertTrue(app.staticTexts[warning].waitForExistence(timeout: 10), app.debugDescription)
+        }
+        checkFailureWarnings()
+        retry("試験・返却資料を再読み込み", warning: warnings[0])
+        retry("学校行事を再読み込み", warning: warnings[1])
+        let card = lesson()
+        guard contained(card, in: bodyViewport()), card.isEnabled, card.isHittable else {
+            XCTFail("Loaded Home lesson must remain usable: " + app.debugDescription)
+            return
+        }
+        card.tap()
+        screen("授業詳細")
+        XCTAssertTrue(app.staticTexts["架空科目A"].exists, app.debugDescription)
+        back(to: "たくポケ")
+        tab("時間割")
+        checkFailureWarnings()
+        XCTAssertTrue(lesson().exists, app.debugDescription)
+        app.terminate()
+        app.launchArguments.removeAll { $0 == "--reset-fixture" || $0 == "--auxiliary-store-failures" }
+        launchReady()
+        // Only the owned obstructions were restored; use the original stores.
+        for warning in warnings { XCTAssertFalse(app.staticTexts[warning].exists, app.debugDescription) }
+        XCTAssertTrue(lesson().exists, app.debugDescription)
+        tab("時間割")
+        for warning in warnings { XCTAssertFalse(app.staticTexts[warning].exists, app.debugDescription) }
+        XCTAssertTrue(lesson().exists, app.debugDescription)
+    }
+
     func testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair() {
         let warningText = "2033年度の保存済み学校行事を読み取れません。正常な年度の結果は表示しています。該当年度を再取得してください。端末内の結果は削除していません。"
         func selectYear(_ digits: String, replacing: Bool) {

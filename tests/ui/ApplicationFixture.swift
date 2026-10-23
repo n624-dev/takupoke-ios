@@ -143,8 +143,12 @@ struct SimulatorApplication: App {
                             FixtureLaunchDiagnostics.record("application-ready")
                             recordedApplicationReady = true
                         }
-                        if data.ready && data.materials.ready && data.specialSchedules.ready &&
-                            data.schoolEvents.ready && data.links.ready && data.mappings.ready && data.times.ready &&
+                        let auxiliarySettled = SimulatorAuxiliaryStoreFixture.enabled
+                            ? (!data.specialSchedules.ready && data.specialSchedules.failed &&
+                               !data.schoolEvents.ready && data.schoolEvents.failed)
+                            : (data.specialSchedules.ready && data.schoolEvents.ready)
+                        if data.ready && data.materials.ready && auxiliarySettled &&
+                            data.links.ready && data.mappings.ready && data.times.ready &&
                             !data.materials.busy && !data.specialSchedules.busy &&
                             !data.schoolEvents.busy && !data.links.busy && !data.mappings.busy && !data.times.busy {
                             if ProcessInfo.processInfo.arguments.contains("--ai-feature-probe"), !LocalAIFeaturePolicy.enabled {
@@ -211,7 +215,7 @@ struct SimulatorApplication: App {
                                originalName: "fictional.pdf", byteCount: raw.count, digest: digest, modifiedAt: nil)
             let analysis = PDFAnalysis(kind: .timetable, sourceDigest: digest, sourceName: "fictional.pdf", parsedAt: Date(),
                 schoolYear: period.schoolYear, term: period.half == 1 ? "前期" : "後期",
-                lessons: (1...5).flatMap { weekday in (1...8).map { number in
+                lessons: (SimulatorAuxiliaryStoreFixture.enabled ? 1...7 : 1...5).flatMap { weekday in (1...8).map { number in
                     PDFLesson(className: "3_IT", weekday: weekday, period: number,
                         names: .init(subject: "架空科目\(number <= 2 ? "A" : "B")", teacher: "架空教員A", room: "架空教室A"), sourceText: "", page: 1)
                 } }, events: [], notices: [])
@@ -336,6 +340,7 @@ struct SimulatorApplication: App {
            ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
             try SimulatorChangeRowSkipFixture.seed(base)
         }
+        try SimulatorAuxiliaryStoreFixture.prepare(base)
     }
 }
 

@@ -112,6 +112,7 @@ SHARDS = {
         "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
         "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair",
         "testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates",
+        "testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover",
         "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",
         "testSpecialRecoveryShowsMergedAndDifferentDayClocksBeforeAdoption",
     ),

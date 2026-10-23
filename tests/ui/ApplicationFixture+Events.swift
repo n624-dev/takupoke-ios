@@ -76,3 +76,42 @@ enum SimulatorEventsYearFixture {
 
 // Only the isolated test app uses these controls and metrics. Production
 // sources are instrumented in the temporary project, not in the shipped app.
+
+// Mutate only this reset fixture's real files before models open them. Keep
+// complete originals for a later launch, rather than injecting ready flags.
+enum SimulatorAuxiliaryStoreFixture {
+    static var enabled: Bool { ProcessInfo.processInfo.arguments.contains("--auxiliary-store-failures") }
+    static let roots = ["SpecialSchedulesSQLite", "SchoolEventsAPI"]
+    static func prepare(_ base: URL) throws {
+        let manager = FileManager.default
+        for name in roots {
+            let root = base.appendingPathComponent(name)
+            let backup = base.appendingPathComponent("fixture-aux-backup-" + name)
+            if ProcessInfo.processInfo.arguments.contains("--reset-fixture"),
+               manager.fileExists(atPath: backup.path) {
+                try manager.removeItem(at: backup)
+            }
+            if enabled {
+                guard !manager.fileExists(atPath: backup.path) else { continue }
+                try manager.moveItem(at: root, to: backup)
+                if name == "SpecialSchedulesSQLite" {
+                    try manager.copyItem(at: backup, to: root)
+                    // Use a non-SQLite formal file with the original PDFs kept.
+                    for suffix in ["-wal", "-shm", "-journal"] {
+                        let sidecar = root.appendingPathComponent("specials.sqlite" + suffix)
+                        if manager.fileExists(atPath: sidecar.path) { try manager.removeItem(at: sidecar) }
+                    }
+                    try Data("fictional-invalid-special-sqlite".utf8)
+                        .write(to: root.appendingPathComponent("specials.sqlite"), options: .atomic)
+                } else {
+                    // An actual file obstructs directory enumeration/open.
+                    try Data("fictional-unavailable-event-directory".utf8).write(to: root)
+                }
+            } else if manager.fileExists(atPath: backup.path) {
+                // This is the obstruction we own, never a production data root.
+                try manager.removeItem(at: root)
+                try manager.moveItem(at: backup, to: root)
+            }
+        }
+    }
+}

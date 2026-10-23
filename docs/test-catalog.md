@@ -38,7 +38,7 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 | [PDF復旧・OCR・構造・Validator・端末内Provider](test-catalog/recovery.md) | 210 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [確認訂正・画像比較・入力変更・実操作](test-catalog/manual.md) | 91 | Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認 |
 | [通知許可・実配信・設定・バックグラウンド](test-catalog/notifications.md) | 14 | Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定 |
-| [通常画面・設定・実Switch・UI fixture・登録一覧](test-catalog/app-ui.md) | 105 | Apple iOS26/27。LinuxはPython契約検査のみ |
+| [通常画面・設定・実Switch・UI fixture・登録一覧](test-catalog/app-ui.md) | 106 | Apple iOS26/27。LinuxはPython契約検査のみ |
 | [ファイル選択・再選択・背景・キャンセル](test-catalog/picker.md) | 6 | Apple iOS26/27 UI＋Nativeレイアウト |
 | [IPA・AltStore・公開ゲート・ビルド・一時領域](test-catalog/release.md) | 88 | Linux Python／Apple iPhone SDK。AltStore導入は実機限定 |
 | [独立した架空PDF・原文契約・固定期待値](test-catalog/fixtures.md) | 13 | Linux契約検査。PDF描画・OCRはApple限定 |

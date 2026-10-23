@@ -34,6 +34,7 @@ final class ApplicationChecks: XCTestCase {
             "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork": [
                 "--selection-snapshot", "--normal-only",
             ],
+            "testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover": ["--auxiliary-store-failures", "--normal-only"],
             "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair": ["--events-cache-corrupt"],
             "testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates": [
                 "--events-year-coverage", "--normal-only",
