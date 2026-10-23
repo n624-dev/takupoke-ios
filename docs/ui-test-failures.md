@@ -2262,4 +2262,11 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 2026-10-23、source0e1e81b2af778f97ef9b23065b559c94de0001e4、codex/fix-retention-and-manual-ui-observation、Debian13／Python3.12.14／Swift6.1.2。`test_manual_scroll_navigation.py`は2件と実Swift幾何29条件が成功。その後の`test_manual_ui_project.py`は17件中1件失敗（0.305秒）。`test_manual_controls_are_scrolled_and_acknowledged_without_keyboard_or_outer_switch_taps`の295行が`$0.buttons.count==0 && $0.switches.count==0`を要求し、現ソースで見つからなかった。ログは/tmp/ios-n78-project-first.log。製品・実機の実行失敗ではなくソース文字列検査の失敗として、対処を決める前に記録する。後続manifest検査は未実行。過去詳細と旧コードを照合してから修正し、次の試行前にpushする。
 
 - `test_manual_ui_project`検索で対応一覧を確認。N75/N77の詳細とe33a3cdのテスト・Navigation.swiftを読み、旧実装では無名closureの`$0`、現実装では試行内の観測保持に使う明示引数`cell`と確認した。6種の操作可能な子要素を拒否する条件は全て同じで、今回の失敗は引数表記を固定した観測の不一致。3つの文字列検査だけを明示引数へ更新し、6種の拒否・実枠・キーボード回避・16操作の上限・反転制限・必須最終確認は維持する。幾何29条件の実Swift結果と実iOSプローブは別に評価し、この検査の成功を実操作成功の代用にしない。記録と修正を隔離ブランチへpush後に再試行する。
+
+## N81 保存期間マーカー復旧の焦点iOS27が失敗
+
+2026-10-23 06:58 UTCのまとめ照会で、sourcead121935fc86f7f7e585211cdb3cc68df3e106ac、run39913424181／試行1、job120281415571（Relaunch diagnosis iOS27）が06:58:03 failure終端と確認。Xcode27.0／Runtime27.0準備は成功し、Exercise launch…stepが06:45:32〜06:57:55で失敗した。対象はtestRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData一件。完了ログ未読のため、失敗操作・action成立・下位原因は未確定。対処を決める前に記録した。別runの原本変更訂正27はsuccess、26は実行中で混同しない。完了ログとN79/U30/U63の詳細・当時コードを照合し、根拠と変更をpushするまで次の試行を開始しない。
 - 最初は限定の復旧1ケースと、同じ原本変更訂正を両OSで比較する。通常29件・元訂正4件×両OS・公開ゲートは維持する。候補/記録を隔離ブランチへpush後にローカル検査し、新規Actions前に同じ開始前レビューへ修正差分を渡す。
+
+- N81完了ログはSettings.swift:16、最初のCancel不在で47.380秒・1件失敗。実枠(89,432.33,215,34.33)・画面包含・enabled/hittableを確認し、一回0.1秒のイベント合成を通過した。N79とe33a3cd/ad121935のコード、U30/U63の詳細と当時の操作を再照合した。接触時間変更だけでは今回の症状を解消しなかった。製品Group上のpresentationか入力未到達かは未確定。
+- N81のQA action観測はアプリ側printだけで、xcodebuildのXCTestログにはtargetの標準出力が取り込まれず、既存の所有ファイル採取にも含まれていなかった。N79で必要としたaction成立の証拠を得られなかったため、次は診断比較として同じ実action後とBindingのon/offを既存の所有ファイルへ固定語彙だけで記録・回収する。失敗時に実AX階層もmessageへ残す。製品・操作・Cancel10秒・実bytes・保存・再起動条件は変えず、解消候補として成功を期待した盲目的再試行とは区別する。generatorの元ソース復元一致・挿入点欠落拒否と、採取の本文／symlink／容量拒否をローカルで検査する。記録・差分をpush後に検査し、新規レビュー後に診断を開始する。

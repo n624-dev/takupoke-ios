@@ -330,6 +330,20 @@ METHOD
                             "-o", str(path / "probe")], check=True)
             subprocess.run([str(path / "probe")], check=True)
 
+    def test_retention_observation_preserves_the_real_action_and_dialog_in_isolated_copy(self):
+        source = (ROOT / "Takupoke/ContentView.swift").read_text(encoding="utf-8")
+        self.assertNotIn("FixtureLaunchDiagnostics", source)
+        generated = app_test_project.instrument_retention_recovery(source)
+        self.assertEqual(generated.count(app_test_project.RETENTION_ACTION_TRACE), 1)
+        self.assertEqual(generated.count(app_test_project.RETENTION_DIALOG_TRACE), 1)
+        self.assertEqual(generated.replace(app_test_project.RETENTION_ACTION_TRACE, "", 1)
+                         .replace(app_test_project.RETENTION_DIALOG_TRACE, "", 1), source)
+        for changed in (source.replace('confirmingRetentionRecovery = true', 'confirmingRetentionRecovery = false'),
+                        source.replace('.onChange(of: dataReady)', '.onChange(of: retentionFailure)'),
+                        source + source):
+            with self.assertRaises(AssertionError):
+                app_test_project.instrument_retention_recovery(changed)
+
     def test_owned_launch_trace_filters_other_content_and_refuses_symlinks_and_large_files(self):
         runner = (ROOT / "tools/test-app-ui.sh").read_text(encoding="utf-8")
         collector = runner.split("<<'PY_TRACE'\n", 1)[1].split("\nPY_TRACE", 1)[0]
@@ -340,7 +354,8 @@ METHOD
         callbacks = "".join(lifecycle.replace("application-ready", stage) + "\n" for stage in (
             "notification-native-request", "notification-native-callback",
             "notification-auth-request", "notification-auth-callback", "notification-auth-returned",
-            "notification-settings-not-requested"))
+            "notification-settings-not-requested", "retention-recovery-action",
+            "retention-dialog-on", "retention-dialog-off"))
         removed = "TAKUPOKE_HIT_PATH pid=123 touch=UIView~UISwitch thumb=UIView~UISwitch opposite=UIView~UISwitch"
         with tempfile.TemporaryDirectory(prefix="takupoke-launch-collector-") as directory:
             root = Path(directory)

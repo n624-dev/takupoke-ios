@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`e1db5e1b3163286eac0f46b9fc9a4696f93c94ee3518e985a560584b72ba27e4`
+`9507e055ba4f9a3402c82f7ebbc7503e856f9003574912ffab1d4867240dad16`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -85,6 +85,7 @@ bash tools/test-app-ui.sh
 - `test_notification_switch_trace_preserves_setters_and_rejects_marker_drift`
 - `test_notification_readiness_probe_observes_os_without_granting_or_saving`
 - `test_link_menu_observes_one_press_before_diagnostics_and_never_accepts_timeout`
+- `test_retention_observation_preserves_the_real_action_and_dialog_in_isolated_copy`
 - `test_owned_launch_trace_filters_other_content_and_refuses_symlinks_and_large_files`
 - `test_picker_completion_rejects_missing_failed_skipped_duplicate_and_unknown_cases`
 - `test_event_cache_probe_changes_only_automatic_startup_in_isolated_copy`

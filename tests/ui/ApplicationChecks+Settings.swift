@@ -13,14 +13,14 @@ extension ApplicationChecks {
         print("RETENTION_RECOVERY_CONTACT bounds=\(bounds)")
         recovery.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).press(forDuration:0.1)
         let cancel = app.buttons["キャンセル"]
-        XCTAssertTrue(cancel.waitForExistence(timeout: 10)); cancel.tap()
+        XCTAssertTrue(cancel.waitForExistence(timeout: 10), app.debugDescription); cancel.tap()
         XCTAssertTrue(recovery.waitForExistence(timeout: 10))
         XCTAssertEqual(app.staticTexts["fixture-retention-proof"].label, before)
         let currentBounds=recovery.frame
         XCTAssertTrue(usable(currentBounds) && app.frame.contains(currentBounds) && recovery.isEnabled && recovery.isHittable,app.debugDescription)
         recovery.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).press(forDuration:0.1)
         let confirm = app.buttons["学校データを初期化して復旧"]
-        XCTAssertTrue(confirm.waitForExistence(timeout: 10)); confirm.tap()
+        XCTAssertTrue(confirm.waitForExistence(timeout: 10), app.debugDescription); confirm.tap()
         let notice = app.alerts["保存データを削除しました"]
         XCTAssertTrue(notice.waitForExistence(timeout: 30), app.debugDescription)
         notice.buttons["あとで"].tap()

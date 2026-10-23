@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`0cf5156f8c063dcafe244b76253147f142c16aaf2d6baa9d54d1ec8113710a06`
+`13e3aac7b88fe004b7eb058e2a3d2995a62c91dd5d33d5183bad3b08bf5eead4`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -47,6 +47,7 @@ python3 -B -m unittest discover -s tests -p test_application_ui_runner.py -v
 - `test_notification_switch_trace_preserves_setters_and_rejects_marker_drift`
 - `test_notification_readiness_probe_observes_os_without_granting_or_saving`
 - `test_link_menu_observes_one_press_before_diagnostics_and_never_accepts_timeout`
+- `test_retention_observation_preserves_the_real_action_and_dialog_in_isolated_copy`
 - `test_owned_launch_trace_filters_other_content_and_refuses_symlinks_and_large_files`
 - `test_picker_completion_rejects_missing_failed_skipped_duplicate_and_unknown_cases`
 - `test_event_cache_probe_changes_only_automatic_startup_in_isolated_copy`

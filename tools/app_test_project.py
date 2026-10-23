@@ -28,6 +28,21 @@ def add_swift_sources(project, target, paths, prefix):
         phases[0]['files'].append(build_file)
         group['children'].append(reference)
 
+RETENTION_ACTION_TRACE = '; FixtureLaunchDiagnostics.record("retention-recovery-action")'
+RETENTION_DIALOG_TRACE = '''        .onChange(of: confirmingRetentionRecovery) { presented in
+            FixtureLaunchDiagnostics.record(presented ? "retention-dialog-on" : "retention-dialog-off")
+        }
+'''
+
+
+def instrument_retention_recovery(text):
+    action = 'Button("保存期間の管理情報を復旧") { confirmingRetentionRecovery = true }'
+    observer = '        .onChange(of: dataReady) { ready in'
+    assert text.count(action) == 1 and text.count(observer) == 1, 'Retention observation insertion point missing'
+    return text.replace(action, action[:-2] + RETENTION_ACTION_TRACE + ' }').replace(
+        observer, RETENTION_DIALOG_TRACE + observer)
+
+
 def instrument_events_cache(text):
     marker = '    func refreshAtStartup() {'
     assert text.count(marker) == 1, 'Events cache fixture insertion point missing'
@@ -164,9 +179,7 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
     for path in copied.glob('*.swift'):
         text = path.read_text()
         if path.name == 'ContentView.swift':
-            marker = 'Button("保存期間の管理情報を復旧") { confirmingRetentionRecovery = true }'
-            assert text.count(marker) == 1, 'Retention action observation insertion point missing'
-            text = text.replace(marker, 'Button("保存期間の管理情報を復旧") { confirmingRetentionRecovery = true; print("RETENTION_RECOVERY_ACTION presented=1") }')
+            text = instrument_retention_recovery(text)
         if path.name == 'NotificationSettingsView.swift':
             text = instrument_notification_switch(text)
         if path.name == 'ScheduleNotifications.swift':
