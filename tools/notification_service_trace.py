@@ -236,7 +236,7 @@ def collect(simulator, *, trace=None, now=None):
             return datetime.fromtimestamp(stamp, timezone.utc).strftime("%Y-%m-%d %H:%M:%S%z")
         dates = ["--start", formatted(window["start"]), "--end", formatted(window["end"])]
     logs = observe_command(base + ["log", "show"] + dates + ["--style", "json", "--info",
-                           "--predicate", LOG_PREDICATE], 10)
+                           "--predicate", LOG_PREDICATE], 10, max_bytes=4 * 1024 * 1024)
     byte_count = len(logs.stdout.encode())
     if logs.returncode:
         events = "failed"

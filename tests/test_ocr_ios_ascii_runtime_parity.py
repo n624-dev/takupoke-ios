@@ -39,6 +39,20 @@ class IOSASCIIRuntimeParityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, '.05 decision changed'):
             compare.compare_reject(np.array([.049999]), np.array([.050001]), .00005)
 
+    def test_adjacent_float32_threshold_decisions_match_the_actual_selector(self):
+        np = self.arrays()
+        spec = importlib.util.spec_from_file_location("fictional_tail_selector", ROOT.parent / "ocr-full-document-transfer/code_tail.py")
+        tail = importlib.util.module_from_spec(spec); spec.loader.exec_module(tail)
+        lower = np.nextafter(np.float32(.05), np.float32(-np.inf))
+        upper = np.float32(.05)
+        def selected(value):
+            return tail.selects("A1", dict(text="A1", paddingSupported=True,
+                pieces=[dict(confidence=.99), dict(confidence=.99)], rejectProbability=float(value)))
+        self.assertTrue(selected(lower)); self.assertFalse(selected(upper))
+        for first, second in [(lower, upper), (upper, lower)]:
+            with self.subTest(first=float(first)), self.assertRaisesRegex(ValueError, '.05 decision changed'):
+                compare.compare_reject(np.array([first], dtype=np.float32), np.array([second], dtype=np.float32), .00005)
+
     def test_reject_probability_requires_exact_shape_finite_unit_domain(self):
         np = self.arrays()
         reference = np.array([.01])

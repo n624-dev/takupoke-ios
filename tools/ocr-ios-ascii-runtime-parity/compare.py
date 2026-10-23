@@ -32,7 +32,7 @@ def compare_reject(expected, actual, tolerance):
     difference = float(np.max(np.abs(expected-actual)))
     if difference > tolerance:
         raise ValueError('Native reject probability drift exceeded bound')
-    if bool(expected[0] <= .05) != bool(actual[0] <= .05):
+    if (float(expected[0]) <= .05) != (float(actual[0]) <= .05):
         raise ValueError('Native reject .05 decision changed')
     return difference
 

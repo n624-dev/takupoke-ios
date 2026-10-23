@@ -21,6 +21,8 @@ def spooled_responses(*responses):
         response = next(remaining)
         if isinstance(response, Exception):
             raise response
+        if "stdout" not in kwargs:
+            return response
         kwargs["stdout"].write((response.stdout or "").encode())
         kwargs["stderr"].write((response.stderr or "").encode())
         return subprocess.CompletedProcess(command, response.returncode)
@@ -142,6 +144,24 @@ class NotificationServiceTraceTests(unittest.TestCase):
         self.assertEqual(result.stdout, "x" * 1025)
         self.assertEqual(result.stderr, "y" * 65536)
 
+    def test_notification_log_collection_bounds_memory_before_reporting_limit(self):
+        original = notification_service_trace.observe_command
+        captured = []
+        def observe(command, timeout, *, max_bytes=None):
+            if "log" not in command:
+                return subprocess.CompletedProcess(command, 0, "", "")
+            result = original([sys.executable, "-c", "import sys;sys.stdout.write('x'*(6*1024*1024))"],
+                              timeout, max_bytes=max_bytes)
+            captured.append(result.stdout)
+            return result
+        with patch.object(notification_service_trace, "observe_command", side_effect=observe):
+            with redirect_stdout(io.StringIO()) as output:
+                notification_service_trace.collect("owned-simulator", trace="")
+        report = json.loads(output.getvalue().split(" ", 1)[1])
+        self.assertEqual(report["events"], "limited")
+        self.assertLessEqual(len(captured[0]), 4 * 1024 * 1024 + 1)
+        self.assertEqual(report["logBytes"], len(captured[0].encode()))
+
     def test_notification_evidence_survives_later_accessibility_noise_in_original_order(self):
         def entry(message):
             return {"processImagePath": "/system/SpringBoard", "eventMessage":
@@ -168,8 +188,8 @@ class NotificationServiceTraceTests(unittest.TestCase):
         for phase in ("health", "trace", "log"):
             with self.subTest(phase=phase), patch.object(notification_service_trace.subprocess, "run") as run, \
                  patch.object(notification_service_trace, "owned_trace") as owned:
-                run.side_effect = [timeout if phase == "health" else health,
-                                   timeout if phase == "log" else logs]
+                run.side_effect = spooled_responses(timeout if phase == "health" else health,
+                                   timeout if phase == "log" else logs)
                 owned.side_effect = timeout if phase == "trace" else None
                 owned.return_value = trace
                 with redirect_stdout(io.StringIO()) as output:
@@ -218,8 +238,8 @@ class NotificationServiceTraceTests(unittest.TestCase):
                 owned.symlink_to(other)
                 self.assertEqual(notification_service_trace.owned_trace("owned-simulator"), "")
         with patch.object(notification_service_trace.subprocess, "run") as run:
-            run.side_effect = [subprocess.CompletedProcess([], 0, ""),
-                               subprocess.CompletedProcess([], 0, "[]")]
+            run.side_effect = spooled_responses(subprocess.CompletedProcess([], 0, ""),
+                               subprocess.CompletedProcess([], 0, "[]"))
             with redirect_stdout(io.StringIO()) as output:
                 notification_service_trace.collect("owned-simulator", trace=trace, now=2800)
             command = run.call_args_list[1].args[0]
@@ -257,8 +277,8 @@ class NotificationServiceTraceTests(unittest.TestCase):
         self.assertEqual(len(result), 80)
         self.assertTrue(all(len(entry["words"]) == 24 for entry in result))
         with patch.object(notification_service_trace.subprocess, "run") as run:
-            run.side_effect = [subprocess.CompletedProcess([], 0, "12 0 com.apple.usernotificationsd\n"),
-                               subprocess.CompletedProcess([], 0, json.dumps(messages))]
+            run.side_effect = spooled_responses(subprocess.CompletedProcess([], 0, "12 0 com.apple.usernotificationsd\n"),
+                               subprocess.CompletedProcess([], 0, json.dumps(messages)))
             with redirect_stdout(io.StringIO()) as output:
                 notification_service_trace.collect("owned-simulator", trace="")
             self.assertIn('"running": true', output.getvalue())
@@ -274,7 +294,7 @@ class NotificationServiceTraceTests(unittest.TestCase):
                 (subprocess.CompletedProcess([], 0, "x" * (4 * 1024 * 1024 + 1)), "limited"),
                 (subprocess.CompletedProcess([], 0, "not-json"), "invalid-format"),
             ):
-                run.side_effect = [subprocess.CompletedProcess([], 0, ""), result]
+                run.side_effect = spooled_responses(subprocess.CompletedProcess([], 0, ""), result)
                 with redirect_stdout(io.StringIO()) as output:
                     notification_service_trace.collect("owned-simulator", trace="")
                 report = json.loads(output.getvalue().split(" ", 1)[1])
