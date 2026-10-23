@@ -100,7 +100,10 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     }
 
     func checkPermission() async {
-        guard changesEnabled || specialsEnabled else { permissionMessage = nil; return }
+        guard changesEnabled || specialsEnabled else {
+            permissionMessage = nil
+            return
+        }
         let settings = await Self.notificationSettings(from: center)
         recordPermission(settings)
     }

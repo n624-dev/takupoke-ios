@@ -176,6 +176,15 @@ extension ApplicationChecks {
         XCTAssertEqual(app.staticTexts["fixture-stored-color"].label, "未設定")
         tap("メインカラー")
         tap("青")
+        let blueSaved = expectation(
+            for: NSPredicate(format: "label == %@", "blue"),
+            evaluatedWith: app.staticTexts["fixture-stored-color"])
+        guard XCTWaiter.wait(for: [blueSaved], timeout: 10) == .completed else {
+            recoveryScreenshot("blue-before-relaunch-unresolved")
+            XCTFail("Blue selection did not reach the actual saved preference before relaunch: " + app.debugDescription)
+            return
+        }
+        print("APPEARANCE_BLUE saved-before-relaunch=blue")
         app.terminate()
         launchReady()
         tab("設定")

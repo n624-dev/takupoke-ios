@@ -131,7 +131,7 @@ def instrument_notification_permission(text):
     # Observe actual branches and calls. Never supply an OS status or change settings.
     start = '    func checkPermission() async {\n'
     read = '        let settings = await Self.notificationSettings(from: center)\n'
-    disabled = ('            if message == deniedMessage { message = nil }\n'
+    disabled = ('            permissionMessage = nil\n'
                 '            return\n')
     end = text.index('    // Keep the actual OS response')
     permission = text[:end]

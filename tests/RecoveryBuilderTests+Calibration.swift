@@ -225,10 +225,9 @@ extension PDFParsingTests {
         let covered = RecoveryBox(x: 0, y: 0, width: 128, height: 128)
         let dense = RecoveryRasterGrid(
             width: 128, height: 128, grayscale: [UInt8](repeating: 0, count: 128 * 128))
-        let outside = RecoveryBox(x: 200, y: 200, width: 10, height: 10)
         XCTAssertThrowsError(
             try dense.hasUncoveredInk(
-                covered, text: Array(repeating: outside, count: 2000) + [covered], rules: [], check: {})
+                covered, text: Array(repeating: covered, count: 2000), rules: [], check: {})
         ) {
             XCTAssertEqual(($0 as? PDFParseError)?.code, .limit)
         }
