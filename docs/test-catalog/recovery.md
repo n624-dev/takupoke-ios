@@ -1,7 +1,7 @@
 # PDF復旧・OCR・構造・Validator・端末内Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`e0e48254e7c31a6a5e11f4f06567ed02173b02202ca511cbd0ceaf6addbc54cb`
+`336ce403456580942ee2e0d308be8836e40a6dc17a69d827a9f42fe7b45dae94`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -46,6 +46,7 @@ bash tools/test-parsing.sh
 - [Vendor/LocalLlama/Sources/CLlamaRecovery/PrivateHeaders/gguf.h](../../Vendor/LocalLlama/Sources/CLlamaRecovery/PrivateHeaders/gguf.h)
 - [Vendor/LocalLlama/Sources/CLlamaRecovery/PrivateHeaders/llama.h](../../Vendor/LocalLlama/Sources/CLlamaRecovery/PrivateHeaders/llama.h)
 - [Vendor/LocalLlama/Sources/CLlamaRecovery/include/CLlamaRecovery.h](../../Vendor/LocalLlama/Sources/CLlamaRecovery/include/CLlamaRecovery.h)
+- [Takupoke/CancellationLinkedTask.swift](../../Takupoke/CancellationLinkedTask.swift)
 
 ## [tests/RecoveryBuilderTests+Calibration.swift](../../tests/RecoveryBuilderTests+Calibration.swift)
 
@@ -295,3 +296,8 @@ bash tools/test-parsing.sh
 - `testParallelBordersWithWhitePixelGapRemainTwoBoundaries`
 - `testOpenRasterBorderKeepsClosedInteriorAndLeavesUnsupportedTailAsInk`
 - `testOpenHShapeCannotCertifyClosedInteriorRules`
+
+## [tests/CancellationLinkedTaskTests.swift](../../tests/CancellationLinkedTaskTests.swift)
+
+- `testParentCancellationReachesAnAlreadySuspendedOwnedWorkerAndWaitsForCleanup`
+- `testSuccessAndOriginalFailureKeepTheirValues`

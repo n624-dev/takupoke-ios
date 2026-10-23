@@ -73,7 +73,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 }
                 self.source = source
                 try self.check(operation)
-                let prepared = try await Task.detached(priority:.userInitiated) { () throws -> RecoveryPreparedPages in
+                let preparationWorker = Task.detached(priority:.userInitiated) { () throws -> RecoveryPreparedPages in
                     try RecoveryConversion.verifyFile(source,check:{ try preparationControl.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
                     let capture = RecoveryReadCapture()
                     var pages = source.captured
@@ -102,7 +102,8 @@ final class PDFRecoveryCoordinator: ObservableObject {
                     }
                     guard !layouts.isEmpty, layouts.count == layouts.keys.max(), layouts.keys.sorted() == Array(1...layouts.count) else { throw PDFParseError(code:.ambiguous) }
                     return RecoveryPreparedPages(pages:layouts.keys.sorted().compactMap { layouts[$0] },fromOCR:ocrPages,rasters:rasters,nativeCapture:nativeCapture)
-                }.value
+                }
+                let prepared = try await CancellationLinkedTask.value(of: preparationWorker)
                 try self.check(operation)
                 self.pendingPages = prepared
                 await self.buildAndRun(prepared,source:source,operation:operation,control:preparationControl)

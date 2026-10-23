@@ -348,7 +348,8 @@
         "Vendor/LocalLlama/Sources/CLlamaRecovery/PrivateHeaders/ggml.h",
         "Vendor/LocalLlama/Sources/CLlamaRecovery/PrivateHeaders/gguf.h",
         "Vendor/LocalLlama/Sources/CLlamaRecovery/PrivateHeaders/llama.h",
-        "Vendor/LocalLlama/Sources/CLlamaRecovery/include/CLlamaRecovery.h"
+        "Vendor/LocalLlama/Sources/CLlamaRecovery/include/CLlamaRecovery.h",
+        "Takupoke/CancellationLinkedTask.swift"
       ],
       "checks": [
         "tests/RecoveryBuilderTests+Calibration.swift",
@@ -363,7 +364,8 @@
         "tests/RecoveryPromptCatalogTests.swift",
         "tests/RecoveryRecertificationTests.swift",
         "tests/RecoveryStructureTests.swift",
-        "tests/RecoveryTests.swift"
+        "tests/RecoveryTests.swift",
+        "tests/CancellationLinkedTaskTests.swift"
       ]
     },
     {

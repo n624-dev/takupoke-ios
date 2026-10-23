@@ -88,7 +88,7 @@ let package = Package(
                     "LinkRow.swift",
                 ] + mappingExcludes,
                 sources: [
-                    "MainColor.swift",
+                    "MainColor.swift", "CancellationLinkedTask.swift",
                     "LocalMaterialDatabase.swift",
                     "LocalMaterialDatabase+Current.swift", "LocalMaterialDatabase+Snapshot.swift",
                     "PDFAnalysis.swift", "RecoveryModels.swift", "RecoveryValidator.swift", "RecoveryPromptCatalog.swift", "RecoveryModelStore.swift", "RecoveryEngine.swift", "RecoveryStructure.swift", "RecoveryDocumentBuilder.swift", "RecoveryConversion.swift", "RecoveryRasterGrid.swift", "RecoveryOCRAcquisition.swift", "RecoveryOCRStructure.swift", "RecoveryVisionCapture.swift", "RecoveryManualAssistance.swift", "RecoveryManualReview.swift",
@@ -175,7 +175,7 @@ let package = Package(
                     "test-catalog.json",
                 ] + mappingTestExcludes,
                     sources: [
-                    "MainColorTests.swift",
+                    "MainColorTests.swift", "CancellationLinkedTaskTests.swift",
                     "FileRefreshTests.swift",
                     "ParsingTests.swift",
                     "ParsingTests+Normalization.swift",
