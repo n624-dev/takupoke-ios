@@ -14,6 +14,8 @@ def run_commands(commands, cleanup_grace=15):
     started = time.monotonic()
     previous = {}
     output_lock = threading.Lock()
+    interruption = None
+    cleaning = False
 
     def forward(name, stream):
         for line in stream:
@@ -22,7 +24,12 @@ def run_commands(commands, cleanup_grace=15):
         stream.close()
 
     def interrupted(signum, _frame):
-        raise SystemExit(128 + signum)
+        nonlocal interruption
+        if interruption is not None:
+            return
+        interruption = 128 + signum
+        if not cleaning:
+            raise SystemExit(interruption)
 
     try:
         for sig in (signal.SIGINT, signal.SIGTERM):
@@ -50,24 +57,37 @@ def run_commands(commands, cleanup_grace=15):
                 time.sleep(0.2)
         return 0
     finally:
-        # Terminate entire process groups so swiftc/xcodebuild cannot outlive the
-        # caller. Shell EXIT traps remove their own temporary data and simulator.
-        for _, process in processes:
-            try:
-                os.killpg(process.pid, signal.SIGTERM)
-            except ProcessLookupError:
-                pass
-        deadline = time.monotonic() + cleanup_grace
-        for _, process in processes:
-            try:
-                process.wait(timeout=max(0, deadline - time.monotonic()))
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
+        cleaning = True
+        try:
+            # Observe each owned group even if its leader has already exited.
+            for _, process in processes:
+                try:
+                    os.killpg(process.pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+            deadline = time.monotonic() + cleanup_grace
+            for _, process in processes:
+                while True:
+                    process.poll()
+                    try:
+                        os.killpg(process.pid, 0)
+                    except ProcessLookupError:
+                        break
+                    if time.monotonic() >= deadline:
+                        try:
+                            os.killpg(process.pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                        break
+                    time.sleep(.05)
                 process.wait()
-        for reader in readers:
-            reader.join(timeout=3)
-        for sig, handler in previous.items():
-            signal.signal(sig, handler)
+            for reader in readers:
+                reader.join(timeout=3)
+        finally:
+            for sig, handler in previous.items():
+                signal.signal(sig, handler)
+        if interruption is not None:
+            raise SystemExit(interruption)
 
 
 if __name__ == "__main__":

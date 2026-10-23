@@ -35,10 +35,17 @@ def run(label, command, cleanup_grace=15):
     started = time.monotonic()
     previous = {}
     process = None
+    interruption = None
+    cleaning = False
     print(f"TIMING start: {label}", flush=True)
 
     def interrupted(signum, _frame):
-        raise SystemExit(128 + signum)
+        nonlocal interruption
+        if interruption is not None:
+            return
+        interruption = 128 + signum
+        if not cleaning:
+            raise SystemExit(interruption)
 
     try:
         for sig in (signal.SIGINT, signal.SIGTERM):
@@ -47,11 +54,16 @@ def run(label, command, cleanup_grace=15):
         code = process.wait()
         return code if code >= 0 else 128 - code
     finally:
-        if process is not None:
-            terminate_owned_group(process, grace=cleanup_grace)
-        for sig, handler in previous.items():
-            signal.signal(sig, handler)
-        print(f"TIMING finish: {label}, elapsed={time.monotonic() - started:.1f}s", flush=True)
+        cleaning = True
+        try:
+            if process is not None:
+                terminate_owned_group(process, grace=cleanup_grace)
+        finally:
+            for sig, handler in previous.items():
+                signal.signal(sig, handler)
+            print(f"TIMING finish: {label}, elapsed={time.monotonic() - started:.1f}s", flush=True)
+        if interruption is not None:
+            raise SystemExit(interruption)
 
 
 if __name__ == "__main__":
