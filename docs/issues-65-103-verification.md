@@ -97,3 +97,5 @@ N117の対処は新caseのpush-backを既存標準sheet dismissへ変更したQA
 auxiliary-store焦点40039494698/attempt1/source980779eは両OS/SDK27.0で成功。27の実case152.066秒、26.5は111.912秒、各1件の厳格完了照合に成功。実warnings/両再読込/授業詳細/標準dismiss/週表示/元store復元後の再起動を通過。旧比較40037895971の両失敗はN117として保持し、成功へ合算しない。
 
 別の追加修正群4905b9dのdevelopment40039226067は選択した全4job成功、両SDKで650件/skip1/失敗0。Strict239との3比較も各SDKで成功（SDK27約102.733秒、SDK26約121.594秒）。pickerは指定どおりskipで、公開検証には数えない。その後の94/82/97/98を含む統合差分は改めてローカル全体と新規reviewで確認し、全15公開gateを同一run/source/attemptで要求する。途中の成功と未公開を混同しない。
+
+統合7559e27の全体でN121の2不整合（Swiftの旧二乗探索を上限とした重複ケース、QAの旧permission挿入点）が判明。candidate a183a2bで、Swift対象1件/失敗0（1.998秒）、Python manifest/通知32件/失敗0（9.966秒）、Swift構文/catalg整合を確認した。N122旧26Bの青色再起動失敗は別途記録し、実保存blueを終了前にも要求する診断を追加。新規GPT-6.1 Sol/High ios_color_save_focus_pre_actions_reviewはコード差分2098行だけを読みblockingなし（SHA256 8ee4fafd0087a54e19c6a40d5778d55fe4baf65b58413de7cb0802bd0aeb3edb）。このreviewは次の通知/外観1case・両OS/SDK27診断1回だけへ使用し、7559e27の公開用reviewは未使用で破棄する。公開全15はまだ未開始。
