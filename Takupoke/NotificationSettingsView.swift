@@ -4,6 +4,7 @@ import UIKit
 struct NotificationSettingsView: View {
     @EnvironmentObject private var notifications: ScheduleNotifications
     @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var phase
 
     var body: some View {
         List {
@@ -16,7 +17,7 @@ struct NotificationSettingsView: View {
                 }))
             }
             .disabled(notifications.requestingPermission)
-            if let message = notifications.message {
+            if let message = notifications.permissionMessage {
                 Section {
                     Text(message).foregroundStyle(.orange)
                     Button("iPhoneの設定を開く") {
@@ -24,8 +25,14 @@ struct NotificationSettingsView: View {
                     }
                 }
             }
+            if let message = notifications.message {
+                Section { Text(message).foregroundStyle(.orange) }
+            }
         }
         .navigationTitle("通知")
         .task { await notifications.checkPermission() }
+        .onChange(of: phase) { _, phase in
+            if phase == .active { Task { await notifications.checkPermission() } }
+        }
     }
 }

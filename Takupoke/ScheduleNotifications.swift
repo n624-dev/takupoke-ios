@@ -9,6 +9,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     @Published private(set) var specialsEnabled = UserDefaults.standard.bool(forKey: "notifySpecialSchedules")
     @Published private(set) var requestingPermission = false
     @Published private(set) var message: String?
+    @Published private(set) var permissionMessage: String?
 
     private let center = UNUserNotificationCenter.current()
     private var baseline: ScheduleNotificationSnapshot?
@@ -43,11 +44,11 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             defer { requestingPermission = false }
             do {
                 guard try await Self.requestAuthorization(from: center) else {
-                    message = "iPhoneの設定で通知を許可してください。"
+                    permissionMessage = "iPhoneの設定で通知を許可してください。"
                     return
                 }
             } catch {
-                message = "通知の許可を確認できませんでした。"
+                permissionMessage = "通知の許可を確認できませんでした。"
                 return
             }
         }
@@ -62,6 +63,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         // general setup must not enable a type the person turned off.
         UserDefaults.standard.set(true, forKey: "notificationsSetupCompleted")
         message = nil
+        if value || (!changesEnabled && !specialsEnabled) { permissionMessage = nil }
         if !value {
             let ids = changes ? ["takupoke.changes"] : ["takupoke.exam", "takupoke.examReturn"]
             reconcileTask?.cancel()
@@ -98,15 +100,9 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     }
 
     func checkPermission() async {
-        let deniedMessage = "iPhoneの設定で通知を許可してください。"
-        guard changesEnabled || specialsEnabled else {
-            if message == deniedMessage { message = nil }
-            return
-        }
+        guard changesEnabled || specialsEnabled else { permissionMessage = nil; return }
         let settings = await Self.notificationSettings(from: center)
-        if (changesEnabled || specialsEnabled), settings.authorizationStatus == .denied {
-            message = deniedMessage
-        } else if message == deniedMessage { message = nil }
+        recordPermission(settings)
     }
 
     // Keep the actual OS response across the callback/concurrency boundary.
@@ -191,10 +187,17 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         // Keep the comparison baseline current even when notifications are off.
         // No notification can be delivered in that state, so an OS settings read
         // must not delay saving the baseline or the next input.
-        guard changesEnabled || specialsEnabled else { return false }
+        guard changesEnabled || specialsEnabled else { permissionMessage = nil; return false }
         let settings = await Self.notificationSettings(from: center)
+        recordPermission(settings)
+        guard changesEnabled || specialsEnabled else { return false }
         return settings.authorizationStatus == .authorized ||
             settings.authorizationStatus == .provisional || settings.authorizationStatus == .ephemeral
+    }
+
+    private func recordPermission(_ settings: UNNotificationSettings) {
+        permissionMessage = (changesEnabled || specialsEnabled) && settings.authorizationStatus == .denied
+            ? "iPhoneの設定で通知を許可してください。" : nil
     }
 
     private func apply(_ input: Input) async {

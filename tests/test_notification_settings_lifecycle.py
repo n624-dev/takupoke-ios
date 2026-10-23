@@ -207,6 +207,7 @@ final class UNUserNotificationCenter: @unchecked Sendable {
     let specialsEnabled: Bool
     let center: UNUserNotificationCenter
     var message: String?
+    var permissionMessage: String?
     init(_ changes: Bool, _ specials: Bool, _ center: UNUserNotificationCenter) {
         changesEnabled = changes; specialsEnabled = specials; self.center = center
     }
@@ -221,9 +222,9 @@ PERMISSION
         let disabled = Harness(false, false, unavailable)
         let disabledResult = await disabled.evaluate()
         precondition(!disabledResult && unavailable.count == 0)
-        disabled.message = "iPhoneの設定で通知を許可してください。"
+        disabled.permissionMessage = "iPhoneの設定で通知を許可してください。"
         await disabled.checkPermission()
-        precondition(disabled.message == nil && unavailable.count == 0)
+        precondition(disabled.permissionMessage == nil && disabled.message == nil && unavailable.count == 0)
         disabled.message = "unrelated failure"
         await disabled.checkPermission()
         precondition(disabled.message == "unrelated failure" && unavailable.count == 0)
@@ -237,12 +238,14 @@ PERMISSION
                 precondition(center.count == (enabled ? 1 : 0))
                 let harness = Harness(changes, specials, center)
                 for previous in [nil, "iPhoneの設定で通知を許可してください。", "unrelated failure"] {
-                    harness.message = previous
+                    harness.permissionMessage = previous
+                    harness.message = "independent storage failure"
                     await harness.checkPermission()
                     let expected = enabled && status == .denied
                         ? "iPhoneの設定で通知を許可してください。"
-                        : (previous == "iPhoneの設定で通知を許可してください。" ? nil : previous)
-                    precondition(harness.message == expected)
+                        : nil
+                    precondition(harness.permissionMessage == expected)
+                    precondition(harness.message == "independent storage failure")
                 }
                 precondition(center.count == (enabled ? 4 : 0))
             }
@@ -252,6 +255,81 @@ PERMISSION
 }
 '''.replace("BRIDGE", source[bridge_start:bridge_end]).replace("GATE", source[gate_start:gate_end]).replace(
     "PERMISSION", source[permission_start:permission_end])
+        self.run_probe(compiler, program)
+
+    def test_actual_apply_keeps_denial_separate_from_storage_success_and_failure(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required for the production permission/apply methods")
+        source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
+        permission = source[source.index("    func checkPermission() async {"):source.index("    // Keep the actual OS response")]
+        bridge_start = source.index("    nonisolated private static func notificationSettings(")
+        bridge = source[bridge_start:source.index("\n    func ", bridge_start)]
+        gate_start = source.index("    private func deliveryAllowed() async -> Bool {")
+        methods = source[gate_start:source.index("    private func changeNotice(", gate_start)]
+        program = r'''import Foundation
+enum Authorization { case denied, authorized, provisional, ephemeral }
+final class UNNotificationSettings: @unchecked Sendable { let authorizationStatus:Authorization; init(_ status:Authorization){authorizationStatus=status} }
+final class UNUserNotificationCenter: @unchecked Sendable {
+ var response=UNNotificationSettings(.denied), reads=0
+ func getNotificationSettings(completionHandler:@escaping @Sendable (UNNotificationSettings)->Void){reads+=1;completionHandler(response)}
+ func pendingNotificationRequests() async -> [Request] { [] }
+ func deliveredNotifications() async -> [Delivered] { [] }
+}
+struct Request { let identifier:String; let content:Content }
+struct Content { let userInfo:[String:String] }
+struct Delivered { let request:Request }
+struct SchoolDate { static func today()->Self{Self()} }
+struct SchoolDataPeriod:Equatable { static func current()->Self{Self()} }
+struct ChangeNormalizer { static func canonicalClassName(_ value:String)->String{value} }
+final class UIApplication { static let shared=UIApplication();var isProtectedDataAvailable=true }
+struct ScheduleNotificationSnapshot:Codable,Equatable {
+ struct Change:Codable,Hashable{};struct ChangeTarget:Codable,Equatable{}
+ struct Pending:Codable,Equatable { var fingerprint="fictional";var changeTargets:[ChangeTarget]? }
+ enum State {case available,unavailable}
+ struct Availability {func state(for kind:String)->State{.unavailable}}
+ var revision=0;var pending=[String:Pending]()
+ func reconciling(changes:Set<Change>?,specials:[String:String],availability:Availability,today:SchoolDate,classes:Set<String>,changesEnabled:Bool,specialsEnabled:Bool)throws->Self{var next=self;next.revision+=1;return next}
+ func validTargets(_ targets:[ChangeTarget],in changes:Set<Change>,today:SchoolDate,classes:Set<String>)->[ChangeTarget]{targets}
+}
+@MainActor final class Harness {
+ var changesEnabled=true,specialsEnabled=true,message:String?,permissionMessage:String?
+ let center=UNUserNotificationCenter();var generation=UUID(),latestRevision=UUID(),loaded=true
+ var baseline:ScheduleNotificationSnapshot?=ScheduleNotificationSnapshot();var failSave=false,saves=0
+ let root:URL
+ init(_ root:URL){self.root=root}
+ struct Input {var revision:UUID;var period=SchoolDataPeriod.current();var changes:Set<ScheduleNotificationSnapshot.Change>?;var specials=[String:String]();var availability=ScheduleNotificationSnapshot.Availability()}
+ func storageFile()throws->URL{root.appendingPathComponent("fictional-baseline.json")}
+ func save(_ value:ScheduleNotificationSnapshot,to file:URL)throws{saves+=1;if failSave{throw CocoaError(.fileWriteNoPermission)};baseline=value}
+ func send(kind:String,notice:ScheduleNotificationSnapshot.Pending)async throws{preconditionFailure("No notice is eligible in this baseline-only fixture")}
+ func changeNotice(_ targets:[ScheduleNotificationSnapshot.ChangeTarget])throws->ScheduleNotificationSnapshot.Pending{.init()}
+PERMISSION
+BRIDGE
+METHODS
+ func update()async{await apply(Input(revision:latestRevision))}
+}
+@main struct Probe {
+ @MainActor static func main()async throws {
+  let root=FileManager.default.temporaryDirectory.appendingPathComponent("notification-permission-"+UUID().uuidString)
+  try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true);defer{try? FileManager.default.removeItem(at:root)}
+  let h=Harness(root), denied="iPhoneの設定で通知を許可してください。"
+  await h.checkPermission();precondition(h.permissionMessage==denied || h.message==denied)
+  await h.update()
+  precondition(h.permissionMessage==denied,"Successful baseline reconciliation must retain the OS denial warning")
+  precondition(h.message==nil && h.changesEnabled && h.specialsEnabled && h.saves==1)
+  h.failSave=true;await h.update()
+  precondition(h.permissionMessage==denied && h.message=="通知の更新確認を保存できませんでした。","Storage failure and denial must remain independently visible")
+  h.center.response=UNNotificationSettings(.authorized);await h.checkPermission()
+  precondition(h.permissionMessage==nil && h.message != nil,"Authorization recovery must not clear the storage failure")
+  h.failSave=false;await h.update();precondition(h.message==nil && h.permissionMessage==nil)
+  h.center.response=UNNotificationSettings(.denied);await h.checkPermission();precondition(h.permissionMessage==denied)
+  h.changesEnabled=false;h.specialsEnabled=false;let count=h.center.reads
+  await h.checkPermission();await h.update()
+  precondition(h.permissionMessage==nil && h.center.reads==count,"Both-off must clear permission state without asking the OS")
+  print("Actual permission/apply: denial survives reconcile, storage failure coexists, authorization recovers independently, and disabled settings do not read the OS.")
+ }
+}
+'''.replace("PERMISSION", permission).replace("BRIDGE", bridge).replace("METHODS", methods)
         self.run_probe(compiler, program)
 
     def run_probe(self, compiler, program):

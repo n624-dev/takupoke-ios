@@ -2507,3 +2507,9 @@ sourceb741b1c＋未commitのWorkbook回帰、Linux Swift6.1.2、1件/予期し�
 sourceb0b83e0、Linux Swift6.1.2、独立XLSX ZIP→実Reader/Normalizerの1件が0.015秒でunknownAll/row3に失敗。grade1は通過、grade01のCN行とgrade1の全行でknownのkeyが一致しない。Winも同じ7条件中5失敗（200ms）、1/1.0だけ成功。N115の重複ZIP作成は固有URL候補で解消しparserへ到達。次の修正選択前の観測で、実機/実資料の頻度は未検証。
 
 N116照合:years/学年/UnknownAllで索引を検索し、今回の先頭ゼロに対応する以前の試行はない。aa6450f/currentの単一年の戻り値と既存rangeのString(Int)を比較した。双方ともIntで範囲検証後に生tokenを返す単一年だけが不一致。候補は検証済みIntを文字列へ戻し、rangeと同じ標準keyへそろえる。元のAI、全半角正規化、小数.0の前段number、拒否範囲と全展開は保持する。iOS解析版8→9、Win7→8として旧cacheを再解析対象にする。対処/根拠をpush後に架空ZIP回帰を再実行する。
+
+## N118 通知の拒否警告が通常の照合成功で消える（2026-10-23）
+
+source4905b9d＋未commitのactual-method回帰、Linux Swift6.1.2/Python3.12。checkPermission/OS callback bridge/deliveryAllowed/applyの製品本文をそのままコンパイルし、OS応答とsnapshot/storage境界だけstubにした。初回1件が1.592秒で失敗。拒否の確認→baselineのみのapply成功の直後に、拒否警告保持のpreconditionが失敗。実OS設定操作/SwiftUIではなく、権限を回避して配信したとの主張でもない。先に観測を記録し、対処は次に選択する。
+
+N118照合:checkPermission/deliveryAllowed/拒否警告で索引を検索し、以前の許可callback/通知サービス拒否の詳細とaa6450f/currentの許可確認/apply末尾を比較した。以前のcallback輸送は実OS値を保持するため維持する。今回は保存/送信エラーと許可エラーが同じmessageを上書きする状態設計が原因。候補は独立したpermissionMessageを追加し、checkPermissionと配信可否の同じOS読取りで更新すること。apply成功は従来の保存/送信messageだけ解除し、両OFFはOS照会を省いてpermissionMessageを解除する。画面復帰時に同じcheckPermissionを実行し、保存したON/OFFは書き換えない。WindowsはStatusが実OS SettingLabelと独立DeliveryStateを合成し、今回の一つのmessageを消す経路とは異なる。候補と根拠をpush後に回帰を再実行する。
