@@ -13,7 +13,15 @@ extension ApplicationChecks {
             let warning = title + "の選択した資料をまだ反映できていません。正常な解析結果がありません。"
             _ = visible(app.staticTexts[warning])
             XCTAssertTrue(app.staticTexts[warning].exists, app.debugDescription)
-            tap(title + "の資料を確認")
+            let buttons=app.buttons.matching(identifier:title + "の資料を確認")
+            XCTAssertEqual(buttons.count,1,"The warning must expose one material detail button")
+            let details=visible(buttons.element(boundBy:0))
+            guard details.waitForExistence(timeout:5),contained(details,in:bodyViewport()),
+                  details.isEnabled,details.isHittable else {
+                XCTFail("The material detail button must be fully visible and operable: "+app.debugDescription)
+                return
+            }
+            details.tap()
             screen(title)
             XCTAssertTrue(app.buttons["保存済みのPDFを見る"].exists)
             XCTAssertTrue(app.buttons["解析する"].exists)
