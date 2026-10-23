@@ -2501,3 +2501,9 @@ N114照合:detached/非active/取消で既存復旧policyとN109/110の所有cle
 ## N115 学年の交差回帰fixtureが同名ZIPを再作成（2026-10-23）
 
 sourceb741b1c＋未commitのWorkbook回帰、Linux Swift6.1.2、1件/予期しない失敗1、0.011秒。grade1の初回ZIP/parseは成功、次loopの同名fictional-grade.xlsx作成がCocoa516/File existsで失敗し、先頭ゼロのparserへ未到達。製品の学年不具合の証拠には使わない。既存ParsingTests.writeとTypedDateCellsのURL生成を比較し、ZIP writerは新規専用、従来loopはUUID付URLを使う。fixtureのURLだけ各loop固有へ変更する候補をpush後に再実行する。期待class/全展開/原本内容は維持する。
+
+## N116 先頭ゼロ学年が「全」展開と選択classで一致しない（2026-10-23）
+
+sourceb0b83e0、Linux Swift6.1.2、独立XLSX ZIP→実Reader/Normalizerの1件が0.015秒でunknownAll/row3に失敗。grade1は通過、grade01のCN行とgrade1の全行でknownのkeyが一致しない。Winも同じ7条件中5失敗（200ms）、1/1.0だけ成功。N115の重複ZIP作成は固有URL候補で解消しparserへ到達。次の修正選択前の観測で、実機/実資料の頻度は未検証。
+
+N116照合:years/学年/UnknownAllで索引を検索し、今回の先頭ゼロに対応する以前の試行はない。aa6450f/currentの単一年の戻り値と既存rangeのString(Int)を比較した。双方ともIntで範囲検証後に生tokenを返す単一年だけが不一致。候補は検証済みIntを文字列へ戻し、rangeと同じ標準keyへそろえる。元のAI、全半角正規化、小数.0の前段number、拒否範囲と全展開は保持する。iOS解析版8→9、Win7→8として旧cacheを再解析対象にする。対処/根拠をpush後に架空ZIP回帰を再実行する。

@@ -46,7 +46,7 @@ enum ChangeNormalizer {
         guard let year = Int(token(v)), (1...9).contains(year), matches(token(v), "^[0-9]+$") else {
             throw ChangeParseError(code: .year)
         }
-        return [token(v)]
+        return [String(year)]
     }
     static func classes(_ value: String) throws -> [String] {
         if token(value) == "全" { return [] }
