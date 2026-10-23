@@ -46,6 +46,7 @@ struct AccountDataSettingsView: View {
                                          updated: times.updateAvailable, failed: times.failed)
                 }
             }
+            LinksPreferencesWarning(model: links)
             if links.failed || mappings.failed || times.failed {
                 Section("取得・確認のエラー") {
                     if links.failed, let message = links.message { Text(message).foregroundStyle(.orange) }
@@ -89,6 +90,7 @@ private struct LinksDataDetailView: View {
 
     var body: some View {
         List {
+            LinksPreferencesWarning(model: links)
             Section("状態") {
                 AcquisitionStatusRow(title: "リンク一覧", acquired: links.saved != nil,
                                      updated: links.updateAvailable, failed: links.failed)

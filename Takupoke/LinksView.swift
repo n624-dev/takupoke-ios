@@ -44,6 +44,7 @@ struct LinksView: View {
     var body: some View {
         NavigationStack {
             List {
+                LinksPreferencesWarning(model: model)
                 if model.saved == nil {
                     Section {
                         if model.busy || account.busy { LoadingRow(title: "一覧を取得中⋯") }
@@ -122,5 +123,18 @@ private struct HiddenLinksView: View {
             }
         }
         .navigationTitle("非表示のリンク")
+    }
+}
+
+struct LinksPreferencesWarning: View {
+    @ObservedObject var model: LinksModel
+    var body: some View {
+        if let message = model.preferencesError {
+            Section("一覧の個人設定") {
+                Label(message, systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+                Button("一覧の個人設定を再読み込み") { model.reloadPreferences() }
+            }
+        }
     }
 }

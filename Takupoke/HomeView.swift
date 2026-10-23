@@ -32,6 +32,7 @@ struct HomeView: View {
                         }
                     }
                 }
+                LinksPreferencesWarning(model: links)
                 HomeTodayView(materials: materials, specialSchedules: specialSchedules,
                               schoolEvents: schoolEvents, selectedLesson: $selectedLesson,
                               selectedSpecial: $selectedSpecial, selectedChange: $selectedChange,

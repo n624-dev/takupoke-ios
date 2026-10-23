@@ -16,7 +16,7 @@ final class LinksModel: ObservableObject {
     private var store: LinksStore?
     private let preferencesStore: LinkPreferencesStore
     private let storeRoot: URL?
-    var preferencesError: String? { !preferencesReady && failed ? message : nil }
+    @Published private(set) var preferencesError: String?
 
     init(preferencesStore: LinkPreferencesStore = LinkPreferencesStore(), storeRoot: URL? = nil) {
         self.preferencesStore = preferencesStore
@@ -34,7 +34,10 @@ final class LinksModel: ObservableObject {
     }
 
     func loadIfNeeded() {
-        guard !ready else { return }
+        guard !ready else {
+            if !preferencesReady { reloadPreferences() }
+            return
+        }
         do {
             let base = try storeRoot ?? FileManager.default.url(for: .applicationSupportDirectory,
                                                    in: .userDomainMask, appropriateFor: nil, create: true)
@@ -45,19 +48,22 @@ final class LinksModel: ObservableObject {
                 failed = true
                 message = "保存済みの一覧を読み込めませんでした。更新を試してください。"
             }
-            do {
-                preferences = try preferencesStore.load()
-                preferencesReady = true
-            }
-            catch {
-                preferencesReady = false
-                failed = true
-                message = "一覧の設定を読み込めませんでした。保存済みの設定は変更していません。"
-            }
+            reloadPreferences()
             ready = true
         } catch {
             failed = true
             message = "一覧の保存先を開けませんでした。再試行してください。"
+        }
+    }
+
+    func reloadPreferences() {
+        do {
+            preferences = try preferencesStore.load()
+            preferencesReady = true
+            preferencesError = nil
+        } catch {
+            preferencesReady = false
+            preferencesError = "一覧の設定を読み込めませんでした。保存済みの設定は変更していません。"
         }
     }
 
@@ -166,9 +172,9 @@ final class LinksModel: ObservableObject {
         do {
             try preferencesStore.save(draft)
             preferences = draft
+            preferencesError = nil
         } catch {
-            failed = true
-            message = "一覧の設定を保存できませんでした。"
+            preferencesError = "一覧の設定を保存できませんでした。保存済みの設定は変更していません。"
         }
     }
 }
