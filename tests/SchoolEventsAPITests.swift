@@ -3,6 +3,40 @@ import XCTest
 @testable import TakupokeParsing
 
 final class SchoolEventsAPITests: XCTestCase {
+    func testNearLimitPayloadRemainsReadableAfterSavingItsMetadataEnvelope() throws {
+        let root=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let encoder=JSONEncoder()
+        let base="架空"+String(repeating:"あ",count:140)
+        var events=Array(repeating:SchoolEventsPayload.Event(startDate:"2032-04-01",
+            endDate:"2032-04-01",title:base,tag:"行事"),count:1800)
+        var remaining=999_990 - (try encoder.encode(payload(events))).count
+        XCTAssertGreaterThan(remaining,0)
+        for index in events.indices where remaining>0 {
+            let extra=min(200-events[index].title.count,remaining)
+            events[index] = .init(startDate:"2032-04-01",endDate:"2032-04-01",
+                title:events[index].title+String(repeating:"X",count:extra),tag:"行事")
+            remaining -= extra
+        }
+        XCTAssertEqual(remaining,0)
+        let accepted=payload(events)
+        let bytes=try encoder.encode(accepted)
+        XCTAssertEqual(bytes.count,999_990)
+        _ = try SchoolEventsPayload.decode(bytes,requestedYear:2032)
+        let store=try SchoolEventsStore(root:root)
+        try store.save(accepted,apiETag:"\""+String(repeating:"e",count:254)+"\"",
+            fetchedAt:Date(timeIntervalSince1970:1))
+        let reopened=try SchoolEventsStore(root:root).loadAvailable()
+        XCTAssertTrue(reopened.failedYears.isEmpty)
+        XCTAssertEqual(reopened.saved[2032]?.payload,accepted)
+        let persisted=try Data(contentsOf:root.appendingPathComponent("events-2032.json"))
+        var oversized=events
+        oversized.append(.init(startDate:"2032-04-02",endDate:"2032-04-02",
+            title:"架空の上限超過対照",tag:"行事"))
+        XCTAssertThrowsError(try store.save(payload(oversized)))
+        XCTAssertEqual(try Data(contentsOf:root.appendingPathComponent("events-2032.json")),persisted)
+    }
+
     private func payload(_ events: [SchoolEventsPayload.Event]) -> SchoolEventsPayload {
         SchoolEventsPayload(version: "v1", schoolYear: 2032,
                             sourcePdfSha256: String(repeating: "a", count: 64),

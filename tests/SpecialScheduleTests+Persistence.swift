@@ -5,6 +5,22 @@ import GRDB
 @testable import TakupokeParsing
 
 extension SpecialScheduleTests {
+    func testInterruptedEmptySpecialDatabaseCanFinishInitializationWithoutLosingSources() throws {
+        let root=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at:root) }
+        try FileManager.default.createDirectory(at:root.appendingPathComponent("files"),withIntermediateDirectories:true)
+        do {
+            let unfinished=try DatabaseQueue(path:root.appendingPathComponent("specials.sqlite").path)
+            try unfinished.close()
+        }
+        let first=try SpecialScheduleStore(root:root)
+        XCTAssertTrue(first.records.isEmpty)
+        XCTAssertTrue(first.sources.isEmpty)
+        let reopened=try SpecialScheduleStore(root:root)
+        XCTAssertTrue(reopened.records.isEmpty)
+        XCTAssertTrue(reopened.sources.isEmpty)
+    }
+
     func testMissingDatabaseOrTablesPreserveRetainedPDFCopies() throws {
         for missing in ["database", "specialSchedule", "specialSource"] {
             let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
