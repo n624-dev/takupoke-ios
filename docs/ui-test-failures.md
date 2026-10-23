@@ -2256,4 +2256,10 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 
 - N78完了ログはNavigation.swift:92の選択済み受動CellのstaticTexts再列挙でUI query timeout、562.561秒・1件失敗。直前に原本変更後の再照合まで進み、受動Cellの実際の子要素を調べた後で同じ列挙を繰り返していた。N54/N59の詳細と5fd0805/e33a3cdの実Navigation/Review/ケースを照合。既知IDの無いsubmit照会とは異なり、今回はスクロール開始点の観測の再取得。候補は1回の実要素/枠観測をその試行内だけ保持し、反転しなければ同じ受動行を再検査しないこと。16操作・包含・hittable・受動条件・反転上限と最終必須確認を維持する。AXの下位原因は未確定。
 - N79完了ログは新しい復旧UIケースのSettings.swift:13、復旧ボタンの1回のtap後、Cancelが10秒で存在しない。初期marker=0/old=1とボタンhittableは通過し、確認操作・初期化・復旧の保存には未到達。通常16件中この1件のみ失敗、全体1846.299秒。U30/U63の一回の標準tapが未反映の詳細/旧コードと比較し、今回はタブではなく標準Textボタンであり、実action成立は未確認。候補は現在の実枠・画面包含・enabled/hittableから一回の0.1秒接触を行い、QA生成コピーだけで元のaction成立を数値記録すること。押し直し・状態注入・待機延長はせず、Cancel10秒・前後の実bytes・実初期化・再起動の期待を維持する。製品のconfirmationDialogは推測変更しない。
+
+## N80 手動訂正UIのローカル構造検査で受動行の表記が不一致
+
+2026-10-23、source0e1e81b2af778f97ef9b23065b559c94de0001e4、codex/fix-retention-and-manual-ui-observation、Debian13／Python3.12.14／Swift6.1.2。`test_manual_scroll_navigation.py`は2件と実Swift幾何29条件が成功。その後の`test_manual_ui_project.py`は17件中1件失敗（0.305秒）。`test_manual_controls_are_scrolled_and_acknowledged_without_keyboard_or_outer_switch_taps`の295行が`$0.buttons.count==0 && $0.switches.count==0`を要求し、現ソースで見つからなかった。ログは/tmp/ios-n78-project-first.log。製品・実機の実行失敗ではなくソース文字列検査の失敗として、対処を決める前に記録する。後続manifest検査は未実行。過去詳細と旧コードを照合してから修正し、次の試行前にpushする。
+
+- `test_manual_ui_project`検索で対応一覧を確認。N75/N77の詳細とe33a3cdのテスト・Navigation.swiftを読み、旧実装では無名closureの`$0`、現実装では試行内の観測保持に使う明示引数`cell`と確認した。6種の操作可能な子要素を拒否する条件は全て同じで、今回の失敗は引数表記を固定した観測の不一致。3つの文字列検査だけを明示引数へ更新し、6種の拒否・実枠・キーボード回避・16操作の上限・反転制限・必須最終確認は維持する。幾何29条件の実Swift結果と実iOSプローブは別に評価し、この検査の成功を実操作成功の代用にしない。記録と修正を隔離ブランチへpush後に再試行する。
 - 最初は限定の復旧1ケースと、同じ原本変更訂正を両OSで比較する。通常29件・元訂正4件×両OS・公開ゲートは維持する。候補/記録を隔離ブランチへpush後にローカル検査し、新規Actions前に同じ開始前レビューへ修正差分を渡す。
