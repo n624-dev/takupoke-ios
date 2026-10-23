@@ -86,8 +86,7 @@ struct SimulatorApplication: App {
                 }
                 .overlay(alignment: .bottomTrailing) {
                     if ProcessInfo.processInfo.arguments.contains("--retention-corrupt") {
-                        Text(SimulatorRetentionFixture.proof).font(.caption2)
-                            .accessibilityIdentifier("fixture-retention-proof").allowsHitTesting(false)
+                        SimulatorRetentionProofView()
                     }
                 }
                 .overlay(alignment: .topLeading) {
@@ -151,6 +150,9 @@ struct SimulatorApplication: App {
                                 recoveryOffProbe = !data.recovery.running && data.recovery.preview == nil && data.recovery.manualDraft == nil ? "1" : "0"
                             }
                             applicationReady = true
+                            if ProcessInfo.processInfo.arguments.contains("--retention-corrupt") {
+                                SimulatorRetentionObservation.shared.capture()
+                            }
                             FixtureLaunchDiagnostics.record("fixture-ready")
                             break
                         }
@@ -399,5 +401,36 @@ enum SimulatorRetentionFixture {
         let publicOK = (try? Data(contentsOf: base.appendingPathComponent("SchoolEventsAPI/fixture-retention-public"))) == Data("fictional retained bytes".utf8)
         let originalOK = (try? Data(contentsOf: base.appendingPathComponent("fixture-retention-original"))) == Data("fictional retained bytes".utf8)
         return "marker=\(current ? 1 : 0);old=\(old ? 1 : 0);prefs=\(prefs ? 1 : 0);public=\(publicOK ? 1 : 0);original=\(originalOK ? 1 : 0)"
+    }
+    static var fingerprints: String {
+        ["school-data-period.json", "NameMappings/fixture-retention-old",
+         "SchoolEventsAPI/fixture-retention-public", "fixture-retention-original"].map { path in
+            guard let bytes=try? Data(contentsOf:base.appendingPathComponent(path)) else { return "missing" }
+            return SHA256.hash(data:bytes).map { String(format:"%02x",$0) }.joined()
+        }.joined(separator:";")
+    }
+}
+
+@MainActor
+final class SimulatorRetentionObservation:ObservableObject {
+    struct Sample:Equatable { let proof:String;let fingerprints:String;let closes:Int }
+    static let shared=SimulatorRetentionObservation()
+    @Published private(set) var sample=Sample(proof:SimulatorRetentionFixture.proof,
+        fingerprints:SimulatorRetentionFixture.fingerprints,closes:0)
+    func capture(closed:Bool=false) {
+        let fresh=Sample(proof:SimulatorRetentionFixture.proof,fingerprints:SimulatorRetentionFixture.fingerprints,
+            closes:sample.closes+(closed ? 1:0))
+        if fresh != sample { sample=fresh }
+    }
+}
+
+struct SimulatorRetentionProofView:View {
+    @ObservedObject private var observation=SimulatorRetentionObservation.shared
+    var body:some View {
+        VStack {
+            Text(observation.sample.proof).accessibilityIdentifier("fixture-retention-proof")
+            Text(observation.sample.fingerprints).accessibilityIdentifier("fixture-retention-bytes")
+            Text(String(observation.sample.closes)).accessibilityIdentifier("fixture-retention-closes")
+        }.font(.system(size:1)).allowsHitTesting(false)
     }
 }

@@ -28,9 +28,10 @@ def add_swift_sources(project, target, paths, prefix):
         phases[0]['files'].append(build_file)
         group['children'].append(reference)
 
-RETENTION_ACTION_TRACE = '; FixtureLaunchDiagnostics.record("retention-recovery-action")'
+RETENTION_ACTION_TRACE = '; FixtureLaunchDiagnostics.record("retention-recovery-action"); SimulatorRetentionObservation.shared.capture()'
 RETENTION_DIALOG_TRACE = '''        .onChange(of: confirmingRetentionRecovery) { presented in
             FixtureLaunchDiagnostics.record(presented ? "retention-dialog-on" : "retention-dialog-off")
+            SimulatorRetentionObservation.shared.capture(closed: !presented)
         }
 '''
 

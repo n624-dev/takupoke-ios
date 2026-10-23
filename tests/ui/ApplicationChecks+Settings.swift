@@ -8,6 +8,11 @@ extension ApplicationChecks {
         XCTAssertTrue(recovery.isHittable, app.debugDescription)
         let before = "marker=0;old=1;prefs=1;public=1;original=1"
         XCTAssertEqual(app.staticTexts["fixture-retention-proof"].label, before)
+        let bytes=app.staticTexts["fixture-retention-bytes"].label
+        let fingerprints=bytes.split(separator:";")
+        XCTAssertEqual(fingerprints.count,4)
+        XCTAssertTrue(fingerprints.allSatisfy { $0.count==64 && $0.allSatisfy { "0123456789abcdef".contains($0) } })
+        XCTAssertEqual(app.staticTexts["fixture-retention-closes"].label,"0")
         let bounds=recovery.frame
         XCTAssertTrue(usable(bounds) && app.frame.contains(bounds) && recovery.isEnabled && recovery.isHittable,app.debugDescription)
         print("RETENTION_RECOVERY_CONTACT bounds=\(bounds)")
@@ -36,9 +41,12 @@ extension ApplicationChecks {
             dismissal.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).press(forDuration:0.1)
         }
         let dismissed=expectation(for:NSPredicate(format:"exists == false"),evaluatedWith:confirm)
-        XCTAssertEqual(XCTWaiter.wait(for:[dismissed],timeout:10),.completed,app.debugDescription)
+        let observed=expectation(for:NSPredicate(format:"label == %@","1"),
+            evaluatedWith:app.staticTexts["fixture-retention-closes"])
+        XCTAssertEqual(XCTWaiter.wait(for:[dismissed,observed],timeout:10),.completed,app.debugDescription)
         XCTAssertTrue(recovery.waitForExistence(timeout: 10))
         XCTAssertEqual(app.staticTexts["fixture-retention-proof"].label, before)
+        XCTAssertEqual(app.staticTexts["fixture-retention-bytes"].label,bytes)
         let currentBounds=recovery.frame
         XCTAssertTrue(usable(currentBounds) && app.frame.contains(currentBounds) && recovery.isEnabled && recovery.isHittable,app.debugDescription)
         recovery.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).press(forDuration:0.1)
@@ -50,6 +58,9 @@ extension ApplicationChecks {
         XCTAssertTrue(app.tabBars.buttons["ホーム"].exists)
         XCTAssertEqual(app.staticTexts["fixture-retention-proof"].label,
             "marker=1;old=0;prefs=1;public=1;original=1")
+        let after=app.staticTexts["fixture-retention-bytes"].label.split(separator:";")
+        XCTAssertEqual(after.count,4)
+        XCTAssertEqual(Array(after.dropFirst(2)),Array(fingerprints.dropFirst(2)))
         app.terminate()
         app.launchArguments.removeAll { $0 == "--reset-fixture" || $0 == "--retention-corrupt" }
         launchReady()
