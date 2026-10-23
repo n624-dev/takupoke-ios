@@ -51,3 +51,5 @@ f03490a相当codeで全Swift559件/失敗0（Linux Swift6.1.2、71.659秒）。�
 main437（aa6450f）はNative/Distributionと27訂正4件/通常B成功、通常Aは新規補助storeケースのseed段階でcrashし未公開。N112ではfixtureの曜日1〜7が本番の平日制約に反すると確認し、保存規則を変えず、通常fixture1〜5とこのcase限定の月曜日overlayへ修正する。fixtureの破損/復帰は引き続き実ファイルを操作し、ready/解析結果を注入しない。日時flagだけは復帰後の一回再起動にも残す。新しい診断選択で元caseを両OS/配布SDKに比較してから正式全15を判断する。旧run26Bも取り消さず結果を確認する。
 
 3da5107のQA候補はlocalのUI登録/一時project検査28件/失敗0（4.897秒）、fixture/checksのSwift構文parse成功。AGENTS指定の新規GPT-6.1Sol/High reviewerがimmutable code-only diff（SHA256 0f0ce5d674ace7c0e1a38d2be6e97ab36d264150bbf6844af03a717ccea46d74）を読み指摘なし。文書追記後もcode diff同一を確認し、この一回の両OS診断開始で消費する。正式全15の合格・公開・実機成功とは区別する。
+
+N117の対処は新caseのpush-backを既存標準sheet dismissへ変更したQAのみ。manifest28件/失敗0（4.388秒）、Swift構文parse/catalog成功。新規GPT-6.1 Sol/High ios_aux_sheet_pre_actions_reviewは不変コード差分だけを読み指摘なし（SHA256 7b497bf01458b3c86a1c88461ec18da594c3f2d5280e081cf0fdb8ea9e4fc737）。このreviewは次のauxiliary-store両OS/SDK27.0の診断1回だけに使用する。前回は両再読込/授業詳細まで成功したが後半の週表示/relaunch復旧は未確認、成功へ一般化しない。
