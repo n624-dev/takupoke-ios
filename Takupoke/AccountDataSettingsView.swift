@@ -25,7 +25,10 @@ struct AccountDataSettingsView: View {
                      ? "一覧だけ取得します。学内ネットワークではMicrosoft認証を省略できます。"
                      : "名称データ・授業時刻には学校アカウントでの認証が必要です。選択したデータを1回の認証で取得します。")
                     .font(.caption).foregroundStyle(.secondary)
-                if busy { LoadingRow(title: "取得中⋯", cancel: { account.cancel() }) }
+                if busy {
+                    LoadingRow(title: account.busy ? "取得中⋯" : "更新情報を確認中⋯",
+                        cancel: account.busy ? { account.cancel() } : nil)
+                }
                 Button(links.saved == nil || mappings.current == nil || times.current == nil ? "学校アカウントで取得" : "更新を確認") {
                     let selection = selectedData
                     Task { await account.refresh(mappings: mappings, links: links, times: times, selection: selection) }
