@@ -28,3 +28,5 @@ sourcee33a3cd、[run39907749454](https://github.com/n624-dev/takupoke-ios/action
 次のActions開始前の新規GPT-6.1 Sol / Highによる対main全コード差分1357行のレビューも指摘なし（read-only、実装/テスト実行なし）。現在のPRに修正が必要なら変更差分も確認してから開始し、コードが変わらなければmain反映前の確認として扱う。
 
 利用者が追加報告した通常時間割の「処理中」はFile Provider側の問題と判断して修正不要と指定したため、busy寿命・Strict・取得処理へ推測の変更は加えていない。学校行事の案内はAPI側の元PDF ETagのみの変化で、本文SHA-256が登録済みと完全一致した。[API PR46](https://github.com/n624-dev/takupoke-api/pull/46)／main6563ff2で元PDF情報を更新し、本番JSON/ETag/304と学校サイトHEADの一致を確認済み。学校行事の再取得で反映でき、iOSバイナリの修正は不要。
+
+同runのiPhoneビルド確認jobも成功し、実Picker・Host627件（予定skip1、84.542秒）とiPhone Releaseビルドを確認した。訂正の単項目518.038秒・明示選択1124.870秒も各1件/失敗0で厳密な完了照合まで成功。原本変更訂正と通常UIは継続中で、依存するiOS26は未完了。N77のPython版の記載を実行環境で確認した3.12.14へ訂正した。

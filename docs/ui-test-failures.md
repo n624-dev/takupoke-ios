@@ -2242,6 +2242,6 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 
 ## N77 iOS27のruntime選択runner検査の観測一覧が空
 
-2026-10-23、Debian13 / Python3.11、source3054127、隔離ブランチcodex/fix-ios27-runtime-compatibility。`python3 -B -m unittest discover -s tests -p 'test_*ui_runner.py'` の19件中、追加test_shipping_27_uses_exact_27_0_when_newer_minor_is_availableだけが失敗。runner自体のexit0 assertionは通過したが、テスト100行のsimctl create件数が期待1に対して0。ログ/tmp/ios-runtime-runners-first.log。準備helperの独立9モードは成功。テストの観測範囲・製品の選択のどちらが原因かは対処方針決定前の時点で未確定。
+2026-10-23、Debian13 / Python3.12.14、source3054127、隔離ブランチcodex/fix-ios27-runtime-compatibility。`python3 -B -m unittest discover -s tests -p 'test_*ui_runner.py'` の19件中、追加test_shipping_27_uses_exact_27_0_when_newer_minor_is_availableだけが失敗。runner自体のexit0 assertionは通過したが、テスト100行のsimctl create件数が期待1に対して0。ログ/tmp/ios-runtime-runners-first.log。準備helperの独立9モードは成功。テストの観測範囲・製品の選択のどちらが原因かは対処方針決定前の時点で未確定。
 
 - c133487のrun_runnerは返却前に観測をxcodebuildだけへ絞っており、新しいsimctl assertionが対象を受け取っていなかった。N75のprobe抽出範囲不一致とN03の追加テストコンパイル失敗の詳細を照合した。今回は実runnerの失敗でもruntime不一致でもない。既存テストの返却契約は維持し、新ケースだけ全コマンド観測を要求する。simctl create1回・27.0必須、他のbuild/boot/実行/回収・欠落拒否条件は変更しない。修正/記録を隔離ブランチへpush後に再試行する。
