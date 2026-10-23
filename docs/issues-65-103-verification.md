@@ -81,3 +81,5 @@ c18c138の追加修正群はLinux Swift全564件/失敗0（76.632秒）。Python
 UI編集前にPDFRecoveryView/元のPDF/RecoveryClosing/背景/sheetを失敗索引で検索し、N60のRecovery originalケースと旧c7994b7/現在のsheet内容・N60のviewport対処を読んだ。N60は画面外要素探索であり、今回のBoolが残る寿命問題とは別。候補は元PDFのURLをpresentation itemへ捕捉し、preview/manual draftの変更と非activeでitem自体を解除すること。常に実SavedPDFViewが閉じる操作を持ち、空の条件付きsheetを残さない。背景で保持する手動入力・ACKの既存policyは変更しない。既存RecoveryClosingの実UIに、元PDFを開いたままHomeへ移動→同じprocessへ復帰→sheet消失/前回正式結果保持を追加し、元の終了/モデル管理の検査も維持する。実Apple UI通過はまだ未確認。
 
 95の親取消回帰は修正後2件/失敗0（0.002秒）。CoordinatorのSwift構文parseはtoolchainを明示sourceして成功（最初は親shellのPATHにswiftcがなく未実行、製品のコンパイル失敗ではない）。Win32交差のiOS actual XLSX回帰は修正後1件/失敗0（0.037秒）、7表記と正逆range/全展開を確認。92のmanual UI生成17件/失敗0（0.275秒）、変更したView/実UIケースの構文parse成功。Apple型検査/実タップ/実Visionの停止時間は未確認。
+
+追加群37482f8の全体最終チェック:Swift567件/失敗0（73.081秒）、Python275件/skip2/失敗0（58.192秒）。catalog check --base aa6450fも成功。新規GPT-6.1 Sol/High ios_post437_native_pre_actions_reviewはコード差分1469行のみを読み指摘なし（SHA256 3ab03740f5867371ad892df66c6e7b7236f59b0a0665cd56142bdac35869b970）。このreviewは次のdevelopment native_pdf=true/picker=falseの両SDK検証1回だけに使用し、全15公開gateや実Apple UIの成功へ代用しない。
