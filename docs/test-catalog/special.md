@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`03c47a960470c907d5c51acefb680cb4002f41e34f9025acacd9c99744005aa8`
+`beeaf351bcbbde9807fc2f8eb7504ad12f9a00c0c3114d3fd2172309ec7d97dc`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -32,6 +32,7 @@ bash tools/test-parsing.sh
 - `testMissingDatabaseOrTablesPreserveRetainedPDFCopies`
 - `testFreshStoreCollectsOrphansOnlyAfterValidMetadataAndUpgradesLegacyRecords`
 - `testIncompleteSpecialTimesDoNotReplacePreviousStoreResult`
+- `testAcquisitionFailureStatusKeepsGoodAnalysisUntilTheSameSourceIsConfirmed`
 - `testSelectedPDFAndFailurePersistWithoutReplacingPreviousAnalysis`
 - `testUnchangedSpecialPDFCheckPersistsWithoutReplacingAcquisitionOrAnalysis`
 - `testSameBytesProviderRenamePreservesOriginalAnalysisAndPendingFailure`

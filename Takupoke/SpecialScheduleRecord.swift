@@ -43,6 +43,23 @@ struct SpecialScheduleAvailability {
         return source.digest == record.digest && record.digest == record.analysis.sourceDigest &&
             record.analysis.version == SpecialScheduleAnalysis.parserVersion ? .current : .previous
     }
+    func analysisStatus(_ kind: SpecialScheduleKind, source: SpecialScheduleSource,
+                        recoveryRejected: Bool = false) -> String {
+        if recoveryRejected { return "保存済み復旧結果を再検証できません" }
+        if source.acquisitionFailure != nil {
+            return records[kind] == nil ? "更新確認失敗" : "更新確認失敗（前回結果あり）"
+        }
+        if source.failure != nil {
+            return records[kind] == nil
+                ? "解析失敗" : "解析失敗（前回結果あり）"
+        }
+        guard let record = records[kind] else {
+            return "未解析"
+        }
+        return record.digest == source.digest && record.analysis.version == SpecialScheduleAnalysis.parserVersion
+            ? "解析済み" : "未解析（前回結果あり）"
+    }
+
     func message(for kind: SpecialScheduleKind) -> String? {
         switch state(for: kind) {
         case .unanalysed: return "\(kind.title)の選択した資料をまだ反映できていません。正常な解析結果がありません。"

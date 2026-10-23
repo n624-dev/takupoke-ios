@@ -27,16 +27,7 @@ extension MaterialsView {
 
 extension SpecialSchedulesModel {
     func analysisStatus(_ kind: SpecialScheduleKind, source: SpecialScheduleSource) -> String {
-        if rejectedRecoveryKinds.contains(kind) { return "保存済み復旧結果を再検証できません" }
-        if source.failure != nil {
-            return records[kind] == nil
-                ? "解析失敗" : "解析失敗（前回結果あり）"
-        }
-        guard let record = records[kind] else {
-            return "未解析"
-        }
-        return record.digest == source.digest && record.analysis.version == SpecialScheduleAnalysis.parserVersion
-            ? "解析済み" : "未解析（前回結果あり）"
+        availability.analysisStatus(kind, source: source, recoveryRejected: rejectedRecoveryKinds.contains(kind))
     }
 
 }

@@ -117,6 +117,33 @@ extension SpecialScheduleTests {
         XCTAssertEqual(reopened.savedURL(for: .exam), oldURL)
     }
 
+    func testAcquisitionFailureStatusKeepsGoodAnalysisUntilTheSameSourceIsConfirmed() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let bytes = Data("%PDF-entirely-fictional-status".utf8)
+        let analysis = try SpecialScheduleParser.parse((1...6).map { examPage($0) },
+            kind: .exam, digest: "fictional-current", name: "fictional-status.pdf")
+        let store = try SpecialScheduleStore(root: root)
+        let staged = store.newStagingURL(); try bytes.write(to: staged)
+        try store.save(staged: staged, analysis: analysis, originalName: "fictional-status.pdf",
+            byteCount: bytes.count, digest: analysis.sourceDigest)
+        func status(_ store: SpecialScheduleStore) throws -> String {
+            SpecialScheduleAvailability(ready: true, busy: false, failed: false,
+                sources: store.sources, records: store.records).analysisStatus(.exam, source: try XCTUnwrap(store.sources[.exam]))
+        }
+        XCTAssertEqual(try status(store), "解析済み")
+        try store.recordAcquisitionFailure(kind: .exam)
+        let reopened = try SpecialScheduleStore(root: root)
+        XCTAssertEqual(try status(reopened), "更新確認失敗（前回結果あり）")
+        XCTAssertEqual(reopened.records[.exam]?.analysis.sourceDigest, analysis.sourceDigest)
+        XCTAssertEqual(try Data(contentsOf: XCTUnwrap(reopened.savedURL(for: .exam))), bytes)
+        XCTAssertThrowsError(try reopened.recordSuccessfulCheck(.exam, digest: "fictional-other"))
+        XCTAssertEqual(try status(reopened), "更新確認失敗（前回結果あり）")
+        try reopened.recordSuccessfulCheck(.exam, digest: analysis.sourceDigest)
+        XCTAssertEqual(try status(SpecialScheduleStore(root: root)), "解析済み")
+        XCTAssertEqual(reopened.records[.exam]?.analysis.sourceDigest, analysis.sourceDigest)
+    }
+
     func testSelectedPDFAndFailurePersistWithoutReplacingPreviousAnalysis() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

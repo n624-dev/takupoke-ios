@@ -59,3 +59,7 @@ LinksModel/個人設定/一覧の設定を読み込で索引を検索し、同�
 ## 取得と解析のエラー分類（75/86）
 
 SelectedFileSource/MaterialsModel+Updates/PDFDiagnosticsをcatalog検索し、元の自動更新ループをFoundationの同じSelectedFileRefresherへ無変更抽出する。取得/解析は既存workerが所有し、callback化はエラー・継続条件の実行検査のため。診断のattachingToParseFailureも元attachingだけへ委譲する準備として追加し、Special側のgeneric error経路へ接続する。この段階は両不具合を直していない。独立したPDF/変更/取得エラーと取消の型・文面・継続順序を修正前比較する。Strict239、元資料の保存/解析・診断の既存attaching規則は変更しない。
+
+75/86は修正後同じ14件/失敗0（0.108秒）。原エラーの型/文面/詳細を保持し、通常失敗では他資料を確認、取消は次の資料へ進まない。Windows MaterialCoordinatorはSourceExceptionを取得試行、parseのPDF/Changeエラーを解析試行へ別保存し、同じ全件provider置換はない。
+
+87は現在のSpecial状態関数をFoundationのavailabilityへ移し、source.acquisitionFailureがあれば一覧も更新確認失敗とする。元の復旧拒否/解析失敗/旧版判定を維持する。実Storeの採用→原本確認失敗→再open→別digestの成功拒否→同原本の確認成功を追加し、正常analysis/PDF保持とstatus解除を検査する。Home/週へ新たな推測状態を入れず、詳細の元警告も維持する。WindowsはMaterialSnapshotがAcquisitionAttempt.Failureを解析済みより先に扱い、保存と再起動の既存回帰を持つので同じ表示漏れは非該当。
