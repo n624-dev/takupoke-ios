@@ -2403,3 +2403,10 @@ N94は最初のroomの実clear・全文入力・完了後の全文一致と、AC
 実SDK27.0／Runtime26.5。testHomeTimetableAndWeekCalendarの最初の時間割tabで、一意な実iconの包含／hittable確認と一回0.1秒press後も45秒内にselectedにならず、Navigation.swift:43、132.302秒で失敗した。基本6件中ほか5件は成功し、その後の通知／VoiceOver／文字サイズ区間は基本suite失敗で未実行。実image193401bytes／SHA256 94c94482fccc89fdd3cf3d4533ee98931c7ed652f08a52ffb43e555695f23f5eを43片から所有一時領域へ復元・長さ／hash照合して目視し、実画面・AXともHome選択を確認した。通知panelや別sheetはない。押した実iconは(222.83,780.33,29,25)、barは(0,769,393,83)。このcaseは入力traceの対象ではなく、native touchが届いたview／cancelled等は未観測で、下位原因は未確定。
 
 Native tab／HomeTimetable／時間割／U63でN49/U77/U63と398の詳細、9ffdf0eの当時差分・fd6e42c／現tab helperを照合した。N49/U77は通知設定の対話QA panelがあったが、今回は通常Homeの初回tabでpanelなし。U63のicon中心tap後と同じ選択未反映だが、現状はその後の0.1秒比較条件であり、時間・点を往復させない。現在436はこの失敗観測前に開始した別のN96/N97候補で、tab helper・本case・fixture flagは435と同一bytes。製品・SDK・操作・期待／期限を推測変更せず、追加の同条件再試行を開始せず、既に実行中の436の元必須ケースを最後まで確認する。原因や恒常的解消を他ケースの成功から断定しない。
+
+## N99 追加Issue68/78の修正前回帰確認（2026-10-23）
+
+- source e62359877962a73bfbcb2eecd13944bd927c5527、Debian13/x86_64・Swift6.1.2、学校本番通信なし、`bash tools/test-parsing.sh`の一回目。20:43:50 UTC、SchoolEventsAPITests.testNearLimitPayloadRemainsReadableAfterSavingItsMetadataEnvelope の再読込で failedYears が空でなく、saved[2032] がnil。999,990 bytesの完全架空payloadはdecodeとsaveを通過した。修正案を選ぶ前に記録。期待値の全payload出力が大きかったため、以後は同一性をBoolで比較して失敗ログ量を抑える（同じ完全比較を維持）。
+- 20:44:03 UTC、SpecialScheduleTests.testInterruptedEmptySpecialDatabaseCanFinishInitializationWithoutLosingSources は最初のstore作成でinvalidState。原本0件、空SQLiteをGRDBで作成してcloseした初期化中断状態。20:44:12全体終了、準備込み241.1秒。両新規ケースのみ失敗（行事2assert、DB1throw）。物理iOS/SwiftUI検査ではない。
+
+- 対処前に検索語SchoolEventsStore／SpecialScheduleStore／missing database／initial／1.000.000で索引を検索。行事のこの境界失敗は既存記録なし。DBはN57詳細と基点f38831e、Issue41修正後・現行e623598を比較した。f38831eは既存欠損でもCREATEし原本を孤児扱いできたため、その再初期化へ戻さない。新候補は原本がなく、sqlite_masterが完全に空かつuser_version/application_idが0の場合だけ初回の二表を単一transactionで作成する。任意の他schema/非zero version/原本ありの拒否とlegacy移行を維持する。行事はpayloadの1MB検証を維持し、保存全体には2048bytesのメタデータ枠を追加、同じ上限をsave/load双方へ適用する。候補・負の対照・記録を隔離branchへpushしてから次のローカル実行を行う。

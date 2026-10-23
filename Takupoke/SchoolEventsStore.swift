@@ -28,6 +28,9 @@ struct SchoolEventsAvailableLoad {
 }
 
 final class SchoolEventsStore {
+    // The API bounds the payload alone to 1 MB. The on-disk envelope also
+    // contains a timestamp and a bounded, JSON-escaped ETag.
+    private static let maximumSavedBytes = 1_000_000 + 2_048
     private let root: URL
 
     init(root: URL) throws {
@@ -68,7 +71,7 @@ final class SchoolEventsStore {
                   (1900...9998).contains(year) else { continue }
             let info = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
             guard info.isRegularFile == true, info.isSymbolicLink != true,
-                  let size = info.fileSize, (0...1_000_000).contains(size) else {
+                  let size = info.fileSize, (0...Self.maximumSavedBytes).contains(size) else {
                 failedYears.insert(year)
                 continue
             }
@@ -77,7 +80,7 @@ final class SchoolEventsStore {
             let data = try Data(contentsOf: file)
             try Task.checkCancellation()
             do {
-                guard data.count <= 1_000_000 else { throw SchoolEventsError.invalidResponse }
+                guard data.count <= Self.maximumSavedBytes else { throw SchoolEventsError.invalidResponse }
                 let value = try JSONDecoder().decode(SavedSchoolEvents.self, from: data)
                 let verified = try SchoolEventsPayload.decode(JSONEncoder().encode(value.payload), requestedYear: year)
                 try Task.checkCancellation()
@@ -101,8 +104,9 @@ final class SchoolEventsStore {
             throw SchoolEventsError.invalidResponse
         }
         let url = root.appendingPathComponent("events-\(checked.schoolYear).json")
-        try JSONEncoder().encode(SavedSchoolEvents(fetchedAt: fetchedAt, payload: checked, apiETag: apiETag))
-            .write(to: url, options: .atomic)
+        let data = try JSONEncoder().encode(SavedSchoolEvents(fetchedAt: fetchedAt, payload: checked, apiETag: apiETag))
+        guard data.count <= Self.maximumSavedBytes else { throw SchoolEventsError.invalidResponse }
+        try data.write(to: url, options: .atomic)
         #if os(iOS)
         try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path)
         #endif

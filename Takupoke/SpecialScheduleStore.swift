@@ -38,19 +38,34 @@ final class SpecialScheduleStore {
         let storedFiles = try manager.contentsOfDirectory(at: files, includingPropertiesForKeys: nil)
         guard existingDatabase || storedFiles.isEmpty else { throw StoreError.invalidState }
         queue = try DatabaseQueue(path: database.path, configuration: config)
-        let hasSources = try queue.read { db in
-            if existingDatabase {
-                guard try db.tableExists("specialSchedule") else { throw StoreError.invalidState }
+        let hasSources = try queue.write { db in
+            let hasSchedule = try db.tableExists("specialSchedule")
+            if existingDatabase && !hasSchedule {
+                // Opening SQLite can create the formal file before the first
+                // schema transaction. Only that completely blank state is
+                // resumable: retained PDFs or any schema/version evidence still
+                // require recovery rather than silently reinitializing a store.
+                guard storedFiles.isEmpty,
+                      try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM sqlite_master") == 0,
+                      try Int.fetchOne(db, sql: "PRAGMA user_version") == 0,
+                      try Int.fetchOne(db, sql: "PRAGMA application_id") == 0 else {
+                    throw StoreError.invalidState
+                }
+            }
+            if !hasSchedule {
+                try db.execute(sql: """
+                    CREATE TABLE specialSchedule (
+                        kind TEXT PRIMARY KEY NOT NULL CHECK (kind IN ('exam', 'examReturn')),
+                        payload BLOB NOT NULL
+                    );
+                    CREATE TABLE specialSource (
+                        kind TEXT PRIMARY KEY NOT NULL CHECK (kind IN ('exam', 'examReturn')),
+                        payload BLOB NOT NULL
+                    )
+                    """)
+                return true
             }
             return try db.tableExists("specialSource")
-        }
-        try queue.write { db in
-            try db.execute(sql: """
-                CREATE TABLE IF NOT EXISTS specialSchedule (
-                    kind TEXT PRIMARY KEY NOT NULL CHECK (kind IN ('exam', 'examReturn')),
-                    payload BLOB NOT NULL
-                )
-                """)
         }
         records = try queue.read { db in
             var result: [SpecialScheduleKind: SpecialScheduleRecord] = [:]

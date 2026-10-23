@@ -1,7 +1,7 @@
 # 学校行事API・年度別保存
 
 対応関係・宣言名・実行方法のSHA-256：
-`291dd51ee87de55c5c88ffcfc72b4ed3784c62c2eeec21f1b6d408ee40b1aa30`
+`599815ea5c9d21fcd0aee8e8bde15d75ba137958f7d212b51c46b5c5d55e06dc`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -18,6 +18,7 @@ bash tools/test-parsing.sh
 
 ## [tests/SchoolEventsAPITests.swift](../../tests/SchoolEventsAPITests.swift)
 
+- `testNearLimitPayloadRemainsReadableAfterSavingItsMetadataEnvelope`
 - `testAnnualCoverageUsesValidatedYearEvenWithoutEventsOnDisplayedDay`
 - `testWeekCoverageChecksEveryDayAcrossSchoolYearBoundary`
 - `testCorruptYearRetainsHealthyYearsAndOriginalUntilVerifiedSameYearRepair`

@@ -28,7 +28,7 @@ final class SchoolEventsAPITests: XCTestCase {
             fetchedAt:Date(timeIntervalSince1970:1))
         let reopened=try SchoolEventsStore(root:root).loadAvailable()
         XCTAssertTrue(reopened.failedYears.isEmpty)
-        XCTAssertEqual(reopened.saved[2032]?.payload,accepted)
+        XCTAssertTrue(reopened.saved[2032]?.payload == accepted)
         let persisted=try Data(contentsOf:root.appendingPathComponent("events-2032.json"))
         var oversized=events
         oversized.append(.init(startDate:"2032-04-02",endDate:"2032-04-02",

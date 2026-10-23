@@ -21,6 +21,22 @@ extension SpecialScheduleTests {
         XCTAssertTrue(reopened.sources.isEmpty)
     }
 
+    func testMissingScheduleTableWithOtherSchemaOrVersionIsNotReinitialized() throws {
+        for evidence in ["CREATE TABLE fictionalEvidence (value TEXT)",
+                         "PRAGMA user_version = 1", "PRAGMA application_id = 1"] {
+            let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer { try? FileManager.default.removeItem(at: root) }
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+            let database = try DatabaseQueue(path: root.appendingPathComponent("specials.sqlite").path)
+            try database.write { try $0.execute(sql: evidence) }
+            XCTAssertThrowsError(try SpecialScheduleStore(root: root))
+            try database.read { db in
+                XCTAssertFalse(try db.tableExists("specialSchedule"))
+                XCTAssertFalse(try db.tableExists("specialSource"))
+            }
+        }
+    }
+
     func testMissingDatabaseOrTablesPreserveRetainedPDFCopies() throws {
         for missing in ["database", "specialSchedule", "specialSource"] {
             let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
