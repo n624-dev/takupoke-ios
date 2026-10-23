@@ -18,6 +18,81 @@ final class TimetableClockEvidenceTests: XCTestCase {
         let analysis = ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx", defaultYear: 2032, parsedAt: Date(), records: [row])
         return TimetableDaySchedule(timetable: nil, changes: analysis, events: nil, specials: sources, includesChanges: true)
     }
+    func testChangeVisualMergesRespectBreaksAndLunchWithDefaultAndCustomClocks() throws {
+        let custom = TimetableTimes(schemaVersion: 1, days: [.init(date: day.iso8601, periods: [
+            .init(period: 2, start: "09:40", end: "10:15"), .init(period: 3, start: "10:40", end: "11:10"),
+            .init(period: 4, start: "11:20", end: "12:10"), .init(period: 5, start: "12:55", end: "13:45")])])
+        _ = try custom.validated()
+        for times in [nil, custom] as [TimetableTimes?] {
+            for kind in ["変更", "補講"] {
+                for (start, end, gap) in [(2, 3, "10:25"), (4, 5, "12:25")] {
+                    let row = ScheduleChange(change_date: day.iso8601, class_name: cls, period: "\(start),\(end)", before_subject: "架空科目A", after_subject: "架空科目B", teacher: "", room: "", note: "架空備考", raw_text: "架空原文", canonical_text: "架空正規化", change_kind: kind)
+                    let changes = ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx", defaultYear: 2032, parsedAt: Date(), records: [row])
+                    let s = TimetableDaySchedule(timetable: nil, changes: changes, events: nil, specials: [], includesChanges: true, customTimes: times)
+                    let block = try XCTUnwrap(s.blocks(on: day, className: cls, international: false).first)
+                    XCTAssertNotNil(s.cardTime(block, on: day, className: cls))
+                    XCTAssertFalse(s.isInProgress(block, on: day, className: cls, now: instant(gap)))
+                    let first = times?.time(on: day, period: start) ?? TimetableSchedule.normalPeriodTimes[start - 1]
+                    let last = times?.time(on: day, period: end) ?? TimetableSchedule.normalPeriodTimes[end - 1]
+                    XCTAssertTrue(s.isInProgress(block, on: day, className: cls, now: instant(first.components(separatedBy: "〜")[0])))
+                    XCTAssertFalse(s.isInProgress(block, on: day, className: cls, now: instant(last.components(separatedBy: "〜")[1])))
+                }
+            }
+        }
+    }
+
+    func testIndependentSpecialCellsKeepTheirGapWhenVisuallyMerged() throws {
+        for kind in SpecialScheduleKind.allCases {
+            let clocks = [1: "09:00〜09:20", 2: "09:30〜09:50"]
+            let independent = SpecialScheduleAnalysis(kind: kind, sourceDigest: "fictional", sourceName: "fictional.pdf", parsedAt: Date(), schoolYear: 2032, coveredDates: [day.iso8601], coveredClasses: [cls], periodTimes: clocks,
+                lessons: (1...2).map { SpecialScheduleLesson(date: day.iso8601, className: cls, period: $0, spanStart: $0, spanEnd: $0, timeRange: clocks[$0], lines: ["架空科目A", "架空教員A", "架空教室A"], page: 1) }, dedicatedTimeDate: kind == .examReturn ? day.iso8601 : nil)
+            let s = TimetableDaySchedule(timetable: nil, changes: nil, events: nil, specials: [independent], includesChanges: true)
+            let blocks = s.blocks(on: day, className: cls, international: false); XCTAssertEqual(blocks.count, 1)
+            let block = try XCTUnwrap(blocks.first)
+            XCTAssertFalse(s.isInProgress(block, on: day, className: cls, now: instant("09:25")))
+            XCTAssertTrue(s.isInProgress(block, on: day, className: cls, now: instant("09:00")))
+            XCTAssertFalse(s.isInProgress(block, on: day, className: cls, now: instant("09:50")))
+            let joined = TimetableDaySchedule(timetable: nil, changes: nil, events: nil, specials: [source(kind, recorded: "09:00〜09:50")], includesChanges: true)
+            let continuous = try XCTUnwrap(joined.blocks(on: day, className: cls, international: false).first)
+            XCTAssertTrue(joined.isInProgress(continuous, on: day, className: cls, now: instant("09:25")))
+        }
+    }
+
+    func testHiddenSpecialLessonDoesNotRemoveTheVisibleCommonClock() throws {
+        func one(_ kind: SpecialScheduleKind, _ subject: String, _ time: String) -> SpecialScheduleAnalysis {
+            SpecialScheduleAnalysis(kind: kind, sourceDigest: "fictional", sourceName: "fictional.pdf", parsedAt: Date(), schoolYear: 2032, coveredDates: [day.iso8601], coveredClasses: [cls], periodTimes: [1: time], lessons: [.init(date: day.iso8601, className: cls, period: 1, spanStart: 1, spanEnd: 1, timeRange: time, lines: [subject], page: 1)], dedicatedTimeDate: kind == .examReturn ? day.iso8601 : nil)
+        }
+        let exam = one(.exam, "留 架空試験科目A", "09:00〜09:40")
+        let returns = one(.examReturn, "架空返却科目B", "10:00〜10:20")
+        for sources in [[exam, returns], [returns, exam]] {
+            let s = TimetableDaySchedule(timetable: nil, changes: nil, events: nil, specials: sources, includesChanges: true)
+            XCTAssertEqual(s.blocks(on: day, className: cls, international: false).count, 1)
+            XCTAssertEqual(s.commonPeriodTime(1, days: [day], classes: [cls], international: false), "10:00〜10:20")
+            XCTAssertNil(s.commonPeriodTime(1, days: [day], classes: [cls], international: true))
+        }
+    }
+
+    func testChangeClockRemainsUnknownWhenOneRequiredSpecialKindIsMissing() throws {
+        let payload = SchoolEventsPayload(version: "v1", schoolYear: 2032, sourcePdfSha256: String(repeating: "a", count: 64), sourcePdfETag: nil,
+            events: ["テスト", "テスト返却"].map { .init(startDate: day.iso8601, endDate: day.iso8601, title: "架空行事", tag: $0) })
+        let events = try SchoolEventsPayload.decode(JSONEncoder().encode(payload), requestedYear: 2032).projectedEvents
+        let calendar = PDFAnalysis(kind: .events, sourceDigest: "fictional", sourceName: "架空行事API", parsedAt: Date(), schoolYear: 2032, term: nil, lessons: [], events: events, notices: [])
+        for sources in [[source(.exam)], [source(.examReturn)], [source(.exam), source(.examReturn)]] {
+            let base = schedule(sources, periods: "1")
+            let s = TimetableDaySchedule(timetable: nil, changes: base.changes, events: calendar, specials: sources, includesChanges: true)
+            let block = try XCTUnwrap(s.blocks(on: day, className: cls, international: false).first)
+            XCTAssertEqual(s.cardTime(block, on: day, className: cls), sources.count == 2 ? "08:50〜09:35" : nil)
+            XCTAssertEqual(s.commonPeriodTime(1, days: [day], classes: [cls], international: false), sources.count == 2 ? "08:50〜09:35" : nil)
+            if sources.count == 1 {
+                XCTAssertEqual(s.changeTimeRanges(base.changes!.records[0]), [nil])
+                XCTAssertFalse(s.isInProgress(block, on: day, className: cls, now: instant("09:00")))
+                let own = TimetableDaySchedule(timetable: nil, changes: nil, events: calendar, specials: sources, includesChanges: true)
+                let known = try XCTUnwrap(own.blocks(on: day, className: cls, international: false).first)
+                XCTAssertNotNil(own.cardTime(known, on: day, className: cls))
+            }
+        }
+    }
+
     func testWholeSpecialReplacementPreservesRecordedContinuousClockAndDetailBoundaries() throws {
         for kind in SpecialScheduleKind.allCases {
             for teacherOnly in [false, true] {
