@@ -474,9 +474,10 @@ METHOD
 
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source(manifest.check_source())
-        self.assertEqual(len(manifest.selected_tests("all")), 29)
+        self.assertEqual(len(manifest.selected_tests("all")), 30)
         self.assertIn("testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData", manifest.SHARDS["A"])
         self.assertIn("testFirstFailedSpecialDocumentsWarnOnHomeAndWeekAndOpenTheirDetails", manifest.SHARDS["A"])
+        self.assertIn("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover", manifest.SHARDS["A"])
         self.assertTrue(all(manifest.SHARDS[shard] for shard in ("A", "B")))
         self.assertFalse(set(manifest.SHARDS["A"]) & set(manifest.SHARDS["B"]))
         self.assertEqual(release_gate.REQUIRED, manifest.ALL_UI_REQUIRED_JOBS | {"Distribution tests", "Native PDF and recovery tests"})
