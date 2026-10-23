@@ -57,14 +57,11 @@ extension TimetableView {
                 Label("時間割変更は前回の解析結果です。", systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.orange)
             }
-            if !SchoolEventsCoverage(savedYears: Set(schoolEvents.saved.keys)).coversWeek(starting: weekStart) {
+            if schoolEvents.ready && !SchoolEventsCoverage(savedYears: Set(schoolEvents.saved.keys)).coversWeek(starting: weekStart) {
                 Label("学校行事は未取得です。", systemImage: "calendar.badge.exclamationmark")
                     .foregroundStyle(.secondary)
             }
-            if let sourceCheckMessage = schoolEvents.sourceCheckMessage {
-                Label(sourceCheckMessage, systemImage: "exclamationmark.triangle")
-                    .font(.caption).foregroundStyle(.orange)
-            }
+            SchoolEventsWarnings(model: schoolEvents)
             SpecialScheduleWarnings(model: specialSchedules)
             if selectedClasses.isEmpty {
                 Text(savedClasses.isEmpty ? "クラスを設定すると時間割を表示します。" :

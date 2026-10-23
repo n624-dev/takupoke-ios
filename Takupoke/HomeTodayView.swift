@@ -105,7 +105,8 @@ struct HomeTodayView: View {
                 Label("\(title)の新しい資料をまだ反映できていません。前回の正常結果を表示しています。",systemImage:"exclamationmark.triangle")
                     .font(.caption).foregroundStyle(.orange)
             }
-            SpecialScheduleWarnings(model: specialSchedules, showLoadState: false)
+            SpecialScheduleWarnings(model: specialSchedules)
+            SchoolEventsWarnings(model: schoolEvents)
             if loadFailed {
                 Text("データを読み込めませんでした。")
                     .font(.subheadline).foregroundStyle(.secondary)
@@ -118,7 +119,7 @@ struct HomeTodayView: View {
                 }
             } else {
                 if schedule.changes == nil { status("時間割変更の解析結果がありません。") }
-                if !eventsAvailable { status("学校行事は未取得です。") }
+                if schoolEvents.ready && !eventsAvailable { status("学校行事は未取得です。") }
                 ForEach(classes, id: \.self) { className in
                     classRows(className)
                 }

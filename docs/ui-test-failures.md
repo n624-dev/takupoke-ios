@@ -2443,3 +2443,9 @@ Native tab／HomeTimetable／時間割／U63でN49/U77/U63と398の詳細、9ffd
 - N104の8限fixture訂正後、source7cffecc・21:20:31 UTCの通常変更だけの限定比較は1件/8assert失敗。default/日付別時刻、変更/補講、10:25/12:25で全てactive=true。validatedは成功し入力まで到達、開始/外側終了の対照は成功。製品の72条件もiOSで実再現した。
 
 - N104対処前照合:ClockEvidence／休憩／昼休／commonPeriodTime／cardTimeで索引を検索し、N51詳細、Issue60〜63検証、b781311とc815640/currentのclockコードを読んだ。N51の非表示変更を先に除く選別は維持。60の元セル全体置換と62の通常カードの個別時限判定を後退させず、今回の別分岐だけ修正する。候補は非表示specialをcommonの根拠から除き（変更の時刻根拠には全必要資料を維持）、APIが要求するkindの欠落時は変更card/common/detailの時計を未確認にする。授業中は普通/通常日の変更を個別時限で判定、特別資料は元の各セルの時計を使い、元の明示連続range全体が含まれるときだけその連続性を保持する。資料間で必要な区間集合が一致しない場合は未確認とし、既知specialカード単体の時計は残す。候補/比較根拠をpushしてから検査する。
+
+## N105 補助store失敗でHomeの正常時間割が隠れる（2026-10-23）
+
+source6c09dfd1151c888c3c3fcff29f846eaf1903e8ed、Linux Swift6.1.2、所有SPM一時領域、21:45:19 UTC。SpecialAvailabilityTests3件中新規testHomeKeepsLoadedLessonsWhenIndependentStoresAreUnavailableだけが18assert失敗、既存2件は成功、unexpected0、0.102秒。通常/特別/行事の全27組合せで、補助storeがloading/failedだと通常資料readyでもHome.ready=false、補助のfailedが主資料のloadFailed=trueになる。SwiftUI実操作はまだ未実行。現行のAND/ORをそのまま抽出した段階であり、対処選択前に事実を記録する。
+
+N105対処前照合:HomeTodayView/loadFailed/学校行事は未取得/FirstFailedSpecialを検索し、N51とN96の詳細、c815640のHome/週表示、現行モデルのloadIfNeededとavailabilityを比較した。N51の非表示変更の優先順位やN96のButton探索は今回の原因ではなく維持する。候補は主資料のready/failedだけで授業一覧を選び、特別/行事の独立した失敗・読込中を同じHome/週へ表示すること。行事ready=falseを未取得と呼ばず、再読込と通常時間割が参考表示である警告を付ける。正常に読み込んだ年度の一部破損もcacheWarningで明示する。元ファイル削除・解析条件・期限・操作helperは変更しない。候補と記録をpushしてから再実行する。

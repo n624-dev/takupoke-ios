@@ -98,3 +98,31 @@ private struct SchoolEventsResultView: View {
         .navigationTitle("学校行事")
     }
 }
+
+/// A failed cache read is independent from the absence of a fetched year.
+struct SchoolEventsWarnings: View {
+    @ObservedObject var model: SchoolEventsModel
+
+    var body: some View {
+        if !model.ready {
+            if model.failed && !model.busy {
+                Label("学校行事の保存情報を読み込めませんでした。通常時間割は参考表示です。", systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+                Button("学校行事を再読み込み") { model.loadIfNeeded() }
+            } else {
+                LoadingRow(title: "学校行事を読み込み中⋯")
+                Text("学校行事は未確認です。通常時間割は参考表示です。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        } else {
+            if let warning = model.cacheWarning {
+                Label(warning, systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.orange)
+            }
+            if let warning = model.sourceCheckMessage {
+                Label(warning, systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.orange)
+            }
+        }
+    }
+}

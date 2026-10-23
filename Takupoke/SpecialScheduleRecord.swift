@@ -63,6 +63,6 @@ struct HomeScheduleAvailability {
     let materials: ScheduleLoadState
     let specials: ScheduleLoadState
     let events: ScheduleLoadState
-    var ready: Bool { materials == .ready && specials == .ready && events == .ready }
-    var loadFailed: Bool { materials == .failed || specials == .failed || events == .failed }
+    var ready: Bool { materials == .ready }
+    var loadFailed: Bool { materials == .failed }
 }
