@@ -14,7 +14,7 @@ from ui_test_manifest import MANUAL_CASES
 
 
 class ManualRunnerTests(unittest.TestCase):
-    def run_runner(self, *, selected="", build_status=0, omit_result=False):
+    def run_runner(self, *, selected="", build_status=0, omit_result=False, ios=26):
         with tempfile.TemporaryDirectory(prefix="takupoke-manual-runner-") as directory:
             root = Path(directory)
             for folder in ("tools", "bin", "scratch"):
@@ -40,7 +40,7 @@ if Path(sys.argv[0]).name == 'xcodebuild':
             print("Test Case '-[PickerTapChecks.ManualAssistanceChecks " + name + "]' passed (1.0 seconds).")
 elif args[:2] == ['simctl', 'list']:
     print(json.dumps({'runtimes': [{'isAvailable': True, 'version': '26.5',
-        'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-26-5'}],
+        'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-26-5'}, {'isAvailable': True, 'version': '27.0', 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-0'}, {'isAvailable': True, 'version': '27.1', 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-1'}],
         'devicetypes': [{'name': 'iPhone 16', 'identifier': 'fictional-device'}]}))
 elif args[:2] == ['simctl', 'create']: print('fictional-owned-simulator')
 '''
@@ -53,7 +53,7 @@ elif args[:2] == ['simctl', 'create']: print('fictional-owned-simulator')
                 "PATH": str(root / "bin") + os.pathsep + os.environ["PATH"],
                 "TMPDIR": str(root / "scratch"), "CALLS": str(calls),
                 "TKPK_MANUAL_CASE": selected, "TKPK_MANUAL_DIAGNOSTICS": "0",
-                "TKPK_TEST_IOS": "26", "BUILD_STATUS": str(build_status),
+                "TKPK_TEST_IOS": str(ios), "BUILD_STATUS": str(build_status),
                 "CASES": json.dumps(MANUAL_CASES), "OMIT_RESULT": str(int(omit_result)),
             }
             result = subprocess.run(["bash", "tools/test-manual-ui.sh"], cwd=root,
@@ -92,6 +92,13 @@ elif args[:2] == ['simctl', 'create']: print('fictional-owned-simulator')
                 self.assertEqual(sum(call[-1] == "build-for-testing" for call in calls), 1)
                 self.assertEqual(sum(call[-1] == "test-without-building" for call in calls), 1)
                 self.assertIn("Verified selected manual UI XCTest completion: " + name, result.stdout)
+
+    def test_shipping_27_uses_exact_27_0_when_newer_minor_is_available(self):
+        result, calls = self.run_runner(ios=27)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        creates = [call for call in calls if call[:3] == ["xcrun", "simctl", "create"]]
+        self.assertEqual(len(creates), 1)
+        self.assertEqual(creates[0][-1], "com.apple.CoreSimulator.SimRuntime.iOS-27-0")
 
     def test_failed_build_never_starts_tests_or_becomes_success(self):
         result, calls = self.run_runner(build_status=7)

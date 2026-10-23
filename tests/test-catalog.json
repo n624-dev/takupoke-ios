@@ -482,7 +482,8 @@
         "tools/notification_service_trace.py",
         "tools/prepare-ios26-runtime.py",
         "tools/test-app-ui.sh",
-        "tools/ui_test_manifest.py"
+        "tools/ui_test_manifest.py",
+        "tools/prepare-ios27-runtime.py"
       ],
       "checks": [
         "tests/MainColorTests.swift",
@@ -498,7 +499,8 @@
         "tests/test_application_ui_runner.py",
         "tests/test_timetable_change_names.py",
         "tests/SchoolDataRecoveryTests.swift",
-        "tests/SpecialAvailabilityTests.swift"
+        "tests/SpecialAvailabilityTests.swift",
+        "tests/test_prepare_ios27_runtime.py"
       ]
     },
     {

@@ -35,7 +35,7 @@ xcrun simctl list -j > "$scratch_dir/simulators.json"
 python3 - "$scratch_dir/simulators.json" "${TKPK_TEST_IOS:-26}" > "$scratch_dir/destination" <<'PY'
 import json,sys
 s=json.load(open(sys.argv[1],encoding='utf-8')); major=int(sys.argv[2])
-runtimes=[r for r in s['runtimes'] if r.get('isAvailable') and r['identifier'].startswith('com.apple.CoreSimulator.SimRuntime.iOS-') and int(r['version'].split('.')[0])==major]
+runtimes=[r for r in s['runtimes'] if r.get('isAvailable') and r['identifier'].startswith('com.apple.CoreSimulator.SimRuntime.iOS-') and int(r['version'].split('.')[0])==major and (major != 27 or r['version'] == '27.0')]
 if major not in (26,27) or not runtimes:raise SystemExit('Required iOS runtime unavailable')
 runtime=max(runtimes,key=lambda r:tuple(map(int,r['version'].split('.'))))
 device=next(d for d in s['devicetypes'] if d['name']=='iPhone 16')

@@ -164,7 +164,7 @@ elif (Path(sys.argv[0]).name == 'open' and os.environ.get('FAIL_DEVICE_WINDOW')
       and any(arg.startswith('devices://') for arg in args)): sys.exit(44)
 elif args[:2] == ['simctl', 'list']:
     major = os.environ['TKPK_TEST_IOS']
-    print(json.dumps({'runtimes': [{'isAvailable': True, 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-' + major + '-5', 'version': major + '.5'}],
+    print(json.dumps({'runtimes': [{'isAvailable': True, 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-' + major + ('-0' if major == '27' else '-5'), 'version': major + ('.0' if major == '27' else '.5')}, {'isAvailable': True, 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-1', 'version': '27.1'}],
                       'devicetypes': [{'name': 'iPhone 16', 'identifier': 'synthetic-device'}]}))
 elif args[:2] == ['simctl', 'create']:
     creates = sum(json.loads(line)[1:3] == ['simctl', 'create']

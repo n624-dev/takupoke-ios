@@ -107,6 +107,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Prepare exact iOS 27.0 with the shipping SDK
+        run: python3 -B tools/prepare-ios27-runtime.py
       - name: Exercise app screens with synthetic data
         run: |
           set -euo pipefail
@@ -141,6 +143,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Prepare exact iOS 27.0 with the shipping SDK
+        run: python3 -B tools/prepare-ios27-runtime.py
       - name: Exercise app screens with synthetic data
         run: |
           set -euo pipefail
@@ -252,6 +256,8 @@ jobs:
           persist-credentials: false
       - name: Require exact manual source
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Prepare exact iOS 27.0 with the shipping SDK
+        run: python3 -B tools/prepare-ios27-runtime.py
       - name: Exercise one manual case and require its exact completion
         run: bash tools/test-manual-ui.sh
 
@@ -308,6 +314,8 @@ jobs:
         run: python3 -B tools/release.py version --github-output "$GITHUB_OUTPUT"
       - name: Validate Xcode project and property lists
         run: plutil -lint Takupoke.xcodeproj/project.pbxproj Takupoke/Info.plist Takupoke/PrivacyInfo.xcprivacy
+      - name: Prepare exact iOS 27.0 with the shipping SDK
+        run: python3 -B tools/prepare-ios27-runtime.py
       - name: Build unsigned IPA and matching AltStore Source
         env:
           TKPK_VERSION: ${{ steps.version.outputs.version }}
@@ -344,6 +352,8 @@ jobs:
         run: python3 -B tools/release.py version --github-output "$GITHUB_OUTPUT"
       - name: Validate Xcode project and property lists
         run: plutil -lint Takupoke.xcodeproj/project.pbxproj Takupoke/Info.plist Takupoke/PrivacyInfo.xcprivacy
+      - name: Prepare exact iOS 27.0 with the shipping SDK
+        run: python3 -B tools/prepare-ios27-runtime.py
       - name: Build unsigned IPA and matching AltStore Source locally
         env:
           TKPK_VERSION: ${{ steps.version.outputs.version }}
@@ -391,6 +401,8 @@ jobs:
         run: python3 -B tools/release.py version --github-output "$GITHUB_OUTPUT"
       - name: Validate Xcode project and property lists
         run: plutil -lint Takupoke.xcodeproj/project.pbxproj Takupoke/Info.plist Takupoke/PrivacyInfo.xcprivacy
+      - name: Prepare exact iOS 27.0 with the shipping SDK
+        run: python3 -B tools/prepare-ios27-runtime.py
       - name: Build unsigned IPA and matching AltStore Source
         env:
           TKPK_VERSION: ${{ steps.version.outputs.version }}

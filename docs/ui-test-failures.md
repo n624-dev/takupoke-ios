@@ -2229,3 +2229,13 @@ UIの変更・実行前に、ケース名・ファイル名・操作・エラー
 
 - N75照合: コンパイル診断はgeneration/pending/reconcileTask/baseline/loadedの未定義。OS bridgeの終端を従来の次メソッドresetForRetentionで探すprobeが、新しく間に置いたsuspendForUnavailableDataも抽出していた。N57の製品throw構文・N68の非同期GRDB呼出しと詳細/旧コードを照合し、今回はprobeの関数抽出範囲の差であると確認した。実bridgeの直後のinstanceメソッドを境界とし、実OSオブジェクト・取消・許可のassertionは維持する。
 - manifestは初回失敗資料の警告導線と、破損マーカーの明示確認復旧の2ケースを新設したため27→29へ更新する。2ケースのA登録を個別assertし、全ソース宣言の一意性・両OS・既存公開ゲートは維持する。記録と候補をCI対象外ブランチへpushしてからPythonを再実行する。
+
+## N76 追加issue60〜63のApple検証で複数jobが早期失敗
+
+- ソースc1334875fef47cc444095cc5e7deb2e61fc44a2d、PR64、run39906381266／試行1、2026-10-23。Distribution成功後、iPhone build outside development distribution（120259634159）、iOS27通常UI A/B（120259634156/120259634213）、訂正4job（120259634228/120259634237/120259634242/120259634330）が14〜47秒でfailure終端。iOS26依存jobはskip。Nativeは05:39時点で実行中。
+- ログ取得前でコンパイル/実操作のどちらか・原因は未確定。対処方針を決める前に観測を記録する。既存の成功やskipをApple実操作の成功に数えず、残りのjobを取消しせず確認する。
+
+- 完了ログ7件はすべてsimctl createのSimError403／Incompatible device、exit147。訂正ログはiPhone16とiOS27.1（24A94425）を作成できないと明記し、アプリのビルド・実操作へ未到達。SDKはXcode27.0／27A266a。N53の実Files Cancel待機、N68の製品コンパイル停止と詳細/当時のコードを照合し、今回の作成失敗と区別した。SimError/Incompatible device/runtime unavailableの索引検索に同型の既往記録はない。
+- runnerがavailableな同majorの最大minorを選ぶため、成功済み428.3の27.0から27.1へ意図せず変わった。候補はshippingSDKと同じ27.0を明示して準備・選択すること。26.5比較、両OS全ケース、期限、厳密な完了照合、公開ゲートは維持する。27.1の下位互換性・恒常的な作成成功は未確定。準備helperは別minorを消さず、既に登録済みの27.0がunavailableなら置換せず失敗し、欠損時だけ所有tempへdownload/importする。
+
+- 元run39906381266は全実job終端。Native627件（予定skip1、112.511秒）成功、Distribution成功、7job失敗・依存skipで公開不可。残りも取消しせず確認した。

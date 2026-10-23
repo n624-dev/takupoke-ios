@@ -34,7 +34,7 @@ if Path(sys.argv[0]).name == 'xcodebuild':
         print("Test Case '-[PickerTapChecks.MaterialPickerTapChecks " + name + "]' " + status + " (1.000 seconds).")
 elif args[:2] == ['simctl', 'list']:
     print(json.dumps({'runtimes': [{'isAvailable': True, 'version': '27.0',
-        'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-0'}],
+        'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-0'}, {'isAvailable': True, 'version': '27.1', 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-1'}],
         'devicetypes': [{'name': 'iPhone 16', 'identifier': 'fictional-device'}]}))
 elif args[:2] == ['simctl', 'create']: print('fictional-owned-simulator')
 elif args[:2] == ['simctl', 'boot'] and mode == 'boot-fails': sys.exit(8)
@@ -64,6 +64,9 @@ elif args[:2] == ['simctl', 'launch']:
                     env=env, capture_output=True, text=True, timeout=15)
                 self.assertEqual(result.returncode == 0, mode == "success", result.stdout + result.stderr)
                 commands = [json.loads(line) for line in log.read_text().splitlines()]
+                creates = [row for row in commands if row[:3] == ["xcrun", "simctl", "create"]]
+                self.assertEqual(len(creates), 1)
+                self.assertEqual(creates[0][-1], "com.apple.CoreSimulator.SimRuntime.iOS-27-0")
                 builds = [row for row in commands if row[0] == "xcodebuild"]
                 self.assertEqual(builds[0][-1], "build-for-testing")
                 boots = [row for row in commands if row[:3] == ["xcrun", "simctl", "boot"]]

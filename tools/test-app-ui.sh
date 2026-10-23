@@ -61,7 +61,7 @@ s = json.load(open(sys.argv[1]))
 runtimes = [r for r in s['runtimes'] if r.get('isAvailable') and r['identifier'].startswith('com.apple.CoreSimulator.SimRuntime.iOS-') and int(r['version'].split('.')[0]) in (26,27)]
 if not runtimes: raise SystemExit('No supported iOS simulator runtime installed')
 for major in ([int(sys.argv[2])] if sys.argv[2] else (27,26)):
-    candidates=[r for r in runtimes if int(r['version'].split('.')[0])==major]
+    candidates=[r for r in runtimes if int(r['version'].split('.')[0])==major and (major != 27 or r['version'] == '27.0')]
     if not candidates:
         if sys.argv[2]: raise SystemExit(f'Required iOS {major} runtime not installed')
         print(f'iOS {major} runtime not installed', file=sys.stderr)

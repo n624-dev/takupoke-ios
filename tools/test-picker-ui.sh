@@ -16,7 +16,7 @@ xcrun simctl list -j > "$scratch_dir/simulators.json"
 read -r device_type runtime < <(python3 - "$scratch_dir/simulators.json" <<'PY'
 import json, sys
 s = json.load(open(sys.argv[1]))
-runtimes = [r for r in s['runtimes'] if r.get('isAvailable') and r['identifier'].startswith('com.apple.CoreSimulator.SimRuntime.iOS-')]
+runtimes = [r for r in s['runtimes'] if r.get('isAvailable') and r['identifier'].startswith('com.apple.CoreSimulator.SimRuntime.iOS-') and r['version'] == '27.0']
 runtime = max(runtimes, key=lambda r: tuple(map(int, r['version'].split('.'))))
 devices = [d for d in s['devicetypes'] if d['name'] == 'iPhone 16']
 print(devices[0]['identifier'], runtime['identifier'])

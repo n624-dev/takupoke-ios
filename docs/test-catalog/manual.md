@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`128d66a116dc450289dde9474b1abd50e8c66f2bc79d4b91ad49133f14f5a352`
+`700310f7c35c50a2d0cc683c6d95e59c7f43f791b6163efccc3269cbca80668e`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -131,6 +131,7 @@ bash tools/test-manual-ui.sh
 
 - `test_whole_suite_uses_one_successful_owned_build`
 - `test_selected_case_uses_the_same_build_without_retesting_others`
+- `test_shipping_27_uses_exact_27_0_when_newer_minor_is_available`
 - `test_failed_build_never_starts_tests_or_becomes_success`
 - `test_missing_completion_refuses_even_after_successful_build`
 

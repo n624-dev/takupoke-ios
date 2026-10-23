@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`0298c2007552a768b4d8d3a5d56bad27fc14d401f87f6ba21808f0c09d6491b8`
+`e1db5e1b3163286eac0f46b9fc9a4696f93c94ee3518e985a560584b72ba27e4`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -65,6 +65,7 @@ bash tools/test-app-ui.sh
 - [tools/prepare-ios26-runtime.py](../../tools/prepare-ios26-runtime.py)
 - [tools/test-app-ui.sh](../../tools/test-app-ui.sh)
 - [tools/ui_test_manifest.py](../../tools/ui_test_manifest.py)
+- [tools/prepare-ios27-runtime.py](../../tools/prepare-ios27-runtime.py)
 
 ## [tests/MainColorTests.swift](../../tests/MainColorTests.swift)
 
@@ -209,3 +210,7 @@ bash tools/test-app-ui.sh
 
 - `testLoadingFailureAndUnselectedAreDistinctForBothKinds`
 - `testFirstFailedAnalysisAndPreviousSuccessUseDifferentWarnings`
+
+## [tests/test_prepare_ios27_runtime.py](../../tests/test_prepare_ios27_runtime.py)
+
+- `test_exact_installed_download_import_and_failures`
