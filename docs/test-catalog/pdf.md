@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`9b76b9d79ec367fe904ee3912badec1c1ef885883f604ce9b47fe124e9386aa5`
+`e44eff667507c763635bf329600da7af9b25143cfd1a4d0e21831bc4a6dc9716`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -56,6 +56,7 @@ python3 -B tools/pdf_branch_catalog.py check
 
 ## [tests/PDFParsingTests+Diagnostics.swift](../../tests/PDFParsingTests+Diagnostics.swift)
 
+- `testSpecialAcquisitionErrorsKeepTheirTypeInsteadOfBecomingPDFReadErrors`
 - `testTimetableFailureReportsLocationAndLineCountWithoutNames`
 - `testTimetableGeometryReportReproducesFailureWithoutSourceText`
 - `testGeometryDiagnosticHasBoundedSize`

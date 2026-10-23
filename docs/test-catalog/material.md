@@ -1,7 +1,7 @@
 # 原本取得・更新・保存・File Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`5870db0dea2771e5fdceeecd4b3a476882285753a171c0536ab23f86888689bc`
+`8bbd75e6b978cab423784ee5ff00fd6b81426b47784a9b576b4501eba228b416`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -34,6 +34,9 @@ bash tools/test-parsing.sh
 
 ## [tests/FileRefreshTests.swift](../../tests/FileRefreshTests.swift)
 
+- `testRefreshPreservesTheFirstFailureAndStillChecksOtherSources`
+- `testRefreshPreservesChangeAndAcquisitionFailureKinds`
+- `testRefreshCancellationStopsBeforeTheNextSourceAndAfterTheLastRead`
 - `testUserSelectionsWaitAndPreserveOrderAcrossAllFourKinds`
 - `testPendingSelectionKeepsLeaseUntilCancellationOrRetentionClear`
 - `testCancellationDropsPendingAndLateCallbacksUntilForegroundReturn`

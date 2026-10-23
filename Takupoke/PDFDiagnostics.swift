@@ -96,6 +96,10 @@ final class PDFDiagnosticRecorder {
         return result
     }
 
+    func attachingToParseFailure(_ error: Error) -> Error {
+        attaching(to: error)
+    }
+
     func attaching(to error: Error, fallback: PDFParseError.Code = .unreadable) -> PDFParseError {
         var failure = (error as? PDFParseError) ?? PDFParseError(code: fallback, branch:.b032)
         record(.failure, page: failure.page, failure: failure)

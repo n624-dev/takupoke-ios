@@ -24,22 +24,8 @@ extension MaterialsModel {
 
     nonisolated static func refreshSelectedFiles(_ worker: MaterialWorker, requested: Set<String>,
                                                  year: Int?, control: AcquisitionControl) throws {
-            var failed = false
-            for kind in [MaterialKind.timetable, .changes] where requested.contains(kind.rawValue) {
-                try control.check()
-                let source = FileRefreshDiagnostics.Source(rawValue: kind.rawValue)
-                FileRefreshDiagnostics.shared.record(.refreshStarted, source: source)
-                do {
-                    let changed = try worker.refreshIfChanged(kind, defaultYear: year, control: control)
-                    FileRefreshDiagnostics.shared.record(changed ? .hashChanged : .hashSame, source: source)
-                } catch {
-                    FileRefreshDiagnostics.shared.record(.refreshFailed, source: source)
-                    failed = true
-                }
-            }
-            if failed {
-                if year == nil && requested.contains(MaterialKind.changes.rawValue) { throw ChangeParseError(code: .defaultYear) }
-                throw MaterialError.providerReadFailed
-            }
+        try SelectedFileRefresher.refresh(requested: requested, year: year, check: control.check) { kind in
+            try worker.refreshIfChanged(kind, defaultYear: year, control: control)
+        }
     }
 }

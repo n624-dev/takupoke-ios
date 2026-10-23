@@ -3,6 +3,41 @@ import Foundation
 @testable import TakupokeParsing
 
 final class FileRefreshTests: XCTestCase {
+    func testRefreshPreservesTheFirstFailureAndStillChecksOtherSources() throws {
+        let failure = PDFParseError(code: .unsupported, page: 2)
+        var checked: [MaterialKind] = []
+        XCTAssertThrowsError(try SelectedFileRefresher.refresh(requested: ["timetable", "changes"], year: 2032, check: {}) { kind in
+            checked.append(kind)
+            if kind == .timetable { throw failure }
+            return false
+        }) { error in
+            XCTAssertEqual((error as? PDFParseError)?.code, .unsupported)
+            XCTAssertEqual((error as? PDFParseError)?.page, 2)
+        }
+        XCTAssertEqual(checked, [.timetable, .changes])
+    }
+
+    func testRefreshPreservesChangeAndAcquisitionFailureKinds() {
+        let errors: [Error] = [ChangeParseError(code: .defaultYear), MaterialError.tooLarge, MaterialError.accessExpired]
+        for expected in errors {
+            XCTAssertThrowsError(try SelectedFileRefresher.refresh(requested: ["changes"], year: 2032, check: {}) { _ in throw expected }) { error in
+                XCTAssertEqual(String(reflecting: type(of: error)), String(reflecting: type(of: expected)))
+                XCTAssertEqual(error.localizedDescription, expected.localizedDescription)
+            }
+        }
+    }
+
+    func testRefreshCancellationStopsBeforeTheNextSourceAndAfterTheLastRead() {
+        for finalSource in [false, true] {
+            var calls: [MaterialKind] = []
+            XCTAssertThrowsError(try SelectedFileRefresher.refresh(requested: finalSource ? ["changes"] : ["timetable", "changes"],
+                year: 2032, check: {}) { kind in calls.append(kind); throw MaterialError.cancelled }) { error in
+                XCTAssertEqual(error.localizedDescription, MaterialError.cancelled.localizedDescription)
+            }
+            XCTAssertEqual(calls, finalSource ? [.changes] : [.timetable])
+        }
+    }
+
     func testUserSelectionsWaitAndPreserveOrderAcrossAllFourKinds() {
         var pending = PendingFileSelections<String, Int>()
         for (index, kind) in ["timetable", "changes", "exam", "examReturn"].enumerated() {

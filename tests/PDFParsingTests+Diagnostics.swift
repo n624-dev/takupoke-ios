@@ -9,6 +9,19 @@ import CoreText
 #endif
 
 extension PDFParsingTests {
+    func testSpecialAcquisitionErrorsKeepTheirTypeInsteadOfBecomingPDFReadErrors() {
+        for expected: MaterialError in [.cancelled, .tooLarge, .accessExpired, .invalidFile] {
+            let actual = PDFDiagnosticRecorder().attachingToParseFailure(expected)
+            XCTAssertTrue(actual is MaterialError)
+            XCTAssertEqual(actual.localizedDescription, expected.localizedDescription)
+        }
+        XCTAssertTrue(PDFDiagnosticRecorder().attachingToParseFailure(CancellationError()) is CancellationError)
+        let parse = PDFDiagnosticRecorder().attachingToParseFailure(PDFParseError(code: .unsupported, page: 2)) as? PDFParseError
+        XCTAssertEqual(parse?.code, .unsupported)
+        XCTAssertEqual(parse?.page, 2)
+        XCTAssertNotNil(parse?.diagnosticReport)
+    }
+
     func testTimetableFailureReportsLocationAndLineCountWithoutNames() throws {
         var page = timetable()
         page.glyphs += text("架空追加行", x: 104, y: 154)

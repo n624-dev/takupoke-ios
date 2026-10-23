@@ -100,3 +100,28 @@ struct PendingFileSelections<Kind, Selection> {
 
     mutating func clear() { items.removeAll() }
 }
+
+/// The provider worker owns acquisition/persistence; this runs every requested
+/// source and reports its existing error without changing the accepted data.
+enum SelectedFileRefresher {
+    static func refresh(requested: Set<String>, year: Int?, check: () throws -> Void,
+                        refresh: (MaterialKind) throws -> Bool) throws {
+            var failed = false
+            for kind in [MaterialKind.timetable, .changes] where requested.contains(kind.rawValue) {
+                try check()
+                let source = FileRefreshDiagnostics.Source(rawValue: kind.rawValue)
+                FileRefreshDiagnostics.shared.record(.refreshStarted, source: source)
+                do {
+                    let changed = try refresh(kind)
+                    FileRefreshDiagnostics.shared.record(changed ? .hashChanged : .hashSame, source: source)
+                } catch {
+                    FileRefreshDiagnostics.shared.record(.refreshFailed, source: source)
+                    failed = true
+                }
+            }
+            if failed {
+                if year == nil && requested.contains(MaterialKind.changes.rawValue) { throw ChangeParseError(code: .defaultYear) }
+                throw MaterialError.providerReadFailed
+            }
+    }
+}

@@ -82,12 +82,13 @@ extension SpecialSchedulesModel {
                 diagnostics.record(.saveComplete)
                 succeeded = true
             } catch {
-                capture.failure = diagnostics.attaching(to: error)
+                let failure = diagnostics.attachingToParseFailure(error)
+                capture.failure = failure as? PDFParseError
                 if let selectedURL = store.selectedURL(for: kind), diagnosticURL == selectedURL,
                    let failure = capture.failure {
                     try? store.recordFailure(failure, kind: kind)
                 }
-                throw capture.failure!
+                throw failure
             }
         }
     }
