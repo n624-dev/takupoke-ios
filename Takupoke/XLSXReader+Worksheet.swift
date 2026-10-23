@@ -35,7 +35,8 @@ extension XLSXReader {
                     guard ["0", "1"].contains(value) else { throw ChangeParseError(code: .invalidXML, row: number) }
                     decoded = value == "1" ? "TRUE" : "FALSE"
                 case "str": decoded = try decodedString(value)
-                case "n", "d": decoded = value
+                case "d": decoded = try typedDate(value, row: number)
+                case "n": decoded = value
                 default:
                     // Formula metadata above the header is not part of the table.
                     // Formula errors within the table are handled after locating that header.
@@ -104,6 +105,27 @@ extension XLSXReader {
             if end.row >= header { throw ChangeParseError(code: .mergedCells, row: end.row) }
         }
         return PreviewTable(rows: rows, warnings: warnings)
+    }
+
+    private static func typedDate(_ value: String, row: Int) throws -> String {
+        // Validate the whole ISO value but keep its written calendar day;
+        // a device timezone must never move a spreadsheet lesson to another day.
+        guard ChangeNormalizer.matches(value, #"\A[0-9]{4}-[0-9]{2}-[0-9]{2}(?:T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,9})?(?:Z|[+-][0-9]{2}:[0-9]{2})?)?\z"#) else {
+            throw ChangeParseError(code: .date, row: row)
+        }
+        if value.count > 10 {
+            let clock = value.dropFirst(11).prefix(8).split(separator: ":").compactMap { Int($0) }
+            guard clock.count == 3, clock[0] <= 23, clock[1] <= 59, clock[2] <= 59 else {
+                throw ChangeParseError(code: .date, row: row)
+            }
+        }
+        if let range = value.range(of: #"[+-][0-9]{2}:[0-9]{2}\z"#, options: .regularExpression) {
+            let offset = value[range].dropFirst().split(separator: ":").compactMap { Int($0) }
+            guard offset.count == 2, offset[0] <= 14, offset[1] <= 59,
+                  offset[0] < 14 || offset[1] == 0 else { throw ChangeParseError(code: .date, row: row) }
+        }
+        do { return try ChangeNormalizer.date(String(value.prefix(10)), defaultYear: nil) }
+        catch { throw ChangeParseError(code: .date, row: row) }
     }
 
     static func richText(_ node: XMLNode) throws -> String {

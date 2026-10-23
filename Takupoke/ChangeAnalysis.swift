@@ -80,7 +80,7 @@ struct ChangeWeekdayConsent: Codable, Equatable {
 }
 
 struct ChangeAnalysis: Codable {
-    static let parserVersion = 7
+    static let parserVersion = 8
     var version = parserVersion
     var sourceDigest: String
     var sourceName: String

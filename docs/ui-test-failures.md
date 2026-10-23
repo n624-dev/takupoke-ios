@@ -2422,3 +2422,9 @@ Native tab／HomeTimetable／時間割／U63でN49/U77/U63と398の詳細、9ffd
 - source8d2ad6425fd321167969c714ed0037150b117e58、Debian13/Swift6.1.2の正規SPM。20:59台、testCachedStringWeekdayDecodesSpreadsheetEscapesOnceとtestTypedDateCellsUseTheirWrittenCalendarDateAndBomIsAcceptedが二回目のfixture ZIP作成でCocoa516（同名file既存）。readerの二入力目に未到達。前者の最初のstr復号は成功、後者date-only/BOMの読み取りも成功したが、元の括弧教員を保持するnormalizerへのテスト期待が架空科目Aだけだったため1assert失敗。製品のtyped datetimeはこの実行では未検証。対処選択前に観測を記録。検索/全体の残りは完了待ち。
 
 - N101比較:同名／already exists／Cocoa516で過去索引を照合し同じZIP fixture失敗なし。失敗時8d2ad64と既存testMetadataAndValidatedWeekdayFormulasのindex別URL、testRichTextNumericDatesAndSparseCells（括弧教員自体を除く入力）、testMetadataAndValidatedWeekdayFormulas（括弧を維持する入力）の本文を読んだ。候補は新規fixtureを入力ごとの所有URLへ分け、元の括弧保持を正しく検査するQAだけの修正。製品・数式許可・復号/UTF16期待は変更しない。次から多数の修正を検証する間だけ所有SPM一時領域を一つ保持してincremental buildし、終了時回収する。標準runnerと同じpackage/source/fixture/config/security/cache分離、pinned依存とjobs2を使い、CI cache/artifactにはしない。fixture候補と本記録をpushしてから実行する。
+
+## N102 typed-dateの交差確認で実readerの日付処理失敗（2026-10-23）
+
+- source f82c6bedab4679f145a9852c9e3cb9ae3ae5228aの所有SPM一時領域、Debian13/Swift6.1.2、21:03:52 UTC。fixture修正後の限定3件中、後方検索・str escapeは成功。testTypedDateCellsUseTheirWrittenCalendarDateAndBomIsAcceptedはdate-only/BOM対照後、最初の2032-07-10T00:00:00.000で本番normalizer Dateエラーrow2。Cocoa516はなく入力へ到達した。修正選択前に記録。Windows26と同じt=d生値経路がiOSにも該当した。
+
+- date／typed／XLSX／BOM／Cocoa516で過去索引を検索し、N101のfixture未到達との差と既存testRichTextNumericDatesAndSparseCells、f82c6beのWorksheet/ChangeNormalizer+Datesを読んだ。従来numeric serialだけを暦日に正規化し、t=dは生のままだった。候補はt=dに限りdate-only/ISO datetime全体を検証し、元に記載された暦日を使う。T時刻0〜23/0〜59/0〜59、fraction1〜9桁、offsetはZまたは±14:00まで（14時は00分だけ）。端末timezoneへ変換せず、任意文字列・数式の許可は拡大しない。原文の他欄と括弧教員保持を維持する。次の実行前に候補と記録をpushする。

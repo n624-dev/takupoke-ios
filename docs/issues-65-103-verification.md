@@ -17,3 +17,7 @@ Windows対照:PublicEventsStoreのファイル上限は2MBとpayload1MBで既に
 ## 文字列・検索（69/99、Windows25/27/28/42）
 
 8985d7cは修正前再現テストのみ。t=strは両OSで既存のOOXML一回復号を通らない。後方検索語の減点も両OSに存在。iOSのuu長音は既にuなのでWindows28は非該当。Win25のBOM、26のtyped-dateもSwift readerで比較する。結果・修正後検証は後続追記。
+
+69/99の修正前549件/5失敗（準備込み240.9秒）。strは既存decoderへ一回だけ分岐し、検索の位置減点を199までに制限。途中N101のfixture同名/括弧期待を訂正した後、限定3件中この2件は成功した。typed-dateはN102としてiOSにも実行再現し、t=dに限る厳密なISO日時→記載暦日の正規化を追加。parserVersion8として旧解析を再評価する。iOSのBOM date-only対照は成功済み。
+
+Windows68交差確認は2MBの保存上限でもsurrogate escapeにより失敗すると反証された。1800件×100emojiを実API decodeが受理して保存し再読込が失敗、保存形式の有限最大を考慮した3MB共通save/load上限で修正後6件が成功。両OSの異なるserializerをそのまま同じ上限と見なさない。
