@@ -2527,3 +2527,19 @@ source1f69939＋追加RecoveryBuilder Raster回帰、Linux Swift6.1.2。1000x100
 N120照合:hasUncoveredInk/RasterCoverage/32_000_000で索引を検索し、該当する密な文字面積の以前の試行はない。aa6450f/currentのmask優先・pixel-center・±1比較と既存rule mask/取消/上限回帰を比較。候補は最初の未maskインクでだけquery範囲の文字被覆maskを有界構築し、各画素の全box探索を置換する。全てruleで覆われた場合は文字maskも作らず、既存mask優先を保つ。構築とscanは同じ32Mと128workごとのcheckを共有し、pixel-center/±1/union/順序を変えない。
 
 既存上限ケース「2000個の領域外box＋全queryの1box」は、実際には完全被覆を二乗探索で落としていたため、新実装では安全な成功を確認する対照へ変更する。上限自体は同じ2000個のquery全体boxでmask構築32Mを超える独立対照を保持し、単なる上限引上げで通さない。元の未取得画素/罫線変更/取消/小数境界も維持する。候補と根拠をpush後に関連Raster回帰を再実行する。
+
+## N112 main437のiOS27通常UI Aが失敗（2026-10-23）
+
+sourceaa6450f3a3487f4ac08ffce1e0b8b79a58302b07、run40030800385/attempt1、job120678859899、Application iOS27 UI A（SDK/Runtime27.0を要求）が22:42:35 UTCにfailure終端、22:55予定照会で確認。ログは未読で実SDK/Runtime・case・失敗段階は未確定。27Bと27訂正4件、Distribution/Nativeはsuccess。依存する26A/訂正26はskip、26Bは22:46:29開始で継続、取り消さない。新失敗の詳細と過去記録/当時コードを照合する前に対処を選ばず、元公開sourceを別worktreeへ固定する。
+
+N112完了ログ:SDK27.0、通常suite17件中16成功・新規testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecoverだけ93.013秒で失敗。最初の一回app.launch後、automation session9.94秒→idle69.99秒→foreground71.00秒の間に「jp.n624.takupoke.app-checks crashed」とXcodeが報告した。fixture-ready・警告・再読込・授業card・復帰操作には未到達。debugger version lookup警告だけから原因を選ばず、fixture seed/初回起動と現実のcrash詳細を比較する。
+
+N112照合:最初のpid12327のlifecycleは22:17:05のinit-enter/seed-enterだけでseed-completeがない。現行ApplicationFixtureの新caseだけはweekday1〜7で通常analysisを作るが、MaterialLibrary.validPDFAnalysisの通常契約は1〜5だけであり、seedのsavePDFAnalysisが投げるとApp.initがfatalErrorする。N95のXcode起動timeoutとはseed到達と入力制約が異なる。c815640/aa6450f/currentの通常fixture、保存validation、既存EventsYear/Selectionの日付overlayとN95詳細を比較した。候補は週末行を元の1〜5へ戻し、このcaseだけ既存と同じ一時projectの日付overlayで表示日を月曜へ固定すること。破損注入flagとは別のday flagを再起動にも残し、原本復帰後も同じ正常授業を確認する。製品の平日制約/エラー処理/既存操作・期限・全30 UIケースと全15gateは変えない。既存の実caseが初期化・警告・詳細・復旧を検証するため、曜日条件を写すだけのテストは追加しない。新focus groupはその元case1件を各OSのshippingSDKで比較するだけ。候補と根拠をpushしてからlocal/新規immutable review/Actionsへ進む。
+
+## N117 補助store復旧の焦点比較が両OSで失敗終端（2026-10-23）
+
+source0379c19ab3381f8c537a5ad06905489cc7cac463、run40037895971/attempt1。job120701760934 iOS27/SDK27.0は23:08:11〜23:22:08、job120701761145 iOS26.5/SDK27.0は23:08:11〜23:18:46でfailure。auxiliary-storeの元caseを1件ずつ要求、失敗の具体段階/原因はログ取得前で未確定。旧main437は未公開で残る26Bを継続し、Actionsは取消ししない。対処方針を選択する前の観測記録。N113〜116は別の追加修正branchで予約/記録済み。
+
+N117ログ観測:両OSともseed-complete/fixture-readyへ到達し、実warnings表示、両再読込、Home授業card操作と「授業詳細」の実表示/科目確認まで成功。27のケース59.162秒、26は60.633秒。次のback(to:たくポケ)がNavigation.swift:9でnavigation bar内の先頭Buttonを探し、Buttonが0件で失敗。次の時間割tab/復旧後relaunchへは未到達。N112のseed失敗とは段階が異なり、通常weekday1..5の候補は両実Runtimeでseedを完了した。
+
+N117照合:back/dismissLesson/sheet/授業詳細で索引を検索し、週calendarを詳細sheet消失まで待つ既存記録とN60のsheet内viewportを読んだ。Homeの旧c815640/currentはList-hostのsheetで授業詳細を表示し、pushの戻るButtonを提供しない。c815640/currentの既存dismissLessonは同じ実navigation bar中央から標準sheetを一回下方dragする。今回の新caseのback呼出しだけがpresentationと不一致。候補は既存dismissLessonへ置換し、詳細barの消失（元backと同じ10秒）とHome画面復帰を明示確認すること。製品、入力/再読込/復旧/relaunchの期待、SDK/期限/公開全15gateは変更しない。候補と根拠をpush後に局所検査し、毎回新規review後に焦点比較する。

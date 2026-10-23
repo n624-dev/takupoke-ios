@@ -85,3 +85,15 @@ UI編集前にPDFRecoveryView/元のPDF/RecoveryClosing/背景/sheetを失敗索
 追加群37482f8の全体最終チェック:Swift567件/失敗0（73.081秒）、Python275件/skip2/失敗0（58.192秒）。catalog check --base aa6450fも成功。新規GPT-6.1 Sol/High ios_post437_native_pre_actions_reviewはコード差分1469行のみを読み指摘なし（SHA256 3ab03740f5867371ad892df66c6e7b7236f59b0a0665cd56142bdac35869b970）。このreviewは次のdevelopment native_pdf=true/picker=falseの両SDK検証1回だけに使用し、全15公開gateや実Apple UIの成功へ代用しない。
 
 94の実許可/配信可否/apply/OS bridge回帰4件/失敗0（6.010秒）。82/97の関連全21件/失敗0（0.135秒）。98の密な2000領域×96,000黒画素、順序正逆、未取得1画素、取消と同じ32M上限を含むRaster6件/失敗0（2.591秒）。浮動小数の境界直近でも元のpixel-center比較を同じ演算順で保つため、mask候補範囲を保守的に丸め、各候補画素で元の4辺不等式を使う仕上げと隣接Double境界の回帰を追加して確認する。実Vision/物理端末の品質・時間は未確認。
+
+main437（aa6450f）はNative/Distributionと27訂正4件/通常B成功、通常Aは新規補助storeケースのseed段階でcrashし未公開。N112ではfixtureの曜日1〜7が本番の平日制約に反すると確認し、保存規則を変えず、通常fixture1〜5とこのcase限定の月曜日overlayへ修正する。fixtureの破損/復帰は引き続き実ファイルを操作し、ready/解析結果を注入しない。日時flagだけは復帰後の一回再起動にも残す。新しい診断選択で元caseを両OS/配布SDKに比較してから正式全15を判断する。旧run26Bも取り消さず結果を確認する。
+
+3da5107のQA候補はlocalのUI登録/一時project検査28件/失敗0（4.897秒）、fixture/checksのSwift構文parse成功。AGENTS指定の新規GPT-6.1Sol/High reviewerがimmutable code-only diff（SHA256 0f0ce5d674ace7c0e1a38d2be6e97ab36d264150bbf6844af03a717ccea46d74）を読み指摘なし。文書追記後もcode diff同一を確認し、この一回の両OS診断開始で消費する。正式全15の合格・公開・実機成功とは区別する。
+
+N117の対処は新caseのpush-backを既存標準sheet dismissへ変更したQAのみ。manifest28件/失敗0（4.388秒）、Swift構文parse/catalog成功。新規GPT-6.1 Sol/High ios_aux_sheet_pre_actions_reviewは不変コード差分だけを読み指摘なし（SHA256 7b497bf01458b3c86a1c88461ec18da594c3f2d5280e081cf0fdb8ea9e4fc737）。このreviewは次のauxiliary-store両OS/SDK27.0の診断1回だけに使用する。前回は両再読込/授業詳細まで成功したが後半の週表示/relaunch復旧は未確認、成功へ一般化しない。
+
+## 公開候補への統合（未公開）
+
+auxiliary-store焦点40039494698/attempt1/source980779eは両OS/SDK27.0で成功。27の実case152.066秒、26.5は111.912秒、各1件の厳格完了照合に成功。実warnings/両再読込/授業詳細/標準dismiss/週表示/元store復元後の再起動を通過。旧比較40037895971の両失敗はN117として保持し、成功へ合算しない。
+
+別の追加修正群4905b9dのdevelopment40039226067は選択した全4job成功、両SDKで650件/skip1/失敗0。Strict239との3比較も各SDKで成功（SDK27約102.733秒、SDK26約121.594秒）。pickerは指定どおりskipで、公開検証には数えない。その後の94/82/97/98を含む統合差分は改めてローカル全体と新規reviewで確認し、全15公開gateを同一run/source/attemptで要求する。途中の成功と未公開を混同しない。

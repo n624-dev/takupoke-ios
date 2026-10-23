@@ -202,11 +202,11 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         if path.name == 'SettingsView.swift':
             text = instrument_ai_switch(text)
         if path.name in ('TimetableView.swift', 'TimetableView+Navigation.swift'):
-            text = text.replace('SchoolDate.today()', '(SimulatorEventsYearFixture.enabled ? SimulatorEventsYearFixture.day : (ProcessInfo.processInfo.arguments.contains("--selection-snapshot") ? SimulatorSelectionFixture.day : SchoolDate.today()))')
+            text = text.replace('SchoolDate.today()', '(SimulatorAuxiliaryStoreFixture.fixedDayEnabled ? SimulatorAuxiliaryStoreFixture.day : SimulatorEventsYearFixture.enabled ? SimulatorEventsYearFixture.day : (ProcessInfo.processInfo.arguments.contains("--selection-snapshot") ? SimulatorSelectionFixture.day : SchoolDate.today()))')
         if path.name == 'HomeTodayView.swift':
             marker = 'private var day: SchoolDate { TimetableDaySchedule.schoolDay(at: now) }'
             assert text.count(marker) == 1, 'Home selection date probe insertion point missing'
-            text = text.replace(marker, 'private var day: SchoolDate { SimulatorEventsYearFixture.enabled ? SimulatorEventsYearFixture.day : (ProcessInfo.processInfo.arguments.contains("--selection-snapshot") ? SimulatorSelectionFixture.day : TimetableDaySchedule.schoolDay(at: now)) }')
+            text = text.replace(marker, 'private var day: SchoolDate { SimulatorAuxiliaryStoreFixture.fixedDayEnabled ? SimulatorAuxiliaryStoreFixture.day : SimulatorEventsYearFixture.enabled ? SimulatorEventsYearFixture.day : (ProcessInfo.processInfo.arguments.contains("--selection-snapshot") ? SimulatorSelectionFixture.day : TimetableDaySchedule.schoolDay(at: now)) }')
             selection_marker = '                    selectedLesson = LessonSelection(lesson: lesson, date: day,'
             assert text.count(selection_marker) == 1, 'Home detail selection diagnostic insertion point missing'
             text = text.replace(selection_marker, '''                    if ProcessInfo.processInfo.arguments.contains("--selection-snapshot") {

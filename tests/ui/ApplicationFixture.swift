@@ -215,7 +215,7 @@ struct SimulatorApplication: App {
                                originalName: "fictional.pdf", byteCount: raw.count, digest: digest, modifiedAt: nil)
             let analysis = PDFAnalysis(kind: .timetable, sourceDigest: digest, sourceName: "fictional.pdf", parsedAt: Date(),
                 schoolYear: period.schoolYear, term: period.half == 1 ? "前期" : "後期",
-                lessons: (SimulatorAuxiliaryStoreFixture.enabled ? 1...7 : 1...5).flatMap { weekday in (1...8).map { number in
+                lessons: (1...5).flatMap { weekday in (1...8).map { number in
                     PDFLesson(className: "3_IT", weekday: weekday, period: number,
                         names: .init(subject: "架空科目\(number <= 2 ? "A" : "B")", teacher: "架空教員A", room: "架空教室A"), sourceText: "", page: 1)
                 } }, events: [], notices: [])

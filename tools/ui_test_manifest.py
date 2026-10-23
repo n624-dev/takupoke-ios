@@ -90,6 +90,7 @@ PROBE_GROUPS = {
         "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair",
         "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
     ),
+    "auxiliary-store": ("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover",),
     "timetable-clocks": ("testTimetableCommonClocksAndEventOnlyWeekScale",),
     "home-launch": ("testChangedAccountDataNoticeOpensSharedAcquisition",
                     "testHomeTimetableAndWeekCalendar"),
