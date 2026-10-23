@@ -88,6 +88,23 @@ extension ParsingTests {
         }
     }
 
+    func testCachedStringWeekdayDecodesSpreadsheetEscapesOnce() throws {
+        try temporary { root in
+            let url = root.appendingPathComponent("fictional-escaped-cache.xlsx")
+            for cached in ["土_x000D_", "_x571F__x000D_"] {
+                try write(weekdayWorkbook(cached: cached), to: url)
+                let rows = try XLSXReader.read(url)
+                XCTAssertEqual(rows[4][3], "土\r")
+                XCTAssertEqual(try ChangeNormalizer.parse(rows, defaultYear: nil).count, 1)
+            }
+            try write(weekdayWorkbook(cached: "土_x005F_x000D_"), to: url)
+            let preview = try XLSXReader.readForPreview(url)
+            XCTAssertEqual(preview.warnings.first?.printedWeekday, "土_x000D_")
+            try write(weekdayWorkbook(cached: "_xD800_"), to: url)
+            assertCode(.invalidXML) { _ = try XLSXReader.read(url) }
+        }
+    }
+
     func testMetadataAndValidatedWeekdayFormulas() throws {
         try temporary { root in
             for (index, value) in ["土", "土曜", "土曜日", "（土）"].enumerated() {

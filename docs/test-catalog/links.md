@@ -1,7 +1,7 @@
 # リンク・検索・設定保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`46207f95bc2f67f5314b7889582c66013102e4f90d80f3e8827d80619108400c`
+`3c6991c22870e42133290498111184d7bac786f0ba821f68c5ba0f60def1eff7`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -19,6 +19,7 @@ bash tools/test-parsing.sh
 
 ## [tests/LinksTests.swift](../../tests/LinksTests.swift)
 
+- `testLateSearchTermsRemainMatchesWithExactPrefixAndSubstringPriority`
 - `testAllPrivateResourceCombinationsUseOneAppropriateAuthentication`
 - `testSyllabusDepartmentOnlyResolvesKnownLinkAndUsesCalendarYear`
 - `testLinkOpeningModeUsesHTTPSOnlyAndKeepsOverrideTemporary`

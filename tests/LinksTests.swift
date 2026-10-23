@@ -3,6 +3,26 @@ import XCTest
 @testable import TakupokeParsing
 
 final class LinksTests: XCTestCase {
+    func testLateSearchTermsRemainMatchesWithExactPrefixAndSubstringPriority() throws {
+        let terms = (0..<1001).map { "q\($0)" }.joined(separator: "|") + "|needle"
+        let late = LinkItem(id: "fictional-late", categoryId: "fictional-category", label: "架空リンク",
+            href: "https://example.invalid/late", color: "sky", visible: true, sortOrder: 0,
+            recommended: false, recommendationOrder: 0, searchAliases: [], searchTerms: terms)
+        _ = try LinksPayload.decode(JSONEncoder().encode(payload([late])))
+        XCTAssertLessThanOrEqual(terms.count, 5000)
+        let exact = LinkSearch.score(terms: terms, query: "needle")
+        let prefix = LinkSearch.score(terms: terms, query: "need")
+        let substring = LinkSearch.score(terms: terms, query: "eed")
+        XCTAssertGreaterThanOrEqual(substring, 0)
+        XCTAssertGreaterThan(exact, prefix)
+        XCTAssertGreaterThan(prefix, substring)
+        XCTAssertEqual(LinkSearch.score(terms: terms, query: "absent"), -1)
+        let kana = (0..<334).map { "あ\($0)" }.joined(separator: "|") + "|finalmatch"
+        XCTAssertGreaterThanOrEqual(LinkSearch.score(terms: kana, query: "finalmatch"), 0)
+        XCTAssertGreaterThan(LinkSearch.score(terms: "needle|needless", query: "needle"),
+                             LinkSearch.score(terms: "another|needle", query: "needle"))
+    }
+
     func testAllPrivateResourceCombinationsUseOneAppropriateAuthentication() {
         for mask in 0..<8 {
             let selection = AccountDataSelection(rawValue: mask)

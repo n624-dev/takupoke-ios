@@ -2407,6 +2407,6 @@ Native tab／HomeTimetable／時間割／U63でN49/U77/U63と398の詳細、9ffd
 ## N99 追加Issue68/78の修正前回帰確認（2026-10-23）
 
 - source e62359877962a73bfbcb2eecd13944bd927c5527、Debian13/x86_64・Swift6.1.2、学校本番通信なし、`bash tools/test-parsing.sh`の一回目。20:43:50 UTC、SchoolEventsAPITests.testNearLimitPayloadRemainsReadableAfterSavingItsMetadataEnvelope の再読込で failedYears が空でなく、saved[2032] がnil。999,990 bytesの完全架空payloadはdecodeとsaveを通過した。修正案を選ぶ前に記録。期待値の全payload出力が大きかったため、以後は同一性をBoolで比較して失敗ログ量を抑える（同じ完全比較を維持）。
-- 20:44:03 UTC、SpecialScheduleTests.testInterruptedEmptySpecialDatabaseCanFinishInitializationWithoutLosingSources は最初のstore作成でinvalidState。原本0件、空SQLiteをGRDBで作成してcloseした初期化中断状態。20:44:12全体終了、準備込み241.1秒。両新規ケースのみ失敗（行事2assert、DB1throw）。物理iOS/SwiftUI検査ではない。
+- 20:44:03 UTC、SpecialScheduleTests.testInterruptedEmptySpecialDatabaseCanFinishInitializationWithoutLosingSources は最初のstore作成でinvalidState。原本0件、空SQLiteをGRDBで作成してcloseした初期化中断状態。20:44:12全体終了、546件・3失敗（1unexpected）、実行73.944秒・準備込み241.1秒。両新規ケースのみ失敗（行事2assert、DB1throw）。物理iOS/SwiftUI検査ではない。
 
 - 対処前に検索語SchoolEventsStore／SpecialScheduleStore／missing database／initial／1.000.000で索引を検索。行事のこの境界失敗は既存記録なし。DBはN57詳細と基点f38831e、Issue41修正後・現行e623598を比較した。f38831eは既存欠損でもCREATEし原本を孤児扱いできたため、その再初期化へ戻さない。新候補は原本がなく、sqlite_masterが完全に空かつuser_version/application_idが0の場合だけ初回の二表を単一transactionで作成する。任意の他schema/非zero version/原本ありの拒否とlegacy移行を維持する。行事はpayloadの1MB検証を維持し、保存全体には2048bytesのメタデータ枠を追加、同じ上限をsave/load双方へ適用する。候補・負の対照・記録を隔離branchへpushしてから次のローカル実行を行う。

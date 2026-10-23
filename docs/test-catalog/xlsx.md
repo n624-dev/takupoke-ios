@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`f6c338e7b1cd6973150c18fafbfebbe1c5dbcdbf71e69f1733b7690b69a4c295`
+`ac6fda77ad11e599a2f0cd4eb0138d8250b6d138642f67b754e2e171d853a941`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -45,6 +45,7 @@ bash tools/test-parsing.sh
 
 - `testLiteralWeekdayNeedsExplicitCorrectionAndKeepsOriginalText`
 - `testWeekdayConsentIsAtomicAndLimitedToSelectedContent`
+- `testCachedStringWeekdayDecodesSpreadsheetEscapesOnce`
 - `testMetadataAndValidatedWeekdayFormulas`
 - `testWeekdayFormulaMissingOrStaleCacheAndMajorColumnFormula`
 - `testWarningPreviewKeepsSuccessAndFailureUnchanged`
