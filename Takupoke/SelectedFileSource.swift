@@ -104,24 +104,26 @@ struct PendingFileSelections<Kind, Selection> {
 /// The provider worker owns acquisition/persistence; this runs every requested
 /// source and reports its existing error without changing the accepted data.
 enum SelectedFileRefresher {
-    static func refresh(requested: Set<String>, year: Int?, check: () throws -> Void,
+    static func refresh(requested: Set<String>, check: () throws -> Void,
                         refresh: (MaterialKind) throws -> Bool) throws {
-            var failed = false
-            for kind in [MaterialKind.timetable, .changes] where requested.contains(kind.rawValue) {
+        var firstFailure: Error?
+        for kind in [MaterialKind.timetable, .changes] where requested.contains(kind.rawValue) {
+            try check()
+            let source = FileRefreshDiagnostics.Source(rawValue: kind.rawValue)
+            FileRefreshDiagnostics.shared.record(.refreshStarted, source: source)
+            do {
+                let changed = try refresh(kind)
                 try check()
-                let source = FileRefreshDiagnostics.Source(rawValue: kind.rawValue)
-                FileRefreshDiagnostics.shared.record(.refreshStarted, source: source)
-                do {
-                    let changed = try refresh(kind)
-                    FileRefreshDiagnostics.shared.record(changed ? .hashChanged : .hashSame, source: source)
-                } catch {
-                    FileRefreshDiagnostics.shared.record(.refreshFailed, source: source)
-                    failed = true
-                }
+                FileRefreshDiagnostics.shared.record(changed ? .hashChanged : .hashSame, source: source)
+            } catch {
+                FileRefreshDiagnostics.shared.record(.refreshFailed, source: source)
+                if case MaterialError.cancelled = error { throw error }
+                if error is CancellationError || (error as? PDFParseError)?.code == .cancelled ||
+                    (error as? ChangeParseError)?.code == .cancelled { throw error }
+                try check()
+                if firstFailure == nil { firstFailure = error }
             }
-            if failed {
-                if year == nil && requested.contains(MaterialKind.changes.rawValue) { throw ChangeParseError(code: .defaultYear) }
-                throw MaterialError.providerReadFailed
-            }
+        }
+        if let firstFailure { throw firstFailure }
     }
 }

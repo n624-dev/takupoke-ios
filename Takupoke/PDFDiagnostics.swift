@@ -97,7 +97,8 @@ final class PDFDiagnosticRecorder {
     }
 
     func attachingToParseFailure(_ error: Error) -> Error {
-        attaching(to: error)
+        if error is MaterialError || error is CancellationError { return error }
+        return attaching(to: error)
     }
 
     func attaching(to error: Error, fallback: PDFParseError.Code = .unreadable) -> PDFParseError {

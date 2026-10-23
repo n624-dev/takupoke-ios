@@ -24,7 +24,7 @@ extension MaterialsModel {
 
     nonisolated static func refreshSelectedFiles(_ worker: MaterialWorker, requested: Set<String>,
                                                  year: Int?, control: AcquisitionControl) throws {
-        try SelectedFileRefresher.refresh(requested: requested, year: year, check: control.check) { kind in
+        try SelectedFileRefresher.refresh(requested: requested, check: control.check) { kind in
             try worker.refreshIfChanged(kind, defaultYear: year, control: control)
         }
     }
