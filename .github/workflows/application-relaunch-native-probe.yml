@@ -15,6 +15,7 @@ on:
           - input-delivery
           - file-details
           - updates
+          - auxiliary-store
           - timetable-clocks
           - home-launch
           - testChangedAccountDataNoticeOpensSharedAcquisition

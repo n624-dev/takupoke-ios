@@ -714,6 +714,7 @@ METHOD
                               "testSetupCanBeSkippedAndOffersAllFiles")),
             ("updates", ("testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair",
                          "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork")),
+            ("auxiliary-store", ("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover",)),
             ("timetable-clocks", ("testTimetableCommonClocksAndEventOnlyWeekScale",)),
             ("home-launch", ("testChangedAccountDataNoticeOpensSharedAcquisition",
                              "testHomeTimetableAndWeekCalendar")),

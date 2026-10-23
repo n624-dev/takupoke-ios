@@ -81,6 +81,8 @@ enum SimulatorEventsYearFixture {
 // complete originals for a later launch, rather than injecting ready flags.
 enum SimulatorAuxiliaryStoreFixture {
     static var enabled: Bool { ProcessInfo.processInfo.arguments.contains("--auxiliary-store-failures") }
+    static var fixedDayEnabled: Bool { ProcessInfo.processInfo.arguments.contains("--auxiliary-store-day") }
+    static var day: SchoolDate { SchoolDate.today().displayWeekStart }
     static let roots = ["SpecialSchedulesSQLite", "SchoolEventsAPI"]
     static func prepare(_ base: URL) throws {
         let manager = FileManager.default

@@ -47,3 +47,5 @@ N105修正後の純粋条件3件/失敗0（0.002秒）。新UIの登録検査28�
 ## 追加修正の公開前ローカル確認
 
 f03490a相当codeで全Swift559件/失敗0（Linux Swift6.1.2、71.659秒）。最初のPython268件はtoolchain PATHなしで16skipだったためSwift境界の未確認を残し、env.shを有効にした実行で268件/予定skip2/失敗0（51.363秒）を確認した。SwiftUIの構文parseも成功。新規GPT-6.1 Sol/High reviewerがc815640→f03490aのimmutable code-only diff（SHA256 43ad2c6ddd5ee37f8c12d92cd40aa47aca97d5b1ed9cc94696ad79f0908b9269）を読み、指摘なし。今回のmain開始で消費し、後の開始に再使用しない。文書だけを追記したsourceでもcode diffが同一であることを確認してから開始する。Apple型検査/全UI/公開/実機はローカル成功と区別する。
+
+main437（aa6450f）はNative/Distributionと27訂正4件/通常B成功、通常Aは新規補助storeケースのseed段階でcrashし未公開。N112ではfixtureの曜日1〜7が本番の平日制約に反すると確認し、保存規則を変えず、通常fixture1〜5とこのcase限定の月曜日overlayへ修正する。fixtureの破損/復帰は引き続き実ファイルを操作し、ready/解析結果を注入しない。日時flagだけは復帰後の一回再起動にも残す。新しい診断選択で元caseを両OS/配布SDKに比較してから正式全15を判断する。旧run26Bも取り消さず結果を確認する。
