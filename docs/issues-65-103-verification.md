@@ -43,3 +43,7 @@ N105の純粋条件は3件/18assertで修正前再現。c43e576では通常資�
 索引を休講/カード高さ/DynamicTypeで検索しN51のscopeと現在のframe/required-height検査を照合。元解析・優先順位と区別し、Cards/高さ計算の既知時計行だけを単独休講でも含める。nil時計を作らず、既存のVoiceOver用labelは既知時計を含むまま維持。既存Dynamic Typeケースの独立架空3限休講と各文字サイズで時計font>0と単独時限の存在を追加し、実frame>=必要高さの元検査を維持する。これはmetricsの検査であり、実画面の時計Textや実機VoiceOverの確認と同一とは主張しない。WindowsのLessonButtonにも同じcommon時計による省略があり交差修正する。
 
 N105修正後の純粋条件3件/失敗0（0.002秒）。新UIの登録検査28件/予定skip1/失敗0（2.842秒）、全変更SwiftUI/fixtureの構文parse成功。Appleでの型検査とUI実行は未確認。
+
+## 追加修正の公開前ローカル確認
+
+f03490a相当codeで全Swift559件/失敗0（Linux Swift6.1.2、71.659秒）。最初のPython268件はtoolchain PATHなしで16skipだったためSwift境界の未確認を残し、env.shを有効にした実行で268件/予定skip2/失敗0（51.363秒）を確認した。SwiftUIの構文parseも成功。新規GPT-6.1 Sol/High reviewerがc815640→f03490aのimmutable code-only diff（SHA256 43ad2c6ddd5ee37f8c12d92cd40aa47aca97d5b1ed9cc94696ad79f0908b9269）を読み、指摘なし。今回のmain開始で消費し、後の開始に再使用しない。文書だけを追記したsourceでもcode diffが同一であることを確認してから開始する。Apple型検査/全UI/公開/実機はローカル成功と区別する。
