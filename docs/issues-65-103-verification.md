@@ -25,3 +25,7 @@ Windows68交差確認は2MBの保存上限でもsurrogate escapeにより失敗�
 858da7eのLinux全550件/失敗0（72.666秒）、Python268件/予定skip2/失敗0（49.218秒）。Actions開始前にAGENTSに従う新規GPT6.1Sol/Highのcode-only immutable diff reviewを実施、指摘なし。858da7eのtest-tools native_pdf=trueをdispatchし、Apple26/27のNativeとportable/toolsを確認中。公開gateや配布には未使用。元branchを固定したまま次の名称対応を別branchで進める。
 
 70/83/89/96はWindowsにも同じ候補選択/条件付き教員の生alias照合があり、両OSへ別の架空回帰を追加して修正前確認する。クラス優先・完全一致優先・幅正規化一意性・一般規則のnilを留学生trueと混同しないこと・明示の留 prefix省略を照合対象にすることが既存の契約。76の条件付き教員件数も両UIを照合する。
+
+名称修正01b6360のLinux関連57件は失敗0（0.252秒）。さらに追加の時計72/79/90とWindows31交差条件をN104で修正前に実行確認し、e257c7cで可視資料/必要kind/元セルの区間根拠を反映。修正後の関連69件は失敗0（0.192秒）。未取得側があっても取得済みspecialカード個別の既知時計は保持し、元セルの明示連続時計も対照で維持した。実機UIと新branchのApple検査は未確認。
+
+先行data修正858da7eのtest-tools実行40024529647/1では、SDK27 Native633件（予定skip1・失敗0、121.005秒）、固定239.1 Strictの3比較成功。portable/toolsも成功、SDK26は21:23時点で継続中。全体の完了・新branchの合格・配布とは区別する。MappingSettingsView/件数/条件付きで失敗索引を照合したが件数表示の既知UI失敗はなかった。76は既存v1/v2データのdecode契約に沿った件数式だけを変更した。
