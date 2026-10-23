@@ -2485,3 +2485,9 @@ N110照合:SIGTERM/所有Simulator/compare.pyの検索から従来のboot準備�
 source8b5ffd81b1be1a1fa59c443ce13747c2a5d0079f、Linux Python3、22:45:55 UTC、test_workflow_source_paths3件中9subtest失敗、0.002秒。実push pathsを読み、単一*が/を越えない既知のGitHub仕様で照合した。開発用の入れ子2入力、英字研究の共有3入力、V6 parityの共有4入力が非選択。root単層のpy対照は成功。実Actionsは開始していない。対処選択前に記録する。
 
 N111照合:workflow/paths/発火対象で索引を検索し、従来の手動workflow名照合の記録は今回のpath漏れとは異なる。c815640/currentの3filtersと実read.py/run.shの共有import/requirements/prepare/framesを比較した。候補は開発用をtools/**へ、英字研究を実共有code_tailとWindows共通toolsへ、V6を実Windows共通toolsへ広げること。両parityへ新しい所有Simulator取消テストのpathと実行も追加する。branch制限、公開全15gate、実推論と数値/Runtime条件、期限は変えず、現在の隔離branchへのpushはActions対象外のまま。候補/記録をpush後に対象選択検査を再実行する。
+
+## N113 追加修正群のPython全体検査で1件失敗（2026-10-23）
+
+source c18c13887cc4f6de4611b5241acd393d287022b0、Linux/Swift6.1.2/Python3.12、全体unittest初回275件/失敗1/skip2、62.517秒。Swift全体564件は失敗0（76.632秒）。失敗ケースと段階はログを次に照合する。Actions/Apple UIではない。修正方針は未選択。全ログは所有ローカル/tmp/takupoke-ios-c18-full-python.log。
+
+N113追加観測/照合:失敗はtest_document_matches_every_fixed_source_branchの文書一致。75/86でPDFDiagnostics.swiftへ5行の型保持helperが加わり、R032の参照行だけL100→L105へ移っていた。実際の生成差分は当該リンク1行だけ。旧aa6450fのattachingと現在の同methodのR032条件は同一。索引のcatalog/一覧でN84（所有重複）とN106（追加件数）の詳細を読み、今回の行番号生成漏れと異なることを確認。候補は既存generatorで一覧を再生成する文書修正のみ。解析規則・番号・テスト期待を変えない。隔離branchへpush後に一覧の2件を再確認する。

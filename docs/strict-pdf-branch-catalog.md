@@ -289,7 +289,7 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 
 | 詳細番号 | 生成時分類 | 拒否条件／コード抜粋 | 実装 |
 |---|---|---|---|
-| R032 | 分類なし／呼出元 | `var failure = (error as? PDFParseError) ??` | [確認条件](../Takupoke/PDFDiagnostics.swift#L100) |
+| R032 | 分類なし／呼出元 | `var failure = (error as? PDFParseError) ??` | [確認条件](../Takupoke/PDFDiagnostics.swift#L105) |
 
 ### 字体・文字対応表・幅の読み取り
 
