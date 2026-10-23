@@ -20,8 +20,10 @@ final class TimetableClockEvidenceTests: XCTestCase {
     }
     func testChangeVisualMergesRespectBreaksAndLunchWithDefaultAndCustomClocks() throws {
         let custom = TimetableTimes(schemaVersion: 1, days: [.init(date: day.iso8601, periods: [
-            .init(period: 2, start: "09:40", end: "10:15"), .init(period: 3, start: "10:40", end: "11:10"),
-            .init(period: 4, start: "11:20", end: "12:10"), .init(period: 5, start: "12:55", end: "13:45")])])
+            .init(period: 1, start: "08:55", end: "09:40"), .init(period: 2, start: "09:40", end: "10:25"),
+            .init(period: 3, start: "10:35", end: "11:20"), .init(period: 4, start: "11:20", end: "12:05"),
+            .init(period: 5, start: "12:55", end: "13:40"), .init(period: 6, start: "13:40", end: "14:25"),
+            .init(period: 7, start: "14:35", end: "15:20"), .init(period: 8, start: "15:20", end: "16:05")])])
         _ = try custom.validated()
         for times in [nil, custom] as [TimetableTimes?] {
             for kind in ["変更", "補講"] {
