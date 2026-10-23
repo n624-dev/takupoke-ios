@@ -134,3 +134,7 @@ main433/run39964623999／attempt1／source1d0e4f9は、14:35 UTCの予定照会�
 9cd340eを隔離ブランチへpush後、Debian13／Swift6.1.2でproject17件（0.472秒）、geometryの実Swift29件（0.106秒）が失敗0。変更したUI補助2ファイルのSwift構文解析、catalog438のwrite/check --based2b1c40も成功した。元ケース・期待値・実操作・45秒・完了照合は維持し、ローカル結果を実UIKitの到達確認へ代用しない。
 
 最初のmain実行用に別途新規作成し、どのActionsにも未使用のGPT-6.1 Sol／Highは、前のimmutable差分138行に加えて追加のコードのみの差分も確認し、指摘なし。追加差分は/tmp/takupoke-ios-ack-identity-review.diff、SHA256 4b3d0ae7f612dae8f708bcf29acf619413cd23a72d3ecb1cd7cc936bd5c8d6aa。このレビューを次のmain開始一回だけに使用する。新しい4種類×両OSの同source全体検証を公開条件とし、古い焦点の一部成功を公開gateに流用しない。
+
+15:45 UTCの予定一括確認でmain433は全job終端、取消しなし。通常26Aは17件完了（基本16件1795.930秒、通知1件166.256秒）でsuccess、26Bも15件完了でsuccess。訂正26のN90〜N92を保持し、公開は依存skip、新版未公開。これで旧mainを再監視する必要はない。比較run39975811589の追加完了は明示選択26が1094.162秒、原本変更27が224.398秒で厳密な完了照合も成功。単項目26の成功と合わせても全体成功には数えず、残る27の3件は中止せず最後まで確認する。
+
+N94の再解決停止に対する新しいidentity候補9cd340eはまだ実OS未検証。次は同一helperの元4種類×両OS、通常両OS A/B、Native、Distribution、iPhone Releaseを同じ新mainの全15公開ゲートで確認する。旧比較の残りや旧mainの成功を混ぜて公開せず、追加のPR全体と同じmain全体の二重起動も避ける。予約済みの未使用main専用レビューがコード差分をすべて確認済みで、main旧先頭1d0e4f91を期待値としてforceなしでfast-forwardする。Strictとユーザーが取り下げたFile Provider処理中の製品経路は変更しない。
