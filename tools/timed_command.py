@@ -31,7 +31,7 @@ def terminate_owned_group(process, grace=15):
     process.wait()
 
 
-def run(label, command):
+def run(label, command, cleanup_grace=15):
     started = time.monotonic()
     previous = {}
     process = None
@@ -48,7 +48,7 @@ def run(label, command):
         return code if code >= 0 else 128 - code
     finally:
         if process is not None:
-            terminate_owned_group(process)
+            terminate_owned_group(process, grace=cleanup_grace)
         for sig, handler in previous.items():
             signal.signal(sig, handler)
         print(f"TIMING finish: {label}, elapsed={time.monotonic() - started:.1f}s", flush=True)

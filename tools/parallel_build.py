@@ -8,7 +8,7 @@ import threading
 import time
 
 
-def run_commands(commands):
+def run_commands(commands, cleanup_grace=15):
     processes = []
     readers = []
     started = time.monotonic()
@@ -57,7 +57,7 @@ def run_commands(commands):
                 os.killpg(process.pid, signal.SIGTERM)
             except ProcessLookupError:
                 pass
-        deadline = time.monotonic() + 15
+        deadline = time.monotonic() + cleanup_grace
         for _, process in processes:
             try:
                 process.wait(timeout=max(0, deadline - time.monotonic()))

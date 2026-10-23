@@ -2,6 +2,8 @@ import importlib.util
 import contextlib
 import io
 import os
+import signal
+import subprocess
 from pathlib import Path
 import sys
 import tempfile
@@ -14,6 +16,24 @@ spec.loader.exec_module(parallel)
 
 @unittest.skipUnless(os.name == "posix", "macOS CI process groups")
 class ParallelBuildTests(unittest.TestCase):
+    def test_exited_leader_cannot_leave_a_term_ignoring_descendant(self):
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / "child-ready"
+            child = "import os,signal,sys,time; from pathlib import Path; signal.signal(signal.SIGTERM,signal.SIG_IGN); Path(sys.argv[1]).write_text(str(os.getpid())); time.sleep(30)"
+            parent = "import subprocess,sys,time; from pathlib import Path; subprocess.Popen([sys.executable,'-c',sys.argv[1],sys.argv[2]]); p=Path(sys.argv[2]); deadline=time.monotonic()+5; exec('while not p.exists() and time.monotonic()<deadline: time.sleep(.01)'); sys.exit(7 if p.exists() else 8)"
+            pid = None
+            try:
+                result = parallel.run_commands([("owned-parent", [sys.executable, "-c", parent, child, str(marker)])], cleanup_grace=.2)
+                self.assertEqual(result, 7)
+                pid = int(marker.read_text())
+                state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
+                self.assertTrue(not state or state.startswith("Z"), "A descendant is still executing after cleanup")
+            finally:
+                if marker.exists():
+                    pid = int(marker.read_text())
+                    try: os.kill(pid, signal.SIGKILL)
+                    except ProcessLookupError: pass
+
     def test_child_logs_keep_their_labels(self):
         output = io.StringIO()
         with contextlib.redirect_stdout(output):

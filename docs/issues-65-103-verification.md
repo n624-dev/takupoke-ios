@@ -63,3 +63,7 @@ SelectedFileSource/MaterialsModel+Updates/PDFDiagnosticsをcatalog検索し、�
 75/86は修正後同じ14件/失敗0（0.108秒）。原エラーの型/文面/詳細を保持し、通常失敗では他資料を確認、取消は次の資料へ進まない。Windows MaterialCoordinatorはSourceExceptionを取得試行、parseのPDF/Changeエラーを解析試行へ別保存し、同じ全件provider置換はない。
 
 87は現在のSpecial状態関数をFoundationのavailabilityへ移し、source.acquisitionFailureがあれば一覧も更新確認失敗とする。元の復旧拒否/解析失敗/旧版判定を維持する。実Storeの採用→原本確認失敗→再open→別digestの成功拒否→同原本の確認成功を追加し、正常analysis/PDF保持とstatus解除を検査する。Home/週へ新たな推測状態を入れず、詳細の元警告も維持する。WindowsはMaterialSnapshotがAcquisitionAttempt.Failureを解析済みより先に扱い、保存と再起動の既存回帰を持つので同じ表示漏れは非該当。
+
+## 所有process groupの回収（73/88）
+
+parallel_build/timed_command/SIGTERMの失敗索引を検索。正常/失敗/status保持の既存検査と現行cleanupを比較する。production既定grace15秒は変えず、限定検査でgraceを指定できる入口だけを追加する段階。親exit7/TERM無視の子孫と、初回SIGINTが実childへ届いたmarkerを待って二回目SIGTERMを送る独立process検査を追加。固定sleepでcleanup段階を推定せず、失敗時も所有child PIDだけをfinallyで回収する。実Actionsを中止して試さない。

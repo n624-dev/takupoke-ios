@@ -13,6 +13,36 @@ TOOL = Path(__file__).resolve().parents[1] / "tools/timed_command.py"
 
 @unittest.skipUnless(os.name == "posix", "macOS CI process groups")
 class TimedCommandTests(unittest.TestCase):
+    def test_second_signal_during_cleanup_does_not_abandon_the_owned_child(self):
+        for name in ["timed_command", "parallel_build"]:
+            with self.subTest(wrapper=name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory); ready, termed = root / "ready", root / "termed"
+                child = root / "child.py"
+                child.write_text("import os,signal,sys,time\nfrom pathlib import Path\nsignal.signal(signal.SIGTERM,lambda *_: Path(sys.argv[2]).touch())\nPath(sys.argv[1]).write_text(str(os.getpid()))\ntime.sleep(30)\n")
+                call = "timed_command.run('owned-probe', command, cleanup_grace=.6)" if name == "timed_command" else "parallel_build.run_commands([('owned-probe', command)], cleanup_grace=.6)"
+                code = "import sys; sys.path.insert(0,sys.argv[1]); import " + name + "; command=[sys.executable,*sys.argv[2:]]; sys.exit(" + call + ")"
+                wrapper = subprocess.Popen([sys.executable, "-c", code, str(TOOL.parent), str(child), str(ready), str(termed)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                try:
+                    deadline = time.monotonic() + 5
+                    while not ready.exists() and time.monotonic() < deadline: time.sleep(.01)
+                    self.assertTrue(ready.exists())
+                    wrapper.send_signal(signal.SIGINT)
+                    deadline = time.monotonic() + 5
+                    while not termed.exists() and time.monotonic() < deadline: time.sleep(.01)
+                    self.assertTrue(termed.exists(), "The first signal must reach the actual child before the second")
+                    wrapper.send_signal(signal.SIGTERM)
+                    output, _ = wrapper.communicate(timeout=8)
+                    self.assertEqual(wrapper.returncode, 130, output)
+                    state = subprocess.run(["ps", "-o", "stat=", "-p", ready.read_text()], capture_output=True, text=True).stdout.strip()
+                    self.assertTrue(not state or state.startswith("Z"), "Repeated cancellation left a live child")
+                    if name == "timed_command": self.assertIn("TIMING finish", output)
+                finally:
+                    if wrapper.poll() is None: wrapper.kill()
+                    wrapper.communicate(timeout=5)
+                    if ready.exists():
+                        try: os.kill(int(ready.read_text()), signal.SIGKILL)
+                        except ProcessLookupError: pass
+
     def test_exited_leader_does_not_leave_term_ignoring_descendant_running(self):
         spec = importlib.util.spec_from_file_location("owned_timing", TOOL)
         module = importlib.util.module_from_spec(spec)

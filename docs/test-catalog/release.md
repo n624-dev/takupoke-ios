@@ -1,7 +1,7 @@
 # IPA・AltStore・公開ゲート・ビルド・一時領域
 
 対応関係・宣言名・実行方法のSHA-256：
-`52308a3b6bdc405acfeb59176227038037074ca3e8e76d21a44421edde95cfd2`
+`89779645c903ec6efc1aae53d797dd5b1e65da875bb1468594fce30c04cdfc9e`
 
 環境：Linux Python／Apple iPhone SDK。AltStore導入は実機限定
 
@@ -103,6 +103,7 @@ python3 -B -m unittest discover -s tests -v
 
 ## [tests/test_parallel_build.py](../../tests/test_parallel_build.py)
 
+- `test_exited_leader_cannot_leave_a_term_ignoring_descendant`
 - `test_child_logs_keep_their_labels`
 - `test_both_commands_start_before_either_finishes`
 - `test_failure_stops_peer_and_propagates_status`
@@ -125,6 +126,7 @@ python3 -B -m unittest discover -s tests -v
 
 ## [tests/test_timed_command.py](../../tests/test_timed_command.py)
 
+- `test_second_signal_during_cleanup_does_not_abandon_the_owned_child`
 - `test_exited_leader_does_not_leave_term_ignoring_descendant_running`
 - `test_child_output_and_exit_status_are_preserved`
 - `test_cancellation_reaches_child_and_allows_its_cleanup`
