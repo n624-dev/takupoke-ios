@@ -30,16 +30,17 @@ struct HomeTodayView: View {
             includesChanges: true, customTimes: times.current?.data)
     }
     private var presentation: TimetablePresentation { TimetablePresentation(schedule: schedule, mappings: mappings) }
-    private var ready: Bool { materials.ready && specialSchedules.availability.ready && schoolEvents.ready }
+    private var availability: HomeScheduleAvailability {
+        HomeScheduleAvailability(materials: .init(ready: materials.ready, busy: materials.busy, failed: materials.failed),
+            specials: .init(ready: specialSchedules.ready, busy: specialSchedules.busy, failed: specialSchedules.failed),
+            events: .init(ready: schoolEvents.ready, busy: schoolEvents.busy, failed: schoolEvents.failed))
+    }
+    private var ready: Bool { availability.ready }
     private var eventsAvailable: Bool {
         SchoolEventsCoverage(savedYears: Set(schoolEvents.saved.keys)).contains(day: day)
     }
 
-    private var loadFailed: Bool {
-        (!materials.ready && !materials.busy && materials.failed) ||
-        specialSchedules.availability.loadFailed ||
-        (!schoolEvents.ready && !schoolEvents.busy && schoolEvents.failed)
-    }
+    private var loadFailed: Bool { availability.loadFailed }
 
     private func retryLoading() {
         materials.loadIfNeeded()

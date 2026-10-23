@@ -2,6 +2,20 @@ import XCTest
 @testable import TakupokeParsing
 
 final class SpecialAvailabilityTests: XCTestCase {
+    func testHomeKeepsLoadedLessonsWhenIndependentStoresAreUnavailable() {
+        for materials in ScheduleLoadState.allCases {
+            for specials in ScheduleLoadState.allCases {
+                for events in ScheduleLoadState.allCases {
+                    let value = HomeScheduleAvailability(materials: materials, specials: specials, events: events)
+                    XCTAssertEqual(value.ready, materials == .ready, "Primary=\(materials), specials=\(specials), events=\(events)")
+                    XCTAssertEqual(value.loadFailed, materials == .failed, "Independent store errors need their own warnings")
+                }
+            }
+        }
+        XCTAssertEqual(ScheduleLoadState(ready: true, busy: true, failed: true), .ready)
+        XCTAssertEqual(ScheduleLoadState(ready: false, busy: true, failed: true), .loading)
+    }
+
     func testLoadingFailureAndUnselectedAreDistinctForBothKinds() {
         for kind in SpecialScheduleKind.allCases {
             for busy in [false, true] {

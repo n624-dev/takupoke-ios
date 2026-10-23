@@ -29,3 +29,9 @@ Windows68交差確認は2MBの保存上限でもsurrogate escapeにより失敗�
 名称修正01b6360のLinux関連57件は失敗0（0.252秒）。さらに追加の時計72/79/90とWindows31交差条件をN104で修正前に実行確認し、e257c7cで可視資料/必要kind/元セルの区間根拠を反映。修正後の関連69件は失敗0（0.192秒）。未取得側があっても取得済みspecialカード個別の既知時計は保持し、元セルの明示連続時計も対照で維持した。実機UIと新branchのApple検査は未確認。
 
 先行data修正858da7eのtest-tools実行40024529647/1では、SDK27 Native633件（予定skip1・失敗0、121.005秒）、固定239.1 Strictの3比較成功。portable/toolsも成功、SDK26は21:23時点で継続中。全体の完了・新branchの合格・配布とは区別する。MappingSettingsView/件数/条件付きで失敗索引を照合したが件数表示の既知UI失敗はなかった。76は既存v1/v2データのdecode契約に沿った件数式だけを変更した。
+
+## Homeの正常資料と補助store読込（100/81）
+
+ApplicationData/ContentViewの表示gateは保存期間準備で、Special DBのreadyとは別。HomeTodayViewだけが通常/変更・特別・公開行事をANDで待ち、補助store失敗が正常授業を消す。現行のready/loadFailed条件を同じ入力優先順位のまま純粋なHomeScheduleAvailabilityへ抽出し、3storeのloading/failed/ready全27組合せで正常資料を利用できる期待を修正前検証する。失敗索引のHomeTodayView/loadFailed/保存情報読込/学校行事未取得/FirstFailedSpecialでN96のwarningButton探索失敗とN51の表示scopeを照合したが、このDB読込gateの既知試行記録はない。既存の実tap/scroll/全ケース期限は変えない。
+
+先行858da7eのSDK26も21:24:35成功。Native633件/予定skip1/失敗0、229.304秒（現行SPM準備込み642.4秒）、固定239.1 baseline3件成功（7.295秒/準備込み254.6秒）。test-tools40024529647/1は選択した4ジョブ全成功、pickerは非選択skipped。新branch全体のLinux558件/失敗0（73.767秒）、Python268件/予定skip2/失敗0（50.819秒）。旧実行と新branchを混同しない。

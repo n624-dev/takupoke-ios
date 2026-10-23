@@ -51,3 +51,18 @@ struct SpecialScheduleAvailability {
         }
     }
 }
+
+enum ScheduleLoadState: CaseIterable {
+    case loading, failed, ready
+    init(ready: Bool, busy: Bool, failed: Bool) {
+        self = ready ? .ready : failed && !busy ? .failed : .loading
+    }
+}
+
+struct HomeScheduleAvailability {
+    let materials: ScheduleLoadState
+    let specials: ScheduleLoadState
+    let events: ScheduleLoadState
+    var ready: Bool { materials == .ready && specials == .ready && events == .ready }
+    var loadFailed: Bool { materials == .failed || specials == .failed || events == .failed }
+}
