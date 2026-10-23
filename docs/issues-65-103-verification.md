@@ -47,3 +47,7 @@ N105修正後の純粋条件3件/失敗0（0.002秒）。新UIの登録検査28�
 ## 追加修正の公開前ローカル確認
 
 f03490a相当codeで全Swift559件/失敗0（Linux Swift6.1.2、71.659秒）。最初のPython268件はtoolchain PATHなしで16skipだったためSwift境界の未確認を残し、env.shを有効にした実行で268件/予定skip2/失敗0（51.363秒）を確認した。SwiftUIの構文parseも成功。新規GPT-6.1 Sol/High reviewerがc815640→f03490aのimmutable code-only diff（SHA256 43ad2c6ddd5ee37f8c12d92cd40aa47aca97d5b1ed9cc94696ad79f0908b9269）を読み、指摘なし。今回のmain開始で消費し、後の開始に再使用しない。文書だけを追記したsourceでもcode diffが同一であることを確認してから開始する。Apple型検査/全UI/公開/実機はローカル成功と区別する。
+
+## リンク個人設定の読込失敗（71）
+
+LinksModel/個人設定/一覧の設定を読み込で索引を検索し、同じ読込失敗→revision成功→再読込不能の過去試行はなかった。現行ready/failed/messageを比較し、preferencesErrorは既存表示条件の単なる抽出、constructorのowned defaults/root指定も既定動作を変えない準備として追加する。実LinksModel全体/LinksAPI/LinksStoreをSwiftへ渡し、ObservableObject/@Publishedとrevision通信の境界だけをfakeにする独立回帰を追加。壊れた実UserDefaultsのbytes保持、revision成功後のエラー、JSON修復後のloadIfNeeded、全個人設定の保存を確認する。通信そのものやiOS画面の成功とは区別する。

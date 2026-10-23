@@ -14,7 +14,14 @@ final class LinksModel: ObservableObject {
     @Published private(set) var message: String?
 
     private var store: LinksStore?
-    private let preferencesStore = LinkPreferencesStore()
+    private let preferencesStore: LinkPreferencesStore
+    private let storeRoot: URL?
+    var preferencesError: String? { !preferencesReady && failed ? message : nil }
+
+    init(preferencesStore: LinkPreferencesStore = LinkPreferencesStore(), storeRoot: URL? = nil) {
+        self.preferencesStore = preferencesStore
+        self.storeRoot = storeRoot
+    }
     private let endpoint = URL(string: "https://takupoke-api.n624.jp/links")!
 
     var visibleFavorites: [LinkItem] {
@@ -29,7 +36,7 @@ final class LinksModel: ObservableObject {
     func loadIfNeeded() {
         guard !ready else { return }
         do {
-            let base = try FileManager.default.url(for: .applicationSupportDirectory,
+            let base = try storeRoot ?? FileManager.default.url(for: .applicationSupportDirectory,
                                                    in: .userDomainMask, appropriateFor: nil, create: true)
             let opened = try LinksStore(root: base.appendingPathComponent("LinksAPI", isDirectory: true))
             store = opened

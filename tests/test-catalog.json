@@ -121,7 +121,8 @@
       "title": "リンク・検索・設定保持",
       "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",
       "commands": [
-        "bash tools/test-parsing.sh"
+        "bash tools/test-parsing.sh",
+        "python3 -B -m unittest discover -s tests -p test_links_model_lifecycle.py"
       ],
       "sources": [
         "Takupoke/LinkSearch.swift",
@@ -131,7 +132,8 @@
         "Takupoke/LinksView.swift"
       ],
       "checks": [
-        "tests/LinksTests.swift"
+        "tests/LinksTests.swift",
+        "tests/test_links_model_lifecycle.py"
       ]
     },
     {
