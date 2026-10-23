@@ -130,3 +130,7 @@ main433/run39964623999／attempt1／source1d0e4f9は、14:35 UTCの予定照会�
 
 
 2026-10-23 15:30 UTCの比較では、単項目26が732.497秒で元case完了、旧main433の通常26Bが15件完了でsuccess。比較の原本変更26は実clear／全文入力後のACK touchがcancelled、三項目26は同じ入力後のACK接触合成中の子Switch再解決で停止した（N93／N94）。他の実行は取消さず待つ。N94候補は既知ACKのList.Switch検索と外側／内側のaccessibility identityによる取得、接触前の重複診断照会除去と前状態0 guard。元の一回0.1秒接触、実中心、包含・hittable、45秒でUI1、全case／保存／再起動は保持する。N93の未発火原因は未確定で、修復済みとはしない。既存の同じ元4caseが今回の失敗を検出しており、新しい期待値や模倣テストは追加しない。
+
+9cd340eを隔離ブランチへpush後、Debian13／Swift6.1.2でproject17件（0.472秒）、geometryの実Swift29件（0.106秒）が失敗0。変更したUI補助2ファイルのSwift構文解析、catalog438のwrite/check --based2b1c40も成功した。元ケース・期待値・実操作・45秒・完了照合は維持し、ローカル結果を実UIKitの到達確認へ代用しない。
+
+最初のmain実行用に別途新規作成し、どのActionsにも未使用のGPT-6.1 Sol／Highは、前のimmutable差分138行に加えて追加のコードのみの差分も確認し、指摘なし。追加差分は/tmp/takupoke-ios-ack-identity-review.diff、SHA256 4b3d0ae7f612dae8f708bcf29acf619413cd23a72d3ecb1cd7cc936bd5c8d6aa。このレビューを次のmain開始一回だけに使用する。新しい4種類×両OSの同source全体検証を公開条件とし、古い焦点の一部成功を公開gateに流用しない。
