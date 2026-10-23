@@ -21,7 +21,7 @@ struct MappingSettingsView: View {
                     LabeledContent("最終取得") {
                         Text(current.fetchedAt, format: JapaneseDateDisplay.timestamp)
                     }
-                    LabeledContent("件数", value: "\(current.rules.subjects.count + current.rules.teachers.count + current.rules.rooms.count)件")
+                    LabeledContent("件数", value: "\(current.rules.subjects.count + current.rules.teachers.count + current.rules.rooms.count + current.rules.teacherContexts.count)件")
                 }
             }
         }

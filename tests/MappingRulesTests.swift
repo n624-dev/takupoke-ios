@@ -29,7 +29,7 @@ final class MappingRulesTests: XCTestCase {
             if !generalClasses.isEmpty { ordinary["classes"] = generalClasses }
             let rules = try subjectRules([ordinary,
                 ["alias": "留 架空科目A", "fullName": "架空留学生科目A", "classes": ["2_IT"], "internationalStudent": true]])
-            XCTAssertFalse(rules.isInternationalStudentSubject("架空科目A", className: "2_IT"))
+            XCTAssertEqual(rules.isInternationalStudentSubject("架空科目A", className: "2_IT"), generalClasses.isEmpty)
             XCTAssertTrue(rules.isInternationalStudentSubject("留 架空科目A", className: "2_IT"))
             XCTAssertFalse(rules.isInternationalStudentSubject("架空科目A", className: "3_IT"))
         }

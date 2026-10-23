@@ -27,16 +27,30 @@ struct MappingRules: Codable, Equatable {
         text.precomposedStringWithCompatibilityMapping.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// Resolve a class-specific canonical subject without changing the stored source spelling.
-    func canonicalSubject(_ source: String, className: String) -> String? {
+    /// Scope precedes spelling, as with ordinary mapping. Within that scope,
+    /// direct source spelling wins over width matches and an omitted 留 prefix.
+    private func subjectCandidates(_ source: String, className: String) -> [MappingRule] {
         let text = Self.comparable(source)
-        guard !text.isEmpty else { return nil }
+        guard !text.isEmpty else { return [] }
+        func direct(_ rule: MappingRule) -> Bool {
+            Self.comparable(rule.alias) == text || Self.comparable(rule.fullName) == text
+        }
         let candidates = subjects.filter { rule in
-            (rule.classes == nil || rule.classes?.contains(className) == true) &&
-                (Self.comparable(rule.alias) == text || Self.comparable(rule.fullName) == text)
+            guard rule.classes == nil || rule.classes?.contains(className) == true else { return false }
+            let alias = Self.comparable(rule.alias)
+            return direct(rule) || (rule.internationalStudent == true && alias.hasPrefix("留 ") && String(alias.dropFirst(2)) == text)
         }
         let specific = candidates.filter { $0.classes?.contains(className) == true }
-        let names = Set((specific.isEmpty ? candidates : specific).map { Self.comparable($0.fullName) })
+        let scoped = specific.isEmpty ? candidates : specific
+        let exact = scoped.filter { $0.alias == source || $0.fullName == source }
+        if !exact.isEmpty { return exact }
+        let normalized = scoped.filter(direct)
+        return normalized.isEmpty ? scoped : normalized
+    }
+
+    /// Resolve a class-specific canonical subject without changing source text.
+    func canonicalSubject(_ source: String, className: String) -> String? {
+        let names = Set(subjectCandidates(source, className: className).map { Self.comparable($0.fullName) })
         return names.count == 1 ? names.first : nil
     }
 
@@ -53,16 +67,8 @@ struct MappingRules: Codable, Equatable {
     }
 
     func isInternationalStudentSubject(_ alias: String, className: String) -> Bool {
-        let source = Self.comparable(alias)
-        guard !source.isEmpty else { return false }
-        let candidates = subjects.filter { rule in
-            guard rule.classes == nil || rule.classes?.contains(className) == true else { return false }
-            let key = Self.comparable(rule.alias)
-            return key == source || (rule.internationalStudent == true && key.hasPrefix("留 ") && String(key.dropFirst(2)) == source)
-        }
-        let specific = candidates.filter { $0.classes?.contains(className) == true }
-        let flags = Set((specific.isEmpty ? candidates : specific).compactMap(\.internationalStudent))
-        return flags == [true]
+        let candidates = subjectCandidates(alias, className: className)
+        return !candidates.isEmpty && candidates.allSatisfy { $0.internationalStudent == true }
     }
 
     /// Preserve the source separators and unregistered names. Whole-field

@@ -2428,3 +2428,9 @@ Native tab／HomeTimetable／時間割／U63でN49/U77/U63と398の詳細、9ffd
 - source f82c6bedab4679f145a9852c9e3cb9ae3ae5228aの所有SPM一時領域、Debian13/Swift6.1.2、21:03:52 UTC。fixture修正後の限定3件中、後方検索・str escapeは成功。testTypedDateCellsUseTheirWrittenCalendarDateAndBomIsAcceptedはdate-only/BOM対照後、最初の2032-07-10T00:00:00.000で本番normalizer Dateエラーrow2。Cocoa516はなく入力へ到達した。修正選択前に記録。Windows26と同じt=d生値経路がiOSにも該当した。
 
 - date／typed／XLSX／BOM／Cocoa516で過去索引を検索し、N101のfixture未到達との差と既存testRichTextNumericDatesAndSparseCells、f82c6beのWorksheet/ChangeNormalizer+Datesを読んだ。従来numeric serialだけを暦日に正規化し、t=dは生のままだった。候補はt=dに限りdate-only/ISO datetime全体を検証し、元に記載された暦日を使う。T時刻0〜23/0〜59/0〜59、fraction1〜9桁、offsetはZまたは±14:00まで（14時は00分だけ）。端末timezoneへ変換せず、任意文字列・数式の許可は拡大しない。原文の他欄と括弧教員保持を維持する。次の実行前に候補と記録をpushする。
+
+## N103 名称対応の追加4条件を修正前に再現（2026-10-23）
+
+- sourcebf6d3ec1d38f4b82e0c202528ae5c54ac604d7c6、所有SPM一時領域、Linux Swift6.1.2、21:10:52 UTC、MappingRulesTests15件中追加4件で12assert失敗。完全一致科目のcanonicalがnil、一般規則nilを留学生trueと判定、条件付き教員の幅違いを分離できず、留prefix省略略科のcanonical/末尾教員/留判定も失敗した。既存11件は成功。Windowsの独立Core回帰でも同じ4条件（一般scopeの2対照含む5件）が失敗、既存10件は成功。対処選択前に記録。実学校資料/通信/SwiftUI UIなし。
+
+- N103照合:canonicalSubject／条件付き／international／mapping／留学生で索引検索。N68はMacのasync test書込みawait不足で、今回の動作失敗とは別。b781311と現行MappingRules/Changes、Issue45/47〜58検証、既存testScopedInternationalRuleSurvivesGenericExactAliasBeforeLessonReplacementを読んだ。既存51のクラス専用規則優先を保持する。追加したglobal一般vs専用留学生の対照だけは期待falseが既存仕様と反したためtrueへ訂正する（新規assertの誤り1件、同scopeの一般誤分類とは区別）。候補はまずクラスscopeを選び、その中で生表記完全一致→幅正規化の直接一致→留prefix省略を選ぶ共通候補関数にcanonical/分類をそろえる。一般nilをtrue集合から捨てず、全選択候補がtrueのときだけ留学生判定する。条件付き教員も年度/クラス/科目を維持し生alias完全一致→幅正規化一意候補だけ採用する。元原文や配信規則は書換えない。76の表示件数へ既存teacherContextsを加える低影響の一行変更は、v1空contexts/v2非空の既存decode検査と式の照合を記録し、実装を写すだけのテストは追加しない。Windowsは既に条件付き件数を独立表示し76非該当。候補/根拠をpushしてから再実行する。

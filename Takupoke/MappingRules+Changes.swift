@@ -9,11 +9,13 @@ extension MappingRules {
     private func contextualTeacher(_ alias: String, subject: String, className: String,
                                    schoolYear: Int?) -> String? {
         guard let schoolYear, let canonical = canonicalSubject(subject, className: className) else { return nil }
-        let matches = Set(teacherContexts.filter {
-            $0.alias == alias && $0.className == className && $0.schoolYear == schoolYear &&
-                Self.comparable($0.subject) == canonical
-        }.map(\.fullName))
-        return matches.count == 1 ? matches.first : nil
+        let candidates = teacherContexts.filter {
+            Self.comparable($0.alias) == Self.comparable(alias) && $0.className == className &&
+                $0.schoolYear == schoolYear && Self.comparable($0.subject) == canonical
+        }
+        let exact = candidates.filter { $0.alias == alias }
+        let names = Set((exact.isEmpty ? candidates : exact).map(\.fullName))
+        return names.count == 1 ? names.first : nil
     }
 
     private func presenting(_ names: TimetableLessonNames, className: String,
