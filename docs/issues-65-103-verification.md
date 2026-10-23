@@ -83,3 +83,5 @@ UI編集前にPDFRecoveryView/元のPDF/RecoveryClosing/背景/sheetを失敗索
 95の親取消回帰は修正後2件/失敗0（0.002秒）。CoordinatorのSwift構文parseはtoolchainを明示sourceして成功（最初は親shellのPATHにswiftcがなく未実行、製品のコンパイル失敗ではない）。Win32交差のiOS actual XLSX回帰は修正後1件/失敗0（0.037秒）、7表記と正逆range/全展開を確認。92のmanual UI生成17件/失敗0（0.275秒）、変更したView/実UIケースの構文parse成功。Apple型検査/実タップ/実Visionの停止時間は未確認。
 
 追加群37482f8の全体最終チェック:Swift567件/失敗0（73.081秒）、Python275件/skip2/失敗0（58.192秒）。catalog check --base aa6450fも成功。新規GPT-6.1 Sol/High ios_post437_native_pre_actions_reviewはコード差分1469行のみを読み指摘なし（SHA256 3ab03740f5867371ad892df66c6e7b7236f59b0a0665cd56142bdac35869b970）。このreviewは次のdevelopment native_pdf=true/picker=falseの両SDK検証1回だけに使用し、全15公開gateや実Apple UIの成功へ代用しない。
+
+94の実許可/配信可否/apply/OS bridge回帰4件/失敗0（6.010秒）。82/97の関連全21件/失敗0（0.135秒）。98の密な2000領域×96,000黒画素、順序正逆、未取得1画素、取消と同じ32M上限を含むRaster6件/失敗0（2.591秒）。浮動小数の境界直近でも元のpixel-center比較を同じ演算順で保つため、mask候補範囲を保守的に丸め、各候補画素で元の4辺不等式を使う仕上げと隣接Double境界の回帰を追加して確認する。実Vision/物理端末の品質・時間は未確認。

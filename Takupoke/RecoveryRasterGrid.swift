@@ -242,15 +242,18 @@ struct RecoveryRasterGrid: Sendable {
                 try consume()
                 // The original predicate compares pixel centers with a one-pixel
                 // margin. Clamp in Double before converting out-of-page bounds.
-                let minX = item.x - 1.5, maxX = item.x + item.width + 0.5
-                let minY = item.y - 1.5, maxY = item.y + item.height + 0.5
+                let minX = item.x - 1, maxX = item.x + item.width + 1
+                let minY = item.y - 1, maxY = item.y + item.height + 1
                 if [minX, maxX, minY, maxY].contains(where: \.isNaN) { continue }
-                let x0 = max(Double(left), ceil(minX)), x1 = min(Double(right - 1), floor(maxX))
-                let y0 = max(Double(top), ceil(minY)), y1 = min(Double(bottom - 1), floor(maxY))
+                let x0 = max(Double(left), floor(minX - 0.5)), x1 = min(Double(right - 1), ceil(maxX - 0.5))
+                let y0 = max(Double(top), floor(minY - 0.5)), y1 = min(Double(bottom - 1), ceil(maxY - 0.5))
                 guard x0 <= x1, y0 <= y1 else { continue }
                 for y in Int(y0)...Int(y1) { for x in Int(x0)...Int(x1) {
                     try consume()
-                    covered[(y - top) * rowWidth + x - left] = 1
+                    let px = Double(x) + 0.5, py = Double(y) + 0.5
+                    if minX <= px, px <= maxX, minY <= py, py <= maxY {
+                        covered[(y - top) * rowWidth + x - left] = 1
+                    }
                 } }
             }
             return covered
