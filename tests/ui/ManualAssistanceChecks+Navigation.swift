@@ -30,21 +30,6 @@ extension ManualAssistanceChecks {
                     XCTFail("The recovery sheet disappeared during navigation: "+app.debugDescription);return e
                 }
             }
-            // SwiftUI can recycle the native editor when its row is offscreen.
-            // Resolve its known identifier again, without a cached native type.
-            // A clear control has a known native Button role inside this List.
-            // Avoid traversing unrelated sheets and editors for an offscreen Button.
-            let acknowledgement=inRecovery && targetID.hasPrefix("manual-ack-")
-            let query=inRecovery && targetID.hasPrefix("manual-clear-")
-                ? list.buttons.matching(identifier:targetID)
-                : acknowledgement ? list.switches.matching(identifier:targetID)
-                : app.descendants(matching:.any).matching(identifier:targetID)
-            let matches=targetID.isEmpty ? [] : acknowledgement
-                ? query.allElementsBoundByAccessibilityElement : query.allElementsBoundByIndex
-            guard matches.count<=1 else {
-                XCTFail("Known manual control must be unique: "+targetID);return e
-            }
-            let target=matches.first ?? e
             let navigation=inRecovery ? app.navigationBars["時間割の復旧"] : app.navigationBars.firstMatch
             let top=max(list.frame.minY,navigation.frame.maxY)+12
             let keyboardFrame=observedKeyboardFrame()
@@ -53,6 +38,19 @@ extension ManualAssistanceChecks {
             guard ManualScrollNavigation.usable(viewport),viewport.height>36 else {
                 print("TAKUPOKE-MANUAL-SCROLL invalid-viewport;\(viewport)");break
             }
+            // Observe the viewport before resolving a recyclable row. The outer
+            // control follows its logical ID while revealing it (N97); only the
+            // final inner native contact is bound to accessibility identity (N94).
+            let acknowledgement=inRecovery && targetID.hasPrefix("manual-ack-")
+            let query=inRecovery && targetID.hasPrefix("manual-clear-")
+                ? list.buttons.matching(identifier:targetID)
+                : acknowledgement ? list.switches.matching(identifier:targetID)
+                : app.descendants(matching:.any).matching(identifier:targetID)
+            let matches=targetID.isEmpty ? []:query.allElementsBoundByIndex
+            guard matches.count<=1 else {
+                XCTFail("Known manual control must be unique: "+targetID);return e
+            }
+            let target=matches.first ?? e
             if let alternatives,let actual=manualVisibleCandidate(
                 candidates:alternatives.allElementsBoundByIndex,viewport:viewport,
                 frame:{ $0.frame },isHittable:{ $0.isHittable }) { return actual }
