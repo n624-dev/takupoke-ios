@@ -2439,3 +2439,7 @@ Native tab／HomeTimetable／時間割／U63でN49/U77/U63と398の詳細、9ffd
 
 - source4f6f7da7ed4f365b8e9aa700d2dc41775091cf5b、Linux Swift6.1.2、所有SPM一時領域、TimetableClockEvidenceTests8件・13失敗（1unexpected）。必要kindが片側未取得でも変更card/common/detailが確定しactive=true（8assert）、非表示の試験時計が返却のcommon時計をnilにする（2assert）、見た目だけ結合した独立特別セルの9:25gapもactive（2assert）。旧4件は成功。新規の通常変更の検証はcustom fixtureのvalidatedでinvalidDataとなり、default含め未到達（1throw）。Windowsは独立Coreで同8ケースが全失敗し、通常変更・補講の10:25/12:25 gapも実再現した。対処選択前に記録。
 - 時刻fixtureを読むとv1は1〜8限全件を要求するが、新規入力は2〜5限だけだった。既存testNormalVisualMergesRespectBreaksAndLunchWithDefaultAndDateSpecificClocksの全8限+5分を参照し、今回も8限すべて整合した同offsetへ直すQA変更だけを先行pushする。schemaの制約は緩めず、Windowsのfixtureにも実Validatedを要求する。次は未到達だった通常変更のケースだけを比較し、他の既知失敗を修正なしで再実行しない。
+
+- N104の8限fixture訂正後、source7cffecc・21:20:31 UTCの通常変更だけの限定比較は1件/8assert失敗。default/日付別時刻、変更/補講、10:25/12:25で全てactive=true。validatedは成功し入力まで到達、開始/外側終了の対照は成功。製品の72条件もiOSで実再現した。
+
+- N104対処前照合:ClockEvidence／休憩／昼休／commonPeriodTime／cardTimeで索引を検索し、N51詳細、Issue60〜63検証、b781311とc815640/currentのclockコードを読んだ。N51の非表示変更を先に除く選別は維持。60の元セル全体置換と62の通常カードの個別時限判定を後退させず、今回の別分岐だけ修正する。候補は非表示specialをcommonの根拠から除き（変更の時刻根拠には全必要資料を維持）、APIが要求するkindの欠落時は変更card/common/detailの時計を未確認にする。授業中は普通/通常日の変更を個別時限で判定、特別資料は元の各セルの時計を使い、元の明示連続range全体が含まれるときだけその連続性を保持する。資料間で必要な区間集合が一致しない場合は未確認とし、既知specialカード単体の時計は残す。候補/比較根拠をpushしてから検査する。
