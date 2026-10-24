@@ -630,14 +630,17 @@ extension PDFTextGeometryTests {
         return data
     }
 
-    func paintedInk(_ data: Data,minimumX: Int = 0) throws -> Int {
+    func paintedInk(_ data: Data,minimumX: Int = 0,clip: CGRect? = nil,scale: Int = 1) throws -> Int {
         let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
-        var pixels = [UInt8](repeating:255,count:300*400)
+        let width = 300*scale, height = 400*scale
+        var pixels = [UInt8](repeating:255,count:width*height)
         return try pixels.withUnsafeMutableBytes { buffer in
-            let context = try XCTUnwrap(CGContext(data:buffer.baseAddress,width:300,height:400,bitsPerComponent:8,bytesPerRow:300,space:CGColorSpaceCreateDeviceGray(),bitmapInfo:CGImageAlphaInfo.none.rawValue))
-            context.setFillColor(CGColor(gray:1,alpha:1)); context.fill(CGRect(x:0,y:0,width:300,height:400))
+            let context = try XCTUnwrap(CGContext(data:buffer.baseAddress,width:width,height:height,bitsPerComponent:8,bytesPerRow:width,space:CGColorSpaceCreateDeviceGray(),bitmapInfo:CGImageAlphaInfo.none.rawValue))
+            context.setFillColor(CGColor(gray:1,alpha:1)); context.fill(CGRect(x:0,y:0,width:width,height:height))
+            context.scaleBy(x:CGFloat(scale),y:CGFloat(scale))
+            if let clip { context.clip(to:clip) }
             context.drawPDFPage(page)
-            return buffer.enumerated().reduce(0) { $0 + ($1.offset % 300 >= minimumX && $1.element != 255 ? 1:0) }
+            return buffer.enumerated().reduce(0) { $0 + ($1.offset % width >= minimumX*scale && $1.element != 255 ? 1:0) }
         }
     }
     func testNativeNearAxisMiterAndNonSimilarStrokeCannotCertifyPaintBounds() throws {
@@ -699,7 +702,9 @@ extension PDFTextGeometryTests {
             ("10 10 1 30 re 10 20 1 30 re f*",true)]
         for (content,visible) in negatives {
             let data = syntheticPDF(content:content,simpleFont:true)
-            XCTAssertEqual(try paintedInk(data) > 0,visible)
+            // Test the actual fill interior; renderer edge coverage can survive
+            // on coincident boundaries even though the interiors cancel.
+            XCTAssertEqual(try paintedInk(data,clip:CGRect(x:10.25,y:15,width:0.5,height:20),scale:4) > 0,visible)
             let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
             XCTAssertThrowsError(try PDFPathReader(transform:transform,verifyVisibility:true,check:{}).read(page)) {
                 XCTAssertEqual(($0 as? PDFParseError)?.stage,.vectorObjects)

@@ -2636,6 +2636,8 @@ source db1d856＋未commitの101候補/Native回帰、Linux Poppler pdftoppm 72d
 
 N132照合:alias/描画対照/paintedInk/画素0で旧索引を検索し、同じ複合塗り対照はない。旧NativeのpaintedInkは既定antialiasの白以外を数え、旧thin-fill正対照は正の画素だけを要求していた。今回追加のゼロ画素assertはまだApple実行していない。現/元PathReaderはsubpathを個別の矩形として扱い、Windows通常Readerは既に重なり拒否を持つ。まず同一PDF入力の既定/明示vector-antialias無効を比較し、全非白画素の値と範囲を記録する診断を行う。製品条件/Native期待はその観測前に変更せず、最初の62画素観測を保持する。記録/候補をpush後に診断を行う。
 
+8aa8207後の診断:Poppler26.05.0で二重even-odd/逆向きnonzeroの既定非白62画素は181×1/223×60/251×1、AA無効でも境界62画素が残った（黒62）。単独f/f*は黒30、同向き二重nonzeroは黒30＋縁32で、anti-aliasだけがゼロでない原因とは断定しない。全canvas非白0を意味論の代用とする新しいassertが不適切。候補は元の全canvas正対照と製品の重なり拒否を維持し、新規の相殺対照だけ原矩形境界から離れた内部x10.25〜10.75/y15〜35を4倍描画・clipして白を厳格に要求する。同向き/部分相殺は同じ内部に実inkを必須とする。画素の閾値緩和・期待値注入はせず、独立Popplerも同じ内部を288dpiで観測する。旧テストのhelper既定値/解像度/判定は変えない。Apple実行はまだ未確認。
+
 ## N131 CMap比較ハーネスの準備失敗（2026-10-24、ローカル）
 
 source iOS6b85e4a/Windows40bde67、Linux、05:30 UTC前後。独立計測の準備PythonがWindowsの実ファイルをParsing配下ではないpathで参照しFileNotFoundError。set -eのない親shellが続行し、未作成win-after projectをdotnet buildしてMSB1009、未作成DLL実行も失敗した。製品テストは別途iOS5件/Windows13件成功済みで、この失敗は製品parserの実行前。対処を選ぶ前の観測として記録する。
