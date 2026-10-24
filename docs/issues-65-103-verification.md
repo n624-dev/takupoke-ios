@@ -92,7 +92,7 @@ main437（aa6450f）はNative/Distributionと27訂正4件/通常B成功、通常
 
 N117の対処は新caseのpush-backを既存標準sheet dismissへ変更したQAのみ。manifest28件/失敗0（4.388秒）、Swift構文parse/catalog成功。新規GPT-6.1 Sol/High ios_aux_sheet_pre_actions_reviewは不変コード差分だけを読み指摘なし（SHA256 7b497bf01458b3c86a1c88461ec18da594c3f2d5280e081cf0fdb8ea9e4fc737）。このreviewは次のauxiliary-store両OS/SDK27.0の診断1回だけに使用する。前回は両再読込/授業詳細まで成功したが後半の週表示/relaunch復旧は未確認、成功へ一般化しない。
 
-## 公開候補への統合（未公開）
+## 公開候補への統合と検証
 
 auxiliary-store焦点40039494698/attempt1/source980779eは両OS/SDK27.0で成功。27の実case152.066秒、26.5は111.912秒、各1件の厳格完了照合に成功。実warnings/両再読込/授業詳細/標準dismiss/週表示/元store復元後の再起動を通過。旧比較40037895971の両失敗はN117として保持し、成功へ合算しない。
 

@@ -20,7 +20,8 @@
 
 ## 最新の確認状況
 
-- 最新公開の確認：[0.1.436（436.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.436-build.436.1)を通常Releaseとして公開し、固定AltStore Sourceを更新しました。
+- 最新配布は[Latest Release](https://github.com/n624-dev/takupoke-ios/releases/latest)と固定AltStore Sourceを参照してください。追加修正の確認範囲は[検証記録](issues-65-103-verification.md)へ残しています。
+- 公開確認の記録：[0.1.436（436.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.436-build.436.1)を通常Releaseとして公開し、固定AltStore Sourceを更新しました。
   試験・返却の結合変更の専用時刻、通常授業の休憩中判定、週の資料状態の案内、保存期限管理情報の復旧とOCR入力の消去領域を修正しました。
   [同一ソースのCI](https://github.com/n624-dev/takupoke-ios/actions/runs/39999724291)の全15必須条件・全job終端・保存artifact0を確認しました。配布jobでもNative627件（予定skip1・失敗0）、実Picker3件とiPhone Releaseビルドが成功しました。
   両OS通常UI4組・訂正8ケースと、匿名4添付／IPA内部の版・ソース／固定Sourceの照合が成功。Strictと追加モデルは維持しています。
