@@ -21,11 +21,11 @@
 ## 最新の確認状況
 
 - 最新配布は[Latest Release](https://github.com/n624-dev/takupoke-ios/releases/latest)と固定AltStore Sourceを参照してください。追加修正の確認範囲は[検証記録](issues-65-103-verification.md)へ残しています。
-- 公開確認の記録：[0.1.436（436.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.436-build.436.1)を通常Releaseとして公開し、固定AltStore Sourceを更新しました。
-  試験・返却の結合変更の専用時刻、通常授業の休憩中判定、週の資料状態の案内、保存期限管理情報の復旧とOCR入力の消去領域を修正しました。
-  [同一ソースのCI](https://github.com/n624-dev/takupoke-ios/actions/runs/39999724291)の全15必須条件・全job終端・保存artifact0を確認しました。配布jobでもNative627件（予定skip1・失敗0）、実Picker3件とiPhone Releaseビルドが成功しました。
-  両OS通常UI4組・訂正8ケースと、匿名4添付／IPA内部の版・ソース／固定Sourceの照合が成功。Strictと追加モデルは維持しています。
-  物理iPhoneの更新・修正再確認・学校OCR品質は未確認です。[詳細](issues-60-63-verification.md)。
+- 公開確認の記録：[0.1.440（440.2）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.440-build.440.2)を通常Releaseとして公開し、固定AltStore Sourceを更新しました。
+  保存済み資料の警告・再読込、科目/教員の名称対応、休講と休憩の時刻表示、変更XLSX・行事保存、復旧の中止・元PDF表示、通知許可の警告を修正しました。
+  [同一ソースのCI](https://github.com/n624-dev/takupoke-ios/actions/runs/40051510584)のattempt2で全15必須条件・全job終端・保存artifact0を確認しました。開始前に失敗した通常26 Bと依存公開だけを再実行し、他13件はGitHubの同試行への引継ぎです。
+  両OS通常UI4組・訂正8ケースが成功し、配布jobでもNative652件（予定skip1・失敗0）、実Picker3件とiPhone Releaseビルドが成功しました。匿名4添付／IPA内部の版・ソース／固定Sourceも照合しました。
+  物理iPhoneの更新・修正再確認・学校OCR品質は未確認です。[詳細](issues-65-103-verification.md)。436.1の確認は[以前の記録](issues-60-63-verification.md)に保持しています。
 - 後続の追加issueはiOSとWindowsで相互確認して扱います。APIサーバー側は利用者から完了済みと指示されており、完了したサーバー作業は再開しません。iOS側の新しい状態取得契約の利用は、クライアントの追加issueとして区別します。
 - 実資料と実機：394.1で通常・試験・返却の解析が戻った利用者報告があります。396.1の返却見出し混入は継続しました。
   今回添付された返却PDFの位置関係をローカルで調べ、クラス欄が下段見出し帯まで結合する混入経路に対処しました。
