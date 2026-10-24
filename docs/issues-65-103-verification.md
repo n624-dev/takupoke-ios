@@ -291,3 +291,15 @@ ad01f9eの正式run40106889321/attempt1は全表示job終端。Distribution成�
 00c9450の限定比較40113800496/attempt1は全2job success、27は155.925秒・26は180.913秒、元case各1件/失敗0。実buildと両surfaceのbusy保持/正式・原本更新による閉鎖・再起動を通過し、両完了logを一度だけ保存した。今回のcardは元guardを満たして全表示しており、失敗時と同じ部分位置で実dragを再現したとの主張はしない。元の通常A全17件と後続phase/両OSを正式検証に残す。旧main40109158354の27 Bも48分21秒で成功し、残る26 Bは16:49:34Zから継続中なので取消さず終端を確認する。旧mainのA失敗と未公開は保持し、新しい全体成功へ混ぜない。
 
 正式main開始専用に別の新規GPT-6.1 Sol/High ios_n144_main_pre_actions_reviewを実施した。上記の同じ不変patch177行/11050bytes SHA256 55f4024d…とgeometry/Navigation両contextの全行を確認し、具体的指摘なし。source5139907以降の変更は文書だけで、取得したmainは25fe013のままだった。catalog448とcode差分の同一hashを確認し、このreviewを次のmain push/正式全15/公開一回だけへ使用する。旧focus reviewは既に消費済みで転用しない。未送信各commitの空白も確認してから開始する。
+
+## 正式443の行除外Switchと実identity比較（N146/N147）
+
+184f7edの正式run40115748177/attempt1はDistribution279件/予定skip22/失敗0（80.610秒）、Native688件/予定skip1/失敗0（150.740秒）、訂正27の元4caseが成功。通常27 Bは38分6秒で成功したが、通常27 Aは17件中1失敗（2232.224秒）でN146の最初の除外Switchの値1待機が停止した。N144のHome/時間割詳細caseは両surfaceのbusy保持/更新時閉鎖まで成功し、同じカード失敗ではない。26 Bは18:01:09Zから継続中で取消さず確認する。新完了8実jobのログは一度だけ保存した。全15/公開成功には扱わない。
+
+旧442/run40109158354は残26 Bも35分25秒で成功し、全15表示job終端・8成功/通常27 Aの1失敗/構成と依存skip6・保存artifact0を確認済み。全9実jobログは取得済みで、同じ終端run/log/artifactを再取得しない。旧source/別試行の成功を新しい公開gateへ借用しない。
+
+N146候補c925e84は通常Switchの周辺/外側を論理検索で観測後、一意な内側を実accessibility identityで捕捉し、元の点と0.1秒の一回接触へ渡す。元45秒の同じpredicate内でアプリ/viewport/外側/内側の全包含・enabled/hittable・0/1一致を直接再確認し、古い外側値を待機後に使わない。実際に接触が届いたかを分けるため、行除外caseに既存の入力観測flagだけを追加した。U19/U64/N94/N97と旧/現codeの比較・実touch未観測の限界は索引に残した。製品・XLSX/除外/103行保存・全ケース/各期限/全15gateを変更しない。
+
+ローカルSwift6.1.2の構文、既存幾何7件/失敗0（0.102秒、準備込1.828秒、同じSupport/テストbytes）、c925e84のmanifest28件/失敗0（4.497秒）・runner13件/失敗0（19.193秒）とcatalog448/check --base 184f7ed/固定枝一覧が成功。manifestの最初の2回は不要なaliasによる字句契約不一致で、N147にsource/結果・全guardを直接再確認した修正根拠を保持する。契約テストの本文や期待値は変更していない。Apple実操作は未確認で、次は既存rowsを両OSで限定比較する。
+
+その一回だけのため新規GPT-6.1 Sol/High ios_n147_rows_pre_actions_reviewを行った。不変patch272行/15629bytes SHA256 96fa2091e030484b50bebc5fe0e5d9a0bfbb219bf3af0da9e162cfb907592a5b、元rows context74行/4422bytes SHA256 566c26ca…、元input observer40行/1828bytes SHA256 98e03674…、元manual identity excerpt46行/3129bytes SHA256 f97c2308…の全行を確認し、具体的指摘なし。以前に作った未使用385b5def…のartifactは廃棄済み。このreviewは次の既存application-relaunch-native-probe/rows/ios=both/SDK27.0・26.6一回だけへ使用し、後のmain/全15/公開は別の新規reviewを必要とする。
