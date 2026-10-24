@@ -238,13 +238,13 @@ extension PDFParsingTests {
         let query = RecoveryBox(x: 0, y: 0, width: 16, height: 16)
         var pixels = [UInt8](repeating: 255, count: 16 * 16); pixels[4 * 16 + 4] = 0
         let raster = RecoveryRasterGrid(width: 16, height: 16, grayscale: pixels)
-        for edge in [5.5.nextDown, 5.5, 5.5.nextUp] {
+        for edge in [Double(5.5).nextDown, 5.5, Double(5.5).nextUp] {
             let left = RecoveryBox(x: edge, y: 4, width: 1, height: 1)
             let top = RecoveryBox(x: 4, y: edge, width: 1, height: 1)
             XCTAssertEqual(try raster.hasUncoveredInk(query, text: [left], rules: [], check: {}), !(edge - 1 <= 4.5))
             XCTAssertEqual(try raster.hasUncoveredInk(query, text: [top], rules: [], check: {}), !(edge - 1 <= 4.5))
         }
-        for extent in [2.5.nextDown, 2.5, 2.5.nextUp] {
+        for extent in [Double(2.5).nextDown, 2.5, Double(2.5).nextUp] {
             let right = RecoveryBox(x: 1, y: 4, width: extent, height: 1)
             let bottom = RecoveryBox(x: 4, y: 1, width: 1, height: extent)
             XCTAssertEqual(try raster.hasUncoveredInk(query, text: [right], rules: [], check: {}), !(4.5 <= 1 + extent + 1))

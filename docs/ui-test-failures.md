@@ -2567,3 +2567,11 @@ source8a72f725cb82a5f10ef9a5c04547c663243ae9d8、run40041293112/attempt1、23:43
 N123ログ観測:job120712733334（27）は23:43:58〜23:45:15、job120712733549（26）は23:43:58〜23:50:33、両方とも生成AppChecksのbuild-for-testingでPDFRecoveryCoordinator.swift:123の「cannot find 'CancellationLinkedTask' in scope」。両SDK要求は27.0、Simulatorのcaseは未起動で、N122の青選択/保存/relaunchには到達していない。SPMのhelper検査成功とアプリ生成targetへの登録は別の境界だった。原因と対処は過去記録と明示source一覧を次に照合する。
 
 N123照合:scope/compile/登録漏れで索引を検索し、N03（テストのthrows記述）・N67（SPM対象外UIの型契約）の詳細、aa6450f/現在のpbxproj、b741b1cの追加差分とapp_test_project.generateを読んだ。今回helperはSPMのsourcesだけに追加され、本番pbxprojのfileRef/group/source phaseには追加されていない。UIとManualの一時projectは本番projectのtargetを継承するため両方へ影響する。候補は本番targetの3参照へそのファイルを登録し、既存の配布Python検査へ全production Swiftファイルと実application targetのsource phase/group/buildFile/fileRefの対応を照合する回帰を追加すること。中止処理本体・実タップ・保存・再起動・SDK・期限・全15gateは変更しない。前の公開用reviewは未使用で破棄し、候補/記録を隔離branchへpush後に局所チェックと新規reviewを行う。
+
+## N124 main438のApple Native検査が失敗（2026-10-24）
+
+source9298ebeffc4919917d8b677c33778b0122a81914、run40044133872/attempt1、job120722273881、macos-26/Xcode26.6を指定したNative PDF and recovery testsが00:18:03〜00:20:27 UTCでfailure、00:30予定一括照会で観測。具体case/段階/原因はログ未確認で対処未選択。Distribution成功、27通常A/Bと訂正3件は実行中、訂正もう1件はqueue。公開条件は満たさず、残る全jobは取り消さず結果を確認する。
+
+N124ログ観測:RecoveryBuilderTests+Raster.swift:241/247のnumeric literal memberでexpected named member of numeric literal、テストmoduleのコンパイル段階で停止。新しい浮動小数境界のケースを含むNative実テストは未開始。ローカルSwift6.1.2全569件成功との言語/生成ソースの差を次に照合し、製品のOCR画素結果の失敗とは断定しない。
+
+N124照合:numeric literal/nextUp/nextDown/コンパイルで索引検索し、N03（追加テスト構文）・N67（SPM対象外の型）の詳細、aa6450fと境界追加616c548/現行テスト、test-parsing.shの原本コピーを比較。今のテストは5.5.nextDown等を使い、ローカル6.1.2では通ったがApple側はliteralのmemberとして構文拒否する。生成による文字列置換はない。候補は4つのmember receiverをDouble(5.5)/Double(2.5)と明示するだけで、隣接Doubleの値・比較順・4辺・製品本体・入力数・上限・取消を変えない。既存の同じ境界ケース/Raster7件で検証し、構文修正を写す別テストは追加しない。候補/根拠を隔離branchへpush後に検証し、新規reviewで次の公開開始を判断する。
