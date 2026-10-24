@@ -52,6 +52,80 @@ extension PDFParsingTests {
         }
         XCTAssertThrowsError(try lineAtomFixture(atomCount:4,low:true))
     }
+    func testVersionSevenManualAtomsRetainConsentThroughSnapshotMigration() throws {
+        let confirmedAt = Date(timeIntervalSince1970:1_750_000_000)
+        func certify(_ doc:RecoveryDocument,_ result:RecoveryResult) throws -> RecoveryAdopted {
+            RecoveryAdopted(document:doc,result:result,acceptance:.init(pdfHash:doc.pdfHash,
+                resultHash:try RecoveryValidator.fingerprint(result),scopeHash:try RecoveryValidator.fingerprint(doc),
+                metadata:result.metadata,acceptedAt:confirmedAt))
+        }
+        for count in [1,3] {
+            let original = try lineAtomFixture(atomCount:count,low:true)
+            let draft = try XCTUnwrap(RecoveryManualAssistance.prepare(original,os:"test"))
+            let result = try RecoveryManualAssistance.complete(draft,values:Dictionary(uniqueKeysWithValues:
+                draft.fields.map { ($0.id,"架空確認 "+$0.target.role.rawValue) }),now:confirmedAt)
+            var doc = original, oldResult = result
+            XCTAssertNotNil(doc.structureMetadata)
+            doc.structureMetadata!.validatorVersion = 7; oldResult.metadata.validatorVersion = 7
+            let oldHash = try RecoveryValidator.fingerprint(doc)
+            // Construct the actual historical receipt independently of migration.
+            var encoded = try XCTUnwrap(JSONSerialization.jsonObject(with:JSONEncoder().encode(oldResult)) as? [String:Any])
+            var receipts = try XCTUnwrap(encoded["humanCorrections"] as? [[String:Any]])
+            for i in receipts.indices { receipts[i]["documentSnapshotHash"] = oldHash }
+            encoded["humanCorrections"] = receipts
+            oldResult = try JSONDecoder().decode(RecoveryResult.self,from:JSONSerialization.data(withJSONObject:encoded))
+            let old = try JSONDecoder().decode(RecoveryAdopted.self,from:JSONEncoder().encode(certify(doc,oldResult)))
+            XCTAssertEqual(try RecoveryManualAssistance.validationErrors(doc,oldResult,inputOnly:false),[])
+            var metadataOnly = doc; metadataOnly.structureMetadata!.validatorVersion = RecoveryValidator.version
+            var metadataResult = oldResult; metadataResult.metadata.validatorVersion = RecoveryValidator.version
+            XCTAssertEqual(RecoveryValidator.validate(metadataOnly,metadataResult).errors,["manualProvenance"])
+
+            let current = try XCTUnwrap(RecoveryValidator.recertify(old,hash:doc.pdfHash))
+            XCTAssertTrue(RecoveryValidator.validate(current.document,current.result).canAdopt)
+            XCTAssertEqual(current.previousAcceptance,old.acceptance)
+            XCTAssertEqual(current.acceptance.acceptedAt,confirmedAt)
+            XCTAssertEqual(current.result.humanCorrections?.map(\.confirmedAt),Array(repeating:confirmedAt,count:count))
+            XCTAssertEqual(current.document.nativeCapture,old.document.nativeCapture)
+            XCTAssertEqual(current.document.ocrLineAtomSourceIds,old.document.ocrLineAtomSourceIds)
+            XCTAssertEqual(current.result.cells,old.result.cells)
+            XCTAssertEqual(try RecoveryValidator.recertify(current,hash:doc.pdfHash),current)
+            let decoded = try JSONDecoder().decode(RecoveryAdopted.self,from:JSONEncoder().encode(current))
+            XCTAssertEqual(try RecoveryValidator.recertify(decoded,hash:doc.pdfHash),current)
+
+            let source = RecoverySelectedSource(kind:.timetable,url:URL(fileURLWithPath:"/fictional-unused.pdf"),
+                digest:doc.pdfHash,originalName:"fictional.pdf",storedName:"fictional.pdf",
+                period:SchoolDataPeriod(day:SchoolDate(year:doc.schoolYear,month:doc.term == "前期" ? 4:10,day:16)!))
+            var formal = try RecoveryConversion.timetable(.init(document:original,result:result,source:source))
+            formal.recovery = old; formal.parsedAt = confirmedAt
+            var state = MaterialLibraryState(); state.pdfAnalyses = ["timetable":formal]
+            let display = MaterialLibrary.displayableTimetables(state)
+            XCTAssertTrue(display.rejected.isEmpty)
+            XCTAssertEqual(display.state.pdfAnalyses?["timetable"]?.lessons,formal.lessons)
+            XCTAssertEqual(display.state.pdfAnalyses?["timetable"]?.recovery,current)
+
+            for mutation in 0..<9 {
+                var bad = encoded
+                var edits = receipts
+                switch mutation {
+                case 0: edits[0]["documentSnapshotHash"] = try RecoveryValidator.fingerprint(metadataOnly)
+                case 1: edits[0]["acquisitionHash"] = String(repeating:"b",count:64)
+                case 2: edits[0]["value"] = "架空改変"
+                case 3: edits[0]["parentSourceIds"] = ["fictional-wrong-parent"]
+                case 4: edits[0]["page"] = 2
+                case 5: edits[0]["pdfHash"] = String(repeating:"b",count:64)
+                case 6: edits[0]["target"] = ["cellId":"fictional-wrong-cell","lessonIndex":0,"role":"subject"]
+                case 7: edits[0]["confirmedAt"] = -1_000_000_000
+                default: edits[0]["crop"] = ["x":0,"y":0,"width":1,"height":1]
+                }
+                bad["humanCorrections"] = edits
+                let badResult = try JSONDecoder().decode(RecoveryResult.self,from:JSONSerialization.data(withJSONObject:bad))
+                // Even recomputed outer acceptance hashes cannot repair forged provenance.
+                XCTAssertNil(try RecoveryValidator.recertify(certify(doc,badResult),hash:doc.pdfHash),"mutation \(mutation)")
+            }
+            var forged = current; forged.previousAcceptance!.scopeHash = String(repeating:"b",count:64)
+            XCTAssertNil(try RecoveryValidator.recertify(forged,hash:doc.pdfHash))
+        }
+    }
     func testHighConfidenceLineAtomStillRequiresWholeLiteralAndUniqueBodyOwner() async throws {
         let original = try lineAtomFixture()
         let run = try await RecoveryEngine.run(original,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})

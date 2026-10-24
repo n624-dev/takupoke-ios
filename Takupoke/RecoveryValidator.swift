@@ -530,15 +530,30 @@ enum RecoveryValidator {
     }
     /// Only exact historical acceptance fingerprints plus full current validation
     /// can carry confirmation forward. Native atom proof cannot be backdated.
+    private static func withValidatorVersion(_ original:RecoveryAdopted, _ version:Int) throws -> RecoveryAdopted? {
+        // Prove the existing receipt before changing the document snapshot.
+        guard try RecoveryManualAssistance.validationErrors(original.document,original.result,inputOnly:false).isEmpty else { return nil }
+        var changed = original
+        changed.result.metadata.validatorVersion = version
+        if changed.document.structureMetadata != nil { changed.document.structureMetadata!.validatorVersion = version }
+        if let corrections = original.result.humanCorrections {
+            let snapshot = try fingerprint(changed.document)
+            changed.result.humanCorrections = corrections.map { edit in
+                RecoveryHumanCorrection(schemaVersion:edit.schemaVersion,target:edit.target,pdfHash:edit.pdfHash,
+                    acquisitionHash:edit.acquisitionHash,documentSnapshotHash:snapshot,page:edit.page,
+                    parentSourceIds:edit.parentSourceIds,crop:edit.crop,value:edit.value,provenance:edit.provenance,
+                    confirmedAt:edit.confirmedAt,selectedTargets:edit.selectedTargets)
+            }
+        }
+        return changed
+    }
     static func recertify(_ adopted: RecoveryAdopted, hash: String) throws -> RecoveryAdopted? {
         guard adopted.document.pdfHash == hash else { return nil }
         if adopted.result.metadata.validatorVersion == version {
             guard try canReuse(adopted.acceptance,document:adopted.document,result:adopted.result) else { return nil }
             if let original = adopted.previousAcceptance {
-                var old = adopted
+                guard var old = try withValidatorVersion(adopted,original.metadata.validatorVersion) else { return nil }
                 old.previousAcceptance = nil; old.acceptance = original
-                old.result.metadata.validatorVersion = original.metadata.validatorVersion
-                if old.document.structureMetadata != nil { old.document.structureMetadata!.validatorVersion = original.metadata.validatorVersion }
                 guard try recertify(old,hash:hash) == adopted else { return nil }
             }
             return adopted
@@ -546,13 +561,10 @@ enum RecoveryValidator {
         if [5,6,7].contains(adopted.result.metadata.validatorVersion), let original = adopted.previousAcceptance {
             guard [4,5,6].contains(original.metadata.validatorVersion),
                   original.metadata.validatorVersion < adopted.result.metadata.validatorVersion else { return nil }
-            var old = adopted; old.previousAcceptance = nil; old.acceptance = original
-            old.result.metadata.validatorVersion = original.metadata.validatorVersion
-            if old.document.structureMetadata != nil { old.document.structureMetadata!.validatorVersion = original.metadata.validatorVersion }
+            guard var old = try withValidatorVersion(adopted,original.metadata.validatorVersion) else { return nil }
+            old.previousAcceptance = nil; old.acceptance = original
             guard let upgraded = try recertify(old,hash:hash) else { return nil }
-            var expected = upgraded
-            expected.result.metadata.validatorVersion = adopted.result.metadata.validatorVersion
-            if expected.document.structureMetadata != nil { expected.document.structureMetadata!.validatorVersion = adopted.result.metadata.validatorVersion }
+            guard var expected = try withValidatorVersion(upgraded,adopted.result.metadata.validatorVersion) else { return nil }
             expected.acceptance = RecoveryAcceptance(pdfHash:hash,resultHash:try fingerprint(expected.result),scopeHash:try fingerprint(expected.document),metadata:expected.result.metadata,acceptedAt:original.acceptedAt)
             return expected == adopted ? upgraded : nil
         }
@@ -570,9 +582,7 @@ enum RecoveryValidator {
               adopted.acceptance.resultHash == (try fingerprint(adopted.result)),
               adopted.acceptance.scopeHash == (try fingerprint(adopted.document)),
               adopted.document.structureMetadata.map({ $0.validatorVersion == adopted.result.metadata.validatorVersion && $0.recoverySchemaVersion == schemaVersion && $0.recoveryVersion == "2" }) ?? true else { return nil }
-        var current = adopted
-        current.result.metadata.validatorVersion = version
-        if current.document.structureMetadata != nil { current.document.structureMetadata!.validatorVersion = version }
+        guard var current = try withValidatorVersion(adopted,version) else { return nil }
         guard validate(current.document,current.result).canAdopt else { return nil }
         current.previousAcceptance = adopted.acceptance
         current.acceptance = RecoveryAcceptance(pdfHash:hash,resultHash:try fingerprint(current.result),scopeHash:try fingerprint(current.document),metadata:current.result.metadata,acceptedAt:adopted.acceptance.acceptedAt)

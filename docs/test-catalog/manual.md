@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`74133cae422d9bbc2126eff7a7a4fd8164150c8c024e92950106dead98de5d7a`
+`044030d7b1144c23b50249739dedfd00ad1c47ea8ef5c133261d24c9b4f513d2`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -30,6 +30,7 @@ bash tools/test-manual-ui.sh
 ## [tests/RecoveryManualAssistanceTests.swift](../../tests/RecoveryManualAssistanceTests.swift)
 
 - `testBodyLineAtomsKeepEveryRawSpaceAndRealBoxThroughThreeManualFields`
+- `testVersionSevenManualAtomsRetainConsentThroughSnapshotMigration`
 - `testHighConfidenceLineAtomStillRequiresWholeLiteralAndUniqueBodyOwner`
 - `testWholeLineRangeCrossingRolesFailsEvenWithAllInkCharactersInsideCell`
 - `testLineAtomCannotBeSelectedAcrossPhysicalCellOrUsedAsHeading`

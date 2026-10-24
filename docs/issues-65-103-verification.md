@@ -164,6 +164,8 @@ cc8fca5/Windows ea6ac2fの訂正後は、新規6ケース/失敗0（0.472秒）�
 
 ## Strict文字コード表の有界化・取消（77、Windows交差）
 
+候補6b85e4a/Windows40bde67は新規・既存CMap回帰がiOS5件/失敗0（2.010秒）、Windows13展開/失敗0（414ms）。同じ最適化済み実関数と入力/3回中央値で、4,096/16,384/65,536対応のSwiftは0.026359/0.097827/0.392456秒、Windowsは0.015231/0.045538/0.209914秒。最大では約5.0倍/26.3倍。全対応/個数/checksumは前後同じ。Apple全Reader・実機速度・Windows UIは未測定。独立ハーネス準備の誤pathはN131に保持し、製品の取消回帰成功と混同しない。
+
 catalogをUnicodeMapで検索し、Strict/Certified/WindowsのToUnicode解析と旧239.1の受理条件を読んだ。両Strict実装は、codespaceを追加するたびの既存range走査と、各文字挿入時の再走査を持つ。Windowsは外側にCancellationToken確認があるが、単一bfrangeの内側にはない。iOSのfont callerはengine.checkを持つ一方、CMapへ渡していない。Certifiedは有限domain索引済みだが、未使用control mappingを許す別仕様なのでそのままStrictへ移植しない。
 
 製品関数を変更せず、エラー型だけを補助した独立ハーネスでSwift6.1.2 -Oと.NET10.0.402 Releaseを順番に計測した。入力は全てAへ対応する独立架空singleton CMap、各3回の中央値。対応数4,096/16,384/65,536でSwiftは0.031331/0.195707/1.971677秒、Windowsは0.204352/0.413463/5.511566秒。最大入力1,572,937bytesは既存2MB/65,536対応以内で、全対応とcode checksumを照合した。実PDFKit・iPhone・Windows実UIの秒数ではない。
@@ -171,3 +173,7 @@ catalogをUnicodeMapで検索し、Strict/Certified/WindowsのToUnicode解析と
 まずTask取消をCMap自身が確認しないことを、ゲートで実行開始前の取消を確定する小さな有効CMapで実行再現する。既存の最大domain比較へStrictの全結果一致を追加し、重複range/範囲外/Strict固有の未使用control拒否を保つ回帰も追加する。製品のCMap本体はまだ未変更。
 
 取消はN130でSwiftのcancel済みTaskと、外側だけを同じ位置でcheckpointへ委譲したWindows coreの両方で再現した。候補は各parse内の65536位置の索引でrange可否確認/markと所属lookupを行い、token/next/insert/範囲走査内へ128作業ごとの確認を入れる。単独/連続rangeの対応、surrogate/結合文字、重複/範囲外/不正UTF16とStrict control拒否は元のままにする。iOS既定checkはTask取消、fontはengine.checkを渡し、Windowsのpublic tokenと既存外側確認を維持する。新しい受理条件や上限、エラー番号の転用はない。候補/記録をpush後、取消と全domain/拒否を検査し、同じ最適化済みハーネスで前後を計測する。
+
+## 旧手動訂正と文書snapshotの再認証（85）
+
+catalogのrecertify/RecoveryManualAssistanceTestsと既存の旧版fingerprint/再保存/表示除外を読み、索引のrecertif/manualProvenance/旧v7を検索（同じ交差ケースの失敗記録なし）。旧文書と訂正の全provenance検査を先に行い、validator metadataだけを変更した文書SHAへ訂正監査のsnapshotを結び直す。既存受領fingerprintの検査・全current validate・元のacceptedAt/confirmedAt/値/対象/親source/取得SHAを維持し、previousAcceptanceの逆変換にも同じ検証を使う。低信頼行atom1/3欄、v7構造metadata、実手動訂正、JSON往復、表示projection、9種の偽造監査を回帰へ追加する。まだ実行前。Windows現行srcにはOCR/Recoveryの保存型・手動訂正受領・再認証の実装がなく、通常/特別parserの結果保存のみで、この移行は該当しない（既存未統合PR1には変更しない）。
