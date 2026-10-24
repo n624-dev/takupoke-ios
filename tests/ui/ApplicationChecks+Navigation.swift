@@ -219,9 +219,9 @@ extension ApplicationChecks {
         }
         let frame = control.frame
         let state = control.value as? String
-        let enabled = control.isEnabled, hittable = control.isHittable
         guard usable(outer), usable(frame), outer.contains(frame),
-            viewport.contains(outer), rowEnabled, rowHittable, enabled, hittable
+            viewport.contains(outer), rowEnabled, rowHittable,
+            control.isEnabled, control.isHittable
         else {
             XCTFail("Native switch has no safe hit region: " + app.debugDescription)
             return
