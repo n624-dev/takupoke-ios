@@ -165,18 +165,25 @@ extension ApplicationChecks {
         // A background calendar can exist before the detail sheet has closed.
         // Keep the original five-second budget and require the current visible,
         // unique native control before one physical contact; never retry it.
+        var readyCalendar:XCUIElement?,ambiguousCalendar=false
         let calendarReady = XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
-            guard !self.app.navigationBars["授業詳細"].exists, calendars.count == 1 else { return false }
-            let button = calendars.element(boundBy:0)
-            return button.exists && button.isEnabled && button.isHittable &&
-                self.contained(button,in:self.bodyViewport())
+            guard !self.app.navigationBars["授業詳細"].exists else { return false }
+            let viewport=self.bodyViewport()
+            let current=calendars.allElementsBoundByAccessibilityElement
+            if current.count>1 { ambiguousCalendar=true;return true }
+            guard current.count==1 else { return false }
+            let button=current[0]
+            guard button.exists && button.isEnabled && button.isHittable &&
+                self.contained(button,in:viewport) else { return false }
+            readyCalendar=button
+            return true
         },object:app)
-        guard XCTWaiter.wait(for:[calendarReady],timeout:5) == .completed else {
+        guard XCTWaiter.wait(for:[calendarReady],timeout:5) == .completed,
+              !ambiguousCalendar,let calendar=readyCalendar else {
             recoveryScreenshot("calendar-not-ready-after-lesson-dismissal")
             XCTFail("Detail must close and expose one usable calendar within five seconds: " + app.debugDescription)
             return
         }
-        let calendar = calendars.element(boundBy:0)
         calendar.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).tap()
         XCTAssertTrue(app.buttons["この週へ移動"].waitForExistence(timeout: 5))
         tapToolbar("キャンセル", bar: "週を選ぶ")
