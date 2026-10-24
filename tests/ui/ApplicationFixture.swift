@@ -479,7 +479,7 @@ private enum FixtureInputDelivery {
             guard !names.isEmpty else { continue }
             // Read-only recognizer metadata: no labels, targets or user content.
             // Observe before UIKit's original path; never change recognizer state.
-            let gestures=(touch.gestureRecognizers ?? []).prefix(6).map { recognizer in
+            let gestures:String=(touch.gestureRecognizers ?? []).prefix(6).map { recognizer -> String in
                 let name=String(reflecting:type(of:recognizer)).filter { allowed.contains($0) }
                 return "\(String(name.suffix(16))):\(recognizer.state.rawValue):\(recognizer.cancelsTouchesInView ? 1:0):\(recognizer.delaysTouchesBegan ? 1:0):\(recognizer.delaysTouchesEnded ? 1:0)"
             }.joined(separator:",")

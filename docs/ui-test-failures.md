@@ -2781,3 +2781,15 @@ N148詳細：実touchは(339,609.33)のCellHostingViewへbegan後、0.073秒でc
 sourcebf3da563c88042805952f7749bc3a5810f97fdc0、manual-input-native-probe/case=allの作成要求がHTTP422「No ref found for: bf3da563c88042805952f7749bc3a5810f97fdc0」でexit1。指定はfull commit SHA、実行ID/試行はまだ作成されずテスト未開始。直前のfeature branch pushは成功し、ローカルのreview artifactとの同一性/clean treeも成功。対処を選ぶ前の事実として記録する。
 
 N149照合：No ref found/422/dispatchを索引で検索し、同じ422の既往はない。旧N141はworkflow取得401で別条件。ローカルgh workflow run --helpは--refを「branch or tag」と明示し、今回のfull SHA指定がその契約外だった。旧1a5eb2dと現sourceのworkflow/case=all/両OS matrixは同一bytesと確認した。次は同じreview済みコードと今回の記録だけを含む隔離branch名をrefへ指定する。実行の作成時に一度だけhead SHAを取得し、この期待sourceと照合する。製品/QA/入力/期限/SDKは変更しない。前の要求ではActions自体が作成されていないため、新規reviewはまだ一回も開始へ消費しておらず、次の実際の限定比較一回へ使用する。別の実行へは転用しない。本記録をpush後に作成要求を修正する。
+
+## N150 消去候補の限定比較が全8job failure終端（2026-10-24）
+
+20:55 UTCの予定まとめ照会、source60075a3530df2ac3e1c88ce252c71e77f8d27b6e/run40130115422/attempt1。manual-input-native-probe/case=allの元4case×両OS全8jobがfailure。27の120979835807/964/836098/836122、26の120979836002/013/065/288は20:32:49〜20:35:32Zに終端した。具体的段階/ケース実行への到達/原因は完了ログ未読で未確定。対処選択前の事実として記録し、新しい全8完了ログだけを一度取得する。今回の限定成功や正式公開の成立はない。
+
+旧正式444/run40122891165/attempt1の残26 A/job120970484512は20:32:06Zにsuccessとなり全18表示job終端。事前14件中13成功・N148の単項目26のみ失敗、公開は依存skip。取消しなし。未取得だった最後の26 Aログだけ取得し、旧13完了ログと他の終端runは再取得しない。保存artifact0もこの終端時に一度確認する。
+
+N150完了log：全8件ともbuild-for-testingで生成されたTakupokeApp.swift:502:148が「cannot convert value of type SQL to expected argument type String」となりTEST BUILD FAILED。XCTest実操作は未開始で、N148候補のclearやgesture観測の効果は未評価。SDK27.0と26.6の双方で同じ型不一致がある。全8完了ログと旧正式444の最後の26 Aログを一度保存し、正式444のartifact0も確認済み。次の対処選択前に具体的段階を追記する。
+
+N150照合：SQL/String/型推論/interpolation/コンパイルで索引を検索し、同じSQL推論失敗の記録はない。N03/N31/N67/N68の詳細と当時の型契約を読み、旧1a5eb2dと現60075a3のobserver・生成器を比較した。手動生成はApplicationFixtureをTakupokeApp.swiftへコピーしManualAssistanceFixtureのGRDB importも同じファイルへ追加するため、Linux parseだけではこのmodule全体の型解決を検出しない。新しいmapの戻り型/結合結果型には文脈がなく、実Apple診断では結果gesturesがSQLとして扱われていた。一意取得helperや実clearの実行失敗とは別の準備不備である。
+
+候補はその一行の結合結果をString、map closureの戻り型もStringへ明示するだけ。各class末尾16文字・最大6・state/Bool/書式/上限128/元sendEvent一回は変更しない。String(describing:)等でSQLを文字列化せず、元の文字列を要求する。製品/geometry/clear操作/既存全期待/期限は不変。既存diagnosticsの新旧形式と範囲外拒否・project/manifest/runner/29幾何をそのまま使い、模擬UIKitコンパイルの成功は作らない。記録/候補をpush後に局所検査し、変更を含む新しい不変差分を新規reviewしてから、未開始だった元4case×両OSを再評価する。
