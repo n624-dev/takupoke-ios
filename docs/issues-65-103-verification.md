@@ -329,3 +329,9 @@ main1a5eb2d/run40122891165/attempt1では27の全条件が成功し、通常Aは
 21:40 UTCの予定照会で同runの残る3件も成功し、全8job success終端・同一source/run/attemptを確認した。単項目27は552.032秒、三項目26は462.436秒、明示選択26は841.183秒、元case各1件/失敗0・厳密完了照合を通過した。新しい3ログだけを一度保存し、全8ログ取得完了。N150の両SDKビルド不備はこのsourceで再発せず、元clear/全文入力/個別確認/4項目拒否/原本変更拒否/背景保持/保存/再起動を確認した範囲である。N148の下位原因や実機・全15合格へ一般化せず、終端したこの限定runは再照会しない。
 
 正式main開始用には別の新規GPT-6.1 Sol/High ios_n150_main_pre_actions_reviewが新patch96行/6509bytes SHA256 4a55d426…、Input/Navigation/元4case/observerに加え、単項目/明示選択helper156行/10195bytes SHA256 5c545497d3566bdb961baa7445420cf943c3ef574db48899cc2c0d24c81a4ccdと、45秒/launch flag/一回起動を含むglobals53行/2851bytes SHA256 c7ac87c850b6a6fcd531f183367a20b36e900f9b720f14164205246c50e51c76を全行/bytes/hash確認し、具体的指摘なし。主担当が限定全8成功と現code/artifact同一性・全未送信commitの空白を照合してから、このreviewを次のmain pushによる正式全15/公開一回だけへ使う。限定review/成功や旧正式444の13成功を新しい公開gateへ代用しない。
+
+### 正式445の週calendar準備照会（N151）
+
+正式source3398f52/run40135294847/attempt1の27 Bは基本6件中5成功・HomeTimetableAndWeekCalendarがcalendar準備の5秒で失敗（77.337秒）。Nativeと27訂正全4条件・Distributionは成功、通常27 Aは継続中で公開は不成立。失敗後の画像は詳細sheet閉鎖と週Buttonを示すが、元期限内のhittable成立の証明ではない。実count照会の内部retryで止まった観測、全体398/U65/N94/N97/N140との実source比較と限界をN151へ記録した。新しい7完了ログだけを一度保存し、残りを取消ししない。
+
+f3136d3は製品を変えず、元5秒のpredicate内で元詳細bar消失/viewportを観測後、同じlabel条件の現在一意なnative Buttonを得て、元exists/enabled/hittable/完全包含を要求し、その一個へ待機後の再検索なしで同じ中心へ一回tapする候補。曖昧/不在/無効/timeoutは拒否し、元のteacher表示5秒・picker表示5秒・cancel・前後週の全期待を維持する。候補/根拠を隔離branchへpush後、Swift6.1.2構文、既存manifest28件/失敗0（4.355秒）、runner13件/失敗0（20.883秒）、元Support/テストbytesの幾何7件/失敗0とcatalog448/check --base 3398f52/固定枝一覧を確認した。既存home-launchの直前caseと元calendar caseを同順で両OS/配布SDK27.0へ通し、新しい模倣case/期待や期限変更で成功扱いしない。
