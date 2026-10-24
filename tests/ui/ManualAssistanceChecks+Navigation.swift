@@ -59,6 +59,10 @@ extension ManualAssistanceChecks {
             if alternatives==nil && exists {
                 print("TAKUPOKE-MANUAL-TARGET id=\(targetID);frame=\(targetFrame ?? .null);viewport=\(viewport)")
             }
+            // This row is only the container for the actual native switch.
+            // acknowledge(_:) validates the inner control before its one contact.
+            if acknowledgement,let frame=targetFrame,
+               ManualScrollNavigation.usable(frame),viewport.contains(frame) { return target }
             // As for alternative controls, inspect hit testing only after the
             // actual frame is finite and wholly inside the unobscured viewport.
             let targetHittable=alternatives==nil && exists && manualVisibleCandidate(

@@ -7,6 +7,8 @@ extension ManualAssistanceChecks {
     func input(_ id:String)->XCUIElement { app.descendants(matching:.any)["manual-value-"+id].firstMatch }
     func ack(_ id:String)->XCUIElement { app.switches["manual-ack-"+id].firstMatch }
     func acknowledge(_ id:String) {
+        // Visibility locates the row; the inner native switch must independently
+        // pass geometry, enabled/hittable and unchecked-state checks below.
         let row=visible(ack(id),knownID:"manual-ack-"+id)
         let controls=row.switches.allElementsBoundByAccessibilityElement
         guard controls.count==1 else {
