@@ -245,3 +245,7 @@ SchoolEventsModelのHEAD経路を削除し、年度別に独立した状態Task�
 状態の保存はsource-status-年度.jsonとしてevents-年度.jsonから分離する。破損/サイズ超過/非regular/symlink/別年度の状態cacheは行事のreadyと正常年度に影響させない。通信失敗は正常行事と前回の結果を保持し、古いedgeや未成功応答でも同じsnapshotの最新成功結果/日時を別に保持する。新しい観測hashを行事へ自動採用しない。設定の標準LabeledContentに状態/最終成功の結果/最終成功確認日時/状態取得日時を表示し、VoiceOverでも別labelとして読める。
 
 変更前にcatalogのSchoolEvents、失敗索引のSchoolEvents/source-status/年度/HEAD/APIで検索し、N99の1MB envelope境界とN105の補助store障害によるHome非表示の詳細・現sourceを照合した。今回もpayload1MB/metadata枠/全体検証と補助警告の独立性を保持する。純Swiftの新6件と既存行事14件は20件/失敗0（0.397秒）、manifest28件/失敗0（4.249秒）。新Native transport3件は架空host以外を全拒否し、実Model/URLSession/Storeで合流・非blocking・cache/復帰/手動304/新200/年度・版ずれ/取消・遅延結果を検査する。構文検査のみで、Apple実行/実UI/実機/VoiceOverの確認はまだ行っていない。公開可の合格とはしない。
+
+283cebf候補のローカル全体はSwift6.1.2で599件/失敗0（75.570秒）、Python279件/失敗0・専用環境の予定skip2（58.828秒）。最初のPython実行はSwiftのPATHを読まず16件追加skipとなったため、同じ候補で既存toolchain環境を読み直して全対象を実行した。最初のログも保持し、追加skipを合格へ数えていない。PDF枝一覧/テスト一覧/差分の空白検査も成功した。
+
+次のtest-tools(native_pdf=true,picker=true)専用に新規GPT-6.1 Sol/Highのcode-only reviewを実施した。不変差分5850行/357103bytes SHA256 0caa66943278b640b2c55d7f7881e186308795b48b7ca3b564cb7d9866132fc1と、省略された既存HomeTodayView context SHA256 3b916451d8daa13170d38da71733e2670198267eca3141eb0dadc033083b4e21を確認し、具体的指摘なし。dayを含むdetailRevisionで午前0時の再構成が成立することも照合した。旧042の未消費reviewは廃棄し、この新reviewを一回だけ使用する。Native/Pickerは全15正式公開検査の代用にせず、公開前は別の新規reviewと同一source/run/attemptの全必須合格が必要。
