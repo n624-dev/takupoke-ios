@@ -95,23 +95,23 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 | 詳細番号 | 生成時分類 | 拒否条件／コード抜粋 | 実装 |
 |---|---|---|---|
 | R324 | P01 | `throw PDF239TextFailure.unsupported(.b324)` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L18) |
-| R325 | P01 | `throw PDF239TextFailure.unsupported(.b325)` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L30) |
-| R326 | P01 | `!tokens.contains("beginnotdefchar") else { throw PDF239TextFailure.unsupported(.b326) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L37) |
-| R327 | P01 | `guard value.first == "<", value.last == ">" else { throw PDF239TextFailure.unsupported(.b327) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L41) |
-| R328 | P01 | `guard !body.isEmpty, body.count % 2 == 0, body.count <= 128 else { throw PDF239TextFailure.unsupported(.b328) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L43) |
-| R329 | P01 | `guard let b = UInt8(body[cursor..<end], radix: 16) else { throw PDF239TextFailure.unsupported(.b329) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L47) |
-| R330 | P01 | `guard let count = byteCount, b.count == count else { throw PDF239TextFailure.unsupported(.b330) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L54) |
-| R331 | P01 | `throw PDF239TextFailure.unsupported(.b331)` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L62) |
-| R332 | P01 | `guard i < tokens.count else { throw PDF239TextFailure.unsupported(.b332) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L67) |
-| R333 | P01 | `guard try next() == "0" else { throw PDF239TextFailure.unsupported(.b333) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L73) |
-| R334 | P01 | `guard i >= 2, let count = Int(tokens[i - 2]), (1...65536).contains(count) else { throw PDF239TextFailure.unsupported(.b334) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L76) |
-| R335 | P01 | `byteCount == nil &#124;&#124; byteCount == low.count else { throw PDF239TextFailure.unsupported(.b335) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L81) |
-| R336 | P01 | `guard l <= h, !spaces.contains(where: { l <= $0.1 && h >= $0.0 }) else { throw PDF239TextFailure.unsupported(.b336) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L84) |
-| R337 | P01 | `guard high >= low, high - low < 65536 else { throw PDF239TextFailure.unsupported(.b337) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L91) |
-| R338 | P01 | `guard try next() == "]" else { throw PDF239TextFailure.unsupported(.b338) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L95) |
-| R339 | P01 | `guard !carry else { throw PDF239TextFailure.unsupported(.b339) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L105) |
-| R340 | P01 | `guard try next() == ending else { throw PDF239TextFailure.unsupported(.b340) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L112) |
-| R341 | P01 | `guard let bytes = byteCount, !values.isEmpty else { throw PDF239TextFailure.unsupported(.b341) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L114) |
+| R325 | P01 | `throw PDF239TextFailure.unsupported(.b325)` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L31) |
+| R326 | P01 | `!tokens.contains("beginnotdefchar") else { throw PDF239TextFailure.unsupported(.b326) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L49) |
+| R327 | P01 | `guard value.first == "<", value.last == ">" else { throw PDF239TextFailure.unsupported(.b327) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L62) |
+| R328 | P01 | `guard !body.isEmpty, body.count % 2 == 0, body.count <= 128 else { throw PDF239TextFailure.unsupported(.b328) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L64) |
+| R329 | P01 | `guard let b = UInt8(body[cursor..<end], radix: 16) else { throw PDF239TextFailure.unsupported(.b329) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L68) |
+| R330 | P01 | `guard let count = byteCount, b.count == count else { throw PDF239TextFailure.unsupported(.b330) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L75) |
+| R331 | P01 | `throw PDF239TextFailure.unsupported(.b331)` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L84) |
+| R332 | P01 | `guard i < tokens.count else { throw PDF239TextFailure.unsupported(.b332) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L90) |
+| R333 | P01 | `guard try next() == "0" else { throw PDF239TextFailure.unsupported(.b333) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L96) |
+| R334 | P01 | `guard i >= 2, let count = Int(tokens[i - 2]), (1...65536).contains(count) else { throw PDF239TextFailure.unsupported(.b334) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L99) |
+| R335 | P01 | `byteCount == nil &#124;&#124; byteCount == low.count else { throw PDF239TextFailure.unsupported(.b335) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L104) |
+| R336 | P01 | `guard try rangeAvailable(l, h) else { throw PDF239TextFailure.unsupported(.b336) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L107) |
+| R337 | P01 | `guard high >= low, high - low < 65536 else { throw PDF239TextFailure.unsupported(.b337) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L117) |
+| R338 | P01 | `guard try next() == "]" else { throw PDF239TextFailure.unsupported(.b338) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L121) |
+| R339 | P01 | `guard !carry else { throw PDF239TextFailure.unsupported(.b339) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L131) |
+| R340 | P01 | `guard try next() == ending else { throw PDF239TextFailure.unsupported(.b340) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L138) |
+| R341 | P01 | `guard let bytes = byteCount, !values.isEmpty else { throw PDF239TextFailure.unsupported(.b341) }` | [確認条件](../Takupoke/PDF239UnicodeMap.swift#L140) |
 
 ### 239.1のStrict判定（原条件と固定番号）
 

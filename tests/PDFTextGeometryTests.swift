@@ -298,6 +298,12 @@ final class PDFTextGeometryTests: XCTestCase {
         let strict = try PDF239UnicodeMap.read(data)
         XCTAssertEqual(strict.bytes, decoded.bytes)
         XCTAssertEqual(strict.values, decoded.values)
+        var strictChecks = 0
+        XCTAssertThrowsError(try PDF239UnicodeMap.read(data, check: {
+            strictChecks += 1
+            if strictChecks == 3 { throw PDFParseError(code: .cancelled) }
+        })) { XCTAssertEqual(($0 as? PDFParseError)?.code, .cancelled) }
+        XCTAssertEqual(strictChecks, 3)
         var checks = 0
         XCTAssertThrowsError(try PDFUnicodeMap.read(data,check:{
             checks += 1; if checks == 3 { throw PDFParseError(code:.cancelled) }
@@ -312,14 +318,18 @@ final class PDFTextGeometryTests: XCTestCase {
         }
     }
     func testUnicodeCharactersRangesAndSurrogatePairs() throws {
-        let decoded = try map("""
+        let source = """
         /WMode 0 def
         1 begincodespacerange <0000> <FFFF> endcodespacerange
         2 beginbfchar <0001> <D83DDE00> <0002> <00650301> endbfchar
         2 beginbfrange <0003> <0004> <0041> <0005> <0006> [<0043> <0044>] endbfrange
-        """)
+        """
+        let decoded = try map(source)
+        let strict = try PDF239UnicodeMap.read(Data(source.utf8))
         XCTAssertEqual(decoded.bytes, 2)
         XCTAssertEqual(decoded.values, [1: "😀", 2: "e\u{301}", 3: "A", 4: "B", 5: "C", 6: "D"])
+        XCTAssertEqual(strict.bytes, decoded.bytes)
+        XCTAssertEqual(strict.values, decoded.values)
     }
 
     func testMalformedOrUnsupportedUnicodeMapsFailClosed() throws {
@@ -334,6 +344,7 @@ final class PDFTextGeometryTests: XCTestCase {
             "1 beginbfchar <41> <0041> endbfrange"
         ] {
             XCTAssertThrowsError(try map(prefix + body))
+            XCTAssertThrowsError(try PDF239UnicodeMap.read(Data((prefix + body).utf8)))
         }
     }
 

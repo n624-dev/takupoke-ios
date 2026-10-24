@@ -169,3 +169,5 @@ catalogをUnicodeMapで検索し、Strict/Certified/WindowsのToUnicode解析と
 製品関数を変更せず、エラー型だけを補助した独立ハーネスでSwift6.1.2 -Oと.NET10.0.402 Releaseを順番に計測した。入力は全てAへ対応する独立架空singleton CMap、各3回の中央値。対応数4,096/16,384/65,536でSwiftは0.031331/0.195707/1.971677秒、Windowsは0.204352/0.413463/5.511566秒。最大入力1,572,937bytesは既存2MB/65,536対応以内で、全対応とcode checksumを照合した。実PDFKit・iPhone・Windows実UIの秒数ではない。
 
 まずTask取消をCMap自身が確認しないことを、ゲートで実行開始前の取消を確定する小さな有効CMapで実行再現する。既存の最大domain比較へStrictの全結果一致を追加し、重複range/範囲外/Strict固有の未使用control拒否を保つ回帰も追加する。製品のCMap本体はまだ未変更。
+
+取消はN130でSwiftのcancel済みTaskと、外側だけを同じ位置でcheckpointへ委譲したWindows coreの両方で再現した。候補は各parse内の65536位置の索引でrange可否確認/markと所属lookupを行い、token/next/insert/範囲走査内へ128作業ごとの確認を入れる。単独/連続rangeの対応、surrogate/結合文字、重複/範囲外/不正UTF16とStrict control拒否は元のままにする。iOS既定checkはTask取消、fontはengine.checkを渡し、Windowsのpublic tokenと既存外側確認を維持する。新しい受理条件や上限、エラー番号の転用はない。候補/記録をpush後、取消と全domain/拒否を検査し、同じ最適化済みハーネスで前後を計測する。
