@@ -269,6 +269,23 @@ final class PDFTextGeometryTests: XCTestCase {
         }
     }
 
+    func testStrictUnicodeMapChecksTaskCancellationBeforeParsing() async {
+        let data = Data("1 begincodespacerange <00><FF> endcodespacerange 1 beginbfchar <41><0041> endbfchar".utf8)
+        let gate = DispatchSemaphore(value: 0)
+        let task = Task.detached {
+            gate.wait()
+            return try PDF239UnicodeMap.read(data)
+        }
+        task.cancel()
+        gate.signal()
+        switch await task.result {
+        case .success:
+            XCTFail("A cancelled parsing task must not decode the CMap")
+        case .failure(let error):
+            XCTAssertTrue(error is CancellationError)
+        }
+    }
+
     func testFullTwoByteSingletonCodeDomainRemainsBoundedAndCancellable() throws {
         let codes = (0...65535).map { String(format:"<%04X>",$0) }
         let spaces = codes.map { $0+$0 }.joined()
@@ -278,13 +295,21 @@ final class PDFTextGeometryTests: XCTestCase {
         let decoded = try PDFUnicodeMap.read(data)
         XCTAssertEqual(decoded.bytes,2); XCTAssertEqual(decoded.values.count,65536)
         XCTAssertEqual(decoded.values[0],"A"); XCTAssertEqual(decoded.values[65535],"A")
+        let strict = try PDF239UnicodeMap.read(data)
+        XCTAssertEqual(strict.bytes, decoded.bytes)
+        XCTAssertEqual(strict.values, decoded.values)
         var checks = 0
         XCTAssertThrowsError(try PDFUnicodeMap.read(data,check:{
             checks += 1; if checks == 3 { throw PDFParseError(code:.cancelled) }
         })) { XCTAssertEqual(($0 as? PDFParseError)?.code,.cancelled) }
         XCTAssertEqual(checks,3)
-        XCTAssertThrowsError(try map("2 begincodespacerange <0000><00FF><00FF><01FF> endcodespacerange 1 beginbfchar <0000><0041> endbfchar"))
-        XCTAssertThrowsError(try map("1 begincodespacerange <0000><00FF> endcodespacerange 1 beginbfchar <0100><0041> endbfchar"))
+        for source in [
+            "2 begincodespacerange <0000><00FF><00FF><01FF> endcodespacerange 1 beginbfchar <0000><0041> endbfchar",
+            "1 begincodespacerange <0000><00FF> endcodespacerange 1 beginbfchar <0100><0041> endbfchar",
+        ] {
+            XCTAssertThrowsError(try map(source))
+            XCTAssertThrowsError(try PDF239UnicodeMap.read(Data(source.utf8)))
+        }
     }
     func testUnicodeCharactersRangesAndSurrogatePairs() throws {
         let decoded = try map("""
@@ -313,7 +338,12 @@ final class PDFTextGeometryTests: XCTestCase {
     }
 
     func testUnusedControlMappingsAreMetadataButDrawingThemFailsClosed() throws {
-        let decoded = try map("1 begincodespacerange <00> <FF> endcodespacerange 3 beginbfchar <00> <0000> <41> <0041> <42> <000A> endbfchar")
+        let source = "1 begincodespacerange <00> <FF> endcodespacerange 3 beginbfchar <00> <0000> <41> <0041> <42> <000A> endbfchar"
+        // Strict keeps its original rejection of even unused control mappings.
+        XCTAssertThrowsError(try PDF239UnicodeMap.read(Data(source.utf8))) {
+            XCTAssertEqual(($0 as? PDFParseError)?.branch, .b331)
+        }
+        let decoded = try map(source)
         let mapped = try PDFTextFont(unicode: decoded.values, codeBytes: decoded.bytes,
                                     widths: [0: 500, 65: 500, 66: 500], defaultWidth: 1000,
                                     ascent: 800, descent: -200)

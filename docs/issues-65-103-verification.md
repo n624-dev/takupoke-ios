@@ -159,3 +159,13 @@ WindowsのPdfGrid/ReadTimesにも同じ再sort/非境界regexがあり、別の�
 最初の候補c23433c/36954cbは行順・全角正対照・Store保護を通過したが、N129の境界不足が残った。追加回帰の「不正な明示連続時計を欠落扱いで補完する」期待は既存方針から確定せず、曖昧な時刻を採用しない方針に合わせ明示不正を拒否する回帰へ訂正した。既存の正しい補完は、連続時計が未記載の独立した完全Parser対照へ移し、元のCell処理は変更しない。新guardは境界違反そのものをR424/425で拒否し、既存guardと予約R423を保持する。Osmanyaの前置は一回のUTF16列とsurrogate復元で検出する。6ケース/11展開として再検査し、元の正常隣接/全角/保存保護の入力・期待は維持する。
 
 65のクライアント連携調査では、issue指定の公開/events/source-status?schoolYear=2026を手動で一度取得してHTTP404/非JSONを観測した。iOSから参照されたAPI issue47の契約説明だけを確認したが、JSONの具体的な項目名/版は記載されていない。サーバー実装/配備は変更せず、iOS用の正しい公開URLまたはJSON仕様の参照先を一度問い合わせ、ほかの残件を続ける。旧ローカルの未公開server draftからwire contractを推測しない。本番PDFにはアクセスせず、テスト通信には利用しない。
+
+cc8fca5/Windows ea6ac2fの訂正後は、新規6ケース/失敗0（0.472秒）、Windows11展開/失敗0（299ms）。続く周辺検査もLinux SwiftのPDF/文字/特別資料/保存207件/失敗0（60.874秒）、WindowsのPDF/参照/可視性/実Coordinator104件/失敗0で成功した。Apple・実機・新しい配布の成功とは区別し、84/91はこの作業枝では修正済み・未公開とする。
+
+## Strict文字コード表の有界化・取消（77、Windows交差）
+
+catalogをUnicodeMapで検索し、Strict/Certified/WindowsのToUnicode解析と旧239.1の受理条件を読んだ。両Strict実装は、codespaceを追加するたびの既存range走査と、各文字挿入時の再走査を持つ。Windowsは外側にCancellationToken確認があるが、単一bfrangeの内側にはない。iOSのfont callerはengine.checkを持つ一方、CMapへ渡していない。Certifiedは有限domain索引済みだが、未使用control mappingを許す別仕様なのでそのままStrictへ移植しない。
+
+製品関数を変更せず、エラー型だけを補助した独立ハーネスでSwift6.1.2 -Oと.NET10.0.402 Releaseを順番に計測した。入力は全てAへ対応する独立架空singleton CMap、各3回の中央値。対応数4,096/16,384/65,536でSwiftは0.031331/0.195707/1.971677秒、Windowsは0.204352/0.413463/5.511566秒。最大入力1,572,937bytesは既存2MB/65,536対応以内で、全対応とcode checksumを照合した。実PDFKit・iPhone・Windows実UIの秒数ではない。
+
+まずTask取消をCMap自身が確認しないことを、ゲートで実行開始前の取消を確定する小さな有効CMapで実行再現する。既存の最大domain比較へStrictの全結果一致を追加し、重複range/範囲外/Strict固有の未使用control拒否を保つ回帰も追加する。製品のCMap本体はまだ未変更。

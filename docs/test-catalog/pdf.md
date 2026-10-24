@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`2d184a0d6c59e1588d13a07bb1b3f3df9764d47f2f3b04b4902978bbe1732371`
+`7bd334e1b8b1b1b7909c235e7409de1e47c4c8213efcf7671bb4944bc239bbb5`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -130,6 +130,7 @@ python3 -B tools/pdf_branch_catalog.py check
 - `testStrictStrokeWidthBoundsIncludeTransformsAndHairlines`
 - `testCanonicalBlackClassificationIsSeparateFromVisibleColorEligibility`
 - `testRecoveryRetainsDrawnSpacesWithoutChangingStrictGlyphs`
+- `testStrictUnicodeMapChecksTaskCancellationBeforeParsing`
 - `testFullTwoByteSingletonCodeDomainRemainsBoundedAndCancellable`
 - `testUnicodeCharactersRangesAndSurrogatePairs`
 - `testMalformedOrUnsupportedUnicodeMapsFailClosed`
