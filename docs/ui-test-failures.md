@@ -2731,3 +2731,9 @@ N144実観測：Homeではbusy-only中の詳細保持、実正式更新/原本�
 検索語：当該case/fully visible hit region/midY/contained/card frame/scrollDrag。U57の同じcaseのworker解放待機とbd5ddb7の実テスト、N47の部分行を大swipeで往復した詳細とa0fed9bのNavigation、公開1c331818/現在25fe013の実Timetableケースを照合した。今回のcaseは公開版と同一bytesで、N47で導入済みの観測frameによる有限scrollDragをまだ使用せず中心判定のままだった。既存ObservedScreenGeometryTestsの下端部分行/上端部分行/高さ1/3上限/無効・oversize・既可視拒否を読んだ。
 
 候補はこのcaseの元8回loopで全包含/enabled/hittableを確認し、部分的な実frameには既存scrollDragのviewport中心方向・高さ1/3以内の移動を使う。不在の探索は元swipeを維持し、固定位置/押し直し/成功注入は行わない。全frame包含の元guard、実card一回tap、10秒詳細/元の5/10/15秒のworker・保存・閉鎖、両surface/再起動、全17ケースと後続phase/両OS/全15gateを維持する。製品・cache/Strict・共通geometry/既存helperは変更しない。既存7幾何ケースが同じ計算・拒否を、元の実UIケースが今回の不足を直接検出するため、同じ式を写す新ケースは作らない。候補と根拠を隔離branchへpush後に既存幾何・manifest・構文/catalogを確認し、元のcaseを両OSの限定比較で先に評価する。新しいActions開始前はその一回専用の新規code-only reviewerを作成する。残Bは取消しせず終端を確認する。
+
+## N145 N144候補のローカル幾何harness準備が停止（2026-10-24）
+
+source5139907390f2b587cbfad05641844d7faca11dc0、Linux Swift6.1.2、16:52:50 UTC。既存ObservedScreenGeometryTests.swiftをそのまま単独XCTestへ登録する所有harnessがexit1。Swift compile/7件の実行への到達と具体的停止箇所は保存log未読で未確定。並行の既存manifest/構文/catalogは継続中。ログ/workspace/.takupoke-task-state/ios-n144-geometry.log。製品/iOS実操作の失敗と混同せず、対処選択前の観測を記録する。
+
+N145照合：停止はharnessの「@testable import TakupokeParsingが一つある」という準備assertionだった。実際の現テストはFoundation/XCTestをimportしており、同じtest targetのSupportを直接参照するためそのimportがない。Swift compile/実テストは未開始。N131/N135のハーネス準備で製品実行前に止まった詳細と現テスト全7宣言・Support本文を照合した。次は実source/既存テスト本文をbytesそのまま一緒にコンパイルし、7つの元test methodを標準XCTMainへ登録するだけにする。import置換や入力/期待値の変更は行わず、製品/ケース/既存geometry計算を変更しない。準備の前提修正と根拠をpush後に同じ7件を再確認する。最初のログも保持する。並行manifest28件/失敗0（4.940秒）と構文/catalog448/固定枝一覧は成功した。
