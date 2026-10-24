@@ -8,6 +8,32 @@ import Crypto
 
 // Entirely invented geometry/values. No PDF, OCR, providers or private input.
 final class RecoveryRecertificationTests: XCTestCase {
+    func testOCRRoleScopePreviewCanSelectTheWholeFieldWithPartialProviderEvidence() throws {
+        var (doc,result) = roleFixture()
+        doc.sources.append(.init(id:"subject-extra",cellId:"c0",page:1,text:"架空追記",box:.init(x:182,y:110,width:7,height:10)))
+        doc.cells[0].sourceIds.append("subject-extra")
+        var lines = [RecoveryOCRLine]()
+        for index in doc.sources.indices {
+            doc.sources[index].fromOcr = true; doc.sources[index].sourceLine = index; doc.sources[index].sourceOrder = index*100
+            let source = doc.sources[index], characters = Array(source.text)
+            let width = source.box.width/Double(characters.count)
+            lines.append(.init(nativeOrder:index,candidates:[.init(text:source.text,confidence:0.95,
+                characters:characters.enumerated().map { .init(text:String($0.element),range:.init(x:source.box.x+Double($0.offset)*width,
+                    y:source.box.y,width:width,height:source.box.height)) })]))
+        }
+        doc.ocrCoverageProof = .init(version:1,pages:[.init(page:1,width:700,height:1000,grayscaleSHA256:String(repeating:"b",count:64))])
+        let capture = RecoveryOCRAcquisitionDraft(sourcePDFHash:doc.pdfHash,documentPageCount:1,requiredOCRPages:[1],pages:[
+            .init(page:1,width:700,height:1000,nativeDocumentCount:1,lines:lines,captureComplete:true)])
+        doc = try RecoveryManualAssistance.attaching(capture,to:doc)
+        XCTAssertEqual(RecoveryValidator.validate(doc,result).errors,[])
+        XCTAssertEqual(result.cells[0].lessons[0].subject.evidence,["subject"])
+        let target = RecoveryManualTarget(cellId:"c0",lessonIndex:0,role:.subject)
+        XCTAssertTrue(RecoveryManualAssistance.selectableTargets(doc,result).contains(target))
+        let draft = try XCTUnwrap(RecoveryManualAssistance.prepare(doc,os:"test",selected:[target]))
+        XCTAssertEqual(draft.fields.first?.parentSourceIds,["subject","subject-extra"])
+        result = try RecoveryManualAssistance.complete(draft,values:[target.key:"架空確認科目"])
+        XCTAssertTrue(RecoveryValidator.validate(doc,result).canAdopt)
+    }
     private func fixture() -> (RecoveryDocument, RecoveryResult) {
         let slots = (1...5).flatMap { d in (1...8).map { RecoverySlot(className: "3_CN", day: String(d), period: $0) } }
         let box = RecoveryBox(x: 110, y: 110, width: 60, height: 10)

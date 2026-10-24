@@ -182,6 +182,8 @@ catalogのrecertify/RecoveryManualAssistanceTestsと既存の旧版fingerprint/�
 
 ## 訂正メニューの欄別OCR対象判定（93）
 
+追加の静的照合では、固定bindingはValidatorがevidence==親集合を要求する一方、roleProposalは同じ役割scope内の部分evidenceも受理する。最初のmenu候補は両方に完全一致を要求していたため、正常なscope previewの訂正を隠す。入力Validatorと同じ親集合内の非空evidenceをmenu条件にし、全親sourceのOCR/ページ/cell/取得lineは引き続き必須とする。実roleScope fixtureへOCR取得記録と同じscopeの追加本文を付け、現行Validatorがpreviewを受理すること、欄全体の両親sourceを訂正draftへ引き継ぎ、完成結果を全Validatorで再検証する回帰を追加する。学校資料/PDF実描画/実OCRの成功とはせず、原本/画像/採用の完全検査は変更しない。実行前。
+
 db1d856の新規欄別回帰と周辺の明示訂正/必須訂正/取得/再認証はLinux Swift6.1.2で60件/失敗0（11.827秒）。実UIとApple compileは未確認。高信頼/低信頼と3欄上限を変更していない。
 
 catalogのPDFRecoveryView/手動訂正を検索し、索引contextMenu/selectManualCorrection/非OCR/訂正対象のN31詳細（過去のViewBuilder型検査）と当時・現在の小関数を照合した。今回は型推論対処ではなく操作の対象判定。previewを置き換えた時だけ、本文bindingとoutput evidenceが一致し、全親sourceが同じcell/pageのOCRで取得lineを持つ欄を集合へ記録する。View bodyでprepare/画像処理を呼ばず、欄別menuとCoordinator入口の両方で同じ集合を使う。選択後の原本/完全provenance/必須低信頼/合計3欄の検査を維持する。新規回帰は高信頼/低信頼1/3欄、欄別vector/OCR混在source、captureなし/不一致evidenceを対象とする。既存混在page取得・全手動採用も併せて検査する。Windows現行には該当するOCRプレビュー訂正操作がない。
