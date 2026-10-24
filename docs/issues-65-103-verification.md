@@ -257,3 +257,11 @@ SchoolEventsModelのHEAD経路を削除し、年度別に独立した状態Task�
 711d48bはtest property名とPickerの実要素取得だけを変更し、製品・元3ケース/全連続操作・各期限は維持する。ローカルSwift6.1.2全599件/失敗0（77.890秒、準備込264.5秒）、Picker runner1件/失敗0（2.937秒）、manifest28件/失敗0（5.170秒）、構文/catalog/空白検査も成功した。Apple/実Filesは未確認。
 
 次のtest-tools(native_pdf=true,picker=true)一回だけのため、新規GPT-6.1 Sol/High ios_n140_pilot_pre_actions_reviewへ不変code diff5894行/359763bytes SHA256 501e8dcdc699a2b7161c856cabc9d7f7d6549bd26c8c0b0f1e60578163f13b7eとHome context14578bytes SHA256 3b916451d8daa13170d38da71733e2670198267eca3141eb0dadc033083b4e21を渡し、具体的指摘なしと確認した。未使用の以前の公開reviewは廃棄し、このreviewを後の正式公開へ使い回さない。Native/Picker合格後も同一source/run/attemptの全15正式検査が必要。
+
+## Apple先行比較の結果と診断枝の整合確認
+
+9168415のtest-tools40104066472/attempt1は全5job終端。Picker3件/失敗0（287.052秒、準備込460.4秒）、元連続操作は189.314秒。Nativeは両SDKとも688件・予定skip1・4assert失敗（SDK26 152.046秒/27 101.847秒）で、追加状態APIの実Model3件を含むその他は成功した。失敗は旧複合背景2入力×2readerの診断番号だけで、全体公開の成功とは扱わない。全5完了ログは所有workspaceへ一度だけ保存し、再取得しない。
+
+N142の対処候補9391d56は元の不正入力・全体拒否/不完全captureを保持して、issue101で追加した先行R426を明記する。旧R270の責務も離れた2矩形の同一f/f*という新負対照で維持する。製品・画素判定・Strict/全15gateは変更しない。catalog/構文/枝一覧/空白検査は成功。Appleでこの追加負対照を再確認する。
+
+次のtest-tools(native_pdf=true,picker=false)一回だけに、新規GPT-6.1 Sol/High ios_n142_native_pre_actions_reviewを実施した。不変5931行/362213bytes SHA256 91e5dcaff8ed5fcea7598ea4086bd7fdb196ebe6ce2947c8ad202dd2f0fdc91cと既存Home context SHA256 3b916451d8daa13170d38da71733e2670198267eca3141eb0dadc033083b4e21に具体的指摘なし。Pickerの別の先行再実行は増やさず、正式公開jobの元3ケースは維持する。古い未使用main reviewは破棄し、公開の開始前に新しい最終sourceで別reviewを行う。
