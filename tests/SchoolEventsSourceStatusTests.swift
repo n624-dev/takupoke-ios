@@ -4,7 +4,7 @@ import XCTest
 
 final class SchoolEventsSourceStatusTests: XCTestCase {
     private let instant = SchoolEventsSourceStatus.date("2032-05-01T03:04:05.842Z")!
-    private let hash = String(repeating: "a", count: 64)
+    private let expectedSourceHash = String(repeating: "a", count: 64)
     private let version = "sha256-" + String(repeating: "b", count: 64)
 
     private func wire(status: String = "matched", success: String? = "matched",
@@ -12,7 +12,7 @@ final class SchoolEventsSourceStatusTests: XCTestCase {
                       stale: Bool = false, year: Int = 2032, hash: String? = nil,
                       version: String? = nil) throws -> Data {
         try JSONSerialization.data(withJSONObject: ["version": "v1", "schoolYear": year,
-            "dataVersion": version ?? self.version, "adoptedSourcePdfSha256": hash ?? self.hash,
+            "dataVersion": version ?? self.version, "adoptedSourcePdfSha256": hash ?? self.expectedSourceHash,
             "status": status, "lastSuccessfulStatus": success as Any? ?? NSNull(),
             "lastSuccessAt": date as Any? ?? NSNull(), "lastAttemptAt": "2032-05-01T03:04:05Z",
             "nextAttemptAt": "2032-05-02T03:04:05Z", "checking": checking, "stale": stale])
@@ -21,7 +21,7 @@ final class SchoolEventsSourceStatusTests: XCTestCase {
     private func saved(year: Int = 2032, hash: String? = nil, version: String? = nil,
                        tag: String? = nil) -> SavedSchoolEvents {
         .init(fetchedAt: instant, payload: .init(version: "v1", schoolYear: year,
-            sourcePdfSha256: hash ?? self.hash, sourcePdfETag: tag,
+            sourcePdfSha256: hash ?? self.expectedSourceHash, sourcePdfETag: tag,
             events: [.init(startDate: "\(year)-04-01", endDate: "\(year)-04-01", title: "架空行事A", tag: "行事")]),
             apiETag: "W/\"" + String((version ?? self.version).dropFirst(7)) + "\"")
     }

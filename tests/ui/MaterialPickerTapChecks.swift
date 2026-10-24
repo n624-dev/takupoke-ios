@@ -168,8 +168,27 @@ final class MaterialPickerTapChecks: XCTestCase {
         button.tap()
         let instruction = app.staticTexts["架空ファイル\(kind)を選んでください"].firstMatch
         XCTAssertTrue(instruction.waitForExistence(timeout: 8), "Picker did not open after tap \(kind)\n\(app.debugDescription)")
-        let cancel = app.buttons["Cancel"].firstMatch
-        XCTAssertTrue(cancel.waitForExistence(timeout: 30), app.debugDescription)
+        // Bind the actual accessible button within the original deadline.
+        // A firstMatch query can otherwise be re-evaluated during tap after
+        // the existence check has already succeeded.
+        var capturedCancel: XCUIElement?
+        var ambiguous = false
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            let current = app.buttons.matching(identifier: "Cancel").allElementsBoundByAccessibilityElement
+            if current.count > 1 { ambiguous = true; return true }
+            guard let cancel = current.first else { return false }
+            let frame = cancel.frame
+            guard !frame.isNull, !frame.isInfinite, frame.width > 0, frame.height > 0,
+                  [frame.minX, frame.minY, frame.maxX, frame.maxY].allSatisfy(\.isFinite),
+                  cancel.isEnabled, cancel.isHittable else { return false }
+            capturedCancel = cancel
+            return true
+        }, object: app)
+        let outcome = XCTWaiter.wait(for: [ready], timeout: 30)
+        guard !ambiguous, outcome == .completed, let cancel = capturedCancel else {
+            XCTFail("The native Cancel must be unique and operable within 30 seconds: " + app.debugDescription)
+            return
+        }
         cancel.tap()
         XCTAssertTrue(instruction.waitForNonExistence(timeout: 8), "Picker instruction remained after cancellation \(kind)")
     }
