@@ -277,3 +277,13 @@ ad01f9eの正式run40106889321/attempt1は全表示job終端。Distribution成�
 081d2bbは局所fitsに@MainActorを明記するだけで、描画値・計測式・cache/停止・元ケース/期限/SDK/全15gateを維持する。N31/N67詳細と当時の実source、1c331818/85a029a/currentを照合した根拠は失敗索引へ記録した。Linux Swift6.1.2の構文parse、既存manifest28件/失敗0（5.062秒）、application runner13件/失敗0（20.181秒）、catalog448/check --base ad01f9eと固定枝一覧が成功。UIKit/SwiftUIの型検査はLinux対象外なので、この成功をApple build/UI成功へ数えない。今回の既存アプリbuildが不足を直接検出し、同じ6経路と両SDKを含む正式検証で再確認するため、模擬UIKitや一行annotationを写す追加検査は作らない。
 
 次のmain push/正式全15一回だけのため、新規GPT-6.1 Sol/High ios_n143_main_pre_actions_reviewへ不変code diff90行/4587bytes SHA256 8062ebf629da2aeb6159c85441331ab5a2d20e6261f5335015ff67cd9e7dda5eと、変更していないcache context75行/3409bytes SHA256 674ec40171e1cd5b2ca122055e5660a5aef7d7224ec7963a2bfa8b497e33597c・TimetableView context200行/10214bytes SHA256 26d540629938b5e89ff0582797c7f6efc6853a93db187d71c99e2a5f29c1ed4dを渡した。全hunk/全contextに具体的指摘なし。mainは取得時ad01f9eのままで、このreviewを次の一回の開始へ使用し、後の実行へ転用しない。
+
+## 正式442の途中結果と授業カードの表示準備（N144）
+
+25fe013の正式run40109158354/attempt1で、Distribution Python279件/予定skip22/失敗0（86.403秒）、Native688件/予定skip1/失敗0（111.936秒）が成功。訂正27の明示選択737.378秒・三項目387.193秒・原本変更246.378秒・単項目466.303秒は各元case1件/失敗0で、実build-for-testingも成功しN143のコンパイル停止は再発しなかった。各成功ログは一度だけ保存した。実機の確認や新しい全体合格には代用しない。
+
+通常27 Aは最初の17件中1失敗（1585.449秒）、N144の詳細保持/閉鎖caseで、時間割cardの中心は見えているが下端がTabBarに隠れたまま最終の全包含guardへ進んだ。Home側の実busy保持・正式/原本更新による閉鎖は成功済みで、時間割の詳細tapには未到達。通常Bは継続中なので取り消さず、全終端を確認する。今回は全15/公開成功ではない。
+
+5139907はこの既存caseの元8回の準備に既存の有限scrollDragを使い、全cardを実viewportへ表示してから元の一回tapへ進む。製品・全包含/実hittable・全待機/保存/閉鎖の期待値・両OS/全15gateは不変。N47/U57と当時/現行codeの比較は索引に残した。Linux Swift6.1.2で元のSupportと既存7テストをbytesそのままコンパイルしたXCTestが7件/失敗0（0.103秒、準備込み1.718秒）、manifest28件/失敗0（4.940秒）、構文/catalog448/check --base 25fe013/固定枝一覧が成功した。最初のharnessのimport前提による準備停止はN145へ保持し、製品/実UI失敗と区別する。
+
+元caseを両OSで限定比較する一回だけのため、新規GPT-6.1 Sol/High ios_n144_focus_pre_actions_reviewが不変patch177行/11050bytes SHA256 55f4024db84d80bb68c8d333f1d87f1103a7f120fb93619d9e7816d436c48396、既存geometry context52行/2729bytes SHA256 07ce21c1e34ed000bc7e8c175350372dedd407ca0218272f65ffe9fdc3172f3b、既存Navigation context236行/12324bytes SHA256 c64a00c1fcb3b6bb6af13955389599e210f19bb39b004a0dbd9ebb7e3e158775を読み、具体的指摘なし。次の既存application-relaunch-native-probeの当該case/ios=both/SDK27.0・26.6へ一回だけ使う。後のmain正式公開は別の新規review/同一source/run/attempt全15を要求し、この限定比較の成功を借用しない。
