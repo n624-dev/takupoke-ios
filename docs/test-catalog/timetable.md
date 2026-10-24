@@ -1,7 +1,7 @@
 # 時間割・今日の予定・授業時刻・授業名
 
 対応関係・宣言名・実行方法のSHA-256：
-`0ce6569b03fa6c6950a1beb4362828ec4a32d537d593d2210e92a5162f5547ab`
+`b710e01cfc7f2d354313725b5b9401f1423162c4386e37ff38cd5ff5591a4c33`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -24,9 +24,13 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 - [Takupoke/TimetableTimesModel.swift](../../Takupoke/TimetableTimesModel.swift)
 - [Takupoke/TimetableTimesService.swift](../../Takupoke/TimetableTimesService.swift)
 - [Takupoke/TimetableRenderCache.swift](../../Takupoke/TimetableRenderCache.swift)
+- [Takupoke/TimetableBoundaryClock.swift](../../Takupoke/TimetableBoundaryClock.swift)
 
 ## [tests/HomeScheduleTests.swift](../../tests/HomeScheduleTests.swift)
 
+- `testHomeClockPublishesCardBoundariesAndJapaneseMidnightWithoutPeriodicTicks`
+- `testHomeClockHandlesTimeJumpsAndUsesFreshDateForChangedSourcePlans`
+- `testBoundaryPlanKeepsNormalBreaksAndOnlyVerifiedSpecialContinuity`
 - `testOverlappingSpecialCardsRetainIndividualClocksAndProgressWhileCommonAndChangeStayAmbiguous`
 - `testMergedSpecialCardClocksUseOnlyTheirOwnDocumentAndNeverBorrowMissingTimes`
 - `testFragmentsOfMergedSpecialsUseOnlyVerifiedIndividualClocks`

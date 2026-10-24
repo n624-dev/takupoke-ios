@@ -264,10 +264,8 @@ extension TimetableDaySchedule {
         return Array(agreed ?? [])
     }
 
-    func isInProgress(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
-                      className: String, now: Date) -> Bool {
-        if case .change(let change) = block.content, change.isCancellation { return false }
-        guard day == Self.schoolDay(at: now) else { return false }
+    func activityMinuteRanges(_ block:TimetableSchedule.GridBlock,on day:SchoolDate,className:String) -> [Range<Int>] {
+        if case .change(let change) = block.content, change.isCancellation { return [] }
         let clocks: [String?]
         if case .normal = block.content {
             // Normal cards are a visual merge; their internal breaks remain.
@@ -275,17 +273,22 @@ extension TimetableDaySchedule {
                 customTimes?.time(on: day, period: period) ?? TimetableSchedule.normalPeriodTimes[period - 1]
             }
         } else {
-            guard cardTime(block, on: day, className: className) != nil else { return false }
+            guard cardTime(block, on: day, className: className) != nil else { return [] }
             clocks = activityTimes(block, on: day, className: className).map { Optional($0) }
         }
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
-        let minute = calendar.component(.hour, from: now) * 60 + calendar.component(.minute, from: now)
-        return clocks.contains { clock in
+        return clocks.compactMap { clock in
             guard let ends = clock?.components(separatedBy: "〜"), ends.count == 2,
-                  let start = Self.minutes(ends[0]), let end = Self.minutes(ends[1]), start < end else { return false }
-            return start <= minute && minute < end
+                  let start = Self.minutes(ends[0]), let end = Self.minutes(ends[1]), start < end else { return nil }
+            return start..<end
         }
+    }
+    func isInProgress(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
+                      className: String, now: Date) -> Bool {
+        guard day == Self.schoolDay(at: now) else { return false }
+        var calendar = Calendar(identifier:.gregorian)
+        calendar.timeZone = TimeZone(identifier:"Asia/Tokyo")!
+        let minute = calendar.component(.hour,from:now)*60+calendar.component(.minute,from:now)
+        return activityMinuteRanges(block,on:day,className:className).contains { $0.contains(minute) }
     }
 
     private static func minutes(_ value: String) -> Int? {

@@ -1,5 +1,24 @@
 import SwiftUI
 import Combine
+import UIKit
+
+@MainActor
+final class HomeScheduleClock: ObservableObject {
+    @Published private(set) var epoch = 0
+    private(set) var acceptsPlans = false
+    private lazy var driver = TimetableBoundaryClock(now:{ Date() },schedule:{ date,action in
+        let timer = Timer(fire:date,interval:0,repeats:false) { _ in Task { @MainActor in action() } }
+        RunLoop.main.add(timer,forMode:.common)
+        return { timer.invalidate() }
+    },changed:{ [weak self] in self?.epoch += 1 })
+    var currentDate:Date { driver.currentDate }
+    func allow() { acceptsPlans = true }
+    func configure(_ intervals:[TimetableBoundaryClock.Interval]) { if acceptsPlans { driver.configure(intervals) } }
+    func start() { if acceptsPlans { driver.start() } }
+    func pause() { driver.stop() }
+    func refresh() { if acceptsPlans { driver.refresh() } }
+    func suspend() { acceptsPlans = false; driver.clear() }
+}
 
 /// Embedded in HomeView's List; every row uses the same saved models as the timetable.
 struct HomeTodayView: View {
@@ -13,12 +32,12 @@ struct HomeTodayView: View {
     @AppStorage(ChangeNormalizer.schoolYearSettingKey) private var changeSchoolYear = ""
     @AppStorage("timetableInternationalStudent") private var international = false
     @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
-    @State private var now = Date()
+    @ObservedObject private var homeClock = ApplicationData.shared.homeClock
+    private var now:Date { homeClock.currentDate }
     @Binding var selectedLesson: LessonSelection?
     @Binding var selectedSpecial: SpecialSelection?
     @Binding var selectedChange: ChangeSelection?
     let openTimetable: () -> Void
-    private let clock = Timer.publish(every: 15, on: .main, in: .common).autoconnect()
 
     private var day: SchoolDate { TimetableDaySchedule.schoolDay(at: now) }
     private var classes: [String] { TimetableView.decode(classesValue) }
@@ -141,12 +160,39 @@ struct HomeTodayView: View {
             }
             .textCase(nil)
         }
-        .onAppear { now = Date() }
-        .onReceive(clock) { date in if scenePhase == .active { now = date } }
-        .onChange(of: scenePhase) { phase in if phase == .active { now = Date() } }
+        .onAppear { configureClock(); if scenePhase == .active { homeClock.start() } }
+        .onDisappear { homeClock.pause() }
+        .onReceive(NotificationCenter.default.publisher(for:UIApplication.significantTimeChangeNotification)) { _ in
+            if scenePhase == .active { homeClock.refresh() }
+        }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active { configureClock(); homeClock.start() } else { homeClock.pause() }
+        }
         .onChange(of: detailRevision) { _ in
             selectedLesson = nil; selectedSpecial = nil; selectedChange = nil
+            configureClock()
         }
+    }
+
+    private func configureClock() {
+        guard homeClock.acceptsPlans else { return }
+        let day = self.day, schedule = self.schedule
+        var calendar = Calendar(identifier:.gregorian)
+        calendar.timeZone = TimeZone(identifier:"Asia/Tokyo")!
+        guard let midnight = calendar.date(from:DateComponents(year:day.year,month:day.month,day:day.day)) else { return }
+        var intervals = [TimetableBoundaryClock.Interval]()
+        for className in classes {
+            let blocks = schedule.blocks(on:day,className:className,international:international) { subject,name,year in
+                mappings.current?.rules.isInternationalStudentChangeField(subject,className:name,schoolYear:year) == true
+            }
+            for (index,block) in blocks.enumerated() {
+                for range in schedule.activityMinuteRanges(block,on:day,className:className) {
+                    intervals.append(.init(id:className+":\(index)",start:midnight.addingTimeInterval(Double(range.lowerBound)*60),
+                        end:midnight.addingTimeInterval(Double(range.upperBound)*60)))
+                }
+            }
+        }
+        homeClock.configure(intervals)
     }
 
     @ViewBuilder private func classRows(_ className: String) -> some View {

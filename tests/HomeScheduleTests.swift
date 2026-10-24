@@ -2,6 +2,74 @@ import XCTest
 @testable import TakupokeParsing
 
 final class HomeScheduleTests: XCTestCase {
+    @MainActor private final class ClockScheduler {
+        struct Event { let date:Date; let action:TimetableBoundaryClock.Action; var cancelled = false }
+        var events = [Event]()
+        func schedule(_ date:Date,_ action:@escaping TimetableBoundaryClock.Action) -> TimetableBoundaryClock.Action {
+            let index = events.count; events.append(Event(date:date,action:action))
+            return { self.events[index].cancelled = true }
+        }
+        func fireLast() throws { try XCTUnwrap(events.last).action() }
+    }
+    @MainActor func testHomeClockPublishesCardBoundariesAndJapaneseMidnightWithoutPeriodicTicks() async throws {
+        var now = date("2032-04-05T08:59:00+09:00"), notifications = 0
+        let scheduler = ClockScheduler()
+        let clock = TimetableBoundaryClock(now:{ now },schedule:scheduler.schedule,changed:{ notifications += 1 })
+        defer { clock.clear() }
+        clock.configure([
+            .init(id:"fictional-A",start:date("2032-04-05T09:00:00+09:00"),end:date("2032-04-05T09:35:00+09:00")),
+            .init(id:"fictional-B",start:date("2032-04-05T09:35:00+09:00"),end:date("2032-04-05T09:45:00+09:00")),
+            .init(id:"fictional-A",start:date("2032-04-05T09:45:00+09:00"),end:date("2032-04-05T10:20:00+09:00"))])
+        clock.start()
+        XCTAssertEqual(scheduler.events.last?.date,date("2032-04-05T09:00:00+09:00")); XCTAssertEqual(notifications,0)
+        now = date("2032-04-05T09:00:00+09:00"); try scheduler.fireLast(); XCTAssertEqual(notifications,1)
+        now = date("2032-04-05T09:10:00+09:00"); clock.refresh(); XCTAssertEqual(notifications,1)
+        XCTAssertEqual(scheduler.events.last?.date,date("2032-04-05T09:35:00+09:00"))
+        now = date("2032-04-05T09:35:00+09:00"); try scheduler.fireLast(); XCTAssertEqual(notifications,2)
+        now = date("2032-04-05T09:45:00+09:00"); try scheduler.fireLast(); XCTAssertEqual(notifications,3)
+        now = date("2032-04-05T10:20:00+09:00"); try scheduler.fireLast(); XCTAssertEqual(notifications,4)
+        XCTAssertEqual(scheduler.events.last?.date,date("2032-04-06T00:00:00+09:00"))
+        now = date("2032-04-06T00:00:00+09:00"); try scheduler.fireLast(); XCTAssertEqual(notifications,5)
+        let stale = try XCTUnwrap(scheduler.events.last).action
+        clock.stop(); let count = scheduler.events.count
+        XCTAssertTrue(try XCTUnwrap(scheduler.events.last).cancelled)
+        stale(); XCTAssertEqual(scheduler.events.count,count); XCTAssertEqual(notifications,5)
+    }
+    @MainActor func testHomeClockHandlesTimeJumpsAndUsesFreshDateForChangedSourcePlans() async throws {
+        var now = date("2032-04-05T09:30:00+09:00"), notifications = 0
+        let scheduler = ClockScheduler()
+        let clock = TimetableBoundaryClock(now:{ now },schedule:scheduler.schedule,changed:{ notifications += 1 })
+        defer { clock.clear() }
+        let interval = TimetableBoundaryClock.Interval(id:"fictional-A",start:date("2032-04-05T09:00:00+09:00"),end:date("2032-04-05T10:00:00+09:00"))
+        clock.configure([interval]); clock.start()
+        let stale = try XCTUnwrap(scheduler.events.last).action
+        now = date("2032-04-05T08:50:00+09:00"); clock.refresh(); XCTAssertEqual(notifications,1)
+        XCTAssertEqual(scheduler.events.last?.date,interval.start)
+        now = date("2032-04-05T09:50:00+09:00"); clock.refresh(); XCTAssertEqual(notifications,2)
+        now = date("2032-04-05T10:10:00+09:00")
+        clock.configure([.init(id:"fictional-B",start:date("2032-04-05T10:05:00+09:00"),end:date("2032-04-05T11:00:00+09:00"))])
+        XCTAssertEqual(clock.currentDate,now); XCTAssertEqual(notifications,2)
+        XCTAssertEqual(scheduler.events.last?.date,date("2032-04-05T11:00:00+09:00"))
+        let count = scheduler.events.count
+        stale(); XCTAssertEqual(scheduler.events.count,count); XCTAssertEqual(notifications,2)
+        clock.clear(); clock.start()
+        XCTAssertEqual(scheduler.events.last?.date,date("2032-04-06T00:00:00+09:00"))
+    }
+    func testBoundaryPlanKeepsNormalBreaksAndOnlyVerifiedSpecialContinuity() throws {
+        var normal = timetable()
+        var third = normal.lessons[1]; third.period = 3; normal.lessons.append(third)
+        let plain = TimetableDaySchedule(timetable:normal,changes:nil,events:nil,specials:[],includesChanges:true)
+        let block = try XCTUnwrap(plain.blocks(on:day,className:fixtureClass,international:false).first)
+        XCTAssertEqual(plain.activityMinuteRanges(block,on:day,className:fixtureClass),[530..<575,575..<620,630..<675])
+        XCTAssertFalse(plain.isInProgress(block,on:day,className:fixtureClass,now:date("2032-04-05T10:25:00+09:00")))
+        for kind in SpecialScheduleKind.allCases {
+            let source = clockSource(kind,clocks:["08:50〜09:35","09:50〜10:35","10:50〜11:35"],joined:true)
+            let schedule = TimetableDaySchedule(timetable:normal,changes:nil,events:nil,specials:[source],includesChanges:true)
+            let special = try XCTUnwrap(schedule.blocks(on:day,className:fixtureClass,international:false).first)
+            XCTAssertEqual(schedule.activityMinuteRanges(special,on:day,className:fixtureClass),[530..<695])
+            XCTAssertTrue(schedule.isInProgress(special,on:day,className:fixtureClass,now:date("2032-04-05T10:25:00+09:00")))
+        }
+    }
     private func clockSource(_ kind: SpecialScheduleKind, clocks: [String], joined: Bool = false) -> SpecialScheduleAnalysis {
         SpecialScheduleAnalysis(kind: kind, sourceDigest: "fictional-\(kind.rawValue)", sourceName: "fictional.pdf",
             parsedAt: Date(), schoolYear: 2032, coveredDates: [day.iso8601], coveredClasses: [fixtureClass],
