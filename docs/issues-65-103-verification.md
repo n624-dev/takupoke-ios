@@ -204,6 +204,10 @@ LinkRowは全モデルのObservedObjectから表示値snapshotへ切り替え、
 
 ## 時間割の受理済み入力索引（66、候補）
 
+次の候補は共通時限のnilを含む結果を、実SourceIndex lifetimeと日付列/クラス順/変更有無/international/mapping revision/times revision/時限で分けて512件まで保持する。古いindexやsuspend中の呼出しは結果を再構築しない。UIKitの文字測定は実UIFontDescriptor/pointSize/厳密なwidth/文字列UTF8/幅または高さをキーに2048件、最終の省略文字列は候補列/行数を加えて1024件まで保持する。幅丸めはせず、元のraw高さ/ceil高さ/1行幅・0.5許容・二分探索/全代替候補を維持する。同じUnicode正規形でも原bytesが違う入力は混ぜない。ApplicationDataが所有し、retentionの最初のawait前に全辞書を解放・停止、正常prepareで再開する。
+
+新規TimetableRenderCache.swiftは本体Xcode/Package/一覧へ明示登録した。generic memoのnil/Unicode同値異bytes/件数上限/解放と、共通時計の7入力差/元index失効/停止を追加回帰にする。文字サイズ/font/測定で失敗索引を検索し、N31のViewBuilder型検査とN122のサイズ通過後の外観失敗を照合した。今回はView構造やケース/期限を変えず、測定関数と完成したcardTextの結果を保存する。UIKit測定keyそのものと実字体/画面は既存の両OS・3文字サイズ・VoiceOver/実カード操作で改めて確認し、Linuxのgeneric成功を代用しない。実行前。
+
 性能比較は7df7a5bの実source38ファイルを所有snapshotへ固定して実施し、Swift6.1.2/-Oのcompile92.926秒を計時から除外した。元と同じ架空入力/全query/1warmup+6測定/全checksum6206を維持し、displayedDays/blocks/dayPlanの3呼び口だけUIと同じ永続索引へ渡した。4週の中央値0.026047秒（元0.573689秒、約22.0倍）。実際のSimulator/物理端末の描画やネットワーク・学校資料の速度ではない。記録/tmp/takupoke-ios-projection-index-results.logと所有snapshot metadataに前後driver/source hashを保持する。
 
 追加のApple host回帰は本番LinksModelを実MappingService/URLSession/拒否型URLProtocolへ通し、自動2呼出し+手動1呼出しの1session/1request合流、一人取消後の残待機/共有busy、TTL/後続エラー保持/forceとretention取消を検査する。旧ownerの終了が新ownerのbusyを解除しないようowner UUIDも照合する。SchoolEventsModel/WebPDFDownloaderの実sourceを既存macOS hostへ登録し、所有storeからのload/連続analysis読出し、200/304/503、未変更年度と再読込を実Modelで検査する。endpoint/session/storeRoot注入はテスト隔離用で既定本番URL/timeout/保存/HEAD処理を変えず、テストは架空URL以外を全拒否、Background入口なので学校PDF HEADは呼ばない。両Native回帰はまだApple未実行、Linuxは対象外を明示する。

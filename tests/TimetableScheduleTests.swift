@@ -2,6 +2,45 @@ import XCTest
 @testable import TakupokeParsing
 
 final class TimetableScheduleTests: XCTestCase {
+    @MainActor func testBoundedRenderingMemoKeepsNilAndExactUnicodeInputs() async throws {
+        let memo = TimetableBoundedMemo<TimetableRenderedText,String?>(limit:2)
+        var calls = 0
+        func query(_ text:String) -> String? {
+            memo.value(for:.init(value:text)) { calls += 1; return nil }
+        }
+        XCTAssertNil(query("Aé")); XCTAssertNil(query("Aé")); XCTAssertEqual(calls,1)
+        XCTAssertNil(query("Ae\u{301}")); XCTAssertNil(query("Ae\u{301}")); XCTAssertEqual(calls,2)
+        XCTAssertEqual(memo.count,2)
+        XCTAssertNil(query("架空本文")); XCTAssertEqual(memo.count,1)
+        XCTAssertNil(query("Aé")); XCTAssertEqual(calls,4)
+        memo.removeAll(); XCTAssertEqual(memo.count,0)
+        XCTAssertNil(query("Aé")); XCTAssertEqual(calls,5)
+    }
+    @MainActor func testCommonClockCacheSeparatesDisplayScopeAndStopsAtRetentionBoundary() async throws {
+        let cache = TimetableProjectionCache(), normal = timetable(term:"前期")
+        let generation = TimetableProjectionCache.Key(materials:UUID(),specials:UUID(),events:UUID())
+        let index = cache.sourceIndex(for:generation) { .init(timetable:normal,changes:nil,events:nil,specials:[]) }
+        let day = SchoolDate(iso8601:"2032-04-05")!
+        func key(period:Int = 1,days:[SchoolDate]? = nil,classes:[String] = [],changes:Bool = false,
+                 international:Bool = false,mapping:String = "",times:String = "") -> TimetableProjectionCache.ClockKey {
+            .init(period:period,days:days ?? [day],classes:classes,includesChanges:changes,international:international,
+                mappingRevision:mapping,timesRevision:times)
+        }
+        var computations = 0
+        func clock(_ key:TimetableProjectionCache.ClockKey) -> String? {
+            cache.periodTime(for:key,index:index) { computations += 1; return nil }
+        }
+        XCTAssertNil(clock(key())); XCTAssertNil(clock(key())); XCTAssertEqual(computations,1)
+        for different in [key(period:2),key(days:[day.addingDays(1)!]),key(classes:["1_A"]),key(changes:true),
+                          key(international:true),key(mapping:"fictional-mapping"),key(times:"fictional-times")] {
+            XCTAssertNil(clock(different))
+        }
+        XCTAssertEqual(computations,8)
+        cache.suspend(); XCTAssertNil(clock(key())); XCTAssertEqual(computations,8)
+        cache.resume()
+        _ = cache.sourceIndex(for:generation) { .init(timetable:normal,changes:nil,events:nil,specials:[]) }
+        XCTAssertNil(clock(key())); XCTAssertEqual(computations,8) // The old index may not repopulate a new lifetime.
+    }
     func testAcceptedSourceIndexMatchesOriginalSelectorsAndBlocksAcrossScopes() throws {
         let start = try XCTUnwrap(SchoolDate(iso8601:"2032-04-05"))
         var normal = timetable(term:"前期")

@@ -9,15 +9,29 @@ final class TimetableProjectionCache {
         let events: UUID
     }
     private var stored: (Key,TimetableSchedule.SourceIndex)?
+    struct ClockKey:Hashable {
+        let period:Int
+        let days:[SchoolDate]
+        let classes:[String]
+        let includesChanges:Bool
+        let international:Bool
+        let mappingRevision:String
+        let timesRevision:String
+    }
+    private let clocks = TimetableBoundedMemo<ClockKey,String?>(limit:512)
     private let empty = TimetableSchedule.SourceIndex(timetable:nil,changes:nil,events:nil,specials:[])
     private var suspended: Bool
     init(suspended:Bool = false) { self.suspended = suspended }
     func sourceIndex(for key:Key,make:() -> TimetableSchedule.SourceIndex) -> TimetableSchedule.SourceIndex {
         guard !suspended else { return empty }
         if let stored, stored.0 == key { return stored.1 }
-        let value = make(); stored = (key,value); return value
+        let value = make(); clocks.removeAll(); stored = (key,value); return value
     }
-    func suspend() { stored = nil; suspended = true }
+    func periodTime(for key:ClockKey,index:TimetableSchedule.SourceIndex,make:() -> String?) -> String? {
+        guard !suspended, stored?.1 === index else { return nil }
+        return clocks.value(for:key,make:make)
+    }
+    func suspend() { stored = nil; clocks.removeAll(); suspended = true }
     func resume() { suspended = false }
 }
 

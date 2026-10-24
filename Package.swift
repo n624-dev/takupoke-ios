@@ -142,7 +142,7 @@ let package = Package(
                     "SchoolDataRetention.swift",
                     "ScheduleNotificationSnapshot.swift",
                     "TimetableSchedule.swift",
-                    "TimetableDaySchedule.swift", "TimetableTimes.swift",
+                    "TimetableDaySchedule.swift", "TimetableRenderCache.swift", "TimetableTimes.swift",
                     "TimetableSchedule+Blocks.swift",
                     "TimetableSchedule+Events.swift",
                     "TimetableSchedule+Weeks.swift",

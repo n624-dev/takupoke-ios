@@ -1,7 +1,7 @@
 # 時間割・今日の予定・授業時刻・授業名
 
 対応関係・宣言名・実行方法のSHA-256：
-`ad834541869cfb3bf16b60891d2fc668fa66b13a1677b444d6b597b6997ce629`
+`0ce6569b03fa6c6950a1beb4362828ec4a32d537d593d2210e92a5162f5547ab`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -23,6 +23,7 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 - [Takupoke/TimetableTimes.swift](../../Takupoke/TimetableTimes.swift)
 - [Takupoke/TimetableTimesModel.swift](../../Takupoke/TimetableTimesModel.swift)
 - [Takupoke/TimetableTimesService.swift](../../Takupoke/TimetableTimesService.swift)
+- [Takupoke/TimetableRenderCache.swift](../../Takupoke/TimetableRenderCache.swift)
 
 ## [tests/HomeScheduleTests.swift](../../tests/HomeScheduleTests.swift)
 
@@ -81,6 +82,8 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 
 ## [tests/TimetableScheduleTests.swift](../../tests/TimetableScheduleTests.swift)
 
+- `testBoundedRenderingMemoKeepsNilAndExactUnicodeInputs`
+- `testCommonClockCacheSeparatesDisplayScopeAndStopsAtRetentionBoundary`
 - `testAcceptedSourceIndexMatchesOriginalSelectorsAndBlocksAcrossScopes`
 - `testProjectionCacheUsesGenerationAndSuspendsBeforeRebuilding`
 - `testTermBoundariesAndUnknownTermNeverReuseOldLessons`

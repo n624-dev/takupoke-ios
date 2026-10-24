@@ -197,7 +197,8 @@
         "Takupoke/TimetableSchedule.swift",
         "Takupoke/TimetableTimes.swift",
         "Takupoke/TimetableTimesModel.swift",
-        "Takupoke/TimetableTimesService.swift"
+        "Takupoke/TimetableTimesService.swift",
+        "Takupoke/TimetableRenderCache.swift"
       ],
       "checks": [
         "tests/HomeScheduleTests.swift",

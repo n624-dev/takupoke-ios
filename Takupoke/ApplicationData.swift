@@ -18,6 +18,7 @@ final class ApplicationData: ObservableObject {
     let account = AccountDataModel()
     let notifications = ScheduleNotifications()
     let projections = TimetableProjectionCache(suspended:true)
+    let textMeasurements = TimetableTextMeasurements()
 
     func scheduleSourceIndex(materials:MaterialsModel,specials:SpecialSchedulesModel,events:SchoolEventsModel) -> TimetableSchedule.SourceIndex {
         projections.sourceIndex(for:.init(materials:materials.scheduleGeneration,specials:specials.scheduleGeneration,events:events.scheduleGeneration)) {
@@ -97,6 +98,7 @@ final class ApplicationData: ObservableObject {
             if retentionFailure { retentionFailure = false }
             if retentionFailureReason != nil { retentionFailureReason = nil }
             projections.resume()
+            textMeasurements.resume()
             if !ready { ready = true }
             return true
         } catch {
@@ -111,6 +113,7 @@ final class ApplicationData: ObservableObject {
 
     private func stopPrivateWork(resetNotifications: Bool = false) async {
         projections.suspend()
+        textMeasurements.suspend()
         recovery.cancel()
         setFileMonitoring(false)
         if resetNotifications { await notifications.resetForRetention() }

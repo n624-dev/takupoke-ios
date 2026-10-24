@@ -137,9 +137,6 @@ extension TimetableView {
     }
 
     func measuredTextHeight(_ value: String, font: UIFont, width: CGFloat) -> CGFloat {
-        let bounds = (value as NSString).boundingRect(
-            with: CGSize(width: max(1, width), height: .greatestFiniteMagnitude),
-            options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [.font: font], context: nil)
-        return max(font.lineHeight, ceil(bounds.height))
+        ApplicationData.shared.textMeasurements.height(value,font:font,width:width)
     }
 }
