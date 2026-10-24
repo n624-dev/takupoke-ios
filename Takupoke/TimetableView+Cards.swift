@@ -163,7 +163,7 @@ extension TimetableView {
         let font = gridUIFont(fontSize, weight: weight)
         let available = (width ?? dayColumnWidth - 8) - 2
         return ApplicationData.shared.textMeasurements.fit(value,alternatives:alternatives,font:font,width:available,lines:lines) {
-        func fits(_ text: String) -> Bool {
+        @MainActor func fits(_ text: String) -> Bool {
             ApplicationData.shared.textMeasurements.fits(text,font:font,width:available,lines:lines)
         }
         let primary = TimetableDisplayText.cardLine(value)
