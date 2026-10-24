@@ -197,43 +197,34 @@ extension ApplicationChecks {
     func tapNativeSwitch(_ row: XCUIElement, navigation: String? = nil) {
         _ = visible(row, navigation: navigation)
         // Observe the surrounding layout before retaining a native identity.
-        // Keep the outer row as a logical query while it can be recycled.
-        let viewport = contentViewport(navigation: navigation)
-        let page = app.frame
-        let outer = row.frame
-        let rowEnabled = row.isEnabled, rowHittable = row.isHittable
-        let rowState = row.value as? String
-        var capturedControl: XCUIElement?
+        // Revalidate every safety condition inside the original native deadline.
+        var captured: (control: XCUIElement, outer: CGRect, frame: CGRect, state: String, rowState: String)?
         var ambiguous = false
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            let page = self.app.frame
+            let outer = row.frame
+            guard self.usable(page), self.usable(outer), page.contains(outer),
+                  self.contentViewport(navigation: navigation).contains(outer),
+                  row.isEnabled, row.isHittable,
+                  let rowState = row.value as? String, ["0", "1"].contains(rowState) else { return false }
             let current = row.descendants(matching: .switch).allElementsBoundByAccessibilityElement
             if current.count > 1 { ambiguous = true; return true }
             guard let control = current.first, control.exists else { return false }
-            capturedControl = control
+            let frame = control.frame
+            guard self.usable(frame), outer.contains(frame),
+                  control.isEnabled, control.isHittable,
+                  let state = control.value as? String, ["0", "1"].contains(state),
+                  rowState == state else { return false }
+            captured = (control, outer, frame, state, rowState)
             return true
         }, object: app)
         let outcome = XCTWaiter.wait(for: [ready], timeout: 45)
-        guard outcome == .completed, !ambiguous, let control = capturedControl else {
-            XCTFail("The row must expose exactly one native switch within 45 seconds")
+        guard outcome == .completed, !ambiguous, let proof = captured else {
+            XCTFail("The row must expose one operable, fully visible native switch with matching state within 45 seconds")
             return
         }
-        let frame = control.frame
-        let state = control.value as? String
-        guard usable(outer), usable(frame), outer.contains(frame),
-            viewport.contains(outer), rowEnabled, rowHittable,
-            control.isEnabled, control.isHittable
-        else {
-            XCTFail("Native switch has no safe hit region: " + app.debugDescription)
-            return
-        }
-        guard usable(page), page.contains(outer) else {
-            XCTFail("Native switch is outside its application window")
-            return
-        }
-        guard let state, let rowState, ["0", "1"].contains(state), rowState == state else {
-            XCTFail("Native switch state must be known and agree with its row")
-            return
-        }
+        let control = proof.control, outer = proof.outer, frame = proof.frame
+        let state = proof.state, rowState = proof.rowState
         let point = CGPoint(x: frame.minX + frame.width * (state == "0" ? 0.25 : 0.75), y: frame.midY)
         print(
             "NATIVE_SWITCH row=\(outer);control=\(frame);observedPoint=\(point);rowState=\(rowState);controlState=\(state);target=native-element;method=brief-contact;duration=0.1"
