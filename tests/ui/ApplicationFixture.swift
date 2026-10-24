@@ -371,10 +371,10 @@ enum FixtureLaunchDiagnostics {
         let line = "TAKUPOKE_LIFECYCLE pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) stage=\(stage)\n"
         append(line)
     }
-    static func recordInput(_ phase:String,point:CGPoint,views:String) {
+    static func recordInput(_ phase:String,point:CGPoint,views:String,gestures:String) {
         guard ["began","ended","cancelled"].contains(phase),point.x.isFinite,point.y.isFinite else { return }
         let x=String(format:"%.2f",Double(point.x)),y=String(format:"%.2f",Double(point.y))
-        append("TAKUPOKE_INPUT pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) phase=\(phase) x=\(x) y=\(y) views=\(views)\n")
+        append("TAKUPOKE_INPUT pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) phase=\(phase) x=\(x) y=\(y) views=\(views) gestures=\(gestures)\n")
     }
     private static func append(_ line: String) {
         writeLock.lock()
@@ -477,8 +477,14 @@ private enum FixtureInputDelivery {
                 names.append(String(name.prefix(40)));view=current.superview
             }
             guard !names.isEmpty else { continue }
+            // Read-only recognizer metadata: no labels, targets or user content.
+            // Observe before UIKit's original path; never change recognizer state.
+            let gestures=(touch.gestureRecognizers ?? []).prefix(6).map { recognizer in
+                let name=String(reflecting:type(of:recognizer)).filter { allowed.contains($0) }
+                return "\(String(name.suffix(16))):\(recognizer.state.rawValue):\(recognizer.cancelsTouchesInView ? 1:0):\(recognizer.delaysTouchesBegan ? 1:0):\(recognizer.delaysTouchesEnded ? 1:0)"
+            }.joined(separator:",")
             records+=1
-            FixtureLaunchDiagnostics.recordInput(phase,point:touch.location(in:window),views:names.joined(separator:","))
+            FixtureLaunchDiagnostics.recordInput(phase,point:touch.location(in:window),views:names.joined(separator:","),gestures:gestures.isEmpty ? "none":gestures)
         }
     }
 }

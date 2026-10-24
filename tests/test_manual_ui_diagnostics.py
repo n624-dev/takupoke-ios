@@ -28,6 +28,14 @@ class ManualDiagnosticsTests(unittest.TestCase):
                        valid + ' arbitrary-body', '{"unrelated":"content"}', valid.replace('views=UIKit.UISwitch,UIKit.UIView', 'views=invalid value')]
             path.write_text('\n'.join([valid] + invalid), encoding='utf-8')
             self.assertEqual(module.input_trace_lines(path), [valid])
+            observed = valid + ' gestures=ScrollPan:3:1:0:1,Tap:5:0:0:0'
+            none = valid + ' gestures=none'
+            invalid_gestures = [observed.replace('ScrollPan:3', 'ScrollPan:6'),
+                                observed.replace('Tap:5:0', 'Tap:5:2'),
+                                observed + ',Tap:0:1:0:1' * 5,
+                                valid + ' gestures=private content', observed + ' body']
+            path.write_text('\n'.join([observed, none] + invalid_gestures), encoding='utf-8')
+            self.assertEqual(module.input_trace_lines(path), [observed, none])
             alias = Path(tmp) / 'alias.log'
             alias.symlink_to(path)
             self.assertEqual(module.input_trace_lines(alias), [])

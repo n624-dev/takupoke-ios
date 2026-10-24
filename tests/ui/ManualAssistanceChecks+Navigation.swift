@@ -68,7 +68,23 @@ extension ManualAssistanceChecks {
             let targetHittable=alternatives==nil && exists && manualVisibleCandidate(
                 candidates:[target],viewport:viewport,frame:{ _ in targetFrame ?? .null },
                 isHittable:{ $0.isHittable }) != nil
-            if targetHittable { return target }
+            if targetHittable {
+                if inRecovery && targetID.hasPrefix("manual-clear-") {
+                    // Navigation follows the logical ID across recycled rows.
+                    // Bind only the final physical Button to its current identity.
+                    let controls=query.allElementsBoundByAccessibilityElement
+                    guard controls.count==1 else {
+                        XCTFail("The revealed clear Button must have one current native identity");return e
+                    }
+                    let actual=controls[0],frame=actual.frame
+                    guard ManualScrollNavigation.usable(frame),viewport.contains(frame),
+                          actual.isEnabled,actual.isHittable else {
+                        XCTFail("The current native clear Button must remain inside the observed viewport and operable");return e
+                    }
+                    return actual
+                }
+                return target
+            }
             if alternatives==nil && exists && targetID.isEmpty { targetID=target.identifier }
             // Resolve the unique actual containing Cell, even when its focused
             // child exposes an infinite/zero or stale in-viewport frame.

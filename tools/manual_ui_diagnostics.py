@@ -124,7 +124,9 @@ def report_matches(path, started, *, allow_jetsam=False):
 def input_trace_lines(path):
     if path.is_symlink() or not path.is_file() or path.stat().st_size > 65536:
         return []
-    pattern = re.compile(r"TAKUPOKE_INPUT pid=\d+ time=\d+(?:\.\d+)? phase=(?:began|ended|cancelled) x=-?\d+(?:\.\d+)? y=-?\d+(?:\.\d+)? views=[A-Za-z0-9_.,]{1,163}")
+    gesture = r"[A-Za-z0-9_.]{1,16}:[0-5]:[01]:[01]:[01]"
+    pattern = re.compile(r"TAKUPOKE_INPUT pid=\d+ time=\d+(?:\.\d+)? phase=(?:began|ended|cancelled) x=-?\d+(?:\.\d+)? y=-?\d+(?:\.\d+)? views=[A-Za-z0-9_.,]{1,163}"
+                         + r"(?: gestures=(?:none|" + gesture + r"(?:," + gesture + r"){0,5}))?")
     try:
         with path.open("rb") as stream:
             raw = stream.read(65537)

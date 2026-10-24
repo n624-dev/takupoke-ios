@@ -2761,3 +2761,17 @@ N147詳細/照合：manifest28件中27成功・1失敗（4.586秒）。test_noti
 N147第2比較：f20e2d4の同じ28件は27成功・1失敗（4.337秒）、次の230行「row.isEnabled, row.isHittable」の字句契約で止まった。control側だけを読んで修正し、同じcaseが要求する外側とviewportの全契約まで確認しなかった準備不足で、runner13件はまだ未実行。全caseの期待と旧helper、N78/N80のソース形状契約と実条件の照合を読んだ。次はnative存在だけを待って外側の古い観測を再利用せず、元45秒の同じpredicate内でアプリ/viewport/外側枠・enabled/hittable・状態を直接確認し、その後に内側identityと全ての元guardを直接確認する。全て成立した同じ観測の内側/枠/0・1一致を捕捉し、完了後に余分なAX照会を挟まず元の一回接触を行う。全guardが同じ元45秒内で再評価され、古い外側値を待機後に採用しない。テスト期待や期限は変更せず、2回の失敗logは区別して保持する。次の試行前にこの差分/根拠をpushし、未使用review artifactも再生成する。
 
 N146限定比較：sourceabd6d2f1b4285565e4a63800ab96c679cf120f29/run40121053050/attempt1は両job success。SDK27.0/Runtime27.0の元行除外case1件/失敗0（176.095秒）、SDK26.6/Runtime26.5も1件/失敗0（226.460秒）。行3/4と200〜300groupの3回とも元のnative点/0.1秒の一回接触、実value1、確認の取消しと確定・103行の除外保存・再起動保持を通過した。所要jobは約9分半。両完了logを一度だけ保存し、再取得しない。元失敗の実touch到達や下位原因の証明、全caller/全15/恒常解消へ一般化しない。新しい全体では同じ行除外に加え、共通helperを使う設定/通知の元ケースも両OSで維持する。旧443の26 Bも18:49:48Zにsuccessとなり全15表示job終端・8成功/通常27 Aの1失敗/構成依存skip6・artifact0。全9実job完了logは取得済みで同じ旧run/ログを再取得しない。
+
+## N148 正式候補444の手動補正iOS26で入力消去待機が失敗（2026-10-24）
+
+source1a5eb2d460cfb2b8b75b8fbaf592dc78bacafa0f/run40122891165/attempt1、job120970484475は19:49:08Z開始・20:00:55Zにfailure終端。SDK26.6（Simulator SDK26.5）/Runtime26.5のtestOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackgroundが238.111秒・1失敗。ManualAssistanceChecks+Input.swift:89で、実clear後の元45秒待機がtimeout2となりcompleted1に一致しなかった。元PDF表示/拡大/等倍/閉鎖、未確認Switchとsubmit無効は通過。clearは(317,587.33,44,44)、表示viewport内・enabled/hittableを観測し、一回のButton.tapを合成した。待機後の実input-stateはcell-1-0:0:subject=架空科;ack=falseで、前の文字が残っていた。押下がBindingまで届いたか、touchの具体経路/取消し、下位原因は未確定。対処選択前の観測として記録する。
+
+同一runのiOS27全条件（行除外17件中1ケース、Home/時間割詳細case含む）と26 B・26手動補正の他3条件はsuccess。26 Aは継続中、全15成功/公開は不成立。新しい完了5ログだけを一度取得し保存し、既取得8ログ/旧runを再取得しない。残りの実行はキャンセルしない。今回の失敗は入力clear操作であり、N146の通常行除外やFileProviderの取り下げ済み報告とは区別する。
+
+N148詳細：実touchは(339,609.33)のCellHostingViewへbegan後、0.073秒でcancelled。Binding記録は初期draft一件だけでclear/clear-rejectedがなく、実action入口のguard拒否は観測されなかった。同じrunの原本変更26では同じ枠/点から0.069秒と0.058秒でendedして2回の消去に成功し、明示選択26でも0.069秒/0.080秒のendedと消去を通過した。接触の長短や点を原因と断定せず、待機延長/押し直しで救済しない。unified-logは11.13秒で出力上限に達したが、所有inputログ18行とxcresult-failureは正常取得。クラッシュ報告の走査5/対象一致0は原因不明と区別する。
+
+照合：検索語clear/Native clear/消去/Input.swift/identity/cancelledでN71・N90/N92・N94/N97・U01/U11/U72・N140の詳細とfcc6ee2/d2b1c40/9cd340e/現行Navigation/Input/Viewを読んだ。N71/90/92と同じ未消去が、44pt contentShapeを既に持つ現行でも再発したため、この一行で恒常的に解消したとは扱わない。U11/N52は消去成立後の古い値/ACK照会で今回と異なる。N94/N140は最終実要素の再解決経路、N97は可視化途中のidentity寿命が違う。現在clearは可視化後もListのindex-bound queryを保持してButton.tapへ渡している。cancelledの下位原因とindex経路の関係は未証明だが、最終接触の対象を一意な現nativeとして検証できていない点は具体的に残る。
+
+候補はvisibleの論理IDによる16探索/受動Cell操作/viewport先行観測をそのまま残し、clearが全表示かつhittableとなった最後だけ同じList/IDの実ButtonをallElementsBoundByAccessibilityElementで一度取得する。一意性・有限正枠・観測viewportへの全包含・enabled/hittableを再要求し、不在/曖昧/無効は失敗する。長寿命の外側identityをスクロール中へ持ち込まず、元Inputの同じ一回Button.tap/空欄45秒/ACK0/keyboard/全文入力/完了/保存/再起動を維持する。製品View/Binding/Strictは変更しない。候補がtouch取消しを解消するかは未検証とする。
+
+同時に既存QA専用sendEvent observerへ、touchに付いた最大6recognizerのclass名末尾16文字・stateと3つのBoolだけを読み取りで追加する。元sendEventは一回、観測上限128・所有ログ64KiB・本文/label/target非収集を維持する。次に取消しが起きたときにgesture状態を区別する観測であり、操作/recognizer状態/期待結果を変更しない。収集側は既存旧形式も認める厳格な全行形式とし、範囲外state/Bool・7個以上・任意本文を拒否する対照を既存ケースへ追加する。既存4訂正case×両OSが共通clearの実到達と保存までを検出するため、操作を模倣するテストは増やさない。候補/事実/根拠を隔離branchへpush後にローカル契約・幾何・構文/catalogを確認し、その一回専用の新規review後に全8限定比較を行う。正式全15は別途同一source/run/attemptで要求する。
