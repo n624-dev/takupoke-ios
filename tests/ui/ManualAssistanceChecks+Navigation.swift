@@ -56,12 +56,15 @@ extension ManualAssistanceChecks {
                 frame:{ $0.frame },isHittable:{ $0.isHittable }) { return actual }
             let exists=targetID.isEmpty ? target.exists:!matches.isEmpty
             let targetFrame=exists ? target.frame:nil
-            let targetHittable=alternatives==nil && exists && target.isHittable
-            if targetHittable {
-                // Every interactive/readable target must be wholly below the
-                // navigation bar and above the keyboard accessory before use.
-                if let frame=targetFrame,ManualScrollNavigation.usable(frame),frame.minY>=top,frame.maxY<=bottom { return target }
+            if alternatives==nil && exists {
+                print("TAKUPOKE-MANUAL-TARGET id=\(targetID);frame=\(targetFrame ?? .null);viewport=\(viewport)")
             }
+            // As for alternative controls, inspect hit testing only after the
+            // actual frame is finite and wholly inside the unobscured viewport.
+            let targetHittable=alternatives==nil && exists && manualVisibleCandidate(
+                candidates:[target],viewport:viewport,frame:{ _ in targetFrame ?? .null },
+                isHittable:{ $0.isHittable }) != nil
+            if targetHittable { return target }
             if alternatives==nil && exists && targetID.isEmpty { targetID=target.identifier }
             // Resolve the unique actual containing Cell, even when its focused
             // child exposes an infinite/zero or stale in-viewport frame.
