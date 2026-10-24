@@ -171,7 +171,9 @@ struct PDFGrid {
                     end.x < start.x && end.x + end.width < start.x + start.width
             }
         }
-        let fragments = rows.map { Fragment(glyphs: $0) }.sorted { ($0.top, $0.left) < ($1.top, $1.left) }
+        // Keep the vertical order established by contentRows while joining
+        // horizontal fragments; differing font bounds cannot redefine it.
+        let fragments = rows.map { Fragment(glyphs: $0) }
         var bands: [[Fragment]] = []
         for fragment in fragments {
             try check()

@@ -2611,3 +2611,13 @@ N127照合:destination/Unable to find/no available/bootstatus/CoreSimulatorで�
 新規GPT-6.1 Sol/High ios_n127_host_pre_actions_reviewは指定された空コード差分だけを読み、0行/0バイト・hash一致、差分内の指摘なしと回答した。主担当も実行sourceから作業枝までのコード差分が0で文書だけであることを再照合し、このreviewを同じ40051510584の失敗job限定再実行の開始1回だけへ使用する。別の開始へ使い回さない。記録はCI対象外の枝へpushしてから、GitHubの失敗job限定操作で開始する。
 
 独立検証40051510584/attempt2の通常26 B/job120765045276は03:55:20 success終端（33分51秒）。元の全ケース・文字サイズ・通知/外観の実操作と完了照合を通過し、今回のhostではdestination停止は再発しなかった。ほか13件はGitHubが同じsource/attempt2へ引き継いだ成功で、当初の実行日時を保持している。公開job120772031013も04:22:04にsuccess、同一source/run/attemptの全15gate・全18job終端・artifact0・公開4添付の匿名照合を確認した。N127初回失敗を成功へ書き換えず、原因の恒常的解消とはしない。reviewはこの開始で消費済み。
+
+## N128 84/91の両OS修正前回帰（2026-10-24、ローカル）
+
+iOS source b6bd91f、Debian13/Swift6.1.2、04:44:53〜54 UTC、5ケース中4ケース失敗（30assert、0 unexpected、0.759秒）、compileは12.38秒で成功。testMixedHeightTimetableLinesKeepEstablishedVerticalOrderは分割断片あり/なし・Strict/Certifiedの全経路で科目/教員が逆順。testSpecialPeriodHeadingsDoNotTruncateNumericTokensは11時限・3桁分・Arabic/Osmanya数字前置を両完全Parserが拒否せず成功。testSpecialConsecutiveHeadingsDoNotAdoptNumericSuffixは誤った07:00〜08:00/07:00〜08:50を採用。testTruncatedSpecialClockCannotReplaceSavedGoodAnalysisは不正解析が実Storeを置換し、再openの旧record不一致。隣接した単独/連続見出しと全角・空白の正対照1ケースは成功した。ログ/tmp/takupoke-ios-84-91-before.log。実PDFKit/実機ではなく本番Geometry/Parser/Storeの実行で、製品は未変更。対処選択前の観測記録。
+
+Windows source4bfc01c、Linux/.NET10.0.402、同じ04:44台の独立回帰は10展開中8失敗・2成功・skip0（203ms）。通常の完全Parserが分割あり/なしで架空教員Bを科目、架空科目Aを教員として採用し、不正な4種類の単独時刻を拒否せず、誤った連続時計2条件も採用した。全角/空白と隣接見出しの正対照2条件は成功。既存CS8602/xUnit2031警告は出たがcompileは成功し、実Core/Parserのassert段階の失敗。ログ/tmp/takupoke-win-84-91-before.log。Windows実UI・学校原本は未使用。対処案は過去記録・当時/現行コードの照合後に決める。
+
+N128照合:行順/fragmentAlignment/fragmentOverlap/mixed-size/数値境界/periodHeadingで索引検索し、PDFの同型既往はなく、既存N102のXLSX日時全体検証は別経路だった。issue対象ea049e3から今回まで該当4ファイルの差分は0、固定239.1の元Grid/Timesにも同じ再sortと非境界regexがあることを実コードで確認した。84/91はissue本文がStrictとCertifiedの意図した差ではないと明示する共通不具合で、今回の例外はこの2条件に限定して文書化する。固定全文oracle/元の全対照は残す。
+
+候補:84はcontentRowsが確定した縦の順序を維持し、横断片の整列/重なり拒否だけを従来どおり行う。91は数字の途中から始まる/終わる見出しを採用しない。ただし正対照にある同一行の単独時刻と独立連続時刻は空白正規化後に隣接するため、単純な前後negative-lookaroundで正常見出しまで拒否しない。既存regexで取得した完全見出しが隣接する範囲をまとめ、その外端がUnicode十進数字の途中なら範囲全体を除く。採用候補は元の時刻/順序/重複/件数検査を引き続き通す。範囲処理はsort後一巡とhash lookupで、prefix文字列の反復コピーや固定点の二乗走査を避ける。無効な連続見出しを採用しなければ、元の正しい単独時限からの時計算出は維持する。両OSでそれぞれ実装し、iOSの通常/特別版を34へ進める。Windowsの未配布11/8に集約し、既配布の10/7を再評価する。候補/記録を隔離枝へpushしてから同じ回帰を再実行する。

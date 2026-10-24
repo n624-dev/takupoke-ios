@@ -1,5 +1,5 @@
 // Strict parsing contract from 239.1 (bfc599fd5a552ced0c140497c703199547c30fd4).
-// Only type names and fixed failure IDs are adapted; no recovery proof is implied.
+// Includes the documented whole numeric token fix; no recovery proof is implied.
 import Foundation
 
 extension PDF239SpecialScheduleParser {
@@ -12,7 +12,10 @@ extension PDF239SpecialScheduleParser {
         for row in PDF239Grid.rows(page.glyphs) {
             let value = PDF239SchoolParser.key(row.map(\.text).joined())
             let ns = value as NSString
-            for match in pattern.matches(in: value, range: NSRange(location: 0, length: ns.length)) {
+            let singles = pattern.matches(in: value, range: NSRange(location: 0, length: ns.length))
+            let pairs = consecutivePattern.matches(in: value, range: NSRange(location: 0, length: ns.length))
+            let whole = wholeNumericHeadings(singles + pairs, in: ns)
+            for match in singles where whole.contains(match.range) {
                 let period = Int(ns.substring(with: match.range(at: 1)))!
                 let start = ns.substring(with: match.range(at: 2))
                 let end = ns.substring(with: match.range(at: 3))
@@ -24,7 +27,7 @@ extension PDF239SpecialScheduleParser {
                 times[period] = String(format: "%02d:%02d〜%02d:%02d",
                                        startTime / 60, startTime % 60, endTime / 60, endTime % 60)
             }
-            for match in consecutivePattern.matches(in: value, range: NSRange(location: 0, length: ns.length)) {
+            for match in pairs where whole.contains(match.range) {
                 let first = Int(ns.substring(with: match.range(at: 1)))!
                 let last = Int(ns.substring(with: match.range(at: 2)))!
                 let start = ns.substring(with: match.range(at: 3))
@@ -43,6 +46,31 @@ extension PDF239SpecialScheduleParser {
             throw PDFParseError(code: .unsupported, page: pageNumber, stage: .periodHeading, branch:.b405)
         }
         return Times(single: times, consecutive: consecutive)
+    }
+
+    private static func wholeNumericHeadings(_ input: [NSTextCheckingResult], in text: NSString) -> Set<NSRange> {
+        let matches = input.sorted { $0.range.location < $1.range.location }
+        var accepted = Set<NSRange>()
+        var first = 0
+        while first < matches.count {
+            var next = first + 1
+            // Space normalization can place two complete headings directly next
+            // to each other. Their shared edge is a real grammar boundary.
+            while next < matches.count && NSMaxRange(matches[next - 1].range) == matches[next].range.location {
+                next += 1
+            }
+            let start = matches[first].range.location
+            let end = NSMaxRange(matches[next - 1].range)
+            let startsInNumber = start > 0 && text.rangeOfCharacter(from: .decimalDigits,
+                options: [.backwards, .anchored], range: NSRange(location: 0, length: start)).location != NSNotFound
+            let endsInNumber = end < text.length && text.rangeOfCharacter(from: .decimalDigits,
+                options: .anchored, range: NSRange(location: end, length: text.length - end)).location != NSNotFound
+            if !startsInNumber && !endsInNumber {
+                for index in first..<next { accepted.insert(matches[index].range) }
+            }
+            first = next
+        }
+        return accepted
     }
 
     private static func clockMinutes(_ text: String) -> Int? {

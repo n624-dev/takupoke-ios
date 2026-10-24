@@ -1,5 +1,5 @@
 // Strict parsing contract from 239.1 (bfc599fd5a552ced0c140497c703199547c30fd4).
-// Only type names and fixed failure IDs are adapted; no recovery proof is implied.
+// Includes the documented shared row-order fix; no recovery proof is implied.
 import Foundation
 
 /// Geometry is in displayed page coordinates: top-left origin, after page rotation.
@@ -97,7 +97,9 @@ struct PDF239Grid {
                     end.x < start.x && end.x + end.width < start.x + start.width
             }
         }
-        let fragments = rows.map { Fragment(glyphs: $0) }.sorted { ($0.top, $0.left) < ($1.top, $1.left) }
+        // contentRows already resolved vertical order from whole text lines.
+        // Font ascenders can put a later line's top above the previous line.
+        let fragments = rows.map { Fragment(glyphs: $0) }
         var bands: [[Fragment]] = []
         for fragment in fragments {
             let aligned = bands.indices.filter { index in

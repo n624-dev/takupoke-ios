@@ -139,8 +139,8 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 | R358 | P08 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239Grid.swift#L29) |
 | R357 | P13 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239Grid.swift#L52) |
 | R356 | 分類なし／呼出元 | `guard input.reduce(0, { $0 + $1.text.utf8.count }) <= 4096 else { throw` | [確認条件](../Takupoke/PDF239Grid.swift#L79) |
-| R355 | P21 | `guard aligned.count <= 1 else { throw` | [確認条件](../Takupoke/PDF239Grid.swift#L106) |
-| R354 | P20 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239Grid.swift#L111) |
+| R355 | P21 | `guard aligned.count <= 1 else { throw` | [確認条件](../Takupoke/PDF239Grid.swift#L108) |
+| R354 | P20 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239Grid.swift#L113) |
 
 ### 239.1のStrict判定（原条件と固定番号）
 
@@ -215,9 +215,9 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 
 | 詳細番号 | 生成時分類 | 拒否条件／コード抜粋 | 実装 |
 |---|---|---|---|
-| R407 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L22) |
-| R406 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L36) |
-| R405 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L43) |
+| R407 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L25) |
+| R406 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L39) |
+| R405 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L46) |
 
 ### 239.1のStrict判定（原条件と固定番号）
 
@@ -355,14 +355,14 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 | R080 | P08 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFGrid.swift#L99) |
 | R081 | P13 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFGrid.swift#L124) |
 | R082 | 分類なし／呼出元 | `guard input.reduce(0, { $0 + $1.text.utf8.count }) <= 4096 else { throw` | [確認条件](../Takupoke/PDFGrid.swift#L153) |
-| R083 | P21 | `guard aligned.count <= 1 else { throw` | [確認条件](../Takupoke/PDFGrid.swift#L181) |
-| R084 | P20 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFGrid.swift#L186) |
-| R085 | P08 | `guard cell.top >= row.top-0.8, cell.bottom <= row.bottom+0.8 else { throw` | [確認条件](../Takupoke/PDFGrid.swift#L207) |
-| R086 | 分類なし／呼出元 | `guard boxes.count <= 10_000 else { throw` | [確認条件](../Takupoke/PDFGrid.swift#L209) |
-| R087 | P17 | `guard !lines.isEmpty, lines.count < 3 else { throw` | [確認条件](../Takupoke/PDFGrid.swift#L220) |
-| R088 | P08 | `guard seen.count <= 10000 else { throw` | [確認条件](../Takupoke/PDFGrid.swift#L227) |
-| R089 | P17 | `guard rows.count == lines.count else { throw` | [確認条件](../Takupoke/PDFGrid.swift#L244) |
-| R090 | P17 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFGrid.swift#L262) |
+| R083 | P21 | `guard aligned.count <= 1 else { throw` | [確認条件](../Takupoke/PDFGrid.swift#L183) |
+| R084 | P20 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFGrid.swift#L188) |
+| R085 | P08 | `guard cell.top >= row.top-0.8, cell.bottom <= row.bottom+0.8 else { throw` | [確認条件](../Takupoke/PDFGrid.swift#L209) |
+| R086 | 分類なし／呼出元 | `guard boxes.count <= 10_000 else { throw` | [確認条件](../Takupoke/PDFGrid.swift#L211) |
+| R087 | P17 | `guard !lines.isEmpty, lines.count < 3 else { throw` | [確認条件](../Takupoke/PDFGrid.swift#L222) |
+| R088 | P08 | `guard seen.count <= 10000 else { throw` | [確認条件](../Takupoke/PDFGrid.swift#L229) |
+| R089 | P17 | `guard rows.count == lines.count else { throw` | [確認条件](../Takupoke/PDFGrid.swift#L246) |
+| R090 | P17 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDFGrid.swift#L264) |
 
 ### ファイル・ページ・PDFKit選択・表示領域
 
@@ -577,10 +577,10 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 | 詳細番号 | 生成時分類 | 拒否条件／コード抜粋 | 実装 |
 |---|---|---|---|
 | R245 | P05 | `guard (1...8).contains(count) else { throw` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L6) |
-| R246 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L21) |
-| R247 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L35) |
-| R248 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L42) |
-| R249 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L49) |
+| R246 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L24) |
+| R247 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L38) |
+| R248 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L45) |
+| R249 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L52) |
 
 ### 試験・返却の文書全体と授業欄
 
