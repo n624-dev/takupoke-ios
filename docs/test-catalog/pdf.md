@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`e44eff667507c763635bf329600da7af9b25143cfd1a4d0e21831bc4a6dc9716`
+`2d184a0d6c59e1588d13a07bb1b3f3df9764d47f2f3b04b4902978bbe1732371`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -101,6 +101,7 @@ python3 -B tools/pdf_branch_catalog.py check
 - `testTimetableRejectsUnalignedParallelEvidenceAcrossAnyTwoRoles`
 - `testTimetableKeepsOneCompoundRoleLiteralWithoutInventingParallelTuples`
 - `testTimetableRoomCollapsesOnlyRepeatedHalfwidthVoicingMarks`
+- `testMixedHeightTimetableLinesKeepEstablishedVerticalOrder`
 - `testSourceOrderKeepsMixedSizeLessonNamesAndMetadataSeparate`
 - `testTimetableJoinsAlignedNonoverlappingLineFragments`
 - `testTimetableFragmentsDoNotMergeOverlapsOrNearbyDifferentLines`

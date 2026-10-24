@@ -9,6 +9,96 @@ import GRDB
 
 final class SpecialScheduleTests: XCTestCase {
 
+    private func replacingFirstExamTime(_ pages: [PDFPageLayout], with text: String,
+                                        consecutive: Bool = false) -> [PDFPageLayout] {
+        pages.map { original in
+            var page = original
+            page.glyphs.removeAll { $0.y == 470 && (consecutive ? $0.x >= 300 : $0.x < 280) }
+            for (index, character) in text.enumerated() {
+                page.glyphs.append(PDFGlyph(text: String(character),
+                    x: (consecutive ? 300 : 20) + Double(index) * 4, y: 470, width: 4, height: 8,
+                    sourceLine: 9000, sourceOrder: 90000 + index))
+            }
+            return page
+        }
+    }
+
+    func testSpecialPeriodHeadingsDoNotTruncateNumericTokens() throws {
+        let original = (1...6).map { examPage($0) }
+        for text in ["11時限目8:50~9:35", "1時限目7:00~8:500",
+                     "١1時限目8:50~9:35", "\u{104A1}1時限目8:50~9:35"] {
+            let pages = replacingFirstExamTime(original, with: text)
+            XCTAssertThrowsError(try SpecialScheduleParser.parse(pages, kind: .exam,
+                digest: "fictional", name: "fictional.pdf"), text) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage, .periodHeading)
+            }
+            XCTAssertThrowsError(try SpecialScheduleParser.parseCertified(pages, kind: .exam,
+                digest: "fictional", name: "fictional.pdf"), text) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage, .periodHeading)
+            }
+        }
+    }
+
+    func testSpecialConsecutiveHeadingsDoNotAdoptNumericSuffix() throws {
+        let original = (1...6).map { examPage($0, mergedFirstTwo: $0 == 1) }
+        for text in ["11・2時限連続7:00~8:00", "1・2時限連続7:00~8:500"] {
+            let pages = replacingFirstExamTime(original, with: text, consecutive: true)
+            let analyses = [
+                try SpecialScheduleParser.parse(pages, kind: .exam, digest: "fictional", name: "fictional.pdf"),
+                try SpecialScheduleParser.parseCertified(pages, kind: .exam, digest: "fictional", name: "fictional.pdf"),
+            ]
+            for analysis in analyses {
+                // With no valid explicit continuous chart, the existing rule
+                // derives this span from the two independently valid periods.
+                let lesson = try XCTUnwrap(analysis.lessons.first { $0.className == "1_1" && $0.spanEnd == 2 })
+                XCTAssertEqual(lesson.timeRange, "08:50〜10:35", text)
+            }
+        }
+    }
+
+    func testSpecialWholeNumericTokensRetainAdjacentAndWidthNormalizedHeadings() throws {
+        let original = (1...6).map { examPage($0, mergedFirstTwo: $0 == 1) }
+        for text in ["1時限目8:50~9:35", "１ 時限目 ８：５０〜９：３５"] {
+            // The same geometric row also contains the independent continuous
+            // chart at x=300. Normalization must not join their numeric tokens.
+            let pages = replacingFirstExamTime(original, with: text)
+            let analyses = [
+                try SpecialScheduleParser.parse(pages, kind: .exam, digest: "fictional", name: "fictional.pdf"),
+                try SpecialScheduleParser.parseCertified(pages, kind: .exam, digest: "fictional", name: "fictional.pdf"),
+            ]
+            for analysis in analyses {
+                XCTAssertEqual(analysis.lessons.count, 86)
+                XCTAssertEqual(analysis.periodTimes[1], "08:50〜09:35")
+                XCTAssertEqual(analysis.lessons.first { $0.className == "1_1" && $0.spanEnd == 2 }?.timeRange, "08:50〜10:20")
+            }
+        }
+    }
+
+    func testTruncatedSpecialClockCannotReplaceSavedGoodAnalysis() throws {
+        let original = (1...6).map { examPage($0) }
+        let accepted = try SpecialScheduleParser.parse(original, kind: .exam, digest: "accepted", name: "fictional.pdf")
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-token-store-" + UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try SpecialScheduleStore(root: root)
+        func save(_ analysis: SpecialScheduleAnalysis) throws {
+            let bytes = Data("%PDF-fictional-\(analysis.sourceDigest)".utf8)
+            let staged = store.newStagingURL()
+            try bytes.write(to: staged)
+            try store.save(staged: staged, analysis: analysis, originalName: "fictional.pdf",
+                byteCount: bytes.count, digest: analysis.sourceDigest)
+        }
+        try save(accepted)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        let previous = try encoder.encode(XCTUnwrap(store.records[.exam]))
+        let invalid = replacingFirstExamTime(original, with: "1時限目7:00~8:500")
+        XCTAssertThrowsError(try save(SpecialScheduleParser.parse(invalid, kind: .exam,
+            digest: "invalid", name: "fictional.pdf"))) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage, .periodHeading)
+            }
+        XCTAssertEqual(try encoder.encode(XCTUnwrap(SpecialScheduleStore(root: root).records[.exam])), previous)
+    }
+
     func testParsedMergedCellRetainsRawClockButItsRemainingFragmentUsesPeriodClock() throws {
         let parsed = try SpecialScheduleParser.parse((1...6).map { examPage($0, mergedFirstTwo: $0 == 1) }, kind: .exam, digest: "fictional", name: "fictional.pdf")
         let original = try XCTUnwrap(parsed.lessons.first { $0.date == "2026-04-01" && $0.className == "1_1" && $0.period == 2 })

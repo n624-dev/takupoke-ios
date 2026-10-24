@@ -116,6 +116,40 @@ extension PDFParsingTests {
             XCTAssertEqual(PDFTimetableRoomText.collapsingRepeatedVoicingMarks(input), expected)
         }
     }
+    func testMixedHeightTimetableLinesKeepEstablishedVerticalOrder() throws {
+        let expected = ["架空科目A", "架空教員B", "架空教室C"]
+        for split in [false, true] {
+            var page = timetable()
+            page.glyphs.removeAll { $0.x >= 100 && $0.x < 140 && $0.cy > 100 && $0.cy < 160 }
+            // Centres establish subject/teacher/room order. The teacher's tall
+            // font bounds begin above the subject without changing that order.
+            for (row, value) in expected.enumerated() {
+                let top = [114.0, 110.0, 142.0][row]
+                let height = [4.0, 30.0, 6.0][row]
+                for (index, character) in value.enumerated() {
+                    page.glyphs.append(PDFGlyph(text: String(character), x: 104 + Double(index) * 4,
+                        y: top, width: 4, height: height,
+                        sourceLine: row * 10 + (split && index >= 2 ? 1 : 0),
+                        sourceOrder: row * 100 + index))
+                }
+            }
+            let cell = PDFBox(left: 100, top: 100, right: 140, bottom: 160)
+            XCTAssertEqual(try PDF239Grid(page: page).timetableText(cell), expected)
+            XCTAssertEqual(try PDFGrid(page: page).timetableText(cell), expected)
+            let analyses = [
+                try PDFSchoolParser.parse([page], kind: .timetable, digest: "fictional", name: "fictional.pdf"),
+                try PDFSchoolParser.parseCertified([page], kind: .timetable, digest: "fictional", name: "fictional.pdf"),
+            ]
+            for analysis in analyses {
+                let lesson = try XCTUnwrap(analysis.lessons.first { $0.className == "1_ZZ" && $0.period == 1 })
+                XCTAssertEqual(lesson.names.subject, expected[0])
+                XCTAssertEqual(lesson.names.teacher, expected[1])
+                XCTAssertEqual(lesson.names.room, expected[2])
+                XCTAssertEqual(lesson.sourceText, expected.joined(separator: "\n"))
+            }
+        }
+    }
+
     func testSourceOrderKeepsMixedSizeLessonNamesAndMetadataSeparate() throws {
         var page = timetable()
         page.glyphs.removeAll { $0.x >= 100 && $0.x < 140 && $0.cy > 100 && $0.cy < 160 }
