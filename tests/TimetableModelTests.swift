@@ -2,8 +2,86 @@ import Foundation
 import XCTest
 @testable import TakupokeParsing
 
+private final class LinksRevisionTransport: URLProtocol {
+    private static let lock = NSLock()
+    private static var pending = [LinksRevisionTransport]()
+    private static var requestCount = 0
+    private static var started: XCTestExpectation?
+    static func expectStart(_ event:XCTestExpectation) { lock.lock(); started = event; lock.unlock() }
+    static func reset() { lock.lock(); pending = []; requestCount = 0; started = nil; lock.unlock() }
+    static var count:Int { lock.lock(); defer { lock.unlock() }; return requestCount }
+    static func release() {
+        lock.lock(); let requests = pending; pending = []; lock.unlock()
+        for request in requests {
+            let url = request.request.url!
+            request.client?.urlProtocol(request,didReceive:HTTPURLResponse(url:url,statusCode:200,httpVersion:"HTTP/1.1",
+                headerFields:["ETag":"\""+String(repeating:"A",count:43)+"\""])!,cacheStoragePolicy:.notAllowed)
+            request.client?.urlProtocol(request,didLoad:Data())
+            request.client?.urlProtocolDidFinishLoading(request)
+        }
+    }
+    override class func canInit(with request:URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request:URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        guard request.url?.absoluteString == "https://links.example.invalid/links-revision",
+              request.httpMethod == "GET", request.value(forHTTPHeaderField:"Authorization") == nil else {
+            client?.urlProtocol(self,didFailWithError:URLError(.unsupportedURL)); return
+        }
+        Self.lock.lock(); Self.pending.append(self); Self.requestCount += 1
+        let event = Self.started; Self.started = nil; Self.lock.unlock()
+        event?.fulfill()
+    }
+    override func stopLoading() { Self.lock.lock(); Self.pending.removeAll { $0 === self }; Self.lock.unlock() }
+}
+
 @MainActor
 final class TimetableModelTests: XCTestCase {
+    func testActualLinksModelSharesOwnedURLSessionAcrossAutomaticAndManualWaiters() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("links-model-network-"+UUID().uuidString)
+        let suite = "links-model-network-"+UUID().uuidString
+        let defaults = UserDefaults(suiteName:suite)!
+        defer { try? FileManager.default.removeItem(at:root); defaults.removePersistentDomain(forName:suite); LinksRevisionTransport.reset() }
+        LinksRevisionTransport.reset()
+        var sessions = 0
+        let model = LinksModel(preferencesStore:LinkPreferencesStore(defaults:defaults),storeRoot:root,revisionNetwork:{
+            sessions += 1
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.protocolClasses = [LinksRevisionTransport.self]; configuration.urlCache = nil
+            return URLSession(configuration:configuration)
+        },endpoint:URL(string:"https://links.example.invalid/links")!)
+        defer { model.resetForRetention() }
+        let started = expectation(description:"single actual revision transport")
+        LinksRevisionTransport.expectStart(started)
+        let first = Task { await model.refresh() }
+        await fulfillment(of:[started],timeout:5)
+        let second = Task { await model.refresh() }
+        let manual = Task { try await model.revision() }
+        for _ in 0..<1000 { if model.pendingRevisionWaiters == 3 { break }; await Task.yield() }
+        XCTAssertEqual(model.pendingRevisionWaiters,3); XCTAssertEqual(LinksRevisionTransport.count,1)
+        first.cancel(); await first.value
+        XCTAssertTrue(model.busy); XCTAssertEqual(model.pendingRevisionWaiters,2)
+        LinksRevisionTransport.release()
+        await second.value
+        let manualValue = try await manual.value
+        XCTAssertEqual(manualValue,.available(String(repeating:"A",count:43)))
+        XCTAssertEqual(sessions,1); XCTAssertFalse(model.busy); XCTAssertFalse(model.failed)
+        model.report(LinksError.unavailable); let error = model.message
+        await model.refresh()
+        XCTAssertEqual(LinksRevisionTransport.count,1); XCTAssertEqual(model.message,error); XCTAssertTrue(model.failed)
+        let forcedStarted = expectation(description:"forced check bypasses TTL")
+        LinksRevisionTransport.expectStart(forcedStarted)
+        let forced = Task { await model.refresh(force:true) }
+        await fulfillment(of:[forcedStarted],timeout:5)
+        XCTAssertEqual(LinksRevisionTransport.count,2); XCTAssertTrue(model.busy)
+        LinksRevisionTransport.release(); await forced.value
+        XCTAssertFalse(model.failed); XCTAssertFalse(model.busy); XCTAssertEqual(sessions,2)
+        let resetStarted = expectation(description:"request before retention reset")
+        LinksRevisionTransport.expectStart(resetStarted)
+        let reset = Task { await model.refresh(force:true) }
+        await fulfillment(of:[resetStarted],timeout:5)
+        model.resetForRetention(); await reset.value
+        XCTAssertFalse(model.ready); XCTAssertFalse(model.busy); XCTAssertNil(model.saved)
+    }
     private let revision = String(repeating: "T", count: 43)
     private final class Stub: URLProtocol {
         override class func canInit(with request: URLRequest) -> Bool { true }

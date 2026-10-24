@@ -204,6 +204,10 @@ LinkRowは全モデルのObservedObjectから表示値snapshotへ切り替え、
 
 ## 時間割の受理済み入力索引（66、候補）
 
+性能比較は7df7a5bの実source38ファイルを所有snapshotへ固定して実施し、Swift6.1.2/-Oのcompile92.926秒を計時から除外した。元と同じ架空入力/全query/1warmup+6測定/全checksum6206を維持し、displayedDays/blocks/dayPlanの3呼び口だけUIと同じ永続索引へ渡した。4週の中央値0.026047秒（元0.573689秒、約22.0倍）。実際のSimulator/物理端末の描画やネットワーク・学校資料の速度ではない。記録/tmp/takupoke-ios-projection-index-results.logと所有snapshot metadataに前後driver/source hashを保持する。
+
+追加のApple host回帰は本番LinksModelを実MappingService/URLSession/拒否型URLProtocolへ通し、自動2呼出し+手動1呼出しの1session/1request合流、一人取消後の残待機/共有busy、TTL/後続エラー保持/forceとretention取消を検査する。旧ownerの終了が新ownerのbusyを解除しないようowner UUIDも照合する。SchoolEventsModel/WebPDFDownloaderの実sourceを既存macOS hostへ登録し、所有storeからのload/連続analysis読出し、200/304/503、未変更年度と再読込を実Modelで検査する。endpoint/session/storeRoot注入はテスト隔離用で既定本番URL/timeout/保存/HEAD処理を変えず、テストは架空URL以外を全拒否、Background入口なので学校PDF HEADは呼ばない。両Native回帰はまだApple未実行、Linuxは対象外を明示する。
+
 7df7a5bの直接比較/索引上限/停止再開と既存週・時刻・ホームはLinux Swift6.1.2で56件/失敗0（0.917秒）。性能比較の準備が固定compiler pathで停止したN135は別記録し、計時成功とはしない。後続の時間/文字cacheとホーム境界時計は未実装。
 
 catalogのTimetableScheduleを検索し、既存の休業/APIタグ/曜日振替/並記/隣接結合/留学生scope/特別時刻/期間境界を読んだ。旧1d0e4f9の最適化済み実関数の架空20クラス/1600授業/1200変更/400行事/2特別資料/2選択クラス/4週の中央値0.573689秒、checksum6206と実呼出し計数を基準記録として保持する。実機/UI/frame測定ではない。

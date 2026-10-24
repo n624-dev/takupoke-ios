@@ -2,7 +2,75 @@ import Foundation
 import XCTest
 @testable import TakupokeParsing
 
+#if canImport(SwiftUI)
+private final class EventsProjectionTransport: URLProtocol {
+    enum Mode: Equatable { case cached, updated, failure }
+    private static let lock = NSLock()
+    private static var mode = Mode.cached
+    static func set(_ value:Mode) { lock.lock(); mode = value; lock.unlock() }
+    override class func canInit(with request:URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request:URLRequest) -> URLRequest { request }
+    override func stopLoading() {}
+    override func startLoading() {
+        guard let url = request.url, url.host == "events.example.invalid", url.path == "/events",
+              request.httpMethod == "GET", let components = URLComponents(url:url,resolvingAgainstBaseURL:false),
+              components.queryItems?.count == 1, let query = components.queryItems?.first,
+              query.name == "schoolYear", let year = query.value.flatMap(Int.init), [2032,2033].contains(year),
+              let etag = request.value(forHTTPHeaderField:"If-None-Match") else {
+            client?.urlProtocol(self,didFailWithError:URLError(.unsupportedURL)); return
+        }
+        Self.lock.lock(); let mode = Self.mode; Self.lock.unlock()
+        var status = 304, data = Data(), responseETag = etag
+        if year == 2032 && mode == .failure { status = 503 }
+        if year == 2032 && mode == .updated {
+            status = 200; responseETag = "\"next-2032\""
+            let payload = SchoolEventsPayload(version:"v1",schoolYear:year,sourcePdfSha256:String(repeating:"b",count:64),sourcePdfETag:nil,
+                events:[.init(startDate:"2032-04-01",endDate:"2032-04-01",title:"架空更新行事",tag:"行事")])
+            do { data = try JSONEncoder().encode(payload) }
+            catch { client?.urlProtocol(self,didFailWithError:error); return }
+        }
+        client?.urlProtocol(self,didReceive:HTTPURLResponse(url:url,statusCode:status,httpVersion:"HTTP/1.1",
+            headerFields:["ETag":responseETag,"Content-Type":"application/json"])!,cacheStoragePolicy:.notAllowed)
+        client?.urlProtocol(self,didLoad:data); client?.urlProtocolDidFinishLoading(self)
+    }
+}
+#endif
+
 final class SchoolEventsAPITests: XCTestCase {
+#if canImport(SwiftUI)
+    @MainActor func testActualEventsModelCachesProjectionAcrossReads304FailureAndStoreReload() async throws {
+        let base = FileManager.default.temporaryDirectory.appendingPathComponent("events-projection-"+UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at:base); EventsProjectionTransport.set(.cached) }
+        let store = try SchoolEventsStore(root:base.appendingPathComponent("SchoolEventsAPI"))
+        for year in [2032,2033] {
+            try store.save(fictionalPayload(year:year,title:"架空保存行事\(year)"),apiETag:"\"initial-\(year)\"",fetchedAt:Date(timeIntervalSince1970:1_965_000_000))
+        }
+        let model = SchoolEventsModel(storeRoot:base,eventsEndpoint:URL(string:"https://events.example.invalid/events")!,makeSession:{
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.protocolClasses = [EventsProjectionTransport.self]; configuration.urlCache = nil
+            return URLSession(configuration:configuration)
+        })
+        model.loadIfNeeded(); XCTAssertTrue(model.ready); XCTAssertEqual(model.projectionBuildCount,1)
+        let first = try XCTUnwrap(model.analysis), generation = model.scheduleGeneration
+        for _ in 0..<1000 { XCTAssertEqual(model.analysis?.events,first.events) }
+        XCTAssertEqual(model.projectionBuildCount,1)
+        EventsProjectionTransport.set(.cached)
+        let notModified = await model.refreshInBackground()
+        XCTAssertTrue(notModified); XCTAssertEqual(model.projectionBuildCount,1); XCTAssertEqual(model.scheduleGeneration,generation)
+        EventsProjectionTransport.set(.updated)
+        let updated = await model.refreshInBackground()
+        XCTAssertTrue(updated); XCTAssertEqual(model.projectionBuildCount,2); XCTAssertNotEqual(model.scheduleGeneration,generation)
+        XCTAssertEqual(model.analysis?.events.map(\.title),["架空更新行事","架空保存行事2033"])
+        let current = model.analysis, currentGeneration = model.scheduleGeneration
+        EventsProjectionTransport.set(.failure)
+        let failed = await model.refreshInBackground()
+        XCTAssertFalse(failed); XCTAssertTrue(model.failed); XCTAssertEqual(model.projectionBuildCount,2)
+        XCTAssertEqual(model.scheduleGeneration,currentGeneration); XCTAssertEqual(model.analysis?.events,current?.events)
+        let reopened = SchoolEventsModel(storeRoot:base)
+        reopened.loadIfNeeded(); XCTAssertEqual(reopened.analysis?.events,current?.events)
+        XCTAssertEqual(reopened.saved[2033]?.fetchedAt,Date(timeIntervalSince1970:1_965_000_000))
+    }
+#endif
     func testNearLimitPayloadRemainsReadableAfterSavingItsMetadataEnvelope() throws {
         let root=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at:root) }

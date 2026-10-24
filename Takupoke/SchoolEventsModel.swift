@@ -11,7 +11,16 @@ final class SchoolEventsModel: ObservableObject {
         }
     }
     private var cachedAnalysis: PDFAnalysis?
+    private(set) var projectionBuildCount = 0
     private(set) var scheduleGeneration = UUID()
+    private let storeRoot: URL?
+    private let eventsEndpoint: URL
+    private let makeSession: () -> URLSession
+    init(storeRoot:URL? = nil,eventsEndpoint:URL = URL(string:"https://takupoke-api.n624.jp/events")!,
+         makeSession:(() -> URLSession)? = nil) {
+        self.storeRoot = storeRoot; self.eventsEndpoint = eventsEndpoint
+        self.makeSession = makeSession ?? { Self.eventsSession() }
+    }
     @Published private(set) var ready = false
     @Published private(set) var busy = false
     @Published private(set) var failed = false
@@ -85,6 +94,7 @@ final class SchoolEventsModel: ObservableObject {
 
     var analysis: PDFAnalysis? { cachedAnalysis }
     private func projectedAnalysis() -> PDFAnalysis? {
+        projectionBuildCount += 1
         guard !saved.isEmpty else { return nil }
         let values = saved.values.sorted { $0.payload.schoolYear < $1.payload.schoolYear }
         return PDFAnalysis(version: PDFAnalysis.currentVersion(for: .events), kind: .events,
@@ -97,7 +107,7 @@ final class SchoolEventsModel: ObservableObject {
     func loadIfNeeded() {
         guard !ready else { return }
         do {
-            let base = try FileManager.default.url(for: .applicationSupportDirectory,
+            let base = try storeRoot ?? FileManager.default.url(for: .applicationSupportDirectory,
                                                    in: .userDomainMask, appropriateFor: nil, create: true)
             let opened = try SchoolEventsStore(root: base.appendingPathComponent("SchoolEventsAPI", isDirectory: true))
             let available = try opened.loadAvailable()
@@ -161,7 +171,7 @@ final class SchoolEventsModel: ObservableObject {
         return succeeded && !Task.isCancelled
     }
 
-    private func fetchOne(year: Int) async throws -> Bool {
+    private static func eventsSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.urlCache = nil
         configuration.httpCookieStorage = nil
@@ -169,9 +179,13 @@ final class SchoolEventsModel: ObservableObject {
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         configuration.timeoutIntervalForRequest = 30
         configuration.timeoutIntervalForResource = 90
-        let session = URLSession(configuration: configuration)
+        return URLSession(configuration: configuration)
+    }
+
+    private func fetchOne(year: Int) async throws -> Bool {
+        let session = makeSession()
         defer { session.invalidateAndCancel() }
-        var components = URLComponents(string: "https://takupoke-api.n624.jp/events")!
+        var components = URLComponents(url:eventsEndpoint,resolvingAgainstBaseURL:false)!
         components.queryItems = [URLQueryItem(name: "schoolYear", value: String(year))]
         var request = URLRequest(url: components.url!)
         request.setValue("application/json", forHTTPHeaderField: "Accept")

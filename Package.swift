@@ -2,7 +2,7 @@
 import PackageDescription
 
 #if os(macOS)
-let mappingSources = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift"]
+let mappingSources = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift", "SchoolEventsModel.swift", "WebPDFDownloader.swift"]
 let mappingTests = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift", "TimetableModelTests.swift"]
 let mappingExcludes: [String] = []
 let mappingTestExcludes: [String] = []
@@ -10,7 +10,7 @@ let mappingTestExcludes: [String] = []
 // CryptoKit and URLSession host tests run on the macOS release runner.
 let mappingSources: [String] = []
 let mappingTests: [String] = []
-let mappingExcludes = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift"]
+let mappingExcludes = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift", "SchoolEventsModel.swift", "WebPDFDownloader.swift"]
 let mappingTestExcludes = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift", "TimetableModelTests.swift"]
 #endif
 
@@ -61,7 +61,6 @@ let package = Package(
                     "SpecialScheduleAnalysisView.swift",
                     "ChangeAnalysisView.swift",
                     "ChangePreviewView.swift",
-                    "WebPDFDownloader.swift",
                     "PDFAnalysisView.swift", "SystemLanguageRecoveryProvider.swift", "PDFRecoveryRecognition.swift",
                     "PDFRecoveryCoordinator.swift", "PDFRecoveryView.swift", "LocalRecoveryModelManager.swift", "LocalLlamaRecoveryProvider.swift", "CoreAIRecoveryProvider.swift",
                     "PDFLessonDetail.swift",
@@ -79,7 +78,6 @@ let package = Package(
                     "SpecialSchedulesModel+Startup.swift",
                     "SpecialSchedulesModel+Analysis.swift",
                     "SpecialSchedulesModel+Provider.swift",
-                    "SchoolEventsModel.swift",
                     "SchoolEventsView.swift",
                     "MappingOIDC.swift",
                     "MappingSettingsView.swift",

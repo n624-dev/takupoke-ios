@@ -18,6 +18,8 @@ final class LinksModel: ObservableObject {
     private let storeRoot: URL?
     private let revisions = LinksRevisionCoordinator()
     private let revisionNetwork: () -> URLSession
+    private var revisionBusyOwner: UUID?
+    var pendingRevisionWaiters: Int { revisions.pendingWaiterCount }
     @Published private(set) var preferencesError: String?
 
     init(preferencesStore: LinkPreferencesStore = LinkPreferencesStore(), storeRoot: URL? = nil,
@@ -94,8 +96,12 @@ final class LinksModel: ObservableObject {
         return try await revisions.value(installed:installed,force:force) { [self] in
             guard operation == generation else { throw CancellationError() }
             let network = revisionNetwork()
+            let owner = UUID(); revisionBusyOwner = owner
             busy = true
-            defer { network.invalidateAndCancel(); if operation == generation { busy = false } }
+            defer {
+                network.invalidateAndCancel()
+                if operation == generation, revisionBusyOwner == owner { revisionBusyOwner = nil; busy = false }
+            }
             let result = try await MappingService(baseURL:endpoint.deletingLastPathComponent(),network:network)
                 .checkRevision(installed:installed,path:"links-revision")
             try Task.checkCancellation()
@@ -143,6 +149,7 @@ final class LinksModel: ObservableObject {
     func resetForRetention() {
         generation = UUID()
         revisions.reset()
+        revisionBusyOwner = nil
         saved = nil; store = nil; ready = false; busy = false
         updateAvailable = false; message = nil; failed = false
     }
