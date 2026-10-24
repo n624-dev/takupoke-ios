@@ -2630,6 +2630,12 @@ N129照合:N128の詳細とb6bd91f/c23433c、Windows4bfc01c/36954cbの同method�
 
 OsmanyaはUTF16で2unitとなるが、FoundationのrangeOfCharacter境界照会では今回前置数字を検出しなかった。候補は行ごとのUTF16列を必要時に一回だけ作り、境界でsurrogate pairを明示復元してUnicode十進数字かを調べる。WindowsのRune検査は同条件を既に拒否しているので保持する。新しい拒否guardで不正明示時刻を必ず拒否し、連続見出し未記載の独立正対照は元cell経路の正しい08:50〜10:35を必須とする。既存の正常隣接/全半角/保存保持の入力・期待値は変えず、候補/根拠をpush後に6ケース/11展開として再検査する。
 
+## N137 新規roleScopeの部分evidence正対照が全Validatorで拒否（2026-10-24、ローカル）
+
+source19f75df、Linux Swift6.1.2、新規testOCRRoleScopePreviewCanSelectTheWholeFieldWithPartialProviderEvidenceのpreview前提assertが`rolePartition`で失敗した。選択した22件中1失敗/0unexpected（5.028秒）、うち再認証19件中1失敗（0.723秒）。compile成功、全captureの構成/attaching、訂正draftと完成結果の残assertは通過した。ログ/tmp/takupoke-ios93-scope.log。直前169557dの全592件は別途失敗0（75.459秒）。部分evidenceのfixtureを正常previewとした前提とValidator全体を、対処選択前に照合する。
+
+N137照合:rolePartition/部分evidenceの過去索引と、db1d856/currentのmenu条件、Validator:462〜478を全文照合した。個別scopeのevidence検査だけでなく、全役割の重複なし和集合が本文全体と一致するrolePartitionを保持しているため、追加本文を落としたpreviewは正常ではない。直前の静的解釈はこの全体検査を見落としていた。候補は元の完全親一致menu条件へ戻し、同じ追加本文のfixtureを「欠落previewは拒否/訂正へ誘導しない」負対照にする。同じ全scopeを本番Rulesで再構成したpreviewは全Validatorを通り、全親を保って手動訂正・完成できることを正対照にする。元のValidatorや原本/画像/採用条件は一切緩めない。記録と候補をpush後に再検査する。
+
 ## N136 追加修正後の全Swift回帰で7失敗（2026-10-24、ローカル）
 
 source f809489（実Foundation code04452c4まで、所有SPM projectへ同じ変更を反映）、Linux Swift6.1.2。全591件に7失敗/0unexpected、75.211秒、06:39:55 UTC終端。コンパイルは成功。ログ/tmp/takupoke-ios-remaining-all-swift.log。並行のPython全279件は成功/予定skip2（60.423秒）。焦点57/65件の成功とは別に、全体の失敗を対処選択前に記録する。次にcase/段階と当時/現コードを照合する。

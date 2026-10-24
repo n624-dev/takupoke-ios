@@ -8,7 +8,7 @@ import Crypto
 
 // Entirely invented geometry/values. No PDF, OCR, providers or private input.
 final class RecoveryRecertificationTests: XCTestCase {
-    func testOCRRoleScopePreviewCanSelectTheWholeFieldWithPartialProviderEvidence() throws {
+    func testOCRRoleScopeRejectsOmittedEvidenceAndKeepsWholeFieldCorrectionAvailable() throws {
         var (doc,result) = roleFixture()
         doc.sources.append(.init(id:"subject-extra",cellId:"c0",page:1,text:"架空追記",box:.init(x:182,y:110,width:7,height:10)))
         doc.cells[0].sourceIds.append("subject-extra")
@@ -25,11 +25,13 @@ final class RecoveryRecertificationTests: XCTestCase {
         let capture = RecoveryOCRAcquisitionDraft(sourcePDFHash:doc.pdfHash,documentPageCount:1,requiredOCRPages:[1],pages:[
             .init(page:1,width:700,height:1000,nativeDocumentCount:1,lines:lines,captureComplete:true)])
         doc = try RecoveryManualAssistance.attaching(capture,to:doc)
-        XCTAssertEqual(RecoveryValidator.validate(doc,result).errors,[])
+        XCTAssertEqual(RecoveryValidator.validate(doc,result).errors,["rolePartition"])
         XCTAssertEqual(result.cells[0].lessons[0].subject.evidence,["subject"])
         let target = RecoveryManualTarget(cellId:"c0",lessonIndex:0,role:.subject)
-        XCTAssertTrue(RecoveryManualAssistance.selectableTargets(doc,result).contains(target))
+        XCTAssertFalse(RecoveryManualAssistance.selectableTargets(doc,result).contains(target))
         let draft = try XCTUnwrap(RecoveryManualAssistance.prepare(doc,os:"test",selected:[target]))
+        XCTAssertEqual(RecoveryValidator.validate(doc,draft.originalResult).errors,[])
+        XCTAssertTrue(RecoveryManualAssistance.selectableTargets(doc,draft.originalResult).contains(target))
         XCTAssertEqual(draft.fields.first?.parentSourceIds,["subject","subject-extra"])
         result = try RecoveryManualAssistance.complete(draft,values:[target.key:"架空確認科目"])
         XCTAssertTrue(RecoveryValidator.validate(doc,result).canAdopt)

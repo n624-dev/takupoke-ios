@@ -1,7 +1,7 @@
 # PDF復旧・OCR・構造・Validator・端末内Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`e79ac15543ea32f0037b92b8e1a8cfd3ceea475697f592939e1444cf08419718`
+`6878caa4737b7b0af8a92743853665ffb07f9627ee6f48e3eb1e60203188511d`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -184,7 +184,7 @@ bash tools/test-parsing.sh
 
 ## [tests/RecoveryRecertificationTests.swift](../../tests/RecoveryRecertificationTests.swift)
 
-- `testOCRRoleScopePreviewCanSelectTheWholeFieldWithPartialProviderEvidence`
+- `testOCRRoleScopeRejectsOmittedEvidenceAndKeepsWholeFieldCorrectionAvailable`
 - `testFirstYearRecoveryMigrationKeepsEvidenceAndRejectsAChangedProjection`
 - `testLegalOldConfirmationCarriesForwardExactlyWithoutAnotherConfirmation`
 - `testFixedAndScopedInlineCompoundCannotRetainOldOrForgedCurrentConfirmation`

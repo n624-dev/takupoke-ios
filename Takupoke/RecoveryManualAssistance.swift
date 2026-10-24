@@ -125,7 +125,7 @@ enum RecoveryManualAssistance {
                     let field = role == .subject ? lesson.subject : role == .teacher ? lesson.teacher : lesson.room
                     guard field.state == .present,
                           let ids = parents(cell,lesson:lessonIndex,role:role,sources:sources), !ids.isEmpty,
-                          !field.evidence.isEmpty, Set(field.evidence).isSubset(of:Set(ids)), ids.allSatisfy({ id in
+                          field.evidence == ids, ids.allSatisfy({ id in
                               guard let source = sources[id], source.fromOcr, source.page == cell.page,
                                     source.cellId == cell.id, let line = source.sourceLine else { return false }
                               return lines.contains("\(source.page):\(line)")

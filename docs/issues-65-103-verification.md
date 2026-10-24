@@ -182,6 +182,8 @@ catalogのrecertify/RecoveryManualAssistanceTestsと既存の旧版fingerprint/�
 
 ## 訂正メニューの欄別OCR対象判定（93）
 
+直前のscope部分evidenceに関する解釈は、N137の実行で全体のrolePartition検査を見落としていたと判明した。完全親一致の元menu条件へ戻し、本文を落としたpreviewは全体拒否/誘導なし、全本文を本番Rulesで再構成したscopeは全Validatorを通して訂正できるという正負対照へ訂正する。Validatorを緩めず、異常なpreviewを正常とする前のassertは採用しない。
+
 追加の静的照合では、固定bindingはValidatorがevidence==親集合を要求する一方、roleProposalは同じ役割scope内の部分evidenceも受理する。最初のmenu候補は両方に完全一致を要求していたため、正常なscope previewの訂正を隠す。入力Validatorと同じ親集合内の非空evidenceをmenu条件にし、全親sourceのOCR/ページ/cell/取得lineは引き続き必須とする。実roleScope fixtureへOCR取得記録と同じscopeの追加本文を付け、現行Validatorがpreviewを受理すること、欄全体の両親sourceを訂正draftへ引き継ぎ、完成結果を全Validatorで再検証する回帰を追加する。学校資料/PDF実描画/実OCRの成功とはせず、原本/画像/採用の完全検査は変更しない。実行前。
 
 db1d856の新規欄別回帰と周辺の明示訂正/必須訂正/取得/再認証はLinux Swift6.1.2で60件/失敗0（11.827秒）。実UIとApple compileは未確認。高信頼/低信頼と3欄上限を変更していない。
