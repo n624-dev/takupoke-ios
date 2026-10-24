@@ -2630,6 +2630,14 @@ N129照合:N128の詳細とb6bd91f/c23433c、Windows4bfc01c/36954cbの同method�
 
 OsmanyaはUTF16で2unitとなるが、FoundationのrangeOfCharacter境界照会では今回前置数字を検出しなかった。候補は行ごとのUTF16列を必要時に一回だけ作り、境界でsurrogate pairを明示復元してUnicode十進数字かを調べる。WindowsのRune検査は同条件を既に拒否しているので保持する。新しい拒否guardで不正明示時刻を必ず拒否し、連続見出し未記載の独立正対照は元cell経路の正しい08:50〜10:35を必須とする。既存の正常隣接/全半角/保存保持の入力・期待値は変えず、候補/根拠をpush後に6ケース/11展開として再検査する。
 
+## N134 Windows統合全体で特別PDF回帰1件失敗（2026-10-24、ローカル）
+
+source53cdf7e、Linux/.NET10.0.402。Core全体は成功した後、Integration全体340展開中1失敗/339成功（9秒）。ログ/tmp/takupoke-win35-integration-full.log。前の焦点fc5fdceの111件成功とは別sourceで、追加した複合塗り対照を含む全体の失敗。具体case/段階の詳細は次に読み、対処選択前の観測として記録する。
+
+N134詳細:Core223件/失敗0。失敗は新規IndependentCompoundFillControlsKeepTheSpecialTimetable(returns:true, `10 10 1 30 re 11 10 1 30 re f`)で、実PdfPaintVisibility.Validate:148がP01をthrowした。試験の離れた塗り対照と全negative、他339件は成功。重なりではなく接触だけの2矩形を一つの塗り演算で描いた条件。製品条件を変える前に記録する。
+
+N134照合:既存34の可視罫線/compound/接触を索引・Windows検証記録で検索し、fc5fdceと53cdf7eのPdfPaintVisibility.Paths/Validateが同じと確認した。Pathsは一つのfill演算の矩形ごとに_orderを増やし、Validateは接触した次の矩形を後続の上塗りと見なす。正の面積の重なりはPathsが既に全体拒否するので、同一fill内の隣接subpathは同時描画として同じorderを持つべきである。候補はfillのorderを一度だけ採番し全矩形へ使う。別演算の後続上塗り/文字/重なり拒否/limitsを保ち、元の完全返却7授業と接触PDFの期待を変えない。iOS側のcompound照会は既に正の面積だけを用い、Strictの可視性は変えない。候補と根拠をpush後、元の全体を再検査する。
+
 ## N133 Windows特別PDFの修正前可視性と新fixture（2026-10-24、ローカル）
 
 source25e1fb4、Linux/.NET10.0.402、追加Special回帰8展開は1成功/7失敗（527ms）。compile成功、既存CS8602/xUnit2031警告。完全返却7授業は成功。一方試験のwriterは実font mapに未登録の文字でJsonElement.GetProperty/KeyNotFoundExceptionとなり、Reader実行前の失敗。返却の白本文/上塗り/未知alphaは例外を投げず拒否assertが失敗した。ログ/tmp/takupoke-win35-before.log。製品のSpecial visibilityは未変更。対処案を選ぶ前に事実を記録する。
