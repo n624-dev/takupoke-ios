@@ -225,7 +225,9 @@ struct PDFRecoveryView: View {
         ForEach(RecoveryRole.allCases,id:\.self) { value in
             let field:RecoveryField = value == .subject ? lesson.subject : value == .teacher ? lesson.teacher : lesson.room
             let target = RecoveryManualTarget(cellId:cellId,lessonIndex:lessonIndex,role:value)
-            manualCorrectionButton(target,field:field)
+            if coordinator.manualCorrectionTargets.contains(target) {
+                manualCorrectionButton(target,field:field)
+            }
         }
     }
     private func manualCorrectionButton(_ target:RecoveryManualTarget,field:RecoveryField) -> some View {

@@ -371,6 +371,35 @@ extension PDFParsingTests {
         XCTAssertNil(oldJSON["selectedTargets"])
     }
 
+    func testCorrectionMenuEligibilityUsesEachFieldsOCRSources() throws {
+        for low in [0,1,3] {
+            let document = try manualFixture(lowCount:low)
+            let cell = try XCTUnwrap(document.cells.first { !$0.confirmedEmpty && !$0.lessonBindings.isEmpty })
+            let room = RecoveryManualTarget(cellId:cell.id,lessonIndex:0,role:.room)
+            let draft = try XCTUnwrap(RecoveryManualAssistance.prepare(document,os:"test",selected:[room]))
+            let targets = RecoveryManualAssistance.selectableTargets(document,draft.originalResult)
+            XCTAssertTrue(targets.contains(room))
+            XCTAssertTrue(Set(draft.fields.map(\.target)).isSubset(of:targets))
+            var mixed = document
+            let vectorIDs = Set(cell.lessonBindings[0].subject)
+            for index in mixed.sources.indices where vectorIDs.contains(mixed.sources[index].id) {
+                mixed.sources[index].fromOcr = false; mixed.sources[index].nativeConfidence = nil
+            }
+            let subject = RecoveryManualTarget(cellId:cell.id,lessonIndex:0,role:.subject)
+            XCTAssertTrue(targets.contains(subject))
+            let mixedTargets = RecoveryManualAssistance.selectableTargets(mixed,draft.originalResult)
+            XCTAssertFalse(mixedTargets.contains(subject))
+            XCTAssertTrue(mixedTargets.contains(room))
+            XCTAssertThrowsError(try RecoveryManualAssistance.prepare(mixed,os:"test",selected:[subject]))
+            var missingCapture = document; missingCapture.nativeCapture = nil
+            XCTAssertTrue(RecoveryManualAssistance.selectableTargets(missingCapture,draft.originalResult).isEmpty)
+            var unbound = draft.originalResult
+            let output = try XCTUnwrap(unbound.cells.firstIndex { $0.cellId == cell.id })
+            unbound.cells[output].lessons[0].room.evidence = ["fictional-unbound-source"]
+            XCTAssertFalse(RecoveryManualAssistance.selectableTargets(document,unbound).contains(room))
+        }
+    }
+
     func testExplicitSelectionRetainsAllMandatoryFieldsAndThreeFieldUnionLimit() throws {
         let document = try manualFixture(lowCount:1)
         let mandatory = try XCTUnwrap(RecoveryManualAssistance.prepare(document,os:"test"))

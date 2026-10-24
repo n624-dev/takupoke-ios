@@ -18,7 +18,12 @@ struct RecoveryManualReview: Identifiable {
 final class PDFRecoveryCoordinator: ObservableObject {
     @Published private(set) var running = false
     @Published private(set) var status = ""
-    @Published var preview: RecoveryPreview?
+    @Published var preview: RecoveryPreview? {
+        didSet {
+            manualCorrectionTargets = preview.map { RecoveryManualAssistance.selectableTargets($0.document,$0.result) } ?? []
+        }
+    }
+    @Published private(set) var manualCorrectionTargets = Set<RecoveryManualTarget>()
     @Published private(set) var failure: String?
     @Published private(set) var awaitingModel = false
     @Published private(set) var manualDraft: RecoveryManualDraft?
@@ -240,7 +245,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
     /// The default parser, its failure eligibility and OCR acquisition are untouched.
     func selectManualCorrection(_ target:RecoveryManualTarget) {
         guard LocalAIFeaturePolicy.enabled, !running, let candidate = preview,
-              candidate.document.nativeCapture != nil, source != nil else { return }
+              manualCorrectionTargets.contains(target), source != nil else { return }
         let selected = Set((candidate.result.humanCorrections ?? []).map(\.target)).union([target])
         guard selected.count <= RecoveryManualAssistance.maximumFields else {
             failure = nil; status = "訂正できる本文は、確認が必要な項目を含め合計3項目までです。"; return

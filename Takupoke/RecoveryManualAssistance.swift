@@ -108,6 +108,35 @@ enum RecoveryManualAssistance {
         }
     }
 
+    /// Menu eligibility only, computed once when a validated preview changes.
+    /// Selection still performs full native provenance and source-file validation.
+    static func selectableTargets(_ doc:RecoveryDocument,_ result:RecoveryResult) -> Set<RecoveryManualTarget> {
+        guard let capture = doc.nativeCapture, capture.sourcePDFHash == doc.pdfHash,
+              doc.cells.count <= 20000, doc.sources.count <= 100000 else { return [] }
+        let sources = Dictionary(doc.sources.map { ($0.id,$0) },uniquingKeysWith:{ first,_ in first })
+        let cells = Dictionary(doc.cells.map { ($0.id,$0) },uniquingKeysWith:{ first,_ in first })
+        guard sources.count == doc.sources.count, cells.count == doc.cells.count else { return [] }
+        let lines = Set(capture.pages.flatMap { page in page.lines.map { "\(page.page):\($0.nativeOrder)" } })
+        var eligible = Set<RecoveryManualTarget>()
+        for output in result.cells where output.state == .present {
+            guard let cell = cells[output.cellId] else { continue }
+            for (lessonIndex,lesson) in output.lessons.enumerated() where lessonIndex < cell.parallelCount {
+                for role in RecoveryRole.allCases {
+                    let field = role == .subject ? lesson.subject : role == .teacher ? lesson.teacher : lesson.room
+                    guard field.state == .present,
+                          let ids = parents(cell,lesson:lessonIndex,role:role,sources:sources), !ids.isEmpty,
+                          field.evidence == ids, ids.allSatisfy({ id in
+                              guard let source = sources[id], source.fromOcr, source.page == cell.page,
+                                    source.cellId == cell.id, let line = source.sourceLine else { return false }
+                              return lines.contains("\(source.page):\(line)")
+                          }) else { continue }
+                    eligible.insert(.init(cellId:cell.id,lessonIndex:lessonIndex,role:role))
+                }
+            }
+        }
+        return eligible
+    }
+
     static func fields(_ doc: RecoveryDocument, selected: Set<RecoveryManualTarget> = [], check: @escaping () throws -> Void = {}, work suppliedWork: RecoveryValidationWork? = nil) throws -> [RecoveryManualField] {
         guard selected.count <= maximumFields else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
         guard let capture = doc.nativeCapture else {
