@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`7bd334e1b8b1b1b7909c235e7409de1e47c4c8213efcf7671bb4944bc239bbb5`
+`62b6a9199f67f090e7a0bbb131ff2715d950be8e2cb9afb46005ecc5970c3508`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -115,6 +115,7 @@ python3 -B tools/pdf_branch_catalog.py check
 
 ## [tests/PDFTextGeometryTests.swift](../../tests/PDFTextGeometryTests.swift)
 
+- `testCompoundFillOverlapRequiresAreaButKeepsExistingInclusiveTextCollision`
 - `testCollisionIndexMatchesInclusiveBruteForceAcrossWidthsPadsAndBoundaryContacts`
 - `testCollisionIndexKeepsDenseDisjointTableSearchInsideOneOriginalPaintBudget`
 - `testCollisionIndexChargesConstructionSearchAndPreservesThrownCancellation`
@@ -146,6 +147,7 @@ python3 -B tools/pdf_branch_catalog.py check
 - `testNativeExplicitFontAndUnicodeResourcesDecodeIndependently`
 - `testNativeNearAxisMiterAndNonSimilarStrokeCannotCertifyPaintBounds`
 - `testNativeCrossedOrRetracedThinFillIsNotARectangularBorder`
+- `testNativeCompoundFillCannotTurnCancelledSubpathsIntoTableRules`
 - `testNativeWhiteTextAndOpaqueRepaintUseRasterInsteadOfSelectableText`
 - `testNativeCroppedOutBodyCannotBecomeCompleteInput`
 - `testNativeOffCanvasSelectableTextCannotBecomeCompleteInput`

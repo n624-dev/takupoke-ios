@@ -13,6 +13,18 @@ import AppKit
 #endif
 
 final class PDFTextGeometryTests: XCTestCase {
+    func testCompoundFillOverlapRequiresAreaButKeepsExistingInclusiveTextCollision() throws {
+        let a = PDFBox(left:10,top:10,right:11,bottom:40)
+        for (box,overlap) in [(a,true),(PDFBox(left:10,top:20,right:11,bottom:50),true),
+                              (PDFBox(left:11,top:10,right:12,bottom:40),false),
+                              (PDFBox(left:20,top:10,right:21,bottom:40),false)] {
+            let index = try PDFTextCollisionIndex([a,box],work:{})
+            XCTAssertEqual(try index.overlaps(a,pad:0,excluding:0,includeTouching:false,work:{}),overlap)
+        }
+        let touching = try PDFTextCollisionIndex([PDFBox(left:11,top:10,right:12,bottom:40)],work:{})
+        XCTAssertTrue(try touching.overlaps(a,pad:0,work:{}))
+        XCTAssertFalse(try touching.overlaps(a,pad:0,includeTouching:false,work:{}))
+    }
     func testCollisionIndexMatchesInclusiveBruteForceAcrossWidthsPadsAndBoundaryContacts() throws {
         var boxes = [PDFBox(left:-200,top:-90,right:100,bottom:10),PDFBox(left:20,top:30,right:20,bottom:30)]
         for i in 0..<80 {
@@ -676,6 +688,34 @@ extension PDFTextGeometryTests {
             let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
             XCTAssertGreaterThan(try paintedInk(data),0)
             XCTAssertEqual(try PDFPathReader(transform:transform,verifyVisibility:true,check:{}).read(page).count,1)
+        }
+    }
+    func testNativeCompoundFillCannotTurnCancelledSubpathsIntoTableRules() throws {
+        let transform = PDFDisplayTransform(media:CGRect(x:0,y:0,width:300,height:400),rotation:0)
+        let negatives:[(String,Bool)] = [
+            ("10 10 1 30 re 10 10 1 30 re f*",false),
+            ("10 10 1 30 re 10 10 m 10 40 l 11 40 l 11 10 l h f",false),
+            ("10 10 1 30 re 10 10 1 30 re f",true),
+            ("10 10 1 30 re 10 20 1 30 re f*",true)]
+        for (content,visible) in negatives {
+            let data = syntheticPDF(content:content,simpleFont:true)
+            XCTAssertEqual(try paintedInk(data) > 0,visible)
+            let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
+            XCTAssertThrowsError(try PDFPathReader(transform:transform,verifyVisibility:true,check:{}).read(page)) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage,.vectorObjects)
+                XCTAssertEqual(($0 as? PDFParseError)?.branch,.b426)
+            }
+        }
+        for op in ["f","f*"] {
+            for (content,count) in [("10 10 1 30 re \(op)",1),
+                                    ("10 10 1 30 re 20 10 1 30 re \(op)",2),
+                                    ("10 10 1 30 re 11 10 1 30 re \(op)",2),
+                                    ("10 10 1 30 re \(op) 10 10 1 30 re \(op)",2)] {
+                let data = syntheticPDF(content:content,simpleFont:true)
+                XCTAssertGreaterThan(try paintedInk(data),0)
+                let provider = try XCTUnwrap(CGDataProvider(data:data as CFData)), document = try XCTUnwrap(CGPDFDocument(provider)), page = try XCTUnwrap(document.page(at:1))
+                XCTAssertEqual(try PDFPathReader(transform:transform,verifyVisibility:true,check:{}).read(page).count,count)
+            }
         }
     }
 #if canImport(AppKit)

@@ -1,7 +1,8 @@
 import Foundation
 
 /// Broad-phase lookup only: every candidate still uses the original inclusive
-/// collision predicate. Index creation/search consume the caller's same budget.
+/// collision predicate by default. Compound fills request positive-area overlap.
+/// Index creation/search consume the caller's same budget.
 struct PDFTextCollisionIndex {
     private let boxes: [PDFBox]
     private let xOrder: [Int]
@@ -37,7 +38,7 @@ struct PDFTextCollisionIndex {
         }
         return try bound(lower,afterEqual:false)..<bound(upper,afterEqual:true)
     }
-    func overlaps(_ query: PDFBox, pad: Double, excluding: Int? = nil, work: () throws -> Void) throws -> Bool {
+    func overlaps(_ query: PDFBox, pad: Double, excluding: Int? = nil, includeTouching:Bool = true, work: () throws -> Void) throws -> Bool {
         guard [query.left,query.top,query.right,query.bottom,pad].allSatisfy(\.isFinite),
               query.left <= query.right, query.top <= query.bottom, pad >= 0,
               (query.left-pad).isFinite, (query.top-pad).isFinite,
@@ -53,8 +54,11 @@ struct PDFTextCollisionIndex {
             try work()
             if order[index] == excluding { continue }
             let box = boxes[order[index]]
-            if box.left <= query.right+pad && query.left-pad <= box.right &&
-               box.top <= query.bottom+pad && query.top-pad <= box.bottom { return true }
+            if includeTouching {
+                if box.left <= query.right+pad && query.left-pad <= box.right &&
+                   box.top <= query.bottom+pad && query.top-pad <= box.bottom { return true }
+            } else if box.left < query.right+pad && query.left-pad < box.right &&
+                      box.top < query.bottom+pad && query.top-pad < box.bottom { return true }
         }
         return false
     }
@@ -215,6 +219,26 @@ final class PDFPathReader {
             }
         }
         if verifyVisibility && fill && !paths.isEmpty {
+            // A compound fill is one shape. Its subpaths can cancel or cut holes
+            // under either winding rule, so individual rectangles prove no ink.
+            if paths.count > 1 {
+                var boxes = [PDFBox]()
+                for path in paths {
+                    guard let box = bounds(of:path) else { return }
+                    boxes.append(PDFBox(left:Double(box.left),top:Double(box.top),right:Double(box.right),bottom:Double(box.bottom)))
+                }
+                do {
+                    let work = { [self] in
+                        if !consumePaintWork(), let failure { throw failure }
+                    }
+                    let index = try PDFTextCollisionIndex(boxes,work:work)
+                    for (i,box) in boxes.enumerated() {
+                        if try index.overlaps(box,pad:0,excluding:i,includeTouching:false,work:work) {
+                            failure = PDFParseError(code:.unsupported,stage:.vectorObjects,branch:.b426); return
+                        }
+                    }
+                } catch { failure = error; return }
+            }
             guard !textSeen || !textBoxes.isEmpty else {
                 failure = PDFParseError(code:.unsupported,stage:.vectorObjects, branch:.b123); return
             }

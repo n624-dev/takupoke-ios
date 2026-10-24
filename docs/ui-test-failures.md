@@ -2630,6 +2630,12 @@ N129照合:N128の詳細とb6bd91f/c23433c、Windows4bfc01c/36954cbの同method�
 
 OsmanyaはUTF16で2unitとなるが、FoundationのrangeOfCharacter境界照会では今回前置数字を検出しなかった。候補は行ごとのUTF16列を必要時に一回だけ作り、境界でsurrogate pairを明示復元してUnicode十進数字かを調べる。WindowsのRune検査は同条件を既に拒否しているので保持する。新しい拒否guardで不正明示時刻を必ず拒否し、連続見出し未記載の独立正対照は元cell経路の正しい08:50〜10:35を必須とする。既存の正常隣接/全半角/保存保持の入力・期待値は変えず、候補/根拠をpush後に6ケース/11展開として再検査する。
 
+## N132 複合塗りの独立描画対照が期待と不一致（2026-10-24、ローカル）
+
+source db1d856＋未commitの101候補/Native回帰、Linux Poppler pdftoppm 72dpi gray既定描画。完全架空300×400PDFの同一矩形二重subpath `10 10 1 30 re 10 10 1 30 re f*` に、白以外の画素が62あり、「白以外0」のassertが失敗した。PDFの作成/xref読込/描画/PGM寸法は成功。TemporaryDirectoryは回収済み。Apple/製品Readerは未実行、暗さやanti-aliasの寄与はまだ未調査。対処選択前に観測を記録する。
+
+N132照合:alias/描画対照/paintedInk/画素0で旧索引を検索し、同じ複合塗り対照はない。旧NativeのpaintedInkは既定antialiasの白以外を数え、旧thin-fill正対照は正の画素だけを要求していた。今回追加のゼロ画素assertはまだApple実行していない。現/元PathReaderはsubpathを個別の矩形として扱い、Windows通常Readerは既に重なり拒否を持つ。まず同一PDF入力の既定/明示vector-antialias無効を比較し、全非白画素の値と範囲を記録する診断を行う。製品条件/Native期待はその観測前に変更せず、最初の62画素観測を保持する。記録/候補をpush後に診断を行う。
+
 ## N131 CMap比較ハーネスの準備失敗（2026-10-24、ローカル）
 
 source iOS6b85e4a/Windows40bde67、Linux、05:30 UTC前後。独立計測の準備PythonがWindowsの実ファイルをParsing配下ではないpathで参照しFileNotFoundError。set -eのない親shellが続行し、未作成win-after projectをdotnet buildしてMSB1009、未作成DLL実行も失敗した。製品テストは別途iOS5件/Windows13件成功済みで、この失敗は製品parserの実行前。対処を選ぶ前の観測として記録する。
