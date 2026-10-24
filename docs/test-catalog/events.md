@@ -1,7 +1,7 @@
 # 学校行事API・年度別保存
 
 対応関係・宣言名・実行方法のSHA-256：
-`599815ea5c9d21fcd0aee8e8bde15d75ba137958f7d212b51c46b5c5d55e06dc`
+`89ea0850d2e9846b1e904f2ef9f5b55b91a9b4e70132b1a5da03d0b5e18a6d23`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -15,6 +15,7 @@ bash tools/test-parsing.sh
 - [Takupoke/SchoolEventsModel.swift](../../Takupoke/SchoolEventsModel.swift)
 - [Takupoke/SchoolEventsStore.swift](../../Takupoke/SchoolEventsStore.swift)
 - [Takupoke/SchoolEventsView.swift](../../Takupoke/SchoolEventsView.swift)
+- [Takupoke/SchoolEventsSourceStatus.swift](../../Takupoke/SchoolEventsSourceStatus.swift)
 
 ## [tests/SchoolEventsAPITests.swift](../../tests/SchoolEventsAPITests.swift)
 
@@ -32,3 +33,12 @@ bash tools/test-parsing.sh
 - `testOldSavedResultWithoutResponseETagCanLoad`
 - `testNotModifiedRequiresMatchingSavedValidatorAndEmptyBody`
 - `testWeekdayTagRequiresAnExplicitWeekday`
+
+## [tests/SchoolEventsSourceStatusTests.swift](../../tests/SchoolEventsSourceStatusTests.swift)
+
+- `testMatchingUsesYearHashAndExactDeliveredVersion`
+- `testUnknownDifferentUnavailableCheckingAndStaleRemainDistinct`
+- `testStatusCacheExpiresAtTwelveHoursAndCheckingAtOneMinute`
+- `testCacheRoundTripAndCorruptionCannotModifySavedEvents`
+- `testMalformedStatusCannotClaimAnUnverifiedMatch`
+- `testClientUsesOnlyGETStatusAPIAndRejectsErrorsWithoutDeletingLastSuccess`

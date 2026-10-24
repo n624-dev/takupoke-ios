@@ -154,7 +154,7 @@ let package = Package(
                     "SpecialScheduleParser+Pages.swift",
                     "SpecialScheduleStore.swift",
                     "SpecialScheduleRecord.swift",
-                    "SchoolEventsAPI.swift",
+                    "SchoolEventsAPI.swift", "SchoolEventsSourceStatus.swift",
                     "SchoolEventsStore.swift",
                     "LinksAPI.swift",
                     "LinksStore.swift",
@@ -221,7 +221,7 @@ let package = Package(
                     "SpecialScheduleTests.swift",
                     "SpecialScheduleTests+Fixtures.swift",
                     "SpecialScheduleTests+Persistence.swift",
-                    "SchoolEventsAPITests.swift",
+                    "SchoolEventsAPITests.swift", "SchoolEventsSourceStatusTests.swift",
                     "LinksTests.swift",
                 ] + mappingTests, resources: [.copy("fixtures")])
     ]

@@ -172,10 +172,12 @@
         "Takupoke/SchoolEventsAPI.swift",
         "Takupoke/SchoolEventsModel.swift",
         "Takupoke/SchoolEventsStore.swift",
-        "Takupoke/SchoolEventsView.swift"
+        "Takupoke/SchoolEventsView.swift",
+        "Takupoke/SchoolEventsSourceStatus.swift"
       ],
       "checks": [
-        "tests/SchoolEventsAPITests.swift"
+        "tests/SchoolEventsAPITests.swift",
+        "tests/SchoolEventsSourceStatusTests.swift"
       ]
     },
     {

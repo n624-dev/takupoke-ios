@@ -6,7 +6,7 @@ struct SchoolEventsSettingsView: View {
     var body: some View {
         List { SchoolEventsSettingsSection(model: model) }
             .navigationTitle("学校行事")
-            .task { model.loadIfNeeded() }
+            .task { model.loadIfNeeded(); model.refreshSourceStatus() }
             .scrollDismissesKeyboard(.interactively)
     }
 }
@@ -64,8 +64,8 @@ struct SchoolEventsSettingsSection: View {
                     .font(.caption).foregroundStyle(.orange)
             }
             if let message = model.sourceCheckMessage {
-                Label(message, systemImage: "exclamationmark.triangle")
-                    .font(.caption).foregroundStyle(.orange)
+                Label(message, systemImage: "info.circle")
+                    .font(.caption).foregroundStyle(.secondary)
             }
         }
     }
@@ -120,8 +120,8 @@ struct SchoolEventsWarnings: View {
                     .font(.caption).foregroundStyle(.orange)
             }
             if let warning = model.sourceCheckMessage {
-                Label(warning, systemImage: "exclamationmark.triangle")
-                    .font(.caption).foregroundStyle(.orange)
+                Label(warning, systemImage: "info.circle")
+                    .font(.caption).foregroundStyle(.secondary)
             }
         }
     }

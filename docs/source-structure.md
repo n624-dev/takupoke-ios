@@ -28,7 +28,7 @@
 | 通常PDF解析 | `PDFAnalysis` はモデル、`PDFParseError` はエラー、`PDFGrid` はセルの位置関係。`PDFSchoolParser` と `Timetable`・`Events` は既存解析。旧行事PDFのタグ付け規則も維持。 |
 | 試験・返却PDF | `SpecialSchedule` はモデル、`SpecialScheduleParser` は文書検証と共通セル処理、`Times` は時刻、`Pages` は各PDF書式の読出し。`SpecialScheduleRecord` は保存モデル。 |
 | 試験・返却の取得状態 | `SpecialSchedulesModel` は状態と直列実行、`Startup` は起動時確認、`Analysis` は選択・再解析、`Provider` は原本の読出し。 |
-| 行事API・診断 | `SchoolEventsAPI` は応答検証、`SchoolEventsStore` は保存。`PDFDiagnostics` は固定コードと数値の診断、`PDFFullReadDiagnostic` は全文診断モデル。 |
+| 行事API・診断 | `SchoolEventsSourceStatus` は元PDF状態の応答検証・12時間キャッシュ・状態文言、`SchoolEventsAPI` は行事応答検証、`SchoolEventsStore` は保存。`PDFDiagnostics` は固定コードと数値の診断、`PDFFullReadDiagnostic` は全文診断モデル。 |
 | XLSX | `ChangeAnalysis` はモデル、`ChangeNormalizer` は正規化、`Dates` は日付・曜日処理、`XLSXReader` はZIP・ブック検証、`Worksheet` はセル・式・結合セルの読出し、`BoundedXML` は上限つきXML読出し。 |
 
 日付、文字表記、OIDC、URLSession通信、各画面モデルなど、既に一つの役割にまとまった処理はその単位を維持しています。ファイル分割のために通信・保存・キャンセルの順序や、トランザクションの範囲を変えません。
