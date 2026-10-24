@@ -2775,3 +2775,9 @@ N148詳細：実touchは(339,609.33)のCellHostingViewへbegan後、0.073秒でc
 候補はvisibleの論理IDによる16探索/受動Cell操作/viewport先行観測をそのまま残し、clearが全表示かつhittableとなった最後だけ同じList/IDの実ButtonをallElementsBoundByAccessibilityElementで一度取得する。一意性・有限正枠・観測viewportへの全包含・enabled/hittableを再要求し、不在/曖昧/無効は失敗する。長寿命の外側identityをスクロール中へ持ち込まず、元Inputの同じ一回Button.tap/空欄45秒/ACK0/keyboard/全文入力/完了/保存/再起動を維持する。製品View/Binding/Strictは変更しない。候補がtouch取消しを解消するかは未検証とする。
 
 同時に既存QA専用sendEvent observerへ、touchに付いた最大6recognizerのclass名末尾16文字・stateと3つのBoolだけを読み取りで追加する。元sendEventは一回、観測上限128・所有ログ64KiB・本文/label/target非収集を維持する。次に取消しが起きたときにgesture状態を区別する観測であり、操作/recognizer状態/期待結果を変更しない。収集側は既存旧形式も認める厳格な全行形式とし、範囲外state/Bool・7個以上・任意本文を拒否する対照を既存ケースへ追加する。既存4訂正case×両OSが共通clearの実到達と保存までを検出するため、操作を模倣するテストは増やさない。候補/事実/根拠を隔離branchへpush後にローカル契約・幾何・構文/catalogを確認し、その一回専用の新規review後に全8限定比較を行う。正式全15は別途同一source/run/attemptで要求する。
+
+## N149 限定比較のdispatchが実行作成前に拒否（2026-10-24）
+
+sourcebf3da563c88042805952f7749bc3a5810f97fdc0、manual-input-native-probe/case=allの作成要求がHTTP422「No ref found for: bf3da563c88042805952f7749bc3a5810f97fdc0」でexit1。指定はfull commit SHA、実行ID/試行はまだ作成されずテスト未開始。直前のfeature branch pushは成功し、ローカルのreview artifactとの同一性/clean treeも成功。対処を選ぶ前の事実として記録する。
+
+N149照合：No ref found/422/dispatchを索引で検索し、同じ422の既往はない。旧N141はworkflow取得401で別条件。ローカルgh workflow run --helpは--refを「branch or tag」と明示し、今回のfull SHA指定がその契約外だった。旧1a5eb2dと現sourceのworkflow/case=all/両OS matrixは同一bytesと確認した。次は同じreview済みコードと今回の記録だけを含む隔離branch名をrefへ指定する。実行の作成時に一度だけhead SHAを取得し、この期待sourceと照合する。製品/QA/入力/期限/SDKは変更しない。前の要求ではActions自体が作成されていないため、新規reviewはまだ一回も開始へ消費しておらず、次の実際の限定比較一回へ使用する。別の実行へは転用しない。本記録をpush後に作成要求を修正する。
