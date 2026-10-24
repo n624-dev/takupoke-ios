@@ -249,3 +249,11 @@ SchoolEventsModelのHEAD経路を削除し、年度別に独立した状態Task�
 283cebf候補のローカル全体はSwift6.1.2で599件/失敗0（75.570秒）、Python279件/失敗0・専用環境の予定skip2（58.828秒）。最初のPython実行はSwiftのPATHを読まず16件追加skipとなったため、同じ候補で既存toolchain環境を読み直して全対象を実行した。最初のログも保持し、追加skipを合格へ数えていない。PDF枝一覧/テスト一覧/差分の空白検査も成功した。
 
 次のtest-tools(native_pdf=true,picker=true)専用に新規GPT-6.1 Sol/Highのcode-only reviewを実施した。不変差分5850行/357103bytes SHA256 0caa66943278b640b2c55d7f7881e186308795b48b7ca3b564cb7d9866132fc1と、省略された既存HomeTodayView context SHA256 3b916451d8daa13170d38da71733e2670198267eca3141eb0dadc033083b4e21を確認し、具体的指摘なし。dayを含むdetailRevisionで午前0時の再構成が成立することも照合した。旧042の未消費reviewは廃棄し、この新reviewを一回だけ使用する。Native/Pickerは全15正式公開検査の代用にせず、公開前は別の新規reviewと同一source/run/attemptの全必須合格が必要。
+
+## 環境復帰と先行Apple検証の修正候補
+
+環境切断前のtest-tools run40074272822/attempt1は全5job終端で、Linux/契約は成功、Native両SDKは追加testのNSObject.hash名衝突、PickerはCancel再解決のUI query timeoutで失敗した（N140詳細）。完了jobを取消し/成功へ置換せず、同じ終端runや完了ログは再取得しない。14:39 UTCに環境が戻ったが/tmpと関数storeは失われており、元ログの保存はないと記録した。学校資料やAPI行事本文は再取得していない。元のAPI監視は専用状態GETで再開し、14:40/14:46 UTCもmatched/stale=falseだった。
+
+711d48bはtest property名とPickerの実要素取得だけを変更し、製品・元3ケース/全連続操作・各期限は維持する。ローカルSwift6.1.2全599件/失敗0（77.890秒、準備込264.5秒）、Picker runner1件/失敗0（2.937秒）、manifest28件/失敗0（5.170秒）、構文/catalog/空白検査も成功した。Apple/実Filesは未確認。
+
+次のtest-tools(native_pdf=true,picker=true)一回だけのため、新規GPT-6.1 Sol/High ios_n140_pilot_pre_actions_reviewへ不変code diff5894行/359763bytes SHA256 501e8dcdc699a2b7161c856cabc9d7f7d6549bd26c8c0b0f1e60578163f13b7eとHome context14578bytes SHA256 3b916451d8daa13170d38da71733e2670198267eca3141eb0dadc033083b4e21を渡し、具体的指摘なしと確認した。未使用の以前の公開reviewは廃棄し、このreviewを後の正式公開へ使い回さない。Native/Picker合格後も同一source/run/attemptの全15正式検査が必要。
