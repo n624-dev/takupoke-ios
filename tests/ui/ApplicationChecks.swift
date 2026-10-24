@@ -39,7 +39,7 @@ final class ApplicationChecks: XCTestCase {
             "testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates": [
                 "--events-year-coverage", "--normal-only",
             ],
-            "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch": ["--change-row-skip"],
+            "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch": ["--change-row-skip", "--fixture-input-trace"],
         ]
         for (method, arguments) in initialConditions where name.contains(method) {
             app.launchArguments += arguments

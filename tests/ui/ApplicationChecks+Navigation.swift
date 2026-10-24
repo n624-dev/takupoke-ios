@@ -196,30 +196,40 @@ extension ApplicationChecks {
     }
     func tapNativeSwitch(_ row: XCUIElement, navigation: String? = nil) {
         _ = visible(row, navigation: navigation)
-        let controls = row.descendants(matching: .switch)
-        XCTAssertEqual(controls.count, 1, "The row must expose exactly one native switch")
-        let control = controls.element(boundBy: 0)
-        guard control.waitForExistence(timeout: 45) else {
-            XCTFail("Native switch is absent")
+        // Observe the surrounding layout before retaining a native identity.
+        // Keep the outer row as a logical query while it can be recycled.
+        let viewport = contentViewport(navigation: navigation)
+        let page = app.frame
+        let outer = row.frame
+        let rowEnabled = row.isEnabled, rowHittable = row.isHittable
+        let rowState = row.value as? String
+        var capturedControl: XCUIElement?
+        var ambiguous = false
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            let current = row.descendants(matching: .switch).allElementsBoundByAccessibilityElement
+            if current.count > 1 { ambiguous = true; return true }
+            guard let control = current.first, control.exists else { return false }
+            capturedControl = control
+            return true
+        }, object: app)
+        let outcome = XCTWaiter.wait(for: [ready], timeout: 45)
+        guard outcome == .completed, !ambiguous, let control = capturedControl else {
+            XCTFail("The row must expose exactly one native switch within 45 seconds")
             return
         }
         let frame = control.frame
-        let outer = row.frame
+        let state = control.value as? String
+        let enabled = control.isEnabled, hittable = control.isHittable
         guard usable(outer), usable(frame), outer.contains(frame),
-            contentViewport(navigation: navigation).contains(outer),
-            row.isEnabled, row.isHittable,
-            control.isEnabled, control.isHittable
+            viewport.contains(outer), rowEnabled, rowHittable, enabled, hittable
         else {
             XCTFail("Native switch has no safe hit region: " + app.debugDescription)
             return
         }
-        let page = app.frame
         guard usable(page), page.contains(outer) else {
             XCTFail("Native switch is outside its application window")
             return
         }
-        let state = control.value as? String
-        let rowState = row.value as? String
         guard let state, let rowState, ["0", "1"].contains(state), rowState == state else {
             XCTFail("Native switch state must be known and agree with its row")
             return
@@ -228,7 +238,8 @@ extension ApplicationChecks {
         print(
             "NATIVE_SWITCH row=\(outer);control=\(frame);observedPoint=\(point);rowState=\(rowState);controlState=\(state);target=native-element;method=brief-contact;duration=0.1"
         )
-        // U64: compare one brief contact at the same observed native track.
+        // Retain U64's one brief contact and point, now bound to the observed
+        // native identity instead of re-traversing the row's indexed child.
         // The caller must still verify actual UI and saved values within 45 seconds.
         control.coordinate(withNormalizedOffset: CGVector(
             dx: state == "0" ? 0.25 : 0.75, dy: 0.5)).press(forDuration: 0.1)
