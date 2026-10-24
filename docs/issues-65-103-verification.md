@@ -204,6 +204,8 @@ LinkRowは全モデルのObservedObjectから表示値snapshotへ切り替え、
 
 ## 時間割の受理済み入力索引（66、候補）
 
+04452c4の制御時計/境界/時刻/既存時間割はLinux Swift6.1.2で57件/失敗0（0.731秒）。日本時間0時、前後の時計変更、active ID切替、非表示後/古いcallback、通常休憩と両種別の明示連続を通過した。実Timer/Apple framework/実UIは未確認。次は全体ローカル確認後、新規の不変code reviewを通して既存test-toolsの両SDK Nativeを開始し、全15正式公開gateの代用とはしない。
+
 85a029aのnil/Unicode/有限memoと共通時計scope、既存Links/学校行事/時間割はLinux Swift6.1.2で65件/失敗0（0.799秒）。owner UUID後の実LinksModel/Storeのhostも1件/失敗0（2.710秒）。UIKitの実font測定と新しいNative transportケースはApple未確認。
 
 ホームの次候補は、15秒ごとにDate状態をpublishする処理を削り、実際の表示カードが始まる/終わる時刻と日本時間の翌0時だけを一回Timerで予約する。学校日またはactiveカードID集合が変わった時だけepochをpublishし、同時に終わる/始まる別カードも識別する。通常の結合カードは個別時限の休憩を保持し、特別の確認済み連続時刻だけ連続として、既存isInProgressと同じactivityMinuteRangesから予約を作る。モデル/設定変更による再描画ではnowを実Dateから読むため古いtickを使わず、configureは追加publishをしない。出現/前景復帰で再構成、非表示/背景でTimer停止、significantTimeChangeで時計差を再判定する。古いcallbackは世代で拒否し、retentionは最初のawaitより前にinterval/Timerを破棄・更新停止する。
