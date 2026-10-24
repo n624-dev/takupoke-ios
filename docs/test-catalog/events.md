@@ -1,7 +1,7 @@
 # 学校行事API・年度別保存
 
 対応関係・宣言名・実行方法のSHA-256：
-`aee5e04e8204f89b1b17dc708ab40b7407e3798d2b633f1a654b69994f05da6c`
+`c948dacb884288fb51ea26ff771c17b60b5793869fd3825d0cecc792c486e226`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -12,6 +12,7 @@ bash tools/test-parsing.sh
 ## 変更時に確認するソース
 
 - [Takupoke/SchoolEventsAPI.swift](../../Takupoke/SchoolEventsAPI.swift)
+- [Takupoke/SchoolEventsSourceStatus.swift](../../Takupoke/SchoolEventsSourceStatus.swift)
 - [Takupoke/SchoolEventsModel.swift](../../Takupoke/SchoolEventsModel.swift)
 - [Takupoke/SchoolEventsStore.swift](../../Takupoke/SchoolEventsStore.swift)
 - [Takupoke/SchoolEventsView.swift](../../Takupoke/SchoolEventsView.swift)
@@ -33,3 +34,18 @@ bash tools/test-parsing.sh
 - `testOldSavedResultWithoutResponseETagCanLoad`
 - `testNotModifiedRequiresMatchingSavedValidatorAndEmptyBody`
 - `testWeekdayTagRequiresAnExplicitWeekday`
+
+## [tests/SchoolEventsSourceStatusTests.swift](../../tests/SchoolEventsSourceStatusTests.swift)
+
+- `testSourceStatusValidatesWireVersionYearHashesStatesAndFractionalDates`
+- `testMetadataBindingRequiresYearAdoptedHashAndEventsVersionButNotPDFETag`
+- `testMetadataTTLIsTwelveHoursOrSixtySecondsWhileCheckingAndRejectsClockRollback`
+- `testPresentationSeparatesMatchedDifferenceUnknownFailureStalenessAndSnapshotMismatch`
+- `testAdvisoryStorePreservesNewestSuccessAcrossUnavailableOlderEdgeAndReload`
+- `testDamagedOversizedSymlinkAndWrongYearMetadataCannotBlockHealthyEvents`
+
+## [tests/SchoolEventsSourceModelTests.swift](../../tests/SchoolEventsSourceModelTests.swift)
+
+- `testActualMetadataRequestIsNonblockingCoalescedCachedPersistedAndFailureRetainsEvents`
+- `testActualStartupForegroundManual304AndNew200BindEachYearAndVersion`
+- `testActualOldInflightSnapshotAndCancellationCannotPublishMetadataIntoNewData`

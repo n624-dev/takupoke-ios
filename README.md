@@ -42,6 +42,8 @@ AltStore ClassicのSource／更新一覧を更新するとアップデートで�
 
 以前の[個別開発確認版IPA](https://github.com/n624-dev/takupoke-ios/releases/tag/dev-ios-37811661856-1-22c8ee2b5fa5)も引き続き公開しています。ソース`22c8ee2`の既存公開版で、現在のLatest・固定AltStore Sourceとは別です。
 
+学校行事の元PDF確認は専用APIへ移行し、本文一致・差異・未確認を区別します。状態確認の通信を待たずに保存行事を表示します。現候補の確認範囲は[追加issueの検証記録](docs/issues-65-103-verification.md)を参照してください。
+
 ## 主な機能
 
 - 通常時間割PDF・時間割変更XLSX・試験時間割PDF・試験返却時間割PDFの選択、自動解析、端末内保存。

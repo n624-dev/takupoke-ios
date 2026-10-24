@@ -3,7 +3,7 @@ import PackageDescription
 
 #if os(macOS)
 let mappingSources = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift", "SchoolEventsModel.swift", "WebPDFDownloader.swift"]
-let mappingTests = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift", "TimetableModelTests.swift"]
+let mappingTests = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift", "TimetableModelTests.swift", "SchoolEventsSourceModelTests.swift"]
 let mappingExcludes: [String] = []
 let mappingTestExcludes: [String] = []
 #else
@@ -11,7 +11,7 @@ let mappingTestExcludes: [String] = []
 let mappingSources: [String] = []
 let mappingTests: [String] = []
 let mappingExcludes = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift", "SchoolEventsModel.swift", "WebPDFDownloader.swift"]
-let mappingTestExcludes = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift", "TimetableModelTests.swift"]
+let mappingTestExcludes = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift", "TimetableModelTests.swift", "SchoolEventsSourceModelTests.swift"]
 #endif
 
 // Host tests compile the same Foundation-based sources used by the iOS target.
@@ -152,7 +152,7 @@ let package = Package(
                     "SpecialScheduleParser+Pages.swift",
                     "SpecialScheduleStore.swift",
                     "SpecialScheduleRecord.swift",
-                    "SchoolEventsAPI.swift",
+                    "SchoolEventsAPI.swift", "SchoolEventsSourceStatus.swift",
                     "SchoolEventsStore.swift",
                     "LinksAPI.swift",
                     "LinksStore.swift",
@@ -219,7 +219,7 @@ let package = Package(
                     "SpecialScheduleTests.swift",
                     "SpecialScheduleTests+Fixtures.swift",
                     "SpecialScheduleTests+Persistence.swift",
-                    "SchoolEventsAPITests.swift",
+                    "SchoolEventsAPITests.swift", "SchoolEventsSourceStatusTests.swift",
                     "LinksTests.swift",
                 ] + mappingTests, resources: [.copy("fixtures")])
     ]

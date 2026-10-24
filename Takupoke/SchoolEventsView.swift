@@ -35,6 +35,21 @@ struct SchoolEventsSettingsSection: View {
                         SchoolEventsResultView(saved: saved)
                     }
                     .accessibilityLabel("\(year)年度の学校行事の詳細を見る")
+                    if let status = model.sourcePresentation(year: year) {
+                        LabeledContent("元PDFの確認", value: status.message)
+                            .font(.caption)
+                        if let previous = status.lastSuccessfulMessage, let date = status.lastSuccessAt {
+                            LabeledContent("最終成功の結果", value: previous).font(.caption)
+                            LabeledContent("最終成功確認") {
+                                Text(date, format: JapaneseDateDisplay.timestamp)
+                            }.font(.caption)
+                        }
+                        if let date = status.receivedAt {
+                            LabeledContent("状態の取得") {
+                                Text(date, format: JapaneseDateDisplay.timestamp)
+                            }.font(.caption)
+                        }
+                    }
                 } else if model.failedCacheYears.contains(year) {
                     Text("再取得が必要")
                         .foregroundStyle(.orange)
@@ -63,10 +78,10 @@ struct SchoolEventsSettingsSection: View {
                 Label(warning, systemImage: "exclamationmark.triangle")
                     .font(.caption).foregroundStyle(.orange)
             }
-            if let message = model.sourceCheckMessage {
-                Label(message, systemImage: "exclamationmark.triangle")
-                    .font(.caption).foregroundStyle(.orange)
-            }
+        }
+        .task(id: year) {
+            model.loadIfNeeded()
+            if let year { model.checkSource(year: year) }
         }
     }
 }

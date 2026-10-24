@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import CryptoKit
 
 @MainActor
 final class SchoolEventsModel: ObservableObject {
@@ -16,16 +17,31 @@ final class SchoolEventsModel: ObservableObject {
     private let storeRoot: URL?
     private let eventsEndpoint: URL
     private let makeSession: () -> URLSession
+    private let now: () -> Date
     init(storeRoot:URL? = nil,eventsEndpoint:URL = URL(string:"https://takupoke-api.n624.jp/events")!,
-         makeSession:(() -> URLSession)? = nil) {
+         makeSession:(() -> URLSession)? = nil, now: @escaping () -> Date = Date.init) {
         self.storeRoot = storeRoot; self.eventsEndpoint = eventsEndpoint
-        self.makeSession = makeSession ?? { Self.eventsSession() }
+        self.makeSession = makeSession ?? { Self.eventsSession() }; self.now = now
     }
     @Published private(set) var ready = false
     @Published private(set) var busy = false
     @Published private(set) var failed = false
     @Published private(set) var message: String?
-    @Published private(set) var sourceCheckMessage: String?
+    @Published private(set) var sourceStatuses: [Int: SavedSchoolEventsSourceStatus] = [:]
+    @Published private(set) var sourceErrors: [Int: String] = [:]
+
+    var sourceCheckMessage: String? {
+        let warnings = saved.keys.sorted().compactMap { year -> String? in
+            guard let value = sourcePresentation(year: year), value.warning else { return nil }
+            return "\(year)年度：\(value.message)"
+        }
+        return warnings.isEmpty ? nil : warnings.joined(separator: "\n")
+    }
+
+    func sourcePresentation(year: Int) -> SchoolEventsSourcePresentation? {
+        guard let value = saved[year] else { return nil }
+        return .make(saved: value, cached: sourceStatuses[year], error: sourceErrors[year], now: now())
+    }
     @Published private(set) var failedCacheYears: Set<Int> = []
 
     var cacheWarning: String? { SchoolEventsAvailableLoad.warning(for: failedCacheYears) }
@@ -33,10 +49,21 @@ final class SchoolEventsModel: ObservableObject {
     private var store: SchoolEventsStore?
     private var task: Task<Void, Never>?
     private var checkedAtStartup = false
+    private typealias SourceBinding = SchoolEventsSourceTarget
+    private struct SourceRequest {
+        let id: UUID
+        let binding: SourceBinding
+        let task: Task<Void, Never>
+    }
+    private var sourceRequests: [Int: SourceRequest] = [:]
 
     func refreshAtStartup() {
         loadIfNeeded()
-        guard ready, !checkedAtStartup, !busy else { return }
+        guard ready else { return }
+        // Foreground checks consult their own TTL even after the annual startup
+        // conditional GET has already run. They never own the data busy state.
+        for year in saved.keys.sorted() { checkSource(year: year) }
+        guard !checkedAtStartup, !busy else { return }
         checkedAtStartup = true
         let years = saved.keys.sorted()
         guard !years.isEmpty else { return }
@@ -53,7 +80,7 @@ final class SchoolEventsModel: ObservableObject {
                     failures.append(year)
                 }
             }
-            if !Task.isCancelled { await self.checkSourceTask() }
+            if !Task.isCancelled { for year in years { self.checkSource(year: year) } }
             self.failed = !failures.isEmpty
             if !failures.isEmpty {
                 self.message = "\(failures.map(String.init).joined(separator: "、"))年度の学校行事を更新確認できませんでした。保存済みの結果を表示しています。"
@@ -63,33 +90,52 @@ final class SchoolEventsModel: ObservableObject {
         }
     }
 
-    private func checkSourceTask() async {
-        guard let expected = saved[2026]?.payload.sourcePdfETag else {
-            if saved[2026] != nil {
-                sourceCheckMessage = "保存済みの学校行事には元PDFのETagがありません。APIから取得し直すと起動時の更新確認ができます。"
+    /// Starts an independently owned metadata request without delaying tab
+    /// presentation or annual data fetching. Repeated callers join one year.
+    @discardableResult
+    func checkSource(year: Int, force: Bool = false) -> Task<Void, Never>? {
+        guard ready, let savedValue = saved[year] else { return nil }
+        let binding = SourceBinding(savedValue)
+        if let running = sourceRequests[year], running.binding == binding { return running.task }
+        if !force, let cached = sourceStatuses[year], cached.canReuse(for: savedValue, at: now()) { return nil }
+        sourceRequests[year]?.task.cancel()
+        let id = UUID()
+        let task = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                if self.sourceRequests[year]?.id == id { self.sourceRequests[year] = nil }
             }
-            return
-        }
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.urlCache = nil
-        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-        configuration.timeoutIntervalForRequest = 15
-        let session = URLSession(configuration: configuration)
-        defer { session.invalidateAndCancel() }
-        do {
-            var request = URLRequest(url: WebPDFDownloader.eventsURL)
-            request.httpMethod = "HEAD"
-            request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
-            let (_, response) = try await session.data(for: request)
-            guard let response = response as? HTTPURLResponse, response.statusCode == 200,
-                  let current = response.value(forHTTPHeaderField: "ETag") else {
-                throw SchoolEventsError.unavailable
+            let session = self.makeSession()
+            defer { session.invalidateAndCancel() }
+            do {
+                var components = URLComponents(url: self.eventsEndpoint.appendingPathComponent("source-status"),
+                                               resolvingAgainstBaseURL: false)!
+                components.queryItems = [.init(name: "schoolYear", value: String(year))]
+                var request = URLRequest(url: components.url!)
+                request.setValue("application/json", forHTTPHeaderField: "Accept")
+                request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+                let (data, response) = try await session.data(for: request)
+                try Task.checkCancellation()
+                guard let response = response as? HTTPURLResponse, response.statusCode == 200,
+                      response.expectedContentLength <= 16_384 else { throw SchoolEventsError.unavailable }
+                let status = try SchoolEventsSourceStatus.decode(data, year: year)
+                guard self.sourceRequests[year]?.id == id, let current = self.saved[year],
+                      SourceBinding(current) == binding else { return }
+                let cached = SavedSchoolEventsSourceStatus(receivedAt: self.now(), response: status,
+                                                          requestedTarget: binding,
+                                                          previous: self.sourceStatuses[year])
+                guard let store = self.store else { throw SchoolEventsError.unavailable }
+                try store.saveSourceStatus(cached)
+                self.sourceStatuses[year] = cached
+                self.sourceErrors[year] = nil
+            } catch {
+                guard !Task.isCancelled, self.sourceRequests[year]?.id == id,
+                      self.saved[year].map(SourceBinding.init) == binding else { return }
+                self.sourceErrors[year] = "元PDFの状態APIを確認できませんでした。保存済み行事と前回の確認結果を保持しています。"
             }
-            sourceCheckMessage = current == expected ? nil :
-                "学校サイトの学校行事PDFがAPIの元PDFから更新された可能性があります。APIの更新を確認してください。保存済みの学校行事は表示しています。"
-        } catch {
-            sourceCheckMessage = "学校サイトの学校行事PDFを確認できませんでした。保存済みの学校行事は表示しています。"
         }
+        sourceRequests[year] = SourceRequest(id: id, binding: binding, task: task)
+        return task
     }
 
     var analysis: PDFAnalysis? { cachedAnalysis }
@@ -114,6 +160,10 @@ final class SchoolEventsModel: ObservableObject {
             saved = available.saved
             failedCacheYears = available.failedYears
             store = opened
+            for year in saved.keys.sorted() {
+                do { sourceStatuses[year] = try opened.loadSourceStatus(year: year) }
+                catch { sourceErrors[year] = "保存済みの元PDF確認結果を読み取れません。学校行事は表示しています。" }
+            }
             ready = true
             failed = false
             message = nil
@@ -133,7 +183,7 @@ final class SchoolEventsModel: ObservableObject {
             guard let self else { return }
             do {
                 let changed = try await self.fetchOne(year: year)
-                self.message = changed ? "\(year)年度の学校行事を取得しました。元PDFの更新確認は次回起動時に行います。" :
+                self.message = changed ? "\(year)年度の学校行事を取得しました。" :
                     "\(year)年度の学校行事に更新はありません。"
             } catch {
                 self.failed = true
@@ -142,10 +192,15 @@ final class SchoolEventsModel: ObservableObject {
             }
             self.busy = false
             self.task = nil
+            if !Task.isCancelled { self.checkSource(year: year, force: true) }
         }
     }
 
-    func cancel() { task?.cancel() }
+    func cancel() {
+        task?.cancel()
+        for value in sourceRequests.values { value.task.cancel() }
+        sourceRequests.removeAll()
+    }
 
     /// Reuse the conditional API fetch without making another school PDF HEAD
     /// request. Background cancellation must belong to the awaiting task.
@@ -210,11 +265,12 @@ final class SchoolEventsModel: ObservableObject {
         }
         let payload = try SchoolEventsPayload.decode(data, requestedYear: year)
         guard let store else { throw SchoolEventsError.unavailable }
-        let fetchedAt = Date()
-        try store.save(payload, apiETag: receivedETag, fetchedAt: fetchedAt)
-        saved[year] = SavedSchoolEvents(fetchedAt: fetchedAt, payload: payload, apiETag: receivedETag)
+        let fetchedAt = now()
+        let dataVersion = "sha256-" + SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+        try store.save(payload, apiETag: receivedETag, fetchedAt: fetchedAt, responseDataVersion: dataVersion)
+        saved[year] = SavedSchoolEvents(fetchedAt: fetchedAt, payload: payload, apiETag: receivedETag,
+                                      responseDataVersion: dataVersion)
         failedCacheYears.remove(year)
-        sourceCheckMessage = nil
         return true
     }
 }

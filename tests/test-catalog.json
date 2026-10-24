@@ -170,12 +170,15 @@
       ],
       "sources": [
         "Takupoke/SchoolEventsAPI.swift",
+        "Takupoke/SchoolEventsSourceStatus.swift",
         "Takupoke/SchoolEventsModel.swift",
         "Takupoke/SchoolEventsStore.swift",
         "Takupoke/SchoolEventsView.swift"
       ],
       "checks": [
-        "tests/SchoolEventsAPITests.swift"
+        "tests/SchoolEventsAPITests.swift",
+        "tests/SchoolEventsSourceStatusTests.swift",
+        "tests/SchoolEventsSourceModelTests.swift"
       ]
     },
     {

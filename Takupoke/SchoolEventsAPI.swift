@@ -92,6 +92,23 @@ struct SavedSchoolEvents: Codable {
     let fetchedAt: Date
     let payload: SchoolEventsPayload
     let apiETag: String?
+    let responseDataVersion: String?
+
+    init(fetchedAt: Date, payload: SchoolEventsPayload, apiETag: String?, responseDataVersion: String? = nil) {
+        self.fetchedAt = fetchedAt; self.payload = payload; self.apiETag = apiETag
+        self.responseDataVersion = responseDataVersion
+    }
+
+    /// The published API contract binds dataVersion to the events JSON hash,
+    /// also carried inside its weak ETag. Legacy arbitrary validators do not
+    /// identify a data version; never substitute the source PDF's hash.
+    var dataVersion: String? {
+        if let responseDataVersion, SchoolEventsSourceStatus.isDataVersion(responseDataVersion) { return responseDataVersion }
+        guard let apiETag, SchoolEventsResponse.validETag(apiETag) else { return nil }
+        let tag = apiETag.hasPrefix("W/") ? String(apiETag.dropFirst(2)) : apiETag
+        let hash = String(tag.dropFirst().dropLast())
+        return SchoolEventsSourceStatus.isHash(hash) ? "sha256-" + hash : nil
+    }
 }
 
 enum SchoolEventsResponse {

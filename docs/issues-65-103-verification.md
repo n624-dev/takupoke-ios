@@ -235,3 +235,13 @@ Materials/Special/学校行事は実入力の代入時だけ比較して非Publi
 新規の直接比較は並記、40時限の通常、休講/補講/非連続変更、非canonical日付、行事期間/要確認開始日/曜日振替/API授業なし、applies=falseの特別/重複資料、未存在classとinternational/mappingを含む。元selectorと全slot/8時限blocksを比較し、cacheの世代/停止/再開/上限、同digest正式名称更新も検査する。まだ実行前。
 
 Windows35は41a4369で統合340件/失敗0（8秒）、直前Core223件も成功。N134の接触した同一fillだけorderを共有し、白/上塗り/重なり拒否、正常85/7授業と実保存保持を維持した。実WinUI/配布は未確認。
+
+## 元PDF状態APIへの移行（65、候補）
+
+利用者の監視指示で公開状態APIだけを約5分間隔で手動確認した。2026-10-24 07:02/07:08 UTCは200/unavailable/成功日時なし、07:13:59 UTCにはmatched/lastSuccessAt 07:13:31.824 UTC/stale=falseへ変化し、07:19も同じ結果だった。学校PDFの直接取得やserver実装/配備は行っていない。公開docs/source-status.mdと実応答を照合し、dataVersionは配信JSONのSHA-256で、/eventsの弱いETagの引用符内hashに対応すると確認した。学校の行事本文・hash・応答ファイルは公開物へコピーしていない。
+
+SchoolEventsModelのHEAD経路を削除し、年度別に独立した状態Taskを開始する。画面/起動/復帰は約12時間の永続cache（checking中は60秒）を参照し、同じ年度/保存版の同時要求は合流する。状態通信はeventsのbusyを所有しない。手動events更新後は200/304/失敗とも状態をforce取得し、年度/hash/配信版が変わった処理の遅延結果は反映しない。新200の版は受信した元JSON bytesのSHA-256を保存し、旧保存は既存の64桁hex ETagからのみ版を識別する。任意の旧validatorや元PDFhashを版の代用にしない。
+
+状態の保存はsource-status-年度.jsonとしてevents-年度.jsonから分離する。破損/サイズ超過/非regular/symlink/別年度の状態cacheは行事のreadyと正常年度に影響させない。通信失敗は正常行事と前回の結果を保持し、古いedgeや未成功応答でも同じsnapshotの最新成功結果/日時を別に保持する。新しい観測hashを行事へ自動採用しない。設定の標準LabeledContentに状態/最終成功の結果/最終成功確認日時/状態取得日時を表示し、VoiceOverでも別labelとして読める。
+
+変更前にcatalogのSchoolEvents、失敗索引のSchoolEvents/source-status/年度/HEAD/APIで検索し、N99の1MB envelope境界とN105の補助store障害によるHome非表示の詳細・現sourceを照合した。今回もpayload1MB/metadata枠/全体検証と補助警告の独立性を保持する。純Swiftの新6件と既存行事14件は20件/失敗0（0.397秒）、manifest28件/失敗0（4.249秒）。新Native transport3件は架空host以外を全拒否し、実Model/URLSession/Storeで合流・非blocking・cache/復帰/手動304/新200/年度・版ずれ/取消・遅延結果を検査する。構文検査のみで、Apple実行/実UI/実機/VoiceOverの確認はまだ行っていない。公開可の合格とはしない。

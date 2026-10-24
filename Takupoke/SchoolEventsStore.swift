@@ -87,6 +87,8 @@ final class SchoolEventsStore {
                 saved[year] = SavedSchoolEvents(fetchedAt: value.fetchedAt, payload: verified,
                                                apiETag: value.apiETag.flatMap {
                                                    SchoolEventsResponse.validETag($0) ? $0 : nil
+                                               }, responseDataVersion: value.responseDataVersion.flatMap {
+                                                   SchoolEventsSourceStatus.isDataVersion($0) ? $0 : nil
                                                })
             } catch is DecodingError {
                 failedYears.insert(year)
@@ -98,14 +100,47 @@ final class SchoolEventsStore {
         return SchoolEventsAvailableLoad(saved: saved, failedYears: failedYears)
     }
 
-    func save(_ payload: SchoolEventsPayload, apiETag: String? = nil, fetchedAt: Date = Date()) throws {
+    func save(_ payload: SchoolEventsPayload, apiETag: String? = nil, fetchedAt: Date = Date(),
+              responseDataVersion: String? = nil) throws {
         let checked = try SchoolEventsPayload.decode(JSONEncoder().encode(payload), requestedYear: payload.schoolYear)
-        guard apiETag == nil || SchoolEventsResponse.validETag(apiETag!) else {
+        guard (apiETag == nil || SchoolEventsResponse.validETag(apiETag!)),
+              responseDataVersion == nil || SchoolEventsSourceStatus.isDataVersion(responseDataVersion!) else {
             throw SchoolEventsError.invalidResponse
         }
         let url = root.appendingPathComponent("events-\(checked.schoolYear).json")
-        let data = try JSONEncoder().encode(SavedSchoolEvents(fetchedAt: fetchedAt, payload: checked, apiETag: apiETag))
+        let data = try JSONEncoder().encode(SavedSchoolEvents(fetchedAt: fetchedAt, payload: checked,
+            apiETag: apiETag, responseDataVersion: responseDataVersion))
         guard data.count <= Self.maximumSavedBytes else { throw SchoolEventsError.invalidResponse }
+        try data.write(to: url, options: .atomic)
+        #if os(iOS)
+        try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path)
+        #endif
+    }
+
+    /// Advisory files are isolated from events-*.json. Damage or protection
+    /// failures here must never prevent loading healthy annual events.
+    func loadSourceStatus(year: Int) throws -> SavedSchoolEventsSourceStatus? {
+        guard (1900...9998).contains(year) else { throw SchoolEventsError.invalidResponse }
+        let file = root.appendingPathComponent("source-status-\(year).json")
+        guard FileManager.default.fileExists(atPath: file.path) else { return nil }
+        let info = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
+        guard info.isRegularFile == true, info.isSymbolicLink != true,
+              let size = info.fileSize, (0...18_432).contains(size) else { throw SchoolEventsError.invalidResponse }
+        let data = try Data(contentsOf: file)
+        guard data.count <= 18_432, let value = try? JSONDecoder().decode(SavedSchoolEventsSourceStatus.self, from: data),
+              value.isValid(year: year) else {
+            throw SchoolEventsError.invalidResponse
+        }
+        return value
+    }
+
+    func saveSourceStatus(_ value: SavedSchoolEventsSourceStatus) throws {
+        guard value.isValid(year: value.response.schoolYear) else {
+            throw SchoolEventsError.invalidResponse
+        }
+        let data = try JSONEncoder().encode(value)
+        guard data.count <= 18_432 else { throw SchoolEventsError.invalidResponse }
+        let url = root.appendingPathComponent("source-status-\(value.response.schoolYear).json")
         try data.write(to: url, options: .atomic)
         #if os(iOS)
         try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path)
