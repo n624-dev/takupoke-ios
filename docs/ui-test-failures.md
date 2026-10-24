@@ -2630,6 +2630,12 @@ N129照合:N128の詳細とb6bd91f/c23433c、Windows4bfc01c/36954cbの同method�
 
 OsmanyaはUTF16で2unitとなるが、FoundationのrangeOfCharacter境界照会では今回前置数字を検出しなかった。候補は行ごとのUTF16列を必要時に一回だけ作り、境界でsurrogate pairを明示復元してUnicode十進数字かを調べる。WindowsのRune検査は同条件を既に拒否しているので保持する。新しい拒否guardで不正明示時刻を必ず拒否し、連続見出し未記載の独立正対照は元cell経路の正しい08:50〜10:35を必須とする。既存の正常隣接/全半角/保存保持の入力・期待値は変えず、候補/根拠をpush後に6ケース/11展開として再検査する。
 
+## N131 CMap比較ハーネスの準備失敗（2026-10-24、ローカル）
+
+source iOS6b85e4a/Windows40bde67、Linux、05:30 UTC前後。独立計測の準備PythonがWindowsの実ファイルをParsing配下ではないpathで参照しFileNotFoundError。set -eのない親shellが続行し、未作成win-after projectをdotnet buildしてMSB1009、未作成DLL実行も失敗した。製品テストは別途iOS5件/Windows13件成功済みで、この失敗は製品parserの実行前。対処を選ぶ前の観測として記録する。
+
+N131照合:索引のハーネス/FileNotFoundError/MSB1009検索で同一path準備失敗の旧記録はない。保存済みbeforeのcsprojと実ファイル一覧、6b85e4aの実CMapを照合した。候補はParsing配下の実ファイルをコピーし、準備から実行までset -eで停止する。製品コード・比較入力・3回中央値・期待値は変更しない。記録をpush後に計測を再開する。
+
 ## N130 Strict CMapの取消修正前回帰（2026-10-24、ローカル）
 
 iOS source8107485、Linux Swift6.1.2、05:15:24 UTC、testStrictUnicodeMapChecksTaskCancellationBeforeParsingが1件/1失敗（0.004秒）、compile9.13秒成功。所有Semaphore gateを解放する前に実Taskをcancelしたが、有効な小CMapをPDF239UnicodeMap.readが正常decodeして返し、取消のassertが失敗した。固定sleepや結果注入はない。ログ/tmp/takupoke-ios-77-cancel-before.log。CMap本体は未変更で、対処案を選ぶ前に観測した。別の最適化済み実関数計測では65536 singletonのSwift中央値1.971677秒/Windows5.511566秒、入力/全対応/個数/checksumが正しいことを確認済み。Reader全体や実機の測定ではない。
