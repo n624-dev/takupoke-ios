@@ -2719,3 +2719,15 @@ N143完了ログ詳細：6jobはいずれもSDK27.0でアプリのbuild-for-test
 N143照合：TimetableView/TimetableRenderCacheをcatalog検索し、actor/nonisolated/fits/ViewBuilder/コンパイルで失敗索引を検索した。N31のViewBuilder型推論とN67のSPM対象外SwiftUI型不一致を詳細・当時のPDFRecoveryView/MaterialsViewコードまで読み、旧公開1c331818とcache導入85a029a/現行Cardsを比較した。旧fitsはactor状態を参照しない直接UIFont計測だったが、候補はMainActor所有cacheを読む。local functionは暗黙にその隔離を持たず、Appleのアプリ型検査で拒否された。Linux構文parseやUIKitを含まないSPMの成功をアプリ型検査へ数えない。
 
 修正候補はこの内側のfitsだけに@MainActorを明記する。呼出し元のSwiftUI描画・cache所有/計算・厳密なfont/width/文字列key・一行/複数行の式・0.5許容・全代替候補・二分探索・停止/上限は維持する。UIケース/期限/OS/SDK/全15公開条件は変更しない。同じアプリbuild-for-testingの6経路が今回の不備を直接検出したため、模擬UIKitのコンパイルや構文文字列を写す追加ケースは作らない。候補と根拠を隔離branchへpushしてから既存の局所契約/構文/catalogを確認し、新規のcode-only reviewを経て正式全15を開始する。次回は今回のbuild停止が約3〜5分だった事実から最初の確認を約8分後に設定し、build通過後は通常UIの実測所要時間で間隔を広げる。古い成功を合算しない。
+
+## N144 正式候補442の通常iOS27 Aがfailure終端（2026-10-24）
+
+2026-10-24 16:49 UTCの所要時間に基づく確認、source25fe013a04a740833630e1a5efc92b592c824465/run40109158354/attempt1。通常27 A/job120917406836は15:56:54Z開始・16:31:03Z終端、Exercise app screens with synthetic dataでfailure。具体case/操作段階/原因は完了ログ未読で未確定。Distribution・Native688/予定skip1/失敗0・訂正27全4caseは同runで成功し、N143のアプリbuild停止は4実build/訂正操作で再発しなかった。通常B/job120917406774は16:01:11Zから継続中、26 Aは依存skipで未実行。この時点で全15必須成功/公開は不成立だが、残jobを取消しせず終端まで確認する。対処選択前の観測を記録し、新しく失敗したAのログだけを一度取得する。既取得6成功jobのログと終端旧runは再取得しない。
+
+N144完了ログ詳細：SDK27.0/Runtime27.0、build-for-testing成功後、通常Aの第1batch17件中16成功・1失敗（1585.449秒）。testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWorkが69.403秒で失敗、ApplicationChecks+Timetable.swift:79「Lesson card has no fully visible hit region」。Homeの最初の授業詳細は実open/closeまで進み、その後の段階・実AX/幾何は次に照合する。他の16件成功をこの必須caseや未実行の後続phaseへ代用しない。失敗時刻16:17:01Z、jobは残ケース実行後16:31:03Z終端。対処選択前にcase/停止段階を追記する。
+
+N144実観測：Homeではbusy-only中の詳細保持、実正式更新/原本更新による詳細閉鎖まで成功し、時間割用の別processをcold launchして実tab操作へ進んだ。時間割の最初の対象Buttonはframe(47,681.3,64,146)、NavigationBar底165/TabBar上769で、中心754.3は表示域内だが下端827.3は遮られていた。最初のloopは中心が内側ならbreakする一方、直後のguardは全frame包含を要求するため、スクロールを一度も行わず拒否した。詳細tap自体には未到達。タブ選択は実Selectedで、Homeの保存/閉鎖失敗やアプリ型検査失敗とは異なる。
+
+検索語：当該case/fully visible hit region/midY/contained/card frame/scrollDrag。U57の同じcaseのworker解放待機とbd5ddb7の実テスト、N47の部分行を大swipeで往復した詳細とa0fed9bのNavigation、公開1c331818/現在25fe013の実Timetableケースを照合した。今回のcaseは公開版と同一bytesで、N47で導入済みの観測frameによる有限scrollDragをまだ使用せず中心判定のままだった。既存ObservedScreenGeometryTestsの下端部分行/上端部分行/高さ1/3上限/無効・oversize・既可視拒否を読んだ。
+
+候補はこのcaseの元8回loopで全包含/enabled/hittableを確認し、部分的な実frameには既存scrollDragのviewport中心方向・高さ1/3以内の移動を使う。不在の探索は元swipeを維持し、固定位置/押し直し/成功注入は行わない。全frame包含の元guard、実card一回tap、10秒詳細/元の5/10/15秒のworker・保存・閉鎖、両surface/再起動、全17ケースと後続phase/両OS/全15gateを維持する。製品・cache/Strict・共通geometry/既存helperは変更しない。既存7幾何ケースが同じ計算・拒否を、元の実UIケースが今回の不足を直接検出するため、同じ式を写す新ケースは作らない。候補と根拠を隔離branchへpush後に既存幾何・manifest・構文/catalogを確認し、元のcaseを両OSの限定比較で先に評価する。新しいActions開始前はその一回専用の新規code-only reviewerを作成する。残Bは取消しせず終端を確認する。

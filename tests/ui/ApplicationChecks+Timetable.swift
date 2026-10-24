@@ -63,13 +63,16 @@ extension ApplicationChecks {
             let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "架空科目")).firstMatch
             XCTAssertTrue(card.waitForExistence(timeout: 10), app.debugDescription)
             for _ in 0..<8 {
-                if card.exists && card.isHittable
-                    && card.frame.midY > app.navigationBars.firstMatch.frame.maxY
-                    && card.frame.midY < app.tabBars.firstMatch.frame.minY
-                {
-                    break
-                }
-                if card.exists && card.frame.midY <= app.navigationBars.firstMatch.frame.maxY {
+                let viewport = contentViewport
+                if contained(card, in: viewport) && card.isEnabled && card.isHittable { break }
+                let frame = card.exists ? card.frame : CGRect.null
+                if let drag = ObservedScreenGeometry.scrollDrag(for: frame, in: viewport) {
+                    let origin = app.coordinate(withNormalizedOffset: .zero)
+                    let appFrame = app.frame
+                    let start = origin.withOffset(CGVector(dx: drag.start.x - appFrame.minX, dy: drag.start.y - appFrame.minY))
+                    let end = origin.withOffset(CGVector(dx: drag.end.x - appFrame.minX, dy: drag.end.y - appFrame.minY))
+                    start.press(forDuration: 0.1, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0)
+                } else if usable(frame) && frame.minY < viewport.minY {
                     app.swipeDown()
                 } else {
                     app.swipeUp()
