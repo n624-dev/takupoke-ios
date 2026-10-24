@@ -315,3 +315,5 @@ main1a5eb2d/run40122891165/attempt1では27の全条件が成功し、通常Aは
 候補fd0a218は製品を変更せず、clearの可視化中は従来の論理ID検索、最終接触だけ現在一意なnative identityと全包含/操作可否を検証する。元の一回Button.tap/45秒空欄/確認解除/実全文入力/背景/保存/再起動は維持する。touch observerは同じ元sendEventを一回通し、最大6個のrecognizer class/state/3Boolだけを追加観測する。取消しの下位原因や恒常解消は未証明。既存4訂正case×両OSで共通helperを確認するため、新しい模倣UIケースは不要。収集の厳格形式に範囲外/余分な本文/上限超過の拒否対照を既存Pythonケースへ追加した。
 
 事実/根拠/候補を隔離branchへpushした後、Linux Swift6.1.2の構文と元29幾何ケース/失敗0（0.205秒）、diagnostics11件/失敗0（0.236秒）、project17件/失敗0（0.297秒）、manual runner5件/失敗0（2.570秒）、manifest28件/失敗0（4.300秒）、catalog448/check --base 1a5eb2d/固定枝一覧が成功した。Apple実操作は次の限定比較で確認し、公開全15へは合算しない。Actionsごとの新規reviewを維持する。
+
+次の全8訂正限定比較一回のため、新規GPT-6.1 Sol/High ios_n148_clear_pre_actions_reviewがコードpatch96行/6492bytes SHA256 d898134e4859d2f3623e0a8ab5a1c3d28aa2e9f99fecda3eceb345ee7b10eb0dと、Input140行/9226bytes SHA256 68c649cf…、Navigation217行/14084bytes SHA256 35763088…、元4case80行/5883bytes SHA256 d52d5860…、observer89行/5267bytes SHA256 0bb04253…の全bytes/行とhashを確認し、具体的指摘なし。主担当が現在差分とartifactの同一性、ローカル結果、全期待の保持を照合した。このreviewは次のmanual-input-native-probe/case=all一回だけへ使い、別のmain/正式全15開始へ転用しない。
