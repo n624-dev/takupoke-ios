@@ -43,16 +43,30 @@ final class SpecialScheduleTests: XCTestCase {
         let original = (1...6).map { examPage($0, mergedFirstTwo: $0 == 1) }
         for text in ["11・2時限連続7:00~8:00", "1・2時限連続7:00~8:500"] {
             let pages = replacingFirstExamTime(original, with: text, consecutive: true)
-            let analyses = [
-                try SpecialScheduleParser.parse(pages, kind: .exam, digest: "fictional", name: "fictional.pdf"),
-                try SpecialScheduleParser.parseCertified(pages, kind: .exam, digest: "fictional", name: "fictional.pdf"),
-            ]
-            for analysis in analyses {
-                // With no valid explicit continuous chart, the existing rule
-                // derives this span from the two independently valid periods.
-                let lesson = try XCTUnwrap(analysis.lessons.first { $0.className == "1_1" && $0.spanEnd == 2 })
-                XCTAssertEqual(lesson.timeRange, "08:50〜10:35", text)
+            XCTAssertThrowsError(try SpecialScheduleParser.parse(pages, kind: .exam,
+                digest: "fictional", name: "fictional.pdf"), text) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage, .periodHeading)
+                XCTAssertEqual(($0 as? PDFParseError)?.branch, .b424)
             }
+            XCTAssertThrowsError(try SpecialScheduleParser.parseCertified(pages, kind: .exam,
+                digest: "fictional", name: "fictional.pdf"), text) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage, .periodHeading)
+                XCTAssertEqual(($0 as? PDFParseError)?.branch, .b425)
+            }
+        }
+    }
+
+    func testMissingContinuousHeadingKeepsVerifiedSinglePeriodFallback() throws {
+        let original = (1...6).map { examPage($0, mergedFirstTwo: $0 == 1) }
+        let pages = replacingFirstExamTime(original, with: "", consecutive: true)
+        let analyses = [
+            try SpecialScheduleParser.parse(pages, kind: .exam, digest: "fictional", name: "fictional.pdf"),
+            try SpecialScheduleParser.parseCertified(pages, kind: .exam, digest: "fictional", name: "fictional.pdf"),
+        ]
+        for analysis in analyses {
+            XCTAssertEqual(analysis.lessons.count, 86)
+            let lesson = try XCTUnwrap(analysis.lessons.first { $0.className == "1_1" && $0.spanEnd == 2 })
+            XCTAssertEqual(lesson.timeRange, "08:50〜10:35")
         }
     }
 

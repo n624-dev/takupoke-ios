@@ -10,13 +10,13 @@ SOURCES = {
     'PDF239TextGeometry.swift': "239.1のStrict判定（原条件と固定番号）",
     'PDF239UnicodeMap.swift': "239.1のStrict判定（原条件と固定番号）",
     'PDF239PathReader.swift': "239.1のStrict判定（原条件と固定番号）",
-    'PDF239Grid.swift': "239.1のStrict判定（原条件と固定番号）",
+    'PDF239Grid.swift': "239.1のStrict判定と確定した原文行順の保持",
     'PDF239SchoolParser.swift': "239.1のStrict判定（原条件と固定番号）",
     'PDF239SchoolParser+Timetable.swift': "239.1のStrict判定（原条件と固定番号）",
     'PDF239SchoolParser+Events.swift': "239.1のStrict判定（原条件と固定番号）",
     'PDF239SpecialScheduleParser.swift': "239.1のStrictと返却のみの見出し取得範囲分離",
     'PDF239SpecialScheduleParser+Pages.swift': "239.1のStrictと返却のみのクラス表上端",
-    'PDF239SpecialScheduleParser+Times.swift': "239.1のStrict判定（原条件と固定番号）",
+    'PDF239SpecialScheduleParser+Times.swift': "239.1のStrict時刻と数値途中の採用拒否",
     'PDF239KitReader.swift': "239.1のStrict判定（原条件と固定番号）",
 
     "PDFAnalysis.swift": "ページの文字・罫線が表示範囲に入るか",
@@ -47,6 +47,8 @@ STAGES = dict(zip(
     [f"P{number:02d}" for number in range(1, 26)]))
 
 NOTES = {
+    "424": "Strictの時限・時刻がUnicode十進数字の途中から始まる、または途中で終わる",
+    "425": "復旧用の時限・時刻がUnicode十進数字の途中から始まる、または途中で終わる",
     "121": "曲線を実際に描く、または破線で罫線を描く",
     "122": "塗りまたは線の色が可視と確認できない",
     "123": "文字描画後の塗りに対して元文字の範囲がない",

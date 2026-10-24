@@ -14,7 +14,10 @@ extension SpecialScheduleParser {
             let singles = pattern.matches(in: value, range: NSRange(location: 0, length: ns.length))
             let pairs = consecutivePattern.matches(in: value, range: NSRange(location: 0, length: ns.length))
             let whole = wholeNumericHeadings(singles + pairs, in: ns)
-            for match in singles where whole.contains(match.range) {
+            guard whole.count == singles.count + pairs.count else {
+                throw PDFParseError(code: .ambiguous, page: pageNumber, stage: .periodHeading, branch:.b425)
+            }
+            for match in singles {
                 let period = Int(ns.substring(with: match.range(at: 1)))!
                 let start = ns.substring(with: match.range(at: 2))
                 let end = ns.substring(with: match.range(at: 3))
@@ -26,7 +29,7 @@ extension SpecialScheduleParser {
                 times[period] = String(format: "%02d:%02d〜%02d:%02d",
                                        startTime / 60, startTime % 60, endTime / 60, endTime % 60)
             }
-            for match in pairs where whole.contains(match.range) {
+            for match in pairs {
                 let first = Int(ns.substring(with: match.range(at: 1)))!
                 let last = Int(ns.substring(with: match.range(at: 2)))!
                 let start = ns.substring(with: match.range(at: 3))
@@ -56,7 +59,9 @@ extension SpecialScheduleParser {
     }
 
     private static func wholeNumericHeadings(_ input: [NSTextCheckingResult], in text: NSString) -> Set<NSRange> {
+        guard !input.isEmpty else { return [] }
         let matches = input.sorted { $0.range.location < $1.range.location }
+        let units = Array((text as String).utf16)
         var accepted = Set<NSRange>()
         var first = 0
         while first < matches.count {
@@ -68,16 +73,29 @@ extension SpecialScheduleParser {
             }
             let start = matches[first].range.location
             let end = NSMaxRange(matches[next - 1].range)
-            let startsInNumber = start > 0 && text.rangeOfCharacter(from: .decimalDigits,
-                options: [.backwards, .anchored], range: NSRange(location: 0, length: start)).location != NSNotFound
-            let endsInNumber = end < text.length && text.rangeOfCharacter(from: .decimalDigits,
-                options: .anchored, range: NSRange(location: end, length: text.length - end)).location != NSNotFound
+            let startsInNumber = isDecimalDigit(units, at: start - 1)
+            let endsInNumber = isDecimalDigit(units, at: end)
             if !startsInNumber && !endsInNumber {
                 for index in first..<next { accepted.insert(matches[index].range) }
             }
             first = next
         }
         return accepted
+    }
+
+    private static func isDecimalDigit(_ units: [UInt16], at index: Int) -> Bool {
+        guard units.indices.contains(index) else { return false }
+        var start = index
+        if (0xDC00...0xDFFF).contains(units[start]), start > 0,
+           (0xD800...0xDBFF).contains(units[start - 1]) { start -= 1 }
+        let first = UInt32(units[start])
+        let value: UInt32
+        if (0xD800...0xDBFF).contains(first), start + 1 < units.count,
+           (0xDC00...0xDFFF).contains(UInt32(units[start + 1])) {
+            value = 0x10000 + ((first - 0xD800) << 10) + UInt32(units[start + 1]) - 0xDC00
+        } else { value = first }
+        guard let scalar = Unicode.Scalar(value) else { return false }
+        return CharacterSet.decimalDigits.contains(scalar)
     }
 
     private static func clockMinutes(_ text: String) -> Int? {

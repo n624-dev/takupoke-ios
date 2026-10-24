@@ -21,7 +21,7 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 更新: `python3 -B tools/pdf_branch_catalog.py write`。
 整合性: `python3 -B tools/pdf_branch_catalog.py check`。学校資料は読み込まない。
 
-## 対応一覧（422箇所）
+## 対応一覧（424箇所）
 
 ### 239.1のStrict判定（原条件と固定番号）
 
@@ -130,7 +130,7 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 | R343 | P12 | `PDF239PathReader.state(p)?.failure =` | [確認条件](../Takupoke/PDF239PathReader.swift#L217) |
 | R342 | 分類なし／呼出元 | `guard succeeded else { throw` | [確認条件](../Takupoke/PDF239PathReader.swift#L226) |
 
-### 239.1のStrict判定（原条件と固定番号）
+### 239.1のStrict判定と確定した原文行順の保持
 
 | 詳細番号 | 生成時分類 | 拒否条件／コード抜粋 | 実装 |
 |---|---|---|---|
@@ -211,13 +211,14 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 | R398 | P15 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L102) |
 | R397 | P16 | `guard seenClasses.insert(name).inserted else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L105) |
 
-### 239.1のStrict判定（原条件と固定番号）
+### 239.1のStrict時刻と数値途中の採用拒否
 
 | 詳細番号 | 生成時分類 | 拒否条件／コード抜粋 | 実装 |
 |---|---|---|---|
-| R407 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L25) |
-| R406 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L39) |
-| R405 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L46) |
+| R424 | P05 | `Strictの時限・時刻がUnicode十進数字の途中から始まる、または途中で終わる` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L19) |
+| R407 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L28) |
+| R406 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L42) |
+| R405 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L49) |
 
 ### 239.1のStrict判定（原条件と固定番号）
 
@@ -577,10 +578,11 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 | 詳細番号 | 生成時分類 | 拒否条件／コード抜粋 | 実装 |
 |---|---|---|---|
 | R245 | P05 | `guard (1...8).contains(count) else { throw` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L6) |
-| R246 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L24) |
-| R247 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L38) |
-| R248 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L45) |
-| R249 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L52) |
+| R425 | P05 | `復旧用の時限・時刻がUnicode十進数字の途中から始まる、または途中で終わる` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L18) |
+| R246 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L27) |
+| R247 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L41) |
+| R248 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L48) |
+| R249 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L55) |
 
 ### 試験・返却の文書全体と授業欄
 
