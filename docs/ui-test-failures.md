@@ -2630,6 +2630,14 @@ N129照合:N128の詳細とb6bd91f/c23433c、Windows4bfc01c/36954cbの同method�
 
 OsmanyaはUTF16で2unitとなるが、FoundationのrangeOfCharacter境界照会では今回前置数字を検出しなかった。候補は行ごとのUTF16列を必要時に一回だけ作り、境界でsurrogate pairを明示復元してUnicode十進数字かを調べる。WindowsのRune検査は同条件を既に拒否しているので保持する。新しい拒否guardで不正明示時刻を必ず拒否し、連続見出し未記載の独立正対照は元cell経路の正しい08:50〜10:35を必須とする。既存の正常隣接/全半角/保存保持の入力・期待値は変えず、候補/根拠をpush後に6ケース/11展開として再検査する。
 
+## N136 追加修正後の全Swift回帰で7失敗（2026-10-24、ローカル）
+
+source f809489（実Foundation code04452c4まで、所有SPM projectへ同じ変更を反映）、Linux Swift6.1.2。全591件に7失敗/0unexpected、75.211秒、06:39:55 UTC終端。コンパイルは成功。ログ/tmp/takupoke-ios-remaining-all-swift.log。並行のPython全279件は成功/予定skip2（60.423秒）。焦点57/65件の成功とは別に、全体の失敗を対処選択前に記録する。次にcase/段階と当時/現コードを照合する。
+
+N136詳細:7件はRecoveryTestsの5ケース（SpecialScope:134、OrdinaryRoleAlias:153、UnusedFontReader:164、ParallelAlignment:167/176、OCRCoverage:179/183）の固定「現行版33」と実34のassert差。旧版同hashの再試行・同じ現行版では再試行しない・events固定版の動作assert自体は通過した。製品の状態処理・時計・CMap・Native frameworkの失敗とはまだ扱わず、旧33を含めて再解析すべき84/91の版更新と照合する。
+
+N136照合:parserVersion/固定33/版assertを検索し、1c331818公開時のRecoveryTestsと現f809489、84/91候補c23433c以降の両Parser版34を照合した。同じ固定版assertの失敗記録はない。今回は#84/91の旧33結果を更新する明示変更へ、既存7箇所の固定現行値33が追随していなかった。候補は現行期待を明示34へ更新し、過去21/22/24/29/30/32等の再試行・現行確定失敗非ループ・events版4の全assertは保持する。追加で公開33の成功/確定失敗が両Parser34で再解析され、34の成功/確定失敗はループしないことを要求する。動的定数で常に通る期待へ置き換えず、製品/合格条件/期限は変えない。記録と候補をpush後に全体を再検査する。
+
 ## N135 索引後の独立性能ハーネスがコンパイラ起動前に失敗（2026-10-24、ローカル）
 
 source7df7a5b、Linux、所有snapshotハーネス/tmp/takupoke-projection-index-eeacs0uu。build.pyが存在しない固定swiftc pathを指定してFileNotFoundError。Swift compile/製品関数/計時はいずれも未開始。詳細/tmp/takupoke-ios-projection-index-build-status.log。既存の索引/時刻/ホーム回帰56件は別途成功（0.917秒）。対処選択前に事実を記録する。

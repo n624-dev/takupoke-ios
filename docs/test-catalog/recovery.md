@@ -1,7 +1,7 @@
 # PDF復旧・OCR・構造・Validator・端末内Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`3272c914009b72f1e78b6a0e241d09564ecf8a3fd4498be19d9a90b07fb7666c`
+`0a4c59f229ff2358d4f3271802491bc11c72194ae82841ec8638f9f800aecb01`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -253,6 +253,7 @@ bash tools/test-parsing.sh
 - `testCancelledRuleRecoveryDoesNotReturnPreview`
 - `testIncompleteAndCancelledAnalysisResumeButDefinitiveFailureDoesNotLoop`
 - `testSpecialScopeVersionRetriesSameHashEarlierSuccessfulAnalysis`
+- `testRowOrderAndWholeClockVersionRetriesPublished33WithoutLooping`
 - `testOrdinaryRoleAliasVersionRetriesUnchangedEarlierSuccess`
 - `testUnusedFontReaderVersionRetriesEarlierSameHashDefinitiveFailure`
 - `testParallelAlignmentVersionRetriesEarlierSameHashSuccessAndFailure`
