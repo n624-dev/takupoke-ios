@@ -117,3 +117,7 @@ main438/source9298ebeはN124のAppleテスト構文でNativeが失敗し、公�
 新規GPT-6.1 Sol/High ios_n124_syntax_pre_actions_reviewはmain9298ebeからの不変コード差分20行のみを読みblockingなし（SHA256 ef9ab4df8321e05eaeaaf19aecfc0c7fbb21a494555b332f4b81ca0f7fd9c58e）。主担当が同一性と未送信各commitの空白を再確認して次のmain push1回に使用する。旧438の残UI/queueも取消せず終端確認し、新しい実行の全15成功へ混ぜない。
 
 main439/run40045677219/attempt1/source2a81f3aのNative/job120727168105は00:42:49 success終端。Apple Native652件/予定skip1/失敗0（115.659秒）、現行Strict compatibility3件/失敗0（2.096秒）で、N124の構文エラーは再発しなかった。通常/訂正UIは継続し、公開はまだ行われていない。旧438のChanged OriginalはN125の最初のXcode launch timeoutで、訂正操作へ未到達。原因未確定と、新439が観測前に同じ起動コードで開始済みである点を保持する。
+
+N126候補75b184bはACK rowの受動発見と実inner native Switchの操作判定を分けたQA変更。Pythonの手動訂正関連39件/失敗0（8.678秒）、その内部の実Swift幾何29件/失敗0（0.104秒）、変更2ファイルの構文parseとcatalog check --base2a81f3aが成功。実innerの一意性/全包含/enabled/hittable/値0/一回接触/値1と保存・再起動のassertは保持する。製品は変更していない。
+
+最初のgeometry-only reviewは開始前に未使用で破棄した。新規GPT-6.1 Sol/High ios_n126_inner_contact_pre_actions_reviewは実inner検査の変更されていないcontextも含む不変コード差分189行（SHA256 a522a70e53cd270e839530c5093b77d886fa34c07f29ad8629278676bdd16a47）だけを読みblockingなし。このreviewは次の単項目訂正case1件・両OSの焦点開始1回に使用し、後の全15公開開始には新しいreviewを要求する。旧438/439の残jobも取消しせず確認する。
