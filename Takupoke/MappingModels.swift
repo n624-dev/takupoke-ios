@@ -1,5 +1,10 @@
 import Foundation
 
+enum MappingRevisionResult: Equatable, Sendable {
+    case unchanged
+    case available(String)
+}
+
 enum MappingError: Error, LocalizedError {
     case invalidPackage, invalidResponse, authentication, unavailable, storage, changedDuringDownload
 

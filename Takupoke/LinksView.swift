@@ -20,6 +20,7 @@ struct LinksView: View {
     @EnvironmentObject private var mappings: MappingModel
     @ObservedObject var model: LinksModel
     @State private var safariPage: SafariPage?
+    @State private var linkActionOwner = UUID()
     @State private var query = ""
 
     private var visibleCategories: [VisibleLinkCategory] {
@@ -58,7 +59,7 @@ struct LinksView: View {
                     ForEach(visibleCategories) { entry in
                         Section(entry.category.label) {
                             ForEach(entry.items) { item in
-                                LinkRow(item: item, model: model) { safariPage = SafariPage(url: $0) }
+                                LinkRow(item: item, model: model, actionOwner: linkActionOwner) { safariPage = SafariPage(url: $0) }.equatable()
                             }
                         }
                     }
@@ -71,9 +72,9 @@ struct LinksView: View {
                             Text("該当するリンクがありません。").foregroundStyle(.secondary)
                         } else {
                             ForEach(searchHits) { hit in
-                                LinkRow(item: hit.item, subtitle: hit.category, model: model) {
+                                LinkRow(item: hit.item, subtitle: hit.category, model: model, actionOwner: linkActionOwner) {
                                     safariPage = SafariPage(url: $0)
-                                }
+                                }.equatable()
                             }
                         }
                     }

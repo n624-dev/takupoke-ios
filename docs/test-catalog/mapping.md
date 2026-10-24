@@ -1,7 +1,7 @@
 # 名称対応・パッケージ・認証取得
 
 対応関係・宣言名・実行方法のSHA-256：
-`d9a4c1288d4f7c04bb2d3c63bfabae27ec7bf002247014af0611d205287334fd`
+`faff7b560e71fb3ce1abdaeebc2e245214f8f0108d8eb8f939c09edc222027e7`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -62,6 +62,11 @@ bash tools/test-parsing.sh
 
 ## [tests/LinksTests.swift](../../tests/LinksTests.swift)
 
+- `testRevisionWorkCoalescesForcedCallerAndCancelsOnlyItsOwnWait`
+- `testRevisionTTLForceFailureAndInstalledRevisionUseTheSameCoordinator`
+- `testLastRevisionWaiterCancellationCancelsOwnerAndCannotInstallLateSuccess`
+- `testRevisionResetRejectsOldGenerationWhileNewOwnerCompletes`
+- `testStableLinkRowInputsIncludeEveryRenderedValueAndActionOwner`
 - `testLateSearchTermsRemainMatchesWithExactPrefixAndSubstringPriority`
 - `testAllPrivateResourceCombinationsUseOneAppropriateAuthentication`
 - `testSyllabusDepartmentOnlyResolvesKnownLinkAndUsesCalendarYear`

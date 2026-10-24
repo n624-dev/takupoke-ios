@@ -3,6 +3,111 @@ import XCTest
 @testable import TakupokeParsing
 
 final class LinksTests: XCTestCase {
+    @MainActor private final class RevisionGate {
+        let started = XCTestExpectation(description:"owned revision started")
+        let cancelled = XCTestExpectation(description:"owned revision cancelled")
+        var calls = 0
+        var continuation: CheckedContinuation<MappingRevisionResult,Error>?
+        func fetch() async throws -> MappingRevisionResult {
+            calls += 1
+            return try await withTaskCancellationHandler(operation:{
+                try await withCheckedThrowingContinuation { continuation in
+                    self.continuation = continuation; started.fulfill()
+                }
+            },onCancel:{ Task { @MainActor in self.cancelled.fulfill() } })
+        }
+        func complete(_ value:MappingRevisionResult) {
+            continuation?.resume(returning:value); continuation = nil
+        }
+    }
+    @MainActor private func waitForWaiters(_ count:Int,_ coordinator:LinksRevisionCoordinator) async throws {
+        for _ in 0..<1000 {
+            if coordinator.pendingWaiterCount == count { return }
+            await Task.yield()
+        }
+        XCTFail("revision callers did not enroll"); throw LinksError.unavailable
+    }
+    @MainActor func testRevisionWorkCoalescesForcedCallerAndCancelsOnlyItsOwnWait() async throws {
+        let coordinator = LinksRevisionCoordinator(), gate = RevisionGate()
+        defer { coordinator.reset(); gate.complete(.unchanged) }
+        let first = Task { try await coordinator.value(installed:"fictional-v1",force:false,fetch:gate.fetch) }
+        await fulfillment(of:[gate.started],timeout:2)
+        let second = Task { try await coordinator.value(installed:"fictional-v1",force:true,fetch:gate.fetch) }
+        try await waitForWaiters(2,coordinator)
+        first.cancel()
+        switch await first.result { case .failure(let error): XCTAssertTrue(error is CancellationError); case .success: XCTFail("cancelled waiter succeeded") }
+        XCTAssertEqual(coordinator.pendingWaiterCount,1); XCTAssertEqual(gate.calls,1)
+        gate.complete(.available("fictional-v2"))
+        let secondValue = try await second.value
+        XCTAssertEqual(secondValue,.available("fictional-v2"))
+        XCTAssertEqual(coordinator.pendingWaiterCount,0)
+    }
+    @MainActor func testRevisionTTLForceFailureAndInstalledRevisionUseTheSameCoordinator() async throws {
+        var time = 0.0, calls = 0
+        let coordinator = LinksRevisionCoordinator(minimumInterval:300,now:{ time })
+        func request(_ installed:String?,_ force:Bool = false,_ fail:Bool = false) async throws -> MappingRevisionResult {
+            try await coordinator.value(installed:installed,force:force) {
+                calls += 1
+                if fail { throw LinksError.unavailable }
+                return .available("fictional-v2")
+            }
+        }
+        let initial = try await request(nil)
+        XCTAssertEqual(initial,.available("fictional-v2")); XCTAssertEqual(calls,1)
+        time = 10; _ = try await request(nil); XCTAssertEqual(calls,1)
+        _ = try await request(nil,true); XCTAssertEqual(calls,2)
+        time = 309; _ = try await request(nil); XCTAssertEqual(calls,2)
+        time = 310
+        do { _ = try await request(nil,false,true); XCTFail("expired request failure was cached as success") } catch { XCTAssertTrue(error is LinksError) }
+        _ = try await request(nil); XCTAssertEqual(calls,4)
+        _ = try await request("fictional-v2"); XCTAssertEqual(calls,5)
+        coordinator.reset(); _ = try await request("fictional-v2"); XCTAssertEqual(calls,6)
+    }
+    @MainActor func testLastRevisionWaiterCancellationCancelsOwnerAndCannotInstallLateSuccess() async throws {
+        let coordinator = LinksRevisionCoordinator(), gate = RevisionGate()
+        defer { coordinator.reset(); gate.complete(.unchanged) }
+        let request = Task { try await coordinator.value(installed:nil,force:false,fetch:gate.fetch) }
+        await fulfillment(of:[gate.started],timeout:2)
+        request.cancel()
+        switch await request.result { case .failure(let error): XCTAssertTrue(error is CancellationError); case .success: XCTFail("cancelled waiter succeeded") }
+        await fulfillment(of:[gate.cancelled],timeout:2)
+        gate.complete(.available("fictional-stale"))
+        let result = try await coordinator.value(installed:nil,force:false) { .available("fictional-fresh") }
+        XCTAssertEqual(result,.available("fictional-fresh"))
+    }
+    @MainActor func testRevisionResetRejectsOldGenerationWhileNewOwnerCompletes() async throws {
+        let coordinator = LinksRevisionCoordinator(), old = RevisionGate(), current = RevisionGate()
+        defer { coordinator.reset(); old.complete(.unchanged); current.complete(.unchanged) }
+        let stale = Task { try await coordinator.value(installed:nil,force:false,fetch:old.fetch) }
+        await fulfillment(of:[old.started],timeout:2)
+        coordinator.reset()
+        switch await stale.result { case .failure(let error): XCTAssertTrue(error is CancellationError); case .success: XCTFail("reset waiter succeeded") }
+        let fresh = Task { try await coordinator.value(installed:nil,force:false,fetch:current.fetch) }
+        await fulfillment(of:[current.started],timeout:2)
+        old.complete(.available("fictional-old")); current.complete(.available("fictional-current"))
+        let freshValue = try await fresh.value
+        XCTAssertEqual(freshValue,.available("fictional-current"))
+        let cached = try await coordinator.value(installed:nil,force:false) { XCTFail("current success was not cached"); return .unchanged }
+        XCTAssertEqual(cached,.available("fictional-current"))
+    }
+    func testStableLinkRowInputsIncludeEveryRenderedValueAndActionOwner() {
+        let owner = UUID()
+        func item(_ href:String) -> LinkItem {
+            LinkItem(id:"fictional-row",categoryId:"fictional-category",label:"架空リンク",href:href,
+                color:"sky",visible:true,sortOrder:0,recommended:false,recommendationOrder:0,searchAliases:[],searchTerms:"")
+        }
+        let original = item("https://example.invalid/first")
+        func value(subtitle:String? = nil,ready:Bool = true,favorite:Bool = false,color:String = "sky",
+                   override:Bool = false,actionOwner:UUID? = nil,link:LinkItem? = nil) -> LinkRowPresentation {
+            LinkRowPresentation(item:link ?? original,subtitle:subtitle,preferencesReady:ready,favorite:favorite,
+                color:color,hasColorOverride:override,actionOwner:actionOwner ?? owner)
+        }
+        XCTAssertEqual(value(),value())
+        for changed in [value(subtitle:"架空カテゴリ"),value(ready:false),value(favorite:true),value(color:"blue"),
+                        value(override:true),value(actionOwner:UUID()),value(link:item("https://example.invalid/second"))] {
+            XCTAssertNotEqual(value(),changed)
+        }
+    }
     func testLateSearchTermsRemainMatchesWithExactPrefixAndSubstringPriority() throws {
         let terms = (0..<1001).map { "q\($0)" }.joined(separator: "|") + "|needle"
         let late = LinkItem(id: "fictional-late", categoryId: "fictional-category", label: "架空リンク",

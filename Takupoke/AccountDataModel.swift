@@ -11,7 +11,7 @@ final class AccountDataModel: ObservableObject {
     func refresh(mappings: MappingModel, links: LinksModel, times: TimetableTimesModel,
                  selection: AccountDataSelection = .all) async {
         guard !selection.isEmpty, selection.subtracting(.all).isEmpty else { return }
-        guard !busy, !mappings.busy, !links.busy, !times.busy else { return }
+        guard !busy, !mappings.busy, !times.busy else { return }
         busy = true
         let operation = Task {
             let network = LinksModel.networkSession()
@@ -23,7 +23,7 @@ final class AccountDataModel: ObservableObject {
                 if selection.contains(.mappings), case .available(let revision) = try await mappings.revision(using: network) { mappingRevision = revision }
             } catch { if !Task.isCancelled { mappings.report(error) } }
             do {
-                if selection.contains(.links), case .available(let revision) = try await links.revision(using: network) { linkRevision = revision }
+                if selection.contains(.links), case .available(let revision) = try await links.revision() { linkRevision = revision }
             } catch { if !Task.isCancelled { links.report(error) } }
             do {
                 if selection.contains(.times), case .available(let revision) = try await times.revision(using: network) { timesRevision = revision }

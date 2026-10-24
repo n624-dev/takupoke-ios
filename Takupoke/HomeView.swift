@@ -10,6 +10,7 @@ struct HomeView: View {
     @EnvironmentObject private var links: LinksModel
     @EnvironmentObject private var mappings: MappingModel
     @State private var safariPage: SafariPage?
+    @State private var linkActionOwner = UUID()
     @State private var selectedLesson: LessonSelection?
     @State private var selectedSpecial: SpecialSelection?
     @State private var selectedChange: ChangeSelection?
@@ -40,14 +41,14 @@ struct HomeView: View {
                 if !links.visibleFavorites.isEmpty {
                     Section("お気に入り") {
                         ForEach(links.visibleFavorites) { item in
-                            LinkRow(item: item, model: links) { safariPage = SafariPage(url: $0) }
+                            LinkRow(item: item, model: links, actionOwner: linkActionOwner) { safariPage = SafariPage(url: $0) }.equatable()
                         }
                     }
                 }
                 if !links.visibleRecommendations.isEmpty {
                     Section("おすすめ") {
                         ForEach(links.visibleRecommendations) { item in
-                            LinkRow(item: item, model: links) { safariPage = SafariPage(url: $0) }
+                            LinkRow(item: item, model: links, actionOwner: linkActionOwner) { safariPage = SafariPage(url: $0) }.equatable()
                         }
                     }
                 }

@@ -15,12 +15,12 @@ struct ContentView: View {
     @AppStorage("setupPresented") private var setupPresented = false
     @State private var showingSetup = false
     @State private var confirmingRetentionRecovery = false
-    @StateObject private var materials = ApplicationData.shared.materials
-    @StateObject private var specialSchedules = ApplicationData.shared.specialSchedules
-    @StateObject private var schoolEvents = ApplicationData.shared.schoolEvents
-    @StateObject private var mappings = ApplicationData.shared.mappings
-    @StateObject private var links = ApplicationData.shared.links
-    @StateObject private var account = ApplicationData.shared.account
+    private let materials = ApplicationData.shared.materials
+    private let specialSchedules = ApplicationData.shared.specialSchedules
+    private let schoolEvents = ApplicationData.shared.schoolEvents
+    private let mappings = ApplicationData.shared.mappings
+    private let links = ApplicationData.shared.links
+    private let account = ApplicationData.shared.account
     private let boundaryCheck = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -66,10 +66,12 @@ struct ContentView: View {
         .onChange(of: dataReady) { ready in
             if !ready { showingSetup = false }
         }
-        .onChange(of: materials.ready) { _ in offerSetupIfNeeded() }
-        .onChange(of: specialSchedules.ready) { _ in offerSetupIfNeeded() }
-        .onChange(of: links.ready) { _ in offerSetupIfNeeded() }
-        .onChange(of: mappings.ready) { _ in offerSetupIfNeeded() }
+        .onReceive(setupReadiness) { ready in
+            if ready {
+                // Published emits before the final model assignment.
+                Task { @MainActor in offerSetupIfNeeded() }
+            }
+        }
         .fullScreenCover(isPresented: $showingSetup) {
             SetupView(materials: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents,
                       mappings: mappings, finish: { setupPresented = true; showingSetup = false })
@@ -83,6 +85,11 @@ struct ContentView: View {
         } message: {
             Text("保存期間が切り替わりました。ファイルの再選択とリンク一覧・名称データ・授業時刻の再取得が必要です。")
         }
+    }
+
+    private var setupReadiness: AnyPublisher<Bool,Never> {
+        Publishers.CombineLatest4(materials.$ready,specialSchedules.$ready,links.$ready,mappings.$ready)
+            .map { $0 && $1 && $2 && $3 }.removeDuplicates().eraseToAnyPublisher()
     }
 
     private func offerSetupIfNeeded() {

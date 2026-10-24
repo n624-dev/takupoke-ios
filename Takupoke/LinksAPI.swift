@@ -1,5 +1,72 @@
 import Foundation
 
+/// One owner per installed revision; callers cancel only their own wait.
+@MainActor
+final class LinksRevisionCoordinator {
+    private struct Cached {
+        let installed: String?
+        let result: MappingRevisionResult
+        let checkedAt: TimeInterval
+    }
+    private let minimumInterval: TimeInterval
+    private let now: () -> TimeInterval
+    private var cached: Cached?
+    private var owner: Task<Void,Never>?
+    private var operation = UUID()
+    private var installed: String?
+    private var waiters = [UUID:CheckedContinuation<MappingRevisionResult,Error>]()
+    var pendingWaiterCount: Int { waiters.count }
+
+    init(minimumInterval:TimeInterval = 300, now:@escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }) {
+        self.minimumInterval = minimumInterval; self.now = now
+    }
+
+    func value(installed:String?,force:Bool,
+               fetch:@escaping @MainActor () async throws -> MappingRevisionResult) async throws -> MappingRevisionResult {
+        try Task.checkCancellation()
+        if owner != nil, self.installed != installed { reset() }
+        if owner == nil, !force, let cached, cached.installed == installed {
+            let elapsed = now()-cached.checkedAt
+            if elapsed >= 0 && elapsed < minimumInterval { return cached.result }
+        }
+        let waiter = UUID()
+        return try await withTaskCancellationHandler(operation:{
+            try await withCheckedThrowingContinuation { continuation in
+                guard !Task.isCancelled else { continuation.resume(throwing:CancellationError()); return }
+                waiters[waiter] = continuation
+                if owner == nil {
+                    self.installed = installed
+                    let token = UUID(); operation = token
+                    owner = Task { @MainActor in
+                        do { finish(.success(try await fetch()),token:token,installed:installed) }
+                        catch { finish(.failure(error),token:token,installed:installed) }
+                    }
+                }
+            }
+        },onCancel:{ Task { @MainActor in self.cancel(waiter) } })
+    }
+
+    private func finish(_ result:Result<MappingRevisionResult,Error>,token:UUID,installed:String?) {
+        guard operation == token else { return }
+        owner = nil
+        if case .success(let value) = result { cached = Cached(installed:installed,result:value,checkedAt:now()) }
+        let pending = Array(waiters.values); waiters.removeAll()
+        for continuation in pending { continuation.resume(with:result) }
+    }
+
+    private func cancel(_ waiter:UUID) {
+        guard let continuation = waiters.removeValue(forKey:waiter) else { return }
+        continuation.resume(throwing:CancellationError())
+        if waiters.isEmpty { operation = UUID(); owner?.cancel(); owner = nil }
+    }
+
+    func reset() {
+        operation = UUID(); owner?.cancel(); owner = nil; cached = nil
+        let pending = Array(waiters.values); waiters.removeAll()
+        for continuation in pending { continuation.resume(throwing:CancellationError()) }
+    }
+}
+
 struct AccountDataSelection: OptionSet {
     let rawValue: Int
     static let links = Self(rawValue: 1)
@@ -71,7 +138,7 @@ enum LinksError: LocalizedError {
     }
 }
 
-struct LinkItem: Codable, Equatable, Identifiable {
+struct LinkItem: Codable, Equatable, Identifiable, Sendable {
     let id: String
     let categoryId: String
     let label: String
@@ -198,4 +265,15 @@ enum LinksResponse {
             throw LinksError.invalidResponse
         }
     }
+}
+
+/// Stable row inputs; fetch status and messages are deliberately absent.
+struct LinkRowPresentation: Equatable, Sendable {
+    let item: LinkItem
+    let subtitle: String?
+    let preferencesReady: Bool
+    let favorite: Bool
+    let color: String
+    let hasColorOverride: Bool
+    let actionOwner: UUID
 }

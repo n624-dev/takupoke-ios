@@ -85,10 +85,10 @@ final class ApplicationData: ObservableObject {
             try retention.finishRecovery()
             materials.resumeAfterRetention()
             specialSchedules.resumeAfterRetention()
-            loadedPeriod = period
-            retentionFailure = false
-            retentionFailureReason = nil
-            ready = true
+            if loadedPeriod != period { loadedPeriod = period }
+            if retentionFailure { retentionFailure = false }
+            if retentionFailureReason != nil { retentionFailureReason = nil }
+            if !ready { ready = true }
             return true
         } catch {
             ready = false

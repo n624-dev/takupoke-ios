@@ -1,7 +1,7 @@
 # リンク・検索・設定保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`9903ce4b4537979f4c8a4846a1d45ce725bbf3fa03c013fd99054a94d59f3523`
+`b0bd2d31d9612fd4d866fb242929c6f42f98006649965f7ff74accd0a25af7eb`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -20,6 +20,11 @@ python3 -B -m unittest discover -s tests -p test_links_model_lifecycle.py
 
 ## [tests/LinksTests.swift](../../tests/LinksTests.swift)
 
+- `testRevisionWorkCoalescesForcedCallerAndCancelsOnlyItsOwnWait`
+- `testRevisionTTLForceFailureAndInstalledRevisionUseTheSameCoordinator`
+- `testLastRevisionWaiterCancellationCancelsOwnerAndCannotInstallLateSuccess`
+- `testRevisionResetRejectsOldGenerationWhileNewOwnerCompletes`
+- `testStableLinkRowInputsIncludeEveryRenderedValueAndActionOwner`
 - `testLateSearchTermsRemainMatchesWithExactPrefixAndSubstringPriority`
 - `testAllPrivateResourceCombinationsUseOneAppropriateAuthentication`
 - `testSyllabusDepartmentOnlyResolvesKnownLinkAndUsesCalendarYear`

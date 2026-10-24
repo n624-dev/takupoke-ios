@@ -1,10 +1,5 @@
 import Foundation
 
-enum MappingRevisionResult: Equatable {
-    case unchanged
-    case available(String)
-}
-
 struct MappingService {
     let baseURL: URL
     let network: URLSession

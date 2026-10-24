@@ -23,10 +23,12 @@ protocol ObservableObject: AnyObject {}
 enum MappingError: Error { case authentication, changedDuringDownload, unavailable }
 enum MappingRevisionResult: Equatable { case unchanged, available(String) }
 struct MappingService {
+    static var calls = 0
     let baseURL: URL
     let network: URLSession
     func checkRevision(installed: String?, path: String) async throws -> MappingRevisionResult {
         guard path == "links-revision" else { throw MappingError.unavailable }
+        Self.calls += 1
         return .available(String(repeating: "F", count: 43))
     }
 }
@@ -38,7 +40,7 @@ struct MappingService {
         let bad = Data("{fictional-invalid-preferences".utf8)
         defaults.set(bad, forKey: "linkPreferences.v1")
         let store = LinkPreferencesStore(defaults: defaults)
-        let model = LinksModel(preferencesStore: store, storeRoot: URL(fileURLWithPath: CommandLine.arguments[1]))
+        let model = LinksModel(preferencesStore: store, storeRoot: URL(fileURLWithPath: CommandLine.arguments[1]), endpoint: URL(string: "https://links.example.invalid/links")!)
         var failures = [String]()
         func check(_ condition: Bool, _ name: String) {
             if !condition { failures.append(name); print("FAILED: " + name) }
@@ -46,11 +48,17 @@ struct MappingService {
         model.loadIfNeeded()
         check(model.ready && !model.preferencesReady && model.preferencesError != nil, "actual corrupt settings detected")
         check(defaults.data(forKey: "linkPreferences.v1") == bad, "corrupt original is preserved")
-        let network = URLSession(configuration: .ephemeral)
-        defer { network.invalidateAndCancel() }
-        _ = try await model.revision(using: network)
+        _ = try await model.revision()
         check(!model.preferencesReady && model.preferencesError != nil, "revision success must retain preferences error")
         check(defaults.data(forKey: "linkPreferences.v1") == bad, "revision does not overwrite original")
+        await model.refresh()
+        check(MappingService.calls == 1 && !model.busy, "automatic refresh uses successful revision TTL without new work")
+        model.report(LinksError.unavailable)
+        let failureMessage = model.message
+        await model.refresh()
+        check(model.failed && model.message == failureMessage && MappingService.calls == 1, "cached success does not erase a later failure")
+        await model.refresh(force: true)
+        check(MappingService.calls == 2 && !model.failed && model.preferencesError != nil, "forced refresh bypasses TTL and retains independent preference errors")
         let previous = LinkPreferences(favoriteIDs: ["fictional-favorite"], hiddenIDs: ["fictional-hidden"], colorOverrides: ["fictional-colored": "blue"])
         try store.save(previous)
         model.loadIfNeeded()

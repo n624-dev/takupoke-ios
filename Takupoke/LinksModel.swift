@@ -16,13 +16,19 @@ final class LinksModel: ObservableObject {
     private var store: LinksStore?
     private let preferencesStore: LinkPreferencesStore
     private let storeRoot: URL?
+    private let revisions = LinksRevisionCoordinator()
+    private let revisionNetwork: () -> URLSession
     @Published private(set) var preferencesError: String?
 
-    init(preferencesStore: LinkPreferencesStore = LinkPreferencesStore(), storeRoot: URL? = nil) {
+    init(preferencesStore: LinkPreferencesStore = LinkPreferencesStore(), storeRoot: URL? = nil,
+         revisionNetwork:(() -> URLSession)? = nil,
+         endpoint:URL = URL(string:"https://takupoke-api.n624.jp/links")!) {
         self.preferencesStore = preferencesStore
         self.storeRoot = storeRoot
+        self.revisionNetwork = revisionNetwork ?? { Self.networkSession() }
+        self.endpoint = endpoint
     }
-    private let endpoint = URL(string: "https://takupoke-api.n624.jp/links")!
+    private let endpoint: URL
 
     var visibleFavorites: [LinkItem] {
         (saved?.payload.categories ?? []).flatMap(\.buttons)
@@ -70,33 +76,35 @@ final class LinksModel: ObservableObject {
     func refresh(force: Bool = false) async {
         guard !Task.isCancelled else { return }
         loadIfNeeded()
-        guard ready, !busy else { return }
-        busy = true
+        guard ready else { return }
         let operation = generation
-        let session = Self.networkSession()
-        defer { session.invalidateAndCancel(); if operation == generation { busy = false } }
         do {
-            let result = try await revision(using: session)
-            guard operation == generation else { return }
-            updateAvailable = result != .unchanged
+            _ = try await revision(force:force)
         } catch {
             guard operation == generation, !Task.isCancelled else { return }
             report(error)
         }
     }
 
-    func revision(using network: URLSession) async throws -> MappingRevisionResult {
+    func revision(force:Bool = true) async throws -> MappingRevisionResult {
         loadIfNeeded()
         guard ready else { throw LinksError.storage }
         let operation = generation
-        let result = try await MappingService(baseURL: endpoint.deletingLastPathComponent(), network: network)
-            .checkRevision(installed: saved?.revision, path: "links-revision")
-        try Task.checkCancellation()
-        guard operation == generation else { throw CancellationError() }
-        updateAvailable = result != .unchanged
-        failed = false
-        message = updateAvailable ? (saved == nil ? "認証して一覧を取得してください。学内ネットワークではMicrosoft認証を省略できます。" : "一覧に更新があります。") : "一覧は最新です。"
-        return result
+        let installed = saved?.revision
+        return try await revisions.value(installed:installed,force:force) { [self] in
+            guard operation == generation else { throw CancellationError() }
+            let network = revisionNetwork()
+            busy = true
+            defer { network.invalidateAndCancel(); if operation == generation { busy = false } }
+            let result = try await MappingService(baseURL:endpoint.deletingLastPathComponent(),network:network)
+                .checkRevision(installed:installed,path:"links-revision")
+            try Task.checkCancellation()
+            guard operation == generation else { throw CancellationError() }
+            updateAvailable = result != .unchanged
+            failed = false
+            message = updateAvailable ? (saved == nil ? "認証して一覧を取得してください。学内ネットワークではMicrosoft認証を省略できます。" : "一覧に更新があります。") : "一覧は最新です。"
+            return result
+        }
     }
 
     func download(token: String, revision: String, network: URLSession) async throws {
@@ -117,6 +125,7 @@ final class LinksModel: ObservableObject {
             receivedETag: response.value(forHTTPHeaderField: "ETag"), saved: nil)
         replacement.revision = revision
         do { try store.save(replacement) } catch { throw LinksError.storage }
+        revisions.reset()
         saved = replacement; updateAvailable = false; failed = false
         message = "一覧を更新しました。"
     }
@@ -133,6 +142,7 @@ final class LinksModel: ObservableObject {
 
     func resetForRetention() {
         generation = UUID()
+        revisions.reset()
         saved = nil; store = nil; ready = false; busy = false
         updateAvailable = false; message = nil; failed = false
     }
