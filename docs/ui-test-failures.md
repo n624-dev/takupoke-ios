@@ -2595,3 +2595,13 @@ N126照合:Activation point invalid/hittabilityでU10の受動footer照会とN97
 候補は通常targetもこの既存helperへ接続し、取得済みの同じframeを使って範囲外/無効なSwitchへのhit問い合わせを避けるQAだけの変更。問い合わせ前に実frame/viewportを記録し、包含済みtargetでは元のhittabilityを必須のまま保持する。16探索・受動Cell移動・接触の一回性・ACK/native値・全文/再編集/背景/保存/relaunch・各期限・全15gateは変えない。既存のhelper幾何ケースと元の単項目実UIケースが検出するため模倣テストは足さず、候補/根拠を隔離branchへpush後に局所検査と新規review、焦点比較で確認する。
 
 開始前の追加照合:acknowledge(_:)の実本文は外側rowから唯一の内側native Switchを取り出し、inner/outer/viewport全包含・enabled/hittable・未確認値0を必須にして一回だけ接触する。外側rowは接触するcontrol自体ではないため、その受動探索に別のactivation pointを要求する必要はない。候補を具体化し、ACK rowに限って有限/全包含の実枠で発見を完了し、実際のinnerの全hit条件と状態確認をそのまま残す。通常Button/入力の発見では既存helperのhittabilityを維持する。最初のgeometry-only reviewは未使用で破棄し、実inner検査のコードcontextを含む新しい不変diffを別の新規reviewへ渡す。製品/期待値/期限/回数は変更せず、再度局所検査してから焦点比較を始める。
+
+## N127 main440の通常画面26 Bが失敗（2026-10-24）
+
+source1c3318181f9ba0cb1ed953079e9ba0240497a475、run40051510584/attempt1、job120753784746、Application iOS 26 UI B（Runtime26.5/SDK27.0指定）が02:28:37〜02:40:11 UTCでfailure。02:55予定照会（実取得02:54台）で確認した。Exercise app screens with synthetic dataは02:30:18開始で失敗。具体case・失敗段階・実OS/SDK・原因はログ未確認で対処未選択。通常27 A/B・Native・訂正27の4件・訂正26の3件は成功、通常26 Aと訂正26の明示選択は継続。公開条件を満たさず、残る実行を取り消さない。対処案を選ぶ前の観測記録。
+
+N127ログ観測:実Runtimeはcom.apple.CoreSimulator.SimRuntime.iOS-26-5、Xcode27でbuild-for-testingは成功。所有Simulator ADB2FB25-A89F-4B97-B68C-6E3EE68FAF18のbootstatusはFinished、App simulator boot区間125.1秒。続くtest-without-buildingのdestination解決で「Unable to find a device matching」「no available devices matched」となり、compatible一覧はgeneric iOS Simulatorだけで具体deviceがない。02:37:24〜02:39:19のApp UI区間114.3秒で終了し、XCTest caseは未開始、TAKUPOKE_LIFECYCLEはcapture-unavailable。アプリ操作/通知/青保存のassert失敗ではない。所有deviceの消失/利用不能の原因は未確定で、起動済みという先行観測だけから後続の可用性を保証しない。過去のdestination/boot/host記録と、当時・現在のruntime準備/実行scriptを次に照合する。
+
+N127照合:destination/Unable to find/no available/bootstatus/CoreSimulatorで索引検索し、N07・N76・N73/N74の詳細と当時のrunnerを読んだ。N07は全device一覧の停止、N76は別minorのsimctl create拒否、N73はhost通信断、N74はPicker実操作中のAX停止で、本件と同一原因とはしない。現行のcreate→停止中build→bootstatus→実UDID test-without-buildingはN73時点から同じ順序で、N76対処のruntime選択は26側を変更していない。直前439/source2a81f3aと今回1c331818の全差分は文書と訂正専用Input/Navigationだけで、通常UIの製品・ApplicationChecks/fixture・project generator・runner・runtime準備・workflowは同一bytes（当該差分0）。439の通常26 Bは02:16:28に同じ全操作を成功し、438の26 Bも01:48:31に成功している。
+
+この同一コードの成功と、今回はcase開始前のdestination解決失敗だった新しい照合根拠に基づき、440の残る通常26 A・明示選択訂正26の終端を確認してから、同一sourceの失敗26 Bと依存する公開だけを新しいhost/所有deviceで一度独立検証する候補とする。bootやXCTestの失敗を同一job内で救済せず、製品・QA・OS/SDK・操作・期待・期限・全15gateは変更しない。原因の恒常的解消とは主張せず、同じdestination停止が再発した場合はこの根拠だけで再実行を繰り返さない。候補/根拠をCI対象外の枝へpushし、全job終端後、実行対象との差分0行に対する新規reviewを消費してから判断する。公開gate自身が要求する同一run/attempt/sourceの成功を満たさなければ公開しない。
