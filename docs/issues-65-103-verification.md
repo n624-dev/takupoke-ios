@@ -321,3 +321,5 @@ main1a5eb2d/run40122891165/attempt1では27の全条件が成功し、通常Aは
 限定比較source60075a3/run40130115422/attempt1は全8job failure終端。全件が生成appの新しいgesture文字列のSQL/String推論でbuild-for-testing失敗し、実clearは未実行（N150）。元のreviewをこの実行へ使用済みとし、再利用しない。旧正式444は残る26 Aも成功して全18表示job終端、事前14件は13成功・N148の単項目26のみ失敗・公開依存skip。全14実行ログを一度保存し、artifact0も一度確認した。どちらのrunも以後再照会しない。
 
 5b3bd3cではgestureのmap戻り型と結合結果にStringを明示するだけで、値/書式/操作/上限/全期待を保持した。候補と根拠をpush後、Linux Swift6.1.2構文・既存29幾何/失敗0（0.205秒）、diagnostics11件/失敗0（0.235秒）、project17件/失敗0（0.292秒）、manual runner5件/失敗0（2.627秒）、manifest28件/失敗0（4.652秒）、catalog448/check --base 1a5eb2d/固定枝一覧が成功。これらはApple moduleの型解決や実操作の代用ではなく、次の両SDK限定比較で改めて確認する。
+
+次の訂正all限定比較一回用に、新規GPT-6.1 Sol/High ios_n150_clear_pre_actions_reviewが新しいpatch96行/6509bytes SHA256 4a55d4261b26f125c47e43d53a9fb8f274fb521dbf3ce24e6d250887a712546bと、元Input/Navigation/全4case context（68c649cf…/35763088…/d52d5860…）、新observer89行/5284bytes SHA256 511c5c36fbf8681965c26395b5a1353ba77e18020772b98f4b0335b85deb1081を全行/hash/bytes照合し、具体的指摘なし。主担当も現sourceと同じ差分であることを確認した。N148の使用済みreviewは転用せず、これを次の実行一回だけへ使う。
