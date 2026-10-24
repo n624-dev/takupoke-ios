@@ -1,7 +1,7 @@
 import Foundation
 
 extension TimetableSchedule {
-    struct DayPlan {
+    struct DayPlan: Equatable {
         let events: [PDFSchoolEvent]
         let isNoClass: Bool
         let isSupplementary: Bool
@@ -56,6 +56,9 @@ extension TimetableSchedule {
 
     static func dayPlan(on day: SchoolDate, events analysis: PDFAnalysis?) -> DayPlan {
         let visible = events(on: day, analysis: analysis)
+        return dayPlan(on:day,visible:visible)
+    }
+    static func dayPlan(on day:SchoolDate,visible:[PDFSchoolEvent]) -> DayPlan {
         let reliable = visible.compactMap { event -> PDFEventClassification? in
             guard event.classification?.needsReview == false else { return nil }
             return event.classification

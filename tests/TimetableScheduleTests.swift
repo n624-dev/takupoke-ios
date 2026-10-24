@@ -2,6 +2,86 @@ import XCTest
 @testable import TakupokeParsing
 
 final class TimetableScheduleTests: XCTestCase {
+    func testAcceptedSourceIndexMatchesOriginalSelectorsAndBlocksAcrossScopes() throws {
+        let start = try XCTUnwrap(SchoolDate(iso8601:"2032-04-05"))
+        var normal = timetable(term:"前期")
+        normal.lessons = (1...5).flatMap { weekday in (1...8).flatMap { period in
+            ["1_A","1_CN","1_1"].map { name in
+                PDFLesson(className:name,weekday:weekday,period:period,names:.init(subject:period == 3 ? "留架空科目":"架空科目A",teacher:"架空教員A"),sourceText:"架空本文",page:1)
+            }
+        } }
+        var parallel = normal.lessons[0]; parallel.names = .init(subject:"架空並記",teacher:"架空教員B")
+        normal.lessons.insert(parallel,at:1)
+        func change(_ date:String,_ period:String,_ note:String) -> ScheduleChange {
+            ScheduleChange(change_date:date,class_name:"1_A",period:period,before_subject:"架空科目A",after_subject:"架空変更",teacher:"架空教員C",room:"架空室",note:note,raw_text:"架空原文",canonical_text:"")
+        }
+        let changes = ChangeAnalysis(sourceDigest:"fictional-changes",sourceName:"fictional.xlsx",defaultYear:2032,
+            parsedAt:normal.parsedAt,records:[change(start.iso8601,"1,2","休講"),change(start.iso8601,"1,2","補講"),
+                change(start.iso8601,"1,3",""),change("2032-4-06","1","")])
+        var calendar = [PDFSchoolEvent]()
+        for (offset,type) in [(0,PDFEventClassification.EventType.noClass),(1,.weekdayOverride),(2,.supplementary)] {
+            calendar.append(PDFSchoolEvent(date:start.addingDays(offset)!.iso8601,scope:"共通",title:"架空行事\(offset)",page:1,
+                classification:.init(type:type,scheduleDay:type == .weekdayOverride ? 1:nil)))
+        }
+        calendar.append(.init(date:start.addingDays(3)!.iso8601,scope:"共通",title:"架空API授業なし",page:1,classification:.init(type:.noClass),apiTag:"授業なし"))
+        var review = PDFSchoolEvent(date:start.addingDays(4)!.iso8601,scope:"共通",title:"架空範囲確認",page:1)
+        review.endDate = start.addingDays(30)!.iso8601; review.periodNeedsReview = true; calendar.append(review)
+        var range = review; range.title = "架空期間"; range.periodNeedsReview = false
+        range.endDate = start.addingDays(9)!.iso8601; calendar.append(range)
+        let events = PDFAnalysis(kind:.events,sourceDigest:"fictional-events",sourceName:"fictional.json",parsedAt:normal.parsedAt,
+            schoolYear:2032,term:nil,lessons:[],events:calendar,notices:[])
+        let lesson = SpecialScheduleLesson(date:start.addingDays(5)!.iso8601,className:"1_A",period:2,spanStart:2,spanEnd:2,timeRange:nil,lines:["架空特殊科目"],page:1)
+        let special = SpecialScheduleAnalysis(kind:.exam,sourceDigest:"fictional-special",sourceName:"fictional.pdf",parsedAt:normal.parsedAt,
+            schoolYear:2032,coveredDates:[],coveredClasses:["1_A"],periodTimes:[2:"09:50〜10:35"],lessons:[lesson])
+        let sources = [special,special] // Duplicate evidence remains duplicated.
+        let index = TimetableSchedule.SourceIndex(timetable:normal,changes:changes,events:events,specials:sources)
+        let matched: (String,String,Int?) -> Bool = { subject,name,_ in subject == "架空変更" && name == "1_A" }
+        for offset in -7...28 {
+            let day = start.addingDays(offset)!
+            XCTAssertEqual(index.plan(on:day),TimetableSchedule.dayPlan(on:day,events:events))
+            for includes in [false,true] { for name in ["1_A","1_CN","fictional-absent"] {
+                for period in 1...8 {
+                    XCTAssertEqual(index.slot(on:day,period:period,className:name,includesChanges:includes),
+                        TimetableSchedule.slot(on:day,period:period,className:name,timetable:normal,changes:changes,includesChanges:includes,events:events,specials:sources))
+                }
+                for international in [false,true] {
+                    let original = TimetableSchedule.blocks(on:day,className:name,timetable:normal,changes:changes,includesChanges:includes,
+                        events:events,specials:sources,isInternationalStudent:international,matchedByRule:matched)
+                    let indexed = TimetableSchedule.blocks(on:day,className:name,timetable:normal,changes:changes,includesChanges:includes,
+                        events:events,specials:sources,isInternationalStudent:international,matchedByRule:matched,sourceIndex:index)
+                    XCTAssertEqual(indexed,original)
+                }
+            } }
+        }
+        for offset in 0..<520 {
+            for period in 1...8 { _ = index.slot(on:start.addingDays(offset)!,period:period,className:"1_A",includesChanges:true) }
+        }
+        XCTAssertLessThanOrEqual(index.cachedPlanCount,512); XCTAssertLessThanOrEqual(index.cachedSlotCount,4096)
+    }
+
+    @MainActor func testProjectionCacheUsesGenerationAndSuspendsBeforeRebuilding() async throws {
+        let normal = timetable(term:"前期"), cache = TimetableProjectionCache()
+        let key = TimetableProjectionCache.Key(materials:UUID(),specials:UUID(),events:UUID())
+        var builds = 0
+        func build() -> TimetableSchedule.SourceIndex {
+            builds += 1; return .init(timetable:normal,changes:nil,events:nil,specials:[])
+        }
+        let first = cache.sourceIndex(for:key,make:build)
+        XCTAssertTrue(first === cache.sourceIndex(for:key,make:build)); XCTAssertEqual(builds,1)
+        cache.suspend()
+        let hidden = cache.sourceIndex(for:key,make:build)
+        XCTAssertEqual(builds,1)
+        XCTAssertTrue(hidden.slot(on:SchoolDate(iso8601:"2032-04-05")!,period:1,className:"1_A",includesChanges:true).baseLessons.isEmpty)
+        cache.resume()
+        XCTAssertFalse(first === cache.sourceIndex(for:key,make:build)); XCTAssertEqual(builds,2)
+        let next = TimetableProjectionCache.Key(materials:UUID(),specials:key.specials,events:key.events)
+        _ = cache.sourceIndex(for:next,make:build); XCTAssertEqual(builds,3)
+        var remapped = normal
+        remapped.lessons[0].names = .init(subject:"架空科目A",subjectFullName:"架空正式名称")
+        XCTAssertFalse(TimetableSchedule.sameProjection(normal,remapped))
+        remapped = normal; remapped.notices.append("架空読み込み状態")
+        XCTAssertTrue(TimetableSchedule.sameProjection(normal,remapped))
+    }
     func timetable(term: String?) -> PDFAnalysis {
         PDFAnalysis(kind: .timetable, sourceDigest: "fictional", sourceName: "fictional.pdf",
                     parsedAt: Date(timeIntervalSince1970: 0), schoolYear: 2032, term: term,

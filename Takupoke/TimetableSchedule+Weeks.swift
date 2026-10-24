@@ -4,17 +4,18 @@ extension TimetableSchedule {
     static func displayedDays(weekStart: SchoolDate, classes: [String], timetable: PDFAnalysis?,
                               changes: ChangeAnalysis?, events: PDFAnalysis?, includesChanges: Bool,
                               isInternationalStudent: Bool, specials: [SpecialScheduleAnalysis] = [],
-                              matchedByRule: ((String, String, Int?) -> Bool)? = nil) -> [SchoolDate] {
+                              matchedByRule: ((String, String, Int?) -> Bool)? = nil,
+                              sourceIndex:SourceIndex? = nil) -> [SchoolDate] {
         (0..<7).compactMap { weekStart.addingDays($0) }.filter { day in
             if day.schoolWeekday <= 5 { return true }
-            let plan = dayPlan(on: day, events: events)
+            let plan = sourceIndex?.plan(on:day) ?? dayPlan(on: day, events: events)
             if !plan.weekendEventLabels.isEmpty { return true }
             if plan.isNoClass && !plan.apiNoClass { return false }
             return classes.contains { className in
                 (1...8).contains { period in
                     let item = slot(on: day, period: period, className: className, timetable: timetable,
                                     changes: changes, includesChanges: includesChanges, events: events,
-                                    specials: specials)
+                                    specials: specials,sourceIndex:sourceIndex)
                         .filteringChanges(isInternationalStudent: isInternationalStudent,
                                           matchedByRule: matchedByRule)
                     return item.displayedLessons.contains { shouldDisplay($0, isInternationalStudent: isInternationalStudent,

@@ -201,3 +201,15 @@ catalogでLinksModel/ContentViewを検索し、索引links/一覧設定のN107�
 LinkRowは全モデルのObservedObjectから表示値snapshotへ切り替え、item/副題/個人設定準備/お気に入り/色/色overrideとSafari操作ownerのUUID、モデルidentityが同じ時だけequatableで同じbodyを保持する。親ごとのState UUIDはSafari bindingの所有者に結び付け、閉包を無条件で無視しない。行自身のAppStorage/環境/alert、標準Menu/スワイプ/URL書換えは維持する。ContentViewはApplicationData所有の子モデルを安定参照にし、4つのreadyだけを重複排除したCombine通知で受ける。Published willSet後の新値を読むためMainActorの次の処理へsetup判定を渡す。ApplicationDataの同値成功状態publishを抑える。
 
 回帰は実coordinatorのTTL/force/installed変更/失敗非cache/同時合流/一人取消/最後の取消/世代resetと遅延結果、全row表示値/操作owner equality、実LinksModel/Storeの設定修復とTTL/後続エラー保持を追加。実通信境界は既存Lifecycleと同じfakeで、実URLSessiontransport/実UI/Release実機tracesの成功とは区別する。元のUIケース、期限、VoiceOver/文字サイズは変更せず、Apple全体と実機計測は未確認。時計と時間割計算は66の残件として別に続ける。
+
+## 時間割の受理済み入力索引（66、候補）
+
+catalogのTimetableScheduleを検索し、既存の休業/APIタグ/曜日振替/並記/隣接結合/留学生scope/特別時刻/期間境界を読んだ。旧1d0e4f9の最適化済み実関数の架空20クラス/1600授業/1200変更/400行事/2特別資料/2選択クラス/4週の中央値0.573689秒、checksum6206と実呼出し計数を基準記録として保持する。実機/UI/frame測定ではない。
+
+候補SourceIndexは正常入力の世代ごとに通常class/曜日/時限、変更の正規な日付/class/grid時限、特別の文書順/日付/class、行事の開始/終了intervalを一度構築する。行事範囲は日ごと展開せず、確認を要する期間も有効な開始日だけを残す既存規則を維持する。元のselectorを独立した参照経路に残し、base抑制/変更/特別の結合判断を共通のresolvedSlotへ集める。特別のapplies=falseでも元から独立して取得していた授業と、重複文書を保持する。dayPlan512件/適用資料1024件/未filter slot4096件の有限memoizationで、international/mappingのfilterと8時限結合は既存関数を共用する。
+
+Materials/Special/学校行事は実入力の代入時だけ比較して非Publishedの世代を進める。busy/失敗通知で入力索引を捨てず、同じdigestでも授業正式名称等が変われば進める。学校行事のanalysisと特別資料順を代入時に一度だけ構築する。ApplicationData所有のprojection cacheが3モデルの世代をO(1)で照合し、ホーム/時間割は同じ索引を受ける。保存期間切替/不明markerの停止では最初のawaitより前にsuspendし、キャッシュを捨て、停止中の問い合わせでは古い入力をbuildしない。現段階は入力索引までで、週/時刻/文字測定/ホーム時計の最適化は続ける。
+
+新規の直接比較は並記、40時限の通常、休講/補講/非連続変更、非canonical日付、行事期間/要確認開始日/曜日振替/API授業なし、applies=falseの特別/重複資料、未存在classとinternational/mappingを含む。元selectorと全slot/8時限blocksを比較し、cacheの世代/停止/再開/上限、同digest正式名称更新も検査する。まだ実行前。
+
+Windows35は41a4369で統合340件/失敗0（8秒）、直前Core223件も成功。N134の接触した同一fillだけorderを共有し、白/上塗り/重なり拒否、正常85/7授業と実保存保持を維持した。実WinUI/配布は未確認。

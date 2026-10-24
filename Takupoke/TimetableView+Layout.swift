@@ -38,13 +38,13 @@ extension TimetableView {
             TimetableSchedule.positioned(TimetableSchedule.blocks(on: day, className: className,
                 timetable: timetable, changes: changes, includesChanges: includesChanges, events: events,
                 specials: specials, isInternationalStudent: isInternationalStudent,
-                matchedByRule: isMappedInternational))
+                matchedByRule: isMappedInternational,sourceIndex:daySchedule.sourceIndex))
         }
         let widths = positioned.map { laneWidth($0) }
         let width = widths.reduce(0, +) + gridSpacing * CGFloat(max(0, widths.count - 1))
         return DayGridLayout(day: day, positioned: positioned, width: width,
                              fullDayEventTitle: TimetableSchedule.fullDayEventTitle(
-                                plan: TimetableSchedule.dayPlan(on: day, events: events), layouts: positioned))
+                                plan: daySchedule.sourceIndex.plan(on:day), layouts: positioned))
     }
 
     func laneWidth(_ blocks: [TimetableSchedule.PositionedBlock]) -> CGFloat {

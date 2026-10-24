@@ -12,7 +12,14 @@ final class SpecialDiagnosticCapture {
 
 @MainActor
 final class SpecialSchedulesModel: ObservableObject {
-    @Published private(set) var records: [SpecialScheduleKind: SpecialScheduleRecord] = [:]
+    @Published private(set) var records: [SpecialScheduleKind: SpecialScheduleRecord] = [:] {
+        didSet {
+            let next = records.values.map(\.analysis).sorted { $0.kind.rawValue < $1.kind.rawValue }
+            if scheduleAnalyses != next { scheduleAnalyses = next; scheduleGeneration = UUID() }
+        }
+    }
+    private(set) var scheduleAnalyses = [SpecialScheduleAnalysis]()
+    private(set) var scheduleGeneration = UUID()
     @Published private(set) var sources: [SpecialScheduleKind: SpecialScheduleSource] = [:]
     @Published private(set) var urls: [SpecialScheduleKind: URL] = [:]
     @Published private(set) var ready = false

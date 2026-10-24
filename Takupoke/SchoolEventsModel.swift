@@ -3,7 +3,15 @@ import SwiftUI
 
 @MainActor
 final class SchoolEventsModel: ObservableObject {
-    @Published private(set) var saved: [Int: SavedSchoolEvents] = [:]
+    @Published private(set) var saved: [Int: SavedSchoolEvents] = [:] {
+        didSet {
+            let next = projectedAnalysis()
+            if !TimetableSchedule.sameProjection(cachedAnalysis,next) { scheduleGeneration = UUID() }
+            cachedAnalysis = next
+        }
+    }
+    private var cachedAnalysis: PDFAnalysis?
+    private(set) var scheduleGeneration = UUID()
     @Published private(set) var ready = false
     @Published private(set) var busy = false
     @Published private(set) var failed = false
@@ -75,7 +83,8 @@ final class SchoolEventsModel: ObservableObject {
         }
     }
 
-    var analysis: PDFAnalysis? {
+    var analysis: PDFAnalysis? { cachedAnalysis }
+    private func projectedAnalysis() -> PDFAnalysis? {
         guard !saved.isEmpty else { return nil }
         let values = saved.values.sorted { $0.payload.schoolYear < $1.payload.schoolYear }
         return PDFAnalysis(version: PDFAnalysis.currentVersion(for: .events), kind: .events,

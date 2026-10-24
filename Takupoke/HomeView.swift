@@ -19,8 +19,9 @@ struct HomeView: View {
         TimetablePresentation(schedule: TimetableDaySchedule(
             timetable: materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue],
             changes: materials.state.changeAnalysis, events: schoolEvents.analysis,
-            specials: specialSchedules.records.values.map(\.analysis).sorted { $0.kind.rawValue < $1.kind.rawValue },
-            includesChanges: true, customTimes: times.current?.data), mappings: mappings)
+            specials: specialSchedules.scheduleAnalyses,
+            includesChanges: true, customTimes: times.current?.data,
+            sourceIndex:ApplicationData.shared.scheduleSourceIndex(materials:materials,specials:specialSchedules,events:schoolEvents)), mappings: mappings)
     }
 
     var body: some View {

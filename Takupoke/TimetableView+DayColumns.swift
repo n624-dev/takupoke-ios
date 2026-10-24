@@ -35,7 +35,7 @@ extension TimetableView {
     private func classLane(on day: SchoolDate, className: String, days: [SchoolDate],
                            positioned: [TimetableSchedule.PositionedBlock], rowHeights: [CGFloat]) -> some View {
         let width = laneWidth(positioned)
-        let plan = TimetableSchedule.dayPlan(on: day, events: events)
+        let plan = daySchedule.sourceIndex.plan(on:day)
         return ZStack(alignment: .topLeading) {
             VStack(spacing: gridSpacing) {
                 ForEach(1...8, id: \.self) { period in

@@ -1,5 +1,26 @@
 import Foundation
 
+/// Application-owned lifetime, independent of busy/error publications.
+@MainActor
+final class TimetableProjectionCache {
+    struct Key: Equatable {
+        let materials: UUID
+        let specials: UUID
+        let events: UUID
+    }
+    private var stored: (Key,TimetableSchedule.SourceIndex)?
+    private let empty = TimetableSchedule.SourceIndex(timetable:nil,changes:nil,events:nil,specials:[])
+    private var suspended: Bool
+    init(suspended:Bool = false) { self.suspended = suspended }
+    func sourceIndex(for key:Key,make:() -> TimetableSchedule.SourceIndex) -> TimetableSchedule.SourceIndex {
+        guard !suspended else { return empty }
+        if let stored, stored.0 == key { return stored.1 }
+        let value = make(); stored = (key,value); return value
+    }
+    func suspend() { stored = nil; suspended = true }
+    func resume() { suspended = false }
+}
+
 /// Shared, read-only schedule and clock projection for the home and week views.
 struct TimetableDaySchedule {
     let timetable: PDFAnalysis?
@@ -8,18 +29,26 @@ struct TimetableDaySchedule {
     let specials: [SpecialScheduleAnalysis]
     let includesChanges: Bool
     var customTimes: TimetableTimes? = nil
+    let sourceIndex: TimetableSchedule.SourceIndex
+
+    init(timetable:PDFAnalysis?,changes:ChangeAnalysis?,events:PDFAnalysis?,specials:[SpecialScheduleAnalysis],
+         includesChanges:Bool,customTimes:TimetableTimes? = nil,sourceIndex:TimetableSchedule.SourceIndex? = nil) {
+        self.timetable = timetable; self.changes = changes; self.events = events; self.specials = specials
+        self.includesChanges = includesChanges; self.customTimes = customTimes
+        self.sourceIndex = sourceIndex ?? TimetableSchedule.SourceIndex(timetable:timetable,changes:changes,events:events,specials:specials)
+    }
 
     func commonPeriodTime(_ period: Int, days: [SchoolDate], classes: [String],
                           international: Bool, matchedByRule: ((String, String, Int?) -> Bool)? = nil) -> String? {
         var times: Set<String> = []
         for day in days {
-            let plan = TimetableSchedule.dayPlan(on: day, events: events)
+            let plan = sourceIndex.plan(on:day)
             if plan.isNoClass && !plan.apiNoClass { continue }
             for className in classes {
                 let slot = TimetableSchedule.slot(on: day, period: period, className: className,
                                                   timetable: timetable, changes: changes,
                                                   includesChanges: includesChanges, events: events,
-                                                  specials: specials)
+                                                  specials: specials,sourceIndex:sourceIndex)
                     .filteringChanges(isInternationalStudent: international,
                                       matchedByRule: matchedByRule)
                 let visible = slot.displayedLessons.contains { TimetableSchedule.shouldDisplay($0, isInternationalStudent: international,
@@ -63,7 +92,7 @@ struct TimetableDaySchedule {
         if sourceTimes.count > 1 { return nil }
         let applicable = specials.filter { $0.applies(date: day.iso8601, className: className) }
         if applicable.isEmpty {
-            let plan = TimetableSchedule.dayPlan(on: day, events: events)
+            let plan = sourceIndex.plan(on:day)
             return plan.apiTest || plan.apiTestReturn ? nil : (customTimes?.time(on: day, period: period) ?? TimetableSchedule.normalPeriodTimes[period - 1])
         }
         let times = Set(applicable.compactMap { $0.periodTime(on: day.iso8601, period: period) })
@@ -72,7 +101,7 @@ struct TimetableDaySchedule {
     }
 
     private func hasRequiredSpecialSources(on day: SchoolDate, className: String) -> Bool {
-        let plan = TimetableSchedule.dayPlan(on: day, events: events)
+        let plan = sourceIndex.plan(on:day)
         return (!plan.apiTest || specials.contains { $0.kind == .exam && $0.applies(date: day.iso8601, className: className) }) &&
             (!plan.apiTestReturn || specials.contains { $0.kind == .examReturn && $0.applies(date: day.iso8601, className: className) })
     }
@@ -125,13 +154,13 @@ struct TimetableDaySchedule {
         }
         let firstSlot = TimetableSchedule.slot(on: day, period: block.startPeriod, className: className,
                                                timetable: timetable, changes: changes,
-                                               includesChanges: includesChanges, events: events, specials: specials)
+                                               includesChanges: includesChanges, events: events, specials: specials,sourceIndex:sourceIndex)
         guard let first = slotTime(firstSlot, on: day, className: className,
                                    period: block.startPeriod) else { return nil }
         if block.startPeriod == block.endPeriod { return first }
         let lastSlot = TimetableSchedule.slot(on: day, period: block.endPeriod, className: className,
                                               timetable: timetable, changes: changes,
-                                              includesChanges: includesChanges, events: events, specials: specials)
+                                              includesChanges: includesChanges, events: events, specials: specials,sourceIndex:sourceIndex)
         guard let last = slotTime(lastSlot, on: day, className: className,
                                   period: block.endPeriod),
               let startTime = first.components(separatedBy: "〜").first,
@@ -174,7 +203,7 @@ extension TimetableDaySchedule {
                 matchedByRule: ((String, String, Int?) -> Bool)? = nil) -> [TimetableSchedule.GridBlock] {
         TimetableSchedule.positioned(TimetableSchedule.blocks(on: day, className: className,
             timetable: timetable, changes: changes, includesChanges: includesChanges, events: events,
-            specials: specials, isInternationalStudent: international, matchedByRule: matchedByRule))
+            specials: specials, isInternationalStudent: international, matchedByRule: matchedByRule,sourceIndex:sourceIndex))
             .map(\.block)
     }
 
@@ -254,7 +283,7 @@ extension TimetableDaySchedule {
 
     /// Missing input must not be presented as a confirmed day without lessons.
     func missingMessages(on day: SchoolDate, className: String) -> [String] {
-        let plan = TimetableSchedule.dayPlan(on: day, events: events)
+        let plan = sourceIndex.plan(on:day)
         var messages: [String] = plan.weekdayOverrideWarning.map { [$0] } ?? []
         for kind in SpecialScheduleKind.allCases {
             let expected = kind == .exam ? plan.apiTest : plan.apiTestReturn

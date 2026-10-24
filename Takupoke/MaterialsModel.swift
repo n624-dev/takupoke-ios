@@ -3,7 +3,13 @@ import SwiftUI
 
 @MainActor
 final class MaterialsModel: ObservableObject {
-    @Published private(set) var state = MaterialLibraryState()
+    @Published private(set) var state = MaterialLibraryState() {
+        didSet {
+            if !TimetableSchedule.sameProjection(oldValue.pdfAnalyses?[MaterialKind.timetable.rawValue],state.pdfAnalyses?[MaterialKind.timetable.rawValue]) ||
+                !TimetableSchedule.sameProjection(oldValue.changeAnalysis,state.changeAnalysis) { scheduleGeneration = UUID() }
+        }
+    }
+    private(set) var scheduleGeneration = UUID()
     @Published private(set) var busy = false
     @Published private(set) var ready = false
     @Published private(set) var message: String?

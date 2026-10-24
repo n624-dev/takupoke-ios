@@ -7,7 +7,8 @@ extension TimetableView {
                                                    timetable: timetable, changes: changes, events: events,
                                                    includesChanges: includesChanges,
                                                    isInternationalStudent: isInternationalStudent,
-                                                   specials: specials, matchedByRule: isMappedInternational)
+                                                   specials: specials, matchedByRule: isMappedInternational,
+                                                   sourceIndex:daySchedule.sourceIndex)
         let columns = days.map(dayLayout)
         let eventsOnly = !columns.isEmpty && columns.allSatisfy { $0.fullDayEventTitle != nil }
         let rowHeights = gridRowHeights(columns, days: days)

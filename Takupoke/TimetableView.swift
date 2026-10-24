@@ -36,7 +36,7 @@ struct TimetableView: View {
     var events: PDFAnalysis? { schoolEvents.analysis }
     var changes: ChangeAnalysis? { model.state.changeAnalysis }
     var specials: [SpecialScheduleAnalysis] {
-        specialSchedules.records.values.map(\.analysis).sorted { $0.kind.rawValue < $1.kind.rawValue }
+        specialSchedules.scheduleAnalyses
     }
     var classes: [String] { TimetableSchedule.selectableClasses }
     var availableClasses: [String] { TimetableSchedule.classes(in: model.state, specials: specials) }

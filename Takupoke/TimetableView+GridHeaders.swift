@@ -48,7 +48,7 @@ extension TimetableView {
     }
 
     private func dayHeader(on day: SchoolDate, hasFullDayCard: Bool) -> some View {
-        let plan = TimetableSchedule.dayPlan(on: day, events: events)
+        let plan = daySchedule.sourceIndex.plan(on:day)
         return VStack(alignment: .center, spacing: 2) {
             VStack(spacing: 0) {
                 Text("\(day.month)/\(day.day)").font(.subheadline.bold().monospacedDigit())
