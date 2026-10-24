@@ -284,8 +284,12 @@ extension PDFTextGeometryTests {
             ("/Visibility gs " + light + text, .b144),
             (light + "0 g " + text + " 0.9 g " + laterText, .b267),
             (light + "q 0.1 g 20 335 75 40 re f Q 0 g " + text, .b267),
-            ("0 g 20 335 75 40 re 20 335 75 40 re f* 0.8 g " + text, .b270),
-            ("0 g 20 335 75 40 re 20 375 75 -40 re f 0.8 g " + text, .b270),
+            // Overlapping compound subpaths are rejected before background contrast.
+            ("0 g 20 335 75 40 re 20 335 75 40 re f* 0.8 g " + text, .b426),
+            ("0 g 20 335 75 40 re 20 375 75 -40 re f 0.8 g " + text, .b426),
+            // Disjoint subpaths still cannot certify a background under text.
+            ("0 g 20 335 75 40 re 120 335 75 40 re f* 0.8 g " + text, .b270),
+            ("0 g 20 335 75 40 re 120 335 75 40 re f 0.8 g " + text, .b270),
             ("q 0 g 30 345 4 20 re f Q 0.9 g " + text, .b267)
         ]
         for (content, branch) in cases {
