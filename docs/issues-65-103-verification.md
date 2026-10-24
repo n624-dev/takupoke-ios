@@ -115,3 +115,5 @@ auxiliary-store焦点40039494698/attempt1/source980779eは両OS/SDK27.0で成功
 main438/source9298ebeはN124のAppleテスト構文でNativeが失敗し、公開条件を満たさなかった。8a489ffは4つのliteral receiverの型明示だけで、LinuxのRaster/graph/取消9件が失敗0（4.422秒）、catalog check --base9298ebeも成功。最初のprivate runner直接呼出しは実行権限でexit126となりテスト未実行だったため、元どおりbashで呼び出した実結果だけを数える。製品・境界値・検証入力/期待/期限は変更していない。
 
 新規GPT-6.1 Sol/High ios_n124_syntax_pre_actions_reviewはmain9298ebeからの不変コード差分20行のみを読みblockingなし（SHA256 ef9ab4df8321e05eaeaaf19aecfc0c7fbb21a494555b332f4b81ca0f7fd9c58e）。主担当が同一性と未送信各commitの空白を再確認して次のmain push1回に使用する。旧438の残UI/queueも取消せず終端確認し、新しい実行の全15成功へ混ぜない。
+
+main439/run40045677219/attempt1/source2a81f3aのNative/job120727168105は00:42:49 success終端。Apple Native652件/予定skip1/失敗0（115.659秒）、現行Strict compatibility3件/失敗0（2.096秒）で、N124の構文エラーは再発しなかった。通常/訂正UIは継続し、公開はまだ行われていない。旧438のChanged OriginalはN125の最初のXcode launch timeoutで、訂正操作へ未到達。原因未確定と、新439が観測前に同じ起動コードで開始済みである点を保持する。

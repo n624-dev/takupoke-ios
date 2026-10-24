@@ -2575,3 +2575,11 @@ source9298ebeffc4919917d8b677c33778b0122a81914、run40044133872/attempt1、job12
 N124ログ観測:RecoveryBuilderTests+Raster.swift:241/247のnumeric literal memberでexpected named member of numeric literal、テストmoduleのコンパイル段階で停止。新しい浮動小数境界のケースを含むNative実テストは未開始。ローカルSwift6.1.2全569件成功との言語/生成ソースの差を次に照合し、製品のOCR画素結果の失敗とは断定しない。
 
 N124照合:numeric literal/nextUp/nextDown/コンパイルで索引検索し、N03（追加テスト構文）・N67（SPM対象外の型）の詳細、aa6450fと境界追加616c548/現行テスト、test-parsing.shの原本コピーを比較。今のテストは5.5.nextDown等を使い、ローカル6.1.2では通ったがApple側はliteralのmemberとして構文拒否する。生成による文字列置換はない。候補は4つのmember receiverをDouble(5.5)/Double(2.5)と明示するだけで、隣接Doubleの値・比較順・4辺・製品本体・入力数・上限・取消を変えない。既存の同じ境界ケース/Raster7件で検証し、構文修正を写す別テストは追加しない。候補/根拠を隔離branchへpush後に検証し、新規reviewで次の公開開始を判断する。
+
+## N125 旧main438の原本変更訂正ケースが失敗（2026-10-24）
+
+source9298ebeffc4919917d8b677c33778b0122a81914、run40044133872/attempt1、job120722273968、iOS27指定のtestChangedOriginalCannotSubmitOrReplaceLastGoodが00:30:48〜00:41:50 UTCでfailure、00:46予定照会で確認。具体SDK/Runtime・case内失敗段階・原因はログ未確認、対処未選択。旧438の別訂正3件は成功、通常A/Bは継続。新439は本失敗を観測する前にテストの数値構文だけ変えて開始済みで、同じ訂正caseが00:42:51から実行中。新実行を修復済み/再発なしとは扱わず、残jobを取り消さない。
+
+N125ログ観測:caseは00:38:37開始、152.706秒で失敗。ManualAssistanceChecks.swift:45の最初のapp.launchがXcode経由起動timeoutとなり、fixture-ready/入力/原本変更/保存拒否へ未到達。diagnosticsはoriginalExit65、inputDeliveryLines0、reportsScanned7/matchingTextReports0、owned-app-unified-logは15.09秒timeout、crashCause=unassessed。debugger nil lookup警告だけで原因を断定しない。新439の進行中caseは同じ製品/起動経路のままで、結果を待って比較する。
+
+N125照合:原本変更/launch timeoutでN95の詳細と当時/現在のManualAssistanceChecks.launchを比較。今回はSDK27.0/Runtime27.0で、home-once後SpringBoardのstate4とframe393x852を確認しreadyを出した後に最初のtarget launchがtimeoutとなった。N95対処のsystem UI事前確認は既に現行へ含まれ、その確認の成功だけではtarget起動を保証しなかった。N112のseed-enter/fatalErrorとは実ログ到達の根拠が異なり、本件はapp内crashの証拠を得ていない。新439との当該製品/fixture/launchコード差分は空。新しい対処はまだ選ばず、既に開始済みの同caseの終端を待つ。
