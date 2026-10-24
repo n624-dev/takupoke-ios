@@ -188,4 +188,6 @@ catalogのPDFRecoveryView/手動訂正を検索し、索引contextMenu/selectMan
 
 ## 複合塗りの罫線証明（101）
 
+0021dcbのportable文字/衝突回帰は33件/失敗0（2.248秒）。実CG/PDFPathReaderケースはApple条件付きで未実行。Poppler26.05.0の独立288dpiで、同じ4入力の内部160画素に非白0/0/160/40を観測し、相殺2条件は厳密に白、同向き/部分相殺は実塗りを持つと確認した。元72dpiの境界画素が残ったN132は保持し、これをApple成功や全canvas白と混同しない。
+
 catalogのPDFPathReader/旧thin-fill実Readerと独立描画を照合。Certifiedだけで、同一fill演算内のsubpath境界に正の面積の重なりがある場合、各矩形が可視とは証明せずR426で拒否する。双方のwinding ruleに保守的とし、単独/離れた矩形/接触だけ/別fill演算の正対照を保持する。既存のinclusiveな文字collisionは既定のまま、compound照会だけ正の面積とする。既存有限paintWork/取消を共用する。Strict239の可視性経路は変えない。portable indexと実Native PDFPathReader/CG描画の回帰を追加したが、実行前。独立Popplerの既定描画はゼロ画素期待に合わずN132へ記録し、診断を先行する。Windows通常は既に複合矩形重なりを拒否するが、Specialには可視性経路がないためWin35の修正対象として継続する。

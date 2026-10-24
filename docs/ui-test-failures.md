@@ -2630,6 +2630,12 @@ N129照合:N128の詳細とb6bd91f/c23433c、Windows4bfc01c/36954cbの同method�
 
 OsmanyaはUTF16で2unitとなるが、FoundationのrangeOfCharacter境界照会では今回前置数字を検出しなかった。候補は行ごとのUTF16列を必要時に一回だけ作り、境界でsurrogate pairを明示復元してUnicode十進数字かを調べる。WindowsのRune検査は同条件を既に拒否しているので保持する。新しい拒否guardで不正明示時刻を必ず拒否し、連続見出し未記載の独立正対照は元cell経路の正しい08:50〜10:35を必須とする。既存の正常隣接/全半角/保存保持の入力・期待値は変えず、候補/根拠をpush後に6ケース/11展開として再検査する。
 
+## N133 Windows特別PDFの修正前可視性と新fixture（2026-10-24、ローカル）
+
+source25e1fb4、Linux/.NET10.0.402、追加Special回帰8展開は1成功/7失敗（527ms）。compile成功、既存CS8602/xUnit2031警告。完全返却7授業は成功。一方試験のwriterは実font mapに未登録の文字でJsonElement.GetProperty/KeyNotFoundExceptionとなり、Reader実行前の失敗。返却の白本文/上塗り/未知alphaは例外を投げず拒否assertが失敗した。ログ/tmp/takupoke-win35-before.log。製品のSpecial visibilityは未変更。対処案を選ぶ前に事実を記録する。
+
+N133照合:既存Windows33/34の実Reader可視性と現行SpecialGlyphsを照合。返却の正対照は実fontから7授業を得ており、3負対照も実Readerまで到達した。試験writerには見出し`1・2時限連続`の中点だけがsubsetから欠けていた。候補は架空文字集合に中点だけを追加して同じ実TTCから再生成（別名/実CID/OFL保持）し、glyph字形を別文字に差替えない。製品側は両種別でpaintを持ち、Specialの実PdfPig glyphを1回だけ取得してTextSequenceで束ね、実text-show演算ごとに順序を1増やして該当群をpaintへ渡す。空Tj/TJ内複数string/引用符の実校正結果を永続回帰へ移す。未消費/不正順序群は全体拒否し、既存Specialのfont/座標/字句は保持する。通常customtext engineは通常だけに保ち、gs検証はcontinue前へ置く。元の失敗と根拠/候補をpushしてから再検査する。
+
 ## N132 複合塗りの独立描画対照が期待と不一致（2026-10-24、ローカル）
 
 source db1d856＋未commitの101候補/Native回帰、Linux Poppler pdftoppm 72dpi gray既定描画。完全架空300×400PDFの同一矩形二重subpath `10 10 1 30 re 10 10 1 30 re f*` に、白以外の画素が62あり、「白以外0」のassertが失敗した。PDFの作成/xref読込/描画/PGM寸法は成功。TemporaryDirectoryは回収済み。Apple/製品Readerは未実行、暗さやanti-aliasの寄与はまだ未調査。対処選択前に観測を記録する。
