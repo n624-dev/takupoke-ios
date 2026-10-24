@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import plistlib
+import re
 import subprocess
 import sys
 import tempfile
@@ -17,6 +18,41 @@ import release
 
 
 COMMIT = "a" * 40
+
+
+class ProjectSourcesTests(unittest.TestCase):
+    def test_application_target_compiles_every_production_swift_file(self):
+        root = Path(__file__).resolve().parents[1]
+        project = (root / "Takupoke.xcodeproj/project.pbxproj").read_text()
+        objects = dict(re.findall(r"(?m)^\s*([A-F0-9]{24}) = \{([^{}]*)\};", project))
+        targets = [body for body in objects.values()
+                   if "isa = PBXNativeTarget;" in body
+                   and 'productType = "com.apple.product-type.application";' in body]
+        self.assertEqual(len(targets), 1)
+
+        def references(body, field):
+            values = re.findall(rf"\b{field} = \(([^)]*)\);", body)
+            self.assertEqual(len(values), 1)
+            return re.findall(r"[A-F0-9]{24}", values[0])
+
+        phases = [objects[key] for key in references(targets[0], "buildPhases")
+                  if "isa = PBXSourcesBuildPhase;" in objects[key]]
+        self.assertEqual(len(phases), 1)
+        builds = references(phases[0], "files")
+        self.assertEqual(len(builds), len(set(builds)))
+        groups = [body for body in objects.values()
+                  if "isa = PBXGroup;" in body and re.search(r'\bpath = "?Takupoke"?;', body)]
+        self.assertEqual(len(groups), 1)
+        children = references(groups[0], "children")
+        paths = []
+        for build in builds:
+            refs = re.findall(r"\bfileRef = ([A-F0-9]{24});", objects[build])
+            self.assertEqual(len(refs), 1)
+            self.assertIn(refs[0], children)
+            paths.extend(re.findall(r'\bpath = "?([^";]+\.swift)"?;', objects[refs[0]]))
+        self.assertEqual(len(paths), len(builds))
+        self.assertEqual(len(paths), len(set(paths)))
+        self.assertEqual(set(paths), {path.name for path in (root / "Takupoke").glob("*.swift")})
 
 
 class IPAFixture(unittest.TestCase):

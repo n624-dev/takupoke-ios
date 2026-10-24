@@ -2559,3 +2559,11 @@ Python失敗はtest_notification_readiness_probe_observes_os_without_granting_or
 N122追加観測/照合:26Bは基本6件625.297秒、設定詳細339.720秒、setup/文字サイズ3件153.810秒、VoiceOverの完了まで通過。最後のtestNotificationControlsAndAppearanceが308.650秒、Notifications.swift:182で再起動後の「メインカラー/青」rowの即時existsに失敗した。通知許可/両ON/再起動保持と緑/既定解除は成功。青への一回tap直後は保存値を観測せずterminateしており、tapの成立と保存前/保存後のどこで失敗したかは未観測。failure時の実stored-color/AX/画面も採取していない。
 
 theme-probe/mainColor/青/NotificationControlsで索引を検索し、N49の同case初回tabとU53の再起動後Switch取消の詳細、c815640/currentのColor.save/Picker binding/fixture/全caseを比較した。前二例とは段階が違い、Color.saveは同期のUserDefaults操作、現caseは既定解除だけ10秒の実保存待機を持つ。次は診断として青でも元と同じ10秒の保存確認をterminate前に要求し、元の再起動後row/保存blueのassertも保持する。未保存ならその場で実状態/画面を採取して失敗し、押し直し・保存値の注入・再起動後条件の緩和はしない。製品や接触点/SDKを推測変更しない。候補/記録のpushと新規review後に小さい両OS比較で確認する。
+
+## N123 通知・外観の焦点比較が失敗終端（2026-10-23）
+
+source8a72f725cb82a5f10ef9a5c04547c663243ae9d8、run40041293112/attempt1、23:43:54〜23:50:34 UTCでfailure。23:58の予定照会で確認。testNotificationControlsAndAppearanceを両OS/SDK27.0で要求した実行で、具体job・実Runtime・caseへの到達と失敗段階はまだ未確認。対処案を決める前の観測記録。main公開は開始しておらず、先に用意した公開reviewはこのまま別のActions開始へ転用しない。
+
+N123ログ観測:job120712733334（27）は23:43:58〜23:45:15、job120712733549（26）は23:43:58〜23:50:33、両方とも生成AppChecksのbuild-for-testingでPDFRecoveryCoordinator.swift:123の「cannot find 'CancellationLinkedTask' in scope」。両SDK要求は27.0、Simulatorのcaseは未起動で、N122の青選択/保存/relaunchには到達していない。SPMのhelper検査成功とアプリ生成targetへの登録は別の境界だった。原因と対処は過去記録と明示source一覧を次に照合する。
+
+N123照合:scope/compile/登録漏れで索引を検索し、N03（テストのthrows記述）・N67（SPM対象外UIの型契約）の詳細、aa6450f/現在のpbxproj、b741b1cの追加差分とapp_test_project.generateを読んだ。今回helperはSPMのsourcesだけに追加され、本番pbxprojのfileRef/group/source phaseには追加されていない。UIとManualの一時projectは本番projectのtargetを継承するため両方へ影響する。候補は本番targetの3参照へそのファイルを登録し、既存の配布Python検査へ全production Swiftファイルと実application targetのsource phase/group/buildFile/fileRefの対応を照合する回帰を追加すること。中止処理本体・実タップ・保存・再起動・SDK・期限・全15gateは変更しない。前の公開用reviewは未使用で破棄し、候補/記録を隔離branchへpush後に局所チェックと新規reviewを行う。

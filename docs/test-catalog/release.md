@@ -1,7 +1,7 @@
 # IPA・AltStore・公開ゲート・ビルド・一時領域
 
 対応関係・宣言名・実行方法のSHA-256：
-`89779645c903ec6efc1aae53d797dd5b1e65da875bb1468594fce30c04cdfc9e`
+`284e7cb4785157af346670acb304ebf1a5aff9b64e46e2bc76955a9ff1c4b88a`
 
 環境：Linux Python／Apple iPhone SDK。AltStore導入は実機限定
 
@@ -66,6 +66,7 @@ python3 -B -m unittest discover -s tests -v
 
 ## [tests/test_distribution.py](../../tests/test_distribution.py)
 
+- `test_application_target_compiles_every_production_swift_file`
 - `test_source_matches_ipa_and_immutable_download`
 - `test_notes_are_snapshotted_and_must_match_source`
 - `test_missing_or_empty_notes_stop_generation`
