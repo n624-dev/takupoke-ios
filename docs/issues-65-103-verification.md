@@ -204,6 +204,8 @@ LinkRowは全モデルのObservedObjectから表示値snapshotへ切り替え、
 
 ## 時間割の受理済み入力索引（66、候補）
 
+7df7a5bの直接比較/索引上限/停止再開と既存週・時刻・ホームはLinux Swift6.1.2で56件/失敗0（0.917秒）。性能比較の準備が固定compiler pathで停止したN135は別記録し、計時成功とはしない。後続の時間/文字cacheとホーム境界時計は未実装。
+
 catalogのTimetableScheduleを検索し、既存の休業/APIタグ/曜日振替/並記/隣接結合/留学生scope/特別時刻/期間境界を読んだ。旧1d0e4f9の最適化済み実関数の架空20クラス/1600授業/1200変更/400行事/2特別資料/2選択クラス/4週の中央値0.573689秒、checksum6206と実呼出し計数を基準記録として保持する。実機/UI/frame測定ではない。
 
 候補SourceIndexは正常入力の世代ごとに通常class/曜日/時限、変更の正規な日付/class/grid時限、特別の文書順/日付/class、行事の開始/終了intervalを一度構築する。行事範囲は日ごと展開せず、確認を要する期間も有効な開始日だけを残す既存規則を維持する。元のselectorを独立した参照経路に残し、base抑制/変更/特別の結合判断を共通のresolvedSlotへ集める。特別のapplies=falseでも元から独立して取得していた授業と、重複文書を保持する。dayPlan512件/適用資料1024件/未filter slot4096件の有限memoizationで、international/mappingのfilterと8時限結合は既存関数を共用する。

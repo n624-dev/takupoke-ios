@@ -2630,6 +2630,12 @@ N129照合:N128の詳細とb6bd91f/c23433c、Windows4bfc01c/36954cbの同method�
 
 OsmanyaはUTF16で2unitとなるが、FoundationのrangeOfCharacter境界照会では今回前置数字を検出しなかった。候補は行ごとのUTF16列を必要時に一回だけ作り、境界でsurrogate pairを明示復元してUnicode十進数字かを調べる。WindowsのRune検査は同条件を既に拒否しているので保持する。新しい拒否guardで不正明示時刻を必ず拒否し、連続見出し未記載の独立正対照は元cell経路の正しい08:50〜10:35を必須とする。既存の正常隣接/全半角/保存保持の入力・期待値は変えず、候補/根拠をpush後に6ケース/11展開として再検査する。
 
+## N135 索引後の独立性能ハーネスがコンパイラ起動前に失敗（2026-10-24、ローカル）
+
+source7df7a5b、Linux、所有snapshotハーネス/tmp/takupoke-projection-index-eeacs0uu。build.pyが存在しない固定swiftc pathを指定してFileNotFoundError。Swift compile/製品関数/計時はいずれも未開始。詳細/tmp/takupoke-ios-projection-index-build-status.log。既存の索引/時刻/ホーム回帰56件は別途成功（0.917秒）。対処選択前に事実を記録する。
+
+N135照合:FileNotFoundError/ハーネスでN131詳細と保存済みbaseline flags/source hashを読んだ。N131はWindows入力pathで、今回はSwift executableだけが異なりsnapshot38source/driverの準備は完了している。候補はenv.shを読み、shutil.whichで実swiftc（/workspace/toolchains/swift-6.1.2/usr/bin/swiftc）を解決して実行する。snapshotの実source/入力/全query/checksum6206/1warmup+6samplesと-Oは変更しない。製品の失敗・性能結果へ一般化せず、記録をpush後に計測を再開する。
+
 ## N134 Windows統合全体で特別PDF回帰1件失敗（2026-10-24、ローカル）
 
 source53cdf7e、Linux/.NET10.0.402。Core全体は成功した後、Integration全体340展開中1失敗/339成功（9秒）。ログ/tmp/takupoke-win35-integration-full.log。前の焦点fc5fdceの111件成功とは別sourceで、追加した複合塗り対照を含む全体の失敗。具体case/段階の詳細は次に読み、対処選択前の観測として記録する。
