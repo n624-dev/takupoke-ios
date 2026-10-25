@@ -355,3 +355,13 @@ f3136d3は製品を変えず、元5秒のpredicate内で元詳細bar消失/viewp
 旧正式446も26 Bが00:07:13Zに成功して全18表示job終端、事前14件は13成功・三項目26のN152失敗1・構成3と依存公開skip。全14実jobの完了ログを一度保存し、artifact0も一度確認した。公開不可を限定8成功で置き換えず、旧runは以後再照会しない。
 
 次の正式main一回用にはさらに別の新規GPT-6.1 Sol/High ios_n152_main_pre_actions_reviewが同じpatch65行/4063bytes SHA256 2d92619d…と全6Swift contextの行/bytes/hashを確認し、具体的指摘なし。主担当が限定全8成功・現sourceとartifact同一性・全未送信commitの空白を確認してから、このreviewを次のmain push/正式全15/公開開始一回だけへ使う。旧限定review/旧正式の成功は借用せず、同一の新source/run/attemptの全15を要求する。
+
+### 正式447の再起動後の画面応答と限定診断（N153）
+
+正式d8d32e4/run40148629240/attempt1は全15表示job終端、事前8成功・通常27 A失敗・構成依存6skipで公開不可。全9実行logは一度保存、artifact0確認済みで再取得しない。行除外は初回の3Switch/取消/103行採用/C保持/B除外と再起動後の103行/解析済み/範囲まで通過したが、最後のC可視化でroot/frame/nav/tab/keyboardのAX照会が停止し417.753秒で失敗した。詳細/旧ソース比較/新観測の根拠は索引N153へ先に記録しpushした。keyboardだけの原因や製品停止とは断定しない。
+
+188fa00までの候補は製品/Swift helper/元case/期限を変更せず、通常Aと同じAuxiliaryReadFailures→行除外の二件だけをSDK27.0/Runtime27.0で通すrows-context診断を追加する。snapshot要求後20秒静止時、現在の所有アプリ実行pathと一致するPIDのみを最大2個・各一回・1秒sampleし、最大48個の既知library main-thread symbolだけを出す。raw path/他thread/本文は公開せず所有一時fileを回収する。通常collectorは既存の厳格な入力parserを共用し、N148の新gesture列を古い式が落とす不整合だけを修正した。正式全15/gate/期待値は維持し、限定成功を代用しない。
+
+候補push後のLinux確認は観測器7件/失敗0（最終0.045秒）、実shell runner14件/失敗0（23.071秒）、manifest28件/失敗0（4.805秒）、既存diagnostics11件/失敗0（0.237秒）、source paths3件/失敗0（0.002秒）、catalog14件/失敗0（0.285秒）、shell構文とcatalog450/check --base d8d32が成功。macOSのsample実行/停止原因はまだ未確認で、この局所結果をApple UI合格へ数えない。次の限定dispatch一回専用の新規code-only reviewを別に行う。
+
+次のrows-context/iOS27/SDK27.0限定dispatch一回専用に、新規GPT-6.1 Sol/High ios_n153_stack_pre_actions_reviewがpatch487行/24491bytes SHA256 9efc7d406285abb9668b97199ac831d3f212c2f9496a3cde03c1da83a50bf043、runner201行/11120bytes fb32945a…、manifest263行/12254bytes 0baae5ae…、既存bounded command18行/1048bytes 2ad91a52…の全969行/bytes/hashを確認し、具体的指摘なし。主担当も現差分と同一性/元の二件・全期限/局所結果/cleanupを照合した。このreviewは次の一回だけへ使用し、main pushや正式公開へ転用しない。

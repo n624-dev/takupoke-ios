@@ -2833,3 +2833,7 @@ N153追加照合：3/4/groupの実Switch接触とvalue1、確認取消/正式採
 同時にN148で追加したgesture列を通常runnerの古い入力ログ正規表現が全行拒否していた不整合を確認した。既存の厳格なmanual input_trace_linesを通常回収へ共用し、旧/新形式と128行/64KiB・本文拒否を同じに保つ。入力の生成・判定は変えず、正常な新観測行の欠落だけを直す。新しい診断にはowned executable不一致拒否、main thread以外/任意path/body/未知library拒否、48frames/2process上限、stop/非対象caseの無観測、実normal回収での新形式保持と本文排除の動作対照を追加する。候補/比較/根拠を隔離branchへpush後に検査し、その一回専用の新規code-only review後にだけ診断Actionsを開始する。今回の根本原因や修正候補の決定は追加観測後とする。
 
 診断候補b60e566のローカル観測器7件/失敗0（0.051秒）、実shell runner14件/失敗0（23.071秒）、manifest28件/失敗0（4.805秒）、既存診断11件/失敗0（0.237秒）、shell構文/catalog450/check --base d8d32/固定枝一覧が成功。Appleのsample/実停止は未実行で、これらを原因解明やUI合格へ数えない。既取得447のDebugリンクlogにはTakupoke.debug.dylibがあるため、その固定libraryとSQLite/dispatch等の固定OS libraryもsymbol filterへ登録し、Debug本体frameが欠落しない正対照を加える。未知library/本文/path/他threadの拒否と全量上限は維持する。追加分も先にpushしてから同じ観測器とaffected catalog接続を確認する。
+
+188fa00追加分をpush後、観測器7件/失敗0（0.045秒）、workflow source paths3件/失敗0（0.002秒）、catalog14件/失敗0（0.285秒）とcatalog450/check --base d8d32が成功した。新runner methodの宣言を含む生成一覧も更新した。これらはLinuxの拒否/正対照と実shell制御の確認であり、macOSのsample出力取得や停止原因の確認ではない。
+
+次のrows-context/iOS27/SDK27.0限定dispatch一回専用に、新規GPT-6.1 Sol/High ios_n153_stack_pre_actions_reviewがpatch487行/24491bytes SHA256 9efc7d406285abb9668b97199ac831d3f212c2f9496a3cde03c1da83a50bf043、runner201行/11120bytes fb32945a…、manifest263行/12254bytes 0baae5ae…、既存bounded command18行/1048bytes 2ad91a52…の全969行/bytes/hashを確認し、具体的指摘なし。主担当も現差分と同一性/元の二件・全期限/局所結果/cleanupを照合した。このreviewは次の一回だけへ使用し、main pushや正式公開へ転用しない。
