@@ -341,3 +341,11 @@ f3136d3は製品を変えず、元5秒のpredicate内で元詳細bar消失/viewp
 限定source6918212/run40137790557/attempt1は両job success終端。配布SDK27.0/Runtime26.5の元2件は98.690秒、Runtime27.0は97.690秒で失敗0。直前の共通更新案内caseとHomeTimetableAndWeekCalendarを元順で通し、calendar caseは26が74.633秒、27が65.425秒、詳細sheet閉鎖・一意な実calendarの一回接触・週picker表示/取消し/前後週操作が成功した。新しい両ログだけを一度保存し、終端runは再照会しない。この成功はN151の旧query retryの下位原因や恒常解消/全15/実機合格とは区別する。旧正式445の27 Aも22:25:53Zに成功、次の26 Aだけは22:25:55Zから継続し取消しせず確認する。新しい27 Aログだけを一度保存済み。
 
 次の正式main一回用にはさらに新規GPT-6.1 Sol/High ios_n151_main_pre_actions_reviewが同じpatch36行/2318bytes SHA256 0e124666…と全4code contextの全行/bytes/hashを確認し、具体的指摘なし。主担当が限定両OS成功と現code/artifact同一性・全未送信commitの空白を確認して使用する。このreviewは次のmain push/正式全15/公開開始一回だけへ使い、前の限定reviewを転用しない。同じ新source/run/attemptの全15を要求し、旧445の各成功は借用しない。
+
+### 正式446の手動補正入口とボタン再解決（N152）
+
+正式source883c9a0/run40139246578/attempt1は27全条件と26 A・単項目/明示選択/原本変更補正が成功したが、三項目26が119.919秒・1失敗。実訂正には未到達で、設定の「時間割ファイル」への一回tapが0.131秒でcancelledとなり、設定に残ったまま次画面の詳細Button探索をno-progress拒否した。旧clear/入力とは別段階。N152に事実を先に記録し、U70/U53/N94/N97/N140/N148と当時/currentのsourceを照合した。新しい4完了ログだけ保存し、残26 Bは取消しせず確認する。
+
+候補5992f19は元通常tapのtitleをvisibleのoptional buttonLabelへ渡し、元16探索/viewport/受動row/一回反転を保持した後、元clearと同じ最終native identity検証を通常Buttonにも使う。既知IDとlabelを維持し、一意/有限/全包含/enabled/hittableを要求して、元の一回Button.tapへ渡す。fixture menu等の別経路・Input/ACK/全期待・期限・製品は変更しない。既存project契約の一行はknownIDを残した新API引数へ追随させるだけで、元実4case×両OSの結果期待は不変。候補/比較/根拠をpush後、Swift6.1.2構文、project17件/失敗0（0.328秒）、元29幾何/失敗0（0.004秒）、diagnostics11件/失敗0（0.241秒）、manual runner5件/失敗0（2.867秒）、manifest28件/失敗0（4.785秒）、catalog448/check --base 883c9a0/固定枝一覧が成功した。
+
+次の限定all一回だけ用に、新規GPT-6.1 Sol/High ios_n152_buttons_pre_actions_reviewがpatch65行/4063bytes SHA256 2d92619d88be51ae5025c82242240aab6176f0d31d558719b3febc00b7425031、現Navigation226行/14599bytes SHA256 b667a1a8…、Manual Geometry100行/4620bytes SHA256 dc9aee0b…、元Input/4case/OneCorrection/globalsの全callers context（68c649cf…/d52d5860…/5c545497…/c7ac87c8…）を全行/bytes/hash照合し、具体的指摘なし。主担当が不変差分と全期待の保持/局所結果を確認した。このreviewは次のmanual-input-native-probe/case=all一回だけへ使い、後の正式mainは別の新規reviewを必要とする。取消しの下位原因や恒常解消・実機結果は未証明。
