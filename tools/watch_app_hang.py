@@ -9,10 +9,12 @@ import time
 
 from notification_service_trace import BUNDLE, observe_command
 
-LIBRARIES = {"Takupoke", "GRDB", "GRDBSQLite", "SwiftUI", "SwiftUICore", "UIKitCore",
+LIBRARIES = {"Takupoke", "Takupoke.debug.dylib", "GRDB", "GRDBSQLite", "SwiftUI", "SwiftUICore", "UIKitCore",
              "AttributeGraph", "Foundation", "CoreFoundation", "QuartzCore", "dyld",
              "libdispatch.dylib", "libsystem_kernel.dylib", "libsystem_pthread.dylib",
-             "libsystem_platform.dylib", "libswiftCore.dylib", "libswift_Concurrency.dylib"}
+             "libsystem_platform.dylib", "libswiftCore.dylib", "libswift_Concurrency.dylib",
+             "libsqlite3.dylib", "libswiftDispatch.dylib", "libobjc.A.dylib", "libxpc.dylib",
+             "libsystem_c.dylib"}
 SNAPSHOT_PID = re.compile(r"Requesting snapshot of accessibility hierarchy for app with pid ([1-9]\d{0,7})\b")
 CASE = re.compile(r"Test Case '-\[PickerTapChecks.ApplicationChecks (test\w+)\]' (started|passed|failed)")
 TARGET_CASE = "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch"

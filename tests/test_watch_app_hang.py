@@ -19,6 +19,7 @@ Call graph:
     100 Thread_123 DispatchQueue_1: com.apple.main-thread (serial)
     + 100 start (in dyld) + 20 [0x1234]
     +   100 sqlite3_step (in GRDBSQLite) + 30 [0x2345]
+    +     100 AppData.load (in Takupoke.debug.dylib) + 1
     +     100 /private/token/body (in Takupoke) + 40
     +     100 secret_symbol (in UnknownPrivateLibrary) + 40
     +     100 \"private body\" (in Takupoke) + 40
@@ -32,6 +33,7 @@ class AppHangObservationTests(unittest.TestCase):
         self.assertEqual(module.main_thread_frames(SAMPLE), [
             {"library": "dyld", "symbol": "start"},
             {"library": "GRDBSQLite", "symbol": "sqlite3_step"},
+            {"library": "Takupoke.debug.dylib", "symbol": "AppData.load"},
         ])
         many = SAMPLE.split("    + 100 start", 1)[0] + "".join(
             f"    + 100 public_symbol_{i} (in Takupoke) + 1\n" for i in range(100))
@@ -67,7 +69,7 @@ class AppHangObservationTests(unittest.TestCase):
             result = module.collect("owned-device", 123)
         self.assertEqual(result["status"], "sampled")
         self.assertTrue(result["executableMatches"])
-        self.assertEqual(len(result["frames"]), 2)
+        self.assertEqual(len(result["frames"]), 3)
         self.assertEqual(len(sample_files), 1)
         self.assertFalse(sample_files[0].parent.exists())
         self.assertNotIn("private", json.dumps(result))
