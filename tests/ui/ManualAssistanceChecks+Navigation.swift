@@ -12,7 +12,7 @@ extension ManualAssistanceChecks {
         XCTAssertTrue(ManualScrollNavigation.usable(frame),"Present keyboard must have finite positive geometry")
         return frame
     }
-    func visible(_ e:XCUIElement,towardTop:Bool=false,knownID:String="",alternatives:XCUIElementQuery?=nil)->XCUIElement {
+    func visible(_ e:XCUIElement,towardTop:Bool=false,knownID:String="",alternatives:XCUIElementQuery?=nil,buttonLabel:String?=nil)->XCUIElement {
         let started = ProcessInfo.processInfo.systemUptime
         var attempts = 0
         defer {
@@ -69,17 +69,26 @@ extension ManualAssistanceChecks {
                 candidates:[target],viewport:viewport,frame:{ _ in targetFrame ?? .null },
                 isHittable:{ $0.isHittable }) != nil
             if targetHittable {
+                let physicalButtons:XCUIElementQuery?
                 if inRecovery && targetID.hasPrefix("manual-clear-") {
-                    // Navigation follows the logical ID across recycled rows.
+                    physicalButtons=query
+                } else if let buttonLabel {
+                    let buttons=targetID.isEmpty ? app.buttons : app.buttons.matching(identifier:targetID)
+                    physicalButtons=buttons.matching(NSPredicate(format:"label == %@",buttonLabel))
+                } else {
+                    physicalButtons=nil
+                }
+                if let physicalButtons {
+                    // Navigation follows logical IDs/labels across recycled rows.
                     // Bind only the final physical Button to its current identity.
-                    let controls=query.allElementsBoundByAccessibilityElement
+                    let controls=physicalButtons.allElementsBoundByAccessibilityElement
                     guard controls.count==1 else {
-                        XCTFail("The revealed clear Button must have one current native identity");return e
+                        XCTFail("The revealed Button must have one current native identity");return e
                     }
                     let actual=controls[0],frame=actual.frame
                     guard ManualScrollNavigation.usable(frame),viewport.contains(frame),
                           actual.isEnabled,actual.isHittable else {
-                        XCTFail("The current native clear Button must remain inside the observed viewport and operable");return e
+                        XCTFail("The current native Button must remain inside the observed viewport and operable");return e
                     }
                     return actual
                 }
@@ -212,6 +221,6 @@ extension ManualAssistanceChecks {
             button.tap();fixtureMenuOpen=false
             return
         }
-        visible(app.buttons[title].firstMatch,knownID:knownID).tap()
+        visible(app.buttons[title].firstMatch,knownID:knownID,buttonLabel:title).tap()
     }
 }

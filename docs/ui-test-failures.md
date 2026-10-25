@@ -2805,3 +2805,15 @@ N151完了log：通常Bの基本6件中5成功・HomeTimetableAndWeekCalendarだ
 候補は元5秒のpredicate内で詳細bar消失・元bodyViewportを先に観測し、同じlabel条件の実Button配列をallElementsBoundByAccessibilityElementで一度得る。一意/exists/enabled/hittable/元の完全包含を全て保持し、その条件を満たした一個のnativeを捕捉して、待機後の再検索なしに元の50%中心へ一回tapする。複数はstickyな曖昧flagで失敗、0/無効/timeoutも失敗のまま。元PDFやpickerの製品/アニメーションを変更せず、詳細5秒・calendar準備5秒・週picker表示5秒・cancel・前後週の期待/両OS/全15gateを維持する。新しい模倣caseは作らず、元のcaseと既存home-launchの直前caseを同順で両OS/配布SDK27.0に通す。候補と根拠を隔離branchへpush後に構文/manifest/runner/既存幾何/catalogを確認し、新規review後だけ開始する。効果/恒常解消は未確認。
 
 N151限定結果：6918212/run40137790557/attempt1は両SDK27.0のRuntime26.5/27.0で元2件が成功し、calendar caseは74.633/65.425秒。sheet閉鎖/全guard/元一回接触・週picker/取消/前後週まで通過した。両logを一度保存、同じrun/ログは再取得しない。これは旧内部query retryの下位原因や一般的解消の証明ではなく、正式全15は別の同一source実行で要求する。旧445の27 Aは43分20秒で成功し、残26 Aは22:25:55Zから継続中で取消しせず確認する。
+
+## N152 正式446の三項目補正iOS26がfailure終端（2026-10-25）
+
+00:05 UTCの予定確認、source883c9a00769d923de5c65eeef116bd183813d577/run40139246578/attempt1。三項目補正26/job121016749222は23:31:41Z開始・23:38:42Zにfailure終端。具体的段階/原因は完了ログ未読で未確定、対処案を選ぶ前に記録する。同runの27全条件と26 A・訂正26の単項目/明示選択/原本変更はsuccess、26 Bは継続中。全15成功/公開は不成立。新しい4完了jobのログだけを一度取得し、既取得9ログ/限定8成功は再取得しない。残る26 Bは取消しせず終端まで確認する。
+
+N152完了log：元三項目caseは119.919秒・1失敗、ManualAssistanceChecks+Navigation.swift:170のvisible探索後assert。失敗した探索先は「通常時間割の詳細を見る」で、訂正/clear/入力にはまだ到達していない。直前の設定画面の「時間割ファイル」Buttonは(16,205.33,361,52.33)としてvisibleになったが、操作までAX照会が遅延し、実接触(196.67,231.67)はbegan後0.131秒でcancelled。後続の探索は依然設定の「アプリ設定」「サポート」の受動rowを上下し、一回反転後のno-progressを拒否した。最終AXも設定のままである。初報の入力欄のボタンという説明を訂正し、入口タップの未成立と、成立後の入力操作を区別する。ジェスチャー取消しの下位原因は未確定。新しい4ログを一度保存し、取得済みは再取得しない。
+
+照合：時間割ファイル/Settings/tap helper/cancelled/native identityでU70（同じ入口の存在再照会停止）・U53（同入口前のlabel照会）・N94/N97/N140/N148の詳細と、旧1b368f5/公開1c331818/現883c9a0のmanual Navigation/launch/Viewを比較した。今回のvisibleはt29.53のhittable照会からt42台の返却まで遅れ、firstMatchのtapがFind/interrupt checkを再評価して実合成はt67台になった。U70の存在取得自体の停止、N148のclear、実復旧Listに到達してからの16探索とは段階が違う。clearのみは既に最終identity捕捉で、通常tap helperのfallbackだけは古いlabel/firstMatch queryをそのまま操作へ渡していた。取消しと再解決の因果・OSの下位原因は断定しない。
+
+候補は通常tap helperが既に持つtitleをvisibleへ明示し、元の論理ID/16探索/viewport先行観測/受動Cell/一回反転を維持する。全表示かつhittableとなった最終段階で、既知IDがあればそれも残した同じtitleの実Button配列を一度だけidentityで取得し、元clearと同じ一意性/有限正枠/完全包含/enabled/hittableを要求して返す。clear/通常button以外やfixture menu固有操作は変更しない。元の一回Button.tap/中心・全45秒・入力全文/ACK/取消/4項目拒否/旧データ保持/背景/保存/再起動は維持し、不在/曖昧/無効は失敗する。新しいlabel照会を別AX getterで行わず、呼出し済みの固定titleを使う。
+
+既存project契約の一行だけは、knownIDを保持した同じvisible委譲に新しいbuttonLabel引数も渡すAPIへ追随させる。結果やfixture期待を変えるものではなく、元の実操作4case×両OSを保持して共通helperの入口から保存まで検証する。模倣テストは追加せず、効果/恒常解消は未確認。事実/比較/候補を隔離branchへpush後に既存project/manifest/runner/29幾何/診断/構文/catalogを確認し、新規review後に全8限定比較を行う。元正式の残26 Bは取消しせず、完了/新ログ/artifact0を別に一度確認する。
