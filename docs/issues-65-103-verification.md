@@ -365,3 +365,9 @@ f3136d3は製品を変えず、元5秒のpredicate内で元詳細bar消失/viewp
 候補push後のLinux確認は観測器7件/失敗0（最終0.045秒）、実shell runner14件/失敗0（23.071秒）、manifest28件/失敗0（4.805秒）、既存diagnostics11件/失敗0（0.237秒）、source paths3件/失敗0（0.002秒）、catalog14件/失敗0（0.285秒）、shell構文とcatalog450/check --base d8d32が成功。macOSのsample実行/停止原因はまだ未確認で、この局所結果をApple UI合格へ数えない。次の限定dispatch一回専用の新規code-only reviewを別に行う。
 
 次のrows-context/iOS27/SDK27.0限定dispatch一回専用に、新規GPT-6.1 Sol/High ios_n153_stack_pre_actions_reviewがpatch487行/24491bytes SHA256 9efc7d406285abb9668b97199ac831d3f212c2f9496a3cde03c1da83a50bf043、runner201行/11120bytes fb32945a…、manifest263行/12254bytes 0baae5ae…、既存bounded command18行/1048bytes 2ad91a52…の全969行/bytes/hashを確認し、具体的指摘なし。主担当も現差分と同一性/元の二件・全期限/局所結果/cleanupを照合した。このreviewは次の一回だけへ使用し、main pushや正式公開へ転用しない。
+
+限定source2acdaf1/run40155216742/attempt1は02:53:57Zにsuccess終端、SDK/Runtime27.0の元二件は335.157秒/失敗0（先行130.724秒・行除外204.433秒）。元3Switch・103行採用・再起動保持とC/Bの正負を通過し、quiet20秒の停止は起こらずsample出力0行。唯一の完了logを一度保存し、この終端run/logは再照会しない。旧停止の下位原因は未確定で、成功を恒常解消/正式合格へ数えない。次の5d15d6bは同じobserverを通常27 Aの元全case実行にも有効にする一行だけを追加した。製品/Swift helper/元操作/全期限/他job/全15gateは同一で、旧停止の再発を正式と同じ全contextでも採取可能にする。失敗時は公開せず新しい観測から調べ、成功時のみ既存全15gateで公開する。索引N153へ結果と新しい試行理由を先にpushした。
+
+追加の一行push後、source paths3件/失敗0（0.001秒）、catalog14件/失敗0（0.325秒）、catalog450/check --base d8d32とshell構文が成功。既存の実shell observer有効時の成功/失敗/所有cleanupケースと、watcher正負対照・manifestの正式SHARDS/gate検査でこの接続変更を検出できるため、期待値を写す新テストは追加しない。実正式UI全体は次の新runへ残す。
+
+次のmain push/正式全15/条件成立時の公開一回専用には別の新規GPT-6.1 Sol/High ios_n153_main_pre_actions_reviewが、patch499行/24996bytes SHA256 1da3d56c3328ff77169f77d8dcd5b22ff58014ba51e7dedce1e40f5828ba47d8、正式workflow462行/19976bytes fe98bfe2…、runner201行/11120bytes fb32945a…、manifest263行/12254bytes 0baae5ae…、bounded command18行/1048bytes 2ad91a52…、既存input parser14行/739bytes 11d64447…の全1457行/70133bytes/hashを確認し、具体的指摘なし。主担当が現差分との同一性、元全15と失敗伝播/cleanup、限定結果の限界と全未送信commitの空白を照合してから使用する。限定専用review/成功は転用せず、同じ新source/run/attemptの正式全15を要求する。
