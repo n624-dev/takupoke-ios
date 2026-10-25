@@ -103,6 +103,7 @@ jobs:
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_UI_SHARD: ${{ matrix.shard }}
       TKPK_VOICEOVER_AUTOMATION: ${{ matrix.voiceover }}
+      TKPK_UI_HANG_DIAGNOSTICS: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

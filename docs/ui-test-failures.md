@@ -2837,3 +2837,7 @@ N153追加照合：3/4/groupの実Switch接触とvalue1、確認取消/正式採
 188fa00追加分をpush後、観測器7件/失敗0（0.045秒）、workflow source paths3件/失敗0（0.002秒）、catalog14件/失敗0（0.285秒）とcatalog450/check --base d8d32が成功した。新runner methodの宣言を含む生成一覧も更新した。これらはLinuxの拒否/正対照と実shell制御の確認であり、macOSのsample出力取得や停止原因の確認ではない。
 
 次のrows-context/iOS27/SDK27.0限定dispatch一回専用に、新規GPT-6.1 Sol/High ios_n153_stack_pre_actions_reviewがpatch487行/24491bytes SHA256 9efc7d406285abb9668b97199ac831d3f212c2f9496a3cde03c1da83a50bf043、runner201行/11120bytes fb32945a…、manifest263行/12254bytes 0baae5ae…、既存bounded command18行/1048bytes 2ad91a52…の全969行/bytes/hashを確認し、具体的指摘なし。主担当も現差分と同一性/元の二件・全期限/局所結果/cleanupを照合した。このreviewは次の一回だけへ使用し、main pushや正式公開へ転用しない。
+
+N153限定source2acdaf1306d6c762773708150d50476185b2e95a/run40155216742/attempt1は02:53:57Zにsuccess終端。予定03:10の一括照会で終端を確認し、唯一の完了logを一度だけ保存した。SDK/Runtime27.0、元AuxiliaryReadFailures130.724秒・行除外204.433秒、合計335.157秒/2件/失敗0。元3Switch一回接触/取消/103行採用/再起動後のC保持とB除外まで通過した。TAKUPOKE_APP_STACKは0行で、quiet20秒の停止は観測されずmacOS sampleの取得成否も未評価。旧417.753秒の下位原因や恒常解消を証明せず、この終端run/logを再照会しない。
+
+限定前後のSwift製品/helper/元case/期限は同一bytesで、今回の成功だけを根拠にkeyboard等を変更しない。U05/U73/U70/U53/N146/N151/N152とd8d32/2acdaf1の照合結果を維持する。次は同じobserverを正式の通常27 Aだけでも有効にし、限定では未再現だった旧停止を、残る全case/既存phase/公開gateを保った実行内で採取可能にする。限定成功を正式合格へ繰り上げる変更ではなく、通常の全15を新しい同一source/run/attemptで確認しつつ追加観測する。失敗時は公開せず新しい事実から調べ、成功時のみ既存の全15gateで公開する。観測器の個数/対象case/所有path照合/出力制限/cleanup/全操作と期限は不変。他OS/他shard/手動訂正のenvは変更しない。
