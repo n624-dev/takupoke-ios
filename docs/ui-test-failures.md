@@ -2817,3 +2817,5 @@ N152完了log：元三項目caseは119.919秒・1失敗、ManualAssistanceChecks
 候補は通常tap helperが既に持つtitleをvisibleへ明示し、元の論理ID/16探索/viewport先行観測/受動Cell/一回反転を維持する。全表示かつhittableとなった最終段階で、既知IDがあればそれも残した同じtitleの実Button配列を一度だけidentityで取得し、元clearと同じ一意性/有限正枠/完全包含/enabled/hittableを要求して返す。clear/通常button以外やfixture menu固有操作は変更しない。元の一回Button.tap/中心・全45秒・入力全文/ACK/取消/4項目拒否/旧データ保持/背景/保存/再起動は維持し、不在/曖昧/無効は失敗する。新しいlabel照会を別AX getterで行わず、呼出し済みの固定titleを使う。
 
 既存project契約の一行だけは、knownIDを保持した同じvisible委譲に新しいbuttonLabel引数も渡すAPIへ追随させる。結果やfixture期待を変えるものではなく、元の実操作4case×両OSを保持して共通helperの入口から保存まで検証する。模倣テストは追加せず、効果/恒常解消は未確認。事実/比較/候補を隔離branchへpush後に既存project/manifest/runner/29幾何/診断/構文/catalogを確認し、新規review後に全8限定比較を行う。元正式の残26 Bは取消しせず、完了/新ログ/artifact0を別に一度確認する。
+
+N152限定比較：dfb62cb/run40145652153/attempt1の元4case×両OSは全8job成功。三項目26も434.859秒で入口から元ケース末尾まで通過し、単項目/原本変更/明示選択も両OSで失敗0・厳密完了照合に成功。全8logを一度保存し再取得しない。旧446は26 Bも45分24秒で成功して全18表示job終端・13事前成功/三項目26失敗1/構成依存skip4・全14実job完了log取得済み・artifact0。この限定成功を旧失敗の根本原因や恒常解消、正式公開・実機確認へ一般化しない。次の新source全15で全case/期限を維持する。

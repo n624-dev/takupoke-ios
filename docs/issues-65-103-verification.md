@@ -349,3 +349,9 @@ f3136d3は製品を変えず、元5秒のpredicate内で元詳細bar消失/viewp
 候補5992f19は元通常tapのtitleをvisibleのoptional buttonLabelへ渡し、元16探索/viewport/受動row/一回反転を保持した後、元clearと同じ最終native identity検証を通常Buttonにも使う。既知IDとlabelを維持し、一意/有限/全包含/enabled/hittableを要求して、元の一回Button.tapへ渡す。fixture menu等の別経路・Input/ACK/全期待・期限・製品は変更しない。既存project契約の一行はknownIDを残した新API引数へ追随させるだけで、元実4case×両OSの結果期待は不変。候補/比較/根拠をpush後、Swift6.1.2構文、project17件/失敗0（0.328秒）、元29幾何/失敗0（0.004秒）、diagnostics11件/失敗0（0.241秒）、manual runner5件/失敗0（2.867秒）、manifest28件/失敗0（4.785秒）、catalog448/check --base 883c9a0/固定枝一覧が成功した。
 
 次の限定all一回だけ用に、新規GPT-6.1 Sol/High ios_n152_buttons_pre_actions_reviewがpatch65行/4063bytes SHA256 2d92619d88be51ae5025c82242240aab6176f0d31d558719b3febc00b7425031、現Navigation226行/14599bytes SHA256 b667a1a8…、Manual Geometry100行/4620bytes SHA256 dc9aee0b…、元Input/4case/OneCorrection/globalsの全callers context（68c649cf…/d52d5860…/5c545497…/c7ac87c8…）を全行/bytes/hash照合し、具体的指摘なし。主担当が不変差分と全期待の保持/局所結果を確認した。このreviewは次のmanual-input-native-probe/case=all一回だけへ使い、後の正式mainは別の新規reviewを必要とする。取消しの下位原因や恒常解消・実機結果は未証明。
+
+限定source dfb62cb/run40145652153/attempt1は00:55 UTCの確認で全8job success終端。同source/run/attemptの元4case×両OSが成功した。単項目26/27は636.176/546.013秒、三項目26/27は434.859/683.391秒、原本変更26/27は289.124/378.624秒、明示選択26/27は1097.564/1134.773秒、各元case1件/失敗0・厳密完了照合を通過した。入口と復旧/入力/独立ACK/背景/原本拒否/4項目拒否/確認/採用/再起動の実操作を保持した範囲の成功で、旧cancelledの下位原因/恒常解消/全15へ一般化しない。全8ログを一度だけ保存し、同じrun/ログは再取得しない。
+
+旧正式446も26 Bが00:07:13Zに成功して全18表示job終端、事前14件は13成功・三項目26のN152失敗1・構成3と依存公開skip。全14実jobの完了ログを一度保存し、artifact0も一度確認した。公開不可を限定8成功で置き換えず、旧runは以後再照会しない。
+
+次の正式main一回用にはさらに別の新規GPT-6.1 Sol/High ios_n152_main_pre_actions_reviewが同じpatch65行/4063bytes SHA256 2d92619d…と全6Swift contextの行/bytes/hashを確認し、具体的指摘なし。主担当が限定全8成功・現sourceとartifact同一性・全未送信commitの空白を確認してから、このreviewを次のmain push/正式全15/公開開始一回だけへ使う。旧限定review/旧正式の成功は借用せず、同一の新source/run/attemptの全15を要求する。
