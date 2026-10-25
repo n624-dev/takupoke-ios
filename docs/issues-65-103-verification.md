@@ -373,3 +373,15 @@ f3136d3は製品を変えず、元5秒のpredicate内で元詳細bar消失/viewp
 次のmain push/正式全15/条件成立時の公開一回専用には別の新規GPT-6.1 Sol/High ios_n153_main_pre_actions_reviewが、patch499行/24996bytes SHA256 1da3d56c3328ff77169f77d8dcd5b22ff58014ba51e7dedce1e40f5828ba47d8、正式workflow462行/19976bytes fe98bfe2…、runner201行/11120bytes fb32945a…、manifest263行/12254bytes 0baae5ae…、bounded command18行/1048bytes 2ad91a52…、既存input parser14行/739bytes 11d64447…の全1457行/70133bytes/hashを確認し、具体的指摘なし。主担当が現差分との同一性、元全15と失敗伝播/cleanup、限定結果の限界と全未送信commitの空白を照合してから使用する。限定専用review/成功は転用せず、同じ新source/run/attemptの正式全15を要求する。
 
 正式source67273c0eb2c6fa2b0b950c7dce140a841954ed38/run40157376822/attempt1の03:58予定照会で事前7条件成功。通常27 Aは17件/失敗0（1812.814秒）と通知1件/失敗0（60.336秒）、行除外277.549秒で元103行採用/再起動/C保持/B除外を通過した。TAKUPOKE_APP_STACKは0行で、20秒静止や旧停止の下位原因は観測されておらず恒常解消とは扱わない。Native688件/予定skip1/失敗0（117.617秒）、Distribution Python287件/失敗0（94.315秒）、訂正27の単項目526.852秒・三項目422.375秒・明示選択851.182秒・原本変更262.058秒も成功。新しい7完了logだけ一度保存し、旧run/logは再取得しない。通常27 Bは03:29:25Z開始で継続、26 Aは03:57:27Z開始、全15/公開はまだ未完了。Bの開始遅延と旧32〜45分/26約45分を踏まえ、次のまとめ照会は04:55 UTCとする。取消しはしない。
+
+## 449.1の正式公開と追加issue再照合（2026-10-25 UTC）
+
+source67273c0eb2c6fa2b0b950c7dce140a841954ed38/run40157376822/attempt1は全15必須条件成功・全18表示job終端・構成skip3のみ・保存artifact0。通常27/26 Aは基本17件/失敗0（1812.814/1497.835秒）と通知各1件、Bも基本/入力/設定/OS文字サイズ/27 VoiceOverを厳密照合し、26 VoiceOverのみ元の予定skip。訂正4条件×両OSも全成功した。新しい全15実行logを一度保存し、終端run/log/artifactは再取得しない。以前の限定/失敗runの成功は借用していない。
+
+事前Native688件/予定skip1/失敗0（117.617秒）とDistribution Python287件/失敗0（94.315秒）が成功。配布job121077597600でもNative688件/予定skip1/失敗0（97.620秒）、実Picker3件/失敗0（293.247秒）、実iPhone Release buildが成功した。05:01:51 UTCに通常Release/Latestとしてv0.1.449-build.449.1を公開し、jobは05:01:57Zに成功終端。番号は完了したpublisher logと実添付から確認した（事前の内部logファイル名ios-main448は予測上の別名で、実配布版は449.1）。
+
+05:05 UTCに認証headerなしで4添付を全取得し、全bytes/API SHA-256、release.json/IPAの0.1.449・449.1・source67273c0、最低iOS26・縦画面・アイコン・内部診断混入拒否・固定Latest AltStore Sourceの一致を確認した。IPA17,285,710bytes、SHA256 43652ff2a3f5a9ddee1b48b5778b6268a81e6d93c42943a27ae4a128d864c78f。所有receiptへ結果を保持し、消費済みdownload本体は回収する。物理iPhoneでのAltStore更新・学校原本・実機性能の成功とはしない。
+
+公開後のopen issueをiOS/Windows一回ずつまとめて取得し、本文を照合した。iOSは既知の9件だけ、Windowsは既知の33〜35と既存PR1だけで、新規追加なし。公開済みの対処/正負回帰/全体成功を照合し、iOS65/77/84/85/91/93/101とWindows33/34/35をstate_reason=completedで閉じた。コメントは投稿していない。85/93は現Windowsに同機能がなく非該当、Win33/34/35のiOS Strict239固有の受理差は既存の承認範囲を維持した。原本のないWindows P01を同じPDFで解消したとは扱わない。
+
+66/67は実装を449.1に含むが、issue66の「Time Profiler／SwiftUI更新／フレーム落ちの比較」とissue67の「Release相当の実機ビルドで計測（初回／2回目、オンライン／オフライン、データあり／なし）」は未実施。この環境に物理iPhone接続手段はなく、実Coreの継続query計時・同値比較・実Model/HTTP回帰・両SimulatorのUI合格を実機tracesへ代用しない。二件はopenのまま、コード未実装と実機未確認を区別する。新しい公開やCIをこの文書だけで開始しない。
