@@ -9,6 +9,7 @@ import sys
 import tempfile
 import textwrap
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
@@ -132,7 +133,7 @@ else: print('Synthetic Xcode version')
             (repo / "bin").mkdir()
             (repo / "scratch").mkdir()
             for name in ("test-app-ui.sh", "resolve-xcode-packages.sh", "ui_test_manifest.py", "timed_command.py",
-                         "notification_service_trace.py"):
+                         "notification_service_trace.py", "manual_ui_diagnostics.py", "watch_app_hang.py"):
                 shutil.copyfile(ROOT / "tools" / name, repo / "tools" / name)
             for name in manifest.CHECK_SOURCES:
                 shutil.copyfile(ROOT / "tests/ui" / name, repo / "tests/ui" / name)
@@ -221,6 +222,17 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                 self.assertIn(["xcrun", "simctl", "shutdown", "synthetic-simulator-notifications"], calls)
                 self.assertIn(["xcrun", "simctl", "delete", "synthetic-simulator-notifications"], calls)
             return result, calls
+
+    def test_optional_hang_observer_preserves_phase_results_and_owned_cleanup(self):
+        for failed in (False, True):
+            with self.subTest(failed=failed), patch.dict(os.environ, {"TKPK_UI_HANG_DIAGNOSTICS": "1"}):
+                result, calls = self.run_synthetic_runner(27, "all", probe_case="rows-context", fail_tests=failed)
+                self.assertEqual(result.returncode, 1 if failed else 0, result.stdout + result.stderr)
+                self.assertNotIn("TAKUPOKE_APP_STACK ", result.stdout)
+                batches = [call for call in calls if call[0] == "xcodebuild" and "test-without-building" in call]
+                self.assertEqual(len(batches), 1)
+                self.assertEqual([arg.rsplit("/",1)[1] for arg in batches[0] if arg.startswith("-only-testing:")],
+                                 list(manifest.PROBE_GROUPS["rows-context"]))
 
     def test_input_probe_runs_each_original_case_once_on_the_same_owned_device(self):
         cases = ("testSettingsAccountDataAndFileDetails", "testVoiceOverReadsTimetableCard")

@@ -12,6 +12,7 @@ on:
           - notifications
           - controls
           - rows
+          - rows-context
           - input-delivery
           - file-details
           - updates
@@ -63,6 +64,7 @@ jobs:
       TKPK_UI_PROBE_SDK27: ${{ inputs.sdk27 }}
       TKPK_UI_PROBE_SDK26: ${{ inputs.sdk26 }}
       TKPK_UI_RELAUNCH_PROBE: '1'
+      TKPK_UI_HANG_DIAGNOSTICS: ${{ inputs.case == 'rows-context' && '1' || '0' }}
       TKPK_UI_PROBE_CASE: ${{ inputs.case }}
       PYTHONDONTWRITEBYTECODE: '1'
     steps:

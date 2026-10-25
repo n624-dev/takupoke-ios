@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`6f945a296e460bf9c28349a736f3c1a57750159ed6b17b66b4cdd17e23be179b`
+`8461475837c92b86db75397d17dc3c315382ab991334da8ddc8deb60e48db052`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -62,6 +62,7 @@ bash tools/test-app-ui.sh
 - [tests/ui/ApplicationFixture.swift](../../tests/ui/ApplicationFixture.swift)
 - [tools/app_test_project.py](../../tools/app_test_project.py)
 - [tools/notification_service_trace.py](../../tools/notification_service_trace.py)
+- [tools/watch_app_hang.py](../../tools/watch_app_hang.py)
 - [tools/prepare-ios26-runtime.py](../../tools/prepare-ios26-runtime.py)
 - [tools/test-app-ui.sh](../../tools/test-app-ui.sh)
 - [tools/ui_test_manifest.py](../../tools/ui_test_manifest.py)
@@ -180,10 +181,21 @@ bash tools/test-app-ui.sh
 - `test_notification_service_trace_keeps_only_known_processes_and_fixed_words`
 - `test_notification_service_trace_is_bounded_without_permission_mutation`
 
+## [tests/test_watch_app_hang.py](../../tests/test_watch_app_hang.py)
+
+- `test_main_thread_export_rejects_headers_paths_body_unknown_libraries_and_other_threads`
+- `test_process_mismatch_never_samples_or_exports_private_command_output`
+- `test_exact_owned_app_is_sampled_once_and_owned_raw_file_is_removed`
+- `test_quiet_snapshot_samples_once_and_stop_marker_ends_observer`
+- `test_only_rows_case_and_at_most_two_owned_processes_are_observed`
+- `test_no_snapshot_or_finished_phase_does_not_sample`
+- `test_normal_runner_collects_current_input_format_without_unrelated_body`
+
 ## [tests/test_application_ui_runner.py](../../tests/test_application_ui_runner.py)
 
 - `test_diagnosis_defaults_to_27_without_adding_26_matrix_rows`
 - `test_alternate_toolchain_preflight_requires_requested_sdk_and_same_runtime`
+- `test_optional_hang_observer_preserves_phase_results_and_owned_cleanup`
 - `test_input_probe_runs_each_original_case_once_on_the_same_owned_device`
 - `test_successful_notification_probe_observes_os_before_deleting_simulator`
 - `test_both_shards_on_both_os_preserve_selection_and_os_size_checks`

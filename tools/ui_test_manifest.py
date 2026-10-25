@@ -81,6 +81,8 @@ PROBE_GROUPS = {
     "notifications": NOTIFICATION_PROBE_TESTS,
     "controls": CONTROL_PROBE_TESTS,
     "rows": ("testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",),
+    "rows-context": ("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover",
+                     "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch"),
     "input-delivery": ("testSettingsAccountDataAndFileDetails", VOICEOVER_TEST),
     "file-details": (
         "testFileFailuresKeepResultsAndStayInTheirOwnDetails",

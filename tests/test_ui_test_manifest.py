@@ -709,6 +709,7 @@ METHOD
         groups = (
             ("controls", controls),
             ("rows", (controls[-1],)),
+            ("rows-context", ("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover", controls[-1])),
             ("input-delivery", ("testSettingsAccountDataAndFileDetails", manifest.VOICEOVER_TEST)),
             ("file-details", ("testFileFailuresKeepResultsAndStayInTheirOwnDetails",
                               "testSetupCanBeSkippedAndOffersAllFiles")),

@@ -2,10 +2,22 @@
 set -euo pipefail
 scratch_dir="$(mktemp -d "${TMPDIR:-/tmp}/takupoke-app-tests.XXXXXX")"
 simulator_id=""
+hang_watch_pid=""
+hang_stop_path=""
+stop_hang_watch() {
+    if [[ -n "$hang_watch_pid" ]]; then
+        : > "$hang_stop_path"
+        wait "$hang_watch_pid" || true
+        hang_watch_pid=""
+        hang_stop_path=""
+    fi
+}
 collect_launch_trace() {
     python3 -B - "$simulator_id" <<'PY_TRACE'
 from pathlib import Path
 import re, subprocess, sys
+sys.path.insert(0, "tools")
+from manual_ui_diagnostics import input_trace_lines
 try:
     result = subprocess.run(["xcrun", "simctl", "get_app_container", sys.argv[1], "jp.n624.takupoke.app-checks", "data"],
                             capture_output=True, text=True, timeout=10)
@@ -14,9 +26,9 @@ try:
         if not owned.is_symlink() and owned.is_file() and owned.stat().st_size <= 65536:
             pattern = re.compile(r"TAKUPOKE_LIFECYCLE pid=\d+ time=\d+(?:\.\d+)? stage=(?:init-enter|seed-enter|seed-complete|scene-construction|content-appeared|root-task-enter|application-ready|fixture-ready|fixture-ready-timeout|notification-settings-enter|notification-settings-complete|notification-settings-cancelled|notification-settings-not-requested|notification-on-binding|notification-off-binding|notification-native-request|notification-native-callback|notification-auth-request|notification-auth-callback|notification-auth-returned|retention-recovery-action|retention-dialog-on|retention-dialog-off)")
             switch = re.compile(r"TAKUPOKE_AI_SWITCH pid=\d+ time=\d+(?:\.\d+)? phase=(?:before|after) requested=[01] stored=[01]")
-            delivery = re.compile(r"TAKUPOKE_INPUT pid=\d+ time=\d+(?:\.\d+)? phase=(?:began|ended|cancelled) x=-?\d+(?:\.\d+)? y=-?\d+(?:\.\d+)? views=[A-Za-z0-9_.,]{1,163}")
             for line in owned.read_text(encoding="utf-8").splitlines():
-                if pattern.fullmatch(line) or switch.fullmatch(line) or delivery.fullmatch(line): print(line)
+                if pattern.fullmatch(line) or switch.fullmatch(line): print(line)
+            for line in input_trace_lines(owned): print(line)
         else:
             print("TAKUPOKE_LIFECYCLE capture-missing-or-limited")
     else:
@@ -27,6 +39,7 @@ PY_TRACE
 }
 cleanup() {
     local task_exit_status=$?
+    stop_hang_watch
     if [[ -n "$simulator_id" ]]; then
         if [[ "$task_exit_status" != "0" ]]; then
             python3 -B tools/notification_service_trace.py --accessibility "$simulator_id" || true
@@ -123,12 +136,22 @@ while read -r device_type runtime; do
     check_ui() {
         local log_path="$1"
         shift
-        python3 -B tools/timed_command.py "App UI $runtime shard $shard" xcodebuild "${xcode_args[@]}" "$@" 2>&1 | tee "$log_path" || {
+        : > "$log_path"
+        if [[ "${TKPK_UI_HANG_DIAGNOSTICS:-0}" == "1" ]]; then
+            hang_stop_path="$scratch_dir/hang-observer.stop"
+            rm -f "$hang_stop_path"
+            python3 -B tools/watch_app_hang.py --log "$log_path" --stop "$hang_stop_path" --simulator "$simulator_id" &
+            hang_watch_pid=$!
+        fi
+        local phase_status=0
+        python3 -B tools/timed_command.py "App UI $runtime shard $shard" xcodebuild "${xcode_args[@]}" "$@" 2>&1 | tee "$log_path" || phase_status=$?
+        stop_hang_watch
+        if [[ "$phase_status" != "0" ]]; then
             # Only the synthetic app runs on this isolated simulator.
             xcrun simctl spawn "$simulator_id" log show --last 10m --style compact \
                 --predicate 'process == "Takupoke" AND eventMessage CONTAINS "Synthetic fixture initialization"' || true
             exit 1
-        }
+        fi
     }
     # Reuse the build and owned device. Split the input scenarios into their
     # own Runners without changing gestures, case order or case initial data.
