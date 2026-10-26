@@ -95,3 +95,24 @@ DistributionはPython288件/予定skip22/失敗0（86.385秒）、Nativeは688�
 26Bは17:20:17、26Aと手動26の3caseは17:25:42ごろに開始し、残る手動26一件は待機中。
 失敗はなく、元の全15条件と公開の確認は継続中。26Aの従来43〜48分と待機caseを踏まえ、
 次のGitHub確認は18:15 UTC（翌03:15 JST）とした。終端run/logの反復取得はしない。
+
+18:15 UTCの予定確認では全18job終端・13事前成功・単項目訂正26失敗・公開依存skip。
+通常26のA/Bと他の訂正26三件は成功した。新6完了logとartifact0を一度確認し、
+このrun/log/artifactは再照会しない。N155へ対処前の事実、完了ログ、過去詳細/旧現コードの
+比較を記録した。旧Xcode26.6の単項目訂正26は、全文入力後の一回Switch接触が取消しとなり、
+元45秒でACK value1が成立しなかった。27.1による通常26の成功を、この手動失敗の成功へ合算しない。
+
+次の候補b6c8ebdは正式手動26も配布SDK27.1へ揃え、既存の厳密なRuntime26.5準備を追加する。
+Native26.6/実SDK26.5と任意の旧手動probeは保持する。全Swift製品/helper/元4case×両OS/
+一回接触/45秒/背景同一process/保存再起動と全15gateは同一。既存manifestのSDK設定期待に
+加え、両手動laneのSDK変数・実操作前のRuntime準備を要求する。候補とN155根拠を隔離branchへ
+pushしてからLinux/Swift6.1.2のmanifest全28件/失敗0（5.835秒）、catalog450/check --base7b73f1eを確認した。
+これは新SDKで実手動操作が成功する証明や、旧SDKのgesture取消しの根本原因の特定ではない。
+
+次の正式main開始一回専用の新規GPT-6.1 Sol/High ios_ci_20261026_n155_main_pre_actions_reviewは、
+code patch50行/2668bytes SHA256 ff205cdc7bc7fe8fa10f9d0610dcfd9c8b2fb1157515776b5bce6b5885b29357、
+workflow473行/20414bytes eca2601b…、runtime26 36行/2168bytes 02020a17…、
+手動runner83行/5313bytes fd123f23…、公開gate86行/3819bytes c0851fa7…、
+manifest263行/12254bytes 0baae5ae…の全行/bytes/hashを読み、具体的指摘なし。
+主担当が現差分との同一性、元ケース/全15/失敗伝播と文書の未確認範囲を照合した。
+このreviewは次のmain push一回だけへ使用する。前runの成功部分を新sourceへ合算しない。
