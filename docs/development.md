@@ -11,7 +11,8 @@
 | ワークフローの追加チェック | 任意で actionlint |
 | iOS ビルド | Actions の `xcode-27` と Xcode 27.1 |
 | 通常アプリ画面の検証 | 両OSとも`xcode-27`・Xcode 27.1。実Runtime26.5／27.0を事前確認 |
-| 手動訂正の検証 | iOS 26：`macos-26`・Xcode 26.6、iOS 27：`xcode-27`・Xcode 27.1 |
+| 手動訂正の正式検証 | 両OSとも`xcode-27`・Xcode 27.1。実Runtime26.5／27.0を事前確認 |
+| 旧SDKの比較 | Native解析と任意の手動26 probeは`macos-26`・Xcode26.6/実SDK26.5 |
 | 実機導入・更新 | iOS 26・27のiPhone、AltStore Classic。[導入手順](altstore-pal-install.md)を参照 |
 
 Linux / Windows では SwiftUI のビルドを行わず、配布スクリプトのテストとソース編集を行います。XLSX展開にはZIPFoundation 0.9.20、SQLite保存基盤にはGRDB 7.11.1をコミット固定のSwift Packageとして使用します。共通ソースのテストにはSwift 6.1以降が必要です。

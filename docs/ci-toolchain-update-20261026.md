@@ -82,3 +82,16 @@ manifest263行/12254bytes 0baae5ae…、runner201行/11120bytes fb32945a…、
 runtime26/27各36行（02020a17…/db2bfe0a…）の全行/bytes/hashとcurrent sourceを確認し、
 具体的指摘なし。主担当も現code差分の同一性と限定結果・全15の未完了を照合して使用する。
 このreviewは次の正式main一回だけへ使い、限定review/旧449.1の成功は転用しない。
+
+## 正式CIの経過
+
+main/featureへsource7b73f1e13d03792b9a0f10b302a09e5599e0fe03をatomic pushし、
+run40361714059/attempt1を16:42:40 UTCに開始した。専用main reviewはこの開始で消費済み。
+予定した17:30 UTCの確認は17:31に一度だけ行い、Distribution、Native、通常27のA/B、
+手動27の元4caseの計8必須jobが成功終端だった。全8完了logを一度ずつ保存した。
+DistributionはPython288件/予定skip22/失敗0（86.385秒）、Nativeは688件/予定skip1/
+失敗0（126.472秒）。通常27Aは元17件+別の通知1件の完了を確認した。
+通常27B、手動27の4caseも成功し、SDK27.1/27A9275による実buildを確認した。
+26Bは17:20:17、26Aと手動26の3caseは17:25:42ごろに開始し、残る手動26一件は待機中。
+失敗はなく、元の全15条件と公開の確認は継続中。26Aの従来43〜48分と待機caseを踏まえ、
+次のGitHub確認は18:15 UTC（翌03:15 JST）とした。終端run/logの反復取得はしない。

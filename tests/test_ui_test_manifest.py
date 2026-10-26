@@ -598,8 +598,15 @@ METHOD
         self.assertNotIn("continue-on-error", manual)
         self.assertEqual(manual.count("TKPK_MANUAL_DIAGNOSTICS: '1'"), 2)
         self.assertEqual(workflow.count("TKPK_MANUAL_DIAGNOSTICS"), 2)
-        for ios, runner, xcode in ((26, "macos-26", "26.6"), (27, "xcode-27", "27.1")):
-            self.assertIn(f"- ios: {ios}\n            runner: {runner}\n            developer: /Applications/Xcode_{xcode}.app/Contents/Developer", manual)
+        for ios in (26, 27):
+            self.assertIn(f"- ios: {ios}\n            runner: xcode-27\n            developer: /Applications/Xcode_27.1.app/Contents/Developer", manual)
+            block = manual.split(f"  manual-{ios}:\n", 1)[-1]
+            if ios == 27:
+                block = block.split("  manual-26:\n", 1)[0]
+            self.assertIn("TKPK_EXPECTED_IOS_SDK: '27.1'", block)
+            prepare = f"python3 -B tools/prepare-ios{ios}-runtime.py"
+            self.assertIn(prepare, block)
+            self.assertLess(block.index(prepare), block.index("bash tools/test-manual-ui.sh"))
         simulator = workflow.split("  simulator-27-a:\n", 1)[1].split("  manual-27:\n", 1)[0]
         self.assertIn("timeout-minutes: 60", simulator)
         self.assertNotIn("test-manual-ui.sh", simulator)

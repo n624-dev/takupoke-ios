@@ -2855,3 +2855,13 @@ base653eb55+候補patch SHA256 c3f16f98c134aa3686a47ad7a104e404c6e4c5d9abea40206
 N77の空観測と詳細を読み、今回は観測callbackではなくunittest filterが宣言名に一致しない違いを確認した。base/currentのtest_ui_test_manifest.pyは同じbytesで、該当caseはSwiftの実link menu helperを実行する。次は既存env.shと正しい一件の宣言名で実行するだけで、テスト本体/期待値/元UI操作/期限や製品には変更しない。最初のskipと0件を成功へ換算せず、記録を隔離branchへpushしてから不足分を確認する。
 
 N154補完：既存env.shでSwift6.1.2を選び、正しいtest_link_menu_observes_one_press_before_diagnostics_and_never_accepts_timeoutを一件実行し失敗0（1.943秒）。元の一回press・menu欠落の拒否・診断境界を実helperのLinux harnessで確認した。これは実Simulator操作ではない。最初の27成功/1skipと補完1成功を区別し、0件の試行も記録に保持する。コードdiff SHA256 c3f16f98…はreview artifactと同一で、期待値は変更していない。
+
+## N155 SDK更新後の正式CIで単項目補正iOS26がfailure終端（2026-10-26）
+
+18:15 UTCの予定照会でsource7b73f1e13d03792b9a0f10b302a09e5599e0fe03/run40361714059/attempt1、job121732589765のtestOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackgroundが17:25:43Z開始・17:40:18Zにfailure終端と確認した。手動26の指定Xcode26.6/SDK26.5は旧449.1と同じで、実Runtime・具体的失敗段階・原因は完了ログ未読のため未確定。対処案を選ぶ前の事実として記録する。同runの他13事前条件は成功し、公開は依存skip。全18表示jobは終端・取消しなし・公開未実施。新しい6実job完了ログだけ一度取得し、先に保存した8ログと旧runは再取得しない。終端artifact0を一度確認し、新ログ・過去詳細・当時/currentコードの比較と候補根拠をpushする前に再試行しない。
+
+N155完了log：272.372秒・1失敗、Input.swift:56の元45秒ACK value1待機がtimeout。初回の消去・全文「架空手確認科目」入力・完了/keyboard閉鎖・ACK未確認value0は通過し、表示サイズ/原本同一再確認/背景/保存へ未到達。ACK外枠(16,646.33,361,52.33)、子Switch(300,658.67,63,28)、viewport(0,141,393,699)、keyboard absent、enabled/hittable=trueを観測。一意nativeの中心(331.5,672.67)へ一回0.1秒接触した。実touchは17:38:48.544664Z began・.706237Z cancelled（約0.162秒）、Binding観測はclear/textのみでackなし、最終input-stateもack=false。下位のgesture取消理由・OS/SDKとの因果は未確定。新6logを一度保存し、全14実jobログ取得済み・artifact0も一度確認済み。このrun/log/artifactは再照会しない。
+
+照合はACK/cancelled/Input.swift/U71/N66/N93/N94/N97で検索し、U64/U71/N66/N93/N94/N97/N148の詳細、旧2a22448と現Input/Navigation/生成器・正式workflowを読んだ。N93の同じ内側中心への接触取消しと類似するが、今回の接触はN94後のnative identityから正常合成されており、その再解決停止とは違う。0.1秒方式でも未反映は既往があり、接触時間/点の往復・押し直し・ACK注入・待機延長を根拠なく行わない。通常27.1/Runtime26.5のA/Bは今回とも成功し、手動26だけは旧26.6/SDK26.5でビルドされていた。
+
+利用者のSDK更新指示に沿った次の候補は、正式の手動26も配布と同じXcode/SDK27.1へ揃え、既存prepare-ios26-runtime.pyで元Runtime26.5を完全照合してから同じ4caseを実行すること。Nativeの旧26.6/実SDK26.5と任意の旧手動probeは維持し、27.1が旧SDKの取消し原因を修復したとは主張しない。実製品/Swift helper/全case/入力全文/独立ACK一回/45秒/背景同一process/保存再起動/全15gateには差分を加えない。通常26が既に同配布SDKで通過した新条件を手動26にも適用して、更新後IPAに使うSDKで両OSの実操作を検証する。既存manifestの固定SDK期待を更新し、両手動laneのSDK変数とRuntime準備が実操作より先にあることを要求する。新しい模倣caseは追加しない。候補・事実・比較を隔離branchへpushしてから関連検査を行い、新規専用review後に新sourceの正式全15を一回実行する。旧失敗の原因・恒常解消・全15成功はまだ未確認。
