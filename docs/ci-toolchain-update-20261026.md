@@ -62,3 +62,23 @@ Xcode26.6の実iOS SDKは26.5なので、その事前照合も行い、旧fake�
 その後に追加した27.2明示指定/27.0+27.1共存/旧27.0指定の正対照と不一致拒否は、
 既存preflight一件（4.411秒）と既定OS/SDK一件（0.000秒）で再確認した。
 全体/追加分の実行範囲を区別し、Apple比較40357278572と正式全15の実行結果は別に残す。
+
+## 先行比較の完了
+
+source256277270e10d956d36dcd93f953ac208e2e46eb/run40357278572/attempt1は全9job成功終端。
+公式一覧と実inventoryの27.1/27A9275・SDK27.1、27.2 RC/27B48・SDK27.2、
+26.6/17F113・iOS SDK26.5が一致した。Runtime27.0/27.1の共存も実一覧で確認した。
+Nativeは27.1が688件/予定skip1/失敗0（113.047秒）、27.2が同688件（113.500秒）、
+26.6が同688件（140.308秒）。Pickerは27.1の元3件/失敗0（355.511秒）、
+27.2も元3件/失敗0（488.814秒）に加えて、元のtransition/layout検査がPASS。
+portable599件/失敗0（69.731秒）、Python288件/失敗0（101.747秒）も成功した。
+全9完了logを一度だけ所有stateへ保存し、同じ終端run/logは再照会しない。
+27.2 RCの結果はこのNative/Picker範囲であり、全アプリ/実機/正式全15の成功ではない。
+
+次のmain push一回専用に、別の新規GPT-6.1 Sol/High ios_ci_20261026_main_pre_actions_reviewが
+patch515行/26963bytes SHA256 24e6761f6756079a8a7756f0a4916b48dd368bb2aa313ef5472d727b90860db5、
+正式workflow470行/20264bytes ebf844ef…、relaunch117行/4989bytes 9c677594…、
+manifest263行/12254bytes 0baae5ae…、runner201行/11120bytes fb32945a…、
+runtime26/27各36行（02020a17…/db2bfe0a…）の全行/bytes/hashとcurrent sourceを確認し、
+具体的指摘なし。主担当も現code差分の同一性と限定結果・全15の未完了を照合して使用する。
+このreviewは次の正式main一回だけへ使い、限定review/旧449.1の成功は転用しない。
