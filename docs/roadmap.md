@@ -6,7 +6,7 @@
 
 | 分野 | 現在の機能 | 仕様 |
 |---|---|---|
-| 配布 | Xcode 27.0によるiPhoneビルド、IPA・AltStore Sourceの公開、更新内容の共通反映 | [PAL経由の導入](altstore-pal-install.md) |
+| 配布 | Xcode 27.1によるiPhoneビルド、IPA・AltStore Sourceの公開、更新内容の共通反映 | [PAL経由の導入](altstore-pal-install.md) |
 | ファイル | 通常・変更・試験・返却の個別選択、自動解析、選択情報の保存、起動・復帰・変更通知時の確認 | [ファイル選択と取得](materials.md) |
 | 解析・保存 | 通常PDF・変更XLSX・試験／返却PDFの解析、SQLite保存、解析失敗時の前回正常結果の保持 | [PDF](pdf-specification.md)、[XLSX](xlsx-specification.md) |
 | OCR復旧の訂正 | プレビューの科目を長押しし、科目・教員・教室を原本照合して最大3項目訂正。追加時の入力維持・全項目の再確認・資料全体の明示採用 | [端末内復旧](pdf-recovery.md) |
@@ -21,6 +21,7 @@
 ## 最新の確認状況
 
 - 最新配布は[Latest Release](https://github.com/n624-dev/takupoke-ios/releases/latest)と固定AltStore Sourceを参照してください。追加修正の確認範囲は[検証記録](issues-65-103-verification.md)へ残しています。
+- ツールチェーン更新：[0.1.451（451.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.451-build.451.1)をXcode/SDK27.1で公開しました。[同一ソース34c40d2のCI](https://github.com/n624-dev/takupoke-ios/actions/runs/40376846634)/attempt1の全15成功・全18job終端・artifact0と、匿名4添付・IPA内部SDK/版/ソース/アイコン・固定Sourceを確認済みです。通常UIと手動訂正は両OSとも配布SDK27.1、実Runtime26.5/27.0を使用しました。27.2 RCは別のNative/Picker比較だけ成功しており正式配布には使いません。[詳細](ci-toolchain-update-20261026.md)。物理iPhoneの導入・更新と66/67の実機性能は未確認です。
 - 公開確認の記録：[0.1.449（449.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.449-build.449.1)を通常Release/Latestとして公開し、固定AltStore Sourceを照合しました。
   学校行事の状態API、一覧/時間割の重複処理、PDF行順と特別時刻、旧訂正移行とOCRメニュー、文字コード表の取消と複合塗りを修正しました。
   [同一ソース67273c0のCI](https://github.com/n624-dev/takupoke-ios/actions/runs/40157376822)/attempt1の全15必須条件・全18job終端・保存artifact0を確認しました。両OS通常UI4組と訂正8条件が成功し、配布jobでもNative688件（予定skip1・失敗0）、実Picker3件とiPhone Releaseビルドが成功しました。

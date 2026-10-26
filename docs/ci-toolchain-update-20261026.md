@@ -1,11 +1,11 @@
 # CIのAppleツールチェーン更新（2026-10-26）
 
 利用者の更新指示を受け、配布済み449.1/source67273c0を基準とする。
-現在は配布/通常26/27にXcode・SDK27.0、手動訂正26/NativeにXcode26.6を固定している。
+着手時は配布/通常26/27にXcode・SDK27.0、手動訂正26/NativeにXcode26.6を固定していた。
 まず既存Development workflowの手動input apple_inventoryでmacos-26/xcode-27の
 実installed Xcode version/build・両device SDK・iOS runtime version/availabilityを読み取る。
 インストール・選択変更・Simulator作成・学校通信・cache/artifactの保存は行わない。
-既存のportable/契約jobと正式15条件は減らさず、正式workflowはまだ変更しない。
+初回比較では既存のportable/契約jobと正式15条件は減らさず、正式workflowは変更しなかった。
 
 編集前にdevelopment-policy/roadmap/test-maintenance-policy/test-catalogと対象検索を確認。
 Xcode/SDK/runtime/27.1で失敗索引を検索し、U36（旧27.1 betaでも通知未返答）、
@@ -116,3 +116,31 @@ workflow473行/20414bytes eca2601b…、runtime26 36行/2168bytes 02020a17…、
 manifest263行/12254bytes 0baae5ae…の全行/bytes/hashを読み、具体的指摘なし。
 主担当が現差分との同一性、元ケース/全15/失敗伝播と文書の未確認範囲を照合した。
 このreviewは次のmain push一回だけへ使用する。前runの成功部分を新sourceへ合算しない。
+
+## 451.1の公開と最終確認
+
+source34c40d29dd67baaa7a7f2ebc342f1ac072505557/run40376846634/attempt1を18:20:21 UTCに開始し、
+20:24:28 UTCに成功終端した。予定19:10/19:25/20:25 UTCのまとめ照会で新完了logだけを取得した。
+19:25時点で27 Bも成功し、26の実開始と前回Bの51分・配布約21分を踏まえて次を20:25とした。
+同じsource/run/attemptの全15必須条件が成功し、全18表示job終端・構成skip3・artifact0を確認。
+全15実jobのログ、終端run、artifact0はそれぞれ一度だけ取得し、この実行を再照会しない。
+
+正式の全通常UI/手動訂正はXcode27.1/27A9275、iOS SDK27.1とRuntime26.5/27.0を使った。
+通常Aは各OS元17件と別通知1件、Bは元基本/通知/VoiceOver/OS文字サイズ3設定の厳密完了に成功。
+手動27の単項目/原本変更/三項目/明示選択は921.974/422.297/469.273/762.785秒、
+手動26は646.694/277.997/551.109/1291.524秒で各一件/失敗0。
+元の実入力・独立した一回ACK・背景同一process・採用/保存/再起動・第4拒否と各期限は保持した。
+Native26.6は688件/予定skip1/失敗0（158.287秒）、配布jobの27.1も688件/予定skip1/
+失敗0（147.060秒）。配布jobの実Picker3件/失敗0（363.449秒）と元transition/layout、
+iPhone Releaseビルドも成功した。DistributionはPython288件/予定skip22/失敗0（92.679秒）。
+最初のSDK更新runのN155失敗と、旧SDKのgesture取消し原因が未確定であることは保持する。
+
+完了publisherの実出力から[0.1.451（451.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.451-build.451.1)を特定した。
+通常Release/Latest、公開4添付の匿名取得・全サイズ/SHA256とAPI digestの一致、
+IPA内のversion0.1.451/build451.1/source34c40d2・最低OS26.0・SDKiphoneos27.1/
+XcodeBuild27A9275・縦向き・AppIcon/Assets.carと公開1024pxアイコンを確認した。
+既存のIPA/source検証器で法務/プライバシー・内部診断非同梱も照合し、固定Latest AltStore Sourceは
+同Release添付と完全一致した。所有検証レシートを保持し、消費済みのダウンロード4添付だけを回収した。
+物理iPhoneでのAltStore導入・更新、実学校PDF、issue66/67の実機性能は未確認。
+27.2 RCは先行Native/Picker比較の成功範囲に限定し、正式全UI/実機成功へ拡大しない。
+確認結果の文書pushはActionsを起動しない作業branchだけに行い、公開source/mainは変更しない。
