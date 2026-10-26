@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`8461475837c92b86db75397d17dc3c315382ab991334da8ddc8deb60e48db052`
+`61748a81dd994cc9c155c9bd40048adf994f5d17742374297fe836bff3822665`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -230,3 +230,4 @@ bash tools/test-app-ui.sh
 ## [tests/test_prepare_ios27_runtime.py](../../tests/test_prepare_ios27_runtime.py)
 
 - `test_exact_installed_download_import_and_failures`
+- `test_new_toolchain_requires_exact_sdk_without_changing_either_runtime`

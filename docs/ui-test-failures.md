@@ -2847,3 +2847,9 @@ N153限定source2acdaf1306d6c762773708150d50476185b2e95a/run40155216742/attempt1
 正式source67273c0eb2c6fa2b0b950c7dce140a841954ed38/run40157376822/attempt1の03:58予定照会で事前7条件成功。通常27 Aは17件/失敗0（1812.814秒）と通知1件/失敗0（60.336秒）、行除外277.549秒で元103行採用/再起動/C保持/B除外を通過した。TAKUPOKE_APP_STACKは0行で、20秒静止や旧停止の下位原因は観測されておらず恒常解消とは扱わない。Native688件/予定skip1/失敗0（117.617秒）、Distribution Python287件/失敗0（94.315秒）、訂正27の単項目526.852秒・三項目422.375秒・明示選択851.182秒・原本変更262.058秒も成功。新しい7完了logだけ一度保存し、旧run/logは再取得しない。通常27 Bは03:29:25Z開始で継続、26 Aは03:57:27Z開始、全15/公開はまだ未完了。Bの開始遅延と旧32〜45分/26約45分を踏まえ、次のまとめ照会は04:55 UTCとする。取消しはしない。
 
 N153後の正式source67273c0/run40157376822/attempt1は全15成功・全18終端・artifact0。元の通常Aの行除外/再起動保持は両OSで成功し、27 observerのsample出力は0行。旧AX停止の原因/恒常解消は未証明だが、元ケース/期限/全15を保った新sourceで449.1を公開し匿名4添付/IPA/固定Sourceを照合した。全15実logは一度保存し、この終端run/log/artifactは再照会しない。物理端末性能の未確認は66/67へ残し、UI合格と混同しない。
+
+## N154 SDK更新準備のローカル検証filterが0件（2026-10-26）
+
+base653eb55+候補patch SHA256 c3f16f98c134aa3686a47ad7a104e404c6e4c5d9abea402065b320f5bcceff76、Linux Python。manifest28件は27成功・1件がSwift不在で予定skip（3.826秒）。toolchains/env.shを読んだ後、補完のつもりで-k observed_screen_geometryを指定したが、実際の未実行case名はtest_link_menu_observes_one_press_before_diagnostics_and_never_accepts_timeoutであり、結果は0件/NO TESTS RAN。コードやUIの成功ではなく、主担当の検証選択の誤りとして対処前に記録する。ログci-update-manifest-check.log/ci-update-geometry-check.log。
+
+N77の空観測と詳細を読み、今回は観測callbackではなくunittest filterが宣言名に一致しない違いを確認した。base/currentのtest_ui_test_manifest.pyは同じbytesで、該当caseはSwiftの実link menu helperを実行する。次は既存env.shと正しい一件の宣言名で実行するだけで、テスト本体/期待値/元UI操作/期限や製品には変更しない。最初のskipと0件を成功へ換算せず、記録を隔離branchへpushしてから不足分を確認する。

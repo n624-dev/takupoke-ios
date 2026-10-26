@@ -56,4 +56,33 @@ else: sys.exit(99)
                 self.assertEqual(list(scratch.iterdir()),[])
                 self.assertFalse(any('delete' in row for row in commands))
 
+    def test_new_toolchain_requires_exact_sdk_without_changing_either_runtime(self):
+        fake = '#!' + sys.executable + '\n' + r'''
+import json, os, sys
+from pathlib import Path
+args=sys.argv[1:]
+with open(os.environ['CALLS'],'a') as log: log.write(json.dumps(args)+'\n')
+if args[:1] == ['--sdk']: print(os.environ['FAKE_SDK'])
+elif args[:2] == ['simctl','list']:
+    print(json.dumps({'runtimes':[{'identifier':'com.apple.CoreSimulator.SimRuntime.iOS-'+v.replace('.','-'),'version':v,'isAvailable':True} for v in ['26.5','27.0','27.1']]}))
+else: sys.exit(99)
+'''
+        for script in ('prepare-ios26-runtime.py', 'prepare-ios27-runtime.py'):
+            for requested, actual, success in [('27.1','27.1',True),('27.2','27.2',True),
+                                               ('27.1','27.0',False),('27.2','27.1',False),
+                                               ('28.0','28.0',False)]:
+                with self.subTest(script=script, requested=requested, actual=actual), tempfile.TemporaryDirectory() as directory:
+                    root=Path(directory); calls=root/'calls'
+                    tool=root/'xcrun'; tool.write_text(fake); tool.chmod(0o700)
+                    env=os.environ | {'PATH':directory+os.pathsep+os.environ['PATH'],
+                        'TKPK_EXPECTED_IOS_SDK':requested,'FAKE_SDK':actual,'CALLS':str(calls)}
+                    result=subprocess.run([sys.executable,'-B',str(ROOT/'tools'/script)],
+                                          env=env,text=True,capture_output=True,timeout=5)
+                    self.assertEqual(result.returncode == 0,success,result.stdout+result.stderr)
+                    commands=[json.loads(x) for x in calls.read_text().splitlines()] if calls.exists() else []
+                    self.assertFalse(any('delete' in x or '-downloadPlatform' in x for x in commands))
+                    if success:
+                        expected='26.5' if '26' in script else '27.0'
+                        self.assertIn('Comparison runtime: iOS '+expected,result.stdout)
+
 if __name__=='__main__': unittest.main()

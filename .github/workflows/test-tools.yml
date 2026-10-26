@@ -16,6 +16,15 @@ on:
       - tests/ui/**
   workflow_dispatch:
     inputs:
+      sdk27:
+        description: Apple toolchains to compare before changing distribution
+        type: choice
+        default: '27.0'
+        options: ['27.0', '27.1', '27.2', 'both-new']
+      apple_inventory:
+        description: Inspect installed Apple toolchains and runtimes without changing the runner
+        type: boolean
+        default: false
       native_pdf:
         description: Verify direct PDF visibility on both supported Apple SDKs without publishing
         type: boolean
@@ -29,13 +38,69 @@ permissions:
   contents: read
 
 jobs:
+  apple-inventory:
+    name: Installed Apple toolchains / ${{ matrix.runner }}
+    if: github.event_name == 'workflow_dispatch' && inputs.apple_inventory
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-26, xcode-27]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    steps:
+      - name: Inspect installed Xcode, device SDKs and simulator runtimes
+        run: |
+          python3 -B - <<'PY_INVENTORY'
+          import json, os, re, subprocess
+          from pathlib import Path
+          usable = 0
+          for bundle in sorted(Path('/Applications').glob('Xcode*.app')):
+              if not re.fullmatch(r'Xcode[A-Za-z0-9_.-]*\.app', bundle.name):
+                  continue
+              developer = bundle / 'Contents/Developer'
+              if not developer.is_dir():
+                  continue
+              print('TOOLCHAIN ' + bundle.name, flush=True)
+              environment = os.environ | {'DEVELOPER_DIR': str(developer)}
+              commands = [('version', ['xcodebuild', '-version']),
+                          ('iphoneos', ['xcrun', '--sdk', 'iphoneos', '--show-sdk-version']),
+                          ('iphonesimulator', ['xcrun', '--sdk', 'iphonesimulator', '--show-sdk-version']),
+                          ('runtimes', ['xcrun', 'simctl', 'list', 'runtimes', '-j'])]
+              valid = True
+              for label, command in commands:
+                  try:
+                      result = subprocess.run(command, env=environment, capture_output=True,
+                                              text=True, timeout=45)
+                      if result.returncode != 0:
+                          print(json.dumps({'field': label, 'exit': result.returncode}), flush=True)
+                          valid = False
+                          continue
+                      if label == 'runtimes':
+                          value = [{'version': row['version'], 'available': row.get('isAvailable', False)}
+                                   for row in json.loads(result.stdout)['runtimes']
+                                   if row['identifier'].startswith('com.apple.CoreSimulator.SimRuntime.iOS-')]
+                      else:
+                          value = result.stdout.strip()
+                      print(json.dumps({'field': label, 'value': value}), flush=True)
+                  except (OSError, ValueError, KeyError, subprocess.TimeoutExpired):
+                      print(json.dumps({'field': label, 'status': 'unavailable'}), flush=True)
+                      valid = False
+              usable += int(valid)
+          if not usable:
+              raise SystemExit('No complete Apple toolchain inventory available')
+          PY_INVENTORY
   picker:
-    name: Development picker preparation comparison
+    name: Development picker Xcode ${{ matrix.xcode }}
     if: github.event_name == 'workflow_dispatch' && inputs.picker
+    strategy:
+      fail-fast: false
+      matrix:
+        xcode: ${{ fromJSON(inputs.sdk27 == 'both-new' && '["27.1","27.2"]' || inputs.sdk27 == '27.1' && '["27.1"]' || inputs.sdk27 == '27.2' && '["27.2"]' || '["27.0"]') }}
     runs-on: xcode-27
     timeout-minutes: 25
     env:
-      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
+      TKPK_EXPECTED_IOS_SDK: ${{ matrix.xcode }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -43,28 +108,25 @@ jobs:
       - name: Require the exact source and unchanged simulator SDK
         run: |
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test "$(xcrun --sdk iphonesimulator --show-sdk-version)" = 27.0
+          xcodebuild -version
+          test "$(xcrun --sdk iphoneos --show-sdk-version)" = "$TKPK_EXPECTED_IOS_SDK"
+          test "$(xcrun --sdk iphonesimulator --show-sdk-version)" = "$TKPK_EXPECTED_IOS_SDK"
       - name: Prepare exact shipping iOS 27.0 for the comparison
         run: python3 -B tools/prepare-ios27-runtime.py
       - name: Run all three picker cases and transition checks in owned scratch
         run: bash tools/test-picker-ui.sh
   native-pdf:
-    name: Development native PDF SDK ${{ matrix.sdk }}
+    name: Development native PDF Xcode ${{ matrix.xcode }}
     if: github.event_name == 'workflow_dispatch' && inputs.native_pdf
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - sdk: 26
-            runner: macos-26
-            developer: /Applications/Xcode_26.6.app/Contents/Developer
-          - sdk: 27
-            runner: xcode-27
-            developer: /Applications/Xcode_27.0.app/Contents/Developer
-    runs-on: ${{ matrix.runner }}
+        xcode: ${{ fromJSON(inputs.sdk27 == 'both-new' && '["26.6","27.1","27.2"]' || inputs.sdk27 == '27.1' && '["26.6","27.1"]' || inputs.sdk27 == '27.2' && '["26.6","27.2"]' || '["26.6","27.0"]') }}
+    runs-on: ${{ matrix.xcode == '26.6' && 'macos-26' || 'xcode-27' }}
     timeout-minutes: 20
     env:
-      DEVELOPER_DIR: ${{ matrix.developer }}
+      DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
+      TKPK_EXPECTED_IOS_SDK: ${{ matrix.xcode == '26.6' && '26.5' || matrix.xcode }}
       TAKUPOKE_STRICT_BASELINE_REF: bfc599fd5a552ced0c140497c703199547c30fd4
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -74,6 +136,9 @@ jobs:
       - name: Check the exact source and all fictional PDF regressions in owned scratch
         run: |
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          xcodebuild -version
+          test "$(xcrun --sdk iphoneos --show-sdk-version)" = "$TKPK_EXPECTED_IOS_SDK"
+          test "$(xcrun --sdk iphonesimulator --show-sdk-version)" = "$TKPK_EXPECTED_IOS_SDK"
           bash tools/test-parsing.sh
   tools:
     name: Catalogue and test-runner contracts

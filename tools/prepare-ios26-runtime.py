@@ -1,10 +1,13 @@
 """Prepare exact iOS 26.5 on the shipping toolchain in a disposable hosted runner."""
 import json, os, subprocess, tempfile
 from pathlib import Path
+expected_sdk = os.environ.get("TKPK_EXPECTED_IOS_SDK", "27.0")
+if expected_sdk not in ("27.0", "27.1", "27.2"):
+    raise SystemExit("Unsupported explicit comparison SDK")
 actual_sdk = subprocess.run(["xcrun", "--sdk", "iphonesimulator", "--show-sdk-version"],
                             check=True, capture_output=True, text=True, timeout=30).stdout.strip()
-if actual_sdk != "27.0":
-    raise SystemExit("iOS 26.5 comparison requires shipping SDK 27.0")
+if actual_sdk != expected_sdk:
+    raise SystemExit("iOS 26.5 comparison requires the exact requested SDK " + expected_sdk)
 
 def available26():
     result = subprocess.run(["xcrun", "simctl", "list", "runtimes", "-j"],
