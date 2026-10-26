@@ -19,7 +19,7 @@ on:
       sdk27:
         description: Apple toolchains to compare before changing distribution
         type: choice
-        default: '27.0'
+        default: '27.1'
         options: ['27.0', '27.1', '27.2', 'both-new']
       apple_inventory:
         description: Inspect installed Apple toolchains and runtimes without changing the runner

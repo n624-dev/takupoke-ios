@@ -30,10 +30,11 @@ jobs:
             developer: /Applications/Xcode_26.6.app/Contents/Developer
           - ios: 27
             runner: xcode-27
-            developer: /Applications/Xcode_27.0.app/Contents/Developer
+            developer: /Applications/Xcode_27.1.app/Contents/Developer
     runs-on: ${{ matrix.runner }}
     timeout-minutes: ${{ matrix.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' && 45 || 35 }}
     env:
+      TKPK_EXPECTED_IOS_SDK: ${{ matrix.ios == 27 && '27.1' || '26.5' }}
       DEVELOPER_DIR: ${{ matrix.developer }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_MANUAL_CASE: ${{ matrix.case }}

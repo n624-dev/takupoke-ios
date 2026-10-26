@@ -32,9 +32,13 @@ class ShellRunnerTests(unittest.TestCase):
         self.assertIn(
             "runs-on: ${{ matrix.ios == 26 && inputs.sdk26 == '26.6' && 'macos-26' || 'xcode-27' }}",
             workflow)
+        sdk27 = workflow.split("      sdk27:\n", 1)[1].split("      sdk26:\n", 1)[0]
+        self.assertIn("default: '27.1'", sdk27)
+        for version in ("27.0", "27.1", "27.2"):
+            self.assertIn("          - '" + version + "'", sdk27)
         sdk26 = workflow.split("      sdk26:\n", 1)[1].split("\npermissions:", 1)[0]
         self.assertIn("default: '26.6'", sdk26)
-        self.assertIn("options: ['26.6', '27.0']", sdk26)
+        self.assertIn("options: ['26.6', '27.0', '27.1', '27.2']", sdk26)
 
     def test_alternate_toolchain_preflight_requires_requested_sdk_and_same_runtime(self):
         workflow = (ROOT / ".github/workflows/application-relaunch-native-probe.yml").read_text()
@@ -52,6 +56,8 @@ if sys.argv[1:2] == ['--sdk']: print(os.environ['OBSERVED_SDK'])
 elif sys.argv[1:2] == ['simctl']:
     marker = Path(os.environ['IMPORT_MARKER'])
     runtime = marker.read_text() if marker.exists() else os.environ['OBSERVED_RUNTIME']
+    if runtime == '27.0+27.1':
+        print(json.dumps({'runtimes':[{'isAvailable':True,'version':v,'identifier':'com.apple.CoreSimulator.SimRuntime.iOS-'+v.replace('.','-')} for v in ['27.0','27.1']]}));sys.exit()
     print(json.dumps({'runtimes': [{'isAvailable': os.environ['IMPORT_MODE'] != 'registered-unavailable', 'version': runtime,
         'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-' + runtime.replace('.', '-')}]}))
 elif args[:1] == ['-downloadPlatform']:
@@ -76,10 +82,20 @@ else: print('Synthetic Xcode version')
                 path.chmod(0o755)
             cases = (
                 (27, "26.6", "27.1", "27.0", "unused", True),
+                (27, "26.6", "27.1", "27.0+27.1", "unused", True),
+                (27, "26.6", "27.2", "27.0", "unused", False),
+                (27, "26.6", "27.2", "27.0", "unused", True, "27.2"),
+                (27, "26.6", "27.2", "27.0+27.1", "unused", True, "27.2"),
+                (27, "26.6", "27.1", "27.0", "unused", False, "27.2"),
+                (27, "26.6", "27.0", "27.0", "unused", True, "27.0"),
+                (26, "27.1", "27.1", "26.5", "unused", True),
+                (26, "27.2", "27.2", "26.5", "unused", True),
+                (26, "27.1", "27.0", "26.5", "unused", False),
+                (26, "26.6", "26.6", "26.5", "unused", False),
                 (27, "26.6", "27.0", "27.0", "unused", False),
                 (27, "26.6", "27.1", "27.1", "unused", False),
                 (27, "26.6", "27.1", "26.5", "unused", False),
-                (26, "26.6", "26.6", "26.5", "unused", True),
+                (26, "26.6", "26.5", "26.5", "unused", True),
                 (26, "27.0", "27.0", "26.5", "unused", True),
                 (26, "27.0", "26.6", "26.5", "unused", False),
                 (26, "27.0", "27.0", "26.6", "unused", False),
@@ -94,13 +110,15 @@ else: print('Synthetic Xcode version')
                 (26, "27.0", "27.0", "27.0", "unavailable", False),
             )
             command_log, marker = root / "commands.jsonl", root / "imported-version"
-            for ios, sdk26, sdk, runtime, mode, success in cases:
-                with self.subTest(ios=ios, sdk26=sdk26, sdk=sdk, runtime=runtime, mode=mode):
+            for ios, sdk26, sdk, runtime, mode, success, *requested in cases:
+                sdk27 = requested[0] if requested else "27.1"
+                with self.subTest(ios=ios, sdk26=sdk26, requested=sdk27, sdk=sdk, runtime=runtime, mode=mode):
                     command_log.unlink(missing_ok=True)
                     marker.unlink(missing_ok=True)
                     env = os.environ | {"PATH": directory + os.pathsep + os.environ["PATH"],
-                        "TKPK_TEST_IOS": str(ios), "TKPK_UI_PROBE_SDK27": "27.1",
+                        "TKPK_TEST_IOS": str(ios), "TKPK_UI_PROBE_SDK27": sdk27,
                         "TKPK_UI_PROBE_SDK26": sdk26,
+                        "TKPK_EXPECTED_IOS_SDK": sdk26 if ios == 26 else sdk27,
                         "RUNNER_TEMP": directory, "IMPORT_MODE": mode,
                         "COMMAND_LOG": str(command_log), "IMPORT_MARKER": str(marker),
                         "OBSERVED_SDK": sdk, "OBSERVED_RUNTIME": runtime}

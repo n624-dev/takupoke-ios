@@ -100,7 +100,7 @@ IPAは署名なしで公開し、導入時にAltStore Classicが署名します�
 
 ## 開発する
 
-Linux / Windowsで編集し、GitHub ActionsでiPhone向けビルドと配布を行います。配布ビルドはXcode 27.0、画面テストはiOS 26・27の専用Runnerを使用します。
+Linux / Windowsで編集し、GitHub ActionsでiPhone向けビルドと配布を行います。配布ビルドはXcode 27.1、画面テストはiOS 26・27の専用Runnerを使用します。
 
 ```sh
 git clone https://github.com/n624-dev/takupoke-ios.git

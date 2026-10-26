@@ -9,9 +9,9 @@
 | ソース編集、Git 操作 | Linux または Windows、Git、任意のエディター |
 | 配布処理のローカルテスト | Python 3.11 以降、標準ライブラリのみ |
 | ワークフローの追加チェック | 任意で actionlint |
-| iOS ビルド | Actions の `xcode-27` と Xcode 27.0 |
-| 通常アプリ画面の検証 | 両OSとも`xcode-27`・Xcode 27.0。実Runtime26.5／27.0を事前確認 |
-| 手動訂正の検証 | iOS 26：`macos-26`・Xcode 26.6、iOS 27：`xcode-27`・Xcode 27.0 |
+| iOS ビルド | Actions の `xcode-27` と Xcode 27.1 |
+| 通常アプリ画面の検証 | 両OSとも`xcode-27`・Xcode 27.1。実Runtime26.5／27.0を事前確認 |
+| 手動訂正の検証 | iOS 26：`macos-26`・Xcode 26.6、iOS 27：`xcode-27`・Xcode 27.1 |
 | 実機導入・更新 | iOS 26・27のiPhone、AltStore Classic。[導入手順](altstore-pal-install.md)を参照 |
 
 Linux / Windows では SwiftUI のビルドを行わず、配布スクリプトのテストとソース編集を行います。XLSX展開にはZIPFoundation 0.9.20、SQLite保存基盤にはGRDB 7.11.1をコミット固定のSwift Packageとして使用します。共通ソースのテストにはSwift 6.1以降が必要です。
@@ -19,7 +19,7 @@ Linux / Windows では SwiftUI のビルドを行わず、配布スクリプト�
 現在の作業はiOSだけを対象に、このLinux環境とActionsで進めます。Androidは凍結し、Windows作業も再開しません。
 下のWindows手順は既存環境向けの参考として保持します。
 
-Actionsでは `/Applications/Xcode_27.0.app/Contents/Developer` を指定し、正式版のXcode 27.0を使用します。`xcode-27` runnerは公開プレビューです。最低対応OSはiOS 26、アプリのSwift言語モードは5を維持します。
+Actionsでは `/Applications/Xcode_27.1.app/Contents/Developer` を指定し、正式版のXcode 27.1を使用します。`xcode-27` runnerは公開プレビューです。最低対応OSはiOS 26、アプリのSwift言語モードは5を維持します。
 
 ## clone とメールアドレスの非公開設定
 
@@ -159,7 +159,7 @@ UI検証用のXcodeプロジェクトは `tools/picker_test_project.py` が一�
 - 権限、拡張機能、署名設定を追加するときは、Source の `appPermissions` と IPA 検証処理も更新する。現在は通知許可・バックグラウンド更新の登録と、Required Reason APIのプライバシー宣言を含む。
 - 配布や機能の挙動を変えたらREADMEと関連手順、`distribution/release-notes.txt` を更新する。
 
-アイコンはWeb版のクラシックを元にした `Takupoke/AppIcon.icon` です。Xcode 27.0でLiquid Glass用にコンパイルします。素材の出典・更新方法・各外観の指定は[アプリアイコン](app-icon.md)を参照してください。
+アイコンはWeb版のクラシックを元にした `Takupoke/AppIcon.icon` です。Xcode 27.1でLiquid Glass用にコンパイルします。素材の出典・更新方法・各外観の指定は[アプリアイコン](app-icon.md)を参照してください。
 
 ## push と CI
 
@@ -173,7 +173,7 @@ UI検証用のXcodeプロジェクトは `tools/picker_test_project.py` が一�
 
 ## Mac が利用できる場合の任意のビルド
 
-Mac の所有は必須ではありません。Xcode 27.0 を利用できる場合のみ、次のようにローカルビルドできます。
+Mac の所有は必須ではありません。Xcode 27.1 を利用できる場合のみ、次のようにローカルビルドできます。
 
 ```sh
 export TKPK_VERSION=0.1.1

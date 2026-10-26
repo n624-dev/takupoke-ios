@@ -33,15 +33,16 @@ on:
       sdk27:
         description: Additional iOS 27 toolchain comparison; distribution stays unchanged
         type: choice
-        default: '27.0'
+        default: '27.1'
         options:
           - '27.0'
           - '27.1'
+          - '27.2'
       sdk26:
         description: Compare iOS 26.5 using the shipping SDK; distribution stays unchanged
         type: choice
         default: '26.6'
-        options: ['26.6', '27.0']
+        options: ['26.6', '27.0', '27.1', '27.2']
 
 permissions:
   contents: read
@@ -57,9 +58,8 @@ jobs:
     timeout-minutes: 30
     env:
       DEVELOPER_DIR: >-
-        ${{ matrix.ios == 26 && inputs.sdk26 == '26.6' && '/Applications/Xcode_26.6.app/Contents/Developer'
-          || matrix.ios == 27 && inputs.sdk27 == '27.1' && '/Applications/Xcode_27.1.app/Contents/Developer'
-          || '/Applications/Xcode_27.0.app/Contents/Developer' }}
+        ${{ format('/Applications/Xcode_{0}.app/Contents/Developer', matrix.ios == 26 && inputs.sdk26 || inputs.sdk27) }}
+      TKPK_EXPECTED_IOS_SDK: ${{ matrix.ios == 26 && inputs.sdk26 == '26.6' && '26.5' || matrix.ios == 26 && inputs.sdk26 || inputs.sdk27 }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_UI_PROBE_SDK27: ${{ inputs.sdk27 }}
       TKPK_UI_PROBE_SDK26: ${{ inputs.sdk26 }}
@@ -74,7 +74,7 @@ jobs:
       - name: Require exact diagnostic source
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Prepare shipping iOS 27.0 for the focused comparison
-        if: matrix.ios == 27 && inputs.sdk27 == '27.0'
+        if: matrix.ios == 27
         run: python3 -B tools/prepare-ios27-runtime.py
       - name: Require comparison toolchain and unchanged runtime
         run: |
@@ -82,19 +82,24 @@ jobs:
           xcodebuild -version
           actual_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
           printf 'Comparison simulator SDK: %s\n' "$actual_sdk"
-          if [[ "$TKPK_TEST_IOS" == 26 && "$TKPK_UI_PROBE_SDK26" == 27.0 ]]; then
-            test "$actual_sdk" = 27.0
+          expected_sdk="$TKPK_UI_PROBE_SDK27"
+          if [[ "$TKPK_TEST_IOS" == 26 ]]; then
+            expected_sdk="$TKPK_UI_PROBE_SDK26"
+            if [[ "$expected_sdk" == 26.6 ]]; then expected_sdk=26.5; fi
+          fi
+          case "$expected_sdk" in 26.5|27.0|27.1|27.2) ;; *) exit 2 ;; esac
+          test "$actual_sdk" = "$expected_sdk"
+          test "$(xcrun --sdk iphoneos --show-sdk-version)" = "$expected_sdk"
+          if [[ "$TKPK_TEST_IOS" == 26 && "$TKPK_UI_PROBE_SDK26" != 26.6 ]]; then
             python3 -B tools/prepare-ios26-runtime.py
           fi
-          if [[ "$TKPK_TEST_IOS" == 27 && "$TKPK_UI_PROBE_SDK27" == 27.1 ]]; then
-            test "$actual_sdk" = 27.1
+          if [[ "$TKPK_TEST_IOS" == 27 ]]; then
             xcrun simctl list runtimes -j | python3 -c '
           import json, sys
           runtimes = json.load(sys.stdin)["runtimes"]
-          versions = [tuple(map(int, r["version"].split("."))) for r in runtimes
-                      if r.get("isAvailable") and r["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS-")
-                      and r["version"].split(".")[0] == "27"]
-          if not versions or max(versions) != (27, 0):
+          if not any(r.get("isAvailable") and r["version"] == "27.0"
+                     and r["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS-")
+                     for r in runtimes):
               raise SystemExit("Comparison requires unchanged iOS 27.0 runtime")
           print("Comparison runtime: iOS 27.0")'
           fi

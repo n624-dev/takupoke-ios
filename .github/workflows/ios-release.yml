@@ -92,13 +92,14 @@ jobs:
           - ios: 27
             shard: A
             runner: xcode-27
-            developer: /Applications/Xcode_27.0.app/Contents/Developer
+            developer: /Applications/Xcode_27.1.app/Contents/Developer
             voiceover: '1'
     runs-on: ${{ matrix.runner }}
     # Includes dependency resolution, build, simulator tests and owned cleanup.
     # Individual UI operation deadlines and completion checks stay unchanged.
     timeout-minutes: 60
     env:
+      TKPK_EXPECTED_IOS_SDK: '27.1'
       DEVELOPER_DIR: ${{ matrix.developer }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_UI_SHARD: ${{ matrix.shard }}
@@ -129,13 +130,14 @@ jobs:
           - ios: 27
             shard: B
             runner: xcode-27
-            developer: /Applications/Xcode_27.0.app/Contents/Developer
+            developer: /Applications/Xcode_27.1.app/Contents/Developer
             voiceover: '1'
     runs-on: ${{ matrix.runner }}
     # Includes dependency resolution, build, simulator tests and owned cleanup.
     # Individual UI operation deadlines and completion checks stay unchanged.
     timeout-minutes: 60
     env:
+      TKPK_EXPECTED_IOS_SDK: '27.1'
       DEVELOPER_DIR: ${{ matrix.developer }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_UI_SHARD: ${{ matrix.shard }}
@@ -165,13 +167,14 @@ jobs:
           - ios: 26
             shard: A
             runner: xcode-27
-            developer: /Applications/Xcode_27.0.app/Contents/Developer
+            developer: /Applications/Xcode_27.1.app/Contents/Developer
             voiceover: '0'
     runs-on: ${{ matrix.runner }}
     # Includes dependency resolution, build, simulator tests and owned cleanup.
     # Individual UI operation deadlines and completion checks stay unchanged.
     timeout-minutes: 60
     env:
+      TKPK_EXPECTED_IOS_SDK: '27.1'
       DEVELOPER_DIR: ${{ matrix.developer }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_UI_SHARD: ${{ matrix.shard }}
@@ -201,13 +204,14 @@ jobs:
           - ios: 26
             shard: B
             runner: xcode-27
-            developer: /Applications/Xcode_27.0.app/Contents/Developer
+            developer: /Applications/Xcode_27.1.app/Contents/Developer
             voiceover: '0'
     runs-on: ${{ matrix.runner }}
     # Includes dependency resolution, build, simulator tests and owned cleanup.
     # Individual UI operation deadlines and completion checks stay unchanged.
     timeout-minutes: 60
     env:
+      TKPK_EXPECTED_IOS_SDK: '27.1'
       DEVELOPER_DIR: ${{ matrix.developer }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_UI_SHARD: ${{ matrix.shard }}
@@ -242,10 +246,11 @@ jobs:
         include:
           - ios: 27
             runner: xcode-27
-            developer: /Applications/Xcode_27.0.app/Contents/Developer
+            developer: /Applications/Xcode_27.1.app/Contents/Developer
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     env:
+      TKPK_EXPECTED_IOS_SDK: '27.1'
       DEVELOPER_DIR: ${{ matrix.developer }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_MANUAL_CASE: ${{ matrix.case }}
@@ -302,7 +307,8 @@ jobs:
     runs-on: xcode-27
     timeout-minutes: 40
     env:
-      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+      TKPK_EXPECTED_IOS_SDK: '27.1'
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -337,7 +343,8 @@ jobs:
       contents: write
       actions: read
     env:
-      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+      TKPK_EXPECTED_IOS_SDK: '27.1'
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -383,7 +390,8 @@ jobs:
     runs-on: xcode-27
     timeout-minutes: 45
     env:
-      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+      TKPK_EXPECTED_IOS_SDK: '27.1'
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     permissions:
       contents: write
       actions: read

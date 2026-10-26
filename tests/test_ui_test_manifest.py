@@ -555,8 +555,9 @@ METHOD
                     self.assertIn(f"- ios: {ios}\n            shard: {shard.upper()}", block)
                     self.assertIn("bash tools/test-app-ui.sh", block)
                     self.assertIn("--runner-log", block)
+                    self.assertIn("TKPK_EXPECTED_IOS_SDK: '27.1'", block)
                 self.assertIn("runner: xcode-27", second)
-                self.assertIn("developer: /Applications/Xcode_27.0.app/Contents/Developer", second)
+                self.assertIn("developer: /Applications/Xcode_27.1.app/Contents/Developer", second)
                 prepare = "python3 -B tools/prepare-ios26-runtime.py"
                 self.assertIn(prepare, second)
                 self.assertLess(second.index(prepare), second.index("bash tools/test-app-ui.sh"))
@@ -597,7 +598,7 @@ METHOD
         self.assertNotIn("continue-on-error", manual)
         self.assertEqual(manual.count("TKPK_MANUAL_DIAGNOSTICS: '1'"), 2)
         self.assertEqual(workflow.count("TKPK_MANUAL_DIAGNOSTICS"), 2)
-        for ios, runner, xcode in ((26, "macos-26", "26.6"), (27, "xcode-27", "27.0")):
+        for ios, runner, xcode in ((26, "macos-26", "26.6"), (27, "xcode-27", "27.1")):
             self.assertIn(f"- ios: {ios}\n            runner: {runner}\n            developer: /Applications/Xcode_{xcode}.app/Contents/Developer", manual)
         simulator = workflow.split("  simulator-27-a:\n", 1)[1].split("  manual-27:\n", 1)[0]
         self.assertIn("timeout-minutes: 60", simulator)
