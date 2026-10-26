@@ -38,3 +38,5 @@ patch217行/11401bytes SHA256 c3f16f98…、workflow173行/7570bytes 1bad0f37…
 runtime26 36行/2168bytes 02020a17…、runtime27 36行/2156bytes db2bfe0a…の全行/bytes/hashを
 確認し、具体的指摘なし。主担当が現差分との同一性を確認して、この9job比較一回だけへ使う。
 正式/mainや別の比較へは転用しない。
+
+不足していた既存Swift helperの一件は、正しい宣言名とSwift6.1.2で成功（1.943秒）。初回manifestの27成功と併せて全28caseを確認したが、別実行であることを保持する。最初の0件を成功に数えない。現在code diffの全SHA256 c3f16f98c134aa3686a47ad7a104e404c6e4c5d9abea402065b320f5bcceff76は専用reviewと同一。次はsdk27=both-new/native_pdf=true/picker=true/apple_inventory=trueの既存Development workflow一回を開始する。
