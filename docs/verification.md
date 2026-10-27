@@ -8164,3 +8164,7 @@ N161の次の限定一回専用に、新規GPT-6.1 Sol/High ios_loopback_browser
 Issue66はCoreの同一入力再利用/世代・設定変更の無効化/架空入力、67は実revision coordinatorの合流/TTLに対応する受け入れ項目だけ確認済みに更新した。Time Profiler/SwiftUI/フレーム比較と未完了のUI条件は未チェックのまま。API48も一般CI/本番配備の成功だけ確認済みとし、PR50の撤去差分と実機受け入れ未了を区別した。物理iPhoneを接続したMacは利用者回答で無し、追加の同じ質問はしない。
 
 同じmainのNative/job122146853327は10:56:18Zにsuccess。全691件/予定skip1/失敗0（124.820秒、SPM準備込み280.1秒）。ExpiredCheckingDescribesThePastWithoutDiscardingSuccessfulEvidenceとConfigureCannotConsumeAnUnpublishedStartOrEndBoundaryも完了logで個別成功を確認し、全ログは一度だけ取得した。11時前の再確認でAPI/iOSともopenのDependabot PRは0。通常UIと訂正の残jobは継続し、queueを成功へ数えない。
+
+正式7d4eca0の手動訂正27四件も全てsuccess終端。元単項目696.403秒、三項目475.090秒、明示選択994.620秒、原本変更372.301秒で、元の実入力/各ACK/背景/採用/保存/再起動と完了照合を維持した。同じ失敗OS26のN160確認はこの時点で未実行なので、27成功で代用しない。
+
+通常27 B/job122146853220は11:28:58Zにsuccess。元基本6件/失敗0（693.043秒）、設定320.036秒、文字サイズの既存段階、実VoiceOver68.929秒、通知181.268秒とOS文字サイズ3段階が通り、B内15 XCTest完了を照合した。N161の元LinkPreferencesも166.771秒で実HTTP200/205bytesのページ表示とnative Close/一覧復帰、listener回収まで成功した。これは正式公開の15必須jobとは別のB内完了数であり、通常27 Aと26側は未完了。新しい完了logだけ各一度取得し、通常26 B/job122163057616は11:29:00Zに開始した。
