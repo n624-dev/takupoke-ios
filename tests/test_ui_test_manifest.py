@@ -309,7 +309,11 @@ class ManifestTests(unittest.TestCase):
                 sender.start()
                 try:
                     trickle.settimeout(2.8)
-                    self.assertEqual(trickle.recv(1), b"")
+                    try:
+                        closed_in_time = trickle.recv(1) == b""
+                    except ConnectionResetError:
+                        closed_in_time = True
+                    self.assertTrue(closed_in_time)
                 finally:
                     stop_sending.set()
                     trickle.close()

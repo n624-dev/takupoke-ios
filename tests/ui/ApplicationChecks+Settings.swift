@@ -101,7 +101,6 @@ final class LoopbackBrowserFixture: @unchecked Sendable {
         let body = Data(html.utf8)
         var response = Data("HTTP/1.1 \(status)\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: \(body.count)\r\nConnection: close\r\nCache-Control: no-store\r\n\r\n".utf8)
         response.append(body)
-        FileHandle.standardError.write(Data("BROWSER_FIXTURE response=\(status);bytes=\(body.count)\n".utf8))
         var offset = 0
         while offset < response.count {
             guard wait(client, events: Int16(POLLOUT), until: deadline) else { return }
@@ -112,6 +111,7 @@ final class LoopbackBrowserFixture: @unchecked Sendable {
             guard sent > 0 else { return }
             offset += sent
         }
+        FileHandle.standardError.write(Data("BROWSER_FIXTURE response=\(status);bytes=\(body.count)\n".utf8))
         _ = shutdown(client, Int32(SHUT_WR))
     }
     private func wait(_ client: Int32, events: Int16, until deadline: TimeInterval) -> Bool {
