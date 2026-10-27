@@ -8225,3 +8225,5 @@ Distribution/job122196885558は12:48:30Zにsuccess、Python全292件/失敗0/予
 通常26 A/job122223580929も14:29:07Zにsuccess。元基本18件/失敗0（1816.431秒）、実通知84.947秒、厳密な19 XCTest完了を照合した。元CacheCorruption141.729秒、Home境界18.504秒、行除外188.600秒が成功し、同一sourceでHome境界は27/26とも実画面を通過した。完了logは一度取得済み。これで同じf709367/run40506458617/attempt1の公開前14必須jobが全て成功した。
 
 Build and publish AltStore release/job122249653181は14:29:12Zに開始。iPhone向けbuild・Picker UI・公開/添付/固定Source照合が残るため、この時点では15条件完了・新しい配布・issue105/106完了とは記載しない。過去の取得済みiPhone check logではPicker準備からdevice build完了まで約24分だったため、今回の開始時刻から次の確認を決める。
+
+最終整合（2026-10-28 JST）：API main98c1dd762fddb081e676d2a60d0659996e04c341とiOS mainf709367a84747a2216a419eb2f4723c7ca429a29はそれぞれremote mainと一致。API側はclean、iOS側は元からの未commit/unstaged調査メモ16行/85行のみを保持した。API/iOSのopen PR再検索は実機待ちdraft API50だけで、未対応Dependabot PRは0。API PR50の最終head9185cdbのcheck（105 Vitest/7 Pythonほか既存検証）とWorkers buildもsuccess。Issue再検索のopenはAPI48/iOS66/iOS67の3件だけで、API47/iOS105/iOS106はcompleted。API50の手動診断コード/終了コード・本番API本体は変更せず、移行実機受け入れまでdraftを維持した。
