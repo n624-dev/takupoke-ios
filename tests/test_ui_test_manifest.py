@@ -528,7 +528,10 @@ METHOD
             "notification-native-request", "notification-native-callback",
             "notification-auth-request", "notification-auth-callback", "notification-auth-returned",
             "notification-settings-not-requested", "retention-recovery-action",
-            "retention-dialog-on", "retention-dialog-off"))
+            "retention-dialog-on", "retention-dialog-off", "year-input-observer-installed",
+            "year-edit-began", "year-edit-ended", "year-edit-changed",
+            "year-keyboard-will-show", "year-keyboard-did-show",
+            "year-keyboard-will-hide", "year-keyboard-did-hide"))
         removed = "TAKUPOKE_HIT_PATH pid=123 touch=UIView~UISwitch thumb=UIView~UISwitch opposite=UIView~UISwitch"
         with tempfile.TemporaryDirectory(prefix="takupoke-launch-collector-") as directory:
             root = Path(directory)

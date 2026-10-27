@@ -178,6 +178,7 @@ if Path(sys.argv[0]).name == 'xcodebuild':
     if os.environ.get('FAIL_CASE') in tests: sys.exit(49)
     if os.environ.get('FAIL_NOTIFICATION') and tests == ['testNotificationControlsAndAppearance']: sys.exit(46)
 elif Path(sys.argv[0]).name == 'xcode-select': print(os.environ['SYNTHETIC_DEVELOPER'])
+elif Path(sys.argv[0]).name == 'defaults': print('1' if args[1] == 'com.apple.iphonesimulator' else '0')
 elif Path(sys.argv[0]).name == 'open' and os.environ.get('FAIL_FRONTEND'): sys.exit(43)
 elif (Path(sys.argv[0]).name == 'open' and os.environ.get('FAIL_DEVICE_WINDOW')
       and any(arg.startswith('devices://') for arg in args)): sys.exit(44)
@@ -193,7 +194,7 @@ elif (args[:3] == ['simctl', 'bootstatus', 'synthetic-simulator-notifications']
       and os.environ.get('FAIL_NOTIFICATION_BOOT')): sys.exit(47)
 elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINER'])
 '''
-            for tool in ("xcrun", "xcodebuild", "xcode-select", "open"):
+            for tool in ("xcrun", "xcodebuild", "xcode-select", "open", "defaults"):
                 path = repo / "bin" / tool
                 path.write_text(fake)
                 path.chmod(0o755)
@@ -268,6 +269,23 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                     self.assertEqual([arg for arg in build if arg.startswith("-only-testing:")],
                                      ["-only-testing:PickerTapChecks/ApplicationChecks/" + test])
                     self.assertIn("platform=iOS Simulator,id=synthetic-simulator", build)
+                self.assertEqual(sum(call[:3] == ["xcrun", "simctl", "create"] for call in calls), 1)
+
+    def test_year_input_probe_keeps_preceding_case_and_reads_keyboard_settings_without_writes(self):
+        cases = ("testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates",
+                 "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair")
+        for failed in (None, *cases):
+            with self.subTest(failed=failed):
+                result, calls = self.run_synthetic_runner(27, "all", probe_case="event-cache-input", fail_case=failed)
+                self.assertEqual(result.returncode, 0 if failed is None else 1, result.stdout + result.stderr)
+                reads = [call for call in calls if call[0] == "defaults"]
+                self.assertEqual(reads, [["defaults", "read", domain, "ConnectHardwareKeyboard"]
+                                       for domain in ("com.apple.iphonesimulator", "com.apple.DeviceHub")])
+                for value in ("0", "1"):
+                    self.assertIn('"connected": "' + value + '"', result.stdout)
+                batches = [call for call in calls if call[0] == "xcodebuild" and "test-without-building" in call]
+                self.assertEqual(len(batches), 1)
+                self.assertEqual([arg.rsplit("/", 1)[1] for arg in batches[0] if arg.startswith("-only-testing:")], list(cases))
                 self.assertEqual(sum(call[:3] == ["xcrun", "simctl", "create"] for call in calls), 1)
 
     def test_successful_notification_probe_observes_os_before_deleting_simulator(self):

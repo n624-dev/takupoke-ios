@@ -37,7 +37,7 @@ final class ApplicationChecks: XCTestCase {
                 "--selection-snapshot", "--normal-only",
             ],
             "testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover": ["--auxiliary-store-failures", "--auxiliary-store-day", "--normal-only"],
-            "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair": ["--events-cache-corrupt"],
+            "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair": ["--events-cache-corrupt", "--fixture-input-trace", "--fixture-year-input-trace"],
             "testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates": [
                 "--events-year-coverage", "--normal-only",
             ],

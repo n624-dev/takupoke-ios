@@ -57,6 +57,7 @@ struct SimulatorApplication: App {
     @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
     init() {
         FixtureInputDelivery.install()
+        FixtureYearInputObservation.shared.install()
         _ = FixtureNotificationDelivery.startedAt
         FixtureLaunchDiagnostics.record("init-enter")
         URLProtocol.registerClass(FixtureNetwork.self)
@@ -375,7 +376,9 @@ enum FixtureLaunchDiagnostics {
             "notification-on-binding", "notification-off-binding",
             "notification-native-request", "notification-native-callback",
             "notification-auth-request", "notification-auth-callback", "notification-auth-returned",
-            "retention-recovery-action", "retention-dialog-on", "retention-dialog-off"]
+            "retention-recovery-action", "retention-dialog-on", "retention-dialog-off",
+            "year-input-observer-installed", "year-edit-began", "year-edit-ended", "year-edit-changed",
+            "year-keyboard-will-show", "year-keyboard-did-show", "year-keyboard-will-hide", "year-keyboard-did-hide"]
         guard allowed.contains(stage) else { return }
         let line = "TAKUPOKE_LIFECYCLE pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) stage=\(stage)\n"
         append(line)
@@ -456,6 +459,37 @@ struct SimulatorRetentionProofView:View {
     }
 }
 
+
+// QA-only fixed notifications; never edits text, focus, or keyboard state.
+@MainActor
+private final class FixtureYearInputObservation: NSObject {
+    static let shared = FixtureYearInputObservation()
+    private var installed = false
+    private var records = 0
+    private let stages: [Notification.Name: String] = [
+        UITextField.textDidBeginEditingNotification: "year-edit-began",
+        UITextField.textDidEndEditingNotification: "year-edit-ended",
+        UITextField.textDidChangeNotification: "year-edit-changed",
+        UIResponder.keyboardWillShowNotification: "year-keyboard-will-show",
+        UIResponder.keyboardDidShowNotification: "year-keyboard-did-show",
+        UIResponder.keyboardWillHideNotification: "year-keyboard-will-hide",
+        UIResponder.keyboardDidHideNotification: "year-keyboard-did-hide",
+    ]
+    func install() {
+        guard ProcessInfo.processInfo.arguments.contains("--fixture-year-input-trace"), !installed else { return }
+        installed = true
+        for name in stages.keys {
+            NotificationCenter.default.addObserver(self, selector: #selector(observed(_:)), name: name, object: nil)
+        }
+        FixtureLaunchDiagnostics.record("year-input-observer-installed")
+    }
+    @objc private func observed(_ notification: Notification) {
+        guard records < 32, let stage = stages[notification.name] else { return }
+        records += 1
+        // Fixed labels only: never read text, userInfo, focus or keyboard frames.
+        FixtureLaunchDiagnostics.record(stage)
+    }
+}
 
 // QA-only observer: preserves the original event path and never adds a gesture.
 @MainActor

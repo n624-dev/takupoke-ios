@@ -17,6 +17,7 @@ on:
           - file-details
           - updates
           - auxiliary-store
+          - event-cache-input
           - timetable-clocks
           - home-boundaries
           - home-launch

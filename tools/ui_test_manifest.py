@@ -93,6 +93,8 @@ PROBE_GROUPS = {
         "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
     ),
     "auxiliary-store": ("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover",),
+    "event-cache-input": ("testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates",
+                          "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair"),
     "timetable-clocks": ("testTimetableCommonClocksAndEventOnlyWeekScale",),
     "home-boundaries": ("testHomeClockSettingChangesAcrossBoundariesUpdateTheActualInProgressLabel",),
     "home-launch": ("testChangedAccountDataNoticeOpensSharedAcquisition",
