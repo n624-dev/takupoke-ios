@@ -8154,3 +8154,11 @@ main22cb3f8/run40461806832は通常両OS/Native/訂正7条件が成功し、単�
 候補と記録を非起動branchへpush後、元Swiftのserverを実行するGET/route拒否/bytes/停止対照と、実生成factoryの元HTTPS保持/不正URL拒否を個別確認した。さらにmanifest30件/失敗0/skip0（46.399秒）、shell runner14件/失敗0（37.908秒）、Swift/Python構文/catalog450/check/空白が成功。LinuxのfactoryではSafariだけ非実行OS境界stubであり、実UI検証とは区別する。次の限定一回専用に新規code-only reviewを行い、両Runtimeの元LinkPreferences全操作を確認する。
 
 N161の次の限定一回専用に、新規GPT-6.1 Sol/High ios_loopback_browser_focus_pre_actions_reviewがcode-only428行/SHA256 b53404d80907fdfccc01e8d80bb4d6f3e23e0a401ad5cbc6eb53fc5b7c980221を全体確認し具体的指摘なし。主担当が現diffのhash一致、loopback/元HTTPS境界/実SFSafari/native Close/元30秒・10秒と全case/gateの維持、global deadline/所有FD cleanupと実local結果を確認した。元LinkPreferences一件×両OSの限定workflow開始一回にだけ使用し、後のmain push/公開へ転用しない。
+
+## 2026-10-27 loopback入力確認後の正式検証開始
+
+新規main専用Sol/Highの差分hash一致と未統合全commitの空白を確認し、通常fast-forwardでmainを7d4eca01e4bae3941ccad85f363190149a9becaeへ更新した。正式run40491344629/attempt1は10:48:38Z開始。最初のDistribution/job122145770805は10:51:09Zにsuccess、Python全291件/予定skip22/失敗0（140.154秒）、catalog450が成功した。完了logを一度取得済みで、残りの通常両OS・訂正四件×両OS・Native・iPhone build/公開を同一source/run/attemptで確認する。元31 UIケース・全15gate/各期限は維持し、限定比較の成功を合算しない。
+
+元作業領域のmainも同sourceへ同期した。事前backupを取り、autostash570f1ceのverification末尾競合は上流と元追記を両方保持した。セクション間の元空行も戻し、両文書について同期前の全文と新HEAD全文の全行が順序を保って残ることを検査した。元の未commit/unstaged16行と85行はそのまま保持し、今回所有stashだけ回収した。
+
+Issue66はCoreの同一入力再利用/世代・設定変更の無効化/架空入力、67は実revision coordinatorの合流/TTLに対応する受け入れ項目だけ確認済みに更新した。Time Profiler/SwiftUI/フレーム比較と未完了のUI条件は未チェックのまま。API48も一般CI/本番配備の成功だけ確認済みとし、PR50の撤去差分と実機受け入れ未了を区別した。物理iPhoneを接続したMacは利用者回答で無し、追加の同じ質問はしない。
