@@ -2915,3 +2915,13 @@ N159照合：fixture-ready/launch/U65とnative Switch/notification/U64/U30/U15/U
 N159画像確認：失敗時のnotification-switch-unresolvedを36片から所有一時領域へ復元し、157849bytes/SHA256 b335f3ec688d7accf3fb66f9098ae3863971654de11e03f26689209ef9becbc8を照合して目視した。通知画面で両SwitchはOFF、許可ダイアログはなく、QAの「許可画面を確認」Buttonは画面中央より下にあり実Switchを視覚的に覆っていない。画像は期限後の状態であり、入力時点の配送先/gesture/Bindingの証明にはならない。画像の所有一時領域は確認後に回収し、公開ファイルへの画像添付はしない。
 
 N159後続PRの終端：source86b1f3f/run40455341102の最後の26 A/job122045793511は07:15:30Zにsuccess。基本18件/失敗0（1815.309秒）と実通知1件/失敗0（95.251秒）、新規Home境界18.062秒、元行除外181.606秒で成功した。Home境界は同じ修正版の両Runtimeで成功。訂正26の明示選択1282.790秒・原本変更240.522秒も成功して四件すべて完了した。PR実行は全18表示job終端、14成功/26 Bの失敗1/依存・構成skip3、artifact0。全15実job完了logを一度だけ取得済み。この終端run/jobs/log/artifactを再照会せず、26 Bの失敗を他成功で救済しない。main22cb3f8/run40461806832ではLinux288件/予定skip22、Native691件/予定skip1、訂正27全四件、通常27 Bが成功し、元の26 Bは07:32:22Zから別途実行中。main全15/公開の成功はまだ未確認。
+
+## N160 issue105/106取込み後mainの単項目訂正iOS26がfailure終端（2026-10-27）
+
+08:21 UTCの実測所要時間に基づく一括確認でsource22cb3f8d5ed60800611c4f99af667d1d0b3bd15d/run40461806832/attempt1、job122070104137、testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackgroundが07:41:40Z開始・08:08:11Zにfailure終端と確認した。指定SDK27.1/Runtime26.5、実Runtime/ケース到達/具体失敗段階・原因は完了ログ未読のため未確定。mainの通常26 Bは元通知操作を含めsuccess、訂正26のほか三件もsuccess、通常26 Aだけ継続中。main全15/公開成功は未成立で、残実行は取消ししない。対処案選択前の事実として記録し、新しいログ・過去の該当詳細・当時と現sourceの照合後に候補を決める。
+
+N160実log：SDK27.1/Runtime26.5、build成功。752.475秒/失敗1、Navigation.swift:90。初回入力/独立ACK、背景同一process、再編集と確認previewまで通過し、最後の「この資料全体の結果を使用」Buttonへの実接触前に失敗した。16探索の7回目、indexed対象の枠(16,697.333,361,100.667)とviewport(0,141,393,699)を観測し、既存manualVisibleCandidateによるindexed hittabilityは成立した。その後同じlabelのButtonをaccessibility identityで取り直し、別のframe/全包含/enabledを通過したが、native isHittableがActivation point invalidで例外を記録した。native側の正確な枠は未出力で、実touch/採用保存/再起動は未到達。入力trace68行、owned-app-logはoutput-capで終了。OSの下位原因や製品adoptの不具合とは断定しない。
+
+N160照合：Activation point invalid/native Button/Navigation.swiftとN126/N152/N94/N97の詳細、旧2a81f3a/883c9a0/dfb62cbと公開34c40d2/今回22cb3f8のhelper・純幾何・元単項目caseを読んだ。N126は外側ACK rowへのhit照会で今回は採用Buttonの最終identity、N152は入口tapの再解決で今回はその後の保存直前。N152後も通常Buttonにはindexed対象のhit判定と、取り直したnative対象のhit判定が二重に残る。今回は最初が成立してから次が失敗し、同じ物理対象を別表現で照会する間隙がある。製品PDFRecoveryView/全期待と今回helperはP3修正で未変更。
+
+候補では外側indexed対象を位置探索と全包含確認だけに使い、実Buttonの一意なnative identityを取得してから、その同じ要素の有限正枠/viewport完全包含/enabled/hittableを全て要求して一回だけ操作へ返す。現在のnative最終guardは一つも減らさず、indexed対象への重複hit照会だけを避ける。既存clear/通常tapに適用し、入力/ACK/代替候補やfixture menuは現状維持。native枠と既に観測したviewportを受動ログへ出し、追加AX照会は行わない。N152前のfirstMatch接触へ戻さず、16探索/一回反転/受動Cell/全45秒/元の入力全文・UI・保存・背景同一process・再起動と全15gateを保つ。下位原因・改善は未確定。候補とこの比較を非起動refへpush後に既存の幾何/project/runner/manifest/構文/catalogを確認し、新規code-only reviewの後に新sourceの正式全15で確認する。旧mainの残26 Aも取消しせず終端まで確認する。
