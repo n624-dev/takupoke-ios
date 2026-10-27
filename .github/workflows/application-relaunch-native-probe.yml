@@ -107,7 +107,8 @@ jobs:
       - name: Exercise launch, native switches, permission, busy work and relaunch without retry or adoption credit
         run: |
           set -euo pipefail
-          bash tools/test-app-ui.sh 2>&1 | tee "$RUNNER_TEMP/takupoke-relaunch-runner-owned.log"
+          python3 -B tools/timed_command.py --timeout 1440 --cleanup-grace 120 \
+            "Focused relaunch runner" bash tools/test-app-ui.sh 2>&1 | tee "$RUNNER_TEMP/takupoke-relaunch-runner-owned.log"
           selection=(--relaunch-probe)
           if [[ "$TKPK_UI_PROBE_CASE" != all ]]; then
             selection+=(--probe-case "$TKPK_UI_PROBE_CASE")

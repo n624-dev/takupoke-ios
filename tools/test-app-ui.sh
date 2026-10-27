@@ -4,6 +4,7 @@ scratch_dir="$(mktemp -d "${TMPDIR:-/tmp}/takupoke-app-tests.XXXXXX")"
 simulator_id=""
 hang_watch_pid=""
 hang_stop_path=""
+stage() { printf 'TAKUPOKE_RUNNER stage=%s\n' "$1" >&2; }
 stop_hang_watch() {
     if [[ -n "$hang_watch_pid" ]]; then
         : > "$hang_stop_path"
@@ -39,6 +40,7 @@ PY_TRACE
 }
 cleanup() {
     local task_exit_status=$?
+    stage cleanup-enter
     stop_hang_watch
     if [[ -n "$simulator_id" ]]; then
         if [[ "$task_exit_status" != "0" ]]; then
@@ -48,16 +50,21 @@ cleanup() {
             python3 -B tools/notification_service_trace.py "$simulator_id" || true
         fi
         collect_launch_trace || true
+        stage cleanup-shutdown-enter
         xcrun simctl shutdown "$simulator_id" >/dev/null 2>&1 || true
+        stage cleanup-delete-enter
         xcrun simctl delete "$simulator_id" >/dev/null 2>&1 || true
     fi
     rm -rf "$scratch_dir"
+    stage cleanup-complete
     return "$task_exit_status"
 }
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+stage runtime-list-enter
 xcrun simctl list -j > "$scratch_dir/simulators.json"
+stage runtime-list-complete
 shard="${TKPK_UI_SHARD:-all}"
 selection_args=(--shard "$shard")
 case "${TKPK_UI_RELAUNCH_PROBE:-0}" in
@@ -95,7 +102,9 @@ while read -r device_type runtime; do
         python3 -B tools/app_test_project.py "$project_dir"
     bash tools/resolve-xcode-packages.sh "$project_dir/AppChecks.xcodeproj" AppChecks "$scratch_dir"
     create_simulator() {
+        stage simulator-create-enter
         simulator_id="$(xcrun simctl create 'Takupoke App Checks' "$device_type" "$runtime")"
+        stage simulator-create-complete
         xcode_args=(-project "$project_dir/AppChecks.xcodeproj" -scheme AppChecks
             -destination "platform=iOS Simulator,id=$simulator_id"
             -derivedDataPath "$scratch_dir/DerivedData"
@@ -107,7 +116,9 @@ while read -r device_type runtime; do
     boot_simulator() {
         # Finish compilation before booting the owned Simulator. Its first startup
         # must not compete with our Swift compilation; all runs reuse this build.
+        stage simulator-boot-enter
         xcrun simctl boot "$simulator_id"
+        stage simulator-frontend-enter
         # Resolve the frontend inside the selected Xcode, not another installation.
         # Device Hub does not support the legacy Simulator's device-selection flag.
         developer_dir="$(xcode-select -p)"
@@ -127,7 +138,9 @@ while read -r device_type runtime; do
             # Route the owned, booted device to the selected Xcode's display host.
             open -a "$device_hub" "devices://device/open?id=$simulator_id"
         fi
+        stage simulator-content-size-enter
         xcrun simctl ui "$simulator_id" content_size large
+        stage simulator-ready
     }
     create_simulator
     python3 -B tools/timed_command.py "App UI build iOS $ios_major" \
@@ -195,7 +208,10 @@ while read -r device_type runtime; do
         python3 -B tools/notification_service_trace.py "$simulator_id" || true
     fi
     collect_launch_trace
+    stage simulator-shutdown-enter
     xcrun simctl shutdown "$simulator_id"
+    stage simulator-delete-enter
     xcrun simctl delete "$simulator_id"
+    stage simulator-delete-complete
     simulator_id=""
 done < "$scratch_dir/destinations"

@@ -13,6 +13,36 @@ TOOL = Path(__file__).resolve().parents[1] / "tools/timed_command.py"
 
 @unittest.skipUnless(os.name == "posix", "macOS CI process groups")
 class TimedCommandTests(unittest.TestCase):
+    def test_deadline_fails_and_reclaims_term_ignoring_child_without_touching_other_groups(self):
+        with tempfile.TemporaryDirectory() as directory:
+            ready = Path(directory) / "ready"
+            child = ("import os,signal,time; from pathlib import Path; "
+                     "signal.signal(signal.SIGTERM,signal.SIG_IGN); "
+                     "Path(" + repr(str(ready)) + ").write_text(str(os.getpid())); time.sleep(30)")
+            unrelated = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"],
+                                         start_new_session=True)
+            wrapper = subprocess.Popen([sys.executable, str(TOOL), "--timeout", "2",
+                "--cleanup-grace", "0.2", "synthetic deadline", sys.executable, "-c", child],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            try:
+                output, _ = wrapper.communicate(timeout=7)
+                self.assertEqual(wrapper.returncode, 124, output)
+                self.assertTrue(ready.exists(), output)
+                self.assertIn("TIMING timeout: synthetic deadline, limit=2s", output)
+                self.assertIn("TIMING finish", output)
+                state = subprocess.run(["ps", "-o", "stat=", "-p", ready.read_text()],
+                                       capture_output=True, text=True).stdout.strip()
+                self.assertTrue(not state or state.startswith("Z"), "Timed-out child is still running")
+                self.assertIsNone(unrelated.poll(), "Another process group was affected")
+            finally:
+                if ready.exists():
+                    try: os.kill(int(ready.read_text()), signal.SIGKILL)
+                    except ProcessLookupError: pass
+                if wrapper.poll() is None: wrapper.kill()
+                wrapper.communicate(timeout=5)
+                unrelated.kill()
+                unrelated.wait(timeout=5)
+
     def test_second_signal_during_cleanup_does_not_abandon_the_owned_child(self):
         for name in ["timed_command", "parallel_build"]:
             with self.subTest(wrapper=name), tempfile.TemporaryDirectory() as directory:

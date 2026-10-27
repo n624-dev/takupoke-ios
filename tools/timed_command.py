@@ -1,4 +1,6 @@
 """Measure a command while preserving live output and cancellation cleanup."""
+import argparse
+import math
 import os
 import signal
 import subprocess
@@ -31,7 +33,7 @@ def terminate_owned_group(process, grace=15):
     process.wait()
 
 
-def run(label, command, cleanup_grace=15):
+def run(label, command, cleanup_grace=15, timeout=None):
     started = time.monotonic()
     previous = {}
     process = None
@@ -51,7 +53,11 @@ def run(label, command, cleanup_grace=15):
         for sig in (signal.SIGINT, signal.SIGTERM):
             previous[sig] = signal.signal(sig, interrupted)
         process = subprocess.Popen(command, start_new_session=True)
-        code = process.wait()
+        try:
+            code = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            print(f"TIMING timeout: {label}, limit={timeout:g}s", flush=True)
+            return 124
         return code if code >= 0 else 128 - code
     finally:
         cleaning = True
@@ -67,4 +73,13 @@ def run(label, command, cleanup_grace=15):
 
 
 if __name__ == "__main__":
-    sys.exit(run(sys.argv[1], sys.argv[2:]))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--timeout", type=float)
+    parser.add_argument("--cleanup-grace", type=float, default=15)
+    parser.add_argument("label")
+    parser.add_argument("command", nargs=argparse.REMAINDER)
+    args = parser.parse_args()
+    if not args.command or any(value is not None and (not math.isfinite(value) or value <= 0)
+                               for value in (args.timeout, args.cleanup_grace)):
+        parser.error("a command and finite positive time limits are required")
+    sys.exit(run(args.label, args.command, timeout=args.timeout, cleanup_grace=args.cleanup_grace))
