@@ -26,7 +26,7 @@ final class LoopbackBrowserFixture: @unchecked Sendable {
         #else
         let fd = socket(AF_INET, Int32(SOCK_STREAM.rawValue), 0)
         #endif
-        guard fd >= 0 else { throw POSIXError(.EIO) }
+        guard fd >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
         var transferred = false
         defer { if !transferred { close(fd) } }
         var address = sockaddr_in()
@@ -42,17 +42,20 @@ final class LoopbackBrowserFixture: @unchecked Sendable {
             }
         }
         guard bound == 0, listen(fd, 8) == 0,
-              fcntl(fd, F_SETFL, O_NONBLOCK) == 0 else { throw POSIXError(.EIO) }
+              fcntl(fd, F_SETFL, O_NONBLOCK) == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
         var length = socklen_t(MemoryLayout<sockaddr_in>.size)
         let named = withUnsafeMutablePointer(to: &address) {
             $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { getsockname(fd, $0, &length) }
         }
-        guard named == 0 else { throw POSIXError(.EIO) }
+        guard named == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
         descriptor = fd
         url = URL(string: "http://127.0.0.1:\(UInt16(bigEndian: address.sin_port))/fictional-link")!
         source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: queue)
         source.setEventHandler { [weak self] in self?.servePending() }
-        source.setCancelHandler { close(fd) }
+        source.setCancelHandler {
+            close(fd)
+            FileHandle.standardError.write(Data("BROWSER_FIXTURE listener-closed\n".utf8))
+        }
         source.resume()
         transferred = true
     }
@@ -99,6 +102,7 @@ final class LoopbackBrowserFixture: @unchecked Sendable {
         let body = Data(html.utf8)
         var response = Data("HTTP/1.1 \(status)\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: \(body.count)\r\nConnection: close\r\nCache-Control: no-store\r\n\r\n".utf8)
         response.append(body)
+        FileHandle.standardError.write(Data("BROWSER_FIXTURE response=\(status);bytes=\(body.count)\n".utf8))
         var offset = 0
         while offset < response.count {
             let sent = response.withUnsafeBytes {
