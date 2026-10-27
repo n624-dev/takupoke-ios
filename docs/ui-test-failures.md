@@ -2929,3 +2929,7 @@ N160照合：Activation point invalid/native Button/Navigation.swiftとN126/N152
 N160候補の局所確認：非起動branchのsource200c4c9をpush後、Linux Swift6.1.2を現在の/home/ubuntu/.local/share設置先で明示して既存manual系Python39件/失敗0（23.143秒、skip0）と、その実行内の元純幾何29件/失敗0（0.206秒）を確認した。native helperのSwift構文とcatalog450/check --base22cb3f8、全commit空白も成功。元単項目case/全assert/45秒/一回操作/全15gateとテスト宣言を変更せず、同ケースと元四件×両OSが差分の検証を担うため模倣caseを追加しない。実iOSの改善はまだ未確認。
 
 N160旧main終端：source22cb3f8/run40461806832の最後の26 Aは08:26:18Zにsuccess。元18件/失敗0（1563.927秒）と実通知1件/失敗0（99.023秒）、Home境界16.794秒、行除外156.936秒も成功した。旧main全18表示job終端、事前成功13/単項目26失敗1/構成・公開依存skip4、artifact0、全14実jobの完了log取得済み。この旧run/jobs/log/artifactを再照会しない。26 BのHome46.687秒と通知155.300秒は同sourceで成功しN159は非再発だが、旧起動/入力配送の下位原因・恒常解消とは一般化しない。旧失敗は全て保持し、公開は未実施。
+
+N160追加実bytes照合（08:34 UTC）：git showで2a81f3aのgeometryより先にtarget.isHittableを呼ぶ本文と、883c9a0のclearだけnativeへbindする本文を確認した。dfb62cbから22cb3f8のNavigation.swift実diffは0行で、N152後の通常Button二段階観測が今回まで同一だったことを再確認した。この出力を当時コード比較の具体的根拠として補完する。候補は旧index/firstMatchへの接触へ戻していない。
+
+N160新しい正式実行：新規専用reviewのcode hash一致と局所結果を確認後、mainを8e01eb6c7528453b5b7e71d95c99079ec9faec65へ通常fast-forward pushし、run40474382684/attempt1が08:33:53Zに開始。Distributionは288件/予定skip22/失敗0（88.275秒）で成功。元の両OS/手動訂正四件ずつ/全15を維持し、新sourceの全結果を確認中。旧22cb3f8の成功を取り込んだ判定にはしない。main同期時の元16/85行の未コミット追記は上流と元snapshot全行の順序保持を検査して保持し、今回所有のautostash4886c0fだけを回収した。
