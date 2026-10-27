@@ -92,6 +92,30 @@ final class SchoolEventsSourceStatusTests: XCTestCase {
         XCTAssertTrue(SchoolEventsSourcePresentation.make(saved: saved(), cached: nil, error: nil, now: instant).warning)
     }
 
+    func testExpiredCheckingDescribesThePastWithoutDiscardingSuccessfulEvidence() throws {
+        let response = try SchoolEventsSourceStatus.decode(wire(checking: true), year: 2032)
+        let cached = SavedSchoolEventsSourceStatus(receivedAt: instant, response: response)
+        let restored = try JSONDecoder().decode(SavedSchoolEventsSourceStatus.self, from: JSONEncoder().encode(cached))
+        for age in [59.0, 60, 61, 3_600, 43_200, 86_400] {
+            let at = instant.addingTimeInterval(age)
+            let display = SchoolEventsSourcePresentation.make(saved: saved(), cached: restored, error: nil, now: at)
+            XCTAssertEqual(restored.isFresh(at: at), age < 60)
+            XCTAssertEqual(display.message.contains("APIが元PDFを確認中です"), age < 60)
+            XCTAssertEqual(display.message.contains("前回確認時"), age >= 60)
+            XCTAssertTrue(display.warning)
+            XCTAssertEqual(display.lastSuccessAt, instant)
+            XCTAssertTrue(try XCTUnwrap(display.lastSuccessfulMessage).contains("一致"))
+        }
+        let failed = SchoolEventsSourcePresentation.make(saved: saved(), cached: restored,
+            error: "架空の通信失敗", now: instant.addingTimeInterval(61))
+        XCTAssertEqual(failed.message, "架空の通信失敗")
+        XCTAssertEqual(failed.lastSuccessAt, instant)
+        let mismatched = SchoolEventsSourcePresentation.make(saved: saved(hash: String(repeating: "c", count: 64)),
+            cached: restored, error: nil, now: instant.addingTimeInterval(61))
+        XCTAssertTrue(mismatched.message.contains("一致しない")); XCTAssertNil(mismatched.lastSuccessAt)
+        XCTAssertEqual(cached.presentationDeadlines, [instant.addingTimeInterval(60), instant.addingTimeInterval(86_400)])
+    }
+
     func testAdvisoryStorePreservesNewestSuccessAcrossUnavailableOlderEdgeAndReload() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

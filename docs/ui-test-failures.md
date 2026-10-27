@@ -2865,3 +2865,18 @@ N155完了log：272.372秒・1失敗、Input.swift:56の元45秒ACK value1待機
 照合はACK/cancelled/Input.swift/U71/N66/N93/N94/N97で検索し、U64/U71/N66/N93/N94/N97/N148の詳細、旧2a22448と現Input/Navigation/生成器・正式workflowを読んだ。N93の同じ内側中心への接触取消しと類似するが、今回の接触はN94後のnative identityから正常合成されており、その再解決停止とは違う。0.1秒方式でも未反映は既往があり、接触時間/点の往復・押し直し・ACK注入・待機延長を根拠なく行わない。通常27.1/Runtime26.5のA/Bは今回とも成功し、手動26だけは旧26.6/SDK26.5でビルドされていた。
 
 利用者のSDK更新指示に沿った次の候補は、正式の手動26も配布と同じXcode/SDK27.1へ揃え、既存prepare-ios26-runtime.pyで元Runtime26.5を完全照合してから同じ4caseを実行すること。Nativeの旧26.6/実SDK26.5と任意の旧手動probeは維持し、27.1が旧SDKの取消し原因を修復したとは主張しない。実製品/Swift helper/全case/入力全文/独立ACK一回/45秒/背景同一process/保存再起動/全15gateには差分を加えない。通常26が既に同配布SDKで通過した新条件を手動26にも適用して、更新後IPAに使うSDKで両OSの実操作を検証する。既存manifestの固定SDK期待を更新し、両手動laneのSDK変数とRuntime準備が実操作より先にあることを要求する。新しい模倣caseは追加しない。候補・事実・比較を隔離branchへpushしてから関連検査を行い、新規専用review後に新sourceの正式全15を一回実行する。旧失敗の原因・恒常解消・全15成功はまだ未確認。
+
+
+## N156 issue105/106修正のLinux Python検査でエラーを観測（2026-10-27）
+
+source34c40d2に対する未コミット修正、Linux/Python3.14・Swift6.1.2。全Python検査の最初の実行は進行中にEを表示した。終了時のcase名・診断はまだ出力されておらず、SwiftUI/Apple SDKの失敗や製品原因とは断定しない。次の試行・対処決定前に完了結果と過去索引/該当コードを照合する。並行しているSwift Package検査は別の実行であり、同じ結果と扱わない。
+
+N156完了診断：288件/3error/予定skip22、981.437秒。Assertion失敗ではなく、test_alternate_toolchain_preflight_requires_requested_sdk_and_same_runtimeの27.2/Runtime27.0+27.1対照がshell5秒、test_failed_or_duplicate_first_batch_stops_without_retry_or_size_checksのduplicate_result対照がshell15秒、test_actual_apply_keeps_denial_separate_from_storage_success_and_failureがSwiftコンパイル60秒でTimeoutExpired。いずれも実Simulator/UIではなく、今回変更していない既存のLinux境界検査。ホストRAM約2GB/swap約2.5GB使用、並行SPM/Pythonと別作業ビルドを観測した。N57の一時領域不足とは異なり、今回は空き約20GBで、/tmp容量エラーも未観測。期限/期待値を緩めず、同じホストの所有SPM完了後にこの3ケースだけを逐次実行して資源競合の候補を照合する。記録はPRを再起動しない別の記録refへpushしてから実行する。
+
+N156逐次照合：SPM601件/失敗0・全工程1568.6秒の終了後に、同じ3ケースだけを元の期限/期待値で実行。shellの2ケースは成功し、通知Swift probeのコンパイルは同じ60秒で再びTimeoutExpired。3件/1error、72.557秒。製品assertやprobe実行には未到達で、並行SPMだけが原因だったとは断定しない。この観測を先に記録し、所有する残存compiler、/tmpと通常ディスク、N110の同じ実メソッド検証と現行probeを比較してから次の対処を決める。
+
+N156対処前比較：所有compilerの残存はなく、SPM終了後も同じprobeだけがcompile60秒で停止したため、資源競合だけとは扱わない。既知記録はN110ではなくN118（通知拒否と保存成功）で、a183a2bから現在まで製品applyとこのprobeの[String:String]の境界型は同一だった。実OSのUNNotificationContent.userInfoは[AnyHashable:Any]（Apple公開宣言）であり、現在のstubは異なるString専用型のため「条件付きdowncastが何もしない」の診断も出ていた。候補ではこの非実行OS境界の型だけを実宣言へ合わせる。製品本文・全assert・コンパイル60秒/実行15秒・他caseは維持し、記録refへpush後に当該1件で比較する。
+
+N156境界型の比較結果：同じ製品本文・全assert・60秒/15秒の期限を維持した[AnyHashable:Any]境界の当該1件は10.763秒/失敗0で完了した。元の[String:String]の型での直前の60秒停止と区別する。コンパイラ内部の根本原因や恒常的な時間を断定しない。shellの2件も元条件で成功済みだが、全288件をこの修正後に通し直した結果ではない。
+
+N156最終ローカル結果：[AnyHashable:Any]境界を含む全Python288件を、同じ期待値・ケース・期限のまま単独実行し、149.469秒/失敗0/予定skip22で完了。初回981.437秒の3timeoutや、逐次の通知probe60秒停止を成功件数へ合算しない。元の通知製品本文・復旧/保存/OS応答のassertionは変更していない。

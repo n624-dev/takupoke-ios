@@ -18,6 +18,7 @@ on:
           - updates
           - auxiliary-store
           - timetable-clocks
+          - home-boundaries
           - home-launch
           - testChangedAccountDataNoticeOpensSharedAcquisition
           - testChangedDataProducesOneLocalNotification

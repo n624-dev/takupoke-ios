@@ -3,6 +3,19 @@ import UIKit
 import CryptoKit
 
 extension ApplicationChecks {
+    func testHomeClockSettingChangesAcrossBoundariesUpdateTheActualInProgressLabel() {
+        let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "架空境界確認科目A")).firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertFalse(card.label.contains("授業中"), app.debugDescription)
+        let begin = app.buttons["開始境界で設定変更"]
+        XCTAssertTrue(begin.isHittable); begin.tap()
+        let active = expectation(for: NSPredicate { _, _ in card.exists && card.label.contains("授業中") }, evaluatedWith: card)
+        XCTAssertEqual(XCTWaiter.wait(for: [active], timeout: 10), .completed, app.debugDescription)
+        let end = app.buttons["終了境界で設定変更"]
+        XCTAssertTrue(end.isHittable); end.tap()
+        let inactive = expectation(for: NSPredicate { _, _ in card.exists && !card.label.contains("授業中") }, evaluatedWith: card)
+        XCTAssertEqual(XCTWaiter.wait(for: [inactive], timeout: 10), .completed, app.debugDescription)
+    }
     func testFirstFailedSpecialDocumentsWarnOnHomeAndWeekAndOpenTheirDetails() {
         for title in ["試験時間割", "試験返却時間割"] {
             let warning = title + "の選択した資料をまだ反映できていません。正常な解析結果がありません。"

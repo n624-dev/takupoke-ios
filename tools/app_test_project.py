@@ -192,6 +192,10 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
                       lambda match: match[1] + "\n        " + match[2] + ".protocolClasses = [FixtureNetwork.self]", text)
         if path.name == 'SchoolEventsModel.swift':
             text = instrument_events_cache(text)
+        if path.name == 'ApplicationData.swift':
+            clock = 'let homeClock = HomeScheduleClock()'
+            assert text.count(clock) == 1, 'Home clock provider insertion point missing'
+            text = text.replace(clock, 'let homeClock = HomeScheduleClock(now: { SimulatorHomeBoundaryFixture.enabled ? SimulatorHomeBoundaryFixture.current : Date() })')
         if path.name == 'ScopedMaterialSelection.swift':
             # The synthetic workbook is owned by this sandbox, not a real File
             # Provider. Substitute only the lease boundary in this disposable copy;
@@ -204,6 +208,9 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         if path.name in ('TimetableView.swift', 'TimetableView+Navigation.swift'):
             text = text.replace('SchoolDate.today()', '(SimulatorAuxiliaryStoreFixture.fixedDayEnabled ? SimulatorAuxiliaryStoreFixture.day : SimulatorEventsYearFixture.enabled ? SimulatorEventsYearFixture.day : (ProcessInfo.processInfo.arguments.contains("--selection-snapshot") ? SimulatorSelectionFixture.day : SchoolDate.today()))')
         if path.name == 'HomeTodayView.swift':
+            configure = '    private func configureClock() {'
+            assert text.count(configure) == 1, 'Home clock boundary insertion point missing'
+            text = text.replace(configure, configure + '\n        SimulatorHomeBoundaryFixture.crossIfArmed()')
             marker = 'private var day: SchoolDate { TimetableDaySchedule.schoolDay(at: now) }'
             assert text.count(marker) == 1, 'Home selection date probe insertion point missing'
             text = text.replace(marker, 'private var day: SchoolDate { SimulatorAuxiliaryStoreFixture.fixedDayEnabled ? SimulatorAuxiliaryStoreFixture.day : SimulatorEventsYearFixture.enabled ? SimulatorEventsYearFixture.day : (ProcessInfo.processInfo.arguments.contains("--selection-snapshot") ? SimulatorSelectionFixture.day : TimetableDaySchedule.schoolDay(at: now)) }')

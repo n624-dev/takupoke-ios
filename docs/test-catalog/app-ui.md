@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`61748a81dd994cc9c155c9bd40048adf994f5d17742374297fe836bff3822665`
+`01b44646923ac934df1a18d3e9ed50b2853258b6047db1c469209c6af04341bf`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -140,6 +140,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/ui/ApplicationChecks+Timetable.swift](../../tests/ui/ApplicationChecks+Timetable.swift)
 
+- `testHomeClockSettingChangesAcrossBoundariesUpdateTheActualInProgressLabel`
 - `testFirstFailedSpecialDocumentsWarnOnHomeAndWeekAndOpenTheirDetails`
 - `testMergedCardsFromAllSources`
 - `testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork`
