@@ -2880,3 +2880,12 @@ N156対処前比較：所有compilerの残存はなく、SPM終了後も同じpr
 N156境界型の比較結果：同じ製品本文・全assert・60秒/15秒の期限を維持した[AnyHashable:Any]境界の当該1件は10.763秒/失敗0で完了した。元の[String:String]の型での直前の60秒停止と区別する。コンパイラ内部の根本原因や恒常的な時間を断定しない。shellの2件も元条件で成功済みだが、全288件をこの修正後に通し直した結果ではない。
 
 N156最終ローカル結果：[AnyHashable:Any]境界を含む全Python288件を、同じ期待値・ケース・期限のまま単独実行し、149.469秒/失敗0/予定skip22で完了。初回981.437秒の3timeoutや、逐次の通知probe60秒停止を成功件数へ合算しない。元の通知製品本文・復旧/保存/OS応答のassertionは変更していない。
+
+
+## N157 issue105/106修正のiOS27 Aがfailure終端（2026-10-27）
+
+sourcec0605c4f2d008579b6c6f77d59a4d27bf44d80b6、run40453620829/attempt1、job122022215143。SDK27.1/Runtime27.0、開始05:25:26Z、終了05:57:04Z、05:58 UTCにfailureを確認。完了ログ未読のため、失敗case・操作・build/実行の段階・原因は未確定。製品のclock境界や期限切れ表示が原因とは断定しない。先行B/Native/iPhone build/手動27四件は成功、後続source86b1f3fは別実行で混同しない。対処決定前に記録し、全残ジョブを取消しせずに確認する。
+
+N157完了log：build成功50.3秒、通常AのtestChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunchが145.127秒で失敗。Navigation.swift:223の元45秒の一意・全包含・操作可・状態一致native Switch観測が不成立。3行目の選択後、4行目の存在確認は成功したが、内側「0」Switchのframe再解決で内部retryとsnapshot採取が入り、接触前に失敗した。4行目へのtouch不達やBinding不発ではなく、接触へ未到達であり、下位原因は未確定。新規Home境界ケースは18.022秒で成功し、clock修正の失敗とは扱わない。ログは一度だけ取得し保存済み。
+
+照合はcase名/change-skip/native identity/Navigation.swiftでN146/N147/N153と現helper/元caseを読み、N146当時184f7ed、N147後abd6d2f、公開main34c40d2と今回c0605c4の該当本文を比較する。N146は3行目の接触後value待機、N153は保存再起動後CのAX照会停止で、今回の4行目・接触前のnative再解決とは段階が違う。後続86b1f3fの通常Aは失敗観測前05:49:20Zに既に開始しており、通常helper/元case/期限は同一。推測の製品変更や無根拠の追加再実行を開始せず、この進行中の必須検証を終端まで確認する。一回の成功を恒常解消へ一般化しない。
