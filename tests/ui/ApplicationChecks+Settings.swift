@@ -75,10 +75,8 @@ final class LoopbackBrowserFixture: @unchecked Sendable {
     private func respond(_ client: Int32) {
         defer { close(client) }
         let flags = fcntl(client, F_GETFL, 0)
-        guard flags >= 0, fcntl(client, F_SETFL, flags & ~O_NONBLOCK) == 0 else { return }
-        var timeout = timeval(tv_sec: 2, tv_usec: 0)
-        guard setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size)) == 0,
-              setsockopt(client, SOL_SOCKET, SO_SNDTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size)) == 0 else { return }
+        guard flags >= 0, fcntl(client, F_SETFL, flags | O_NONBLOCK) == 0 else { return }
+        let deadline = ProcessInfo.processInfo.systemUptime + 2
         #if canImport(Darwin)
         var noSignal: Int32 = 1
         guard setsockopt(client, SOL_SOCKET, SO_NOSIGPIPE, &noSignal, socklen_t(MemoryLayout<Int32>.size)) == 0 else { return }
@@ -88,8 +86,9 @@ final class LoopbackBrowserFixture: @unchecked Sendable {
         #endif
         var request = Data(), buffer = [UInt8](repeating: 0, count: 1024)
         while request.range(of: Data([13, 10, 13, 10])) == nil {
+            guard wait(client, events: Int16(POLLIN), until: deadline) else { return }
             let count = recv(client, &buffer, buffer.count, 0)
-            if count < 0 && errno == EINTR { continue }
+            if count < 0 && (errno == EINTR || errno == EAGAIN) { continue }
             guard count > 0, request.count + count <= 8192 else { return }
             request.append(contentsOf: buffer.prefix(count))
         }
@@ -105,14 +104,26 @@ final class LoopbackBrowserFixture: @unchecked Sendable {
         FileHandle.standardError.write(Data("BROWSER_FIXTURE response=\(status);bytes=\(body.count)\n".utf8))
         var offset = 0
         while offset < response.count {
+            guard wait(client, events: Int16(POLLOUT), until: deadline) else { return }
             let sent = response.withUnsafeBytes {
                 send(client, $0.baseAddress!.advanced(by: offset), response.count - offset, sendFlags)
             }
-            if sent < 0 && errno == EINTR { continue }
+            if sent < 0 && (errno == EINTR || errno == EAGAIN) { continue }
             guard sent > 0 else { return }
             offset += sent
         }
         _ = shutdown(client, Int32(SHUT_WR))
+    }
+    private func wait(_ client: Int32, events: Int16, until deadline: TimeInterval) -> Bool {
+        while !source.isCancelled {
+            let remaining = deadline - ProcessInfo.processInfo.systemUptime
+            guard remaining > 0 else { return false }
+            var descriptor = pollfd(fd: client, events: events, revents: 0)
+            let result = poll(&descriptor, 1, Int32(ceil(remaining * 1000)))
+            if result < 0 && errno == EINTR { continue }
+            return result > 0 && descriptor.revents & events != 0
+        }
+        return false
     }
 }
 // END PURE LOOPBACK BROWSER FIXTURE

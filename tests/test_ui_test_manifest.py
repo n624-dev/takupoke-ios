@@ -246,6 +246,7 @@ class ManifestTests(unittest.TestCase):
         import http.client
         import select
         import socket
+        import threading
         import time
         from urllib.parse import urlsplit
         source = (ROOT / "tests/ui/ApplicationChecks+Settings.swift").read_text()
@@ -294,6 +295,26 @@ class ManifestTests(unittest.TestCase):
                         self.assertEqual("架空リンクAの検証ページ" in body.decode(), status == 200)
                     finally:
                         connection.close()
+                # A client sending partial headers cannot extend the total deadline.
+                trickle = socket.create_connection((parsed.hostname, parsed.port), timeout=3)
+                stop_sending = threading.Event()
+                def send_partial_header():
+                    while not stop_sending.is_set():
+                        try:
+                            trickle.sendall(b"G")
+                        except OSError:
+                            return
+                        stop_sending.wait(0.1)
+                sender = threading.Thread(target=send_partial_header, daemon=True)
+                sender.start()
+                try:
+                    trickle.settimeout(2.8)
+                    self.assertEqual(trickle.recv(1), b"")
+                finally:
+                    stop_sending.set()
+                    trickle.close()
+                    sender.join(timeout=1)
+                    self.assertFalse(sender.is_alive())
                 # An unfinished local client must not keep the listener alive.
                 idle = socket.create_connection((parsed.hostname, parsed.port), timeout=3)
                 time.sleep(0.05)
