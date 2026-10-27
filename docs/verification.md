@@ -3108,6 +3108,10 @@ Linux・Docker、ローカル試行1。Swiftコンパイル／テストケース
 
 # 検証記録
 
+## 2026-10-27 issue106の旧時計処理による実Home比較
+
+修正済み86b1f3fと同じHome/保存済み架空授業/AppStorage変更/境界入力/実AX「授業中」期待を保ち、診断専用branchではTimetableBoundaryClock.swiftだけを公開main34c40d2の完全な本文へ戻す。新規Homeケースは先行c0605c4のSDK27.1/Runtime27.0で18.022秒成功したが、それだけでは旧実装の実画面不具合の証明にはならない。同じSDK/Runtimeでhome-boundaries一件を比較し、旧版が表示期限10秒で失敗するか、別の原因か、表示更新に問題がないかを区別する。旧版を製品候補へ統合せず、元の期待・10秒・一回の設定操作を変更しない。catalogのTimetableBoundaryClock/実Homeケース対応を確認済み。限定検証を全15/公開合格や実機性能に換算しない。新規code-only review後に一回だけ実行する。
+
 ## 2026-10-12 Strict全差分の再調査：エラー番号で限定しない
 
 239.1のbfc599fから380.1のbfdf7c5を固定し、Strict関連18ファイル・124差分区間を照合した。
