@@ -1,3 +1,26 @@
+## 2026-10-28 457.1の正式公開と公開物照合
+
+[source f709367a84747a2216a419eb2f4723c7ca429a29](https://github.com/n624-dev/takupoke-ios/commit/f709367a84747a2216a419eb2f4723c7ca429a29)、[正式run40506458617・attempt1](https://github.com/n624-dev/takupoke-ios/actions/runs/40506458617)の必須15条件がすべてsuccess。全18表示job終端、15成功/構成上の任意3skip、保存Actions artifact0。全15実job完了logを各一度だけ取得し、この終端run/jobs/log/artifactを再照会しない。旧source/限定診断の成功を合算していない。
+
+- Python292件/予定skip22/失敗0（94.680秒）、Native691件/予定skip1/失敗0（138.780秒）。device build内でも691件/予定skip1/失敗0（126.429秒）。
+- 通常26/27のA・Bすべて成功。元31 UI宣言とOS文字サイズ3段階、VoiceOver27、実通知、保存・再起動を維持。VoiceOver26は元の予定skipで、実行成功と混同しない。
+- 手動訂正四件×両OSすべて成功。単項目/三項目/明示選択/原本変更の元入力・各ACK・第4拒否・背景同一process・保存・再起動と厳密な完了集合を維持した。
+- 実Homeの開始/終了境界は27で21.427秒、26で18.504秒。旧時計だけを戻した負対照の35.696秒失敗とは区別した。N163の年度入力は通常全体でも27の176.391秒・26の141.729秒で成功し、実編集/Keyboard通知を採取した。下位原因や恒常解消は今回の非再発から断定しない。
+- 最後のiPhone Release buildは401.1秒、Pickerの元3件も80.608/244.703/35.822秒で成功し、14前段条件の同一source/run/attemptを再確認して公開した。
+
+[457.1のRelease](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.457-build.457.1)の公開時刻は2026-10-27T14:57:17Z（日本時間10月27日23:57）。翌28日00時以降の独立照合で公開4添付を認証なしで取得し、全サイズ/GitHub digest/SHA-256を一致確認した。既存tools/release.validateでIPA内部の版0.1.457/build457.1/sourcef709367・Bundle/最低OS/実iPhone向けMach-O/同梱物/構成/icon/更新内容とSourceを照合。固定URLの最新altstore-source.jsonもversion付き添付とbytes完全一致。所有TemporaryDirectoryのダウンロードは終了時に回収した。
+
+| 添付 | bytes | SHA-256 |
+|---|---:|---|
+| altstore-source.json | 2538 | `d348610e45138b3243c4dfdd3458fa6b246f8ae8750a1ca5e0a99f1034cf3063` |
+| icon.png | 130461 | `7ed41c1462f9bd46427b11e1045caddd95c10bea459a5984298c60776ab6177f` |
+| release.json | 749 | `dd529ccecaea9cd15002b947959b34118b3c5a1c25abeb96031f6397121ac770` |
+| takupoke.ipa | 17293246 | `9b4d8c97ccd325dc7aa84d3a9eb8b665174a09f1cc6e8ec8364ff1373e83f43e` |
+
+Issue105（期限切れchecking案内）と106（授業境界の再設定）は修正・正式検証・公開物照合を根拠にcompletedで閉じた。API47も本番性能/容量の既記録に基づき完了済み。失敗N156〜N164の全観測/比較/対処前記録は保持し、検証条件の緩和や結果の注入はしていない。
+
+物理iPhoneへの457.1のAltStore更新操作、Time Profiler/SwiftUI/フレーム比較は未確認。利用者回答でiPhone接続済みMacは無し。Issue66/67とAPI48（状態/最終成功/オフライン移行の実機受け入れ）はopen、API PR50はdraftで保持する。Core/Simulator/公開物照合を物理端末の合格へ代用しない。元mainの未commitメモ16/85行も全文順序を検査して保持した。
+
 ## 2026-10-20 留学生向け変更の空欄修正を419.1へ公開
 
 source `1e3fe81ecad3890ba9086b88c0b0afb373ea5688`、[run39397264222・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/39397264222)の全15必須チェックが成功、全job終端・保存Actions artifact0。公開後に通常Release／Latestと固定AltStore Sourceを照合した。
