@@ -8198,3 +8198,7 @@ Distribution/job122196885558は12:48:30Zにsuccess、Python全292件/失敗0/予
 同じ正式sourceの訂正26も全四件がsuccess終端。明示選択/job122223580980は14:08:26Z（1046.137秒）、三項目/job122223581217は14:11:05Z（305.589秒）にsuccessで、両OS八件の元UI条件がこのsource/run/attemptで成功した。各新完了logは一度だけ取得した。
 
 通常26 B/job122216108854は14:12:29Zにsuccess。元LinkPreferences101.344秒で実HTTP200/205bytes/native Close/一覧復帰/stop、通知179.446秒とOS文字サイズ三段階、正確なB内15 XCTest完了を確認。VoiceOver26は元の予定skipで、27の実成功と区別した。公開条件の確認済み成功は13jobで、通常26 AとBuild/Publishが残る。旧source/focusの成功を足した判定ではない。
+
+通常26 A/job122223580929も14:29:07Zにsuccess。元基本18件/失敗0（1816.431秒）、実通知84.947秒、厳密な19 XCTest完了を照合した。元CacheCorruption141.729秒、Home境界18.504秒、行除外188.600秒が成功し、同一sourceでHome境界は27/26とも実画面を通過した。完了logは一度取得済み。これで同じf709367/run40506458617/attempt1の公開前14必須jobが全て成功した。
+
+Build and publish AltStore release/job122249653181は14:29:12Zに開始。iPhone向けbuild・Picker UI・公開/添付/固定Source照合が残るため、この時点では15条件完了・新しい配布・issue105/106完了とは記載しない。過去の取得済みiPhone check logではPicker準備からdevice build完了まで約24分だったため、今回の開始時刻から次の確認を決める。
