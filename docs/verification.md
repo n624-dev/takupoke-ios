@@ -8146,3 +8146,9 @@ main取り込み一回専用の新規GPT-6.1 Sol/High ios_main_pre_actions_revie
 main22cb3f8/run40461806832は通常両OS/Native/訂正7条件が成功し、単項目26の保存直前Buttonだけ接触前のnative hittability照会で失敗、公開skip。N160へ実stage/枠/到達・未到達、N126/N152と当時/current本文の比較、候補の違いを先に記録・pushした。候補200c4c9はindexed対象で位置を探し、実際に接触する唯一のnative Buttonで全幾何/enabled/hittableを一回観測してそのまま返す。従来のnative guardは全て必須、実接触は元の一回。別表現での二重hit照会だけを除き、cached native枠とviewportを受動logへ出す。一般入力/ACK/代替候補/fixture menu・元の全期待/期限・全15の公開条件は維持した。
 
 候補と記録の非起動branchへのpush後に、既存manual系Python39件/失敗0/skip0（23.143秒）とその中の実Swift純幾何29件/失敗0（0.206秒）、Swift構文/catalog450/check/空白を確認。実機・Simulatorの成功とは扱わない。新規GPT-6.1 Sol/High ios_native_button_pre_actions_reviewはcode-only差分43行/SHA256 6c81148d35e7f64e9fb4605bfc7a4336eb997e6c807ca269dc66397dfee90668だけを確認し、具体的指摘なし。主担当がhash/差分/元guard維持を照合し、次のmain pushによる元の正式全15の一回にだけ使用する。旧runの成功を新sourceへ混ぜず、全新source/実行/試行を確認する。
+
+## 2026-10-27 N161のnativeブラウザ入力の固定
+
+旧source8e01/run40474382684のLinkPreferencesは二回の実メニュー/保存/再起動/primary tap後、Safari内部BrowserView?のAX照会で停止した。N161へ実stageとU42/U54/N44・dfb185c/bf1749a/e4f2fbfの当時/current比較を先に記録・pushした。候補はUIKit controllerを置換せず、実SFSafariViewControllerに渡す通信URLだけを専用flag時の127.0.0.1入力にする。元のリンクHTTPS・製品のinApp経路選択・delegate・native Closeを保持し、誤った元リンクURL/不正なloopback設定は拒否する。実ページ内容を元30秒で要求し、元のClose10秒/消失10秒/一覧復帰と長押し/保存/再起動・全31 UIケース・全15 gateは維持した。loopback listenerはUITest processが所有し初回起動前から再起動後まで保持、tearDown/deinitでcancelし未完了clientも2秒で打ち切る。公開アプリのSafariLinkView/LinkOpeningModeの本文は変更しない。
+
+候補と記録を非起動branchへpush後、元Swiftのserverを実行するGET/route拒否/bytes/停止対照と、実生成factoryの元HTTPS保持/不正URL拒否を個別確認した。さらにmanifest30件/失敗0/skip0（46.399秒）、shell runner14件/失敗0（37.908秒）、Swift/Python構文/catalog450/check/空白が成功。LinuxのfactoryではSafariだけ非実行OS境界stubであり、実UI検証とは区別する。次の限定一回専用に新規code-only reviewを行い、両Runtimeの元LinkPreferences全操作を確認する。
