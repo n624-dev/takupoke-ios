@@ -2969,3 +2969,5 @@ N162の追加事実：check annotationは「The job has exceeded the maximum exe
 N162照合：timeout/cancel/cleanup/test-app-ui/timed_commandを検索し、N27/N07/N153詳細と20a1c0fの実runner、現9745d33のrunner/timed_command/manual_ui_diagnosticsを読んだ。N27は追加操作を終えきれず45分で中断し今回は一件の30分超過だが操作段階を示すlogが無い。N07はsimctl一覧とshutdownの停止を個別に観測していたが今回はそこまで断定できない。現timed_commandは計測とsignal時の所有group回収だけで、時間上限はなく、runnerのsimctl create/終了等には段階出力もない。実fixtureのserverは既にglobal2秒deadlineなので、そこや元AX30秒/Close10秒/SDK/実操作を推測変更しない。
 
 次の限定27一回ではQA実行の外側だけを24分で失敗124にする有限監視を追加し、最大120秒の所有group終了と残4分のjob猶予でlog回収を試みる。runnerにはsimctl一覧/create/boot/frontend/終了の前後固定stageを受動出力する。元30分job予算を延ばさず、UI成功/期限切れの救済や再試行を加えない。正常終了値/出力/取消時の回収を既存wrapper検査で保持し、実processの時間切れ・子の終了を追加検証する。製品/browser fixture/元caseと全15gateは変更せず、候補/根拠を非起動refへpush後に検査、新規code-only review後に27だけを診断する。26成功の再実行はしない。
+
+N162候補2b5e5c9の局所結果：Python wrapper5件/失敗0（7.029秒）、実shell runner14件/失敗0（41.905秒）、Bash構文/catalog450/check --base9745d33が成功。新しい実process対照は2秒deadlineで124を返し、TERMを無視する所有childを回収し、別groupへ影響しないことを確認した。既存の二重signal/終了済みleaderの子回収、正常出力/終了値も維持した。旧N07の782ad0dはrun.shからcompare.pyへ委譲する構成であり、今回をsimctl停止の再現と扱わない。Swift fixture/product/元case/期限は追加変更していない。
