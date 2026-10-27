@@ -15,6 +15,21 @@ from ui_test_manifest import MANUAL_CASES
 
 
 class ManualRunnerTests(unittest.TestCase):
+    def test_shipping_comparison_refuses_a_missing_unavailable_or_newer_selected_runtime(self):
+        workflow = (ROOT / ".github/workflows/manual-input-native-probe.yml").read_text()
+        program = workflow.split("xcrun simctl list runtimes -j | python3 -c '\n", 1)[1].split("'\n", 1)[0]
+        program = textwrap.dedent(program)
+        def runtime(version, available=True):
+            return {"version": version, "isAvailable": available,
+                    "identifier": "com.apple.CoreSimulator.SimRuntime.iOS-" + version.replace(".", "-")}
+        for items, success in (([runtime("26.5")], True), ([runtime("26.5"), runtime("27.0")], True),
+                               ([], False), ([runtime("26.5", False)], False),
+                               ([runtime("26.5"), runtime("26.6")], False)):
+            with self.subTest(runtimes=items):
+                result = subprocess.run([sys.executable, "-c", program], input=json.dumps({"runtimes": items}),
+                                        capture_output=True, text=True, timeout=5)
+                self.assertEqual(result.returncode == 0, success, result.stdout + result.stderr)
+
     def test_focused_comparison_checks_both_sdks_without_changing_the_legacy_defaults(self):
         workflow = (ROOT / ".github/workflows/manual-input-native-probe.yml").read_text()
         self.assertIn("default: both", workflow)

@@ -32,18 +32,11 @@ jobs:
       matrix:
         ios: ${{ fromJSON(inputs.ios == '26' && '[26]' || inputs.ios == '27' && '[27]' || '[26,27]') }}
         case: ${{ fromJSON(inputs.case == 'all' && '["testThreeFieldsRequireEachAcknowledgementAndFourRefuses","testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground","testChangedOriginalCannotSubmitOrReplaceLastGood","testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch"]' || format('["{0}"]', inputs.case)) }}
-        include:
-          - ios: 26
-            runner: macos-26
-            developer: /Applications/Xcode_26.6.app/Contents/Developer
-          - ios: 27
-            runner: xcode-27
-            developer: /Applications/Xcode_27.1.app/Contents/Developer
-    runs-on: ${{ matrix.ios == 26 && inputs.sdk26 == '27.1' && 'xcode-27' || matrix.runner }}
+    runs-on: ${{ matrix.ios == 26 && inputs.sdk26 != '27.1' && 'macos-26' || 'xcode-27' }}
     timeout-minutes: ${{ matrix.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' && 45 || 35 }}
     env:
       TKPK_EXPECTED_IOS_SDK: ${{ (matrix.ios == 27 || inputs.sdk26 == '27.1') && '27.1' || '26.5' }}
-      DEVELOPER_DIR: ${{ matrix.ios == 26 && inputs.sdk26 == '27.1' && '/Applications/Xcode_27.1.app/Contents/Developer' || matrix.developer }}
+      DEVELOPER_DIR: ${{ (matrix.ios == 27 || inputs.sdk26 == '27.1') && '/Applications/Xcode_27.1.app/Contents/Developer' || '/Applications/Xcode_26.6.app/Contents/Developer' }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_MANUAL_CASE: ${{ matrix.case }}
       TKPK_MANUAL_DIAGNOSTICS: '1'

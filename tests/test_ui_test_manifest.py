@@ -789,7 +789,11 @@ METHOD
         self.assertIn("timeout-minutes: ${{ matrix.case == '"+selected+"' && 45 || 35 }}",probe)
         all_cases=json.loads(re.search(r"inputs.case == 'all' && '([^']+)'",probe).group(1))
         self.assertCountEqual(all_cases,original|{selected})
-        self.assertIn("ios: [26, 27]",probe)
+        self.assertIn("default: both", probe)
+        probe_matrix = probe.split("      matrix:\n", 1)[1].split("    runs-on:", 1)[0]
+        self.assertEqual([json.loads(value) for value in re.findall(r"'(\[[\d,]+\])'", probe_matrix)],
+                         [[26], [27], [26, 27]])
+        self.assertNotIn("include:", probe_matrix, "Single-OS selection must not add another OS row")
         self.assertIn("TKPK_MANUAL_CASE: ${{ matrix.case }}",probe)
         self.assertNotIn("continue-on-error",probe)
         self.assertIn("bash tools/test-app-ui.sh", simulator)
