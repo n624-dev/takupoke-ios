@@ -2880,3 +2880,48 @@ N156対処前比較：所有compilerの残存はなく、SPM終了後も同じpr
 N156境界型の比較結果：同じ製品本文・全assert・60秒/15秒の期限を維持した[AnyHashable:Any]境界の当該1件は10.763秒/失敗0で完了した。元の[String:String]の型での直前の60秒停止と区別する。コンパイラ内部の根本原因や恒常的な時間を断定しない。shellの2件も元条件で成功済みだが、全288件をこの修正後に通し直した結果ではない。
 
 N156最終ローカル結果：[AnyHashable:Any]境界を含む全Python288件を、同じ期待値・ケース・期限のまま単独実行し、149.469秒/失敗0/予定skip22で完了。初回981.437秒の3timeoutや、逐次の通知probe60秒停止を成功件数へ合算しない。元の通知製品本文・復旧/保存/OS応答のassertionは変更していない。
+
+
+## N157 issue105/106修正のiOS27 Aがfailure終端（2026-10-27）
+
+sourcec0605c4f2d008579b6c6f77d59a4d27bf44d80b6、run40453620829/attempt1、job122022215143。SDK27.1/Runtime27.0、開始05:25:26Z、終了05:57:04Z、05:58 UTCにfailureを確認。完了ログ未読のため、失敗case・操作・build/実行の段階・原因は未確定。製品のclock境界や期限切れ表示が原因とは断定しない。先行B/Native/iPhone build/手動27四件は成功、後続source86b1f3fは別実行で混同しない。対処決定前に記録し、全残ジョブを取消しせずに確認する。
+
+N157完了log：build成功50.3秒、通常AのtestChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunchが145.127秒で失敗。Navigation.swift:223の元45秒の一意・全包含・操作可・状態一致native Switch観測が不成立。3行目の選択後、4行目の存在確認は成功したが、内側「0」Switchのframe再解決で内部retryとsnapshot採取が入り、接触前に失敗した。4行目へのtouch不達やBinding不発ではなく、接触へ未到達であり、下位原因は未確定。新規Home境界ケースは18.022秒で成功し、clock修正の失敗とは扱わない。ログは一度だけ取得し保存済み。
+
+照合はcase名/change-skip/native identity/Navigation.swiftでN146/N147/N153と現helper/元caseを読み、N146当時184f7ed、N147後abd6d2f、公開main34c40d2と今回c0605c4の該当本文を比較する。N146は3行目の接触後value待機、N153は保存再起動後CのAX照会停止で、今回の4行目・接触前のnative再解決とは段階が違う。後続86b1f3fの通常Aは失敗観測前05:49:20Zに既に開始しており、通常helper/元case/期限は同一。推測の製品変更や無根拠の追加再実行を開始せず、この進行中の必須検証を終端まで確認する。一回の成功を恒常解消へ一般化しない。
+
+N157後続の観測：source86b1f3f/run40455341102/attempt1の通常27 A/job122027886329は05:49:20Z開始・06:26:45Zにsuccess終端。元の行除外caseは149.499秒で行3/4/group一回操作・取消/103行の保存/再起動保持まで成功した。通常18件/失敗0（1691.169秒）と通知1件/失敗0（53.202秒）、新規Home境界は24.128秒で成功。helper/元case/全期限は失敗sourcec0605c4と同一であり、再実行はN157観測前に開始していた。旧AX再解決失敗の根本原因・恒常解消は未証明で、追加の無根拠な再試行やhelper変更は行わない。同sourceの27 B、訂正27四件、Native、iPhone Releaseも成功し、26は別途継続中。
+
+## N158 issue106の旧時計実Home比較がfailure終端（2026-10-27）
+
+source9cb40b1f4ebb42722106e200742cfe3b5b0bd05a、run40459050676/attempt1、job122039064294。SDK27.1/Runtime27.0を指定したhome-boundaries一件の診断は06:10:44Z開始・06:18:56Zにfailure終端、06:22 UTCの予定確認で観測した。完了ログ未読のため、製品/準備段階・具体assert・実Runtimeの確定と原因は未確認。旧時計処理が原因との結論や期待した負対照としての採用は、ログの実画面到達を照合してから行う。修正候補の正式CIとは別sourceであり、失敗・成功の件数を合算しない。次の試行・対処を決める前の事実として記録する。
+
+N158完了log：指定どおりSDK27.1/Runtime27.0、build成功。実Home起動と架空授業cardの存在、境界前の「授業中」なし、開始境界の設定Button一回tapまで通過した。ApplicationChecks+Timetable.swift:13の元10秒待機がtimeout2、case35.696秒/失敗1。実AXのcard labelは「科目、架空境界確認科目A、時刻、08:50～09:35、教員、架空教員A、教室、架空教室A」のまま、授業中を含まなかった。終了側の操作へ未到達。これは単なるchanged件数ではなく、時計入力を制御した実SwiftUI画面の古い表示の観測である。
+
+N158比較：N157の別のSwitch取得失敗と区別し、issue106の最小観測と公開main34c40d2/修正c0605c4/旧clock診断9cb40b1の実本文を照合。新規Home case・fixture・設定操作・元10秒の期待は同じで、診断のTimetableBoundaryClock.swiftだけをmain34c40d2の完全なbytesへ戻した。修正済みc0605c4は同じSDK/Runtimeの同case18.022秒で開始/終了の実表示を通過した。旧版の実画面不整合の再現対照として採用し、診断branchを製品へ統合しない。実機での頻度・フレーム時間や正式全15合格の証明には一般化しない。追加の同条件再実行は不要。
+
+## N159 issue105/106修正の通常iOS26 Bが二sourceでfailure終端（2026-10-27）
+
+06:52 UTCの実測所要時間に基づく一括確認で、先行sourcec0605c4/run40453620829/attempt1/job122031408841は06:08:59Z開始・06:26:54Zにfailure、後続source86b1f3f/run40455341102/attempt1/job122041356319は06:13:04Z開始・06:45:31Zにfailure終端と確認した。通常laneはSDK27.1/Runtime26.5を指定。完了ログ未読のため実Runtime、失敗case/操作/準備段階・原因、両者が同じ原因かは未確定。source22cb3f8/main run40461806832はこれらの失敗観測前06:33:25Zに開始済みで、旧二run/最新mainの成功を合算しない。対処案選択前に観測を記録し、新ログと過去の該当詳細/当時と現sourceを照合する。実行中は取消ししない。
+
+N159先行c0605c4の実log：SDK27.1/Runtime26.5、build成功。testHomeTimetableAndWeekCalendarは60.258秒で失敗、ApplicationChecks.swift:101の起動準備fixture-ready元45秒が不成立。実AXはApplicationだけで子要素なし。pid98987はinit-enter/seed-enter/seed-complete/scene-constructionを記録し、root-task-enter/content-appeared/application-ready/fixture-readyは未観測。具体的な下位停止原因・crashとは断定しない。基本6件中ほか5件は成功し、通知/文字サイズ/VoiceOverの後続phaseは未実行。
+
+N159後続86b1f3fの実log：同SDK/Runtime、buildと通常10件/文字サイズ段階は成功し、HomeTimetableは64.081秒で成功した。別RunnerのtestNotificationControlsAndAppearanceだけ136.458秒で失敗。Notifications.swift:112、元45秒の許可/有効化待機。通知画面へ移動、read不要の正規分岐authorization=notRequested/scene=active/application=0、実Switch外枠(16,165,361,52.333)/子(300,177.333,63,28)/双方0・操作可を確認し、一回0.1秒のnative接触を合成した。前後ともrequesting=false/changes=false/saved=false、実Binding/native許可要求のlifecycle記録なし。許可ダイアログへの進行は未到達で、U15のrequesting=true後のOS応答待ちとは異なる。接触の実配送先/取消し・下位原因は今回未採取。SpringBoard等の稼働情報だけから原因を推定しない。
+
+N159照合：fixture-ready/launch/U65とnative Switch/notification/U64/U30/U15/U77/N146を検索して詳細と当時983e523/841a389/fd6e42c・公開34c40d2・今回c0605c4/86b1f3f/22cb3f8の本文を比較した。U65はprocess handle不在で今回はseed-complete後の空AX、U64は同種の接触未反映だが別のAI Switch、U15は実許可要求後で今回はその前。製品通知・通知case/許可probe/通常Switch helperは今回のdiffで未変更。旧fd6e42c後のpanel受動化も現行で保持されている。SDK/点/接触時間/45秒・元のUI/保存/再起動条件を推測変更せず、まだ実行中のmain22cb3f8（両失敗の観測前に開始）の元必須検証をまず確認する。無根拠の追加再実行は開始しない。
+
+旧c0605c4/run40453620829は全15表示job終端、事前成功8/失敗2/依存・構成skip5、artifact0。全10実jobの完了logは一度取得済みで、この旧run/log/artifactを再照会しない。後続86b1f3fの訂正26の単項目480.844秒と三項目433.709秒は成功し、残る26 A/明示選択/原本変更は継続中。これらの成功を旧/後続の失敗へ置き換えない。
+
+N159画像確認：失敗時のnotification-switch-unresolvedを36片から所有一時領域へ復元し、157849bytes/SHA256 b335f3ec688d7accf3fb66f9098ae3863971654de11e03f26689209ef9becbc8を照合して目視した。通知画面で両SwitchはOFF、許可ダイアログはなく、QAの「許可画面を確認」Buttonは画面中央より下にあり実Switchを視覚的に覆っていない。画像は期限後の状態であり、入力時点の配送先/gesture/Bindingの証明にはならない。画像の所有一時領域は確認後に回収し、公開ファイルへの画像添付はしない。
+
+N159後続PRの終端：source86b1f3f/run40455341102の最後の26 A/job122045793511は07:15:30Zにsuccess。基本18件/失敗0（1815.309秒）と実通知1件/失敗0（95.251秒）、新規Home境界18.062秒、元行除外181.606秒で成功した。Home境界は同じ修正版の両Runtimeで成功。訂正26の明示選択1282.790秒・原本変更240.522秒も成功して四件すべて完了した。PR実行は全18表示job終端、14成功/26 Bの失敗1/依存・構成skip3、artifact0。全15実job完了logを一度だけ取得済み。この終端run/jobs/log/artifactを再照会せず、26 Bの失敗を他成功で救済しない。main22cb3f8/run40461806832ではLinux288件/予定skip22、Native691件/予定skip1、訂正27全四件、通常27 Bが成功し、元の26 Bは07:32:22Zから別途実行中。main全15/公開の成功はまだ未確認。
+
+## N160 issue105/106取込み後mainの単項目訂正iOS26がfailure終端（2026-10-27）
+
+08:21 UTCの実測所要時間に基づく一括確認でsource22cb3f8d5ed60800611c4f99af667d1d0b3bd15d/run40461806832/attempt1、job122070104137、testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackgroundが07:41:40Z開始・08:08:11Zにfailure終端と確認した。指定SDK27.1/Runtime26.5、実Runtime/ケース到達/具体失敗段階・原因は完了ログ未読のため未確定。mainの通常26 Bは元通知操作を含めsuccess、訂正26のほか三件もsuccess、通常26 Aだけ継続中。main全15/公開成功は未成立で、残実行は取消ししない。対処案選択前の事実として記録し、新しいログ・過去の該当詳細・当時と現sourceの照合後に候補を決める。
+
+N160実log：SDK27.1/Runtime26.5、build成功。752.475秒/失敗1、Navigation.swift:90。初回入力/独立ACK、背景同一process、再編集と確認previewまで通過し、最後の「この資料全体の結果を使用」Buttonへの実接触前に失敗した。16探索の7回目、indexed対象の枠(16,697.333,361,100.667)とviewport(0,141,393,699)を観測し、既存manualVisibleCandidateによるindexed hittabilityは成立した。その後同じlabelのButtonをaccessibility identityで取り直し、別のframe/全包含/enabledを通過したが、native isHittableがActivation point invalidで例外を記録した。native側の正確な枠は未出力で、実touch/採用保存/再起動は未到達。入力trace68行、owned-app-logはoutput-capで終了。OSの下位原因や製品adoptの不具合とは断定しない。
+
+N160照合：Activation point invalid/native Button/Navigation.swiftとN126/N152/N94/N97の詳細、旧2a81f3a/883c9a0/dfb62cbと公開34c40d2/今回22cb3f8のhelper・純幾何・元単項目caseを読んだ。N126は外側ACK rowへのhit照会で今回は採用Buttonの最終identity、N152は入口tapの再解決で今回はその後の保存直前。N152後も通常Buttonにはindexed対象のhit判定と、取り直したnative対象のhit判定が二重に残る。今回は最初が成立してから次が失敗し、同じ物理対象を別表現で照会する間隙がある。製品PDFRecoveryView/全期待と今回helperはP3修正で未変更。
+
+候補では外側indexed対象を位置探索と全包含確認だけに使い、実Buttonの一意なnative identityを取得してから、その同じ要素の有限正枠/viewport完全包含/enabled/hittableを全て要求して一回だけ操作へ返す。現在のnative最終guardは一つも減らさず、indexed対象への重複hit照会だけを避ける。既存clear/通常tapに適用し、入力/ACK/代替候補やfixture menuは現状維持。native枠と既に観測したviewportを受動ログへ出し、追加AX照会は行わない。N152前のfirstMatch接触へ戻さず、16探索/一回反転/受動Cell/全45秒/元の入力全文・UI・保存・背景同一process・再起動と全15gateを保つ。下位原因・改善は未確定。候補とこの比較を非起動refへpush後に既存の幾何/project/runner/manifest/構文/catalogを確認し、新規code-only reviewの後に新sourceの正式全15で確認する。旧mainの残26 Aも取消しせず終端まで確認する。

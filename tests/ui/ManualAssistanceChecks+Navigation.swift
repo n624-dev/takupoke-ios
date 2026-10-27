@@ -63,12 +63,11 @@ extension ManualAssistanceChecks {
             // acknowledge(_:) validates the inner control before its one contact.
             if acknowledgement,let frame=targetFrame,
                ManualScrollNavigation.usable(frame),viewport.contains(frame) { return target }
-            // As for alternative controls, inspect hit testing only after the
-            // actual frame is finite and wholly inside the unobscured viewport.
-            let targetHittable=alternatives==nil && exists && manualVisibleCandidate(
-                candidates:[target],viewport:viewport,frame:{ _ in targetFrame ?? .null },
-                isHittable:{ $0.isHittable }) != nil
-            if targetHittable {
+            // The indexed target reveals the row. For a Button, bind the
+            // physical identity before hit testing so observation and contact
+            // use the same element rather than two successive representations.
+            if alternatives==nil,exists,let targetFrame,
+               ManualScrollNavigation.usable(targetFrame),viewport.contains(targetFrame) {
                 let physicalButtons:XCUIElementQuery?
                 if inRecovery && targetID.hasPrefix("manual-clear-") {
                     physicalButtons=query
@@ -86,14 +85,19 @@ extension ManualAssistanceChecks {
                         XCTFail("The revealed Button must have one current native identity");return e
                     }
                     let actual=controls[0],frame=actual.frame
+                    print("TAKUPOKE-MANUAL-NATIVE-BUTTON frame=\(frame);viewport=\(viewport);attempt=\(attempt)")
                     guard ManualScrollNavigation.usable(frame),viewport.contains(frame),
                           actual.isEnabled,actual.isHittable else {
                         XCTFail("The current native Button must remain inside the observed viewport and operable");return e
                     }
                     return actual
                 }
-                return target
             }
+            // Non-Button targets retain their existing hit-testing path.
+            let targetHittable=alternatives==nil && exists && manualVisibleCandidate(
+                candidates:[target],viewport:viewport,frame:{ _ in targetFrame ?? .null },
+                isHittable:{ $0.isHittable }) != nil
+            if targetHittable { return target }
             if alternatives==nil && exists && targetID.isEmpty { targetID=target.identifier }
             // Resolve the unique actual containing Cell, even when its focused
             // child exposes an infinite/zero or stale in-viewport frame.
