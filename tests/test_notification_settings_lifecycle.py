@@ -277,7 +277,7 @@ final class UNUserNotificationCenter: @unchecked Sendable {
  func deliveredNotifications() async -> [Delivered] { [] }
 }
 struct Request { let identifier:String; let content:Content }
-struct Content { let userInfo:[String:String] }
+struct Content { let userInfo:[AnyHashable:Any] }
 struct Delivered { let request:Request }
 struct SchoolDate { static func today()->Self{Self()} }
 struct SchoolDataPeriod:Equatable { static func current()->Self{Self()} }
