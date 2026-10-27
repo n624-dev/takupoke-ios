@@ -2959,3 +2959,13 @@ N161 global deadline補正後のmanifest全30件は41.318秒/失敗0/skip0で成
 N161限定26の実結果：source9745d33ba3867f0d308c000c61c11d2a2cbdcdd3/run40482955626/attempt1/job122117587842、SDK27.1/Runtime26.5は10:00:44Zにsuccess終端。元LinkPreferences一件159.203秒/失敗0。お気に入り解除/同じ保存状態の一回再起動/実追加/primary tapに続き、実SFSafariでHTTP200/205bytesの入力ページ表示、native Closeの実一回操作、ページ消失/一覧復帰を通過し、listener-closedも記録された。27側は継続中で両OS成功/正式全15へは換算しない。
 
 同じ候補のローカルPython全290件は139.791秒/失敗0/予定skip22で成功した。新二件を含む全検査の結果であり、元288件の結果と合算しない。旧main8e01/run40474382684の26 Aは10:07時点で継続中、取り消さない。元のN160失敗OS26の手動訂正は未実行のため未確認のまま保持する。
+
+## N162 loopback browser限定iOS27がcancelled終端（2026-10-27）
+
+10:21 UTCのjob予算後の予定確認で、source9745d33ba3867f0d308c000c61c11d2a2cbdcdd3/run40482955626/attempt1/job122117587388は09:43:34Z開始・10:18:35Zにcancelled終端（35分01秒）と観測した。主担当から取消API/gh cancel等の操作は行っていない。workflow予算は30分。元SDK27.1/Runtime27.0の準備とexact source確認はsuccess、Exercise stepがin_progress表示のままで、完了ログ未読のためcase到達・停止段階・具体終了理由は未確定。26側の実ケース159.203秒のsuccessを27へ代用しない。対処決定前に事実を記録し、ログと過去のtimeout/cleanup/AX記録・当時/current本文を照合する。
+
+N162の追加事実：check annotationは「The job has exceeded the maximum execution time of 30m0s」。job集約log取得は404/BlobNotFoundで、run log archiveもExerciseの27実行本文を回収できなかった。archive抽出時にOS名でなく名前内の27を選んだため26側の既取得checkout断片を再読した選択ミスも記録する。これは27の証拠ではなく、case到達/停止箇所は依然不明。artifact0、限定runは26 success/27 cancelledで終端。旧main8e01/run40474382684の26 Aは10:10:53Zにsuccess終端し18件2064.261秒・通知123.455秒・Home境界20.884秒・行除外195.529秒、全15表示は成功8/失敗1/skip6・artifact0・全9実jobのlog一度取得済み。終端runの反復取得はしない。
+
+N162照合：timeout/cancel/cleanup/test-app-ui/timed_commandを検索し、N27/N07/N153詳細と20a1c0fの実runner、現9745d33のrunner/timed_command/manual_ui_diagnosticsを読んだ。N27は追加操作を終えきれず45分で中断し今回は一件の30分超過だが操作段階を示すlogが無い。N07はsimctl一覧とshutdownの停止を個別に観測していたが今回はそこまで断定できない。現timed_commandは計測とsignal時の所有group回収だけで、時間上限はなく、runnerのsimctl create/終了等には段階出力もない。実fixtureのserverは既にglobal2秒deadlineなので、そこや元AX30秒/Close10秒/SDK/実操作を推測変更しない。
+
+次の限定27一回ではQA実行の外側だけを24分で失敗124にする有限監視を追加し、最大120秒の所有group終了と残4分のjob猶予でlog回収を試みる。runnerにはsimctl一覧/create/boot/frontend/終了の前後固定stageを受動出力する。元30分job予算を延ばさず、UI成功/期限切れの救済や再試行を加えない。正常終了値/出力/取消時の回収を既存wrapper検査で保持し、実processの時間切れ・子の終了を追加検証する。製品/browser fixture/元caseと全15gateは変更せず、候補/根拠を非起動refへpush後に検査、新規code-only review後に27だけを診断する。26成功の再実行はしない。
