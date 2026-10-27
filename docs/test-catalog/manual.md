@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`d87b1f263b89ced92dbea2b5a18a917cb47badeac9c9c47e70a1eb01e61c92fe`
+`2bcbe2b7dcfbec1e301400ca25aa90e0c79c7a10e127c8f32b6dacd2efccfda0`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -132,6 +132,7 @@ bash tools/test-manual-ui.sh
 
 ## [tests/test_manual_ui_runner.py](../../tests/test_manual_ui_runner.py)
 
+- `test_focused_comparison_checks_both_sdks_without_changing_the_legacy_defaults`
 - `test_whole_suite_uses_one_successful_owned_build`
 - `test_selected_case_uses_the_same_build_without_retesting_others`
 - `test_shipping_27_uses_exact_27_0_when_newer_minor_is_available`

@@ -12,6 +12,14 @@ on:
           - testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground
           - testChangedOriginalCannotSubmitOrReplaceLastGood
           - testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch
+      ios:
+        type: choice
+        default: both
+        options: ['both', '26', '27']
+      sdk26:
+        type: choice
+        default: '26.6'
+        options: ['26.6', '27.1']
 
 permissions:
   contents: read
@@ -22,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ios: [26, 27]
+        ios: ${{ fromJSON(inputs.ios == '26' && '[26]' || inputs.ios == '27' && '[27]' || '[26,27]') }}
         case: ${{ fromJSON(inputs.case == 'all' && '["testThreeFieldsRequireEachAcknowledgementAndFourRefuses","testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground","testChangedOriginalCannotSubmitOrReplaceLastGood","testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch"]' || format('["{0}"]', inputs.case)) }}
         include:
           - ios: 26
@@ -31,11 +39,11 @@ jobs:
           - ios: 27
             runner: xcode-27
             developer: /Applications/Xcode_27.1.app/Contents/Developer
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ matrix.ios == 26 && inputs.sdk26 == '27.1' && 'xcode-27' || matrix.runner }}
     timeout-minutes: ${{ matrix.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' && 45 || 35 }}
     env:
-      TKPK_EXPECTED_IOS_SDK: ${{ matrix.ios == 27 && '27.1' || '26.5' }}
-      DEVELOPER_DIR: ${{ matrix.developer }}
+      TKPK_EXPECTED_IOS_SDK: ${{ (matrix.ios == 27 || inputs.sdk26 == '27.1') && '27.1' || '26.5' }}
+      DEVELOPER_DIR: ${{ matrix.ios == 26 && inputs.sdk26 == '27.1' && '/Applications/Xcode_27.1.app/Contents/Developer' || matrix.developer }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_MANUAL_CASE: ${{ matrix.case }}
       TKPK_MANUAL_DIAGNOSTICS: '1'
@@ -46,6 +54,22 @@ jobs:
           persist-credentials: false
       - name: Require exact source
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Require comparison SDK
+        run: |
+          set -euo pipefail
+          test "$(xcrun --sdk iphonesimulator --show-sdk-version)" = "$TKPK_EXPECTED_IOS_SDK"
+          test "$(xcrun --sdk iphoneos --show-sdk-version)" = "$TKPK_EXPECTED_IOS_SDK"
+      - name: Prepare unchanged iOS 26.5 with the shipping SDK
+        if: matrix.ios == 26 && inputs.sdk26 == '27.1'
+        run: |
+          set -euo pipefail
+          python3 -B tools/prepare-ios26-runtime.py
+          xcrun simctl list runtimes -j | python3 -c '
+          import json, sys
+          candidates = [r for r in json.load(sys.stdin)["runtimes"] if r.get("isAvailable") and r["version"].startswith("26.") and r["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS-")]
+          if not candidates or max(candidates, key=lambda r: tuple(map(int, r["version"].split("."))))["version"] != "26.5":
+              raise SystemExit("Selected manual comparison must use unchanged iOS 26.5")
+          print("Manual comparison runtime: iOS 26.5")'
       - name: Prepare shipping iOS 27.0 for the focused comparison
         if: matrix.ios == 27
         run: python3 -B tools/prepare-ios27-runtime.py

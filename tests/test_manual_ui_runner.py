@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import textwrap
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,6 +15,26 @@ from ui_test_manifest import MANUAL_CASES
 
 
 class ManualRunnerTests(unittest.TestCase):
+    def test_focused_comparison_checks_both_sdks_without_changing_the_legacy_defaults(self):
+        workflow = (ROOT / ".github/workflows/manual-input-native-probe.yml").read_text()
+        self.assertIn("default: both", workflow)
+        self.assertIn("default: '26.6'", workflow)
+        self.assertIn("ios: ${{ fromJSON(inputs.ios == '26' && '[26]'", workflow)
+        block = workflow.split("      - name: Require comparison SDK\n        run: |\n", 1)[1]
+        script = textwrap.dedent(block.split("\n      - name:", 1)[0])
+        with tempfile.TemporaryDirectory() as directory:
+            command = Path(directory) / "xcrun"
+            command.write_text("#!" + sys.executable + "\nimport os,sys\nprint(os.environ['TASK_SIM_SDK' if sys.argv[2] == 'iphonesimulator' else 'TASK_DEVICE_SDK'])\n")
+            command.chmod(0o755)
+            for expected, sim, device, success in (("27.1", "27.1", "27.1", True),
+                    ("27.1", "26.5", "27.1", False), ("27.1", "27.1", "26.5", False),
+                    ("26.5", "26.5", "26.5", True)):
+                with self.subTest(expected=expected, simulator=sim, device=device):
+                    env = os.environ | {"PATH": directory + os.pathsep + os.environ["PATH"],
+                        "TKPK_EXPECTED_IOS_SDK": expected, "TASK_SIM_SDK": sim, "TASK_DEVICE_SDK": device}
+                    result = subprocess.run(["bash", "-c", script], env=env, capture_output=True, text=True, timeout=5)
+                    self.assertEqual(result.returncode == 0, success, result.stdout + result.stderr)
+
     def run_runner(self, *, selected="", build_status=0, omit_result=False, ios=26, record_all=False):
         with tempfile.TemporaryDirectory(prefix="takupoke-manual-runner-") as directory:
             root = Path(directory)
