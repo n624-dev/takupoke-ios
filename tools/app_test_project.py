@@ -67,6 +67,23 @@ def rewrite_network_urls(text):
     return re.sub(r'https?://[^"\s)]+',
                   lambda match: match[0] if match[0] in namespaces else 'https://fixture.example.test', text)
 
+def instrument_browser_fixture(text):
+    marker = '        let controller = SFSafariViewController(url: url)'
+    assert text.count(marker) == 1, 'Native Safari network boundary insertion point missing'
+    return text.replace(marker, '''        let browserURL: URL
+        if ProcessInfo.processInfo.arguments.contains("--loopback-browser-fixture") {
+            guard url.absoluteString == "https://fixture.example.test",
+                  let raw = ProcessInfo.processInfo.environment["TKPK_BROWSER_FIXTURE_URL"],
+                  let local = URL(string: raw), local.scheme == "http", local.host == "127.0.0.1",
+                  local.port.map({ (1...65535).contains($0) }) == true,
+                  local.user == nil, local.password == nil, local.path == "/fictional-link",
+                  local.query == nil, local.fragment == nil else {
+                preconditionFailure("The browser fixture requires its owned loopback input")
+            }
+            browserURL = local
+        } else { browserURL = url }
+        let controller = SFSafariViewController(url: browserURL)''')
+
 NATIVE_OCR_DIAGNOSTIC = r'''
                     if ProcessInfo.processInfo.arguments.contains("--recovery-ocr-probe") {
                         let captured = lines.last?.candidates.first
@@ -179,6 +196,8 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         shutil.copyfile(repo/'tools'/script, destination/'tools'/script)
     for path in copied.glob('*.swift'):
         text = path.read_text()
+        if path.name == 'SafariLinkView.swift':
+            text = instrument_browser_fixture(text)
         if path.name == 'ContentView.swift':
             text = instrument_retention_recovery(text)
         if path.name == 'NotificationSettingsView.swift':

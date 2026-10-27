@@ -4,13 +4,14 @@ import CryptoKit
 
 final class ApplicationChecks: XCTestCase {
     var app: XCUIApplication!
+    private var browserFixture: LoopbackBrowserFixture?
     override func setUp() {
         continueAfterFailure = false
         app = XCUIApplication()
         app.launchArguments = ["--reset-fixture", "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
         let initialConditions: [String: [String]] = [
             "testHomeClockSettingChangesAcrossBoundariesUpdateTheActualInProgressLabel": ["--home-clock-boundary", "--normal-only"],
-            "testLinkPreferencesSurviveRelaunch": ["--fixture-input-trace"],
+            "testLinkPreferencesSurviveRelaunch": ["--fixture-input-trace", "--loopback-browser-fixture"],
             "testSettingsAccountDataAndFileDetails": ["--ai-feature-probe"],
             "testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData": ["--retention-corrupt"],
             "testTimetableDynamicTypeScalesAndRestoresStandardLayout": ["--grid-probe"],
@@ -45,6 +46,16 @@ final class ApplicationChecks: XCTestCase {
         for (method, arguments) in initialConditions where name.contains(method) {
             app.launchArguments += arguments
         }
+        if name.contains("testLinkPreferencesSurviveRelaunch") {
+            do {
+                let fixture = try LoopbackBrowserFixture()
+                browserFixture = fixture
+                app.launchEnvironment["TKPK_BROWSER_FIXTURE_URL"] = fixture.url.absoluteString
+            } catch {
+                XCTFail("Could not start the owned loopback browser input: \(error)")
+                return
+            }
+        }
         #if !TAKUPOKE_VOICEOVER_AUTOMATION
             if name.contains("testVoiceOverReadsTimetableCard") { return }
         #endif
@@ -54,6 +65,11 @@ final class ApplicationChecks: XCTestCase {
         }
         launchReady()
         XCTAssertTrue(app.tabBars.buttons["ホーム"].waitForExistence(timeout: 30), app.debugDescription)
+    }
+    override func tearDown() {
+        browserFixture?.stop()
+        browserFixture = nil
+        super.tearDown()
     }
     private func prepareSystemUI() -> Bool {
         // U43: a successful initial process did not prove input readiness after

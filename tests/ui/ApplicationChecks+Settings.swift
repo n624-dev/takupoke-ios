@@ -2,6 +2,117 @@ import XCTest
 import UIKit
 import CryptoKit
 
+// BEGIN PURE LOOPBACK BROWSER FIXTURE
+import Foundation
+import Dispatch
+#if canImport(Darwin)
+import Darwin
+#else
+import Glibc
+#endif
+
+/// Owns only a loopback listener and fixed fictional HTTP responses. Its
+/// lifetime spans the test's real app relaunch, not a single app process.
+final class LoopbackBrowserFixture: @unchecked Sendable {
+    static let pageText = "架空リンクAの検証ページ"
+    private let descriptor: Int32
+    private let source: DispatchSourceRead
+    private let queue = DispatchQueue(label: "takupoke.fictional-browser")
+    let url: URL
+
+    init() throws {
+        #if canImport(Darwin)
+        let fd = socket(AF_INET, SOCK_STREAM, 0)
+        #else
+        let fd = socket(AF_INET, Int32(SOCK_STREAM.rawValue), 0)
+        #endif
+        guard fd >= 0 else { throw POSIXError(.EIO) }
+        var transferred = false
+        defer { if !transferred { close(fd) } }
+        var address = sockaddr_in()
+        #if canImport(Darwin)
+        address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        #endif
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_addr.s_addr = inet_addr("127.0.0.1")
+        address.sin_port = 0
+        let bound = withUnsafePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                bind(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
+        }
+        guard bound == 0, listen(fd, 8) == 0,
+              fcntl(fd, F_SETFL, O_NONBLOCK) == 0 else { throw POSIXError(.EIO) }
+        var length = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let named = withUnsafeMutablePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { getsockname(fd, $0, &length) }
+        }
+        guard named == 0 else { throw POSIXError(.EIO) }
+        descriptor = fd
+        url = URL(string: "http://127.0.0.1:\(UInt16(bigEndian: address.sin_port))/fictional-link")!
+        source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: queue)
+        source.setEventHandler { [weak self] in self?.servePending() }
+        source.setCancelHandler { close(fd) }
+        source.resume()
+        transferred = true
+    }
+    func stop() { source.cancel() }
+    deinit { stop() }
+
+    private func servePending() {
+        while !source.isCancelled {
+            let client = accept(descriptor, nil, nil)
+            if client < 0 {
+                if errno == EINTR { continue }
+                return
+            }
+            respond(client)
+        }
+    }
+    private func respond(_ client: Int32) {
+        defer { close(client) }
+        let flags = fcntl(client, F_GETFL, 0)
+        guard flags >= 0, fcntl(client, F_SETFL, flags & ~O_NONBLOCK) == 0 else { return }
+        var timeout = timeval(tv_sec: 2, tv_usec: 0)
+        guard setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size)) == 0,
+              setsockopt(client, SOL_SOCKET, SO_SNDTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size)) == 0 else { return }
+        #if canImport(Darwin)
+        var noSignal: Int32 = 1
+        guard setsockopt(client, SOL_SOCKET, SO_NOSIGPIPE, &noSignal, socklen_t(MemoryLayout<Int32>.size)) == 0 else { return }
+        let sendFlags: Int32 = 0
+        #else
+        let sendFlags = Int32(MSG_NOSIGNAL)
+        #endif
+        var request = Data(), buffer = [UInt8](repeating: 0, count: 1024)
+        while request.range(of: Data([13, 10, 13, 10])) == nil {
+            let count = recv(client, &buffer, buffer.count, 0)
+            if count < 0 && errno == EINTR { continue }
+            guard count > 0, request.count + count <= 8192 else { return }
+            request.append(contentsOf: buffer.prefix(count))
+        }
+        let first = String(decoding: request.prefix { $0 != 10 }, as: UTF8.self)
+            .trimmingCharacters(in: .whitespacesAndNewlines).split(separator: " ")
+        let method = first.first.map(String.init) ?? ""
+        let found = first.count == 3 && method == "GET" && first[1] == "/fictional-link"
+        let status = found ? "200 OK" : method == "GET" ? "404 Not Found" : "405 Method Not Allowed"
+        let html = found ? "<!doctype html><html lang='ja'><head><meta name='viewport' content='width=device-width,initial-scale=1'><title>架空ブラウザ</title></head><body><p>\(Self.pageText)</p></body></html>" : "Not available"
+        let body = Data(html.utf8)
+        var response = Data("HTTP/1.1 \(status)\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: \(body.count)\r\nConnection: close\r\nCache-Control: no-store\r\n\r\n".utf8)
+        response.append(body)
+        var offset = 0
+        while offset < response.count {
+            let sent = response.withUnsafeBytes {
+                send(client, $0.baseAddress!.advanced(by: offset), response.count - offset, sendFlags)
+            }
+            if sent < 0 && errno == EINTR { continue }
+            guard sent > 0 else { return }
+            offset += sent
+        }
+        _ = shutdown(client, Int32(SHUT_WR))
+    }
+}
+// END PURE LOOPBACK BROWSER FIXTURE
+
 extension ApplicationChecks {
     func testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData() {
         let recovery = app.buttons["保存期間の管理情報を復旧"]
@@ -341,7 +452,7 @@ extension ApplicationChecks {
         XCTAssertTrue(link.waitForExistence(timeout: 10), app.debugDescription)
         linkContextAction(link, title: "お気に入りを解除")
         app.terminate()
-        app.launchArguments = ["-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
+        app.launchArguments.removeAll { $0 == "--reset-fixture" }
         launchReady()
         XCTAssertTrue(app.tabBars.buttons["一覧"].waitForExistence(timeout: 30))
         tab("一覧")
@@ -355,8 +466,9 @@ extension ApplicationChecks {
             return
         }
         restored.tap()
-        let browser = app.otherElements.matching(
-            NSPredicate(format: "identifier BEGINSWITH %@", "BrowserView?")).firstMatch
+        // Read the actual fictional page through the real native browser. The
+        // old internal BrowserView identifier did not prove its content loaded.
+        let browser = app.staticTexts[LoopbackBrowserFixture.pageText]
         XCTAssertTrue(browser.waitForExistence(timeout: 30), app.debugDescription)
         let close = app.buttons["Close"]
         guard close.waitForExistence(timeout: 10), close.isHittable else {

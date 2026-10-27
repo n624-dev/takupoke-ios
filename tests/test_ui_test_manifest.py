@@ -239,6 +239,154 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("rowFrame.minY >= barFrame.maxY", context)
         self.assertIn("rowFrame.maxY <= tabsFrame.minY", context)
 
+    def test_actual_loopback_browser_input_serves_only_fictional_page_and_closes(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required for the actual loopback fixture")
+        import http.client
+        import select
+        import socket
+        import time
+        from urllib.parse import urlsplit
+        source = (ROOT / "tests/ui/ApplicationChecks+Settings.swift").read_text()
+        helper = source.split("// BEGIN PURE LOOPBACK BROWSER FIXTURE\n", 1)[1].split(
+            "// END PURE LOOPBACK BROWSER FIXTURE", 1)[0]
+        program = helper + r'''
+@main struct Probe {
+    static func main() throws {
+        let fixture = try LoopbackBrowserFixture()
+        FileHandle.standardOutput.write(Data((fixture.url.absoluteString + "\n").utf8))
+        _ = readLine()
+        fixture.stop()
+        FileHandle.standardOutput.write(Data("stopped\n".utf8))
+        Thread.sleep(forTimeInterval: 3)
+    }
+}
+'''
+        with tempfile.TemporaryDirectory(prefix="loopback-browser-controls-") as scratch:
+            root = Path(scratch)
+            swift, binary = root / "main.swift", root / "probe"
+            swift.write_text(program)
+            built = subprocess.run([compiler, "-swift-version", "5", "-parse-as-library",
+                                    "-module-cache-path", str(root / "modules"), str(swift), "-o", str(binary)],
+                                   capture_output=True, text=True, timeout=60)
+            self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+            process = subprocess.Popen([str(binary)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE, text=True)
+            idle = None
+            try:
+                self.assertTrue(select.select([process.stdout], [], [], 5)[0], "Fixture did not bind")
+                parsed = urlsplit(process.stdout.readline().strip())
+                self.assertEqual((parsed.scheme, parsed.hostname, parsed.path),
+                                 ("http", "127.0.0.1", "/fictional-link"))
+                self.assertTrue(parsed.port and 0 < parsed.port < 65536)
+                # The same owner serves both sides of an app relaunch.
+                for method, path, status in (("GET", parsed.path, 200), ("GET", parsed.path, 200),
+                                             ("GET", "/../private-document", 404), ("POST", parsed.path, 405)):
+                    connection = http.client.HTTPConnection(parsed.hostname, parsed.port, timeout=4)
+                    try:
+                        connection.request(method, path)
+                        response = connection.getresponse()
+                        body = response.read()
+                        self.assertEqual(response.status, status)
+                        self.assertEqual(int(response.getheader("Content-Length")), len(body))
+                        self.assertEqual(response.getheader("Cache-Control"), "no-store")
+                        self.assertEqual("架空リンクAの検証ページ" in body.decode(), status == 200)
+                    finally:
+                        connection.close()
+                # An unfinished local client must not keep the listener alive.
+                idle = socket.create_connection((parsed.hostname, parsed.port), timeout=3)
+                time.sleep(0.05)
+                process.stdin.write("stop\n")
+                process.stdin.flush()
+                self.assertEqual(process.stdout.readline().strip(), "stopped")
+                deadline = time.monotonic() + 2.8
+                closed = False
+                while time.monotonic() < deadline:
+                    try:
+                        with socket.create_connection((parsed.hostname, parsed.port), timeout=0.1):
+                            pass
+                    except OSError:
+                        closed = True
+                        break
+                    time.sleep(0.02)
+                self.assertTrue(closed, "Owned loopback listener survived stop")
+                self.assertIsNone(process.poll(), "Closure must not depend on process exit")
+                process.stdin.close()
+                process.wait(timeout=6)
+                self.assertEqual(process.returncode, 0, process.stderr.read())
+            finally:
+                if idle is not None:
+                    idle.close()
+                if process.poll() is None:
+                    process.kill()
+                    process.wait(timeout=5)
+                process.stdout.close()
+                process.stderr.close()
+
+    def test_browser_fixture_changes_only_native_network_input_and_rejects_other_urls(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required for actual generated browser input validation")
+        import resource
+        from test_manual_input_lifecycle import block
+        original = (ROOT / "Takupoke/SafariLinkView.swift").read_text()
+        generated = app_test_project.instrument_browser_fixture(original)
+        method = block(generated, "func makeUIViewController(")
+        program = r'''import Foundation
+final class SFSafariViewController {
+    let url: URL
+    var delegate: NSObject?
+    init(url: URL) { self.url = url }
+}
+struct Context { let coordinator = NSObject() }
+struct ActualBrowserBoundary {
+    let url = URL(string: ProcessInfo.processInfo.environment["ORIGINAL_BROWSER_URL"] ?? "https://fixture.example.test")!
+METHOD
+}
+@main struct Probe {
+    static func main() {
+        print(ActualBrowserBoundary().makeUIViewController(context: Context()).url.absoluteString)
+    }
+}
+'''.replace("METHOD", method)
+        with self.assertRaises(AssertionError):
+            app_test_project.instrument_browser_fixture(original.replace(
+                "SFSafariViewController(url: url)", "SFSafariViewController(url: anotherURL)"))
+        with tempfile.TemporaryDirectory(prefix="browser-input-boundary-") as scratch:
+            root = Path(scratch)
+            path, binary = root / "main.swift", root / "probe"
+            path.write_text(program)
+            built = subprocess.run([compiler, "-swift-version", "5", "-parse-as-library",
+                                    "-module-cache-path", str(root / "modules"), str(path), "-o", str(binary)],
+                                   capture_output=True, text=True, timeout=60)
+            self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+            def run(raw, fixture=True, original=None):
+                environment = os.environ.copy()
+                environment.pop("TKPK_BROWSER_FIXTURE_URL", None)
+                environment.pop("ORIGINAL_BROWSER_URL", None)
+                if original is not None:
+                    environment["ORIGINAL_BROWSER_URL"] = original
+                if raw is not None:
+                    environment["TKPK_BROWSER_FIXTURE_URL"] = raw
+                return subprocess.run([str(binary)] + (["--loopback-browser-fixture"] if fixture else []),
+                                      env=environment, cwd=root, capture_output=True, text=True, timeout=10,
+                                      preexec_fn=lambda: resource.setrlimit(resource.RLIMIT_CORE, (0, 0)))
+            valid = "http://127.0.0.1:23456/fictional-link"
+            actual = run(valid)
+            self.assertEqual(actual.returncode, 0, actual.stderr)
+            self.assertEqual(actual.stdout.strip(), valid)
+            unchanged = run(valid, fixture=False)
+            self.assertEqual(unchanged.returncode, 0, unchanged.stderr)
+            self.assertEqual(unchanged.stdout.strip(), "https://fixture.example.test")
+            self.assertNotEqual(run(valid, original="https://wrong.fixture.test").returncode, 0)
+            for invalid in (None, "https://127.0.0.1:23456/fictional-link",
+                            "http://localhost:23456/fictional-link", "http://127.0.0.1/fictional-link",
+                            "http://127.0.0.1:0/fictional-link", "http://127.0.0.1:23456/other",
+                            valid + "?q=1", valid + "#fragment", "http://u:p@127.0.0.1:23456/fictional-link"):
+                with self.subTest(url=invalid):
+                    self.assertNotEqual(run(invalid).returncode, 0)
+
     def test_link_menu_observes_one_press_before_diagnostics_and_never_accepts_timeout(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
