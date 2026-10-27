@@ -5,6 +5,32 @@ import UserNotifications
 import PDFKit
 import ZIPFoundation
 
+// Only the clock input crosses the boundary. The settings change, real Home
+// body, onChange callback, production driver, and rendered label stay intact.
+@MainActor enum SimulatorHomeBoundaryFixture {
+    static var enabled: Bool { ProcessInfo.processInfo.arguments.contains("--home-clock-boundary") }
+    static var current = SchoolEventsSourceStatus.date("2032-04-05T08:49:59.999+09:00")!
+    static var armed: Date?
+    static func crossIfArmed() {
+        guard enabled, let value = armed else { return }
+        armed = nil; current = value
+    }
+    static func changeSettingAcrossBoundary(ending: Bool) {
+        armed = SchoolEventsSourceStatus.date(ending ? "2032-04-05T09:35:00.001+09:00" : "2032-04-05T08:50:00.001+09:00")!
+        let defaults = UserDefaults.standard
+        defaults.set(!defaults.bool(forKey: "timetableInternationalStudent"), forKey: "timetableInternationalStudent")
+    }
+    static func seed(_ base: URL) throws {
+        let library = try LocalMaterialDatabase.openLibrary(root: base.appendingPathComponent("SchoolMaterialsSQLite"))
+        guard let source = library.state.record(for: .timetable) else { throw SchoolEventsError.invalidResponse }
+        try library.savePDFAnalysis(.init(kind: .timetable, sourceDigest: source.digest,
+            sourceName: source.originalName, parsedAt: Date(), schoolYear: 2032, term: "前期",
+            lessons: [.init(className: "3_IT", weekday: 1, period: 1,
+                names: .init(subject: "架空境界確認科目A", teacher: "架空教員A", room: "架空教室A"),
+                sourceText: "", page: 1)], events: [], notices: []))
+    }
+}
+
 // Seed actual event files; user actions still run production fetch/decode/save.
 // The separate probe launch omits this mutation to verify persisted repair.
 enum SimulatorEventsCacheFixture {

@@ -105,6 +105,14 @@ struct SavedSchoolEventsSourceStatus: Codable, Equatable {
         return age >= 0 && age < (response.checking ? 60 : 12 * 60 * 60)
     }
 
+    var presentationDeadlines: [Date] {
+        var dates = [receivedAt.addingTimeInterval(response.checking ? 60 : 12 * 60 * 60)]
+        if let success = SchoolEventsSourceStatus.date(successfulResponse?.lastSuccessAt) {
+            dates.append(success.addingTimeInterval(24 * 60 * 60))
+        }
+        return dates
+    }
+
     func canReuse(for saved: SavedSchoolEvents, at now: Date) -> Bool {
         isFresh(at: now) && (response.matches(saved) || requestedTarget == SchoolEventsSourceTarget(saved))
     }
@@ -134,7 +142,11 @@ struct SchoolEventsSourcePresentation {
         let old = value.stale || !cached.isFresh(at: now) || successAge.map { $0 < 0 || $0 >= 24 * 60 * 60 } == true
         let message: String
         if let error { message = error }
-        else if value.checking { message = "APIが元PDFを確認中です。前回の確認結果を表示しています。" }
+        else if value.checking {
+            message = cached.isFresh(at: now)
+                ? "APIが元PDFを確認中です。前回の確認結果を表示しています。"
+                : "前回確認時は元PDFを確認中でした。現在の更新状況は未確認です。"
+        }
         else if value.status == .unavailable { message = "APIで元PDFの更新状況を確認できませんでした。" }
         else if value.status == .unknown { message = "元PDFの更新状況は未確認です。" }
         else if cached.previousSuccess != nil { message = "APIから以前の確認結果が返りました。新しい成功結果を保持しています。現在の更新状況は未確認です。" }

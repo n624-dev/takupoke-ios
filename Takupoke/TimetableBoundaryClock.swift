@@ -17,6 +17,7 @@ final class TimetableBoundaryClock {
     private let changed:Action
     private var intervals = [Interval]()
     private var signature:Signature?
+    private var pendingChange = false
     private var cancellation:Action?
     private var generation = UUID()
     private var running = false
@@ -31,24 +32,28 @@ final class TimetableBoundaryClock {
         }))
     }
     func configure(_ values:[Interval]) {
+        let date = now()
+        // Compare time passage using the previous plan before replacing it.
+        // A model redraw alone does not prove that it read Date after a boundary.
+        if let signature, signature != snapshot(at:date) { pendingChange = true }
         intervals = values.filter { $0.start.timeIntervalSinceReferenceDate.isFinite &&
             $0.end.timeIntervalSinceReferenceDate.isFinite && $0.start < $0.end }
-        let date = now()
-        signature = snapshot(at:date) // The caller's model change already redraws with a fresh Date.
+        signature = snapshot(at:date)
+        if running && pendingChange { pendingChange = false; changed() }
         reschedule(at:date)
     }
     func start() { running = true; refresh() }
     func stop() {
         running = false; generation = UUID(); cancellation?(); cancellation = nil
     }
-    func clear() { stop(); intervals.removeAll(keepingCapacity:false); signature = nil }
+    func clear() { stop(); intervals.removeAll(keepingCapacity:false); signature = nil; pendingChange = false }
     func refresh() {
         guard running else { return }
         let date = now()
         let current = snapshot(at:date)
         let differs = signature.map { $0 != current } ?? false
         signature = current
-        if differs { changed() }
+        if differs || pendingChange { pendingChange = false; changed() }
         reschedule(at:date)
     }
     private func reschedule(at date:Date) {

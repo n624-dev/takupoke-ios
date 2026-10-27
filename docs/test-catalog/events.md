@@ -1,7 +1,7 @@
 # 学校行事API・年度別保存
 
 対応関係・宣言名・実行方法のSHA-256：
-`c948dacb884288fb51ea26ff771c17b60b5793869fd3825d0cecc792c486e226`
+`ece0671786a188932f85965fd92b57061cebe852f8dfe8bcdaa50b17f190f5b8`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -41,11 +41,13 @@ bash tools/test-parsing.sh
 - `testMetadataBindingRequiresYearAdoptedHashAndEventsVersionButNotPDFETag`
 - `testMetadataTTLIsTwelveHoursOrSixtySecondsWhileCheckingAndRejectsClockRollback`
 - `testPresentationSeparatesMatchedDifferenceUnknownFailureStalenessAndSnapshotMismatch`
+- `testExpiredCheckingDescribesThePastWithoutDiscardingSuccessfulEvidence`
 - `testAdvisoryStorePreservesNewestSuccessAcrossUnavailableOlderEdgeAndReload`
 - `testDamagedOversizedSymlinkAndWrongYearMetadataCannotBlockHealthyEvents`
 
 ## [tests/SchoolEventsSourceModelTests.swift](../../tests/SchoolEventsSourceModelTests.swift)
 
+- `testExpiryPublishesToObserversWithoutARequestOrSavedEventsChange`
 - `testActualMetadataRequestIsNonblockingCoalescedCachedPersistedAndFailureRetainsEvents`
 - `testActualStartupForegroundManual304AndNew200BindEachYearAndVersion`
 - `testActualOldInflightSnapshotAndCancellationCannotPublishMetadataIntoNewData`

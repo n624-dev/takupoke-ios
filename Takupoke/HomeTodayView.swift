@@ -6,7 +6,9 @@ import UIKit
 final class HomeScheduleClock: ObservableObject {
     @Published private(set) var epoch = 0
     private(set) var acceptsPlans = false
-    private lazy var driver = TimetableBoundaryClock(now:{ Date() },schedule:{ date,action in
+    private let nowProvider: @MainActor () -> Date
+    init(now: @escaping @MainActor () -> Date = Date.init) { nowProvider = now }
+    private lazy var driver = TimetableBoundaryClock(now:{ [unowned self] in nowProvider() },schedule:{ date,action in
         let timer = Timer(fire:date,interval:0,repeats:false) { _ in Task { @MainActor in action() } }
         RunLoop.main.add(timer,forMode:.common)
         return { timer.invalidate() }

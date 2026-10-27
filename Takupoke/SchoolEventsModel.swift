@@ -19,16 +19,47 @@ final class SchoolEventsModel: ObservableObject {
     private let makeSession: () -> URLSession
     private let now: () -> Date
     init(storeRoot:URL? = nil,eventsEndpoint:URL = URL(string:"https://takupoke-api.n624.jp/events")!,
-         makeSession:(() -> URLSession)? = nil, now: @escaping () -> Date = Date.init) {
+         makeSession:(() -> URLSession)? = nil, now: @escaping () -> Date = Date.init,
+         waitForSourceExpiry: @escaping (TimeInterval) async throws -> Void = { seconds in
+             try await Task.sleep(nanoseconds: UInt64(min(max(seconds, 0), 86_400) * 1_000_000_000))
+         }) {
         self.storeRoot = storeRoot; self.eventsEndpoint = eventsEndpoint
         self.makeSession = makeSession ?? { Self.eventsSession() }; self.now = now
+        self.waitForSourceExpiry = waitForSourceExpiry
     }
     @Published private(set) var ready = false
     @Published private(set) var busy = false
     @Published private(set) var failed = false
     @Published private(set) var message: String?
-    @Published private(set) var sourceStatuses: [Int: SavedSchoolEventsSourceStatus] = [:]
+    @Published private(set) var sourceStatuses: [Int: SavedSchoolEventsSourceStatus] = [:] {
+        didSet { scheduleSourceExpiry() }
+    }
     @Published private(set) var sourceErrors: [Int: String] = [:]
+    @Published private(set) var sourcePresentationRevision = 0
+    private let waitForSourceExpiry: (TimeInterval) async throws -> Void
+    private var sourceExpiryTask: Task<Void, Never>?
+    private var sourceExpiryGeneration = UUID()
+
+    /// Invalidate the advisory presentation at its next actual deadline. This
+    /// does not fetch, alter saved events, or introduce periodic view updates.
+    private func scheduleSourceExpiry() {
+        sourceExpiryTask?.cancel(); sourceExpiryTask = nil
+        sourceExpiryGeneration = UUID()
+        guard ready else { return }
+        let date = now()
+        let deadline = sourceStatuses.compactMap { year, status in
+            saved[year].flatMap { status.response.matches($0) ? status : nil }
+        }.flatMap(\.presentationDeadlines).filter { $0 > date }.min()
+        guard let deadline else { return }
+        let generation = sourceExpiryGeneration, wait = waitForSourceExpiry
+        sourceExpiryTask = Task { [weak self] in
+            guard !Task.isCancelled else { return }
+            do { try await wait(deadline.timeIntervalSince(date)) } catch { return }
+            guard !Task.isCancelled, let self, self.sourceExpiryGeneration == generation else { return }
+            self.sourcePresentationRevision += 1
+            self.scheduleSourceExpiry()
+        }
+    }
 
     var sourceCheckMessage: String? {
         let warnings = saved.keys.sorted().compactMap { year -> String? in
@@ -60,6 +91,7 @@ final class SchoolEventsModel: ObservableObject {
     func refreshAtStartup() {
         loadIfNeeded()
         guard ready else { return }
+        scheduleSourceExpiry()
         // Foreground checks consult their own TTL even after the annual startup
         // conditional GET has already run. They never own the data busy state.
         for year in saved.keys.sorted() { checkSource(year: year) }
@@ -165,6 +197,7 @@ final class SchoolEventsModel: ObservableObject {
                 catch { sourceErrors[year] = "保存済みの元PDF確認結果を読み取れません。学校行事は表示しています。" }
             }
             ready = true
+            scheduleSourceExpiry()
             failed = false
             message = nil
         } catch {
@@ -197,6 +230,8 @@ final class SchoolEventsModel: ObservableObject {
     }
 
     func cancel() {
+        sourceExpiryTask?.cancel(); sourceExpiryTask = nil
+        sourceExpiryGeneration = UUID()
         task?.cancel()
         for value in sourceRequests.values { value.task.cancel() }
         sourceRequests.removeAll()

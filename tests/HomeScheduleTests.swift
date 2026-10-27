@@ -48,12 +48,43 @@ final class HomeScheduleTests: XCTestCase {
         now = date("2032-04-05T09:50:00+09:00"); clock.refresh(); XCTAssertEqual(notifications,2)
         now = date("2032-04-05T10:10:00+09:00")
         clock.configure([.init(id:"fictional-B",start:date("2032-04-05T10:05:00+09:00"),end:date("2032-04-05T11:00:00+09:00"))])
-        XCTAssertEqual(clock.currentDate,now); XCTAssertEqual(notifications,2)
+        XCTAssertEqual(clock.currentDate,now); XCTAssertEqual(notifications,3)
         XCTAssertEqual(scheduler.events.last?.date,date("2032-04-05T11:00:00+09:00"))
         let count = scheduler.events.count
-        stale(); XCTAssertEqual(scheduler.events.count,count); XCTAssertEqual(notifications,2)
+        stale(); XCTAssertEqual(scheduler.events.count,count); XCTAssertEqual(notifications,3)
         clock.clear(); clock.start()
         XCTAssertEqual(scheduler.events.last?.date,date("2032-04-06T00:00:00+09:00"))
+    }
+    @MainActor func testConfigureCannotConsumeAnUnpublishedStartOrEndBoundary() async throws {
+        let start = date("2032-04-05T09:00:00+09:00"), end = date("2032-04-05T09:35:00+09:00")
+        for boundary in [start, end] {
+            for offset in [-0.001, 0, 0.001] {
+                var now = boundary.addingTimeInterval(-0.002), notifications = 0
+                let scheduler = ClockScheduler()
+                let clock = TimetableBoundaryClock(now: { now }, schedule: scheduler.schedule, changed: { notifications += 1 })
+                defer { clock.clear() }
+                let values = [TimetableBoundaryClock.Interval(id: "fictional-A", start: start, end: end)]
+                clock.configure(values); clock.start()
+                let oldCallback = try XCTUnwrap(scheduler.events.last).action
+                now = boundary.addingTimeInterval(offset)
+                clock.configure(values)
+                XCTAssertEqual(notifications, offset < 0 ? 0 : 1)
+                oldCallback(); clock.refresh(); clock.configure(values)
+                XCTAssertEqual(notifications, offset < 0 ? 0 : 1, "No duplicate callback or periodic redraw")
+                XCTAssertEqual(scheduler.events.last?.date, offset < 0 ? boundary : boundary == start ? end : date("2032-04-06T00:00:00+09:00"))
+            }
+        }
+        var now = start.addingTimeInterval(-1), notifications = 0
+        let scheduler = ClockScheduler()
+        let clock = TimetableBoundaryClock(now: { now }, schedule: scheduler.schedule, changed: { notifications += 1 })
+        defer { clock.clear() }
+        let values = [TimetableBoundaryClock.Interval(id: "fictional-A", start: start, end: end)]
+        clock.configure(values); clock.start(); clock.stop()
+        now = start.addingTimeInterval(1); clock.configure(values)
+        XCTAssertEqual(notifications, 0, "Hidden Home must not publish")
+        clock.start(); XCTAssertEqual(notifications, 1)
+        clock.configure([.init(id: "fictional-B", start: start, end: end)])
+        XCTAssertEqual(notifications, 1, "A plan change without time passage already has its own model redraw")
     }
     func testBoundaryPlanKeepsNormalBreaksAndOnlyVerifiedSpecialContinuity() throws {
         var normal = timetable()

@@ -38,6 +38,7 @@ private final class SourceStatusScenario {
     var statusHTTP = 200
     var updated = false
     var oldStatusVersion = false
+    var checking = false
     var started: XCTestExpectation?
     private(set) var unexpected = 0
 
@@ -84,7 +85,7 @@ private final class SourceStatusScenario {
                 "dataVersion": "sha256-" + digest, "adoptedSourcePdfSha256": String(repeating: "a", count: 64),
                 "status": "matched", "lastSuccessfulStatus": "matched", "lastSuccessAt": "2032-05-01T03:04:05.842Z",
                 "lastAttemptAt": "2032-05-01T03:04:05Z", "nextAttemptAt": "2032-05-02T03:04:05Z",
-                "checking": false, "stale": false])
+                "checking": checking, "stale": false])
             transport.finish(status: statusHTTP, data: data)
         }
     }
@@ -107,15 +108,52 @@ final class SchoolEventsSourceModelTests: XCTestCase {
             model = makeModel()
             model.loadIfNeeded()
         }
-        func makeModel() -> SchoolEventsModel {
+        func makeModel(waitForSourceExpiry: @escaping (TimeInterval) async throws -> Void = { seconds in
+            try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+        }) -> SchoolEventsModel {
             SchoolEventsModel(storeRoot: root, eventsEndpoint: URL(string: "https://source.example.invalid/events")!,
                 makeSession: {
                     let config = URLSessionConfiguration.ephemeral
                     config.protocolClasses = [SourceStatusTransport.self]; config.urlCache = nil
                     return URLSession(configuration: config)
-                }, now: { [unowned self] in self.now })
+                }, now: { [unowned self] in self.now }, waitForSourceExpiry: waitForSourceExpiry)
         }
         func clean() { model.cancel(); SourceStatusTransport.use(nil); try? FileManager.default.removeItem(at: root) }
+    }
+
+    func testExpiryPublishesToObserversWithoutARequestOrSavedEventsChange() async throws {
+        let f = try Fixture(); defer { f.clean() }
+        f.network.checking = true
+        var waits = [(TimeInterval, CheckedContinuation<Void, Error>)]()
+        let scheduled = expectation(description: "metadata presentation expiry scheduled")
+        f.model.cancel()
+        f.model = f.makeModel(waitForSourceExpiry: { seconds in
+            try await withCheckedThrowingContinuation { continuation in
+                waits.append((seconds, continuation))
+                if waits.count == 1 { scheduled.fulfill() }
+            }
+        })
+        f.model.loadIfNeeded()
+        let data = f.model.saved[2032]?.payload, generation = f.model.scheduleGeneration
+        await f.model.checkSource(year: 2032)?.value
+        await fulfillment(of: [scheduled], timeout: 5)
+        let wait = try XCTUnwrap(waits.first)
+        XCTAssertEqual(wait.0, 60)
+        // Observe the same Published event used by settings/Home/week views.
+        let changed = expectation(description: "advisory presentation changed")
+        let subscription = f.model.$sourcePresentationRevision.dropFirst().first().sink { _ in changed.fulfill() }
+        f.now.addTimeInterval(60)
+        wait.1.resume()
+        await fulfillment(of: [changed], timeout: 5)
+        subscription.cancel()
+        XCTAssertTrue(try XCTUnwrap(f.model.sourcePresentation(year: 2032)).message.contains("前回確認時"))
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 1)
+        XCTAssertEqual(f.model.saved[2032]?.payload, data); XCTAssertEqual(f.model.scheduleGeneration, generation)
+        XCTAssertFalse(f.model.busy); XCTAssertEqual(f.network.unexpected, 0)
+        f.model.cancel()
+        // The next successful-observation deadline may already be waiting.
+        // Release only owned continuations; cancellation/generation reject it.
+        for entry in waits.dropFirst() { entry.1.resume(throwing: CancellationError()) }
     }
 
     private func dataFinished(_ model: SchoolEventsModel) async {

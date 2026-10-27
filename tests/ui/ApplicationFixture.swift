@@ -70,6 +70,14 @@ struct SimulatorApplication: App {
         WindowGroup {
             ContentView().environment(\.timeZone, JapaneseDateDisplay.timeZone).tint((MainColor(rawValue: mainColor) ?? .systemDefault).color)
                 .onAppear { FixtureLaunchDiagnostics.record("content-appeared") }
+                .overlay(alignment: .topTrailing) {
+                    if SimulatorHomeBoundaryFixture.enabled {
+                        VStack {
+                            Button("開始境界で設定変更") { SimulatorHomeBoundaryFixture.changeSettingAcrossBoundary(ending: false) }
+                            Button("終了境界で設定変更") { SimulatorHomeBoundaryFixture.changeSettingAcrossBoundary(ending: true) }
+                        }.buttonStyle(.bordered).background(.regularMaterial)
+                    }
+                }
                 .modifier(FixtureTypeSize(enabled: ProcessInfo.processInfo.arguments.contains("--grid-probe") &&
                     !ProcessInfo.processInfo.arguments.contains("--system-text-size"),
                                           size: fixtureTypeSize))
@@ -329,6 +337,7 @@ struct SimulatorApplication: App {
             try SimulatorEventsCacheFixture.seed(base)
         }
         if SimulatorEventsYearFixture.enabled { try SimulatorEventsYearFixture.seed(base) }
+        if SimulatorHomeBoundaryFixture.enabled { try SimulatorHomeBoundaryFixture.seed(base) }
         if ProcessInfo.processInfo.arguments.contains("--failed-refresh") {
             let library = try LocalMaterialDatabase.openLibrary(root: base.appendingPathComponent("SchoolMaterialsSQLite"))
             try library.recordFailure(.changes, message: "架空の変更ファイル取得エラー")

@@ -8111,3 +8111,16 @@ N47の除外操作・単項目訂正、N48の通知画面遷移、N49の初回�
 | icon.png | `7ed41c1462f9bd46427b11e1045caddd95c10bea459a5984298c60776ab6177f` |
 | release.json | `0d8e157cf532ea26199472e058c063ee54e9dbac22e35e5013b3073088add911` |
 | takupoke.ipa | `c742b96e3dd39b644ecaa36782adab0945b63a1f99bb4c09fc04eaf69bbad8ab` |
+
+
+## 2026-10-27 未解決issue105/106の修正候補
+
+source34c40d2から専用worktree/branchで修正。同期元の未コミット調査記録は変更・commitしない。学校行事metadataは期限切れcheckingを過去の観測として表示し、最寄りの実際のTTL/成功観測期限だけでPublished通知する。通信・保存済み行事・投影世代を変えず、cancelと世代照合で古い待機を拒否する。時計configureは旧plan上の時刻の通過を先に比較し、境界を消費せず一回だけ通知、非表示中はstartまで保留する。入力が変わっただけでは通知しない。
+
+対応一覧でSchoolEventsSourceStatus/TimetableBoundaryClockを検索し、失敗索引の両クラス名・授業中・境界・source-statusを照合した。N105/N106は別事象。新しいUIケースは製品のHome・設定のAppStorage・detailRevisionのonChange・driver・授業中のアクセシビリティlabelを通す。架空2032年度の実保存資料と時計providerを用い、設定変更からconfigureへ進む直前に時刻入力だけを開始/終了の境界後へ進める。epochや表示の期待値は注入しない。学校への通信はURLProtocolで拒否する。元の30ケースを維持し、31番目へ追加、両OSの正式gateを維持した。
+
+ローカルのSwift Package/全Python検査は進行中。PythonでのエラーをN156へ先に記録しており、完了診断の照合前に成功扱いにしない。test_catalog450/check --base34c40d2、Strict枝番号一覧、git diff --checkは成功。Apple型検査・実UI・配布・物理iPhoneは未確認。
+
+次のPR開始一回専用の新規GPT-6.1 Sol/High reviewerは、不変code-only diff511行/SHA256 35d3baa32183da0af3cc77259c70cb3bc625e4d97d771b2d4c2d3eb919ef2f14を全行確認し、具体的指摘なし。主担当が現差分hash一致を確認した。既存の成功やこの静的reviewを次のActionsの合格へ数えず、別の開始へ転用しない。
+
+issue66/67の索引・有限cache・更新共有・安定した行入力は既に449.1へ含まれる。今回の時計修正はその更新削減を保持する。物理iPhoneのInstruments/Release相当の比較が残るため、接続可能なMacを利用者へ照会し、回答を待つ間も実装/CIを進める。新しい性能改善率や実機確認済みとは記載しない。

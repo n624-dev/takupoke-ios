@@ -94,12 +94,14 @@ PROBE_GROUPS = {
     ),
     "auxiliary-store": ("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover",),
     "timetable-clocks": ("testTimetableCommonClocksAndEventOnlyWeekScale",),
+    "home-boundaries": ("testHomeClockSettingChangesAcrossBoundariesUpdateTheActualInProgressLabel",),
     "home-launch": ("testChangedAccountDataNoticeOpensSharedAcquisition",
                     "testHomeTimetableAndWeekCalendar"),
 }
 # Balanced using measured case durations, including the three OS size reruns.
 SHARDS = {
     "A": (
+        "testHomeClockSettingChangesAcrossBoundariesUpdateTheActualInProgressLabel",
         "testTimetableCommonClocksAndEventOnlyWeekScale",
         "testUsageHelpIsOrganizedByTask",
         "testLegalDocumentsAndIndividualLicenses",
