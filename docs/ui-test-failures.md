@@ -2911,3 +2911,5 @@ N159後続86b1f3fの実log：同SDK/Runtime、buildと通常10件/文字サイ�
 N159照合：fixture-ready/launch/U65とnative Switch/notification/U64/U30/U15/U77/N146を検索して詳細と当時983e523/841a389/fd6e42c・公開34c40d2・今回c0605c4/86b1f3f/22cb3f8の本文を比較した。U65はprocess handle不在で今回はseed-complete後の空AX、U64は同種の接触未反映だが別のAI Switch、U15は実許可要求後で今回はその前。製品通知・通知case/許可probe/通常Switch helperは今回のdiffで未変更。旧fd6e42c後のpanel受動化も現行で保持されている。SDK/点/接触時間/45秒・元のUI/保存/再起動条件を推測変更せず、まだ実行中のmain22cb3f8（両失敗の観測前に開始）の元必須検証をまず確認する。無根拠の追加再実行は開始しない。
 
 旧c0605c4/run40453620829は全15表示job終端、事前成功8/失敗2/依存・構成skip5、artifact0。全10実jobの完了logは一度取得済みで、この旧run/log/artifactを再照会しない。後続86b1f3fの訂正26の単項目480.844秒と三項目433.709秒は成功し、残る26 A/明示選択/原本変更は継続中。これらの成功を旧/後続の失敗へ置き換えない。
+
+N159画像確認：失敗時のnotification-switch-unresolvedを36片から所有一時領域へ復元し、157849bytes/SHA256 b335f3ec688d7accf3fb66f9098ae3863971654de11e03f26689209ef9becbc8を照合して目視した。通知画面で両SwitchはOFF、許可ダイアログはなく、QAの「許可画面を確認」Buttonは画面中央より下にあり実Switchを視覚的に覆っていない。画像は期限後の状態であり、入力時点の配送先/gesture/Bindingの証明にはならない。画像の所有一時領域は確認後に回収し、公開ファイルへの画像添付はしない。
