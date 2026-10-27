@@ -2933,3 +2933,13 @@ N160旧main終端：source22cb3f8/run40461806832の最後の26 Aは08:26:18Zにs
 N160追加実bytes照合（08:34 UTC）：git showで2a81f3aのgeometryより先にtarget.isHittableを呼ぶ本文と、883c9a0のclearだけnativeへbindする本文を確認した。dfb62cbから22cb3f8のNavigation.swift実diffは0行で、N152後の通常Button二段階観測が今回まで同一だったことを再確認した。この出力を当時コード比較の具体的根拠として補完する。候補は旧index/firstMatchへの接触へ戻していない。
 
 N160新しい正式実行：新規専用reviewのcode hash一致と局所結果を確認後、mainを8e01eb6c7528453b5b7e71d95c99079ec9faec65へ通常fast-forward pushし、run40474382684/attempt1が08:33:53Zに開始。Distributionは288件/予定skip22/失敗0（88.275秒）で成功。元の両OS/手動訂正四件ずつ/全15を維持し、新sourceの全結果を確認中。旧22cb3f8の成功を取り込んだ判定にはしない。main同期時の元16/85行の未コミット追記は上流と元snapshot全行の順序保持を検査して保持し、今回所有のautostash4886c0fだけを回収した。
+
+## N161 native Button観測整理後の通常iOS27 Bがfailure終端（2026-10-27）
+
+08:58 UTCの実測所要時間に基づく一括確認で、source8e01eb6c7528453b5b7e71d95c99079ec9faec65/run40474382684/attempt1、job122089516799の通常iOS27 Bが08:35:33Z開始・08:56:17Zにfailure終端と確認した。指定SDK27.1/Runtime27.0、失敗case/操作/準備段階・実Runtimeと原因は完了ログ未読のため未確定。候補の変更対象は手動訂正Navigationで、通常UIへの因果は未確定。Native/原本変更27/三項目27はsuccess、通常27 A/単項目27/明示選択27は継続中、通常26 Bは依存skip。単項目のN160対策の成功・失敗とは混同せず、残実行を取消ししない。対処案選択前に記録し、新ログと過去の該当詳細・当時/current本文を照合する。
+
+N161実log：SDK27.1/Runtime27.0、build成功。testLinkPreferencesSurviveRelaunchが358.215秒で失敗、Settings.swift:360のBrowserView?内部identifier prefixを使ったOther要素の元30秒存在待機中にmatching snapshot timeout。お気に入り解除/一回再起動/実追加メニュー/追加/復帰行hittable/本来のprimary tapは通過した。primary tap後の約98.76秒からBrowserViewの照会が停止し、内部retry後357.73秒で例外、native Close/閉鎖/一覧復帰のassertには未到達。通常6件中ほか5件は成功、後の設定/文字サイズ/VoiceOver/通知phaseは依存未実行。手動NavigationのN160とは実行するSwiftファイルも操作段階も違う。
+
+N161照合：LinkPreferences/BrowserView/Safari/primary tap/localhostでU42/U54/N44と該当実装を検索し、e4f2fbf/bf1749aの当時case/SafariLinkViewをgit show、bf1749aから現8e01のSafariLinkViewのdiff0を確認した。U42/U54は本来の長押し後にブラウザが開く/白画面、今回は実メニュー二回と再起動保持が成立した後に、本来のprimary tapを確認する段階で停止している。操作点/2秒長押し/45秒/お気に入り期待を往復しない。現fixtureリンクはhttps://fixture.example.testで、Foundation URLProtocolはSFSafariViewControllerの別サービス通信を置換しない。ブラウザの読み込み/AX service/内部identifierのどれが下位原因かは未確定。
+
+候補ではこのcaseの入力先をUI test processが所有する127.0.0.1の小さい固定HTML serverへ限定し、appの既存リンクモデルと本物のSFSafariViewControllerをそのまま通す。serverは初回起動より前に開始し同じcaseの再起動中も保持、tearDown/解放で回収する。入力HTMLの実表示を元の30秒で確認し、本物のnative Closeの存在/操作可/一回tap、実ページ消失/一覧復帰も維持する。SDK内部BrowserView?識別子の存在だけより実内容まで要求し、到達不能URL/DNS依存と私的識別子への依存を除く。公開アプリ/長押し/実メニュー/保存/再起動/全UI case/全15gate/元の期限を変えず、表示成功やOS結果は注入しない。serverのloopback限定・固定route/応答・bytes・停止を実ネットワークの局所テストで確認し、候補/比較を先にpushしてから検査する。改善・下位原因はまだ未確認。
