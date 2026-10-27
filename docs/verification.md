@@ -8176,3 +8176,11 @@ source7d4eca0の正式run40491344629は全15表示job終端、8成功/通常27 A
 N163の新しい観測source d4c1bce/run40501639254は、SDK27.1/Runtime27.0の元直前case197.511秒・元CacheCorruption160.451秒、計2件/失敗0で成功。実UIKitTextFieldの同じ一回tapにbegan/ended（196.67,231.33）、編集開始、Keyboard will/did show、実変更が続き、修復/他年度保持/保存/一回再起動も通過した。host preferenceは双方unavailableであり接続なしとは判断しない。旧失敗時は同じ通知を採取していなかったため、今回非再発を恒常解消やroot cause確定としない。
 
 fixtureを共有するmanual generatorへの影響も追加照合し、設置Swift6.1.2を明示した既存manual project17件/失敗0（0.451秒）、manual input lifecycle3件/失敗0（8.416秒）が成功した。元年度入力case本文/10秒/4桁/全31caseと全15gate、製品/Vendor/Package/projectは今回変更していない。次の通常検証でも同caseだけの固定通知/既存touch観測を維持し、元入力方法や期限を推測で変更しない。元失敗OS26のN160別比較run40502795972の結果を確認してから、新規main専用review/正式全15へ進む。限定結果を正式合格へ代用しない。
+
+## 2026-10-27 固定入力観測を残した同一ソース全体検証
+
+main一回専用の新規Sol/High code-only194行/hash a652626c…の指摘なしと現diff一致・全commit空白を確認し、mainをf709367a84747a2216a419eb2f4723c7ca429a29へ通常fast-forwardした。正式run40506458617/attempt1は12:46:44Z開始。同じsource/run/attemptの全15を要求し、元31 UI case/全期限/実操作を維持する。旧7d4eca0の全体失敗と限定2件/単項目26の成功は別記録で、合算しない。N163の下位原因・恒常解消は未確定のまま、該当caseの固定編集/Keyboard通知と既存touchを通常Aでも採取する新しい観測条件である。
+
+Distribution/job122196885558は12:48:30Zにsuccess、Python全292件/失敗0/予定skip22（94.680秒）とcatalog450が成功。完了logは一度取得済み。通常27 A/Bと訂正27三件は12:48:32Z頃開始、Nativeと単項目27は当初queueであり、その時刻を実行開始に数えない。全体/公開成功はまだ未確認。
+
+元mainの同期時も二文書の事前backupを取り、autostash1d99ba0の末尾競合を上流/元メモ双方保持で解消し、全文の順序保持を独立に検査した。元の未commit/unstaged16行/85行を保持し、今回所有stashだけ回収した。成功した単項目26の隔離worktreeはclean・全commit pushと記録保持を確認して回収し、診断branch1ac3a26はremoteへ保持した。
