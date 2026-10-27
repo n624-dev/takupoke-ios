@@ -8135,7 +8135,7 @@ PR107/run40453620829/sourcec0605c4：Distributionは288件/予定skip22/失敗0�
 
 ## 2026-10-27 issue105/106のmain取り込みと実画面比較
 
-PR107/source86b1f3fのiOS27 A/B、手動訂正27四件、Native691件/予定skip1、iPhone Release、Distribution288件/予定skip22は全成功。N157の元行除外caseも149.499秒で保存と再起動保持まで通過。新規Home境界は24.128秒で開始/終了を通過した。旧clockだけを公開main34c40d2へ戻した別source9cb40b1の実Homeでは、開始境界で授業中labelが残らず元10秒の期待が失敗した（35.696秒）。N158へ実AXと到達段階/限界を保持し、旧処理を製品へ統合しない。
+PR107/source86b1f3fのiOS27 A/B、手動訂正27四件、Native691件/予定skip1、iPhone Release、Distribution288件/予定skip22は全成功。N157の元行除外caseも149.499秒で保存と再起動保持まで通過。新規Home境界は24.128秒で開始/終了を通過した。旧clockだけを公開main34c40d2へ戻した別source9cb40b1の実Homeでは、開始境界で授業中labelが表示されず元10秒の期待が失敗した（35.696秒）。N158へ実AXと到達段階/限界を保持し、旧処理を製品へ統合しない。
 
 main取り込み一回専用の新規GPT-6.1 Sol/High ios_main_pre_actions_reviewは、code-only差分524行/SHA256 4843735d0e6bc265fd1f043854e6f2aacf5eab9e7e7ec2267c758927cfa1b1d0を確認し具体的指摘なし。主担当がmain34c40d2/head86b1f3fとdiffの同一hash、全未送信commitの空白、元の両OS/全15gateを確認し、この一回にだけ使用した。PR107はmain22cb3f8d5ed60800611c4f99af667d1d0b3bd15dへsquash mergeし、main run40461806832が開始した。PR側のiOS26とmain側の全検証は継続中であり、まだ全体成功/公開/issue105/106のcloseとは扱わない。残実行は取消ししない。
 

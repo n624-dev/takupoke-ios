@@ -2899,3 +2899,15 @@ source9cb40b1f4ebb42722106e200742cfe3b5b0bd05a、run40459050676/attempt1、job12
 N158完了log：指定どおりSDK27.1/Runtime27.0、build成功。実Home起動と架空授業cardの存在、境界前の「授業中」なし、開始境界の設定Button一回tapまで通過した。ApplicationChecks+Timetable.swift:13の元10秒待機がtimeout2、case35.696秒/失敗1。実AXのcard labelは「科目、架空境界確認科目A、時刻、08:50～09:35、教員、架空教員A、教室、架空教室A」のまま、授業中を含まなかった。終了側の操作へ未到達。これは単なるchanged件数ではなく、時計入力を制御した実SwiftUI画面の古い表示の観測である。
 
 N158比較：N157の別のSwitch取得失敗と区別し、issue106の最小観測と公開main34c40d2/修正c0605c4/旧clock診断9cb40b1の実本文を照合。新規Home case・fixture・設定操作・元10秒の期待は同じで、診断のTimetableBoundaryClock.swiftだけをmain34c40d2の完全なbytesへ戻した。修正済みc0605c4は同じSDK/Runtimeの同case18.022秒で開始/終了の実表示を通過した。旧版の実画面不整合の再現対照として採用し、診断branchを製品へ統合しない。実機での頻度・フレーム時間や正式全15合格の証明には一般化しない。追加の同条件再実行は不要。
+
+## N159 issue105/106修正の通常iOS26 Bが二sourceでfailure終端（2026-10-27）
+
+06:52 UTCの実測所要時間に基づく一括確認で、先行sourcec0605c4/run40453620829/attempt1/job122031408841は06:08:59Z開始・06:26:54Zにfailure、後続source86b1f3f/run40455341102/attempt1/job122041356319は06:13:04Z開始・06:45:31Zにfailure終端と確認した。通常laneはSDK27.1/Runtime26.5を指定。完了ログ未読のため実Runtime、失敗case/操作/準備段階・原因、両者が同じ原因かは未確定。source22cb3f8/main run40461806832はこれらの失敗観測前06:33:25Zに開始済みで、旧二run/最新mainの成功を合算しない。対処案選択前に観測を記録し、新ログと過去の該当詳細/当時と現sourceを照合する。実行中は取消ししない。
+
+N159先行c0605c4の実log：SDK27.1/Runtime26.5、build成功。testHomeTimetableAndWeekCalendarは60.258秒で失敗、ApplicationChecks.swift:101の起動準備fixture-ready元45秒が不成立。実AXはApplicationだけで子要素なし。pid98987はinit-enter/seed-enter/seed-complete/scene-constructionを記録し、root-task-enter/content-appeared/application-ready/fixture-readyは未観測。具体的な下位停止原因・crashとは断定しない。基本6件中ほか5件は成功し、通知/文字サイズ/VoiceOverの後続phaseは未実行。
+
+N159後続86b1f3fの実log：同SDK/Runtime、buildと通常10件/文字サイズ段階は成功し、HomeTimetableは64.081秒で成功した。別RunnerのtestNotificationControlsAndAppearanceだけ136.458秒で失敗。Notifications.swift:112、元45秒の許可/有効化待機。通知画面へ移動、read不要の正規分岐authorization=notRequested/scene=active/application=0、実Switch外枠(16,165,361,52.333)/子(300,177.333,63,28)/双方0・操作可を確認し、一回0.1秒のnative接触を合成した。前後ともrequesting=false/changes=false/saved=false、実Binding/native許可要求のlifecycle記録なし。許可ダイアログへの進行は未到達で、U15のrequesting=true後のOS応答待ちとは異なる。接触の実配送先/取消し・下位原因は今回未採取。SpringBoard等の稼働情報だけから原因を推定しない。
+
+N159照合：fixture-ready/launch/U65とnative Switch/notification/U64/U30/U15/U77/N146を検索して詳細と当時983e523/841a389/fd6e42c・公開34c40d2・今回c0605c4/86b1f3f/22cb3f8の本文を比較した。U65はprocess handle不在で今回はseed-complete後の空AX、U64は同種の接触未反映だが別のAI Switch、U15は実許可要求後で今回はその前。製品通知・通知case/許可probe/通常Switch helperは今回のdiffで未変更。旧fd6e42c後のpanel受動化も現行で保持されている。SDK/点/接触時間/45秒・元のUI/保存/再起動条件を推測変更せず、まだ実行中のmain22cb3f8（両失敗の観測前に開始）の元必須検証をまず確認する。無根拠の追加再実行は開始しない。
+
+旧c0605c4/run40453620829は全15表示job終端、事前成功8/失敗2/依存・構成skip5、artifact0。全10実jobの完了logは一度取得済みで、この旧run/log/artifactを再照会しない。後続86b1f3fの訂正26の単項目480.844秒と三項目433.709秒は成功し、残る26 A/明示選択/原本変更は継続中。これらの成功を旧/後続の失敗へ置き換えない。
