@@ -99,7 +99,7 @@ Xcode側も依存のcheckout・キャッシュをビルド用一時ディレク�
 
 ### 復旧の負荷と中止を確認する入力
 
-`RecoveryBuilderTests` は680セル・各3項目24群の完全架空の返却PDFレイアウトから、前処理・Rules・Validatorを通す。iOSでは固定項目の行をSourceへまとめるため、実Builderの出力は2,388件。49,308の独立Source入力は同じ架空文字と群の位置を使う別の契約回帰であり、Builderの実到達件数やモデルの精度として報告しない。背の高い跨セルSource、原順、共有の比較・文字列上限、内側取消、上限時に次のモデルを読み込まないことも検証する。初期接続時にはLinux295件、Native Mac343件が成功した。最新の件数・ソース別結果は[検証記録](verification.md)を参照する。Apple SDKのiPhoneビルドでworkerと各Providerの接続を確認し、OS26/27の実アプリUIで安定した詳細表示、採用・再起動後の保持を確認した。物理端末のモデル推論・メモリ・取消は別に確認する。
+`RecoveryBuilderTests` は680セル・各3項目24群の完全架空の返却PDFレイアウトから、前処理・Rules・Validatorを通す。iOSでは固定項目の行をSourceへまとめるため、実Builderの出力は2,388件。49,308の独立Source入力は同じ架空文字と群の位置を使う別の契約回帰であり、Builderの実到達件数やモデルの精度として報告しない。背の高い跨セルSource、原順、共有の比較・文字列上限、内側取消、上限時に次のモデルを読み込まないことも検証する。初期接続時にはLinux295件、Native Mac343件が成功した。最新の件数・ソース別結果は[検証記録（Actions）](https://github.com/n624-dev/takupoke-ios/actions)を参照する。Apple SDKのiPhoneビルドでworkerと各Providerの接続を確認し、OS26/27の実アプリUIで安定した詳細表示、採用・再起動後の保持を確認した。物理端末のモデル推論・メモリ・取消は別に確認する。
 
 ## このLinux環境のSwift
 
@@ -140,8 +140,8 @@ bash tools/test-parsing.sh
 通常Releaseでは配布検査・Native・全画面の14事前チェック成功後に配布用Runnerを割り当てます。
 開発版のIPAは先に非公開の下書きへ作成できますが、同じソース・試行の全15成功まで公開しません。
 公開前にも同じ実行・試行・コミットの成功を照合します。
-対象は[シミュレーター検証](simulator-verification.md)、
-測定結果は[CIの実行時間](ci-performance.md)を参照してください。
+対象は[シミュレーター検証（Actions）](https://github.com/n624-dev/takupoke-ios/actions)、
+測定結果は[CIの実行時間（Actions）](https://github.com/n624-dev/takupoke-ios/actions/workflows/ios-release.yml)を参照してください。
 
 `tools/build-ios.sh` は同じRunner内で次の順に実行します。標準ファイル画面の表示とアクセシビリティ取得が、保存・解析テストのSwiftコンパイルとCPU・メモリを競合しないようにします。別Runnerの実アプリUI4組との並行実行は維持します。
 

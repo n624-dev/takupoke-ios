@@ -2,7 +2,7 @@
 
 [READMEに戻る](../README.md)
 
-SwiftでXLSXの読み取り・正規化を行い、解析結果と週の時間割に表示します。固定したPython実装の期待結果と架空データで比較しています。検証状況は[検証記録](verification.md)を参照してください。
+SwiftでXLSXの読み取り・正規化を行い、解析結果と週の時間割に表示します。固定したPython実装の期待結果と架空データで比較しています。検証状況は[検証記録（Actions）](https://github.com/n624-dev/takupoke-ios/actions)を参照してください。
 
 ## 参照実装
 
