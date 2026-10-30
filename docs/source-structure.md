@@ -45,13 +45,13 @@
 
 Xcodeプロジェクトと `Package.swift` の明示的なソース一覧を両方更新します。`tools/test-materials.sh` はSPMとは別にコンパイルするため、ここにも必要なモデルと処理を登録します。プラットフォームごとの `canImport` 条件とmacOS限定の対応表テストを維持します。
 
-移動前後の実装行、テスト名一覧、ファイル登録を照合します。CIのSwiftテスト・iPhoneビルドは実機の画面比較とは区別し、結果を[検証記録](verification.md)に残します。
+移動前後の実装行、テスト名一覧、ファイル登録を照合します。CIのSwiftテスト・iPhoneビルドは実機の画面比較とは区別し、結果を[検証記録（Actions）](https://github.com/n624-dev/takupoke-ios/actions)に残します。
 
 ## PDFの表示検証と変更行の表示
 
 `PDFContentVisibility` はdevice color、矩形クリップの包含、表示を変えないタグの検証を共用する。
 `PDFDrawnTextReader` は文字を直接取得し、`PDFPathReader` は実際に描画した罫線との重なりを調べる。
-可視性の条件は[PDF仕様](pdf-specification.md)、架空入力の検証結果は[検証記録](verification.md)へ置く。
+可視性の条件は[PDF仕様](pdf-specification.md)、架空入力の検証結果は[検証記録（Actions）](https://github.com/n624-dev/takupoke-ios/actions)へ置く。
 
 `ChangeReviewGroup` は元行IDを保ったまま、連続する同一の曜日のみの行を表示上まとめる。
 `ChangePreviewView` は範囲ごとの選択を元行ID集合へ戻し、既存の確認・保存経路を使う。

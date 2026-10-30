@@ -5,7 +5,7 @@
 現行iOSはRecovery Schema 2・Validator 8・RecoveryVersion 2・項目抽出Prompt 4・構造提案Prompt 3を使う。
 Strictは394.1で239.1へ復元済みで、復旧専用の取得・Evidence検査とは分離する。
 開発ソースのPDF Parserは通常33・特殊32。1年の学科記号による所属移行は、原文所属を検証した後の共通投影で行う。
-最新のCI・配布・実機確認は[検証状況](roadmap.md)と[検証記録](verification.md)を参照する。
+最新のCI・配布・実機確認は[検証状況（Issues）](https://github.com/n624-dev/takupoke-ios/issues)と[検証記録（Actions）](https://github.com/n624-dev/takupoke-ios/actions)を参照する。
 後半の2026-10-04など日付付きの検証・版番号は当時の記録として保持する。
 
 ## 確定した方針
@@ -101,7 +101,7 @@ iOSの[最終検証CI28](https://github.com/n624-dev/takupoke-ios/actions/runs/3
 
 ホームでは今日の学校年度、週表示では全7日の学校年度の保存済み範囲を確認する。過去年度だけの保存は未取得の案内を消さず、授業がないと断定しない。当年度に別日の行事だけがある正常応答は、未取得と区別する。固定した2033年3月31日と3月28日〜4月3日の週を使い、過去年度のみ・当年度のみ・両年度、当日の授業あり／なしを含む5構成を両OSの実UIで確認した。同じfixtureから実Library・Storeへの保存・再読込みと実TimetableDayScheduleを確認する独立ホスト検証も成功したが、公式Swift件数には加算しない。時計と起動処理の置換は一時テストコピー内だけで、本体へテスト用hookは追加していない。学校API・PDFの本番通信は行わない。
 
-以前の[CI23](https://github.com/n624-dev/takupoke-ios/actions/runs/37154616177)は `2e4d26d0fb5ce33314cf3abdda98d09700fe2d0a` のNative Mac343件・UI各OS24項目と全7ジョブ成功を確認したcheckpointである。CI17の詳細操作の失敗もそこで解消した。追加キャッシュ／年度UIの途中では、CI24の年度ラベル照合、CI25のfixture API誤用、CI26の非空保存条件を満たさないfixtureと入力値の観測時期で失敗した。CI26のOS27 Aは時間切れ、CI27の残るジョブはCI28へ切り替えてcancelledとした。最終CI28の成功とは区別し、各実行の[失敗と修正の履歴](verification.md#2026-10-04-pdf端末内復旧学校行事の年度別保持開発中)を残す。
+以前の[CI23](https://github.com/n624-dev/takupoke-ios/actions/runs/37154616177)は `2e4d26d0fb5ce33314cf3abdda98d09700fe2d0a` のNative Mac343件・UI各OS24項目と全7ジョブ成功を確認したcheckpointである。CI17の詳細操作の失敗もそこで解消した。追加キャッシュ／年度UIの途中では、CI24の年度ラベル照合、CI25のfixture API誤用、CI26の非空保存条件を満たさないfixtureと入力値の観測時期で失敗した。CI26のOS27 Aは時間切れ、CI27の残るジョブはCI28へ切り替えてcancelledとした。最終CI28の成功とは区別し、各実行の[失敗と修正の履歴（Actions）](https://github.com/n624-dev/takupoke-ios/actions)を残す。
 
 日本語画像PDFの実Vision OCRはOS27で成功し、OS26ではconfidence約0.358を安全に拒否した。CropBox、画像の上端座標、罫線、未読インクと空欄の検査は両OSで確認した。Native Mac350件には白文字・上塗り・不可視描画・文字と交差する線・切り抜き外本文を扱う架空PDFと、実PDFKit thumbnailのCropBox画像を参照画像と比較する検証を含む。Quartzの近軸線は線幅2・折返し高さ0.19・miter limit100で想定領域外の40画素を観測し、同じ線のlimit10では0画素だった。この実対照を回帰へ固定し、Readerの拒否を維持する。校正索引・680短セルの復旧・モデル保存先の新規／既存rootのバックアップ除外属性も成功した。物理iPhoneでの推論・メモリ・実際のバックアップの動作は未確認。
 
