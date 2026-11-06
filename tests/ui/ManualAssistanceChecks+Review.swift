@@ -13,7 +13,7 @@ extension ManualAssistanceChecks {
     func requireReview(_ expected:[String],comparable:Bool) {
         var observedState="",ambiguousState=false
         let ready=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
-            let current=self.app.staticTexts.matching(identifier:"manual-coordinator-state")
+            let current=self.app.otherElements["manual-observation"].staticTexts.matching(identifier:"manual-coordinator-state")
                 .allElementsBoundByAccessibilityElement
             if current.count>1 { ambiguousState=true;return true }
             guard current.count==1 else { return false }
@@ -64,7 +64,7 @@ extension ManualAssistanceChecks {
         app.buttons["確認を終える"].tap()
     }
     func requirePreview() {
-        let state=app.staticTexts["manual-coordinator-state"].firstMatch
+        let state=app.otherElements["manual-observation"].staticTexts["manual-coordinator-state"].firstMatch
         let ready=XCTNSPredicateExpectation(predicate:NSPredicate(format:"label CONTAINS %@","preview=true"),object:state)
         let outcome=XCTWaiter.wait(for:[ready],timeout:20)
         print("TAKUPOKE-MANUAL-COORDINATOR wait-outcome=\(outcome.rawValue)")

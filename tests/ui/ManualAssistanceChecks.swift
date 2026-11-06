@@ -21,9 +21,10 @@ final class ManualAssistanceChecks:XCTestCase {
             return false
         }
         let deadline=Date().addingTimeInterval(nativeStateTimeout)
-        print("TAKUPOKE-MANUAL-LAUNCH home-once;target-not-prelaunched")
-        XCUIDevice.shared.press(.home)
         let system=XCUIApplication(bundleIdentifier:"com.apple.springboard")
+        let needsHome=system.state != .runningForeground
+        print("TAKUPOKE-MANUAL-LAUNCH home-if-needed;sent=\(needsHome ? 1:0);target-not-prelaunched")
+        if needsHome { XCUIDevice.shared.press(.home) }
         var observedFrame=CGRect.null
         var observedState = -1
         let ready=expectation(for:NSPredicate { _,_ in

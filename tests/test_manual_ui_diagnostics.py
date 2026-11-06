@@ -20,6 +20,23 @@ spec.loader.exec_module(module)
 
 
 class ManualDiagnosticsTests(unittest.TestCase):
+    def test_owned_launch_trace_exports_only_fixed_stages_and_rejects_unknown_content(self):
+        stages=('init-enter','seed-enter','seed-complete','scene-construction','content-appeared',
+                'root-task-enter','application-ready','fixture-ready','fixture-ready-timeout')
+        valid=['TAKUPOKE_LIFECYCLE pid=123 time=42.25 stage='+stage for stage in stages]
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'owned.log'
+            path.write_text('\n'.join(valid+[valid[0]+' private body',valid[0].replace('init-enter','unknown'),
+                valid[0].replace('pid=123','pid=private'),valid[0].replace('time=42.25','time=nan'),
+                'arbitrary app content']),encoding='utf-8')
+            self.assertEqual(module.launch_trace_lines(path),valid)
+            alias=Path(tmp)/'alias';alias.symlink_to(path)
+            self.assertEqual(module.launch_trace_lines(alias),[])
+            path.write_text((valid[0]+'\n')*129,encoding='utf-8')
+            self.assertEqual(module.launch_trace_lines(path),[valid[0]]*128)
+            path.write_bytes(b'X'*65537);self.assertEqual(module.launch_trace_lines(path),[])
+            path.write_bytes(b'\xff');self.assertEqual(module.launch_trace_lines(path),[])
+
     def test_owned_input_trace_is_bounded_and_rejects_body_symlinks_and_invalid_encoding(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'owned.log'

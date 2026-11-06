@@ -85,6 +85,9 @@ def view(text):
                                 .font(.system(size:1)).accessibilityIdentifier("manual-field-ids").allowsHitTesting(false)
                         }
                     }
+                    .accessibilityElement(children:.contain)
+                    .accessibilityIdentifier("manual-observation")
+                    .allowsHitTesting(false)
                 }
             }''')
     field_setter = 'RecoveryManualInput.update($0,id:field.id,original:field.originalText,values:&manualValues,acknowledged:&manualAcknowledged)'

@@ -121,6 +121,21 @@ def report_matches(path, started, *, allow_jetsam=False):
             "scope": selected[1], "text": selected[0]}
 
 
+def launch_trace_lines(path):
+    """Read only existing fixed launch stages from the owned fictional app log."""
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > 65536:
+        return []
+    pattern = re.compile(r"TAKUPOKE_LIFECYCLE pid=\d+ time=\d+(?:\.\d+)? stage=(?:init-enter|seed-enter|seed-complete|scene-construction|content-appeared|root-task-enter|application-ready|fixture-ready|fixture-ready-timeout)")
+    try:
+        with path.open("rb") as stream:
+            raw = stream.read(65537)
+        if len(raw) > 65536:
+            return []
+        return [line for line in raw.decode("utf-8").splitlines() if pattern.fullmatch(line)][:128]
+    except (OSError, UnicodeError):
+        return []
+
+
 def input_trace_lines(path):
     if path.is_symlink() or not path.is_file() or path.stat().st_size > 65536:
         return []
@@ -148,7 +163,12 @@ def collect(scratch, simulator, started, exit_code):
             container = item.pop("text").strip()
             result["commands"].append({"kind": "owned-input-log-path", **item})
             if item["exit"] == 0 and item["limited"] is None and Path(container).is_absolute():
-                lines = input_trace_lines(Path(container) / "tmp/takupoke-fictional-launch-owned.log")
+                owned = Path(container) / "tmp/takupoke-fictional-launch-owned.log"
+                launch = launch_trace_lines(owned)
+                result["launchLifecycleLines"] = len(launch)
+                for line in launch:
+                    print(line, flush=True)
+                lines = input_trace_lines(owned)
                 result["inputDeliveryLines"] = len(lines)
                 for line in lines:
                     print(line, flush=True)

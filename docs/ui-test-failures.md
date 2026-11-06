@@ -3423,3 +3423,40 @@ N173は確認後のlabel frame停止で、今回の候補で変更したreview�
 新しいUI条件や型の仮定、成功値注入、期限延長は追加しない。元case/幾何/生成/manifestで十分なので、
 同じID文字列を写すだけの追加caseは作らない。根拠/候補を先に隔離refへpushしてから局所確認する。
 継続26 A/Bは取消さず、実開始から最大55分を踏まえ13:05 UTCに新しい終端だけまとめて確認する。
+
+## N182 主正式b04d011の三項目復旧27が失敗終端（2026-11-06）
+
+予定14:30 UTC照会、sourceb04d0119177a38dc74359364c0542569253054d0/run42227564373/attempt1、
+job127925810909は13:48:33Z開始・14:02:38Z failure。要求SDK27.1/Runtime27.0、具体stage/原因は
+log未読で未確定として対処前に記録する。限定を通過した明示選択27と通常27 A/Bは正式でも成功した。
+
+## N183 同じ主正式b04d011の単項目復旧27も失敗終端（2026-11-06）
+
+同source/run/attempt、job127925810970は13:58:45Z開始・14:13:21Z failure。
+要求SDK27.1/Runtime27.0、具体stage/原因はlog未読で未確定。元通常26 A/Bは14:27:43/14:23:11開始で継続中、
+取消さず終端まで確認する。新8logだけ一度取得し、過去の取得済みrun/logを再照会しない。
+新しい具体logと過去詳細/当時と現sourceを比較し、全体を繰り返す前に対応する限定検証で候補を確認する。
+
+14:31頃に作業環境の再起動が通知され、進行中のlog取得cell343が消失した。再開後、同じsourceと未commitの
+N182/N183記録は保存されている。新8logのうちDistributionと通常27 Aの2ファイルだけが保存され、
+残6件は一括取得のメモリ応答を失っている。完了済みの旧runや保存済み2logは再照会せず、
+今回失われた新6logだけを回復取得する。環境の中断を製品やCIの追加失敗へ数えない。
+
+回復後のN182完了logは205.412秒、ManualAssistanceChecks.swift:45の初回app.launchがXcode経由でtimeout。
+Home一回とSpringBoard state4/有限frameは通過し、入力/ACKには未到達。独立統合logは15秒で取得不能、
+crashCauseはunassessed、owned-input-log読取は成功したがinputDeliveryLines0である。初期化のどこまで進んだか
+を現collectorが出さないため、製品crashやseed不良と断定しない。N183は416.122秒、Review.swift:26の元20秒。
+入力全文とACKは成立、submit一回後にcoordinator-stateのglobal配列取得が19秒以上返らず、期限後AXは
+preview=false/review=true/running=falseだった。期限内の状態成立や製品処理失敗は事後AXだけでは証明できない。
+
+launch/home-once/Review.swift/coordinator-state/全画面検索でN95/N125/N168/N173/N179/N181と当時/現sourceを
+照合した。N168で一回labelから同時判定する論理は直したが、N183はその前の全appのStaticText配列取得で停止する。
+候補は既存QA overlayだけに明示的な観測container IDとchildren contain/非hitを付け、reviewとpreviewの両方を
+そのcontainer内の同じstateへ限定する。製品やstateの値・一意性・一回label・元20秒・後続assertは変えない。
+manualのcold準備は通常Suiteと異なりまだ無条件Homeだったため、両helperを同じforeground条件付きHomeへ揃える。
+元45秒のSystem UI証明・対象一回launch・fixture-readyは保持し、N182の直接修復と断定しない。
+既存FixtureLaunchDiagnosticsの初期化固定ラベルが同じ所有logに記録されているが、manual collectorはinput行しか
+回収していなかった。既存launch9種だけを64KiB/128行/固定PID・時刻形式/全行一致で回収し、seed/readyへの
+到達を次の限定で観測する。別本文・symlink・過大・不正encodingを拒否し、extra Apple呼出しを増やさない。
+元の試行終了値と回収順序を保つ。新旧review predicate正負対照、生成container接続、owned lifecycle拒否を局所確認し、
+候補と根拠を先にpushしてから既存manual限定all4case×両OSでまとめて確認する。正式の残26は取消さず終端確認する。

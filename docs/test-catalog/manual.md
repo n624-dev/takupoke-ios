@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`aa4570acbee7b5d315c504a000cd9e4973ac529276e39f87fd1b7661b7f36351`
+`2da0cc53fadc5368f301d0253dd56e6b15014a0151829352fb7c42eaf1233f3d`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -93,6 +93,7 @@ bash tools/test-manual-ui.sh
 
 ## [tests/test_manual_ui_diagnostics.py](../../tests/test_manual_ui_diagnostics.py)
 
+- `test_owned_launch_trace_exports_only_fixed_stages_and_rejects_unknown_content`
 - `test_owned_input_trace_is_bounded_and_rejects_body_symlinks_and_invalid_encoding`
 - `test_command_timeout_and_output_cap_are_explicit`
 - `test_sigterm_reaps_owned_command_and_keeps_signal_exit`

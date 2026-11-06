@@ -22,7 +22,15 @@ final class Query {
     func matching(identifier:String)->Query { precondition(identifier=="manual-coordinator-state");return self }
     var allElementsBoundByAccessibilityElement:[Element] { queries += 1;return elements }
 }
-final class App:NSObject { let staticTexts:Query;init(_ values:[[String]]) { staticTexts=Query(values.map(Element.init)) } }
+final class Container { let staticTexts:Query;init(_ query:Query) { staticTexts=query } }
+final class Containers {
+    let container:Container;init(_ query:Query) { container=Container(query) }
+    subscript(_ identifier:String)->Container { precondition(identifier=="manual-observation");return container }
+}
+final class App:NSObject {
+    let staticTexts:Query;var otherElements:Containers { Containers(staticTexts) }
+    init(_ values:[[String]]) { staticTexts=Query(values.map(Element.init)) }
+}
 final class XCTNSPredicateExpectation {
     let predicate:NSPredicate,object:Any
     init(predicate:NSPredicate,object:Any) { self.predicate=predicate;self.object=object }
