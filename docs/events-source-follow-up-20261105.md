@@ -263,3 +263,16 @@ Linux Swift6.1.2で元navigation Python2件とSwift29件/失敗0、生成17件/�
 主担当も引数IDと実生成ID・元の厳密な可視化/実値assert・全後続操作/保存を確認した。この新reviewを限定開始一回へ消費する。
 限定27は失敗時と同じSDK27.1/Runtime27.0、限定26は既存workflowのSDK26.5/Runtime26.5である。
 限定26の結果を正式配布SDK27.1の26や全15成功へ流用せず、正式は最後に同じsource/run/attemptで別に確認する。
+
+13:05予定照会で旧bb201b8の26 A/Bも成功、全15表示job終端・実10件（9成功/N181失敗1）・依存構成skip5で公開なし。
+最後の2log各一度/artifact0一度を確認し、旧run/logを再照会しない。通常両OSのcold起動/通知も元ケースを通過した。
+13:40予定照会で限定5772cd7/run42222239849/attempt1は両job成功、元明示選択caseは26で1247.423秒、
+27で1066.195秒、各失敗0。2完了log各一度/artifact0一度確認済みで、この終端実行も再照会しない。
+三つの保持値・独立ACK/4件拒否・採用/保存・再起動を含む元の完了照合が成功した。限定成功を正式へ合算せず、
+既知ID候補を含む新sourceの元全15を同じsource/run/attemptで確認してから既存経路で公開する。
+
+限定完了後の次のmain push/正式全15/条件成立時の公開一回に、新規GPT-6.1 Sol/High
+`ios_n181_final_main_pre_actions_review`がcode patch24行/1863bytes、SHA256
+`c6d945c3d9b74dba171928ce3a3730eb311b2420b500e776387324325cfb4027`を全量・commit差分一致まで確認し指摘なし。
+主担当もID対応/実値assert/元の探索・包含・hittable・ACK/保存/再起動・全15を照合した。
+この新reviewだけを次のmain開始一回へ消費し、廃止した旧main用や限定用reviewを流用しない。
