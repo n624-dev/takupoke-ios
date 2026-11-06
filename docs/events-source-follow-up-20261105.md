@@ -137,7 +137,7 @@ project生成17件/失敗0（0.457秒）、Swift parse・catalog450/check --base
 このreviewだけを次のmain自動Actions一回へ消費する。旧実行は取消さず、同じ終端logは再取得しない。
 
 
-主実行957/run42156001519/attempt1は04:05予定照会でDistributionとNative両SDK700/予定skip1/失敗0、
+主実行957/run42156001519/attempt1は04:05予定照会でDistributionとNative（Xcode26.6/SDK26.5）700/予定skip1/失敗0、
 訂正27の元四件すべて成功。新6完了logを各一度保存した。単項目は514.027秒でreview/実背景復帰/
 再入力と各ACK/正式採用・保存・再起動まで成功し、元20秒と全後続assertを保持した候補の今回の成立を確認した。
 三項目673.665秒、明示選択1062.158秒、原本変更420.631秒が成功。一般的なAX原因や恒常解消とは断定しない。
@@ -168,7 +168,7 @@ review artifactはすべての局所commandが終了した後に一意なfinal p
 この新しいreviewだけを次のmain自動Actions一回に消費し、過去reviewは再利用しない。
 
 
-主bb809/run42166029342は05:45予定照会で通常27 A/Bが成功、Native両SDK700/予定skip1/失敗0、Distribution、
+主bb809/run42166029342は05:45予定照会で通常27 A/Bが成功、Native（Xcode26.6/SDK26.5）700/予定skip1/失敗0、Distribution、
 訂正27の三項目/原本変更/明示選択も成功。新7完了logを各一度取得した。残単項目27は05:33:50開始、
 通常26 Bは05:43:05、Aは05:43:28開始で継続、取消しなし。全15/公開はまだ未成立。
 旧957の最後の2logを各一度取得しartifact0を一度確認した。旧26 AはN172の通知設定navigation10秒失敗で、
@@ -197,3 +197,27 @@ catalog450/check --base bb8091eが成功した。新幾何caseは同じviewport�
 `90b1e5dde80e70d7ae78016d9f5b35837a4b9ca5d3ea8528caa1427828f3bc60`を全量・commit差分一致まで確認し指摘なし。
 主担当も同時点の実snapshot/現在hittable/元5秒/一意性/完全包含/一回tap、復旧の実label/16探索/保存proofと
 新幾何の負対照を照合した。この新しいreviewだけを次のmain自動Actions一回へ消費し、過去reviewを再利用しない。
+
+主031916/run42178798904/attempt1は08:00照会で27の全ケース/Distribution/Nativeが成功、09:00照会で
+全18表示jobが終端だった。実14件中11成功、N175通常26 AのXCTest開始前runner通信切断、N176単項目26と
+N177三項目26の実case開始後Runtime bundle利用不能の3失敗で公開なし。依存・構成skip4は成功に数えない。
+全14完了logを各一度/artifact0を一度確認し、終端run/logを再照会しない。新しいcalendarは26 Bでも元5秒と
+全後続操作に成功、復旧27の確認本文も成功したが、個別成功を恒常解消へ一般化しない。
+Native701件/予定skip1/失敗0はXcode26.6/SDK26.5である。先行比較の両SDK699件と区別し、旧本文2箇所の
+正式700件を両SDKとした記述を訂正した。DistributionはPython297件/失敗0（90.762秒）。
+
+N175〜N177の観測事実を先に記録し、U60/U61/N76/N166/N169の詳細と3054127/現準備sourceを比較した。
+準備stepで削除していた取得exportを、正式26/配布SDK26のrelaunch診断で実testとdevice回収まで保持し、
+最後のalways stepで所有領域だけを回収する候補a28ae0aを局所試行前に隔離refへpushした。
+Linux/Python3.12で実準備helperのlifetime/cleanup/SDK各4件/失敗0（6.380秒）、manifest30件/失敗0
+（21.661秒）、catalog450/check --base031916が成功。実AppleのRuntime安定性の証明とは別である。
+補足runnerの初回16件はN178の独立入力間で新always回収を実行しておらず7subcaseが失敗した。
+事実・旧現比較を先に記録し、元全27入力/正負期待を保って実cleanupを各入力の後へ接続する55af502を
+先にpushした後、実shell16件/失敗0（66.045秒）で再確認した。0件の誤ったfile patternは成功件数に含めない。
+
+次のmain push/正式全15/条件成立時の公開一回専用に、新規GPT-6.1 Sol/High
+`ios_n176_main_pre_actions_review`がcode patch271行/15653bytes、SHA256
+`a7fd34c4cd35193cf6586123eba9d8c5c0aa983cf7e2642ab6a6873b2f948a96`を全量・commit差分一致まで確認し指摘なし。
+主担当もSDK/Runtime固定・登録済unavailable拒否・download/import期限・所有marker/symlink拒否・
+元全UI/全15gateとalways回収の順序を照合した。この新reviewだけを次のmain開始一回へ消費する。
+Runtime消失とexport削除の直接因果、通信切断の下位原因、恒常解消は未証明として、次の正式両OSで確認する。
