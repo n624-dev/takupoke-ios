@@ -3398,3 +3398,28 @@ N180はU19/U43/U55/U64/U71/N94/N167の詳細と当時/現native helper・既存F
 45秒・実Allow一回・UIと保存の両成立・全通知/全15gateは不変で、失敗なら追加の配送証拠を調べる。
 候補と比較を先に隔離refへpushし、既存observer/manifest/Swift構文/catalogの局所確認と新規専用review後に
 同じsource/run/attemptの正式全15を一回確認する。個別成功を借用した公開や未知の入力成功扱いはしない。
+
+## N181 主正式bb201b8の明示選択復旧27が失敗終端（2026-11-06）
+
+予定12:15 UTC照会、sourcebb201b8278167ebfbf37aa6b70742dc767506d40/run42209482541/attempt1、
+job127865132718は11:28:23Z開始・11:45:28Z failure。要求SDK27.1/Runtime27.0、元の明示選択case、
+具体stage/原因はlog未読で未確定として対処を選ぶ前に記録する。27通常A/B・他の訂正3件/Native/Distributionは成功。
+26 A/Bは各12:02:35/11:58:33開始で継続中、取消さず終端を確認する。訂正26は依存skipで成功へ数えない。
+新8logだけ一度取得し、過去の取得済みrun/logは再照会しない。新詳細と過去詳細/当時と現sourceを比較する。
+
+N181完了logは608.669秒、manual Navigation.swift:62の実教師入力欄global Any firstMatch.existsが
+UI query timeout。選択subjectの保持値確認は通過し、第三のroom選択後にsubject/teacherの保持値を
+再確認するteacherの可視化中、t434.47のexistsから内部retry465.55/496.60へ進んだ。ACKや確認本文ではない。
+この呼出しは既知manual-value- IDを持つのにvisibleへknownIDを渡しておらず、不在/virtualized時に
+global firstMatch.existsを使っていた。subject/teacherの編集・実保持値や製品不具合とはまだ断定しない。
+
+ManualAssistanceChecks+OneCorrection/Input/Navigationとinput/manual-value/existsでcatalogと索引を検索し、
+N54/N78/N94/N97/N153/N173の詳細、c7994b7/bb8091e/現OneCorrection・Navigationを読んだ。
+N173は確認後のlabel frame停止で、今回の候補で変更したreview経路は通過している。N97の既知IDの
+論理検索は同helperにあり、単項目の保持値assertはすでにknownIDを渡しているが、明示選択caseの3箇所だけは
+同じIDを引数に渡していない。候補はその3つのvisibleへ既存manual-value-+keyを渡し、現在の実配列の
+一意性/位置をviewport観測後に確認する同じ経路を使うこと。対象不在時にglobal exists/frameへ戻らず、
+元16探索/受動drag/有限枠/全包含/hittable・教師/subjectの保持値assert・独立ACK0・4件拒否・保存再起動を保つ。
+新しいUI条件や型の仮定、成功値注入、期限延長は追加しない。元case/幾何/生成/manifestで十分なので、
+同じID文字列を写すだけの追加caseは作らない。根拠/候補を先に隔離refへpushしてから局所確認する。
+継続26 A/Bは取消さず、実開始から最大55分を踏まえ13:05 UTCに新しい終端だけまとめて確認する。

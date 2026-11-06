@@ -88,7 +88,7 @@ extension ManualAssistanceChecks {
         selectCorrectionFromPreview(cell:cell,lesson:lesson,role:"teacher")
         XCTAssertTrue(fieldsExist(),app.debugDescription)
         XCTAssertEqual(Set(fieldIDs),Set([subjectKey,teacherKey]))
-        XCTAssertEqual(visible(input(subjectKey)).value as? String,subject)
+        XCTAssertEqual(visible(input(subjectKey),knownID:"manual-value-"+subjectKey).value as? String,subject)
         for key in [subjectKey,teacherKey] { XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"0") }
         assertSubmitEnabled(false)
         inspectSource(teacherKey);edit(input(teacherKey),teacher,id:teacherKey)
@@ -98,8 +98,8 @@ extension ManualAssistanceChecks {
         selectCorrectionFromPreview(cell:cell,lesson:lesson,role:"room")
         XCTAssertTrue(fieldsExist(),app.debugDescription)
         XCTAssertEqual(Set(fieldIDs),Set([subjectKey,teacherKey,roomKey]))
-        XCTAssertEqual(visible(input(subjectKey)).value as? String,subject)
-        XCTAssertEqual(visible(input(teacherKey)).value as? String,teacher)
+        XCTAssertEqual(visible(input(subjectKey),knownID:"manual-value-"+subjectKey).value as? String,subject)
+        XCTAssertEqual(visible(input(teacherKey),knownID:"manual-value-"+teacherKey).value as? String,teacher)
         for key in [subjectKey,teacherKey,roomKey] { XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"0") }
         inspectSource(roomKey);edit(input(roomKey),room,id:roomKey)
         acknowledge(subjectKey);assertSubmitEnabled(false)
