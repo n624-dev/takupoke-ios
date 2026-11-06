@@ -32,7 +32,11 @@ extension ManualAssistanceChecks {
         // top until actual offscreen geometry can determine a direction.
         let list=app.collectionViews["manual-recovery-list"]
         _=visible(list.staticTexts["manual-review-header"].firstMatch,towardTop:true,knownID:"manual-review-header")
-        for value in expected { _=visible(app.staticTexts[value].firstMatch) }
+        for value in expected {
+            let reviewed=list.staticTexts.matching(NSPredicate(
+                format:"identifier BEGINSWITH %@ AND label == %@","manual-reviewed-",value))
+            _=visible(reviewed.firstMatch,alternatives:reviewed)
+        }
         if comparable {
             XCTAssertEqual(visible(app.staticTexts["manual-comparison-available"].firstMatch,knownID:"manual-comparison-available").label,"本文の変更: 1箇所")
             XCTAssertTrue(visible(app.staticTexts["manual-change-before"].firstMatch,knownID:"manual-change-before").label.contains("架空科"))

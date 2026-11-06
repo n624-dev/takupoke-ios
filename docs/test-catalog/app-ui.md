@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`5acb4e328cedab0ebf17504ae7aaa09612c13c5099459d386b17220d027c6ef8`
+`ccba4e697253ec927dc6358c543d75e952de01ffbfe193da89d1514e9d4f1cbe`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -160,6 +160,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/ObservedScreenGeometryTests.swift](../../tests/ObservedScreenGeometryTests.swift)
 
+- `testCoherentBodyViewportKeepsAllOccludersAndRejectsUnknownGeometry`
 - `testObservedEqualPhysicalEdgesSurviveFloatingPointArithmetic`
 - `testPhysicalAndFractionalPixelClippingIsStillRejectedOnEveryEdge`
 - `testEmptyNonFiniteAndInvalidScaleDoNotBecomeVisible`

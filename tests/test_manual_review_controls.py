@@ -63,11 +63,14 @@ precondition(Checks([[valid]]).run().1==valid)
         tests=(ROOT/'tests/RecoveryManualReviewTests.swift').read_text().replace('@testable import TakupokeParsing','')
         names=re.findall(r'    func (test\w+)\(',tests)
         self.assertEqual(len(names),10)
-        runner='\nXCTMain([testCase(['+','.join('("'+n+'",RecoveryManualReviewTests.'+n+')' for n in names)+'])])\n'
+        geometry=(ROOT/'tests/ObservedScreenGeometryTests.swift').read_text()
+        geometry_names=re.findall(r'    func (test\w+)\(',geometry)
+        self.assertEqual(len(geometry_names),8)
+        runner='\nXCTMain([testCase(['+','.join('("'+n+'",RecoveryManualReviewTests.'+n+')' for n in names)+']),testCase(['+','.join('("'+n+'",ObservedScreenGeometryTests.'+n+')' for n in geometry_names)+'])])\n'
         with tempfile.TemporaryDirectory(prefix='manual-review-controls-') as scratch:
-            path=Path(scratch);(path/'main.swift').write_text(tests+runner)
+            path=Path(scratch);(path/'main.swift').write_text(tests+geometry+runner)
             subprocess.run([compiler, '-swift-version', '5', '-module-cache-path', str(path/'modules'),
-                            str(ROOT/'Takupoke/RecoveryManualReview.swift'), str(path/'main.swift'),
+                            str(ROOT/'Takupoke/RecoveryManualReview.swift'), str(ROOT/'tests/Support/ObservedScreenGeometry.swift'), str(path/'main.swift'),
                             '-o', str(path/'controls')], check=True)
             subprocess.run([str(path/'controls')],check=True)
 

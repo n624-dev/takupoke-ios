@@ -3257,3 +3257,47 @@ Runtime available、service診断はtimeoutで不明。単独のdebugger version
 押し直しや許可注入・10秒延長で救済しない。N172観測前から主bb809の同じ元caseは継続しているため、
 その26 Aを含む元全15の結果をまず確認する。27 Aの同caseは69.101秒で今回成功したが、26の成功へは流用しない。
 旧957は全18表示job終端・実14件（12成功/N171とN172の2失敗）、全14log各一度/artifact0確認済みで再照会しない。
+
+
+## N173 主正式bb809の単項目補正27が失敗終端（2026-11-06）
+
+予定06:45 UTC照会、sourcebb8091e95fb739cd92b23ffaf58687af91d23d35/run42166029342/attempt1、
+job127723415943は05:33:50Z開始・05:49:53Z failure。SDK27.1/Runtime27.0を要求する元単項目case、
+具体stage/操作/原因は未読で未確定として対処選択前に記録する。他27全条件は成功した。
+
+## N174 同じ主正式bb809の通常26 Bも失敗終端（2026-11-06）
+
+同じsource/run/attempt、job127735502288は05:43:05Z開始・06:11:25Z failure。
+要求SDK27.1/Runtime26.5、具体case/stage/原因はlog未読で未確定として対処選択前に記録する。
+最後の26 Aはsuccess終端、全15表示jobが終端（実10件）。新3logとartifact0を各一度だけ確認し、
+旧取得7log/終端runは再取得しない。依存skip5を成功へ数えず公開なし。N173/N174の具体logと
+過去詳細/旧現sourceを比較してから対処を選び、記録と候補を先にpushしてから次の試行を行う。
+
+N173完了logの事実：単項目case496.546秒、ManualAssistanceChecks+Navigation.swift:58の確認本文frame取得が
+UI query timeout。review=trueとheaderの可視化は成功、対象の訂正値StaticTextのexists成立後t296.46の
+frameがt327.83/t359.00再試行、t389.02以降のsnapshotも遅延した。ACK/レビュー20秒の失敗ではない。
+対象は全appの訂正値label firstMatchで、実生成viewは既にmanual-reviewed-<fieldID>という専用IDを付けている。
+crash原因はunassessedで、アプリcrashや確認本文欠落と断定しない。
+
+N174完了logの事実：基本6件中5成功、calendar元5秒だけ69.039秒で失敗。t35.32詳細消失、viewportの
+app/nav/tab/keyboard/footer各照会を経てt36.09に配列、t38.38で専用IDButton存在を再照会し、
+t39.62/39.63内部retry、後続frame/enabled/hittableには未到達。事後AXには同ID/元labelの週Buttonがある。
+専用IDでも一回取得したUI queryを次の属性のため再解決する部分が残っており、存在が期限内に成立した証明はない。
+全job終端、実10logを各一度/artifact0一度確認済みで旧bb809を再照会しない。26 Aは今回成功した。
+
+照合/次の候補：N173はN54/N78/N94/N97/N153の詳細と旧c7994b7/e33a3cd/現Navigation・Review・生成器を読む。
+N54の全体label探索/再scroll、N78の同じCell反復探索、N153のroot全体停止と異なり、今回の先行review state/
+headerは成立し、次の訂正値のglobal firstMatch.frameだけが停止している。元の16探索/受動Cell/包含/hittable/
+可視確認後の全文・保存proofを維持し、既存manual-reviewed- ID prefixと元の期待labelの両方を満たす現在の
+復旧Listの実要素配列へ対象を限定する。候補のframeはviewport観測後に各一回読み、その同じ値で位置/選択を判定。
+代替配列で見つからないときにglobal firstMatch.frameへ戻る重複照会を除き、同じ16探索/受動dragを継続する。
+他の既存代替menu候補も同じ一回frame/同じ全包含・hittableを保持する。labelや正常状態を注入しない。
+
+N174はN151/N165/N171の詳細/各当時と現case/bodyViewportを再比較する。属性getterを順番に増減する方式では
+一意な現在の表示を一つの時点で観測できない。候補は元5秒predicate内の一回のapp AX snapshotから、詳細bar不在、
+app/nav/tab/keyboard/footerと専用ID/月・日からlabelの一意なButtonの存在/finite frame/enabledを同時取得する。
+元と同じviewport算出/重複keyboard・footer拒否/完全包含を要求し、現在の同ID controlへのhittableを別に実確認して
+同じ中心へ一回だけ接触する。snapshot内の存在と現在hittableが元exists条件を満たし、不明/欠損/複数/disabled/
+clip/timeoutは全て失敗。UI treeは4096個を上限にし、超過は不明として合格させない。製品・元5秒・picker5秒/
+取消/前後週/全15gateは変えない。新しいviewport projectionは元7幾何と新しい正負のnative対照で確認する。
+候補/比較を隔離refへ先にpushした後に局所検査し、新規code-only review後だけ次の全15を開始する。

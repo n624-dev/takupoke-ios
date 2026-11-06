@@ -180,18 +180,32 @@ extension ApplicationChecks {
         // unique native control before one physical contact; never retry it.
         var readyCalendar:XCUIElement?,ambiguousCalendar=false
         let calendarReady = XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
-            guard !self.app.navigationBars["授業詳細"].exists else { return false }
-            let viewport=self.bodyViewport()
-            // Keep the semantic ID bound across a SwiftUI native-view replacement.
-            let current=calendars.allElementsBoundByIndex
+            // One AX tree proves existence, uniqueness, geometry and enabled
+            // state together; live getter chains can outlive their native nodes.
+            guard let root=try? self.app.snapshot() else { return false }
+            var pending:[any XCUIElementSnapshot]=[root],nodes:[any XCUIElementSnapshot]=[]
+            while let node=pending.popLast() {
+                guard nodes.count<4096 else { return false }
+                nodes.append(node);pending.append(contentsOf:node.children.reversed())
+            }
+            guard !nodes.contains(where:{ $0.elementType == .navigationBar &&
+                ($0.identifier == "授業詳細" || $0.label == "授業詳細") }),
+                let navigation=nodes.first(where:{ $0.elementType == .navigationBar }) else { return false }
+            let viewport=ObservedScreenGeometry.bodyViewport(app:root.frame,navigation:navigation.frame,
+                tab:nodes.first(where:{ $0.elementType == .tabBar })?.frame,
+                keyboards:nodes.filter { $0.elementType == .keyboard }.map(\.frame),
+                footers:nodes.filter { $0.elementType == .button && $0.label == "次へ" }.map(\.frame))
+            let current=nodes.filter { $0.elementType == .button &&
+                $0.identifier == "timetable-week-calendar" && $0.label.contains("月") && $0.label.contains("日から") }
             if current.count>1 { ambiguousCalendar=true;return true }
             guard current.count==1 else { return false }
-            let button=current[0]
-            guard button.exists else { return false }
-            let frame=button.frame
-            guard self.usable(frame) && self.usable(viewport) &&
-                ObservedScreenGeometry.contains(frame,in:viewport,scale:UIScreen.main.scale) &&
-                button.isEnabled && button.isHittable else { return false }
+            let observed=current[0],frame=observed.frame
+            guard observed.isEnabled,self.usable(frame),self.usable(viewport),
+                ObservedScreenGeometry.contains(frame,in:viewport,scale:UIScreen.main.scale) else { return false }
+            // Hittability still comes from the current real control before one
+            // physical contact; the snapshot cannot fabricate an operable target.
+            let button=calendars.element(boundBy:0)
+            guard button.isHittable else { return false }
             readyCalendar=button
             return true
         },object:app)

@@ -6,6 +6,20 @@ enum ObservedScreenGeometry {
             && [rect.minX, rect.minY, rect.maxX, rect.maxY].allSatisfy(\.isFinite)
     }
 
+    // Project the original body bounds from one coherent AX observation.
+    // Multiple/invalid occluders remain unknown rather than granting visibility.
+    static func bodyViewport(app: CGRect, navigation: CGRect, tab: CGRect?,
+                             keyboards: [CGRect], footers: [CGRect]) -> CGRect {
+        guard usable(app), usable(navigation), keyboards.count <= 1, footers.count <= 1,
+              keyboards.allSatisfy(usable), footers.allSatisfy(usable),
+              tab.map(usable) ?? true else { return .null }
+        var bottom = tab?.minY ?? app.maxY
+        if let keyboard = keyboards.first { bottom = min(bottom, keyboard.minY) }
+        let body = CGRect(x: app.minX, y: navigation.maxY, width: app.width,
+                          height: max(0, bottom - navigation.maxY))
+        return excludingFooter(footers.first, from: body)
+    }
+
     // nil means absent. A present footer with unreadable geometry must block
     // visibility until another observation resolves it, including before scrolling.
     static func excludingFooter(_ footer: CGRect?, from viewport: CGRect) -> CGRect {

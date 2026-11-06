@@ -51,11 +51,18 @@ extension ManualAssistanceChecks {
                 XCTFail("Known manual control must be unique: "+targetID);return e
             }
             let target=matches.first ?? e
-            if let alternatives,let actual=manualVisibleCandidate(
-                candidates:alternatives.allElementsBoundByIndex,viewport:viewport,
-                frame:{ $0.frame },isHittable:{ $0.isHittable }) { return actual }
-            let exists=targetID.isEmpty ? target.exists:!matches.isEmpty
-            let targetFrame=exists ? target.frame:nil
+            // Bind current candidates after measuring the viewport, and reuse
+            // each observed frame. An absent/virtualized candidate must not send
+            // us back to an unrelated global firstMatch.frame lookup.
+            let observed=alternatives.map { query in
+                query.allElementsBoundByAccessibilityElement.map { (element:$0,frame:$0.frame) }
+            }
+            if let observed,let actual=manualVisibleCandidate(candidates:observed,viewport:viewport,
+                frame:{ $0.frame },isHittable:{ $0.element.isHittable }) { return actual.element }
+            let exists=observed.map { !$0.isEmpty } ?? (targetID.isEmpty ? target.exists:!matches.isEmpty)
+            let targetFrame:CGRect?
+            if let observed { targetFrame=observed.first?.frame }
+            else { targetFrame=exists ? target.frame:nil }
             if alternatives==nil && exists {
                 print("TAKUPOKE-MANUAL-TARGET id=\(targetID);frame=\(targetFrame ?? .null);viewport=\(viewport)")
             }
