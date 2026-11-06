@@ -55,6 +55,7 @@ elif args[:2] == ['simctl', 'launch']:
                 app_data = root / "app-data"
                 (app_data / "Documents").mkdir(parents=True)
                 developer = root / 'Xcode.app/Contents/Developer'
+                developer.mkdir(parents=True)
                 (developer.parent / 'Applications/DeviceHub.app').mkdir(parents=True)
                 for name in ("xcrun", "xcodebuild", "xcode-select", "open"):
                     path = root / name

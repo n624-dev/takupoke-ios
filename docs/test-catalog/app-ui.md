@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`7115e79dcc6a823cafdb4ab25359b50de9ff457de66bbbd104d03190d4b916d2`
+`bf7b87c649889314c19022f67e1de2281611fc960feda8cd272ea355a1deb1a2`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -67,6 +67,7 @@ bash tools/test-app-ui.sh
 - [tools/test-app-ui.sh](../../tools/test-app-ui.sh)
 - [tools/ui_test_manifest.py](../../tools/ui_test_manifest.py)
 - [tools/prepare-ios27-runtime.py](../../tools/prepare-ios27-runtime.py)
+- [tools/boot-simulator-ui.sh](../../tools/boot-simulator-ui.sh)
 
 ## [tests/MainColorTests.swift](../../tests/MainColorTests.swift)
 
@@ -173,6 +174,8 @@ bash tools/test-app-ui.sh
 
 - `test_shutdown_confirmation_requires_exact_owned_runtime_and_one_stopped_device`
 - `test_runtime_health_filters_owned_device_and_bounds_failed_observations`
+- `test_boot_readiness_waits_only_for_owned_startup_transitions_with_one_global_deadline`
+- `test_boot_readiness_rejects_unknown_unavailable_ambiguous_or_failed_reads_without_retry`
 - `test_launch_observation_keeps_nested_codes_without_private_error_details`
 - `test_launch_error_codes_are_bounded_and_reject_unknown_domains_and_large_values`
 - `test_accessibility_observation_has_only_known_services_and_fixed_words_in_order`
@@ -241,3 +244,20 @@ bash tools/test-app-ui.sh
 - `test_ios26_export_cleanup_rejects_unknown_directories_and_symlinks`
 - `test_exact_installed_download_import_and_failures`
 - `test_new_toolchain_requires_exact_sdk_without_changing_either_runtime`
+
+## [tests/test_simulator_frontend.py](../../tests/test_simulator_frontend.py)
+
+- `test_selected_xcode_frontends_and_owned_window_are_ready_before_returning`
+- `test_boot_frontend_window_and_readiness_errors_fail_without_another_boot`
+
+## [tests/test_manual_ui_runner.py](../../tests/test_manual_ui_runner.py)
+
+- `test_whole_suite_uses_one_successful_owned_build`
+- `test_selected_case_uses_the_same_build_without_retesting_others`
+- `test_shipping_27_uses_exact_27_0_when_newer_minor_is_available`
+- `test_failed_build_never_starts_tests_or_becomes_success`
+- `test_missing_completion_refuses_even_after_successful_build`
+
+## [tests/test_picker_ui_runner.py](../../tests/test_picker_ui_runner.py)
+
+- `test_preparation_order_exact_completions_failures_and_owned_cleanup`

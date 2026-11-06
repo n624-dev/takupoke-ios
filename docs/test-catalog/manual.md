@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`2da0cc53fadc5368f301d0253dd56e6b15014a0151829352fb7c42eaf1233f3d`
+`b629223d9b43a28fb821aa6f1e1ce3d3c2498d510aab722c077ac0188e2af357`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -152,3 +152,28 @@ bash tools/test-manual-ui.sh
 - `testFunctionalReturnClassRowIncludesBoundaryAtPeriodHeaderBottom`
 - `testSpecialMarkedRawSubjectMovesAcrossStrictAndValidatedRecoveryProjections`
 - `testMigratedStrictLessonsStillCompareAtTheirOriginalPDFCells`
+
+## [tests/test_simulator_frontend.py](../../tests/test_simulator_frontend.py)
+
+- `test_selected_xcode_frontends_and_owned_window_are_ready_before_returning`
+- `test_boot_frontend_window_and_readiness_errors_fail_without_another_boot`
+
+## [tests/test_notification_service_trace.py](../../tests/test_notification_service_trace.py)
+
+- `test_shutdown_confirmation_requires_exact_owned_runtime_and_one_stopped_device`
+- `test_runtime_health_filters_owned_device_and_bounds_failed_observations`
+- `test_boot_readiness_waits_only_for_owned_startup_transitions_with_one_global_deadline`
+- `test_boot_readiness_rejects_unknown_unavailable_ambiguous_or_failed_reads_without_retry`
+- `test_launch_observation_keeps_nested_codes_without_private_error_details`
+- `test_launch_error_codes_are_bounded_and_reject_unknown_domains_and_large_values`
+- `test_accessibility_observation_has_only_known_services_and_fixed_words_in_order`
+- `test_accessibility_failure_limits_do_not_emit_raw_text_or_mutate_os_state`
+- `test_accessibility_service_report_rejects_oversized_health_output`
+- `test_spooled_observation_bounds_real_stdout_stderr_and_keeps_exit_status`
+- `test_notification_log_collection_bounds_memory_before_reporting_limit`
+- `test_notification_evidence_survives_later_accessibility_noise_in_original_order`
+- `test_notification_observation_failures_preserve_the_other_readonly_phases`
+- `test_notification_window_uses_unanswered_request_even_when_failure_finishes_later`
+- `test_notification_window_collects_only_bounded_owned_trace_and_request_interval`
+- `test_notification_service_trace_keeps_only_known_processes_and_fixed_words`
+- `test_notification_service_trace_is_bounded_without_permission_mutation`

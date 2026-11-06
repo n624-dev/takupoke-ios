@@ -3789,3 +3789,17 @@ Duplicate source ownership: tools/notification_service_trace.pyで終了1。テ�
 sourceの所有分類は一つ、checksは複数分類から参照できる契約だった。共通helper/runtime moduleはApp分類だけで所有し、
 App分類の対応検査へmanual/Picker runnerも加え、他分類は共通検査を参照する形へ直す。
 修正/比較を含む候補を先に非起動featureへpushし、一覧再生成と局所検査を行う。未生成の一覧をCI成功と扱わない。
+候補fbe89a5をpush後の一覧再生成は452登録で成功した。Runtime観測17件/失敗0、共通起動helperの実shell2件/失敗0、
+manual実runner5件/失敗0は通過した。通常App runnerは継続検査中である。
+
+## N196 Pickerのローカルrunner fakeに選択Developerディレクトリが無い（2026-11-06）
+
+sourcefbe89a5、Linuxのtest_picker_ui_runnerは1宣言/8入力中6入力が失敗（2.850秒）。
+success入力はNo supported simulator frontend in the selected Xcodeで終了し、test-without-buildingへ未到達。
+他5失敗は同じ準備停止で本来の失敗入力へ進まずbuild回数が1だった。実iOS/Picker UIの失敗とは区別し、対処前に記録した。
+
+6aaの旧Picker fakeにはfrontendが無く、共通化後のApp/helper fakeはDeveloperを明示作成、manual fakeは子Simulator.app作成時に作っていた。
+Pickerだけは兄弟Applicationsを作り、Developer自体を作っていなかったため、実OSの `Developer/../Applications` 解決が失敗した。
+実Xcodeを模したDeveloperの作成一行だけを追加し、helperの実在確認・元8入力・期待値を保持する。候補を先にpushして再検査する。
+通常App runnerの先行検査は完了出力の回収が文脈上限で失われ、processも終了していたため、成功とは数えない。
+結果を所有logへ保持して一回だけ回収検査する。これは実CIの再実行とは区別する。
