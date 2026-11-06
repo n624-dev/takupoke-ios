@@ -3635,3 +3635,10 @@ Linuxの部分検証を全生成成功へ読み替えない。この差を先に
 
 N189候補1b78ddcの関連局所結果：project17件/失敗0（0.659秒）、実review状態2件と実Swift18条件/失敗0（6.784秒）、
 navigation2件/実Swift幾何29条件/失敗0（3.970秒）、manifest30件/失敗0/skip0（29.567秒）、catalog450/check --base8117882は通過した。
+N190の範囲を直した再確認は、同じview変換関数を実PDFRecoveryView.swiftへ適用した出力のSwift構文解析が成功した。
+Apple専用のproject全生成はこの成功に含めず、次のmacOS限定へ残す。コードをLinux向けに偽装する変更はしていない。
+
+新規GPT-6.1 Sol/High ios_n189_background_probe_pre_actions_reviewはcode-only2path/26行/1788bytes、
+SHA256 6b2a3fa3c1462041f66ddca08db01c40e9484a044cf7aa2092f520ebbdc06c31を実rangeと照合して指摘なし。
+主担当がコード不変・局所結果・commit空白を確認し、同じ明示選択26/SDK27.1だけの次の一回へ消費する。
+背景へ移したAX観測の存続と実hittableはまだ未確認で、失敗を成功へ置き換えない。mainには別の新規全差分reviewが必要。
