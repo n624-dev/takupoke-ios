@@ -164,6 +164,7 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('return false',terminate)
         self.assertLess(terminate.index('app.wait('),terminate.index('app.terminate()'))
         self.assertEqual(checks.count('app.terminate()'),1)
+        self.assertIn('"--fixture-year-input-trace"',checks)
         self.assertEqual(checks.count('tap("訂正と変更を確認して資料全体へ",knownID:"manual-review-submit")'),2)
         self.assertIn('visible(app.buttons[title].firstMatch,knownID:knownID,buttonLabel:title).tap()',checks)
 

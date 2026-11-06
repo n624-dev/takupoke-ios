@@ -3642,3 +3642,28 @@ Apple専用のproject全生成はこの成功に含めず、次のmacOS限定へ
 SHA256 6b2a3fa3c1462041f66ddca08db01c40e9484a044cf7aa2092f520ebbdc06c31を実rangeと照合して指摘なし。
 主担当がコード不変・局所結果・commit空白を確認し、同じ明示選択26/SDK27.1だけの次の一回へ消費する。
 背景へ移したAX観測の存続と実hittableはまだ未確認で、失敗を成功へ置き換えない。mainには別の新規全差分reviewが必要。
+
+## N191 QA観測を背面へ移した明示選択26限定がfailure（2026-11-06）
+
+sourced572f69db8c2794f7e5803da9b4bdffa1a16b68e/run42265854163/attempt1/job128057439798、
+OS26/SDK27.1/予定Runtime26.5、元明示選択一件。17:54:16Z開始・18:07:09Zにfailure。
+exact source・入力検証・Runtime準備はsuccess、Exerciseはfailure、所有export回収はsuccess。
+18:30Zの予定照会で終端を確認した。本文未読の時点で失敗段階・観測containerの存続・statusの到達は未確定。
+次の対処を選ぶ前に記録し、新しい完了logと過去詳細/当時と現sourceを比較する。
+
+完了logを一度保存しartifact0確認。実Runtime26.5、case166.331秒/失敗1、Input.swift:129の元完了Button待機が失敗した。
+初回の科目消去・全文「架空選択科目」入力まではBinding/実TextField値で成立した。失敗後AXではKeyboardとmanual-edit-doneが
+いずれも無く、復旧barは閉じる/架空検証だけだった。QA観測containerとmanual-input-stateは背面でも存在し、実入力/ack=falseを保持した。
+U02は完了が存在してhittable=falseだったが今回は存在自体が無い。review/preview/4件目拒否の旧N189位置には未到達で、
+背景移動によるstatus改善は未確認。outer613.4秒でtimeoutなし、所有回収完了。次の対処前にこの差を記録した。
+
+完了/keyboard/focusでU02/U72/N163を検索し詳細・693cf079のInput・d4c1bceと現ApplicationFixture/製品FocusStateを比較した。
+U02/U72の完了存在後のhit/AX停止と異なり、今回の完了は復旧bar内に無く、keyboardも消失している。
+N163には固定のUIKit編集/keyboard通知observerがあるが、手動fixtureはflagを付けず、手動collectorもその8stageを拾っていなかった。
+既存observerは現在も同じ7通知/32件上限で、差分は別のtouch配送診断だけだった。推測でfocusを設定し直したり、
+keyboardが無ければ完了tapを省く救済はしない。
+次の限定では既存の読取専用observerをmanual flagで有効にし、同じstageへUITextViewの3通知も対応付ける。
+元の一回消去/全文入力/完了Button45秒・一回tap/keyboard消失/ACK/4件拒否/保存/再起動は維持する。
+collectorは既存8stageだけ追加許可し、文字列/通知userInfo/focusの読み書きを加えず64KiB/128行/32通知の上限を保持する。
+新しい通知観測で最初の消去から編集終了/keyboard hideの順を区別する一回であり、入力方法・期限・製品のFocusStateは変更しない。
+候補と根拠を非起動featureへ先にpushしてから局所・新規review・同じ26/SDK27.1の限定へ進む。

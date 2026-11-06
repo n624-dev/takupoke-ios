@@ -22,7 +22,9 @@ spec.loader.exec_module(module)
 class ManualDiagnosticsTests(unittest.TestCase):
     def test_owned_launch_trace_exports_only_fixed_stages_and_rejects_unknown_content(self):
         stages=('init-enter','seed-enter','seed-complete','scene-construction','content-appeared',
-                'root-task-enter','application-ready','fixture-ready','fixture-ready-timeout')
+                'root-task-enter','application-ready','fixture-ready','fixture-ready-timeout',
+                'year-input-observer-installed','year-edit-began','year-edit-ended','year-edit-changed',
+                'year-keyboard-will-show','year-keyboard-did-show','year-keyboard-will-hide','year-keyboard-did-hide')
         valid=['TAKUPOKE_LIFECYCLE pid=123 time=42.25 stage='+stage for stage in stages]
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/'owned.log'

@@ -20,7 +20,7 @@ final class ManualAssistanceChecks:XCTestCase {
         return true
     }
     func launch(_ flags:[String]=[]) {
-        app.launchArguments=["--reset-fixture","--manual-ui","--fixture-input-trace","--manual-integral-rails","-AppleLanguages","(ja)","-AppleLocale","ja_JP"]+flags
+        app.launchArguments=["--reset-fixture","--manual-ui","--fixture-input-trace","--fixture-year-input-trace","--manual-integral-rails","-AppleLanguages","(ja)","-AppleLocale","ja_JP"]+flags
         guard launchApplicationOnce() else { return }
         app.tabBars.buttons["設定"].tap();tap("時間割ファイル");tap("通常時間割の詳細を見る");tap("端末内で復旧する");tap("端末内で復旧を開始")
     }

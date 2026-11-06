@@ -122,10 +122,10 @@ def report_matches(path, started, *, allow_jetsam=False):
 
 
 def launch_trace_lines(path):
-    """Read only existing fixed launch stages from the owned fictional app log."""
+    """Read only fixed launch and native edit stages from the owned fictional app log."""
     if path.is_symlink() or not path.is_file() or path.stat().st_size > 65536:
         return []
-    pattern = re.compile(r"TAKUPOKE_LIFECYCLE pid=\d+ time=\d+(?:\.\d+)? stage=(?:init-enter|seed-enter|seed-complete|scene-construction|content-appeared|root-task-enter|application-ready|fixture-ready|fixture-ready-timeout)")
+    pattern = re.compile(r"TAKUPOKE_LIFECYCLE pid=\d+ time=\d+(?:\.\d+)? stage=(?:init-enter|seed-enter|seed-complete|scene-construction|content-appeared|root-task-enter|application-ready|fixture-ready|fixture-ready-timeout|year-input-observer-installed|year-edit-began|year-edit-ended|year-edit-changed|year-keyboard-will-show|year-keyboard-did-show|year-keyboard-will-hide|year-keyboard-did-hide)")
     try:
         with path.open("rb") as stream:
             raw = stream.read(65537)
