@@ -146,3 +146,23 @@ project生成17件/失敗0（0.457秒）、Swift parse・catalog450/check --base
 旧01feの27 Aは成功、26 BはN170の既停止deviceへのstrict shutdownだけでfail。新旧別sourceの結果を混ぜず、
 主実行の全15/公開gateは維持する。対応が必要ならN170の一意な所有deviceの既停止確認という候補で進め、
 推測でSDK/OS/bootや元のテストを変更しない。
+
+
+主957の04:55予定照会で通常27 A/Bと訂正26の単項目/三項目/明示選択が成功、新6logを各一度取得した。
+ただし通常26 BはN171のcalendar native identityがframe後のenabled取得で消え、元5秒が不成立。
+N170とは別の段階である。主957の残26 A/原本変更26は取消さず終端まで確認する。
+旧01feは最後の26 Aが04:36:58Zに成功し、全15表示job終端・実10log各一度/artifact0一度確認済みで再照会しない。
+N171の事実・旧現比較を先に記録し、週Buttonの固定semantic IDへ結び付ける候補とN170既停止cleanupの限定対応を
+05ab23fとして隔離refへpushした。wrong supported Runtimeの負対照一つも964a9b9で先にpushしてから確認した。
+局所はobserver/終了確認15件/失敗0（初回0.243秒、追加負対照後0.205秒）、実shell16件/失敗0（43.104秒）、
+manifest30件/失敗0（19.224秒、元29幾何を含む）、Swift6.1.2 parse/Bash構文/catalog450/check --base9577502が成功。
+UIDを付けるだけの製品変更では原caseと元幾何を使用し、XCTestの再生成を模倣した新caseは増やさない。
+これらはAppleの5秒応答やcleanup状態を保証せず、実両OSは次の正式全15で確認する。
+review artifactはすべての局所commandが終了した後に一意なfinal pathへ再生成し、同一SHAを確認してから渡した。
+
+次のmain push/正式全15/条件成立時の公開一回専用に、新規GPT-6.1 Sol/High
+`ios_n171_main_pre_actions_review`がcode patch180行/10214bytes、SHA256
+`bd64b89e57fa11a8f911f630ff027031d6a50d5c6626433f0e60ae870dc5506e`を全量・commit範囲一致まで確認し指摘なし。
+主担当も週Buttonの元label/固定ID/一意性/全guard/5秒/一回中心接触と、149限定の一意な所有device既停止確認/
+他終了値・不明状態のfailure伝播/全freshdevice・通知・OSサイズ検証の維持を照合した。
+この新しいreviewだけを次のmain自動Actions一回に消費し、過去reviewは再利用しない。
