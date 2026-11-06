@@ -221,3 +221,24 @@ Linux/Python3.12で実準備helperのlifetime/cleanup/SDK各4件/失敗0（6.380
 主担当もSDK/Runtime固定・登録済unavailable拒否・download/import期限・所有marker/symlink拒否・
 元全UI/全15gateとalways回収の順序を照合した。この新reviewだけを次のmain開始一回へ消費する。
 Runtime消失とexport削除の直接因果、通信切断の下位原因、恒常解消は未証明として、次の正式両OSで確認する。
+
+主200e60a/run42192999314/attempt1は10:05照会でDistribution299件/失敗0（153.349秒）、Native701件/
+予定skip1/失敗0（Xcode26.6/SDK26.5、125.000秒）、通常27 Aと訂正27全4件が成功。新7完了logを各一度取得した。
+11:15照会で全18表示job終端、通常27 Bと訂正26全4件も成功したが、通常26 A/BはN179/N180で失敗、公開なし。
+全14log各一度/artifact0一度確認済み、過去の終端run/logを再照会しない。取得exportは実testとdevice回収後まで
+保持され、今回bundle nullは出なかったが、候補が下位OSの問題全般を解消したとは断定しない。
+
+N179はcold再起動前のHome命令から返却せずXCTestがunexpected再起動、その後17件がforeground等で失敗。
+N180は独立通知caseの初回native Switch一回接触後、UI/保存/認可要求が始まらず45秒で失敗した。
+事実を先に記録しU19/U43/U49/U55/U59/U64/U71/N94/N95/N125/N167の詳細と旧現helper/既存observerを照合。
+SpringBoardが実foregroundなら余分なHome命令を送らず元45秒の実準備証明は維持し、通知caseだけ既存の
+read-only入力診断を有効にする5b8fe8aを隔離refへ先にpushした。製品/点/接触時間/期限/全後続assert/gate不変。
+Linux Swift6.1.2でmanifest30件/失敗0（18.003秒）、所有observer・終了確認15件/失敗0（0.152秒）、
+Swift frontend parse、catalog450/check --base200e60aが成功。元UI caseで実起動・入力・保存を確認するため、
+Apple APIのmockで実OS成功を模倣する追加caseは作らない。実OSの準備・配送は次の正式両OSで評価する。
+
+次のmain push/正式全15/条件成立時の公開一回専用に、新規GPT-6.1 Sol/High
+`ios_n179_main_pre_actions_review`がcode patch41行/2946bytes、SHA256
+`89b0aefeea633b97708db0a7369a1b6d269972f0fe85573fc42b08638783cb79`を全量・commit差分一致まで確認し指摘なし。
+主担当も停止後一回launch/元45秒と実foreground・frame、既存observerの元event一回/非介入/固定記録、
+全後続assert・全15gate維持を照合した。この新reviewだけを次のmain開始一回に消費し、過去reviewを再利用しない。
