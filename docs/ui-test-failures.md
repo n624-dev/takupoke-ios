@@ -3803,3 +3803,9 @@ Pickerだけは兄弟Applicationsを作り、Developer自体を作っていな�
 実Xcodeを模したDeveloperの作成一行だけを追加し、helperの実在確認・元8入力・期待値を保持する。候補を先にpushして再検査する。
 通常App runnerの先行検査は完了出力の回収が文脈上限で失われ、processも終了していたため、成功とは数えない。
 結果を所有logへ保持して一回だけ回収検査する。これは実CIの再実行とは区別する。
+
+## N197 ローカルmanifest検査のファイル名指定誤り（2026-11-06）
+
+source73454fc/Linux/Swift6.1.2環境で `test_ui_manifest.py` を指定し、0 tests/NO TESTS RAN・終了5。
+検査は実行されておらず成功に数えない。一覧と実ファイルを照合すると正しくは `test_ui_test_manifest.py` だった。
+実装・期待値には変更せず、候補記録を先にpushして登録済みの正確な検査を実行する。
