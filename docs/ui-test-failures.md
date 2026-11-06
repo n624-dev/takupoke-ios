@@ -3718,3 +3718,10 @@ U64と同じ最初の0→1、U55の4回目とは違う。現在はN146後のnati
 元128記録上限/所有log/本文拒否/一回sendEventを維持し、初回3操作・再起動後4回目・UI/保存の両成立と全15gateは変えない。
 候補/根拠を先に非起動featureへpushし、局所・新規review後に既存relaunch診断の同じcaseを27/SDK27.1だけで一回観測する。
 進行中の旧26 Aは取消さず、次の比較とまとめて終端を確認する。
+
+同じtapNativeSwitchの全5callerも点検した。通知2箇所・行除外2箇所のcaseには既存flagがあり、今回のAIだけ未接続だった。
+候補96fad4cを先にpush後、manifest30件/失敗0/skip0（19.901秒）、Swift構文/catalog450/check --base b965098が通過した。
+新規GPT-6.1 Sol/High ios_n192_ai_delivery_probe_pre_actions_reviewはcode-only2path/26行/1824bytes、
+SHA256 704fb4019f42ae432505364ed193a27b700c32ca5bb66371d70deb47d68b8e23を照合して指摘なし。
+主担当がコード不変・局所/空白を確認し、既存の同じ設定case・27/SDK27.1の限定一回にだけこのreviewを消費する。
+mainへの次の開始には別の新規reviewを要求し、元の四回の実Switch操作・保存/再起動や全15gateを維持する。
