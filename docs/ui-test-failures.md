@@ -3619,3 +3619,19 @@ overlay/observation/hittableでN49/U77/N160/N183/N186を検索し、N49とN160�
 状態/診断/保存proofの実値・ID・children contain・非hitは保ち、List寸法や操作・完全包含/hittable・16探索/一回反転・
 45秒本文・3項目上限/4件拒否/実採用/再起動は変えない。観測表示のAX存在が失われた場合も元の状態待機で失敗する。
 この一変更を先にpushして生成/状態/幾何/manifestを検証し、新規review後に同じOS26/SDK27.1の一件で比較する。
+
+## N190 LinuxでApple専用project全生成を追加実行してplutil変換が失敗（2026-11-06）
+
+source1b78ddc、Linux/Swift6.1.2、17:51Zの追加構文確認でmanual_ui_project.pyの全project生成を呼んだところ、
+app_test_project.py:186のplutil -convert jsonが終了1となり、manual Viewの構文解析前に停止した。
+製品/Swift構文/UIの失敗とは未確定。既存project17件・状態/幾何の実Swift対照は通過済みで、
+全生成の成功とは扱わない。所有TemporaryDirectoryは例外後も回収済み。対処方法を決める前に本事実を記録した。
+
+plutil/Unimplemented/Linux生成で索引を検索したが、過去の同じplutil失敗記録は無かった。
+現app_test_project.pyと既存17件の生成検査を比較すると、全project生成はAppleのOpenStep変換を呼ぶが、
+Linux側の既存検査は同じview変換関数を元Swiftへ適用している。コードは変えず、その実変換結果だけを
+所有一時Swiftへ書きSwift frontendで構文解析する。macOSの全project生成/build/実AXは次の限定CIで確認し、
+Linuxの部分検証を全生成成功へ読み替えない。この差を先にpushしてから構文確認をやり直す。
+
+N189候補1b78ddcの関連局所結果：project17件/失敗0（0.659秒）、実review状態2件と実Swift18条件/失敗0（6.784秒）、
+navigation2件/実Swift幾何29条件/失敗0（3.970秒）、manifest30件/失敗0/skip0（29.567秒）、catalog450/check --base8117882は通過した。
