@@ -3527,3 +3527,10 @@ enabled/hittableを確認し、その同じ中心へ一回0.1秒接触する。U
 元3action全ての45秒存在・後続実action/入力保持は維持し、menuを押し直さず正常状態を注入しない。
 効果や下位の入力取消原因は未確定。N185/N186候補と同じ限定全4×両OSで確認する前に記録と候補をpushする。
 先に作成したN186用reviewは未消費のまま廃止し、N187差分も含む別の新規専用review後にだけ次の限定を開始する。
+
+限定が旧26.6 SDKで通っても正式27.1のRuntime利用不能を先に検出できないため、既存manual probeへ
+sdk26=27.1の明示選択を追加する。既定26.6/旧比較は維持し、今回は両OSとも配布SDK27.1を使い、
+26.5を同じprepare/hold/always cleanupで確認する。元4case×両OS・35/45分・exact source・fail-fast false・
+全assertは維持し、公開gateは変更しない。入力/Runner/Developer/SDK/26準備/always回収の接続を既存manifestで
+検査する。新しいSDKを導入せず、正式で既に使っているtoolchainを限定でも明示するためである。
+N187用reviewも未消費で廃止し、このworkflow差分を含めた別の新規専用review後にだけ限定を開始する。

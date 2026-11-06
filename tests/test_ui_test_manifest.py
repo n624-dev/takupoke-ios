@@ -806,6 +806,18 @@ METHOD
         self.assertIn("ios: [26, 27]",probe)
         self.assertIn("TKPK_MANUAL_CASE: ${{ matrix.case }}",probe)
         self.assertNotIn("continue-on-error",probe)
+        sdk26=probe.split("      sdk26:\n",1)[1].split("\npermissions:",1)[0]
+        self.assertIn("default: '26.6'",sdk26)
+        self.assertIn("options: ['26.6', '27.1']",sdk26)
+        self.assertIn("inputs.sdk26 == '27.1' && 'xcode-27' || 'macos-26'",probe)
+        self.assertIn("inputs.sdk26 == '27.1' && '/Applications/Xcode_27.1.app/Contents/Developer' || '/Applications/Xcode_26.6.app/Contents/Developer'",probe)
+        self.assertIn("(matrix.ios == 27 || inputs.sdk26 == '27.1') && '27.1' || '26.5'",probe)
+        prepare="python3 -B tools/prepare-ios26-runtime.py --hold-export"
+        self.assertIn("if: matrix.ios == 26 && inputs.sdk26 == '27.1'\n        run: "+prepare,probe)
+        self.assertLess(probe.index(prepare),probe.index("bash tools/test-manual-ui.sh"))
+        cleanup="python3 -B tools/prepare-ios26-runtime.py --cleanup-export"
+        self.assertIn("if: always() && matrix.ios == 26 && inputs.sdk26 == '27.1'\n        run: "+cleanup,probe)
+        self.assertLess(probe.index("bash tools/test-manual-ui.sh"),probe.index(cleanup))
         self.assertIn("bash tools/test-app-ui.sh", simulator)
 
     def test_cli_selects_the_complete_shard_and_rejects_invalid_shard(self):
