@@ -3078,3 +3078,31 @@ boot完了時と失敗cleanup前のsimctl list -jを各一回/10秒/2MiBで読�
 加えず、観測失敗をUI成功に変えない。サイズ超過/非zero/不正JSON/別device拒否の検査を追加する。
 N165の候補を含む新sourceの正式全15をこの追加観測付きで確認する。今回の原因・恒常解消は未確認。
 候補と本記録は局所再試行より先に隔離refへpushし、新規code-only review後のみ次のActionsを開始する。
+
+
+## N167 次の正式CIの三項目補正iOS27が失敗終端（2026-11-06）
+
+予定01:50 UTCの一括照会、source8cdf0663d192a566cada2288812358f5954bac58/run42144767317/attempt1、
+job127654140894は01:36:41Z開始・01:47:10Z failure終端。SDK27.1/Runtime27.0を要求する
+元testThreeFieldsRequireEachAcknowledgementAndFourRefusesで、具体操作/失敗stage/原因はlog未読で未確定。
+対処案を決める前の観測として残す。Distribution/Native/原本変更は成功、他の通常UI/訂正は継続中。
+公開条件は未成立。残りを取消さず、新しい完了4logだけ一度取得して旧詳細/旧現コードと照合する。
+
+N167完了log：元三項目case303.722秒、Input.swift:56のteacher確認Switch native value1の45秒待機timeout。
+room/subjectの全文置換・native ACK/Bindingは成功。teacherも全文一致・keyboard消失・一意な内側実Switchの
+finite/外側とviewport完全包含/enabled/hittable/0を確認した。外側(16,646.33,361,52.33)、
+内側(300,658.67,63,28)、viewport(0,141,393,699)、元の中心(331.67,672.67)で一回0.1秒接触。
+入力traceはbegan→ended（約0.114秒）、UISwitchへの到達を示すが、45秒内valueは0、診断teacher ack=false、
+teacherのack Bindingなし。N93と異なりcancelledではない。UIKit UISwitch自体のon/追跡/insideは旧観測にない。
+検索語Input.swift:56/acknowledge/ended/cancelledでU19/U64/U71/N66/N87/N88/N93/N94/N97を詳細まで読み、
+f6e13a6/1b368f5/9cd340e/現Input・現PDFRecoveryView Bindingを比較した。N66と同じ近傍枠だが、
+位置・接触方式・Bindingを原因と断定せず、待機/点/時間を往復させない。8cdfと公開f709の元helper/製品Toggleは
+同一bytes。既存traceは全gestureクラス名のsuffix16を採るため多くがestureRecognizerとなり区別できない。
+
+次は製品/元case/45秒/一回接触を維持し、同じ三項目を両OSの既存focused workflowで実行して追加観測する。
+fixtureのUIWindow observerは元sendEventを一回だけ呼び、元のbefore入力情報を保持したまま、実UISwitchの
+isOn/isTracking/isTouchInsideを呼出前後に読み、任意本文を含まない6個Boolだけ同じbounded行へ加える。
+gesture名は末尾の共通GestureRecognizerとmoduleを除いた先頭16文字で、同じクラス名文字種/6個上限を維持する。
+元の128入力/64KiB/file所有/本文拒否とcleanupを保持し、新形式と範囲外/任意本文の負対照を加える。
+観測は操作/gesture/Bindingを変更せず、確認ONを注入しない。候補と本比較を先に隔離refへpushし局所確認後、
+この診断一回専用の新規code-only review後だけdispatchする。正式8cdfの残りは取消さず終端を確認する。

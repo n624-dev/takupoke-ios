@@ -383,10 +383,10 @@ enum FixtureLaunchDiagnostics {
         let line = "TAKUPOKE_LIFECYCLE pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) stage=\(stage)\n"
         append(line)
     }
-    static func recordInput(_ phase:String,point:CGPoint,views:String,gestures:String) {
+    static func recordInput(_ phase:String,point:CGPoint,views:String,gestures:String,native:String) {
         guard ["began","ended","cancelled"].contains(phase),point.x.isFinite,point.y.isFinite else { return }
         let x=String(format:"%.2f",Double(point.x)),y=String(format:"%.2f",Double(point.y))
-        append("TAKUPOKE_INPUT pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) phase=\(phase) x=\(x) y=\(y) views=\(views) gestures=\(gestures)\n")
+        append("TAKUPOKE_INPUT pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) phase=\(phase) x=\(x) y=\(y) views=\(views) gestures=\(gestures) native=\(native)\n")
     }
     private static func append(_ line: String) {
         writeLock.lock()
@@ -502,8 +502,12 @@ private enum FixtureInputDelivery {
         method_exchangeImplementations(original,observer)
         installed=true
     }
-    static func observe(_ event:UIEvent) {
-        guard records<128,event.type == .touches else { return }
+    private static func state(_ control:UISwitch) -> String {
+        "\(control.isOn ? 1:0):\(control.isTracking ? 1:0):\(control.isTouchInside ? 1:0)"
+    }
+    static func observe(_ event:UIEvent,deliver:()->Void) {
+        guard records<128,event.type == .touches else { deliver();return }
+        var pending:[(String,CGPoint,String,String,UISwitch?,String)]=[]
         for touch in event.allTouches ?? [] {
             guard records<128,let window=touch.window else { continue }
             let phase:String
@@ -513,29 +517,40 @@ private enum FixtureInputDelivery {
             case .cancelled:phase="cancelled"
             default:continue
             }
-            var view=touch.view,names:[String]=[]
+            var view=touch.view,names:[String]=[],control:UISwitch?
             let allowed="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_."
             while let current=view,names.count<4 {
                 let name=String(reflecting:type(of:current)).filter { allowed.contains($0) }
-                names.append(String(name.prefix(40)));view=current.superview
+                names.append(String(name.prefix(40)))
+                if let actual=current as? UISwitch { control=actual }
+                view=current.superview
             }
             guard !names.isEmpty else { continue }
             // Read-only recognizer metadata: no labels, targets or user content.
             // Observe before UIKit's original path; never change recognizer state.
             let gestures:String=(touch.gestureRecognizers ?? []).prefix(6).map { recognizer -> String in
                 let name=String(reflecting:type(of:recognizer)).filter { allowed.contains($0) }
-                return "\(String(name.suffix(16))):\(recognizer.state.rawValue):\(recognizer.cancelsTouchesInView ? 1:0):\(recognizer.delaysTouchesBegan ? 1:0):\(recognizer.delaysTouchesEnded ? 1:0)"
+                let kind=String(name.split(separator:".").last ?? "Unknown")
+                    .replacingOccurrences(of:"GestureRecognizer",with:"")
+                return "\(String(kind.prefix(16))):\(recognizer.state.rawValue):\(recognizer.cancelsTouchesInView ? 1:0):\(recognizer.delaysTouchesBegan ? 1:0):\(recognizer.delaysTouchesEnded ? 1:0)"
             }.joined(separator:",")
             records+=1
-            FixtureLaunchDiagnostics.recordInput(phase,point:touch.location(in:window),views:names.joined(separator:","),gestures:gestures.isEmpty ? "none":gestures)
+            pending.append((phase,touch.location(in:window),names.joined(separator:","),
+                gestures.isEmpty ? "none":gestures,control,control.map(state) ?? "none"))
+        }
+        deliver()
+        for (phase,point,views,gestures,control,before) in pending {
+            let native=control.map { before + "/" + state($0) } ?? "none"
+            FixtureLaunchDiagnostics.recordInput(phase,point:point,views:views,gestures:gestures,native:native)
         }
     }
 }
 
 private extension UIWindow {
     @objc func fixtureObservedSendEvent(_ event:UIEvent) {
-        FixtureInputDelivery.observe(event)
-        // Exchanged implementation: invokes UIKit's original sendEvent once.
-        fixtureObservedSendEvent(event)
+        FixtureInputDelivery.observe(event) {
+            // Exchanged implementation: invokes UIKit's original sendEvent once.
+            fixtureObservedSendEvent(event)
+        }
     }
 }

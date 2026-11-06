@@ -36,6 +36,11 @@ class ManualDiagnosticsTests(unittest.TestCase):
                                 valid + ' gestures=private content', observed + ' body']
             path.write_text('\n'.join([observed, none] + invalid_gestures), encoding='utf-8')
             self.assertEqual(module.input_trace_lines(path), [observed, none])
+            native = observed + ' native=0:0:0/1:0:0'
+            absent = none + ' native=none'
+            path.write_text('\n'.join([native, absent, native + ' private body',
+                native.replace('native=0:', 'native=2:'), native + '/0:0:0']), encoding='utf-8')
+            self.assertEqual(module.input_trace_lines(path), [native, absent])
             alias = Path(tmp) / 'alias.log'
             alias.symlink_to(path)
             self.assertEqual(module.input_trace_lines(alias), [])
