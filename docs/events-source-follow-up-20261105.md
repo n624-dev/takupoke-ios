@@ -91,3 +91,14 @@ Runtime観測はread-onlyであり、Linuxのコマンド境界検査は実Apple
 主担当も元5秒/一意性/存在/有限枠/完全包含/enabled/hittable/一回中心tapと全後続assert、
 追加診断の10秒/2MiB/対象照合/固定語/一時回収/非介入を照合した。既存正式workflow/製品Modelの
 コードは77d57a5から不変で、今回のreviewはこの一回へ消費し再利用しない。
+
+
+N167の診断候補1a8d4edをpush後、Linux/Swift6.1.2で既存manual diagnostics11件/失敗0（0.267秒）、
+manifest30件/失敗0（19.440秒）、fixture Swift parse、catalog450/check --base8cdf066が成功した。
+元の三項目ケース/45秒/実接触/保存proofは無変更で、SwiftのUIKit型解決は次のApple診断で確認する。
+次の既存manual-input-native-probe/case=三項目/元両OS一回専用として、新規GPT-6.1 Sol/High
+`ios_n167_probe_pre_actions_review`がcode patch110行/6874bytes、SHA256
+`78ee5d0ab48854995f01f235c9b753a06d9fc454f6b42202f0775d43e264367d`の全量とbase/source一致を確認し指摘なし。
+主担当もguard/通常両経路の元sendEvent一回、非介入、128記録/64KiB/固定Bool/本文拒否を再確認した。
+このreviewを次の診断dispatch一回に消費し、main公開には別の新規reviewを要求する。
+正式8cdfの継続jobは取消さず、新しい完了結果だけ予定時刻に確認する。
