@@ -116,3 +116,22 @@ N167追加観測の限定ed76a28/run42147251375は元三項目をSDK26.6/27.1の
 主担当も元sendEvent一回/非介入/128記録/64KiB/strict owned parser/元assert不変を確認し、この新しい
 reviewだけを次のmain自動Actions一回に消費する。限定用review/旧main用reviewを再利用しない。
 N165候補を含む旧正式のcalendarは52.279秒・元5秒と全後続操作が成功したが、恒常解消とは記載しない。
+
+
+旧正式8cdf/run42144767317は全15表示job終端、実10件のlogを各一度、artifact0を一度確認し再照会しない。
+元通常27 A/26 Bは成功、N167三項目27とN169のXCTest前CoreSimulator devicePair内部例外で公開不可。
+現正式01fe/run42149866023はN168単項目27のreview状態照会で20秒timeout、ACK成功後の別段階。
+新5logを各一度取得、取得済みは合計7、残通常27 A/26 B/後続26 Aは取消さず確認する。
+N168/N169は事実を索引へ先に書き、U67/N94/N97/N140/N151/N165/N07/N73/N127と旧現コードを読んだ。
+N168のpredicateを同じ20秒/一意性/一回label読出し/両状態の同時成立へ整理し、事後の追加state照会を除く候補
+5f88400を隔離refへ先にpushした。製品・元操作・全後続assert・全15gateは変更しない。
+その後Linux Swift6.1.2でreview controls Python2件/失敗0（5.515秒、うち元comparison10 XCTestも成功）、
+実predicateの一意/不存在/複数/preview同時true/二時点の値混合拒否、元20秒引数を確認した。
+project生成17件/失敗0（0.457秒）、Swift parse・catalog450/check --base01fe8afも成功。
+これらは実Appleの20秒内応答やN168の根本原因の証明ではなく、実UIは次の正式両OSで確認する。
+
+次のmain push/正式全15/条件成立時の公開一回専用に、新規GPT-6.1 Sol/High
+`ios_n168_main_pre_actions_review`がcode patch93行/5392bytes、SHA256
+`8da0d7b81e4c705a9a6da3cd6607557db0025f8cff865ee5f41175bd0145e6d3`を全量とcommit差分一致まで確認し指摘なし。
+主担当も一個/単一labelからの両状態/曖昧拒否/元20秒と全後続UI・保存proof不変を確認し、
+このreviewだけを次のmain自動Actions一回へ消費する。旧実行は取消さず、同じ終端logは再取得しない。
