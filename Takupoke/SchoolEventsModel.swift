@@ -142,7 +142,7 @@ final class SchoolEventsModel: ObservableObject {
                   self.saved[year].map(SourceBinding.init) == binding else { return }
             self.sourceFollowUps[year] = nil
             self.sourceFollowUpBudgets[year] = (binding, remaining - 1)
-            self.checkSource(year: year, force: true, remainingFollowUps: remaining - 1)
+            self.checkSource(year: year, force: true, remainingFollowUps: remaining - 1, at: self.now())
         }
         sourceFollowUps[year]?.task.cancel()
         sourceFollowUps[year] = SourceRequest(id: id, binding: binding, task: task)
@@ -189,22 +189,23 @@ final class SchoolEventsModel: ObservableObject {
         guard sourceChecksActive, ready, let savedValue = saved[year] else { return nil }
         let binding = SourceBinding(savedValue)
         if let running = sourceRequests[year], running.binding == binding { return running.task }
+        let date = now()
         if !force, let cached = sourceStatuses[year], cached.response.checking, cached.response.matches(savedValue),
            let budget = sourceFollowUpBudgets[year], budget.binding == binding {
             guard budget.remaining > 0 else { return nil }
-            let remaining = cached.isFresh(at: now()) ? budget.remaining : budget.remaining - 1
+            let remaining = cached.isFresh(at: date) ? budget.remaining : budget.remaining - 1
             sourceFollowUpBudgets[year] = (binding, remaining)
-            return checkSource(year: year, force: false, remainingFollowUps: remaining)
+            return checkSource(year: year, force: false, remainingFollowUps: remaining, at: date)
         }
-        return checkSource(year: year, force: force, remainingFollowUps: 3)
+        return checkSource(year: year, force: force, remainingFollowUps: 3, at: date)
     }
 
     @discardableResult
-    private func checkSource(year: Int, force: Bool, remainingFollowUps: Int) -> Task<Void, Never>? {
+    private func checkSource(year: Int, force: Bool, remainingFollowUps: Int, at date: Date) -> Task<Void, Never>? {
         guard sourceChecksActive, ready, let savedValue = saved[year] else { return nil }
         let binding = SourceBinding(savedValue)
         if let running = sourceRequests[year], running.binding == binding { return running.task }
-        if !force, let cached = sourceStatuses[year], cached.canReuse(for: savedValue, at: now()) {
+        if !force, let cached = sourceStatuses[year], cached.canReuse(for: savedValue, at: date) {
             if cached.response.checking, cached.response.matches(savedValue), sourceErrors[year] == nil,
                sourceFollowUps[year] == nil {
                 let budget = sourceFollowUpBudgets[year]

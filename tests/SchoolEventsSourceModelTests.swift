@@ -130,13 +130,13 @@ final class SchoolEventsSourceModelTests: XCTestCase {
             try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
         }, waitForSourceRetry: @escaping (TimeInterval) async throws -> Void = { seconds in
             try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-        }) -> SchoolEventsModel {
+        }, nowProvider: (() -> Date)? = nil) -> SchoolEventsModel {
             SchoolEventsModel(storeRoot: root, eventsEndpoint: URL(string: "https://source.example.invalid/events")!,
                 makeSession: {
                     let config = URLSessionConfiguration.ephemeral
                     config.protocolClasses = [SourceStatusTransport.self]; config.urlCache = nil
                     return URLSession(configuration: config)
-                }, now: { [unowned self] in self.now }, waitForSourceExpiry: waitForSourceExpiry,
+                }, now: nowProvider ?? { [unowned self] in self.now }, waitForSourceExpiry: waitForSourceExpiry,
                 waitForSourceRetry: waitForSourceRetry)
         }
         func clean() { model.cancel(); SourceStatusTransport.use(nil); try? FileManager.default.removeItem(at: root) }
@@ -315,6 +315,30 @@ final class SchoolEventsSourceModelTests: XCTestCase {
             XCTAssertNil(f.model.checkSource(year: 2032))
             XCTAssertTrue(clock.pending.isEmpty)
         }
+    }
+
+    func testForegroundBudgetAndCacheUseOneTimeSnapshotAtExpiryBoundary() async throws {
+        let f = try Fixture(), clock = RetryClock()
+        defer { f.clean(); clock.cancel() }
+        var crossingBoundary = false, clockReads = 0
+        f.model = f.makeModel(waitForSourceRetry: clock.wait, nowProvider: { [unowned f] in
+            guard crossingBoundary else { return f.now }
+            defer { clockReads += 1 }
+            return f.now.addingTimeInterval(clockReads == 0 ? 0 : 0.2)
+        })
+        f.model.loadIfNeeded(); f.network.checking = true
+        await f.model.checkSource(year: 2032)?.value
+        try await finishRetry(f, clock); try await pendingRetry(clock)
+        f.model.setSourceChecksActive(false); clock.advance(); await Task.yield()
+        f.now.addTimeInterval(59.9); crossingBoundary = true
+        f.model.setSourceChecksActive(true)
+        XCTAssertNil(f.model.checkSource(year: 2032))
+        XCTAssertEqual(clockReads, 1)
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 2)
+        crossingBoundary = false
+        try await finishRetry(f, clock); try await finishRetry(f, clock)
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 4)
+        XCTAssertTrue(clock.pending.isEmpty)
     }
 
     func testExpiryPublishesToObserversWithoutARequestOrSavedEventsChange() async throws {

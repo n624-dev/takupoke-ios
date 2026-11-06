@@ -1,7 +1,7 @@
 # 学校行事API・年度別保存
 
 対応関係・宣言名・実行方法のSHA-256：
-`7765e772a15a8cab2eb98bd1fc86279ae9663e0ce6725b3a2d596a719b17be84`
+`41c5e284e9443a5eab4a18926fb5d26ae127addd57a7b3ac7cb1cb6e06064149`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -55,6 +55,7 @@ bash tools/test-parsing.sh
 - `testChangedSavedVersionCancelsPendingFollowUpAndMismatchedReplyCannotScheduleOne`
 - `testManualCheckSupersedesPendingFollowUpWithoutAnExtraRequest`
 - `testForegroundResumesTheRemainingBudgetWithoutRepeatingTheInitialRequest`
+- `testForegroundBudgetAndCacheUseOneTimeSnapshotAtExpiryBoundary`
 - `testExpiryPublishesToObserversWithoutARequestOrSavedEventsChange`
 - `testActualMetadataRequestIsNonblockingCoalescedCachedPersistedAndFailureRetainsEvents`
 - `testActualStartupForegroundManual304AndNew200BindEachYearAndVersion`
