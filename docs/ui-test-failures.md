@@ -3171,3 +3171,29 @@ N07/N73/N127と当時/現runnerを読んだ。同じdevicePair例外は既往記
 xcodebuild内部でpair通知処理の例外を投げており、製品caseに未到達。26.5/SDK/device/boot順序を推測変更せず、
 既に開始済み01feの新host・元通常26 A/Bの結果を確認する。同job内の再起動・再install・retryは加えない。
 今回のN168候補の次の正式でも元26.5と全15をそのまま必須にし、このhost例外を成功扱いしない。
+
+
+## N170 旧正式01feの通常iOS26 Bが失敗終端（2026-11-06）
+
+予定04:05 UTC照会、source01fe8af2f3deacf760b8187469958a2661388f6a/run42149866023/attempt1、
+job127685011044は03:05:53Z開始・03:49:45Z failure終端。要求SDK27.1/Runtime26.5、具体case/stage/
+原因はlog未読で未確定として対処選択前に記録する。通常27 Aは成功、通常26 Aは03:48:51Zから継続中で
+取消さず確認する。新しい旧正式2logと、新主実行957/run42156001519の成功6logだけ一度取得する。
+主実行の訂正27元四件/Native/Distributionは成功、通常27 A/Bは継続中。全15/公開はまだ未成立。
+
+N170完了logの具体的事実：基本6件/設定/文字サイズ/VoiceOver区間は全て元の完了照合を成功した。
+26のVoiceOver一件は既定のOS条件で予定skip、実成功へ数えない。最後のphase前のcleanup（元の26通知区間で
+freshdeviceへ切り替える処理）のstrict simctl shutdownがSimError405/current state Shutdown/exit149で停止した。
+そのため残る通知phase/追加OS設定変更の全完了とは扱わない。直前check_uiはexit0/TEST EXECUTE SUCCEEDED、
+失敗後healthは指定Runtime available/所有device Shutdown。XCTest assertionの失敗やN166のruntime bundle欠損、
+N169のxcodebuild devicePair内部例外とは異なる。状態が既にShutdownになるまでのOS側原因は未確定。
+
+N170照合：shutdown/current state/exit149/content_size/notification phaseを索引とcatalogで検索し、
+U40/N07/N162の詳細、20a1c0f/9745d33/現test-app-ui.shを読んだ。元の26通知切替と最終正常終了は
+strict shutdown→delete→必要時create/bootで、EXIT trapだけがbest-effortである。今回もUI caseの救済や
+待機延長をしない。対処が必要なら、shutdown失敗時に所有UUID/指定Runtimeの一意なdeviceが既にShutdown
+と読取確認できる場合だけ終了条件を満たす、idempotent cleanupとする。欠損/不明/Booted/別device/list失敗は
+元終了値のfailureを保持し、delete後のfreshdeviceと全通知/OSサイズ検証を必須にする。
+ただし今回の失敗を観測する前から主実行957/run42156001519は継続しているため、まずその元全15の結果を確認する。
+同じhelperは現主実行にもあるが、旧実行だけから現在の失敗を予告・成功扱いせず、不要な再公開開始は行わない。
+必要になった場合だけ事実・候補を先にpushしてから検査・新規reviewを行う。
