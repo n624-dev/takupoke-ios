@@ -3676,3 +3676,19 @@ manifest30件/失敗0/skip0（21.002秒）、Swift fixture/checks構文、catalo
 SHA256 d88bacf34350df9be129876e04b09e49c53554ccdb113845b1c890ec4bb6c8ceを確認し指摘なし。
 主担当が同じhash・局所結果・全commit空白を確認し、26/SDK27.1の同じ明示選択一件だけの次の一回へ消費する。
 これは観測を増やした診断で、元の失敗や条件を緩和しない。公開前には別の新規全差分reviewと元の全15成功が必要。
+
+新限定run42272298832/attempt1/sourcef2999889a381735e64e12de1b5cac95400afad8c/job128079672180は
+18:36:56Z開始・19:12:55Zにsuccess。SDK27.1/Runtime26.5、元明示選択case1395.135秒/失敗0を厳密完了照合した。
+全文入力/元完了Button/個別ACK/3項目保持/4件目拒否の実status完全包含+hittable/採用/保存/一回再起動後の保持まで通過した。
+背面の実QA状態と保存proofも存在した。編集開始→keyboard表示→実文字変更→完了操作に伴う編集終了/keyboard非表示を
+固定通知で記録した。32通知の上限は維持したため全後続入力の通知を網羅したとは扱わない。
+outer2006.4秒で2400秒上限は発火せず、厳密完了→診断→所有shutdown/delete→cleanup-completeを通過し、export回収も成功した。
+完了log一度保存済み/artifact0一度確認済み。この終端run/log/artifactは再照会しない。
+旧N191の完了消失原因や下位OSの恒常的解消は未証明。旧N188/N189/N191失敗は保持し、別runの7成功と合算しない。
+次は新規main専用全差分reviewの後、同じsource/run/attemptの元の全15を通常公開経路で確認する。
+
+新規GPT-6.1 Sol/High ios_n191_verified_main_pre_actions_reviewは実main b04d011からの全15codepathを確認し指摘なし。
+code-only596行/38525bytes、SHA256 01e750540364ba18fe257938c283814774379709ea922de34b5d2e29b73ab4a9と
+実nondoc差分が一致した。主担当は同じhash・局所/限定結果・元の全15条件・未統合全commitの空白を照合した。
+この新規reviewだけを次のmain通常fast-forward開始一回へ消費する。別sourceの限定成功を正式gateへ加算せず、
+全15の同一source/run/attempt成功と正式publisherの完了後にだけ公開物を確認する。
