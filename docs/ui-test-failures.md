@@ -3692,3 +3692,29 @@ code-only596行/38525bytes、SHA256 01e750540364ba18fe257938c283814774379709ea92
 実nondoc差分が一致した。主担当は同じhash・局所/限定結果・元の全15条件・未統合全commitの空白を照合した。
 この新規reviewだけを次のmain通常fast-forward開始一回へ消費する。別sourceの限定成功を正式gateへ加算せず、
 全15の同一source/run/attempt成功と正式publisherの完了後にだけ公開物を確認する。
+
+## N192 正式b965の通常iOS27 Bがfailure（2026-11-06）
+
+sourceb96509816e982a92932d43739b3b4a4f8fdf209b/run42278038401/attempt1/job128100274826、
+SDK27.1/予定Runtime27.0、通常B。19:17:22Z開始・19:44:21Zにfailure、20:10Zの予定照会で確認した。
+DistributionとNative、通常27 A、手動27の元4件はsuccess。通常26 B/手動26は依存skipで成功に数えない。
+通常26 A/job128121440677は19:59:23Zから進行中で取消しない。正式全15/公開は未成立。
+本文未読の時点で具体case/失敗段階/下位原因は未確定。対処案を決める前に記録し、完了logと過去詳細/当時と現sourceを比較する。
+
+完了logを新7件だけ一度保存した。Bは基本6件がすべて成功し（900.6秒）、次の独立runnerの
+testSettingsAccountDataAndFileDetailsだけ140.108秒/失敗1、Settings.swift:249。
+Physical AI/OCR switch tap did not update both UI and stored permissionで、後続size/VoiceOver/通知phaseは未到達。
+同sourceのNativeは701件/予定skip1/失敗0（Xcode26.6/SDK26.5のjob）、手動27は元4件がすべて成功し、
+通常27 Aは元18件/実通知1件が成功した。他SDKのNative成功や全15成功とは読み替えない。
+
+AIの最初の0→1で、実row(16,472.667,361,52.333)/native(300,485,63,28)・双方0・全表示/操作可を確認し、
+native identityの同じ25%点(315.75,499)へ一回0.1秒接触を合成したが、45秒後もUI0/保存0だった。
+回収logにはpid35055のAI setter before/afterとtouch配送記録が無い。このcaseは--ai-feature-probeだけで、
+既存--fixture-input-traceはlink/通知/行除外にだけ付いていた。配送先・取消し・下位原因は未観測で断定しない。
+U64/U55/N146/N180の詳細と917e807の旧native helper/現helper・setUp初期条件・setter診断を比較した。
+U64と同じ最初の0→1、U55の4回目とは違う。現在はN146後のnative identity/同一predicate観測だが、
+今回もN180と同じ「失敗caseへ既存配送診断が未接続」という不足がある。点/接触時間/45秒や製品を推測変更しない。
+次の候補はこのcaseにも既存の読取専用touch診断flagだけ追加し、before/after native Boolと認識器の固定数値を観測する。
+元128記録上限/所有log/本文拒否/一回sendEventを維持し、初回3操作・再起動後4回目・UI/保存の両成立と全15gateは変えない。
+候補/根拠を先に非起動featureへpushし、局所・新規review後に既存relaunch診断の同じcaseを27/SDK27.1だけで一回観測する。
+進行中の旧26 Aは取消さず、次の比較とまとめて終端を確認する。

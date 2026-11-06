@@ -119,6 +119,8 @@ class ManifestTests(unittest.TestCase):
         self.assertNotIn("fetch=1", changed)
 
     def test_ai_switch_probe_preserves_production_setter_and_rejects_marker_drift(self):
+        launch = (ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8")
+        self.assertIn('"testSettingsAccountDataAndFileDetails": ["--ai-feature-probe", "--fixture-input-trace"]', launch)
         source = (ROOT / "Takupoke/SettingsView.swift").read_text(encoding="utf-8")
         generated = app_test_project.instrument_ai_switch(source)
         self.assertNotIn("FixtureLaunchDiagnostics", source)

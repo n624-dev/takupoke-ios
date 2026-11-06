@@ -12,7 +12,7 @@ final class ApplicationChecks: XCTestCase {
         let initialConditions: [String: [String]] = [
             "testHomeClockSettingChangesAcrossBoundariesUpdateTheActualInProgressLabel": ["--home-clock-boundary", "--normal-only"],
             "testLinkPreferencesSurviveRelaunch": ["--fixture-input-trace", "--loopback-browser-fixture"],
-            "testSettingsAccountDataAndFileDetails": ["--ai-feature-probe"],
+            "testSettingsAccountDataAndFileDetails": ["--ai-feature-probe", "--fixture-input-trace"],
             "testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData": ["--retention-corrupt"],
             "testTimetableDynamicTypeScalesAndRestoresStandardLayout": ["--grid-probe"],
             "testTimetableUsesSystemTextSize": ["--grid-probe", "--system-text-size"],
