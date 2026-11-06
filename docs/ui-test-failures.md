@@ -3343,3 +3343,20 @@ Runtime26.5・download/import期限と全UI/gateを維持し、retry/再起動/�
 既存manifestへ保持→実テスト→always回収の順序を要求する。これはファイル寿命の候補検証で、
 CoreSimulatorの恒常的な解消とは断定しない。記録/候補を先に隔離refへpushし、局所検証と新規専用review後に
 同じ全15の正式一回を実行する。N175の切断の下位原因も引き続き未確定として扱う。
+
+## N178 runtime寿命候補のローカルrunner検査が失敗表示（2026-11-06）
+
+Debian/Linux・Swift6.1.2・sourcea28ae0a、test_application_ui_runner.pyの補足検証で、実行途中の
+logに7件のFを観測した。session72201継続中、具体case/失敗assert/原因は詳細未読として対処前に記録する。
+runtime準備4件とmanifest30件は成功済み、これらを当該runner検査の成功へ代用しない。
+存在しないtest_application_relaunch_native_probe.py指定のdiscoverは0件で、検証成功には数えない。
+runnerの実際の定義ファイルを検索して当該検査を開始した。新しい詳細と過去記録/旧現sourceを比較する。
+
+N178の最終結果は16件/58.882秒、preflight一件のsubcase7失敗。最初の26 downloadは成功したが、
+同一RUNNER_TEMPを共有する次のsubcaseから所有export directoryが残り、FileExistsErrorで停止、
+後続のdownload一回という期待も0回となった。実Apple/製品/同じjob内retryの不良ではない。
+N77/N75詳細と3054127/031916/currentのpreflight抽出・helperを照合した。旧testは一つのprepare stepのみを
+実行して次の入力へ移り、旧TemporaryDirectoryはそのstepで回収していた。新候補はjob末尾のalways回収へ
+寿命を移したので、testも実cleanupモードを各独立入力の後に実行する必要がある。元の全27入力/SDK・Runtime/
+download一回/import件数/正負期待は変えず、cleanup成功・所有export不在も要求し、workflowの26限定always接続を
+確認する。製品や準備の受理条件を緩めず、記録と候補を先にpushしてから再検査する。

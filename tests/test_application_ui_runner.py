@@ -60,6 +60,7 @@ python3() { [[ "$*" == "-B tools/notification_service_trace.py --confirm-shutdow
         workflow = (ROOT / ".github/workflows/application-relaunch-native-probe.yml").read_text()
         block = workflow.split("- name: Require comparison toolchain and unchanged runtime\n        run: |\n", 1)[1]
         script = textwrap.dedent(block.split("\n      - name:", 1)[0])
+        self.assertIn("if: always() && matrix.ios == 26\n        run: python3 -B tools/prepare-ios26-runtime.py --cleanup-export\n", workflow)
         with tempfile.TemporaryDirectory(prefix="takupoke-sdk-preflight-") as directory:
             root = Path(directory)
             fake = "#!" + sys.executable + "\n" + '''
@@ -140,6 +141,12 @@ else: print('Synthetic Xcode version')
                         "OBSERVED_SDK": sdk, "OBSERVED_RUNTIME": runtime}
                     result = subprocess.run(["bash", "-c", script], env=env, cwd=ROOT,
                                             capture_output=True, text=True, timeout=5)
+                    # Each row is a separate job: exercise its new always cleanup
+                    # before reusing this test's synthetic RUNNER_TEMP.
+                    cleaned = subprocess.run([sys.executable,"-B",str(ROOT/"tools/prepare-ios26-runtime.py"),"--cleanup-export"],
+                        env=env,cwd=ROOT,capture_output=True,text=True,timeout=5)
+                    self.assertEqual(cleaned.returncode,0,cleaned.stdout+cleaned.stderr)
+                    self.assertFalse((root/"takupoke-ios26-runtime-export-owned").exists())
                     self.assertEqual(result.returncode == 0, success, result.stdout + result.stderr)
                     commands = [json.loads(line) for line in command_log.read_text().splitlines()]
                     downloads = [args for args in commands if args[:1] == ["-downloadPlatform"]]
