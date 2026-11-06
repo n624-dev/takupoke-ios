@@ -300,3 +300,30 @@ Swift parse/catalog450/check --baseb04d011が成功。元の一回label同時判
 主担当も条件付きHome/元一回launch・45秒、QAの非hit container/元実state・20秒、固定診断/元終了値/所有回収を照合した。
 この新reviewだけを次の限定dispatch一回へ消費する。限定26は元SDK26.5であり、正式の配布SDK27.1検証とは区別する。
 限定全体を通過した後に、別の新規reviewで正式全15を開始する。継続中の旧通常26の終端も取消さず確認する。
+
+15:25予定照会で旧b04の通常26 Bは成功、26 AはN184のRuntime bundle利用不能で失敗だった。export保持後も
+再発しており、保持が直接原因を修復したとは扱わない。旧正式は全15表示job終端・実10件（7成功/3失敗）/
+全10log保存済み/artifact0一度確認済みで再照会しない。公開なし、依存skipは成功へ数えない。
+関連限定2451a1b/run42236030942は15:25で6件終端、実成功時間と局所確認終了から15:35へ前倒して残2件も確認した。
+全8件中5成功、N185の三項目27はreview/preview/閉じる/未採用proof後のterminate、N186の明示選択26は4件目拒否の
+状態文のbounded可視化、N187の単項目27はQA menu開封後の45秒action存在で失敗。全8log各一度/artifact0一度確認済み。
+新QA state containerでreview/previewは通過したが、他段階の失敗を恒常解消と混同しない。
+
+N184〜N187を先に記録し、U43/U55/U63/U75/N85/N94/N95/N125/N151/N154/N173/N179/N181と旧現sourceを照合。
+全3終了callerで現在のforegroundを確認してから一回terminateし、確認できないcallerはBool guardで止める。
+statusにはQA生成コピーだけの専用IDを付け、同じList/既知ID/実labelから元の完全包含/hittable/16探索を確認する。
+QA menuはtoolbar観測後に現在のnative Buttonを一意に取得し、同じ中心へ既存方式の0.1秒接触を一回だけ行う。
+元3actionの45秒存在、実操作/保存、全体gateは変えない。1b92c54/f64671a/f6730afの各候補を局所試行前にpushした。
+生成17件/失敗0（初回0.595秒、caller guard後0.652秒、menu後1.145秒）、幾何Swift29件/失敗0、
+manifest30件/失敗0（25.897秒/20.012秒/71.395秒）、Swift parse/catalog450が成功した。
+
+次の限定は26にも配布SDK27.1を明示できるよう40e056cで入力を追加し、先にpushした。既定26.6の比較は維持する。
+変更後のmanifest30件/失敗0（51.834秒）、実SDK/Runtime helper4件/失敗0（22.703秒）、catalog450が成功。
+同じ4case×両OS/35・45分/全完了照合、Runtime26.5と所有exportのhold/always回収を保持し、正式gateを変更しない。
+N186/N187用の先行reviewはいずれも未消費で廃止し、追加workflow差分を含む次の一回へ流用しない。
+
+次の既存manual-input-native-probe/case=all/sdk26=27.1/4case×両OS一回に、新規GPT-6.1 Sol/High
+`ios_n187_shipping_probe_pre_actions_review`がcode patch217行/15324bytes、SHA256
+`fc22d957fd8e3ba263d143be7d07e324dd6dcef166917a4be38bded26386f906`を全量・commit差分一致まで確認し指摘なし。
+主担当も元assert/期限/一回操作/Bool失敗の中断・SDK選択/既定旧SDK保持/always所有回収を照合した。
+この新reviewだけを次の明示配布SDKの限定dispatch一回へ消費する。限定8件が通過してから、別の新規reviewで正式全15を行う。
