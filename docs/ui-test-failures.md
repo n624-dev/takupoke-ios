@@ -3667,3 +3667,12 @@ keyboardが無ければ完了tapを省く救済はしない。
 collectorは既存8stageだけ追加許可し、文字列/通知userInfo/focusの読み書きを加えず64KiB/128行/32通知の上限を保持する。
 新しい通知観測で最初の消去から編集終了/keyboard hideの順を区別する一回であり、入力方法・期限・製品のFocusStateは変更しない。
 候補と根拠を非起動featureへ先にpushしてから局所・新規review・同じ26/SDK27.1の限定へ進む。
+
+候補bb5baacは先にpush済み。Linuxのdiagnostics12件/失敗0（0.467秒）、project17件/失敗0（0.927秒）、
+manifest30件/失敗0/skip0（21.002秒）、Swift fixture/checks構文、catalog450/check --base d572f69が成功。
+固定17stageの正対照と任意本文/未知stage/不正PID時刻/範囲超過/symlink/不正UTF8の拒否を維持した。
+
+新規GPT-6.1 Sol/High ios_n191_native_edit_probe_pre_actions_reviewは全5codepath/71行/5019bytes、
+SHA256 d88bacf34350df9be129876e04b09e49c53554ccdb113845b1c890ec4bb6c8ceを確認し指摘なし。
+主担当が同じhash・局所結果・全commit空白を確認し、26/SDK27.1の同じ明示選択一件だけの次の一回へ消費する。
+これは観測を増やした診断で、元の失敗や条件を緩和しない。公開前には別の新規全差分reviewと元の全15成功が必要。
