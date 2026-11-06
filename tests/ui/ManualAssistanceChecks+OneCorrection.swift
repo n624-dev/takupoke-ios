@@ -123,7 +123,9 @@ extension ManualAssistanceChecks {
         selectCorrectionFromPreview(cell:String(suffix[..<divide]),lesson:String(suffix[suffix.index(after:divide)...]),role:"room")
         // The menu was in a lesson row; the status is at the top of the List.
         // Reveal it with the existing bounded native navigation before checking.
-        _=visible(app.staticTexts["訂正できる本文は、確認が必要な項目を含め合計3項目までです。"],towardTop:true)
+        let status=app.collectionViews["manual-recovery-list"].staticTexts["manual-status"]
+        XCTAssertEqual(visible(status,towardTop:true,knownID:"manual-status").label,
+            "訂正できる本文は、確認が必要な項目を含め合計3項目までです。")
         XCTAssertTrue(app.staticTexts["訂正できる本文は、確認が必要な項目を含め合計3項目までです。"].waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
         requirePreview()
         XCTAssertTrue(app.staticTexts["原本を確認して入力した3項目を含みます。"].exists)
@@ -147,7 +149,7 @@ extension ManualAssistanceChecks {
         tap("この資料全体の結果を使用")
         XCTAssertTrue(app.staticTexts["復旧結果を採用しました。"].waitForExistence(timeout:20),app.debugDescription)
         XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains(proof))
-        app.terminate();app.launchArguments=["--manual-ui","-AppleLanguages","(ja)","-AppleLocale","ja_JP"]
+        terminateCurrentFixture();app.launchArguments=["--manual-ui","-AppleLanguages","(ja)","-AppleLocale","ja_JP"]
         guard launchApplicationOnce() else { return }
         // The fixture probe also needs an app-root copy to inspect persisted results without reopening a recovery draft.
         XCTAssertTrue(app.staticTexts["manual-persisted-proof"].waitForExistence(timeout:10),app.debugDescription)

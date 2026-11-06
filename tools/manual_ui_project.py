@@ -57,6 +57,8 @@ def coordinator(text):
 
 
 def view(text):
+    text = once(text, 'else { Text(coordinator.status) }',
+                'else { Text(coordinator.status).accessibilityIdentifier("manual-status") }')
     text = once(text, '    @State private var selectedClass = ""', '    @State private var selectedClass = ""\n    @State private var manualQATypeSize:DynamicTypeSize = .large\n    @AppStorage("fixture.manualMutationComplete") private var manualQAMutationComplete = false')
     text = once(text, '.navigationTitle(title)', '''.accessibilityIdentifier("manual-recovery-list")
             .navigationTitle(title)

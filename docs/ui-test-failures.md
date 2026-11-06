@@ -3460,3 +3460,46 @@ manualのcold準備は通常Suiteと異なりまだ無条件Homeだったため�
 到達を次の限定で観測する。別本文・symlink・過大・不正encodingを拒否し、extra Apple呼出しを増やさない。
 元の試行終了値と回収順序を保つ。新旧review predicate正負対照、生成container接続、owned lifecycle拒否を局所確認し、
 候補と根拠を先にpushしてから既存manual限定all4case×両OSでまとめて確認する。正式の残26は取消さず終端確認する。
+
+## N184 旧正式b04d011の通常26 Aも失敗終端（2026-11-06）
+
+予定15:25 UTC照会、sourceb04d0119177a38dc74359364c0542569253054d0/run42227564373/attempt1、
+job127947154731は14:27:43Z開始・14:41:13Z failure。要求SDK27.1/Runtime26.5、具体case/stage/原因は
+log未読で未確定として対処前に記録する。最後の26 Bは成功、全15表示job終端・実10件、成功7/失敗3。
+新しい最後の2logとartifact一覧だけ一度確認し、旧取得8logを再取得しない。公開なし、skip5は成功へ数えない。
+
+## N185 関連4case限定2451a1bの三項目27が失敗終端（2026-11-06）
+
+同じ予定照会、source2451a1b2da2fa1ef7659ff692463f95f3f30ad91/run42236030942/attempt1、
+job127953754865は14:58:37Z開始・15:18:27Z failure。SDK27.1/Runtime27.0、元三項目case、
+具体stage/原因はlog未読で未確定として対処前に記録する。
+
+## N186 同じ関連限定の明示選択26も失敗終端（2026-11-06）
+
+同source/run/attempt、job127953755070は14:40:37Z開始・15:09:21Z failure。
+SDK26.5/Runtime26.5、元明示選択case、具体stage/原因は未読で未確定。限定26の他3件と原本変更27は成功。
+明示選択27/単項目27は各15:01:50/15:07:25開始で継続し、取消さず残結果を確認する。
+限定の新6logだけ一度取得し、失敗段階と既往/旧現sourceを比較してから次の対処を選ぶ。
+
+N184完了logは最初のcase起動時にRuntime bundleを決定できず、N166/N176/N177と同じ固定エラー。
+export保持後にも再発しており、その削除が直接原因だったとは扱わない。SDK/OS/deviceを推測で変更しない。
+旧正式は全10log各一度（環境中断時の未保存6log回復を除く）/artifact0確認済みで、終端runを再照会しない。
+N185は567.734秒、元3入力/各ACK/確認/preview/閉じる/未採用proofは通過し、Cases.swift:58の
+app.terminateだけがretained pid10301に対してpid0への終了失敗となった。新4件拒否用cold launchには未到達。
+固定lifecycleは既存processのfixture-readyまで10行、input42行、matching crash report0で原因はunassessed。
+初回launch timeoutだったN182やglobal state待機のN183とは異なる。アプリcrashや終了成功とはまだ断定しない。
+N186は1316.551秒、4件目拒否の状態文のbounded visible探索で失敗。3項目保持/ACK/確認/previewは通過した。
+statusは一度(16,249,361,72.333)でviewport(0,193,393,647)へ収まると観測されたが、hittableを得られず、
+識別子なし/owner不明のまま同じpassive行で進まなくなり、反転後に末尾へ向かってno-progressで失敗した。
+本文/実状態/起動は破壊していない。statusが期限内に真に完全表示だったか、古いqueryの枠かは未確定。
+
+terminate/pid0とvisible/status/no-progressで索引を検索し、U43/U55/N95/N125/N173/N179/N181と旧/現Cases・
+OneCorrection・Navigation・実PDFRecoveryView/Coordinatorを照合した。N185には終了直前の新しいprocess状態がなく、
+helper間でcold起動の前提は揃えたが、3つの終了呼出しは直接のterminateのままだった。候補は全3箇所で同じ
+終了helperを使い、現在のforegroundを元nativeStateTimeout内に実確認してからterminateを一回だけ呼ぶこと。
+notRunning/unknownを成功にせず、元の後続notRunning待機と新一回launch・保存/4件拒否のproofも維持する。
+pid0の下位原因の解消とは断定しない。N186は製品のstatus Textに既存QA生成コピーだけの専用IDを付け、
+同じ表示を現在のList/既知ID/実labelから確認する。元の完全包含/hittable/16探索/反転上限と同じ45秒本文存在を
+保持し、見えるTextだからhittableを不要とする救済はしない。製品statusや3項目上限・期待本文を変更しない。
+候補と根拠を先に隔離refへpushし、既存生成/幾何/manifestで局所検証してから関連限定を再評価する。
+進行中の限定2件は取消さず、実開始+元35/45分から15:50 UTCに残りだけ確認する。
