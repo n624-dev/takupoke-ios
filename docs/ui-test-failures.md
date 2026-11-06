@@ -3744,3 +3744,48 @@ outer799.0秒で元1440秒上限内、所有回収も成功。全log一度保存
 code-only26行/1824bytes、SHA256 704fb4019f42ae432505364ed193a27b700c32ca5bb66371d70deb47d68b8e23と実差分が一致した。
 主担当が同じコードhash・局所結果・限定の実4操作/保存・未統合全commit空白を確認して、次のmain一回へだけ消費する。
 元の全15gate/両OS/実case/保存/再起動を保ち、限定/旧sourceの成功は正式実行の必須成功へ加算しない。
+
+## N193 正式6aaの手動訂正3項目27がfailure（2026-11-06）
+
+source6aa8e3eb7770d634d7f1e3c25885530d91e3564a/run42292699516/attempt1/job128151202436、
+SDK27.1/予定Runtime27.0、testThreeFieldsRequireEachAcknowledgementAndFourRefuses。
+21:00:20Z開始・21:13:14Zにfailure、22:05Zの予定照会で確認。本文未読で具体段階/下位原因は未確定。
+通常27 A/B・残る手動27の3件・Native/Distributionはsuccess。別ケース成功をこの失敗へ代用せず、対処前に記録した。
+
+## N194 同じ正式6aaの通常iOS26 Bもfailure（2026-11-06）
+
+同source/run/attempt、job128169682038、SDK27.1/予定Runtime26.5、通常B。
+21:38:58Z開始・21:50:48Zにfailure。本文未読で実Runtime/case/準備かUIのどちらか/原因は未確定。
+通常26 A/job128179262950は22:00:07Zから進行中で取消さない。手動26は依存skip、正式全15/公開は未成立。
+新7件の完了logだけを一度取得し、過去詳細/当時と現sourceを照合してから対処を決める。
+
+N193実log：build85.3秒/boot122.7秒は成功、case206.212秒/失敗1、ManualAssistanceChecks.swift:57の最初の
+app.launchがXcode経由timeout。入力/ACK/3項目確認には未到達。一方、所有appのpid13410はinit/seed/scene/
+content-appeared/root-task/application-ready/fixture-readyまで記録した。UIの正常到達とXcode launch戻り値の成功は混同しない。
+outer756.5秒/元2400秒内、診断/所有回収は完了。旧N182の同API timeoutとの初期化段階差を照合する。
+N194実log：bootstatusはFinished/終了0と出た後、最初のsimctl ui content_sizeでSimError405
+Unable to lookup in current state: Shutdown（終了149）。read-only healthもRuntime available/device Shutdownだった。
+実UI/XCTestの開始前で、Runtime bundle NULLだったN184とは段階が違う。直前のbootのterminal statusは4294967295。
+所有shutdown/delete/export回収は成功し、原因は未確定。対処を選ぶ前にこの具体的な段階を追記した。
+
+N07/U41/N182と当時782ad0d/693cf079/現App・manual・Picker runnerを照合した。manual/Pickerはsimctl boot/bootstatus
+だけで選択Xcodeの画面hostを明示起動せず、通常AppはSimulator/DeviceHub起動と所有UUIDの画面URLを開く。
+N194ではその画面URLを開いた後に端末Shutdownを観測しており、bootstatus返却だけをUI準備完了とする不足がある。
+N07の全device照会timeoutも踏まえ、新しい確認は既存2MiBのread-only runtime観測を再利用し、照会timeout/不正/不明は即失敗する。
+下位原因をGUI不在やdebuggerと断定せず、Appの既存frontend手順を三runnerで共通化し、画面host接続後に
+正確な所有UUID/Runtime available/実Bootedを45秒内に確認する候補とする。Shutdown/Booting等の既知遷移だけは有限観測し、
+再boot/再launch/実入力の再送は追加しない。45秒を超えて返った応答は成功にせず、全体job/元UI期限も延ばさない。
+製品・Xcode debugger・timed_command・全UI期待は変更せず、元の所有cleanupも保持する。
+候補/根拠を先に非起動featureへpush後、実shell/状態遷移/不正・期限・所有拒否を局所検証する。
+その後それぞれ新規reviewを受け、手動3項目27、通常Bの元先頭case26/SDK27.1、Picker27を既存限定workflowで確認してから全15へ進む。
+
+## N195 共通起動helperの一覧生成がsource重複登録で停止（2026-11-06）
+
+22:23Z、base6aa8e3e＋未commitの共通frontend/実Booted候補、Linuxのtest_catalog.py writeが
+Duplicate source ownership: tools/notification_service_trace.pyで終了1。テスト本体/CIは未実行。
+共有sourceを3分類のsourcesへ重複追加した一覧準備の失敗として、対処を決める前に記録した。
+
+同じ重複source文言の過去記録は無く、loadの所有検査と6aaの元mappingを比較した。
+sourceの所有分類は一つ、checksは複数分類から参照できる契約だった。共通helper/runtime moduleはApp分類だけで所有し、
+App分類の対応検査へmanual/Picker runnerも加え、他分類は共通検査を参照する形へ直す。
+修正/比較を含む候補を先に非起動featureへpushし、一覧再生成と局所検査を行う。未生成の一覧をCI成功と扱わない。

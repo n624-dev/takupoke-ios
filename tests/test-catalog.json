@@ -407,7 +407,9 @@
         "tests/test_manual_ui_project.py",
         "tests/ui/ManualAssistanceChecks+Cases.swift",
         "tests/test_manual_ui_runner.py",
-        "tests/RecoveryFunctionalCoverageTests.swift"
+        "tests/RecoveryFunctionalCoverageTests.swift",
+        "tests/test_simulator_frontend.py",
+        "tests/test_notification_service_trace.py"
       ]
     },
     {
@@ -493,7 +495,8 @@
         "tools/prepare-ios26-runtime.py",
         "tools/test-app-ui.sh",
         "tools/ui_test_manifest.py",
-        "tools/prepare-ios27-runtime.py"
+        "tools/prepare-ios27-runtime.py",
+        "tools/boot-simulator-ui.sh"
       ],
       "checks": [
         "tests/MainColorTests.swift",
@@ -511,7 +514,10 @@
         "tests/test_timetable_change_names.py",
         "tests/SchoolDataRecoveryTests.swift",
         "tests/SpecialAvailabilityTests.swift",
-        "tests/test_prepare_ios27_runtime.py"
+        "tests/test_prepare_ios27_runtime.py",
+        "tests/test_simulator_frontend.py",
+        "tests/test_manual_ui_runner.py",
+        "tests/test_picker_ui_runner.py"
       ]
     },
     {
@@ -533,7 +539,9 @@
       "checks": [
         "tests/MaterialPickerLayoutTests.swift",
         "tests/ui/MaterialPickerTapChecks.swift",
-        "tests/test_picker_ui_runner.py"
+        "tests/test_picker_ui_runner.py",
+        "tests/test_simulator_frontend.py",
+        "tests/test_notification_service_trace.py"
       ]
     },
     {

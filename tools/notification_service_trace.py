@@ -186,12 +186,12 @@ def confirmed_shutdown(simulator, runtime):
         return False
 
 
-def collect_runtime(simulator, runtime):
-    """Report only the owned device and exact runtime; never paths or OS reasons."""
+def runtime_observation(simulator, runtime, timeout=10):
+    """Read only the owned device and exact runtime; never paths or OS reasons."""
     if not re.fullmatch(r"[0-9A-Fa-f-]{36}", simulator) or not re.fullmatch(
             r"com\.apple\.CoreSimulator\.SimRuntime\.iOS-(?:26|27)-\d{1,2}", runtime):
         raise ValueError("Invalid observation target")
-    result = observe_command(["xcrun", "simctl", "list", "-j"], 10, max_bytes=2097152)
+    result = observe_command(["xcrun", "simctl", "list", "-j"], timeout, max_bytes=2097152)
     report = {"exit": result.returncode, "limited": len(result.stdout.encode()) > 2097152,
               "runtime": "unknown", "device": "unknown"}
     if result.returncode == 0 and not report["limited"]:
@@ -207,7 +207,33 @@ def collect_runtime(simulator, runtime):
                 report["device"] = "missing-or-ambiguous"
         except (ValueError, TypeError, KeyError, AttributeError):
             report["runtime"] = report["device"] = "invalid-format"
-    print("TAKUPOKE_RUNTIME_HEALTH " + json.dumps(report))
+    return report
+
+
+def collect_runtime(simulator, runtime):
+    print("TAKUPOKE_RUNTIME_HEALTH " + json.dumps(runtime_observation(simulator, runtime)))
+
+
+def require_booted(simulator, runtime):
+    """Wait only for observed startup transitions; never boot or retry an input."""
+    deadline = time.monotonic() + 45
+    previous = None
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return False
+        report = runtime_observation(simulator, runtime, timeout=min(10, remaining))
+        observed_at = time.monotonic()
+        if report != previous:
+            print("TAKUPOKE_RUNTIME_HEALTH " + json.dumps(report), flush=True)
+            previous = report
+        if observed_at > deadline or report["exit"] != 0 or report["limited"] or report["runtime"] != "available":
+            return False
+        if report["device"] == "Booted":
+            return True
+        if report["device"] not in ("Shutdown", "Booting", "Shutting Down"):
+            return False
+        time.sleep(min(1, max(0, deadline - observed_at)))
 
 
 def request_window(trace, now):
@@ -294,6 +320,13 @@ def collect(simulator, *, trace=None, now=None):
 
 
 if __name__ == "__main__":
+    if sys.argv[1:2] == ["--require-booted"]:
+        try:
+            ready = require_booted(sys.argv[2], sys.argv[3])
+        except (OSError, ValueError, IndexError, subprocess.TimeoutExpired):
+            ready = False
+        print("TAKUPOKE_OWNED_BOOT " + ("confirmed" if ready else "unconfirmed"))
+        raise SystemExit(0 if ready else 1)
     if sys.argv[1:2] == ["--confirm-shutdown"]:
         try:
             stopped = confirmed_shutdown(sys.argv[2], sys.argv[3])

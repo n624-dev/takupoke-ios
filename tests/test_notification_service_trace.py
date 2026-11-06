@@ -81,6 +81,63 @@ class NotificationServiceTraceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             notification_service_trace.collect_runtime("other", runtime)
 
+    def test_boot_readiness_waits_only_for_owned_startup_transitions_with_one_global_deadline(self):
+        owned = "00000000-0000-0000-0000-000000000001"
+        runtime = "com.apple.CoreSimulator.SimRuntime.iOS-26-5"
+        for states, latencies, expected, expected_calls in (
+                (["Booted"], [0], True, 1),
+                (["Shutdown", "Booting", "Booted"], [0, 0, 0], True, 3),
+                (["Shutdown"], [0], False, 45),
+                (["Booted"], [46], False, 1),
+                (["Booted"], [45], True, 1),
+                (["Shutdown", "Booted"], [40, 0], True, 2)):
+            with self.subTest(states=states, latencies=latencies):
+                clock = [0.0]
+                calls = []
+                def observe(command, timeout, *, max_bytes):
+                    calls.append((command, timeout, max_bytes))
+                    index = min(len(calls) - 1, len(states) - 1)
+                    clock[0] += latencies[index]
+                    data = {"runtimes": [{"identifier": runtime, "isAvailable": True, "bundlePath": "PRIVATE"}],
+                            "devices": {runtime: [{"udid": owned, "state": states[index], "name": "PRIVATE"}]}}
+                    return subprocess.CompletedProcess(command, 0, json.dumps(data), "PRIVATE")
+                output = io.StringIO()
+                with patch.object(notification_service_trace, "observe_command", side_effect=observe), \
+                     patch.object(notification_service_trace.time, "monotonic", side_effect=lambda: clock[0]), \
+                     patch.object(notification_service_trace.time, "sleep", side_effect=lambda amount: clock.__setitem__(0, clock[0] + amount)), \
+                     redirect_stdout(output):
+                    self.assertEqual(notification_service_trace.require_booted(owned, runtime), expected)
+                self.assertEqual(len(calls), expected_calls)
+                for command, timeout, max_bytes in calls:
+                    self.assertEqual(command, ["xcrun", "simctl", "list", "-j"])
+                    self.assertLessEqual(timeout, 10)
+                    self.assertEqual(max_bytes, 2097152)
+                if latencies == [40, 0]:
+                    self.assertEqual(calls[-1][1], 4)
+                self.assertNotIn("PRIVATE", output.getvalue())
+
+    def test_boot_readiness_rejects_unknown_unavailable_ambiguous_or_failed_reads_without_retry(self):
+        owned = "00000000-0000-0000-0000-000000000001"
+        runtime = "com.apple.CoreSimulator.SimRuntime.iOS-26-5"
+        valid = {"runtimes": [{"identifier": runtime, "isAvailable": True}],
+                 "devices": {runtime: [{"udid": owned, "state": "Booted"}]}}
+        wrong_runtime = {"runtimes": [{"identifier": runtime, "isAvailable": False}], "devices": valid["devices"]}
+        wrong_device = {**valid, "devices": {runtime: [{"udid": "other", "state": "Booted"}]}}
+        ambiguous = {**valid, "devices": {runtime: valid["devices"][runtime] * 2}}
+        unknown = {**valid, "devices": {runtime: [{"udid": owned, "state": "Unknown"}]}}
+        for payload, code in [(json.dumps(value), 0) for value in (wrong_runtime, wrong_device, ambiguous, unknown)] + [
+                ("invalid PRIVATE", 0), ("PRIVATE" * 400000, 0), (json.dumps(valid), 149), ("", -1)]:
+            with self.subTest(code=code), patch.object(notification_service_trace, "observe_command",
+                    return_value=subprocess.CompletedProcess([], code, payload, "PRIVATE")) as observed, \
+                 patch.object(notification_service_trace.time, "sleep") as slept, redirect_stdout(io.StringIO()) as output:
+                self.assertFalse(notification_service_trace.require_booted(owned, runtime))
+                observed.assert_called_once()
+                slept.assert_not_called()
+                self.assertNotIn("PRIVATE", output.getvalue())
+        with patch.object(notification_service_trace, "observe_command") as observed, self.assertRaises(ValueError):
+            notification_service_trace.require_booted("other", runtime)
+        observed.assert_not_called()
+
     def test_launch_observation_keeps_nested_codes_without_private_error_details(self):
         bundle = notification_service_trace.BUNDLE
         message = (bundle + ' Error Domain=FBSOpenApplicationServiceErrorDomain Code=1 '

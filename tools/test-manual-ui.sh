@@ -79,8 +79,7 @@ stage build-complete
 # Complete compilation before the owned simulator's first startup, as in
 # the application and picker runners. Reuse this exact successful build.
 stage boot-enter
-xcrun simctl boot "$simulator_id"
-python3 -B tools/timed_command.py 'Manual simulator boot' xcrun simctl bootstatus "$simulator_id" -b
+bash tools/boot-simulator-ui.sh "$simulator_id" "$runtime" 'Manual simulator boot'
 stage boot-complete
 stage test-enter
 python3 -B tools/timed_command.py 'Manual UI checks without rebuilding' xcodebuild \

@@ -19,7 +19,7 @@ class ManualRunnerTests(unittest.TestCase):
             root = Path(directory)
             for folder in ("tools", "bin", "scratch"):
                 (root / folder).mkdir()
-            for name in ("test-manual-ui.sh", "timed_command.py", "resolve-xcode-packages.sh"):
+            for name in ("test-manual-ui.sh", "timed_command.py", "resolve-xcode-packages.sh", "boot-simulator-ui.sh", "notification_service_trace.py"):
                 shutil.copyfile(ROOT / "tools" / name, root / "tools" / name)
             (root / "tools/manual_ui_project.py").write_text(
                 "import sys; from pathlib import Path; Path(sys.argv[1]).mkdir(parents=True)\n")
@@ -29,7 +29,8 @@ from pathlib import Path
 args = sys.argv[1:]
 with open(os.environ['CALLS'], 'a') as output:
     output.write(json.dumps([Path(sys.argv[0]).name] + args) + '\\n')
-if Path(sys.argv[0]).name == 'xcodebuild':
+if Path(sys.argv[0]).name == 'xcode-select': print(os.environ['SYNTHETIC_DEVELOPER'])
+elif Path(sys.argv[0]).name == 'xcodebuild':
     if args[-1] == 'build-for-testing': sys.exit(int(os.environ['BUILD_STATUS']))
     if args[-1] == 'test-without-building':
         selected = next(arg.split(':', 1)[1] for arg in args if arg.startswith('-only-testing:'))
@@ -41,26 +42,31 @@ if Path(sys.argv[0]).name == 'xcodebuild':
 elif args[:2] == ['simctl', 'list']:
     print(json.dumps({'runtimes': [{'isAvailable': True, 'version': '26.5',
         'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-26-5'}, {'isAvailable': True, 'version': '27.0', 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-0'}, {'isAvailable': True, 'version': '27.1', 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-1'}],
-        'devicetypes': [{'name': 'iPhone 16', 'identifier': 'fictional-device'}]}))
-elif args[:2] == ['simctl', 'create']: print('fictional-owned-simulator')
+        'devicetypes': [{'name': 'iPhone 16', 'identifier': 'fictional-device'}],
+        'devices': {'com.apple.CoreSimulator.SimRuntime.iOS-' + ('27-0' if os.environ['TKPK_TEST_IOS'] == '27' else '26-5'):
+            [{'udid': '00000000-0000-0000-0000-000000000001', 'state': 'Booted'}]}}))
+elif args[:2] == ['simctl', 'create']: print('00000000-0000-0000-0000-000000000001')
 '''
-            for name in ("xcrun", "xcodebuild"):
+            for name in ("xcrun", "xcodebuild", "xcode-select", "open"):
                 path = root / "bin" / name
                 path.write_text(fake)
                 path.chmod(0o755)
             calls = root / "calls.jsonl"
+            developer = root / 'Xcode.app/Contents/Developer'
+            (developer / 'Applications/Simulator.app').mkdir(parents=True)
             environment = os.environ | {
                 "PATH": str(root / "bin") + os.pathsep + os.environ["PATH"],
                 "TMPDIR": str(root / "scratch"), "CALLS": str(calls),
                 "TKPK_MANUAL_CASE": selected, "TKPK_MANUAL_DIAGNOSTICS": "0",
                 "TKPK_TEST_IOS": str(ios), "BUILD_STATUS": str(build_status),
                 "CASES": json.dumps(MANUAL_CASES), "OMIT_RESULT": str(int(omit_result)),
+                "SYNTHETIC_DEVELOPER": str(developer), "DEVELOPER_DIR": str(developer),
             }
             result = subprocess.run(["bash", "tools/test-manual-ui.sh"], cwd=root,
                                     env=environment, capture_output=True, text=True, timeout=20)
             recorded = [json.loads(line) for line in calls.read_text().splitlines()]
             self.assertEqual(list((root / "scratch").iterdir()), [])
-            self.assertIn(["xcrun", "simctl", "delete", "fictional-owned-simulator"], recorded)
+            self.assertIn(["xcrun", "simctl", "delete", "00000000-0000-0000-0000-000000000001"], recorded)
             build = next(i for i, call in enumerate(recorded)
                          if call[0] == "xcodebuild" and call[-1] == "build-for-testing")
             boots = [i for i, call in enumerate(recorded) if call[:3] == ["xcrun", "simctl", "boot"]]

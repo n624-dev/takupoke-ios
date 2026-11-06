@@ -20,7 +20,8 @@ args = sys.argv[1:]
 with open(os.environ['COMMAND_LOG'], 'a') as log:
     log.write(json.dumps([Path(sys.argv[0]).name] + args) + '\n')
 mode = os.environ['PICKER_TEST_MODE']
-if Path(sys.argv[0]).name == 'xcodebuild':
+if Path(sys.argv[0]).name == 'xcode-select': print(os.environ['SYNTHETIC_DEVELOPER'])
+elif Path(sys.argv[0]).name == 'xcodebuild':
     if args[-1] == 'build-for-testing':
         sys.exit(9 if mode == 'build-fails' else 0)
     assert args[-1] == 'test-without-building'
@@ -35,8 +36,10 @@ if Path(sys.argv[0]).name == 'xcodebuild':
 elif args[:2] == ['simctl', 'list']:
     print(json.dumps({'runtimes': [{'isAvailable': True, 'version': '27.0',
         'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-0'}, {'isAvailable': True, 'version': '27.1', 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-1'}],
-        'devicetypes': [{'name': 'iPhone 16', 'identifier': 'fictional-device'}]}))
-elif args[:2] == ['simctl', 'create']: print('fictional-owned-simulator')
+        'devicetypes': [{'name': 'iPhone 16', 'identifier': 'fictional-device'}],
+        'devices': {'com.apple.CoreSimulator.SimRuntime.iOS-27-0':
+            [{'udid': '00000000-0000-0000-0000-000000000001', 'state': 'Booted'}]}}))
+elif args[:2] == ['simctl', 'create']: print('00000000-0000-0000-0000-000000000001')
 elif args[:2] == ['simctl', 'boot'] and mode == 'boot-fails': sys.exit(8)
 elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_DATA'])
 elif args[:2] == ['simctl', 'launch']:
@@ -51,7 +54,9 @@ elif args[:2] == ['simctl', 'launch']:
                 scratch.mkdir()
                 app_data = root / "app-data"
                 (app_data / "Documents").mkdir(parents=True)
-                for name in ("xcrun", "xcodebuild"):
+                developer = root / 'Xcode.app/Contents/Developer'
+                (developer.parent / 'Applications/DeviceHub.app').mkdir(parents=True)
+                for name in ("xcrun", "xcodebuild", "xcode-select", "open"):
                     path = root / name
                     path.write_text(fake)
                     path.chmod(0o755)
@@ -59,6 +64,7 @@ elif args[:2] == ['simctl', 'launch']:
                 env = os.environ | {"PATH": directory + os.pathsep + os.environ["PATH"],
                     "TMPDIR": str(scratch), "APP_DATA": str(app_data),
                     "COMMAND_LOG": str(log), "PICKER_TEST_MODE": mode,
+                    "SYNTHETIC_DEVELOPER": str(developer), "DEVELOPER_DIR": str(developer),
                     "PYTHONDONTWRITEBYTECODE": "1"}
                 result = subprocess.run(["bash", "tools/test-picker-ui.sh"], cwd=ROOT,
                     env=env, capture_output=True, text=True, timeout=15)
@@ -83,7 +89,7 @@ elif args[:2] == ['simctl', 'launch']:
                     self.assertIn("never", builds[1])
                 launches = [row for row in commands if row[:3] == ["xcrun", "simctl", "launch"]]
                 self.assertEqual(len(launches), int(mode in ("success", "transition-fails")))
-                self.assertIn(["xcrun", "simctl", "delete", "fictional-owned-simulator"], commands)
+                self.assertIn(["xcrun", "simctl", "delete", "00000000-0000-0000-0000-000000000001"], commands)
                 self.assertEqual(list(scratch.iterdir()), [])
 
 

@@ -32,8 +32,7 @@ xcode_args=(-project "$scratch_dir/PickerChecks.xcodeproj" -scheme PickerChecks
     -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1
     -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES)
 python3 -B tools/timed_command.py "Picker build for testing" xcodebuild "${xcode_args[@]}" build-for-testing
-xcrun simctl boot "$simulator_id"
-python3 -B tools/timed_command.py "Picker simulator boot" xcrun simctl bootstatus "$simulator_id" -b
+bash tools/boot-simulator-ui.sh "$simulator_id" "$runtime" "Picker simulator boot"
 set +e
 python3 -B tools/timed_command.py "Picker UI" xcodebuild "${xcode_args[@]}" test-without-building \
     2>&1 | tee "$scratch_dir/picker-ui.log"
