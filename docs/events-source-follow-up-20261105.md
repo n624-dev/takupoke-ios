@@ -102,3 +102,17 @@ manifest30件/失敗0（19.440秒）、fixture Swift parse、catalog450/check --
 主担当もguard/通常両経路の元sendEvent一回、非介入、128記録/64KiB/固定Bool/本文拒否を再確認した。
 このreviewを次の診断dispatch一回に消費し、main公開には別の新規reviewを要求する。
 正式8cdfの継続jobは取消さず、新しい完了結果だけ予定時刻に確認する。
+
+
+N167追加観測の限定ed76a28/run42147251375は元三項目をSDK26.6/27.1の両OSで成功した。
+成功時もimmediate native Boolは0のため、後続Binding成功との時点差を記録し、根本原因解明としない。
+元test/input/ACK/保存/45秒を変えずに、正式にもこのread-only診断を残し、新sourceの既存全15を確認する。
+旧8cdf正式は通常27 Bも成功（calendar元caseを含む）、単項目/明示選択も成功、新3log各一度取得。
+旧通常27 A/26 B/後続26 Aは取消さず残りの結果を確認する。終端済みprobe2log/artifact0は再照会しない。
+
+次のmain push/正式全15/条件成立時の公開一回専用に、新規GPT-6.1 Sol/High
+`ios_n167_main_pre_actions_review`がpatch110行/6874bytes、SHA256
+`78ee5d0ab48854995f01f235c9b753a06d9fc454f6b42202f0775d43e264367d`を全量・commit範囲一致まで確認し指摘なし。
+主担当も元sendEvent一回/非介入/128記録/64KiB/strict owned parser/元assert不変を確認し、この新しい
+reviewだけを次のmain自動Actions一回に消費する。限定用review/旧main用reviewを再利用しない。
+N165候補を含む旧正式のcalendarは52.279秒・元5秒と全後続操作が成功したが、恒常解消とは記載しない。

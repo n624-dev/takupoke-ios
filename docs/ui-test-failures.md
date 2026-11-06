@@ -3106,3 +3106,14 @@ gesture名は末尾の共通GestureRecognizerとmoduleを除いた先頭16文字
 元の128入力/64KiB/file所有/本文拒否とcleanupを保持し、新形式と範囲外/任意本文の負対照を加える。
 観測は操作/gesture/Bindingを変更せず、確認ONを注入しない。候補と本比較を先に隔離refへpushし局所確認後、
 この診断一回専用の新規code-only review後だけdispatchする。正式8cdfの残りは取消さず終端を確認する。
+
+N167限定結果：sourceed76a288253a43a0179439d84b934bdecc66808e/run42147251375/attempt1は両job成功終端、
+元の三項目caseはSDK27.1/Runtime27.0で386.450秒、SDK26.6/Runtime26.5で554.245秒・失敗0。
+元の3入力/各native ACK/4項目拒否/採用・再起動保持まで通過し、UIKitコンパイルも成功した。
+各log一度・artifact0一度を確認し、終端run/log/artifactを再照会しない。両OSの実Switch native traceは各6行、
+began/endedと区別可能なUILongPress/UIPan/UIScrollView系を取得した。即時のsendEvent前後6Boolは成功時にも
+全0で、後続のBinding/value1とは時点が異なる。この即時値を成功/失敗の判定に使わず、N167の根本原因や
+恒常解消が判明したとは扱わない。製品・接触・元45秒/期待を推測変更しない。
+次は同じread-only診断を正式にも保持し、失敗時に旧不十分なクラス情報との比較を可能にする。限定の2成功を
+正式の代用にせず、新source/run/attemptで既存全15を要求する。旧8cdfの通常27 B/単項目/明示選択も成功し、
+新3完了logを一度取得済み。通常27 A/26 Bと後続26 Aは取消さず終端を確認する。
