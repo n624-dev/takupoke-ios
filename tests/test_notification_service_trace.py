@@ -38,6 +38,7 @@ class NotificationServiceTraceTests(unittest.TestCase):
         cases = [(payload([stopped]), 0, True), (payload([stopped, stopped]), 0, False),
                  (payload([{**stopped, "state": "Booted"}]), 0, False),
                  (payload([{**stopped, "udid": "other"}]), 0, False),
+                 (json.dumps({"devices": {"com.apple.CoreSimulator.SimRuntime.iOS-27-0": [stopped]}}), 0, False),
                  (payload([]), 0, False), (payload([stopped]), 1, False),
                  ('{"devices":null}', 0, False), ('PRIVATE', 0, False), ('x' * 1048577, 0, False)]
         for output, code, expected in cases:
