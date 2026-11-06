@@ -149,7 +149,7 @@ extension ManualAssistanceChecks {
         tap("この資料全体の結果を使用")
         XCTAssertTrue(app.staticTexts["復旧結果を採用しました。"].waitForExistence(timeout:20),app.debugDescription)
         XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains(proof))
-        terminateCurrentFixture();app.launchArguments=["--manual-ui","-AppleLanguages","(ja)","-AppleLocale","ja_JP"]
+        guard terminateCurrentFixture() else { return };app.launchArguments=["--manual-ui","-AppleLanguages","(ja)","-AppleLocale","ja_JP"]
         guard launchApplicationOnce() else { return }
         // The fixture probe also needs an app-root copy to inspect persisted results without reopening a recovery draft.
         XCTAssertTrue(app.staticTexts["manual-persisted-proof"].waitForExistence(timeout:10),app.debugDescription)

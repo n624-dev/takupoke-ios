@@ -157,10 +157,11 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertEqual(changed.count('accessibilityIdentifier("manual-review-submit")'),1)
         self.assertEqual(changed.count('Text(coordinator.status).accessibilityIdentifier("manual-status")'),1)
         checks=manual_check_source()
-        self.assertEqual(checks.count('terminateCurrentFixture();'),3)
+        self.assertEqual(checks.count('guard terminateCurrentFixture() else { return };'),3)
         terminate=checks.split('    func terminateCurrentFixture()',1)[1].split('    func launch(',1)[0]
         self.assertEqual(terminate.count('app.terminate()'),1)
         self.assertIn('app.wait(for:.runningForeground,timeout:nativeStateTimeout)',terminate)
+        self.assertIn('return false',terminate)
         self.assertLess(terminate.index('app.wait('),terminate.index('app.terminate()'))
         self.assertEqual(checks.count('app.terminate()'),1)
         self.assertEqual(checks.count('tap("訂正と変更を確認して資料全体へ",knownID:"manual-review-submit")'),2)

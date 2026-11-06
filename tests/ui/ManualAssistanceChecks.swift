@@ -8,15 +8,16 @@ final class ManualAssistanceChecks:XCTestCase {
     // Keep every native state assertion, allowing bounded time to observe it.
     let nativeStateTimeout:TimeInterval=45
     override func setUp() { continueAfterFailure=false;app=XCUIApplication() }
-    func terminateCurrentFixture() {
+    func terminateCurrentFixture()->Bool {
         // Refresh the current process state after a sheet transition rather
         // than sending termination through a retained process observation.
         guard app.wait(for:.runningForeground,timeout:nativeStateTimeout) else {
             XCTFail("The current manual fixture must still be foreground before termination")
-            return
+            return false
         }
         print("TAKUPOKE-MANUAL-TERMINATE foreground-confirmed;once")
         app.terminate()
+        return true
     }
     func launch(_ flags:[String]=[]) {
         app.launchArguments=["--reset-fixture","--manual-ui","--fixture-input-trace","--manual-integral-rails","-AppleLanguages","(ja)","-AppleLocale","ja_JP"]+flags
