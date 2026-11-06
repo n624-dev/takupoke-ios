@@ -3534,3 +3534,29 @@ sdk26=27.1の明示選択を追加する。既定26.6/旧比較は維持し、�
 全assertは維持し、公開gateは変更しない。入力/Runner/Developer/SDK/26準備/always回収の接続を既存manifestで
 検査する。新しいSDKを導入せず、正式で既に使っているtoolchainを限定でも明示するためである。
 N187用reviewも未消費で廃止し、このworkflow差分を含めた別の新規専用review後にだけ限定を開始する。
+
+## N188 配布SDK限定の最後の明示選択26がjob上限後も進行中（2026-11-06）
+
+sourcedbbcc4b2c003f9811711d607a5b8cc6866911fff/run42246376301/attempt1、job127989558227。
+16:04:41Z開始、SDK27.1/Runtime26.5準備は16:06:49Z成功、実test/script stepだけが16:52/16:55/16:59照会でも
+in_progressだった。設定の元45分を超え、後続export回収はpending。終了結果・実test/診断/回収のどの段階かは未確定。
+他7件は成功し各logを一度保存済み。直近の単体job URLは連携ツール非対応のためCLIで確認したが同じ進行中だった。
+進行中logの取得は保存先拒否/連携エラーで得られず、取得失敗をtest成功や失敗に読み替えない。
+このjobは取消さず残結果を追う。main用の準備reviewは未消費で、8件成功はまだ確認できていない。
+対処案を決める前に本事実を記録し、過去の外側timeout/cleanupと当時/現runnerを照合する。
+
+N162の詳細と2b5e5c9/現application-relaunch wrapper・manual runner・timed_commandを読んだ。
+N162もjob上限30分を超え35分で終了し、27本文logを取得できず停止段階は未確定だった。既に24分の
+実process監督/所有group終了120秒/固定stageで回収を試みる対処がある。一方manualは外側job予算だけで、
+script全体とsimctl shutdown/deleteには有限監督がなく、testとcleanupを区別するstageもない。
+今回の実停止段階はまだ不明だが、少なくとも同じ観測・終了制御の欠落はsourceで確認できた。
+
+候補は元45分job内のmanual scriptを40分+所有group回収120秒で監督すること。35分の任意限定は30分+120秒とし、
+元のjob予算を延ばさない。timeoutは124の失敗、元testの非zero/取消も保持し、PASS文字列だけで成功にしない。
+cleanupの所有UUIDのshutdown/deleteは各10秒/猶予3秒で試み、元の失敗終了値を変えない。固定stageで
+準備/build/boot/test/完了照合/診断/所有回収を区別する。UIの45秒/20秒/16探索/元入力/保存proofは一切変えない。
+新しい限定にはOS選択を付け、既定both/旧SDK比較を保つ。今回は停止中の明示選択26だけをSDK27.1で検証し、
+既に成功した27を同じ理由で重ねない。未知のOS/SDK入力は実行前に拒否する。
+旧7件の実UI通過と今回の監督器検証を同一runの8成功へ合算せず、正式では新source/run/attemptの全15を別に要求する。
+旧N188は取消さず追跡を継続し、新sourceの独立した検証を並行して進める。先行main用reviewは未消費で廃止し、
+監督器の実process正負対照/cleanup終了値伝播/選択接続を確認後、別の新規専用reviewで限定を開始する。

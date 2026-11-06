@@ -171,20 +171,39 @@ class ManualDiagnosticsTests(unittest.TestCase):
     def test_always_collection_retains_original_exit_when_tools_fail(self):
         # Execute the exact cleanup function, substituting harmless external commands.
         source = (ROOT / 'tools/test-manual-ui.sh').read_text()
-        function = source[source.index('cleanup() {'):source.index('\ntrap cleanup EXIT')]
+        function = source[source.index('stage() {'):source.index('\ntrap cleanup EXIT')]
         shell = '''set -eu
 scratch_dir=owned-scratch
 simulator_id=owned-simulator
 diagnostic_started=0
 TKPK_MANUAL_DIAGNOSTICS=1
-python3() { echo diagnostic-before-delete; return 6; }
-xcrun() { echo "$*"; }
-rm() { echo delete-owned-scratch; }
-''' + function + '\ntrap cleanup EXIT\nexit 7\n'
-        run = subprocess.run(['bash', '-c', shell], text=True, capture_output=True)
-        self.assertEqual(run.returncode, 7)
-        self.assertEqual(run.stdout.splitlines()[0], 'diagnostic-before-delete')
-        self.assertEqual(run.stdout.splitlines()[-1], 'delete-owned-scratch')
+python3() {
+    if [[ "$2" == tools/manual_ui_diagnostics.py ]]; then
+        echo diagnostic-before-delete >> "$CALLS"
+        return 6
+    fi
+    [[ "$2" == tools/timed_command.py && "$3 $4 $5 $6" == '--timeout 10 --cleanup-grace 3' ]] || exit 99
+    shift 7
+    "$@"
+}
+xcrun() { echo "$*" >> "$CALLS"; return 9; }
+rm() { echo "delete-$*" >> "$CALLS"; }
+''' + function + '\ntrap cleanup EXIT\nexit "$ORIGINAL_EXIT"\n'
+        with tempfile.TemporaryDirectory() as directory:
+            calls = Path(directory) / 'calls'
+            for original_exit in (0, 7, 143):
+                with self.subTest(original_exit=original_exit):
+                    calls.write_text('')
+                    run = subprocess.run(['bash', '-c', shell], text=True, capture_output=True,
+                                         env=os.environ | {'CALLS': str(calls), 'ORIGINAL_EXIT': str(original_exit)})
+                    self.assertEqual(run.returncode, original_exit, run.stderr)
+                    self.assertEqual(calls.read_text().splitlines(), [
+                        'diagnostic-before-delete', 'simctl shutdown owned-simulator',
+                        'simctl delete owned-simulator', 'delete--rf owned-scratch'])
+                    self.assertEqual(run.stdout.splitlines(), [
+                        'TAKUPOKE_MANUAL_RUNNER stage=' + stage for stage in (
+                            'cleanup-enter', 'cleanup-diagnostics-enter', 'cleanup-shutdown-enter',
+                            'cleanup-delete-enter', 'cleanup-files-enter', 'cleanup-complete')])
 
     def test_collection_tool_errors_stay_unknown_no_binary_payload(self):
         with tempfile.TemporaryDirectory() as tmp:

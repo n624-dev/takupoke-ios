@@ -271,7 +271,7 @@ jobs:
       - name: Prepare exact iOS 27.0 with the shipping SDK
         run: python3 -B tools/prepare-ios27-runtime.py
       - name: Exercise one manual case and require its exact completion
-        run: bash tools/test-manual-ui.sh
+        run: python3 -B tools/timed_command.py --timeout 2400 --cleanup-grace 120 "Manual UI runner" bash tools/test-manual-ui.sh
 
   manual-26:
     name: Manual correction iOS ${{ matrix.ios }} / ${{ matrix.case }}
@@ -307,7 +307,7 @@ jobs:
       - name: Prepare exact iOS 26.5 with the shipping SDK
         run: python3 -B tools/prepare-ios26-runtime.py --hold-export
       - name: Exercise one manual case and require its exact completion
-        run: bash tools/test-manual-ui.sh
+        run: python3 -B tools/timed_command.py --timeout 2400 --cleanup-grace 120 "Manual UI runner" bash tools/test-manual-ui.sh
       - name: Remove the owned iOS 26 runtime export after simulator cleanup
         if: always()
         run: python3 -B tools/prepare-ios26-runtime.py --cleanup-export

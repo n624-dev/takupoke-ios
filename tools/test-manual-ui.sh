@@ -12,26 +12,37 @@ esac
 scratch_dir="$(mktemp -d "${TMPDIR:-/tmp}/takupoke-manual-ui.XXXXXX")"
 simulator_id=""
 diagnostic_started="$(python3 -c 'import time; print(time.time())')"
+stage() { printf 'TAKUPOKE_MANUAL_RUNNER stage=%s\n' "$1"; }
 cleanup() {
     local original_exit=$?
+    stage cleanup-enter
     # Capture before shutdown/delete, including test failure or interrupted commands.
     # Diagnostics never turn a failed/cancelled run into success.
     if [[ "${TKPK_MANUAL_DIAGNOSTICS:-0}" == 1 ]]; then
+        stage cleanup-diagnostics-enter
         python3 -B tools/manual_ui_diagnostics.py "$scratch_dir" "$simulator_id" "$diagnostic_started" "$original_exit" || true
     fi
     if [[ -n "$simulator_id" ]]; then
-        xcrun simctl shutdown "$simulator_id" >/dev/null 2>&1 || true
-        xcrun simctl delete "$simulator_id" >/dev/null 2>&1 || true
+        stage cleanup-shutdown-enter
+        python3 -B tools/timed_command.py --timeout 10 --cleanup-grace 3 \
+            "Manual simulator shutdown" xcrun simctl shutdown "$simulator_id" >/dev/null 2>&1 || true
+        stage cleanup-delete-enter
+        python3 -B tools/timed_command.py --timeout 10 --cleanup-grace 3 \
+            "Manual simulator delete" xcrun simctl delete "$simulator_id" >/dev/null 2>&1 || true
     fi
+    stage cleanup-files-enter
     rm -rf "$scratch_dir"
+    stage cleanup-complete
     return "$original_exit"
 }
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+stage preparation-enter
 python3 -B tools/manual_ui_project.py "$scratch_dir/project"
 bash tools/resolve-xcode-packages.sh "$scratch_dir/project/AppChecks.xcodeproj" AppChecks "$scratch_dir"
 xcrun simctl list -j > "$scratch_dir/simulators.json"
+stage runtime-list-complete
 python3 - "$scratch_dir/simulators.json" "${TKPK_TEST_IOS:-26}" > "$scratch_dir/destination" <<'PY'
 import json,sys
 s=json.load(open(sys.argv[1],encoding='utf-8')); major=int(sys.argv[2])
@@ -42,7 +53,9 @@ device=next(d for d in s['devicetypes'] if d['name']=='iPhone 16')
 print(device['identifier'],runtime['identifier'])
 PY
 read -r device_type runtime < "$scratch_dir/destination"
+stage create-enter
 simulator_id="$(xcrun simctl create 'Takupoke Manual Checks' "$device_type" "$runtime")"
+stage create-complete
 diagnostic_args=(-collect-test-diagnostics never)
 if [[ "${TKPK_MANUAL_DIAGNOSTICS:-0}" == 1 ]]; then
     # The owned result bundle and bounded collector retain XCTest failures.
@@ -59,15 +72,22 @@ build_args=(
 )
 # The owned build is reused by every selected case in this job. Other jobs,
 # SDKs and generated source configurations never share it.
+stage build-enter
 python3 -B tools/timed_command.py 'Manual UI build' xcodebuild \
     "${build_args[@]}" build-for-testing
+stage build-complete
 # Complete compilation before the owned simulator's first startup, as in
 # the application and picker runners. Reuse this exact successful build.
+stage boot-enter
 xcrun simctl boot "$simulator_id"
 python3 -B tools/timed_command.py 'Manual simulator boot' xcrun simctl bootstatus "$simulator_id" -b
+stage boot-complete
+stage test-enter
 python3 -B tools/timed_command.py 'Manual UI checks without rebuilding' xcodebuild \
     "${build_args[@]}" "${diagnostic_args[@]}" "$only_testing" test-without-building \
     2>&1 | tee "$scratch_dir/manual-ui.log"
+stage test-complete
+stage completion-verification-enter
 python3 - "$scratch_dir/manual-ui.log" "$manual_case" <<'PY'
 from collections import Counter
 import re,sys
@@ -81,3 +101,4 @@ rows=re.findall(r"Test Case '-\[PickerTapChecks\.ManualAssistanceChecks (test\w+
 if Counter(name for name,_ in rows)!=Counter(expected) or any(status!='passed' for _,status in rows):raise SystemExit('Manual UI completion mismatch')
 print('Verified four manual UI XCTest completions.' if not selected else 'Verified selected manual UI XCTest completion: '+selected)
 PY
+stage completion-verification-complete
