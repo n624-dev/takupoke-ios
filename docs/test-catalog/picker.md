@@ -1,7 +1,7 @@
 # ファイル選択・再選択・背景・キャンセル
 
 対応関係・宣言名・実行方法のSHA-256：
-`729a648e035b6f6b8648cb0a3075cb4afa49e9ca2c749005da2f53754ed79b8c`
+`5aa97cdae8e1e3b18a59e13ccbeba29e777831389aba6eb7ca07965debee33d4`
 
 環境：Apple iOS26/27 UI＋Nativeレイアウト
 
@@ -46,6 +46,7 @@ bash tools/test-picker-ui.sh
 - `test_boot_readiness_requires_one_actual_owned_native_identity_with_the_original_deadline`
 - `test_boot_readiness_rejects_host_wrong_identity_bad_responses_and_failed_spawn_without_retry`
 - `test_real_identity_program_cannot_prove_a_host_process_is_a_simulator`
+- `test_boot_failure_observation_is_bounded_read_only_and_excludes_other_devices_and_private_fields`
 - `test_launch_observation_keeps_nested_codes_without_private_error_details`
 - `test_launch_error_codes_are_bounded_and_reject_unknown_domains_and_large_values`
 - `test_accessibility_observation_has_only_known_services_and_fixed_words_in_order`

@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`13ef6dcf6b3826e0dc8a6c01eff4262b7ad2db1aadf64bb89cd2618b76b9b935`
+`f125617395e08225e0b40827f56d69d672e5684cc45766ea1516ee8fcd6e1d54`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -165,6 +165,7 @@ bash tools/test-manual-ui.sh
 - `test_boot_readiness_requires_one_actual_owned_native_identity_with_the_original_deadline`
 - `test_boot_readiness_rejects_host_wrong_identity_bad_responses_and_failed_spawn_without_retry`
 - `test_real_identity_program_cannot_prove_a_host_process_is_a_simulator`
+- `test_boot_failure_observation_is_bounded_read_only_and_excludes_other_devices_and_private_fields`
 - `test_launch_observation_keeps_nested_codes_without_private_error_details`
 - `test_launch_error_codes_are_bounded_and_reject_unknown_domains_and_large_values`
 - `test_accessibility_observation_has_only_known_services_and_fixed_words_in_order`

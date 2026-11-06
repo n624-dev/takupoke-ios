@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`2e4b3e509c1f292c3b7eb475648e01683813327393846961a8a78ae035e22b7a`
+`ce655454b851e7f691e37cb3e47beef701d3a960e7a4a3811302d4c23f21fc51`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -178,6 +178,7 @@ bash tools/test-app-ui.sh
 - `test_boot_readiness_requires_one_actual_owned_native_identity_with_the_original_deadline`
 - `test_boot_readiness_rejects_host_wrong_identity_bad_responses_and_failed_spawn_without_retry`
 - `test_real_identity_program_cannot_prove_a_host_process_is_a_simulator`
+- `test_boot_failure_observation_is_bounded_read_only_and_excludes_other_devices_and_private_fields`
 - `test_launch_observation_keeps_nested_codes_without_private_error_details`
 - `test_launch_error_codes_are_bounded_and_reject_unknown_domains_and_large_values`
 - `test_accessibility_observation_has_only_known_services_and_fixed_words_in_order`

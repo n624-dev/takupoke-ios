@@ -3889,3 +3889,10 @@ N202はbootstatusがDevice already bootedと返った後で別のnative probeが
 絞ったhost CoreSimulator/DeviceHubのread-only boot記録を有限・固定語彙で採取する診断候補とする。
 45秒の起動証明・一回boot/spawn・UI期待・元job予算を保持し、待機延長や押し直しで救済しない。
 新しい観測で失敗理由を区別するための限定26/Picker27とし、前の成功した手動ケースを再試行しない。
+
+診断候補b84a038を先にpush後、観測19件/失敗0（1.282秒）、実helper2件/失敗0（4.347秒）、
+通常App実runner16件/失敗0（44.591秒）、一覧453/write/check --base6aa・Bash構文が通過した。
+実host対照、拒否条件/元45秒、失敗時だけの一回read-only host log、対象外端末・不正/過大応答・私的文字列の除外を保持する。
+manual/Picker runner・native Swift本体・UI case・成功時の操作順はbfbで検査済みの同一bytesで、不要な全体再検査はしない。
+完全code-only差分871行/55222bytesのSHA256は18970e51afd3042534a1bddd96531581b086cbabc6bec49f5793dfea8581372d。
+短い実例一覧は13箇条のまま、重複する手順説明をN07の具体的な一覧停止の教訓に置き換えた。
