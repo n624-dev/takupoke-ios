@@ -7,7 +7,7 @@ UI編集前に読む。詳細・未確定事項は[失敗索引](ui-test-failure
 - スクロール前のnative identityを使い続ける → 接触直前に取得し、一意性・完全包含・enabled/hittableを確認する。（N94/N97）
 - 同じframe/labelを何度も読む → 一試行の値を再利用し、現在のhittabilityは別に確認する。（N165/N168/N174）
 - 検査済みCellの子を再列挙する → 同じ試行の実子・枠を保持し、dragは操作部品を避ける。（N78/N80）
-- tapの返却を成功とする → 実値・Binding・保存を期限内に確認する。押し直し・値注入・期限延長で救済しない。（U64/N167/N180）
+- tapの返却を成功とする → 実値・Binding・保存を確認し、配送診断も全callerへ接続する。押し直し・注入・期限延長で救済しない。（U64/N180/N192）
 - 無条件でHomeを送る → SpringBoardが既に前面なら重ねない。元の準備条件・一回launchを守る。（N179/N182）
 - Runtime登録直後に取得物を消す → test/device回収後まで保持し、最後のalwaysで所有領域だけ消す。（N176/N177）
 - shutdown失敗を一律無視する → exit149だけ、正確な所有UUID/Runtimeが一意なShutdownと実確認した場合に受理する。（N170）
