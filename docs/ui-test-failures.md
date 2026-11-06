@@ -3301,3 +3301,45 @@ app/nav/tab/keyboard/footerと専用ID/月・日からlabelの一意なButtonの
 clip/timeoutは全て失敗。UI treeは4096個を上限にし、超過は不明として合格させない。製品・元5秒・picker5秒/
 取消/前後週/全15gateは変えない。新しいviewport projectionは元7幾何と新しい正負のnative対照で確認する。
 候補/比較を隔離refへ先にpushした後に局所検査し、新規code-only review後だけ次の全15を開始する。
+
+## N175 主正式031916の通常26 Aが失敗終端（2026-11-06）
+
+予定09:00 UTC照会、source03191600c10a28231f37f55097be134c315d6abe/run42178798904/attempt1、
+job127778153052は07:49:59Z開始・08:01:13Z failure。要求SDK27.1/Runtime26.5、具体case/stage/原因は
+log未読で未確定として対処案を決める前に記録する。通常27 A/Bと26 Bは成功した。
+
+## N176 同じ主正式031916の単項目復旧26が失敗終端（2026-11-06）
+
+同source/run/attempt、job127778153082は07:49:58Z開始・08:03:17Z failure。
+要求SDK27.1/Runtime26.5、具体stage/原因は未読で未確定。訂正27の同caseは成功しているが26へ一般化しない。
+
+## N177 同じ主正式031916の三項目復旧26が失敗終端（2026-11-06）
+
+同source/run/attempt、job127778153240は07:50:00Z開始・08:03:54Z failure。
+要求SDK27.1/Runtime26.5、具体stage/原因は未読で未確定。全18表示job終端・実14件、失敗3/成功11、
+依存・構成skip4を成功に数えず公開なし。前回取得8logは再取得せず、新6logとartifact一覧を一度確認する。
+旧失敗と同原因と断定せず、新logと過去詳細/当時と現在のsourceを比較してから対処を決める。
+
+N175完了logはUI XCTest開始前のtest-without-buildingが20.7秒でrunner channel disconnected。
+直前healthはRuntime available/device Booted、直後はavailable/Shutdownだった。実caseは開始していない。
+N176/N177は実case開始後にdevice Shutdown/runtime bundle null/supportedArches空となり、
+Installing built productsがUnable to boot device because we cannot determine the runtime bundleで停止した。
+SDKは三件とも実配布27.1で、訂正の当初記録の26.6はlog確認で訂正した。27の全ケースと26 B・26の
+明示選択/原本変更は成功、全14log各一度/artifact0一度確認済み。完了run/log/artifactを再照会しない。
+
+照合：runtime bundle/prepare-ios26/runtime-owned/Channel disconnectedで索引を検索し、U60/U61/N76/
+N166/N169の詳細と3054127/現prepare26、現workflow/runnerを読んだ。N175はN169のdevicePair例外とは
+別の通信切断であり、N176/N177はN166同様の実起動後のbundle利用不能。U61対処時から取得後の
+available照合はあるが、download/export先のTemporaryDirectoryを準備step終了前に削除している。
+今回成功/失敗ともexportedBundleを同所有領域へ出しており、登録直後のavailableだけで取得物の
+削除後も全実行中のbacking lifetimeを保証できない。削除が今回の直接原因である証明はまだない。
+
+次の候補は正式26と配布SDK26のrelaunch診断で--hold-exportを付け、欠損時に取得した所有exportを
+ビルド/boot/実case/所有device回収まで保持する。同じhelperの--cleanup-exportを最後のalways stepで呼び、
+固定のRUNNER_TEMP配下・所有marker一致・symlink拒否の場合だけ回収する。未取得時は無操作、
+失敗でも回収し、未知領域や登録済Runtimeを削除しない。既存installed/unavailable拒否・正確なSDK27.1/
+Runtime26.5・download/import期限と全UI/gateを維持し、retry/再起動/別OSへの逃避は加えない。
+実helperをfake Apple CLIで動かしてexportの準備後保持/後片付け/エラー経路/別領域保全を確認し、
+既存manifestへ保持→実テスト→always回収の順序を要求する。これはファイル寿命の候補検証で、
+CoreSimulatorの恒常的な解消とは断定しない。記録/候補を先に隔離refへpushし、局所検証と新規専用review後に
+同じ全15の正式一回を実行する。N175の切断の下位原因も引き続き未確定として扱う。

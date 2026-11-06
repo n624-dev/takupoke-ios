@@ -737,6 +737,10 @@ METHOD
                 prepare = "python3 -B tools/prepare-ios26-runtime.py"
                 self.assertIn(prepare, second)
                 self.assertLess(second.index(prepare), second.index("bash tools/test-app-ui.sh"))
+                self.assertIn("run: " + prepare + " --hold-export\n", second)
+                cleanup = "run: " + prepare + " --cleanup-export\n"
+                self.assertIn("if: always()\n        " + cleanup, second)
+                self.assertLess(second.index("bash tools/test-app-ui.sh"), second.index(cleanup))
         # Native PDF verification remains independent of Simulator UI availability.
         self.assertIn("    needs: checks\n", jobs["native-parsing"])
         self.assertIn("    needs: [checks, manual-27, simulator-27-a, simulator-27-b]\n",
@@ -783,6 +787,11 @@ METHOD
             prepare = f"python3 -B tools/prepare-ios{ios}-runtime.py"
             self.assertIn(prepare, block)
             self.assertLess(block.index(prepare), block.index("bash tools/test-manual-ui.sh"))
+            if ios == 26:
+                self.assertIn("run: " + prepare + " --hold-export\n", block)
+                cleanup = "run: " + prepare + " --cleanup-export\n"
+                self.assertIn("if: always()\n        " + cleanup, block)
+                self.assertLess(block.index("bash tools/test-manual-ui.sh"), block.index(cleanup))
         simulator = workflow.split("  simulator-27-a:\n", 1)[1].split("  manual-27:\n", 1)[0]
         self.assertIn("timeout-minutes: 60", simulator)
         self.assertNotIn("test-manual-ui.sh", simulator)

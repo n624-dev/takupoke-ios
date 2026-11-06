@@ -184,7 +184,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Prepare exact iOS 26.5 with the shipping SDK
-        run: python3 -B tools/prepare-ios26-runtime.py
+        run: python3 -B tools/prepare-ios26-runtime.py --hold-export
       - name: Exercise app screens with synthetic data
         run: |
           set -euo pipefail
@@ -193,6 +193,9 @@ jobs:
       - name: Remove the owned app runner log
         if: always()
         run: python3 -B -c 'import os; from pathlib import Path; (Path(os.environ["RUNNER_TEMP"])/"takupoke-app-ui-runner-owned.log").unlink(missing_ok=True)'
+      - name: Remove the owned iOS 26 runtime export after simulator cleanup
+        if: always()
+        run: python3 -B tools/prepare-ios26-runtime.py --cleanup-export
 
   simulator-26-b:
     name: Application iOS ${{ matrix.ios }} UI ${{ matrix.shard }}
@@ -221,7 +224,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Prepare exact iOS 26.5 with the shipping SDK
-        run: python3 -B tools/prepare-ios26-runtime.py
+        run: python3 -B tools/prepare-ios26-runtime.py --hold-export
       - name: Exercise app screens with synthetic data
         run: |
           set -euo pipefail
@@ -230,6 +233,9 @@ jobs:
       - name: Remove the owned app runner log
         if: always()
         run: python3 -B -c 'import os; from pathlib import Path; (Path(os.environ["RUNNER_TEMP"])/"takupoke-app-ui-runner-owned.log").unlink(missing_ok=True)'
+      - name: Remove the owned iOS 26 runtime export after simulator cleanup
+        if: always()
+        run: python3 -B tools/prepare-ios26-runtime.py --cleanup-export
 
   manual-27:
     name: Manual correction iOS ${{ matrix.ios }} / ${{ matrix.case }}
@@ -299,9 +305,12 @@ jobs:
       - name: Require exact manual source
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Prepare exact iOS 26.5 with the shipping SDK
-        run: python3 -B tools/prepare-ios26-runtime.py
+        run: python3 -B tools/prepare-ios26-runtime.py --hold-export
       - name: Exercise one manual case and require its exact completion
         run: bash tools/test-manual-ui.sh
+      - name: Remove the owned iOS 26 runtime export after simulator cleanup
+        if: always()
+        run: python3 -B tools/prepare-ios26-runtime.py --cleanup-export
 
   build-check:
     name: Check iPhone build outside development distribution
