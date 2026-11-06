@@ -276,3 +276,27 @@ Linux Swift6.1.2で元navigation Python2件とSwift29件/失敗0、生成17件/�
 `c6d945c3d9b74dba171928ce3a3730eb311b2420b500e776387324325cfb4027`を全量・commit差分一致まで確認し指摘なし。
 主担当もID対応/実値assert/元の探索・包含・hittable・ACK/保存/再起動・全15を照合した。
 この新reviewだけを次のmain開始一回へ消費し、廃止した旧main用や限定用reviewを流用しない。
+
+主b04d011/run42227564373の14:30予定照会で、明示選択27は正式でも1198.759秒/失敗0、通常27 A/B/
+原本変更/Distribution299件/Native701件（予定skip1、Xcode26.6/SDK26.5）も成功した。ただしN182の三項目27は
+初回app.launchのXcode timeout、N183の単項目27はreview20秒のglobal state検索で失敗した。通常26 A/Bは
+14:23:11/14:27:43開始で継続、取消さず最大55分を踏まえ15:25に残りを確認する。
+作業環境の再起動でlog取得cellが失われたため、保存済み2logは再取得せず、未保存6logだけ回復取得した。
+これで新8logを保存済み。旧終端run/logへ戻らず、通信中断をCIの新失敗へ数えない。
+
+N182/N183の事実とN95/N125/N168/N173/N179/N181の詳細/当時と現sourceを先に照合した。
+manualにも通常Suiteと同じ条件付きHomeを適用し、QA overlayの専用container内へreview/previewの
+両state queryを限定する候補793f8b0を先に隔離refへpushした。既存の初期化固定stageを同じ所有logから
+回収する診断も付け、起動の到達段階を観測する。製品・元操作・45秒/20秒・全assert/gateは不変である。
+Linux Swift6.1.2でreview controls Python2件/失敗0（11.371秒、比較10/幾何8 XCTestも成功）、
+生成17件/失敗0（0.688秒）、manual診断12件/失敗0（0.329秒）、manifest30件/失敗0（40.175秒）、
+Swift parse/catalog450/check --baseb04d011が成功。元の一回label同時判定/未知・複数拒否・20秒、
+生成containerの一意ID/children contain/非hit接続、固定lifecycle9種/128行/64KiB/本文・symlink拒否を確認した。
+これらは実OS起動やAX応答の証明ではなく、次は既存限定all4case×両OSで関連ケースをまとめて確認する。
+
+次の既存manual-input-native-probe/case=all/元4case×元両OS一回専用に、新規GPT-6.1 Sol/High
+`ios_n183_probe_pre_actions_review`がcode patch157行/9306bytes、SHA256
+`ee4c835cf42301e1037bfd98f03c6ffb3817b736b3b9270adc38ec4e1b37783b`を全量・commit差分一致まで確認し指摘なし。
+主担当も条件付きHome/元一回launch・45秒、QAの非hit container/元実state・20秒、固定診断/元終了値/所有回収を照合した。
+この新reviewだけを次の限定dispatch一回へ消費する。限定26は元SDK26.5であり、正式の配布SDK27.1検証とは区別する。
+限定全体を通過した後に、別の新規reviewで正式全15を開始する。継続中の旧通常26の終端も取消さず確認する。
