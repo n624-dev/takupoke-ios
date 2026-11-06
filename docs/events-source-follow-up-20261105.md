@@ -75,3 +75,19 @@ Model402行/20367bytes f15f505a…を全行/bytes/hashで再確認し、最終�
 主担当も現差分の同一性と構文/catalog、先行結果の範囲、全未送信commitの空白を確認して、
 この未消費reviewを次のmain push/正式全15/条件成立時の公開一回にのみ使用する。
 先行や旧sourceの合格を新sourceへ借用せず、元のUIケース・両OS・期限・全15を維持する。
+
+
+正式source77d57a5/run42136180150はDistribution/Native700/通常27 A/訂正27四件の7成功、
+通常27 Bと26 Aの2失敗、依存6skipで未公開。実行9件のlogを各一度・artifact0を一度確認し再照会しない。
+N165/N166の事実・旧現比較・候補は失敗索引に記録し863cbd5で隔離refへ先にpushした。
+候補後のLinux検証はnotification/runtime観測14件（0.208秒）、実shell orchestration15件（38.651秒）、
+manifest30件（17.588秒）が失敗0。Swift6.1.2 parse・Bash構文・catalog450/check --base77d57a5も成功。
+Runtime観測はread-onlyであり、Linuxのコマンド境界検査は実AppleのRuntime消失原因の確認ではない。
+週calendarの元5秒/全guard/一回接触/取消/前後週/両OS/正式全15は維持する。
+
+次のmain push/正式全15/条件成立時の公開一回専用として、新規GPT-6.1 Sol/High
+`ios_n165_main_pre_actions_review`がcode patch129行/7229bytes、SHA256
+`d88c7a7e96b11a1f1d967cd43ede065d3268495f37c2420adb4bca33da6ca604`を全量確認し、指摘なし。
+主担当も元5秒/一意性/存在/有限枠/完全包含/enabled/hittable/一回中心tapと全後続assert、
+追加診断の10秒/2MiB/対象照合/固定語/一時回収/非介入を照合した。既存正式workflow/製品Modelの
+コードは77d57a5から不変で、今回のreviewはこの一回へ消費し再利用しない。
