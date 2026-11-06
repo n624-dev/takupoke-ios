@@ -242,3 +242,24 @@ Apple APIのmockで実OS成功を模倣する追加caseは作らない。実OS�
 `89b0aefeea633b97708db0a7369a1b6d269972f0fe85573fc42b08638783cb79`を全量・commit差分一致まで確認し指摘なし。
 主担当も停止後一回launch/元45秒と実foreground・frame、既存observerの元event一回/非介入/固定記録、
 全後続assert・全15gate維持を照合した。この新reviewだけを次のmain開始一回に消費し、過去reviewを再利用しない。
+
+主bb201b8/run42209482541は12:15予定照会で通常27 A/B・訂正27の単項目/三項目/原本変更・Native/Distributionが成功、
+明示選択27だけN181の教師入力欄global Any firstMatch.existsでtimeout。新8logを各一度取得した。
+通常26 A/Bは取消さず継続し、実開始11:58:33/12:02:35と過去最大55分から13:05に残りだけ確認する。
+N181の事実・N54/N78/N94/N97/N153/N173の詳細/旧現source比較を先に記録し、既知IDの引数漏れ3箇所を
+まとめて修正する49c4c60を先に隔離refへpushした。全manual visible呼出しも検索し、同じglobal Any入力欄の
+引数漏れが他にないことを確認した。専用Button・動的label・代替候補は用途を読み、機械的一括置換はしない。
+Linux Swift6.1.2で元navigation Python2件とSwift29件/失敗0、生成17件/失敗0（0.435秒）、manifest30件/失敗0
+（17.201秒）、Swift parse/catalog450/check --basebb201b8が成功した。実OSの応答は未確認である。
+
+利用者の追加指示により、全体CIの反復前に対応する限定CIで候補を確認する進め方へ改めた。
+短い[UIテスト実例一覧](ui-test-best-practices.md)を18行/12項目で作り、AGENTS/保守方針/READMEから参照する。
+元ケース/公開ゲート/期限は変えない。先に作成したmain専用ios_n181_main_pre_actions_reviewは指摘なしだったが
+未消費のまま廃止し、次の限定dispatchへ流用しない。限定後のmainにも別の新規reviewを要求する。
+
+次の既存manual-input-native-probe/元明示選択case/元両OS一回だけに、新規GPT-6.1 Sol/High
+`ios_n181_probe_pre_actions_review`がcode patch24行/1863bytes、SHA256
+`c6d945c3d9b74dba171928ce3a3730eb311b2420b500e776387324325cfb4027`を全量・commit差分一致まで確認し指摘なし。
+主担当も引数IDと実生成ID・元の厳密な可視化/実値assert・全後続操作/保存を確認した。この新reviewを限定開始一回へ消費する。
+限定27は失敗時と同じSDK27.1/Runtime27.0、限定26は既存workflowのSDK26.5/Runtime26.5である。
+限定26の結果を正式配布SDK27.1の26や全15成功へ流用せず、正式は最後に同じsource/run/attemptで別に確認する。
