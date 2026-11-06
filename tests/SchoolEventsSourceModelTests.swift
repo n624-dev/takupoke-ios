@@ -289,21 +289,32 @@ final class SchoolEventsSourceModelTests: XCTestCase {
     }
 
     func testForegroundResumesTheRemainingBudgetWithoutRepeatingTheInitialRequest() async throws {
-        let f = try Fixture(), clock = RetryClock()
-        defer { f.clean(); clock.cancel() }
-        f.model = f.makeModel(waitForSourceRetry: clock.wait); f.model.loadIfNeeded()
-        f.network.checking = true
-        await f.model.checkSource(year: 2032)?.value
-        try await finishRetry(f, clock)
-        try await pendingRetry(clock)
-        f.model.setSourceChecksActive(false); clock.advance(); await Task.yield()
-        f.model.setSourceChecksActive(true)
-        XCTAssertNil(f.model.checkSource(year: 2032))
-        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 2)
-        try await finishRetry(f, clock)
-        try await finishRetry(f, clock)
-        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 4)
-        XCTAssertTrue(clock.pending.isEmpty)
+        for backgroundSeconds in [0.0, 120.0] {
+            let f = try Fixture(), clock = RetryClock()
+            defer { f.clean(); clock.cancel() }
+            f.model = f.makeModel(waitForSourceRetry: clock.wait); f.model.loadIfNeeded()
+            f.network.checking = true
+            await f.model.checkSource(year: 2032)?.value
+            try await finishRetry(f, clock)
+            try await pendingRetry(clock)
+            f.model.setSourceChecksActive(false); clock.advance(); await Task.yield()
+            f.now.addTimeInterval(backgroundSeconds)
+            f.model.setSourceChecksActive(true)
+            let resumed = f.model.checkSource(year: 2032)
+            if backgroundSeconds == 0 {
+                XCTAssertNil(resumed)
+                XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 2)
+                try await finishRetry(f, clock)
+            } else {
+                await resumed?.value
+                XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 3)
+            }
+            try await finishRetry(f, clock)
+            XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 4)
+            f.now.addTimeInterval(120)
+            XCTAssertNil(f.model.checkSource(year: 2032))
+            XCTAssertTrue(clock.pending.isEmpty)
+        }
     }
 
     func testExpiryPublishesToObserversWithoutARequestOrSavedEventsChange() async throws {

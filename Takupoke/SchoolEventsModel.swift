@@ -186,7 +186,17 @@ final class SchoolEventsModel: ObservableObject {
     /// presentation or annual data fetching. Repeated callers join one year.
     @discardableResult
     func checkSource(year: Int, force: Bool = false) -> Task<Void, Never>? {
-        checkSource(year: year, force: force, remainingFollowUps: 3)
+        guard sourceChecksActive, ready, let savedValue = saved[year] else { return nil }
+        let binding = SourceBinding(savedValue)
+        if let running = sourceRequests[year], running.binding == binding { return running.task }
+        if !force, let cached = sourceStatuses[year], cached.response.checking, cached.response.matches(savedValue),
+           let budget = sourceFollowUpBudgets[year], budget.binding == binding {
+            guard budget.remaining > 0 else { return nil }
+            let remaining = cached.isFresh(at: now()) ? budget.remaining : budget.remaining - 1
+            sourceFollowUpBudgets[year] = (binding, remaining)
+            return checkSource(year: year, force: false, remainingFollowUps: remaining)
+        }
+        return checkSource(year: year, force: force, remainingFollowUps: 3)
     }
 
     @discardableResult
