@@ -94,7 +94,9 @@ class NotificationServiceTraceTests(unittest.TestCase):
                  redirect_stdout(io.StringIO()) as output:
                 self.assertEqual(notification_service_trace.require_booted(owned, runtime, "/owned/identity"), expected)
                 observed.assert_called_once_with(["xcrun", "simctl", "spawn", owned, "/owned/identity"], 45, max_bytes=4096)
-                self.assertEqual(output.getvalue(), "")
+                self.assertNotIn("PRIVATE", output.getvalue())
+                report = json.loads(output.getvalue().split(" ", 1)[1])
+                self.assertEqual(report["deadlineExceeded"], latency > 45)
 
     def test_boot_readiness_rejects_host_wrong_identity_bad_responses_and_failed_spawn_without_retry(self):
         owned = "00000000-0000-0000-0000-000000000001"
@@ -115,7 +117,9 @@ class NotificationServiceTraceTests(unittest.TestCase):
                  redirect_stdout(io.StringIO()) as output:
                 self.assertFalse(notification_service_trace.require_booted(owned, runtime, "/owned/identity"))
                 observed.assert_called_once()
-                self.assertEqual(output.getvalue(), "")
+                self.assertNotIn("PRIVATE", output.getvalue())
+                report = json.loads(output.getvalue().split(" ", 1)[1])
+                self.assertEqual(report["exit"], code)
         for target, version in (("other", runtime), (owned, "wrong-runtime")):
             with patch.object(notification_service_trace, "observe_command") as observed, self.assertRaises(ValueError):
                 notification_service_trace.require_booted(target, version, "/owned/identity")
@@ -137,6 +141,34 @@ class NotificationServiceTraceTests(unittest.TestCase):
             with patch.object(notification_service_trace, "observe_command", return_value=actual):
                 self.assertFalse(notification_service_trace.require_booted(record["udid"],
                     "com.apple.CoreSimulator.SimRuntime.iOS-26-5", executable))
+
+    def test_boot_failure_observation_is_bounded_read_only_and_excludes_other_devices_and_private_fields(self):
+        owned = "00000000-0000-0000-0000-000000000001"
+        event = {"processImagePath": "/PRIVATE/CoreSimulatorService", "eventMessage": owned +
+            ' boot failed PRIVATE Error Domain=com.apple.CoreSimulator.SimError Code=405'}
+        entries = [event] * 45 + [{**event, "eventMessage": "other-device boot failed PRIVATE"},
+                                 {**event, "processImagePath": "/PRIVATE/unknown-process"}]
+        for payload, code, expected_events in ((json.dumps(entries), 0, 40),
+                ('{"PRIVATE":true}', 0, 0), ("PRIVATE" * 400000, 0, 0), ("PRIVATE", -1, 0)):
+            with self.subTest(code=code), patch.object(notification_service_trace, "observe_command",
+                    return_value=subprocess.CompletedProcess([], code, payload, "PRIVATE timeout")) as observed, \
+                 redirect_stdout(io.StringIO()) as output:
+                notification_service_trace.collect_boot_failure(owned)
+                report = json.loads(output.getvalue().split(" ", 1)[1])
+                self.assertEqual(len(report["events"]), expected_events)
+                if expected_events:
+                    self.assertEqual(report["events"][0]["launchErrors"],
+                                     [{"domain": "com.apple.CoreSimulator.SimError", "code": 405}])
+                for private in ("PRIVATE", "other-device", "unknown-process", owned):
+                    self.assertNotIn(private, output.getvalue())
+                command = observed.call_args.args[0]
+                self.assertEqual(command[:2], ["log", "show"])
+                self.assertIn(owned, command[-1])
+                self.assertEqual(observed.call_args.kwargs, {"max_bytes": 2097152})
+                self.assertEqual(observed.call_args.args[1], 10)
+        with patch.object(notification_service_trace, "observe_command") as observed, self.assertRaises(ValueError):
+            notification_service_trace.collect_boot_failure("invalid")
+        observed.assert_not_called()
 
     def test_launch_observation_keeps_nested_codes_without_private_error_details(self):
         bundle = notification_service_trace.BUNDLE

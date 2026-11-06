@@ -32,7 +32,9 @@ WORDS = re.compile(
 
 LAUNCH_ERROR = re.compile(
     r"\b(?:Error\s+)?Domain=(FBSOpenApplicationServiceErrorDomain|FBProcessExit|"
-    r"RBSRequestErrorDomain|NSPOSIXErrorDomain|NSMachErrorDomain)\s+Code=(-?\d{1,10})\b"
+    r"RBSRequestErrorDomain|NSPOSIXErrorDomain|NSMachErrorDomain|"
+    r"com\.apple\.CoreSimulator\.SimError|com\.apple\.SimLaunchHostService\.RequestError|"
+    r"com\.apple\.CoreSimulator\.SimLaunchHostService\.RequestError)\s+Code=(-?\d{1,10})\b"
 )
 
 
@@ -59,6 +61,10 @@ AX_SERVICES = ("VoiceOverTouch", "AccessibilityUIServer", "AXUIServer", "accessi
                "voiceservicesd", "SpringBoard", "backboardd")
 AX_WORDS = re.compile(WORDS.pattern +
                      r"|\b(?:voiceover|speech|focus|utterance|touch|gesture|hid|event|port|initialize)\b", re.I)
+BOOT_SERVICES = ("CoreSimulatorService", "DeviceHub", "Simulator", "launchd_sim")
+BOOT_WORDS = re.compile(WORDS.pattern +
+    r"|\b(?:boot|booted|booting|shutdown|runtime|migration|migrator|launchd|crash|crashed|kill|killed|"
+    r"terminate|terminated|memory|pressure|disk|space|corrupt|mount|connection|refused|resource|exhausted)\b", re.I)
 AX_PREDICATE = (
     '(' + ' OR '.join(f'process == "{name}"' for name in AX_SERVICES[:5]) + ')'
     ' OR ((process == "SpringBoard" OR process == "backboardd") AND ('
@@ -221,18 +227,54 @@ def require_booted(simulator, runtime, executable):
         raise ValueError("Invalid observation target")
     deadline = time.monotonic() + 45
     result = observe_command(["xcrun", "simctl", "spawn", simulator, executable], 45, max_bytes=4096)
-    if time.monotonic() > deadline or result.returncode != 0 or len(result.stdout.encode()) > 4096:
-        return False
+    report = {"exit": result.returncode, "deadlineExceeded": time.monotonic() > deadline,
+              "limited": len(result.stdout.encode()) > 4096,
+              "errorWords": fixed_words(result.stderr or "", BOOT_WORDS)}
+    valid = False
     try:
-        value = json.loads(result.stdout)
-        version = re.fullmatch(r"(\d{1,2})\.(\d{1,2})\.(\d{1,3})", value["runtime"])
-        return (set(value) == {"udid", "runtime", "simulatorCompileTarget", "pid"}
-                and value["udid"] == simulator and value["simulatorCompileTarget"] is True
-                and type(value["pid"]) is int and 0 < value["pid"] < 2**31
-                and version is not None
-                and tuple(map(int, version.groups()[:2])) == tuple(map(int, match.groups())))
+        if result.returncode == 0 and not report["limited"] and not report["deadlineExceeded"]:
+            value = json.loads(result.stdout)
+            version = re.fullmatch(r"(\d{1,2})\.(\d{1,2})\.(\d{1,3})", value["runtime"])
+            report.update({"fieldsMatch": set(value) == {"udid", "runtime", "simulatorCompileTarget", "pid"},
+                "deviceMatches": value["udid"] == simulator,
+                "simulatorTarget": value["simulatorCompileTarget"] is True,
+                "pidValid": type(value["pid"]) is int and 0 < value["pid"] < 2**31,
+                "runtimeMatches": version is not None and
+                    tuple(map(int, version.groups()[:2])) == tuple(map(int, match.groups()))})
+            valid = all(report[key] for key in ("fieldsMatch", "deviceMatches", "simulatorTarget", "pidValid", "runtimeMatches"))
     except (ValueError, TypeError, KeyError):
-        return False
+        report["invalidFormat"] = True
+    print("TAKUPOKE_NATIVE_BOOT_RESPONSE " + json.dumps(report), flush=True)
+    return valid
+
+
+def collect_boot_failure(simulator):
+    """Read only host boot events explicitly mentioning the disposable device."""
+    if not re.fullmatch(r"[0-9A-Fa-f-]{36}", simulator):
+        raise ValueError("Invalid observation target")
+    predicate = ('(' + ' OR '.join(f'process == "{name}"' for name in BOOT_SERVICES)
+                 + f') AND eventMessage CONTAINS[c] "{simulator}"')
+    result = observe_command(["log", "show", "--last", "5m", "--style", "json", "--info",
+                              "--predicate", predicate], 10, max_bytes=2097152)
+    report = {"exit": result.returncode, "limited": len(result.stdout.encode()) > 2097152,
+              "errorWords": fixed_words(result.stderr or "", BOOT_WORDS), "events": []}
+    if result.returncode == 0 and not report["limited"]:
+        try:
+            entries = json.loads(result.stdout)
+            if not isinstance(entries, list):
+                raise ValueError("Expected boot events")
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                process = PurePosixPath(str(entry.get("processImagePath", ""))).name
+                message = str(entry.get("eventMessage", ""))
+                if process in BOOT_SERVICES and simulator.lower() in message.lower():
+                    report["events"].append({"process": process, "words": fixed_words(message, BOOT_WORDS),
+                                             "launchErrors": launch_error_codes(message)})
+            report["events"] = report["events"][-40:]
+        except (ValueError, TypeError):
+            report["invalidFormat"] = True
+    print("TAKUPOKE_HOST_BOOT_FAILURE " + json.dumps(report), flush=True)
 
 
 def request_window(trace, now):
@@ -319,6 +361,9 @@ def collect(simulator, *, trace=None, now=None):
 
 
 if __name__ == "__main__":
+    if sys.argv[1:2] == ["--boot-failure"]:
+        collect_boot_failure(sys.argv[2])
+        raise SystemExit(0)
     if sys.argv[1:2] == ["--require-booted"]:
         try:
             ready = require_booted(sys.argv[2], sys.argv[3], sys.argv[4])

@@ -3856,3 +3856,36 @@ N07はfrontendを開いた後でも全device一覧が124秒で停止し、正確
 所有端末一回spawn・元45秒の境界・異なるID/OS/host/bad PID/不正/過大/失敗応答とcompile/sign/boot/window失敗も拒否した。
 これらのfake/host成功を実Simulator UIの成功としない。完全code-only差分770行/48569bytesのSHA256は
 53c94e6f7d0884ad53cb5df17f5909e6f4ecf332186608043b8d61a3096ee4a9。限定3実行に各新規reviewを消費する。
+
+## N201 Native identity候補の通常26限定がfailure（2026-11-06）
+
+sourcebfb7e734be04505865357545b97e0620c2e0edcc/run42309825003/attempt1/job128208213124、
+SDK27.1・予定Runtime26.5・testChangedAccountDataNoticeOpensSharedAcquisition、23:08:29Z〜23:19:21Z。
+23:30Z一括照会でfailureを確認。本文未読で準備/実UIの段階・原因は未確定。対処前に記録する。
+
+## N202 同じ候補のPicker27限定もfailure（2026-11-06）
+
+同source/run42309932187/attempt1/job128208575394、SDK27.1・予定Runtime27.0、23:09:25Z〜23:17:12Z。
+本文未読で段階・原因は未確定。Portable Swift/Python jobはsuccess、非選択native/inventoryはskip。
+別run42309711437/job128207837577の手動3項目27は23:26:06Zにsuccess。成功を他経路へ代用しない。
+新5完了logを一回取得し、過去/現コードを照合してから次の対処を選ぶ。まだ全体公開CIは開始しない。
+
+N201実log：build95.3秒、identity compile/sign成功3.7秒、bootstatus132.7秒/終了0の後、
+画面URLを開き、readiness-enterから2.9秒でunconfirmed/終了1。45秒の時間切れではないが、
+現在の起動証明は不受理理由を記録しておらず、spawn終了値/応答不一致のどちらかは未確定。実UIは未開始。
+N202はbuild31.6秒/identity compile3.8秒/sign成功/boot129.0秒後、readiness-enterから54.2秒でunconfirmed。
+45秒超過を拒否した事実だけが分かり、下位原因は未確定。元Picker3ケースは未開始。
+同sourceの手動27ではidentity compile3.7秒・boot135.2秒後に所有native proofが8.2秒で成立し、
+元3項目・全ACK・4番目拒否・採用/保存/再起動を含む591.888秒/失敗0、outer1093.9秒/元1800秒内で通過した。
+全3run終端・artifact0・新5log一回取得済み。起動証明の一般的成功やN193の恒常的解消とは主張しない。
+
+N201/N202追加照合：N07/起動停止/bootstatus/Shutdownと当時のcompare.py・現在のnative proofを再読した。
+旧通常26 A成功128121440677、N198、新N201/N202、今回手動成功はいずれも同じhost macOS27.0.1/
+xcode-27-arm64 image20261104.0337.1で、image更新の有無では分けられない。
+N201はData Migration中のElapsed03:09からterminal/Elapsed00:00へ変わり、後続healthがRuntime available/
+device Shutdownを実観測した。status4294967295自体は旧成功でも出ており、単独でエラーと解釈しない。
+N202はbootstatusがDevice already bootedと返った後で別のnative probeが期限超過した。
+次は振る舞いを推測変更せず、拒否したnative応答の終了値/期限/一致項目と、失敗時だけ正確な所有UUIDに
+絞ったhost CoreSimulator/DeviceHubのread-only boot記録を有限・固定語彙で採取する診断候補とする。
+45秒の起動証明・一回boot/spawn・UI期待・元job予算を保持し、待機延長や押し直しで救済しない。
+新しい観測で失敗理由を区別するための限定26/Picker27とし、前の成功した手動ケースを再試行しない。

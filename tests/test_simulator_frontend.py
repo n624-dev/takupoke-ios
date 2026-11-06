@@ -35,7 +35,11 @@ from pathlib import Path
 args=sys.argv[1:];name=Path(sys.argv[0]).name
 with open(os.environ['CALLS'],'a') as output: output.write(json.dumps([name]+args)+'\n')
 failure=os.environ['FAILURE']
-if name=='xcode-select': print(os.environ['SYNTHETIC_DEVELOPER'])
+if name=='log':
+    assert os.environ['OWNED'] in args[-1]
+    print(json.dumps([{'processImagePath':'/system/CoreSimulatorService',
+                      'eventMessage':os.environ['OWNED']+' boot failed PRIVATE'}]))
+elif name=='xcode-select': print(os.environ['SYNTHETIC_DEVELOPER'])
 elif name=='codesign':
     assert Path(args[-1]).is_file()
     if failure=='sign':sys.exit(46)
@@ -56,7 +60,7 @@ elif args[:2]==['simctl','spawn']:
         'simulatorCompileTarget':True,'pid':123}))
 elif args[:2]==['simctl','list']:raise AssertionError('Readiness must not use inventory')
 '''
-            for name in ("open", "xcrun", "xcode-select", "codesign"):
+            for name in ("open", "xcrun", "xcode-select", "codesign", "log"):
                 path = root / "bin" / name
                 path.write_text(fake)
                 path.chmod(0o755)
@@ -114,6 +118,7 @@ elif args[:2]==['simctl','list']:raise AssertionError('Readiness must not use in
                 result, calls, _ = self.bootstrap("hub", failure=failure)
                 self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
                 self.assertNotIn("TAKUPOKE_SIMULATOR_UI stage=ready", result.stdout)
+                self.assertEqual(sum(call[0] == "log" for call in calls), int(failure in ("identity", "spawn")))
                 self.assertFalse(any(call[:3] == ["xcrun", "simctl", "list"] for call in calls))
         result, calls, _ = self.bootstrap("missing")
         self.assertEqual(result.returncode, 1)

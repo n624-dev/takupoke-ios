@@ -40,5 +40,8 @@ fi
 # Prove the exact owned device by one real native process, independently of the
 # all-device inventory API. Never reboot or resend an input to rescue readiness.
 stage readiness-enter
-python3 -B tools/notification_service_trace.py --require-booted "$simulator_id" "$runtime" "$identity_dir/identity"
+if ! python3 -B tools/notification_service_trace.py --require-booted "$simulator_id" "$runtime" "$identity_dir/identity"; then
+    python3 -B tools/notification_service_trace.py --boot-failure "$simulator_id" || true
+    exit 1
+fi
 stage ready
