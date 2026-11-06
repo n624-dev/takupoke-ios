@@ -70,7 +70,7 @@ def view(text):
                     Button("架空原本のハッシュを変更") { Task { try await SimulatorManualFixture.changeOriginal(); manualQAMutationComplete = true } }
                 }
             } }
-            .overlay(alignment: .topLeading) {
+            .background(alignment: .topLeading) {
                 if SimulatorManualFixture.enabled {
                     VStack { FixtureManualProbe()
                         Text(SimulatorManualFixture.processIdentity).font(.system(size:1))

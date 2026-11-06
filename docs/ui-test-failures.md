@@ -3582,3 +3582,40 @@ OS26/SDK27.1の明示選択一件だけで、旧N188の停止中jobは取消し�
 全14codepath/565行/35956bytes、SHA256 f75c56643eaef35bd781a030e7af266b5582b0dd8115918a5b2b6e2dfc6364dfを確認し指摘なし。
 これは限定成功・完了log確認・コード不変を条件とした次のmain一回専用で、現時点では未消費である。
 文書は利用者の指定に合わせ、19行/13項目の短い「失敗→推奨」に圧縮した。詳細・不確定事項は索引に残す。
+
+N188旧実行の終端を17:30Zにまとめて確認した。job127989558227は16:59:42Zにcancelled（開始から55分01秒）、
+他7件successで全8終端。主担当から取消操作は行っていない。最後のjob本文取得は終端後も404/BlobNotFoundで、
+停止段階・実UIの到達は依然不明。保存artifact0を一度確認し、旧7成功を8成功へ書き換えない。
+新限定42259774318の一件job128036343146は17:14:20Z開始、OS/SDK選択・26.5準備は成功し、17:30時点でUIstep進行中。
+旧runのarchiveを代替として一度取得したが14entryは他7jobの本文/システム記録だけで、明示選択26の本文は無かった。
+他7件の本文は再読せず、archiveの件数/hashを非公開receiptへ残して所有ZIPを削除した。欠落logの回収はここで終了し、旧runは再照会しない。
+
+## N189 有限監督追加後の明示選択26限定がfailure（2026-11-06）
+
+source3ca41912976decdba248f16808a1c7e88b50bc3e/run42259774318/attempt1/job128036343146、
+OS26/SDK27.1/予定Runtime26.5の明示選択一件。17:14:20Z開始、17:43:30Zにfailure。
+exact source・入力検証・Runtime準備はsuccess、Exercise stepはfailure、最後の所有export回収はsuccess。
+本文未読の時点では実UIの到達・失敗段階・outer timeoutの有無は未確定で、対処案を選ぶ前に事実を記録した。
+
+完了logは一度保存済み、artifact0。実Runtime26.5、case1035.572秒/失敗1、Navigation.swift:190。
+3項目入力/ACK/確認/preview/4件目menu操作の後、manual-statusの表示探索で失敗した。
+同じIDのstatusと所有Cellは(16,249,361,72.333)、viewport(0,193,393,647)に3回収まったがhittableが成立せず、
+元の一回反転後に末尾へ進みno-progressで失敗した。N186と同じ幾何だが今回は専用ID/所有Cellを特定できている。
+build73.5秒/boot65.0秒/test1158.7秒、outer1534.1秒で上限は発火せず、診断→shutdown→delete→cleanup-completeを記録した。
+監督器が元のUI失敗を成功にせず伝播したことは確認できた。既知IDだけでは元のhittability問題を解消していない。
+対処の選択前にこの本文事実を追記し、N186/N160と当時/現Navigationを比較する。先行main用reviewは未消費で廃止する。
+
+追加の観測事実：失敗後AXのmanual-observationは(0,129,391.7,155.3)で、直前に完全包含したstatusの
+(16,249,361,72.333)と重なる。QA生成は現在topLeading overlayで、元の診断/保存proofを含むVStackを置く。
+外側/各TextにallowsHitTesting(false)はあるが、AX上の重なりは残る。画像・接触時のAXhit配送は未採取で、
+この重なりがhittable不成立の直接原因とはまだ断定しない。N160のButton native identity整理後も、statusはindexed Anyである。
+
+overlay/observation/hittableでN49/U77/N160/N183/N186を検索し、N49とN160詳細・旧fd6e42c通知fixture・
+旧b04と現manual generator/Navigationを照合した。N49は対話panelから通知設定への入力未反映で、
+今回の既に非hitのQA観測Textとは違う。一方、QA表示が製品の前面に残る構造上の差は実sourceにあり、
+今回はAX枠の重なりも直接観測した。N160は二段階のButton hit照会でnative側が例外となった別条件であり、
+今回の非Button全体を根拠なくnativeへ一括変更しない。
+次の候補はQAの同じ観測container全体だけをoverlayからbackgroundへ移し、製品Listの前面を覆わなくする。
+状態/診断/保存proofの実値・ID・children contain・非hitは保ち、List寸法や操作・完全包含/hittable・16探索/一回反転・
+45秒本文・3項目上限/4件拒否/実採用/再起動は変えない。観測表示のAX存在が失われた場合も元の状態待機で失敗する。
+この一変更を先にpushして生成/状態/幾何/manifestを検証し、新規review後に同じOS26/SDK27.1の一件で比較する。

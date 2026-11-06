@@ -170,6 +170,8 @@ class ManualUIProjectTests(unittest.TestCase):
     def test_review_readiness_measures_actual_coordinator_state(self):
         changed=module.view((ROOT/"Takupoke/PDFRecoveryView.swift").read_text(encoding="utf-8"))
         self.assertEqual(changed.count('.accessibilityIdentifier("manual-observation")'),1)
+        self.assertEqual(changed.count('.background(alignment: .topLeading) {\n                if SimulatorManualFixture.enabled'),1)
+        self.assertNotIn('.overlay(alignment: .topLeading) {\n                if SimulatorManualFixture.enabled',changed)
         self.assertIn('.accessibilityElement(children:.contain)\n                    .accessibilityIdentifier("manual-observation")\n                    .allowsHitTesting(false)',changed)
         checks=manual_check_source()
         self.assertEqual(checks.count('.otherElements["manual-observation"].staticTexts'),2)
