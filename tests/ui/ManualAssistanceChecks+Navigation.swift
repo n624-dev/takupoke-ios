@@ -192,13 +192,22 @@ extension ManualAssistanceChecks {
     }
     func tap(_ title:String,knownID:String="") {
         if title == "架空検証" {
-            let bar=app.navigationBars["時間割の復旧"],button=app.navigationBars["時間割の復旧"].buttons[title]
-            guard bar.waitForExistence(timeout:nativeStateTimeout),button.waitForExistence(timeout:nativeStateTimeout),
-                  ManualScrollNavigation.usable(bar.frame),ManualScrollNavigation.usable(button.frame),
-                  bar.frame.contains(button.frame),button.isEnabled,button.isHittable else {
+            let bar=app.navigationBars["時間割の復旧"]
+            guard bar.waitForExistence(timeout:nativeStateTimeout),
+                  bar.buttons[title].waitForExistence(timeout:nativeStateTimeout) else {
+                XCTFail("Fixture menu must exist on its recovery toolbar");return
+            }
+            let barFrame=bar.frame
+            let current=bar.buttons.matching(NSPredicate(format:"label == %@",title))
+                .allElementsBoundByAccessibilityElement
+            guard current.count==1 else { XCTFail("Fixture menu must have one native Button");return }
+            let button=current[0],frame=button.frame
+            guard ManualScrollNavigation.usable(barFrame),ManualScrollNavigation.usable(frame),
+                  barFrame.contains(frame),button.isEnabled,button.isHittable else {
                 XCTFail("Fixture menu must be visible on its own recovery toolbar: "+app.debugDescription);return
             }
-            button.tap()
+            print("TAKUPOKE-MANUAL-MENU frame=\(frame);method=native-center-brief-contact;duration=0.1")
+            button.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).press(forDuration:0.1)
             for action in fixtureMenuActions {
                 XCTAssertTrue(app.buttons[action].waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
             }

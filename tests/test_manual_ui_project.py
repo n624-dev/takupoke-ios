@@ -345,6 +345,13 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertNotIn('sleep(',acknowledge)
         self.assertNotIn('for ',acknowledge)
         self.assertIn('XCTNSPredicateExpectation',acknowledge)
+        opening=checks.split('if title == "架空検証"')[1].split('if fixtureMenuActions.contains(title)')[0]
+        self.assertIn('guard current.count==1',opening)
+        self.assertLess(opening.index('let barFrame=bar.frame'),opening.index('.allElementsBoundByAccessibilityElement'))
+        self.assertEqual(opening.count('.press(forDuration:0.1)'),1)
+        self.assertNotIn('.tap()',opening)
+        self.assertIn('barFrame.contains(frame),button.isEnabled,button.isHittable',opening)
+        self.assertIn('app.buttons[action].waitForExistence(timeout:nativeStateTimeout)',opening)
         menu=checks.split('if fixtureMenuActions.contains(title)')[1].split('visible(app.buttons[title]')[0]
         self.assertIn('.allElementsBoundByIndex',menu)
         self.assertIn('guard current.count==1',menu)
