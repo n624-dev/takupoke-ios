@@ -1,7 +1,7 @@
 # 学校行事API・年度別保存
 
 対応関係・宣言名・実行方法のSHA-256：
-`ece0671786a188932f85965fd92b57061cebe852f8dfe8bcdaa50b17f190f5b8`
+`7765e772a15a8cab2eb98bd1fc86279ae9663e0ce6725b3a2d596a719b17be84`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -41,12 +41,20 @@ bash tools/test-parsing.sh
 - `testMetadataBindingRequiresYearAdoptedHashAndEventsVersionButNotPDFETag`
 - `testMetadataTTLIsTwelveHoursOrSixtySecondsWhileCheckingAndRejectsClockRollback`
 - `testPresentationSeparatesMatchedDifferenceUnknownFailureStalenessAndSnapshotMismatch`
+- `testExhaustedFollowUpsShowUnconfirmedWhileKeepingLastSuccess`
 - `testExpiredCheckingDescribesThePastWithoutDiscardingSuccessfulEvidence`
 - `testAdvisoryStorePreservesNewestSuccessAcrossUnavailableOlderEdgeAndReload`
 - `testDamagedOversizedSymlinkAndWrongYearMetadataCannotBlockHealthyEvents`
 
 ## [tests/SchoolEventsSourceModelTests.swift](../../tests/SchoolEventsSourceModelTests.swift)
 
+- `testCheckingAutomaticallyBecomesMatchedWithoutFetchingEventsAgain`
+- `testCheckingStopsAfterExactlyThreeAdditionalRequests`
+- `testFailedFollowUpStopsAndPreservesSavedEventsAndSuccessfulEvidence`
+- `testBackgroundSuspensionCancelsPendingAndInFlightFollowUps`
+- `testChangedSavedVersionCancelsPendingFollowUpAndMismatchedReplyCannotScheduleOne`
+- `testManualCheckSupersedesPendingFollowUpWithoutAnExtraRequest`
+- `testForegroundResumesTheRemainingBudgetWithoutRepeatingTheInitialRequest`
 - `testExpiryPublishesToObserversWithoutARequestOrSavedEventsChange`
 - `testActualMetadataRequestIsNonblockingCoalescedCachedPersistedAndFailureRetainsEvents`
 - `testActualStartupForegroundManual304AndNew200BindEachYearAndVersion`

@@ -126,7 +126,7 @@ struct SchoolEventsSourcePresentation {
     let receivedAt: Date?
 
     static func make(saved: SavedSchoolEvents, cached: SavedSchoolEventsSourceStatus?,
-                     error: String?, now: Date) -> Self {
+                     error: String?, now: Date, followUpExhausted: Bool = false) -> Self {
         guard let cached else {
             return .init(message: error ?? "元PDFの更新状況は未確認です。", warning: true,
                          lastSuccessfulMessage: nil, lastSuccessAt: nil, receivedAt: nil)
@@ -143,7 +143,9 @@ struct SchoolEventsSourcePresentation {
         let message: String
         if let error { message = error }
         else if value.checking {
-            message = cached.isFresh(at: now)
+            message = followUpExhausted
+                ? "元PDFの確認完了を取得できませんでした。前回の確認結果を表示しています。現在の更新状況は未確認です。"
+                : cached.isFresh(at: now)
                 ? "APIが元PDFを確認中です。前回の確認結果を表示しています。"
                 : "前回確認時は元PDFを確認中でした。現在の更新状況は未確認です。"
         }

@@ -138,7 +138,8 @@ final class ApplicationData: ObservableObject {
         guard UIApplication.shared.applicationState != .background else { return }
         backgroundRefresh?.cancel()
         if let task = backgroundRefresh { await task.value }
-        guard await prepare() else { return }
+        guard await prepare(), UIApplication.shared.applicationState != .background else { return }
+        schoolEvents.setSourceChecksActive(true)
         materials.loadIfNeeded()
         specialSchedules.loadIfNeeded()
         schoolEvents.refreshAtStartup()
@@ -154,6 +155,7 @@ final class ApplicationData: ObservableObject {
     }
 
     func setFileMonitoring(_ foreground: Bool) {
+        schoolEvents.setSourceChecksActive(foreground)
         if !foreground { recovery.suspendForInactivity(); LocalRecoveryModelManager.shared.cancel() }
         materials.setFileMonitoring(foreground && ready)
         specialSchedules.setFileMonitoring(foreground && ready)

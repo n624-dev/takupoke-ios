@@ -9,6 +9,7 @@ final class SchoolEventsModel: ObservableObject {
             let next = projectedAnalysis()
             if !TimetableSchedule.sameProjection(cachedAnalysis,next) { scheduleGeneration = UUID() }
             cachedAnalysis = next
+            cancelObsoleteSourceChecks()
         }
     }
     private var cachedAnalysis: PDFAnalysis?
@@ -22,10 +23,13 @@ final class SchoolEventsModel: ObservableObject {
          makeSession:(() -> URLSession)? = nil, now: @escaping () -> Date = Date.init,
          waitForSourceExpiry: @escaping (TimeInterval) async throws -> Void = { seconds in
              try await Task.sleep(nanoseconds: UInt64(min(max(seconds, 0), 86_400) * 1_000_000_000))
+         }, waitForSourceRetry: @escaping (TimeInterval) async throws -> Void = { seconds in
+             try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
          }) {
         self.storeRoot = storeRoot; self.eventsEndpoint = eventsEndpoint
         self.makeSession = makeSession ?? { Self.eventsSession() }; self.now = now
         self.waitForSourceExpiry = waitForSourceExpiry
+        self.waitForSourceRetry = waitForSourceRetry
     }
     @Published private(set) var ready = false
     @Published private(set) var busy = false
@@ -71,7 +75,10 @@ final class SchoolEventsModel: ObservableObject {
 
     func sourcePresentation(year: Int) -> SchoolEventsSourcePresentation? {
         guard let value = saved[year] else { return nil }
-        return .make(saved: value, cached: sourceStatuses[year], error: sourceErrors[year], now: now())
+        let budget = sourceFollowUpBudgets[year]
+        let exhausted = budget?.binding == SourceBinding(value) && budget?.remaining == 0 && sourceRequests[year] == nil
+        return .make(saved: value, cached: sourceStatuses[year], error: sourceErrors[year], now: now(),
+                     followUpExhausted: exhausted)
     }
     @Published private(set) var failedCacheYears: Set<Int> = []
 
@@ -87,6 +94,59 @@ final class SchoolEventsModel: ObservableObject {
         let task: Task<Void, Never>
     }
     private var sourceRequests: [Int: SourceRequest] = [:]
+    private var sourceFollowUps: [Int: SourceRequest] = [:]
+    private var sourceFollowUpBudgets: [Int: (binding: SourceBinding, remaining: Int)] = [:]
+    private let waitForSourceRetry: (TimeInterval) async throws -> Void
+    private var sourceChecksActive = true
+
+    func setSourceChecksActive(_ active: Bool) {
+        sourceChecksActive = active
+        if !active {
+            cancelSourceRequests()
+        }
+    }
+
+    private func cancelSourceRequests() {
+        for value in sourceFollowUps.values { value.task.cancel() }
+        sourceFollowUps.removeAll()
+        for value in sourceRequests.values { value.task.cancel() }
+        sourceRequests.removeAll()
+    }
+
+    private func cancelObsoleteSourceChecks() {
+        for year in Array(sourceFollowUpBudgets.keys) {
+            if saved[year].map(SourceBinding.init) != sourceFollowUpBudgets[year]?.binding {
+                sourceFollowUpBudgets[year] = nil
+            }
+        }
+        for year in Array(sourceFollowUps.keys) {
+            if saved[year].map(SourceBinding.init) != sourceFollowUps[year]?.binding {
+                sourceFollowUps.removeValue(forKey: year)?.task.cancel()
+            }
+        }
+        for year in Array(sourceRequests.keys) {
+            if saved[year].map(SourceBinding.init) != sourceRequests[year]?.binding {
+                sourceRequests.removeValue(forKey: year)?.task.cancel()
+            }
+        }
+    }
+
+    private func scheduleSourceFollowUp(year: Int, binding: SourceBinding, remaining: Int) {
+        sourceFollowUpBudgets[year] = (binding, remaining)
+        guard sourceChecksActive, remaining > 0 else { return }
+        let id = UUID(), wait = waitForSourceRetry
+        let task = Task { [weak self] in
+            do { try await wait(60) } catch { return }
+            guard !Task.isCancelled, let self, self.sourceChecksActive,
+                  self.sourceFollowUps[year]?.id == id,
+                  self.saved[year].map(SourceBinding.init) == binding else { return }
+            self.sourceFollowUps[year] = nil
+            self.sourceFollowUpBudgets[year] = (binding, remaining - 1)
+            self.checkSource(year: year, force: true, remainingFollowUps: remaining - 1)
+        }
+        sourceFollowUps[year]?.task.cancel()
+        sourceFollowUps[year] = SourceRequest(id: id, binding: binding, task: task)
+    }
 
     func refreshAtStartup() {
         loadIfNeeded()
@@ -126,10 +186,24 @@ final class SchoolEventsModel: ObservableObject {
     /// presentation or annual data fetching. Repeated callers join one year.
     @discardableResult
     func checkSource(year: Int, force: Bool = false) -> Task<Void, Never>? {
-        guard ready, let savedValue = saved[year] else { return nil }
+        checkSource(year: year, force: force, remainingFollowUps: 3)
+    }
+
+    @discardableResult
+    private func checkSource(year: Int, force: Bool, remainingFollowUps: Int) -> Task<Void, Never>? {
+        guard sourceChecksActive, ready, let savedValue = saved[year] else { return nil }
         let binding = SourceBinding(savedValue)
         if let running = sourceRequests[year], running.binding == binding { return running.task }
-        if !force, let cached = sourceStatuses[year], cached.canReuse(for: savedValue, at: now()) { return nil }
+        if !force, let cached = sourceStatuses[year], cached.canReuse(for: savedValue, at: now()) {
+            if cached.response.checking, cached.response.matches(savedValue), sourceErrors[year] == nil,
+               sourceFollowUps[year] == nil {
+                let budget = sourceFollowUpBudgets[year]
+                scheduleSourceFollowUp(year: year, binding: binding,
+                    remaining: budget?.binding == binding ? budget!.remaining : 3)
+            }
+            return nil
+        }
+        sourceFollowUps.removeValue(forKey: year)?.task.cancel()
         sourceRequests[year]?.task.cancel()
         let id = UUID()
         let task = Task { [weak self] in
@@ -160,10 +234,16 @@ final class SchoolEventsModel: ObservableObject {
                 try store.saveSourceStatus(cached)
                 self.sourceStatuses[year] = cached
                 self.sourceErrors[year] = nil
+                if status.checking, status.matches(current) {
+                    self.scheduleSourceFollowUp(year: year, binding: binding, remaining: remainingFollowUps)
+                } else {
+                    self.sourceFollowUpBudgets[year] = nil
+                }
             } catch {
                 guard !Task.isCancelled, self.sourceRequests[year]?.id == id,
                       self.saved[year].map(SourceBinding.init) == binding else { return }
                 self.sourceErrors[year] = "元PDFの状態APIを確認できませんでした。保存済み行事と前回の確認結果を保持しています。"
+                self.sourceFollowUpBudgets[year] = nil
             }
         }
         sourceRequests[year] = SourceRequest(id: id, binding: binding, task: task)
@@ -233,8 +313,8 @@ final class SchoolEventsModel: ObservableObject {
         sourceExpiryTask?.cancel(); sourceExpiryTask = nil
         sourceExpiryGeneration = UUID()
         task?.cancel()
-        for value in sourceRequests.values { value.task.cancel() }
-        sourceRequests.removeAll()
+        cancelSourceRequests()
+        sourceFollowUpBudgets.removeAll()
     }
 
     /// Reuse the conditional API fetch without making another school PDF HEAD

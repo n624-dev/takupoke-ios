@@ -24,6 +24,62 @@ def block(source, marker):
 
 
 class ManualInputLifecycleTests(unittest.TestCase):
+    def test_actual_activation_does_not_resume_source_checks_after_backgrounding_during_awaits(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift compiler unavailable; native CI compiles the same methods")
+        application = (ROOT / "Takupoke/ApplicationData.swift").read_text(encoding="utf-8")
+        source = '''import Foundation
+@MainActor final class UIApplication {
+ enum State { case active, background }
+ static let shared=UIApplication(); var applicationState=State.active
+}
+@MainActor final class Unit {
+ var busy=true, active=false, refreshes=0
+ func loadIfNeeded() {} ; func checkAtStartup() {}
+ func refreshAtStartup() { precondition(active); refreshes += 1 }
+ func setSourceChecksActive(_ value:Bool) { active=value }
+ func refresh() async {} ; func check() async {}
+}
+@MainActor final class Application {
+ var backgroundRefresh:Task<Void,Never>?, backgroundDuringPrepare=false
+ let materials=Unit(),specialSchedules=Unit(),schoolEvents=Unit(),mappings=Unit(),times=Unit(),links=Unit(),account=Unit()
+ func prepare() async -> Bool {
+  if backgroundDuringPrepare { UIApplication.shared.applicationState = .background; schoolEvents.setSourceChecksActive(false) }
+  return true
+ }
+ func setFileMonitoring(_ active:Bool) { schoolEvents.setSourceChecksActive(active) }
+ func checkNotificationsWhenActive() {}
+''' + block(application, "    func activate() async") + '''
+}
+@main struct Probe {
+ @MainActor static func main() async {
+  for stage in 0...3 {
+   UIApplication.shared.applicationState = .active
+   let app=Application()
+   if stage==1 { app.backgroundDuringPrepare=true }
+   if stage==2 {
+    app.backgroundRefresh=Task { @MainActor in
+     UIApplication.shared.applicationState = .background
+     app.schoolEvents.setSourceChecksActive(false)
+    }
+   }
+   if stage==3 { UIApplication.shared.applicationState = .background }
+   await app.activate()
+   precondition(app.schoolEvents.refreshes == (stage==0 ? 1:0))
+   precondition(app.schoolEvents.active == (stage==0))
+  }
+  print("Verified actual activation foreground guards across both suspension points.")
+ }
+}
+'''
+        with tempfile.TemporaryDirectory(prefix="events-activation-lifecycle-") as scratch:
+            path = Path(scratch)
+            (path / "probe.swift").write_text(source, encoding="utf-8")
+            subprocess.run([compiler, "-swift-version", "5", "-parse-as-library", "-module-cache-path", str(path / "modules"),
+                            str(path / "probe.swift"), "-o", str(path / "probe")], check=True)
+            subprocess.run([str(path / "probe")], check=True)
+
     def test_actual_background_methods_preserve_idle_draft_and_cancel_heavy_work(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
@@ -32,7 +88,7 @@ class ManualInputLifecycleTests(unittest.TestCase):
         application = (ROOT / "Takupoke/ApplicationData.swift").read_text(encoding="utf-8")
         source = '''import Foundation
 final class Work { var cancelled=false; func cancel() { cancelled=true } }
-final class Monitor { var enabled=false; func setFileMonitoring(_ value:Bool) { enabled=value } }
+final class Monitor { var enabled=false; func setFileMonitoring(_ value:Bool) { enabled=value }; func setSourceChecksActive(_ value:Bool) { enabled=value } }
 final class LocalRecoveryModelManager { static let shared=LocalRecoveryModelManager(); var cancelled=false; func cancel() { cancelled=true } }
 final class Coordinator {
  var task:Work?=Work(), preparationControl:Work?=Work()
@@ -44,20 +100,21 @@ final class Coordinator {
 ''' + block(coordinator, "    func suspendForInactivity()") + "\n" + block(coordinator, "    func cancel()") + '''
 }
 final class Application {
- let recovery=Coordinator(), materials=Monitor(), specialSchedules=Monitor(); var ready=true
+ let recovery=Coordinator(), materials=Monitor(), specialSchedules=Monitor(), schoolEvents=Monitor(); var ready=true
 ''' + block(application, "    func setFileMonitoring(_ foreground: Bool)") + '''
 }
 let app=Application(), operation=UUID()
 app.recovery.operation=operation
 let task=app.recovery.task!, preparation=app.recovery.preparationControl!
 app.setFileMonitoring(false)
+precondition(!app.schoolEvents.enabled)
 precondition(app.recovery.manualDraft == "original-snapshot" && app.recovery.manualImages["field"] == "original-crop" && app.recovery.source == "source")
 precondition(app.recovery.manualReview == "review" && app.recovery.manualContextImages["field"] == "actual-cell")
 precondition(app.recovery.previewRasters[1] == "original-raster" && app.recovery.manualInitialValues["field"] == "prior-transcription")
 precondition(task.cancelled && preparation.cancelled && LocalRecoveryModelManager.shared.cancelled && !app.recovery.running && app.recovery.operation != operation)
 app.setFileMonitoring(false) // Both scene-phase and background notification can arrive.
 app.setFileMonitoring(true)
-precondition(app.recovery.manualDraft != nil && app.materials.enabled && app.specialSchedules.enabled)
+precondition(app.recovery.manualDraft != nil && app.materials.enabled && app.specialSchedules.enabled && app.schoolEvents.enabled)
 app.recovery.manualDraft=nil
 app.setFileMonitoring(false)
 precondition(app.recovery.source == nil && app.recovery.preview == nil)

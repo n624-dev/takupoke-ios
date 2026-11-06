@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`d87b1f263b89ced92dbea2b5a18a917cb47badeac9c9c47e70a1eb01e61c92fe`
+`66bc62bb00fa317f4b9b3376fde9b08b0c8eac91169ebbe4fdc346f4cfdf19f9`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -76,6 +76,7 @@ bash tools/test-manual-ui.sh
 
 ## [tests/test_manual_input_lifecycle.py](../../tests/test_manual_input_lifecycle.py)
 
+- `test_actual_activation_does_not_resume_source_checks_after_backgrounding_during_awaits`
 - `test_actual_background_methods_preserve_idle_draft_and_cancel_heavy_work`
 - `test_actual_field_callbacks_reject_replaced_missing_and_reviewed_drafts`
 - `test_retention_route_keeps_explicit_draft_cancellation`

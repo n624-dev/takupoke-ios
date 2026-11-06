@@ -93,6 +93,24 @@ private final class SourceStatusScenario {
 
 @MainActor
 final class SchoolEventsSourceModelTests: XCTestCase {
+    @MainActor private final class RetryClock {
+        var pending: [(TimeInterval, CheckedContinuation<Void, Error>)] = []
+        var scheduled = 0
+        var onScheduled: (() -> Void)?
+        func wait(_ seconds: TimeInterval) async throws {
+            try Task.checkCancellation()
+            try await withCheckedThrowingContinuation { continuation in
+                pending.append((seconds, continuation)); scheduled += 1
+                onScheduled?()
+            }
+            try Task.checkCancellation()
+        }
+        func advance() { pending.removeFirst().1.resume() }
+        func cancel() {
+            let owned = pending; pending = []
+            for value in owned { value.1.resume(throwing: CancellationError()) }
+        }
+    }
     @MainActor private final class Fixture {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("source-model-" + UUID().uuidString)
         let network = SourceStatusScenario()
@@ -110,15 +128,182 @@ final class SchoolEventsSourceModelTests: XCTestCase {
         }
         func makeModel(waitForSourceExpiry: @escaping (TimeInterval) async throws -> Void = { seconds in
             try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+        }, waitForSourceRetry: @escaping (TimeInterval) async throws -> Void = { seconds in
+            try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
         }) -> SchoolEventsModel {
             SchoolEventsModel(storeRoot: root, eventsEndpoint: URL(string: "https://source.example.invalid/events")!,
                 makeSession: {
                     let config = URLSessionConfiguration.ephemeral
                     config.protocolClasses = [SourceStatusTransport.self]; config.urlCache = nil
                     return URLSession(configuration: config)
-                }, now: { [unowned self] in self.now }, waitForSourceExpiry: waitForSourceExpiry)
+                }, now: { [unowned self] in self.now }, waitForSourceExpiry: waitForSourceExpiry,
+                waitForSourceRetry: waitForSourceRetry)
         }
         func clean() { model.cancel(); SourceStatusTransport.use(nil); try? FileManager.default.removeItem(at: root) }
+    }
+
+    private func pendingRetry(_ clock: RetryClock) async throws {
+        if clock.pending.isEmpty {
+            let scheduled = expectation(description: "bounded retry scheduled")
+            clock.onScheduled = { scheduled.fulfill() }
+            await fulfillment(of: [scheduled], timeout: 5)
+            clock.onScheduled = nil
+        }
+        XCTAssertEqual(clock.pending.count, 1)
+        XCTAssertEqual(try XCTUnwrap(clock.pending.first).0, 60)
+    }
+
+    private func finishRetry(_ f: Fixture, _ clock: RetryClock) async throws {
+        try await pendingRetry(clock)
+        let received = expectation(description: "actual metadata reply published")
+        let subscription = f.model.$sourceStatuses.dropFirst().first().sink { _ in received.fulfill() }
+        f.now.addTimeInterval(60); clock.advance()
+        await fulfillment(of: [received], timeout: 5)
+        subscription.cancel()
+        await f.model.checkSource(year: 2032)?.value
+    }
+
+    func testCheckingAutomaticallyBecomesMatchedWithoutFetchingEventsAgain() async throws {
+        let f = try Fixture(), clock = RetryClock()
+        defer { f.clean(); clock.cancel() }
+        f.model = f.makeModel(waitForSourceRetry: clock.wait); f.model.loadIfNeeded()
+        let data = f.model.saved[2032]?.payload, generation = f.model.scheduleGeneration
+        f.network.checking = true
+        await f.model.checkSource(year: 2032)?.value
+        try await pendingRetry(clock)
+        XCTAssertNil(f.model.checkSource(year: 2032))
+        f.network.checking = false
+        try await finishRetry(f, clock)
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 2)
+        XCTAssertEqual(f.network.count(path: "/events", year: 2032), 0)
+        XCTAssertEqual(clock.scheduled, 1); XCTAssertTrue(clock.pending.isEmpty)
+        XCTAssertFalse(try XCTUnwrap(f.model.sourcePresentation(year: 2032)).warning)
+        XCTAssertEqual(f.model.saved[2032]?.payload, data)
+        XCTAssertEqual(f.model.scheduleGeneration, generation); XCTAssertFalse(f.model.busy)
+        XCTAssertEqual(f.network.unexpected, 0)
+    }
+
+    func testCheckingStopsAfterExactlyThreeAdditionalRequests() async throws {
+        let f = try Fixture(), clock = RetryClock()
+        defer { f.clean(); clock.cancel() }
+        f.model = f.makeModel(waitForSourceRetry: clock.wait); f.model.loadIfNeeded()
+        f.network.checking = true
+        await f.model.checkSource(year: 2032)?.value
+        for expected in 2...4 {
+            try await finishRetry(f, clock)
+            XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), expected)
+        }
+        XCTAssertEqual(clock.scheduled, 3); XCTAssertTrue(clock.pending.isEmpty)
+        for _ in 0..<5 { XCTAssertNil(f.model.checkSource(year: 2032)) }
+        f.model.setSourceChecksActive(false); f.model.setSourceChecksActive(true)
+        XCTAssertNil(f.model.checkSource(year: 2032))
+        XCTAssertEqual(clock.scheduled, 3)
+        XCTAssertTrue(try XCTUnwrap(f.model.sourcePresentation(year: 2032)).message.contains("現在の更新状況は未確認"))
+        f.now.addTimeInterval(60)
+        let display = try XCTUnwrap(f.model.sourcePresentation(year: 2032))
+        XCTAssertTrue(display.message.contains("現在の更新状況は未確認")); XCTAssertTrue(display.warning)
+        XCTAssertNotNil(display.lastSuccessAt); XCTAssertTrue(try XCTUnwrap(display.lastSuccessfulMessage).contains("一致"))
+        XCTAssertEqual(f.network.count(path: "/events", year: 2032), 0)
+        XCTAssertEqual(f.network.unexpected, 0)
+    }
+
+    func testFailedFollowUpStopsAndPreservesSavedEventsAndSuccessfulEvidence() async throws {
+        let f = try Fixture(), clock = RetryClock()
+        defer { f.clean(); clock.cancel() }
+        f.model = f.makeModel(waitForSourceRetry: clock.wait); f.model.loadIfNeeded()
+        f.network.checking = true
+        await f.model.checkSource(year: 2032)?.value
+        let data = f.model.saved[2032]?.payload, previous = f.model.sourceStatuses[2032]
+        try await pendingRetry(clock)
+        let failed = expectation(description: "actual metadata error published")
+        let subscription = f.model.$sourceErrors.dropFirst().first().sink { _ in failed.fulfill() }
+        f.network.statusHTTP = 503; f.now.addTimeInterval(60); clock.advance()
+        await fulfillment(of: [failed], timeout: 5); subscription.cancel()
+        f.model.setSourceChecksActive(false)
+        XCTAssertEqual(f.model.sourceStatuses[2032], previous)
+        XCTAssertEqual(f.model.saved[2032]?.payload, data)
+        XCTAssertNotNil(f.model.sourceErrors[2032]); XCTAssertFalse(f.model.failed)
+        XCTAssertEqual(clock.scheduled, 1); XCTAssertTrue(clock.pending.isEmpty)
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 2)
+    }
+
+    func testBackgroundSuspensionCancelsPendingAndInFlightFollowUps() async throws {
+        let f = try Fixture(), clock = RetryClock()
+        defer { f.clean(); clock.cancel() }
+        f.model = f.makeModel(waitForSourceRetry: clock.wait); f.model.loadIfNeeded()
+        f.network.checking = true
+        await f.model.checkSource(year: 2032)?.value
+        try await pendingRetry(clock)
+        f.model.setSourceChecksActive(false); clock.advance()
+        await Task.yield()
+        XCTAssertNil(f.model.checkSource(year: 2032, force: true))
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 1)
+        f.model.setSourceChecksActive(true)
+        await f.model.checkSource(year: 2032, force: true)?.value
+        try await pendingRetry(clock)
+        let previous = f.model.sourceStatuses[2032]
+        f.network.holdStatus = true
+        let started = expectation(description: "in-flight automatic follow-up")
+        f.network.started = started; f.now.addTimeInterval(60); clock.advance()
+        await fulfillment(of: [started], timeout: 5)
+        let running = try XCTUnwrap(f.model.checkSource(year: 2032, force: true))
+        f.model.setSourceChecksActive(false); await running.value
+        f.network.release()
+        XCTAssertEqual(f.model.sourceStatuses[2032], previous)
+        XCTAssertNil(f.model.sourceErrors[2032]); XCTAssertTrue(clock.pending.isEmpty)
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 3)
+    }
+
+    func testChangedSavedVersionCancelsPendingFollowUpAndMismatchedReplyCannotScheduleOne() async throws {
+        let f = try Fixture(), clock = RetryClock()
+        defer { f.clean(); clock.cancel() }
+        f.model = f.makeModel(waitForSourceRetry: clock.wait); f.model.loadIfNeeded()
+        f.network.checking = true
+        await f.model.checkSource(year: 2032)?.value
+        try await pendingRetry(clock)
+        f.network.updated = true
+        let refreshed = await f.model.refreshInBackground(); XCTAssertTrue(refreshed)
+        clock.advance(); await Task.yield()
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 1)
+        XCTAssertEqual(f.model.saved[2032]?.payload.events.first?.title, "架空更新行事")
+        f.network.oldStatusVersion = true
+        await f.model.checkSource(year: 2032, force: true)?.value
+        XCTAssertEqual(clock.scheduled, 1); XCTAssertTrue(clock.pending.isEmpty)
+        XCTAssertTrue(try XCTUnwrap(f.model.sourcePresentation(year: 2032)).message.contains("配信版が一致しない"))
+        XCTAssertEqual(f.network.unexpected, 0)
+    }
+
+    func testManualCheckSupersedesPendingFollowUpWithoutAnExtraRequest() async throws {
+        let f = try Fixture(), clock = RetryClock()
+        defer { f.clean(); clock.cancel() }
+        f.model = f.makeModel(waitForSourceRetry: clock.wait); f.model.loadIfNeeded()
+        f.network.checking = true
+        await f.model.checkSource(year: 2032)?.value
+        try await pendingRetry(clock)
+        f.network.checking = false
+        await f.model.checkSource(year: 2032, force: true)?.value
+        clock.advance(); await Task.yield()
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 2)
+        XCTAssertEqual(clock.scheduled, 1); XCTAssertTrue(clock.pending.isEmpty)
+        XCTAssertFalse(try XCTUnwrap(f.model.sourcePresentation(year: 2032)).warning)
+    }
+
+    func testForegroundResumesTheRemainingBudgetWithoutRepeatingTheInitialRequest() async throws {
+        let f = try Fixture(), clock = RetryClock()
+        defer { f.clean(); clock.cancel() }
+        f.model = f.makeModel(waitForSourceRetry: clock.wait); f.model.loadIfNeeded()
+        f.network.checking = true
+        await f.model.checkSource(year: 2032)?.value
+        try await finishRetry(f, clock)
+        try await pendingRetry(clock)
+        f.model.setSourceChecksActive(false); clock.advance(); await Task.yield()
+        f.model.setSourceChecksActive(true)
+        XCTAssertNil(f.model.checkSource(year: 2032))
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 2)
+        try await finishRetry(f, clock)
+        try await finishRetry(f, clock)
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 4)
+        XCTAssertTrue(clock.pending.isEmpty)
     }
 
     func testExpiryPublishesToObserversWithoutARequestOrSavedEventsChange() async throws {

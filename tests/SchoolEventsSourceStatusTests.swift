@@ -92,6 +92,21 @@ final class SchoolEventsSourceStatusTests: XCTestCase {
         XCTAssertTrue(SchoolEventsSourcePresentation.make(saved: saved(), cached: nil, error: nil, now: instant).warning)
     }
 
+    func testExhaustedFollowUpsShowUnconfirmedWhileKeepingLastSuccess() throws {
+        let checking = SavedSchoolEventsSourceStatus(receivedAt: instant,
+            response: try SchoolEventsSourceStatus.decode(wire(checking: true), year: 2032))
+        let display = SchoolEventsSourcePresentation.make(saved: saved(), cached: checking,
+            error: nil, now: instant, followUpExhausted: true)
+        XCTAssertTrue(display.message.contains("現在の更新状況は未確認")); XCTAssertTrue(display.warning)
+        XCTAssertEqual(display.lastSuccessAt, instant)
+        XCTAssertTrue(try XCTUnwrap(display.lastSuccessfulMessage).contains("一致"))
+        let matched = SavedSchoolEventsSourceStatus(receivedAt: instant,
+            response: try SchoolEventsSourceStatus.decode(wire(), year: 2032))
+        let completed = SchoolEventsSourcePresentation.make(saved: saved(), cached: matched,
+            error: nil, now: instant, followUpExhausted: true)
+        XCTAssertFalse(completed.warning); XCTAssertEqual(completed.message, "元PDFの本文は登録元と一致しています。")
+    }
+
     func testExpiredCheckingDescribesThePastWithoutDiscardingSuccessfulEvidence() throws {
         let response = try SchoolEventsSourceStatus.decode(wire(checking: true), year: 2032)
         let cached = SavedSchoolEventsSourceStatus(receivedAt: instant, response: response)
