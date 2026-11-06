@@ -141,7 +141,7 @@ final class MaterialPickerTapChecks: XCTestCase {
         }
         for attempt in 0..<8 {
             guard let area = viewport() else { XCTFail("File list lost its current viewport"); return nil }
-            let matches = buttons.allElementsBoundByIndex
+            let matches = buttons.allElementsBoundByAccessibilityElement
             guard matches.count <= 1 else { XCTFail("File button is ambiguous: \(identifier)"); return nil }
             guard let button = matches.first else { list.swipeUp(); continue }
             let frame = button.frame
@@ -156,7 +156,7 @@ final class MaterialPickerTapChecks: XCTestCase {
             XCTFail("File button did not appear: \(identifier)")
             return nil
         }
-        let matches = buttons.allElementsBoundByIndex
+        let matches = buttons.allElementsBoundByAccessibilityElement
         guard matches.count == 1, let button = matches.first, let area = viewport() else {
             XCTFail("File button has no unique current viewport: \(identifier)"); return nil
         }

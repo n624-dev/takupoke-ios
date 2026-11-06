@@ -3896,3 +3896,32 @@ N202はbootstatusがDevice already bootedと返った後で別のnative probeが
 manual/Picker runner・native Swift本体・UI case・成功時の操作順はbfbで検査済みの同一bytesで、不要な全体再検査はしない。
 完全code-only差分871行/55222bytesのSHA256は18970e51afd3042534a1bddd96531581b086cbabc6bec49f5793dfea8581372d。
 短い実例一覧は13箇条のまま、重複する手順説明をN07の具体的な一覧停止の教訓に置き換えた。
+
+## N203 診断追加e010のPicker27限定がfailure（2026-11-06）
+
+sourcee010fa18d1efdb8b8c72bd096f0189cf5392c9f5/run42313146360/attempt1/job128219223789、
+SDK27.1・予定Runtime27.0、23:37:33Z〜23:52:31Z。23:58Z一括照会でfailureを確認。
+本文未読で準備/実UIのどちらか・下位原因は未確定。Swift/Python jobはsuccess、非選択2jobはskip。
+同sourceの通常26先頭case/run42313011415/job128218771457は23:48:09Zにsuccess。
+新4完了logを一度取得し、過去と現コードを照合してから対処を選ぶ。限定成功を全15へ代用しない。
+
+N203実log：同じSDK/Runtime27.0のnative identityは全一致で成立。元3ケース中2成功/1失敗、
+testReselectionThroughActualButtonsが395.228秒、MaterialPickerTapChecks.swift:147の
+`buttons.allElementsBoundByIndex` でFailed to get matching snapshot/UI query timeout。
+t328.60のCollectionView snapshot要求後に約66秒停止し、次の実button tapへ未到達。
+他2ケース95.381秒/39.819秒は成功した。boot問題の再発や製品Picker表示失敗とは断定しない。
+通常26は元先頭ケース27.959秒/失敗0、全native proof一致、outer563.9秒、所有回収/export完了。
+全2run終端・artifact0・新4log一度取得済み。根拠を比較してから次の候補を選ぶ。
+
+N203照合：MaterialPickerTapChecks/testReselectionThroughActualButtons/choose-2/Picker/再照会で
+N74/N83/N94/N97/N140/N148と3762d38・711d48b・現Picker/Navigation/Inputを読んだ。
+今回はHome→activate/foreground後の最後のchoose-2で、index列挙から対象buttonを解決しようとして
+t225→258→289と約31秒ずつ再解決し、snapshotが止まった。前の10回の実選択/Cancelは成立していた。
+N83は実hittable再照会、N140はCancel接触時の再解決で、今回は画面外候補を含むindex列挙の段階。
+旧3762の一意button/枠/viewport再利用は保持されているが、revealの2箇所はなおindex-boundだった。
+現在Cancel/手動最終接触では既にallElementsBoundByAccessibilityElementを使い、実nativeを一度取得している。
+候補はPickerのこの2列挙だけを同方式へ揃え、当試行のnative identityを枠/hittable/直後の一回tapへ保持する。
+対象ID/一意性/元8探索/逆方向の事前移動/30・30・10・最後5秒/全包含/hittable/元11回の選択とCancel/
+案内8秒/Cancel30秒/全3ケースを保持する。製品・SDK・bootstrap・各期限を変えず、AXの一般的改善とは断定しない。
+既存3実UIケースが今回の背景復帰を含み検出済みで、実装を写す新しい文字列テストは増やさない。
+先に候補と根拠をpushし、Picker実runner/manifest/幾何/一覧を局所確認、新規review後にPickerだけ限定検証する。
