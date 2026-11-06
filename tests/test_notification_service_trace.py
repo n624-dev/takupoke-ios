@@ -1,6 +1,8 @@
 """Bounded, read-only Simulator observations without publishing raw OS messages."""
 import io
 import json
+import os
+import shutil
 from contextlib import redirect_stdout
 from pathlib import Path
 import subprocess
@@ -81,62 +83,60 @@ class NotificationServiceTraceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             notification_service_trace.collect_runtime("other", runtime)
 
-    def test_boot_readiness_waits_only_for_owned_startup_transitions_with_one_global_deadline(self):
+    def test_boot_readiness_requires_one_actual_owned_native_identity_with_the_original_deadline(self):
         owned = "00000000-0000-0000-0000-000000000001"
         runtime = "com.apple.CoreSimulator.SimRuntime.iOS-26-5"
-        for states, latencies, expected, expected_calls in (
-                (["Booted"], [0], True, 1),
-                (["Shutdown", "Booting", "Booted"], [0, 0, 0], True, 3),
-                (["Shutdown"], [0], False, 45),
-                (["Booted"], [46], False, 1),
-                (["Booted"], [45], True, 1),
-                (["Shutdown", "Booted"], [40, 0], True, 2)):
-            with self.subTest(states=states, latencies=latencies):
-                clock = [0.0]
-                calls = []
-                def observe(command, timeout, *, max_bytes):
-                    calls.append((command, timeout, max_bytes))
-                    index = min(len(calls) - 1, len(states) - 1)
-                    clock[0] += latencies[index]
-                    data = {"runtimes": [{"identifier": runtime, "isAvailable": True, "bundlePath": "PRIVATE"}],
-                            "devices": {runtime: [{"udid": owned, "state": states[index], "name": "PRIVATE"}]}}
-                    return subprocess.CompletedProcess(command, 0, json.dumps(data), "PRIVATE")
-                output = io.StringIO()
-                with patch.object(notification_service_trace, "observe_command", side_effect=observe), \
-                     patch.object(notification_service_trace.time, "monotonic", side_effect=lambda: clock[0]), \
-                     patch.object(notification_service_trace.time, "sleep", side_effect=lambda amount: clock.__setitem__(0, clock[0] + amount)), \
-                     redirect_stdout(output):
-                    self.assertEqual(notification_service_trace.require_booted(owned, runtime), expected)
-                self.assertEqual(len(calls), expected_calls)
-                for command, timeout, max_bytes in calls:
-                    self.assertEqual(command, ["xcrun", "simctl", "list", "-j"])
-                    self.assertLessEqual(timeout, 10)
-                    self.assertEqual(max_bytes, 2097152)
-                if latencies == [40, 0]:
-                    self.assertEqual(calls[-1][1], 4)
-                self.assertNotIn("PRIVATE", output.getvalue())
+        identity = {"udid": owned, "runtime": "26.5.0", "simulatorCompileTarget": True, "pid": 123}
+        for latency, expected in ((0, True), (45, True), (46, False)):
+            with self.subTest(latency=latency), patch.object(notification_service_trace, "observe_command",
+                    return_value=subprocess.CompletedProcess([], 0, json.dumps(identity), "PRIVATE")) as observed, \
+                 patch.object(notification_service_trace.time, "monotonic", side_effect=[0, latency]), \
+                 redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(notification_service_trace.require_booted(owned, runtime, "/owned/identity"), expected)
+                observed.assert_called_once_with(["xcrun", "simctl", "spawn", owned, "/owned/identity"], 45, max_bytes=4096)
+                self.assertEqual(output.getvalue(), "")
 
-    def test_boot_readiness_rejects_unknown_unavailable_ambiguous_or_failed_reads_without_retry(self):
+    def test_boot_readiness_rejects_host_wrong_identity_bad_responses_and_failed_spawn_without_retry(self):
         owned = "00000000-0000-0000-0000-000000000001"
         runtime = "com.apple.CoreSimulator.SimRuntime.iOS-26-5"
-        valid = {"runtimes": [{"identifier": runtime, "isAvailable": True}],
-                 "devices": {runtime: [{"udid": owned, "state": "Booted"}]}}
-        wrong_runtime = {"runtimes": [{"identifier": runtime, "isAvailable": False}], "devices": valid["devices"]}
-        wrong_device = {**valid, "devices": {runtime: [{"udid": "other", "state": "Booted"}]}}
-        ambiguous = {**valid, "devices": {runtime: valid["devices"][runtime] * 2}}
-        unknown = {**valid, "devices": {runtime: [{"udid": owned, "state": "Unknown"}]}}
-        for payload, code in [(json.dumps(value), 0) for value in (wrong_runtime, wrong_device, ambiguous, unknown)] + [
-                ("invalid PRIVATE", 0), ("PRIVATE" * 400000, 0), (json.dumps(valid), 149), ("", -1)]:
-            with self.subTest(code=code), patch.object(notification_service_trace, "observe_command",
+        valid = {"udid": owned, "runtime": "26.5.0", "simulatorCompileTarget": True, "pid": 123}
+        invalid = [{**valid, "udid": "other"}, {**valid, "runtime": "27.0.0"},
+                   {**valid, "runtime": "26.6.0"}, {**valid, "runtime": "26.5"},
+                   {**valid, "simulatorCompileTarget": False}, {**valid, "simulatorCompileTarget": "true"},
+                   *[{**valid, "pid": value} for value in (False, 0, -1, 2**31, "123")],
+                   {key: value for key, value in valid.items() if key != "udid"},
+                   {**valid, "unexpected": "PRIVATE"}, [], None]
+        cases = [(json.dumps(value), 0) for value in invalid] + [
+            ("invalid PRIVATE", 0), ("PRIVATE" * 600, 0),
+            (json.dumps(valid) + json.dumps(valid), 0), (json.dumps(valid), 149), ("", -1)]
+        for payload, code in cases:
+            with self.subTest(payload=payload[:100], code=code), patch.object(notification_service_trace, "observe_command",
                     return_value=subprocess.CompletedProcess([], code, payload, "PRIVATE")) as observed, \
-                 patch.object(notification_service_trace.time, "sleep") as slept, redirect_stdout(io.StringIO()) as output:
-                self.assertFalse(notification_service_trace.require_booted(owned, runtime))
+                 redirect_stdout(io.StringIO()) as output:
+                self.assertFalse(notification_service_trace.require_booted(owned, runtime, "/owned/identity"))
                 observed.assert_called_once()
-                slept.assert_not_called()
-                self.assertNotIn("PRIVATE", output.getvalue())
-        with patch.object(notification_service_trace, "observe_command") as observed, self.assertRaises(ValueError):
-            notification_service_trace.require_booted("other", runtime)
-        observed.assert_not_called()
+                self.assertEqual(output.getvalue(), "")
+        for target, version in (("other", runtime), (owned, "wrong-runtime")):
+            with patch.object(notification_service_trace, "observe_command") as observed, self.assertRaises(ValueError):
+                notification_service_trace.require_booted(target, version, "/owned/identity")
+            observed.assert_not_called()
+
+    @unittest.skipUnless(shutil.which("swiftc"), "Requires the host Swift compiler")
+    def test_real_identity_program_cannot_prove_a_host_process_is_a_simulator(self):
+        with tempfile.TemporaryDirectory(prefix="takupoke-identity-host-") as directory:
+            executable = str(Path(directory) / "identity")
+            built = subprocess.run(["swiftc", str(ROOT / "tools/simulator-ui-identity.swift"), "-o", executable],
+                                   capture_output=True, text=True, timeout=120)
+            self.assertEqual(built.returncode, 0, built.stderr)
+            actual = subprocess.run([executable], env=os.environ | {"SIMULATOR_UDID":
+                "00000000-0000-0000-0000-000000000001"}, capture_output=True, text=True, timeout=10)
+            self.assertEqual(actual.returncode, 0, actual.stderr)
+            record = json.loads(actual.stdout)
+            self.assertIs(record["simulatorCompileTarget"], False)
+            self.assertGreater(record["pid"], 0)
+            with patch.object(notification_service_trace, "observe_command", return_value=actual):
+                self.assertFalse(notification_service_trace.require_booted(record["udid"],
+                    "com.apple.CoreSimulator.SimRuntime.iOS-26-5", executable))
 
     def test_launch_observation_keeps_nested_codes_without_private_error_details(self):
         bundle = notification_service_trace.BUNDLE

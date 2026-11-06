@@ -3809,3 +3809,42 @@ Pickerだけは兄弟Applicationsを作り、Developer自体を作っていな�
 source73454fc/Linux/Swift6.1.2環境で `test_ui_manifest.py` を指定し、0 tests/NO TESTS RAN・終了5。
 検査は実行されておらず成功に数えない。一覧と実ファイルを照合すると正しくは `test_ui_test_manifest.py` だった。
 実装・期待値には変更せず、候補記録を先にpushして登録済みの正確な検査を実行する。
+
+## N198 旧正式6aaの残る通常26 Aもfailure（2026-11-06）
+
+23:00Z一括照会でrun42292699516/attempt1/job128179262950のfailureを確認。
+source6aa8e3e/SDK27.1・予定Runtime26.5、22:00:07Z〜22:11:39Z。本文未読で失敗段階・原因は未確定。
+全15表示jobが終端、実行10件中7成功/3失敗・公開skip。新候補の成否と区別し、対処前に記録する。
+
+## N199 共通frontend候補の手動3項目27限定がfailure（2026-11-06）
+
+source064a36db0b7f85c1f142d269593837583c6ec894/run42305296322/attempt1/job128193002862、
+SDK27.1・予定Runtime27.0・testThreeFieldsRequireEachAcknowledgementAndFourRefuses、22:31:05Z〜22:37:39Z。
+23:00Zにfailureを確認。本文未読で準備/入力の段階も原因も未確定。別のPicker成功を代用せず、対処前に記録する。
+
+## N200 同じ候補の通常先頭ケース26限定もfailure（2026-11-06）
+
+同source/run42305486640/attempt1/job128193634574、SDK27.1・予定Runtime26.5、
+testChangedAccountDataNoticeOpensSharedAcquisition、22:32:33Z〜22:42:06Z。本文未読で段階・原因未確定。
+Picker27/run42305570054は3実行jobとも成功（native/inventoryは選択対象外skip）。
+旧残jobと新5完了logだけを取得し、当時/現コードを照合してから次の対処を決める。公開前全体CIは開始しない。
+
+N198実logはbuild121.2秒/boot92.5秒の後、最初のcontent_sizeでSimError405/Shutdown、終了149。
+N194と同じUI開始前の段階で、実caseは未開始。N199はbuild59.4秒、DeviceHub起動、bootstatus118.7秒の
+Device already bootedまで成功。画面URL後の新readinessで `simctl list -j` が10秒でtimeout/exit-1、
+所有Bootedは未確認として終了1。N200もbuild79.8秒/boot81.0秒、画面URL後の同じ照会がtimeout/exit-1。
+後続healthとOSサービスのread-only照会もtimeoutだった。両方ともXCTest/実入力へ未到達で、N193のlaunch再発とは言わない。
+Pickerは同じsource/SDKで実Runtime27.0 available/Bootedを確認し、元3ケース/失敗0・483.547秒と遷移確認を通過した。
+Portable Swift603件/失敗0、Python契約も成功。全4run終端・artifact0・新6log一回取得済み。失敗したreadinessを緩めて公開しない。
+
+N199/N200照合：`list/timeout/bootstatus/DeviceHub` でN07/N169/N176/N182と詳細を再読し、
+40e1aab・782ad0d・成功3c3bcbaのcompare.py/tensor-main.swiftと現helper/観測moduleを比較した。
+N07はfrontendを開いた後でも全device一覧が124秒で停止し、正確な所有UDID内へ一回spawnしたSwift実プロセスの
+実環境UDID/ProcessInfo OS版/Simulator compile target/正のpidを照合する代替証明が両OSで成功していた。
+今回は元10秒の任意diagnosticを必須gateへ再利用してしまい、その失敗済みAPIへの依存を再導入した点が不十分だった。
+候補は共通frontendを保持し、boot前に選択SDKで専用の小さなSwift実行器を所有一時領域へcompile、bootstatus/画面URL後に
+一回だけ対象UDIDへspawnして同じ独立identityを照合する。起動証明の全45秒を保持し、無応答/不一致/期限超過は失敗。
+追加boot/launch/入力再送・host環境のUDID注入・debugger変更・UI期待/期限/全15gateの変更は行わない。
+全device診断は失敗時の任意診断だけに戻し、一覧timeoutの握り潰しや一律成功へ置換しない。
+旧成功と今回のUI準備を同一原因の確定とせず、helper/Python拒否条件/実Swift host対照を局所検証し、push済み候補に
+新規reviewを毎回受けて元の限定3経路を確認する。前候補の失敗は残す。

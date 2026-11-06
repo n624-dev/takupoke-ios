@@ -19,7 +19,7 @@ class ManualRunnerTests(unittest.TestCase):
             root = Path(directory)
             for folder in ("tools", "bin", "scratch"):
                 (root / folder).mkdir()
-            for name in ("test-manual-ui.sh", "timed_command.py", "resolve-xcode-packages.sh", "boot-simulator-ui.sh", "notification_service_trace.py"):
+            for name in ("test-manual-ui.sh", "timed_command.py", "resolve-xcode-packages.sh", "boot-simulator-ui.sh", "notification_service_trace.py", "simulator-ui-identity.swift"):
                 shutil.copyfile(ROOT / "tools" / name, root / "tools" / name)
             (root / "tools/manual_ui_project.py").write_text(
                 "import sys; from pathlib import Path; Path(sys.argv[1]).mkdir(parents=True)\n")
@@ -39,6 +39,13 @@ elif Path(sys.argv[0]).name == 'xcodebuild':
         if os.environ['OMIT_RESULT'] == '1': names = names[1:]
         for name in names:
             print("Test Case '-[PickerTapChecks.ManualAssistanceChecks " + name + "]' passed (1.0 seconds).")
+elif args[:3] == ['--sdk', 'iphonesimulator', '--show-sdk-path']: print('/fictional/sdk')
+elif args[:3] == ['--sdk', 'iphonesimulator', 'swiftc']:
+    assert Path('tools/simulator-ui-identity.swift').is_file()
+    Path(args[args.index('-o') + 1]).write_text('fictional probe')
+elif args[:2] == ['simctl', 'spawn'] and args[-1].endswith('/identity'):
+    print(json.dumps({'udid': args[2], 'runtime': '27.0.0' if os.environ['TKPK_TEST_IOS'] == '27' else '26.5.0',
+                      'simulatorCompileTarget': True, 'pid': 123}))
 elif args[:2] == ['simctl', 'list']:
     print(json.dumps({'runtimes': [{'isAvailable': True, 'version': '26.5',
         'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-26-5'}, {'isAvailable': True, 'version': '27.0', 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-0'}, {'isAvailable': True, 'version': '27.1', 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-1'}],
@@ -47,7 +54,7 @@ elif args[:2] == ['simctl', 'list']:
             [{'udid': '00000000-0000-0000-0000-000000000001', 'state': 'Booted'}]}}))
 elif args[:2] == ['simctl', 'create']: print('00000000-0000-0000-0000-000000000001')
 '''
-            for name in ("xcrun", "xcodebuild", "xcode-select", "open"):
+            for name in ("xcrun", "xcodebuild", "xcode-select", "open", "codesign"):
                 path = root / "bin" / name
                 path.write_text(fake)
                 path.chmod(0o755)

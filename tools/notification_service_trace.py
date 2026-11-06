@@ -214,26 +214,25 @@ def collect_runtime(simulator, runtime):
     print("TAKUPOKE_RUNTIME_HEALTH " + json.dumps(runtime_observation(simulator, runtime)))
 
 
-def require_booted(simulator, runtime):
-    """Wait only for observed startup transitions; never boot or retry an input."""
+def require_booted(simulator, runtime, executable):
+    """Require one actual native response from the owned device, never inventory."""
+    match = re.fullmatch(r"com\.apple\.CoreSimulator\.SimRuntime\.iOS-(26|27)-(\d{1,2})", runtime)
+    if not re.fullmatch(r"[0-9A-Fa-f-]{36}", simulator) or match is None:
+        raise ValueError("Invalid observation target")
     deadline = time.monotonic() + 45
-    previous = None
-    while True:
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            return False
-        report = runtime_observation(simulator, runtime, timeout=min(10, remaining))
-        observed_at = time.monotonic()
-        if report != previous:
-            print("TAKUPOKE_RUNTIME_HEALTH " + json.dumps(report), flush=True)
-            previous = report
-        if observed_at > deadline or report["exit"] != 0 or report["limited"] or report["runtime"] != "available":
-            return False
-        if report["device"] == "Booted":
-            return True
-        if report["device"] not in ("Shutdown", "Booting", "Shutting Down"):
-            return False
-        time.sleep(min(1, max(0, deadline - observed_at)))
+    result = observe_command(["xcrun", "simctl", "spawn", simulator, executable], 45, max_bytes=4096)
+    if time.monotonic() > deadline or result.returncode != 0 or len(result.stdout.encode()) > 4096:
+        return False
+    try:
+        value = json.loads(result.stdout)
+        version = re.fullmatch(r"(\d{1,2})\.(\d{1,2})\.(\d{1,3})", value["runtime"])
+        return (set(value) == {"udid", "runtime", "simulatorCompileTarget", "pid"}
+                and value["udid"] == simulator and value["simulatorCompileTarget"] is True
+                and type(value["pid"]) is int and 0 < value["pid"] < 2**31
+                and version is not None
+                and tuple(map(int, version.groups()[:2])) == tuple(map(int, match.groups())))
+    except (ValueError, TypeError, KeyError):
+        return False
 
 
 def request_window(trace, now):
@@ -322,7 +321,7 @@ def collect(simulator, *, trace=None, now=None):
 if __name__ == "__main__":
     if sys.argv[1:2] == ["--require-booted"]:
         try:
-            ready = require_booted(sys.argv[2], sys.argv[3])
+            ready = require_booted(sys.argv[2], sys.argv[3], sys.argv[4])
         except (OSError, ValueError, IndexError, subprocess.TimeoutExpired):
             ready = False
         print("TAKUPOKE_OWNED_BOOT " + ("confirmed" if ready else "unconfirmed"))

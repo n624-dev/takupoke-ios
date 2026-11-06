@@ -33,6 +33,12 @@ elif Path(sys.argv[0]).name == 'xcodebuild':
     for name in names:
         status = 'skipped' if mode == 'skipped' else 'passed'
         print("Test Case '-[PickerTapChecks.MaterialPickerTapChecks " + name + "]' " + status + " (1.000 seconds).")
+elif args[:3] == ['--sdk', 'iphonesimulator', '--show-sdk-path']: print('/fictional/sdk')
+elif args[:3] == ['--sdk', 'iphonesimulator', 'swiftc']:
+    assert Path('tools/simulator-ui-identity.swift').is_file()
+    Path(args[args.index('-o') + 1]).write_text('fictional probe')
+elif args[:2] == ['simctl', 'spawn'] and args[-1].endswith('/identity'):
+    print(json.dumps({'udid': args[2], 'runtime': '27.0.0', 'simulatorCompileTarget': True, 'pid': 123}))
 elif args[:2] == ['simctl', 'list']:
     print(json.dumps({'runtimes': [{'isAvailable': True, 'version': '27.0',
         'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-0'}, {'isAvailable': True, 'version': '27.1', 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-1'}],
@@ -57,7 +63,7 @@ elif args[:2] == ['simctl', 'launch']:
                 developer = root / 'Xcode.app/Contents/Developer'
                 developer.mkdir(parents=True)
                 (developer.parent / 'Applications/DeviceHub.app').mkdir(parents=True)
-                for name in ("xcrun", "xcodebuild", "xcode-select", "open"):
+                for name in ("xcrun", "xcodebuild", "xcode-select", "open", "codesign"):
                     path = root / name
                     path.write_text(fake)
                     path.chmod(0o755)

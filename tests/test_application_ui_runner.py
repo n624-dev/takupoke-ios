@@ -174,7 +174,7 @@ else: print('Synthetic Xcode version')
             (repo / "bin").mkdir()
             (repo / "scratch").mkdir()
             for name in ("test-app-ui.sh", "resolve-xcode-packages.sh", "ui_test_manifest.py", "timed_command.py",
-                         "notification_service_trace.py", "manual_ui_diagnostics.py", "watch_app_hang.py", "boot-simulator-ui.sh"):
+                         "notification_service_trace.py", "manual_ui_diagnostics.py", "watch_app_hang.py", "boot-simulator-ui.sh", "simulator-ui-identity.swift"):
                 shutil.copyfile(ROOT / "tools" / name, repo / "tools" / name)
             for name in manifest.CHECK_SOURCES:
                 shutil.copyfile(ROOT / "tests/ui" / name, repo / "tests/ui" / name)
@@ -205,6 +205,13 @@ elif Path(sys.argv[0]).name == 'defaults': print('1' if args[1] == 'com.apple.ip
 elif Path(sys.argv[0]).name == 'open' and os.environ.get('FAIL_FRONTEND'): sys.exit(43)
 elif (Path(sys.argv[0]).name == 'open' and os.environ.get('FAIL_DEVICE_WINDOW')
       and any(arg.startswith('devices://') for arg in args)): sys.exit(44)
+elif args[:3] == ['--sdk', 'iphonesimulator', '--show-sdk-path']: print('/fictional/sdk')
+elif args[:3] == ['--sdk', 'iphonesimulator', 'swiftc']:
+    assert Path('tools/simulator-ui-identity.swift').is_file()
+    Path(args[args.index('-o') + 1]).write_text('fictional probe')
+elif args[:2] == ['simctl', 'spawn'] and args[-1].endswith('/identity'):
+    print(json.dumps({'udid': args[2], 'runtime': '27.0.0' if os.environ['TKPK_TEST_IOS'] == '27' else '26.5.0',
+                      'simulatorCompileTarget': True, 'pid': 123}))
 elif args[:2] == ['simctl', 'list']:
     major = os.environ['TKPK_TEST_IOS']
     print(json.dumps({'runtimes': [{'isAvailable': True, 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-' + major + ('-0' if major == '27' else '-5'), 'version': major + ('.0' if major == '27' else '.5')}, {'isAvailable': True, 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-1', 'version': '27.1'}],
@@ -220,7 +227,7 @@ elif (args[:3] == ['simctl', 'bootstatus', '00000000-0000-0000-0000-000000000002
       and os.environ.get('FAIL_NOTIFICATION_BOOT')): sys.exit(47)
 elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINER'])
 '''
-            for tool in ("xcrun", "xcodebuild", "xcode-select", "open", "defaults"):
+            for tool in ("xcrun", "xcodebuild", "xcode-select", "open", "defaults", "codesign"):
                 path = repo / "bin" / tool
                 path.write_text(fake)
                 path.chmod(0o755)

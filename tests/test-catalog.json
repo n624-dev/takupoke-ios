@@ -496,7 +496,8 @@
         "tools/test-app-ui.sh",
         "tools/ui_test_manifest.py",
         "tools/prepare-ios27-runtime.py",
-        "tools/boot-simulator-ui.sh"
+        "tools/boot-simulator-ui.sh",
+        "tools/simulator-ui-identity.swift"
       ],
       "checks": [
         "tests/MainColorTests.swift",
