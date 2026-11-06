@@ -3560,3 +3560,18 @@ cleanupの所有UUIDのshutdown/deleteは各10秒/猶予3秒で試み、元の�
 旧7件の実UI通過と今回の監督器検証を同一runの8成功へ合算せず、正式では新source/run/attemptの全15を別に要求する。
 旧N188は取消さず追跡を継続し、新sourceの独立した検証を並行して進める。先行main用reviewは未消費で廃止し、
 監督器の実process正負対照/cleanup終了値伝播/選択接続を確認後、別の新規専用reviewで限定を開始する。
+
+N188候補9676cb8は試行前に非起動featureへpush済み。Linuxで監督器5件/失敗0（7.904秒）、
+diagnostics12件/失敗0（0.302秒）、実shell+架空Apple commands5件/失敗0（8.568秒）、
+project17件/失敗0（0.525秒）、manifest30件/失敗0（Swift6.1.2有効18.807秒）、
+source-path3件/release-gate13件/失敗0、Bash構文/catalog450/check --base dbbcc4bが通過した。
+最初のmanifestはSwift未設定で3件skipだったため、既設toolchainを有効にして同じ30件を再実行しskip0を確認した。
+実processの2秒上限は124となり、TERM無視の所有childだけ回収・別groupは生存した。
+cleanupは診断失敗6・shutdown/delete失敗9でも元0/7/143を保持し、正確な所有UUIDの順と10秒/3秒を確認した。
+OS/SDKの24入力は正しい6組だけ受理し、不正18組はApple呼出し前に2で拒否した。
+UI実操作・入力・全15gateは省略せず、次の限定は26/SDK27.1の明示選択一件だけである。
+
+新規GPT-6.1 Sol/High ios_n188_supervisor_probe_pre_actions_reviewはcode-only5path/269行/16072bytes、
+SHA256 7b538d608daf4ef45f0bbb97b552d7641e80c8616e9a53862978b2627d237e79の全差分と周辺を照合し指摘なし。
+主担当が未変更hash・局所結果・未送信commit空白を確認後、26/SDK27.1の明示選択一件だけをdispatchする。
+このreviewはその一回に消費し、後のmain開始には別の新規全差分reviewを要求する。
