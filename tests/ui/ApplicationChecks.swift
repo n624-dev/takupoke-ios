@@ -22,7 +22,7 @@ final class ApplicationChecks: XCTestCase {
             "testFileFailuresKeepResultsAndStayInTheirOwnDetails": ["--failed-refresh"],
             "testFirstFailedSpecialDocumentsWarnOnHomeAndWeekAndOpenTheirDetails": ["--first-failed-special"],
             "testVoiceOverReadsTimetableCard": ["--mapped-names"],
-            "testNotificationControlsAndAppearance": ["--theme-probe", "--notification-permission-probe"],
+            "testNotificationControlsAndAppearance": ["--theme-probe", "--notification-permission-probe", "--fixture-input-trace"],
             "testChangedDataProducesOneLocalNotification": ["--notification-permission-probe"],
             "testRecoveryPreviewOriginalBlankFieldsAndExplicitAdoption": ["--recovery-preview"],
             "testParallelRecoveryKeepsBothLessonsInPreviewAndFormalAnalysis": [
@@ -75,9 +75,12 @@ final class ApplicationChecks: XCTestCase {
         // U43: a successful initial process did not prove input readiness after
         // relaunch. Observe the system surface for each single cold launch.
         let deadline = Date().addingTimeInterval(45)
-        print("UI_AUTOMATION_PREPARATION home-once;scope=cold-launch;target-not-prelaunched")
-        XCUIDevice.shared.press(.home)
         let system = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        // A terminated target can already leave SpringBoard in the foreground.
+        // Do not send a redundant hardware command into a ready system surface.
+        let needsHome = system.state != .runningForeground
+        print("UI_AUTOMATION_PREPARATION home-if-needed;sent=\(needsHome ? 1:0);scope=cold-launch;target-not-prelaunched")
+        if needsHome { XCUIDevice.shared.press(.home) }
         var observedFrame = CGRect.null
         var observedState = -1
         let ready = expectation(for: NSPredicate { _, _ in

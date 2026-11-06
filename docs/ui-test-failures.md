@@ -3360,3 +3360,41 @@ N77/N75詳細と3054127/031916/currentのpreflight抽出・helperを照合した
 寿命を移したので、testも実cleanupモードを各独立入力の後に実行する必要がある。元の全27入力/SDK・Runtime/
 download一回/import件数/正負期待は変えず、cleanup成功・所有export不在も要求し、workflowの26限定always接続を
 確認する。製品や準備の受理条件を緩めず、記録と候補を先にpushしてから再検査する。
+
+## N179 主正式200e60aの通常26 Aが失敗終端（2026-11-06）
+
+予定11:15 UTC照会、source200e60a832adbf555db5d5e8a575b9f63ceceb31/run42192999314/attempt1、
+job127830490300は10:00:53Z開始・10:51:40Z failure。要求SDK27.1/Runtime26.5、具体case/stage/原因は
+log未読で未確定として対処を選ぶ前に記録する。通常27 A/Bと訂正の両OS全8件は成功した。
+
+## N180 同じ主正式200e60aの通常26 Bも失敗終端（2026-11-06）
+
+同source/run/attempt、job127835521127は10:29:20Z開始・11:01:18Z failure。
+要求SDK27.1/Runtime26.5、具体case/stage/原因はlog未読で未確定。全18表示job終端・実14件、成功12/失敗2、
+依存・構成skip4を成功に数えず公開なし。新7logとartifact一覧を一度確認し、前回取得7logは再取得しない。
+新logを読んでから過去詳細と当時/現sourceを照合し、同条件を根拠なく繰り返さない。
+
+N179の先行Auxiliary caseは初回起動と実操作を通過後、73.72秒で停止確認→cold準備のHome命令に入り、
+その命令の返却/ready記録がないまま約4分後にXCTestがunexpected exit/crash/test timeoutとしてrunnerを再起動した。
+以後17件はforeground/fixture-ready待機で失敗した。製品アプリのcrashや全17機能の不良とは断定しない。
+事前healthは10秒でunknown、最後はRuntime available/device Shutdown。N176/N177のbundle nullは出ていない。
+N180は通常6件と先行追加phaseが成功し、独立通知caseの最初のONだけ126.863秒で失敗。外側rowと
+実native track(300,177.333,63,28)の一意/0状態/全包含/enabled/hittableを確認、同じ0.25/0.5へ0.1秒一回接触後も
+45秒内にUI/保存/Binding/認可要求が始まらず0のまま。端末やAPIの通知配送失敗へは到達していない。
+Runtime available/device Booted、診断overlayは非hitを維持。全14log各一度/artifact0確認済みで再照会しない。
+
+照合：N179はhome-once/launchReady/foregroundでU43/U49/U59/N95/N125の詳細とf709367/現helperを読み、
+初回ready後のtarget launch timeoutとは異なり、今回は対象停止直後のHome命令自体から返っていないことを確認した。
+候補は対象のnotRunning確認後、SpringBoardがすでに実foregroundならHome命令を重ねず、そうでない時だけ
+従来のHome一回を送る。いずれも元45秒内にSpringBoard foreground/有限frameを観測し、対象の一回launch/
+45秒foreground/45秒fixture-ready/元の全保存proofを必須とする。不明状態は成功にせず、retry/予備起動をしない。
+Homeを呼んだかを固定値で記録し、起動下位原因の解消とは断定しない。元UI casesが実停止/新process/保存を検出する
+ため、mock Apple APIを新しく作って恒常的な実OS成立を模倣するテストは追加しない。
+
+N180はU19/U43/U55/U64/U71/N94/N167の詳細と当時/現native helper・既存FixtureInputDeliveryを比較した。
+従来の同じ点/時間/実要素でも未反映があり、現在のlogには実UIKitのbegan/ended/cancelled/認識器/native Boolがない。
+点/時間/製品/認可の受理を推測変更せず、この通知caseのみに既存--fixture-input-traceを追加する。
+既存の128記録上限・固定名/数値のみ・元sendEvent一回・読取専用のbefore/after native観測・strict所有log回収を使う。
+45秒・実Allow一回・UIと保存の両成立・全通知/全15gateは不変で、失敗なら追加の配送証拠を調べる。
+候補と比較を先に隔離refへpushし、既存observer/manifest/Swift構文/catalogの局所確認と新規専用review後に
+同じsource/run/attemptの正式全15を一回確認する。個別成功を借用した公開や未知の入力成功扱いはしない。

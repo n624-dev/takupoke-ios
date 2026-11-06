@@ -142,6 +142,8 @@ class ManifestTests(unittest.TestCase):
                 app_test_project.instrument_notification_switch(changed)
 
     def test_notification_readiness_probe_observes_os_without_granting_or_saving(self):
+        launch = (ROOT / "tests/ui/ApplicationChecks.swift").read_text()
+        self.assertIn('"testNotificationControlsAndAppearance": ["--theme-probe", "--notification-permission-probe", "--fixture-input-trace"]', launch)
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
         generated = app_test_project.instrument_notification_permission(source)
         self.assertNotIn("FixtureNotificationAuthorization", source)
