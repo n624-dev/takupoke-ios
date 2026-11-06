@@ -1027,6 +1027,14 @@ U75は通知行の操作を変えず、26 Aの元通知case82.454秒で成立し
 
 # UIテストの失敗索引
 
+## N165 状態追従の正式CIで通常iOS27 Bがfailure終端（2026-11-06）
+
+予定01:25 UTCの一括照会でsource77d57a5042dc1607a85170527db6a3c50f532600/run42136180150/attempt1、job127625751340の通常iOS27 Bが00:29:39Z開始・00:53:58Z failure終端と観測した。指定Xcode/SDK27.1/Runtime27.0、具体case/失敗stage/原因は完了log未読で未確定。対処案選択前の事実として記録する。Distribution/Native700/通常27 A/訂正27元四件は成功したが、正式全15は未成立。通常26 B/訂正26/公開は依存skip、通常26 Aも別にfailureとなり全15表示job終端・取消しなし・公開未実施。新7実job完了logだけ一度取得し、取得済み2log/過去の終端runは再照会しない。終端artifactは一度確認する。
+
+## N166 同じ正式CIの通常iOS26 Aもfailure終端（2026-11-06）
+
+同じsource77d57a5/run42136180150/attempt1、job127641280412は01:02:34Z開始・01:15:40Zにfailure。指定Xcode/SDK27.1/Runtime26.5、具体case/失敗stage/原因は完了log未読で未確定として対処前に記録する。全job終端・公開依存skip・取消しなし。これから新logと過去の詳細、当時/現在コードを照合し、記録と修正根拠をpushする前に再試行しない。
+
 ## U69 コード欄の標準AX結合ラベルと旧期待の不一致（全体386、iOS27 A）
 
 - 対象：7211993・38372705306・試行1、job115213800552、ApplicationChecks+Settings.swift:212。
@@ -3027,3 +3035,46 @@ N160の元失敗OS/配布SDKの確認：source1ac3a26cc8f1e50971457e0ff8b1db97dc
 次の正式実行はN163の元年度入力/Keyboard10秒/全31caseを保ち、通常Aの該当caseにも固定編集/Keyboard通知と既存touch traceを残す。限定では未再現だった旧停止を、同じsource/run/attemptの通常全15検証内で観測できる新条件として確認する。入力方法/期限/期待/製品を推測変更したり成功を注入したりせず、失敗なら新証拠を先に記録して調査する。新規main一回専用のcode-only reviewと全commit/hash/局所結果照合後に通常fast-forwardし、元の必須集合が全部成功した場合だけ既存経路で公開する。
 
 次のmain通常fast-forward一回専用の新規GPT-6.1 Sol/High ios_year_observation_main_pre_actions_reviewはcode-only194行/12868bytes/SHA256 a652626caceae1fafbc63c2413ec5c23ac1fad2184892266828b054a6b151761を確認し具体的指摘なし。主担当が元31case/全15gateと現codehash、局所検査と実shipping SDKの限定結果、全未統合commitの空白を照合して一回だけ使用する。限定用/過去レビューは使い回さず、このレビューも次回へ転用しない。N163の根本原因は未確定のまま、入力方法/待機期限/期待を保ち通常検証の該当caseへ同じ固定観測を残す。
+
+
+### N165 完了ログの具体的観測
+
+基本6件中5成功・testHomeTimetableAndWeekCalendarだけ50.124秒で失敗、全914.818秒。
+ApplicationChecks+Timetable.swift:197の詳細閉鎖後calendar準備5秒。t40.21詳細bar消失、
+t41.04 app/frame、t41.17 bar/frame、t41.61/41.90 tab存在/frame、t42.09 keyboard、
+t42.73 footer配列、t43.05 calendar配列一件、t43.28 exists、t43.61 enabled、t43.92 hittable、
+t44.18 contained内部の二度目exists、t44.40 frame再解決で内部retry1/2へ進み、期限内成立を得なかった。
+操作は未実行。UI判定は今回の機能差分に含まれない。事後AXは時間割bar/週Buttonを示すが期限内
+成立の証明にはしない。画像は281653bytes/SHA256
+892ae41ca075a382a64a8c22036f7b91aeac437edb3c7588d5b3a5704bfe3ddd/63片。
+N151のquery.count停止と異なり、実一件配列からenabled/hittableまで到達後、重複exists/frame照会で
+停止した。これから旧source3398f52/6918212とcurrentの実helperを照合する。下位のAX停止原因は未確定。
+
+### N166 完了ログの具体的観測
+
+Runtime26.5の事前検査とbuild成功、01:06:52 boot開始・01:08:51 bootstatus成功、
+01:09:48実操作phase開始。AuxiliaryReadFailuresは98.171秒で成功し、次の行除外caseは
+内容確認/次へ/row3 Switch存在待機まで進んだ。01:15:31 xcodebuildは所有iPhone16がShutdown、
+Runtime iOS26.5のbundleがnull、supportedArches空として、Installing built productsの
+Unable to boot device because we cannot determine the runtime bundle/NSPOSIX2で停止した。
+起動前のRuntime欠損ではなく実操作中の利用不能化である。cleanupのspawnもdevice未起動。
+このlogだけでアプリの入力失敗・crash・SDK27.1の原因とは断定しない。U60/U61/N76の詳細と
+当時/currentの準備・runnerを比較してから次の観測を選ぶ。正式runは全15表示job終端、実行9件の
+ログを各一度取得、artifact0を一度確認した。依存skip6を成功へ数えず、このrun/logを再照会しない。
+
+N165比較/候補：N151/U73/N94/N97/N140詳細と3398f52/6918212のcalendar、当時/現行Navigation・Recoveryを読んだ。
+N151の配列取得後に行う別viewport照会は既に解消済みだが、今回はその後の同一Buttonのexistsを
+contained内で重ね、最後にframeを再解決していた。候補は配列一意性→exists→一回frame→元のfinite/
+viewport完全包含→enabled/hittableの順で同じ観測を各一回行う。元bodyViewport（bar/tab/keyboard/footer）
+も5秒も変えない。一意性違反・不可視・無効・期限切れを全て失敗のまま保ち、同じnative中心へ一回だけ
+実tapし元picker/取消/前後週を確認する。製品のアニメーションや週移動を変更せず、AX停止下位原因の
+解消とは断定しない。元case/既存ObservedScreenGeometryTestsで条件の拒否と実操作を確認し模倣caseは足さない。
+
+N166比較/次の観測：U60は事前欠損、U61はexport形式、N76は別minorのcreate拒否で、今回はbootと一件実操作
+成功後のRuntime利用不能である。3054127の26準備と現行の差はSDK明示化だけで、26.5の取得・登録済み
+unavailable拒否・所有領域回収後再確認は同じ。SDK/OS/device/boot順序を推測変更しない。新しい比較根拠として
+boot完了時と失敗cleanup前のsimctl list -jを各一回/10秒/2MiBで読み、所有UUID/指定Runtimeの状態だけを
+固定語でconsoleへ出す。パス/他device/任意エラー文は出さず、一時出力を回収する。再起動/再install/自動retryは
+加えず、観測失敗をUI成功に変えない。サイズ超過/非zero/不正JSON/別device拒否の検査を追加する。
+N165の候補を含む新sourceの正式全15をこの追加観測付きで確認する。今回の原因・恒常解消は未確認。
+候補と本記録は局所再試行より先に隔離refへpushし、新規code-only review後のみ次のActionsを開始する。

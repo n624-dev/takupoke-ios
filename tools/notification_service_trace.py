@@ -170,6 +170,30 @@ def observe_command(command, timeout, *, max_bytes=None):
         return subprocess.CompletedProcess(command, -1, "", "unavailable")
 
 
+def collect_runtime(simulator, runtime):
+    """Report only the owned device and exact runtime; never paths or OS reasons."""
+    if not re.fullmatch(r"[0-9A-Fa-f-]{36}", simulator) or not re.fullmatch(
+            r"com\.apple\.CoreSimulator\.SimRuntime\.iOS-(?:26|27)-\d{1,2}", runtime):
+        raise ValueError("Invalid observation target")
+    result = observe_command(["xcrun", "simctl", "list", "-j"], 10, max_bytes=2097152)
+    report = {"exit": result.returncode, "limited": len(result.stdout.encode()) > 2097152,
+              "runtime": "unknown", "device": "unknown"}
+    if result.returncode == 0 and not report["limited"]:
+        try:
+            data = json.loads(result.stdout)
+            matches = [r for r in data["runtimes"] if r.get("identifier") == runtime]
+            report["runtime"] = ("available" if matches[0].get("isAvailable") is True else "unavailable") if len(matches) == 1 else "missing-or-ambiguous"
+            devices = [d for d in data["devices"].get(runtime, []) if d.get("udid") == simulator]
+            if len(devices) == 1:
+                state = devices[0].get("state")
+                report["device"] = state if state in ("Booted", "Shutdown", "Booting", "Shutting Down") else "unknown"
+            else:
+                report["device"] = "missing-or-ambiguous"
+        except (ValueError, TypeError, KeyError, AttributeError):
+            report["runtime"] = report["device"] = "invalid-format"
+    print("TAKUPOKE_RUNTIME_HEALTH " + json.dumps(report))
+
+
 def request_window(trace, now):
     pattern = re.compile(r"TAKUPOKE_LIFECYCLE pid=(\d+) time=(\d+(?:\.\d+)?) "
                          r"stage=notification-auth-(request|returned|callback)")
@@ -256,7 +280,9 @@ def collect(simulator, *, trace=None, now=None):
 if __name__ == "__main__":
     accessibility = sys.argv[1:2] == ["--accessibility"]
     try:
-        if accessibility:
+        if sys.argv[1:2] == ["--runtime"]:
+            collect_runtime(sys.argv[2], sys.argv[3])
+        elif accessibility:
             collect_accessibility(sys.argv[2])
         else:
             collect(sys.argv[1])

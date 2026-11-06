@@ -30,6 +30,32 @@ def spooled_responses(*responses):
 
 
 class NotificationServiceTraceTests(unittest.TestCase):
+    def test_runtime_health_filters_owned_device_and_bounds_failed_observations(self):
+        owned = "00000000-0000-0000-0000-000000000001"
+        runtime = "com.apple.CoreSimulator.SimRuntime.iOS-26-5"
+        data = {"runtimes": [{"identifier": runtime, "isAvailable": True, "bundlePath": "PRIVATE"}],
+                "devices": {runtime: [{"udid": owned, "state": "Booted", "name": "PRIVATE"},
+                                      {"udid": "other", "state": "Shutdown"}]}}
+        cases = [(json.dumps(data), 0, "available", "Booted"),
+                 (json.dumps({"runtimes": [], "devices": {}}), 0, "missing-or-ambiguous", "missing-or-ambiguous"),
+                 ("PRIVATE" * 400000, 0, "unknown", "unknown"),
+                 ("PRIVATE", 1, "unknown", "unknown"),
+                 ("invalid PRIVATE", 0, "invalid-format", "invalid-format")]
+        for output, code, expected_runtime, expected_device in cases:
+            with self.subTest(code=code, expected_runtime=expected_runtime):
+                stream = io.StringIO()
+                with patch.object(notification_service_trace.subprocess, "run", side_effect=spooled_responses(
+                        subprocess.CompletedProcess([], code, output, "PRIVATE"))) as run, redirect_stdout(stream):
+                    notification_service_trace.collect_runtime(owned, runtime)
+                self.assertNotIn("PRIVATE", stream.getvalue())
+                result = json.loads(stream.getvalue().split(" ", 1)[1])
+                self.assertEqual(result["runtime"], expected_runtime)
+                self.assertEqual(result["device"], expected_device)
+                self.assertEqual(run.call_args.args[0], ["xcrun", "simctl", "list", "-j"])
+                self.assertEqual(run.call_args.kwargs["timeout"], 10)
+        with self.assertRaises(ValueError):
+            notification_service_trace.collect_runtime("other", runtime)
+
     def test_launch_observation_keeps_nested_codes_without_private_error_details(self):
         bundle = notification_service_trace.BUNDLE
         message = (bundle + ' Error Domain=FBSOpenApplicationServiceErrorDomain Code=1 '

@@ -186,8 +186,11 @@ extension ApplicationChecks {
             if current.count>1 { ambiguousCalendar=true;return true }
             guard current.count==1 else { return false }
             let button=current[0]
-            guard button.exists && button.isEnabled && button.isHittable &&
-                self.contained(button,in:viewport) else { return false }
+            guard button.exists else { return false }
+            let frame=button.frame
+            guard self.usable(frame) && self.usable(viewport) &&
+                ObservedScreenGeometry.contains(frame,in:viewport,scale:UIScreen.main.scale) &&
+                button.isEnabled && button.isHittable else { return false }
             readyCalendar=button
             return true
         },object:app)

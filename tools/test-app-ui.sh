@@ -2,6 +2,7 @@
 set -euo pipefail
 scratch_dir="$(mktemp -d "${TMPDIR:-/tmp}/takupoke-app-tests.XXXXXX")"
 simulator_id=""
+runtime=""
 hang_watch_pid=""
 hang_stop_path=""
 stage() { printf 'TAKUPOKE_RUNNER stage=%s\n' "$1" >&2; }
@@ -44,6 +45,7 @@ cleanup() {
     stop_hang_watch
     if [[ -n "$simulator_id" ]]; then
         if [[ "$task_exit_status" != "0" ]]; then
+            python3 -B tools/notification_service_trace.py --runtime "$simulator_id" "$runtime" || true
             python3 -B tools/notification_service_trace.py --accessibility "$simulator_id" || true
         fi
         if [[ "$task_exit_status" != "0" || "${TKPK_UI_PROBE_CASE:-all}" == "notifications" ]]; then
@@ -155,6 +157,7 @@ while read -r device_type runtime; do
         stage simulator-content-size-enter
         xcrun simctl ui "$simulator_id" content_size large
         stage simulator-ready
+        python3 -B tools/notification_service_trace.py --runtime "$simulator_id" "$runtime" || true
     }
     create_simulator
     python3 -B tools/timed_command.py "App UI build iOS $ios_major" \
