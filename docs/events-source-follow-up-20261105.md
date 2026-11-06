@@ -175,3 +175,25 @@ review artifactはすべての局所commandが終了した後に一意なfinal p
 配信確認前の別段階として記録。N48/U75と旧現helperを比較し、既に開始済みの主bb809の26 A結果を確認してから判断する。
 新primaryの元通常26の最大約55分と残訂正を踏まえ、次は06:45 UTCに新しい完了jobと公開段階をまとめて確認する。
 これまでの終端run/log/artifactは再照会しない。Windows10459の公開検証は完了済みである。
+
+主bb809の06:45予定照会で残3件が終端となり、通常26 Aは成功、単項目27はN173の訂正値のglobal
+firstMatch.frame照会timeout、通常26 BはN174のcalendar専用IDのexists再照会停止だった。全15表示job終端、
+実10log各一度/artifact0一度を確認し、依存skip5は成功に数えず公開なし。終端実行を再照会しない。
+事実を索引へ先に記録し、N54/N78/N94/N97/N153/N151/N165/N171の詳細と当時/現在のsourceを比較した。
+復旧確認値を既存manual-reviewed- IDと実labelで現在の復旧Listへ限定し、候補frameを一回だけ観測する。
+calendarは一回のAX snapshotで存在・一意性・画面枠・enabledを揃え、現在の実controlのhittableも別に要求する。
+元5秒/完全包含/一回中心tap/全後続assert、復旧の16探索/受動drag/実訂正値/保存proof/全15gateは維持する。
+比較・候補a0fc902を隔離refへ先にpushしてから局所検証した。
+
+Linux/Swift6.1.2でreview controls Python2件/失敗0（7.300秒、元comparison10と幾何8 XCTestも全成功）、
+scroll navigation Python2件/失敗0（2.962秒）、元navigation関連Swift29件/失敗0（0.124秒）、
+project生成17件/失敗0（0.557秒）、manifest30件/失敗0（19.409秒）、Swift frontend parseと
+catalog450/check --base bb8091eが成功した。新幾何caseは同じviewport規則と欠損・重複・不正枠の拒否を確認する。
+既存UI caseが実label/全包含/操作・後続状態を検出するため、そのassertや期限は編集しない。
+これらはApple SDKの型解決・実AX応答時間や恒常的な解消の証明ではなく、次の正式両OSで確認する。
+
+次のmain push/正式全15/条件成立時の公開一回専用に、新規GPT-6.1 Sol/High
+`ios_n173_main_pre_actions_review`がcode patch172行/11768bytes、SHA256
+`90b1e5dde80e70d7ae78016d9f5b35837a4b9ca5d3ea8528caa1427828f3bc60`を全量・commit差分一致まで確認し指摘なし。
+主担当も同時点の実snapshot/現在hittable/元5秒/一意性/完全包含/一回tap、復旧の実label/16探索/保存proofと
+新幾何の負対照を照合した。この新しいreviewだけを次のmain自動Actions一回へ消費し、過去reviewを再利用しない。
