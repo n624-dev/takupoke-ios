@@ -3117,3 +3117,57 @@ began/endedと区別可能なUILongPress/UIPan/UIScrollView系を取得した。
 次は同じread-only診断を正式にも保持し、失敗時に旧不十分なクラス情報との比較を可能にする。限定の2成功を
 正式の代用にせず、新source/run/attemptで既存全15を要求する。旧8cdfの通常27 B/単項目/明示選択も成功し、
 新3完了logを一度取得済み。通常27 A/26 Bと後続26 Aは取消さず終端を確認する。
+
+
+## N168 新正式CIの単項目補正iOS27が失敗終端（2026-11-06）
+
+予定03:15 UTCの一括照会、source01fe8af2f3deacf760b8187469958a2661388f6a/run42149866023/attempt1、
+job127671002396は02:24:25Z開始・02:40:21Z failure。要求SDK27.1/Runtime27.0、元単項目case
+の具体stage/操作/原因は未読で未確定として対処案選択前に記録する。他27 B/三項目/原本変更/
+明示選択/Native/Distributionは成功。27 A/26 Bは継続中で、取消さず終端まで確認する。
+公開条件は未成立、新5完了logだけ一度取得し、旧詳細/旧現コードを照合する。
+
+## N169 旧正式8cdfの通常iOS26 Aも失敗終端（2026-11-06）
+
+同じ予定照会、source8cdf0663d192a566cada2288812358f5954bac58/run42144767317/attempt1、
+job127670454100は02:22:54Z開始・02:35:07Z failure。要求SDK27.1/Runtime26.5、具体case/stage/
+原因はlog未読で未確定。既知N167の3項目27失敗とは区別して対処前に記録する。残通常27 A/26 Bは
+成功となり、全15表示jobは終端（実10件）。依存skipは成功に数えず公開なし。新3logのみ一度取得し、
+artifactを一度確認、旧取得7log/限定2log/旧runは再取得しない。元N166のRuntime消失と同原因とはまだ扱わない。
+
+N168完了logの事実：case477.609秒、Review.swift:16の最初のrequireReviewの20秒がtimeout。
+最初の入力/ACK・実背景/復帰・入力再変更後のACK=trueは成立。manual-submit実Buttonを一回tapし、
+t290.86でcoordinatorのlabelをNSPredicate形式の二つのCONTAINSで照会、Find後はt310.29まで返却がない。
+t312.02/t344.88にsnapshotを要求、期限後AXはpreview=false;review=true;running=false;failure=noneを示した。
+実touchは(175.67,747.67)でbegan/endedとUIKitResponder認識があり、ACK失敗ではない。
+期限内のreview成立時刻はこの事後AXだけでは未確定。製品のreview生成失敗や20秒不足と断定しない。
+旧8cdfの同単項目は589.224秒で成功、今回同sourceの三項目/原本変更/明示選択も成功した。
+旧current helperは同じfirstMatch stateへ、format predicate内でlabelを二重参照し、判定後のlogでも再照会する。
+
+N169完了logの事実：UI XCTest開始前のxcodebuild/test-without-buildingが17.1秒でINTERNAL ERROR。
+Uncaught Exception Invalid parameter not satisfying: devicePair、CoreSimulatorのSimDeviceSet
+addDevicePairAsync/handleXPCNotificationDevicePairAdded/subscribeToNotificationsWithError、
+Foundation NSMutableDictionary initWithContentsOfFileがstackにある。製品caseは未実行。
+bootstatusは91.2秒で成功、boot後のreadonlyhealthは10秒期限でunknown、失敗cleanup前はRuntime available/
+owneddevice Booted。元N166のruntime bundle nullとは異なり、今回はRuntimeの不在を示さない。
+旧8cdfは通常27 A/26 Bが元ケースと全追加phaseまで成功し、全15表示job終端・実10件のlog各一度/
+artifact0一度確認済み。旧run/log/artifactを再照会しない。現在01feの通常27 A/26 Bは継続中、取消しなし。
+
+N168照合/候補：Review.swift/requireReview/coordinator-state/二重labelでcatalog/索引を検索し、U67の
+preview成立後の診断query停止、N94/N97/N140/N151/N165のidentity・重複照会の詳細と、1b368f5/
+f709367/現Review・OneCorrection・生成fixtureを読んだ。U67はpredicate後の追加照会で、今回はpredicate内の
+label取得自体から応答が止まった。旧/現requireReviewは同じfirstMatchと二重CONTAINSを持つ。
+候補は元20秒内のblock predicateで同じIDの実StaticText配列を一度取得し、一意な一個のlabelを一回だけ読む。
+同じ一文字列からreview=true AND preview=falseの両方を要求し、複数はsticky曖昧flagで失敗する。
+待機後のlogは取得済み文字列を使い、新たなAX queryを加えない。元の20秒/completed/旧正常結果保持/
+全review本文と比較/背景・復帰/再起動・正式採用/両OS/全15gateを維持する。製品やtap/待機を変更しない。
+実predicateをSwiftで実行する局所対照（一意/不在/曖昧/未review/preview同時true/時点の異なる二つのlabel）を
+追加し、二つの時点の値を混ぜて合格させないことを確認する。旧停止の下位原因・恒常解消は未確定。
+根拠と候補を隔離refへpush後に局所検査し、既存単項目を含む新source全15を新規review後だけ開始する。
+
+N169照合/扱い：devicePair/subscribeToNotifications/INTERNAL ERROR/bootstatusで索引を検索し、
+N07/N73/N127と当時/現runnerを読んだ。同じdevicePair例外は既往記録なし。N73のhost通信断、N127のdestination
+不在、N166のruntime bundle不在とは区別する。今回はCoreSimulatorが起動済みRuntime/deviceを報告したまま
+xcodebuild内部でpair通知処理の例外を投げており、製品caseに未到達。26.5/SDK/device/boot順序を推測変更せず、
+既に開始済み01feの新host・元通常26 A/Bの結果を確認する。同job内の再起動・再install・retryは加えない。
+今回のN168候補の次の正式でも元26.5と全15をそのまま必須にし、このhost例外を成功扱いしない。

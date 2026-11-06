@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`66bc62bb00fa317f4b9b3376fde9b08b0c8eac91169ebbe4fdc346f4cfdf19f9`
+`aa4570acbee7b5d315c504a000cd9e4973ac529276e39f87fd1b7661b7f36351`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -83,6 +83,7 @@ bash tools/test-manual-ui.sh
 
 ## [tests/test_manual_review_controls.py](../../tests/test_manual_review_controls.py)
 
+- `test_actual_review_readiness_requires_one_coherent_state_with_original_deadline`
 - `test_actual_xctest_comparison_and_pixel_geometry`
 
 ## [tests/test_manual_scroll_navigation.py](../../tests/test_manual_scroll_navigation.py)

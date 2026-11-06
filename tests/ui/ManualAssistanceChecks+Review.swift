@@ -11,10 +11,20 @@ extension ManualAssistanceChecks {
         print("TAKUPOKE-MANUAL-BINDINGS "+(events.exists ? events.label:"absent"))
     }
     func requireReview(_ expected:[String],comparable:Bool) {
-        let state=app.staticTexts["manual-coordinator-state"].firstMatch
-        let ready=XCTNSPredicateExpectation(predicate:NSPredicate(format:"label CONTAINS %@ AND label CONTAINS %@","review=true","preview=false"),object:state)
-        XCTAssertEqual(XCTWaiter.wait(for:[ready],timeout:20),.completed,app.debugDescription)
-        print("TAKUPOKE-MANUAL-REVIEW " + state.label)
+        var observedState="",ambiguousState=false
+        let ready=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
+            let current=self.app.staticTexts.matching(identifier:"manual-coordinator-state")
+                .allElementsBoundByAccessibilityElement
+            if current.count>1 { ambiguousState=true;return true }
+            guard current.count==1 else { return false }
+            let label=current[0].label
+            observedState=label
+            return label.contains("review=true") && label.contains("preview=false")
+        },object:app)
+        let outcome=XCTWaiter.wait(for:[ready],timeout:20)
+        XCTAssertFalse(ambiguousState,"The review state must remain unique")
+        XCTAssertEqual(outcome,.completed,app.debugDescription)
+        print("TAKUPOKE-MANUAL-REVIEW " + observedState)
         XCTAssertFalse(app.buttons["この資料全体の結果を使用"].exists)
         XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("lastgood-preserved"))
         // This is the first review section, above the retained editor scroll
