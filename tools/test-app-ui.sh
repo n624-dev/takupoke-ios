@@ -14,6 +14,18 @@ stop_hang_watch() {
         hang_stop_path=""
     fi
 }
+shutdown_simulator() {
+    local shutdown_status=0
+    xcrun simctl shutdown "$simulator_id" || shutdown_status=$?
+    if [[ "$shutdown_status" == "0" ]]; then return 0; fi
+    # simctl returns 149 when an owned device has already shut down. Confirm
+    # that exact target state; never rescue an unknown state or another error.
+    if [[ "$shutdown_status" == "149" ]] &&
+        python3 -B tools/notification_service_trace.py --confirm-shutdown "$simulator_id" "$runtime"; then
+        return 0
+    fi
+    return "$shutdown_status"
+}
 collect_launch_trace() {
     python3 -B - "$simulator_id" <<'PY_TRACE'
 from pathlib import Path
@@ -198,7 +210,7 @@ while read -r device_type runtime; do
             # U40: the second Runner lost the app during launch after a long
             # successful batch. Isolate its device state, without retrying tests.
             collect_launch_trace
-            xcrun simctl shutdown "$simulator_id"
+            shutdown_simulator
             xcrun simctl delete "$simulator_id"
             simulator_id=""
             create_simulator
@@ -226,7 +238,7 @@ while read -r device_type runtime; do
     fi
     collect_launch_trace
     stage simulator-shutdown-enter
-    xcrun simctl shutdown "$simulator_id"
+    shutdown_simulator
     stage simulator-delete-enter
     xcrun simctl delete "$simulator_id"
     stage simulator-delete-complete

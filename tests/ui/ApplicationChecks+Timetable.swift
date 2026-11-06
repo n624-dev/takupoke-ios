@@ -172,7 +172,7 @@ extension ApplicationChecks {
         first.tap()
         XCTAssertTrue(app.staticTexts["架空教員A"].firstMatch.waitForExistence(timeout: 5), app.debugDescription)
         dismissLesson()
-        let calendars = app.buttons.matching(
+        let calendars = app.buttons.matching(identifier:"timetable-week-calendar").matching(
             NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "月", "日から")
         )
         // A background calendar can exist before the detail sheet has closed.
@@ -182,7 +182,8 @@ extension ApplicationChecks {
         let calendarReady = XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
             guard !self.app.navigationBars["授業詳細"].exists else { return false }
             let viewport=self.bodyViewport()
-            let current=calendars.allElementsBoundByAccessibilityElement
+            // Keep the semantic ID bound across a SwiftUI native-view replacement.
+            let current=calendars.allElementsBoundByIndex
             if current.count>1 { ambiguousCalendar=true;return true }
             guard current.count==1 else { return false }
             let button=current[0]

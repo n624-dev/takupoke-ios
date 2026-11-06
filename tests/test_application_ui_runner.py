@@ -18,6 +18,22 @@ import ui_test_manifest as manifest
 
 @unittest.skipUnless(os.name == "posix", "macOS CI Bash runner")
 class ShellRunnerTests(unittest.TestCase):
+    def test_actual_shutdown_helper_only_accepts_verified_target_state_after_exit_149(self):
+        source=(ROOT / "tools/test-app-ui.sh").read_text()
+        helper="shutdown_simulator() {"+source.split("shutdown_simulator() {",1)[1].split("collect_launch_trace() {",1)[0]
+        for status, confirmed, expected in ((0,1,0),(149,0,0),(149,1,149),(143,0,143),(7,0,7)):
+            with self.subTest(status=status, confirmed=confirmed):
+                script='''set -euo pipefail
+simulator_id=00000000-0000-0000-0000-000000000001
+runtime=com.apple.CoreSimulator.SimRuntime.iOS-26-5
+xcrun() { [[ "$*" == "simctl shutdown $simulator_id" ]] || exit 91; return "$SHUTDOWN_STATUS"; }
+python3() { [[ "$*" == "-B tools/notification_service_trace.py --confirm-shutdown $simulator_id $runtime" ]] || exit 92; echo CONFIRM; return "$CONFIRM_STATUS"; }
+'''+helper+'\nshutdown_simulator\n'
+                result=subprocess.run(["bash","-c",script],capture_output=True,text=True,
+                    env=os.environ | {"SHUTDOWN_STATUS":str(status),"CONFIRM_STATUS":str(confirmed)},timeout=5)
+                self.assertEqual(result.returncode,expected,result.stdout+result.stderr)
+                self.assertEqual(result.stdout.count("CONFIRM"),int(status==149))
+
     def test_diagnosis_defaults_to_27_without_adding_26_matrix_rows(self):
         workflow = (ROOT / ".github/workflows/application-relaunch-native-probe.yml").read_text()
         selection = workflow.split("      ios:\n", 1)[1].split("      sdk27:\n", 1)[0]

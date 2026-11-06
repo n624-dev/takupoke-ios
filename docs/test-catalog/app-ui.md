@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`5282777c91503036d19734b20043fa1ba220e341d9a7b3f912de5c285248b8d4`
+`5acb4e328cedab0ebf17504ae7aaa09612c13c5099459d386b17220d027c6ef8`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -170,6 +170,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_notification_service_trace.py](../../tests/test_notification_service_trace.py)
 
+- `test_shutdown_confirmation_requires_exact_owned_runtime_and_one_stopped_device`
 - `test_runtime_health_filters_owned_device_and_bounds_failed_observations`
 - `test_launch_observation_keeps_nested_codes_without_private_error_details`
 - `test_launch_error_codes_are_bounded_and_reject_unknown_domains_and_large_values`
@@ -197,6 +198,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_application_ui_runner.py](../../tests/test_application_ui_runner.py)
 
+- `test_actual_shutdown_helper_only_accepts_verified_target_state_after_exit_149`
 - `test_diagnosis_defaults_to_27_without_adding_26_matrix_rows`
 - `test_alternate_toolchain_preflight_requires_requested_sdk_and_same_runtime`
 - `test_optional_hang_observer_preserves_phase_results_and_owned_cleanup`

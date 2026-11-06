@@ -3197,3 +3197,38 @@ strict shutdown→delete→必要時create/bootで、EXIT trapだけがbest-effo
 ただし今回の失敗を観測する前から主実行957/run42156001519は継続しているため、まずその元全15の結果を確認する。
 同じhelperは現主実行にもあるが、旧実行だけから現在の失敗を予告・成功扱いせず、不要な再公開開始は行わない。
 必要になった場合だけ事実・候補を先にpushしてから検査・新規reviewを行う。
+
+
+## N171 主正式957の通常iOS26 Bが失敗終端（2026-11-06）
+
+予定04:55 UTC照会、source9577502eaaf9690cb03d77bd6ecea3ae91d9c4aa/run42156001519/attempt1、
+job127706197100は04:10:53Z開始・04:43:51Z failure。要求SDK27.1/Runtime26.5、具体case/stage/
+原因はlog未読で未確定として対処選択前に記録する。元27 A/Bと訂正26の単項目/三項目/明示選択も成功。
+26 Aと原本変更26は継続中で、取消さず終端を確認する。新6主実行logと旧01feの最後の成功26 Aを各一度取得する。
+旧01feは全15表示job終端・実10件、今回最後のlogとartifact0を一度確認後は再照会しない。
+N170の既停止cleanupと同一原因とはまだ断定せず、新しいlogを先に読む。
+
+N171完了logの事実：基本6件中5成功、HomeTimetableAndWeekCalendarだけ44.956秒、Timetable.swift:200の
+元5秒準備timeout。viewport/配列取得後、t40.02 exists、t40.35 frameを通過し、t40.72 enabledの再解決で
+同じnative identityのFind retry1/2→t40.94 snapshotへ進んだ。N165の重複exists/frame停止を避けた現行でも、
+次の属性参照まで同一native identityが残ることを保証できなかった。実calendar tap前である。
+Runtimeはavailable/BootedでN170の既停止cleanupとは異なる。事後AXだけで期限内enabled成立は証明しない。
+今回の製品週移動の不良/5秒不足/OS固有原因とはまだ断定しない。
+
+N171照合/候補：N151/N165/N97/N94/N140の詳細と3398f52/6918212/9cd340e/現Navigation・WeekSection・
+Calendar caseを読んだ。N165は重複exists/frameの削減後に両OSで成功したが、今回のnative identityはframe後の
+enabled取得時に消えている。全属性の間で一時的なaccessibility実体が同じであるという前提は成り立たなかった。
+製品の週Buttonに専用の固定accessibilityIdentifierを付け、同じ月/日からlabel条件も残した一意な短い論理ID
+queryで現在のButtonを解決する。配列indexを通じた論理ID参照はN97の外側識別と同じ用途で、N151の
+global label query.count→別index再検索やN94のAny祖先の入れ子indexへ戻さない。viewport先行、
+一意/exists/一回frame/有限/全包含/enabled/hittable/元5秒/中心へ一回実tap/週picker5秒・取消・前後週は全て維持。
+表示/週移動action/アニメーションを変えず、見失ったときは失敗のままにする。元caseと既存29幾何/生成・manifestが
+実UI条件と部分表示拒否を検出するため、XCTestの寿命を模倣する新しいテストは作らない。下位原因・恒常解消は未確定。
+
+N170の既知cleanupはこの新sourceに併せて対処する。strict shutdownがexit149のときだけ、追加のread-only
+list devices（10秒/1MiB）で所有UUID/指定Runtimeの一意なdeviceがShutdownと確認できた場合に終了条件達成とする。
+正常shutdownは元経路、他終了値/Booted/不在/複数/別Runtime/不正JSON/取得失敗・timeoutは元failureを保持する。
+テストの再試行・boot救済・不明状態の成功扱いをせず、元のdelete/fresh create/boot/全通知とOS設定変更を維持する。
+shellの実関数に対する正常/149確認済/149不明/他終了値の伝播と、実JSON確認の全負対照を追加する。
+事実・比較・候補を隔離refへ先にpushしてから局所検査し、新規code-only review後のみ次の正式全15を開始する。
+主957の残26 A/原本変更26は取消さず終端を確認し、旧01feは全15表示job終端・実10log各一度/artifact0確認済みで再照会しない。

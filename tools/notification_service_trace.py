@@ -170,6 +170,22 @@ def observe_command(command, timeout, *, max_bytes=None):
         return subprocess.CompletedProcess(command, -1, "", "unavailable")
 
 
+def confirmed_shutdown(simulator, runtime):
+    """Accept only an observed, unique owned device already in the target state."""
+    if not re.fullmatch(r"[0-9A-Fa-f-]{36}", simulator) or not re.fullmatch(
+            r"com\.apple\.CoreSimulator\.SimRuntime\.iOS-(?:26|27)-\d{1,2}", runtime):
+        return False
+    result = observe_command(["xcrun", "simctl", "list", "devices", "-j"], 10, max_bytes=1048576)
+    if result.returncode or len(result.stdout.encode()) > 1048576:
+        return False
+    try:
+        devices = json.loads(result.stdout)["devices"].get(runtime, [])
+        matches = [d for d in devices if d.get("udid") == simulator]
+        return len(matches) == 1 and matches[0].get("state") == "Shutdown"
+    except (ValueError, TypeError, KeyError, AttributeError):
+        return False
+
+
 def collect_runtime(simulator, runtime):
     """Report only the owned device and exact runtime; never paths or OS reasons."""
     if not re.fullmatch(r"[0-9A-Fa-f-]{36}", simulator) or not re.fullmatch(
@@ -278,6 +294,13 @@ def collect(simulator, *, trace=None, now=None):
 
 
 if __name__ == "__main__":
+    if sys.argv[1:2] == ["--confirm-shutdown"]:
+        try:
+            stopped = confirmed_shutdown(sys.argv[2], sys.argv[3])
+        except (OSError, ValueError, IndexError, subprocess.TimeoutExpired):
+            stopped = False
+        print("TAKUPOKE_OWNED_SHUTDOWN " + ("confirmed" if stopped else "unconfirmed"))
+        raise SystemExit(0 if stopped else 1)
     accessibility = sys.argv[1:2] == ["--accessibility"]
     try:
         if sys.argv[1:2] == ["--runtime"]:

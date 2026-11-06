@@ -19,6 +19,7 @@ extension TimetableView {
                         .foregroundStyle(weekControlColor)
                 }
                 .accessibilityLabel("\(weekStart.month)月\(weekStart.day)日から\(weekStart.addingDays(6)!.month)月\(weekStart.addingDays(6)!.day)日")
+                .accessibilityIdentifier("timetable-week-calendar")
                 .accessibilityHint("カレンダーで表示する週を選びます")
                 Spacer()
                 if canMoveNext {

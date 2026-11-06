@@ -30,6 +30,30 @@ def spooled_responses(*responses):
 
 
 class NotificationServiceTraceTests(unittest.TestCase):
+    def test_shutdown_confirmation_requires_exact_owned_runtime_and_one_stopped_device(self):
+        owned = "00000000-0000-0000-0000-000000000001"
+        runtime = "com.apple.CoreSimulator.SimRuntime.iOS-26-5"
+        def payload(devices): return json.dumps({"devices": {runtime: devices}})
+        stopped = {"udid": owned, "state": "Shutdown", "name": "PRIVATE"}
+        cases = [(payload([stopped]), 0, True), (payload([stopped, stopped]), 0, False),
+                 (payload([{**stopped, "state": "Booted"}]), 0, False),
+                 (payload([{**stopped, "udid": "other"}]), 0, False),
+                 (payload([]), 0, False), (payload([stopped]), 1, False),
+                 ('{"devices":null}', 0, False), ('PRIVATE', 0, False), ('x' * 1048577, 0, False)]
+        for output, code, expected in cases:
+            with self.subTest(code=code, expected=expected), patch.object(notification_service_trace.subprocess,
+                    "run", side_effect=spooled_responses(subprocess.CompletedProcess([], code, output, "PRIVATE"))) as run:
+                self.assertEqual(notification_service_trace.confirmed_shutdown(owned, runtime), expected)
+                self.assertEqual(run.call_args.args[0], ["xcrun", "simctl", "list", "devices", "-j"])
+                self.assertEqual(run.call_args.kwargs["timeout"], 10)
+        with patch.object(notification_service_trace.subprocess, "run", side_effect=spooled_responses(
+                subprocess.TimeoutExpired([], 10))):
+            self.assertFalse(notification_service_trace.confirmed_shutdown(owned, runtime))
+        with patch.object(notification_service_trace.subprocess, "run") as run:
+            self.assertFalse(notification_service_trace.confirmed_shutdown("other", runtime))
+            self.assertFalse(notification_service_trace.confirmed_shutdown(owned, "wrong-runtime"))
+            run.assert_not_called()
+
     def test_runtime_health_filters_owned_device_and_bounds_failed_observations(self):
         owned = "00000000-0000-0000-0000-000000000001"
         runtime = "com.apple.CoreSimulator.SimRuntime.iOS-26-5"

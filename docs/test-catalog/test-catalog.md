@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`c9db2c43531c78980d37896349e2d174499a8bb55c83db090b4218d6525a2deb`
+`b84d4088f032e29fc6b901f33deb03226e630bcd72952d7733a30068fbb8a270`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -72,6 +72,7 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 
 ## [tests/test_application_ui_runner.py](../../tests/test_application_ui_runner.py)
 
+- `test_actual_shutdown_helper_only_accepts_verified_target_state_after_exit_149`
 - `test_diagnosis_defaults_to_27_without_adding_26_matrix_rows`
 - `test_alternate_toolchain_preflight_requires_requested_sdk_and_same_runtime`
 - `test_optional_hang_observer_preserves_phase_results_and_owned_cleanup`
