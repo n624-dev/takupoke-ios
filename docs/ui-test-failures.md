@@ -3848,3 +3848,11 @@ N07はfrontendを開いた後でも全device一覧が124秒で停止し、正確
 全device診断は失敗時の任意診断だけに戻し、一覧timeoutの握り潰しや一律成功へ置換しない。
 旧成功と今回のUI準備を同一原因の確定とせず、helper/Python拒否条件/実Swift host対照を局所検証し、push済み候補に
 新規reviewを毎回受けて元の限定3経路を確認する。前候補の失敗は残す。
+
+候補a5fc1d0を先にpush後、Linux/Swift6.1.2の局所検査は観測18件/失敗0（5.109秒）、共通実shell2件/失敗0
+（7.101秒）、manual5件/失敗0（10.552秒）、Picker1宣言/元8入力/失敗0（9.999秒）、App16件/失敗0
+（53.694秒）、manifest30件/失敗0（20.532秒）。Bash構文・一覧453登録・check --base6aaも通過した。
+実Swift host対照はIDらしい環境変数があってもsimulatorCompileTarget=falseを返し、起動証明を拒否する。
+所有端末一回spawn・元45秒の境界・異なるID/OS/host/bad PID/不正/過大/失敗応答とcompile/sign/boot/window失敗も拒否した。
+これらのfake/host成功を実Simulator UIの成功としない。完全code-only差分770行/48569bytesのSHA256は
+53c94e6f7d0884ad53cb5df17f5909e6f4ecf332186608043b8d61a3096ee4a9。限定3実行に各新規reviewを消費する。

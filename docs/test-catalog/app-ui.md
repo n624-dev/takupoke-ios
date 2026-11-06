@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`bf7b87c649889314c19022f67e1de2281611fc960feda8cd272ea355a1deb1a2`
+`2e4b3e509c1f292c3b7eb475648e01683813327393846961a8a78ae035e22b7a`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -68,6 +68,7 @@ bash tools/test-app-ui.sh
 - [tools/ui_test_manifest.py](../../tools/ui_test_manifest.py)
 - [tools/prepare-ios27-runtime.py](../../tools/prepare-ios27-runtime.py)
 - [tools/boot-simulator-ui.sh](../../tools/boot-simulator-ui.sh)
+- [tools/simulator-ui-identity.swift](../../tools/simulator-ui-identity.swift)
 
 ## [tests/MainColorTests.swift](../../tests/MainColorTests.swift)
 
@@ -174,8 +175,9 @@ bash tools/test-app-ui.sh
 
 - `test_shutdown_confirmation_requires_exact_owned_runtime_and_one_stopped_device`
 - `test_runtime_health_filters_owned_device_and_bounds_failed_observations`
-- `test_boot_readiness_waits_only_for_owned_startup_transitions_with_one_global_deadline`
-- `test_boot_readiness_rejects_unknown_unavailable_ambiguous_or_failed_reads_without_retry`
+- `test_boot_readiness_requires_one_actual_owned_native_identity_with_the_original_deadline`
+- `test_boot_readiness_rejects_host_wrong_identity_bad_responses_and_failed_spawn_without_retry`
+- `test_real_identity_program_cannot_prove_a_host_process_is_a_simulator`
 - `test_launch_observation_keeps_nested_codes_without_private_error_details`
 - `test_launch_error_codes_are_bounded_and_reject_unknown_domains_and_large_values`
 - `test_accessibility_observation_has_only_known_services_and_fixed_words_in_order`
