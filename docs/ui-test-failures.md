@@ -3232,3 +3232,28 @@ list devices（10秒/1MiB）で所有UUID/指定Runtimeの一意なdeviceがShut
 shellの実関数に対する正常/149確認済/149不明/他終了値の伝播と、実JSON確認の全負対照を追加する。
 事実・比較・候補を隔離refへ先にpushしてから局所検査し、新規code-only review後のみ次の正式全15を開始する。
 主957の残26 A/原本変更26は取消さず終端を確認し、旧01feは全15表示job終端・実10log各一度/artifact0確認済みで再照会しない。
+
+
+## N172 旧正式957の最後の通常iOS26 Aが失敗終端（2026-11-06）
+
+予定05:45 UTC照会、source9577502eaaf9690cb03d77bd6ecea3ae91d9c4aa/run42156001519/attempt1、
+job127709445839は04:37:00Z開始・05:33:48Z failure。要求SDK27.1/Runtime26.5、具体case/stage/
+原因は未読で未確定として対処選択前に記録する。残原本変更26は成功し、全18表示jobは終端。
+新しい最後の2logとartifact0を一度確認した後は旧run/log/artifactを再照会しない。
+主bb809/run42166029342は通常27 A/B・Native・Distribution・訂正27の三項目/明示選択/原本変更が成功、
+単項目27は05:33:50開始で継続、26 A/Bは05:43台から継続中。新7成功logだけ一度取得し、旧残2と照合する。
+旧実行の失敗を現在の成功・失敗やN170と同原因へ一般化せず、残りを取消さず確認する。
+
+N172完了logの具体的事実：元通常Aの基本18件は失敗0で完了し、分離した通知case118.052秒だけが失敗。
+ApplicationChecks.swift:124はlaunchReadyではなくscreen("通知")のnavigation bar10秒assertである。
+設定tab/通知rowの全包含・有効・実label枠を通り、元の一回0.1秒native label接触後も期限内に通知画面へ移行しなかった。
+事後AXは設定navigation barとselected設定tab、通知row(16,577.3,361,52.3)/label(32,593.3,32,20.3)を示す。
+実Allow/更新後再起動/通知配信の期待には未到達で、通知の配信不良と断定しない。所有deviceはBooted/
+Runtime available、service診断はtimeoutで不明。単独のdebugger version警告から原因を選ばない。
+
+照合：case名/screen通知/native-label/10秒でN48/U75の詳細と98838f2/f709367/現Notifications・Navigationを読み、
+当該helperは同一bytesと確認した。N48はapp-relative tapからnative-labelのbrief contactへ変更したが、
+今回はその後の同じ元0.1秒方式で遷移未成立が再発した。位置/時間/OS/製品NavigationLinkを推測変更せず、
+押し直しや許可注入・10秒延長で救済しない。N172観測前から主bb809の同じ元caseは継続しているため、
+その26 Aを含む元全15の結果をまず確認する。27 Aの同caseは69.101秒で今回成功したが、26の成功へは流用しない。
+旧957は全18表示job終端・実14件（12成功/N171とN172の2失敗）、全14log各一度/artifact0確認済みで再照会しない。
