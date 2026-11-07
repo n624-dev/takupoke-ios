@@ -126,7 +126,14 @@ extension ApplicationChecks {
         let specialToggle = app.switches["試験・返却"]
         tapNativeSwitch(specialToggle)
         let enabled = expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: specialToggle)
-        wait(for: [enabled], timeout: 10)
+        guard XCTWaiter.wait(for: [enabled], timeout: 10) == .completed else {
+            let probe = app.staticTexts["fixture-notification-permission-state"]
+            print("NOTIFICATION_SPECIAL unresolved value=\(String(describing: specialToggle.value)) state=\(probe.label)")
+            recoveryScreenshot("notification-special-unresolved")
+            recoveryScreenshot("notification-special-system-unresolved", systemScreen: true)
+            XCTFail("Special notification switch did not become enabled within 10 seconds: " + app.debugDescription)
+            return
+        }
         app.navigationBars.buttons.element(boundBy: 0).tap()
         let color = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "メインカラー")).firstMatch
         XCTAssertTrue(color.exists, app.debugDescription)

@@ -60,6 +60,7 @@ struct FixtureNotificationPermissionTouch: View {
             + ";specials=\(notifications.specialsEnabled)"
             + ";savedSpecials=\(UserDefaults.standard.bool(forKey: "notifySpecialSchedules"))"
             + ";message=\(notifications.message ?? "none")"
+            + ";permissionMessage=\(notifications.permissionMessage ?? "none")"
             + ";authorization=\(permission.authorization);scene=\(String(describing: phase))"
             + ";application=\(UIApplication.shared.applicationState.rawValue)"
     }

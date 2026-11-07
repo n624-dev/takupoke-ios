@@ -137,7 +137,10 @@ NOTIFICATION_PERMISSION_END = (
 NOTIFICATION_NATIVE_REQUEST = '            FixtureLaunchDiagnostics.record("notification-native-request")\n'
 NOTIFICATION_NATIVE_CALLBACK = '                FixtureLaunchDiagnostics.record("notification-native-callback")\n'
 NOTIFICATION_AUTH_REQUEST = '            FixtureLaunchDiagnostics.record("notification-auth-request")\n'
-NOTIFICATION_AUTH_CALLBACK = '                FixtureLaunchDiagnostics.record("notification-auth-callback")\n'
+NOTIFICATION_AUTH_CALLBACK = (
+    '                FixtureLaunchDiagnostics.record("notification-auth-callback")\n'
+    '                FixtureLaunchDiagnostics.record(error != nil ? "notification-auth-error" :\n'
+    '                    (granted ? "notification-auth-granted" : "notification-auth-denied"))\n')
 NOTIFICATION_AUTH_RETURNED = '            FixtureLaunchDiagnostics.record("notification-auth-returned")\n'
 
 NOTIFICATION_PERMISSION_SKIPPED = (

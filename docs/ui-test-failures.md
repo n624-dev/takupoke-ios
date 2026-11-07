@@ -4514,3 +4514,21 @@ b44773eを先にpush後、Swift6.1.2有効の全Python314件は失敗0・skip2�
 新規main専用Sol/High n229_shipping_pre_actions_reviewはコード差分108行/7515bytesを確認、指摘なし。
 code-only hash96f97915608924266818677fe433399c068db460dee9029076283d01e6619cddと
 実Runtime/production/UI code不変・main base19eaf59・全未送信commit空白を確認後、一回の正式17 mainへ消費する。
+
+## N230 正式17の通常26 Bがfailure（2026-11-07）
+
+source9ea1de5d49c8243e4ffa7857514c73c888263caf/run42389595709/attempt1/job128463209912、iOS26/SDK27.2。
+16:42:23〜17:26:44Z failureを予定17:41Z照会で確認。ログ本文未読のためcase・失敗段階・原因は未確定。対処前に観測を記録する。
+他13検査はsuccess、公開は依存skip。全表示job終端。新しい6実行logとartifact一覧・run情報だけ一度取得し、旧logを再取得しない。
+
+新6log/artifact0/run情報を一度取得。通常26Bは先行全phase成功後、独立通知caseが131.909秒で失敗。
+Notifications.swift:129の試験・返却ONを元10秒内に観測できなかった。初回の時間割変更ONは実Allow/authorization2/保存1まで成功。
+次の試験・返却も同じnative controlの一回tap、began→ended（約0.060秒）、on-bindingとauth callbackまで実記録がある。
+N212のcancelled/Binding未到達とは異なり、今回はcallbackのgranted/error、実specials/savedSpecials/permissionMessageは未採取。
+通常26Aと手動26全4件も成功し、Runtime消失は観測していない。この失敗を接触取消やRuntime問題と断定しない。
+
+検索語NotificationControls/試験・返却/auth-callback/10秒、N122/N159/N212/U37/U64の詳細と当時a8b7131/現9eaの通知・共通Switchを照合。
+製品setEnabledはvalue=trueで実OS認可を要求してから保存する。元caseは初回だけ詳細state/画面を採り、二つ目の10秒失敗はその観測がない。
+次は診断のみ：二つ目も同じ一回tap・同じ10秒で実native値を要求し、失敗時だけ実probe/画面を記録して明示失敗する。
+使い捨てfixtureは実callbackのerror/granted/denied固定stageと実permissionMessageも観測する。OS応答・保存値は変更しない。
+製品/接触点/許可操作/待機/元case/保存と再起動/全15は維持。この新観測条件を先に隔離featureへpushし、既存の可逆instrumentation/manifest/runner検査後、新規reviewで通知caseを26/27各一回比較する。
