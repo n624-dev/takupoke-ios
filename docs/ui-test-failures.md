@@ -4421,3 +4421,20 @@ nativeで観測したReady/Unusable優先切替後に同じowned assetだけ一�
 initial/復旧のBooted・不明状態・別OSのBooted拒否を確認。全元UIと最終Ready一件/AssetData不在は維持。
 実Appleの最終回収は未確認。code-only差分772行/48188bytes、SHA256
 dda32a14b0307ce438118cbc48a9a38726d65173750c7152e3e5bf486118cd96。
+
+## N226 実優先切替対応のSelected26がfailure（2026-11-07）
+
+source6debe1a436af849ee13714cae49c187acb8c530a/run42383114750/attempt1/job128434744051、
+SDK27.2・予定26.5正式23F77/GUI。14:45:55〜14:49:02Z failureを予定14:52Z照会で確認。
+本文未読で段階/原因は未確定、対処前に記録。新1log/artifact一覧だけ一度取得する。
+
+新log/artifact0を一度取得。起動deviceなしと同じowned assetの新Ready UUID ED29A55A…を実照合し、
+第二deleteまで進んだが、同じnative部分削除exit30となった。再試行せず停止し、UI/bootは未実行。
+N223〜N225とupstream14946の「別環境でexport後、MobileAssetのない環境へimport」の順序を再照合した。
+現処理は取得とimportを同じ環境で先に行い、二重登録を作ってから回収していた。これがreclaim失敗の直接原因とは未確定。
+次は一意なportable exportを保持したまま、今回新規取得した未使用のMobileAssetを先に正規APIで回収する。
+全device Shutdown・同じasset/UUID/build/path・既存にないことを確認する。必要な特定exit30の一回scan/第二deleteは
+同じ所有guardで維持するが、この段階ではimported localはまだ作らない。target登録0とowned AssetData不在を必須にする。
+その後にowned exportを一回だけimportし、一意なlocal Ready/正式buildとAssetData不在を最終確認する。
+SDK/OS/UI/boot/期限/全15は変えず、回収失敗を成功へ読み替えない。fakeも取得→所有回収→一回importの実順序を検証する。
+候補/根拠を先にpushし、局所検査と新規reviewの後だけ次の限定を開始する。
