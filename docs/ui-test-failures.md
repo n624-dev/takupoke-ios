@@ -4099,3 +4099,9 @@ SDKを27.2、AppleのUI実行だけheadlessへ揃える候補へ進む。Native2
 任意manual26 probeにも27.2比較を追加し、27.1/26.6の旧条件を保持する。未知SDK拒否は維持する。
 host証明条件・元case/期限/期待・全15必須は変更せず、限定成功を正式ゲートへ合算しない。
 この候補/根拠を先にpushし、SDK選択/全元ゲート/環境の分離をローカル検査した後、新規reviewで限定実行する。
+
+d3e70d7を先にpush後、manifestの30件を失敗0で確認（通常27件5.163秒、Swift不在でskipした3件は
+Swiftを有効にして2件9.404秒＋1件2.036秒で別途成功）。source paths3件/失敗0（0.003秒）、
+一覧454/check --base2b89も成功。元8手動・4通常UIの全15ゲートと、Linuxへheadless環境を漏らさない条件を維持。
+短い実例一覧は13項目/19行を維持し、今回のmodule名の教訓を既存identity項目に追記した。
+完全code-only差分1302行/76496bytes/SHA256 594050beacea37d38a23b665939ae7bbe4ac61c586fa1fd12f0715f7498e9876。
