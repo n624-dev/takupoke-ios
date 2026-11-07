@@ -4536,3 +4536,9 @@ N212のcancelled/Binding未到達とは異なり、今回はcallbackのgranted/e
 候補498e75fを先にpush後、既存manifest30件/失敗0（17.130秒）と実shell runner18件/失敗0（46.362秒）、Swift構文/catalog456は成功。
 全collector検索でtest-app-ui.shの固定stage許可にも新しい三結果の登録が必要と確認し、その正例を既存の本文/大容量/symlink拒否ケースへ追加する。
 callback windowの解析器は既存request/returned/callbackだけを時刻窓へ使うため、新結果を完了の代用へ加えない。採取内容だけを更新し、元の失敗判定を保持する。
+
+c3ddd7eを先にpush後、最終manifest30件/失敗0（16.953秒）、実shell runner18件/失敗0（47.427秒）、Swift構文・shell構文・catalog456/check --base9eaは成功。
+可逆instrumentation/元caseと全15/collectorの既知stage・本文/大容量/symlink拒否を既存ケースで確認し、期待を写す重複テストを増やしていない。
+新規GPT-6.1 Sol/High n230_pre_actions_reviewは完全code-only85行/7384bytesを確認し、指摘なし。
+SHA256=388deae90279494f9a5070f298bb75e822c195027204890585d23e8b00f2c0b7。主担当が最終差分同一性・局所成功・未送信commit空白を照合し、
+このreviewを次の通知Controls/iOS26+27/SDK27.2限定dispatch一回だけへ使用する。正式mainには別の新規reviewと全15成功を要求する。
