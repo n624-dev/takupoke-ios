@@ -4414,3 +4414,10 @@ UI/bootは未実行。N224の非同期は実確認できたが、fakeの「local
 ないことをread-onlyで確認後、一回だけ指定deleteする。元のinitial削除ではReadyを引き続き拒否する。
 最終の同じlocal Ready一件・owned AssetData不在、全元UI/SDK/OS/期限/全15は変えない。
 fakeに実際のReady/Unusable切替とBooted/不明device拒否を追加し、候補/根拠を先にpushする。
+
+f832cc9を先にpush後、実helper/fakeCLI4宣言/失敗0（67.606秒、26の40経路）、
+元manifest30件/失敗0（Swift有効、19.642秒）、一覧456/write/check --base eb6af38が成功。
+nativeで観測したReady/Unusable優先切替後に同じowned assetだけ一回回収し、local Ready復帰を確認する正例と、
+initial/復旧のBooted・不明状態・別OSのBooted拒否を確認。全元UIと最終Ready一件/AssetData不在は維持。
+実Appleの最終回収は未確認。code-only差分772行/48188bytes、SHA256
+dda32a14b0307ce438118cbc48a9a38726d65173750c7152e3e5bf486118cd96。
