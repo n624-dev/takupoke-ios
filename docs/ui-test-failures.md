@@ -4343,3 +4343,10 @@ import後のlocal Ready一件を確認し、同じpath/buildの今回作成さ�
 boot前にsimctl runtime deleteの正規APIで回収する。既存UUID/asset・別OS・未知の重複・Readyは削除しない。
 回収後に同じlocal Readyだけであることを再確認し、不一致/失敗/新たな重複は拒否、再試行しない。
 元SDK/Runtime/全入力/一回boot/期限/全15を維持する。所有外を保全するfake CLIの正負ケースを追加し、候補/根拠を先にpushする。
+
+be720feを先にpush後、実Runtime helper/fakeCLI4宣言/失敗0（11.854秒、26の25経路）、
+元manifest30件/失敗0（Swift有効、18.803秒）、一覧456/write/check --base eb6af38が成功。
+削除対象は新しい取得UUID一件だけ。既存image/UUID、別OS、未知重複、Ready、非deletable、誤local path、
+local複数を拒否し、削除失敗・消えない重複は再試行せず失敗となる。所有exportの保持/回収も維持。
+実Simulatorの結果は未確認。code-only差分650行/38903bytes、SHA256
+9e39b22feeeea101c434815481cf06672b144af987c91ff56ee889494ef1628b。
