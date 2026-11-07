@@ -4532,3 +4532,7 @@ N212のcancelled/Binding未到達とは異なり、今回はcallbackのgranted/e
 次は診断のみ：二つ目も同じ一回tap・同じ10秒で実native値を要求し、失敗時だけ実probe/画面を記録して明示失敗する。
 使い捨てfixtureは実callbackのerror/granted/denied固定stageと実permissionMessageも観測する。OS応答・保存値は変更しない。
 製品/接触点/許可操作/待機/元case/保存と再起動/全15は維持。この新観測条件を先に隔離featureへpushし、既存の可逆instrumentation/manifest/runner検査後、新規reviewで通知caseを26/27各一回比較する。
+
+候補498e75fを先にpush後、既存manifest30件/失敗0（17.130秒）と実shell runner18件/失敗0（46.362秒）、Swift構文/catalog456は成功。
+全collector検索でtest-app-ui.shの固定stage許可にも新しい三結果の登録が必要と確認し、その正例を既存の本文/大容量/symlink拒否ケースへ追加する。
+callback windowの解析器は既存request/returned/callbackだけを時刻窓へ使うため、新結果を完了の代用へ加えない。採取内容だけを更新し、元の失敗判定を保持する。

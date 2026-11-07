@@ -530,6 +530,7 @@ METHOD
         callbacks = "".join(lifecycle.replace("application-ready", stage) + "\n" for stage in (
             "notification-native-request", "notification-native-callback",
             "notification-auth-request", "notification-auth-callback", "notification-auth-returned",
+            "notification-auth-error", "notification-auth-granted", "notification-auth-denied",
             "notification-settings-not-requested", "retention-recovery-action",
             "retention-dialog-on", "retention-dialog-off", "year-input-observer-installed",
             "year-edit-began", "year-edit-ended", "year-edit-changed",
