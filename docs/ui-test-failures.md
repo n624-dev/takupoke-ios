@@ -4440,3 +4440,10 @@ SDK/OS/UI/boot/期限/全15は変えず、回収失敗を成功へ読み替え�
 native削除失敗時だけ、該当asset hash/purge/reclaimに絞ったhost logを最大15秒・表示32KiBで記録する。
 このread-only診断の失敗はunknownとして示し、回収の成功条件には使わない。
 候補/根拠を先にpushし、局所検査と新規reviewの後だけ次の限定を開始する。
+
+e1acaf6を先にpush後、実helper/fakeCLI4宣言/失敗0（63.843秒、26の40経路）、manifest30件/失敗0
+（Swift有効、18.083秒）、一覧456/write/check --base eb6af38が成功。portable exportの保持・元asset回収後の
+一回import、すべてのdeleteがimportより前であることと、以前の所有/SDK/build/復旧期限/負対照を確認した。
+診断追加19efa26も先にpush後にhelper全4宣言を再実行し、失敗0（62.105秒）。診断の失敗は回収結果を変更しない。
+実Appleの回収は未確認。最終code-only差分795行/49164bytes、SHA256
+f701489e8cbf02a0568bf4337001fc18667696934deba39769339fc97646f13d。
