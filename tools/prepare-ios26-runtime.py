@@ -94,14 +94,36 @@ def owned_asset_image(key, image, asset_path):
     return (exact_image(key, image) and image.get("path") == str(asset_path)
             and image.get("deletable") is True and known_preference_state(image))
 
+def delete_owned_asset_image(key, asset_path):
+    removal = subprocess.run(["xcrun", "simctl", "runtime", "delete", key],
+                             capture_output=True, text=True, timeout=180)
+    print(removal.stdout + removal.stderr, end="", flush=True)
+    if removal.returncode:
+        # Preserve targeted host evidence if Apple's prescribed cleanup fails.
+        # This read-only diagnostic never changes cleanup acceptance.
+        asset_hash = asset_path.parent.name.removesuffix(".asset")
+        predicate = ('(process == "simdiskimaged" OR process == "mobileassetd") AND '
+                     '(eventMessage CONTAINS "' + asset_hash + '" OR '
+                     'eventMessage CONTAINS "reclaim" OR eventMessage CONTAINS "purge")')
+        try:
+            with tempfile.TemporaryFile() as output:
+                diagnostic = subprocess.run(["/usr/bin/log", "show", "--last", "2m", "--style", "compact",
+                                             "--predicate", predicate], stdout=output, stderr=subprocess.STDOUT,
+                                            timeout=15)
+                output.seek(0)
+                raw = output.read(32769)
+                print("TAKUPOKE_IOS26_ASSET_FAILURE " + json.dumps({"exit": diagnostic.returncode,
+                      "truncated": len(raw) > 32768, "text": raw[:32768].decode("utf-8", errors="replace")}), flush=True)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            print("TAKUPOKE_IOS26_ASSET_FAILURE " + json.dumps({"unknown": type(error).__name__}), flush=True)
+    return removal
+
 def reclaim_owned_asset(before, download_id, download_image, asset_path):
     if not owned_asset_image(download_id, download_image, asset_path):
         raise SystemExit("Refusing removal of an unowned or unknown runtime image")
     require_no_started_devices()
-    removal = subprocess.run(["xcrun", "simctl", "runtime", "delete", download_id],
-                             capture_output=True, text=True, timeout=180)
+    removal = delete_owned_asset_image(download_id, asset_path)
     message = removal.stdout + removal.stderr
-    print(message, end="", flush=True)
     if removal.returncode:
         partial = (removal.returncode == 30
             and "(domain=com.apple.CoreSimulator.simdiskimaged.SimDiskImageError, code=30):" in message
@@ -134,7 +156,7 @@ def reclaim_owned_asset(before, download_id, download_image, asset_path):
             if recovered_id in before or not owned_asset_image(recovered_id, recovered, asset_path):
                 raise SystemExit("Refusing removal of an unowned re-registered runtime image")
             require_no_started_devices()
-            subprocess.run(["xcrun", "simctl", "runtime", "delete", recovered_id], check=True, timeout=180)
+            delete_owned_asset_image(recovered_id, asset_path).check_returncode()
             break
     if target_images(runtime_images("after-owned-asset-removal")) or asset_path.exists():
         raise SystemExit("The newly owned MobileAsset must be fully reclaimed before import")

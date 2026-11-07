@@ -4437,4 +4437,6 @@ N223〜N225とupstream14946の「別環境でexport後、MobileAssetのない環
 同じ所有guardで維持するが、この段階ではimported localはまだ作らない。target登録0とowned AssetData不在を必須にする。
 その後にowned exportを一回だけimportし、一意なlocal Ready/正式buildとAssetData不在を最終確認する。
 SDK/OS/UI/boot/期限/全15は変えず、回収失敗を成功へ読み替えない。fakeも取得→所有回収→一回importの実順序を検証する。
+native削除失敗時だけ、該当asset hash/purge/reclaimに絞ったhost logを最大15秒・表示32KiBで記録する。
+このread-only診断の失敗はunknownとして示し、回収の成功条件には使わない。
 候補/根拠を先にpushし、局所検査と新規reviewの後だけ次の限定を開始する。
