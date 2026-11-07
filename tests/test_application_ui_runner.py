@@ -244,6 +244,7 @@ if Path(sys.argv[0]).name == 'xcodebuild':
     if 'test-without-building' in args and os.environ.get('FAIL_TESTS'): sys.exit(45)
     if os.environ.get('FAIL_CASE') in tests: sys.exit(49)
     if os.environ.get('FAIL_NOTIFICATION') and tests == ['testNotificationControlsAndAppearance']: sys.exit(46)
+elif Path(sys.argv[0]).name == 'log': print('[]')
 elif Path(sys.argv[0]).name == 'xcode-select': print(os.environ['SYNTHETIC_DEVELOPER'])
 elif Path(sys.argv[0]).name == 'defaults': print('1' if args[1] == 'com.apple.iphonesimulator' else '0')
 elif Path(sys.argv[0]).name == 'open' and os.environ.get('FAIL_FRONTEND'): sys.exit(43)
@@ -264,7 +265,7 @@ elif (args[:3] == ['simctl', 'bootstatus', '00000000-0000-0000-0000-000000000002
       and os.environ.get('FAIL_NOTIFICATION_BOOT')): sys.exit(47)
 elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINER'])
 '''
-            for tool in ("xcrun", "xcodebuild", "xcode-select", "open", "defaults", "codesign"):
+            for tool in ("xcrun", "xcodebuild", "xcode-select", "open", "defaults", "codesign", "log"):
                 path = repo / "bin" / tool
                 path.write_text(fake)
                 path.chmod(0o755)
@@ -521,7 +522,11 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
         for ios in (26, 27):
             with self.subTest(ios=ios):
                 result, calls = self.run_synthetic_runner(ios, "B", fail_notification=True)
-                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(result.returncode, 46)
+                self.assertIn('TAKUPOKE_HOST_BOOT_FAILURE ', result.stdout)
+                host = next(i for i, call in enumerate(calls) if call[:2] == ["log", "show"])
+                guest = next(i for i, call in enumerate(calls) if call[:3] == ["xcrun", "simctl", "spawn"])
+                self.assertLess(host, guest)
                 attempts = [call for call in calls if "test-without-building" in call]
                 self.assertEqual(len(attempts), 5)
                 selected = [arg.rsplit("/", 1)[1] for arg in attempts[-1]

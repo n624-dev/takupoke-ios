@@ -4542,3 +4542,21 @@ c3ddd7eを先にpush後、最終manifest30件/失敗0（16.953秒）、実shell 
 新規GPT-6.1 Sol/High n230_pre_actions_reviewは完全code-only85行/7384bytesを確認し、指摘なし。
 SHA256=388deae90279494f9a5070f298bb75e822c195027204890585d23e8b00f2c0b7。主担当が最終差分同一性・局所成功・未送信commit空白を照合し、
 このreviewを次の通知Controls/iOS26+27/SDK27.2限定dispatch一回だけへ使用する。正式mainには別の新規reviewと全15成功を要求する。
+
+## N231 通知の新観測比較で27がfailure（2026-11-07）
+
+source3f756ca33c79ae0a46dcb7dd0376c5fad1932e1f/run42397980393/attempt1/job128479375801、iOS27/SDK27.2。
+17:46:51〜18:00:01Z failureを予定18:03Z照会で確認。本文未読で失敗case内の段階・原因は未確定、対処前に記録する。
+同じ比較の26/job128479375638は17:46:51〜17:59:38Z success。全二job終端、新二log/artifact一覧だけを一度取得する。
+
+新二log/artifact0を一度取得。26は196.987秒/失敗0、元の両ON/外観/保存/再起動と実Runner証明が成功。二つの認可callbackは実grantedだった。
+27は138.536秒、112行の最初の変更通知ON・元45秒で失敗。実Switch操作後requesting=trueのまま、Allow操作なし、値0/保存false。
+アプリ/システム画像は同じSHA256 da4feeca5cc6803ab2af019e63b093bb5a3ae6f81271c0413d87a886964de1bd、許可画面へ進んだ証拠はない。
+実Runnerは27.0.0/Simulator/所有UUIDを記録。終了時Runtime available/device Bootedだが、guest launchctl/logとapp-container取得はすべてtimeoutし、
+native journal・実OS callback結果を採取できなかった。N230の二つ目のcallback到達後とは異なる段階。OS内部の下位原因は未確定。
+
+検索語requesting=true/初回未返答/callbackなし/host/headless27、U21/U22/U24/U36/U37と当時fd6e42c/現3fの通知実装・traceを照合。
+旧GUIやSDK切替でも未返答があり、今回27は同じheadless/27.2の正式17では成功しているため、その切替を根拠なく繰り返さない。
+現在の失敗診断はguest経由で、host側の所有UUIDに絞った既存collect_boot_failureをこのUI失敗時に呼んでいない。
+次はその既存の10秒/2MiB/固定語彙/同じ所有UUIDだけのhostログを、failure cleanupのguest照会より先に一回採取する。
+成功経路・製品・許可と一回tap/元45秒・全期待/15gateは変更しない。この新観測条件を先にpushし、実runner/既存host診断検査・新規review後、未解決の27だけ比較する。

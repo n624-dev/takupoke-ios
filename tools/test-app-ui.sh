@@ -57,6 +57,8 @@ cleanup() {
     stop_hang_watch
     if [[ -n "$simulator_id" ]]; then
         if [[ "$task_exit_status" != "0" ]]; then
+            # N231: guest diagnostics can time out; retain the owned host context first.
+            python3 -B tools/notification_service_trace.py --boot-failure "$simulator_id" || true
             python3 -B tools/notification_service_trace.py --runtime "$simulator_id" "$runtime" || true
             python3 -B tools/notification_service_trace.py --accessibility "$simulator_id" || true
         fi
