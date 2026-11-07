@@ -4490,3 +4490,20 @@ source9a9bc33/run42385700552/attempt1/Linuxでの保持log再監査、validate_e
 正式main用の新規Sol/High n227_shipping_pre_actions_reviewは完全code-only821行/51291bytesを確認し指摘なし。
 最終hash2202526550076f9013892d70bdbcd992ff47790386d6d5eb51a4e31f8dcffa56の同一性と
 実Selected成功・未送信commitの空白を主担当が確認後、正常fast-forward main一回へ消費する。正式全15は別にすべて要求する。
+
+## N229 正式16のDistributionがfailure（2026-11-07）
+
+source19eaf591146f3e0a480519db7ee8faf19ebf8e00/run42388447778/attempt1/job128450727082、Linux。
+15:52:08〜15:55:44Z failureを予定15:56Z照会で確認。本文未読で失敗case/stage/原因は未確定、対処前に記録。
+依存の全Mac/公開はskipで成功扱いしない。全表示job終端、新1log/artifact一覧だけ一度取得する。
+
+新log/artifact0を一度取得。314件/失敗11/予定skip22（206.882秒）、すべて
+test_application_ui_runner.test_alternate_toolchain_preflight_requires_requested_sdk_and_same_runtimeの26 subcaseだった。
+既存installed fakeにbuildversionがなく、runtime image照会へも従来のruntimes配列を返してAttributeError。
+download期待もmarketing26.5・自動登録時のimport省略のままで、実helperの新契約に追従していなかった。
+N178/N214のmock契約不一致と旧/現helper・workflow抽出を照合し、prepare-ios26/27/download/importをtests全体で検索した。
+ここは実比較workflowのshellを実行する別のintegration fakeで、前回の関連検査確認から漏れていた。
+実production/helper/元UI/gateを変更せず、このfakeを実JSON二種類・23F77/arm64・owned asset削除後の一回importへ合わせる。
+元27件の正負対照と5秒上限・always回収を維持し、誤SDK/OS/取得/import/利用不能/誤buildの拒否も保つ。
+候補を隔離featureへ先にpushし、関連shell検査と全Pythonを確認した後、新規main専用reviewを経て正式17へ進む。
+実Runtime codeは変えないため、既に通ったSelected26を同じ条件で再dispatchせず、次の正式全15で再検証する。

@@ -67,30 +67,59 @@ python3() { [[ "$*" == "-B tools/notification_service_trace.py --confirm-shutdow
 import json, os, sys
 from pathlib import Path
 args = sys.argv[1:]
+marker = Path(os.environ['IMPORT_MARKER'])
+downloaded = marker.with_name('downloaded')
+removed = marker.with_name('asset-removed')
+local = marker.with_name('local-imported')
+download_id = '11111111-1111-4111-8111-111111111111'
+local_id = '22222222-2222-4222-8222-222222222222'
+asset = '/System/Library/AssetsV2/com_apple_MobileAsset_iOSSimulatorRuntime/' + 'a'*40 + '.asset/AssetData'
 with open(os.environ['COMMAND_LOG'], 'a') as log:
     log.write(json.dumps(args) + '\\n')
 if sys.argv[1:2] == ['--sdk']: print(os.environ['OBSERVED_SDK'])
+elif args[:3] == ['simctl','runtime','list']:
+    images = {}
+    if downloaded.exists() and not removed.exists():
+        images[download_id] = {'identifier':download_id,'runtimeIdentifier':'com.apple.CoreSimulator.SimRuntime.iOS-26-5',
+            'platformIdentifier':'com.apple.platform.iphonesimulator','version':'26.6' if os.environ['IMPORT_MODE']=='auto-wrong-version' else '26.5',
+            'build':'23F77','state':'Ready','deletable':True,'path':asset}
+    if local.exists():
+        images[local_id] = {'identifier':local_id,'runtimeIdentifier':'com.apple.CoreSimulator.SimRuntime.iOS-26-5',
+            'platformIdentifier':'com.apple.platform.iphonesimulator','version':marker.read_text(),
+            'build':'23F77','state':'Ready','deletable':True,'path':'/Library/Developer/CoreSimulator/Cryptex/Images/'+local_id}
+    print(json.dumps(images))
+elif args[:3] == ['simctl','list','devices']: print(json.dumps({'devices':{}}))
+elif args[:3] == ['simctl','runtime','delete']:
+    assert args == ['simctl','runtime','delete',download_id] and downloaded.exists() and not local.exists()
+    removed.write_text('owned asset reclaimed')
 elif sys.argv[1:2] == ['simctl']:
-    marker = Path(os.environ['IMPORT_MARKER'])
     runtime = marker.read_text() if marker.exists() else os.environ['OBSERVED_RUNTIME']
     if runtime == '27.0+27.1':
         print(json.dumps({'runtimes':[{'isAvailable':True,'version':v,'identifier':'com.apple.CoreSimulator.SimRuntime.iOS-'+v.replace('.','-')} for v in ['27.0','27.1']]}));sys.exit()
     print(json.dumps({'runtimes': [{'isAvailable': os.environ['IMPORT_MODE'] != 'registered-unavailable', 'version': runtime,
+        'buildversion':'23F73' if os.environ['IMPORT_MODE']=='wrong-build' else '23F77',
         'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-' + runtime.replace('.', '-')}]}))
 elif args[:1] == ['-downloadPlatform']:
+    assert args[:7] == ['-downloadPlatform','iOS','-buildVersion','23F77','-architectureVariant','arm64','-exportPath']
     if os.environ['IMPORT_MODE'] == 'download-fails': sys.exit(9)
+    downloaded.write_text('new owned runtime')
     exported = Path(args[args.index('-exportPath') + 1])
     if os.environ['IMPORT_MODE'] in ('auto-install', 'auto-wrong-version'):
-        (exported / 'fictional-runtime.exportedBundle').mkdir()
+        bundle = exported / 'fictional-runtime.exportedBundle'
+        bundle.mkdir(); (bundle/'image').write_bytes(b'fictional image')
         version = '26.6' if os.environ['IMPORT_MODE'] == 'auto-wrong-version' else '26.5'
         Path(os.environ['IMPORT_MARKER']).write_text(version)
     elif os.environ['IMPORT_MODE'] != 'no-image':
         (exported / 'fictional-runtime.dmg').write_bytes(b'fictional image')
 elif args[:1] == ['-importPlatform']:
+    assert removed.exists() and not local.exists()
+    exported = Path(args[1]); image = exported/'image' if exported.is_dir() else exported
+    assert image.read_bytes() == b'fictional image'
     if os.environ['IMPORT_MODE'] == 'import-fails': sys.exit(10)
     if os.environ['IMPORT_MODE'] == 'unavailable': sys.exit(0)
     version = '26.6' if os.environ['IMPORT_MODE'] == 'wrong-version' else '26.5'
     Path(os.environ['IMPORT_MARKER']).write_text(version)
+    local.write_text('one imported local runtime')
 else: print('Synthetic Xcode version')
 '''
             for name in ("xcodebuild", "xcrun"):
@@ -107,6 +136,7 @@ else: print('Synthetic Xcode version')
                 (27, "26.6", "27.0", "27.0", "unused", True, "27.0"),
                 (26, "27.1", "27.1", "26.5", "unused", True),
                 (26, "27.2", "27.2", "26.5", "unused", True),
+                (26, "27.2", "27.2", "26.5", "wrong-build", False),
                 (26, "27.1", "27.0", "26.5", "unused", False),
                 (26, "26.6", "26.6", "26.5", "unused", False),
                 (27, "26.6", "27.0", "27.0", "unused", False),
@@ -132,6 +162,8 @@ else: print('Synthetic Xcode version')
                 with self.subTest(ios=ios, sdk26=sdk26, requested=sdk27, sdk=sdk, runtime=runtime, mode=mode):
                     command_log.unlink(missing_ok=True)
                     marker.unlink(missing_ok=True)
+                    for name in ('downloaded','asset-removed','local-imported'):
+                        (root/name).unlink(missing_ok=True)
                     env = os.environ | {"PATH": directory + os.pathsep + os.environ["PATH"],
                         "TKPK_TEST_IOS": str(ios), "TKPK_UI_PROBE_SDK27": sdk27,
                         "TKPK_UI_PROBE_SDK26": sdk26,
@@ -151,15 +183,20 @@ else: print('Synthetic Xcode version')
                     commands = [json.loads(line) for line in command_log.read_text().splitlines()]
                     downloads = [args for args in commands if args[:1] == ["-downloadPlatform"]]
                     imports = [args for args in commands if args[:1] == ["-importPlatform"]]
-                    if mode in ("unused", "registered-unavailable"):
+                    removals = [args for args in commands if args[:3] == ['simctl','runtime','delete']]
+                    if mode in ("unused", "registered-unavailable", "wrong-build"):
                         self.assertEqual(downloads, [])
                         self.assertEqual(imports, [])
+                        self.assertEqual(removals, [])
                     else:
                         self.assertEqual(len(downloads), 1)
-                        self.assertEqual(downloads[0][:5],
-                                         ["-downloadPlatform", "iOS", "-buildVersion", "26.5", "-exportPath"])
-                        no_import = mode in ("download-fails", "no-image", "auto-install", "auto-wrong-version")
+                        self.assertEqual(downloads[0][:7],
+                                         ["-downloadPlatform", "iOS", "-buildVersion", "23F77", "-architectureVariant", "arm64", "-exportPath"])
+                        no_import = mode in ("download-fails", "no-image", "auto-wrong-version")
                         self.assertEqual(len(imports), 0 if no_import else 1)
+                        self.assertEqual(removals, [] if no_import else [['simctl','runtime','delete','11111111-1111-4111-8111-111111111111']])
+                        if not no_import:
+                            self.assertLess(commands.index(removals[0]), commands.index(imports[0]))
                     self.assertEqual(list(root.glob("takupoke-runtime-owned-*")), [])
 
     def run_synthetic_runner(self, ios, shard, *, omit_result=False, fail_build=False,
