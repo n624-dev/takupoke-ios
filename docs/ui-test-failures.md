@@ -4578,3 +4578,14 @@ host採取を一回だけの共通helperにし、check_uiのguest直前とcleanu
 先行N230コードの全Python314件/失敗0・skip2（196.509秒、Swift6.1.2有効）も保持するが、新helperは今回の実runner/host検査で別に評価した。
 新規GPT-6.1 Sol/High n232_pre_actions_reviewは最終code-only156行/11463bytes、SHA256 fefcc85dc0e1aaede21b0bd970c44f047d0c62995b40f8c1321f467ef213e2a9を確認し指摘なし。
 主担当が同一性/局所結果/未送信空白を確認してから、このreviewを未解決Controls27/SDK27.2の限定dispatch一回だけへ使用する。26の成功を再実行せず、限定結果を正式全15へ流用しない。
+
+最終ced2df0の全Python314件は失敗0・skip2（210.948秒、Swift6.1.2有効）。
+Controls27/run42399887550/attempt1/job128485181090は18:09:58〜18:21:37Z success、元case259.103秒/失敗0。
+実27.0.0/Simulator/所有UUIDに一致するRunner証明、元一回操作・実Allow/両認可granted・両ON・外観/保存/再起動と厳密完了が成立した。
+新log/artifact0を一度取得し、終端を再照会しない。今回旧停止は再現せず、失敗専用host観測は作動していないため低位原因や恒常解消は断定しない。
+先行26成功のUI/製品/成功経路と現在は同一codeで、追加したhost採取は失敗時だけ。限定成功を正式へ合算せず、最終mainの同じsource/run/attempt全15を別途要求する。
+18:24Zにremote main9ea1de5不変を一度確認。main用の新規code-only reviewを経て通常fast-forwardの正式18へ進む。
+
+新規main専用GPT-6.1 Sol/High n232_shipping_pre_actions_reviewは完全code-only156行/11463bytesを確認し指摘なし。
+SHA256 fefcc85dc0e1aaede21b0bd970c44f047d0c62995b40f8c1321f467ef213e2a9の同一性、製品/正式workflow/manifest不変、
+限定27成功・local全Python/関連検査・main9ea不変・全未送信commitの空白を主担当が確認した後、一回のmain pushへ消費する。
