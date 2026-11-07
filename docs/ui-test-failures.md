@@ -4305,3 +4305,10 @@ CoreSimulator/Cryptex/Imagesへ登録すると重複しなくなった実例が�
 元SDK/OS/入力/boot/期限/全15とexport保持を維持。準備前後のread-only runtime image一覧も記録する。
 実helper/fakeCLIで自動登録後も所有exportをimportする正例と複数/欠落/symlink/エラー拒否を確認し、
 元Selected26と残ケースを再確認する。候補/根拠を先にpushしてから局所検査・新規reviewへ進む。
+
+a4faa25を先にpush後、Runtime準備4宣言/失敗0（6.371秒、26の14経路）、manifest30件/失敗0
+（Swift有効、16.968秒）、一覧456/write/check --base eb6af38が成功。実helperは自動登録後も一回importし、
+exportedBundle/dmgの正例、複数/欠落/symlink・取得/import失敗・誤build/欠落/重複の拒否と所有回収を検証した。
+元Runtime安定性は未確認。code-only差分562行/32350bytes、SHA256
+3f72595050f9960e865902af12ae2e0c74880a749dd7d273978458399c9f1dbb。
+限定は直前に失敗した元Selected26一件に絞り、One/Threeの旧実行も取消さず終端を確認する。
