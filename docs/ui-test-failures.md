@@ -4199,3 +4199,8 @@ visible/tap/launchを照合。N213の数分停止とも通知取消とも段階�
 その間にtap/dragは送らない。複数List/Recovery消失は拒否し、実際に有限なviewportとhittable対象が得られるまで操作しない。
 各試行のframe一回、元16の総上限/一回反転/一回接触/45秒/保存・再起動・全15を維持。新しい待機時間や入力の再送は足さない。
 OneとSelectedの元caseを両OSで限定確認する。旧26通常A/Bは取消さず、新限定とまとめて終端を確認する。
+
+698c8b0を先にpush後、manual project17件/失敗0（0.706秒）、manifest30件/失敗0（16.445秒）、
+Swift構文と一覧454/check --base eb6af38が成功。元caseとgeometry検査は実入力/曖昧性/有限枠の拒否を維持。
+新しい待機秒数は追加せず、zero geometryの観測も元16試行を消費し、validになるまで一切入力しない。
+完全code-only差分60行/4156bytes/SHA256 807d1ca61d74367c64734a05e216b8f071c6006517d57c1410ac5dda0d03117b。
