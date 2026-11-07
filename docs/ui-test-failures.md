@@ -4658,3 +4658,9 @@ Readingを削除せず3観測目のReadyで一回deleteする正例、同じ30�
 限定対象は通常Bの元testSettingsAccountDataAndFileDetails一件/iOS26/SDK27.2とし、新Runtime準備から実UIまでを通す。
 新規GPT-6.1 Sol/High n234_pre_actions_reviewはcode-only104行/8899bytes、SHA256 0aeb6122d6e7ab13d6e03b59523bbe5a1c5edee1875000372aa841063f6d0b65を確認し指摘なし。
 主担当が同一性/局所結果/未送信空白を確認し、このreviewを上記限定dispatch一回だけへ使用する。
+
+追加のReading期限切れをもう一度実30秒で待つと、旧正式18のPython257.579秒に対し5分jobの余白をほぼ使う。
+二つの同じ30秒期限の負例を別々に実時間待機する必要はない。元の候補0の負例は実30秒を維持し、
+新Reading負例だけはテスト用monotonic/sleepで同じ30秒・一秒以下の待機30回を制御する。実helperのclock/30秒設定は変更しない。
+全30回がReadingで、仮想経過30秒ちょうどで失敗・第二delete/importなしを要求し、正例/他のCLIは実コマンドdoubleのまま動かす。
+Native限定実行のソースef14399からRuntime helper/製品/UIは同一bytesで、変更はLinuxの検査時間だけ。候補を先にpushして全Pythonを確認する。

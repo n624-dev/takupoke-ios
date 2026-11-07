@@ -129,7 +129,20 @@ def observed_exists(path):
         return actual_exists(root/'downloaded') and not (actual_exists(removed) and removed.read_text()=='complete')
     return actual_exists(path)
 sys.argv=sys.argv[1:]
-with patch.object(Path,'exists',observed_exists):runpy.run_path(sys.argv[0],run_name='__main__')
+with patch.object(Path,'exists',observed_exists):
+    if os.environ['MODE']=='partial-restored-reading-stuck':
+        # The existing no-registration case still measures the real 30 seconds.
+        # Drive this second pending-state case with the same 30-second clock,
+        # without adding another real half-minute to the five-minute CI job.
+        clock=[0.0]
+        def advance(seconds):
+            assert 0 < seconds <= 1
+            clock[0]+=seconds
+        try:
+            with patch('time.monotonic',lambda:clock[0]),patch('time.sleep',advance):
+                runpy.run_path(sys.argv[0],run_name='__main__')
+        finally:Path(os.environ['MARKER']).with_name('observed-elapsed').write_text(str(clock[0]))
+    else:runpy.run_path(sys.argv[0],run_name='__main__')
 '''
         successes={'installed','auto-installed','import','dmg-export','partial','partial-already-reclaimed','partial-lag','partial-restored','partial-restored-reading'}
         no_delete={'installed','installed-wrong-build','installed-build-missing','installed-duplicate-build','installed-unavailable',
@@ -173,6 +186,9 @@ with patch.object(Path,'exists',observed_exists):runpy.run_path(sys.argv[0],run_
                     mode.startswith('partial') and mode not in ('partial-badmessage','partial-wrong-path','partial-foreign-image')))
                 if mode=='partial-restored-reading':self.assertEqual((root/'observations').read_text(),'3')
                 if mode in ('partial-pending','partial-restored-reading-stuck'):self.assertIn('30 seconds',prepared.stderr)
+                if mode=='partial-restored-reading-stuck':
+                    self.assertEqual(float((root/'observed-elapsed').read_text()),30.0)
+                    self.assertEqual((root/'observations').read_text(),'30')
                 if mode in ('partial-restored-reading-foreign','partial-restored-unknown-state'):
                     self.assertEqual((root/'observations').read_text(),'1')
                 if mode in imports:
