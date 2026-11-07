@@ -4137,3 +4137,8 @@ Switchは現在の同じnative identity/点/元状態照合を保持し、強制
 U64の旧tap失敗は同時のnative配送証拠が無く、現在はbinding済みnative要素へのpress取消を実観測した点が異なる。
 全5callerへ共通適用し、元UI/保存/再起動の条件と45秒・許可一回を維持。入力再送や期待値/許可の注入はしない。
 候補/根拠を先にpush後、局所契約/一覧と新規reviewを経て通知26と明示選択訂正26を各一回比較する。
+
+01daa73を先にpush後、manifest30件/失敗0（20.300秒）、実GUI/headless bootstrap3件/失敗0（2.507秒）、
+Swift構文と一覧454/check --base a8b7131が成功。元一回操作・全包含/状態照合・45秒と保存検査は維持。
+共通Switchを使う両OSを確認するため、通知caseは同一dispatchで26/27各一回、訂正Selectedは26一回に絞る。
+完全code-only差分113行/6314bytes/SHA256 da40dd5abac8e4534ed0ffac024e4b94c90bf165c9adce32ce358f3d1db38f40。
