@@ -4611,3 +4611,9 @@ N97ではACKを同List/Switchとし、外側の論理IDをviewport観測後に�
 外側のindex-bound論理ID・viewport先行/即frame観測と内側の実接触identity・一意性/完全包含・受動Cell・元16試行/一回reverse/gesture/全期限・全4caseと全15gateは保持する。
 既存の元Three caseが今回を直接検出済みで、同じ元caseを両OSで先に比較する。条件を写す新テストを増やさず、既存幾何/生成契約/runner/manifestを実行する。
 候補と根拠を隔離featureへ先にpushし、局所検査/新規review後に限定dispatchする。稼働中の正式18の通常26二件は中止しない。
+
+31fb986を先にpush後、生成契約17件/失敗0（0.757秒）、スクロール2宣言/内部29幾何例/失敗0（3.472秒）、
+実manual runner6件/失敗0（5.618秒）、manifest30件/失敗0（17.418秒）、Swift構文/catalog456/check --base65fは成功。
+短い実例一覧は13項目/19行を維持し、既存の全画面検索の項目に実List/型の教訓を追記した。
+新規GPT-6.1 Sol/High n233_pre_actions_reviewはcode-only26行/2027bytes、SHA256 e54c27655f58ac35edbc59bfd281bd596ccb76147691d2f8ac5bc98fa87576b7を確認し指摘なし。
+主担当が同一性/局所結果/未送信空白を確認し、このreviewを元Three/両OS/SDK27.2限定dispatch一回へ消費する。
