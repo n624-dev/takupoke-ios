@@ -13,26 +13,43 @@ extension ApplicationChecks {
         screen(title)
     }
     func tab(_ title: String) {
-        let tabs = app.tabBars.firstMatch
-        let button = tabs.buttons[title]
-        guard tabs.waitForExistence(timeout: 45), button.waitForExistence(timeout: 45),
-            usable(tabs.frame), contained(button, in: tabs.frame), button.isEnabled, button.isHittable
-        else {
-            XCTFail("Tab has no visible native hit region: " + app.debugDescription)
-            return
+        guard app.tabBars.firstMatch.waitForExistence(timeout: 45) else {
+            XCTFail("Tab bar must exist: " + app.debugDescription); return
         }
-        let icons = button.images.allElementsBoundByIndex
-        guard icons.count == 1, contained(icons[0], in: button.frame),
-            contained(icons[0], in: tabs.frame), icons[0].isHittable
-        else {
-            XCTFail("Tab requires one visible native icon inside its current button: " + app.debugDescription)
-            return
+        let bars = app.tabBars.allElementsBoundByAccessibilityElement
+        guard bars.count == 1 else {
+            XCTFail("Tab bar must have one current native identity"); return
         }
-        print("NATIVE_TAB title=\(title);bar=\(tabs.frame);button=\(button.frame);icon=\(icons[0].frame)")
-        // Observe the unique icon inside this same native button for each tap.
-        // U63: compare one bounded contact with the unsuccessful tap() route.
-        // Keep the same observed point and the original 45-second selection check.
-        icons[0].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.1)
+        let tabs = bars[0]
+        guard tabs.buttons[title].waitForExistence(timeout: 45) else {
+            XCTFail("Tab button must exist: " + app.debugDescription); return
+        }
+        let buttons = tabs.buttons.matching(NSPredicate(
+            format: "identifier == %@ OR label == %@", title, title)).allElementsBoundByAccessibilityElement
+        guard buttons.count == 1 else {
+            XCTFail("Tab button must have one current native identity"); return
+        }
+        let button = buttons[0], barFrame = tabs.frame, buttonFrame = button.frame
+        let scale = UIScreen.main.scale
+        guard usable(barFrame), usable(buttonFrame),
+            ObservedScreenGeometry.contains(buttonFrame, in: barFrame, scale: scale),
+            button.isEnabled, button.isHittable else {
+            XCTFail("Tab has no visible native hit region: " + app.debugDescription); return
+        }
+        let icons = button.images.allElementsBoundByAccessibilityElement
+        guard icons.count == 1, icons[0].exists else {
+            XCTFail("Tab requires one current native icon"); return
+        }
+        let icon = icons[0], iconFrame = icon.frame
+        guard usable(iconFrame),
+            ObservedScreenGeometry.contains(iconFrame, in: buttonFrame, scale: scale),
+            ObservedScreenGeometry.contains(iconFrame, in: barFrame, scale: scale), icon.isHittable else {
+            XCTFail("Tab requires one visible native icon inside its current button: " + app.debugDescription); return
+        }
+        print("NATIVE_TAB title=\(title);bar=\(barFrame);button=\(buttonFrame);icon=\(iconFrame)")
+        // Bind this attempt's real identities and read each frame once (N213).
+        // U63's same native icon center, one contact and 45s selection remain.
+        icon.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.1)
         let selected = XCTNSPredicateExpectation(
             predicate: NSPredicate { _, _ in
                 let current = self.app.tabBars.buttons[title]
@@ -119,7 +136,7 @@ extension ApplicationChecks {
         contentViewport(navigation: nil)
     }
     private func observedKeyboardFrame() -> CGRect? {
-        let keyboards = app.keyboards.allElementsBoundByIndex
+        let keyboards = app.keyboards.allElementsBoundByAccessibilityElement
         XCTAssertLessThanOrEqual(keyboards.count, 1, "Keyboard geometry must be unique")
         guard keyboards.count == 1 else { return nil }
         let frame = keyboards[0].frame

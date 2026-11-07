@@ -4142,3 +4142,28 @@ U64の旧tap失敗は同時のnative配送証拠が無く、現在はbinding済�
 Swift構文と一覧454/check --base a8b7131が成功。元一回操作・全包含/状態照合・45秒と保存検査は維持。
 共通Switchを使う両OSを確認するため、通知caseは同一dispatchで26/27各一回、訂正Selectedは26一回に絞る。
 完全code-only差分113行/6314bytes/SHA256 da40dd5abac8e4534ed0ffac024e4b94c90bf165c9adce32ce358f3d1db38f40。
+
+## N213 正式14の通常26A・明示選択訂正26がfailure（2026-11-07）
+
+source ea8a4b2229d18f4daf54dd69f15f56792a08e9a5/run42351129878/attempt1、SDK27.2・予定Runtime26.5・GUI。
+08:55Z一括照会で通常26A/job128346877924（08:00:54〜08:40:16Z）、手動Selected26/job128348435315
+（08:08:00〜08:35:26Z）のfailureを確認。本文未読で失敗stage/原因は未確定。対処案の決定前の観測記録。
+通常26Bと手動26One/Three/Changed、27通常A/B・手動4件、配布/Nativeはsuccess。公開job128358524690は依存skip。
+全18表示job終端・実14件（成功12/失敗2）で未公開。新26側6logとartifact一覧だけを一度取得する。
+
+新6log/artifact0を一度取得。通常26Bは元全case/通知/OS文字サイズ3段階を成功し、通知の通常tapもUI/保存1で成立。
+通常26Aは先頭testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecoverのタブ移動中、
+indexed calendar Imageのexists/frame再解決（t181.94）で約274秒途切れ、Runnerが再起動。残17件は成功したが先頭は成功しない。
+手動Selected26は実3項目の入力/ACK後、visible()のCollectionView再照会（t404.30）で約320秒途切れ、
+Runner再起動・xcresult signal term、所有deviceはnot booted。XCTest assertionによる拒否やN212の通知取消とは違う。
+GUI付きでも再起動があり、Runtime lifetime解消は断定しない。CoreSimulatorの下位原因は未確定。
+
+検索語calendar/index/frame/CollectionView/再照会でN78/N80/N165/N168/N203と当時/現Navigationを比較した。
+PickerでN203を対処済みのnative accessibility identity方式が、共通tabのImageには未適用だった。
+tabは同じbar/button/iconのframeを包含検査と診断printで何度も読み、manual visibleは同一試行のlist.frameを
+viewport/受動行anchor/gestureで重ねていた。今回止まった実API呼出しと一致する。OS/SDKの推測変更は行わない。
+候補は現在の一意なbar/button/iconとRecovery Listをaccessibility identityで取得し、各試行のframeを一度だけ保持する。
+manualのList identity/frameはスクロール後の次試行で取り直す。元の存在/一意/完全包含/enabled/hittable、
+native中心への一回操作、16探索/一度反転、45秒と全入力/ACK/保存/再起動、全15を保持する。
+元のAuxiliaryReadとSelectedのUI caseが実移動/保持/再起動の失敗を検出できるため、模倣UIテストは足さない。
+既存geometry/manifest/project検査を確認し、同じ失敗ケースを実26/27の限定で通す。候補/根拠を先にpushする。

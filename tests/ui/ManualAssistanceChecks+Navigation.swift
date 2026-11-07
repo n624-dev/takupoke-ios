@@ -5,7 +5,7 @@ extension ManualAssistanceChecks {
     func observedKeyboardFrame()->CGRect? {
         // An optional, absent firstMatch can stall AX instead of returning
         // false. Enumerate actual elements once; presence is never fabricated.
-        let keyboards=app.keyboards.allElementsBoundByIndex
+        let keyboards=app.keyboards.allElementsBoundByAccessibilityElement
         XCTAssertLessThanOrEqual(keyboards.count,1,"Keyboard geometry must be unique")
         guard keyboards.count==1 else { return nil }
         let frame=keyboards[0].frame
@@ -21,7 +21,6 @@ extension ManualAssistanceChecks {
         let recoveryList=app.collectionViews["manual-recovery-list"]
         let inRecovery=recoveryList.exists || app.navigationBars["時間割の復旧"].exists
         if inRecovery { XCTAssertTrue(recoveryList.waitForExistence(timeout:nativeStateTimeout)) }
-        let list=inRecovery ? recoveryList : app.collectionViews.firstMatch
         var navigationState=ManualScrollNavigation(initiallyUpward:!towardTop),targetID=knownID
         for attempt in 0..<16 {
             attempts = attempt + 1
@@ -30,11 +29,20 @@ extension ManualAssistanceChecks {
                     XCTFail("The recovery sheet disappeared during navigation: "+app.debugDescription);return e
                 }
             }
+            // Rebind the current List after every gesture; never retain it
+            // across recycled rows. Read its frame once per attempt (N213).
+            let currentLists=inRecovery ? app.collectionViews.matching(identifier:"manual-recovery-list")
+                .allElementsBoundByAccessibilityElement:[]
+            guard !inRecovery || currentLists.count==1 else {
+                XCTFail("The recovery sheet must have one current native List");return e
+            }
+            let list=inRecovery ? currentLists[0]:app.collectionViews.firstMatch
             let navigation=inRecovery ? app.navigationBars["時間割の復旧"] : app.navigationBars.firstMatch
-            let top=max(list.frame.minY,navigation.frame.maxY)+12
+            let listFrame=list.frame,navigationFrame=navigation.frame
+            let top=max(listFrame.minY,navigationFrame.maxY)+12
             let keyboardFrame=observedKeyboardFrame()
-            let bottom=min(list.frame.maxY,keyboardFrame.map { $0.minY-45 } ?? list.frame.maxY)-12
-            let viewport=CGRect(x:list.frame.minX,y:top,width:list.frame.width,height:max(0,bottom-top))
+            let bottom=min(listFrame.maxY,keyboardFrame.map { $0.minY-45 } ?? listFrame.maxY)-12
+            let viewport=CGRect(x:listFrame.minX,y:top,width:listFrame.width,height:max(0,bottom-top))
             guard ManualScrollNavigation.usable(viewport),viewport.height>36 else {
                 print("TAKUPOKE-MANUAL-SCROLL invalid-viewport;\(viewport)");break
             }
@@ -143,7 +151,7 @@ extension ManualAssistanceChecks {
                     let texts=cell.staticTexts.allElementsBoundByIndex
                     let images=texts.isEmpty ? cell.images.allElementsBoundByIndex:[]
                     guard !texts.isEmpty || !images.isEmpty,let frame=rowFrames[id] else { return false }
-                    let relative=frame.offsetBy(dx:-list.frame.minX,dy:-list.frame.minY)
+                    let relative=frame.offsetBy(dx:-listFrame.minX,dy:-listFrame.minY)
                     rowAnchors[id]="\(cell.label);\(texts.first?.label ?? "");\(images.first?.identifier ?? "");\(relative)"
                     return true
                 })
@@ -152,7 +160,7 @@ extension ManualAssistanceChecks {
             }
             let initialDirection=navigationState.upward
             guard let first=passiveCell(initialDirection) else {
-                print("TAKUPOKE-MANUAL-SCROLL no-passive-cell;list=\(list.frame);viewport=\(viewport)")
+                print("TAKUPOKE-MANUAL-SCROLL no-passive-cell;list=\(listFrame);viewport=\(viewport)")
                 break
             }
             let anchor=first.anchor
@@ -182,9 +190,9 @@ extension ManualAssistanceChecks {
                     XCTFail("The recovery sheet disappeared before its gesture: "+app.debugDescription);return e
                 }
             }
-            let observedX=safe.midX-list.frame.minX
-            let start=base.withOffset(CGVector(dx:observedX,dy:startY-list.frame.minY))
-            let end=base.withOffset(CGVector(dx:observedX,dy:endY-list.frame.minY))
+            let observedX=safe.midX-listFrame.minX
+            let start=base.withOffset(CGVector(dx:observedX,dy:startY-listFrame.minY))
+            let end=base.withOffset(CGVector(dx:observedX,dy:endY-listFrame.minY))
             start.press(forDuration:0.1,thenDragTo:end)
         }
         XCTAssertTrue(e.exists && e.isHittable,app.debugDescription)
