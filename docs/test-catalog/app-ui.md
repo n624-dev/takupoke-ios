@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`e5dd63d2e11c8c7e1a58951c2513f001585c9127912c1e0b57a480df8b77c345`
+`7d729ea586274ce03fe60a0799978fe1c8c7a9be572d6bf36e8ee21525d5b76d`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -68,7 +68,7 @@ bash tools/test-app-ui.sh
 - [tools/ui_test_manifest.py](../../tools/ui_test_manifest.py)
 - [tools/prepare-ios27-runtime.py](../../tools/prepare-ios27-runtime.py)
 - [tools/boot-simulator-ui.sh](../../tools/boot-simulator-ui.sh)
-- [tools/simulator-ui-identity.swift](../../tools/simulator-ui-identity.swift)
+- [tests/Support/SimulatorIdentityTestCase.swift](../../tests/Support/SimulatorIdentityTestCase.swift)
 
 ## [tests/MainColorTests.swift](../../tests/MainColorTests.swift)
 
@@ -175,9 +175,6 @@ bash tools/test-app-ui.sh
 
 - `test_shutdown_confirmation_requires_exact_owned_runtime_and_one_stopped_device`
 - `test_runtime_health_filters_owned_device_and_bounds_failed_observations`
-- `test_boot_readiness_requires_one_actual_owned_native_identity_with_the_original_deadline`
-- `test_boot_readiness_rejects_host_wrong_identity_bad_responses_and_failed_spawn_without_retry`
-- `test_real_identity_program_cannot_prove_a_host_process_is_a_simulator`
 - `test_boot_failure_observation_is_bounded_read_only_and_excludes_other_devices_and_private_fields`
 - `test_launch_observation_keeps_nested_codes_without_private_error_details`
 - `test_launch_error_codes_are_bounded_and_reject_unknown_domains_and_large_values`
@@ -213,6 +210,7 @@ bash tools/test-app-ui.sh
 - `test_year_input_probe_keeps_preceding_case_and_reads_keyboard_settings_without_writes`
 - `test_successful_notification_probe_observes_os_before_deleting_simulator`
 - `test_headless_runner_keeps_all_selected_ui_cases_and_actual_size_commands`
+- `test_passing_ui_completions_without_native_case_identities_fail_closed`
 - `test_both_shards_on_both_os_preserve_selection_and_os_size_checks`
 - `test_missing_xctest_completion_fails_shell_and_cleans_up`
 - `test_failed_ui_build_does_not_boot_or_run_tests_and_still_cleans_up`
@@ -251,9 +249,15 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_simulator_frontend.py](../../tests/test_simulator_frontend.py)
 
-- `test_selected_xcode_frontends_and_owned_window_are_ready_before_returning`
-- `test_boot_frontend_window_and_readiness_errors_fail_without_another_boot`
-- `test_headless_requires_the_same_owned_native_proof_without_a_desktop_viewer`
+- `test_selected_xcode_frontends_and_owned_window_preserve_boot_order`
+- `test_boot_frontend_window_errors_fail_without_retry`
+- `test_headless_bootstatus_is_not_reported_as_completed_ui_execution`
+
+## [tests/test_ui_execution_identity.py](../../tests/test_ui_execution_identity.py)
+
+- `test_every_selected_case_requires_one_actual_owned_runner_identity`
+- `test_missing_duplicated_foreign_host_and_malformed_proofs_fail_closed`
+- `test_real_swift_identity_cannot_certify_a_host_process_as_a_simulator`
 
 ## [tests/test_manual_ui_runner.py](../../tests/test_manual_ui_runner.py)
 
@@ -262,6 +266,7 @@ bash tools/test-app-ui.sh
 - `test_shipping_27_uses_exact_27_0_when_newer_minor_is_available`
 - `test_failed_build_never_starts_tests_or_becomes_success`
 - `test_missing_completion_refuses_even_after_successful_build`
+- `test_passing_completions_without_native_identities_are_rejected`
 
 ## [tests/test_picker_ui_runner.py](../../tests/test_picker_ui_runner.py)
 

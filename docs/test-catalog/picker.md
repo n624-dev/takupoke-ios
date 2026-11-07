@@ -1,7 +1,7 @@
 # ファイル選択・再選択・背景・キャンセル
 
 対応関係・宣言名・実行方法のSHA-256：
-`a1579c917ee893d3aeca56c174fc3050b0a4d68929d2db5d68285ca6391b3e58`
+`2179b63c730dc5e94780692214a0d21f7b8fde5c190ee9cc2e9ffe9d522f9223`
 
 環境：Apple iOS26/27 UI＋Nativeレイアウト
 
@@ -36,17 +36,20 @@ bash tools/test-picker-ui.sh
 
 ## [tests/test_simulator_frontend.py](../../tests/test_simulator_frontend.py)
 
-- `test_selected_xcode_frontends_and_owned_window_are_ready_before_returning`
-- `test_boot_frontend_window_and_readiness_errors_fail_without_another_boot`
-- `test_headless_requires_the_same_owned_native_proof_without_a_desktop_viewer`
+- `test_selected_xcode_frontends_and_owned_window_preserve_boot_order`
+- `test_boot_frontend_window_errors_fail_without_retry`
+- `test_headless_bootstatus_is_not_reported_as_completed_ui_execution`
+
+## [tests/test_ui_execution_identity.py](../../tests/test_ui_execution_identity.py)
+
+- `test_every_selected_case_requires_one_actual_owned_runner_identity`
+- `test_missing_duplicated_foreign_host_and_malformed_proofs_fail_closed`
+- `test_real_swift_identity_cannot_certify_a_host_process_as_a_simulator`
 
 ## [tests/test_notification_service_trace.py](../../tests/test_notification_service_trace.py)
 
 - `test_shutdown_confirmation_requires_exact_owned_runtime_and_one_stopped_device`
 - `test_runtime_health_filters_owned_device_and_bounds_failed_observations`
-- `test_boot_readiness_requires_one_actual_owned_native_identity_with_the_original_deadline`
-- `test_boot_readiness_rejects_host_wrong_identity_bad_responses_and_failed_spawn_without_retry`
-- `test_real_identity_program_cannot_prove_a_host_process_is_a_simulator`
 - `test_boot_failure_observation_is_bounded_read_only_and_excludes_other_devices_and_private_fields`
 - `test_launch_observation_keeps_nested_codes_without_private_error_details`
 - `test_launch_error_codes_are_bounded_and_reject_unknown_domains_and_large_values`

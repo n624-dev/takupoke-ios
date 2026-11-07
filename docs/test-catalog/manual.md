@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`ea1953d67bef7dd7f30bf53ac066111c23ee563deeead5faf09c9c98492af331`
+`6cf9b11a819437b73f047e8913ebc03de822262ac15b07ac1b068879c5db38f7`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -140,6 +140,7 @@ bash tools/test-manual-ui.sh
 - `test_shipping_27_uses_exact_27_0_when_newer_minor_is_available`
 - `test_failed_build_never_starts_tests_or_becomes_success`
 - `test_missing_completion_refuses_even_after_successful_build`
+- `test_passing_completions_without_native_identities_are_rejected`
 
 ## [tests/RecoveryFunctionalCoverageTests.swift](../../tests/RecoveryFunctionalCoverageTests.swift)
 
@@ -155,17 +156,20 @@ bash tools/test-manual-ui.sh
 
 ## [tests/test_simulator_frontend.py](../../tests/test_simulator_frontend.py)
 
-- `test_selected_xcode_frontends_and_owned_window_are_ready_before_returning`
-- `test_boot_frontend_window_and_readiness_errors_fail_without_another_boot`
-- `test_headless_requires_the_same_owned_native_proof_without_a_desktop_viewer`
+- `test_selected_xcode_frontends_and_owned_window_preserve_boot_order`
+- `test_boot_frontend_window_errors_fail_without_retry`
+- `test_headless_bootstatus_is_not_reported_as_completed_ui_execution`
+
+## [tests/test_ui_execution_identity.py](../../tests/test_ui_execution_identity.py)
+
+- `test_every_selected_case_requires_one_actual_owned_runner_identity`
+- `test_missing_duplicated_foreign_host_and_malformed_proofs_fail_closed`
+- `test_real_swift_identity_cannot_certify_a_host_process_as_a_simulator`
 
 ## [tests/test_notification_service_trace.py](../../tests/test_notification_service_trace.py)
 
 - `test_shutdown_confirmation_requires_exact_owned_runtime_and_one_stopped_device`
 - `test_runtime_health_filters_owned_device_and_bounds_failed_observations`
-- `test_boot_readiness_requires_one_actual_owned_native_identity_with_the_original_deadline`
-- `test_boot_readiness_rejects_host_wrong_identity_bad_responses_and_failed_spawn_without_retry`
-- `test_real_identity_program_cannot_prove_a_host_process_is_a_simulator`
 - `test_boot_failure_observation_is_bounded_read_only_and_excludes_other_devices_and_private_fields`
 - `test_launch_observation_keeps_nested_codes_without_private_error_details`
 - `test_launch_error_codes_are_bounded_and_reject_unknown_domains_and_large_values`

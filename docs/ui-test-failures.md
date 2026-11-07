@@ -4061,3 +4061,12 @@ Simulator compile条件/正のPIDを記録する。hostは選択済みUUID/Runti
 Runner内のidentity読み取り自体も単調clockで元45秒以内に限定し、時間切れならUI bodyへ進まずsetUp失敗とする。
 GUI/headlessの表示準備と実bootstatusは保持し、UI不可/証明欠落・重複・異なる端末/OS/hostは失敗のまま。
 候補/根拠を先にpushし、実Swift host拒否/strictログ検査/全runner/manifest/一覧を局所確認してから新規reviewで限定検証する。
+
+候補aad1a49/b74da66/4306b40を各変更前提とともに先にpush後、実Swift host拒否とidentity厳格検査3件/失敗0
+（最終2.086秒）、実boot/helper3件/失敗0（2.701秒）、App18件/失敗0（50.023秒）、manual6件/失敗0
+（8.946秒）、Picker1宣言/元8+証明欠落の9入力/失敗0（8.135秒）、manifest30件/失敗0（21.179秒）、
+manual project17件/失敗0（1.986秒）、観測16件/失敗0（0.442秒）、source paths3件/失敗0（0.004秒）が通過。
+元のcompletion拒否入力はすべて保持し、正対照だけに新しい実Runner証明のschemaを追加した。
+GUI/boot/window失敗の伝播と所有回収、Appの全phase/OS文字サイズ、manual/Píckerの全case照合を保持する。
+一覧454/write/check --base2b89と4scriptのBash構文も成功。実Apple Runnerの証明は次の限定3経路で確認する。
+完全code-only差分1060行/64012bytes/SHA256 a3a0ad21e1c1f7fce38477b7ca6625c83dc11ac5be83a6e428bcecb3588f7e9f。
