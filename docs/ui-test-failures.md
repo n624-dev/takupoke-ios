@@ -4711,3 +4711,9 @@ e4f2fbf/bf1749a/9745d33/現fa926のtest/server/生成器/SafariLinkViewを照合
 生成器のLinux境界stubも新しい観測APIだけを記録できるよう追従させ、collectorの既知stage正例/本文拒否を既存検査へ加える。
 候補/根拠を先にpushし、既存の実HTTP/生成境界/manifest/runner/catalog検査後、新規reviewで未解決の元LinkPreferences27だけを比較する。
 正式20の残り26Aは中止せず、終端後の新log/artifact一覧だけを一度取得する。
+
+d54e10dを先にpush後、manifest全30件/失敗0（16.592秒、Swift6.1.2有効）、実shell runner18件/失敗0（47.196秒）、
+Swift構文/Bash構文/catalog456/check --basefa926は成功。元の実HTTP応答・部分送信2秒・stop回収、
+実生成factoryのURL正負/新しい一回の観測・固定stageのcollectorと本文/大容量/symlink拒否も同じ既存検査で確認した。
+新規GPT-6.1 Sol/High n236_pre_actions_reviewはcode-only125行/9040bytes、SHA256 3bea36c0e9cd405085961f0dcb811801d9e771bd9de90606fcc98c2cbbbeafcdを確認し指摘なし。
+主担当が同一性/局所結果/未送信空白を確認してから、元LinkPreferences27/SDK27.2限定dispatch一回へ消費する。
