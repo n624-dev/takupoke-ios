@@ -4391,3 +4391,10 @@ scan/非同期/完了で索引と旧/現helperを照合。最終契約（同じl
 scanの再発行・別UUIDの推測・UIの再試行は行わず、未知重複/Ready消失/期限切れは拒否する。
 fakeには既に回収済みと遅れて一件登録される両方を加え、OSの存在照会とCLIを独立して制御する。
 候補/根拠を先にpush後に局所検査、新規reviewを経る。既読run/logは再照会しない。
+
+5568d90を先にpush後、実helper/fakeCLI4宣言/失敗0（72.921秒、26の35経路、実30秒の期限切れも含む）、
+元manifest30件/失敗0（Swift有効、18.697秒）、一覧456/write/check --base eb6af38が成功。
+CLI登録とOSのAssetData存在を別々に制御し、既に回収済みでは第二deleteなし、遅延登録では正確な新UUIDへ一回、
+登録されないままAssetDataが残る場合は30秒で失敗となることを確認。最終の同じReady/AssetData不在は維持。
+実Appleの状態は未確認。code-only差分744行/46032bytes、SHA256
+5391df8ad0cc871ba9dd03fee2d23cb67b8e65d96cce5d64f56c1f9d57fcc5a5。
