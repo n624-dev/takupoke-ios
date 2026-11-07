@@ -15,9 +15,34 @@ class PrepareRuntimeTests(unittest.TestCase):
 import json, os, sys
 from pathlib import Path
 args=sys.argv[1:]; mode=os.environ['MODE']; marker=Path(os.environ['MARKER'])
+downloaded=marker.with_name('downloaded');imported=marker.with_name('imported');deleted=marker.with_name('deleted')
+download_id='11111111-1111-4111-8111-111111111111';local_id='22222222-2222-4222-8222-222222222222'
+foreign_id='33333333-3333-4333-8333-333333333333'
+asset='/System/Library/AssetsV2/com_apple_MobileAsset_iOSSimulatorRuntime/'+'a'*40+'.asset/AssetData'
 with open(os.environ['CALLS'],'a') as log: log.write(json.dumps([Path(sys.argv[0]).name]+args)+'\n')
 if args[:1] == ['--sdk']: print('27.1')
-elif args[:3] == ['simctl','runtime','list']: print(json.dumps({'fictional-runtime':{'state':'Ready'}}))
+elif args[:3] == ['simctl','runtime','list']:
+    records={'unrelated-watch':{'runtimeIdentifier':'com.apple.CoreSimulator.SimRuntime.watchOS-27-0','state':'Unusable'}}
+    def record(uid,path,state):
+        return {'identifier':uid,'runtimeIdentifier':'com.apple.CoreSimulator.SimRuntime.iOS-26-5',
+                'build':'23F73' if mode=='download-wrong-build' else '23F77','version':'26.5',
+                'platformIdentifier':'com.apple.platform.iphonesimulator','path':path,'state':state,
+                'deletable':mode!='not-deletable','unusableSubstate':'Cryptex Mount Preferred'}
+    if mode=='pre-existing-image' or downloaded.exists() and not deleted.exists() and not (imported.exists() and mode=='no-duplicate'):
+        state='Unusable' if imported.exists() and mode!='duplicate-ready' else 'Ready'
+        uid=foreign_id if imported.exists() and mode=='unknown-duplicate' else download_id
+        records[uid]=record(uid,asset,state)
+    if mode=='pre-existing-id' and not downloaded.exists(): records[download_id]={'runtimeIdentifier':'unrelated'}
+    if downloaded.exists() and mode=='two-downloads': records[foreign_id]=record(foreign_id,asset,'Ready')
+    if imported.exists():
+        path='/elsewhere' if mode=='wrong-local-path' else '/Library/Developer/CoreSimulator/Cryptex/Images/'+local_id
+        records[local_id]=record(local_id,path,'Ready')
+        if mode=='two-locals': records[foreign_id]=record(foreign_id,'/Library/Developer/CoreSimulator/Cryptex/Images/'+foreign_id,'Ready')
+    print(json.dumps(records))
+elif args[:3] == ['simctl','runtime','delete']:
+    assert args==['simctl','runtime','delete',download_id] and imported.exists()
+    if mode=='delete-fails': sys.exit(7)
+    if mode!='delete-stuck': deleted.write_text('removed owned duplicate')
 elif args[:2] == ['simctl','list']:
     runtimes=[]
     if mode.startswith('installed') or marker.exists():
@@ -34,6 +59,7 @@ elif args[:1] == ['-downloadPlatform']:
     assert args[args.index('-buildVersion')+1]=='23F77'
     assert args[args.index('-architectureVariant')+1]=='arm64'
     if mode=='download-fails': sys.exit(9)
+    downloaded.write_text('owned acquisition')
     if mode!='no-image':
         image=Path(args[args.index('-exportPath')+1])/'fictional.exportedBundle'
         image.mkdir();(image/'image').write_text('fictional image')
@@ -48,11 +74,14 @@ elif args[:1] == ['-importPlatform']:
     assert image.read_text()=='fictional image'
     if mode=='import-fails': sys.exit(8)
     marker.write_text(str(image))
+    imported.write_text('local import')
 else: sys.exit(99)
 '''
         for mode in ('installed','auto-installed','import','download-fails','no-image','import-fails','wrong-version',
                      'installed-wrong-build','installed-build-missing','installed-duplicate-build','download-wrong-build',
-                     'dmg-export','export-symlink','two-exports'):
+                     'dmg-export','export-symlink','two-exports','pre-existing-image','pre-existing-id','two-downloads',
+                     'no-duplicate','unknown-duplicate','duplicate-ready','not-deletable','wrong-local-path','two-locals',
+                     'delete-fails','delete-stuck'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory(prefix='takupoke-runtime-lifetime-') as directory:
                 root=Path(directory);scratch=root/'scratch';scratch.mkdir()
                 for name in ('xcrun','xcodebuild'):
@@ -63,7 +92,7 @@ else: sys.exit(99)
                     'TKPK_EXPECTED_IOS_SDK':'27.1','PYTHONDONTWRITEBYTECODE':'1'}
                 command=[sys.executable,'-B',str(ROOT/'tools/prepare-ios26-runtime.py')]
                 prepared=subprocess.run(command+['--hold-export'],env=env,capture_output=True,text=True,timeout=15)
-                self.assertEqual(prepared.returncode==0,mode in ('installed','auto-installed','import','dmg-export'),prepared.stdout+prepared.stderr)
+                self.assertEqual(prepared.returncode==0,mode in ('installed','auto-installed','import','dmg-export','no-duplicate'),prepared.stdout+prepared.stderr)
                 owned=scratch/'takupoke-ios26-runtime-export-owned'
                 self.assertEqual(owned.exists(),not mode.startswith('installed'))
                 if mode in ('auto-installed','import'):
@@ -73,10 +102,13 @@ else: sys.exit(99)
                     self.assertTrue(json.loads(observed.stdout)['runtimes'][0]['isAvailable'])
                 before=calls.read_text()
                 commands=[json.loads(line) for line in before.splitlines()]
-                self.assertEqual(sum(row[1:2]==['-downloadPlatform'] for row in commands),int(not mode.startswith('installed')))
+                self.assertEqual(sum(row[1:2]==['-downloadPlatform'] for row in commands),int(not mode.startswith('installed') and mode!='pre-existing-image'))
                 self.assertEqual(sum(row[1:2]==['-importPlatform'] for row in commands),int(mode in (
-                    'auto-installed','import','import-fails','wrong-version','download-wrong-build','dmg-export')))
-                self.assertFalse(any('delete' in row for row in commands))
+                    'auto-installed','import','import-fails','wrong-version','dmg-export','no-duplicate',
+                    'unknown-duplicate','duplicate-ready','not-deletable','wrong-local-path','two-locals','delete-fails','delete-stuck')))
+                removals=[row for row in commands if 'delete' in row]
+                expected_delete=mode in ('auto-installed','import','wrong-version','dmg-export','delete-fails','delete-stuck')
+                self.assertEqual(removals,[['xcrun','simctl','runtime','delete', '11111111-1111-4111-8111-111111111111']] if expected_delete else [])
                 for _ in range(2):
                     cleaned=subprocess.run(command+['--cleanup-export'],env=env,capture_output=True,text=True,timeout=5)
                     self.assertEqual(cleaned.returncode,0,cleaned.stderr)

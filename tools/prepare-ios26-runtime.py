@@ -1,5 +1,5 @@
 """Prepare exact iOS 26.5 on the shipping toolchain in a disposable hosted runner."""
-import argparse, json, os, shutil, subprocess, tempfile
+import argparse, json, os, re, shutil, subprocess, tempfile, uuid
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -10,6 +10,7 @@ mode.add_argument("--cleanup-export", action="store_true")
 args = parser.parse_args()
 OWNER = b"takupoke-ios26-runtime-export-v1\n"
 IOS26_BUILD = "23F77"
+IOS26_RUNTIME = "com.apple.CoreSimulator.SimRuntime.iOS-26-5"
 
 def owned_export():
     return Path(os.environ["RUNNER_TEMP"]).resolve(strict=True) / "takupoke-ios26-runtime-export-owned"
@@ -64,18 +65,43 @@ def available26():
 def runtime_images(stage):
     result = subprocess.run(["xcrun", "simctl", "runtime", "list", "-j"],
                             check=True, capture_output=True, text=True, timeout=30)
+    images = json.loads(result.stdout)
     print("TAKUPOKE_IOS26_RUNTIME_IMAGES stage=" + stage + " " +
-          json.dumps(json.loads(result.stdout), separators=(",", ":")), flush=True)
+          json.dumps(images, separators=(",", ":")), flush=True)
+    return images
+
+def target_images(images):
+    return {key: item for key, item in images.items() if item.get("runtimeIdentifier") == IOS26_RUNTIME}
+
+def exact_image(key, image):
+    return (str(uuid.UUID(key)).upper() == key and image.get("identifier") == key
+            and image.get("runtimeIdentifier") == IOS26_RUNTIME and image.get("build") == IOS26_BUILD
+            and image.get("version") == "26.5"
+            and image.get("platformIdentifier") == "com.apple.platform.iphonesimulator")
 
 versions, registered, pinned = available26()
 if not versions:
     if registered:
         raise SystemExit("Registered iOS 26 runtime is unavailable; refusing replacement")
     with export_directory() as owned:
-        runtime_images("before-download")
+        before = runtime_images("before-download")
+        if target_images(before):
+            raise SystemExit("Refusing replacement of a pre-existing iOS 26.5 runtime image")
+        asset_root = Path("/System/Library/AssetsV2/com_apple_MobileAsset_iOSSimulatorRuntime")
+        existing_assets = set(asset_root.glob("*.asset"))
         subprocess.run(["xcodebuild", "-downloadPlatform", "iOS", "-buildVersion", IOS26_BUILD,
                         "-architectureVariant", "arm64",
                         "-exportPath", owned], check=True, timeout=600)
+        downloaded = target_images(runtime_images("after-download"))
+        if len(downloaded) != 1:
+            raise SystemExit("Download must introduce one unambiguous owned runtime image")
+        download_id, download_image = next(iter(downloaded.items()))
+        asset_path = Path(download_image.get("path", ""))
+        if (download_id in before or not exact_image(download_id, download_image)
+                or asset_path.name != "AssetData" or asset_path.parent.parent != asset_root
+                or not re.fullmatch(r"[0-9a-f]{40}\.asset", asset_path.parent.name)
+                or asset_path.parent in existing_assets):
+            raise SystemExit("Refusing an unowned downloaded runtime image")
         # The download can register a MobileAsset runtime. Import our own export
         # once so testing uses the supported local registration path (N220).
         images = list(Path(owned).glob("*.exportedBundle")) + list(Path(owned).glob("*.dmg"))
@@ -83,7 +109,28 @@ if not versions:
                 images[0].is_dir() if images[0].suffix == ".exportedBundle" else images[0].is_file()):
             raise SystemExit("Comparison requires one owned exported runtime bundle or image")
         subprocess.run(["xcodebuild", "-importPlatform", str(images[0])], check=True, timeout=180)
-        runtime_images("after-import")
+        imported = target_images(runtime_images("after-import"))
+        local = {key: item for key, item in imported.items() if item.get("state") == "Ready"
+                 and item.get("path") == "/Library/Developer/CoreSimulator/Cryptex/Images/" + key}
+        if len(local) != 1:
+            raise SystemExit("Import must leave one ready local runtime image")
+        local_id, local_image = next(iter(local.items()))
+        if local_id in before or local_id == download_id or not exact_image(local_id, local_image):
+            raise SystemExit("Refusing an ambiguous imported runtime image")
+        duplicates = {key: item for key, item in imported.items() if key != local_id}
+        if duplicates:
+            duplicate = duplicates.get(download_id, {})
+            if (set(duplicates) != {download_id} or not exact_image(download_id, duplicate)
+                    or duplicate.get("path") != str(asset_path) or duplicate.get("deletable") is not True
+                    or duplicate.get("state") != "Unusable"
+                    or duplicate.get("unusableSubstate") != "Cryptex Mount Preferred"):
+                raise SystemExit("Refusing removal of an unknown or usable runtime image")
+            subprocess.run(["xcrun", "simctl", "runtime", "delete", download_id], check=True, timeout=180)
+            remaining = target_images(runtime_images("after-owned-duplicate-removal"))
+            if (set(remaining) != {local_id} or not exact_image(local_id, remaining[local_id])
+                    or remaining[local_id].get("state") != "Ready"
+                    or remaining[local_id].get("path") != local_image["path"]):
+                raise SystemExit("Owned runtime duplicate removal did not preserve the ready local image")
     versions, _, pinned = available26()
 if not versions or max(versions) != (26, 5) or not pinned:
     raise SystemExit("Comparison requires one available iOS 26.5 runtime with exact build " + IOS26_BUILD)

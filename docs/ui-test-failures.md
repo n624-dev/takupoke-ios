@@ -4312,3 +4312,34 @@ exportedBundle/dmgの正例、複数/欠落/symlink・取得/import失敗・誤b
 元Runtime安定性は未確認。code-only差分562行/32350bytes、SHA256
 3f72595050f9960e865902af12ae2e0c74880a749dd7d273978458399c9f1dbb。
 限定は直前に失敗した元Selected26一件に絞り、One/Threeの旧実行も取消さず終端を確認する。
+
+## N221 同じ旧build固定限定のOne26もfailure（2026-11-07）
+
+sourceb677db5/run42374327682/attempt1/job128408714226、SDK27.2/26.5正式23F77/GUI。
+13:30Z一括照会で12:51:40〜13:18:45Z failure。本文未読で段階/原因は未確定として対処前に記録。
+Three/job128408714008は13:11:47Z success。全4job終端、新2logとartifact一覧だけ一度取得し、既読2logは取得しない。
+exportedBundle import候補974ba9c/run42376089239/job128413854900は13:15:07Z開始、準備を通過し元UIを実行中。
+
+新2log/artifact0を一度取得。Threeは354.411秒/失敗0、Changedとともに実26.5/UUID/Simulator/PID・元入力を成功。
+Oneは実case/identityと訂正/ACK/表示サイズ変更まで進み、223秒のRecovery List.exists後に約6分応答が途切れ、
+Runnerが再起動、case完了なし/exit65。cleanupはdevice not booted/Bad or unknown session、アプリcrash報告0。
+Runtime bundle nullの明示はなく、AX応答停止とguest終了の因果は未確定。元ケース成功へ読み替えない。
+新import候補にUI探索/入力の変更を追加せず、Selectedの実結果と登録情報を待つ。
+
+## N222 owned exportedBundle import候補のSelected26がfailure（2026-11-07）
+
+source974ba9c9b8dda9e9479f4c858439678e68c9c7a3/run42376089239/attempt1/job128413854900、
+SDK27.2・予定26.5正式23F77/GUI、13:15:07〜13:30:16Z failureを予定13:52Z照会で確認。
+本文未読で失敗段階/原因は未確定として、対処案を選ぶ前に記録。全job終端、新1log/artifact一覧のみ一度取得する。
+
+新log/artifact0を一度取得。import自体は成功したが、直後の実image一覧には同じ23F77/26.5が2登録あった。
+local Cryptex/Imagesの7CEB8950…はReady、今回downloadしたMobileAssetのCE547B96…はUnusable/Cryptex Mount Preferred。
+前者を使う実Runner identity後、app launch/automation開始で応答が途切れ、Runner再起動/完了なし/exit65。
+cleanupはdevice not booted/Bad or unknown session。upstream14946の重複cleanupと整合する登録は初めて実確認したが、
+force-unmountのhost logは未取得であり、直接の因果は未確定。importだけで重複除去を保証していなかった。
+同upstreamの登録方式と前後の実JSON、N176/N177/N220と旧/現helperを照合した。
+次はdownload前のimage UUIDとasset directory、download直後の新しい26.5/23F77 MobileAsset UUIDを保持する。
+import後のlocal Ready一件を確認し、同じpath/buildの今回作成されたUnusable/Cryptex Mount Preferred一件だけ、
+boot前にsimctl runtime deleteの正規APIで回収する。既存UUID/asset・別OS・未知の重複・Readyは削除しない。
+回収後に同じlocal Readyだけであることを再確認し、不一致/失敗/新たな重複は拒否、再試行しない。
+元SDK/Runtime/全入力/一回boot/期限/全15を維持する。所有外を保全するfake CLIの正負ケースを追加し、候補/根拠を先にpushする。
