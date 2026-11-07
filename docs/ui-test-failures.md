@@ -3936,3 +3936,32 @@ SDK27.1/実Runtime27.0でnative proof全一致、元Picker3件/失敗0・430.855
 元11回の実選択/Cancel・背景復帰を通過し、遷移確認もPASSだった。Portable Swift603件/失敗0、
 Python306件/予定skip22/失敗0も通過。旧snapshot停止の恒常的解消とは主張せず、正式全15の成功へ加算しない。
 次は同じcode-only差分へ別の新規mainレビューを受け、元の全15gateを同一source/run/attemptで確認する。
+
+## N204 正式2b89の原本変更拒否27がfailure（2026-11-07）
+
+source2b89c38d99c0011ce1680bce7db1a751fc165d89/run42318063090/attempt1/job128236331110、
+SDK27.1・予定Runtime27.0・testChangedOriginalCannotSubmitOrReplaceLastGood、00:27:14Z〜00:34:58Z。
+01:25Zの予定一括照会でfailureを確認。本文未読で準備/実UIの段階・原因は未確定。対処前に記録する。
+通常27 A/B・Native/Distribution・他手動27の3件はsuccess。26 A128248923119（01:05:52Z開始）、
+B128248049294（01:03:08Z開始）は進行中で取消さない。手動26は依存skipで成功に数えない。
+新8完了logだけを一度取得して過去/現コードを照合する。元の全15・公開はまだ成立していない。
+
+N204実log：build64.9秒・identity compile/sign2.5秒は成功。bootstatus105.8秒/終了0の後、所有画面URLも開いたが、
+native proofはexit-1/deadlineExceeded=true/errorWords=timeoutで不成立。続く所有UUID限定host logも10秒でtimeout。
+UI/XCTestへ未到達で、原本変更拒否のassertが失敗したわけではない。outer443.2秒/元2400秒内で終了1、所有回収は完了した。
+同sourceの他3手動27は実484.913秒/713.750秒/977.185秒で成功。Native701/予定skip1/失敗0はSDK26.5のみ。
+新8logを一度保存し、残26 A/Bの進行とartifact未確認を保持する。現在の失敗はN199の一覧APIではなく対象native spawnのtimeout。
+
+N204照合：boot/timeout/競合/DeviceHubでN07/N53/N182/N199/N202を検索し、旧1186de3のPickerと
+現共通helper/各runnerを比較した。N53ではSimulator起動とSwift buildの重なりを除く準備比較が成功しており、
+現runnerは既にbuild-before-bootなのでそこを往復しない。一方、共通helperはVM bootを開始してから
+重いDeviceHub初期起動を行い、二つの初期化を重ねている。N204ではHub初期起動44.9秒、bootstatus105.8秒の
+already booted後にもnative45秒とhost log10秒が応答しなかった。CPU/OS停止の具体的な下位原因は未確定。
+新候補はDeviceHubの初回openを所有VMの一回bootより先へ移し、初期化の重なりを除く比較に限定する。
+既存Simulator.appはCurrentDeviceUDIDを渡す従来順を保持し、Hubも所有画面URLはbootstatus後の一回を保持する。
+native proof45秒・元bootstatus・全UI期待/入力・全体予算・所有cleanupを保ち、再boot/再入力/期限延長で救済しない。
+初期化競合が原因とは先取りせず、候補と根拠push後に実shell/全caller/manifest/一覧を局所確認し、
+全callerのローカル検査後、新規reviewを受けて元の失敗27ケースを限定比較する。
+過去の3経路限定確認は実施済みで、今回は同一host APIの二段階の順序だけが変更点。
+実装を変えていない通常/Pickerの限定を毎回反復せず、両OSの全経路は次の正式全15で改めて要求する。
+旧26 A/Bは取消さず、実開始から約50分の01:55Zに新限定とまとめて確認する。

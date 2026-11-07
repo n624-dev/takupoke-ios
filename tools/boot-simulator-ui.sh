@@ -18,19 +18,25 @@ python3 -B tools/timed_command.py --timeout 120 --cleanup-grace 3 'Simulator ide
     tools/simulator-ui-identity.swift -o "$identity_dir/identity"
 codesign --force --sign - --timestamp=none "$identity_dir/identity"
 stage identity-build-complete
-stage boot-enter
-xcrun simctl boot "$simulator_id"
-stage frontend-enter
 selected_developer="${DEVELOPER_DIR:-$(xcode-select -p)}"
 device_hub=""
 if [[ -d "$selected_developer/Applications/Simulator.app" ]]; then
-    open -a "$selected_developer/Applications/Simulator.app" --args -CurrentDeviceUDID "$simulator_id"
+    simulator_app="$selected_developer/Applications/Simulator.app"
 elif [[ -d "$selected_developer/../Applications/DeviceHub.app" ]]; then
     device_hub="${selected_developer%/*}/Applications/DeviceHub.app"
+    # Initialize the display host before starting the VM's first data migration.
+    # The owned device window is still opened only after bootstatus completes.
+    stage frontend-enter
     open -a "$device_hub"
 else
     printf '%s\n' 'No supported simulator frontend in the selected Xcode' >&2
     exit 1
+fi
+stage boot-enter
+xcrun simctl boot "$simulator_id"
+if [[ -z "$device_hub" ]]; then
+    stage frontend-enter
+    open -a "$simulator_app" --args -CurrentDeviceUDID "$simulator_id"
 fi
 python3 -B tools/timed_command.py "$label" xcrun simctl bootstatus "$simulator_id" -b
 if [[ -n "$device_hub" ]]; then

@@ -78,7 +78,8 @@ elif args[:2]==['simctl','list']:raise AssertionError('Readiness must not use in
             recorded = [json.loads(line) for line in calls.read_text().splitlines()]
             self.assertNotIn("PRIVATE", result.stdout + result.stderr)
             self.assertEqual(sum(call[:3] == ["xcrun", "simctl", "boot"] for call in recorded),
-                             0 if failure in ("compile", "sign") else 1)
+                             0 if failure in ("compile", "sign") or frontend == "missing" or
+                                  (failure == "frontend" and frontend == "hub") else 1)
             self.assertEqual(list(root.glob("takupoke-ui-identity.*")), [])
             self.assertFalse(any(call[:3] in (["xcrun", "simctl", "shutdown"], ["xcrun", "simctl", "delete"],
                                               ["xcrun", "simctl", "launch"]) for call in recorded))
@@ -93,11 +94,15 @@ elif args[:2]==['simctl','list']:raise AssertionError('Readiness must not use in
                 status = calls.index(["xcrun", "simctl", "bootstatus", OWNED, "-b"])
                 opens = [call for call in calls if call[0] == "open"]
                 self.assertEqual(opens[0], ["open", "-a", app] + (["--args", "-CurrentDeviceUDID", OWNED] if frontend == "legacy" else []))
-                self.assertLess(boot, calls.index(opens[0]))
+                if frontend == "hub":
+                    self.assertLess(calls.index(opens[0]), boot)
+                else:
+                    self.assertLess(boot, calls.index(opens[0]))
                 self.assertLess(calls.index(opens[0]), status)
                 self.assertFalse(any(call[:3] == ["xcrun", "simctl", "list"] for call in calls))
                 compiler = next(i for i, call in enumerate(calls) if call[:4] == ["xcrun", "--sdk", "iphonesimulator", "swiftc"])
                 self.assertLess(compiler, boot)
+                self.assertLess(compiler, calls.index(opens[0]))
                 self.assertIn("-module-cache-path", calls[compiler])
                 observations = [i for i, call in enumerate(calls) if call[:3] == ["xcrun", "simctl", "spawn"]]
                 self.assertEqual(len(observations), 1)
