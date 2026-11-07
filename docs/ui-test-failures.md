@@ -4717,3 +4717,14 @@ Swift構文/Bash構文/catalog456/check --basefa926は成功。元の実HTTP応�
 実生成factoryのURL正負/新しい一回の観測・固定stageのcollectorと本文/大容量/symlink拒否も同じ既存検査で確認した。
 新規GPT-6.1 Sol/High n236_pre_actions_reviewはcode-only125行/9040bytes、SHA256 3bea36c0e9cd405085961f0dcb811801d9e771bd9de90606fcc98c2cbbbeafcdを確認し指摘なし。
 主担当が同一性/局所結果/未送信空白を確認してから、元LinkPreferences27/SDK27.2限定dispatch一回へ消費する。
+
+731f50aの全Python314件は失敗0・skip2（195.888秒、Swift6.1.2有効）。
+元LinkPreferences27/run42421750403/attempt1/job128551465392は22:41:04〜22:52:37Z success、case228.595秒/失敗0。
+元解除/再起動/追加/一回primary tap/実ページ本文/実Close/一覧復帰と厳密実Runner/完了を通過した。
+新しい実時刻ではprimary tapからHTTP200完了まで約17.404秒、要求読了から応答送信は約0.005秒。
+app journalはcapture-unavailableで、追加したnative initial-load callbackの実結果は今回未採取。旧log表示時刻から旧要求・送信・描画の遅れを遡って断定しない。
+今回旧失敗は再現せず、下位原因や一般的解消は未確定。診断用の元30秒/実本文条件は変えず、次の正式全15でも観測する。
+旧正式20の残り26Aは22:58:49Zにsuccess、全15表示終端は8成功/27B失敗1/依存・構成skip6。
+新限定/残26A logと各artifact0を一度取得し、旧正式20の実9logが揃った。限定や別sourceの成功は正式へ合算しない。
+23:01Zにremote mainfa926不変を一度確認。新規main専用GPT-6.1 Sol/High n236_shipping_pre_actions_reviewはcode-only125行/9040bytesを確認し指摘なし。
+SHA256 3bea36c0e9cd405085961f0dcb811801d9e771bd9de90606fcc98c2cbbbeafcdの同一性・local/native結果・全未送信空白とmain baseを主担当が確認後、一回の正式21 main pushへ消費する。
