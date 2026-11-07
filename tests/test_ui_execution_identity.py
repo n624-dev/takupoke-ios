@@ -27,6 +27,8 @@ class UIExecutionIdentityTests(unittest.TestCase):
         log = "\n".join(PREFIX + json.dumps(self.record(name)) for name in names)
         validate_execution_identities(log, names, OWNED, RUNTIME, "ApplicationChecks")
         with self.assertRaises(ValueError):
+            validate_execution_identities("", [], OWNED, RUNTIME, "ApplicationChecks")
+        with self.assertRaises(ValueError):
             validate_execution_identities(log, names, OWNED, RUNTIME, "ManualAssistanceChecks")
         with self.assertRaises(ValueError):
             validate_execution_identities(log, names, OWNED, RUNTIME, "MaterialPickerTapChecks")

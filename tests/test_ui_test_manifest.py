@@ -569,7 +569,11 @@ METHOD
         program = runner.split("<<'PY_PICKER'\n", 1)[1].split("\nPY_PICKER", 1)[0]
         names = ("testInstructionSurroundMatchesFilesBackground", "testReselectionWithMissingAppearanceReturn", "testReselectionThroughActualButtons")
         def row(name, status="passed"):
-            return f"Test Case '-[PickerTapChecks.MaterialPickerTapChecks {name}]' {status} (1.0 seconds).\n"
+            identity={'case':'-[PickerTapChecks.MaterialPickerTapChecks '+name+']',
+                      'udid':'00000000-0000-0000-0000-000000000001','runtime':'27.0.0',
+                      'simulatorCompileTarget':True,'pid':123}
+            return ('TAKUPOKE_UI_EXECUTION_IDENTITY '+json.dumps(identity)+'\n'+
+                    f"Test Case '-[PickerTapChecks.MaterialPickerTapChecks {name}]' {status} (1.0 seconds).\n")
         complete = "".join(row(name) for name in names)
         with tempfile.TemporaryDirectory() as scratch:
             log = Path(scratch) / "picker.log"
@@ -579,7 +583,9 @@ METHOD
                      (complete.replace(row(names[0]), row(names[0], "skipped")), False)]
             for text, accepted in cases:
                 log.write_text(text, encoding="utf-8")
-                result = subprocess.run([sys.executable, "-c", program, str(log)], capture_output=True, text=True)
+                result = subprocess.run([sys.executable, "-c", program, str(log),
+                    '00000000-0000-0000-0000-000000000001','com.apple.CoreSimulator.SimRuntime.iOS-27-0'],
+                    capture_output=True, text=True,cwd=ROOT)
                 self.assertEqual(result.returncode == 0, accepted, result.stderr)
 
     def test_event_cache_probe_changes_only_automatic_startup_in_isolated_copy(self):

@@ -1,4 +1,5 @@
 import sys
+import json
 import importlib.util
 from pathlib import Path
 import unittest
@@ -109,18 +110,24 @@ class ManualUIProjectTests(unittest.TestCase):
 
     def test_completion_guard_rejects_missing_duplicate_skipped_failed_or_other_case(self):
         runner=(ROOT/"tools/test-manual-ui.sh").read_text(encoding="utf-8")
-        program=runner.split('python3 - "$scratch_dir/manual-ui.log" "$manual_case" <<\'PY\'\n',1)[1].split('\nPY',1)[0]
+        program=runner.split('python3 - "$scratch_dir/manual-ui.log" "$manual_case" "$simulator_id" "$runtime" <<\'PY\'\n',1)[1].split('\nPY',1)[0]
         names=['testChangedOriginalCannotSubmitOrReplaceLastGood',
                'testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground',
                'testThreeFieldsRequireEachAcknowledgementAndFourRefuses',
                'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch']
         def line(name,status='passed'):
-            return "Test Case '-[PickerTapChecks.ManualAssistanceChecks "+name+"]' "+status+" (1.0 seconds).\n"
+            identity={'case':'-[PickerTapChecks.ManualAssistanceChecks '+name+']',
+                      'udid':'00000000-0000-0000-0000-000000000001','runtime':'27.0.0',
+                      'simulatorCompileTarget':True,'pid':123}
+            return ('TAKUPOKE_UI_EXECUTION_IDENTITY '+json.dumps(identity)+'\n'+
+                    "Test Case '-[PickerTapChecks.ManualAssistanceChecks "+name+"]' "+status+" (1.0 seconds).\n")
         with tempfile.TemporaryDirectory() as scratch:
             log=Path(scratch)/'completed.log'
             def run(selected,content):
                 log.write_text(content,encoding='utf-8')
-                return subprocess.run(['python3','-c',program,str(log),selected],capture_output=True,text=True)
+                return subprocess.run(['python3','-c',program,str(log),selected,
+                    '00000000-0000-0000-0000-000000000001','com.apple.CoreSimulator.SimRuntime.iOS-27-0'],
+                    capture_output=True,text=True,cwd=ROOT)
             for name in names:
                 self.assertEqual(run(name,line(name)).returncode,0)
             whole=''.join(line(name) for name in names)
