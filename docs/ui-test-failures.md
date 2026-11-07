@@ -4058,5 +4058,6 @@ N209/N210照合：N07/N182/N193/N204〜N208と元6aa runner、現在のnative pr
 Simulator compile条件/正のPIDを記録する。hostは選択済みUUID/Runtime・元case数と照合してから成功を受理する。
 期待IDをguestへ注入せず、実行ごとの証明を要求するため、事前一回だけの証明より実テスト対象に結びつく。
 独立した事前spawn/compileは不要にし、実UIの45秒等の元期限・case・実操作・全体予算は変更しない。
+Runner内のidentity読み取り自体も単調clockで元45秒以内に限定し、時間切れならUI bodyへ進まずsetUp失敗とする。
 GUI/headlessの表示準備と実bootstatusは保持し、UI不可/証明欠落・重複・異なる端末/OS/hostは失敗のまま。
 候補/根拠を先にpushし、実Swift host拒否/strictログ検査/全runner/manifest/一覧を局所確認してから新規reviewで限定検証する。
