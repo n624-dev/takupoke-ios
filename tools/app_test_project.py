@@ -70,7 +70,7 @@ def rewrite_network_urls(text):
 def instrument_browser_fixture(text):
     marker = '        let controller = SFSafariViewController(url: url)'
     assert text.count(marker) == 1, 'Native Safari network boundary insertion point missing'
-    return text.replace(marker, '''        let browserURL: URL
+    text = text.replace(marker, '''        let browserURL: URL
         if ProcessInfo.processInfo.arguments.contains("--loopback-browser-fixture") {
             guard url.absoluteString == "https://fixture.example.test",
                   let raw = ProcessInfo.processInfo.environment["TKPK_BROWSER_FIXTURE_URL"],
@@ -82,7 +82,14 @@ def instrument_browser_fixture(text):
             }
             browserURL = local
         } else { browserURL = url }
-        let controller = SFSafariViewController(url: browserURL)''')
+        let controller = SFSafariViewController(url: browserURL)
+        FixtureLaunchDiagnostics.record("browser-controller-created")''')
+    delegate = '    final class Coordinator: NSObject, SFSafariViewControllerDelegate {\n'
+    assert text.count(delegate) == 1, 'Native Safari delegate observation insertion point missing'
+    return text.replace(delegate, delegate + '''        func safariViewController(_ controller: SFSafariViewController, didCompleteInitialLoad success: Bool) {
+            FixtureLaunchDiagnostics.record(success ? "browser-load-success" : "browser-load-failure")
+        }
+''')
 
 NATIVE_OCR_DIAGNOSTIC = r'''
                     if ProcessInfo.processInfo.arguments.contains("--recovery-ocr-probe") {

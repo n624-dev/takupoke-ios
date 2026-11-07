@@ -69,6 +69,7 @@ final class LoopbackBrowserFixture: @unchecked Sendable {
                 if errno == EINTR { continue }
                 return
             }
+            FileHandle.standardError.write(Data("BROWSER_FIXTURE accepted;fd=\(client);time=\(Date().timeIntervalSince1970)\n".utf8))
             respond(client)
         }
     }
@@ -92,6 +93,7 @@ final class LoopbackBrowserFixture: @unchecked Sendable {
             guard count > 0, request.count + count <= 8192 else { return }
             request.append(contentsOf: buffer.prefix(count))
         }
+        FileHandle.standardError.write(Data("BROWSER_FIXTURE request-read;fd=\(client);time=\(Date().timeIntervalSince1970)\n".utf8))
         let first = String(decoding: request.prefix { $0 != 10 }, as: UTF8.self)
             .trimmingCharacters(in: .whitespacesAndNewlines).split(separator: " ")
         let method = first.first.map(String.init) ?? ""
@@ -111,7 +113,7 @@ final class LoopbackBrowserFixture: @unchecked Sendable {
             guard sent > 0 else { return }
             offset += sent
         }
-        FileHandle.standardError.write(Data("BROWSER_FIXTURE response=\(status);bytes=\(body.count)\n".utf8))
+        FileHandle.standardError.write(Data("BROWSER_FIXTURE response=\(status);bytes=\(body.count);fd=\(client);time=\(Date().timeIntervalSince1970)\n".utf8))
         _ = shutdown(client, Int32(SHUT_WR))
     }
     private func wait(_ client: Int32, events: Int16, until deadline: TimeInterval) -> Bool {
@@ -480,6 +482,7 @@ extension ApplicationChecks {
             XCTFail("Restored link is not hittable after adding its favorite")
             return
         }
+        print("BROWSER_FIXTURE primary-tap;time=\(Date().timeIntervalSince1970)")
         restored.tap()
         // Read the actual fictional page through the real native browser. The
         // old internal BrowserView identifier did not prove its content loaded.

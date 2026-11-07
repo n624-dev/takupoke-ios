@@ -4688,3 +4688,26 @@ Runtime helper/製品/UIが最終codeと同一bytesのef14399/run42415082876/att
 新しい限定log/artifact0も一度取得、旧/限定の成功を次の正式全15へ合算しない。21:42Zにremote main5e94不変を一度確認した。
 新規main専用GPT-6.1 Sol/High n235_shipping_pre_actions_reviewは最終code-only130行/10534bytesを確認し指摘なし。
 SHA256 948a0c15eb427a9afa33639ebb2a518eae75d5aaac78766c38be4c5ebe6632cfの同一性・local/native結果・main base・全未送信空白を主担当が確認後、一回の正式20 main pushへ消費する。
+
+## N236 正式20の通常27Bがfailure（2026-11-07）
+
+sourcefa926ec97902adfe3b3a6a77692f36007ff4c6c3/run42417258426/attempt1/job128538819613、予定iOS27.0/SDK27.2。
+21:47:57〜22:05:32Z failureを予定22:35Z照会で確認。本文未読のためcase/段階/原因は未確定、対処前の事実記録。
+配布/Native/通常27A/手動27全4件はsuccess、通常26A/job128547124238は22:22:35Zから継続中で中止しない。
+26B/手動26は依存skip。新しい7Mac終端logだけを一度取得し、artifact一覧は全終端後まで取得しない。
+
+新7logを一度取得。通常27Bは5件中1失敗、testLinkPreferencesSurviveRelaunchが123.842秒でSettings.swift:487。
+実解除/一回再起動/実追加メニュー/保存/復帰行hittable/一回primary tapは成立した。
+実ページ本文の元30秒待機はt81.38〜111.70で未成立。BROWSER_FIXTUREのHTTP200/205bytesは末尾t111秒近くに出力されたが、
+要求到着/読了/送信の開始時刻はなく、サーバ・Safari service起動・描画のどこで遅れたかは未確定。
+期限後AXには本物のClose/WebViewがあるがBrowserView IsPageLoaded=falseで、fixture本文は未表示。採用や通知の失敗とは違う。
+
+検索語LinkPreferences/Settings.swift:487/BROWSER_FIXTURE/BrowserView/localhostでN161/N162/U42/U54/N44の詳細と
+e4f2fbf/bf1749a/9745d33/現fa926のtest/server/生成器/SafariLinkViewを照合。N161は内部ID照会の停止、今回は実本文の期限切れ。
+元fixtureは既に要求全体2秒/非blocking/停止時の回収を持ち、実サーバの遅延かOSの下位原因かをログから分離できない。
+次は診断のみ：所有serverのaccept/要求読了/送信完了と実primary tap直前の時刻を固定語彙で記録し、
+使い捨てSafari copyで実controller生成と実didCompleteInitialLoad callback（成功/失敗だけ）を所有journalへ記録する。
+本文/URL/ブラウザ結果の注入、prewarm、押し直し、server2秒/ページ30秒/Close10秒の延長は行わず、全15/元case/保存/再起動/実Closeを維持。
+生成器のLinux境界stubも新しい観測APIだけを記録できるよう追従させ、collectorの既知stage正例/本文拒否を既存検査へ加える。
+候補/根拠を先にpushし、既存の実HTTP/生成境界/manifest/runner/catalog検査後、新規reviewで未解決の元LinkPreferences27だけを比較する。
+正式20の残り26Aは中止せず、終端後の新log/artifact一覧だけを一度取得する。

@@ -367,6 +367,10 @@ final class SFSafariViewController {
     var delegate: NSObject?
     init(url: URL) { self.url = url }
 }
+enum FixtureLaunchDiagnostics {
+    static var stages: [String] = []
+    static func record(_ stage: String) { stages.append(stage) }
+}
 struct Context { let coordinator = NSObject() }
 struct ActualBrowserBoundary {
     let url = URL(string: ProcessInfo.processInfo.environment["ORIGINAL_BROWSER_URL"] ?? "https://fixture.example.test")!
@@ -374,7 +378,9 @@ METHOD
 }
 @main struct Probe {
     static func main() {
-        print(ActualBrowserBoundary().makeUIViewController(context: Context()).url.absoluteString)
+        let controller = ActualBrowserBoundary().makeUIViewController(context: Context())
+        precondition(FixtureLaunchDiagnostics.stages == ["browser-controller-created"])
+        print(controller.url.absoluteString)
     }
 }
 '''.replace("METHOD", method)
@@ -531,6 +537,7 @@ METHOD
             "notification-native-request", "notification-native-callback",
             "notification-auth-request", "notification-auth-callback", "notification-auth-returned",
             "notification-auth-error", "notification-auth-granted", "notification-auth-denied",
+            "browser-controller-created", "browser-load-success", "browser-load-failure",
             "notification-settings-not-requested", "retention-recovery-action",
             "retention-dialog-on", "retention-dialog-off", "year-input-observer-installed",
             "year-edit-began", "year-edit-ended", "year-edit-changed",

@@ -377,6 +377,7 @@ enum FixtureLaunchDiagnostics {
             "notification-native-request", "notification-native-callback",
             "notification-auth-request", "notification-auth-callback", "notification-auth-returned",
             "notification-auth-error", "notification-auth-granted", "notification-auth-denied",
+            "browser-controller-created", "browser-load-success", "browser-load-failure",
             "retention-recovery-action", "retention-dialog-on", "retention-dialog-off",
             "year-input-observer-installed", "year-edit-began", "year-edit-ended", "year-edit-changed",
             "year-keyboard-will-show", "year-keyboard-did-show", "year-keyboard-will-hide", "year-keyboard-did-hide"]
