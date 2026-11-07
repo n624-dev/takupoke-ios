@@ -4105,3 +4105,35 @@ Swiftを有効にして2件9.404秒＋1件2.036秒で別途成功）。source pa
 一覧454/check --base2b89も成功。元8手動・4通常UIの全15ゲートと、Linuxへheadless環境を漏らさない条件を維持。
 短い実例一覧は13項目/19行を維持し、今回のmodule名の教訓を既存identity項目に追記した。
 完全code-only差分1302行/76496bytes/SHA256 594050beacea37d38a23b665939ae7bbe4ac61c586fa1fd12f0715f7498e9876。
+
+## N212 正式13のiOS26で通常A/Bと手動3件がfailure（2026-11-07）
+
+source a8b71315090b56da1d33eb5318fc264392cb7465/run42337449457/attempt1、SDK27.2・予定Runtime26.5・headless。
+05:45Z一括照会で以下を確認。本文未読でケース内の失敗段階・原因は未確定。対処案を決める前の観測記録。
+- 通常26B/job128306010183、04:51:08〜05:28:13Z、failure。
+- 通常26A/job128308828884、05:04:14〜05:17:48Z、failure。
+- 手動26One/job128308828903、05:04:14〜05:15:22Z、failure。
+- 手動26Selected/job128308828922、05:15:25〜05:28:42Z、failure。
+- 手動26Changed/job128308828938、05:04:15〜05:18:27Z、failure。
+手動26Three/job128308828910はsuccess（05:04:14〜05:23:48Z）。27の通常A/Bと手動4件、配布検査、Nativeは全成功。
+公開job128314268003は依存skipで未公開。全run終端。新26側6logだけを一度取得し、成功や旧logは再照会しない。
+
+新6log/artifact0を一度取得。実Runnerのcase/UUID/26.5/Simulator条件/PIDは各caseで成立し、N211の形式差は解消。
+26Aは補助資料case163.969秒で成功後の行除外case、手動One/Selected/Changedは起動後に
+device Shutdown/runtime null/supportedArches空となり、`cannot determine the runtime bundle`で終了65。
+Oneのxcresultはsignal term、cleanupもdevice not booted。3項目26は全実操作/保存/再起動を成功した。
+exportは最後のcleanupまで保持済み。26Aは23F73、One/成功Threeは23F77で、build番号だけでは成功を区別できない。
+26Bは先行のAI Switch4回を実UI/保存/setterで成功後、独立通知caseの最初のONが150.827秒で失敗。
+実native枠(300,177.333,63,28)、state0、一回0.1秒接触は実UISwitch/_UILiquidLensViewへbeganで到達したが、
+0.135秒後にcancelled、UILongPress state1、native値0のまま。Binding/認可要求は未開始、元45秒内のONは不成立。
+今回初めて失敗接触の配送取消を観測できた。単なるtap返却を成功扱いしない。
+
+検索語runtime bundle/not booted/export/phase=cancelled/UILongPressとN166/N176/N177/N184、U55/U64/N180/N192、
+当時031916/2b89のrunnerと現在a8の準備/共通Switchを照合。旧bundle欠損はGUI共通化前にも発生し、
+export保持だけではN184で再発済み。GUI有り正式12の26Aは全成功・26Bは別のfixture snapshot timeoutで、
+今回headless正式13の4VMは実起動後にRuntimeを失った。GUI未接続が原因と断定せず、26だけ所有画面を開く比較を行う。
+27のheadless/配布SDK27.2/実26.5/一回boot/厳密実Runner証明/元case/全15/元期限は維持し、別native事前probeは戻さない。
+Switchは現在の同じnative identity/点/元状態照合を保持し、強制0.1秒pressだけを通常coordinate.tap一回へ変更する。
+U64の旧tap失敗は同時のnative配送証拠が無く、現在はbinding済みnative要素へのpress取消を実観測した点が異なる。
+全5callerへ共通適用し、元UI/保存/再起動の条件と45秒・許可一回を維持。入力再送や期待値/許可の注入はしない。
+候補/根拠を先にpush後、局所契約/一覧と新規reviewを経て通知26と明示選択訂正26を各一回比較する。

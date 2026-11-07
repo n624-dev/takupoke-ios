@@ -177,7 +177,7 @@ jobs:
     timeout-minutes: 60
     env:
       TKPK_EXPECTED_IOS_SDK: '27.2'
-      TKPK_SIMULATOR_FRONTEND: headless
+      TKPK_SIMULATOR_FRONTEND: gui
       DEVELOPER_DIR: ${{ matrix.developer }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_UI_SHARD: ${{ matrix.shard }}
@@ -218,7 +218,7 @@ jobs:
     timeout-minutes: 60
     env:
       TKPK_EXPECTED_IOS_SDK: '27.2'
-      TKPK_SIMULATOR_FRONTEND: headless
+      TKPK_SIMULATOR_FRONTEND: gui
       DEVELOPER_DIR: ${{ matrix.developer }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_UI_SHARD: ${{ matrix.shard }}
@@ -298,7 +298,7 @@ jobs:
     timeout-minutes: 45
     env:
       TKPK_EXPECTED_IOS_SDK: '27.2'
-      TKPK_SIMULATOR_FRONTEND: headless
+      TKPK_SIMULATOR_FRONTEND: gui
       DEVELOPER_DIR: ${{ matrix.developer }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_MANUAL_CASE: ${{ matrix.case }}

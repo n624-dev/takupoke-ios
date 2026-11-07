@@ -220,9 +220,8 @@ class ManifestTests(unittest.TestCase):
         self.assertNotIn('addUIInterruptionMonitor', pending)
         navigation = (ROOT / "tests/ui/ApplicationChecks+Navigation.swift").read_text()
         switch = navigation.split("func tapNativeSwitch(", 1)[1]
-        brief_contact = ".press(forDuration: 0.1)"
-        self.assertEqual(switch.count(".tap()") + switch.count(brief_contact), 1)
-        self.assertEqual(switch.count("press(forDuration:"), switch.count(brief_contact))
+        self.assertEqual(switch.count(".tap()"), 1)
+        self.assertNotIn("press(forDuration:", switch)
         self.assertNotIn(".doubleTap(", switch)
         self.assertNotIn("row.tap()", switch)
         self.assertNotIn("control.tap()", switch)
@@ -751,7 +750,7 @@ METHOD
                     self.assertIn("bash tools/test-app-ui.sh", block)
                     self.assertIn("--runner-log", block)
                     self.assertIn("TKPK_EXPECTED_IOS_SDK: '27.2'", block)
-                    self.assertIn("TKPK_SIMULATOR_FRONTEND: headless", block)
+                    self.assertIn(f"TKPK_SIMULATOR_FRONTEND: {'gui' if ios == 26 else 'headless'}", block)
                 self.assertIn("runner: xcode-27", second)
                 self.assertIn("developer: /Applications/Xcode_27.2.app/Contents/Developer", second)
                 prepare = "python3 -B tools/prepare-ios26-runtime.py"
@@ -804,7 +803,7 @@ METHOD
             if ios == 27:
                 block = block.split("  manual-26:\n", 1)[0]
             self.assertIn("TKPK_EXPECTED_IOS_SDK: '27.2'", block)
-            self.assertIn("TKPK_SIMULATOR_FRONTEND: headless", block)
+            self.assertIn(f"TKPK_SIMULATOR_FRONTEND: {'gui' if ios == 26 else 'headless'}", block)
             self.assertIn('run: python3 -B tools/timed_command.py --timeout 2400 --cleanup-grace 120 "Manual UI runner" bash tools/test-manual-ui.sh', block)
             prepare = f"python3 -B tools/prepare-ios{ios}-runtime.py"
             self.assertIn(prepare, block)
