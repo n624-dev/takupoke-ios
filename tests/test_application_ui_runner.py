@@ -361,11 +361,7 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                     self.assertEqual(Path(frontend[2]).name, "Simulator.app" if ios == 26 else "DeviceHub.app")
                     self.assertEqual(frontend[3:], ["--args", "-CurrentDeviceUDID", "00000000-0000-0000-0000-000000000001"]
                                      if ios == 26 else [])
-                    self.assertLess(calls.index(builds[0]), calls.index(frontend))
-                    if ios == 27:
-                        self.assertLess(calls.index(frontend), calls.index(boot))
-                    else:
-                        self.assertLess(calls.index(boot), calls.index(frontend))
+                    self.assertLess(calls.index(boot), calls.index(frontend))
                     self.assertLess(calls.index(frontend), calls.index(builds[1]))
                     if ios == 27:
                         window = frontends[1]

@@ -819,19 +819,25 @@ METHOD
         self.assertIn("default: '26.6'",sdk26)
         self.assertIn("options: ['26.6', '27.1']",sdk26)
         self.assertIn("matrix.ios == 26 && inputs.sdk26 == '26.6' && 'macos-26' || 'xcode-27'",probe)
-        self.assertIn("matrix.ios == 26 && inputs.sdk26 == '26.6' && '/Applications/Xcode_26.6.app/Contents/Developer' || '/Applications/Xcode_27.1.app/Contents/Developer'",probe)
-        self.assertIn("(matrix.ios == 27 || inputs.sdk26 == '27.1') && '27.1' || '26.5'",probe)
+        self.assertIn("format('/Applications/Xcode_{0}.app/Contents/Developer', matrix.ios == 27 && inputs.sdk27 || inputs.sdk26)",probe)
+        self.assertIn("matrix.ios == 27 && inputs.sdk27 || inputs.sdk26 == '27.1' && '27.1' || '26.5'",probe)
+        sdk27=probe.split("      sdk27:\n",1)[1].split("      ios:\n",1)[0]
+        self.assertIn("default: '27.1'",sdk27)
+        self.assertIn("options: ['27.1', '27.2']",sdk27)
         self.assertIn("TKPK_FOCUS_IOS: ${{ inputs.ios }}",probe)
         self.assertIn("TKPK_FOCUS_SDK26: ${{ inputs.sdk26 }}",probe)
+        self.assertIn("TKPK_FOCUS_SDK27: ${{ inputs.sdk27 }}",probe)
         self.assertIn("TKPK_MANUAL_RUNNER_SECONDS: ${{ matrix.case == '"+selected+"' && 2400 || 1800 }}",probe)
         self.assertIn('run: python3 -B tools/timed_command.py --timeout "$TKPK_MANUAL_RUNNER_SECONDS" --cleanup-grace 120 "Focused manual UI runner" bash tools/test-manual-ui.sh',probe)
         preflight=probe.split("      - name: Validate focused OS and toolchain selection\n        run: |\n",1)[1].split("      - name:",1)[0]
         preflight="\n".join(line[10:] for line in preflight.splitlines())
         for ios in ('both','26','27','25','26,27',''):
             for sdk in ('26.6','27.1','27.0',''):
-                run=subprocess.run(['bash','-eu','-c',preflight],capture_output=True,text=True,
-                    env=os.environ|{'TKPK_FOCUS_IOS':ios,'TKPK_FOCUS_SDK26':sdk})
-                self.assertEqual(run.returncode,0 if ios in ('both','26','27') and sdk in ('26.6','27.1') else 2,(ios,sdk,run.stderr))
+                for sdk27 in ('27.1','27.2','27.0',''):
+                    run=subprocess.run(['bash','-eu','-c',preflight],capture_output=True,text=True,
+                        env=os.environ|{'TKPK_FOCUS_IOS':ios,'TKPK_FOCUS_SDK26':sdk,'TKPK_FOCUS_SDK27':sdk27})
+                    self.assertEqual(run.returncode,0 if ios in ('both','26','27') and sdk in ('26.6','27.1')
+                        and sdk27 in ('27.1','27.2') else 2,(ios,sdk,sdk27,run.stderr))
         self.assertLess(probe.index(preflight.splitlines()[0].strip()),probe.index("python3 -B tools/prepare-ios"))
         prepare="python3 -B tools/prepare-ios26-runtime.py --hold-export"
         self.assertIn("if: matrix.ios == 26 && inputs.sdk26 == '27.1'\n        run: "+prepare,probe)

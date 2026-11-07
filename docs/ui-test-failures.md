@@ -3965,3 +3965,35 @@ native proof45秒・元bootstatus・全UI期待/入力・全体予算・所有cl
 過去の3経路限定確認は実施済みで、今回は同一host APIの二段階の順序だけが変更点。
 実装を変えていない通常/Pickerの限定を毎回反復せず、両OSの全経路は次の正式全15で改めて要求する。
 旧26 A/Bは取消さず、実開始から約50分の01:55Zに新限定とまとめて確認する。
+
+## N205 正式2b89の通常26 Bがfailure（2026-11-07）
+
+source2b89c38d99c0011ce1680bce7db1a751fc165d89/run42318063090/attempt1/job128248049294、
+SDK27.1・予定Runtime26.5、01:03:08Z〜01:37:47Z。01:55Z一括照会でfailureを確認。
+本文未読で具体ケース・段階・原因は未確定。26 A128248923119は01:47:07Zにsuccessで終端した。
+これで全job終端、実行10件中8成功/2失敗、手動26/公開は依存skip。新2logだけを一度取得する。
+
+## N206 DeviceHub先行候補の同じ原本変更拒否27限定がfailure（2026-11-07）
+
+sourced10979187195f6e6ce9d763d3a0866d83bf9fa7a/run42324452193/attempt1/job128256391580、
+SDK27.1・予定Runtime27.0、testChangedOriginalCannotSubmitOrReplaceLastGood、01:30:49Z〜01:39:32Z。
+本文未読で準備/実UIの段階・原因は未確定。対処前に記録した。新logを一度取得し、過去/現コードを照合する。
+
+N205実log：build110.1秒、boot470.4秒・全native identity一致後、元通常B先頭の
+testChangedAccountDataNoticeOpensSharedAcquisitionがApplicationChecks.swift:120のUI snapshot timeoutで126.579秒/失敗。
+後続の同phase5ケースは成功した。実UIの段階で、今回のboot proof timeoutとは区別する。26 Aは全元操作/通知に成功。
+N206実log：Hubを先に開く操作は0.4秒で成功し、その後のboot呼出しが61.6秒、bootstatus137.8秒。
+所有画面URL後のnative proofは45秒でtimeout/exit-1/deadlineExceeded、host log10秒もtimeoutで全UI未開始。
+先行起動だけでは無応答を解消せず、初期化競合を原因と断定しない。元条件の盲目的再実行はしない。
+全2run終端・新3logを一度取得・artifact0を確認済み。正式12の全10実行logは揃い、以後再照会しない。
+
+N205/N206照合：Xcode/SDK/27.2/DEVELOPER_DIRで索引とci-toolchain-update-20261026を検索し、
+N07/N53/N127/N182/N204と現prepare/runner/launchReady（120行）を比較した。
+通常26の停止はSpringBoard foregroundと一回app.launchを通過した後のfixture-ready全画面snapshotで、他5ケースは成立。
+起動順の先行化はnative応答を改善しなかったため、helperと対応order検査を正式2b89の順序へ戻す。
+利用者提示の搭載一覧を一度取得するとimageの既定も27.1/27A9275で、SDK選択不一致の証拠はない。
+同一覧の27.2 RC/27B48は旧source2562772/run40357278572でNative688/予定skip1/失敗0・元Picker3件/失敗0を
+実比較済みだった（旧終端runは再照会しない）。今回の完全なアプリ/訂正の成功を保証するものではない。
+利用者のSDK更新指示に沿い、Runtime26.5/27.0と全操作/期待/期限/boot proofを固定し、27.2 RCで二つの失敗経路を比較する。
+手動限定workflowに既定27.1を保持した明示sdk27選択だけを追加し、不明SDKを拒否する。通常26は既存probeのsdk26=27.2を使う。
+配布workflowはまだ27.1を保持し、比較成功後にだけ全15を27.2で検証する候補へ進む。製品・API・入力・再送・期限は変更しない。
