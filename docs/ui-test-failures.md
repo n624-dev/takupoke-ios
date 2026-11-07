@@ -4272,3 +4272,14 @@ GitHub lawkitt/mdoc issue654の実例も、marketing指定ではRC、build番号
 不一致・欠落・重複は失敗にし、削除/再install/別minorへのfallbackはしない。export保持と所有回収、全入力/期限/全15は維持。
 候補と根拠を先にpushし、fake CLIで正常登録/一回download・import/誤build/欠落/重複拒否と回収を検証する。
 限定は元4手動caseを26で各freshVMで確認し、成功後に同一source/run/attemptの全15正式検証へ進む。
+
+48f50b6を先にpush後、Runtime準備4宣言/失敗0（5.282秒、26の11経路を含む）、
+元manifest30件/失敗0（Swift有効、16.734秒）、一覧456/check --base eb6af38が成功。
+正式buildの一回取得/arm64・保持・後片付け、誤build/欠落/重複の拒否を実helper/fakeCLIで確認。
+実Simulatorの安定性は未確認。code-only差分528行/29814bytes、SHA256
+4c20a59ba47706ba0f5558d8c1ff7c591c0fae94e05058edcedd21737371cca5。
+
+## N219 ローカルmanifest検査のファイル名誤指定（2026-11-07）
+
+source48f50b6/Linux、test_ui_manifest.pyを指定して0件・exit5。Actions未開始、コード不具合ではない。
+実在するtest_ui_test_manifest.pyを一覧から確認して実行し、上記30件の成功を得た。実装・期待値の変更なし。
