@@ -4617,3 +4617,15 @@ N97ではACKを同List/Switchとし、外側の論理IDをviewport観測後に�
 短い実例一覧は13項目/19行を維持し、既存の全画面検索の項目に実List/型の教訓を追記した。
 新規GPT-6.1 Sol/High n233_pre_actions_reviewはcode-only26行/2027bytes、SHA256 e54c27655f58ac35edbc59bfd281bd596ccb76147691d2f8ac5bc98fa87576b7を確認し指摘なし。
 主担当が同一性/局所結果/未送信空白を確認し、このreviewを元Three/両OS/SDK27.2限定dispatch一回へ消費する。
+
+51ab481の全Python314件は失敗0・skip2（198.717秒、Swift6.1.2有効）。
+元Three/両OS run42406420860/attempt1は両job success。27/job128505007705は19:29:06〜19:44:43Z・元case449.500秒/失敗0、
+26/job128505007839は19:29:07〜19:56:37Z・元case525.237秒/失敗0。型を絞った実review header、元3入力/各ACK/4件拒否/採用/保存/再起動と厳密実Runner/完了が成立した。
+新両log/artifact0を一度取得し、終端を再照会しない。AXの一般的な解消や別ソースの正式合格へは一般化しない。
+旧正式18の通常26Aは19:40:53Z/Bは19:55:46Zにsuccess。全15表示job終端、9成功/手動Three27失敗1/依存・構成skip5（手動26はmatrix一行へ集約）で未公開。
+新26通常二log/artifact0も一度取得、正式18の全10実行logが揃った。新修正は別sourceの全15を要求し、先行成功を合算しない。
+20:06Zにremote main65f268d不変を一度確認。次は新しいmain専用code-only review後、元全15の正式19へ通常fast-forwardする。
+
+新規main専用GPT-6.1 Sol/High n233_shipping_pre_actions_reviewは完全code-only26行/2027bytesを確認し指摘なし。
+SHA256 e54c27655f58ac35edbc59bfd281bd596ccb76147691d2f8ac5bc98fa87576b7の同一性、両OSの元Three成功・全Pythonと局所検査、
+製品/正式workflow/manifest不変・remote main65f不変・全未送信空白を主担当が確認後、一回の正式19 main pushへ消費する。
