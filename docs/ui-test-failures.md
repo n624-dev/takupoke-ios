@@ -4368,3 +4368,10 @@ exit30の初出で、一般的な削除失敗と同じ成功へ読み替えな�
 最終imageが同じlocal Readyのみ、かつowned AssetDataが残らないことを要求する。一般的なエラー30を無視しない。
 これは起動前のApple APIが指定した限定復旧であり、UIの入力/起動/失敗caseを再試行するものではない。
 候補と根拠を先にpush後、部分削除の正例と誤message/path・復旧失敗のfakeCLIを検証する。
+
+e86c4b0を先にpush後、実helper/fakeCLI4宣言/失敗0（16.206秒、26の32経路）、
+元manifest30件/失敗0（Swift有効、18.405秒）、一覧456/write/check --base eb6af38が成功。
+特定exit30のみ一回scan/同じowned assetの新UUIDへ一回delete、誤message/path・local消失・scan失敗・
+別asset・第二delete失敗は停止することを確認。通常errorは従来どおり失敗にする。
+実Apple復旧は未確認。code-only差分706行/43502bytes、SHA256
+36b4ac9dbfda99447d1946767e1c4a6efd606d7b4b0d062c8609804e95ca9848。
