@@ -4375,3 +4375,19 @@ e86c4b0を先にpush後、実helper/fakeCLI4宣言/失敗0（16.206秒、26の32
 別asset・第二delete失敗は停止することを確認。通常errorは従来どおり失敗にする。
 実Apple復旧は未確認。code-only差分706行/43502bytes、SHA256
 36b4ac9dbfda99447d1946767e1c4a6efd606d7b4b0d062c8609804e95ca9848。
+
+## N224 限定部分削除復旧のSelected26がfailure（2026-11-07）
+
+source1b4645bc5e54067088b907888b14807003458012/run42381222834/attempt1/job128429056334、
+SDK27.2・予定26.5正式23F77/GUI。14:21:36〜14:24:01Z failureを予定14:28Z照会で確認。
+本文未読で段階/原因は未確定、対処前に記録。新1log/artifact一覧だけ一度取得する。
+
+新log/artifact0を一度取得。正確なexit30を認識し、local Ready保全と旧UUID消失を確認、scanは成功した。
+直後の実image一覧には同じlocal Readyのみで、再登録候補0のため準備を拒否した。UI/bootは未実行。
+fakeはscan直後に新UUIDが必ず一件現れると想定していたが、実APIはその同期完了を保証していない。
+その時点のAssetData実在は未記録で、既に回収されたのか、scanの非同期反映前かは未確定。
+scan/非同期/完了で索引と旧/現helperを照合。最終契約（同じlocal Readyのみ・owned AssetData不在）は維持し、
+候補0かつAssetData不在なら追加deleteせず完了、存在する間だけ最大30秒でread-only登録状態を観測する。
+scanの再発行・別UUIDの推測・UIの再試行は行わず、未知重複/Ready消失/期限切れは拒否する。
+fakeには既に回収済みと遅れて一件登録される両方を加え、OSの存在照会とCLIを独立して制御する。
+候補/根拠を先にpush後に局所検査、新規reviewを経る。既読run/logは再照会しない。

@@ -37,6 +37,9 @@ elif args[:3] == ['simctl','runtime','list']:
         if rescanned.exists():
             records[recovered_id]=records.pop(uid) | {'identifier':recovered_id,
                 'path':'/unrelated-asset' if mode=='partial-rescan-wrongpath' else asset}
+            counter=marker.with_name('rescan-observations')
+            count=int(counter.read_text())+1 if counter.exists() else 1;counter.write_text(str(count))
+            if mode=='partial-pending' or mode=='partial-lag' and count<3: records.pop(recovered_id)
     if mode=='pre-existing-id' and not downloaded.exists(): records[download_id]={'runtimeIdentifier':'unrelated'}
     if downloaded.exists() and mode=='two-downloads': records[foreign_id]=record(foreign_id,asset,'Ready')
     if imported.exists():
@@ -60,7 +63,8 @@ elif args[:3] == ['simctl','runtime','delete']:
 elif args[:3] == ['simctl','runtime','scan-and-mount']:
     assert partial.exists() and deleted.exists()
     if mode=='partial-scan-fails': sys.exit(9)
-    rescanned.write_text('re-registered same owned asset');deleted.unlink()
+    rescanned.write_text('re-registered same owned asset')
+    if mode!='partial-already-reclaimed': deleted.unlink()
 elif args[:2] == ['simctl','list']:
     runtimes=[]
     if mode.startswith('installed') or marker.exists():
@@ -95,12 +99,27 @@ elif args[:1] == ['-importPlatform']:
     imported.write_text('local import')
 else: sys.exit(99)
 '''
+        wrapper=r'''
+import os,runpy,sys
+from pathlib import Path
+from unittest.mock import patch
+actual_exists=Path.exists
+asset='/System/Library/AssetsV2/com_apple_MobileAsset_iOSSimulatorRuntime/'+'a'*40+'.asset/AssetData'
+def observed_exists(path):
+    if str(path)==asset and os.environ['MODE'] in ('partial-lag','partial-pending'):
+        removed=Path(os.environ['MARKER']).with_name('deleted')
+        return not (actual_exists(removed) and removed.read_text()=='removed owned duplicate')
+    return actual_exists(path)
+sys.argv=sys.argv[1:]
+with patch.object(Path,'exists',observed_exists): runpy.run_path(sys.argv[0],run_name='__main__')
+'''
         for mode in ('installed','auto-installed','import','download-fails','no-image','import-fails','wrong-version',
                      'installed-wrong-build','installed-build-missing','installed-duplicate-build','download-wrong-build',
                      'dmg-export','export-symlink','two-exports','pre-existing-image','pre-existing-id','two-downloads',
                      'no-duplicate','unknown-duplicate','duplicate-ready','not-deletable','wrong-local-path','two-locals',
                      'delete-fails','delete-stuck','partial','partial-second-fails','partial-scan-fails',
-                     'partial-badmessage','partial-wrong-path','partial-lost-local','partial-rescan-wrongpath'):
+                     'partial-badmessage','partial-wrong-path','partial-lost-local','partial-rescan-wrongpath',
+                     'partial-already-reclaimed','partial-lag','partial-pending'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory(prefix='takupoke-runtime-lifetime-') as directory:
                 root=Path(directory);scratch=root/'scratch';scratch.mkdir()
                 for name in ('xcrun','xcodebuild'):
@@ -109,9 +128,9 @@ else: sys.exit(99)
                 env=os.environ | {'PATH':directory+os.pathsep+os.environ['PATH'],'MODE':mode,
                     'MARKER':str(root/'registered'),'CALLS':str(calls),'RUNNER_TEMP':str(scratch),
                     'TKPK_EXPECTED_IOS_SDK':'27.1','PYTHONDONTWRITEBYTECODE':'1'}
-                command=[sys.executable,'-B',str(ROOT/'tools/prepare-ios26-runtime.py')]
-                prepared=subprocess.run(command+['--hold-export'],env=env,capture_output=True,text=True,timeout=15)
-                self.assertEqual(prepared.returncode==0,mode in ('installed','auto-installed','import','dmg-export','no-duplicate','partial'),prepared.stdout+prepared.stderr)
+                command=[sys.executable,'-B','-c',wrapper,str(ROOT/'tools/prepare-ios26-runtime.py')]
+                prepared=subprocess.run(command+['--hold-export'],env=env,capture_output=True,text=True,timeout=40 if mode=='partial-pending' else 15)
+                self.assertEqual(prepared.returncode==0,mode in ('installed','auto-installed','import','dmg-export','no-duplicate','partial','partial-already-reclaimed','partial-lag'),prepared.stdout+prepared.stderr)
                 owned=scratch/'takupoke-ios26-runtime-export-owned'
                 self.assertEqual(owned.exists(),not mode.startswith('installed'))
                 if mode in ('auto-installed','import'):
@@ -128,7 +147,7 @@ else: sys.exit(99)
                 removals=[row for row in commands if 'delete' in row]
                 expected_delete=mode in ('auto-installed','import','wrong-version','dmg-export','delete-fails','delete-stuck')
                 expected_ids=['11111111-1111-4111-8111-111111111111'] if expected_delete or mode.startswith('partial') else []
-                if mode in ('partial','partial-second-fails'): expected_ids.append('44444444-4444-4444-8444-444444444444')
+                if mode in ('partial','partial-second-fails','partial-lag'): expected_ids.append('44444444-4444-4444-8444-444444444444')
                 self.assertEqual(removals,[['xcrun','simctl','runtime','delete',uid] for uid in expected_ids])
                 self.assertEqual(sum(row[1:4]==['simctl','runtime','scan-and-mount'] for row in commands),int(
                     mode.startswith('partial') and mode not in ('partial-badmessage','partial-wrong-path','partial-lost-local')))

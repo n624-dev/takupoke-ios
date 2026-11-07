@@ -1,5 +1,5 @@
 """Prepare exact iOS 26.5 on the shipping toolchain in a disposable hosted runner."""
-import argparse, json, os, re, shutil, subprocess, tempfile, uuid
+import argparse, json, os, re, shutil, subprocess, tempfile, time, uuid
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -62,9 +62,9 @@ def available26():
     pinned = len(exact) == 1 and exact[0].get("buildversion") == IOS26_BUILD
     return [tuple(map(int, r["version"].split("."))) for r in available], bool(registered), pinned
 
-def runtime_images(stage):
+def runtime_images(stage, timeout=30):
     result = subprocess.run(["xcrun", "simctl", "runtime", "list", "-j"],
-                            check=True, capture_output=True, text=True, timeout=30)
+                            check=True, capture_output=True, text=True, timeout=timeout)
     images = json.loads(result.stdout)
     print("TAKUPOKE_IOS26_RUNTIME_IMAGES stage=" + stage + " " +
           json.dumps(images, separators=(",", ":")), flush=True)
@@ -149,15 +149,30 @@ if not versions:
                 if set(after_partial) != {local_id} or not same_ready(local_id, after_partial[local_id], local_image):
                     raise SystemExit("Partial removal did not preserve the ready local image")
                 subprocess.run(["xcrun", "simctl", "runtime", "scan-and-mount"], check=True, timeout=180)
-                rescanned = target_images(runtime_images("after-owned-asset-rescan"))
-                candidates = {key: item for key, item in rescanned.items() if key != local_id}
-                if (len(candidates) != 1 or local_id not in rescanned
-                        or not same_ready(local_id, rescanned[local_id], local_image)):
-                    raise SystemExit("Rescan did not isolate the same owned asset and ready local image")
-                recovered_id, recovered = next(iter(candidates.items()))
-                if recovered_id in before or not owned_unusable(recovered_id, recovered, asset_path):
-                    raise SystemExit("Refusing removal of an unowned re-registered runtime image")
-                subprocess.run(["xcrun", "simctl", "runtime", "delete", recovered_id], check=True, timeout=180)
+                scan_deadline = time.monotonic() + 30
+                while True:
+                    remaining_seconds = scan_deadline - time.monotonic()
+                    if remaining_seconds <= 0:
+                        raise SystemExit("Owned asset re-registration did not complete within 30 seconds")
+                    rescanned = target_images(runtime_images("after-owned-asset-rescan", timeout=remaining_seconds))
+                    if time.monotonic() > scan_deadline:
+                        raise SystemExit("Owned asset re-registration exceeded its observation deadline")
+                    candidates = {key: item for key, item in rescanned.items() if key != local_id}
+                    if (len(candidates) > 1 or local_id not in rescanned
+                            or not same_ready(local_id, rescanned[local_id], local_image)):
+                        raise SystemExit("Rescan did not preserve the same ready local image")
+                    present = asset_path.exists()
+                    print("TAKUPOKE_IOS26_OWNED_ASSET present=" + str(present).lower(), flush=True)
+                    if not candidates:
+                        if not present:
+                            break
+                        time.sleep(min(1, max(0, scan_deadline - time.monotonic())))
+                        continue
+                    recovered_id, recovered = next(iter(candidates.items()))
+                    if recovered_id in before or not owned_unusable(recovered_id, recovered, asset_path):
+                        raise SystemExit("Refusing removal of an unowned re-registered runtime image")
+                    subprocess.run(["xcrun", "simctl", "runtime", "delete", recovered_id], check=True, timeout=180)
+                    break
             remaining = target_images(runtime_images("after-owned-duplicate-removal"))
             if (set(remaining) != {local_id} or not same_ready(local_id, remaining[local_id], local_image)
                     or asset_path.exists()):
