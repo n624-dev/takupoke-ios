@@ -4025,3 +4025,10 @@ GUIが起動原因との証明はなく、追加したDeviceHub起動/所有画�
 SDK27.2/Runtime26.5・27.0、native45秒、一回boot/probe、元UI全case/実操作/画像/保存/再起動/期限は変更しない。
 GUI不在を無条件成功とせず、応答不成立や実UI不成立は失敗にする。未知modeも準備前に拒否する。
 製品/配布workflowは変更せず、候補push→実shell/全caller/manifest/一覧→各新規review→限定3経路の順で確認する。
+
+headless候補98f8401を先にpush後、実helper3件/失敗0（9.038秒）、App実runner17件/失敗0（53.825秒）、
+manual5件/失敗0（10.001秒）、Picker1宣言/元8入力/失敗0（8.999秒）、manifest30件/失敗0（20.747秒）を確認。
+未知modeでコマンド未実行、GUIなしの実shellでもcompile/sign/boot/bootstatus/identity不成立を拒否し、
+Appの両OSで元Aの全caseとcontent_size実コマンド/所有回収が残ることを確認した。GUI枝の元検査も保持した。
+一覧453/write/check --base2b89とBash構文も通過。実UIはまだ未確認で、限定3経路の実操作を要求する。
+完全code-only差分228行/14466bytesのSHA256はd7c38c0081fd810dcd7061cb6844388f52e415bdd1f132a20cdd1eb29d3f30d2。

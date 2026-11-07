@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`b84d4088f032e29fc6b901f33deb03226e630bcd72952d7733a30068fbb8a270`
+`1e1de81c0054ef0899f3595d4848d781deaf387eeb4b98f42af344a26ab1d534`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -79,6 +79,7 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 - `test_input_probe_runs_each_original_case_once_on_the_same_owned_device`
 - `test_year_input_probe_keeps_preceding_case_and_reads_keyboard_settings_without_writes`
 - `test_successful_notification_probe_observes_os_before_deleting_simulator`
+- `test_headless_runner_keeps_all_selected_ui_cases_and_actual_size_commands`
 - `test_both_shards_on_both_os_preserve_selection_and_os_size_checks`
 - `test_missing_xctest_completion_fails_shell_and_cleans_up`
 - `test_failed_ui_build_does_not_boot_or_run_tests_and_still_cleans_up`

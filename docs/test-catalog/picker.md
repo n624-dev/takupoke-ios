@@ -1,7 +1,7 @@
 # ファイル選択・再選択・背景・キャンセル
 
 対応関係・宣言名・実行方法のSHA-256：
-`5aa97cdae8e1e3b18a59e13ccbeba29e777831389aba6eb7ca07965debee33d4`
+`a1579c917ee893d3aeca56c174fc3050b0a4d68929d2db5d68285ca6391b3e58`
 
 環境：Apple iOS26/27 UI＋Nativeレイアウト
 
@@ -38,6 +38,7 @@ bash tools/test-picker-ui.sh
 
 - `test_selected_xcode_frontends_and_owned_window_are_ready_before_returning`
 - `test_boot_frontend_window_and_readiness_errors_fail_without_another_boot`
+- `test_headless_requires_the_same_owned_native_proof_without_a_desktop_viewer`
 
 ## [tests/test_notification_service_trace.py](../../tests/test_notification_service_trace.py)
 

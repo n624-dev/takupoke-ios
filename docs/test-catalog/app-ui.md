@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`ce655454b851e7f691e37cb3e47beef701d3a960e7a4a3811302d4c23f21fc51`
+`e5dd63d2e11c8c7e1a58951c2513f001585c9127912c1e0b57a480df8b77c345`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -212,6 +212,7 @@ bash tools/test-app-ui.sh
 - `test_input_probe_runs_each_original_case_once_on_the_same_owned_device`
 - `test_year_input_probe_keeps_preceding_case_and_reads_keyboard_settings_without_writes`
 - `test_successful_notification_probe_observes_os_before_deleting_simulator`
+- `test_headless_runner_keeps_all_selected_ui_cases_and_actual_size_commands`
 - `test_both_shards_on_both_os_preserve_selection_and_os_size_checks`
 - `test_missing_xctest_completion_fails_shell_and_cleans_up`
 - `test_failed_ui_build_does_not_boot_or_run_tests_and_still_cleans_up`
@@ -252,6 +253,7 @@ bash tools/test-app-ui.sh
 
 - `test_selected_xcode_frontends_and_owned_window_are_ready_before_returning`
 - `test_boot_frontend_window_and_readiness_errors_fail_without_another_boot`
+- `test_headless_requires_the_same_owned_native_proof_without_a_desktop_viewer`
 
 ## [tests/test_manual_ui_runner.py](../../tests/test_manual_ui_runner.py)
 

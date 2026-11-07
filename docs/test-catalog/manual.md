@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`f125617395e08225e0b40827f56d69d672e5684cc45766ea1516ee8fcd6e1d54`
+`ea1953d67bef7dd7f30bf53ac066111c23ee563deeead5faf09c9c98492af331`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -157,6 +157,7 @@ bash tools/test-manual-ui.sh
 
 - `test_selected_xcode_frontends_and_owned_window_are_ready_before_returning`
 - `test_boot_frontend_window_and_readiness_errors_fail_without_another_boot`
+- `test_headless_requires_the_same_owned_native_proof_without_a_desktop_viewer`
 
 ## [tests/test_notification_service_trace.py](../../tests/test_notification_service_trace.py)
 
