@@ -4664,3 +4664,16 @@ Readingを削除せず3観測目のReadyで一回deleteする正例、同じ30�
 新Reading負例だけはテスト用monotonic/sleepで同じ30秒・一秒以下の待機30回を制御する。実helperのclock/30秒設定は変更しない。
 全30回がReadingで、仮想経過30秒ちょうどで失敗・第二delete/importなしを要求し、正例/他のCLIは実コマンドdoubleのまま動かす。
 Native限定実行のソースef14399からRuntime helper/製品/UIは同一bytesで、変更はLinuxの検査時間だけ。候補を先にpushして全Pythonを確認する。
+
+## N235 検査用clockを含む全Pythonが非0（2026-11-07）
+
+sourcea2a216680b83ce7b35239198030a4c6476de816b、Linux/Swift6.1.2、全Python session41049がexit1。
+保持log未読でcase/段階は未確定、対処前の事実記録。Native限定はRuntime helper同一のef14399で継続中、正式19の残りも中止しない。
+
+保持logでは314件/失敗1/skip2（203.992秒）、Reading-stuckの仮想経過30.0に対して2662.276だった。
+元の失敗判定は成立したが、testclockの30回/30秒という追加契約は未成立。Runtime/製品のnative失敗ではない。
+N229/N232の別callerへ及ぶmock差を再照合し、a2/現wrapperとPython subprocess.Popen._waitの実本文を読むと、
+stdlibもtime.sleepを用いるためglobalなpatchが子プロセスのOS待機まで仮想clockへ混入していた。
+対処はglobal time moduleを変更せず、実helperを実行するnamespaceのimportだけでtime依存を置換する。
+子プロセス/標準libraryは実clock・実timeoutのまま、実helperのReading観測だけ30回/元30秒を検査する。
+製品/Runtime helper/Native限定sourceは同一bytesを保持し、候補を先にpushして関連検査と全Pythonを再確認する。

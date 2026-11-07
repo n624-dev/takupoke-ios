@@ -138,9 +138,16 @@ with patch.object(Path,'exists',observed_exists):
         def advance(seconds):
             assert 0 < seconds <= 1
             clock[0]+=seconds
-        try:
-            with patch('time.monotonic',lambda:clock[0]),patch('time.sleep',advance):
-                runpy.run_path(sys.argv[0],run_name='__main__')
+        import builtins
+        from types import SimpleNamespace
+        actual_import=builtins.__import__
+        helper_time=SimpleNamespace(monotonic=lambda:clock[0],sleep=advance)
+        def scoped_import(name,globals=None,locals=None,fromlist=(),level=0):
+            if name=='time' and level==0:return helper_time
+            return actual_import(name,globals,locals,fromlist,level)
+        namespace={'__name__':'__main__','__file__':sys.argv[0],
+            '__builtins__':dict(vars(builtins),__import__=scoped_import)}
+        try:exec(compile(Path(sys.argv[0]).read_bytes(),sys.argv[0],'exec'),namespace)
         finally:Path(os.environ['MARKER']).with_name('observed-elapsed').write_text(str(clock[0]))
     else:runpy.run_path(sys.argv[0],run_name='__main__')
 '''
