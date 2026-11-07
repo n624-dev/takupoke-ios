@@ -9,6 +9,7 @@ mode.add_argument("--hold-export", action="store_true")
 mode.add_argument("--cleanup-export", action="store_true")
 args = parser.parse_args()
 OWNER = b"takupoke-ios26-runtime-export-v1\n"
+IOS26_BUILD = "23F77"
 
 def owned_export():
     return Path(os.environ["RUNNER_TEMP"]).resolve(strict=True) / "takupoke-ios26-runtime-export-owned"
@@ -55,22 +56,25 @@ def available26():
     registered = [r for r in json.loads(result.stdout)["runtimes"]
             if r["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS-")
             and r["version"].split(".")[0] == "26"]
-    return [tuple(map(int, r["version"].split("."))) for r in registered
-            if r.get("isAvailable")], bool(registered)
-versions, registered = available26()
+    available = [r for r in registered if r.get("isAvailable")]
+    exact = [r for r in available if r["version"] == "26.5"]
+    pinned = len(exact) == 1 and exact[0].get("buildversion") == IOS26_BUILD
+    return [tuple(map(int, r["version"].split("."))) for r in available], bool(registered), pinned
+versions, registered, pinned = available26()
 if not versions:
     if registered:
         raise SystemExit("Registered iOS 26 runtime is unavailable; refusing replacement")
     with export_directory() as owned:
-        subprocess.run(["xcodebuild", "-downloadPlatform", "iOS", "-buildVersion", "26.5",
+        subprocess.run(["xcodebuild", "-downloadPlatform", "iOS", "-buildVersion", IOS26_BUILD,
+                        "-architectureVariant", "arm64",
                         "-exportPath", owned], check=True, timeout=600)
-        versions, _ = available26()
+        versions, _, pinned = available26()
         if not versions:
             images = list(Path(owned).glob("*.dmg"))
             if len(images) != 1 or images[0].is_symlink() or not images[0].is_file():
                 raise SystemExit("Comparison requires installed runtime or one exported image")
             subprocess.run(["xcodebuild", "-importPlatform", str(images[0])], check=True, timeout=180)
-    versions, _ = available26()
-if not versions or max(versions) != (26, 5):
-    raise SystemExit("Comparison requires unchanged iOS 26.5 runtime")
-print("Comparison runtime: iOS 26.5")
+    versions, _, pinned = available26()
+if not versions or max(versions) != (26, 5) or not pinned:
+    raise SystemExit("Comparison requires one available iOS 26.5 runtime with exact build " + IOS26_BUILD)
+print("Comparison runtime: iOS 26.5 (build " + IOS26_BUILD + ")")

@@ -4250,3 +4250,25 @@ selectorはCI以外/不正pathで設定前に拒否し、一回設定・環境ov
 12個の配布/限定UI・ビルドcallerがRuntime準備前に接続し、Linux/旧Nativeのjobは維持することも確認した。
 全元caseの一回所属/元phase完了/3段階文字サイズ/通知/厳密identityと全15gateは既存検査で維持した。
 完全code-only差分411行/22009bytes/SHA256 9761aa3479c6e2cc5f01bd92965d7d7d76f7c259439095e2429bb338718f3d48。
+
+## N218 N216限定のSelected26がfailure（2026-11-07）
+
+source1f64b7bda7f74a3667ce26186ee03136b1e9ee63/run42370269712/attempt1/job128396762834、
+SDK27.2・予定Runtime26.5・GUI、11:56:17〜12:09:47Z、12:35Z一括照会でfailureを確認。
+本文未読で失敗段階/原因は未確定。対処案を選ぶ前に記録。Selected27/job128396762951は12:30:06Z success。
+同sourceのOne26/27（run42370148012/jobs128396403035/128396403120）も12:15:00/12:17:41Z success。
+全2run終端。新4logと各artifact一覧だけを一度取得し、過去の完了実行は再照会しない。
+
+新4logを一度取得、各artifact0。全jobでsystem Xcode27.1→27.2の一致を確認したが、Selected26は
+12:06:04Zにcase開始、12:06:06Zに実Runner26.5/Simulator/PIDを証明後、12:09:36Z頃に
+Runtime bundle null/device Shutdownとなった。画面assertionではなく、直接の原因は未確定。
+同sourceのOne26は23F77を取得して成功、Selected26は23F73を取得して失敗した。
+検索語buildVersion/23F73/23F77/runtime bundleでN166/N176/N177/N184/N212/N216と旧prepare26を照合。
+同じmarketing指定26.5がRCと正式版の両方を取得していた。過去23F77にも失敗があり、唯一の原因とは断定しない。
+Apple公開Simulator catalogueを一度取得し、iOS26.5 arm64の正式23F77とRC23F73を確認した。
+catalogue SHA256=10c77d82b1d1af2690027bfd0cccba5edf8a4dfd1c0ba786836586b8074f11e8。
+GitHub lawkitt/mdoc issue654の実例も、marketing指定ではRC、build番号指定では正式版となる技術的根拠として照合した。
+候補は元26.5/SDK27.2を維持し、downloadを正式build23F77/arm64へ固定、登録JSONでも一意なbuild一致を要求する。
+不一致・欠落・重複は失敗にし、削除/再install/別minorへのfallbackはしない。export保持と所有回収、全入力/期限/全15は維持。
+候補と根拠を先にpushし、fake CLIで正常登録/一回download・import/誤build/欠落/重複拒否と回収を検証する。
+限定は元4手動caseを26で各freshVMで確認し、成功後に同一source/run/attemptの全15正式検証へ進む。

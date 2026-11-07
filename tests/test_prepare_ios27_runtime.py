@@ -19,27 +19,32 @@ with open(os.environ['CALLS'],'a') as log: log.write(json.dumps([Path(sys.argv[0
 if args[:1] == ['--sdk']: print('27.1')
 elif args[:2] == ['simctl','list']:
     runtimes=[]
-    if mode=='installed' or marker.exists():
+    if mode.startswith('installed') or marker.exists():
         version='26.6' if mode=='wrong-version' else '26.5'
         # Registration depends on its real exported file remaining available.
         backing=Path(marker.read_text()) if marker.exists() else None
         runtimes=[{'identifier':'com.apple.CoreSimulator.SimRuntime.iOS-'+version.replace('.','-'),
-                   'version':version,'isAvailable':backing is None or backing.is_file()}]
+                   'version':version,'buildversion':'23F77','isAvailable':backing is None or backing.is_file()}]
+        if mode in ('installed-wrong-build','download-wrong-build'): runtimes[0]['buildversion']='23F73'
+        if mode=='installed-build-missing': del runtimes[0]['buildversion']
+        if mode=='installed-duplicate-build': runtimes.append(runtimes[0] | {'buildversion':'23F73'})
     print(json.dumps({'runtimes':runtimes}))
 elif args[:1] == ['-downloadPlatform']:
-    assert args[args.index('-buildVersion')+1]=='26.5'
+    assert args[args.index('-buildVersion')+1]=='23F77'
+    assert args[args.index('-architectureVariant')+1]=='arm64'
     if mode=='download-fails': sys.exit(9)
     if mode!='no-image':
         image=Path(args[args.index('-exportPath')+1])/'fictional.dmg'
         image.write_text('fictional image')
-        if mode=='auto-installed': marker.write_text(str(image))
+        if mode in ('auto-installed','download-wrong-build'): marker.write_text(str(image))
 elif args[:1] == ['-importPlatform']:
     assert Path(args[1]).read_text()=='fictional image'
     if mode=='import-fails': sys.exit(8)
     marker.write_text(args[1])
 else: sys.exit(99)
 '''
-        for mode in ('installed','auto-installed','import','download-fails','no-image','import-fails','wrong-version'):
+        for mode in ('installed','auto-installed','import','download-fails','no-image','import-fails','wrong-version',
+                     'installed-wrong-build','installed-build-missing','installed-duplicate-build','download-wrong-build'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory(prefix='takupoke-runtime-lifetime-') as directory:
                 root=Path(directory);scratch=root/'scratch';scratch.mkdir()
                 for name in ('xcrun','xcodebuild'):
@@ -52,13 +57,17 @@ else: sys.exit(99)
                 prepared=subprocess.run(command+['--hold-export'],env=env,capture_output=True,text=True,timeout=15)
                 self.assertEqual(prepared.returncode==0,mode in ('installed','auto-installed','import'),prepared.stdout+prepared.stderr)
                 owned=scratch/'takupoke-ios26-runtime-export-owned'
-                self.assertEqual(owned.exists(),mode!='installed')
+                self.assertEqual(owned.exists(),not mode.startswith('installed'))
                 if mode in ('auto-installed','import'):
                     self.assertEqual((owned/'fictional.dmg').read_text(),'fictional image')
                     observed=subprocess.run([str(root/'xcrun'),'simctl','list','runtimes','-j'],env=env,
                         capture_output=True,text=True,check=True,timeout=5)
                     self.assertTrue(json.loads(observed.stdout)['runtimes'][0]['isAvailable'])
                 before=calls.read_text()
+                commands=[json.loads(line) for line in before.splitlines()]
+                self.assertEqual(sum(row[1:2]==['-downloadPlatform'] for row in commands),int(not mode.startswith('installed')))
+                self.assertEqual(sum(row[1:2]==['-importPlatform'] for row in commands),int(mode in ('import','import-fails','wrong-version')))
+                self.assertFalse(any('delete' in row for row in commands))
                 for _ in range(2):
                     cleaned=subprocess.run(command+['--cleanup-export'],env=env,capture_output=True,text=True,timeout=5)
                     self.assertEqual(cleaned.returncode,0,cleaned.stderr)
@@ -135,7 +144,7 @@ args=sys.argv[1:]
 with open(os.environ['CALLS'],'a') as log: log.write(json.dumps(args)+'\n')
 if args[:1] == ['--sdk']: print(os.environ['FAKE_SDK'])
 elif args[:2] == ['simctl','list']:
-    print(json.dumps({'runtimes':[{'identifier':'com.apple.CoreSimulator.SimRuntime.iOS-'+v.replace('.','-'),'version':v,'isAvailable':True} for v in ['26.5','27.0','27.1']]}))
+    print(json.dumps({'runtimes':[{'identifier':'com.apple.CoreSimulator.SimRuntime.iOS-'+v.replace('.','-'),'version':v,'buildversion':'23F77' if v=='26.5' else 'irrelevant','isAvailable':True} for v in ['26.5','27.0','27.1']]}))
 else: sys.exit(99)
 '''
         for script in ('prepare-ios26-runtime.py', 'prepare-ios27-runtime.py'):

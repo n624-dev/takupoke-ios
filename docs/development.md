@@ -10,8 +10,8 @@
 | 配布処理のローカルテスト | Python 3.11 以降、標準ライブラリのみ |
 | ワークフローの追加チェック | 任意で actionlint |
 | iOS ビルド | Actions の `xcode-27` と Xcode 27.2 |
-| 通常アプリ画面の検証 | 両OSとも`xcode-27`・Xcode 27.2。実Runtime26.5／27.0を事前確認 |
-| 手動訂正の正式検証 | 両OSとも`xcode-27`・Xcode 27.2。実Runtime26.5／27.0を事前確認 |
+| 通常アプリ画面の検証 | 両OSとも`xcode-27`・Xcode 27.2。実Runtime26.5（正式build23F77）／27.0を事前確認 |
+| 手動訂正の正式検証 | 両OSとも`xcode-27`・Xcode 27.2。実Runtime26.5（正式build23F77）／27.0を事前確認 |
 | 旧SDKの比較 | Native解析と任意の手動26 probeは`macos-26`・Xcode26.6/実SDK26.5 |
 | 実機導入・更新 | iOS 26・27のiPhone、AltStore Classic。[導入手順](altstore-pal-install.md)を参照 |
 
