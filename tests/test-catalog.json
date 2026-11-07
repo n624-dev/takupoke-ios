@@ -498,7 +498,8 @@
         "tools/ui_test_manifest.py",
         "tools/prepare-ios27-runtime.py",
         "tools/boot-simulator-ui.sh",
-        "tests/Support/SimulatorIdentityTestCase.swift"
+        "tests/Support/SimulatorIdentityTestCase.swift",
+        "tools/select-ci-xcode.py"
       ],
       "checks": [
         "tests/MainColorTests.swift",
@@ -520,7 +521,8 @@
         "tests/test_simulator_frontend.py",
         "tests/test_ui_execution_identity.py",
         "tests/test_manual_ui_runner.py",
-        "tests/test_picker_ui_runner.py"
+        "tests/test_picker_ui_runner.py",
+        "tests/test_xcode_selection.py"
       ]
     },
     {

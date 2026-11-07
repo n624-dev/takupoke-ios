@@ -76,6 +76,8 @@ jobs:
           persist-credentials: false
       - name: Require exact diagnostic source
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Select the active Xcode for CLI and GUI services
+        run: python3 -B tools/select-ci-xcode.py
       - name: Prepare shipping iOS 27.0 for the focused comparison
         if: matrix.ios == 27
         run: python3 -B tools/prepare-ios27-runtime.py

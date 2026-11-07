@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`7d729ea586274ce03fe60a0799978fe1c8c7a9be572d6bf36e8ee21525d5b76d`
+`da945d1157bac2c584d04188f7396faa1be463ee83d3985759c9bccc4945773b`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -69,6 +69,7 @@ bash tools/test-app-ui.sh
 - [tools/prepare-ios27-runtime.py](../../tools/prepare-ios27-runtime.py)
 - [tools/boot-simulator-ui.sh](../../tools/boot-simulator-ui.sh)
 - [tests/Support/SimulatorIdentityTestCase.swift](../../tests/Support/SimulatorIdentityTestCase.swift)
+- [tools/select-ci-xcode.py](../../tools/select-ci-xcode.py)
 
 ## [tests/MainColorTests.swift](../../tests/MainColorTests.swift)
 
@@ -271,3 +272,10 @@ bash tools/test-app-ui.sh
 ## [tests/test_picker_ui_runner.py](../../tests/test_picker_ui_runner.py)
 
 - `test_preparation_order_exact_completions_failures_and_owned_cleanup`
+
+## [tests/test_xcode_selection.py](../../tests/test_xcode_selection.py)
+
+- `test_actual_system_selection_is_verified_without_the_environment_override`
+- `test_untrusted_context_or_missing_selection_is_rejected_before_mutation`
+- `test_switch_errors_query_errors_and_a_mismatched_system_path_fail_without_retry`
+- `test_every_shipping_ui_and_probe_selects_before_preparing_apple_resources`

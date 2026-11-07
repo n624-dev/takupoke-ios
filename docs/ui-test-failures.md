@@ -4204,3 +4204,41 @@ OneとSelectedの元caseを両OSで限定確認する。旧26通常A/Bは取消�
 Swift構文と一覧454/check --base eb6af38が成功。元caseとgeometry検査は実入力/曖昧性/有限枠の拒否を維持。
 新しい待機秒数は追加せず、zero geometryの観測も元16試行を消費し、validになるまで一切入力しない。
 完全code-only差分60行/4156bytes/SHA256 807d1ca61d74367c64734a05e216b8f071c6006517d57c1410ac5dda0d03117b。
+
+## N216 N215限定のOne両OSとSelected26がfailure（2026-11-07）
+
+source640b7bac6910c950fe3a59e51777926496405853・SDK27.2・各attempt1。
+11:35Z一括照会でOne27/run42365107534/job128381409658（10:42:51〜10:51:40Z）、
+One26/同run/job128381409868（10:42:50〜10:56:06Z）、Selected26/run42365175339/job128381615557
+（10:43:51〜10:57:45Z）のfailureを確認。本文未読で段階/原因は未確定。対処案選択前に記録。
+Selected27/job128381615819は10:51:44〜11:28:02Zでsuccess。新4logだけ一度取得する。
+
+## N217 旧正式15の通常26Aが約60分でcancelled（2026-11-07）
+
+sourceeb6af38/run42360753022/attempt1/job128376918468、SDK27.2/予定26.5/GUI、10:21:33〜11:22:24Z。
+11:35Z照会でcancelled終端を確認。主担当はcancelを発行していない。job60分上限との関係と段階は本文未読で未確定。
+旧26B/job128377992172は11:06:57Z success。旧正式15は全表示job終端・公開は依存skipで未公開。
+旧既読8logは取り直さず、新26側2logとartifact一覧だけ一度取得する。
+
+新6logと3runのartifact0を一度取得。N216 One27は35.100秒、通常時間割詳細画面に入った直後、
+全画面CollectionViewが複数としてNavigation:38で拒否した。先行の時間割ファイル/詳細Buttonへの実tapは成功。
+One26はRuntime bundle null/device not booted、Selected26はRunner通信前に120秒boot待ちがtimeout、
+cleanupはSystem match policyでruntime profile not found。GUI有りでもRuntime lifetimeを保証できない。
+Selected27は元全操作/保存/再起動を1425.925秒で成功。N215のzero geometryは再発しないが、全画面List数だけでは現在の操作先を決められない。
+過去成功One27/Selected26の保存logでは通常画面4操作の実Buttonはすべてviewport内にあり、現在の目的Buttonを含むListへ絞れる。
+Recoveryの専用IDと元の一意/有限枠/完全包含/hittableは維持し、全Listから任意のfirstMatchは選ばない。
+
+N217の通常26Aは元18件を成功後、最後の独立通知Runnerでアプリlaunch/automation session中にjob上限で取消された。
+本体44分＋準備/2台目boot等で60分へ達しており、通知の成功へ読み替えない。26Bは全元case/通知/3段階文字サイズまで成功。
+実測のA重いSpecialRecoveryは371.113秒、BのChangedAccountDataNoticeは短い20秒級。
+元case・件数・期限・全15を保ったまま、この2件の所属だけA/Bで交換し、Aの予算へ約6分の余裕を作る。
+27側の直近A34分/B44分にも照らし、Bへの増分約3分は元60分内の比較とする。上限は延長しない。
+
+runtime bundle/System matchでN166/N176/N177/N184/N212と現在のSDK準備を照合。
+保存済みRunner搭載一覧のsystem defaultはXcode27.1だが、現在workflowはDEVELOPER_DIRで27.2を指定するだけだった。
+CLIの環境指定はGUI/launchdのsystem選択一致を証明しない。差が今回の直接原因とは未確定だが、
+標準的なCIセットアップとして、準備/Runtime登録より前に選択Xcodeをsystem側にも一回設定し、
+DEVELOPER_DIRを外したxcode-selectの実パスを正規化して一致を要求する。実際の前後を固定形式で記録する。
+対象はdisposable macOS Actionsだけに限定し、UI入力/許可/OS/Runtime/device/再boot/試行数は変えない。
+候補/根拠を先にpushし、fake CLIで一回設定/不一致・失敗・非CI拒否と全caller接続を確認する。
+新しい同一sourceでOne/Selected両OSを確認し、残っていた旧3runは全終端/全新log/artifact0取得済みとして再照会しない。

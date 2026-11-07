@@ -21,6 +21,7 @@ Linux / Windows では SwiftUI のビルドを行わず、配布スクリプト�
 下のWindows手順は既存環境向けの参考として保持します。
 
 Actionsでは `/Applications/Xcode_27.2.app/Contents/Developer` を指定し、Runner搭載のXcode 27.2（確認時27B52）を使用します。`xcode-27` runnerは公開プレビューです。最低対応OSはiOS 26、アプリのSwift言語モードは5を維持します。
+UI・配布のmacOS jobでは準備前にsystem側のXcodeも一回選択し、環境変数を外した実パスとの一致を確認します。GUIサービスとCLIの選択を揃えるためです。
 
 ## clone とメールアドレスの非公開設定
 

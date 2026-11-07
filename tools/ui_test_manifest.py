@@ -123,7 +123,7 @@ SHARDS = {
         "testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates",
         "testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover",
         "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",
-        "testSpecialRecoveryShowsMergedAndDifferentDayClocksBeforeAdoption",
+        "testChangedAccountDataNoticeOpensSharedAcquisition",
     ),
     "B": (
         "testSettingsAccountDataAndFileDetails",
@@ -134,7 +134,7 @@ SHARDS = {
         "testLinkPreferencesSurviveRelaunch",
         "testHomeTimetableAndWeekCalendar",
         VOICEOVER_TEST,
-        "testChangedAccountDataNoticeOpensSharedAcquisition",
+        "testSpecialRecoveryShowsMergedAndDifferentDayClocksBeforeAdoption",
         "testRecoveryPreviewOriginalBlankFieldsAndExplicitAdoption",
         "testRecoveryImageOnlyPDFUsesNativeOCRAndTopLeftRaster",
         "testParallelRecoveryKeepsBothLessonsInPreviewAndFormalAnalysis",

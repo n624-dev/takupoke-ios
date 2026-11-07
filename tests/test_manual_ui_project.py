@@ -320,6 +320,7 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('let listFrame=list.frame,navigationFrame=navigation.frame',navigation)
         self.assertIn('currentLists.count<=1',navigation)
         self.assertIn('listQuery.allElementsBoundByAccessibilityElement',navigation)
+        self.assertIn('app.collectionViews.containing(.button,identifier:buttonLabel)',navigation)
         self.assertNotIn('app.collectionViews.firstMatch',navigation)
         self.assertIn('for attempt in 0..<16',navigation)
         invalid=navigation.split('guard ManualScrollNavigation.usable(viewport),viewport.height>36 else {',1)[1].split('}',1)[0]

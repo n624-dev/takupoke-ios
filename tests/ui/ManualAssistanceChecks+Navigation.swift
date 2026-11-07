@@ -31,8 +31,16 @@ extension ManualAssistanceChecks {
             }
             // Rebind the current List after every gesture; never retain it
             // across recycled rows. Read its frame once per attempt (N213).
-            let listQuery=inRecovery ? app.collectionViews.matching(identifier:"manual-recovery-list")
-                :app.collectionViews
+            let listQuery:XCUIElementQuery
+            if inRecovery {
+                listQuery=app.collectionViews.matching(identifier:"manual-recovery-list")
+            } else if let buttonLabel {
+                // A material detail page can expose additional Lists.
+                // Use the real owner of the intended control, not every List.
+                listQuery=app.collectionViews.containing(.button,identifier:buttonLabel)
+            } else {
+                listQuery=app.collectionViews
+            }
             let currentLists=listQuery.allElementsBoundByAccessibilityElement
             guard currentLists.count<=1 else {
                 XCTFail("The current page must have one unambiguous native List");return e
