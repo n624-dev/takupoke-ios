@@ -33,6 +33,7 @@ elif args[:3]==['simctl','runtime','list']:
     if mode=='pre-existing-image' or downloaded.exists() and not removed.exists():
         records[first_id]=record(first_id,'/unrelated-asset' if mode=='wrong-asset-path' else asset)
     if mode=='pre-existing-id' and not downloaded.exists():records[first_id]={'runtimeIdentifier':'unrelated'}
+    if mode=='partial-restored-existing-parent':records[foreign_id]={'runtimeIdentifier':'com.apple.CoreSimulator.SimRuntime.watchOS-27-0'}
     if mode=='two-downloads' and downloaded.exists():records[foreign_id]=record(foreign_id,asset)
     if partial.exists() and mode=='partial-foreign-image':records[foreign_id]=record(foreign_id,'/unrelated-asset')
     if rescanned.exists() and not complete:
@@ -40,6 +41,14 @@ elif args[:3]==['simctl','runtime','list']:
         counter.write_text(str(count))
         if mode!='partial-pending' and not (mode=='partial-lag' and count<3):
             records[recovered_id]=record(recovered_id,'/unrelated-asset' if mode=='partial-rescan-wrongpath' else asset)
+            if mode.startswith('partial-restored'):
+                image=records[recovered_id]
+                image.update(path=asset+'/Restore/094-56039-099.dmg',parentMountPath=asset,
+                    parentIdentifier=foreign_id if mode=='partial-restored-existing-parent' else '55555555-5555-4555-8555-555555555555',
+                    signatureState='Unknown' if mode=='partial-restored-unverified' else 'Verified',
+                    supportedArchitectures=['x86_64'] if mode=='partial-restored-wrong-arch' else ['arm64'])
+                if mode=='partial-restored-foreign':image['path']='/unrelated-asset/Restore/094-56039-099.dmg'
+                if mode=='partial-restored-traversal':image['path']=asset+'/Restore/../../094-56039-099.dmg'
     if imported.exists():
         path='/elsewhere' if mode=='wrong-local-path' else '/Library/Developer/CoreSimulator/Cryptex/Images/'+local_id
         records[local_id]=record(local_id,path,'Unusable' if mode=='local-not-ready' else 'Ready')
@@ -116,7 +125,7 @@ def observed_exists(path):
 sys.argv=sys.argv[1:]
 with patch.object(Path,'exists',observed_exists):runpy.run_path(sys.argv[0],run_name='__main__')
 '''
-        successes={'installed','auto-installed','import','dmg-export','partial','partial-already-reclaimed','partial-lag'}
+        successes={'installed','auto-installed','import','dmg-export','partial','partial-already-reclaimed','partial-lag','partial-restored'}
         no_delete={'installed','installed-wrong-build','installed-build-missing','installed-duplicate-build','installed-unavailable',
             'download-fails','no-image','export-symlink','two-exports','pre-existing-image','pre-existing-id','two-downloads',
             'download-wrong-build','not-deletable','already-booted','wrong-asset-path'}
@@ -127,7 +136,9 @@ with patch.object(Path,'exists',observed_exists):runpy.run_path(sys.argv[0],run_
                      'pre-existing-image','pre-existing-id','two-downloads','not-deletable','already-booted','delete-fails','delete-stuck',
                      'partial-second-fails','partial-scan-fails','partial-badmessage','partial-wrong-path','partial-foreign-image',
                      'partial-rescan-wrongpath','partial-pending','partial-booted','partial-unknown','partial-other-booted',
-                     'wrong-local-path','two-locals','foreign-post-import','local-not-ready','wrong-asset-path'):
+                     'wrong-local-path','two-locals','foreign-post-import','local-not-ready','wrong-asset-path',
+                     'partial-restored','partial-restored-foreign','partial-restored-existing-parent',
+                     'partial-restored-unverified','partial-restored-wrong-arch','partial-restored-traversal'):
             with self.subTest(mode=mode),tempfile.TemporaryDirectory(prefix='takupoke-runtime-lifetime-') as directory:
                 root=Path(directory);scratch=root/'scratch';scratch.mkdir()
                 for name in ('xcrun','xcodebuild'):
@@ -148,7 +159,7 @@ with patch.object(Path,'exists',observed_exists):runpy.run_path(sys.argv[0],run_
                 self.assertEqual(sum(row[1:2]==['-downloadPlatform'] for row in commands),int(not mode.startswith('installed') and mode!='pre-existing-image'))
                 self.assertEqual(sum(row[1:2]==['-importPlatform'] for row in commands),int(mode in imports))
                 ids=[] if mode in no_delete else ['11111111-1111-4111-8111-111111111111']
-                if mode in ('partial','partial-lag','partial-second-fails'):ids.append('44444444-4444-4444-8444-444444444444')
+                if mode in ('partial','partial-lag','partial-second-fails','partial-restored'):ids.append('44444444-4444-4444-8444-444444444444')
                 self.assertEqual([row for row in commands if 'delete' in row],
                     [['xcrun','simctl','runtime','delete',uid] for uid in ids])
                 self.assertEqual(sum(row[1:4]==['simctl','runtime','scan-and-mount'] for row in commands),int(

@@ -4447,3 +4447,20 @@ e1acaf6を先にpush後、実helper/fakeCLI4宣言/失敗0（63.843秒、26の40
 診断追加19efa26も先にpush後にhelper全4宣言を再実行し、失敗0（62.105秒）。診断の失敗は回収結果を変更しない。
 実Appleの回収は未確認。最終code-only差分795行/49164bytes、SHA256
 f701489e8cbf02a0568bf4337001fc18667696934deba39769339fc97646f13d。
+
+## N227 import前回収候補のSelected26がfailure（2026-11-07）
+
+source2212c34fbca491be8f2daf30e4e59a7520d0d3fd/run42384545059/attempt1/job128439060270、
+SDK27.2・予定26.5正式23F77/GUI。15:04:05〜15:06:09Z failureを予定15:10Z照会で確認。
+本文未読で段階/原因は未確定、対処前に記録。新1log/artifact一覧だけ一度取得する。
+
+新log/artifact0を一度取得。import前の最初のdeleteもnative部分削除exit30だった。host診断は取得成功し、
+今回assetの新規download/moveを確認したが、直接のpurge失敗理由は記録されておらず、権限問題とは断定しない。
+scan後約15秒で現れた新UUID1FCF9541…は同じ26.5/23F77/arm64、Ready、signature Verifiedだったが、
+pathは同じowned AssetData/Restore/094-56039-099.dmg、parentMountPathは元AssetData、parentIdentifierは新UUID。
+元AssetData直下のpath完全一致だけを許したため拒否し、第二delete/import/UI/bootには未到達。
+N224〜N226/今回JSONとnativeの再登録指示を照合。復旧登録が同じ取得物内のVerified restore imageへ変わることを実確認した。
+次はこの復旧分岐に限り、同じowned AssetDataのRestore直下・既知形式dmg名・正確な元pathのparentMountPath・
+新しい有効parent UUID・Verified/arm64/exact buildが揃う子imageも認める。元の新規asset/UUID所有確認、
+全device Shutdown、第二delete一回、target登録0/AssetData不在後の一回importと最終Ready/全15は維持する。
+別asset/既存parent/未検証署名/別arch/相対pathは拒否するfakeを追加し、候補/根拠を先にpushする。

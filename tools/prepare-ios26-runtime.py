@@ -94,6 +94,19 @@ def owned_asset_image(key, image, asset_path):
     return (exact_image(key, image) and image.get("path") == str(asset_path)
             and image.get("deletable") is True and known_preference_state(image))
 
+def owned_rescanned_image(key, image, asset_path, before):
+    if owned_asset_image(key, image, asset_path):
+        return True
+    path = Path(image.get("path", ""))
+    parent = image.get("parentIdentifier", "")
+    return (exact_image(key, image) and image.get("deletable") is True and known_preference_state(image)
+            and path.parent == asset_path / "Restore"
+            and re.fullmatch(r"[0-9]{3}-[0-9]{5}-[0-9]{3}\.dmg", path.name) is not None
+            and not path.is_symlink() and not path.parent.is_symlink()
+            and image.get("parentMountPath") == str(asset_path)
+            and str(uuid.UUID(parent)).upper() == parent and parent != key and parent not in before
+            and image.get("signatureState") == "Verified" and image.get("supportedArchitectures") == ["arm64"])
+
 def delete_owned_asset_image(key, asset_path):
     removal = subprocess.run(["xcrun", "simctl", "runtime", "delete", key],
                              capture_output=True, text=True, timeout=180)
@@ -153,7 +166,7 @@ def reclaim_owned_asset(before, download_id, download_image, asset_path):
                 time.sleep(min(1, max(0, scan_deadline - time.monotonic())))
                 continue
             recovered_id, recovered = next(iter(candidates.items()))
-            if recovered_id in before or not owned_asset_image(recovered_id, recovered, asset_path):
+            if recovered_id in before or not owned_rescanned_image(recovered_id, recovered, asset_path, before):
                 raise SystemExit("Refusing removal of an unowned re-registered runtime image")
             require_no_started_devices()
             delete_owned_asset_image(recovered_id, asset_path).check_returncode()
