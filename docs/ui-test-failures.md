@@ -4572,3 +4572,9 @@ source25bd5c230d0d43b276160972fe7fe5e493e55420、Linux/Swift6.1.2、unittest tes
 併せてcheck_uiはEXIT cleanupの前にも一回guest初期化logを取ることを確認。新しい順序assertが求めるhost先行にはcleanupだけの追加では不足する。
 host採取を一回だけの共通helperにし、check_uiのguest直前とcleanup入口から呼ぶ。同じ失敗で重複採取せず、元のguest採取/回収を保持する。
 未消費n231 reviewは最終差分が変わるため無効化し、候補/根拠を先にpush後、同じ実shell/host検査と新規reviewで評価する。
+
+6c7e23aを先にpush後、実shell runner18件/失敗0（54.421秒）、既存host/通知trace16件/失敗0（0.231秒）、catalog456/check --base9ea・Bash構文は成功。
+元子失敗→外側1、host一度/guestより前/元5実行/回収、hostの所有UUID・固定語彙・上限/失敗時unknownを確認した。
+先行N230コードの全Python314件/失敗0・skip2（196.509秒、Swift6.1.2有効）も保持するが、新helperは今回の実runner/host検査で別に評価した。
+新規GPT-6.1 Sol/High n232_pre_actions_reviewは最終code-only156行/11463bytes、SHA256 fefcc85dc0e1aaede21b0bd970c44f047d0c62995b40f8c1321f467ef213e2a9を確認し指摘なし。
+主担当が同一性/局所結果/未送信空白を確認してから、このreviewを未解決Controls27/SDK27.2の限定dispatch一回だけへ使用する。26の成功を再実行せず、限定結果を正式全15へ流用しない。
