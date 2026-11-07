@@ -4470,3 +4470,23 @@ N224〜N226/今回JSONとnativeの再登録指示を照合。復旧登録が同�
 同じowned restore childの正例と別asset/既存parent/未検証署名/別arch/path traversal拒否を確認した。
 native診断にはsimctl clientとinfo/debugも含め、回収エラーに近い末尾32KiBを保持する。15秒と受理条件は維持。
 この診断出力だけの追記は回収制御・テスト期待を変えず、次の実Apple試行で観測する。
+
+9a9bc33/run42385700552/attempt1/job128442498153は15:18:08〜15:45:28Zでsuccess。
+元Selected26が813.534秒/失敗0、全元入力/ACK/4件拒否/採用/保存/再起動と厳密case完了・実Runner証明を成功。
+準備ではowned MobileAsset回収後のtarget登録0、続く一回importのlocal Ready/23F77を実確認した。
+system Xcode27.1→27.2も一致。新log一度/artifact0一度を取得し、終端runを再照会しない。
+一件成功を恒常的解消へ一般化せず、同じ最終codeの正式全15へ進む。
+
+## N228 ローカル再監査でGitHubの時刻prefix付きlogを生のidentity validatorへ渡した（2026-11-07）
+
+source9a9bc33/run42385700552/attempt1/Linuxでの保持log再監査、validate_execution_identities:217がidentity件数で拒否。
+実CIは生XCTest logに対する厳密照合を成功済みで、実case成功を失敗へ読み替えない。対処前に記録。
+公開job logの各行にはGitHub時刻prefixがあり、validatorは行頭の固定identityを照合する。
+私有監査入力だけでGitHubの固定時刻prefixを除いて同じvalidatorへ渡す。製品/CI validator・件数・期待は変更しない。
+
+私有再監査で固定prefixを除き、hostのbootstatus UUIDと同じvalidatorで厳密identity照合を成功した。
+保持log SHA256=68025d0ca01b3bd6e552c072c7bfa7a53b7af8287d14637cb00ef0be6ca4c9ca。
+今回のtarget登録0→一回importのlocal Ready23F77と実全入力/保存/再起動を確認。main base eb6af38も変更なし。
+正式main用の新規Sol/High n227_shipping_pre_actions_reviewは完全code-only821行/51291bytesを確認し指摘なし。
+最終hash2202526550076f9013892d70bdbcd992ff47790386d6d5eb51a4e31f8dcffa56の同一性と
+実Selected成功・未送信commitの空白を主担当が確認後、正常fast-forward main一回へ消費する。正式全15は別にすべて要求する。
