@@ -66,10 +66,17 @@ extension ManualAssistanceChecks {
             // control follows its logical ID while revealing it (N97); only the
             // final inner native contact is bound to accessibility identity (N94).
             let acknowledgement=inRecovery && targetID.hasPrefix("manual-ack-")
-            let query=inRecovery && targetID.hasPrefix("manual-clear-")
-                ? list.buttons.matching(identifier:targetID)
-                : acknowledgement ? list.switches.matching(identifier:targetID)
-                : app.descendants(matching:.any).matching(identifier:targetID)
+            let recoveryTexts:Set<String>=["manual-review-header","manual-preview-header","manual-status",
+                "manual-comparison-available","manual-comparison-unavailable","manual-change-before","manual-change-after"]
+            let query:XCUIElementQuery
+            if inRecovery {
+                // N233: virtualized review text must not enumerate the whole app.
+                // Keep the outer logical ID local to its actual List and type.
+                if targetID.hasPrefix("manual-clear-") { query=list.buttons.matching(identifier:targetID) }
+                else if acknowledgement { query=list.switches.matching(identifier:targetID) }
+                else if recoveryTexts.contains(targetID) { query=list.staticTexts.matching(identifier:targetID) }
+                else { query=list.descendants(matching:.any).matching(identifier:targetID) }
+            } else { query=app.descendants(matching:.any).matching(identifier:targetID) }
             let matches=targetID.isEmpty ? []:query.allElementsBoundByIndex
             guard matches.count<=1 else {
                 XCTFail("Known manual control must be unique: "+targetID);return e

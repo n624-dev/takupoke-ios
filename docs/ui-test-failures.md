@@ -4589,3 +4589,25 @@ Controls27/run42399887550/attempt1/job128485181090は18:09:58〜18:21:37Z succes
 新規main専用GPT-6.1 Sol/High n232_shipping_pre_actions_reviewは完全code-only156行/11463bytesを確認し指摘なし。
 SHA256 fefcc85dc0e1aaede21b0bd970c44f047d0c62995b40f8c1321f467ef213e2a9の同一性、製品/正式workflow/manifest不変、
 限定27成功・local全Python/関連検査・main9ea不変・全未送信commitの空白を主担当が確認した後、一回のmain pushへ消費する。
+
+## N233 正式18の手動3項目27がfailure（2026-11-07）
+
+source65f268dc933bce725fb747a27ee281eb9a43b0e3/run42401227517/attempt1/job128490320374、SDK27.2/予定Runtime27.0。
+18:38:59〜18:54:31Z failureを予定19:25Z照会で確認。本文未読でcase内の失敗段階・原因は未確定。対処前の事実記録。
+配布/Native/通常27A+B/他の手動27三件はsuccess。通常26A/Bは19:02:01/19:11:28Zから継続中、手動26は依存skip。
+残りを中止せず、今回新しい7終端Mac logだけを一度取得する。artifact一覧は全job終端後まで取得しない。
+
+新7logを一度取得。Native701/予定skip1/失敗0、通常27 A基本18件＋通知・B全phase/OS文字サイズと残手動3件は成功。
+手動Three27は502.315秒でNavigation.swift:73のUI query timeout。3本文入力/各ACK/submit=trueとreview=true/lastgood保持まで成功後、
+manual-review-headerはvirtualizedで未表示。受動Cellから元の一回下方drag後、t274.14の全アプリAny descendants一致ID配列で約222秒止まった。
+実入力/採用結果の不一致、Runtime消失や許可停止とは異なり、採用/正式保存/再起動へは未到達。
+
+検索語ManualAssistanceChecks/Navigation.swift:73/manual-review-header/descendants/UI query、N91/N94/N97/N203の詳細と
+1b368f5/9cd340e/fa9b00c/現65fのNavigation・requireReview・fixture ID生成を照合。N91ではclearだけを同List/Buttonへ、
+N97ではACKを同List/Switchとし、外側の論理IDをviewport観測後に解決して内側だけ接触identityへ固定していた。
+今回の見出し・比較・状態Textには全app/Any検索が残っていた。PickerのN203とは場所が違い、外側を一律identityへ戻すとN97を再導入するため行わない。
+全visible callerのknownID/fixture生成を検索し、既知のText7種はすべて復旧List内の実Textと確認した。
+候補は復旧中の検索を同じListへ限定し、この既知Text群をstaticTextsへ絞る。clear/ACKは既存のButton/Switch、他は同List/Anyを維持し、editor型を推測固定しない。
+外側のindex-bound論理ID・viewport先行/即frame観測と内側の実接触identity・一意性/完全包含・受動Cell・元16試行/一回reverse/gesture/全期限・全4caseと全15gateは保持する。
+既存の元Three caseが今回を直接検出済みで、同じ元caseを両OSで先に比較する。条件を写す新テストを増やさず、既存幾何/生成契約/runner/manifestを実行する。
+候補と根拠を隔離featureへ先にpushし、局所検査/新規review後に限定dispatchする。稼働中の正式18の通常26二件は中止しない。
