@@ -4242,3 +4242,11 @@ DEVELOPER_DIRを外したxcode-selectの実パスを正規化して一致を要�
 対象はdisposable macOS Actionsだけに限定し、UI入力/許可/OS/Runtime/device/再boot/試行数は変えない。
 候補/根拠を先にpushし、fake CLIで一回設定/不一致・失敗・非CI拒否と全caller接続を確認する。
 新しい同一sourceでOne/Selected両OSを確認し、残っていた旧3runは全終端/全新log/artifact0取得済みとして再照会しない。
+
+751164aを先にpush後、system Xcode selectorの実Python/fakeCLI4件/失敗0（1.226秒）、
+manual project17件/失敗0（0.844秒）、manifest30件/失敗0（19.096秒）、App実shell18件/失敗0
+（46.002秒）、source paths3件/失敗0（0.003秒）、Swift構文と一覧456/write/check --base eb6af38が成功。
+selectorはCI以外/不正pathで設定前に拒否し、一回設定・環境overrideを外した実選択照合・alias正規化・失敗/不一致拒否を確認。
+12個の配布/限定UI・ビルドcallerがRuntime準備前に接続し、Linux/旧Nativeのjobは維持することも確認した。
+全元caseの一回所属/元phase完了/3段階文字サイズ/通知/厳密identityと全15gateは既存検査で維持した。
+完全code-only差分411行/22009bytes/SHA256 9761aa3479c6e2cc5f01bd92965d7d7d76f7c259439095e2429bb338718f3d48。
