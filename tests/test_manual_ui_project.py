@@ -318,8 +318,14 @@ class ManualUIProjectTests(unittest.TestCase):
         navigation=checks.split('    func visible(',1)[1].split('    func ',1)[0]
         self.assertEqual(navigation.count('list.frame'),1)
         self.assertIn('let listFrame=list.frame,navigationFrame=navigation.frame',navigation)
-        self.assertIn('!inRecovery || currentLists.count==1',navigation)
-        self.assertIn('.allElementsBoundByAccessibilityElement:[]',navigation)
+        self.assertIn('currentLists.count<=1',navigation)
+        self.assertIn('listQuery.allElementsBoundByAccessibilityElement',navigation)
+        self.assertNotIn('app.collectionViews.firstMatch',navigation)
+        self.assertIn('for attempt in 0..<16',navigation)
+        invalid=navigation.split('guard ManualScrollNavigation.usable(viewport),viewport.height>36 else {',1)[1].split('}',1)[0]
+        self.assertIn('continue',invalid)
+        self.assertNotIn('tap()',invalid)
+        self.assertNotIn('press(',invalid)
         self.assertIn('manualPassiveCell(cells:cells',checks)
         self.assertIn('list.cells.allElementsBoundByIndex',checks)
         self.assertIn('cell.buttons.count==0 && cell.switches.count==0',checks)

@@ -31,12 +31,18 @@ extension ManualAssistanceChecks {
             }
             // Rebind the current List after every gesture; never retain it
             // across recycled rows. Read its frame once per attempt (N213).
-            let currentLists=inRecovery ? app.collectionViews.matching(identifier:"manual-recovery-list")
-                .allElementsBoundByAccessibilityElement:[]
-            guard !inRecovery || currentLists.count==1 else {
-                XCTFail("The recovery sheet must have one current native List");return e
+            let listQuery=inRecovery ? app.collectionViews.matching(identifier:"manual-recovery-list")
+                :app.collectionViews
+            let currentLists=listQuery.allElementsBoundByAccessibilityElement
+            guard currentLists.count<=1 else {
+                XCTFail("The current page must have one unambiguous native List");return e
             }
-            let list=inRecovery ? currentLists[0]:app.collectionViews.firstMatch
+            guard let list=currentLists.first else {
+                if inRecovery { XCTFail("The recovery List disappeared");return e }
+                // A pushed normal page can precede its List's AX registration.
+                // Observe again within the original 16 attempts; send no input.
+                print("TAKUPOKE-MANUAL-SCROLL pending-list;attempt=\(attempt)");continue
+            }
             let navigation=inRecovery ? app.navigationBars["時間割の復旧"] : app.navigationBars.firstMatch
             let listFrame=list.frame,navigationFrame=navigation.frame
             let top=max(listFrame.minY,navigationFrame.maxY)+12
@@ -44,7 +50,9 @@ extension ManualAssistanceChecks {
             let bottom=min(listFrame.maxY,keyboardFrame.map { $0.minY-45 } ?? listFrame.maxY)-12
             let viewport=CGRect(x:listFrame.minX,y:top,width:listFrame.width,height:max(0,bottom-top))
             guard ManualScrollNavigation.usable(viewport),viewport.height>36 else {
-                print("TAKUPOKE-MANUAL-SCROLL invalid-viewport;\(viewport)");break
+                // Never retain transition-time zero geometry or operate on it.
+                // This observation consumes the same original attempt budget.
+                print("TAKUPOKE-MANUAL-SCROLL invalid-viewport;\(viewport)");continue
             }
             // Observe the viewport before resolving a recyclable row. The outer
             // control follows its logical ID while revealing it (N97); only the

@@ -4180,3 +4180,22 @@ manifest30件/失敗0（17.132秒）、Swift scroll2宣言/実29件/失敗0（2.
 9897c14を先にpush後、manual project17件/失敗0（0.713秒）、一覧454/check --base ea8a4b2が成功。
 N213候補のmanifest30件・scroll実29件とSwift構文も上記通過済み。実AX応答は未確認で、
 次の限定AuxiliaryRead両OSとSelected26では元case/実入力/全包含/保存/再起動/期限・厳密完了をそのまま要求する。
+
+## N215 正式15の手動Selected27・One27がfailure（2026-11-07）
+
+source eb6af3857ffa96b36f978fd7752d679638c22470/run42360753022/attempt1、SDK27.2・予定Runtime27.0・headless。
+10:36Z一括照会でSelected27/job128368789370（09:42:40〜09:49:09Z）とOne27/job128368789414
+（09:42:40〜09:49:50Z）のfailureを確認。本文未読で失敗段階/原因は未確定。対処案の決定前に記録。
+27通常A/B・Three/Changed・Native・配布はsuccess。26通常A/Bは継続中で取り消さず残結果も確認する。
+手動26は依存skipで成功扱いしない。新しい完了7logだけ取得し、既読配布logは再取得しない。
+
+新7logを一度取得。Selected27は29.733秒、One27は36.348秒、両方とも最初の時間割ファイル画面への移動後に
+viewport=(0,177,0,0)として即座にinvalid-viewportとなり、訂正本文へ未到達。成功Three/Changedは同じ起動経路を通過した。
+失敗後の実treeには現在のCollectionView(0,0,393,852)と詳細Buttonがあり、消失/Runtime再起動ではない。
+N213のframe保持を非Recoveryのindexed firstMatchへも適用したため、遷移中の一時的なzeroを固定してしまった。
+Recoveryだけにnative bindingを入れた不足がある。検索語invalid-viewport/zero frame/CollectionViewと旧ea8/新eb6の
+visible/tap/launchを照合。N213の数分停止とも通知取消とも段階が異なる。元tapには画面準備の待機がなく、同じframeを読み直していた。
+候補は非Recoveryも現在の一意なnative Listへbindする。存在0や未確定geometryの観測は元16試行の中で次の観測へ進み、
+その間にtap/dragは送らない。複数List/Recovery消失は拒否し、実際に有限なviewportとhittable対象が得られるまで操作しない。
+各試行のframe一回、元16の総上限/一回反転/一回接触/45秒/保存・再起動・全15を維持。新しい待機時間や入力の再送は足さない。
+OneとSelectedの元caseを両OSで限定確認する。旧26通常A/Bは取消さず、新限定とまとめて終端を確認する。
