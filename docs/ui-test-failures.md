@@ -3925,3 +3925,14 @@ N83は実hittable再照会、N140はCancel接触時の再解決で、今回は�
 案内8秒/Cancel30秒/全3ケースを保持する。製品・SDK・bootstrap・各期限を変えず、AXの一般的改善とは断定しない。
 既存3実UIケースが今回の背景復帰を含み検出済みで、実装を写す新しい文字列テストは増やさない。
 先に候補と根拠をpushし、Picker実runner/manifest/幾何/一覧を局所確認、新規review後にPickerだけ限定検証する。
+
+N203候補fa9b00cの局所結果：Picker実runner1宣言/元8入力/失敗0（5.549秒）、manifest30件/失敗0
+（19.239秒）、一覧453/check --base6aaが通過。幾何の計算/完全包含/上限は差分0と確認した。
+この一回専用の新規GPT-6.1 Sol/High picker_native_elements_pre_actions_reviewは完全code-only差分893行/
+56511bytes/SHA256 d255157e16c9c0d1e857b25548519cbac1a1cbae2463c8df340483c64980e07fを確認し、
+意図外の実装・検査弱体化のblocking指摘なし。その一回の開始にだけ消費した。
+run42315603061/attempt1は実3jobが全success、非選択2jobはskip、保存artifact0。新3完了logは一度取得済み。
+SDK27.1/実Runtime27.0でnative proof全一致、元Picker3件/失敗0・430.855秒、連続ケース294.048秒で
+元11回の実選択/Cancel・背景復帰を通過し、遷移確認もPASSだった。Portable Swift603件/失敗0、
+Python306件/予定skip22/失敗0も通過。旧snapshot停止の恒常的解消とは主張せず、正式全15の成功へ加算しない。
+次は同じcode-only差分へ別の新規mainレビューを受け、元の全15gateを同一source/run/attemptで確認する。
