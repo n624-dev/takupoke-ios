@@ -60,20 +60,30 @@ def available26():
     exact = [r for r in available if r["version"] == "26.5"]
     pinned = len(exact) == 1 and exact[0].get("buildversion") == IOS26_BUILD
     return [tuple(map(int, r["version"].split("."))) for r in available], bool(registered), pinned
+
+def runtime_images(stage):
+    result = subprocess.run(["xcrun", "simctl", "runtime", "list", "-j"],
+                            check=True, capture_output=True, text=True, timeout=30)
+    print("TAKUPOKE_IOS26_RUNTIME_IMAGES stage=" + stage + " " +
+          json.dumps(json.loads(result.stdout), separators=(",", ":")), flush=True)
+
 versions, registered, pinned = available26()
 if not versions:
     if registered:
         raise SystemExit("Registered iOS 26 runtime is unavailable; refusing replacement")
     with export_directory() as owned:
+        runtime_images("before-download")
         subprocess.run(["xcodebuild", "-downloadPlatform", "iOS", "-buildVersion", IOS26_BUILD,
                         "-architectureVariant", "arm64",
                         "-exportPath", owned], check=True, timeout=600)
-        versions, _, pinned = available26()
-        if not versions:
-            images = list(Path(owned).glob("*.dmg"))
-            if len(images) != 1 or images[0].is_symlink() or not images[0].is_file():
-                raise SystemExit("Comparison requires installed runtime or one exported image")
-            subprocess.run(["xcodebuild", "-importPlatform", str(images[0])], check=True, timeout=180)
+        # The download can register a MobileAsset runtime. Import our own export
+        # once so testing uses the supported local registration path (N220).
+        images = list(Path(owned).glob("*.exportedBundle")) + list(Path(owned).glob("*.dmg"))
+        if len(images) != 1 or images[0].is_symlink() or not (
+                images[0].is_dir() if images[0].suffix == ".exportedBundle" else images[0].is_file()):
+            raise SystemExit("Comparison requires one owned exported runtime bundle or image")
+        subprocess.run(["xcodebuild", "-importPlatform", str(images[0])], check=True, timeout=180)
+        runtime_images("after-import")
     versions, _, pinned = available26()
 if not versions or max(versions) != (26, 5) or not pinned:
     raise SystemExit("Comparison requires one available iOS 26.5 runtime with exact build " + IOS26_BUILD)

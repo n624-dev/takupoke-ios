@@ -17,6 +17,7 @@ from pathlib import Path
 args=sys.argv[1:]; mode=os.environ['MODE']; marker=Path(os.environ['MARKER'])
 with open(os.environ['CALLS'],'a') as log: log.write(json.dumps([Path(sys.argv[0]).name]+args)+'\n')
 if args[:1] == ['--sdk']: print('27.1')
+elif args[:3] == ['simctl','runtime','list']: print(json.dumps({'fictional-runtime':{'state':'Ready'}}))
 elif args[:2] == ['simctl','list']:
     runtimes=[]
     if mode.startswith('installed') or marker.exists():
@@ -34,17 +35,24 @@ elif args[:1] == ['-downloadPlatform']:
     assert args[args.index('-architectureVariant')+1]=='arm64'
     if mode=='download-fails': sys.exit(9)
     if mode!='no-image':
-        image=Path(args[args.index('-exportPath')+1])/'fictional.dmg'
-        image.write_text('fictional image')
-        if mode in ('auto-installed','download-wrong-build'): marker.write_text(str(image))
+        image=Path(args[args.index('-exportPath')+1])/'fictional.exportedBundle'
+        image.mkdir();(image/'image').write_text('fictional image')
+        if mode=='dmg-export':
+            (image/'image').unlink();image.rmdir();image=image.with_suffix('.dmg');image.write_text('fictional image')
+        if mode=='export-symlink':
+            backing=image.with_name('backing');image.rename(backing);image.symlink_to(backing,target_is_directory=True)
+        if mode=='two-exports': (image.parent/'second.dmg').write_text('fictional image')
+        if mode in ('auto-installed','download-wrong-build'): marker.write_text(str(image/'image'))
 elif args[:1] == ['-importPlatform']:
-    assert Path(args[1]).read_text()=='fictional image'
+    exported=Path(args[1]);image=exported/'image' if exported.is_dir() else exported
+    assert image.read_text()=='fictional image'
     if mode=='import-fails': sys.exit(8)
-    marker.write_text(args[1])
+    marker.write_text(str(image))
 else: sys.exit(99)
 '''
         for mode in ('installed','auto-installed','import','download-fails','no-image','import-fails','wrong-version',
-                     'installed-wrong-build','installed-build-missing','installed-duplicate-build','download-wrong-build'):
+                     'installed-wrong-build','installed-build-missing','installed-duplicate-build','download-wrong-build',
+                     'dmg-export','export-symlink','two-exports'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory(prefix='takupoke-runtime-lifetime-') as directory:
                 root=Path(directory);scratch=root/'scratch';scratch.mkdir()
                 for name in ('xcrun','xcodebuild'):
@@ -55,18 +63,19 @@ else: sys.exit(99)
                     'TKPK_EXPECTED_IOS_SDK':'27.1','PYTHONDONTWRITEBYTECODE':'1'}
                 command=[sys.executable,'-B',str(ROOT/'tools/prepare-ios26-runtime.py')]
                 prepared=subprocess.run(command+['--hold-export'],env=env,capture_output=True,text=True,timeout=15)
-                self.assertEqual(prepared.returncode==0,mode in ('installed','auto-installed','import'),prepared.stdout+prepared.stderr)
+                self.assertEqual(prepared.returncode==0,mode in ('installed','auto-installed','import','dmg-export'),prepared.stdout+prepared.stderr)
                 owned=scratch/'takupoke-ios26-runtime-export-owned'
                 self.assertEqual(owned.exists(),not mode.startswith('installed'))
                 if mode in ('auto-installed','import'):
-                    self.assertEqual((owned/'fictional.dmg').read_text(),'fictional image')
+                    self.assertEqual((owned/'fictional.exportedBundle/image').read_text(),'fictional image')
                     observed=subprocess.run([str(root/'xcrun'),'simctl','list','runtimes','-j'],env=env,
                         capture_output=True,text=True,check=True,timeout=5)
                     self.assertTrue(json.loads(observed.stdout)['runtimes'][0]['isAvailable'])
                 before=calls.read_text()
                 commands=[json.loads(line) for line in before.splitlines()]
                 self.assertEqual(sum(row[1:2]==['-downloadPlatform'] for row in commands),int(not mode.startswith('installed')))
-                self.assertEqual(sum(row[1:2]==['-importPlatform'] for row in commands),int(mode in ('import','import-fails','wrong-version')))
+                self.assertEqual(sum(row[1:2]==['-importPlatform'] for row in commands),int(mode in (
+                    'auto-installed','import','import-fails','wrong-version','download-wrong-build','dmg-export')))
                 self.assertFalse(any('delete' in row for row in commands))
                 for _ in range(2):
                     cleaned=subprocess.run(command+['--cleanup-export'],env=env,capture_output=True,text=True,timeout=5)

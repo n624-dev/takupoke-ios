@@ -4283,3 +4283,25 @@ GitHub lawkitt/mdoc issue654の実例も、marketing指定ではRC、build番号
 
 source48f50b6/Linux、test_ui_manifest.pyを指定して0件・exit5。Actions未開始、コード不具合ではない。
 実在するtest_ui_test_manifest.pyを一覧から確認して実行し、上記30件の成功を得た。実装・期待値の変更なし。
+
+## N220 正式build固定のSelected26がfailure（2026-11-07）
+
+sourceb677db517f8f34518fb903e06b17771db898aec4/run42374327682/attempt1、SDK27.2・予定26.5正式23F77/GUI。
+13:08:35Z一括照会でSelected/job128408714153は12:51:40〜13:02:43Z failure、
+Changed/job128408714251は13:04:17Z success。One/Threeは継続中で取り消さず確認する。
+本文未読で失敗段階/原因は未確定。対処案の選択前に記録し、新しい完了2logだけ一度取得する。
+
+新2logを一度取得。Selectedも23F77/SDK27.2/system選択一致、build成功、bootstatus終了後に
+Runner channel disconnectedとなり実case未開始。cleanupはRuntime unavailable/System match policy。
+Changedは元case189.728秒/失敗0と厳密実Runner証明を成功。正式build固定だけでは解消しない。
+検索語runtime profile/simdiskimaged/cryptexとN166/N176/N177/N184/N212/N216、旧/現prepare26を照合。
+公開upstream actions/runner-images issue14946の10/29・11/2コメントを確認した。MobileAssetの重複登録後の
+cleanupがiOS Runtimeをforce-unmountし、boot済みguestを落とす事例と、exportedBundleを一回importして
+CoreSimulator/Cryptex/Imagesへ登録すると重複しなくなった実例がある。自環境の直接原因の証明とは区別する。
+現helperはdownloadが自動登録したらimportを省略し、*.dmgのみをimport対象としていた。
+今回の実取得物は*.exportedBundleであり、upstreamの安定登録経路を通っていない点が一致する。
+候補は新しく自分がdownload/exportした26.5/23F77だけ、一意なexportedBundle（または旧dmg）から
+一回importする。既存の不明/利用不能Runtimeを消去・置換しない。取得・importの再試行は足さず、
+元SDK/OS/入力/boot/期限/全15とexport保持を維持。準備前後のread-only runtime image一覧も記録する。
+実helper/fakeCLIで自動登録後も所有exportをimportする正例と複数/欠落/symlink/エラー拒否を確認し、
+元Selected26と残ケースを再確認する。候補/根拠を先にpushしてから局所検査・新規reviewへ進む。
