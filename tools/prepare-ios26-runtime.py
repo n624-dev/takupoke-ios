@@ -115,18 +115,20 @@ def delete_owned_asset_image(key, asset_path):
         # Preserve targeted host evidence if Apple's prescribed cleanup fails.
         # This read-only diagnostic never changes cleanup acceptance.
         asset_hash = asset_path.parent.name.removesuffix(".asset")
-        predicate = ('(process == "simdiskimaged" OR process == "mobileassetd") AND '
+        predicate = ('(process == "simdiskimaged" OR process == "mobileassetd" OR process == "simctl") AND '
                      '(eventMessage CONTAINS "' + asset_hash + '" OR '
                      'eventMessage CONTAINS "reclaim" OR eventMessage CONTAINS "purge")')
         try:
             with tempfile.TemporaryFile() as output:
-                diagnostic = subprocess.run(["/usr/bin/log", "show", "--last", "2m", "--style", "compact",
+                diagnostic = subprocess.run(["/usr/bin/log", "show", "--last", "2m", "--info", "--debug", "--style", "compact",
                                              "--predicate", predicate], stdout=output, stderr=subprocess.STDOUT,
                                             timeout=15)
-                output.seek(0)
-                raw = output.read(32769)
+                output.seek(0, os.SEEK_END)
+                size = output.tell()
+                output.seek(max(0, size - 32768))
+                raw = output.read(32768)
                 print("TAKUPOKE_IOS26_ASSET_FAILURE " + json.dumps({"exit": diagnostic.returncode,
-                      "truncated": len(raw) > 32768, "text": raw[:32768].decode("utf-8", errors="replace")}), flush=True)
+                      "truncated": size > 32768, "text": raw.decode("utf-8", errors="replace")}), flush=True)
         except (OSError, subprocess.TimeoutExpired) as error:
             print("TAKUPOKE_IOS26_ASSET_FAILURE " + json.dumps({"unknown": type(error).__name__}), flush=True)
     return removal

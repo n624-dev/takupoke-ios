@@ -4464,3 +4464,9 @@ N224〜N226/今回JSONとnativeの再登録指示を照合。復旧登録が同�
 新しい有効parent UUID・Verified/arm64/exact buildが揃う子imageも認める。元の新規asset/UUID所有確認、
 全device Shutdown、第二delete一回、target登録0/AssetData不在後の一回importと最終Ready/全15は維持する。
 別asset/既存parent/未検証署名/別arch/相対pathは拒否するfakeを追加し、候補/根拠を先にpushする。
+
+0b68a5cを先にpush後、実helper/fakeCLI4宣言/失敗0（68.233秒、26の46経路）、
+元manifest30件/失敗0（Swift有効、17.578秒）、一覧456/write/check --base eb6af38が成功。
+同じowned restore childの正例と別asset/既存parent/未検証署名/別arch/path traversal拒否を確認した。
+native診断にはsimctl clientとinfo/debugも含め、回収エラーに近い末尾32KiBを保持する。15秒と受理条件は維持。
+この診断出力だけの追記は回収制御・テスト期待を変えず、次の実Apple試行で観測する。
