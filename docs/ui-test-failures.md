@@ -4651,3 +4651,10 @@ scan再送・削除再試行・期限延長・実状態の書換えはしない�
 fakeにはReading→Ready、Readingのまま期限切れ、Readingでも別asset、未知stateを加え、第二delete時に実観測stateがReadyであることも要求する。
 候補/根拠を隔離featureへ先にpush後、実helper全mode/関連workflowcaller/manifest/catalogを確認し、新規reviewで未到達の通常26Bを限定評価する。
 稼働中正式19の残り26五件は中止せず、後で新しい終端だけをまとめて確認する。
+
+c52c5a0を先にpush後、実helper4宣言/26の50mode/失敗0（107.498秒）、実workflow caller18件/失敗0（52.542秒）、
+manifest30件/失敗0（18.366秒、Swift6.1.2有効）、catalog456/check --base5e94が成功。
+Readingを削除せず3観測目のReadyで一回deleteする正例、同じ30秒のReading期限切れ、Readingでも別assetの即拒否、未知state即拒否を確認。
+限定対象は通常Bの元testSettingsAccountDataAndFileDetails一件/iOS26/SDK27.2とし、新Runtime準備から実UIまでを通す。
+新規GPT-6.1 Sol/High n234_pre_actions_reviewはcode-only104行/8899bytes、SHA256 0aeb6122d6e7ab13d6e03b59523bbe5a1c5edee1875000372aa841063f6d0b65を確認し指摘なし。
+主担当が同一性/局所結果/未送信空白を確認し、このreviewを上記限定dispatch一回だけへ使用する。
