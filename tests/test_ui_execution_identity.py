@@ -58,15 +58,30 @@ class UIExecutionIdentityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="takupoke-ui-identity-host-") as directory:
             root = Path(directory)
             (root / "main.swift").write_text(
-                'print(try simulatorExecutionIdentity(caseName: "-[PickerTapChecks.ApplicationChecks testFictionalFirst]"))\n')
+                '''import XCTest
+class ApplicationChecks: XCTestCase {}
+let canonical = try simulatorExecutionCaseName(
+    caseName: "-[ApplicationChecks testFictionalFirst]", testClass: ApplicationChecks.self)
+precondition(canonical == "-[PickerTapChecks.ApplicationChecks testFictionalFirst]")
+for invalid in ["-[OtherChecks testFictionalFirst]", "-[OtherModule.ApplicationChecks testFictionalFirst]",
+                "ApplicationChecks.testFictionalFirst", "-[ApplicationChecks testFictionalFirst"] {
+    do {
+        _ = try simulatorExecutionCaseName(caseName: invalid, testClass: ApplicationChecks.self)
+        fatalError("Invalid actual class/name accepted")
+    } catch {}
+}
+print(try simulatorExecutionIdentity(caseName: canonical))
+''')
             built = subprocess.run(["swiftc", str(ROOT / "tests/Support/SimulatorIdentityTestCase.swift"),
-                                    str(root / "main.swift"), "-module-cache-path", str(root / "modules"),
+                                    str(root / "main.swift"), "-module-name", "PickerTapChecks",
+                                    "-module-cache-path", str(root / "modules"),
                                     "-o", str(root / "identity")], capture_output=True, text=True, timeout=120)
             self.assertEqual(built.returncode, 0, built.stderr)
             actual = subprocess.run([str(root / "identity")], capture_output=True, text=True, timeout=10,
                                     env=os.environ | {"SIMULATOR_UDID": OWNED})
             self.assertEqual(actual.returncode, 0, actual.stderr)
             record = json.loads(actual.stdout)
+            self.assertEqual(record["case"], "-[PickerTapChecks.ApplicationChecks testFictionalFirst]")
             self.assertIs(record["simulatorCompileTarget"], False)
             self.assertGreater(record["pid"], 0)
             with self.assertRaises(ValueError):

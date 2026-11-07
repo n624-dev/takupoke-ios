@@ -1,7 +1,17 @@
 import Foundation
 import XCTest
 
-private enum SimulatorIdentityFailure: Error { case notSimulator, timedOut }
+private enum SimulatorIdentityFailure: Error { case notSimulator, timedOut, invalidCaseName }
+
+func simulatorExecutionCaseName(caseName: String, testClass: XCTestCase.Type) throws -> String {
+    // XCTestCase.name omits the Swift module; its completion log includes it.
+    // Derive that module from the actual executing type, never an expected input.
+    let prefix = "-[" + String(describing: testClass) + " "
+    guard caseName.hasPrefix(prefix), caseName.hasSuffix("]") else {
+        throw SimulatorIdentityFailure.invalidCaseName
+    }
+    return "-[" + String(reflecting: testClass) + " " + caseName.dropFirst(prefix.count)
+}
 
 func simulatorExecutionIdentity(caseName: String) throws -> String {
     let process = ProcessInfo.processInfo
@@ -31,7 +41,8 @@ class SimulatorIdentityTestCase: XCTestCase {
         try super.setUpWithError()
         continueAfterFailure = false
         // Actual Runner identity, once per case; no expected values are inputs.
-        print("TAKUPOKE_UI_EXECUTION_IDENTITY " + (try simulatorExecutionIdentity(caseName: name)))
+        let actualCase = try simulatorExecutionCaseName(caseName: name, testClass: type(of: self))
+        print("TAKUPOKE_UI_EXECUTION_IDENTITY " + (try simulatorExecutionIdentity(caseName: actualCase)))
         #if !targetEnvironment(simulator)
         throw SimulatorIdentityFailure.notSimulator
         #endif

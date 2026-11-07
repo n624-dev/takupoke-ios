@@ -4067,6 +4067,26 @@ GUI/headlessの表示準備と実bootstatusは保持し、UI不可/証明欠落�
 （8.946秒）、Picker1宣言/元8+証明欠落の9入力/失敗0（8.135秒）、manifest30件/失敗0（21.179秒）、
 manual project17件/失敗0（1.986秒）、観測16件/失敗0（0.442秒）、source paths3件/失敗0（0.004秒）が通過。
 元のcompletion拒否入力はすべて保持し、正対照だけに新しい実Runner証明のschemaを追加した。
-GUI/boot/window失敗の伝播と所有回収、Appの全phase/OS文字サイズ、manual/Píckerの全case照合を保持する。
+GUI/boot/window失敗の伝播と所有回収、Appの全phase/OS文字サイズ、manual/Pickerの全case照合を保持する。
 一覧454/write/check --base2b89と4scriptのBash構文も成功。実Apple Runnerの証明は次の限定3経路で確認する。
 完全code-only差分1060行/64012bytes/SHA256 a3a0ad21e1c1f7fce38477b7ca6625c83dc11ac5be83a6e428bcecb3588f7e9f。
+
+## N211 実Runner証明候補の限定3経路がfailure（2026-11-07）
+
+source d47a30071d7a132d623dfcf778f7b2381648a5a3・SDK27.2・headless・各attempt1。
+03:50Zの一括照会で以下のfailureを確認。本文未読で失敗段階・原因は未確定。対処案の決定前に事実を記録する。
+- manual27.0/run42333824290/job128286129823/testChangedOriginalCannotSubmitOrReplaceLastGood、03:23:59〜03:35:46Z。
+- App26.5/run42333955054/job128286534880/testChangedAccountDataNoticeOpensSharedAcquisition、03:25:37〜03:34:56Z。
+- Picker27.0/run42334076283/job128286927612/元3case、03:27:16〜03:37:26Z。
+同Picker実行のportable128286927265とPython128286927436はsuccess。全3run終端。新5logを一度だけ確認する。
+
+新5logとartifact0を各一度取得。manual元case234.630秒/失敗0、App元case20.481秒/失敗0、
+Picker元3case355.746秒/失敗0。Picker実画素はlight255/255/255、dark28/28/30で元条件一致。
+各Runnerの実UDID・OS・Simulator条件・正のPIDは所有対象と一致したが、
+XCTestCase.nameは`-[ApplicationChecks test…]`等のmodule無し、xcodebuildのcompletionは
+`-[PickerTapChecks.ApplicationChecks test…]`で、名前の前提の違いをstrict host照合が拒否した。
+実UI失敗ではない。検索語`identity|XCTestCase.name|名前|native proof`でN199〜N210と
+現在のSupport/host検証・d47版を照合。過去の独立probe停止とは異なり、今回は全実UIまで実行済み。
+次はhost条件を緩めず、Runnerの実class型のreflectionからmoduleを取り、実XCTest名のclass一致を
+確認して完全名へ正規化する。期待module/selectorをguestへ渡さず、実class/nameだけから生成する。
+実Swiftでmodule無しnameからの正規化と異なるclass名の拒否を確認し、同じ限定3経路で再確認する。
