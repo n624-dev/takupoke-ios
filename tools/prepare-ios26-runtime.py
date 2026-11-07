@@ -88,6 +88,17 @@ def same_ready(key, image, original):
     return (exact_image(key, image) and image.get("state") == "Ready"
             and image.get("path") == original["path"])
 
+def known_preference_state(image):
+    return (image.get("state") == "Ready" or image.get("state") == "Unusable"
+            and image.get("unusableSubstate") == "Cryptex Mount Preferred")
+
+def require_no_started_devices():
+    result = subprocess.run(["xcrun", "simctl", "list", "devices", "-j"],
+                            check=True, capture_output=True, text=True, timeout=30)
+    devices = json.loads(result.stdout)["devices"]
+    if any(device.get("state") != "Shutdown" for group in devices.values() for device in group):
+        raise SystemExit("Refusing runtime removal while a device is started or unknown")
+
 versions, registered, pinned = available26()
 if not versions:
     if registered:
@@ -131,6 +142,7 @@ if not versions:
             duplicate = duplicates.get(download_id, {})
             if set(duplicates) != {download_id} or not owned_unusable(download_id, duplicate, asset_path):
                 raise SystemExit("Refusing removal of an unknown or usable runtime image")
+            require_no_started_devices()
             removal = subprocess.run(["xcrun", "simctl", "runtime", "delete", download_id],
                                      capture_output=True, text=True, timeout=180)
             message = removal.stdout + removal.stderr
@@ -159,18 +171,25 @@ if not versions:
                         raise SystemExit("Owned asset re-registration exceeded its observation deadline")
                     candidates = {key: item for key, item in rescanned.items() if key != local_id}
                     if (len(candidates) > 1 or local_id not in rescanned
-                            or not same_ready(local_id, rescanned[local_id], local_image)):
-                        raise SystemExit("Rescan did not preserve the same ready local image")
+                            or not exact_image(local_id, rescanned[local_id])
+                            or rescanned[local_id].get("path") != local_image["path"]
+                            or not known_preference_state(rescanned[local_id])):
+                        raise SystemExit("Rescan did not preserve the same local image and known preference state")
                     present = asset_path.exists()
                     print("TAKUPOKE_IOS26_OWNED_ASSET present=" + str(present).lower(), flush=True)
                     if not candidates:
-                        if not present:
+                        if not present and same_ready(local_id, rescanned[local_id], local_image):
                             break
                         time.sleep(min(1, max(0, scan_deadline - time.monotonic())))
                         continue
                     recovered_id, recovered = next(iter(candidates.items()))
-                    if recovered_id in before or not owned_unusable(recovered_id, recovered, asset_path):
+                    if (recovered_id in before or not exact_image(recovered_id, recovered)
+                            or recovered.get("path") != str(asset_path) or recovered.get("deletable") is not True
+                            or not known_preference_state(recovered)):
                         raise SystemExit("Refusing removal of an unowned re-registered runtime image")
+                    # A rescan can prefer our MobileAsset and temporarily mark
+                    # the retained local copy Unusable. No guest may use either.
+                    require_no_started_devices()
                     subprocess.run(["xcrun", "simctl", "runtime", "delete", recovered_id], check=True, timeout=180)
                     break
             remaining = target_images(runtime_images("after-owned-duplicate-removal"))

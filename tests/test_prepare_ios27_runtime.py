@@ -46,8 +46,16 @@ elif args[:3] == ['simctl','runtime','list']:
         path='/elsewhere' if mode=='wrong-local-path' else '/Library/Developer/CoreSimulator/Cryptex/Images/'+local_id
         records[local_id]=record(local_id,path,'Ready')
         if partial.exists() and mode=='partial-lost-local': records[local_id]['state']='Unusable'
+        if mode.startswith('partial-ready') and rescanned.exists() and not deleted.exists():
+            records[local_id]['state']='Unusable';records[recovered_id]['state']='Ready'
         if mode=='two-locals': records[foreign_id]=record(foreign_id,'/Library/Developer/CoreSimulator/Cryptex/Images/'+foreign_id,'Ready')
     print(json.dumps(records))
+elif args[:3] == ['simctl','list','devices']:
+    devices={}
+    if mode=='already-booted' or rescanned.exists() and mode in ('partial-ready-booted','partial-ready-unknown','partial-ready-other-booted'):
+        runtime='com.apple.CoreSimulator.SimRuntime.iOS-27-0' if mode=='partial-ready-other-booted' else 'com.apple.CoreSimulator.SimRuntime.iOS-26-5'
+        devices[runtime]=[{'state':'Unknown' if mode=='partial-ready-unknown' else 'Booted'}]
+    print(json.dumps({'devices':devices}))
 elif args[:3] == ['simctl','runtime','delete']:
     assert args==['simctl','runtime','delete',recovered_id if rescanned.exists() else download_id] and imported.exists()
     if mode=='delete-fails': sys.exit(7)
@@ -119,7 +127,8 @@ with patch.object(Path,'exists',observed_exists): runpy.run_path(sys.argv[0],run
                      'no-duplicate','unknown-duplicate','duplicate-ready','not-deletable','wrong-local-path','two-locals',
                      'delete-fails','delete-stuck','partial','partial-second-fails','partial-scan-fails',
                      'partial-badmessage','partial-wrong-path','partial-lost-local','partial-rescan-wrongpath',
-                     'partial-already-reclaimed','partial-lag','partial-pending'):
+                     'partial-already-reclaimed','partial-lag','partial-pending','partial-ready','partial-ready-booted',
+                     'partial-ready-unknown','partial-ready-other-booted','already-booted'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory(prefix='takupoke-runtime-lifetime-') as directory:
                 root=Path(directory);scratch=root/'scratch';scratch.mkdir()
                 for name in ('xcrun','xcodebuild'):
@@ -130,7 +139,7 @@ with patch.object(Path,'exists',observed_exists): runpy.run_path(sys.argv[0],run
                     'TKPK_EXPECTED_IOS_SDK':'27.1','PYTHONDONTWRITEBYTECODE':'1'}
                 command=[sys.executable,'-B','-c',wrapper,str(ROOT/'tools/prepare-ios26-runtime.py')]
                 prepared=subprocess.run(command+['--hold-export'],env=env,capture_output=True,text=True,timeout=40 if mode=='partial-pending' else 15)
-                self.assertEqual(prepared.returncode==0,mode in ('installed','auto-installed','import','dmg-export','no-duplicate','partial','partial-already-reclaimed','partial-lag'),prepared.stdout+prepared.stderr)
+                self.assertEqual(prepared.returncode==0,mode in ('installed','auto-installed','import','dmg-export','no-duplicate','partial','partial-already-reclaimed','partial-lag','partial-ready'),prepared.stdout+prepared.stderr)
                 owned=scratch/'takupoke-ios26-runtime-export-owned'
                 self.assertEqual(owned.exists(),not mode.startswith('installed'))
                 if mode in ('auto-installed','import'):
@@ -143,11 +152,11 @@ with patch.object(Path,'exists',observed_exists): runpy.run_path(sys.argv[0],run
                 self.assertEqual(sum(row[1:2]==['-downloadPlatform'] for row in commands),int(not mode.startswith('installed') and mode!='pre-existing-image'))
                 self.assertEqual(sum(row[1:2]==['-importPlatform'] for row in commands),int(mode.startswith('partial') or mode in (
                     'auto-installed','import','import-fails','wrong-version','dmg-export','no-duplicate',
-                    'unknown-duplicate','duplicate-ready','not-deletable','wrong-local-path','two-locals','delete-fails','delete-stuck')))
+                    'unknown-duplicate','duplicate-ready','not-deletable','wrong-local-path','two-locals','delete-fails','delete-stuck','already-booted')))
                 removals=[row for row in commands if 'delete' in row]
                 expected_delete=mode in ('auto-installed','import','wrong-version','dmg-export','delete-fails','delete-stuck')
                 expected_ids=['11111111-1111-4111-8111-111111111111'] if expected_delete or mode.startswith('partial') else []
-                if mode in ('partial','partial-second-fails','partial-lag'): expected_ids.append('44444444-4444-4444-8444-444444444444')
+                if mode in ('partial','partial-second-fails','partial-lag','partial-ready'): expected_ids.append('44444444-4444-4444-8444-444444444444')
                 self.assertEqual(removals,[['xcrun','simctl','runtime','delete',uid] for uid in expected_ids])
                 self.assertEqual(sum(row[1:4]==['simctl','runtime','scan-and-mount'] for row in commands),int(
                     mode.startswith('partial') and mode not in ('partial-badmessage','partial-wrong-path','partial-lost-local')))

@@ -4398,3 +4398,19 @@ CLI登録とOSのAssetData存在を別々に制御し、既に回収済みでは
 登録されないままAssetDataが残る場合は30秒で失敗となることを確認。最終の同じReady/AssetData不在は維持。
 実Appleの状態は未確認。code-only差分744行/46032bytes、SHA256
 5391df8ad0cc871ba9dd03fee2d23cb67b8e65d96cce5d64f56c1f9d57fcc5a5。
+
+## N225 非同期回収観測候補のSelected26がfailure（2026-11-07）
+
+sourceff352dcc319513da8490f9774e4a1f9d26590c34/run42382152651/attempt1/job128431850046、
+SDK27.2・予定26.5正式23F77/GUI。14:33:30〜14:36:30Z failureを予定14:40Z照会で確認。
+本文未読で段階/原因は未確定、対処前に記録。新1log/artifact一覧のみ一度取得する。
+
+新log/artifact0を一度取得。AssetDataは実在したまま、scan後約6秒で新MobileAsset UUID BA9411C1…がReady、
+同じlocal UUID DA664E7B…がUnusable/Cryptex Mount Preferredへ切り替わり、local Ready不変の仮定で拒否した。
+UI/bootは未実行。N224の非同期は実確認できたが、fakeの「local Readyが単調に維持される」という仮定も実APIと違った。
+今回/前回JSONとnativeの指定手順を照合。Readyは登録・mountの状態であり、guestの使用中を意味しない。
+次は正確なexit30後の一回scanに限り、同じlocal UUID/path/buildを保持した既知のCryptex優先切替を観測する。
+回収対象は以前からの登録には広げず、今回の同じassetの新UUIDだけ。いずれのRuntimeにも起動中/不明状態のdeviceが
+ないことをread-onlyで確認後、一回だけ指定deleteする。元のinitial削除ではReadyを引き続き拒否する。
+最終の同じlocal Ready一件・owned AssetData不在、全元UI/SDK/OS/期限/全15は変えない。
+fakeに実際のReady/Unusable切替とBooted/不明device拒否を追加し、候補/根拠を先にpushする。
