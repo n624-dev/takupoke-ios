@@ -724,6 +724,15 @@ METHOD
                           "simulator-26-a", "simulator-26-b", "manual-27", "manual-26"})
         self.assertIn("actions: read", release)
         self.assertLess(release.index("tools/release_gate.py"), release.index("tools/publish.py"))
+        jobs = dict(re.findall(r"^  ([\w-]+):\n(.*?)(?=^  [\w-]+:|\Z)",
+                               workflow, re.MULTILINE | re.DOTALL))
+        self.assertNotIn("TKPK_SIMULATOR_FRONTEND", workflow.split("jobs:\n", 1)[0])
+        self.assertNotIn("TKPK_SIMULATOR_FRONTEND", jobs["checks"])
+        self.assertIn("Xcode_26.6.app", jobs["native-parsing"])
+        for job in ("build-check", "development-build", "release"):
+            self.assertIn("TKPK_EXPECTED_IOS_SDK: '27.2'", jobs[job])
+            self.assertIn("DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer", jobs[job])
+            self.assertIn("TKPK_SIMULATOR_FRONTEND: headless", jobs[job])
 
     def test_application_lanes_wait_only_for_the_matching_27_lane(self):
         workflow = (ROOT / ".github/workflows/ios-release.yml").read_text()
@@ -741,9 +750,10 @@ METHOD
                     self.assertIn(f"- ios: {ios}\n            shard: {shard.upper()}", block)
                     self.assertIn("bash tools/test-app-ui.sh", block)
                     self.assertIn("--runner-log", block)
-                    self.assertIn("TKPK_EXPECTED_IOS_SDK: '27.1'", block)
+                    self.assertIn("TKPK_EXPECTED_IOS_SDK: '27.2'", block)
+                    self.assertIn("TKPK_SIMULATOR_FRONTEND: headless", block)
                 self.assertIn("runner: xcode-27", second)
-                self.assertIn("developer: /Applications/Xcode_27.1.app/Contents/Developer", second)
+                self.assertIn("developer: /Applications/Xcode_27.2.app/Contents/Developer", second)
                 prepare = "python3 -B tools/prepare-ios26-runtime.py"
                 self.assertIn(prepare, second)
                 self.assertLess(second.index(prepare), second.index("bash tools/test-app-ui.sh"))
@@ -789,11 +799,12 @@ METHOD
         self.assertEqual(manual.count("TKPK_MANUAL_DIAGNOSTICS: '1'"), 2)
         self.assertEqual(workflow.count("TKPK_MANUAL_DIAGNOSTICS"), 2)
         for ios in (26, 27):
-            self.assertIn(f"- ios: {ios}\n            runner: xcode-27\n            developer: /Applications/Xcode_27.1.app/Contents/Developer", manual)
+            self.assertIn(f"- ios: {ios}\n            runner: xcode-27\n            developer: /Applications/Xcode_27.2.app/Contents/Developer", manual)
             block = manual.split(f"  manual-{ios}:\n", 1)[-1]
             if ios == 27:
                 block = block.split("  manual-26:\n", 1)[0]
-            self.assertIn("TKPK_EXPECTED_IOS_SDK: '27.1'", block)
+            self.assertIn("TKPK_EXPECTED_IOS_SDK: '27.2'", block)
+            self.assertIn("TKPK_SIMULATOR_FRONTEND: headless", block)
             self.assertIn('run: python3 -B tools/timed_command.py --timeout 2400 --cleanup-grace 120 "Manual UI runner" bash tools/test-manual-ui.sh', block)
             prepare = f"python3 -B tools/prepare-ios{ios}-runtime.py"
             self.assertIn(prepare, block)
@@ -823,10 +834,10 @@ METHOD
         self.assertNotIn("continue-on-error",probe)
         sdk26=probe.split("      sdk26:\n",1)[1].split("\npermissions:",1)[0]
         self.assertIn("default: '26.6'",sdk26)
-        self.assertIn("options: ['26.6', '27.1']",sdk26)
+        self.assertIn("options: ['26.6', '27.1', '27.2']",sdk26)
         self.assertIn("matrix.ios == 26 && inputs.sdk26 == '26.6' && 'macos-26' || 'xcode-27'",probe)
         self.assertIn("format('/Applications/Xcode_{0}.app/Contents/Developer', matrix.ios == 27 && inputs.sdk27 || inputs.sdk26)",probe)
-        self.assertIn("matrix.ios == 27 && inputs.sdk27 || inputs.sdk26 == '27.1' && '27.1' || '26.5'",probe)
+        self.assertIn("matrix.ios == 27 && inputs.sdk27 || inputs.sdk26 != '26.6' && inputs.sdk26 || '26.5'",probe)
         sdk27=probe.split("      sdk27:\n",1)[1].split("      ios:\n",1)[0]
         self.assertIn("default: '27.1'",sdk27)
         self.assertIn("options: ['27.1', '27.2']",sdk27)
@@ -838,18 +849,18 @@ METHOD
         preflight=probe.split("      - name: Validate focused OS and toolchain selection\n        run: |\n",1)[1].split("      - name:",1)[0]
         preflight="\n".join(line[10:] for line in preflight.splitlines())
         for ios in ('both','26','27','25','26,27',''):
-            for sdk in ('26.6','27.1','27.0',''):
+            for sdk in ('26.6','27.1','27.2','27.0',''):
                 for sdk27 in ('27.1','27.2','27.0',''):
                     run=subprocess.run(['bash','-eu','-c',preflight],capture_output=True,text=True,
                         env=os.environ|{'TKPK_FOCUS_IOS':ios,'TKPK_FOCUS_SDK26':sdk,'TKPK_FOCUS_SDK27':sdk27})
-                    self.assertEqual(run.returncode,0 if ios in ('both','26','27') and sdk in ('26.6','27.1')
+                    self.assertEqual(run.returncode,0 if ios in ('both','26','27') and sdk in ('26.6','27.1','27.2')
                         and sdk27 in ('27.1','27.2') else 2,(ios,sdk,sdk27,run.stderr))
         self.assertLess(probe.index(preflight.splitlines()[0].strip()),probe.index("python3 -B tools/prepare-ios"))
         prepare="python3 -B tools/prepare-ios26-runtime.py --hold-export"
-        self.assertIn("if: matrix.ios == 26 && inputs.sdk26 == '27.1'\n        run: "+prepare,probe)
+        self.assertIn("if: matrix.ios == 26 && inputs.sdk26 != '26.6'\n        run: "+prepare,probe)
         self.assertLess(probe.index(prepare),probe.index("bash tools/test-manual-ui.sh"))
         cleanup="python3 -B tools/prepare-ios26-runtime.py --cleanup-export"
-        self.assertIn("if: always() && matrix.ios == 26 && inputs.sdk26 == '27.1'\n        run: "+cleanup,probe)
+        self.assertIn("if: always() && matrix.ios == 26 && inputs.sdk26 != '26.6'\n        run: "+cleanup,probe)
         self.assertLess(probe.index("bash tools/test-manual-ui.sh"),probe.index(cleanup))
         self.assertIn("bash tools/test-app-ui.sh", simulator)
 

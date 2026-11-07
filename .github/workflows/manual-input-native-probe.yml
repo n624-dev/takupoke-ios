@@ -13,10 +13,10 @@ on:
           - testChangedOriginalCannotSubmitOrReplaceLastGood
           - testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch
       sdk26:
-        description: Xcode for iOS 26 (27.1 matches the shipping toolchain)
+        description: Xcode for iOS 26 (27.2 matches the shipping toolchain)
         type: choice
         default: '26.6'
-        options: ['26.6', '27.1']
+        options: ['26.6', '27.1', '27.2']
       sdk27:
         description: Compare an installed toolchain on the unchanged iOS 27.0 runtime
         type: choice
@@ -42,7 +42,7 @@ jobs:
     runs-on: ${{ matrix.ios == 26 && inputs.sdk26 == '26.6' && 'macos-26' || 'xcode-27' }}
     timeout-minutes: ${{ matrix.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' && 45 || 35 }}
     env:
-      TKPK_EXPECTED_IOS_SDK: ${{ matrix.ios == 27 && inputs.sdk27 || inputs.sdk26 == '27.1' && '27.1' || '26.5' }}
+      TKPK_EXPECTED_IOS_SDK: ${{ matrix.ios == 27 && inputs.sdk27 || inputs.sdk26 != '26.6' && inputs.sdk26 || '26.5' }}
       DEVELOPER_DIR: ${{ format('/Applications/Xcode_{0}.app/Contents/Developer', matrix.ios == 27 && inputs.sdk27 || inputs.sdk26) }}
       TKPK_FOCUS_IOS: ${{ inputs.ios }}
       TKPK_FOCUS_SDK26: ${{ inputs.sdk26 }}
@@ -62,16 +62,16 @@ jobs:
       - name: Validate focused OS and toolchain selection
         run: |
           case "$TKPK_FOCUS_IOS" in both|26|27) ;; *) exit 2 ;; esac
-          case "$TKPK_FOCUS_SDK26" in 26.6|27.1) ;; *) exit 2 ;; esac
+          case "$TKPK_FOCUS_SDK26" in 26.6|27.1|27.2) ;; *) exit 2 ;; esac
           case "$TKPK_FOCUS_SDK27" in 27.1|27.2) ;; *) exit 2 ;; esac
       - name: Prepare shipping iOS 27.0 for the focused comparison
         if: matrix.ios == 27
         run: python3 -B tools/prepare-ios27-runtime.py
       - name: Prepare exact iOS 26.5 with the shipping SDK
-        if: matrix.ios == 26 && inputs.sdk26 == '27.1'
+        if: matrix.ios == 26 && inputs.sdk26 != '26.6'
         run: python3 -B tools/prepare-ios26-runtime.py --hold-export
       - name: Exercise physical replacement, independent acknowledgement and saved adoption
         run: python3 -B tools/timed_command.py --timeout "$TKPK_MANUAL_RUNNER_SECONDS" --cleanup-grace 120 "Focused manual UI runner" bash tools/test-manual-ui.sh
       - name: Remove the owned iOS 26 runtime export after simulator cleanup
-        if: always() && matrix.ios == 26 && inputs.sdk26 == '27.1'
+        if: always() && matrix.ios == 26 && inputs.sdk26 != '26.6'
         run: python3 -B tools/prepare-ios26-runtime.py --cleanup-export

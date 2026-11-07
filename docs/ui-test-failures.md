@@ -4090,3 +4090,12 @@ XCTestCase.nameは`-[ApplicationChecks test…]`等のmodule無し、xcodebuild�
 次はhost条件を緩めず、Runnerの実class型のreflectionからmoduleを取り、実XCTest名のclass一致を
 確認して完全名へ正規化する。期待module/selectorをguestへ渡さず、実class/nameだけから生成する。
 実Swiftでmodule無しnameからの正規化と異なるclass名の拒否を確認し、同じ限定3経路で再確認する。
+
+dcb2013を先にpush後、実Swift正規化・別class名拒否・host拒否を含む3件/失敗0（2.540秒）、
+一覧454/check --base d47a300が成功。3経路の実操作・実OS/UUIDは上記logで成立済みのため、
+共通name変換の再確認はPicker27の元3caseへ絞り、全経路の再実行は正式全15で行う。
+今回の実SDK27.2（27B52）とRuntime26.5/27.0の比較結果を踏まえ、配布/通常/手動/ビルドの
+SDKを27.2、AppleのUI実行だけheadlessへ揃える候補へ進む。Native26.6/実SDK26.5とLinuxの環境を維持。
+任意manual26 probeにも27.2比較を追加し、27.1/26.6の旧条件を保持する。未知SDK拒否は維持する。
+host証明条件・元case/期限/期待・全15必須は変更せず、限定成功を正式ゲートへ合算しない。
+この候補/根拠を先にpushし、SDK選択/全元ゲート/環境の分離をローカル検査した後、新規reviewで限定実行する。
