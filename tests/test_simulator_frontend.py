@@ -27,7 +27,7 @@ class SimulatorFrontendTests(unittest.TestCase):
                 app = developer / "Applications/Simulator.app"
             else:
                 app = developer.parent / "Applications/DeviceHub.app"
-            if frontend != "missing":
+            if frontend not in ("missing", "headless", "unknown"):
                 app.mkdir(parents=True)
             fake = "#!" + sys.executable + "\n" + r'''
 import json,os,sys
@@ -67,6 +67,7 @@ elif args[:2]==['simctl','list']:raise AssertionError('Readiness must not use in
             calls = root / "calls"
             environment = os.environ | {"PATH": str(root / "bin") + os.pathsep + os.environ["PATH"],
                 "CALLS": str(calls), "FAILURE": failure, "TMPDIR": directory,
+                "TKPK_SIMULATOR_FRONTEND": "headless" if frontend == "headless" else "unknown" if frontend == "unknown" else "gui",
                 "OWNED": OWNED, "RUNTIME": RUNTIME,
                 "SYNTHETIC_DEVELOPER": str(root / "wrong" if override else developer)}
             if override:
@@ -75,10 +76,10 @@ elif args[:2]==['simctl','list']:raise AssertionError('Readiness must not use in
                 environment.pop("DEVELOPER_DIR", None)
             result = subprocess.run(["bash", "tools/boot-simulator-ui.sh", OWNED, RUNTIME, "Fictional bootstrap"],
                                     cwd=root, env=environment, text=True, capture_output=True, timeout=12)
-            recorded = [json.loads(line) for line in calls.read_text().splitlines()]
+            recorded = [json.loads(line) for line in calls.read_text().splitlines()] if calls.exists() else []
             self.assertNotIn("PRIVATE", result.stdout + result.stderr)
             self.assertEqual(sum(call[:3] == ["xcrun", "simctl", "boot"] for call in recorded),
-                             0 if failure in ("compile", "sign") else 1)
+                             0 if failure in ("compile", "sign") or frontend == "unknown" else 1)
             self.assertEqual(list(root.glob("takupoke-ui-identity.*")), [])
             self.assertFalse(any(call[:3] in (["xcrun", "simctl", "shutdown"], ["xcrun", "simctl", "delete"],
                                               ["xcrun", "simctl", "launch"]) for call in recorded))
@@ -123,6 +124,26 @@ elif args[:2]==['simctl','list']:raise AssertionError('Readiness must not use in
         result, calls, _ = self.bootstrap("missing")
         self.assertEqual(result.returncode, 1)
         self.assertFalse(any(call[0] == "open" or call[:3] == ["xcrun", "simctl", "bootstatus"] for call in calls))
+
+    def test_headless_requires_the_same_owned_native_proof_without_a_desktop_viewer(self):
+        for failure, expected in (("", 0), ("compile", 41), ("sign", 46), ("boot", 42),
+                                  ("bootstatus", 47), ("identity", 1), ("spawn", 1)):
+            with self.subTest(failure=failure):
+                result, calls, _ = self.bootstrap("headless", failure=failure)
+                self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
+                self.assertFalse(any(call[0] in ("open", "xcode-select") for call in calls))
+                self.assertEqual(sum(call[:3] == ["xcrun", "simctl", "spawn"] for call in calls),
+                                 int(failure in ("", "identity", "spawn")))
+                self.assertEqual("TAKUPOKE_SIMULATOR_UI stage=ready" in result.stdout, expected == 0)
+                if expected == 0:
+                    boot = calls.index(["xcrun", "simctl", "boot", OWNED])
+                    status = calls.index(["xcrun", "simctl", "bootstatus", OWNED, "-b"])
+                    probe = next(i for i, call in enumerate(calls) if call[:3] == ["xcrun", "simctl", "spawn"])
+                    self.assertLess(boot, status)
+                    self.assertLess(status, probe)
+        result, calls, _ = self.bootstrap("unknown")
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(calls, [])
 
 
 if __name__ == "__main__":

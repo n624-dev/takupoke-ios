@@ -338,6 +338,18 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                     ["xcrun", "simctl", "shutdown", "00000000-0000-0000-0000-000000000001"]))
                 self.assertIn("TAKUPOKE_NOTIFICATION_SERVICES ", result.stdout)
 
+    def test_headless_runner_keeps_all_selected_ui_cases_and_actual_size_commands(self):
+        for ios in (26, 27):
+            with self.subTest(ios=ios), patch.dict(os.environ, {"TKPK_SIMULATOR_FRONTEND": "headless"}):
+                result, calls = self.run_synthetic_runner(ios, "A")
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertFalse(any(call[0] in ("open", "xcode-select") for call in calls))
+                selected = [arg.rsplit("/", 1)[1] for call in calls if call[0] == "xcodebuild"
+                            and call[-1] == "test-without-building" for arg in call if arg.startswith("-only-testing:")]
+                self.assertCountEqual(selected, manifest.SHARDS["A"])
+                self.assertIn(["xcrun", "simctl", "ui", "00000000-0000-0000-0000-000000000001",
+                               "content_size", "large"], calls)
+
     def test_both_shards_on_both_os_preserve_selection_and_os_size_checks(self):
         for ios in (26, 27):
             for shard in manifest.SHARDS:

@@ -3997,3 +3997,31 @@ N07/N53/N127/N182/N204と現prepare/runner/launchReady（120行）を比較し�
 利用者のSDK更新指示に沿い、Runtime26.5/27.0と全操作/期待/期限/boot proofを固定し、27.2 RCで二つの失敗経路を比較する。
 手動限定workflowに既定27.1を保持した明示sdk27選択だけを追加し、不明SDKを拒否する。通常26は既存probeのsdk26=27.2を使う。
 配布workflowはまだ27.1を保持し、比較成功後にだけ全15を27.2で検証する候補へ進む。製品・API・入力・再送・期限は変更しない。
+
+## N207 SDK27.2の通常26先頭ケース限定がfailure（2026-11-07）
+
+sourcee68fde9b7415ee63a32f0e1686f5bf96bcb7eb01/run42327110829/attempt1/job128264829052、
+SDK27.2・予定Runtime26.5・testChangedAccountDataNoticeOpensSharedAcquisition、02:01:41Z〜02:13:00Z。
+02:30Z一括照会でfailureを確認。本文未読で段階・原因は未確定。対処前に記録した。
+
+## N208 同SDKのPicker27限定もfailure（2026-11-07）
+
+同source/run42327206199/attempt1/job128265140716、SDK27.2・予定Runtime27.0、02:02:49Z〜02:12:10Z。
+本文未読で準備/実UI・原因は未確定。同runのNative26.6/27.2・portable/Pythonはsuccess。
+別run42327013991/job128264532386の原本変更拒否27は02:11:30Zにsuccess。新7完了logだけを一度取得し照合する。
+
+N207はbuild79.3秒/boot80.1秒/画面URL後、native45秒でtimeout・全UI未開始。
+N208はbuild35.9秒/boot200.2秒/画面URL後のnative応答exit0が期限後でdeadlineExceeded=trueとして拒否された。
+元Picker3ケースは未開始であり、27.2のPicker操作のassert失敗ではない。host logも10秒でtimeout。
+同SDKの原本変更拒否27は225.896秒/失敗0、全native identity一致・outer635.1秒で元全条件を通過した。
+Nativeは実SDK26.5と27.2で各701件/予定skip1/失敗0（119.237/114.846秒）。Portable603/0、Python306/予定skip22/0。
+全3run終端・新7log一度取得・artifact0確認済み。SDK更新だけで起動の無応答を解消したとは言わない。
+
+N207/N208照合：N07/N53/N182/N193と正式b965の手動27全4成功、当時6aaのmanual/Picker runner、
+現bootstrapを比較した。手動/Pickerは元々GUIホストを開かずにXCTestで実UIを操作していた。
+GUIが起動原因との証明はなく、追加したDeviceHub起動/所有画面URLも現在のCLI停止を解消していない。
+次の比較はCLIで所有VMを起動し、その実native証明後にXCTestへ画面操作を委ねるheadless modeとする。
+従来GUI modeとその失敗検査は既定のまま保持し、限定3workflowだけにheadlessを明示する。
+SDK27.2/Runtime26.5・27.0、native45秒、一回boot/probe、元UI全case/実操作/画像/保存/再起動/期限は変更しない。
+GUI不在を無条件成功とせず、応答不成立や実UI不成立は失敗にする。未知modeも準備前に拒否する。
+製品/配布workflowは変更せず、候補push→実shell/全caller/manifest/一覧→各新規review→限定3経路の順で確認する。

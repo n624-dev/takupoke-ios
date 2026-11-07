@@ -47,6 +47,7 @@ jobs:
       TKPK_FOCUS_IOS: ${{ inputs.ios }}
       TKPK_FOCUS_SDK26: ${{ inputs.sdk26 }}
       TKPK_FOCUS_SDK27: ${{ inputs.sdk27 }}
+      TKPK_SIMULATOR_FRONTEND: headless
       TKPK_MANUAL_RUNNER_SECONDS: ${{ matrix.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' && 2400 || 1800 }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_MANUAL_CASE: ${{ matrix.case }}

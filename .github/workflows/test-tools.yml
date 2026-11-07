@@ -101,6 +101,7 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
       TKPK_EXPECTED_IOS_SDK: ${{ matrix.xcode }}
+      TKPK_SIMULATOR_FRONTEND: headless
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
