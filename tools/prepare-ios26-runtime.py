@@ -95,11 +95,14 @@ def owned_asset_image(key, image, asset_path):
             and image.get("deletable") is True and known_preference_state(image))
 
 def owned_rescanned_image(key, image, asset_path, before):
-    if owned_asset_image(key, image, asset_path):
+    # Ownership is independent of an asynchronously registered image's state.
+    # Callers must observe an allowed deletion state before mutating it.
+    if (exact_image(key, image) and image.get("path") == str(asset_path)
+            and image.get("deletable") is True):
         return True
     path = Path(image.get("path", ""))
     parent = image.get("parentIdentifier", "")
-    return (exact_image(key, image) and image.get("deletable") is True and known_preference_state(image)
+    return (exact_image(key, image) and image.get("deletable") is True
             and path.parent == asset_path / "Restore"
             and re.fullmatch(r"[0-9]{3}-[0-9]{5}-[0-9]{3}\.dmg", path.name) is not None
             and not path.is_symlink() and not path.parent.is_symlink()
@@ -170,6 +173,13 @@ def reclaim_owned_asset(before, download_id, download_image, asset_path):
             recovered_id, recovered = next(iter(candidates.items()))
             if recovered_id in before or not owned_rescanned_image(recovered_id, recovered, asset_path, before):
                 raise SystemExit("Refusing removal of an unowned re-registered runtime image")
+            if recovered.get("state") == "Reading":
+                # N234: this owned image is still being registered. Observe it
+                # within the existing deadline; never delete a Reading image.
+                time.sleep(min(1, max(0, scan_deadline - time.monotonic())))
+                continue
+            if not known_preference_state(recovered):
+                raise SystemExit("Refusing removal of an unready re-registered runtime image")
             require_no_started_devices()
             delete_owned_asset_image(recovered_id, asset_path).check_returncode()
             break

@@ -49,6 +49,11 @@ elif args[:3]==['simctl','runtime','list']:
                     supportedArchitectures=['x86_64'] if mode=='partial-restored-wrong-arch' else ['arm64'])
                 if mode=='partial-restored-foreign':image['path']='/unrelated-asset/Restore/094-56039-099.dmg'
                 if mode=='partial-restored-traversal':image['path']=asset+'/Restore/../../094-56039-099.dmg'
+                if mode.startswith('partial-restored-reading'):
+                    image['state']='Reading' if mode!='partial-restored-reading' or count<3 else 'Ready'
+                    if mode=='partial-restored-reading-foreign':image['path']='/unrelated-asset/Restore/094-56039-099.dmg'
+                if mode=='partial-restored-unknown-state':image['state']='Unknown'
+            marker.with_name('observed-state').write_text(records[recovered_id]['state'])
     if imported.exists():
         path='/elsewhere' if mode=='wrong-local-path' else '/Library/Developer/CoreSimulator/Cryptex/Images/'+local_id
         records[local_id]=record(local_id,path,'Unusable' if mode=='local-not-ready' else 'Ready')
@@ -64,6 +69,7 @@ elif args[:3]==['simctl','list','devices']:
 elif args[:3]==['simctl','runtime','delete']:
     assert not imported.exists(), 'The downloaded asset must be removed BEFORE import'
     assert args==['simctl','runtime','delete',recovered_id if rescanned.exists() else first_id]
+    if rescanned.exists():assert marker.with_name('observed-state').read_text() in ('Ready','Unusable'), 'Never delete a Reading/unknown image'
     if mode=='delete-fails':sys.exit(7)
     if mode.startswith('partial') and not partial.exists():
         partial.write_text('partial');removed.write_text('registration only')
@@ -125,7 +131,7 @@ def observed_exists(path):
 sys.argv=sys.argv[1:]
 with patch.object(Path,'exists',observed_exists):runpy.run_path(sys.argv[0],run_name='__main__')
 '''
-        successes={'installed','auto-installed','import','dmg-export','partial','partial-already-reclaimed','partial-lag','partial-restored'}
+        successes={'installed','auto-installed','import','dmg-export','partial','partial-already-reclaimed','partial-lag','partial-restored','partial-restored-reading'}
         no_delete={'installed','installed-wrong-build','installed-build-missing','installed-duplicate-build','installed-unavailable',
             'download-fails','no-image','export-symlink','two-exports','pre-existing-image','pre-existing-id','two-downloads',
             'download-wrong-build','not-deletable','already-booted','wrong-asset-path'}
@@ -138,7 +144,8 @@ with patch.object(Path,'exists',observed_exists):runpy.run_path(sys.argv[0],run_
                      'partial-rescan-wrongpath','partial-pending','partial-booted','partial-unknown','partial-other-booted',
                      'wrong-local-path','two-locals','foreign-post-import','local-not-ready','wrong-asset-path',
                      'partial-restored','partial-restored-foreign','partial-restored-existing-parent',
-                     'partial-restored-unverified','partial-restored-wrong-arch','partial-restored-traversal'):
+                     'partial-restored-unverified','partial-restored-wrong-arch','partial-restored-traversal',
+                     'partial-restored-reading','partial-restored-reading-stuck','partial-restored-reading-foreign','partial-restored-unknown-state'):
             with self.subTest(mode=mode),tempfile.TemporaryDirectory(prefix='takupoke-runtime-lifetime-') as directory:
                 root=Path(directory);scratch=root/'scratch';scratch.mkdir()
                 for name in ('xcrun','xcodebuild'):
@@ -147,7 +154,7 @@ with patch.object(Path,'exists',observed_exists):runpy.run_path(sys.argv[0],run_
                     'MARKER':str(root/'registered'),'CALLS':str(calls),'RUNNER_TEMP':str(scratch),
                     'TKPK_EXPECTED_IOS_SDK':'27.1','PYTHONDONTWRITEBYTECODE':'1'}
                 command=[sys.executable,'-B','-c',wrapper,str(ROOT/'tools/prepare-ios26-runtime.py')]
-                prepared=subprocess.run(command+['--hold-export'],env=env,capture_output=True,text=True,timeout=40 if mode=='partial-pending' else 15)
+                prepared=subprocess.run(command+['--hold-export'],env=env,capture_output=True,text=True,timeout=40 if mode in ('partial-pending','partial-restored-reading-stuck') else 15)
                 self.assertEqual(prepared.returncode==0,mode in successes,prepared.stdout+prepared.stderr)
                 owned=scratch/'takupoke-ios26-runtime-export-owned'
                 self.assertEqual(owned.exists(),not mode.startswith('installed'))
@@ -159,11 +166,15 @@ with patch.object(Path,'exists',observed_exists):runpy.run_path(sys.argv[0],run_
                 self.assertEqual(sum(row[1:2]==['-downloadPlatform'] for row in commands),int(not mode.startswith('installed') and mode!='pre-existing-image'))
                 self.assertEqual(sum(row[1:2]==['-importPlatform'] for row in commands),int(mode in imports))
                 ids=[] if mode in no_delete else ['11111111-1111-4111-8111-111111111111']
-                if mode in ('partial','partial-lag','partial-second-fails','partial-restored'):ids.append('44444444-4444-4444-8444-444444444444')
+                if mode in ('partial','partial-lag','partial-second-fails','partial-restored','partial-restored-reading'):ids.append('44444444-4444-4444-8444-444444444444')
                 self.assertEqual([row for row in commands if 'delete' in row],
                     [['xcrun','simctl','runtime','delete',uid] for uid in ids])
                 self.assertEqual(sum(row[1:4]==['simctl','runtime','scan-and-mount'] for row in commands),int(
                     mode.startswith('partial') and mode not in ('partial-badmessage','partial-wrong-path','partial-foreign-image')))
+                if mode=='partial-restored-reading':self.assertEqual((root/'observations').read_text(),'3')
+                if mode in ('partial-pending','partial-restored-reading-stuck'):self.assertIn('30 seconds',prepared.stderr)
+                if mode in ('partial-restored-reading-foreign','partial-restored-unknown-state'):
+                    self.assertEqual((root/'observations').read_text(),'1')
                 if mode in imports:
                     imported_at=next(i for i,row in enumerate(commands) if row[1:2]==['-importPlatform'])
                     self.assertTrue(all(i<imported_at for i,row in enumerate(commands) if 'delete' in row))

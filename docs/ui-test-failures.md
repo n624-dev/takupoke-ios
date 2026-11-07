@@ -4629,3 +4629,25 @@ N97ではACKを同List/Switchとし、外側の論理IDをviewport観測後に�
 新規main専用GPT-6.1 Sol/High n233_shipping_pre_actions_reviewは完全code-only26行/2027bytesを確認し指摘なし。
 SHA256 e54c27655f58ac35edbc59bfd281bd596ccb76147691d2f8ac5bc98fa87576b7の同一性、両OSの元Three成功・全Pythonと局所検査、
 製品/正式workflow/manifest不変・remote main65f不変・全未送信空白を主担当が確認後、一回の正式19 main pushへ消費する。
+
+## N234 正式19の通常26Bがfailure（2026-11-07）
+
+source5e94fee7ffa87945e3f0d7d7b86085b5fe1eb328/run42409545980/attempt1/job128526538635、予定iOS26.5/SDK27.2。
+20:57:37〜21:01:15Z failureを予定21:10Z照会で確認。本文未読で準備/実UI/具体case・原因は未確定。対処前の事実記録。
+配布/Native/通常27A+B/全手動27はsuccess。通常26Aと手動26全4件は継続中で中止しない。
+今回新しい7Mac終端成功logと26Bの失敗logだけを一度取得し、artifact一覧は全終端後まで取得しない。
+
+新8logを一度取得。通常26BはUI未到達、download26.5/23F77と所有新規asset確認後の回収で失敗。
+最初のdeleteは既知の部分削除exit30、旧target登録0を実確認し、一回scanを開始した。約11秒は候補0/AssetData実在、
+21:01:12Zに新child UUID3B41C75F…が同じowned AssetData/Restore/094-56039-099.dmgとして現れた。
+exact26.5/23F77/deletable/新parentUUID/同じparentMountPath/Verified/arm64は成立したが、stateが初観測のReadingで、
+Ready/既知Unusableだけの所有判定から即拒否した。元30秒の観測予算は残っていた。第二delete/import/実UIは未実行。
+
+検索語Reading/after-owned-asset-rescan/restoreでN224/N225/N227の詳細と0b68a5c/現5e94のhelper/fakeを照合。
+既往は候補0→Ready、今回は同じ所有物の登録自体がReadingとして先に見えている。これをReadyや削除可能と扱わない。
+候補は再登録の不変な所有metadataと削除可能状態を分け、所有metadataが完全一致したReadingだけ元の同じ30秒期限内でread-only再観測する。
+Ready/既知Unusableになった後だけ既存のShutdown確認と第二delete一回へ進み、別path/親/署名/arch/既存UUID/未知stateは即拒否、Readingのまま期限切れも失敗とする。
+scan再送・削除再試行・期限延長・実状態の書換えはしない。元のtarget登録0/AssetData不在→一回import→正確なlocal Ready・全15は維持する。
+fakeにはReading→Ready、Readingのまま期限切れ、Readingでも別asset、未知stateを加え、第二delete時に実観測stateがReadyであることも要求する。
+候補/根拠を隔離featureへ先にpush後、実helper全mode/関連workflowcaller/manifest/catalogを確認し、新規reviewで未到達の通常26Bを限定評価する。
+稼働中正式19の残り26五件は中止せず、後で新しい終端だけをまとめて確認する。
