@@ -32,13 +32,10 @@ elif Path(sys.argv[0]).name == 'xcodebuild':
     if mode == 'duplicate': names.append(names[0])
     for name in names:
         status = 'skipped' if mode == 'skipped' else 'passed'
+        if mode!='identity-missing':
+            print('TAKUPOKE_UI_EXECUTION_IDENTITY '+json.dumps({'case':'-[PickerTapChecks.MaterialPickerTapChecks '+name+']',
+                'udid':'00000000-0000-0000-0000-000000000001','runtime':'27.0.0','simulatorCompileTarget':True,'pid':123}))
         print("Test Case '-[PickerTapChecks.MaterialPickerTapChecks " + name + "]' " + status + " (1.000 seconds).")
-elif args[:3] == ['--sdk', 'iphonesimulator', '--show-sdk-path']: print('/fictional/sdk')
-elif args[:3] == ['--sdk', 'iphonesimulator', 'swiftc']:
-    assert Path('tools/simulator-ui-identity.swift').is_file()
-    Path(args[args.index('-o') + 1]).write_text('fictional probe')
-elif args[:2] == ['simctl', 'spawn'] and args[-1].endswith('/identity'):
-    print(json.dumps({'udid': args[2], 'runtime': '27.0.0', 'simulatorCompileTarget': True, 'pid': 123}))
 elif args[:2] == ['simctl', 'list']:
     print(json.dumps({'runtimes': [{'isAvailable': True, 'version': '27.0',
         'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-0'}, {'isAvailable': True, 'version': '27.1', 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-1'}],
@@ -53,7 +50,7 @@ elif args[:2] == ['simctl', 'launch']:
         'FAIL: fictional transition failure' if mode == 'transition-fails' else 'PASS: fictional transitions')
 '''
         for mode in ("success", "build-fails", "boot-fails", "test-fails",
-                     "missing", "duplicate", "skipped", "transition-fails"):
+                     "missing", "duplicate", "skipped", "transition-fails", "identity-missing"):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory(prefix="takupoke-picker-runner-") as directory:
                 root = Path(directory)
                 scratch = root / "scratch"

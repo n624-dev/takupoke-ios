@@ -173,6 +173,22 @@ while read -r device_type runtime; do
                 --predicate 'process == "Takupoke" AND eventMessage CONTAINS "Synthetic fixture initialization"' || true
             exit 1
         fi
+        python3 - "$log_path" "$simulator_id" "$runtime" "$ios_major" "$@" <<'PY_OWNED_UI'
+from pathlib import Path
+import sys
+sys.path.insert(0, 'tools')
+from ui_test_manifest import validate_execution_identities, validate_results
+prefix = '-only-testing:PickerTapChecks/ApplicationChecks/'
+arguments = sys.argv[5:]
+if any(not (arg.startswith(prefix) or arg == 'test-without-building') for arg in arguments):
+    raise SystemExit('Unexpected owned UI selection')
+expected = [arg[len(prefix):] for arg in arguments if arg.startswith(prefix)]
+if not expected: raise SystemExit('Owned UI selection is empty')
+log = Path(sys.argv[1]).read_text(encoding='utf-8', errors='replace')
+validate_results(log, expected, int(sys.argv[4]))
+validate_execution_identities(log, expected, sys.argv[2], sys.argv[3], 'ApplicationChecks')
+print('Verified native identity for every selected application UI case.')
+PY_OWNED_UI
     }
     # Reuse the build and owned device. Split the input scenarios into their
     # own Runners without changing gestures, case order or case initial data.

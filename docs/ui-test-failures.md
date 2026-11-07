@@ -4032,3 +4032,31 @@ manual5件/失敗0（10.001秒）、Picker1宣言/元8入力/失敗0（8.999秒�
 Appの両OSで元Aの全caseとcontent_size実コマンド/所有回収が残ることを確認した。GUI枝の元検査も保持した。
 一覧453/write/check --base2b89とBash構文も通過。実UIはまだ未確認で、限定3経路の実操作を要求する。
 完全code-only差分228行/14466bytesのSHA256はd7c38c0081fd810dcd7061cb6844388f52e415bdd1f132a20cdd1eb29d3f30d2。
+
+## N209 headless SDK27.2の原本変更拒否27限定がfailure（2026-11-07）
+
+source6b0d3a04c607a8cf7641db796d243af51c45b3c4/run42330153297/attempt1/job128274584220、
+SDK27.2・予定Runtime27.0・testChangedOriginalCannotSubmitOrReplaceLastGood、02:37:24Z〜02:48:38Z。
+03:00Z一括照会でfailureを確認。本文未読で準備/実UIの段階・原因は未確定。対処前に記録した。
+
+## N210 同headlessの通常26先頭ケースもfailure（2026-11-07）
+
+同source/run42330227842/attempt1/job128274825457、SDK27.2・予定Runtime26.5・
+testChangedAccountDataNoticeOpensSharedAcquisition、02:38:19Z〜02:47:40Z。本文未読で段階・原因未確定。
+Picker27/run42330298101/job128275053125とportable/Pythonはsuccess。新5完了logを一度取得し過去/現コードを照合する。
+
+N209はbuild108.1秒/boot225.9秒後の別nativeプロセスが45秒でtimeout、N210もbuild57.7秒/boot53.4秒後の
+同プロセスでtimeoutした。両方ともXCTest/実UI未開始。GUI不在だけでは独立プロセスの停止は解消しない。
+Pickerはheadlessで全native identity一致後、元3件74.274/193.535/25.814秒で全成功・遷移確認も成功。
+実画素はlight255/255/255、dark28/28/30で、空の黒画像ではなく元の背景一致を確認した。
+全3run終端・新5log一度取得・artifact0。元のUI failureと新しい事前チェックの停止を区別して保持する。
+
+N209/N210照合：N07/N182/N193/N204〜N208と元6aa runner、現在のnative proofを比較した。
+元の全15は実XCTest/実操作/厳密完了を要求しており、追加の別nativeプロセスは公開条件には元々無かった。
+今回追加した45秒の独立spawnがUI開始を阻んでおり、元UIの失敗を観測する前に止める別の停止要因になっている。
+次は証明を削除せず、実際に各UI caseを実行するSimulator内のUITest Runner自身から実UDID/OS/
+Simulator compile条件/正のPIDを記録する。hostは選択済みUUID/Runtime・元case数と照合してから成功を受理する。
+期待IDをguestへ注入せず、実行ごとの証明を要求するため、事前一回だけの証明より実テスト対象に結びつく。
+独立した事前spawn/compileは不要にし、実UIの45秒等の元期限・case・実操作・全体予算は変更しない。
+GUI/headlessの表示準備と実bootstatusは保持し、UI不可/証明欠落・重複・異なる端末/OS/hostは失敗のまま。
+候補/根拠を先にpushし、実Swift host拒否/strictログ検査/全runner/manifest/一覧を局所確認してから新規reviewで限定検証する。

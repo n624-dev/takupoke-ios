@@ -166,7 +166,7 @@ else: print('Synthetic Xcode version')
                              fail_frontend=False, fail_device_window=False,
                              missing_frontend=False, probe_case=None, fail_tests=False,
                              duplicate_result=False, fail_notification=False,
-                             fail_notification_boot=False, fail_case=None):
+                             fail_notification_boot=False, fail_case=None, omit_identity=False):
         with tempfile.TemporaryDirectory(prefix="takupoke-shard-check-") as directory:
             repo = Path(directory)
             (repo / "tools").mkdir()
@@ -174,7 +174,7 @@ else: print('Synthetic Xcode version')
             (repo / "bin").mkdir()
             (repo / "scratch").mkdir()
             for name in ("test-app-ui.sh", "resolve-xcode-packages.sh", "ui_test_manifest.py", "timed_command.py",
-                         "notification_service_trace.py", "manual_ui_diagnostics.py", "watch_app_hang.py", "boot-simulator-ui.sh", "simulator-ui-identity.swift"):
+                         "notification_service_trace.py", "manual_ui_diagnostics.py", "watch_app_hang.py", "boot-simulator-ui.sh"):
                 shutil.copyfile(ROOT / "tools" / name, repo / "tools" / name)
             for name in manifest.CHECK_SOURCES:
                 shutil.copyfile(ROOT / "tests/ui" / name, repo / "tests/ui" / name)
@@ -195,6 +195,13 @@ if Path(sys.argv[0]).name == 'xcodebuild':
     if os.environ.get('DUPLICATE_RESULT') and tests: tests += tests[:1]
     for test in tests:
         status = 'skipped' if os.environ['TKPK_TEST_IOS'] == '26' and test == 'testVoiceOverReadsTimetableCard' else 'passed'
+        if not os.environ.get('OMIT_IDENTITY'):
+            owned=args[args.index('-destination')+1].split('id=',1)[1]
+            record={'case':'-[PickerTapChecks.ApplicationChecks '+test+']','udid':owned,
+                    'runtime':'26.5.0' if os.environ['TKPK_TEST_IOS']=='26' else '27.0.0',
+                    'simulatorCompileTarget':True,'pid':123}
+            print('TAKUPOKE_UI_EXECUTION_IDENTITY '+json.dumps(record),
+                  file=sys.stderr if os.environ['TKPK_TEST_IOS']=='26' else sys.stdout)
         print(f"Test Case '-[PickerTapChecks.ApplicationChecks {test}]' {status} (1.234 seconds).",
               file=sys.stderr if os.environ['TKPK_TEST_IOS'] == '26' else sys.stdout)
     if 'test-without-building' in args and os.environ.get('FAIL_TESTS'): sys.exit(45)
@@ -205,13 +212,6 @@ elif Path(sys.argv[0]).name == 'defaults': print('1' if args[1] == 'com.apple.ip
 elif Path(sys.argv[0]).name == 'open' and os.environ.get('FAIL_FRONTEND'): sys.exit(43)
 elif (Path(sys.argv[0]).name == 'open' and os.environ.get('FAIL_DEVICE_WINDOW')
       and any(arg.startswith('devices://') for arg in args)): sys.exit(44)
-elif args[:3] == ['--sdk', 'iphonesimulator', '--show-sdk-path']: print('/fictional/sdk')
-elif args[:3] == ['--sdk', 'iphonesimulator', 'swiftc']:
-    assert Path('tools/simulator-ui-identity.swift').is_file()
-    Path(args[args.index('-o') + 1]).write_text('fictional probe')
-elif args[:2] == ['simctl', 'spawn'] and args[-1].endswith('/identity'):
-    print(json.dumps({'udid': args[2], 'runtime': '27.0.0' if os.environ['TKPK_TEST_IOS'] == '27' else '26.5.0',
-                      'simulatorCompileTarget': True, 'pid': 123}))
 elif args[:2] == ['simctl', 'list']:
     major = os.environ['TKPK_TEST_IOS']
     print(json.dumps({'runtimes': [{'isAvailable': True, 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-' + major + ('-0' if major == '27' else '-5'), 'version': major + ('.0' if major == '27' else '.5')}, {'isAvailable': True, 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-1', 'version': '27.1'}],
@@ -256,6 +256,8 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                 environment["DUPLICATE_RESULT"] = "1"
             if omit_result:
                 environment["OMIT_RESULT"] = "1"
+            if omit_identity:
+                environment["OMIT_IDENTITY"] = "1"
             if fail_build:
                 environment["FAIL_BUILD"] = "1"
             if fail_frontend:
@@ -349,6 +351,13 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                 self.assertCountEqual(selected, manifest.SHARDS["A"])
                 self.assertIn(["xcrun", "simctl", "ui", "00000000-0000-0000-0000-000000000001",
                                "content_size", "large"], calls)
+
+    def test_passing_ui_completions_without_native_case_identities_fail_closed(self):
+        for ios in (26, 27):
+            with self.subTest(ios=ios):
+                result, _ = self.run_synthetic_runner(ios, "A", omit_identity=True)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("exactly one native identity", result.stdout + result.stderr)
 
     def test_both_shards_on_both_os_preserve_selection_and_os_size_checks(self):
         for ios in (26, 27):

@@ -8,18 +8,6 @@ label="$3"
 frontend_mode="${TKPK_SIMULATOR_FRONTEND:-gui}"
 case "$frontend_mode" in gui|headless) ;; *) exit 2 ;; esac
 stage() { printf 'TAKUPOKE_SIMULATOR_UI stage=%s\n' "$1"; }
-identity_dir="$(mktemp -d "${TMPDIR:-/tmp}/takupoke-ui-identity.XXXXXX")"
-trap 'rm -rf "$identity_dir"' EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
-stage identity-build-enter
-sim_sdk="$(xcrun --sdk iphonesimulator --show-sdk-path)"
-python3 -B tools/timed_command.py --timeout 120 --cleanup-grace 3 'Simulator identity build' \
-    xcrun --sdk iphonesimulator swiftc -sdk "$sim_sdk" \
-    -target "$(uname -m)-apple-ios26.0-simulator" -module-cache-path "$identity_dir/modules" \
-    tools/simulator-ui-identity.swift -o "$identity_dir/identity"
-codesign --force --sign - --timestamp=none "$identity_dir/identity"
-stage identity-build-complete
 stage boot-enter
 xcrun simctl boot "$simulator_id"
 device_hub=""
@@ -45,11 +33,6 @@ if [[ -n "$device_hub" ]]; then
     stage window-enter
     open -a "$device_hub" "devices://device/open?id=$simulator_id"
 fi
-# Prove the exact owned device by one real native process, independently of the
-# all-device inventory API. Never reboot or resend an input to rescue readiness.
-stage readiness-enter
-if ! python3 -B tools/notification_service_trace.py --require-booted "$simulator_id" "$runtime" "$identity_dir/identity"; then
-    python3 -B tools/notification_service_trace.py --boot-failure "$simulator_id" || true
-    exit 1
-fi
-stage ready
+# Each required XCTest case records its actual guest Runner identity. The caller
+# verifies all of those records against this owned UUID/runtime and case list.
+stage bootstatus-complete

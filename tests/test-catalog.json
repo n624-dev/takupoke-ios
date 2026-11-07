@@ -409,6 +409,7 @@
         "tests/test_manual_ui_runner.py",
         "tests/RecoveryFunctionalCoverageTests.swift",
         "tests/test_simulator_frontend.py",
+        "tests/test_ui_execution_identity.py",
         "tests/test_notification_service_trace.py"
       ]
     },
@@ -497,7 +498,7 @@
         "tools/ui_test_manifest.py",
         "tools/prepare-ios27-runtime.py",
         "tools/boot-simulator-ui.sh",
-        "tools/simulator-ui-identity.swift"
+        "tests/Support/SimulatorIdentityTestCase.swift"
       ],
       "checks": [
         "tests/MainColorTests.swift",
@@ -517,6 +518,7 @@
         "tests/SpecialAvailabilityTests.swift",
         "tests/test_prepare_ios27_runtime.py",
         "tests/test_simulator_frontend.py",
+        "tests/test_ui_execution_identity.py",
         "tests/test_manual_ui_runner.py",
         "tests/test_picker_ui_runner.py"
       ]
@@ -542,6 +544,7 @@
         "tests/ui/MaterialPickerTapChecks.swift",
         "tests/test_picker_ui_runner.py",
         "tests/test_simulator_frontend.py",
+        "tests/test_ui_execution_identity.py",
         "tests/test_notification_service_trace.py"
       ]
     },

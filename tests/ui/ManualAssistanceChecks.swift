@@ -1,7 +1,7 @@
 import XCTest
 import UIKit
 
-final class ManualAssistanceChecks:XCTestCase {
+final class ManualAssistanceChecks:SimulatorIdentityTestCase {
     var app:XCUIApplication!
     var fixtureMenuOpen=false
     // AX snapshots on a loaded simulator can take longer than five seconds.

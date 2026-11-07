@@ -87,9 +87,11 @@ python3 -B tools/timed_command.py 'Manual UI checks without rebuilding' xcodebui
     2>&1 | tee "$scratch_dir/manual-ui.log"
 stage test-complete
 stage completion-verification-enter
-python3 - "$scratch_dir/manual-ui.log" "$manual_case" <<'PY'
+python3 - "$scratch_dir/manual-ui.log" "$manual_case" "$simulator_id" "$runtime" <<'PY'
 from collections import Counter
 import re,sys
+sys.path.insert(0,'tools')
+from ui_test_manifest import validate_execution_identities
 log=open(sys.argv[1],encoding='utf-8').read()
 expected={'testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground','testChangedOriginalCannotSubmitOrReplaceLastGood','testThreeFieldsRequireEachAcknowledgementAndFourRefuses','testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch'}
 selected=sys.argv[2]
@@ -98,6 +100,7 @@ if selected:
     expected={selected}
 rows=re.findall(r"Test Case '-\[PickerTapChecks\.ManualAssistanceChecks (test\w+)\]' (passed|failed|skipped) \([\d.]+ seconds\)\.",log)
 if Counter(name for name,_ in rows)!=Counter(expected) or any(status!='passed' for _,status in rows):raise SystemExit('Manual UI completion mismatch')
+validate_execution_identities(log,expected,sys.argv[3],sys.argv[4],'ManualAssistanceChecks')
 print('Verified four manual UI XCTest completions.' if not selected else 'Verified selected manual UI XCTest completion: '+selected)
 PY
 stage completion-verification-complete

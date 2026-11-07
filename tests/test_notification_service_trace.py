@@ -1,8 +1,6 @@
 """Bounded, read-only Simulator observations without publishing raw OS messages."""
 import io
 import json
-import os
-import shutil
 from contextlib import redirect_stdout
 from pathlib import Path
 import subprocess
@@ -82,65 +80,6 @@ class NotificationServiceTraceTests(unittest.TestCase):
                 self.assertEqual(run.call_args.kwargs["timeout"], 10)
         with self.assertRaises(ValueError):
             notification_service_trace.collect_runtime("other", runtime)
-
-    def test_boot_readiness_requires_one_actual_owned_native_identity_with_the_original_deadline(self):
-        owned = "00000000-0000-0000-0000-000000000001"
-        runtime = "com.apple.CoreSimulator.SimRuntime.iOS-26-5"
-        identity = {"udid": owned, "runtime": "26.5.0", "simulatorCompileTarget": True, "pid": 123}
-        for latency, expected in ((0, True), (45, True), (46, False)):
-            with self.subTest(latency=latency), patch.object(notification_service_trace, "observe_command",
-                    return_value=subprocess.CompletedProcess([], 0, json.dumps(identity), "PRIVATE")) as observed, \
-                 patch.object(notification_service_trace.time, "monotonic", side_effect=[0, latency]), \
-                 redirect_stdout(io.StringIO()) as output:
-                self.assertEqual(notification_service_trace.require_booted(owned, runtime, "/owned/identity"), expected)
-                observed.assert_called_once_with(["xcrun", "simctl", "spawn", owned, "/owned/identity"], 45, max_bytes=4096)
-                self.assertNotIn("PRIVATE", output.getvalue())
-                report = json.loads(output.getvalue().split(" ", 1)[1])
-                self.assertEqual(report["deadlineExceeded"], latency > 45)
-
-    def test_boot_readiness_rejects_host_wrong_identity_bad_responses_and_failed_spawn_without_retry(self):
-        owned = "00000000-0000-0000-0000-000000000001"
-        runtime = "com.apple.CoreSimulator.SimRuntime.iOS-26-5"
-        valid = {"udid": owned, "runtime": "26.5.0", "simulatorCompileTarget": True, "pid": 123}
-        invalid = [{**valid, "udid": "other"}, {**valid, "runtime": "27.0.0"},
-                   {**valid, "runtime": "26.6.0"}, {**valid, "runtime": "26.5"},
-                   {**valid, "simulatorCompileTarget": False}, {**valid, "simulatorCompileTarget": "true"},
-                   *[{**valid, "pid": value} for value in (False, 0, -1, 2**31, "123")],
-                   {key: value for key, value in valid.items() if key != "udid"},
-                   {**valid, "unexpected": "PRIVATE"}, [], None]
-        cases = [(json.dumps(value), 0) for value in invalid] + [
-            ("invalid PRIVATE", 0), ("PRIVATE" * 600, 0),
-            (json.dumps(valid) + json.dumps(valid), 0), (json.dumps(valid), 149), ("", -1)]
-        for payload, code in cases:
-            with self.subTest(payload=payload[:100], code=code), patch.object(notification_service_trace, "observe_command",
-                    return_value=subprocess.CompletedProcess([], code, payload, "PRIVATE")) as observed, \
-                 redirect_stdout(io.StringIO()) as output:
-                self.assertFalse(notification_service_trace.require_booted(owned, runtime, "/owned/identity"))
-                observed.assert_called_once()
-                self.assertNotIn("PRIVATE", output.getvalue())
-                report = json.loads(output.getvalue().split(" ", 1)[1])
-                self.assertEqual(report["exit"], code)
-        for target, version in (("other", runtime), (owned, "wrong-runtime")):
-            with patch.object(notification_service_trace, "observe_command") as observed, self.assertRaises(ValueError):
-                notification_service_trace.require_booted(target, version, "/owned/identity")
-            observed.assert_not_called()
-
-    @unittest.skipUnless(shutil.which("swiftc"), "Requires the host Swift compiler")
-    def test_real_identity_program_cannot_prove_a_host_process_is_a_simulator(self):
-        with tempfile.TemporaryDirectory(prefix="takupoke-identity-host-") as directory:
-            executable = str(Path(directory) / "identity")
-            built = subprocess.run(["swiftc", str(ROOT / "tools/simulator-ui-identity.swift"), "-o", executable],
-                                   capture_output=True, text=True, timeout=120)
-            self.assertEqual(built.returncode, 0, built.stderr)
-            actual = subprocess.run([executable], env=os.environ | {"SIMULATOR_UDID":
-                "00000000-0000-0000-0000-000000000001"}, capture_output=True, text=True, timeout=10)
-            self.assertEqual(actual.returncode, 0, actual.stderr)
-            record = json.loads(actual.stdout)
-            self.assertIs(record["simulatorCompileTarget"], False)
-            self.assertGreater(record["pid"], 0)
-            with patch.object(notification_service_trace, "observe_command", return_value=actual):
-                self.assertFalse(notification_service_trace.require_booted(record["udid"],
-                    "com.apple.CoreSimulator.SimRuntime.iOS-26-5", executable))
 
     def test_boot_failure_observation_is_bounded_read_only_and_excludes_other_devices_and_private_fields(self):
         owned = "00000000-0000-0000-0000-000000000001"

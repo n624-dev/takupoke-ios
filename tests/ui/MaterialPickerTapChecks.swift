@@ -1,7 +1,7 @@
 import XCTest
 import UIKit
 
-final class MaterialPickerTapChecks: XCTestCase {
+final class MaterialPickerTapChecks: SimulatorIdentityTestCase {
     private var lastRevealedRow: Int?
 
     func testInstructionSurroundMatchesFilesBackground() {

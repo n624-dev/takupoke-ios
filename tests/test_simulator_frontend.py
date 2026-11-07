@@ -1,4 +1,4 @@
-"""Execute the real shared bootstrap with isolated, stateful Apple command doubles."""
+"""Run the real display/boot preparation; identity is verified in actual UI cases."""
 import json
 import os
 from pathlib import Path
@@ -19,56 +19,36 @@ class SimulatorFrontendTests(unittest.TestCase):
             root = Path(directory)
             (root / "tools").mkdir()
             (root / "bin").mkdir()
-            for name in ("boot-simulator-ui.sh", "timed_command.py", "notification_service_trace.py", "simulator-ui-identity.swift"):
+            for name in ("boot-simulator-ui.sh", "timed_command.py"):
                 shutil.copyfile(ROOT / "tools" / name, root / "tools" / name)
             developer = root / "selected/Contents/Developer"
             developer.mkdir(parents=True)
-            if frontend == "legacy":
-                app = developer / "Applications/Simulator.app"
-            else:
-                app = developer.parent / "Applications/DeviceHub.app"
+            app = (developer / "Applications/Simulator.app" if frontend == "legacy" else
+                   developer.parent / "Applications/DeviceHub.app")
             if frontend not in ("missing", "headless", "unknown"):
                 app.mkdir(parents=True)
-            fake = "#!" + sys.executable + "\n" + r'''
+            fake = "#!" + sys.executable + "\n" + r"""
 import json,os,sys
 from pathlib import Path
 args=sys.argv[1:];name=Path(sys.argv[0]).name
 with open(os.environ['CALLS'],'a') as output: output.write(json.dumps([name]+args)+'\n')
 failure=os.environ['FAILURE']
-if name=='log':
-    assert os.environ['OWNED'] in args[-1]
-    print(json.dumps([{'processImagePath':'/system/CoreSimulatorService',
-                      'eventMessage':os.environ['OWNED']+' boot failed PRIVATE'}]))
-elif name=='xcode-select': print(os.environ['SYNTHETIC_DEVELOPER'])
-elif name=='codesign':
-    assert Path(args[-1]).is_file()
-    if failure=='sign':sys.exit(46)
+if name=='xcode-select': print(os.environ['SYNTHETIC_DEVELOPER'])
 elif name=='open':
     if failure=='frontend':sys.exit(43)
     if failure=='window' and any(arg.startswith('devices://') for arg in args):sys.exit(44)
 elif args[:2]==['simctl','boot'] and failure=='boot':sys.exit(42)
 elif args[:2]==['simctl','bootstatus'] and failure=='bootstatus':sys.exit(47)
-elif args[:3]==['--sdk','iphonesimulator','--show-sdk-path']:print('/fictional/sdk')
-elif args[:3]==['--sdk','iphonesimulator','swiftc']:
-    if failure=='compile':sys.exit(41)
-    assert Path('tools/simulator-ui-identity.swift').is_file()
-    Path(args[args.index('-o')+1]).write_text('fictional probe')
-elif args[:2]==['simctl','spawn']:
-    if failure=='spawn':sys.exit(48)
-    assert args[2]==os.environ['OWNED'] and args[-1].endswith('/identity')
-    print(json.dumps({'udid':os.environ['OWNED'],'runtime':'26.5.0' if failure=='identity' else '27.0.0',
-        'simulatorCompileTarget':True,'pid':123}))
-elif args[:2]==['simctl','list']:raise AssertionError('Readiness must not use inventory')
-'''
-            for name in ("open", "xcrun", "xcode-select", "codesign", "log"):
+elif args[:2] in (['simctl','list'],['simctl','spawn']):raise AssertionError('No independent preflight process or inventory')
+"""
+            for name in ("open", "xcrun", "xcode-select"):
                 path = root / "bin" / name
                 path.write_text(fake)
                 path.chmod(0o755)
             calls = root / "calls"
             environment = os.environ | {"PATH": str(root / "bin") + os.pathsep + os.environ["PATH"],
-                "CALLS": str(calls), "FAILURE": failure, "TMPDIR": directory,
+                "CALLS": str(calls), "FAILURE": failure,
                 "TKPK_SIMULATOR_FRONTEND": "headless" if frontend == "headless" else "unknown" if frontend == "unknown" else "gui",
-                "OWNED": OWNED, "RUNTIME": RUNTIME,
                 "SYNTHETIC_DEVELOPER": str(root / "wrong" if override else developer)}
             if override:
                 environment["DEVELOPER_DIR"] = str(developer)
@@ -77,15 +57,14 @@ elif args[:2]==['simctl','list']:raise AssertionError('Readiness must not use in
             result = subprocess.run(["bash", "tools/boot-simulator-ui.sh", OWNED, RUNTIME, "Fictional bootstrap"],
                                     cwd=root, env=environment, text=True, capture_output=True, timeout=12)
             recorded = [json.loads(line) for line in calls.read_text().splitlines()] if calls.exists() else []
-            self.assertNotIn("PRIVATE", result.stdout + result.stderr)
             self.assertEqual(sum(call[:3] == ["xcrun", "simctl", "boot"] for call in recorded),
-                             0 if failure in ("compile", "sign") or frontend == "unknown" else 1)
-            self.assertEqual(list(root.glob("takupoke-ui-identity.*")), [])
+                             0 if frontend == "unknown" else 1)
             self.assertFalse(any(call[:3] in (["xcrun", "simctl", "shutdown"], ["xcrun", "simctl", "delete"],
-                                              ["xcrun", "simctl", "launch"]) for call in recorded))
+                                              ["xcrun", "simctl", "launch"], ["xcrun", "simctl", "spawn"]) for call in recorded))
+            self.assertNotIn("TAKUPOKE_OWNED_BOOT confirmed", result.stdout)
             return result, recorded, str(app)
 
-    def test_selected_xcode_frontends_and_owned_window_are_ready_before_returning(self):
+    def test_selected_xcode_frontends_and_owned_window_preserve_boot_order(self):
         for frontend, override in (("legacy", True), ("hub", True), ("legacy", False)):
             with self.subTest(frontend=frontend, override=override):
                 result, calls, app = self.bootstrap(frontend, override=override)
@@ -96,51 +75,33 @@ elif args[:2]==['simctl','list']:raise AssertionError('Readiness must not use in
                 self.assertEqual(opens[0], ["open", "-a", app] + (["--args", "-CurrentDeviceUDID", OWNED] if frontend == "legacy" else []))
                 self.assertLess(boot, calls.index(opens[0]))
                 self.assertLess(calls.index(opens[0]), status)
-                self.assertFalse(any(call[:3] == ["xcrun", "simctl", "list"] for call in calls))
-                compiler = next(i for i, call in enumerate(calls) if call[:4] == ["xcrun", "--sdk", "iphonesimulator", "swiftc"])
-                self.assertLess(compiler, boot)
-                self.assertIn("-module-cache-path", calls[compiler])
-                observations = [i for i, call in enumerate(calls) if call[:3] == ["xcrun", "simctl", "spawn"]]
-                self.assertEqual(len(observations), 1)
-                self.assertLess(status, observations[0])
                 if frontend == "hub":
                     self.assertEqual(opens[1], ["open", "-a", app, "devices://device/open?id=" + OWNED])
                     self.assertLess(status, calls.index(opens[1]))
-                    self.assertLess(calls.index(opens[1]), observations[0])
-                else:
-                    self.assertEqual(len(opens), 1)
+                self.assertEqual(len(opens), 2 if frontend == "hub" else 1)
                 self.assertEqual(sum(call[0] == "xcode-select" for call in calls), int(not override))
-                self.assertIn("TAKUPOKE_OWNED_BOOT confirmed", result.stdout)
+                self.assertIn("stage=bootstatus-complete", result.stdout)
 
-    def test_boot_frontend_window_and_readiness_errors_fail_without_another_boot(self):
-        for failure, expected in (("compile", 41), ("sign", 46), ("boot", 42), ("frontend", 43), ("window", 44),
-                                  ("bootstatus", 47), ("identity", 1), ("spawn", 1)):
+    def test_boot_frontend_window_errors_fail_without_retry(self):
+        for failure, expected in (("boot", 42), ("frontend", 43), ("window", 44), ("bootstatus", 47)):
             with self.subTest(failure=failure):
                 result, calls, _ = self.bootstrap("hub", failure=failure)
                 self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
-                self.assertNotIn("TAKUPOKE_SIMULATOR_UI stage=ready", result.stdout)
-                self.assertEqual(sum(call[0] == "log" for call in calls), int(failure in ("identity", "spawn")))
-                self.assertFalse(any(call[:3] == ["xcrun", "simctl", "list"] for call in calls))
+                self.assertNotIn("stage=bootstatus-complete", result.stdout)
         result, calls, _ = self.bootstrap("missing")
         self.assertEqual(result.returncode, 1)
         self.assertFalse(any(call[0] == "open" or call[:3] == ["xcrun", "simctl", "bootstatus"] for call in calls))
 
-    def test_headless_requires_the_same_owned_native_proof_without_a_desktop_viewer(self):
-        for failure, expected in (("", 0), ("compile", 41), ("sign", 46), ("boot", 42),
-                                  ("bootstatus", 47), ("identity", 1), ("spawn", 1)):
+    def test_headless_bootstatus_is_not_reported_as_completed_ui_execution(self):
+        for failure, expected in (("", 0), ("boot", 42), ("bootstatus", 47)):
             with self.subTest(failure=failure):
                 result, calls, _ = self.bootstrap("headless", failure=failure)
                 self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
                 self.assertFalse(any(call[0] in ("open", "xcode-select") for call in calls))
-                self.assertEqual(sum(call[:3] == ["xcrun", "simctl", "spawn"] for call in calls),
-                                 int(failure in ("", "identity", "spawn")))
-                self.assertEqual("TAKUPOKE_SIMULATOR_UI stage=ready" in result.stdout, expected == 0)
+                self.assertEqual("stage=bootstatus-complete" in result.stdout, expected == 0)
                 if expected == 0:
-                    boot = calls.index(["xcrun", "simctl", "boot", OWNED])
-                    status = calls.index(["xcrun", "simctl", "bootstatus", OWNED, "-b"])
-                    probe = next(i for i, call in enumerate(calls) if call[:3] == ["xcrun", "simctl", "spawn"])
-                    self.assertLess(boot, status)
-                    self.assertLess(status, probe)
+                    self.assertLess(calls.index(["xcrun", "simctl", "boot", OWNED]),
+                                    calls.index(["xcrun", "simctl", "bootstatus", OWNED, "-b"]))
         result, calls, _ = self.bootstrap("unknown")
         self.assertEqual(result.returncode, 2)
         self.assertEqual(calls, [])

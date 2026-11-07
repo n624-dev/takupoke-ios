@@ -1,8 +1,10 @@
 """Partition the full app suite and require every selected XCTest to complete."""
 import argparse
+import json
 from collections import Counter
 from pathlib import Path
 import re
+import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 CHECK_SOURCES = (
@@ -202,6 +204,42 @@ def runner_phases(tests):
     phases = INPUT_PHASES if SETTINGS_TEST in tests or VOICEOVER_TEST in tests else (
         "remaining", "notifications")
     return tuple(phase for phase in phases if phase_tests(tests, phase))
+
+
+def validate_execution_identities(log, expected, simulator, runtime, suite):
+    """Bind every selected UI case to its actual guest Runner, never a preflight."""
+    version = re.fullmatch(r"com\.apple\.CoreSimulator\.SimRuntime\.iOS-(26|27)-(\d{1,2})", runtime)
+    if not expected or version is None or suite not in ("ApplicationChecks", "ManualAssistanceChecks", "MaterialPickerTapChecks"):
+        raise ValueError("Invalid UI execution identity scope")
+    target = uuid.UUID(simulator)
+    records = re.findall(r"(?m)^[ \t]*TAKUPOKE_UI_EXECUTION_IDENTITY ([^\r\n]+)$", log)
+    if len(records) != len(expected):
+        raise ValueError("Each UI case requires exactly one native identity")
+    cases = []
+    def unique_object(pairs):
+        value = dict(pairs)
+        if len(value) != len(pairs):
+            raise ValueError("Duplicate identity fields")
+        return value
+    for raw in records:
+        try:
+            if len(raw.encode()) > 4096:
+                raise ValueError("Oversized identity")
+            value = json.loads(raw, object_pairs_hook=unique_object)
+            if set(value) != {"case", "udid", "runtime", "simulatorCompileTarget", "pid"}:
+                raise ValueError("Invalid identity fields")
+            case = re.fullmatch(r"-\[PickerTapChecks\." + re.escape(suite) + r" (test\w+)\]", value["case"])
+            actual_version = re.fullmatch(r"(\d{1,2})\.(\d{1,2})\.(\d{1,3})", value["runtime"])
+            if (case is None or not isinstance(value["udid"], str) or uuid.UUID(value["udid"]) != target
+                    or value["simulatorCompileTarget"] is not True or type(value["pid"]) is not int
+                    or not 0 < value["pid"] < 2**31 or actual_version is None
+                    or tuple(map(int, actual_version.groups()[:2])) != tuple(map(int, version.groups()))):
+                raise ValueError("UI execution identity differs from the owned target")
+            cases.append(case.group(1))
+        except (ValueError, TypeError, KeyError, AttributeError):
+            raise ValueError("Invalid native UI execution identity") from None
+    if Counter(cases) != Counter(expected):
+        raise ValueError("Native UI identities differ from selected cases")
 
 
 def validate_results(log, expected, ios):

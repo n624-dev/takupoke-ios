@@ -43,14 +43,18 @@ for trace_path in "$app_data"/Documents/trace-*.txt; do
     if [[ -f "$trace_path" ]]; then cat "$trace_path"; fi
 done
 if [[ "$ui_status" != 0 ]]; then exit "$ui_status"; fi
-python3 - "$scratch_dir/picker-ui.log" <<'PY_PICKER'
+python3 - "$scratch_dir/picker-ui.log" "$simulator_id" "$runtime" <<'PY_PICKER'
 from collections import Counter
 from pathlib import Path
 import re, sys
+sys.path.insert(0,'tools')
+from ui_test_manifest import validate_execution_identities
 expected = {"testInstructionSurroundMatchesFilesBackground", "testReselectionWithMissingAppearanceReturn", "testReselectionThroughActualButtons"}
 rows = re.findall(r"Test Case '-\[PickerTapChecks\.MaterialPickerTapChecks (test\w+)\]' (passed|failed|skipped) \([\d.]+ seconds\)\.", Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace"))
 if Counter(name for name, _ in rows) != Counter(expected) or any(status != "passed" for _, status in rows):
     raise SystemExit("Picker UI completion mismatch")
+validate_execution_identities(Path(sys.argv[1]).read_text(encoding='utf-8',errors='replace'),expected,
+                              sys.argv[2],sys.argv[3],'MaterialPickerTapChecks')
 print("Verified three picker UI XCTest completions.")
 PY_PICKER
 # Retain the existing transition and geometry checks, then remove everything.

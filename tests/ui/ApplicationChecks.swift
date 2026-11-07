@@ -2,7 +2,7 @@ import XCTest
 import UIKit
 import CryptoKit
 
-final class ApplicationChecks: XCTestCase {
+final class ApplicationChecks: SimulatorIdentityTestCase {
     var app: XCUIApplication!
     private var browserFixture: LoopbackBrowserFixture?
     override func setUp() {

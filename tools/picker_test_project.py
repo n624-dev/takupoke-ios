@@ -31,7 +31,8 @@ def generate(destination):
         "Takupoke/MaterialDocumentPicker.swift", "Takupoke/ScopedMaterialSelection.swift",
         "tests/ui/MaterialPickerUIChecks.swift", "tests/ui/PickerTapHarness.swift",
     ])
-    test_refs, test_sources = sources(["tests/ui/MaterialPickerTapChecks.swift"])
+    test_refs, test_sources = sources(["tests/ui/MaterialPickerTapChecks.swift",
+                                      "tests/Support/SimulatorIdentityTestCase.swift"])
     app_product = add(dict(isa="PBXFileReference", explicitFileType="wrapper.application", path="PickerChecks.app", sourceTree="BUILT_PRODUCTS_DIR"))
     test_product = add(dict(isa="PBXFileReference", explicitFileType="wrapper.cfbundle", path="PickerTapChecks.xctest", sourceTree="BUILT_PRODUCTS_DIR"))
     products = add(dict(isa="PBXGroup", children=[app_product, test_product], name="Products", sourceTree="<group>"))

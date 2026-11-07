@@ -220,34 +220,6 @@ def collect_runtime(simulator, runtime):
     print("TAKUPOKE_RUNTIME_HEALTH " + json.dumps(runtime_observation(simulator, runtime)))
 
 
-def require_booted(simulator, runtime, executable):
-    """Require one actual native response from the owned device, never inventory."""
-    match = re.fullmatch(r"com\.apple\.CoreSimulator\.SimRuntime\.iOS-(26|27)-(\d{1,2})", runtime)
-    if not re.fullmatch(r"[0-9A-Fa-f-]{36}", simulator) or match is None:
-        raise ValueError("Invalid observation target")
-    deadline = time.monotonic() + 45
-    result = observe_command(["xcrun", "simctl", "spawn", simulator, executable], 45, max_bytes=4096)
-    report = {"exit": result.returncode, "deadlineExceeded": time.monotonic() > deadline,
-              "limited": len(result.stdout.encode()) > 4096,
-              "errorWords": fixed_words(result.stderr or "", BOOT_WORDS)}
-    valid = False
-    try:
-        if result.returncode == 0 and not report["limited"] and not report["deadlineExceeded"]:
-            value = json.loads(result.stdout)
-            version = re.fullmatch(r"(\d{1,2})\.(\d{1,2})\.(\d{1,3})", value["runtime"])
-            report.update({"fieldsMatch": set(value) == {"udid", "runtime", "simulatorCompileTarget", "pid"},
-                "deviceMatches": value["udid"] == simulator,
-                "simulatorTarget": value["simulatorCompileTarget"] is True,
-                "pidValid": type(value["pid"]) is int and 0 < value["pid"] < 2**31,
-                "runtimeMatches": version is not None and
-                    tuple(map(int, version.groups()[:2])) == tuple(map(int, match.groups()))})
-            valid = all(report[key] for key in ("fieldsMatch", "deviceMatches", "simulatorTarget", "pidValid", "runtimeMatches"))
-    except (ValueError, TypeError, KeyError):
-        report["invalidFormat"] = True
-    print("TAKUPOKE_NATIVE_BOOT_RESPONSE " + json.dumps(report), flush=True)
-    return valid
-
-
 def collect_boot_failure(simulator):
     """Read only host boot events explicitly mentioning the disposable device."""
     if not re.fullmatch(r"[0-9A-Fa-f-]{36}", simulator):
@@ -364,13 +336,6 @@ if __name__ == "__main__":
     if sys.argv[1:2] == ["--boot-failure"]:
         collect_boot_failure(sys.argv[2])
         raise SystemExit(0)
-    if sys.argv[1:2] == ["--require-booted"]:
-        try:
-            ready = require_booted(sys.argv[2], sys.argv[3], sys.argv[4])
-        except (OSError, ValueError, IndexError, subprocess.TimeoutExpired):
-            ready = False
-        print("TAKUPOKE_OWNED_BOOT " + ("confirmed" if ready else "unconfirmed"))
-        raise SystemExit(0 if ready else 1)
     if sys.argv[1:2] == ["--confirm-shutdown"]:
         try:
             stopped = confirmed_shutdown(sys.argv[2], sys.argv[3])

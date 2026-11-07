@@ -14,12 +14,12 @@ from ui_test_manifest import MANUAL_CASES
 
 
 class ManualRunnerTests(unittest.TestCase):
-    def run_runner(self, *, selected="", build_status=0, omit_result=False, ios=26, record_all=False):
+    def run_runner(self, *, selected="", build_status=0, omit_result=False, ios=26, record_all=False, omit_identity=False):
         with tempfile.TemporaryDirectory(prefix="takupoke-manual-runner-") as directory:
             root = Path(directory)
             for folder in ("tools", "bin", "scratch"):
                 (root / folder).mkdir()
-            for name in ("test-manual-ui.sh", "timed_command.py", "resolve-xcode-packages.sh", "boot-simulator-ui.sh", "notification_service_trace.py", "simulator-ui-identity.swift"):
+            for name in ("test-manual-ui.sh", "timed_command.py", "resolve-xcode-packages.sh", "boot-simulator-ui.sh", "notification_service_trace.py", "ui_test_manifest.py"):
                 shutil.copyfile(ROOT / "tools" / name, root / "tools" / name)
             (root / "tools/manual_ui_project.py").write_text(
                 "import sys; from pathlib import Path; Path(sys.argv[1]).mkdir(parents=True)\n")
@@ -38,14 +38,11 @@ elif Path(sys.argv[0]).name == 'xcodebuild':
         if selected.count('/') == 2: names = [selected.rsplit('/', 1)[1]]
         if os.environ['OMIT_RESULT'] == '1': names = names[1:]
         for name in names:
+            if os.environ['OMIT_IDENTITY']!='1':
+                print('TAKUPOKE_UI_EXECUTION_IDENTITY '+json.dumps({'case':'-[PickerTapChecks.ManualAssistanceChecks '+name+']',
+                    'udid':'00000000-0000-0000-0000-000000000001','runtime':'27.0.0' if os.environ['TKPK_TEST_IOS']=='27' else '26.5.0',
+                    'simulatorCompileTarget':True,'pid':123}))
             print("Test Case '-[PickerTapChecks.ManualAssistanceChecks " + name + "]' passed (1.0 seconds).")
-elif args[:3] == ['--sdk', 'iphonesimulator', '--show-sdk-path']: print('/fictional/sdk')
-elif args[:3] == ['--sdk', 'iphonesimulator', 'swiftc']:
-    assert Path('tools/simulator-ui-identity.swift').is_file()
-    Path(args[args.index('-o') + 1]).write_text('fictional probe')
-elif args[:2] == ['simctl', 'spawn'] and args[-1].endswith('/identity'):
-    print(json.dumps({'udid': args[2], 'runtime': '27.0.0' if os.environ['TKPK_TEST_IOS'] == '27' else '26.5.0',
-                      'simulatorCompileTarget': True, 'pid': 123}))
 elif args[:2] == ['simctl', 'list']:
     print(json.dumps({'runtimes': [{'isAvailable': True, 'version': '26.5',
         'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-26-5'}, {'isAvailable': True, 'version': '27.0', 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-0'}, {'isAvailable': True, 'version': '27.1', 'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-27-1'}],
@@ -67,6 +64,7 @@ elif args[:2] == ['simctl', 'create']: print('00000000-0000-0000-0000-0000000000
                 "TKPK_MANUAL_CASE": selected, "TKPK_MANUAL_DIAGNOSTICS": "0",
                 "TKPK_TEST_IOS": str(ios), "BUILD_STATUS": str(build_status),
                 "CASES": json.dumps(MANUAL_CASES), "OMIT_RESULT": str(int(omit_result)),
+                "OMIT_IDENTITY": str(int(omit_identity)),
                 "SYNTHETIC_DEVELOPER": str(developer), "DEVELOPER_DIR": str(developer),
             }
             result = subprocess.run(["bash", "tools/test-manual-ui.sh"], cwd=root,
@@ -122,6 +120,11 @@ elif args[:2] == ['simctl', 'create']: print('00000000-0000-0000-0000-0000000000
         result, _ = self.run_runner(omit_result=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Manual UI completion mismatch", result.stderr)
+
+    def test_passing_completions_without_native_identities_are_rejected(self):
+        result, _ = self.run_runner(omit_identity=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("exactly one native identity", result.stderr)
 
 
 if __name__ == "__main__":
