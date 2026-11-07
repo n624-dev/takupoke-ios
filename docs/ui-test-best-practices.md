@@ -11,8 +11,8 @@ UI編集前に読む。詳細・未確定事項は[失敗索引](ui-test-failure
 - 無条件でHomeを送る → SpringBoardが既に前面なら重ねない。元の準備条件・一回launchを守る。（N179/N182）
 - Runtime登録直後に取得物を消す → test/device回収後まで保持し、最後のalwaysで所有領域だけ消す。（N176/N177）
 - shutdown失敗を一律無視する → exit149だけ、正確な所有UUID/Runtimeが一意なShutdownと実確認した場合に受理する。（N170）
-- jobの上限だけに頼る → script・所有回収にも有限監督と段階ログを付け、timeoutは失敗にする。（N162/N188）
-- fake jobの一時領域を共有する → 入力ごとに分離し、実job末尾のcleanupも実行する。（N178）
+- APIの返却やjob上限だけで完了とする → 実状態・script・所有回収を期限内で確認し、timeoutは失敗にする。（N162/N188/N224）
+- helperと別callerのmockを別々に直す → 全caller/mockを検索し、実JSONへ揃える。一時領域は入力ごとに分離・回収する。（N178/N229）
 - 全device一覧やログ名の想定で証明する → 実RunnerのID・OS・Simulator条件を照合し、テスト名は実classで正規化する。（N07/N199/N200/N211）
 - 部分成功で公開する → 同じsource/run/attemptの全15必須成功を要求する。毎回の新規review・残job確認・未実機確認の明記も守る。
 

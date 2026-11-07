@@ -4507,3 +4507,10 @@ N178/N214のmock契約不一致と旧/現helper・workflow抽出を照合し、p
 元27件の正負対照と5秒上限・always回収を維持し、誤SDK/OS/取得/import/利用不能/誤buildの拒否も保つ。
 候補を隔離featureへ先にpushし、関連shell検査と全Pythonを確認した後、新規main専用reviewを経て正式17へ進む。
 実Runtime codeは変えないため、既に通ったSelected26を同じ条件で再dispatchせず、次の正式全15で再検証する。
+
+b44773eを先にpush後、Swift6.1.2有効の全Python314件は失敗0・skip2（204.164秒）。
+別callerの全28 preflight対照、実shell各shard/失敗/重複/identity拒否、Runtime準備46経路を同じ全体で確認した。
+一覧456/write/check --base 19eaf59も成功。短い注意点は13項目・19行を維持し、全caller/mock検索と非同期実状態確認を既存項目へ追記した。
+新規main専用Sol/High n229_shipping_pre_actions_reviewはコード差分108行/7515bytesを確認、指摘なし。
+code-only hash96f97915608924266818677fe433399c068db460dee9029076283d01e6619cddと
+実Runtime/production/UI code不変・main base19eaf59・全未送信commit空白を確認後、一回の正式17 mainへ消費する。
