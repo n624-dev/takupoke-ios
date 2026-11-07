@@ -5,6 +5,7 @@ simulator_id=""
 runtime=""
 hang_watch_pid=""
 hang_stop_path=""
+host_failure_collected=0
 stage() { printf 'TAKUPOKE_RUNNER stage=%s\n' "$1" >&2; }
 stop_hang_watch() {
     if [[ -n "$hang_watch_pid" ]]; then
@@ -51,6 +52,12 @@ except (OSError, ValueError, subprocess.TimeoutExpired):
     print("TAKUPOKE_LIFECYCLE capture-unavailable")
 PY_TRACE
 }
+collect_host_failure() {
+    if [[ "$host_failure_collected" == "0" ]]; then
+        host_failure_collected=1
+        python3 -B tools/notification_service_trace.py --boot-failure "$simulator_id" || true
+    fi
+}
 cleanup() {
     local task_exit_status=$?
     stage cleanup-enter
@@ -58,7 +65,7 @@ cleanup() {
     if [[ -n "$simulator_id" ]]; then
         if [[ "$task_exit_status" != "0" ]]; then
             # N231: guest diagnostics can time out; retain the owned host context first.
-            python3 -B tools/notification_service_trace.py --boot-failure "$simulator_id" || true
+            collect_host_failure
             python3 -B tools/notification_service_trace.py --runtime "$simulator_id" "$runtime" || true
             python3 -B tools/notification_service_trace.py --accessibility "$simulator_id" || true
         fi
@@ -170,6 +177,7 @@ while read -r device_type runtime; do
         python3 -B tools/timed_command.py "App UI $runtime shard $shard" xcodebuild "${xcode_args[@]}" "$@" 2>&1 | tee "$log_path" || phase_status=$?
         stop_hang_watch
         if [[ "$phase_status" != "0" ]]; then
+            collect_host_failure
             # Only the synthetic app runs on this isolated simulator.
             xcrun simctl spawn "$simulator_id" log show --last 10m --style compact \
                 --predicate 'process == "Takupoke" AND eventMessage CONTAINS "Synthetic fixture initialization"' || true

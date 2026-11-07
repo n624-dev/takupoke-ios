@@ -4560,3 +4560,15 @@ native journal・実OS callback結果を採取できなかった。N230の二つ
 現在の失敗診断はguest経由で、host側の所有UUIDに絞った既存collect_boot_failureをこのUI失敗時に呼んでいない。
 次はその既存の10秒/2MiB/固定語彙/同じ所有UUIDだけのhostログを、failure cleanupのguest照会より先に一回採取する。
 成功経路・製品・許可と一回tap/元45秒・全期待/15gateは変更しない。この新観測条件を先にpushし、実runner/既存host診断検査・新規review後、未解決の27だけ比較する。
+
+## N232 N231候補のローカル実shell検査が非0（2026-11-07）
+
+source25bd5c230d0d43b276160972fe7fe5e493e55420、Linux/Swift6.1.2、unittest test_application_ui_runner.py、session26867がexit1。
+ケース/失敗段階は保持log本文を読む前で未確定。Actionsは開始していない。対処前の事実記録とし、保持logを調べる。
+
+18件中の最終通知失敗case・26/27両subcaseで期待46に対して実1。9ea/現25bdのcheck_uiと既存fail_tests対照を読むと、
+元runnerはxcodebuildの任意非0を明示exit1へ正規化しており、新assertだけが子コマンド46を外側の契約と誤認していた。
+実1という失敗契約を厳密に確認し、元の非0要求を緩めない。製品/runnerの終了値は変更しない。
+併せてcheck_uiはEXIT cleanupの前にも一回guest初期化logを取ることを確認。新しい順序assertが求めるhost先行にはcleanupだけの追加では不足する。
+host採取を一回だけの共通helperにし、check_uiのguest直前とcleanup入口から呼ぶ。同じ失敗で重複採取せず、元のguest採取/回収を保持する。
+未消費n231 reviewは最終差分が変わるため無効化し、候補/根拠を先にpush後、同じ実shell/host検査と新規reviewで評価する。

@@ -522,8 +522,8 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
         for ios in (26, 27):
             with self.subTest(ios=ios):
                 result, calls = self.run_synthetic_runner(ios, "B", fail_notification=True)
-                self.assertEqual(result.returncode, 46)
-                self.assertIn('TAKUPOKE_HOST_BOOT_FAILURE ', result.stdout)
+                self.assertEqual(result.returncode, 1)
+                self.assertEqual(result.stdout.count('TAKUPOKE_HOST_BOOT_FAILURE '), 1)
                 host = next(i for i, call in enumerate(calls) if call[:2] == ["log", "show"])
                 guest = next(i for i, call in enumerate(calls) if call[:3] == ["xcrun", "simctl", "spawn"])
                 self.assertLess(host, guest)
