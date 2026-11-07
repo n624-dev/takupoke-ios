@@ -4167,3 +4167,12 @@ manualのList identity/frameはスクロール後の次試行で取り直す。�
 native中心への一回操作、16探索/一度反転、45秒と全入力/ACK/保存/再起動、全15を保持する。
 元のAuxiliaryReadとSelectedのUI caseが実移動/保持/再起動の失敗を検出できるため、模倣UIテストは足さない。
 既存geometry/manifest/project検査を確認し、同じ失敗ケースを実26/27の限定で通す。候補/根拠を先にpushする。
+
+## N214 N213候補のローカルproject契約が旧frame式を要求（2026-11-07）
+
+source741228f/Linux、manual project17件中1失敗（0.911秒）、test_manual_controls_are_scrolled_and_acknowledged_without_keyboard_or_outer_switch_taps:317。
+旧`list.frame.minX`の式を要求しており、新しい同試行の`listFrame.minX`保持を未反映。Actionsは未開始。
+manifest30件/失敗0（17.132秒）、Swift scroll2宣言/実29件/失敗0（2.652秒）、Swift構文と一覧454は成功。
+対処前に記録。旧期待の目的は受動行の実midXからList原点を引くことで、固定gutterへの接触を拒否すること。
+式の意味は変えず、実List.frameを一度だけ保持し、元のmidX/原点差と一意なnative Listを使う条件へ契約を更新する。
+旧式と新しいcached式の両方でgutter固定を拒否する。geometryの元29動作検査と実UIで包含/反転/実接触を確認する。
