@@ -4176,3 +4176,7 @@ manifest30件/失敗0（17.132秒）、Swift scroll2宣言/実29件/失敗0（2.
 対処前に記録。旧期待の目的は受動行の実midXからList原点を引くことで、固定gutterへの接触を拒否すること。
 式の意味は変えず、実List.frameを一度だけ保持し、元のmidX/原点差と一意なnative Listを使う条件へ契約を更新する。
 旧式と新しいcached式の両方でgutter固定を拒否する。geometryの元29動作検査と実UIで包含/反転/実接触を確認する。
+
+9897c14を先にpush後、manual project17件/失敗0（0.713秒）、一覧454/check --base ea8a4b2が成功。
+N213候補のmanifest30件・scroll実29件とSwift構文も上記通過済み。実AX応答は未確認で、
+次の限定AuxiliaryRead両OSとSelected26では元case/実入力/全包含/保存/再起動/期限・厳密完了をそのまま要求する。
