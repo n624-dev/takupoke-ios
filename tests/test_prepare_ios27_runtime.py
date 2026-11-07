@@ -16,7 +16,9 @@ import json, os, sys
 from pathlib import Path
 args=sys.argv[1:]; mode=os.environ['MODE']; marker=Path(os.environ['MARKER'])
 downloaded=marker.with_name('downloaded');imported=marker.with_name('imported');deleted=marker.with_name('deleted')
+partial=marker.with_name('partial');rescanned=marker.with_name('rescanned')
 download_id='11111111-1111-4111-8111-111111111111';local_id='22222222-2222-4222-8222-222222222222'
+recovered_id='44444444-4444-4444-8444-444444444444'
 foreign_id='33333333-3333-4333-8333-333333333333'
 asset='/System/Library/AssetsV2/com_apple_MobileAsset_iOSSimulatorRuntime/'+'a'*40+'.asset/AssetData'
 with open(os.environ['CALLS'],'a') as log: log.write(json.dumps([Path(sys.argv[0]).name]+args)+'\n')
@@ -32,17 +34,33 @@ elif args[:3] == ['simctl','runtime','list']:
         state='Unusable' if imported.exists() and mode!='duplicate-ready' else 'Ready'
         uid=foreign_id if imported.exists() and mode=='unknown-duplicate' else download_id
         records[uid]=record(uid,asset,state)
+        if rescanned.exists():
+            records[recovered_id]=records.pop(uid) | {'identifier':recovered_id,
+                'path':'/unrelated-asset' if mode=='partial-rescan-wrongpath' else asset}
     if mode=='pre-existing-id' and not downloaded.exists(): records[download_id]={'runtimeIdentifier':'unrelated'}
     if downloaded.exists() and mode=='two-downloads': records[foreign_id]=record(foreign_id,asset,'Ready')
     if imported.exists():
         path='/elsewhere' if mode=='wrong-local-path' else '/Library/Developer/CoreSimulator/Cryptex/Images/'+local_id
         records[local_id]=record(local_id,path,'Ready')
+        if partial.exists() and mode=='partial-lost-local': records[local_id]['state']='Unusable'
         if mode=='two-locals': records[foreign_id]=record(foreign_id,'/Library/Developer/CoreSimulator/Cryptex/Images/'+foreign_id,'Ready')
     print(json.dumps(records))
 elif args[:3] == ['simctl','runtime','delete']:
-    assert args==['simctl','runtime','delete',download_id] and imported.exists()
+    assert args==['simctl','runtime','delete',recovered_id if rescanned.exists() else download_id] and imported.exists()
     if mode=='delete-fails': sys.exit(7)
+    if mode.startswith('partial') and not partial.exists():
+        partial.write_text('partial removal');deleted.write_text('removed registration only')
+        print('An error was encountered processing the command (domain=com.apple.CoreSimulator.simdiskimaged.SimDiskImageError, code=30):')
+        reported=asset+'/wrong/' if mode=='partial-wrong-path' else asset+'/'
+        print('Removed the runtime, but did not reclaim its MobileAsset: '+reported)
+        print('unknown advice' if mode=='partial-badmessage' else "Run 'xcrun simctl runtime scan-and-mount' to re-register the runtime, then delete it again.")
+        sys.exit(30)
+    if mode=='partial-second-fails': sys.exit(30)
     if mode!='delete-stuck': deleted.write_text('removed owned duplicate')
+elif args[:3] == ['simctl','runtime','scan-and-mount']:
+    assert partial.exists() and deleted.exists()
+    if mode=='partial-scan-fails': sys.exit(9)
+    rescanned.write_text('re-registered same owned asset');deleted.unlink()
 elif args[:2] == ['simctl','list']:
     runtimes=[]
     if mode.startswith('installed') or marker.exists():
@@ -81,7 +99,8 @@ else: sys.exit(99)
                      'installed-wrong-build','installed-build-missing','installed-duplicate-build','download-wrong-build',
                      'dmg-export','export-symlink','two-exports','pre-existing-image','pre-existing-id','two-downloads',
                      'no-duplicate','unknown-duplicate','duplicate-ready','not-deletable','wrong-local-path','two-locals',
-                     'delete-fails','delete-stuck'):
+                     'delete-fails','delete-stuck','partial','partial-second-fails','partial-scan-fails',
+                     'partial-badmessage','partial-wrong-path','partial-lost-local','partial-rescan-wrongpath'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory(prefix='takupoke-runtime-lifetime-') as directory:
                 root=Path(directory);scratch=root/'scratch';scratch.mkdir()
                 for name in ('xcrun','xcodebuild'):
@@ -92,7 +111,7 @@ else: sys.exit(99)
                     'TKPK_EXPECTED_IOS_SDK':'27.1','PYTHONDONTWRITEBYTECODE':'1'}
                 command=[sys.executable,'-B',str(ROOT/'tools/prepare-ios26-runtime.py')]
                 prepared=subprocess.run(command+['--hold-export'],env=env,capture_output=True,text=True,timeout=15)
-                self.assertEqual(prepared.returncode==0,mode in ('installed','auto-installed','import','dmg-export','no-duplicate'),prepared.stdout+prepared.stderr)
+                self.assertEqual(prepared.returncode==0,mode in ('installed','auto-installed','import','dmg-export','no-duplicate','partial'),prepared.stdout+prepared.stderr)
                 owned=scratch/'takupoke-ios26-runtime-export-owned'
                 self.assertEqual(owned.exists(),not mode.startswith('installed'))
                 if mode in ('auto-installed','import'):
@@ -103,12 +122,16 @@ else: sys.exit(99)
                 before=calls.read_text()
                 commands=[json.loads(line) for line in before.splitlines()]
                 self.assertEqual(sum(row[1:2]==['-downloadPlatform'] for row in commands),int(not mode.startswith('installed') and mode!='pre-existing-image'))
-                self.assertEqual(sum(row[1:2]==['-importPlatform'] for row in commands),int(mode in (
+                self.assertEqual(sum(row[1:2]==['-importPlatform'] for row in commands),int(mode.startswith('partial') or mode in (
                     'auto-installed','import','import-fails','wrong-version','dmg-export','no-duplicate',
                     'unknown-duplicate','duplicate-ready','not-deletable','wrong-local-path','two-locals','delete-fails','delete-stuck')))
                 removals=[row for row in commands if 'delete' in row]
                 expected_delete=mode in ('auto-installed','import','wrong-version','dmg-export','delete-fails','delete-stuck')
-                self.assertEqual(removals,[['xcrun','simctl','runtime','delete', '11111111-1111-4111-8111-111111111111']] if expected_delete else [])
+                expected_ids=['11111111-1111-4111-8111-111111111111'] if expected_delete or mode.startswith('partial') else []
+                if mode in ('partial','partial-second-fails'): expected_ids.append('44444444-4444-4444-8444-444444444444')
+                self.assertEqual(removals,[['xcrun','simctl','runtime','delete',uid] for uid in expected_ids])
+                self.assertEqual(sum(row[1:4]==['simctl','runtime','scan-and-mount'] for row in commands),int(
+                    mode.startswith('partial') and mode not in ('partial-badmessage','partial-wrong-path','partial-lost-local')))
                 for _ in range(2):
                     cleaned=subprocess.run(command+['--cleanup-export'],env=env,capture_output=True,text=True,timeout=5)
                     self.assertEqual(cleaned.returncode,0,cleaned.stderr)

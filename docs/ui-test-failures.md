@@ -4350,3 +4350,21 @@ be720feを先にpush後、実Runtime helper/fakeCLI4宣言/失敗0（11.854秒�
 local複数を拒否し、削除失敗・消えない重複は再試行せず失敗となる。所有exportの保持/回収も維持。
 実Simulatorの結果は未確認。code-only差分650行/38903bytes、SHA256
 9e39b22feeeea101c434815481cf06672b144af987c91ff56ee889494ef1628b。
+
+## N223 所有重複回収候補のSelected26がfailure（2026-11-07）
+
+source8cc49a850ad1a3c8f5940c9076bbc3f4d54a6389/run42379446719/attempt1/job128423782953、
+SDK27.2・予定26.5正式23F77/GUI。13:59:28〜14:01:31Z failureを予定14:16Z照会で確認。
+本文未読で失敗段階/原因は未確定、対処前に記録。全job終端、新1log/artifact一覧だけ一度取得する。
+
+新log/artifact0を一度取得。download/importと所有判定は成功し、所有Unusable UUID543E8035…への
+正規deleteだけがexit30で終了した。nativeは「Removed the runtime, but did not reclaim its MobileAsset」
+と正確な今回asset pathを報告し、scan-and-mountで再登録して再度deleteするよう明示した。UI/bootは未実行。
+検索語exit30/code30/scan-and-mountと既往N170の限定exit149、旧974ba9c/現helperを照合。
+exit30の初出で、一般的な削除失敗と同じ成功へ読み替えない。元case/期限/全15は変更しない。
+次は正確なnative domain/code30/今回asset path/復旧指示が揃う部分削除だけ、local Ready保全と旧UUID消失を
+確認して一回scan-and-mountを行う。同じ自分のassetの新UUIDを再照合し一回回収する。
+第二delete失敗、別asset/既存UUID/Ready/未知重複やscan失敗は拒否し、loopしない。
+最終imageが同じlocal Readyのみ、かつowned AssetDataが残らないことを要求する。一般的なエラー30を無視しない。
+これは起動前のApple APIが指定した限定復旧であり、UIの入力/起動/失敗caseを再試行するものではない。
+候補と根拠を先にpush後、部分削除の正例と誤message/path・復旧失敗のfakeCLIを検証する。

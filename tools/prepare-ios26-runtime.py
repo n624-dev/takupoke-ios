@@ -79,6 +79,15 @@ def exact_image(key, image):
             and image.get("version") == "26.5"
             and image.get("platformIdentifier") == "com.apple.platform.iphonesimulator")
 
+def owned_unusable(key, image, asset_path):
+    return (exact_image(key, image) and image.get("path") == str(asset_path)
+            and image.get("deletable") is True and image.get("state") == "Unusable"
+            and image.get("unusableSubstate") == "Cryptex Mount Preferred")
+
+def same_ready(key, image, original):
+    return (exact_image(key, image) and image.get("state") == "Ready"
+            and image.get("path") == original["path"])
+
 versions, registered, pinned = available26()
 if not versions:
     if registered:
@@ -120,17 +129,41 @@ if not versions:
         duplicates = {key: item for key, item in imported.items() if key != local_id}
         if duplicates:
             duplicate = duplicates.get(download_id, {})
-            if (set(duplicates) != {download_id} or not exact_image(download_id, duplicate)
-                    or duplicate.get("path") != str(asset_path) or duplicate.get("deletable") is not True
-                    or duplicate.get("state") != "Unusable"
-                    or duplicate.get("unusableSubstate") != "Cryptex Mount Preferred"):
+            if set(duplicates) != {download_id} or not owned_unusable(download_id, duplicate, asset_path):
                 raise SystemExit("Refusing removal of an unknown or usable runtime image")
-            subprocess.run(["xcrun", "simctl", "runtime", "delete", download_id], check=True, timeout=180)
+            removal = subprocess.run(["xcrun", "simctl", "runtime", "delete", download_id],
+                                     capture_output=True, text=True, timeout=180)
+            message = removal.stdout + removal.stderr
+            print(message, end="", flush=True)
+            if removal.returncode:
+                # Apple explicitly reports this partial result and prescribes
+                # one re-registration before removing the same owned asset.
+                partial = (removal.returncode == 30
+                    and "(domain=com.apple.CoreSimulator.simdiskimaged.SimDiskImageError, code=30):" in message
+                    and "Removed the runtime, but did not reclaim its MobileAsset: " + str(asset_path) + "/" in message.splitlines()
+                    and "Run 'xcrun simctl runtime scan-and-mount' to re-register the runtime, then delete it again." in message.splitlines())
+                if not partial:
+                    raise subprocess.CalledProcessError(removal.returncode, removal.args,
+                                                        output=removal.stdout, stderr=removal.stderr)
+                after_partial = target_images(runtime_images("after-partial-removal"))
+                if set(after_partial) != {local_id} or not same_ready(local_id, after_partial[local_id], local_image):
+                    raise SystemExit("Partial removal did not preserve the ready local image")
+                subprocess.run(["xcrun", "simctl", "runtime", "scan-and-mount"], check=True, timeout=180)
+                rescanned = target_images(runtime_images("after-owned-asset-rescan"))
+                candidates = {key: item for key, item in rescanned.items() if key != local_id}
+                if (len(candidates) != 1 or local_id not in rescanned
+                        or not same_ready(local_id, rescanned[local_id], local_image)):
+                    raise SystemExit("Rescan did not isolate the same owned asset and ready local image")
+                recovered_id, recovered = next(iter(candidates.items()))
+                if recovered_id in before or not owned_unusable(recovered_id, recovered, asset_path):
+                    raise SystemExit("Refusing removal of an unowned re-registered runtime image")
+                subprocess.run(["xcrun", "simctl", "runtime", "delete", recovered_id], check=True, timeout=180)
             remaining = target_images(runtime_images("after-owned-duplicate-removal"))
-            if (set(remaining) != {local_id} or not exact_image(local_id, remaining[local_id])
-                    or remaining[local_id].get("state") != "Ready"
-                    or remaining[local_id].get("path") != local_image["path"]):
+            if (set(remaining) != {local_id} or not same_ready(local_id, remaining[local_id], local_image)
+                    or asset_path.exists()):
                 raise SystemExit("Owned runtime duplicate removal did not preserve the ready local image")
+        if asset_path.exists():
+            raise SystemExit("The newly owned MobileAsset must be reclaimed before boot")
     versions, _, pinned = available26()
 if not versions or max(versions) != (26, 5) or not pinned:
     raise SystemExit("Comparison requires one available iOS 26.5 runtime with exact build " + IOS26_BUILD)
