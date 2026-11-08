@@ -4793,3 +4793,11 @@ Swift parse/catalog456/check --basec059a9fも成功。実5callerの既存project
 新規GPT-6.1 Sol/High n238_pre_actions_reviewはcode-only80行/5657bytes、SHA256
 6ed1a5f9b3907041c08ab9542657de384cba1758ff0a925b843362f2a5454db2に指摘なし。
 主担当が実差分・一意ID/label/実種別guard・元の全操作/期待/期限/全15を照合し、限定26/SDK27.2 dispatch一回へ消費する。
+
+995fb5a/run42439109096/attempt1/job128604307453は02:34:21〜03:07:36Z success、元明示選択26.5/SDK27.2が926.640秒/失敗0。
+同ID/labelのnative操作・全3review・実3menu/3入力/ACK/第四拒否/保存/再起動と実Runner/完了確認を通過した。
+今回実分類は3回ともButton(9)。旧失敗のmodern PopUpButton(14)は再現せず、この枝のnative確認や恒常解消は主張しない。
+旧正式22の残26A/B/単項目26もsuccess、全18表示job終端は事前13成功/明示選択26失敗1/構成・公開skip4。
+全14実logと限定log・両artifact0を一度だけ保存し、旧実行は再照会しない。限定成功を正式条件へ合算しない。
+新規main専用GPT-6.1 Sol/High n238_shipping_pre_actions_reviewも同一code-only80行/5657bytesに指摘なし。
+主担当がhash・局所/限定結果・元全期待/期限/全15維持・main baseと全未送信空白を確認後、一回の正式23 main pushへ消費する。
