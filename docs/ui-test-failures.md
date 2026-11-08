@@ -4786,3 +4786,10 @@ N160の最終native identityは維持するが、今回だけlegacy Buttonの型
 一般Button/clear/menu/Text/ACKの経路、製品のButton/contextMenu、元16探索/45秒/全15gateは変更しない。
 既存project検査の2callerという旧個数は実5callerへ更新し、未指定callerを残さない検査を維持する。
 候補/比較を先にpush後に既存全Python/Swift構文/catalogを確認し、新規review後に元明示選択26/SDK27.2を比較する。
+
+53b364fを先にpush後、Swift6.1.2有効の全Python314件/失敗0/予定skip2（243.828秒）、
+Swift parse/catalog456/check --basec059a9fも成功。実5callerの既存project検査も通過した。
+元四case×両OSが実操作/結果の検証を担い、Apple型分類の期待結果を注入するmockは追加しない。
+新規GPT-6.1 Sol/High n238_pre_actions_reviewはcode-only80行/5657bytes、SHA256
+6ed1a5f9b3907041c08ab9542657de384cba1758ff0a925b843362f2a5454db2に指摘なし。
+主担当が実差分・一意ID/label/実種別guard・元の全操作/期待/期限/全15を照合し、限定26/SDK27.2 dispatch一回へ消費する。
