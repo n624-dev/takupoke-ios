@@ -4759,3 +4759,9 @@ b8868e0を先にpush後、Swift6.1.2有効の全Python314件は失敗0/予定ski
 Swift parse/catalog456・check --baseb0f3f44も成功。新規GPT-6.1 Sol/High n237_pre_actions_reviewは
 code-only57行/3998bytes、SHA256 0230bba5391827d898323bfc814b0600f7b06799d47d2585a38f6c2130e4c5c7に指摘なし。
 主担当が同一diff・元0.6秒/全期待/全15と局所結果を照合し、このreviewを元明示選択26/SDK27.2の限定dispatch一回へ消費する。
+
+cbf843f/run42431756801/attempt1/job128581998023は00:52:41〜01:20:21Z success、元明示選択26.5/SDK27.2が932.495秒/失敗0。
+3回のnative menu一意/枠/完全包含/enabled/hittableと元一回0.6秒、実action/3入力/全ACK/第四拒否/保存/再起動を通過した。
+厳密な実Runner identityと元case完了確認も成功。log/artifact0を一度取得し、再照会しない。旧失敗の下位原因一般は未確定。
+正式開始専用の新規GPT-6.1 Sol/High n237_shipping_pre_actions_reviewも同一code-only57行/3998bytesに指摘なし。
+主担当がhash・元全期待/期限・全15gateの維持、限定とlocal結果・main baseと全未送信空白を確認後、一回の正式22 main pushへ消費する。
