@@ -4829,3 +4829,11 @@ Swift構文/catalog456/check --base79e4776も成功。全5callerと一回入力�
 新規GPT-6.1 Sol/High n239_pre_actions_reviewはcode-only40行/2536bytes、SHA256
 9ec49086c32df8bfdeaec3ae47dbd5a2ec4cfcfcd1058db3a74b7bcc1fc29078に指摘なし。
 主担当が同じ実identity/点・一回50ms・実UI/保存/再起動/元期限と全15の維持を照合し、元Settings27/SDK27.2の限定dispatch一回へ消費する。
+
+e336ef1/run42446150709/attempt1/job128625390428は04:16:45〜04:30:33Z success、元Settings27/SDK27.2が445.658秒/失敗0。
+全4接触は実配送66.235/85.370/91.115/69.967msのendedで、初回3回と再起動後4回目のUI/保存/setter成立、
+その後の再起動後OFF保持と元のファイル詳細操作・厳密実Runner/完了も成功した。4回目の未反映は今回再現せず、恒常解消は未証明。
+旧正式23の残26Aも04:33:52Zにsuccess、全15表示job終端は8成功/27B失敗1/構成・依存skip6。
+全9実log/限定logと各artifact0は一度取得し、旧結果は再照会しない。限定や別sourceの成功を正式へ合算しない。
+新規main専用GPT-6.1 Sol/High n239_shipping_pre_actions_reviewも同一code-only40行/2536bytesに指摘なし。
+主担当がhash・元の全guard/期待/期限/全15維持・local/限定結果・main baseと全未送信空白を確認後、一回の正式24 main pushへ消費する。
