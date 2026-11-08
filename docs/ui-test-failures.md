@@ -4742,7 +4742,7 @@ preview=true/review=false/running=false/draft=nil、対象StaticTextも存在し
 
 全18表示job終端は14事前条件中13成功/明示選択26失敗1・公開含む構成skip4、artifact0。
 通常26Aも1588.527秒/18件・通知123.800秒で成功、全14実logを各一度保存した。
-実touchは対象中心(80,347.67)へbegan/ended、約1.13秒、終了時_ UITouchDurationがchangedだったがmenuは出ていない。
+実touchは対象中心(80,347.67)へbegan/ended、約1.13秒、終了時_UITouchDurationがchangedだったがmenuは出ていない。
 接触取消・sheet消失・製品の訂正action失敗とは断定しない。
 検索語selectCorrectionFromPreview/教員を訂正/contextMenu/0.6/native identityでN25/N31/N55/N78/N94/N97と
 1b368f5/9cd340e/82ca252の実コードを照合した。N25は別授業の未表示、N94は接触時のindex再解決停止、
@@ -4752,3 +4752,10 @@ N97は探索中のidentity寿命切れ。今回は同Listの外側論理IDから
 探索中の論理IDは維持し、全3caller・実menu/第四項目拒否/3入力/ACK/保存/再起動と元45秒・16探索/全15を保持する。
 製品contextMenu・接触時間/位置・待機上限・期待状態は変えず、今回の下位原因解消を事前には主張しない。
 候補を先にpushして既存project/navigation/manifest/runner検査後、元明示選択26だけを新規reviewで比較する。
+
+b8868e0を先にpush後、Swift6.1.2有効の全Python314件は失敗0/予定skip2（206.014秒）、
+既存のproject17件・navigation2件/実Swift29条件・manual runner6件・manifest30件も同じ実行内で成功。
+元明示選択caseは全3回の実menu/入力/ACK/第四拒否/保存/再起動を必須とするため、新しい期待状態を作る検査は追加しない。
+Swift parse/catalog456・check --baseb0f3f44も成功。新規GPT-6.1 Sol/High n237_pre_actions_reviewは
+code-only57行/3998bytes、SHA256 0230bba5391827d898323bfc814b0600f7b06799d47d2585a38f6c2130e4c5c7に指摘なし。
+主担当が同一diff・元0.6秒/全期待/全15と局所結果を照合し、このreviewを元明示選択26/SDK27.2の限定dispatch一回へ消費する。
