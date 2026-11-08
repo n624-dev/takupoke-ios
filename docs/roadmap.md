@@ -6,7 +6,7 @@
 
 | 分野 | 現在の機能 | 仕様 |
 |---|---|---|
-| 配布 | Xcode 27.0によるiPhoneビルド、IPA・AltStore Sourceの公開、更新内容の共通反映 | [PAL経由の導入](altstore-pal-install.md) |
+| 配布 | Xcode 27.2によるiPhoneビルド、IPA・AltStore Sourceの公開、更新内容の共通反映 | [PAL経由の導入](altstore-pal-install.md) |
 | ファイル | 通常・変更・試験・返却の個別選択、自動解析、選択情報の保存、起動・復帰・変更通知時の確認 | [ファイル選択と取得](materials.md) |
 | 解析・保存 | 通常PDF・変更XLSX・試験／返却PDFの解析、SQLite保存、解析失敗時の前回正常結果の保持 | [PDF](pdf-specification.md)、[XLSX](xlsx-specification.md) |
 | OCR復旧の訂正 | プレビューの科目を長押しし、科目・教員・教室を原本照合して最大3項目訂正。追加時の入力維持・全項目の再確認・資料全体の明示採用 | [端末内復旧](pdf-recovery.md) |
