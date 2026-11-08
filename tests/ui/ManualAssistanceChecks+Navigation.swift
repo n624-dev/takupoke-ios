@@ -122,8 +122,14 @@ extension ManualAssistanceChecks {
                     return actual
                 }
                 let physicalButtons:XCUIElementQuery?
+                let reviewAction=inRecovery && targetID=="manual-review-submit"
                 if inRecovery && targetID.hasPrefix("manual-clear-") {
                     physicalButtons=query
+                } else if reviewAction,let buttonLabel {
+                    // N238: the legacy Button query can disagree with the
+                    // modern native PopUpButton classification on iOS 26.
+                    physicalButtons=list.descendants(matching:.any).matching(identifier:targetID)
+                        .matching(NSPredicate(format:"label == %@",buttonLabel))
                 } else if let buttonLabel {
                     let buttons=targetID.isEmpty ? app.buttons : app.buttons.matching(identifier:targetID)
                     physicalButtons=buttons.matching(NSPredicate(format:"label == %@",buttonLabel))
@@ -137,7 +143,15 @@ extension ManualAssistanceChecks {
                     guard controls.count==1 else {
                         XCTFail("The revealed Button must have one current native identity");return e
                     }
-                    let actual=controls[0],frame=actual.frame
+                    let actual=controls[0]
+                    if reviewAction {
+                        let kind=actual.elementType
+                        print("TAKUPOKE-MANUAL-NATIVE-REVIEW type=\(kind.rawValue)")
+                        guard kind == .button || kind == .popUpButton else {
+                            XCTFail("The review action must be a native Button or PopUpButton");return e
+                        }
+                    }
+                    let frame=actual.frame
                     print("TAKUPOKE-MANUAL-NATIVE-BUTTON frame=\(frame);viewport=\(viewport);attempt=\(attempt)")
                     guard ManualScrollNavigation.usable(frame),viewport.contains(frame),
                           actual.isEnabled,actual.isHittable else {

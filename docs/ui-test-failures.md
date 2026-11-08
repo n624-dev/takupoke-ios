@@ -4765,3 +4765,24 @@ cbf843f/run42431756801/attempt1/job128581998023は00:52:41〜01:20:21Z success�
 厳密な実Runner identityと元case完了確認も成功。log/artifact0を一度取得し、再照会しない。旧失敗の下位原因一般は未確定。
 正式開始専用の新規GPT-6.1 Sol/High n237_shipping_pre_actions_reviewも同一code-only57行/3998bytesに指摘なし。
 主担当がhash・元全期待/期限・全15gateの維持、限定とlocal結果・main baseと全未送信空白を確認後、一回の正式22 main pushへ消費する。
+
+## N238 — 正式481の明示選択26でreview Buttonのidentity解決が失敗（対処前の観測）
+
+source c059a9fd8a574102209e64a4115b9dd19c8dab6c／run42434367494・attempt1／job128598243785、
+SDK27.2/Runtime26.5、元明示選択caseが274.146秒/失敗1。
+Navigation.swift:140のmanual-review-submitの現在native Button枠取得でNo matches found for Identity Binding。
+実logはcomputed Button from legacy attributes vs PopUpButton from modern attributeと報告した。
+先行のN237対象の最初の教員menuはnative Text確認・実長押しを通過しており、同じmenu不在の再発とは扱わない。
+今回の消失/型変化の下位原因と対処は未確定。対処案を選ぶ前に記録した。
+通常26A/Bと単項目26は継続中で取消ししない。完了済みの新10logだけ各一度保存し、残job/artifactsはまだ未取得。
+
+検索語PopUpButton/type mismatch/manual-review-submit/Identity Bindingで索引に同じ型不一致の既往はなく、
+N59/N94/N97/N160/N203の詳細と200c4c9/9cd340e/current Navigation/OneCorrection/生成viewを照合した。
+N59の専用IDは他の2callerだけへ渡され、明示選択の3callerではlabelから始めていた。
+N160の最終native identityは維持するが、今回だけlegacy Buttonの型制約がmodern PopUpButtonの実分類と衝突した。
+候補は同じreview操作の全5callerへ既存IDを渡し、このID/同List/完全一致labelだけ最終native queryをAnyへする。
+実要素種別はButtonまたはOSが今回報告したPopUpButtonを要求して記録し、それ以外は拒否する。
+一意性・有限枠/完全包含/enabled/hittable・一回tap・実preview/3入力/全ACK/第四拒否/保存/再起動は維持する。
+一般Button/clear/menu/Text/ACKの経路、製品のButton/contextMenu、元16探索/45秒/全15gateは変更しない。
+既存project検査の2callerという旧個数は実5callerへ更新し、未指定callerを残さない検査を維持する。
+候補/比較を先にpush後に既存全Python/Swift構文/catalogを確認し、新規review後に元明示選択26/SDK27.2を比較する。

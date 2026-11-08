@@ -84,7 +84,7 @@ extension ManualAssistanceChecks {
         let cell = parts.dropLast(2).joined(separator:":"), lesson = String(parts[parts.count-2])
         let teacherKey = cell+":"+lesson+":teacher", roomKey = cell+":"+lesson+":room"
         let teacher = "架空選択教員", room = "架空選択室R7"
-        tap("訂正と変更を確認して資料全体へ");requirePreview()
+        tap("訂正と変更を確認して資料全体へ",knownID:"manual-review-submit");requirePreview()
         selectCorrectionFromPreview(cell:cell,lesson:lesson,role:"teacher")
         XCTAssertTrue(fieldsExist(),app.debugDescription)
         XCTAssertEqual(Set(fieldIDs),Set([subjectKey,teacherKey]))
@@ -94,7 +94,7 @@ extension ManualAssistanceChecks {
         inspectSource(teacherKey);edit(input(teacherKey),teacher,id:teacherKey)
         acknowledge(subjectKey);assertSubmitEnabled(false);acknowledge(teacherKey);assertSubmitEnabled(true)
         visible(submit,knownID:"manual-submit").tap();requireReview([subject,teacher],comparable:false)
-        tap("訂正と変更を確認して資料全体へ");requirePreview()
+        tap("訂正と変更を確認して資料全体へ",knownID:"manual-review-submit");requirePreview()
         selectCorrectionFromPreview(cell:cell,lesson:lesson,role:"room")
         XCTAssertTrue(fieldsExist(),app.debugDescription)
         XCTAssertEqual(Set(fieldIDs),Set([subjectKey,teacherKey,roomKey]))
@@ -106,7 +106,7 @@ extension ManualAssistanceChecks {
         acknowledge(teacherKey);assertSubmitEnabled(false)
         acknowledge(roomKey);assertSubmitEnabled(true)
         visible(submit,knownID:"manual-submit").tap();requireReview([subject,teacher,room],comparable:false)
-        tap("訂正と変更を確認して資料全体へ");requirePreview()
+        tap("訂正と変更を確認して資料全体へ",knownID:"manual-review-submit");requirePreview()
         let current = "recovery-correction-menu-"+cell+"-"+lesson
         // Preview starts at its header; offscreen lesson rows are virtualized.
         // Reveal an actual other lesson before inspecting or operating its menu.
