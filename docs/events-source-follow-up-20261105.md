@@ -4,8 +4,8 @@
 
 - [0.1.483 / 483.1](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.483-build.483.1)を通常Release／Latestとして公開した。配布元は`ba27dc0ecdfa6ef88b2410828825ecd164d1e5eb`。
 - [run42447955585](https://github.com/n624-dev/takupoke-ios/actions/runs/42447955585)・attempt1の同一ソースで全15必須jobが成功。限定比較や別実行の成功は合算していない。全18表示job終端、保存artifact0。
-- Xcode27.2／配布SDK27.2でNative701件（予定skip1・失敗0）、実Picker3件（520.341秒・失敗0）とiPhone Release buildが成功。旧SDK26.5のNative701件（予定skip1・失敗0）も成功した。
-- 実Runtime26.5／27.0の通常UI A/Bと手動訂正4ケースずつが成功。確認中の追従・取得上限・失敗／背景／対象変更時の停止と保存保持の回帰を含む。Python314件（予定skip22・失敗0）、catalog456も成功した。
+- Xcode27.2／配布SDK27.2でNative701件（予定skip1・失敗0）、実Picker3件（520.341秒・失敗0）とiPhone Release buildが成功。Nativeには確認中の追従・取得上限・失敗／背景／対象変更時の停止と保存保持の回帰を含む。旧SDK26.5のNative701件（予定skip1・失敗0）も成功した。
+- 実Runtime26.5／27.0の通常UI A/Bと手動訂正4ケースずつが成功。Python314件（予定skip22・失敗0）、catalog456も成功した。
 - 公開4添付を認証なしで一度ずつ取得し、GitHubのsize/digest・release.jsonのハッシュ・IPA内部の版／ソース／権限／法務情報／診断除外を照合。縦向き・AppIcon・1024px icon・`iphoneos27.2`も一致した。固定Latest Sourceの実bytesは版固有Sourceと一致する。
 - Windowsの独立実装は[0.1.0-dev.10459](https://github.com/n624-dev/takupoke-win/releases/tag/v0.1.0-dev.10459)を先に公開・匿名6添付照合済み。APIサーバーは変更していない。
 - 物理iPhoneのAltStore Sourceからの更新、実資料・実機性能は今回未確認。CI成功から確認済みとは扱わない。検証用の取得assetは所有領域から回収した。
