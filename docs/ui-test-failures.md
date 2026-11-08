@@ -4728,3 +4728,27 @@ app journalはcapture-unavailableで、追加したnative initial-load callback�
 新限定/残26A logと各artifact0を一度取得し、旧正式20の実9logが揃った。限定や別sourceの成功は正式へ合算しない。
 23:01Zにremote mainfa926不変を一度確認。新規main専用GPT-6.1 Sol/High n236_shipping_pre_actions_reviewはcode-only125行/9040bytesを確認し指摘なし。
 SHA256 3bea36c0e9cd405085961f0dcb811801d9e771bd9de90606fcc98c2cbbbeafcdの同一性・local/native結果・全未送信空白とmain baseを主担当が確認後、一回の正式21 main pushへ消費する。
+
+## N237 — 正式480の明示選択26で訂正menu後の教員actionが出ない（対処前の観測）
+
+source b0f3f4499c05cd4834cb675032569a2a8eca1a7d／run42423473274・attempt1／job128568597025、
+配布SDK27.2・実Runtime26.5、元testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunchが236.608秒で失敗。
+ManualAssistanceChecks+OneCorrection.swift:71で、preview訂正menuへの一回の0.6秒press後、
+「教員を訂正」実Buttonが元nativeStateTimeout内に存在しなかった。期限後AXは背景の資料詳細と復旧sheetを含み、
+preview=true/review=false/running=false/draft=nil、対象StaticTextも存在した。教員action/手動入力への到達は未確認。
+今回の下位原因は未確定。対処案を選ぶ前に記録した。先に見たAX先頭だけをsheet消失の証拠とは扱わない。
+00:45Zのsnapshotでは通常26Bと他の手動26三件はsuccess、通常26AはComplete job中。
+残りを取り消さず確認する。失敗logは一度保存し、同source/run/attempt全15未達のため未公開。
+
+全18表示job終端は14事前条件中13成功/明示選択26失敗1・公開含む構成skip4、artifact0。
+通常26Aも1588.527秒/18件・通知123.800秒で成功、全14実logを各一度保存した。
+実touchは対象中心(80,347.67)へbegan/ended、約1.13秒、終了時_ UITouchDurationがchangedだったがmenuは出ていない。
+接触取消・sheet消失・製品の訂正action失敗とは断定しない。
+検索語selectCorrectionFromPreview/教員を訂正/contextMenu/0.6/native identityでN25/N31/N55/N78/N94/N97と
+1b368f5/9cd340e/82ca252の実コードを照合した。N25は別授業の未表示、N94は接触時のindex再解決停止、
+N97は探索中のidentity寿命切れ。今回は同Listの外側論理IDから、接触するTextを実identityへ取り直す経路だけが未対応。
+候補は授業menuの外側探索を既知ID/現在のList/StaticTextへ限定し、可視化後だけ一意な現在のnative Textと
+有限枠/viewport完全包含/enabled/hittableを確認して、同じ一回0.6秒pressへ渡すこと。
+探索中の論理IDは維持し、全3caller・実menu/第四項目拒否/3入力/ACK/保存/再起動と元45秒・16探索/全15を保持する。
+製品contextMenu・接触時間/位置・待機上限・期待状態は変えず、今回の下位原因解消を事前には主張しない。
+候補を先にpushして既存project/navigation/manifest/runner検査後、元明示選択26だけを新規reviewで比較する。

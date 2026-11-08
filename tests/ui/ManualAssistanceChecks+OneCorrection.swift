@@ -60,8 +60,8 @@ extension ManualAssistanceChecks {
     }
 
     func selectCorrectionFromPreview(cell:String,lesson:String,role:String) {
-        let menu = app.descendants(matching:.any)["recovery-correction-menu-"+cell+"-"+lesson]
-        visible(menu).press(forDuration:0.6)
+        let menuID = "recovery-correction-menu-"+cell+"-"+lesson
+        visible(app.staticTexts[menuID],knownID:menuID).press(forDuration:0.6)
         let names = ["subject":"科目","teacher":"教員","room":"教室"]
         let name = names[role]
         XCTAssertNotNil(name)

@@ -66,6 +66,7 @@ extension ManualAssistanceChecks {
             // control follows its logical ID while revealing it (N97); only the
             // final inner native contact is bound to accessibility identity (N94).
             let acknowledgement=inRecovery && targetID.hasPrefix("manual-ack-")
+            let correctionMenu=inRecovery && targetID.hasPrefix("recovery-correction-menu-")
             let recoveryTexts:Set<String>=["manual-review-header","manual-preview-header","manual-status",
                 "manual-comparison-available","manual-comparison-unavailable","manual-change-before","manual-change-after"]
             let query:XCUIElementQuery
@@ -74,7 +75,7 @@ extension ManualAssistanceChecks {
                 // Keep the outer logical ID local to its actual List and type.
                 if targetID.hasPrefix("manual-clear-") { query=list.buttons.matching(identifier:targetID) }
                 else if acknowledgement { query=list.switches.matching(identifier:targetID) }
-                else if recoveryTexts.contains(targetID) { query=list.staticTexts.matching(identifier:targetID) }
+                else if recoveryTexts.contains(targetID) || correctionMenu { query=list.staticTexts.matching(identifier:targetID) }
                 else { query=list.descendants(matching:.any).matching(identifier:targetID) }
             } else { query=app.descendants(matching:.any).matching(identifier:targetID) }
             let matches=targetID.isEmpty ? []:query.allElementsBoundByIndex
@@ -106,6 +107,20 @@ extension ManualAssistanceChecks {
             // use the same element rather than two successive representations.
             if alternatives==nil,exists,let targetFrame,
                ManualScrollNavigation.usable(targetFrame),viewport.contains(targetFrame) {
+                if correctionMenu {
+                    // Reveal by logical ID, then bind only the actual contact.
+                    let controls=query.allElementsBoundByAccessibilityElement
+                    guard controls.count==1 else {
+                        XCTFail("The revealed correction text must have one current native identity");return e
+                    }
+                    let actual=controls[0],frame=actual.frame
+                    print("TAKUPOKE-MANUAL-NATIVE-MENU id=\(targetID);frame=\(frame);viewport=\(viewport);attempt=\(attempt)")
+                    guard ManualScrollNavigation.usable(frame),viewport.contains(frame),
+                          actual.isEnabled,actual.isHittable else {
+                        XCTFail("The current correction text must remain inside the observed viewport and operable");return e
+                    }
+                    return actual
+                }
                 let physicalButtons:XCUIElementQuery?
                 if inRecovery && targetID.hasPrefix("manual-clear-") {
                     physicalButtons=query
