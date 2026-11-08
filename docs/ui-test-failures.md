@@ -4801,3 +4801,25 @@ Swift parse/catalog456/check --basec059a9fも成功。実5callerの既存project
 全14実logと限定log・両artifact0を一度だけ保存し、旧実行は再照会しない。限定成功を正式条件へ合算しない。
 新規main専用GPT-6.1 Sol/High n238_shipping_pre_actions_reviewも同一code-only80行/5657bytesに指摘なし。
 主担当がhash・局所/限定結果・元全期待/期限/全15維持・main baseと全未送信空白を確認後、一回の正式23 main pushへ消費する。
+
+## N239 — 正式482の通常27BでAI/OCR Switchの実操作後のUI/保存が変わらない（対処前の観測）
+
+source79e477656cbcc026b8f7e3f2edd50d07b5283698/run42441654334/attempt1/job128612698513、
+SDK27.2/Runtime27.0、testSettingsAccountDataAndFileDetailsが168.884秒/失敗1。
+Settings.swift:251でPhysical AI/OCR switch tap did not update both UI and stored permission。
+どの回の操作か、実touch/Binding/保存の下位原因は詳細照合前で未確定。対処案を選ぶ前に記録した。
+Native701/予定skip1・通常27A・手動27四件はsuccess、通常26Aだけ継続中。残りは取消しせず確認する。
+新しい完了7logだけ各一度保存し、Distribution既取得と計8log。26A・artifactはまだ未取得。全15未達で未公開。
+
+詳細：初回pid53655の3操作は実UI/保存/setter成功、native deliveryはbegan→endedが約73.6/81.3/85.1ms。
+再起動後pid56687の4回目1→0だけ、同じ現在native枠(300,485,63,28)/状態1/75%点(347.25,499)を確認後、
+約5.58msでbegan→endedした。cancelledではなくUILongPress state0のまま、UI1/保存1・新pidのsetterなし。
+検索語AI/OCR/fourth/native tap/touch durationでU04/U19/U55/U64/N146/N180/N192/N212と
+917e807/a8b7131/01daa73/current helper/全5callerを照合。U55の古いqueryは現行で再取得済み、
+N192の初回/配送未採取とも、N212の約135ms forced0.1接触の実cancelledとも異なる。
+今回は同点の極端に短い実deliveryと成功3接触の長さを初めて分離できた。短さが原因とはまだ断定しない。
+候補は現在native identity/同点/全包含/前状態一致を維持し、一回の通常coordinate.tapを
+要求50msの短いcoordinate.pressへ置換する。失敗済み要求100msへ戻さず、実配送時間/取消しは既存traceで再観測する。
+全5callerへ共通適用し、再送/状態・許可注入/元45秒や行除外15秒の延長、UI/保存/再起動条件の緩和は行わない。
+一回入力だけの既存契約検査は新しい短接触を明示的に要求し、二重tap/旧100ms/画面固定座標を拒否する。
+候補/根拠を先にpush後に全Python/Swift構文/catalogを確認し、新規reviewで元Settings27/SDK27.2だけを比較する。

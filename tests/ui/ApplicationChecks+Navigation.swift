@@ -244,13 +244,13 @@ extension ApplicationChecks {
         let state = proof.state, rowState = proof.rowState
         let point = CGPoint(x: frame.minX + frame.width * (state == "0" ? 0.25 : 0.75), y: frame.midY)
         print(
-            "NATIVE_SWITCH row=\(outer);control=\(frame);observedPoint=\(point);rowState=\(rowState);controlState=\(state);target=native-element;method=normal-tap"
+            "NATIVE_SWITCH row=\(outer);control=\(frame);observedPoint=\(point);rowState=\(rowState);controlState=\(state);target=native-element;method=short-contact-50ms"
         )
-        // N212: a forced 0.1s contact reached the native switch but its lens
-        // long-press recognizer cancelled it. Use one normal tap on the same
-        // current native identity and observed point, without a forced hold.
+        // N239: the normal tap delivered only 5.58ms after relaunch, while
+        // successful contacts took 73-85ms. Request one short 50ms contact;
+        // do not restore N212's cancelled 100ms hold or resend input.
         // The caller must still verify actual UI and saved values within 45 seconds.
         control.coordinate(withNormalizedOffset: CGVector(
-            dx: state == "0" ? 0.25 : 0.75, dy: 0.5)).tap()
+            dx: state == "0" ? 0.25 : 0.75, dy: 0.5)).press(forDuration: 0.05)
     }
 }

@@ -220,8 +220,10 @@ class ManifestTests(unittest.TestCase):
         self.assertNotIn('addUIInterruptionMonitor', pending)
         navigation = (ROOT / "tests/ui/ApplicationChecks+Navigation.swift").read_text()
         switch = navigation.split("func tapNativeSwitch(", 1)[1]
-        self.assertEqual(switch.count(".tap()"), 1)
-        self.assertNotIn("press(forDuration:", switch)
+        self.assertNotIn(".tap()", switch)
+        self.assertEqual(switch.count(".press(forDuration: 0.05)"), 1)
+        self.assertEqual(switch.count(".press(forDuration:"), 1)
+        self.assertNotIn(".press(forDuration: 0.1)", switch)
         self.assertNotIn(".doubleTap(", switch)
         self.assertNotIn("row.tap()", switch)
         self.assertNotIn("control.tap()", switch)
