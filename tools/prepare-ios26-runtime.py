@@ -173,10 +173,10 @@ def reclaim_owned_asset(before, download_id, download_image, asset_path):
                                                 output=removal.stdout, stderr=removal.stderr)
         if target_images(runtime_images("after-partial-removal")):
             raise SystemExit("Partial removal left an unexpected target runtime registration")
-        subprocess.run(["xcrun", "simctl", "runtime", "scan-and-mount"], check=True, timeout=180)
         scan_started = time.monotonic()
+        subprocess.run(["xcrun", "simctl", "runtime", "scan-and-mount"], check=True, timeout=180)
         observation_seconds = 30
-        scan_deadline = scan_started + observation_seconds
+        scan_deadline = time.monotonic() + observation_seconds
         while True:
             remaining_seconds = scan_deadline - time.monotonic()
             if remaining_seconds <= 0:
@@ -198,6 +198,8 @@ def reclaim_owned_asset(before, download_id, download_image, asset_path):
                 # no command is repeated and none of the acceptance checks move.
                 observation_seconds = 180
                 scan_deadline = scan_started + observation_seconds
+                if time.monotonic() >= scan_deadline:
+                    raise SystemExit("Owned asset signature verification did not complete within 180 seconds from scan start")
             if len(candidates) > 1:
                 raise SystemExit("Rescan introduced ambiguous runtime images")
             present = asset_path.exists()

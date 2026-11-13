@@ -167,7 +167,17 @@ with patch.object(Path,'exists',observed_exists):
             return actual_import(name,globals,locals,fromlist,level)
         namespace={'__name__':'__main__','__file__':sys.argv[0],
             '__builtins__':dict(vars(builtins),__import__=scoped_import)}
-        try:exec(compile(Path(sys.argv[0]).read_bytes(),sys.argv[0],'exec'),namespace)
+        import subprocess
+        actual_run=subprocess.run
+        def timed_run(command,*args,**kwargs):
+            result=actual_run(command,*args,**kwargs)
+            if command==['xcrun','simctl','runtime','scan-and-mount']:
+                if os.environ['MODE']=='partial-verifying-slow-scan':clock[0]+=150
+                if os.environ['MODE']=='partial-verifying-expired-scan':clock[0]+=180
+            return result
+        try:
+            with patch.object(subprocess,'run',timed_run):
+                exec(compile(Path(sys.argv[0]).read_bytes(),sys.argv[0],'exec'),namespace)
         finally:Path(os.environ['MARKER']).with_name('observed-elapsed').write_text(str(clock[0]))
     else:runpy.run_path(sys.argv[0],run_name='__main__')
 '''
@@ -189,7 +199,8 @@ with patch.object(Path,'exists',observed_exists):
                      'partial-verifying','partial-verifying-stuck','partial-verifying-foreign',
                      'partial-verifying-existing-parent','partial-verifying-duplicate','partial-verifying-wrong-identity',
                      'partial-verifying-unverified','partial-verifying-changed-asset',
-                     'partial-verifying-expired-ready','partial-verifying-lost-asset'):
+                     'partial-verifying-expired-ready','partial-verifying-lost-asset',
+                     'partial-verifying-slow-scan','partial-verifying-expired-scan'):
             with self.subTest(mode=mode),tempfile.TemporaryDirectory(prefix='takupoke-runtime-lifetime-') as directory:
                 root=Path(directory);scratch=root/'scratch';scratch.mkdir()
                 for name in ('xcrun','xcodebuild'):
@@ -222,11 +233,11 @@ with patch.object(Path,'exists',observed_exists):
                     self.assertEqual((root/'observations').read_text(),'30')
                 if mode.startswith('partial-verifying'):
                     expected=(34 if mode in ('partial-verifying','partial-verifying-unverified','partial-verifying-changed-asset')
-                        else 180 if mode in ('partial-verifying-stuck','partial-verifying-expired-ready')
+                        else 180 if mode in ('partial-verifying-stuck','partial-verifying-expired-ready','partial-verifying-slow-scan','partial-verifying-expired-scan')
                         else 0 if mode in ('partial-verifying-duplicate','partial-verifying-lost-asset') else 30)
                     self.assertEqual(float((root/'observed-elapsed').read_text()),expected)
                     if mode=='partial-verifying':self.assertEqual((root/'observations').read_text(),'35')
-                    elif mode in ('partial-verifying-stuck','partial-verifying-expired-ready'):self.assertIn('180 seconds',prepared.stderr)
+                    elif mode in ('partial-verifying-stuck','partial-verifying-expired-ready','partial-verifying-slow-scan','partial-verifying-expired-scan'):self.assertIn('180 seconds',prepared.stderr)
                     elif mode=='partial-verifying-duplicate':self.assertIn('ambiguous runtime verification',prepared.stderr)
                     elif mode=='partial-verifying-lost-asset':self.assertIn('lost its owned backing asset',prepared.stderr)
                     elif mode in ('partial-verifying-unverified','partial-verifying-changed-asset'):self.assertIn('unowned re-registered',prepared.stderr)
