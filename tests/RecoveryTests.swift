@@ -131,7 +131,7 @@ final class RecoveryTests: XCTestCase {
         XCTAssertTrue(retry("current", 7, PDFParseError(code: .unsupported), 7)); XCTAssertFalse(retry("old", 8, PDFParseError(code: .unsupported), 8)); XCTAssertFalse(retry("current", 8, nil, 8))
     }
     func testSpecialScopeVersionRetriesSameHashEarlierSuccessfulAnalysis() {
-        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion,34)
+        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion,35)
         XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"unchanged",parserVersion:SpecialScheduleAnalysis.parserVersion,
             analysisDigest:"unchanged",analysisVersion:21,attemptDigest:"unchanged",failure:nil,attemptVersion:21))
         XCTAssertFalse(PDFParseAttempt.needsAnalysis(digest:"unchanged",parserVersion:SpecialScheduleAnalysis.parserVersion,
@@ -151,18 +151,18 @@ final class RecoveryTests: XCTestCase {
     }
     func testRowOrderAndWholeClockVersionRetriesPublished33WithoutLooping() {
         XCTAssertEqual(PDFAnalysis.parserVersion,34)
-        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion,34)
+        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion,35)
         XCTAssertEqual(PDFAnalysis.currentVersion(for:.events),4)
         for version in [PDFAnalysis.parserVersion,SpecialScheduleAnalysis.parserVersion] {
             XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"same",parserVersion:version,
                 analysisDigest:"same",analysisVersion:33,attemptDigest:"same",failure:nil,attemptVersion:33))
             XCTAssertFalse(PDFParseAttempt.needsAnalysis(digest:"same",parserVersion:version,
-                analysisDigest:"same",analysisVersion:34,attemptDigest:"same",failure:nil,attemptVersion:34))
+                analysisDigest:"same",analysisVersion:version,attemptDigest:"same",failure:nil,attemptVersion:version))
             for failure in [PDFParseError(code:.unsupported,stage:.characterMapping),PDFParseError(code:.ambiguous,stage:.gridCell)] {
                 XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"same",parserVersion:version,
                     analysisDigest:nil,analysisVersion:nil,attemptDigest:"same",failure:failure,attemptVersion:33))
                 XCTAssertFalse(PDFParseAttempt.needsAnalysis(digest:"same",parserVersion:version,
-                    analysisDigest:nil,analysisVersion:nil,attemptDigest:"same",failure:failure,attemptVersion:34))
+                    analysisDigest:nil,analysisVersion:nil,attemptDigest:"same",failure:failure,attemptVersion:version))
             }
         }
     }
@@ -178,7 +178,7 @@ final class RecoveryTests: XCTestCase {
         XCTAssertFalse(PDFParseAttempt.needsAnalysis(digest: "same", parserVersion: PDFAnalysis.parserVersion,
             analysisDigest: nil, analysisVersion: nil, attemptDigest: "same", failure: failure, attemptVersion: PDFAnalysis.parserVersion))
         XCTAssertEqual(PDFAnalysis.currentVersion(for: .events), 4)
-        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion, 34)
+        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion, 35)
     }
     func testParallelAlignmentVersionRetriesEarlierSameHashSuccessAndFailure() {
         XCTAssertEqual(PDFAnalysis.currentVersion(for: .timetable), 34)
@@ -190,14 +190,14 @@ final class RecoveryTests: XCTestCase {
         XCTAssertFalse(PDFParseAttempt.needsAnalysis(digest: "same", parserVersion: PDFAnalysis.parserVersion,
             analysisDigest: nil, analysisVersion: nil, attemptDigest: "same", failure: failure, attemptVersion: PDFAnalysis.parserVersion))
         XCTAssertEqual(PDFAnalysis.currentVersion(for: .events), 4)
-        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion, 34)
+        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion, 35)
     }
     func testOCRCoverageVersionRetriesPriorSameHashSuccessWithoutChangingEvents() {
         XCTAssertEqual(PDFAnalysis.parserVersion,34)
         XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"same",parserVersion:PDFAnalysis.parserVersion,
             analysisDigest:"same",analysisVersion:24,attemptDigest:"same",failure:nil,attemptVersion:24))
         XCTAssertEqual(PDFAnalysis.currentVersion(for:.events),4)
-        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion,34)
+        XCTAssertEqual(SpecialScheduleAnalysis.parserVersion,35)
     }
     func testFilledRuleVersionRetriesUnchangedP01AndP12WithoutLooping() {
         let cases: [(Int, Int, PDFParseError.Stage)] = [

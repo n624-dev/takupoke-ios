@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`38a49d63f45ac0116e4fdc07b180561f1426364856597b0886441d716e78419d`
+`3ca88a2c9cb49a2e4754688a3a8004877288fd4bbc19581d77915f2f9fb0969b`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -27,6 +27,8 @@ bash tools/test-parsing.sh
 
 ## [tests/SpecialScheduleTests+Persistence.swift](../../tests/SpecialScheduleTests+Persistence.swift)
 
+- `testScopedReturnSubsetCannotReplaceFullReturnAfterRestart`
+- `testVariableExamScopeSurvivesStoreRestartAndRejectsPhantomScope`
 - `testInterruptedEmptySpecialDatabaseCanFinishInitializationWithoutLosingSources`
 - `testMissingScheduleTableWithOtherSchemaOrVersionIsNotReinitialized`
 - `testMissingDatabaseOrTablesPreserveRetainedPDFCopies`
@@ -41,6 +43,12 @@ bash tools/test-parsing.sh
 
 ## [tests/SpecialScheduleTests.swift](../../tests/SpecialScheduleTests.swift)
 
+- `testSegmentedCellTopBordersDefineTheCompleteExamBody`
+- `testBlankRuledExamEdgeRowsCannotDisappearFromScope`
+- `testDeclaredExamPageCountMustMatchTheSelectedDocument`
+- `testExamUsesHeadersForPageOrderColumnsDaysAndScope`
+- `testExamRejectsDuplicateScopeAndMissingHeadersWithoutDiscardingBody`
+- `testFivePageExamAndReorderedSixPageExamKeepEveryLesson`
 - `testSpecialPeriodHeadingsDoNotTruncateNumericTokens`
 - `testSpecialConsecutiveHeadingsDoNotAdoptNumericSuffix`
 - `testMissingContinuousHeadingKeepsVerifiedSinglePeriodFallback`

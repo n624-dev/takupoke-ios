@@ -58,7 +58,11 @@ enum RecoveryConversion {
         }
         guard let day = doc.days.sorted().first else { throw PDFParseError(code:.storage) }
         let periodTimes = Dictionary(uniqueKeysWithValues:(1...(doc.kind == .exam ? 6 : 8)).compactMap { p in doc.times["\(day):\(p)"].map { (p,$0) } })
-        return SpecialScheduleAnalysis(kind:doc.kind == .exam ? .exam : .examReturn,sourceDigest:preview.source.digest,sourceName:preview.source.originalName,parsedAt:adopted.acceptance.acceptedAt,schoolYear:doc.schoolYear,coveredDates:doc.days.sorted(),coveredClasses:doc.classes.sorted(),periodTimes:periodTimes,lessons:remapFirstYear ? lessons.map(PDFClassAssignment.assign) : lessons,recovery:adopted)
+        let scopes = Dictionary(grouping:doc.cells,by: \.page).keys.sorted().map { page -> SpecialScheduleScope in
+            let slots = doc.cells.filter { $0.page == page }.flatMap(\.slots)
+            return SpecialScheduleScope(page:page,classes:Array(Set(slots.map(\.className))).sorted(),dates:Array(Set(slots.map(\.day))).sorted())
+        }
+        return SpecialScheduleAnalysis(kind:doc.kind == .exam ? .exam : .examReturn,sourceDigest:preview.source.digest,sourceName:preview.source.originalName,parsedAt:adopted.acceptance.acceptedAt,schoolYear:doc.schoolYear,coveredDates:doc.days.sorted(),coveredClasses:doc.classes.sorted(),periodTimes:periodTimes,lessons:remapFirstYear ? lessons.map(PDFClassAssignment.assign) : lessons,recovery:adopted,scopes:scopes)
     }
     static func recertifiedSpecial(_ analysis: SpecialScheduleAnalysis, hash: String) throws -> SpecialScheduleAnalysis? {
         guard (4...SpecialScheduleAnalysis.parserVersion).contains(analysis.version), analysis.sourceDigest == hash, let original = analysis.recovery,
@@ -69,8 +73,9 @@ enum RecoveryConversion {
         guard analysis.kind == projection.kind, analysis.schoolYear == projection.schoolYear,
               analysis.coveredDates == projection.coveredDates, analysis.coveredClasses == projection.coveredClasses,
               analysis.periodTimes == projection.periodTimes, analysis.lessons == projection.lessons,
+              (analysis.version < 35 && analysis.scopes == nil || analysis.scopes == projection.scopes),
               analysis.parsedAt == original.acceptance.acceptedAt else { return nil }
-        var next = analysis; next.version = SpecialScheduleAnalysis.parserVersion; next.lessons = projection.lessons.map(PDFClassAssignment.assign); next.recovery = current
+        var next = analysis; next.version = SpecialScheduleAnalysis.parserVersion; next.lessons = projection.lessons.map(PDFClassAssignment.assign); next.recovery = current; next.scopes = projection.scopes
         return next
     }
     static func verifyFile(_ source: RecoverySelectedSource, currentPeriod: () -> SchoolDataPeriod = { SchoolDataPeriod.current() }, check: () throws -> Void) throws {

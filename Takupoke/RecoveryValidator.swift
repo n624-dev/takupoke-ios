@@ -7,7 +7,7 @@ import Crypto
 
 enum RecoveryValidator {
     static let schemaVersion = 2
-    static let version = 8
+    static let version = 9
     private static func text(_ value: String) -> String {
         value.precomposedStringWithCompatibilityMapping.components(separatedBy: .whitespacesAndNewlines).joined()
     }
@@ -129,7 +129,8 @@ enum RecoveryValidator {
               [result.metadata.provider, result.metadata.modelId, result.metadata.modelVersion, result.metadata.runtimeVersion,
                result.metadata.promptVersion, result.metadata.osVersion, result.metadata.recoveryVersion].allSatisfy { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }, "versions")
         check(!doc.classes.isEmpty && Set(doc.classes).count == doc.classes.count && Set(doc.classes).isSubset(of: Set(RecoveryValidator.knownClasses)) && !doc.days.isEmpty && Set(doc.days).count == doc.days.count, "scope")
-        if doc.kind != .timetable { check(Set(doc.classes) == Set(RecoveryValidator.specialClasses) && doc.days.count == 5, "specialScope") }
+        if doc.kind == .return { check(Set(doc.classes) == Set(RecoveryValidator.specialClasses) && doc.days.count == 5, "specialScope") }
+        if doc.kind == .exam { check(Set(doc.classes).isSubset(of:Set(specialClasses)) && doc.days.count <= 31, "specialScope") }
         let maxPeriod = doc.kind == .exam ? 6 : 8
         var periodIds = [Int:Set<String>]()
         for period in 1...maxPeriod {
@@ -155,7 +156,19 @@ enum RecoveryValidator {
                 check(valid, "dates")
             }
         }
-        let required = Set(doc.classes.flatMap { cls in doc.days.flatMap { day in (1...maxPeriod).map { RecoverySlot(className: cls, day: day, period: $0) } } })
+        var expectedSlots = doc.classes.flatMap { cls in doc.days.flatMap { day in (1...maxPeriod).map { RecoverySlot(className: cls, day: day, period: $0) } } }
+        if doc.kind == .exam {
+            let pages = Set(doc.sources.map(\.page))
+            check(pages.count <= 12 && pages.allSatisfy { (1...12).contains($0) }, "specialPages")
+            expectedSlots = pages.sorted().flatMap { page in
+                let classes = doc.classes.filter { doc.classEvidence[$0,default:[]].contains { index.byId[$0]?.page == page } }
+                let days = doc.days.filter { doc.dayEvidence[$0,default:[]].contains { index.byId[$0]?.page == page } }
+                check(!classes.isEmpty && !days.isEmpty, "specialPageScope")
+                return classes.flatMap { cls in days.flatMap { day in (1...maxPeriod).map { RecoverySlot(className:cls,day:day,period:$0) } } }
+            }
+        }
+        let required = Set(expectedSlots)
+        check(required.count == expectedSlots.count, "duplicatePageScope")
         check(doc.requiredSlots.count == required.count && Set(doc.requiredSlots) == required, "requiredScope")
         let slots = doc.cells.flatMap(\.slots)
         check(slots.count == required.count && Set(slots) == required, "coverage")
@@ -259,7 +272,7 @@ enum RecoveryValidator {
                       evidence(doc.commonClockEvidence.filter { sources[$0]?.page == binding.page }, doc.commonClockEvidence),
                       doc.commonClockEvidence.filter { sources[$0]?.page == binding.page }.allSatisfy({ id in sources[id].map { $0.page == binding.page && region.box.contains($0.box) } ?? false }) else { return false }
                 if doc.kind == .exam {
-                    return header(doc.commonClockEvidence.filter { sources[$0]?.page == binding.page }, doc.commonClockEvidence, ["試験時間割", "試験時間", "試験時刻"]) && Set(pageCells[binding.page,default:[]].flatMap { $0.slots.map(\.day) }) == Set(doc.days)
+                    return header(doc.commonClockEvidence.filter { sources[$0]?.page == binding.page }, doc.commonClockEvidence, ["試験時間割", "試験時間", "試験時刻"]) && Set(pageCells[binding.page,default:[]].flatMap { $0.slots.map(\.day) }) == Set(doc.days.filter { doc.dayEvidence[$0,default:[]].contains { sources[$0]?.page == binding.page } })
                 }
                 if doc.kind == .return, day == doc.days.sorted().first {
                     let parts = day.split(separator: "-").compactMap { Int($0) }
@@ -558,8 +571,8 @@ enum RecoveryValidator {
             }
             return adopted
         }
-        if [5,6,7].contains(adopted.result.metadata.validatorVersion), let original = adopted.previousAcceptance {
-            guard [4,5,6].contains(original.metadata.validatorVersion),
+        if [5,6,7,8].contains(adopted.result.metadata.validatorVersion), let original = adopted.previousAcceptance {
+            guard [4,5,6,7].contains(original.metadata.validatorVersion),
                   original.metadata.validatorVersion < adopted.result.metadata.validatorVersion else { return nil }
             guard var old = try withValidatorVersion(adopted,original.metadata.validatorVersion) else { return nil }
             old.previousAcceptance = nil; old.acceptance = original
@@ -568,13 +581,13 @@ enum RecoveryValidator {
             expected.acceptance = RecoveryAcceptance(pdfHash:hash,resultHash:try fingerprint(expected.result),scopeHash:try fingerprint(expected.document),metadata:expected.result.metadata,acceptedAt:original.acceptedAt)
             return expected == adopted ? upgraded : nil
         }
-        guard adopted.previousAcceptance == nil, !adopted.document.cells.contains(where:{ $0.orderedRowProof != nil }),
-              adopted.result.metadata.validatorVersion == 7 || adopted.document.ocrLineAtomSourceIds == nil,
-              [6,7].contains(adopted.result.metadata.validatorVersion) ||
+        guard adopted.previousAcceptance == nil, (adopted.result.metadata.validatorVersion >= 8 || !adopted.document.cells.contains(where:{ $0.orderedRowProof != nil })),
+              adopted.result.metadata.validatorVersion >= 7 || adopted.document.ocrLineAtomSourceIds == nil,
+              [6,7,8].contains(adopted.result.metadata.validatorVersion) ||
                 (adopted.document.nativeCapture == nil && adopted.result.humanCorrections == nil &&
                  adopted.document.sources.allSatisfy({ $0.nativeConfidence == nil })),
-              [6,7].contains(adopted.result.metadata.validatorVersion) || adopted.document.structureMetadata == nil || adopted.document.structureMetadata == adopted.result.metadata,
-              [4,5,6,7].contains(adopted.result.metadata.validatorVersion),
+              [6,7,8].contains(adopted.result.metadata.validatorVersion) || adopted.document.structureMetadata == nil || adopted.document.structureMetadata == adopted.result.metadata,
+              [4,5,6,7,8].contains(adopted.result.metadata.validatorVersion),
               adopted.result.metadata.recoverySchemaVersion == schemaVersion,
               adopted.result.metadata.recoveryVersion == "2",
               adopted.acceptance.pdfHash == hash,

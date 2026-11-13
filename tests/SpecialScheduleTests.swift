@@ -9,6 +9,79 @@ import GRDB
 
 final class SpecialScheduleTests: XCTestCase {
 
+    func testSegmentedCellTopBordersDefineTheCompleteExamBody() throws {
+        var page=flexibleExamPage(["2-CN"],days:[1,2])
+        page.lines=page.lines.flatMap { rule -> [PDFRule] in
+            guard rule.horizontal else { return [rule] }
+            return [PDFRule(x1:0,y1:rule.y1,x2:90,y2:rule.y2)] + (0..<6).map { i in
+                PDFRule(x1:90+Double(i)*40,y1:rule.y1,x2:130+Double(i)*40,y2:rule.y2)
+            }
+        }
+        let result=try SpecialScheduleParser.parse([page],kind:.exam,digest:"fictional",name:"fictional.pdf")
+        XCTAssertEqual(result.coveredDates,["2026-04-01","2026-04-02"])
+        XCTAssertEqual(result.lessons.count,2)
+        page.glyphs.removeAll { 170 < $0.cy && $0.cy < 215 }
+        XCTAssertThrowsError(try SpecialScheduleParser.parse([page],kind:.exam,digest:"fictional",name:"fictional.pdf"))
+    }
+
+    func testBlankRuledExamEdgeRowsCannotDisappearFromScope() throws {
+        for row in [0,2] {
+            var page=flexibleExamPage(["2-CN"],days:[1,2,3])
+            page.glyphs.removeAll { 170+Double(row)*45 < $0.cy && $0.cy < 215+Double(row)*45 }
+            XCTAssertThrowsError(try SpecialScheduleParser.parse([page],kind:.exam,digest:"fictional",name:"fictional.pdf"))
+            XCTAssertThrowsError(try SpecialScheduleParser.parseCertified([page],kind:.exam,digest:"fictional",name:"fictional.pdf"))
+        }
+    }
+
+    func testDeclaredExamPageCountMustMatchTheSelectedDocument() throws {
+        let page=flexibleExamPage(["2-CN"],days:[1,2],declaredPages:1)
+        XCTAssertNoThrow(try SpecialScheduleParser.parse([page],kind:.exam,digest:"fictional",name:"fictional.pdf"))
+        let missing=flexibleExamPage(["2-CN"],days:[1,2],declaredPages:2)
+        XCTAssertThrowsError(try SpecialScheduleParser.parse([missing],kind:.exam,digest:"fictional",name:"fictional.pdf"))
+    }
+
+    func testExamUsesHeadersForPageOrderColumnsDaysAndScope() throws {
+        let pages = [flexibleExamPage(["1年","2年"],days:[4,5]),
+                     flexibleExamPage(["1-1","1-2"],days:[1,2,3]),
+                     flexibleExamPage(["2-CN"],days:[1,2,3]),
+                     flexibleExamPage(["1-1"],days:[4,5])]
+        let result = try SpecialScheduleParser.parse(pages,kind:.exam,digest:"fictional",name:"fictional.pdf")
+        XCTAssertEqual(result.coveredClasses,["1_1","1_2","2_CN","AI_1","AI_2"])
+        XCTAssertEqual(result.coveredDates.count,5)
+        XCTAssertEqual(result.lessons.count,15)
+        XCTAssertTrue(result.applies(date:"2026-04-04",className:"1_1"))
+        XCTAssertFalse(result.applies(date:"2026-04-04",className:"1_2"))
+        XCTAssertFalse(result.applies(date:"2026-04-01",className:"AI_1"))
+        XCTAssertTrue(result.validScopes)
+        let restored = try JSONDecoder().decode(SpecialScheduleAnalysis.self,from:JSONEncoder().encode(result))
+        XCTAssertEqual(restored,result)
+        XCTAssertFalse(restored.applies(date:"2026-04-04",className:"1_2"))
+    }
+
+    func testExamRejectsDuplicateScopeAndMissingHeadersWithoutDiscardingBody() throws {
+        let original=flexibleExamPage(["2-CN"],days:[1,2,3])
+        var crossClass=flexibleExamPage(["2-CN","3-IT"],days:[1])
+        crossClass.lines.removeAll { $0.vertical && $0.x1 == 330 }
+        XCTAssertThrowsError(try SpecialScheduleParser.parse([crossClass],kind:.exam,digest:"fictional",name:"fictional.pdf"))
+        var crossDay=original
+        crossDay.lines.removeAll { $0.horizontal && $0.y1 == 215 }
+        XCTAssertThrowsError(try SpecialScheduleParser.parse([crossDay],kind:.exam,digest:"fictional",name:"fictional.pdf"))
+        XCTAssertThrowsError(try SpecialScheduleParser.parse([original,original],kind:.exam,digest:"fictional",name:"fictional.pdf"))
+        for y in [110.0,227.0] {
+            var broken=original
+            broken.glyphs.removeAll { $0.x < (y == 110 ? 240 : 90) && $0.y == y }
+            XCTAssertThrowsError(try SpecialScheduleParser.parse([broken],kind:.exam,digest:"fictional",name:"fictional.pdf"))
+        }
+    }
+
+    func testFivePageExamAndReorderedSixPageExamKeepEveryLesson() throws {
+        let five=try SpecialScheduleParser.parse((1...5).map { examPage($0) },kind:.exam,digest:"fictional",name:"fictional.pdf")
+        XCTAssertEqual(five.coveredClasses.count,15); XCTAssertEqual(five.lessons.count,75)
+        let six=try SpecialScheduleParser.parse([6,3,1,5,2,4].map { examPage($0) },kind:.exam,digest:"fictional",name:"fictional.pdf")
+        XCTAssertEqual(six.coveredClasses.count,17); XCTAssertEqual(six.lessons.count,85)
+        XCTAssertEqual(Set(six.lessons.filter { $0.className.hasPrefix("AI_") }.map(\.page)),[1])
+    }
+
     private func replacingFirstExamTime(_ pages: [PDFPageLayout], with text: String,
                                         consecutive: Bool = false) -> [PDFPageLayout] {
         pages.map { original in

@@ -582,7 +582,7 @@ extension PDFParsingTests {
             XCTAssertEqual(upgraded.previousAcceptance,old.acceptance)
             XCTAssertEqual(upgraded.result.humanCorrections,old.result.humanCorrections)
             XCTAssertEqual(upgraded.acceptance.acceptedAt,old.acceptance.acceptedAt)
-            XCTAssertEqual(upgraded.result.metadata.validatorVersion,8)
+            XCTAssertEqual(upgraded.result.metadata.validatorVersion,9)
             XCTAssertEqual(try RecoveryValidator.recertify(upgraded,hash:doc.pdfHash),upgraded)
             var changed = old
             changed.document.sources[0].text += "偽"
@@ -591,12 +591,12 @@ extension PDFParsingTests {
     }
     func testAtomContractCannotBeBackdatedToVersionSixOrLoseKnownVersionGuard() async throws {
         let doc = try lineAtomFixture()
-        XCTAssertEqual(doc.structureMetadata?.validatorVersion,8)
+        XCTAssertEqual(doc.structureMetadata?.validatorVersion,9)
         XCTAssertEqual(doc.structureMetadata?.runtimeVersion,"rules:3+native-common-body:1")
         XCTAssertFalse(doc.structureMetadata!.osVersion.isEmpty)
         let run = try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
         let result = try XCTUnwrap(run.result)
-        XCTAssertEqual(result.metadata.validatorVersion,8)
+        XCTAssertEqual(result.metadata.validatorVersion,9)
         let backdated = try acceptedVersionSix(doc,result)
         XCTAssertNil(try RecoveryValidator.recertify(backdated,hash:doc.pdfHash))
         XCTAssertFalse(RecoveryValidator.validate(doc,backdated.result).canAdopt)
@@ -611,7 +611,7 @@ extension PDFParsingTests {
         XCTAssertEqual(current.acceptance.acceptedAt,receipt.acceptedAt)
         XCTAssertEqual(current.previousAcceptance,receipt)
         XCTAssertEqual(current.result.cells,result.cells)
-        XCTAssertEqual(current.result.metadata.validatorVersion,8)
+        XCTAssertEqual(current.result.metadata.validatorVersion,9)
         XCTAssertTrue(RecoveryValidator.validate(current.document,current.result).canAdopt)
         XCTAssertEqual(try RecoveryValidator.recertify(current,hash:doc.pdfHash),current)
         var tampered=old;tampered.document.sources[0].text += "偽"

@@ -28,12 +28,13 @@ enum SpecialScheduleParser {
 
     static func parseCertified(_ pages: [PDFPageLayout], kind: SpecialScheduleKind, digest: String,
                       name: String, check: () throws -> Void = {}) throws -> SpecialScheduleAnalysis {
-        guard !pages.isEmpty, pages.count == (kind == .exam ? 6 : 1) else {
+        guard !pages.isEmpty, pages.count <= 12, kind == .exam || pages.count == 1 else {
             throw PDFParseError(code: .unsupported, stage: .documentHeading, branch:.b250)
         }
         var year: Int?
         var lessons: [SpecialScheduleLesson] = []
         var expectedDates: [String]?
+        var scopes: [SpecialScheduleScope] = []
         var dedicatedTimeDate: String?
         var coveredClasses: Set<String> = []
         var periodTimes: Times?
@@ -61,6 +62,7 @@ enum SpecialScheduleParser {
                 throw PDFParseError(code: .ambiguous, page: index + 1, stage: .yearHeading, branch:.b253)
             }
             year = pageYear
+            if kind == .exam { try PDF239SpecialScheduleParser.validateDeclaredExamPages(page,count:pages.count,pageNumber:index+1) }
             let pageTimes = try readPeriodTimes(page, count: kind == .exam ? 6 : 8,
                                                 pageNumber: index + 1)
             guard periodTimes == nil || periodTimes == pageTimes else {
@@ -73,11 +75,12 @@ enum SpecialScheduleParser {
                 : parseReturnPage(page, schoolYear: pageYear, times: pageTimes, check: check)
             if kind == .examReturn { dedicatedTimeDate = parsed.dates.first }
             let dates = parsed.dates.sorted()
-            guard expectedDates == nil || expectedDates == dates else {
+            guard kind == .exam || expectedDates == nil || expectedDates == dates else {
                 throw PDFParseError(code: .ambiguous, page: index + 1, stage: .calendarDates, branch:.b255)
             }
-            expectedDates = dates
-            guard coveredClasses.isDisjoint(with: parsed.classes) else {
+            expectedDates = Array(Set((expectedDates ?? []) + dates)).sorted()
+            scopes.append(SpecialScheduleScope(page:index + 1,classes:parsed.classes,dates:dates))
+            guard kind == .exam || coveredClasses.isDisjoint(with: parsed.classes) else {
                 throw PDFParseError(code: .ambiguous, page: index + 1, stage: .duplicateClass, branch:.b256)
             }
             coveredClasses.formUnion(parsed.classes)
@@ -85,12 +88,14 @@ enum SpecialScheduleParser {
             guard lessons.count <= PDFSchoolParser.maximumRecords else { throw PDFParseError(code: .limit, branch:.b257) }
         }
         guard let year, let dates = expectedDates, let periodTimes,
-              coveredClasses == Set(RecoveryValidator.specialClasses), !lessons.isEmpty else { throw PDFParseError(code: .unsupported, branch:.b258) }
-        return SpecialScheduleAnalysis(kind: kind, sourceDigest: digest, sourceName: name,
+              (kind == .exam ? coveredClasses.isSubset(of:Set(RecoveryValidator.specialClasses)) : coveredClasses == Set(RecoveryValidator.specialClasses)), !lessons.isEmpty else { throw PDFParseError(code: .unsupported, branch:.b258) }
+        let analysis = SpecialScheduleAnalysis(kind: kind, sourceDigest: digest, sourceName: name,
                                        parsedAt: Date(), schoolYear: year, coveredDates: dates,
                                        coveredClasses: coveredClasses.sorted(), periodTimes: periodTimes.single,
                                        lessons: lessons.map(PDFClassAssignment.assign).sorted { ($0.date, $0.className, $0.period, $0.page) <
-                                           ($1.date, $1.className, $1.period, $1.page) }, dedicatedTimeDate: dedicatedTimeDate)
+                                           ($1.date, $1.className, $1.period, $1.page) }, dedicatedTimeDate: dedicatedTimeDate, scopes: scopes)
+        guard analysis.validScopes else { throw PDFParseError(code:.ambiguous,stage:.duplicateClass,branch:.b428) }
+        return analysis
     }
 
     static func runs(_ glyphs: [PDFGlyph]) -> [Run] {

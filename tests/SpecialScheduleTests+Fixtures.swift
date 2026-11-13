@@ -58,6 +58,39 @@ extension SpecialScheduleTests {
         return page
     }
 
+    /// Independently authored small tables, unrelated to any school document.
+    func flexibleExamPage(_ classes: [String], days: [Int], declaredPages: Int? = nil) -> PDFPageLayout {
+        var glyphs: [PDFGlyph] = [], lines: [PDFRule] = []
+        var line = 0, order = 0
+        func write(_ text: String, _ x: Double, _ y: Double) {
+            for (i,c) in text.enumerated() {
+                glyphs.append(PDFGlyph(text:String(c),x:x+Double(i)*3,y:y,width:3,height:4,sourceLine:line,sourceOrder:order))
+                order += 1
+            }
+            line += 1
+        }
+        write("令和8年度 試験時間割",20,20)
+        if let declaredPages { write("全\(declaredPages)ページ",20,36) }
+        for (column, cls) in classes.enumerated() {
+            write(cls,170+Double(column)*240,110)
+            for period in 0..<6 { write(String(period+1),108+Double(column*6+period)*40,150) }
+        }
+        let bottom = 170+Double(days.count)*45, right = 90+Double(classes.count)*240
+        for i in 0...classes.count*6 { let x=90+Double(i)*40; lines.append(PDFRule(x1:x,y1:170,x2:x,y2:bottom)) }
+        lines.append(PDFRule(x1:0,y1:170,x2:0,y2:bottom))
+        for i in 0...days.count { let y=170+Double(i)*45; lines.append(PDFRule(x1:0,y1:y,x2:right,y2:y)) }
+        for (row,day) in days.enumerated() {
+            let y=182+Double(row)*45
+            write("4月\(day)日",12,y)
+            for column in classes.indices {
+                let x=94+Double(column)*240
+                write("架空科目甲",x,y); write("架空教員乙",x,y+9); write("架空教室丙",x,y+18)
+            }
+        }
+        for p in 1...6 { write("\(p)時限目\(p+7):00~\(p+7):40",20,480+Double(p)*16) }
+        return PDFPageLayout(width:max(850,right+20),height:650,glyphs:glyphs,lines:lines)
+    }
+
     func examPage(_ number: Int, omitLastTime: Bool = false,
                           mergedFirstTwo: Bool = false,
                           metadataOnFirstCell: Bool = false, timingOverride: [String]? = nil) -> PDFPageLayout {
@@ -94,10 +127,10 @@ extension SpecialScheduleTests {
         for index in 0...columns * 6 {
             let x = 100 + Double(index) * 40
             lines.append(PDFRule(x1: x, y1: mergedFirstTwo && index == 1 ? 150 : 110,
-                                 x2: x, y2: 350))
+                                 x2: x, y2: 310))
         }
-        lines.append(PDFRule(x1: 0, y1: 110, x2: 0, y2: 350))
-        for index in 0...6 {
+        lines.append(PDFRule(x1: 0, y1: 110, x2: 0, y2: 310))
+        for index in 0...5 {
             let y = 110 + Double(index) * 40
             lines.append(PDFRule(x1: 0, y1: y, x2: 100 + Double(columns * 6) * 40, y2: y))
         }

@@ -8,6 +8,28 @@ import XCTest
 @testable import TakupokeParsing
 
 extension SpecialScheduleTests {
+    func testRecoveryExamCannotDiscardBlankEdgeRows() throws {
+        for row in [0,2] {
+            var page=flexibleExamPage(["2-CN"],days:[1,2,3])
+            page.glyphs.removeAll { 170+Double(row)*45 < $0.cy && $0.cy < 215+Double(row)*45 }
+            XCTAssertThrowsError(try RecoveryDocumentBuilder.build([page],kind:.exam,hash:String(repeating:"a",count:64)))
+        }
+    }
+
+    func testRecoveryExamUsesPageBoundEvidenceForVariableScope() async throws {
+        let pages=[flexibleExamPage(["2-CN"],days:[1,2]),flexibleExamPage(["3-IT"],days:[3])]
+        let doc=try RecoveryDocumentBuilder.build(pages,kind:.exam,hash:String(repeating:"a",count:64))
+        XCTAssertEqual(doc.classes,["2_CN","3_IT"])
+        XCTAssertEqual(doc.requiredSlots.count,18)
+        XCTAssertFalse(doc.requiredSlots.contains(RecoverySlot(className:"2_CN",day:"2026-04-03",period:1)))
+        let run=try await RecoveryEngine.run(doc,os:"ios",osMajor:26,foreground:true,providers:[],rule:{ _ in nil },check:{})
+        XCTAssertEqual(run.state,.awaitingConfirmation,run.errors.joined(separator:","))
+        let result=try XCTUnwrap(run.result)
+        XCTAssertTrue(RecoveryValidator.validate(doc,result).canAdopt)
+        var missing=doc; missing.cells.removeFirst()
+        XCTAssertFalse(RecoveryValidator.validate(missing,result).canAdopt)
+    }
+
     func testDenseRecoverySourceGroupsUseOneIndexAndRemainCancellable() async throws {
         let bands = [0..<3, 3..<6, 6..<9, 9..<12, 12..<17]
         let pages = bands.map { rows -> PDFPageLayout in

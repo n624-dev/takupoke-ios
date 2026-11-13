@@ -88,6 +88,7 @@ enum RecoveryDocumentBuilder {
             try check()
             try page.requireVisibleBounds(check:check)
             let number = pageIndex + 1, grid = PDFGrid(page: page)
+            if kind == .exam { try PDF239SpecialScheduleParser.validateDeclaredExamPages(page,count:pages.count,pageNumber:number) }
             let pageRaster = try rasters[number].map { try $0.preparingRules(page.lines,check:check) }
             let glyphIndex = try RecoveryGlyphIndex(page.glyphs,check:check)
             var used: Set<Int> = []
@@ -182,11 +183,15 @@ enum RecoveryDocumentBuilder {
                 let dates = headings(page.glyphs.filter { $0.cy > headerY && $0.cx < periodRow[0].cx }).compactMap { h -> (Heading, SchoolDate)? in
                     SpecialScheduleParser.date(PDFSchoolParser.key(h.text), schoolYear: doc.schoolYear, slash: false).map { (h,$0) }
                 }
-                guard dates.count == 5 else { throw PDFParseError(code: .unsupported, stage: .calendarDates) }
+                guard !dates.isEmpty, dates.count <= 31, Set(dates.map { $0.1 }).count == dates.count else { throw PDFParseError(code: .unsupported, stage: .calendarDates) }
                 for (h,date) in dates {
                     let id = try add(h.glyphs), r = try grid.box(h.box.x+h.box.width/2,h.box.y+h.box.height/2,check:check)
                     vertical.append(AxisItem(value: date.iso8601, ids: [id], region: region(h.box, axis: .left), position: h.box.y+h.box.height/2, row: r))
                     doc.dayEvidence[date.iso8601, default: []].append(id)
+                }
+                guard PDF239SpecialScheduleParser.examRowsReachBoundaries(page,periods:periodRow,
+                    rows:vertical.sorted { $0.position < $1.position }.compactMap(\.row)) else {
+                    throw PDFParseError(code:.ambiguous,page:number,stage:.calendarDates)
                 }
             } else {
                 let labels = headings(page.glyphs.filter { $0.cy < headerY - 2 && $0.cy > headerY - page.height / 8 }).compactMap { h -> (Heading,String)? in
@@ -533,7 +538,16 @@ enum RecoveryDocumentBuilder {
             }
         }
         doc.classes = doc.classEvidence.keys.sorted(); doc.days = doc.dayEvidence.keys.sorted()
-        doc.requiredSlots = doc.classes.flatMap { cls in doc.days.flatMap { day in (1...count).map { RecoverySlot(className:cls,day:day,period:$0) } } }
+        if kind == .exam {
+            let sourcePages = Dictionary(uniqueKeysWithValues:doc.sources.map { ($0.id,$0.page) })
+            doc.requiredSlots = (1...pages.count).flatMap { page in
+                let classes = doc.classes.filter { doc.classEvidence[$0,default:[]].contains { sourcePages[$0] == page } }
+                let days = doc.days.filter { doc.dayEvidence[$0,default:[]].contains { sourcePages[$0] == page } }
+                return classes.flatMap { cls in days.flatMap { day in (1...count).map { RecoverySlot(className:cls,day:day,period:$0) } } }
+            }
+        } else {
+            doc.requiredSlots = doc.classes.flatMap { cls in doc.days.flatMap { day in (1...count).map { RecoverySlot(className:cls,day:day,period:$0) } } }
+        }
         if doc.cells.contains(where:{ $0.orderedRowProof != nil }) {
             guard kind == .timetable, Set(doc.classes) == Set(RecoveryValidator.specialClasses),
                   Set(doc.days) == Set(["1","2","3","4","5"]), doc.requiredSlots.count == 680 else {

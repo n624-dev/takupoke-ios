@@ -5,6 +5,44 @@ import GRDB
 @testable import TakupokeParsing
 
 extension SpecialScheduleTests {
+    func testScopedReturnSubsetCannotReplaceFullReturnAfterRestart() throws {
+        let root=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let store=try SpecialScheduleStore(root:root)
+        let good=try SpecialScheduleParser.parse([returnPageWithSplitCell()],kind:.examReturn,digest:"fictional-return",name:"fictional.pdf")
+        let bytes=Data("%PDF-fictional-return".utf8), staged=store.newStagingURL()
+        try bytes.write(to:staged)
+        try store.save(staged:staged,analysis:good,originalName:"fictional.pdf",byteCount:bytes.count,digest:good.sourceDigest)
+        let date="2026-04-01"
+        let partial=SpecialScheduleAnalysis(kind:.examReturn,sourceDigest:good.sourceDigest,sourceName:good.sourceName,
+            parsedAt:good.parsedAt,schoolYear:good.schoolYear,coveredDates:[date],coveredClasses:["3_IT"],
+            periodTimes:good.periodTimes,lessons:good.lessons.filter { $0.className == "3_IT" && $0.date == date },
+            dedicatedTimeDate:date,scopes:[SpecialScheduleScope(page:1,classes:["3_IT"],dates:[date])])
+        XCTAssertTrue(partial.validScopes)
+        let next=store.newStagingURL();try bytes.write(to:next)
+        XCTAssertThrowsError(try store.save(staged:next,analysis:partial,originalName:"fictional.pdf",byteCount:bytes.count,digest:good.sourceDigest))
+        XCTAssertEqual(try SpecialScheduleStore(root:root).records[.examReturn]?.analysis,good)
+    }
+
+    func testVariableExamScopeSurvivesStoreRestartAndRejectsPhantomScope() throws {
+        let root=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let store=try SpecialScheduleStore(root:root)
+        let result=try SpecialScheduleParser.parse([
+            flexibleExamPage(["2-CN"],days:[1,2]),flexibleExamPage(["3-IT"],days:[3])
+        ],kind:.exam,digest:"fictional-scope",name:"fictional.pdf")
+        let bytes=Data("%PDF-fictional-scope".utf8), staged=store.newStagingURL()
+        try bytes.write(to:staged)
+        try store.save(staged:staged,analysis:result,originalName:"fictional.pdf",byteCount:bytes.count,digest:result.sourceDigest)
+        let reopened=try SpecialScheduleStore(root:root)
+        XCTAssertEqual(reopened.records[.exam]?.analysis,result)
+        XCTAssertFalse(try XCTUnwrap(reopened.records[.exam]).analysis.applies(date:"2026-04-03",className:"2_CN"))
+        var broken=result; broken.scopes=nil
+        let next=store.newStagingURL(); try bytes.write(to:next)
+        XCTAssertThrowsError(try store.save(staged:next,analysis:broken,originalName:"fictional.pdf",byteCount:bytes.count,digest:result.sourceDigest))
+        XCTAssertEqual(try SpecialScheduleStore(root:root).records[.exam]?.analysis,result)
+    }
+
     func testInterruptedEmptySpecialDatabaseCanFinishInitializationWithoutLosingSources() throws {
         let root=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at:root) }

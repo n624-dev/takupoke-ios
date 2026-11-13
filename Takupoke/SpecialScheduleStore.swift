@@ -291,8 +291,11 @@ final class SpecialScheduleStore {
                 oldClock(lesson.spanEnd)?.components(separatedBy: "〜").last != nil
         }
         return (4...SpecialScheduleAnalysis.parserVersion).contains(analysis.version) &&
-            analysis.coveredDates.count == 5 && Set(analysis.coveredDates).count == 5 &&
-            analysis.coveredClasses.count == 17 && Set(analysis.coveredClasses).count == 17 &&
+            (analysis.kind != .examReturn || analysis.coveredDates.count == 5 && analysis.coveredClasses.count == 17) &&
+            (analysis.scopes != nil ? analysis.validScopes : analysis.version < 35 &&
+                analysis.coveredDates.count == 5 && analysis.coveredClasses.count == 17) &&
+            Set(analysis.coveredDates).count == analysis.coveredDates.count &&
+            Set(analysis.coveredClasses).count == analysis.coveredClasses.count &&
             analysis.periodTimes.count == count && !analysis.lessons.isEmpty &&
             (analysis.dedicatedTimeDate.map { analysis.coveredDates.contains($0) } ?? true) &&
             (analysis.version < 33 || analysis.kind != .examReturn || analysis.recovery != nil || analysis.dedicatedTimeDate != nil) &&

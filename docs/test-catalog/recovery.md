@@ -1,7 +1,7 @@
 # PDF復旧・OCR・構造・Validator・端末内Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`6878caa4737b7b0af8a92743853665ffb07f9627ee6f48e3eb1e60203188511d`
+`6a8fa77fa7e9409fb849ad2c55a569d120bda4d898f5cbe6cc968eacc669422a`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -111,6 +111,8 @@ bash tools/test-parsing.sh
 
 ## [tests/RecoveryBuilderTests+Special.swift](../../tests/RecoveryBuilderTests+Special.swift)
 
+- `testRecoveryExamCannotDiscardBlankEdgeRows`
+- `testRecoveryExamUsesPageBoundEvidenceForVariableScope`
 - `testDenseRecoverySourceGroupsUseOneIndexAndRemainCancellable`
 - `testRecoverySpecialTitleYearEvidenceCannotIgnoreASecondYear`
 - `testSpecialTitleYearMustBeUniqueAndEquivalentYearMarkersRemainValid`

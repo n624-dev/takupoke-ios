@@ -4837,3 +4837,18 @@ e336ef1/run42446150709/attempt1/job128625390428は04:16:45〜04:30:33Z success�
 全9実log/限定logと各artifact0は一度取得し、旧結果は再照会しない。限定や別sourceの成功を正式へ合算しない。
 新規main専用GPT-6.1 Sol/High n239_shipping_pre_actions_reviewも同一code-only40行/2536bytesに指摘なし。
 主担当がhash・元の全guard/期待/期限/全15維持・local/限定結果・main baseと全未送信空白を確認後、一回の正式24 main pushへ消費する。
+
+## L20261113-runtime-mock：Linuxの準備スクリプト模擬検査
+
+ba27dc0上の今回のPDF改修作業ツリー、Linux/Python3.12。
+全Python検査中、test_prepare_ios27_runtime.PrepareRuntimeTests.
+test_ios26_export_lives_until_explicit_job_cleanup_including_preparation_failuresの
+partial-pendingで、期待する30秒の終了説明に代わり残予算約0.025秒の
+mock xcrun runtime listがTimeoutExpiredとなった。実Xcode／Simulatorは使用していない。
+当該スクリプトとテストのHEADとの差分は空。検索語partial-pending／prepare-ios26／
+prepare_ios27に同条件の索引はなく、実Runtimeや実アプリの既存timeoutとは段階が異なる。
+同時に走っていたSwift全体検証の終了後、負荷を分けて該当caseだけを確認する。
+準備スクリプトの期限・期待値を変更しない。
+
+L20261113-runtime-mock追記：Swift全体検証終了後の該当case単独実行は63.116秒・成功。
+全入力を同じ期限・期待値で検査した。個別成功で、並行負荷時の再発が解消したとは断定しない。

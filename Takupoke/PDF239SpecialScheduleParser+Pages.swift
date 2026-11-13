@@ -1,29 +1,96 @@
 // Strict parsing contract from 239.1 (bfc599fd5a552ced0c140497c703199547c30fd4).
 // Return-only: separate column headings from class-table content.
-// Other conditions remain from 239.1; no recovery proof is implied.
+// Exam scope is discovered from headers and ruled rows; no recovery proof is implied.
 import Foundation
 
 extension PDF239SpecialScheduleParser {
-    static func parseExamPage(_ page: PDFPageLayout, schoolYear: Int, pageNumber: Int,
-                                      times: Times, check: () throws -> Void) throws -> ParsedPage {
-        let columns = pageNumber == 6 ? 2 : 3
-        let periods = try periodHeader(page, sequence: "123456", repeats: columns)
+    /// Spreadsheet exporters often draw one top edge per cell, not one path
+    /// across the entire table. Sweep aligned rule segments over period centres.
+    static func examBodyTop(_ page: PDFPageLayout, periods: [PDFGlyph]) -> Double? {
+        guard let first=periods.first else { return nil }
+        let rules=page.lines.filter { $0.horizontal && $0.y1 > first.cy }.sorted { $0.y1 < $1.y1 }
+        var start=0
+        while start < rules.count {
+            let y=rules[start].y1
+            var end=start+1
+            while end < rules.count && rules[end].y1-y <= 0.8 { end += 1 }
+            var column=0
+            for rule in rules[start..<end].sorted(by:{ $0.x1 < $1.x1 }) {
+                if column == periods.count { break }
+                if rule.x1-0.8 > periods[column].cx { break }
+                while column < periods.count && rule.x1-0.8 <= periods[column].cx && periods[column].cx <= rule.x2+0.8 { column += 1 }
+            }
+            if column == periods.count { return y }
+            start=end
+        }
+        return nil
+    }
+
+    static func examRowsReachBoundaries(_ page: PDFPageLayout, periods: [PDFGlyph], rows: [PDFBox]) -> Bool {
+        guard periods.count >= 6, let first=rows.first, let last=rows.last,
+              let top=examBodyTop(page,periods:periods) else { return false }
+        var bottom=first.top
+        for rule in page.lines.filter({ $0.vertical && abs($0.x1-first.right)<0.8 }).sorted(by:{ $0.y1 < $1.y1 }) {
+            if rule.y1 <= bottom+0.8 && rule.y2 > bottom { bottom=rule.y2 }
+        }
+        return abs(first.top-top) <= 1 && abs(last.bottom-bottom) <= 1 &&
+            zip(rows,rows.dropFirst()).allSatisfy { abs($0.bottom-$1.top) <= 1 }
+    }
+
+    static func examStructure(_ page: PDFPageLayout, schoolYear: Int, pageNumber: Int) throws
+        -> ([PDFGlyph], [String], [(Run, SchoolDate)]) {
+        let periods = try periodHeader(page, sequence: "123456")
+        let columns = periods.count / 6
         let headerY = periods[0].cy
         let labels = runs(page.glyphs.filter { $0.cy < headerY - 3 && $0.cy > headerY - page.height / 10 })
             .filter { run in
-                if pageNumber == 6 { return run.text.range(of: "^[12]年$", options: .regularExpression) != nil }
-                return run.text.range(of: "^[1-5]-(?:[1-3]|[A-Z]{2})$", options: .regularExpression) != nil
+                return run.text.range(of: "^(?:[12]年|[1-5]-(?:[1-3]|[A-Z]{2}))$", options: .regularExpression) != nil
             }.sorted { $0.cx < $1.cx }
         guard labels.count == columns else { throw PDFParseError(code: .unsupported, page: pageNumber, stage: .classLabel, branch:.b404) }
-        let names = labels.map { pageNumber == 6 ? "AI_" + String($0.text.prefix(1)) : $0.text.replacingOccurrences(of: "-", with: "_") }
-        let dateRuns = runs(page.glyphs.filter { $0.cy > headerY + 5 && $0.cy < page.height * 0.7 })
+        let names = labels.map { $0.text.hasSuffix("年") ? "AI_" + String($0.text.prefix(1)) : $0.text.replacingOccurrences(of: "-", with: "_") }
+        guard let bodyBottom = page.lines.filter({ $0.vertical && $0.x1 >= periods[0].cx - (periods[1].cx-periods[0].cx) && $0.x1 <= periods.last!.cx && $0.y2 > headerY }).map(\.y2).max() else {
+            throw PDFParseError(code:.unsupported,page:pageNumber,stage:.gridRow,branch:.b429)
+        }
+        let dateRuns = runs(page.glyphs.filter { $0.cy > headerY + 5 && $0.cy < bodyBottom })
             .compactMap { run -> (Run, SchoolDate)? in
                 guard run.cx < periods[0].cx, let day = date(run.text, schoolYear: schoolYear, slash: false) else { return nil }
                 return (run, day)
             }.sorted { $0.0.cy < $1.0.cy }
-        guard dateRuns.count == 5, Set(dateRuns.map { $0.1 }).count == 5 else {
+        guard !dateRuns.isEmpty, dateRuns.count <= 31, Set(dateRuns.map { $0.1 }).count == dateRuns.count else {
             throw PDFParseError(code: .unsupported, page: pageNumber, stage: .calendarDates, branch:.b403)
         }
+        let grid = PDF239Grid(page:page)
+        let rows = try dateRuns.map { try grid.box($0.0.cx,$0.0.cy) }
+        // Follow the date-column boundary of this table. A separate notes or
+        // clock table lower on the page must not extend the lesson body.
+        var tableBottom = rows[0].top
+        for rule in page.lines.filter({ $0.vertical && abs($0.x1-rows[0].right)<0.8 }).sorted(by:{ $0.y1 < $1.y1 }) {
+            if rule.y1 <= tableBottom+0.8 && rule.y2 > tableBottom { tableBottom=rule.y2 }
+        }
+        let left = periods[0].cx - (periods[1].cx-periods[0].cx)/2
+        let right = periods.last!.cx + (periods.last!.cx-periods[periods.count-2].cx)/2
+        let bodyTop = examBodyTop(page,periods:periods) ?? rows[0].top
+        guard zip(rows,rows.dropFirst()).allSatisfy({ abs($0.bottom-$1.top) <= 1 }),
+              page.glyphs.filter({ left < $0.cx && $0.cx < right && bodyTop < $0.cy && $0.cy < tableBottom }).allSatisfy({ g in rows.contains { $0.top < g.cy && g.cy < $0.bottom } }) else {
+            throw PDFParseError(code:.ambiguous,page:pageNumber,stage:.calendarDates,branch:.b430)
+        }
+        guard examRowsReachBoundaries(page,periods:periods,rows:rows) else {
+            throw PDFParseError(code:.ambiguous,page:pageNumber,stage:.calendarDates,branch:.b435)
+        }
+        for column in 0..<columns {
+            let xs = Array(periods[(column*6)..<((column+1)*6)]).map(\.cx)
+            guard zip(xs,xs.dropFirst()).allSatisfy({ $0 < $1 }),
+                  xs[0]-(xs[1]-xs[0])/2 <= labels[column].cx,
+                  labels[column].cx <= xs[5]+(xs[5]-xs[4])/2 else {
+                throw PDFParseError(code:.ambiguous,page:pageNumber,stage:.classLabel,branch:.b431)
+            }
+        }
+        return (periods,names,dateRuns)
+    }
+
+    static func parseExamPage(_ page: PDFPageLayout, schoolYear: Int, pageNumber: Int,
+                                      times: Times, check: () throws -> Void) throws -> ParsedPage {
+        let (periods, names, dateRuns) = try examStructure(page,schoolYear:schoolYear,pageNumber:pageNumber)
         let grid = PDF239Grid(page: page)
         var result: [SpecialScheduleLesson] = []
         for (dayRun, day) in dateRuns {
@@ -39,6 +106,10 @@ extension PDF239SpecialScheduleParser {
                     var seen: Set<PDFBox> = []
                     for i in 0..<(edges.count - 1) where edges[i + 1] - edges[i] >= 2 {
                         let box = try grid.box(x, (edges[i] + edges[i + 1]) / 2)
+                        guard box.top >= row.top-0.8, box.bottom <= row.bottom+0.8,
+                              !periods.enumerated().contains(where:{ index,g in
+                                  index/6 != column && box.left+0.5 < g.cx && g.cx < box.right-0.5
+                              }) else { throw PDFParseError(code:.ambiguous,page:pageNumber,stage:.gridCell,branch:.b432) }
                         guard seen.insert(box).inserted else { continue }
                         result += try lessons(in: page, box: box, date: day, className: name,
                                               period: period, periodXs: periodXs,

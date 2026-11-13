@@ -23,8 +23,16 @@ struct SpecialScheduleLesson: Codable, Equatable {
     var room: String { lines.count > 2 ? lines[2] : "" }
 }
 
+/// Scope comes from each parsed table, including its empty slots. Keeping class
+/// and date membership together prevents a union from inventing cross-page scope.
+struct SpecialScheduleScope: Codable, Equatable {
+    let page: Int
+    let classes: [String]
+    let dates: [String]
+}
+
 struct SpecialScheduleAnalysis: Codable, Equatable {
-    static let parserVersion = 34
+    static let parserVersion = 35
     var version = parserVersion
     let kind: SpecialScheduleKind
     let sourceDigest: String
@@ -38,10 +46,41 @@ struct SpecialScheduleAnalysis: Codable, Equatable {
     var recovery: RecoveryAdopted? = nil
     var dedicatedTimeDate: String? = nil
 
+    var scopes: [SpecialScheduleScope]? = nil
+
     func applies(date: String, className: String) -> Bool {
-        coveredDates.contains(date) && (coveredClasses.contains(className) ||
-            (version >= 31 && TimetableSchedule.firstYearDepartments.contains(className) &&
-             coveredClasses.contains(where: { $0.hasPrefix("1_") })))
+        func contains(_ classes: [String]) -> Bool {
+            classes.contains(className) || (version >= 31 &&
+                TimetableSchedule.firstYearDepartments.contains(className) &&
+                classes.contains(where: { $0.hasPrefix("1_") }))
+        }
+        if let scopes { return scopes.contains { $0.dates.contains(date) && contains($0.classes) } }
+        return coveredDates.contains(date) && contains(coveredClasses)
+    }
+
+    /// Validate acquired scope independently of whether a slot contains a lesson.
+    var validScopes: Bool {
+        guard let scopes, !scopes.isEmpty, scopes.count <= 12 else { return false }
+        var pairs: Set<String> = []
+        for scope in scopes {
+            guard (1...12).contains(scope.page), !scope.classes.isEmpty, !scope.dates.isEmpty,
+                  scope.classes.count <= 64, scope.dates.count <= 31,
+                  Set(scope.classes).count == scope.classes.count,
+                  Set(scope.dates).count == scope.dates.count else { return false }
+            for cls in scope.classes {
+                guard cls.range(of: "^(?:[1-5]_(?:[1-3]|[A-Z]{2})|AI_[12])$", options: .regularExpression) != nil else { return false }
+                for date in scope.dates {
+                    guard let day = SchoolDate(iso8601: date), day.schoolYear == schoolYear,
+                          pairs.insert(cls + "/" + date).inserted else { return false }
+                }
+            }
+        }
+        return Set(scopes.flatMap(\.classes)) == Set(coveredClasses) &&
+            Set(scopes.flatMap(\.dates)) == Set(coveredDates) &&
+            lessons.allSatisfy { lesson in
+                scopes.contains { $0.page == lesson.page && $0.dates.contains(lesson.date) &&
+                    $0.classes.contains(lesson.sourceClassName ?? lesson.className) }
+            }
     }
 
     func periodTime(on date: String, period: Int) -> String? {

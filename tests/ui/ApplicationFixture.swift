@@ -256,17 +256,23 @@ struct SimulatorApplication: App {
                 let staged = specialStore.newStagingURL()
                 try raw.write(to: staged)
                 let name = "fictional-\(kind.rawValue).pdf"
+                let specialYear = SchoolDate(iso8601:date)!.schoolYear
+                let dates = ([offset] + Array(8...11)).map { index -> String in
+                    let candidate=monday.addingDays(index)!
+                    return (candidate.schoolYear == specialYear ? candidate : candidate.addingDays(-14)!).iso8601
+                }
+                let classes = RecoveryValidator.specialClasses
                 let lessons = (1...2).map { n in SpecialScheduleLesson(date: date, className: "3_IT", period: n,
                     spanStart: 1, spanEnd: 2, timeRange: "08:00〜09:20", lines: [subject,"架空教員C","架空教室C"], page: 1) }
                 let special = SpecialScheduleAnalysis(kind: kind, sourceDigest: digest, sourceName: name, parsedAt: Date(),
-                    schoolYear: period.schoolYear,
-                    // Keep the normal Thursday separate from special coverage, including
-                    // weeks that straddle the April/October semester boundary.
-                    coveredDates: ([offset] + Array(8...11)).map { monday.addingDays($0)!.iso8601 },
-                    coveredClasses: ["3_IT"] + (1...16).map { "fictional_\($0)" },
+                    schoolYear: specialYear,
+                    // Keep Thursday ordinary. Scope must use canonical classes and
+                    // dates in the declared school year, including boundary weeks.
+                    coveredDates: dates, coveredClasses: classes,
                     periodTimes: Dictionary(uniqueKeysWithValues: (1...(kind == .exam ? 6 : 8)).map {
                         ($0, String(format: "%02d:00〜%02d:40", $0 + 7, $0 + 7))
-                    }), lessons: lessons, dedicatedTimeDate: kind == .examReturn ? monday.addingDays(offset)!.iso8601 : nil)
+                    }), lessons: lessons, dedicatedTimeDate: kind == .examReturn ? date : nil,
+                    scopes: [SpecialScheduleScope(page:1,classes:classes,dates:dates)])
                 if ProcessInfo.processInfo.arguments.contains("--first-failed-special") {
                     try specialStore.saveSelection(staged: staged, kind: kind, originalName: name, byteCount: raw.count, digest: digest)
                     try specialStore.recordFailure(PDFParseError(code: .unsupported, page: 1, stage: .vectorObjects, branch: .b126), kind: kind)
