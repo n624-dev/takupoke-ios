@@ -391,10 +391,15 @@ enum FixtureLaunchDiagnostics {
         let line = "TAKUPOKE_LIFECYCLE pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) stage=\(stage)\n"
         append(line)
     }
-    static func recordInput(_ phase:String,point:CGPoint,views:String,gestures:String,native:String) {
+    static func recordInput(_ phase:String,point:CGPoint,views:String,gestures:String,native:String,
+                            timing:(TimeInterval,TimeInterval,String)? = nil) {
         guard ["began","ended","cancelled"].contains(phase),point.x.isFinite,point.y.isFinite else { return }
         let x=String(format:"%.2f",Double(point.x)),y=String(format:"%.2f",Double(point.y))
         append("TAKUPOKE_INPUT pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) phase=\(phase) x=\(x) y=\(y) views=\(views) gestures=\(gestures) native=\(native)\n")
+        if let (touch,event,presses) = timing, touch.isFinite, event.isFinite, touch >= 0, event >= 0 {
+            let touchTime=String(format:"%.6f",touch),eventTime=String(format:"%.6f",event)
+            append("TAKUPOKE_PRESS pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) phase=\(phase) touchTime=\(touchTime) eventTime=\(eventTime) recognizers=\(presses)\n")
+        }
     }
     private static func append(_ line: String) {
         writeLock.lock()
@@ -518,7 +523,7 @@ private enum FixtureInputDelivery {
     }
     static func observe(_ event:UIEvent,deliver:()->Void) {
         guard records<128,event.type == .touches else { deliver();return }
-        var pending:[(String,CGPoint,String,String,UISwitch?,String)]=[]
+        var pending:[(String,CGPoint,String,String,UISwitch?,String,(TimeInterval,TimeInterval,String)?)]=[]
         for touch in event.allTouches ?? [] {
             guard records<128,let window=touch.window else { continue }
             let phase:String
@@ -545,14 +550,26 @@ private enum FixtureInputDelivery {
                     .replacingOccurrences(of:"GestureRecognizer",with:"")
                 return "\(String(kind.prefix(16))):\(recognizer.state.rawValue):\(recognizer.cancelsTouchesInView ? 1:0):\(recognizer.delaysTouchesBegan ? 1:0):\(recognizer.delaysTouchesEnded ? 1:0)"
             }.joined(separator:",")
+            var timing:(TimeInterval,TimeInterval,String)?
+            if ProcessInfo.processInfo.arguments.contains("--fixture-link-press-trace") {
+                let presses=(touch.gestureRecognizers ?? []).prefix(6).compactMap { recognizer -> String? in
+                    guard let press=recognizer as? UILongPressGestureRecognizer else { return nil }
+                    let duration=press.minimumPressDuration,movement=Double(press.allowableMovement)
+                    guard duration.isFinite,movement.isFinite,(0...60).contains(duration),
+                          (0...1000).contains(movement),(0...10).contains(press.numberOfTapsRequired),
+                          (0...10).contains(press.numberOfTouchesRequired) else { return nil }
+                    return "\(press.state.rawValue):\(Int(duration*1000)):\(Int(movement*1000)):\(press.numberOfTapsRequired):\(press.numberOfTouchesRequired)"
+                }.joined(separator:",")
+                timing=(touch.timestamp,event.timestamp,presses.isEmpty ? "none":presses)
+            }
             records+=1
             pending.append((phase,touch.location(in:window),names.joined(separator:","),
-                gestures.isEmpty ? "none":gestures,control,control.map(state) ?? "none"))
+                gestures.isEmpty ? "none":gestures,control,control.map(state) ?? "none",timing))
         }
         deliver()
-        for (phase,point,views,gestures,control,before) in pending {
+        for (phase,point,views,gestures,control,before,timing) in pending {
             let native=control.map { before + "/" + state($0) } ?? "none"
-            FixtureLaunchDiagnostics.recordInput(phase,point:point,views:views,gestures:gestures,native:native)
+            FixtureLaunchDiagnostics.recordInput(phase,point:point,views:views,gestures:gestures,native:native,timing:timing)
         }
     }
 }

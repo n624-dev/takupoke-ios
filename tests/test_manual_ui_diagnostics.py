@@ -60,6 +60,13 @@ class ManualDiagnosticsTests(unittest.TestCase):
             path.write_text('\n'.join([native, absent, native + ' private body',
                 native.replace('native=0:', 'native=2:'), native + '/0:0:0']), encoding='utf-8')
             self.assertEqual(module.input_trace_lines(path), [native, absent])
+            press = 'TAKUPOKE_PRESS pid=123 time=42.25 phase=ended touchTime=10.500000 eventTime=10.500000 recognizers=5:500:10000:0:1'
+            no_press = press.replace('5:500:10000:0:1', 'none')
+            invalid_presses = [press + ' private body', press.replace('touchTime=10.500000', 'touchTime=nan'),
+                press.replace('recognizers=5:', 'recognizers=6:'), press + ',5:500:10000:0:1' * 6,
+                press.replace(':0:1', ':0:11'), press.replace('recognizers=5:500:10000:0:1', 'recognizers=private text')]
+            path.write_text('\n'.join([native,press,no_press] + invalid_presses),encoding='utf-8')
+            self.assertEqual(module.input_trace_lines(path),[native,press,no_press])
             alias = Path(tmp) / 'alias.log'
             alias.symlink_to(path)
             self.assertEqual(module.input_trace_lines(alias), [])

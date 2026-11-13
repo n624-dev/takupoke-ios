@@ -143,12 +143,17 @@ def input_trace_lines(path):
     pattern = re.compile(r"TAKUPOKE_INPUT pid=\d+ time=\d+(?:\.\d+)? phase=(?:began|ended|cancelled) x=-?\d+(?:\.\d+)? y=-?\d+(?:\.\d+)? views=[A-Za-z0-9_.,]{1,163}"
                          + r"(?: gestures=(?:none|" + gesture + r"(?:," + gesture + r"){0,5}))?"
                          + r"(?: native=(?:none|[01]:[01]:[01]/[01]:[01]:[01]))?")
+    press = r"[0-5]:\d{1,5}:\d{1,7}:(?:[0-9]|10):(?:[0-9]|10)"
+    press_pattern = re.compile(r"TAKUPOKE_PRESS pid=\d+ time=\d+(?:\.\d+)? phase=(?:began|ended|cancelled)"
+                              + r" touchTime=\d+(?:\.\d+)? eventTime=\d+(?:\.\d+)? recognizers=(?:none|"
+                              + press + r"(?:," + press + r"){0,5})")
     try:
         with path.open("rb") as stream:
             raw = stream.read(65537)
         if len(raw) > 65536:
             return []
-        return [line for line in raw.decode("utf-8").splitlines() if pattern.fullmatch(line)][:128]
+        return [line for line in raw.decode("utf-8").splitlines()
+                if pattern.fullmatch(line) or press_pattern.fullmatch(line)][:128]
     except (OSError, UnicodeError):
         return []
 

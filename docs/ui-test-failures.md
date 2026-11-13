@@ -4905,3 +4905,27 @@ manual runner6件/失敗0（3.903秒）、application runner18件/失敗0（35.1
 新規Sol/Highの限定開始前code-only reviewで、180秒の起点がscan返却後になっている指摘を受けた。
 scan開始前に起点を採り、通常30秒の登録観測は従来通り返却後、署名検証だけscan開始から180秒とする。
 scan自体が150秒/180秒かかる対照も独立時計へ追加し、観測予算が更新されないことを確認する。
+
+## N242 — 正式485のiOS26通常画面Bがfailure
+
+7c05ef749fab529d40272519c6bec8d8ea672040／run43362432494／attempt1、
+Application iOS26 UI B job131709176894。2026-11-13T05:24:45Z開始、05:57:25Z failure。
+設定SDK27.2／対象Runtime26.5。完了照会でfailureを確認し、log本文はこれから読む。
+失敗したケース／段階／原因は未確定。残Selected26と別branchの限定Three26は中止しない。
+対処を決める前に新しい失敗logと既往の同case・同段階の実コードを照合する。
+
+N242新log：Runtime準備とbuild-for-testingは成功。testLinkPreferencesSurviveRelaunchの
+ApplicationChecks+Settings.swift:553で、一回のnative長押し後45秒以内にリンクmenuが現れず失敗。
+ケースは173.064秒、通常Bの残ケースも実行され、同じjob内の結果はfailure。
+前回484の同じUIコード／iOS26Bは成功。今回は新しいUI失敗の観測で、
+N241の準備処理だけでは対処できない。LinkPreferences／Link menu／long pressの索引と当時のhelperを照合する。
+
+N242照合：U42/U54/N44/N55/N86の詳細、dfb185cの標準Menu/primaryActionと現LinkRowを比較した。
+同じnative長押し二秒と45秒待機を維持している。今回も架空loopbackページが実200応答で開き、
+primary actionへ進んだことを確認。入力は同じHostingUIButtonの中心へbegan/ended、wall時刻差4.562秒。
+終了時のUILongPress stateはfailedで、短い接触や取消しとは断定できない。
+現observerはDateのwall時刻とstateのみで、UIKitのtouch/event時刻と認識器の実設定は未観測。
+候補はLinkPreferencesケースだけにQAフラグを追加し、同じ一回のsendEventの前後を保ったまま、
+touch/event timestampとpublic UILongPressGestureRecognizerの最小時間/移動上限/必要接触数を固定数値で記録する。
+実操作・native hit point・二秒・45秒・保存/再起動/ブラウザ/全公開条件は変更しない。
+本文やURLは記録せず、公開製品にも観測コードを追加しない。新しい観測条件で元case26/SDK27.2を限定評価する。

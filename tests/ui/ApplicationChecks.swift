@@ -11,7 +11,7 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
         app.launchArguments = ["--reset-fixture", "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
         let initialConditions: [String: [String]] = [
             "testHomeClockSettingChangesAcrossBoundariesUpdateTheActualInProgressLabel": ["--home-clock-boundary", "--normal-only"],
-            "testLinkPreferencesSurviveRelaunch": ["--fixture-input-trace", "--loopback-browser-fixture"],
+            "testLinkPreferencesSurviveRelaunch": ["--fixture-input-trace", "--fixture-link-press-trace", "--loopback-browser-fixture"],
             "testSettingsAccountDataAndFileDetails": ["--ai-feature-probe", "--fixture-input-trace"],
             "testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData": ["--retention-corrupt"],
             "testTimetableDynamicTypeScalesAndRestoresStandardLayout": ["--grid-probe"],
