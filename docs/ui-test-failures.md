@@ -4929,3 +4929,16 @@ primary actionへ進んだことを確認。入力は同じHostingUIButtonの中
 touch/event timestampとpublic UILongPressGestureRecognizerの最小時間/移動上限/必要接触数を固定数値で記録する。
 実操作・native hit point・二秒・45秒・保存/再起動/ブラウザ/全公開条件は変更しない。
 本文やURLは記録せず、公開製品にも観測コードを追加しない。新しい観測条件で元case26/SDK27.2を限定評価する。
+
+N241修正候補の確認：9ba4563のhelper4宣言/失敗0（84.572秒）、
+Swift6.1.2を有効にしたPython全314件/失敗0/環境skip2（183.846秒）、catalog456が成功。
+05d7208/run43373647001/attempt1/job131714991934は05:41:31〜06:03:06Z success。
+新しいVerifying状態を観測後、scanから約27秒でVerified/Readyとなり、所有回収/importを通過した。
+元ThreeFields26/SDK27.2は298.278秒で成功、正確なcase完了と所有cleanup・artifact0を確認。
+今回の実Appleでは30秒超の遅延は再現せず、35秒相当の正例と180秒の失敗境界は独立時計の局所検査で確認した。
+個別成功を恒常解消や正式公開へ換算しない。
+
+N242観測候補8673b3cは、diagnostic parser12件/失敗0（0.269秒）、
+Swift有効のmanifest30件/失敗0（15.414秒）、Swift構文とcatalog456/checkが成功。
+新規Sol/High ios_link_press_focus_pre_actions_reviewは同じcode-only差分に指摘なし。
+元のUI操作・期限・期待値と一回のsendEvent維持を主担当が照合してから、元LinkPreferences26/SDK27.2限定一回へ消費する。
