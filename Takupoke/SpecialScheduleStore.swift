@@ -290,23 +290,41 @@ final class SpecialScheduleStore {
             return oldClock(lesson.spanStart)?.components(separatedBy: "〜").first != nil &&
                 oldClock(lesson.spanEnd)?.components(separatedBy: "〜").last != nil
         }
-        return (4...SpecialScheduleAnalysis.parserVersion).contains(analysis.version) &&
-            (analysis.kind != .examReturn || analysis.coveredDates.count == 5 && analysis.coveredClasses.count == 17) &&
-            (analysis.scopes != nil ? analysis.validScopes : analysis.version < 35 &&
-                analysis.coveredDates.count == 5 && analysis.coveredClasses.count == 17) &&
-            Set(analysis.coveredDates).count == analysis.coveredDates.count &&
-            Set(analysis.coveredClasses).count == analysis.coveredClasses.count &&
-            analysis.periodTimes.count == count && !analysis.lessons.isEmpty &&
-            (analysis.dedicatedTimeDate.map { analysis.coveredDates.contains($0) } ?? true) &&
-            (analysis.version < 33 || analysis.kind != .examReturn || analysis.recovery != nil || analysis.dedicatedTimeDate != nil) &&
-            analysis.lessons.allSatisfy { (1...count).contains($0.period) &&
-                (1...$0.period).contains($0.spanStart) &&
-                ($0.period...count).contains($0.spanEnd) &&
-                analysis.coveredDates.contains($0.date) &&
-                analysis.coveredClasses.contains($0.sourceClassName ?? $0.className) &&
-                (analysis.version < 31 || PDFClassAssignment.assign($0) == $0) &&
-                analysis.applies(date: $0.date, className: $0.className) &&
-                (analysis.version < 6 || hasStoredTime($0)) }
+        guard (4...SpecialScheduleAnalysis.parserVersion).contains(analysis.version) else { return false }
+        if analysis.kind == .examReturn {
+            guard analysis.coveredDates.count == 5, analysis.coveredClasses.count == 17 else { return false }
+        }
+        let scopeIsValid: Bool
+        if analysis.scopes != nil {
+            scopeIsValid = analysis.validScopes
+        } else {
+            scopeIsValid = analysis.version < 35 && analysis.coveredDates.count == 5 && analysis.coveredClasses.count == 17
+        }
+        guard scopeIsValid else { return false }
+        let dates = Set(analysis.coveredDates)
+        let classes = Set(analysis.coveredClasses)
+        guard dates.count == analysis.coveredDates.count, classes.count == analysis.coveredClasses.count else { return false }
+        guard analysis.periodTimes.count == count, !analysis.lessons.isEmpty else { return false }
+        if let dedicated = analysis.dedicatedTimeDate {
+            guard dates.contains(dedicated) else { return false }
+        }
+        if analysis.version >= 33, analysis.kind == .examReturn, analysis.recovery == nil {
+            guard analysis.dedicatedTimeDate != nil else { return false }
+        }
+        for lesson in analysis.lessons {
+            guard (1...count).contains(lesson.period) else { return false }
+            guard (1...lesson.period).contains(lesson.spanStart),
+                  (lesson.period...count).contains(lesson.spanEnd) else { return false }
+            guard dates.contains(lesson.date), classes.contains(lesson.sourceClassName ?? lesson.className) else { return false }
+            if analysis.version >= 31 {
+                guard PDFClassAssignment.assign(lesson) == lesson else { return false }
+            }
+            guard analysis.applies(date:lesson.date,className:lesson.className) else { return false }
+            if analysis.version >= 6 {
+                guard hasStoredTime(lesson) else { return false }
+            }
+        }
+        return true
     }
 
     private func removeUnreferencedFiles() throws {

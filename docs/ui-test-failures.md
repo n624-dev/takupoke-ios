@@ -4852,3 +4852,24 @@ prepare_ios27に同条件の索引はなく、実Runtimeや実アプリの既存
 
 L20261113-runtime-mock追記：Swift全体検証終了後の該当case単独実行は63.116秒・成功。
 全入力を同じ期限・期待値で検査した。個別成功で、並行負荷時の再発が解消したとは断定しない。
+
+## N240 — 試験scope追加後のApple Nativeコンパイルで保存検査式の型推論が停止
+
+a3241b10ff8aba23a7beeec949a383cfbd88d581／run43357779926／attempt1、
+Native PDF and recovery tests job131665299525。2026-11-13T03:39:52Z開始、03:42:50Z failure。
+macos-26、設定DEVELOPER_DIRは/Applications/Xcode_26.6.app/Contents/Developer。
+SpecialScheduleStore.swift:293の複合return式で「the compiler is unable to type-check this expression
+in reasonable time」。テストケースの実行前にswift testのビルドが終了1となった。
+ログにはこの設定パスがあり、実Swift／SDKのversion出力はないので推測で補わない。
+同じsourceのLinux Swift6.1.2では613テスト成功。旧実行は中止せず残りの結果も確認する。
+型検査条件の分割候補を選ぶ前に、型推論／type-check／SpecialScheduleStoreで過去索引を照合する。
+
+N240照合：N31はSDK26側ViewBuilderの複合式、N03はtry/importなどの不足、
+N67／N68はアプリとSPMの型契約／overloadの相違である。
+N31の当時f1abea00の訂正メニューと現在の保存predicateを実コードで比較した。
+今回はSwiftUIやGRDBのoverloadではなくFoundation型だけの長いBool式に診断が集中している。
+同じ型推論条件を再実行せず、保存検査を小さなguardと型付きBool、授業ごとのloopへ分割する。
+版数・返却の件数・scope・一意性・時刻・所属・投影・旧cacheの全条件と短絡順を維持する。
+新しい模擬テストは追加せず、既存の可変scope再起動・返却subset保存拒否・不正時刻・
+旧正常結果保持などを含む全Swift検証と、両Apple SDKの限定Native検証で確認する。
+限定成功は公開ゲートへ合算せず、その後に新しい同一sourceの全15を実行する。
