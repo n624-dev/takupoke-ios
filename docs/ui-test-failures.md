@@ -4983,3 +4983,23 @@ test_manual_matrix_requires_every_unchanged_case_on_both_os_separately:874で、
 独立prepare stepのif/run文字列契約が残っていた。前回は同じメソッド全体と全callerの確認が不足していた。
 新しいActionsはまだ開始していない。利用者の指示で、両repositoryの今回の全差分・関連契約・
 失敗索引本文と当時コードを確認し直し、個別の文字列修正と再実行を中断する。
+
+## L20261113-audit-swift-preflight — 全体検証用コピーと起動方法の不整合
+
+f9a2eefの全体確認開始前、所有一時SwiftPMコピー277ファイルのうちQA用2ファイルが古いことを検出。
+一時run.shはmode600で、直接実行がPermission deniedとなりXCTestは未実行。
+元ソースとscript/Packageの実状態を確認し、コピーを現在の公開ソースへ揃えて再照合し、
+bashで所有scriptを解釈して起動する。検証条件やソースを緩めず、未実行を成功に数えない。
+
+全差分再確認後の局所検証：現在の公開ソース277 Swiftファイルを所有コピーとbyte照合し、
+Linux Swift6.1.2で613件・失敗0（78.489秒）。Swift終了後のPython全315件も失敗0、
+予定された環境skip2（187.851秒）。catalog456とStrict枝一覧のcheckも成功した。
+N243の実workflow shellはshipping26/27、focused26 SDK27.2、focused27、
+focused26 native26.6での準備省略を全て検査し、準備失敗／timeout時のUI不実行を保持する。
+新規のSelected限定レビューはv3差分にblocking指摘なし。元Selected26/SDK27.2の限定CIはこれから開始し、
+その成功を正式実行の14公開前検証へ合算しない。未観測のUI停止原因の解消はまだ証明していない。
+
+N242の観測限定48a16a2/run43376612715/attempt1/job131724468623は06:08:26〜06:21:53Z success。
+同じ二秒のnative長押し、45秒menu待機、削除／再起動／追加／browser/Closeを全て通過した。
+UIKit時刻でも二回の実接触を確認し、製品・入力・期待値の変更はない。cleanup成功・artifact0。
+この一回の成功をN242の恒常解消とは扱わない。
