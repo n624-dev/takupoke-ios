@@ -4900,8 +4900,8 @@ AssetData不在→import→一意なlocal Readyを全て要求する。期限切
 候補/根拠を隔離branchへ先にpushし、架空CLIで検証遷移/期限切れ/誤所有と既存全modeを確認後、
 元ThreeFields26/SDK27.2の限定CIで準備から実UIまで通す。恒常解消はまだ未証明。
 
-N241局所検証：初候補9faacf2のRuntime helper4宣言/失敗0（121.6秒）、
-manual runner15件/失敗0、application runner3件/失敗0。
+N241局所検証：初候補9faacf2のRuntime helper4宣言/失敗0（82.787秒）、
+manual runner6件/失敗0（3.903秒）、application runner18件/失敗0（35.159秒）。
 新規Sol/Highの限定開始前code-only reviewで、180秒の起点がscan返却後になっている指摘を受けた。
 scan開始前に起点を採り、通常30秒の登録観測は従来通り返却後、署名検証だけscan開始から180秒とする。
 scan自体が150秒/180秒かかる対照も独立時計へ追加し、観測予算が更新されないことを確認する。
