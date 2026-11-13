@@ -4977,3 +4977,9 @@ manifest30件は1件失敗（14.473秒）。focused workflowの旧「準備外�
 reviewの同step化による環境伝播懸念は、実select/prepare各helper全体を読んで照合した。
 いずれもGITHUB_ENV/GITHUB_OUTPUTへ書かず、workflow envとxcode-select/Runtime登録の実状態を使う。
 held exportもRUNNER_TEMPの固定所有領域とmarkerで保持され、後続stepへの環境出力を必要としない。
+
+N243局所の二回目：c8629c1、同Linux/Swift6.1.2のmanifest30件は1件失敗（14.306秒）。
+test_manual_matrix_requires_every_unchanged_case_on_both_os_separately:874で、旧focusedの
+独立prepare stepのif/run文字列契約が残っていた。前回は同じメソッド全体と全callerの確認が不足していた。
+新しいActionsはまだ開始していない。利用者の指示で、両repositoryの今回の全差分・関連契約・
+失敗索引本文と当時コードを確認し直し、個別の文字列修正と再実行を中断する。

@@ -70,7 +70,7 @@ jobs:
             python3 -B tools/select-ci-xcode.py
             if [[ "$TKPK_TEST_IOS" == 27 ]]; then
               python3 -B tools/prepare-ios27-runtime.py
-            elif [[ "$TKPK_FOCUS_SDK26" != 26.6 ]]; then
+            elif [[ "$TKPK_TEST_IOS" == 26 && "$TKPK_FOCUS_SDK26" != 26.6 ]]; then
               python3 -B tools/prepare-ios26-runtime.py --hold-export
             fi
             bash tools/test-manual-ui.sh

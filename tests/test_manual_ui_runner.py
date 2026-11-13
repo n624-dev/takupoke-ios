@@ -17,9 +17,11 @@ from ui_test_manifest import MANUAL_CASES
 
 class ManualRunnerTests(unittest.TestCase):
     def test_workflow_budget_includes_runtime_preparation_and_stops_before_ui_on_failure(self):
-        for filename,job,ios in (('ios-release.yml','manual-26',26),
-                                 ('ios-release.yml','manual-27',27),
-                                 ('manual-input-native-probe.yml','focus',26)):
+        for filename,job,ios,sdk26 in (('ios-release.yml','manual-26',26,'27.2'),
+                                       ('ios-release.yml','manual-27',27,'27.2'),
+                                       ('manual-input-native-probe.yml','focus',26,'27.2'),
+                                       ('manual-input-native-probe.yml','focus',27,'27.2'),
+                                       ('manual-input-native-probe.yml','focus',26,'26.6')):
             workflow=(ROOT/'.github/workflows'/filename).read_text()
             block=re.search(r'^  '+job+r':\n(.*?)(?=^  [\w-]+:\n|\Z)',workflow,re.M|re.S).group(1)
             step=block.split('      - name: Exercise ',1)[1].split('\n      - ',1)[0]
@@ -32,8 +34,9 @@ class ManualRunnerTests(unittest.TestCase):
             if filename=='ios-release.yml':
                 self.assertEqual(command.count('--timeout 2400'),1)
                 command=command.replace('--timeout 2400','--timeout 1')
-            for mode in ('ready','failed-preparation','blocked-preparation'):
-                with self.subTest(workflow=filename,job=job,mode=mode),tempfile.TemporaryDirectory() as directory:
+            prepared=filename=='ios-release.yml' or ios==27 or sdk26!='26.6'
+            for mode in ('ready','failed-preparation','blocked-preparation') if prepared else ('ready',):
+                with self.subTest(workflow=filename,job=job,ios=ios,sdk26=sdk26,mode=mode),tempfile.TemporaryDirectory() as directory:
                     root=Path(directory);tools=root/'tools';tools.mkdir();calls=root/'calls'
                     shutil.copy(ROOT/'tools/timed_command.py',tools/'timed_command.py')
                     (tools/'select-ci-xcode.py').write_text("import os\nfrom pathlib import Path\nwith Path(os.environ['CALLS']).open('a') as f:f.write('select\\n')\n")
@@ -44,11 +47,11 @@ class ManualRunnerTests(unittest.TestCase):
                     for major in (26,27):(tools/f'prepare-ios{major}-runtime.py').write_text(preparation)
                     (tools/'test-manual-ui.sh').write_text('printf "ui\\n" >> "$CALLS"\n')
                     env=os.environ|{'CALLS':str(calls),'PREPARATION_MODE':mode,
-                        'TKPK_TEST_IOS':str(ios),'TKPK_FOCUS_SDK26':'27.2','TKPK_MANUAL_RUNNER_SECONDS':'1'}
+                        'TKPK_TEST_IOS':str(ios),'TKPK_FOCUS_SDK26':sdk26,'TKPK_MANUAL_RUNNER_SECONDS':'1'}
                     result=subprocess.run(['bash','-euo','pipefail','-c',command],cwd=root,env=env,
                         capture_output=True,text=True,timeout=10)
                     self.assertEqual(result.returncode,{'ready':0,'failed-preparation':9,'blocked-preparation':124}[mode],result.stdout+result.stderr)
-                    self.assertEqual(calls.read_text().splitlines(),['select','prepare']+(['ui'] if mode=='ready' else []))
+                    self.assertEqual(calls.read_text().splitlines(),['select']+(['prepare'] if prepared else [])+(['ui'] if mode=='ready' else []))
                     if mode=='blocked-preparation':self.assertIn('TIMING timeout:',result.stdout)
 
     def run_runner(self, *, selected="", build_status=0, omit_result=False, ios=26, record_all=False, omit_identity=False):

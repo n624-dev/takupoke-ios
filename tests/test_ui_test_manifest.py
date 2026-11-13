@@ -871,7 +871,7 @@ METHOD
                         and sdk27 in ('27.1','27.2') else 2,(ios,sdk,sdk27,run.stderr))
         self.assertLess(probe.index(preflight.splitlines()[0].strip()),probe.index("python3 -B tools/prepare-ios"))
         prepare="python3 -B tools/prepare-ios26-runtime.py --hold-export"
-        self.assertIn("if: matrix.ios == 26 && inputs.sdk26 != '26.6'\n        run: "+prepare,probe)
+        self.assertIn('if [[ "$TKPK_TEST_IOS" == 27 ]]; then\n              python3 -B tools/prepare-ios27-runtime.py\n            elif [[ "$TKPK_TEST_IOS" == 26 && "$TKPK_FOCUS_SDK26" != 26.6 ]]; then\n              '+prepare+'\n            fi',probe)
         self.assertLess(probe.index(prepare),probe.index("bash tools/test-manual-ui.sh"))
         cleanup="python3 -B tools/prepare-ios26-runtime.py --cleanup-export"
         self.assertIn("if: always() && matrix.ios == 26 && inputs.sdk26 != '26.6'\n        run: "+cleanup,probe)
