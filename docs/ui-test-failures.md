@@ -4942,3 +4942,29 @@ N242観測候補8673b3cは、diagnostic parser12件/失敗0（0.269秒）、
 Swift有効のmanifest30件/失敗0（15.414秒）、Swift構文とcatalog456/checkが成功。
 新規Sol/High ios_link_press_focus_pre_actions_reviewは同じcode-only差分に指摘なし。
 元のUI操作・期限・期待値と一回のsendEvent維持を主担当が照合してから、元LinkPreferences26/SDK27.2限定一回へ消費する。
+
+## N243 — 正式485のSelected26が45分上限後にcancelled終端
+
+7c05ef749fab529d40272519c6bec8d8ea672040／run43362432494／attempt1、
+Manual correction iOS26 SelectedHighConfidence job131709176825。
+05:24:46Z開始、06:19:46Z completed/cancelledをno-cache照会で確認。
+設定SDK27.2／対象Runtime26.5。Runtime準備は05:28:00Z成功、以後の実手動case stepがin_progress表示のまま。
+主担当はActionsのcancel APIやcancel操作を行っていない。45分job上限から10分後の終端と観測したが、
+終了理由とケースの停止位置は新logで確認するまで未確定。成功とは扱わない。
+対処を選ぶ前に新しいlogと当時の同ケース／同段階のコードを照合する。
+
+N243確認：check-run annotationは「The job has exceeded the maximum execution time of 45m0s」。
+GitHubがjob上限で停止したと確認できた。job log APIはBlobNotFound/404、完了run archive経由も0bytes。
+artifact0。ログ欠落から実ケースの停止位置や製品原因は推定しない。
+N162の上限後のlog欠落、N211/N218のSelected26、当時と現行の同case/runnerを照合する。
+通常画面BのN242のmenu不在と同一原因とは扱わない。
+
+N243照合：N162/2b5e5c9の外側監視と現manual-26/runnerを実コードで比較した。
+現manualはRuntime準備後に40分timerを開始する。今回準備3分14秒の後では45分job上限まで
+残り約41分46秒で、40分timeout後の120秒group回収と最大70秒診断を完了できる余白がない。
+SDK選択・Runtime準備・元runnerを一つの既存2400秒監視の中へまとめ、全体をjob上限前に失敗させる。
+focused manualにも同じ範囲を適用し、既存の2400/1800秒・45/35分上限・120秒回収を延長しない。
+元Selectedの入力/各操作期限/全期待/実Runner証明は不変で、timeoutは引き続き124失敗。
+これは停止箇所を失う監視範囲への対処候補であり、未観測のUI停止原因を直したとは扱わない。
+実workflowのwrapped shellを架空CLIで動かし、準備の失敗/準備のtimeoutでUIへ進まず、正常時だけ
+選択→準備→UIが一回ずつ進むことを確認する。その後、新sourceで元Selected26/SDK27.2一件を限定実行して観測する。

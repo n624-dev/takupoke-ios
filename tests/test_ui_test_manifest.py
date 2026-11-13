@@ -814,12 +814,14 @@ METHOD
                 block = block.split("  manual-26:\n", 1)[0]
             self.assertIn("TKPK_EXPECTED_IOS_SDK: '27.2'", block)
             self.assertIn(f"TKPK_SIMULATOR_FRONTEND: {'gui' if ios == 26 else 'headless'}", block)
-            self.assertIn('run: python3 -B tools/timed_command.py --timeout 2400 --cleanup-grace 120 "Manual UI runner" bash tools/test-manual-ui.sh', block)
+            budget = 'python3 -B tools/timed_command.py --timeout 2400 --cleanup-grace 120 "Manual preparation and UI runner" bash -euo pipefail -c'
+            self.assertIn(budget, block)
             prepare = f"python3 -B tools/prepare-ios{ios}-runtime.py"
             self.assertIn(prepare, block)
+            self.assertLess(block.index(budget), block.index("python3 -B tools/select-ci-xcode.py"))
             self.assertLess(block.index(prepare), block.index("bash tools/test-manual-ui.sh"))
             if ios == 26:
-                self.assertIn("run: " + prepare + " --hold-export\n", block)
+                self.assertIn(prepare + " --hold-export\n", block)
                 cleanup = "run: " + prepare + " --cleanup-export\n"
                 self.assertIn("if: always()\n        " + cleanup, block)
                 self.assertLess(block.index("bash tools/test-manual-ui.sh"), block.index(cleanup))

@@ -64,16 +64,17 @@ jobs:
           case "$TKPK_FOCUS_IOS" in both|26|27) ;; *) exit 2 ;; esac
           case "$TKPK_FOCUS_SDK26" in 26.6|27.1|27.2) ;; *) exit 2 ;; esac
           case "$TKPK_FOCUS_SDK27" in 27.1|27.2) ;; *) exit 2 ;; esac
-      - name: Select the active Xcode for CLI and GUI services
-        run: python3 -B tools/select-ci-xcode.py
-      - name: Prepare shipping iOS 27.0 for the focused comparison
-        if: matrix.ios == 27
-        run: python3 -B tools/prepare-ios27-runtime.py
-      - name: Prepare exact iOS 26.5 with the shipping SDK
-        if: matrix.ios == 26 && inputs.sdk26 != '26.6'
-        run: python3 -B tools/prepare-ios26-runtime.py --hold-export
       - name: Exercise physical replacement, independent acknowledgement and saved adoption
-        run: python3 -B tools/timed_command.py --timeout "$TKPK_MANUAL_RUNNER_SECONDS" --cleanup-grace 120 "Focused manual UI runner" bash tools/test-manual-ui.sh
+        run: |
+          python3 -B tools/timed_command.py --timeout "$TKPK_MANUAL_RUNNER_SECONDS" --cleanup-grace 120 "Focused manual preparation and UI runner" bash -euo pipefail -c '
+            python3 -B tools/select-ci-xcode.py
+            if [[ "$TKPK_TEST_IOS" == 27 ]]; then
+              python3 -B tools/prepare-ios27-runtime.py
+            elif [[ "$TKPK_FOCUS_SDK26" != 26.6 ]]; then
+              python3 -B tools/prepare-ios26-runtime.py --hold-export
+            fi
+            bash tools/test-manual-ui.sh
+          '
       - name: Remove the owned iOS 26 runtime export after simulator cleanup
         if: always() && matrix.ios == 26 && inputs.sdk26 != '26.6'
         run: python3 -B tools/prepare-ios26-runtime.py --cleanup-export
