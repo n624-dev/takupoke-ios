@@ -4873,3 +4873,29 @@ N31の当時f1abea00の訂正メニューと現在の保存predicateを実コー
 新しい模擬テストは追加せず、既存の可変scope再起動・返却subset保存拒否・不正時刻・
 旧正常結果保持などを含む全Swift検証と、両Apple SDKの限定Native検証で確認する。
 限定成功は公開ゲートへ合算せず、その後に新しい同一sourceの全15を実行する。
+
+## N241 — iOS26 Runtime所有assetの再照合が残り1秒未満でTimeoutExpired
+
+7c05ef749fab529d40272519c6bec8d8ea672040／run43362432494／attempt1、
+Manual correction iOS26 ThreeFields job131709176812。2026-11-13T05:24:46Z開始、05:28:39Z failure。
+設定SDK27.2／Xcode27.2、対象Runtime26.5の準備stepで終了1となった。
+prepare-ios26-runtime.py:161のafter-owned-asset-rescanからruntime list -jを呼び、
+残り0.678703708秒でsubprocess.TimeoutExpired。手動UIケースは未実行でskip。
+同sourceのNative／iOS27通常・手動全件は成功済み。残りのiOS26実行を中止しない。
+まずpartial-pending／reclaim_owned_asset／TimeoutExpiredの過去記録と当時のコードを照合する。
+Runtime準備失敗の原因や恒常対処は未確定。アプリ／PDF解析の失敗とは判定していない。
+
+N241照合：N224/5568d90の候補0→Readyの非同期登録、N234/c52c5a0の
+所有metadata確定後のReading待機と現7c05efの実コードを比較した。
+今回はscan後1.3秒から同じ取得asset/Restore下に新しい子imageがVerifying/Personalizedで現れ、
+30秒終了直前まで続いた。runtimeIdentifier/build/versionはまだなく、削除可能な所有証明は未完成。
+候補0のままAssetDataが実在し、30秒の残予算で最後のCLIもtimeoutした。
+LinuxのL20261113-runtime-mockは期限末の説明の不安定さのみで、今回の署名検証継続は実Appleで初観測。
+候補は正確な今回asset/Restoreパス・新規子/親UUID・deletable・Verifying/Personalizedが
+一意に揃う場合だけ、scan開始から最大180秒の署名検証観測を追加する。
+この状態をReady/検証済みとは扱わず、削除せずに読む。通常の候補なし/Readingは従来の30秒を維持する。
+署名検証後も元のexact26.5/23F77/Verified/arm64と所有判定、Shutdown、正規delete一回、
+AssetData不在→import→一意なlocal Readyを全て要求する。期限切れは常に失敗で、scan/UIを再試行しない。
+180秒は既存scan-and-mountコマンドの上限と同じ準備予算であり、UI操作・ケース・jobの期限は変更しない。
+候補/根拠を隔離branchへ先にpushし、架空CLIで検証遷移/期限切れ/誤所有と既存全modeを確認後、
+元ThreeFields26/SDK27.2の限定CIで準備から実UIまで通す。恒常解消はまだ未証明。

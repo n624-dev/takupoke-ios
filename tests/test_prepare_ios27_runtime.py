@@ -33,7 +33,7 @@ elif args[:3]==['simctl','runtime','list']:
     if mode=='pre-existing-image' or downloaded.exists() and not removed.exists():
         records[first_id]=record(first_id,'/unrelated-asset' if mode=='wrong-asset-path' else asset)
     if mode=='pre-existing-id' and not downloaded.exists():records[first_id]={'runtimeIdentifier':'unrelated'}
-    if mode=='partial-restored-existing-parent':records[foreign_id]={'runtimeIdentifier':'com.apple.CoreSimulator.SimRuntime.watchOS-27-0'}
+    if mode in ('partial-restored-existing-parent','partial-verifying-existing-parent'):records[foreign_id]={'runtimeIdentifier':'com.apple.CoreSimulator.SimRuntime.watchOS-27-0'}
     if mode=='two-downloads' and downloaded.exists():records[foreign_id]=record(foreign_id,asset)
     if partial.exists() and mode=='partial-foreign-image':records[foreign_id]=record(foreign_id,'/unrelated-asset')
     if rescanned.exists() and not complete:
@@ -53,6 +53,25 @@ elif args[:3]==['simctl','runtime','list']:
                     image['state']='Reading' if mode!='partial-restored-reading' or count<3 else 'Ready'
                     if mode=='partial-restored-reading-foreign':image['path']='/unrelated-asset/Restore/094-56039-099.dmg'
                 if mode=='partial-restored-unknown-state':image['state']='Unknown'
+            if mode.startswith('partial-verifying'):
+                image=records[recovered_id]
+                ready_at=181 if mode=='partial-verifying-expired-ready' else 35
+                pending_forever=mode in ('partial-verifying-stuck','partial-verifying-foreign',
+                    'partial-verifying-existing-parent','partial-verifying-duplicate',
+                    'partial-verifying-wrong-identity','partial-verifying-lost-asset')
+                if pending_forever or count<ready_at:
+                    records[recovered_id]={
+                        'identifier':recovered_id,'deletable':True,'kind':'Patchable Cryptex Disk Image',
+                        'parentIdentifier':foreign_id if mode=='partial-verifying-existing-parent' else '55555555-5555-4555-8555-555555555555',
+                        'parentMountPath':asset,'path':('/unrelated-asset' if mode=='partial-verifying-foreign' else asset)+'/Restore/094-56039-099.dmg',
+                        'state':'Verifying','signatureState':'Personalized'}
+                    if mode=='partial-verifying-wrong-identity':records[recovered_id]['runtimeIdentifier']='com.apple.CoreSimulator.SimRuntime.iOS-27-0'
+                    if mode=='partial-verifying-duplicate':records[foreign_id]=records[recovered_id] | {'identifier':foreign_id}
+                else:
+                    image.update(path=asset+'/Restore/094-56039-099.dmg',parentMountPath=asset,
+                        parentIdentifier='55555555-5555-4555-8555-555555555555',signatureState='Verified',supportedArchitectures=['arm64'])
+                    if mode=='partial-verifying-unverified':image['signatureState']='Unknown'
+                    if mode=='partial-verifying-changed-asset':image['path']='/unrelated-asset/Restore/094-56039-099.dmg'
             marker.with_name('observed-state').write_text(records[recovered_id]['state'])
     if imported.exists():
         path='/elsewhere' if mode=='wrong-local-path' else '/Library/Developer/CoreSimulator/Cryptex/Images/'+local_id
@@ -126,14 +145,15 @@ asset='/System/Library/AssetsV2/com_apple_MobileAsset_iOSSimulatorRuntime/'+'a'*
 def observed_exists(path):
     if str(path)==asset:
         root=Path(os.environ['MARKER']).parent;removed=root/'removed'
+        if os.environ['MODE']=='partial-verifying-lost-asset' and actual_exists(root/'rescanned'):return False
         return actual_exists(root/'downloaded') and not (actual_exists(removed) and removed.read_text()=='complete')
     return actual_exists(path)
 sys.argv=sys.argv[1:]
 with patch.object(Path,'exists',observed_exists):
-    if os.environ['MODE']=='partial-restored-reading-stuck':
+    if os.environ['MODE']=='partial-restored-reading-stuck' or os.environ['MODE'].startswith('partial-verifying'):
         # The existing no-registration case still measures the real 30 seconds.
-        # Drive this second pending-state case with the same 30-second clock,
-        # without adding another real half-minute to the five-minute CI job.
+        # Drive additional state transitions and deadlines with an independent
+        # clock without adding minutes of wall time to the five-minute CI job.
         clock=[0.0]
         def advance(seconds):
             assert 0 < seconds <= 1
@@ -151,7 +171,7 @@ with patch.object(Path,'exists',observed_exists):
         finally:Path(os.environ['MARKER']).with_name('observed-elapsed').write_text(str(clock[0]))
     else:runpy.run_path(sys.argv[0],run_name='__main__')
 '''
-        successes={'installed','auto-installed','import','dmg-export','partial','partial-already-reclaimed','partial-lag','partial-restored','partial-restored-reading'}
+        successes={'installed','auto-installed','import','dmg-export','partial','partial-already-reclaimed','partial-lag','partial-restored','partial-restored-reading','partial-verifying'}
         no_delete={'installed','installed-wrong-build','installed-build-missing','installed-duplicate-build','installed-unavailable',
             'download-fails','no-image','export-symlink','two-exports','pre-existing-image','pre-existing-id','two-downloads',
             'download-wrong-build','not-deletable','already-booted','wrong-asset-path'}
@@ -165,7 +185,11 @@ with patch.object(Path,'exists',observed_exists):
                      'wrong-local-path','two-locals','foreign-post-import','local-not-ready','wrong-asset-path',
                      'partial-restored','partial-restored-foreign','partial-restored-existing-parent',
                      'partial-restored-unverified','partial-restored-wrong-arch','partial-restored-traversal',
-                     'partial-restored-reading','partial-restored-reading-stuck','partial-restored-reading-foreign','partial-restored-unknown-state'):
+                     'partial-restored-reading','partial-restored-reading-stuck','partial-restored-reading-foreign','partial-restored-unknown-state',
+                     'partial-verifying','partial-verifying-stuck','partial-verifying-foreign',
+                     'partial-verifying-existing-parent','partial-verifying-duplicate','partial-verifying-wrong-identity',
+                     'partial-verifying-unverified','partial-verifying-changed-asset',
+                     'partial-verifying-expired-ready','partial-verifying-lost-asset'):
             with self.subTest(mode=mode),tempfile.TemporaryDirectory(prefix='takupoke-runtime-lifetime-') as directory:
                 root=Path(directory);scratch=root/'scratch';scratch.mkdir()
                 for name in ('xcrun','xcodebuild'):
@@ -186,7 +210,7 @@ with patch.object(Path,'exists',observed_exists):
                 self.assertEqual(sum(row[1:2]==['-downloadPlatform'] for row in commands),int(not mode.startswith('installed') and mode!='pre-existing-image'))
                 self.assertEqual(sum(row[1:2]==['-importPlatform'] for row in commands),int(mode in imports))
                 ids=[] if mode in no_delete else ['11111111-1111-4111-8111-111111111111']
-                if mode in ('partial','partial-lag','partial-second-fails','partial-restored','partial-restored-reading'):ids.append('44444444-4444-4444-8444-444444444444')
+                if mode in ('partial','partial-lag','partial-second-fails','partial-restored','partial-restored-reading','partial-verifying'):ids.append('44444444-4444-4444-8444-444444444444')
                 self.assertEqual([row for row in commands if 'delete' in row],
                     [['xcrun','simctl','runtime','delete',uid] for uid in ids])
                 self.assertEqual(sum(row[1:4]==['simctl','runtime','scan-and-mount'] for row in commands),int(
@@ -196,6 +220,17 @@ with patch.object(Path,'exists',observed_exists):
                 if mode=='partial-restored-reading-stuck':
                     self.assertEqual(float((root/'observed-elapsed').read_text()),30.0)
                     self.assertEqual((root/'observations').read_text(),'30')
+                if mode.startswith('partial-verifying'):
+                    expected=(34 if mode in ('partial-verifying','partial-verifying-unverified','partial-verifying-changed-asset')
+                        else 180 if mode in ('partial-verifying-stuck','partial-verifying-expired-ready')
+                        else 0 if mode in ('partial-verifying-duplicate','partial-verifying-lost-asset') else 30)
+                    self.assertEqual(float((root/'observed-elapsed').read_text()),expected)
+                    if mode=='partial-verifying':self.assertEqual((root/'observations').read_text(),'35')
+                    elif mode in ('partial-verifying-stuck','partial-verifying-expired-ready'):self.assertIn('180 seconds',prepared.stderr)
+                    elif mode=='partial-verifying-duplicate':self.assertIn('ambiguous runtime verification',prepared.stderr)
+                    elif mode=='partial-verifying-lost-asset':self.assertIn('lost its owned backing asset',prepared.stderr)
+                    elif mode in ('partial-verifying-unverified','partial-verifying-changed-asset'):self.assertIn('unowned re-registered',prepared.stderr)
+                    else:self.assertIn('30 seconds',prepared.stderr)
                 if mode in ('partial-restored-reading-foreign','partial-restored-unknown-state'):
                     self.assertEqual((root/'observations').read_text(),'1')
                 if mode in imports:

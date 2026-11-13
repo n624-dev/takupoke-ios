@@ -110,6 +110,27 @@ def owned_rescanned_image(key, image, asset_path, before):
             and str(uuid.UUID(parent)).upper() == parent and parent != key and parent not in before
             and image.get("signatureState") == "Verified" and image.get("supportedArchitectures") == ["arm64"])
 
+def pending_owned_verification(key, image, asset_path, before):
+    # An incomplete signature check is evidence of preparation progress only.
+    # It never authorizes deletion, import, or use as the requested runtime.
+    path = Path(image.get("path", ""))
+    parent = image.get("parentIdentifier", "")
+    try:
+        new_ids = (str(uuid.UUID(key)).upper() == key and image.get("identifier") == key
+                   and key not in before and str(uuid.UUID(parent)).upper() == parent
+                   and parent != key and parent not in before)
+    except (ValueError, AttributeError, TypeError):
+        return False
+    return (new_ids and image.get("deletable") is True
+            and image.get("state") == "Verifying" and image.get("signatureState") == "Personalized"
+            and image.get("kind") == "Patchable Cryptex Disk Image"
+            and path.parent == asset_path / "Restore"
+            and re.fullmatch(r"[0-9]{3}-[0-9]{5}-[0-9]{3}\.dmg", path.name) is not None
+            and not path.is_symlink() and not path.parent.is_symlink()
+            and image.get("parentMountPath") == str(asset_path)
+            and not any(field in image for field in
+                        ("runtimeIdentifier", "build", "version", "platformIdentifier", "supportedArchitectures")))
+
 def delete_owned_asset_image(key, asset_path):
     removal = subprocess.run(["xcrun", "simctl", "runtime", "delete", key],
                              capture_output=True, text=True, timeout=180)
@@ -153,20 +174,38 @@ def reclaim_owned_asset(before, download_id, download_image, asset_path):
         if target_images(runtime_images("after-partial-removal")):
             raise SystemExit("Partial removal left an unexpected target runtime registration")
         subprocess.run(["xcrun", "simctl", "runtime", "scan-and-mount"], check=True, timeout=180)
-        scan_deadline = time.monotonic() + 30
+        scan_started = time.monotonic()
+        observation_seconds = 30
+        scan_deadline = scan_started + observation_seconds
         while True:
             remaining_seconds = scan_deadline - time.monotonic()
             if remaining_seconds <= 0:
-                raise SystemExit("Owned asset re-registration did not complete within 30 seconds")
-            candidates = target_images(runtime_images("after-owned-asset-rescan", timeout=remaining_seconds))
+                raise SystemExit(f"Owned asset re-registration did not complete within {observation_seconds} seconds")
+            try:
+                images = runtime_images("after-owned-asset-rescan", timeout=remaining_seconds)
+            except subprocess.TimeoutExpired:
+                raise SystemExit(f"Owned asset re-registration did not complete within {observation_seconds} seconds") from None
             if time.monotonic() > scan_deadline:
                 raise SystemExit("Owned asset re-registration exceeded its observation deadline")
+            candidates = target_images(images)
+            verifying = {key: image for key, image in images.items()
+                         if pending_owned_verification(key, image, asset_path, before)}
+            if verifying:
+                if len(verifying) != 1 or candidates:
+                    raise SystemExit("Rescan introduced ambiguous runtime verification")
+                # N241: Apple has not supplied the final runtime identity yet.
+                # Observe this one owned signature check within a fixed cap;
+                # no command is repeated and none of the acceptance checks move.
+                observation_seconds = 180
+                scan_deadline = scan_started + observation_seconds
             if len(candidates) > 1:
                 raise SystemExit("Rescan introduced ambiguous runtime images")
             present = asset_path.exists()
             print("TAKUPOKE_IOS26_OWNED_ASSET present=" + str(present).lower(), flush=True)
             if not candidates:
                 if not present:
+                    if verifying:
+                        raise SystemExit("Verifying runtime lost its owned backing asset")
                     break
                 time.sleep(min(1, max(0, scan_deadline - time.monotonic())))
                 continue
