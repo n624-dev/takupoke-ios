@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`6cf9b11a819437b73f047e8913ebc03de822262ac15b07ac1b068879c5db38f7`
+`5a65cb3476d1435ddb5f5832142b34485c33f11b5231d1236232e9b494faf36d`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -135,6 +135,7 @@ bash tools/test-manual-ui.sh
 
 ## [tests/test_manual_ui_runner.py](../../tests/test_manual_ui_runner.py)
 
+- `test_workflow_budget_includes_runtime_preparation_and_stops_before_ui_on_failure`
 - `test_whole_suite_uses_one_successful_owned_build`
 - `test_selected_case_uses_the_same_build_without_retesting_others`
 - `test_shipping_27_uses_exact_27_0_when_newer_minor_is_available`

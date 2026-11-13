@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`da945d1157bac2c584d04188f7396faa1be463ee83d3985759c9bccc4945773b`
+`24d8eda5e0dee9517a9736ca63467f665c74969f85448097c03c6f2d34fdfa11`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -262,6 +262,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_manual_ui_runner.py](../../tests/test_manual_ui_runner.py)
 
+- `test_workflow_budget_includes_runtime_preparation_and_stops_before_ui_on_failure`
 - `test_whole_suite_uses_one_successful_owned_build`
 - `test_selected_case_uses_the_same_build_without_retesting_others`
 - `test_shipping_27_uses_exact_27_0_when_newer_minor_is_available`

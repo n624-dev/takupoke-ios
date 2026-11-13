@@ -856,7 +856,10 @@ METHOD
         self.assertIn("TKPK_FOCUS_SDK26: ${{ inputs.sdk26 }}",probe)
         self.assertIn("TKPK_FOCUS_SDK27: ${{ inputs.sdk27 }}",probe)
         self.assertIn("TKPK_MANUAL_RUNNER_SECONDS: ${{ matrix.case == '"+selected+"' && 2400 || 1800 }}",probe)
-        self.assertIn('run: python3 -B tools/timed_command.py --timeout "$TKPK_MANUAL_RUNNER_SECONDS" --cleanup-grace 120 "Focused manual UI runner" bash tools/test-manual-ui.sh',probe)
+        budget='python3 -B tools/timed_command.py --timeout "$TKPK_MANUAL_RUNNER_SECONDS" --cleanup-grace 120 "Focused manual preparation and UI runner" bash -euo pipefail -c'
+        self.assertIn(budget,probe)
+        self.assertLess(probe.index(budget),probe.index('python3 -B tools/select-ci-xcode.py'))
+        self.assertLess(probe.index('python3 -B tools/prepare-ios26-runtime.py --hold-export'),probe.index('bash tools/test-manual-ui.sh'))
         preflight=probe.split("      - name: Validate focused OS and toolchain selection\n        run: |\n",1)[1].split("      - name:",1)[0]
         preflight="\n".join(line[10:] for line in preflight.splitlines())
         for ios in ('both','26','27','25','26,27',''):

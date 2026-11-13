@@ -4968,3 +4968,12 @@ focused manualにも同じ範囲を適用し、既存の2400/1800秒・45/35分�
 これは停止箇所を失う監視範囲への対処候補であり、未観測のUI停止原因を直したとは扱わない。
 実workflowのwrapped shellを架空CLIで動かし、準備の失敗/準備のtimeoutでUIへ進まず、正常時だけ
 選択→準備→UIが一回ずつ進むことを確認する。その後、新sourceで元Selected26/SDK27.2一件を限定実行して観測する。
+
+N243局所の初回：e71925a、Linux/Python3.12/Swift6.1.2、実workflow shellを含むmanual7件は成功8.493秒。
+manifest30件は1件失敗（14.473秒）。focused workflowの旧「準備外の監視一行」を要求する
+文字列契約だけが新しい意図したwrapperと不一致。UI／Swift動作失敗ではない。
+準備を監視へ含めるN243候補と、以前の45/35分・2400/1800秒・120秒・元caseの全条件を比較して、
+当該文字列を新しい正確なcommandへ更新し、選択/準備/UIの順と監視内であることも要求する。
+reviewの同step化による環境伝播懸念は、実select/prepare各helper全体を読んで照合した。
+いずれもGITHUB_ENV/GITHUB_OUTPUTへ書かず、workflow envとxcode-select/Runtime登録の実状態を使う。
+held exportもRUNNER_TEMPの固定所有領域とmarkerで保持され、後続stepへの環境出力を必要としない。
