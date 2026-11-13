@@ -8270,3 +8270,12 @@ WindowsもCore228／Integration382／Platform5、Python23、notice13、公開tre
 幅のある塗り罫線の中心への上塗り拒否も新しい陰性2件と辺接触の陽性で確認した。
 提供PDFは修正後のWindows本番Parser10で非公開のまま成功を再確認した。
 両方の新しい配布用CIはこれから行い、公開済み旧版と今回候補の検証を混同しない。
+
+配布前の限定Apple検証は、両SDKのnative711件、ThreeFields26、LinkPreferences26、
+SelectedHighConfidence26がそれぞれ成功した。各限定の実行・sourceと限界は失敗索引N240〜N243へ記録した。
+最新89066f3のSelected限定は1111.610秒で元ケースを完了し、所有cleanupも成功した。
+正式486の指定レビューは最終code-only差分に具体的指摘なし。全14公開前検証と公開jobは
+これから同じ正式run/attempt/sourceで実施し、限定成功を合算しない。
+Windowsは3e1b0fcのCI43387324818と配布43387984205が成功し、通常Latest10461を公開した。
+6添付の匿名取得、全hash、ZIPのsource/architecture/全payloadとtagのcommit一致を確認済み。
+機密原本と派生データは公開物へ含めていない。iPhoneのAltStore実導入・更新は未確認。

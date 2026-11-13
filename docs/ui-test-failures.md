@@ -5003,3 +5003,10 @@ N242の観測限定48a16a2/run43376612715/attempt1/job131724468623は06:08:26〜
 同じ二秒のnative長押し、45秒menu待機、削除／再起動／追加／browser/Closeを全て通過した。
 UIKit時刻でも二回の実接触を確認し、製品・入力・期待値の変更はない。cleanup成功・artifact0。
 この一回の成功をN242の恒常解消とは扱わない。
+
+N243限定確認：89066f3/run43387318089/attempt1/job131758747884は07:39:35〜08:15:21Z success。
+元SelectedHighConfidence26/SDK27.2は1111.610秒で全期待を通過し、cleanup-completeと
+所有Runtime exportの回収も成功、artifact0。準備を含む元2400秒内に完了した。
+この限定ではUI停止は再現せず、N243の欠落logから旧停止原因を特定したことにはしない。
+全14公開前検証と公開jobの同一ソース・同一run/attempt成功を次の正式486で別に要求する。
+最終code-only v3差分は、未開始の正式486専用Sol/High reviewerも具体的指摘なし。
