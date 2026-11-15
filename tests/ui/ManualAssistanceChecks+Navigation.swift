@@ -83,9 +83,10 @@ extension ManualAssistanceChecks {
             let ordinaryButton = inRecovery ? nil : buttonLabel
             let matches:[XCUIElement]
             if let ordinaryButton {
-                let buttons=targetID.isEmpty ? list.buttons : list.buttons.matching(identifier:targetID)
-                matches=buttons.matching(NSPredicate(format:"label == %@",ordinaryButton))
-                    .allElementsBoundByAccessibilityElement
+                let buttons=targetID.isEmpty
+                    ? list.buttons.matching(NSPredicate(format:"label == %@",ordinaryButton))
+                    : list.buttons.matching(identifier:targetID)
+                matches=buttons.allElementsBoundByAccessibilityElement
             } else {
                 matches=targetID.isEmpty ? []:query.allElementsBoundByIndex
             }
@@ -117,9 +118,9 @@ extension ManualAssistanceChecks {
             // use the same element rather than two successive representations.
             if alternatives==nil,exists,let targetFrame,
                ManualScrollNavigation.usable(targetFrame),viewport.contains(targetFrame) {
-                if ordinaryButton != nil {
-                    guard target.isEnabled,target.isHittable else {
-                        XCTFail("The current list button must be enabled and hittable");return e
+                if let ordinaryButton {
+                    guard target.label == ordinaryButton,target.isEnabled,target.isHittable else {
+                        XCTFail("The current list button must match its label and be operable");return e
                     }
                     return target
                 }
