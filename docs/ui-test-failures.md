@@ -5033,3 +5033,4 @@ N243限定確認：89066f3/run43387318089/attempt1/job131758747884は07:39:35〜
   実行記録は同じカードに画面全体の上・下スワイプを交互に8回。N126/N160と既存の時間割カード検査を照合し、画面内の実枠を使い小さく移動する共通visibleへ変更。実ボタン全体が枠内・有効・hittable、元の高さ72超・各カードを一度タップ・4種の正しい詳細と行事表示を検証する。
 - 正式CI 43754726270 attempt 1 / 132937141427、ソース070e4c1・SDK27.2・iOS 27.0。testChangedOriginalCannotSubmitOrReplaceLastGoodは ManualAssistanceChecks+Input.swift:53 のAX探索で "Failed to get matching snapshots: Timed out while evaluating UI query"。504.689秒で失敗。
   初回ACKは進行、再表示後の2回目も実Switchの一回接触と非同期述語から戻った直後、任意診断manual-input-stateのroot探索がt231/262/293秒と再試行し停止。U72/U73・生成QAのmanual-observation子要素を確認。実Switchの一意性・値1の待機結果をそのまま記録・検証し、異常時だけ該当グループ内の観測文字列・binding履歴を取得する。実submit・元資料変更・再起動・前回データ保護の判定は維持。
+- 旧正式CI 43748518096 / 132933949457、iOS 26.5 Bはbootstatus成功後、Xcodeが指定した端末IDを対応先として列挙できずケース開始前に終了。終了後のsimctlでは同じ端末がBooted、runtime available。SDK・端末ID・公開条件を変更せず後続の正式CIで確認する。
