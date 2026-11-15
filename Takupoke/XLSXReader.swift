@@ -95,7 +95,7 @@ enum XLSXReader {
                 data.append(chunk)
             }
             guard data.count == entry.uncompressedSize, crc == entry.checksum else { throw ChangeParseError(code: .invalidArchive) }
-            return try BoundedXML.parse(data, root: root, namespace: namespace, check: check)
+            return try BoundedXML.parse(data, root: root, namespace: namespace, retainFormulaText: editing && root == "worksheet", check: check)
         }
         let workbook = try xml("xl/workbook.xml", root: "workbook", namespace: spreadsheet)
         let setting = workbook.child("workbookPr")?.attributes["date1904"] ?? "0"

@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`4c5a5860e102fcc7405fef36a45b35640923cdf349e92fb4ad5e0a35d726dc57`
+`77d2d5515a59a1574da8b1e0252c1c256e46d7ccb57324dd529c128b68efe713`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -41,6 +41,10 @@ bash tools/test-parsing.sh
 - `testIdenticalOriginalRowsRequireUnambiguousCorrection`
 - `testCorrectionReviewIncludesMultipleFieldsAndEmptyFormulaRows`
 - `testEditorUsesRecognizedAliasesInsteadOfAddingShadowColumns`
+- `testChangedFormulaWithSameCachedErrorDoesNotRestoreCorrection`
+- `testSharedFormulaFollowerMatchesOnlyAnUnchangedMaster`
+- `testArrayFormulaIdentityAndTrailingFormattedBlanks`
+- `testBlankDateKeepsPersonalCorrectionWhenOnlyFormattingChangesIn1904Workbook`
 - `testEditorPreserves1904SerialAndConvertsOnlyTheMappedDate`
 - `testEmptyFirstSheetAllowsSelectingOtherSheet`
 - `testOpenEditorRejectsAnotherPersonalEditToSameDigest`

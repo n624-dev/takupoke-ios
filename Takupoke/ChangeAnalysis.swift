@@ -379,7 +379,8 @@ struct ChangeEditTable: Equatable {
             if saved.digest == digest {
                 let candidates = Set(numbers)
                 for entry in previous where candidates.contains(entry.row) { edits[entry.row] = entry.edit }
-            } else if first.occurrences == numbers.count, previous.count == numbers.count,
+            } else if !key.sources.values.contains(where: { $0.hasPrefix("unresolved-shared/") }),
+                      first.occurrences == numbers.count, previous.count == numbers.count,
                       previous.allSatisfy({ $0.occurrences == first.occurrences && $0.edit == first.edit }) {
                 // Also covers one-to-one matching after insertion/reordering. A duplicate
                 // group is safe only if every old/new copy gets exactly the same decision.

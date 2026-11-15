@@ -1,4 +1,9 @@
 import Foundation
+#if canImport(CryptoKit)
+import CryptoKit
+#else
+import Crypto
+#endif
 
 extension XLSXReader {
     static func readSheet(_ sheet: XMLNode, strings: [String], defaultYear: Int?,
@@ -80,6 +85,11 @@ extension XLSXReader {
         var formulas: [(row: Int, column: Int, hasCachedValue: Bool)] = []
         var issues: [Int: [Int: ChangeParseError.Code]] = [:]
         var sources: [Int: [Int: String]] = [:]
+        var sharedMasters: [String: (row: Int, column: Int, fingerprint: String)] = [:]
+        var rangedMasters: [(firstRow: Int, firstColumn: Int, lastRow: Int, lastColumn: Int, fingerprint: String)] = []
+        var rangedCellCount = 0
+        var duplicateMasters = Set<String>()
+        var sharedFollowers: [(row: Int, column: Int, group: String)] = []
         var numericCells: [Int: Set<Int>] = [:], dateCells: [Int: Set<Int>] = [:]
         for row in data.children where row.name == "row" {
             try check()
@@ -100,7 +110,33 @@ extension XLSXReader {
                 }
                 var decoded: String
                 if editing, let formula = cell.child("f") {
-                    sources[number, default: [:]][position.column] = "formula/" + type + "/" + formula.text
+                    // Length-frame each field so separators inside a formula cannot collide
+                    // with its attributes, cached error or written cell type.
+                    let fields = [type, formula.text] + formula.attributes.keys.sorted().flatMap { [$0, formula.attributes[$0]!] }
+                    sources[number, default: [:]][position.column] = "formula/" + fields.map { "\($0.utf8.count):" + $0 }.joined()
+                    if ["array", "dataTable"].contains(formula.attributes["t"] ?? ""), let ref = formula.attributes["ref"] {
+                        let ends = ref.split(separator: ":", omittingEmptySubsequences: false)
+                        guard ends.count == 1 || ends.count == 2 else { throw ChangeParseError(code: .invalidXML) }
+                        let start = try coordinate(String(ends[0])), end = try coordinate(String(ends[ends.count - 1]))
+                        guard start == position, start.row <= end.row, start.column <= end.column else { throw ChangeParseError(code: .invalidXML) }
+                        rangedCellCount += (end.row - start.row + 1) * (end.column - start.column + 1)
+                        guard rangedCellCount <= 100_000 else { throw ChangeParseError(code: .limit) }
+                        let dependency = [formula.text] + formula.attributes.sorted { $0.key < $1.key }.filter { $0.key != "ref" }.flatMap { [$0.key, $0.value] }
+                        let bytes = Data(dependency.map { "\($0.utf8.count):" + $0 }.joined().utf8)
+                        let fingerprint = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+                        rangedMasters.append((start.row, start.column, end.row, end.column, fingerprint))
+                    }
+                    if formula.attributes["t"] == "shared" {
+                        let group = formula.attributes["si"] ?? ""
+                        if formula.text.isEmpty {
+                            sharedFollowers.append((number, position.column, group))
+                        } else if sharedMasters[group] != nil {
+                            duplicateMasters.insert(group)
+                        } else {
+                            let fingerprint = SHA256.hash(data: Data(formula.text.utf8)).map { String(format: "%02x", $0) }.joined()
+                            sharedMasters[group] = (number, position.column, fingerprint)
+                        }
+                    }
                     issues[number, default: [:]][position.column] = .formula
                 }
                 do {
@@ -119,7 +155,7 @@ extension XLSXReader {
                         decoded = editing ? value : date
                     case "n":
                         decoded = value
-                        if editing { numericCells[number, default: []].insert(position.column) }
+                        if editing && !value.isEmpty { numericCells[number, default: []].insert(position.column) }
                     default:
                         // Formula metadata above the header is not part of the table.
                         // Formula errors within the table are handled after locating that header.
@@ -130,9 +166,9 @@ extension XLSXReader {
                     guard editing, [.date, .cellType].contains(problem.code) else { throw problem }
                     decoded = value
                     issues[number, default: [:]][position.column] = problem.code
-                    sources[number, default: [:]][position.column] = type + "/" + value
                 }
-                if editing, type != "s" && type != "inlineStr" && type != "str" {
+                if editing, (isFormula || !value.isEmpty || issues[number]?[position.column] != nil),
+                   type != "s" && type != "inlineStr" && type != "str" {
                     // Keep the written typed value, including the time portion of a typed date.
                     sources[number, default: [:]][position.column, default: ""] += "/type/" + type + "/" + value
                 }
@@ -143,6 +179,25 @@ extension XLSXReader {
             }
             rows += Array(repeating: [], count: number - rows.count - 1)
             rows.append(cells)
+        }
+        for master in rangedMasters {
+            for row in master.firstRow...master.lastRow where row <= rows.count {
+                try check()
+                for column in master.firstColumn...master.lastColumn where row != master.firstRow || column != master.firstColumn {
+                    sources[row, default: [:]][column, default: ""] +=
+                        "/array/\(master.fingerprint)/\(master.firstRow-row)/\(master.firstColumn-column)/\(master.lastRow-row)/\(master.lastColumn-column)"
+                    if issues[row]?[column] == nil { issues[row, default: [:]][column] = .formula }
+                }
+            }
+        }
+        for follower in sharedFollowers {
+            try check()
+            if !follower.group.isEmpty, !duplicateMasters.contains(follower.group), let master = sharedMasters[follower.group] {
+                sources[follower.row, default: [:]][follower.column, default: ""] +=
+                    "/master/\(master.fingerprint)/\(master.row - follower.row)/\(master.column - follower.column)"
+            } else {
+                sources[follower.row, default: [:]][follower.column] = "unresolved-shared/" + (sources[follower.row]?[follower.column] ?? "")
+            }
         }
         return WorksheetCells(rows: rows, formulas: formulas, issues: issues, sources: sources,
                               numericCells: numericCells, dateCells: dateCells)

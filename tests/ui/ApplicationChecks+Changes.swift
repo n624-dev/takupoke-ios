@@ -71,7 +71,7 @@ extension ApplicationChecks {
         XCTAssertTrue(visible(app.staticTexts["変更後、架空科目C"]).exists)
         XCTAssertFalse(app.staticTexts["変更後、架空除外科目B"].exists)
 
-        visible(app.buttons["個人修正を編集"]).tap()
+        visible(app.buttons["個人修正を編集"], navigation: "時間割変更", searchEarlierRows: true).tap()
         screen("個人修正を編集")
         visible(app.buttons["change-editor-row-3"]).tap()
         screen("3行目")
