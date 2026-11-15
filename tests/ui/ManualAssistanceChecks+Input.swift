@@ -49,11 +49,19 @@ extension ManualAssistanceChecks {
             return current.count==1 && current[0].value as? String == "1"
         },object:app)
         let outcome=XCTWaiter.wait(for:[changed],timeout:nativeStateTimeout)
-        let state=app.staticTexts["manual-input-state"].firstMatch
-        print("TAKUPOKE-MANUAL-INPUT " + (state.exists ? state.label : "absent"))
-        emitEvents()
+        print("TAKUPOKE-MANUAL-INPUT id=\(id);wait-outcome=\(outcome.rawValue);ambiguous=\(ambiguous)")
+        if ambiguous || outcome != .completed {
+            logInputState(id)
+            emitEvents()
+        }
         XCTAssertFalse(ambiguous,"Acknowledgement identifier must remain unique")
         XCTAssertEqual(outcome,.completed,app.debugDescription)
+    }
+    private func logInputState(_ id:String) {
+        let states=app.otherElements["manual-observation"].staticTexts.matching(identifier:"manual-input-state")
+            .allElementsBoundByAccessibilityElement
+        let detail=states.count == 1 ? states[0].label : "matches=\(states.count)"
+        print("TAKUPOKE-MANUAL-INPUT id=\(id);state=\(detail)")
     }
     func assertSubmitEnabled(_ expected:Bool) {
         let button=visible(submit,knownID:"manual-submit")
@@ -82,8 +90,7 @@ extension ManualAssistanceChecks {
         },object:app)
         let cleared=XCTWaiter.wait(for:[empty],timeout:nativeStateTimeout)
         if cleared != .completed {
-            let state=app.staticTexts["manual-input-state"].firstMatch
-            print("TAKUPOKE-MANUAL-CLEAR id=\(id);state=\(state.exists ? state.label:"absent")")
+            logInputState(id)
             emitEvents()
         }
         XCTAssertEqual(cleared,.completed,"Native clear must remove the entire previous input")

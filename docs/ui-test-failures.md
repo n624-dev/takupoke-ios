@@ -5031,3 +5031,5 @@ N243限定確認：89066f3/run43387318089/attempt1/job131758747884は07:39:35〜
   N236・N161と現在の実サーバを照合。元実装の一つ目の未完ヘッダが後続GETの受付自体を止めることを、Swift実サーバの二接続・逆順完了で再現（元コードは先行接続が切断）。受理順に同じ2秒期限を設定し8本まで独立処理する。実HTTP/実本文30秒/Close10秒/通知の45秒は維持。今回のSafari実行の時間差全体をサーバ待ちだけで説明できる証拠はない。
 - 正式CI 43748518096 attempt 1 / 132918327576、ソース91f6b41・iOS 27.0・SDK27.2。testMergedCardsFromAllSourcesがTimetable.swift:61の結合授業Buttonのhittability取得で "Activation point invalid and no suggested hit points based on element frame"。他の操作や入力の成否は別途照合。原因未確定。
   実行記録は同じカードに画面全体の上・下スワイプを交互に8回。N126/N160と既存の時間割カード検査を照合し、画面内の実枠を使い小さく移動する共通visibleへ変更。実ボタン全体が枠内・有効・hittable、元の高さ72超・各カードを一度タップ・4種の正しい詳細と行事表示を検証する。
+- 正式CI 43754726270 attempt 1 / 132937141427、ソース070e4c1・SDK27.2・iOS 27.0。testChangedOriginalCannotSubmitOrReplaceLastGoodは ManualAssistanceChecks+Input.swift:53 のAX探索で "Failed to get matching snapshots: Timed out while evaluating UI query"。504.689秒で失敗。
+  初回ACKは進行、再表示後の2回目も実Switchの一回接触と非同期述語から戻った直後、任意診断manual-input-stateのroot探索がt231/262/293秒と再試行し停止。U72/U73・生成QAのmanual-observation子要素を確認。実Switchの一意性・値1の待機結果をそのまま記録・検証し、異常時だけ該当グループ内の観測文字列・binding履歴を取得する。実submit・元資料変更・再起動・前回データ保護の判定は維持。
