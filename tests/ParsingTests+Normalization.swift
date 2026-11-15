@@ -263,6 +263,31 @@ extension ParsingTests {
         }
     }
 
+    func testArrayFormulaIdentityAndTrailingFormattedBlanks() throws {
+        try temporary { root in
+            func table(_ name: String, expression: String) throws -> ChangeEditTable {
+                var files = workbook([["学 年", "学科・クラス", "月日", "備考"], ["2", "ZZ", "4/1", "架空元"], ["2", "ZZ", "4/2", "架空下"]])
+                let sheet = "xl/worksheets/sheet1.xml"
+                mutate(&files, sheet, #"<c r="D2" t="inlineStr"><is><t xml:space="preserve">架空元</t></is></c>"#,
+                       #"<c r="D2"><f t="array" ref="D2:D3">"# + expression + "</f><v>1</v></c>")
+                mutate(&files, sheet, #"<c r="D3" t="inlineStr"><is><t xml:space="preserve">架空下</t></is></c>"#, #"<c r="D3"><v>2</v></c>"#)
+                mutate(&files, sheet, "</sheetData>", #"<row r="4"><c r="A4" s="1"/></row></sheetData>"#)
+                let url = root.appendingPathComponent(name + ".xlsx")
+                try write(files, to: url)
+                return try XLSXReader.editableWorkbook(url, layout: nil, check: {}).table
+            }
+            let old = try table("old", expression: "A2:A3+1")
+            let changed = try table("changed", expression: "A2:A3-1")
+            XCTAssertEqual(old.rowIDs, [2, 3])
+            XCTAssertNotEqual(old.original(at: 3), changed.original(at: 3))
+            let edit = ChangeRowEdit(values: [3: "架空訂正"])
+            let saved = try old.savedEdits(sourceIdentity: "source", digest: "old", defaultYear: 2032, edits: [3: edit])
+            XCTAssertEqual(old.restore(saved, sourceIdentity: "source", digest: "updated", defaultYear: 2032).edits[3], edit)
+            XCTAssertNil(changed.restore(saved, sourceIdentity: "source", digest: "updated", defaultYear: 2032).edits[3])
+            XCTAssertEqual(try old.records(edits: [2: edit, 3: edit], defaultYear: 2032).count, 2)
+        }
+    }
+
     func testEditorPreserves1904SerialAndConvertsOnlyTheMappedDate() throws {
         try temporary { root in
             let header = ["学 年", "学科・クラス", "月日", "時限", "曜日"]
