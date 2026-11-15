@@ -1,8 +1,8 @@
-name: Audited schedule and native UI diagnostics
+name: Focused merged timetable cards on iOS 26
 
 on:
   push:
-    branches: [verify/110-112-audited]
+    branches: [verify/110-112-cards26]
 
 permissions:
   contents: read
@@ -13,79 +13,15 @@ env:
   PYTHONDONTWRITEBYTECODE: '1'
 
 jobs:
-  manual:
-    name: Focused manual iOS ${{ matrix.ios }} / ${{ matrix.case }}
-    runs-on: xcode-27
-    strategy:
-      fail-fast: false
-      matrix:
-        ios: [26, 27]
-        case:
-          - testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground
-          - testChangedOriginalCannotSubmitOrReplaceLastGood
-          - testThreeFieldsRequireEachAcknowledgementAndFourRefuses
-          - testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch
-    timeout-minutes: ${{ matrix.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' && 45 || 35 }}
-    env:
-      TKPK_TEST_IOS: ${{ matrix.ios }}
-      TKPK_SIMULATOR_FRONTEND: ${{ matrix.ios == 26 && 'gui' || 'headless' }}
-      TKPK_MANUAL_CASE: ${{ matrix.case }}
-      TKPK_MANUAL_DIAGNOSTICS: '1'
-      TKPK_MANUAL_RUNNER_SECONDS: ${{ matrix.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' && 2400 || 1800 }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - name: Require the pushed source
-        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-      - name: Exercise one manual case and verify its exact native identity
-        run: |
-          set -euo pipefail
-          python3 -B tools/timed_command.py --timeout "$TKPK_MANUAL_RUNNER_SECONDS" --cleanup-grace 120 \
-            "Focused manual preparation and UI runner" bash -euo pipefail -c '
-              python3 -B tools/select-ci-xcode.py
-              test "$(xcrun --sdk iphonesimulator --show-sdk-version)" = "$TKPK_EXPECTED_IOS_SDK"
-              test "$(xcrun --sdk iphoneos --show-sdk-version)" = "$TKPK_EXPECTED_IOS_SDK"
-              if [[ "$TKPK_TEST_IOS" == 27 ]]; then
-                python3 -B tools/prepare-ios27-runtime.py
-              else
-                python3 -B tools/prepare-ios26-runtime.py --hold-export
-              fi
-              bash tools/test-manual-ui.sh
-            ' 2>&1 | tee "$RUNNER_TEMP/takupoke-audited-native.log"
-      - name: Confirm the recorded guest OS minor version
-        run: |
-          python3 -B - <<'PY'
-          import json, os, re
-          from pathlib import Path
-          expected = {"26": (26, 5), "27": (27, 0)}[os.environ["TKPK_TEST_IOS"]]
-          log = Path(os.environ["RUNNER_TEMP"], "takupoke-audited-native.log").read_text(encoding="utf-8")
-          records = re.findall(r"(?m)^[ \t]*TAKUPOKE_UI_EXECUTION_IDENTITY ([^\r\n]+)$", log)
-          if not records or any(tuple(map(int, json.loads(raw)["runtime"].split(".")[:2])) != expected
-                                for raw in records):
-              raise SystemExit("Missing guest execution or unexpected runtime minor version")
-          PY
-      - name: Remove the owned diagnostic log
-        if: always()
-        run: python3 -B -c 'import os; from pathlib import Path; Path(os.environ["RUNNER_TEMP"], "takupoke-audited-native.log").unlink(missing_ok=True)'
-      - name: Remove the owned iOS 26 runtime export after simulator cleanup
-        if: always() && matrix.ios == 26
-        run: python3 -B tools/prepare-ios26-runtime.py --cleanup-export
-
   application:
     name: Focused application iOS ${{ matrix.ios }} / ${{ matrix.group }}
     runs-on: xcode-27
     strategy:
       fail-fast: false
       matrix:
-        ios: [26, 27]
+        ios: [26]
         group:
-          - rows
-          - file-details
           - merged-cards
-          - testLinkPreferencesSurviveRelaunch
-          - notifications
     timeout-minutes: 30
     env:
       TKPK_TEST_IOS: ${{ matrix.ios }}
