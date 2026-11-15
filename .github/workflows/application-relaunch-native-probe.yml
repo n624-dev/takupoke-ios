@@ -1,74 +1,36 @@
 name: Native application relaunch diagnosis
 
 on:
-  workflow_dispatch:
-    inputs:
-      case:
-        type: choice
-        default: all
-        options:
-          - all
-          - retention
-          - notifications
-          - controls
-          - rows
-          - rows-context
-          - input-delivery
-          - file-details
-          - updates
-          - auxiliary-store
-          - event-cache-input
-          - timetable-clocks
-          - home-boundaries
-          - home-launch
-          - testChangedAccountDataNoticeOpensSharedAcquisition
-          - testChangedDataProducesOneLocalNotification
-          - testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork
-          - testLinkPreferencesSurviveRelaunch
-          - testNotificationControlsAndAppearance
-          - testSettingsAccountDataAndFileDetails
-      ios:
-        description: Diagnose iOS 27 first; include 26 only for a confirmed comparison
-        type: choice
-        default: '27'
-        options: ['27', '26', 'both']
-      sdk27:
-        description: Additional iOS 27 toolchain comparison; distribution stays unchanged
-        type: choice
-        default: '27.1'
-        options:
-          - '27.0'
-          - '27.1'
-          - '27.2'
-      sdk26:
-        description: Compare iOS 26.5 using the shipping SDK; distribution stays unchanged
-        type: choice
-        default: '26.6'
-        options: ['26.6', '27.0', '27.1', '27.2']
+  push:
+    branches: [verify/issues-110-112-link]
 
 permissions:
   contents: read
 
 jobs:
   focus:
-    name: Relaunch diagnosis iOS ${{ matrix.ios }}
+    name: iOS ${{ matrix.ios }} / ${{ matrix.group }}
     strategy:
       fail-fast: false
       matrix:
-        ios: ${{ fromJSON(inputs.ios == 'both' && '[27,26]' || inputs.ios == '26' && '[26]' || '[27]') }}
-    runs-on: ${{ matrix.ios == 26 && inputs.sdk26 == '26.6' && 'macos-26' || 'xcode-27' }}
+        include:
+          - ios: 27
+            group: testLinkPreferencesSurviveRelaunch
+          - ios: 26
+            group: testLinkPreferencesSurviveRelaunch
+          - ios: 26
+            group: testChangedDataProducesOneLocalNotification
+    runs-on: xcode-27
     timeout-minutes: 30
     env:
-      DEVELOPER_DIR: >-
-        ${{ format('/Applications/Xcode_{0}.app/Contents/Developer', matrix.ios == 26 && inputs.sdk26 || inputs.sdk27) }}
-      TKPK_EXPECTED_IOS_SDK: ${{ matrix.ios == 26 && inputs.sdk26 == '26.6' && '26.5' || matrix.ios == 26 && inputs.sdk26 || inputs.sdk27 }}
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+      TKPK_EXPECTED_IOS_SDK: '27.2'
       TKPK_TEST_IOS: ${{ matrix.ios }}
-      TKPK_UI_PROBE_SDK27: ${{ inputs.sdk27 }}
-      TKPK_UI_PROBE_SDK26: ${{ inputs.sdk26 }}
+      TKPK_UI_PROBE_SDK27: '27.2'
+      TKPK_UI_PROBE_SDK26: '27.2'
       TKPK_UI_RELAUNCH_PROBE: '1'
       TKPK_SIMULATOR_FRONTEND: ${{ matrix.ios == 26 && 'gui' || 'headless' }}
-      TKPK_UI_HANG_DIAGNOSTICS: ${{ inputs.case == 'rows-context' && '1' || '0' }}
-      TKPK_UI_PROBE_CASE: ${{ inputs.case }}
+      TKPK_UI_PROBE_CASE: ${{ matrix.group }}
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
