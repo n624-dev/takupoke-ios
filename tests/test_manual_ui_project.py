@@ -182,7 +182,11 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertNotIn('.overlay(alignment: .topLeading) {\n                if SimulatorManualFixture.enabled',changed)
         self.assertIn('.accessibilityElement(children:.contain)\n                    .accessibilityIdentifier("manual-observation")\n                    .allowsHitTesting(false)',changed)
         checks=manual_check_source()
-        self.assertEqual(checks.count('.otherElements["manual-observation"].staticTexts'),2)
+        scoped='.otherElements["manual-observation"].staticTexts'
+        self.assertEqual(checks.count(scoped+'.matching(identifier:"manual-coordinator-state")'),1)
+        self.assertEqual(checks.count(scoped+'["manual-coordinator-state"]'),1)
+        self.assertEqual(checks.count(scoped+'.matching(identifier:"manual-input-state")'),1)
+        self.assertNotIn('app.staticTexts["manual-input-state"]',checks)
         state=next(line for line in changed.splitlines() if 'Text("preview=' in line)
         self.assertIn('review=\\(coordinator.manualReview != nil)',state)
         self.assertIn('preview=\\(coordinator.preview != nil)',state)
