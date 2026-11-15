@@ -212,6 +212,57 @@ extension ParsingTests {
         }
     }
 
+    func testChangedFormulaWithSameCachedErrorDoesNotRestoreCorrection() throws {
+        try temporary { root in
+            let header = ["学 年", "学科・クラス", "月日", "備考"]
+            func table(_ name: String, _ formula: String) throws -> ChangeEditTable {
+                var files = workbook([header, ["2", "ZZ", "4/1", "架空備考"]])
+                mutate(&files, "xl/worksheets/sheet1.xml",
+                       #"<c r="D2" t="inlineStr"><is><t xml:space="preserve">架空備考</t></is></c>"#,
+                       "<c r=\"D2\" t=\"e\"><f>" + formula + "</f><v>#VALUE!</v></c>")
+                let url = root.appendingPathComponent(name + ".xlsx")
+                try write(files, to: url)
+                return try XLSXReader.editableWorkbook(url, layout: nil, check: {}).table
+            }
+            let previous = try table("before", "A2+B2")
+            let changed = try table("after", "A2-B2")
+            let saved = try previous.savedEdits(sourceIdentity: "selection", digest: "before", defaultYear: 2032,
+                                                edits: [2: ChangeRowEdit(values: [3: "架空訂正"])])
+            XCTAssertEqual(previous.rows[1][3], "#VALUE!")
+            XCTAssertEqual(previous.cellIssues[2]?[3], .cellType)
+            XCTAssertNotEqual(previous.original(at: 2), changed.original(at: 2))
+            XCTAssertTrue(changed.restore(saved, sourceIdentity: "selection", digest: "after", defaultYear: 2032).edits.isEmpty)
+            XCTAssertEqual(previous.restore(saved, sourceIdentity: "selection", digest: "other", defaultYear: 2032).edits[2]?.values[3], "架空訂正")
+        }
+    }
+
+    func testSharedFormulaFollowerMatchesOnlyAnUnchangedMaster() throws {
+        try temporary { root in
+            func table(_ name: String, master: String?) throws -> ChangeEditTable {
+                let rows = [["学 年", "学科・クラス", "月日", "備考"], ["2", "ZZ", "4/1", "架空元"], ["2", "ZZ", "4/2", "架空下"]]
+                var files = workbook(rows)
+                for (row, literal) in [(2, "架空元"), (3, "架空下")] {
+                    let formula = row == 2 ? master.map { "<f t=\"shared\" si=\"0\" ref=\"D2:D3\">" + $0 + "</f>" } ?? "" : #"<f t="shared" si="0"/>"#
+                    mutate(&files, "xl/worksheets/sheet1.xml",
+                           "<c r=\"D\(row)\" t=\"inlineStr\"><is><t xml:space=\"preserve\">" + literal + "</t></is></c>",
+                           "<c r=\"D\(row)\" t=\"e\">" + formula + "<v>#VALUE!</v></c>")
+                }
+                let url = root.appendingPathComponent(name + ".xlsx")
+                try write(files, to: url)
+                return try XLSXReader.editableWorkbook(url, layout: nil, check: {}).table
+            }
+            let original = try table("old", master: "A2+B2")
+            let changed = try table("changed", master: "A2-B2")
+            let missing = try table("missing", master: nil)
+            let edit = ChangeRowEdit(values: [3: "架空訂正"])
+            for (before, after, shouldRestore) in [(original, original, true), (original, changed, false), (missing, missing, false)] {
+                let saved = try before.savedEdits(sourceIdentity: "source", digest: "old", defaultYear: 2032, edits: [3: edit])
+                let restored = after.restore(saved, sourceIdentity: "source", digest: "updated", defaultYear: 2032)
+                XCTAssertEqual(restored.edits[3], shouldRestore ? edit : nil)
+            }
+        }
+    }
+
     func testEditorPreserves1904SerialAndConvertsOnlyTheMappedDate() throws {
         try temporary { root in
             let header = ["学 年", "学科・クラス", "月日", "時限", "曜日"]

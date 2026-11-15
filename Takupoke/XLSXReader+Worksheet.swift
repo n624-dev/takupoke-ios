@@ -1,4 +1,9 @@
 import Foundation
+#if canImport(CryptoKit)
+import CryptoKit
+#else
+import Crypto
+#endif
 
 extension XLSXReader {
     static func readSheet(_ sheet: XMLNode, strings: [String], defaultYear: Int?,
@@ -80,6 +85,9 @@ extension XLSXReader {
         var formulas: [(row: Int, column: Int, hasCachedValue: Bool)] = []
         var issues: [Int: [Int: ChangeParseError.Code]] = [:]
         var sources: [Int: [Int: String]] = [:]
+        var sharedMasters: [String: (row: Int, column: Int, fingerprint: String)] = [:]
+        var duplicateMasters = Set<String>()
+        var sharedFollowers: [(row: Int, column: Int, group: String)] = []
         var numericCells: [Int: Set<Int>] = [:], dateCells: [Int: Set<Int>] = [:]
         for row in data.children where row.name == "row" {
             try check()
@@ -100,7 +108,21 @@ extension XLSXReader {
                 }
                 var decoded: String
                 if editing, let formula = cell.child("f") {
-                    sources[number, default: [:]][position.column] = "formula/" + type + "/" + formula.text
+                    // Length-frame each field so separators inside a formula cannot collide
+                    // with its attributes, cached error or written cell type.
+                    let fields = [type, formula.text] + formula.attributes.keys.sorted().flatMap { [$0, formula.attributes[$0]!] }
+                    sources[number, default: [:]][position.column] = "formula/" + fields.map { "\($0.utf8.count):" + $0 }.joined()
+                    if formula.attributes["t"] == "shared" {
+                        let group = formula.attributes["si"] ?? ""
+                        if formula.text.isEmpty {
+                            sharedFollowers.append((number, position.column, group))
+                        } else if sharedMasters[group] != nil {
+                            duplicateMasters.insert(group)
+                        } else {
+                            let fingerprint = SHA256.hash(data: Data(formula.text.utf8)).map { String(format: "%02x", $0) }.joined()
+                            sharedMasters[group] = (number, position.column, fingerprint)
+                        }
+                    }
                     issues[number, default: [:]][position.column] = .formula
                 }
                 do {
@@ -130,7 +152,6 @@ extension XLSXReader {
                     guard editing, [.date, .cellType].contains(problem.code) else { throw problem }
                     decoded = value
                     issues[number, default: [:]][position.column] = problem.code
-                    sources[number, default: [:]][position.column] = type + "/" + value
                 }
                 if editing, type != "s" && type != "inlineStr" && type != "str" {
                     // Keep the written typed value, including the time portion of a typed date.
@@ -143,6 +164,15 @@ extension XLSXReader {
             }
             rows += Array(repeating: [], count: number - rows.count - 1)
             rows.append(cells)
+        }
+        for follower in sharedFollowers {
+            try check()
+            if !follower.group.isEmpty, !duplicateMasters.contains(follower.group), let master = sharedMasters[follower.group] {
+                sources[follower.row, default: [:]][follower.column, default: ""] +=
+                    "/master/\(master.fingerprint)/\(master.row - follower.row)/\(master.column - follower.column)"
+            } else {
+                sources[follower.row, default: [:]][follower.column] = "unresolved-shared/" + (sources[follower.row]?[follower.column] ?? "")
+            }
         }
         return WorksheetCells(rows: rows, formulas: formulas, issues: issues, sources: sources,
                               numericCells: numericCells, dateCells: dateCells)
