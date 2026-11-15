@@ -5042,3 +5042,8 @@ N243限定確認：89066f3/run43387318089/attempt1/job131758747884は07:39:35〜
 - Linuxの手動UI検査44件中2件は、全画面の再照会と特定のアサーション文字列を前提として失敗。操作上限を超えたら必ず失敗すること、現在の所有リスト・一意な項目ID・同一訂正内容の保持を検査するよう更新。
 - Linuxの全体Swift検査で LocalDatabaseTests.testWeekdayConsentAndResultCommitTogetherAndRollbackTogether が invalidDatabase。別原本の取得で過去の解析試行を消した際、SQLiteが前回の試行を再読込した。新しい原本と古い正常結果を同時に保護したまま、対応する試行記録を同じトランザクションで消す。
 - Linux/Python 3.12、模擬iOS26 runtimeの partial-verifying-wrong-identity がSwift全体検査と並行した際に15秒でTimeoutExpired。期待結果を読む前のテスト側サブプロセス待ち。過去のL20261113-runtime-mockは別のpartial-pendingで残り予算が尽きた記録。今回も実機やAppleの準備ジョブではない。Swift終了後、模擬検査を含む全Pythonテストを元の期限・条件で単独実行する。
+- 旧正式490 / 43754726270 attempt 1、iOS 26 UI B / 132950001919 は cancelled で終端。22:02 UTCにtestNotificationControlsAndAppearanceを開始、22:04のログは「The operation was canceled.」。このケースのXCTest完了記録や取消の下位原因は確認できない。Build and publishはskipped。今回の限定検証とは別の実行。
+- 旧正式491 / 43758697036 attempt 1 はiOS26 UI A・Bとも成功で終端。iOS27の手動3項目が既報の失敗のため、公開ジョブはskipped。個別成功は現在の候補版の公開判定に合算しない。
+- 限定43767607953 attempt 1 / 132976131847、6ee6857、Xcode 27.2、iOS 26.5 手動3項目。XCTest開始前に prepare-ios26-runtime.py が「Owned asset re-registration did not complete within 30 seconds」で終了。準備step 203.4秒。シミュレーター上の入力やアプリの成否は未観測。
+  N224/N225/N226/N234/N241の過去記録と、旧正式491および今回の同一prepare-ios26-runtime.pyを照合。今回の正規deleteはMobileAssetの回収のみ未完了。scan後30秒の19回の観測すべてで対象候補が空、AssetDataあり。N241で180秒観測する一意の子イメージの署名検証は現れなかった。同一source・SDKの別ホスト（132976131744）では同じ準備stepが成功してXCTestのstepへ進んだ。UI側の修正対象を示す証拠はない。準備・所有検証・各期限を維持し、クリーンなホストの限定実行で手動3項目を起動から確認する。
+- Linux Swift 6.1.2の全636件が成功。先の模擬runtime timeoutを含むPython全体をSwift終了後に単独で実行し315件、失敗0、環境依存skip 2件。
