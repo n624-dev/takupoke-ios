@@ -104,8 +104,7 @@ struct TimetableView: View {
                 if !model.ready {
                     Section {
                         if model.failed && !model.busy {
-                            Label(model.message ?? "データを読み込めませんでした。", systemImage: "exclamationmark.triangle")
-                                .foregroundStyle(.orange)
+                            InlineWarning(model.message ?? "データを読み込めませんでした。")
                             Button("再試行") { model.loadIfNeeded() }
                                 .buttonStyle(.glass)
                         } else {
@@ -127,8 +126,7 @@ struct TimetableView: View {
                             LabeledContent("クラス", value: savedClasses.isEmpty ? "未選択" : TimetableDisplayText.classNames(savedClasses))
                         }
                         if savedClasses.contains(where: { !availableClasses.contains($0) }) {
-                            Label("保存したクラスの一部は現在の資料にありません。選択は保持しています。", systemImage: "exclamationmark.triangle")
-                                .font(.caption).foregroundStyle(.orange)
+                            InlineWarning("保存したクラスの一部は現在の資料にありません。選択は保持しています。")
                         }
                     }
                     weekSection

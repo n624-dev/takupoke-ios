@@ -22,7 +22,7 @@ struct PDFRecoveryView: View {
                     Text("学校の資料・OCR文字・授業情報は端末内で処理され、外部のAIへ送信されません。")
                         .font(.subheadline).foregroundStyle(.secondary)
                     if coordinator.running { LoadingRow(title:coordinator.status,cancel:{ coordinator.cancel() }) }
-                    else if let failure = coordinator.failure { Label(failure,systemImage:"exclamationmark.triangle").foregroundStyle(.orange) }
+                    else if let failure = coordinator.failure { InlineWarning(failure) }
                     else { Text(coordinator.status) }
                 }
                 if let preview = coordinator.preview {
@@ -258,6 +258,7 @@ struct RecoveryModelControls: View {
                 .font(.caption).foregroundStyle(.secondary)
             if models.isInUse { Text("復旧処理の終了後にモデルを変更できます。").foregroundStyle(.secondary) }
             if models.busy { LoadingRow(title:models.message ?? "準備中⋯",cancel:{ models.cancel() }) }
+            else if let failure = models.failure { InlineWarning(failure) }
             else if let message = models.message { Text(message) }
             if models.catalog.isEmpty { Text("追加モデルは品質評価後に提供します。OSの端末内AIが利用可能な端末では追加ダウンロードは不要です。") }
             ForEach(models.catalog,id:\.sha256) { manifest in

@@ -51,8 +51,7 @@ struct SchoolEventsSettingsSection: View {
                         }
                     }
                 } else if model.failedCacheYears.contains(year) {
-                    Text("再取得が必要")
-                        .foregroundStyle(.orange)
+                    InlineWarning("再取得が必要")
                 } else {
                     Text("未取得")
                         .foregroundStyle(.secondary)
@@ -63,20 +62,16 @@ struct SchoolEventsSettingsSection: View {
                 }
                     .disabled(!model.ready || model.busy)
             } else {
-                Label("4桁の学校年度を入力してください。", systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                InlineWarning("4桁の学校年度を入力してください。")
             }
             if model.busy {
                 LoadingRow(title: "学校行事を取得中⋯", cancel: { model.cancel() })
             }
             if model.failed, let message = model.message {
-                Label(message, systemImage: model.failed ? "exclamationmark.triangle" : "info.circle")
-                    .font(.caption)
-                    .foregroundStyle(model.failed ? Color.orange : Color.secondary)
+                InlineWarning(message)
             }
             if let warning = model.cacheWarning {
-                Label(warning, systemImage: "exclamationmark.triangle")
-                    .font(.caption).foregroundStyle(.orange)
+                InlineWarning(warning)
             }
         }
         .task(id: year) {
@@ -121,8 +116,7 @@ struct SchoolEventsWarnings: View {
     var body: some View {
         if !model.ready {
             if model.failed && !model.busy {
-                Label("学校行事の保存情報を読み込めませんでした。通常時間割は参考表示です。", systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                InlineWarning("学校行事の保存情報を読み込めませんでした。通常時間割は参考表示です。")
                 Button("学校行事を再読み込み") { model.loadIfNeeded() }
             } else {
                 LoadingRow(title: "学校行事を読み込み中⋯")
@@ -131,12 +125,10 @@ struct SchoolEventsWarnings: View {
             }
         } else {
             if let warning = model.cacheWarning {
-                Label(warning, systemImage: "exclamationmark.triangle")
-                    .font(.caption).foregroundStyle(.orange)
+                InlineWarning(warning)
             }
             if let warning = model.sourceCheckMessage {
-                Label(warning, systemImage: "exclamationmark.triangle")
-                    .font(.caption).foregroundStyle(.orange)
+                InlineWarning(warning)
             }
         }
     }

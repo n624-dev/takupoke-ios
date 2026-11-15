@@ -289,7 +289,7 @@ struct ScheduleNotificationSnapshot:Codable,Equatable {
  enum State {case available,unavailable}
  struct Availability {func state(for kind:String)->State{.unavailable}}
  var revision=0;var pending=[String:Pending]()
- func reconciling(changes:Set<Change>?,specials:[String:String],availability:Availability,today:SchoolDate,classes:Set<String>,changesEnabled:Bool,specialsEnabled:Bool)throws->Self{var next=self;next.revision+=1;return next}
+ func reconciling(changes:Set<Change>?,specials:[String:String],availability:Availability,today:SchoolDate,classes:Set<String>,changesEnabled:Bool,specialsEnabled:Bool,changeDocument:String?,personalEdit:Bool)throws->Self{var next=self;next.revision+=1;return next}
  func validTargets(_ targets:[ChangeTarget],in changes:Set<Change>,today:SchoolDate,classes:Set<String>)->[ChangeTarget]{targets}
 }
 @MainActor final class Harness {
@@ -298,7 +298,7 @@ struct ScheduleNotificationSnapshot:Codable,Equatable {
  var baseline:ScheduleNotificationSnapshot?=ScheduleNotificationSnapshot();var failSave=false,saves=0
  let root:URL
  init(_ root:URL){self.root=root}
- struct Input {var revision:UUID;var period=SchoolDataPeriod.current();var changes:Set<ScheduleNotificationSnapshot.Change>?;var specials=[String:String]();var availability=ScheduleNotificationSnapshot.Availability()}
+ struct Input {var changeDocument:String? = nil;var personalEdit=false;var revision:UUID;var period=SchoolDataPeriod.current();var changes:Set<ScheduleNotificationSnapshot.Change>?;var specials=[String:String]();var availability=ScheduleNotificationSnapshot.Availability()}
  func storageFile()throws->URL{root.appendingPathComponent("fictional-baseline.json")}
  func save(_ value:ScheduleNotificationSnapshot,to file:URL)throws{saves+=1;if failSave{throw CocoaError(.fileWriteNoPermission)};baseline=value}
  func send(kind:String,notice:ScheduleNotificationSnapshot.Pending)async throws{preconditionFailure("No notice is eligible in this baseline-only fixture")}

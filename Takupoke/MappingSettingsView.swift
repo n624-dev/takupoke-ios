@@ -11,7 +11,8 @@ struct MappingSettingsView: View {
                                      updated: model.updateAvailable, failed: model.failed)
                 if model.busy || account.busy { LoadingRow(title: "確認中⋯") }
                 if let message = model.message {
-                    Text(message).foregroundStyle(model.failed ? Color.orange : Color.secondary)
+                    if model.failed { InlineWarning(message) }
+                    else { Text(message).foregroundStyle(.secondary) }
                 }
                 if !model.ready { Button("保存情報を再読み込み") { model.loadIfNeeded() } }
             }

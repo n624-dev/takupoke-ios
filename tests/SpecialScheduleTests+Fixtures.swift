@@ -154,6 +154,37 @@ extension SpecialScheduleTests {
         return PDFPageLayout(width: 850, height: 600, glyphs: glyphs, lines: lines)
     }
 
+    /// Independently vary a fictional table's row heights and merge its grade
+    /// column. One class is closer to the next grade's title than to its own.
+    func returnPageWithUnevenGradeBands() -> PDFPageLayout {
+        var page = returnPageWithSplitCell()
+        for index in page.glyphs.indices where page.glyphs[index].x < 60 && page.glyphs[index].y == 532 {
+            page.glyphs[index].y -= 25
+        }
+        for (row, subject) in [(14, "架空科目甲"), (15, "架空科目乙"), (16, "架空科目丙")] {
+            for (offset, text) in [(0, subject), (6, "架空教員"), (11, "架空教室")] {
+                page.glyphs.append(PDFGlyph(text: text, x: 150, y: 130 + Double(row * 25 + offset), width: 18, height: 4))
+            }
+        }
+        let gradeEdges = Set([0, 3, 6, 9, 12, 15, 17].map { 120 + Double($0) * 25 })
+        for index in page.lines.indices where page.lines[index].horizontal && page.lines[index].x1 == 0 {
+            if !gradeEdges.contains(page.lines[index].y1) { page.lines[index].x1 = 110 }
+        }
+        func stretch(_ y: Double) -> Double {
+            y + min(25, max(0, y - 445))
+        }
+        for index in page.lines.indices {
+            page.lines[index].y1 = stretch(page.lines[index].y1)
+            page.lines[index].y2 = stretch(page.lines[index].y2)
+        }
+        for index in page.glyphs.indices {
+            let y = page.glyphs[index].y
+            page.glyphs[index].height = stretch(y + page.glyphs[index].height) - stretch(y)
+            page.glyphs[index].y = stretch(y)
+        }
+        return page
+    }
+
     func returnPageWithSplitCell(timingOverride: [String]? = nil, dateDays: [Int] = [1,2,3,4,5]) -> PDFPageLayout {
         var glyphs: [PDFGlyph] = []
         var lines: [PDFRule] = []

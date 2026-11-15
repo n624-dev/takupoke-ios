@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`3ca88a2c9cb49a2e4754688a3a8004877288fd4bbc19581d77915f2f9fb0969b`
+`7eb07cc4a6d885b2ed8dcae869bfad04b02d92b0c1c47579dd8435d6f17426f0`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -64,6 +64,9 @@ bash tools/test-parsing.sh
 - `testStrict239RetainsPDFPeriodOrderAndReturnDateOrder`
 - `testRelativeSpecialSchedulesOutsideViewportCannotBecomeStrictSuccess`
 - `testReturnColumnsMustBeInDateOrderBeforeSelectingFirstDayTimes`
+- `testUnevenReturnGradeBandsBindTheLastDepartmentAndBothAdvancedRows`
+- `testPartiallyMergedReturnGradeCannotClaimAClassAcrossItsBorder`
+- `testSameReturnPDFRetriesTheLastScopeFailureAfterGradeBandFix`
 - `testReturnScheduleTreatsHorizontallyDividedCellAsTwoLessons`
 - `testSeventeenExamHeadingsCannotReplaceARequiredClassWithAnUnknownClass`
 - `testSpecialSinglePeriodTimesCannotOverlapOrReversePeriodOrder`

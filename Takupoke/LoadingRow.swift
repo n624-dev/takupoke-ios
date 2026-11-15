@@ -19,3 +19,17 @@ struct LoadingRow: View {
         .padding(.vertical, 8)
     }
 }
+
+/// The message label keeps the same Dynamic Type style in lists, grids and details.
+struct InlineWarning: View {
+    private let message: String
+
+    init(_ message: String) { self.message = message }
+
+    var body: some View {
+        Label(message, systemImage: "exclamationmark.triangle")
+            .font(.callout)
+            .foregroundStyle(.orange)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}

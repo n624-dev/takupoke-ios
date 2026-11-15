@@ -80,4 +80,46 @@ extension ParsingTests {
         }
     }
 
+
+    func testPersonalCorrectionSurvivesInsertedRowsAndYieldsToSchoolCorrection() throws {
+        try temporary { root in
+            let directory = root.appendingPathComponent("personal")
+            let library = try MaterialLibrary(root: directory)
+            let blank = ["", "IT", "2032/7/10", "3", "変更", "架空科目A"]
+            let other = ["2", "CN", "2032/7/11", "2", "変更", "架空科目B"]
+            func acquire(_ rows: [[String]], _ digest: String, reuse: Bool) throws {
+                let staged = library.newStagingURL()
+                try write(workbook([headers] + rows), to: staged)
+                try library.commit(staged: staged, kind: .changes, source: MaterialSource(), originalName: "架空資料.xlsx",
+                    byteCount: try staged.resourceValues(forKeys: [.fileSizeKey]).fileSize!, digest: digest,
+                    modifiedAt: nil, reuseUnchanged: reuse)
+            }
+            try acquire([blank], "a", reuse: false)
+            let id = try XCTUnwrap(library.state.record(for: .changes)?.source.selectionID)
+            var view = try library.changeEditor(year: 2032)
+            XCTAssertEqual(try view.table.review(edits: [:], defaultYear: 2032)[2]?.first?.code, .year)
+            try library.saveChangeEditor(view, year: 2032, expectedIdentity: id, expectedDigest: "a",
+                edits: [2: ChangeRowEdit(values: [0:"3"])], manual: true, check: {})
+            try acquire([other, blank], "b", reuse: true)
+            assertCode(.staleConfirmation) {
+                try library.saveChangeEditor(view, year: 2032, expectedIdentity: id, expectedDigest: "a", edits: [:], manual: true, check: {})
+            }
+            view = try library.changeEditor(year: 2032)
+            XCTAssertEqual(view.edits[3]?.values[0], "3")
+            try library.saveChangeEditor(view, year: 2032, expectedIdentity: id, expectedDigest: "b", edits: view.edits, manual: false, check: {})
+            let reopened = try MaterialLibrary(root: directory)
+            XCTAssertEqual(reopened.state.changeAnalysis?.records.map(\.class_name), ["2_CN", "3_IT"])
+            XCTAssertEqual(try reopened.changeEditor(year: 2032).edits[3]?.values[0], "3")
+            var official = blank
+            official[0] = "2"
+            try acquire([other, official], "c", reuse: true)
+            view = try library.changeEditor(year: 2032)
+            XCTAssertTrue(view.edits.isEmpty)
+            XCTAssertEqual(view.previous.count, 1)
+            try library.saveChangeEditor(view, year: 2032, expectedIdentity: id, expectedDigest: "c", edits: [:], manual: false, check: {})
+            XCTAssertEqual(library.state.changeAnalysis?.records.last?.class_name, "2_IT")
+            try acquire([blank], "d", reuse: true)
+            XCTAssertTrue(try library.changeEditor(year: 2032).edits.isEmpty)
+        }
+    }
 }

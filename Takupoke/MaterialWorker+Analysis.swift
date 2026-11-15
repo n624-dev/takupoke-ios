@@ -10,6 +10,18 @@ extension MaterialWorker {
                 do { try control.check() }
                 catch { throw ChangeParseError(code: .cancelled) }
             }
+            if record.source.weekdayConsent.map({ $0.parserVersion < ChangeAnalysis.parserVersion }) == true ||
+                record.source.rowSkipConsent.map({ $0.parserVersion < ChangeAnalysis.parserVersion }) == true {
+                try library.captureLegacyChangeEdits()
+            }
+            if let year = defaultYear, library.state.record(for: .changes)?.source.personalChanges?.year == year {
+                let view = try library.changeEditor(year: year, check: check)
+                try library.reconcileChangeEdits(view, year: year)
+                guard !view.requiresLayoutConfirmation, view.conflicts.isEmpty else { throw ChangeParseError(code: .staleConfirmation) }
+                try library.saveChangeEditor(view, year: year, expectedIdentity: record.source.selectionID ?? record.storedName,
+                    expectedDigest: record.digest, edits: view.edits, manual: false, check: check)
+                return
+            }
             if let saved = record.source.weekdayConsent, !saved.matches(digest: record.digest, defaultYear: defaultYear) {
                 try library.clearWeekdayConsent()
             }

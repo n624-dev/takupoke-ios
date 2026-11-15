@@ -22,6 +22,7 @@ final class LocalRecoveryModelManager: ObservableObject {
     @Published private(set) var busy = false
     @Published private(set) var isInUse = false
     @Published private(set) var message: String?
+    @Published private(set) var failure: String?
     private var leases = Set<UUID>()
     private var task: Task<Void,Never>?
     private var control: AcquisitionControl?
@@ -34,7 +35,7 @@ final class LocalRecoveryModelManager: ObservableObject {
     private lazy var store = RecoveryModelStore(root:root)
     func refresh() async {
         guard !busy, leases.isEmpty else { return }
-        busy = true; defer { busy = false }
+        busy = true; failure = nil; defer { busy = false }
         do {
             let store = self.store; try await store.prepareRoot(); try await store.cleanupAbandonedFiles(inUse:[])
             var next = [String:RecoveryModelManifest](), needsRepair = false
@@ -45,8 +46,8 @@ final class LocalRecoveryModelManager: ObservableObject {
                 }
             }
             installed = next
-            if needsRepair { message = "保存済みAIモデルの一部を確認できません。モデルを再取得または削除してください。" }
-        } catch { message = "保存済みAIモデルを確認できませんでした。" }
+            if needsRepair { message = nil; failure = "保存済みAIモデルの一部を確認できません。モデルを再取得または削除してください。" }
+        } catch { message = nil; failure = "保存済みAIモデルを確認できませんでした。" }
     }
     func providers(lease: UUID) async -> [any LocalRecoveryProvider] {
         guard LocalAIFeaturePolicy.enabled, !busy else { return [] }
@@ -65,7 +66,7 @@ final class LocalRecoveryModelManager: ObservableObject {
         guard LocalAIFeaturePolicy.enabled, !busy, leases.isEmpty, catalog.contains(manifest), manifest.validated,
               UIApplication.shared.applicationState == .active else { return }
         let ticket = LocalAIFeaturePolicy.capture()
-        let control = AcquisitionControl(); self.control = control; busy = true; message = "AIモデルをダウンロードしています⋯"
+        let control = AcquisitionControl(); self.control = control; busy = true; failure = nil; message = "AIモデルをダウンロードしています⋯"
         task = Task { @MainActor in
             var local: URL?
             defer { if let local { try? FileManager.default.removeItem(at:local) }; busy = false; self.control = nil; task = nil }
@@ -105,7 +106,7 @@ final class LocalRecoveryModelManager: ObservableObject {
                     } else { throw RecoveryModelStore.Failure.unavailable }
                 },check:{ try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket, requireEnabled: true) })
                 message = "AIモデルを準備しました。"; installed[manifest.runtime] = manifest
-            } catch { message = "AIモデルを準備できませんでした。前のモデルを保持しています。" }
+            } catch { message = nil; failure = "AIモデルを準備できませんでした。前のモデルを保持しています。" }
         }
     }
     private nonisolated static func availableMemory() -> Int64 {
@@ -150,11 +151,11 @@ final class LocalRecoveryModelManager: ObservableObject {
         succeeded = true
     }
     func delete(_ runtime: String) {
-        guard !busy, leases.isEmpty else { return }; busy = true
+        guard !busy, leases.isEmpty else { return }; busy = true; failure = nil
         task = Task { @MainActor in
             defer { busy = false; task = nil }
             do { try await store.delete(runtime:runtime); installed[runtime] = nil; message = "AIモデルを削除しました。" }
-            catch { message = "AIモデルを削除できませんでした。" }
+            catch { message = nil; failure = "AIモデルを削除できませんでした。" }
         }
     }
     func cancel() { control?.cancel(); task?.cancel() }

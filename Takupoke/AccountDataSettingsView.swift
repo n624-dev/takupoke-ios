@@ -52,9 +52,9 @@ struct AccountDataSettingsView: View {
             LinksPreferencesWarning(model: links)
             if links.failed || mappings.failed || times.failed {
                 Section("取得・確認のエラー") {
-                    if links.failed, let message = links.message { Text(message).foregroundStyle(.orange) }
-                    if mappings.failed, let message = mappings.message { Text(message).foregroundStyle(.orange) }
-                    if times.failed, let message = times.message { Text(message).foregroundStyle(.orange) }
+                    if links.failed, let message = links.message { InlineWarning(message) }
+                    if mappings.failed, let message = mappings.message { InlineWarning(message) }
+                    if times.failed, let message = times.message { InlineWarning(message) }
                 }
             }
         }
@@ -97,7 +97,10 @@ private struct LinksDataDetailView: View {
             Section("状態") {
                 AcquisitionStatusRow(title: "リンク一覧", acquired: links.saved != nil,
                                      updated: links.updateAvailable, failed: links.failed)
-                if let message = links.message { Text(message).foregroundStyle(links.failed ? Color.orange : Color.secondary) }
+                if let message = links.message {
+                    if links.failed { InlineWarning(message) }
+                    else { Text(message).foregroundStyle(.secondary) }
+                }
                 if !links.ready { Button("保存情報を再読み込み") { links.loadIfNeeded() } }
             }
             if let saved = links.saved {
@@ -119,7 +122,10 @@ private struct TimetableTimesDetailView: View {
             Section("状態") {
                 AcquisitionStatusRow(title: "授業時刻", acquired: times.current != nil,
                                      updated: times.updateAvailable, failed: times.failed)
-                if let message = times.message { Text(message).foregroundStyle(times.failed ? Color.orange : Color.secondary) }
+                if let message = times.message {
+                    if times.failed { InlineWarning(message) }
+                    else { Text(message).foregroundStyle(.secondary) }
+                }
                 if !times.ready { Button("保存情報を再読み込み") { times.loadIfNeeded() } }
             }
             if let current = times.current {

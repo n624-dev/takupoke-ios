@@ -124,14 +124,12 @@ struct HomeTodayView: View {
                 }
             }
             ForEach(unreflectedTitles,id:\.self) { title in
-                Label("\(title)の新しい資料をまだ反映できていません。前回の正常結果を表示しています。",systemImage:"exclamationmark.triangle")
-                    .font(.caption).foregroundStyle(.orange)
+                InlineWarning("\(title)の新しい資料をまだ反映できていません。前回の正常結果を表示しています。")
             }
             SpecialScheduleWarnings(model: specialSchedules)
             SchoolEventsWarnings(model: schoolEvents)
             if loadFailed {
-                Text("データを読み込めませんでした。")
-                    .font(.subheadline).foregroundStyle(.secondary)
+                InlineWarning("データを読み込めませんでした。")
                 Button("再試行", action: retryLoading)
             } else if !ready {
                 LoadingRow(title: "読み込み中⋯")
@@ -206,7 +204,7 @@ struct HomeTodayView: View {
             ? ["名称データを読み込めません。資料に記載された名称で表示しています。"] : [])
         Text(TimetableDisplayText.className(className))
             .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
-        ForEach(missing, id: \.self) { status($0) }
+        ForEach(missing, id: \.self) { InlineWarning($0) }
         if blocks.isEmpty && missing.isEmpty && schedule.changes != nil && eventsAvailable {
             // The event title is already shown once above all classes.
             Text("授業はありません。")
@@ -254,8 +252,7 @@ struct SpecialScheduleWarnings: View {
         let availability = model.availability
         if !availability.ready && showLoadState {
             if availability.loadFailed {
-                Label("試験・返却資料の保存情報を読み込めませんでした。通常時間割は参考表示です。", systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                InlineWarning("試験・返却資料の保存情報を読み込めませんでした。通常時間割は参考表示です。")
                 Button("試験・返却資料を再読み込み") { model.loadIfNeeded() }
             } else {
                 LoadingRow(title: "試験・返却資料を読み込み中⋯")
@@ -265,7 +262,7 @@ struct SpecialScheduleWarnings: View {
         }
         ForEach(SpecialScheduleKind.allCases) { kind in
             if let message = availability.message(for: kind) {
-                Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                InlineWarning(message)
                 NavigationLink("\(kind.title)の資料を確認") {
                     SpecialScheduleAnalysisView(model: model, kind: kind)
                 }

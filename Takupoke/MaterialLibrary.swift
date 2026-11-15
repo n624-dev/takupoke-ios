@@ -112,10 +112,12 @@ final class MaterialLibrary {
                 originalName: String, byteCount: Int, digest: String, modifiedAt: Date?, reuseUnchanged: Bool = false) throws {
         var source = source
         if reuseUnchanged, let old = state.record(for: kind) {
-            source.selectionID = old.source.selectionID
+            source.personalChanges = old.source.personalChanges
+            source.selectionID = old.source.selectionID ?? (kind == .changes ? old.storedName : nil)
             source.weekdayConsent = old.digest == digest ? old.source.weekdayConsent : nil
             source.rowSkipConsent = old.digest == digest ? old.source.rowSkipConsent : nil
         } else {
+            source.personalChanges = nil
             source.selectionID = UUID().uuidString
             source.weekdayConsent = nil
             source.rowSkipConsent = nil

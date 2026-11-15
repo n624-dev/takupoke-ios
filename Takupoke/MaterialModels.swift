@@ -32,7 +32,25 @@ struct SourceGrant: Codable {
     #endif
 }
 
+/// Only configuration confirmed for this header is reused after a provider update.
+struct ChangeColumnLayout: Codable, Equatable {
+    var sheet: String
+    var headerRow: Int
+    var original: [String]
+    var headers: [String]
+}
+
+struct PersonalChangeSettings: Codable, Equatable {
+    var year: Int
+    var layout: ChangeColumnLayout
+    var rows: ChangeEdits?
+    var history: [ChangeEdits.Entry]
+    var reviewedDigest: String? = nil
+    var ambiguousRows: [Int]? = nil
+}
+
 struct MaterialSource: Codable {
+    var personalChanges: PersonalChangeSettings? = nil
     var grant: SourceGrant?
     var childName: String?
     var selectionID: String? = nil

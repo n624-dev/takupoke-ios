@@ -24,7 +24,7 @@ struct SpecialScheduleAnalysisView: View {
                 if model.busy {
                     LoadingRow(title: "処理中⋯", cancel: { model.cancel() })
                 }
-                if let failure = source?.acquisitionFailure { Label(failure, systemImage: "exclamationmark.triangle") }
+                if let failure = source?.acquisitionFailure { InlineWarning(failure) }
                 if let failure = source?.failure {
                     PDFAnalysisFailureRows(failure: failure)
                 }
@@ -40,7 +40,7 @@ struct SpecialScheduleAnalysisView: View {
             if source?.recoveryJob?.pdfHash == source?.digest, source?.recoveryJob?.state == .pending {
                 Section("復旧") {
                     Button("端末内で復旧する",systemImage:"doc.text.magnifyingglass") { showingRecovery = true }.disabled(!useAiFeatures || model.busy)
-                    Text("新しい資料は未反映です。") }
+                    InlineWarning("新しい資料は未反映です。") }
             }
             Section {
                 Button("保存済みのPDFを見る") { showingSource = true }
@@ -50,8 +50,7 @@ struct SpecialScheduleAnalysisView: View {
                 Section {
                     Text(source.originalName)
                     if source.grant == nil {
-                        Label("ファイルの自動更新確認には、このPDFをもう一度選んでください。", systemImage: "exclamationmark.triangle")
-                            .font(.caption).foregroundStyle(.orange)
+                        InlineWarning("ファイルの自動更新確認には、このPDFをもう一度選んでください。")
                     }
                     LabeledContent("サイズ", value: ByteCountFormatter.string(
                         fromByteCount: Int64(source.byteCount), countStyle: .file))
@@ -73,8 +72,7 @@ struct SpecialScheduleAnalysisView: View {
                         Text(record.analysis.parsedAt, format: JapaneseDateDisplay.timestamp)
                     }
                     if source?.digest != record.digest || record.analysis.version != SpecialScheduleAnalysis.parserVersion {
-                        Label("前回の解析結果です。現在のファイルを解析してください。", systemImage: "exclamationmark.triangle")
-                            .foregroundStyle(.orange)
+                        InlineWarning("前回の解析結果です。現在のファイルを解析してください。")
                     }
                 } header: { Text("解析結果").accessibilityIdentifier("material-analysis-section") }
                 Section("授業一覧") {
@@ -108,7 +106,10 @@ struct SpecialScheduleAnalysisView: View {
                                             if positionsCopied { Text("位置情報をコピーしました。") }
                                         }
                                         if model.busy { LoadingRow(title:"位置情報を取得中⋯",cancel:{ model.cancel() }) }
-                                        if let message = model.message, positionsLesson == lesson { Text(message).font(.caption) }
+                                        if let message = model.message, positionsLesson == lesson {
+                                            if model.failed { InlineWarning(message) }
+                                            else { Text(message).font(.caption) }
+                                        }
                                     }
                                 }
                             }

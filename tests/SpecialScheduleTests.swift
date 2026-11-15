@@ -379,6 +379,37 @@ final class SpecialScheduleTests: XCTestCase {
             }
         }
     }
+    func testUnevenReturnGradeBandsBindTheLastDepartmentAndBothAdvancedRows() throws {
+        let page = returnPageWithUnevenGradeBands()
+        for result in [
+            try SpecialScheduleParser.parse([page], kind: .examReturn, digest: "fixture", name: "fictional.pdf"),
+            try SpecialScheduleParser.parseCertified([page], kind: .examReturn, digest: "fixture", name: "fictional.pdf")
+        ] {
+            XCTAssertEqual(result.coveredClasses.count, 17)
+            XCTAssertTrue(result.validScopes)
+            let subjects = result.lessons.filter { $0.date == "2026-04-01" && $0.period == 1 }
+            for (name, subject) in [("5_IT", "架空科目甲"), ("AI_1", "架空科目乙"), ("AI_2", "架空科目丙")] {
+                XCTAssertEqual(subjects.filter { $0.className == name }.map(\.subject), [subject])
+            }
+        }
+    }
+
+    func testPartiallyMergedReturnGradeCannotClaimAClassAcrossItsBorder() {
+        var page = returnPageWithUnevenGradeBands()
+        page.lines.append(PDFRule(x1: 0, y1: 495, x2: 100, y2: 495))
+        XCTAssertThrowsError(try SpecialScheduleParser.parse([page], kind: .examReturn, digest: "fixture", name: "fictional.pdf")) {
+            XCTAssertEqual(($0 as? PDFParseError)?.stage, .gradeLabel)
+        }
+    }
+
+    func testSameReturnPDFRetriesTheLastScopeFailureAfterGradeBandFix() {
+        let failure = PDFParseError(code: .ambiguous, page: 1, stage: .duplicateClass, branch: .b427)
+        XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest: "fixture", parserVersion: SpecialScheduleAnalysis.parserVersion,
+            analysisDigest: "fixture", analysisVersion: 34, attemptDigest: "fixture", failure: failure, attemptVersion: 35))
+        XCTAssertFalse(PDFParseAttempt.needsAnalysis(digest: "fixture", parserVersion: SpecialScheduleAnalysis.parserVersion,
+            analysisDigest: "fixture", analysisVersion: SpecialScheduleAnalysis.parserVersion, attemptDigest: nil, failure: nil, attemptVersion: nil))
+    }
+
     func testReturnScheduleTreatsHorizontallyDividedCellAsTwoLessons() throws {
         let result = try SpecialScheduleParser.parseCertified([returnPageWithSplitCell()], kind: .examReturn,
                                                      digest: "fictional", name: "fictional.pdf")

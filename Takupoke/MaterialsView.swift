@@ -27,20 +27,20 @@ struct MaterialsView: View {
             }
             if !model.ready && !model.busy {
                 Section("保存データ") {
-                    if let message = model.message { Text(message).foregroundStyle(.orange) }
+                    if let message = model.message { InlineWarning(message) }
                     Button("保存情報を再読み込み") { model.loadIfNeeded() }
                 }
             }
             if !specialSchedules.ready && !specialSchedules.busy {
                 Section("保存データ") {
-                    if let message = specialSchedules.message { Text(message).foregroundStyle(.orange) }
+                    if let message = specialSchedules.message { InlineWarning(message) }
                     Button("保存情報を再読み込み") { specialSchedules.loadIfNeeded() }
                 }
             }
             if (model.ready && model.failed) || (specialSchedules.ready && specialSchedules.failed) {
                 Section("取得・解析のエラー") {
-                    if model.failed, let message = model.message { Text(message).foregroundStyle(.orange) }
-                    if specialSchedules.failed, let message = specialSchedules.message { Text(message).foregroundStyle(.orange) }
+                    if model.failed, let message = model.message { InlineWarning(message) }
+                    if specialSchedules.failed, let message = specialSchedules.message { InlineWarning(message) }
                 }
             }
 
@@ -79,8 +79,7 @@ struct MaterialsView: View {
                     } else {
                         Text("未選択").foregroundStyle(.secondary)
                         if let failure = model.state.attempts[kind.rawValue]?.failure {
-                            Label(failure, systemImage: "exclamationmark.triangle")
-                                .font(.caption).foregroundStyle(.orange)
+                            InlineWarning(failure)
                         }
                     }
                     Button(model.state.record(for: kind) == nil ? "ファイルを選ぶ" : "ファイルを選び直す") {
@@ -100,8 +99,7 @@ struct MaterialsView: View {
                         } label: { Text("詳細を見る") }
                         .accessibilityLabel("\(kind.title)の詳細を見る")
                         if source.grant == nil {
-                            Label("再選択が必要", systemImage: "exclamationmark.triangle")
-                                .font(.caption).foregroundStyle(.orange)
+                            InlineWarning("再選択が必要")
                         }
                     } else {
                         Text("未選択").foregroundStyle(.secondary)

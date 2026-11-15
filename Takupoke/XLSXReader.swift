@@ -55,12 +55,17 @@ enum XLSXReader {
     // Only weekday warnings are recoverable for display. All other structural
     // checks still apply, and this entry point never persists a successful result.
     static func readForPreview(_ url: URL, defaultYear: Int? = nil, check: @escaping () throws -> Void = {}) throws -> PreviewTable {
-        do { return try readArchive(url, defaultYear: defaultYear, check: check) }
+        do {
+            return try withSheet(url, requested: "時間割変更", editing: false, check: check) { sheet, strings, _, _, _ in
+                try readSheet(sheet, strings: strings, defaultYear: defaultYear, check: check)
+            }
+        }
         catch let error as ChangeParseError { throw error }
         catch { throw ChangeParseError(code: .invalidArchive) }
     }
 
-    private static func readArchive(_ url: URL, defaultYear: Int?, check: @escaping () throws -> Void) throws -> PreviewTable {
+    static func withSheet<T>(_ url: URL, requested: String?, editing: Bool, check: @escaping () throws -> Void,
+                             body: (XMLNode, [String], [String], String, Bool) throws -> T) throws -> T {
         try check()
         guard let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize,
               size > 0, size <= 50 * 1024 * 1024 else { throw ChangeParseError(code: .limit) }
@@ -93,12 +98,17 @@ enum XLSXReader {
             return try BoundedXML.parse(data, root: root, namespace: namespace, check: check)
         }
         let workbook = try xml("xl/workbook.xml", root: "workbook", namespace: spreadsheet)
-        if let setting = workbook.child("workbookPr")?.attributes["date1904"], !["0", "false"].contains(setting) {
+        let setting = workbook.child("workbookPr")?.attributes["date1904"] ?? "0"
+        let uses1904 = ["1", "true"].contains(setting)
+        if !["0", "false", "1", "true"].contains(setting) || (uses1904 && !editing) {
             throw ChangeParseError(code: .dateSystem)
         }
         guard workbook.child("externalReferences") == nil else { throw ChangeParseError(code: .unsupported) }
-        let sheets = workbook.child("sheets")?.children.filter { $0.name == "sheet" && $0.attributes["name"] == "時間割変更" } ?? []
-        guard sheets.count == 1, let id = sheets[0].attributes["{\(documentRelationships)}id"] else {
+        let sheets = workbook.child("sheets")?.children.filter { $0.name == "sheet" } ?? []
+        let names = sheets.compactMap { $0.attributes["name"] }
+        let chosen = requested ?? (names.contains("時間割変更") ? "時間割変更" : names.first)
+        let matching = sheets.filter { $0.attributes["name"] == chosen }
+        guard let chosen, matching.count == 1, let id = matching[0].attributes["{\(documentRelationships)}id"] else {
             throw ChangeParseError(code: .missingSheet)
         }
         let rels = try xml("xl/_rels/workbook.xml.rels", root: "Relationships", namespace: relationships)
@@ -122,7 +132,7 @@ enum XLSXReader {
             }
         }
         let sheet = try xml(path, root: "worksheet", namespace: spreadsheet)
-        return try readSheet(sheet, strings: strings, defaultYear: defaultYear, check: check)
+        return try body(sheet, strings, names, chosen, uses1904)
     }
 
 }

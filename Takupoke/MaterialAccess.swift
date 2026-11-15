@@ -125,6 +125,9 @@ final class MaterialWorker {
             try control.check()
             switch result {
             case .downloaded(let file):
+                if kind == .changes, reuseUnchanged, library.state.record(for: kind)?.digest != file.digest {
+                    try library.captureLegacyChangeEdits()
+                }
                 try library.commit(staged: staged, kind: kind, source: file.source,
                                    originalName: file.name, byteCount: file.count,
                                    digest: file.digest, modifiedAt: file.modified, reuseUnchanged: reuseUnchanged)

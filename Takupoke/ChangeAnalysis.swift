@@ -80,7 +80,8 @@ struct ChangeWeekdayConsent: Codable, Equatable {
 }
 
 struct ChangeAnalysis: Codable {
-    static let parserVersion = 9
+    static let parserVersion = 10
+    var personalEdit: Bool? = nil
     var version = parserVersion
     var sourceDigest: String
     var sourceName: String
@@ -209,6 +210,7 @@ struct ChangePreview {
     var parserVersion: Int = ChangeAnalysis.parserVersion
     var reviewRows: [ChangeReviewRow] = []
     var excludedRows: Set<Int> = []
+    var editor: ChangeWorkbookReview? = nil
     var usesDateDerivedWeekdays = false
     var reviewGroups: [ChangeReviewGroup] { ChangeReviewGroup.group(reviewRows) }
     var canCorrectWeekdays: Bool { sourceIdentity != nil && sourceDigest != nil && !warnings.isEmpty && warnings.allSatisfy(\.canCorrectWeekday) }
@@ -225,6 +227,7 @@ struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
     var row: Int? = nil
     var printedWeekday: String? = nil
     var calculatedWeekday: String? = nil
+    var column: Int? = nil
     var canCorrectWeekday: Bool { code == .weekdayMismatch && printedWeekday.map(ChangeNormalizer.knownWeekday) == true && calculatedWeekday != nil }
     var permitsPreview: Bool { code == .formulaCache || code == .weekdayMismatch || code == .weekdayOnly }
     var errorDescription: String? {
@@ -254,5 +257,144 @@ struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
         case .storage: detail = "解析結果を保存できません。"
         }
         return (row.map { "\($0)行目：" } ?? "") + detail + " 前回の正常な解析結果は保持しています。"
+    }
+}
+
+struct ChangeEditBaseline: Equatable {
+    let personal: PersonalChangeSettings?
+    let weekday: ChangeWeekdayConsent?
+    let skipped: ChangeRowSkipConsent?
+
+    init(source: MaterialSource) {
+        personal = source.personalChanges
+        weekday = source.weekdayConsent
+        skipped = source.rowSkipConsent
+    }
+}
+
+struct ChangeWorkbookReview {
+    let id = UUID()
+    var baseline: ChangeEditBaseline? = nil
+    var sheets: [String]
+    var table: ChangeEditTable
+    var layout: ChangeColumnLayout
+    var requiresLayoutConfirmation: Bool
+    var edits: [Int: ChangeRowEdit] = [:]
+    var conflicts: Set<Int> = []
+    var previous: [ChangeEdits.Entry] = []
+}
+
+/// Column indexes are zero-based. Row numbers are the physical one-based XLSX numbers.
+struct ChangeRowEdit: Codable, Equatable {
+    var values: [Int: String] = [:]
+    var excluded = false
+    var deriveWeekday = false
+    var isEmpty: Bool { values.isEmpty && !excluded && !deriveWeekday }
+}
+
+struct ChangeEdits: Codable, Equatable {
+    struct Original: Codable, Hashable {
+        var values: [String]
+        var issues: [Int: ChangeParseError.Code]
+        var sources: [Int: String]
+        var date1904: Bool? = nil
+    }
+    struct Entry: Codable, Equatable {
+        var row: Int
+        var original: Original
+        var occurrences: Int
+        var edit: ChangeRowEdit
+    }
+    var sourceIdentity: String
+    var digest: String
+    var defaultYear: Int
+    var sheet: String
+    var headers: [String]
+    var entries: [Entry]
+    var originalHeaders: [String]? = nil
+}
+
+struct ChangeEditTable: Equatable {
+    var sheet: String
+    var headers: [String]
+    var rows: [[String]]
+    var headerRow: Int
+    var cellIssues: [Int: [Int: ChangeParseError.Code]] = [:]
+    /// Includes e.g. an unexecuted formula's source, Excel error value or relative merge offsets.
+    var cellSources: [Int: [Int: String]] = [:]
+    var originalHeaders: [String]? = nil
+
+    var uses1904 = false
+    var numericCells: [Int: Set<Int>] = [:]
+    var dateCells: [Int: Set<Int>] = [:]
+
+    var rowIDs: [Int] {
+        guard headerRow > 0, headerRow < rows.count else { return [] }
+        return ((headerRow + 1)...rows.count).filter { number in
+            rows[number - 1].contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+                || cellIssues[number]?.isEmpty == false || cellSources[number]?.isEmpty == false
+        }
+    }
+
+    func original(at row: Int) -> ChangeEdits.Original {
+        // An omitted trailing XLSX cell and an explicit blank are the same input.
+        var values = rows[row - 1]
+        while values.last == "" { values.removeLast() }
+        let date = headers.firstIndex(where: { ChangeNormalizer.text($0) == "月日" })
+        let date1904 = uses1904 && date.map { numericCells[row]?.contains($0) == true } == true
+        return ChangeEdits.Original(values: values, issues: cellIssues[row] ?? [:], sources: cellSources[row] ?? [:],
+                                    date1904: date1904 ? true : nil)
+    }
+
+    func savedEdits(sourceIdentity: String, digest: String, defaultYear: Int,
+                    edits: [Int: ChangeRowEdit]) throws -> ChangeEdits? {
+        let active = edits.filter { !$0.value.isEmpty }
+        guard !active.isEmpty else { return nil }
+        let ids = rowIDs
+        guard !sourceIdentity.isEmpty, !digest.isEmpty, Set(active.keys).isSubset(of: Set(ids)),
+              active.values.allSatisfy({ $0.values.allSatisfy { headers.indices.contains($0.key) && $0.value.utf8.count <= 4096 } })
+        else { throw ChangeParseError(code: .staleConfirmation) }
+        let groups = Dictionary(grouping: ids, by: original(at:))
+        let entries = active.keys.sorted().compactMap { number -> ChangeEdits.Entry? in
+            let key = original(at: number)
+            guard let occurrences = groups[key]?.count, let edit = active[number] else { return nil }
+            return ChangeEdits.Entry(row: number, original: key, occurrences: occurrences, edit: edit)
+        }
+        return ChangeEdits(sourceIdentity: sourceIdentity, digest: digest, defaultYear: defaultYear,
+                           sheet: sheet, headers: headers, entries: entries, originalHeaders: originalHeaders)
+    }
+
+    func restoreDetailed(_ saved: ChangeEdits?, sourceIdentity: String, digest: String, defaultYear: Int)
+        -> (edits: [Int: ChangeRowEdit], conflicts: Set<Int>, unmatched: [ChangeEdits.Entry]) {
+        guard let saved, saved.sourceIdentity == sourceIdentity, saved.defaultYear == defaultYear,
+              saved.sheet == sheet, saved.headers == headers,
+              (saved.originalHeaders ?? saved.headers) == (originalHeaders ?? headers) else { return ([:], [], saved?.entries ?? []) }
+        let groups = Dictionary(grouping: rowIDs, by: original(at:))
+        var edits: [Int: ChangeRowEdit] = [:], conflicts = Set<Int>(), unmatched: [ChangeEdits.Entry] = []
+        for (key, previous) in Dictionary(grouping: saved.entries, by: \.original) {
+            guard let numbers = groups[key], let first = previous.first else {
+                unmatched += previous
+                continue
+            }
+            if saved.digest == digest {
+                let candidates = Set(numbers)
+                for entry in previous where candidates.contains(entry.row) { edits[entry.row] = entry.edit }
+            } else if first.occurrences == numbers.count, previous.count == numbers.count,
+                      previous.allSatisfy({ $0.occurrences == first.occurrences && $0.edit == first.edit }) {
+                // Also covers one-to-one matching after insertion/reordering. A duplicate
+                // group is safe only if every old/new copy gets exactly the same decision.
+                for number in numbers { edits[number] = first.edit }
+            } else {
+                conflicts.formUnion(numbers)
+                unmatched += previous
+            }
+        }
+        return (edits, conflicts, unmatched.sorted { $0.row < $1.row })
+    }
+
+    func restore(_ saved: ChangeEdits?, sourceIdentity: String, digest: String, defaultYear: Int)
+        -> (edits: [Int: ChangeRowEdit], conflicts: Set<Int>) {
+        let restored = restoreDetailed(saved, sourceIdentity: sourceIdentity, digest: digest, defaultYear: defaultYear)
+        return (restored.edits, restored.conflicts)
     }
 }

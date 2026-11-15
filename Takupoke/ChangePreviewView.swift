@@ -3,6 +3,7 @@ import SwiftUI
 struct ChangePreviewView: View {
     let preview: ChangePreview
     @ObservedObject var mappings: MappingModel
+    var openEditor: (() -> Void)? = nil
     var actionFailure: String? = nil
     var operationFailure: String? = nil
     var processing = false
@@ -27,15 +28,14 @@ struct ChangePreviewView: View {
         NavigationStack {
             List {
                 Section {
-                    Label("警告のあるファイルを閲覧しています", systemImage: "exclamationmark.triangle")
-                        .foregroundStyle(.orange)
+                    InlineWarning("警告のあるファイルを閲覧しています")
                     Text("曜日に問題のある行があります。元の記載を確認してください。")
                     Text(preview.sourceName)
                     if let failure = actionFailure ?? rejectedAction {
-                        Label(failure, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                        InlineWarning(failure)
                     }
                     if let operationFailure {
-                        Label(operationFailure, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                        InlineWarning(operationFailure)
                     }
                     if processing { LoadingRow(title: "確認した原本を再取得・解析中⋯", cancel: cancelProcessing) }
                     if skipRows != nil {
@@ -47,6 +47,7 @@ struct ChangePreviewView: View {
                                 .disabled(actionFailure != nil)
                         }
                     }
+                    if let openEditor { Button("すべての行を編集", action: openEditor) }
                     LabeledContent("年なし日付の補完", value: preview.defaultYear.map { "\($0)年度" } ?? "指定なし")
                     LabeledContent("件数", value: "\(preview.records.count)件")
                     if correctWeekdays != nil {
@@ -60,7 +61,7 @@ struct ChangePreviewView: View {
                             if let printed = warning.printedWeekday, let calculated = warning.calculatedWeekday {
                                 Text("\(group.rangeLabel)：\(printed) → \(calculated)曜日")
                             }
-                            Text(group.rangeLabel + "：" +
+                            InlineWarning(group.rangeLabel + "：" +
                                  (warning.code == .weekdayOnly ? "曜日以外の値がありません。" :
                                   warning.code == .formulaCache ? "曜日の計算結果がありません。" : "曜日と月日が一致しないか、曜日の表記を確認できません。"))
                         }
@@ -100,7 +101,7 @@ struct ChangePreviewView: View {
                     .disabled(actionFailure != nil)
                 Button("キャンセル", role: .cancel) {}
             } message: {
-                Text("日付欄を基準に曜日を計算して、時間割変更へ反映します。ファイルの内容が更新されるまで自動的に適用します。")
+                Text("日付欄を基準に曜日を計算して、時間割変更へ反映します。元の行の内容が同じ場合は更新後も適用します。")
             }
             .navigationTitle(correctWeekdays == nil && skipRows == nil ? "プレビュー（閲覧のみ）" : "内容の確認")
             .alert("選んだ行を除外して読み込む", isPresented: $confirmingSkip) {
@@ -112,7 +113,7 @@ struct ChangePreviewView: View {
                     .disabled(actionFailure != nil)
                 Button("キャンセル", role: .cancel) {}
             } message: {
-                Text("\(excludedRows.count)行を時間割変更から除外します。除外する行：\(ChangeReviewGroup.rangeLabel(Array(excludedRows)))。ファイルの内容が更新されるまで適用します。")
+                Text("\(excludedRows.count)行を時間割変更から除外します。除外する行：\(ChangeReviewGroup.rangeLabel(Array(excludedRows)))。同じ内容の行には更新後も適用します。")
                 if correctRemainingWeekdays { Text("残す行の曜日は日付から計算します。") }
             }
             .navigationBarTitleDisplayMode(.inline)

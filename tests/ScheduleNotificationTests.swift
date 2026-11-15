@@ -9,6 +9,52 @@ final class ScheduleNotificationTests: XCTestCase {
         .init(date: date, className: className, period: period, fingerprint: fingerprint)
     }
 
+    func testPersonalEditRebasesSameDocumentAndLaterSchoolUpdateNotifies() throws {
+        let available = ScheduleNotificationSnapshot.Availability(changes: .available, specials: [:])
+        let baseline = ScheduleNotificationSnapshot(changeDocument: "selection/first", changes: [change("original")])
+        let personal = try baseline.reconciling(changes: [change("personal")], specials: [:], availability: available,
+            today: today, classes: ["3_XY"], changesEnabled: true, specialsEnabled: false,
+            changeDocument: "selection/first", personalEdit: true)
+        XCTAssertNil(personal.pending["changes"])
+        XCTAssertEqual(personal.changes, [change("personal")])
+        let updated = try personal.reconciling(changes: [change("school")], specials: [:], availability: available,
+            today: today, classes: ["3_XY"], changesEnabled: true, specialsEnabled: false,
+            changeDocument: "selection/second")
+        XCTAssertEqual(updated.pending["changes"]?.count, 1)
+    }
+
+    func testLegacyBaselineAdoptsDocumentOnPersonalSaveAndPreservesSchoolNotices() throws {
+        let priorSchoolUpdate = change("pending school change", period: "2")
+        let target = ScheduleNotificationSnapshot.ChangeTarget(date: priorSchoolUpdate.date,
+            className: priorSchoolUpdate.className, period: priorSchoolUpdate.period,
+            expectedFingerprints: [priorSchoolUpdate.fingerprint])
+        let old = ScheduleNotificationSnapshot(changes: [change("original"), priorSchoolUpdate],
+            pending: ["changes": try ScheduleNotificationSnapshot.notice([target])])
+        let legacyBytes = try JSONEncoder().encode(old)
+        XCTAssertFalse(String(decoding: legacyBytes, as: UTF8.self).contains("changeDocument"))
+        let legacy = try JSONDecoder().decode(ScheduleNotificationSnapshot.self, from: legacyBytes)
+        let available = ScheduleNotificationSnapshot.Availability(changes: .available, specials: [:])
+        let personalRows: Set = [change("my edit"), priorSchoolUpdate]
+        let adopted = try legacy.reconciling(changes: personalRows, specials: [:], availability: available,
+            today: today, classes: ["3_XY"], changesEnabled: true, specialsEnabled: false,
+            changeDocument: "selected/first", personalEdit: true)
+        XCTAssertEqual(adopted.changes, personalRows)
+        XCTAssertEqual(adopted.changeDocument, "selected/first")
+        XCTAssertEqual(adopted.pending["changes"]?.changeTargets, [target])
+
+        // A school update can also be the first operation after upgrading.
+        let schoolRows: Set = [change("school revision"), priorSchoolUpdate]
+        let updated = try legacy.reconciling(changes: schoolRows, specials: [:], availability: available,
+            today: today, classes: ["3_XY"], changesEnabled: true, specialsEnabled: false,
+            changeDocument: "selected/second")
+        XCTAssertEqual(updated.pending["changes"]?.changeTargets?.map(\.period), ["1", "2"])
+        // If the known source changed while a person edited it, keep the school diff.
+        let changedDocument = try adopted.reconciling(changes: schoolRows, specials: [:], availability: available,
+            today: today, classes: ["3_XY"], changesEnabled: true, specialsEnabled: false,
+            changeDocument: "selected/second", personalEdit: true)
+        XCTAssertEqual(changedDocument.pending["changes"]?.changeTargets, updated.pending["changes"]?.changeTargets)
+    }
+
     func testFirstImportAndUnchangedContentDoNotNotify() {
         let rows: Set = [change("synthetic-fingerprint-A")]
         let first = ScheduleNotificationSnapshot()

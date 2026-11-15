@@ -50,8 +50,11 @@ struct LinksView: View {
                     Section {
                         if model.busy || account.busy { LoadingRow(title: "一覧を取得中⋯") }
                         else {
-                            Text(model.failed ? "一覧を取得できませんでした。" : "一覧はまだ取得されていません。")
-                                .foregroundStyle(.secondary)
+                            if model.failed {
+                                InlineWarning("一覧を取得できませんでした。")
+                            } else {
+                                Text("一覧はまだ取得されていません。").foregroundStyle(.secondary)
+                            }
                             NavigationLink("リンク一覧を取得") { AccountDataSettingsView() }
                         }
                     }
@@ -132,8 +135,7 @@ struct LinksPreferencesWarning: View {
     var body: some View {
         if let message = model.preferencesError {
             Section("一覧の個人設定") {
-                Label(message, systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                InlineWarning(message)
                 Button("一覧の個人設定を再読み込み") { model.reloadPreferences() }
             }
         }

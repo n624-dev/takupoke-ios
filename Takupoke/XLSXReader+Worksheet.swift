@@ -3,54 +3,9 @@ import Foundation
 extension XLSXReader {
     static func readSheet(_ sheet: XMLNode, strings: [String], defaultYear: Int?,
                           check: () throws -> Void) throws -> PreviewTable {
-        guard let data = sheet.child("sheetData") else { throw ChangeParseError(code: .invalidXML) }
-        var rows: [[String]] = []
-        var cellCount = 0
-        var cellBytes = 0
-        var formulas: [(row: Int, column: Int, hasCachedValue: Bool)] = []
-        for row in data.children where row.name == "row" {
-            try check()
-            guard let number = Int(row.attributes["r", default: ""]), number > rows.count,
-                  number <= ChangeNormalizer.maximumRows else { throw ChangeParseError(code: .limit) }
-            var cells: [String] = []
-            var seen: Set<Int> = []
-            for cell in row.children where cell.name == "c" {
-                cellCount += 1
-                guard cellCount <= 100_000, let ref = cell.attributes["r"] else { throw ChangeParseError(code: .limit) }
-                let position = try coordinate(ref)
-                guard position.row == number, seen.insert(position.column).inserted else { throw ChangeParseError(code: .invalidXML) }
-                let isFormula = cell.child("f") != nil
-                let type = cell.attributes["t", default: "n"]
-                let value = cell.child("v")?.text ?? ""
-                if isFormula {
-                    formulas.append((number, position.column, !value.isEmpty && ["n", "str", "s", "b", "d"].contains(type)))
-                }
-                let decoded: String
-                switch type {
-                case "inlineStr": decoded = try cell.child("is").map(richText) ?? ""
-                case "s":
-                    guard let index = Int(value), strings.indices.contains(index) else { throw ChangeParseError(code: .invalidXML, row: number) }
-                    decoded = strings[index]
-                case "b":
-                    guard ["0", "1"].contains(value) else { throw ChangeParseError(code: .invalidXML, row: number) }
-                    decoded = value == "1" ? "TRUE" : "FALSE"
-                case "str": decoded = try decodedString(value)
-                case "d": decoded = try typedDate(value, row: number)
-                case "n": decoded = value
-                default:
-                    // Formula metadata above the header is not part of the table.
-                    // Formula errors within the table are handled after locating that header.
-                    if isFormula { decoded = "" }
-                    else { throw ChangeParseError(code: .cellType, row: number) }
-                }
-                cellBytes += decoded.utf8.count
-                guard cellBytes <= ChangeNormalizer.maximumTextBytes else { throw ChangeParseError(code: .limit) }
-                if cells.count <= position.column { cells += Array(repeating: "", count: position.column + 1 - cells.count) }
-                cells[position.column] = decoded
-            }
-            rows += Array(repeating: [], count: number - rows.count - 1)
-            rows.append(cells)
-        }
+        let content = try readCells(sheet, strings: strings, editing: false, check: check)
+        var rows = content.rows
+        let formulas = content.formulas
         // Locate literal required headers without accepting a formula's cached
         // text as a header. All metadata before that row stays outside the table.
         var headerRows = rows
@@ -105,6 +60,92 @@ extension XLSXReader {
             if end.row >= header { throw ChangeParseError(code: .mergedCells, row: end.row) }
         }
         return PreviewTable(rows: rows, warnings: warnings)
+    }
+
+    struct WorksheetCells {
+        var rows: [[String]]
+        var formulas: [(row: Int, column: Int, hasCachedValue: Bool)]
+        var issues: [Int: [Int: ChangeParseError.Code]]
+        var sources: [Int: [Int: String]]
+        var numericCells: [Int: Set<Int>]
+        var dateCells: [Int: Set<Int>]
+    }
+
+    static func readCells(_ sheet: XMLNode, strings: [String], editing: Bool,
+                          check: () throws -> Void) throws -> WorksheetCells {
+        guard let data = sheet.child("sheetData") else { throw ChangeParseError(code: .invalidXML) }
+        var rows: [[String]] = []
+        var cellCount = 0
+        var cellBytes = 0
+        var formulas: [(row: Int, column: Int, hasCachedValue: Bool)] = []
+        var issues: [Int: [Int: ChangeParseError.Code]] = [:]
+        var sources: [Int: [Int: String]] = [:]
+        var numericCells: [Int: Set<Int>] = [:], dateCells: [Int: Set<Int>] = [:]
+        for row in data.children where row.name == "row" {
+            try check()
+            guard let number = Int(row.attributes["r", default: ""]), number > rows.count,
+                  number <= ChangeNormalizer.maximumRows else { throw ChangeParseError(code: .limit) }
+            var cells: [String] = []
+            var seen: Set<Int> = []
+            for cell in row.children where cell.name == "c" {
+                cellCount += 1
+                guard cellCount <= 100_000, let ref = cell.attributes["r"] else { throw ChangeParseError(code: .limit) }
+                let position = try coordinate(ref)
+                guard position.row == number, seen.insert(position.column).inserted else { throw ChangeParseError(code: .invalidXML) }
+                let isFormula = cell.child("f") != nil
+                let type = cell.attributes["t", default: "n"]
+                let value = cell.child("v")?.text ?? ""
+                if isFormula {
+                    formulas.append((number, position.column, !value.isEmpty && ["n", "str", "s", "b", "d"].contains(type)))
+                }
+                var decoded: String
+                if editing, let formula = cell.child("f") {
+                    sources[number, default: [:]][position.column] = "formula/" + type + "/" + formula.text
+                    issues[number, default: [:]][position.column] = .formula
+                }
+                do {
+                    switch type {
+                    case "inlineStr": decoded = try cell.child("is").map(richText) ?? ""
+                    case "s":
+                        guard let index = Int(value), strings.indices.contains(index) else { throw ChangeParseError(code: .invalidXML, row: number) }
+                        decoded = strings[index]
+                    case "b":
+                        guard ["0", "1"].contains(value) else { throw ChangeParseError(code: .invalidXML, row: number) }
+                        decoded = value == "1" ? "TRUE" : "FALSE"
+                    case "str": decoded = try decodedString(value)
+                    case "d":
+                        let date = try typedDate(value, row: number)
+                        if editing { dateCells[number, default: []].insert(position.column) }
+                        decoded = editing ? value : date
+                    case "n":
+                        decoded = value
+                        if editing { numericCells[number, default: []].insert(position.column) }
+                    default:
+                        // Formula metadata above the header is not part of the table.
+                        // Formula errors within the table are handled after locating that header.
+                        if isFormula && !editing { decoded = "" }
+                        else { throw ChangeParseError(code: .cellType, row: number) }
+                    }
+                } catch let problem as ChangeParseError {
+                    guard editing, [.date, .cellType].contains(problem.code) else { throw problem }
+                    decoded = value
+                    issues[number, default: [:]][position.column] = problem.code
+                    sources[number, default: [:]][position.column] = type + "/" + value
+                }
+                if editing, type != "s" && type != "inlineStr" && type != "str" {
+                    // Keep the written typed value, including the time portion of a typed date.
+                    sources[number, default: [:]][position.column, default: ""] += "/type/" + type + "/" + value
+                }
+                cellBytes += decoded.utf8.count
+                guard cellBytes <= ChangeNormalizer.maximumTextBytes else { throw ChangeParseError(code: .limit) }
+                if cells.count <= position.column { cells += Array(repeating: "", count: position.column + 1 - cells.count) }
+                cells[position.column] = decoded
+            }
+            rows += Array(repeating: [], count: number - rows.count - 1)
+            rows.append(cells)
+        }
+        return WorksheetCells(rows: rows, formulas: formulas, issues: issues, sources: sources,
+                              numericCells: numericCells, dateCells: dateCells)
     }
 
     private static func typedDate(_ value: String, row: Int) throws -> String {
@@ -168,7 +209,7 @@ extension XLSXReader {
         return String(decoding: output, as: UTF16.self)
     }
 
-    private static func coordinate(_ ref: String) throws -> (row: Int, column: Int) {
+    static func coordinate(_ ref: String) throws -> (row: Int, column: Int) {
         guard ChangeNormalizer.matches(ref, "^[A-Z]{1,3}[1-9][0-9]{0,6}$") else { throw ChangeParseError(code: .invalidXML) }
         let letters = ref.prefix { $0.isLetter }
         var col = 0

@@ -37,8 +37,7 @@ extension TimetableView {
             }
             .pickerStyle(.segmented)
             if let timetable, TimetableSchedule.termRange(for: timetable) == nil {
-                Label("通常時間割の学期を確認できません。元PDFを再解析してください。", systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                InlineWarning("通常時間割の学期を確認できません。元PDFを再解析してください。")
             }
             if timetable == nil {
                 Label("通常時間割の解析結果がありません。", systemImage: "doc.questionmark")
@@ -50,13 +49,11 @@ extension TimetableView {
             }
             if let timetable, timetable.sourceDigest != model.state.record(for: .timetable)?.digest ||
                 timetable.version != PDFAnalysis.currentVersion(for: .timetable) {
-                Label("通常時間割は前回の解析結果です。", systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                InlineWarning("通常時間割は前回の解析結果です。")
             }
             if let changes, model.state.record(for: .changes).map({ changes.matches(record: $0,
                 defaultYear: ChangeNormalizer.effectiveSchoolYear(configured: changeSchoolYear, today: today)) }) != true {
-                Label("時間割変更は前回の解析結果です。", systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                InlineWarning("時間割変更は前回の解析結果です。")
             }
             if schoolEvents.ready && !SchoolEventsCoverage(savedYears: Set(schoolEvents.saved.keys)).coversWeek(starting: weekStart) {
                 Label("学校行事は未取得です。", systemImage: "calendar.badge.exclamationmark")
@@ -65,9 +62,11 @@ extension TimetableView {
             SchoolEventsWarnings(model: schoolEvents)
             SpecialScheduleWarnings(model: specialSchedules)
             if selectedClasses.isEmpty {
-                Text(savedClasses.isEmpty ? "クラスを設定すると時間割を表示します。" :
-                     "保存したクラスは現在の資料に見つかりません。資料を再解析するか、クラスを選び直してください。")
-                    .foregroundStyle(.secondary)
+                if savedClasses.isEmpty {
+                    Text("クラスを設定すると時間割を表示します。").foregroundStyle(.secondary)
+                } else {
+                    InlineWarning("保存したクラスは現在の資料に見つかりません。資料を再解析するか、クラスを選び直してください。")
+                }
             } else {
                 weekGrid
                     .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))

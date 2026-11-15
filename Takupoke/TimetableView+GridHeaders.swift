@@ -59,8 +59,7 @@ extension TimetableView {
             .accessibilityLabel("\(day.month)月\(day.day)日、\(weekdayNames[day.schoolWeekday - 1])曜日" +
                                 (day == today ? "、今日" : ""))
             if let warning = plan.weekdayOverrideWarning {
-                Label(warning, systemImage: "exclamationmark.triangle")
-                    .font(.caption2).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+                InlineWarning(warning)
             }
             ForEach(Array(plan.headerEvents(hasFullDayCard: hasFullDayCard).enumerated()), id: \.offset) { _, event in
                 Text(TimetableDisplayText.kana(event.title))
@@ -71,18 +70,12 @@ extension TimetableView {
             if plan.apiTest && selectedClasses.contains(where: { className in
                 !specials.contains { $0.kind == .exam && $0.applies(date: day.iso8601, className: className) }
             }) {
-                Text("試験時間割：未公開または未解析です")
-                    .font(.caption2).foregroundStyle(.orange)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+                InlineWarning("試験時間割：未公開または未解析です")
             }
             if plan.apiTestReturn && selectedClasses.contains(where: { className in
                 !specials.contains { $0.kind == .examReturn && $0.applies(date: day.iso8601, className: className) }
             }) {
-                Text("試験返却時間割：未公開または未解析です")
-                    .font(.caption2).foregroundStyle(.orange)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+                InlineWarning("試験返却時間割：未公開または未解析です")
             }
         }
         .padding(3)

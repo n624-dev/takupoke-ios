@@ -70,5 +70,37 @@ extension ApplicationChecks {
         XCTAssertEqual(ranges.label,"除外した行：3〜4行目、200〜300行目")
         XCTAssertTrue(visible(app.staticTexts["変更後、架空科目C"]).exists)
         XCTAssertFalse(app.staticTexts["変更後、架空除外科目B"].exists)
+
+        visible(app.buttons["個人修正を編集"]).tap()
+        screen("個人修正を編集")
+        visible(app.buttons["change-editor-row-3"]).tap()
+        screen("3行目")
+        XCTAssertEqual(app.textFields["change-editor-field-0"].value as? String, "1")
+        func assertSwitch(_ control: XCUIElement, now value: String) {
+            let updated = expectation(for: NSPredicate(format: "value == %@", value), evaluatedWith: control)
+            XCTAssertEqual(XCTWaiter.wait(for: [updated], timeout: 15), .completed, app.debugDescription)
+        }
+        let excluded = app.switches["この行を除外"]
+        XCTAssertEqual(visible(excluded, navigation: "3行目").value as? String, "1")
+        tapNativeSwitch(excluded, navigation: "3行目")
+        assertSwitch(excluded, now: "0")
+        let derive = app.switches["曜日を日付から補完"]
+        XCTAssertEqual(visible(derive, navigation: "3行目").value as? String, "0")
+        tapNativeSwitch(derive, navigation: "3行目")
+        assertSwitch(derive, now: "1")
+        back(to: "個人修正を編集")
+        tapToolbar("反映する", bar: "個人修正を編集")
+        XCTAssertTrue(app.navigationBars["個人修正を編集"].waitForNonExistence(timeout: 30), app.debugDescription)
+        XCTAssertTrue(visible(app.staticTexts["変更後、架空除外科目B"]).exists)
+
+        app.terminate()
+        launchReady()
+        openChanges()
+        visible(app.buttons["個人修正を編集"]).tap()
+        screen("個人修正を編集")
+        visible(app.buttons["change-editor-row-3"]).tap()
+        screen("3行目")
+        XCTAssertEqual(visible(derive, navigation: "3行目").value as? String, "1")
+        XCTAssertEqual(visible(excluded, navigation: "3行目").value as? String, "0")
     }
 }

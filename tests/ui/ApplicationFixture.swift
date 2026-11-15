@@ -53,6 +53,10 @@ struct SimulatorApplication: App {
     @State private var recoveryOffProbe = "未実行"
     @State private var applicationReady = false
     @State private var fixtureTypeSize: DynamicTypeSize = .large
+    private var showsTypeSizeControl: Bool {
+        let arguments = ProcessInfo.processInfo.arguments
+        return arguments.contains("--grid-probe") || arguments.contains("--failed-refresh")
+    }
     @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
     @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
     init() {
@@ -79,12 +83,14 @@ struct SimulatorApplication: App {
                         }.buttonStyle(.bordered).background(.regularMaterial)
                     }
                 }
-                .modifier(FixtureTypeSize(enabled: ProcessInfo.processInfo.arguments.contains("--grid-probe") &&
-                    !ProcessInfo.processInfo.arguments.contains("--system-text-size"),
+                .modifier(FixtureTypeSize(enabled: showsTypeSizeControl && !ProcessInfo.processInfo.arguments.contains("--system-text-size"),
                                           size: fixtureTypeSize))
                 .overlay(alignment: .topTrailing) {
-                    if ProcessInfo.processInfo.arguments.contains("--grid-probe") {
+                    if showsTypeSizeControl {
                         Menu("文字サイズ") {
+                            if ProcessInfo.processInfo.arguments.contains("--failed-refresh") {
+                                Button("アクセシビリティ・大") { fixtureTypeSize = .accessibility1 }
+                            }
                             ForEach(["標準", "小", "大", "最大"], id: \.self) { title in
                                 Button(title) {
                                     fixtureTypeSize = ["小": .xSmall, "標準": .large,
@@ -347,10 +353,22 @@ struct SimulatorApplication: App {
         if SimulatorHomeBoundaryFixture.enabled { try SimulatorHomeBoundaryFixture.seed(base) }
         if ProcessInfo.processInfo.arguments.contains("--failed-refresh") {
             let library = try LocalMaterialDatabase.openLibrary(root: base.appendingPathComponent("SchoolMaterialsSQLite"))
+            // Replace both selected sources after saving their previous results.
+            // This exercises the two separate warning paths on Home.
+            let updated = Data("fictional replacement body".utf8)
+            let digest = SHA256.hash(data: updated).map { String(format: "%02x", $0) }.joined()
+            let changeFile = library.newStagingURL()
+            try updated.write(to: changeFile)
+            try library.commit(staged: changeFile, kind: .changes, source: .init(grant: nil, childName: nil),
+                               originalName: "fictional.xlsx", byteCount: updated.count, digest: digest, modifiedAt: nil)
             try library.recordFailure(.changes, message: "架空の変更ファイル取得エラー")
-            try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite"))
-                .recordFailure(PDFParseError(code: .unsupported, page: 1,
-                    stage: .vectorObjects, branch: .b126), kind: .exam)
+            let specialStore = try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite"))
+            let examFile = specialStore.newStagingURL()
+            try updated.write(to: examFile)
+            try specialStore.saveSelection(staged: examFile, kind: .exam, originalName: "fictional-exam.pdf",
+                                          byteCount: updated.count, digest: digest)
+            try specialStore.recordFailure(PDFParseError(code: .unsupported, page: 1,
+                stage: .vectorObjects, branch: .b126), kind: .exam)
         }
         if ProcessInfo.processInfo.arguments.contains("--change-row-skip"),
            ProcessInfo.processInfo.arguments.contains("--reset-fixture") {

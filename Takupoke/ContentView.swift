@@ -29,7 +29,7 @@ struct ContentView: View {
             else {
                 VStack(spacing: 16) {
                     if retentionFailure {
-                        Text(application.retentionFailureMessage)
+                        InlineWarning(application.retentionFailureMessage)
                         if application.canRecoverRetention {
                             Button("保存期間の管理情報を復旧") { confirmingRetentionRecovery = true }
                                 .buttonStyle(.bordered)

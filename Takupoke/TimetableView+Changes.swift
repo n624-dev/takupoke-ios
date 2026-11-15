@@ -24,8 +24,7 @@ extension TimetableView {
                     : TimetableDisplayText.classNames(savedChangeClasses))
             }
             if !changeClassesValue.isEmpty && savedChangeClasses.contains(where: { !availableClasses.contains($0) }) {
-                Label("保存した対象クラスの一部は現在の資料にありません。選択は保持しています。", systemImage: "exclamationmark.triangle")
-                    .font(.caption).foregroundStyle(.orange)
+                InlineWarning("保存した対象クラスの一部は現在の資料にありません。選択は保持しています。")
             }
             if !changeClassesValue.isEmpty {
                 Button("時間割設定に戻す") { changeClassesValue = "" }

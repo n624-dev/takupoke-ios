@@ -127,6 +127,32 @@ final class MaterialsModel: ObservableObject {
         }
     }
 
+    func openChangeEditor(sheet: String? = nil, headerRow: Int? = nil) {
+        guard let year = automaticChangeSchoolYear else { return }
+        perform(success: nil, preserveChangePreview: true, changeYear: year) { worker, control in
+            guard let library = worker.library, let record = library.state.record(for: .changes) else { throw ChangeParseError(code: .invalidArchive) }
+            let view = try library.changeEditor(year: year, sheet: sheet, headerRow: headerRow, check: { try control.check() })
+            var preview = ChangePreview(sourceName: record.originalName, defaultYear: year, records: [], warnings: [],
+                sourceIdentity: record.source.selectionID ?? record.storedName, sourceDigest: record.digest)
+            preview.editor = view
+            worker.changePreview = preview
+        }
+    }
+
+    func savePersonalChanges(_ preview: ChangePreview, view: ChangeWorkbookReview, edits: [Int: ChangeRowEdit]) -> String? {
+        if let problem = changePreviewActionFailure(preview) { return problem }
+        guard let year = preview.defaultYear, let digest = preview.sourceDigest, let identity = preview.sourceIdentity else {
+            return ChangeParseError(code: .staleConfirmation).localizedDescription
+        }
+        perform(success: "個人修正を時間割に反映しました。", preserveChangePreview: true, dismissChangePreviewOnSuccess: true, changeYear: year) { worker, control in
+            try worker.refresh(.changes, control: control)
+            guard let library = worker.library else { throw ChangeParseError(code: .storage) }
+            try library.saveChangeEditor(view, year: year, expectedIdentity: identity, expectedDigest: digest,
+                edits: edits, manual: true, check: { try control.check() })
+        }
+        return nil
+    }
+
     func previewChanges() {
         guard canPreviewChanges else { return }
         guard let year = automaticChangeSchoolYear else { return }
@@ -151,7 +177,7 @@ final class MaterialsModel: ObservableObject {
         if let failure = changePreviewActionFailure(preview) { return failure }
         guard let year = automaticChangeSchoolYear else { return ChangeParseError(code: .defaultYear).localizedDescription }
         guard preview.canCorrectWeekdays else { return "曜日の確認内容を開き直してください。" }
-        perform(success: "日付から求めた曜日で読み込みました。ファイルの内容が更新されるまで適用します。", preserveChangePreview: true, dismissChangePreviewOnSuccess: true, changeYear: year) {
+        perform(success: "日付から求めた曜日で読み込みました。同じ内容の行には更新後も適用します。", preserveChangePreview: true, dismissChangePreviewOnSuccess: true, changeYear: year) {
             try $0.correctWeekdays(preview, defaultYear: year, control: $1)
         }
         return nil
@@ -164,7 +190,7 @@ final class MaterialsModel: ObservableObject {
         if let failure = changePreviewActionFailure(preview) { return failure }
         guard let year = automaticChangeSchoolYear else { return ChangeParseError(code: .defaultYear).localizedDescription }
         guard preview.canSkipRows, !rows.isEmpty || correctWeekdays || preview.usesDateDerivedWeekdays else { return "除外する行を確認してください。" }
-        perform(success: "選んだ\(rows.count)行を除外して読み込みました。ファイルの内容が更新されるまで適用します。", preserveChangePreview: true, dismissChangePreviewOnSuccess: true, changeYear: year) {
+        perform(success: "選んだ\(rows.count)行を除外して読み込みました。同じ内容の行には更新後も適用します。", preserveChangePreview: true, dismissChangePreviewOnSuccess: true, changeYear: year) {
             try $0.skipChangeRows(preview, rows: rows, defaultYear: year, control: $1, correctWeekdays: correctWeekdays)
         }
         return nil

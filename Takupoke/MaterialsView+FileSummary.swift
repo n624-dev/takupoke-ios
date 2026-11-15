@@ -17,9 +17,13 @@ extension MaterialsView {
     func fileSummary(name: String, status: String, needsAttention: Bool) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(name).font(.headline).lineLimit(2)
-            Label(status, systemImage: needsAttention ? "exclamationmark.triangle" : "checkmark.circle")
-                .font(.caption)
-                .foregroundStyle(needsAttention ? Color.orange : Color.secondary)
+            if needsAttention {
+                InlineWarning(status)
+            } else {
+                Label(status, systemImage: "checkmark.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(.vertical, 2)
     }

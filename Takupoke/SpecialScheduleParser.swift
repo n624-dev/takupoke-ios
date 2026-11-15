@@ -1,12 +1,7 @@
 import Foundation
 
 enum SpecialScheduleParser {
-    struct Run {
-        let text: String
-        let box: PDFBox
-        var cx: Double { (box.left + box.right) / 2 }
-        var cy: Double { (box.top + box.bottom) / 2 }
-    }
+    typealias Run = PDF239SpecialScheduleParser.Run
 
     struct ParsedPage {
         let dates: [String]

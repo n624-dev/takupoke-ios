@@ -29,6 +29,7 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
         var changeTargets: [ChangeTarget]? = nil
     }
 
+    var changeDocument: String? = nil
     var changes: Set<Change>?
     var specialDigests: [String: String] = [:]
     var pending: [String: Pending] = [:]
@@ -58,18 +59,26 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
     }
 
     func reconciling(changes nextChanges: Set<Change>?, specials: [String: String], availability: Availability,
-                     today: SchoolDate, classes: Set<String>, changesEnabled: Bool, specialsEnabled: Bool) throws -> Self {
+                     today: SchoolDate, classes: Set<String>, changesEnabled: Bool, specialsEnabled: Bool,
+                     changeDocument: String? = nil, personalEdit: Bool = false) throws -> Self {
         var next = self
         switch availability.changes {
         case .available:
             if let nextChanges {
-                let targets = next.pendingChangeTargets(in: nextChanges, today: today, classes: classes)
+                // Pre-document snapshots already contain the last accepted rows. On the
+                // first personal save, adopt its document identity without announcing the edit.
+                let rebasePersonalEdit = personalEdit && changeDocument != nil &&
+                    (self.changeDocument == nil || self.changeDocument == changeDocument)
+                let targets = rebasePersonalEdit
+                    ? validTargets(pending["changes"]?.changeTargets ?? [], in: nextChanges, today: today, classes: classes)
+                    : next.pendingChangeTargets(in: nextChanges, today: today, classes: classes)
+                next.changeDocument = changeDocument
                 if changesEnabled, !targets.isEmpty { next.pending["changes"] = try Self.notice(targets) }
                 else { next.pending.removeValue(forKey: "changes") }
                 next.changes = nextChanges
             }
         case .absent:
-            next.pending.removeValue(forKey: "changes"); next.changes = nil
+            next.pending.removeValue(forKey: "changes"); next.changes = nil; next.changeDocument = nil
         case .unavailable: break
         }
         for kind in SpecialScheduleKind.allCases {

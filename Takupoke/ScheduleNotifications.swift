@@ -20,6 +20,8 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     private var latestRevision = UUID()
 
     private struct Input {
+        let changeDocument: String?
+        let personalEdit: Bool
         let revision: UUID
         let changes: Set<ScheduleNotificationSnapshot.Change>?
         let specials: [String: String]
@@ -162,7 +164,8 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         var availability = ScheduleNotificationSnapshot.availability(materialsReady: materialsReady, specialsReady: specialsReady,
             state: state, records: records, sources: sources)
         if changes == nil && availability.changes == .available { availability.changes = .unavailable }
-        pending = Input(revision:latestRevision,changes: changes, specials: specials, availability: availability, period: period)
+        let document = state.record(for: .changes).map { ($0.source.selectionID ?? $0.storedName) + "/" + $0.digest }
+        pending = Input(changeDocument: document, personalEdit: state.changeAnalysis?.personalEdit == true, revision:latestRevision,changes: changes, specials: specials, availability: availability, period: period)
         await drainPending()
     }
 
@@ -222,7 +225,8 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             let classes = Set((UserDefaults.standard.string(forKey: "timetableSelectedClasses") ?? "")
                 .split(separator: "|").map { ChangeNormalizer.canonicalClassName(String($0)) })
             next = try next.reconciling(changes: input.changes, specials: input.specials, availability: input.availability,
-                today: .today(), classes: classes, changesEnabled: changesEnabled && allowed, specialsEnabled: specialsEnabled && allowed)
+                today: .today(), classes: classes, changesEnabled: changesEnabled && allowed, specialsEnabled: specialsEnabled && allowed,
+                changeDocument: input.changeDocument, personalEdit: input.personalEdit)
             guard operation == generation, input.period == SchoolDataPeriod.current(),
                   UIApplication.shared.isProtectedDataAvailable else { return }
             try Task.checkCancellation()

@@ -130,3 +130,153 @@ extension ParsingTests {
         assertCode(.limit) { _ = try ChangeNormalizer.parse(rows, defaultYear: nil) }
     }
 }
+
+extension ParsingTests {
+    func testRowEditsRetainOriginalValuesAcrossSchoolFileUpdates() throws {
+        let headers = ["学 年", "学科・クラス", "月日", "曜日", "教室", "備考"]
+        let target = ["", "IT", "4/5", "不明", "架空教室A"]
+        let other = ["4", "IT", "4/6", "", "架空教室B"]
+        let old = ChangeEditTable(sheet: "架空", headers: headers, rows: [headers, target, other], headerRow: 1)
+        var edits = old.suggestedEdits(defaultYear: 2032)
+        XCTAssertTrue(edits[2]?.deriveWeekday == true)
+        edits[2, default: ChangeRowEdit()].values = [0: "3", 4: "架空教室C"]
+        let records = try old.records(edits: edits, defaultYear: 2032)
+        XCTAssertEqual(records[0].class_name, "3_IT")
+        XCTAssertEqual(records[0].room, "架空教室C")
+        XCTAssertTrue(records[0].raw_text.contains("教室:架空教室A"))
+        XCTAssertFalse(records[0].raw_text.contains("架空教室C"))
+        let saved = try old.savedEdits(sourceIdentity: "source", digest: "one", defaultYear: 2032, edits: edits)
+        let changed = ChangeEditTable(sheet: "架空", headers: headers,
+            rows: [headers, ["5", "ES", "4/7"], other, [], target + [""]], headerRow: 1)
+        let restored = changed.restore(saved, sourceIdentity: "source", digest: "two", defaultYear: 2032)
+        XCTAssertEqual(restored.edits[5], edits[2])
+        XCTAssertTrue(restored.conflicts.isEmpty)
+        XCTAssertEqual(try changed.records(edits: restored.edits, defaultYear: 2032).last?.room, "架空教室C")
+        var fixed = changed
+        fixed.rows[4][0] = "4"
+        XCTAssertNil(fixed.restore(saved, sourceIdentity: "source", digest: "three", defaultYear: 2032).edits[5])
+        XCTAssertTrue(changed.restore(saved, sourceIdentity: "other", digest: "two", defaultYear: 2032).edits.isEmpty)
+    }
+
+    func testIdenticalOriginalRowsRequireUnambiguousCorrection() throws {
+        let headers = ["学 年", "学科・クラス", "月日"]
+        let value = ["2", "CN", "9/8"]
+        let table = ChangeEditTable(sheet: "架空", headers: headers, rows: [headers, value, value], headerRow: 1)
+        let skip = ChangeRowEdit(excluded: true)
+        let partial = try table.savedEdits(sourceIdentity: "s", digest: "old", defaultYear: 2032, edits: [2: skip])
+        XCTAssertEqual(table.restore(partial, sourceIdentity: "s", digest: "old", defaultYear: 2032).edits, [2: skip])
+        var moved = table
+        moved.rows.insert([], at: 1)
+        let ambiguous = moved.restoreDetailed(partial, sourceIdentity: "s", digest: "new", defaultYear: 2032)
+        XCTAssertTrue(ambiguous.edits.isEmpty)
+        XCTAssertEqual(ambiguous.conflicts, [3, 4])
+        XCTAssertEqual(ambiguous.unmatched.first?.row, 2)
+        let all = try table.savedEdits(sourceIdentity: "s", digest: "old", defaultYear: 2032, edits: [2: skip, 3: skip])
+        XCTAssertEqual(moved.restore(all, sourceIdentity: "s", digest: "new", defaultYear: 2032).edits, [3: skip, 4: skip])
+    }
+
+    func testCorrectionReviewIncludesMultipleFieldsAndEmptyFormulaRows() throws {
+        let headers = ["学 年", "学科・クラス", "月日", "曜日", "教室"]
+        let table = ChangeEditTable(sheet: "架空", headers: headers,
+            rows: [headers, ["", "全", "2/30"], [], ["3", "IT", "8/1"]], headerRow: 1,
+            cellIssues: [3: [4: .formula]], cellSources: [3: [4: "架空数式"]])
+        let issues = try table.review(edits: [:], defaultYear: 2032)
+        XCTAssertEqual(Set(issues[2]?.map(\.code) ?? []), [.year, .date])
+        XCTAssertEqual(Set(issues[3]?.map(\.code) ?? []), [.formula, .year, .classes, .date])
+        let edits = [2: ChangeRowEdit(values: [0: "3", 2: "8/1"], deriveWeekday: true),
+                     3: ChangeRowEdit(excluded: true)]
+        let fixed = try table.records(edits: edits, defaultYear: 2032)
+        XCTAssertEqual(fixed.map(\.class_name), ["3_IT", "3_IT"])
+        XCTAssertThrowsError(try table.records(edits: [2: edits[2]!, 3: edits[3]!, 4: ChangeRowEdit(excluded: true)], defaultYear: 2032))
+        let old = ChangeEditTable(sheet: "架空", headers: headers, rows: [headers, ["3", "IT", "8/1", "月"], ["", "", "", "金"]], headerRow: 1)
+        let weekday = ChangeNormalizer.weekday("2032-08-01")
+        let migrated = old.legacyEdits(weekday: true, excluded: [3], defaultYear: 2032)
+        XCTAssertEqual(migrated[2]?.deriveWeekday == true, weekday != "月")
+        XCTAssertTrue(migrated[3]?.excluded == true)
+    }
+}
+
+extension ParsingTests {
+    func testEditorUsesRecognizedAliasesInsteadOfAddingShadowColumns() throws {
+        try temporary { root in
+            let header = ["学 年", "学科・クラス", "月日", "校時", "種別", "変更前 科目", "変更先", "担任", "場所", "メモ", "科目（担当教員）"]
+            let row = ["2", "ZZ", "4/1", "3", "補講", "架空前", "架空後", "架空教員", "架空教室", "架空連絡", "架空科目"]
+            let url = root.appendingPathComponent("aliases.xlsx")
+            try write(workbook([header, row]), to: url)
+            let view = try XLSXReader.editableWorkbook(url, layout: nil, check: {})
+            XCTAssertEqual(view.table.headers, header)
+            let record = try XCTUnwrap(view.table.records(edits: [2: .init(values: [3: "5", 8: "架空新教室"])], defaultYear: 2032).first)
+            XCTAssertEqual(record.period, "5")
+            XCTAssertEqual(record.room, "架空新教室")
+            XCTAssertEqual(record.teacher, "架空教員")
+        }
+    }
+
+    func testEditorPreserves1904SerialAndConvertsOnlyTheMappedDate() throws {
+        try temporary { root in
+            let header = ["学 年", "学科・クラス", "月日", "時限", "曜日"]
+            var files = workbook([header, ["1", "ZZ", "0", "2", "?"]])
+            mutate(&files, "xl/workbook.xml", "<sheets>", "<workbookPr date1904=\"1\"/><sheets>")
+            let sheet = "xl/worksheets/sheet1.xml"
+            for (coordinate, number) in [("C2", 0), ("D2", 2)] {
+                mutate(&files, sheet, "<c r=\"\(coordinate)\" t=\"inlineStr\"><is><t xml:space=\"preserve\">\(number)</t></is></c>",
+                       "<c r=\"\(coordinate)\"><v>\(number)</v></c>")
+            }
+            let url = root.appendingPathComponent("dates.xlsx")
+            try write(files, to: url)
+            var table = try XLSXReader.editableWorkbook(url, layout: nil, check: {}).table
+            let original = table.original(at: 2)
+            XCTAssertEqual(original.values, ["1", "ZZ", "0", "2", "?"])
+            XCTAssertEqual(table.values(at: 2, defaultYear: 2032)[2], "0")
+            let edit = try XCTUnwrap(table.suggestedEdits(defaultYear: 2032)[2])
+            let record = try XCTUnwrap(table.records(edits: [2: edit], defaultYear: 2032).first)
+            XCTAssertEqual(record.change_date, "1904-01-01")
+            XCTAssertEqual(record.period, "2")
+            XCTAssertTrue(record.raw_text.contains("月日:0"))
+            XCTAssertEqual(table.values(at: 2, edit: edit, defaultYear: 2032)[4], "金")
+            table.headers.swapAt(2, 3)
+            let remapped = try XCTUnwrap(table.records(edits: [2: edit], defaultYear: 2032).first)
+            XCTAssertEqual(remapped.change_date, "1904-01-03")
+            XCTAssertEqual(remapped.period, "0")
+            XCTAssertEqual(table.original(at: 2), original)
+        }
+    }
+
+    func testEmptyFirstSheetAllowsSelectingOtherSheet() throws {
+        try temporary { root in
+            var files = workbook(example)
+            files["xl/worksheets/empty.xml"] = Data("<worksheet xmlns=\"\(ns)\"><sheetData/></worksheet>".utf8)
+            mutate(&files, "xl/workbook.xml", "<sheets><sheet name=\"時間割変更\"", "<sheets><sheet name=\"空欄\" q:id=\"s0\"/><sheet name=\"架空変更\"")
+            mutate(&files, "xl/_rels/workbook.xml.rels", "<Relationship Id=", "<Relationship Id=\"s0\" Type=\"\(rel)/worksheet\" Target=\"worksheets/empty.xml\"/><Relationship Id=")
+            let url = root.appendingPathComponent("sheets.xlsx")
+            try write(files, to: url)
+            let empty = try XLSXReader.editableWorkbook(url, layout: nil, check: {})
+            XCTAssertEqual(empty.sheets, ["空欄", "架空変更"])
+            XCTAssertTrue(empty.requiresLayoutConfirmation)
+            XCTAssertThrowsError(try empty.table.records(edits: [:], defaultYear: 2032))
+            let selected = try XLSXReader.editableWorkbook(url, layout: nil, sheet: "架空変更", check: {})
+            XCTAssertEqual(try selected.table.records(edits: [:], defaultYear: 2032).count, 1)
+        }
+    }
+
+    func testOpenEditorRejectsAnotherPersonalEditToSameDigest() throws {
+        try temporary { root in
+            let library = try MaterialLibrary(root: root)
+            let staged = library.newStagingURL()
+            try write(workbook(example), to: staged)
+            try library.commit(staged: staged, kind: .changes, source: MaterialSource(), originalName: "架空.xlsx",
+                byteCount: try staged.resourceValues(forKeys: [.fileSizeKey]).fileSize!, digest: "same", modifiedAt: nil)
+            let selection = try XCTUnwrap(library.state.record(for: .changes)?.source.selectionID)
+            let first = try library.changeEditor(year: 2032)
+            let second = try library.changeEditor(year: 2032)
+            try library.saveChangeEditor(first, year: 2032, expectedIdentity: selection, expectedDigest: "same",
+                edits: [2: .init(values: [3: "4"])], manual: true, check: {})
+            assertCode(.staleConfirmation) {
+                try library.saveChangeEditor(second, year: 2032, expectedIdentity: selection, expectedDigest: "same",
+                    edits: [2: .init(values: [3: "5"])], manual: true, check: {})
+            }
+            XCTAssertEqual(library.state.changeAnalysis?.records.first?.period, "4")
+            XCTAssertEqual(try library.changeEditor(year: 2032).edits[2]?.values[3], "4")
+        }
+    }
+}

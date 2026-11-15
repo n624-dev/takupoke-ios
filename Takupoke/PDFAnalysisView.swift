@@ -9,10 +9,9 @@ struct PDFAnalysisFailureRows: View {
     var body: some View {
         Group {
             VStack(alignment: .leading, spacing: 6) {
-                Label(failure.userMessage, systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                InlineWarning(failure.userMessage)
                     .accessibilityIdentifier("pdf-failure-message")
-                Text(failure.retentionMessage).font(.footnote).foregroundStyle(.secondary)
+                Text(failure.retentionMessage).font(.callout).foregroundStyle(.secondary)
             }
             if let code = failure.userCode {
                 LabeledContent("エラーコード") {
@@ -53,7 +52,7 @@ struct PDFAnalysisView: View {
                 }
                 if model.busy { LoadingRow(title: "処理中⋯") }
                 if let failure = model.state.attempts[kind.rawValue]?.failure {
-                    Label(failure, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                    InlineWarning(failure)
                 }
                 if let failure = failure {
                     PDFAnalysisFailureRows(failure: failure)
@@ -73,7 +72,7 @@ struct PDFAnalysisView: View {
             if model.state.pdfParseAttempts?[kind.rawValue]?.recoveryJob?.pdfHash == model.state.record(for: kind)?.digest,
                model.state.pdfParseAttempts?[kind.rawValue]?.recoveryJob?.state == .pending {
                 Section("復旧") {
-                    Text("新しい資料は未反映です。")
+                    InlineWarning("新しい資料は未反映です。")
                     Button("端末内で復旧する",systemImage:"doc.text.magnifyingglass") { showingRecovery = true }.disabled(!useAiFeatures || model.busy)
                 }
             }
@@ -111,11 +110,9 @@ struct PDFAnalysisView: View {
                     LabeledContent("最終解析成功") { Text(analysis.parsedAt, format: JapaneseDateDisplay.timestamp) }
                     LabeledContent("件数", value: "\(analysis.lessons.count + analysis.events.count)件")
                     if analysis.version < 3 {
-                        Label("旧版の解析結果には文字順の誤りが含まれる場合があります。保存済みPDFを再解析してください。", systemImage: "exclamationmark.triangle")
-                            .foregroundStyle(.orange)
+                        InlineWarning("旧版の解析結果には文字順の誤りが含まれる場合があります。保存済みPDFを再解析してください。")
                     } else if analysis.sourceDigest != model.state.record(for: kind)?.digest || analysis.version != PDFAnalysis.currentVersion(for: kind) {
-                        Label("前回の解析結果です。現在のファイルを解析してください。", systemImage: "exclamationmark.triangle")
-                            .foregroundStyle(.orange)
+                        InlineWarning("前回の解析結果です。現在のファイルを解析してください。")
                     }
                     ForEach(analysis.notices, id: \.self) { Text($0).font(.caption).foregroundStyle(.secondary) }
                 } header: { Text("解析結果").accessibilityIdentifier("material-analysis-section") }
@@ -129,8 +126,7 @@ struct PDFAnalysisView: View {
                             ForEach(classes, id: \.self) { Text(TimetableDisplayText.className($0)).tag($0) }
                         }
                         if !selectedClass.isEmpty && !classes.contains(selectedClass) {
-                            Label("選択したクラスは現在の解析結果にありません。選択は保持しています。", systemImage: "exclamationmark.triangle")
-                                .font(.caption).foregroundStyle(.orange)
+                            InlineWarning("選択したクラスは現在の解析結果にありません。選択は保持しています。")
                         }
                         Picker("曜日", selection: $selectedWeekday) {
                             ForEach(0..<weekdays.count, id: \.self) { Text(weekdays[$0]).tag($0) }
@@ -155,9 +151,12 @@ struct PDFAnalysisView: View {
                             Text(event.title).font(.headline)
                             LabeledContent("対象欄", value: event.scope)
                             if let classification = event.classification {
-                                Label(classification.label, systemImage: classification.type == .noClass ? "calendar.badge.minus" : "tag")
-                                    .font(.caption)
-                                    .foregroundStyle(classification.needsReview ? Color.orange : Color.secondary)
+                                if classification.needsReview {
+                                    InlineWarning(classification.label)
+                                } else {
+                                    Label(classification.label, systemImage: classification.type == .noClass ? "calendar.badge.minus" : "tag")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
                                 if classification.type == .supplementary {
                                     Text("基本時間割は使わず、時間割変更で指定された授業だけを扱う日です。")
                                         .font(.caption).foregroundStyle(.secondary)
@@ -169,8 +168,7 @@ struct PDFAnalysisView: View {
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                             if event.periodNeedsReview {
-                                Label("終了日を確認できません。元PDFを確認してください。", systemImage: "exclamationmark.triangle")
-                                    .foregroundStyle(.orange)
+                                InlineWarning("終了日を確認できません。元PDFを確認してください。")
                             }
                         } header: { Text(event.date) }
                     }

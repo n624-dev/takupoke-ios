@@ -26,8 +26,10 @@
         "Takupoke/ChangeNormalizer+Dates.swift",
         "Takupoke/ChangeNormalizer.swift",
         "Takupoke/ChangePreviewView.swift",
+        "Takupoke/ChangeWorkbookEditorView.swift",
         "Takupoke/XLSXReader+Worksheet.swift",
         "Takupoke/XLSXReader.swift",
+        "Takupoke/ChangeWorkbookEditor.swift",
         "tests/ParsingTests.swift"
       ],
       "checks": [

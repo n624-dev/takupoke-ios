@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`72b67602154813a85e0a8ae726e0a2776c660efead10c66c41d39d34d72a52ff`
+`4c5a5860e102fcc7405fef36a45b35640923cdf349e92fb4ad5e0a35d726dc57`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -17,8 +17,10 @@ bash tools/test-parsing.sh
 - [Takupoke/ChangeNormalizer+Dates.swift](../../Takupoke/ChangeNormalizer+Dates.swift)
 - [Takupoke/ChangeNormalizer.swift](../../Takupoke/ChangeNormalizer.swift)
 - [Takupoke/ChangePreviewView.swift](../../Takupoke/ChangePreviewView.swift)
+- [Takupoke/ChangeWorkbookEditorView.swift](../../Takupoke/ChangeWorkbookEditorView.swift)
 - [Takupoke/XLSXReader+Worksheet.swift](../../Takupoke/XLSXReader+Worksheet.swift)
 - [Takupoke/XLSXReader.swift](../../Takupoke/XLSXReader.swift)
+- [Takupoke/ChangeWorkbookEditor.swift](../../Takupoke/ChangeWorkbookEditor.swift)
 - [tests/ParsingTests.swift](../../tests/ParsingTests.swift)
 
 ## [tests/test_change_preview_actions.py](../../tests/test_change_preview_actions.py)
@@ -35,11 +37,19 @@ bash tools/test-parsing.sh
 - `testLegacyAIClassDisplayDoesNotRewriteSavedResults`
 - `testDatesAndExplicitYear`
 - `testTableFailuresAndBounds`
+- `testRowEditsRetainOriginalValuesAcrossSchoolFileUpdates`
+- `testIdenticalOriginalRowsRequireUnambiguousCorrection`
+- `testCorrectionReviewIncludesMultipleFieldsAndEmptyFormulaRows`
+- `testEditorUsesRecognizedAliasesInsteadOfAddingShadowColumns`
+- `testEditorPreserves1904SerialAndConvertsOnlyTheMappedDate`
+- `testEmptyFirstSheetAllowsSelectingOtherSheet`
+- `testOpenEditorRejectsAnotherPersonalEditToSameDigest`
 
 ## [tests/ParsingTests+Persistence.swift](../../tests/ParsingTests+Persistence.swift)
 
 - `testPersistenceFailureAndNewSourceKeepLastGoodResult`
 - `testInvalidYearCannotReplaceAcceptedSqliteDatesAndFreshnessUsesYearAndConsents`
+- `testPersonalCorrectionSurvivesInsertedRowsAndYieldsToSchoolCorrection`
 
 ## [tests/ParsingTests+Preview.swift](../../tests/ParsingTests+Preview.swift)
 

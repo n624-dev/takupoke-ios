@@ -15,7 +15,7 @@ SOURCES = {
     'PDF239SchoolParser+Timetable.swift': "239.1のStrict判定（原条件と固定番号）",
     'PDF239SchoolParser+Events.swift': "239.1のStrict判定（原条件と固定番号）",
     'PDF239SpecialScheduleParser.swift': "239.1のStrictと返却のみの見出し取得範囲分離",
-    'PDF239SpecialScheduleParser+Pages.swift': "239.1のStrictと返却のみのクラス表上端",
+    'PDF239SpecialScheduleParser+Pages.swift': "239.1のStrictと返却のクラス表上端・学年の所属範囲",
     'PDF239SpecialScheduleParser+Times.swift': "239.1のStrict時刻と数値途中の採用拒否",
     'PDF239KitReader.swift': "239.1のStrict判定（原条件と固定番号）",
 
@@ -47,6 +47,8 @@ STAGES = dict(zip(
     [f"P{number:02d}" for number in range(1, 26)]))
 
 NOTES = {
+    "436": "返却の学年帯とクラス行を実罫線または行ごとの区切りから一意に対応できない",
+    "437": "返却の学年帯とクラス行を実罫線または行ごとの区切りから一意に対応できない",
     "424": "Strictの時限・時刻がUnicode十進数字の途中から始まる、または途中で終わる",
     "425": "復旧用の時限・時刻がUnicode十進数字の途中から始まる、または途中で終わる",
     "426": "復旧用の複合塗りのsubpathが重なり、各矩形の可視な罫線を証明できない",

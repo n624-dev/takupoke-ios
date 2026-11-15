@@ -411,6 +411,28 @@ extension ApplicationChecks {
     }
     func testFileFailuresKeepResultsAndStayInTheirOwnDetails() {
         XCTAssertTrue(app.tabBars.buttons["設定"].waitForExistence(timeout: 30))
+        // These titles occupy the same number of full-width characters. The two
+        // production warning paths should wrap and scale equally at both sizes.
+        func warningHeights() -> (changes: CGFloat, exam: CGFloat) {
+            func height(_ title: String) -> CGFloat {
+                let text = title + "の新しい資料をまだ反映できていません。前回の正常結果を表示しています。"
+                let label = app.staticTexts[text]
+                _ = visible(label, searchEarlierRows: true)
+                XCTAssertEqual(label.label, text)
+                return label.frame.height
+            }
+            return (height("時間割変更"), height("試験時間割"))
+        }
+        let standard = warningHeights()
+        XCTAssertGreaterThan(standard.changes, 0)
+        XCTAssertEqual(standard.changes, standard.exam, accuracy: 1)
+        app.buttons["fixture-type-size"].tap()
+        app.buttons["アクセシビリティ・大"].tap()
+        let enlarged = warningHeights()
+        XCTAssertGreaterThan(enlarged.changes, standard.changes)
+        XCTAssertEqual(enlarged.changes, enlarged.exam, accuracy: 1)
+        app.buttons["fixture-type-size"].tap()
+        app.buttons["標準"].tap()
         tab("設定")
         tap("時間割ファイル")
         screen("時間割ファイル")

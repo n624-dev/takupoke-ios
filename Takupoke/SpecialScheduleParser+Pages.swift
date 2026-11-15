@@ -80,13 +80,15 @@ extension SpecialScheduleParser {
         let referenceBoxes = try grid.lessonBoxes(rows:classRuns.map { try grid.box($0.cx,$0.cy,check:check) },columns:periods.map(\.cx),check:check)
         var seenClasses: Set<String> = []
         var result: [SpecialScheduleLesson] = []
-        for run in classRuns {
-            try check()
-            guard let grade = grades.min(by: { abs($0.cy - run.cy) < abs($1.cy - run.cy) }),
-                  abs(grade.cy - run.cy) < step * 2.5 else {
+        guard let gradeOwners = PDF239SpecialScheduleParser.returnGrades(grades, for: classRuns, in: page) else {
+            if classRuns.contains(where: { row in !grades.contains { abs($0.cy - row.cy) < step * 2.5 } }) {
                 throw PDFParseError(code: .ambiguous, page: 1, stage: .gradeLabel, branch:.b243)
             }
-            let name = grade.text == "AI" ? "AI_" + run.text : grade.text + "_" + run.text
+            throw PDFParseError(code: .ambiguous, page: 1, stage: .gradeLabel, branch:.b437)
+        }
+        for (classIndex, run) in classRuns.enumerated() {
+            try check()
+            let name = gradeOwners[classIndex].text + "_" + run.text
             guard seenClasses.insert(name).inserted else { throw PDFParseError(code: .ambiguous, page: 1, stage: .duplicateClass, branch:.b244) }
             let row = try grid.box(run.cx, run.cy,check:check)
             for (dayIndex, (_, day)) in dates.enumerated() {

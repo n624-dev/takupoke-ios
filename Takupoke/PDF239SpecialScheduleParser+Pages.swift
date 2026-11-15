@@ -121,6 +121,40 @@ extension PDF239SpecialScheduleParser {
         return ParsedPage(dates: dateRuns.map { $0.1.iso8601 }, classes: names, lessons: result)
     }
 
+    /// Match printed grade bands to the independently identified class labels.
+    /// Some exports rule each individual row even when the grade is printed once.
+    static func returnGrades(_ grades: [Run], for classes: [Run], in page: PDFPageLayout) -> [Run]? {
+        var owners: [Run] = []
+        for grade in grades.sorted(by: { $0.cy < $1.cy }) {
+            let rules = page.lines.filter {
+                $0.horizontal && $0.x1 - 0.8 <= grade.cx && grade.cx <= $0.x2 + 0.8
+            }.map(\.y1).sorted()
+            func members(at y: Double) -> [Int] {
+                guard let top = rules.last(where: { $0 < y - 0.5 }),
+                      let bottom = rules.first(where: { $0 > y + 0.5 }) else { return [] }
+                return classes.indices.filter { top < classes[$0].cy && classes[$0].cy < bottom }
+            }
+
+            let labelledBand = members(at: grade.cy)
+            if labelledBand.count > 1 {
+                // Physical bounds establish membership without a fixed class list.
+                guard labelledBand == Array(owners.count..<(owners.count + labelledBand.count)) else { return nil }
+                owners.append(contentsOf: repeatElement(grade, count: labelledBand.count))
+            } else {
+                // Unmerged printouts label just one row of each three-row grade
+                // (two for the advanced course). Confirm a rule around every row.
+                let count = grade.text == "AI" ? 2 : 3
+                let end = owners.count + count
+                guard end <= classes.count, labelledBand.count == 1 else { return nil }
+                let group = owners.count..<end
+                guard group.contains(labelledBand[0]),
+                      group.allSatisfy({ members(at: classes[$0].cy) == [$0] }) else { return nil }
+                owners.append(contentsOf: repeatElement(grade, count: count))
+            }
+        }
+        return owners.count == classes.count ? owners : nil
+    }
+
     static func parseReturnPage(_ page: PDFPageLayout, schoolYear: Int,
                                         times: Times, geometry: PDFReturnGeometryRecorder? = nil, check: () throws -> Void) throws -> ParsedPage {
         let periods = try periodHeader(page, sequence: "12345678", repeats: 5)
@@ -166,13 +200,16 @@ extension PDF239SpecialScheduleParser {
         let firstClassCell = try grid.box(firstClass.cx, firstClass.cy)
         let (contentTop, lowerHeadings) = try returnContentBand(page, firstClass: firstClass,
             classCell: firstClassCell, periods: periods, check: check)
-        for (classIndex, run) in classRuns.enumerated() {
-            try check()
-            guard let grade = grades.min(by: { abs($0.cy - run.cy) < abs($1.cy - run.cy) }),
-                  abs(grade.cy - run.cy) < step * 2.5 else {
+        guard let gradeOwners = returnGrades(grades, for: classRuns, in: page) else {
+            if classRuns.contains(where: { row in !grades.contains { abs($0.cy - row.cy) < step * 2.5 } }) {
                 throw PDFParseError(code: .ambiguous, page: 1, stage: .gradeLabel, branch:.b398)
             }
-            let name = grade.text == "AI" ? "AI_" + run.text : grade.text + "_" + run.text
+            throw PDFParseError(code: .ambiguous, page: 1, stage: .gradeLabel, branch:.b436)
+        }
+        for (classIndex, run) in classRuns.enumerated() {
+            try check()
+            let grade = gradeOwners[classIndex]
+            let name = grade.text + "_" + run.text
             guard seenClasses.insert(name).inserted else { throw PDFParseError(code: .ambiguous, page: 1, stage: .duplicateClass, branch:.b397) }
             let row = try grid.box(run.cx, run.cy)
             for (dayIndex, (_, day)) in dates.enumerated() {

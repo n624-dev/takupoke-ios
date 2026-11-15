@@ -19,14 +19,14 @@ struct NotificationSettingsView: View {
             .disabled(notifications.requestingPermission)
             if let message = notifications.permissionMessage {
                 Section {
-                    Text(message).foregroundStyle(.orange)
+                    InlineWarning(message)
                     Button("iPhoneの設定を開く") {
                         if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                     }
                 }
             }
             if let message = notifications.message {
-                Section { Text(message).foregroundStyle(.orange) }
+                Section { InlineWarning(message) }
             }
         }
         .navigationTitle("通知")
