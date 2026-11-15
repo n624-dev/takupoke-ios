@@ -79,6 +79,7 @@ CONTROL_PROBE_TESTS = NOTIFICATION_PROBE_TESTS + (
     "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",
 )
 PROBE_GROUPS = {
+    "merged-cards": ("testMergedCardsFromAllSources",),
     "retention": ("testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData",),
     "notifications": NOTIFICATION_PROBE_TESTS,
     "controls": CONTROL_PROBE_TESTS,
