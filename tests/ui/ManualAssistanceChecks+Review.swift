@@ -45,10 +45,11 @@ extension ManualAssistanceChecks {
     }
     func inspectSource(_ id:String) {
         visible(app.buttons["manual-zoom-"+id]).tap()
-        let image=app.descendants(matching:.any)["manual-source-context"].firstMatch
+        let scroll=app.scrollViews["manual-source-scroll"]
+        let image=scroll.descendants(matching:.any)["manual-source-context"].firstMatch
         XCTAssertTrue(image.waitForExistence(timeout:10),app.debugDescription)
         XCTAssertGreaterThan(image.frame.width,0);XCTAssertGreaterThan(image.frame.height,0)
-        let highlight=app.descendants(matching:.any)["manual-source-highlight"].firstMatch
+        let highlight=image.descendants(matching:.any)["manual-source-highlight"].firstMatch
         XCTAssertTrue(highlight.exists,app.debugDescription)
         XCTAssertGreaterThan(highlight.frame.width,0);XCTAssertGreaterThan(highlight.frame.height,0)
         XCTAssertTrue(image.frame.contains(highlight.frame),app.debugDescription)

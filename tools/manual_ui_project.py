@@ -129,6 +129,8 @@ def view(text):
     text = once(text, 'Text("今回: \\(lessons(change.after))")', 'Text("今回: \\(lessons(change.after))").accessibilityIdentifier("manual-change-after")')
     text = once(text, 'Slider(value:$zoom,in:1...4,step:0.5) { Text("原画像の拡大率") }',
                 'Slider(value:$zoom,in:1...4,step:0.5) { Text("原画像の拡大率") }.accessibilityIdentifier("manual-source-zoom")')
+    scroll_end = '                            .padding(16)\n                    }\n                }\n            }\n            .navigationTitle("原画像の確認")'
+    text = once(text, scroll_end, scroll_end.replace('                    }', '                    }.accessibilityIdentifier("manual-source-scroll")', 1))
     text = once(text, '.accessibilityElement().accessibilityLabel("訂正する本文の範囲")',
                 '.accessibilityElement().accessibilityLabel("訂正する本文の範囲").accessibilityIdentifier("manual-source-highlight")')
     text = once(text, '.accessibilityLabel("原本の対象セル・訂正箇所を強調")',
