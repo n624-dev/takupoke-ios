@@ -288,6 +288,26 @@ extension ParsingTests {
         }
     }
 
+    func testBlankDateKeepsPersonalCorrectionWhenOnlyFormattingChangesIn1904Workbook() throws {
+        try temporary { root in
+            func table(_ name: String, formatted: Bool) throws -> ChangeEditTable {
+                var files = workbook([["学 年", "学科・クラス", "月日"], ["2", "ZZ", "架空仮値"]])
+                mutate(&files, "xl/workbook.xml", "<sheets>", #"<workbookPr date1904="1"/><sheets>"#)
+                mutate(&files, "xl/worksheets/sheet1.xml", #"<c r="C2" t="inlineStr"><is><t xml:space="preserve">架空仮値</t></is></c>"#,
+                       formatted ? #"<c r="C2" s="1"/>"# : "")
+                let url = root.appendingPathComponent(name + ".xlsx")
+                try write(files, to: url)
+                return try XLSXReader.editableWorkbook(url, layout: nil, check: {}).table
+            }
+            let missing = try table("missing", formatted: false)
+            let formatted = try table("formatted", formatted: true)
+            let edit = ChangeRowEdit(values: [2: "2032/4/1"])
+            let saved = try missing.savedEdits(sourceIdentity: "source", digest: "old", defaultYear: 2032, edits: [2: edit])
+            XCTAssertEqual(missing.original(at: 2), formatted.original(at: 2))
+            XCTAssertEqual(formatted.restore(saved, sourceIdentity: "source", digest: "new", defaultYear: 2032).edits[2], edit)
+        }
+    }
+
     func testEditorPreserves1904SerialAndConvertsOnlyTheMappedDate() throws {
         try temporary { root in
             let header = ["学 年", "学科・クラス", "月日", "時限", "曜日"]

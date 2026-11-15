@@ -155,7 +155,7 @@ extension XLSXReader {
                         decoded = editing ? value : date
                     case "n":
                         decoded = value
-                        if editing { numericCells[number, default: []].insert(position.column) }
+                        if editing && !value.isEmpty { numericCells[number, default: []].insert(position.column) }
                     default:
                         // Formula metadata above the header is not part of the table.
                         // Formula errors within the table are handled after locating that header.
