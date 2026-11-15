@@ -82,6 +82,10 @@ PROBE_GROUPS = {
     "merged-cards": ("testMergedCardsFromAllSources",),
     "retention": ("testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData",),
     "notifications": NOTIFICATION_PROBE_TESTS,
+    "notification-delivery-context": (
+        "testUsageHelpIsOrganizedByTask", "testChangedDataProducesOneLocalNotification",
+    ),
+    "notification-settings-context": (VOICEOVER_TEST, "testNotificationControlsAndAppearance"),
     "controls": CONTROL_PROBE_TESTS,
     "rows": ("testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",),
     "rows-context": ("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover",
