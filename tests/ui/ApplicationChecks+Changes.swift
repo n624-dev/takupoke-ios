@@ -26,14 +26,14 @@ extension ApplicationChecks {
             let toggle = app.switches["change-skip-row-\(number)"]
             _ = visible(toggle, navigation: "内容の確認")
             XCTAssertTrue(toggle.waitForExistence(timeout: 15), app.debugDescription)
-            tapNativeSwitch(toggle, navigation: "内容の確認")
+            tapNativeSwitch(toggle, navigation: "内容の確認", dragThumb: true)
             let changed = expectation(for: NSPredicate(format: "value == %@", "1"), evaluatedWith: toggle)
             XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 15), .completed)
         }
         let group = app.switches["change-skip-group-200-300"]
         _ = visible(group,navigation:"内容の確認")
         XCTAssertTrue(app.staticTexts["200〜300行目の元の記載"].exists)
-        tapNativeSwitch(group,navigation:"内容の確認")
+        tapNativeSwitch(group,navigation:"内容の確認", dragThumb: true)
         let groupSelected = expectation(for:NSPredicate(format:"value == %@","1"),evaluatedWith:group)
         XCTAssertEqual(XCTWaiter.wait(for:[groupSelected],timeout:15),.completed)
         XCTAssertTrue(apply.isEnabled)
@@ -82,11 +82,11 @@ extension ApplicationChecks {
         }
         let excluded = app.switches["この行を除外"]
         XCTAssertEqual(visible(excluded, navigation: "3行目").value as? String, "1")
-        tapNativeSwitch(excluded, navigation: "3行目")
+        tapNativeSwitch(excluded, navigation: "3行目", dragThumb: true)
         assertSwitch(excluded, now: "0")
         let derive = app.switches["曜日を日付から補完"]
         XCTAssertEqual(visible(derive, navigation: "3行目").value as? String, "0")
-        tapNativeSwitch(derive, navigation: "3行目")
+        tapNativeSwitch(derive, navigation: "3行目", dragThumb: true)
         assertSwitch(derive, now: "1")
         back(to: "個人修正を編集")
         tapToolbar("反映する", bar: "個人修正を編集")

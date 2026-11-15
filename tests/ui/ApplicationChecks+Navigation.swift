@@ -211,7 +211,7 @@ extension ApplicationChecks {
         )
         return e
     }
-    func tapNativeSwitch(_ row: XCUIElement, navigation: String? = nil) {
+    func tapNativeSwitch(_ row: XCUIElement, navigation: String? = nil, dragThumb: Bool = false) {
         _ = visible(row, navigation: navigation)
         // Observe the surrounding layout before retaining a native identity.
         // Revalidate every safety condition inside the original native deadline.
@@ -243,9 +243,18 @@ extension ApplicationChecks {
         let control = proof.control, outer = proof.outer, frame = proof.frame
         let state = proof.state, rowState = proof.rowState
         let point = CGPoint(x: frame.minX + frame.width * (state == "0" ? 0.25 : 0.75), y: frame.midY)
+        let gesture = dragThumb ? "thumb-drag" : "short-contact-50ms"
         print(
-            "NATIVE_SWITCH row=\(outer);control=\(frame);observedPoint=\(point);rowState=\(rowState);controlState=\(state);target=native-element;method=short-contact-50ms"
+            "NATIVE_SWITCH row=\(outer);control=\(frame);observedPoint=\(point);rowState=\(rowState);controlState=\(state);target=native-element;method=\(gesture)"
         )
+        if dragThumb {
+            // Move the observed thumb once across this switch. The native pan
+            // recognizer can commit even when the simulator coalesces touch times.
+            let start = control.coordinate(withNormalizedOffset: CGVector(dx: state == "0" ? 0.25 : 0.75, dy: 0.5))
+            let finish = control.coordinate(withNormalizedOffset: CGVector(dx: state == "0" ? 0.75 : 0.25, dy: 0.5))
+            start.press(forDuration: 0.05, thenDragTo: finish, withVelocity: .slow, thenHoldForDuration: 0)
+            return
+        }
         // N239: the normal tap delivered only 5.58ms after relaunch, while
         // successful contacts took 73-85ms. Request one short 50ms contact;
         // do not restore N212's cancelled 100ms hold or resend input.
