@@ -78,7 +78,17 @@ extension ManualAssistanceChecks {
                 else if recoveryTexts.contains(targetID) || correctionMenu { query=list.staticTexts.matching(identifier:targetID) }
                 else { query=list.descendants(matching:.any).matching(identifier:targetID) }
             } else { query=app.descendants(matching:.any).matching(identifier:targetID) }
-            let matches=targetID.isEmpty ? []:query.allElementsBoundByIndex
+            // Use the real owner already located for an ordinary Settings or material row.
+            // Resolve it once per attempt, including after the app's cold relaunch.
+            let ordinaryButton = inRecovery ? nil : buttonLabel
+            let matches:[XCUIElement]
+            if let ordinaryButton {
+                let buttons=targetID.isEmpty ? list.buttons : list.buttons.matching(identifier:targetID)
+                matches=buttons.matching(NSPredicate(format:"label == %@",ordinaryButton))
+                    .allElementsBoundByAccessibilityElement
+            } else {
+                matches=targetID.isEmpty ? []:query.allElementsBoundByIndex
+            }
             guard matches.count<=1 else {
                 XCTFail("Known manual control must be unique: "+targetID);return e
             }
@@ -91,7 +101,7 @@ extension ManualAssistanceChecks {
             }
             if let observed,let actual=manualVisibleCandidate(candidates:observed,viewport:viewport,
                 frame:{ $0.frame },isHittable:{ $0.element.isHittable }) { return actual.element }
-            let exists=observed.map { !$0.isEmpty } ?? (targetID.isEmpty ? target.exists:!matches.isEmpty)
+            let exists=observed.map { !$0.isEmpty } ?? (targetID.isEmpty && ordinaryButton == nil ? target.exists:!matches.isEmpty)
             let targetFrame:CGRect?
             if let observed { targetFrame=observed.first?.frame }
             else { targetFrame=exists ? target.frame:nil }
@@ -107,6 +117,12 @@ extension ManualAssistanceChecks {
             // use the same element rather than two successive representations.
             if alternatives==nil,exists,let targetFrame,
                ManualScrollNavigation.usable(targetFrame),viewport.contains(targetFrame) {
+                if ordinaryButton != nil {
+                    guard target.isEnabled,target.isHittable else {
+                        XCTFail("The current list button must be enabled and hittable");return e
+                    }
+                    return target
+                }
                 if correctionMenu {
                     // Reveal by logical ID, then bind only the actual contact.
                     let controls=query.allElementsBoundByAccessibilityElement
