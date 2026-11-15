@@ -2,7 +2,7 @@ name: Focused iOS 26 manual correction check
 
 on:
   push:
-    branches: [verify/110-112-manual26]
+    branches: [verify/110-112-one26-shipping]
 
 permissions:
   contents: read
@@ -21,14 +21,14 @@ jobs:
       matrix:
         ios: [26]
         case:
-          - testThreeFieldsRequireEachAcknowledgementAndFourRefuses
-    timeout-minutes: ${{ matrix.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' && 45 || 35 }}
+          - testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground
+    timeout-minutes: 45
     env:
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_SIMULATOR_FRONTEND: ${{ matrix.ios == 26 && 'gui' || 'headless' }}
       TKPK_MANUAL_CASE: ${{ matrix.case }}
       TKPK_MANUAL_DIAGNOSTICS: '1'
-      TKPK_MANUAL_RUNNER_SECONDS: ${{ matrix.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' && 2400 || 1800 }}
+      TKPK_MANUAL_RUNNER_SECONDS: '2400'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
