@@ -174,7 +174,7 @@ while read -r device_type runtime; do
             hang_watch_pid=$!
         fi
         local phase_status=0
-        python3 -B tools/timed_command.py "App UI $runtime shard $shard" xcodebuild "${xcode_args[@]}" "$@" 2>&1 | tee "$log_path" || phase_status=$?
+        python3 -B tools/timed_command.py --timeout 1200 --cleanup-grace 120 "App UI $runtime shard $shard" xcodebuild "${xcode_args[@]}" "$@" 2>&1 | tee "$log_path" || phase_status=$?
         stop_hang_watch
         if [[ "$phase_status" != "0" ]]; then
             collect_host_failure
