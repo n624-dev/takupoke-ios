@@ -1,32 +1,8 @@
 name: Native manual input focus check
 
 on:
-  workflow_dispatch:
-    inputs:
-      case:
-        type: choice
-        default: testThreeFieldsRequireEachAcknowledgementAndFourRefuses
-        options:
-          - all
-          - testThreeFieldsRequireEachAcknowledgementAndFourRefuses
-          - testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground
-          - testChangedOriginalCannotSubmitOrReplaceLastGood
-          - testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch
-      sdk26:
-        description: Xcode for iOS 26 (27.2 matches the shipping toolchain)
-        type: choice
-        default: '26.6'
-        options: ['26.6', '27.1', '27.2']
-      sdk27:
-        description: Compare an installed toolchain on the unchanged iOS 27.0 runtime
-        type: choice
-        default: '27.1'
-        options: ['27.1', '27.2']
-      ios:
-        description: Runtime major for the focused comparison
-        type: choice
-        default: both
-        options: ['both', '26', '27']
+  push:
+    branches: [verify/issues-110-112-ack]
 
 permissions:
   contents: read
@@ -37,16 +13,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ios: ${{ fromJSON(inputs.ios == 'both' && '[26,27]' || inputs.ios == '26' && '[26]' || '[27]') }}
-        case: ${{ fromJSON(inputs.case == 'all' && '["testThreeFieldsRequireEachAcknowledgementAndFourRefuses","testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground","testChangedOriginalCannotSubmitOrReplaceLastGood","testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch"]' || format('["{0}"]', inputs.case)) }}
-    runs-on: ${{ matrix.ios == 26 && inputs.sdk26 == '26.6' && 'macos-26' || 'xcode-27' }}
+        ios: [27]
+        case: [testChangedOriginalCannotSubmitOrReplaceLastGood]
+    runs-on: xcode-27
     timeout-minutes: ${{ matrix.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' && 45 || 35 }}
     env:
-      TKPK_EXPECTED_IOS_SDK: ${{ matrix.ios == 27 && inputs.sdk27 || inputs.sdk26 != '26.6' && inputs.sdk26 || '26.5' }}
-      DEVELOPER_DIR: ${{ format('/Applications/Xcode_{0}.app/Contents/Developer', matrix.ios == 27 && inputs.sdk27 || inputs.sdk26) }}
-      TKPK_FOCUS_IOS: ${{ inputs.ios }}
-      TKPK_FOCUS_SDK26: ${{ inputs.sdk26 }}
-      TKPK_FOCUS_SDK27: ${{ inputs.sdk27 }}
+      TKPK_EXPECTED_IOS_SDK: ${{ matrix.ios == 27 && '27.2' || '26.6' != '26.6' && '26.6' || '26.5' }}
+      DEVELOPER_DIR: ${{ format('/Applications/Xcode_{0}.app/Contents/Developer', matrix.ios == 27 && '27.2' || '26.6') }}
+      TKPK_FOCUS_IOS: ${{ '27' }}
+      TKPK_FOCUS_SDK26: ${{ '26.6' }}
+      TKPK_FOCUS_SDK27: ${{ '27.2' }}
       TKPK_SIMULATOR_FRONTEND: ${{ matrix.ios == 26 && 'gui' || 'headless' }}
       TKPK_MANUAL_RUNNER_SECONDS: ${{ matrix.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' && 2400 || 1800 }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
@@ -76,5 +52,5 @@ jobs:
             bash tools/test-manual-ui.sh
           '
       - name: Remove the owned iOS 26 runtime export after simulator cleanup
-        if: always() && matrix.ios == 26 && inputs.sdk26 != '26.6'
+        if: always() && matrix.ios == 26 && '26.6' != '26.6'
         run: python3 -B tools/prepare-ios26-runtime.py --cleanup-export
