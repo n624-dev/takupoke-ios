@@ -306,6 +306,23 @@ class ManifestTests(unittest.TestCase):
                         self.assertEqual("架空リンクAの検証ページ" in body.decode(), status == 200)
                     finally:
                         connection.close()
+                # A preconnected client with partial headers must not block the real page.
+                with socket.create_connection((parsed.hostname, parsed.port), timeout=4) as first:
+                    first.sendall(b"GET /fictional-link HTTP/1.1\r\nHost: 127.0.0.1\r\n")
+                    second = http.client.HTTPConnection(parsed.hostname, parsed.port, timeout=4)
+                    try:
+                        second.request("GET", parsed.path)
+                        ready = second.getresponse()
+                        expected = ready.read()
+                        self.assertEqual(ready.status, 200)
+                        self.assertIn("架空リンクAの検証ページ", expected.decode())
+                    finally:
+                        second.close()
+                    first.sendall(b"\r\n")
+                    with http.client.HTTPResponse(first) as earlier:
+                        earlier.begin()
+                        self.assertEqual(earlier.status, 200)
+                        self.assertEqual(earlier.read(), expected)
                 # A client sending partial headers cannot extend the total deadline.
                 trickle = socket.create_connection((parsed.hostname, parsed.port), timeout=3)
                 stop_sending = threading.Event()

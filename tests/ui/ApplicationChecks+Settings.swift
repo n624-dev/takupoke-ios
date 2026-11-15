@@ -18,6 +18,8 @@ final class LoopbackBrowserFixture: @unchecked Sendable {
     private let descriptor: Int32
     private let source: DispatchSourceRead
     private let queue = DispatchQueue(label: "takupoke.fictional-browser")
+    private let connections = DispatchQueue(label: "takupoke.fictional-browser.clients", attributes: .concurrent)
+    private let slots = DispatchSemaphore(value: 8)
     let url: URL
 
     init() throws {
@@ -69,15 +71,22 @@ final class LoopbackBrowserFixture: @unchecked Sendable {
                 if errno == EINTR { continue }
                 return
             }
+            let deadline = ProcessInfo.processInfo.systemUptime + 2
+            guard slots.wait(timeout: .now()) == .success else {
+                close(client)
+                continue
+            }
             FileHandle.standardError.write(Data("BROWSER_FIXTURE accepted;fd=\(client);time=\(Date().timeIntervalSince1970)\n".utf8))
-            respond(client)
+            connections.async { [self] in
+                defer { slots.signal() }
+                respond(client, until: deadline)
+            }
         }
     }
-    private func respond(_ client: Int32) {
+    private func respond(_ client: Int32, until deadline: TimeInterval) {
         defer { close(client) }
         let flags = fcntl(client, F_GETFL, 0)
         guard flags >= 0, fcntl(client, F_SETFL, flags | O_NONBLOCK) == 0 else { return }
-        let deadline = ProcessInfo.processInfo.systemUptime + 2
         #if canImport(Darwin)
         var noSignal: Int32 = 1
         guard setsockopt(client, SOL_SOCKET, SO_NOSIGPIPE, &noSignal, socklen_t(MemoryLayout<Int32>.size)) == 0 else { return }
