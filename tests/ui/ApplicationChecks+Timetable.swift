@@ -50,18 +50,16 @@ extension ApplicationChecks {
         for subject in ["架空科目A", "架空試験A", "架空返却A", "架空変更A"] {
             let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", subject)).firstMatch
             XCTAssertTrue(card.waitForExistence(timeout: 10), app.debugDescription)
-            for _ in 0..<8 {
-                let top = app.navigationBars.firstMatch.frame.maxY
-                let bottom = app.tabBars.firstMatch.frame.minY
-                if card.isHittable && card.frame.midY > top && card.frame.midY < bottom { break }
-                if card.frame.midY <= top { app.swipeDown() } else { app.swipeUp() }
+            _ = visible(card, navigation: "時間割")
+            let ready = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in
+                    self.contained(card, in: self.contentViewport(navigation: "時間割"))
+                        && card.isEnabled && card.isHittable
+                }, object: card)
+            guard XCTWaiter.wait(for: [ready], timeout: 10) == .completed else {
+                XCTFail("Merged lesson card has no visible hit region: " + app.debugDescription)
+                return
             }
-            let ready = expectation(
-                for: NSPredicate { _, _ in
-                    card.isHittable && card.frame.midY > self.app.navigationBars.firstMatch.frame.maxY
-                        && card.frame.midY < self.app.tabBars.firstMatch.frame.minY
-                }, evaluatedWith: card)
-            wait(for: [ready], timeout: 10)
             XCTAssertGreaterThan(card.frame.height, 72)
             card.tap()
             let title = subject == "架空変更A" ? "時間割変更" : "授業詳細"
