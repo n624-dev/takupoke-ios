@@ -86,6 +86,9 @@ def instrument_browser_fixture(text):
         FixtureLaunchDiagnostics.record("browser-controller-created")''')
     delegate = '    final class Coordinator: NSObject, SFSafariViewControllerDelegate {\n'
     assert text.count(delegate) == 1, 'Native Safari delegate observation insertion point missing'
+    finished = '        func safariViewControllerDidFinish(_ controller: SFSafariViewController) {\n'
+    assert text.count(finished) == 1, 'Native Safari finish delegate insertion point missing'
+    text = text.replace(finished, finished + '            FixtureLaunchDiagnostics.record("browser-finish-received")\n')
     return text.replace(delegate, delegate + '''        func safariViewController(_ controller: SFSafariViewController, didCompleteInitialLoad success: Bool) {
             FixtureLaunchDiagnostics.record(success ? "browser-load-success" : "browser-load-failure")
         }

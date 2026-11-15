@@ -397,15 +397,23 @@ final class SpecialScheduleTests: XCTestCase {
     func testPartiallyMergedReturnGradeCannotClaimAClassAcrossItsBorder() {
         var page = returnPageWithUnevenGradeBands()
         page.lines.append(PDFRule(x1: 0, y1: 495, x2: 100, y2: 495))
-        XCTAssertThrowsError(try SpecialScheduleParser.parse([page], kind: .examReturn, digest: "fixture", name: "fictional.pdf")) {
-            XCTAssertEqual(($0 as? PDFParseError)?.stage, .gradeLabel)
+        func check(_ expected: PDFParseError.Branch, _ parse: () throws -> SpecialScheduleAnalysis) {
+            XCTAssertThrowsError(try parse()) { error in
+                XCTAssertEqual((error as? PDFParseError)?.stage, .gradeLabel)
+                XCTAssertEqual((error as? PDFParseError)?.branch, expected)
+            }
         }
+        check(.b436) { try SpecialScheduleParser.parse([page], kind: .examReturn, digest: "fixture", name: "fictional.pdf") }
+        check(.b437) { try SpecialScheduleParser.parseCertified([page], kind: .examReturn, digest: "fixture", name: "fictional.pdf") }
     }
 
     func testSameReturnPDFRetriesTheLastScopeFailureAfterGradeBandFix() {
         let failure = PDFParseError(code: .ambiguous, page: 1, stage: .duplicateClass, branch: .b427)
         XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest: "fixture", parserVersion: SpecialScheduleAnalysis.parserVersion,
             analysisDigest: "fixture", analysisVersion: 34, attemptDigest: "fixture", failure: failure, attemptVersion: 35))
+        XCTAssertFalse(PDFParseAttempt.needsAnalysis(digest: "fixture", parserVersion: SpecialScheduleAnalysis.parserVersion,
+            analysisDigest: "fixture", analysisVersion: 34, attemptDigest: "fixture", failure: failure,
+            attemptVersion: SpecialScheduleAnalysis.parserVersion))
         XCTAssertFalse(PDFParseAttempt.needsAnalysis(digest: "fixture", parserVersion: SpecialScheduleAnalysis.parserVersion,
             analysisDigest: "fixture", analysisVersion: SpecialScheduleAnalysis.parserVersion, attemptDigest: nil, failure: nil, attemptVersion: nil))
     }

@@ -22,7 +22,19 @@ final class ManualAssistanceChecks:SimulatorIdentityTestCase {
     func launch(_ flags:[String]=[]) {
         app.launchArguments=["--reset-fixture","--manual-ui","--fixture-input-trace","--fixture-year-input-trace","--manual-integral-rails","-AppleLanguages","(ja)","-AppleLocale","ja_JP"]+flags
         guard launchApplicationOnce() else { return }
-        app.tabBars.buttons["設定"].tap();tap("時間割ファイル");tap("通常時間割の詳細を見る");tap("端末内で復旧する");tap("端末内で復旧を開始")
+        let settings=app.tabBars.buttons["設定"]
+        settings.tap()
+        let selected=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
+            let current=self.app.tabBars.buttons.matching(NSPredicate(format:"label == %@","設定")).allElementsBoundByAccessibilityElement
+            return current.count==1 && current[0].isSelected
+        },object:app)
+        guard XCTWaiter.wait(for:[selected],timeout:nativeStateTimeout) == .completed else {
+            XCTFail("The Settings tab must be selected after one tap");return
+        }
+        tap("時間割ファイル",ownerID:"manual-settings-list",barTitle:"設定")
+        tap("通常時間割の詳細を見る",ownerID:"manual-materials-list",barTitle:"時間割ファイル")
+        tap("端末内で復旧する",ownerID:"manual-analysis-list",barTitle:"通常時間割")
+        tap("端末内で復旧を開始")
     }
     func launchApplicationOnce()->Bool {
         // Observe the same cold-launch preconditions as the application suite.

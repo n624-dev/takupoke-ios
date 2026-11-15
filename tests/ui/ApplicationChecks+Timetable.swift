@@ -47,24 +47,44 @@ extension ApplicationChecks {
 
     func testMergedCardsFromAllSources() {
         tab("時間割")
-        for subject in ["架空科目A", "架空試験A", "架空返却A", "架空変更A"] {
-            let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", subject)).firstMatch
-            XCTAssertTrue(card.waitForExistence(timeout: 10), app.debugDescription)
-            _ = visible(card, navigation: "時間割")
-            let ready = XCTNSPredicateExpectation(
-                predicate: NSPredicate { _, _ in
-                    self.contained(card, in: self.contentViewport(navigation: "時間割"))
-                        && card.isEnabled && card.isHittable
-                }, object: card)
-            guard XCTWaiter.wait(for: [ready], timeout: 10) == .completed else {
-                XCTFail("Merged lesson card has no visible hit region: " + app.debugDescription)
+        let grid = app.scrollViews["timetable-week-grid"]
+        for (subject, section) in [("架空科目A", "通常の授業"), ("架空試験A", "試験時間割"),
+                                   ("架空返却A", "試験返却時間割"), ("架空変更A", "変更内容")] {
+            let matches = grid.buttons.matching(NSPredicate(format: "label CONTAINS %@", subject))
+            let candidate = matches.element(boundBy: 0)
+            XCTAssertTrue(candidate.waitForExistence(timeout: 10), app.debugDescription)
+            _ = visible(candidate, navigation: "時間割")
+            // Several weekdays can have the same subject. The rendered full label
+            // includes the real date, class, period range and subject for this card.
+            let label = candidate.label
+            XCTAssertTrue(label.contains(subject) && label.contains("限から"), label)
+            let cardMatches = grid.buttons.matching(NSPredicate(format: "label == %@", label))
+            var current: (button: XCUIElement, height: CGFloat)?
+            let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                let viewport = self.bodyViewport(navigation: "時間割")
+                let cards = cardMatches.allElementsBoundByAccessibilityElement
+                guard cards.count == 1 else { return false }
+                let card = cards[0], frame = card.frame
+                guard ObservedScreenGeometry.contains(frame, in: viewport, scale: UIScreen.main.scale),
+                      card.isEnabled, card.isHittable else { return false }
+                current = (card, frame.height)
+                return true
+            }, object: app)
+            guard XCTWaiter.wait(for: [ready], timeout: 10) == .completed, let card = current else {
+                XCTFail("Merged lesson card has no unique visible hit region: " + app.debugDescription)
                 return
             }
-            XCTAssertGreaterThan(card.frame.height, 72)
-            card.tap()
+            XCTAssertGreaterThan(card.height, 72)
+            card.button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             let title = subject == "架空変更A" ? "時間割変更" : "授業詳細"
-            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5), app.debugDescription)
+            let detail = app.navigationBars[title]
+            XCTAssertTrue(detail.waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertTrue(app.collectionViews.staticTexts[section].exists, app.debugDescription)
+            let subjectField = (subject == "架空変更A" ? "変更後、" : "科目、") + subject
+            XCTAssertTrue(visible(app.collectionViews.staticTexts[subjectField], navigation: title).exists)
             dismissLesson(title: title)
+            XCTAssertTrue(detail.waitForNonExistence(timeout: 10), app.debugDescription)
+            screen("時間割")
         }
         XCTAssertTrue(app.staticTexts["架空行事A"].firstMatch.exists || app.buttons["架空行事A"].exists)
     }

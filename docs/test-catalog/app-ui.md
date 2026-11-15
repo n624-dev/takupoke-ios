@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`24d8eda5e0dee9517a9736ca63467f665c74969f85448097c03c6f2d34fdfa11`
+`d86bc403c4abd4ca0f8f7f130d61ce42b8a5b11bf43a4d127619806076def963`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -238,6 +238,7 @@ bash tools/test-app-ui.sh
 ## [tests/SpecialAvailabilityTests.swift](../../tests/SpecialAvailabilityTests.swift)
 
 - `testHomeKeepsLoadedLessonsWhenIndependentStoresAreUnavailable`
+- `testHomeWarningsUseTheRetainedResultForEachSelectedMaterial`
 - `testLoadingFailureAndUnselectedAreDistinctForBothKinds`
 - `testFirstFailedAnalysisAndPreviousSuccessUseDifferentWarnings`
 

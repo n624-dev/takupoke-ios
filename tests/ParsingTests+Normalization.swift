@@ -355,6 +355,20 @@ extension ParsingTests {
         }
     }
 
+    func testTurningOffWeekdayCompletionSurvivesSameRowRefresh() throws {
+        let header = ["学 年", "学科・クラス", "月日", "曜日"]
+        let row = ["2", "ZZ", "4/1", ""]
+        let old = ChangeEditTable(sheet: "時間割変更", headers: header, rows: [header, row], headerRow: 1)
+        var edit = try XCTUnwrap(old.suggestedEdits(defaultYear: 2032)[2])
+        edit.chooseDateDerivedWeekday(false)
+        let saved = try old.savedEdits(sourceIdentity: "one", digest: "before", defaultYear: 2032, edits: [2: edit])
+        let new = ChangeEditTable(sheet: old.sheet, headers: header, rows: [header, [], row], headerRow: 1)
+        let restored = try XCTUnwrap(new.restore(saved, sourceIdentity: "one", digest: "after", defaultYear: 2032).edits[3])
+        XCTAssertEqual(restored.keepPrintedWeekday, true)
+        XCTAssertFalse(restored.deriveWeekday)
+        XCTAssertEqual(new.values(at: 3, edit: restored, defaultYear: 2032)[3], "")
+    }
+
     func testOpenEditorRejectsAnotherPersonalEditToSameDigest() throws {
         try temporary { root in
             let library = try MaterialLibrary(root: root)
@@ -373,6 +387,105 @@ extension ParsingTests {
             }
             XCTAssertEqual(library.state.changeAnalysis?.records.first?.period, "4")
             XCTAssertEqual(try library.changeEditor(year: 2032).edits[2]?.values[3], "4")
+        }
+    }
+}
+
+extension ParsingTests {
+    func testPhysicalHeaderWidthAndHeaderEvidenceSurviveSourceRefresh() throws {
+        try temporary { root in
+            let header = ["学 年", "学科・クラス", "月日"]
+            let sheet = "xl/worksheets/sheet1.xml"
+            func inspect(_ name: String, rows: [[String]], old: ChangeColumnLayout? = nil,
+                         modify: (inout [String: Data]) -> Void = { _ in }) throws -> ChangeWorkbookReview {
+                var files = workbook(rows)
+                modify(&files)
+                let url = root.appendingPathComponent(name + ".xlsx")
+                try write(files, to: url)
+                return try XLSXReader.editableWorkbook(url, layout: old, check: {})
+            }
+            let rows = [header, ["2", "ZZ", "4/1"]]
+            let old = try inspect("old", rows: rows)
+            let edited = try old.table.savedEdits(sourceIdentity: "s", digest: "a", defaultYear: 2032,
+                edits: [2: .init(values: [0: "3", 3: "2"])])
+            let style = try inspect("style", rows: rows, old: old.layout) { files in
+                mutate(&files, sheet, #"</row><row r="2">"#, #"<c r="D1" s="1"/></row><row r="2">"#)
+            }
+            XCTAssertFalse(style.requiresLayoutConfirmation)
+            XCTAssertEqual(style.table.restore(edited, sourceIdentity: "s", digest: "b", defaultYear: 2032).edits[2]?.values[0], "3")
+            var newColumn = try inspect("column", rows: rows + [["3", "ZZ", "4/2", "架空教室"]], old: old.layout)
+            XCTAssertTrue(newColumn.requiresLayoutConfirmation)
+            XCTAssertEqual(newColumn.table.headers[3], "列4")
+            let shiftedPeriod = try XCTUnwrap(newColumn.table.headers.firstIndex(of: "時限"))
+            let carried = newColumn.table.restore(edited, sourceIdentity: "s", digest: "c", defaultYear: 2032)
+            XCTAssertEqual(carried.edits[2]?.values, [0: "3", shiftedPeriod: "2"])
+            XCTAssertNil(carried.edits[3])
+            let syntheticRoom = try XCTUnwrap(newColumn.table.headers.firstIndex(of: "教室"))
+            newColumn.table.headers.swapAt(3, syntheticRoom)
+            let record = try XCTUnwrap(newColumn.table.records(edits: [:], defaultYear: 2032).last)
+            XCTAssertEqual(record.room, "架空教室")
+            XCTAssertTrue(record.raw_text.contains("列4:架空教室"))
+            let formula = try inspect("formula", rows: rows, old: old.layout) { files in
+                mutate(&files, sheet, #"<c r="A1" t="inlineStr"><is><t xml:space="preserve">学 年</t></is></c>"#,
+                       #"<c r="A1" t="str"><f>J1</f><v>学 年</v></c>"#)
+            }
+            XCTAssertTrue(formula.requiresLayoutConfirmation)
+            XCTAssertTrue(formula.table.restore(edited, sourceIdentity: "s", digest: "c", defaultYear: 2032).edits.isEmpty)
+        }
+    }
+
+    func testNumericPersonalDateIsInvalidatedByChangedEpoch() throws {
+        let header = ["学 年", "学科・クラス", "月日"]
+        var old = ChangeEditTable(sheet: "時間割変更", headers: header, rows: [header, ["2", "ZZ", ""]], headerRow: 1)
+        old.uses1904 = true
+        let edits = [2: ChangeRowEdit(values: [2: "45000"])]
+        let saved = try old.savedEdits(sourceIdentity: "s", digest: "a", defaultYear: 2032, edits: edits)
+        var new = old
+        new.uses1904 = false
+        XCTAssertNotEqual(try old.records(edits: edits, defaultYear: 2032).first?.change_date,
+                          try new.records(edits: edits, defaultYear: 2032).first?.change_date)
+        let result = new.restoreDetailed(saved, sourceIdentity: "s", digest: "b", defaultYear: 2032)
+        XCTAssertTrue(result.edits.isEmpty)
+        XCTAssertEqual(result.unmatched.first?.edit, edits[2])
+    }
+
+    func testMergedFollowersTrackSchoolAnchorIncludingImplicitLastRow() throws {
+        try temporary { root in
+            let header = ["学 年", "学科・クラス", "月日"]
+            func table(_ grade: String) throws -> ChangeEditTable {
+                var files = workbook([header, [grade, "ZZ", "4/1"], ["", "ZZ", "4/2"]])
+                mutate(&files, "xl/worksheets/sheet1.xml", "</worksheet>",
+                       #"<mergeCells><mergeCell ref="A2:A4"/></mergeCells></worksheet>"#)
+                let url = root.appendingPathComponent(grade + ".xlsx")
+                try write(files, to: url)
+                return try XLSXReader.editableWorkbook(url, layout: nil, check: {}).table
+            }
+            let old = try table("2"), new = try table("3")
+            XCTAssertEqual(old.rowIDs, [2, 3, 4])
+            let saved = try old.savedEdits(sourceIdentity: "s", digest: "a", defaultYear: 2032,
+                edits: [3: .init(values: [0: "2"])])
+            XCTAssertNil(new.restore(saved, sourceIdentity: "s", digest: "b", defaultYear: 2032).edits[3])
+        }
+    }
+
+    func testReviewValidatesWeekdayAliasUniquenessAndMigratesMatchingCachedFormula() throws {
+        try temporary { root in
+            let header = ["学 年", "学科・クラス", "月日", "曜日"]
+            let day = try XCTUnwrap(ChangeNormalizer.weekday("2032-04-01"))
+            var files = workbook([header, ["2", "ZZ", "4/1", day], ["", "", "", "金"]])
+            mutate(&files, "xl/worksheets/sheet1.xml",
+                "<c r=\"D2\" t=\"inlineStr\"><is><t xml:space=\"preserve\">" + day + "</t></is></c>",
+                "<c r=\"D2\" t=\"str\"><f>A1</f><v>" + day + "</v></c>")
+            let url = root.appendingPathComponent("weekdays.xlsx")
+            try write(files, to: url)
+            let original = try XLSXReader.editableWorkbook(url, layout: nil, check: {}).table
+            let skip = original.legacyEdits(weekday: false, excluded: [3], defaultYear: 2032)
+            XCTAssertNil(skip[2])
+            XCTAssertNil(original.suggestedEdits(defaultYear: 2032)[2])
+            XCTAssertEqual(try original.records(edits: skip, defaultYear: 2032).first?.class_name, "2_ZZ")
+            var duplicate = original
+            duplicate.headers.append("曜")
+            assertCode(.headers) { _ = try duplicate.records(edits: skip, defaultYear: 2032) }
         }
     }
 }

@@ -18,7 +18,7 @@ PDF端末内AI復旧は開発中です。前処理・Validator・開始・元PDF
 
 [OCRの実測と不採用にした比較](docs/ocr-improvement-log.md)を記録しています。小さな取得テストと文書全体の品質は分けて評価します。
 
-設定の「AI・OCRを使用する」は初期OFFです。OFF時は従来の厳格な解析のみを使用し、ON時も厳格な解析に失敗したPDFだけ復旧します。時間割変更XLSXの曜日不一致は、日付からの補正を明示承認できます。曜日に問題がある行は、元の記載を確認して除外できます。同じ曜日だけが残った連続行は、200〜300行目などの範囲をまとめて選べます。補正・除外はファイル内容が更新されるまで同じ原本に適用します。詳しくは[XLSX仕様](docs/xlsx-specification.md)を参照してください。
+設定の「AI・OCRを使用する」は初期OFFです。OFF時は従来の厳格な解析のみを使用し、ON時も厳格な解析に失敗したPDFだけ復旧します。時間割変更XLSXの曜日不一致は、日付からの補正を明示承認できます。曜日に問題がある行は、元の記載を確認して除外できます。同じ曜日だけが残った連続行は、200〜300行目などの範囲をまとめて選べます。同じ原本の更新後も、元の行の内容が一致する補正・除外は引き継ぎます。学校側が変更した行や区別できない重複行は、個人修正の画面で確認できます。詳しくは[XLSX仕様](docs/xlsx-specification.md)を参照してください。
 
 最新版は[Latest Release](https://github.com/n624-dev/takupoke-ios/releases/latest)と固定AltStore Sourceから更新できます。[0.1.449（449.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.449-build.449.1)では、学校行事の状態API連携、時間割・一覧の重複計算と通信の削減、通常PDFの行順、特別時刻の数字境界、旧手動訂正の移行、OCR訂正メニューの対象判定、文字コード表の取消と複合塗りの検証を修正しました。[同一ソースのCI](https://github.com/n624-dev/takupoke-ios/actions/runs/40157376822)のattempt1で全15必須条件が成功し、匿名4添付・IPA内部の版とソース・固定Sourceの一致を確認しました。[検証記録](docs/issues-65-103-verification.md)を参照してください。物理iPhoneでの更新と、issue66・67の実機性能比較は未確認です。436以前の記録は[以前の検証](docs/issues-60-63-verification.md)に保持しています。
 

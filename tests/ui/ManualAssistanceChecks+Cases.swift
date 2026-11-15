@@ -3,63 +3,68 @@ import UIKit
 
 extension ManualAssistanceChecks {
     func testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground() {
-        launch();XCTAssertTrue(fieldsExist(),app.debugDescription);XCTAssertEqual(fieldIDs.count,1)
-        let key=fieldIDs[0], input=input(key), value="架空手確認科目"
+        launch()
+        guard let key=fieldIDs(expectedCount:1)?.first else { return }
+        let input=input(key), value="架空手確認科目"
         measuredStep("input-and-display") { prepareOneCorrection(key,input,value) }
-        let processBefore=app.staticTexts["manual-process-launch"].firstMatch.label
+        guard let processBefore=uniqueLabel("manual-process-launch",in:observation) else { return }
         XCTAssertFalse(processBefore.isEmpty)
         guard measuredStep("editor-background", {
             requireEditorSurvivesBackground(key,input,value,processBefore:processBefore)
         }) else { return }
-        acknowledge(key);visible(submit,knownID:"manual-submit").tap()
+        acknowledge(key);tapSubmit()
         guard measuredStep("review-background", {
             requireReviewSurvivesBackground(value,processBefore:processBefore)
         }) else { return }
         measuredStep("reedit-and-review") { reeditAndReviewCorrection(key,input,value) }
-        measuredStep("save-and-relaunch") { adoptAndRequirePersistedCorrection() }
+        measuredStep("save-and-relaunch") {
+            openReviewPreview();requirePreview()
+            persistAndRequireProof([key:value+"再確認"])
+        }
     }
     func testChangedOriginalCannotSubmitOrReplaceLastGood() {
-        launch();XCTAssertTrue(fieldsExist())
-        let key=fieldIDs[0];edit(input(key),"架空変更前確認",id:key);acknowledge(key)
+        launch()
+        guard let key=fieldIDs(expectedCount:1)?.first else { return }
+        edit(input(key),"架空変更前確認",id:key);acknowledge(key)
         tap("架空検証");tap("架空原本のハッシュを変更")
-        XCTAssertTrue(app.staticTexts["manual-mutation-complete"].waitForExistence(timeout:10),app.debugDescription)
-        visible(submit,knownID:"manual-submit").tap()
-        XCTAssertTrue(app.staticTexts["原本または入力内容を確認できませんでした。前回の正常結果を保持しています。"].waitForExistence(timeout:20),app.debugDescription)
-        XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("lastgood-preserved"))
-        XCTAssertFalse(app.buttons["この資料全体の結果を使用"].exists)
+        XCTAssertTrue(observation.staticTexts["manual-mutation-complete"].waitForExistence(timeout:10),app.debugDescription)
+        tapSubmit()
+        XCTAssertTrue(recoveryList.staticTexts["原本または入力内容を確認できませんでした。前回の正常結果を保持しています。"].waitForExistence(timeout:20),app.debugDescription)
+        requireLastGood(in:observation)
+        XCTAssertFalse(recoveryList.buttons["この資料全体の結果を使用"].exists)
         guard terminateCurrentFixture() else { return };launch()
-        XCTAssertTrue(fieldsExist())
-        let second=fieldIDs[0];edit(input(second),"架空再照合",id:second);acknowledge(second);visible(submit,knownID:"manual-submit").tap()
+        guard let second=fieldIDs(expectedCount:1)?.first else { return }
+        edit(input(second),"架空再照合",id:second);acknowledge(second);tapSubmit()
         requireReview(["架空再照合"],comparable:false)
         tap("架空検証");tap("架空原本のハッシュを変更")
-        XCTAssertTrue(app.staticTexts["manual-mutation-complete"].waitForExistence(timeout:10),app.debugDescription)
-        tap("訂正と変更を確認して資料全体へ",knownID:"manual-review-submit")
-        XCTAssertTrue(app.staticTexts["原本または入力内容を確認できませんでした。前回の正常結果を保持しています。"].waitForExistence(timeout:20),app.debugDescription)
-        XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("lastgood-preserved"))
-        XCTAssertFalse(app.buttons["この資料全体の結果を使用"].exists)
+        XCTAssertTrue(observation.staticTexts["manual-mutation-complete"].waitForExistence(timeout:10),app.debugDescription)
+        openReviewPreview()
+        XCTAssertTrue(recoveryList.staticTexts["原本または入力内容を確認できませんでした。前回の正常結果を保持しています。"].waitForExistence(timeout:20),app.debugDescription)
+        requireLastGood(in:observation)
+        XCTAssertFalse(recoveryList.buttons["この資料全体の結果を使用"].exists)
     }
     func testThreeFieldsRequireEachAcknowledgementAndFourRefuses() {
         launch(["--manual-three","--manual-comparable-prior"])
-        XCTAssertTrue(fieldsExist());let ids=fieldIDs;XCTAssertEqual(ids.count,3)
+        guard let ids=fieldIDs(expectedCount:3) else { return }
         for i in 0..<3 {
             let input=input(ids[i]);edit(input,"架空手確認\(i)",id:ids[i])
             let ack=ack(ids[i]);XCTAssertEqual(visible(ack,knownID:"manual-ack-"+ids[i]).value as? String,"0");acknowledge(ids[i])
             assertSubmitEnabled(i==2)
         }
-        visible(submit,knownID:"manual-submit").tap();requireReview((0..<3).map { "架空手確認\($0)" },comparable:true)
-        tap("訂正と変更を確認して資料全体へ",knownID:"manual-review-submit");requirePreview()
-        XCTAssertTrue(app.staticTexts["原本を確認して入力した3項目を含みます。"].exists)
+        tapSubmit();requireReview((0..<3).map { "架空手確認\($0)" },comparable:true)
+        openReviewPreview();requirePreview()
+        XCTAssertTrue(recoveryList.staticTexts["原本を確認して入力した3項目を含みます。"].exists)
         let navigation=app.navigationBars["時間割の復旧"],close=app.navigationBars["時間割の復旧"].buttons["閉じる"]
         XCTAssertTrue(close.waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
-        XCTAssertTrue(ManualScrollNavigation.usable(navigation.frame) && ManualScrollNavigation.usable(close.frame) &&
-                      navigation.frame.contains(close.frame) && close.isEnabled && close.isHittable,app.debugDescription)
+        let barFrame=navigation.frame,closeFrame=close.frame
+        XCTAssertTrue(ManualScrollNavigation.usable(barFrame) && ManualScrollNavigation.usable(closeFrame) &&
+                      barFrame.contains(closeFrame) && close.isEnabled && close.isHittable,app.debugDescription)
         close.tap();XCTAssertTrue(navigation.waitForNonExistence(timeout:nativeStateTimeout),app.debugDescription)
-        XCTAssertFalse(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("adopted="))
+        requireLastGood(in:rootObservation)
         guard terminateCurrentFixture() else { return };launch(["--manual-four"])
-        XCTAssertTrue(app.staticTexts["架空資料の補助入力を拒否しました。前回の正常結果を保持しています。"].waitForExistence(timeout:20),app.debugDescription)
-        emitDiagnostic()
-        XCTAssertFalse(submit.exists);XCTAssertFalse(app.staticTexts["manual-field-ids"].exists)
-        XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("lastgood-preserved"))
+        XCTAssertTrue(recoveryList.staticTexts["架空資料の補助入力を拒否しました。前回の正常結果を保持しています。"].waitForExistence(timeout:20),app.debugDescription)
+        XCTAssertFalse(submit.exists);XCTAssertFalse(observation.staticTexts["manual-field-ids"].exists)
+        requireLastGood(in:observation)
     }
 
     func testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch() {
@@ -67,14 +72,13 @@ extension ManualAssistanceChecks {
         // remain mandatory on both OS versions with their original controls.
         measuredStep("select-high-confidence-fields") {
             launch()
-            XCTAssertTrue(fieldsExist(),app.debugDescription);XCTAssertEqual(fieldIDs.count,1)
-            let selectedKey = fieldIDs[0], selectedSubject = "架空選択科目"
+            guard let selectedKey=fieldIDs(expectedCount:1)?.first else { return }
+            let selectedSubject = "架空選択科目"
             inspectSource(selectedKey)
             edit(self.input(selectedKey),selectedSubject,id:selectedKey)
-            acknowledge(selectedKey);assertSubmitEnabled(true);visible(submit,knownID:"manual-submit").tap()
+            acknowledge(selectedKey);assertSubmitEnabled(true);tapSubmit()
             requireReview([selectedSubject],comparable:false)
             selectHighConfidenceFieldsAndRequireThreeFieldLimit(selectedKey,subject:selectedSubject)
-            adoptAndRequirePersistedSelectedCorrections()
         }
     }
 }

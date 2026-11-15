@@ -2,13 +2,32 @@ import XCTest
 import UIKit
 
 extension ManualAssistanceChecks {
+    var recoveryList:XCUIElement { app.collectionViews["manual-recovery-list"] }
+    var observation:XCUIElement { app.otherElements["manual-observation"] }
+    var rootObservation:XCUIElement { app.otherElements["manual-root-observation"] }
+
+    func uniqueLabel(_ id:String,in owner:XCUIElement)->String? {
+        let matches=owner.staticTexts.matching(identifier:id).allElementsBoundByAccessibilityElement
+        guard matches.count==1 else {
+            XCTFail("Expected one observation for \(id), got \(matches.count)");return nil
+        }
+        return matches[0].label
+    }
+    private func diagnosticLabel(_ id:String)->String {
+        let matches=observation.staticTexts.matching(identifier:id).allElementsBoundByAccessibilityElement
+        return matches.count==1 ? matches[0].label : "matches=\(matches.count)"
+    }
     func emitDiagnostic() {
-        let diagnostic=app.staticTexts["manual-qa-diagnostic"].firstMatch
-        print("TAKUPOKE-MANUAL-QA "+(diagnostic.exists ? diagnostic.label:"diagnostic-missing"))
+        print("TAKUPOKE-MANUAL-QA "+diagnosticLabel("manual-qa-diagnostic"))
     }
     func emitEvents() {
-        let events=app.staticTexts["manual-binding-events"].firstMatch
-        print("TAKUPOKE-MANUAL-BINDINGS "+(events.exists ? events.label:"absent"))
+        print("TAKUPOKE-MANUAL-BINDINGS "+diagnosticLabel("manual-binding-events"))
+    }
+    func requireLastGood(in owner:XCUIElement) {
+        XCTAssertEqual(uniqueLabel("manual-persisted-proof",in:owner),"lastgood-preserved")
+    }
+    func openReviewPreview() {
+        tap("訂正と変更を確認して資料全体へ",knownID:"manual-review-submit")
     }
     func requireReview(_ expected:[String],comparable:Bool) {
         var observedState="",ambiguousState=false
@@ -25,8 +44,8 @@ extension ManualAssistanceChecks {
         XCTAssertFalse(ambiguousState,"The review state must remain unique")
         XCTAssertEqual(outcome,.completed,app.debugDescription)
         print("TAKUPOKE-MANUAL-REVIEW " + observedState)
-        XCTAssertFalse(app.buttons["この資料全体の結果を使用"].exists)
-        XCTAssertTrue(app.staticTexts["manual-persisted-proof"].firstMatch.label.contains("lastgood-preserved"))
+        XCTAssertFalse(recoveryList.buttons["この資料全体の結果を使用"].exists)
+        requireLastGood(in:observation)
         // This is the first review section, above the retained editor scroll
         // position. A virtualized header has no usable frame; start toward the
         // top until actual offscreen geometry can determine a direction.
@@ -38,47 +57,86 @@ extension ManualAssistanceChecks {
             _=visible(reviewed.firstMatch,alternatives:reviewed)
         }
         if comparable {
-            XCTAssertEqual(visible(app.staticTexts["manual-comparison-available"].firstMatch,knownID:"manual-comparison-available").label,"本文の変更: 1箇所")
-            XCTAssertTrue(visible(app.staticTexts["manual-change-before"].firstMatch,knownID:"manual-change-before").label.contains("架空科"))
-            XCTAssertTrue(visible(app.staticTexts["manual-change-after"].firstMatch,knownID:"manual-change-after").label.contains(expected[0]))
-        } else { _=visible(app.staticTexts["manual-comparison-unavailable"].firstMatch,knownID:"manual-comparison-unavailable") }
+            XCTAssertEqual(visible(recoveryList.staticTexts["manual-comparison-available"].firstMatch,knownID:"manual-comparison-available").label,"本文の変更: 1箇所")
+            XCTAssertTrue(visible(recoveryList.staticTexts["manual-change-before"].firstMatch,knownID:"manual-change-before").label.contains("架空科"))
+            XCTAssertTrue(visible(recoveryList.staticTexts["manual-change-after"].firstMatch,knownID:"manual-change-after").label.contains(expected[0]))
+        } else { _=visible(recoveryList.staticTexts["manual-comparison-unavailable"].firstMatch,knownID:"manual-comparison-unavailable") }
     }
     func inspectSource(_ id:String) {
-        visible(app.buttons["manual-zoom-"+id]).tap()
+        let zoomID="manual-zoom-"+id
+        visible(recoveryList.buttons[zoomID],knownID:zoomID,buttonLabel:"対象セルを拡大して確認").tap()
         let scroll=app.scrollViews["manual-source-scroll"]
-        let image=scroll.descendants(matching:.any)["manual-source-context"].firstMatch
-        XCTAssertTrue(image.waitForExistence(timeout:10),app.debugDescription)
-        XCTAssertGreaterThan(image.frame.width,0);XCTAssertGreaterThan(image.frame.height,0)
-        let highlight=image.descendants(matching:.any)["manual-source-highlight"].firstMatch
-        XCTAssertTrue(highlight.exists,app.debugDescription)
-        XCTAssertGreaterThan(highlight.frame.width,0);XCTAssertGreaterThan(highlight.frame.height,0)
-        XCTAssertTrue(image.frame.contains(highlight.frame),app.debugDescription)
-        let highlightBefore=highlight.frame
-        let scale=app.staticTexts["manual-source-scale"].firstMatch
-        let initial=scale.label
-        let slider=app.sliders["manual-source-zoom"]
-        XCTAssertTrue(slider.isHittable,app.debugDescription)
+        let images=scroll.descendants(matching:.any).matching(identifier:"manual-source-context")
+        var initial:CGRect?,ambiguous=false
+        let ready=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
+            let current=images.allElementsBoundByAccessibilityElement
+            if current.count>1 { ambiguous=true;return true }
+            guard let image=current.first else { return false }
+            let highlights=image.descendants(matching:.any).matching(identifier:"manual-source-highlight")
+                .allElementsBoundByAccessibilityElement
+            if highlights.count>1 { ambiguous=true;return true }
+            guard let highlight=highlights.first else { return false }
+            let bounds=image.frame,box=highlight.frame
+            guard ManualScrollNavigation.usable(bounds),ManualScrollNavigation.usable(box),bounds.contains(box) else { return false }
+            initial=box;return true
+        },object:app)
+        let result=XCTWaiter.wait(for:[ready],timeout:10)
+        guard !ambiguous,result == .completed,let highlightBefore=initial else {
+            XCTFail("The source must have one real image containing its unique highlight");return
+        }
+        let controls=app.otherElements["manual-source-controls"]
+        guard let scale=uniqueLabel("manual-source-scale",in:controls) else { return }
+        let sliders=controls.sliders.matching(identifier:"manual-source-zoom").allElementsBoundByAccessibilityElement
+        guard sliders.count==1 else { XCTFail("Expected one source zoom slider");return }
+        let slider=sliders[0],sliderFrame=slider.frame
+        guard ManualScrollNavigation.usable(sliderFrame),app.frame.contains(sliderFrame),
+              slider.isEnabled,slider.isHittable else { XCTFail("The source zoom slider must be operable");return }
         slider.adjust(toNormalizedSliderPosition:0.67)
-        XCTAssertNotEqual(scale.label,initial,app.debugDescription)
-        XCTAssertGreaterThan(highlight.frame.width,highlightBefore.width)
-        app.buttons["等倍"].tap();XCTAssertEqual(scale.label,initial)
-        app.buttons["確認を終える"].tap()
+        guard let zoomedScale=uniqueLabel("manual-source-scale",in:controls) else { return }
+        XCTAssertNotEqual(zoomedScale,scale)
+        let zoomedImages=images.allElementsBoundByAccessibilityElement
+        guard zoomedImages.count==1 else { XCTFail("Expected one zoomed source image");return }
+        let image=zoomedImages[0]
+        let highlights=image.descendants(matching:.any).matching(identifier:"manual-source-highlight").allElementsBoundByAccessibilityElement
+        guard highlights.count==1 else { XCTFail("Expected one zoomed source highlight");return }
+        let bounds=image.frame,box=highlights[0].frame
+        XCTAssertTrue(ManualScrollNavigation.usable(bounds) && ManualScrollNavigation.usable(box) && bounds.contains(box))
+        XCTAssertGreaterThan(box.width,highlightBefore.width)
+        controls.buttons["等倍"].tap();XCTAssertEqual(uniqueLabel("manual-source-scale",in:controls),scale)
+        app.navigationBars["原画像の確認"].buttons["確認を終える"].tap()
     }
     func requirePreview() {
-        let state=app.otherElements["manual-observation"].staticTexts["manual-coordinator-state"].firstMatch
-        let ready=XCTNSPredicateExpectation(predicate:NSPredicate(format:"label CONTAINS %@","preview=true"),object:state)
+        var ambiguous=false
+        let ready=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
+            let current=self.observation.staticTexts.matching(identifier:"manual-coordinator-state")
+                .allElementsBoundByAccessibilityElement
+            if current.count>1 { ambiguous=true;return true }
+            return current.count==1 && current[0].label.contains("preview=true")
+        },object:app)
         let outcome=XCTWaiter.wait(for:[ready],timeout:20)
         print("TAKUPOKE-MANUAL-COORDINATOR wait-outcome=\(outcome.rawValue)")
-        emitDiagnostic()
-        emitEvents()
-        if outcome != .completed { print("TAKUPOKE-MANUAL-PREVIEW-FAIL " + app.debugDescription) }
+        if ambiguous || outcome != .completed { emitDiagnostic();emitEvents() }
+        XCTAssertFalse(ambiguous,"Preview must have a unique coordinator state")
         XCTAssertEqual(outcome,.completed,app.debugDescription)
         let header=visible(app.collectionViews["manual-recovery-list"].staticTexts["manual-preview-header"].firstMatch,towardTop:true,knownID:"manual-preview-header")
         XCTAssertEqual(header.label,"採用する資料全体",app.debugDescription)
     }
-    func fieldsExist()->Bool {
-        let ready=app.staticTexts["manual-field-ids"].waitForExistence(timeout:15)
-        emitDiagnostic()
-        return ready
+    func fieldIDs(expectedCount:Int)->[String]? {
+        var observed:[String]?,ambiguous=false
+        let ready=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
+            let matches=self.observation.staticTexts.matching(identifier:"manual-field-ids").allElementsBoundByAccessibilityElement
+            if matches.count>1 { ambiguous=true;return true }
+            guard let current=matches.first else { return false }
+            let ids=current.label.split(separator:"|",omittingEmptySubsequences:false).map(String.init)
+            observed=ids
+            return true
+        },object:app)
+        let result=XCTWaiter.wait(for:[ready],timeout:15)
+        guard !ambiguous,result == .completed,let ids=observed,ids.count==expectedCount,
+              !ids.contains(""),Set(ids).count==ids.count else {
+            XCTFail("Expected \(expectedCount) distinct field IDs; observed \(String(describing:observed)), ambiguous=\(ambiguous)")
+            emitDiagnostic();return nil
+        }
+        return ids
     }
 }

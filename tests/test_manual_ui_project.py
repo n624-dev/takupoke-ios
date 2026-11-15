@@ -31,7 +31,7 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertNotIn('old=\\(old)',event)
         self.assertNotIn('new=\\(new)',event)
         checks=manual_check_source()
-        self.assertIn('XCTAssertEqual(app.staticTexts["manual-process-launch"].firstMatch.label,processBefore',checks)
+        self.assertIn('XCTAssertEqual(uniqueLabel("manual-process-launch",in:observation),processBefore',checks)
         self.assertIn('XCTAssertEqual(header.label,"採用する資料全体",app.debugDescription)',checks)
 
     def test_editor_uses_physical_clear_and_checks_full_replacement(self):
@@ -39,7 +39,7 @@ class ManualUIProjectTests(unittest.TestCase):
         edit=checks.split('    func edit(',1)[1].split('    func editStage(',1)[0]
         self.assertLess(edit.index('let target=visible(clear,knownID:'),edit.index('target.tap()'))
         self.assertNotIn('target.waitForExistence',edit)
-        self.assertIn('guard ManualScrollNavigation.usable(clearFrame),enabled,hittable',edit)
+        self.assertIn('guard ManualScrollNavigation.usable(clearFrame),target.isEnabled,target.isHittable',edit)
         self.assertLess(edit.index('let target=visible(clear,knownID:'),edit.index('let e=editors[0]'))
         self.assertNotIn('clear.waitForExistence',edit)
         self.assertNotIn('visible(original',edit)
@@ -51,7 +51,7 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('text.isEmpty || text == "PDFに記載された全文"',edit)
         self.assertIn('Native clear must remove the entire previous input',edit)
         self.assertIn('Clearing text must revoke prior acknowledgement',edit)
-        self.assertIn('let clearedAcknowledgements=app.switches.matching(identifier:"manual-ack-"+id).allElementsBoundByIndex',edit)
+        self.assertIn('let clearedAcknowledgements=recoveryList.switches.matching(identifier:"manual-ack-"+id).allElementsBoundByIndex',edit)
         self.assertIn('guard clearedAcknowledgements.count==1',edit)
         self.assertIn('XCTAssertEqual(clearedAcknowledgements[0].value as? String,"0"',edit)
         self.assertNotIn('ack(id).value',edit)
@@ -70,11 +70,11 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('let result=XCTWaiter.wait(for:[ready],timeout:nativeStateTimeout)',edit)
         self.assertIn('guard !ambiguous,result == .completed,let done=readyButton',edit)
         self.assertNotIn('buttons.firstMatch.waitForExistence',edit)
-        self.assertIn('let current=buttons.allElementsBoundByIndex',edit)
+        self.assertIn('let current=buttons.allElementsBoundByAccessibilityElement',edit)
         self.assertIn('let done=current[0]',edit)
         completion=edit.split('let buttons=navigation.buttons.matching',1)[1]
         self.assertIn('guard current.count==1',completion)
-        self.assertIn('navigationFrame.contains(doneFrame) && enabled && hittable',edit)
+        self.assertIn('navigationFrame.contains(doneFrame) && done.isEnabled && done.isHittable',edit)
         self.assertEqual(edit.count('done.frame'),1)
         self.assertEqual(edit.count('done.isEnabled'),1)
         self.assertEqual(edit.count('done.isHittable'),1)
@@ -172,8 +172,13 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertLess(terminate.index('app.wait('),terminate.index('app.terminate()'))
         self.assertEqual(checks.count('app.terminate()'),1)
         self.assertIn('"--fixture-year-input-trace"',checks)
-        self.assertEqual(checks.count('tap("訂正と変更を確認して資料全体へ",knownID:"manual-review-submit")'),5)
-        self.assertIn('visible(app.buttons[title].firstMatch,knownID:knownID,buttonLabel:title).tap()',checks)
+        self.assertEqual(checks.count('tap("訂正と変更を確認して資料全体へ"'),1)
+        self.assertIn('tap("訂正と変更を確認して資料全体へ",knownID:"manual-review-submit")',checks)
+        self.assertEqual(checks.count('openReviewPreview()')-1,6)
+        self.assertIn('visible(button,knownID:knownID,buttonLabel:title,ownerID:ownerID,barTitle:barTitle).tap()',checks)
+        self.assertIn('requireLastGood(in:rootObservation)',checks)
+        self.assertIn('XCTAssertEqual(uniqueLabel("manual-persisted-proof",in:root),proof)',checks)
+        self.assertNotIn('app.staticTexts["manual-persisted-proof"]',checks)
 
     def test_review_readiness_measures_actual_coordinator_state(self):
         changed=module.view((ROOT/"Takupoke/PDFRecoveryView.swift").read_text(encoding="utf-8"))
@@ -184,7 +189,7 @@ class ManualUIProjectTests(unittest.TestCase):
         checks=manual_check_source()
         scoped='.otherElements["manual-observation"].staticTexts'
         self.assertEqual(checks.count(scoped+'.matching(identifier:"manual-coordinator-state")'),1)
-        self.assertEqual(checks.count(scoped+'["manual-coordinator-state"]'),1)
+        self.assertEqual(checks.count('self.observation.staticTexts.matching(identifier:"manual-coordinator-state")'),1)
         self.assertEqual(checks.count(scoped+'.matching(identifier:"manual-input-state")'),1)
         self.assertNotIn('app.staticTexts["manual-input-state"]',checks)
         state=next(line for line in changed.splitlines() if 'Text("preview=' in line)
@@ -292,11 +297,14 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('emitDiagnostic()',checks)
         # Four original guards, a fresh selected-field source, and both actual
         # high-score selections must all wait for real editor inventory.
-        self.assertEqual(checks.count('XCTAssertTrue(fieldsExist()'),7)
+        self.assertEqual(checks.count('fieldIDs(expectedCount:1)'),4)
+        self.assertEqual(checks.count('fieldIDs(expectedCount:2)'),1)
+        self.assertEqual(checks.count('fieldIDs(expectedCount:3)'),2)
+        self.assertIn('Set(ids).count==ids.count',checks)
         self.assertIn('TAKUPOKE-MANUAL-QA ',checks)
         self.assertIn('input(integralRails:Bool? = nil)',source)
         self.assertIn('let drawIntegral=integralRails ?? SimulatorManualFixture.integralRails',source)
-        self.assertIn('waitForExistence(timeout:15)',checks)
+        self.assertIn('XCTWaiter.wait(for:[ready],timeout:15)',checks)
         self.assertNotIn('inkDiagnostic(',source.split('static func prepare()')[1])
 
     def test_fixture_uses_current_period_and_actual_builder_proof(self):
@@ -324,7 +332,16 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('let listFrame=list.frame,navigationFrame=navigation.frame',navigation)
         self.assertIn('currentLists.count<=1',navigation)
         self.assertIn('listQuery.allElementsBoundByAccessibilityElement',navigation)
-        self.assertIn('app.collectionViews.containing(.button,identifier:buttonLabel)',navigation)
+        self.assertIn('app.collectionViews.matching(identifier:ownerID)',navigation)
+        self.assertNotIn('app.collectionViews.containing(.button',navigation)
+        self.assertNotIn('e.exists && e.isHittable',navigation)
+        self.assertNotIn('target.exists',navigation)
+        for identifier in ("manual-settings-list","manual-materials-list","manual-analysis-list"):
+            self.assertIn('ownerID:"'+identifier+'"',checks)
+        self.assertIn('controls.buttons["等倍"]',checks)
+        self.assertIn('app.navigationBars["原画像の確認"].buttons["確認を終える"]',checks)
+        self.assertIn('accessibilityIdentifier("manual-source-controls")',generated)
+        self.assertIn('accessibilityIdentifier("manual-source-scroll")',generated)
         self.assertNotIn('app.collectionViews.firstMatch',navigation)
         self.assertIn('for attempt in 0..<16',navigation)
         invalid=navigation.split('guard ManualScrollNavigation.usable(viewport),viewport.height>36 else {',1)[1].split('}',1)[0]
@@ -350,9 +367,9 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertNotIn('dx:listFrame.width-24',checks)
         self.assertNotIn('app.collectionViews.count-1',checks)
         self.assertNotIn('acks.count',checks)
-        self.assertIn('XCTAssertEqual(fieldIDs.count,1)',checks)
-        self.assertIn('XCTAssertEqual(ids.count,3)',checks)
-        acknowledge=checks.split('func acknowledge(')[1].split('func assertSubmitEnabled')[0]
+        self.assertIn('fieldIDs(expectedCount:1)?.first',checks)
+        self.assertIn('guard let ids=fieldIDs(expectedCount:3)',checks)
+        acknowledge=checks.split('func acknowledge(')[1].split('func tapSubmit')[0]
         self.assertIn('let controls=row.switches.allElementsBoundByAccessibilityElement',acknowledge)
         self.assertIn('guard controls.count==1',acknowledge)
         self.assertNotIn('.tap()',acknowledge)
@@ -379,12 +396,12 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertNotIn('.tap()',opening)
         self.assertIn('barFrame.contains(frame),button.isEnabled,button.isHittable',opening)
         self.assertIn('app.buttons[action].waitForExistence(timeout:nativeStateTimeout)',opening)
-        menu=checks.split('if fixtureMenuActions.contains(title)')[1].split('visible(app.buttons[title]')[0]
-        self.assertIn('.allElementsBoundByIndex',menu)
+        menu=checks.split('    func tapPopupAction(_ title:String) {',1)[1].split('\n    }',1)[0]
+        self.assertIn('.allElementsBoundByAccessibilityElement',menu)
         self.assertIn('guard current.count==1',menu)
-        self.assertIn('ManualScrollNavigation.usable(frame),contained,enabled,hittable',menu)
+        self.assertLess(menu.index('ManualScrollNavigation.usable(frame),self.app.frame.contains(frame)'),menu.index('button.isEnabled,button.isHittable'))
         self.assertIn('XCTWaiter.wait(for:[ready],timeout:nativeStateTimeout)',menu)
-        self.assertIn('guard result == .completed,let button=readyButton',menu)
+        self.assertIn('guard !ambiguous,result == .completed,let button=readyButton',menu)
         self.assertEqual(menu.count('.tap()'),1)
         self.assertNotIn('coordinate(',menu)
         self.assertIn('let nativeStateTimeout:TimeInterval=45',checks)

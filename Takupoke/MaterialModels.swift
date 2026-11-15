@@ -38,6 +38,8 @@ struct ChangeColumnLayout: Codable, Equatable {
     var headerRow: Int
     var original: [String]
     var headers: [String]
+    var physicalWidth: Int? = nil
+    var headerSources: [Int: String]? = nil
 }
 
 struct PersonalChangeSettings: Codable, Equatable {
@@ -47,6 +49,8 @@ struct PersonalChangeSettings: Codable, Equatable {
     var history: [ChangeEdits.Entry]
     var reviewedDigest: String? = nil
     var ambiguousRows: [Int]? = nil
+    var ambiguousOriginals: [ChangeEdits.Original]? = nil
+    var ambiguousLayout: ChangeColumnLayout? = nil
 }
 
 struct MaterialSource: Codable {

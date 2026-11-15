@@ -123,3 +123,78 @@ extension ParsingTests {
         }
     }
 }
+
+extension ParsingTests {
+    func testSameBytesFromDifferentSelectionDoNotCertifyPersonalResult() throws {
+        try temporary { root in
+            let library = try MaterialLibrary(root: root)
+            let archive = root.appendingPathComponent("copy.xlsx")
+            try write(workbook([headers, ["", "ZZ", "2032/4/1", "2"]]), to: archive)
+            let bytes = try Data(contentsOf: archive)
+            func select(_ name: String) throws {
+                let staged = library.newStagingURL()
+                try bytes.write(to: staged)
+                try library.commit(staged: staged, kind: .changes, source: MaterialSource(),
+                    originalName: name, byteCount: bytes.count, digest: "identical", modifiedAt: nil)
+            }
+            try select("one.xlsx")
+            let first = try XCTUnwrap(library.state.record(for: .changes))
+            let view = try library.changeEditor(year: 2032)
+            try library.saveChangeEditor(view, year: 2032, expectedIdentity: try XCTUnwrap(first.source.selectionID),
+                expectedDigest: first.digest, edits: [2: .init(values: [0: "2"])], manual: true, check: {})
+            let analysis = try XCTUnwrap(library.state.changeAnalysis)
+            XCTAssertTrue(analysis.matches(record: try XCTUnwrap(library.state.record(for: .changes)), defaultYear: 2032))
+            try library.recordParseFailure(.init(code: .year, row: 2), defaultYear: 2032)
+            XCTAssertNotNil(library.state.changeParseAttempt?.failure)
+            try select("two.xlsx")
+            XCTAssertNil(try MaterialLibrary(root: root).state.changeParseAttempt)
+            let second = try XCTUnwrap(library.state.record(for: .changes))
+            XCTAssertNotEqual(first.source.selectionID, second.source.selectionID)
+            assertCode(.year) { try library.reanalyzeChanges(defaultYear: 2032) }
+            XCTAssertEqual(library.state.changeAnalysis?.records.first?.class_name, "2_ZZ")
+            XCTAssertFalse(analysis.matches(record: second, defaultYear: 2032))
+            XCTAssertTrue(ChangeParseAttempt.needsAnalysis(digest: second.digest, defaultYear: 2032,
+                analysis: analysis, attempt: nil, personalSourceIdentity: second.personalChangeIdentity(for: 2032)))
+        }
+    }
+}
+
+extension ParsingTests {
+    func testUnresolvedDuplicateDecisionsBelongToChosenSheet() throws {
+        try temporary { root in
+            let library = try MaterialLibrary(root: root)
+            let item = ["2", "ZZ", "4/1", "2"]
+            var files = workbook([headers, item, item])
+            files["xl/worksheets/other.xml"] = workbook([headers, item])["xl/worksheets/sheet1.xml"]
+            mutate(&files, "xl/workbook.xml", "</sheets>",
+                #"<sheet name="架空別表" q:id="s2"/></sheets>"#)
+            mutate(&files, "xl/_rels/workbook.xml.rels", "</Relationships>",
+                "<Relationship Id=\"s2\" Type=\"" + rel + "/worksheet\" Target=\"worksheets/other.xml\"/></Relationships>")
+            func load(_ digest: String, reuse: Bool) throws {
+                let staged = library.newStagingURL()
+                try write(files, to: staged)
+                try library.commit(staged: staged, kind: .changes, source: MaterialSource(), originalName: "架空.xlsx",
+                    byteCount: try XCTUnwrap(staged.resourceValues(forKeys: [.fileSizeKey]).fileSize),
+                    digest: digest, modifiedAt: nil, reuseUnchanged: reuse)
+            }
+            try load("one", reuse: false)
+            let id = try XCTUnwrap(library.state.record(for: .changes)?.source.selectionID)
+            let first = try library.changeEditor(year: 2032)
+            try library.saveChangeEditor(first, year: 2032, expectedIdentity: id, expectedDigest: "one",
+                edits: [2: .init(excluded: true)], manual: true, check: {})
+            mutate(&files, "xl/worksheets/sheet1.xml", "</sheetData>", #"<row r="4"/></sheetData>"#)
+            try load("two", reuse: true)
+            let conflicted = try library.changeEditor(year: 2032)
+            XCTAssertEqual(conflicted.conflicts, [2, 3])
+            try library.reconcileChangeEdits(conflicted, year: 2032)
+            XCTAssertEqual(try library.changeEditor(year: 2032).conflicts, [2, 3])
+            var other = try library.changeEditor(year: 2032, sheet: "架空別表")
+            XCTAssertTrue(other.conflicts.isEmpty)
+            XCTAssertTrue(other.requiresLayoutConfirmation)
+            other.requiresLayoutConfirmation = false
+            try library.saveChangeEditor(other, year: 2032, expectedIdentity: id, expectedDigest: "two",
+                edits: [:], manual: true, check: {})
+            XCTAssertEqual(library.state.changeAnalysis?.records.count, 1)
+        }
+    }
+}

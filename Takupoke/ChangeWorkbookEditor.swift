@@ -1,63 +1,87 @@
 import Foundation
+#if canImport(CryptoKit)
+import CryptoKit
+#else
+import Crypto
+#endif
 
 extension XLSXReader {
     static func editableWorkbook(_ url: URL, layout: ChangeColumnLayout?, sheet requested: String? = nil,
-                                 headerRow requestedRow: Int? = nil, check: @escaping () throws -> Void) throws -> ChangeWorkbookReview {
+                                 headerRow requestedRow: Int? = nil, confirmedDigest: Bool = false, check: @escaping () throws -> Void) throws -> ChangeWorkbookReview {
         try withSheet(url, requested: requested ?? layout?.sheet, editing: true, check: check) { sheet, strings, names, name, uses1904 in
             let source = try readCells(sheet, strings: strings, editing: true, check: check)
-            let rows = source.rows
+            var rows = source.rows
             if rows.isEmpty {
                 guard names.count > 1 else { throw ChangeParseError(code: .empty) }
                 let table = ChangeEditTable(sheet: name, headers: [], rows: [], headerRow: 0)
                 let layout = ChangeColumnLayout(sheet: name, headerRow: 0, original: [], headers: [])
                 return ChangeWorkbookReview(sheets: names, table: table, layout: layout, requiresLayoutConfirmation: true)
             }
+            var issues = source.issues
+            var sources = source.sources
+            var mergedArea = 0
+            for merge in sheet.child("mergeCells")?.children ?? [] where merge.name == "mergeCell" {
+                try check()
+                let parts = merge.attributes["ref", default: ""].split(separator: ":", omittingEmptySubsequences: false)
+                guard (1...2).contains(parts.count) else { throw ChangeParseError(code: .invalidXML) }
+                let start = try coordinate(String(parts[0])), end = try coordinate(String(parts[parts.count - 1]))
+                guard start.row <= end.row, start.column <= end.column else { throw ChangeParseError(code: .mergedCells) }
+                mergedArea += (end.row - start.row + 1) * (end.column - start.column + 1)
+                guard mergedArea <= 100_000 else { throw ChangeParseError(code: .limit) }
+                if end.row > rows.count { rows += Array(repeating: [], count: end.row - rows.count) }
+                let anchorRow = rows[start.row - 1]
+                let anchor = anchorRow.indices.contains(start.column) ? anchorRow[start.column] : ""
+                let dependency = [anchor, source.sources[start.row]?[start.column] ?? "",
+                                  source.issues[start.row]?[start.column]?.rawValue ?? ""]
+                let fingerprint = SHA256.hash(data: Data(dependency.map { "\($0.utf8.count):" + $0 }.joined().utf8))
+                    .map { String(format: "%02x", $0) }.joined()
+                for row in start.row...end.row {
+                    try check()
+                    for column in start.column...end.column {
+                        issues[row, default: [:]][column] = .mergedCells
+                        sources[row, default: [:]][column, default: ""] += "/merge/\(start.row-row)/\(end.row-row)/\(start.column-column)/\(end.column-column)/\(fingerprint)"
+                    }
+                }
+            }
+            func meaningfulWidth(_ index: Int) -> Int {
+                max((rows[index].lastIndex(where: { !$0.isEmpty }) ?? -1) + 1,
+                    (sources[index + 1]?.keys.max() ?? -1) + 1)
+            }
+            func physicalHeader(_ index: Int) -> [String] {
+                let width = meaningfulWidth(index)
+                return Array(rows[index].prefix(width)) + Array(repeating: "", count: max(0, width - rows[index].count))
+            }
             let likely = try? ChangeNormalizer.headerIndex(rows)
             let old = layout.flatMap { $0.sheet == name ? $0 : nil }
-            let matches = old.map { previous in rows.indices.filter { rows[$0] == previous.original } } ?? []
+            let matches = old.map { previous in rows.indices.filter { physicalHeader($0) == previous.original } } ?? []
             if let requestedRow, !(1...rows.count).contains(requestedRow) { throw ChangeParseError(code: .headers) }
-            let position = requestedRow.map { $0 - 1 } ?? (matches.count == 1 ? matches[0] : likely ?? rows.firstIndex(where: { !$0.isEmpty }) ?? 0)
-            guard rows.indices.contains(position) else { throw ChangeParseError(code: .headers) }
-            let original = rows[position]
-            let width = max(original.count, rows.dropFirst(position + 1).map(\.count).max() ?? 0)
-            let required = ["学 年", "学科・クラス", "月日"]
+            let position = requestedRow.map { $0 - 1 } ?? (matches.count == 1 ? matches[0] : likely ?? rows.indices.first(where: { meaningfulWidth($0) > 0 }) ?? 0)
+            let original = physicalHeader(position)
+            let width = (position..<rows.count).map(meaningfulWidth).max() ?? original.count
+            let headerSources = sources[position + 1, default: [:]]
+            let oldWidth = old.map { $0.physicalWidth ?? $0.original.count } ?? 0
+            let sameSchema = old.map { $0.original == original && ($0.headerSources ?? [:]) == headerSources && oldWidth >= width } == true
+            let reuse = sameSchema && (matches.count == 1 || (old?.headerRow == position + 1 && (confirmedDigest || requestedRow != nil)))
             var headers = original + Array(repeating: "", count: width - original.count)
-            let reuse = old.map { $0.original == original && $0.headers.count >= width && (position + 1 == $0.headerRow || matches.count == 1) } == true
             if let old, reuse {
                 headers = old.headers
             } else {
                 let names = Set(headers.map(ChangeNormalizer.text))
                 let tokens = headers.map(ChangeNormalizer.token)
-                let missing = required.filter { !names.contains($0) }
+                let missing = ["学 年", "学科・クラス", "月日"].filter { !names.contains($0) }
                     + ChangeNormalizer.OptionalColumn.allCases.filter { $0.index(in: tokens) == nil }.map(\.rawValue)
                 headers.append(contentsOf: missing.prefix(ChangeNormalizer.maximumColumns - headers.count))
             }
             for i in headers.indices where headers[i].isEmpty { headers[i] = "列\(i + 1)" }
-            let proposed = ChangeColumnLayout(sheet: name, headerRow: position + 1, original: original, headers: headers)
-            var issues = source.issues
-            var sources = source.sources
-            // Record only relative merge geometry so inserting rows preserves identities.
-            var mergedArea = 0
-            for merge in sheet.child("mergeCells")?.children ?? [] where merge.name == "mergeCell" {
-                try check()
-                let parts = merge.attributes["ref", default: ""].split(separator: ":")
-                guard parts.count == 2 else { throw ChangeParseError(code: .invalidXML) }
-                let start = try coordinate(String(parts[0])), end = try coordinate(String(parts[1]))
-                guard start.row <= end.row, start.column <= end.column, end.row <= rows.count,
-                      end.column < ChangeNormalizer.maximumColumns else { throw ChangeParseError(code: .mergedCells) }
-                mergedArea += (end.row-start.row+1) * (end.column-start.column+1)
-                guard mergedArea <= 100_000 else { throw ChangeParseError(code: .limit) }
-                for row in start.row...end.row where row > position + 1 {
-                    for column in start.column...end.column {
-                        issues[row, default: [:]][column] = .mergedCells
-                        sources[row, default: [:]][column, default: ""] += "/merge/\(start.row-row)/\(end.row-row)/\(start.column-column)/\(end.column-column)"
-                    }
-                }
-            }
+            let proposed = ChangeColumnLayout(sheet: name, headerRow: position + 1, original: original, headers: headers,
+                physicalWidth: reuse ? oldWidth : width, headerSources: headerSources.isEmpty ? nil : headerSources)
             let table = ChangeEditTable(sheet: name, headers: headers, rows: rows, headerRow: position + 1,
                 cellIssues: issues, cellSources: sources, originalHeaders: original,
-                uses1904: uses1904, numericCells: source.numericCells, dateCells: source.dateCells)
-            let confirm = !reuse && (name != "時間割変更" || likely != position || Set(original.filter { !$0.isEmpty }).count != original.filter { !$0.isEmpty }.count || source.issues[position + 1] != nil)
+                headerSources: proposed.headerSources, physicalWidth: proposed.physicalWidth, uses1904: uses1904, numericCells: source.numericCells, dateCells: source.dateCells)
+            let named = original.map(ChangeNormalizer.text).filter { !$0.isEmpty }
+            let ambiguousWeekdays = named.filter { ["曜日", "曜"].contains(ChangeNormalizer.token($0)) }.count > 1
+            let confirm = !reuse && (old != nil || name != "時間割変更" || likely != position || width > original.count ||
+                Set(named).count != named.count || ambiguousWeekdays || issues[position + 1] != nil)
             return ChangeWorkbookReview(sheets: names, table: table, layout: proposed, requiresLayoutConfirmation: confirm)
         }
     }
@@ -71,7 +95,8 @@ extension MaterialLibrary {
         let personal = record.source.personalChanges.flatMap { $0.year == year ? $0 : nil }
         let layout = personal?.layout
         var view: ChangeWorkbookReview
-        do { view = try XLSXReader.editableWorkbook(url, layout: layout, sheet: sheet, headerRow: headerRow, check: check) }
+        do { view = try XLSXReader.editableWorkbook(url, layout: layout, sheet: sheet, headerRow: headerRow,
+            confirmedDigest: personal?.reviewedDigest == record.digest, check: check) }
         catch let failure as ChangeParseError where failure.code == .missingSheet && layout != nil && sheet == nil {
             view = try XLSXReader.editableWorkbook(url, layout: nil, check: check)
             view.requiresLayoutConfirmation = true
@@ -80,11 +105,18 @@ extension MaterialLibrary {
         let restored = view.table.restoreDetailed(personal?.rows, sourceIdentity: identity, digest: record.digest, defaultYear: year)
         view.edits = restored.edits
         view.conflicts = restored.conflicts
-        if personal?.reviewedDigest == record.digest { view.conflicts.formUnion(personal?.ambiguousRows ?? []) }
+
         view.previous = restored.unmatched + (personal?.history ?? [])
-        if let personal, personal.reviewedDigest != record.digest, personal.ambiguousRows?.isEmpty == false {
-            let ambiguous = Set(personal.history.map(\.original))
-            for row in view.table.rowIDs where ambiguous.contains(view.table.original(at: row)) { view.conflicts.insert(row) }
+        if let personal, personal.ambiguousRows?.isEmpty == false {
+            let scope = personal.ambiguousLayout ?? personal.layout
+            let sameLayout = scope.sheet == view.layout.sheet && scope.headers == view.layout.headers &&
+                scope.original == view.layout.original && scope.headerSources == view.layout.headerSources
+            if sameLayout, personal.reviewedDigest == record.digest, scope.headerRow == view.layout.headerRow {
+                view.conflicts.formUnion(Set(personal.ambiguousRows ?? []).intersection(view.table.rowIDs))
+            } else if sameLayout {
+                let unresolved = Set(personal.ambiguousOriginals ?? personal.history.map(\.original))
+                for row in view.table.rowIDs where unresolved.contains(view.table.original(at: row)) { view.conflicts.insert(row) }
+            }
         }
         // A school update may introduce a new weekday warning on a different row.
         // Use only the date-derived value and recalculate it on every new original.
@@ -107,12 +139,14 @@ extension MaterialLibrary {
                           edits: [Int: ChangeRowEdit], manual: Bool, check: @escaping () throws -> Void) throws {
         guard let record = state.record(for: .changes), record.digest == expectedDigest,
               (record.source.selectionID ?? record.storedName) == expectedIdentity,
+              !view.requiresLayoutConfirmation, view.conflicts.isEmpty,
               !manual || view.baseline == ChangeEditBaseline(source: record.source) else { throw ChangeParseError(code: .staleConfirmation) }
         let records = try view.table.records(edits: edits, defaultYear: year, check: check)
         let rows = try view.table.savedEdits(sourceIdentity: expectedIdentity, digest: expectedDigest, defaultYear: year, edits: edits)
         let personal = PersonalChangeSettings(year: year, layout: view.layout, rows: rows, history: view.previous, reviewedDigest: record.digest)
         var analysis = ChangeAnalysis(sourceDigest: record.digest, sourceName: record.originalName, defaultYear: year, parsedAt: Date(), records: records)
         analysis.personalEdit = manual
+        analysis.personalSourceIdentity = expectedIdentity
         try check()
         var next = state
         guard let i = next.records.firstIndex(where: { $0.kind == .changes }) else { throw ChangeParseError(code: .staleConfirmation) }
@@ -140,6 +174,8 @@ extension MaterialLibrary {
         updated.history = view.previous
         updated.reviewedDigest = record.digest
         updated.ambiguousRows = view.conflicts.sorted()
+        updated.ambiguousOriginals = view.conflicts.sorted().map(view.table.original(at:))
+        updated.ambiguousLayout = view.conflicts.isEmpty ? nil : view.layout
         next.records[index].source.personalChanges = updated
         try persist(next)
     }

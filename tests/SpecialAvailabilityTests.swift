@@ -16,6 +16,28 @@ final class SpecialAvailabilityTests: XCTestCase {
         XCTAssertEqual(ScheduleLoadState(ready: false, busy: true, failed: true), .loading)
     }
 
+    func testHomeWarningsUseTheRetainedResultForEachSelectedMaterial() {
+        var state = MaterialLibraryState()
+        for kind: MaterialKind in [.timetable, .changes] {
+            XCTAssertNil(state.scheduleWarning(for: kind, changeSchoolYear: 2032))
+            state.records.append(MaterialRecord(kind: kind, source: MaterialSource(), originalName: "fixture",
+                storedName: kind.rawValue, byteCount: 1, digest: "current", acquiredAt: Date()))
+            XCTAssertEqual(state.scheduleWarning(for: kind, changeSchoolYear: 2032),
+                "\(kind.title)の選択した資料をまだ反映できていません。正常な解析結果がありません。")
+        }
+        state.changeAnalysis = ChangeAnalysis(sourceDigest: "current", sourceName: "fixture", defaultYear: 2032,
+            parsedAt: Date(), records: [])
+        state.pdfAnalyses = [MaterialKind.timetable.rawValue: PDFAnalysis(kind: .timetable, sourceDigest: "old",
+            sourceName: "fixture", parsedAt: Date(), schoolYear: 2032, lessons: [], events: [], notices: [])]
+        XCTAssertNil(state.scheduleWarning(for: .changes, changeSchoolYear: 2032))
+        XCTAssertEqual(state.scheduleWarning(for: .timetable, changeSchoolYear: 2032),
+            "通常時間割の新しい資料をまだ反映できていません。前回の正常結果を表示しています。")
+        XCTAssertEqual(state.scheduleWarning(for: .changes, changeSchoolYear: 2033),
+            "時間割変更の新しい資料をまだ反映できていません。前回の正常結果を表示しています。")
+        state.pdfAnalyses?[MaterialKind.timetable.rawValue]?.sourceDigest = "current"
+        XCTAssertNil(state.scheduleWarning(for: .timetable, changeSchoolYear: 2032))
+    }
+
     func testLoadingFailureAndUnselectedAreDistinctForBothKinds() {
         for kind in SpecialScheduleKind.allCases {
             for busy in [false, true] {

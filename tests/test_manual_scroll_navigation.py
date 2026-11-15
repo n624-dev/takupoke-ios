@@ -221,7 +221,19 @@ final class GeometryControls:XCTestCase {
         self.assertIn("list.cells.containing(.any,identifier:targetID)", visible)
         self.assertIn("owners.count==1", visible)
         self.assertIn("for attempt in 0..<16", visible)
-        self.assertIn("XCTAssertTrue(e.exists && e.isHittable,app.debugDescription)", visible)
+        # Exhaustion must fail without re-evaluating the original, potentially
+        # virtualized query. Successful ordinary buttons still need a native
+        # element inside their current owner's viewport before hit testing.
+        self.assertIn("listQuery=app.collectionViews.matching(identifier:ownerID)", visible)
+        self.assertIn("matches=query.allElementsBoundByAccessibilityElement", visible)
+        self.assertIn("guard matches.count<=1", visible)
+        self.assertIn("let target=matches.first ?? e", visible)
+        self.assertIn("viewport.contains(targetFrame) {", visible)
+        self.assertIn("guard target.label == ordinaryButton,target.isEnabled,target.isHittable", visible)
+        final = visible.split("start.press(forDuration:0.1,thenDragTo:end)", 1)[1]
+        self.assertRegex(final, r'^\s*\}\s*XCTFail\("No safe visible hit region[^\n]+\);return e\s*\}\s*$')
+        self.assertNotIn("e.exists", final)
+        self.assertNotIn("e.isHittable", final)
         self.assertNotIn("upward=e.frame", visible)
         self.assertNotIn("typeText(", visible)
         self.assertNotIn(".tap()", visible)

@@ -26,7 +26,7 @@ struct SpecialScheduleAnalysisView: View {
                 }
                 if let failure = source?.acquisitionFailure { InlineWarning(failure) }
                 if let failure = source?.failure {
-                    PDFAnalysisFailureRows(failure: failure)
+                    PDFAnalysisFailureRows(failure: failure, hasPreviousAnalysis: record != nil)
                 }
 #if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
                 if let report = model.fullReadReports[kind] {

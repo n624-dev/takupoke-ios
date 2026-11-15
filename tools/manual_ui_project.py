@@ -129,6 +129,9 @@ def view(text):
     text = once(text, 'Text("今回: \\(lessons(change.after))")', 'Text("今回: \\(lessons(change.after))").accessibilityIdentifier("manual-change-after")')
     text = once(text, 'Slider(value:$zoom,in:1...4,step:0.5) { Text("原画像の拡大率") }',
                 'Slider(value:$zoom,in:1...4,step:0.5) { Text("原画像の拡大率") }.accessibilityIdentifier("manual-source-zoom")')
+    zoom_controls = '                }.padding(.horizontal)\n                GeometryReader { geometry in'
+    text = once(text, zoom_controls, zoom_controls.replace('}.padding(.horizontal)',
+                '}.padding(.horizontal).accessibilityElement(children:.contain).accessibilityIdentifier("manual-source-controls")'))
     scroll_end = '                            .padding(16)\n                    }\n                }\n            }\n            .navigationTitle("原画像の確認")'
     text = once(text, scroll_end, scroll_end.replace('                    }', '                    }.accessibilityIdentifier("manual-source-scroll")', 1))
     text = once(text, '.accessibilityElement().accessibilityLabel("訂正する本文の範囲")',
@@ -162,7 +165,7 @@ def application(text):
         }
         .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) {''')
     probe_marker = '                            if ProcessInfo.processInfo.arguments.contains("--selection-snapshot") { FixtureSelectionProbe() }'
-    text = once(text, probe_marker, probe_marker + '\n                            if SimulatorManualFixture.enabled { FixtureManualProbe() }')
+    text = once(text, probe_marker, probe_marker + '\n                            if SimulatorManualFixture.enabled { FixtureManualProbe().accessibilityElement(children:.contain).accessibilityIdentifier("manual-root-observation").allowsHitTesting(false) }')
     text += '\n' + (ROOT / "tests/ui/ManualAssistanceFixture.swift").read_text(encoding="utf-8")
     return text
 
@@ -176,6 +179,13 @@ def generate(destination, source_root=ROOT):
     module.generate(destination, check_sources=MANUAL_CHECK_SOURCES, check_root=ROOT)
     destination = Path(destination)
     app = destination / "Takupoke"
+    for file, title, identifier in (("SettingsView.swift", '"設定"', "manual-settings-list"),
+                                    ("MaterialsView.swift", '"時間割ファイル"', "manual-materials-list"),
+                                    ("PDFAnalysisView.swift", "kind.title", "manual-analysis-list")):
+        path = app / file
+        anchor = f".navigationTitle({title})"
+        path.write_text(once(path.read_text(encoding="utf-8"), anchor,
+                             f'.accessibilityIdentifier("{identifier}")' + anchor), encoding="utf-8")
     path = app / "PDFRecoveryCoordinator.swift"; path.write_text(coordinator(path.read_text(encoding="utf-8")), encoding="utf-8")
     path = app / "PDFRecoveryView.swift"; path.write_text(view(path.read_text(encoding="utf-8")), encoding="utf-8")
     path = app / "TakupokeApp.swift"; path.write_text(application(path.read_text(encoding="utf-8")), encoding="utf-8")

@@ -80,8 +80,9 @@ struct ChangeWeekdayConsent: Codable, Equatable {
 }
 
 struct ChangeAnalysis: Codable {
-    static let parserVersion = 10
+    static let parserVersion = 11
     var personalEdit: Bool? = nil
+    var personalSourceIdentity: String? = nil
     var version = parserVersion
     var sourceDigest: String
     var sourceName: String
@@ -93,9 +94,17 @@ struct ChangeAnalysis: Codable {
 
     func matches(record: MaterialRecord, defaultYear: Int?) -> Bool {
         guard let defaultYear else { return false }
-        return sourceDigest == record.digest && version == Self.parserVersion &&
+        return personalSourceIdentity == record.personalChangeIdentity(for: defaultYear) &&
+        sourceDigest == record.digest && version == Self.parserVersion &&
         self.defaultYear == defaultYear && weekdayConsent == record.source.weekdayConsent &&
         rowSkipConsent == record.source.rowSkipConsent
+    }
+}
+
+extension MaterialRecord {
+    func personalChangeIdentity(for year: Int?) -> String? {
+        guard let year, source.personalChanges?.year == year else { return nil }
+        return source.selectionID ?? storedName
     }
 }
 
@@ -186,11 +195,11 @@ struct ChangeParseAttempt: Codable {
         return sourceDigest == digest && self.defaultYear == defaultYear && parserVersion == ChangeAnalysis.parserVersion
     }
 
-    static func needsAnalysis(digest: String, defaultYear: Int?, analysis: ChangeAnalysis?, attempt: ChangeParseAttempt?, weekdayConsent: ChangeWeekdayConsent? = nil, rowSkipConsent: ChangeRowSkipConsent? = nil) -> Bool {
+    static func needsAnalysis(digest: String, defaultYear: Int?, analysis: ChangeAnalysis?, attempt: ChangeParseAttempt?, weekdayConsent: ChangeWeekdayConsent? = nil, rowSkipConsent: ChangeRowSkipConsent? = nil, personalSourceIdentity: String? = nil) -> Bool {
         // An invalid configured year must be corrected before acquisition/parse.
         guard let defaultYear, (1900...9998).contains(defaultYear) else { return false }
         if analysis?.sourceDigest == digest, analysis?.version == ChangeAnalysis.parserVersion,
-           analysis?.defaultYear == defaultYear, analysis?.weekdayConsent == weekdayConsent,
+           analysis?.defaultYear == defaultYear, analysis?.personalSourceIdentity == personalSourceIdentity, analysis?.weekdayConsent == weekdayConsent,
            analysis?.rowSkipConsent == rowSkipConsent { return false }
         if attempt?.sourceDigest == digest, attempt?.defaultYear == defaultYear,
            attempt?.parserVersion == ChangeAnalysis.parserVersion, let failure = attempt?.failure,
@@ -256,7 +265,7 @@ struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
         case .staleConfirmation: detail = "資料・補完年度・確認内容が変わりました。現在の資料を解析して、内容を確認し直してください。"
         case .storage: detail = "解析結果を保存できません。"
         }
-        return (row.map { "\($0)行目：" } ?? "") + detail + " 前回の正常な解析結果は保持しています。"
+        return (row.map { "\($0)行目：" } ?? "") + detail
     }
 }
 
@@ -289,7 +298,14 @@ struct ChangeRowEdit: Codable, Equatable {
     var values: [Int: String] = [:]
     var excluded = false
     var deriveWeekday = false
-    var isEmpty: Bool { values.isEmpty && !excluded && !deriveWeekday }
+    // nil also decodes decisions saved before the weekday control could be turned off explicitly.
+    var keepPrintedWeekday: Bool? = nil
+    var isEmpty: Bool { values.isEmpty && !excluded && !deriveWeekday && keepPrintedWeekday != true }
+
+    mutating func chooseDateDerivedWeekday(_ derive: Bool) {
+        deriveWeekday = derive
+        keepPrintedWeekday = derive ? nil : true
+    }
 }
 
 struct ChangeEdits: Codable, Equatable {
@@ -304,6 +320,8 @@ struct ChangeEdits: Codable, Equatable {
         var original: Original
         var occurrences: Int
         var edit: ChangeRowEdit
+        var valueLabels: [Int: String]? = nil
+        var editedSerialUses1904: Bool? = nil
     }
     var sourceIdentity: String
     var digest: String
@@ -312,6 +330,9 @@ struct ChangeEdits: Codable, Equatable {
     var headers: [String]
     var entries: [Entry]
     var originalHeaders: [String]? = nil
+    var headerSources: [Int: String]? = nil
+    var reviewedHeaderRow: Int? = nil
+    var physicalWidth: Int? = nil
 }
 
 struct ChangeEditTable: Equatable {
@@ -324,6 +345,8 @@ struct ChangeEditTable: Equatable {
     var cellSources: [Int: [Int: String]] = [:]
     var originalHeaders: [String]? = nil
 
+    var headerSources: [Int: String]? = nil
+    var physicalWidth: Int? = nil
     var uses1904 = false
     var numericCells: [Int: Set<Int>] = [:]
     var dateCells: [Int: Set<Int>] = [:]
@@ -355,24 +378,76 @@ struct ChangeEditTable: Equatable {
               active.values.allSatisfy({ $0.values.allSatisfy { headers.indices.contains($0.key) && $0.value.utf8.count <= 4096 } })
         else { throw ChangeParseError(code: .staleConfirmation) }
         let groups = Dictionary(grouping: ids, by: original(at:))
+        let dateColumn = headers.firstIndex { ChangeNormalizer.text($0) == "月日" }
         let entries = active.keys.sorted().compactMap { number -> ChangeEdits.Entry? in
             let key = original(at: number)
             guard let occurrences = groups[key]?.count, let edit = active[number] else { return nil }
-            return ChangeEdits.Entry(row: number, original: key, occurrences: occurrences, edit: edit)
+            let editedDate = dateColumn.flatMap { edit.values[$0] }
+            let editedSerial = editedDate.map { ChangeNormalizer.matches(ChangeNormalizer.text($0), "^[0-9]+(?:\\.[0-9]+)?$") } == true
+            return ChangeEdits.Entry(row: number, original: key, occurrences: occurrences, edit: edit,
+                valueLabels: Dictionary(uniqueKeysWithValues: edit.values.keys.map { ($0, headers[$0]) }), editedSerialUses1904: editedSerial ? uses1904 : nil)
         }
         return ChangeEdits(sourceIdentity: sourceIdentity, digest: digest, defaultYear: defaultYear,
-                           sheet: sheet, headers: headers, entries: entries, originalHeaders: originalHeaders)
+                           sheet: sheet, headers: headers, entries: entries, originalHeaders: originalHeaders, headerSources: headerSources, reviewedHeaderRow: headerRow, physicalWidth: physicalWidth)
+    }
+
+    /// An appended source column may shift fields supplied by the editor. The old
+    /// physical prefix must keep its meaning. A virtual field follows its unique
+    /// label, and only an identical original row is eligible for those values.
+    private func restoredColumns(from saved: ChangeEdits) -> [Int: Int]? {
+        let previous = saved.originalHeaders ?? saved.headers
+        let current = originalHeaders ?? headers
+        let oldSources = saved.headerSources ?? [:]
+        let newSources = headerSources ?? [:]
+        if previous == current && saved.headers == headers && oldSources == newSources {
+            return Dictionary(uniqueKeysWithValues: headers.indices.map { ($0, $0) })
+        }
+        guard let oldWidth = saved.physicalWidth, let newWidth = physicalWidth,
+              oldWidth < newWidth, saved.headers.count >= oldWidth, headers.count >= newWidth,
+              current.starts(with: previous), oldSources == newSources.filter({ $0.key < oldWidth }),
+              Array(saved.headers.prefix(oldWidth)) == Array(headers.prefix(oldWidth)) else { return nil }
+        var mapping = Dictionary(uniqueKeysWithValues: (0..<oldWidth).map { ($0, $0) })
+        for column in oldWidth..<saved.headers.count {
+            let candidates = headers.indices.filter { $0 >= oldWidth && headers[$0] == saved.headers[column] }
+            if candidates.count == 1 { mapping[column] = candidates[0] }
+        }
+        return mapping
     }
 
     func restoreDetailed(_ saved: ChangeEdits?, sourceIdentity: String, digest: String, defaultYear: Int)
         -> (edits: [Int: ChangeRowEdit], conflicts: Set<Int>, unmatched: [ChangeEdits.Entry]) {
         guard let saved, saved.sourceIdentity == sourceIdentity, saved.defaultYear == defaultYear,
-              saved.sheet == sheet, saved.headers == headers,
-              (saved.originalHeaders ?? saved.headers) == (originalHeaders ?? headers) else { return ([:], [], saved?.entries ?? []) }
+              saved.sheet == sheet, let columns = restoredColumns(from: saved),
+              saved.digest != digest || saved.reviewedHeaderRow == nil || saved.reviewedHeaderRow == headerRow else {
+            return ([:], [], saved?.entries ?? [])
+        }
         let groups = Dictionary(grouping: rowIDs, by: original(at:))
+        let dateColumn = headers.firstIndex { ChangeNormalizer.text($0) == "月日" }
+        func epochMatches(_ entry: ChangeEdits.Entry) -> Bool {
+            if let originalEpoch = entry.editedSerialUses1904 { return originalEpoch == uses1904 }
+            // v10 saved no epoch for a numeric correction of an empty source cell.
+            guard saved.digest != digest, let column = dateColumn, let value = entry.edit.values[column],
+                  ChangeNormalizer.matches(ChangeNormalizer.text(value), "^[0-9]+(?:\\.[0-9]+)?$") else { return true }
+            if entry.original.sources[column]?.hasPrefix("/type/n/") == true {
+                return (entry.original.date1904 == true) == uses1904
+            }
+            return false
+        }
         var edits: [Int: ChangeRowEdit] = [:], conflicts = Set<Int>(), unmatched: [ChangeEdits.Entry] = []
-        for (key, previous) in Dictionary(grouping: saved.entries, by: \.original) {
-            guard let numbers = groups[key], let first = previous.first else {
+        var mappedEntries: [ChangeEdits.Entry] = []
+        for var entry in saved.entries {
+            let fields = entry.edit.values
+            guard fields.keys.allSatisfy({ columns[$0] != nil }) else {
+                unmatched.append(entry)
+                continue
+            }
+            entry.edit.values = Dictionary(uniqueKeysWithValues: fields.map { (columns[$0.key]!, $0.value) })
+            entry.valueLabels = Dictionary(uniqueKeysWithValues: entry.edit.values.keys.map { ($0, headers[$0]) })
+            mappedEntries.append(entry)
+        }
+        for (key, previous) in Dictionary(grouping: mappedEntries, by: \.original) {
+            guard let numbers = groups[key], let first = previous.first,
+                  previous.allSatisfy(epochMatches) else {
                 unmatched += previous
                 continue
             }

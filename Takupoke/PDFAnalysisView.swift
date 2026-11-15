@@ -5,13 +5,16 @@ import UniformTypeIdentifiers
 
 struct PDFAnalysisFailureRows: View {
     let failure: PDFParseError
+    let hasPreviousAnalysis: Bool
 
     var body: some View {
         Group {
             VStack(alignment: .leading, spacing: 6) {
                 InlineWarning(failure.userMessage)
                     .accessibilityIdentifier("pdf-failure-message")
-                Text(failure.retentionMessage).font(.callout).foregroundStyle(.secondary)
+                if hasPreviousAnalysis {
+                    Text(failure.retentionMessage).font(.callout).foregroundStyle(.secondary)
+                }
             }
             if let code = failure.userCode {
                 LabeledContent("エラーコード") {
@@ -55,7 +58,7 @@ struct PDFAnalysisView: View {
                     InlineWarning(failure)
                 }
                 if let failure = failure {
-                    PDFAnalysisFailureRows(failure: failure)
+                    PDFAnalysisFailureRows(failure: failure, hasPreviousAnalysis: analysis != nil)
                 }
 #if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
                 if kind == .timetable, let report = model.timetableReadReport {

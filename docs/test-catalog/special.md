@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`7eb07cc4a6d885b2ed8dcae869bfad04b02d92b0c1c47579dd8435d6f17426f0`
+`da6e33a0af8080fc6f101df4004ae75c8e4b3178f7c890a7ca4bee2e7af9ff0a`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -99,5 +99,6 @@ bash tools/test-parsing.sh
 ## [tests/SpecialAvailabilityTests.swift](../../tests/SpecialAvailabilityTests.swift)
 
 - `testHomeKeepsLoadedLessonsWhenIndependentStoresAreUnavailable`
+- `testHomeWarningsUseTheRetainedResultForEachSelectedMaterial`
 - `testLoadingFailureAndUnselectedAreDistinctForBothKinds`
 - `testFirstFailedAnalysisAndPreviousSuccessUseDifferentWarnings`

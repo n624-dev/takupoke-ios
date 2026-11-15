@@ -5036,3 +5036,8 @@ N243限定確認：89066f3/run43387318089/attempt1/job131758747884は07:39:35〜
 - 旧正式CI 43748518096 / 132933949457、iOS 26.5 Bはbootstatus成功後、Xcodeが指定した端末IDを対応先として列挙できずケース開始前に終了。終了後のsimctlでは同じ端末がBooted、runtime available。SDK・端末ID・公開条件を変更せず後続の正式CIで確認する。
 - 正式CI 43758697036 attempt 1 / 132949347186、ソース3efbe8b・SDK27.2・iOS 27.0。testThreeFieldsRequireEachAcknowledgementAndFourRefusesはManualAssistanceChecks+Navigation.swift:97の実行中 "Failed to get matching snapshot: Timed out while evaluating UI query"。元資料変更ケースは同じ正式実行で成功。
   3項目の個別操作・確認画面を経て4項目拒否を調べるため再起動した後、設定→時間割ファイルの取得で停止。既に所有Listを特定した後もrootのbutton.firstMatchへ存在・frameを再照会（t362/392/423/455）。N203/N94とSettingsの実NavigationLinkを比較し、通常ページのラベル指定Buttonだけ所有List下の該当する型・ラベル・指定時のIDで一意な実体を取得し、同じ実体の枠・enabled・hittableと一回接触を使う。不存在は既存の16探索・受動スクロールで検証する。
+
+- 2026-11-16 #110〜112、旧限定CI 43761286209 / 132956447655、iOS 27.0、手動3項目ケースは正常終了。旧正式491で止まった通常画面リストの探索を含む。この限定実行には他ケース・他OSは含まれない。
+- 全差分の再点検で U72/U73、N94/N126/N160/N173/N189/N203/N233/N238、U77/N242 の探索・入力・再起動記録と最新の正式失敗3件の当時コードを比較。復旧中とシートを閉じた後の観測先を分け、現在のリストから操作対象を一意に取得する。全6箇所のプレビュー操作を同じ入口にし、任意診断は失敗時に限定。単項目・3項目とも採用された対象と値の対応を再起動前後で比較する。時間割カードは表示ラベルの日時限・科目で特定し、詳細の種類と科目・シートが閉じたことを検証する。
+- Linuxの手動UI検査44件中2件は、全画面の再照会と特定のアサーション文字列を前提として失敗。操作上限を超えたら必ず失敗すること、現在の所有リスト・一意な項目ID・同一訂正内容の保持を検査するよう更新。
+- Linuxの全体Swift検査で LocalDatabaseTests.testWeekdayConsentAndResultCommitTogetherAndRollbackTogether が invalidDatabase。別原本の取得で過去の解析試行を消した際、SQLiteが前回の試行を再読込した。新しい原本と古い正常結果を同時に保護したまま、対応する試行記録を同じトランザクションで消す。

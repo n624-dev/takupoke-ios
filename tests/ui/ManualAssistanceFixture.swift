@@ -247,12 +247,13 @@ struct FixtureManualProbe:View {
         let priorHash=UserDefaults.standard.string(forKey:"fixture.manualPriorAnalysisHash")
         let lastgood=currentHash != nil && priorHash != nil && currentHash==priorHash
         let corrections=adopted?.result.humanCorrections ?? []
+        let values=corrections.sorted { $0.target.key < $1.target.key }.map { $0.target.key+"="+$0.value }.joined(separator:"|")
         let valid=adopted.map{(try? RecoveryValidator.canReuse($0.acceptance,document:$0.document,result:$0.result))==true} ?? false
         VStack {
             Text(events).font(.system(size:1)).accessibilityIdentifier("manual-binding-events").allowsHitTesting(false)
             Text(manualStage+";"+manualPixels+";old="+oldInk+";candidate="+candidateInk).font(.caption2)
                 .accessibilityIdentifier("manual-qa-diagnostic").allowsHitTesting(false)
-            Text(adopted==nil ? (lastgood ? "lastgood-preserved":"lastgood-mismatch"):"adopted=\(corrections.count);valid=\(valid);values="+corrections.map(\.value).joined(separator:"|"))
+            Text(adopted==nil ? (lastgood ? "lastgood-preserved":"lastgood-mismatch"):"adopted=\(corrections.count);valid=\(valid);values="+values)
                 .font(.caption2).accessibilityIdentifier("manual-persisted-proof").allowsHitTesting(false)
         }
     }

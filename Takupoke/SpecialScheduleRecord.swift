@@ -28,7 +28,17 @@ struct SpecialScheduleSource: Codable {
 /// Shared by Home and the week view. Missing analysis is distinct from a
 /// document that was never selected; retained results remain visible with notice.
 struct SpecialScheduleAvailability {
-    enum State: Equatable { case loading, loadFailed, unselected, unanalysed, previous, current }
+    enum State: Equatable {
+        case loading, loadFailed, unselected, unanalysed, previous, current
+
+        func warning(for title: String) -> String? {
+            switch self {
+            case .unanalysed: return "\(title)の選択した資料をまだ反映できていません。正常な解析結果がありません。"
+            case .previous: return "\(title)の新しい資料をまだ反映できていません。前回の正常結果を表示しています。"
+            default: return nil
+            }
+        }
+    }
     let ready: Bool
     let busy: Bool
     let failed: Bool
@@ -61,11 +71,26 @@ struct SpecialScheduleAvailability {
     }
 
     func message(for kind: SpecialScheduleKind) -> String? {
-        switch state(for: kind) {
-        case .unanalysed: return "\(kind.title)の選択した資料をまだ反映できていません。正常な解析結果がありません。"
-        case .previous: return "\(kind.title)の新しい資料をまだ反映できていません。前回の正常結果を表示しています。"
-        default: return nil
+        state(for: kind).warning(for: kind.title)
+    }
+}
+
+extension MaterialLibraryState {
+    func scheduleWarning(for kind: MaterialKind, changeSchoolYear: Int?) -> String? {
+        guard let source = record(for: kind) else { return nil }
+        let state: SpecialScheduleAvailability.State
+        if kind == .changes {
+            if let analysis = changeAnalysis {
+                state = analysis.matches(record: source, defaultYear: changeSchoolYear) ? .current : .previous
+            } else {
+                state = .unanalysed
+            }
+        } else if let analysis = pdfAnalyses?[kind.rawValue] {
+            state = analysis.sourceDigest == source.digest && analysis.version == PDFAnalysis.currentVersion(for: kind) ? .current : .previous
+        } else {
+            state = .unanalysed
         }
+        return state.warning(for: kind.title)
     }
 }
 

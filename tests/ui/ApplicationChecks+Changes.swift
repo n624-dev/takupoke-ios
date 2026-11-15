@@ -89,9 +89,39 @@ extension ApplicationChecks {
         tapNativeSwitch(derive, navigation: "3行目", dragThumb: true)
         assertSwitch(derive, now: "1")
         back(to: "個人修正を編集")
+
+        // Row 4 was a weekday-only row, so its original grade really is blank.
+        // Supply all required cells through the native form before restoring it.
+        visible(app.buttons["change-editor-row-4"], navigation: "個人修正を編集").tap()
+        screen("4行目")
+        func field(_ column: Int) -> XCUIElement {
+            app.collectionViews.textFields["change-editor-field-\(column)"]
+        }
+        func enter(_ value: String, in column: Int) {
+            let input = visible(field(column), navigation: "4行目")
+            XCTAssertTrue(input.isEnabled && input.isHittable)
+            input.tap()
+            input.typeText(value + "\n")
+            let typed = expectation(for: NSPredicate(format: "value == %@", value), evaluatedWith: input)
+            XCTAssertEqual(XCTWaiter.wait(for: [typed], timeout: 10), .completed)
+        }
+        let grade = visible(field(0), navigation: "4行目")
+        XCTAssertEqual(grade.placeholderValue, "修正値")
+        let originalGrade = grade.value as? String ?? ""
+        XCTAssertTrue(originalGrade.isEmpty || originalGrade == "修正値", originalGrade)
+        enter("2", in: 0)
+        enter("ZZ", in: 1)
+        enter("2032/7/13", in: 2)
+        enter("BLANK-GRADE", in: 6)
+        let blankRowExcluded = app.switches["この行を除外"]
+        XCTAssertEqual(visible(blankRowExcluded, navigation: "4行目").value as? String, "1")
+        tapNativeSwitch(blankRowExcluded, navigation: "4行目", dragThumb: true)
+        assertSwitch(blankRowExcluded, now: "0")
+        back(to: "個人修正を編集")
         tapToolbar("反映する", bar: "個人修正を編集")
         XCTAssertTrue(app.navigationBars["個人修正を編集"].waitForNonExistence(timeout: 30), app.debugDescription)
         XCTAssertTrue(visible(app.staticTexts["変更後、架空除外科目B"]).exists)
+        XCTAssertTrue(visible(app.staticTexts["変更後、BLANK-GRADE"], navigation: "時間割変更").exists)
 
         app.terminate()
         launchReady()
@@ -102,5 +132,9 @@ extension ApplicationChecks {
         screen("3行目")
         XCTAssertEqual(visible(derive, navigation: "3行目").value as? String, "1")
         XCTAssertEqual(visible(excluded, navigation: "3行目").value as? String, "0")
+        back(to: "個人修正を編集")
+        visible(app.buttons["change-editor-row-4"], navigation: "個人修正を編集").tap()
+        screen("4行目")
+        XCTAssertEqual(visible(field(0), navigation: "4行目").value as? String, "2")
     }
 }

@@ -23,7 +23,7 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
             "testFirstFailedSpecialDocumentsWarnOnHomeAndWeekAndOpenTheirDetails": ["--first-failed-special"],
             "testVoiceOverReadsTimetableCard": ["--mapped-names"],
             "testNotificationControlsAndAppearance": ["--theme-probe", "--notification-permission-probe", "--fixture-input-trace"],
-            "testChangedDataProducesOneLocalNotification": ["--notification-permission-probe"],
+            "testChangedDataProducesOneLocalNotification": ["--notification-permission-probe", "--fixture-input-trace"],
             "testRecoveryPreviewOriginalBlankFieldsAndExplicitAdoption": ["--recovery-preview"],
             "testParallelRecoveryKeepsBothLessonsInPreviewAndFormalAnalysis": [
                 "--recovery-preview", "--recovery-parallel",

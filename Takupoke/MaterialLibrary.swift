@@ -140,6 +140,9 @@ final class MaterialLibrary {
         let destination = files.appendingPathComponent(name)
         try FileManager.default.moveItem(at: staged, to: destination)
         var next = state
+        // A failure from another provider selection does not describe this file,
+        // even when its bytes match. Retain the last accepted analysis separately.
+        if kind == .changes && !reuseUnchanged { next.changeParseAttempt = nil }
         let now = Date()
         next.records.removeAll { $0.kind == kind }
         next.records.append(MaterialRecord(kind: kind, source: source, originalName: originalName,

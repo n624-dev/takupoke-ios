@@ -49,7 +49,10 @@ extension LocalDatabaseTests {
         try library.saveChangeAnalysis(analysis, authorizeWeekdayCorrection: true)
         XCTAssertEqual(try db.load().changeAnalysis?.weekdayConsent, consent)
         XCTAssertEqual(try db.load().record(for: .changes)?.source.weekdayConsent, consent)
+        try library.recordParseFailure(.init(code: .year, row: 3), defaultYear: analysis.defaultYear)
+        XCTAssertEqual(try db.load().changeParseAttempt?.failure?.code, .year)
         try acquire(library, kind: .changes, suffix: "updated")
+        XCTAssertNil(try db.load().changeParseAttempt)
         XCTAssertNil(try db.load().record(for: .changes)?.source.weekdayConsent)
         XCTAssertEqual(try db.load().changeAnalysis?.weekdayConsent, consent) // Previous normal result remains.
     }

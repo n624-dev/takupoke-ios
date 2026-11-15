@@ -422,22 +422,28 @@ extension ApplicationChecks {
         XCTAssertTrue(app.tabBars.buttons["設定"].waitForExistence(timeout: 30))
         // These titles occupy the same number of full-width characters. The two
         // production warning paths should wrap and scale equally at both sizes.
-        func warningHeights() -> (changes: CGFloat, exam: CGFloat) {
-            func height(_ title: String) -> CGFloat {
-                let text = title + "の新しい資料をまだ反映できていません。前回の正常結果を表示しています。"
-                let label = app.staticTexts[text]
-                _ = visible(label, searchEarlierRows: true)
-                XCTAssertEqual(label.label, text)
-                return label.frame.height
+        let warningLabels = app.collectionViews.staticTexts
+        func height(_ title: String, searchEarlier: Bool = false, largerThan baseline: CGFloat? = nil) -> CGFloat {
+            let text = title + "の新しい資料をまだ反映できていません。前回の正常結果を表示しています。"
+            let label = warningLabels[text]
+            _ = visible(label, navigation: "たくポケ", searchEarlierRows: searchEarlier)
+            if let baseline {
+                let resized = expectation(for: NSPredicate { _, _ in
+                    label.exists && label.frame.height > baseline
+                }, evaluatedWith: label)
+                XCTAssertEqual(XCTWaiter.wait(for: [resized], timeout: 10), .completed)
             }
-            return (height("時間割変更"), height("試験時間割"))
+            XCTAssertEqual(label.label, text)
+            return label.frame.height
         }
-        let standard = warningHeights()
+        let standard = (changes: height("時間割変更"), exam: height("試験時間割"))
         XCTAssertGreaterThan(standard.changes, 0)
         XCTAssertEqual(standard.changes, standard.exam, accuracy: 1)
         app.buttons["fixture-type-size"].tap()
         app.buttons["アクセシビリティ・大"].tap()
-        let enlarged = warningHeights()
+        // Start from the last observed exam row. The change warning precedes it.
+        let enlarged = (changes: height("時間割変更", searchEarlier: true, largerThan: standard.changes),
+                        exam: height("試験時間割", largerThan: standard.exam))
         XCTAssertGreaterThan(enlarged.changes, standard.changes)
         XCTAssertEqual(enlarged.changes, enlarged.exam, accuracy: 1)
         app.buttons["fixture-type-size"].tap()

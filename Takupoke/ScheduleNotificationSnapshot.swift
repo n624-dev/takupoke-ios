@@ -100,8 +100,8 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
     }
 
     static func acceptedChanges(in state: MaterialLibraryState) -> [ScheduleChange]? {
-        guard let analysis = state.changeAnalysis, analysis.version == ChangeAnalysis.parserVersion,
-              analysis.sourceDigest == state.record(for: .changes)?.digest else { return nil }
+        guard let analysis = state.changeAnalysis, let source = state.record(for: .changes),
+              analysis.matches(record: source, defaultYear: analysis.defaultYear) else { return nil }
         return analysis.records
     }
 

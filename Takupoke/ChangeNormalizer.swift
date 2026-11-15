@@ -153,7 +153,12 @@ enum ChangeNormalizer {
                 if token(content) == "休講" { before = subject } else { after = subject }
             }
             let rawCells = sourceRows.flatMap { $0.indices.contains(item.row - 1) ? $0[item.row - 1] : nil } ?? item.cells
-            let raw = zip(sourceHeaders ?? headers, rawCells).filter { !$0.1.isEmpty }.map { "\($0.0):\($0.1)" }.joined(separator: " | ")
+            let labels = sourceHeaders ?? headers
+            let raw = rawCells.enumerated().compactMap { column, value -> String? in
+                guard !value.isEmpty else { return nil }
+                let title = labels.indices.contains(column) && !labels[column].isEmpty ? labels[column] : "列\(column + 1)"
+                return "\(title):\(value)"
+            }.joined(separator: " | ")
             for year in item.years {
                 let cs = token(item.cells[classIndex]) == "全" ? (known[year] ?? []).filter { $0 != "AI" }.sorted() : item.classes
                 guard !cs.isEmpty else { throw ChangeParseError(code: .unknownAll, row: item.row) }
@@ -216,7 +221,8 @@ extension ChangeEditTable {
         for number in rowIDs {
             let values = values(at: number, defaultYear: defaultYear)
             guard let day = derivedWeekday(values, row: number, edit: ChangeRowEdit(), defaultYear: defaultYear) else { continue }
-            if cellIssues[number]?[column] != nil || ![day, day + "曜", day + "曜日", "(" + day + ")"].contains(ChangeNormalizer.text(values[column])) {
+            let issue = cellIssues[number]?[column]
+            if (issue != nil && issue != .formula) || ![day, day + "曜", day + "曜日", "(" + day + ")"].contains(ChangeNormalizer.text(values[column])) {
                 edits[number] = ChangeRowEdit(deriveWeekday: true)
             }
         }
@@ -248,6 +254,7 @@ extension ChangeEditTable {
         let names = headers.map(ChangeNormalizer.text)
         let named = names.filter { !$0.isEmpty }
         guard headerRow > 0, headerRow <= rows.count, Set(named).count == named.count,
+              named.filter({ ["曜日", "曜"].contains(ChangeNormalizer.token($0)) }).count <= 1,
               let date = names.firstIndex(of: "月日"), let grade = names.firstIndex(of: "学 年"),
               let classroom = names.firstIndex(of: "学科・クラス") else { throw ChangeParseError(code: .headers) }
         let ids = rowIDs
@@ -270,7 +277,10 @@ extension ChangeEditTable {
             for (column, code) in (cellIssues[number] ?? [:]).sorted(by: { $0.key < $1.key }) {
                 // The printed weekday/date relationship is recomputed below after any date edit.
                 if code == .weekdayMismatch || code == .weekdayOnly { continue }
-                let resolvedWeekday = column == weekday && edit.deriveWeekday && normalizedDate != nil
+                let matchingCachedWeekday = code == .formula && normalizedDate.map {
+                    v.indices.contains(column) && ChangeNormalizer.weekdayMatches(v[column], normalizedDate: $0)
+                } == true
+                let resolvedWeekday = column == weekday && (matchingCachedWeekday || (edit.deriveWeekday && normalizedDate != nil))
                 if edit.values[column] == nil && !resolvedWeekday { report(code, column) }
             }
             if normalizedDate == nil { report(.date, date) }

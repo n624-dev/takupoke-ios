@@ -181,7 +181,8 @@ extension XLSXReader {
             rows.append(cells)
         }
         for master in rangedMasters {
-            for row in master.firstRow...master.lastRow where row <= rows.count {
+            if master.lastRow > rows.count { rows += Array(repeating: [], count: master.lastRow - rows.count) }
+            for row in master.firstRow...master.lastRow {
                 try check()
                 for column in master.firstColumn...master.lastColumn where row != master.firstRow || column != master.firstColumn {
                     sources[row, default: [:]][column, default: ""] +=

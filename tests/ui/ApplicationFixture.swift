@@ -89,7 +89,7 @@ struct SimulatorApplication: App {
                     if showsTypeSizeControl {
                         Menu("文字サイズ") {
                             if ProcessInfo.processInfo.arguments.contains("--failed-refresh") {
-                                Button("アクセシビリティ・大") { fixtureTypeSize = .accessibility1 }
+                                Button("アクセシビリティ・大") { fixtureTypeSize = .accessibility2 }
                             }
                             ForEach(["標準", "小", "大", "最大"], id: \.self) { title in
                                 Button(title) {
@@ -401,7 +401,7 @@ enum FixtureLaunchDiagnostics {
             "notification-native-request", "notification-native-callback",
             "notification-auth-request", "notification-auth-callback", "notification-auth-returned",
             "notification-auth-error", "notification-auth-granted", "notification-auth-denied",
-            "browser-controller-created", "browser-load-success", "browser-load-failure",
+            "browser-controller-created", "browser-load-success", "browser-load-failure", "browser-finish-received",
             "retention-recovery-action", "retention-dialog-on", "retention-dialog-off",
             "year-input-observer-installed", "year-edit-began", "year-edit-ended", "year-edit-changed",
             "year-keyboard-will-show", "year-keyboard-did-show", "year-keyboard-will-hide", "year-keyboard-did-hide"]

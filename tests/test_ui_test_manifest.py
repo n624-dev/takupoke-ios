@@ -228,7 +228,10 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(short_contact.count(".press(forDuration:"), 1)
         self.assertEqual(switch.count(".press(forDuration:"), 2)
         rows = (ROOT / "tests/ui/ApplicationChecks+Changes.swift").read_text()
-        self.assertEqual(rows.count("dragThumb: true"), rows.count("tapNativeSwitch("))
+        expected_controls = ["toggle", "group", "excluded", "derive", "blankRowExcluded"]
+        self.assertCountEqual(re.findall(
+            r"tapNativeSwitch\(\s*(\w+)\s*,[^)]*?dragThumb:\s*true\s*\)", rows), expected_controls)
+        self.assertEqual(rows.count("tapNativeSwitch("), len(expected_controls))
         self.assertNotIn(".press(forDuration: 0.1)", switch)
         self.assertNotIn(".doubleTap(", switch)
         self.assertNotIn("row.tap()", switch)
@@ -386,6 +389,13 @@ class ManifestTests(unittest.TestCase):
         original = (ROOT / "Takupoke/SafariLinkView.swift").read_text()
         generated = app_test_project.instrument_browser_fixture(original)
         method = block(generated, "func makeUIViewController(")
+        finish = block(generated, "func safariViewControllerDidFinish(")
+        trace = '            FixtureLaunchDiagnostics.record("browser-finish-received")\n'
+        self.assertEqual(finish.count(trace), 1)
+        self.assertEqual(finish.replace(trace, ""), block(original, "func safariViewControllerDidFinish("))
+        self.assertLess(finish.index(trace), finish.index("onDismiss()"))
+        with self.assertRaises(AssertionError):
+            app_test_project.instrument_browser_fixture(original.replace("safariViewControllerDidFinish", "otherCallback"))
         program = r'''import Foundation
 final class SFSafariViewController {
     let url: URL
@@ -562,7 +572,7 @@ METHOD
             "notification-native-request", "notification-native-callback",
             "notification-auth-request", "notification-auth-callback", "notification-auth-returned",
             "notification-auth-error", "notification-auth-granted", "notification-auth-denied",
-            "browser-controller-created", "browser-load-success", "browser-load-failure",
+            "browser-controller-created", "browser-load-success", "browser-load-failure", "browser-finish-received",
             "notification-settings-not-requested", "retention-recovery-action",
             "retention-dialog-on", "retention-dialog-off", "year-input-observer-installed",
             "year-edit-began", "year-edit-ended", "year-edit-changed",

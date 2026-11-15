@@ -242,8 +242,17 @@ rm() { echo "delete-$*" >> "$CALLS"; }
         self.assertIn("any(status!='passed' for _,status in rows)", runner)
         self.assertIn('app.wait(for:.runningForeground,timeout:10)', checks)
         self.assertLess(checks.index('guard app.state != .notRunning'), checks.index('        app.activate()'))
-        self.assertIn('XCTAssertEqual(ids.count,3)', checks)
-        self.assertIn('adopted=1;valid=true', checks)
+        three = checks.split('func testThreeFieldsRequireEachAcknowledgementAndFourRefuses()', 1)[1].split('func test', 1)[0]
+        self.assertIn('guard let ids=fieldIDs(expectedCount:3) else { return }', three)
+        inventory = checks.split('func fieldIDs(expectedCount:Int)', 1)[1].split('\n    }', 1)[0]
+        self.assertIn('if matches.count>1 { ambiguous=true;return true }', inventory)
+        self.assertIn('guard !ambiguous,result == .completed,let ids=observed,ids.count==expectedCount', inventory)
+        self.assertIn('!ids.contains(""),Set(ids).count==ids.count', inventory)
+        self.assertIn('persistAndRequireProof([key:value+"再確認"])', checks)
+        proof = checks.split('func persistAndRequireProof(', 1)[1].split('\n    }', 1)[0]
+        self.assertIn(r'let proof="adopted=\(expected.count);valid=true;values="+values', proof)
+        self.assertIn('XCTAssertEqual(uniqueLabel("manual-persisted-proof",in:observation),proof)', proof)
+        self.assertLess(proof.index('guard launchApplicationOnce()'), proof.index('XCTAssertEqual(uniqueLabel("manual-persisted-proof",in:root),proof)'))
         self.assertIn('launch(["--manual-four"])', checks)
         self.assertIn('XCTAssertFalse(submit.exists)', checks)
 

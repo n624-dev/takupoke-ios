@@ -71,15 +71,9 @@ struct HomeTodayView: View {
         mappings.loadIfNeeded()
     }
 
-    private var unreflectedTitles: [String] {
-        var values = [String]()
-        if let source = materials.state.record(for:.timetable) {
-            let a = materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue]
-            if a?.sourceDigest != source.digest || a?.version != PDFAnalysis.currentVersion(for:.timetable) { values.append(MaterialKind.timetable.title) }
-        }
-        if let source = materials.state.record(for:.changes), materials.state.changeAnalysis?.matches(record: source,
-            defaultYear: ChangeNormalizer.effectiveSchoolYear(configured: changeSchoolYear, today: day)) != true { values.append(MaterialKind.changes.title) }
-        return values
+    private var materialWarnings: [String] {
+        let year = ChangeNormalizer.effectiveSchoolYear(configured: changeSchoolYear, today: day)
+        return [MaterialKind.timetable, .changes].compactMap { materials.state.scheduleWarning(for: $0, changeSchoolYear: year) }
     }
 
     // Selections hold lesson snapshots. Close them when their underlying
@@ -123,9 +117,7 @@ struct HomeTodayView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            ForEach(unreflectedTitles,id:\.self) { title in
-                InlineWarning("\(title)の新しい資料をまだ反映できていません。前回の正常結果を表示しています。")
-            }
+            ForEach(materialWarnings, id: \.self) { InlineWarning($0) }
             SpecialScheduleWarnings(model: specialSchedules)
             SchoolEventsWarnings(model: schoolEvents)
             if loadFailed {

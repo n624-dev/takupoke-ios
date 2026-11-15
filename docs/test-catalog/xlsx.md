@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`77d2d5515a59a1574da8b1e0252c1c256e46d7ccb57324dd529c128b68efe713`
+`51c47d924d915545e51e3eb0dc3973cc58b8aa6d7fd8440a9ad4528ec84f8400`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -47,13 +47,20 @@ bash tools/test-parsing.sh
 - `testBlankDateKeepsPersonalCorrectionWhenOnlyFormattingChangesIn1904Workbook`
 - `testEditorPreserves1904SerialAndConvertsOnlyTheMappedDate`
 - `testEmptyFirstSheetAllowsSelectingOtherSheet`
+- `testTurningOffWeekdayCompletionSurvivesSameRowRefresh`
 - `testOpenEditorRejectsAnotherPersonalEditToSameDigest`
+- `testPhysicalHeaderWidthAndHeaderEvidenceSurviveSourceRefresh`
+- `testNumericPersonalDateIsInvalidatedByChangedEpoch`
+- `testMergedFollowersTrackSchoolAnchorIncludingImplicitLastRow`
+- `testReviewValidatesWeekdayAliasUniquenessAndMigratesMatchingCachedFormula`
 
 ## [tests/ParsingTests+Persistence.swift](../../tests/ParsingTests+Persistence.swift)
 
 - `testPersistenceFailureAndNewSourceKeepLastGoodResult`
 - `testInvalidYearCannotReplaceAcceptedSqliteDatesAndFreshnessUsesYearAndConsents`
 - `testPersonalCorrectionSurvivesInsertedRowsAndYieldsToSchoolCorrection`
+- `testSameBytesFromDifferentSelectionDoNotCertifyPersonalResult`
+- `testUnresolvedDuplicateDecisionsBelongToChosenSheet`
 
 ## [tests/ParsingTests+Preview.swift](../../tests/ParsingTests+Preview.swift)
 

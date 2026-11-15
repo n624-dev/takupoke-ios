@@ -14,8 +14,7 @@ struct ChangeWorkbookEditorView: View {
         self.model = model
         self.preview = preview
         _view = State(initialValue: initial)
-        let suggested = initial.table.suggestedEdits(defaultYear: preview.defaultYear ?? 0)
-        _edits = State(initialValue: suggested.merging(initial.edits) { _, saved in saved })
+        _edits = State(initialValue: initial.edits)
         _headerNumber = State(initialValue: String(initial.layout.headerRow))
     }
 
@@ -71,7 +70,7 @@ struct ChangeWorkbookEditorView: View {
                                 if entry.edit.excluded { Text("除外") }
                                 if entry.edit.deriveWeekday { Text("曜日を日付から補完") }
                                 ForEach(entry.edit.values.keys.sorted(), id: \.self) { column in
-                                    LabeledContent(view.table.headers.indices.contains(column) ? view.table.headers[column] : "列\(column + 1)", value: entry.edit.values[column] ?? "")
+                                    LabeledContent(entry.valueLabels?[column] ?? "列\(column + 1)", value: entry.edit.values[column] ?? "")
                                 }
                                 Button("この履歴を削除", role: .destructive) { view.previous.remove(at: index) }
                             }
@@ -121,7 +120,7 @@ struct ChangeWorkbookEditorView: View {
         let column = issue.column.flatMap { view.table.headers.indices.contains($0) ? view.table.headers[$0] : nil }
         var problem = issue
         problem.row = nil
-        let detail = problem.localizedDescription.components(separatedBy: " 前回の正常").first ?? problem.localizedDescription
+        let detail = problem.localizedDescription
         return column.map { $0 + "　" + detail } ?? detail
     }
 
@@ -152,7 +151,7 @@ struct ChangeWorkbookEditorView: View {
                             if entry.edit.excluded { Text("除外") }
                             if entry.edit.deriveWeekday { Text("曜日を日付から補完") }
                             ForEach(entry.edit.values.keys.sorted(), id: \.self) { column in
-                                let title = view.table.headers.indices.contains(column) ? view.table.headers[column] : "列\(column + 1)"
+                                let title = entry.valueLabels?[column] ?? "列\(column + 1)"
                                 LabeledContent(title, value: entry.edit.values[column] ?? "")
                             }
                             Button("以前の\(entry.row)行目の修正を使う") {
@@ -175,8 +174,12 @@ struct ChangeWorkbookEditorView: View {
                             return values[column]
                         }, set: { value in
                             edits[row, default: ChangeRowEdit()].values[column] = value
-                            if ChangeNormalizer.text(view.table.headers[column]) == "月日" { edits[row, default: ChangeRowEdit()].deriveWeekday = true }
-                            if ["曜日", "曜"].contains(ChangeNormalizer.token(view.table.headers[column])) { edits[row, default: ChangeRowEdit()].deriveWeekday = false }
+                            if ChangeNormalizer.text(view.table.headers[column]) == "月日", edits[row]?.keepPrintedWeekday != true {
+                                edits[row, default: ChangeRowEdit()].deriveWeekday = true
+                            }
+                            if ["曜日", "曜"].contains(ChangeNormalizer.token(view.table.headers[column])) {
+                                edits[row, default: ChangeRowEdit()].chooseDateDerivedWeekday(false)
+                            }
                         })).textFieldStyle(.roundedBorder)
                             .accessibilityIdentifier("change-editor-field-\(column)")
                         if view.table.cellIssues[row]?[column] != nil && edits[row]?.values[column] == nil {
@@ -188,7 +191,7 @@ struct ChangeWorkbookEditorView: View {
             Section {
                 if view.table.headers.contains(where: { ["曜日", "曜"].contains(ChangeNormalizer.token($0)) }) {
                     Toggle("曜日を日付から補完", isOn: Binding(get: { edits[row]?.deriveWeekday == true },
-                        set: { edits[row, default: ChangeRowEdit()].deriveWeekday = $0 }))
+                        set: { edits[row, default: ChangeRowEdit()].chooseDateDerivedWeekday($0) }))
                 }
                 Toggle("この行を除外", isOn: Binding(get: { edits[row]?.excluded == true },
                     set: { edits[row, default: ChangeRowEdit()].excluded = $0 }))

@@ -97,6 +97,8 @@ extension LocalMaterialDatabase {
                try previous.changeParseAttempt.map(Self.encode) != Self.encode(attempt) {
                 try Self.insertAttempt(db, kind: "changes", operation: "parse", date: attempt.date,
                                        succeeded: attempt.failure == nil, payload: Self.encode(attempt))
+            } else if previous.changeParseAttempt != nil && state.changeParseAttempt == nil {
+                try db.execute(sql: "DELETE FROM attempt WHERE kind = 'changes' AND operation = 'parse'")
             }
             for (kind, attempt) in state.pdfParseAttempts ?? [:] {
                 if try previous.pdfParseAttempts?[kind].map(Self.encode) != Self.encode(attempt) {
