@@ -325,6 +325,7 @@ struct ChangeWorkbookEditorView: View {
                 Button("この行を原本の値に戻す") { edits.removeValue(forKey: row) }
             }
         }
+        .accessibilityIdentifier("change-editor-form-\(row)")
         .navigationTitle("\(row)行目")
         .task(id: edits[row]) {
             // Let a sequence of keystrokes finish before rescanning the workbook.

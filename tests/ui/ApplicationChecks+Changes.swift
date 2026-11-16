@@ -117,12 +117,17 @@ extension ApplicationChecks {
             let updated = expectation(for: NSPredicate(format: "value == %@", value), evaluatedWith: control)
             XCTAssertEqual(XCTWaiter.wait(for: [updated], timeout: 15), .completed, app.debugDescription)
         }
+        func rowControl(_ element: XCUIElement, row: Int) -> XCUIElement {
+            let form = app.collectionViews["change-editor-form-\(row)"]
+            let labels = form.staticTexts.matching(NSPredicate(format: "label == %@ OR label BEGINSWITH %@", "原本は空欄", "原本　"))
+            return visible(element, navigation: "\(row)行目", scrollLabels: labels)
+        }
         let excluded = app.switches["この行を除外"]
-        XCTAssertEqual(visible(excluded, navigation: "3行目").value as? String, "1")
+        XCTAssertEqual(rowControl(excluded, row: 3).value as? String, "1")
         tapNativeSwitch(excluded, navigation: "3行目", dragThumb: true)
         assertSwitch(excluded, now: "0")
         let derive = app.switches["曜日を日付から補完"]
-        XCTAssertEqual(visible(derive, navigation: "3行目").value as? String, "0")
+        XCTAssertEqual(rowControl(derive, row: 3).value as? String, "0")
         tapNativeSwitch(derive, navigation: "3行目", dragThumb: true)
         assertSwitch(derive, now: "1")
         back(to: "除外した行")
@@ -135,14 +140,14 @@ extension ApplicationChecks {
             app.collectionViews.textFields["change-editor-field-\(column)"]
         }
         func enter(_ value: String, in column: Int) {
-            let input = visible(field(column), navigation: "4行目")
+            let input = rowControl(field(column), row: 4)
             XCTAssertTrue(input.isEnabled && input.isHittable)
             input.tap()
             input.typeText(value + "\n")
             let typed = expectation(for: NSPredicate(format: "value == %@", value), evaluatedWith: input)
             XCTAssertEqual(XCTWaiter.wait(for: [typed], timeout: 10), .completed)
         }
-        let grade = visible(field(0), navigation: "4行目")
+        let grade = rowControl(field(0), row: 4)
         XCTAssertEqual(grade.placeholderValue, "修正値")
         let originalGrade = grade.value as? String ?? ""
         XCTAssertTrue(originalGrade.isEmpty || originalGrade == "修正値", originalGrade)
@@ -151,7 +156,7 @@ extension ApplicationChecks {
         enter("2032/7/13", in: 2)
         enter("BLANK-GRADE", in: 6)
         let blankRowExcluded = app.switches["この行を除外"]
-        XCTAssertEqual(visible(blankRowExcluded, navigation: "4行目").value as? String, "1")
+        XCTAssertEqual(rowControl(blankRowExcluded, row: 4).value as? String, "1")
         tapNativeSwitch(blankRowExcluded, navigation: "4行目", dragThumb: true)
         assertSwitch(blankRowExcluded, now: "0")
         back(to: "除外した行")
@@ -171,11 +176,11 @@ extension ApplicationChecks {
         screen("曜日を補完した行")
         visible(app.buttons["change-editor-row-3"], navigation: "曜日を補完した行").tap()
         screen("3行目")
-        XCTAssertEqual(visible(derive, navigation: "3行目").value as? String, "1")
-        XCTAssertEqual(visible(excluded, navigation: "3行目").value as? String, "0")
+        XCTAssertEqual(rowControl(derive, row: 3).value as? String, "1")
+        XCTAssertEqual(rowControl(excluded, row: 3).value as? String, "0")
         back(to: "曜日を補完した行")
         visible(app.buttons["change-editor-row-4"], navigation: "曜日を補完した行").tap()
         screen("4行目")
-        XCTAssertEqual(visible(field(0), navigation: "4行目").value as? String, "2")
+        XCTAssertEqual(rowControl(field(0), row: 4).value as? String, "2")
     }
 }
