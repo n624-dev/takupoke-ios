@@ -138,7 +138,8 @@ extension ApplicationChecks {
         // Query interactive hittability only when actually operating a control.
         return usable(frame) ? frame : .null
     }
-    func visible(_ e: XCUIElement, navigation: String? = nil, searchEarlierRows: Bool = false) -> XCUIElement {
+    func visible(_ e: XCUIElement, navigation: String? = nil, searchEarlierRows: Bool = false,
+                 scrollLabels: XCUIElementQuery? = nil) -> XCUIElement {
         for _ in 0..<6 {
             let viewport = bodyViewport(navigation: navigation)
             if contained(e, in: viewport) { return e }
@@ -157,10 +158,32 @@ extension ApplicationChecks {
             let frame = e.exists ? e.frame : CGRect.null
             print("UI_VISIBLE frame=\(frame);viewport=\(current);navigation=\(navigation ?? "current")")
             if let drag = ObservedScreenGeometry.scrollDrag(for: frame, in: current) {
+                var points = drag
+                if let scrollLabels {
+                    // The middle of the review form may be an editable text field.
+                    // Start on a visible original-value label in this form instead.
+                    let offset = drag.end.y - drag.start.y
+                    var anchor: CGPoint?
+                    for label in scrollLabels.allElementsBoundByAccessibilityElement {
+                        let bounds = label.frame
+                        let center = CGPoint(x: bounds.midX, y: bounds.midY)
+                        let end = CGPoint(x: center.x, y: center.y + offset)
+                        if ObservedScreenGeometry.contains(bounds, in: current, scale: UIScreen.main.scale),
+                           current.contains(end), label.isHittable {
+                            anchor = center
+                            break
+                        }
+                    }
+                    guard let anchor else {
+                        XCTFail("No visible original-value label for scrolling the change row")
+                        return e
+                    }
+                    points = (anchor, CGPoint(x: anchor.x, y: anchor.y + offset))
+                }
                 let origin = app.coordinate(withNormalizedOffset: .zero)
                 let appFrame = app.frame
-                let start = origin.withOffset(CGVector(dx: drag.start.x - appFrame.minX, dy: drag.start.y - appFrame.minY))
-                let end = origin.withOffset(CGVector(dx: drag.end.x - appFrame.minX, dy: drag.end.y - appFrame.minY))
+                let start = origin.withOffset(CGVector(dx: points.start.x - appFrame.minX, dy: points.start.y - appFrame.minY))
+                let end = origin.withOffset(CGVector(dx: points.end.x - appFrame.minX, dy: points.end.y - appFrame.minY))
                 start.press(forDuration: 0.1, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0)
             } else if (usable(frame) && frame.minY < current.minY) || (!usable(frame) && searchEarlierRows) {
                 app.swipeDown()
