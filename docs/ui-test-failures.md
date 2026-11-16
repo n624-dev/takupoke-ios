@@ -5088,3 +5088,8 @@ N243限定確認：89066f3/run43387318089/attempt1/job131758747884は07:39:35〜
 ### #113 Linux ローカル検証の入力固定
 - f75b0632を基点にした作業中の差分、Linux Swift 6.1.2、ParsingTestsの最初のローカルビルドで、SwiftコンパイラがChangeAnalysis.swiftの変更を検出して停止した。XCTest・シミュレーターは起動していない。
 - 当時のtools/test-parsing.shは入力を別ディレクトリにコピーしてから検証する。今回は作業ツリーを直接コンパイルしていた。以降は確定したスナップショットでコンパイルし、実行中の入力は編集しない。
+
+### #113 限定のグループ行選択（2026-11-17）
+- 8b2f030、43904353745 attempt 1、SDK 27.2／iOS 27.0.0、job 133429070162。testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch は最初の3行目で、内外のSwitchの値0と包含を確認。一度のつまみdragで正しいUISwitch上のbeganのみを採取し、15秒内に実値1を確認できずChanges.swift:27で失敗（109.059秒）。以降の除外・反映・再起動には未到達。配送が途切れた原因は未確定。同じ実行の26.5は完走した。
+- 同じ候補45fa1b2のLinux Python全316件中、UI契約が旧画面のtoggle/groupという2変数名を数えて失敗（223.332秒、skip 2）。他の315件にこの失敗はない。実UIの選択・解除・保存を検証する契約へ対応づける。
+- 検索語は change-select-row、つまみ、testChangeRowsRequireSelection、Switch。N146/N212/N239・#112とe11398dの実Switch処理を照合。今回は入力のbeganだけで、過去のended/cancelledとは異なる。グループの対象行は複数選択リストのチェックマーク付き標準Buttonとし、選択解除も同じ行で操作する。XCTestは各ボタンを一度操作して選択traitの遷移を確認。個々の設定用Switchの実操作、期限、103行除外、取消、入力・再起動・再編集の条件は維持する。
