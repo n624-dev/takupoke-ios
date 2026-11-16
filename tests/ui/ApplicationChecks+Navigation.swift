@@ -190,12 +190,14 @@ extension ApplicationChecks {
                   let rowState = row.value as? String, ["0", "1"].contains(rowState) else { return false }
             let current = row.descendants(matching: .switch).allElementsBoundByAccessibilityElement
             if current.count > 1 { ambiguous = true; return true }
-            guard let control = current.first, control.exists else { return false }
-            let frame = control.frame
-            guard self.usable(frame), outer.contains(frame),
-                  control.isEnabled, control.isHittable,
-                  let state = control.value as? String, ["0", "1"].contains(state),
-                  rowState == state else { return false }
+            // Read this exact child's geometry, state and availability in one AX
+            // snapshot. Keep hittability live on the same element used for input.
+            guard let control = current.first, let observed = try? control.snapshot(),
+                  observed.elementType == .switch else { return false }
+            let frame = observed.frame
+            guard self.usable(frame), outer.contains(frame), observed.isEnabled,
+                  let state = observed.value as? String, ["0", "1"].contains(state),
+                  rowState == state, control.isHittable else { return false }
             captured = (control, outer, frame, state, rowState)
             return true
         }, object: app)
