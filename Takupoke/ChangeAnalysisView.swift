@@ -5,7 +5,6 @@ struct ChangeAnalysisView: View {
     @ObservedObject var mappings: MappingModel
     @AppStorage("changeDefaultSchoolYear") private var year = ""
     @AppStorage("changeAnalysisSelectedClass") private var selectedClass = ""
-    @State private var confirmingPreview = false
 
     private var defaultYear: Int? {
         ChangeNormalizer.effectiveSchoolYear(configured: year, today: SchoolDate.today())
@@ -19,27 +18,23 @@ struct ChangeAnalysisView: View {
         (analysis?.records ?? []).filter { selectedClass.isEmpty || $0.displayClassName == selectedClass }
     }
 
-    private enum WarningReview { case weekdays, workbook }
-
     private var currentFailure: ChangeParseError? {
         guard let source = model.state.record(for: .changes), let attempt = model.state.changeParseAttempt,
               attempt.matches(digest: source.digest, defaultYear: defaultYear) else { return nil }
         return attempt.failure
     }
 
-    private var warningReview: WarningReview? {
-        guard let source = model.state.record(for: .changes) else { return nil }
-        let personal = source.source.personalChanges?.year == defaultYear && defaultYear != nil
-        if !personal && model.canPreviewChanges { return .weekdays }
-        guard let failure = currentFailure else { return nil }
-        if failure.permitsPreview { return .workbook }
-        switch failure.code {
-        case .staleConfirmation where personal:
-            return .workbook
-        case .date, .year, .classes, .unknownAll, .headers, .formula, .cellType, .mergedCells, .missingSheet, .dateSystem, .empty:
-            return .workbook
-        default: return nil
+    private var skippedRows: [Int] {
+        guard let source = model.state.record(for: .changes) else { return [] }
+        let identity = source.source.selectionID ?? source.storedName
+        if let personal = source.source.personalChanges, personal.year == defaultYear,
+           let rows = personal.rows, rows.sourceIdentity == identity, rows.digest == source.digest,
+           analysis?.matches(record: source, defaultYear: defaultYear) == true {
+            return rows.entries.filter { $0.edit.excluded }.map(\.row)
         }
+        if let skip = source.source.rowSkipConsent,
+           skip.matches(sourceIdentity: identity, digest: source.digest, defaultYear: defaultYear) { return skip.rows }
+        return []
     }
 
     var body: some View {
@@ -63,31 +58,22 @@ struct ChangeAnalysisView: View {
                 if model.changeFailureMessage == nil, let failure = currentFailure {
                     InlineWarning(failure.localizedDescription)
                 }
-                if let review = warningReview {
-                    Button("警告を確認して内容を見る") {
-                        switch review {
-                        case .weekdays: confirmingPreview = true
-                        case .workbook: model.openChangeEditor()
-                        }
-                    }
-                    .disabled(model.busy || !model.ready || !validYear)
-                }
             } header: { Text("状態").accessibilityIdentifier("material-state-section") }
             if model.state.record(for: .changes)?.source.weekdayConsent?.matches(digest: model.state.record(for: .changes)?.digest ?? "", defaultYear: defaultYear) == true {
                 Section { Text("曜日は日付から計算しています。更新後も元の行の内容が同じ場合は引き継ぎます。") }
             }
-            if let source = model.state.record(for: .changes), let skip = source.source.rowSkipConsent,
-               skip.matches(sourceIdentity: source.source.selectionID ?? source.storedName, digest: source.digest, defaultYear: defaultYear) {
+            let skipped = skippedRows
+            if !skipped.isEmpty {
                 Section {
-                    Text("\(skip.rows.count)行を除外して読み込んでいます。更新後も元の行の内容が同じ場合は引き継ぎます。")
+                    Text("\(skipped.count)行を除外して読み込んでいます。更新後も元の行の内容が同じ場合は引き継ぎます。")
                         .accessibilityIdentifier("change-skipped-count")
-                    Text("除外した行：" + ChangeReviewGroup.rangeLabel(skip.rows))
+                    Text("除外した行：" + ChangeReviewGroup.rangeLabel(skipped))
                         .accessibilityIdentifier("change-skipped-rows")
                 }
             }
             Section {
                 if model.state.record(for: .changes) != nil {
-                    Button("個人修正を編集") { model.openChangeEditor() }
+                    Button("内容を確認・修正") { model.openChangeEditor() }
                         .disabled(model.busy || !model.ready || !validYear)
                 }
                 Button("同じファイルを再取得") { model.refresh(.changes) }
@@ -146,29 +132,9 @@ struct ChangeAnalysisView: View {
         .navigationTitle("時間割変更")
         .toolbar { ToolbarItem(placement: .primaryAction) { parseButton } }
         .scrollDismissesKeyboard(.interactively)
-        .alert("曜日を確認できないファイルです", isPresented: $confirmingPreview) {
-            Button("確認して表示") { model.previewChanges() }
-            Button("キャンセル", role: .cancel) {}
-        } message: {
-            Text("曜日に問題のある行があります。元の記載を確認してください。内容を見るだけでは前回の正常データは置き換えません。")
-        }
         .sheet(isPresented: Binding(get: { model.changePreview != nil }, set: { if !$0 { model.dismissPreview() } })) {
-            if let preview = model.changePreview {
-                if let editor = preview.editor {
-                    ChangeWorkbookEditorView(model: model, preview: preview, initial: editor).id(editor.id)
-                } else {
-                    ChangePreviewView(preview: preview, mappings: mappings, openEditor: { model.openChangeEditor() },
-                        actionFailure: model.changePreviewActionFailure(preview),
-                        operationFailure: model.changeFailureMessage,
-                        processing: model.busy, cancelProcessing: { model.cancel() },
-                        correctWeekdays: preview.canCorrectWeekdays ? {
-                        model.correctWeekdays(preview)
-                    } : nil, skipRows: preview.canSkipRows ? { rows in
-                        model.skipChangeRows(preview, rows: rows)
-                    } : nil, skipRowsWithCorrection: preview.canSkipRows ? { rows, correct in
-                        model.skipChangeRows(preview, rows: rows, correctWeekdays: correct)
-                    } : nil)
-                }
+            if let preview = model.changePreview, let editor = preview.editor {
+                ChangeWorkbookEditorView(model: model, mappings: mappings, preview: preview, initial: editor).id(editor.id)
             }
         }
         .onChange(of: year) { _, _ in model.dismissPreview() }

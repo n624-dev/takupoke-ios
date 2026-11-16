@@ -93,13 +93,8 @@ METHOD
         if not compiler:
             self.skipTest("Swift required to execute production preview admission")
         model = (ROOT / "Takupoke/MaterialsModel.swift").read_text()
-        view = (ROOT / "Takupoke/ChangeAnalysisView.swift").read_text()
         methods = "\n".join(block(model, marker) for marker in [
-            "func changePreviewActionFailure(", "func correctWeekdays(", "func skipChangeRows("])
-        skip = block(view, "skipRows: preview.canSkipRows ?")
-        skip = skip[skip.index("{"):]
-        correct = block(view, "correctWeekdays: preview.canCorrectWeekdays ?")
-        correct = correct[correct.index("{"):]
+            "func changePreviewActionFailure(", "func correctWeekdays(", "func skipChangeRows(", "func savePersonalChanges("])
         program = '''import Foundation
 enum MaterialKind { case changes }
 enum ChangeAnalysis { static let parserVersion = 7 }
@@ -115,13 +110,22 @@ struct ChangePreview {
     var canSkipRows = true, canCorrectWeekdays = true, usesDateDerivedWeekdays = false
 }
 struct ChangeParseError: Error, LocalizedError {
-    enum Code { case defaultYear }
+    enum Code { case defaultYear, staleConfirmation, storage }
     var code: Code
     var errorDescription: String? { "invalid-year" }
 }
+struct ChangeWorkbookReview {}
+struct ChangeRowEdit {}
+struct Control { func check() throws {} }
+struct Library {
+    func saveChangeEditor(_ view: ChangeWorkbookReview, year: Int, expectedIdentity: String, expectedDigest: String,
+                          edits: [Int: ChangeRowEdit], manual: Bool, check: () throws -> Void) throws {}
+}
 struct Worker {
-    func correctWeekdays(_ p: ChangePreview, defaultYear: Int, control: Int) throws {}
-    func skipChangeRows(_ p: ChangePreview, rows: Set<Int>, defaultYear: Int, control: Int, correctWeekdays: Bool = false) throws {}
+    var library: Library? = Library()
+    func refresh(_ kind: MaterialKind, control: Control) throws {}
+    func correctWeekdays(_ p: ChangePreview, defaultYear: Int, control: Control) throws {}
+    func skipChangeRows(_ p: ChangePreview, rows: Set<Int>, defaultYear: Int, control: Control, correctWeekdays: Bool = false) throws {}
 }
 final class MaterialsModel {
     var busy = false, retired = false
@@ -129,16 +133,17 @@ final class MaterialsModel {
     var state = State(), changePreview: ChangePreview? = ChangePreview(), dispatches = 0
     func dismissPreview() { changePreview = nil }
     // The probe tests admission, not acquisition or persistence.
-    func perform(success: String?, preserveChangePreview: Bool = false, dismissChangePreviewOnSuccess: Bool = false, changeYear: Int? = nil, operation: (Worker, Int) throws -> Void) { dispatches += 1 }
+    func perform(success: String?, preserveChangePreview: Bool = false, dismissChangePreviewOnSuccess: Bool = false, changeYear: Int? = nil, operation: (Worker, Control) throws -> Void) { dispatches += 1 }
 METHODS
 }
 @main struct Probe {
     static func main() {
         let preview = ChangePreview(), model = MaterialsModel()
-        let skip: (Set<Int>) -> String? = SKIP
-        let correct: () -> String? = CORRECT
+        let skip: (Set<Int>) -> String? = { model.skipChangeRows(preview, rows: $0) }
+        let correct = { model.correctWeekdays(preview) }
+        let save = { model.savePersonalChanges(preview, view: ChangeWorkbookReview(), edits: [:]) }
         func rejected() {
-            precondition(skip([3, 4]) != nil && correct() != nil)
+            precondition(skip([3, 4]) != nil && correct() != nil && save() != nil)
             precondition(model.dispatches == 0 && model.changePreview != nil)
         }
         model.busy = true; rejected(); model.busy = false
@@ -155,10 +160,11 @@ METHODS
         precondition(model.dispatches == 0 && model.changePreview != nil)
         precondition(skip([3, 4]) == nil && model.dispatches == 1)
         precondition(correct() == nil && model.dispatches == 2)
+        precondition(save() == nil && model.dispatches == 3)
         print("Verified production callbacks: rejected actions retain preview; accepted actions dispatch once.")
     }
 }
-'''.replace("METHODS", methods).replace("SKIP", skip).replace("CORRECT", correct)
+'''.replace("METHODS", methods)
         with tempfile.TemporaryDirectory(prefix="change-preview-admission-") as scratch:
             path = Path(scratch)
             (path / "probe.swift").write_text(program)

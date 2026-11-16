@@ -120,7 +120,7 @@ extension ParsingTests {
         assertCode(.headers) { _ = try ChangeNormalizer.parse([headers + ["月日"], example[1]], defaultYear: nil) }
         assertCode(.empty) { _ = try ChangeNormalizer.parse([headers], defaultYear: nil) }
         assertCode(.year) { _ = try ChangeNormalizer.parse([headers, ["1～99999", "ZZ", "2032/7/10"]], defaultYear: nil) }
-        for grade in ["", "0", "10", "架空学年", "AI-2", "1,2"] {
+        for grade in ["", "0", "10", "架空学年", "AI-2", "1,", ",3", "1,,3", "1,2-4", "1,10", "1,1"] {
             assertCode(.year) { _ = try ChangeNormalizer.parse([headers, [grade, "ZZ", "2032/7/10"]], defaultYear: nil) }
         }
         assertCode(.classes) { _ = try ChangeNormalizer.parse([headers, ["1", "", "2032/7/10"]], defaultYear: nil) }
@@ -486,6 +486,73 @@ extension ParsingTests {
             var duplicate = original
             duplicate.headers.append("曜")
             assertCode(.headers) { _ = try duplicate.records(edits: skip, defaultYear: 2032) }
+        }
+    }
+}
+
+extension ParsingTests {
+    func testGroupedWorkbookCorrectionsUseOnlySelectedRowsAndKeepRawEvidence() throws {
+        try temporary { root in
+            let header = ["学 年", "学科・クラス", "月日", "曜日", "備考"]
+            var files = workbook([header, ["１，３", "ZZ", "46343", "?"], ["1,2", "ZZ", "46344", "?"],
+                ["", "ZZ", "7/12", "月"], ["", "ZZ", "7/10", "土"], ["", "", "", "土"],
+                ["", "", "", "土"], ["", "", "", "土"], ["", "", "", "土", "架空数式"]])
+            let xml = "xl/worksheets/sheet1.xml"
+            for row in [7,8] {
+                mutate(&files, xml, "<c r=\"D\(row)\" t=\"inlineStr\"><is><t xml:space=\"preserve\">土</t></is></c>",
+                    "<c r=\"D\(row)\" t=\"str\"><f>FAKE()</f><v>土</v></c>")
+            }
+            mutate(&files, xml, "<c r=\"E9\" t=\"inlineStr\"><is><t xml:space=\"preserve\">架空数式</t></is></c>", "<c r=\"E9\"><f>FAKE()</f></c>")
+            let url = root.appendingPathComponent("架空一括.xlsx")
+            try write(files, to: url)
+            let table = try XLSXReader.editableWorkbook(url, layout: nil, check: {}).table
+            var edits: [Int: ChangeRowEdit] = [:]
+            let review = try table.review(edits: edits, defaultYear: 2032)
+            let groups = ChangeIssueGroup.groups(review, table: table)
+            XCTAssertEqual(groups.filter { $0.code == .weekdayOnly }.map(\.rows), [[6], [7, 8]])
+            XCTAssertEqual(review[7]?.map(\.code), [.weekdayOnly])
+            XCTAssertEqual(Set(review[9]?.map(\.code) ?? []), [.formula, .date, .year, .classes])
+            let weekdays = try XCTUnwrap(groups.first { $0.code == .weekdayMismatch })
+            XCTAssertEqual(weekdays.rows, [2,3])
+            weekdays.apply(.weekday, selecting: [2,3,6], headers: table.headers, edits: &edits)
+            XCTAssertNil(edits[6])
+            let grades = try XCTUnwrap(groups.first { $0.code == .year })
+            grades.apply(.value("2"), selecting: [4], headers: table.headers, edits: &edits)
+            XCTAssertNil(edits[5])
+            XCTAssertEqual(try table.review(edits: edits, defaultYear: 2032)[5]?.map(\.code), [.year])
+            grades.apply(.value("3"), selecting: [5], headers: table.headers, edits: &edits)
+            for group in groups where group.code == .weekdayOnly {
+                group.apply(.exclude, selecting: Set(group.rows), headers: table.headers, edits: &edits)
+            }
+            edits[9] = ChangeRowEdit(excluded: true)
+            let savedGroups = ChangeIssueGroup.savedGroups(edits)
+            let exclusions = try XCTUnwrap(savedGroups.first { $0.saved == .excluded })
+            XCTAssertEqual(exclusions.rows, [6,7,8,9])
+            var undone = edits
+            exclusions.apply(.undo, selecting: [7, 42], headers: table.headers, edits: &undone)
+            XCTAssertEqual(try table.review(edits: undone, defaultYear: 2032)[7]?.map(\.code), [.weekdayOnly])
+            XCTAssertEqual(undone[8]?.excluded, true)
+            XCTAssertNil(undone[42])
+            XCTAssertEqual(savedGroups.first { $0.saved == .derived }?.rows, [2,3])
+            let values = try table.records(edits: edits, defaultYear: 2032)
+            XCTAssertEqual(values.map(\.class_name), ["1_ZZ","3_ZZ","1_ZZ","2_ZZ","2_ZZ","3_ZZ"])
+            for (row, record) in [(2, values[0]), (3, values[2])] {
+                XCTAssertEqual(table.values(at: row, edit: edits[row]!, defaultYear: 2032)[3], ChangeNormalizer.weekday(record.change_date))
+                XCTAssertTrue(table.summary(row: row, edit: edits[row]!, year: 2032).contains("月日 " + record.change_date))
+            }
+            XCTAssertTrue(values[0].raw_text.contains("月日:46343"))
+            var moved = table
+            moved.rows.swapAt(3, 4)
+            let saved = try table.savedEdits(sourceIdentity: "s", digest: "old", defaultYear: 2032, edits: edits)
+            XCTAssertEqual(moved.restore(saved, sourceIdentity: "s", digest: "new", defaultYear: 2032).edits[5], edits[4])
+            var damaged = table
+            damaged.cellIssues[2] = [3: .mergedCells]
+            damaged.cellIssues[3] = [2: .formula]
+            let blocked = try damaged.review(edits: edits, defaultYear: 2032)
+            XCTAssertEqual(blocked[2]?.first?.code, .mergedCells)
+            XCTAssertTrue(blocked[3]?.contains(where: { $0.column == 2 && $0.code == .formula }) == true)
+            XCTAssertNil(damaged.suggestedEdits(defaultYear: 2032)[2])
+            XCTAssertNil(damaged.suggestedEdits(defaultYear: 2032)[3])
         }
     }
 }

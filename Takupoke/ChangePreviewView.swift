@@ -1,146 +1,5 @@
 import SwiftUI
 
-struct ChangePreviewView: View {
-    let preview: ChangePreview
-    @ObservedObject var mappings: MappingModel
-    var openEditor: (() -> Void)? = nil
-    var actionFailure: String? = nil
-    var operationFailure: String? = nil
-    var processing = false
-    var cancelProcessing: (() -> Void)? = nil
-    var correctWeekdays: (() -> String?)? = nil
-    var skipRows: ((Set<Int>) -> String?)? = nil
-    var skipRowsWithCorrection: ((Set<Int>, Bool) -> String?)? = nil
-    @State private var rejectedAction: String?
-    @State private var confirmingCorrection = false
-    @State private var confirmingSkip = false
-    @State private var excludedRows = Set<Int>()
-    @State private var correctRemainingWeekdays = false
-    @Environment(\.dismiss) private var dismiss
-    @State private var selectedClass = ""
-
-    private var classes: [String] { Set(preview.records.map(\.displayClassName)).sorted() }
-    private var visible: [ScheduleChange] {
-        preview.records.filter { selectedClass.isEmpty || $0.displayClassName == selectedClass }
-    }
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    InlineWarning("警告のあるファイルを閲覧しています")
-                    Text("曜日に問題のある行があります。元の記載を確認してください。")
-                    Text(preview.sourceName)
-                    if let failure = actionFailure ?? rejectedAction {
-                        InlineWarning(failure)
-                    }
-                    if let operationFailure {
-                        InlineWarning(operationFailure)
-                    }
-                    if processing { LoadingRow(title: "確認した原本を再取得・解析中⋯", cancel: cancelProcessing) }
-                    if skipRows != nil {
-                        Text("選択した行を今回の除外対象として保存します。以前の除外対象も選択済みで表示します。")
-                        if preview.usesDateDerivedWeekdays {
-                            Text("この資料の曜日は、確認済みの日付から計算します。")
-                        } else if skipRowsWithCorrection != nil && preview.warnings.contains(where: \.canCorrectWeekday) {
-                            Toggle("残す行の曜日を日付から求める", isOn: $correctRemainingWeekdays)
-                                .disabled(actionFailure != nil)
-                        }
-                    }
-                    if let openEditor { Button("すべての行を編集", action: openEditor) }
-                    LabeledContent("年なし日付の補完", value: preview.defaultYear.map { "\($0)年度" } ?? "指定なし")
-                    LabeledContent("件数", value: "\(preview.records.count)件")
-                    if correctWeekdays != nil {
-                        Button("日付から曜日を求めて読み込む") { confirmingCorrection = true }
-                            .buttonStyle(.glassProminent)
-                            .disabled(actionFailure != nil)
-                    }
-                    DisclosureGroup("曜日の警告：\(preview.warnings.count)件") {
-                        ForEach(preview.reviewGroups) { group in
-                            let warning = group.rows[0].warning
-                            if let printed = warning.printedWeekday, let calculated = warning.calculatedWeekday {
-                                Text("\(group.rangeLabel)：\(printed) → \(calculated)曜日")
-                            }
-                            InlineWarning(group.rangeLabel + "：" +
-                                 (warning.code == .weekdayOnly ? "曜日以外の値がありません。" :
-                                  warning.code == .formulaCache ? "曜日の計算結果がありません。" : "曜日と月日が一致しないか、曜日の表記を確認できません。"))
-                        }
-                    }
-                }
-                ForEach(preview.reviewGroups) { group in
-                    let row = group.rows[0]
-                    Section("\(group.rangeLabel)の元の記載") {
-                        ForEach(Array(row.fields.enumerated()), id: \.offset) { _, field in
-                            LabeledContent(field.title, value: field.value)
-                        }
-                        if row.fields.isEmpty { Text("曜日の数式があります。保存された値はありません。") }
-                        if group.rows.count > 1 {
-                            Text("\(group.rows.count)行とも、曜日以外の値はありません。")
-                        }
-                        if skipRows != nil && row.canSkip {
-                            Toggle(group.rows.count == 1 ? "この行を除外する" : "この\(group.rows.count)行をまとめて除外する", isOn: Binding(get: { group.rowIDs.isSubset(of: excludedRows) }, set: { value in
-                                if value { excludedRows.formUnion(group.rowIDs) } else { excludedRows.subtract(group.rowIDs) }
-                            }))
-                            .accessibilityIdentifier(group.accessibilityID)
-                            .disabled(actionFailure != nil)
-                        }
-                    }
-                }
-                Section {
-                    Picker("クラス", selection: $selectedClass) {
-                        Text("すべて").tag("")
-                        ForEach(classes, id: \.self) { Text(TimetableDisplayText.className($0)).tag($0) }
-                    }
-                }
-                ForEach(Array(visible.enumerated()), id: \.offset) { _, record in
-                    Section { ChangeRecordFields(record: record, names: mappings.names(for: record)) }
-                }
-            }
-            .alert("日付から求めた曜日で読み込む", isPresented: $confirmingCorrection) {
-                Button("この曜日で読み込む") { rejectedAction = correctWeekdays?() }
-                    .disabled(actionFailure != nil)
-                Button("キャンセル", role: .cancel) {}
-            } message: {
-                Text("日付欄を基準に曜日を計算して、時間割変更へ反映します。元の行の内容が同じ場合は更新後も適用します。")
-            }
-            .navigationTitle(correctWeekdays == nil && skipRows == nil ? "プレビュー（閲覧のみ）" : "内容の確認")
-            .alert("選んだ行を除外して読み込む", isPresented: $confirmingSkip) {
-                Button("除外して読み込む") {
-                    if let skipRowsWithCorrection {
-                        rejectedAction = skipRowsWithCorrection(excludedRows, correctRemainingWeekdays)
-                    } else { rejectedAction = skipRows?(excludedRows) }
-                }
-                    .disabled(actionFailure != nil)
-                Button("キャンセル", role: .cancel) {}
-            } message: {
-                Text("\(excludedRows.count)行を時間割変更から除外します。除外する行：\(ChangeReviewGroup.rangeLabel(Array(excludedRows)))。同じ内容の行には更新後も適用します。")
-                if correctRemainingWeekdays { Text("残す行の曜日は日付から計算します。") }
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(processing ? "解析を中止" : (correctWeekdays == nil && skipRows == nil ? "閉じる" : "キャンセル")) {
-                        if processing { cancelProcessing?() } else { dismiss() }
-                    }
-                }
-                if skipRows != nil {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("除外して読み込む") { confirmingSkip = true }
-                            .buttonStyle(.glassProminent)
-                            .disabled((excludedRows.isEmpty && !correctRemainingWeekdays) || actionFailure != nil)
-                            .accessibilityIdentifier("change-apply-skips")
-                    }
-                }
-            }
-        }
-        .onAppear {
-            excludedRows = preview.excludedRows
-            correctRemainingWeekdays = preview.usesDateDerivedWeekdays
-        }
-        .interactiveDismissDisabled(processing)
-    }
-}
-
 struct ChangeRecordFields: View {
     let record: ScheduleChange
     let names: ChangePresentation
@@ -165,5 +24,112 @@ struct ChangeRecordFields: View {
 
     @ViewBuilder private func field(_ title: String, _ value: String) -> some View {
         if !value.isEmpty { LabeledContent(title, value: TimetableDisplayText.kana(value)) }
+    }
+}
+
+struct ChangePreviewView: View {
+    let table: ChangeEditTable
+    let edits: [Int: ChangeRowEdit]
+    let pending: Set<Int>
+    let year: Int
+    @ObservedObject var mappings: MappingModel
+    @State private var records: [ScheduleChange] = []
+    @State private var selectedClass = ""
+    @State private var error: String?
+
+    var body: some View {
+        List {
+            if !pending.isEmpty {
+                Text("確認中の\(pending.count)行を省いたプレビューです。").foregroundStyle(.secondary)
+            }
+            if let error { InlineWarning(error) }
+            Picker("クラス", selection: $selectedClass) {
+                Text("すべて").tag("")
+                ForEach(Set(records.map(\.displayClassName)).sorted(), id: \.self) { name in
+                    Text(TimetableDisplayText.className(name)).tag(name)
+                }
+            }
+            let visible = records.filter { selectedClass.isEmpty || $0.displayClassName == selectedClass }
+            ForEach(Array(visible.enumerated()), id: \.offset) { _, record in
+                Section { ChangeRecordFields(record: record, names: mappings.names(for: record)) }
+            }
+        }
+        .navigationTitle("時間割のプレビュー")
+        .onAppear {
+            var draft = edits
+            for row in pending { draft[row, default: ChangeRowEdit()].excluded = true }
+            do {
+                records = try table.records(edits: draft, defaultYear: year)
+                error = nil
+            } catch { self.error = error.localizedDescription }
+        }
+    }
+}
+
+struct ChangeGroupEditor: View {
+    let group: ChangeIssueGroup
+    let title: String
+    let table: ChangeEditTable
+    let year: Int
+    let activeRows: Set<Int>
+    @Binding var edits: [Int: ChangeRowEdit]
+    let verify: () -> Void
+    @State private var selected: Set<Int> = []
+    @State private var replacement = ""
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        List {
+            Section {
+                Text(ChangeReviewGroup.rangeLabel(group.rows))
+                Toggle("すべて選択（\(group.rows.count)行）", isOn: Binding(get: {
+                    !activeRows.isEmpty && activeRows.isSubset(of: selected)
+                }, set: { selected = $0 ? activeRows : [] }))
+                .accessibilityIdentifier("change-select-all")
+                if group.saved != nil {
+                    Button("選んだ行のこの修正を解除") { finish(.undo) }.disabled(selected.isDisjoint(with: activeRows))
+                }
+                if group.code == .weekdayMismatch || group.code == .formulaCache {
+                    Button("選んだ行の曜日を補完") { finish(.weekday) }
+                        .disabled(selected.isDisjoint(with: activeRows) || !selected.intersection(activeRows).allSatisfy { row in
+                            table.normalizedDate(table.values(at: row, edit: edits[row] ?? ChangeRowEdit(), defaultYear: year),
+                                                 row: row, edit: edits[row] ?? ChangeRowEdit(), defaultYear: year) != nil
+                        })
+                }
+                if group.code != .weekdayOnly && table.headers.indices.contains(group.column) {
+                    TextField(table.headers[group.column] + "の修正値", text: $replacement)
+                        .accessibilityIdentifier("change-group-value")
+                    Button("選んだ行に入力") { finish(.value(replacement)) }
+                        .disabled(selected.isDisjoint(with: activeRows) || replacement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+                if group.saved != .excluded {
+                    Button("選んだ行を除外") { finish(.exclude) }.disabled(selected.isDisjoint(with: activeRows))
+                }
+            }
+            Section("対象の行") {
+                ForEach(group.rows, id: \.self) { row in
+                    Toggle("\(row)行目を選択", isOn: Binding(get: { selected.contains(row) }, set: { on in
+                        if on { selected.insert(row) } else { selected.remove(row) }
+                    }))
+                    .disabled(!activeRows.contains(row))
+                    .accessibilityIdentifier("change-select-row-\(row)")
+                    NavigationLink(value: row) {
+                        VStack(alignment: .leading) {
+                            Text("\(row)行目を編集")
+                            Text(table.summary(row: row, edit: edits[row] ?? ChangeRowEdit(), year: year))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    .accessibilityIdentifier("change-editor-row-\(row)")
+                }
+            }
+        }
+        .navigationTitle(title)
+    }
+
+    private func finish(_ action: ChangeIssueGroup.Action) {
+        group.apply(action, selecting: selected.intersection(activeRows), headers: table.headers, edits: &edits)
+        verify()
+        dismiss()
     }
 }

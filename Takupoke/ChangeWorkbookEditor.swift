@@ -118,13 +118,6 @@ extension MaterialLibrary {
                 for row in view.table.rowIDs where unresolved.contains(view.table.original(at: row)) { view.conflicts.insert(row) }
             }
         }
-        // A school update may introduce a new weekday warning on a different row.
-        // Use only the date-derived value and recalculate it on every new original.
-        if personal != nil, personal?.rows?.digest != record.digest {
-            for (row, correction) in view.table.suggestedEdits(defaultYear: year) where view.edits[row] == nil && !view.conflicts.contains(row) {
-                view.edits[row] = correction
-            }
-        }
         if personal == nil {
             let weekday = record.source.weekdayConsent
             let skip = record.source.rowSkipConsent

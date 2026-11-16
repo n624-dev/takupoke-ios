@@ -30,8 +30,10 @@ enum SimulatorChangeRowSkipFixture {
             ["1", "ZZ", "2032/7/11", "月", "2", "補講", "架空除外科目B"],
             ["", "", "", "火"],
             ["1", "ZZ", "2032/7/12", "月", "3", "補講", "架空科目C"],
+            ["", "ZZ", "2032/7/10", "土", "4", "補講", "架空科目D"],
+            ["", "ZZ", "2032/7/12", "月", "5", "補講", "架空科目E"],
         ]
-        rows += Array(repeating:[],count:194)
+        rows += Array(repeating:[],count:192)
         rows += Array(repeating:["","","","土"],count:101)
         let sheet = rows.enumerated().map { index, cells in
             "<row r=\"\(index + 1)\">"

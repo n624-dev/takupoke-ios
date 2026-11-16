@@ -131,11 +131,7 @@ final class MaterialsModel: ObservableObject {
         guard let year = automaticChangeSchoolYear else { return }
         perform(success: nil, preserveChangePreview: true, changeYear: year) { worker, control in
             guard let library = worker.library, let record = library.state.record(for: .changes) else { throw ChangeParseError(code: .invalidArchive) }
-            var view = try library.changeEditor(year: year, sheet: sheet, headerRow: headerRow, check: { try control.check() })
-            let suggestions = view.table.suggestedEdits(defaultYear: year)
-            for (row, correction) in suggestions where view.edits[row] == nil && !view.conflicts.contains(row) {
-                view.edits[row] = correction
-            }
+            let view = try library.changeEditor(year: year, sheet: sheet, headerRow: headerRow, check: { try control.check() })
             var preview = ChangePreview(sourceName: record.originalName, defaultYear: year, records: [], warnings: [],
                 sourceIdentity: record.source.selectionID ?? record.storedName, sourceDigest: record.digest)
             preview.editor = view

@@ -2,16 +2,24 @@ import SwiftUI
 
 struct ChangeWorkbookEditorView: View {
     @ObservedObject var model: MaterialsModel
+    @ObservedObject var mappings: MappingModel
     let preview: ChangePreview
     @State private var view: ChangeWorkbookReview
     @State private var edits: [Int: ChangeRowEdit]
     @State private var issues: [Int: [ChangeParseError]] = [:]
+    @State private var groups: [ChangeIssueGroup] = []
+    private enum Page: Hashable { case edited, all, preview }
+    @State private var suggestions: ChangeIssueGroup?
+    @State private var savedGroups: [ChangeIssueGroup] = []
+    @State private var confirming = false
+    @State private var viable = false
     @State private var error: String?
     @State private var headerNumber: String
     @Environment(\.dismiss) private var dismiss
 
-    init(model: MaterialsModel, preview: ChangePreview, initial: ChangeWorkbookReview) {
+    init(model: MaterialsModel, mappings: MappingModel, preview: ChangePreview, initial: ChangeWorkbookReview) {
         self.model = model
+        self.mappings = mappings
         self.preview = preview
         _view = State(initialValue: initial)
         _edits = State(initialValue: initial.edits)
@@ -54,12 +62,34 @@ struct ChangeWorkbookEditorView: View {
                         }
                     }
                 }
-                let allRows = view.table.rowIDs
-                let unresolvedRows = view.conflicts.union(issues.keys)
-                if !unresolvedRows.isEmpty {
-                    Section("確認が必要な行") {
-                        ForEach(allRows.filter(unresolvedRows.contains), id: \.self) { row in rowLink(row) }
+                let pending = Set(issues.keys).union(view.conflicts)
+                if !pending.isEmpty {
+                    Section("確認が必要な行（\(pending.count)行）") {
+                        ForEach(groups) { group in
+                            NavigationLink(value: group) {
+                                VStack(alignment: .leading) {
+                                    Text(groupTitle(group))
+                                    Text("\(group.rows.count)行　\(ChangeReviewGroup.rangeLabel(group.rows))")
+                                        .font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                                }
+                            }
+                            .accessibilityIdentifier("change-group-\(group.id)")
+                        }
+                        ForEach(view.conflicts.sorted(), id: \.self) { row in rowLink(row) }
                     }
+                }
+                if let suggestions {
+                    Section("日付から補完できる項目") {
+                        NavigationLink("空欄の曜日（\(suggestions.rows.count)行）", value: suggestions)
+                    }
+                }
+                Section {
+                    if !editedRows.isEmpty {
+                        NavigationLink("修正済み（\(editedRows.count)行）", value: Page.edited)
+                            .accessibilityIdentifier("change-edited-rows")
+                    }
+                    NavigationLink("すべての行", value: Page.all)
+                    NavigationLink("時間割のプレビュー", value: Page.preview).disabled(view.requiresLayoutConfirmation)
                 }
                 if !view.previous.isEmpty {
                     Section("更新前の個人修正") {
@@ -77,25 +107,53 @@ struct ChangeWorkbookEditorView: View {
                         }
                     }
                 }
-                Section("原本の行") {
-                    ForEach(allRows.filter { !unresolvedRows.contains($0) }, id: \.self) { row in rowLink(row) }
+            }
+            .navigationDestination(for: Page.self) { page in
+                switch page {
+                case .edited:
+                    List {
+                        ForEach(savedGroups) { group in
+                            NavigationLink(value: group) {
+                                VStack(alignment: .leading) {
+                                    Text(groupTitle(group))
+                                    Text("\(group.rows.count)行　\(ChangeReviewGroup.rangeLabel(group.rows))").font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                                }
+                            }.accessibilityIdentifier("change-saved-\(group.id)")
+                        }
+                    }.navigationTitle("修正済み")
+                case .all: List { ForEach(view.table.rowIDs, id: \.self) { row in rowLink(row) } }.navigationTitle("すべての行")
+                case .preview: ChangePreviewView(table: view.table, edits: edits, pending: Set(issues.keys).union(view.conflicts),
+                                                 year: preview.defaultYear ?? 0, mappings: mappings)
                 }
             }
             .navigationDestination(for: Int.self) { row in rowEditor(row) }
-            .navigationTitle("個人修正を編集")
+            .navigationDestination(for: ChangeIssueGroup.self) { group in
+                ChangeGroupEditor(group: group, title: groupTitle(group), table: view.table,
+                    year: preview.defaultYear ?? 0, activeRows: activeRows(in: group), edits: $edits, verify: verify)
+            }
+            .navigationTitle("内容を確認・修正")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("閉じる") { dismiss() }.disabled(model.busy) }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("反映する") {
-                        verify()
-                        guard error == nil, issues.isEmpty else { return }
-                        view.layout.headers = view.table.headers
-                        error = model.savePersonalChanges(preview, view: view, edits: edits)
-                    }
-                    .buttonStyle(.glassProminent)
-                    .disabled(model.busy || view.requiresLayoutConfirmation || !view.conflicts.isEmpty)
+                    Button("反映する") { confirming = true }
+                        .buttonStyle(.glassProminent)
+                        .disabled(!viable || model.busy || model.changePreviewActionFailure(preview) != nil || view.requiresLayoutConfirmation)
                 }
             }
+            .alert("個人修正を反映しますか？", isPresented: $confirming) {
+                Button("反映する") {
+                    verify()
+                    guard viable, !view.requiresLayoutConfirmation else { return }
+                    view.layout.headers = view.table.headers
+                    error = model.savePersonalChanges(preview, view: view, edits: edits)
+                }
+                Button("キャンセル", role: .cancel) {}
+            } message: {
+                let skipped = edits.keys.filter { edits[$0]?.excluded == true }
+                Text(skipped.isEmpty ? "確認した内容で時間割を更新します。" :
+                       "除外する行：" + ChangeReviewGroup.rangeLabel(skipped))
+            }
+            .onChange(of: view.table.headers) { _, _ in verify() }
             .onAppear { verify() }
         }
         .interactiveDismissDisabled(model.busy)
@@ -106,11 +164,48 @@ struct ChangeWorkbookEditorView: View {
         Binding(get: { view.requiresLayoutConfirmation || openedLayout }, set: { openedLayout = $0 })
     }
 
+    private var editedRows: [Int] { edits.keys.filter { edits[$0]?.isEmpty == false }.sorted() }
+
+    private func activeRows(in group: ChangeIssueGroup) -> Set<Int> {
+        if let saved = group.saved {
+            return Set(savedGroups.first { $0.saved == saved && $0.column == group.column }?.rows ?? [])
+                .intersection(group.rows).subtracting(view.conflicts)
+        }
+        let live = group.optional ? (suggestions.map { [$0] } ?? []) : groups
+        return Set(live.filter {
+            $0.code == group.code && $0.column == group.column && $0.printed == group.printed && $0.formula == group.formula
+        }.flatMap(\.rows))
+            .intersection(group.rows).subtracting(view.conflicts)
+    }
+
     private func verify() {
+        savedGroups = ChangeIssueGroup.savedGroups(edits)
         do {
             issues = try view.table.review(edits: edits, defaultYear: preview.defaultYear ?? 0)
+            groups = ChangeIssueGroup.groups(issues, table: view.table)
+            suggestions = nil
+            if let weekday = view.table.headers.firstIndex(where: { ["曜日", "曜"].contains(ChangeNormalizer.token($0)) }) {
+                let year = preview.defaultYear ?? 0
+                let rows = view.table.rowIDs.filter { row in
+                    let edit = edits[row] ?? ChangeRowEdit()
+                    guard !edit.excluded, !edit.deriveWeekday, edit.keepPrintedWeekday != true,
+                          view.table.cellIssues[row]?[weekday] == nil, !view.conflicts.contains(row) else { return false }
+                    let values = view.table.values(at: row, edit: edit, defaultYear: year)
+                    return ChangeNormalizer.text(values[weekday]).isEmpty &&
+                        view.table.normalizedDate(values, row: row, edit: edit, defaultYear: year) != nil
+                }
+                if !rows.isEmpty { suggestions = ChangeIssueGroup(code: .weekdayMismatch, column: weekday, rows: rows, optional: true) }
+            }
+            viable = issues.isEmpty && view.conflicts.isEmpty
             error = nil
+            if viable && !view.requiresLayoutConfirmation {
+                // Check aggregate limits and the empty result before enabling Apply.
+                _ = try view.table.records(edits: edits, defaultYear: preview.defaultYear ?? 0)
+            }
         } catch {
+            viable = false
+            groups = []
+            suggestions = nil
             issues = [:]
             self.error = error.localizedDescription
         }
@@ -124,18 +219,32 @@ struct ChangeWorkbookEditorView: View {
         return column.map { $0 + "　" + detail } ?? detail
     }
 
+    private func groupTitle(_ group: ChangeIssueGroup) -> String {
+        if let saved = group.saved {
+            switch saved {
+            case .excluded: return "除外した行"
+            case .derived: return "曜日を補完した行"
+            case .printed: return "記載の曜日を使う行"
+            case .field(let value): return (view.table.headers.indices.contains(group.column) ? view.table.headers[group.column] : "列") + "　" + (value.isEmpty ? "空欄" : value)
+            }
+        }
+        switch group.code {
+        case .weekdayOnly: return group.printed.isEmpty ? "曜日の数式だけの行" : "「\(group.printed)」だけの行"
+        case .weekdayMismatch, .formulaCache: return "曜日を日付から補完"
+        case .year: return "学年を確認"
+        case .classes: return "学科・クラスを確認"
+        case .unknownAll: return "「全」の対象クラスを確認"
+        default: return problemLabel(ChangeParseError(code: group.code, column: group.column))
+        }
+    }
+
     private func rowLink(_ row: Int) -> some View {
         NavigationLink(value: row) {
             VStack(alignment: .leading) {
-                Text("\(row)行目" + (edits[row]?.excluded == true ? "（除外）" : edits[row]?.isEmpty == false ? "（個人修正）" : ""))
-                Text(view.table.rows[row - 1].filter { !$0.isEmpty }.joined(separator: " ・ "))
+                Text("\(row)行目" + (edits[row]?.excluded == true ? "（除外）" : ""))
+                Text(view.table.summary(row: row, edit: edits[row] ?? ChangeRowEdit(), year: preview.defaultYear ?? 0))
                     .font(.caption).foregroundStyle(.secondary).lineLimit(2)
-                if view.conflicts.contains(row) { InlineWarning("同じ内容の行があります。適用する修正を選んでください。") }
-                if let problems = issues[row] {
-                    ForEach(problems.indices, id: \.self) { i in
-                        InlineWarning(problemLabel(problems[i]))
-                    }
-                }
+                if view.conflicts.contains(row) { InlineWarning("以前の修正を選んでください。") }
             }
         }
         .accessibilityIdentifier("change-editor-row-\(row)")
@@ -161,6 +270,11 @@ struct ChangeWorkbookEditorView: View {
                         }
                     }
                     Button("この行の入力を使う") { view.conflicts.remove(row) }
+                }
+            }
+            if let problems = issues[row], !problems.isEmpty {
+                Section("確認する項目") {
+                    ForEach(problems.indices, id: \.self) { index in InlineWarning(problemLabel(problems[index])) }
                 }
             }
             Section("元の記載と訂正") {

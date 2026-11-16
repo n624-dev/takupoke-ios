@@ -80,7 +80,7 @@ struct ChangeWeekdayConsent: Codable, Equatable {
 }
 
 struct ChangeAnalysis: Codable {
-    static let parserVersion = 11
+    static let parserVersion = 12
     var personalEdit: Bool? = nil
     var personalSourceIdentity: String? = nil
     var version = parserVersion
@@ -248,8 +248,8 @@ struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
         case .missingSheet: detail = "「時間割変更」シートが見つからないか、重複しています。"
         case .unsupported: detail = "このXLSXには未対応の構造や外部参照が含まれています。"
         case .formula: detail = "見出し、または曜日以外の列に数式があります。この箇所の数式は解析できません。"
-        case .formulaCache: detail = "曜日の計算結果が保存されていません。警告を確認して内容だけを見ることができます。"
-        case .weekdayMismatch: detail = "曜日と月日が一致しないか、曜日の表記を確認できません。警告を確認して内容だけを見ることができます。"
+        case .formulaCache: detail = "曜日の計算結果が保存されていません。内容を確認して修正できます。"
+        case .weekdayMismatch: detail = "曜日と月日が一致しないか、曜日の表記を確認できません。内容を確認して修正できます。"
         case .weekdayOnly: detail = "曜日以外の値がない行があります。内容を確認して、その行を除外できます。"
         case .mergedCells: detail = "見出しや表の行に結合セルがあります。結合された値は推測して補えません。"
         case .dateSystem: detail = "1904年起点の日付を使用するXLSXは未対応です。"
@@ -333,6 +333,105 @@ struct ChangeEdits: Codable, Equatable {
     var headerSources: [Int: String]? = nil
     var reviewedHeaderRow: Int? = nil
     var physicalWidth: Int? = nil
+}
+
+/// One action can operate on the listed rows. Row identity is still saved independently.
+struct ChangeIssueGroup: Identifiable, Hashable {
+    var code: ChangeParseError.Code
+    var column: Int
+    var rows: [Int]
+    var printed = ""
+    var formula = false
+    var optional = false
+    enum Saved: Hashable { case excluded, derived, printed, field(String) }
+    var saved: Saved? = nil
+    var id: String {
+        switch saved {
+        case .excluded: return "excluded"
+        case .derived: return "derived"
+        case .printed: return "printed"
+        case .field: return "field-\(column)-\(rows[0])"
+        case nil: return "\(code.rawValue)-\(column)-\(rows[0])"
+        }
+    }
+
+    static func savedGroups(_ edits: [Int: ChangeRowEdit]) -> [Self] {
+        struct Key: Hashable { var action: Saved; var column: Int }
+        var members: [Key: [Int]] = [:], order: [Key] = []
+        func append(_ action: Saved, _ column: Int, row: Int) {
+            let key = Key(action: action, column: column)
+            if members[key] == nil { order.append(key) }
+            members[key, default: []].append(row)
+        }
+        for row in edits.keys.sorted() {
+            guard let edit = edits[row] else { continue }
+            if edit.excluded { append(.excluded, -1, row: row) }
+            if edit.deriveWeekday { append(.derived, -2, row: row) }
+            if edit.keepPrintedWeekday == true { append(.printed, -3, row: row) }
+            for column in edit.values.keys.sorted() {
+                if let value = edit.values[column] { append(.field(value), column, row: row) }
+            }
+        }
+        return order.map { Self(code: .staleConfirmation, column: $0.column, rows: members[$0]!, saved: $0.action) }
+    }
+
+    enum Action { case exclude, weekday, value(String), undo }
+
+    func apply(_ action: Action, selecting selected: Set<Int>, headers: [String], edits: inout [Int: ChangeRowEdit]) {
+        for row in rows where selected.contains(row) {
+            switch action {
+            case .undo:
+                switch saved {
+                case .excluded: edits[row]?.excluded = false
+                case .derived: edits[row]?.chooseDateDerivedWeekday(false)
+                case .printed: edits[row]?.keepPrintedWeekday = nil
+                case .field: edits[row]?.values.removeValue(forKey: column)
+                case nil: break
+                }
+            case .exclude: edits[row, default: ChangeRowEdit()].excluded = true
+            case .weekday: edits[row, default: ChangeRowEdit()].chooseDateDerivedWeekday(true)
+            case .value(let value):
+                guard headers.indices.contains(column) else { continue }
+                edits[row, default: ChangeRowEdit()].values[column] = value
+                let header = ChangeNormalizer.token(headers[column])
+                if ["曜", "曜日"].contains(header) {
+                    edits[row, default: ChangeRowEdit()].chooseDateDerivedWeekday(false)
+                } else if header == "月日", edits[row]?.keepPrintedWeekday != true {
+                    edits[row, default: ChangeRowEdit()].deriveWeekday = true
+                }
+            }
+        }
+    }
+
+    static func groups(_ problems: [Int: [ChangeParseError]], table: ChangeEditTable) -> [Self] {
+        struct Field: Hashable { let code: ChangeParseError.Code; let column: Int }
+        var groups: [Self] = []
+        var fields: [Field: Int] = [:]
+        for row in problems.keys.sorted() {
+            for issue in problems[row] ?? [] {
+                guard let column = issue.column else { continue }
+                let code = issue.code
+                if code == .weekdayOnly {
+                    let printed = ChangeNormalizer.text(issue.printedWeekday ?? "")
+                    let formula = table.cellIssues[row]?[column] == .formula || table.cellIssues[row]?[column] == .formulaCache
+                    if let last = groups.last, last.code == code, last.column == column,
+                       last.rows.last == row - 1, last.printed == printed, last.formula == formula {
+                        groups[groups.count - 1].rows.append(row)
+                    } else {
+                        groups.append(Self(code: code, column: column, rows: [row], printed: printed, formula: formula))
+                    }
+                } else {
+                    let key = Field(code: code, column: column)
+                    if let index = fields[key] { groups[index].rows.append(row) }
+                    else {
+                        fields[key] = groups.count
+                        groups.append(Self(code: code, column: column, rows: [row]))
+                    }
+                }
+            }
+        }
+        return groups
+    }
 }
 
 struct ChangeEditTable: Equatable {
