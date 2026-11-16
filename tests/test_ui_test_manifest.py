@@ -263,6 +263,7 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("page.contains(outer)", switch)
         self.assertIn("rowState == state", switch)
         settings = (ROOT / "tests/ui/ApplicationChecks+Settings.swift").read_text()
+        self.assertEqual(settings.count("tapNativeSwitch(ai, dragThumb: true)"), 1)
         context = settings.split("private func linkContextAction(", 1)[1].split(
             "func testLegalDocumentsAndIndividualLicenses", 1)[0]
         self.assertEqual(context.count("link.press(forDuration: 2)"), 1)

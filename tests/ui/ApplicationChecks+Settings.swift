@@ -248,7 +248,7 @@ extension ApplicationChecks {
             recoveryScreenshot("ai-switch-before-\(changeOrdinal)")
             // The labelled row and the inner native switch have different
             // accessibility bounds. Activate the unique real control directly.
-            tapNativeSwitch(ai)
+            tapNativeSwitch(ai, dragThumb: true)
             let reflected = expectation(for: NSPredicate(format: "value == %@", value), evaluatedWith: ai)
             let saved = expectation(for: NSPredicate(format: "label == %@", value), evaluatedWith: stored)
             let completion = XCTWaiter.wait(for: [reflected, saved], timeout: 45)
@@ -257,7 +257,7 @@ extension ApplicationChecks {
                     "AI_SWITCH unresolved UI=\(String(describing: ai.value)) stored=\(stored.label) tree=\(app.debugDescription)"
                 )
                 recoveryScreenshot("ai-switch-unresolved-\(changeOrdinal)")
-                XCTFail("Physical AI/OCR switch tap did not update both UI and stored permission")
+                XCTFail("Physical AI/OCR switch drag did not update both UI and stored permission")
                 return
             }
             XCTAssertEqual(ai.value as? String, value)
