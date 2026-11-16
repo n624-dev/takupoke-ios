@@ -238,7 +238,7 @@ extension ApplicationChecks {
         var stored = app.staticTexts["fixture-stored-ai-permission"]
         XCTAssertEqual(stored.label, "0")
         var changeOrdinal = 0
-        func changeAI(to value: String) {
+        func changeAI(to value: String, dragThumb: Bool = false) {
             changeOrdinal += 1
             XCTAssertTrue(ai.isHittable, app.debugDescription)
             XCTAssertGreaterThan(ai.frame.width, 40)
@@ -248,7 +248,7 @@ extension ApplicationChecks {
             recoveryScreenshot("ai-switch-before-\(changeOrdinal)")
             // The labelled row and the inner native switch have different
             // accessibility bounds. Activate the unique real control directly.
-            tapNativeSwitch(ai, dragThumb: true)
+            tapNativeSwitch(ai, dragThumb: dragThumb)
             let reflected = expectation(for: NSPredicate(format: "value == %@", value), evaluatedWith: ai)
             let saved = expectation(for: NSPredicate(format: "label == %@", value), evaluatedWith: stored)
             let completion = XCTWaiter.wait(for: [reflected, saved], timeout: 45)
@@ -257,7 +257,7 @@ extension ApplicationChecks {
                     "AI_SWITCH unresolved UI=\(String(describing: ai.value)) stored=\(stored.label) tree=\(app.debugDescription)"
                 )
                 recoveryScreenshot("ai-switch-unresolved-\(changeOrdinal)")
-                XCTFail("Physical AI/OCR switch drag did not update both UI and stored permission")
+                XCTFail("Physical AI/OCR switch gesture did not update both UI and stored permission")
                 return
             }
             XCTAssertEqual(ai.value as? String, value)
@@ -275,7 +275,7 @@ extension ApplicationChecks {
         _ = visible(ai)
         XCTAssertEqual(ai.value as? String, "1")
         XCTAssertEqual(stored.label, "1")
-        changeAI(to: "0")
+        changeAI(to: "0", dragThumb: true)
         app.terminate()
         launchReady()
         tab("設定")
