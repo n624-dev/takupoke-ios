@@ -61,7 +61,9 @@ extension ManualAssistanceChecks {
 
     func selectCorrectionFromPreview(cell:String,lesson:String,role:String) {
         let menuID = "recovery-correction-menu-"+cell+"-"+lesson
-        visible(recoveryList.staticTexts[menuID],knownID:menuID).press(forDuration:0.6)
+        // Hold the verified, visible owner just as the link context-menu test does.
+        let owner = visible(recoveryList.staticTexts[menuID], knownID: menuID)
+        owner.press(forDuration: 2)
         let names = ["subject":"科目","teacher":"教員","room":"教室"]
         let name = names[role]
         XCTAssertNotNil(name)

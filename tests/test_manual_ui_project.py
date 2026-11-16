@@ -408,6 +408,11 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('let nativeStateTimeout:TimeInterval=45',checks)
         self.assertIn('timeout:nativeStateTimeout',acknowledge)
         self.assertNotIn('row.tap()',acknowledge)
+        menu=checks.split('func selectCorrectionFromPreview(')[1].split('func selectHighConfidenceFields')[0]
+        self.assertIn('visible(recoveryList.staticTexts[menuID], knownID: menuID)',menu)
+        self.assertEqual(menu.count('.press('),1)
+        self.assertIn('owner.press(forDuration: 2)',menu)
+        self.assertIn('tapPopupAction(name+"を訂正")',menu)
         self.assertIn('acknowledge(ids[i])',checks)
 
 if __name__=="__main__":unittest.main()
