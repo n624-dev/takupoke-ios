@@ -76,6 +76,11 @@ local_id = '22222222-2222-4222-8222-222222222222'
 asset = '/System/Library/AssetsV2/com_apple_MobileAsset_iOSSimulatorRuntime/' + 'a'*40 + '.asset/AssetData'
 with open(os.environ['COMMAND_LOG'], 'a') as log:
     log.write(json.dumps(args) + '\\n')
+if Path(sys.argv[0]).name == 'sudo':
+    owned = Path(os.environ['RUNNER_TEMP'])/'takupoke-ios26-runtime-export-owned'
+    assert args == ['-n','/usr/bin/xcodebuild','-importPlatform',str(owned/'fictional-runtime.exportedBundle')]
+    os.environ['FAKE_DIRECTORY_COPY_ALLOWED']='1'
+    os.execv(str(Path(sys.argv[0]).with_name('xcodebuild')), ['xcodebuild',*args[2:]])
 if sys.argv[1:2] == ['--sdk']: print(os.environ['OBSERVED_SDK'])
 elif args[:3] == ['simctl','runtime','list']:
     images = {}
@@ -114,6 +119,8 @@ elif args[:1] == ['-downloadPlatform']:
 elif args[:1] == ['-importPlatform']:
     assert removed.exists() and not local.exists()
     exported = Path(args[1]); image = exported/'image' if exported.is_dir() else exported
+    if exported.is_dir() and os.environ.get('FAKE_DIRECTORY_COPY_ALLOWED')!='1':
+        sys.exit('Code=23 Requires elevated privileges: Copying a directory source requires sudo')
     assert image.read_bytes() == b'fictional image'
     if os.environ['IMPORT_MODE'] == 'import-fails': sys.exit(10)
     if os.environ['IMPORT_MODE'] == 'unavailable': sys.exit(0)
@@ -122,7 +129,7 @@ elif args[:1] == ['-importPlatform']:
     local.write_text('one imported local runtime')
 else: print('Synthetic Xcode version')
 '''
-            for name in ("xcodebuild", "xcrun"):
+            for name in ("xcodebuild", "xcrun", "sudo"):
                 path = root / name
                 path.write_text(fake)
                 path.chmod(0o755)
@@ -168,7 +175,7 @@ else: print('Synthetic Xcode version')
                         "TKPK_TEST_IOS": str(ios), "TKPK_UI_PROBE_SDK27": sdk27,
                         "TKPK_UI_PROBE_SDK26": sdk26,
                         "TKPK_EXPECTED_IOS_SDK": sdk26 if ios == 26 else sdk27,
-                        "RUNNER_TEMP": directory, "IMPORT_MODE": mode,
+                        "RUNNER_TEMP": directory, "IMPORT_MODE": mode, "RUNNER_OS": "macOS", "GITHUB_ACTIONS": "true",
                         "COMMAND_LOG": str(command_log), "IMPORT_MARKER": str(marker),
                         "OBSERVED_SDK": sdk, "OBSERVED_RUNTIME": runtime}
                     result = subprocess.run(["bash", "-c", script], env=env, cwd=ROOT,
@@ -183,6 +190,10 @@ else: print('Synthetic Xcode version')
                     commands = [json.loads(line) for line in command_log.read_text().splitlines()]
                     downloads = [args for args in commands if args[:1] == ["-downloadPlatform"]]
                     imports = [args for args in commands if args[:1] == ["-importPlatform"]]
+                    elevated = [args for args in commands if args[:1] == ["-n"]]
+                    self.assertEqual(elevated, [["-n", "/usr/bin/xcodebuild", "-importPlatform",
+                        str(root/"takupoke-ios26-runtime-export-owned"/"fictional-runtime.exportedBundle")]]
+                        if mode == "auto-install" else [])
                     removals = [args for args in commands if args[:3] == ['simctl','runtime','delete']]
                     if mode in ("unused", "registered-unavailable", "wrong-build"):
                         self.assertEqual(downloads, [])

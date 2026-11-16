@@ -21,6 +21,12 @@ first_id='11111111-1111-4111-8111-111111111111';local_id='22222222-2222-4222-822
 foreign_id='33333333-3333-4333-8333-333333333333';recovered_id='44444444-4444-4444-8444-444444444444'
 asset='/System/Library/AssetsV2/com_apple_MobileAsset_iOSSimulatorRuntime/'+'a'*40+'.asset/AssetData'
 with open(os.environ['CALLS'],'a') as log:log.write(json.dumps([Path(sys.argv[0]).name]+args)+'\n')
+if Path(sys.argv[0]).name == 'sudo':
+    assert args == ['-n','/usr/bin/xcodebuild','-importPlatform',
+                    str(Path(os.environ['RUNNER_TEMP'])/'takupoke-ios26-runtime-export-owned'/'fictional.exportedBundle')]
+    if mode == 'sudo-refused': sys.exit(1)
+    os.environ['FAKE_DIRECTORY_COPY_ALLOWED']='1'
+    os.execv(str(Path(sys.argv[0]).with_name('xcodebuild')), ['xcodebuild',*args[2:]])
 if args[:1]==['--sdk']:print('27.1')
 elif args[:3]==['simctl','runtime','list']:
     records={'unrelated-watch':{'runtimeIdentifier':'com.apple.CoreSimulator.SimRuntime.watchOS-27-0','state':'Unusable'}}
@@ -131,6 +137,8 @@ elif args[:1]==['-downloadPlatform']:
 elif args[:1]==['-importPlatform']:
     assert removed.exists() and removed.read_text()=='complete', 'Import must follow complete owned asset reclamation'
     exported=Path(args[1]);image=exported/'image' if exported.is_dir() else exported
+    if exported.is_dir() and os.environ.get('FAKE_DIRECTORY_COPY_ALLOWED')!='1':
+        sys.exit('Code=23 Requires elevated privileges: Copying a directory source requires sudo')
     assert image.read_text()=='portable fictional image', 'Portable export must survive source asset removal'
     if mode=='import-fails':sys.exit(8)
     marker.write_text(str(image));imported.write_text('local import')
@@ -184,10 +192,10 @@ with patch.object(Path,'exists',observed_exists):
         successes={'installed','auto-installed','import','dmg-export','partial','partial-already-reclaimed','partial-lag','partial-restored','partial-restored-reading','partial-verifying'}
         no_delete={'installed','installed-wrong-build','installed-build-missing','installed-duplicate-build','installed-unavailable',
             'download-fails','no-image','export-symlink','two-exports','pre-existing-image','pre-existing-id','two-downloads',
-            'download-wrong-build','not-deletable','already-booted','wrong-asset-path'}
+            'download-wrong-build','not-deletable','already-booted','wrong-asset-path','outside-actions','other-os'}
         imports=(successes-{'installed'}) | {'import-fails','wrong-version','wrong-local-path','two-locals','foreign-post-import','local-not-ready'}
         for mode in ('installed','auto-installed','import','dmg-export','partial','partial-already-reclaimed','partial-lag',
-                     'download-fails','no-image','import-fails','wrong-version','installed-wrong-build','installed-build-missing',
+                     'download-fails','no-image','import-fails','sudo-refused','outside-actions','other-os','wrong-version','installed-wrong-build','installed-build-missing',
                      'installed-duplicate-build','installed-unavailable','download-wrong-build','export-symlink','two-exports',
                      'pre-existing-image','pre-existing-id','two-downloads','not-deletable','already-booted','delete-fails','delete-stuck',
                      'partial-second-fails','partial-scan-fails','partial-badmessage','partial-wrong-path','partial-foreign-image',
@@ -203,11 +211,13 @@ with patch.object(Path,'exists',observed_exists):
                      'partial-verifying-slow-scan','partial-verifying-expired-scan'):
             with self.subTest(mode=mode),tempfile.TemporaryDirectory(prefix='takupoke-runtime-lifetime-') as directory:
                 root=Path(directory);scratch=root/'scratch';scratch.mkdir()
-                for name in ('xcrun','xcodebuild'):
+                for name in ('xcrun','xcodebuild','sudo'):
                     tool=root/name;tool.write_text(fake);tool.chmod(0o700)
                 calls=root/'calls';env=os.environ | {'PATH':directory+os.pathsep+os.environ['PATH'],'MODE':mode,
                     'MARKER':str(root/'registered'),'CALLS':str(calls),'RUNNER_TEMP':str(scratch),
-                    'TKPK_EXPECTED_IOS_SDK':'27.1','PYTHONDONTWRITEBYTECODE':'1'}
+                    'TKPK_EXPECTED_IOS_SDK':'27.1','PYTHONDONTWRITEBYTECODE':'1',
+                    'GITHUB_ACTIONS':'false' if mode=='outside-actions' else 'true',
+                    'RUNNER_OS':'Linux' if mode=='other-os' else 'macOS'}
                 command=[sys.executable,'-B','-c',wrapper,str(ROOT/'tools/prepare-ios26-runtime.py')]
                 prepared=subprocess.run(command+['--hold-export'],env=env,capture_output=True,text=True,timeout=40 if mode in ('partial-pending','partial-restored-reading-stuck') else 15)
                 self.assertEqual(prepared.returncode==0,mode in successes,prepared.stdout+prepared.stderr)
@@ -220,6 +230,12 @@ with patch.object(Path,'exists',observed_exists):
                 before=calls.read_text();commands=[json.loads(line) for line in before.splitlines()]
                 self.assertEqual(sum(row[1:2]==['-downloadPlatform'] for row in commands),int(not mode.startswith('installed') and mode!='pre-existing-image'))
                 self.assertEqual(sum(row[1:2]==['-importPlatform'] for row in commands),int(mode in imports))
+                elevated=[row for row in commands if row[0]=='sudo']
+                expects_directory_import=(mode in imports and mode!='dmg-export') or mode=='sudo-refused'
+                self.assertEqual(elevated, [['sudo','-n','/usr/bin/xcodebuild','-importPlatform',
+                    str(owned/'fictional.exportedBundle')]] if expects_directory_import else [])
+                if mode=='sudo-refused':
+                    self.assertFalse((root/'imported').exists())
                 ids=[] if mode in no_delete else ['11111111-1111-4111-8111-111111111111']
                 if mode in ('partial','partial-lag','partial-second-fails','partial-restored','partial-restored-reading','partial-verifying'):ids.append('44444444-4444-4444-8444-444444444444')
                 self.assertEqual([row for row in commands if 'delete' in row],

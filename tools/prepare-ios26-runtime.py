@@ -253,10 +253,16 @@ if not versions:
         if len(images) != 1 or images[0].is_symlink() or not (
                 images[0].is_dir() if images[0].suffix == ".exportedBundle" else images[0].is_file()):
             raise SystemExit("Comparison requires one owned exported runtime bundle or image")
+        importer = ["xcodebuild"]
+        if images[0].suffix == ".exportedBundle":
+            # CoreSimulator requires elevated privileges to copy a directory source.
+            if os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("RUNNER_OS") != "macOS":
+                raise SystemExit("Directory runtime import requires a macOS Actions runner")
+            importer = ["sudo", "-n", "/usr/bin/xcodebuild"]
         # Keep the portable export, and remove our unused MobileAsset BEFORE
         # importing. This avoids creating the duplicate registrations (N226).
         reclaim_owned_asset(before, download_id, download_image, asset_path)
-        subprocess.run(["xcodebuild", "-importPlatform", str(images[0])], check=True, timeout=180)
+        subprocess.run([*importer, "-importPlatform", str(images[0])], check=True, timeout=180)
         imported = target_images(runtime_images("after-import"))
         if len(imported) != 1:
             raise SystemExit("Import must leave one unambiguous local runtime image")
