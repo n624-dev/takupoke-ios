@@ -342,6 +342,7 @@ struct ChangeIssueGroup: Identifiable, Hashable {
     var rows: [Int]
     var printed = ""
     var formula = false
+    var blankField = false
     var optional = false
     enum Saved: Hashable { case excluded, derived, printed, field(String) }
     var saved: Saved? = nil
@@ -383,7 +384,7 @@ struct ChangeIssueGroup: Identifiable, Hashable {
             case .undo:
                 switch saved {
                 case .excluded: edits[row]?.excluded = false
-                case .derived: edits[row]?.chooseDateDerivedWeekday(false)
+                case .derived: edits[row]?.deriveWeekday = false
                 case .printed: edits[row]?.keepPrintedWeekday = nil
                 case .field: edits[row]?.values.removeValue(forKey: column)
                 case nil: break
@@ -403,14 +404,14 @@ struct ChangeIssueGroup: Identifiable, Hashable {
         }
     }
 
-    static func groups(_ problems: [Int: [ChangeParseError]], table: ChangeEditTable) -> [Self] {
-        struct Field: Hashable { let code: ChangeParseError.Code; let column: Int }
+    static func groups(_ problems: [Int: [ChangeParseError]], table: ChangeEditTable, edits: [Int: ChangeRowEdit] = [:]) -> [Self] {
+        struct Field: Hashable { let code: ChangeParseError.Code; let column: Int; let blank: Bool }
         var groups: [Self] = []
         var fields: [Field: Int] = [:]
         for row in problems.keys.sorted() {
             for issue in problems[row] ?? [] {
                 guard let column = issue.column else { continue }
-                let code = issue.code
+                let code: ChangeParseError.Code = issue.code == .formulaCache && issue.calculatedWeekday != nil ? .weekdayMismatch : issue.code
                 if code == .weekdayOnly {
                     let printed = ChangeNormalizer.text(issue.printedWeekday ?? "")
                     let formula = table.cellIssues[row]?[column] == .formula || table.cellIssues[row]?[column] == .formulaCache
@@ -421,11 +422,14 @@ struct ChangeIssueGroup: Identifiable, Hashable {
                         groups.append(Self(code: code, column: column, rows: [row], printed: printed, formula: formula))
                     }
                 } else {
-                    let key = Field(code: code, column: column)
+                    let original = table.rows[row - 1]
+                    let value = edits[row]?.values[column] ?? (original.indices.contains(column) ? original[column] : "")
+                    let blank = (code == .year || code == .classes) && ChangeNormalizer.text(value).isEmpty
+                    let key = Field(code: code, column: column, blank: blank)
                     if let index = fields[key] { groups[index].rows.append(row) }
                     else {
                         fields[key] = groups.count
-                        groups.append(Self(code: code, column: column, rows: [row]))
+                        groups.append(Self(code: code, column: column, rows: [row], blankField: blank))
                     }
                 }
             }

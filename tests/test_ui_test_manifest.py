@@ -245,7 +245,16 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(short_contact.count(".press(forDuration:"), 1)
         self.assertEqual(switch.count(".press(forDuration:"), 2)
         rows = (ROOT / "tests/ui/ApplicationChecks+Changes.swift").read_text()
-        expected_controls = ["toggle", "group", "excluded", "derive", "blankRowExcluded"]
+        # Checkmarks change the selection for a pending bulk action. Only
+        # persisted per-row settings use native switch gestures.
+        selection = rows.split("func selectRows(", 1)[1].split("        openChanges()", 1)[0]
+        self.assertIn("app.collectionViews.buttons.matching(identifier: identifier)", selection)
+        self.assertIn("XCTAssertFalse(control.isSelected)", selection)
+        self.assertEqual(selection.count("control.tap()"), 1)
+        self.assertIn("in control.isSelected", selection)
+        self.assertIn('selection: "change-select-all"', rows)
+        self.assertIn('selectRows("change-select-row-', rows)
+        expected_controls = ["excluded", "derive", "blankRowExcluded"]
         self.assertCountEqual(re.findall(
             r"tapNativeSwitch\(\s*(\w+)\s*,[^)]*?dragThumb:\s*true\s*\)", rows), expected_controls)
         self.assertEqual(rows.count("tapNativeSwitch("), len(expected_controls))
