@@ -512,6 +512,24 @@ extension ParsingTests {
             XCTAssertEqual(groups.filter { $0.code == .weekdayOnly }.map(\.rows), [[6], [7, 8]])
             XCTAssertEqual(review[7]?.map(\.code), [.weekdayOnly])
             XCTAssertEqual(Set(review[9]?.map(\.code) ?? []), [.formula, .date, .year, .classes])
+            XCTAssertTrue(groups.first { $0.code == .year }?.blankField == true)
+            XCTAssertTrue(table.summary(row: 4, edit: ChangeRowEdit(), year: 2032).contains("学年 空欄"))
+            // Blanking a real lesson in the draft cannot add it to the original's weekday-only block.
+            let cleared = ChangeRowEdit(values: [0: "", 1: "", 2: ""])
+            let clearedProblems = try table.review(edits: [2: cleared], defaultYear: 2032)
+            XCTAssertFalse(clearedProblems[2, default: []].contains { $0.code == .weekdayOnly })
+            var formulas = table
+            formulas.cellIssues[2] = [3: .formula]
+            formulas.cellIssues[3] = [0: .formula, 3: .formula]
+            formulas.rows[2][0] = ""
+            formulas.rows[2][3] = ""
+            let formulaReview = try formulas.review(edits: [:], defaultYear: 2032)
+            XCTAssertEqual(formulaReview[2]?.first?.code, .weekdayMismatch)
+            XCTAssertEqual(formulaReview[3]?.filter { $0.column == 0 }.map(\.code), [.formula])
+            XCTAssertEqual(ChangeIssueGroup.groups(formulaReview, table: formulas).first { $0.code == .weekdayMismatch }?.rows, [2, 3])
+            formulas.rows[2][2] = ""
+            let missingDate = try formulas.review(edits: [:], defaultYear: 2032)
+            XCTAssertEqual(ChangeIssueGroup.groups(missingDate, table: formulas).first { $0.code == .formulaCache }?.rows, [3])
             let weekdays = try XCTUnwrap(groups.first { $0.code == .weekdayMismatch })
             XCTAssertEqual(weekdays.rows, [2,3])
             weekdays.apply(.weekday, selecting: [2,3,6], headers: table.headers, edits: &edits)
@@ -533,7 +551,11 @@ extension ParsingTests {
             XCTAssertEqual(try table.review(edits: undone, defaultYear: 2032)[7]?.map(\.code), [.weekdayOnly])
             XCTAssertEqual(undone[8]?.excluded, true)
             XCTAssertNil(undone[42])
-            XCTAssertEqual(savedGroups.first { $0.saved == .derived }?.rows, [2,3])
+            let derived = try XCTUnwrap(savedGroups.first { $0.saved == .derived })
+            XCTAssertEqual(derived.rows, [2,3])
+            derived.apply(.undo, selecting: [2], headers: table.headers, edits: &undone)
+            XCTAssertTrue(undone[2]?.isEmpty == true)
+            XCTAssertEqual(undone[3]?.deriveWeekday, true)
             let values = try table.records(edits: edits, defaultYear: 2032)
             XCTAssertEqual(values.map(\.class_name), ["1_ZZ","3_ZZ","1_ZZ","2_ZZ","2_ZZ","3_ZZ"])
             for (row, record) in [(2, values[0]), (3, values[2])] {

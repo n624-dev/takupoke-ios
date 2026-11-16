@@ -19,15 +19,19 @@ extension ApplicationChecks {
             screen(review)
             XCTAssertFalse(app.alerts["曜日を確認できないファイルです"].exists)
         }
-        func selectSwitch(_ identifier: String, on page: String) {
-            let control = visible(app.switches[identifier], navigation: page)
-            XCTAssertEqual(control.value as? String, "0")
-            tapNativeSwitch(control, navigation: page, dragThumb: true)
-            let changed = expectation(for: NSPredicate(format: "value == %@", "1"), evaluatedWith: control)
+        func selectRows(_ identifier: String, on page: String) {
+            let matches = app.collectionViews.buttons.matching(identifier: identifier)
+            let control = visible(matches.element, navigation: page)
+            XCTAssertEqual(matches.count, 1)
+            XCTAssertTrue(control.isEnabled && control.isHittable)
+            XCTAssertFalse(control.isSelected)
+            control.tap()
+            let changed = expectation(for: NSPredicate { _, _ in control.isSelected }, evaluatedWith: control)
             XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 15), .completed)
         }
         openChanges()
         openReview()
+        XCTAssertTrue(visible(app.staticTexts["修正は「反映する」を押すまで時間割に反映されません。"], navigation: review).exists)
         let apply = app.navigationBars[review].buttons["反映する"]
         XCTAssertTrue(apply.waitForExistence(timeout: 15), app.debugDescription)
         XCTAssertTrue(app.navigationBars[review].buttons["閉じる"].exists)
@@ -35,8 +39,13 @@ extension ApplicationChecks {
         func exclude(_ id: String, page: String, selection: String) {
             visible(app.buttons[id], navigation: review).tap()
             screen(page)
-            selectSwitch(selection, on: page)
-            visible(app.buttons["選んだ行を除外"], navigation: page).tap()
+            if selection == "change-select-row-3" {
+                let detail = visible(app.buttons["change-editor-row-3"], navigation: page)
+                XCTAssertTrue(detail.label.contains("原本の曜日 月 → 補完後 日"), detail.label)
+                XCTAssertTrue(detail.label.contains("要確認1項目"), detail.label)
+            }
+            selectRows(selection, on: page)
+            visible(app.buttons["選んだ行を除外"], navigation: page, searchEarlierRows: true).tap()
             screen(review)
         }
         exclude("change-group-weekdayMismatch-3-3", page: "曜日を日付から補完", selection: "change-select-row-3")
@@ -50,12 +59,12 @@ extension ApplicationChecks {
             let gradeGroup = app.buttons["change-group-year-0-\(row)"]
             XCTAssertTrue(visible(gradeGroup, navigation: review).label.contains(row == 6 ? "2行" : "1行"))
             gradeGroup.tap()
-            screen("学年を確認")
-            selectSwitch("change-select-row-\(row)", on: "学年を確認")
-            let input = visible(app.textFields["change-group-value"], navigation: "学年を確認")
+            screen("学年が空欄の変更")
+            selectRows("change-select-row-\(row)", on: "学年が空欄の変更")
+            let input = visible(app.textFields["change-group-value"], navigation: "学年が空欄の変更")
             input.tap()
             input.typeText(value + "\n")
-            visible(app.buttons["選んだ行に入力"], navigation: "学年を確認", searchEarlierRows: true).tap()
+            visible(app.buttons["選んだ行に入力"], navigation: "学年が空欄の変更", searchEarlierRows: true).tap()
             screen(review)
         }
         XCTAssertTrue(apply.isEnabled)

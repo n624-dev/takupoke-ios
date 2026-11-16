@@ -29,6 +29,18 @@ struct ChangeWorkbookEditorView: View {
     var body: some View {
         NavigationStack {
             List {
+                let pending = Set(issues.keys).union(view.conflicts)
+                Section {
+                    if model.state.changeAnalysis != nil {
+                        Text("前回の正常結果を表示中です。")
+                    }
+                    Text("修正は「反映する」を押すまで時間割に反映されません。")
+                    let remaining = issues.values.reduce(0) { $0 + $1.count } + view.conflicts.count
+                        + (view.requiresLayoutConfirmation ? 1 : 0)
+                    if remaining > 0 {
+                        Text("あと\(remaining)件の確認が必要です。").font(.headline)
+                    }
+                }
                 Section {
                     if let message = error ?? model.changeFailureMessage ?? model.changePreviewActionFailure(preview) {
                         InlineWarning(message)
@@ -62,7 +74,6 @@ struct ChangeWorkbookEditorView: View {
                         }
                     }
                 }
-                let pending = Set(issues.keys).union(view.conflicts)
                 if !pending.isEmpty {
                     Section("確認が必要な行（\(pending.count)行）") {
                         ForEach(groups) { group in
@@ -129,7 +140,7 @@ struct ChangeWorkbookEditorView: View {
             .navigationDestination(for: Int.self) { row in rowEditor(row) }
             .navigationDestination(for: ChangeIssueGroup.self) { group in
                 ChangeGroupEditor(group: group, title: groupTitle(group), table: view.table,
-                    year: preview.defaultYear ?? 0, activeRows: activeRows(in: group), edits: $edits, verify: verify)
+                    year: preview.defaultYear ?? 0, activeRows: activeRows(in: group), issues: issues, edits: $edits, verify: verify)
             }
             .navigationTitle("内容を確認・修正")
             .toolbar {
@@ -173,7 +184,7 @@ struct ChangeWorkbookEditorView: View {
         }
         let live = group.optional ? (suggestions.map { [$0] } ?? []) : groups
         return Set(live.filter {
-            $0.code == group.code && $0.column == group.column && $0.printed == group.printed && $0.formula == group.formula
+            $0.code == group.code && $0.column == group.column && $0.printed == group.printed && $0.formula == group.formula && $0.blankField == group.blankField
         }.flatMap(\.rows))
             .intersection(group.rows).subtracting(view.conflicts)
     }
@@ -182,7 +193,7 @@ struct ChangeWorkbookEditorView: View {
         savedGroups = ChangeIssueGroup.savedGroups(edits)
         do {
             issues = try view.table.review(edits: edits, defaultYear: preview.defaultYear ?? 0)
-            groups = ChangeIssueGroup.groups(issues, table: view.table)
+            groups = ChangeIssueGroup.groups(issues, table: view.table, edits: edits)
             suggestions = nil
             if let weekday = view.table.headers.firstIndex(where: { ["曜日", "曜"].contains(ChangeNormalizer.token($0)) }) {
                 let year = preview.defaultYear ?? 0
@@ -230,9 +241,10 @@ struct ChangeWorkbookEditorView: View {
         }
         switch group.code {
         case .weekdayOnly: return group.printed.isEmpty ? "曜日の数式だけの行" : "「\(group.printed)」だけの行"
-        case .weekdayMismatch, .formulaCache: return "曜日を日付から補完"
-        case .year: return "学年を確認"
-        case .classes: return "学科・クラスを確認"
+        case .weekdayMismatch: return "曜日を日付から補完"
+        case .formulaCache: return "曜日の数式を確認"
+        case .year: return group.blankField ? "学年が空欄の変更" : "学年を確認"
+        case .classes: return group.blankField ? "学科・クラスが空欄の変更" : "学科・クラスを確認"
         case .unknownAll: return "「全」の対象クラスを確認"
         default: return problemLabel(ChangeParseError(code: group.code, column: group.column))
         }
@@ -244,6 +256,7 @@ struct ChangeWorkbookEditorView: View {
                 Text("\(row)行目" + (edits[row]?.excluded == true ? "（除外）" : ""))
                 Text(view.table.summary(row: row, edit: edits[row] ?? ChangeRowEdit(), year: preview.defaultYear ?? 0))
                     .font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                if let count = issues[row]?.count, count > 0 { Text("要確認\(count)項目").font(.callout) }
                 if view.conflicts.contains(row) { InlineWarning("以前の修正を選んでください。") }
             }
         }
@@ -312,7 +325,13 @@ struct ChangeWorkbookEditorView: View {
                 Button("この行を原本の値に戻す") { edits.removeValue(forKey: row) }
             }
         }
-        .navigationTitle("\(row)行目").onDisappear { verify() }
+        .navigationTitle("\(row)行目")
+        .task(id: edits[row]) {
+            // Let a sequence of keystrokes finish before rescanning the workbook.
+            do { try await Task.sleep(for: .milliseconds(300)) } catch { return }
+            verify()
+        }
+        .onDisappear { verify() }
     }
 
 }

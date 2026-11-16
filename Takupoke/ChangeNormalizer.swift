@@ -246,6 +246,7 @@ extension ChangeEditTable {
         let issue = cellIssues[row]?[column]
         return (issue.map { [.formula, .formulaCache, .weekdayOnly].contains($0) } ?? true)
             && (!ChangeNormalizer.text(values[column]).isEmpty || issue != nil)
+            && rows[row - 1].enumerated().allSatisfy { $0.offset == column || ChangeNormalizer.text($0.element).isEmpty }
             && values.enumerated().allSatisfy { $0.offset == column || ChangeNormalizer.text($0.element).isEmpty }
             && cellIssues[row, default: [:]].keys.allSatisfy { $0 == column }
             && cellSources[row, default: [:]].keys.allSatisfy { $0 == column }
@@ -291,9 +292,10 @@ extension ChangeEditTable {
             guard edit.values.values.allSatisfy({ $0.utf8.count <= 4096 }) else { throw ChangeParseError(code: .limit) }
             if edit.excluded { continue }
             let v = values(at: number, edit: edit, defaultYear: defaultYear)
-            func report(_ code: ChangeParseError.Code, _ column: Int) {
-                let error = ChangeParseError(code: code, row: number, column: column)
-                if issues[number]?.contains(error) != true { issues[number, default: []].append(error) }
+            func report(_ code: ChangeParseError.Code, _ column: Int, printed: String? = nil, calculated: String? = nil) {
+                guard issues[number]?.contains(where: { $0.column == column }) != true else { return }
+                issues[number, default: []].append(ChangeParseError(code: code, row: number, printedWeekday: printed,
+                                                                    calculatedWeekday: calculated, column: column))
             }
             if let weekday, weekdayOnly(v, row: number, column: weekday) {
                 issues[number] = [ChangeParseError(code: .weekdayOnly, row: number, printedWeekday: v[weekday], column: weekday)]
@@ -309,7 +311,11 @@ extension ChangeEditTable {
                 let resolvedWeekday = column == weekday && (matchingCachedWeekday || (edit.deriveWeekday && normalizedDate != nil && canDeriveWeekday(row: number, column: column)))
                 if edit.values[column] == nil && !resolvedWeekday {
                     if column == weekday && (code == .formula || code == .formulaCache) {
-                        report(.formulaCache, column)
+                        if ChangeNormalizer.text(v[column]).isEmpty {
+                            report(.formulaCache, column, calculated: normalizedDate.flatMap(ChangeNormalizer.weekday))
+                        } else if let normalizedDate {
+                            report(.weekdayMismatch, column, printed: v[column], calculated: ChangeNormalizer.weekday(normalizedDate))
+                        }
                     } else { report(code, column) }
                 }
             }
@@ -317,7 +323,9 @@ extension ChangeEditTable {
             if let weekday, let normalizedDate,
                !ChangeNormalizer.text(v[weekday]).isEmpty,
                issues[number]?.contains(where: { $0.column == weekday }) != true,
-               !ChangeNormalizer.weekdayMatches(v[weekday], normalizedDate: normalizedDate) { report(.weekdayMismatch, weekday) }
+               !ChangeNormalizer.weekdayMatches(v[weekday], normalizedDate: normalizedDate) {
+                report(.weekdayMismatch, weekday, printed: v[weekday], calculated: ChangeNormalizer.weekday(normalizedDate))
+            }
             let years = try? ChangeNormalizer.years(ChangeNormalizer.number(v[grade]))
             let classes = try? ChangeNormalizer.classes(ChangeNormalizer.number(v[classroom]))
             if years == nil { report(.year, grade) }
@@ -357,12 +365,22 @@ extension ChangeEditTable {
 }
 
 extension ChangeEditTable {
+    func weekdayComparison(row: Int, edit: ChangeRowEdit, year: Int) -> String? {
+        let values = values(at: row, edit: edit, defaultYear: year)
+        guard let column = weekdayColumn, let day = derivedWeekday(values, row: row, edit: edit, defaultYear: year) else { return nil }
+        let original = rows[row - 1]
+        let printed = original.indices.contains(column) ? original[column] : ""
+        return "原本の曜日 " + (printed.isEmpty ? "空欄" : printed) + " → 補完後 " + day
+    }
+
     func summary(row: Int, edit: ChangeRowEdit, year: Int) -> String {
         let values = values(at: row, edit: edit, defaultYear: year)
         return headers.indices.compactMap { column -> String? in
             let value = values[column]
-            guard !value.isEmpty else { return nil }
-            let label = headers[column]
+            let label = ChangeNormalizer.token(headers[column]) == "学年" ? "学年" : headers[column]
+            if value.isEmpty {
+                return ["学年", "学科・クラス", "月日"].contains(label) ? label + " 空欄" : nil
+            }
             let date = ChangeNormalizer.text(label) == "月日" ? normalizedDate(values, row: row, edit: edit, defaultYear: year) : nil
             return label + " " + (date ?? value)
         }.joined(separator: "　")

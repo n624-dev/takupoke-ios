@@ -72,6 +72,7 @@ struct ChangeGroupEditor: View {
     let table: ChangeEditTable
     let year: Int
     let activeRows: Set<Int>
+    let issues: [Int: [ChangeParseError]]
     @Binding var edits: [Int: ChangeRowEdit]
     let verify: () -> Void
     @State private var selected: Set<Int> = []
@@ -82,14 +83,16 @@ struct ChangeGroupEditor: View {
         List {
             Section {
                 Text(ChangeReviewGroup.rangeLabel(group.rows))
-                Toggle("すべて選択（\(group.rows.count)行）", isOn: Binding(get: {
-                    !activeRows.isEmpty && activeRows.isSubset(of: selected)
-                }, set: { selected = $0 ? activeRows : [] }))
+                let allSelected = !activeRows.isEmpty && activeRows.isSubset(of: selected)
+                selectionButton("すべて選択（\(activeRows.count)行）", selected: allSelected) {
+                    selected = allSelected ? [] : activeRows
+                }
+                .disabled(activeRows.isEmpty)
                 .accessibilityIdentifier("change-select-all")
                 if group.saved != nil {
                     Button("選んだ行のこの修正を解除") { finish(.undo) }.disabled(selected.isDisjoint(with: activeRows))
                 }
-                if group.code == .weekdayMismatch || group.code == .formulaCache {
+                if group.code == .weekdayMismatch {
                     Button("選んだ行の曜日を補完") { finish(.weekday) }
                         .disabled(selected.isDisjoint(with: activeRows) || !selected.intersection(activeRows).allSatisfy { row in
                             table.normalizedDate(table.values(at: row, edit: edits[row] ?? ChangeRowEdit(), defaultYear: year),
@@ -108,14 +111,22 @@ struct ChangeGroupEditor: View {
             }
             Section("対象の行") {
                 ForEach(group.rows, id: \.self) { row in
-                    Toggle("\(row)行目を選択", isOn: Binding(get: { selected.contains(row) }, set: { on in
-                        if on { selected.insert(row) } else { selected.remove(row) }
-                    }))
+                    selectionButton("\(row)行目を選択", selected: selected.contains(row)) {
+                        if selected.contains(row) { selected.remove(row) } else { selected.insert(row) }
+                    }
                     .disabled(!activeRows.contains(row))
                     .accessibilityIdentifier("change-select-row-\(row)")
                     NavigationLink(value: row) {
                         VStack(alignment: .leading) {
                             Text("\(row)行目を編集")
+                            if let count = issues[row]?.count, count > 0 {
+                                Text("要確認\(count)項目").font(.callout)
+                            }
+                            if group.code == .weekdayMismatch, let change = table.weekdayComparison(
+                                row: row, edit: edits[row] ?? ChangeRowEdit(), year: year
+                            ) {
+                                Text(change)
+                            }
                             Text(table.summary(row: row, edit: edits[row] ?? ChangeRowEdit(), year: year))
                                 .font(.caption).foregroundStyle(.secondary)
                         }
@@ -125,6 +136,17 @@ struct ChangeGroupEditor: View {
             }
         }
         .navigationTitle(title)
+    }
+
+    private func selectionButton(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Text(title)
+                Spacer()
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle").accessibilityHidden(true)
+            }.contentShape(Rectangle())
+        }
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private func finish(_ action: ChangeIssueGroup.Action) {
