@@ -5084,3 +5084,7 @@ N243限定確認：89066f3/run43387318089/attempt1/job131758747884は07:39:35〜
   検索語「importPlatform／exportedBundle／Code=23／reclaim／sudo」。N220/N222/N226と当時の配布版8c8809eのprepare-ios26-runtime.pyを照合。過去は二重登録・回収が失敗したが、今回は所有assetの回収が通り、その後のディレクトリcopyが権限を要求した。select-ci-xcode.pyは事前にシステムXcodeの選択を検証済み。候補はmacOS Actionsで自分が取得した一意な非symlinkのexportedBundleを取り込む一命令だけsudo -nでシステムの/usr/bin/xcodebuildへ渡す。dmgは一般権限、権限拒否は即停止。登録・実build・guest・実XCTest・期限・後始末の検証は維持。権限がなければディレクトリcopyを拒否するfakeと元のワークフロー入口を検査し、正式SDKの26.5ネイティブ限定確認を経て全ゲートを実行する。
 - 正式494 attempt 2／43803666255、fc906af、原本変更26（133131048791）、SDK27.2／iOS26.5。最後のジョブで23F77 import・bootstatusが完了したが、ManualAssistanceChecks.swift:68の最初のアプリ起動でXcode側がタイムアウト、ケースは172.336秒・exit65。原本変更の操作前。公開は依存skip。ほかの4台のCode=23とは別の観測。
   N95の同じ原本変更ケースの初回Xcode起動timeout、U40/U49/U59/N61/N72の比較、限定43767607953の記録と、8c8809eおよび現行の訂正起動処理を再読。現行は既にSpringBoard前景・枠確認後に一回だけapp.launchし、fixture-readyを必須とする。両OSの同じ原本変更ケースの過去成功があり、今回の一台では操作開始前の起動待ちで止まった。ケースや期限を緩めず、新規ランナーを使う次の正式検証の元ケースで確認する。権限修正側のPython全316件は262.822秒、失敗0・環境依存skip2。sudo拒否・dmg非昇格・異なるホスト・不正なexportも検証。
+
+### #113 Linux ローカル検証の入力固定
+- f75b0632を基点にした作業中の差分、Linux Swift 6.1.2、ParsingTestsの最初のローカルビルドで、SwiftコンパイラがChangeAnalysis.swiftの変更を検出して停止した。XCTest・シミュレーターは起動していない。
+- 当時のtools/test-parsing.shは入力を別ディレクトリにコピーしてから検証する。今回は作業ツリーを直接コンパイルしていた。以降は確定したスナップショットでコンパイルし、実行中の入力は編集しない。
