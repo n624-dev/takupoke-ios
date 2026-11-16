@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CHECK_SOURCES = (
     "ApplicationChecks.swift",
     "ApplicationChecks+Navigation.swift",
+    "NativeTabActivation.swift",
     "ApplicationChecks+Changes.swift",
     "ApplicationChecks+Recovery.swift",
     "ApplicationChecks+Timetable.swift",
@@ -31,6 +32,7 @@ FIXTURE_SOURCES = (
 MANUAL_CHECK_SOURCES = (
     "ManualAssistanceChecks.swift",
     "ManualAssistanceGeometry.swift",
+    "NativeTabActivation.swift",
     "ManualAssistanceChecks+Navigation.swift",
     "ManualAssistanceChecks+Review.swift",
     "ManualAssistanceChecks+Input.swift",
@@ -43,7 +45,7 @@ MANUAL_CHECK_SOURCES = (
 def manual_check_source(root=ROOT):
     folder = root / "tests/ui"
     actual = {path.name for path in folder.glob("ManualAssistanceChecks*.swift")}
-    expected = set(MANUAL_CHECK_SOURCES) - {"ManualAssistanceGeometry.swift"}
+    expected = set(MANUAL_CHECK_SOURCES) - {"ManualAssistanceGeometry.swift", "NativeTabActivation.swift"}
     if actual != expected:
         raise ValueError("Manual UI test files differ from registered sources")
     return "\n".join((folder / name).read_text(encoding="utf-8")
@@ -53,7 +55,7 @@ def manual_check_source(root=ROOT):
 def check_source(root=ROOT):
     folder = root / "tests/ui"
     actual = {path.name for path in folder.glob("ApplicationChecks*.swift")}
-    if actual != set(CHECK_SOURCES):
+    if actual != set(CHECK_SOURCES) - {"NativeTabActivation.swift"}:
         raise ValueError("UI test files differ from registered sources")
     return "\n".join((folder / name).read_text(encoding="utf-8")
                      for name in CHECK_SOURCES)

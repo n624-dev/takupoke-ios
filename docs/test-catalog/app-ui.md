@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`d86bc403c4abd4ca0f8f7f130d61ce42b8a5b11bf43a4d127619806076def963`
+`ee415728ac41a444712fd9673bd9f751e60e677b1a6d89fafd28c543e6f04ada`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -50,6 +50,7 @@ bash tools/test-app-ui.sh
 - [Takupoke/TimetableView.swift](../../Takupoke/TimetableView.swift)
 - [Takupoke/UsageHelpView.swift](../../Takupoke/UsageHelpView.swift)
 - [tests/Support/ObservedScreenGeometry.swift](../../tests/Support/ObservedScreenGeometry.swift)
+- [tests/ui/NativeTabActivation.swift](../../tests/ui/NativeTabActivation.swift)
 - [tests/ui/ApplicationChecks+Navigation.swift](../../tests/ui/ApplicationChecks+Navigation.swift)
 - [tests/ui/ApplicationChecks.swift](../../tests/ui/ApplicationChecks.swift)
 - [tests/ui/ApplicationFixture+Changes.swift](../../tests/ui/ApplicationFixture+Changes.swift)
@@ -81,6 +82,7 @@ bash tools/test-app-ui.sh
 ## [tests/test_ui_test_manifest.py](../../tests/test_ui_test_manifest.py)
 
 - `test_phases_partition_every_shard_and_focused_selection_without_duplicates`
+- `test_both_suites_use_the_same_native_tab_contact`
 - `test_split_sources_are_registered_in_the_selected_target_only`
 - `test_unregistered_split_file_is_rejected`
 - `test_manual_split_registers_all_helpers_and_refuses_unknown_files`

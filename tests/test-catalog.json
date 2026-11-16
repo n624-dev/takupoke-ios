@@ -482,6 +482,7 @@
         "Takupoke/TimetableView.swift",
         "Takupoke/UsageHelpView.swift",
         "tests/Support/ObservedScreenGeometry.swift",
+        "tests/ui/NativeTabActivation.swift",
         "tests/ui/ApplicationChecks+Navigation.swift",
         "tests/ui/ApplicationChecks.swift",
         "tests/ui/ApplicationFixture+Changes.swift",

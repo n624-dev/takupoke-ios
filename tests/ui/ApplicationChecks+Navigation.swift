@@ -13,43 +13,7 @@ extension ApplicationChecks {
         screen(title)
     }
     func tab(_ title: String) {
-        guard app.tabBars.firstMatch.waitForExistence(timeout: 45) else {
-            XCTFail("Tab bar must exist: " + app.debugDescription); return
-        }
-        let bars = app.tabBars.allElementsBoundByAccessibilityElement
-        guard bars.count == 1 else {
-            XCTFail("Tab bar must have one current native identity"); return
-        }
-        let tabs = bars[0]
-        guard tabs.buttons[title].waitForExistence(timeout: 45) else {
-            XCTFail("Tab button must exist: " + app.debugDescription); return
-        }
-        let buttons = tabs.buttons.matching(NSPredicate(
-            format: "identifier == %@ OR label == %@", title, title)).allElementsBoundByAccessibilityElement
-        guard buttons.count == 1 else {
-            XCTFail("Tab button must have one current native identity"); return
-        }
-        let button = buttons[0], barFrame = tabs.frame, buttonFrame = button.frame
-        let scale = UIScreen.main.scale
-        guard usable(barFrame), usable(buttonFrame),
-            ObservedScreenGeometry.contains(buttonFrame, in: barFrame, scale: scale),
-            button.isEnabled, button.isHittable else {
-            XCTFail("Tab has no visible native hit region: " + app.debugDescription); return
-        }
-        let icons = button.images.allElementsBoundByAccessibilityElement
-        guard icons.count == 1, icons[0].exists else {
-            XCTFail("Tab requires one current native icon"); return
-        }
-        let icon = icons[0], iconFrame = icon.frame
-        guard usable(iconFrame),
-            ObservedScreenGeometry.contains(iconFrame, in: buttonFrame, scale: scale),
-            ObservedScreenGeometry.contains(iconFrame, in: barFrame, scale: scale), icon.isHittable else {
-            XCTFail("Tab requires one visible native icon inside its current button: " + app.debugDescription); return
-        }
-        print("NATIVE_TAB title=\(title);bar=\(barFrame);button=\(buttonFrame);icon=\(iconFrame)")
-        // Bind this attempt's real identities and read each frame once (N213).
-        // U63's same native icon center, one contact and 45s selection remain.
-        icon.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.1)
+        guard pressNativeTabIcon(title, in: app, timeout: 45) else { return }
         let selected = XCTNSPredicateExpectation(
             predicate: NSPredicate { _, _ in
                 let current = self.app.tabBars.buttons[title]

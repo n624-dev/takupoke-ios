@@ -58,6 +58,23 @@ class ManifestTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Unknown"):
             manifest.phase_tests(manifest.SHARDS["B"], "unregistered")
 
+    def test_both_suites_use_the_same_native_tab_contact(self):
+        common = "NativeTabActivation.swift"
+        for files in (manifest.CHECK_SOURCES, manifest.MANUAL_CHECK_SOURCES):
+            self.assertEqual(files[1:].count(common), 1)
+        folder = ROOT / "tests/ui"
+        app = (folder / "ApplicationChecks+Navigation.swift").read_text()
+        manual = (folder / "ManualAssistanceChecks.swift").read_text()
+        self.assertIn("guard pressNativeTabIcon(title, in: app, timeout: 45)", app)
+        self.assertIn('guard pressNativeTabIcon("設定", in: app, timeout: nativeStateTimeout)', manual)
+        self.assertIn("current.count==1 && current[0].isSelected", manual)
+        contact = (folder / common).read_text()
+        self.assertIn("icons.count == 1", contact)
+        self.assertIn("ObservedScreenGeometry.contains(iconFrame, in: buttonFrame", contact)
+        self.assertIn("ObservedScreenGeometry.contains(iconFrame, in: barFrame", contact)
+        self.assertEqual(contact.count(".press(forDuration: 0.1)"), 1)
+        self.assertNotIn(".tap()", contact)
+
     def test_split_sources_are_registered_in_the_selected_target_only(self):
         project = {'rootObject': 'project', 'objects': {
             'project': {'mainGroup': 'group'}, 'group': {'children': []},

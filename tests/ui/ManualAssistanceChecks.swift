@@ -22,8 +22,7 @@ final class ManualAssistanceChecks:SimulatorIdentityTestCase {
     func launch(_ flags:[String]=[]) {
         app.launchArguments=["--reset-fixture","--manual-ui","--fixture-input-trace","--fixture-year-input-trace","--manual-integral-rails","-AppleLanguages","(ja)","-AppleLocale","ja_JP"]+flags
         guard launchApplicationOnce() else { return }
-        let settings=app.tabBars.buttons["設定"]
-        settings.tap()
+        guard pressNativeTabIcon("設定", in: app, timeout: nativeStateTimeout) else { return }
         let selected=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
             let current=self.app.tabBars.buttons.matching(NSPredicate(format:"label == %@","設定")).allElementsBoundByAccessibilityElement
             return current.count==1 && current[0].isSelected

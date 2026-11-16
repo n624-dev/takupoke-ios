@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`7fb83c5cb6a1a6a489530e6fe0975a493cdca1ff1236961074c7dfa5ad7cf10f`
+`5f8a35220e457fd9e0389946c77a0faa13b6b49066780461e9342cc58189cf22`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -40,6 +40,7 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 ## [tests/test_ui_test_manifest.py](../../tests/test_ui_test_manifest.py)
 
 - `test_phases_partition_every_shard_and_focused_selection_without_duplicates`
+- `test_both_suites_use_the_same_native_tab_contact`
 - `test_split_sources_are_registered_in_the_selected_target_only`
 - `test_unregistered_split_file_is_rejected`
 - `test_manual_split_registers_all_helpers_and_refuses_unknown_files`
