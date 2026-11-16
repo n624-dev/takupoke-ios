@@ -1,6 +1,8 @@
 name: Native application relaunch diagnosis
 
 on:
+  push:
+    branches: [verify/110-112-switch-snapshot-493]
   workflow_dispatch:
     inputs:
       case:
@@ -51,6 +53,7 @@ permissions:
 
 jobs:
   focus:
+    if: github.event_name == 'workflow_dispatch'
     name: Relaunch diagnosis iOS ${{ matrix.ios }}
     strategy:
       fail-fast: false
@@ -121,6 +124,79 @@ jobs:
       - name: Remove the owned relaunch runner log
         if: always()
         run: python3 -B -c 'import os; from pathlib import Path; (Path(os.environ["RUNNER_TEMP"])/"takupoke-relaunch-runner-owned.log").unlink(missing_ok=True)'
+      - name: Remove the owned iOS 26 runtime export after simulator cleanup
+        if: always() && matrix.ios == 26
+        run: python3 -B tools/prepare-ios26-runtime.py --cleanup-export
+
+  ai-settings:
+    if: github.event_name == 'push'
+    name: Focused application iOS ${{ matrix.ios }} / ${{ matrix.group }}
+    runs-on: xcode-27
+    strategy:
+      fail-fast: false
+      matrix:
+        ios: [26, 27]
+        group:
+          - testSettingsAccountDataAndFileDetails
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+      TKPK_EXPECTED_IOS_SDK: '27.2'
+      PYTHONDONTWRITEBYTECODE: '1'
+      TKPK_TEST_IOS: ${{ matrix.ios }}
+      TKPK_SIMULATOR_FRONTEND: ${{ matrix.ios == 26 && 'gui' || 'headless' }}
+      TKPK_UI_RELAUNCH_PROBE: '1'
+      TKPK_UI_PROBE_SDK27: '27.2'
+      TKPK_UI_PROBE_SDK26: '27.2'
+      TKPK_UI_PROBE_CASE: ${{ matrix.group }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Require the pushed source
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Select Xcode and require both shipping SDKs
+        run: |
+          set -euo pipefail
+          python3 -B tools/select-ci-xcode.py
+          test "$(xcrun --sdk iphonesimulator --show-sdk-version)" = "$TKPK_EXPECTED_IOS_SDK"
+          test "$(xcrun --sdk iphoneos --show-sdk-version)" = "$TKPK_EXPECTED_IOS_SDK"
+      - name: Prepare the shipping runtime
+        run: |
+          set -euo pipefail
+          if [[ "$TKPK_TEST_IOS" == 27 ]]; then
+            python3 -B tools/prepare-ios27-runtime.py
+          else
+            python3 -B tools/prepare-ios26-runtime.py --hold-export
+          fi
+      - name: Exercise the selected app cases and verify the runner log
+        run: |
+          set -euo pipefail
+          selection=(--relaunch-probe --probe-case "$TKPK_UI_PROBE_CASE")
+          if [[ "$TKPK_UI_PROBE_CASE" == testSettingsAccountDataAndFileDetails ]]; then
+            selector="$(python3 -B tools/ui_test_manifest.py "${selection[@]}" --mode selectors)"
+            test "$selector" = '-only-testing:PickerTapChecks/ApplicationChecks/testSettingsAccountDataAndFileDetails'
+          fi
+          python3 -B tools/timed_command.py --timeout 1440 --cleanup-grace 120 \
+            "Focused relaunch runner" bash tools/test-app-ui.sh 2>&1 | tee "$RUNNER_TEMP/takupoke-audited-native.log"
+          python3 -B tools/ui_test_manifest.py "${selection[@]}" --mode verify --ios "$TKPK_TEST_IOS" \
+            --runner-log --log "$RUNNER_TEMP/takupoke-audited-native.log"
+      - name: Confirm the recorded guest OS minor version
+        run: |
+          python3 -B - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          expected = {"26": (26, 5), "27": (27, 0)}[os.environ["TKPK_TEST_IOS"]]
+          log = Path(os.environ["RUNNER_TEMP"], "takupoke-audited-native.log").read_text(encoding="utf-8")
+          records = re.findall(r"(?m)^[ \t]*TAKUPOKE_UI_EXECUTION_IDENTITY ([^\r\n]+)$", log)
+          if not records or any(tuple(map(int, json.loads(raw)["runtime"].split(".")[:2])) != expected
+                                for raw in records):
+              raise SystemExit("Missing guest execution or unexpected runtime minor version")
+          PY
+      - name: Remove the owned diagnostic log
+        if: always()
+        run: python3 -B -c 'import os; from pathlib import Path; Path(os.environ["RUNNER_TEMP"], "takupoke-audited-native.log").unlink(missing_ok=True)'
       - name: Remove the owned iOS 26 runtime export after simulator cleanup
         if: always() && matrix.ios == 26
         run: python3 -B tools/prepare-ios26-runtime.py --cleanup-export
