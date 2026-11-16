@@ -1,15 +1,14 @@
 import Foundation
 
 // QA geometry only: no value assignment or acknowledgement synthesis.
-func manualAcknowledgementPoint(outer:CGRect,inner:CGRect,viewport:CGRect)->CGPoint? {
-    guard [outer,inner,viewport].allSatisfy({
+func manualAcknowledgementFits(outer:CGRect,inner:CGRect,viewport:CGRect)->Bool {
+    return [outer,inner,viewport].allSatisfy({
         !$0.isNull && !$0.isInfinite && $0.width>0 && $0.height>0
             && [$0.minX,$0.minY,$0.maxX,$0.maxY].allSatisfy(\.isFinite)
-    }), [outer,viewport].allSatisfy({
+    }) && [outer,viewport].allSatisfy({
         inner.minX >= $0.minX && inner.maxX <= $0.maxX
             && inner.minY >= $0.minY && inner.maxY <= $0.maxY
-    }) else { return nil }
-    return CGPoint(x:inner.midX,y:inner.midY)
+    })
 }
 
 // BEGIN PURE MANUAL SCROLL NAVIGATION

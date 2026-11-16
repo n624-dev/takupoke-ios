@@ -23,24 +23,23 @@ extension ManualAssistanceChecks {
         let bottom=min(listFrame.maxY,keyboardFrame.map { $0.minY-45 } ?? listFrame.maxY)-12
         let viewport=CGRect(x:listFrame.minX,y:top,width:listFrame.width,height:max(0,bottom-top))
         let outerFrame=row.frame,innerFrame=actual.frame
-        guard let point=manualAcknowledgementPoint(outer:outerFrame,inner:innerFrame,viewport:viewport) else {
+        guard manualAcknowledgementFits(outer:outerFrame,inner:innerFrame,viewport:viewport) else {
             print("TAKUPOKE-MANUAL-ACK invalid-hit-region;outer=\(outerFrame);inner=\(innerFrame);viewport=\(viewport)")
             XCTFail(app.debugDescription);return
         }
         let enabled=actual.isEnabled,hittable=actual.isHittable
         let priorValue=row.value as? String
-        print("TAKUPOKE-MANUAL-ACK before;id=\(id);outer=\(outerFrame);inner=\(innerFrame);enabled=\(enabled);hittable=\(hittable);point=\(point);app=\(appFrame);viewport=\(viewport);keyboard=\(keyboardFrame.map { String(describing:$0) } ?? "absent");value=\(priorValue ?? "unknown")")
-        guard enabled,hittable,priorValue == "0" else {
+        let nativeValue=actual.value as? String
+        print("TAKUPOKE-MANUAL-ACK before;id=\(id);outer=\(outerFrame);inner=\(innerFrame);enabled=\(enabled);hittable=\(hittable);controlValue=\(nativeValue ?? "unknown");app=\(appFrame);viewport=\(viewport);keyboard=\(keyboardFrame.map { String(describing:$0) } ?? "absent");value=\(priorValue ?? "unknown")")
+        guard enabled,hittable,priorValue == "0",nativeValue == "0" else {
             XCTFail("The unique native acknowledgement must be operable and unchecked");return
         }
-        // Bind the native element by accessibility identity. Index-bound child
-        // queries re-traversed recycled ancestors during event synthesis (N94).
-        // U71: one brief contact at the same verified center, relative to the
-        // actual inner widget rather than a saved application-screen position.
-        actual.coordinate(withNormalizedOffset:CGVector(
-            dx:(point.x-innerFrame.minX)/innerFrame.width,
-            dy:(point.y-innerFrame.minY)/innerFrame.height)).press(forDuration:0.1)
-        // Post-tap diagnostics must not add AX queries before the native state check.
+        // Use the same single thumb drag as row exclusion. The row and
+        // its native switch must both be off before the gesture begins.
+        let start = actual.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.5))
+        let finish = actual.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5))
+        start.press(forDuration: 0.05, thenDragTo: finish, withVelocity: .slow, thenHoldForDuration: 0)
+        // Post-gesture diagnostics must not add AX queries before the native state check.
         print("TAKUPOKE-MANUAL-ACK after;id=\(id)")
         var ambiguous=false
         let changed=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
