@@ -163,6 +163,12 @@ while read -r device_type runtime; do
     python3 -B tools/timed_command.py "App UI build iOS $ios_major" \
         xcodebuild "${xcode_args[@]}" build-for-testing
     boot_simulator
+    if [[ "${TKPK_WEEK_REDUCED_PROBE:-0}" == "1" ]]; then
+        # Configure only this newly booted simulator, before the tested app starts.
+        # Verify the actual UIKit preference seen by the app in each presentation capture below.
+        xcrun simctl spawn "$simulator_id" defaults write com.apple.Accessibility ReduceMotionEnabled -bool YES
+        xcrun simctl spawn "$simulator_id" notifyutil -p com.apple.accessibility.reduce.motion.status
+    fi
     check_ui() {
         local log_path="$1"
         shift
@@ -237,6 +243,30 @@ PY_OWNED_UI
             check_ui "$scratch_dir/os-size.log" -only-testing:PickerTapChecks/ApplicationChecks/testTimetableUsesSystemTextSize test-without-building
             python3 -B tools/ui_test_manifest.py --shard "$shard" --mode verify --ios "$ios_major" --log "$scratch_dir/os-size.log" --system-size-only
         done
+    fi
+    if [[ "${TKPK_WEEK_REDUCED_PROBE:-0}" == "1" ]]; then
+    # The selected test has completed its real gestures. Read only the synthetic app’s measured frames.
+    week_container="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.app-checks data)"
+    python3 - "$week_container/Documents" <<'PY_WEEK_FRAMES'
+from pathlib import Path
+import json, sys
+captures = sorted(Path(sys.argv[1]).glob("week-motion-*.json"))
+if len(captures) != 2:
+    raise SystemExit(f"Expected the two completed physical week gestures, found {len(captures)}")
+for file in captures:
+    record = json.loads(file.read_text())
+    samples = record["samples"]
+    if samples:
+        x = [round(row[1], 2) for row in samples]
+        print("WEEK_PRESENTED_FRAMES", json.dumps(dict(reduceMotion=record["reduceMotion"],
+            incomingTravel=record["travel"], x=x, times=[round(row[0], 3) for row in samples],
+            alpha=[round(row[2], 2) for row in samples])))
+    if not record["reduceMotion"] or len(samples) < 3:
+        raise SystemExit("Real UIKit Reduce Motion or a sequence of drawn frames missing")
+    opacity = [row[2] for row in samples]
+    if max(x) - min(x) > 2 or max(opacity) - min(opacity) < 0.15 or not any(0.05 < v < 0.95 for v in opacity):
+        raise SystemExit("Expected a stationary, fading outgoing view in the observed frames")
+PY_WEEK_FRAMES
     fi
     if [[ "${TKPK_UI_PROBE_CASE:-all}" == "notifications" ]]; then
         python3 -B tools/notification_service_trace.py "$simulator_id" || true
