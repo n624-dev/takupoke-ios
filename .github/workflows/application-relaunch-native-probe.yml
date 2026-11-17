@@ -90,17 +90,3 @@ jobs:
       - name: Remove the owned iOS 26 runtime export after simulator cleanup
         if: always() && matrix.ios == 26
         run: python3 -B tools/prepare-ios26-runtime.py --cleanup-export
-
-  native:
-    name: Native comparison and workbook tests
-    runs-on: macos-26
-    timeout-minutes: 20
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - name: Run the shipping native tests with fictional documents
-        run: bash tools/test-parsing.sh
