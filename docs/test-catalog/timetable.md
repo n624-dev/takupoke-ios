@@ -1,7 +1,7 @@
 # 時間割・今日の予定・授業時刻・授業名
 
 対応関係・宣言名・実行方法のSHA-256：
-`3fdeb2e4cd9eaca25eebc34437b04c57a53b1835ebc16b6f0e849b522951b7dd`
+`eccd0b9e42f1904db3e7d9887aa381beb5a057d963bf29085ff24f9176ce4f9f`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -87,6 +87,7 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 
 ## [tests/TimetableScheduleTests.swift](../../tests/TimetableScheduleTests.swift)
 
+- `testWeekPullConsumesHiddenColumnsAndUsesTheFinalFingerPosition`
 - `testBoundedRenderingMemoKeepsNilAndExactUnicodeInputs`
 - `testCommonClockCacheSeparatesDisplayScopeAndStopsAtRetentionBoundary`
 - `testAcceptedSourceIndexMatchesOriginalSelectorsAndBlocksAcrossScopes`

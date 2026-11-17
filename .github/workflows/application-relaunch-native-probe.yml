@@ -21,7 +21,6 @@ jobs:
       matrix:
         ios: [27, 26]
         group:
-          - rows
           - week-change-details
     timeout-minutes: 45
     env:

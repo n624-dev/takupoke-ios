@@ -2,6 +2,27 @@ import XCTest
 @testable import TakupokeParsing
 
 final class TimetableScheduleTests: XCTestCase {
+    func testWeekPullConsumesHiddenColumnsAndUsesTheFinalFingerPosition() throws {
+        let horizontal = CGPoint(x: 250, y: 3)
+        let narrow = try XCTUnwrap(WeekEdgePull(velocity: horizontal, offset: 0, scrollRange: 0))
+        let wide = try XCTUnwrap(WeekEdgePull(velocity: horizontal, offset: 70, scrollRange: 260))
+        XCTAssertNil(WeekEdgePull(velocity: CGPoint(x: 3, y: 80), offset: 0, scrollRange: 0))
+        XCTAssertEqual(narrow.distance(for: CGPoint(x: 120, y: 150)), 0)
+        XCTAssertEqual(wide.distance(for: CGPoint(x: -190, y: 2)), 0)
+        XCTAssertEqual(wide.distance(for: CGPoint(x: 70, y: 2)), 0)
+        XCTAssertEqual(wide.distance(for: CGPoint(x: -305, y: 2)), -115)
+        XCTAssertEqual(wide.distance(for: CGPoint(x: 185, y: 2)), 115)
+        func release(_ x: CGFloat, previous: Bool = true, next: Bool = true) -> Int {
+            WeekEdgePull.weekOffset(onRelease: narrow.distance(for: CGPoint(x: x, y: 0)), previous: previous, next: next)
+        }
+        XCTAssertEqual([35, 130, 70].map { release($0) }, [0, -7, 0])
+        XCTAssertEqual([-130, -70].map { release($0) }, [7, 0])
+        XCTAssertEqual(release(350), -7)
+        XCTAssertEqual(release(-350), 7)
+        XCTAssertEqual(release(350, previous: false), 0)
+        XCTAssertEqual(release(-350, next: false), 0)
+    }
+
     @MainActor func testBoundedRenderingMemoKeepsNilAndExactUnicodeInputs() async throws {
         let memo = TimetableBoundedMemo<TimetableRenderedText,String?>(limit:2)
         var calls = 0

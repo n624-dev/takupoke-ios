@@ -621,6 +621,18 @@ extension ParsingTests {
                 .withDateContext(headers: header, year: 2027)
             XCTAssertEqual(reopened.displayValue(column: 2, edited: false), "2026年11月17日")
             XCTAssertEqual(reopened.displayValue(column: 2, edited: true), "2026年11月18日")
+            let physical = ["学 年", "学科・クラス"]
+            let oldTable = ChangeEditTable(sheet: "架空", headers: physical + ["月日", "備考"],
+                rows: [physical, ["2", "ES"]], headerRow: 1, originalHeaders: physical, physicalWidth: 2)
+            let oldEdits = try XCTUnwrap(oldTable.savedEdits(sourceIdentity: "fixture", digest: "old", defaultYear: 2026,
+                edits: [2: ChangeRowEdit(values: [2: "11/17", 3: "架空の備考"])]))
+            let extended = physical + ["備考"]
+            let newTable = ChangeEditTable(sheet: "架空", headers: extended + ["月日"],
+                rows: [extended, ["2", "IT"]], headerRow: 1, originalHeaders: extended, physicalWidth: 3)
+            let moved = try XCTUnwrap(newTable.restoreDetailed(oldEdits, sourceIdentity: "fixture",
+                digest: "new", defaultYear: 2026).unmatched.first)
+            XCTAssertEqual(moved.displayValue(column: 2, edited: true), "架空の備考")
+            XCTAssertEqual(moved.displayValue(column: 3, edited: true), "2026年11月17日")
             for classes in ["ES•?", "・ES", "ES･", "ES··IT"] {
                 let table = ChangeEditTable(sheet: "架空", headers: header, rows: [header, ["2", classes, "46343", "火"]], headerRow: 1)
                 XCTAssertEqual(try table.review(edits: [:], defaultYear: 2026)[2]?.map(\.code), [.classes])
