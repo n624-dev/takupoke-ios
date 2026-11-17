@@ -97,3 +97,48 @@ extension TimetableView {
             data: try! JSONSerialization.data(withJSONObject: value, options: [.sortedKeys]), encoding: .utf8)!
     }
 }
+
+// Focused-run measurement only. Read the presentation layer of the moving native snapshot
+// on display refreshes, without drawing a screenshot or changing the animation.
+@MainActor final class FixtureWeekFrames: NSObject {
+    private weak var observedView: UIView?
+    private let started = CACurrentMediaTime()
+    private let travel: CGFloat
+    private let id: UUID
+    private var samples: [[Double]] = []
+    private var link: CADisplayLink?
+
+    init(_ slide: WeekGridSlide) {
+        observedView = slide.snapshot
+        travel = slide.incomingOffset
+        id = slide.id
+        super.init()
+        let display = CADisplayLink(target: self, selector: #selector(frame))
+        link = display
+        display.add(to: .main, forMode: .common)
+    }
+
+    @objc private func frame() {
+        let elapsed = CACurrentMediaTime() - started
+        if let view = observedView, let window = view.window,
+           let layer = view.layer.presentation(), let root = window.layer.presentation() {
+            let point = layer.convert(CGPoint(x: layer.bounds.midX, y: layer.bounds.midY), to: root)
+            var alpha: Float = 1
+            var ancestor: CALayer? = layer
+            while let current = ancestor {
+                alpha *= current.opacity
+                ancestor = current.superlayer
+            }
+            if point.x.isFinite { samples.append([elapsed, Double(point.x), Double(alpha)]) }
+        }
+        guard elapsed >= 0.75 else { return }
+        link?.invalidate()
+        link = nil
+        let record: [String: Any] = ["travel": Double(travel), "samples": samples,
+                                      "reduceMotion": UIAccessibility.isReduceMotionEnabled]
+        if let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first,
+           let data = try? JSONSerialization.data(withJSONObject: record) {
+            try? data.write(to: dir.appendingPathComponent("week-motion-\(id.uuidString).json"), options: .atomic)
+        }
+    }
+}

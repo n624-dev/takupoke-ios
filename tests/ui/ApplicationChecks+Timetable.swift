@@ -519,6 +519,33 @@ extension ApplicationChecks {
                     XCTAssertTrue(heights.allSatisfy { $0 >= 72 * scale })
                 }
             }
+            if eventsOnly {
+                let calendar = app.buttons["timetable-week-calendar"]
+                let shortWeek = calendar.label
+                let grid = app.scrollViews["timetable-week-grid"]
+                let shortHeight = grid.frame.height
+                let towardNext = app.buttons["翌週"].exists
+                XCTAssertTrue(towardNext || app.buttons["前週"].exists)
+                func pull(next: Bool) throws {
+                    let visible = grid.frame.intersection(bodyViewport(navigation: "時間割"))
+                    guard visible.width > 230, visible.height > 30 else {
+                        throw NSError(domain: "Week grid is outside the viewport", code: 1)
+                    }
+                    let x = next ? visible.maxX - 30 : visible.minX + 30
+                    let start = app.coordinate(withNormalizedOffset: .zero)
+                        .withOffset(CGVector(dx: x, dy: visible.midY))
+                    start.press(forDuration: 0.08,
+                                thenDragTo: start.withOffset(CGVector(dx: next ? -195 : 195, dy: 0)))
+                }
+                try pull(next: towardNext)
+                XCTAssertNotEqual(calendar.label, shortWeek)
+                XCTAssertEqual(try gridMetrics()["eventsOnly"] as? Bool, false)
+                XCTAssertGreaterThan(grid.frame.height, shortHeight)
+                try pull(next: !towardNext)
+                XCTAssertEqual(calendar.label, shortWeek)
+                XCTAssertEqual(try gridMetrics()["eventsOnly"] as? Bool, true)
+                XCTAssertEqual(grid.frame.height, shortHeight, accuracy: 1)
+            }
         }
     }
     #if TAKUPOKE_VOICEOVER_AUTOMATION

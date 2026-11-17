@@ -238,6 +238,22 @@ PY_OWNED_UI
             python3 -B tools/ui_test_manifest.py --shard "$shard" --mode verify --ios "$ios_major" --log "$scratch_dir/os-size.log" --system-size-only
         done
     fi
+    # The selected test has completed its real gestures. Read only the synthetic app’s measured frames.
+    week_container="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.app-checks data)"
+    python3 - "$week_container/Documents" <<'PY_WEEK_FRAMES'
+from pathlib import Path
+import json, sys
+for file in sorted(Path(sys.argv[1]).glob("week-motion-*.json")):
+    record = json.loads(file.read_text())
+    samples = record["samples"]
+    if samples:
+        x = [round(row[1], 2) for row in samples]
+        print("WEEK_PRESENTED_FRAMES", json.dumps(dict(reduceMotion=record["reduceMotion"],
+            incomingTravel=record["travel"], x=x, times=[round(row[0], 3) for row in samples],
+            alpha=[round(row[2], 2) for row in samples])))
+    else:
+        print("WEEK_PRESENTED_FRAMES no live presentation-layer sample")
+PY_WEEK_FRAMES
     if [[ "${TKPK_UI_PROBE_CASE:-all}" == "notifications" ]]; then
         python3 -B tools/notification_service_trace.py "$simulator_id" || true
     fi
