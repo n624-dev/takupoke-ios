@@ -443,6 +443,9 @@ extension ApplicationChecks {
         let calendars = nodes.filter { $0.elementType == .button && $0.identifier == "timetable-week-calendar" }
         XCTAssertEqual(calendars.count, 1)
         let calendar = try XCTUnwrap(calendars.first)
+        XCTAssertGreaterThan(calendar.frame.width, 0)
+        XCTAssertGreaterThanOrEqual(calendar.frame.minX, root.frame.minX)
+        XCTAssertLessThanOrEqual(calendar.frame.maxX, root.frame.maxX)
         let adjacent = try XCTUnwrap(nodes.first { $0.elementType == .button && ["前週", "翌週"].contains($0.label) })
         let metrics = try gridMetrics()
         let scale = try XCTUnwrap(metrics["scale"] as? Double)

@@ -7,7 +7,7 @@ extension TimetableView {
                 weekControlRow(compact: false)
                 weekControlRow(compact: true)
                 VStack(spacing: 8) {
-                    calendarButton(compact: true)
+                    calendarButton(compact: true, fitsOwnRow: true)
                     HStack {
                         previousWeekButton
                         Spacer()
@@ -73,28 +73,36 @@ extension TimetableView {
 
     @ViewBuilder private var previousWeekButton: some View {
         if canMovePrevious {
-            Button("前週") { moveWeek(-7) }
-                .foregroundStyle(weekControlColor)
-                .fixedSize()
+            Button { moveWeek(-7) } label: {
+                Text("前週").foregroundStyle(weekControlColor)
+            }
+            .fixedSize()
         }
     }
 
     @ViewBuilder private var nextWeekButton: some View {
         if canMoveNext {
-            Button("翌週") { moveWeek(7) }
-                .foregroundStyle(weekControlColor)
-                .fixedSize()
+            Button { moveWeek(7) } label: {
+                Text("翌週").foregroundStyle(weekControlColor)
+            }
+            .fixedSize()
         }
     }
 
-    private func calendarButton(compact: Bool) -> some View {
+    private func calendarButton(compact: Bool, fitsOwnRow: Bool = false) -> some View {
         let end = weekStart.addingDays(6)!
         return Button(action: openWeekPicker) {
-            Label(weekStart.weekRangeLabel(ending: end, compact: compact), systemImage: "calendar")
-                .font(.subheadline.monospacedDigit())
-                .foregroundStyle(weekControlColor)
+            Label {
+                Text(weekStart.weekRangeLabel(ending: end, compact: compact))
+                    .lineLimit(1)
+                    .minimumScaleFactor(fitsOwnRow ? 0.65 : 1)
+            } icon: {
+                Image(systemName: "calendar")
+            }
+            .font(.subheadline.monospacedDigit())
+            .foregroundStyle(weekControlColor)
         }
-        .fixedSize()
+        .fixedSize(horizontal: !fitsOwnRow, vertical: true)
         .accessibilityLabel("\(weekStart.month)月\(weekStart.day)日から\(end.month)月\(end.day)日")
         .accessibilityIdentifier("timetable-week-calendar")
         .accessibilityHint("カレンダーで表示する週を選びます")

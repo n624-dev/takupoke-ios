@@ -5120,3 +5120,4 @@ N243限定確認：89066f3/run43387318089/attempt1/job131758747884は07:39:35〜
 
 - 2026-11-17 #117 限定44107679134/試行1、ソース3261b604、配布SDK27.2。iOS 27.0のweek-change-detailsとtimetable-clocksはアプリのbuild-for-testingで停止し、テストケースは開始していない。両ビルドのログはWeekPullObserver.Probeの `center` を型CGFloat・非公開で宣言した行に対し、UIView.centerはCGPointでありoverrideできない旨を報告。iOS 26.5の2ジョブはこの記録時点では実行中。
   同じ診断文を持つ旧NSObject.hash衝突と旧版WeekPullObserverを照合。UIViewの中心座標と、今回追加した案内の高さは別の値。Probe内部の高さだけを `badgeCenterY` とし、UIViewの座標・引き判定・SDKや検査条件を変更せずに再ビルドする。限定の終日行事ケースでは、同じ架空年度内の隣週との往復を実ドラッグし、両週の日付・行事表示・実枠の高さも照合する。
+  旧限定のiOS 26.5の両ジョブも終端で同じUIView.centerのコンパイルエラーを確認し、4ジョブともケース未実行。SDKの違いやアニメーション動作による失敗とは扱わない。
