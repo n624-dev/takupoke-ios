@@ -204,6 +204,8 @@ enum ChangeNormalizer {
                         before_subject: before, after_subject: after, teacher: teacher, room: room,
                         note: note, raw_text: raw, canonical_text: canonical, change_kind: content,
                         readableOriginal: workbook != nil || readable != raw ? readable : nil,
+                        sourceRow: workbook == nil ? nil : item.row,
+                        reasonSource: reasonInfo.reason == nil ? nil : reasonColumn.map { headers[$0] },
                         reason: reasonInfo.reason, remainingNote: reasonInfo.remaining,
                         updated: updated, personallyEdited: edit.isEmpty ? nil : true,
                         personalReason: reasonColumn.flatMap { edit.values[$0] } == nil ? nil : true,

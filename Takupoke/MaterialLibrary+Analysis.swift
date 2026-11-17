@@ -9,6 +9,17 @@ extension MaterialLibrary {
             if let proved = try? RecoveryValidator.recertifiedTimetable(analysis,hash:analysis.sourceDigest) { visible.pdfAnalyses?[key] = proved }
             else { visible.pdfAnalyses?.removeValue(forKey:key); rejected.insert(key) }
         }
+        if var old = state.changeAnalysis, old.version < 13,
+           let source = state.record(for: .changes),
+           let saved = source.source.personalChanges?.rows,
+           old.sourceDigest == saved.digest, old.defaultYear == saved.defaultYear,
+           saved.sourceIdentity == (source.source.selectionID ?? source.storedName) {
+            let originals = saved.readableOriginals()
+            for index in old.records.indices where old.records[index].readableOriginal == nil {
+                old.records[index].readableOriginal = originals[old.records[index].raw_text]
+            }
+            visible.changeAnalysis = old
+        }
         return (visible,rejected)
     }
 

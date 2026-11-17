@@ -86,7 +86,7 @@ extension XLSXReader {
             let end = try coordinate(String(parts.last!))
             if end.row >= header { throw ChangeParseError(code: .mergedCells, row: end.row) }
         }
-        return PreviewTable(rows: rows, warnings: warnings, workbook: workbook)
+        return PreviewTable(rows: rows, warnings: warnings, workbook: workbook, defaultYear: defaultYear)
     }
 
     struct WorksheetCells {

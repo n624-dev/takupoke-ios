@@ -595,6 +595,8 @@ extension ParsingTests {
                 XCTAssertEqual(view.table.rowIDs, [2])
                 let records = try view.table.records(edits: [:], defaultYear: 2026)
                 XCTAssertEqual(records.map(\.displayClassName), ["2_ES", "2_IT"])
+                XCTAssertEqual(records.map(\.sourceRow), [2, 2])
+                XCTAssertEqual(records.map(\.displayDate), ["2026年11月17日", "2026年11月17日"])
                 XCTAssertTrue(records[0].originalForDisplay.contains("月日:2026年11月17日"))
                 XCTAssertTrue(records[0].originalForDisplay.contains("架空備考•B"))
                 XCTAssertFalse(records[0].originalForDisplay.contains("46343"))
@@ -603,6 +605,7 @@ extension ParsingTests {
                 let saved = try XCTUnwrap(view.table.savedEdits(sourceIdentity: "fixture", digest: "v1", defaultYear: 2026, edits: [2: edit]))
                 let restored = try JSONDecoder().decode(ChangeEdits.self, from: JSONEncoder().encode(saved))
                 XCTAssertEqual(restored.entries.count, 1)
+                XCTAssertEqual(restored.readableOriginals()[records[0].raw_text], records[0].originalForDisplay)
                 XCTAssertEqual(restored.entries[0].displayValue(column: 2, edited: false, year: 2026), "2026年11月17日")
                 XCTAssertEqual(restored.entries[0].displayValue(column: 2, edited: true, year: 2026), "2026年11月18日")
                 XCTAssertEqual(view.table.original(at: 2).values[2], "46343")
@@ -640,6 +643,7 @@ extension ParsingTests {
                 XCTAssertEqual(strict.first?.updated, accepted.updated)
                 XCTAssertEqual(accepted.updated?.display, "2026/11/17 12:00")
                 XCTAssertEqual(accepted.reason, "架空理由A")
+                XCTAssertEqual(accepted.reasonSource, "備考")
                 XCTAssertEqual(accepted.remainingNote, "架空の連絡")
                 XCTAssertTrue(accepted.originalForDisplay.contains("月日:2026年11月17日"))
                 let edits = [2: ChangeRowEdit(values: [5: "2026-11-15T23:05:00Z", 6: "架空の個人理由"])]
@@ -647,6 +651,7 @@ extension ParsingTests {
                 XCTAssertEqual(personal.updated?.display, "2026/11/16 08:05")
                 XCTAssertEqual(personal.personalUpdate, true)
                 XCTAssertEqual(personal.reason, "架空の個人理由")
+                XCTAssertEqual(personal.reasonSource, "理由")
                 XCTAssertEqual(personal.personalReason, true)
                 XCTAssertEqual(personal.note, accepted.note)
             }

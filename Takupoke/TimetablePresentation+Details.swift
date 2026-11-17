@@ -48,7 +48,7 @@ extension TimetablePresentation {
         let times = schedule.changeTimeRanges(change)
         return List {
             Section("変更内容") {
-                LabeledContent("日付", value: change.change_date)
+                LabeledContent("日付", value: change.displayDate)
                 LabeledContent("クラス", value: TimetableDisplayText.className(change.displayClassName))
                 LabeledContent("時限", value: change.displayPeriod)
                 if times.contains(where: { $0 != nil }) {
@@ -100,7 +100,7 @@ extension TimetablePresentation {
             Section("変更理由・備考") {
                 LabeledContent("変更理由", value: change.reason ?? "記載なし")
                 if change.reason != nil {
-                    Text(change.personalReason == true ? "個人修正" : "元の資料").font(.caption)
+                    Text(change.personalReason == true ? "個人修正" : (change.reasonSource.map { "元の資料の「" + $0 + "」" } ?? "元の資料")).font(.caption)
                 }
                 let note = change.remainingNote ?? change.note
                 if !note.isEmpty {

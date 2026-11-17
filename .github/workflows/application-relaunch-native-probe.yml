@@ -62,7 +62,13 @@ jobs:
             week-change-details) expected=(testChangedRoomInHomeWeekAndList testHomeTimetableAndWeekCalendar testMergedCardsFromAllSources) ;;
             *) exit 1 ;;
           esac
-          test "$selector" = "$(printf '%s\n' "${expected[@]/#/-only-testing:PickerTapChecks\/ApplicationChecks\/}")"
+          expected_selector="$(for method in "${expected[@]}"; do
+            printf '%s\n' "-only-testing:PickerTapChecks/ApplicationChecks/$method"
+          done)"
+          if [[ "$selector" != "$expected_selector" ]]; then
+            printf 'Expected selector(s)\n%s\nActual selector(s)\n%s\n' "$expected_selector" "$selector" >&2
+            exit 1
+          fi
           python3 -B tools/timed_command.py --timeout 2400 --cleanup-grace 120 \
             "Focused relaunch runner" bash tools/test-app-ui.sh 2>&1 | tee "$RUNNER_TEMP/takupoke-audited-native.log"
           python3 -B tools/ui_test_manifest.py "${selection[@]}" --mode verify --ios "$TKPK_TEST_IOS" \

@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`d883808fb0caac145b1c063b9a17d0ef0a285e337b4f6d14d306db65d82bb47e`
+`ba92fb6d84cfd7eb25760b8487896118a1b4b594941c2a0b7c2f72d1fe5d8893`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -102,3 +102,4 @@ bash tools/test-parsing.sh
 - `testRichTextNumericDatesAndSparseCells`
 - `testWorkbookChangeKindsRemainIndependentOfRemarksAndPersist`
 - `testOoxmlEscapesDecodeOnceAcrossSharedInlineAndRichStrings`
+- `testUnconfirmedTimestampKeepsOriginalAndDoesNotBlockLessonInEitherReadPath`

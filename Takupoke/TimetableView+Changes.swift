@@ -45,7 +45,7 @@ extension TimetableView {
                         selectedChange = selection
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("\(change.change_date) · \(TimetableDisplayText.className(change.displayClassName)) · \(change.period.isEmpty ? "時限未記載" : change.displayPeriod)")
+                            Text("\(change.displayDate) · \(TimetableDisplayText.className(change.displayClassName)) · \(change.period.isEmpty ? "時限未記載" : change.displayPeriod)")
                                 .font(.caption).foregroundStyle(.secondary)
                             Text(TimetableDisplayText.kana(selection.comparison.summary)).font(.subheadline)
                             if !(change.remainingNote ?? change.note).isEmpty { Text(TimetableDisplayText.kana(change.remainingNote ?? change.note)).font(.caption).foregroundStyle(.secondary) }

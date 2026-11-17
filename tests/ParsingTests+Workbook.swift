@@ -209,3 +209,35 @@ extension ParsingTests {
     }
 
 }
+
+extension ParsingTests {
+    func testUnconfirmedTimestampKeepsOriginalAndDoesNotBlockLessonInEitherReadPath() throws {
+        let header = ["学 年", "学科・クラス", "月日", "変更後", "更新日時"]
+        let cases = [("n", "46343"), ("d", "2026-02-30"), ("e", "#VALUE!")]
+        try temporary { root in
+            let url = root.appendingPathComponent("fictional-optional-date.xlsx")
+            var files = workbook([header] + cases.map { _ in ["2", "ES", "2026/11/17", "架空科目A", "架空日時"] })
+            for (offset, cell) in cases.enumerated() {
+                let ref = "E\(offset + 2)"
+                mutate(&files, "xl/worksheets/sheet1.xml",
+                       "<c r=\"\(ref)\" t=\"inlineStr\"><is><t xml:space=\"preserve\">架空日時</t></is></c>",
+                       "<c r=\"\(ref)\" t=\"\(cell.0)\"><v>\(cell.1)</v></c>")
+            }
+            try write(files, to: url)
+            let preview = try XLSXReader.readForPreview(url, defaultYear: 2026)
+            let table = try XCTUnwrap(preview.workbook)
+            let accepted = try preview.acceptedRows(defaultYear: 2026)
+            let strict = try ChangeNormalizer.parse(accepted, defaultYear: 2026, sourceRows: table.rows, workbook: table)
+            let editor = try XLSXReader.editableWorkbook(url, layout: nil, check: {}).table
+            let edited = try editor.records(edits: [:], defaultYear: 2026)
+            for records in [strict, edited] {
+                XCTAssertEqual(records.map(\.sourceRow), [2, 3, 4])
+                for (record, cell) in zip(records, cases) {
+                    XCTAssertNil(record.updated)
+                    XCTAssertEqual(record.after_subject, "架空科目A")
+                    XCTAssertTrue(record.originalForDisplay.contains("更新日時:" + cell.1))
+                }
+            }
+        }
+    }
+}
