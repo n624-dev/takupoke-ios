@@ -45,6 +45,17 @@ extension ApplicationChecks {
         XCTAssertTrue(app.staticTexts["試験時間割の選択した資料をまだ反映できていません。正常な解析結果がありません。"].exists)
     }
 
+    private func snapshotNodes(in root: any XCUIElementSnapshot) -> [any XCUIElementSnapshot]? {
+        var pending: [any XCUIElementSnapshot] = [root]
+        var nodes: [any XCUIElementSnapshot] = []
+        while let node = pending.popLast() {
+            guard nodes.count < 4096 else { return nil }
+            nodes.append(node)
+            pending.append(contentsOf: node.children.reversed())
+        }
+        return nodes
+    }
+
     func testMergedCardsFromAllSources() {
         tab("時間割")
         let grid = app.scrollViews["timetable-week-grid"]
@@ -61,13 +72,22 @@ extension ApplicationChecks {
             let cardMatches = grid.buttons.matching(NSPredicate(format: "label == %@", label))
             var current: (button: XCUIElement, height: CGFloat)?
             let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-                let viewport = self.bodyViewport(navigation: "時間割")
-                let cards = cardMatches.allElementsBoundByAccessibilityElement
-                guard cards.count == 1 else { return false }
-                let card = cards[0], frame = card.frame
-                guard ObservedScreenGeometry.contains(frame, in: viewport, scale: UIScreen.main.scale),
-                      card.isEnabled, card.isHittable else { return false }
-                current = (card, frame.height)
+                guard let root = try? self.app.snapshot(), let nodes = self.snapshotNodes(in: root) else { return false }
+                let bars = nodes.filter { $0.elementType == .navigationBar }
+                let grids = nodes.filter { $0.elementType == .scrollView && $0.identifier == "timetable-week-grid" }
+                guard bars.count == 1, bars[0].identifier == "時間割" || bars[0].label == "時間割",
+                      grids.count == 1, let cells = self.snapshotNodes(in: grids[0]) else { return false }
+                let viewport = ObservedScreenGeometry.bodyViewport(app: root.frame, navigation: bars[0].frame,
+                    tab: nodes.first(where: { $0.elementType == .tabBar })?.frame,
+                    keyboards: nodes.filter { $0.elementType == .keyboard }.map(\.frame),
+                    footers: nodes.filter { $0.elementType == .button && $0.label == "次へ" }.map(\.frame))
+                let cards = cells.filter { $0.elementType == .button && $0.label == label }
+                guard cards.count == 1, cards[0].isEnabled,
+                      ObservedScreenGeometry.contains(cards[0].frame, in: viewport, scale: UIScreen.main.scale)
+                else { return false }
+                let card = cardMatches.element
+                guard card.isHittable else { return false }
+                current = (card, cards[0].frame.height)
                 return true
             }, object: app)
             guard XCTWaiter.wait(for: [ready], timeout: 10) == .completed, let card = current else {
@@ -200,12 +220,7 @@ extension ApplicationChecks {
         let calendarReady = XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
             // One AX tree proves existence, uniqueness, geometry and enabled
             // state together; live getter chains can outlive their native nodes.
-            guard let root=try? self.app.snapshot() else { return false }
-            var pending:[any XCUIElementSnapshot]=[root],nodes:[any XCUIElementSnapshot]=[]
-            while let node=pending.popLast() {
-                guard nodes.count<4096 else { return false }
-                nodes.append(node);pending.append(contentsOf:node.children.reversed())
-            }
+            guard let root = try? self.app.snapshot(), let nodes = self.snapshotNodes(in: root) else { return false }
             guard !nodes.contains(where:{ $0.elementType == .navigationBar &&
                 ($0.identifier == "授業詳細" || $0.label == "授業詳細") }),
                 let navigation=nodes.first(where:{ $0.elementType == .navigationBar }) else { return false }

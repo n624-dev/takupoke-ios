@@ -737,7 +737,8 @@ METHOD
 
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source(manifest.check_source())
-        self.assertEqual(len(manifest.selected_tests("all")), 31)
+        self.assertEqual(len(manifest.selected_tests("all")), 32)
+        self.assertIn("testChangedRoomInHomeWeekAndList", manifest.SHARDS["A"])
         self.assertIn("testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData", manifest.SHARDS["A"])
         self.assertIn("testFirstFailedSpecialDocumentsWarnOnHomeAndWeekAndOpenTheirDetails", manifest.SHARDS["A"])
         self.assertIn("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover", manifest.SHARDS["A"])
