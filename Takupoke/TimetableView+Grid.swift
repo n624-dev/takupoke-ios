@@ -223,7 +223,7 @@ private struct WeekPullObserver: UIViewRepresentable {
         var headerHeight: CGFloat = 0
         var update: ((CGFloat, CGFloat) -> Void)?
         var release: ((CGFloat, UIScrollView, CGRect) -> Void)?
-        private var center: CGFloat = 0
+        private var badgeCenterY: CGFloat = 0
         private weak var scroll: UIScrollView?
         private var pull: WeekEdgePull?
 
@@ -291,16 +291,16 @@ private struct WeekPullObserver: UIViewRepresentable {
                                     scrollRange: scroll.contentSize.width + inset.left + inset.right - scroll.bounds.width)
                 let visible = visibleRect(of: scroll)
                 guard !visible.isEmpty else { pull = nil; return }
-                center = WeekEdgePull.badgeCenter(visible: visible.offsetBy(dx: -scroll.bounds.minX, dy: -scroll.bounds.minY),
+                badgeCenterY = WeekEdgePull.badgeCenter(visible: visible.offsetBy(dx: -scroll.bounds.minX, dy: -scroll.bounds.minY),
                                                   headerHeight: headerHeight)
             case .changed:
-                if let pull { update?(pull.distance(for: translation), center) }
+                if let pull { update?(pull.distance(for: translation), badgeCenterY) }
             case .ended:
                 if let pull { release?(pull.distance(for: translation), scroll, visibleRect(of: scroll)) }
                 pull = nil
             case .failed, .cancelled:
                 pull = nil
-                update?(0, center)
+                update?(0, badgeCenterY)
             default: break
             }
         }
