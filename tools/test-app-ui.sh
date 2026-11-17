@@ -163,6 +163,12 @@ while read -r device_type runtime; do
     python3 -B tools/timed_command.py "App UI build iOS $ios_major" \
         xcodebuild "${xcode_args[@]}" build-for-testing
     boot_simulator
+    if [[ "${TKPK_WEEK_FRAMES:-}" == "reduced" ]]; then
+        # Configure only this newly booted simulator, before the tested app starts.
+        # Verify the actual UIKit preference seen by the app in each presentation capture below.
+        xcrun simctl spawn "$simulator_id" defaults write com.apple.Accessibility ReduceMotionEnabled -bool YES
+        xcrun simctl spawn "$simulator_id" notifyutil -p com.apple.accessibility.reduce.motion.status
+    fi
     check_ui() {
         local log_path="$1"
         shift
@@ -237,6 +243,44 @@ PY_OWNED_UI
             check_ui "$scratch_dir/os-size.log" -only-testing:PickerTapChecks/ApplicationChecks/testTimetableUsesSystemTextSize test-without-building
             python3 -B tools/ui_test_manifest.py --shard "$shard" --mode verify --ios "$ios_major" --log "$scratch_dir/os-size.log" --system-size-only
         done
+    fi
+    if [[ -n "${TKPK_WEEK_FRAMES:-}" ]]; then
+    # The selected test has completed its real gestures. Read only the synthetic app’s measured frames.
+    week_container="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.app-checks data)"
+    python3 - "$week_container/Documents" <<'PY_WEEK_FRAMES'
+from pathlib import Path
+import json, sys
+captures = sorted(Path(sys.argv[1]).glob("week-motion-*.json"))
+if len(captures) != 2:
+    raise SystemExit(f"Expected the two completed physical week gestures, found {len(captures)}")
+import os
+reduced = os.environ["TKPK_WEEK_FRAMES"] == "reduced"
+directions = set()
+for file in captures:
+    record = json.loads(file.read_text())
+    print("WEEK_PRESENTED_FRAMES", json.dumps(record), flush=True)
+    samples = record["samples"]
+    if record["reduced"] != reduced or record["systemReduced"] != reduced:
+        raise SystemExit("The requested native motion setting did not reach the app")
+    if len(samples) < 3:
+        raise SystemExit("Too few drawn animation frames")
+    _, outgoing, incoming, opacity_a, opacity_b = zip(*samples)
+    distance = record["travel"]
+    directions.add(distance > 0)
+    if reduced:
+        if max(outgoing) - min(outgoing) > 2 or max(incoming) - min(incoming) > 2:
+            raise SystemExit("The fading pages moved horizontally")
+        if opacity_a[0] - opacity_a[-1] < 0.15 or opacity_b[-1] - opacity_b[0] < 0.15:
+            raise SystemExit("The pages did not crossfade")
+    else:
+        sign = 1 if distance > 0 else -1
+        if min((outgoing[0] - outgoing[-1]) * sign, (incoming[0] - incoming[-1]) * sign) < 0.15 * abs(distance):
+            raise SystemExit("The pages did not travel in the gesture direction")
+        if max(abs((b - a) - distance) for a, b in zip(outgoing, incoming)) > 2:
+            raise SystemExit("The presented pages lost their relative position")
+if directions != {False, True}:
+    raise SystemExit("Missing a direction")
+PY_WEEK_FRAMES
     fi
     if [[ "${TKPK_UI_PROBE_CASE:-all}" == "notifications" ]]; then
         python3 -B tools/notification_service_trace.py "$simulator_id" || true

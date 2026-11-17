@@ -357,6 +357,10 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
                     }
 ''' + marker)
         if path.name == 'TimetableView+Grid.swift':
+            if os.environ.get('TKPK_WEEK_FRAMES') in ('standard', 'reduced'):
+                start = '        CATransaction.commit()'
+                assert text.count(start) == 1
+                text = text.replace(start, start + '\n        _ = FixtureWeekFrames(slide, outgoingPage, incomingPage, reduceMotion)')
             marker = next(line for line in text.splitlines() if '.accessibilityLabel(' in line and 'の週の時間割' in line)
             assert marker in text, 'Timetable grid probe insertion point missing'
             text = text.replace(marker, marker + '''

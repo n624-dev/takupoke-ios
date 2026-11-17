@@ -97,3 +97,45 @@ extension TimetableView {
             data: try! JSONSerialization.data(withJSONObject: value, options: [.sortedKeys]), encoding: .utf8)!
     }
 }
+
+// Sample both presented pages after their common animation is committed to a window.
+@MainActor final class FixtureWeekFrames: NSObject {
+    private weak var outgoing: UIView?
+    private weak var incoming: UIView?
+    private let start = CACurrentMediaTime()
+    private let travel: CGFloat
+    private let id: UUID
+    private let reduced: Bool
+    private var samples: [[Double]] = []
+    private var link: CADisplayLink?
+
+    init(_ slide: WeekGridSlide, _ outgoing: UIView, _ incoming: UIView, _ reduced: Bool) {
+        self.outgoing = outgoing
+        self.incoming = incoming
+        self.travel = slide.incomingOffset
+        self.id = slide.id
+        self.reduced = reduced
+        super.init()
+        let display = CADisplayLink(target: self, selector: #selector(frame))
+        link = display
+        display.add(to: .main, forMode: .common)
+    }
+
+    @objc private func frame() {
+        let elapsed = CACurrentMediaTime() - start
+        if let outgoing, let incoming, outgoing.window != nil, outgoing.window === incoming.window,
+           outgoing.layer.animation(forKey: "week-handoff") != nil,
+           let a = outgoing.layer.presentation(), let b = incoming.layer.presentation() {
+            samples.append([elapsed, Double(a.position.x), Double(b.position.x), Double(a.opacity), Double(b.opacity)])
+        }
+        guard elapsed >= 0.5 else { return }
+        link?.invalidate()
+        link = nil
+        let record: [String: Any] = ["travel": Double(travel), "samples": samples,
+            "reduced": reduced, "systemReduced": UIAccessibility.isReduceMotionEnabled]
+        if let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first,
+           let data = try? JSONSerialization.data(withJSONObject: record) {
+            try? data.write(to: dir.appendingPathComponent("week-motion-\(id.uuidString).json"), options: .atomic)
+        }
+    }
+}

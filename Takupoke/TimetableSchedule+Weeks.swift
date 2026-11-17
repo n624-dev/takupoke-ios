@@ -112,3 +112,28 @@ struct WeekEdgePull {
         return 0
     }
 }
+
+extension SchoolDate {
+    func weekRangeLabel(ending end: SchoolDate, compact: Bool) -> String {
+        let omitMonth = compact && year == end.year && month == end.month
+        let last = omitMonth ? "\(end.day)" : "\(end.month)/\(end.day)"
+        return "\(month)/\(day)〜\(last)"
+    }
+}
+
+extension WeekEdgePull {
+    /// Coordinates are local to the standing grid, after clipping to the on-screen list body.
+    static func badgeCenter(visible: CGRect, headerHeight: CGFloat) -> CGFloat {
+        let firstCell = min(visible.maxY, max(visible.minY, headerHeight))
+        return firstCell < visible.maxY ? (firstCell + visible.maxY) / 2 : visible.midY
+    }
+
+    /// The native rubber band is smaller than finger travel. Start the next page at its actual seam.
+    static func incomingOffset(viewportWidth: CGFloat, offset: CGFloat, scrollRange: CGFloat,
+                               days: Int) -> CGFloat {
+        let clamped = min(max(0, offset), max(0, scrollRange))
+        let direction: CGFloat = days > 0 ? 1 : -1
+        let exposed = min(viewportWidth, max(0, (offset - clamped) * direction))
+        return direction * (viewportWidth - exposed)
+    }
+}
