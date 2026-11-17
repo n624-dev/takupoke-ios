@@ -631,7 +631,13 @@ extension ChangeEdits.Entry {
     func displayValue(column: Int, edited: Bool) -> String {
         let value = edited ? edit.values[column] ?? "" :
             (original.values.indices.contains(column) ? original.values[column] : "")
-        guard column == dateColumn || valueLabels?[column] == "月日" else { return value }
+        // Original positions stay with their source row. Virtual edits may move
+        // when a later workbook adds a physical column with the same label.
+        if edited, let label = valueLabels?[column] {
+            guard ChangeNormalizer.text(label) == "月日" else { return value }
+        } else {
+            guard column == dateColumn || (dateColumn == nil && valueLabels?[column] == "月日") else { return value }
+        }
         guard edited || original.issues[column] == nil else { return "月日を確認" }
         let typed = !edited && original.sources[column]?.hasPrefix("/type/d/") == true
         let epoch = edited ? editedSerialUses1904 ?? (original.date1904 == true) : original.date1904 == true
