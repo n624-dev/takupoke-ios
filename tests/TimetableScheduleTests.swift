@@ -2,6 +2,30 @@ import XCTest
 @testable import TakupokeParsing
 
 final class TimetableScheduleTests: XCTestCase {
+    func testWeekRangeRetainsBothDatesAtNarrowWidths() throws {
+        for (start, full, compact) in [("2026-11-23", "11/23〜11/29", "11/23〜29"),
+                                        ("2026-11-30", "11/30〜12/6", "11/30〜12/6"),
+                                        ("2026-12-28", "12/28〜1/3", "12/28〜1/3")] {
+            let day = try XCTUnwrap(SchoolDate(iso8601: start))
+            let end = try XCTUnwrap(day.addingDays(6))
+            XCTAssertEqual(day.weekRangeLabel(ending: end, compact: false), full)
+            XCTAssertEqual(day.weekRangeLabel(ending: end, compact: true), compact)
+        }
+    }
+
+    func testWeekPullCentersOnVisibleLessonsAndContinuesFromNativeEdge() {
+        let top = CGRect(x: 0, y: 0, width: 340, height: 420)
+        let lower = CGRect(x: 0, y: 240, width: 340, height: 400)
+        XCTAssertEqual(WeekEdgePull.badgeCenter(visible: top, headerHeight: 60), 240)
+        XCTAssertEqual(WeekEdgePull.badgeCenter(visible: lower, headerHeight: 60), 440)
+        XCTAssertEqual(WeekEdgePull.badgeCenter(visible: CGRect(x: 0, y: 0, width: 300, height: 40),
+                                                headerHeight: 55), 20)
+        // The visible gaps are 42 and 31pt; the travel that qualified the pull can be much larger.
+        XCTAssertEqual(WeekEdgePull.incomingOffset(viewportWidth: 340, offset: -42, scrollRange: 90, days: -7), -298)
+        XCTAssertEqual(WeekEdgePull.incomingOffset(viewportWidth: 340, offset: 121, scrollRange: 90, days: 7), 309)
+        XCTAssertEqual(WeekEdgePull.incomingOffset(viewportWidth: 340, offset: 0, scrollRange: 0, days: 7), 340)
+    }
+
     func testWeekPullConsumesHiddenColumnsAndUsesTheFinalFingerPosition() throws {
         let horizontal = CGPoint(x: 250, y: 3)
         let narrow = try XCTUnwrap(WeekEdgePull(velocity: horizontal, offset: 0, scrollRange: 0))

@@ -3,33 +3,19 @@ import SwiftUI
 extension TimetableView {
     var weekSection: some View {
         Section {
-            HStack {
-                if canMovePrevious {
-                    Button { moveWeek(-7) } label: {
-                        Label("前週", systemImage: "chevron.left").foregroundStyle(weekControlColor)
-                    }.accessibilityLabel("前週")
-                }
-                Spacer()
-                Button {
-                    openWeekPicker()
-                } label: {
-                    Label("\(weekStart.month)/\(weekStart.day)〜\(weekStart.addingDays(6)!.month)/\(weekStart.addingDays(6)!.day)",
-                          systemImage: "calendar")
-                        .font(.subheadline.monospacedDigit())
-                        .foregroundStyle(weekControlColor)
-                }
-                .accessibilityLabel("\(weekStart.month)月\(weekStart.day)日から\(weekStart.addingDays(6)!.month)月\(weekStart.addingDays(6)!.day)日")
-                .accessibilityIdentifier("timetable-week-calendar")
-                .accessibilityHint("カレンダーで表示する週を選びます")
-                Spacer()
-                if canMoveNext {
-                    Button { moveWeek(7) } label: {
-                        HStack(spacing: 3) { Text("翌週"); Image(systemName: "chevron.right") }.foregroundStyle(weekControlColor)
-                    }.accessibilityLabel("翌週")
+            ViewThatFits(in: .horizontal) {
+                weekControlRow(compact: false)
+                weekControlRow(compact: true)
+                VStack(spacing: 8) {
+                    calendarButton(compact: true)
+                    HStack {
+                        previousWeekButton
+                        Spacer()
+                        nextWeekButton
+                    }
                 }
             }
             .buttonStyle(.glass)
-            // Keep the standard neutral background; theme only the labels.
             .tint(nil as Color?)
             Picker("表示モード", selection: $includesChanges) {
                 Text("通常").tag(false)
@@ -73,5 +59,44 @@ extension TimetableView {
             }
             weekEvents
         } header: { Text("週の時間割") }
+    }
+
+    private func weekControlRow(compact: Bool) -> some View {
+        HStack(spacing: 6) {
+            previousWeekButton
+            Spacer(minLength: 0)
+            calendarButton(compact: compact)
+            Spacer(minLength: 0)
+            nextWeekButton
+        }
+    }
+
+    @ViewBuilder private var previousWeekButton: some View {
+        if canMovePrevious {
+            Button("前週") { moveWeek(-7) }
+                .foregroundStyle(weekControlColor)
+                .fixedSize()
+        }
+    }
+
+    @ViewBuilder private var nextWeekButton: some View {
+        if canMoveNext {
+            Button("翌週") { moveWeek(7) }
+                .foregroundStyle(weekControlColor)
+                .fixedSize()
+        }
+    }
+
+    private func calendarButton(compact: Bool) -> some View {
+        let end = weekStart.addingDays(6)!
+        return Button(action: openWeekPicker) {
+            Label(weekStart.weekRangeLabel(ending: end, compact: compact), systemImage: "calendar")
+                .font(.subheadline.monospacedDigit())
+                .foregroundStyle(weekControlColor)
+        }
+        .fixedSize()
+        .accessibilityLabel("\(weekStart.month)月\(weekStart.day)日から\(end.month)月\(end.day)日")
+        .accessibilityIdentifier("timetable-week-calendar")
+        .accessibilityHint("カレンダーで表示する週を選びます")
     }
 }
