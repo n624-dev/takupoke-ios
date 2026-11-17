@@ -1,7 +1,7 @@
 # 名称対応・パッケージ・認証取得
 
 対応関係・宣言名・実行方法のSHA-256：
-`702d1c270f6bdac40d97d0c79a55fef1a14fbbdd179ea07661cb4da4b1693112`
+`e4359d568c6896ca0dd37c9fb8605be24dada67fe51e21f46e2d9eceedeb749a`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -24,6 +24,7 @@ bash tools/test-parsing.sh
 ## [tests/MappingPackageTests.swift](../../tests/MappingPackageTests.swift)
 
 - `testValidatedPackageAppliesExactRulesWithoutChangingSourceNames`
+- `testListSelectionResolvesExplicitAndInferredSubjectsThroughInstalledMappings`
 - `testInvalidNewPackageCannotReplaceSavedPackage`
 - `testDuplicateExactRuleIsRejected`
 - `testInternationalStudentMarkerAlsoMatchesUnmarkedSubjectInMappedClass`

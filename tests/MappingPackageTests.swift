@@ -56,6 +56,37 @@ final class MappingPackageTests: XCTestCase {
         XCTAssertEqual(source.detailSubject, "架空略科A")
     }
 
+    @MainActor
+    func testListSelectionResolvesExplicitAndInferredSubjectsThroughInstalledMappings() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let saved = try MappingPackage.decode(package(), version: "v1", revision: revision, archiveETag: "fictional")
+        try MappingStore(url: root.appendingPathComponent("mappings.sqlite")).save(saved)
+        let mappings = MappingModel(directory: root)
+        mappings.loadIfNeeded()
+        XCTAssertEqual(mappings.current, saved)
+
+        let lesson = PDFLesson(className: "4_XY", weekday: 1, period: 1,
+            names: TimetableLessonNames(subject: "架空略科A"), sourceText: "", page: 1)
+        let timetable = PDFAnalysis(kind: .timetable, sourceDigest: "fixture", sourceName: "fixture.pdf", parsedAt: Date(),
+            schoolYear: 2032, term: "前期", lessons: [lesson], events: [], notices: [])
+        let schedule = TimetableDaySchedule(timetable: timetable, changes: nil, events: nil, specials: [], includesChanges: true)
+        let presentation = TimetablePresentation(schedule: schedule, mappings: mappings)
+        func change(before: String, after: String) -> ScheduleChange {
+            ScheduleChange(change_date: "2032-04-05", class_name: "4_XY", period: "1", before_subject: before,
+                after_subject: after, teacher: "", room: "", note: "", raw_text: "", canonical_text: "")
+        }
+        let inferred = presentation.changeSelection(for: change(before: "", after: "架空未登録B"))
+        XCTAssertEqual(inferred.comparison.summary, "科目変更　架空専用科目A → 架空未登録B")
+        XCTAssertEqual(inferred.comparison.groups.first?.pairs.first?.source, "通常時間割")
+        XCTAssertEqual(inferred.baseLessons.first?.names.cellSubject, "架空略科A")
+        let explicit = presentation.changeSelection(for: change(before: "架空略科A", after: "架空専用科目A"))
+        XCTAssertEqual(explicit.comparison.summary, "時間割変更　科目 架空専用科目A")
+        XCTAssertNil(explicit.comparison.groups.first?.pairs.first?.source)
+        XCTAssertEqual(explicit.change.before_subject, "架空略科A")
+    }
+
     func testInvalidNewPackageCannotReplaceSavedPackage() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
