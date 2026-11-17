@@ -45,17 +45,6 @@ extension ApplicationChecks {
         XCTAssertTrue(app.staticTexts["試験時間割の選択した資料をまだ反映できていません。正常な解析結果がありません。"].exists)
     }
 
-    private func snapshotNodes(in root: any XCUIElementSnapshot) -> [any XCUIElementSnapshot]? {
-        var pending: [any XCUIElementSnapshot] = [root]
-        var nodes: [any XCUIElementSnapshot] = []
-        while let node = pending.popLast() {
-            guard nodes.count < 4096 else { return nil }
-            nodes.append(node)
-            pending.append(contentsOf: node.children.reversed())
-        }
-        return nodes
-    }
-
     private func readyWeekCard(matching matches: @escaping (String) -> Bool) -> (button: XCUIElement, height: CGFloat)? {
         let grid = app.scrollViews["timetable-week-grid"]
         var current: (button: XCUIElement, height: CGFloat)?

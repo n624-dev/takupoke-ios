@@ -66,20 +66,25 @@ extension ManualAssistanceChecks {
         let zoomID="manual-zoom-"+id
         visible(recoveryList.buttons[zoomID],knownID:zoomID,buttonLabel:"対象セルを拡大して確認").tap()
         let scroll=app.scrollViews["manual-source-scroll"]
-        let images=scroll.descendants(matching:.any).matching(identifier:"manual-source-context")
-        var initial:CGRect?,ambiguous=false
-        let ready=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
-            let current=images.allElementsBoundByAccessibilityElement
-            if current.count>1 { ambiguous=true;return true }
-            guard let image=current.first else { return false }
-            let highlights=image.descendants(matching:.any).matching(identifier:"manual-source-highlight")
-                .allElementsBoundByAccessibilityElement
-            if highlights.count>1 { ambiguous=true;return true }
-            guard let highlight=highlights.first else { return false }
-            let bounds=image.frame,box=highlight.frame
-            guard ManualScrollNavigation.usable(bounds),ManualScrollNavigation.usable(box),bounds.contains(box) else { return false }
-            initial=box;return true
-        },object:app)
+        // Query the native scroll view once per observation. Image and highlight frames
+        // must belong to the same AX snapshot, including after the slider changes scale.
+        var ambiguous = false
+        func observedHighlight() -> CGRect? {
+            guard let root = try? scroll.snapshot(), let nodes = snapshotNodes(in: root) else { return nil }
+            let images = nodes.filter { $0.identifier == "manual-source-context" }
+            if images.count > 1 { ambiguous = true; return nil }
+            guard let image = images.first, let descendants = snapshotNodes(in: image) else { return nil }
+            let matches = descendants.filter { $0.identifier == "manual-source-highlight" }
+            if matches.count > 1 { ambiguous = true; return nil }
+            guard let box = matches.first?.frame, ManualScrollNavigation.usable(image.frame),
+                  ManualScrollNavigation.usable(box), image.frame.contains(box) else { return nil }
+            return box
+        }
+        var initial: CGRect?
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            initial = observedHighlight()
+            return ambiguous || initial != nil
+        }, object: app)
         let result=XCTWaiter.wait(for:[ready],timeout:10)
         guard !ambiguous,result == .completed,let highlightBefore=initial else {
             XCTFail("The source must have one real image containing its unique highlight");return
@@ -94,13 +99,9 @@ extension ManualAssistanceChecks {
         slider.adjust(toNormalizedSliderPosition:0.67)
         guard let zoomedScale=uniqueLabel("manual-source-scale",in:controls) else { return }
         XCTAssertNotEqual(zoomedScale,scale)
-        let zoomedImages=images.allElementsBoundByAccessibilityElement
-        guard zoomedImages.count==1 else { XCTFail("Expected one zoomed source image");return }
-        let image=zoomedImages[0]
-        let highlights=image.descendants(matching:.any).matching(identifier:"manual-source-highlight").allElementsBoundByAccessibilityElement
-        guard highlights.count==1 else { XCTFail("Expected one zoomed source highlight");return }
-        let bounds=image.frame,box=highlights[0].frame
-        XCTAssertTrue(ManualScrollNavigation.usable(bounds) && ManualScrollNavigation.usable(box) && bounds.contains(box))
+        guard let box = observedHighlight(), !ambiguous else {
+            XCTFail("The zoomed source must have one real image containing its unique highlight"); return
+        }
         XCTAssertGreaterThan(box.width,highlightBefore.width)
         controls.buttons["等倍"].tap();XCTAssertEqual(uniqueLabel("manual-source-scale",in:controls),scale)
         app.navigationBars["原画像の確認"].buttons["確認を終える"].tap()

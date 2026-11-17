@@ -48,3 +48,18 @@ class SimulatorIdentityTestCase: XCTestCase {
         #endif
     }
 }
+
+#if canImport(UIKit)
+extension SimulatorIdentityTestCase {
+    func snapshotNodes(in root: any XCUIElementSnapshot) -> [any XCUIElementSnapshot]? {
+        var pending: [any XCUIElementSnapshot] = [root]
+        var nodes: [any XCUIElementSnapshot] = []
+        while let node = pending.popLast() {
+            guard nodes.count < 4096 else { return nil }
+            nodes.append(node)
+            pending.append(contentsOf: node.children.reversed())
+        }
+        return nodes
+    }
+}
+#endif
