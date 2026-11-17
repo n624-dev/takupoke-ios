@@ -68,7 +68,8 @@ extension TimetableView {
                 let allowed = distance > 0 ? previous != nil : next != nil
                 if released {
                     weekPull.distance = 0
-                    if allowed && abs(distance) >= WeekPullObserver.threshold { moveWeek(distance > 0 ? -7 : 7) }
+                    let days = WeekEdgePull.weekOffset(onRelease: distance, previous: previous != nil, next: next != nil)
+                    if days != 0 { moveWeek(days) }
                 } else {
                     weekPull.distance = allowed ? distance : 0
                 }
@@ -145,11 +146,11 @@ private struct WeekPullOverlay: View {
     @ObservedObject var pull: WeekPullProgress
     let previous: SchoolDate?
     let next: SchoolDate?
-    let accent: Color
+    let accent: WeekControlAccent
     var body: some View {
         let distance = pull.distance
         if distance != 0, let destination = distance > 0 ? previous : next {
-            let progress = min(abs(distance) / WeekPullObserver.threshold, 1)
+            let progress = min(abs(distance) / WeekEdgePull.threshold, 1)
             WeekPullBadge(previous: distance > 0, ready: progress == 1, date: destination, progress: progress, accent: accent)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: distance > 0 ? .topLeading : .topTrailing)
         }
@@ -161,8 +162,7 @@ private struct WeekPullBadge: View {
     let ready: Bool
     let date: SchoolDate
     let progress: CGFloat
-    let accent: Color
-    @Environment(\.colorSchemeContrast) private var contrast
+    let accent: WeekControlAccent
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
@@ -172,7 +172,7 @@ private struct WeekPullBadge: View {
                 Circle().trim(from: 0, to: progress).stroke(accent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                 Image(systemName: previous ? "chevron.left" : "chevron.right")
-                    .foregroundStyle(contrast == .increased ? Color.primary : accent)
+                    .foregroundStyle(accent)
             }.frame(width: 27, height: 27)
             Text(ready ? (previous ? "離すと前週へ" : "離すと翌週へ") : (previous ? "前週" : "翌週"))
             Text("\(date.month)/\(date.day)〜").monospacedDigit()
@@ -188,7 +188,6 @@ private struct WeekPullBadge: View {
 /// Observe the horizontal scroll view's own pan. Tracking ends with the finger,
 /// before bouncing or deceleration can choose another week.
 private struct WeekPullObserver: UIViewRepresentable {
-    static let threshold: CGFloat = 115
     let update: (CGFloat, Bool) -> Void
 
     func makeUIView(context: Context) -> Probe {
@@ -203,9 +202,7 @@ private struct WeekPullObserver: UIViewRepresentable {
     final class Probe: UIView {
         var update: ((CGFloat, Bool) -> Void)?
         private weak var scroll: UIScrollView?
-        private var left: CGFloat = 0
-        private var right: CGFloat = 0
-        private var horizontal = false
+        private var pull: WeekEdgePull?
 
         override func layoutSubviews() { super.layoutSubviews(); attach() }
         override func didMoveToWindow() { super.didMoveToWindow(); attach() }
@@ -223,6 +220,7 @@ private struct WeekPullObserver: UIViewRepresentable {
         func detach() {
             scroll?.panGestureRecognizer.removeTarget(self, action: #selector(pan(_:)))
             scroll = nil
+            pull = nil
         }
 
         @objc private func pan(_ pan: UIPanGestureRecognizer) {
@@ -230,19 +228,16 @@ private struct WeekPullObserver: UIViewRepresentable {
             let translation = pan.translation(in: scroll)
             switch pan.state {
             case .began:
-                let velocity = pan.velocity(in: scroll)
-                horizontal = abs(velocity.x) > abs(velocity.y)
                 let inset = scroll.adjustedContentInset
-                let range = max(0, scroll.contentSize.width + inset.left + inset.right - scroll.bounds.width)
-                left = min(range, max(0, scroll.contentOffset.x + inset.left))
-                right = range - left
+                pull = WeekEdgePull(velocity: pan.velocity(in: scroll), offset: scroll.contentOffset.x + inset.left,
+                                    scrollRange: scroll.contentSize.width + inset.left + inset.right - scroll.bounds.width)
             case .changed, .ended:
-                guard horizontal else { return }
-                let distance = max(0, translation.x - left) + min(0, translation.x + right)
-                update?(abs(translation.x) > abs(translation.y) ? distance : 0, pan.state == .ended)
-                if pan.state == .ended { horizontal = false }
+                guard let pull else { return }
+                let released = pan.state == .ended
+                if released { self.pull = nil }
+                update?(pull.distance(for: translation), released)
             case .failed, .cancelled:
-                horizontal = false
+                pull = nil
                 update?(0, false)
             default: break
             }

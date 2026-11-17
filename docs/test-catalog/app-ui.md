@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`868d862b461fbac800e109c6e3000ff5e4d16f2d95ab734419e74a3f770153d9`
+`fcb4a7247ad50d565a83371dba81533e1db7066a6b3692f6a6a3da7f2e402d16`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -77,6 +77,7 @@ bash tools/test-app-ui.sh
 - `testDefaultAndChoiceOrder`
 - `testUnsetPreferenceDoesNotCreateAStoredColor`
 - `testAllSavedColorsSurviveReadAndDefaultRemovesOnlyColor`
+- `testWeekControlsKeepThemeAndContrastInLightAndDarkAppearances`
 - `testDefaultHasNoTintOverrideAndExplicitBlueIsKept`
 
 ## [tests/test_ui_test_manifest.py](../../tests/test_ui_test_manifest.py)

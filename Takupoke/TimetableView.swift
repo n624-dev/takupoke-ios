@@ -186,7 +186,7 @@ struct TimetableView: View {
         }
     }
 
-    var weekControlColor: Color { (MainColor(rawValue: mainColor) ?? .systemDefault).displayColor }
+    var weekControlColor: WeekControlAccent { WeekControlAccent(theme: MainColor(rawValue: mainColor) ?? .systemDefault) }
 
 
 }

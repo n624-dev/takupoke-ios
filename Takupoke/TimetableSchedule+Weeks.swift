@@ -86,3 +86,29 @@ extension TimetableSchedule {
         }
     }
 }
+
+/// Distances are measured from the finger's starting position. A wide week
+/// consumes its remaining horizontal scroll range before either edge can arm.
+struct WeekEdgePull {
+    static let threshold: CGFloat = 115
+    private let left: CGFloat
+    private let right: CGFloat
+
+    init?(velocity: CGPoint, offset: CGFloat, scrollRange: CGFloat) {
+        guard abs(velocity.x) > abs(velocity.y) else { return nil }
+        let range = max(0, scrollRange)
+        left = min(range, max(0, offset))
+        right = range - left
+    }
+
+    func distance(for translation: CGPoint) -> CGFloat {
+        guard abs(translation.x) > abs(translation.y) else { return 0 }
+        return max(0, translation.x - left) + min(0, translation.x + right)
+    }
+
+    static func weekOffset(onRelease distance: CGFloat, previous: Bool, next: Bool) -> Int {
+        if previous && distance >= threshold { return -7 }
+        if next && distance <= -threshold { return 7 }
+        return 0
+    }
+}
