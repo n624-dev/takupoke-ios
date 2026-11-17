@@ -1,6 +1,8 @@
 name: Native manual input focus check
 
 on:
+  push:
+    branches: [verify/117-source-image]
   workflow_dispatch:
     inputs:
       case:
@@ -33,6 +35,7 @@ permissions:
 
 jobs:
   focus:
+    if: github.event_name == 'workflow_dispatch'
     name: Native input iOS ${{ matrix.ios }} / ${{ matrix.case }}
     strategy:
       fail-fast: false
@@ -78,3 +81,40 @@ jobs:
       - name: Remove the owned iOS 26 runtime export after simulator cleanup
         if: always() && matrix.ios == 26 && inputs.sdk26 != '26.6'
         run: python3 -B tools/prepare-ios26-runtime.py --cleanup-export
+
+  source-readiness:
+    if: github.event_name == 'push'
+    name: Manual correction iOS ${{ matrix.ios }} / ${{ matrix.case }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ios: [27]
+        case:
+          - testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch
+        include:
+          - ios: 27
+            runner: xcode-27
+            developer: /Applications/Xcode_27.2.app/Contents/Developer
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    env:
+      TKPK_EXPECTED_IOS_SDK: '27.2'
+      TKPK_SIMULATOR_FRONTEND: headless
+      DEVELOPER_DIR: ${{ matrix.developer }}
+      TKPK_TEST_IOS: ${{ matrix.ios }}
+      TKPK_MANUAL_CASE: ${{ matrix.case }}
+      TKPK_MANUAL_DIAGNOSTICS: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Require exact manual source
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Exercise one manual case and require its exact completion
+        run: |
+          python3 -B tools/timed_command.py --timeout 2400 --cleanup-grace 120 "Manual preparation and UI runner" bash -euo pipefail -c '
+            python3 -B tools/select-ci-xcode.py
+            python3 -B tools/prepare-ios27-runtime.py
+            bash tools/test-manual-ui.sh
+          '
