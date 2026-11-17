@@ -90,6 +90,7 @@ jobs:
       matrix:
         ios: [27]
         case:
+          - testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground
           - testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch
         include:
           - ios: 27
