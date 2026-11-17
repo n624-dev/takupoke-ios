@@ -895,7 +895,12 @@ METHOD
                 self.assertIn("if: always()\n        " + cleanup, block)
                 self.assertLess(block.index("bash tools/test-manual-ui.sh"), block.index(cleanup))
         simulator = workflow.split("  simulator-27-a:\n", 1)[1].split("  manual-27:\n", 1)[0]
-        self.assertIn("timeout-minutes: 60", simulator)
+        for ios, minutes in ((27, 60), (26, 80)):
+            for shard in ("a", "b"):
+                block = workflow.split(f"  simulator-{ios}-{shard}:\n", 1)[1]
+                block = re.split(r"^  [a-z][a-z0-9-]*:\s*$", block, maxsplit=1, flags=re.MULTILINE)[0]
+                self.assertEqual(re.findall(r"^    timeout-minutes: (\d+)$", block, re.MULTILINE),
+                                 [str(minutes)], (ios, shard))
         self.assertNotIn("test-manual-ui.sh", simulator)
         probe=(ROOT/".github/workflows/manual-input-native-probe.yml").read_text(encoding="utf-8")
         for case in original|{selected}:

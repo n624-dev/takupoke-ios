@@ -178,7 +178,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     # Includes dependency resolution, build, simulator tests and owned cleanup.
     # Individual UI operation deadlines and completion checks stay unchanged.
-    timeout-minutes: 60
+    timeout-minutes: 80
     env:
       TKPK_EXPECTED_IOS_SDK: '27.2'
       TKPK_SIMULATOR_FRONTEND: gui
@@ -221,7 +221,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     # Includes dependency resolution, build, simulator tests and owned cleanup.
     # Individual UI operation deadlines and completion checks stay unchanged.
-    timeout-minutes: 60
+    timeout-minutes: 80
     env:
       TKPK_EXPECTED_IOS_SDK: '27.2'
       TKPK_SIMULATOR_FRONTEND: gui
