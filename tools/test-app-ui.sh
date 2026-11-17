@@ -6,7 +6,11 @@ runtime=""
 video_pid=""
 stop_week_video() {
     if [[ -n "$video_pid" ]]; then
-        kill -INT "$video_pid" 2>/dev/null || true
+        if [[ -f "$scratch_dir/recording-started" ]]; then
+            kill -INT "$video_pid" 2>/dev/null || true
+        else
+            kill -TERM "$video_pid" 2>/dev/null || true
+        fi
         wait "$video_pid" || true
         video_pid=""
     fi
@@ -179,8 +183,15 @@ while read -r device_type runtime; do
         xcrun simctl spawn "$simulator_id" notifyutil -p com.apple.accessibility.reduce.motion.status
     fi
     if [[ -n "${TKPK_WEEK_FRAMES:-}" ]]; then
-        video_start="$(python3 -c 'import time;print(time.time())')"
-        xcrun simctl io "$simulator_id" recordVideo --codec=h264 "$scratch_dir/week.mov" > "$scratch_dir/week-video.log" 2>&1 &
+        (
+            runner="jp.n624.takupoke.picker-tap-checks.xctrunner"
+            while ! runner_dir="$(xcrun simctl get_app_container "$simulator_id" "$runner" data 2>/dev/null)"; do
+                sleep 2
+            done
+            while [[ ! -f "$runner_dir/Documents/week-recording-ready" ]]; do sleep 0.2; done
+            : > "$scratch_dir/recording-started"
+            exec xcrun simctl io "$simulator_id" recordVideo --codec=h264 "$scratch_dir/week.mov"
+        ) > "$scratch_dir/week-video.log" 2>&1 &
         video_pid=$!
     fi
     check_ui() {
@@ -263,7 +274,7 @@ PY_OWNED_UI
         cat "$scratch_dir/week-video.log"
         week_container="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.app-checks data)"
         xcrun swift -swift-version 5 tools/inspect-week-movie.swift "$scratch_dir/week.mov" \
-            "$week_container/Documents" "$video_start" "$TKPK_WEEK_FRAMES"
+            "$week_container/Documents" "$TKPK_WEEK_FRAMES"
     fi
     if [[ "${TKPK_UI_PROBE_CASE:-all}" == "notifications" ]]; then
         python3 -B tools/notification_service_trace.py "$simulator_id" || true

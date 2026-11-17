@@ -2,7 +2,7 @@ name: Native application relaunch diagnosis
 
 on:
   push:
-    branches: [verify/117-week-video]
+    branches: [verify/117-week-capture]
   workflow_dispatch:
     inputs:
       case:
@@ -135,15 +135,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ios: [27, 26]
-        motion: [standard]
-        group:
-          - timetable-clocks
         include:
-          - ios: 26
-            group: timetable-clocks
-            motion: reduced
           - ios: 27
+            group: timetable-clocks
+            motion: standard
+          - ios: 26
             group: timetable-clocks
             motion: reduced
     timeout-minutes: 45

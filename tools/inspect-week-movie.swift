@@ -20,8 +20,7 @@ struct VideoError: LocalizedError {
 
 let movie = AVURLAsset(url: URL(fileURLWithPath: CommandLine.arguments[1]))
 let documents = URL(fileURLWithPath: CommandLine.arguments[2])
-let recordingStart = Double(CommandLine.arguments[3])!
-let reduced = CommandLine.arguments[4] == "reduced"
+let reduced = CommandLine.arguments[3] == "reduced"
 let urls = try FileManager.default.contentsOfDirectory(at: documents, includingPropertiesForKeys: nil)
     .filter { $0.lastPathComponent.hasPrefix("week-motion-") && $0.pathExtension == "json" }
 let captures = try urls.map { try JSONDecoder().decode(Capture.self, from: Data(contentsOf: $0)) }
@@ -66,7 +65,7 @@ func marks(in buffer: CVPixelBuffer, _ c: Capture, time: Double) -> [Mark] {
     return result
 }
 
-func verify(_ c: Capture) throws {
+func verify(_ c: Capture) throws -> ClosedRange<Double> {
     guard c.reduced == reduced, c.systemReduced == reduced else { throw VideoError("Native motion setting mismatch") }
     let reader = try AVAssetReader(asset: movie)
     let output = AVAssetReaderTrackOutput(track: track, outputSettings: [
@@ -74,11 +73,6 @@ func verify(_ c: Capture) throws {
     ])
     output.alwaysCopiesSampleData = false
     reader.add(output)
-    let relative = c.wallTime - recordingStart
-    let low = max(0, relative - 12), high = min(movie.duration.seconds, relative + 4)
-    guard low < high else { throw VideoError("Recorded movie does not contain gesture time") }
-    reader.timeRange = CMTimeRange(start: CMTime(seconds: low, preferredTimescale: 60000),
-                                   end: CMTime(seconds: high, preferredTimescale: 60000))
     guard reader.startReading() else { throw reader.error ?? VideoError("Cannot decode recorded video") }
     var found: [Mark] = []
     while let sample = output.copyNextSampleBuffer() {
@@ -87,7 +81,11 @@ func verify(_ c: Capture) throws {
         }
     }
     guard reader.status == .completed else { throw reader.error ?? VideoError("Incomplete video decode") }
-    print("WEEK_VIDEO geometry=\(c.geometry) ptsWindow=\(low)...\(high) travel=\(c.travel) reduced=\(reduced) appFrames=\(c.samples) marks=\(found.map { [$0.time, $0.x, $0.tone] })")
+    print("WEEK_VIDEO geometry=\(c.geometry) duration=\(movie.duration.seconds) travel=\(c.travel) reduced=\(reduced) appFrames=\(c.samples) marks=\(found.map { [$0.time, $0.x, $0.tone] })")
+    fflush(stdout)
+    guard let earliest = found.first?.time, let latest = found.last?.time, latest - earliest <= 1.5 else {
+        throw VideoError("A single brief marked transition was not identifiable")
+    }
     if reduced {
         guard let first = found.first, let last = found.last,
               Set(found.map(\.time)).count >= 3,
@@ -117,5 +115,20 @@ func verify(_ c: Capture) throws {
         }
         guard paired >= 2 else { throw VideoError("No sustained simultaneous page pair in the recording") }
     }
+    return earliest...latest
 }
-for capture in captures { try verify(capture) }
+var failed = false
+var previousEnd: Double?
+for capture in captures {
+    do {
+        let interval = try verify(capture)
+        if let previousEnd, interval.lowerBound <= previousEnd {
+            throw VideoError("The two uniquely marked gestures were not recorded in their original order")
+        }
+        previousEnd = interval.upperBound
+    } catch {
+        print("WEEK_VIDEO_ERROR travel=\(capture.travel) \(error.localizedDescription)")
+        failed = true
+    }
+}
+if failed { exit(1) }

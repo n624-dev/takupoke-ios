@@ -495,6 +495,10 @@ extension ApplicationChecks {
                 launchReady()
             }
             tab("時間割")
+            if eventsOnly {
+                let docs = try XCTUnwrap(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first)
+                try Data().write(to: docs.appendingPathComponent("week-recording-ready"), options: .atomic)
+            }
             for title in ["標準", "最大", "標準"] {
                 let metrics = try selectTypeSize(title)
                 let scale = try XCTUnwrap(metrics["scale"] as? Double)
