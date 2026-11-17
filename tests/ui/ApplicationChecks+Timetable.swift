@@ -437,27 +437,38 @@ extension ApplicationChecks {
 
     func testTimetableUsesSystemTextSize() throws {
         tab("時間割")
-        _ = visible(app.buttons["timetable-week-calendar"], navigation: "時間割")
+        let dateButton = app.buttons["timetable-week-calendar"]
+        _ = visible(dateButton, navigation: "時間割")
+        // At a term boundary take the only available direction once to test the full three-button row.
+        let labels = ["前週", "翌週"]
+        let initial = try XCTUnwrap(snapshotNodes(in: app.snapshot()))
+        let initialDirections = initial.filter { $0.elementType == .button && labels.contains($0.label) }
+        if initialDirections.count == 1 { tap(initialDirections[0].label) }
         let root = try app.snapshot()
         let nodes = try XCTUnwrap(snapshotNodes(in: root))
         let calendars = nodes.filter { $0.elementType == .button && $0.identifier == "timetable-week-calendar" }
         XCTAssertEqual(calendars.count, 1)
         let calendar = try XCTUnwrap(calendars.first)
-        XCTAssertGreaterThan(calendar.frame.width, 0)
-        XCTAssertGreaterThanOrEqual(calendar.frame.minX, root.frame.minX)
-        XCTAssertLessThanOrEqual(calendar.frame.maxX, root.frame.maxX)
-        let adjacent = try XCTUnwrap(nodes.first { $0.elementType == .button && ["前週", "翌週"].contains($0.label) })
+        let adjacent = nodes.filter { $0.elementType == .button && labels.contains($0.label) }
+        XCTAssertEqual(adjacent.map(\.label).sorted(), labels.sorted())
+        for control in [calendar] + adjacent {
+            XCTAssertGreaterThan(control.frame.width, 0)
+            XCTAssertGreaterThanOrEqual(control.frame.minX, root.frame.minX)
+            XCTAssertLessThanOrEqual(control.frame.maxX, root.frame.maxX)
+        }
         let metrics = try gridMetrics()
         let scale = try XCTUnwrap(metrics["scale"] as? Double)
         let category = try XCTUnwrap(metrics["systemSize"] as? String)
         XCTAssertEqual(
             category, try XCTUnwrap(metrics["expectedSystemSize"] as? String),
             "The requested Simulator OS setting must actually reach the app")
-        if category == UIContentSizeCategory.accessibilityExtraExtraExtraLarge.rawValue {
-            XCTAssertLessThanOrEqual(calendar.frame.maxY, adjacent.frame.minY + 1)
-        } else if category == UIContentSizeCategory.extraSmall.rawValue {
-            XCTAssertEqual(calendar.frame.midY, adjacent.frame.midY, accuracy: 2)
-            XCTAssertLessThanOrEqual(calendar.frame.height, adjacent.frame.height + 4)
+        for button in adjacent {
+            if category == UIContentSizeCategory.accessibilityExtraExtraExtraLarge.rawValue {
+                XCTAssertLessThanOrEqual(calendar.frame.maxY, button.frame.minY + 1)
+            } else if category == UIContentSizeCategory.extraSmall.rawValue {
+                XCTAssertEqual(calendar.frame.midY, button.frame.midY, accuracy: 2)
+                XCTAssertLessThanOrEqual(calendar.frame.height, button.frame.height + 4)
+            }
         }
         let standardOrSmaller = [UIContentSizeCategory.extraSmall, .small, .medium, .large].map(\.rawValue)
         if standardOrSmaller.contains(category) {
