@@ -606,10 +606,21 @@ extension ParsingTests {
                 let restored = try JSONDecoder().decode(ChangeEdits.self, from: JSONEncoder().encode(saved))
                 XCTAssertEqual(restored.entries.count, 1)
                 XCTAssertEqual(restored.readableOriginals()[records[0].raw_text], records[0].originalForDisplay)
-                XCTAssertEqual(restored.entries[0].displayValue(column: 2, edited: false, year: 2026), "2026年11月17日")
-                XCTAssertEqual(restored.entries[0].displayValue(column: 2, edited: true, year: 2026), "2026年11月18日")
+                XCTAssertEqual(restored.entries[0].displayValue(column: 2, edited: false), "2026年11月17日")
+                XCTAssertEqual(restored.entries[0].displayValue(column: 2, edited: true), "2026年11月18日")
                 XCTAssertEqual(view.table.original(at: 2).values[2], "46343")
             }
+            let historyTable = ChangeEditTable(sheet: "架空", headers: header,
+                rows: [header, ["2", "ES", "11/17", "火"]], headerRow: 1)
+            var legacy = try XCTUnwrap(historyTable.savedEdits(sourceIdentity: "fixture", digest: "v1",
+                defaultYear: 2026, edits: [2: ChangeRowEdit(values: [2: "11/18"])]))
+            legacy.entries[0].dateSchoolYear = nil
+            let historical = try XCTUnwrap(historyTable.restoreDetailed(legacy, sourceIdentity: "fixture",
+                digest: "v2", defaultYear: 2027).unmatched.first)
+            let reopened = try JSONDecoder().decode(ChangeEdits.Entry.self, from: JSONEncoder().encode(historical))
+                .withDateContext(headers: header, year: 2027)
+            XCTAssertEqual(reopened.displayValue(column: 2, edited: false), "2026年11月17日")
+            XCTAssertEqual(reopened.displayValue(column: 2, edited: true), "2026年11月18日")
             for classes in ["ES•?", "・ES", "ES･", "ES··IT"] {
                 let table = ChangeEditTable(sheet: "架空", headers: header, rows: [header, ["2", classes, "46343", "火"]], headerRow: 1)
                 XCTAssertEqual(try table.review(edits: [:], defaultYear: 2026)[2]?.map(\.code), [.classes])

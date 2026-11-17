@@ -108,11 +108,11 @@ struct ChangeWorkbookEditorView: View {
                             let entry = view.previous[index]
                             DisclosureGroup("以前の\(entry.row)行目") {
                                 Text(entry.original.values.indices.filter { !entry.original.values[$0].isEmpty }
-                                    .map { entry.displayValue(column: $0, edited: false, year: preview.defaultYear ?? 0) }.joined(separator: " ・ "))
+                                    .map { entry.displayValue(column: $0, edited: false) }.joined(separator: " ・ "))
                                 if entry.edit.excluded { Text("除外") }
                                 if entry.edit.deriveWeekday { Text("曜日を日付から補完") }
                                 ForEach(entry.edit.values.keys.sorted(), id: \.self) { column in
-                                    LabeledContent(entry.valueLabels?[column] ?? "列\(column + 1)", value: entry.displayValue(column: column, edited: true, year: preview.defaultYear ?? 0))
+                                    LabeledContent(entry.valueLabels?[column] ?? "列\(column + 1)", value: entry.displayValue(column: column, edited: true))
                                 }
                                 Button("この履歴を削除", role: .destructive) { view.previous.remove(at: index) }
                             }
@@ -280,7 +280,7 @@ struct ChangeWorkbookEditorView: View {
                             if entry.edit.deriveWeekday { Text("曜日を日付から補完") }
                             ForEach(entry.edit.values.keys.sorted(), id: \.self) { column in
                                 let title = entry.valueLabels?[column] ?? "列\(column + 1)"
-                                LabeledContent(title, value: entry.displayValue(column: column, edited: true, year: preview.defaultYear ?? 0))
+                                LabeledContent(title, value: entry.displayValue(column: column, edited: true))
                             }
                             Button("以前の\(entry.row)行目の修正を使う") {
                                 edits[row] = entry.edit

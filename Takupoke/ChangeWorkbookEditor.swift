@@ -106,7 +106,10 @@ extension MaterialLibrary {
         view.edits = restored.edits
         view.conflicts = restored.conflicts
 
-        view.previous = restored.unmatched + (personal?.history.map { $0.withDateColumn(in: personal?.layout.headers ?? []) } ?? [])
+        view.previous = restored.unmatched
+        if let personal {
+            view.previous += personal.history.map { $0.withDateContext(headers: personal.layout.headers, year: personal.year) }
+        }
         if let personal, personal.ambiguousRows?.isEmpty == false {
             let scope = personal.ambiguousLayout ?? personal.layout
             let sameLayout = scope.sheet == view.layout.sheet && scope.headers == view.layout.headers &&

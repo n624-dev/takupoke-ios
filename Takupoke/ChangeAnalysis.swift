@@ -356,6 +356,7 @@ struct ChangeEdits: Codable, Equatable {
         var valueLabels: [Int: String]? = nil
         var editedSerialUses1904: Bool? = nil
         var dateColumn: Int? = nil
+        var dateSchoolYear: Int? = nil
     }
     var sourceIdentity: String
     var digest: String
@@ -525,7 +526,7 @@ struct ChangeEditTable: Equatable {
             let editedDate = dateColumn.flatMap { edit.values[$0] }
             let editedSerial = editedDate.map { ChangeNormalizer.matches(ChangeNormalizer.text($0), "^[0-9]+(?:\\.[0-9]+)?$") } == true
             return ChangeEdits.Entry(row: number, original: key, occurrences: occurrences, edit: edit,
-                valueLabels: Dictionary(uniqueKeysWithValues: edit.values.keys.map { ($0, headers[$0]) }), editedSerialUses1904: editedSerial ? uses1904 : nil, dateColumn: dateColumn)
+                valueLabels: Dictionary(uniqueKeysWithValues: edit.values.keys.map { ($0, headers[$0]) }), editedSerialUses1904: editedSerial ? uses1904 : nil, dateColumn: dateColumn, dateSchoolYear: defaultYear)
         }
         return ChangeEdits(sourceIdentity: sourceIdentity, digest: digest, defaultYear: defaultYear,
                            sheet: sheet, headers: headers, entries: entries, originalHeaders: originalHeaders, headerSources: headerSources, reviewedHeaderRow: headerRow, physicalWidth: physicalWidth)
@@ -556,10 +557,11 @@ struct ChangeEditTable: Equatable {
 
     func restoreDetailed(_ saved: ChangeEdits?, sourceIdentity: String, digest: String, defaultYear: Int)
         -> (edits: [Int: ChangeRowEdit], conflicts: Set<Int>, unmatched: [ChangeEdits.Entry]) {
-        guard let saved, saved.sourceIdentity == sourceIdentity, saved.defaultYear == defaultYear,
+        guard let saved else { return ([:], [], []) }
+        guard saved.sourceIdentity == sourceIdentity, saved.defaultYear == defaultYear,
               saved.sheet == sheet, let columns = restoredColumns(from: saved),
               saved.digest != digest || saved.reviewedHeaderRow == nil || saved.reviewedHeaderRow == headerRow else {
-            return ([:], [], saved?.entries.map { $0.withDateColumn(in: saved?.headers ?? []) } ?? [])
+            return ([:], [], saved.entries.map { $0.withDateContext(headers: saved.headers, year: saved.defaultYear) })
         }
         let groups = Dictionary(grouping: rowIDs, by: original(at:))
         let dateColumn = headers.firstIndex { ChangeNormalizer.text($0) == "月日" }
@@ -576,7 +578,7 @@ struct ChangeEditTable: Equatable {
         var edits: [Int: ChangeRowEdit] = [:], conflicts = Set<Int>(), unmatched: [ChangeEdits.Entry] = []
         var mappedEntries: [ChangeEdits.Entry] = []
         for previous in saved.entries {
-            var entry = previous.withDateColumn(in: saved.headers)
+            var entry = previous.withDateContext(headers: saved.headers, year: saved.defaultYear)
             let fields = entry.edit.values
             guard fields.keys.allSatisfy({ columns[$0] != nil }) else {
                 unmatched.append(entry)
@@ -617,15 +619,16 @@ struct ChangeEditTable: Equatable {
 }
 
 extension ChangeEdits.Entry {
-    func withDateColumn(in headers: [String]) -> Self {
+    func withDateContext(headers: [String], year: Int) -> Self {
         var entry = self
+        if entry.dateSchoolYear == nil { entry.dateSchoolYear = year }
         if entry.dateColumn == nil {
             entry.dateColumn = headers.firstIndex { ChangeNormalizer.text($0) == "月日" }
         }
         return entry
     }
 
-    func displayValue(column: Int, edited: Bool, year: Int) -> String {
+    func displayValue(column: Int, edited: Bool) -> String {
         let value = edited ? edit.values[column] ?? "" :
             (original.values.indices.contains(column) ? original.values[column] : "")
         guard column == dateColumn || valueLabels?[column] == "月日" else { return value }
@@ -633,7 +636,7 @@ extension ChangeEdits.Entry {
         let typed = !edited && original.sources[column]?.hasPrefix("/type/d/") == true
         let epoch = edited ? editedSerialUses1904 ?? (original.date1904 == true) : original.date1904 == true
         return ChangeNormalizer.readableDate(typed ? String(value.prefix(10)) : value,
-                                             defaultYear: year, uses1904: epoch) ?? "月日を確認"
+                                             defaultYear: dateSchoolYear, uses1904: epoch) ?? "月日を確認"
     }
 }
 
@@ -645,12 +648,12 @@ extension ChangeEdits {
         let labels = originalHeaders ?? headers
         var matches: [String: String] = [:], ambiguous = Set<String>()
         for old in entries {
-            let entry = old.withDateColumn(in: headers)
+            let entry = old.withDateContext(headers: headers, year: defaultYear)
             var original: [String] = [], readable: [String] = []
             for (column, value) in entry.original.values.enumerated() where !value.isEmpty {
                 let name = labels.indices.contains(column) && !labels[column].isEmpty ? labels[column] : "列\(column + 1)"
                 original.append(name + ":" + value)
-                readable.append(name + ":" + entry.displayValue(column: column, edited: false, year: defaultYear))
+                readable.append(name + ":" + entry.displayValue(column: column, edited: false))
             }
             let key = original.joined(separator: " | "), display = readable.joined(separator: " | ")
             if let previous = matches[key], previous != display { ambiguous.insert(key) }
