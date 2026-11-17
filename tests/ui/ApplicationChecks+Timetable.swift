@@ -56,6 +56,32 @@ extension ApplicationChecks {
         return nodes
     }
 
+    private func readyWeekCard(matching matches: @escaping (String) -> Bool) -> (button: XCUIElement, height: CGFloat)? {
+        let grid = app.scrollViews["timetable-week-grid"]
+        var current: (button: XCUIElement, height: CGFloat)?
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            guard let root = try? self.app.snapshot(), let nodes = self.snapshotNodes(in: root) else { return false }
+            let bars = nodes.filter { $0.elementType == .navigationBar }
+            let grids = nodes.filter { $0.elementType == .scrollView && $0.identifier == "timetable-week-grid" }
+            guard bars.count == 1, bars[0].identifier == "時間割" || bars[0].label == "時間割",
+                  grids.count == 1, let cells = self.snapshotNodes(in: grids[0]) else { return false }
+            let viewport = ObservedScreenGeometry.bodyViewport(app: root.frame, navigation: bars[0].frame,
+                tab: nodes.first(where: { $0.elementType == .tabBar })?.frame,
+                keyboards: nodes.filter { $0.elementType == .keyboard }.map(\.frame),
+                footers: nodes.filter { $0.elementType == .button && $0.label == "次へ" }.map(\.frame))
+            let buttons = cells.filter { $0.elementType == .button }
+            guard let observed = buttons.first(where: { matches($0.label) && $0.isEnabled &&
+                ObservedScreenGeometry.contains($0.frame, in: viewport, scale: UIScreen.main.scale) }),
+                buttons.filter({ $0.label == observed.label }).count == 1 else { return false }
+            let card = grid.buttons.matching(NSPredicate(format: "label == %@", observed.label)).element
+            guard card.isHittable else { return false }
+            current = (card, observed.frame.height)
+            return true
+        }, object: app)
+        guard XCTWaiter.wait(for: [ready], timeout: 10) == .completed else { return nil }
+        return current
+    }
+
     func testMergedCardsFromAllSources() {
         tab("時間割")
         let grid = app.scrollViews["timetable-week-grid"]
@@ -69,28 +95,7 @@ extension ApplicationChecks {
             // includes the real date, class, period range and subject for this card.
             let label = candidate.label
             XCTAssertTrue(label.contains(subject) && label.contains("限から"), label)
-            let cardMatches = grid.buttons.matching(NSPredicate(format: "label == %@", label))
-            var current: (button: XCUIElement, height: CGFloat)?
-            let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-                guard let root = try? self.app.snapshot(), let nodes = self.snapshotNodes(in: root) else { return false }
-                let bars = nodes.filter { $0.elementType == .navigationBar }
-                let grids = nodes.filter { $0.elementType == .scrollView && $0.identifier == "timetable-week-grid" }
-                guard bars.count == 1, bars[0].identifier == "時間割" || bars[0].label == "時間割",
-                      grids.count == 1, let cells = self.snapshotNodes(in: grids[0]) else { return false }
-                let viewport = ObservedScreenGeometry.bodyViewport(app: root.frame, navigation: bars[0].frame,
-                    tab: nodes.first(where: { $0.elementType == .tabBar })?.frame,
-                    keyboards: nodes.filter { $0.elementType == .keyboard }.map(\.frame),
-                    footers: nodes.filter { $0.elementType == .button && $0.label == "次へ" }.map(\.frame))
-                let cards = cells.filter { $0.elementType == .button && $0.label == label }
-                guard cards.count == 1, cards[0].isEnabled,
-                      ObservedScreenGeometry.contains(cards[0].frame, in: viewport, scale: UIScreen.main.scale)
-                else { return false }
-                let card = cardMatches.element
-                guard card.isHittable else { return false }
-                current = (card, cards[0].frame.height)
-                return true
-            }, object: app)
-            guard XCTWaiter.wait(for: [ready], timeout: 10) == .completed, let card = current else {
+            guard let card = readyWeekCard(matching: { $0 == label }) else {
                 XCTFail("Merged lesson card has no unique visible hit region: " + app.debugDescription)
                 return
             }
@@ -198,16 +203,12 @@ extension ApplicationChecks {
     func testHomeTimetableAndWeekCalendar() {
         XCTAssertTrue(app.staticTexts["今日の予定"].waitForExistence(timeout: 10))
         tab("時間割")
-        XCTAssertTrue(
-            app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "架空科目A")).firstMatch
-                .waitForExistence(timeout: 10), app.debugDescription)
-        // Actual merged cards must stay within the app frame.
-        let cards = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "架空科目A"))
-        XCTAssertGreaterThan(cards.count, 0)
-        let first = cards.element(boundBy: 0)
-        XCTAssertGreaterThan(first.frame.height, 0)
-        XCTAssertLessThanOrEqual(first.frame.maxX, app.frame.maxX + 1)
-        first.tap()
+        guard let first = readyWeekCard(matching: { $0.contains("架空科目A") && $0.contains("限から") }) else {
+            XCTFail("The timetable must contain a visible and operable merged lesson: " + app.debugDescription)
+            return
+        }
+        XCTAssertGreaterThan(first.height, 0)
+        first.button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         XCTAssertTrue(app.staticTexts["架空教員A"].firstMatch.waitForExistence(timeout: 5), app.debugDescription)
         dismissLesson()
         let calendars = app.buttons.matching(identifier:"timetable-week-calendar").matching(
