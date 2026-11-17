@@ -271,6 +271,15 @@ extension ApplicationChecks {
             start.press(forDuration: 0.08, thenDragTo: start.withOffset(CGVector(dx: 195, dy: 0)))
             let moved = expectation(for: NSPredicate(format: "label == %@", initial), evaluatedWith: calendar)
             XCTAssertEqual(XCTWaiter.wait(for: [moved], timeout: 8), .completed)
+            let returning = grid.frame.intersection(bodyViewport(navigation: "時間割"))
+            XCTAssertGreaterThan(returning.width, 230)
+            XCTAssertGreaterThan(returning.height, 30)
+            let right = origin.withOffset(CGVector(dx: returning.maxX - 35, dy: returning.minY + 20))
+            right.press(forDuration: 0.08, thenDragTo: right.withOffset(CGVector(dx: -195, dy: 0)))
+            let movedForward = expectation(for: NSPredicate(format: "label == %@", next), evaluatedWith: calendar)
+            XCTAssertEqual(XCTWaiter.wait(for: [movedForward], timeout: 8), .completed)
+            tap("前週")
+            XCTAssertEqual(calendar.label, initial)
             tap("翌週")
             tap("前週")
             XCTAssertEqual(calendar.label, initial)
@@ -428,12 +437,39 @@ extension ApplicationChecks {
 
     func testTimetableUsesSystemTextSize() throws {
         tab("時間割")
+        let dateButton = app.buttons["timetable-week-calendar"]
+        _ = visible(dateButton, navigation: "時間割")
+        // At a term boundary take the only available direction once to test the full three-button row.
+        let labels = ["前週", "翌週"]
+        let initial = try XCTUnwrap(snapshotNodes(in: app.snapshot()))
+        let initialDirections = initial.filter { $0.elementType == .button && labels.contains($0.label) }
+        if initialDirections.count == 1 { tap(initialDirections[0].label) }
+        let root = try app.snapshot()
+        let nodes = try XCTUnwrap(snapshotNodes(in: root))
+        let calendars = nodes.filter { $0.elementType == .button && $0.identifier == "timetable-week-calendar" }
+        XCTAssertEqual(calendars.count, 1)
+        let calendar = try XCTUnwrap(calendars.first)
+        let adjacent = nodes.filter { $0.elementType == .button && labels.contains($0.label) }
+        XCTAssertEqual(adjacent.map(\.label).sorted(), labels.sorted())
+        for control in [calendar] + adjacent {
+            XCTAssertGreaterThan(control.frame.width, 0)
+            XCTAssertGreaterThanOrEqual(control.frame.minX, root.frame.minX)
+            XCTAssertLessThanOrEqual(control.frame.maxX, root.frame.maxX)
+        }
         let metrics = try gridMetrics()
         let scale = try XCTUnwrap(metrics["scale"] as? Double)
         let category = try XCTUnwrap(metrics["systemSize"] as? String)
         XCTAssertEqual(
             category, try XCTUnwrap(metrics["expectedSystemSize"] as? String),
             "The requested Simulator OS setting must actually reach the app")
+        for button in adjacent {
+            if category == UIContentSizeCategory.accessibilityExtraExtraExtraLarge.rawValue {
+                XCTAssertLessThanOrEqual(calendar.frame.maxY, button.frame.minY + 1)
+            } else if category == UIContentSizeCategory.extraSmall.rawValue {
+                XCTAssertEqual(calendar.frame.midY, button.frame.midY, accuracy: 2)
+                XCTAssertLessThanOrEqual(calendar.frame.height, button.frame.height + 4)
+            }
+        }
         let standardOrSmaller = [UIContentSizeCategory.extraSmall, .small, .medium, .large].map(\.rawValue)
         if standardOrSmaller.contains(category) {
             XCTAssertEqual(scale, 1)
@@ -496,6 +532,33 @@ extension ApplicationChecks {
                         try XCTUnwrap(metrics["basePeriodWidth"] as? Double))
                     XCTAssertTrue(heights.allSatisfy { $0 >= 72 * scale })
                 }
+            }
+            if eventsOnly {
+                let calendar = app.buttons["timetable-week-calendar"]
+                let shortWeek = calendar.label
+                let grid = app.scrollViews["timetable-week-grid"]
+                let shortHeight = grid.frame.height
+                let towardNext = app.buttons["翌週"].exists
+                XCTAssertTrue(towardNext || app.buttons["前週"].exists)
+                func pull(next: Bool) throws {
+                    let visible = grid.frame.intersection(bodyViewport(navigation: "時間割"))
+                    guard visible.width > 230, visible.height > 30 else {
+                        throw NSError(domain: "Week grid is outside the viewport", code: 1)
+                    }
+                    let x = next ? visible.maxX - 30 : visible.minX + 30
+                    let start = app.coordinate(withNormalizedOffset: .zero)
+                        .withOffset(CGVector(dx: x, dy: visible.midY))
+                    start.press(forDuration: 0.08,
+                                thenDragTo: start.withOffset(CGVector(dx: next ? -195 : 195, dy: 0)))
+                }
+                try pull(next: towardNext)
+                XCTAssertNotEqual(calendar.label, shortWeek)
+                XCTAssertEqual(try gridMetrics()["eventsOnly"] as? Bool, false)
+                XCTAssertGreaterThan(grid.frame.height, shortHeight)
+                try pull(next: !towardNext)
+                XCTAssertEqual(calendar.label, shortWeek)
+                XCTAssertEqual(try gridMetrics()["eventsOnly"] as? Bool, true)
+                XCTAssertEqual(grid.frame.height, shortHeight, accuracy: 1)
             }
         }
     }
