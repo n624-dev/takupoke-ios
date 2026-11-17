@@ -5,7 +5,7 @@ struct ChangeRecordFields: View {
     let names: ChangePresentation
 
     var body: some View {
-        LabeledContent("日付", value: record.change_date)
+        LabeledContent("日付", value: record.displayDate)
         LabeledContent("クラス", value: TimetableDisplayText.className(record.displayClassName))
         field("時限", record.period.isEmpty ? "" : record.displayPeriod)
         field("変更前", names.before.detailSubject)

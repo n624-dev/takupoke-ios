@@ -10,6 +10,7 @@ enum XLSXReader {
         var rows: [[String]]
         var warnings: [ChangeParseError]
         var workbook: ChangeEditTable? = nil
+        var defaultYear: Int? = nil
 
         var reviewRows: [ChangeReviewRow] {
             guard let header = try? ChangeNormalizer.headerIndex(rows) else { return [] }
@@ -20,7 +21,7 @@ enum XLSXReader {
                     guard !ChangeNormalizer.text(value).isEmpty else { return nil }
                     let title = rows[header].indices.contains(column) ? rows[header][column] : "列\(column + 1)"
                     return ChangeReviewField(title: title, value: title == "月日" ?
-                        ChangeNormalizer.readableDate(value, defaultYear: nil) ?? "月日を確認" : value)
+                        ChangeNormalizer.readableDate(value, defaultYear: defaultYear) ?? "月日を確認" : value)
                 }
                 return ChangeReviewRow(id: number, warning: warning, fields: fields)
             }

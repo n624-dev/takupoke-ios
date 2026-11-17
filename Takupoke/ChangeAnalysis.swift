@@ -15,12 +15,18 @@ struct ScheduleChange: Codable, Equatable {
     var change_kind: String? = nil
 
     var readableOriginal: String? = nil
+    var sourceRow: Int? = nil
+    var reasonSource: String? = nil
     var reason: String? = nil
     var remainingNote: String? = nil
     var updated: ChangeTimestamp? = nil
     var personallyEdited: Bool? = nil
     var personalReason: Bool? = nil
     var personalUpdate: Bool? = nil
+
+    var displayDate: String {
+        ChangeNormalizer.readableDate(change_date, defaultYear: nil) ?? "月日を確認"
+    }
 
     var originalForDisplay: String {
         if let readableOriginal { return readableOriginal }
@@ -29,12 +35,14 @@ struct ScheduleChange: Codable, Equatable {
             guard field.hasPrefix("月日:") else { return field }
             let value = String(field.dropFirst(3))
             let year = SchoolDate(iso8601: change_date)?.schoolYear
-            let displayed = ChangeNormalizer.readableDate(value, defaultYear: year)
-            if ChangeNormalizer.readableDate(value, defaultYear: year, uses1904: true) ==
-                ChangeNormalizer.readableDate(change_date, defaultYear: year) {
-                return "月日:" + (ChangeNormalizer.readableDate(change_date, defaultYear: year) ?? "月日を確認")
+            if ChangeNormalizer.matches(value, #"^[0-9]+(?:\.[0-9]+)?$"#) {
+                let options = [false, true].compactMap {
+                    ChangeNormalizer.readableDate(value, defaultYear: year, uses1904: $0)
+                }
+                return "月日:" + (options.contains(displayDate) ? displayDate : "月日を確認")
             }
-            return "月日:" + (displayed ?? "月日を確認")
+            let day = value.contains("T") && ChangeTimestamp.parse(value) != nil ? String(value.prefix(10)) : value
+            return "月日:" + (ChangeNormalizer.readableDate(day, defaultYear: year) ?? "月日を確認")
         }.joined(separator: " | ")
     }
 
@@ -626,5 +634,29 @@ extension ChangeEdits.Entry {
         let epoch = edited ? editedSerialUses1904 ?? (original.date1904 == true) : original.date1904 == true
         return ChangeNormalizer.readableDate(typed ? String(value.prefix(10)) : value,
                                              defaultYear: year, uses1904: epoch) ?? "月日を確認"
+    }
+}
+
+extension ChangeEdits {
+    /// Old edited records have a joined source string but their saved editor
+    /// entries still contain the exact cells and epoch. Rebuild the displayed
+    /// original only when those entries agree on the same full source string.
+    func readableOriginals() -> [String: String] {
+        let labels = originalHeaders ?? headers
+        var matches: [String: String] = [:], ambiguous = Set<String>()
+        for old in entries {
+            let entry = old.withDateColumn(in: headers)
+            var original: [String] = [], readable: [String] = []
+            for (column, value) in entry.original.values.enumerated() where !value.isEmpty {
+                let name = labels.indices.contains(column) && !labels[column].isEmpty ? labels[column] : "列\(column + 1)"
+                original.append(name + ":" + value)
+                readable.append(name + ":" + entry.displayValue(column: column, edited: false, year: defaultYear))
+            }
+            let key = original.joined(separator: " | "), display = readable.joined(separator: " | ")
+            if let previous = matches[key], previous != display { ambiguous.insert(key) }
+            matches[key] = display
+        }
+        for key in ambiguous { matches.removeValue(forKey: key) }
+        return matches
     }
 }

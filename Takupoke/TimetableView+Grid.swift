@@ -12,6 +12,9 @@ extension TimetableView {
         let columns = days.map(dayLayout)
         let eventsOnly = !columns.isEmpty && columns.allSatisfy { $0.fullDayEventTitle != nil }
         let rowHeights = gridRowHeights(columns, days: days)
+        let bounds = weekBounds
+        let previous = weekStart.addingDays(-7).flatMap { bounds.contains($0) ? $0 : nil }
+        let next = weekStart.addingDays(7).flatMap { bounds.contains($0) ? $0 : nil }
         return ScrollView(.horizontal) {
             Group {
                 if eventsOnly {
@@ -62,25 +65,20 @@ extension TimetableView {
             }
             .padding(.trailing, gridSpacing)
             .background(WeekPullObserver { distance, released in
-                let allowed = distance > 0 ? canMovePrevious : canMoveNext
+                let allowed = distance > 0 ? previous != nil : next != nil
                 if released {
-                    weekPull = 0
+                    weekPull.distance = 0
                     if allowed && abs(distance) >= WeekPullObserver.threshold { moveWeek(distance > 0 ? -7 : 7) }
                 } else {
-                    weekPull = allowed ? distance : 0
+                    weekPull.distance = allowed ? distance : 0
                 }
             })
         }
         .scrollBounceBehavior(.always, axes: .horizontal)
         .id(weekStart)
-        .overlay(alignment: weekPull > 0 ? .topLeading : .topTrailing) {
-            if weekPull != 0, let destination = weekStart.addingDays(weekPull > 0 ? -7 : 7) {
-                let previous = weekPull > 0
-                let ready = abs(weekPull) >= WeekPullObserver.threshold
-                WeekPullBadge(previous: previous, ready: ready, date: destination,
-                              progress: min(abs(weekPull) / WeekPullObserver.threshold, 1), accent: weekControlColor)
-                    .allowsHitTesting(false)
-            }
+        .overlay {
+            WeekPullOverlay(pull: weekPull, previous: previous, next: next, accent: weekControlColor)
+                .allowsHitTesting(false)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(GeometryReader { proxy in
@@ -134,6 +132,27 @@ private struct WeekGridWidthKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())
+    }
+}
+
+// Only the overlay subscribes to progress. Dragging leaves the timetable
+// grid, change list and source matching outside the per-frame update.
+final class WeekPullProgress: ObservableObject {
+    @Published var distance: CGFloat = 0
+}
+
+private struct WeekPullOverlay: View {
+    @ObservedObject var pull: WeekPullProgress
+    let previous: SchoolDate?
+    let next: SchoolDate?
+    let accent: Color
+    var body: some View {
+        let distance = pull.distance
+        if distance != 0, let destination = distance > 0 ? previous : next {
+            let progress = min(abs(distance) / WeekPullObserver.threshold, 1)
+            WeekPullBadge(previous: distance > 0, ready: progress == 1, date: destination, progress: progress, accent: accent)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: distance > 0 ? .topLeading : .topTrailing)
+        }
     }
 }
 
@@ -220,7 +239,7 @@ private struct WeekPullObserver: UIViewRepresentable {
             case .changed, .ended:
                 guard horizontal else { return }
                 let distance = max(0, translation.x - left) + min(0, translation.x + right)
-                update?(distance, pan.state == .ended)
+                update?(abs(translation.x) > abs(translation.y) ? distance : 0, pan.state == .ended)
                 if pan.state == .ended { horizontal = false }
             case .failed, .cancelled:
                 horizontal = false
