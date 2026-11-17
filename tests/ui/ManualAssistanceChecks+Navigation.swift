@@ -291,6 +291,9 @@ extension ManualAssistanceChecks {
         },object:app)
         let result=XCTWaiter.wait(for:[ready],timeout:nativeStateTimeout)
         guard !ambiguous,result == .completed,let button=readyButton else {
+            print("POPUP_AFTER_DEADLINE action=\(title) result=\(result) ambiguous=\(ambiguous)")
+            print(String(app.debugDescription.prefix(18000)))
+            print(String(XCUIApplication(bundleIdentifier: "com.apple.springboard").debugDescription.prefix(6000)))
             XCTFail("The opened popup must have one visible and operable action: "+title);return
         }
         button.tap()
