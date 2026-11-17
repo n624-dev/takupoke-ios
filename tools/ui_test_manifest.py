@@ -85,6 +85,7 @@ PROBE_GROUPS = {
     "notifications": NOTIFICATION_PROBE_TESTS,
     "controls": CONTROL_PROBE_TESTS,
     "rows": ("testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",),
+    "week-system-size": (SYSTEM_SIZE_TEST,),
     "week-change-details": ("testChangedRoomInHomeWeekAndList", "testHomeTimetableAndWeekCalendar", "testMergedCardsFromAllSources"),
     "rows-context": ("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover",
                      "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch"),

@@ -449,6 +449,7 @@ extension ApplicationChecks {
         let calendars = nodes.filter { $0.elementType == .button && $0.identifier == "timetable-week-calendar" }
         XCTAssertEqual(calendars.count, 1)
         let calendar = try XCTUnwrap(calendars.first)
+        recoveryScreenshot("week-date", marker: "WEEK_DATE_PIXELS", element: dateButton)
         let adjacent = nodes.filter { $0.elementType == .button && labels.contains($0.label) }
         XCTAssertEqual(adjacent.map(\.label).sorted(), labels.sorted())
         for control in [calendar] + adjacent {

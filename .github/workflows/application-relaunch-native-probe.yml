@@ -1,126 +1,91 @@
-name: Native application relaunch diagnosis
+name: Week picker at system text sizes
 
 on:
-  workflow_dispatch:
-    inputs:
-      case:
-        type: choice
-        default: all
-        options:
-          - all
-          - retention
-          - notifications
-          - controls
-          - rows
-          - rows-context
-          - input-delivery
-          - file-details
-          - updates
-          - auxiliary-store
-          - event-cache-input
-          - timetable-clocks
-          - home-boundaries
-          - home-launch
-          - testChangedAccountDataNoticeOpensSharedAcquisition
-          - testChangedDataProducesOneLocalNotification
-          - testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork
-          - testLinkPreferencesSurviveRelaunch
-          - testNotificationControlsAndAppearance
-          - testSettingsAccountDataAndFileDetails
-      ios:
-        description: Diagnose iOS 27 first; include 26 only for a confirmed comparison
-        type: choice
-        default: '27'
-        options: ['27', '26', 'both']
-      sdk27:
-        description: Additional iOS 27 toolchain comparison; distribution stays unchanged
-        type: choice
-        default: '27.1'
-        options:
-          - '27.0'
-          - '27.1'
-          - '27.2'
-      sdk26:
-        description: Compare iOS 26.5 using the shipping SDK; distribution stays unchanged
-        type: choice
-        default: '26.6'
-        options: ['26.6', '27.0', '27.1', '27.2']
+  push:
+    branches: [verify/117-week-type]
 
 permissions:
   contents: read
 
+env:
+  DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+  TKPK_EXPECTED_IOS_SDK: '27.2'
+  PYTHONDONTWRITEBYTECODE: '1'
+
 jobs:
-  focus:
-    name: Relaunch diagnosis iOS ${{ matrix.ios }}
+  application:
+    name: Focused application iOS ${{ matrix.ios }} / ${{ matrix.group }}
+    runs-on: xcode-27
     strategy:
       fail-fast: false
       matrix:
-        ios: ${{ fromJSON(inputs.ios == 'both' && '[27,26]' || inputs.ios == '26' && '[26]' || '[27]') }}
-    runs-on: ${{ matrix.ios == 26 && inputs.sdk26 == '26.6' && 'macos-26' || 'xcode-27' }}
-    timeout-minutes: 30
+        ios: [27, 26]
+        group:
+          - week-system-size
+    timeout-minutes: 45
     env:
-      DEVELOPER_DIR: >-
-        ${{ format('/Applications/Xcode_{0}.app/Contents/Developer', matrix.ios == 26 && inputs.sdk26 || inputs.sdk27) }}
-      TKPK_EXPECTED_IOS_SDK: ${{ matrix.ios == 26 && inputs.sdk26 == '26.6' && '26.5' || matrix.ios == 26 && inputs.sdk26 || inputs.sdk27 }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
-      TKPK_UI_PROBE_SDK27: ${{ inputs.sdk27 }}
-      TKPK_UI_PROBE_SDK26: ${{ inputs.sdk26 }}
-      TKPK_UI_RELAUNCH_PROBE: '1'
       TKPK_SIMULATOR_FRONTEND: ${{ matrix.ios == 26 && 'gui' || 'headless' }}
-      TKPK_UI_HANG_DIAGNOSTICS: ${{ inputs.case == 'rows-context' && '1' || '0' }}
-      TKPK_UI_PROBE_CASE: ${{ inputs.case }}
-      PYTHONDONTWRITEBYTECODE: '1'
+      TKPK_UI_RELAUNCH_PROBE: '1'
+      TKPK_UI_PROBE_SDK27: '27.2'
+      TKPK_UI_PROBE_SDK26: '27.2'
+      TKPK_UI_PROBE_CASE: ${{ matrix.group }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
-      - name: Require exact diagnostic source
+      - name: Require the pushed source
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-      - name: Select the active Xcode for CLI and GUI services
-        run: python3 -B tools/select-ci-xcode.py
-      - name: Prepare shipping iOS 27.0 for the focused comparison
-        if: matrix.ios == 27
-        run: python3 -B tools/prepare-ios27-runtime.py
-      - name: Require comparison toolchain and unchanged runtime
+      - name: Select Xcode and require both shipping SDKs
         run: |
           set -euo pipefail
-          xcodebuild -version
-          actual_sdk="$(xcrun --sdk iphonesimulator --show-sdk-version)"
-          printf 'Comparison simulator SDK: %s\n' "$actual_sdk"
-          expected_sdk="$TKPK_UI_PROBE_SDK27"
-          if [[ "$TKPK_TEST_IOS" == 26 ]]; then
-            expected_sdk="$TKPK_UI_PROBE_SDK26"
-            if [[ "$expected_sdk" == 26.6 ]]; then expected_sdk=26.5; fi
-          fi
-          case "$expected_sdk" in 26.5|27.0|27.1|27.2) ;; *) exit 2 ;; esac
-          test "$actual_sdk" = "$expected_sdk"
-          test "$(xcrun --sdk iphoneos --show-sdk-version)" = "$expected_sdk"
-          if [[ "$TKPK_TEST_IOS" == 26 && "$TKPK_UI_PROBE_SDK26" != 26.6 ]]; then
+          python3 -B tools/select-ci-xcode.py
+          test "$(xcrun --sdk iphonesimulator --show-sdk-version)" = "$TKPK_EXPECTED_IOS_SDK"
+          test "$(xcrun --sdk iphoneos --show-sdk-version)" = "$TKPK_EXPECTED_IOS_SDK"
+      - name: Prepare the shipping runtime
+        run: |
+          set -euo pipefail
+          if [[ "$TKPK_TEST_IOS" == 27 ]]; then
+            python3 -B tools/prepare-ios27-runtime.py
+          else
             python3 -B tools/prepare-ios26-runtime.py --hold-export
           fi
-          if [[ "$TKPK_TEST_IOS" == 27 ]]; then
-            xcrun simctl list runtimes -j | python3 -c '
-          import json, sys
-          runtimes = json.load(sys.stdin)["runtimes"]
-          if not any(r.get("isAvailable") and r["version"] == "27.0"
-                     and r["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS-")
-                     for r in runtimes):
-              raise SystemExit("Comparison requires unchanged iOS 27.0 runtime")
-          print("Comparison runtime: iOS 27.0")'
-          fi
-      - name: Exercise launch, native switches, permission, busy work and relaunch without retry or adoption credit
+      - name: Exercise the selected app cases and verify the runner log
         run: |
           set -euo pipefail
-          python3 -B tools/timed_command.py --timeout 1440 --cleanup-grace 120 \
-            "Focused relaunch runner" bash tools/test-app-ui.sh 2>&1 | tee "$RUNNER_TEMP/takupoke-relaunch-runner-owned.log"
-          selection=(--relaunch-probe)
-          if [[ "$TKPK_UI_PROBE_CASE" != all ]]; then
-            selection+=(--probe-case "$TKPK_UI_PROBE_CASE")
+          selection=(--relaunch-probe --probe-case "$TKPK_UI_PROBE_CASE")
+          selector="$(python3 -B tools/ui_test_manifest.py "${selection[@]}" --mode selectors)"
+          case "$TKPK_UI_PROBE_CASE" in
+            week-system-size) expected=(testTimetableUsesSystemTextSize) ;;
+            *) exit 1 ;;
+          esac
+          expected_selector="$(for method in "${expected[@]}"; do
+            printf '%s\n' "-only-testing:PickerTapChecks/ApplicationChecks/$method"
+          done)"
+          if [[ "$selector" != "$expected_selector" ]]; then
+            printf 'Expected selector(s)\n%s\nActual selector(s)\n%s\n' "$expected_selector" "$selector" >&2
+            exit 1
           fi
-          python3 -B tools/ui_test_manifest.py "${selection[@]}" --mode verify --ios "$TKPK_TEST_IOS" --runner-log --log "$RUNNER_TEMP/takupoke-relaunch-runner-owned.log"
-      - name: Remove the owned relaunch runner log
+          python3 -B tools/timed_command.py --timeout 2400 --cleanup-grace 120 \
+            "Focused relaunch runner" bash tools/test-app-ui.sh 2>&1 | tee "$RUNNER_TEMP/takupoke-audited-native.log"
+          python3 -B tools/ui_test_manifest.py "${selection[@]}" --mode verify --ios "$TKPK_TEST_IOS" \
+            --runner-log --log "$RUNNER_TEMP/takupoke-audited-native.log"
+      - name: Confirm the recorded guest OS minor version
+        run: |
+          python3 -B - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          expected = {"26": (26, 5), "27": (27, 0)}[os.environ["TKPK_TEST_IOS"]]
+          log = Path(os.environ["RUNNER_TEMP"], "takupoke-audited-native.log").read_text(encoding="utf-8")
+          records = re.findall(r"(?m)^[ \t]*TAKUPOKE_UI_EXECUTION_IDENTITY ([^\r\n]+)$", log)
+          if not records or any(tuple(map(int, json.loads(raw)["runtime"].split(".")[:2])) != expected
+                                for raw in records):
+              raise SystemExit("Missing guest execution or unexpected runtime minor version")
+          PY
+      - name: Remove the owned diagnostic log
         if: always()
-        run: python3 -B -c 'import os; from pathlib import Path; (Path(os.environ["RUNNER_TEMP"])/"takupoke-relaunch-runner-owned.log").unlink(missing_ok=True)'
+        run: python3 -B -c 'import os; from pathlib import Path; Path(os.environ["RUNNER_TEMP"], "takupoke-audited-native.log").unlink(missing_ok=True)'
       - name: Remove the owned iOS 26 runtime export after simulator cleanup
         if: always() && matrix.ios == 26
         run: python3 -B tools/prepare-ios26-runtime.py --cleanup-export
