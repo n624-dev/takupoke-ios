@@ -106,6 +106,27 @@ extension TimetableView {
     private let travel: CGFloat
     private let id: UUID
     private let reduced: Bool
+    private let videoGeometry: [String: Double]
+    private let wallTime = Date().timeIntervalSince1970
+
+    static func addMarks(_ outgoing: UIView, _ incoming: UIView, rect: CGRect, travel: CGFloat, reduced: Bool) {
+        let width: CGFloat = travel > 0 ? 30 : 44
+        // The same two bars travel and fade with each actual page. Swapping the colors
+        // makes even an overlapping fade distinguishable in the host's compressed video.
+        for (page, colors) in [(outgoing, [UIColor.magenta, UIColor.cyan]),
+                               (incoming, [UIColor.cyan, UIColor.magenta])] {
+            let shift = reduced ? 0 : (travel > 0 ? 1.0 : -1.0) * page.bounds.width * 0.2
+            let center = page.bounds.midX + (page === outgoing ? shift : -shift)
+            for (index, color) in colors.enumerated() {
+                let marker = UIView(frame: CGRect(x: center - width / 2,
+                    y: rect.midY + CGFloat(index - 1) * 6, width: width, height: 6))
+                marker.isUserInteractionEnabled = false
+                marker.accessibilityElementsHidden = true
+                marker.backgroundColor = color
+                page.addSubview(marker)
+            }
+        }
+    }
     private var samples: [[Double]] = []
     private var link: CADisplayLink?
 
@@ -115,6 +136,12 @@ extension TimetableView {
         self.travel = slide.incomingOffset
         self.id = slide.id
         self.reduced = reduced
+        let window = outgoing.window!
+        // Convert via the stationary host because each page's model position is already its endpoint.
+        let point = outgoing.superview!.convert(CGPoint(x: outgoing.bounds.midX, y: slide.rect.midY), to: window)
+        let rect = outgoing.superview!.convert(outgoing.superview!.bounds, to: window)
+        videoGeometry = ["x": point.x, "y": point.y, "width": window.bounds.width, "height": window.bounds.height,
+                         "left": rect.minX, "right": rect.maxX]
         super.init()
         let display = CADisplayLink(target: self, selector: #selector(frame))
         link = display
@@ -132,7 +159,8 @@ extension TimetableView {
         link?.invalidate()
         link = nil
         let record: [String: Any] = ["travel": Double(travel), "samples": samples,
-            "reduced": reduced, "systemReduced": UIAccessibility.isReduceMotionEnabled]
+            "reduced": reduced, "systemReduced": UIAccessibility.isReduceMotionEnabled,
+            "wallTime": wallTime, "geometry": videoGeometry]
         if let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first,
            let data = try? JSONSerialization.data(withJSONObject: record) {
             try? data.write(to: dir.appendingPathComponent("week-motion-\(id.uuidString).json"), options: .atomic)

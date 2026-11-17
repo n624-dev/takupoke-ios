@@ -3,6 +3,14 @@ set -euo pipefail
 scratch_dir="$(mktemp -d "${TMPDIR:-/tmp}/takupoke-app-tests.XXXXXX")"
 simulator_id=""
 runtime=""
+video_pid=""
+stop_week_video() {
+    if [[ -n "$video_pid" ]]; then
+        kill -INT "$video_pid" 2>/dev/null || true
+        wait "$video_pid" || true
+        video_pid=""
+    fi
+}
 hang_watch_pid=""
 hang_stop_path=""
 host_failure_collected=0
@@ -61,6 +69,7 @@ collect_host_failure() {
 cleanup() {
     local task_exit_status=$?
     stage cleanup-enter
+    stop_week_video
     stop_hang_watch
     if [[ -n "$simulator_id" ]]; then
         if [[ "$task_exit_status" != "0" ]]; then
@@ -169,6 +178,11 @@ while read -r device_type runtime; do
         xcrun simctl spawn "$simulator_id" defaults write com.apple.Accessibility ReduceMotionEnabled -bool YES
         xcrun simctl spawn "$simulator_id" notifyutil -p com.apple.accessibility.reduce.motion.status
     fi
+    if [[ -n "${TKPK_WEEK_FRAMES:-}" ]]; then
+        video_start="$(python3 -c 'import time;print(time.time())')"
+        xcrun simctl io "$simulator_id" recordVideo --codec=h264 "$scratch_dir/week.mov" > "$scratch_dir/week-video.log" 2>&1 &
+        video_pid=$!
+    fi
     check_ui() {
         local log_path="$1"
         shift
@@ -245,42 +259,11 @@ PY_OWNED_UI
         done
     fi
     if [[ -n "${TKPK_WEEK_FRAMES:-}" ]]; then
-    # The selected test has completed its real gestures. Read only the synthetic app’s measured frames.
-    week_container="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.app-checks data)"
-    python3 - "$week_container/Documents" <<'PY_WEEK_FRAMES'
-from pathlib import Path
-import json, sys
-captures = sorted(Path(sys.argv[1]).glob("week-motion-*.json"))
-if len(captures) != 2:
-    raise SystemExit(f"Expected the two completed physical week gestures, found {len(captures)}")
-import os
-reduced = os.environ["TKPK_WEEK_FRAMES"] == "reduced"
-directions = set()
-for file in captures:
-    record = json.loads(file.read_text())
-    print("WEEK_PRESENTED_FRAMES", json.dumps(record), flush=True)
-    samples = record["samples"]
-    if record["reduced"] != reduced or record["systemReduced"] != reduced:
-        raise SystemExit("The requested native motion setting did not reach the app")
-    if len(samples) < 3:
-        raise SystemExit("Too few drawn animation frames")
-    _, outgoing, incoming, opacity_a, opacity_b = zip(*samples)
-    distance = record["travel"]
-    directions.add(distance > 0)
-    if reduced:
-        if max(outgoing) - min(outgoing) > 2 or max(incoming) - min(incoming) > 2:
-            raise SystemExit("The fading pages moved horizontally")
-        if opacity_a[0] - opacity_a[-1] < 0.15 or opacity_b[-1] - opacity_b[0] < 0.15:
-            raise SystemExit("The pages did not crossfade")
-    else:
-        sign = 1 if distance > 0 else -1
-        if min((outgoing[0] - outgoing[-1]) * sign, (incoming[0] - incoming[-1]) * sign) < 0.15 * abs(distance):
-            raise SystemExit("The pages did not travel in the gesture direction")
-        if max(abs((b - a) - distance) for a, b in zip(outgoing, incoming)) > 2:
-            raise SystemExit("The presented pages lost their relative position")
-if directions != {False, True}:
-    raise SystemExit("Missing a direction")
-PY_WEEK_FRAMES
+        stop_week_video
+        cat "$scratch_dir/week-video.log"
+        week_container="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.app-checks data)"
+        xcrun swift -swift-version 5 tools/inspect-week-movie.swift "$scratch_dir/week.mov" \
+            "$week_container/Documents" "$video_start" "$TKPK_WEEK_FRAMES"
     fi
     if [[ "${TKPK_UI_PROBE_CASE:-all}" == "notifications" ]]; then
         python3 -B tools/notification_service_trace.py "$simulator_id" || true

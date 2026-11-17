@@ -2,7 +2,7 @@ name: Native application relaunch diagnosis
 
 on:
   push:
-    branches: [verify/117-week-final]
+    branches: [verify/117-week-video]
   workflow_dispatch:
     inputs:
       case:
@@ -138,8 +138,6 @@ jobs:
         ios: [27, 26]
         motion: [standard]
         group:
-          - week-change-details
-          - week-system-size
           - timetable-clocks
         include:
           - ios: 26
