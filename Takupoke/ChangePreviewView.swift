@@ -18,7 +18,7 @@ struct ChangeRecordFields: View {
         DisclosureGroup("元の記載") {
             if !record.before_subject.isEmpty { LabeledContent("変更前", value: record.before_subject) }
             if !record.after_subject.isEmpty { LabeledContent("変更後", value: record.after_subject) }
-            if !record.raw_text.isEmpty { Text(record.raw_text).textSelection(.enabled) }
+            if !record.raw_text.isEmpty { Text(record.originalForDisplay).textSelection(.enabled) }
         }
     }
 

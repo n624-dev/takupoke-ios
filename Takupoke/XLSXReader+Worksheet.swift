@@ -7,8 +7,8 @@ import Crypto
 
 extension XLSXReader {
     static func readSheet(_ sheet: XMLNode, strings: [String], defaultYear: Int?,
-                          check: () throws -> Void) throws -> PreviewTable {
-        let content = try readCells(sheet, strings: strings, editing: false, check: check)
+                          uses1904: Bool = false, formats: [Int: Bool] = [:], check: () throws -> Void) throws -> PreviewTable {
+        let content = try readCells(sheet, strings: strings, editing: false, formats: formats, check: check)
         var rows = content.rows
         let formulas = content.formulas
         // Locate literal required headers without accepting a formula's cached
@@ -18,11 +18,33 @@ extension XLSXReader {
         let header = try ChangeNormalizer.headerIndex(headerRows) + 1
         let headers = rows[header - 1].map(ChangeNormalizer.token)
         let dateColumn = headers.firstIndex(of: "月日")!
+        let updated = ChangeNormalizer.OptionalColumn.updated.index(in: headers)
+        var workbook = ChangeEditTable(sheet: "時間割変更", headers: rows[header - 1], rows: content.rows, headerRow: header,
+                                       cellIssues: content.issues, uses1904: uses1904, numericCells: content.numericCells,
+                                       dateCells: content.dateCells, formattedDates: content.formattedDates)
+        for (number, issues) in content.issues {
+            for (column, issue) in issues where number <= header || column != updated {
+                throw ChangeParseError(code: issue, row: number)
+            }
+        }
+        for number in (header + 1)..<(rows.count + 1) {
+            guard rows[number - 1].indices.contains(dateColumn) else { continue }
+            if content.dateCells[number]?.contains(dateColumn) == true {
+                rows[number - 1][dateColumn] = String(rows[number - 1][dateColumn].prefix(10))
+            } else if uses1904, ChangeNormalizer.matches(ChangeNormalizer.text(rows[number - 1][dateColumn]), #"^[0-9]+(?:\.[0-9]+)?$"#),
+                      let serial = Double(ChangeNormalizer.text(rows[number - 1][dateColumn])) {
+                rows[number - 1][dateColumn] = String(serial + 1462)
+            }
+        }
         var warnings: [ChangeParseError] = []
         for formula in formulas {
             try check()
             if formula.row < header {
                 rows[formula.row - 1][formula.column] = ""
+                continue
+            }
+            if formula.row > header, formula.column == updated {
+                workbook.cellIssues[formula.row, default: [:]][formula.column] = .formula
                 continue
             }
             guard formula.row > header, headers.indices.contains(formula.column),
@@ -64,7 +86,7 @@ extension XLSXReader {
             let end = try coordinate(String(parts.last!))
             if end.row >= header { throw ChangeParseError(code: .mergedCells, row: end.row) }
         }
-        return PreviewTable(rows: rows, warnings: warnings)
+        return PreviewTable(rows: rows, warnings: warnings, workbook: workbook)
     }
 
     struct WorksheetCells {
@@ -74,9 +96,10 @@ extension XLSXReader {
         var sources: [Int: [Int: String]]
         var numericCells: [Int: Set<Int>]
         var dateCells: [Int: Set<Int>]
+        var formattedDates: [Int: [Int: Bool]]
     }
 
-    static func readCells(_ sheet: XMLNode, strings: [String], editing: Bool,
+    static func readCells(_ sheet: XMLNode, strings: [String], editing: Bool, formats: [Int: Bool] = [:],
                           check: () throws -> Void) throws -> WorksheetCells {
         guard let data = sheet.child("sheetData") else { throw ChangeParseError(code: .invalidXML) }
         var rows: [[String]] = []
@@ -90,6 +113,7 @@ extension XLSXReader {
         var rangedCellCount = 0
         var duplicateMasters = Set<String>()
         var sharedFollowers: [(row: Int, column: Int, group: String)] = []
+        var formattedDates: [Int: [Int: Bool]] = [:]
         var numericCells: [Int: Set<Int>] = [:], dateCells: [Int: Set<Int>] = [:]
         for row in data.children where row.name == "row" {
             try check()
@@ -150,12 +174,17 @@ extension XLSXReader {
                         decoded = value == "1" ? "TRUE" : "FALSE"
                     case "str": decoded = try decodedString(value)
                     case "d":
-                        let date = try typedDate(value, row: number)
-                        if editing { dateCells[number, default: []].insert(position.column) }
-                        decoded = editing ? value : date
+                        _ = try typedDate(value, row: number)
+                        dateCells[number, default: []].insert(position.column)
+                        decoded = value
                     case "n":
                         decoded = value
-                        if editing && !value.isEmpty { numericCells[number, default: []].insert(position.column) }
+                        if !value.isEmpty {
+                            numericCells[number, default: []].insert(position.column)
+                            if let style = Int(cell.attributes["s"] ?? "0"), let clock = formats[style] {
+                                formattedDates[number, default: [:]][position.column] = clock
+                            }
+                        }
                     default:
                         // Formula metadata above the header is not part of the table.
                         // Formula errors within the table are handled after locating that header.
@@ -163,7 +192,7 @@ extension XLSXReader {
                         else { throw ChangeParseError(code: .cellType, row: number) }
                     }
                 } catch let problem as ChangeParseError {
-                    guard editing, [.date, .cellType].contains(problem.code) else { throw problem }
+                    guard [.date, .cellType].contains(problem.code) else { throw problem }
                     decoded = value
                     issues[number, default: [:]][position.column] = problem.code
                 }
@@ -201,7 +230,7 @@ extension XLSXReader {
             }
         }
         return WorksheetCells(rows: rows, formulas: formulas, issues: issues, sources: sources,
-                              numericCells: numericCells, dateCells: dateCells)
+                              numericCells: numericCells, dateCells: dateCells, formattedDates: formattedDates)
     }
 
     private static func typedDate(_ value: String, row: Int) throws -> String {

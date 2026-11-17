@@ -57,11 +57,12 @@ enum ChangeNormalizer {
     }
     static func classes(_ value: String) throws -> [String] {
         if token(value) == "全" { return [] }
-        let parts = replace(text(value), "[,，、]", ",").split(separator: ",").map { token(String($0)) }.filter { !$0.isEmpty }
+        let parts = text(value).components(separatedBy: CharacterSet(charactersIn: ",，、・･•·")).map(token)
         guard !parts.isEmpty, parts.allSatisfy({ matches($0, "^[A-Z0-9]{1,12}$") }) else {
             throw ChangeParseError(code: .classes)
         }
-        return parts
+        var seen = Set<String>()
+        return parts.filter { seen.insert($0).inserted }
     }
 
     static func canonicalClassName(_ identifier: String) -> String {
@@ -74,6 +75,7 @@ enum ChangeNormalizer {
     enum OptionalColumn: String, CaseIterable {
         case period = "時限", kind = "変更種別", before = "変更前", after = "変更後"
         case teacher = "教員", room = "教室", note = "備考", subject = "科目"
+        case reason = "変更理由", updated = "更新日時"
 
         var aliases: [String] {
             switch self {
@@ -83,6 +85,8 @@ enum ChangeNormalizer {
             case .after: return [rawValue, "変更後科目", "新科目", "変更先"]
             case .teacher: return [rawValue, "担当", "担当教員", "担任", "教官"]
             case .room: return [rawValue, "場所"]
+            case .reason: return [rawValue, "理由"]
+            case .updated: return [rawValue, "最終更新日時"]
             case .note: return [rawValue, "連絡", "メモ", "その他"]
             case .subject: return [rawValue, "科目(担当教員)", "科目・担当教員"]
             }
@@ -101,7 +105,7 @@ enum ChangeNormalizer {
         return index
     }
 
-    static func parse(_ rows: [[String]], defaultYear: Int?, check: () throws -> Void = {}, allowEmptyPreview: Bool = false, sourceRows: [[String]]? = nil, sourceHeaders: [String]? = nil) throws -> [ScheduleChange] {
+    static func parse(_ rows: [[String]], defaultYear: Int?, check: () throws -> Void = {}, allowEmptyPreview: Bool = false, sourceRows: [[String]]? = nil, sourceHeaders: [String]? = nil, workbook: ChangeEditTable? = nil, edits: [Int: ChangeRowEdit] = [:]) throws -> [ScheduleChange] {
         guard rows.count <= maximumRows, rows.allSatisfy({ $0.count <= maximumColumns }),
               rows.flatMap({ $0 }).allSatisfy({ $0.utf8.count <= 4096 }) else { throw ChangeParseError(code: .limit) }
         guard rows.reduce(0, { total, row in total + row.reduce(0, { $0 + $1.utf8.count }) }) <= maximumTextBytes else {
@@ -166,6 +170,27 @@ enum ChangeNormalizer {
                 let title = labels.indices.contains(column) && !labels[column].isEmpty ? labels[column] : "列\(column + 1)"
                 return "\(title):\(value)"
             }.joined(separator: " | ")
+            let edit = edits[item.row] ?? ChangeRowEdit()
+            let originalDate: String?
+            if let workbook, let year = defaultYear {
+                originalDate = workbook.displayCell(row: item.row, column: dateIndex, year: year)
+            } else {
+                originalDate = readableDate(item.cells[dateIndex], defaultYear: defaultYear)
+            }
+            let readable = rawCells.enumerated().compactMap { column, value -> String? in
+                guard !value.isEmpty else { return nil }
+                let label = labels.indices.contains(column) && !labels[column].isEmpty ? labels[column] : "列\(column + 1)"
+                return label + ":" + (column == dateIndex ? originalDate ?? "月日を確認" : value)
+            }.joined(separator: " | ")
+            let dedicated = value(.reason)
+            let reasonInfo = ChangeNormalizer.reason(dedicated: dedicated, note: value(.note))
+            let updated = columns[.updated].flatMap { column -> ChangeTimestamp? in
+                if let workbook {
+                    return workbook.timestamp(row: item.row, column: column, edit: edit)
+                }
+                return ChangeTimestamp.parse(value(.updated))
+            }
+            let reasonColumn = dedicated.isEmpty ? columns[.note] : columns[.reason]
             for year in item.years {
                 let cs = token(item.cells[classIndex]) == "全" ? (known[year] ?? []).filter { $0 != "AI" }.sorted() : item.classes
                 guard !cs.isEmpty else { throw ChangeParseError(code: .unknownAll, row: item.row) }
@@ -177,7 +202,12 @@ enum ChangeNormalizer {
                     guard output.count < maximumRecords, textBytes <= maximumTextBytes else { throw ChangeParseError(code: .limit) }
                     output.append(ScheduleChange(change_date: normalizedDate, class_name: name, period: period,
                         before_subject: before, after_subject: after, teacher: teacher, room: room,
-                        note: note, raw_text: raw, canonical_text: canonical, change_kind: content))
+                        note: note, raw_text: raw, canonical_text: canonical, change_kind: content,
+                        readableOriginal: workbook != nil || readable != raw ? readable : nil,
+                        reason: reasonInfo.reason, remainingNote: reasonInfo.remaining,
+                        updated: updated, personallyEdited: edit.isEmpty ? nil : true,
+                        personalReason: reasonColumn.flatMap { edit.values[$0] } == nil ? nil : true,
+                        personalUpdate: columns[.updated].flatMap { edit.values[$0] } == nil ? nil : true))
                 }
             }
         }
@@ -207,8 +237,9 @@ extension ChangeEditTable {
            edit.values[column] == nil || edit.values[column] == rows[row - 1][column] {
             return String(value.prefix(10))
         }
-        if uses1904, numericCells[row]?.contains(column) == true || edit.values[column] != nil,
-           ChangeNormalizer.matches(value, "^[0-9]+(?:\\.[0-9]+)?$"), let serial = Double(value) {
+        let number = ChangeNormalizer.text(value)
+        if uses1904,
+           ChangeNormalizer.matches(number, "^[0-9]+(?:\\.[0-9]+)?$"), let serial = Double(number) {
             return String(serial + 1462)
         }
         return value
@@ -305,6 +336,8 @@ extension ChangeEditTable {
             for (column, code) in (cellIssues[number] ?? [:]).sorted(by: { $0.key < $1.key }) {
                 // The printed weekday/date relationship is recomputed below after any date edit.
                 if code == .weekdayMismatch || code == .weekdayOnly { continue }
+                if headers.indices.contains(column), ChangeNormalizer.OptionalColumn.updated.aliases.contains(ChangeNormalizer.token(headers[column])),
+                   [.date, .cellType, .formula, .formulaCache].contains(code) { continue }
                 let matchingCachedWeekday = code == .formula && normalizedDate.map {
                     v.indices.contains(column) && ChangeNormalizer.weekdayMatches(v[column], normalizedDate: $0)
                 } == true
@@ -360,11 +393,30 @@ extension ChangeEditTable {
             }
         }
         return try ChangeNormalizer.parse(table, defaultYear: defaultYear, check: check,
-                                          sourceRows: rows, sourceHeaders: originalHeaders ?? headers)
+                                          sourceRows: rows, sourceHeaders: originalHeaders ?? headers, workbook: self, edits: edits)
     }
 }
 
 extension ChangeEditTable {
+    func displayCell(row: Int, column: Int, edit: ChangeRowEdit = ChangeRowEdit(), year: Int) -> String {
+        let rowValues = values(at: row, edit: edit, defaultYear: year)
+        guard rowValues.indices.contains(column) else { return "" }
+        guard ChangeNormalizer.text(headers[column]) == "月日" else { return rowValues[column] }
+        guard let date = normalizedDate(rowValues, row: row, edit: edit, defaultYear: year) else { return "月日を確認" }
+        return ChangeNormalizer.readableDate(date, defaultYear: year) ?? "月日を確認"
+    }
+
+    func timestamp(row: Int, column: Int, edit: ChangeRowEdit) -> ChangeTimestamp? {
+        if let value = edit.values[column] { return ChangeTimestamp.parse(value) }
+        guard cellIssues[row]?[column] == nil, rows[row - 1].indices.contains(column) else { return nil }
+        let value = rows[row - 1][column]
+        if numericCells[row]?.contains(column) == true {
+            guard let clock = formattedDates[row]?[column] else { return nil }
+            return ChangeTimestamp.serial(value, uses1904: uses1904, clock: clock)
+        }
+        return ChangeTimestamp.parse(value)
+    }
+
     func weekdayComparison(row: Int, edit: ChangeRowEdit, year: Int) -> String? {
         let values = values(at: row, edit: edit, defaultYear: year)
         guard let column = weekdayColumn, let day = derivedWeekday(values, row: row, edit: edit, defaultYear: year) else { return nil }
@@ -378,11 +430,11 @@ extension ChangeEditTable {
         return headers.indices.compactMap { column -> String? in
             let value = values[column]
             let label = ChangeNormalizer.token(headers[column]) == "学年" ? "学年" : headers[column]
+            if ChangeNormalizer.text(label) == "月日" { return label + " " + displayCell(row: row, column: column, edit: edit, year: year) }
             if value.isEmpty {
                 return ["学年", "学科・クラス", "月日"].contains(label) ? label + " 空欄" : nil
             }
-            let date = ChangeNormalizer.text(label) == "月日" ? normalizedDate(values, row: row, edit: edit, defaultYear: year) : nil
-            return label + " " + (date ?? value)
+            return label + " " + value
         }.joined(separator: "　")
     }
 }

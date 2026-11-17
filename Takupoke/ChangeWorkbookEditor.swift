@@ -8,8 +8,8 @@ import Crypto
 extension XLSXReader {
     static func editableWorkbook(_ url: URL, layout: ChangeColumnLayout?, sheet requested: String? = nil,
                                  headerRow requestedRow: Int? = nil, confirmedDigest: Bool = false, check: @escaping () throws -> Void) throws -> ChangeWorkbookReview {
-        try withSheet(url, requested: requested ?? layout?.sheet, editing: true, check: check) { sheet, strings, names, name, uses1904 in
-            let source = try readCells(sheet, strings: strings, editing: true, check: check)
+        try withSheet(url, requested: requested ?? layout?.sheet, editing: true, check: check) { sheet, strings, names, name, uses1904, formats in
+            let source = try readCells(sheet, strings: strings, editing: true, formats: formats, check: check)
             var rows = source.rows
             if rows.isEmpty {
                 guard names.count > 1 else { throw ChangeParseError(code: .empty) }
@@ -77,7 +77,7 @@ extension XLSXReader {
                 physicalWidth: reuse ? oldWidth : width, headerSources: headerSources.isEmpty ? nil : headerSources)
             let table = ChangeEditTable(sheet: name, headers: headers, rows: rows, headerRow: position + 1,
                 cellIssues: issues, cellSources: sources, originalHeaders: original,
-                headerSources: proposed.headerSources, physicalWidth: proposed.physicalWidth, uses1904: uses1904, numericCells: source.numericCells, dateCells: source.dateCells)
+                headerSources: proposed.headerSources, physicalWidth: proposed.physicalWidth, uses1904: uses1904, numericCells: source.numericCells, dateCells: source.dateCells, formattedDates: source.formattedDates)
             let named = original.map(ChangeNormalizer.text).filter { !$0.isEmpty }
             let ambiguousWeekdays = named.filter { ["曜日", "曜"].contains(ChangeNormalizer.token($0)) }.count > 1
             let confirm = !reuse && (old != nil || name != "時間割変更" || likely != position || width > original.count ||
@@ -106,7 +106,7 @@ extension MaterialLibrary {
         view.edits = restored.edits
         view.conflicts = restored.conflicts
 
-        view.previous = restored.unmatched + (personal?.history ?? [])
+        view.previous = restored.unmatched + (personal?.history.map { $0.withDateColumn(in: personal?.layout.headers ?? []) } ?? [])
         if let personal, personal.ambiguousRows?.isEmpty == false {
             let scope = personal.ambiguousLayout ?? personal.layout
             let sameLayout = scope.sheet == view.layout.sheet && scope.headers == view.layout.headers &&
@@ -138,6 +138,7 @@ extension MaterialLibrary {
         let rows = try view.table.savedEdits(sourceIdentity: expectedIdentity, digest: expectedDigest, defaultYear: year, edits: edits)
         let personal = PersonalChangeSettings(year: year, layout: view.layout, rows: rows, history: view.previous, reviewedDigest: record.digest)
         var analysis = ChangeAnalysis(sourceDigest: record.digest, sourceName: record.originalName, defaultYear: year, parsedAt: Date(), records: records)
+        analysis.sourceModifiedAt = record.sourceModifiedAt
         analysis.personalEdit = manual
         analysis.personalSourceIdentity = expectedIdentity
         try check()

@@ -27,10 +27,10 @@ enum SimulatorChangeRowSkipFixture {
         var rows = [
             ["学 年", "学科・クラス", "月日", "曜日", "時限", "変更内容", "科目(担当教員)"],
             ["1", "ZZ", "2032/7/10", "土", "1", "補講", "架空科目A"],
-            ["1", "ZZ", "2032/7/11", "月", "2", "補講", "架空除外科目B"],
+            ["1", "ZZ", "46343", "月", "2", "補講", "架空除外科目B"],
             ["", "", "", "火"],
             ["1", "ZZ", "2032/7/12", "月", "3", "補講", "架空科目C"],
-            ["", "ZZ", "2032/7/10", "土", "4", "補講", "架空科目D"],
+            ["", "ES・IT", "2032/7/10", "土", "4", "補講", "架空科目D"],
             ["", "ZZ", "2032/7/12", "月", "5", "補講", "架空科目E"],
         ]
         rows += Array(repeating:[],count:192)
@@ -40,6 +40,7 @@ enum SimulatorChangeRowSkipFixture {
                 + cells.enumerated().map { column, value in
                     if value.isEmpty { return "" }
                     let ref = String(UnicodeScalar(65 + column)!) + String(index + 1)
+                    if ref == "C3" { return "<c r=\"C3\"><v>46343</v></c>" }
                     return "<c r=\"\(ref)\" t=\"inlineStr\"><is><t>\(value)</t></is></c>"
                 }.joined() + "</row>"
         }.joined()

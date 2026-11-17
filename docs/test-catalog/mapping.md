@@ -1,7 +1,7 @@
 # 名称対応・パッケージ・認証取得
 
 対応関係・宣言名・実行方法のSHA-256：
-`faff7b560e71fb3ce1abdaeebc2e245214f8f0108d8eb8f939c09edc222027e7`
+`702d1c270f6bdac40d97d0c79a55fef1a14fbbdd179ea07661cb4da4b1693112`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -51,6 +51,7 @@ bash tools/test-parsing.sh
 - `testContextualTeacherWithinListRequiresMatchingYearClassAndSubject`
 - `testParentheticalCommaIsNotSplitAndBothChangeSidesAreMapped`
 - `testContextualTeacherAndConfirmedRoomSeparateInEitherSuffixOrder`
+- `testChangeComparisonReportsOnlyConfirmedDifferencesAndKeepsCandidatesByPeriod`
 
 ## [tests/MappingServiceTests.swift](../../tests/MappingServiceTests.swift)
 

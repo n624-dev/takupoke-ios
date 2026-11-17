@@ -51,7 +51,7 @@ struct HomeTodayView: View {
             includesChanges: true, customTimes: times.current?.data,
             sourceIndex:ApplicationData.shared.scheduleSourceIndex(materials:materials,specials:specialSchedules,events:schoolEvents))
     }
-    private var presentation: TimetablePresentation { TimetablePresentation(schedule: schedule, mappings: mappings) }
+    private var presentation: TimetablePresentation { TimetablePresentation(schedule: schedule, mappings: mappings, sourceRecord: materials.state.record(for: .changes)) }
     private var availability: HomeScheduleAvailability {
         HomeScheduleAvailability(materials: .init(ready: materials.ready, busy: materials.busy, failed: materials.failed),
             specials: .init(ready: specialSchedules.ready, busy: specialSchedules.busy, failed: specialSchedules.failed),

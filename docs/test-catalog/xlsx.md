@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`cd6b86d321be1219bed315cd15654f657a0b2d4465a8c28167c3b5ddd39d5017`
+`d883808fb0caac145b1c063b9a17d0ef0a285e337b4f6d14d306db65d82bb47e`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -54,6 +54,8 @@ bash tools/test-parsing.sh
 - `testMergedFollowersTrackSchoolAnchorIncludingImplicitLastRow`
 - `testReviewValidatesWeekdayAliasUniquenessAndMigratesMatchingCachedFormula`
 - `testGroupedWorkbookCorrectionsUseOnlySelectedRowsAndKeepRawEvidence`
+- `testWorkbookClassSeparatorsAndReadableMonthDayAcrossSavedEdits`
+- `testWorkbookTimestampEvidenceEpochsAndPersonalReason`
 
 ## [tests/ParsingTests+Persistence.swift](../../tests/ParsingTests+Persistence.swift)
 

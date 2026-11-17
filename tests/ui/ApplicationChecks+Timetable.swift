@@ -49,7 +49,7 @@ extension ApplicationChecks {
         tab("時間割")
         let grid = app.scrollViews["timetable-week-grid"]
         for (subject, section) in [("架空科目A", "通常の授業"), ("架空試験A", "試験時間割"),
-                                   ("架空返却A", "試験返却時間割"), ("架空変更A", "変更内容")] {
+                                   ("架空返却A", "試験返却時間割"), ("架空変更A", "補講")] {
             let matches = grid.buttons.matching(NSPredicate(format: "label CONTAINS %@", subject))
             let candidate = matches.element(boundBy: 0)
             XCTAssertTrue(candidate.waitForExistence(timeout: 10), app.debugDescription)
@@ -80,7 +80,7 @@ extension ApplicationChecks {
             let detail = app.navigationBars[title]
             XCTAssertTrue(detail.waitForExistence(timeout: 5), app.debugDescription)
             XCTAssertTrue(app.collectionViews.staticTexts[section].exists, app.debugDescription)
-            let subjectField = (subject == "架空変更A" ? "変更後、" : "科目、") + subject
+            let subjectField = "科目、" + subject
             XCTAssertTrue(visible(app.collectionViews.staticTexts[subjectField], navigation: title).exists)
             dismissLesson(title: title)
             XCTAssertTrue(detail.waitForNonExistence(timeout: 10), app.debugDescription)
@@ -238,10 +238,50 @@ extension ApplicationChecks {
         tapToolbar("キャンセル", bar: "週を選ぶ")
         XCTAssertFalse(app.buttons["この週へ移動"].exists)
         if app.buttons["翌週"].exists {
+            let calendar = app.buttons["timetable-week-calendar"]
+            let initial = calendar.label
             tap("翌週")
+            let next = calendar.label
+            XCTAssertNotEqual(initial, next)
             XCTAssertTrue(app.buttons["前週"].exists)
+            let grid = app.scrollViews["timetable-week-grid"]
+            let region = grid.frame.intersection(bodyViewport(navigation: "時間割"))
+            XCTAssertGreaterThan(region.width, 230)
+            XCTAssertGreaterThan(region.height, 30)
+            let origin = app.coordinate(withNormalizedOffset: .zero)
+            let start = origin.withOffset(CGVector(dx: region.minX + 35, dy: region.minY + 20))
+            start.press(forDuration: 0.08, thenDragTo: start.withOffset(CGVector(dx: 28, dy: 0)))
+            XCTAssertEqual(calendar.label, next)
+            start.press(forDuration: 0.08, thenDragTo: start.withOffset(CGVector(dx: 195, dy: 0)))
+            let moved = expectation(for: NSPredicate(format: "label == %@", initial), evaluatedWith: calendar)
+            XCTAssertEqual(XCTWaiter.wait(for: [moved], timeout: 8), .completed)
+            tap("翌週")
             tap("前週")
+            XCTAssertEqual(calendar.label, initial)
         }
+    }
+
+    func testChangedRoomInHomeWeekAndList() {
+        func readDetail(from button: XCUIElement) {
+            let target = visible(button)
+            XCTAssertTrue(target.isEnabled && target.isHittable)
+            target.tap()
+            screen("時間割変更")
+            let pair = app.collectionViews.descendants(matching: .any).matching(identifier: "change-detail-room").element
+            XCTAssertTrue(visible(pair, navigation: "時間割変更").exists)
+            XCTAssertEqual(pair.label, "教室、変更前、架空教室A、変更後、架空移動先B")
+            XCTAssertEqual(pair.value as? String, "変更前は通常時間割から補完")
+            XCTAssertTrue(visible(app.collectionViews.staticTexts["変更理由、架空の室内点検"], navigation: "時間割変更").exists)
+            XCTAssertTrue(visible(app.collectionViews.staticTexts["この変更の更新日時、2032/04/02 08:05"], navigation: "時間割変更").exists)
+            dismissLesson(title: "時間割変更")
+            XCTAssertTrue(app.navigationBars["時間割変更"].waitForNonExistence(timeout: 10))
+        }
+        let destination = NSPredicate(format: "label CONTAINS %@", "架空移動先B")
+        readDetail(from: app.collectionViews.buttons.matching(destination).element)
+        tab("時間割")
+        readDetail(from: app.scrollViews["timetable-week-grid"].buttons.matching(destination).element)
+        let summary = NSPredicate(format: "label CONTAINS %@", "教室変更　架空教室A → 架空移動先B")
+        readDetail(from: app.collectionViews.buttons.matching(summary).element)
     }
 
     private func gridMetrics() throws -> [String: Any] {

@@ -8,7 +8,7 @@ extension TimetableView {
     }
 
     var presentation: TimetablePresentation {
-        TimetablePresentation(schedule: daySchedule, mappings: mappings)
+        TimetablePresentation(schedule: daySchedule, mappings: mappings, sourceRecord: model.state.record(for: .changes))
     }
 
     func lessonDetail(_ selection: LessonSelection) -> some View {

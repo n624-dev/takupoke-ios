@@ -41,6 +41,7 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
             "testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates": [
                 "--events-year-coverage", "--normal-only",
             ],
+            "testChangedRoomInHomeWeekAndList": ["--comparison"],
             "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch": ["--change-row-skip", "--fixture-input-trace"],
         ]
         for (method, arguments) in initialConditions where name.contains(method) {

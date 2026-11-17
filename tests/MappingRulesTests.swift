@@ -292,3 +292,29 @@ final class MappingRulesTests: XCTestCase {
     }
 
 }
+
+extension MappingRulesTests {
+    func testChangeComparisonReportsOnlyConfirmedDifferencesAndKeepsCandidatesByPeriod() {
+        let change = ScheduleChange(change_date: "2032-04-05", class_name: "2_IT", period: "1,3", before_subject: "",
+            after_subject: "架空科目A", teacher: "架空教員A", room: "架空教室B", note: "", raw_text: "", canonical_text: "")
+        let base = ChangeBaseCandidate(names: .init(subject: "架空略称", teacher: "架空教員A", room: "架空教室A",
+                                                   subjectFullName: "架空科目A"), source: "試験返却時間割")
+        let evidence = ChangeComparison(change: change, names: .source(change), candidates: [1: [base], 3: [base]])
+        XCTAssertEqual(evidence.summary, "教室変更　架空教室A → 架空教室B")
+        XCTAssertEqual(evidence.groups.map(\.periods), [[1, 3]])
+        XCTAssertEqual(evidence.groups[0].pairs.filter(\.changed).map(\.source), ["試験返却時間割"])
+        var other = change
+        other.after_subject = "架空科目C"
+        other.teacher = "架空教員B"
+        XCTAssertEqual(ChangeComparison(change: other, names: .source(other), candidates: [1: [base], 3: [base]]).heading, "科目・教員・教室変更")
+        other.after_subject = ""; other.teacher = ""; other.room = ""
+        let unknown = ChangeComparison(change: other, names: .source(other), candidates: [1: [base, base]])
+        XCTAssertEqual(unknown.heading, "時間割変更")
+        XCTAssertEqual(unknown.groups[0].unresolved.count, 2)
+        XCTAssertTrue(unknown.groups[0].pairs.allSatisfy { $0.after.isEmpty && !$0.changed })
+        other.change_kind = "休講"
+        XCTAssertEqual(ChangeComparison(change: other, names: .source(other), candidates: [1: [base]]).summary, "休講　架空科目A")
+        other.change_kind = "補講"; other.after_subject = "架空補講A"
+        XCTAssertEqual(ChangeComparison(change: other, names: .source(other), candidates: [:]).summary, "補講　架空補講A")
+    }
+}

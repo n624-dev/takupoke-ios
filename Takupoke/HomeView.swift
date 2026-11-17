@@ -21,7 +21,8 @@ struct HomeView: View {
             changes: materials.state.changeAnalysis, events: schoolEvents.analysis,
             specials: specialSchedules.scheduleAnalyses,
             includesChanges: true, customTimes: times.current?.data,
-            sourceIndex:ApplicationData.shared.scheduleSourceIndex(materials:materials,specials:specialSchedules,events:schoolEvents)), mappings: mappings)
+            sourceIndex:ApplicationData.shared.scheduleSourceIndex(materials:materials,specials:specialSchedules,events:schoolEvents)), mappings: mappings,
+            sourceRecord: materials.state.record(for: .changes))
     }
 
     var body: some View {

@@ -203,9 +203,10 @@ final class TimetableModelTests: XCTestCase {
         let presentation = TimetablePresentation(schedule: schedule, mappings: MappingModel())
         let selection = presentation.changeSelection(for: target)
         XCTAssertEqual(selection.baseLessons.map(\.period), [1, 3])
-        XCTAssertEqual(presentation.beforeSubject(selection), "架空科目1・架空科目3")
+        XCTAssertEqual(selection.comparison.groups.compactMap { $0.pairs.first?.before }, ["架空科目1", "架空科目3"])
+        XCTAssertEqual(selection.comparison.groups.map(\.periods), [[1], [3]])
         XCTAssertEqual(selection.relatedChanges, [overlap, disjointOverlap])
-        XCTAssertEqual(presentation.beforeSubject(presentation.changeSelection(for: change("1,3", before: "架空明記科目A"))), "架空明記科目A")
+        XCTAssertEqual(presentation.changeSelection(for: change("1,3", before: "架空明記科目A")).comparison.groups.first?.pairs.first?.before, "架空明記科目A")
         XCTAssertNil(target.gridPeriods)
         for period in [1, 3] {
             let slot = TimetableSchedule.slot(on: day, period: period, className: "2_IT", timetable: timetable,
@@ -223,6 +224,7 @@ final class TimetableModelTests: XCTestCase {
             let result = TimetablePresentation(schedule: source, mappings: MappingModel()).changeSelection(for: target)
             XCTAssertTrue(result.baseLessons.isEmpty)
             XCTAssertEqual(result.baseSpecialLessons.map { $0.lesson.period }, [1, 3])
+            XCTAssertEqual(result.comparison.groups.compactMap { $0.pairs.first?.source }, [kind.title, kind.title])
         }
         XCTAssertTrue(presentation.changeSelection(for: change("invalid")).baseLessons.isEmpty)
         XCTAssertTrue(presentation.changeSelection(for: change("1", date: "invalid")).relatedChanges.isEmpty)

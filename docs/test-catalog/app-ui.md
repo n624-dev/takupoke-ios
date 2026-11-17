@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`ee415728ac41a444712fd9673bd9f751e60e677b1a6d89fafd28c543e6f04ada`
+`868d862b461fbac800e109c6e3000ff5e4d16f2d95ab734419e74a3f770153d9`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -152,6 +152,7 @@ bash tools/test-app-ui.sh
 - `testMergedCardsFromAllSources`
 - `testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork`
 - `testHomeTimetableAndWeekCalendar`
+- `testChangedRoomInHomeWeekAndList`
 - `testTimetableDynamicTypeScalesAndRestoresStandardLayout`
 - `testTimetableUsesSystemTextSize`
 - `testTimetableCommonClocksAndEventOnlyWeekScale`

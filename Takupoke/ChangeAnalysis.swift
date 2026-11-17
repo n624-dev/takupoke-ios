@@ -14,6 +14,30 @@ struct ScheduleChange: Codable, Equatable {
     var canonical_text: String
     var change_kind: String? = nil
 
+    var readableOriginal: String? = nil
+    var reason: String? = nil
+    var remainingNote: String? = nil
+    var updated: ChangeTimestamp? = nil
+    var personallyEdited: Bool? = nil
+    var personalReason: Bool? = nil
+    var personalUpdate: Bool? = nil
+
+    var originalForDisplay: String {
+        if let readableOriginal { return readableOriginal }
+        // Older rows only retained a labeled string. Limit conversion to the date field.
+        return raw_text.components(separatedBy: " | ").map { field in
+            guard field.hasPrefix("月日:") else { return field }
+            let value = String(field.dropFirst(3))
+            let year = SchoolDate(iso8601: change_date)?.schoolYear
+            let displayed = ChangeNormalizer.readableDate(value, defaultYear: year)
+            if ChangeNormalizer.readableDate(value, defaultYear: year, uses1904: true) ==
+                ChangeNormalizer.readableDate(change_date, defaultYear: year) {
+                return "月日:" + (ChangeNormalizer.readableDate(change_date, defaultYear: year) ?? "月日を確認")
+            }
+            return "月日:" + (displayed ?? "月日を確認")
+        }.joined(separator: " | ")
+    }
+
     // Old successful results remain on disk until an explicit reparse, but their
     // class picker, filtering and labels use the same identity as new results.
     var displayClassName: String { ChangeNormalizer.canonicalClassName(class_name) }
@@ -80,7 +104,8 @@ struct ChangeWeekdayConsent: Codable, Equatable {
 }
 
 struct ChangeAnalysis: Codable {
-    static let parserVersion = 12
+    static let parserVersion = 13
+    var sourceModifiedAt: Date? = nil
     var personalEdit: Bool? = nil
     var personalSourceIdentity: String? = nil
     var version = parserVersion
@@ -252,7 +277,7 @@ struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
         case .weekdayMismatch: detail = "曜日と月日が一致しないか、曜日の表記を確認できません。内容を確認して修正できます。"
         case .weekdayOnly: detail = "曜日以外の値がない行があります。内容を確認して、その行を除外できます。"
         case .mergedCells: detail = "見出しや表の行に結合セルがあります。結合された値は推測して補えません。"
-        case .dateSystem: detail = "1904年起点の日付を使用するXLSXは未対応です。"
+        case .dateSystem: detail = "ブックの日付システムを確認できません。"
         case .cellType: detail = "表に未対応のセル形式やExcelのエラー値があります。"
         case .headers: detail = "必要な見出し（学 年・学科・クラス・月日）がないか、見出しが重複しています。"
         case .date: detail = "日付を確定できません。年なし日付の場合は補完する年を指定してください。"
@@ -322,6 +347,7 @@ struct ChangeEdits: Codable, Equatable {
         var edit: ChangeRowEdit
         var valueLabels: [Int: String]? = nil
         var editedSerialUses1904: Bool? = nil
+        var dateColumn: Int? = nil
     }
     var sourceIdentity: String
     var digest: String
@@ -453,6 +479,7 @@ struct ChangeEditTable: Equatable {
     var uses1904 = false
     var numericCells: [Int: Set<Int>] = [:]
     var dateCells: [Int: Set<Int>] = [:]
+    var formattedDates: [Int: [Int: Bool]] = [:] // true when the format includes a clock
 
     var rowIDs: [Int] {
         guard headerRow > 0, headerRow < rows.count else { return [] }
@@ -467,7 +494,9 @@ struct ChangeEditTable: Equatable {
         var values = rows[row - 1]
         while values.last == "" { values.removeLast() }
         let date = headers.firstIndex(where: { ChangeNormalizer.text($0) == "月日" })
-        let date1904 = uses1904 && date.map { numericCells[row]?.contains($0) == true } == true
+        let date1904 = uses1904 && date.map { column in
+            values.indices.contains(column) && ChangeNormalizer.matches(ChangeNormalizer.text(values[column]), #"^[0-9]+(?:\.[0-9]+)?$"#)
+        } == true
         return ChangeEdits.Original(values: values, issues: cellIssues[row] ?? [:], sources: cellSources[row] ?? [:],
                                     date1904: date1904 ? true : nil)
     }
@@ -488,7 +517,7 @@ struct ChangeEditTable: Equatable {
             let editedDate = dateColumn.flatMap { edit.values[$0] }
             let editedSerial = editedDate.map { ChangeNormalizer.matches(ChangeNormalizer.text($0), "^[0-9]+(?:\\.[0-9]+)?$") } == true
             return ChangeEdits.Entry(row: number, original: key, occurrences: occurrences, edit: edit,
-                valueLabels: Dictionary(uniqueKeysWithValues: edit.values.keys.map { ($0, headers[$0]) }), editedSerialUses1904: editedSerial ? uses1904 : nil)
+                valueLabels: Dictionary(uniqueKeysWithValues: edit.values.keys.map { ($0, headers[$0]) }), editedSerialUses1904: editedSerial ? uses1904 : nil, dateColumn: dateColumn)
         }
         return ChangeEdits(sourceIdentity: sourceIdentity, digest: digest, defaultYear: defaultYear,
                            sheet: sheet, headers: headers, entries: entries, originalHeaders: originalHeaders, headerSources: headerSources, reviewedHeaderRow: headerRow, physicalWidth: physicalWidth)
@@ -522,7 +551,7 @@ struct ChangeEditTable: Equatable {
         guard let saved, saved.sourceIdentity == sourceIdentity, saved.defaultYear == defaultYear,
               saved.sheet == sheet, let columns = restoredColumns(from: saved),
               saved.digest != digest || saved.reviewedHeaderRow == nil || saved.reviewedHeaderRow == headerRow else {
-            return ([:], [], saved?.entries ?? [])
+            return ([:], [], saved?.entries.map { $0.withDateColumn(in: saved?.headers ?? []) } ?? [])
         }
         let groups = Dictionary(grouping: rowIDs, by: original(at:))
         let dateColumn = headers.firstIndex { ChangeNormalizer.text($0) == "月日" }
@@ -538,7 +567,8 @@ struct ChangeEditTable: Equatable {
         }
         var edits: [Int: ChangeRowEdit] = [:], conflicts = Set<Int>(), unmatched: [ChangeEdits.Entry] = []
         var mappedEntries: [ChangeEdits.Entry] = []
-        for var entry in saved.entries {
+        for previous in saved.entries {
+            var entry = previous.withDateColumn(in: saved.headers)
             let fields = entry.edit.values
             guard fields.keys.allSatisfy({ columns[$0] != nil }) else {
                 unmatched.append(entry)
@@ -575,5 +605,26 @@ struct ChangeEditTable: Equatable {
         -> (edits: [Int: ChangeRowEdit], conflicts: Set<Int>) {
         let restored = restoreDetailed(saved, sourceIdentity: sourceIdentity, digest: digest, defaultYear: defaultYear)
         return (restored.edits, restored.conflicts)
+    }
+}
+
+extension ChangeEdits.Entry {
+    func withDateColumn(in headers: [String]) -> Self {
+        var entry = self
+        if entry.dateColumn == nil {
+            entry.dateColumn = headers.firstIndex { ChangeNormalizer.text($0) == "月日" }
+        }
+        return entry
+    }
+
+    func displayValue(column: Int, edited: Bool, year: Int) -> String {
+        let value = edited ? edit.values[column] ?? "" :
+            (original.values.indices.contains(column) ? original.values[column] : "")
+        guard column == dateColumn || valueLabels?[column] == "月日" else { return value }
+        guard edited || original.issues[column] == nil else { return "月日を確認" }
+        let typed = !edited && original.sources[column]?.hasPrefix("/type/d/") == true
+        let epoch = edited ? editedSerialUses1904 ?? (original.date1904 == true) : original.date1904 == true
+        return ChangeNormalizer.readableDate(typed ? String(value.prefix(10)) : value,
+                                             defaultYear: year, uses1904: epoch) ?? "月日を確認"
     }
 }

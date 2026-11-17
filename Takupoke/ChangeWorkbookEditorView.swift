@@ -107,11 +107,12 @@ struct ChangeWorkbookEditorView: View {
                         ForEach(view.previous.indices, id: \.self) { index in
                             let entry = view.previous[index]
                             DisclosureGroup("以前の\(entry.row)行目") {
-                                Text(entry.original.values.filter { !$0.isEmpty }.joined(separator: " ・ "))
+                                Text(entry.original.values.indices.filter { !entry.original.values[$0].isEmpty }
+                                    .map { entry.displayValue(column: $0, edited: false, year: preview.defaultYear ?? 0) }.joined(separator: " ・ "))
                                 if entry.edit.excluded { Text("除外") }
                                 if entry.edit.deriveWeekday { Text("曜日を日付から補完") }
                                 ForEach(entry.edit.values.keys.sorted(), id: \.self) { column in
-                                    LabeledContent(entry.valueLabels?[column] ?? "列\(column + 1)", value: entry.edit.values[column] ?? "")
+                                    LabeledContent(entry.valueLabels?[column] ?? "列\(column + 1)", value: entry.displayValue(column: column, edited: true, year: preview.defaultYear ?? 0))
                                 }
                                 Button("この履歴を削除", role: .destructive) { view.previous.remove(at: index) }
                             }
@@ -236,7 +237,11 @@ struct ChangeWorkbookEditorView: View {
             case .excluded: return "除外した行"
             case .derived: return "曜日を補完した行"
             case .printed: return "記載の曜日を使う行"
-            case .field(let value): return (view.table.headers.indices.contains(group.column) ? view.table.headers[group.column] : "列") + "　" + (value.isEmpty ? "空欄" : value)
+            case .field(let value):
+                guard view.table.headers.indices.contains(group.column), let row = group.rows.first else { return "列" }
+                let shown = view.table.displayCell(row: row, column: group.column, edit: edits[row] ?? ChangeRowEdit(),
+                                                   year: preview.defaultYear ?? 0)
+                return view.table.headers[group.column] + "　" + (value.isEmpty ? "空欄" : shown)
             }
         }
         switch group.code {
@@ -244,6 +249,7 @@ struct ChangeWorkbookEditorView: View {
         case .weekdayMismatch: return "曜日を日付から補完"
         case .formulaCache: return "曜日の数式を確認"
         case .year: return group.blankField ? "学年が空欄の変更" : "学年を確認"
+        case .date: return "月日を確認"
         case .classes: return group.blankField ? "学科・クラスが空欄の変更" : "学科・クラスを確認"
         case .unknownAll: return "「全」の対象クラスを確認"
         default: return problemLabel(ChangeParseError(code: group.code, column: group.column))
@@ -274,7 +280,7 @@ struct ChangeWorkbookEditorView: View {
                             if entry.edit.deriveWeekday { Text("曜日を日付から補完") }
                             ForEach(entry.edit.values.keys.sorted(), id: \.self) { column in
                                 let title = entry.valueLabels?[column] ?? "列\(column + 1)"
-                                LabeledContent(title, value: entry.edit.values[column] ?? "")
+                                LabeledContent(title, value: entry.displayValue(column: column, edited: true, year: preview.defaultYear ?? 0))
                             }
                             Button("以前の\(entry.row)行目の修正を使う") {
                                 edits[row] = entry.edit
@@ -295,8 +301,13 @@ struct ChangeWorkbookEditorView: View {
                     let original = view.table.rows[row-1].indices.contains(column) ? view.table.rows[row-1][column] : ""
                     VStack(alignment: .leading) {
                         Text(view.table.headers[column]).font(.headline)
-                        Text(original.isEmpty ? "原本は空欄" : "原本　" + original).font(.footnote).foregroundStyle(.secondary)
-                        TextField("修正値", text: Binding(get: {
+                        Text(original.isEmpty ? "原本は空欄" : "原本　" + view.table.displayCell(row: row, column: column, year: preview.defaultYear ?? 0)).font(.footnote).foregroundStyle(.secondary)
+                        let isDate = ChangeNormalizer.text(view.table.headers[column]) == "月日"
+                        let field = Binding<String>(get: {
+                            if isDate {
+                                let shown = view.table.displayCell(row: row, column: column, edit: edits[row] ?? ChangeRowEdit(), year: preview.defaultYear ?? 0)
+                                return shown == "月日を確認" ? "" : shown
+                            }
                             let values = view.table.values(at: row, edit: edits[row] ?? ChangeRowEdit(), defaultYear: preview.defaultYear ?? 0)
                             return values[column]
                         }, set: { value in
@@ -307,7 +318,11 @@ struct ChangeWorkbookEditorView: View {
                             if ["曜日", "曜"].contains(ChangeNormalizer.token(view.table.headers[column])) {
                                 edits[row, default: ChangeRowEdit()].chooseDateDerivedWeekday(false)
                             }
-                        })).textFieldStyle(.roundedBorder)
+                        })
+                        Group {
+                            if isDate { EditableMonthDay(value: field) }
+                            else { TextField("修正値", text: field) }
+                        }.textFieldStyle(.roundedBorder)
                             .accessibilityIdentifier("change-editor-field-\(column)")
                         if view.table.cellIssues[row]?[column] != nil && edits[row]?.values[column] == nil {
                             Button("この値で確定") { edits[row, default: ChangeRowEdit()].values[column] = original }
@@ -335,4 +350,21 @@ struct ChangeWorkbookEditorView: View {
         .onDisappear { verify() }
     }
 
+}
+
+private struct EditableMonthDay: View {
+    @Binding var value: String
+    @State private var draft = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        TextField("月日を入力", text: Binding(get: { focused ? draft : value }, set: {
+            draft = $0
+            value = $0
+        }))
+        .focused($focused)
+        .onChange(of: focused) { _, editing in
+            if editing { draft = value }
+        }
+    }
 }

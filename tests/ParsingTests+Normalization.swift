@@ -26,9 +26,13 @@ extension ParsingTests {
                         // The pinned reference predates the independent kind field.
                         // Keep every original field comparison; new kinds have XLSX regressions below.
                         let actual = try ChangeNormalizer.parse(rows, defaultYear: item.defaultYear).map { row in
-                            var legacy = row; legacy.change_kind = nil; return legacy
+                            var legacy = row; legacy.change_kind = nil; legacy.readableOriginal = nil; return legacy
                         }
-                        XCTAssertEqual(actual, expected, item.id)
+                        if item.id == "empty-rows-and-duplicates" {
+                            XCTAssertEqual(expected.count, 3)
+                            XCTAssertEqual(expected[0], expected[1])
+                            XCTAssertEqual(actual, [expected[0], expected[2]], item.id)
+                        } else { XCTAssertEqual(actual, expected, item.id) }
                     } else {
                         assertCode(item.id == "all-without-known-classes" ? .unknownAll : .date) {
                             _ = try ChangeNormalizer.parse(rows, defaultYear: item.defaultYear)
@@ -199,7 +203,7 @@ extension ParsingTests {
 extension ParsingTests {
     func testEditorUsesRecognizedAliasesInsteadOfAddingShadowColumns() throws {
         try temporary { root in
-            let header = ["学 年", "学科・クラス", "月日", "校時", "種別", "変更前 科目", "変更先", "担任", "場所", "メモ", "科目（担当教員）"]
+            let header = ["学 年", "学科・クラス", "月日", "校時", "種別", "変更前 科目", "変更先", "担任", "場所", "メモ", "科目（担当教員）", "理由", "最終更新日時"]
             let row = ["2", "ZZ", "4/1", "3", "補講", "架空前", "架空後", "架空教員", "架空教室", "架空連絡", "架空科目"]
             let url = root.appendingPathComponent("aliases.xlsx")
             try write(workbook([header, row]), to: url)
@@ -560,7 +564,7 @@ extension ParsingTests {
             XCTAssertEqual(values.map(\.class_name), ["1_ZZ","3_ZZ","1_ZZ","2_ZZ","2_ZZ","3_ZZ"])
             for (row, record) in [(2, values[0]), (3, values[2])] {
                 XCTAssertEqual(table.values(at: row, edit: edits[row]!, defaultYear: 2032)[3], ChangeNormalizer.weekday(record.change_date))
-                XCTAssertTrue(table.summary(row: row, edit: edits[row]!, year: 2032).contains("月日 " + record.change_date))
+                XCTAssertTrue(table.summary(row: row, edit: edits[row]!, year: 2032).contains("月日 " + (ChangeNormalizer.readableDate(record.change_date, defaultYear: 2032) ?? "")))
             }
             XCTAssertTrue(values[0].raw_text.contains("月日:46343"))
             var moved = table
@@ -576,5 +580,81 @@ extension ParsingTests {
             XCTAssertNil(damaged.suggestedEdits(defaultYear: 2032)[2])
             XCTAssertNil(damaged.suggestedEdits(defaultYear: 2032)[3])
         }
+    }
+}
+
+extension ParsingTests {
+    func testWorkbookClassSeparatorsAndReadableMonthDayAcrossSavedEdits() throws {
+        let header = ["学 年", "学科・クラス", "月日", "曜日", "科目", "備考"]
+        try temporary { root in
+            for (index, classes) in ["ES・IT", "ES•IT", "ＥＳ ･ ＩＴ", "ES·IT", "ES,IT・ES"].enumerated() {
+                let url = root.appendingPathComponent("fictional-\(index).xlsx")
+                let rows = [header, ["2", classes, "46343", "火", "架空科目・A", "架空備考•B"]]
+                try write(workbook(rows), to: url)
+                let view = try XLSXReader.editableWorkbook(url, layout: nil, check: {})
+                XCTAssertEqual(view.table.rowIDs, [2])
+                let records = try view.table.records(edits: [:], defaultYear: 2026)
+                XCTAssertEqual(records.map(\.displayClassName), ["2_ES", "2_IT"])
+                XCTAssertTrue(records[0].originalForDisplay.contains("月日:2026年11月17日"))
+                XCTAssertTrue(records[0].originalForDisplay.contains("架空備考•B"))
+                XCTAssertFalse(records[0].originalForDisplay.contains("46343"))
+                let edit = ChangeRowEdit(values: [2: "2026年11月18日"], deriveWeekday: true)
+                XCTAssertEqual(view.table.values(at: 2, edit: edit, defaultYear: 2026)[3], "水")
+                let saved = try XCTUnwrap(view.table.savedEdits(sourceIdentity: "fixture", digest: "v1", defaultYear: 2026, edits: [2: edit]))
+                let restored = try JSONDecoder().decode(ChangeEdits.self, from: JSONEncoder().encode(saved))
+                XCTAssertEqual(restored.entries.count, 1)
+                XCTAssertEqual(restored.entries[0].displayValue(column: 2, edited: false, year: 2026), "2026年11月17日")
+                XCTAssertEqual(restored.entries[0].displayValue(column: 2, edited: true, year: 2026), "2026年11月18日")
+                XCTAssertEqual(view.table.original(at: 2).values[2], "46343")
+            }
+            for classes in ["ES•?", "・ES", "ES･", "ES··IT"] {
+                let table = ChangeEditTable(sheet: "架空", headers: header, rows: [header, ["2", classes, "46343", "火"]], headerRow: 1)
+                XCTAssertEqual(try table.review(edits: [:], defaultYear: 2026)[2]?.map(\.code), [.classes])
+                XCTAssertThrowsError(try table.records(edits: [:], defaultYear: 2026))
+            }
+        }
+    }
+
+    func testWorkbookTimestampEvidenceEpochsAndPersonalReason() throws {
+        let header = ["学 年", "学科・クラス", "月日", "変更後", "備考", "最終更新日時", "理由"]
+        try temporary { root in
+            for epoch in [false, true] {
+                let serial = epoch ? "44881" : "46343"
+                let row = ["2", "IT", serial, "架空科目A", "理由：架空理由A\n架空の連絡", "架空日時", ""]
+                var files = workbook([header, row])
+                if epoch { mutate(&files, "xl/workbook.xml", "<sheets>", "<workbookPr date1904=\"1\"/><sheets>") }
+                let cell = { (ref: String, v: String) in "<c r=\"\(ref)\" t=\"inlineStr\"><is><t xml:space=\"preserve\">\(v)</t></is></c>" }
+                mutate(&files, "xl/worksheets/sheet1.xml", cell("C2", serial), "<c r=\"C2\"><v>\(serial)</v></c>")
+                mutate(&files, "xl/worksheets/sheet1.xml", cell("F2", "架空日時"), "<c r=\"F2\" s=\"1\"><v>\(serial).5</v></c>")
+                let format = epoch ? "<numFmts><numFmt numFmtId=\"164\" formatCode=\"m/d h:mm\"/></numFmts>" : ""
+                let id = epoch ? 164 : 22
+                files["xl/styles.xml"] = Data("<styleSheet xmlns=\"\(XLSXReader.spreadsheet)\">\(format)<cellXfs><xf numFmtId=\"0\"/><xf numFmtId=\"\(id)\"/></cellXfs></styleSheet>".utf8)
+                let url = root.appendingPathComponent("fictional-\(epoch).xlsx")
+                try write(files, to: url)
+                let source = try XLSXReader.readForPreview(url, defaultYear: 2026)
+                let strict = try ChangeNormalizer.parse(source.rows, defaultYear: 2026, sourceRows: source.workbook?.rows, workbook: source.workbook)
+                let table = try XLSXReader.editableWorkbook(url, layout: nil, check: {}).table
+                let accepted = try XCTUnwrap(table.records(edits: [:], defaultYear: 2026).first)
+                XCTAssertEqual(accepted.change_date, "2026-11-17")
+                XCTAssertEqual(strict.first?.change_date, accepted.change_date)
+                XCTAssertEqual(strict.first?.updated, accepted.updated)
+                XCTAssertEqual(accepted.updated?.display, "2026/11/17 12:00")
+                XCTAssertEqual(accepted.reason, "架空理由A")
+                XCTAssertEqual(accepted.remainingNote, "架空の連絡")
+                XCTAssertTrue(accepted.originalForDisplay.contains("月日:2026年11月17日"))
+                let edits = [2: ChangeRowEdit(values: [5: "2026-11-15T23:05:00Z", 6: "架空の個人理由"])]
+                let personal = try XCTUnwrap(table.records(edits: edits, defaultYear: 2026).first)
+                XCTAssertEqual(personal.updated?.display, "2026/11/16 08:05")
+                XCTAssertEqual(personal.personalUpdate, true)
+                XCTAssertEqual(personal.reason, "架空の個人理由")
+                XCTAssertEqual(personal.personalReason, true)
+                XCTAssertEqual(personal.note, accepted.note)
+            }
+        }
+        XCTAssertEqual(ChangeTimestamp.parse("2026年11月17日")?.hasTime, false)
+        XCTAssertNil(ChangeTimestamp.parse("46343"))
+        XCTAssertNil(ChangeTimestamp.parse("11/17"))
+        XCTAssertNil(ChangeTimestamp.parse("2026/02/30"))
+        XCTAssertNil(ChangeTimestamp.parse("2026-11-17T25:04:00"))
     }
 }

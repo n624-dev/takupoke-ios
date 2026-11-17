@@ -56,3 +56,99 @@ struct SavedMapping: Codable, Equatable {
     let fetchedAt: Date
     let rules: MappingRules
 }
+
+/// A candidate belongs to one period of the selected row, even when that row
+/// also changes a nonadjacent period.
+struct ChangeBaseCandidate: Equatable {
+    let names: TimetableLessonNames
+    let source: String
+}
+
+struct ChangeComparison {
+    enum Field: String, CaseIterable {
+        case subject = "科目", teacher = "教員", room = "教室"
+
+        func value(_ names: TimetableLessonNames) -> String {
+            switch self {
+            case .subject: return names.detailSubject
+            case .teacher: return names.detailTeacher
+            case .room: return names.detailRoom
+            }
+        }
+    }
+    struct Pair: Equatable {
+        let field: Field
+        let before: String
+        let after: String
+        let source: String?
+        var changed: Bool { !before.isEmpty && !after.isEmpty && before != after }
+    }
+    struct Group: Equatable {
+        var periods: [Int]
+        let pairs: [Pair]
+        let unresolved: [ChangeBaseCandidate]
+    }
+
+    let change: ScheduleChange
+    let groups: [Group]
+
+    init(change: ScheduleChange, names: ChangePresentation, candidates: [Int: [ChangeBaseCandidate]]) {
+        self.change = change
+        var result: [Group] = []
+        let periods = change.detailPeriods ?? []
+        for period in periods.isEmpty ? [0] : periods {
+            let available = candidates[period] ?? []
+            let compatible = available.filter { base in
+                Field.allCases.allSatisfy { field in
+                    let explicit = field.value(names.before), candidate = field.value(base.names)
+                    return explicit.isEmpty || candidate.isEmpty || explicit == candidate
+                }
+            }
+            let original = compatible.count == 1 ? compatible.first : nil
+            let pairs = Field.allCases.map { field in
+                let printed = field.value(names.before)
+                let infer = printed.isEmpty ? original : nil
+                let before = infer.map { field.value($0.names) } ?? printed
+                return Pair(field: field, before: before, after: field.value(names.after),
+                            source: before.isEmpty ? nil : infer?.source)
+            }
+            let unresolved = original == nil ? available : []
+            if let index = result.firstIndex(where: { $0.pairs == pairs && $0.unresolved == unresolved }) {
+                result[index].periods.append(period)
+            } else {
+                result.append(Group(periods: period == 0 ? [] : [period], pairs: pairs, unresolved: unresolved))
+            }
+        }
+        groups = result
+    }
+
+    var heading: String {
+        if change.isCancellation || change.isMakeup { return change.cardKindLabel }
+        let fields = Field.allCases.filter { field in groups.contains { group in group.pairs.contains { $0.field == field && $0.changed } } }
+        return fields.isEmpty ? "時間割変更" : fields.map(\.rawValue).joined(separator: "・") + "変更"
+    }
+
+    var summary: String {
+        if change.isCancellation || change.isMakeup {
+            let subjects = groups.compactMap { $0.pairs.first }.map { change.isCancellation ? $0.before : $0.after }
+            var seen = Set<String>()
+            return ([heading] + subjects.filter { !$0.isEmpty && seen.insert($0).inserted }).joined(separator: "　")
+        }
+        for field in Field.allCases {
+            for group in groups {
+                if let pair = group.pairs.first(where: { $0.field == field && $0.changed }) {
+                    let period = groups.count > 1 ? group.periods.map(String.init).joined(separator: "・") + "限　" : ""
+                    return heading + "　" + period + pair.before + " → " + pair.after
+                }
+            }
+        }
+        if let first = groups.first {
+            for pair in first.pairs where !pair.after.isEmpty || !pair.before.isEmpty {
+                if pair.before == pair.after { return heading + "　" + pair.field.rawValue + " " + pair.after }
+                if !pair.after.isEmpty { return heading + "　変更後の" + pair.field.rawValue + " " + pair.after }
+                return heading + "　変更前の" + pair.field.rawValue + " " + pair.before
+            }
+        }
+        return heading
+    }
+}

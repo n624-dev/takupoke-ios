@@ -14,6 +14,7 @@ struct TimetableView: View {
     @AppStorage("timetableSelectedClasses") var selectedClassesValue = ""
     @AppStorage("timetableChangeClasses") var changeClassesValue = ""
     @AppStorage("timetableInternationalStudent") var isInternationalStudent = false
+    @State var weekPull: CGFloat = 0
     @State var weekStart = SchoolDate.today().displayWeekStart
     @State var navigationHalfAnchor = SchoolDate.today()
     @State var today = SchoolDate.today()

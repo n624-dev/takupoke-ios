@@ -246,6 +246,12 @@ struct SimulatorApplication: App {
             var changeRecords = [change,
                     ScheduleChange(change_date: day.iso8601, class_name: "3_IT", period: "6", before_subject: "",
                         after_subject: "架空変更通知A", teacher: "", room: "", note: "変更", raw_text: "", canonical_text: "")]
+            if ProcessInfo.processInfo.arguments.contains("--comparison") {
+                let sample = [["学 年", "学科・クラス", "月日", "時限", "変更後", "教員", "教室", "理由", "更新日時"],
+                              ["3", "IT", SimulatorSelectionFixture.day.iso8601, "1", "架空科目A", "架空教員A",
+                               "架空移動先B", "架空の室内点検", "2032-04-01T23:05:00Z"]]
+                changeRecords = try ChangeNormalizer.parse(sample, defaultYear: period.schoolYear)
+            }
             if ProcessInfo.processInfo.arguments.contains("--grid-probe") {
                 changeRecords.append(ScheduleChange(change_date: changeDay.iso8601, class_name: "3_IT", period: "3",
                     before_subject: "架空休講A", after_subject: "", teacher: "架空教員D", room: "架空教室D",

@@ -47,8 +47,8 @@ extension TimetableView {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("\(change.change_date) · \(TimetableDisplayText.className(change.displayClassName)) · \(change.period.isEmpty ? "時限未記載" : change.displayPeriod)")
                                 .font(.caption).foregroundStyle(.secondary)
-                            Text(TimetableDisplayText.kana(changeSummary(selection))).font(.subheadline)
-                            if !change.note.isEmpty { Text(TimetableDisplayText.kana(change.note)).font(.caption).foregroundStyle(.secondary) }
+                            Text(TimetableDisplayText.kana(selection.comparison.summary)).font(.subheadline)
+                            if !(change.remainingNote ?? change.note).isEmpty { Text(TimetableDisplayText.kana(change.remainingNote ?? change.note)).font(.caption).foregroundStyle(.secondary) }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -56,17 +56,6 @@ extension TimetableView {
                 }
             }
         } header: { Text("時間割変更一覧") }
-    }
-
-    func beforeSubject(_ selection: ChangeSelection) -> String {
-        presentation.beforeSubject(selection)
-    }
-
-    private func changeSummary(_ selection: ChangeSelection) -> String {
-        let before = beforeSubject(selection)
-        let parsedAfter = mappings.names(for: selection.change).after.detailSubject
-        let after = parsedAfter.isEmpty ? "記載なし" : parsedAfter
-        return "\(before) → \(after)"
     }
 
     func changeSelection(for change: ScheduleChange) -> ChangeSelection {

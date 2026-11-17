@@ -41,7 +41,7 @@ extension ApplicationChecks {
             screen(page)
             if selection == "change-select-row-3" {
                 let detail = visible(app.buttons["change-editor-row-3"], navigation: page)
-                XCTAssertTrue(detail.label.contains("原本の曜日 月 → 補完後 日"), detail.label)
+                XCTAssertTrue(detail.label.contains("原本の曜日 月 → 補完後 火"), detail.label)
                 XCTAssertTrue(detail.label.contains("要確認1項目"), detail.label)
             }
             selectRows(selection, on: page)
@@ -122,6 +122,10 @@ extension ApplicationChecks {
             let labels = form.staticTexts.matching(NSPredicate(format: "label == %@ OR label BEGINSWITH %@", "原本は空欄", "原本　"))
             return visible(element, navigation: "\(row)行目", scrollLabels: labels)
         }
+        let originalDate = app.collectionViews.staticTexts["原本　2026年11月17日"]
+        XCTAssertTrue(rowControl(originalDate, row: 3).exists)
+        let dateField = rowControl(app.textFields["change-editor-field-2"], row: 3)
+        XCTAssertEqual(dateField.value as? String, "2026年11月17日")
         let excluded = app.switches["この行を除外"]
         XCTAssertEqual(rowControl(excluded, row: 3).value as? String, "1")
         tapNativeSwitch(excluded, navigation: "3行目", dragThumb: true)
@@ -144,7 +148,7 @@ extension ApplicationChecks {
             XCTAssertTrue(input.isEnabled && input.isHittable)
             input.tap()
             input.typeText(value + "\n")
-            let typed = expectation(for: NSPredicate(format: "value == %@", value), evaluatedWith: input)
+            let typed = expectation(for: NSPredicate(format: "value == %@", column == 2 ? "2032年7月13日" : value), evaluatedWith: input)
             XCTAssertEqual(XCTWaiter.wait(for: [typed], timeout: 10), .completed)
         }
         let grade = rowControl(field(0), row: 4)

@@ -49,58 +49,33 @@ SUBJECT
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
             self.skipTest("Swift required to execute production list presentation")
-        presentation = (ROOT / "Takupoke/TimetablePresentation.swift").read_text()
+        model = (ROOT / "Takupoke/MappingModels.swift").read_text()
         view = (ROOT / "Takupoke/TimetableView+Changes.swift").read_text()
+        self.assertIn("selection.comparison.summary", view)
         program = '''import Foundation
 enum PDFDisplayText { static func continuous(_ value: String) -> String { value } }
-struct ScheduleChange { var before_subject = "", after_subject = "" }
-struct PDFLesson { var names: TimetableLessonNames; var className = "1_ZZ" }
-struct ChangeSelection { var change: ScheduleChange; var baseLessons: [PDFLesson] = [] }
-struct Names { var before: TimetableLessonNames, after: TimetableLessonNames }
-// Mapping rules have separate native tests. This double checks that the UI
-// requests mapped names for both the XLSX fields and inferred normal lessons.
-struct MappingModel {
-    func mapped(_ value: String) -> TimetableLessonNames {
-        TimetableLessonNames(subject: value,
-            subjectFullName: value == "架空略A" ? "架空正式科目A" : nil)
-    }
-    func names(for change: ScheduleChange) -> Names {
-        Names(before: mapped(change.before_subject), after: mapped(change.after_subject))
-    }
-    func names(for lesson: PDFLesson) -> TimetableLessonNames {
-        precondition(lesson.className == "1_ZZ")
-        return mapped(lesson.names.subject)
-    }
+struct ScheduleChange {
+    var detailPeriods: [Int]? = [1]
+    var before_subject = "", after_subject = "", teacher = "", room = ""
+    var isCancellation = false, isMakeup = false, cardKindLabel = "変更"
 }
-struct Presentation {
-    var mappings = MappingModel()
-BEFORE
-}
-struct ListView {
-    var mappings = MappingModel(), presentation = Presentation()
-DELEGATE
-SUMMARY
-    func rendered(_ selection: ChangeSelection) -> String { changeSummary(selection) }
-}
+MODELS
 @main struct Probe {
     static func main() {
-        let view = ListView()
-        let explicit = ChangeSelection(change: ScheduleChange(before_subject: "架空略A", after_subject: "架空略A"))
-        precondition(view.rendered(explicit) == "架空正式科目A → 架空正式科目A")
-        let inferred = ChangeSelection(change: ScheduleChange(after_subject: "架空未登録B"), baseLessons: [
-            PDFLesson(names: TimetableLessonNames(subject: "架空略A")),
-            PDFLesson(names: TimetableLessonNames(subject: "架空略A")),
-            PDFLesson(names: TimetableLessonNames(subject: " 架空未登録C ")),
-            PDFLesson(names: TimetableLessonNames(subject: " "))])
-        precondition(view.rendered(inferred) == "架空正式科目A・架空未登録C → 架空未登録B")
-        precondition(view.rendered(ChangeSelection(change: ScheduleChange())) == "記載なし → 記載なし")
-        precondition(explicit.change.before_subject == "架空略A")
-        precondition(inferred.baseLessons[0].names.cellSubject == "架空略A")
+        let mapped = TimetableLessonNames(subject: "架空略A", subjectFullName: "架空正式科目A")
+        let base = ChangeBaseCandidate(names: mapped, source: "通常時間割")
+        let names = ChangePresentation(before: .init(subject: ""), after: .init(subject: "架空未登録B"))
+        let change = ScheduleChange()
+        let inferred = ChangeComparison(change: change, names: names, candidates: [1: [base]])
+        precondition(inferred.summary == "科目変更　架空正式科目A → 架空未登録B")
+        precondition(ChangeComparison(change: change, names: names, candidates: [1: [base, base]]).summary == "時間割変更　変更後の科目 架空未登録B")
+        let explicit = ChangePresentation(before: mapped, after: .init(subject: "架空正式科目A"))
+        precondition(ChangeComparison(change: change, names: explicit, candidates: [:]).summary == "時間割変更　科目 架空正式科目A")
+        precondition(base.names.cellSubject == "架空略A")
     }
 }
-'''.replace("BEFORE", block(presentation, "func beforeSubject("))
-        program = program.replace("DELEGATE", block(view, "func beforeSubject("))
-        program = program.replace("SUMMARY", block(view, "private func changeSummary("))
+'''.replace("MODELS", "\n".join(block(model, name) for name in
+                         ("struct ChangePresentation:", "struct ChangeBaseCandidate:", "struct ChangeComparison {")))
         with tempfile.TemporaryDirectory(prefix="change-list-names-") as scratch:
             path = Path(scratch)
             (path / "probe.swift").write_text(program)

@@ -6,8 +6,8 @@ extension TimetableView {
             HStack {
                 if canMovePrevious {
                     Button { moveWeek(-7) } label: {
-                        Text("前週").foregroundStyle(weekControlColor)
-                    }
+                        Label("前週", systemImage: "chevron.left").foregroundStyle(weekControlColor)
+                    }.accessibilityLabel("前週")
                 }
                 Spacer()
                 Button {
@@ -24,11 +24,11 @@ extension TimetableView {
                 Spacer()
                 if canMoveNext {
                     Button { moveWeek(7) } label: {
-                        Text("翌週").foregroundStyle(weekControlColor)
-                    }
+                        HStack(spacing: 3) { Text("翌週"); Image(systemName: "chevron.right") }.foregroundStyle(weekControlColor)
+                    }.accessibilityLabel("翌週")
                 }
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.glass)
             // Keep the standard neutral background; theme only the labels.
             .tint(nil as Color?)
             Picker("表示モード", selection: $includesChanges) {

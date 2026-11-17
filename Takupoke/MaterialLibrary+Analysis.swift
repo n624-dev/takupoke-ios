@@ -46,7 +46,9 @@ extension MaterialLibrary {
             }
             next.records[index].source.rowSkipConsent = nil
         }
-        next.changeAnalysis = analysis
+        var accepted = analysis
+        accepted.sourceModifiedAt = state.record(for: .changes)?.sourceModifiedAt
+        next.changeAnalysis = accepted
         next.changeParseAttempt = ChangeParseAttempt(date: analysis.parsedAt, sourceDigest: analysis.sourceDigest,
                                                      defaultYear: analysis.defaultYear, failure: nil, parserVersion: ChangeAnalysis.parserVersion)
         try persist(next)

@@ -52,7 +52,7 @@ extension ParsingTests {
             mutate(&files, "xl/workbook.xml", "時間割変更", "架空別表")
             variants.append((files, .missingSheet))
             files = workbook(example)
-            mutate(&files, "xl/workbook.xml", "<sheets>", "<workbookPr date1904=\"1\"/><sheets>")
+            mutate(&files, "xl/workbook.xml", "<sheets>", "<workbookPr date1904=\"2\"/><sheets>")
             variants.append((files, .dateSystem))
             files = workbook(example)
             mutate(&files, "xl/_rels/workbook.xml.rels", "Target=", "TargetMode=\"External\" Target=")

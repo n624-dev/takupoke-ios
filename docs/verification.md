@@ -8295,3 +8295,9 @@ Linux Swift 6.1.2の固定ソース（tree 135d567f）で639件成功。この�
 11月17日11時44分（日本時間）、[0.1.496（496.3）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.496-build.496.3)を正式Latestとして公開した。[正式496の試行3](https://github.com/n624-dev/takupoke-ios/actions/runs/43976182508/attempts/3)の必須15ジョブは同じコミット4899da2b・実行ID・試行で成功。初回のPDF教員確認27・通知26Bは試行2で完走。試行2のXcode実行先不明で起動できなかった選択訂正26は試行3で完走した。通常画面の両OS・原本変更・文字サイズの検証も含む。
 
 公開後に、固定AltStore SourceがタグのSourceとバイト単位で一致すること、正式タグ・IPAに埋め込まれたコミット、版・ビルド番号を照合した。4添付を匿名で全件取得し、配布検査でSHA-256、構成とサイズを確認。IPAは17,595,620 bytes、SHA-256は b087fbb98715afe59e3e77291fa40b52fd74fc71ddbac1de9853887e0f634525。物理iPhoneでのAltStoreからの更新と学校配布の原本での表示は未確認。
+
+### #114–116　時間割変更の原本・週移動・授業差分
+
+c062e23を起点に、ChangeNormalizer、TimetableView、TimetablePresentationでテスト一覧を検索した。UI失敗索引はChangeWorkbook、ChangePreview、曜日、week、gesture、HomeTimetableAndWeekCalendar、MergedCardsで検索し、N151・N165・N171の詳細閉鎖後の週ボタン、#113の行選択・再編集での画面外要素を照合した。月日を実際の入力欄で確認し、指を離す操作は既存カレンダーで表示週の変化を照合する。変更一覧・週・ホームの実操作は架空の同一教室変更で検査する。iPhoneへのAltStoreインストールは実機未確認。
+
+Linux Swift 6.1.2で固定した作業コピーの全642検査が成功。Python検査は316件（2件skip）が終了した。期間ごとの候補と実際の出典、重複セルと別の物理行、1900／1904起点、履歴再読込、個人修正、更新日と授業日を別々にテストした。限定CIの結果と正式な配布の状態はGitHub Actionsに記録する。

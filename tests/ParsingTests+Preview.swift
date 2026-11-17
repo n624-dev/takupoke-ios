@@ -217,7 +217,7 @@ extension ParsingTests {
             mutate(&files, "xl/worksheets/sheet1.xml", "A1:G1", "A5:B5")
             variants.append((files, .mergedCells))
             files = weekdayWorkbook(cached: "金")
-            mutate(&files, "xl/workbook.xml", "<sheets>", "<workbookPr date1904=\"1\"/><sheets>")
+            mutate(&files, "xl/workbook.xml", "<sheets>", "<workbookPr date1904=\"2\"/><sheets>")
             variants.append((files, .dateSystem))
             for (index, variant) in variants.enumerated() {
                 let url = root.appendingPathComponent("blocked-preview-\(index).xlsx")
