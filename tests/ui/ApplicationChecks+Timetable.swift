@@ -527,20 +527,27 @@ extension ApplicationChecks {
                             let headers = try XCTUnwrap(value["headerFrames"] as? [String: [String: Double]])
                             return try XCTUnwrap(headers[day]?["x"])
                         }
-                        let grid = app.scrollViews["timetable-week-grid"]
-                        let region = grid.frame.intersection(bodyViewport(navigation: "時間割"))
-                        let calendar = app.buttons["timetable-week-calendar"]
+                        let calendar = visible(app.buttons["timetable-week-calendar"], navigation: "時間割",
+                                               searchEarlierRows: true)
                         let originalWeek = calendar.label
                         let next = app.buttons["翌週"].exists
                         XCTAssertTrue(next || app.buttons["前週"].exists)
+                        let aligned = try gridMetrics()
+                        XCTAssertEqual(aligned["days"] as? [String], days)
+                        let grid = app.scrollViews["timetable-week-grid"]
+                        let region = grid.frame.intersection(bodyViewport(navigation: "時間割"))
                         XCTAssertGreaterThan(region.width, 230)
                         XCTAssertGreaterThan(region.height, 30)
-                        let originalX = try leadingHeaderX(metrics)
+                        let originalX = try leadingHeaderX(aligned)
                         let start = app.coordinate(withNormalizedOffset: .zero)
                             .withOffset(CGVector(dx: region.maxX - 35, dy: region.midY))
                         start.press(forDuration: 0.08, thenDragTo: start.withOffset(CGVector(dx: -165, dy: 0)))
-                        XCTAssertEqual(calendar.label, originalWeek)
-                        XCTAssertLessThan(try leadingHeaderX(gridMetrics()), originalX - 30)
+                        let scrolled = try gridMetrics()
+                        XCTAssertEqual(scrolled["days"] as? [String], days)
+                        XCTAssertLessThan(try leadingHeaderX(scrolled), originalX - 30)
+                        XCTAssertEqual(visible(calendar, navigation: "時間割", searchEarlierRows: true).label, originalWeek)
+                        XCTAssertLessThan(try leadingHeaderX(gridMetrics()), originalX - 30,
+                                          "Revealing the week controls must not already reset the current scroll")
                         tap(next ? "翌週" : "前週", searchEarlierRows: true)
                         XCTAssertNotEqual(calendar.label, originalWeek)
                         tap(next ? "前週" : "翌週", searchEarlierRows: true)

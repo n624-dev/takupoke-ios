@@ -95,6 +95,18 @@ extension ApplicationChecks {
             let releaseY = try XCTUnwrap(record["releaseY"] as? Double)
             let arrived = try XCTUnwrap(record["arrived"] as? Double)
             let finished = try XCTUnwrap(record["finished"] as? Double)
+            let badge = try XCTUnwrap(record["badge"] as? [String: Any])
+            XCTAssertGreaterThan(try XCTUnwrap(badge["pngBytes"] as? Int), 100)
+            func rect(_ key: String) throws -> CGRect {
+                let fields = try XCTUnwrap(badge[key] as? [String: Double])
+                return CGRect(x: try XCTUnwrap(fields["x"]), y: try XCTUnwrap(fields["y"]),
+                              width: try XCTUnwrap(fields["width"]), height: try XCTUnwrap(fields["height"]))
+            }
+            let visibleBody = try rect("visible")
+            let width = Double(visibleBody.width)
+            let relativeX = towardNext ? width : -width
+            XCTAssertTrue(try visibleBody.insetBy(dx: 8, dy: 8).contains(rect("frame")),
+                          "Both sides and the bottom need room for the glass effect")
             XCTAssertGreaterThan(arrived, 0)
             XCTAssertGreaterThan(finished, arrived)
             let moving = samples.filter { ($0["t"] ?? .infinity) < arrived }
@@ -102,8 +114,25 @@ extension ApplicationChecks {
             XCTAssertLessThanOrEqual(try XCTUnwrap(firstMotion["t"]), 0.10,
                                      "Release-to-first-visible-movement must include all preparation time")
             let sourcePositions = try moving.map { try XCTUnwrap($0["sourceX"]) }
-            let targetPositions = try moving.map { try XCTUnwrap($0["targetX"]) }
-            for positions in [sourcePositions, targetPositions] {
+            var visibleSourcePositions: [Double] = []
+            var targetPositions: [Double] = []
+            for frame in moving {
+                let sourceX = try XCTUnwrap(frame["sourceX"])
+                let targetX = try XCTUnwrap(frame["targetX"])
+                let intersectsBody = targetX < Double(visibleBody.maxX) - 0.5
+                    && targetX + width > Double(visibleBody.minX) + 0.5
+                if intersectsBody {
+                    XCTAssertEqual(targetX - sourceX, relativeX, accuracy: 1.5,
+                                   "Visible pages must move together at their prepared spacing")
+                    visibleSourcePositions.append(sourceX)
+                    targetPositions.append(targetX)
+                } else {
+                    XCTAssertTrue(targetPositions.isEmpty, "The arriving page must stay visible once it enters")
+                    XCTAssertEqual(sourceX, releaseX, accuracy: 1,
+                                   "Once the released source moves, the prepared page must also be visible")
+                }
+            }
+            for positions in [visibleSourcePositions, targetPositions] {
                 XCTAssertGreaterThanOrEqual(Set(positions.map { Int(($0 * 2).rounded()) }).count, 4,
                                             "Both pages must travel through distinct positions")
             }
@@ -156,25 +185,15 @@ extension ApplicationChecks {
             for (earlier, later) in zip(timePath, timePath.dropFirst()) {
                 XCTAssertLessThanOrEqual(later - earlier, 0.09, "Height adjustment must keep drawing frames")
             }
-            let badge = try XCTUnwrap(record["badge"] as? [String: Any])
-            XCTAssertGreaterThan(try XCTUnwrap(badge["pngBytes"] as? Int), 100)
-            func rect(_ key: String) throws -> CGRect {
-                let fields = try XCTUnwrap(badge[key] as? [String: Double])
-                return CGRect(x: try XCTUnwrap(fields["x"]), y: try XCTUnwrap(fields["y"]),
-                              width: try XCTUnwrap(fields["width"]), height: try XCTUnwrap(fields["height"]))
-            }
-            let visibleBody = try rect("visible")
-            XCTAssertTrue(try visibleBody.insetBy(dx: 8, dy: 8).contains(rect("frame")),
-                          "Both sides and the bottom need room for the glass effect")
             XCTAssertEqual(landedX, Double(visibleBody.minX), accuracy: 1.5,
                            "The destination must land at the observed left edge of the grid")
             let firstLanding = try XCTUnwrap(landingFrames.first)
             let sourceTravel = try [releaseX] + sourcePositions + [XCTUnwrap(firstLanding["sourceX"])]
-            let targetAtRelease = releaseX + (towardNext ? 1 : -1) * Double(visibleBody.width)
+            let targetAtRelease = releaseX + relativeX
             let targetTravel = try [targetAtRelease] + targetPositions + [XCTUnwrap(firstLanding["targetX"])]
             for positions in [sourceTravel, targetTravel] {
                 for (earlier, later) in zip(positions, positions.dropFirst()) {
-                    XCTAssertLessThanOrEqual(abs(later - earlier), Double(visibleBody.width) / 5,
+                    XCTAssertLessThanOrEqual(abs(later - earlier), width / 5,
                                              "A displayed frame must not skip a fifth of the grid")
                 }
             }
