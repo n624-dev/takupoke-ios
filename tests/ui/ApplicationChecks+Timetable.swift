@@ -532,12 +532,18 @@ extension ApplicationChecks {
                         let originalWeek = calendar.label
                         let next = app.buttons["翌週"].exists
                         XCTAssertTrue(next || app.buttons["前週"].exists)
+                        // The overlay can exist while the tall grid is still outside the body.
+                        _ = visible(headers[0], navigation: "時間割")
                         let aligned = try gridMetrics()
                         XCTAssertEqual(aligned["days"] as? [String], days)
                         let grid = app.scrollViews["timetable-week-grid"]
-                        let region = grid.frame.intersection(bodyViewport(navigation: "時間割"))
-                        XCTAssertGreaterThan(region.width, 230)
-                        XCTAssertGreaterThan(region.height, 30)
+                        let gridFrame = grid.frame
+                        let viewport = bodyViewport(navigation: "時間割")
+                        let region = gridFrame.intersection(viewport)
+                        guard region.width > 230, region.height > 30 else {
+                            XCTFail("Wide week grid has no drag region: grid=\(gridFrame);viewport=\(viewport);intersection=\(region)")
+                            return
+                        }
                         let originalX = try leadingHeaderX(aligned)
                         let start = app.coordinate(withNormalizedOffset: .zero)
                             .withOffset(CGVector(dx: region.maxX - 35, dy: region.midY))
