@@ -48,11 +48,13 @@ enum ObservedScreenGeometry {
     }
 
     private static func edge(_ value: CGFloat, scale: CGFloat) -> CGFloat {
-        let pixels = value * scale
-        let integer = pixels.rounded()
-        // Repair only arithmetic noise within two representable values of an
-        // observed physical pixel edge. Fractional-pixel clipping stays clipping.
-        return abs(pixels - integer) <= pixels.ulp * 2 ? integer / scale : value
+        let pixelEdge = (value * scale).rounded() / scale
+        // Measure rounding noise in the observed points. Scaling the difference
+        // can turn two representable point steps into three pixel-coordinate steps.
+        guard pixelEdge.isFinite, value >= pixelEdge.nextDown.nextDown, value <= pixelEdge.nextUp.nextUp else {
+            return value
+        }
+        return pixelEdge
     }
 
     static func contains(_ frame: CGRect, in viewport: CGRect, scale: CGFloat) -> Bool {

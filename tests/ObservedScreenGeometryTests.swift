@@ -25,10 +25,16 @@ final class ObservedScreenGeometryTests: XCTestCase {
     }
 
     func testObservedEqualPhysicalEdgesSurviveFloatingPointArithmetic() {
-        let frame = CGRect(x: 16, y: 113, width: 361, height: 121.0 / 3)
-        let viewport = CGRect(x: 0, y: CGFloat(113).nextUp, width: 393, height: 656)
-        XCTAssertFalse(viewport.contains(frame), "Reproduce the exact native observation failure")
-        XCTAssertTrue(ObservedScreenGeometry.contains(frame, in: viewport, scale: 3))
+        let observations: [(headerY: CGFloat, viewportY: CGFloat)] = [
+            (113, CGFloat(113).nextUp),
+            (165, CGFloat(165).nextUp.nextUp),
+        ]
+        for (headerY, viewportY) in observations {
+            let frame = CGRect(x: 16, y: headerY, width: 361, height: 121.0 / 3)
+            let viewport = CGRect(x: 0, y: viewportY, width: 393, height: 769 - viewportY)
+            XCTAssertFalse(viewport.contains(frame), "Reproduce the native observation at y=\(headerY)")
+            XCTAssertTrue(ObservedScreenGeometry.contains(frame, in: viewport, scale: 3), "y=\(headerY)")
+        }
     }
 
     func testPhysicalAndFractionalPixelClippingIsStillRejectedOnEveryEdge() {
@@ -45,6 +51,11 @@ final class ObservedScreenGeometryTests: XCTestCase {
                 }
             }
         }
+        // Representable point steps are smaller just below a power of two.
+        let boundary = CGFloat(128)
+        let clipped = CGRect(x: 30, y: boundary.nextDown.nextDown.nextDown.nextDown, width: 30, height: 30)
+        let visible = CGRect(x: 0, y: boundary, width: 393, height: 640)
+        XCTAssertFalse(ObservedScreenGeometry.contains(clipped, in: visible, scale: 3))
     }
 
     func testEmptyNonFiniteAndInvalidScaleDoNotBecomeVisible() {
