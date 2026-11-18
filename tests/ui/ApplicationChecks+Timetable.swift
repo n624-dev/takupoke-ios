@@ -298,7 +298,7 @@ extension ApplicationChecks {
         readDetail(from: app.collectionViews.buttons.matching(summary).element)
     }
 
-    private func gridMetrics() throws -> [String: Any] {
+    func gridMetrics() throws -> [String: Any] {
         let probe = app.staticTexts["fixture-grid-metrics"]
         for _ in 0..<8 {
             if probe.exists { break }
