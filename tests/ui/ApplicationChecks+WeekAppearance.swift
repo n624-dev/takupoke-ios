@@ -163,8 +163,21 @@ extension ApplicationChecks {
                 return CGRect(x: try XCTUnwrap(fields["x"]), y: try XCTUnwrap(fields["y"]),
                               width: try XCTUnwrap(fields["width"]), height: try XCTUnwrap(fields["height"]))
             }
-            XCTAssertTrue(try rect("visible").insetBy(dx: 8, dy: 8).contains(rect("frame")),
+            let visibleBody = try rect("visible")
+            XCTAssertTrue(try visibleBody.insetBy(dx: 8, dy: 8).contains(rect("frame")),
                           "Both sides and the bottom need room for the glass effect")
+            XCTAssertEqual(landedX, Double(visibleBody.minX), accuracy: 1.5,
+                           "The destination must land at the observed left edge of the grid")
+            let firstLanding = try XCTUnwrap(landingFrames.first)
+            let sourceTravel = try [releaseX] + sourcePositions + [XCTUnwrap(firstLanding["sourceX"])]
+            let targetAtRelease = releaseX + (towardNext ? 1 : -1) * Double(visibleBody.width)
+            let targetTravel = try [targetAtRelease] + targetPositions + [XCTUnwrap(firstLanding["targetX"])]
+            for positions in [sourceTravel, targetTravel] {
+                for (earlier, later) in zip(positions, positions.dropFirst()) {
+                    XCTAssertLessThanOrEqual(abs(later - earlier), Double(visibleBody.width) / 5,
+                                             "A displayed frame must not skip a fifth of the grid")
+                }
+            }
             XCTAssertEqual(try gridMetrics()["eventsOnly"] as? Bool, index == 1)
         }
         XCTAssertEqual(calendar.label, initialWeek)

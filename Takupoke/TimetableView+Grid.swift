@@ -288,7 +288,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         let direction: CGFloat
         let targetHeight: CGFloat
         var height: CGFloat
-        var moving = false
+        var slideProgress: CGFloat = 0
     }
     private final class ScrollReference {
         weak var value: UIScrollView?
@@ -304,6 +304,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     private var scrolls: [SchoolDate: ScrollReference] = [:]
     private var displayLink: CADisplayLink?
     private weak var heldScroll: UIScrollView?
+    private var slideStartedAt: CFTimeInterval?
     private var heightAdjustment: (startedAt: CFTimeInterval, initialHeight: CGFloat)?
 
     func register(_ scroll: UIScrollView, week: SchoolDate) {
@@ -341,17 +342,24 @@ private final class WeekPageMotion: NSObject, ObservableObject {
                 width: scroll.bounds.width, direction: days > 0 ? 1 : -1,
                 targetHeight: target.height, height: current.height)
         }
-        // Commit the release position before animating. No page construction,
-        // layoutIfNeeded, snapshot, or data matching is performed in this path.
-        let link = CADisplayLink(target: self, selector: #selector(startPreparedTransition))
+        // Commit the release position, then move on the first display callback.
+        // Starting a SwiftUI animation there would wait for a second handoff.
+        let link = CADisplayLink(target: self, selector: #selector(advanceSlide(_:)))
         displayLink = link; link.add(to: .main, forMode: .common)
     }
-    @objc private func startPreparedTransition() {
-        stopDisplayLink()
-        guard let value = transition else { return }
-        withAnimation(.easeOut(duration: reduceMotion ? 0.15 : 0.25), completionCriteria: .removed) {
-            transition?.moving = true
-        } completion: { [weak self] in self?.settle(id: value.id) }
+    @objc private func advanceSlide(_ link: CADisplayLink) {
+        guard let value = transition else { stopDisplayLink(); return }
+        let startedAt = slideStartedAt ?? link.timestamp
+        slideStartedAt = startedAt
+        let duration = reduceMotion ? 0.15 : 0.25
+        let elapsed = min(1, max(0, (link.targetTimestamp - startedAt) / duration))
+        let progress = CGFloat(elapsed + elapsed * (1 - elapsed) / 2)
+        var transaction = Transaction(); transaction.disablesAnimations = true
+        withTransaction(transaction) { transition?.slideProgress = progress }
+        if elapsed == 1 {
+            stopDisplayLink()
+            settle(id: value.id)
+        }
     }
     private func settle(id: UUID) {
         guard let value = transition, value.id == id else { return }
@@ -373,6 +381,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     }
     private func stopDisplayLink() {
         displayLink?.invalidate(); displayLink = nil
+        slideStartedAt = nil
         heightAdjustment = nil
     }
     private func finish(id: UUID) {
@@ -397,10 +406,12 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     func offset(for week: SchoolDate, selected: SchoolDate, viewportWidth: CGFloat) -> CGFloat {
         if let value = transition {
             if week == value.source {
-                return reduceMotion || !value.moving ? value.rubber : -value.direction * value.width
+                if reduceMotion { return value.rubber }
+                return value.rubber - (value.direction * value.width + value.rubber) * value.slideProgress
             }
             if week == value.destination {
-                return reduceMotion || value.moving ? 0 : value.direction * value.width + value.rubber
+                if reduceMotion { return 0 }
+                return (value.direction * value.width + value.rubber) * (1 - value.slideProgress)
             }
         }
         guard !reduceMotion, week != selected else { return 0 }
@@ -408,8 +419,8 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     }
     func opacity(for week: SchoolDate, selected: SchoolDate) -> Double {
         guard let value = transition else { return week == selected ? 1 : 0 }
-        if week == value.source { return reduceMotion && value.moving ? 0 : 1 }
-        if week == value.destination { return reduceMotion && !value.moving ? 0 : 1 }
+        if week == value.source { return reduceMotion ? Double(1 - value.slideProgress) : 1 }
+        if week == value.destination { return reduceMotion ? Double(value.slideProgress) : 1 }
         return 0
     }
 }
@@ -418,12 +429,11 @@ private struct WeekFooterHandoff: ViewModifier {
     @ObservedObject var motion: WeekPageMotion
     let week: SchoolDate
     func body(content: Content) -> some View {
-        let value = motion.transition
-        // Only the grid was rubber-banding. Keep the footer at its exact release
-        // position until both sections start the same transition.
-        let compensation = value?.source == week && (motion.reduceMotion || value?.moving == false)
-            ? -(value?.rubber ?? 0) : 0
-        content.offset(x: compensation)
+        // Only the grid was rubber-banding. Start the footer at its own
+        // release position and have it cover the remaining distance with the grid.
+        let value = motion.transition.flatMap { $0.source == week ? $0 : nil }
+        let remaining = motion.reduceMotion ? 1 : 1 - (value?.slideProgress ?? 0)
+        content.offset(x: -(value?.rubber ?? 0) * remaining)
     }
 }
 

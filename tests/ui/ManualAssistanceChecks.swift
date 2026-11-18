@@ -30,7 +30,11 @@ final class ManualAssistanceChecks:SimulatorIdentityTestCase {
         guard XCTWaiter.wait(for:[selected],timeout:nativeStateTimeout) == .completed else {
             XCTFail("The Settings tab must be selected after one tap");return
         }
-        tap("時間割ファイル",ownerID:"manual-settings-list",barTitle:"設定")
+        let files=app.collectionViews["manual-settings-list"].buttons["時間割ファイル"]
+        let fileButton=visible(files,buttonLabel:"時間割ファイル",ownerID:"manual-settings-list",barTitle:"設定")
+        // The list cancelled a long synthesized contact. Briefly press the
+        // same current, fully visible button once.
+        fileButton.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).press(forDuration:0.05)
         tap("通常時間割の詳細を見る",ownerID:"manual-materials-list",barTitle:"時間割ファイル")
         tap("端末内で復旧する",ownerID:"manual-analysis-list",barTitle:"通常時間割")
         tap("端末内で復旧を開始")
