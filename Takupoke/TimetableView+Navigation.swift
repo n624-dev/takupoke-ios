@@ -8,6 +8,7 @@ extension TimetableView {
 
     func consumeTodayRequest() {
         guard todayRequest != nil else { return }
+        weekPull.cancelWeekMove()
         today = SchoolDate.today()
         navigationHalfAnchor = today
         // This action opens the week containing today, including weekends.
@@ -17,6 +18,7 @@ extension TimetableView {
     }
 
     func moveWeek(_ days: Int) {
+        weekPull.completeWeekMove()
         if let next = weekStart.addingDays(days), weekBounds.contains(next) { weekStart = next }
     }
 
@@ -47,6 +49,7 @@ extension TimetableView {
     }
 
     func openWeekPicker() {
+        weekPull.completeWeekMove()
         weekPickerDate = pickerDate(min(max(weekStart, weekBounds.lowerBound), weekBounds.upperBound))
         showingWeekPicker = true
     }
@@ -58,6 +61,7 @@ extension TimetableView {
         if let year = parts.year, let month = parts.month, let day = parts.day,
            let picked = SchoolDate(year: year, month: month, day: day),
            weekBounds.contains(picked.monday) {
+            weekPull.cancelWeekMove()
             weekStart = picked.monday
         }
         showingWeekPicker = false

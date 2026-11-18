@@ -12,15 +12,15 @@ extension TimetableView {
             String(Double(standardPeriodColumnWidth)), String(Double(periodColumnWidth))]
         let pages = weeks.map { WeekPage(id: $0, revision: revision, content: AnyView(weekPage(on: $0))) }
         return WeekPages(pages: pages, selection: weekStart, viewportWidth: gridViewportWidth,
-                         pull: weekPull, accent: weekControlColor) { target in
-            weekStart = target
+                         pull: weekPull, accent: weekControlColor) { source, target in
+            if weekStart == source, weekBounds.contains(target) { weekStart = target }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(GeometryReader { proxy in
             Color.clear.preference(key: WeekGridWidthKey.self, value: proxy.size.width)
         })
         .background(periodColumnMeasurement(standard: true).dynamicTypeSize(.large))
-        .background(periodColumnMeasurement(standard: false))
+        .background(periodColumnMeasurement(standard: false).dynamicTypeSize(.large...))
         .onPreferenceChange(StandardPeriodColumnWidthKey.self) { width in
             let fittedWidth = ceil(width) + 2
             guard width > 0, abs(standardPeriodColumnWidth - fittedWidth) > 0.5 else { return }
@@ -35,7 +35,6 @@ extension TimetableView {
             guard width > 0, abs(gridViewportWidth - width) > 0.5 else { return }
             gridViewportWidth = width
         }
-        .dynamicTypeSize(.large...)
     }
 
     private func weekPage(on week: SchoolDate) -> some View {
@@ -90,13 +89,14 @@ extension TimetableView {
             }
             .scrollBounceBehavior(.always, axes: .horizontal)
             .fixedSize(horizontal: false, vertical: true)
+            .dynamicTypeSize(.large...)
             .modifier(WeekGridAccessibility(label: "\(selectedClasses.map(TimetableDisplayText.className).joined(separator: "・"))の週の時間割"))
-            weekEvents(on: week)
+            weekEvents(on: week, embedded: true)
                 .modifier(WeekFooterHandoff(motion: weekPull.motion, week: week))
         }
     }
 
-    func weekEvents(on week: SchoolDate) -> some View {
+    func weekEvents(on week: SchoolDate, embedded: Bool = false) -> some View {
         let rows = (0..<7).compactMap { week.addingDays($0) }.compactMap { day -> (SchoolDate, [String])? in
             let titles = TimetableSchedule.events(on: day, analysis: events).map(\.title)
             return titles.isEmpty ? nil : (day, titles)
@@ -104,14 +104,14 @@ extension TimetableView {
         return Group {
             if !rows.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
-                    Divider().padding(.bottom, 8)
+                    if embedded { Divider().padding(.bottom, 8) }
                     ForEach(Array(rows.enumerated()), id: \.offset) { _, entry in
                         Text(TimetableDisplayText.kana("\(entry.0.month)/\(entry.0.day) " + entry.1.joined(separator: "・")))
                             .font(.caption).foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                .padding(.horizontal, 20).padding(.top, 8).padding(.bottom, 8)
+                .padding(embedded ? EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20) : EdgeInsets())
             }
         }
     }
@@ -183,12 +183,12 @@ private struct WeekPages: View {
     let viewportWidth: CGFloat
     let pull: WeekPullProgress
     let accent: WeekControlAccent
-    let arrive: (SchoolDate) -> Void
+    let arrive: (SchoolDate, SchoolDate) -> Void
     @ObservedObject private var motion: WeekPageMotion
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(pages: [WeekPage], selection: SchoolDate, viewportWidth: CGFloat, pull: WeekPullProgress,
-         accent: WeekControlAccent, arrive: @escaping (SchoolDate) -> Void) {
+         accent: WeekControlAccent, arrive: @escaping (SchoolDate, SchoolDate) -> Void) {
         self.pages = pages; self.selection = selection; self.pull = pull
         self.viewportWidth = viewportWidth
         self.accent = accent; self.arrive = arrive
@@ -225,10 +225,10 @@ private struct WeekPages: View {
             motion.cancel(); pull.update(distance: 0, visible: .zero, center: 0); configure()
         }
         .onChange(of: pages.map(\.revision)) { _, _ in
-            motion.cancel(); pull.update(distance: 0, visible: .zero, center: 0); configure()
+            pull.completeWeekMove(); pull.update(distance: 0, visible: .zero, center: 0); configure()
         }
-        .onChange(of: reduceMotion) { _, _ in motion.cancel(); configure() }
-        .onDisappear { motion.cancel(); pull.update(distance: 0, visible: .zero, center: 0) }
+        .onChange(of: reduceMotion) { _, _ in pull.completeWeekMove(); configure() }
+        .onDisappear { pull.completeWeekMove(); pull.update(distance: 0, visible: .zero, center: 0) }
     }
 
     private func configure() {
@@ -238,6 +238,7 @@ private struct WeekPages: View {
         motion.reduceMotion = reduceMotion
         motion.arrive = arrive
         motion.retain(weeks: motion.available)
+        motion.resetNeighborScrolls(selected: selection)
     }
 }
 
@@ -271,6 +272,9 @@ final class WeekPullProgress: ObservableObject {
     private(set) var center: CGFloat = 0
     private(set) var visible: CGRect = .zero
 
+    func completeWeekMove() { motion.complete() }
+    func cancelWeekMove() { motion.cancel() }
+
     func update(distance: CGFloat, visible: CGRect, center: CGFloat) {
         self.visible = visible; self.center = center
         if self.distance != distance { self.distance = distance }
@@ -300,7 +304,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     var measurements: [SchoolDate: WeekPageMeasurement] = [:]
     var revisions: [SchoolDate: [String]] = [:]
     var reduceMotion = false
-    var arrive: ((SchoolDate) -> Void)?
+    var arrive: ((SchoolDate, SchoolDate) -> Void)?
     private var scrolls: [SchoolDate: ScrollReference] = [:]
     private var displayLink: CADisplayLink?
     private weak var heldScroll: UIScrollView?
@@ -313,6 +317,15 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     func retain(weeks: Set<SchoolDate>) {
         scrolls = scrolls.filter { weeks.contains($0.key) }
         measurements = measurements.filter { weeks.contains($0.key) }
+    }
+    func resetNeighborScrolls(selected: SchoolDate) {
+        for (week, reference) in scrolls where week != selected {
+            guard let scroll = reference.value else { continue }
+            let leading = -scroll.adjustedContentInset.left
+            if scroll.contentOffset.x != leading {
+                scroll.setContentOffset(CGPoint(x: leading, y: scroll.contentOffset.y), animated: false)
+            }
+        }
     }
     func isReady(_ week: SchoolDate?) -> Bool {
         guard let week, available.contains(week), let scroll = scrolls[week]?.value,
@@ -389,12 +402,14 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         stopDisplayLink()
         var transaction = Transaction(); transaction.disablesAnimations = true
         withTransaction(transaction) {
-            selection = value.destination
-            arrive?(value.destination)
+            arrive?(value.source, value.destination)
             transition = nil
             heldScroll?.isScrollEnabled = true
             heldScroll = nil
         }
+    }
+    func complete() {
+        if let transition { finish(id: transition.id) }
     }
     func cancel() {
         stopDisplayLink()

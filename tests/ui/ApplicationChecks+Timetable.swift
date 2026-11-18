@@ -521,6 +521,33 @@ extension ApplicationChecks {
                         try XCTUnwrap(metrics["periodWidth"] as? Double),
                         try XCTUnwrap(metrics["basePeriodWidth"] as? Double))
                     XCTAssertTrue(heights.allSatisfy { $0 >= 72 * scale })
+                    if title == "最大" {
+                        let day = try XCTUnwrap(days.first)
+                        func leadingHeaderX(_ value: [String: Any]) throws -> Double {
+                            let headers = try XCTUnwrap(value["headerFrames"] as? [String: [String: Double]])
+                            return try XCTUnwrap(headers[day]?["x"])
+                        }
+                        let grid = app.scrollViews["timetable-week-grid"]
+                        let region = grid.frame.intersection(bodyViewport(navigation: "時間割"))
+                        let calendar = app.buttons["timetable-week-calendar"]
+                        let originalWeek = calendar.label
+                        let next = app.buttons["翌週"].exists
+                        XCTAssertTrue(next || app.buttons["前週"].exists)
+                        XCTAssertGreaterThan(region.width, 230)
+                        XCTAssertGreaterThan(region.height, 30)
+                        let originalX = try leadingHeaderX(metrics)
+                        let start = app.coordinate(withNormalizedOffset: .zero)
+                            .withOffset(CGVector(dx: region.maxX - 35, dy: region.midY))
+                        start.press(forDuration: 0.08, thenDragTo: start.withOffset(CGVector(dx: -165, dy: 0)))
+                        XCTAssertEqual(calendar.label, originalWeek)
+                        XCTAssertLessThan(try leadingHeaderX(gridMetrics()), originalX - 30)
+                        tap(next ? "翌週" : "前週", searchEarlierRows: true)
+                        XCTAssertNotEqual(calendar.label, originalWeek)
+                        tap(next ? "前週" : "翌週", searchEarlierRows: true)
+                        XCTAssertEqual(calendar.label, originalWeek)
+                        XCTAssertEqual(try leadingHeaderX(gridMetrics()), originalX, accuracy: 1,
+                                       "Returning to a wide week must reopen at the leading edge")
+                    }
                 }
             }
             if eventsOnly {
