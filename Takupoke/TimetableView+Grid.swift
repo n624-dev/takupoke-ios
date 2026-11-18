@@ -444,12 +444,13 @@ private struct WeekBadgePosition: Layout {
     }
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         guard let badge = subviews.first else { return }
-        let viewport = visible.intersection(bounds)
+        let viewport = visible.offsetBy(dx: bounds.minX, dy: bounds.minY).intersection(bounds)
+        guard !viewport.isEmpty else { return }
         let available = CGSize(width: max(1, viewport.width - margin * 2), height: max(1, viewport.height - margin * 2))
         let size = badge.sizeThatFits(ProposedViewSize(available))
-        let frame = WeekEdgePull.badgeFrame(visible: viewport, preferredY: preferredY,
+        let frame = WeekEdgePull.badgeFrame(visible: viewport, preferredY: preferredY + bounds.minY,
                                           size: size, previous: previous, margin: margin)
-        badge.place(at: frame.origin, anchor: .topLeading, proposal: ProposedViewSize(size))
+        badge.place(at: CGPoint(x: frame.midX, y: frame.midY), anchor: .center, proposal: ProposedViewSize(size))
     }
 }
 

@@ -542,11 +542,13 @@ extension ApplicationChecks {
                                 thenDragTo: start.withOffset(CGVector(dx: next ? -195 : 195, dy: 0)))
                 }
                 try pull(next: towardNext)
-                XCTAssertNotEqual(calendar.label, shortWeek)
+                let moved = expectation(for: NSPredicate(format: "label != %@", shortWeek), evaluatedWith: calendar)
+                XCTAssertEqual(XCTWaiter.wait(for: [moved], timeout: 8), .completed)
                 XCTAssertEqual(try gridMetrics()["eventsOnly"] as? Bool, false)
                 XCTAssertGreaterThan(grid.frame.height, shortHeight)
                 try pull(next: !towardNext)
-                XCTAssertEqual(calendar.label, shortWeek)
+                let returned = expectation(for: NSPredicate(format: "label == %@", shortWeek), evaluatedWith: calendar)
+                XCTAssertEqual(XCTWaiter.wait(for: [returned], timeout: 8), .completed)
                 XCTAssertEqual(try gridMetrics()["eventsOnly"] as? Bool, true)
                 XCTAssertEqual(grid.frame.height, shortHeight, accuracy: 1)
             }
