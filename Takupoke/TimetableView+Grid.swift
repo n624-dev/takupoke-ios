@@ -179,7 +179,6 @@ private struct WeekPages: View {
     }
 
     var body: some View {
-        let displayed = motion.transition?.destination ?? selection
         WeekPagesLayout(currentIndex: pages.firstIndex { $0.id == selection } ?? 0) {
             ForEach(pages) { page in
                 page
@@ -189,6 +188,7 @@ private struct WeekPages: View {
                     .offset(x: motion.offset(for: page.id, selected: selection))
                     .opacity(motion.opacity(for: page.id, selected: selection))
                     .allowsHitTesting(motion.transition == nil && page.id == selection)
+                    .accessibilityElement(children: .contain)
                     .accessibilityHidden(page.id != selection || motion.transition != nil)
             }
         }
@@ -210,7 +210,6 @@ private struct WeekPages: View {
         }
         .onChange(of: reduceMotion) { _, _ in motion.cancel(); configure() }
         .onDisappear { motion.cancel(); pull.update(distance: 0, visible: .zero, center: 0) }
-        .accessibilityValue(displayed.iso8601)
     }
 
     private func configure() {
