@@ -26,7 +26,7 @@ extension ManualAssistanceChecks {
         launch()
         guard let key=fieldIDs(expectedCount:1)?.first else { return }
         edit(input(key),"架空変更前確認",id:key);acknowledge(key)
-        tap("架空検証");tap("架空原本のハッシュを変更")
+        chooseFixtureMenuAction("架空原本のハッシュを変更")
         XCTAssertTrue(observation.staticTexts["manual-mutation-complete"].waitForExistence(timeout:10),app.debugDescription)
         tapSubmit()
         XCTAssertTrue(recoveryList.staticTexts["原本または入力内容を確認できませんでした。前回の正常結果を保持しています。"].waitForExistence(timeout:20),app.debugDescription)
@@ -36,7 +36,7 @@ extension ManualAssistanceChecks {
         guard let second=fieldIDs(expectedCount:1)?.first else { return }
         edit(input(second),"架空再照合",id:second);acknowledge(second);tapSubmit()
         requireReview(["架空再照合"],comparable:false)
-        tap("架空検証");tap("架空原本のハッシュを変更")
+        chooseFixtureMenuAction("架空原本のハッシュを変更")
         XCTAssertTrue(observation.staticTexts["manual-mutation-complete"].waitForExistence(timeout:10),app.debugDescription)
         openReviewPreview()
         XCTAssertTrue(recoveryList.staticTexts["原本または入力内容を確認できませんでした。前回の正常結果を保持しています。"].waitForExistence(timeout:20),app.debugDescription)
@@ -71,7 +71,7 @@ extension ManualAssistanceChecks {
         // Independent source and XCTest completion; the original three cases
         // remain mandatory on both OS versions with their original controls.
         measuredStep("select-high-confidence-fields") {
-            launch()
+            launch(["--fixture-link-press-trace"])
             guard let selectedKey=fieldIDs(expectedCount:1)?.first else { return }
             let selectedSubject = "架空選択科目"
             inspectSource(selectedKey)

@@ -3,7 +3,6 @@ import UIKit
 
 final class ManualAssistanceChecks:SimulatorIdentityTestCase {
     var app:XCUIApplication!
-    var fixtureMenuOpen=false
     // AX snapshots on a loaded simulator can take longer than five seconds.
     // Keep every native state assertion, allowing bounded time to observe it.
     let nativeStateTimeout:TimeInterval=45
@@ -76,5 +75,4 @@ final class ManualAssistanceChecks:SimulatorIdentityTestCase {
         }
         return true
     }
-    let fixtureMenuActions=["表示サイズを変更","同じ原本の状態を再確認","架空原本のハッシュを変更"]
 }

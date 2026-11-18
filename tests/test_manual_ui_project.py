@@ -390,17 +390,25 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertNotIn('sleep(',acknowledge)
         self.assertNotIn('for ',acknowledge)
         self.assertIn('XCTNSPredicateExpectation',acknowledge)
-        opening=checks.split('if title == "架空検証"')[1].split('if fixtureMenuActions.contains(title)')[0]
+        opening=checks.split('    func chooseFixtureMenuAction(',1)[1].split('    func tapPopupAction(',1)[0]
         self.assertIn('guard current.count==1',opening)
         self.assertLess(opening.index('let barFrame=bar.frame'),opening.index('.allElementsBoundByAccessibilityElement'))
         self.assertEqual(opening.count('.press(forDuration:0.1)'),1)
         self.assertNotIn('.tap()',opening)
         self.assertIn('barFrame.contains(frame),button.isEnabled,button.isHittable',opening)
-        self.assertIn('app.buttons[action].waitForExistence(timeout:nativeStateTimeout)',opening)
-        menu=checks.split('    func tapPopupAction(_ title:String) {',1)[1].split('\n    }',1)[0]
-        self.assertIn('.allElementsBoundByAccessibilityElement',menu)
-        self.assertIn('guard current.count==1',menu)
-        self.assertLess(menu.index('ManualScrollNavigation.usable(frame),self.app.frame.contains(frame)'),menu.index('button.isEnabled,button.isHittable'))
+        for action in ('表示サイズを変更','同じ原本の状態を再確認','架空原本のハッシュを変更'):
+            self.assertIn(f'"{action}"',opening)
+            self.assertIn(f'chooseFixtureMenuAction("{action}")',checks)
+        self.assertIn('tapPopupAction(action, requiredTitles: requiredTitles)',opening)
+        menu=checks.split('    func tapPopupAction(',1)[1].split('\n    }',1)[0]
+        self.assertEqual(menu.count('self.app.snapshot()'),1)
+        self.assertIn('$0.elementType == .button',menu)
+        self.assertIn('$0.label == title',menu)
+        self.assertIn('requiredTitles.subtracting(buttons.map(\\.label))',menu)
+        self.assertIn('guard current.count==1, missing.isEmpty',menu)
+        self.assertIn('ManualScrollNavigation.usable(frame) && root.frame.contains(frame)',menu)
+        self.assertLess(menu.index('guard contained, observed.isEnabled'),menu.index('button.isHittable'))
+        self.assertIn('guard hittable, ProcessInfo.processInfo.systemUptime <= deadline',menu)
         self.assertIn('XCTWaiter.wait(for:[ready],timeout:nativeStateTimeout)',menu)
         self.assertIn('guard !ambiguous,result == .completed,let button=readyButton',menu)
         self.assertEqual(menu.count('.tap()'),1)
@@ -411,7 +419,7 @@ class ManualUIProjectTests(unittest.TestCase):
         menu=checks.split('func selectCorrectionFromPreview(')[1].split('func selectHighConfidenceFields')[0]
         self.assertIn('visible(recoveryList.staticTexts[menuID], knownID: menuID)',menu)
         self.assertEqual(menu.count('.press('),1)
-        self.assertIn('owner.press(forDuration: 2)',menu)
+        self.assertIn('owner.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 2)',menu)
         self.assertIn('tapPopupAction(name+"を訂正")',menu)
         self.assertIn('acknowledge(ids[i])',checks)
 

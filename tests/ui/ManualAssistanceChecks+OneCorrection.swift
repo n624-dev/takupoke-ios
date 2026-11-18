@@ -15,9 +15,9 @@ extension ManualAssistanceChecks {
         assertSubmitEnabled(false)
         edit(input,value,id:key);acknowledge(key)
         assertSubmitEnabled(true)
-        tap("架空検証");tap("表示サイズを変更")
+        chooseFixtureMenuAction("表示サイズを変更")
         XCTAssertEqual(visible(input,knownID:"manual-value-"+key).value as? String,value);XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"1")
-        tap("架空検証");tap("同じ原本の状態を再確認")
+        chooseFixtureMenuAction("同じ原本の状態を再確認")
         XCTAssertEqual(visible(input,knownID:"manual-value-"+key).value as? String,value);XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"1")
     }
 
@@ -61,9 +61,9 @@ extension ManualAssistanceChecks {
 
     func selectCorrectionFromPreview(cell:String,lesson:String,role:String) {
         let menuID = "recovery-correction-menu-"+cell+"-"+lesson
-        // Hold the verified, visible owner just as the link context-menu test does.
+        // Hold the center of the verified, visible native text.
         let owner = visible(recoveryList.staticTexts[menuID], knownID: menuID)
-        owner.press(forDuration: 2)
+        owner.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 2)
         let names = ["subject":"科目","teacher":"教員","room":"教室"]
         let name = names[role]
         XCTAssertNotNil(name)

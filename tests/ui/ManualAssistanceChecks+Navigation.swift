@@ -243,55 +243,60 @@ extension ManualAssistanceChecks {
         XCTFail("No safe visible hit region in \(ownerID) after \(attempts) attempts for \(buttonLabel ?? targetID)");return e
     }
     func tap(_ title:String,knownID:String="",ownerID:String="manual-recovery-list",barTitle:String="時間割の復旧") {
-        if title == "架空検証" {
-            let bar=app.navigationBars["時間割の復旧"]
-            guard bar.waitForExistence(timeout:nativeStateTimeout),
-                  bar.buttons[title].waitForExistence(timeout:nativeStateTimeout) else {
-                XCTFail("Fixture menu must exist on its recovery toolbar");return
-            }
-            let barFrame=bar.frame
-            let current=bar.buttons.matching(NSPredicate(format:"label == %@",title))
-                .allElementsBoundByAccessibilityElement
-            guard current.count==1 else { XCTFail("Fixture menu must have one native Button");return }
-            let button=current[0],frame=button.frame
-            guard ManualScrollNavigation.usable(barFrame),ManualScrollNavigation.usable(frame),
-                  barFrame.contains(frame),button.isEnabled,button.isHittable else {
-                XCTFail("Fixture menu must be visible on its own recovery toolbar: "+app.debugDescription);return
-            }
-            print("TAKUPOKE-MANUAL-MENU frame=\(frame);method=native-center-brief-contact;duration=0.1")
-            button.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).press(forDuration:0.1)
-            for action in fixtureMenuActions {
-                XCTAssertTrue(app.buttons[action].waitForExistence(timeout:nativeStateTimeout),app.debugDescription)
-            }
-            fixtureMenuOpen=true
-            return
-        }
-        if fixtureMenuActions.contains(title) {
-            guard fixtureMenuOpen else { XCTFail("Fixture action requires the explicitly opened menu");return }
-            tapPopupAction(title)
-            fixtureMenuOpen=false
-            return
-        }
         let button=app.collectionViews[ownerID].buttons[title]
         visible(button,knownID:knownID,buttonLabel:title,ownerID:ownerID,barTitle:barTitle).tap()
     }
 
-    func tapPopupAction(_ title:String) {
+    func chooseFixtureMenuAction(_ action: String) {
+        let requiredTitles: Set<String> = ["表示サイズを変更", "同じ原本の状態を再確認", "架空原本のハッシュを変更"]
+        guard requiredTitles.contains(action) else { XCTFail("Unknown fixture menu action: " + action); return }
+        let title = "架空検証"
+        let bar=app.navigationBars["時間割の復旧"]
+        guard bar.waitForExistence(timeout:nativeStateTimeout),
+              bar.buttons[title].waitForExistence(timeout:nativeStateTimeout) else {
+            XCTFail("Fixture menu must exist on its recovery toolbar");return
+        }
+        let barFrame=bar.frame
+        let current=bar.buttons.matching(NSPredicate(format:"label == %@",title))
+            .allElementsBoundByAccessibilityElement
+        guard current.count==1 else { XCTFail("Fixture menu must have one native Button");return }
+        let button=current[0],frame=button.frame
+        guard ManualScrollNavigation.usable(barFrame),ManualScrollNavigation.usable(frame),
+              barFrame.contains(frame),button.isEnabled,button.isHittable else {
+            XCTFail("Fixture menu must be visible on its own recovery toolbar: "+app.debugDescription);return
+        }
+        print("TAKUPOKE-MANUAL-MENU frame=\(frame);method=native-center-brief-contact;duration=0.1")
+        button.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).press(forDuration:0.1)
+        tapPopupAction(action, requiredTitles: requiredTitles)
+    }
+
+    func tapPopupAction(_ title: String, requiredTitles: Set<String> = []) {
         var readyButton:XCUIElement?,ambiguous=false
+        var observation = "snapshot unavailable"
+        let deadline = ProcessInfo.processInfo.systemUptime + nativeStateTimeout
         let ready=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
-            let current=self.app.buttons.matching(NSPredicate(format:"label == %@",title))
-                .allElementsBoundByAccessibilityElement
+            guard ProcessInfo.processInfo.systemUptime < deadline,
+                  let root = try? self.app.snapshot(), let nodes = self.snapshotNodes(in: root) else { return false }
+            let buttons = nodes.filter { $0.elementType == .button }
+            let current = buttons.filter { $0.label == title }
+            let missing = requiredTitles.subtracting(buttons.map(\.label))
+            observation = "matches=\(current.count);missing=\(missing.sorted())"
             if current.count>1 { ambiguous=true;return true }
-            guard current.count==1 else { return false }
-            let button=current[0],frame=button.frame
-            guard ManualScrollNavigation.usable(frame),self.app.frame.contains(frame),
-                  button.isEnabled,button.isHittable else { return false }
+            guard current.count==1, missing.isEmpty else { return false }
+            let observed = current[0], frame = observed.frame
+            let contained = ManualScrollNavigation.usable(frame) && root.frame.contains(frame)
+            observation += ";frame=\(frame);contained=\(contained);enabled=\(observed.isEnabled)"
+            guard contained, observed.isEnabled, ProcessInfo.processInfo.systemUptime < deadline else { return false }
+            let button = self.app.buttons.matching(NSPredicate(format: "label == %@", title)).element
+            let hittable = button.isHittable
+            observation += ";hittable=\(hittable)"
+            guard hittable, ProcessInfo.processInfo.systemUptime <= deadline else { return false }
             readyButton=button
             return true
         },object:app)
         let result=XCTWaiter.wait(for:[ready],timeout:nativeStateTimeout)
         guard !ambiguous,result == .completed,let button=readyButton else {
-            XCTFail("The opened popup must have one visible and operable action: "+title);return
+            XCTFail("The opened popup must have one visible and operable action: \(title);\(observation)");return
         }
         button.tap()
     }
