@@ -229,6 +229,26 @@ rm() { echo "delete-$*" >> "$CALLS"; }
             self.assertEqual(record['xcresultError'], 'OSError')
             self.assertEqual(record['logError'], 'OSError')
 
+    def test_success_collects_the_owned_trace_without_failure_diagnostics(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            scratch = Path(tmp)
+            (scratch / 'ManualResults.xcresult').mkdir()
+            container = scratch / 'simulator-data'
+            (container / 'tmp').mkdir(parents=True)
+            trace = 'TAKUPOKE_INPUT pid=123 time=42.25 phase=ended x=196.67 y=231.67 views=UIKit.UIView'
+            (container / 'tmp/takupoke-fictional-launch-owned.log').write_text(trace + '\n', encoding='utf-8')
+            response = {'exit': 0, 'limited': None, 'seconds': 0, 'text': str(container)}
+            with patch.object(module, 'command', return_value=response) as command, patch('builtins.print') as printed:
+                module.collect(scratch, 'owned-simulator', time.time(), 0)
+
+            command.assert_called_once_with(
+                ['xcrun', 'simctl', 'get_app_container', 'owned-simulator', module.BUNDLE, 'data'], timeout=10)
+            self.assertEqual(printed.call_args_list[0].args[0], trace)
+            record = json.loads(printed.call_args.args[0].split(' ', 1)[1])
+            self.assertEqual(record['originalExit'], 0)
+            self.assertEqual(record['inputDeliveryLines'], 1)
+            self.assertEqual([item['kind'] for item in record['commands']], ['owned-input-log-path'])
+
     def test_assertions_completion_guard_and_result_bundle_remain(self):
         runner = (ROOT / 'tools/test-manual-ui.sh').read_text()
         checks = manual_check_source()

@@ -179,6 +179,11 @@ def collect(scratch, simulator, started, exit_code):
                     print(line, flush=True)
         except OSError as error:
             result["inputTraceError"] = type(error).__name__
+    if exit_code == 0:
+        # Completed cases still report their input trace. Failure-only commands
+        # consume the owned simulator's remaining shutdown budget.
+        print("TAKUPOKE-MANUAL-DIAGNOSTICS " + json.dumps(result, ensure_ascii=False), flush=True)
+        return
     bundle = scratch / "ManualResults.xcresult"
     if bundle.exists():
         try:

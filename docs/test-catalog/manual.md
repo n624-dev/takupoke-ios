@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`5a65cb3476d1435ddb5f5832142b34485c33f11b5231d1236232e9b494faf36d`
+`2488b97eb28de4fb51bd43854a4a21401203ed250e2b5e84dfa521ad429735f6`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -104,6 +104,7 @@ bash tools/test-manual-ui.sh
 - `test_legacy_failure_excludes_attachment_payloads`
 - `test_always_collection_retains_original_exit_when_tools_fail`
 - `test_collection_tool_errors_stay_unknown_no_binary_payload`
+- `test_success_collects_the_owned_trace_without_failure_diagnostics`
 - `test_assertions_completion_guard_and_result_bundle_remain`
 
 ## [tests/test_manual_ui_project.py](../../tests/test_manual_ui_project.py)
