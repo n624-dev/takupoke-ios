@@ -19,7 +19,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     private var releasedAt: CFTimeInterval = 0
     private var arrivedAt: CFTimeInterval?
     private var finishedAt: CFTimeInterval?
-    private var releasePoint = CGPoint.zero
+    private var releasePoint: CGPoint?
     private var samples: [[String: Double]] = []
     private var records: [[String: Any]] = []
     private var fingerDown = false
@@ -41,7 +41,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     func released(body: UIView) {
         guard enabled else { return }
         releasedAt = CACurrentMediaTime()
-        releasePoint = point(body) ?? CGPoint(x: .nan, y: .nan)
+        releasePoint = point(body)
         fingerDown = false
     }
     func begin(source: String, target: String) {
@@ -68,10 +68,13 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
         }
         if finishedAt.map({ now - $0 >= 0.15 }) == true || now - releasedAt > 1.5 {
             link?.invalidate(); link = nil
-            let record: [String: Any] = ["releaseX": releasePoint.x, "releaseY": releasePoint.y,
-                "arrived": arrivedAt.map { $0 - releasedAt } ?? -1,
+            var record: [String: Any] = ["arrived": arrivedAt.map { $0 - releasedAt } ?? -1,
                 "finished": finishedAt.map { $0 - releasedAt } ?? -1,
                 "samples": samples, "badge": badge]
+            if let releasePoint {
+                record["releaseX"] = Double(releasePoint.x)
+                record["releaseY"] = Double(releasePoint.y)
+            }
             records.append(record)
             if let bytes = try? JSONSerialization.data(withJSONObject: records, options: [.sortedKeys]),
                let value = String(data: bytes, encoding: .utf8) {
@@ -114,10 +117,18 @@ struct FixtureWeekMotionStatus: View {
 }
 
 struct FixtureWeekBadgeCapture: ViewModifier {
+    private struct Observation: Equatable {
+        let ready: Bool
+        let frame: CGRect
+    }
+
     let ready: Bool
     func body(content: Content) -> some View {
-        content.onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
-            if ready { FixtureWeekMotionRecorder.shared.captureBadge(frame: frame) }
+        let ready = ready
+        return content.onGeometryChange(for: Observation.self) { proxy in
+            Observation(ready: ready, frame: proxy.frame(in: .global))
+        } action: { observation in
+            if observation.ready { FixtureWeekMotionRecorder.shared.captureBadge(frame: observation.frame) }
         }
     }
 }

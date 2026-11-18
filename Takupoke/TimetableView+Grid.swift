@@ -444,8 +444,12 @@ private struct WeekPullBadge: View {
         }.frame(width: 27, height: 27)
     }
     private var label: some View {
-        VStack(spacing: 3) {
-            Text(ready ? (previous ? "離すと前週へ" : "離すと翌週へ") : (previous ? "前週" : "翌週"))
+        let releaseTitle = previous ? "離すと前週へ" : "離すと翌週へ"
+        return VStack(spacing: 3) {
+            ZStack {
+                Text(releaseTitle).hidden().accessibilityHidden(true)
+                Text(ready ? releaseTitle : (previous ? "前週" : "翌週"))
+            }
             Text("\(date.month)/\(date.day)〜").monospacedDigit()
         }
     }
