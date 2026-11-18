@@ -26,9 +26,9 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Require affected tests and current catalogue
-        env:
-          TKPK_TEST_BASE: ${{ github.event.before }}
-        run: python3 -B tools/test_catalog.py check
+        run: |
+          base=$(git merge-base HEAD origin/main)
+          python3 -B tools/test_catalog.py check --base "$base"
       - name: Check generation and distribution contracts
         run: python3 -B -m unittest discover -s tests -v
   native:
