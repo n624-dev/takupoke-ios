@@ -1,0 +1,78 @@
+name: Week appearance and motion regression
+
+on:
+  push:
+    branches: [fix/118-theme-week-navigation]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+
+jobs:
+  checks:
+    name: Week regression source contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Require affected tests and current catalogue
+        env:
+          TKPK_TEST_BASE: ${{ github.event.before }}
+        run: python3 -B tools/test_catalog.py check
+      - name: Check generation and distribution contracts
+        run: python3 -B -m unittest discover -s tests -v
+  native:
+    name: Week regression native logic
+    needs: checks
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: bash tools/test-parsing.sh
+  appearance:
+    name: Week appearance iOS ${{ matrix.ios }}
+    needs: checks
+    strategy:
+      fail-fast: false
+      matrix:
+        ios: [27, 26]
+    runs-on: xcode-27
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+      TKPK_EXPECTED_IOS_SDK: '27.2'
+      TKPK_TEST_IOS: ${{ matrix.ios }}
+      TKPK_UI_RELAUNCH_PROBE: '1'
+      TKPK_UI_PROBE_CASE: week-appearance
+      TKPK_SIMULATOR_FRONTEND: ${{ matrix.ios == 26 && 'gui' || 'headless' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare the shipping toolchain and exact runtime
+        run: |
+          python3 -B tools/select-ci-xcode.py
+          if [[ "$TKPK_TEST_IOS" == 27 ]]; then
+            python3 -B tools/prepare-ios27-runtime.py
+          else
+            python3 -B tools/prepare-ios26-runtime.py --hold-export
+          fi
+      - name: Observe actual colors, release frames, glass bounds and existing lesson operations
+        run: bash tools/test-app-ui.sh
+      - name: Remove the owned iOS 26 export after simulator cleanup
+        if: always() && matrix.ios == 26
+        run: python3 -B tools/prepare-ios26-runtime.py --cleanup-export

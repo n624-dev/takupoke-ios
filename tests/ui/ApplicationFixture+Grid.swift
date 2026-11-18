@@ -87,7 +87,8 @@ extension TimetableView {
             "periodWidth": periodColumnWidth, "basePeriodWidth": standardPeriodColumnWidth,
             "subjectFont": gridUIFont(11).pointSize, "metadataFont": gridUIFont(9).pointSize,
             "eventFont": gridUIFont(14).pointSize, "periodFont": gridUIFont(15).pointSize,
-            "headerFrames": fixtureHeaderFrames.mapValues { ["x": $0.minX, "height": $0.height] },
+            "headerFrames": fixtureHeaderFrames.filter { key, _ in days.contains { $0.iso8601 == key } }
+                .mapValues { ["x": $0.minX, "y": $0.minY, "height": $0.height] },
             "eventSizes": fixtureEventSizes.mapValues { ["width": $0.width, "height": $0.height] },
             "heights": heights, "cards": cards,
             "days": days.map(\.iso8601), "eventsOnly": columns.allSatisfy { $0.fullDayEventTitle != nil },

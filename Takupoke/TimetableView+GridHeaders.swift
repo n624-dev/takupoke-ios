@@ -39,9 +39,9 @@ extension TimetableView {
     func dayHeaderCell(_ column: DayGridLayout) -> some View {
         dayHeader(on: column.day, hasFullDayCard: column.fullDayEventTitle != nil)
             .fixedSize(horizontal: false, vertical: true)
-            .frame(width: column.width, height: dayHeaderHeight > 0 ? dayHeaderHeight : nil,
-                   alignment: .top)
-            .background(column.day == today ? Color.accentColor.opacity(0.14) :
+            .frame(width: column.width, alignment: .top)
+            .frame(maxHeight: .infinity, alignment: .top)
+            .background(column.day == today ? mainColor.selection.displayColor.opacity(0.14) :
                         Color(uiColor: .secondarySystemGroupedBackground),
                         in: RoundedRectangle(cornerRadius: 10))
             .accessibilityIdentifier("timetable-day-\(column.day.iso8601)")
@@ -80,17 +80,7 @@ extension TimetableView {
         }
         .padding(3)
         .frame(maxWidth: .infinity, alignment: .center)
-        .background(GeometryReader { proxy in
-            Color.clear.preference(key: DayHeaderHeightKey.self, value: proxy.size.height)
-        })
         .accessibilityElement(children: .combine)
-    }
-}
-
-struct DayHeaderHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
     }
 }
 

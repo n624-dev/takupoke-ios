@@ -10,12 +10,11 @@ struct TimetableView: View {
     @Binding var todayRequest: UUID?
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) var gridDynamicTypeSize
-    @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
+    @EnvironmentObject var mainColor: MainColorModel
     @AppStorage("timetableSelectedClasses") var selectedClassesValue = ""
     @AppStorage("timetableChangeClasses") var changeClassesValue = ""
     @AppStorage("timetableInternationalStudent") var isInternationalStudent = false
     @State var weekPull = WeekPullProgress()
-    @State var weekSlide: WeekGridSlide?
     @State var weekStart = SchoolDate.today().displayWeekStart
     @State var navigationHalfAnchor = SchoolDate.today()
     @State var today = SchoolDate.today()
@@ -28,7 +27,6 @@ struct TimetableView: View {
     @State var selectedChange: ChangeSelection?
     @State var showingWeekPicker = false
     @State var weekPickerDate = Date()
-    @State var dayHeaderHeight: CGFloat = 0
     @State var gridViewportWidth: CGFloat = 0
     @State var standardPeriodColumnWidth: CGFloat = 34
     @State var measuredPeriodColumnWidth: CGFloat = 34
@@ -72,7 +70,7 @@ struct TimetableView: View {
 
     // Selections hold lesson snapshots. Close them when their underlying
     // accepted data or display scope changes; loading status is not a revision.
-    private var detailRevision: [String] {
+    var detailRevision: [String] {
         let schedule = daySchedule
         var values = [weekStart.iso8601, today.iso8601, selectedClassesValue, changeClassesValue, String(isInternationalStudent), String(includesChanges), changeRangeValue]
         values.append(times.current?.revision ?? "")
@@ -187,7 +185,7 @@ struct TimetableView: View {
         }
     }
 
-    var weekControlColor: WeekControlAccent { WeekControlAccent(theme: MainColor(rawValue: mainColor) ?? .systemDefault) }
+    var weekControlColor: WeekControlAccent { WeekControlAccent(theme: mainColor.selection) }
 
 
 }

@@ -9,6 +9,28 @@ import sys
 from picker_test_project import generate as generate_picker
 from ui_test_manifest import CHECK_SOURCES, FIXTURE_SOURCES
 
+WEEK_MOTION_INSERTIONS = (
+    ('            if let scroll, let week { progress?.motion.register(scroll, week: week) }',
+     '\n            if let week { FixtureWeekMotionRecorder.shared.register(week: week.iso8601, body: self) }'),
+    ('            case .began:', '\n                FixtureWeekMotionRecorder.shared.began(body: self)'),
+    ('            case .ended:', '\n                FixtureWeekMotionRecorder.shared.released(body: self)'),
+    ('                let visible = body.height >= 70 ? body : viewport',
+     '\n                if let window { FixtureWeekMotionRecorder.shared.visible = scroll.convert(visible.offsetBy(dx: scroll.bounds.minX, dy: scroll.bounds.minY), to: window) }'),
+    ('        let minimum = -scroll.adjustedContentInset.left',
+     '\n        FixtureWeekMotionRecorder.shared.begin(source: week.iso8601, target: destination.iso8601)'),
+    ('    private func settle(id: UUID) {', '\n        FixtureWeekMotionRecorder.shared.arrived()'),
+    ('            selection = value.destination', '\n            FixtureWeekMotionRecorder.shared.finished()'),
+    ('        .glassEffect(.regular, in: .rect(cornerRadius: 14))',
+     '\n        .modifier(FixtureWeekBadgeCapture(ready: ready))'),
+)
+
+
+def instrument_week_motion(text):
+    for marker, insertion in WEEK_MOTION_INSERTIONS:
+        assert text.count(marker) == 1, 'Week motion observation insertion point missing: ' + marker
+        text = text.replace(marker, marker + insertion)
+    return text
+
 
 def add_swift_sources(project, target, paths, prefix):
     objects = project['objects']
@@ -357,6 +379,7 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
                     }
 ''' + marker)
         if path.name == 'TimetableView+Grid.swift':
+            text = instrument_week_motion(text)
             marker = next(line for line in text.splitlines() if '.accessibilityLabel(' in line and 'の週の時間割' in line)
             assert marker in text, 'Timetable grid probe insertion point missing'
             text = text.replace(marker, marker + '''

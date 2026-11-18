@@ -17,6 +17,7 @@ CHECK_SOURCES = (
     "ApplicationChecks+Settings.swift",
     "ApplicationChecks+Events.swift",
     "ApplicationChecks+Notifications.swift",
+    "ApplicationChecks+WeekAppearance.swift",
 )
 FIXTURE_SOURCES = (
     "ApplicationFixture.swift",
@@ -27,6 +28,7 @@ FIXTURE_SOURCES = (
     "ApplicationFixture+Recovery.swift",
     "ApplicationFixture+OCR.swift",
     "ApplicationFixture+NotificationPermission.swift",
+    "ApplicationFixture+WeekMotion.swift",
 )
 
 MANUAL_CHECK_SOURCES = (
@@ -81,6 +83,10 @@ CONTROL_PROBE_TESTS = NOTIFICATION_PROBE_TESTS + (
     "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",
 )
 PROBE_GROUPS = {
+    "week-appearance": ("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch",
+                        "testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable",
+                        "testTimetableCommonClocksAndEventOnlyWeekScale",
+                        "testHomeTimetableAndWeekCalendar"),
     "retention": ("testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData",),
     "notifications": NOTIFICATION_PROBE_TESTS,
     "controls": CONTROL_PROBE_TESTS,
@@ -130,6 +136,8 @@ SHARDS = {
         "testChangedAccountDataNoticeOpensSharedAcquisition",
     ),
     "B": (
+        "testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch",
+        "testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable",
         "testSettingsAccountDataAndFileDetails",
         SYSTEM_SIZE_TEST,
         "testNotificationControlsAndAppearance",

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
+    @EnvironmentObject private var mainColor: MainColorModel
     @AppStorage("linkOpeningMode") private var linkOpeningMode = LinkOpeningMode.inApp.rawValue
     @AppStorage(SyllabusLinkPolicy.storageKey) private var syllabusDepartmentID = ""
     @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
@@ -15,8 +15,7 @@ struct SettingsView: View {
     @State private var showingSetup = false
 
     private var colorSelection: Binding<MainColor> {
-        Binding(get: { MainColor(rawValue: mainColor) ?? .systemDefault },
-                set: { $0.save() })
+        Binding(get: { mainColor.selection }, set: { mainColor.select($0) })
     }
 
     var body: some View {

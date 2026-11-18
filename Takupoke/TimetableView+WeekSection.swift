@@ -59,7 +59,7 @@ extension TimetableView {
                 weekGrid
                     .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
             }
-            weekEvents
+            if selectedClasses.isEmpty { weekEvents(on: weekStart) }
         } header: { Text("週の時間割") }
     }
 

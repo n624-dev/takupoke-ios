@@ -122,6 +122,20 @@ extension SchoolDate {
 }
 
 extension WeekEdgePull {
+    static func rubberBandOffset(offset: CGFloat, scrollRange: CGFloat) -> CGFloat {
+        min(max(0, offset), max(0, scrollRange)) - offset
+    }
+
+    /// Leave room for the glass edge and shadow on both axes. The compact badge
+    /// is chosen by the caller before placement in a short visible body.
+    static func badgeFrame(visible: CGRect, preferredY: CGFloat, size: CGSize,
+                           previous: Bool, margin: CGFloat) -> CGRect {
+        let area = visible.insetBy(dx: margin, dy: margin)
+        let x = previous ? area.minX : area.maxX - size.width
+        let y = min(max(area.minY, preferredY - size.height / 2), max(area.minY, area.maxY - size.height))
+        return CGRect(origin: CGPoint(x: x, y: y), size: size)
+    }
+
     /// Coordinates are local to the standing grid, after clipping to the on-screen list body.
     static func badgeCenter(visible: CGRect, headerHeight: CGFloat) -> CGFloat {
         let firstCell = min(visible.maxY, max(visible.minY, headerHeight))

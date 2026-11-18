@@ -26,6 +26,41 @@ final class TimetableScheduleTests: XCTestCase {
         XCTAssertEqual(WeekEdgePull.incomingOffset(viewportWidth: 340, offset: 0, scrollRange: 0, days: 7), 340)
     }
 
+    func testWeekBadgeHasClearanceOnBothEdgesAndInShortOrScrolledBodies() {
+        for visible in [CGRect(x: 0, y: 0, width: 340, height: 128),
+                        CGRect(x: 0, y: 250, width: 340, height: 380)] {
+            for previous in [false, true] {
+                for preferredY in [visible.minY, visible.midY, visible.maxY] {
+                    let frame = WeekEdgePull.badgeFrame(visible: visible, preferredY: preferredY,
+                        size: CGSize(width: 118, height: 68), previous: previous, margin: 10)
+                    // Check the four physical edges without relying on corelibs
+                    // CGRect.contains for a translated viewport. The required
+                    // clearance is still 10pt on every side.
+                    XCTAssertGreaterThanOrEqual(frame.minX, visible.minX + 10)
+                    XCTAssertGreaterThanOrEqual(frame.minY, visible.minY + 10)
+                    XCTAssertLessThanOrEqual(frame.maxX, visible.maxX - 10)
+                    XCTAssertLessThanOrEqual(frame.maxY, visible.maxY - 10)
+                    XCTAssertEqual(previous ? frame.minX - visible.minX : visible.maxX - frame.maxX, 10)
+                }
+            }
+        }
+    }
+
+    func testLivePageHandoffPreservesTheReleasedContentPosition() {
+        for range: CGFloat in [0, 90, 500] {
+            for offset in [-42, CGFloat(0), range / 2, range, range + 31] {
+                let translation = WeekEdgePull.rubberBandOffset(offset: offset, scrollRange: range)
+                let edge = offset + translation
+                XCTAssertGreaterThanOrEqual(edge, 0)
+                XCTAssertLessThanOrEqual(edge, range)
+                // Compare actual content coordinates before and after normalizing the scroll.
+                for contentX: CGFloat in [0, 58, 184] {
+                    XCTAssertEqual(contentX - offset, contentX - edge + translation, accuracy: 0.001)
+                }
+            }
+        }
+    }
+
     func testWeekPullConsumesHiddenColumnsAndUsesTheFinalFingerPosition() throws {
         let horizontal = CGPoint(x: 250, y: 3)
         let narrow = try XCTUnwrap(WeekEdgePull(velocity: horizontal, offset: 0, scrollRange: 0))

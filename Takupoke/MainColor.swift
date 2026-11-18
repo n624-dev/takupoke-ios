@@ -1,6 +1,7 @@
 import Foundation
 #if canImport(SwiftUI)
 import SwiftUI
+import Combine
 #endif
 
 enum MainColor: String, CaseIterable, Identifiable {
@@ -51,30 +52,40 @@ enum MainColor: String, CaseIterable, Identifiable {
 }
 
 #if canImport(SwiftUI)
+@MainActor
+final class MainColorModel: ObservableObject {
+    @Published private(set) var selection: MainColor
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        selection = defaults.string(forKey: MainColor.storageKey)
+            .flatMap(MainColor.init(rawValue:)) ?? .systemDefault
+    }
+
+    func select(_ color: MainColor) {
+        color.save(in: defaults)
+        selection = color
+    }
+}
+
+@MainActor
+struct MainColorScope: ViewModifier {
+    @StateObject private var model = MainColorModel()
+
+    func body(content: Content) -> some View {
+        content.environmentObject(model).tint(model.selection.color)
+    }
+}
+
 @available(macOS 14.0, *)
 struct WeekControlAccent: ShapeStyle {
     let theme: MainColor
 
     func resolve(in environment: EnvironmentValues) -> Color {
-        color(in: environment, increasedContrast: environment.colorSchemeContrast == .increased)
-    }
-
-    func color(in environment: EnvironmentValues, increasedContrast: Bool) -> Color {
-        let value = theme.displayColor.resolve(in: environment)
-        let red = Double(value.linearRed), green = Double(value.linearGreen), blue = Double(value.linearBlue)
-        let luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue
-        let ratio = increasedContrast ? 7.0 : 4.5
-        let dark = environment.colorScheme == .dark
-        // Allow for the neutral glass being darker than white or lighter than black.
-        let surface = dark ? 0.06 : 0.75
-        let limit = dark ? (surface + 0.05) * ratio - 0.05 : (surface + 0.05) / ratio - 0.05
-        let weight: Double
-        if dark && luminance < limit { weight = (limit - luminance) / (1 - luminance) }
-        else if !dark && luminance > limit { weight = 1 - limit / luminance }
-        else { return theme.displayColor }
-        let target: Double = dark ? 1 : 0
-        func adjusted(_ component: Double) -> Double { component + (target - component) * weight }
-        return Color(.sRGBLinear, red: adjusted(red), green: adjusted(green), blue: adjusted(blue))
+        // Preserve the selected system color, including its appearance and contrast
+        // variants. A guessed glass luminance must not turn orange into brown.
+        theme.displayColor
     }
 }
 #endif

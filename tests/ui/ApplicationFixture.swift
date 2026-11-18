@@ -46,6 +46,7 @@ final class FixtureNetwork: URLProtocol {
 
 @main
 struct SimulatorApplication: App {
+    @AppStorage(MainColor.storageKey) private var storedMainColor = MainColor.systemDefault.rawValue
     @State private var notificationProbe = "待機中"
     @State private var notificationDeliveryProof = "待機中"
     @State private var recoveryOCRProbe = "OCR実行中"
@@ -57,7 +58,6 @@ struct SimulatorApplication: App {
         let arguments = ProcessInfo.processInfo.arguments
         return arguments.contains("--grid-probe") || arguments.contains("--failed-refresh")
     }
-    @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
     @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
     init() {
         FixtureInputDelivery.install()
@@ -73,7 +73,7 @@ struct SimulatorApplication: App {
     var body: some Scene {
         let _ = FixtureLaunchDiagnostics.record("scene-construction")
         WindowGroup {
-            ContentView().environment(\.timeZone, JapaneseDateDisplay.timeZone).tint((MainColor(rawValue: mainColor) ?? .systemDefault).color)
+            ContentView().environment(\.timeZone, JapaneseDateDisplay.timeZone).modifier(MainColorScope())
                 .onAppear { FixtureLaunchDiagnostics.record("content-appeared") }
                 .overlay(alignment: .topTrailing) {
                     if SimulatorHomeBoundaryFixture.enabled {
@@ -133,12 +133,15 @@ struct SimulatorApplication: App {
                     }
                     if ProcessInfo.processInfo.arguments.contains("--theme-probe") {
                         Text(UserDefaults.standard.string(forKey: MainColor.storageKey) ?? "未設定")
-                            .id(mainColor)
+                            .id(storedMainColor)
                             .accessibilityIdentifier("fixture-stored-color")
                             .allowsHitTesting(false)
                     }
                 }
                 .overlay {
+                    if ProcessInfo.processInfo.arguments.contains("--week-motion-probe") {
+                        FixtureWeekMotionStatus()
+                    }
                     if ProcessInfo.processInfo.arguments.contains("--notification-permission-probe") {
                         FixtureNotificationPermissionTouch()
                     }

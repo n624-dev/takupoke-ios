@@ -24,6 +24,18 @@ def result_line(test, status="passed"):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_week_motion_observation_keeps_real_release_layout_and_animation_unchanged(self):
+        source = (ROOT / "Takupoke/TimetableView+Grid.swift").read_text()
+        observed = app_test_project.instrument_week_motion(source)
+        self.assertNotIn("FixtureWeek", source)
+        for marker, insertion in app_test_project.WEEK_MOTION_INSERTIONS:
+            self.assertEqual(observed.count(insertion), 1)
+            observed = observed.replace(insertion, "", 1)
+            with self.assertRaises(AssertionError):
+                app_test_project.instrument_week_motion(source.replace(marker, "", 1))
+        self.assertEqual(observed, source)
+        self.assertIn("testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable", manifest.PROBE_GROUPS["week-appearance"])
+        self.assertIn("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch", manifest.PROBE_GROUPS["week-appearance"])
 
     def test_phases_partition_every_shard_and_focused_selection_without_duplicates(self):
         for tests in (*manifest.SHARDS.values(), manifest.selected_tests("all"),
@@ -737,7 +749,9 @@ METHOD
 
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source(manifest.check_source())
-        self.assertEqual(len(manifest.selected_tests("all")), 32)
+        self.assertEqual(len(manifest.selected_tests("all")), 34)
+        self.assertIn("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch", manifest.SHARDS["B"])
+        self.assertIn("testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable", manifest.SHARDS["B"])
         self.assertIn("testChangedRoomInHomeWeekAndList", manifest.SHARDS["A"])
         self.assertIn("testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData", manifest.SHARDS["A"])
         self.assertIn("testFirstFailedSpecialDocumentsWarnOnHomeAndWeekAndOpenTheirDetails", manifest.SHARDS["A"])

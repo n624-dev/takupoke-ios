@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`fcb4a7247ad50d565a83371dba81533e1db7066a6b3692f6a6a3da7f2e402d16`
+`6e521569865cfe64d2610996e78286f9895f0fe19993bc9b1e87c12f0fcde492`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -71,17 +71,21 @@ bash tools/test-app-ui.sh
 - [tools/boot-simulator-ui.sh](../../tools/boot-simulator-ui.sh)
 - [tests/Support/SimulatorIdentityTestCase.swift](../../tests/Support/SimulatorIdentityTestCase.swift)
 - [tools/select-ci-xcode.py](../../tools/select-ci-xcode.py)
+- [.github/workflows/week-appearance-probe.yml](../../.github/workflows/week-appearance-probe.yml)
+- [tests/ui/ApplicationFixture+WeekMotion.swift](../../tests/ui/ApplicationFixture+WeekMotion.swift)
 
 ## [tests/MainColorTests.swift](../../tests/MainColorTests.swift)
 
 - `testDefaultAndChoiceOrder`
 - `testUnsetPreferenceDoesNotCreateAStoredColor`
 - `testAllSavedColorsSurviveReadAndDefaultRemovesOnlyColor`
-- `testWeekControlsKeepThemeAndContrastInLightAndDarkAppearances`
+- `testWeekControlsPreserveSelectedSystemColorInBothAppearances`
+- `testSharedSelectionPublishesImmediatelyAndDefaultRemovesOnlyItsPreference`
 - `testDefaultHasNoTintOverrideAndExplicitBlueIsKept`
 
 ## [tests/test_ui_test_manifest.py](../../tests/test_ui_test_manifest.py)
 
+- `test_week_motion_observation_keeps_real_release_layout_and_animation_unchanged`
 - `test_phases_partition_every_shard_and_focused_selection_without_duplicates`
 - `test_both_suites_use_the_same_native_tab_contact`
 - `test_split_sources_are_registered_in_the_selected_target_only`
@@ -285,3 +289,8 @@ bash tools/test-app-ui.sh
 - `test_untrusted_context_or_missing_selection_is_rejected_before_mutation`
 - `test_switch_errors_query_errors_and_a_mismatched_system_path_fail_without_retry`
 - `test_every_shipping_ui_and_probe_selects_before_preparing_apple_resources`
+
+## [tests/ui/ApplicationChecks+WeekAppearance.swift](../../tests/ui/ApplicationChecks+WeekAppearance.swift)
+
+- `testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch`
+- `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable`

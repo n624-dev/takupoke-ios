@@ -1,0 +1,123 @@
+import SwiftUI
+import UIKit
+import CryptoKit
+
+// This observer is compiled into the fictional UI fixture only. It never moves
+// a page, changes a gesture, or returns an expected animation position.
+@MainActor
+final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
+    static let shared = FixtureWeekMotionRecorder()
+    private final class Reference {
+        weak var view: UIView?
+        init(_ view: UIView) { self.view = view }
+    }
+    @Published private(set) var report = "[]"
+    private var bodies: [String: Reference] = [:]
+    private weak var source: UIView?
+    private weak var target: UIView?
+    private var link: CADisplayLink?
+    private var releasedAt: CFTimeInterval = 0
+    private var arrivedAt: CFTimeInterval?
+    private var finishedAt: CFTimeInterval?
+    private var releasePoint = CGPoint.zero
+    private var samples: [[String: Double]] = []
+    private var records: [[String: Any]] = []
+    private var fingerDown = false
+    private var badgeCaptured = false
+    private var badge: [String: Any] = [:]
+    private weak var dragBody: UIView?
+    var visible = CGRect.zero
+    private var enabled: Bool { ProcessInfo.processInfo.arguments.contains("--week-motion-probe") }
+
+    func register(week: String, body: UIView) {
+        guard enabled else { return }
+        bodies = bodies.filter { $0.value.view != nil }
+        bodies[week] = Reference(body)
+    }
+    func began(body: UIView) {
+        guard enabled else { return }
+        dragBody = body; fingerDown = true; badgeCaptured = false; badge = [:]
+    }
+    func released(body: UIView) {
+        guard enabled else { return }
+        releasedAt = CACurrentMediaTime()
+        releasePoint = point(body) ?? CGPoint(x: .nan, y: .nan)
+        fingerDown = false
+    }
+    func begin(source: String, target: String) {
+        guard enabled else { return }
+        self.source = bodies[source]?.view; self.target = bodies[target]?.view
+        samples = []; arrivedAt = nil; finishedAt = nil
+        link?.invalidate()
+        let display = CADisplayLink(target: self, selector: #selector(sample))
+        link = display; display.add(to: .main, forMode: .common)
+    }
+    func arrived() { if enabled { arrivedAt = CACurrentMediaTime() } }
+    func finished() { if enabled { finishedAt = CACurrentMediaTime() } }
+    private func point(_ view: UIView?) -> CGPoint? {
+        guard let view, let window = view.window else { return nil }
+        let layer = view.layer.presentation() ?? view.layer
+        let root = window.layer.presentation() ?? window.layer
+        return layer.convert(.zero, to: root)
+    }
+    @objc private func sample() {
+        let now = CACurrentMediaTime()
+        if let a = point(source), let b = point(target) {
+            samples.append(["t": now - releasedAt, "sourceX": a.x, "sourceY": a.y,
+                            "targetX": b.x, "targetY": b.y])
+        }
+        if finishedAt.map({ now - $0 >= 0.15 }) == true || now - releasedAt > 1.5 {
+            link?.invalidate(); link = nil
+            let record: [String: Any] = ["releaseX": releasePoint.x, "releaseY": releasePoint.y,
+                "arrived": arrivedAt.map { $0 - releasedAt } ?? -1,
+                "finished": finishedAt.map { $0 - releasedAt } ?? -1,
+                "samples": samples, "badge": badge]
+            records.append(record)
+            if let bytes = try? JSONSerialization.data(withJSONObject: records, options: [.sortedKeys]),
+               let value = String(data: bytes, encoding: .utf8) {
+                report = value
+                print("TAKUPOKE_WEEK_MOTION " + value)
+            }
+        }
+    }
+    func captureBadge(frame: CGRect) {
+        guard enabled, fingerDown, !badgeCaptured, frame.width > 0, frame.height > 0 else { return }
+        badgeCaptured = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) { [weak self] in
+            guard let self, self.fingerDown, let window = self.dragBody?.window else { return }
+            func rectangle(_ value: CGRect) -> [String: Double] {
+                ["x": value.minX, "y": value.minY, "width": value.width, "height": value.height]
+            }
+            let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
+            let image = renderer.image { _ in window.drawHierarchy(in: window.bounds, afterScreenUpdates: false) }
+            guard let bytes = image.pngData() else { return }
+            self.badge = ["frame": rectangle(frame), "visible": rectangle(self.visible), "pngBytes": bytes.count]
+            let name = "week-badge-\(self.records.count)"
+            let hash = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+            let encoded = Array(bytes.base64EncodedString())
+            print("TAKUPOKE_UI_IMAGE BEGIN \(name) \(hash) \(bytes.count)")
+            for offset in stride(from: 0, to: encoded.count, by: 6000) {
+                print("TAKUPOKE_UI_IMAGE DATA \(name) \(offset / 6000) " + String(encoded[offset..<min(offset + 6000, encoded.count)]))
+            }
+            print("TAKUPOKE_UI_IMAGE END \(name) \((encoded.count + 5999) / 6000)")
+        }
+    }
+}
+
+struct FixtureWeekMotionStatus: View {
+    @ObservedObject private var recorder = FixtureWeekMotionRecorder.shared
+    var body: some View {
+        Text("Week motion").font(.system(size: 1)).foregroundStyle(.clear)
+            .frame(width: 1, height: 1).allowsHitTesting(false)
+            .accessibilityIdentifier("fixture-week-motion").accessibilityValue(recorder.report)
+    }
+}
+
+struct FixtureWeekBadgeCapture: ViewModifier {
+    let ready: Bool
+    func body(content: Content) -> some View {
+        content.onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
+            if ready { FixtureWeekMotionRecorder.shared.captureBadge(frame: frame) }
+        }
+    }
+}
