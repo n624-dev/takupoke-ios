@@ -15,6 +15,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     private var bodies: [String: Reference] = [:]
     private weak var source: UIView?
     private weak var target: UIView?
+    weak var row: UIView?
     private var link: CADisplayLink?
     private var releasedAt: CFTimeInterval = 0
     private var arrivedAt: CFTimeInterval?
@@ -64,9 +65,10 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     }
     @objc private func sample() {
         let now = CACurrentMediaTime()
-        if let a = point(source), let b = point(target) {
+        if let a = point(source), let b = point(target), let row {
+            let height = (row.layer.presentation() ?? row.layer).bounds.height
             samples.append(["t": now - releasedAt, "sourceX": a.x, "sourceY": a.y,
-                            "targetX": b.x, "targetY": b.y])
+                            "targetX": b.x, "targetY": b.y, "rowHeight": height])
         }
         if finishedAt.map({ now - $0 >= 0.15 }) == true || now - releasedAt > 1.5 {
             link?.invalidate(); link = nil
@@ -114,6 +116,18 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
             self.badgeImage = image
             self.badge = ["frame": rectangle(frame), "visible": rectangle(self.visible)]
         }
+    }
+}
+
+struct FixtureWeekRowBounds: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.isUserInteractionEnabled = false
+        return view
+    }
+
+    func updateUIView(_ view: UIView, context: Context) {
+        FixtureWeekMotionRecorder.shared.row = view
     }
 }
 

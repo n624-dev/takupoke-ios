@@ -92,16 +92,21 @@ extension ApplicationChecks {
             let record = try XCTUnwrap(records.last)
             let samples = try XCTUnwrap(record["samples"] as? [[String: Double]])
             let releaseX = try XCTUnwrap(record["releaseX"] as? Double)
+            let releaseY = try XCTUnwrap(record["releaseY"] as? Double)
             let arrived = try XCTUnwrap(record["arrived"] as? Double)
+            let finished = try XCTUnwrap(record["finished"] as? Double)
             XCTAssertGreaterThan(arrived, 0)
+            XCTAssertGreaterThan(finished, arrived)
             let moving = samples.filter { ($0["t"] ?? .infinity) < arrived }
             let firstMotion = try XCTUnwrap(moving.first { abs(($0["sourceX"] ?? releaseX) - releaseX) > 1 })
             XCTAssertLessThanOrEqual(try XCTUnwrap(firstMotion["t"]), 0.10,
                                      "Release-to-first-visible-movement must include all preparation time")
             let sourcePositions = try moving.map { try XCTUnwrap($0["sourceX"]) }
             let targetPositions = try moving.map { try XCTUnwrap($0["targetX"]) }
-            let positions = sourcePositions.map { Int(($0 * 2).rounded()) }
-            XCTAssertGreaterThanOrEqual(Set(positions).count, 4, "A final jump is not continuous motion")
+            for positions in [sourcePositions, targetPositions] {
+                XCTAssertGreaterThanOrEqual(Set(positions.map { Int(($0 * 2).rounded()) }).count, 4,
+                                            "Both pages must travel through distinct positions")
+            }
             for pagePositions in [[releaseX] + sourcePositions, targetPositions] {
                 for (earlier, later) in zip(pagePositions, pagePositions.dropFirst()) {
                     let travel = later - earlier
@@ -115,9 +120,41 @@ extension ApplicationChecks {
                 XCTAssertLessThanOrEqual(try XCTUnwrap(values.max()) - (try XCTUnwrap(values.min())), 1.5,
                                          "Headers and body must keep their y position throughout horizontal travel")
             }
+            XCTAssertEqual(try XCTUnwrap(moving.first?["sourceY"]), releaseY, accuracy: 1.5)
             for pair in zip(moving, moving.dropFirst()) {
                 XCTAssertLessThanOrEqual(try XCTUnwrap(pair.1["t"]) - (try XCTUnwrap(pair.0["t"])), 0.09,
                                          "The main thread must continue serving display frames")
+            }
+            let landingFrames = samples.filter { ($0["t"] ?? -.infinity) >= arrived }
+            let landed = try XCTUnwrap(landingFrames.last)
+            XCTAssertGreaterThanOrEqual(try XCTUnwrap(landed["t"]), finished)
+            let arrivingY = try XCTUnwrap(moving.last?["targetY"])
+            let landedX = try XCTUnwrap(landed["targetX"])
+            for frame in landingFrames {
+                XCTAssertEqual(try XCTUnwrap(frame["targetY"]), arrivingY, accuracy: 1.5,
+                               "Changing the row height must keep the arriving lessons anchored")
+                XCTAssertEqual(try XCTUnwrap(frame["targetX"]), landedX, accuracy: 1.5,
+                               "The arrived page must stay aligned as the row settles")
+            }
+            let heightBefore = try XCTUnwrap(moving.last?["rowHeight"])
+            let heightAfter = try XCTUnwrap(landed["rowHeight"])
+            let heightDirection = heightAfter > heightBefore ? 1.0 : -1.0
+            XCTAssertGreaterThan(abs(heightAfter - heightBefore), 2, "The fixture must exercise a real height change")
+            let adjusting = landingFrames.filter { ($0["t"] ?? .infinity) < finished }
+            let heights = try adjusting.map { try XCTUnwrap($0["rowHeight"]) }
+            let intermediate = heights.filter { height in
+                (height - heightBefore) * heightDirection > 1 && (heightAfter - height) * heightDirection > 1
+            }
+            XCTAssertGreaterThanOrEqual(Set(intermediate.map { Int($0.rounded()) }).count, 2,
+                                        "The actual row must resize through intermediate heights")
+            let heightPath = [heightBefore] + heights + [heightAfter]
+            for (earlier, later) in zip(heightPath, heightPath.dropFirst()) {
+                XCTAssertGreaterThanOrEqual((later - earlier) * heightDirection, -1.5,
+                                            "The height adjustment must not reverse")
+            }
+            let timePath = [arrived] + (try adjusting.map { try XCTUnwrap($0["t"]) }) + [finished]
+            for (earlier, later) in zip(timePath, timePath.dropFirst()) {
+                XCTAssertLessThanOrEqual(later - earlier, 0.09, "Height adjustment must keep drawing frames")
             }
             let badge = try XCTUnwrap(record["badge"] as? [String: Any])
             XCTAssertGreaterThan(try XCTUnwrap(badge["pngBytes"] as? Int), 100)

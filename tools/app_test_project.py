@@ -20,6 +20,7 @@ WEEK_MOTION_INSERTIONS = (
      '\n        FixtureWeekMotionRecorder.shared.begin(source: week.iso8601, target: destination.iso8601)'),
     ('    private func settle(id: UUID) {', '\n        FixtureWeekMotionRecorder.shared.arrived()'),
     ('            selection = value.destination', '\n            FixtureWeekMotionRecorder.shared.finished()'),
+    ('        .clipped()', '\n        .background {\n            if ProcessInfo.processInfo.arguments.contains("--week-motion-probe") {\n                FixtureWeekRowBounds()\n            }\n        }'),
     ('        .glassEffect(.regular, in: .rect(cornerRadius: 14))',
      '\n        .modifier(FixtureWeekBadgeCapture(ready: ready))'),
 )

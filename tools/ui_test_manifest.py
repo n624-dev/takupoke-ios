@@ -87,6 +87,8 @@ PROBE_GROUPS = {
                         "testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable",
                         "testTimetableCommonClocksAndEventOnlyWeekScale",
                         "testHomeTimetableAndWeekCalendar"),
+    "week-motion": ("testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable",
+                    "testTimetableCommonClocksAndEventOnlyWeekScale"),
     "retention": ("testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData",),
     "notifications": NOTIFICATION_PROBE_TESTS,
     "controls": CONTROL_PROBE_TESTS,

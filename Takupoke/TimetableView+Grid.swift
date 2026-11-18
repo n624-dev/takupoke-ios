@@ -196,7 +196,8 @@ private struct WeekPages: View {
     }
 
     var body: some View {
-        WeekPagesLayout(currentIndex: pages.firstIndex { $0.id == selection } ?? 0) {
+        WeekPagesLayout(currentIndex: pages.firstIndex { $0.id == selection } ?? 0,
+                        reservedHeight: motion.transition?.height) {
             ForEach(pages) { page in
                 let isDisplayed = page.id == selection
                 page
@@ -211,7 +212,6 @@ private struct WeekPages: View {
                     .environment(\.isDisplayedTimetableWeek, isDisplayed)
             }
         }
-        .frame(height: motion.transition?.height, alignment: .top)
         .clipped()
         // Glass is deliberately outside the page clip, with measured clearance
         // from all four visible edges (including short, event-only weeks).
@@ -243,10 +243,11 @@ private struct WeekPages: View {
 
 private struct WeekPagesLayout: Layout {
     let currentIndex: Int
+    let reservedHeight: CGFloat?
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         guard subviews.indices.contains(currentIndex) else { return .zero }
         let natural = subviews[currentIndex].sizeThatFits(.init(width: proposal.width, height: nil))
-        return CGSize(width: proposal.width ?? natural.width, height: natural.height)
+        return CGSize(width: proposal.width ?? natural.width, height: reservedHeight ?? natural.height)
     }
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         for subview in subviews {
@@ -303,6 +304,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     private var scrolls: [SchoolDate: ScrollReference] = [:]
     private var displayLink: CADisplayLink?
     private weak var heldScroll: UIScrollView?
+    private var heightAdjustment: (startedAt: CFTimeInterval, initialHeight: CGFloat)?
 
     func register(_ scroll: UIScrollView, week: SchoolDate) {
         scrolls[week] = ScrollReference(scroll)
@@ -345,7 +347,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         displayLink = link; link.add(to: .main, forMode: .common)
     }
     @objc private func startPreparedTransition() {
-        displayLink?.invalidate(); displayLink = nil
+        stopDisplayLink()
         guard let value = transition else { return }
         withAnimation(.easeOut(duration: reduceMotion ? 0.15 : 0.25), completionCriteria: .removed) {
             transition?.moving = true
@@ -354,12 +356,28 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     private func settle(id: UUID) {
         guard let value = transition, value.id == id else { return }
         if reduceMotion || abs(value.height - value.targetHeight) < 1 { finish(id: id); return }
-        withAnimation(.easeInOut(duration: 0.2), completionCriteria: .removed) {
-            transition?.height = value.targetHeight
-        } completion: { [weak self] in self?.finish(id: id) }
+        // Present each reserved height directly. Implicitly animating a frame
+        // inside List also animates its content's position during re-layout.
+        heightAdjustment = (CACurrentMediaTime(), value.height)
+        let link = CADisplayLink(target: self, selector: #selector(adjustHeight(_:)))
+        displayLink = link; link.add(to: .main, forMode: .common)
+    }
+    @objc private func adjustHeight(_ link: CADisplayLink) {
+        guard let value = transition, let adjustment = heightAdjustment else { return }
+        let progress = min(1, max(0, (link.targetTimestamp - adjustment.startedAt) / 0.2))
+        if progress == 1 { finish(id: value.id); return }
+        let fraction = CGFloat(progress * progress * (3 - 2 * progress))
+        let height = adjustment.initialHeight + (value.targetHeight - adjustment.initialHeight) * fraction
+        var transaction = Transaction(); transaction.disablesAnimations = true
+        withTransaction(transaction) { transition?.height = height }
+    }
+    private func stopDisplayLink() {
+        displayLink?.invalidate(); displayLink = nil
+        heightAdjustment = nil
     }
     private func finish(id: UUID) {
         guard let value = transition, value.id == id else { return }
+        stopDisplayLink()
         var transaction = Transaction(); transaction.disablesAnimations = true
         withTransaction(transaction) {
             selection = value.destination
@@ -370,7 +388,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         }
     }
     func cancel() {
-        displayLink?.invalidate(); displayLink = nil
+        stopDisplayLink()
         heldScroll?.isScrollEnabled = true
         heldScroll = nil
         var transaction = Transaction(); transaction.disablesAnimations = true
