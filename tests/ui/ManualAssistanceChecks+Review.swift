@@ -65,19 +65,29 @@ extension ManualAssistanceChecks {
     func inspectSource(_ id:String) {
         let zoomID="manual-zoom-"+id
         visible(recoveryList.buttons[zoomID],knownID:zoomID,buttonLabel:"対象セルを拡大して確認").tap()
-        let scroll=app.scrollViews["manual-source-scroll"]
-        // Query the native scroll view once per observation. Image and highlight frames
-        // must belong to the same AX snapshot, including after the slider changes scale.
+        // Resolve the open sheet's scroll view in the same snapshot as its image
+        // and highlight, including after the slider changes scale.
         var ambiguous = false
+        var observation = "snapshot unavailable"
         func observedHighlight() -> CGRect? {
-            guard let root = try? scroll.snapshot(), let nodes = snapshotNodes(in: root) else { return nil }
-            let images = nodes.filter { $0.identifier == "manual-source-context" }
+            guard !ambiguous else { return nil }
+            observation = "snapshot unavailable"
+            guard let root = try? app.snapshot(), let nodes = snapshotNodes(in: root) else { return nil }
+            let scrolls = nodes.filter { $0.elementType == .scrollView && $0.identifier == "manual-source-scroll" }
+            observation = "scrolls=\(scrolls.count)"
+            if scrolls.count > 1 { ambiguous = true; return nil }
+            guard let scroll = scrolls.first, let source = snapshotNodes(in: scroll) else { return nil }
+            let images = source.filter { $0.identifier == "manual-source-context" }
+            observation += ";images=\(images.count)"
             if images.count > 1 { ambiguous = true; return nil }
             guard let image = images.first, let descendants = snapshotNodes(in: image) else { return nil }
             let matches = descendants.filter { $0.identifier == "manual-source-highlight" }
+            observation += ";highlights=\(matches.count)"
             if matches.count > 1 { ambiguous = true; return nil }
-            guard let box = matches.first?.frame, ManualScrollNavigation.usable(image.frame),
-                  ManualScrollNavigation.usable(box), image.frame.contains(box) else { return nil }
+            guard let box = matches.first?.frame else { return nil }
+            let bounds = image.frame
+            observation += ";image=\(bounds);highlight=\(box)"
+            guard ManualScrollNavigation.usable(bounds), ManualScrollNavigation.usable(box), bounds.contains(box) else { return nil }
             return box
         }
         var initial: CGRect?
@@ -87,7 +97,7 @@ extension ManualAssistanceChecks {
         }, object: app)
         let result=XCTWaiter.wait(for:[ready],timeout:10)
         guard !ambiguous,result == .completed,let highlightBefore=initial else {
-            XCTFail("The source must have one real image containing its unique highlight");return
+            XCTFail("The source must have one real image containing its unique highlight: " + observation);return
         }
         let controls=app.otherElements["manual-source-controls"]
         guard let scale=uniqueLabel("manual-source-scale",in:controls) else { return }
@@ -100,7 +110,7 @@ extension ManualAssistanceChecks {
         guard let zoomedScale=uniqueLabel("manual-source-scale",in:controls) else { return }
         XCTAssertNotEqual(zoomedScale,scale)
         guard let box = observedHighlight(), !ambiguous else {
-            XCTFail("The zoomed source must have one real image containing its unique highlight"); return
+            XCTFail("The zoomed source must have one real image containing its unique highlight: " + observation); return
         }
         XCTAssertGreaterThan(box.width,highlightBefore.width)
         controls.buttons["等倍"].tap();XCTAssertEqual(uniqueLabel("manual-source-scale",in:controls),scale)
