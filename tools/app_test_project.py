@@ -380,16 +380,15 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
 ''' + marker)
         if path.name == 'TimetableView+Grid.swift':
             text = instrument_week_motion(text)
-            marker = next(line for line in text.splitlines() if '.accessibilityLabel(' in line and 'の週の時間割' in line)
+            marker = next(line for line in text.splitlines() if '.modifier(WeekGridAccessibility(' in line)
             assert marker in text, 'Timetable grid probe insertion point missing'
             text = text.replace(marker, marker + '''
         .coordinateSpace(name: "fixture-grid")
         .overlay(alignment: .topLeading) {
             if ProcessInfo.processInfo.arguments.contains("--grid-probe") {
-                Text("grid metrics").font(.system(size: 1)).foregroundStyle(.clear)
-                    .accessibilityIdentifier("fixture-grid-metrics")
-                    .accessibilityValue(fixtureGridMetrics(columns: columns, days: days, heights: rowHeights))
-                    .allowsHitTesting(false)
+                FixtureActiveGridMetrics {
+                    fixtureGridMetrics(columns: columns, days: days, heights: rowHeights)
+                }
             }
         }
         ''')

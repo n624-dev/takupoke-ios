@@ -13,6 +13,20 @@ struct FixtureTypeSize: ViewModifier {
     }
 }
 
+struct FixtureActiveGridMetrics: View {
+    @Environment(\.isDisplayedTimetableWeek) private var isDisplayed
+    let read: () -> String
+
+    var body: some View {
+        if isDisplayed {
+            Text("grid metrics").font(.system(size: 1)).foregroundStyle(.clear)
+                .accessibilityIdentifier("fixture-grid-metrics")
+                .accessibilityValue(read())
+                .allowsHitTesting(false)
+        }
+    }
+}
+
 extension TimetableView {
     func fixtureCardKey(on day: SchoolDate, className: String, entry: TimetableSchedule.PositionedBlock)
         -> String

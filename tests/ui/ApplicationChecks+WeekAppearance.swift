@@ -79,13 +79,16 @@ extension ApplicationChecks {
                         withVelocity: .slow, thenHoldForDuration: 0.3)
             let probe = app.staticTexts["fixture-week-motion"]
             var records: [[String: Any]] = []
+            var observedJSON = ""
             let completed = expectation(for: NSPredicate { _, _ in
                 guard let raw = probe.value as? String, let data = raw.data(using: .utf8),
                       let value = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return false }
                 records = value
+                observedJSON = raw
                 return value.count == index + 1
             }, evaluatedWith: probe)
             wait(for: [completed], timeout: 8)
+            print("TAKUPOKE_WEEK_MOTION " + observedJSON)
             let record = try XCTUnwrap(records.last)
             let samples = try XCTUnwrap(record["samples"] as? [[String: Double]])
             let releaseX = try XCTUnwrap(record["releaseX"] as? Double)
@@ -95,8 +98,17 @@ extension ApplicationChecks {
             let firstMotion = try XCTUnwrap(moving.first { abs(($0["sourceX"] ?? releaseX) - releaseX) > 1 })
             XCTAssertLessThanOrEqual(try XCTUnwrap(firstMotion["t"]), 0.10,
                                      "Release-to-first-visible-movement must include all preparation time")
-            let positions = moving.compactMap { $0["sourceX"] }.map { Int(($0 * 2).rounded()) }
+            let sourcePositions = try moving.map { try XCTUnwrap($0["sourceX"]) }
+            let targetPositions = try moving.map { try XCTUnwrap($0["targetX"]) }
+            let positions = sourcePositions.map { Int(($0 * 2).rounded()) }
             XCTAssertGreaterThanOrEqual(Set(positions).count, 4, "A final jump is not continuous motion")
+            for pagePositions in [[releaseX] + sourcePositions, targetPositions] {
+                for (earlier, later) in zip(pagePositions, pagePositions.dropFirst()) {
+                    let travel = later - earlier
+                    XCTAssertGreaterThanOrEqual(towardNext ? -travel : travel, -0.5,
+                                                  "Neither page may reverse after release")
+                }
+            }
             for axis in ["sourceY", "targetY"] {
                 let values = moving.compactMap { $0[axis] }
                 XCTAssertGreaterThanOrEqual(values.count, 4)
