@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 extension ApplicationChecks {
     func testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover() {
@@ -153,7 +154,14 @@ extension ApplicationChecks {
         }
         func home(hasNotice: Bool, hasLesson: Bool, saysNoClasses: Bool) {
             tab("ホーム")
-            _ = heading("今日の予定")
+            let viewport = bodyViewport(navigation: "たくポケ")
+            let headingQuery = app.collectionViews.staticTexts.matching(identifier: "今日の予定")
+            let headings = headingQuery.allElementsBoundByAccessibilityElement
+            XCTAssertLessThanOrEqual(headings.count, 1, "Require one current Home section heading")
+            let headingFrame = headings.first?.frame ?? .null
+            if !ObservedScreenGeometry.contains(headingFrame, in: viewport, scale: UIScreen.main.scale) {
+                _ = visible(headingQuery.element(boundBy: 0), navigation: "たくポケ")
+            }
             XCTAssertTrue(app.staticTexts["3月31日（木）"].exists, app.debugDescription)
             assertPresence(notice, expected: hasNotice)
             assertPresence(noClasses, expected: saysNoClasses)

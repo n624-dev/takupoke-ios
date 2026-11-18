@@ -527,12 +527,15 @@ extension ApplicationChecks {
                 let calendar = app.buttons["timetable-week-calendar"]
                 let shortWeek = calendar.label
                 let grid = app.scrollViews["timetable-week-grid"]
-                let shortHeight = grid.frame.height
+                let shortHeight = visible(grid, navigation: "時間割").frame.height
                 let towardNext = app.buttons["翌週"].exists
                 XCTAssertTrue(towardNext || app.buttons["前週"].exists)
                 func pull(next: Bool) throws {
-                    let visible = grid.frame.intersection(bodyViewport(navigation: "時間割"))
+                    let gridFrame = grid.frame
+                    let viewport = bodyViewport(navigation: "時間割")
+                    let visible = gridFrame.intersection(viewport)
                     guard visible.width > 230, visible.height > 30 else {
+                        print("UI_WEEK_DRAG grid=\(gridFrame);viewport=\(viewport);intersection=\(visible)")
                         throw NSError(domain: "Week grid is outside the viewport", code: 1)
                     }
                     let x = next ? visible.maxX - 30 : visible.minX + 30

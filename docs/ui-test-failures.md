@@ -5213,3 +5213,13 @@ Linuxの手動project契約17件では、候補の最初の表記に `ownerID:` 
 手動限定44292318981／試行1、666a8a7、SDK 27.2／iOS 26.5、明示選択の最後のjob 134760371446が21:21:47 JSTにfailure終端。残る7件は成功、全ジョブ終端。具体的な段階と原因はログ照合前で未確定。
 
 完了ログで明示選択ケース自体が1144.584秒で成功し、21:20:57 JSTに実行完了・厳密なケース照合が通ったことを確認した。準備込みでここまで2327.5秒。成功後にもxcresult失敗・ゲストログ等を収集して29.8秒を消費し、回収shutdown中に全体2400秒でexit 124。再起動前に全体期限を超えた正式502とは到達段階が異なる。全体失敗を維持し、候補では成功時の失敗専用診断だけを省く。実入力の記録、実行・照合・後処理の失敗時診断、所有Simulatorの回収と全体時間は維持する。
+
+### #118 正式503のiOS 27 Aが失敗（2026-11-18）
+
+f5ddf28c、run 44311087289、初回、SDK 27.2／iOS 27.0、job 134827367982。23:04:11 JSTに `Exercise app screens with synthetic data` がfailure。具体ケースと段階は完了ログ照合前で未確定。同runの通常27 B・手動27の4件・Native・Distributionは成功、26 Bは継続中。26 Aと手動26は依存skip、公開不可。残jobを取消せず確認する。
+
+完了ログで `testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates` は `ApplicationChecks+Navigation.swift:120` のAX snapshot照会timeout（339.979秒）、`testTimetableCommonClocksAndEventOnlyWeekScale` は `ApplicationChecks+Timetable.swift:536` の `Week grid is outside the viewport`（144.337秒）。個々の直前操作と表示は追加照合する。先行の配色・週送りは別の通常Bで成功（188.039秒／42.167秒）。Distributionは318件、Apple Nativeは749件（予定skip 1・失敗0）。
+
+行事ケースは初回のホーム・境界週を通過し、再起動後に `fixture-ready`、ホームの選択とナビゲーションまで成立。`今日の予定` はexists後のfirstMatch.frameで再解決が31秒以上ずつ停止し、計約339.979秒で失敗した。対象句／snapshot／frameでU05、同ケースU09、再起動後のN153、N213の実identity・枠の再取得と比較。U09の境界注意文の不在照会と違い、今回は再起動後の実見出しの枠取得。候補はホームの実List内で見出しのAX identityと枠を一回観測し、範囲外・仮想化の場合だけ既存の有界スクロールを使う。行事・授業・表示と不在の全条件を維持する。
+
+休業週ケースは通常・休業の文字設定3段階、日付・行事カードの寸法まで通過。初回ドラッグ前、標準文字へ戻した直後のgridと可視範囲の交差が230×30pt条件を満たさなかった。接触や週移動は行われておらず、当時の個別枠はログに出ていない。N47の部分行と過去の休業週の表示／移動の検査を比較し、短い週の実ScrollViewを既存の有界操作で表示範囲へ収めてから、同じ交差・実ドラッグ・8秒の到着・往復後の高さを検査する。失敗時は実枠を記録する。
