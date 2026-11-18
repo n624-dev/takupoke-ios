@@ -287,7 +287,15 @@ extension ManualAssistanceChecks {
             let contained = ManualScrollNavigation.usable(frame) && root.frame.contains(frame)
             observation += ";frame=\(frame);contained=\(contained);enabled=\(observed.isEnabled)"
             guard contained, observed.isEnabled, ProcessInfo.processInfo.systemUptime < deadline else { return false }
-            let button = self.app.buttons.matching(NSPredicate(format: "label == %@", title)).element
+            let bound = self.app.buttons.matching(NSPredicate(format: "label == %@", title))
+                .allElementsBoundByAccessibilityElement
+            observation += ";bound=\(bound.count)"
+            if bound.count > 1 { ambiguous = true; return true }
+            guard let button = bound.first, let boundSnapshot = try? button.snapshot() else { return false }
+            observation += ";boundFrame=\(boundSnapshot.frame);boundEnabled=\(boundSnapshot.isEnabled)"
+            guard boundSnapshot.elementType == observed.elementType, boundSnapshot.label == title,
+                  boundSnapshot.identifier == observed.identifier, boundSnapshot.frame == frame, boundSnapshot.isEnabled,
+                  ProcessInfo.processInfo.systemUptime < deadline else { return false }
             let hittable = button.isHittable
             observation += ";hittable=\(hittable)"
             guard hittable, ProcessInfo.processInfo.systemUptime <= deadline else { return false }
