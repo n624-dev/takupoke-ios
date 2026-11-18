@@ -422,11 +422,12 @@ private struct WeekPullOverlay: View {
                 let origin = geometry.frame(in: .global).origin
                 WeekBadgePosition(visible: pull.visible.offsetBy(dx: -origin.x, dy: -origin.y),
                                   preferredY: pull.center - origin.y, previous: distance > 0) {
-                    ViewThatFits(in: .vertical) {
+                    ViewThatFits {
                         WeekPullBadge(previous: distance > 0, ready: progress == 1, date: destination,
                                       progress: progress, accent: accent, compact: false).fixedSize()
                         WeekPullBadge(previous: distance > 0, ready: progress == 1, date: destination,
                                       progress: progress, accent: accent, compact: true).fixedSize()
+                        Color.clear.frame(width: 0, height: 0)
                     }
                 }
             }
@@ -445,8 +446,11 @@ private struct WeekBadgePosition: Layout {
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         guard let badge = subviews.first else { return }
         let viewport = visible.offsetBy(dx: bounds.minX, dy: bounds.minY).intersection(bounds)
-        guard !viewport.isEmpty else { return }
-        let available = CGSize(width: max(1, viewport.width - margin * 2), height: max(1, viewport.height - margin * 2))
+        guard viewport.width > margin * 2, viewport.height > margin * 2 else {
+            badge.place(at: CGPoint(x: bounds.midX, y: bounds.midY), anchor: .center, proposal: .zero)
+            return
+        }
+        let available = CGSize(width: viewport.width - margin * 2, height: viewport.height - margin * 2)
         let size = badge.sizeThatFits(ProposedViewSize(available))
         let frame = WeekEdgePull.badgeFrame(visible: viewport, preferredY: preferredY + bounds.minY,
                                           size: size, previous: previous, margin: margin)
