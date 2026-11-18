@@ -247,14 +247,16 @@ private struct WeekPagesLayout: Layout {
     let reservedHeight: CGFloat?
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         guard subviews.indices.contains(currentIndex) else { return .zero }
+        if let width = proposal.width, let reservedHeight {
+            return CGSize(width: width, height: reservedHeight)
+        }
         let natural = subviews[currentIndex].sizeThatFits(.init(width: proposal.width, height: nil))
         return CGSize(width: proposal.width ?? natural.width, height: reservedHeight ?? natural.height)
     }
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let pageProposal = ProposedViewSize(width: bounds.width, height: nil)
         for subview in subviews {
-            let natural = subview.sizeThatFits(.init(width: bounds.width, height: nil))
-            subview.place(at: bounds.origin, anchor: .topLeading,
-                          proposal: .init(width: bounds.width, height: natural.height))
+            subview.place(at: bounds.origin, anchor: .topLeading, proposal: pageProposal)
         }
     }
 }

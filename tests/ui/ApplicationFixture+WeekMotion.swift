@@ -22,6 +22,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     private var finishedAt: CFTimeInterval?
     private var releasePoint: CGPoint?
     private var samples: [[String: Double]] = []
+    private var missingFrames: [Double] = []
     private var records: [[String: Any]] = []
     private var fingerDown = false
     private var badgeCaptured = false
@@ -50,7 +51,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     func begin(source: String, target: String) {
         guard enabled else { return }
         self.source = bodies[source]?.view; self.target = bodies[target]?.view
-        samples = []; arrivedAt = nil; finishedAt = nil
+        samples = []; missingFrames = []; arrivedAt = nil; finishedAt = nil
         link?.invalidate()
         let display = CADisplayLink(target: self, selector: #selector(sample))
         link = display; display.add(to: .main, forMode: .common)
@@ -69,6 +70,8 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
             let height = (row.layer.presentation() ?? row.layer).bounds.height
             samples.append(["t": now - releasedAt, "sourceX": a.x, "sourceY": a.y,
                             "targetX": b.x, "targetY": b.y, "rowHeight": height])
+        } else {
+            missingFrames.append(now - releasedAt)
         }
         if finishedAt.map({ now - $0 >= 0.15 }) == true || now - releasedAt > 1.5 {
             link?.invalidate(); link = nil
@@ -86,7 +89,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
             badgeImage = nil
             var record: [String: Any] = ["arrived": arrivedAt.map { $0 - releasedAt } ?? -1,
                 "finished": finishedAt.map { $0 - releasedAt } ?? -1,
-                "samples": samples, "badge": badge]
+                "samples": samples, "missingGeometryFrames": missingFrames, "badge": badge]
             if let releasePoint {
                 record["releaseX"] = Double(releasePoint.x)
                 record["releaseY"] = Double(releasePoint.y)
