@@ -54,7 +54,7 @@ jobs:
           else
             python3 -B tools/prepare-ios26-runtime.py --hold-export
           fi
-      - name: Observe actual colors, release frames, glass bounds and existing lesson operations
+      - name: Observe release and landing frames, glass bounds and timetable layout
         run: bash tools/test-app-ui.sh
       - name: Remove the owned iOS 26 export after simulator cleanup
         if: always() && matrix.ios == 26
