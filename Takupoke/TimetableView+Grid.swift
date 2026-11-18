@@ -11,7 +11,8 @@ extension TimetableView {
             String(describing: gridDynamicTypeSize), String(Double(gridViewportWidth)),
             String(Double(standardPeriodColumnWidth)), String(Double(periodColumnWidth))]
         let pages = weeks.map { WeekPage(id: $0, revision: revision, content: AnyView(weekPage(on: $0))) }
-        return WeekPages(pages: pages, selection: weekStart, pull: weekPull, accent: weekControlColor) { target in
+        return WeekPages(pages: pages, selection: weekStart, viewportWidth: gridViewportWidth,
+                         pull: weekPull, accent: weekControlColor) { target in
             weekStart = target
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -179,15 +180,17 @@ private struct WeekGridAccessibility: ViewModifier {
 private struct WeekPages: View {
     let pages: [WeekPage]
     let selection: SchoolDate
+    let viewportWidth: CGFloat
     let pull: WeekPullProgress
     let accent: WeekControlAccent
     let arrive: (SchoolDate) -> Void
     @ObservedObject private var motion: WeekPageMotion
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(pages: [WeekPage], selection: SchoolDate, pull: WeekPullProgress,
+    init(pages: [WeekPage], selection: SchoolDate, viewportWidth: CGFloat, pull: WeekPullProgress,
          accent: WeekControlAccent, arrive: @escaping (SchoolDate) -> Void) {
         self.pages = pages; self.selection = selection; self.pull = pull
+        self.viewportWidth = viewportWidth
         self.accent = accent; self.arrive = arrive
         motion = pull.motion
     }
@@ -195,14 +198,14 @@ private struct WeekPages: View {
     var body: some View {
         WeekPagesLayout(currentIndex: pages.firstIndex { $0.id == selection } ?? 0) {
             ForEach(pages) { page in
-                let isDisplayed = page.id == selection && motion.transition == nil
+                let isDisplayed = page.id == selection
                 page
                     .onGeometryChange(for: WeekPageMeasurement.self) {
                         WeekPageMeasurement(size: $0.size, revision: page.revision)
                     } action: { motion.measurements[page.id] = $0 }
-                    .offset(x: motion.offset(for: page.id, selected: selection))
+                    .offset(x: motion.offset(for: page.id, selected: selection, viewportWidth: viewportWidth))
                     .opacity(motion.opacity(for: page.id, selected: selection))
-                    .allowsHitTesting(isDisplayed)
+                    .allowsHitTesting(isDisplayed && motion.transition == nil)
                     .accessibilityElement(children: .contain)
                     .accessibilityHidden(!isDisplayed)
                     .environment(\.isDisplayedTimetableWeek, isDisplayed)
@@ -299,6 +302,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     var arrive: ((SchoolDate) -> Void)?
     private var scrolls: [SchoolDate: ScrollReference] = [:]
     private var displayLink: CADisplayLink?
+    private weak var heldScroll: UIScrollView?
 
     func register(_ scroll: UIScrollView, week: SchoolDate) {
         scrolls[week] = ScrollReference(scroll)
@@ -320,14 +324,16 @@ private final class WeekPageMotion: NSObject, ObservableObject {
               let target = measurements[destination]?.size else { return }
         let minimum = -scroll.adjustedContentInset.left
         let maximum = max(minimum, scroll.contentSize.width - scroll.bounds.width + scroll.adjustedContentInset.right)
-        let rubber = WeekEdgePull.rubberBandOffset(offset: scroll.contentOffset.x - minimum,
+        let releasedOffset = scroll.layer.presentation()?.bounds.origin.x ?? scroll.contentOffset.x
+        let rubber = WeekEdgePull.rubberBandOffset(offset: releasedOffset - minimum,
                                                   scrollRange: maximum - minimum)
-        let edge = scroll.contentOffset.x + rubber
+        let edge = releasedOffset + rubber
         // Read the native rubber band before disabling it. Returning the scroll
         // to its edge and translating the entire old page preserves visible x.
         var transaction = Transaction(); transaction.disablesAnimations = true
         withTransaction(transaction) {
-            for reference in scrolls.values { reference.value?.isScrollEnabled = false }
+            heldScroll = scroll
+            scroll.isScrollEnabled = false
             scroll.setContentOffset(CGPoint(x: edge, y: scroll.contentOffset.y), animated: false)
             transition = Transition(source: week, destination: destination, rubber: rubber,
                 width: scroll.bounds.width, direction: days > 0 ? 1 : -1,
@@ -359,24 +365,28 @@ private final class WeekPageMotion: NSObject, ObservableObject {
             selection = value.destination
             arrive?(value.destination)
             transition = nil
-            for reference in scrolls.values { reference.value?.isScrollEnabled = true }
+            heldScroll?.isScrollEnabled = true
+            heldScroll = nil
         }
     }
     func cancel() {
         displayLink?.invalidate(); displayLink = nil
-        for reference in scrolls.values { reference.value?.isScrollEnabled = true }
+        heldScroll?.isScrollEnabled = true
+        heldScroll = nil
         var transaction = Transaction(); transaction.disablesAnimations = true
         withTransaction(transaction) { transition = nil }
     }
-    func offset(for week: SchoolDate, selected: SchoolDate) -> CGFloat {
-        guard let value = transition else { return 0 }
-        if week == value.source {
-            return reduceMotion || !value.moving ? value.rubber : -value.direction * value.width
+    func offset(for week: SchoolDate, selected: SchoolDate, viewportWidth: CGFloat) -> CGFloat {
+        if let value = transition {
+            if week == value.source {
+                return reduceMotion || !value.moving ? value.rubber : -value.direction * value.width
+            }
+            if week == value.destination {
+                return reduceMotion || value.moving ? 0 : value.direction * value.width + value.rubber
+            }
         }
-        if week == value.destination {
-            return reduceMotion || value.moving ? 0 : value.direction * value.width + value.rubber
-        }
-        return 0
+        guard !reduceMotion, week != selected else { return 0 }
+        return week < selected ? -viewportWidth : viewportWidth
     }
     func opacity(for week: SchoolDate, selected: SchoolDate) -> Double {
         guard let value = transition else { return week == selected ? 1 : 0 }
@@ -408,12 +418,16 @@ private struct WeekPullOverlay: View {
         let distance = pull.distance
         if distance != 0, let destination = distance > 0 ? previous : next {
             let progress = min(abs(distance) / WeekEdgePull.threshold, 1)
-            WeekBadgePosition(visible: pull.visible, preferredY: pull.center, previous: distance > 0) {
-                ViewThatFits(in: .vertical) {
-                    WeekPullBadge(previous: distance > 0, ready: progress == 1, date: destination,
-                                  progress: progress, accent: accent, compact: false).fixedSize()
-                    WeekPullBadge(previous: distance > 0, ready: progress == 1, date: destination,
-                                  progress: progress, accent: accent, compact: true).fixedSize()
+            GeometryReader { geometry in
+                let origin = geometry.frame(in: .global).origin
+                WeekBadgePosition(visible: pull.visible.offsetBy(dx: -origin.x, dy: -origin.y),
+                                  preferredY: pull.center - origin.y, previous: distance > 0) {
+                    ViewThatFits(in: .vertical) {
+                        WeekPullBadge(previous: distance > 0, ready: progress == 1, date: destination,
+                                      progress: progress, accent: accent, compact: false).fixedSize()
+                        WeekPullBadge(previous: distance > 0, ready: progress == 1, date: destination,
+                                      progress: progress, accent: accent, compact: true).fixedSize()
+                    }
                 }
             }
         }
@@ -560,7 +574,7 @@ private struct WeekPullObserver: UIViewRepresentable {
                 pull = WeekEdgePull(velocity: pan.velocity(in: scroll), offset: scroll.contentOffset.x + inset.left,
                     scrollRange: scroll.contentSize.width + inset.left + inset.right - scroll.bounds.width)
             case .changed:
-                guard let pull else { return }
+                guard let pull, let window else { return }
                 let distance = pull.distance(for: translation)
                 let target = week.addingDays(distance > 0 ? -7 : 7)
                 let viewport = visibleRect(of: scroll).offsetBy(dx: -scroll.bounds.minX, dy: -scroll.bounds.minY)
@@ -568,8 +582,11 @@ private struct WeekPullObserver: UIViewRepresentable {
                 let bodyTop = min(viewport.maxY, max(viewport.minY, headerBottom))
                 let body = CGRect(x: viewport.minX, y: bodyTop, width: viewport.width, height: viewport.maxY - bodyTop)
                 let visible = body.height >= 70 ? body : viewport
-                progress.update(distance: progress.motion.isReady(target) ? distance : 0, visible: visible,
-                    center: WeekEdgePull.badgeCenter(visible: visible, headerHeight: headerBottom))
+                guard !visible.isEmpty else { return }
+                let windowVisible = scroll.convert(visible.offsetBy(dx: scroll.bounds.minX, dy: scroll.bounds.minY), to: window)
+                let center = WeekEdgePull.badgeCenter(visible: visible, headerHeight: headerBottom)
+                progress.update(distance: progress.motion.isReady(target) ? distance : 0, visible: windowVisible,
+                    center: windowVisible.minY + center - visible.minY)
             case .ended:
                 let distance = pull?.distance(for: translation) ?? 0
                 pull = nil

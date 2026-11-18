@@ -25,6 +25,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     private var fingerDown = false
     private var badgeCaptured = false
     private var badge: [String: Any] = [:]
+    private var badgeImage: UIImage?
     private weak var dragBody: UIView?
     var visible = CGRect.zero
     private var enabled: Bool { ProcessInfo.processInfo.arguments.contains("--week-motion-probe") }
@@ -36,7 +37,8 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     }
     func began(body: UIView) {
         guard enabled else { return }
-        dragBody = body; fingerDown = true; badgeCaptured = false; badge = [:]
+        dragBody = body; fingerDown = true; badgeCaptured = false
+        badge = [:]; badgeImage = nil
     }
     func released(body: UIView) {
         guard enabled else { return }
@@ -68,6 +70,18 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
         }
         if finishedAt.map({ now - $0 >= 0.15 }) == true || now - releasedAt > 1.5 {
             link?.invalidate(); link = nil
+            if let bytes = badgeImage?.pngData() {
+                let name = "takupoke-week-badge-\(records.count).png"
+                let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
+                do {
+                    try bytes.write(to: url, options: .atomic)
+                    badge["pngBytes"] = bytes.count
+                    badge["pngSHA256"] = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+                } catch {
+                    print("Week badge image could not be saved: \(error)")
+                }
+            }
+            badgeImage = nil
             var record: [String: Any] = ["arrived": arrivedAt.map { $0 - releasedAt } ?? -1,
                 "finished": finishedAt.map { $0 - releasedAt } ?? -1,
                 "samples": samples, "badge": badge]
@@ -92,17 +106,13 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
                 ["x": value.minX, "y": value.minY, "width": value.width, "height": value.height]
             }
             let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
-            let image = renderer.image { _ in window.drawHierarchy(in: window.bounds, afterScreenUpdates: false) }
-            guard let bytes = image.pngData() else { return }
-            self.badge = ["frame": rectangle(frame), "visible": rectangle(self.visible), "pngBytes": bytes.count]
-            let name = "week-badge-\(self.records.count)"
-            let hash = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
-            let encoded = Array(bytes.base64EncodedString())
-            print("TAKUPOKE_UI_IMAGE BEGIN \(name) \(hash) \(bytes.count)")
-            for offset in stride(from: 0, to: encoded.count, by: 6000) {
-                print("TAKUPOKE_UI_IMAGE DATA \(name) \(offset / 6000) " + String(encoded[offset..<min(offset + 6000, encoded.count)]))
+            var drewWindow = false
+            let image = renderer.image { _ in
+                drewWindow = window.drawHierarchy(in: window.bounds, afterScreenUpdates: false)
             }
-            print("TAKUPOKE_UI_IMAGE END \(name) \((encoded.count + 5999) / 6000)")
+            guard drewWindow else { return }
+            self.badgeImage = image
+            self.badge = ["frame": rectangle(frame), "visible": rectangle(self.visible)]
         }
     }
 }

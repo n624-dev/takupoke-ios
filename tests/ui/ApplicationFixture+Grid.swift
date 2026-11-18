@@ -13,8 +13,16 @@ struct FixtureTypeSize: ViewModifier {
     }
 }
 
+@MainActor
+final class FixtureGridMeasurements: ObservableObject {
+    @Published var headerFrames: [String: CGRect] = [:]
+    @Published var eventSizes: [String: CGSize] = [:]
+    @Published var cardFrames: [String: CGRect] = [:]
+}
+
 struct FixtureActiveGridMetrics: View {
     @Environment(\.isDisplayedTimetableWeek) private var isDisplayed
+    @ObservedObject var measurements: FixtureGridMeasurements
     let read: () -> String
 
     var body: some View {
@@ -71,7 +79,7 @@ extension TimetableView {
                             ? (cardTime(block, on: column.day, className: selectedClasses[index]).map(
                                 cardTimeFontSize) ?? 0) : 0,
                     ]
-                    if let frame = fixtureCardFrames[
+                    if let frame = fixtureGridMeasurements.cardFrames[
                         fixtureCardKey(on: column.day, className: selectedClasses[index], entry: entry)]
                     {
                         card["frame"] = [
@@ -101,9 +109,9 @@ extension TimetableView {
             "periodWidth": periodColumnWidth, "basePeriodWidth": standardPeriodColumnWidth,
             "subjectFont": gridUIFont(11).pointSize, "metadataFont": gridUIFont(9).pointSize,
             "eventFont": gridUIFont(14).pointSize, "periodFont": gridUIFont(15).pointSize,
-            "headerFrames": fixtureHeaderFrames.filter { key, _ in days.contains { $0.iso8601 == key } }
+            "headerFrames": fixtureGridMeasurements.headerFrames.filter { key, _ in days.contains { $0.iso8601 == key } }
                 .mapValues { ["x": $0.minX, "y": $0.minY, "height": $0.height] },
-            "eventSizes": fixtureEventSizes.mapValues { ["width": $0.width, "height": $0.height] },
+            "eventSizes": fixtureGridMeasurements.eventSizes.mapValues { ["width": $0.width, "height": $0.height] },
             "heights": heights, "cards": cards,
             "days": days.map(\.iso8601), "eventsOnly": columns.allSatisfy { $0.fullDayEventTitle != nil },
             "commonClocks": (1...8).compactMap { commonPeriodTime($0, days: days) },

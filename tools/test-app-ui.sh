@@ -163,6 +163,41 @@ while read -r device_type runtime; do
     python3 -B tools/timed_command.py "App UI build iOS $ios_major" \
         xcodebuild "${xcode_args[@]}" build-for-testing
     boot_simulator
+    capture_week_badges() {
+        local container
+        container="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.app-checks data)" || return 1
+        python3 -B - "$container/tmp" "$1" "$2" <<'PY_BADGES'
+import base64
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+root, log = map(Path, sys.argv[1:3])
+marker = "TAKUPOKE_WEEK_MOTION "
+reports = [line.split(marker, 1)[1] for line in log.read_text(errors="replace").splitlines() if marker in line]
+records = json.loads(reports[-1]) if reports else []
+if sys.argv[3] == "0" and len(records) != 2:
+    raise SystemExit("Expected badge captures for both physical week pulls")
+for index, record in enumerate(records):
+    badge = record["badge"]
+    if "pngSHA256" not in badge and sys.argv[3] != "0":
+        continue  # An earlier assertion may have ended the physical pull.
+    name = f"week-badge-{index}"
+    path = root / f"takupoke-{name}.png"
+    data = path.read_bytes()
+    digest = hashlib.sha256(data).hexdigest()
+    if len(data) != badge["pngBytes"] or digest != badge["pngSHA256"]:
+        raise SystemExit("The owned badge image does not match the UI measurement")
+    print(f"TAKUPOKE_UI_IMAGE BEGIN {name} {digest} {len(data)}")
+    encoded = base64.b64encode(data).decode("ascii")
+    chunks = [encoded[i:i+6000] for i in range(0, len(encoded), 6000)]
+    for number, chunk in enumerate(chunks):
+        print(f"TAKUPOKE_UI_IMAGE DATA {name} {number} {chunk}")
+    print(f"TAKUPOKE_UI_IMAGE END {name} {len(chunks)}")
+    path.unlink()
+PY_BADGES
+    }
     check_ui() {
         local log_path="$1"
         shift
@@ -176,6 +211,9 @@ while read -r device_type runtime; do
         local phase_status=0
         python3 -B tools/timed_command.py "App UI $runtime shard $shard" xcodebuild "${xcode_args[@]}" "$@" 2>&1 | tee "$log_path" || phase_status=$?
         stop_hang_watch
+        if [[ "${TKPK_UI_PROBE_CASE:-}" == "week-appearance" ]] && ! capture_week_badges "$log_path" "$phase_status"; then
+            if [[ "$phase_status" == "0" ]]; then phase_status=1; fi
+        fi
         if [[ "$phase_status" != "0" ]]; then
             collect_host_failure
             # Only the synthetic app runs on this isolated simulator.

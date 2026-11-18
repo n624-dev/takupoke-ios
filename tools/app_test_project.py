@@ -14,8 +14,8 @@ WEEK_MOTION_INSERTIONS = (
      '\n            if let week { FixtureWeekMotionRecorder.shared.register(week: week.iso8601, body: self) }'),
     ('            case .began:', '\n                FixtureWeekMotionRecorder.shared.began(body: self)'),
     ('            case .ended:', '\n                FixtureWeekMotionRecorder.shared.released(body: self)'),
-    ('                let visible = body.height >= 70 ? body : viewport',
-     '\n                if let window { FixtureWeekMotionRecorder.shared.visible = scroll.convert(visible.offsetBy(dx: scroll.bounds.minX, dy: scroll.bounds.minY), to: window) }'),
+    ('                let windowVisible = scroll.convert(visible.offsetBy(dx: scroll.bounds.minX, dy: scroll.bounds.minY), to: window)',
+     '\n                FixtureWeekMotionRecorder.shared.visible = windowVisible'),
     ('        let minimum = -scroll.adjustedContentInset.left',
      '\n        FixtureWeekMotionRecorder.shared.begin(source: week.iso8601, target: destination.iso8601)'),
     ('    private func settle(id: UUID) {', '\n        FixtureWeekMotionRecorder.shared.arrived()'),
@@ -346,17 +346,15 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
             marker = 'struct TimetableView: View {'
             assert marker in text
             text = text.replace(marker, marker + '''
-    @State var fixtureHeaderFrames: [String: CGRect] = [:]
-    @State var fixtureEventSizes: [String: CGSize] = [:]
-    @State var fixtureCardFrames: [String: CGRect] = [:]
+    @State var fixtureGridMeasurements = FixtureGridMeasurements()
 ''')
         if path.name == 'TimetableView+GridHeaders.swift':
             marker = next(line for line in text.splitlines() if '.accessibilityIdentifier("timetable-day-' in line)
             text = text.replace(marker, marker + '''
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("fixture-grid")) } action: { frame in
                 guard ProcessInfo.processInfo.arguments.contains("--grid-probe") else { return }
-                if fixtureHeaderFrames[column.day.iso8601] != frame {
-                    fixtureHeaderFrames[column.day.iso8601] = frame
+                if fixtureGridMeasurements.headerFrames[column.day.iso8601] != frame {
+                    fixtureGridMeasurements.headerFrames[column.day.iso8601] = frame
                 }
             }
 ''')
@@ -365,7 +363,7 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
             text = text.replace(marker, marker + '''
             .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
                 guard ProcessInfo.processInfo.arguments.contains("--grid-probe") else { return }
-                if fixtureEventSizes[title] != size { fixtureEventSizes[title] = size }
+                if fixtureGridMeasurements.eventSizes[title] != size { fixtureGridMeasurements.eventSizes[title] = size }
             }
 ''')
             # The observer must be inside offset so its frame includes the
@@ -375,7 +373,7 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
                     .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("fixture-grid")) } action: { frame in
                         guard ProcessInfo.processInfo.arguments.contains("--grid-probe") else { return }
                         let key = fixtureCardKey(on: day, className: className, entry: entry)
-                        if fixtureCardFrames[key] != frame { fixtureCardFrames[key] = frame }
+                        if fixtureGridMeasurements.cardFrames[key] != frame { fixtureGridMeasurements.cardFrames[key] = frame }
                     }
 ''' + marker)
         if path.name == 'TimetableView+Grid.swift':
@@ -386,7 +384,7 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         .coordinateSpace(name: "fixture-grid")
         .overlay(alignment: .topLeading) {
             if ProcessInfo.processInfo.arguments.contains("--grid-probe") {
-                FixtureActiveGridMetrics {
+                FixtureActiveGridMetrics(measurements: fixtureGridMeasurements) {
                     fixtureGridMetrics(columns: columns, days: days, heights: rowHeights)
                 }
             }

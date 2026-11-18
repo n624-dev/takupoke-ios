@@ -513,7 +513,8 @@ extension ApplicationChecks {
                     XCTAssertTrue(grid.exists)
                     XCTAssertEqual(
                         try XCTUnwrap(frames[days[0]]?["x"]),
-                        (try XCTUnwrap(metrics["periodWidth"] as? Double)) + 2, accuracy: 1)
+                        (try XCTUnwrap(metrics["periodWidth"] as? Double)) + 2, accuracy: 1,
+                        "\(title), scale \(scale), day frames \(frames), grid \(grid.frame)")
                 } else {
                     XCTAssertEqual((metrics["commonClocks"] as? [String])?.count, 8)
                     XCTAssertGreaterThanOrEqual(
