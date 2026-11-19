@@ -5320,4 +5320,8 @@ d6bc639基点、追加のLinuxモデル試行、Swift 6.1.2／FoundationNetworki
 
 f5ca2a7のカウントダウンと学校行事モデルを対象にした追加のLinux型検査。Swift 6.1.2、通知フレームワークの型だけを一時置換。`CountdownModel.swift:175` で任意の `pdfAnalyses` の添字にoptional chainがなく、製品以外のApple接続の型確認より前に停止。`HomeTodayView` の同じ時間割投影入口を照合し、通常時間割が未取得でも試験資料を判定できるよう同じoptional chainを使う。f5ca2a7の限定は開始済みであり、取消しはしない。
 
-[限定44443673963・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/44443673963/attempts/1) のiOS27.0.0（135290462665）と26.5.0（135290463296）、f5ca2a7、SDK 27.2は、どちらも同じ `CountdownModel.swift:175:76` のoptional添字でコンパイル停止。22:48／30:04 UTC時分にエラーを観測し、画面操作には未到達。全ジョブ終端。同じoptional chainを適用したLinux追加型検査と行事・カウントダウン46件は成功した。通知フレームワークの置換は補助検査に限り、限定でネイティブ実機能を再検査する。
+[限定44443673963・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/44443673963/attempts/1) のiOS27.0.0（135290462665）と26.5.0（135290463296）、f5ca2a7、SDK 27.2は、どちらも同じ `CountdownModel.swift:175:76` のoptional添字でコンパイル停止。02:22:48／02:30:04 UTCにエラーを観測し、画面操作には未到達。全ジョブ終端。同じoptional chainを適用したLinux追加型検査と行事・カウントダウン46件は成功した。通知フレームワークの置換は補助検査に限り、限定でネイティブ実機能を再検査する。
+
+### #120 固定候補のLinux配布検査で通知Runnerの失敗注入が未発動（2026-11-19）
+
+095999f、Linux Python 3.12、固定worktreeの試行。`test_failed_final_notification_batch_is_not_rescued_by_passed_scenarios` の26/27で期待exit 1・実値0。318件中2失敗、予定skip 23、215.570秒。U40/N07/N162と旧Runner、現在の新通知ケースが既存ケースの後に同フェーズで選ばれることを比較した。検査用の偽Xcodeは旧ケース一件だけの完全一致で失敗を注入していた。旧ケースが含まれる同フェーズへ失敗を注入し、元の開始順序、二件の正確な選択と順序、全体停止とシステム文字検査未到達の条件を維持する。製品と実通知Runnerは変更しない。

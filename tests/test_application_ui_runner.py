@@ -254,7 +254,7 @@ if Path(sys.argv[0]).name == 'xcodebuild':
               file=sys.stderr if os.environ['TKPK_TEST_IOS'] == '26' else sys.stdout)
     if 'test-without-building' in args and os.environ.get('FAIL_TESTS'): sys.exit(45)
     if os.environ.get('FAIL_CASE') in tests: sys.exit(49)
-    if os.environ.get('FAIL_NOTIFICATION') and tests == ['testNotificationControlsAndAppearance']: sys.exit(46)
+    if os.environ.get('FAIL_NOTIFICATION') and 'testNotificationControlsAndAppearance' in tests: sys.exit(46)
 elif Path(sys.argv[0]).name == 'log': print('[]')
 elif Path(sys.argv[0]).name == 'xcode-select': print(os.environ['SYNTHETIC_DEVELOPER'])
 elif Path(sys.argv[0]).name == 'defaults': print('1' if args[1] == 'com.apple.iphonesimulator' else '0')
@@ -542,7 +542,7 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                 self.assertEqual(len(attempts), 5)
                 selected = [arg.rsplit("/", 1)[1] for arg in attempts[-1]
                             if arg.startswith("-only-testing:")]
-                self.assertEqual(selected, ["testNotificationControlsAndAppearance"])
+                self.assertEqual(selected, ["testNotificationControlsAndAppearance", manifest.COUNTDOWN_NOTIFICATION_TEST])
                 self.assertEqual([call[-1] for call in calls if "content_size" in call],
                                  ["large"] * (2 if ios == 26 else 1))
 
