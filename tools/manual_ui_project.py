@@ -59,22 +59,34 @@ def coordinator(text):
 def view(text):
     text = once(text, 'else { Text(coordinator.status) }',
                 'else { Text(coordinator.status).accessibilityIdentifier("manual-status") }')
-    text = once(text, '    @State private var selectedClass = ""', '    @State private var selectedClass = ""\n    @State private var manualQATypeSize:DynamicTypeSize = .large\n    @AppStorage("fixture.manualMutationComplete") private var manualQAMutationComplete = false')
+    text = once(text, '    @State private var selectedClass = ""', '''    @State private var selectedClass = ""
+    @State private var manualQATypeSize:DynamicTypeSize = .large
+    @State private var manualQAActionsPresented = false
+    @State private var manualQARevalidationCount = 0
+    @AppStorage("fixture.manualMutationComplete") private var manualQAMutationComplete = false''')
     text = once(text, '.navigationTitle(title)', '''.accessibilityIdentifier("manual-recovery-list")
             .navigationTitle(title)
             .dynamicTypeSize(manualQATypeSize)
             .toolbar { ToolbarItem(placement:.topBarTrailing) {
-                Menu("架空検証") {
-                    Button("表示サイズを変更") { manualQATypeSize = manualQATypeSize == .large ? .xxxLarge : .large }
-                    Button("同じ原本の状態を再確認") { coordinator.invalidateManualIfSourceChanged() }
-                    Button("架空原本のハッシュを変更") { Task { try await SimulatorManualFixture.changeOriginal(); manualQAMutationComplete = true } }
-                }
+                Button("架空検証") { manualQAActionsPresented = true }
             } }
+            .confirmationDialog("架空検証", isPresented: $manualQAActionsPresented) {
+                Button("表示サイズを変更") { manualQATypeSize = manualQATypeSize == .large ? .xxxLarge : .large }
+                Button("同じ原本の状態を再確認") {
+                    coordinator.invalidateManualIfSourceChanged()
+                    manualQARevalidationCount += 1
+                }
+                Button("架空原本のハッシュを変更") { Task { try await SimulatorManualFixture.changeOriginal(); manualQAMutationComplete = true } }
+            }
             .background(alignment: .topLeading) {
                 if SimulatorManualFixture.enabled {
                     VStack { FixtureManualProbe()
                         Text(SimulatorManualFixture.processIdentity).font(.system(size:1))
                             .accessibilityIdentifier("manual-process-launch").allowsHitTesting(false)
+                        Text(manualQATypeSize == .xxxLarge ? "expanded" : "standard")
+                            .font(.system(size:1)).accessibilityIdentifier("manual-fixture-type-size").allowsHitTesting(false)
+                        Text(String(manualQARevalidationCount))
+                            .font(.system(size:1)).accessibilityIdentifier("manual-fixture-revalidations").allowsHitTesting(false)
                         Text("preview=\\(coordinator.preview != nil);review=\\(coordinator.manualReview != nil);running=\\(coordinator.running);draft=\\(coordinator.manualDraft?.id ?? "nil");failure=\\(coordinator.failure ?? "none")")
                             .font(.system(size:1)).accessibilityIdentifier("manual-coordinator-state").allowsHitTesting(false)
                         if manualQAMutationComplete { Text("変更完了").accessibilityIdentifier("manual-mutation-complete").allowsHitTesting(false) }

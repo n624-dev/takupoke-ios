@@ -15,9 +15,13 @@ extension ManualAssistanceChecks {
         assertSubmitEnabled(false)
         edit(input,value,id:key);acknowledge(key)
         assertSubmitEnabled(true)
+        XCTAssertEqual(uniqueLabel("manual-fixture-type-size",in:observation),"standard")
         chooseFixtureMenuAction("表示サイズを変更")
+        XCTAssertEqual(uniqueLabel("manual-fixture-type-size",in:observation),"expanded")
         XCTAssertEqual(visible(input,knownID:"manual-value-"+key).value as? String,value);XCTAssertTrue(visibleAcknowledgement(key).isSelected)
+        XCTAssertEqual(uniqueLabel("manual-fixture-revalidations",in:observation),"0")
         chooseFixtureMenuAction("同じ原本の状態を再確認")
+        XCTAssertEqual(uniqueLabel("manual-fixture-revalidations",in:observation),"1")
         XCTAssertEqual(visible(input,knownID:"manual-value-"+key).value as? String,value);XCTAssertTrue(visibleAcknowledgement(key).isSelected)
     }
 

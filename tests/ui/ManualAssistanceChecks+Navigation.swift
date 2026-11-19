@@ -256,8 +256,9 @@ extension ManualAssistanceChecks {
         let current=bar.buttons.matching(NSPredicate(format:"label == %@",title))
             .allElementsBoundByAccessibilityElement
         guard current.count==1 else { XCTFail("Fixture menu must have one native Button");return }
-        let button=current[0],frame=button.frame
-        guard ManualScrollNavigation.usable(barFrame),ManualScrollNavigation.usable(frame),
+        let button=current[0],frame=button.frame,screenFrame=app.frame
+        guard ManualScrollNavigation.usable(screenFrame),ManualScrollNavigation.usable(barFrame),
+              ManualScrollNavigation.usable(frame),screenFrame.contains(barFrame),
               barFrame.contains(frame),button.isEnabled,button.isHittable,app.state == .runningForeground else {
             XCTFail("Fixture menu must be visible on its own recovery toolbar: "+app.debugDescription);return
         }
@@ -269,10 +270,41 @@ extension ManualAssistanceChecks {
         } catch {
             XCTFail("Native fixture menu contact failed: \(error)");return
         }
-        tapPopupAction(action, requiredTitles: requiredTitles)
+        tapFixtureDialogAction(action, requiredTitles: requiredTitles, screenFrame: screenFrame)
     }
 
-    func tapPopupAction(_ title: String, requiredTitles: Set<String> = []) {
+    private func tapFixtureDialogAction(_ title: String, requiredTitles: Set<String>, screenFrame: CGRect) {
+        let actions = app.buttons.matching(NSPredicate(format: "label IN %@", argumentArray: [requiredTitles.sorted()]))
+        let deadline = ProcessInfo.processInfo.systemUptime + nativeStateTimeout
+        var selected: XCUIElement?, observation = "no action observation"
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            guard ProcessInfo.processInfo.systemUptime < deadline else { return false }
+            let buttons = actions.allElementsBoundByAccessibilityElement
+            observation = "native action count=\(buttons.count)"
+            guard buttons.count == requiredTitles.count else { return false }
+            var observedTitles: Set<String> = []
+            var target: XCUIElement?
+            for button in buttons {
+                guard ProcessInfo.processInfo.systemUptime < deadline,
+                      let snapshot = try? button.snapshot(), snapshot.elementType == .button,
+                      requiredTitles.contains(snapshot.label), observedTitles.insert(snapshot.label).inserted,
+                      ManualScrollNavigation.usable(snapshot.frame), screenFrame.contains(snapshot.frame),
+                      snapshot.isEnabled else { return false }
+                if snapshot.label == title { target = button }
+            }
+            observation = "native actions=\(observedTitles.sorted())"
+            guard observedTitles == requiredTitles, let target, target.isHittable,
+                  ProcessInfo.processInfo.systemUptime <= deadline else { return false }
+            selected = target
+            return true
+        }, object: nil)
+        guard XCTWaiter.wait(for: [ready], timeout: nativeStateTimeout) == .completed, let selected else {
+            XCTFail("The fixture dialog must show three unique native actions: \(title);\(observation)");return
+        }
+        selected.tap()
+    }
+
+    func tapPopupAction(_ title: String) {
         var readyButton:XCUIElement?,ambiguous=false
         var observation = "snapshot unavailable"
         let deadline = ProcessInfo.processInfo.systemUptime + nativeStateTimeout
@@ -281,10 +313,9 @@ extension ManualAssistanceChecks {
                   let root = try? self.app.snapshot(), let nodes = self.snapshotNodes(in: root) else { return false }
             let buttons = nodes.filter { $0.elementType == .button }
             let current = buttons.filter { $0.label == title }
-            let missing = requiredTitles.subtracting(buttons.map(\.label))
-            observation = "matches=\(current.count);missing=\(missing.sorted())"
+            observation = "matches=\(current.count)"
             if current.count>1 { ambiguous=true;return true }
-            guard current.count==1, missing.isEmpty else { return false }
+            guard current.count==1 else { return false }
             let observed = current[0], frame = observed.frame
             let contained = ManualScrollNavigation.usable(frame) && root.frame.contains(frame)
             observation += ";frame=\(frame);contained=\(contained);enabled=\(observed.isEnabled)"
