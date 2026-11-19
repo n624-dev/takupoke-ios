@@ -23,7 +23,8 @@ extension ManualAssistanceChecks {
         let bottom=min(listFrame.maxY,keyboardFrame.map { $0.minY-45 } ?? listFrame.maxY)-12
         let viewport=CGRect(x:listFrame.minX,y:top,width:listFrame.width,height:max(0,bottom-top))
         let outerFrame=row.frame,innerFrame=actual.frame
-        guard manualAcknowledgementFits(outer:outerFrame,inner:innerFrame,viewport:viewport) else {
+        guard ManualScrollNavigation.usable(appFrame), appFrame.contains(innerFrame),
+              manualAcknowledgementFits(outer:outerFrame,inner:innerFrame,viewport:viewport) else {
             print("TAKUPOKE-MANUAL-ACK invalid-hit-region;outer=\(outerFrame);inner=\(innerFrame);viewport=\(viewport)")
             XCTFail(app.debugDescription);return
         }
@@ -36,8 +37,11 @@ extension ManualAssistanceChecks {
         }
         // Use the same single thumb drag as row exclusion. The row and
         // its native switch must both be off before the gesture begins.
-        let start = actual.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.5))
-        let finish = actual.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5))
+        let origin = app.coordinate(withNormalizedOffset: .zero)
+        let y = innerFrame.midY - appFrame.minY
+        let x = innerFrame.minX - appFrame.minX
+        let start = origin.withOffset(CGVector(dx: x + innerFrame.width * 0.25, dy: y))
+        let finish = origin.withOffset(CGVector(dx: x + innerFrame.width * 0.75, dy: y))
         start.press(forDuration: 0.05, thenDragTo: finish, withVelocity: .slow, thenHoldForDuration: 0)
         // Post-gesture diagnostics must not add AX queries before the native state check.
         print("TAKUPOKE-MANUAL-ACK after;id=\(id)")

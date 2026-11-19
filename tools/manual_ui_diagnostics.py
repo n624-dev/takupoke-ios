@@ -152,8 +152,9 @@ def input_trace_lines(path):
             raw = stream.read(65537)
         if len(raw) > 65536:
             return []
+        # Keep the actual contact nearest the failure in a long UI case.
         return [line for line in raw.decode("utf-8").splitlines()
-                if pattern.fullmatch(line) or press_pattern.fullmatch(line)][:128]
+                if pattern.fullmatch(line) or press_pattern.fullmatch(line)][-128:]
     except (OSError, UnicodeError):
         return []
 

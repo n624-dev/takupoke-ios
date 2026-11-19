@@ -67,6 +67,9 @@ class ManualDiagnosticsTests(unittest.TestCase):
                 press.replace(':0:1', ':0:11'), press.replace('recognizers=5:500:10000:0:1', 'recognizers=private text')]
             path.write_text('\n'.join([native,press,no_press] + invalid_presses),encoding='utf-8')
             self.assertEqual(module.input_trace_lines(path),[native,press,no_press])
+            late_release = native.replace('phase=began', 'phase=ended').replace('time=42.25', 'time=45.00')
+            path.write_text('\n'.join([valid] * 128 + [late_release, 'unrelated private text']), encoding='utf-8')
+            self.assertEqual(module.input_trace_lines(path), [valid] * 127 + [late_release])
             alias = Path(tmp) / 'alias.log'
             alias.symlink_to(path)
             self.assertEqual(module.input_trace_lines(alias), [])
