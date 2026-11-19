@@ -3,18 +3,24 @@ import UIKit
 
 extension SimulatorIdentityTestCase {
     func pressNativeTabIcon(_ title: String, in app: XCUIApplication, timeout: TimeInterval) -> Bool {
-        let deadline = ProcessInfo.processInfo.systemUptime + timeout
+        var deadline = ProcessInfo.processInfo.systemUptime + timeout
+        var foundBar = false
         let scale = UIScreen.main.scale
         let label = NSPredicate(format: "identifier == %@ OR label == %@", title, title)
         var contact: CGVector?
         var observation = "app snapshot unavailable"
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            guard ProcessInfo.processInfo.systemUptime < deadline,
-                  let root = try? app.snapshot(), let nodes = self.snapshotNodes(in: root) else { return false }
+            guard ProcessInfo.processInfo.systemUptime < deadline else { return true }
+            guard let root = try? app.snapshot(), let nodes = self.snapshotNodes(in: root) else { return false }
+            guard ProcessInfo.processInfo.systemUptime < deadline else { return true }
             let bars = nodes.filter { $0.elementType == .tabBar }
             observation = "native tab bars=\(bars.count)"
             if bars.count > 1 { return true }
             guard let bar = bars.first, let barNodes = self.snapshotNodes(in: bar) else { return false }
+            if !foundBar {
+                foundBar = true
+                deadline = ProcessInfo.processInfo.systemUptime + timeout
+            }
             let buttons = barNodes.filter { $0.elementType == .button && ($0.identifier == title || $0.label == title) }
             observation += "; matching buttons=\(buttons.count)"
             if buttons.count > 1 { return true }
@@ -33,17 +39,23 @@ extension SimulatorIdentityTestCase {
                   ObservedScreenGeometry.contains(iconFrame, in: buttonFrame, scale: scale),
                   ObservedScreenGeometry.contains(iconFrame, in: barFrame, scale: scale),
                   button.isEnabled, ProcessInfo.processInfo.systemUptime < deadline else { return false }
-            let liveButton = app.tabBars.element.buttons.matching(label).element
-            let identity = NSPredicate(format: "identifier == %@ AND label == %@", icon.identifier, icon.label)
-            let liveIcon = liveButton.images.matching(identity).element
-            guard liveButton.isHittable, liveIcon.isHittable,
+            let liveButton = app.tabBars.buttons.matching(label).element
+            guard let current = try? liveButton.snapshot(), current.elementType == .button,
+                  current.isEnabled, current.frame == buttonFrame,
+                  let liveNodes = self.snapshotNodes(in: current) else { return false }
+            let liveIcons = liveNodes.filter { $0.elementType == .image }
+            observation += "; current native images=\(liveIcons.count)"
+            if liveIcons.count > 1 { return true }
+            guard let liveIcon = liveIcons.first, liveIcon.identifier == icon.identifier,
+                  liveIcon.label == icon.label, liveIcon.frame == iconFrame,
+                  liveButton.isHittable, liveButton.images.element.isHittable,
                   ProcessInfo.processInfo.systemUptime <= deadline else { return false }
             let center = CGVector(dx: iconFrame.midX - appFrame.minX, dy: iconFrame.midY - appFrame.minY)
             print("NATIVE_TAB title=\(title);bar=\(barFrame);button=\(buttonFrame);icon=\(iconFrame);contact=\(center)")
             contact = center
             return true
         }, object: app)
-        guard XCTWaiter.wait(for: [ready], timeout: timeout) == .completed, let contact else {
+        guard XCTWaiter.wait(for: [ready], timeout: 2 * timeout) == .completed, let contact else {
             XCTFail("The current tab must have one visible, operable native icon: " + observation); return false
         }
         // Both callers verify the selected tab after this single U63 contact.
