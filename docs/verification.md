@@ -8607,3 +8607,4 @@ c96fee3の[原本変更限定44495746019・試行1](https://github.com/n624-dev/
 - `testLinkPreferencesSurviveRelaunch`・`BROWSER_FIXTURE`・`IsPageLoaded` を検索し、N161・N236・N242・43742821232の詳細と409d0f9／3fc31e1の実サーバ・生成器を比較した。先行正式44499001313の26 Bは実HTTP送信まで到達し、実ページ30秒で停止。公開はskip。候補は架空loopbackだけの実接続準備を各fixture起動時に一度要求する。設定経路、実タッチ、実本文、元の期限、実Close、一覧復帰を維持する。
 - Linux Swift 6.1.2で実生成project、Swift構文、shell構文、実HTTPと生成した境界を含むmanifest／runner計50件（79.616秒、失敗0）、catalog466を確認。Safari境界のLinux対照では公開フレームワーク呼出し先だけをstubにし、実検証済みloopback URLの一回受け渡し、flagなしと不正入力の既存検査を確認した。実Safariの接続準備と画面は限定CIで比較する。
 - 直前のe70d786は固定ソースでLinux配布318件（273.104秒、失敗0、環境skip2）。共有タブ修正の実iOS検査は別の限定CIを継続中。
+- 起動経路の局所検査は実fixtureのroot taskの冒頭と準備開始の順序および呼出し箇所の一意性も確認する。設定ミスはfixture起動時に早く検出される。起動時の通信先は厳密に所有loopbackへ限定し、実行のタップ時には保存リンクの元HTTPS架空値の一致を引き続き要求する。

@@ -441,7 +441,14 @@ class ManifestTests(unittest.TestCase):
         url_validator = block(generated, "static func fixtureBrowserURL(")
         fixture = (ROOT / "tests/ui/ApplicationFixture.swift").read_text()
         prewarming = block(fixture, "private enum FixtureBrowserPrewarming")
-        self.assertIn("FixtureBrowserPrewarming.startIfNeeded()", fixture)
+        startup = (
+            '.task {\n'
+            '                    FixtureLaunchDiagnostics.record("root-task-enter")\n'
+            '                    FixtureBrowserPrewarming.startIfNeeded()\n'
+            '                    let data = ApplicationData.shared'
+        )
+        self.assertEqual(fixture.count(startup), 1)
+        self.assertEqual(fixture.count("FixtureBrowserPrewarming.startIfNeeded()"), 1)
         finish = block(generated, "func safariViewControllerDidFinish(")
         trace = '            FixtureLaunchDiagnostics.record("browser-finish-received")\n'
         self.assertEqual(finish.count(trace), 1)
