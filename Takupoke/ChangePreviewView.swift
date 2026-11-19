@@ -74,6 +74,7 @@ struct ChangeGroupEditor: View {
     let activeRows: Set<Int>
     let issues: [Int: [ChangeParseError]]
     @Binding var edits: [Int: ChangeRowEdit]
+    @Binding var conflicts: Set<Int>
     let verify: () -> Void
     @State private var selected: Set<Int> = []
     @State private var replacement = ""
@@ -83,6 +84,7 @@ struct ChangeGroupEditor: View {
         List {
             Section {
                 Text(ChangeReviewGroup.rangeLabel(group.rows))
+                if group.carryover?.offersPriorExclusion == true { Text("以前は除外されていました。") }
                 let allSelected = !activeRows.isEmpty && activeRows.isSubset(of: selected)
                 selectionButton("すべて選択（\(activeRows.count)行）", selected: allSelected) {
                     selected = allSelected ? [] : activeRows
@@ -105,7 +107,11 @@ struct ChangeGroupEditor: View {
                     Button("選んだ行に入力") { finish(.value(replacement)) }
                         .disabled(selected.isDisjoint(with: activeRows) || replacement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
-                if group.saved != .excluded {
+                if let carryover = group.carryover {
+                    Button(carryover.offersPriorExclusion ? "選んだ行に以前の除外を適用" : "選んだ行を今回除外") { finish(.exclude) }
+                        .disabled(selected.isDisjoint(with: activeRows))
+                        .accessibilityIdentifier("change-confirm-carryover-exclusion")
+                } else if group.saved != .excluded {
                     Button("選んだ行を除外") { finish(.exclude) }.disabled(selected.isDisjoint(with: activeRows))
                 }
             }
@@ -150,7 +156,12 @@ struct ChangeGroupEditor: View {
     }
 
     private func finish(_ action: ChangeIssueGroup.Action) {
-        group.apply(action, selecting: selected.intersection(activeRows), headers: table.headers, edits: &edits)
+        let targets = selected.intersection(activeRows)
+        if group.carryover != nil {
+            group.confirmExclusions(selecting: targets, table: table, defaultYear: year, edits: &edits, conflicts: &conflicts)
+        } else {
+            group.apply(action, selecting: targets, headers: table.headers, edits: &edits)
+        }
         verify()
         dismiss()
     }

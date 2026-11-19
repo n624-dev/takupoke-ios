@@ -35,10 +35,9 @@ struct ChangeWorkbookEditorView: View {
                         Text("前回の正常結果を表示中です。")
                     }
                     Text("修正は「反映する」を押すまで時間割に反映されません。")
-                    let remaining = issues.values.reduce(0) { $0 + $1.count } + view.conflicts.count
-                        + (view.requiresLayoutConfirmation ? 1 : 0)
-                    if remaining > 0 {
-                        Text("あと\(remaining)件の確認が必要です。").font(.headline)
+                    if !pending.isEmpty {
+                        Text("あと\(pending.count)行の確認が必要です。").font(.headline)
+                            .accessibilityIdentifier("change-pending-row-count")
                     }
                 }
                 Section {
@@ -86,7 +85,8 @@ struct ChangeWorkbookEditorView: View {
                             }
                             .accessibilityIdentifier("change-group-\(group.id)")
                         }
-                        ForEach(view.conflicts.sorted(), id: \.self) { row in rowLink(row) }
+                        let grouped = Set(groups.filter { $0.carryover != nil }.flatMap(\.rows))
+                        ForEach(view.conflicts.subtracting(grouped).sorted(), id: \.self) { row in rowLink(row) }
                     }
                 }
                 if let suggestions {
@@ -141,7 +141,8 @@ struct ChangeWorkbookEditorView: View {
             .navigationDestination(for: Int.self) { row in rowEditor(row) }
             .navigationDestination(for: ChangeIssueGroup.self) { group in
                 ChangeGroupEditor(group: group, title: groupTitle(group), table: view.table,
-                    year: preview.defaultYear ?? 0, activeRows: activeRows(in: group), issues: issues, edits: $edits, verify: verify)
+                    year: preview.defaultYear ?? 0, activeRows: activeRows(in: group), issues: issues,
+                    edits: $edits, conflicts: $view.conflicts, verify: verify)
             }
             .navigationTitle("内容を確認・修正")
             .toolbar {
@@ -184,17 +185,19 @@ struct ChangeWorkbookEditorView: View {
                 .intersection(group.rows).subtracting(view.conflicts)
         }
         let live = group.optional ? (suggestions.map { [$0] } ?? []) : groups
-        return Set(live.filter {
-            $0.code == group.code && $0.column == group.column && $0.printed == group.printed && $0.formula == group.formula && $0.blankField == group.blankField
+        let matching = Set(live.filter {
+            $0.code == group.code && $0.column == group.column && $0.printed == group.printed
+                && $0.formula == group.formula && $0.blankField == group.blankField && $0.carryover == group.carryover
         }.flatMap(\.rows))
-            .intersection(group.rows).subtracting(view.conflicts)
+            .intersection(group.rows)
+        return group.carryover == nil ? matching.subtracting(view.conflicts) : matching.intersection(view.conflicts)
     }
 
     private func verify() {
         savedGroups = ChangeIssueGroup.savedGroups(edits)
         do {
             issues = try view.table.review(edits: edits, defaultYear: preview.defaultYear ?? 0)
-            groups = ChangeIssueGroup.groups(issues, table: view.table, edits: edits)
+            groups = ChangeIssueGroup.groups(issues, table: view.table, edits: edits, conflicts: view.conflicts, previous: view.previous)
             suggestions = nil
             if let weekday = view.table.headers.firstIndex(where: { ["曜日", "曜"].contains(ChangeNormalizer.token($0)) }) {
                 let year = preview.defaultYear ?? 0

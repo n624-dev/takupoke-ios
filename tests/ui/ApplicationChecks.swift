@@ -47,6 +47,7 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
             ],
             "testChangedRoomInHomeWeekAndList": ["--comparison"],
             "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch": ["--change-row-skip", "--fixture-input-trace"],
+            "testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups": ["--change-weekday-carryover", "--fixture-input-trace"],
         ]
         for (method, arguments) in initialConditions where name.contains(method) {
             app.launchArguments += arguments

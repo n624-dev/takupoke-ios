@@ -3,6 +3,97 @@ import UIKit
 import CryptoKit
 
 extension ApplicationChecks {
+    func testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups() {
+        let detail = "時間割変更", review = "内容を確認・修正", groupPage = "「日」だけの行"
+        let pending = app.staticTexts["change-pending-row-count"]
+        let count = app.staticTexts["change-skipped-count"]
+        let addedLesson = app.staticTexts["変更後、架空追加科目B"]
+        func openDetail() {
+            tab("設定")
+            visible(app.buttons["時間割ファイル"], navigation: "設定").tap()
+            screen("時間割ファイル")
+            visible(app.buttons["時間割変更の詳細を見る"], navigation: "時間割ファイル").tap()
+            screen(detail)
+        }
+        func refresh() {
+            let button = visible(app.buttons["同じファイルを再取得"], navigation: detail, searchEarlierRows: true)
+            XCTAssertTrue(button.isEnabled && button.isHittable)
+            button.tap()
+            let ready = expectation(for: NSPredicate { _, _ in button.exists && button.isEnabled }, evaluatedWith: button)
+            XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 30), .completed)
+        }
+        func openReview() {
+            visible(app.buttons[review], navigation: detail, searchEarlierRows: true).tap()
+            screen(review)
+        }
+        func choose(_ selection: String) {
+            let group = visible(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "change-group-weekdayOnly-3-")).element,
+                                navigation: review)
+            XCTAssertTrue(group.label.contains(groupPage), group.label)
+            group.tap()
+            screen(groupPage)
+            let row = visible(app.buttons[selection], navigation: groupPage)
+            XCTAssertTrue(row.isEnabled && row.isHittable)
+            row.tap()
+            let selected = expectation(for: NSPredicate { _, _ in row.isSelected }, evaluatedWith: row)
+            XCTAssertEqual(XCTWaiter.wait(for: [selected], timeout: 15), .completed)
+            let confirm = visible(app.buttons["change-confirm-carryover-exclusion"], navigation: groupPage, searchEarlierRows: true)
+            XCTAssertTrue(confirm.isEnabled && confirm.isHittable)
+            confirm.tap()
+            screen(review)
+        }
+        func requirePending(_ rows: Int) {
+            XCTAssertEqual(visible(pending, navigation: review, searchEarlierRows: true).label,
+                           "あと\(rows)行の確認が必要です。")
+            XCTAssertFalse(app.navigationBars[review].buttons["反映する"].isEnabled)
+        }
+
+        openDetail()
+        XCTAssertTrue(visible(count, navigation: detail).label.contains("90行"))
+        app.terminate()
+        app.launchArguments.removeAll { $0 == "--reset-fixture" }
+        app.launchArguments.append("--change-weekday-carryover-update")
+        launchReady()
+        app.launchArguments.removeAll { $0 == "--change-weekday-carryover-update" }
+        openDetail()
+        refresh()
+        XCTAssertFalse(addedLesson.exists)
+        openReview()
+        requirePending(45)
+        XCTAssertTrue(visible(app.buttons["change-edited-rows"], navigation: review).label.contains("45行"))
+        XCTAssertFalse(app.buttons["change-editor-row-49"].exists)
+        choose("change-select-row-49")
+        requirePending(44)
+        tapToolbar("閉じる", bar: review)
+        screen(detail)
+        XCTAssertFalse(addedLesson.exists)
+        openReview()
+        requirePending(45)
+        choose("change-select-all")
+        XCTAssertFalse(pending.exists)
+        XCTAssertTrue(app.navigationBars[review].buttons["反映する"].isEnabled)
+        tapToolbar("反映する", bar: review)
+        let confirm = app.alerts["個人修正を反映しますか？"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 15))
+        confirm.buttons["キャンセル"].tap()
+        XCTAssertTrue(app.navigationBars[review].exists)
+        tapToolbar("反映する", bar: review)
+        confirm.buttons["反映する"].tap()
+        XCTAssertTrue(app.navigationBars[review].waitForNonExistence(timeout: 30), app.debugDescription)
+        XCTAssertTrue(visible(count, navigation: detail, searchEarlierRows: true).label.contains("90行"))
+        XCTAssertTrue(visible(addedLesson, navigation: detail).exists)
+
+        app.terminate()
+        launchReady()
+        openDetail()
+        refresh()
+        XCTAssertTrue(visible(count, navigation: detail, searchEarlierRows: true).label.contains("90行"))
+        XCTAssertTrue(visible(addedLesson, navigation: detail).exists)
+        openReview()
+        XCTAssertFalse(pending.exists)
+        XCTAssertTrue(visible(app.buttons["change-edited-rows"], navigation: review).label.contains("90行"))
+    }
+
     func testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch() {
         func openChanges() {
             tab("設定")

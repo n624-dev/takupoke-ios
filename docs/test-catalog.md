@@ -25,7 +25,7 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 
 | 対象 | 宣言数 | 検証する環境 |
 |---|---:|---|
-| [時間割変更・曜日・行除外・原文保持](test-catalog/xlsx.md) | 63 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
+| [時間割変更・曜日・行除外・原文保持](test-catalog/xlsx.md) | 66 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [原本取得・更新・保存・File Provider](test-catalog/material.md) | 38 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [ローカルDB・移行・半期削除](test-catalog/database.md) | 40 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [日本時間・学校年度・日付表示](test-catalog/date.md) | 9 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
@@ -38,7 +38,7 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 | [PDF復旧・OCR・構造・Validator・端末内Provider](test-catalog/recovery.md) | 218 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [確認訂正・画像比較・入力変更・実操作](test-catalog/manual.md) | 121 | Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認 |
 | [通知許可・実配信・設定・バックグラウンド](test-catalog/notifications.md) | 17 | Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定 |
-| [通常画面・設定・実Switch・UI fixture・登録一覧](test-catalog/app-ui.md) | 155 | Apple iOS26/27。LinuxはPython契約検査のみ |
+| [通常画面・設定・実Switch・UI fixture・登録一覧](test-catalog/app-ui.md) | 156 | Apple iOS26/27。LinuxはPython契約検査のみ |
 | [ファイル選択・再選択・背景・キャンセル](test-catalog/picker.md) | 28 | Apple iOS26/27 UI＋Nativeレイアウト |
 | [IPA・AltStore・公開ゲート・ビルド・一時領域](test-catalog/release.md) | 93 | Linux Python／Apple iPhone SDK。AltStore導入は実機限定 |
 | [独立した架空PDF・原文契約・固定期待値](test-catalog/fixtures.md) | 13 | Linux契約検査。PDF描画・OCRはApple限定 |

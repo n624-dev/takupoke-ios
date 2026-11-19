@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`ba92fb6d84cfd7eb25760b8487896118a1b4b594941c2a0b7c2f72d1fe5d8893`
+`356d547bbabddb10b3d5d0e28ab6a4b7092c4fab1445cc0b4c4a9d17fda9090c`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -39,6 +39,8 @@ bash tools/test-parsing.sh
 - `testTableFailuresAndBounds`
 - `testRowEditsRetainOriginalValuesAcrossSchoolFileUpdates`
 - `testIdenticalOriginalRowsRequireUnambiguousCorrection`
+- `testCompleteWeekdayExclusionsCarryOverOnlyToUnchangedSubsets`
+- `testAmbiguousWeekdayGroupsResolveOnlySelectedRowsWithMatchingRawEvidence`
 - `testCorrectionReviewIncludesMultipleFieldsAndEmptyFormulaRows`
 - `testEditorUsesRecognizedAliasesInsteadOfAddingShadowColumns`
 - `testChangedFormulaWithSameCachedErrorDoesNotRestoreCorrection`
@@ -63,6 +65,7 @@ bash tools/test-parsing.sh
 - `testInvalidYearCannotReplaceAcceptedSqliteDatesAndFreshnessUsesYearAndConsents`
 - `testPersonalCorrectionSurvivesInsertedRowsAndYieldsToSchoolCorrection`
 - `testSameBytesFromDifferentSelectionDoNotCertifyPersonalResult`
+- `testLegacyAmbiguousWeekdayExclusionsCanBeConfirmedAndSavedAfterReopen`
 - `testUnresolvedDuplicateDecisionsBelongToChosenSheet`
 
 ## [tests/ParsingTests+Preview.swift](../../tests/ParsingTests+Preview.swift)

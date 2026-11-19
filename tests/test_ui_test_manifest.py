@@ -749,7 +749,8 @@ METHOD
 
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source(manifest.check_source())
-        self.assertEqual(len(manifest.selected_tests("all")), 34)
+        self.assertEqual(len(manifest.selected_tests("all")), 35)
+        self.assertIn("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups", manifest.SHARDS["B"])
         self.assertIn("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch", manifest.SHARDS["B"])
         self.assertIn("testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable", manifest.SHARDS["B"])
         self.assertIn("testChangedRoomInHomeWeekAndList", manifest.SHARDS["A"])
@@ -1062,6 +1063,7 @@ METHOD
         groups = (
             ("controls", controls),
             ("rows", (controls[-1],)),
+            ("weekday-carryover", ("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",)),
             ("rows-context", ("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover", controls[-1])),
             ("input-delivery", ("testSettingsAccountDataAndFileDetails", manifest.VOICEOVER_TEST)),
             ("file-details", ("testFileFailuresKeepResultsAndStayInTheirOwnDetails",

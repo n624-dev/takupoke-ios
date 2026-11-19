@@ -285,6 +285,12 @@ extension ChangeEditTable {
             && cellSources[row, default: [:]].keys.allSatisfy { $0 == column }
     }
 
+    func isOriginalWeekdayOnly(_ row: Int, defaultYear: Int) -> Bool {
+        guard let column = weekdayColumn else { return false }
+        let original = values(at: row, defaultYear: defaultYear)
+        return original.indices.contains(column) && weekdayOnly(original, row: row, column: column)
+    }
+
     func legacyEdits(weekday: Bool, excluded: Set<Int>, defaultYear: Int) -> [Int: ChangeRowEdit] {
         var edits: [Int: ChangeRowEdit] = [:]
         let suggestions = weekday ? suggestedEdits(defaultYear: defaultYear) : [:]

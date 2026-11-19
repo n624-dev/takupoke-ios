@@ -383,6 +383,13 @@ struct SimulatorApplication: App {
            ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
             try SimulatorChangeRowSkipFixture.seed(base)
         }
+        if ProcessInfo.processInfo.arguments.contains("--change-weekday-carryover") {
+            if ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
+                try SimulatorChangeRowSkipFixture.seedCarryover(base, updated: false)
+            } else if ProcessInfo.processInfo.arguments.contains("--change-weekday-carryover-update") {
+                try SimulatorChangeRowSkipFixture.seedCarryover(base, updated: true)
+            }
+        }
         try SimulatorAuxiliaryStoreFixture.prepare(base)
     }
 }

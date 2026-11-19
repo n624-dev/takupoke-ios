@@ -179,6 +179,88 @@ extension ParsingTests {
         XCTAssertEqual(moved.restore(all, sourceIdentity: "s", digest: "new", defaultYear: 2032).edits, [3: skip, 4: skip])
     }
 
+    func testCompleteWeekdayExclusionsCarryOverOnlyToUnchangedSubsets() throws {
+        let headers = ["学 年", "学科・クラス", "月日", "曜日", "教室"]
+        let saturday = ["", "", "", "土"]
+        let lesson = ["2", "ZZ", "4/1", "", "架空教室A"]
+        let old = ChangeEditTable(sheet: "架空", headers: headers,
+            rows: [headers, lesson] + Array(repeating: saturday, count: 46), headerRow: 1)
+        let exclude = ChangeRowEdit(excluded: true)
+        let exclusions = Dictionary(uniqueKeysWithValues: (3...48).map { ($0, exclude) })
+        let saved = try XCTUnwrap(old.savedEdits(sourceIdentity: "s", digest: "old", defaultYear: 2032, edits: exclusions))
+        XCTAssertEqual(old.restore(saved, sourceIdentity: "s", digest: "old", defaultYear: 2032).edits, exclusions)
+
+        var reduced = old
+        reduced.rows[2] = ["3", "ZZ", "4/2", "", "架空教室B"]
+        let restored = reduced.restoreDetailed(saved, sourceIdentity: "s", digest: "new", defaultYear: 2032)
+        XCTAssertEqual(Set(restored.edits.keys), Set(4...48))
+        XCTAssertTrue(restored.conflicts.isEmpty)
+        XCTAssertTrue(restored.unmatched.isEmpty)
+        XCTAssertEqual(try reduced.records(edits: restored.edits, defaultYear: 2032).map(\.room), ["架空教室A", "架空教室B"])
+
+        var grown = old
+        grown.rows.append(saturday)
+        let growing = grown.restoreDetailed(saved, sourceIdentity: "s", digest: "new", defaultYear: 2032)
+        XCTAssertTrue(growing.edits.isEmpty)
+        XCTAssertEqual(growing.conflicts, Set(3...49))
+
+        var incomplete = saved
+        incomplete.entries.removeLast()
+        var mixed = saved
+        mixed.entries[0].edit.values[4] = "架空個別判断"
+        var duplicate = saved
+        duplicate.entries[1].row = duplicate.entries[0].row
+        for candidate in [incomplete, mixed, duplicate] {
+            let ambiguous = reduced.restore(candidate, sourceIdentity: "s", digest: "new", defaultYear: 2032)
+            XCTAssertTrue(ambiguous.edits.isEmpty)
+            XCTAssertEqual(ambiguous.conflicts, Set(4...48))
+        }
+
+        var withFormula = reduced
+        withFormula.cellIssues[4] = [3: .formula]
+        withFormula.cellSources[4] = [3: "/formula/FAKE()"]
+        XCTAssertEqual(Set(withFormula.restore(saved, sourceIdentity: "s", digest: "new", defaultYear: 2032).edits.keys), Set(5...48))
+        XCTAssertTrue(reduced.restore(saved, sourceIdentity: "different", digest: "new", defaultYear: 2032).edits.isEmpty)
+        XCTAssertTrue(reduced.restore(saved, sourceIdentity: "s", digest: "new", defaultYear: 2033).edits.isEmpty)
+        var otherSheet = reduced
+        otherSheet.sheet = "架空別表"
+        XCTAssertTrue(otherSheet.restore(saved, sourceIdentity: "s", digest: "new", defaultYear: 2032).edits.isEmpty)
+
+        var shared = old
+        for row in 3...48 { shared.cellSources[row] = [3: "unresolved-shared/fictional"] }
+        let sharedSaved = try shared.savedEdits(sourceIdentity: "s", digest: "old", defaultYear: 2032, edits: exclusions)
+        shared.rows.removeLast()
+        let unresolved = shared.restore(sharedSaved, sourceIdentity: "s", digest: "new", defaultYear: 2032)
+        XCTAssertTrue(unresolved.edits.isEmpty)
+        XCTAssertEqual(unresolved.conflicts, Set(3...47))
+    }
+
+    func testAmbiguousWeekdayGroupsResolveOnlySelectedRowsWithMatchingRawEvidence() throws {
+        let headers = ["学 年", "学科・クラス", "月日", "曜日"]
+        let saturday = ["", "", "", "土"]
+        let table = ChangeEditTable(sheet: "架空", headers: headers,
+            rows: [headers, ["2", "ZZ", "4/1"], saturday, saturday, saturday, saturday, saturday], headerRow: 1,
+            cellIssues: [5: [3: .formula], 6: [3: .formula]],
+            cellSources: [5: [3: "/formula/FAKEA()"], 6: [3: "/formula/FAKEB()"]])
+        let prior = try XCTUnwrap(table.savedEdits(sourceIdentity: "s", digest: "old", defaultYear: 2032,
+            edits: [3: .init(excluded: true)])).entries
+        var conflicts: Set<Int> = [3, 4, 5, 6], edits: [Int: ChangeRowEdit] = [:]
+        let problems = try table.review(edits: edits, defaultYear: 2032)
+        let groups = ChangeIssueGroup.groups(problems, table: table, edits: edits, conflicts: conflicts, previous: prior)
+        XCTAssertEqual(groups.map(\.rows), [[3, 4], [5], [6], [7]])
+        XCTAssertEqual(groups.map { $0.carryover?.offersPriorExclusion }, [true, false, false, nil])
+        try XCTUnwrap(groups.first).confirmExclusions(selecting: [4, 5, 6, 7, 100], table: table, defaultYear: 2032,
+            edits: &edits, conflicts: &conflicts)
+        XCTAssertEqual(edits, [4: .init(excluded: true)])
+        XCTAssertEqual(conflicts, [3, 5, 6])
+        XCTAssertEqual(try table.review(edits: edits, defaultYear: 2032).keys.sorted(), [3, 5, 6, 7])
+
+        var differentDecision = try XCTUnwrap(prior.first)
+        differentDecision.edit = .init(values: [3: "木"])
+        let mixedGroups = ChangeIssueGroup.groups(problems, table: table, conflicts: [3, 4], previous: prior + [differentDecision])
+        XCTAssertTrue(mixedGroups.allSatisfy { Set($0.rows).isDisjoint(with: [3, 4]) })
+    }
+
     func testCorrectionReviewIncludesMultipleFieldsAndEmptyFormulaRows() throws {
         let headers = ["学 年", "学科・クラス", "月日", "曜日", "教室"]
         let table = ChangeEditTable(sheet: "架空", headers: headers,

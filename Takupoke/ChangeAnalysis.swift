@@ -334,6 +334,7 @@ struct ChangeRowEdit: Codable, Equatable {
     // nil also decodes decisions saved before the weekday control could be turned off explicitly.
     var keepPrintedWeekday: Bool? = nil
     var isEmpty: Bool { values.isEmpty && !excluded && !deriveWeekday && keepPrintedWeekday != true }
+    var isExclusionOnly: Bool { excluded && values.isEmpty && !deriveWeekday && keepPrintedWeekday != true }
 
     mutating func chooseDateDerivedWeekday(_ derive: Bool) {
         deriveWeekday = derive
@@ -381,6 +382,11 @@ struct ChangeIssueGroup: Identifiable, Hashable {
     var optional = false
     enum Saved: Hashable { case excluded, derived, printed, field(String) }
     var saved: Saved? = nil
+    struct Carryover: Hashable {
+        let original: ChangeEdits.Original
+        let offersPriorExclusion: Bool
+    }
+    var carryover: Carryover? = nil
     var id: String {
         switch saved {
         case .excluded: return "excluded"
@@ -439,18 +445,48 @@ struct ChangeIssueGroup: Identifiable, Hashable {
         }
     }
 
-    static func groups(_ problems: [Int: [ChangeParseError]], table: ChangeEditTable, edits: [Int: ChangeRowEdit] = [:]) -> [Self] {
+    func confirmExclusions(selecting selected: Set<Int>, table: ChangeEditTable, defaultYear: Int,
+                           edits: inout [Int: ChangeRowEdit], conflicts: inout Set<Int>) {
+        guard let carryover else { return }
+        for row in rows where selected.contains(row) && conflicts.contains(row) {
+            guard row > table.headerRow, table.rows.indices.contains(row - 1), edits[row]?.isEmpty != false,
+                  table.original(at: row) == carryover.original,
+                  table.isOriginalWeekdayOnly(row, defaultYear: defaultYear) else { continue }
+            edits[row] = ChangeRowEdit(excluded: true)
+            conflicts.remove(row)
+        }
+    }
+
+    static func groups(_ problems: [Int: [ChangeParseError]], table: ChangeEditTable, edits: [Int: ChangeRowEdit] = [:],
+                       conflicts: Set<Int> = [], previous: [ChangeEdits.Entry] = []) -> [Self] {
         struct Field: Hashable { let code: ChangeParseError.Code; let column: Int; let blank: Bool }
         var groups: [Self] = []
         var fields: [Field: Int] = [:]
+        var carryovers: [ChangeEdits.Original: Int] = [:]
+        let previousByOriginal = Dictionary(grouping: previous, by: \.original)
         for row in problems.keys.sorted() {
             for issue in problems[row] ?? [] {
                 guard let column = issue.column else { continue }
                 let code: ChangeParseError.Code = issue.code == .formulaCache && issue.calculatedWeekday != nil ? .weekdayMismatch : issue.code
+                if conflicts.contains(row), code != .weekdayOnly { continue }
                 if code == .weekdayOnly {
                     let printed = ChangeNormalizer.text(issue.printedWeekday ?? "")
                     let formula = table.cellIssues[row]?[column] == .formula || table.cellIssues[row]?[column] == .formulaCache
-                    if let last = groups.last, last.code == code, last.column == column,
+                    if conflicts.contains(row) {
+                        guard edits[row]?.isEmpty != false else { continue }
+                        let original = table.original(at: row)
+                        let candidates = previousByOriginal[original] ?? []
+                        guard candidates.allSatisfy({ $0.edit.isExclusionOnly }) else { continue }
+                        if let index = carryovers[original] {
+                            groups[index].rows.append(row)
+                        } else {
+                            let prior = !candidates.isEmpty
+                                && !original.sources.values.contains { $0.hasPrefix("unresolved-shared/") }
+                            carryovers[original] = groups.count
+                            groups.append(Self(code: code, column: column, rows: [row], printed: printed,
+                                               formula: formula, carryover: Carryover(original: original, offersPriorExclusion: prior)))
+                        }
+                    } else if let last = groups.last, last.code == code, last.column == column, last.carryover == nil,
                        last.rows.last == row - 1, last.printed == printed, last.formula == formula {
                         groups[groups.count - 1].rows.append(row)
                     } else {
@@ -597,15 +633,23 @@ struct ChangeEditTable: Equatable {
             if saved.digest == digest {
                 let candidates = Set(numbers)
                 for entry in previous where candidates.contains(entry.row) { edits[entry.row] = entry.edit }
-            } else if !key.sources.values.contains(where: { $0.hasPrefix("unresolved-shared/") }),
-                      first.occurrences == numbers.count, previous.count == numbers.count,
-                      previous.allSatisfy({ $0.occurrences == first.occurrences && $0.edit == first.edit }) {
-                // Also covers one-to-one matching after insertion/reordering. A duplicate
-                // group is safe only if every old/new copy gets exactly the same decision.
-                for number in numbers { edits[number] = first.edit }
             } else {
-                conflicts.formUnion(numbers)
-                unmatched += previous
+                let oldCount = first.occurrences
+                let complete = previous.count == oldCount && Set(previous.map(\.row)).count == oldCount
+                    && previous.allSatisfy {
+                        $0.row > (saved.reviewedHeaderRow ?? 0) && $0.occurrences == oldCount && $0.edit == first.edit
+                    }
+                // With a complete uniform exclusion, every unchanged weekday-only
+                // copy that remains receives the same decision, regardless of its row number.
+                let safeSubset = numbers.count < oldCount && first.edit.isExclusionOnly
+                    && numbers.allSatisfy { isOriginalWeekdayOnly($0, defaultYear: defaultYear) }
+                if complete, !key.sources.values.contains(where: { $0.hasPrefix("unresolved-shared/") }),
+                   numbers.count == oldCount || safeSubset {
+                    for number in numbers { edits[number] = first.edit }
+                } else {
+                    conflicts.formUnion(numbers)
+                    unmatched += previous
+                }
             }
         }
         return (edits, conflicts, unmatched.sorted { $0.row < $1.row })

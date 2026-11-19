@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`6e521569865cfe64d2610996e78286f9895f0fe19993bc9b1e87c12f0fcde492`
+`717f37aa5d8746e6c55d1f44cabe761d39b198f298cd80d129d197e27e84e749`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -120,6 +120,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/ui/ApplicationChecks+Changes.swift](../../tests/ui/ApplicationChecks+Changes.swift)
 
+- `testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups`
 - `testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch`
 
 ## [tests/ui/ApplicationChecks+Events.swift](../../tests/ui/ApplicationChecks+Events.swift)

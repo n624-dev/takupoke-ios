@@ -160,6 +160,87 @@ extension ParsingTests {
 }
 
 extension ParsingTests {
+    func testLegacyAmbiguousWeekdayExclusionsCanBeConfirmedAndSavedAfterReopen() throws {
+        try temporary { root in
+            let library = try MaterialLibrary(root: root)
+            let headers = ["学 年", "学科・クラス", "月日", "曜日", "教室"]
+            let saturday = ["", "", "", "土"]
+            var rows = [headers, ["2", "ZZ", "4/1", "", "架空教室A"]] + Array(repeating: saturday, count: 46)
+            func load(_ digest: String, reuse: Bool) throws {
+                let staged = library.newStagingURL()
+                try write(workbook(rows), to: staged)
+                try library.commit(staged: staged, kind: .changes, source: MaterialSource(), originalName: "架空曜日.xlsx",
+                    byteCount: try XCTUnwrap(staged.resourceValues(forKeys: [.fileSizeKey]).fileSize),
+                    digest: digest, modifiedAt: nil, reuseUnchanged: reuse)
+            }
+            try load("one", reuse: false)
+            let id = try XCTUnwrap(library.state.record(for: .changes)?.source.selectionID)
+            let old = try library.changeEditor(year: 2032)
+            let all = Dictionary(uniqueKeysWithValues: (3...48).map { ($0, ChangeRowEdit(excluded: true)) })
+            try library.saveChangeEditor(old, year: 2032, expectedIdentity: id, expectedDigest: "one",
+                edits: all, manual: true, check: {})
+            let oldResult = try XCTUnwrap(library.state.changeAnalysis)
+            rows[2] = ["3", "ZZ", "4/2", "", "架空教室B"]
+            try load("two", reuse: true)
+            let automaticallyRestored = try library.changeEditor(year: 2032)
+            XCTAssertEqual(Set(automaticallyRestored.edits.keys), Set(4...48))
+            XCTAssertTrue(automaticallyRestored.conflicts.isEmpty)
+
+            // An earlier app already moved the active exclusions into its merged history.
+            var legacy = library.state
+            let index = try XCTUnwrap(legacy.records.firstIndex { $0.kind == .changes })
+            var personal = try XCTUnwrap(legacy.records[index].source.personalChanges)
+            personal.history = try XCTUnwrap(personal.rows).entries
+            personal.rows = nil
+            personal.reviewedDigest = "two"
+            personal.ambiguousRows = Array(4...48)
+            personal.ambiguousOriginals = (4...48).map(automaticallyRestored.table.original(at:))
+            personal.ambiguousLayout = automaticallyRestored.layout
+            legacy.records[index].source.personalChanges = personal
+            try library.persist(legacy)
+
+            let reopened = try MaterialLibrary(root: root)
+            var view = try reopened.changeEditor(year: 2032)
+            XCTAssertTrue(view.edits.isEmpty)
+            XCTAssertEqual(view.conflicts, Set(4...48))
+            let remaining = try view.table.review(edits: view.edits, defaultYear: 2032)
+            XCTAssertEqual(Set(remaining.keys).union(view.conflicts).count, 45)
+            let groups = ChangeIssueGroup.groups(remaining, table: view.table, conflicts: view.conflicts, previous: view.previous)
+            let group = try XCTUnwrap(groups.first)
+            XCTAssertEqual(groups.count, 1)
+            XCTAssertEqual(group.rows, Array(4...48))
+            XCTAssertEqual(group.carryover?.offersPriorExclusion, true)
+            group.confirmExclusions(selecting: [4, 49], table: view.table, defaultYear: 2032,
+                edits: &view.edits, conflicts: &view.conflicts)
+            XCTAssertEqual(Set(view.edits.keys), [4])
+            XCTAssertEqual(view.conflicts, Set(5...48))
+            assertCode(.staleConfirmation) {
+                try reopened.saveChangeEditor(view, year: 2032, expectedIdentity: id, expectedDigest: "two",
+                    edits: view.edits, manual: true, check: {})
+            }
+            XCTAssertEqual(try reopened.changeEditor(year: 2032).conflicts, Set(4...48))
+
+            group.confirmExclusions(selecting: Set(group.rows), table: view.table, defaultYear: 2032,
+                edits: &view.edits, conflicts: &view.conflicts)
+            XCTAssertTrue(view.conflicts.isEmpty)
+            XCTAssertThrowsError(try reopened.saveChangeEditor(view, year: 2032, expectedIdentity: id, expectedDigest: "two",
+                edits: view.edits, manual: true, check: { throw CancellationError() }))
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .sortedKeys
+            XCTAssertEqual(try encoder.encode(MaterialLibrary(root: root).state.changeAnalysis), try encoder.encode(oldResult))
+            XCTAssertEqual(try reopened.changeEditor(year: 2032).conflicts, Set(4...48))
+
+            try reopened.saveChangeEditor(view, year: 2032, expectedIdentity: id, expectedDigest: "two",
+                edits: view.edits, manual: true, check: {})
+            let accepted = try MaterialLibrary(root: root)
+            let stored = try accepted.changeEditor(year: 2032)
+            XCTAssertTrue(stored.conflicts.isEmpty)
+            XCTAssertEqual(Set(stored.edits.keys), Set(4...48))
+            XCTAssertEqual(accepted.state.changeAnalysis?.records.map(\.room), ["架空教室A", "架空教室B"])
+            XCTAssertEqual(stored.previous.count, 46)
+        }
+    }
+
     func testUnresolvedDuplicateDecisionsBelongToChosenSheet() throws {
         try temporary { root in
             let library = try MaterialLibrary(root: root)
