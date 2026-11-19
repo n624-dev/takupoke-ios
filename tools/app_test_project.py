@@ -14,6 +14,7 @@ WEEK_MOTION_INSERTIONS = (
      '\n            if let week { FixtureWeekMotionRecorder.shared.register(week: week.iso8601, body: self) }'),
     ('            case .began:', '\n                FixtureWeekMotionRecorder.shared.began(body: self)'),
     ('            case .ended:', '\n                FixtureWeekMotionRecorder.shared.released(body: self)'),
+    ('            case .failed, .cancelled:', '\n                FixtureWeekMotionRecorder.shared.cancelBadgeCapture()'),
     ('                let windowVisible = scroll.convert(visible.offsetBy(dx: scroll.bounds.minX, dy: scroll.bounds.minY), to: window)',
      '\n                FixtureWeekMotionRecorder.shared.visible = windowVisible'),
     ('        let minimum = -scroll.adjustedContentInset.left',

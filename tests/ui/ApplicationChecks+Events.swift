@@ -235,11 +235,11 @@ extension ApplicationChecks {
             let items = app.buttons.matching(NSPredicate(format: "label == %@", mode))
             var selected: (frame: CGRect, origin: CGPoint)?
             let available = expectation(for: NSPredicate { _, _ in
-                let visible = items.allElementsBoundByAccessibilityElement
                 let bounds = self.app.frame
+                let visible = items.allElementsBoundByAccessibilityElement
                 guard visible.count == 1, let item = visible.first, let snapshot = try? item.snapshot(),
-                      snapshot.label == mode, snapshot.isEnabled, self.usable(snapshot.frame),
-                      bounds.contains(snapshot.frame), item.isHittable else { return false }
+                      snapshot.elementType == .button, snapshot.label == mode, snapshot.isEnabled,
+                      self.usable(snapshot.frame), bounds.contains(snapshot.frame) else { return false }
                 selected = (snapshot.frame, bounds.origin)
                 return true
             }, evaluatedWith: items)
@@ -247,6 +247,8 @@ extension ApplicationChecks {
             guard let selected else { return }
             print("UI_COUNTDOWN_MENU label=\(mode) frame=\(selected.frame)")
             let origin = app.coordinate(withNormalizedOffset: .zero)
+            // The popup's synthesized accessibility activation point can be invalid.
+            // Deliver one physical contact to its observed frame and require its actual destination.
             origin.withOffset(CGVector(dx: selected.frame.midX - selected.origin.x,
                                        dy: selected.frame.midY - selected.origin.y)).press(forDuration: 0.1)
             screen(destination)

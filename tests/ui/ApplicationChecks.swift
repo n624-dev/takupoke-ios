@@ -49,7 +49,9 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
             "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch": ["--change-row-skip", "--fixture-input-trace"],
             "testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups": ["--change-weekday-carryover", "--fixture-input-trace"],
             "testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch": ["--countdown-notifications"],
-            "testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent": ["--events-v2", "--countdown-calendar", "--countdown-source-checking"],
+            "testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent": [
+                "--events-v2", "--countdown-calendar", "--countdown-source-checking", "--fixture-input-trace",
+            ],
         ]
         for (method, arguments) in initialConditions where name.contains(method) {
             app.launchArguments += arguments

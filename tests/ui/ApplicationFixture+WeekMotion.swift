@@ -25,9 +25,12 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     private var missingFrames: [Double] = []
     private var records: [[String: Any]] = []
     private var fingerDown = false
-    private var badgeCaptured = false
     private var badge: [String: Any] = [:]
     private var badgeImage: UIImage?
+    private var badgeFrame: CGRect?
+    private var badgeLink: CADisplayLink?
+    private var waitedForBadgeFrame = false
+    private var badgeDrawAttempts = 0
     private weak var dragBody: UIView?
     var visible = CGRect.zero
     private var enabled: Bool { ProcessInfo.processInfo.arguments.contains("--week-motion-probe") }
@@ -39,14 +42,24 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     }
     func began(body: UIView) {
         guard enabled else { return }
-        dragBody = body; fingerDown = true; badgeCaptured = false
-        badge = [:]; badgeImage = nil
+        cancelBadgeCapture()
+        dragBody = body; fingerDown = true
+        badge = [:]; badgeImage = nil; badgeFrame = nil
+        waitedForBadgeFrame = false; badgeDrawAttempts = 0
     }
     func released(body: UIView) {
         guard enabled else { return }
         releasedAt = CACurrentMediaTime()
         releasePoint = point(body)
+        cancelBadgeCapture()
+    }
+    func cancelBadgeCapture() {
         fingerDown = false
+        stopBadgeSampling()
+    }
+    private func stopBadgeSampling() {
+        badgeLink?.invalidate()
+        badgeLink = nil
     }
     func begin(source: String, target: String) {
         guard enabled else { return }
@@ -89,7 +102,8 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
             badgeImage = nil
             var record: [String: Any] = ["arrived": arrivedAt.map { $0 - releasedAt } ?? -1,
                 "finished": finishedAt.map { $0 - releasedAt } ?? -1,
-                "samples": samples, "missingGeometryFrames": missingFrames, "badge": badge]
+                "samples": samples, "missingGeometryFrames": missingFrames, "badge": badge,
+                "badgeReadyObserved": badgeFrame != nil, "badgeDrawAttempts": badgeDrawAttempts]
             if let releasePoint {
                 record["releaseX"] = Double(releasePoint.x)
                 record["releaseY"] = Double(releasePoint.y)
@@ -103,22 +117,33 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
         }
     }
     func captureBadge(frame: CGRect) {
-        guard enabled, fingerDown, !badgeCaptured, frame.width > 0, frame.height > 0 else { return }
-        badgeCaptured = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) { [weak self] in
-            guard let self, self.fingerDown, let window = self.dragBody?.window else { return }
-            func rectangle(_ value: CGRect) -> [String: Double] {
-                ["x": value.minX, "y": value.minY, "width": value.width, "height": value.height]
-            }
-            let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
-            var drewWindow = false
-            let image = renderer.image { _ in
-                drewWindow = window.drawHierarchy(in: window.bounds, afterScreenUpdates: false)
-            }
-            guard drewWindow else { return }
-            self.badgeImage = image
-            self.badge = ["frame": rectangle(frame), "visible": rectangle(self.visible)]
+        guard enabled, fingerDown, badgeImage == nil, badgeDrawAttempts < 2,
+              frame.minX.isFinite, frame.minY.isFinite, frame.width.isFinite, frame.height.isFinite,
+              frame.width > 0, frame.height > 0 else { return }
+        badgeFrame = frame
+        guard badgeLink == nil else { return }
+        let display = CADisplayLink(target: self, selector: #selector(sampleBadge))
+        badgeLink = display
+        display.add(to: .main, forMode: .common)
+    }
+
+    @objc private func sampleBadge() {
+        guard fingerDown, let frame = badgeFrame, let window = dragBody?.window else { return }
+        // Wait for a display opportunity after SwiftUI reported the ready geometry.
+        guard waitedForBadgeFrame else { waitedForBadgeFrame = true; return }
+        badgeDrawAttempts += 1
+        let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
+        var drewWindow = false
+        let image = renderer.image { _ in
+            drewWindow = window.drawHierarchy(in: window.bounds, afterScreenUpdates: false)
         }
+        if badgeDrawAttempts == 2 || drewWindow { stopBadgeSampling() }
+        guard drewWindow else { return }
+        func rectangle(_ value: CGRect) -> [String: Double] {
+            ["x": value.minX, "y": value.minY, "width": value.width, "height": value.height]
+        }
+        badgeImage = image
+        badge = ["frame": rectangle(frame), "visible": rectangle(visible)]
     }
 }
 

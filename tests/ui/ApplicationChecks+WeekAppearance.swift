@@ -96,7 +96,9 @@ extension ApplicationChecks {
             let arrived = try XCTUnwrap(record["arrived"] as? Double)
             let finished = try XCTUnwrap(record["finished"] as? Double)
             let badge = try XCTUnwrap(record["badge"] as? [String: Any])
-            XCTAssertGreaterThan(try XCTUnwrap(badge["pngBytes"] as? Int), 100)
+            let pngBytes = try XCTUnwrap(badge["pngBytes"] as? Int,
+                "Require an actual pre-release glass capture: \(observedJSON)")
+            XCTAssertGreaterThan(pngBytes, 100)
             func rect(_ key: String) throws -> CGRect {
                 let fields = try XCTUnwrap(badge[key] as? [String: Double])
                 return CGRect(x: try XCTUnwrap(fields["x"]), y: try XCTUnwrap(fields["y"]),
