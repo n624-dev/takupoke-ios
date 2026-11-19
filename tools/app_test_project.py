@@ -113,14 +113,34 @@ def rewrite_network_urls(text):
     return re.sub(r'https?://[^"\s)]+',
                   lambda match: match[0] if match[0] in namespaces else 'https://fixture.example.test', text)
 
-def instrument_timetable_date(text):
+TIMETABLE_DATE_SITES = {
+    'TimetableView.swift': (
+        '    @State private var selectedWeek = TimetableWeekSelection(date: SchoolDate.today().displayWeekStart)\n',
+        '    @State var navigationHalfAnchor = SchoolDate.today()\n',
+        '    @State var today = SchoolDate.today()\n',
+    ),
+    'TimetableView+Navigation.swift': (
+        '        let current = SchoolDate.today()\n',
+        '        today = SchoolDate.today()\n',
+    ),
+}
+
+
+def instrument_timetable_date(text, filename):
     fixture = (
         '(SimulatorAuxiliaryStoreFixture.fixedDayEnabled ? SimulatorAuxiliaryStoreFixture.day : '
         'SimulatorEventsYearFixture.enabled ? SimulatorEventsYearFixture.day : '
         '((ProcessInfo.processInfo.arguments.contains("--selection-snapshot") || '
         'ProcessInfo.processInfo.arguments.contains("--comparison")) ? SimulatorSelectionFixture.day : SchoolDate.today()))'
     )
-    return text.replace('SchoolDate.today()', fixture)
+    call = 'SchoolDate.today()'
+    sites = TIMETABLE_DATE_SITES[filename]
+    assert text.count(call) == len(sites), f'Unexpected timetable date sites in {filename}'
+    lines = text.splitlines(keepends=True)
+    for site in sites:
+        assert lines.count(site) == 1, f'Timetable date insertion point missing in {filename}: {site.strip()}'
+        lines[lines.index(site)] = site.replace(call, fixture)
+    return ''.join(lines)
 
 
 def instrument_browser_fixture(text):
@@ -300,7 +320,7 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         if path.name == 'SettingsView.swift':
             text = instrument_ai_switch(text)
         if path.name in ('TimetableView.swift', 'TimetableView+Navigation.swift'):
-            text = instrument_timetable_date(text)
+            text = instrument_timetable_date(text, path.name)
         if path.name == 'HomeTodayView.swift':
             configure = '    private func configureClock() {'
             assert text.count(configure) == 1, 'Home clock boundary insertion point missing'

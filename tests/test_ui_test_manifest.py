@@ -44,10 +44,27 @@ class ManifestTests(unittest.TestCase):
         from test_manual_input_lifecycle import block
 
         timetable = ROOT / "Takupoke/TimetableView.swift"
-        source = app_test_project.instrument_timetable_date(timetable.read_text())
+        navigation = timetable.with_name("TimetableView+Navigation.swift")
+        generated = {}
+        for path in (timetable, navigation):
+            original = path.read_text()
+            sites = app_test_project.TIMETABLE_DATE_SITES[path.name]
+            generated[path.name] = app_test_project.instrument_timetable_date(original, path.name)
+            self.assertEqual(generated[path.name].count("SimulatorSelectionFixture.day"), len(sites))
+            with self.assertRaisesRegex(AssertionError, "Unexpected timetable date sites"):
+                app_test_project.instrument_timetable_date(original + "let unreviewed = SchoolDate.today()\n", path.name)
+            for site in sites:
+                with self.assertRaisesRegex(AssertionError, "Timetable date insertion point missing"):
+                    app_test_project.instrument_timetable_date(original.replace(site, " " + site, 1), path.name)
+
+        source = generated[timetable.name]
         model = block(source, "@Observable\nprivate final class TimetableWeekSelection")
-        selected_week = re.search(r"@State private var selectedWeek = (.+)", source)
-        self.assertIsNotNone(selected_week)
+        fields = re.findall(r"^    @State (?:private )?(var \w+ = .*SimulatorSelectionFixture\.day.*)$",
+                            source, re.MULTILINE)
+        actions = re.findall(r"^        ((?:let current|today) = .*SimulatorSelectionFixture\.day.*)$",
+                             generated[navigation.name], re.MULTILINE)
+        self.assertEqual(len(fields), 3)
+        self.assertEqual(len(actions), 2)
         probe = """import Foundation
 import Observation
 
@@ -65,7 +82,11 @@ enum SimulatorEventsYearFixture {
 
 """ + model + """
 @MainActor private struct RenderedTimetable {
-    let selectedWeek = """ + selected_week.group(1) + """
+""" + "\n".join(fields) + """
+    mutating func readDates() {
+""" + "\n".join(actions) + """
+        _ = current
+    }
 }
 """
         with tempfile.TemporaryDirectory(prefix="week-selection-isolation-") as scratch:
