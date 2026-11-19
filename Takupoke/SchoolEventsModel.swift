@@ -279,8 +279,8 @@ final class SchoolEventsModel: ObservableObject {
                 if automaticEnabled {
                     candidates.append((nextBodyCheck(current, state: state, at: date), false))
                     candidates.append((nextSourceCheck(current, state: state, at: date), state.followUpAt != nil))
-                } else if let followUp = state.followUpAt {
-                    candidates.append((followUp, true))
+                } else if state.followUpAt != nil {
+                    candidates.append((nextSourceCheck(current, state: state, at: date), true))
                 }
             }
             let cached = sourceStatuses[year].flatMap { $0.matches(current) ? $0 : nil }
