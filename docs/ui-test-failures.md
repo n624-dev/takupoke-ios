@@ -5295,3 +5295,5 @@ d9918b45、run 44407326157、試行1、SDK 27.2／iOS 27.0、job 135168256057。
 d6bc639、run 44439254857・試行1、iOS 27.0.0／SDK 27.2、job 135275715625。生成・コンパイル・Simulator起動は成功。`testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups` は最初のアプリ起動後、Running Foreground待機中に `jp.n624.takupoke.app-checks crashed`（113.891秒）。起動traceは `seed-enter` まで。設定・原本差し替え・実UIには未到達。
 
 N112の当時のfixtureと現行の初期化経路を比較した。#119のfixtureは `MaterialWorker.open()` が保持する排他ロックを解放する前に、同じpathで `LocalMaterialDatabase.openLibrary()` を再実行していた。`LibraryLock` は同じファイルの二重openを `LOCK_EX | LOCK_NB` で拒否し、fixtureでは初期化エラーがプロセス終了になる。取得側の一つのライブラリを使い、元の選択・本物の保存・再起動・表示期待値と期限を保持する。
+
+同じ試行のiOS 26.5.0（135275715201）もコンパイル成功後、初回起動の `seed-enter` までで終了（37.776秒）。実画面は未到達。両ジョブ終端。固定コード差分 `b9eb4ed0396cad2278aca20823b187ca1befd191e18c445720831dce55271820` の新規GPT-6.2 Sol/Highレビューでは同じ取得所有者の再利用・元の保存検査の維持を確認した。Linuxで変更fixtureのSwift構文は成功した。
