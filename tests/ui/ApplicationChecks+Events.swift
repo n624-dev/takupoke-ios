@@ -256,7 +256,7 @@ extension ApplicationChecks {
             save.tap()
         }
         func matchingWarning() -> XCUIElement {
-            app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", warning)).firstMatch
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", warning)).firstMatch
         }
 
         fetchCurrentEvents(initial: true)
@@ -288,7 +288,7 @@ extension ApplicationChecks {
         app.launchArguments += ["--countdown-calendar-update", "--countdown-different-source"]
         launchReady()
         fetchCurrentEvents(initial: false)
-        let current = visible(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", warning)).firstMatch)
+        let current = visible(matchingWarning())
         XCTAssertTrue(current.waitForExistence(timeout: 25), app.debugDescription)
         back(to: "設定")
         openCountdown()
