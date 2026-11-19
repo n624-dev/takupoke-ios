@@ -90,10 +90,15 @@ final class SchoolEventsModel: ObservableObject {
         let retry = state?.targetMismatch == true ? Self.mismatchMessage : state?.source.retryAt != nil
             ? "元PDFの状態を確認できません。後で自動確認します。" : nil
         return .make(saved: current, cached: sourceStatuses[year], error: sourceErrors[year] ?? retry, now: now(),
-                     firstFailureAt: states[year]?.source.firstFailureAt, checking: requests[year] != nil)
+                     firstFailureAt: state?.source.firstFailureAt, checking: isChecking(year: year))
     }
 
-    func isChecking(year: Int) -> Bool { requests[year] != nil }
+    func isChecking(year: Int) -> Bool { runningRequest(year: year) != nil }
+
+    private func runningRequest(year: Int) -> Request? {
+        guard let request = requests[year], !request.task.isCancelled else { return nil }
+        return request
+    }
 
     func countdownSourceState(year: Int, at date: Date) -> CountdownAvailability {
         guard let current = saved[year], let cached = sourceStatuses[year], cached.matches(current),
@@ -225,7 +230,7 @@ final class SchoolEventsModel: ObservableObject {
         var succeeded = true
         for year in saved.keys.sorted() {
             guard !Task.isCancelled, canAccessData() else { return false }
-            let existing = requests[year]
+            let existing = runningRequest(year: year)
             guard let request = start(year: year, demand: .automatic, background: true) else { continue }
             let result = await withTaskCancellationHandler {
                 await request.task.value
@@ -275,7 +280,7 @@ final class SchoolEventsModel: ObservableObject {
         var candidates: [(Date, Bool)] = []
         for (year, current) in saved {
             guard let state = states[year] else { continue }
-            if requests[year] == nil && reachable && canAccessData() {
+            if !isChecking(year: year) && reachable && canAccessData() {
                 if automaticEnabled {
                     candidates.append((nextBodyCheck(current, state: state, at: date), false))
                     candidates.append((nextSourceCheck(current, state: state, at: date), state.followUpAt != nil))
@@ -284,8 +289,8 @@ final class SchoolEventsModel: ObservableObject {
                 }
             }
             let cached = sourceStatuses[year].flatMap { $0.matches(current) ? $0 : nil }
-            if let cached, cached.response.checking {
-                let expires = cached.receivedAt.addingTimeInterval(60)
+            if let cached {
+                let expires = cached.receivedAt.addingTimeInterval(cached.response.checking ? 60 : 43_200)
                 if expires > date { candidates.append((expires, state.followUpAt == expires)) }
             }
             let success = SchoolEventsSourceStatus.date(cached?.successfulResponse?.lastSuccessAt)
@@ -314,7 +319,7 @@ final class SchoolEventsModel: ObservableObject {
     private func start(year: Int, demand: Demand, background: Bool = false) -> Request? {
         guard ready, (active || background), reachable, canAccessData(),
               demand == .manual || saved[year] != nil else { return nil }
-        if let request = requests[year] { return request }
+        if let request = runningRequest(year: year) { return request }
         let date = now()
         var dueBody = demand == .manual
         var dueSource = demand == .manual || demand == .forcedSource

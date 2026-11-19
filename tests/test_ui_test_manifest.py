@@ -1068,6 +1068,8 @@ METHOD
             ("rows", (controls[-1],)),
             ("weekday-carryover", ("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",)),
             ("countdown-notifications", ("testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch",)),
+            ("countdown-notification-context", (manifest.VOICEOVER_TEST, "testNotificationControlsAndAppearance",
+                                                "testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch")),
             ("countdown-calendar", ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",)),
             ("rows-context", ("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover", controls[-1])),
             ("input-delivery", ("testSettingsAccountDataAndFileDetails", manifest.VOICEOVER_TEST)),

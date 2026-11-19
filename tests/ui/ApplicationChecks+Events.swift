@@ -258,6 +258,12 @@ extension ApplicationChecks {
         func matchingWarning() -> XCUIElement {
             app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", warning)).firstMatch
         }
+        func verifyExam(named title: String) {
+            let secondRange = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "実施区間 2、")).firstMatch
+            XCTAssertTrue(visible(secondRange, navigation: "予定の詳細").exists, app.debugDescription)
+            let officialName = app.staticTexts.matching(NSPredicate(format: "label == %@", "学校公表の名称、\(title)")).firstMatch
+            XCTAssertTrue(visible(officialName, navigation: "予定の詳細").exists, app.debugDescription)
+        }
 
         fetchCurrentEvents(initial: true)
         back(to: "設定")
@@ -278,8 +284,7 @@ extension ApplicationChecks {
         XCTAssertTrue(fixed.exists && fixed.isHittable, app.debugDescription)
         fixed.tap()
         screen("予定の詳細")
-        XCTAssertTrue(visible(app.staticTexts["架空の分割試験A"]).exists, app.debugDescription)
-        XCTAssertTrue(visible(app.staticTexts["実施区間 2"]).exists, app.debugDescription)
+        verifyExam(named: "架空の分割試験A")
         tab("ホーム")
         XCTAssertFalse(matchingWarning().exists, app.debugDescription)
 
@@ -296,8 +301,7 @@ extension ApplicationChecks {
         XCTAssertTrue(restored.exists && restored.isHittable, app.debugDescription)
         restored.tap()
         screen("予定の詳細")
-        XCTAssertTrue(visible(app.staticTexts["架空訂正試験B"]).exists, app.debugDescription)
-        XCTAssertTrue(visible(app.staticTexts["実施区間 2"]).exists, app.debugDescription)
+        verifyExam(named: "架空訂正試験B")
         tab("ホーム")
         XCTAssertTrue(visible(matchingWarning()).exists, app.debugDescription)
         tab("時間割")

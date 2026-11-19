@@ -16,6 +16,7 @@ on:
           - weekday-carryover
           - countdown-calendar
           - countdown-notifications
+          - countdown-notification-context
           - countdown
           - input-delivery
           - file-details

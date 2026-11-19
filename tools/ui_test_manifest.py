@@ -97,6 +97,7 @@ PROBE_GROUPS = {
     "rows": ("testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",),
     "weekday-carryover": ("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",),
     "countdown-notifications": (COUNTDOWN_NOTIFICATION_TEST,),
+    "countdown-notification-context": (VOICEOVER_TEST, "testNotificationControlsAndAppearance", COUNTDOWN_NOTIFICATION_TEST),
     "countdown-calendar": ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",),
     "countdown": ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent", COUNTDOWN_NOTIFICATION_TEST),
     "week-change-details": ("testChangedRoomInHomeWeekAndList", "testHomeTimetableAndWeekCalendar", "testMergedCardsFromAllSources"),

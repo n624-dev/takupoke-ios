@@ -1,7 +1,7 @@
 # カウントダウン・日付・通知・保存
 
 対応関係・宣言名・実行方法のSHA-256：
-`45a562b5a85b6f2013168e41de0e3b12ff96ba5bf0f698d4de0e7cbca204eea9`
+`2db86d00bea352c80fad2c1336d8df7f2656b33a6ebffd6bc9a347f3f4cb8fa6`
 
 環境：Linux Swift／iOS 26.5・27.0シミュレータ
 
@@ -35,6 +35,7 @@ TKPK_UI_RELAUNCH_PROBE=1 TKPK_UI_PROBE_CASE=countdown bash tools/test-app-ui.sh
 - `testForegroundResumesTheRemainingBudgetWithoutRepeatingTheInitialRequest`
 - `testCheckingBoundaryIsSixtySecondsAndCoalescesInFlightResponses`
 - `testDailyExpiryStartsAutomaticRequestBeforeTwelveHourCacheExpires`
+- `testOfflineCacheExpiryPublishesPresentationWithoutRequestingData`
 - `testActualMetadataRequestIsNonblockingCoalescedCachedPersistedAndFailureRetainsEvents`
 - `testActualStartupForegroundManual304AndNew200BindEachYearAndVersion`
 - `testActualOldInflightSnapshotAndCancellationCannotPublishMetadataIntoNewData`

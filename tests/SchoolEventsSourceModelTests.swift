@@ -406,6 +406,37 @@ final class SchoolEventsSourceModelTests: XCTestCase {
         XCTAssertNil(f.model.checkSource(year: 2032))
     }
 
+    func testOfflineCacheExpiryPublishesPresentationWithoutRequestingData() async throws {
+        let f = try Fixture(), clock = RetryClock()
+        defer { f.clean(); clock.cancel() }
+        f.model = f.makeModel(waitForSourceExpiry: clock.wait)
+        f.model.loadIfNeeded()
+        await f.model.checkSource(year: 2032)?.value
+        f.model.setNetworkReachable(false)
+        let lastSuccess = f.model.sourcePresentation(year: 2032)?.lastSuccessAt
+        XCTAssertNotNil(lastSuccess)
+        XCTAssertTrue(try XCTUnwrap(f.model.sourcePresentation(year: 2032)).message.contains("一致"))
+        if clock.pending.isEmpty {
+            let scheduled = expectation(description: "cached status expiry scheduled while offline")
+            clock.onScheduled = { scheduled.fulfill() }
+            await fulfillment(of: [scheduled], timeout: 5)
+            clock.onScheduled = nil
+        }
+        XCTAssertEqual(try XCTUnwrap(clock.pending.first).0, 43_200)
+        let expired = expectation(description: "visible cached status is invalidated")
+        let subscription = f.model.$sourcePresentationRevision.dropFirst().first().sink { _ in expired.fulfill() }
+        f.now.addTimeInterval(43_200); clock.advance()
+        await fulfillment(of: [expired], timeout: 5)
+        subscription.cancel()
+        let presentation = try XCTUnwrap(f.model.sourcePresentation(year: 2032))
+        XCTAssertTrue(presentation.message.contains("古く"))
+        XCTAssertEqual(presentation.lastSuccessAt, lastSuccess)
+        XCTAssertFalse(presentation.warning)
+        XCTAssertEqual(f.model.projectionBuildCount, 1)
+        XCTAssertEqual(f.network.count(path: "/events", year: 2032), 0)
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 1)
+    }
+
     private func dataFinished(_ model: SchoolEventsModel) async {
         let complete = expectation(description: "actual data operation finished")
         let subscription = model.$busy.filter { !$0 }.first().sink { _ in complete.fulfill() }
@@ -490,15 +521,19 @@ final class SchoolEventsSourceModelTests: XCTestCase {
         let old = try XCTUnwrap(f.model.checkSource(year: 2032))
         await fulfillment(of: [started], timeout: 5)
         f.model.setSourceChecksActive(false)
-        _ = await old.value
+        XCTAssertFalse(f.model.isChecking(year: 2032))
         XCTAssertNil(f.model.sourceStatuses[2032])
         f.network.updated = true
         f.network.holdStatus = false
+        // Start the next phase before awaiting the cancelled foreground owner.
         let updated = await f.model.refreshInBackground(); XCTAssertTrue(updated)
         XCTAssertEqual(f.model.saved[2032]?.payload.events.first?.title, "架空更新行事")
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 2)
         let adopted = f.model.sourceStatuses[2032]
         f.network.oldStatusVersion = true
         f.network.release()
+        let cancelledForeground = await old.value
+        XCTAssertFalse(cancelledForeground)
         XCTAssertEqual(f.model.sourceStatuses[2032], adopted)
         let cancelledStart = expectation(description: "cancellable metadata owner")
         f.network.holdStatus = true; f.network.started = cancelledStart
