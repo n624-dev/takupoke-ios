@@ -1,47 +1,53 @@
 import XCTest
 import UIKit
 
-func pressNativeTabIcon(_ title: String, in app: XCUIApplication, timeout: TimeInterval) -> Bool {
-    guard app.tabBars.firstMatch.waitForExistence(timeout: timeout) else {
-        XCTFail("Tab bar must exist: " + app.debugDescription); return false
+extension SimulatorIdentityTestCase {
+    func pressNativeTabIcon(_ title: String, in app: XCUIApplication, timeout: TimeInterval) -> Bool {
+        let deadline = ProcessInfo.processInfo.systemUptime + timeout
+        let scale = UIScreen.main.scale
+        let label = NSPredicate(format: "identifier == %@ OR label == %@", title, title)
+        var contact: CGVector?
+        var observation = "app snapshot unavailable"
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            guard ProcessInfo.processInfo.systemUptime < deadline,
+                  let root = try? app.snapshot(), let nodes = self.snapshotNodes(in: root) else { return false }
+            let bars = nodes.filter { $0.elementType == .tabBar }
+            observation = "native tab bars=\(bars.count)"
+            if bars.count > 1 { return true }
+            guard let bar = bars.first, let barNodes = self.snapshotNodes(in: bar) else { return false }
+            let buttons = barNodes.filter { $0.elementType == .button && ($0.identifier == title || $0.label == title) }
+            observation += "; matching buttons=\(buttons.count)"
+            if buttons.count > 1 { return true }
+            guard let button = buttons.first, let descendants = self.snapshotNodes(in: button) else { return false }
+            let icons = descendants.filter { $0.elementType == .image }
+            observation += "; native images=\(icons.count)"
+            if icons.count > 1 { return true }
+            guard icons.count == 1 else { return false }
+            // These frames and the enabled state come from the same AX snapshot.
+            let icon = icons[0]
+            let appFrame = root.frame, barFrame = bar.frame, buttonFrame = button.frame, iconFrame = icon.frame
+            guard ObservedScreenGeometry.usable(appFrame), ObservedScreenGeometry.usable(barFrame),
+                  ObservedScreenGeometry.usable(buttonFrame), ObservedScreenGeometry.usable(iconFrame),
+                  ObservedScreenGeometry.contains(barFrame, in: appFrame, scale: scale),
+                  ObservedScreenGeometry.contains(buttonFrame, in: barFrame, scale: scale),
+                  ObservedScreenGeometry.contains(iconFrame, in: buttonFrame, scale: scale),
+                  ObservedScreenGeometry.contains(iconFrame, in: barFrame, scale: scale),
+                  button.isEnabled, ProcessInfo.processInfo.systemUptime < deadline else { return false }
+            let liveButton = app.tabBars.element.buttons.matching(label).element
+            let identity = NSPredicate(format: "identifier == %@ AND label == %@", icon.identifier, icon.label)
+            let liveIcon = liveButton.images.matching(identity).element
+            guard liveButton.isHittable, liveIcon.isHittable,
+                  ProcessInfo.processInfo.systemUptime <= deadline else { return false }
+            let center = CGVector(dx: iconFrame.midX - appFrame.minX, dy: iconFrame.midY - appFrame.minY)
+            print("NATIVE_TAB title=\(title);bar=\(barFrame);button=\(buttonFrame);icon=\(iconFrame);contact=\(center)")
+            contact = center
+            return true
+        }, object: app)
+        guard XCTWaiter.wait(for: [ready], timeout: timeout) == .completed, let contact else {
+            XCTFail("The current tab must have one visible, operable native icon: " + observation); return false
+        }
+        // Both callers verify the selected tab after this single U63 contact.
+        app.coordinate(withNormalizedOffset: .zero).withOffset(contact).press(forDuration: 0.1)
+        return true
     }
-    let bars = app.tabBars.allElementsBoundByAccessibilityElement
-    guard bars.count == 1 else {
-        XCTFail("Tab bar must have one current native identity"); return false
-    }
-    let tabs = bars[0]
-    guard tabs.buttons[title].waitForExistence(timeout: timeout) else {
-        XCTFail("Tab button must exist: " + app.debugDescription); return false
-    }
-    let buttons = tabs.buttons.matching(NSPredicate(
-        format: "identifier == %@ OR label == %@", title, title)).allElementsBoundByAccessibilityElement
-    guard buttons.count == 1 else {
-        XCTFail("Tab button must have one current native identity"); return false
-    }
-    let button = buttons[0], barFrame = tabs.frame, buttonFrame = button.frame
-    let appFrame = app.frame
-    let scale = UIScreen.main.scale
-    guard ObservedScreenGeometry.usable(appFrame), ObservedScreenGeometry.usable(barFrame),
-        ObservedScreenGeometry.usable(buttonFrame),
-        ObservedScreenGeometry.contains(barFrame, in: appFrame, scale: scale),
-        ObservedScreenGeometry.contains(buttonFrame, in: barFrame, scale: scale),
-        button.isEnabled, button.isHittable else {
-        XCTFail("Tab has no visible native hit region: " + app.debugDescription); return false
-    }
-    let icons = button.images.allElementsBoundByAccessibilityElement
-    guard icons.count == 1, icons[0].exists else {
-        XCTFail("Tab requires one current native icon"); return false
-    }
-    let icon = icons[0], iconFrame = icon.frame
-    guard ObservedScreenGeometry.usable(iconFrame),
-        ObservedScreenGeometry.contains(iconFrame, in: buttonFrame, scale: scale),
-        ObservedScreenGeometry.contains(iconFrame, in: barFrame, scale: scale), icon.isHittable else {
-        XCTFail("Tab requires one visible native icon inside its current button: " + app.debugDescription); return false
-    }
-    let center = CGVector(dx: iconFrame.midX - appFrame.minX, dy: iconFrame.midY - appFrame.minY)
-    print("NATIVE_TAB title=\(title);bar=\(barFrame);button=\(buttonFrame);icon=\(iconFrame);contact=\(center)")
-    // Use the observed icon's center without resolving the image during input.
-    // Both callers verify the selected tab after this single U63 contact.
-    app.coordinate(withNormalizedOffset: .zero).withOffset(center).press(forDuration: 0.1)
-    return true
 }
