@@ -40,7 +40,8 @@ jobs:
         ios: ${{ fromJSON(inputs.ios == 'both' && '[26,27]' || inputs.ios == '26' && '[26]' || '[27]') }}
         case: ${{ fromJSON(inputs.case == 'all' && '["testThreeFieldsRequireEachAcknowledgementAndFourRefuses","testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground","testChangedOriginalCannotSubmitOrReplaceLastGood","testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch"]' || format('["{0}"]', inputs.case)) }}
     runs-on: ${{ matrix.ios == 26 && inputs.sdk26 == '26.6' && 'macos-26' || 'xcode-27' }}
-    timeout-minutes: ${{ matrix.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' && 45 || 35 }}
+    # Importing the iOS 26 runtime needs the same preparation budget as the formal check.
+    timeout-minutes: ${{ (matrix.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' || (matrix.ios == 26 && inputs.sdk26 != '26.6')) && 45 || 35 }}
     env:
       TKPK_EXPECTED_IOS_SDK: ${{ matrix.ios == 27 && inputs.sdk27 || inputs.sdk26 != '26.6' && inputs.sdk26 || '26.5' }}
       DEVELOPER_DIR: ${{ format('/Applications/Xcode_{0}.app/Contents/Developer', matrix.ios == 27 && inputs.sdk27 || inputs.sdk26) }}
@@ -48,7 +49,7 @@ jobs:
       TKPK_FOCUS_SDK26: ${{ inputs.sdk26 }}
       TKPK_FOCUS_SDK27: ${{ inputs.sdk27 }}
       TKPK_SIMULATOR_FRONTEND: ${{ matrix.ios == 26 && 'gui' || 'headless' }}
-      TKPK_MANUAL_RUNNER_SECONDS: ${{ matrix.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' && 2400 || 1800 }}
+      TKPK_MANUAL_RUNNER_SECONDS: ${{ (matrix.case == 'testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch' || (matrix.ios == 26 && inputs.sdk26 != '26.6')) && 2400 || 1800 }}
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_MANUAL_CASE: ${{ matrix.case }}
       TKPK_MANUAL_DIAGNOSTICS: '1'

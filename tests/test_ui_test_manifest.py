@@ -1039,7 +1039,8 @@ METHOD
         probe=(ROOT/".github/workflows/manual-input-native-probe.yml").read_text(encoding="utf-8")
         for case in original|{selected}:
             self.assertIn("          - "+case+"\n",probe)
-        self.assertIn("timeout-minutes: ${{ matrix.case == '"+selected+"' && 45 || 35 }}",probe)
+        extended_preparation = f"(matrix.case == '{selected}' || (matrix.ios == 26 && inputs.sdk26 != '26.6'))"
+        self.assertIn("timeout-minutes: ${{ " + extended_preparation + " && 45 || 35 }}",probe)
         all_cases=json.loads(re.search(r"inputs.case == 'all' && '([^']+)'",probe).group(1))
         self.assertCountEqual(all_cases,original|{selected})
         ios_input=probe.split("      ios:\n",1)[1].split("\npermissions:",1)[0]
@@ -1063,7 +1064,7 @@ METHOD
         self.assertIn("TKPK_FOCUS_IOS: ${{ inputs.ios }}",probe)
         self.assertIn("TKPK_FOCUS_SDK26: ${{ inputs.sdk26 }}",probe)
         self.assertIn("TKPK_FOCUS_SDK27: ${{ inputs.sdk27 }}",probe)
-        self.assertIn("TKPK_MANUAL_RUNNER_SECONDS: ${{ matrix.case == '"+selected+"' && 2400 || 1800 }}",probe)
+        self.assertIn("TKPK_MANUAL_RUNNER_SECONDS: ${{ " + extended_preparation + " && 2400 || 1800 }}",probe)
         budget='python3 -B tools/timed_command.py --timeout "$TKPK_MANUAL_RUNNER_SECONDS" --cleanup-grace 120 "Focused manual preparation and UI runner" bash -euo pipefail -c'
         self.assertIn(budget,probe)
         self.assertLess(probe.index(budget),probe.index('python3 -B tools/select-ci-xcode.py'))
