@@ -484,13 +484,18 @@ PREWARMING
 @main struct Probe {
     @MainActor
     static func main() {
-        FixtureBrowserPrewarming.startIfNeeded()
-        FixtureBrowserPrewarming.startIfNeeded()
+        let arguments = ProcessInfo.processInfo.arguments
+        let prewarm = !arguments.contains("--factory-only")
+        if prewarm {
+            FixtureBrowserPrewarming.startIfNeeded()
+            FixtureBrowserPrewarming.startIfNeeded()
+        }
+        if arguments.contains("--prewarm-only") { return }
         let controller = SafariLinkView().makeUIViewController(context: Context())
-        let fixture = ProcessInfo.processInfo.arguments.contains("--loopback-browser-fixture")
-        precondition(SFSafariViewController.prewarmed == (fixture ? [controller.url] : []))
-        precondition(FixtureLaunchDiagnostics.stages ==
-                     (fixture ? ["browser-prewarm-requested", "browser-controller-created"] : ["browser-controller-created"]))
+        let hasPrewarmed = prewarm && arguments.contains("--loopback-browser-fixture")
+        precondition(SFSafariViewController.prewarmed == (hasPrewarmed ? [controller.url] : []))
+        let expectedStages = (hasPrewarmed ? ["browser-prewarm-requested"] : []) + ["browser-controller-created"]
+        precondition(FixtureLaunchDiagnostics.stages == expectedStages)
         print(controller.url.absoluteString)
     }
 }
@@ -506,7 +511,7 @@ PREWARMING
                                     "-module-cache-path", str(root / "modules"), str(path), "-o", str(binary)],
                                    capture_output=True, text=True, timeout=60)
             self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
-            def run(raw, fixture=True, original=None):
+            def run(raw, fixture=True, original=None, mode=None):
                 environment = os.environ.copy()
                 environment.pop("TKPK_BROWSER_FIXTURE_URL", None)
                 environment.pop("ORIGINAL_BROWSER_URL", None)
@@ -514,8 +519,12 @@ PREWARMING
                     environment["ORIGINAL_BROWSER_URL"] = original
                 if raw is not None:
                     environment["TKPK_BROWSER_FIXTURE_URL"] = raw
-                return subprocess.run([str(binary)] + (["--loopback-browser-fixture"] if fixture else []),
-                                      env=environment, cwd=root, capture_output=True, text=True, timeout=10,
+                arguments = [str(binary)]
+                if fixture:
+                    arguments.append("--loopback-browser-fixture")
+                if mode is not None:
+                    arguments.append(mode)
+                return subprocess.run(arguments, env=environment, cwd=root, capture_output=True, text=True, timeout=10,
                                       preexec_fn=lambda: resource.setrlimit(resource.RLIMIT_CORE, (0, 0)))
             valid = "http://127.0.0.1:23456/fictional-link"
             actual = run(valid)
@@ -524,13 +533,16 @@ PREWARMING
             unchanged = run(valid, fixture=False)
             self.assertEqual(unchanged.returncode, 0, unchanged.stderr)
             self.assertEqual(unchanged.stdout.strip(), "https://fixture.example.test")
-            self.assertNotEqual(run(valid, original="https://wrong.fixture.test").returncode, 0)
+            self.assertEqual(run(valid, mode="--factory-only").returncode, 0)
+            self.assertEqual(run(valid, mode="--prewarm-only").returncode, 0)
+            self.assertNotEqual(run(valid, original="https://wrong.fixture.test", mode="--factory-only").returncode, 0)
             for invalid in (None, "https://127.0.0.1:23456/fictional-link",
                             "http://localhost:23456/fictional-link", "http://127.0.0.1/fictional-link",
                             "http://127.0.0.1:0/fictional-link", "http://127.0.0.1:23456/other",
                             valid + "?q=1", valid + "#fragment", "http://u:p@127.0.0.1:23456/fictional-link"):
                 with self.subTest(url=invalid):
-                    self.assertNotEqual(run(invalid).returncode, 0)
+                    for mode in ("--factory-only", "--prewarm-only"):
+                        self.assertNotEqual(run(invalid, mode=mode).returncode, 0, mode)
 
     def test_link_menu_observes_one_press_before_diagnostics_and_never_accepts_timeout(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
