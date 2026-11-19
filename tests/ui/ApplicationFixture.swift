@@ -267,11 +267,11 @@ struct SimulatorApplication: App {
         let period = SchoolDataPeriod.current()
         if ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
             try SchoolDataRetention(root: base).replace(with: period)
+            let countdown = base.appendingPathComponent("Countdown.json")
+            if FileManager.default.fileExists(atPath: countdown.path) { try FileManager.default.removeItem(at: countdown) }
             if ProcessInfo.processInfo.arguments.contains("--countdown-calendar") {
-                for name in ["SchoolEventsAPI", "Countdown.json"] {
-                    let fixture = base.appendingPathComponent(name)
-                    if FileManager.default.fileExists(atPath: fixture.path) { try FileManager.default.removeItem(at: fixture) }
-                }
+                let fixture = base.appendingPathComponent("SchoolEventsAPI")
+                if FileManager.default.fileExists(atPath: fixture.path) { try FileManager.default.removeItem(at: fixture) }
             }
             if let domain = Bundle.main.bundleIdentifier { defaults.removePersistentDomain(forName: domain) }
         }
