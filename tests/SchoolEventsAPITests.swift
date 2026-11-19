@@ -3,34 +3,90 @@ import XCTest
 @testable import TakupokeParsing
 
 #if canImport(SwiftUI)
+import CryptoKit
+
 private final class EventsProjectionTransport: URLProtocol {
     enum Mode: Equatable { case cached, updated, failure }
     private static let lock = NSLock()
     private static var mode = Mode.cached
+    private static var bodyResponses: [Int: [Int]] = [:]
+    static let savedAt = Date(timeIntervalSince1970: 1_965_000_000)
     static func set(_ value:Mode) { lock.lock(); mode = value; lock.unlock() }
+    static func reset() {
+        lock.lock(); defer { lock.unlock() }
+        mode = .cached
+        bodyResponses.removeAll()
+    }
+
+    static func responses(year: Int) -> [Int] {
+        lock.lock(); defer { lock.unlock() }
+        return bodyResponses[year] ?? []
+    }
+
+    static func payload(year: Int, updated: Bool = false) -> SchoolEventsPayload {
+        SchoolEventsPayload(version: "v1", schoolYear: year, sourcePdfSha256: String(repeating: updated ? "b" : "a", count: 64),
+            sourcePdfETag: nil, events: [.init(startDate: "\(year)-04-01", endDate: "\(year)-04-01",
+                title: updated ? "架空更新行事" : "架空保存行事\(year)", tag: "行事")])
+    }
+
+    static func body(_ payload: SchoolEventsPayload) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        return try encoder.encode(payload)
+    }
+
+    static func version(_ body: Data) -> String {
+        "sha256-" + SHA256.hash(data: body).map { String(format: "%02x", $0) }.joined()
+    }
     override class func canInit(with request:URLRequest) -> Bool { true }
     override class func canonicalRequest(for request:URLRequest) -> URLRequest { request }
     override func stopLoading() {}
     override func startLoading() {
-        guard let url = request.url, url.host == "events.example.invalid", url.path == "/events",
+        guard let url = request.url, url.host == "events.example.invalid",
+              ["/events", "/events/source-status"].contains(url.path),
               request.httpMethod == "GET", let components = URLComponents(url:url,resolvingAgainstBaseURL:false),
               components.queryItems?.count == 1, let query = components.queryItems?.first,
-              query.name == "schoolYear", let year = query.value.flatMap(Int.init), [2032,2033].contains(year),
-              let etag = request.value(forHTTPHeaderField:"If-None-Match") else {
+              query.name == "schoolYear", let year = query.value.flatMap(Int.init), [2032,2033].contains(year) else {
             client?.urlProtocol(self,didFailWithError:URLError(.unsupportedURL)); return
         }
         Self.lock.lock(); let mode = Self.mode; Self.lock.unlock()
-        var status = 304, data = Data(), responseETag = etag
-        if year == 2032 && mode == .failure { status = 503 }
-        if year == 2032 && mode == .updated {
-            status = 200; responseETag = "\"next-2032\""
-            let payload = SchoolEventsPayload(version:"v1",schoolYear:year,sourcePdfSha256:String(repeating:"b",count:64),sourcePdfETag:nil,
-                events:[.init(startDate:"2032-04-01",endDate:"2032-04-01",title:"架空更新行事",tag:"行事")])
-            do { data = try JSONEncoder().encode(payload) }
-            catch { client?.urlProtocol(self,didFailWithError:error); return }
+        let updated = year == 2032 && mode != .cached
+        let payload = Self.payload(year: year, updated: updated)
+        var status = 200, data = Data(), headers = ["Content-Type": "application/json"]
+        do {
+            if url.path == "/events/source-status" {
+                let observedAt = ISO8601DateFormatter().string(from: Self.savedAt.addingTimeInterval(updated ? 3_600 : 0))
+                let source = SchoolEventsSourceStatus(version: "v1", schoolYear: year,
+                    dataVersion: Self.version(try Self.body(payload)), adoptedSourcePdfSha256: payload.sourcePdfSha256,
+                    status: .matched, lastSuccessfulStatus: .matched, lastSuccessAt: observedAt, lastAttemptAt: observedAt,
+                    nextAttemptAt: nil, checking: false, stale: false)
+                data = try JSONEncoder().encode(source)
+            } else {
+                let validator = year == 2032 && mode == .failure ? "\"next-2032\"" : "\"initial-\(year)\""
+                guard request.value(forHTTPHeaderField: "If-None-Match") == validator else {
+                    throw URLError(.unsupportedURL)
+                }
+                switch (updated, mode) {
+                case (true, .updated):
+                    headers["ETag"] = "\"next-2032\""
+                    data = try Self.body(payload)
+                case (true, .failure): status = 503
+                default:
+                    status = 304
+                    headers["ETag"] = validator
+                }
+            }
+        } catch {
+            client?.urlProtocol(self, didFailWithError: error)
+            return
+        }
+        if url.path == "/events" {
+            Self.lock.lock()
+            Self.bodyResponses[year, default: []].append(status)
+            Self.lock.unlock()
         }
         client?.urlProtocol(self,didReceive:HTTPURLResponse(url:url,statusCode:status,httpVersion:"HTTP/1.1",
-            headerFields:["ETag":responseETag,"Content-Type":"application/json"])!,cacheStoragePolicy:.notAllowed)
+            headerFields:headers)!,cacheStoragePolicy:.notAllowed)
         client?.urlProtocol(self,didLoad:data); client?.urlProtocolDidFinishLoading(self)
     }
 }
@@ -40,35 +96,54 @@ final class SchoolEventsAPITests: XCTestCase {
 #if canImport(SwiftUI)
     @MainActor func testActualEventsModelCachesProjectionAcrossReads304FailureAndStoreReload() async throws {
         let base = FileManager.default.temporaryDirectory.appendingPathComponent("events-projection-"+UUID().uuidString)
-        defer { try? FileManager.default.removeItem(at:base); EventsProjectionTransport.set(.cached) }
+        EventsProjectionTransport.reset()
+        defer { try? FileManager.default.removeItem(at:base); EventsProjectionTransport.reset() }
         let store = try SchoolEventsStore(root:base.appendingPathComponent("SchoolEventsAPI"))
+        let savedAt = EventsProjectionTransport.savedAt
+        var now = savedAt
         for year in [2032,2033] {
-            try store.save(fictionalPayload(year:year,title:"架空保存行事\(year)"),apiETag:"\"initial-\(year)\"",fetchedAt:Date(timeIntervalSince1970:1_965_000_000))
+            let payload = EventsProjectionTransport.payload(year: year)
+            try store.save(payload, apiETag: "\"initial-\(year)\"", fetchedAt: savedAt,
+                responseDataVersion: EventsProjectionTransport.version(try EventsProjectionTransport.body(payload)))
         }
         let model = SchoolEventsModel(storeRoot:base,eventsEndpoint:URL(string:"https://events.example.invalid/events")!,preferredFormat: .v1,makeSession:{
             let configuration = URLSessionConfiguration.ephemeral
             configuration.protocolClasses = [EventsProjectionTransport.self]; configuration.urlCache = nil
             return URLSession(configuration:configuration)
-        })
+        }, now: { now }, startsActive: false)
         model.loadIfNeeded(); XCTAssertTrue(model.ready); XCTAssertEqual(model.projectionBuildCount,1)
         let first = try XCTUnwrap(model.analysis), generation = model.scheduleGeneration
         for _ in 0..<1000 { XCTAssertEqual(model.analysis?.events,first.events) }
         XCTAssertEqual(model.projectionBuildCount,1)
-        EventsProjectionTransport.set(.cached)
         let notModified = await model.refreshInBackground()
         XCTAssertTrue(notModified); XCTAssertEqual(model.projectionBuildCount,1); XCTAssertEqual(model.scheduleGeneration,generation)
+        XCTAssertEqual(EventsProjectionTransport.responses(year: 2032), [304])
+        XCTAssertEqual(model.saved[2032]?.lastEventsCheckedAt, now)
+        now.addTimeInterval(3_599)
+        let stillFresh = await model.refreshInBackground()
+        XCTAssertTrue(stillFresh)
+        XCTAssertEqual(EventsProjectionTransport.responses(year: 2032), [304])
+        XCTAssertEqual(EventsProjectionTransport.responses(year: 2033), [304])
+        now.addTimeInterval(1)
         EventsProjectionTransport.set(.updated)
         let updated = await model.refreshInBackground()
         XCTAssertTrue(updated); XCTAssertEqual(model.projectionBuildCount,2); XCTAssertNotEqual(model.scheduleGeneration,generation)
+        XCTAssertEqual(EventsProjectionTransport.responses(year: 2032), [304, 200])
         XCTAssertEqual(model.analysis?.events.map(\.title),["架空更新行事","架空保存行事2033"])
         let current = model.analysis, currentGeneration = model.scheduleGeneration
+        let confirmedAt = now
+        now.addTimeInterval(3_600)
         EventsProjectionTransport.set(.failure)
         let failed = await model.refreshInBackground()
-        XCTAssertFalse(failed); XCTAssertTrue(model.failed); XCTAssertEqual(model.projectionBuildCount,2)
+        XCTAssertFalse(failed); XCTAssertFalse(model.failed); XCTAssertEqual(model.projectionBuildCount,2)
+        XCTAssertEqual(EventsProjectionTransport.responses(year: 2032), [304, 200, 503])
+        XCTAssertEqual(EventsProjectionTransport.responses(year: 2033), [304, 304, 304])
+        XCTAssertNil(model.sourceCheckMessage)
+        XCTAssertEqual(model.saved[2032]?.lastEventsCheckedAt, confirmedAt)
         XCTAssertEqual(model.scheduleGeneration,currentGeneration); XCTAssertEqual(model.analysis?.events,current?.events)
-        let reopened = SchoolEventsModel(storeRoot:base)
+        let reopened = SchoolEventsModel(storeRoot:base, startsActive: false)
         reopened.loadIfNeeded(); XCTAssertEqual(reopened.analysis?.events,current?.events)
-        XCTAssertEqual(reopened.saved[2033]?.fetchedAt,Date(timeIntervalSince1970:1_965_000_000))
+        XCTAssertEqual(reopened.saved[2033]?.fetchedAt,savedAt)
     }
 #endif
     func testNearLimitPayloadRemainsReadableAfterSavingItsMetadataEnvelope() throws {
