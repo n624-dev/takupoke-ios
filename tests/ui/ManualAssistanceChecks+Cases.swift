@@ -48,7 +48,7 @@ extension ManualAssistanceChecks {
         guard let ids=fieldIDs(expectedCount:3) else { return }
         for i in 0..<3 {
             let input=input(ids[i]);edit(input,"架空手確認\(i)",id:ids[i])
-            XCTAssertFalse(visibleAcknowledgement(ids[i]).isSelected);acknowledge(ids[i])
+            acknowledge(ids[i])
             assertSubmitEnabled(i==2)
         }
         tapSubmit();requireReview((0..<3).map { "架空手確認\($0)" },comparable:true)

@@ -1,6 +1,12 @@
 import XCTest
 import UIKit
 
+struct ManualButtonObservation {
+    let frame: CGRect
+    let viewport: CGRect
+    let isSelected: Bool
+}
+
 extension ManualAssistanceChecks {
     func observedKeyboardFrame()->CGRect? {
         // An optional, absent firstMatch can stall AX instead of returning
@@ -12,7 +18,7 @@ extension ManualAssistanceChecks {
         XCTAssertTrue(ManualScrollNavigation.usable(frame),"Present keyboard must have finite positive geometry")
         return frame
     }
-    func visible(_ e:XCUIElement,towardTop:Bool=false,knownID:String="",alternatives:XCUIElementQuery?=nil,buttonLabel:String?=nil,ownerID:String="manual-recovery-list",barTitle:String="時間割の復旧")->XCUIElement {
+    func visible(_ e:XCUIElement,towardTop:Bool=false,knownID:String="",alternatives:XCUIElementQuery?=nil,buttonLabel:String?=nil,ownerID:String="manual-recovery-list",barTitle:String="時間割の復旧",observeButton:((ManualButtonObservation)->Void)?=nil)->XCUIElement {
         let started = ProcessInfo.processInfo.systemUptime
         var attempts = 0
         defer {
@@ -94,7 +100,15 @@ extension ManualAssistanceChecks {
                 frame:{ $0.frame },isHittable:{ $0.element.isHittable }) { return actual.element }
             let exists=observed.map { !$0.isEmpty } ?? !matches.isEmpty
             let targetFrame:CGRect?
+            var buttonSnapshot: (any XCUIElementSnapshot)?
             if let observed { targetFrame=observed.first?.frame }
+            else if exists, observeButton != nil {
+                guard let snapshot = try? target.snapshot() else {
+                    XCTFail("Could not observe the current native Button: " + targetID);return e
+                }
+                buttonSnapshot = snapshot
+                targetFrame = snapshot.frame
+            }
             else { targetFrame=exists ? target.frame:nil }
             if alternatives==nil && exists {
                 print("TAKUPOKE-MANUAL-TARGET id=\(targetID);frame=\(targetFrame ?? .null);viewport=\(viewport)")
@@ -114,6 +128,14 @@ extension ManualAssistanceChecks {
                     return target
                 }
                 if let ordinaryButton {
+                    if let snapshot = buttonSnapshot, let observeButton {
+                        guard snapshot.elementType == .button, snapshot.identifier == targetID,
+                              snapshot.label == ordinaryButton, snapshot.isEnabled, target.isHittable else {
+                            XCTFail("The current native Button must match its identity and be operable");return e
+                        }
+                        observeButton(.init(frame:targetFrame,viewport:viewport,isSelected:snapshot.isSelected))
+                        return target
+                    }
                     guard target.label == ordinaryButton,target.isEnabled,target.isHittable else {
                         XCTFail("The current list button must match its label and be operable");return e
                     }

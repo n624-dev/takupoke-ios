@@ -4,32 +4,23 @@ import UIKit
 extension ManualAssistanceChecks {
     var submit:XCUIElement { recoveryList.buttons["manual-submit"] }
     func input(_ id:String)->XCUIElement { recoveryList.descendants(matching:.any)["manual-value-"+id].firstMatch }
-    func visibleAcknowledgement(_ id: String) -> XCUIElement {
+    func visibleAcknowledgement(_ id: String) -> ManualButtonObservation? {
         let identifier = "manual-ack-" + id
-        return visible(recoveryList.buttons[identifier], knownID: identifier, buttonLabel: "原本と一致することを確認")
+        var observation: ManualButtonObservation?
+        _ = visible(recoveryList.buttons[identifier], knownID: identifier, buttonLabel: "原本と一致することを確認") {
+            observation = $0
+        }
+        return observation
     }
     func acknowledge(_ id:String) {
         let identifier = "manual-ack-" + id
-        let button = visibleAcknowledgement(id)
-        let list=app.collectionViews["manual-recovery-list"]
-        let navigation=app.navigationBars["時間割の復旧"]
-        let keyboardFrame=observedKeyboardFrame()
         let appFrame=app.frame
-        let listFrame=list.frame
-        let top=max(listFrame.minY,navigation.frame.maxY)+12
-        let bottom=min(listFrame.maxY,keyboardFrame.map { $0.minY-45 } ?? listFrame.maxY)-12
-        let viewport=CGRect(x:listFrame.minX,y:top,width:listFrame.width,height:max(0,bottom-top))
-        let frame = button.frame
-        guard ManualScrollNavigation.usable(frame), ManualScrollNavigation.usable(appFrame),
-              appFrame.contains(frame), viewport.contains(frame) else {
-            print("TAKUPOKE-MANUAL-ACK invalid-hit-region;frame=\(frame);viewport=\(viewport)")
-            XCTFail(app.debugDescription);return
+        guard let observed = visibleAcknowledgement(id), ManualScrollNavigation.usable(appFrame),
+              appFrame.contains(observed.frame), !observed.isSelected, app.state == .runningForeground else {
+            XCTFail("The unique native acknowledgement must be contained, operable and unchecked: " + id);return
         }
-        let enabled = button.isEnabled, hittable = button.isHittable, selected = button.isSelected
-        print("TAKUPOKE-MANUAL-ACK before;id=\(id);frame=\(frame);enabled=\(enabled);hittable=\(hittable);selected=\(selected);app=\(appFrame);viewport=\(viewport)")
-        guard enabled, hittable, !selected, app.state == .runningForeground else {
-            XCTFail("The unique native acknowledgement must be operable and unchecked");return
-        }
+        let frame = observed.frame
+        print("TAKUPOKE-MANUAL-ACK before;id=\(id);frame=\(frame);enabled=true;hittable=true;selected=false;app=\(appFrame);viewport=\(observed.viewport)")
         let center = CGPoint(x: frame.midX, y: frame.midY)
         do {
             try NativeTestContacts.send([.init(start: center, end: center, duration: 0.1, pauseAfterLift: 0)],
