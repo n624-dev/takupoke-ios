@@ -50,7 +50,7 @@ final class SchoolEventsModel: ObservableObject {
     private var requests: [Int: Request] = [:]
     private var states: [Int: SchoolEventsRefreshState] = [:]
     private var store: SchoolEventsStore?
-    private var active = true
+    private var active: Bool
     private var reachable = true
     private var automaticEnabled = false
     private var wakeup: Task<Void, Never>?
@@ -66,12 +66,13 @@ final class SchoolEventsModel: ObservableObject {
              try await Task.sleep(nanoseconds: UInt64(min(max(seconds, 0), 86_400) * 1_000_000_000))
          }, waitForSourceRetry: @escaping (TimeInterval) async throws -> Void = { seconds in
              try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-         }, canAccessData: @escaping () -> Bool = { true }) {
+         }, canAccessData: @escaping () -> Bool = { true }, startsActive: Bool = true) {
         self.storeRoot = storeRoot; self.eventsEndpoint = eventsEndpoint
         self.preferredFormat = preferredFormat
         self.makeSession = makeSession ?? { Self.eventsSession() }; self.now = now
         self.waitForSourceExpiry = waitForSourceExpiry; self.waitForSourceRetry = waitForSourceRetry
         self.canAccessData = canAccessData
+        self.active = startsActive
     }
 
     var cacheWarning: String? { SchoolEventsAvailableLoad.warning(for: failedCacheYears) }
@@ -97,10 +98,10 @@ final class SchoolEventsModel: ObservableObject {
     func countdownSourceState(year: Int, at date: Date) -> CountdownAvailability {
         guard let current = saved[year], let cached = sourceStatuses[year], cached.matches(current),
               let observation = cached.successfulResponse,
-              let time = SchoolEventsSourceStatus.date(observation.lastSuccessAt), time <= date else { return .sourcePending }
+              let time = SchoolEventsSourceStatus.date(observation.lastSuccessAt), time <= cached.receivedAt else { return .sourcePending }
         if observation.lastSuccessfulStatus == .source_differs { return .sourceDifference }
         guard states[year]?.targetMismatch != true, observation.lastSuccessfulStatus == .matched,
-              !cached.response.stale, date.timeIntervalSince(time) < 86_400 else { return .sourcePending }
+              !cached.response.stale, time <= date, date.timeIntervalSince(time) < 86_400 else { return .sourcePending }
         return .available
     }
 
@@ -353,7 +354,8 @@ final class SchoolEventsModel: ObservableObject {
     private func refresh(year: Int, body: Bool, source: Bool, demand: Demand, background: Bool) async -> Bool {
         var checkedBody = false
         var bodySucceeded = true
-        if body || (source && states[year]?.deferredReconciliation == true) {
+        let retryAllowsReconciliation = states[year]?.body.retryAt.map { $0 <= now() } ?? true
+        if body || (source && states[year]?.deferredReconciliation == true && retryAllowsReconciliation) {
             checkedBody = true
             bodySucceeded = await confirmBody(year: year, manual: demand == .manual)
         }
@@ -379,7 +381,7 @@ final class SchoolEventsModel: ObservableObject {
         }
 
         do {
-            let status = try await readSource(year: year, format: current.payload.format)
+            let status = try await readSource(year: year, format: state.target.format ?? .v1)
             guard !Task.isCancelled, canAccessData() else { return false }
             let differs = status.matches(current) && status.lastSuccessfulStatus == .source_differs &&
                 SchoolEventsSourceStatus.date(status.lastSuccessAt).map { $0 <= now() && $0 > (state.differenceCheckedAt ?? .distantPast) } == true
@@ -403,6 +405,14 @@ final class SchoolEventsModel: ObservableObject {
                 return bodySucceeded && status.matches(current)
             }
 
+            if !checkedBody && !retryAllowsReconciliation {
+                if var updated = states[year] {
+                    updated.deferredReconciliation = true
+                    record(updated)
+                    if !status.matches(current) { recordSourceFailure(updated, message: Self.mismatchMessage) }
+                }
+                return false
+            }
             if !checkedBody { bodySucceeded = await confirmBody(year: year, manual: false) }
             guard !Task.isCancelled, canAccessData(), let updated = saved[year] else { return false }
             if current.payload.format == updated.payload.format, status.matches(updated) {
@@ -410,7 +420,7 @@ final class SchoolEventsModel: ObservableObject {
                 return bodySucceeded
             }
             // One recheck after the body recovery. Never re-enter this path for its response.
-            let rechecked = try await readSource(year: year, format: updated.payload.format)
+            let rechecked = try await readSource(year: year, format: SchoolEventsSourceTarget(updated).format ?? .v1)
             guard !Task.isCancelled, canAccessData() else { return false }
             guard rechecked.matches(updated) else {
                 if let state = states[year] { recordSourceFailure(state, message: Self.mismatchMessage) }
@@ -440,10 +450,11 @@ final class SchoolEventsModel: ObservableObject {
             throw SchoolEventsError.unavailable
         }
         let date = now()
+        let observation = SchoolEventsSourceStatus.date(status.lastSuccessAt)
+        guard observation.map({ $0 <= date }) != false else { throw SchoolEventsError.invalidResponse }
         let previous = sourceStatuses[status.schoolYear]
         let cached = SavedSchoolEventsSourceStatus(receivedAt: date, response: status, requestedTarget: state.target, previous: previous)
         try store.saveSourceStatus(cached)
-        let observation = SchoolEventsSourceStatus.date(status.lastSuccessAt)
         let eligible = !status.checking && !status.stale && cached.previousSuccess == nil &&
             (status.status == .matched || status.status == .source_differs) &&
             SchoolEventsSourceStatus.date(status.nextAttemptAt).map { $0 > date } != false &&

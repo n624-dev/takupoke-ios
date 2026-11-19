@@ -203,14 +203,19 @@ final class CountdownModel: ObservableObject {
         }
     }
 
-    func expirePrivateNotices() async {
+    func expirePrivateNotices(removeDelivered: Bool) async {
         cards.removeAll { $0.isPrivate }
-        planNotifications(at: Date())
+        // Cold launch can reach retention before the public/personal cards are
+        // loaded. Cancel an old plan without reconciling against that empty list.
+        revision = UUID()
+        request = nil
         await worker?.value
         let pending = await center.pendingNotificationRequests().map(\.identifier).filter { $0.hasPrefix(CountdownNotice.privatePrefix) }
-        let delivered = await center.deliveredNotifications().map(\.request.identifier).filter { $0.hasPrefix(CountdownNotice.privatePrefix) }
         center.removePendingNotificationRequests(withIdentifiers: pending)
-        center.removeDeliveredNotifications(withIdentifiers: delivered)
+        if removeDelivered {
+            let delivered = await center.deliveredNotifications().map(\.request.identifier).filter { $0.hasPrefix(CountdownNotice.privatePrefix) }
+            center.removeDeliveredNotifications(withIdentifiers: delivered)
+        }
     }
 
     private func planNotifications(at now: Date) {

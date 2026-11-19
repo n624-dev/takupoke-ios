@@ -12,7 +12,7 @@ final class ApplicationData: ObservableObject {
     let recovery = PDFRecoveryCoordinator()
     let materials = MaterialsModel()
     let specialSchedules = SpecialSchedulesModel()
-    let schoolEvents = SchoolEventsModel(canAccessData: { UIApplication.shared.isProtectedDataAvailable })
+    let schoolEvents = SchoolEventsModel(canAccessData: { UIApplication.shared.isProtectedDataAvailable }, startsActive: false)
     let mappings = MappingModel()
     let links = LinksModel()
     let times = TimetableTimesModel()
@@ -63,6 +63,7 @@ final class ApplicationData: ObservableObject {
         mappings.$current.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         homeClock.$epoch.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
+            .receive(on: RunLoop.main)
             .map { _ in
                 let defaults = UserDefaults.standard
                 return [defaults.string(forKey: "timetableSelectedClasses") ?? "", String(defaults.bool(forKey: "timetableInternationalStudent"))]
@@ -159,8 +160,8 @@ final class ApplicationData: ObservableObject {
         homeClock.suspend()
         recovery.cancel()
         setFileMonitoring(false)
+        await countdown.expirePrivateNotices(removeDelivered: resetNotifications)
         if resetNotifications {
-            await countdown.expirePrivateNotices()
             await notifications.resetForRetention()
         }
         else { await notifications.suspendForUnavailableData() }

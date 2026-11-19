@@ -95,8 +95,10 @@ struct SchoolEventsRetry: Codable, Equatable {
     }
 
     var isValid: Bool {
-        (0...3).contains(consecutiveFailures) &&
-            [firstFailureAt, lastAttemptAt, retryAt].compactMap { $0 }.allSatisfy { $0.timeIntervalSince1970.isFinite }
+        if consecutiveFailures == 0 { return firstFailureAt == nil && lastAttemptAt == nil && retryAt == nil }
+        guard (1...3).contains(consecutiveFailures), let firstFailureAt, let lastAttemptAt, let retryAt,
+              firstFailureAt <= lastAttemptAt, firstFailureAt.timeIntervalSince1970.isFinite else { return false }
+        return retryAt.timeIntervalSince(lastAttemptAt) == [900, 1800, 3600][consecutiveFailures - 1]
     }
 }
 
@@ -199,7 +201,9 @@ struct SchoolEventsSourcePresentation {
             now.timeIntervalSince($0) >= 48 * 60 * 60
         } == true
         let warning: String?
-        if success != nil, successful?.lastSuccessfulStatus == .source_differs {
+        if successful?.lastSuccessfulStatus == .source_differs,
+           let observed = SchoolEventsSourceStatus.date(successful?.lastSuccessAt),
+           let cached, observed <= cached.receivedAt {
             warning = description(.source_differs)
         } else if longUnconfirmed {
             warning = "学校行事の更新確認がしばらくできていません。保存済みの行事を表示しています。"
