@@ -66,6 +66,21 @@ Windows でシェルスクリプトを変更した場合は Git Bash で `bash -
 
 テストは架空の IPA を OS の一時ディレクトリに作成し、正常終了・テスト失敗のどちらでも後片付けします。`-B` は Python のバイトコードキャッシュ作成を抑止します。これらのテストは実際の SwiftUI ビルドや AltStore インストールの代わりにはなりません。
 
+### UIテスト用ソースの変更を確認する
+
+生成器と対象テストを調べ、SwiftをPATHに追加した環境で関連する検査を実行します。
+
+```sh
+swiftc --version
+python3 -B tools/test_catalog.py search tools/app_test_project.py
+python3 -B -m unittest discover -s tests -p test_ui_test_manifest.py -v
+python3 -B -m unittest discover -s tests -p test_application_ui_runner.py -v
+```
+
+変更に対応するSwiftの検査が実際に走ったことをテスト結果で確認します。SwiftがPATHにないためにskipされた検査は、PATHを直して実行し直します。
+
+`tools/app_test_project.py` は本体をコピーし、架空データや受動観測を加えます。対応する `plutil` がある環境では一時ディレクトリに生成し、変更箇所の生成済みSwiftを確認します。日付参照や初期値を変更した場合は、置換後の式が元と同じactorで評価されるかを確認してください。Linuxで実行できる検査は手元で済ませ、Apple SDKを使う生成アプリのビルドとSimulator操作をmacOSの関連ケースで確認します。判定の詳しい区分は[テスト保守と検証実行の方針](test-maintenance-policy.md#生成したテストアプリの確認)を参照してください。
+
 ## Swift の保存処理テスト
 
 `bash tools/test-materials.sh` はアプリ本体の `MaterialLibrary.swift` を直接コンパイルし、保存・再読み込み・書き込み失敗時の保持・途中終了の回収・破損時の停止を架空データで検証します。macOS のビルド処理でも IPA 作成前に必ず実行します。失敗すれば配布には進みません。加えて `WebPDFDownloader.swift` を架空のHTTP応答で動かし、PDF取得・条件付きGET・304時の保持・HTTPエラー・サイズ上限・中止を検証します。学校サイトへの通信や実資料の取得は行いません。SwiftUI や File Provider はこのテストの対象外です。

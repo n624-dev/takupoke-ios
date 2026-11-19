@@ -85,6 +85,7 @@ CONTROL_PROBE_TESTS = NOTIFICATION_PROBE_TESTS + (
     "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",
 )
 PROBE_GROUPS = {
+    "system-text-size": (SYSTEM_SIZE_TEST,),
     "week-appearance": ("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch",
                         "testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable",
                         "testTimetableCommonClocksAndEventOnlyWeekScale",
