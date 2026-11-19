@@ -9,12 +9,19 @@ extension ManualAssistanceChecks {
     func enterBackground()->Bool {
         print("TAKUPOKE-MANUAL-APP-STATE before-home=\(app.state.rawValue)")
         XCUIDevice.shared.press(.home)
+        var observedState = -1
+        // An app object makes XCTest request its accessibility hierarchy when
+        // a predicate is false. Background detection only needs process state.
         let background=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
             let state=self.app.state
+            if observedState != Int(state.rawValue) {
+                observedState = Int(state.rawValue)
+                print("TAKUPOKE-MANUAL-APP-STATE during-home=\(observedState)")
+            }
             return state == .runningBackground || state == .runningBackgroundSuspended
-        },object:app)
+        },object:nil)
         guard XCTWaiter.wait(for:[background],timeout:nativeStateTimeout) == .completed else {
-            XCTFail("Home must put the existing process in background before activation; observed=\(app.state.rawValue)")
+            XCTFail("Home must put the existing process in background before activation; observed=\(observedState)")
             return false
         }
         print("TAKUPOKE-MANUAL-APP-STATE background-observed=\(app.state.rawValue)")

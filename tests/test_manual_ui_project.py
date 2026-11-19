@@ -64,6 +64,12 @@ class ManualUIProjectTests(unittest.TestCase):
         diagnostic=checks.split('    func editStage(',1)[1].split('    func enterBackground()',1)[0]
         for query in ('e.exists','e.isHittable','e.frame','e.debugDescription','observedKeyboardFrame()'):
             self.assertNotIn(query,diagnostic)
+        background=(ROOT/'tests/ui/ManualAssistanceChecks+Lifecycle.swift').read_text(encoding='utf-8').split('func enterBackground()',1)[1]
+        self.assertEqual(background.count('XCUIDevice.shared.press(.home)'),1)
+        self.assertIn('return state == .runningBackground || state == .runningBackgroundSuspended\n        },object:nil)',background)
+        self.assertIn('XCTWaiter.wait(for:[background],timeout:nativeStateTimeout) == .completed',background)
+        for query in ('app.debugDescription','app.frame','app.activate()','app.launch()'):
+            self.assertNotIn(query,background)
         self.assertNotIn('visible(e).tap()',edit)
         self.assertIn('TAKUPOKE-MANUAL-EDIT stage=',checks)
         self.assertIn('navigation.buttons.matching(identifier:"manual-edit-done")',edit)

@@ -5486,3 +5486,7 @@ Linux x86_64、Swift 6.1.2を有効にしたf097156のローカル検査で、`t
 同じ正式44580736320／d66d60fのiOS27.0 UI B（135762829890）は17:50:23 UTCに開始し、18:51:27にcancelled終端。チェック注記は`The job has exceeded the maximum execution time of 1h0m0s`。先行の単独週送り39.351秒、黄色246.260秒、曜日修正207.564秒、実VoiceOver64.799秒、既存通知185.347秒は成功。独立`testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch`が18:50:07に開始し、18:50:38にジョブ全体の取消となり、当該ケースの完了・OS文字サイズ3回・元の最終照合には未到達。iOS27 UI Aは50分46秒で成功。こちらからの取消操作はない。
 
 `ジョブ全体`、`60分`、`N217`で正式498/499、旧6dd809f、d66d60fの正式workflowと実runnerを照合。26は以前、追加ランナー起動・OS文字サイズ・照合・清掃を含めて80分へ変更した。今の27 Bも最後の通知の通常完了約2〜6分と文字サイズ3回、終了処理が60分時点で残っていた。27 Bの合計枠だけを75分にし、テスト自身の操作期限、実runner・対象OS照合、失敗時終了、残る全ケースと既存公開ゲートを使用する。
+
+[正式44597797740](https://github.com/n624-dev/takupoke-ios/actions/runs/44597797740/attempts/1)・試行1、c4546bf、SDK27.2／iOS27.0、手動単項目（135822896783）は19:42:59 UTCにfailure。元ケース406.269秒。実値125の科目確認2回は成功し、最初の編集画面でHome→background=3→activate=4、同一processを確認した。レビュー画面では元の文字・比較なし表示を確認後、19:39:33にHomeを一度送った。19:39:35以降に対象アプリの状態述語が外れるたび、XCTestはpid12378の表示階層を取得した。19:40:29にforeground=4で停止（Lifecycle.swift:17）。元45秒を越えるまで複数の画面取得が続き、後続の復帰・採用・再起動は未到達。Home配送後に本当にバックグラウンド状態へ入ったか、画面取得が観測へ影響したかは未確定。他ジョブは取り消さない。
+
+`before-home`、`background-observed`、`Capturing element debug description`で5d378cd／d66d60fの元helper、既存冷起動でのSpringBoard待ち、同じケースで成功した直前の編集画面を比較した。今回は同一processのレビュー画面における待機で、冷起動への未到達とは異なる。待機の対象を`nil`にし、画面階層を診断対象に渡さずに実アプリのランタイム状態だけを読む。Homeは一回、45秒、二つの実バックグラウンド状態、元の同一process・復帰・保存条件を維持する。状態が変化したときだけ記録する。
