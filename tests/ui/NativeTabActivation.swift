@@ -19,8 +19,11 @@ func pressNativeTabIcon(_ title: String, in app: XCUIApplication, timeout: TimeI
         XCTFail("Tab button must have one current native identity"); return false
     }
     let button = buttons[0], barFrame = tabs.frame, buttonFrame = button.frame
+    let appFrame = app.frame
     let scale = UIScreen.main.scale
-    guard ObservedScreenGeometry.usable(barFrame), ObservedScreenGeometry.usable(buttonFrame),
+    guard ObservedScreenGeometry.usable(appFrame), ObservedScreenGeometry.usable(barFrame),
+        ObservedScreenGeometry.usable(buttonFrame),
+        ObservedScreenGeometry.contains(barFrame, in: appFrame, scale: scale),
         ObservedScreenGeometry.contains(buttonFrame, in: barFrame, scale: scale),
         button.isEnabled, button.isHittable else {
         XCTFail("Tab has no visible native hit region: " + app.debugDescription); return false
@@ -35,9 +38,10 @@ func pressNativeTabIcon(_ title: String, in app: XCUIApplication, timeout: TimeI
         ObservedScreenGeometry.contains(iconFrame, in: barFrame, scale: scale), icon.isHittable else {
         XCTFail("Tab requires one visible native icon inside its current button: " + app.debugDescription); return false
     }
-    print("NATIVE_TAB title=\(title);bar=\(barFrame);button=\(buttonFrame);icon=\(iconFrame)")
-    // Bind this attempt's real identities and read each frame once (N213).
+    let center = CGVector(dx: iconFrame.midX - appFrame.minX, dy: iconFrame.midY - appFrame.minY)
+    print("NATIVE_TAB title=\(title);bar=\(barFrame);button=\(buttonFrame);icon=\(iconFrame);contact=\(center)")
+    // Use the observed icon's center without resolving the image during input.
     // Both callers verify the selected tab after this single U63 contact.
-    icon.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.1)
+    app.coordinate(withNormalizedOffset: .zero).withOffset(center).press(forDuration: 0.1)
     return true
 }

@@ -24,6 +24,7 @@ on:
           - auxiliary-store
           - event-cache-input
           - timetable-clocks
+          - system-text-size
           - home-boundaries
           - home-launch
           - testChangedAccountDataNoticeOpensSharedAcquisition

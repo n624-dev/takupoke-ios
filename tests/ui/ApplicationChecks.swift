@@ -19,7 +19,7 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
             "testSettingsAccountDataAndFileDetails": ["--ai-feature-probe", "--fixture-input-trace"],
             "testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData": ["--retention-corrupt"],
             "testTimetableDynamicTypeScalesAndRestoresStandardLayout": ["--grid-probe"],
-            "testTimetableUsesSystemTextSize": ["--grid-probe", "--system-text-size"],
+            "testTimetableUsesSystemTextSize": ["--grid-probe", "--system-text-size", "--fixture-input-trace"],
             "testTimetableCommonClocksAndEventOnlyWeekScale": ["--grid-probe", "--normal-only"],
             "testEmptyDataCanBeConfigured": ["--empty-fixture"],
             "testChangedAccountDataNoticeOpensSharedAcquisition": ["--updated-revisions"],
