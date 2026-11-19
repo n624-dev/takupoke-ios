@@ -45,7 +45,7 @@ final class SchoolEventsAPITests: XCTestCase {
         for year in [2032,2033] {
             try store.save(fictionalPayload(year:year,title:"架空保存行事\(year)"),apiETag:"\"initial-\(year)\"",fetchedAt:Date(timeIntervalSince1970:1_965_000_000))
         }
-        let model = SchoolEventsModel(storeRoot:base,eventsEndpoint:URL(string:"https://events.example.invalid/events")!,makeSession:{
+        let model = SchoolEventsModel(storeRoot:base,eventsEndpoint:URL(string:"https://events.example.invalid/events")!,preferredFormat: .v1,makeSession:{
             let configuration = URLSessionConfiguration.ephemeral
             configuration.protocolClasses = [EventsProjectionTransport.self]; configuration.urlCache = nil
             return URLSession(configuration:configuration)
@@ -344,5 +344,51 @@ final class SchoolEventsAPITests: XCTestCase {
                                                  title: "架空行事A", tag: "曜日振替")
         XCTAssertThrowsError(try SchoolEventsPayload.decode(JSONEncoder().encode(payload([invalid])),
                                                               requestedYear: 2032))
+    }
+}
+
+extension SchoolEventsAPITests {
+    func testIdentifiedCalendarPreservesOneOccurrenceAndProjectsSplitRanges() throws {
+        let item = SchoolEventsPayload.IdentifiedEvent(eventId: "fixed-test-001", title: "架空分割試験", tag: "テスト",
+            ranges: [.init(startDate: "2032-06-04", endDate: "2032-06-04"),
+                     .init(startDate: "2032-06-07", endDate: "2032-06-09")])
+        let known = SchoolEventsPayload(schoolYear: 2032, sourcePdfSha256: String(repeating: "a", count: 64),
+                                        sourcePdfETag: nil, identifiedEvents: [item])
+        let data = try JSONEncoder().encode(known)
+        let validated = try SchoolEventsPayload.decode(data, requestedYear: 2032, requestedFormat: .v2)
+        XCTAssertEqual(validated.identifiedEvents, [item])
+        XCTAssertEqual(validated.projectedEvents.map(\.date), ["2032-06-04", "2032-06-07"])
+        XCTAssertEqual(validated.projectedEvents.map(\.apiTag), ["テスト", "テスト"])
+        XCTAssertThrowsError(try SchoolEventsPayload.decode(data, requestedYear: 2032, requestedFormat: .v1))
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try SchoolEventsStore(root: root)
+        try store.save(validated)
+        XCTAssertEqual(try store.loadAll()[2032]?.payload.identifiedEvents, [item])
+    }
+
+    func testIdentifiedCalendarRejectsInvalidIDAndRangesButAcceptsReviewedEmptyPayload() throws {
+        typealias Item = SchoolEventsPayload.IdentifiedEvent
+        let valid = Item(eventId: "fixed-1", title: "架空予定", tag: "行事",
+            ranges: [.init(startDate: "2032-06-04", endDate: "2032-06-07")])
+        let invalid = [
+            Item(eventId: "", title: valid.title, tag: valid.tag, ranges: valid.ranges),
+            Item(eventId: valid.eventId, title: valid.title, tag: valid.tag, ranges: []),
+            Item(eventId: valid.eventId, title: valid.title, tag: valid.tag,
+                 ranges: [.init(startDate: "2032-02-01", endDate: "2032-02-01")]),
+            Item(eventId: valid.eventId, title: valid.title, tag: valid.tag, ranges: valid.ranges + valid.ranges),
+            Item(eventId: valid.eventId, title: valid.title, tag: "誤った種別", ranges: valid.ranges),
+        ]
+        func wire(_ events: [Item]) throws -> Data {
+            try JSONEncoder().encode(SchoolEventsPayload(schoolYear: 2032, sourcePdfSha256: String(repeating: "b", count: 64),
+                                                        sourcePdfETag: nil, identifiedEvents: events))
+        }
+        for value in invalid {
+            XCTAssertThrowsError(try SchoolEventsPayload.decode(wire([value]), requestedYear: 2032, requestedFormat: .v2))
+        }
+        XCTAssertThrowsError(try SchoolEventsPayload.decode(wire([valid, valid]), requestedYear: 2032, requestedFormat: .v2))
+        let empty = try SchoolEventsPayload.decode(wire([]), requestedYear: 2032, requestedFormat: .v2)
+        XCTAssertEqual(empty.identifiedEvents, [])
+        XCTAssertTrue(empty.projectedEvents.isEmpty)
     }
 }

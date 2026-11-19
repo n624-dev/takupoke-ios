@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import Combine
+import Network
 
 /// One owner for foreground and background work. Stores and serial import
 /// workers are shared so a refresh cannot overwrite another instance's state.
@@ -11,12 +12,13 @@ final class ApplicationData: ObservableObject {
     let recovery = PDFRecoveryCoordinator()
     let materials = MaterialsModel()
     let specialSchedules = SpecialSchedulesModel()
-    let schoolEvents = SchoolEventsModel()
+    let schoolEvents = SchoolEventsModel(canAccessData: { UIApplication.shared.isProtectedDataAvailable })
     let mappings = MappingModel()
     let links = LinksModel()
     let times = TimetableTimesModel()
     let account = AccountDataModel()
     let notifications = ScheduleNotifications()
+    let countdown = CountdownModel()
     let projections = TimetableProjectionCache(suspended:true)
     let textMeasurements = TimetableTextMeasurements()
     let homeClock = HomeScheduleClock()
@@ -38,6 +40,7 @@ final class ApplicationData: ObservableObject {
     private var preparing = false
     private var backgroundRefresh: Task<Void, Never>?
     private var observations = Set<AnyCancellable>()
+    private let eventsNetwork = NWPathMonitor()
 
     init() {
         materials.$ready.sink { [weak self] _ in self?.checkNotificationsWhenActive() }.store(in: &observations)
@@ -45,6 +48,43 @@ final class ApplicationData: ObservableObject {
         materials.$state.sink { [weak self] _ in self?.checkNotificationsWhenActive() }.store(in: &observations)
         specialSchedules.$records.sink { [weak self] _ in self?.checkNotificationsWhenActive() }.store(in: &observations)
         specialSchedules.$sources.sink { [weak self] _ in self?.checkNotificationsWhenActive() }.store(in: &observations)
+        eventsNetwork.pathUpdateHandler = { [weak self] path in
+            let reachable = path.status == .satisfied
+            Task { @MainActor [weak self] in self?.schoolEvents.setNetworkReachable(reachable) }
+        }
+        eventsNetwork.start(queue: DispatchQueue(label: "jp.n624.takupoke.events-network"))
+        countdown.onChange = { [weak self] in self?.updateCountdown() }
+        schoolEvents.$saved.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
+        schoolEvents.$sourcePresentationRevision.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
+        materials.$state.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
+        specialSchedules.$ready.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
+        specialSchedules.$records.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
+        specialSchedules.$sources.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
+        mappings.$current.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
+        homeClock.$epoch.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
+        NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
+            .map { _ in
+                let defaults = UserDefaults.standard
+                return [defaults.string(forKey: "timetableSelectedClasses") ?? "", String(defaults.bool(forKey: "timetableInternationalStudent"))]
+            }.removeDuplicates()
+            .sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
+    }
+
+    private var countdownUpdateScheduled = false
+
+    private func checkCountdownWhenActive() {
+        guard !countdownUpdateScheduled else { return }
+        countdownUpdateScheduled = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.countdownUpdateScheduled = false
+            if UIApplication.shared.applicationState == .active { self.updateCountdown() }
+        }
+    }
+
+    func updateCountdown() {
+        guard ready, UIApplication.shared.isProtectedDataAvailable else { return }
+        countdown.update(using: self, at: homeClock.currentDate)
     }
 
     private func checkNotificationsWhenActive() {
@@ -119,7 +159,10 @@ final class ApplicationData: ObservableObject {
         homeClock.suspend()
         recovery.cancel()
         setFileMonitoring(false)
-        if resetNotifications { await notifications.resetForRetention() }
+        if resetNotifications {
+            await countdown.expirePrivateNotices()
+            await notifications.resetForRetention()
+        }
         else { await notifications.suspendForUnavailableData() }
         await account.stopForRetention()
         await materials.closeForRetention()
@@ -143,6 +186,7 @@ final class ApplicationData: ObservableObject {
         materials.loadIfNeeded()
         specialSchedules.loadIfNeeded()
         schoolEvents.refreshAtStartup()
+        updateCountdown()
         mappings.checkAtStartup()
         times.loadIfNeeded()
         if UIApplication.shared.applicationState != .background { setFileMonitoring(true) }
@@ -156,6 +200,7 @@ final class ApplicationData: ObservableObject {
 
     func setFileMonitoring(_ foreground: Bool) {
         schoolEvents.setSourceChecksActive(foreground)
+        if foreground { homeClock.start() } else { homeClock.pause() }
         if !foreground { recovery.suspendForInactivity(); LocalRecoveryModelManager.shared.cancel() }
         materials.setFileMonitoring(foreground && ready)
         specialSchedules.setFileMonitoring(foreground && ready)
@@ -176,6 +221,7 @@ final class ApplicationData: ObservableObject {
             async let revisions: Void = self.checkRevisionsInBackground()
             _ = await (materials, specials, events, revisions)
             if !Task.isCancelled, let period = self.loadedPeriod {
+                self.updateCountdown()
                 await self.notifications.reconcile(state: self.materials.state, records: self.specialSchedules.records,
                                                     sources: self.specialSchedules.sources, period: period,
                                                 materialsReady: self.materials.ready, specialsReady: self.specialSchedules.ready)

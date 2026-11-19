@@ -89,7 +89,7 @@ final class SchoolEventsStore {
                                                    SchoolEventsResponse.validETag($0) ? $0 : nil
                                                }, responseDataVersion: value.responseDataVersion.flatMap {
                                                    SchoolEventsSourceStatus.isDataVersion($0) ? $0 : nil
-                                               })
+                                               }, lastEventsCheckedAt: value.lastEventsCheckedAt)
             } catch is DecodingError {
                 failedYears.insert(year)
             } catch SchoolEventsError.invalidResponse {
@@ -101,20 +101,22 @@ final class SchoolEventsStore {
     }
 
     func save(_ payload: SchoolEventsPayload, apiETag: String? = nil, fetchedAt: Date = Date(),
-              responseDataVersion: String? = nil) throws {
+              responseDataVersion: String? = nil, lastEventsCheckedAt: Date? = nil) throws {
+        try save(SavedSchoolEvents(fetchedAt: fetchedAt, payload: payload, apiETag: apiETag,
+            responseDataVersion: responseDataVersion, lastEventsCheckedAt: lastEventsCheckedAt))
+    }
+
+    func save(_ value: SavedSchoolEvents) throws {
+        let payload = value.payload, apiETag = value.apiETag, responseDataVersion = value.responseDataVersion
         let checked = try SchoolEventsPayload.decode(JSONEncoder().encode(payload), requestedYear: payload.schoolYear)
         guard (apiETag == nil || SchoolEventsResponse.validETag(apiETag!)),
               responseDataVersion == nil || SchoolEventsSourceStatus.isDataVersion(responseDataVersion!) else {
             throw SchoolEventsError.invalidResponse
         }
         let url = root.appendingPathComponent("events-\(checked.schoolYear).json")
-        let data = try JSONEncoder().encode(SavedSchoolEvents(fetchedAt: fetchedAt, payload: checked,
-            apiETag: apiETag, responseDataVersion: responseDataVersion))
+        let data = try JSONEncoder().encode(value)
         guard data.count <= Self.maximumSavedBytes else { throw SchoolEventsError.invalidResponse }
-        try data.write(to: url, options: .atomic)
-        #if os(iOS)
-        try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path)
-        #endif
+        try write(data, to: url)
     }
 
     /// Advisory files are isolated from events-*.json. Damage or protection
@@ -141,9 +143,34 @@ final class SchoolEventsStore {
         let data = try JSONEncoder().encode(value)
         guard data.count <= 18_432 else { throw SchoolEventsError.invalidResponse }
         let url = root.appendingPathComponent("source-status-\(value.response.schoolYear).json")
-        try data.write(to: url, options: .atomic)
+        try write(data, to: url)
+    }
+
+    func loadRefreshState(year: Int) throws -> SchoolEventsRefreshState? {
+        let url = root.appendingPathComponent("refresh-\(year).json")
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        let info = try url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
+        guard info.isRegularFile == true, info.isSymbolicLink != true,
+              let size = info.fileSize, (0...4096).contains(size) else { throw SchoolEventsError.invalidResponse }
+        let data = try Data(contentsOf: url)
+        guard data.count <= 4096 else { throw SchoolEventsError.invalidResponse }
+        let state = try JSONDecoder().decode(SchoolEventsRefreshState.self, from: data)
+        guard state.isValid(year: year) else { throw SchoolEventsError.invalidResponse }
+        return state
+    }
+
+    func saveRefreshState(_ value: SchoolEventsRefreshState) throws {
+        guard value.isValid(year: value.target.year) else { throw SchoolEventsError.invalidResponse }
+        let url = root.appendingPathComponent("refresh-\(value.target.year).json")
+        try write(JSONEncoder().encode(value), to: url)
+    }
+
+    private func write(_ data: Data, to url: URL) throws {
+        try Task.checkCancellation()
         #if os(iOS)
-        try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path)
+        try data.write(to: url, options: [.atomic, .completeFileProtection])
+        #else
+        try data.write(to: url, options: .atomic)
         #endif
     }
 }

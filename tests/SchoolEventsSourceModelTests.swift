@@ -33,34 +33,46 @@ private final class SourceStatusTransport: URLProtocol {
 private final class SourceStatusScenario {
     private let lock = NSLock()
     private var counts: [String: Int] = [:]
+    private var validators: [String?] = []
     private var held: [SourceStatusTransport] = []
     var holdStatus = false
     var statusHTTP = 200
+    var bodyHTTP = 200
+    var bypassNotModified = false
     var updated = false
     var oldStatusVersion = false
     var checking = false
+    var stale = false
+    var sourceDifference = false
+    var successAt = "2032-05-01T03:04:05.842Z"
+    var nextAttemptAt = "2032-05-02T03:04:05.842Z"
     var started: XCTestExpectation?
     private(set) var unexpected = 0
 
-    static func events(year: Int, updated: Bool = false) -> Data {
+    static func events(year: Int, updated: Bool = false, format: String = "v1") -> Data {
         // Explicit fictional wire bytes: dataVersion must hash these bytes,
         // not a re-encoded payload with another key order.
-        Data("{\"version\":\"v1\",\"schoolYear\":\(year),\"sourcePdfSha256\":\"\(String(repeating: "a", count: 64))\",\"events\":[{\"startDate\":\"\(year)-04-01\",\"endDate\":\"\(year)-04-01\",\"title\":\"架空\(updated ? "更新" : "保存")行事\",\"tag\":\"行事\"}]}".utf8)
+        let dates = "\"startDate\":\"\(year)-04-01\",\"endDate\":\"\(year)-04-01\""
+        let fields = format == "v2" ? "\"eventId\":\"stable-fixture\",\"ranges\":[{\(dates)}]" : dates
+        return Data("{\"version\":\"\(format)\",\"schoolYear\":\(year),\"sourcePdfSha256\":\"\(String(repeating: "a", count: 64))\",\"events\":[{\(fields),\"title\":\"架空\(updated ? "更新" : "保存")行事\",\"tag\":\"行事\"}]}".utf8)
     }
     static func hash(_ data: Data) -> String { SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
     func count(path: String, year: Int) -> Int { lock.lock(); defer { lock.unlock() }; return counts["\(path)/\(year)"] ?? 0 }
+    func bodyValidators() -> [String?] { lock.lock(); defer { lock.unlock() }; return validators }
     func receive(_ transport: SourceStatusTransport) {
         let request = transport.request
         guard let url = request.url, url.host == "source.example.invalid",
               ["/events", "/events/source-status"].contains(url.path), request.httpMethod == "GET",
               let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
-              items.count == 1, items[0].name == "schoolYear", let year = items[0].value.flatMap(Int.init),
+              (items.count == 1 || items.count == 2 && items[1] == URLQueryItem(name: "format", value: "v2")),
+              items[0].name == "schoolYear", let year = items[0].value.flatMap(Int.init),
               [2032, 2033].contains(year) else {
             lock.lock(); unexpected += 1; lock.unlock()
             transport.client?.urlProtocol(transport, didFailWithError: URLError(.unsupportedURL)); return
         }
         lock.lock()
         counts["\(url.path)/\(year)", default: 0] += 1
+        if url.path == "/events" { validators.append(request.value(forHTTPHeaderField: "If-None-Match")) }
         let shouldHold = holdStatus && url.path == "/events/source-status"
         let event = started; if shouldHold { held.append(transport); started = nil }
         lock.unlock()
@@ -73,19 +85,22 @@ private final class SourceStatusScenario {
     }
     private func reply(_ transport: SourceStatusTransport) {
         let url = transport.request.url!
-        let year = Int(URLComponents(url: url, resolvingAgainstBaseURL: false)!.queryItems![0].value!)!
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)!.queryItems!
+        let year = Int(items[0].value!)!
+        let format = items.count == 1 ? "v1" : "v2"
         if url.path == "/events" {
-            let data = Self.events(year: year, updated: updated)
+            let data = Self.events(year: year, updated: updated, format: format)
             let tag = "W/\"" + Self.hash(data) + "\""
-            let notModified = transport.request.value(forHTTPHeaderField: "If-None-Match") == tag
-            transport.finish(status: notModified ? 304 : 200, data: notModified ? Data() : data, etag: tag)
+            let notModified = !bypassNotModified && transport.request.value(forHTTPHeaderField: "If-None-Match") == tag
+            transport.finish(status: bodyHTTP == 200 && notModified ? 304 : bodyHTTP, data: notModified ? Data() : data, etag: tag)
         } else {
-            let digest = Self.hash(Self.events(year: year, updated: updated && !oldStatusVersion))
+            let digest = Self.hash(Self.events(year: year, updated: updated && !oldStatusVersion, format: format))
+            let state = sourceDifference ? "source_differs" : "matched"
             let data = try! JSONSerialization.data(withJSONObject: ["version": "v1", "schoolYear": year,
                 "dataVersion": "sha256-" + digest, "adoptedSourcePdfSha256": String(repeating: "a", count: 64),
-                "status": "matched", "lastSuccessfulStatus": "matched", "lastSuccessAt": "2032-05-01T03:04:05.842Z",
-                "lastAttemptAt": "2032-05-01T03:04:05Z", "nextAttemptAt": "2032-05-02T03:04:05Z",
-                "checking": checking, "stale": false])
+                "status": state, "lastSuccessfulStatus": state, "lastSuccessAt": successAt,
+                "lastAttemptAt": successAt, "nextAttemptAt": nextAttemptAt,
+                "checking": checking, "stale": stale])
             transport.finish(status: statusHTTP, data: data)
         }
     }
@@ -130,8 +145,8 @@ final class SchoolEventsSourceModelTests: XCTestCase {
             try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
         }, waitForSourceRetry: @escaping (TimeInterval) async throws -> Void = { seconds in
             try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-        }, nowProvider: (() -> Date)? = nil) -> SchoolEventsModel {
-            SchoolEventsModel(storeRoot: root, eventsEndpoint: URL(string: "https://source.example.invalid/events")!,
+        }, nowProvider: (() -> Date)? = nil, format: SchoolEventsFormat = .v1) -> SchoolEventsModel {
+            SchoolEventsModel(storeRoot: root, eventsEndpoint: URL(string: "https://source.example.invalid/events")!, preferredFormat: format,
                 makeSession: {
                     let config = URLSessionConfiguration.ephemeral
                     config.protocolClasses = [SourceStatusTransport.self]; config.urlCache = nil
@@ -183,7 +198,7 @@ final class SchoolEventsSourceModelTests: XCTestCase {
         XCTAssertEqual(f.network.unexpected, 0)
     }
 
-    func testCheckingStopsAfterExactlyThreeAdditionalRequests() async throws {
+    func testCheckingStopsAfterExactlyThreeAdditionalRequestsAndRestartsAfterPersistentDelay() async throws {
         let f = try Fixture(), clock = RetryClock()
         defer { f.clean(); clock.cancel() }
         f.model = f.makeModel(waitForSourceRetry: clock.wait); f.model.loadIfNeeded()
@@ -198,12 +213,24 @@ final class SchoolEventsSourceModelTests: XCTestCase {
         f.model.setSourceChecksActive(false); f.model.setSourceChecksActive(true)
         XCTAssertNil(f.model.checkSource(year: 2032))
         XCTAssertEqual(clock.scheduled, 3)
-        XCTAssertTrue(try XCTUnwrap(f.model.sourcePresentation(year: 2032)).message.contains("現在の更新状況は未確認"))
+        XCTAssertTrue(try XCTUnwrap(f.model.sourcePresentation(year: 2032)).message.contains("後で自動確認"))
         f.now.addTimeInterval(60)
         let display = try XCTUnwrap(f.model.sourcePresentation(year: 2032))
-        XCTAssertTrue(display.message.contains("現在の更新状況は未確認")); XCTAssertTrue(display.warning)
+        XCTAssertTrue(display.message.contains("後で自動確認")); XCTAssertFalse(display.warning)
         XCTAssertNotNil(display.lastSuccessAt); XCTAssertTrue(try XCTUnwrap(display.lastSuccessfulMessage).contains("一致"))
         XCTAssertEqual(f.network.count(path: "/events", year: 2032), 0)
+        f.model.cancel()
+        f.model = f.makeModel()
+        f.model.loadIfNeeded()
+        f.now.addTimeInterval(839)
+        XCTAssertNil(f.model.checkSource(year: 2032))
+        f.now.addTimeInterval(1)
+        f.network.checking = false
+        f.network.successAt = "2032-05-01T03:20:00Z"
+        let resumed = try XCTUnwrap(f.model.checkSource(year: 2032))
+        _ = await resumed.value
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 5)
+        XCTAssertNil(f.model.sourceErrors[2032])
         XCTAssertEqual(f.network.unexpected, 0)
     }
 
@@ -261,15 +288,19 @@ final class SchoolEventsSourceModelTests: XCTestCase {
         f.network.checking = true
         await f.model.checkSource(year: 2032)?.value
         try await pendingRetry(clock)
-        f.network.updated = true
+        f.model.setSourceChecksActive(false)
+        f.network.updated = true; f.network.checking = false
         let refreshed = await f.model.refreshInBackground(); XCTAssertTrue(refreshed)
         clock.advance(); await Task.yield()
-        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 1)
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 2)
         XCTAssertEqual(f.model.saved[2032]?.payload.events.first?.title, "架空更新行事")
+        f.model.setSourceChecksActive(true)
         f.network.oldStatusVersion = true
         await f.model.checkSource(year: 2032, force: true)?.value
         XCTAssertEqual(clock.scheduled, 1); XCTAssertTrue(clock.pending.isEmpty)
-        XCTAssertTrue(try XCTUnwrap(f.model.sourcePresentation(year: 2032)).message.contains("配信版が一致しない"))
+        XCTAssertTrue(try XCTUnwrap(f.model.sourcePresentation(year: 2032)).message.contains("配信版または元PDFが一致しません"))
+        XCTAssertEqual(f.network.count(path: "/events", year: 2032), 2)
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 4)
         XCTAssertEqual(f.network.unexpected, 0)
     }
 
@@ -317,63 +348,62 @@ final class SchoolEventsSourceModelTests: XCTestCase {
         }
     }
 
-    func testForegroundBudgetAndCacheUseOneTimeSnapshotAtExpiryBoundary() async throws {
+    func testCheckingBoundaryIsSixtySecondsAndCoalescesInFlightResponses() async throws {
         let f = try Fixture(), clock = RetryClock()
         defer { f.clean(); clock.cancel() }
-        var crossingBoundary = false, clockReads = 0
-        f.model = f.makeModel(waitForSourceRetry: clock.wait, nowProvider: { [unowned f] in
-            guard crossingBoundary else { return f.now }
-            defer { clockReads += 1 }
-            return f.now.addingTimeInterval(clockReads == 0 ? 0 : 0.2)
-        })
+        f.model = f.makeModel(waitForSourceRetry: clock.wait)
         f.model.loadIfNeeded(); f.network.checking = true
         await f.model.checkSource(year: 2032)?.value
-        try await finishRetry(f, clock); try await pendingRetry(clock)
-        f.model.setSourceChecksActive(false); clock.advance(); await Task.yield()
-        f.now.addTimeInterval(59.9); crossingBoundary = true
-        f.model.setSourceChecksActive(true)
+        try await pendingRetry(clock)
+        f.now.addTimeInterval(59)
         XCTAssertNil(f.model.checkSource(year: 2032))
-        XCTAssertEqual(clockReads, 1)
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 1)
+        f.network.checking = false
+        f.now.addTimeInterval(1)
+        let first = try XCTUnwrap(f.model.checkSource(year: 2032))
+        let second = try XCTUnwrap(f.model.checkSource(year: 2032))
+        _ = await first.value; _ = await second.value
         XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 2)
-        crossingBoundary = false
-        try await finishRetry(f, clock); try await finishRetry(f, clock)
-        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 4)
-        XCTAssertTrue(clock.pending.isEmpty)
+        XCTAssertNil(f.model.checkSource(year: 2032))
+        XCTAssertFalse(try XCTUnwrap(f.model.sourcePresentation(year: 2032)).warning)
     }
 
-    func testExpiryPublishesToObserversWithoutARequestOrSavedEventsChange() async throws {
-        let f = try Fixture(); defer { f.clean() }
-        f.network.checking = true
-        var waits = [(TimeInterval, CheckedContinuation<Void, Error>)]()
-        let scheduled = expectation(description: "metadata presentation expiry scheduled")
-        f.model.cancel()
-        f.model = f.makeModel(waitForSourceExpiry: { seconds in
-            try await withCheckedThrowingContinuation { continuation in
-                waits.append((seconds, continuation))
-                if waits.count == 1 { scheduled.fulfill() }
-            }
-        })
+    func testDailyExpiryStartsAutomaticRequestBeforeTwelveHourCacheExpires() async throws {
+        let f = try Fixture(), clock = RetryClock()
+        defer { f.clean(); clock.cancel() }
+        f.now.addTimeInterval(23 * 3_600)
+        let store = try SchoolEventsStore(root: f.root.appendingPathComponent("SchoolEventsAPI"))
+        try FileManager.default.removeItem(at: f.root.appendingPathComponent("SchoolEventsAPI/events-2033.json"))
+        let value = try XCTUnwrap(store.loadAll()[2032])
+        try store.save(value.payload, apiETag: value.apiETag, fetchedAt: value.fetchedAt,
+                       lastEventsCheckedAt: f.now.addingTimeInterval(1))
+        f.now.addTimeInterval(1)
+        f.model = f.makeModel(waitForSourceExpiry: clock.wait)
         f.model.loadIfNeeded()
-        let data = f.model.saved[2032]?.payload, generation = f.model.scheduleGeneration
+        f.model.refreshAtStartup()
         await f.model.checkSource(year: 2032)?.value
-        await fulfillment(of: [scheduled], timeout: 5)
-        let wait = try XCTUnwrap(waits.first)
-        XCTAssertEqual(wait.0, 60)
-        // Observe the same Published event used by settings/Home/week views.
-        let changed = expectation(description: "advisory presentation changed")
-        let subscription = f.model.$sourcePresentationRevision.dropFirst().first().sink { _ in changed.fulfill() }
-        f.now.addTimeInterval(60)
-        wait.1.resume()
-        await fulfillment(of: [changed], timeout: 5)
-        subscription.cancel()
-        XCTAssertTrue(try XCTUnwrap(f.model.sourcePresentation(year: 2032)).message.contains("前回確認時"))
         XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 1)
-        XCTAssertEqual(f.model.saved[2032]?.payload, data); XCTAssertEqual(f.model.scheduleGeneration, generation)
-        XCTAssertFalse(f.model.busy); XCTAssertEqual(f.network.unexpected, 0)
-        f.model.cancel()
-        // The next successful-observation deadline may already be waiting.
-        // Release only owned continuations; cancellation/generation reject it.
-        for entry in waits.dropFirst() { entry.1.resume(throwing: CancellationError()) }
+        XCTAssertEqual(f.network.count(path: "/events", year: 2032), 0)
+        XCTAssertFalse(try XCTUnwrap(f.model.sourcePresentation(year: 2032)).warning)
+        if clock.pending.isEmpty {
+            let scheduled = expectation(description: "source calendar deadline automatically scheduled")
+            clock.onScheduled = { scheduled.fulfill() }
+            await fulfillment(of: [scheduled], timeout: 5)
+            clock.onScheduled = nil
+        }
+        XCTAssertEqual(try XCTUnwrap(clock.pending.first).0, 3_599, accuracy: 0.001)
+        let received = expectation(description: "deadline triggered a real source request")
+        let subscription = f.model.$sourceStatuses.dropFirst().first().sink { _ in received.fulfill() }
+        f.now.addTimeInterval(3_599)
+        f.network.stale = true
+        clock.advance()
+        await fulfillment(of: [received], timeout: 5)
+        subscription.cancel()
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 2)
+        XCTAssertEqual(f.model.sourcePresentation(year: 2032)?.lastSuccessAt,
+                       SchoolEventsSourceStatus.date(f.network.successAt))
+        XCTAssertFalse(try XCTUnwrap(f.model.sourcePresentation(year: 2032)).warning)
+        XCTAssertNil(f.model.checkSource(year: 2032))
     }
 
     private func dataFinished(_ model: SchoolEventsModel) async {
@@ -417,8 +447,11 @@ final class SchoolEventsSourceModelTests: XCTestCase {
 
     func testActualStartupForegroundManual304AndNew200BindEachYearAndVersion() async throws {
         let f = try Fixture(); defer { f.clean() }
-        f.model.refreshAtStartup(); await dataFinished(f.model)
+        let firstAdopted = f.model.saved[2032]?.fetchedAt
+        f.model.refreshAtStartup()
         for year in [2032, 2033] { await f.model.checkSource(year: year)?.value }
+        XCTAssertEqual(f.model.saved[2032]?.lastEventsCheckedAt, f.now)
+        XCTAssertEqual(f.model.saved[2032]?.fetchedAt, firstAdopted)
         XCTAssertNil(f.model.sourceCheckMessage)
         for year in [2032, 2033] {
             XCTAssertEqual(f.network.count(path: "/events", year: year), 1)
@@ -427,7 +460,7 @@ final class SchoolEventsSourceModelTests: XCTestCase {
         f.now.addTimeInterval(43_200)
         f.model.refreshAtStartup()
         for year in [2032, 2033] { await f.model.checkSource(year: year)?.value }
-        XCTAssertEqual(f.network.count(path: "/events", year: 2032), 1)
+        XCTAssertEqual(f.network.count(path: "/events", year: 2032), 2)
         XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 2)
         f.model.fetch(year: 2032); await dataFinished(f.model)
         await f.model.checkSource(year: 2032)?.value
@@ -439,7 +472,7 @@ final class SchoolEventsSourceModelTests: XCTestCase {
         XCTAssertEqual(f.model.saved[2032]?.payload.events.first?.title, "架空更新行事")
         XCTAssertEqual(f.model.saved[2032]?.dataVersion,
                        "sha256-" + SourceStatusScenario.hash(SourceStatusScenario.events(year: 2032, updated: true)))
-        XCTAssertTrue(try XCTUnwrap(f.model.sourcePresentation(year: 2032)).message.contains("配信版が一致しない"))
+        XCTAssertTrue(try XCTUnwrap(f.model.sourcePresentation(year: 2032)).message.contains("配信版または元PDFが一致しません"))
         XCTAssertEqual(f.model.saved[2033]?.payload, healthy2033)
         f.network.oldStatusVersion = false
         await f.model.checkSource(year: 2032, force: true)?.value
@@ -456,21 +489,126 @@ final class SchoolEventsSourceModelTests: XCTestCase {
         f.network.started = started
         let old = try XCTUnwrap(f.model.checkSource(year: 2032))
         await fulfillment(of: [started], timeout: 5)
-        f.network.updated = true
-        let updated = await f.model.refreshInBackground(); XCTAssertTrue(updated)
-        f.network.oldStatusVersion = true
-        f.network.release(); await old.value
+        f.model.setSourceChecksActive(false)
+        _ = await old.value
         XCTAssertNil(f.model.sourceStatuses[2032])
+        f.network.updated = true
+        f.network.holdStatus = false
+        let updated = await f.model.refreshInBackground(); XCTAssertTrue(updated)
+        XCTAssertEqual(f.model.saved[2032]?.payload.events.first?.title, "架空更新行事")
+        let adopted = f.model.sourceStatuses[2032]
+        f.network.oldStatusVersion = true
+        f.network.release()
+        XCTAssertEqual(f.model.sourceStatuses[2032], adopted)
         let cancelledStart = expectation(description: "cancellable metadata owner")
-        f.network.started = cancelledStart
-        let cancelled = try XCTUnwrap(f.model.checkSource(year: 2032))
+        f.network.holdStatus = true; f.network.started = cancelledStart
+        f.model.setSourceChecksActive(true)
+        let cancelled = try XCTUnwrap(f.model.checkSource(year: 2032, force: true))
         await fulfillment(of: [cancelledStart], timeout: 5)
         f.model.cancel(); await cancelled.value
-        XCTAssertNil(f.model.sourceStatuses[2032]); XCTAssertFalse(f.model.busy)
+        XCTAssertEqual(f.model.sourceStatuses[2032], adopted); XCTAssertFalse(f.model.busy)
         f.network.holdStatus = false; f.network.oldStatusVersion = false
         f.network.release()
         await f.model.checkSource(year: 2032)?.value
         XCTAssertFalse(try XCTUnwrap(f.model.sourcePresentation(year: 2032)).warning)
         XCTAssertEqual(f.network.unexpected, 0)
+    }
+}
+
+extension SchoolEventsSourceModelTests {
+    func testV2MigrationUsesAnIndependentValidatorAndPreservesV1UntilValidatedSave() async throws {
+        let f = try Fixture()
+        defer { f.clean() }
+        f.model = f.makeModel(format: .v2)
+        f.model.loadIfNeeded()
+        let old = try XCTUnwrap(f.model.saved[2032])
+        f.network.bodyHTTP = 503
+        f.model.fetch(year: 2032); await dataFinished(f.model)
+        XCTAssertEqual(f.model.saved[2032]?.payload.format, .v1)
+        XCTAssertEqual(f.model.saved[2032]?.fetchedAt, old.fetchedAt)
+        XCTAssertNil(f.model.saved[2032]?.lastEventsCheckedAt)
+        XCTAssertNil(f.network.bodyValidators().first ?? nil)
+        let reopened = f.makeModel(format: .v2)
+        reopened.loadIfNeeded()
+        defer { reopened.cancel() }
+        XCTAssertEqual(reopened.saved[2032]?.payload, old.payload)
+
+        f.network.bodyHTTP = 200
+        f.model.fetch(year: 2032); await dataFinished(f.model)
+        let adopted = try XCTUnwrap(f.model.saved[2032])
+        XCTAssertEqual(adopted.payload.format, .v2)
+        XCTAssertEqual(adopted.payload.identifiedEvents?.first?.eventId, "stable-fixture")
+        XCTAssertEqual(adopted.lastEventsCheckedAt, f.now)
+        XCTAssertEqual(f.model.sourceStatuses[2032]?.requestedTarget?.format, .v2)
+        XCTAssertTrue(f.model.sourceStatuses[2032]?.matches(adopted) == true)
+        XCTAssertEqual(f.network.bodyValidators(), [nil, nil])
+
+        f.now.addTimeInterval(3_600)
+        f.model.fetch(year: 2032); await dataFinished(f.model)
+        XCTAssertEqual(f.model.saved[2032]?.fetchedAt, adopted.fetchedAt)
+        XCTAssertEqual(f.model.saved[2032]?.lastEventsCheckedAt, f.now)
+        XCTAssertEqual(f.network.bodyValidators().last ?? nil, adopted.apiETag)
+        XCTAssertEqual(f.network.unexpected, 0)
+    }
+
+    func testBodyTimeoutBackoffAndRepeated200RespectPersistedConfirmation() async throws {
+        let f = try Fixture()
+        defer { f.clean() }
+        f.model.refreshAtStartup()
+        for year in [2032, 2033] { await f.model.checkSource(year: year)?.value }
+        let original = try XCTUnwrap(f.model.saved[2032])
+        f.now.addTimeInterval(3_599)
+        f.model.reevaluate()
+        XCTAssertEqual(f.network.count(path: "/events", year: 2032), 1)
+        f.network.bypassNotModified = true
+        f.network.bodyHTTP = 503
+        f.now.addTimeInterval(1)
+        f.model.reevaluate()
+        await f.model.checkSource(year: 2032)?.value
+        XCTAssertEqual(f.network.count(path: "/events", year: 2032), 2)
+        XCTAssertEqual(f.model.saved[2032]?.lastEventsCheckedAt, original.lastEventsCheckedAt)
+
+        f.now.addTimeInterval(899)
+        f.model.setNetworkReachable(false)
+        f.model.reevaluate()
+        XCTAssertEqual(f.network.count(path: "/events", year: 2032), 2)
+        f.network.bodyHTTP = 200
+        f.now.addTimeInterval(1)
+        f.model.setNetworkReachable(true)
+        await f.model.checkSource(year: 2032)?.value
+        XCTAssertEqual(f.network.count(path: "/events", year: 2032), 3)
+        XCTAssertEqual(f.model.saved[2032]?.lastEventsCheckedAt, f.now)
+        XCTAssertEqual(f.model.saved[2032]?.fetchedAt, original.fetchedAt)
+        XCTAssertEqual(f.model.saved[2032]?.payload, original.payload)
+        XCTAssertEqual(f.network.count(path: "/events", year: 2034), 0)
+    }
+
+    func testDifferencePersistsAndMismatchRecoveryOnlyChecksOneBody() async throws {
+        let f = try Fixture()
+        defer { f.clean() }
+        f.network.sourceDifference = true
+        await f.model.checkSource(year: 2032)?.value
+        XCTAssertEqual(f.network.count(path: "/events", year: 2032), 1)
+        XCTAssertEqual(f.model.countdownSourceState(year: 2032, at: f.now), .sourceDifference)
+        XCTAssertTrue(f.model.sourcePresentation(year: 2032)?.warning == true)
+        f.network.statusHTTP = 503
+        await f.model.checkSource(year: 2032, force: true)?.value
+        let restored = f.makeModel()
+        restored.loadIfNeeded()
+        defer { restored.cancel() }
+        XCTAssertEqual(restored.countdownSourceState(year: 2032, at: f.now), .sourceDifference)
+        XCTAssertTrue(restored.sourcePresentation(year: 2032)?.warning == true)
+
+        f.now.addTimeInterval(60)
+        f.network.updated = true
+        f.network.statusHTTP = 200
+        f.network.sourceDifference = false
+        f.network.successAt = "2032-05-01T03:05:05Z"
+        await restored.checkSource(year: 2032, force: true)?.value
+        XCTAssertEqual(restored.saved[2032]?.payload.events.first?.title, "架空更新行事")
+        XCTAssertEqual(restored.countdownSourceState(year: 2032, at: f.now), .available)
+        XCTAssertFalse(restored.sourcePresentation(year: 2032)?.warning == true)
+        XCTAssertEqual(f.network.count(path: "/events", year: 2032), 2)
+        XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 3)
     }
 }

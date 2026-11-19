@@ -5,6 +5,12 @@ import UserNotifications
 
 @MainActor
 final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
+    static let updateIdentifiers = ["takupoke.changes", "takupoke.exam", "takupoke.examReturn"]
+    struct CountdownDestination: Identifiable {
+        let id: UUID
+        let target: String
+    }
+    @Published var openedCountdown: CountdownDestination?
     @Published private(set) var changesEnabled = UserDefaults.standard.bool(forKey: "notifyScheduleChanges")
     @Published private(set) var specialsEnabled = UserDefaults.standard.bool(forKey: "notifySpecialSchedules")
     @Published private(set) var requestingPermission = false
@@ -37,6 +43,17 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter,
         willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
         [.banner, .list, .sound]
+    }
+
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                          didReceive response: UNNotificationResponse) async {
+        let request = response.notification.request
+        guard request.identifier.hasPrefix(CountdownNotice.prefix),
+              let idValue = request.content.userInfo["countdownID"] as? String, let id = UUID(uuidString: idValue),
+              let target = request.content.userInfo["targetKey"] as? String else { return }
+        await MainActor.run {
+            self.openedCountdown = CountdownDestination(id: id, target: target)
+        }
     }
 
     func setEnabled(changes: Bool, value: Bool) async {
@@ -133,8 +150,8 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
 
     func resetForRetention() async {
         await suspendForUnavailableData()
-        center.removeAllPendingNotificationRequests()
-        center.removeAllDeliveredNotifications()
+        center.removePendingNotificationRequests(withIdentifiers: Self.updateIdentifiers)
+        center.removeDeliveredNotifications(withIdentifiers: Self.updateIdentifiers)
     }
 
     func reconcile(state: MaterialLibraryState, records: [SpecialScheduleKind: SpecialScheduleRecord],

@@ -10,12 +10,12 @@ final class SchoolEventsSourceStatusTests: XCTestCase {
     private func wire(status: String = "matched", success: String? = "matched",
                       date: String? = "2032-05-01T03:04:05.842Z", checking: Bool = false,
                       stale: Bool = false, year: Int = 2032, hash: String? = nil,
-                      version: String? = nil) throws -> Data {
+                      version: String? = nil, next: String = "2032-05-02T03:04:05Z") throws -> Data {
         try JSONSerialization.data(withJSONObject: ["version": "v1", "schoolYear": year,
             "dataVersion": version ?? self.version, "adoptedSourcePdfSha256": hash ?? self.expectedSourceHash,
             "status": status, "lastSuccessfulStatus": success as Any? ?? NSNull(),
             "lastSuccessAt": date as Any? ?? NSNull(), "lastAttemptAt": "2032-05-01T03:04:05Z",
-            "nextAttemptAt": "2032-05-02T03:04:05Z", "checking": checking, "stale": stale])
+            "nextAttemptAt": next, "checking": checking, "stale": stale])
     }
 
     private func saved(year: Int = 2032, hash: String? = nil, version: String? = nil,
@@ -66,10 +66,15 @@ final class SchoolEventsSourceStatusTests: XCTestCase {
         let mismatched = SavedSchoolEventsSourceStatus(receivedAt: instant,
             response: try SchoolEventsSourceStatus.decode(wire(hash: String(repeating: "c", count: 64)), year: 2032),
             requestedTarget: .init(saved()))
-        // Cache a known mismatch without applying its observation to the old
-        // payload or re-querying on every tab. A new target must re-evaluate.
-        XCTAssertTrue(mismatched.canReuse(for: saved(), at: instant))
-        XCTAssertFalse(mismatched.canReuse(for: saved(version: "sha256-" + String(repeating: "d", count: 64)), at: instant))
+        XCTAssertFalse(mismatched.matches(saved()))
+        XCTAssertTrue(value.matches(saved()))
+        XCTAssertEqual(value.nextRegularCheck, instant.addingTimeInterval(43_200))
+        let beforeDailyExpiry = SavedSchoolEventsSourceStatus(receivedAt: instant.addingTimeInterval(23 * 3_600),
+            response: value.response)
+        XCTAssertEqual(beforeDailyExpiry.nextRegularCheck, SchoolEventsSourceStatus.date("2032-05-02T03:04:05Z"))
+        let laterAttempt = SavedSchoolEventsSourceStatus(receivedAt: beforeDailyExpiry.receivedAt,
+            response: try SchoolEventsSourceStatus.decode(wire(next: "2032-05-02T04:04:05Z"), year: 2032))
+        XCTAssertEqual(laterAttempt.nextRegularCheck, instant.addingTimeInterval(86_400))
     }
 
     func testPresentationSeparatesMatchedDifferenceUnknownFailureStalenessAndSnapshotMismatch() throws {
@@ -79,31 +84,31 @@ final class SchoolEventsSourceStatusTests: XCTestCase {
         }
         XCTAssertFalse(try present(wire()).warning)
         let differs = try present(wire(status: "source_differs", success: "source_differs"))
-        XCTAssertTrue(differs.warning); XCTAssertTrue(differs.message.contains("内容は確認待ち"))
+        XCTAssertTrue(differs.warning); XCTAssertTrue(differs.message.contains("影響は確認待ち"))
         XCTAssertTrue(try present(wire(status: "unknown", success: nil, date: nil)).message.contains("未確認"))
         let failed = try present(wire(status: "unavailable"))
-        XCTAssertTrue(failed.warning); XCTAssertEqual(failed.lastSuccessAt, instant)
+        XCTAssertFalse(failed.warning); XCTAssertEqual(failed.lastSuccessAt, instant)
         XCTAssertTrue(try XCTUnwrap(failed.lastSuccessfulMessage).contains("一致"))
         XCTAssertTrue(try present(wire(), age: 43_200).message.contains("古く"))
         XCTAssertTrue(try present(wire(stale: true)).message.contains("古く"))
         XCTAssertTrue(try present(wire(), error: "架空の通信失敗").message.contains("架空の通信失敗"))
         XCTAssertTrue(try present(wire(version: "sha256-" + String(repeating: "e", count: 64))).message.contains("配信版が一致しない"))
         XCTAssertNil(try present(wire(hash: String(repeating: "e", count: 64))).lastSuccessAt)
-        XCTAssertTrue(SchoolEventsSourcePresentation.make(saved: saved(), cached: nil, error: nil, now: instant).warning)
+        XCTAssertFalse(SchoolEventsSourcePresentation.make(saved: saved(), cached: nil, error: nil, now: instant).warning)
     }
 
     func testExhaustedFollowUpsShowUnconfirmedWhileKeepingLastSuccess() throws {
         let checking = SavedSchoolEventsSourceStatus(receivedAt: instant,
             response: try SchoolEventsSourceStatus.decode(wire(checking: true), year: 2032))
         let display = SchoolEventsSourcePresentation.make(saved: saved(), cached: checking,
-            error: nil, now: instant, followUpExhausted: true)
-        XCTAssertTrue(display.message.contains("現在の更新状況は未確認")); XCTAssertTrue(display.warning)
+            error: "元PDFの確認結果をまだ取得できません。後で自動確認します。", now: instant, firstFailureAt: instant)
+        XCTAssertTrue(display.message.contains("後で自動確認")); XCTAssertFalse(display.warning)
         XCTAssertEqual(display.lastSuccessAt, instant)
         XCTAssertTrue(try XCTUnwrap(display.lastSuccessfulMessage).contains("一致"))
         let matched = SavedSchoolEventsSourceStatus(receivedAt: instant,
             response: try SchoolEventsSourceStatus.decode(wire(), year: 2032))
         let completed = SchoolEventsSourcePresentation.make(saved: saved(), cached: matched,
-            error: nil, now: instant, followUpExhausted: true)
+            error: nil, now: instant)
         XCTAssertFalse(completed.warning); XCTAssertEqual(completed.message, "元PDFの本文は登録元と一致しています。")
     }
 
@@ -117,7 +122,7 @@ final class SchoolEventsSourceStatusTests: XCTestCase {
             XCTAssertEqual(restored.isFresh(at: at), age < 60)
             XCTAssertEqual(display.message.contains("APIが元PDFを確認中です"), age < 60)
             XCTAssertEqual(display.message.contains("前回確認時"), age >= 60)
-            XCTAssertTrue(display.warning)
+            XCTAssertFalse(display.warning)
             XCTAssertEqual(display.lastSuccessAt, instant)
             XCTAssertTrue(try XCTUnwrap(display.lastSuccessfulMessage).contains("一致"))
         }
@@ -128,7 +133,6 @@ final class SchoolEventsSourceStatusTests: XCTestCase {
         let mismatched = SchoolEventsSourcePresentation.make(saved: saved(hash: String(repeating: "c", count: 64)),
             cached: restored, error: nil, now: instant.addingTimeInterval(61))
         XCTAssertTrue(mismatched.message.contains("一致しない")); XCTAssertNil(mismatched.lastSuccessAt)
-        XCTAssertEqual(cached.presentationDeadlines, [instant.addingTimeInterval(60), instant.addingTimeInterval(86_400)])
     }
 
     func testAdvisoryStorePreservesNewestSuccessAcrossUnavailableOlderEdgeAndReload() throws {
@@ -175,5 +179,45 @@ final class SchoolEventsSourceStatusTests: XCTestCase {
         try store.saveSourceStatus(.init(receivedAt: instant, response: try .decode(wire(), year: 2032)))
         XCTAssertNotNil(try store.loadSourceStatus(year: 2032))
         XCTAssertEqual(try Data(contentsOf: root.appendingPathComponent("events-2032.json")), original)
+    }
+}
+
+extension SchoolEventsSourceStatusTests {
+    func testLongWarningUsesSuccessfulObservationOrPersistedFirstFailure() throws {
+        let matched = SavedSchoolEventsSourceStatus(receivedAt: instant.addingTimeInterval(47 * 3_600),
+            response: try .decode(wire(), year: 2032))
+        for age in [172_799.0, 172_800, 172_801] {
+            let date = instant.addingTimeInterval(age)
+            for cached in [nil, matched] {
+                let value = SchoolEventsSourcePresentation.make(saved: saved(), cached: cached, error: nil,
+                    now: date, firstFailureAt: cached == nil ? instant : instant.addingTimeInterval(86_400), checking: true)
+                XCTAssertEqual(value.warning, age >= 172_800)
+            }
+        }
+    }
+
+    func testPersistedRetryBackoffIsIndependentOfConfirmationAndClockRollback() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try SchoolEventsStore(root: root)
+        try store.save(saved())
+        var state = SchoolEventsRefreshState(target: .init(saved()), requestedBodyFormat: .v2)
+        var date = instant
+        for interval in [900.0, 1800, 3600, 3600] {
+            state.source.fail(at: date)
+            XCTAssertEqual(state.source.retryAt, date.addingTimeInterval(interval))
+            XCTAssertEqual(state.source.firstFailureAt, instant)
+            XCTAssertNil(state.body.retryAt)
+            date = date.addingTimeInterval(interval)
+        }
+        try store.saveRefreshState(state)
+        XCTAssertEqual(try store.loadRefreshState(year: 2032), state)
+        let rolledBack = instant.addingTimeInterval(-900)
+        state.adjustClock(at: rolledBack)
+        XCTAssertEqual(state.source.retryAt, rolledBack.addingTimeInterval(3600))
+        try Data("{broken".utf8).write(to: root.appendingPathComponent("refresh-2032.json"), options: .atomic)
+        XCTAssertThrowsError(try store.loadRefreshState(year: 2032))
+        XCTAssertEqual(try store.loadAvailable().saved[2032]?.payload, saved().payload)
+        XCTAssertNil(try store.loadAvailable().saved[2032]?.lastEventsCheckedAt)
     }
 }

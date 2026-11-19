@@ -207,8 +207,7 @@ struct TimetableDaySchedule {
 
 extension TimetableDaySchedule {
     static func schoolDay(at date: Date) -> SchoolDate {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        let calendar = SchoolDate.japanCalendar
         let parts = calendar.dateComponents([.year, .month, .day], from: date)
         return SchoolDate(year: parts.year!, month: parts.month!, day: parts.day!)!
     }
@@ -219,6 +218,36 @@ extension TimetableDaySchedule {
             timetable: timetable, changes: changes, includesChanges: includesChanges, events: events,
             specials: specials, isInternationalStudent: international, matchedByRule: matchedByRule,sourceIndex:sourceIndex))
             .map(\.block)
+    }
+
+    /// Use the same slots, visible changes and special lessons as the timetable.
+    func examSubjects(on day: SchoolDate, classes: [String], international: Bool,
+                      matchedByRule: ((String, String, Int?) -> Bool)? = nil) -> [String] {
+        var subjects: [String] = []
+        var seen = Set<String>()
+        for name in classes {
+            for period in 1...8 {
+                let slot = sourceIndex.slot(on: day, period: period, className: name, includesChanges: includesChanges)
+                    .filteringChanges(isInternationalStudent: international, matchedByRule: matchedByRule)
+                let exams = slot.specialLessons.filter {
+                    $0.kind == .exam && TimetableSchedule.shouldDisplay($0, isInternationalStudent: international,
+                                                                      matchedByRule: matchedByRule)
+                }
+                guard !exams.isEmpty else { continue }
+                let visibleChanges = slot.changes.filter {
+                    TimetableSchedule.shouldDisplay($0, isInternationalStudent: international, matchedByRule: matchedByRule)
+                }
+                if let change = TimetableSchedule.effectiveChange(visibleChanges) {
+                    guard !change.isCancellation else { continue }
+                    let after = change.after_subject.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let changed = after.isEmpty ? exams.map(\.lesson.subject) : [after]
+                    for subject in changed where seen.insert(subject).inserted { subjects.append(subject) }
+                } else if slot.changes.isEmpty {
+                    for exam in exams where seen.insert(exam.lesson.subject).inserted { subjects.append(exam.lesson.subject) }
+                }
+            }
+        }
+        return subjects
     }
 
     /// A visual merge does not prove continuous activity. Retain a source's

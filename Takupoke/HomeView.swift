@@ -40,6 +40,7 @@ struct HomeView: View {
                               schoolEvents: schoolEvents, selectedLesson: $selectedLesson,
                               selectedSpecial: $selectedSpecial, selectedChange: $selectedChange,
                               openTimetable: openTimetable)
+                CountdownHomeSection(events: schoolEvents)
                 if !links.visibleFavorites.isEmpty {
                     Section("お気に入り") {
                         ForEach(links.visibleFavorites) { item in

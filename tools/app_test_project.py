@@ -247,10 +247,16 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
                       lambda match: match[1] + "\n        " + match[2] + ".protocolClasses = [FixtureNetwork.self]", text)
         if path.name == 'SchoolEventsModel.swift':
             text = instrument_events_cache(text)
+            endpoint = 'URL(string: "https://fixture.example.test")!'
+            assert text.count(endpoint) == 1, 'Event fixture endpoint insertion point missing'
+            text = text.replace(endpoint, endpoint + '.appendingPathComponent("events")')
         if path.name == 'ApplicationData.swift':
             clock = 'let homeClock = HomeScheduleClock()'
             assert text.count(clock) == 1, 'Home clock provider insertion point missing'
             text = text.replace(clock, 'let homeClock = HomeScheduleClock(now: { SimulatorHomeBoundaryFixture.enabled ? SimulatorHomeBoundaryFixture.current : Date() })')
+            events = 'let schoolEvents = SchoolEventsModel(canAccessData:'
+            assert text.count(events) == 1, 'Event fixture format insertion point missing'
+            text = text.replace(events, 'let schoolEvents = SchoolEventsModel(preferredFormat: ProcessInfo.processInfo.arguments.contains("--events-v2") ? .v2 : .v1, canAccessData:')
         if path.name == 'ScopedMaterialSelection.swift':
             # The synthetic workbook is owned by this sandbox, not a real File
             # Provider. Substitute only the lease boundary in this disposable copy;

@@ -55,6 +55,8 @@ struct SettingsView: View {
                         .accessibilityIdentifier("use-ai-features")
                     NavigationLink("端末内AIモデル") { RecoveryModelSettingsView() }
                     NavigationLink("通知") { NotificationSettingsView() }
+                    NavigationLink("カウントダウン") { CountdownManagementView(events: schoolEvents) }
+                        .accessibilityIdentifier("countdown-settings")
                     Picker("メインカラー", selection: colorSelection) {
                         ForEach(MainColor.allCases) { choice in
                             Text(choice.title).tag(choice)

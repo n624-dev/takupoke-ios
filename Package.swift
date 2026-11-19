@@ -78,7 +78,7 @@ let package = Package(
                     "SpecialSchedulesModel+Startup.swift",
                     "SpecialSchedulesModel+Analysis.swift",
                     "SpecialSchedulesModel+Provider.swift",
-                    "SchoolEventsView.swift",
+                    "SchoolEventsView.swift", "CountdownModel.swift", "CountdownView.swift",
                     "MappingOIDC.swift",
                     "MappingSettingsView.swift",
                     "LinksView.swift",
@@ -153,7 +153,7 @@ let package = Package(
                     "SpecialScheduleStore.swift",
                     "SpecialScheduleRecord.swift",
                     "SchoolEventsAPI.swift", "SchoolEventsSourceStatus.swift",
-                    "SchoolEventsStore.swift",
+                    "SchoolEventsStore.swift", "Countdown.swift",
                     "LinksAPI.swift",
                     "LinksStore.swift",
                     "LinkSearch.swift",
@@ -219,7 +219,7 @@ let package = Package(
                     "SpecialScheduleTests.swift",
                     "SpecialScheduleTests+Fixtures.swift",
                     "SpecialScheduleTests+Persistence.swift",
-                    "SchoolEventsAPITests.swift", "SchoolEventsSourceStatusTests.swift",
+                    "SchoolEventsAPITests.swift", "SchoolEventsSourceStatusTests.swift", "CountdownTests.swift",
                     "LinksTests.swift",
                 ] + mappingTests, resources: [.copy("fixtures")])
     ]

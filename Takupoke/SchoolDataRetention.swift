@@ -10,6 +10,11 @@ struct SchoolDataPeriod: Codable, Equatable, Sendable {
         half = (4...9).contains(day.month) ? 1 : 2
     }
 
+    var endsAt: Date? {
+        if half == 1 { return SchoolDate(year: schoolYear, month: 10, day: 1)?.dateInJapan() }
+        return SchoolDate(year: schoolYear + 1, month: 4, day: 1)?.dateInJapan()
+    }
+
     static func current(at date: Date = Date()) -> Self {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!

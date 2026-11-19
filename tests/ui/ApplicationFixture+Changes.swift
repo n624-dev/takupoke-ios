@@ -73,8 +73,9 @@ enum SimulatorChangeRowSkipFixture {
         let worker = MaterialWorker()
         try worker.open()
         try worker.selectFile(ScopedMaterialSelection(url), kind: .changes, control: AcquisitionControl())
-        let library = try LocalMaterialDatabase.openLibrary(root: base.appendingPathComponent("SchoolMaterialsSQLite"))
-        guard let record = library.state.record(for: .changes) else { throw ChangeParseError(code: .invalidArchive) }
+        guard let library = worker.library, let record = library.state.record(for: .changes) else {
+            throw ChangeParseError(code: .invalidArchive)
+        }
         let view = try library.changeEditor(year: 2032)
         let edits = Dictionary(uniqueKeysWithValues: (3...92).map { ($0, ChangeRowEdit(excluded: true)) })
         try library.saveChangeEditor(view, year: 2032, expectedIdentity: record.source.selectionID ?? record.storedName,

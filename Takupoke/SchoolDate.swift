@@ -48,6 +48,26 @@ struct SchoolDate: Codable, Hashable, Comparable {
         return calendar
     }
 
+    static var japanCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        return calendar
+    }
+
+    var isValidCalendarDay: Bool { Self(year: year, month: month, day: day) != nil }
+
+    func dateInJapan(hour: Int = 0, minute: Int = 0) -> Date? {
+        guard isValidCalendarDay, (0..<24).contains(hour), (0..<60).contains(minute) else { return nil }
+        return Self.japanCalendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour, minute: minute))
+    }
+
+    func days(until other: Self) -> Int {
+        let calendar = Self.arithmeticCalendar
+        guard let from = calendar.date(from: DateComponents(year: year, month: month, day: day)),
+              let to = calendar.date(from: DateComponents(year: other.year, month: other.month, day: other.day)) else { return 0 }
+        return calendar.dateComponents([.day], from: from, to: to).day ?? 0
+    }
+
     static func today(in timeZone: TimeZone = TimeZone(identifier: "Asia/Tokyo")!) -> Self {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone

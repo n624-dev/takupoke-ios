@@ -48,6 +48,7 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
             "testChangedRoomInHomeWeekAndList": ["--comparison"],
             "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch": ["--change-row-skip", "--fixture-input-trace"],
             "testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups": ["--change-weekday-carryover", "--fixture-input-trace"],
+            "testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent": ["--events-v2", "--countdown-calendar", "--countdown-source-checking"],
         ]
         for (method, arguments) in initialConditions where name.contains(method) {
             app.launchArguments += arguments

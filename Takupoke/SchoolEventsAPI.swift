@@ -13,6 +13,10 @@ enum SchoolEventsError: LocalizedError {
     }
 }
 
+enum SchoolEventsFormat: String, Codable {
+    case v1, v2
+}
+
 struct SchoolEventsPayload: Codable, Equatable {
     struct Event: Codable, Equatable {
         let startDate: String
@@ -21,40 +25,127 @@ struct SchoolEventsPayload: Codable, Equatable {
         let tag: String
     }
 
+    struct Range: Codable, Equatable {
+        let startDate: String
+        let endDate: String
+    }
+
+    struct IdentifiedEvent: Codable, Equatable, Identifiable {
+        let eventId: String
+        let title: String
+        let tag: String
+        let ranges: [Range]
+
+        var id: String { eventId }
+    }
+
     let version: String
     let schoolYear: Int
     let sourcePdfSha256: String
     let sourcePdfETag: String?
-    let events: [Event]
+    private let legacyEvents: [Event]?
+    let identifiedEvents: [IdentifiedEvent]?
+    var format: SchoolEventsFormat? { SchoolEventsFormat(rawValue: version) }
+    var events: [Event] {
+        legacyEvents ?? identifiedEvents?.flatMap { event in
+            event.ranges.map { Event(startDate: $0.startDate, endDate: $0.endDate, title: event.title, tag: event.tag) }
+        } ?? []
+    }
+
+    init(version: String, schoolYear: Int, sourcePdfSha256: String, sourcePdfETag: String?, events: [Event]) {
+        self.version = version; self.schoolYear = schoolYear
+        self.sourcePdfSha256 = sourcePdfSha256; self.sourcePdfETag = sourcePdfETag
+        legacyEvents = events; identifiedEvents = nil
+    }
+
+    init(schoolYear: Int, sourcePdfSha256: String, sourcePdfETag: String?, identifiedEvents: [IdentifiedEvent]) {
+        version = SchoolEventsFormat.v2.rawValue; self.schoolYear = schoolYear
+        self.sourcePdfSha256 = sourcePdfSha256; self.sourcePdfETag = sourcePdfETag
+        legacyEvents = nil; self.identifiedEvents = identifiedEvents
+    }
+
+    private enum CodingKeys: String, CodingKey { case version, schoolYear, sourcePdfSha256, sourcePdfETag, events }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        version = try values.decode(String.self, forKey: .version)
+        schoolYear = try values.decode(Int.self, forKey: .schoolYear)
+        sourcePdfSha256 = try values.decode(String.self, forKey: .sourcePdfSha256)
+        sourcePdfETag = try values.decodeIfPresent(String.self, forKey: .sourcePdfETag)
+        if version == SchoolEventsFormat.v2.rawValue {
+            identifiedEvents = try values.decode([IdentifiedEvent].self, forKey: .events)
+            legacyEvents = nil
+        } else {
+            legacyEvents = try values.decode([Event].self, forKey: .events)
+            identifiedEvents = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(version, forKey: .version)
+        try values.encode(schoolYear, forKey: .schoolYear)
+        try values.encode(sourcePdfSha256, forKey: .sourcePdfSha256)
+        try values.encodeIfPresent(sourcePdfETag, forKey: .sourcePdfETag)
+        if let identifiedEvents { try values.encode(identifiedEvents, forKey: .events) }
+        else { try values.encode(legacyEvents ?? [], forKey: .events) }
+    }
 
     static let supportedTags: Set<String> = [
         "授業なし", "曜日振替", "補講日", "行事（授業なし）", "行事（授業あり）",
         "行事", "行事（時間割変更）", "テスト", "テスト返却", "行事メモ"
     ]
 
-    static func decode(_ data: Data, requestedYear: Int) throws -> Self {
+    static func decode(_ data: Data, requestedYear: Int, requestedFormat: SchoolEventsFormat? = nil) throws -> Self {
         guard data.count <= 1_000_000, let payload = try? JSONDecoder().decode(Self.self, from: data),
+              requestedFormat == nil || payload.format == requestedFormat,
               payload.isValid(for: requestedYear) else { throw SchoolEventsError.invalidResponse }
         return payload
     }
 
     private func isValid(for requestedYear: Int) -> Bool {
-        guard version == "v1", schoolYear == requestedYear, (1900...9998).contains(schoolYear),
+        guard let format, schoolYear == requestedYear, (1900...9998).contains(schoolYear),
               sourcePdfSha256.utf8.count == 64,
               sourcePdfSha256.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }),
               sourcePdfETag == nil || Self.validETag(sourcePdfETag!),
-              !events.isEmpty, events.count <= 2_000,
               let startOfYear = SchoolDate(year: schoolYear, month: 4, day: 1),
               let endOfYear = SchoolDate(year: schoolYear + 1, month: 3, day: 31) else { return false }
+        if format == .v1 {
+            guard let legacyEvents, !legacyEvents.isEmpty, legacyEvents.count <= 2_000 else { return false }
+        } else {
+            guard let identifiedEvents, identifiedEvents.count <= 2_000 else { return false }
+            var ids = Set<String>(), rangeCount = 0
+            for event in identifiedEvents {
+                guard Self.validEventID(event.eventId), ids.insert(event.eventId).inserted,
+                      Self.validTitle(event.title, tag: event.tag), !event.ranges.isEmpty else { return false }
+                rangeCount += event.ranges.count
+                guard rangeCount <= 2_000 else { return false }
+                for (previous, next) in zip(event.ranges, event.ranges.dropFirst()) {
+                    guard previous.endDate < next.startDate else { return false }
+                }
+            }
+        }
         return events.allSatisfy { event in
             guard let start = SchoolDate(iso8601: event.startDate),
                   let end = SchoolDate(iso8601: event.endDate),
                   startOfYear <= start, start <= end, end <= endOfYear,
-                  !event.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                  event.title.count <= 200, Self.supportedTags.contains(event.tag) else { return false }
-            if event.tag == "曜日振替" { return Self.overrideDay(event.title) != nil }
+                  Self.validTitle(event.title, tag: event.tag) else { return false }
             return true
         }
+    }
+
+    private static func validTitle(_ title: String, tag: String) -> Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && title.count <= 200
+            && supportedTags.contains(tag) && (tag != "曜日振替" || overrideDay(title) != nil)
+    }
+
+    static func validEventID(_ id: String) -> Bool {
+        func alphanumeric(_ byte: UInt8) -> Bool {
+            (48...57).contains(byte) || (65...90).contains(byte) || (97...122).contains(byte)
+        }
+        let bytes = id.utf8
+        guard bytes.count <= 128, let first = bytes.first, alphanumeric(first) else { return false }
+        return bytes.allSatisfy { alphanumeric($0) || [45, 46, 95].contains($0) }
     }
 
     private static func validETag(_ value: String) -> Bool {
@@ -93,10 +184,23 @@ struct SavedSchoolEvents: Codable {
     let payload: SchoolEventsPayload
     let apiETag: String?
     let responseDataVersion: String?
+    let lastEventsCheckedAt: Date?
 
-    init(fetchedAt: Date, payload: SchoolEventsPayload, apiETag: String?, responseDataVersion: String? = nil) {
+    init(fetchedAt: Date, payload: SchoolEventsPayload, apiETag: String?, responseDataVersion: String? = nil,
+         lastEventsCheckedAt: Date? = nil) {
         self.fetchedAt = fetchedAt; self.payload = payload; self.apiETag = apiETag
-        self.responseDataVersion = responseDataVersion
+        self.responseDataVersion = responseDataVersion; self.lastEventsCheckedAt = lastEventsCheckedAt
+    }
+
+    private enum CodingKeys: String, CodingKey { case fetchedAt, payload, apiETag, responseDataVersion, lastEventsCheckedAt }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        fetchedAt = try values.decode(Date.self, forKey: .fetchedAt)
+        payload = try values.decode(SchoolEventsPayload.self, forKey: .payload)
+        apiETag = try values.decodeIfPresent(String.self, forKey: .apiETag)
+        responseDataVersion = try values.decodeIfPresent(String.self, forKey: .responseDataVersion)
+        lastEventsCheckedAt = try? values.decode(Date.self, forKey: .lastEventsCheckedAt)
     }
 
     /// The published API contract binds dataVersion to the events JSON hash,

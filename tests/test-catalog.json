@@ -184,6 +184,25 @@
       ]
     },
     {
+      "id": "countdown",
+      "title": "カウントダウン・日付・通知・保存",
+      "environment": "Linux Swift／iOS 26.5・27.0シミュレータ",
+      "commands": [
+        "bash tools/test-parsing.sh",
+        "TKPK_UI_PROBE_CASE=countdown-calendar bash tools/test-app-ui.sh"
+      ],
+      "sources": [
+        "Takupoke/Countdown.swift",
+        "Takupoke/CountdownModel.swift",
+        "Takupoke/CountdownView.swift"
+      ],
+      "checks": [
+        "tests/CountdownTests.swift",
+        "tests/SchoolEventsSourceModelTests.swift",
+        "tests/ui/ApplicationChecks+Events.swift"
+      ]
+    },
+    {
       "id": "timetable",
       "title": "時間割・今日の予定・授業時刻・授業名",
       "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",

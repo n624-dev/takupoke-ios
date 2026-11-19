@@ -143,3 +143,50 @@ enum SimulatorAuxiliaryStoreFixture {
         }
     }
 }
+
+enum SimulatorCountdownEventsFixture {
+    static func reply(to transport: URLProtocol) -> Bool {
+        let arguments = ProcessInfo.processInfo.arguments
+        let today = SchoolDate.today()
+        guard arguments.contains("--countdown-calendar"), let url = transport.request.url,
+              url.host == "fixture.example.test", transport.request.httpMethod == "GET",
+              ["/events", "/events/source-status"].contains(url.path),
+              let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
+              items == [.init(name: "schoolYear", value: String(today.schoolYear)), .init(name: "format", value: "v2")] else { return false }
+        let updated = arguments.contains("--countdown-calendar-update")
+        let yearEnd = SchoolDate(year: today.schoolYear + 1, month: 3, day: 31)!
+        let first = min(today.addingDays(updated ? 15 : 14)!, yearEnd.addingDays(-5)!)
+        let later = first.addingDays(3)!
+        let payload = SchoolEventsPayload(schoolYear: today.schoolYear, sourcePdfSha256: String(repeating: "b", count: 64),
+            sourcePdfETag: nil, identifiedEvents: [
+                .init(eventId: "fictional-class-exam-202", title: updated ? "架空訂正試験B" : "架空の分割試験A", tag: "テスト",
+                    ranges: [.init(startDate: first.iso8601, endDate: first.iso8601),
+                             .init(startDate: later.iso8601, endDate: later.addingDays(1)!.iso8601)]),
+                .init(eventId: "fictional-return", title: "架空の採点返却", tag: "テスト返却",
+                    ranges: [.init(startDate: first.iso8601, endDate: first.iso8601)])
+            ])
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        let body = try! encoder.encode(payload)
+        let hash = SHA256.hash(data: body).map { String(format: "%02x", $0) }.joined()
+        let tag = "W/\"\(hash)\""
+        let isEvents = url.path == "/events"
+        let date = Date().addingTimeInterval(-3)
+        let difference = arguments.contains("--countdown-different-source")
+        let formatter = ISO8601DateFormatter()
+        let checking = arguments.contains("--countdown-source-checking")
+        let status = SchoolEventsSourceStatus(version: "v1", schoolYear: today.schoolYear, dataVersion: "sha256-" + hash,
+            adoptedSourcePdfSha256: payload.sourcePdfSha256, status: difference ? .source_differs : .matched,
+            lastSuccessfulStatus: difference ? .source_differs : .matched, lastSuccessAt: formatter.string(from: date),
+            lastAttemptAt: formatter.string(from: date), nextAttemptAt: formatter.string(from: date.addingTimeInterval(86_400)),
+            checking: checking, stale: false)
+        let notModified = isEvents && transport.request.value(forHTTPHeaderField: "If-None-Match") == tag
+        var headers = ["Content-Type": "application/json"]
+        if isEvents { headers["ETag"] = tag }
+        let response = HTTPURLResponse(url: url, statusCode: notModified ? 304 : 200, httpVersion: "HTTP/1.1", headerFields: headers)!
+        transport.client?.urlProtocol(transport, didReceive: response, cacheStoragePolicy: .notAllowed)
+        if !notModified { transport.client?.urlProtocol(transport, didLoad: isEvents ? body : try! encoder.encode(status)) }
+        transport.client?.urlProtocolDidFinishLoading(transport)
+        return true
+    }
+}

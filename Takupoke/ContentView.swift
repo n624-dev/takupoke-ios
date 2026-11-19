@@ -15,6 +15,7 @@ struct ContentView: View {
     @AppStorage("setupPresented") private var setupPresented = false
     @State private var showingSetup = false
     @State private var confirmingRetentionRecovery = false
+    @ObservedObject private var notifications = ApplicationData.shared.notifications
     private let materials = ApplicationData.shared.materials
     private let specialSchedules = ApplicationData.shared.specialSchedules
     private let schoolEvents = ApplicationData.shared.schoolEvents
@@ -49,6 +50,7 @@ struct ContentView: View {
         .environmentObject(links)
         .environmentObject(mappings)
         .environmentObject(application.notifications)
+        .environmentObject(application.countdown)
         .environmentObject(application.times)
         .onChange(of: scenePhase) { phase in
             if phase == .active { Task { await activate() } }
@@ -57,12 +59,25 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
             setFileMonitoring(false)
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+            if scenePhase == .active { schoolEvents.reevaluate(); application.updateCountdown() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.protectedDataDidBecomeAvailableNotification)) { _ in
+            if scenePhase == .active { Task { await activate() } }
+        }
         .onReceive(boundaryCheck) { _ in
             if scenePhase == .active, loadedPeriod != SchoolDataPeriod.current() {
                 Task { await activate() }
             }
         }
         .task { await activate() }
+        .sheet(item: Binding(get: { dataReady ? notifications.openedCountdown : nil },
+                             set: { notifications.openedCountdown = $0 })) { destination in
+            NavigationStack {
+                CountdownNotificationDestination(destination: destination, events: schoolEvents)
+                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button("閉じる") { notifications.openedCountdown = nil } } }
+            }
+        }
         .onChange(of: dataReady) { ready in
             if !ready { showingSetup = false }
         }

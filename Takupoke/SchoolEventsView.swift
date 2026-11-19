@@ -32,20 +32,26 @@ struct SchoolEventsSettingsSection: View {
                     Text("取得済み")
                         .font(.subheadline).foregroundStyle(.secondary)
                     NavigationLink("詳細を見る") {
-                        SchoolEventsResultView(saved: saved)
+                        SchoolEventsResultView(model: model, year: year, original: saved)
                     }
                     .accessibilityLabel("\(year)年度の学校行事の詳細を見る")
+                    if let checked = saved.lastEventsCheckedAt {
+                        LabeledContent("行事データの更新確認") {
+                            Text(checked, format: JapaneseDateDisplay.timestamp)
+                        }.font(.caption)
+                    }
+                    LabeledContent("行事データの最終更新") {
+                        Text(saved.fetchedAt, format: JapaneseDateDisplay.timestamp)
+                    }.font(.caption)
+                    if model.isChecking(year: year) {
+                        Text("学校行事を確認中").font(.caption).foregroundStyle(.secondary)
+                    }
                     if let status = model.sourcePresentation(year: year) {
                         LabeledContent("元PDFの確認", value: status.message)
                             .font(.caption)
                         if let previous = status.lastSuccessfulMessage, let date = status.lastSuccessAt {
                             LabeledContent("最終成功の結果", value: previous).font(.caption)
-                            LabeledContent("最終成功確認") {
-                                Text(date, format: JapaneseDateDisplay.timestamp)
-                            }.font(.caption)
-                        }
-                        if let date = status.receivedAt {
-                            LabeledContent("状態の取得") {
+                            LabeledContent("元資料の最終確認") {
                                 Text(date, format: JapaneseDateDisplay.timestamp)
                             }.font(.caption)
                         }
@@ -82,16 +88,33 @@ struct SchoolEventsSettingsSection: View {
 }
 
 private struct SchoolEventsResultView: View {
-    let saved: SavedSchoolEvents
+    @ObservedObject var model: SchoolEventsModel
+    let year: Int
+    let original: SavedSchoolEvents
 
     var body: some View {
+        let saved = model.saved[year] ?? original
         List {
             Section("取得結果") {
                 LabeledContent("学校年度", value: "\(saved.payload.schoolYear)年度")
                 LabeledContent("年度の期間", value: "\(saved.payload.schoolYear)年4月1日〜\(saved.payload.schoolYear + 1)年3月31日")
-                LabeledContent("件数", value: "\(saved.payload.events.count)件")
-                LabeledContent("最終取得") {
+                LabeledContent("件数", value: "\(saved.payload.identifiedEvents?.count ?? saved.payload.events.count)件")
+                LabeledContent("行事データの最終更新") {
                     Text(saved.fetchedAt, format: JapaneseDateDisplay.timestamp)
+                }
+                if let checked = saved.lastEventsCheckedAt {
+                    LabeledContent("行事データの更新確認") {
+                        Text(checked, format: JapaneseDateDisplay.timestamp)
+                    }
+                }
+                if let status = model.sourcePresentation(year: year) {
+                    Text(status.message).font(.footnote).foregroundStyle(.secondary)
+                    if let success = status.lastSuccessAt {
+                        LabeledContent("元資料の最終確認") { Text(success, format: JapaneseDateDisplay.timestamp) }
+                    }
+                    if let received = status.receivedAt {
+                        LabeledContent("状態の取得") { Text(received, format: JapaneseDateDisplay.timestamp) }
+                    }
                 }
             }
             ForEach(Array(saved.payload.events.enumerated()), id: \.offset) { _, event in

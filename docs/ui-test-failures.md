@@ -5289,3 +5289,13 @@ d9918b45、run 44407326157、試行1、SDK 27.2／iOS 27.0、job 135168256057。
 ### #119 保存・取消しのLinux追加試験がコンパイルで停止（2026-11-19）
 
 5359b477を基点にした未コミット候補、Linux x86_64／Swift 6.1.2、ローカル試行2。`testLegacyAmbiguousWeekdayExclusionsCanBeConfirmedAndSavedAfterReopen` の228行で `XCTAssertEqual` が `ChangeAnalysis: Equatable` を要求し、テスト実行に未到達。既存の `ChangeAnalysis` は `Codable`。旧版の取消しに関する既存テストと同じ永続化経路を使い、保存前後の比較にキー順を固定した保存形式を使う。以前の解析結果を全項目照合する検査は維持する。
+
+### #119 最初の限定CIでテスト用アプリが初回起動時に終了（2026-11-19）
+
+d6bc639、run 44439254857・試行1、iOS 27.0.0／SDK 27.2、job 135275715625。生成・コンパイル・Simulator起動は成功。`testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups` は最初のアプリ起動後、Running Foreground待機中に `jp.n624.takupoke.app-checks crashed`（113.891秒）。設定・原本差し替え・実UIの検査には未到達。終了の下位原因と26.5の結果は調査中。
+
+### #121 Linuxの鮮度境界比較で秒未満の期待値が不一致（2026-11-19）
+
+d6bc639基点の統合候補、Linux x86_64／Swift 6.1.2、最初の統合試行。`testMetadataTTLIsTwelveHoursOrSixtySecondsWhileCheckingAndRejectsClockRollback` の74行。元成功時刻は秒未満.842、fixtureの次回試行可能時刻は.000で、後者を先に採るコードだった。日時の秒未満はXCTest出力に表示されず、実際のwireと旧キャッシュの比較を行った。次回可能時刻が先になる場合と、それより24時間の観測期限が先になる場合を別々の入力で照合する。
+
+#119の同じ試行のiOS 26.5.0（135275715201）もコンパイル成功後、初回起動の `seed-enter` で終了（37.776秒）。N112の初回初期化を照合し、当該fixtureの `MaterialWorker.open()` と2回目の `openLibrary` が同じ排他ロックに到達することを確認。現行の `flock(LOCK_EX | LOCK_NB)` は二重所有を拒否する。取得ワーカーが先に開いた同じライブラリで保存し、実ファイル差し替え・実画面の行数・採用・取り消し・再起動は維持する。修正限定のレビューは差分 `b9eb4ed0396cad2278aca20823b187ca1befd191e18c445720831dce55271820`、GPT-6.2 Sol/High、指摘なし。

@@ -120,6 +120,7 @@ struct HomeTodayView: View {
             ForEach(materialWarnings, id: \.self) { InlineWarning($0) }
             SpecialScheduleWarnings(model: specialSchedules)
             SchoolEventsWarnings(model: schoolEvents)
+            if schoolEvents.ready && !eventsAvailable { status("学校行事は未取得です。") }
             if loadFailed {
                 InlineWarning("データを読み込めませんでした。")
                 Button("再試行", action: retryLoading)
@@ -131,7 +132,6 @@ struct HomeTodayView: View {
                 }
             } else {
                 if schedule.changes == nil { status("時間割変更の解析結果がありません。") }
-                if schoolEvents.ready && !eventsAvailable { status("学校行事は未取得です。") }
                 ForEach(classes, id: \.self) { className in
                     classRows(className)
                 }
@@ -152,13 +152,13 @@ struct HomeTodayView: View {
             }
             .textCase(nil)
         }
-        .onAppear { configureClock(); if scenePhase == .active { homeClock.start() } }
-        .onDisappear { homeClock.pause() }
+        .onAppear { configureClock() }
+        .onDisappear { homeClock.configure([]) }
         .onReceive(NotificationCenter.default.publisher(for:UIApplication.significantTimeChangeNotification)) { _ in
             if scenePhase == .active { homeClock.refresh() }
         }
         .onChange(of: scenePhase) { phase in
-            if phase == .active { configureClock(); homeClock.start() } else { homeClock.pause() }
+            if phase == .active { configureClock() }
         }
         .onChange(of: detailRevision) { _ in
             selectedLesson = nil; selectedSpecial = nil; selectedChange = nil

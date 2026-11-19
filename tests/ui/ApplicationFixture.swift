@@ -12,6 +12,7 @@ final class FixtureNetwork: URLProtocol {
     override func startLoading() {
         // Synthetic revision responses exercise saved/empty/update UI states.
         // Every other request is rejected; nothing reaches a production service.
+        if SimulatorCountdownEventsFixture.reply(to: self) { return }
         if ProcessInfo.processInfo.arguments.contains("--events-cache-corrupt") ||
             ProcessInfo.processInfo.arguments.contains("--events-cache-probe"),
            let url = request.url, url.host == "fixture.example.test", request.httpMethod == "GET",

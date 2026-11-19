@@ -207,3 +207,87 @@ extension ApplicationChecks {
         )
     }
 }
+
+extension ApplicationChecks {
+    func testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent() throws {
+        let warning = "学校の元PDFに差異があります。行事内容への影響は確認待ちです。"
+        func identifying(_ identifier: String, title: String) -> XCUIElement {
+            app.buttons.matching(NSPredicate(format: "identifier == %@ AND label CONTAINS %@", identifier, title)).firstMatch
+        }
+        func openCountdown() {
+            tab("設定")
+            tap("カウントダウン")
+            screen("カウントダウン")
+        }
+        func fetchCurrentEvents(initial: Bool) {
+            tab("設定")
+            tap("学校行事")
+            screen("学校行事")
+            tap(initial ? "学校行事を取得" : "学校行事を更新")
+            let confirmed = visible(app.staticTexts["行事データの更新確認"])
+            XCTAssertTrue(confirmed.waitForExistence(timeout: 25), app.debugDescription)
+        }
+        func add(_ mode: String) {
+            let menu = app.buttons["countdown-add"]
+            XCTAssertTrue(menu.waitForExistence(timeout: 10), app.debugDescription)
+            menu.tap()
+            tap(mode)
+        }
+        func saveNamed(_ name: String) {
+            let input = visible(app.textFields["countdown-name"])
+            XCTAssertTrue(input.exists && input.isHittable, app.debugDescription)
+            input.tap()
+            input.typeText(name)
+            let save = app.buttons["countdown-save"]
+            XCTAssertTrue(save.isEnabled && save.isHittable, app.debugDescription)
+            save.tap()
+        }
+        func matchingWarning() -> XCUIElement {
+            app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", warning)).firstMatch
+        }
+
+        fetchCurrentEvents(initial: true)
+        back(to: "設定")
+        openCountdown()
+        add("自分で入力")
+        saveNamed("Fictional personal plan")
+        screen("カウントダウン")
+        XCTAssertTrue(identifying("countdown-list-card", title: "Fictional personal plan").waitForExistence(timeout: 10), app.debugDescription)
+        add("学校行事を選ぶ")
+        let exam = visible(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "架空の分割試験A")).firstMatch)
+        XCTAssertTrue(exam.exists && exam.isHittable, app.debugDescription)
+        exam.tap()
+        screen("カウントダウンを設定")
+        saveNamed("Fictional exam alias")
+        screen("学校行事を選ぶ")
+        back(to: "カウントダウン")
+        let fixed = visible(identifying("countdown-list-card", title: "Fictional exam alias"))
+        XCTAssertTrue(fixed.exists && fixed.isHittable, app.debugDescription)
+        fixed.tap()
+        screen("予定の詳細")
+        XCTAssertTrue(visible(app.staticTexts["架空の分割試験A"]).exists, app.debugDescription)
+        XCTAssertTrue(visible(app.staticTexts["実施区間 2"]).exists, app.debugDescription)
+        tab("ホーム")
+        XCTAssertFalse(matchingWarning().exists, app.debugDescription)
+
+        app.terminate()
+        app.launchArguments.removeAll { $0 == "--reset-fixture" || $0 == "--countdown-source-checking" }
+        app.launchArguments += ["--countdown-calendar-update", "--countdown-different-source"]
+        launchReady()
+        fetchCurrentEvents(initial: false)
+        let current = visible(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", warning)).firstMatch)
+        XCTAssertTrue(current.waitForExistence(timeout: 25), app.debugDescription)
+        back(to: "設定")
+        openCountdown()
+        let restored = visible(identifying("countdown-list-card", title: "Fictional exam alias"))
+        XCTAssertTrue(restored.exists && restored.isHittable, app.debugDescription)
+        restored.tap()
+        screen("予定の詳細")
+        XCTAssertTrue(visible(app.staticTexts["架空訂正試験B"]).exists, app.debugDescription)
+        XCTAssertTrue(visible(app.staticTexts["実施区間 2"]).exists, app.debugDescription)
+        tab("ホーム")
+        XCTAssertTrue(visible(matchingWarning()).exists, app.debugDescription)
+        tab("時間割")
+        XCTAssertTrue(visible(matchingWarning()).exists, app.debugDescription)
+    }
+}
