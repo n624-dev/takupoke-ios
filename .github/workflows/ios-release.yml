@@ -136,9 +136,9 @@ jobs:
             developer: /Applications/Xcode_27.2.app/Contents/Developer
             voiceover: '1'
     runs-on: ${{ matrix.runner }}
-    # Includes dependency resolution, build, simulator tests and owned cleanup.
+    # Includes build, the final notification runner, three OS text sizes and cleanup.
     # Individual UI operation deadlines and completion checks stay unchanged.
-    timeout-minutes: 60
+    timeout-minutes: 75
     env:
       TKPK_EXPECTED_IOS_SDK: '27.2'
       TKPK_SIMULATOR_FRONTEND: headless
