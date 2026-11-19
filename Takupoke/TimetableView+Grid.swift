@@ -200,7 +200,7 @@ private struct WeekPages: View {
     }
 
     var body: some View {
-        let weeks = WeekEdgePull.preparedWeeks(selected: selection, arriving: motion.preparedArrival,
+        let weeks = WeekEdgePull.preparedWeeks(selected: motion.preparedSource ?? selection, arriving: motion.preparedArrival,
                                                within: bounds)
         let pages = weeks.map { week in WeekPage(id: week, revision: revision, content: { content(week) }) }
         WeekPagesLayout(currentIndex: weeks.firstIndex(of: selection) ?? 0, reservedHeight: motion.reservedHeight) {
@@ -331,6 +331,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     @Published private(set) var transition: Transition?
     @Published private(set) var reservedHeight: CGFloat?
     @Published private var prefetchedWeek: SchoolDate?
+    @Published private var settlingSource: SchoolDate?
     var selection: SchoolDate?
     var bounds: ClosedRange<SchoolDate>?
     var available = Set<SchoolDate>()
@@ -346,7 +347,8 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     private(set) var trackingTransitionTouch = false
     private(set) var transitionTouchWeek: SchoolDate?
     var nextInputWeek: SchoolDate? { releases.lastDestination ?? transition?.destination ?? selection }
-    var preparedArrival: SchoolDate? { transition?.destination ?? prefetchedWeek }
+    var preparedSource: SchoolDate? { transition?.source ?? settlingSource }
+    var preparedArrival: SchoolDate? { transition?.destination ?? (settlingSource == nil ? prefetchedWeek : selection) }
     var hasDeferredReleases: Bool { !deferredReleases.isEmpty }
     private var displayLink: CADisplayLink?
     private weak var heldScroll: UIScrollView?
@@ -396,7 +398,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         return bounds?.contains(destination) == true
     }
     func prepareBeyondPull(from week: SchoolDate, distance: CGFloat) {
-        guard transition == nil, selection == week, distance != 0 else { return }
+        guard transition == nil, settlingSource == nil, selection == week, distance != 0 else { return }
         let days = distance > 0 ? -7 : 7
         guard canMove(from: week, by: days), let target = week.addingDays(days),
               prefetchedWeek != target else { return }
@@ -489,11 +491,11 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         }
         // Commit the release position, then move on the first display callback.
         // Starting a SwiftUI animation there would wait for a second handoff.
-        let link = CADisplayLink(target: self, selector: #selector(advanceSlide(_:)))
+        let link = CADisplayLink(target: self, selector: #selector(advanceFrame(_:)))
         displayLink = link; link.add(to: .main, forMode: .common)
     }
-    @objc private func advanceSlide(_ link: CADisplayLink) {
-        guard let value = transition else { stopDisplayLink(); return }
+    @objc private func advanceFrame(_ link: CADisplayLink) {
+        guard let value = transition else { adjustHeight(link); return }
         let startedAt = slideStartedAt ?? link.timestamp
         slideStartedAt = startedAt
         let duration = reduceMotion ? 0.15 : 0.25
@@ -502,22 +504,24 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         var transaction = Transaction(); transaction.disablesAnimations = true
         withTransaction(transaction) { transition?.slideProgress = progress }
         if elapsed == 1 {
-            stopDisplayLink()
+            slideStartedAt = nil
             settle(id: value.id)
         }
     }
     private func settle(id: UUID) {
-        guard let value = transition, value.id == id, let initialHeight = reservedHeight else { return }
+        guard let value = transition, value.id == id else { return }
+        guard let initialHeight = reservedHeight else { cancel(); return }
+        if !reduceMotion, abs(initialHeight - value.targetHeight) >= 1 {
+            // Keep the page window and display link through the handoff.
+            // Rebuilding them here would add work to the first height frame.
+            settlingSource = value.source
+            heightAdjustment = (CACurrentMediaTime(), initialHeight, value.targetHeight)
+        }
         promote(value)
         defer { scheduleQueuedMove() }
-        if reduceMotion || abs(initialHeight - value.targetHeight) < 1 { finishHeight(); return }
-        // Present each reserved height directly. Implicitly animating a frame
-        // inside List also animates its content's position during re-layout.
-        heightAdjustment = (CACurrentMediaTime(), initialHeight, value.targetHeight)
-        let link = CADisplayLink(target: self, selector: #selector(adjustHeight(_:)))
-        displayLink = link; link.add(to: .main, forMode: .common)
+        if heightAdjustment == nil { finishHeight() }
     }
-    @objc private func adjustHeight(_ link: CADisplayLink) {
+    private func adjustHeight(_ link: CADisplayLink) {
         guard let adjustment = heightAdjustment else { stopDisplayLink(); return }
         let progress = min(1, max(0, (link.targetTimestamp - adjustment.startedAt) / 0.2))
         if progress == 1 { finishHeight(); return }
@@ -544,7 +548,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     private func finishHeight(reserving height: CGFloat? = nil) {
         stopDisplayLink()
         var transaction = Transaction(); transaction.disablesAnimations = true
-        withTransaction(transaction) { reservedHeight = height }
+        withTransaction(transaction) { settlingSource = nil; reservedHeight = height }
     }
     func complete() {
         invalidateInput()
@@ -557,7 +561,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         heldScroll?.isScrollEnabled = true
         heldScroll = nil
         var transaction = Transaction(); transaction.disablesAnimations = true
-        withTransaction(transaction) { transition = nil; reservedHeight = nil }
+        withTransaction(transaction) { transition = nil; settlingSource = nil; reservedHeight = nil }
     }
     private func invalidateInput() {
         inputGeneration = UUID()

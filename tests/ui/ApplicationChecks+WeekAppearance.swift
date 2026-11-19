@@ -1,5 +1,109 @@
 import XCTest
 import UIKit
+import ObjectiveC
+import Darwin
+
+// Individual XCTest coordinate commands wait for quiescence between drags.
+// Schedule this input on the test bundle's native synthesizer clock.
+private enum WeekContactSequence {
+    struct Drag {
+        let start: CGPoint
+        let end: CGPoint
+        let duration: TimeInterval
+        let pauseAfterLift: TimeInterval
+    }
+
+    private static func matches(_ copied: UnsafeMutablePointer<CChar>?, _ expected: String) -> Bool {
+        guard let copied else { return false }
+        defer { free(copied) }
+        let actual = String(cString: copied)
+        if expected == "@" { return actual == "@" || actual.hasPrefix("@\"") }
+        return actual == expected
+    }
+
+    private static func method<Signature>(
+        _ name: String, on type: AnyClass?, returns: String, arguments: [String], as signature: Signature.Type
+    ) throws -> (Signature, Selector) {
+        let selector = NSSelectorFromString(name)
+        let entry = try XCTUnwrap(class_getInstanceMethod(type, selector),
+                                  "Native XCTest event selector unavailable: " + name)
+        let types = ["@", ":"] + arguments
+        guard method_getNumberOfArguments(entry) == UInt32(types.count),
+              matches(method_copyReturnType(entry), returns),
+              types.enumerated().allSatisfy({
+                  matches(method_copyArgumentType(entry, UInt32($0.offset)), $0.element)
+              }) else {
+            throw NSError(domain: "WeekContactSequence", code: 1, userInfo: [NSLocalizedDescriptionKey: name])
+        }
+        return (unsafeBitCast(method_getImplementation(entry), to: signature), selector)
+    }
+
+    private static func allocate(_ type: AnyClass) throws -> Unmanaged<AnyObject> {
+        typealias Allocate = @convention(c) (AnyObject, Selector) -> Unmanaged<AnyObject>?
+        let (allocate, selector) = try method("alloc", on: object_getClass(type),
+                                              returns: "@", arguments: [], as: Allocate.self)
+        return try XCTUnwrap(allocate(type as AnyObject, selector))
+    }
+
+    static func send(_ drags: [Drag]) throws {
+        typealias RecordInit = @convention(c) (AnyObject, Selector, NSString, Int64) -> Unmanaged<AnyObject>?
+        typealias PathInit = @convention(c) (AnyObject, Selector, CGPoint, Double) -> Unmanaged<AnyObject>?
+        typealias Add = @convention(c) (AnyObject, Selector, AnyObject) -> Void
+        typealias Move = @convention(c) (AnyObject, Selector, CGPoint, Double) -> Void
+        typealias Lift = @convention(c) (AnyObject, Selector, Double) -> Void
+        let recordType: AnyClass = try XCTUnwrap(NSClassFromString("XCSynthesizedEventRecord"))
+        let pathType: AnyClass = try XCTUnwrap(NSClassFromString("XCPointerEventPath"))
+        let pointArguments = ["{CGPoint=dd}", "d"]
+        let (makeRecord, recordSelector) = try method("initWithName:interfaceOrientation:", on: recordType,
+                                                     returns: "@", arguments: ["@", "q"], as: RecordInit.self)
+        let (makePath, pathSelector) = try method("initForTouchAtPoint:offset:", on: pathType,
+                                                 returns: "@", arguments: pointArguments, as: PathInit.self)
+        let (add, addSelector) = try method("addPointerEventPath:", on: recordType,
+                                            returns: "v", arguments: ["@"], as: Add.self)
+        let (move, moveSelector) = try method("moveToPoint:atOffset:", on: pathType,
+                                              returns: "v", arguments: pointArguments, as: Move.self)
+        let (lift, liftSelector) = try method("liftUpAtOffset:", on: pathType,
+                                              returns: "v", arguments: ["d"], as: Lift.self)
+        let record = try XCTUnwrap(makeRecord(try allocate(recordType).takeUnretainedValue(), recordSelector,
+                                             "Four consecutive week pulls", Int64(UIInterfaceOrientation.portrait.rawValue))).takeRetainedValue()
+        var next = 0.04
+        for drag in drags {
+            let path = try XCTUnwrap(makePath(try allocate(pathType).takeUnretainedValue(), pathSelector,
+                                             drag.start, next)).takeRetainedValue()
+            let samples = max(4, Int(drag.duration / 0.02) - 2)
+            for sample in 1...samples {
+                let fraction = CGFloat(sample) / CGFloat(samples)
+                let position = CGPoint(x: drag.start.x + (drag.end.x - drag.start.x) * fraction,
+                                       y: drag.start.y + (drag.end.y - drag.start.y) * fraction)
+                move(path, moveSelector, position, next + 0.02 + Double(fraction) * (drag.duration - 0.04))
+            }
+            lift(path, liftSelector, next + drag.duration)
+            add(record, addSelector, path)
+            next += drag.duration + drag.pauseAfterLift
+        }
+
+        typealias EventSynthesizer = @convention(c) (AnyObject, Selector) -> Unmanaged<AnyObject>?
+        typealias Completion = @convention(block) (ObjCBool, NSError?) -> Void
+        typealias Synthesize = @convention(c) (AnyObject, Selector, AnyObject, Completion) -> Void
+        let device = XCUIDevice.shared
+        let (findSynthesizer, synthSelector) = try method("eventSynthesizer", on: object_getClass(device),
+                                                         returns: "@", arguments: [], as: EventSynthesizer.self)
+        let synthesizer = try XCTUnwrap(findSynthesizer(device, synthSelector)).takeUnretainedValue()
+        let (synthesize, sendSelector) = try method("synthesizeEvent:completion:", on: object_getClass(synthesizer),
+                                                    returns: "v", arguments: ["@", "@?"], as: Synthesize.self)
+        let delivered = XCTestExpectation(description: "XCTest delivered all timed contacts as native events")
+        var eventError: NSError?
+        synthesize(synthesizer, sendSelector, record) { sent, error in
+            eventError = error ?? (sent.boolValue ? nil : NSError(domain: "WeekContactSequence", code: 2))
+            delivered.fulfill()
+        }
+        guard XCTWaiter.wait(for: [delivered], timeout: 8) == .completed else {
+            throw NSError(domain: "WeekContactSequence", code: 3,
+                          userInfo: [NSLocalizedDescriptionKey: "The native synthesizer did not return"])
+        }
+        if let eventError { throw eventError }
+    }
+}
 
 extension ApplicationChecks {
     // Extract actual colored ink, excluding the neutral glass, text, and tab
@@ -81,20 +185,19 @@ extension ApplicationChecks {
         let runsForward = lastDate.timeIntervalSince(initialDate) >= 3 * 604800
         if !runsForward { XCTAssertGreaterThanOrEqual(initialDate.timeIntervalSince(firstDate), 3 * 604800) }
         let visible = grid.frame.intersection(bodyViewport(navigation: "時間割"))
+        let appFrame = app.frame
+        XCTAssertGreaterThan(appFrame.height, appFrame.width, "Timed touches require the app's portrait window")
         XCTAssertGreaterThan(visible.width, 285)
         XCTAssertGreaterThan(visible.height, 30)
-        let anchor = app.coordinate(withNormalizedOffset: .zero)
-        let left = anchor.withOffset(CGVector(dx: visible.minX + 30, dy: visible.midY))
-        let right = anchor.withOffset(CGVector(dx: visible.maxX - 30, dy: visible.midY))
         let distance = min(240, visible.width - 65)
-        func pull(next: Bool) {
-            let start = next ? right : left
-            let end = start.withOffset(CGVector(dx: next ? -distance : distance, dy: 0))
-            start.press(forDuration: 0.02, thenDragTo: end, withVelocity: .fast, thenHoldForDuration: 0)
+        let inputs = [(runsForward, 0.30, 0.36), (runsForward, 0.30, 0.10),
+                      (runsForward, 0.105, 0.10), (!runsForward, 0.30, 0.0)]
+        let sequence = inputs.map { next, duration, pause in
+            let start = CGPoint(x: next ? visible.maxX - 30 : visible.minX + 30, y: visible.midY)
+            let end = CGPoint(x: start.x + (next ? -distance : distance), y: start.y)
+            return WeekContactSequence.Drag(start: start, end: end, duration: duration, pauseAfterLift: pause)
         }
-        // Use the observed grid geometry once. There is no AX query, motion
-        // completion check, or sleep between these physical contacts.
-        for next in [runsForward, runsForward, runsForward, !runsForward] { pull(next: next) }
+        try WeekContactSequence.send(sequence)
 
         struct Event: Decodable {
             let kind: String
@@ -106,20 +209,31 @@ extension ApplicationChecks {
         }
         let proof = app.staticTexts["fixture-week-sequence"]
         var events: [Event] = []
-        let complete = expectation(for: NSPredicate { _, _ in
+        var latestReport = "none"
+        let complete = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             guard let raw = proof.value as? String, let data = raw.data(using: .utf8),
                   let observed = try? JSONDecoder().decode([Event].self, from: data) else { return false }
+            latestReport = raw
             events = observed
             return observed.filter { $0.kind == "arrival" }.count >= 4 && observed.last?.kind == "settled"
-        }, evaluatedWith: proof)
-        wait(for: [complete], timeout: 8)
+        }, object: proof)
+        let result = XCTWaiter.wait(for: [complete], timeout: 8)
+        print("TAKUPOKE_WEEK_SEQUENCE " + latestReport)
+        guard result == .completed else {
+            XCTFail("Four native drags and the final height adjustment must complete. Observed \(latestReport)"); return
+        }
         let contacts = events.filter { $0.kind == "contact" }
+        let releases = events.filter { $0.kind == "release" }
         let arrivals = events.filter { $0.kind == "arrival" }
-        guard contacts.count == 4, arrivals.count == 4 else {
+        guard contacts.count == 4, releases.count == 4, arrivals.count == 4 else {
             XCTFail("Expected four distinct physical contacts and arrivals. Observed \(events)"); return
         }
-        XCTAssertTrue(contacts.dropFirst().contains { $0.phase == "slide" || $0.phase == "height" },
-                      "At least one new contact must start during the preceding move")
+        XCTAssertTrue(contacts.dropFirst().contains { $0.phase == "slide" },
+                      "At least one new contact must reach the actual view during the preceding slide")
+        XCTAssertTrue(contacts.dropFirst().contains { $0.phase == "height" },
+                      "At least one contact must enter the arriving page during height adjustment")
+        XCTAssertTrue(releases.dropFirst().contains { $0.phase == "slide" },
+                      "At least one release must be received before the preceding slide has finished")
         var expectedWeek = initialWeek
         let expectedForwardInterval: TimeInterval = runsForward ? 604800 : -604800
         for (index, arrival) in arrivals.enumerated() {

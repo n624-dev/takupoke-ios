@@ -15,7 +15,11 @@ WEEK_MOTION_INSERTIONS = (
     ('                inputGeneration = motion.inputGeneration',
      '\n                FixtureWeekMotionRecorder.shared.began(body: self)'
      '\n                FixtureWeekSequenceRecorder.shared.observe("contact", week: week, phase: motion.reservedHeight == nil ? "settled" : "height")'),
-    ('                let distance = pull?.distance(for: translation) ?? 0', '\n                FixtureWeekMotionRecorder.shared.released(body: self)'),
+    ('                let distance = pull?.distance(for: translation) ?? 0',
+     '\n                FixtureWeekMotionRecorder.shared.released(body: self)'
+     '\n                FixtureWeekSequenceRecorder.shared.observe("release", week: week, phase: motion.reservedHeight == nil ? "settled" : "height")'),
+    ('        deferredReleases.append(release)',
+     '\n        FixtureWeekSequenceRecorder.shared.observe("release", week: release.week, phase: transition == nil ? "pending" : "slide")'),
     ('            case .failed, .cancelled:', '\n                FixtureWeekMotionRecorder.shared.cancelBadgeCapture()'),
     ('            let windowVisible = scroll.convert(visible.offsetBy(dx: scroll.bounds.minX, dy: scroll.bounds.minY), to: window)',
      '\n            FixtureWeekMotionRecorder.shared.visible = windowVisible'),
