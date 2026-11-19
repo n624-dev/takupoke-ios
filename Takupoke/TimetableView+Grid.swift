@@ -384,7 +384,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     var hasDeferredReleases: Bool { !deferredReleases.isEmpty }
     private var displayLink: CADisplayLink?
     private weak var heldScroll: UIScrollView?
-    private var slideStartedAt: CFTimeInterval?
+    private var slideClock = WeekSlideClock()
     private var heightAdjustment: (startedAt: CFTimeInterval?, initialHeight: CGFloat, targetHeight: CGFloat)?
 
     func register(_ scroll: UIScrollView, week: SchoolDate, probe: WeekPullObserver.Probe) {
@@ -529,15 +529,13 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     }
     @objc private func advanceFrame(_ link: CADisplayLink) {
         guard let value = transition else { adjustHeight(link); return }
-        let startedAt = slideStartedAt ?? link.timestamp
-        slideStartedAt = startedAt
         let duration = reduceMotion ? 0.15 : 0.25
-        let elapsed = min(1, max(0, (link.targetTimestamp - startedAt) / duration))
+        let elapsed = slideClock.progress(timestamp: link.timestamp, target: link.targetTimestamp, duration: duration)
         let progress = CGFloat(elapsed + elapsed * (1 - elapsed) / 2)
         var transaction = Transaction(); transaction.disablesAnimations = true
         withTransaction(transaction) { transition?.slideProgress = progress }
         if elapsed == 1 {
-            slideStartedAt = nil
+            slideClock = WeekSlideClock()
             settle(id: value.id)
         }
     }
@@ -568,7 +566,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     }
     private func stopDisplayLink() {
         displayLink?.invalidate(); displayLink = nil
-        slideStartedAt = nil
+        slideClock = WeekSlideClock()
         heightAdjustment = nil
     }
     private func promote(_ value: Transition) {

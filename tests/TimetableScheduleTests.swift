@@ -372,6 +372,28 @@ final class TimetableScheduleTests: XCTestCase {
                                                       matchedByRule: matchedByRule))
     }
 
+    func testWeekSlideClockKeepsNormalDurationAndLimitsSingleFrameCatchup() {
+        let duration = 0.25
+        for rate in [30.0, 60.0, 120.0] {
+            var clock = WeekSlideClock()
+            let interval = 1 / rate
+            for frame in 1...Int(ceil(duration * rate)) {
+                let start = Double(frame - 1) * interval
+                let target = Double(frame) * interval
+                XCTAssertEqual(clock.progress(timestamp: start, target: target, duration: duration),
+                               min(1, target / duration), accuracy: 0.000001)
+            }
+        }
+
+        var delayed = WeekSlideClock()
+        let first = delayed.progress(timestamp: 0, target: 1.0 / 60, duration: duration)
+        let afterStall = delayed.progress(timestamp: 0.100, target: 7.0 / 60, duration: duration)
+        let next = delayed.progress(timestamp: 7.0 / 60, target: 8.0 / 60, duration: duration)
+        XCTAssertEqual(first, (1.0 / 60) / duration, accuracy: 0.000001)
+        XCTAssertEqual(afterStall - first, (1.0 / 30) / duration, accuracy: 0.000001)
+        XCTAssertEqual(next - afterStall, (1.0 / 60) / duration, accuracy: 0.000001)
+    }
+
     func testAcademicHalfNavigationUsesMondayAndKnownWeekData() throws {
         let september = try XCTUnwrap(SchoolDate(iso8601: "2032-09-27"))
         let october = try XCTUnwrap(SchoolDate(iso8601: "2032-10-04"))
