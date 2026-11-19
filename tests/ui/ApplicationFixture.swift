@@ -351,7 +351,9 @@ struct SimulatorApplication: App {
             }
             let events = SchoolEventsPayload(version: "v1", schoolYear: period.schoolYear, sourcePdfSha256: digest,
                 sourcePdfETag: "\"fictional\"", events: eventRows)
-            try SchoolEventsStore(root: base.appendingPathComponent("SchoolEventsAPI")).save(events)
+            if !ProcessInfo.processInfo.arguments.contains("--countdown-calendar") {
+                try SchoolEventsStore(root: base.appendingPathComponent("SchoolEventsAPI")).save(events)
+            }
 
             let payload = LinksPayload(version: "v1", linksVersion: "sha256-" + String(repeating: "a",count: 64), categories: [
                 .init(id: "fictional", label: "架空カテゴリ", sortOrder: 0, buttons: [
