@@ -6,7 +6,6 @@ extension SimulatorIdentityTestCase {
         var deadline = ProcessInfo.processInfo.systemUptime + timeout
         var foundBar = false
         let scale = UIScreen.main.scale
-        let label = NSPredicate(format: "identifier == %@ OR label == %@", title, title)
         var contact: CGVector?
         var observation = "app snapshot unavailable"
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
@@ -45,8 +44,11 @@ extension SimulatorIdentityTestCase {
             observation += "; current native bars=\(liveBars.count)"
             if liveBars.count > 1 { return true }
             guard let liveBar = liveBars.first, liveBar.frame == barFrame else { return false }
-            let liveButton = liveBar.buttons.matching(label).element
-            guard let current = try? liveButton.snapshot(), current.elementType == .button,
+            let liveButtons = liveBar.buttons.matching(identifier: title).allElementsBoundByAccessibilityElement
+            observation += "; current matching buttons=\(liveButtons.count)"
+            if liveButtons.count > 1 { return true }
+            guard let liveButton = liveButtons.first, let current = try? liveButton.snapshot(),
+                  current.elementType == .button, current.identifier == button.identifier, current.label == button.label,
                   current.isEnabled, current.frame == buttonFrame, liveButton.isHittable else { return false }
             let liveIcons = liveButton.images.allElementsBoundByAccessibilityElement
             observation += "; current native images=\(liveIcons.count)"
