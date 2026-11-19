@@ -53,6 +53,7 @@ struct SimulatorApplication: App {
     @State private var recoveryOCRProbe = "OCR実行中"
     @State private var recoveryTableProbe = ""
     @State private var recoveryOffProbe = "未実行"
+    @State private var countdownNoticeProbe = "未照合"
     @State private var applicationReady = false
     @State private var fixtureTypeSize: DynamicTypeSize = .large
     private var showsTypeSizeControl: Bool {
@@ -76,6 +77,35 @@ struct SimulatorApplication: App {
         WindowGroup {
             ContentView().environment(\.timeZone, JapaneseDateDisplay.timeZone).modifier(MainColorScope())
                 .onAppear { FixtureLaunchDiagnostics.record("content-appeared") }
+                .overlay(alignment: .bottomLeading) {
+                    if ProcessInfo.processInfo.arguments.contains("--countdown-notifications") {
+                        VStack {
+                            Button("対照通知を予約") {
+                                Task {
+                                    let content = UNMutableNotificationContent()
+                                    content.title = "架空の別通知"
+                                    let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 86_400, repeats: false)
+                                    try? await UNUserNotificationCenter.current().add(UNNotificationRequest(
+                                        identifier: "fictional-separate-notification", content: content, trigger: trigger))
+                                    countdownNoticeProbe = "対照予約を確認できます"
+                                }
+                            }
+                            Button("予約を照合") {
+                                countdownNoticeProbe = "照合中"
+                                Task {
+                                    let requests = await UNUserNotificationCenter.current().pendingNotificationRequests()
+                                    let count = requests.filter { $0.identifier.hasPrefix(CountdownNotice.prefix + "personal.") }.count
+                                    let other = requests.filter { $0.identifier == "fictional-separate-notification" }.count
+                                    countdownNoticeProbe = "実予約\(count)件／対照\(other)件"
+                                }
+                            }
+                            Text(countdownNoticeProbe).accessibilityIdentifier("fixture-countdown-pending")
+                        }
+                        .buttonStyle(.bordered)
+                        .background(.regularMaterial)
+                        .offset(y: -100)
+                    }
+                }
                 .overlay(alignment: .topTrailing) {
                     if SimulatorHomeBoundaryFixture.enabled {
                         VStack {
@@ -358,6 +388,14 @@ struct SimulatorApplication: App {
         if ProcessInfo.processInfo.arguments.contains("--recovery-preview") { LocalAIFeaturePolicy.setEnabled(true); try SimulatorRecoveryFixture.seed(base) }
         if ProcessInfo.processInfo.arguments.contains("--events-cache-corrupt") {
             try SimulatorEventsCacheFixture.seed(base)
+        }
+        if ProcessInfo.processInfo.arguments.contains("--countdown-notifications"),
+           ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
+            let date = SchoolDate.today().addingDays(12)!
+            let target = CountdownDates(title: "架空の通知予定", ranges: [.init(start: date, end: date)])
+            try CountdownStore(root: base).save(CountdownLibrary(registrations: [
+                .init(id: UUID(), target: .personal(target))
+            ]))
         }
         if SimulatorEventsYearFixture.enabled { try SimulatorEventsYearFixture.seed(base) }
         if SimulatorHomeBoundaryFixture.enabled { try SimulatorHomeBoundaryFixture.seed(base) }

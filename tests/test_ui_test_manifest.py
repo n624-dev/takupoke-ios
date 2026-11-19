@@ -749,7 +749,7 @@ METHOD
 
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source(manifest.check_source())
-        self.assertEqual(len(manifest.selected_tests("all")), 36)
+        self.assertEqual(len(manifest.selected_tests("all")), 37)
         self.assertIn("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent", manifest.SHARDS["B"])
         self.assertIn("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups", manifest.SHARDS["B"])
         self.assertIn("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch", manifest.SHARDS["B"])
@@ -1065,6 +1065,7 @@ METHOD
             ("controls", controls),
             ("rows", (controls[-1],)),
             ("weekday-carryover", ("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",)),
+            ("countdown-notifications", ("testCountdownUsesNativeReservationsAndCancelsOnlyItsOwnAfterRelaunch",)),
             ("countdown-calendar", ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",)),
             ("rows-context", ("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover", controls[-1])),
             ("input-delivery", ("testSettingsAccountDataAndFileDetails", manifest.VOICEOVER_TEST)),

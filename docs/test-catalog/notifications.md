@@ -1,7 +1,7 @@
 # 通知許可・実配信・設定・バックグラウンド
 
 対応関係・宣言名・実行方法のSHA-256：
-`481ddb9e9cb4c167194007b81d86f223250341c23096140781f776ab4f78b1d9`
+`6b6c2608d70820acb3040f82db5430d09d5f7b08bb02f8316a54fa16a4fa3c38`
 
 環境：Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定
 
@@ -35,6 +35,7 @@ python3 -B -m unittest discover -s tests -p test_notification_settings_lifecycle
 
 - `testNotificationControlsAndAppearance`
 - `testChangedDataProducesOneLocalNotification`
+- `testCountdownUsesNativeReservationsAndCancelsOnlyItsOwnAfterRelaunch`
 
 ## [tests/test_notification_settings_lifecycle.py](../../tests/test_notification_settings_lifecycle.py)
 

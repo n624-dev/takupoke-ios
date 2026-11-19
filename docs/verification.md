@@ -8539,3 +8539,9 @@ Linuxの最初の統合試行は659件中658件が成功し、元PDFの試行期
 API [PR 68](https://github.com/n624-dev/takupoke-api/pull/68) のLinux検査は型検査・生成照合、Vitest110件、Node41件、Python7件、Wrangler dry-runが成功。旧v1生成本文とメタデータは差分0で、公開前の本番v1本文SHA-256は `c2a6d96ccd3afeea5296709595e4b3e9e6e5a29196fbd6686f939a99f23f4734`。Cloudflareのプレビュービルドが成功し、API側を `e474a4f561b872191f04b138839bfcb122537311` で反映した。本番の配信照合は別途記録する。
 
 API本番では0.1.506で使用するv1本文の実SHA-256が更新前と同じで、v2はレビュー済み本文と一致し、各ETagが実本文のSHA-256と一致した。v1のバリデータでv2は200、各形式自身の条件付きGETは本文なし304。認証付きの別経路の未認証拒否も照合した。調査から学校URLへ直接通信していない。
+
+#119は [限定44441443116・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/44441443116/attempts/1) の28d3380でiOS 26.5／27.0とも完走（237.906／213.113秒、SDK 27.2）。実原本の差し替え、45件の引き継ぎ・別の45件の確認、部分選択、閉じる、確認取消し、保存、再起動、再取得を通過。実Runnerと元ケース、所有Simulator回収、保存artifact 0を照合した。
+
+#120・#121の開始前レビューでは、v1/v2要求形式の型、半期切替前の通知所有者、本文失敗の待機、状態追跡の期限を修正した。新規GPT-6.2 Sol/Highが、初回の固定コード差分 `45c25c259838546ca36539040b5040d596b9c8bef868db9552da164a3160bb85` と修正分 `bd0c1ef6031b263a5fe1e69ed16a39496114c73937181404b2ffe5a2198019cf`、`5f37de1804fa5bc962e46eee7d51da030e3f7ce5502af7045c26a3a2cb07bfd9` を再照合した。[限定44443673963・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/44443673963/attempts/1) はf5ca2a7を両OSで実行する。[APIの本番確認](https://github.com/n624-dev/takupoke-api/actions/runs/44442707434) はe474a4fで成功した。
+
+Linuxの行事モデルを含む補助検査675件が成功（130.465秒、うち行事モデル15件0失敗）。一時コピーでSwift 6.1.2／FoundationNetworking・OpenCombine・Swift Cryptoを使用した。本文のv1保持とv2移行、元PDFの24時間期限と自動再開、バックグラウンドの取消し、時刻と版、元PDF差異の保持を架空APIで照合した。AppleのCombine、実通知、シミュレータでの描画の検査とは区別する。

@@ -221,3 +221,69 @@ extension ApplicationChecks {
             "Require one actual new delivery carrying its source revision")
     }
 }
+
+extension ApplicationChecks {
+    func testCountdownUsesNativeReservationsAndCancelsOnlyItsOwnAfterRelaunch() {
+        func openPlan() {
+            tab("設定")
+            tap("カウントダウン")
+            let row = visible(app.buttons.matching(NSPredicate(format: "identifier == %@ AND label CONTAINS %@",
+                "countdown-list-card", "架空の通知予定")).firstMatch)
+            XCTAssertTrue(row.exists && row.isHittable, app.debugDescription)
+            row.tap()
+            screen("予定の詳細")
+        }
+        func editNotification(_ enabled: Bool) {
+            tap("編集")
+            screen("カウントダウンを設定")
+            let control = visible(app.switches["通知を予約"], navigation: "カウントダウンを設定")
+            XCTAssertEqual(control.value as? String, enabled ? "0" : "1", app.debugDescription)
+            tapNativeSwitch(control, navigation: "カウントダウンを設定", dragThumb: true)
+            let changed = expectation(for: NSPredicate { _, _ in control.value as? String == (enabled ? "1" : "0") },
+                                      evaluatedWith: control)
+            XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 15), .completed)
+            let save = app.buttons["countdown-save"]
+            XCTAssertTrue(save.exists && save.isHittable, app.debugDescription)
+            save.tap()
+        }
+        func countReservations(_ count: Int, other: Int = 1) {
+            tap("予約を照合")
+            let probe = app.staticTexts["fixture-countdown-pending"]
+            let matched = expectation(for: NSPredicate(format: "label == %@", "実予約\(count)件／対照\(other)件"), evaluatedWith: probe)
+            XCTAssertEqual(XCTWaiter.wait(for: [matched], timeout: 15), .completed, app.debugDescription)
+        }
+        openPlan()
+        countReservations(0, other: 0)
+        editNotification(true)
+        let allowPredicate = NSPredicate(format: "label BEGINSWITH[c] %@ OR label == %@", "Allow", "許可")
+        var handled = false
+        let reserved = app.staticTexts["2件予約済み"]
+        let system = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let granted = expectation(for: NSPredicate { _, _ in
+            if !handled, let allow = self.permissionAllowButton(allowPredicate) {
+                handled = true
+                allow.tap()
+                return false
+            }
+            return system.state != .runningForeground && self.app.navigationBars["予定の詳細"].exists
+        }, evaluatedWith: app)
+        XCTAssertEqual(XCTWaiter.wait(for: [granted], timeout: 45), .completed, app.debugDescription)
+        XCTAssertTrue(visible(reserved).waitForExistence(timeout: 20), app.debugDescription)
+        tap("対照通知を予約")
+        XCTAssertTrue(app.staticTexts["対照予約を確認できます"].waitForExistence(timeout: 15))
+        countReservations(2)
+
+        app.terminate()
+        app.launchArguments.removeAll { $0 == "--reset-fixture" }
+        launchReady()
+        openPlan()
+        XCTAssertTrue(visible(reserved).exists, app.debugDescription)
+        countReservations(2)
+        editNotification(false)
+        screen("予定の詳細")
+        // Wait for the production reconciliation to drain before observing the
+        // OS a second time. The probe performs a fresh real pending-requests read.
+        XCTAssertTrue(reserved.waitForNonExistence(timeout: 15), app.debugDescription)
+        countReservations(0)
+    }
+}
