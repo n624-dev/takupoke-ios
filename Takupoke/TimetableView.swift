@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import Observation
 
 struct TimetableView: View {
     @EnvironmentObject var times: TimetableTimesModel
@@ -15,7 +16,15 @@ struct TimetableView: View {
     @AppStorage("timetableChangeClasses") var changeClassesValue = ""
     @AppStorage("timetableInternationalStudent") var isInternationalStudent = false
     @State var weekPull = WeekPullProgress()
-    @State var weekStart = SchoolDate.today().displayWeekStart
+    @State private var selectedWeek = TimetableWeekSelection()
+    var weekStart: SchoolDate {
+        get { selectedWeek.date }
+        nonmutating set {
+            guard selectedWeek.date != newValue else { return }
+            selectedWeek.date = newValue
+            closeDetailSelections()
+        }
+    }
     @State var navigationHalfAnchor = SchoolDate.today()
     @State var today = SchoolDate.today()
     private let clock = Timer.publish(every: 15, on: .main, in: .common).autoconnect()
@@ -72,7 +81,7 @@ struct TimetableView: View {
     // accepted data or display scope changes; loading status is not a revision.
     var detailRevision: [String] {
         let schedule = daySchedule
-        var values = [weekStart.iso8601, today.iso8601, selectedClassesValue, changeClassesValue, String(isInternationalStudent), String(includesChanges), changeRangeValue]
+        var values = [today.iso8601, selectedClassesValue, changeClassesValue, String(isInternationalStudent), String(includesChanges), changeRangeValue]
         values.append(times.current?.revision ?? "")
         values.append(mappings.current?.revision ?? "")
         for kind: MaterialKind in [.timetable,.changes] {
@@ -152,7 +161,7 @@ struct TimetableView: View {
                 }
             }
             .onChange(of: detailRevision) { _ in
-                selectedLesson = nil; selectedSpecial = nil; selectedChange = nil
+                closeDetailSelections()
             }
             .sheet(item: $selectedLesson) { selection in
                 NavigationStack { lessonDetail(selection) }
@@ -186,9 +195,20 @@ struct TimetableView: View {
         }
     }
 
+    private func closeDetailSelections() {
+        if selectedLesson != nil { selectedLesson = nil }
+        if selectedSpecial != nil { selectedSpecial = nil }
+        if selectedChange != nil { selectedChange = nil }
+    }
+
     var weekControlColor: WeekControlAccent { WeekControlAccent(theme: mainColor.selection) }
 
 
+}
+
+@Observable
+private final class TimetableWeekSelection {
+    var date = SchoolDate.today().displayWeekStart
 }
 
 private struct ContentUnavailableViewPlaceholder: View {

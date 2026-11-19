@@ -6,7 +6,7 @@ extension TimetableView {
     var weekGrid: some View {
         // The date is the identity. Promoting a prepared page preserves its live
         // layout and scroll view; there is no image-to-view handoff on arrival.
-        let revision = Array(detailRevision.dropFirst()) + [mainColor.selection.rawValue,
+        let revision = detailRevision + [mainColor.selection.rawValue,
             String(describing: gridDynamicTypeSize), String(Double(gridViewportWidth)),
             String(Double(standardPeriodColumnWidth)), String(Double(periodColumnWidth))]
         return WeekPages(selection: weekStart, bounds: weekBounds, revision: revision,
@@ -385,7 +385,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     private var displayLink: CADisplayLink?
     private weak var heldScroll: UIScrollView?
     private var slideStartedAt: CFTimeInterval?
-    private var heightAdjustment: (startedAt: CFTimeInterval, initialHeight: CGFloat, targetHeight: CGFloat)?
+    private var heightAdjustment: (startedAt: CFTimeInterval?, initialHeight: CGFloat, targetHeight: CGFloat)?
 
     func register(_ scroll: UIScrollView, week: SchoolDate, probe: WeekPullObserver.Probe) {
         if scrolls[week]?.value !== scroll || scrolls[week]?.probe !== probe {
@@ -547,7 +547,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         if !reduceMotion, abs(initialHeight - value.targetHeight) >= 1 {
             // Keep the page window and display link through the handoff.
             // Rebuilding them here would add work to the first height frame.
-            heightAdjustment = (CACurrentMediaTime(), initialHeight, value.targetHeight)
+            heightAdjustment = (nil, initialHeight, value.targetHeight)
         }
         promote(value)
         defer { scheduleQueuedMove() }
@@ -555,7 +555,11 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     }
     private func adjustHeight(_ link: CADisplayLink) {
         guard let adjustment = heightAdjustment else { stopDisplayLink(); return }
-        let progress = min(1, max(0, (link.targetTimestamp - adjustment.startedAt) / 0.2))
+        // Wait for the first height display callback to start the 0.2-second
+        // motion, so a late landing frame cannot skip initial row heights.
+        let startedAt = adjustment.startedAt ?? link.timestamp
+        heightAdjustment?.startedAt = startedAt
+        let progress = min(1, max(0, (link.targetTimestamp - startedAt) / 0.2))
         if progress == 1 { finishHeight(); return }
         let fraction = CGFloat(progress * progress * (3 - 2 * progress))
         let height = adjustment.initialHeight + (adjustment.targetHeight - adjustment.initialHeight) * fraction

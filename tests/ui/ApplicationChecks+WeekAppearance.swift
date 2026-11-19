@@ -76,7 +76,7 @@ private enum WeekContactSequence {
         let (lift, liftSelector) = try method("liftUpAtOffset:", on: pathType,
                                               returns: "v", arguments: ["d"], as: Lift.self)
         let record = try XCTUnwrap(makeRecord(try allocate(recordType).takeUnretainedValue(), recordSelector,
-                                             "Four consecutive week pulls", Int64(UIInterfaceOrientation.portrait.rawValue))).takeRetainedValue()
+                                             "Timed timetable week pulls", Int64(UIInterfaceOrientation.portrait.rawValue))).takeRetainedValue()
         var next = 0.04
         for drag in drags {
             let path = try XCTUnwrap(makePath(try allocate(pathType).takeUnretainedValue(), pathSelector,
@@ -233,16 +233,21 @@ extension ApplicationChecks {
         XCTAssertGreaterThan(visible.width, 285)
         XCTAssertGreaterThan(visible.height, 30)
         let distance = min(240, visible.width - 65)
-        // Give the first slide time to arrive before the second contact;
-        // the remaining lifts are followed by another contact during a slide.
-        let inputs = [(runsForward, 0.30, 0.70), (runsForward, 0.30, 0.10),
+        let inputs = [(runsForward, 0.30, 0.0), (runsForward, 0.30, 0.10),
                       (runsForward, 0.105, 0.10), (!runsForward, 0.30, 0.0)]
         let sequence = inputs.map { next, duration, pause in
             let start = CGPoint(x: next ? visible.maxX - 30 : visible.minX + 30, y: visible.midY)
             let end = CGPoint(x: start.x + (next ? -distance : distance), y: start.y)
             return WeekContactSequence.Drag(start: start, end: end, duration: duration, pauseAfterLift: pause)
         }
-        try WeekContactSequence.send(sequence)
+        // Separate native records keep this pause on the test clock. XCTest
+        // compressed idle gaps between separate touch paths in a single record.
+        try WeekContactSequence.send(Array(sequence.prefix(1)))
+        let firstDelivery = ProcessInfo.processInfo.systemUptime
+        Thread.sleep(forTimeInterval: 0.28)
+        let continuation = ProcessInfo.processInfo.systemUptime
+        try WeekContactSequence.send(Array(sequence.dropFirst()))
+        print("TAKUPOKE_WEEK_RECORDS firstDelivery=\(firstDelivery) continuation=\(continuation)")
 
         struct Event: Decodable {
             let kind: String

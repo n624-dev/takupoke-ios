@@ -1,10 +1,14 @@
 import SwiftUI
 
 extension TimetableView {
-    var changesSection: some View {
+    var changesSection: some View { TimetableChangesSection(timetable: self) }
+
+    fileprivate var changesSectionContent: some View {
+        let range = changeRange
+        let start = range == .week ? weekStart : today
         let visible = listClasses.flatMap { className in
-            TimetableSchedule.changes(in: changes, className: className, range: changeRange,
-                                      today: today, weekStart: weekStart)
+            TimetableSchedule.changes(in: changes, className: className, range: range,
+                                      today: today, weekStart: start)
         }.filter { TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent,
                                                    matchedByRule: isMappedInternational) }
             .sorted { ($0.change_date, $0.period, $0.displayClassName) < ($1.change_date, $1.period, $1.displayClassName) }
@@ -61,4 +65,9 @@ extension TimetableView {
     func changeSelection(for change: ScheduleChange) -> ChangeSelection {
         presentation.changeSelection(for: change)
     }
+}
+
+private struct TimetableChangesSection: View {
+    let timetable: TimetableView
+    var body: some View { timetable.changesSectionContent }
 }

@@ -1,7 +1,9 @@
 import SwiftUI
 
 extension TimetableView {
-    var weekSection: some View {
+    var weekSection: some View { TimetableWeekSection(timetable: self) }
+
+    fileprivate var weekSectionContent: some View {
         Section {
             ViewThatFits(in: .horizontal) {
                 weekControlRow(compact: false)
@@ -123,4 +125,9 @@ private struct WeekControlButtonStyle: ButtonStyle {
             .frame(minWidth: 44, minHeight: 44)
             .contentShape(.rect)
     }
+}
+
+private struct TimetableWeekSection: View {
+    let timetable: TimetableView
+    var body: some View { timetable.weekSectionContent }
 }
