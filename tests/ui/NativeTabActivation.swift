@@ -39,16 +39,21 @@ extension SimulatorIdentityTestCase {
                   ObservedScreenGeometry.contains(iconFrame, in: buttonFrame, scale: scale),
                   ObservedScreenGeometry.contains(iconFrame, in: barFrame, scale: scale),
                   button.isEnabled, ProcessInfo.processInfo.systemUptime < deadline else { return false }
-            let liveButton = app.tabBars.buttons.matching(label).element
+            // Bind the current bar and all of the selected button's images
+            // once. Compare the image's own snapshot before using its hit region.
+            let liveBars = app.tabBars.allElementsBoundByAccessibilityElement
+            observation += "; current native bars=\(liveBars.count)"
+            if liveBars.count > 1 { return true }
+            guard let liveBar = liveBars.first, liveBar.frame == barFrame else { return false }
+            let liveButton = liveBar.buttons.matching(label).element
             guard let current = try? liveButton.snapshot(), current.elementType == .button,
-                  current.isEnabled, current.frame == buttonFrame,
-                  let liveNodes = self.snapshotNodes(in: current) else { return false }
-            let liveIcons = liveNodes.filter { $0.elementType == .image }
+                  current.isEnabled, current.frame == buttonFrame, liveButton.isHittable else { return false }
+            let liveIcons = liveButton.images.allElementsBoundByAccessibilityElement
             observation += "; current native images=\(liveIcons.count)"
             if liveIcons.count > 1 { return true }
-            guard let liveIcon = liveIcons.first, liveIcon.identifier == icon.identifier,
-                  liveIcon.label == icon.label, liveIcon.frame == iconFrame,
-                  liveButton.isHittable, liveButton.images.element.isHittable,
+            guard let liveIcon = liveIcons.first, let currentIcon = try? liveIcon.snapshot(),
+                  currentIcon.elementType == .image, currentIcon.identifier == icon.identifier,
+                  currentIcon.label == icon.label, currentIcon.frame == iconFrame, liveIcon.isHittable,
                   ProcessInfo.processInfo.systemUptime <= deadline else { return false }
             let center = CGVector(dx: iconFrame.midX - appFrame.minX, dy: iconFrame.midY - appFrame.minY)
             print("NATIVE_TAB title=\(title);bar=\(barFrame);button=\(buttonFrame);icon=\(iconFrame);contact=\(center)")
