@@ -5,6 +5,18 @@ import CryptoKit
 import UserNotifications
 import PDFKit
 import ZIPFoundation
+import SafariServices
+
+@MainActor
+private enum FixtureBrowserPrewarming {
+    private static var token: SFSafariViewController.PrewarmingToken?
+
+    static func startIfNeeded() {
+        guard token == nil, let local = SafariLinkView.fixtureBrowserURL() else { return }
+        token = SFSafariViewController.prewarmConnections(to: [local])
+        FixtureLaunchDiagnostics.record("browser-prewarm-requested")
+    }
+}
 
 final class FixtureNetwork: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool { true }
@@ -217,6 +229,7 @@ struct SimulatorApplication: App {
                 }
                 .task {
                     FixtureLaunchDiagnostics.record("root-task-enter")
+                    FixtureBrowserPrewarming.startIfNeeded()
                     let data = ApplicationData.shared
                     var recordedApplicationReady = false
                     for _ in 0..<300 {
@@ -508,7 +521,7 @@ enum FixtureLaunchDiagnostics {
             "notification-native-request", "notification-native-callback",
             "notification-auth-request", "notification-auth-callback", "notification-auth-returned",
             "notification-auth-error", "notification-auth-granted", "notification-auth-denied",
-            "browser-controller-created", "browser-load-success", "browser-load-failure", "browser-finish-received",
+            "browser-prewarm-requested", "browser-controller-created", "browser-load-success", "browser-load-failure", "browser-finish-received",
             "retention-recovery-action", "retention-dialog-on", "retention-dialog-off",
             "year-input-observer-installed", "year-edit-began", "year-edit-ended", "year-edit-changed",
             "year-keyboard-will-show", "year-keyboard-did-show", "year-keyboard-will-hide", "year-keyboard-did-hide"]

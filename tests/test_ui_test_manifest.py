@@ -438,6 +438,10 @@ class ManifestTests(unittest.TestCase):
         original = (ROOT / "Takupoke/SafariLinkView.swift").read_text()
         generated = app_test_project.instrument_browser_fixture(original)
         method = block(generated, "func makeUIViewController(")
+        url_validator = block(generated, "static func fixtureBrowserURL(")
+        fixture = (ROOT / "tests/ui/ApplicationFixture.swift").read_text()
+        prewarming = block(fixture, "private enum FixtureBrowserPrewarming")
+        self.assertIn("FixtureBrowserPrewarming.startIfNeeded()", fixture)
         finish = block(generated, "func safariViewControllerDidFinish(")
         trace = '            FixtureLaunchDiagnostics.record("browser-finish-received")\n'
         self.assertEqual(finish.count(trace), 1)
@@ -447,27 +451,43 @@ class ManifestTests(unittest.TestCase):
             app_test_project.instrument_browser_fixture(original.replace("safariViewControllerDidFinish", "otherCallback"))
         program = r'''import Foundation
 final class SFSafariViewController {
+    struct PrewarmingToken {}
+    static var prewarmed: [URL] = []
     let url: URL
     var delegate: NSObject?
     init(url: URL) { self.url = url }
+    static func prewarmConnections(to urls: [URL]) -> PrewarmingToken {
+        prewarmed += urls
+        return PrewarmingToken()
+    }
 }
 enum FixtureLaunchDiagnostics {
     static var stages: [String] = []
     static func record(_ stage: String) { stages.append(stage) }
 }
 struct Context { let coordinator = NSObject() }
-struct ActualBrowserBoundary {
+@MainActor
+struct SafariLinkView {
     let url = URL(string: ProcessInfo.processInfo.environment["ORIGINAL_BROWSER_URL"] ?? "https://fixture.example.test")!
+VALIDATOR
 METHOD
 }
+@MainActor
+PREWARMING
 @main struct Probe {
+    @MainActor
     static func main() {
-        let controller = ActualBrowserBoundary().makeUIViewController(context: Context())
-        precondition(FixtureLaunchDiagnostics.stages == ["browser-controller-created"])
+        FixtureBrowserPrewarming.startIfNeeded()
+        FixtureBrowserPrewarming.startIfNeeded()
+        let controller = SafariLinkView().makeUIViewController(context: Context())
+        let fixture = ProcessInfo.processInfo.arguments.contains("--loopback-browser-fixture")
+        precondition(SFSafariViewController.prewarmed == (fixture ? [controller.url] : []))
+        precondition(FixtureLaunchDiagnostics.stages ==
+                     (fixture ? ["browser-prewarm-requested", "browser-controller-created"] : ["browser-controller-created"]))
         print(controller.url.absoluteString)
     }
 }
-'''.replace("METHOD", method)
+'''.replace("VALIDATOR", url_validator).replace("METHOD", method).replace("PREWARMING", prewarming)
         with self.assertRaises(AssertionError):
             app_test_project.instrument_browser_fixture(original.replace(
                 "SFSafariViewController(url: url)", "SFSafariViewController(url: anotherURL)"))
@@ -621,7 +641,7 @@ METHOD
             "notification-native-request", "notification-native-callback",
             "notification-auth-request", "notification-auth-callback", "notification-auth-returned",
             "notification-auth-error", "notification-auth-granted", "notification-auth-denied",
-            "browser-controller-created", "browser-load-success", "browser-load-failure", "browser-finish-received",
+            "browser-prewarm-requested", "browser-controller-created", "browser-load-success", "browser-load-failure", "browser-finish-received",
             "notification-settings-not-requested", "retention-recovery-action",
             "retention-dialog-on", "retention-dialog-off", "year-input-observer-installed",
             "year-edit-began", "year-edit-ended", "year-edit-changed",

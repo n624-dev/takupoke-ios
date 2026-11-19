@@ -8601,3 +8601,9 @@ c96fee3の[原本変更限定44495746019・試行1](https://github.com/n624-dev/
 6fd7243の[文字サイズ限定44507148952・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/44507148952/attempts/1) はiOS26.5・SDK27.2、標準／extra-small／extra-extra-extra-large／accessibility-extra-extra-extra-largeの実検査4回が31.454／37.457／35.628／27.907秒で完走。全4回の実UIKitタブ配送を観測し、実選択、画面、OSサイズ、枠の検査を通過した。[手動単項目限定44507154351・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/44507154351/attempts/1) のiOS27.0／SDK27.2も565.815秒で完走。単回の元Xcode起動・採用の保存・次の起動での再読込を確認した。前の正式の27 A/Bも完走し、27 Bの行事366.898秒、曜日除外184.625秒、実カウントダウン通知127.814秒を確認。前の正式実行の26 A/Bは取消さず継続する。
 
 [正式44513210500・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/44513210500/attempts/1) の6bc3c18では、配布・Native・原本変更・3項目訂正が成功。明示選択は設定tabの再照会で接触する前に停止した。N174等を比較して、既存の実app snapshotでTabBar・Button・Imageを特定し、現在の実体への絞り込みと接触直前の枠・型・有効性・hittabilityを確認する。両callerの実選択と画面、各45秒、一回の操作、既存の訂正と保存の判定を維持する。LinuxでApp／Manualの生成project、Swift構文、UI manifest32件と手動関連45件、カタログ466を確認した。各限定の別々の新規GPT-6.2 Sol/Highが最終固定差分 `1dc614c106a1e98a5c361f1a190c71109e2f69143913d2aeea50a51c337e0198` を確認した。
+
+### 公開前の一覧操作と実ブラウザ再検証
+
+- `testLinkPreferencesSurviveRelaunch`・`BROWSER_FIXTURE`・`IsPageLoaded` を検索し、N161・N236・N242・43742821232の詳細と409d0f9／3fc31e1の実サーバ・生成器を比較した。先行正式44499001313の26 Bは実HTTP送信まで到達し、実ページ30秒で停止。公開はskip。候補は架空loopbackだけの実接続準備を各fixture起動時に一度要求する。設定経路、実タッチ、実本文、元の期限、実Close、一覧復帰を維持する。
+- Linux Swift 6.1.2で実生成project、Swift構文、shell構文、実HTTPと生成した境界を含むmanifest／runner計50件（79.616秒、失敗0）、catalog466を確認。Safari境界のLinux対照では公開フレームワーク呼出し先だけをstubにし、実検証済みloopback URLの一回受け渡し、flagなしと不正入力の既存検査を確認した。実Safariの接続準備と画面は限定CIで比較する。
+- 直前のe70d786は固定ソースでLinux配布318件（273.104秒、失敗0、環境skip2）。共有タブ修正の実iOS検査は別の限定CIを継続中。

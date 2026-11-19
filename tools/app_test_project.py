@@ -94,19 +94,28 @@ def rewrite_network_urls(text):
 def instrument_browser_fixture(text):
     marker = '        let controller = SFSafariViewController(url: url)'
     assert text.count(marker) == 1, 'Native Safari network boundary insertion point missing'
-    text = text.replace(marker, '''        let browserURL: URL
-        if ProcessInfo.processInfo.arguments.contains("--loopback-browser-fixture") {
-            guard url.absoluteString == "https://fixture.example.test",
-                  let raw = ProcessInfo.processInfo.environment["TKPK_BROWSER_FIXTURE_URL"],
-                  let local = URL(string: raw), local.scheme == "http", local.host == "127.0.0.1",
-                  local.port.map({ (1...65535).contains($0) }) == true,
-                  local.user == nil, local.password == nil, local.path == "/fictional-link",
-                  local.query == nil, local.fragment == nil else {
-                preconditionFailure("The browser fixture requires its owned loopback input")
-            }
-            browserURL = local
-        } else { browserURL = url }
-        let controller = SFSafariViewController(url: browserURL)
+    factory = '    func makeUIViewController(context: Context) -> SFSafariViewController {'
+    assert text.count(factory) == 1, 'Browser fixture factory insertion point missing'
+    text = text.replace(factory, '''    @MainActor
+    static func fixtureBrowserURL() -> URL? {
+        guard ProcessInfo.processInfo.arguments.contains("--loopback-browser-fixture") else { return nil }
+        guard let raw = ProcessInfo.processInfo.environment["TKPK_BROWSER_FIXTURE_URL"],
+              let local = URL(string: raw), local.scheme == "http", local.host == "127.0.0.1",
+              local.port.map({ (1...65535).contains($0) }) == true,
+              local.user == nil, local.password == nil, local.path == "/fictional-link",
+              local.query == nil, local.fragment == nil else {
+            preconditionFailure("The browser fixture requires its owned loopback input")
+        }
+        return local
+    }
+
+''' + factory)
+    text = text.replace(marker, '''        let local = Self.fixtureBrowserURL()
+        if local != nil {
+            precondition(url.absoluteString == "https://fixture.example.test",
+                         "The browser fixture requires its original fictional input")
+        }
+        let controller = SFSafariViewController(url: local ?? url)
         FixtureLaunchDiagnostics.record("browser-controller-created")''')
     delegate = '    final class Coordinator: NSObject, SFSafariViewControllerDelegate {\n'
     assert text.count(delegate) == 1, 'Native Safari delegate observation insertion point missing'
