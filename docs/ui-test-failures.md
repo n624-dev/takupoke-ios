@@ -5289,3 +5289,9 @@ d9918b45、run 44407326157、試行1、SDK 27.2／iOS 27.0、job 135168256057。
 ### #119 保存・取消しのLinux追加試験がコンパイルで停止（2026-11-19）
 
 5359b477を基点にした未コミット候補、Linux x86_64／Swift 6.1.2、ローカル試行2。`testLegacyAmbiguousWeekdayExclusionsCanBeConfirmedAndSavedAfterReopen` の228行で `XCTAssertEqual` が `ChangeAnalysis: Equatable` を要求し、テスト実行に未到達。既存の `ChangeAnalysis` は `Codable`。旧版の取消しに関する既存テストと同じ永続化経路を使い、保存前後の比較にキー順を固定した保存形式を使う。以前の解析結果を全項目照合する検査は維持する。
+
+### #119 最初の限定CIでテスト用アプリが初回起動時に終了（2026-11-19）
+
+d6bc639、run 44439254857・試行1、iOS 27.0.0／SDK 27.2、job 135275715625。生成・コンパイル・Simulator起動は成功。`testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups` は最初のアプリ起動後、Running Foreground待機中に `jp.n624.takupoke.app-checks crashed`（113.891秒）。起動traceは `seed-enter` まで。設定・原本差し替え・実UIには未到達。
+
+N112の当時のfixtureと現行の初期化経路を比較した。#119のfixtureは `MaterialWorker.open()` が保持する排他ロックを解放する前に、同じpathで `LocalMaterialDatabase.openLibrary()` を再実行していた。`LibraryLock` は同じファイルの二重openを `LOCK_EX | LOCK_NB` で拒否し、fixtureでは初期化エラーがプロセス終了になる。取得側の一つのライブラリを使い、元の選択・本物の保存・再起動・表示期待値と期限を保持する。

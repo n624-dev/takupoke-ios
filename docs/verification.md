@@ -8506,3 +8506,5 @@ fecebf6aの[手動限定44397677730・試行1](https://github.com/n624-dev/takup
 ## 2026-11-19 #119 原本更新後の曜日行と未確定件数
 
 失敗索引を `ChangeWorkbookEditor|carryover|曜日.*除外|Changes.swift|行数` で確認した。N146・N212・N239と#112の同ケースでは通常の除外Switch操作が止まった。今回の追加検査はグループ選択、取り消し、保存、同一ファイル更新、再起動を実画面で確認する。従来のSwitch配送検査は維持する。Linux x86_64、Swift 6.1.2の初回 `tools/test-parsing.sh` は650件すべて成功。保存・取消しのケースは初回の後に追加した。
+
+新規GPT-6.2 Sol/Highは開始前、固定差分 `c3bf787b16ce0746178c3a11dabb23d5a64e494e33e1540125c4923814d874fa` を確認。重複リンクの否定はListの画面外を直接照合できないため、物理行数は別の実画面検査45→44→45でも照合する。d6bc639のLinux Swift 6.1.2一式試験は651件成功（検査123.004秒、ビルド込み447.3秒）。UI manifestの32件は予定skip 3で失敗0。iOS 26.5／27.0の[最初の限定実行](https://github.com/n624-dev/takupoke-ios/actions/runs/44439254857/attempts/1)で27のfixture初期化が停止した。原因と現行初期化の比較を失敗索引へ記録した。
