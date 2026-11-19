@@ -161,7 +161,11 @@ enum SimulatorEventsYearFixture {
         self.assertIn("icons.count == 1", contact)
         self.assertIn("ObservedScreenGeometry.contains(iconFrame, in: buttonFrame", contact)
         self.assertIn("ObservedScreenGeometry.contains(iconFrame, in: barFrame", contact)
-        self.assertEqual(contact.count(".press(forDuration: 0.1)"), 1)
+        self.assertEqual(contact.count("NativeTestContacts.send("), 1)
+        self.assertIn("CGPoint(x: iconFrame.midX, y: iconFrame.midY)", contact)
+        self.assertIn("NativeTestContacts.send([.init(start: contact, end: contact, duration: 0.1, pauseAfterLift: 0)]", contact)
+        self.assertIn("app.state == .runningForeground", contact)
+        self.assertNotIn(".coordinate(", contact)
         self.assertNotIn(".tap()", contact)
 
     def test_split_sources_are_registered_in_the_selected_target_only(self):

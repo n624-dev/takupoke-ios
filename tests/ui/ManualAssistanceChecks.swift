@@ -25,7 +25,7 @@ final class ManualAssistanceChecks:SimulatorIdentityTestCase {
         let selected=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
             let current=self.app.tabBars.buttons.matching(NSPredicate(format:"label == %@","設定")).allElementsBoundByAccessibilityElement
             return current.count==1 && current[0].isSelected
-        },object:app)
+        },object:nil)
         guard XCTWaiter.wait(for:[selected],timeout:nativeStateTimeout) == .completed else {
             XCTFail("The Settings tab must be selected after one tap");return
         }

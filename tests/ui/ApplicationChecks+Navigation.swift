@@ -18,7 +18,7 @@ extension ApplicationChecks {
             predicate: NSPredicate { _, _ in
                 let current = self.app.tabBars.buttons[title]
                 return current.exists && current.isSelected
-            }, object: app)
+            }, object: nil)
         guard XCTWaiter.wait(for: [selected], timeout: 45) == .completed else {
             recoveryScreenshot("tab-selection-unresolved-" + title)
             XCTFail("Native tab tap did not select its current control: " + app.debugDescription)

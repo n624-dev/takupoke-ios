@@ -6,7 +6,7 @@ extension SimulatorIdentityTestCase {
         var deadline = ProcessInfo.processInfo.systemUptime + timeout
         var foundBar = false
         let scale = UIScreen.main.scale
-        var contact: CGVector?
+        var contact: CGPoint?
         var observation = "app snapshot unavailable"
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             guard ProcessInfo.processInfo.systemUptime < deadline else { return true }
@@ -64,16 +64,23 @@ extension SimulatorIdentityTestCase {
                   currentIcon.elementType == .image, currentIcon.identifier == icon.identifier,
                   currentIcon.label == icon.label, currentIcon.frame == iconFrame, liveIcon.isHittable,
                   ProcessInfo.processInfo.systemUptime <= deadline else { return false }
-            let center = CGVector(dx: iconFrame.midX - appFrame.minX, dy: iconFrame.midY - appFrame.minY)
+            let center = CGPoint(x: iconFrame.midX, y: iconFrame.midY)
             print("NATIVE_TAB title=\(title);bar=\(barFrame);button=\(buttonFrame);icon=\(iconFrame);contact=\(center)")
             contact = center
             return true
-        }, object: app)
-        guard XCTWaiter.wait(for: [ready], timeout: 2 * timeout) == .completed, let contact else {
+        }, object: nil)
+        guard XCTWaiter.wait(for: [ready], timeout: 2 * timeout) == .completed,
+              let contact, app.state == .runningForeground else {
             XCTFail("The current tab must have one visible, operable native icon: " + observation); return false
         }
         // Both callers verify the selected tab after this single U63 contact.
-        app.coordinate(withNormalizedOffset: .zero).withOffset(contact).press(forDuration: 0.1)
-        return true
+        do {
+            try NativeTestContacts.send([.init(start: contact, end: contact, duration: 0.1, pauseAfterLift: 0)],
+                                        named: "Tab icon")
+            return true
+        } catch {
+            XCTFail("Native tab icon contact failed: \(error)")
+            return false
+        }
     }
 }
