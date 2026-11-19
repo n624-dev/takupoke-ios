@@ -79,7 +79,11 @@ extension ManualAssistanceChecks {
             }
             let matches:[XCUIElement]
             if alternatives != nil { matches=[] }
-            else if ordinaryButton != nil { matches=query.allElementsBoundByAccessibilityElement }
+            else if ordinaryButton != nil || reviewAction {
+                // The review action can appear as Button or PopUpButton.
+                // Avoid index rebinding when it reappears after a reload.
+                matches=query.allElementsBoundByAccessibilityElement
+            }
             else { matches=query.allElementsBoundByIndex }
             guard matches.count<=1 else {
                 XCTFail("Known manual control must be unique: "+targetID);return e
@@ -104,11 +108,20 @@ extension ManualAssistanceChecks {
             // acknowledge(_:) validates the inner control before its one contact.
             if acknowledgement,let frame=targetFrame,
                ManualScrollNavigation.usable(frame),viewport.contains(frame) { return target }
-            // The indexed target reveals the row. For a Button, bind the
-            // physical identity before hit testing so observation and contact
-            // use the same element rather than two successive representations.
+            // Reuse an already bound button for hit testing and contact.
+            // Indexed controls bind their current physical identity here.
             if alternatives==nil,exists,let targetFrame,
                ManualScrollNavigation.usable(targetFrame),viewport.contains(targetFrame) {
+                if reviewAction {
+                    let kind=target.elementType
+                    print("TAKUPOKE-MANUAL-NATIVE-REVIEW type=\(kind.rawValue);frame=\(targetFrame);viewport=\(viewport);attempt=\(attempt)")
+                    guard target.identifier == targetID,target.label == buttonLabel,
+                          kind == .button || kind == .popUpButton,
+                          target.isEnabled,target.isHittable else {
+                        XCTFail("The review action must be an operable native Button or PopUpButton with its exact label");return e
+                    }
+                    return target
+                }
                 if let ordinaryButton {
                     guard target.label == ordinaryButton,target.isEnabled,target.isHittable else {
                         XCTFail("The current list button must match its label and be operable");return e
@@ -129,8 +142,7 @@ extension ManualAssistanceChecks {
                     }
                     return actual
                 }
-                // The native review control can be an iOS 26 PopUpButton.
-                if reviewAction || targetID.hasPrefix("manual-clear-") {
+                if targetID.hasPrefix("manual-clear-") {
                     // Navigation follows logical IDs/labels across recycled rows.
                     // Bind only the final physical Button to its current identity.
                     let controls=query.allElementsBoundByAccessibilityElement
@@ -138,13 +150,6 @@ extension ManualAssistanceChecks {
                         XCTFail("The revealed Button must have one current native identity");return e
                     }
                     let actual=controls[0]
-                    if reviewAction {
-                        let kind=actual.elementType
-                        print("TAKUPOKE-MANUAL-NATIVE-REVIEW type=\(kind.rawValue)")
-                        guard actual.label == buttonLabel,kind == .button || kind == .popUpButton else {
-                            XCTFail("The review action must be a native Button or PopUpButton");return e
-                        }
-                    }
                     let frame=actual.frame
                     print("TAKUPOKE-MANUAL-NATIVE-BUTTON frame=\(frame);viewport=\(viewport);attempt=\(attempt)")
                     guard ManualScrollNavigation.usable(frame),viewport.contains(frame),
