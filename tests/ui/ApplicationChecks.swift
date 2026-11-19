@@ -20,6 +20,7 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
             "testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData": ["--retention-corrupt"],
             "testTimetableDynamicTypeScalesAndRestoresStandardLayout": ["--grid-probe"],
             "testTimetableUsesSystemTextSize": ["--grid-probe", "--system-text-size", "--fixture-input-trace"],
+            "testMergedCardsFromAllSources": ["--fixture-input-trace"],
             "testTimetableCommonClocksAndEventOnlyWeekScale": ["--grid-probe", "--normal-only"],
             "testEmptyDataCanBeConfigured": ["--empty-fixture"],
             "testChangedAccountDataNoticeOpensSharedAcquisition": ["--updated-revisions"],

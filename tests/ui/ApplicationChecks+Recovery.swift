@@ -4,10 +4,23 @@ import CryptoKit
 
 extension ApplicationChecks {
     func dismissLesson(title: String = "授業詳細") {
-        let bar = app.navigationBars[title]
-        let start = bar.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-        start.press(
-            forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.95)))
+        guard let root = try? app.snapshot(), let nodes = snapshotNodes(in: root) else {
+            XCTFail("Could not observe the presented lesson sheet")
+            return
+        }
+        let bars = nodes.filter { $0.elementType == .navigationBar && ($0.identifier == title || $0.label == title) }
+        let window = root.frame
+        guard bars.count == 1, let bar = bars.first,
+              ObservedScreenGeometry.usable(window), ObservedScreenGeometry.usable(bar.frame),
+              ObservedScreenGeometry.contains(bar.frame, in: window, scale: UIScreen.main.scale) else {
+            XCTFail("Expected a unique lesson sheet navigation bar inside the app window")
+            return
+        }
+        let start = CGVector(dx: bar.frame.midX - window.minX, dy: bar.frame.midY - window.minY)
+        let end = CGVector(dx: window.width * 0.5, dy: window.height * 0.95)
+        print("LESSON_SHEET_DISMISS title=\(title);bar=\(bar.frame);window=\(window);start=\(start);end=\(end)")
+        let origin = app.coordinate(withNormalizedOffset: .zero)
+        origin.withOffset(start).press(forDuration: 0.1, thenDragTo: origin.withOffset(end))
     }
     private func openRecoveryPreview(material: String = "通常時間割", recovery: String = "時間割の復旧") {
         tab("設定")
