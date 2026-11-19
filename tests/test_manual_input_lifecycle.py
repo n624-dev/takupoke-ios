@@ -33,6 +33,7 @@ class ManualInputLifecycleTests(unittest.TestCase):
 @MainActor final class UIApplication {
  enum State { case active, background }
  static let shared=UIApplication(); var applicationState=State.active
+ var isProtectedDataAvailable=true
 }
 @MainActor final class Unit {
  var busy=true, active=false, refreshes=0
@@ -41,16 +42,27 @@ class ManualInputLifecycleTests(unittest.TestCase):
  func setSourceChecksActive(_ value:Bool) { active=value }
  func refresh() async {} ; func check() async {}
 }
+struct Clock { let currentDate=Date(timeIntervalSince1970: 42) }
+@MainActor final class Countdown {
+ var updatedAt: [Date]=[]
+ func update(using app:Application, at date:Date) {
+  precondition(app.countdown === self && UIApplication.shared.applicationState == .active)
+  updatedAt.append(date)
+ }
+}
 @MainActor final class Application {
  var backgroundRefresh:Task<Void,Never>?, backgroundDuringPrepare=false
+ var ready=true
  let materials=Unit(),specialSchedules=Unit(),schoolEvents=Unit(),mappings=Unit(),times=Unit(),links=Unit(),account=Unit()
+ let countdown=Countdown()
+ let homeClock=Clock()
  func prepare() async -> Bool {
   if backgroundDuringPrepare { UIApplication.shared.applicationState = .background; schoolEvents.setSourceChecksActive(false) }
   return true
  }
  func setFileMonitoring(_ active:Bool) { schoolEvents.setSourceChecksActive(active) }
  func checkNotificationsWhenActive() {}
-''' + block(application, "    func activate() async") + '''
+''' + block(application, "    func activate() async") + "\n" + block(application, "    func updateCountdown()") + '''
 }
 @main struct Probe {
  @MainActor static func main() async {
@@ -68,6 +80,7 @@ class ManualInputLifecycleTests(unittest.TestCase):
    await app.activate()
    precondition(app.schoolEvents.refreshes == (stage==0 ? 1:0))
    precondition(app.schoolEvents.active == (stage==0))
+   precondition(app.countdown.updatedAt == (stage==0 ? [app.homeClock.currentDate] : []))
   }
   print("Verified actual activation foreground guards across both suspension points.")
  }
@@ -89,6 +102,7 @@ class ManualInputLifecycleTests(unittest.TestCase):
         source = '''import Foundation
 final class Work { var cancelled=false; func cancel() { cancelled=true } }
 final class Monitor { var enabled=false; func setFileMonitoring(_ value:Bool) { enabled=value }; func setSourceChecksActive(_ value:Bool) { enabled=value } }
+final class Clock { var running=true; func start() { running=true }; func pause() { running=false } }
 final class LocalRecoveryModelManager { static let shared=LocalRecoveryModelManager(); var cancelled=false; func cancel() { cancelled=true } }
 final class Coordinator {
  var task:Work?=Work(), preparationControl:Work?=Work()
@@ -101,6 +115,7 @@ final class Coordinator {
 }
 final class Application {
  let recovery=Coordinator(), materials=Monitor(), specialSchedules=Monitor(), schoolEvents=Monitor(); var ready=true
+ let homeClock=Clock()
 ''' + block(application, "    func setFileMonitoring(_ foreground: Bool)") + '''
 }
 let app=Application(), operation=UUID()
@@ -108,6 +123,7 @@ app.recovery.operation=operation
 let task=app.recovery.task!, preparation=app.recovery.preparationControl!
 app.setFileMonitoring(false)
 precondition(!app.schoolEvents.enabled)
+precondition(!app.homeClock.running)
 precondition(app.recovery.manualDraft == "original-snapshot" && app.recovery.manualImages["field"] == "original-crop" && app.recovery.source == "source")
 precondition(app.recovery.manualReview == "review" && app.recovery.manualContextImages["field"] == "actual-cell")
 precondition(app.recovery.previewRasters[1] == "original-raster" && app.recovery.manualInitialValues["field"] == "prior-transcription")
@@ -115,6 +131,7 @@ precondition(task.cancelled && preparation.cancelled && LocalRecoveryModelManage
 app.setFileMonitoring(false) // Both scene-phase and background notification can arrive.
 app.setFileMonitoring(true)
 precondition(app.recovery.manualDraft != nil && app.materials.enabled && app.specialSchedules.enabled && app.schoolEvents.enabled)
+precondition(app.homeClock.running)
 app.recovery.manualDraft=nil
 app.setFileMonitoring(false)
 precondition(app.recovery.source == nil && app.recovery.preview == nil)
