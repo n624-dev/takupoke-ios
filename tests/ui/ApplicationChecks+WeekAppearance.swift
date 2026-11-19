@@ -21,7 +21,9 @@ private enum WeekContactSequence {
 
     private static func matches(_ actual: String, _ expected: String) -> Bool {
         if expected == "@" { return actual == "@" || actual.hasPrefix("@\"") }
-        if expected == "@?" { return actual == "@?" || actual.hasPrefix("@?<") }
+        if expected == "@?" {
+            return ["@?", "@?<v@?B@>", "@?<v@?B@\"NSError\">", "@?<vB@>", "@?<vB@\"NSError\">"].contains(actual)
+        }
         return actual == expected
     }
 
@@ -128,6 +130,7 @@ private enum WeekContactSequence {
             guard delivered else {
                 throw (nativeError?.takeUnretainedValue() as? NSError) ?? NSError(domain: "WeekContactSequence", code: 2)
             }
+            // The test still requires the app's real contacts, releases and arrivals.
             return
         }
         let (synthesizer, synthesize, sendSelector) = proxy

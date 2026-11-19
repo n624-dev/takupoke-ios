@@ -523,7 +523,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         // Commit the release position, then move on the first display callback.
         // Starting a SwiftUI animation there would wait for a second handoff.
         let link = CADisplayLink(target: self, selector: #selector(advanceFrame(_:)))
-        let preferred = min(60, Float(scroll.window?.screen.maximumFramesPerSecond ?? 60))
+        let preferred = Float(scroll.window?.screen.maximumFramesPerSecond ?? 60)
         link.preferredFrameRateRange = CAFrameRateRange(minimum: min(30, preferred), maximum: preferred, preferred: preferred)
         displayLink = link; link.add(to: .main, forMode: .common)
     }
@@ -581,6 +581,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         stopDisplayLink()
         var transaction = Transaction(); transaction.disablesAnimations = true
         withTransaction(transaction) {
+            // A continuing move replaces the window synchronously in begin.
             if height == nil { preparation.reset() }
             reservedHeight = height
         }
