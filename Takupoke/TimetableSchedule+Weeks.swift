@@ -48,7 +48,8 @@ extension TimetableSchedule {
     static func reachableWeekBounds(containing reference: SchoolDate, classes: [String],
                                     timetable: PDFAnalysis?, changes: ChangeAnalysis?,
                                     events: PDFAnalysis?, includesChanges: Bool,
-                                    specials: [SpecialScheduleAnalysis] = []) -> ClosedRange<SchoolDate> {
+                                    specials: [SpecialScheduleAnalysis] = [],
+                                    sourceIndex: SourceIndex? = nil) -> ClosedRange<SchoolDate> {
         let firstHalf = (4...9).contains(reference.month)
         let startYear = firstHalf ? reference.year : (reference.month >= 10 ? reference.year : reference.year - 1)
         guard let halfStart = SchoolDate(year: startYear, month: firstHalf ? 4 : 10, day: 1),
@@ -63,7 +64,7 @@ extension TimetableSchedule {
         while let next = upper.addingDays(7), next.addingDays(6) != nil,
               hasWeekData(start: next, classes: classes, timetable: timetable,
                           changes: changes, events: events, includesChanges: includesChanges,
-                          specials: specials) {
+                          specials: specials, sourceIndex: sourceIndex) {
             upper = next
         }
         return lower...upper
@@ -71,7 +72,7 @@ extension TimetableSchedule {
 
     static func hasWeekData(start: SchoolDate, classes: [String], timetable: PDFAnalysis?,
                             changes: ChangeAnalysis?, events: PDFAnalysis?, includesChanges: Bool,
-                            specials: [SpecialScheduleAnalysis] = []) -> Bool {
+                            specials: [SpecialScheduleAnalysis] = [], sourceIndex: SourceIndex? = nil) -> Bool {
         guard !classes.isEmpty else { return false }
         return (0..<7).compactMap { start.addingDays($0) }.contains { day in
             if !Self.events(on: day, analysis: events).isEmpty { return true }
@@ -79,7 +80,7 @@ extension TimetableSchedule {
                 (1...8).contains { period in
                     let slot = slot(on: day, period: period, className: className, timetable: timetable,
                                     changes: changes, includesChanges: includesChanges, events: events,
-                                    specials: specials)
+                                    specials: specials, sourceIndex: sourceIndex)
                     return !slot.displayedLessons.isEmpty || !slot.specialLessons.isEmpty || !slot.changes.isEmpty
                 }
             }

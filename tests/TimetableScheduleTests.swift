@@ -434,6 +434,13 @@ final class TimetableScheduleTests: XCTestCase {
                                                                    timetable: nil, changes: changes, events: nil,
                                                                    includesChanges: false)
         XCTAssertEqual(withoutChanges.upperBound.iso8601, "2026-09-28")
+
+        let index = TimetableSchedule.SourceIndex(timetable: nil, changes: changes, events: nil, specials: [])
+        for (includesChanges, expected) in [(true, bounds), (false, withoutChanges)] {
+            XCTAssertEqual(TimetableSchedule.reachableWeekBounds(
+                containing: opening, classes: ["1_A"], timetable: nil, changes: changes,
+                events: nil, includesChanges: includesChanges, sourceIndex: index), expected)
+        }
     }
 
 }

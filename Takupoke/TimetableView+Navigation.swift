@@ -26,7 +26,8 @@ extension TimetableView {
         TimetableSchedule.reachableWeekBounds(containing: navigationHalfAnchor,
                                                classes: selectedClasses, timetable: timetable,
                                                changes: changes, events: events,
-                                               includesChanges: includesChanges, specials: specials)
+                                               includesChanges: includesChanges, specials: specials,
+                                               sourceIndex: daySchedule.sourceIndex)
     }
 
     private func pickerDate(_ day: SchoolDate) -> Date {

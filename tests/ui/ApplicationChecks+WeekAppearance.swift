@@ -233,7 +233,9 @@ extension ApplicationChecks {
         XCTAssertGreaterThan(visible.width, 285)
         XCTAssertGreaterThan(visible.height, 30)
         let distance = min(240, visible.width - 65)
-        let inputs = [(runsForward, 0.30, 0.36), (runsForward, 0.30, 0.10),
+        // Give the first slide time to arrive before the second contact;
+        // the remaining lifts are followed by another contact during a slide.
+        let inputs = [(runsForward, 0.30, 0.70), (runsForward, 0.30, 0.10),
                       (runsForward, 0.105, 0.10), (!runsForward, 0.30, 0.0)]
         let sequence = inputs.map { next, duration, pause in
             let start = CGPoint(x: next ? visible.maxX - 30 : visible.minX + 30, y: visible.midY)
