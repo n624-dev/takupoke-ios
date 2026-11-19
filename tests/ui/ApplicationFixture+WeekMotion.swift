@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import CryptoKit
+import Darwin
 
 // This observer is compiled into the fictional UI fixture only. It never moves
 // a page, changes a gesture, or returns an expected animation position.
@@ -22,6 +23,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     private var finishedAt: CFTimeInterval?
     private var releasePoint: CGPoint?
     private var samples: [[String: Double]] = []
+    private var checkpoints: [[String: Any]] = []
     private var missingFrames: [Double] = []
     private var records: [[String: Any]] = []
     private var fingerDown = false
@@ -64,27 +66,48 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     func begin(source: String, target: String) {
         guard enabled else { return }
         self.source = bodies[source]?.view; self.target = bodies[target]?.view
-        samples = []; missingFrames = []; arrivedAt = nil; finishedAt = nil
+        samples = []; missingFrames = []; checkpoints = []; arrivedAt = nil; finishedAt = nil
         link?.invalidate()
-        let display = CADisplayLink(target: self, selector: #selector(sample))
+        let display = CADisplayLink(target: self, selector: #selector(sample(_:)))
         let preferred = Float(self.source?.window?.screen.maximumFramesPerSecond ?? 60)
         display.preferredFrameRateRange = CAFrameRateRange(minimum: min(30, preferred), maximum: preferred, preferred: preferred)
         link = display; display.add(to: .main, forMode: .common)
+        checkpoint("display-link-registered")
     }
-    func arrived() { if enabled { arrivedAt = CACurrentMediaTime() } }
-    func finished() { if enabled { finishedAt = CACurrentMediaTime() } }
+    func arrived() {
+        guard enabled else { return }
+        arrivedAt = CACurrentMediaTime()
+        checkpoint("horizontal-arrival")
+    }
+    func finished() {
+        guard enabled else { return }
+        finishedAt = CACurrentMediaTime()
+        checkpoint("height-ended")
+    }
+    private func threadCPUTime() -> TimeInterval {
+        var time = timespec()
+        guard clock_gettime(CLOCK_THREAD_CPUTIME_ID, &time) == 0 else { return -1 }
+        return Double(time.tv_sec) + Double(time.tv_nsec) / 1_000_000_000
+    }
+    func checkpoint(_ name: String) {
+        guard enabled, link != nil, checkpoints.count < 32 else { return }
+        checkpoints.append(["name": name, "t": CACurrentMediaTime() - releasedAt, "cpu": threadCPUTime()])
+    }
     private func point(_ view: UIView?) -> CGPoint? {
         guard let view, let window = view.window else { return nil }
         let layer = view.layer.presentation() ?? view.layer
         let root = window.layer.presentation() ?? window.layer
         return layer.convert(.zero, to: root)
     }
-    @objc private func sample() {
+    @objc private func sample(_ display: CADisplayLink) {
         let now = CACurrentMediaTime()
+        let cpu = threadCPUTime()
         if let a = point(source), let b = point(target), let row {
             let height = (row.layer.presentation() ?? row.layer).bounds.height
             samples.append(["t": now - releasedAt, "sourceX": a.x, "sourceY": a.y,
-                            "targetX": b.x, "targetY": b.y, "rowHeight": height])
+                            "targetX": b.x, "targetY": b.y, "rowHeight": height,
+                            "cpu": cpu, "display": display.timestamp - releasedAt,
+                            "nextDisplay": display.targetTimestamp - releasedAt])
         } else {
             missingFrames.append(now - releasedAt)
         }
@@ -104,7 +127,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
             badgeImage = nil
             var record: [String: Any] = ["arrived": arrivedAt.map { $0 - releasedAt } ?? -1,
                 "finished": finishedAt.map { $0 - releasedAt } ?? -1,
-                "samples": samples, "missingGeometryFrames": missingFrames, "badge": badge,
+                "samples": samples, "checkpoints": checkpoints, "missingGeometryFrames": missingFrames, "badge": badge,
                 "badgeReadyObserved": badgeFrame != nil, "badgeDrawAttempts": badgeDrawAttempts]
             if let releasePoint {
                 record["releaseX"] = Double(releasePoint.x)

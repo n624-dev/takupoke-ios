@@ -8630,3 +8630,9 @@ Linuxで実UIのproject生成・Swift構文・manifest32件・runner18件とカ�
 
 - 4d6fa6cのiOS27.0／SDK27.2は、生成したテストアプリの初期値に差し込まれた`SimulatorSelectionFixture.day`とObservationの非隔離default値の組合せでビルドが停止した。N143と当時のコード、1824b8bのView側にあった日付取得と比較した。
 - 本番の選択週モデルは日付を受け取る。既存の全fixture日付選択を同じView初期化で行う。実生成変換・実Observationモデル・実SchoolDate・MainActorのfixture境界を取り込んだLinux Swift対照は、旧状態で同じエラー（2.425秒）を出し、修正後に成功（2.104秒）した。全生成ソース、実接触とフレームの検証はiOS限定で確認する。
+
+### 横到着時の描画間隔と入力配送の測定
+
+- 15b6d70のiOS27限定44536795734では生成アプリが実行され、実4接触・解放・移動、黄色を確認した。1番目の実releaseからnative返却・次回送出・実始動までにそれぞれ0.209／0.282／0.117秒かかり、heightが完了していた。26.5は実画面stepでcancelledとなり、job log APIは取得不可、CLIは0バイトだった。
+- 27の実測から外側の待ちを0.05秒へ設定し、残りの実タッチおよび実height／slideの検査を維持する。単独実測は高さの中間値が10点まで増えた一方、横到着から初めて実整列した枠まで0.181秒。元の上限0.09秒と画面条件で再確認しつつ、fixtureだけで横到着・日付反映・実スクロール復帰・構成変更および表示コールバックの壁時計とmain threadのCPU時間を計測する。
+- Linuxで生成App project・生成Swift構文、実観測挿入とMainActor生成対照の2件（2.466秒、失敗0）、catalog466を確認した。実時刻・CPU・画面の結果はMac限定で確認する。

@@ -244,7 +244,9 @@ extension ApplicationChecks {
         // compressed idle gaps between separate touch paths in a single record.
         try WeekContactSequence.send(Array(sequence.prefix(1)))
         let firstDelivery = ProcessInfo.processInfo.systemUptime
-        Thread.sleep(forTimeInterval: 0.28)
+        // Native completion and subsequent delivery account for most of the
+        // interval. Aim the remaining pause at the observed height window.
+        Thread.sleep(forTimeInterval: 0.05)
         let continuation = ProcessInfo.processInfo.systemUptime
         try WeekContactSequence.send(Array(sequence.dropFirst()))
         print("TAKUPOKE_WEEK_RECORDS firstDelivery=\(firstDelivery) continuation=\(continuation)")
