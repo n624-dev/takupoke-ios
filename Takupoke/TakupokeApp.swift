@@ -2,6 +2,12 @@ import SwiftUI
 
 @main
 struct TakupokeApp: App {
+    @MainActor init() {
+        // Install the notification delegate before SwiftUI builds the root view,
+        // including a cold launch started by tapping a pending notice.
+        _ = ApplicationData.shared.notifications
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
