@@ -87,6 +87,22 @@ extension TimetableSchedule {
     }
 }
 
+/// Advance with the display's elapsed time without catching up in one frame
+/// when the renderer or main thread misses a display opportunity.
+struct WeekSlideClock {
+    private var lastTarget: TimeInterval?
+    private var elapsed: TimeInterval = 0
+
+    mutating func progress(timestamp: TimeInterval, target: TimeInterval, duration: TimeInterval) -> Double {
+        let previous = lastTarget ?? timestamp
+        if target > previous {
+            elapsed += min(target - previous, 1.0 / 30)
+            lastTarget = target
+        }
+        return min(1, elapsed / duration)
+    }
+}
+
 /// Distances are measured from the finger's starting position. A wide week
 /// consumes its remaining horizontal scroll range before either edge can arm.
 struct WeekEdgePull {

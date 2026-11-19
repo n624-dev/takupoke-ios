@@ -1,7 +1,7 @@
 # 時間割・今日の予定・授業時刻・授業名
 
 対応関係・宣言名・実行方法のSHA-256：
-`e59c34908767492082671db94ebc0b395cb7f150f6ab8a979103ac7e43b0fcce`
+`80ede7bf8895e791207b08f361d6d943a5208617ae8393a15f8569862ec9d8a2`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -101,6 +101,7 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 - `testOnlyFixedFirstYearPairCanBeAdded`
 - `testInternationalStudentFilterUsesNormalizedSubjectPrefix`
 - `testInternationalStudentMappingFlagHidesNonPrefixedSubjectsAcrossSources`
+- `testWeekSlideClockKeepsNormalDurationAndLimitsSingleFrameCatchup`
 - `testAcademicHalfNavigationUsesMondayAndKnownWeekData`
 - `testPreviousWeekCanCrossBoundaryWhenPartOfWeekIsInCurrentHalf`
 - `testOctoberOpeningKeepsSeptemberBoundaryWhenPickingAnotherWeek`

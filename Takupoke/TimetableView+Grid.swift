@@ -310,7 +310,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     private var scrolls: [SchoolDate: ScrollReference] = [:]
     private var displayLink: CADisplayLink?
     private weak var heldScroll: UIScrollView?
-    private var slideStartedAt: CFTimeInterval?
+    private var slideClock = WeekSlideClock()
     private var heightAdjustment: (startedAt: CFTimeInterval, initialHeight: CGFloat)?
 
     func register(_ scroll: UIScrollView, week: SchoolDate) {
@@ -360,14 +360,14 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         // Commit the release position, then move on the first display callback.
         // Starting a SwiftUI animation there would wait for a second handoff.
         let link = CADisplayLink(target: self, selector: #selector(advanceSlide(_:)))
+        let preferred = Float(scroll.window?.screen.maximumFramesPerSecond ?? 60)
+        link.preferredFrameRateRange = CAFrameRateRange(minimum: min(30, preferred), maximum: preferred, preferred: preferred)
         displayLink = link; link.add(to: .main, forMode: .common)
     }
     @objc private func advanceSlide(_ link: CADisplayLink) {
         guard let value = transition else { stopDisplayLink(); return }
-        let startedAt = slideStartedAt ?? link.timestamp
-        slideStartedAt = startedAt
         let duration = reduceMotion ? 0.15 : 0.25
-        let elapsed = min(1, max(0, (link.targetTimestamp - startedAt) / duration))
+        let elapsed = slideClock.progress(timestamp: link.timestamp, target: link.targetTimestamp, duration: duration)
         let progress = CGFloat(elapsed + elapsed * (1 - elapsed) / 2)
         var transaction = Transaction(); transaction.disablesAnimations = true
         withTransaction(transaction) { transition?.slideProgress = progress }
@@ -396,7 +396,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     }
     private func stopDisplayLink() {
         displayLink?.invalidate(); displayLink = nil
-        slideStartedAt = nil
+        slideClock = WeekSlideClock()
         heightAdjustment = nil
     }
     private func finish(id: UUID) {
