@@ -1068,7 +1068,7 @@ METHOD
             ("rows", (controls[-1],)),
             ("weekday-carryover", ("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",)),
             ("countdown-notifications", ("testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch",)),
-            ("countdown-notification-context", (manifest.VOICEOVER_TEST, "testNotificationControlsAndAppearance",
+            ("countdown-notification-context", (manifest.SETTINGS_TEST, "testNotificationControlsAndAppearance",
                                                 "testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch")),
             ("countdown-calendar", ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",)),
             ("rows-context", ("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover", controls[-1])),

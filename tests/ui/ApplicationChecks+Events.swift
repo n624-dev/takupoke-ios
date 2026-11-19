@@ -227,24 +227,29 @@ extension ApplicationChecks {
             let confirmed = visible(app.staticTexts["行事データの更新確認"])
             XCTAssertTrue(confirmed.waitForExistence(timeout: 25), app.debugDescription)
         }
-        func add(_ mode: String) {
+        func add(_ mode: String, opens destination: String) {
             let menu = app.buttons["countdown-add"]
             XCTAssertTrue(menu.waitForExistence(timeout: 10), app.debugDescription)
             XCTAssertTrue(menu.isEnabled && menu.isHittable, app.debugDescription)
             menu.tap()
             let items = app.buttons.matching(NSPredicate(format: "label == %@", mode))
-            var selected: XCUIElement?
+            var selected: (frame: CGRect, origin: CGPoint)?
             let available = expectation(for: NSPredicate { _, _ in
                 let visible = items.allElementsBoundByAccessibilityElement
+                let bounds = self.app.frame
                 guard visible.count == 1, let item = visible.first, let snapshot = try? item.snapshot(),
                       snapshot.label == mode, snapshot.isEnabled, self.usable(snapshot.frame),
-                      self.app.frame.contains(snapshot.frame), item.isHittable else { return false }
-                selected = item
+                      bounds.contains(snapshot.frame), item.isHittable else { return false }
+                selected = (snapshot.frame, bounds.origin)
                 return true
             }, evaluatedWith: items)
             XCTAssertEqual(XCTWaiter.wait(for: [available], timeout: 5), .completed, app.debugDescription)
             guard let selected else { return }
-            selected.tap()
+            print("UI_COUNTDOWN_MENU label=\(mode) frame=\(selected.frame)")
+            let origin = app.coordinate(withNormalizedOffset: .zero)
+            origin.withOffset(CGVector(dx: selected.frame.midX - selected.origin.x,
+                                       dy: selected.frame.midY - selected.origin.y)).press(forDuration: 0.1)
+            screen(destination)
         }
         func saveNamed(_ name: String) {
             let input = visible(app.textFields["countdown-name"])
@@ -268,11 +273,11 @@ extension ApplicationChecks {
         fetchCurrentEvents(initial: true)
         back(to: "設定")
         openCountdown()
-        add("自分で入力")
+        add("自分で入力", opens: "カウントダウンを設定")
         saveNamed("Fictional personal plan")
         screen("カウントダウン")
         XCTAssertTrue(identifying("countdown-list-card", title: "Fictional personal plan").waitForExistence(timeout: 10), app.debugDescription)
-        add("学校行事を選ぶ")
+        add("学校行事を選ぶ", opens: "学校行事を選ぶ")
         let exam = visible(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "架空の分割試験A")).firstMatch)
         XCTAssertTrue(exam.exists && exam.isHittable, app.debugDescription)
         exam.tap()
