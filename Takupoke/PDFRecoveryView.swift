@@ -120,6 +120,7 @@ struct PDFRecoveryView: View {
                                     Image(systemName: acknowledged ? "checkmark.circle.fill" : "circle")
                                         .accessibilityHidden(true)
                                 }
+                                .frame(minHeight: 44)
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(.borderless)

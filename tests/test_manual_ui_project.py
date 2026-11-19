@@ -169,6 +169,10 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertEqual(changed.count('accessibilityIdentifier("manual-submit")'),1)
         self.assertEqual(changed.count('accessibilityIdentifier("manual-review-submit")'),1)
         self.assertEqual(changed.count('Text(coordinator.status).accessibilityIdentifier("manual-status")'),1)
+        acknowledgement=changed.split('Text("原本と一致することを確認")',1)[1].split('.disabled(',1)[0]
+        self.assertLess(acknowledgement.index('.frame(minHeight: 44)'),acknowledgement.index('.contentShape(Rectangle())'))
+        self.assertIn('.accessibilityAddTraits(acknowledged ? .isSelected : [])',acknowledgement)
+        self.assertIn('.accessibilityIdentifier("manual-ack-" + field.id)',acknowledgement)
         checks=manual_check_source()
         self.assertEqual(checks.count('guard terminateCurrentFixture() else { return };'),3)
         terminate=checks.split('    func terminateCurrentFixture()',1)[1].split('    func launch(',1)[0]
