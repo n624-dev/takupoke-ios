@@ -1,16 +1,5 @@
 import Foundation
 
-// QA geometry only: no value assignment or acknowledgement synthesis.
-func manualAcknowledgementFits(outer:CGRect,inner:CGRect,viewport:CGRect)->Bool {
-    return [outer,inner,viewport].allSatisfy({
-        !$0.isNull && !$0.isInfinite && $0.width>0 && $0.height>0
-            && [$0.minX,$0.minY,$0.maxX,$0.maxY].allSatisfy(\.isFinite)
-    }) && [outer,viewport].allSatisfy({
-        inner.minX >= $0.minX && inner.maxX <= $0.maxX
-            && inner.minY >= $0.minY && inner.maxY <= $0.maxY
-    })
-}
-
 // BEGIN PURE MANUAL SCROLL NAVIGATION
 // Geometry controls only. A recycled editor's existence does not locate its row.
 struct ManualScrollNavigation {

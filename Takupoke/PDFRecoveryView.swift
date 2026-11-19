@@ -108,8 +108,23 @@ struct PDFRecoveryView: View {
                                     .accessibilityIdentifier("manual-clear-" + field.id)
                                     .opacity(canClear ? 1:0).disabled(!canClear).accessibilityHidden(!canClear)
                             }
-                            Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; if coordinator.manualReview != nil { return }; manualAcknowledged[field.id] = $0 }))
-                                .disabled(!useAiFeatures || coordinator.running)
+                            let acknowledged = manualAcknowledged[field.id] ?? false
+                            Button {
+                                guard coordinator.manualDraft?.id == draft.id, coordinator.manualReview == nil else { return }
+                                let newAcknowledgement = !(manualAcknowledged[field.id] ?? false)
+                                manualAcknowledged[field.id] = newAcknowledgement
+                            } label: {
+                                HStack {
+                                    Text("原本と一致することを確認")
+                                    Spacer()
+                                    Image(systemName: acknowledged ? "checkmark.circle.fill" : "circle")
+                                        .accessibilityHidden(true)
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityAddTraits(acknowledged ? .isSelected : [])
+                            .disabled(!useAiFeatures || coordinator.running)
                         }
                     }
                     Section {

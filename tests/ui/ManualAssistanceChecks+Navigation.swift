@@ -56,10 +56,7 @@ extension ManualAssistanceChecks {
                 // This observation consumes the same original attempt budget.
                 print("TAKUPOKE-MANUAL-SCROLL invalid-viewport;\(viewport)");continue
             }
-            // Observe the viewport before resolving a recyclable row. The outer
-            // control follows its logical ID while revealing it (N97); only the
-            // final inner native contact is bound to accessibility identity (N94).
-            let acknowledgement=inRecovery && targetID.hasPrefix("manual-ack-")
+            // Observe the viewport before resolving a recyclable row.
             let correctionMenu=inRecovery && targetID.hasPrefix("recovery-correction-menu-")
             let recoveryTexts:Set<String>=["manual-review-header","manual-preview-header","manual-status",
                 "manual-comparison-available","manual-comparison-unavailable","manual-change-before","manual-change-after"]
@@ -70,8 +67,6 @@ extension ManualAssistanceChecks {
                 query=list.buttons.matching(NSPredicate(format:"label == %@",ordinaryButton))
             } else if ordinaryButton != nil || targetID.hasPrefix("manual-clear-") || targetID == "manual-submit" {
                 query=list.buttons.matching(identifier:targetID)
-            } else if acknowledgement {
-                query=list.switches.matching(identifier:targetID)
             } else if recoveryTexts.contains(targetID) || correctionMenu {
                 query=list.staticTexts.matching(identifier:targetID)
             } else {
@@ -104,10 +99,6 @@ extension ManualAssistanceChecks {
             if alternatives==nil && exists {
                 print("TAKUPOKE-MANUAL-TARGET id=\(targetID);frame=\(targetFrame ?? .null);viewport=\(viewport)")
             }
-            // This row is only the container for the actual native switch.
-            // acknowledge(_:) validates the inner control before its one contact.
-            if acknowledgement,let frame=targetFrame,
-               ManualScrollNavigation.usable(frame),viewport.contains(frame) { return target }
             // Reuse an already bound button for hit testing and contact.
             // Indexed controls bind their current physical identity here.
             if alternatives==nil,exists,let targetFrame,

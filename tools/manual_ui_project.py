@@ -99,14 +99,15 @@ def view(text):
     clear_guard = 'guard useAiFeatures, !coordinator.running, coordinator.manualDraft?.id == draft.id, coordinator.manualReview == nil else { return }'
     clear_rejected = 'if !(useAiFeatures && !coordinator.running && coordinator.manualDraft?.id == draft.id && coordinator.manualReview == nil) { SimulatorManualFixture.event("clear-rejected",id:field.id,old:String(coordinator.manualDraft?.id == draft.id),new:String(useAiFeatures && !coordinator.running && coordinator.manualReview == nil)) }; '
     text = once(text, clear_guard, clear_rejected + clear_guard)
-    text = once(text, 'manualAcknowledged[field.id] = $0', 'SimulatorManualFixture.event("ack",id:field.id,old:String(manualAcknowledged[field.id] ?? false),new:String($0)); manualAcknowledged[field.id] = $0')
+    acknowledgement = 'manualAcknowledged[field.id] = newAcknowledgement'
+    text = once(text, acknowledgement,
+                'SimulatorManualFixture.event("ack",id:field.id,old:String(manualAcknowledged[field.id] ?? false),new:String(newAcknowledgement)); ' + acknowledgement)
     text = once(text, '.onChange(of:coordinator.manualDraft?.id) { _,_ in', '.onChange(of:coordinator.manualDraft?.id) { old,new in SimulatorManualFixture.event("draft",id:"snapshot",old:old ?? "nil",new:new ?? "nil")')
     text = once(text, 'Section("採用する資料全体") {', 'Section {')
     text = once(text, '        }\n        Section("読み取り結果") {', '        } header: { Text("採用する資料全体").accessibilityIdentifier("manual-preview-header") }\n        Section("読み取り結果") {')
     text = once(text, '.autocorrectionDisabled().textInputAutocapitalization(.never).disabled(!useAiFeatures || coordinator.running)',
                 '.autocorrectionDisabled().textInputAutocapitalization(.never).disabled(!useAiFeatures || coordinator.running).accessibilityIdentifier("manual-value-" + field.id)')
-    marker = '''                            Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; if coordinator.manualReview != nil { return }; SimulatorManualFixture.event("ack",id:field.id,old:String(manualAcknowledged[field.id] ?? false),new:String($0)); manualAcknowledged[field.id] = $0 }))
-                                .disabled(!useAiFeatures || coordinator.running)'''
+    marker = '                            .accessibilityAddTraits(acknowledged ? .isSelected : [])'
     text = once(text, marker, marker + '.accessibilityIdentifier("manual-ack-" + field.id)')
     text = once(text, '.accessibilityLabel("原本の該当箇所")', '.accessibilityLabel("原本の該当箇所").accessibilityIdentifier("manual-crop-" + field.id)')
     text = once(text, '                        }.buttonStyle(.glassProminent)\n                            .disabled(!useAiFeatures || coordinator.running || draft.fields.contains',

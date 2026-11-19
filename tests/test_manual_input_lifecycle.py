@@ -155,7 +155,8 @@ print("Verified actual background preservation and heavy-work/cancel transitions
             self.skipTest("Swift required for actual binding callback execution")
         view = (ROOT / "Takupoke/PDFRecoveryView.swift").read_text(encoding="utf-8")
         text = block(view.split('TextField("PDFに記載された全文",', 1)[1], "set:")[4:]
-        acknowledgement = block(view.split('Toggle("原本と一致することを確認",', 1)[1], "set:")[4:]
+        acknowledgement = block(view.split('let acknowledged = manualAcknowledged[field.id] ?? false', 1)[1], "Button ")
+        acknowledgement = acknowledgement.removeprefix("Button ")
         assistance = (ROOT / "Takupoke/RecoveryManualAssistance.swift").read_text(encoding="utf-8")
         source = '''import Foundation
 struct Draft { let id:String }
@@ -165,20 +166,22 @@ final class Coordinator { var manualDraft:Draft?=Draft(id:"first");var manualRev
 let coordinator=Coordinator(),draft=Draft(id:"first"),field=Field(id:"subject",originalText:"架空初期入力")
 var manualValues=[field.id:field.originalText],manualAcknowledged=[field.id:false]
 let changeText:(String)->Void=TEXT_CALLBACK
-let changeAcknowledgement:(Bool)->Void=ACK_CALLBACK
-changeText("架空現画面入力");changeAcknowledgement(true)
+let changeAcknowledgement:()->Void=ACK_CALLBACK
+changeText("架空現画面入力");changeAcknowledgement()
 precondition(manualValues[field.id]=="架空現画面入力" && manualAcknowledged[field.id]==true)
+changeAcknowledgement()
+precondition(manualAcknowledged[field.id]==false)
 for current in [Draft(id:"replacement"),nil] {
  coordinator.manualDraft=current
  manualValues[field.id]="架空新しい画面入力";manualAcknowledged[field.id]=false
- changeText("架空古い画面入力");changeAcknowledgement(true)
+ changeText("架空古い画面入力");changeAcknowledgement()
  precondition(manualValues[field.id]=="架空新しい画面入力" && manualAcknowledged[field.id]==false)
 }
 coordinator.manualDraft=draft;coordinator.manualReview="review"
-changeText("架空レビュー中入力");changeAcknowledgement(true)
+changeText("架空レビュー中入力");changeAcknowledgement()
 precondition(manualValues[field.id]=="架空新しい画面入力" && manualAcknowledged[field.id]==false)
 coordinator.manualReview=nil
-changeAcknowledgement(true);changeText("架空再開入力")
+changeAcknowledgement();changeText("架空再開入力")
 precondition(manualValues[field.id]=="架空再開入力" && manualAcknowledged[field.id]==false)
 print("Verified actual stale/missing/review callback rejection and current callback operation.")
 '''.replace("TEXT_CALLBACK", text).replace("ACK_CALLBACK", acknowledgement)

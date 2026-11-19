@@ -11,14 +11,14 @@ extension ManualAssistanceChecks {
 
     func prepareOneCorrection(_ key:String,_ input:XCUIElement,_ value:String) {
         inspectSource(key)
-        XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"0")
+        XCTAssertFalse(visibleAcknowledgement(key).isSelected)
         assertSubmitEnabled(false)
         edit(input,value,id:key);acknowledge(key)
         assertSubmitEnabled(true)
         chooseFixtureMenuAction("表示サイズを変更")
-        XCTAssertEqual(visible(input,knownID:"manual-value-"+key).value as? String,value);XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"1")
+        XCTAssertEqual(visible(input,knownID:"manual-value-"+key).value as? String,value);XCTAssertTrue(visibleAcknowledgement(key).isSelected)
         chooseFixtureMenuAction("同じ原本の状態を再確認")
-        XCTAssertEqual(visible(input,knownID:"manual-value-"+key).value as? String,value);XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"1")
+        XCTAssertEqual(visible(input,knownID:"manual-value-"+key).value as? String,value);XCTAssertTrue(visibleAcknowledgement(key).isSelected)
     }
 
     func requireEditorSurvivesBackground(_ key:String,_ input:XCUIElement,_ value:String,processBefore:String)->Bool {
@@ -30,8 +30,8 @@ extension ManualAssistanceChecks {
         guard let observedProcess=uniqueLabel("manual-process-launch",in:observation) else { return false }
         print("TAKUPOKE-MANUAL-PROCESS expected=\(processBefore);observed=\(observedProcess)")
         XCTAssertEqual(observedProcess,processBefore,"Background must preserve the original process; relaunch is not survival")
-        XCTAssertEqual(visible(input,knownID:"manual-value-"+key).value as? String,value);XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"1")
-        edit(input,value+"改",id:key);XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"0")
+        XCTAssertEqual(visible(input,knownID:"manual-value-"+key).value as? String,value);XCTAssertTrue(visibleAcknowledgement(key).isSelected)
+        edit(input,value+"改",id:key);XCTAssertFalse(visibleAcknowledgement(key).isSelected)
         assertSubmitEnabled(false)
         XCTAssertTrue(recoveryList.images["manual-crop-"+key].exists)
         return true
@@ -53,7 +53,7 @@ extension ManualAssistanceChecks {
         // and cannot reuse the previously validated correction review.
         tap("入力を見直す")
         XCTAssertEqual(visible(input,knownID:"manual-value-"+key).value as? String,value+"改")
-        edit(input,value+"再確認",id:key);XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"0")
+        edit(input,value+"再確認",id:key);XCTAssertFalse(visibleAcknowledgement(key).isSelected)
         assertSubmitEnabled(false);acknowledge(key);tapSubmit()
         requireReview([value+"再確認"],comparable:false)
         inspectSource(key)
@@ -85,7 +85,7 @@ extension ManualAssistanceChecks {
         guard let ids=fieldIDs(expectedCount:2) else { return }
         XCTAssertEqual(Set(ids),Set([subjectKey,teacherKey]))
         XCTAssertEqual(visible(input(subjectKey),knownID:"manual-value-"+subjectKey).value as? String,subject)
-        for key in [subjectKey,teacherKey] { XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"0") }
+        for key in [subjectKey,teacherKey] { XCTAssertFalse(visibleAcknowledgement(key).isSelected) }
         assertSubmitEnabled(false)
         inspectSource(teacherKey);edit(input(teacherKey),teacher,id:teacherKey)
         acknowledge(subjectKey);assertSubmitEnabled(false);acknowledge(teacherKey);assertSubmitEnabled(true)
@@ -96,7 +96,7 @@ extension ManualAssistanceChecks {
         XCTAssertEqual(Set(threeIDs),Set([subjectKey,teacherKey,roomKey]))
         XCTAssertEqual(visible(input(subjectKey),knownID:"manual-value-"+subjectKey).value as? String,subject)
         XCTAssertEqual(visible(input(teacherKey),knownID:"manual-value-"+teacherKey).value as? String,teacher)
-        for key in [subjectKey,teacherKey,roomKey] { XCTAssertEqual(visible(ack(key),knownID:"manual-ack-"+key).value as? String,"0") }
+        for key in [subjectKey,teacherKey,roomKey] { XCTAssertFalse(visibleAcknowledgement(key).isSelected) }
         inspectSource(roomKey);edit(input(roomKey),room,id:roomKey)
         acknowledge(subjectKey);assertSubmitEnabled(false)
         acknowledge(teacherKey);assertSubmitEnabled(false)

@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`2488b97eb28de4fb51bd43854a4a21401203ed250e2b5e84dfa521ad429735f6`
+`06ea5b4f41b07c4eb636401bf4f14f158741a2c431fae8cb83b71e35695183d9`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -125,7 +125,7 @@ bash tools/test-manual-ui.sh
 - `test_actual_qa_failure_stage_and_bitmap_extent_are_observable_in_accessibility_tree`
 - `test_raster_ab_preserves_old_rendering_and_uses_same_physical_predicate`
 - `test_fixture_uses_current_period_and_actual_builder_proof`
-- `test_manual_controls_are_scrolled_and_acknowledged_without_keyboard_or_outer_switch_taps`
+- `test_manual_controls_are_scrolled_and_acknowledged_with_the_selection_button`
 
 ## [tests/ui/ManualAssistanceChecks+Cases.swift](../../tests/ui/ManualAssistanceChecks+Cases.swift)
 

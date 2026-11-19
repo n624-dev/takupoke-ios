@@ -4,16 +4,13 @@ import UIKit
 extension ManualAssistanceChecks {
     var submit:XCUIElement { recoveryList.buttons["manual-submit"] }
     func input(_ id:String)->XCUIElement { recoveryList.descendants(matching:.any)["manual-value-"+id].firstMatch }
-    func ack(_ id:String)->XCUIElement { recoveryList.switches["manual-ack-"+id].firstMatch }
+    func visibleAcknowledgement(_ id: String) -> XCUIElement {
+        let identifier = "manual-ack-" + id
+        return visible(recoveryList.buttons[identifier], knownID: identifier, buttonLabel: "原本と一致することを確認")
+    }
     func acknowledge(_ id:String) {
-        // Visibility locates the row; the inner native switch must independently
-        // pass geometry, enabled/hittable and unchecked-state checks below.
-        let row=visible(ack(id),knownID:"manual-ack-"+id)
-        let controls=row.switches.allElementsBoundByAccessibilityElement
-        guard controls.count==1 else {
-            XCTFail("Acknowledgement must have one current native control");return
-        }
-        let actual=controls[0]
+        let identifier = "manual-ack-" + id
+        let button = visibleAcknowledgement(id)
         let list=app.collectionViews["manual-recovery-list"]
         let navigation=app.navigationBars["時間割の復旧"]
         let keyboardFrame=observedKeyboardFrame()
@@ -22,35 +19,31 @@ extension ManualAssistanceChecks {
         let top=max(listFrame.minY,navigation.frame.maxY)+12
         let bottom=min(listFrame.maxY,keyboardFrame.map { $0.minY-45 } ?? listFrame.maxY)-12
         let viewport=CGRect(x:listFrame.minX,y:top,width:listFrame.width,height:max(0,bottom-top))
-        let outerFrame=row.frame,innerFrame=actual.frame
-        guard ManualScrollNavigation.usable(appFrame), appFrame.contains(innerFrame),
-              manualAcknowledgementFits(outer:outerFrame,inner:innerFrame,viewport:viewport) else {
-            print("TAKUPOKE-MANUAL-ACK invalid-hit-region;outer=\(outerFrame);inner=\(innerFrame);viewport=\(viewport)")
+        let frame = button.frame
+        guard ManualScrollNavigation.usable(frame), ManualScrollNavigation.usable(appFrame),
+              appFrame.contains(frame), viewport.contains(frame) else {
+            print("TAKUPOKE-MANUAL-ACK invalid-hit-region;frame=\(frame);viewport=\(viewport)")
             XCTFail(app.debugDescription);return
         }
-        let enabled=actual.isEnabled,hittable=actual.isHittable
-        let priorValue=row.value as? String
-        let nativeValue=actual.value as? String
-        print("TAKUPOKE-MANUAL-ACK before;id=\(id);outer=\(outerFrame);inner=\(innerFrame);enabled=\(enabled);hittable=\(hittable);controlValue=\(nativeValue ?? "unknown");app=\(appFrame);viewport=\(viewport);keyboard=\(keyboardFrame.map { String(describing:$0) } ?? "absent");value=\(priorValue ?? "unknown")")
-        guard enabled,hittable,priorValue == "0",nativeValue == "0",app.state == .runningForeground else {
+        let enabled = button.isEnabled, hittable = button.isHittable, selected = button.isSelected
+        print("TAKUPOKE-MANUAL-ACK before;id=\(id);frame=\(frame);enabled=\(enabled);hittable=\(hittable);selected=\(selected);app=\(appFrame);viewport=\(viewport)")
+        guard enabled, hittable, !selected, app.state == .runningForeground else {
             XCTFail("The unique native acknowledgement must be operable and unchecked");return
         }
-        // Send one timed drag across the verified native thumb in screen coordinates.
-        let start = CGPoint(x: innerFrame.minX + innerFrame.width * 0.25, y: innerFrame.midY)
-        let finish = CGPoint(x: innerFrame.minX + innerFrame.width * 0.75, y: innerFrame.midY)
+        let center = CGPoint(x: frame.midX, y: frame.midY)
         do {
-            try NativeTestContacts.send([.init(start: start, end: finish, duration: 0.33, pauseAfterLift: 0)],
-                                        named: "Manual confirmation switch")
+            try NativeTestContacts.send([.init(start: center, end: center, duration: 0.1, pauseAfterLift: 0)],
+                                        named: "Manual confirmation button")
         } catch {
-            XCTFail("Native confirmation drag failed: \(error)");return
+            XCTFail("Native confirmation button contact failed: \(error)");return
         }
         // Post-gesture diagnostics must not add AX queries before the native state check.
         print("TAKUPOKE-MANUAL-ACK after;id=\(id)")
         var ambiguous=false
         let changed=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
-            let current=self.recoveryList.switches.matching(identifier:"manual-ack-"+id).allElementsBoundByIndex
+            let current=self.recoveryList.buttons.matching(identifier:identifier).allElementsBoundByAccessibilityElement
             if current.count>1 { ambiguous=true;return true }
-            return current.count==1 && current[0].value as? String == "1"
+            return current.count==1 && current[0].isSelected
         },object:nil)
         let outcome=XCTWaiter.wait(for:[changed],timeout:nativeStateTimeout)
         print("TAKUPOKE-MANUAL-INPUT id=\(id);wait-outcome=\(outcome.rawValue);ambiguous=\(ambiguous)")
@@ -104,11 +97,11 @@ extension ManualAssistanceChecks {
         guard cleared == .completed else { return }
         // N52: the clear action can recycle a SwiftUI row. Resolve the current
         // native control once instead of re-evaluating an absent/stale firstMatch.
-        let clearedAcknowledgements=recoveryList.switches.matching(identifier:"manual-ack-"+id).allElementsBoundByIndex
+        let clearedAcknowledgements=recoveryList.buttons.matching(identifier:"manual-ack-"+id).allElementsBoundByAccessibilityElement
         guard clearedAcknowledgements.count==1 else {
             XCTFail("Cleared input must have one native acknowledgement control; matches=\(clearedAcknowledgements.count)");return
         }
-        XCTAssertEqual(clearedAcknowledgements[0].value as? String,"0","Clearing text must revoke prior acknowledgement")
+        XCTAssertFalse(clearedAcknowledgements[0].isSelected,"Clearing text must revoke prior acknowledgement")
         // The real clear button focuses its associated native editor. Open
         // the keyboard through that action, after locating the complete44px
         // control, instead of covering it by focusing the text field first.

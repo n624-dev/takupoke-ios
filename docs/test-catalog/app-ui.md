@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`8a933d1d8f7716262a131a13a100506087e0808c1df5e256a6f9a291bec9343a`
+`9c118bfb3a1e68f6e244121878d5035181a51f039dd5c4aaaab8e6ecdb15d0e8`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -204,7 +204,7 @@ bash tools/test-app-ui.sh
 - `test_actual_qa_failure_stage_and_bitmap_extent_are_observable_in_accessibility_tree`
 - `test_raster_ab_preserves_old_rendering_and_uses_same_physical_predicate`
 - `test_fixture_uses_current_period_and_actual_builder_proof`
-- `test_manual_controls_are_scrolled_and_acknowledged_without_keyboard_or_outer_switch_taps`
+- `test_manual_controls_are_scrolled_and_acknowledged_with_the_selection_button`
 
 ## [tests/test_notification_service_trace.py](../../tests/test_notification_service_trace.py)
 
