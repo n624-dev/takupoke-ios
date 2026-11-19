@@ -13,11 +13,15 @@ private enum WeekContactSequence {
         let pauseAfterLift: TimeInterval
     }
 
-    private static func matches(_ copied: UnsafeMutablePointer<CChar>?, _ expected: String) -> Bool {
-        guard let copied else { return false }
+    private static func typeEncoding(_ copied: UnsafeMutablePointer<CChar>?) -> String {
+        guard let copied else { return "unavailable" }
         defer { free(copied) }
-        let actual = String(cString: copied)
+        return String(String(cString: copied).drop(while: { "rnNoORV".contains($0) }))
+    }
+
+    private static func matches(_ actual: String, _ expected: String) -> Bool {
         if expected == "@" { return actual == "@" || actual.hasPrefix("@\"") }
+        if expected == "@?" { return actual == "@?" || actual.hasPrefix("@?<") }
         return actual == expected
     }
 
@@ -25,15 +29,20 @@ private enum WeekContactSequence {
         _ name: String, on type: AnyClass?, returns: String, arguments: [String], as signature: Signature.Type
     ) throws -> (Signature, Selector) {
         let selector = NSSelectorFromString(name)
-        let entry = try XCTUnwrap(class_getInstanceMethod(type, selector),
-                                  "Native XCTest event selector unavailable: " + name)
+        guard let entry = class_getInstanceMethod(type, selector) else {
+            throw NSError(domain: "WeekContactSequence", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "Native XCTest selector unavailable: " + name])
+        }
         let types = ["@", ":"] + arguments
-        guard method_getNumberOfArguments(entry) == UInt32(types.count),
-              matches(method_copyReturnType(entry), returns),
-              types.enumerated().allSatisfy({
-                  matches(method_copyArgumentType(entry, UInt32($0.offset)), $0.element)
-              }) else {
-            throw NSError(domain: "WeekContactSequence", code: 1, userInfo: [NSLocalizedDescriptionKey: name])
+        let actualResult = typeEncoding(method_copyReturnType(entry))
+        let actualArguments = (0..<method_getNumberOfArguments(entry)).map {
+            typeEncoding(method_copyArgumentType(entry, $0))
+        }
+        guard matches(actualResult, returns), actualArguments.count == types.count,
+              zip(actualArguments, types).allSatisfy({ matches($0.0, $0.1) }) else {
+            throw NSError(domain: "WeekContactSequence", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "\(name) has result \(actualResult) and arguments \(actualArguments)",
+            ])
         }
         return (unsafeBitCast(method_getImplementation(entry), to: signature), selector)
     }
@@ -82,15 +91,46 @@ private enum WeekContactSequence {
             next += drag.duration + drag.pauseAfterLift
         }
 
-        typealias EventSynthesizer = @convention(c) (AnyObject, Selector) -> Unmanaged<AnyObject>?
-        typealias Completion = @convention(block) (ObjCBool, NSError?) -> Void
-        typealias Synthesize = @convention(c) (AnyObject, Selector, AnyObject, Completion) -> Void
+        try deliver(record)
+    }
+
+    private typealias EventSynthesizer = @convention(c) (AnyObject, Selector) -> Unmanaged<AnyObject>?
+    private typealias Completion = @convention(block) (ObjCBool, NSError?) -> Void
+    private typealias Synthesize = @convention(c) (AnyObject, Selector, AnyObject, Completion) -> Void
+
+    private static func simulatorEventProxy() throws -> (AnyObject, Synthesize, Selector) {
         let device = XCUIDevice.shared
         let (findSynthesizer, synthSelector) = try method("eventSynthesizer", on: object_getClass(device),
                                                          returns: "@", arguments: [], as: EventSynthesizer.self)
-        let synthesizer = try XCTUnwrap(findSynthesizer(device, synthSelector)).takeUnretainedValue()
-        let (synthesize, sendSelector) = try method("synthesizeEvent:completion:", on: object_getClass(synthesizer),
+        guard let proxy = findSynthesizer(device, synthSelector)?.takeUnretainedValue() else {
+            throw NSError(domain: "WeekContactSequence", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "The simulator has no XCTest event proxy"])
+        }
+        let (synthesize, sendSelector) = try method("synthesizeEvent:completion:", on: object_getClass(proxy),
                                                     returns: "v", arguments: ["@", "@?"], as: Synthesize.self)
+        return (proxy, synthesize, sendSelector)
+    }
+
+    private static func deliver(_ record: AnyObject) throws {
+        let proxy: (AnyObject, Synthesize, Selector)
+        do {
+            proxy = try simulatorEventProxy()
+        } catch {
+            // Choose the compatible entry point before any input is sent.
+            print("TAKUPOKE_WEEK_SYNTHESIS_PROXY \(error.localizedDescription)")
+            typealias RecordSynthesis = @convention(c) (AnyObject, Selector, UnsafeMutableRawPointer) -> Bool
+            let (synthesize, selector) = try method("synthesizeWithError:", on: object_getClass(record),
+                                                     returns: "B", arguments: ["^@"], as: RecordSynthesis.self)
+            var nativeError: Unmanaged<AnyObject>?
+            let delivered = withUnsafeMutablePointer(to: &nativeError) { error in
+                synthesize(record, selector, UnsafeMutableRawPointer(error))
+            }
+            guard delivered else {
+                throw (nativeError?.takeUnretainedValue() as? NSError) ?? NSError(domain: "WeekContactSequence", code: 2)
+            }
+            return
+        }
+        let (synthesizer, synthesize, sendSelector) = proxy
         let delivered = XCTestExpectation(description: "XCTest delivered all timed contacts as native events")
         var eventError: NSError?
         synthesize(synthesizer, sendSelector, record) { sent, error in

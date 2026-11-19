@@ -186,7 +186,8 @@ private struct WeekPages: View {
     let accent: WeekControlAccent
     let content: (SchoolDate) -> AnyView
     let arrive: (SchoolDate, SchoolDate) -> Void
-    @ObservedObject private var motion: WeekPageMotion
+    private let motion: WeekPageMotion
+    @ObservedObject private var preparation: WeekPagePreparation
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(selection: SchoolDate, bounds: ClosedRange<SchoolDate>, revision: [String],
@@ -197,27 +198,16 @@ private struct WeekPages: View {
         self.viewportWidth = viewportWidth
         self.accent = accent; self.arrive = arrive
         motion = pull.motion
+        preparation = pull.motion.preparation
     }
 
     var body: some View {
-        let weeks = WeekEdgePull.preparedWeeks(selected: motion.preparedSource ?? selection, arriving: motion.preparedArrival,
-                                               within: bounds)
+        let window = preparation.window
+        let weeks = WeekEdgePull.preparedWeeks(selected: window?.source ?? selection, arriving: window?.arrival,
+                                              within: bounds)
         let pages = weeks.map { week in WeekPage(id: week, revision: revision, content: { content(week) }) }
-        WeekPagesLayout(currentIndex: weeks.firstIndex(of: selection) ?? 0, reservedHeight: motion.reservedHeight) {
-            ForEach(pages) { page in
-                let isDisplayed = page.id == selection
-                page.equatable()
-                    .onGeometryChange(for: WeekPageMeasurement.self) {
-                        WeekPageMeasurement(size: $0.size, revision: page.revision)
-                    } action: { motion.measure($0, week: page.id) }
-                    .offset(x: motion.offset(for: page.id, selected: selection, viewportWidth: viewportWidth))
-                    .opacity(motion.opacity(for: page.id, selected: selection))
-                    .allowsHitTesting(isDisplayed && motion.transition == nil)
-                    .accessibilityElement(children: .contain)
-                    .accessibilityHidden(!isDisplayed)
-                    .environment(\.isDisplayedTimetableWeek, isDisplayed)
-            }
-        }
+        WeekPagesCanvas(pages: pages, currentIndex: weeks.firstIndex(of: selection) ?? 0,
+                        selection: selection, viewportWidth: viewportWidth, motion: motion)
         .clipped()
         .background(WeekTransitionPullObserver(pull: pull))
         // Glass is deliberately outside the page clip, with measured clearance
@@ -259,6 +249,51 @@ private struct WeekPages: View {
         motion.retain(weeks: motion.available)
         motion.resetNeighborScrolls(selected: selection)
         motion.scheduleQueuedMove()
+    }
+}
+
+// The prepared pages stay fixed while the display link updates their position.
+// Building page content depends on the week window rather than on every frame.
+private struct WeekPagesCanvas: View {
+    let pages: [WeekPage]
+    let currentIndex: Int
+    let selection: SchoolDate
+    let viewportWidth: CGFloat
+    @ObservedObject var motion: WeekPageMotion
+
+    var body: some View {
+        WeekPagesLayout(currentIndex: currentIndex, reservedHeight: motion.reservedHeight) {
+            ForEach(pages) { page in
+                let isDisplayed = page.id == selection
+                page.equatable()
+                    .onGeometryChange(for: WeekPageMeasurement.self) {
+                        WeekPageMeasurement(size: $0.size, revision: page.revision)
+                    } action: { motion.measure($0, week: page.id) }
+                    .offset(x: motion.offset(for: page.id, selected: selection, viewportWidth: viewportWidth))
+                    .opacity(motion.opacity(for: page.id, selected: selection))
+                    .allowsHitTesting(isDisplayed && motion.transition == nil)
+                    .accessibilityElement(children: .contain)
+                    .accessibilityHidden(!isDisplayed)
+                    .environment(\.isDisplayedTimetableWeek, isDisplayed)
+            }
+        }
+    }
+}
+
+@MainActor
+private final class WeekPagePreparation: ObservableObject {
+    struct Window: Equatable {
+        let source: SchoolDate
+        let arrival: SchoolDate
+    }
+    @Published private(set) var window: Window?
+
+    func prepare(source: SchoolDate, arrival: SchoolDate) {
+        let next = Window(source: source, arrival: arrival)
+        if window != next { window = next }
+    }
+    func reset() {
+        if window != nil { window = nil }
     }
 }
 
@@ -330,8 +365,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     }
     @Published private(set) var transition: Transition?
     @Published private(set) var reservedHeight: CGFloat?
-    @Published private var prefetchedWeek: SchoolDate?
-    @Published private var settlingSource: SchoolDate?
+    let preparation = WeekPagePreparation()
     var selection: SchoolDate?
     var bounds: ClosedRange<SchoolDate>?
     var available = Set<SchoolDate>()
@@ -347,8 +381,6 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     private(set) var trackingTransitionTouch = false
     private(set) var transitionTouchWeek: SchoolDate?
     var nextInputWeek: SchoolDate? { releases.lastDestination ?? transition?.destination ?? selection }
-    var preparedSource: SchoolDate? { transition?.source ?? settlingSource }
-    var preparedArrival: SchoolDate? { transition?.destination ?? (settlingSource == nil ? prefetchedWeek : selection) }
     var hasDeferredReleases: Bool { !deferredReleases.isEmpty }
     private var displayLink: CADisplayLink?
     private weak var heldScroll: UIScrollView?
@@ -398,14 +430,13 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         return bounds?.contains(destination) == true
     }
     func prepareBeyondPull(from week: SchoolDate, distance: CGFloat) {
-        guard transition == nil, settlingSource == nil, selection == week, distance != 0 else { return }
+        guard transition == nil, heightAdjustment == nil, selection == week, distance != 0 else { return }
         let days = distance > 0 ? -7 : 7
-        guard canMove(from: week, by: days), let target = week.addingDays(days),
-              prefetchedWeek != target else { return }
-        prefetchedWeek = target
+        guard canMove(from: week, by: days), let target = week.addingDays(days) else { return }
+        preparation.prepare(source: week, arrival: target)
     }
     func clearUnusedPreparation() {
-        if releases.isEmpty && prefetchedWeek != nil { prefetchedWeek = nil }
+        if releases.isEmpty && transition == nil && heightAdjustment == nil { preparation.reset() }
     }
     func release(from week: SchoolDate, distance: CGFloat) {
         guard nextInputWeek == week, let bounds else { return }
@@ -487,11 +518,13 @@ private final class WeekPageMotion: NSObject, ObservableObject {
             reservedHeight = initialHeight
             transition = Transition(source: week, destination: destination, rubber: rubber,
                 width: scroll.bounds.width, direction: destination > week ? 1 : -1, targetHeight: targetHeight)
-            prefetchedWeek = nil
+            preparation.prepare(source: week, arrival: destination)
         }
         // Commit the release position, then move on the first display callback.
         // Starting a SwiftUI animation there would wait for a second handoff.
         let link = CADisplayLink(target: self, selector: #selector(advanceFrame(_:)))
+        let preferred = min(60, Float(scroll.window?.screen.maximumFramesPerSecond ?? 60))
+        link.preferredFrameRateRange = CAFrameRateRange(minimum: min(30, preferred), maximum: preferred, preferred: preferred)
         displayLink = link; link.add(to: .main, forMode: .common)
     }
     @objc private func advanceFrame(_ link: CADisplayLink) {
@@ -514,7 +547,6 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         if !reduceMotion, abs(initialHeight - value.targetHeight) >= 1 {
             // Keep the page window and display link through the handoff.
             // Rebuilding them here would add work to the first height frame.
-            settlingSource = value.source
             heightAdjustment = (CACurrentMediaTime(), initialHeight, value.targetHeight)
         }
         promote(value)
@@ -548,7 +580,10 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     private func finishHeight(reserving height: CGFloat? = nil) {
         stopDisplayLink()
         var transaction = Transaction(); transaction.disablesAnimations = true
-        withTransaction(transaction) { settlingSource = nil; reservedHeight = height }
+        withTransaction(transaction) {
+            if height == nil { preparation.reset() }
+            reservedHeight = height
+        }
     }
     func complete() {
         invalidateInput()
@@ -561,7 +596,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         heldScroll?.isScrollEnabled = true
         heldScroll = nil
         var transaction = Transaction(); transaction.disablesAnimations = true
-        withTransaction(transaction) { transition = nil; settlingSource = nil; reservedHeight = nil }
+        withTransaction(transaction) { transition = nil; preparation.reset(); reservedHeight = nil }
     }
     private func invalidateInput() {
         inputGeneration = UUID()

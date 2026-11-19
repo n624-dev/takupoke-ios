@@ -67,6 +67,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
         samples = []; missingFrames = []; arrivedAt = nil; finishedAt = nil
         link?.invalidate()
         let display = CADisplayLink(target: self, selector: #selector(sample))
+        display.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
         link = display; display.add(to: .main, forMode: .common)
     }
     func arrived() { if enabled { arrivedAt = CACurrentMediaTime() } }
