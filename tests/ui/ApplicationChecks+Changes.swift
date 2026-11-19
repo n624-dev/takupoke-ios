@@ -155,7 +155,11 @@ extension ApplicationChecks {
             let input = visible(app.textFields["change-group-value"], navigation: "学年が空欄の変更")
             input.tap()
             input.typeText(value + "\n")
-            visible(app.buttons["選んだ行に入力"], navigation: "学年が空欄の変更", searchEarlierRows: true).tap()
+            let entered = expectation(for: NSPredicate(format: "value == %@", value), evaluatedWith: input)
+            wait(for: [entered], timeout: 10)
+            let applyGrade = visible(app.buttons["選んだ行に入力"], navigation: "学年が空欄の変更", searchEarlierRows: true)
+            XCTAssertTrue(applyGrade.exists && applyGrade.isEnabled && applyGrade.isHittable, app.debugDescription)
+            applyGrade.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.1)
             screen(review)
         }
         XCTAssertTrue(apply.isEnabled)
