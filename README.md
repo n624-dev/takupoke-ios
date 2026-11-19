@@ -33,7 +33,7 @@
 **AltStore Classic に追加する Source URL**（右上のコピーボタンでコピーできます）:
 
 ```text
-[https://github.com/n624-dev/takupoke-ios/releases/latest/download/altstore-source.json](https://github.com/n624-dev/takupoke-ios/releases/latest/download/altstore-source.json)
+https://github.com/n624-dev/takupoke-ios/releases/latest/download/altstore-source.json
 ```
 
 > [!NOTE]
