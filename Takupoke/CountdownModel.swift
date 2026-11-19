@@ -5,7 +5,7 @@ import UserNotifications
 
 @MainActor
 final class CountdownModel: ObservableObject {
-    struct PublicEvent: Identifiable {
+    struct PublicEvent: Identifiable, Equatable {
         let reference: CountdownEventReference
         let dates: CountdownDates
         let tag: String
@@ -17,8 +17,8 @@ final class CountdownModel: ObservableObject {
     @Published private(set) var day = SchoolDate.today()
     @Published private(set) var message: String?
     @Published private(set) var notificationStatuses: [UUID: String] = [:]
-    private(set) var publicEvents: [PublicEvent] = []
-    private(set) var automaticAlternatives: [PublicEvent] = []
+    @Published private(set) var publicEvents: [PublicEvent] = []
+    @Published private(set) var automaticAlternatives: [PublicEvent] = []
     private var store: CountdownStore?
     private let center = UNUserNotificationCenter.current()
     private var request: NoticePlan?
@@ -90,12 +90,13 @@ final class CountdownModel: ObservableObject {
         let today = TimetableDaySchedule.schoolDay(at: now)
         if today != day { day = today }
         let events = app.schoolEvents
-        publicEvents = events.saved.keys.sorted().flatMap { year in
+        let nextEvents = events.saved.keys.sorted().flatMap { year in
             (events.saved[year]?.payload.identifiedEvents ?? []).compactMap { event in
                 CountdownDates(event).map { PublicEvent(reference: .init(year: year, eventID: event.eventId), dates: $0, tag: event.tag) }
             }
         }.sorted { ($0.dates.start, $0.dates.end, $0.id) < ($1.dates.start, $1.dates.end, $1.id) }
-        let indexed = Dictionary(uniqueKeysWithValues: publicEvents.map { ($0.reference, $0) })
+        if publicEvents != nextEvents { publicEvents = nextEvents }
+        let indexed = Dictionary(uniqueKeysWithValues: nextEvents.map { ($0.reference, $0) })
         var updated = library
         for index in updated.registrations.indices {
             guard case .school(let reference, let old, let alias) = updated.registrations[index].target,
@@ -119,16 +120,16 @@ final class CountdownModel: ObservableObject {
                              preferences: registration.preferences, availability: availability, reference: reference)
             }
         }
-        automaticAlternatives = []
+        var alternatives: [PublicEvent] = []
         if library.automatic.enabled {
             let automatic = library.automatic
             switch automatic.mode {
             case .school:
-                let candidates = publicEvents.filter { $0.tag == "テスト" && $0.dates.end >= today }.sorted {
+                let candidates = nextEvents.filter { $0.tag == "テスト" && $0.dates.end >= today }.sorted {
                     let lhs = $0.dates.phase(on: today).active, rhs = $1.dates.phase(on: today).active
                     return lhs == rhs ? ($0.dates.start, $0.dates.end, $0.id) < ($1.dates.start, $1.dates.end, $1.id) : lhs
                 }
-                automaticAlternatives = Array(candidates.dropFirst())
+                alternatives = Array(candidates.dropFirst())
                 if let first = candidates.first {
                     if !resolved.contains(where: { $0.reference == first.reference }) {
                         resolved.append(.init(id: automatic.id, title: first.dates.title, dates: first.dates,
@@ -144,6 +145,7 @@ final class CountdownModel: ObservableObject {
                 resolved.append(selectedClassCard(automatic, using: app, today: today, now: now))
             }
         }
+        if alternatives != automaticAlternatives { automaticAlternatives = alternatives }
         let sorted = CountdownCard.sorted(resolved, today: today)
         if cards != sorted { cards = sorted }
         planNotifications(at: now)
