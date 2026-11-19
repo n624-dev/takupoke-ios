@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`1f903c93168d900c4c6b7248f858a035d5317a5e70e9b5a2fd26f70a59afd66f`
+`5b926514c16e0b8686737dfbe0bdc504dedd8df6ffd138d433b9e7344a405ae2`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -87,6 +87,7 @@ bash tools/test-app-ui.sh
 ## [tests/test_ui_test_manifest.py](../../tests/test_ui_test_manifest.py)
 
 - `test_week_motion_observation_keeps_real_release_layout_and_animation_unchanged`
+- `test_generated_week_selection_initialization_respects_actor_isolation`
 - `test_phases_partition_every_shard_and_focused_selection_without_duplicates`
 - `test_both_suites_use_the_same_native_tab_contact`
 - `test_split_sources_are_registered_in_the_selected_target_only`

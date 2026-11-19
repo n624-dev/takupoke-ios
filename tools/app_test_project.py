@@ -103,6 +103,16 @@ def rewrite_network_urls(text):
     return re.sub(r'https?://[^"\s)]+',
                   lambda match: match[0] if match[0] in namespaces else 'https://fixture.example.test', text)
 
+def instrument_timetable_date(text):
+    fixture = (
+        '(SimulatorAuxiliaryStoreFixture.fixedDayEnabled ? SimulatorAuxiliaryStoreFixture.day : '
+        'SimulatorEventsYearFixture.enabled ? SimulatorEventsYearFixture.day : '
+        '((ProcessInfo.processInfo.arguments.contains("--selection-snapshot") || '
+        'ProcessInfo.processInfo.arguments.contains("--comparison")) ? SimulatorSelectionFixture.day : SchoolDate.today()))'
+    )
+    return text.replace('SchoolDate.today()', fixture)
+
+
 def instrument_browser_fixture(text):
     marker = '        let controller = SFSafariViewController(url: url)'
     assert text.count(marker) == 1, 'Native Safari network boundary insertion point missing'
@@ -280,7 +290,7 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         if path.name == 'SettingsView.swift':
             text = instrument_ai_switch(text)
         if path.name in ('TimetableView.swift', 'TimetableView+Navigation.swift'):
-            text = text.replace('SchoolDate.today()', '(SimulatorAuxiliaryStoreFixture.fixedDayEnabled ? SimulatorAuxiliaryStoreFixture.day : SimulatorEventsYearFixture.enabled ? SimulatorEventsYearFixture.day : ((ProcessInfo.processInfo.arguments.contains("--selection-snapshot") || ProcessInfo.processInfo.arguments.contains("--comparison")) ? SimulatorSelectionFixture.day : SchoolDate.today()))')
+            text = instrument_timetable_date(text)
         if path.name == 'HomeTodayView.swift':
             configure = '    private func configureClock() {'
             assert text.count(configure) == 1, 'Home clock boundary insertion point missing'

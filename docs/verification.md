@@ -8625,3 +8625,8 @@ Linuxで実UIのproject生成・Swift構文・manifest32件・runner18件とカ�
 - 1824b8bのLinux Swift 6.1.2は663件／失敗0（124.603秒）。索引あり・なしの週範囲比較も0.002秒で成功。限定44526384025の両OSは黄色と実4移動が再度成功し、実height中の開始および単独の到着付近の枠検査が失敗。実際の指間隔は最初の要求延長に追従しなかった。
 - `synthesizeWithError`、`pauseAfterLift`、`detailRevision`、`adjustHeight` と両OSの実原記録、408c1673／981161b／1824b8bを比較した。最初の実記録送出と次の開始の間隔をテストの実時計で指定し、それぞれの演出段階・実4接触と到着の要件を維持する。表示週と高さ調整の責任を分け、実到着時は日付と必要な行を更新する。高さの0.2秒は最初の高さコールバックから数える。旧UIの見た目・実枠・中間段階の閾値をそのまま使用する。
 - Linuxでは生成実テストproject、変更Swiftの構文、manifest・Runner計50件（81.971秒、失敗0）、catalog466を確認。実Observationクラスと本番SchoolDateは型検査まで成功し、公式Linux 6.1.2の動的・静的リンクの差により実通知assertは未実行。SwiftUIの節表示、実画面の週と一覧、実入力時刻・画面枠はMacで確認する。
+
+#### 生成した週の初期値のMainActor境界
+
+- 4d6fa6cのiOS27.0／SDK27.2は、生成したテストアプリの初期値に差し込まれた`SimulatorSelectionFixture.day`とObservationの非隔離default値の組合せでビルドが停止した。N143と当時のコード、1824b8bのView側にあった日付取得と比較した。
+- 本番の選択週モデルは日付を受け取る。既存の全fixture日付選択を同じView初期化で行う。実生成変換・実Observationモデル・実SchoolDate・MainActorのfixture境界を取り込んだLinux Swift対照は、旧状態で同じエラー（2.425秒）を出し、修正後に成功（2.104秒）した。全生成ソース、実接触とフレームの検証はiOS限定で確認する。

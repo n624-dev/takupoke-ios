@@ -37,6 +37,47 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable", manifest.PROBE_GROUPS["week-appearance"])
         self.assertIn("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch", manifest.PROBE_GROUPS["week-appearance"])
 
+    def test_generated_week_selection_initialization_respects_actor_isolation(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required for generated initializer type checking")
+        from test_manual_input_lifecycle import block
+
+        timetable = ROOT / "Takupoke/TimetableView.swift"
+        source = app_test_project.instrument_timetable_date(timetable.read_text())
+        model = block(source, "@Observable\nprivate final class TimetableWeekSelection")
+        selected_week = re.search(r"@State private var selectedWeek = (.+)", source)
+        self.assertIsNotNone(selected_week)
+        probe = """import Foundation
+import Observation
+
+enum SimulatorAuxiliaryStoreFixture {
+    static let fixedDayEnabled = false
+    static let day = SchoolDate(iso8601: "2032-04-05")!
+}
+enum SimulatorEventsYearFixture {
+    static let enabled = false
+    static let day = SchoolDate(iso8601: "2032-04-12")!
+}
+@MainActor enum SimulatorSelectionFixture {
+    static var day: SchoolDate { SchoolDate(iso8601: "2032-04-19")! }
+}
+
+""" + model + """
+@MainActor private struct RenderedTimetable {
+    let selectedWeek = """ + selected_week.group(1) + """
+}
+"""
+        with tempfile.TemporaryDirectory(prefix="week-selection-isolation-") as scratch:
+            path = Path(scratch) / "main.swift"
+            path.write_text(probe)
+            result = subprocess.run(
+                [compiler, "-typecheck", "-swift-version", "5", "-strict-concurrency=complete", "-warnings-as-errors",
+                 "-module-cache-path", str(Path(scratch) / "modules"), str(timetable.with_name("SchoolDate.swift")), str(path)],
+                capture_output=True, text=True, timeout=45,
+            )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_phases_partition_every_shard_and_focused_selection_without_duplicates(self):
         for tests in (*manifest.SHARDS.values(), manifest.selected_tests("all"),
                       manifest.NOTIFICATION_PROBE_TESTS, manifest.CONTROL_PROBE_TESTS,

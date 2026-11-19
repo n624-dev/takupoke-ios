@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`f26c71cd9be31147843d2eda2bcb08c3fe2dabbb05055015c5bc4791a5b29183`
+`ef2b2bb80a60276cf7bcdbee9d94a4b081c2314448258b8c68df724f0ad6b198`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -40,6 +40,7 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 ## [tests/test_ui_test_manifest.py](../../tests/test_ui_test_manifest.py)
 
 - `test_week_motion_observation_keeps_real_release_layout_and_animation_unchanged`
+- `test_generated_week_selection_initialization_respects_actor_isolation`
 - `test_phases_partition_every_shard_and_focused_selection_without_duplicates`
 - `test_both_suites_use_the_same_native_tab_contact`
 - `test_split_sources_are_registered_in_the_selected_target_only`
