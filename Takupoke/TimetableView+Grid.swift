@@ -482,8 +482,10 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         measurements = measurements.filter { weeks.contains($0.key) }
     }
     func resetNeighborScrolls(selected: SchoolDate) {
+        // A released contact can already have scrolled a prepared future page.
+        // Keep that offset while its arrival remains queued.
         for (week, reference) in scrolls where week != selected && week != transition?.source
-            && week != transition?.destination && week != transitionTouchWeek {
+            && week != transition?.destination && week != transitionTouchWeek && !releases.containsDestination(week) {
             guard let scroll = reference.value else { continue }
             let leading = -scroll.adjustedContentInset.left
             if scroll.contentOffset.x != leading {

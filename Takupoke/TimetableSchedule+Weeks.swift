@@ -152,6 +152,10 @@ struct WeekPullReleases {
     var isEmpty: Bool { pending.isEmpty }
     var lastDestination: SchoolDate? { pending.last?.destination }
 
+    func containsDestination(_ week: SchoolDate) -> Bool {
+        pending.contains { $0.destination == week }
+    }
+
     mutating func append(from source: SchoolDate, distance: CGFloat, within bounds: ClosedRange<SchoolDate>) {
         guard (lastDestination ?? source) == source, bounds.contains(source) else { return }
         let previous = source.addingDays(-7)

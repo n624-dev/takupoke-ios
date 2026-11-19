@@ -36,6 +36,10 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(observed, source)
         self.assertIn("testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable", manifest.PROBE_GROUPS["week-appearance"])
         self.assertIn("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch", manifest.PROBE_GROUPS["week-appearance"])
+        workflow = (ROOT / ".github/workflows/week-appearance-probe.yml").read_text()
+        self.assertIn("default: week-motion", workflow)
+        self.assertIn("inputs.focus || 'week-motion'", workflow)
+        self.assertIn("testTimetableCommonClocksAndEventOnlyWeekScale", manifest.PROBE_GROUPS["week-motion"])
 
     def test_generated_week_selection_initialization_respects_actor_isolation(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")

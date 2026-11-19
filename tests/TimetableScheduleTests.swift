@@ -108,17 +108,23 @@ final class TimetableScheduleTests: XCTestCase {
         releases.append(from: weeks[2], distance: -125, within: bounds)
         releases.append(from: weeks[3], distance: 125, within: bounds)
         XCTAssertEqual(releases.lastDestination, weeks[2])
+        XCTAssertEqual(weeks.filter(releases.containsDestination), Array(weeks[1...3]))
 
         let onlyFirst = Set(weeks.prefix(1))
         XCTAssertNil(releases.consume(from: weeks[0], isReady: onlyFirst.contains))
         XCTAssertNil(releases.consume(from: weeks[1], isReady: { _ in true }))
-        for (source, target) in [(0, 1), (1, 2), (2, 3), (3, 2)] {
+        XCTAssertTrue(releases.containsDestination(weeks[2]))
+        for (source, target, keepsWeekTwo) in [(0, 1, true), (1, 2, true), (2, 3, true), (3, 2, false)] {
             XCTAssertEqual(releases.consume(from: weeks[source], isReady: { _ in true }),
                            .init(source: weeks[source], destination: weeks[target]))
+            XCTAssertEqual(releases.containsDestination(weeks[2]), keepsWeekTwo)
         }
+        XCTAssertFalse(releases.containsDestination(weeks[2]))
         XCTAssertNil(releases.consume(from: weeks[2], isReady: { _ in true }))
         releases.append(from: weeks[2], distance: 125, within: bounds)
+        XCTAssertTrue(releases.containsDestination(weeks[1]))
         releases.cancel()
+        XCTAssertFalse(weeks.contains(where: releases.containsDestination))
         XCTAssertNil(releases.consume(from: weeks[2], isReady: { _ in true }))
     }
 

@@ -7,7 +7,7 @@ on:
     inputs:
       focus:
         type: choice
-        default: week-navigation-and-yellow
+        default: week-motion
         options: [week-motion, week-navigation-and-yellow]
 
 permissions:
