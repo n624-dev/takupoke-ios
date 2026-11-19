@@ -48,6 +48,7 @@ final class FixtureNetwork: URLProtocol {
 @main
 struct SimulatorApplication: App {
     private static let countdownNoticeID = UUID(uuidString: "64626223-d57f-4fb5-889b-ccb2596b6d45")!
+    private static let secondCountdownNoticeID = UUID(uuidString: "bbff9741-f38f-4336-893f-623753ffd9ac")!
     @AppStorage(MainColor.storageKey) private var storedMainColor = MainColor.systemDefault.rawValue
     @State private var notificationProbe = "待機中"
     @State private var notificationDeliveryProof = "待機中"
@@ -82,6 +83,11 @@ struct SimulatorApplication: App {
                     if ProcessInfo.processInfo.arguments.contains("--countdown-notifications") {
                         VStack {
                             Button("対照通知を予約") {
+                                let date = SchoolDate.today().addingDays(15)!
+                                let target = CountdownDates(title: "架空のもう一つの通知予定", ranges: [.init(start: date, end: date)])
+                                let control = CountdownRegistration(id: Self.secondCountdownNoticeID, target: .personal(target),
+                                    preferences: CountdownPreferences(notifications: true))
+                                guard ApplicationData.shared.countdown.save(control) else { return }
                                 Task {
                                     let content = UNMutableNotificationContent()
                                     content.title = "架空の別通知"
@@ -101,14 +107,19 @@ struct SimulatorApplication: App {
                                     let prefix = CountdownNotice.prefix + "personal." + Self.countdownNoticeID.uuidString + "."
                                     let actual = requests.map(\.identifier).filter { $0.hasPrefix(prefix) }
                                     let expected = Set(CountdownReminder.defaults.map { prefix + $0.key })
+                                    let secondPrefix = CountdownNotice.prefix + "personal." + Self.secondCountdownNoticeID.uuidString + "."
+                                    let second = requests.map(\.identifier).filter { $0.hasPrefix(secondPrefix) }
+                                    let secondExpected = Set(CountdownReminder.defaults.map { secondPrefix + $0.key })
                                     let other = requests.filter { $0.identifier == "fictional-separate-notification" }.count
-                                    if actual.allSatisfy(expected.contains), Set(actual).count == actual.count {
-                                        countdownNoticeProbe = "実予約\(actual.count)件／対照\(other)件／許可\(allowed)"
+                                    if actual.allSatisfy(expected.contains), Set(actual).count == actual.count,
+                                       second.allSatisfy(secondExpected.contains), Set(second).count == second.count {
+                                        countdownNoticeProbe = "実予約\(actual.count)件／別登録\(second.count)件／対照\(other)件／許可\(allowed)"
                                     } else { countdownNoticeProbe = "予約の識別子が一致しません" }
                                 }
                             }
                             Text(countdownNoticeProbe).accessibilityIdentifier("fixture-countdown-pending")
                             FixtureCountdownReservationStatus(id: Self.countdownNoticeID)
+                            FixtureCountdownReservationStatus(id: Self.secondCountdownNoticeID, control: true)
                         }
                         .buttonStyle(.bordered)
                         .background(.regularMaterial)
@@ -256,6 +267,12 @@ struct SimulatorApplication: App {
         let period = SchoolDataPeriod.current()
         if ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
             try SchoolDataRetention(root: base).replace(with: period)
+            if ProcessInfo.processInfo.arguments.contains("--countdown-calendar") {
+                for name in ["SchoolEventsAPI", "Countdown.json"] {
+                    let fixture = base.appendingPathComponent(name)
+                    if FileManager.default.fileExists(atPath: fixture.path) { try FileManager.default.removeItem(at: fixture) }
+                }
+            }
             if let domain = Bundle.main.bundleIdentifier { defaults.removePersistentDomain(forName: domain) }
         }
         defaults.set(!ProcessInfo.processInfo.arguments.contains("--setup"), forKey: "setupPresented")
@@ -446,11 +463,12 @@ struct SimulatorApplication: App {
 
 private struct FixtureCountdownReservationStatus: View {
     let id: UUID
+    var control = false
     @ObservedObject private var model = ApplicationData.shared.countdown
 
     var body: some View {
         Text(model.notificationStatuses[id] ?? "予約報告なし")
-            .accessibilityIdentifier("fixture-countdown-reservation-status")
+            .accessibilityIdentifier(control ? "fixture-countdown-control-status" : "fixture-countdown-reservation-status")
     }
 }
 

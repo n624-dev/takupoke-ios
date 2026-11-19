@@ -246,17 +246,17 @@ extension ApplicationChecks {
             XCTAssertTrue(save.exists && save.isHittable, app.debugDescription)
             save.tap()
         }
-        func countReservations(_ count: Int, other: Int = 1, requiresPermission: Bool = true) {
+        func countReservations(_ count: Int, other: Int = 1, second: Int = 2, requiresPermission: Bool = true) {
             tap("予約を照合")
             let probe = app.staticTexts["fixture-countdown-pending"]
-            let prefix = "実予約\(count)件／対照\(other)件／許可"
+            let prefix = "実予約\(count)件／別登録\(second)件／対照\(other)件／許可"
             let condition = requiresPermission ? NSPredicate(format: "label == %@", prefix + "true")
                 : NSPredicate(format: "label BEGINSWITH %@", prefix)
             let matched = expectation(for: condition, evaluatedWith: probe)
             XCTAssertEqual(XCTWaiter.wait(for: [matched], timeout: 15), .completed, app.debugDescription)
         }
         openPlan()
-        countReservations(0, other: 0, requiresPermission: false)
+        countReservations(0, other: 0, second: 0, requiresPermission: false)
         editNotification(true)
         let allowPredicate = NSPredicate(format: "label BEGINSWITH[c] %@ OR label == %@ OR label == %@ OR label == %@",
                                          "Allow", "許可", "許可する", "通知を許可")
@@ -276,6 +276,9 @@ extension ApplicationChecks {
         XCTAssertTrue(visible(detail).exists, app.debugDescription)
         tap("対照通知を予約")
         XCTAssertTrue(app.staticTexts["対照予約を確認できます"].waitForExistence(timeout: 15))
+        let control = app.staticTexts["fixture-countdown-control-status"]
+        let controlReserved = expectation(for: NSPredicate(format: "label == %@", "2件予約済み"), evaluatedWith: control)
+        XCTAssertEqual(XCTWaiter.wait(for: [controlReserved], timeout: 20), .completed, app.debugDescription)
         countReservations(2)
 
         app.terminate()
