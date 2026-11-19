@@ -189,7 +189,7 @@
       "environment": "Linux Swift／iOS 26.5・27.0シミュレータ",
       "commands": [
         "bash tools/test-parsing.sh",
-        "TKPK_UI_PROBE_CASE=countdown-calendar bash tools/test-app-ui.sh"
+        "TKPK_UI_RELAUNCH_PROBE=1 TKPK_UI_PROBE_CASE=countdown bash tools/test-app-ui.sh"
       ],
       "sources": [
         "Takupoke/Countdown.swift",
@@ -199,7 +199,8 @@
       "checks": [
         "tests/CountdownTests.swift",
         "tests/SchoolEventsSourceModelTests.swift",
-        "tests/ui/ApplicationChecks+Events.swift"
+        "tests/ui/ApplicationChecks+Events.swift",
+        "tests/ui/ApplicationChecks+Notifications.swift"
       ]
     },
     {

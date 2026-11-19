@@ -223,7 +223,7 @@ extension ApplicationChecks {
 }
 
 extension ApplicationChecks {
-    func testCountdownUsesNativeReservationsAndCancelsOnlyItsOwnAfterRelaunch() {
+    func testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch() {
         func openPlan() {
             tab("設定")
             tap("カウントダウン")
@@ -246,29 +246,34 @@ extension ApplicationChecks {
             XCTAssertTrue(save.exists && save.isHittable, app.debugDescription)
             save.tap()
         }
-        func countReservations(_ count: Int, other: Int = 1) {
+        func countReservations(_ count: Int, other: Int = 1, requiresPermission: Bool = true) {
             tap("予約を照合")
             let probe = app.staticTexts["fixture-countdown-pending"]
-            let matched = expectation(for: NSPredicate(format: "label == %@", "実予約\(count)件／対照\(other)件"), evaluatedWith: probe)
+            let prefix = "実予約\(count)件／対照\(other)件／許可"
+            let condition = requiresPermission ? NSPredicate(format: "label == %@", prefix + "true")
+                : NSPredicate(format: "label BEGINSWITH %@", prefix)
+            let matched = expectation(for: condition, evaluatedWith: probe)
             XCTAssertEqual(XCTWaiter.wait(for: [matched], timeout: 15), .completed, app.debugDescription)
         }
         openPlan()
-        countReservations(0, other: 0)
+        countReservations(0, other: 0, requiresPermission: false)
         editNotification(true)
-        let allowPredicate = NSPredicate(format: "label BEGINSWITH[c] %@ OR label == %@", "Allow", "許可")
+        let allowPredicate = NSPredicate(format: "label BEGINSWITH[c] %@ OR label == %@ OR label == %@ OR label == %@",
+                                         "Allow", "許可", "許可する", "通知を許可")
         var handled = false
-        let reserved = app.staticTexts["2件予約済み"]
-        let system = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let reserved = app.staticTexts["fixture-countdown-reservation-status"]
         let granted = expectation(for: NSPredicate { _, _ in
             if !handled, let allow = self.permissionAllowButton(allowPredicate) {
                 handled = true
                 allow.tap()
                 return false
             }
-            return system.state != .runningForeground && self.app.navigationBars["予定の詳細"].exists
+            return reserved.exists && reserved.label == "2件予約済み"
         }, evaluatedWith: app)
         XCTAssertEqual(XCTWaiter.wait(for: [granted], timeout: 45), .completed, app.debugDescription)
-        XCTAssertTrue(visible(reserved).waitForExistence(timeout: 20), app.debugDescription)
+        let detail = app.staticTexts.matching(NSPredicate(format: "label == %@ AND identifier != %@",
+            "2件予約済み", "fixture-countdown-reservation-status")).firstMatch
+        XCTAssertTrue(visible(detail).exists, app.debugDescription)
         tap("対照通知を予約")
         XCTAssertTrue(app.staticTexts["対照予約を確認できます"].waitForExistence(timeout: 15))
         countReservations(2)
@@ -277,13 +282,15 @@ extension ApplicationChecks {
         app.launchArguments.removeAll { $0 == "--reset-fixture" }
         launchReady()
         openPlan()
-        XCTAssertTrue(visible(reserved).exists, app.debugDescription)
+        let restored = expectation(for: NSPredicate(format: "label == %@", "2件予約済み"), evaluatedWith: reserved)
+        XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 20), .completed, app.debugDescription)
         countReservations(2)
         editNotification(false)
         screen("予定の詳細")
         // Wait for the production reconciliation to drain before observing the
         // OS a second time. The probe performs a fresh real pending-requests read.
-        XCTAssertTrue(reserved.waitForNonExistence(timeout: 15), app.debugDescription)
+        let cleared = expectation(for: NSPredicate(format: "label == %@", "予約報告なし"), evaluatedWith: reserved)
+        XCTAssertEqual(XCTWaiter.wait(for: [cleared], timeout: 15), .completed, app.debugDescription)
         countReservations(0)
     }
 }

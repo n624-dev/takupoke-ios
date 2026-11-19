@@ -77,6 +77,8 @@ NOTIFICATION_PROBE_TESTS = (
     "testChangedDataProducesOneLocalNotification",
     "testNotificationControlsAndAppearance",
 )
+COUNTDOWN_NOTIFICATION_TEST = "testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch"
+NATIVE_NOTIFICATION_CASES = NOTIFICATION_PROBE_TESTS + (COUNTDOWN_NOTIFICATION_TEST,)
 CONTROL_PROBE_TESTS = NOTIFICATION_PROBE_TESTS + (
     "testLinkPreferencesSurviveRelaunch",
     "testSettingsAccountDataAndFileDetails",
@@ -94,8 +96,9 @@ PROBE_GROUPS = {
     "controls": CONTROL_PROBE_TESTS,
     "rows": ("testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",),
     "weekday-carryover": ("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",),
-    "countdown-notifications": ("testCountdownUsesNativeReservationsAndCancelsOnlyItsOwnAfterRelaunch",),
+    "countdown-notifications": (COUNTDOWN_NOTIFICATION_TEST,),
     "countdown-calendar": ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",),
+    "countdown": ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent", COUNTDOWN_NOTIFICATION_TEST),
     "week-change-details": ("testChangedRoomInHomeWeekAndList", "testHomeTimetableAndWeekCalendar", "testMergedCardsFromAllSources"),
     "rows-context": ("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover",
                      "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch"),
@@ -146,9 +149,9 @@ SHARDS = {
         "testSettingsAccountDataAndFileDetails",
         "testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",
         "testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",
-        "testCountdownUsesNativeReservationsAndCancelsOnlyItsOwnAfterRelaunch",
         SYSTEM_SIZE_TEST,
         "testNotificationControlsAndAppearance",
+        COUNTDOWN_NOTIFICATION_TEST,
         "testTimetableDynamicTypeScalesAndRestoresStandardLayout",
         "testSetupCanBeSkippedAndOffersAllFiles",
         "testLinkPreferencesSurviveRelaunch",
@@ -204,8 +207,8 @@ def phase_tests(tests, phase):
     if phase == "all":
         return tuple(tests)
     if phase == "notifications":
-        return tuple(test for test in tests if test in NOTIFICATION_PROBE_TESTS)
-    ordinary = tuple(test for test in tests if test not in NOTIFICATION_PROBE_TESTS)
+        return tuple(test for test in tests if test in NATIVE_NOTIFICATION_CASES)
+    ordinary = tuple(test for test in tests if test not in NATIVE_NOTIFICATION_CASES)
     if phase == "remaining":
         return ordinary
     if phase == "settings":

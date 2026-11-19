@@ -172,7 +172,7 @@ final class CountdownModel: ObservableObject {
         guard record.digest == record.analysis.sourceDigest, record.analysis.version == SpecialScheduleAnalysis.parserVersion,
               !specials.rejectedRecoveryKinds.contains(.exam) else { return placeholder(automatic, .analysisFailed) }
         let availability: CountdownAvailability = specials.availability.state(for: .exam) == .current ? .available : .previousResult
-        let schedule = TimetableDaySchedule(timetable: app.materials.state.pdfAnalyses[MaterialKind.timetable.rawValue],
+        let schedule = TimetableDaySchedule(timetable: app.materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue],
             changes: app.materials.state.changeAnalysis, events: app.schoolEvents.analysis,
             specials: specials.scheduleAnalyses, includesChanges: true, customTimes: app.times.current?.data,
             sourceIndex: app.scheduleSourceIndex(materials: app.materials, specials: specials, events: app.schoolEvents))

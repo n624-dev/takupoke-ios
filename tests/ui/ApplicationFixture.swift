@@ -47,6 +47,7 @@ final class FixtureNetwork: URLProtocol {
 
 @main
 struct SimulatorApplication: App {
+    private static let countdownNoticeID = UUID(uuidString: "64626223-d57f-4fb5-889b-ccb2596b6d45")!
     @AppStorage(MainColor.storageKey) private var storedMainColor = MainColor.systemDefault.rawValue
     @State private var notificationProbe = "待機中"
     @State private var notificationDeliveryProof = "待機中"
@@ -93,13 +94,21 @@ struct SimulatorApplication: App {
                             Button("予約を照合") {
                                 countdownNoticeProbe = "照合中"
                                 Task {
-                                    let requests = await UNUserNotificationCenter.current().pendingNotificationRequests()
-                                    let count = requests.filter { $0.identifier.hasPrefix(CountdownNotice.prefix + "personal.") }.count
+                                    let center = UNUserNotificationCenter.current()
+                                    let requests = await center.pendingNotificationRequests()
+                                    let settings = await center.notificationSettings()
+                                    let allowed = [.authorized, .provisional, .ephemeral].contains(settings.authorizationStatus)
+                                    let prefix = CountdownNotice.prefix + "personal." + Self.countdownNoticeID.uuidString + "."
+                                    let actual = requests.map(\.identifier).filter { $0.hasPrefix(prefix) }
+                                    let expected = Set(CountdownReminder.defaults.map { prefix + $0.key })
                                     let other = requests.filter { $0.identifier == "fictional-separate-notification" }.count
-                                    countdownNoticeProbe = "実予約\(count)件／対照\(other)件"
+                                    if actual.allSatisfy(expected.contains), Set(actual).count == actual.count {
+                                        countdownNoticeProbe = "実予約\(actual.count)件／対照\(other)件／許可\(allowed)"
+                                    } else { countdownNoticeProbe = "予約の識別子が一致しません" }
                                 }
                             }
                             Text(countdownNoticeProbe).accessibilityIdentifier("fixture-countdown-pending")
+                            FixtureCountdownReservationStatus(id: Self.countdownNoticeID)
                         }
                         .buttonStyle(.bordered)
                         .background(.regularMaterial)
@@ -394,7 +403,7 @@ struct SimulatorApplication: App {
             let date = SchoolDate.today().addingDays(12)!
             let target = CountdownDates(title: "架空の通知予定", ranges: [.init(start: date, end: date)])
             try CountdownStore(root: base).save(CountdownLibrary(registrations: [
-                .init(id: UUID(), target: .personal(target))
+                .init(id: countdownNoticeID, target: .personal(target))
             ]))
         }
         if SimulatorEventsYearFixture.enabled { try SimulatorEventsYearFixture.seed(base) }
@@ -430,6 +439,16 @@ struct SimulatorApplication: App {
             }
         }
         try SimulatorAuxiliaryStoreFixture.prepare(base)
+    }
+}
+
+private struct FixtureCountdownReservationStatus: View {
+    let id: UUID
+    @ObservedObject private var model = ApplicationData.shared.countdown
+
+    var body: some View {
+        Text(model.notificationStatuses[id] ?? "予約報告なし")
+            .accessibilityIdentifier("fixture-countdown-reservation-status")
     }
 }
 

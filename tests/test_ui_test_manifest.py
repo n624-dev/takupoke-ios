@@ -49,9 +49,9 @@ class ManifestTests(unittest.TestCase):
                 self.assertEqual(len(notifications + remaining), len(tests))
                 self.assertEqual(manifest.phase_tests(tests, "all"), tuple(tests))
                 for test in notifications:
-                    self.assertIn(test, manifest.NOTIFICATION_PROBE_TESTS)
+                    self.assertIn(test, manifest.NATIVE_NOTIFICATION_CASES)
                 for test in remaining:
-                    self.assertNotIn(test, manifest.NOTIFICATION_PROBE_TESTS)
+                    self.assertNotIn(test, manifest.NATIVE_NOTIFICATION_CASES)
                 phases = manifest.runner_phases(tests)
                 partition = tuple(test for phase in phases for test in manifest.phase_tests(tests, phase))
                 self.assertEqual(sorted(partition), sorted(tests))
@@ -65,6 +65,8 @@ class ManifestTests(unittest.TestCase):
                         self.assertIn(phase, phases)
                         self.assertEqual(manifest.phase_tests(tests, phase), (test,))
         self.assertEqual(manifest.runner_phases(manifest.SHARDS["A"]), ("remaining", "notifications"))
+        self.assertEqual(manifest.phase_tests(manifest.SHARDS["B"], "notifications"),
+                         ("testNotificationControlsAndAppearance", manifest.COUNTDOWN_NOTIFICATION_TEST))
         self.assertEqual(manifest.runner_phases(manifest.PROBE_GROUPS["input-delivery"]),
                          ("settings", "voiceover"))
         with self.assertRaisesRegex(ValueError, "Unknown"):
@@ -1065,7 +1067,7 @@ METHOD
             ("controls", controls),
             ("rows", (controls[-1],)),
             ("weekday-carryover", ("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",)),
-            ("countdown-notifications", ("testCountdownUsesNativeReservationsAndCancelsOnlyItsOwnAfterRelaunch",)),
+            ("countdown-notifications", ("testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch",)),
             ("countdown-calendar", ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",)),
             ("rows-context", ("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover", controls[-1])),
             ("input-delivery", ("testSettingsAccountDataAndFileDetails", manifest.VOICEOVER_TEST)),

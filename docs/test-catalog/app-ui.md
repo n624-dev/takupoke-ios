@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`6c2b6b00b96a3f627861c650df15953e9911e0c19ac55fc7528da7f496f2e60c`
+`0fab09efd057cd96413854f1762578585bfa8817b0f2a1f2230ca83844257813`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -170,7 +170,7 @@ bash tools/test-app-ui.sh
 
 - `testNotificationControlsAndAppearance`
 - `testChangedDataProducesOneLocalNotification`
-- `testCountdownUsesNativeReservationsAndCancelsOnlyItsOwnAfterRelaunch`
+- `testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch`
 
 ## [tests/ObservedScreenGeometryTests.swift](../../tests/ObservedScreenGeometryTests.swift)
 
