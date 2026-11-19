@@ -56,6 +56,7 @@ struct SimulatorApplication: App {
     @State private var recoveryTableProbe = ""
     @State private var recoveryOffProbe = "未実行"
     @State private var countdownNoticeProbe = "未照合"
+    @State private var countdownProbeID = UUID()
     @State private var applicationReady = false
     @State private var fixtureTypeSize: DynamicTypeSize = .large
     private var showsTypeSizeControl: Bool {
@@ -81,7 +82,7 @@ struct SimulatorApplication: App {
                 .onAppear { FixtureLaunchDiagnostics.record("content-appeared") }
                 .overlay(alignment: .bottomLeading) {
                     if ProcessInfo.processInfo.arguments.contains("--countdown-notifications") {
-                        VStack {
+                        VStack(alignment: .leading) {
                             Button("対照通知を予約") {
                                 let date = SchoolDate.today().addingDays(15)!
                                 let target = CountdownDates(title: "架空のもう一つの通知予定", ranges: [.init(start: date, end: date)])
@@ -98,12 +99,15 @@ struct SimulatorApplication: App {
                                 }
                             }
                             Button("予約を照合") {
-                                countdownNoticeProbe = "照合中"
+                                let id = UUID()
+                                countdownProbeID = id
+                                countdownNoticeProbe = "保留予約を取得中"
                                 Task {
                                     let center = UNUserNotificationCenter.current()
-                                    let requests = await center.pendingNotificationRequests()
-                                    let settings = await center.notificationSettings()
-                                    let allowed = [.authorized, .provisional, .ephemeral].contains(settings.authorizationStatus)
+                                    let requests: [UNNotificationRequest] = await withCheckedContinuation { continuation in
+                                        center.getPendingNotificationRequests { continuation.resume(returning: $0) }
+                                    }
+                                    guard countdownProbeID == id else { return }
                                     let prefix = CountdownNotice.prefix + "personal." + Self.countdownNoticeID.uuidString + "."
                                     let actual = requests.map(\.identifier).filter { $0.hasPrefix(prefix) }
                                     let expected = Set(CountdownReminder.defaults.map { prefix + $0.key })
@@ -111,18 +115,26 @@ struct SimulatorApplication: App {
                                     let second = requests.map(\.identifier).filter { $0.hasPrefix(secondPrefix) }
                                     let secondExpected = Set(CountdownReminder.defaults.map { secondPrefix + $0.key })
                                     let other = requests.filter { $0.identifier == "fictional-separate-notification" }.count
-                                    if actual.allSatisfy(expected.contains), Set(actual).count == actual.count,
-                                       second.allSatisfy(secondExpected.contains), Set(second).count == second.count {
-                                        countdownNoticeProbe = "実予約\(actual.count)件／別登録\(second.count)件／対照\(other)件／許可\(allowed)"
-                                    } else { countdownNoticeProbe = "予約の識別子が一致しません" }
+                                    guard actual.allSatisfy(expected.contains), Set(actual).count == actual.count,
+                                          second.allSatisfy(secondExpected.contains), Set(second).count == second.count else {
+                                        countdownNoticeProbe = "予約の識別子が一致しません"
+                                        return
+                                    }
+                                    let observed = "実予約\(actual.count)件／別登録\(second.count)件／対照\(other)件"
+                                    countdownNoticeProbe = observed
+                                    let settings: UNNotificationSettings = await withCheckedContinuation { continuation in
+                                        center.getNotificationSettings { continuation.resume(returning: $0) }
+                                    }
+                                    guard countdownProbeID == id else { return }
+                                    let allowed = [.authorized, .provisional, .ephemeral].contains(settings.authorizationStatus)
+                                    countdownNoticeProbe = observed + "／許可\(allowed)"
                                 }
                             }
-                            Text(countdownNoticeProbe).accessibilityIdentifier("fixture-countdown-pending")
+                            Text(countdownNoticeProbe).accessibilityIdentifier("fixture-countdown-pending").allowsHitTesting(false)
                             FixtureCountdownReservationStatus(id: Self.countdownNoticeID)
                             FixtureCountdownReservationStatus(id: Self.secondCountdownNoticeID, control: true)
                         }
                         .buttonStyle(.bordered)
-                        .background(.regularMaterial)
                         .offset(y: -100)
                     }
                 }
@@ -469,6 +481,7 @@ private struct FixtureCountdownReservationStatus: View {
     var body: some View {
         Text(model.notificationStatuses[id] ?? "予約報告なし")
             .accessibilityIdentifier(control ? "fixture-countdown-control-status" : "fixture-countdown-reservation-status")
+            .allowsHitTesting(false)
     }
 }
 

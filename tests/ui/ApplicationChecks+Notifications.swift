@@ -234,7 +234,9 @@ extension ApplicationChecks {
             screen("予定の詳細")
         }
         func editNotification(_ enabled: Bool) {
-            tap("編集")
+            let edit = visible(app.buttons["編集"], navigation: "予定の詳細")
+            XCTAssertTrue(edit.exists && edit.isEnabled && edit.isHittable, app.debugDescription)
+            edit.tap()
             screen("カウントダウンを設定")
             let control = visible(app.switches["通知を予約"], navigation: "カウントダウンを設定")
             XCTAssertEqual(control.value as? String, enabled ? "0" : "1", app.debugDescription)
@@ -249,8 +251,8 @@ extension ApplicationChecks {
         func countReservations(_ count: Int, other: Int = 1, second: Int = 2, requiresPermission: Bool = true) {
             tap("予約を照合")
             let probe = app.staticTexts["fixture-countdown-pending"]
-            let prefix = "実予約\(count)件／別登録\(second)件／対照\(other)件／許可"
-            let condition = requiresPermission ? NSPredicate(format: "label == %@", prefix + "true")
+            let prefix = "実予約\(count)件／別登録\(second)件／対照\(other)件"
+            let condition = requiresPermission ? NSPredicate(format: "label == %@", prefix + "／許可true")
                 : NSPredicate(format: "label BEGINSWITH %@", prefix)
             let matched = expectation(for: condition, evaluatedWith: probe)
             XCTAssertEqual(XCTWaiter.wait(for: [matched], timeout: 15), .completed, app.debugDescription)

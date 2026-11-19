@@ -230,8 +230,21 @@ extension ApplicationChecks {
         func add(_ mode: String) {
             let menu = app.buttons["countdown-add"]
             XCTAssertTrue(menu.waitForExistence(timeout: 10), app.debugDescription)
+            XCTAssertTrue(menu.isEnabled && menu.isHittable, app.debugDescription)
             menu.tap()
-            tap(mode)
+            let items = app.buttons.matching(NSPredicate(format: "label == %@", mode))
+            var selected: XCUIElement?
+            let available = expectation(for: NSPredicate { _, _ in
+                let visible = items.allElementsBoundByAccessibilityElement
+                guard visible.count == 1, let item = visible.first, let snapshot = try? item.snapshot(),
+                      snapshot.label == mode, snapshot.isEnabled, self.usable(snapshot.frame),
+                      self.app.frame.contains(snapshot.frame), item.isHittable else { return false }
+                selected = item
+                return true
+            }, evaluatedWith: items)
+            XCTAssertEqual(XCTWaiter.wait(for: [available], timeout: 5), .completed, app.debugDescription)
+            guard let selected else { return }
+            selected.tap()
         }
         func saveNamed(_ name: String) {
             let input = visible(app.textFields["countdown-name"])

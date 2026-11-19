@@ -18,7 +18,7 @@ class NotificationSettingsLifecycleTests(unittest.TestCase):
         if not compiler:
             self.skipTest("Swift required to execute the production authorization bridge")
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
-        start = source.index("    private static func requestAuthorization(")
+        start = source.index("    static func requestAuthorization(")
         end = source.index("    func enableFromSetup()", start)
         program = r'''import Foundation
 struct UNAuthorizationOptions: OptionSet, Sendable {
@@ -100,7 +100,7 @@ BRIDGE
         if not compiler:
             self.skipTest("Swift required to execute the production callback bridge")
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
-        start = source.index("    nonisolated private static func notificationSettings(")
+        start = source.index("    nonisolated static func notificationSettings(")
         end = source.index("\n    func ", start)
         bridge = source[start:end]
         program = r'''import Foundation
@@ -175,7 +175,7 @@ BRIDGE
         if not compiler:
             self.skipTest("Swift required to execute the production delivery gate")
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
-        bridge_start = source.index("    nonisolated private static func notificationSettings(")
+        bridge_start = source.index("    nonisolated static func notificationSettings(")
         bridge_end = source.index("\n    func ", bridge_start)
         permission_start = source.index("    func checkPermission() async {")
         permission_end = source.index("    // Keep the actual OS response", permission_start)
@@ -263,7 +263,7 @@ PERMISSION
             self.skipTest("Swift required for the production permission/apply methods")
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
         permission = source[source.index("    func checkPermission() async {"):source.index("    // Keep the actual OS response")]
-        bridge_start = source.index("    nonisolated private static func notificationSettings(")
+        bridge_start = source.index("    nonisolated static func notificationSettings(")
         bridge = source[bridge_start:source.index("\n    func ", bridge_start)]
         gate_start = source.index("    private func deliveryAllowed() async -> Bool {")
         methods = source[gate_start:source.index("    private func changeNotice(", gate_start)]

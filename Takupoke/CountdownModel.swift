@@ -198,9 +198,9 @@ final class CountdownModel: ObservableObject {
     }
 
     func notificationPermission() async {
-        let settings = await center.notificationSettings()
+        let settings = await ScheduleNotifications.notificationSettings(from: center)
         if settings.authorizationStatus == .notDetermined {
-            do { _ = try await center.requestAuthorization(options: [.alert, .sound]) }
+            do { _ = try await ScheduleNotifications.requestAuthorization(from: center) }
             catch { message = "通知の許可を確認できません。端末の通知設定を確認してください。" }
         }
     }
@@ -236,8 +236,11 @@ final class CountdownModel: ObservableObject {
     }
 
     private func reconcile(_ plan: NoticePlan) async {
-        let settings = await center.notificationSettings()
-        let allowed = [.authorized, .provisional, .ephemeral].contains(settings.authorizationStatus)
+        let allowed: Bool
+        if plan.cards.values.contains(where: { $0.preferences.notifications }) {
+            let settings = await ScheduleNotifications.notificationSettings(from: center)
+            allowed = [.authorized, .provisional, .ephemeral].contains(settings.authorizationStatus)
+        } else { allowed = false }
         let pending = await center.pendingNotificationRequests()
         let delivered = await center.deliveredNotifications()
         guard revision == plan.revision else { return }
