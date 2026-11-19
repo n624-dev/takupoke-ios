@@ -1,20 +1,20 @@
 import SwiftUI
 import UIKit
+import UIKit.UIGestureRecognizerSubclass
 
 extension TimetableView {
     var weekGrid: some View {
-        let bounds = weekBounds
-        let weeks = [-7, 0, 7].compactMap { weekStart.addingDays($0) }.filter(bounds.contains)
         // The date is the identity. Promoting a prepared page preserves its live
         // layout and scroll view; there is no image-to-view handoff on arrival.
         let revision = Array(detailRevision.dropFirst()) + [mainColor.selection.rawValue,
             String(describing: gridDynamicTypeSize), String(Double(gridViewportWidth)),
             String(Double(standardPeriodColumnWidth)), String(Double(periodColumnWidth))]
-        let pages = weeks.map { WeekPage(id: $0, revision: revision, content: AnyView(weekPage(on: $0))) }
-        return WeekPages(pages: pages, selection: weekStart, viewportWidth: gridViewportWidth,
-                         pull: weekPull, accent: weekControlColor) { source, target in
-            if weekStart == source, weekBounds.contains(target) { weekStart = target }
-        }
+        return WeekPages(selection: weekStart, bounds: weekBounds, revision: revision,
+                         viewportWidth: gridViewportWidth, pull: weekPull, accent: weekControlColor,
+                         content: { AnyView(weekPage(on: $0)) },
+                         arrive: { source, target in
+                             if weekStart == source, weekBounds.contains(target) { weekStart = target }
+                         })
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(GeometryReader { proxy in
             Color.clear.preference(key: WeekGridWidthKey.self, value: proxy.size.width)
@@ -152,9 +152,9 @@ private struct WeekColumnsLayout: Layout {
 private struct WeekPage: Identifiable, View, Equatable {
     let id: SchoolDate
     let revision: [String]
-    let content: AnyView
+    let content: () -> AnyView
     static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id && lhs.revision == rhs.revision }
-    var body: some View { content }
+    var body: some View { content() }
 }
 
 private struct WeekPageMeasurement: Equatable {
@@ -178,32 +178,38 @@ private struct WeekGridAccessibility: ViewModifier {
 }
 
 private struct WeekPages: View {
-    let pages: [WeekPage]
     let selection: SchoolDate
+    let bounds: ClosedRange<SchoolDate>
+    let revision: [String]
     let viewportWidth: CGFloat
     let pull: WeekPullProgress
     let accent: WeekControlAccent
+    let content: (SchoolDate) -> AnyView
     let arrive: (SchoolDate, SchoolDate) -> Void
     @ObservedObject private var motion: WeekPageMotion
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(pages: [WeekPage], selection: SchoolDate, viewportWidth: CGFloat, pull: WeekPullProgress,
-         accent: WeekControlAccent, arrive: @escaping (SchoolDate, SchoolDate) -> Void) {
-        self.pages = pages; self.selection = selection; self.pull = pull
+    init(selection: SchoolDate, bounds: ClosedRange<SchoolDate>, revision: [String],
+         viewportWidth: CGFloat, pull: WeekPullProgress, accent: WeekControlAccent,
+         content: @escaping (SchoolDate) -> AnyView, arrive: @escaping (SchoolDate, SchoolDate) -> Void) {
+        self.selection = selection; self.bounds = bounds; self.revision = revision
+        self.pull = pull; self.content = content
         self.viewportWidth = viewportWidth
         self.accent = accent; self.arrive = arrive
         motion = pull.motion
     }
 
     var body: some View {
-        WeekPagesLayout(currentIndex: pages.firstIndex { $0.id == selection } ?? 0,
-                        reservedHeight: motion.transition?.height) {
+        let weeks = WeekEdgePull.preparedWeeks(selected: selection, arriving: motion.preparedArrival,
+                                               within: bounds)
+        let pages = weeks.map { week in WeekPage(id: week, revision: revision, content: { content(week) }) }
+        WeekPagesLayout(currentIndex: weeks.firstIndex(of: selection) ?? 0, reservedHeight: motion.reservedHeight) {
             ForEach(pages) { page in
                 let isDisplayed = page.id == selection
-                page
+                page.equatable()
                     .onGeometryChange(for: WeekPageMeasurement.self) {
                         WeekPageMeasurement(size: $0.size, revision: page.revision)
-                    } action: { motion.measurements[page.id] = $0 }
+                    } action: { motion.measure($0, week: page.id) }
                     .offset(x: motion.offset(for: page.id, selected: selection, viewportWidth: viewportWidth))
                     .opacity(motion.opacity(for: page.id, selected: selection))
                     .allowsHitTesting(isDisplayed && motion.transition == nil)
@@ -213,32 +219,46 @@ private struct WeekPages: View {
             }
         }
         .clipped()
+        .background(WeekTransitionPullObserver(pull: pull))
         // Glass is deliberately outside the page clip, with measured clearance
         // from all four visible edges (including short, event-only weeks).
         .overlay {
-            WeekPullOverlay(pull: pull, previous: pages.first { $0.id < selection }?.id,
-                            next: pages.first { $0.id > selection }?.id, accent: accent)
+            WeekPullOverlay(pull: pull, previous: adjacentWeek(-7), next: adjacentWeek(7), accent: accent)
                 .allowsHitTesting(false).accessibilityHidden(true)
         }
-        .onAppear { configure() }
+        .onAppear { motion.selection = selection; configure(weeks) }
         .onChange(of: selection) { _, _ in
-            motion.cancel(); pull.update(distance: 0, visible: .zero, center: 0); configure()
+            if motion.selection != selection {
+                pull.cancelWeekMove()
+                motion.selection = selection
+            }
+            configure(weeks)
         }
-        .onChange(of: pages.map(\.revision)) { _, _ in
-            pull.completeWeekMove(); pull.update(distance: 0, visible: .zero, center: 0); configure()
+        .onChange(of: weeks) { _, _ in configure(weeks) }
+        .onChange(of: bounds) { _, _ in
+            pull.cancelWeekMove(); configure(weeks)
         }
-        .onChange(of: reduceMotion) { _, _ in pull.completeWeekMove(); configure() }
-        .onDisappear { pull.completeWeekMove(); pull.update(distance: 0, visible: .zero, center: 0) }
+        .onChange(of: revision) { _, _ in
+            pull.completeWeekMove(); configure(weeks)
+        }
+        .onChange(of: reduceMotion) { _, _ in pull.completeWeekMove(); configure(weeks) }
+        .onDisappear { pull.completeWeekMove() }
     }
 
-    private func configure() {
-        motion.selection = selection
-        motion.available = Set(pages.map(\.id))
-        motion.revisions = Dictionary(uniqueKeysWithValues: pages.map { ($0.id, $0.revision) })
+    private func adjacentWeek(_ days: Int) -> SchoolDate? {
+        guard let week = selection.addingDays(days), bounds.contains(week) else { return nil }
+        return week
+    }
+
+    private func configure(_ weeks: [SchoolDate]) {
+        motion.bounds = bounds
+        motion.available = Set(weeks)
+        motion.revision = revision
         motion.reduceMotion = reduceMotion
         motion.arrive = arrive
         motion.retain(weeks: motion.available)
         motion.resetNeighborScrolls(selected: selection)
+        motion.scheduleQueuedMove()
     }
 }
 
@@ -274,8 +294,14 @@ final class WeekPullProgress: ObservableObject {
     private(set) var center: CGFloat = 0
     private(set) var visible: CGRect = .zero
 
-    func completeWeekMove() { motion.complete() }
-    func cancelWeekMove() { motion.cancel() }
+    func completeWeekMove() {
+        motion.complete()
+        update(distance: 0, visible: .zero, center: 0)
+    }
+    func cancelWeekMove() {
+        motion.cancel()
+        update(distance: 0, visible: .zero, center: 0)
+    }
 
     func update(distance: CGFloat, visible: CGRect, center: CGFloat) {
         self.visible = visible; self.center = center
@@ -293,35 +319,138 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         let width: CGFloat
         let direction: CGFloat
         let targetHeight: CGFloat
-        var height: CGFloat
         var slideProgress: CGFloat = 0
     }
     private final class ScrollReference {
         weak var value: UIScrollView?
-        init(_ value: UIScrollView) { self.value = value }
+        weak var probe: WeekPullObserver.Probe?
+        init(_ value: UIScrollView, probe: WeekPullObserver.Probe) {
+            self.value = value; self.probe = probe
+        }
     }
     @Published private(set) var transition: Transition?
+    @Published private(set) var reservedHeight: CGFloat?
+    @Published private var prefetchedWeek: SchoolDate?
     var selection: SchoolDate?
+    var bounds: ClosedRange<SchoolDate>?
     var available = Set<SchoolDate>()
-    var measurements: [SchoolDate: WeekPageMeasurement] = [:]
-    var revisions: [SchoolDate: [String]] = [:]
+    var revision: [String] = []
     var reduceMotion = false
     var arrive: ((SchoolDate, SchoolDate) -> Void)?
     private var scrolls: [SchoolDate: ScrollReference] = [:]
+    private var measurements: [SchoolDate: WeekPageMeasurement] = [:]
+    private var releases = WeekPullReleases()
+    private var deferredReleases = WeekDeferredPulls()
+    private var queuedMoveScheduled = false
+    private(set) var inputGeneration = UUID()
+    private(set) var trackingTransitionTouch = false
+    private(set) var transitionTouchWeek: SchoolDate?
+    var nextInputWeek: SchoolDate? { releases.lastDestination ?? transition?.destination ?? selection }
+    var preparedArrival: SchoolDate? { transition?.destination ?? prefetchedWeek }
+    var hasDeferredReleases: Bool { !deferredReleases.isEmpty }
     private var displayLink: CADisplayLink?
     private weak var heldScroll: UIScrollView?
     private var slideStartedAt: CFTimeInterval?
-    private var heightAdjustment: (startedAt: CFTimeInterval, initialHeight: CGFloat)?
+    private var heightAdjustment: (startedAt: CFTimeInterval, initialHeight: CGFloat, targetHeight: CGFloat)?
 
-    func register(_ scroll: UIScrollView, week: SchoolDate) {
-        scrolls[week] = ScrollReference(scroll)
+    func register(_ scroll: UIScrollView, week: SchoolDate, probe: WeekPullObserver.Probe) {
+        if scrolls[week]?.value !== scroll || scrolls[week]?.probe !== probe {
+            scrolls[week] = ScrollReference(scroll, probe: probe)
+        }
+        scheduleQueuedMove()
+    }
+    func measure(_ measurement: WeekPageMeasurement, week: SchoolDate) {
+        measurements[week] = measurement
+        scheduleQueuedMove()
+    }
+    func scroll(for week: SchoolDate) -> UIScrollView? {
+        scrolls[week]?.value
+    }
+    func startingPosition(on week: SchoolDate) -> WeekHorizontalPosition? {
+        guard isReady(week), let scroll = scroll(for: week) else { return nil }
+        let inset = scroll.adjustedContentInset
+        return WeekHorizontalPosition(offset: scroll.contentOffset.x + inset.left,
+            range: scroll.contentSize.width + inset.left + inset.right - scroll.bounds.width)
+    }
+    func track(_ translation: CGPoint, from start: WeekHorizontalPosition, on scroll: UIScrollView) -> CGFloat {
+        let next = start.offset(after: translation) - scroll.adjustedContentInset.left
+        if abs(scroll.contentOffset.x - next) > 0.01 {
+            scroll.setContentOffset(CGPoint(x: next, y: scroll.contentOffset.y), animated: false)
+        }
+        return start.pullDistance(after: translation)
+    }
+    func gridContains(_ point: CGPoint, on week: SchoolDate) -> Bool {
+        scrolls[week]?.probe?.inputFrameInWindow()?.contains(point) == true
+    }
+    func showPull(_ distance: CGFloat, on week: SchoolDate) {
+        scrolls[week]?.probe?.showPull(distance)
+    }
+    func setTransitionTouch(active: Bool, week: SchoolDate?) {
+        trackingTransitionTouch = active; transitionTouchWeek = week
+    }
+    func canStartInPage(_ week: SchoolDate) -> Bool {
+        selection == week && transition == nil && releases.isEmpty && !hasDeferredReleases && !trackingTransitionTouch
+    }
+    func canMove(from week: SchoolDate, by days: Int) -> Bool {
+        guard let destination = week.addingDays(days) else { return false }
+        return bounds?.contains(destination) == true
+    }
+    func prepareBeyondPull(from week: SchoolDate, distance: CGFloat) {
+        guard transition == nil, selection == week, distance != 0 else { return }
+        let days = distance > 0 ? -7 : 7
+        guard canMove(from: week, by: days), let target = week.addingDays(days),
+              prefetchedWeek != target else { return }
+        prefetchedWeek = target
+    }
+    func clearUnusedPreparation() {
+        if releases.isEmpty && prefetchedWeek != nil { prefetchedWeek = nil }
+    }
+    func release(from week: SchoolDate, distance: CGFloat) {
+        guard nextInputWeek == week, let bounds else { return }
+        releases.append(from: week, distance: distance, within: bounds)
+        startQueuedMove()
+        clearUnusedPreparation()
+    }
+    func releaseEarly(_ release: WeekDeferredPulls.Contact) {
+        deferredReleases.append(release)
+        processReleasedContacts()
+    }
+    func scheduleQueuedMove() {
+        guard (!releases.isEmpty || hasDeferredReleases), !queuedMoveScheduled else { return }
+        queuedMoveScheduled = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.queuedMoveScheduled = false
+            self.processReleasedContacts()
+        }
+    }
+    private func processReleasedContacts() {
+        startQueuedMove()
+        while let week = nextInputWeek, let scroll = scroll(for: week) {
+            var queue = deferredReleases
+            guard let contact = queue.consume(on: week, startingPosition: { self.startingPosition(on: week) }) else { return }
+            deferredReleases = queue
+            release(from: week, distance: track(contact.translation, from: contact.start, on: scroll))
+        }
+    }
+    private func startQueuedMove() {
+        guard transition == nil, let week = selection, let scroll = scroll(for: week),
+              let current = measurements[week]?.size else { return }
+        // Readiness checks use the same registered views and measured revisions
+        // as the subsequent move. Copy the queue to avoid overlapping access.
+        var queue = releases
+        guard let move = queue.consume(from: week, isReady: { self.isReady($0) }),
+              let target = measurements[move.destination]?.size else { return }
+        releases = queue
+        begin(from: week, to: move.destination, scroll: scroll, currentHeight: current.height, targetHeight: target.height)
     }
     func retain(weeks: Set<SchoolDate>) {
         scrolls = scrolls.filter { weeks.contains($0.key) }
         measurements = measurements.filter { weeks.contains($0.key) }
     }
     func resetNeighborScrolls(selected: SchoolDate) {
-        for (week, reference) in scrolls where week != selected {
+        for (week, reference) in scrolls where week != selected && week != transition?.source
+            && week != transition?.destination && week != transitionTouchWeek {
             guard let scroll = reference.value else { continue }
             let leading = -scroll.adjustedContentInset.left
             if scroll.contentOffset.x != leading {
@@ -332,14 +461,14 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     func isReady(_ week: SchoolDate?) -> Bool {
         guard let week, available.contains(week), let scroll = scrolls[week]?.value,
               scroll.window != nil, scroll.bounds.width > 0, let measured = measurements[week],
-              measured.revision == revisions[week] else { return false }
+              measured.revision == revision else { return false }
         let size = measured.size
         return size.height > 0 && abs(size.width - scroll.bounds.width) < 1
     }
-    func begin(from week: SchoolDate, days: Int, scroll: UIScrollView) {
-        guard transition == nil, selection == week, let destination = week.addingDays(days),
-              isReady(week), isReady(destination), let current = measurements[week]?.size,
-              let target = measurements[destination]?.size else { return }
+    private func begin(from week: SchoolDate, to destination: SchoolDate, scroll: UIScrollView,
+                       currentHeight: CGFloat, targetHeight: CGFloat) {
+        let initialHeight = reservedHeight ?? currentHeight
+        if heightAdjustment != nil { finishHeight(reserving: initialHeight) }
         let minimum = -scroll.adjustedContentInset.left
         let maximum = max(minimum, scroll.contentSize.width - scroll.bounds.width + scroll.adjustedContentInset.right)
         let releasedOffset = scroll.layer.presentation()?.bounds.origin.x ?? scroll.contentOffset.x
@@ -353,9 +482,10 @@ private final class WeekPageMotion: NSObject, ObservableObject {
             heldScroll = scroll
             scroll.isScrollEnabled = false
             scroll.setContentOffset(CGPoint(x: edge, y: scroll.contentOffset.y), animated: false)
+            reservedHeight = initialHeight
             transition = Transition(source: week, destination: destination, rubber: rubber,
-                width: scroll.bounds.width, direction: days > 0 ? 1 : -1,
-                targetHeight: target.height, height: current.height)
+                width: scroll.bounds.width, direction: destination > week ? 1 : -1, targetHeight: targetHeight)
+            prefetchedWeek = nil
         }
         // Commit the release position, then move on the first display callback.
         // Starting a SwiftUI animation there would wait for a second handoff.
@@ -377,48 +507,65 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         }
     }
     private func settle(id: UUID) {
-        guard let value = transition, value.id == id else { return }
-        if reduceMotion || abs(value.height - value.targetHeight) < 1 { finish(id: id); return }
+        guard let value = transition, value.id == id, let initialHeight = reservedHeight else { return }
+        promote(value)
+        defer { scheduleQueuedMove() }
+        if reduceMotion || abs(initialHeight - value.targetHeight) < 1 { finishHeight(); return }
         // Present each reserved height directly. Implicitly animating a frame
         // inside List also animates its content's position during re-layout.
-        heightAdjustment = (CACurrentMediaTime(), value.height)
+        heightAdjustment = (CACurrentMediaTime(), initialHeight, value.targetHeight)
         let link = CADisplayLink(target: self, selector: #selector(adjustHeight(_:)))
         displayLink = link; link.add(to: .main, forMode: .common)
     }
     @objc private func adjustHeight(_ link: CADisplayLink) {
-        guard let value = transition, let adjustment = heightAdjustment else { return }
+        guard let adjustment = heightAdjustment else { stopDisplayLink(); return }
         let progress = min(1, max(0, (link.targetTimestamp - adjustment.startedAt) / 0.2))
-        if progress == 1 { finish(id: value.id); return }
+        if progress == 1 { finishHeight(); return }
         let fraction = CGFloat(progress * progress * (3 - 2 * progress))
-        let height = adjustment.initialHeight + (value.targetHeight - adjustment.initialHeight) * fraction
+        let height = adjustment.initialHeight + (adjustment.targetHeight - adjustment.initialHeight) * fraction
         var transaction = Transaction(); transaction.disablesAnimations = true
-        withTransaction(transaction) { transition?.height = height }
+        withTransaction(transaction) { reservedHeight = height }
     }
     private func stopDisplayLink() {
         displayLink?.invalidate(); displayLink = nil
         slideStartedAt = nil
         heightAdjustment = nil
     }
-    private func finish(id: UUID) {
-        guard let value = transition, value.id == id else { return }
-        stopDisplayLink()
+    private func promote(_ value: Transition) {
         var transaction = Transaction(); transaction.disablesAnimations = true
         withTransaction(transaction) {
+            selection = value.destination
             arrive?(value.source, value.destination)
             transition = nil
             heldScroll?.isScrollEnabled = true
             heldScroll = nil
         }
     }
+    private func finishHeight(reserving height: CGFloat? = nil) {
+        stopDisplayLink()
+        var transaction = Transaction(); transaction.disablesAnimations = true
+        withTransaction(transaction) { reservedHeight = height }
+    }
     func complete() {
-        if let transition { finish(id: transition.id) }
+        invalidateInput()
+        if let transition { promote(transition) }
+        if reservedHeight != nil { finishHeight() }
     }
     func cancel() {
+        invalidateInput()
         stopDisplayLink()
         heldScroll?.isScrollEnabled = true
         heldScroll = nil
         var transaction = Transaction(); transaction.disablesAnimations = true
-        withTransaction(transaction) { transition = nil }
+        withTransaction(transaction) { transition = nil; reservedHeight = nil }
+    }
+    private func invalidateInput() {
+        inputGeneration = UUID()
+        trackingTransitionTouch = false
+        transitionTouchWeek = nil
+        releases.cancel()
+        deferredReleases.cancel()
+        clearUnusedPreparation()
     }
     func offset(for week: SchoolDate, selected: SchoolDate, viewportWidth: CGFloat) -> CGFloat {
         if let value = transition {
@@ -564,6 +711,7 @@ private struct WeekPullObserver: UIViewRepresentable {
         var isDisplayed = false
         private weak var scroll: UIScrollView?
         private var pull: WeekEdgePull?
+        private var inputGeneration: UUID?
         override func layoutSubviews() { super.layoutSubviews(); attach() }
         override func didMoveToWindow() { super.didMoveToWindow(); attach() }
         func attach() {
@@ -574,7 +722,7 @@ private struct WeekPullObserver: UIViewRepresentable {
                 detach(); scroll = next
                 next?.panGestureRecognizer.addTarget(self, action: #selector(pan(_:)))
             }
-            if let scroll, let week { progress?.motion.register(scroll, week: week) }
+            if let scroll, let week { progress?.motion.register(scroll, week: week, probe: self) }
             if let scroll, scroll.accessibilityElementsHidden == isDisplayed {
                 scroll.accessibilityElementsHidden = !isDisplayed
             }
@@ -582,7 +730,7 @@ private struct WeekPullObserver: UIViewRepresentable {
         func detach() {
             scroll?.panGestureRecognizer.removeTarget(self, action: #selector(pan(_:)))
             scroll?.accessibilityElementsHidden = false
-            scroll = nil; pull = nil
+            scroll = nil; pull = nil; inputGeneration = nil
         }
         private func visibleRect(of scroll: UIScrollView) -> CGRect {
             guard let window else { return scroll.bounds }
@@ -614,40 +762,204 @@ private struct WeekPullObserver: UIViewRepresentable {
             }
             return rect.intersection(scroll.bounds)
         }
+        func inputFrameInWindow() -> CGRect? {
+            guard let scroll, let window else { return nil }
+            return scroll.convert(visibleRect(of: scroll), to: window)
+        }
+        func showPull(_ distance: CGFloat) {
+            guard let scroll, let week, let progress, let window else { return }
+            let viewport = visibleRect(of: scroll).offsetBy(dx: -scroll.bounds.minX, dy: -scroll.bounds.minY)
+            let headerBottom = convert(CGPoint.zero, to: scroll).y - scroll.bounds.minY
+            let bodyTop = min(viewport.maxY, max(viewport.minY, headerBottom))
+            let body = CGRect(x: viewport.minX, y: bodyTop, width: viewport.width, height: viewport.maxY - bodyTop)
+            let visible = body.height >= 70 ? body : viewport
+            guard !visible.isEmpty else { return }
+            let windowVisible = scroll.convert(visible.offsetBy(dx: scroll.bounds.minX, dy: scroll.bounds.minY), to: window)
+            let center = WeekEdgePull.badgeCenter(visible: visible, headerHeight: headerBottom)
+            let canMove = progress.motion.canMove(from: week, by: distance > 0 ? -7 : 7)
+            progress.update(distance: canMove ? distance : 0, visible: windowVisible,
+                center: windowVisible.minY + center - visible.minY)
+        }
         @objc private func pan(_ pan: UIPanGestureRecognizer) {
-            guard let scroll, let week, let progress, progress.motion.selection == week,
-                  progress.motion.transition == nil else { return }
+            guard let scroll, let week, let progress else { return }
+            let motion = progress.motion
             let translation = pan.translation(in: scroll)
             switch pan.state {
             case .began:
+                guard motion.canStartInPage(week) else { return }
+                inputGeneration = motion.inputGeneration
                 let inset = scroll.adjustedContentInset
                 pull = WeekEdgePull(velocity: pan.velocity(in: scroll), offset: scroll.contentOffset.x + inset.left,
                     scrollRange: scroll.contentSize.width + inset.left + inset.right - scroll.bounds.width)
             case .changed:
-                guard let pull, let window else { return }
+                guard inputGeneration == motion.inputGeneration, let pull else { return }
                 let distance = pull.distance(for: translation)
-                let target = week.addingDays(distance > 0 ? -7 : 7)
-                let viewport = visibleRect(of: scroll).offsetBy(dx: -scroll.bounds.minX, dy: -scroll.bounds.minY)
-                let headerBottom = convert(CGPoint.zero, to: scroll).y - scroll.bounds.minY
-                let bodyTop = min(viewport.maxY, max(viewport.minY, headerBottom))
-                let body = CGRect(x: viewport.minX, y: bodyTop, width: viewport.width, height: viewport.maxY - bodyTop)
-                let visible = body.height >= 70 ? body : viewport
-                guard !visible.isEmpty else { return }
-                let windowVisible = scroll.convert(visible.offsetBy(dx: scroll.bounds.minX, dy: scroll.bounds.minY), to: window)
-                let center = WeekEdgePull.badgeCenter(visible: visible, headerHeight: headerBottom)
-                progress.update(distance: progress.motion.isReady(target) ? distance : 0, visible: windowVisible,
-                    center: windowVisible.minY + center - visible.minY)
+                motion.prepareBeyondPull(from: week, distance: distance)
+                showPull(distance)
             case .ended:
+                guard inputGeneration == motion.inputGeneration else { return }
                 let distance = pull?.distance(for: translation) ?? 0
-                pull = nil
+                pull = nil; inputGeneration = nil
                 progress.update(distance: 0, visible: .zero, center: 0)
-                let days = WeekEdgePull.weekOffset(onRelease: distance,
-                    previous: progress.motion.isReady(week.addingDays(-7)), next: progress.motion.isReady(week.addingDays(7)))
-                if days != 0 { progress.motion.begin(from: week, days: days, scroll: scroll) }
+                motion.release(from: week, distance: distance)
             case .failed, .cancelled:
-                pull = nil; progress.update(distance: 0, visible: .zero, center: 0)
+                guard inputGeneration == motion.inputGeneration else { return }
+                pull = nil; inputGeneration = nil
+                progress.update(distance: 0, visible: .zero, center: 0)
+                motion.clearUnusedPreparation()
             default: break
             }
+        }
+    }
+}
+
+// A touch's native target cannot change halfway through a page swap. Observe
+// the contacts that start during that swap without taking over the window's
+// gesture recognizers. Settled pages still use their own UIScrollView pans.
+private struct WeekTransitionPullObserver: UIViewRepresentable {
+    let pull: WeekPullProgress
+
+    func makeUIView(context: Context) -> Probe {
+        let probe = Probe()
+        probe.isUserInteractionEnabled = false
+        return probe
+    }
+    func updateUIView(_ probe: Probe, context: Context) { probe.progress = pull }
+    static func dismantleUIView(_ probe: Probe, coordinator: ()) { probe.detach() }
+
+    final class Probe: UIView {
+        private struct Contact {
+            let origin: CGPoint
+            let generation: UUID
+            var week: SchoolDate?
+            var start: WeekHorizontalPosition?
+            var isHorizontal: Bool?
+            var translation: CGPoint = .zero
+        }
+
+        weak var progress: WeekPullProgress?
+        private weak var observingWindow: UIWindow?
+        private var contact: Contact?
+        private lazy var observer = TouchObserver(
+            began: { [weak self] in self?.beginContact(at: $0) ?? false },
+            moved: { [weak self] in self?.trackContact(at: $0) },
+            ended: { [weak self] in self?.endContact(at: $0) },
+            cancelled: { [weak self] in self?.cancelContact() })
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            guard window !== observingWindow else { return }
+            detach()
+            observingWindow = window
+            window?.addGestureRecognizer(observer)
+        }
+        func detach() {
+            cancelContact()
+            observingWindow?.removeGestureRecognizer(observer)
+            observingWindow = nil
+        }
+
+        private func beginContact(at point: CGPoint) -> Bool {
+            guard let progress, let window, convert(bounds, to: window).contains(point),
+                  let selected = progress.motion.selection else { return false }
+            let motion = progress.motion
+            let incoming = motion.transition?.destination
+            guard !motion.canStartInPage(selected), !motion.trackingTransitionTouch,
+                  motion.gridContains(point, on: selected) ||
+                  incoming.map({ motion.gridContains(point, on: $0) }) == true else { return false }
+            // A prior unmeasured release may still determine this contact's
+            // logical week. Keep the original physical origin in that case.
+            let week = motion.hasDeferredReleases ? nil : motion.nextInputWeek
+            let start = week.flatMap { motion.startingPosition(on: $0) }
+            contact = Contact(origin: point, generation: motion.inputGeneration, week: week, start: start)
+            motion.setTransitionTouch(active: true, week: week)
+            return true
+        }
+
+        private func trackContact(at point: CGPoint) {
+            guard var contact, let motion = progress?.motion, motion.inputGeneration == contact.generation else { return }
+            let translation = CGPoint(x: point.x - contact.origin.x, y: point.y - contact.origin.y)
+            contact.translation = translation
+            if contact.isHorizontal == nil, max(abs(translation.x), abs(translation.y)) >= 8 {
+                contact.isHorizontal = abs(translation.x) > abs(translation.y)
+            }
+            if contact.week == nil, !motion.hasDeferredReleases {
+                contact.week = motion.nextInputWeek
+                motion.setTransitionTouch(active: true, week: contact.week)
+            }
+            if contact.start == nil, let week = contact.week { contact.start = motion.startingPosition(on: week) }
+            self.contact = contact
+            guard contact.isHorizontal == true, let week = contact.week,
+                  let start = contact.start, let scroll = motion.scroll(for: week) else { return }
+            let distance = motion.track(translation, from: start, on: scroll)
+            if motion.selection == week, motion.transition == nil {
+                motion.prepareBeyondPull(from: week, distance: distance)
+                motion.showPull(distance, on: week)
+            }
+        }
+
+        private func endContact(at point: CGPoint) {
+            trackContact(at: point)
+            guard let ended = contact, let progress, ended.generation == progress.motion.inputGeneration,
+                  ended.isHorizontal == true else { cancelContact(); return }
+            contact = nil
+            progress.motion.setTransitionTouch(active: false, week: nil)
+            progress.update(distance: 0, visible: .zero, center: 0)
+            progress.motion.releaseEarly(.init(week: ended.week, start: ended.start, translation: ended.translation))
+        }
+
+        private func cancelContact() {
+            guard let contact else { return }
+            self.contact = nil
+            guard let progress, contact.generation == progress.motion.inputGeneration else { return }
+            progress.motion.setTransitionTouch(active: false, week: nil)
+            progress.motion.clearUnusedPreparation()
+            progress.update(distance: 0, visible: .zero, center: 0)
+        }
+    }
+
+    final class TouchObserver: UIGestureRecognizer {
+        private let began: (CGPoint) -> Bool
+        private let moved: (CGPoint) -> Void
+        private let ended: (CGPoint) -> Void
+        private let cancelled: () -> Void
+        private weak var touch: UITouch?
+
+        init(began: @escaping (CGPoint) -> Bool, moved: @escaping (CGPoint) -> Void,
+             ended: @escaping (CGPoint) -> Void, cancelled: @escaping () -> Void) {
+            self.began = began; self.moved = moved; self.ended = ended; self.cancelled = cancelled
+            super.init(target: nil, action: nil)
+            cancelsTouchesInView = false
+            delaysTouchesBegan = false
+            delaysTouchesEnded = false
+        }
+
+        override func canPrevent(_ preventedGestureRecognizer: UIGestureRecognizer) -> Bool { false }
+        override func canBePrevented(by preventingGestureRecognizer: UIGestureRecognizer) -> Bool { false }
+
+        override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+            guard touch == nil, touches.count == 1, let first = touches.first, began(first.location(in: view)) else {
+                fail(); return
+            }
+            touch = first
+        }
+        override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent) {
+            if let touch, touches.contains(touch) { moved(touch.location(in: view)) }
+        }
+        override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) {
+            guard let touch, touches.contains(touch) else { return }
+            self.touch = nil
+            ended(touch.location(in: view))
+            state = .failed
+        }
+        override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) { fail() }
+        override func reset() {
+            if touch != nil { touch = nil; cancelled() }
+            super.reset()
+        }
+        private func fail() {
+            if touch != nil { touch = nil; cancelled() }
+            state = .failed
         }
     }
 }

@@ -10,17 +10,25 @@ from picker_test_project import generate as generate_picker
 from ui_test_manifest import CHECK_SOURCES, FIXTURE_SOURCES
 
 WEEK_MOTION_INSERTIONS = (
-    ('            if let scroll, let week { progress?.motion.register(scroll, week: week) }',
+    ('            if let scroll, let week { progress?.motion.register(scroll, week: week, probe: self) }',
      '\n            if let week { FixtureWeekMotionRecorder.shared.register(week: week.iso8601, body: self) }'),
-    ('            case .began:', '\n                FixtureWeekMotionRecorder.shared.began(body: self)'),
-    ('            case .ended:', '\n                FixtureWeekMotionRecorder.shared.released(body: self)'),
+    ('                inputGeneration = motion.inputGeneration',
+     '\n                FixtureWeekMotionRecorder.shared.began(body: self)'
+     '\n                FixtureWeekSequenceRecorder.shared.observe("contact", week: week, phase: motion.reservedHeight == nil ? "settled" : "height")'),
+    ('                let distance = pull?.distance(for: translation) ?? 0', '\n                FixtureWeekMotionRecorder.shared.released(body: self)'),
     ('            case .failed, .cancelled:', '\n                FixtureWeekMotionRecorder.shared.cancelBadgeCapture()'),
-    ('                let windowVisible = scroll.convert(visible.offsetBy(dx: scroll.bounds.minX, dy: scroll.bounds.minY), to: window)',
-     '\n                FixtureWeekMotionRecorder.shared.visible = windowVisible'),
+    ('            let windowVisible = scroll.convert(visible.offsetBy(dx: scroll.bounds.minX, dy: scroll.bounds.minY), to: window)',
+     '\n            FixtureWeekMotionRecorder.shared.visible = windowVisible'),
     ('        let minimum = -scroll.adjustedContentInset.left',
      '\n        FixtureWeekMotionRecorder.shared.begin(source: week.iso8601, target: destination.iso8601)'),
     ('    private func settle(id: UUID) {', '\n        FixtureWeekMotionRecorder.shared.arrived()'),
-    ('            arrive?(value.source, value.destination)', '\n            FixtureWeekMotionRecorder.shared.finished()'),
+    ('            selection = value.destination',
+     '\n            FixtureWeekSequenceRecorder.shared.observe("arrival", week: value.source, target: value.destination)'),
+    ('            motion.setTransitionTouch(active: true, week: week)',
+     '\n            FixtureWeekSequenceRecorder.shared.observe("contact", week: week, phase: motion.transition == nil ? "pending" : "slide", deferred: start == nil)'),
+    ('    private func finishHeight(reserving height: CGFloat? = nil) {',
+     '\n        FixtureWeekMotionRecorder.shared.finished()'
+     '\n        FixtureWeekSequenceRecorder.shared.observe("settled", week: selection)'),
     ('        .clipped()', '\n        .background {\n            if ProcessInfo.processInfo.arguments.contains("--week-motion-probe") {\n                FixtureWeekRowBounds()\n            }\n        }'),
     ('        .glassEffect(.regular, in: .rect(cornerRadius: 14))',
      '\n        .modifier(FixtureWeekBadgeCapture(ready: ready))'),

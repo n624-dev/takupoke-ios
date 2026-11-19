@@ -5379,3 +5379,7 @@ iOS 26.5の `Int` は案内画像の `pngBytes`。ログの1方向目には実72
 [正式44486188488](https://github.com/n624-dev/takupoke-ios/actions/runs/44486188488/attempts/1)・試行1、e60ea07、iOS27.0.0／SDK27.2の手動原本変更（135431850945）は08:53:39 UTCにfailure。`testChangedOriginalCannotSubmitOrReplaceLastGood`（418.025秒）は初回の原本変更後の送信拒否、正常結果保持、再起動後の編集・確認、二度目の原本変更完了まで到達。二度目のプレビュー操作前、実List内の `manual-review-submit` を型なし・indexの列挙で問い合わせる `ManualAssistanceChecks+Navigation.swift:83` が約121秒でAX query timeout。二度目のプレビュー拒否と結果保持は未到達。配布・Native・手動27の他3件・27 Aは成功、残ジョブは取消さない。
 
 `manual-review-submit`、`PopUpButton`、`allElementsBoundByIndex`、`UI query timeout` でN59・N94・N97・N203・N238とc059a9f／53b364fのNavigationおよび現行Review・Casesを照合。N203はPickerのindex列挙が止まり、実AX identityの単回取得へ切り替えた。N238で同じ訂正ボタンがPopUpButtonと報告されたため、型を固定せず、所属Listと専用IDで限定する。各探索で実AX identityを一度取得して、同じ要素の枠・ID・完全一致ラベル・Button/PopUpButton・enabled・hittableを照合し、既存の一回タップへ渡す。元16探索、表示枠、原本変更後の送信及びプレビュー拒否、正常結果保持、再起動を維持する。製品コード・README・正式ゲートは変更しない。これでAX停止全般が解消するかは未確認。
+
+#122の別作業ツリー、Linux Swift 6.1.2のUI生成／登録検査。生成projectは成功、Pythonの32件中 `test_all_source_tests_are_assigned_once_and_both_os_checks_are_required` の1件が38件と旧固定値37件の差で失敗した。今回追加した連続週送りの1件の登録以外に件数差がないことを元manifestと比較し、全件の一意性と両OSゲートを保持して固定値と新規ケースの所属確認を更新する。シミュレーターは未実行。
+
+#122の次のLinux一式（318件、279.872秒）は `test_week_motion_observation_keeps_real_release_layout_and_animation_unchanged` だけ失敗。試験開始時にPythonが取り込んだ旧marker `motion.setTransitionTouch(week: week)` に対し、実行中の編集で書き換わったGridの現行ファイルを後から読んだ。generatorと実体が異なる時点の組合せだった。対象差分を固定し、旧観測を削らず対応済みの同一ソースで再検査する。

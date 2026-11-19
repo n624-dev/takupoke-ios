@@ -102,6 +102,7 @@ extension TimetableView {
             "accessibility-extra-extra-extra-large": .accessibilityExtraExtraExtraLarge,
         ]
         let value: [String: Any] = [
+            "week": weekStart.iso8601, "firstWeek": weekBounds.lowerBound.iso8601, "lastWeek": weekBounds.upperBound.iso8601,
             "scale": gridScale, "width": dayColumnWidth,
             "systemSize": UIApplication.shared.preferredContentSizeCategory.rawValue,
             "expectedSystemSize": expectedSizes[requestedSize]?.rawValue ?? "invalid test size",

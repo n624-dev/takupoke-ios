@@ -10,9 +10,12 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
         app = XCUIApplication()
         app.launchArguments = ["--reset-fixture", "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
         let initialConditions: [String: [String]] = [
-            "testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch": ["--theme-probe", "--normal-only"],
+            "testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch": ["--theme-probe", "--light-theme-probe", "--normal-only"],
             "testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable": [
                 "--grid-probe", "--normal-only", "--events-only", "--week-motion-probe", "--fixture-input-trace",
+            ],
+            "testConsecutiveWeekPullsTrackOverlappingContactsWithoutRepeating": [
+                "--grid-probe", "--normal-only", "--events-only", "--week-sequence-probe", "--fixture-input-trace",
             ],
             "testHomeClockSettingChangesAcrossBoundariesUpdateTheActualInProgressLabel": ["--home-clock-boundary", "--normal-only"],
             "testLinkPreferencesSurviveRelaunch": ["--fixture-input-trace", "--fixture-link-press-trace", "--loopback-browser-fixture"],

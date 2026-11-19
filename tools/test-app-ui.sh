@@ -211,7 +211,8 @@ PY_BADGES
         local phase_status=0
         python3 -B tools/timed_command.py "App UI $runtime shard $shard" xcodebuild "${xcode_args[@]}" "$@" 2>&1 | tee "$log_path" || phase_status=$?
         stop_hang_watch
-        if [[ "${TKPK_UI_PROBE_CASE:-}" == "week-appearance" || "${TKPK_UI_PROBE_CASE:-}" == "week-motion" ]] &&
+        if [[ "${TKPK_UI_PROBE_CASE:-}" == "week-appearance" || "${TKPK_UI_PROBE_CASE:-}" == "week-motion" ||
+              "${TKPK_UI_PROBE_CASE:-}" == "week-navigation-and-yellow" ]] &&
             ! capture_week_badges "$log_path" "$phase_status"; then
             if [[ "$phase_status" == "0" ]]; then phase_status=1; fi
         fi

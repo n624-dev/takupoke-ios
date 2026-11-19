@@ -751,11 +751,14 @@ METHOD
 
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source(manifest.check_source())
-        self.assertEqual(len(manifest.selected_tests("all")), 37)
+        self.assertEqual(len(manifest.selected_tests("all")), 38)
         self.assertIn("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent", manifest.SHARDS["B"])
         self.assertIn("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups", manifest.SHARDS["B"])
         self.assertIn("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch", manifest.SHARDS["B"])
         self.assertIn("testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable", manifest.SHARDS["B"])
+        self.assertIn("testConsecutiveWeekPullsTrackOverlappingContactsWithoutRepeating", manifest.SHARDS["A"])
+        self.assertIn("testConsecutiveWeekPullsTrackOverlappingContactsWithoutRepeating",
+                      manifest.PROBE_GROUPS["week-navigation-and-yellow"])
         self.assertIn("testChangedRoomInHomeWeekAndList", manifest.SHARDS["A"])
         self.assertIn("testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData", manifest.SHARDS["A"])
         self.assertIn("testFirstFailedSpecialDocumentsWarnOnHomeAndWeekAndOpenTheirDetails", manifest.SHARDS["A"])

@@ -168,6 +168,41 @@ struct FixtureWeekMotionStatus: View {
     }
 }
 
+@MainActor
+final class FixtureWeekSequenceRecorder: ObservableObject {
+    static let shared = FixtureWeekSequenceRecorder()
+
+    private struct Event: Encodable {
+        let kind: String
+        let week: String?
+        let target: String?
+        let phase: String?
+        let deferred: Bool?
+        let time: CFTimeInterval
+    }
+    private var events: [Event] = []
+    @Published private(set) var report = "[]"
+
+    func observe(_ kind: String, week: SchoolDate?, target: SchoolDate? = nil, phase: String? = nil, deferred: Bool? = nil) {
+        guard ProcessInfo.processInfo.arguments.contains("--week-sequence-probe") else { return }
+        events.append(Event(kind: kind, week: week?.iso8601, target: target?.iso8601,
+                            phase: phase, deferred: deferred, time: CACurrentMediaTime()))
+        if let data = try? JSONEncoder().encode(events), let value = String(data: data, encoding: .utf8) {
+            report = value
+            print("TAKUPOKE_WEEK_SEQUENCE " + value)
+        }
+    }
+}
+
+struct FixtureWeekSequenceStatus: View {
+    @ObservedObject private var recorder = FixtureWeekSequenceRecorder.shared
+    var body: some View {
+        Text("Week sequence").font(.system(size: 1)).foregroundStyle(.clear)
+            .frame(width: 1, height: 1).allowsHitTesting(false)
+            .accessibilityIdentifier("fixture-week-sequence").accessibilityValue(recorder.report)
+    }
+}
+
 struct FixtureWeekBadgeCapture: ViewModifier {
     private struct Observation: Equatable {
         let ready: Bool

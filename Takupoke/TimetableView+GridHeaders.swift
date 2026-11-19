@@ -41,9 +41,11 @@ extension TimetableView {
             .fixedSize(horizontal: false, vertical: true)
             .frame(width: column.width, alignment: .top)
             .frame(maxHeight: .infinity, alignment: .top)
-            .background(column.day == today ? mainColor.selection.displayColor.opacity(0.14) :
-                        Color(uiColor: .secondarySystemGroupedBackground),
-                        in: RoundedRectangle(cornerRadius: 10))
+            .background {
+                let shape = RoundedRectangle(cornerRadius: 10)
+                if column.day == today { shape.fill(weekControlColor).opacity(0.14) }
+                else { shape.fill(Color(uiColor: .secondarySystemGroupedBackground)) }
+            }
             .accessibilityIdentifier("timetable-day-\(column.day.iso8601)")
     }
 

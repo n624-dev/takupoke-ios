@@ -37,7 +37,7 @@ final class MainColorTests: XCTestCase {
     }
 
     #if canImport(SwiftUI)
-    func testWeekControlsPreserveSelectedSystemColorInBothAppearances() throws {
+    func testWeekControlsUseTheSharedTintInBothAppearances() throws {
         guard #available(macOS 14.0, *) else { throw XCTSkip("Resolved SwiftUI colors require macOS 14") }
         for scheme in [ColorScheme.light, .dark] {
             var environment = EnvironmentValues()
@@ -46,9 +46,31 @@ final class MainColorTests: XCTestCase {
             for theme in MainColor.allCases {
                 let style = WeekControlAccent(theme: theme)
                 let color = style.resolve(in: environment).resolve(in: environment)
-                XCTAssertEqual(color, theme.displayColor.resolve(in: environment), theme.title)
+                let tint = theme.color(for: scheme, contrast: environment.colorSchemeContrast) ?? .accentColor
+                XCTAssertEqual(color, tint.resolve(in: environment), theme.title)
                 if theme != .systemDefault { XCTAssertTrue(explicitColors.insert(color).inserted, theme.title) }
             }
+        }
+    }
+
+    func testLightYellowReachesSmallTextContrastAndKeepsTheSystemDarkYellow() throws {
+        guard #available(macOS 14.0, *) else { throw XCTSkip("Resolved SwiftUI colors require macOS 14") }
+        var environment = EnvironmentValues()
+        environment.colorScheme = .light
+        let standard = try XCTUnwrap(MainColor.yellow.color(for: .light, contrast: .standard)).resolve(in: environment)
+        let increased = try XCTUnwrap(MainColor.yellow.color(for: .light, contrast: .increased)).resolve(in: environment)
+        func luminance(_ color: Color.Resolved) -> Double {
+            0.2126 * Double(color.linearRed) + 0.7152 * Double(color.linearGreen) + 0.0722 * Double(color.linearBlue)
+        }
+        for level in [1.0, 0.85] {
+            let background = Color(.sRGB, red: level, green: level, blue: level).resolve(in: environment)
+            XCTAssertGreaterThanOrEqual((luminance(background) + 0.05) / (luminance(standard) + 0.05), 4.5)
+        }
+        XCTAssertLessThan(luminance(increased), luminance(standard))
+        environment.colorScheme = .dark
+        for contrast in [ColorSchemeContrast.standard, .increased] {
+            let dark = try XCTUnwrap(MainColor.yellow.color(for: .dark, contrast: contrast))
+            XCTAssertEqual(dark.resolve(in: environment), Color.yellow.resolve(in: environment))
         }
     }
 
@@ -77,9 +99,10 @@ final class MainColorTests: XCTestCase {
     }
 
     func testDefaultHasNoTintOverrideAndExplicitBlueIsKept() {
-        XCTAssertNil(MainColor.systemDefault.color)
-        XCTAssertNotNil(MainColor.blue.color)
-        XCTAssertTrue(MainColor.allCases.filter { $0 != .systemDefault }.allSatisfy { $0.color != nil })
+        XCTAssertNil(MainColor.systemDefault.color(for: .light, contrast: .standard))
+        XCTAssertEqual(MainColor.blue.color(for: .light, contrast: .standard), .blue)
+        XCTAssertTrue(MainColor.allCases.filter { $0 != .systemDefault }
+            .allSatisfy { $0.color(for: .light, contrast: .standard) != nil })
     }
     #endif
 }

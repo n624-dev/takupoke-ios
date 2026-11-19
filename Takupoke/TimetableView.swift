@@ -142,6 +142,7 @@ struct TimetableView: View {
             .task { schoolEvents.loadIfNeeded() }
             .onChange(of: scenePhase) { phase in
                 if phase == .active { refreshToday() }
+                else { weekPull.completeWeekMove() }
             }
             .onChange(of: weekBounds) { bounds in
                 weekStart = min(max(weekStart, bounds.lowerBound), bounds.upperBound)

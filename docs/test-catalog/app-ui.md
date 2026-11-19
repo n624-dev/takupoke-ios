@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`0fab09efd057cd96413854f1762578585bfa8817b0f2a1f2230ca83844257813`
+`1f903c93168d900c4c6b7248f858a035d5317a5e70e9b5a2fd26f70a59afd66f`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -79,7 +79,8 @@ bash tools/test-app-ui.sh
 - `testDefaultAndChoiceOrder`
 - `testUnsetPreferenceDoesNotCreateAStoredColor`
 - `testAllSavedColorsSurviveReadAndDefaultRemovesOnlyColor`
-- `testWeekControlsPreserveSelectedSystemColorInBothAppearances`
+- `testWeekControlsUseTheSharedTintInBothAppearances`
+- `testLightYellowReachesSmallTextContrastAndKeepsTheSystemDarkYellow`
 - `testSharedSelectionPublishesImmediatelyAndDefaultRemovesOnlyItsPreference`
 - `testDefaultHasNoTintOverrideAndExplicitBlueIsKept`
 
@@ -296,4 +297,5 @@ bash tools/test-app-ui.sh
 ## [tests/ui/ApplicationChecks+WeekAppearance.swift](../../tests/ui/ApplicationChecks+WeekAppearance.swift)
 
 - `testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch`
+- `testConsecutiveWeekPullsTrackOverlappingContactsWithoutRepeating`
 - `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable`

@@ -4,6 +4,11 @@ on:
   push:
     branches: [fix/118-theme-week-navigation]
   workflow_dispatch:
+    inputs:
+      focus:
+        type: choice
+        default: week-navigation-and-yellow
+        options: [week-motion, week-navigation-and-yellow]
 
 permissions:
   contents: read
@@ -40,7 +45,7 @@ jobs:
       TKPK_EXPECTED_IOS_SDK: '27.2'
       TKPK_TEST_IOS: ${{ matrix.ios }}
       TKPK_UI_RELAUNCH_PROBE: '1'
-      TKPK_UI_PROBE_CASE: week-motion
+      TKPK_UI_PROBE_CASE: ${{ inputs.focus || 'week-motion' }}
       TKPK_SIMULATOR_FRONTEND: ${{ matrix.ios == 26 && 'gui' || 'headless' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

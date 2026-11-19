@@ -82,6 +82,72 @@ final class TimetableScheduleTests: XCTestCase {
         XCTAssertEqual(release(-350, next: false), 0)
     }
 
+    func testWeekPreparationIncludesTheWeekBeyondArrivalAndStaysBounded() throws {
+        let first = try XCTUnwrap(SchoolDate(iso8601: "2026-11-02"))
+        let weeks = try (0..<6).map { index in try XCTUnwrap(first.addingDays(index * 7)) }
+        let bounds = weeks[0]...weeks[5]
+        XCTAssertEqual(WeekEdgePull.preparedWeeks(selected: weeks[2], arriving: nil, within: bounds), Array(weeks[1...3]))
+        XCTAssertEqual(WeekEdgePull.preparedWeeks(selected: weeks[2], arriving: weeks[5], within: bounds), Array(weeks[1...3]))
+        XCTAssertEqual(WeekEdgePull.preparedWeeks(selected: weeks[2], arriving: weeks[3], within: bounds), Array(weeks[1...4]))
+        XCTAssertEqual(WeekEdgePull.preparedWeeks(selected: weeks[3], arriving: weeks[2], within: bounds), Array(weeks[1...4]))
+        XCTAssertEqual(WeekEdgePull.preparedWeeks(selected: weeks[1], arriving: weeks[0], within: bounds), Array(weeks[0...2]))
+        XCTAssertEqual(WeekEdgePull.preparedWeeks(selected: weeks[4], arriving: weeks[5], within: bounds), Array(weeks[3...5]))
+    }
+
+    func testEachWeekPullWaitsForItsOwnReadyPageAndCommitsOnce() throws {
+        let first = try XCTUnwrap(SchoolDate(iso8601: "2026-11-02"))
+        let weeks = try (0..<5).map { index in try XCTUnwrap(first.addingDays(index * 7)) }
+        let bounds = weeks[0]...weeks[4]
+        var releases = WeekPullReleases()
+        releases.append(from: weeks[0], distance: 125, within: bounds)
+        releases.append(from: weeks[0], distance: -114, within: bounds)
+        XCTAssertTrue(releases.isEmpty)
+        releases.append(from: weeks[0], distance: -125, within: bounds)
+        releases.append(from: weeks[0], distance: -180, within: bounds)
+        releases.append(from: weeks[1], distance: -125, within: bounds)
+        releases.append(from: weeks[2], distance: -125, within: bounds)
+        releases.append(from: weeks[3], distance: 125, within: bounds)
+        XCTAssertEqual(releases.lastDestination, weeks[2])
+
+        let onlyFirst = Set(weeks.prefix(1))
+        XCTAssertNil(releases.consume(from: weeks[0], isReady: onlyFirst.contains))
+        XCTAssertNil(releases.consume(from: weeks[1], isReady: { _ in true }))
+        for (source, target) in [(0, 1), (1, 2), (2, 3), (3, 2)] {
+            XCTAssertEqual(releases.consume(from: weeks[source], isReady: { _ in true }),
+                           .init(source: weeks[source], destination: weeks[target]))
+        }
+        XCTAssertNil(releases.consume(from: weeks[2], isReady: { _ in true }))
+        releases.append(from: weeks[2], distance: 125, within: bounds)
+        releases.cancel()
+        XCTAssertNil(releases.consume(from: weeks[2], isReady: { _ in true }))
+    }
+
+    func testEarlyContactsKeepTheirDisplacementsWhileTheNextScrollViewPrepares() throws {
+        let current = try XCTUnwrap(SchoolDate(iso8601: "2026-11-02"))
+        let upcoming = try XCTUnwrap(current.addingDays(7))
+        var contacts = WeekDeferredPulls()
+        contacts.append(.init(week: current, start: nil, translation: CGPoint(x: -160, y: 4)))
+        contacts.append(.init(week: nil, start: nil, translation: CGPoint(x: 160, y: 0)))
+        XCTAssertNil(contacts.consume(on: upcoming, startingPosition: { .init(offset: 0, range: 0) }))
+        XCTAssertNil(contacts.consume(on: current, startingPosition: { nil }))
+
+        let first = try XCTUnwrap(contacts.consume(on: current, startingPosition: { .init(offset: 0, range: 40) }))
+        XCTAssertEqual(first.start.offset(after: first.translation), 40)
+        XCTAssertEqual(first.start.pullDistance(after: first.translation), -120)
+
+        let second = try XCTUnwrap(contacts.consume(on: upcoming, startingPosition: { .init(offset: 55, range: 120) }))
+        XCTAssertEqual(second.start.offset(after: second.translation), 0)
+        XCTAssertEqual(second.start.pullDistance(after: second.translation), 105, "Use the arriving week’s hidden columns")
+        XCTAssertTrue(contacts.isEmpty)
+
+        contacts.append(.init(week: upcoming, start: .init(offset: 4, range: 20), translation: CGPoint(x: -160, y: 1)))
+        let measured = try XCTUnwrap(contacts.consume(on: upcoming, startingPosition: { nil }))
+        XCTAssertEqual(measured.start.pullDistance(after: measured.translation), -144)
+        contacts.append(.init(week: upcoming, start: nil, translation: CGPoint(x: -190, y: 4)))
+        contacts.cancel()
+        XCTAssertNil(contacts.consume(on: upcoming, startingPosition: { .init(offset: 0, range: 40) }))
+    }
+
     @MainActor func testBoundedRenderingMemoKeepsNilAndExactUnicodeInputs() async throws {
         let memo = TimetableBoundedMemo<TimetableRenderedText,String?>(limit:2)
         var calls = 0

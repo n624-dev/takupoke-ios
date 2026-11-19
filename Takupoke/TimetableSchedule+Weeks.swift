@@ -111,6 +111,89 @@ struct WeekEdgePull {
         if next && distance <= -threshold { return 7 }
         return 0
     }
+
+    static func preparedWeeks(selected: SchoolDate, arriving: SchoolDate?,
+                              within bounds: ClosedRange<SchoolDate>) -> [SchoolDate] {
+        var offsets = [-7, 0, 7]
+        if let arriving {
+            if arriving == selected.addingDays(-7) { offsets.insert(-14, at: 0) }
+            if arriving == selected.addingDays(7) { offsets.append(14) }
+        }
+        return offsets.compactMap { selected.addingDays($0) }.filter(bounds.contains)
+    }
+}
+
+/// Releases are ordered by the week each physical contact started from.
+/// A release remains pending while its exact destination finishes preparing.
+struct WeekPullReleases {
+    struct Move: Equatable {
+        let source: SchoolDate
+        let destination: SchoolDate
+    }
+
+    private var pending: [Move] = []
+    var isEmpty: Bool { pending.isEmpty }
+    var lastDestination: SchoolDate? { pending.last?.destination }
+
+    mutating func append(from source: SchoolDate, distance: CGFloat, within bounds: ClosedRange<SchoolDate>) {
+        guard (lastDestination ?? source) == source, bounds.contains(source) else { return }
+        let previous = source.addingDays(-7)
+        let next = source.addingDays(7)
+        let days = WeekEdgePull.weekOffset(onRelease: distance,
+            previous: previous.map(bounds.contains) == true, next: next.map(bounds.contains) == true)
+        guard days != 0, let destination = days > 0 ? next : previous else { return }
+        pending.append(Move(source: source, destination: destination))
+    }
+
+    mutating func consume(from source: SchoolDate, isReady: (SchoolDate) -> Bool) -> Move? {
+        guard let first = pending.first, first.source == source,
+              isReady(source), isReady(first.destination) else { return nil }
+        return pending.removeFirst()
+    }
+
+    mutating func cancel() { pending.removeAll() }
+}
+
+struct WeekHorizontalPosition {
+    let offset: CGFloat
+    let range: CGFloat
+
+    init(offset: CGFloat, range: CGFloat) {
+        self.range = max(0, range)
+        self.offset = min(self.range, max(0, offset))
+    }
+
+    func offset(after translation: CGPoint) -> CGFloat {
+        min(range, max(0, offset - translation.x))
+    }
+
+    func pullDistance(after translation: CGPoint) -> CGFloat {
+        WeekEdgePull(velocity: CGPoint(x: 1, y: 0), offset: offset, scrollRange: range)?
+            .distance(for: translation) ?? 0
+    }
+}
+
+struct WeekDeferredPulls {
+    struct Contact {
+        let week: SchoolDate?
+        let start: WeekHorizontalPosition?
+        let translation: CGPoint
+    }
+
+    private var contacts: [Contact] = []
+    var isEmpty: Bool { contacts.isEmpty }
+
+    mutating func append(_ contact: Contact) { contacts.append(contact) }
+
+    mutating func consume(on week: SchoolDate, startingPosition: () -> WeekHorizontalPosition?)
+        -> (start: WeekHorizontalPosition, translation: CGPoint)? {
+        guard let first = contacts.first, first.week == nil || first.week == week,
+              let start = first.start ?? startingPosition() else { return nil }
+        contacts.removeFirst()
+        return (start, first.translation)
+    }
+
+    mutating func cancel() { contacts.removeAll() }
 }
 
 extension SchoolDate {

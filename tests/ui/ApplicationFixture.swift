@@ -79,6 +79,7 @@ struct SimulatorApplication: App {
         let _ = FixtureLaunchDiagnostics.record("scene-construction")
         WindowGroup {
             ContentView().environment(\.timeZone, JapaneseDateDisplay.timeZone).modifier(MainColorScope())
+                .preferredColorScheme(ProcessInfo.processInfo.arguments.contains("--light-theme-probe") ? .light : nil)
                 .onAppear { FixtureLaunchDiagnostics.record("content-appeared") }
                 .overlay(alignment: .bottomLeading) {
                     if ProcessInfo.processInfo.arguments.contains("--countdown-notifications") {
@@ -204,6 +205,9 @@ struct SimulatorApplication: App {
                 .overlay {
                     if ProcessInfo.processInfo.arguments.contains("--week-motion-probe") {
                         FixtureWeekMotionStatus()
+                    }
+                    if ProcessInfo.processInfo.arguments.contains("--week-sequence-probe") {
+                        FixtureWeekSequenceStatus()
                     }
                     if ProcessInfo.processInfo.arguments.contains("--notification-permission-probe") {
                         FixtureNotificationPermissionTouch()

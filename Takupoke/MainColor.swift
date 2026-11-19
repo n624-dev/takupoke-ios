@@ -32,11 +32,15 @@ enum MainColor: String, CaseIterable, Identifiable {
         }
     }
     #if canImport(SwiftUI)
-    var color: Color? {
+    func color(for scheme: ColorScheme, contrast: ColorSchemeContrast) -> Color? {
         switch self {
         case .systemDefault: return nil
         case .blue: return .blue
-        case .yellow: return .yellow
+        case .yellow:
+            if scheme == .dark { return .yellow }
+            let red = contrast == .increased ? 104.0 : 122.0
+            let green = contrast == .increased ? 70.0 : 85.0
+            return Color(.sRGB, red: red / 255, green: green / 255, blue: 0)
         case .green: return .green
         case .orange: return .orange
         case .red: return .red
@@ -47,7 +51,9 @@ enum MainColor: String, CaseIterable, Identifiable {
 
     // Custom text and shapes need a concrete color; use the inherited accent
     // when the user has not selected an override.
-    var displayColor: Color { color ?? .accentColor }
+    func displayColor(for scheme: ColorScheme, contrast: ColorSchemeContrast) -> Color {
+        color(for: scheme, contrast: contrast) ?? .accentColor
+    }
     #endif
 }
 
@@ -71,10 +77,12 @@ final class MainColorModel: ObservableObject {
 
 @MainActor
 struct MainColorScope: ViewModifier {
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.colorSchemeContrast) private var contrast
     @StateObject private var model = MainColorModel()
 
     func body(content: Content) -> some View {
-        content.environmentObject(model).tint(model.selection.color)
+        content.environmentObject(model).tint(model.selection.color(for: scheme, contrast: contrast))
     }
 }
 
@@ -83,9 +91,7 @@ struct WeekControlAccent: ShapeStyle {
     let theme: MainColor
 
     func resolve(in environment: EnvironmentValues) -> Color {
-        // Preserve the selected system color, including its appearance and contrast
-        // variants. A guessed glass luminance must not turn orange into brown.
-        theme.displayColor
+        theme.displayColor(for: environment.colorScheme, contrast: environment.colorSchemeContrast)
     }
 }
 #endif

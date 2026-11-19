@@ -1,7 +1,7 @@
 # 時間割・今日の予定・授業時刻・授業名
 
 対応関係・宣言名・実行方法のSHA-256：
-`e59c34908767492082671db94ebc0b395cb7f150f6ab8a979103ac7e43b0fcce`
+`57af413878492c4304d874956b8bc336e0766c1279a599b1205ca4b5d358afe7`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -92,6 +92,9 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 - `testWeekBadgeHasClearanceOnBothEdgesAndInShortOrScrolledBodies`
 - `testLivePageHandoffPreservesTheReleasedContentPosition`
 - `testWeekPullConsumesHiddenColumnsAndUsesTheFinalFingerPosition`
+- `testWeekPreparationIncludesTheWeekBeyondArrivalAndStaysBounded`
+- `testEachWeekPullWaitsForItsOwnReadyPageAndCommitsOnce`
+- `testEarlyContactsKeepTheirDisplacementsWhileTheNextScrollViewPrepares`
 - `testBoundedRenderingMemoKeepsNilAndExactUnicodeInputs`
 - `testCommonClockCacheSeparatesDisplayScopeAndStopsAtRetentionBoundary`
 - `testAcceptedSourceIndexMatchesOriginalSelectorsAndBlocksAcrossScopes`

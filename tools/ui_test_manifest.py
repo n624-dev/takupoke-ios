@@ -91,6 +91,9 @@ PROBE_GROUPS = {
                         "testHomeTimetableAndWeekCalendar"),
     "week-motion": ("testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable",
                     "testTimetableCommonClocksAndEventOnlyWeekScale"),
+    "week-navigation-and-yellow": ("testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable",
+                                   "testConsecutiveWeekPullsTrackOverlappingContactsWithoutRepeating",
+                                   "testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch"),
     "retention": ("testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData",),
     "notifications": NOTIFICATION_PROBE_TESTS,
     "controls": CONTROL_PROBE_TESTS,
@@ -143,6 +146,7 @@ SHARDS = {
         "testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover",
         "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",
         "testChangedAccountDataNoticeOpensSharedAcquisition",
+        "testConsecutiveWeekPullsTrackOverlappingContactsWithoutRepeating",
     ),
     "B": (
         "testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch",

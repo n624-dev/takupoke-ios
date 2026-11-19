@@ -33,7 +33,7 @@ extension ApplicationChecks {
         tap("翌週")
         let calendar = app.buttons["timetable-week-calendar"]
         let selectedWeek = calendar.label
-        for (title, stored) in [("オレンジ", "orange"), ("緑", "green"), ("デフォルト", "未設定"), ("青", "blue")] {
+        for (title, stored) in [("オレンジ", "orange"), ("緑", "green"), ("黄色", "yellow"), ("デフォルト", "未設定"), ("青", "blue")] {
             tab("設定")
             tap("メインカラー")
             tap(title)
@@ -54,12 +54,101 @@ extension ApplicationChecks {
             } else if stored == "green" {
                 XCTAssertGreaterThan(buttonInk[1], 0.5)
                 XCTAssertGreaterThan(buttonInk[1], buttonInk[0] + 0.1)
+            } else if stored == "yellow" {
+                XCTAssertGreaterThan(buttonInk[0], buttonInk[1])
+                XCTAssertGreaterThan(buttonInk[1], buttonInk[2] + 0.22)
+                XCTAssertLessThan(buttonInk[0], 0.64, "Light appearance must use the readable shared gold")
             } else {
                 XCTAssertGreaterThan(buttonInk[2], 0.7)
                 XCTAssertGreaterThan(buttonInk[2], buttonInk[0] + 0.15)
             }
             recoveryScreenshot("live-theme-" + stored)
         }
+    }
+
+    func testConsecutiveWeekPullsTrackOverlappingContactsWithoutRepeating() throws {
+        tab("時間割")
+        let grid = app.scrollViews["timetable-week-grid"]
+        let calendar = app.buttons["timetable-week-calendar"]
+        let initial = calendar.label
+        let metrics = try gridMetrics()
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        let initialWeek = try XCTUnwrap(metrics["week"] as? String)
+        let initialDate = try XCTUnwrap(formatter.date(from: initialWeek))
+        let lastDate = try XCTUnwrap(formatter.date(from: try XCTUnwrap(metrics["lastWeek"] as? String)))
+        let firstDate = try XCTUnwrap(formatter.date(from: try XCTUnwrap(metrics["firstWeek"] as? String)))
+        let runsForward = lastDate.timeIntervalSince(initialDate) >= 3 * 604800
+        if !runsForward { XCTAssertGreaterThanOrEqual(initialDate.timeIntervalSince(firstDate), 3 * 604800) }
+        let visible = grid.frame.intersection(bodyViewport(navigation: "時間割"))
+        XCTAssertGreaterThan(visible.width, 285)
+        XCTAssertGreaterThan(visible.height, 30)
+        let anchor = app.coordinate(withNormalizedOffset: .zero)
+        let left = anchor.withOffset(CGVector(dx: visible.minX + 30, dy: visible.midY))
+        let right = anchor.withOffset(CGVector(dx: visible.maxX - 30, dy: visible.midY))
+        let distance = min(240, visible.width - 65)
+        func pull(next: Bool) {
+            let start = next ? right : left
+            let end = start.withOffset(CGVector(dx: next ? -distance : distance, dy: 0))
+            start.press(forDuration: 0.02, thenDragTo: end, withVelocity: .fast, thenHoldForDuration: 0)
+        }
+        // Use the observed grid geometry once. There is no AX query, motion
+        // completion check, or sleep between these physical contacts.
+        for next in [runsForward, runsForward, runsForward, !runsForward] { pull(next: next) }
+
+        struct Event: Decodable {
+            let kind: String
+            let week: String?
+            let target: String?
+            let phase: String?
+            let deferred: Bool?
+            let time: Double
+        }
+        let proof = app.staticTexts["fixture-week-sequence"]
+        var events: [Event] = []
+        let complete = expectation(for: NSPredicate { _, _ in
+            guard let raw = proof.value as? String, let data = raw.data(using: .utf8),
+                  let observed = try? JSONDecoder().decode([Event].self, from: data) else { return false }
+            events = observed
+            return observed.filter { $0.kind == "arrival" }.count >= 4 && observed.last?.kind == "settled"
+        }, evaluatedWith: proof)
+        wait(for: [complete], timeout: 8)
+        let contacts = events.filter { $0.kind == "contact" }
+        let arrivals = events.filter { $0.kind == "arrival" }
+        guard contacts.count == 4, arrivals.count == 4 else {
+            XCTFail("Expected four distinct physical contacts and arrivals. Observed \(events)"); return
+        }
+        XCTAssertTrue(contacts.dropFirst().contains { $0.phase == "slide" || $0.phase == "height" },
+                      "At least one new contact must start during the preceding move")
+        var expectedWeek = initialWeek
+        let expectedForwardInterval: TimeInterval = runsForward ? 604800 : -604800
+        for (index, arrival) in arrivals.enumerated() {
+            if let weekAtContact = contacts[index].week { XCTAssertEqual(weekAtContact, expectedWeek) }
+            XCTAssertEqual(arrival.week, expectedWeek)
+            XCTAssertGreaterThan(arrival.time, contacts[index].time)
+            let source = try XCTUnwrap(formatter.date(from: expectedWeek))
+            let destination = try XCTUnwrap(arrival.target)
+            let actualTarget = try XCTUnwrap(formatter.date(from: destination))
+            XCTAssertEqual(actualTarget.timeIntervalSince(source), index == 3 ? -expectedForwardInterval : expectedForwardInterval)
+            expectedWeek = destination
+        }
+        XCTAssertEqual(arrivals[3].target, arrivals[1].target, "The last pull must reverse one week")
+        var calendarDates = Calendar(identifier: .gregorian)
+        calendarDates.timeZone = .gmt
+        let start = try XCTUnwrap(formatter.date(from: expectedWeek))
+        let end = try XCTUnwrap(calendarDates.date(byAdding: .day, value: 6, to: start))
+        let lower = calendarDates.dateComponents([.month, .day], from: start)
+        let upper = calendarDates.dateComponents([.month, .day], from: end)
+        let expectedLabel = "\(try XCTUnwrap(lower.month))月\(try XCTUnwrap(lower.day))日から\(try XCTUnwrap(upper.month))月\(try XCTUnwrap(upper.day))日"
+        XCTAssertNotEqual(expectedLabel, initial)
+        XCTAssertEqual(calendar.label, expectedLabel, "The actual timetable calendar must show the fourth arrival")
+        let duplicate = expectation(for: NSPredicate { _, _ in
+            guard let raw = proof.value as? String,
+                  let observed = try? JSONDecoder().decode([Event].self, from: Data(raw.utf8)) else { return false }
+            return observed.filter { $0.kind == "arrival" }.count > 4
+        }, evaluatedWith: proof)
+        duplicate.isInverted = true
+        wait(for: [duplicate], timeout: 0.65)
     }
 
     func testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable() throws {

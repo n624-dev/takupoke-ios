@@ -30,6 +30,8 @@ struct HomeTodayView: View {
     @ObservedObject var schoolEvents: SchoolEventsModel
     @EnvironmentObject private var mappings: MappingModel
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var colorContrast
     @AppStorage("timetableSelectedClasses") private var classesValue = ""
     @AppStorage(ChangeNormalizer.schoolYearSettingKey) private var changeSchoolYear = ""
     @AppStorage("timetableInternationalStudent") private var international = false
@@ -43,7 +45,7 @@ struct HomeTodayView: View {
 
     private var day: SchoolDate { TimetableDaySchedule.schoolDay(at: now) }
     private var classes: [String] { TimetableView.decode(classesValue) }
-    private var accent: Color { mainColor.selection.displayColor }
+    private var accent: Color { mainColor.selection.displayColor(for: colorScheme, contrast: colorContrast) }
     private var schedule: TimetableDaySchedule {
         TimetableDaySchedule(timetable: materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue],
             changes: materials.state.changeAnalysis, events: schoolEvents.analysis,
