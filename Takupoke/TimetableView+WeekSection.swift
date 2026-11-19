@@ -5,22 +5,7 @@ extension TimetableView {
 
     fileprivate var weekSectionContent: some View {
         Section {
-            ViewThatFits(in: .horizontal) {
-                weekControlRow(compact: false)
-                weekControlRow(compact: true)
-                VStack(spacing: 8) {
-                    ViewThatFits(in: .horizontal) {
-                        calendarButton(compact: false)
-                        calendarButton(compact: true, fitsOwnRow: true)
-                    }
-                    HStack {
-                        previousWeekButton
-                        Spacer()
-                        nextWeekButton
-                    }
-                }
-            }
-            .buttonStyle(WeekControlButtonStyle())
+            TimetableWeekControls(timetable: self)
             Picker("表示モード", selection: $includesChanges) {
                 Text("通常").tag(false)
                 Text("変更込み").tag(true)
@@ -45,10 +30,7 @@ extension TimetableView {
                 defaultYear: ChangeNormalizer.effectiveSchoolYear(configured: changeSchoolYear, today: today)) }) != true {
                 InlineWarning("時間割変更は前回の解析結果です。")
             }
-            if schoolEvents.ready && !SchoolEventsCoverage(savedYears: Set(schoolEvents.saved.keys)).coversWeek(starting: weekStart) {
-                Label("学校行事は未取得です。", systemImage: "calendar.badge.exclamationmark")
-                    .foregroundStyle(.secondary)
-            }
+            TimetableWeekEventCoverage(timetable: self)
             SchoolEventsWarnings(model: schoolEvents)
             SpecialScheduleWarnings(model: specialSchedules)
             if selectedClasses.isEmpty {
@@ -58,11 +40,37 @@ extension TimetableView {
                     InlineWarning("保存したクラスは現在の資料に見つかりません。資料を再解析するか、クラスを選び直してください。")
                 }
             } else {
-                weekGrid
+                TimetableWeekGridRow(timetable: self)
                     .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
             }
             if selectedClasses.isEmpty { weekEvents(on: weekStart) }
         } header: { Text("週の時間割") }
+    }
+
+    fileprivate var weekControls: some View {
+        ViewThatFits(in: .horizontal) {
+            weekControlRow(compact: false)
+            weekControlRow(compact: true)
+            VStack(spacing: 8) {
+                ViewThatFits(in: .horizontal) {
+                    calendarButton(compact: false)
+                    calendarButton(compact: true, fitsOwnRow: true)
+                }
+                HStack {
+                    previousWeekButton
+                    Spacer()
+                    nextWeekButton
+                }
+            }
+        }
+        .buttonStyle(WeekControlButtonStyle())
+    }
+
+    @ViewBuilder fileprivate var weekEventCoverage: some View {
+        if schoolEvents.ready && !SchoolEventsCoverage(savedYears: Set(schoolEvents.saved.keys)).coversWeek(starting: weekStart) {
+            Label("学校行事は未取得です。", systemImage: "calendar.badge.exclamationmark")
+                .foregroundStyle(.secondary)
+        }
     }
 
     private func weekControlRow(compact: Bool) -> some View {
@@ -130,4 +138,21 @@ private struct WeekControlButtonStyle: ButtonStyle {
 private struct TimetableWeekSection: View {
     let timetable: TimetableView
     var body: some View { timetable.weekSectionContent }
+}
+
+// Each row observes the selected week independently. A landing does not
+// require recomputing the section containing the data and status rows.
+private struct TimetableWeekControls: View {
+    let timetable: TimetableView
+    var body: some View { timetable.weekControls }
+}
+
+private struct TimetableWeekEventCoverage: View {
+    let timetable: TimetableView
+    var body: some View { timetable.weekEventCoverage }
+}
+
+private struct TimetableWeekGridRow: View {
+    let timetable: TimetableView
+    var body: some View { timetable.weekGrid }
 }

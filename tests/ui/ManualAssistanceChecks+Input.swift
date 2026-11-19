@@ -32,18 +32,18 @@ extension ManualAssistanceChecks {
         let priorValue=row.value as? String
         let nativeValue=actual.value as? String
         print("TAKUPOKE-MANUAL-ACK before;id=\(id);outer=\(outerFrame);inner=\(innerFrame);enabled=\(enabled);hittable=\(hittable);controlValue=\(nativeValue ?? "unknown");app=\(appFrame);viewport=\(viewport);keyboard=\(keyboardFrame.map { String(describing:$0) } ?? "absent");value=\(priorValue ?? "unknown")")
-        guard enabled,hittable,priorValue == "0",nativeValue == "0" else {
+        guard enabled,hittable,priorValue == "0",nativeValue == "0",app.state == .runningForeground else {
             XCTFail("The unique native acknowledgement must be operable and unchecked");return
         }
-        // Keep one drag across the native thumb. The short travel needs
-        // enough time for the switch to track it before the touch ends.
-        let origin = app.coordinate(withNormalizedOffset: .zero)
-        let y = innerFrame.midY - appFrame.minY
-        let x = innerFrame.minX - appFrame.minX
-        let start = origin.withOffset(CGVector(dx: x + innerFrame.width * 0.25, dy: y))
-        let finish = origin.withOffset(CGVector(dx: x + innerFrame.width * 0.75, dy: y))
-        start.press(forDuration: 0.05, thenDragTo: finish,
-                    withVelocity: XCUIGestureVelocity(rawValue: 125), thenHoldForDuration: 0)
+        // Send one timed drag across the verified native thumb in screen coordinates.
+        let start = CGPoint(x: innerFrame.minX + innerFrame.width * 0.25, y: innerFrame.midY)
+        let finish = CGPoint(x: innerFrame.minX + innerFrame.width * 0.75, y: innerFrame.midY)
+        do {
+            try NativeTestContacts.send([.init(start: start, end: finish, duration: 0.33, pauseAfterLift: 0)],
+                                        named: "Manual confirmation switch")
+        } catch {
+            XCTFail("Native confirmation drag failed: \(error)");return
+        }
         // Post-gesture diagnostics must not add AX queries before the native state check.
         print("TAKUPOKE-MANUAL-ACK after;id=\(id)")
         var ambiguous=false
@@ -51,7 +51,7 @@ extension ManualAssistanceChecks {
             let current=self.recoveryList.switches.matching(identifier:"manual-ack-"+id).allElementsBoundByIndex
             if current.count>1 { ambiguous=true;return true }
             return current.count==1 && current[0].value as? String == "1"
-        },object:app)
+        },object:nil)
         let outcome=XCTWaiter.wait(for:[changed],timeout:nativeStateTimeout)
         print("TAKUPOKE-MANUAL-INPUT id=\(id);wait-outcome=\(outcome.rawValue);ambiguous=\(ambiguous)")
         if ambiguous || outcome != .completed {

@@ -267,11 +267,17 @@ extension ManualAssistanceChecks {
         guard current.count==1 else { XCTFail("Fixture menu must have one native Button");return }
         let button=current[0],frame=button.frame
         guard ManualScrollNavigation.usable(barFrame),ManualScrollNavigation.usable(frame),
-              barFrame.contains(frame),button.isEnabled,button.isHittable else {
+              barFrame.contains(frame),button.isEnabled,button.isHittable,app.state == .runningForeground else {
             XCTFail("Fixture menu must be visible on its own recovery toolbar: "+app.debugDescription);return
         }
         print("TAKUPOKE-MANUAL-MENU frame=\(frame);method=native-center-brief-contact;duration=0.1")
-        button.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).press(forDuration:0.1)
+        let center = CGPoint(x: frame.midX, y: frame.midY)
+        do {
+            try NativeTestContacts.send([.init(start: center, end: center, duration: 0.1, pauseAfterLift: 0)],
+                                        named: "Manual fixture toolbar")
+        } catch {
+            XCTFail("Native fixture menu contact failed: \(error)");return
+        }
         tapPopupAction(action, requiredTitles: requiredTitles)
     }
 
@@ -306,7 +312,7 @@ extension ManualAssistanceChecks {
             guard hittable, ProcessInfo.processInfo.systemUptime <= deadline else { return false }
             readyButton=button
             return true
-        },object:app)
+        },object:nil)
         let result=XCTWaiter.wait(for:[ready],timeout:nativeStateTimeout)
         guard !ambiguous,result == .completed,let button=readyButton else {
             XCTFail("The opened popup must have one visible and operable action: \(title);\(observation)");return

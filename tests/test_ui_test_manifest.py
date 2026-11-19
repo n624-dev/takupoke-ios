@@ -41,6 +41,15 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("inputs.focus || 'week-motion'", workflow)
         self.assertIn("testTimetableCommonClocksAndEventOnlyWeekScale", manifest.PROBE_GROUPS["week-motion"])
 
+        contact_file = "NativeTestContacts.swift"
+        for files in (manifest.CHECK_SOURCES, manifest.MANUAL_CHECK_SOURCES):
+            self.assertEqual(files.count(contact_file), 1)
+        contacts = (ROOT / "tests/ui" / contact_file).read_text()
+        self.assertIn("if contact.start != contact.end", contacts)
+        self.assertIn('"moveToPoint:atOffset:"', contacts)
+        self.assertIn('"liftUpAtOffset:"', contacts)
+        self.assertEqual(contacts.count("try deliver(record)"), 1)
+
     def test_generated_week_selection_initialization_respects_actor_isolation(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:

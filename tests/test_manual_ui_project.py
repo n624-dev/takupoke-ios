@@ -379,12 +379,9 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('let controls=row.switches.allElementsBoundByAccessibilityElement',acknowledge)
         self.assertIn('guard controls.count==1',acknowledge)
         self.assertNotIn('.tap()',acknowledge)
-        self.assertEqual(acknowledge.count('.press('),1)
-        self.assertRegex(
-            acknowledge,
-            r'start\.press\(forDuration: 0\.05, thenDragTo: finish,\s+'
-            r'withVelocity: XCUIGestureVelocity\(rawValue: 125\), thenHoldForDuration: 0\)',
-        )
+        self.assertNotIn('.press(',acknowledge)
+        self.assertEqual(acknowledge.count('NativeTestContacts.send('),1)
+        self.assertIn('NativeTestContacts.send([.init(start: start, end: finish, duration: 0.33, pauseAfterLift: 0)]',acknowledge)
         self.assertIn('let actual=controls[0]',acknowledge)
         self.assertIn('matching(identifier:"manual-ack-"+id).allElementsBoundByIndex',acknowledge)
         self.assertIn('XCTAssertFalse(ambiguous',acknowledge)
@@ -392,13 +389,10 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('ManualScrollNavigation.usable(appFrame), appFrame.contains(innerFrame)',acknowledge)
         self.assertIn('manualAcknowledgementFits(outer:outerFrame,inner:innerFrame,viewport:viewport)',acknowledge)
         self.assertIn('priorValue == "0",nativeValue == "0"',acknowledge)
-        self.assertEqual(acknowledge.count('app.coordinate('),1)
-        self.assertIn('let origin = app.coordinate(withNormalizedOffset: .zero)',acknowledge)
-        self.assertIn('let y = innerFrame.midY - appFrame.minY',acknowledge)
-        self.assertIn('let x = innerFrame.minX - appFrame.minX',acknowledge)
-        self.assertIn('let start = origin.withOffset(CGVector(dx: x + innerFrame.width * 0.25, dy: y))',acknowledge)
-        self.assertIn('let finish = origin.withOffset(CGVector(dx: x + innerFrame.width * 0.75, dy: y))',acknowledge)
-        self.assertNotIn('actual.coordinate(',acknowledge)
+        self.assertIn('app.state == .runningForeground',acknowledge)
+        self.assertIn('let start = CGPoint(x: innerFrame.minX + innerFrame.width * 0.25, y: innerFrame.midY)',acknowledge)
+        self.assertIn('let finish = CGPoint(x: innerFrame.minX + innerFrame.width * 0.75, y: innerFrame.midY)',acknowledge)
+        self.assertNotIn('.coordinate(',acknowledge)
         self.assertIn('TAKUPOKE-MANUAL-ACK before',acknowledge)
         self.assertIn('TAKUPOKE-MANUAL-ACK after',acknowledge)
         self.assertNotIn('typeText(',acknowledge)
@@ -409,9 +403,12 @@ class ManualUIProjectTests(unittest.TestCase):
         opening=checks.split('    func chooseFixtureMenuAction(',1)[1].split('    func tapPopupAction(',1)[0]
         self.assertIn('guard current.count==1',opening)
         self.assertLess(opening.index('let barFrame=bar.frame'),opening.index('.allElementsBoundByAccessibilityElement'))
-        self.assertEqual(opening.count('.press(forDuration:0.1)'),1)
+        self.assertEqual(opening.count('NativeTestContacts.send('),1)
+        self.assertIn('let center = CGPoint(x: frame.midX, y: frame.midY)',opening)
+        self.assertIn('NativeTestContacts.send([.init(start: center, end: center, duration: 0.1, pauseAfterLift: 0)]',opening)
+        self.assertNotIn('.coordinate(',opening)
         self.assertNotIn('.tap()',opening)
-        self.assertIn('barFrame.contains(frame),button.isEnabled,button.isHittable',opening)
+        self.assertIn('barFrame.contains(frame),button.isEnabled,button.isHittable,app.state == .runningForeground',opening)
         for action in ('表示サイズを変更','同じ原本の状態を再確認','架空原本のハッシュを変更'):
             self.assertIn(f'"{action}"',opening)
             self.assertIn(f'chooseFixtureMenuAction("{action}")',checks)

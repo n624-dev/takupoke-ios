@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`5b926514c16e0b8686737dfbe0bdc504dedd8df6ffd138d433b9e7344a405ae2`
+`8a933d1d8f7716262a131a13a100506087e0808c1df5e256a6f9a291bec9343a`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -51,6 +51,7 @@ bash tools/test-app-ui.sh
 - [Takupoke/UsageHelpView.swift](../../Takupoke/UsageHelpView.swift)
 - [tests/Support/ObservedScreenGeometry.swift](../../tests/Support/ObservedScreenGeometry.swift)
 - [tests/ui/NativeTabActivation.swift](../../tests/ui/NativeTabActivation.swift)
+- [tests/ui/NativeTestContacts.swift](../../tests/ui/NativeTestContacts.swift)
 - [tests/ui/ApplicationChecks+Navigation.swift](../../tests/ui/ApplicationChecks+Navigation.swift)
 - [tests/ui/ApplicationChecks.swift](../../tests/ui/ApplicationChecks.swift)
 - [tests/ui/ApplicationFixture+Changes.swift](../../tests/ui/ApplicationFixture+Changes.swift)
@@ -184,6 +185,26 @@ bash tools/test-app-ui.sh
 - `testUnusableOversizeOrAlreadyVisibleRowsNeverInventScrollGeometry`
 - `testUnresolvedPresentFooterNeverMakesBodyVisible`
 - `testAbsentResolvedAndCoveringFooterHaveDifferentVisibleBounds`
+
+## [tests/test_manual_ui_project.py](../../tests/test_manual_ui_project.py)
+
+- `test_missing_or_duplicate_anchor_fails_closed`
+- `test_binding_diagnostics_are_opt_in_hashed_and_explicitly_truncated`
+- `test_editor_uses_physical_clear_and_checks_full_replacement`
+- `test_manual_case_filter_is_exact_and_default_keeps_whole_suite`
+- `test_completion_guard_rejects_missing_duplicate_skipped_failed_or_other_case`
+- `test_coordinator_preserves_actual_submit_adopt_and_source_guards`
+- `test_view_identifiers_do_not_precheck_or_bypass_existing_disabled_gate`
+- `test_review_readiness_measures_actual_coordinator_state`
+- `test_comparable_prior_defers_actual_builder_until_qa_window_exists`
+- `test_review_uses_production_japan_timestamp_without_device_timezone`
+- `test_existing_app_generator_raster_anchor_matches_current_acquisition`
+- `test_generated_host_preserves_production_background_task_registration`
+- `test_fixture_dimensions_respect_native_capture_limit_and_uniform_rule_scale`
+- `test_actual_qa_failure_stage_and_bitmap_extent_are_observable_in_accessibility_tree`
+- `test_raster_ab_preserves_old_rendering_and_uses_same_physical_predicate`
+- `test_fixture_uses_current_period_and_actual_builder_proof`
+- `test_manual_controls_are_scrolled_and_acknowledged_without_keyboard_or_outer_switch_taps`
 
 ## [tests/test_notification_service_trace.py](../../tests/test_notification_service_trace.py)
 
