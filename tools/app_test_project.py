@@ -29,7 +29,7 @@ WEEK_MOTION_INSERTIONS = (
     ('    private func promote(_ value: Transition) {',
      '\n        FixtureWeekMotionRecorder.shared.checkpoint("promotion-begin")'),
     ('            arrive?(value.source, value.destination)',
-     '\n            FixtureWeekMotionRecorder.shared.checkpoint("date-committed")'),
+     '\n            FixtureWeekMotionRecorder.shared.checkpoint("arrival-callback-returned")'),
     ('            heldScroll?.isScrollEnabled = true\n            heldScroll = nil',
      '\n            FixtureWeekMotionRecorder.shared.checkpoint("scroll-restored")'),
     ('    private func configure(_ weeks: [SchoolDate]) {',
