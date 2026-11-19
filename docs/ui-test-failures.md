@@ -5319,3 +5319,5 @@ d6bc639基点、追加のLinuxモデル試行、Swift 6.1.2／FoundationNetworki
 ### #120 Linuxのカウントダウン接続の型検査で停止（2026-11-19）
 
 f5ca2a7のカウントダウンと学校行事モデルを対象にした追加のLinux型検査。Swift 6.1.2、通知フレームワークの型だけを一時置換。`CountdownModel.swift:175` で任意の `pdfAnalyses` の添字にoptional chainがなく、製品以外のApple接続の型確認より前に停止。`HomeTodayView` の同じ時間割投影入口を照合し、通常時間割が未取得でも試験資料を判定できるよう同じoptional chainを使う。f5ca2a7の限定は開始済みであり、取消しはしない。
+
+[限定44443673963・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/44443673963/attempts/1) のiOS27.0.0（135290462665）と26.5.0（135290463296）、f5ca2a7、SDK 27.2は、どちらも同じ `CountdownModel.swift:175:76` のoptional添字でコンパイル停止。22:48／30:04 UTC時分にエラーを観測し、画面操作には未到達。全ジョブ終端。同じoptional chainを適用したLinux追加型検査と行事・カウントダウン46件は成功した。通知フレームワークの置換は補助検査に限り、限定でネイティブ実機能を再検査する。

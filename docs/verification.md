@@ -8545,3 +8545,7 @@ API本番では0.1.506で使用するv1本文の実SHA-256が更新前と同じ�
 #120・#121の開始前レビューでは、v1/v2要求形式の型、半期切替前の通知所有者、本文失敗の待機、状態追跡の期限を修正した。新規GPT-6.2 Sol/Highが、初回の固定コード差分 `45c25c259838546ca36539040b5040d596b9c8bef868db9552da164a3160bb85` と修正分 `bd0c1ef6031b263a5fe1e69ed16a39496114c73937181404b2ffe5a2198019cf`、`5f37de1804fa5bc962e46eee7d51da030e3f7ce5502af7045c26a3a2cb07bfd9` を再照合した。[限定44443673963・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/44443673963/attempts/1) はf5ca2a7を両OSで実行する。[APIの本番確認](https://github.com/n624-dev/takupoke-api/actions/runs/44442707434) はe474a4fで成功した。
 
 Linuxの行事モデルを含む補助検査675件が成功（130.465秒、うち行事モデル15件0失敗）。一時コピーでSwift 6.1.2／FoundationNetworking・OpenCombine・Swift Cryptoを使用した。本文のv1保持とv2移行、元PDFの24時間期限と自動再開、バックグラウンドの取消し、時刻と版、元PDF差異の保持を架空APIで照合した。AppleのCombine、実通知、シミュレータでの描画の検査とは区別する。
+
+固定e16da27のLinux Distributionは318件（予定skip 23、失敗0、236.082秒）。一時コピーの行事・カウントダウン46件と接続の補助型検査も成功した。通知ケースは同じ登録IDの前日・7日前の実ローカル予約、OS許可状態、アプリ再起動後の照合、通知OFFでの消去、他のOS予約の保持を検査する。既存通知ケースの後に実行する。限定projectは本番Appエントリをfixtureへ置き換えるため、製品の新しい初期化経路と冷間起動時の通知タップは限定では実証しない。
+
+通知限定開始前の新規GPT-6.2 Sol/Highはコード差分 `8dc5cdeb259234c8aebfcaec64baac4e9933e3bc80c63c1995d72839c972f65d`、修正 `c7b517da57ec338dc6be9403bf8e685318956f5010bd87ae9d9778da87e0df9b`、本番初期化 `9a54f6108992d2260abf7e868eb17819707e9581372238a90f4c02a6b32de0b0` を確認。既存の通知許可順序と許可待ちの指摘を修正し、実予約の照合と同じoptional投影を確認した。
