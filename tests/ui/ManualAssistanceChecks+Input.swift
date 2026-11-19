@@ -35,14 +35,15 @@ extension ManualAssistanceChecks {
         guard enabled,hittable,priorValue == "0",nativeValue == "0" else {
             XCTFail("The unique native acknowledgement must be operable and unchecked");return
         }
-        // Use the same single thumb drag as row exclusion. The row and
-        // its native switch must both be off before the gesture begins.
+        // Keep one drag across the native thumb. The short travel needs
+        // enough time for the switch to track it before the touch ends.
         let origin = app.coordinate(withNormalizedOffset: .zero)
         let y = innerFrame.midY - appFrame.minY
         let x = innerFrame.minX - appFrame.minX
         let start = origin.withOffset(CGVector(dx: x + innerFrame.width * 0.25, dy: y))
         let finish = origin.withOffset(CGVector(dx: x + innerFrame.width * 0.75, dy: y))
-        start.press(forDuration: 0.05, thenDragTo: finish, withVelocity: .slow, thenHoldForDuration: 0)
+        start.press(forDuration: 0.05, thenDragTo: finish,
+                    withVelocity: XCUIGestureVelocity(rawValue: 125), thenHoldForDuration: 0)
         // Post-gesture diagnostics must not add AX queries before the native state check.
         print("TAKUPOKE-MANUAL-ACK after;id=\(id)")
         var ambiguous=false

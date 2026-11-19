@@ -374,7 +374,11 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('guard controls.count==1',acknowledge)
         self.assertNotIn('.tap()',acknowledge)
         self.assertEqual(acknowledge.count('.press('),1)
-        self.assertIn('start.press(forDuration: 0.05, thenDragTo: finish, withVelocity: .slow, thenHoldForDuration: 0)',acknowledge)
+        self.assertRegex(
+            acknowledge,
+            r'start\.press\(forDuration: 0\.05, thenDragTo: finish,\s+'
+            r'withVelocity: XCUIGestureVelocity\(rawValue: 125\), thenHoldForDuration: 0\)',
+        )
         self.assertIn('let actual=controls[0]',acknowledge)
         self.assertIn('matching(identifier:"manual-ack-"+id).allElementsBoundByIndex',acknowledge)
         self.assertIn('XCTAssertFalse(ambiguous',acknowledge)
@@ -393,7 +397,8 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('TAKUPOKE-MANUAL-ACK after',acknowledge)
         self.assertNotIn('typeText(',acknowledge)
         self.assertNotIn('sleep(',acknowledge)
-        self.assertNotIn('for ',acknowledge)
+        acknowledgement_code = '\n'.join(line.partition('//')[0] for line in acknowledge.splitlines())
+        self.assertNotRegex(acknowledgement_code,r'\bfor\s')
         self.assertIn('XCTNSPredicateExpectation',acknowledge)
         opening=checks.split('    func chooseFixtureMenuAction(',1)[1].split('    func tapPopupAction(',1)[0]
         self.assertIn('guard current.count==1',opening)
