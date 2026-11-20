@@ -45,17 +45,21 @@ def forward(simulator):
     stop_at = None
     command = ["xcrun", "simctl", "spawn", simulator, "log", "stream", "--style", "ndjson",
                "--level", "info", "--predicate", f'subsystem == "{SUBSYSTEM}" AND category == "{CATEGORY}"']
-    print(f"CI_SIMULATOR_TRACE state=start simulator={simulator}", flush=True)
-    try:
-        child = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, start_new_session=True)
-    except OSError:
-        print(f"CI_SIMULATOR_TRACE state=unavailable simulator={simulator}", flush=True)
-        return
 
     def request_stop(_signum, _frame):
         nonlocal stop_at
         if stop_at is None:
             stop_at = time.monotonic() + 0.5
+
+    previous = {signum: signal.signal(signum, request_stop) for signum in (signal.SIGINT, signal.SIGTERM)}
+    print(f"CI_SIMULATOR_TRACE state=start simulator={simulator}", flush=True)
+    try:
+        child = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, start_new_session=True)
+    except OSError:
+        print(f"CI_SIMULATOR_TRACE state=unavailable simulator={simulator}", flush=True)
+        for signum, handler in previous.items():
+            signal.signal(signum, handler)
+        return
 
     def signal_owned_group(signum):
         try:
@@ -63,7 +67,6 @@ def forward(simulator):
         except ProcessLookupError:
             pass
 
-    previous = {signum: signal.signal(signum, request_stop) for signum in (signal.SIGINT, signal.SIGTERM)}
     try:
         with child.stdout as stream, selectors.DefaultSelector() as selector:
             selector.register(stream, selectors.EVENT_READ)

@@ -44,6 +44,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     }
     func began(body: UIView) {
         guard enabled else { return }
+        FixtureCITrace.mark("week-motion-contact")
         cancelBadgeCapture()
         dragBody = body; fingerDown = true
         badge = [:]; badgeImage = nil; badgeFrame = nil
@@ -52,6 +53,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     func released(body: UIView) {
         guard enabled else { return }
         releasedAt = CACurrentMediaTime()
+        FixtureCITrace.mark("week-motion-release")
         releasePoint = point(body)
         cancelBadgeCapture()
     }
@@ -90,7 +92,14 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
         return Double(time.tv_sec) + Double(time.tv_nsec) / 1_000_000_000
     }
     func checkpoint(_ name: String) {
-        guard enabled, link != nil, checkpoints.count < 32 else { return }
+        guard enabled, link != nil else { return }
+        switch name {
+        case "display-link-registered", "horizontal-arrival", "height-ended", "promotion-begin",
+             "arrival-callback-returned", "scroll-restored", "configuration-begin", "configuration-end":
+            FixtureCITrace.mark("week-motion-" + name)
+        default: break
+        }
+        guard checkpoints.count < 32 else { return }
         checkpoints.append(["name": name, "t": CACurrentMediaTime() - releasedAt, "cpu": threadCPUTime()])
     }
     private func point(_ view: UIView?) -> CGPoint? {
@@ -210,8 +219,17 @@ final class FixtureWeekSequenceRecorder: ObservableObject {
 
     func observe(_ kind: String, week: SchoolDate?, target: SchoolDate? = nil, phase: String? = nil, deferred: Bool? = nil) {
         guard ProcessInfo.processInfo.arguments.contains("--week-sequence-probe") else { return }
+        let observed = CACurrentMediaTime()
         events.append(Event(kind: kind, week: week?.iso8601, target: target?.iso8601,
-                            phase: phase, deferred: deferred, time: CACurrentMediaTime()))
+                            phase: phase, deferred: deferred, time: observed))
+        switch (kind, phase) {
+        case ("contact", "settled"), ("contact", "height"), ("contact", "pending"), ("contact", "slide"),
+             ("release", "settled"), ("release", "height"), ("release", "pending"), ("release", "slide"):
+            if let phase { FixtureCITrace.mark("week-sequence-\(kind)-\(phase)") }
+        case ("arrival", nil), ("settled", nil):
+            FixtureCITrace.mark("week-sequence-" + kind)
+        default: break
+        }
         if let data = try? JSONEncoder().encode(events), let value = String(data: data, encoding: .utf8) {
             report = value
             print("TAKUPOKE_WEEK_SEQUENCE " + value)
