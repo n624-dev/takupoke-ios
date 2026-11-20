@@ -5537,4 +5537,10 @@ Linux Swift 6.1.2の確認Button候補のローカル38件では、既存の実�
 
 `Unable to find a device matching`、`bootstatus`、`test-without-building`でN127・43769812600・正式494を読んだ。N127は同じboot後の指定UUID解決で、正式494はbuild時だった。1c331818の旧runとbf2cの実行先を指定する箇所を比較し、8b15dd8とのRuntime準備・通常UI runnerと公開ゲートの差分がないことを確認した。N127の再実行では新しいホストで同じ条件が通り、GitHubが成功済みの結果を新しい試行に引き継いだ。先行bf2cは三項目訂正の失敗もあり、現在はその修正を含む正式8b15dd8が実行中。同じ環境段階で最新も止まった場合は、結果がすべて終端してから修正の要否・同一コミットの失敗ジョブ再実行を、この証拠と新しい実ログから判断する。
 
+### 正式iOS27 Bのホストとの通信断
+
+[正式44641545708](https://github.com/n624-dev/takupoke-ios/actions/runs/44641545708/job/135975149293)・試行1、8b15dd8、指定SDK27.2／iOS27.0 Bは00:04:51〜00:59:08 UTCでfailure。ジョブの失敗注記は `The hosted runner lost communication with the server`。シミュレータ実行stepで停止したが、connectorでログを取得するとBlobNotFound、`gh run view --job` は実行全体の終了前と返した。どのケースまで進んだか、通信断の原因がホスト終了・資源・ネットワークのどれかは未確定。75分のジョブ上限には達していない。iOS27 Aと手動4件は成功、残りの26 Aは継続。
+
+`lost communication`、`hosted runner`、`BlobNotFound`でN73／39771133485を検索し、旧d713ed6と現行の指定端末・各ケースの実行方法を照合した。過去はiOS26 Aで同じ失敗注記とログ欠落、今回はiOS27 B。先行bf2cのiOS27 Bは同じ製品・通常UIテスト・生成器・Runtime準備・runner・正式workflowで23:52:06 UTCに成功し、三項目の修正は手動テストだけにある。26 Aが終端し、追加の実ケース失敗が見つからなければ、ソースを変えず同じiOS27 Bと依存ジョブを新しいホストで一度再実行する。元の操作・期限・公開条件を保ち、引き継がれる結果は新しい試行のAPIで照合する。初回の通信断は記録に残す。
+
 ebe3694の[明示選択限定44616309920](https://github.com/n624-dev/takupoke-ios/actions/runs/44616309920/attempts/1)・試行1、iOS26.5／SDK27.2（135885851122）は21:53:43 UTCにfailure。21:31:58に実ケース開始、Set Up以降に初期画面・入力の記録はなく、準備込み2400秒で21:52:15にexit124。所有端末の回収は完了した。実確認操作・新しいButtonの成否は未観測。同じ症状の前に候補を変更する根拠にはしない。
