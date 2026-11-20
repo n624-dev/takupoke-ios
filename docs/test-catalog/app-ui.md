@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`e379317c04962463d5e7127a3ad11dfa8fb8acb79d9da82b2390e78665b13f47`
+`24545dcf60956d843a5a215aa1623cc89fc3512e6638c70b03f65262eea69841`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -55,6 +55,7 @@ bash tools/test-app-ui.sh
 - [tests/ui/ApplicationChecks+Navigation.swift](../../tests/ui/ApplicationChecks+Navigation.swift)
 - [tests/ui/ApplicationChecks.swift](../../tests/ui/ApplicationChecks.swift)
 - [tests/ui/ApplicationFixture+CITrace.swift](../../tests/ui/ApplicationFixture+CITrace.swift)
+- [tests/ui/ApplicationFixture+WeekHandoff.swift](../../tests/ui/ApplicationFixture+WeekHandoff.swift)
 - [tests/ui/ApplicationFixture+Changes.swift](../../tests/ui/ApplicationFixture+Changes.swift)
 - [tests/ui/ApplicationFixture+Events.swift](../../tests/ui/ApplicationFixture+Events.swift)
 - [tests/ui/ApplicationFixture+Grid.swift](../../tests/ui/ApplicationFixture+Grid.swift)
@@ -301,6 +302,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_simulator_ci_trace.py](../../tests/test_simulator_ci_trace.py)
 
+- `test_height_handoff_imports_core_foundation_in_swift`
 - `test_fixture_output_compiles_with_escaping_log_interpolation`
 - `test_parses_fixed_fields_and_rejects_unrelated_or_unstructured_output`
 - `test_streams_over_128_events_while_owned_command_runs_and_stops_it`

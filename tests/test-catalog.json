@@ -507,6 +507,7 @@
         "tests/ui/ApplicationChecks+Navigation.swift",
         "tests/ui/ApplicationChecks.swift",
         "tests/ui/ApplicationFixture+CITrace.swift",
+        "tests/ui/ApplicationFixture+WeekHandoff.swift",
         "tests/ui/ApplicationFixture+Changes.swift",
         "tests/ui/ApplicationFixture+Events.swift",
         "tests/ui/ApplicationFixture+Grid.swift",

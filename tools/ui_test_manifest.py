@@ -19,6 +19,7 @@ CHECK_SOURCES = (
     "ApplicationChecks+Events.swift",
     "ApplicationChecks+Notifications.swift",
     "ApplicationChecks+WeekAppearance.swift",
+    "ApplicationFixture+WeekHandoff.swift",
 )
 FIXTURE_SOURCES = (
     "ApplicationFixture.swift",
@@ -31,6 +32,7 @@ FIXTURE_SOURCES = (
     "ApplicationFixture+OCR.swift",
     "ApplicationFixture+NotificationPermission.swift",
     "ApplicationFixture+WeekMotion.swift",
+    "ApplicationFixture+WeekHandoff.swift",
 )
 
 MANUAL_CHECK_SOURCES = (
@@ -60,7 +62,7 @@ def manual_check_source(root=ROOT):
 def check_source(root=ROOT):
     folder = root / "tests/ui"
     actual = {path.name for path in folder.glob("ApplicationChecks*.swift")}
-    if actual != set(CHECK_SOURCES) - {"NativeTabActivation.swift", "NativeTestContacts.swift"}:
+    if actual != set(CHECK_SOURCES) - {"NativeTabActivation.swift", "NativeTestContacts.swift", "ApplicationFixture+WeekHandoff.swift"}:
         raise ValueError("UI test files differ from registered sources")
     return "\n".join((folder / name).read_text(encoding="utf-8")
                      for name in CHECK_SOURCES)

@@ -24,6 +24,19 @@ def event(sequence, payload, *, pid=482, **metadata):
 
 
 class SimulatorCITraceTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("swiftc"), "Swift compiler for Core Foundation notification type check")
+    def test_height_handoff_imports_core_foundation_in_swift(self):
+        source = ROOT / "tests/ui/ApplicationFixture+WeekHandoff.swift"
+        test = (ROOT / "tests/ui/ApplicationChecks+WeekAppearance.swift").read_text(encoding="utf-8")
+        start = test.index("            let heightWindow = XCTestExpectation(")
+        end = test.index("            try NativeTestContacts.send(", start)
+        with tempfile.TemporaryDirectory(prefix="takupoke-height-notification-") as temporary:
+            subscription = Path(temporary) / "Subscription.swift"
+            subscription.write_text("import XCTest\nfunc testSubscription() {\n" + test[start:end] + "}\n", encoding="utf-8")
+            result = subprocess.run(["swiftc", "-typecheck", "-module-cache-path", temporary, str(source), str(subscription)],
+                                    capture_output=True, text=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     @unittest.skipUnless(shutil.which("swiftc"), "Swift compiler for log interpolation type check")
     def test_fixture_output_compiles_with_escaping_log_interpolation(self):
         source = (ROOT / "tests/ui/ApplicationFixture+CITrace.swift").read_text(encoding="utf-8")

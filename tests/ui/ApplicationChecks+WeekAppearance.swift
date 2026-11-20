@@ -1,6 +1,5 @@
 import XCTest
 import UIKit
-import Darwin
 
 extension ApplicationChecks {
     // Extract actual colored ink, excluding the neutral glass, text, and tab
@@ -97,18 +96,25 @@ extension ApplicationChecks {
         // Schedule the next real contact from the observed height handoff.
         // XCTest may compress requested idle gaps or take a different time to
         // return from the first dispatch on a loaded Simulator.
-        let heightWindow = XCTestExpectation(description: "The arriving week began height adjustment")
-        var subscription: Int32 = 0
-        let registration = notify_register_dispatch("jp.n624.takupoke.ci.week-height-window", &subscription,
-                                                    DispatchQueue.global(qos: .userInitiated)) { _ in heightWindow.fulfill() }
-        guard registration == UInt32(NOTIFY_STATUS_OK) else {
-            XCTFail("Could not observe the simulator's week height handoff: \(registration)"); return
-        }
-        defer { _ = notify_cancel(subscription) }
-        try NativeTestContacts.send(Array(sequence.prefix(1)), named: "Timed timetable week pulls")
-        let firstDelivery = ProcessInfo.processInfo.systemUptime
-        guard XCTWaiter.wait(for: [heightWindow], timeout: 1.5) == .completed else {
-            XCTFail("The first physical pull did not report a height handoff"); return
+        let firstDelivery: TimeInterval
+        do {
+            let heightWindow = XCTestExpectation(description: "The arriving week began height adjustment")
+            let observer = Unmanaged.passUnretained(heightWindow).toOpaque()
+            guard WeekHeightHandoff.observe(observer, callback: { _, context, _, _, _ in
+                guard let context else { return }
+                Unmanaged<XCTestExpectation>.fromOpaque(context).takeUnretainedValue().fulfill()
+            }) else {
+                XCTFail("Could not observe the simulator's week height handoff"); return
+            }
+            defer {
+                WeekHeightHandoff.remove(observer)
+                withExtendedLifetime(heightWindow) {}
+            }
+            try NativeTestContacts.send(Array(sequence.prefix(1)), named: "Timed timetable week pulls")
+            firstDelivery = ProcessInfo.processInfo.systemUptime
+            guard XCTWaiter.wait(for: [heightWindow], timeout: 1.5) == .completed else {
+                XCTFail("The first physical pull did not report a height handoff"); return
+            }
         }
         let continuation = ProcessInfo.processInfo.systemUptime
         try NativeTestContacts.send(Array(sequence.dropFirst()), named: "Timed timetable week pulls")

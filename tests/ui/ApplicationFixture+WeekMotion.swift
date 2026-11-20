@@ -220,8 +220,8 @@ final class FixtureWeekSequenceRecorder: ObservableObject {
 
     func signalHeightWindow() {
         guard ProcessInfo.processInfo.arguments.contains("--week-sequence-probe") else { return }
-        let status = notify_post("jp.n624.takupoke.ci.week-height-window")
-        FixtureCITrace.mark(status == UInt32(NOTIFY_STATUS_OK) ? "week-height-window-posted" : "week-height-window-post-failed")
+        let posted = WeekHeightHandoff.post()
+        FixtureCITrace.mark(posted ? "week-height-window-posted" : "week-height-window-post-failed")
     }
 
     func observe(_ kind: String, week: SchoolDate?, target: SchoolDate? = nil, phase: String? = nil, deferred: Bool? = nil) {
