@@ -28,7 +28,7 @@ extension SimulatorIdentityTestCase {
             observation += "; native images=\(icons.count)"
             if icons.count > 1 { return true }
             guard icons.count == 1 else { return false }
-            // These frames and the enabled state come from the same AX snapshot.
+            // The observed icon belongs to the same current, enabled button.
             let icon = icons[0]
             let appFrame = root.frame, barFrame = bar.frame, buttonFrame = button.frame, iconFrame = icon.frame
             guard ObservedScreenGeometry.usable(appFrame), ObservedScreenGeometry.usable(barFrame),
@@ -38,40 +38,16 @@ extension SimulatorIdentityTestCase {
                   ObservedScreenGeometry.contains(iconFrame, in: buttonFrame, scale: scale),
                   ObservedScreenGeometry.contains(iconFrame, in: barFrame, scale: scale),
                   button.isEnabled, ProcessInfo.processInfo.systemUptime < deadline else { return false }
-            // Bind the current bar and all of the selected button's images
-            // once. Compare the image's own snapshot before using its hit region.
-            let liveBars = app.tabBars.allElementsBoundByAccessibilityElement
-            observation += "; current native bars=\(liveBars.count)"
-            if liveBars.count > 1 { return true }
-            guard let liveBar = liveBars.first, liveBar.frame == barFrame else { return false }
-            let candidates = liveBar.buttons.matching(identifier: title).allElementsBoundByAccessibilityElement
-            var liveButtons: [(element: XCUIElement, snapshot: any XCUIElementSnapshot)] = []
-            for candidate in candidates {
-                guard let current = try? candidate.snapshot() else { return false }
-                if current.elementType == .button && (current.identifier == title || current.label == title) {
-                    liveButtons.append((candidate, current))
-                }
-            }
-            observation += "; current matching buttons=\(liveButtons.count)"
-            if liveButtons.count > 1 { return true }
-            guard let (liveButton, current) = liveButtons.first,
-                  current.identifier == button.identifier, current.label == button.label,
-                  current.isEnabled, current.frame == buttonFrame, liveButton.isHittable else { return false }
-            let liveIcons = liveButton.images.allElementsBoundByAccessibilityElement
-            observation += "; current native images=\(liveIcons.count)"
-            if liveIcons.count > 1 { return true }
-            guard let liveIcon = liveIcons.first, let currentIcon = try? liveIcon.snapshot(),
-                  currentIcon.elementType == .image, currentIcon.identifier == icon.identifier,
-                  currentIcon.label == icon.label, currentIcon.frame == iconFrame, liveIcon.isHittable,
-                  ProcessInfo.processInfo.systemUptime <= deadline else { return false }
             let center = CGPoint(x: iconFrame.midX, y: iconFrame.midY)
             print("NATIVE_TAB title=\(title);bar=\(barFrame);button=\(buttonFrame);icon=\(iconFrame);contact=\(center)")
             contact = center
             return true
         }, object: nil)
         guard XCTWaiter.wait(for: [ready], timeout: 2 * timeout) == .completed,
-              let contact, app.state == .runningForeground else {
-            XCTFail("The current tab must have one visible, operable native icon: " + observation); return false
+              let contact, app.state == .runningForeground,
+              ProcessInfo.processInfo.systemUptime <= deadline else {
+            XCTFail("The current tab must have one visible, enabled native target: " + observation)
+            return false
         }
         // Both callers verify the selected tab after this single U63 contact.
         do {

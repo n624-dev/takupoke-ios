@@ -197,8 +197,12 @@ enum SimulatorEventsYearFixture {
         manual = (folder / "ManualAssistanceChecks.swift").read_text()
         self.assertIn("guard pressNativeTabIcon(title, in: app, timeout: 45)", app)
         self.assertIn('guard pressNativeTabIcon("設定", in: app, timeout: nativeStateTimeout)', manual)
+        self.assertIn("return current.exists && current.isSelected", app)
         self.assertIn("current.count==1 && current[0].isSelected", manual)
         contact = (folder / common).read_text()
+        self.assertEqual(contact.count("app.snapshot()"), 1)
+        self.assertIn("button.isEnabled", contact)
+        self.assertNotIn("allElementsBoundByAccessibilityElement", contact)
         self.assertIn("icons.count == 1", contact)
         self.assertIn("ObservedScreenGeometry.contains(iconFrame, in: buttonFrame", contact)
         self.assertIn("ObservedScreenGeometry.contains(iconFrame, in: barFrame", contact)
@@ -208,6 +212,25 @@ enum SimulatorEventsYearFixture {
         self.assertIn("app.state == .runningForeground", contact)
         self.assertNotIn(".coordinate(", contact)
         self.assertNotIn(".tap()", contact)
+
+    def test_retained_row_checks_the_current_visible_screen_before_and_after_relaunch(self):
+        source = (ROOT / "tests/ui/ApplicationChecks+Changes.swift").read_text()
+        helper, case = source.split("private func retainedChangeIsVisible(", 1)[1].split(
+            "func testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch(", 1)
+        self.assertEqual(helper.count("self.app.snapshot()"), 1)
+        self.assertIn("$0.elementType == .staticText && $0.label == label", helper)
+        self.assertIn("ObservedScreenGeometry.contains(frame, in: viewport", helper)
+        self.assertIn("timeout: 2", helper)
+        self.assertIn("for attempt in 0...6", helper)
+        self.assertIn("NativeTestContacts.send(", helper)
+        assertion = 'XCTAssertTrue(try retainedChangeIsVisible("変更後、架空科目C"))'
+        before, after = case.split('app.launchArguments.removeAll { $0 == "--reset-fixture" }', 1)
+        self.assertIn(assertion, before)
+        self.assertIn(assertion, after)
+        workflow = (ROOT / ".github/workflows/application-relaunch-native-probe.yml").read_text()
+        self.assertIn("timeout-minutes: ${{ inputs.case == 'rows' && 45 || 30 }}", workflow)
+        self.assertIn("TKPK_RELAUNCH_RUNNER_SECONDS: ${{ inputs.case == 'rows' && 2400 || 1440 }}", workflow)
+        self.assertIn('--timeout "$TKPK_RELAUNCH_RUNNER_SECONDS" --cleanup-grace 120', workflow)
 
     def test_toolbar_tap_checks_one_current_native_button(self):
         source = (ROOT / "tests/ui/ApplicationChecks+Navigation.swift").read_text()

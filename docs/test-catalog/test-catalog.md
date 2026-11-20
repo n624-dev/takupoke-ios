@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`fdb0b89ba2cceadef4a35f58c9f33569d6ad5eb618d406d8bf9a0531f857b40e`
+`86fac8a4efdedaef53361f319e66c2c7bfcc2f3dfe7e42d0418763d32cd48da4`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -45,6 +45,7 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 - `test_merged_card_probe_starts_with_only_the_original_case`
 - `test_week_card_contact_uses_one_observed_enabled_button_and_requires_the_real_detail`
 - `test_both_suites_use_the_same_native_tab_contact`
+- `test_retained_row_checks_the_current_visible_screen_before_and_after_relaunch`
 - `test_toolbar_tap_checks_one_current_native_button`
 - `test_split_sources_are_registered_in_the_selected_target_only`
 - `test_unregistered_split_file_is_rejected`

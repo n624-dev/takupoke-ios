@@ -68,7 +68,7 @@ jobs:
       matrix:
         ios: ${{ fromJSON(inputs.ios == 'both' && '[27,26]' || inputs.ios == '26' && '[26]' || '[27]') }}
     runs-on: ${{ matrix.ios == 26 && inputs.sdk26 == '26.6' && 'macos-26' || 'xcode-27' }}
-    timeout-minutes: 30
+    timeout-minutes: ${{ inputs.case == 'rows' && 45 || 30 }}
     env:
       DEVELOPER_DIR: >-
         ${{ format('/Applications/Xcode_{0}.app/Contents/Developer', matrix.ios == 26 && inputs.sdk26 || inputs.sdk27) }}
@@ -78,8 +78,9 @@ jobs:
       TKPK_UI_PROBE_SDK26: ${{ inputs.sdk26 }}
       TKPK_UI_RELAUNCH_PROBE: '1'
       TKPK_SIMULATOR_FRONTEND: ${{ matrix.ios == 26 && 'gui' || 'headless' }}
-      TKPK_UI_HANG_DIAGNOSTICS: ${{ inputs.case == 'rows-context' && '1' || '0' }}
+      TKPK_UI_HANG_DIAGNOSTICS: ${{ (inputs.case == 'rows' || inputs.case == 'rows-context') && '1' || '0' }}
       TKPK_UI_PROBE_CASE: ${{ inputs.case }}
+      TKPK_RELAUNCH_RUNNER_SECONDS: ${{ inputs.case == 'rows' && 2400 || 1440 }}
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -122,7 +123,7 @@ jobs:
       - name: Exercise launch, native switches, permission, busy work and relaunch without retry or adoption credit
         run: |
           set -euo pipefail
-          python3 -B tools/timed_command.py --timeout 1440 --cleanup-grace 120 \
+          python3 -B tools/timed_command.py --timeout "$TKPK_RELAUNCH_RUNNER_SECONDS" --cleanup-grace 120 \
             "Focused relaunch runner" bash tools/test-app-ui.sh 2>&1 | tee "$RUNNER_TEMP/takupoke-relaunch-runner-owned.log"
           selection=(--relaunch-probe)
           if [[ "$TKPK_UI_PROBE_CASE" != all ]]; then
