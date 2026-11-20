@@ -14,6 +14,9 @@ on:
       - tests/RecoveryFullSourceProbeTests.swift
 permissions:
   contents: read
+env:
+  PYTHONUNBUFFERED: '1'
+
 jobs:
   full-source:
     name: Full-source acquisition discovery SDK26

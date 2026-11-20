@@ -13,6 +13,9 @@ on:
       - tests/test_ocr_legacy_line_screen.py
 permissions:
   contents: read
+env:
+  PYTHONUNBUFFERED: '1'
+
 jobs:
   legacy-line-screen:
     name: Legacy Vision original versus exact4x SDK26

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+source tools/simulator-ci-trace.sh
 scratch_dir="$(mktemp -d "${TMPDIR:-/tmp}/takupoke-app-tests.XXXXXX")"
 simulator_id=""
 runtime=""
@@ -73,6 +74,7 @@ cleanup() {
             python3 -B tools/notification_service_trace.py "$simulator_id" || true
         fi
         collect_launch_trace || true
+        stop_simulator_ci_trace
         stage cleanup-shutdown-enter
         xcrun simctl shutdown "$simulator_id" >/dev/null 2>&1 || true
         stage cleanup-delete-enter
@@ -155,6 +157,7 @@ while read -r device_type runtime; do
         # must not compete with our Swift compilation; all runs reuse this build.
         stage simulator-boot-enter
         bash tools/boot-simulator-ui.sh "$simulator_id" "$runtime" "App simulator boot"
+        start_simulator_ci_trace "$simulator_id"
         stage simulator-content-size-enter
         xcrun simctl ui "$simulator_id" content_size large
         stage simulator-ready
@@ -255,33 +258,39 @@ PY_OWNED_UI
             # U40: the second Runner lost the app during launch after a long
             # successful batch. Isolate its device state, without retrying tests.
             collect_launch_trace
+            stop_simulator_ci_trace
             shutdown_simulator
             xcrun simctl delete "$simulator_id"
             simulator_id=""
             create_simulator
             boot_simulator
         fi
+        stage "test-phase-$phase-enter"
         check_ui "$scratch_dir/$phase.log" "${selected_checks[@]}" test-without-building
         python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --phase "$phase" \
             --mode verify --ios "$ios_major" --log "$scratch_dir/$phase.log"
         cat "$scratch_dir/$phase.log" >> "$scratch_dir/suite.log"
+        stage "test-phase-$phase-complete"
     done < "$scratch_dir/phases"
     python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --mode verify --ios "$ios_major" --log "$scratch_dir/suite.log"
     # Exercise the actual Simulator OS setting as well as live SwiftUI changes.
     if [[ "$system_size_check" == "1" ]]; then
         for content_size in extra-small extra-extra-extra-large accessibility-extra-extra-extra-large; do
+            stage "text-size-$content_size-enter"
             xcrun simctl ui "$simulator_id" content_size "$content_size"
             app_container="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.app-checks data)"
             mkdir -p "$app_container/Documents"
             printf '%s' "$content_size" > "$app_container/Documents/expected-text-size.txt"
             check_ui "$scratch_dir/os-size.log" -only-testing:PickerTapChecks/ApplicationChecks/testTimetableUsesSystemTextSize test-without-building
             python3 -B tools/ui_test_manifest.py --shard "$shard" --mode verify --ios "$ios_major" --log "$scratch_dir/os-size.log" --system-size-only
+            stage "text-size-$content_size-complete"
         done
     fi
     if [[ "${TKPK_UI_PROBE_CASE:-all}" == "notifications" ]]; then
         python3 -B tools/notification_service_trace.py "$simulator_id" || true
     fi
     collect_launch_trace
+    stop_simulator_ci_trace
     stage simulator-shutdown-enter
     shutdown_simulator
     stage simulator-delete-enter

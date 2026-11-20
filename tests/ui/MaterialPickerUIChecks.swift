@@ -8,6 +8,8 @@ import UniformTypeIdentifiers
 final class PickerChecks: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, configurationForConnecting session: UISceneSession,
                      options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        FixtureCITrace.install()
+        FixtureCITrace.mark("picker-scene-configuration")
         let configuration = UISceneConfiguration(name: "Picker checks", sessionRole: session.role)
         configuration.sceneClass = UIWindowScene.self
         configuration.delegateClass = PickerCheckScene.self
@@ -24,8 +26,10 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options: UIScene.ConnectionOptions) {
         guard let scene = scene as? UIWindowScene else { return }
+        FixtureCITrace.mark("picker-scene-connected")
         MaterialPickerTestTrace.record = { [weak self] entry in
             guard let self else { return }
+            self.recordPickerStage(entry)
             self.trace.append(entry)
             let name = "trace-\(ProcessInfo.processInfo.processIdentifier).txt"
             let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent(name)
@@ -50,17 +54,20 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
     }
 
     private func open() {
+        FixtureCITrace.mark("picker-geometry-open")
         progress("opening picker \(step), window: \(root.view.window != nil)")
         let picker = MaterialPickerController(forOpeningContentTypes: [.pdf], asCopy: false)
         picker.modalPresentationStyle = .custom
         picker.transitioningDelegate = self
         root.present(picker, animated: true) {
+            FixtureCITrace.mark("picker-geometry-presented")
             self.progress("presentation completed \(self.step)")
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.check(picker) }
         }
     }
 
     private func check(_ picker: UIDocumentPickerViewController) {
+        FixtureCITrace.mark("picker-geometry-check")
         progress("checking picker \(step)")
         guard let presentation = picker.presentationController as? GuidedDocumentPicker else {
             finish("FAIL: presentation controller = \(String(describing: picker.presentationController)), style = \(picker.modalPresentationStyle.rawValue)")
@@ -199,8 +206,28 @@ final class PickerCheckScene: UIResponder, UIWindowSceneDelegate, UIViewControll
         try? message.write(to: url, atomically: true, encoding: .utf8)
     }
     private func finish(_ result: String) {
+        FixtureCITrace.mark(result.hasPrefix("PASS:") ? "picker-geometry-passed" : "picker-geometry-failed")
         let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("result.txt")
         try! (result + "\n" + trace.suffix(50).joined(separator: "\n")).write(to: url, atomically: true, encoding: .utf8)
+    }
+    private func recordPickerStage(_ entry: String) {
+        let stages = [
+            ("BUTTON ", "picker-button"),
+            ("FAULT missing anchor", "picker-fault-anchor"),
+            ("FAULT unpaired appearance return", "picker-fault-appearance"),
+            ("synchronize ", "picker-synchronize"),
+            ("waiting for visible host ", "picker-wait-host"),
+            ("waiting for host transition ", "picker-wait-transition"),
+            ("presented true ", "picker-presented"),
+            ("presented false ", "picker-presentation-incomplete"),
+            ("dismissed callback ", "picker-dismissed"),
+            ("cancel callback ", "picker-cancelled"),
+            ("presentation transition ended true,", "picker-presentation-ended"),
+            ("presentation transition ended false,", "picker-presentation-interrupted"),
+            ("dismissal transition ended true,", "picker-dismissal-ended"),
+            ("dismissal transition ended false,", "picker-dismissal-interrupted"),
+        ]
+        if let (_, stage) = stages.first(where: { entry.hasPrefix($0.0) }) { FixtureCITrace.mark(stage) }
     }
     func presentationController(forPresented presented: UIViewController, presenting: UIViewController?, source: UIViewController) -> UIPresentationController? {
         GuidedDocumentPicker(picker: presented as! UIDocumentPickerViewController, presenting: presenting,

@@ -15,6 +15,9 @@ on:
       - tests/RecoveryDocumentQualificationTests.swift
 permissions:
   contents: read
+env:
+  PYTHONUNBUFFERED: '1'
+
 jobs:
   full-source:
     name: Complete source ${{ matrix.case }} SDK26

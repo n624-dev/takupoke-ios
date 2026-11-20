@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`cdc54219cccd530f32f9d64e63ba4bd23a1a76c6e6170d9bb0fe919c1216d6ef`
+`89bbe4b850fe7c6027d5c79bccb2cda0beb29f189239dd3bb445f77f7e7b9e8a`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -54,6 +54,7 @@ bash tools/test-app-ui.sh
 - [tests/ui/NativeTestContacts.swift](../../tests/ui/NativeTestContacts.swift)
 - [tests/ui/ApplicationChecks+Navigation.swift](../../tests/ui/ApplicationChecks+Navigation.swift)
 - [tests/ui/ApplicationChecks.swift](../../tests/ui/ApplicationChecks.swift)
+- [tests/ui/ApplicationFixture+CITrace.swift](../../tests/ui/ApplicationFixture+CITrace.swift)
 - [tests/ui/ApplicationFixture+Changes.swift](../../tests/ui/ApplicationFixture+Changes.swift)
 - [tests/ui/ApplicationFixture+Events.swift](../../tests/ui/ApplicationFixture+Events.swift)
 - [tests/ui/ApplicationFixture+Grid.swift](../../tests/ui/ApplicationFixture+Grid.swift)
@@ -70,6 +71,8 @@ bash tools/test-app-ui.sh
 - [tools/ui_test_manifest.py](../../tools/ui_test_manifest.py)
 - [tools/prepare-ios27-runtime.py](../../tools/prepare-ios27-runtime.py)
 - [tools/boot-simulator-ui.sh](../../tools/boot-simulator-ui.sh)
+- [tools/simulator-ci-trace.sh](../../tools/simulator-ci-trace.sh)
+- [tools/simulator_ci_trace.py](../../tools/simulator_ci_trace.py)
 - [tests/Support/SimulatorIdentityTestCase.swift](../../tests/Support/SimulatorIdentityTestCase.swift)
 - [tools/select-ci-xcode.py](../../tools/select-ci-xcode.py)
 - [.github/workflows/week-appearance-probe.yml](../../.github/workflows/week-appearance-probe.yml)
@@ -295,6 +298,11 @@ bash tools/test-app-ui.sh
 - `test_every_selected_case_requires_one_actual_owned_runner_identity`
 - `test_missing_duplicated_foreign_host_and_malformed_proofs_fail_closed`
 - `test_real_swift_identity_cannot_certify_a_host_process_as_a_simulator`
+
+## [tests/test_simulator_ci_trace.py](../../tests/test_simulator_ci_trace.py)
+
+- `test_parses_fixed_fields_and_rejects_unrelated_or_unstructured_output`
+- `test_streams_over_128_events_while_owned_command_runs_and_stops_it`
 
 ## [tests/test_manual_ui_runner.py](../../tests/test_manual_ui_runner.py)
 

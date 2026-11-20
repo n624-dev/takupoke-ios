@@ -222,7 +222,8 @@ else: print('Synthetic Xcode version')
             (repo / "bin").mkdir()
             (repo / "scratch").mkdir()
             for name in ("test-app-ui.sh", "resolve-xcode-packages.sh", "ui_test_manifest.py", "timed_command.py",
-                         "notification_service_trace.py", "manual_ui_diagnostics.py", "watch_app_hang.py", "boot-simulator-ui.sh"):
+                         "notification_service_trace.py", "manual_ui_diagnostics.py", "watch_app_hang.py",
+                         "boot-simulator-ui.sh", "simulator-ci-trace.sh", "simulator_ci_trace.py"):
                 shutil.copyfile(ROOT / "tools" / name, repo / "tools" / name)
             for name in manifest.CHECK_SOURCES:
                 shutil.copyfile(ROOT / "tests/ui" / name, repo / "tests/ui" / name)
@@ -536,7 +537,8 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                 self.assertEqual(result.returncode, 1)
                 self.assertEqual(result.stdout.count('TAKUPOKE_HOST_BOOT_FAILURE '), 1)
                 host = next(i for i, call in enumerate(calls) if call[:2] == ["log", "show"])
-                guest = next(i for i, call in enumerate(calls) if call[:3] == ["xcrun", "simctl", "spawn"])
+                guest = next(i for i, call in enumerate(calls)
+                             if call[:3] == ["xcrun", "simctl", "spawn"] and call[4:6] == ["log", "show"])
                 self.assertLess(host, guest)
                 attempts = [call for call in calls if "test-without-building" in call]
                 self.assertEqual(len(attempts), 5)

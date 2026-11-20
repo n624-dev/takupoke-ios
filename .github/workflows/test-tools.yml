@@ -37,6 +37,9 @@ on:
 permissions:
   contents: read
 
+env:
+  PYTHONUNBUFFERED: '1'
+
 jobs:
   apple-inventory:
     name: Installed Apple toolchains / ${{ matrix.runner }}

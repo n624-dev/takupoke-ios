@@ -10,6 +10,9 @@ on:
       - tests/test_ocr_code_english_screen.py
 permissions:
   contents: read
+env:
+  PYTHONUNBUFFERED: '1'
+
 jobs:
   original-codes:
     name: Original code English SDK26

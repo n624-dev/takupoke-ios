@@ -59,7 +59,8 @@ class ManualRunnerTests(unittest.TestCase):
             root = Path(directory)
             for folder in ("tools", "bin", "scratch"):
                 (root / folder).mkdir()
-            for name in ("test-manual-ui.sh", "timed_command.py", "resolve-xcode-packages.sh", "boot-simulator-ui.sh", "notification_service_trace.py", "ui_test_manifest.py"):
+            for name in ("test-manual-ui.sh", "timed_command.py", "resolve-xcode-packages.sh", "boot-simulator-ui.sh",
+                         "notification_service_trace.py", "ui_test_manifest.py", "simulator-ci-trace.sh", "simulator_ci_trace.py"):
                 shutil.copyfile(ROOT / "tools" / name, root / "tools" / name)
             (root / "tools/manual_ui_project.py").write_text(
                 "import sys; from pathlib import Path; Path(sys.argv[1]).mkdir(parents=True)\n")

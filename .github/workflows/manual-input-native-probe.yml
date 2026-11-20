@@ -31,6 +31,9 @@ on:
 permissions:
   contents: read
 
+env:
+  PYTHONUNBUFFERED: '1'
+
 jobs:
   focus:
     name: Native input iOS ${{ matrix.ios }} / ${{ matrix.case }}

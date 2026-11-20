@@ -8,6 +8,9 @@ on:
       - tests/test_ocr_windows_transfer.py
 permissions:
   contents: read
+env:
+  PYTHONUNBUFFERED: '1'
+
 jobs:
   native-screen:
     name: OCR recognizer screen SDK ${{ matrix.sdk }}

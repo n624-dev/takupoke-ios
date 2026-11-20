@@ -29,6 +29,7 @@ defaults:
     shell: bash
 
 env:
+  PYTHONUNBUFFERED: '1'
   PYTHONDONTWRITEBYTECODE: '1'
 
 jobs:
@@ -65,6 +66,7 @@ jobs:
           bash -n tools/test-picker-ui.sh
           bash -n tools/test-app-ui.sh
           bash -n tools/test-manual-ui.sh
+          bash -n tools/simulator-ci-trace.sh
           bash -n tools/resolve-xcode-packages.sh
           git diff --check
 

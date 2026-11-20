@@ -77,6 +77,7 @@ struct SimulatorApplication: App {
     }
     @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
     init() {
+        FixtureCITrace.install()
         FixtureInputDelivery.install()
         FixtureYearInputObservation.shared.install()
         _ = FixtureNotificationDelivery.startedAt
@@ -530,6 +531,7 @@ enum FixtureLaunchDiagnostics {
             "year-input-observer-installed", "year-edit-began", "year-edit-ended", "year-edit-changed",
             "year-keyboard-will-show", "year-keyboard-did-show", "year-keyboard-will-hide", "year-keyboard-did-hide"]
         guard allowed.contains(stage) else { return }
+        FixtureCITrace.mark(stage)
         let line = "TAKUPOKE_LIFECYCLE pid=\(ProcessInfo.processInfo.processIdentifier) time=\(Date().timeIntervalSince1970) stage=\(stage)\n"
         append(line)
     }

@@ -1,17 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
+source tools/simulator-ci-trace.sh
 scratch_dir="$(mktemp -d "${TMPDIR:-/tmp}/takupoke-picker-tests.XXXXXX")"
 simulator_id=""
+stage() { printf 'TAKUPOKE_PICKER_RUNNER stage=%s\n' "$1"; }
 cleanup() {
+    local task_exit_status=$?
+    stage cleanup-enter
+    stop_simulator_ci_trace
     if [[ -n "$simulator_id" ]]; then
+        stage cleanup-shutdown-enter
         xcrun simctl shutdown "$simulator_id" >/dev/null 2>&1 || true
+        stage cleanup-delete-enter
         xcrun simctl delete "$simulator_id" >/dev/null 2>&1 || true
     fi
     rm -rf "$scratch_dir"
+    stage cleanup-complete
+    return "$task_exit_status"
 }
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+stage runtime-list-enter
 xcrun simctl list -j > "$scratch_dir/simulators.json"
 read -r device_type runtime < <(python3 - "$scratch_dir/simulators.json" <<'PY'
 import json, sys
@@ -22,7 +32,9 @@ devices = [d for d in s['devicetypes'] if d['name'] == 'iPhone 16']
 print(devices[0]['identifier'], runtime['identifier'])
 PY
 )
+stage create-enter
 simulator_id="$(xcrun simctl create "Takupoke Picker Checks" "$device_type" "$runtime")"
+stage project-enter
 python3 -B tools/picker_test_project.py "$scratch_dir"
 # Match the application UI runner: compile while this owned device is still
 # shut down, then boot and run the same three cases using that exact build.
@@ -33,6 +45,8 @@ xcode_args=(-project "$scratch_dir/PickerChecks.xcodeproj" -scheme PickerChecks
     -collect-test-diagnostics never CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES)
 python3 -B tools/timed_command.py "Picker build for testing" xcodebuild "${xcode_args[@]}" build-for-testing
 bash tools/boot-simulator-ui.sh "$simulator_id" "$runtime" "Picker simulator boot"
+start_simulator_ci_trace "$simulator_id"
+stage test-enter
 set +e
 python3 -B tools/timed_command.py "Picker UI" xcodebuild "${xcode_args[@]}" test-without-building \
     2>&1 | tee "$scratch_dir/picker-ui.log"
@@ -43,6 +57,7 @@ for trace_path in "$app_data"/Documents/trace-*.txt; do
     if [[ -f "$trace_path" ]]; then cat "$trace_path"; fi
 done
 if [[ "$ui_status" != 0 ]]; then exit "$ui_status"; fi
+stage completion-verification-enter
 python3 - "$scratch_dir/picker-ui.log" "$simulator_id" "$runtime" <<'PY_PICKER'
 from collections import Counter
 from pathlib import Path
@@ -58,12 +73,14 @@ validate_execution_identities(Path(sys.argv[1]).read_text(encoding='utf-8',error
 print("Verified three picker UI XCTest completions.")
 PY_PICKER
 # Retain the existing transition and geometry checks, then remove everything.
+stage geometry-launch-enter
 xcrun simctl terminate "$simulator_id" jp.n624.takupoke.picker-checks >/dev/null 2>&1 || true
 rm -f "$app_data/Documents/result.txt"
 xcrun simctl launch --stdout="$scratch_dir/stdout.log" --stderr="$scratch_dir/stderr.log" "$simulator_id" jp.n624.takupoke.picker-checks
 app_data="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.picker-checks data)"
 for ((attempt = 0; attempt < 180; attempt++)); do
     if [[ -f "$app_data/Documents/result.txt" ]]; then
+        stage geometry-result
         cat "$app_data/Documents/result.txt"
         if [[ -f "$scratch_dir/stdout.log" ]]; then cat "$scratch_dir/stdout.log"; fi
         if [[ "$(cat "$app_data/Documents/result.txt")" == PASS:* ]]; then exit 0; fi

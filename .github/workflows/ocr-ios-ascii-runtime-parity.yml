@@ -14,6 +14,9 @@ on:
       - tests/test_ocr_simulator_cancellation.py
 permissions:
   contents: read
+env:
+  PYTHONUNBUFFERED: '1'
+
 jobs:
   ios-cpu:
     name: ASCII CPU parity iOS ${{ matrix.ios }}

@@ -18,6 +18,7 @@ defaults:
     shell: bash
 
 env:
+  PYTHONUNBUFFERED: '1'
   PYTHONDONTWRITEBYTECODE: '1'
 
 jobs:

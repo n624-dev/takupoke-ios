@@ -4,6 +4,9 @@ on:
     branches: [research/ios-ordered-row-proof-20261007]
 permissions:
   contents: read
+env:
+  PYTHONUNBUFFERED: '1'
+
 jobs:
   native:
     name: Native PDFKit and ordered-row regression

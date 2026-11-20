@@ -6,6 +6,9 @@ enum SimulatorManualFixture {
     private static var eventCount = 0
     static func event(_ kind:String,id:String,old:String,new:String) {
         guard enabled else { return }
+        if ["text", "clear", "clear-rejected", "ack", "draft"].contains(kind) {
+            FixtureCITrace.mark("manual-binding-" + kind)
+        }
         eventCount += 1
         guard eventCount <= 64 else {
             if eventCount == 65 {
@@ -34,10 +37,19 @@ enum SimulatorManualFixture {
     private static var deferredSeedBase:URL?
     private static var seededScope:RecoveryDocument?
     static func trace(_ message:String) {
+        let stage = message.split(separator: ";", maxSplits: 1).first
+        switch stage {
+        case "stage=seed-deferred", "stage=seed-input", "stage=seed-builder", "stage=seed-builder-returned",
+             "stage=seed-complete", "stage=seed-persist", "stage=source", "stage=raster", "stage=builder",
+             "stage=builder-returned", "stage=attach", "stage=prepare", "stage=prepared":
+            if let stage { FixtureCITrace.mark("manual-" + stage.dropFirst("stage=".count)) }
+        default: break
+        }
         UserDefaults.standard.set(message,forKey:"fixture.manualStage")
         print("TAKUPOKE-MANUAL-QA "+message)
     }
     static func failed(_ error:Error) {
+        FixtureCITrace.mark("manual-stage-failed")
         let stage=UserDefaults.standard.string(forKey:"fixture.manualStage") ?? "unknown"
         trace(stage+";error="+String(reflecting:error))
     }

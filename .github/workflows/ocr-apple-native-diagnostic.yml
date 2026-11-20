@@ -7,6 +7,9 @@ on:
       - tools/ocr-apple-native-diagnostic/**
 permissions:
   contents: read
+env:
+  PYTHONUNBUFFERED: '1'
+
 jobs:
   image-input:
     name: Native SDK27 image-format and language controls

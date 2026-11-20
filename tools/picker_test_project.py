@@ -30,6 +30,7 @@ def generate(destination):
         "Takupoke/GuidedDocumentPicker.swift", "Takupoke/MaterialPickerLayout.swift",
         "Takupoke/MaterialDocumentPicker.swift", "Takupoke/ScopedMaterialSelection.swift",
         "tests/ui/MaterialPickerUIChecks.swift", "tests/ui/PickerTapHarness.swift",
+        "tests/ui/ApplicationFixture+CITrace.swift",
     ])
     test_refs, test_sources = sources(["tests/ui/MaterialPickerTapChecks.swift",
                                       "tests/Support/SimulatorIdentityTestCase.swift"])

@@ -10,6 +10,9 @@ on:
       - tests/test_ocr_ios_runtime_parity.py
 permissions:
   contents: read
+env:
+  PYTHONUNBUFFERED: '1'
+
 jobs:
   ios-cpu:
     name: OCR CPU parity iOS ${{ matrix.ios }}

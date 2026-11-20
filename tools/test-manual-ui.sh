@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Opt-in focused checks; root chooses when to add this to existing CI batching.
 set -euo pipefail
+source tools/simulator-ci-trace.sh
 # Exact allowlist only; the unset default requires all four completions.
 manual_case="${TKPK_MANUAL_CASE:-}"
 case "$manual_case" in
@@ -23,6 +23,7 @@ cleanup() {
         python3 -B tools/manual_ui_diagnostics.py "$scratch_dir" "$simulator_id" "$diagnostic_started" "$original_exit" || true
     fi
     if [[ -n "$simulator_id" ]]; then
+        stop_simulator_ci_trace
         stage cleanup-shutdown-enter
         python3 -B tools/timed_command.py --timeout 10 --cleanup-grace 3 \
             "Manual simulator shutdown" xcrun simctl shutdown "$simulator_id" >/dev/null 2>&1 || true
@@ -80,6 +81,7 @@ stage build-complete
 # the application and picker runners. Reuse this exact successful build.
 stage boot-enter
 bash tools/boot-simulator-ui.sh "$simulator_id" "$runtime" 'Manual simulator boot'
+start_simulator_ci_trace "$simulator_id"
 stage boot-complete
 stage test-enter
 python3 -B tools/timed_command.py 'Manual UI checks without rebuilding' xcodebuild \

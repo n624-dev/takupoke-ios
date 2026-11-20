@@ -22,6 +22,7 @@ CHECK_SOURCES = (
 )
 FIXTURE_SOURCES = (
     "ApplicationFixture.swift",
+    "ApplicationFixture+CITrace.swift",
     "ApplicationFixture+Changes.swift",
     "ApplicationFixture+Events.swift",
     "ApplicationFixture+Grid.swift",
