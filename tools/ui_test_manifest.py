@@ -71,7 +71,8 @@ def check_source(root=ROOT):
 SYSTEM_SIZE_TEST = "testTimetableUsesSystemTextSize"
 VOICEOVER_TEST = "testVoiceOverReadsTimetableCard"
 SETTINGS_TEST = "testSettingsAccountDataAndFileDetails"
-INPUT_PHASES = ("before-settings", "settings", "after-settings", "voiceover", "notifications")
+WEEK_MOTION_TEST = "testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable"
+INPUT_PHASES = ("week-motion", "before-settings", "settings", "after-settings", "voiceover", "notifications")
 RELAUNCH_PROBE_TESTS = ("testChangedAccountDataNoticeOpensSharedAcquisition",
                         "testChangedDataProducesOneLocalNotification",
                         "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
@@ -110,6 +111,8 @@ PROBE_GROUPS = {
     "countdown-calendar": ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",),
     "countdown": ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent", COUNTDOWN_NOTIFICATION_TEST),
     "week-change-details": ("testChangedRoomInHomeWeekAndList", "testHomeTimetableAndWeekCalendar", "testMergedCardsFromAllSources"),
+    "week-card-and-motion": (WEEK_MOTION_TEST, "testHomeTimetableAndWeekCalendar",
+                             "testMergedCardsFromAllSources", SETTINGS_TEST),
     "rows-context": ("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover",
                      "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch"),
     "input-delivery": ("testSettingsAccountDataAndFileDetails", VOICEOVER_TEST),
@@ -156,7 +159,7 @@ SHARDS = {
     ),
     "B": (
         "testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch",
-        "testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable",
+        WEEK_MOTION_TEST,
         "testSettingsAccountDataAndFileDetails",
         "testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",
         "testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",
@@ -222,19 +225,21 @@ def phase_tests(tests, phase):
     ordinary = tuple(test for test in tests if test not in NATIVE_NOTIFICATION_CASES)
     if phase == "remaining":
         return ordinary
+    if phase == "week-motion":
+        return tuple(test for test in ordinary if test == WEEK_MOTION_TEST)
     if phase == "settings":
         return tuple(test for test in ordinary if test == SETTINGS_TEST)
     if phase == "voiceover":
         return tuple(test for test in ordinary if test == VOICEOVER_TEST)
     if phase in ("before-settings", "after-settings"):
-        return tuple(test for test in ordinary if test not in (SETTINGS_TEST, VOICEOVER_TEST)
+        return tuple(test for test in ordinary if test not in (SETTINGS_TEST, VOICEOVER_TEST, WEEK_MOTION_TEST)
                      and (test < SETTINGS_TEST) == (phase == "before-settings"))
     raise ValueError("Unknown UI runner phase")
 
 
 def runner_phases(tests):
-    # Preserve XCTest's case-name order, but do not retain a long Runner's
-    # automation session for the relaunch switch and VoiceOver scenarios.
+    # Run the timing-sensitive motion before recovery/OCR and use distinct
+    # XCTest Runner sessions for the relaunch switch and VoiceOver scenarios.
     phases = INPUT_PHASES if SETTINGS_TEST in tests or VOICEOVER_TEST in tests else (
         "remaining", "notifications")
     return tuple(phase for phase in phases if phase_tests(tests, phase))

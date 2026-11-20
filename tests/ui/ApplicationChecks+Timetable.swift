@@ -45,9 +45,8 @@ extension ApplicationChecks {
         XCTAssertTrue(app.staticTexts["試験時間割の選択した資料をまだ反映できていません。正常な解析結果がありません。"].exists)
     }
 
-    private func readyWeekCard(matching matches: @escaping (String) -> Bool) -> (button: XCUIElement, height: CGFloat)? {
-        let grid = app.scrollViews["timetable-week-grid"]
-        var current: (button: XCUIElement, height: CGFloat)?
+    private func readyWeekCard(matching matches: @escaping (String) -> Bool) -> CGRect? {
+        var current: CGRect?
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             guard let root = try? self.app.snapshot(), let nodes = self.snapshotNodes(in: root) else { return false }
             let bars = nodes.filter { $0.elementType == .navigationBar }
@@ -58,20 +57,28 @@ extension ApplicationChecks {
                 tab: nodes.first(where: { $0.elementType == .tabBar })?.frame,
                 keyboards: nodes.filter { $0.elementType == .keyboard }.map(\.frame),
                 footers: nodes.filter { $0.elementType == .button && $0.label == "次へ" }.map(\.frame))
+                .intersection(grids[0].frame)
             let buttons = cells.filter { $0.elementType == .button }
             guard let observed = buttons.first(where: { matches($0.label) && $0.isEnabled &&
                 ObservedScreenGeometry.contains($0.frame, in: viewport, scale: UIScreen.main.scale) }),
                 buttons.filter({ $0.label == observed.label }).count == 1 else { return false }
-            let card = grid.buttons.matching(NSPredicate(format: "label == %@", observed.label)).element
-            guard card.isHittable else { return false }
-            current = (card, observed.frame.height)
+            current = observed.frame
             return true
         }, object: app)
         guard XCTWaiter.wait(for: [ready], timeout: 10) == .completed else { return nil }
         return current
     }
 
-    func testMergedCardsFromAllSources() {
+    private func tapWeekCard(_ frame: CGRect) throws {
+        // Use the actual visible button's frame from the same AX snapshot.
+        // The detail assertions verify that the physical tap reached it.
+        let center = CGPoint(x: frame.midX, y: frame.midY)
+        print("TAKUPOKE_WEEK_CARD frame=\(frame) center=\(center)")
+        try NativeTestContacts.send([.init(start: center, end: center, duration: 0.1, pauseAfterLift: 0)],
+                                    named: "Visible timetable lesson card")
+    }
+
+    func testMergedCardsFromAllSources() throws {
         tab("時間割")
         let grid = app.scrollViews["timetable-week-grid"]
         for (subject, section) in [("架空科目A", "通常の授業"), ("架空試験A", "試験時間割"),
@@ -89,7 +96,7 @@ extension ApplicationChecks {
                 return
             }
             XCTAssertGreaterThan(card.height, 72)
-            card.button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            try tapWeekCard(card)
             let title = subject == "架空変更A" ? "時間割変更" : "授業詳細"
             let detail = app.navigationBars[title]
             XCTAssertTrue(detail.waitForExistence(timeout: 5), app.debugDescription)
@@ -189,7 +196,7 @@ extension ApplicationChecks {
             )
         }
     }
-    func testHomeTimetableAndWeekCalendar() {
+    func testHomeTimetableAndWeekCalendar() throws {
         XCTAssertTrue(app.staticTexts["今日の予定"].waitForExistence(timeout: 10))
         tab("時間割")
         guard let first = readyWeekCard(matching: { $0.contains("架空科目A") && $0.contains("限から") }) else {
@@ -197,7 +204,7 @@ extension ApplicationChecks {
             return
         }
         XCTAssertGreaterThan(first.height, 0)
-        first.button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        try tapWeekCard(first)
         XCTAssertTrue(app.staticTexts["架空教員A"].firstMatch.waitForExistence(timeout: 5), app.debugDescription)
         dismissLesson()
         let calendars = app.buttons.matching(identifier:"timetable-week-calendar").matching(

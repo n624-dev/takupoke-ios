@@ -145,7 +145,12 @@ enum SimulatorEventsYearFixture {
                 self.assertEqual(len(partition), len(tests))
                 ordered = tuple(test for phase in phases if phase != "notifications"
                                 for test in sorted(manifest.phase_tests(tests, phase)))
-                self.assertEqual(ordered, tuple(sorted(remaining)))
+                expected = tuple(sorted(remaining))
+                if "week-motion" in phases:
+                    self.assertEqual(phases[0], "week-motion")
+                    self.assertEqual(manifest.phase_tests(tests, "week-motion"), (manifest.WEEK_MOTION_TEST,))
+                    expected = (manifest.WEEK_MOTION_TEST,) + tuple(test for test in expected if test != manifest.WEEK_MOTION_TEST)
+                self.assertEqual(ordered, expected)
                 for phase, test in (("settings", manifest.SETTINGS_TEST),
                                     ("voiceover", manifest.VOICEOVER_TEST)):
                     if test in tests:
@@ -156,8 +161,28 @@ enum SimulatorEventsYearFixture {
                          ("testNotificationControlsAndAppearance", manifest.COUNTDOWN_NOTIFICATION_TEST))
         self.assertEqual(manifest.runner_phases(manifest.PROBE_GROUPS["input-delivery"]),
                          ("settings", "voiceover"))
+        self.assertEqual(manifest.runner_phases(manifest.PROBE_GROUPS["week-card-and-motion"]),
+                         ("week-motion", "before-settings", "settings"))
+        workflow = (ROOT / ".github/workflows/application-relaunch-native-probe.yml").read_text()
+        self.assertIn("- week-card-and-motion", workflow)
         with self.assertRaisesRegex(ValueError, "Unknown"):
             manifest.phase_tests(manifest.SHARDS["B"], "unregistered")
+
+    def test_week_card_contact_uses_one_observed_enabled_button_and_requires_the_real_detail(self):
+        source = (ROOT / "tests/ui/ApplicationChecks+Timetable.swift").read_text()
+        readiness = source.split("private func readyWeekCard(", 1)[1].split("private func tapWeekCard(", 1)[0]
+        self.assertEqual(readiness.count("self.app.snapshot()"), 1)
+        self.assertIn(".intersection(grids[0].frame)", readiness)
+        self.assertIn("matches($0.label) && $0.isEnabled", readiness)
+        self.assertIn("ObservedScreenGeometry.contains($0.frame, in: viewport", readiness)
+        self.assertIn("buttons.filter({ $0.label == observed.label }).count == 1", readiness)
+        self.assertNotIn(".isHittable", readiness)
+        touch = source.split("private func tapWeekCard(", 1)[1].split("func testMergedCardsFromAllSources(", 1)[0]
+        self.assertIn("CGPoint(x: frame.midX, y: frame.midY)", touch)
+        self.assertEqual(touch.count("NativeTestContacts.send("), 1)
+        self.assertIn("start: center, end: center", touch)
+        self.assertIn("try tapWeekCard(first)\n        XCTAssertTrue(app.staticTexts[\"架空教員A\"]", source)
+        self.assertIn("try tapWeekCard(card)\n            let title", source)
 
     def test_both_suites_use_the_same_native_tab_contact(self):
         common = "NativeTabActivation.swift"

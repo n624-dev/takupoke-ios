@@ -420,7 +420,7 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                     resolutions = [call for call in calls if call[0] == "xcodebuild" and "-resolvePackageDependencies" in call]
                     self.assertEqual(len(resolutions), 1)
                     builds = [call for call in calls if call[0] == "xcodebuild" and "-resolvePackageDependencies" not in call]
-                    phase_count = 5 if shard == "B" else 2
+                    phase_count = 6 if shard == "B" else 2
                     self.assertEqual(len(builds), 1 + phase_count + (3 if shard == "B" else 0))
                     self.assertEqual(builds[0][-1], "build-for-testing")
                     self.assertFalse(any(arg.startswith("-only-testing:") for arg in builds[0]))
@@ -443,7 +443,7 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                         self.assertLess(calls.index(window), calls.index(builds[1]))
                     self.assertTrue(all(build[-1] == "test-without-building" for build in builds[1:]))
                     batches = builds[1:1 + phase_count]
-                    phases = (("before-settings", "settings", "after-settings", "voiceover", "notifications")
+                    phases = (("week-motion", "before-settings", "settings", "after-settings", "voiceover", "notifications")
                               if shard == "B" else ("remaining", "notifications"))
                     selected = []
                     for phase, batch in zip(phases, batches, strict=True):
@@ -526,7 +526,7 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                 self.assertEqual(len(attempts), 1)
                 selected = [arg.rsplit("/", 1)[1] for arg in attempts[0]
                             if arg.startswith("-only-testing:")]
-                self.assertEqual(selected, list(manifest.phase_tests(manifest.SHARDS["B"], "before-settings")))
+                self.assertEqual(selected, [manifest.WEEK_MOTION_TEST])
                 sizes = [call[-1] for call in calls if "content_size" in call]
                 self.assertEqual(sizes, ["large"])
 
@@ -541,7 +541,7 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
                              if call[:3] == ["xcrun", "simctl", "spawn"] and call[4:6] == ["log", "show"])
                 self.assertLess(host, guest)
                 attempts = [call for call in calls if "test-without-building" in call]
-                self.assertEqual(len(attempts), 5)
+                self.assertEqual(len(attempts), 6)
                 selected = [arg.rsplit("/", 1)[1] for arg in attempts[-1]
                             if arg.startswith("-only-testing:")]
                 self.assertEqual(selected, ["testNotificationControlsAndAppearance", manifest.COUNTDOWN_NOTIFICATION_TEST])
@@ -552,5 +552,5 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
         result, calls = self.run_synthetic_runner(26, "B", fail_notification_boot=True)
         self.assertEqual(result.returncode, 47, result.stdout + result.stderr)
         attempts = [call for call in calls if "test-without-building" in call]
-        self.assertEqual(len(attempts), 4, "Do not start or retry notifications after failed boot")
+        self.assertEqual(len(attempts), 5, "Do not start or retry notifications after failed boot")
         self.assertEqual([call[-1] for call in calls if "content_size" in call], ["large"])

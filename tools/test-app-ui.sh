@@ -243,9 +243,9 @@ validate_execution_identities(log, expected, sys.argv[2], sys.argv[3], 'Applicat
 print('Verified native identity for every selected application UI case.')
 PY_OWNED_UI
     }
-    # Reuse the build and owned device. Split the input scenarios into their
-    # own Runners without changing gestures, case order or case initial data.
-    # Notification automation remains last. Never retry a failed phase.
+    # Reuse the build and owned device. Start the motion measurement before
+    # recovery/OCR, with the same gestures and case data. Keep separate input
+    # Runner sessions and notification automation last. Never retry a phase.
     : > "$scratch_dir/suite.log"
     python3 -B tools/ui_test_manifest.py "${selection_args[@]}" --mode phases > "$scratch_dir/phases"
     while IFS= read -r phase; do
