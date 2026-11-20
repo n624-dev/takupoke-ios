@@ -5598,3 +5598,8 @@ ebe3694の[明示選択限定44616309920](https://github.com/n624-dev/takupoke-i
 
 - [明示選択27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/44700448423/job/136223030253)は試行2、SDK27.2で10:33:46 UTCにsuccess。元ケース987.096秒、3回のsubmit・レビュー、四項目拒否、採用と実再起動、実行元と完了確認を通過。実配信4919件・2プロセス・欠番0。試行1で終了した40分の外枠を維持。
 - [同じ試行の27 B](https://github.com/n624-dev/takupoke-ios/actions/runs/44700448423/job/136223029673)は10:43:29 UTCにfailure。前回失敗の`testHomeTimetableAndWeekCalendar`が120.048秒で実UIまで成功。他の6件も成功。今回は初回に成功した`testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent`が212.531秒で停止し、`ApplicationChecks.swift:128`の一度の`app.launch()`が10:26:11 UTCにtimeout。SpringBoard前面確認、一度の送出、対象PID12227で`fixture-ready`とscene activeの成立（10:24:30 UTC）まで記録した。XCTestへの起動返却とカウントダウン操作には未到達。実配信2130件、11プロセス、欠番0。旧正式44660400847試行2の26.5で同じケース・対応SDK27.2・アプリ準備／起動返却の不一致を観測。今回の試行1の空AX待機、N95のアプリ準備未観測、43767607953と現行の一回起動を区別して照合した。初回の27同一ケース（232.083秒）と26.5限定44687967639の元ケース（207.934秒）は実完走。この根拠で、試行2終端後は同じソースの27 B一件とその依存のみを新規ランナーで検証する。起動やAX期限、正式公開条件を維持する。Xcodeが返らなかった下位の原因は未確定。
+
+### 正式5cc39a5試行3はSimulatorの通信断でXCTest開始前に停止
+
+- [iOS27.0 B](https://github.com/n624-dev/takupoke-ios/actions/runs/44700448423/job/136239827973)・試行3、SDK27.2、10:58:17 UTCにfailure。ビルド139.0秒、bootstatus189.2秒の後、最初の`test-without-building`で `Failed to install or launch the test runner`、`Mach error -308 - (ipc/mig) server died`。実XCTest／アプリ運転は開始せず、実配信0。清掃前の正確な所有UUIDはruntime available、device Shutdown。状態保存と元の回収は完了。公開は依存skip。同じ試行の他の失敗なし。
+- `ipc/mig`、`server died`、`test runner`、`Shutdown`で索引を検索。N169の別のCoreSimulator例外では所有端末はBooted、N127ではXcodeが所有UUIDを解決する前の停止。今回の試行2では対象アプリはすでに前面・準備済みで、同じ停止段階ではない。現行 `boot-simulator-ui.sh` とXcode起動前後、旧N169のRuntime診断の経路を照合した。アプリケースを一度も実行できておらず、他ホストの同じ正式では元のケースに到達しているため、同じSDK・ケース・期限のB一件を新しいランナーで一度確認する。失敗済み試行は保持する。
