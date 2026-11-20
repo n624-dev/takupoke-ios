@@ -5531,4 +5531,10 @@ Linux Swift 6.1.2の確認Button候補のローカル38件では、既存の実�
 
 `ThreeFields`、`manual-ack`、`Navigation.swift:117`、`snapshot`でN52・N165・N174と43799291494を照合した。N52は同じ第三項目でも、消去直後の古いSwitchで停止し、全文入力前だった。今回と近いN165では実枠取得後の重複読取りで止まり、N174／43799291494以降は実snapshotと現在のhittableを分けて照会した。c454の正式三項目は旧Switch（44597797740）で成功、c818の実ボタンは単項目の両OSで成功。133bfd6・169eb22の旧照会とbf2cの実コードを比較し、ebe3694から三項目で同じ実Buttonの可視化・属性を連続で読み直していることを確認した。現在の一意なButtonから一度のsnapshotで実枠・識別子・ラベル・有効・未選択を取り、現在のhittableと同じviewportを確認して一回の実接触を送る。後続の実選択と確定可否・四項目拒否を保つ。元のSDKで同じ三項目を限定確認し、三回の実確認と次の拒否まで通るかを判定する。
 
+### 先行正式のiOS26 Bで起動後の実行先をXcodeが列挙できない
+
+[先行正式44633231836](https://github.com/n624-dev/takupoke-ios/actions/runs/44633231836/job/135972348271)・試行1、bf2c9c0のiOS26.5 B／SDK27.2は00:08:41 UTCにfailure。指定端末のビルド116.5秒とbootstatus181.3秒を完了。`test-without-building` の117.9秒でXcodeが同一UUIDを見つけられず、実Simulator候補には汎用placeholderのみが出た。回収時のCoreSimulatorではRuntime `available`、所有端末 `Booted`、SpringBoardも動作。XCTestケースは未開始で、開始時に候補から外れた下位理由は未確定。26 Aは00:29:15に成功し、全ジョブ終端で公開は依存skip。
+
+`Unable to find a device matching`、`bootstatus`、`test-without-building`でN127・43769812600・正式494を読んだ。N127は同じboot後の指定UUID解決で、正式494はbuild時だった。1c331818の旧runとbf2cの実行先を指定する箇所を比較し、8b15dd8とのRuntime準備・通常UI runnerと公開ゲートの差分がないことを確認した。N127の再実行では新しいホストで同じ条件が通り、GitHubが成功済みの結果を新しい試行に引き継いだ。先行bf2cは三項目訂正の失敗もあり、現在はその修正を含む正式8b15dd8が実行中。同じ環境段階で最新も止まった場合は、結果がすべて終端してから修正の要否・同一コミットの失敗ジョブ再実行を、この証拠と新しい実ログから判断する。
+
 ebe3694の[明示選択限定44616309920](https://github.com/n624-dev/takupoke-ios/actions/runs/44616309920/attempts/1)・試行1、iOS26.5／SDK27.2（135885851122）は21:53:43 UTCにfailure。21:31:58に実ケース開始、Set Up以降に初期画面・入力の記録はなく、準備込み2400秒で21:52:15にexit124。所有端末の回収は完了した。実確認操作・新しいButtonの成否は未観測。同じ症状の前に候補を変更する根拠にはしない。
