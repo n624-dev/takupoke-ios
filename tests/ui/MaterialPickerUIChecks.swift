@@ -6,9 +6,15 @@ import UniformTypeIdentifiers
 /// Runs only in a disposable simulator with the local Files provider.
 @main
 final class PickerChecks: UIResponder, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        FixtureCITrace.install()
+        FixtureCITrace.mark("picker-application-launched")
+        return true
+    }
+
     func application(_ application: UIApplication, configurationForConnecting session: UISceneSession,
                      options: UIScene.ConnectionOptions) -> UISceneConfiguration {
-        FixtureCITrace.install()
         FixtureCITrace.mark("picker-scene-configuration")
         let configuration = UISceneConfiguration(name: "Picker checks", sessionRole: session.role)
         configuration.sceneClass = UIWindowScene.self

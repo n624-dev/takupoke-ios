@@ -85,7 +85,7 @@ python3 -B -m unittest discover -s tests -p test_application_ui_runner.py -v
 
 通常・手動訂正・ファイル選択の全UIジョブで、成功時も失敗時も、専用Simulatorの操作を実行中にジョブログへ流します。XCTestの送出・照会・検証と `CI_SIMULATOR_EVENT` を時刻で照合し、アプリにイベントが届いた時点、UIKitの処理から戻った時点、画面や保存に反映された時点を追います。`pid` は起動ごとのプロセス、`seq` はその中の通し番号、`time` はUNIX時刻、`uptime` と `event` は端末起動からの秒数です。`dispatch` と `delivered` がイベントの処理前後に対応します。タッチの `phase` は開始0、移動1、静止2、終了3、取消4です。キーボードは表示や編集の段階とキー操作の状態を記録します。テキストやキーの値は記録しません。
 
-`CI_SIMULATOR_TRACE` の `sequence-gap`、ゼロ件、予期しない `ended` は収集状況を示します。その範囲はXCTest側の記録も確認してください。標準ファイル選択や通知許可など別プロセスの操作はXCTest側の送出・照会とテストアプリへの復帰・結果で追います。記録先は通常のActionsログです。観測は架空データを使うテストアプリで有効になります。
+`CI_SIMULATOR_TRACE` の `sequence-gap`、`observer-install-unseen`、ゼロ件、予期しない `ended` は収集状況を示します。再起動を含む各テストアプリの `pid` に `event-observer-installed` があるか確認し、観測できない範囲はXCTest側の記録も参照してください。標準ファイル選択や通知許可など別プロセスの操作はXCTest側の送出・照会とテストアプリへの復帰・結果で追います。記録先は通常のActionsログです。観測は架空データを使うテストアプリで有効になります。
 
 Pythonの出力はOCRや配布検査を含む全ワークフローでバッファリングせず、実行中に表示します。ビルド・準備はランナーの段階表示と `TIMING`、ロジック検査は各テストの実行結果を確認してください。
 

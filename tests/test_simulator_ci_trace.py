@@ -15,11 +15,11 @@ sys.path.insert(0, str(ROOT / "tools"))
 from simulator_ci_trace import CATEGORY, SUBSYSTEM, fixture_event
 
 DEVICE = "11111111-1111-4111-8111-111111111111"
-PREFIX = "CI_SIMULATOR_EVENT pid=482 seq={} time=1795153028.100 uptime=1423.123456 "
+PREFIX = "CI_SIMULATOR_EVENT pid={} seq={} time=1795153028.100 uptime=1423.123456 "
 
 
-def event(sequence, payload, **metadata):
-    record = {"subsystem": SUBSYSTEM, "category": CATEGORY, "eventMessage": PREFIX.format(sequence) + payload}
+def event(sequence, payload, *, pid=482, **metadata):
+    record = {"subsystem": SUBSYSTEM, "category": CATEGORY, "eventMessage": PREFIX.format(pid, sequence) + payload}
     return json.dumps(record | metadata).encode()
 
 
@@ -68,7 +68,7 @@ private struct Logger {
         )
         for number, payload in enumerate(payloads, 1):
             with self.subTest(payload=payload):
-                self.assertEqual(fixture_event(event(number, payload)), (482, number, PREFIX.format(number) + payload))
+                self.assertEqual(fixture_event(event(number, payload)), (482, number, PREFIX.format(482, number) + payload))
         for record in (
             b"raw host log", b"[]", b"\xff", event(1, "stage=fixture-ready", subsystem="com.apple.UIKit"),
             event(1, "stage=fixture-ready", category="other"), event(1, "stage=invalid /fictional/path"),
@@ -83,7 +83,7 @@ private struct Logger {
             root = Path(temporary)
             fixture = root / "records.jsonl"
             fixture.write_bytes(b"\n".join([
-                event(1, "stage=fixture-ready"), b"x" * 66000,
+                event(1, "stage=fixture-ready"), event(1, "stage=event-observer-installed", pid=483), b"x" * 66000,
                 event(2, "stage=fictional-secret /path"),
                 *(event(i, f"dispatch={i} touch=1 phase=1 event=1423.61 x=162.50 y=62.33")
                   for i in range(3, 260)),
@@ -121,7 +121,9 @@ while True: time.sleep(1)
             self.assertEqual(stderr, b"")
             log = (result + stdout).decode()
             self.assertIn("state=sequence-gap pid=482 after=1 next=3", log)
-            self.assertIn(f"state=stopped simulator={DEVICE} exit=-15 records=258", log)
+            self.assertIn("state=observer-install-unseen pid=482", log)
+            self.assertNotIn("state=observer-install-unseen pid=483", log)
+            self.assertIn(f"state=stopped simulator={DEVICE} exit=-15 records=259", log)
             self.assertNotIn("fictional-secret", log)
             with self.assertRaises(ProcessLookupError):
                 os.kill(int(pid_file.read_text()), 0)

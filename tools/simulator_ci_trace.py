@@ -41,6 +41,7 @@ def fixture_event(line):
 
 def forward(simulator):
     last_sequence = {}
+    installed_observers = set()
     received = 0
     stop_at = None
     command = ["xcrun", "simctl", "spawn", simulator, "log", "stream", "--style", "ndjson",
@@ -96,6 +97,8 @@ def forward(simulator):
                     if sequence > prior + 1:
                         print(f"CI_SIMULATOR_TRACE state=sequence-gap pid={pid} after={prior} next={sequence}", flush=True)
                     last_sequence[pid] = max(prior, sequence)
+                    if message.endswith(" stage=event-observer-installed"):
+                        installed_observers.add(pid)
                     print(message, flush=True)
                     received += 1
     finally:
@@ -107,6 +110,8 @@ def forward(simulator):
             status = child.wait()
         for signum, handler in previous.items():
             signal.signal(signum, handler)
+        for pid in sorted(last_sequence.keys() - installed_observers):
+            print(f"CI_SIMULATOR_TRACE state=observer-install-unseen pid={pid}", flush=True)
         state = "stopped" if stop_at is not None else "ended"
         print(f"CI_SIMULATOR_TRACE state={state} simulator={simulator} exit={status} records={received}", flush=True)
 
