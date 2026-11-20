@@ -5547,4 +5547,10 @@ Linux Swift 6.1.2の確認Button候補のローカル38件では、既存の実�
 
 `tapToolbar`、`反映する`、`testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch`、`snapshot`で1e173b3の先行26 A、N160・N165・N174、bf2cの成功条件を照合した。44465270899では先の学年入力の画面復帰で停止し、今回の反映ボタンの照会とは段階が違う。旧1e173b3と8b15dd8の`tapToolbar`は同じ複数getterで、bf2cの26 Aは同じコードで成功している。N165のように成功していた状態を重複して読む箇所を減らし、元のナビゲーション・Button各10秒、ツールバー所属、一意性、実枠包含・enabled・現hittable、一回の実タップを維持する。同じ準備の全対象ケースを限定で確認し、反映の確認・取消・再起動後の保存までを検証する。製品コードや公開条件は変えない。
 
+### 正式iOS26の単項目と明示選択で停止段階が異なる
+
+- [正式44660400847の単項目](https://github.com/n624-dev/takupoke-ios/actions/runs/44660400847/job/136062998708)・試行1、0d1208c、SDK27.2／iOS26.5は03:52:19 UTCにfailure。実ビルド158.2秒、bootstatus375.3秒を完了した後、`test-without-building` の開始107.1秒で所有UUIDの実行先をXcodeが見つけられずexit70。XCTestケースや原本照合には未到達。N127、43769812600と当時・現行の実端末指定を照合した。同じ実行の原本変更・三項目の同OSは実ケースが成功した。
+- [同じ正式の明示選択](https://github.com/n624-dev/takupoke-ios/actions/runs/44660400847/job/136062998723)は03:45:46 UTCにfailure、実ケース210.107秒。最初の科目入力、74ptの確認ボタンの一回の実選択、確定可否、レビュー成立と入力表示まで成功。`manual-comparison-unavailable` のスクロールは最初の2回で `自動読取` の起点が同じまま、その後の反転で先頭方へ移動し、6回目のno-progressで停止。UIKitに始点の接触はあるが、最初の2回でスクロールが進まなかった理由は未確定。教員・教室の追加選択、四項目拒否、採用・保存は未到達。
+- `manual-comparison-unavailable`、`no-progress-after-reverse`、`受動Cell`でN54・N78・N173、5fd0805の当時のReviewと現在の比較欄・実スクロールを照合した。N54は同じ比較欄でAXが返らず、今回は候補が画面外のままスクロールが進まない。利用者の指示に従い、コードと検査条件を0d1208cのまま、通常26 A・Bが終端した後に失敗ジョブと依存ジョブを一度再実行する。新しい試行では元の比較表示・採用・保存と全公開条件を確認し、初回の停止は記録に残す。
+
 ebe3694の[明示選択限定44616309920](https://github.com/n624-dev/takupoke-ios/actions/runs/44616309920/attempts/1)・試行1、iOS26.5／SDK27.2（135885851122）は21:53:43 UTCにfailure。21:31:58に実ケース開始、Set Up以降に初期画面・入力の記録はなく、準備込み2400秒で21:52:15にexit124。所有端末の回収は完了した。実確認操作・新しいButtonの成否は未観測。同じ症状の前に候補を変更する根拠にはしない。
