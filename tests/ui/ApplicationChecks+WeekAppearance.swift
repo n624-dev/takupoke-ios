@@ -1,5 +1,6 @@
 import XCTest
 import UIKit
+import Darwin
 
 extension ApplicationChecks {
     // Extract actual colored ink, excluding the neutral glass, text, and tab
@@ -93,13 +94,22 @@ extension ApplicationChecks {
             let end = CGPoint(x: start.x + (next ? -distance : distance), y: start.y)
             return NativeTestContacts.Contact(start: start, end: end, duration: duration, pauseAfterLift: pause)
         }
-        // Separate native records keep this pause on the test clock. XCTest
-        // compressed idle gaps between separate touch paths in a single record.
+        // Schedule the next real contact from the observed height handoff.
+        // XCTest may compress requested idle gaps or take a different time to
+        // return from the first dispatch on a loaded Simulator.
+        let heightWindow = XCTestExpectation(description: "The arriving week began height adjustment")
+        var subscription: Int32 = 0
+        let registration = notify_register_dispatch("jp.n624.takupoke.ci.week-height-window", &subscription,
+                                                    DispatchQueue.global(qos: .userInitiated)) { _ in heightWindow.fulfill() }
+        guard registration == UInt32(NOTIFY_STATUS_OK) else {
+            XCTFail("Could not observe the simulator's week height handoff: \(registration)"); return
+        }
+        defer { _ = notify_cancel(subscription) }
         try NativeTestContacts.send(Array(sequence.prefix(1)), named: "Timed timetable week pulls")
         let firstDelivery = ProcessInfo.processInfo.systemUptime
-        // Native completion and subsequent delivery account for most of the
-        // interval. Aim the remaining pause at the observed height window.
-        Thread.sleep(forTimeInterval: 0.05)
+        guard XCTWaiter.wait(for: [heightWindow], timeout: 1.5) == .completed else {
+            XCTFail("The first physical pull did not report a height handoff"); return
+        }
         let continuation = ProcessInfo.processInfo.systemUptime
         try NativeTestContacts.send(Array(sequence.dropFirst()), named: "Timed timetable week pulls")
         print("TAKUPOKE_WEEK_RECORDS firstDelivery=\(firstDelivery) continuation=\(continuation)")

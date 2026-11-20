@@ -1,3 +1,4 @@
+import Dispatch
 import Foundation
 import ObjectiveC
 import os
@@ -6,18 +7,20 @@ import UIKit
 private final class FixtureCITraceOutput: @unchecked Sendable {
     static let shared = FixtureCITraceOutput()
     private let logger = Logger(subsystem: "jp.n624.takupoke.ci", category: "simulator")
-    private let lock = NSLock()
+    private let queue = DispatchQueue(label: "jp.n624.takupoke.ci.output", qos: .userInitiated)
     private var sequence: UInt64 = 0
 
     func emit(_ fields: String) {
-        lock.lock()
-        defer { lock.unlock() }
-        sequence += 1
-        let ordinal = sequence
         let pid = ProcessInfo.processInfo.processIdentifier
         let time = Date().timeIntervalSince1970
         let uptime = ProcessInfo.processInfo.systemUptime
-        logger.notice("CI_SIMULATOR_EVENT pid=\(pid) seq=\(ordinal) time=\(time) uptime=\(uptime) \(fields, privacy: .public)")
+        // Keep the timestamps at the observation site; serialize logging away
+        // from UIKit input and CADisplayLink rendering callbacks.
+        queue.async { [self] in
+            sequence += 1
+            let ordinal = sequence
+            logger.notice("CI_SIMULATOR_EVENT pid=\(pid) seq=\(ordinal) time=\(time) uptime=\(uptime) \(fields, privacy: .public)")
+        }
     }
 }
 
@@ -94,9 +97,8 @@ enum FixtureCITrace {
                 }
                 let point = touch.location(in: touch.window)
                 if point.x.isFinite, point.y.isFinite {
-                    let x = String(format: "%.2f", Double(point.x)), y = String(format: "%.2f", Double(point.y))
                     let phase = touch.phase.rawValue
-                    output.emit("dispatch=\(dispatch) touch=\(id) phase=\(phase) event=\(touch.timestamp) x=\(x) y=\(y)")
+                    output.emit("dispatch=\(dispatch) touch=\(id) phase=\(phase) event=\(touch.timestamp) x=\(Double(point.x)) y=\(Double(point.y))")
                 }
                 if touch.phase == .ended || touch.phase == .cancelled {
                     touches.removeValue(forKey: identity)

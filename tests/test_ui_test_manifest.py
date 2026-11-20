@@ -49,6 +49,15 @@ class ManifestTests(unittest.TestCase):
         self.assertIn('"moveToPoint:atOffset:"', contacts)
         self.assertIn('"liftUpAtOffset:"', contacts)
         self.assertEqual(contacts.count("try deliver(record)"), 1)
+        generated_grid = app_test_project.instrument_week_motion(source)
+        promotion = generated_grid.split("private func promote(", 1)[1].split("private func finishHeight(", 1)[0]
+        self.assertLess(promotion.index("transition = nil"), promotion.index("signalHeightWindow()"))
+        self.assertIn("if heightAdjustment != nil", promotion)
+        swift = (ROOT / "tests/ui/ApplicationChecks+WeekAppearance.swift").read_text()
+        sequence = swift.split("func testConsecutiveWeekPullsTrackOverlappingContactsWithoutRepeating()", 1)[1]
+        self.assertLess(sequence.index("notify_register_dispatch("), sequence.index("sequence.prefix(1)"))
+        self.assertLess(sequence.index("XCTWaiter.wait(for: [heightWindow]"), sequence.index("sequence.dropFirst()"))
+        self.assertIn('$0.phase == "height"', sequence)
 
     def test_generated_week_selection_initialization_respects_actor_isolation(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")

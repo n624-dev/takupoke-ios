@@ -40,9 +40,11 @@ enum SimulatorManualFixture {
         let stage = message.split(separator: ";", maxSplits: 1).first
         switch stage {
         case "stage=seed-deferred", "stage=seed-input", "stage=seed-builder", "stage=seed-builder-returned",
-             "stage=seed-complete", "stage=seed-persist", "stage=source", "stage=raster", "stage=builder",
+             "stage=seed-complete", "stage=seed-persist", "stage=source", "stage=raster", "stage=builder", "stage=crop",
              "stage=builder-returned", "stage=attach", "stage=prepare", "stage=prepared":
             if let stage { FixtureCITrace.mark("manual-" + stage.dropFirst("stage=".count)) }
+        case "stage=manual-review-ready": FixtureCITrace.mark("manual-review-ready")
+        case "stage=manual-preview-ready": FixtureCITrace.mark("manual-preview-ready")
         default: break
         }
         UserDefaults.standard.set(message,forKey:"fixture.manualStage")

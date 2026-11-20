@@ -154,6 +154,9 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('ApplicationData.shared.materials.adoptRecovery(preview)',changed)
         self.assertEqual(changed.count('if SimulatorManualFixture.enabled'),4)
         self.assertEqual(changed.count('            cancel(); failure = nil; running = true'),1)
+        submit=changed.split('func submitManual(',1)[1].split('func selectManualCorrection(',1)[0]
+        self.assertLess(submit.index('manual-submit-rejected'),submit.index('manual-submit-accepted'))
+        self.assertLess(submit.index('manual-submit-accepted'),submit.index('running = true'))
         self.assertIn('if SimulatorManualFixture.enabled { SimulatorManualFixture.trace("stage=manual-preview-ready") }',changed)
         self.assertIn('if SimulatorManualFixture.enabled { SimulatorManualFixture.failed(error) }',changed)
 
@@ -163,6 +166,7 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('manualAcknowledged[field.id] ?? false',changed)
         self.assertIn('RecoveryManualInput.update(',changed)
         self.assertIn('coordinator.submitManual(',changed)
+        self.assertLess(changed.index('manual-submit-action'),changed.index('coordinator.submitManual('))
         self.assertIn('draft.fields.contains',changed)
         self.assertIn('coordinator.suspendForInactivity()',changed)
         self.assertIn('models.cancel()',changed)

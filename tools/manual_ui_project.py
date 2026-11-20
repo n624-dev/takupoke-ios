@@ -47,6 +47,13 @@ def coordinator(text):
             return
         }
 ''')
+    submit_signature = '    func submitManual(_ values: [String:String], acknowledged:Set<String>) {'
+    text = once(text, submit_signature, submit_signature + '\n        FixtureCITrace.mark("manual-submit-enter")')
+    submit_guard = '              acknowledged == Set(draft.fields.map(\\.id)) else { return }'
+    text = once(text, submit_guard, '''              acknowledged == Set(draft.fields.map(\\.id)) else {
+            FixtureCITrace.mark("manual-submit-rejected"); return
+        }
+        FixtureCITrace.mark("manual-submit-accepted")''')
     text = once(text, '                manualReview = RecoveryManualReview(draftID:draft.id,candidate:candidate',
                 '                if SimulatorManualFixture.enabled { SimulatorManualFixture.trace("stage=manual-review-ready") }\n                manualReview = RecoveryManualReview(draftID:draft.id,candidate:candidate')
     text = once(text, '                preview = review.candidate',
@@ -66,6 +73,8 @@ def view(text):
     @AppStorage("fixture.manualMutationComplete") private var manualQAMutationComplete = false''')
     text = once(text, '.navigationTitle(title)', '''.accessibilityIdentifier("manual-recovery-list")
             .navigationTitle(title)
+            .onAppear { FixtureCITrace.mark("manual-screen-appeared") }
+            .onDisappear { FixtureCITrace.mark("manual-screen-disappeared") }
             .dynamicTypeSize(manualQATypeSize)
             .toolbar { ToolbarItem(placement:.topBarTrailing) {
                 Button("架空検証") { manualQAActionsPresented = true }
@@ -122,6 +131,8 @@ def view(text):
     marker = '                            .accessibilityAddTraits(acknowledged ? .isSelected : [])'
     text = once(text, marker, marker + '.accessibilityIdentifier("manual-ack-" + field.id)')
     text = once(text, '.accessibilityLabel("原本の該当箇所")', '.accessibilityLabel("原本の該当箇所").accessibilityIdentifier("manual-crop-" + field.id)')
+    submit_action = '                            coordinator.submitManual(Dictionary('
+    text = once(text, submit_action, '                            FixtureCITrace.mark("manual-submit-action")\n' + submit_action)
     text = once(text, '                        }.buttonStyle(.glassProminent)\n                            .disabled(!useAiFeatures || coordinator.running || draft.fields.contains',
                 '                        }.buttonStyle(.glassProminent).accessibilityIdentifier("manual-submit")\n                            .disabled(!useAiFeatures || coordinator.running || draft.fields.contains')
     review_submit = 'Button("訂正と変更を確認して資料全体へ",systemImage:"doc.text.magnifyingglass") { coordinator.showManualPreview() }'
@@ -199,6 +210,10 @@ def generate(destination, source_root=ROOT):
         anchor = f".navigationTitle({title})"
         path.write_text(once(path.read_text(encoding="utf-8"), anchor,
                              f'.accessibilityIdentifier("{identifier}")' + anchor), encoding="utf-8")
+    path = app / "PDFAnalysisView.swift"
+    sheet_dismiss = '.sheet(isPresented:$showingRecovery,onDismiss:{ ApplicationData.shared.recovery.cancel() })'
+    sheet_observation = '.sheet(isPresented:$showingRecovery,onDismiss:{\n            FixtureCITrace.mark("manual-sheet-dismissed")\n            ApplicationData.shared.recovery.cancel()\n        })'
+    path.write_text(once(path.read_text(encoding="utf-8"), sheet_dismiss, sheet_observation), encoding="utf-8")
     path = app / "PDFRecoveryCoordinator.swift"; path.write_text(coordinator(path.read_text(encoding="utf-8")), encoding="utf-8")
     path = app / "PDFRecoveryView.swift"; path.write_text(view(path.read_text(encoding="utf-8")), encoding="utf-8")
     path = app / "TakupokeApp.swift"; path.write_text(application(path.read_text(encoding="utf-8")), encoding="utf-8")

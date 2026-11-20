@@ -32,6 +32,7 @@ class SimulatorCITraceTests(unittest.TestCase):
         # Apple Logger defers evaluating interpolation. Preserve that compiler
         # constraint when testing the actual output class without the Apple SDK.
         log_interface = """
+import Dispatch
 import Foundation
 
 private enum LogPrivacy { case `public` }
