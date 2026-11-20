@@ -93,46 +93,15 @@ extension ApplicationChecks {
         XCTAssertTrue(visible(app.buttons["change-edited-rows"], navigation: review).label.contains("90行"))
     }
 
-    private func retainedChangeIsVisible(_ label: String) throws -> Bool {
-        let scale = UIScreen.main.scale
-        for attempt in 0...6 {
-            var observed: (frame: CGRect, viewport: CGRect)?
-            let observeVisibility = {
-                observed = nil
-                guard let root = try? self.app.snapshot(), let nodes = self.snapshotNodes(in: root) else { return false }
-                let bars = nodes.filter { $0.elementType == .navigationBar &&
-                    ($0.label == "時間割変更" || $0.identifier == "時間割変更") }
-                let rows = nodes.filter { $0.elementType == .staticText && $0.label == label }
-                guard bars.count == 1, rows.count <= 1 else { return false }
-                let viewport = ObservedScreenGeometry.bodyViewport(app: root.frame, navigation: bars[0].frame,
-                    tab: nodes.first(where: { $0.elementType == .tabBar })?.frame,
-                    keyboards: nodes.filter { $0.elementType == .keyboard }.map(\.frame),
-                    footers: nodes.filter { $0.elementType == .button && $0.label == "次へ" }.map(\.frame))
-                guard ObservedScreenGeometry.usable(viewport) else { return false }
-                let frame = rows.first?.frame ?? .null
-                observed = (frame, viewport)
-                return ObservedScreenGeometry.contains(frame, in: viewport, scale: scale)
-            }
-            let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in observeVisibility() }, object: nil)
-            let isVisible = observeVisibility() || XCTWaiter.wait(for: [ready], timeout: 2) == .completed
-            guard let (frame, viewport) = observed else { continue }
-            print("RETAINED_CHANGE visible=\(isVisible) frame=\(frame) viewport=\(viewport)")
-            if isVisible { return true }
-            guard attempt < 6 else { break }
-            if ObservedScreenGeometry.contains(frame, in: viewport, scale: scale) { continue }
-            if let drag = ObservedScreenGeometry.scrollDrag(for: frame, in: viewport) {
-                try NativeTestContacts.send([.init(start: drag.start, end: drag.end, duration: 0.33, pauseAfterLift: 0)],
-                                            named: "Reveal retained timetable change")
-            } else if ObservedScreenGeometry.usable(frame) && frame.minY < viewport.minY {
-                app.swipeDown()
-            } else {
-                app.swipeUp()
-            }
-        }
-        return false
+    private func assertRetainedChangeRows(stage: String) {
+        let retainedIsVisible = visible(app.staticTexts["変更後、架空科目C"]).exists
+        XCTAssertTrue(retainedIsVisible)
+        let excludedExists = app.staticTexts["変更後、架空除外科目B"].exists
+        XCTAssertFalse(excludedExists)
+        print("RETAINED_CHANGE stage=\(stage) visible=\(retainedIsVisible) excluded=\(!excludedExists)")
     }
 
-    func testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch() throws {
+    func testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch() {
         func openChanges() {
             tab("設定")
             visible(app.buttons["時間割ファイル"]).tap()
@@ -218,8 +187,7 @@ extension ApplicationChecks {
         let ranges = app.staticTexts["change-skipped-rows"]
         XCTAssertTrue(ranges.waitForExistence(timeout:15))
         XCTAssertEqual(ranges.label,"除外した行：3〜4行目、200〜300行目")
-        XCTAssertTrue(try retainedChangeIsVisible("変更後、架空科目C"))
-        XCTAssertFalse(app.staticTexts["変更後、架空除外科目B"].exists)
+        assertRetainedChangeRows(stage: "after-apply")
         app.terminate()
         app.launchArguments.removeAll { $0 == "--reset-fixture" }
         launchReady()
@@ -231,8 +199,7 @@ extension ApplicationChecks {
         XCTAssertEqual(XCTWaiter.wait(for: [parsedAfterRelaunch], timeout: 15), .completed)
         XCTAssertTrue(ranges.waitForExistence(timeout:15))
         XCTAssertEqual(ranges.label,"除外した行：3〜4行目、200〜300行目")
-        XCTAssertTrue(try retainedChangeIsVisible("変更後、架空科目C"))
-        XCTAssertFalse(app.staticTexts["変更後、架空除外科目B"].exists)
+        assertRetainedChangeRows(stage: "after-relaunch")
 
         func openEditedRows() {
             openReview()

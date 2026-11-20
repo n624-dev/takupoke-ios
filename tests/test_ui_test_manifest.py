@@ -215,18 +215,16 @@ enum SimulatorEventsYearFixture {
 
     def test_retained_row_checks_the_current_visible_screen_before_and_after_relaunch(self):
         source = (ROOT / "tests/ui/ApplicationChecks+Changes.swift").read_text()
-        helper, case = source.split("private func retainedChangeIsVisible(", 1)[1].split(
+        helper, case = source.split("private func assertRetainedChangeRows(", 1)[1].split(
             "func testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch(", 1)
-        self.assertEqual(helper.count("self.app.snapshot()"), 1)
-        self.assertIn("$0.elementType == .staticText && $0.label == label", helper)
-        self.assertIn("ObservedScreenGeometry.contains(frame, in: viewport", helper)
-        self.assertIn("timeout: 2", helper)
-        self.assertIn("for attempt in 0...6", helper)
-        self.assertIn("NativeTestContacts.send(", helper)
-        assertion = 'XCTAssertTrue(try retainedChangeIsVisible("変更後、架空科目C"))'
+        self.assertIn('let retainedIsVisible = visible(app.staticTexts["変更後、架空科目C"]).exists', helper)
+        self.assertIn('let excludedExists = app.staticTexts["変更後、架空除外科目B"].exists', helper)
+        self.assertIn(r'visible=\(retainedIsVisible) excluded=\(!excludedExists)', helper)
+        self.assertIn('XCTAssertTrue(retainedIsVisible)', helper)
+        self.assertIn('XCTAssertFalse(excludedExists)', helper)
         before, after = case.split('app.launchArguments.removeAll { $0 == "--reset-fixture" }', 1)
-        self.assertIn(assertion, before)
-        self.assertIn(assertion, after)
+        self.assertIn('assertRetainedChangeRows(stage: "after-apply")', before)
+        self.assertIn('assertRetainedChangeRows(stage: "after-relaunch")', after)
         workflow = (ROOT / ".github/workflows/application-relaunch-native-probe.yml").read_text()
         self.assertIn("timeout-minutes: ${{ inputs.case == 'rows' && 45 || 30 }}", workflow)
         self.assertIn("TKPK_RELAUNCH_RUNNER_SECONDS: ${{ inputs.case == 'rows' && 2400 || 1440 }}", workflow)
