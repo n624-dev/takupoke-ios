@@ -223,7 +223,8 @@ extension ApplicationChecks {
         )
         return e
     }
-    func tapNativeSwitch(_ row: XCUIElement, navigation: String? = nil, dragThumb: Bool = false) {
+    func tapNativeSwitch(_ row: XCUIElement, navigation: String? = nil, dragThumb: Bool = false,
+                         thumbDragDuration: TimeInterval? = nil) {
         _ = visible(row, navigation: navigation)
         // Observe the surrounding layout before retaining a native identity.
         // Revalidate every safety condition inside the original native deadline.
@@ -257,10 +258,22 @@ extension ApplicationChecks {
         let control = proof.control, outer = proof.outer, frame = proof.frame
         let state = proof.state, rowState = proof.rowState
         let point = CGPoint(x: frame.minX + frame.width * (state == "0" ? 0.25 : 0.75), y: frame.midY)
-        let gesture = dragThumb ? "thumb-drag" : "short-contact-50ms"
+        let gesture = thumbDragDuration.map { "timed-thumb-drag-\($0)" }
+            ?? (dragThumb ? "thumb-drag" : "short-contact-50ms")
         print(
             "NATIVE_SWITCH row=\(outer);control=\(frame);observedPoint=\(point);rowState=\(rowState);controlState=\(state);target=native-element;method=\(gesture)"
         )
+        if let thumbDragDuration {
+            // Preserve the observed switch and move its thumb once at explicit times.
+            let stop = CGPoint(x: frame.minX + frame.width * (state == "0" ? 0.75 : 0.25), y: frame.midY)
+            do {
+                try NativeTestContacts.send([.init(start: point, end: stop, duration: thumbDragDuration, pauseAfterLift: 0)],
+                                            named: "Native switch thumb drag")
+            } catch {
+                XCTFail("Native switch thumb drag failed: \(error)")
+            }
+            return
+        }
         if dragThumb {
             // Move the observed thumb once across this switch. The native pan
             // recognizer can commit even when the simulator coalesces touch times.

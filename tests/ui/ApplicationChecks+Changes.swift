@@ -227,11 +227,11 @@ extension ApplicationChecks {
         XCTAssertEqual(dateField.value as? String, "2026年11月17日")
         let excluded = app.switches["この行を除外"]
         XCTAssertEqual(rowControl(excluded, row: 3).value as? String, "1")
-        tapNativeSwitch(excluded, navigation: "3行目", dragThumb: true)
+        tapNativeSwitch(excluded, navigation: "3行目", thumbDragDuration: 0.33)
         assertSwitch(excluded, now: "0")
         let derive = app.switches["曜日を日付から補完"]
         XCTAssertEqual(rowControl(derive, row: 3).value as? String, "0")
-        tapNativeSwitch(derive, navigation: "3行目", dragThumb: true)
+        tapNativeSwitch(derive, navigation: "3行目", thumbDragDuration: 0.33)
         assertSwitch(derive, now: "1")
         back(to: "除外した行")
 
@@ -260,7 +260,7 @@ extension ApplicationChecks {
         enter("BLANK-GRADE", in: 6)
         let blankRowExcluded = app.switches["この行を除外"]
         XCTAssertEqual(rowControl(blankRowExcluded, row: 4).value as? String, "1")
-        tapNativeSwitch(blankRowExcluded, navigation: "4行目", dragThumb: true)
+        tapNativeSwitch(blankRowExcluded, navigation: "4行目", thumbDragDuration: 0.33)
         assertSwitch(blankRowExcluded, now: "0")
         back(to: "除外した行")
         back(to: "修正済み")

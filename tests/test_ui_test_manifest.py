@@ -418,6 +418,11 @@ enum SimulatorEventsYearFixture {
         self.assertIn("thenDragTo: finish, withVelocity: .slow, thenHoldForDuration: 0", drag)
         self.assertEqual(short_contact.count(".press(forDuration:"), 1)
         self.assertEqual(switch.count(".press(forDuration:"), 2)
+        timed_drag = switch.split("if let thumbDragDuration {", 1)[1].split("if dragThumb {", 1)[0]
+        self.assertEqual(timed_drag.count("NativeTestContacts.send("), 1)
+        self.assertIn('frame.minX + frame.width * (state == "0" ? 0.75 : 0.25)', timed_drag)
+        self.assertIn("start: point, end: stop, duration: thumbDragDuration", timed_drag)
+        self.assertIn("XCTFail", timed_drag)
         rows = (ROOT / "tests/ui/ApplicationChecks+Changes.swift").read_text()
         # Checkmarks change the selection for a pending bulk action. Only
         # persisted per-row settings use native switch gestures.
@@ -430,7 +435,7 @@ enum SimulatorEventsYearFixture {
         self.assertIn('selectRows("change-select-row-', rows)
         expected_controls = ["excluded", "derive", "blankRowExcluded"]
         self.assertCountEqual(re.findall(
-            r"tapNativeSwitch\(\s*(\w+)\s*,[^)]*?dragThumb:\s*true\s*\)", rows), expected_controls)
+            r"tapNativeSwitch\(\s*(\w+)\s*,[^)]*?thumbDragDuration:\s*0\.33\s*\)", rows), expected_controls)
         self.assertEqual(rows.count("tapNativeSwitch("), len(expected_controls))
         self.assertNotIn(".press(forDuration: 0.1)", switch)
         self.assertNotIn(".doubleTap(", switch)
