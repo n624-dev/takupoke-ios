@@ -71,7 +71,6 @@ extension ApplicationChecks {
         requirePending(45)
         choose("change-select-all")
         XCTAssertFalse(pending.exists)
-        XCTAssertTrue(app.navigationBars[review].buttons["反映する"].isEnabled)
         tapToolbar("反映する", bar: review)
         let confirm = app.alerts["個人修正を反映しますか？"]
         XCTAssertTrue(confirm.waitForExistence(timeout: 15))
@@ -162,7 +161,6 @@ extension ApplicationChecks {
             applyGrade.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.1)
             screen(review)
         }
-        XCTAssertTrue(apply.isEnabled)
         tapToolbar("反映する", bar: review)
         let alert = app.alerts["個人修正を反映しますか？"]
         XCTAssertTrue(alert.waitForExistence(timeout: 15))

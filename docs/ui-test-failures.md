@@ -5543,4 +5543,8 @@ Linux Swift 6.1.2の確認Button候補のローカル38件では、既存の実�
 
 `lost communication`、`hosted runner`、`BlobNotFound`でN73／39771133485を検索し、旧d713ed6と現行の指定端末・各ケースの実行方法を照合した。過去はiOS26 Aで同じ失敗注記とログ欠落、今回はiOS27 B。先行bf2cのiOS27 Bは同じ製品・通常UIテスト・生成器・Runtime準備・runner・正式workflowで23:52:06 UTCに成功し、三項目の修正は手動テストだけにある。26 Aが終端し、追加の実ケース失敗が見つからなければ、ソースを変えず同じiOS27 Bと依存ジョブを新しいホストで一度再実行する。元の操作・期限・公開条件を保ち、引き継がれる結果は新しい試行のAPIで照合する。初回の通信断は記録に残す。
 
+[同じ正式44641545708のiOS26.5 A](https://github.com/n624-dev/takupoke-ios/actions/runs/44641545708/job/136001068252)・試行1／SDK27.2は01:33:29 UTCにfailure。`testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch` 150.426秒だけ失敗し、通常20件中19件成功。2行の学年入力と「選んだ行に入力」が成立し、「内容を確認・修正」へ戻った。`反映する` の有効と存在を一度確認後、`ApplicationChecks+Navigation.swift:51` の `contained` による同じボタンの存在・枠の再照会で30秒以上止まった。01:14:00の失敗後AXには該当navigation (0,75,393,106) 内の一意な実Button (285.3,79,87.7,36) があったが、期限内の操作可能性は確定していない。このボタンへのタッチ、確認と保存は未到達。全ジョブ終端、公開は依存skip。別に発生した27 Bのホスト通信断と区別する。
+
+`tapToolbar`、`反映する`、`testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch`、`snapshot`で1e173b3の先行26 A、N160・N165・N174、bf2cの成功条件を照合した。44465270899では先の学年入力の画面復帰で停止し、今回の反映ボタンの照会とは段階が違う。旧1e173b3と8b15dd8の`tapToolbar`は同じ複数getterで、bf2cの26 Aは同じコードで成功している。N165のように成功していた状態を重複して読む箇所を減らし、元のナビゲーション・Button各10秒、ツールバー所属、一意性、実枠包含・enabled・現hittable、一回の実タップを維持する。同じ準備の全対象ケースを限定で確認し、反映の確認・取消・再起動後の保存までを検証する。製品コードや公開条件は変えない。
+
 ebe3694の[明示選択限定44616309920](https://github.com/n624-dev/takupoke-ios/actions/runs/44616309920/attempts/1)・試行1、iOS26.5／SDK27.2（135885851122）は21:53:43 UTCにfailure。21:31:58に実ケース開始、Set Up以降に初期画面・入力の記録はなく、準備込み2400秒で21:52:15にexit124。所有端末の回収は完了した。実確認操作・新しいButtonの成否は未観測。同じ症状の前に候補を変更する根拠にはしない。

@@ -43,16 +43,40 @@ extension ApplicationChecks {
     }
     func tapToolbar(_ title: String, bar: String) {
         let navigation = app.navigationBars[bar]
-        XCTAssertTrue(navigation.waitForExistence(timeout: 10), app.debugDescription)
-        let button = navigation.buttons[title]
-        guard button.waitForExistence(timeout: 10), usable(navigation.frame),
-            contained(button, in: navigation.frame), button.isEnabled, button.isHittable
-        else {
-            XCTFail(
-                "Toolbar control has no visible hit region on its own navigation bar: " + app.debugDescription
-            )
+        guard navigation.waitForExistence(timeout: 10) else {
+            XCTFail("Toolbar navigation bar did not appear: " + bar)
             return
         }
+        let controls = navigation.buttons.matching(NSPredicate(format: "label == %@ OR identifier == %@", title, title))
+        let deadline = ProcessInfo.processInfo.systemUptime + 10
+        let scale = UIScreen.main.scale
+        var observed: XCUIElement?
+        var observation = "no matching control observation"
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            guard ProcessInfo.processInfo.systemUptime < deadline else { return false }
+            let buttons = controls.allElementsBoundByAccessibilityElement
+            observation = "matching native buttons=\(buttons.count)"
+            if buttons.count > 1 { return true }
+            guard let button = buttons.first, let snapshot = try? button.snapshot(),
+                snapshot.elementType == .button, (snapshot.label == title || snapshot.identifier == title),
+                ProcessInfo.processInfo.systemUptime < deadline
+            else { return false }
+            let barFrame = navigation.frame
+            let frame = snapshot.frame
+            observation += ";bar=\(barFrame);button=\(frame);enabled=\(snapshot.isEnabled)"
+            guard self.usable(frame), self.usable(barFrame),
+                ObservedScreenGeometry.contains(frame, in: barFrame, scale: scale), snapshot.isEnabled,
+                ProcessInfo.processInfo.systemUptime < deadline, button.isHittable,
+                ProcessInfo.processInfo.systemUptime <= deadline
+            else { return false }
+            observed = button
+            return true
+        }, object: nil)
+        guard XCTWaiter.wait(for: [ready], timeout: 10) == .completed, let button = observed else {
+            XCTFail("Toolbar control has no visible hit region on \(bar): \(title);\(observation)")
+            return
+        }
+        print("NATIVE_TOOLBAR bar=\(bar);title=\(title);\(observation)")
         button.tap()
     }
     func tapSetupNext(from title: String) {

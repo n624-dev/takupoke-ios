@@ -168,6 +168,24 @@ enum SimulatorEventsYearFixture {
         self.assertNotIn(".coordinate(", contact)
         self.assertNotIn(".tap()", contact)
 
+    def test_toolbar_tap_checks_one_current_native_button(self):
+        source = (ROOT / "tests/ui/ApplicationChecks+Navigation.swift").read_text()
+        toolbar = source.split("    func tapToolbar(", 1)[1].split("    func tapSetupNext(", 1)[0]
+        self.assertIn("navigation.waitForExistence(timeout: 10)", toolbar)
+        self.assertIn("navigation.buttons.matching", toolbar)
+        self.assertIn("if buttons.count > 1 { return true }", toolbar)
+        self.assertEqual(toolbar.count("button.snapshot()"), 1)
+        self.assertEqual(toolbar.count("navigation.frame"), 1)
+        self.assertIn("snapshot.elementType == .button", toolbar)
+        self.assertIn("ObservedScreenGeometry.contains(frame, in: barFrame, scale: scale)", toolbar)
+        self.assertIn("snapshot.isEnabled", toolbar)
+        self.assertIn("button.isHittable", toolbar)
+        self.assertIn("XCTWaiter.wait(for: [ready], timeout: 10)", toolbar)
+        self.assertIn("object: nil", toolbar)
+        self.assertEqual(toolbar.count("button.tap()"), 1)
+        self.assertNotIn("contained(button", toolbar)
+        self.assertNotIn("app.debugDescription", toolbar)
+
     def test_split_sources_are_registered_in_the_selected_target_only(self):
         project = {'rootObject': 'project', 'objects': {
             'project': {'mainGroup': 'group'}, 'group': {'children': []},
