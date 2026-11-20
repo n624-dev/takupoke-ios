@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`761f3c39191d266f5056b4ce8d27ed8c90b4b1e206f23d3f86575e887b04099c`
+`775525c152753a5d7cd195ef554de764aac099080ee88f5a90480e83f7c689aa`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -98,6 +98,7 @@ bash tools/test-app-ui.sh
 - `test_week_card_contact_uses_one_observed_enabled_button_and_requires_the_real_detail`
 - `test_both_suites_use_the_same_native_tab_contact`
 - `test_retained_row_checks_the_current_visible_screen_before_and_after_relaunch`
+- `test_row_apply_uses_the_current_toolbar_and_still_requires_the_real_confirmation`
 - `test_toolbar_tap_checks_one_current_native_button`
 - `test_split_sources_are_registered_in_the_selected_target_only`
 - `test_unregistered_split_file_is_rejected`

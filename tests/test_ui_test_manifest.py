@@ -230,6 +230,20 @@ enum SimulatorEventsYearFixture {
         self.assertIn("TKPK_RELAUNCH_RUNNER_SECONDS: ${{ inputs.case == 'rows' && 2400 || 1440 }}", workflow)
         self.assertIn('--timeout "$TKPK_RELAUNCH_RUNNER_SECONDS" --cleanup-grace 120', workflow)
 
+    def test_row_apply_uses_the_current_toolbar_and_still_requires_the_real_confirmation(self):
+        source = (ROOT / "tests/ui/ApplicationChecks+Changes.swift").read_text()
+        helper, case = source.split("private func tapRowReviewApply(", 1)[1].split(
+            "func testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch(", 1)
+        self.assertEqual(helper.count("navigation.snapshot()"), 1)
+        self.assertIn("if candidates.count > 1 { return true }", helper)
+        self.assertIn("button.isEnabled, ObservedScreenGeometry.contains(button.frame, in: bar.frame", helper)
+        self.assertIn("XCTWaiter.wait(for: [ready], timeout: 10)", helper)
+        self.assertEqual(helper.count("NativeTestContacts.send("), 1)
+        self.assertEqual(case.count("tapRowReviewApply(in: review)"), 3)
+        self.assertIn('let alert = app.alerts["個人修正を反映しますか？"]', case)
+        self.assertIn('alert.buttons["キャンセル"].tap()', case)
+        self.assertEqual(case.count('alert.buttons["反映する"].tap()'), 2)
+
     def test_toolbar_tap_checks_one_current_native_button(self):
         source = (ROOT / "tests/ui/ApplicationChecks+Navigation.swift").read_text()
         toolbar = source.split("    func tapToolbar(", 1)[1].split("    func tapSetupNext(", 1)[0]
@@ -428,9 +442,12 @@ enum SimulatorEventsYearFixture {
         # persisted per-row settings use native switch gestures.
         selection = rows.split("func selectRows(", 1)[1].split("        openChanges()", 1)[0]
         self.assertIn("app.collectionViews.buttons.matching(identifier: identifier)", selection)
-        self.assertIn("XCTAssertFalse(control.isSelected)", selection)
-        self.assertEqual(selection.count("control.tap()"), 1)
-        self.assertIn("in control.isSelected", selection)
+        self.assertIn("visible(matches.element, navigation: page)", selection)
+        self.assertIn("button.identifier == identifier, button.isEnabled, !button.isSelected", selection)
+        self.assertNotIn("matches.count", selection)
+        self.assertEqual(selection.count("NativeTestContacts.send("), 1)
+        self.assertIn("return current.isSelected", selection)
+        self.assertIn("XCTWaiter.wait(for: [changed], timeout: 15)", selection)
         self.assertIn('selection: "change-select-all"', rows)
         self.assertIn('selectRows("change-select-row-', rows)
         expected_controls = ["excluded", "derive", "blankRowExcluded"]

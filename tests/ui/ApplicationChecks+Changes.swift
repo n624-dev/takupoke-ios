@@ -101,6 +101,46 @@ extension ApplicationChecks {
         print("RETAINED_CHANGE stage=\(stage) visible=\(retainedIsVisible) excluded=\(!excludedExists)")
     }
 
+    private func tapRowReviewApply(in page: String) {
+        let navigation = app.navigationBars[page]
+        guard navigation.waitForExistence(timeout: 10) else {
+            XCTFail("Row review navigation did not appear: " + page)
+            return
+        }
+        let deadline = ProcessInfo.processInfo.systemUptime + 10
+        let scale = UIScreen.main.scale
+        var observed: CGRect?
+        var observation = "no navigation snapshot"
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            guard ProcessInfo.processInfo.systemUptime < deadline,
+                  let bar = try? navigation.snapshot(), bar.elementType == .navigationBar,
+                  bar.identifier == page || bar.label == page,
+                  let nodes = self.snapshotNodes(in: bar) else { return false }
+            let candidates = nodes.filter { $0.elementType == .button &&
+                ($0.identifier == "反映する" || $0.label == "反映する") }
+            observation = "matching=\(candidates.count);bar=\(bar.frame)"
+            if candidates.count > 1 { return true }
+            guard let button = candidates.first else { return false }
+            observation += ";button=\(button.frame);enabled=\(button.isEnabled)"
+            guard button.isEnabled, ObservedScreenGeometry.contains(button.frame, in: bar.frame, scale: scale),
+                  ProcessInfo.processInfo.systemUptime <= deadline else { return false }
+            observed = button.frame
+            return true
+        }, object: nil)
+        guard XCTWaiter.wait(for: [ready], timeout: 10) == .completed, let frame = observed else {
+            XCTFail("Row review must expose one visible and enabled apply button: " + observation)
+            return
+        }
+        let center = CGPoint(x: frame.midX, y: frame.midY)
+        print("NATIVE_ROW_APPLY \(observation);contact=\(center)")
+        do {
+            try NativeTestContacts.send([.init(start: center, end: center, duration: 0.1, pauseAfterLift: 0)],
+                                        named: "Apply reviewed timetable rows")
+        } catch {
+            XCTFail("Row apply contact failed: \(error)")
+        }
+    }
+
     func testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch() {
         func openChanges() {
             tab("設定")
@@ -120,11 +160,25 @@ extension ApplicationChecks {
         func selectRows(_ identifier: String, on page: String) {
             let matches = app.collectionViews.buttons.matching(identifier: identifier)
             let control = visible(matches.element, navigation: page)
-            XCTAssertEqual(matches.count, 1)
-            XCTAssertTrue(control.isEnabled && control.isHittable)
-            XCTAssertFalse(control.isSelected)
-            control.tap()
-            let changed = expectation(for: NSPredicate { _, _ in control.isSelected }, evaluatedWith: control)
+            guard let button = try? control.snapshot(), button.elementType == .button,
+                  button.identifier == identifier, button.isEnabled, !button.isSelected,
+                  ObservedScreenGeometry.usable(button.frame) else {
+                XCTFail("Row selection must expose one visible, enabled and unselected button: " + identifier)
+                return
+            }
+            let center = CGPoint(x: button.frame.midX, y: button.frame.midY)
+            print("NATIVE_ROW_SELECTION id=\(identifier);button=\(button.frame);contact=\(center)")
+            do {
+                try NativeTestContacts.send([.init(start: center, end: center, duration: 0.1, pauseAfterLift: 0)],
+                                            named: "Select one timetable change row control")
+            } catch {
+                XCTFail("Row selection contact failed: \(error)")
+                return
+            }
+            let changed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                guard let current = try? control.snapshot(), current.identifier == identifier else { return false }
+                return current.isSelected
+            }, object: nil)
             XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 15), .completed)
         }
         openChanges()
@@ -169,13 +223,13 @@ extension ApplicationChecks {
             applyGrade.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.1)
             screen(review)
         }
-        tapToolbar("反映する", bar: review)
+        tapRowReviewApply(in: review)
         let alert = app.alerts["個人修正を反映しますか？"]
         XCTAssertTrue(alert.waitForExistence(timeout: 15))
         XCTAssertTrue(alert.staticTexts.containing(NSPredicate(format:"label CONTAINS %@","200〜300行目")).firstMatch.exists)
         alert.buttons["キャンセル"].tap()
         XCTAssertTrue(app.navigationBars[review].exists)
-        tapToolbar("反映する", bar: review)
+        tapRowReviewApply(in: review)
         alert.buttons["反映する"].tap()
         let count = app.staticTexts["change-skipped-count"]
         let status = app.descendants(matching: .any)["change-analysis-status"]
@@ -265,7 +319,7 @@ extension ApplicationChecks {
         back(to: "除外した行")
         back(to: "修正済み")
         back(to: review)
-        tapToolbar("反映する", bar: review)
+        tapRowReviewApply(in: review)
         alert.buttons["反映する"].tap()
         XCTAssertTrue(app.navigationBars["内容を確認・修正"].waitForNonExistence(timeout: 30), app.debugDescription)
         XCTAssertTrue(visible(app.staticTexts["変更後、架空除外科目B"]).exists)
