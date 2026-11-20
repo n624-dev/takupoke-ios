@@ -185,6 +185,7 @@ class ManualDiagnosticsTests(unittest.TestCase):
         source = (ROOT / 'tools/test-manual-ui.sh').read_text()
         function = source[source.index('stage() {'):source.index('\ntrap cleanup EXIT')]
         shell = '''set -eu
+source tools/simulator-ci-trace.sh
 scratch_dir=owned-scratch
 simulator_id=owned-simulator
 diagnostic_started=0
@@ -206,7 +207,7 @@ rm() { echo "delete-$*" >> "$CALLS"; }
             for original_exit in (0, 7, 143):
                 with self.subTest(original_exit=original_exit):
                     calls.write_text('')
-                    run = subprocess.run(['bash', '-c', shell], text=True, capture_output=True,
+                    run = subprocess.run(['bash', '-c', shell], cwd=ROOT, text=True, capture_output=True,
                                          env=os.environ | {'CALLS': str(calls), 'ORIGINAL_EXIT': str(original_exit)})
                     self.assertEqual(run.returncode, original_exit, run.stderr)
                     self.assertEqual(calls.read_text().splitlines(), [
