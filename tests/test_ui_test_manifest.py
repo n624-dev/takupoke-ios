@@ -175,6 +175,7 @@ enum SimulatorEventsYearFixture {
         self.assertIn("navigation.buttons.matching", toolbar)
         self.assertIn("if buttons.count > 1 { return true }", toolbar)
         self.assertEqual(toolbar.count("button.snapshot()"), 1)
+        self.assertIn("guard let button = buttons.first, ProcessInfo.processInfo.systemUptime < deadline,", toolbar)
         self.assertEqual(toolbar.count("navigation.frame"), 1)
         self.assertIn("snapshot.elementType == .button", toolbar)
         self.assertIn("ObservedScreenGeometry.contains(frame, in: barFrame, scale: scale)", toolbar)

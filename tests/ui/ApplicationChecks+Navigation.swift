@@ -57,7 +57,8 @@ extension ApplicationChecks {
             let buttons = controls.allElementsBoundByAccessibilityElement
             observation = "matching native buttons=\(buttons.count)"
             if buttons.count > 1 { return true }
-            guard let button = buttons.first, let snapshot = try? button.snapshot(),
+            guard let button = buttons.first, ProcessInfo.processInfo.systemUptime < deadline,
+                let snapshot = try? button.snapshot(),
                 snapshot.elementType == .button, (snapshot.label == title || snapshot.identifier == title),
                 ProcessInfo.processInfo.systemUptime < deadline
             else { return false }
