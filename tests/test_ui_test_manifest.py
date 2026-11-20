@@ -161,12 +161,16 @@ enum SimulatorEventsYearFixture {
                          ("testNotificationControlsAndAppearance", manifest.COUNTDOWN_NOTIFICATION_TEST))
         self.assertEqual(manifest.runner_phases(manifest.PROBE_GROUPS["input-delivery"]),
                          ("settings", "voiceover"))
-        self.assertEqual(manifest.runner_phases(manifest.PROBE_GROUPS["week-card-and-motion"]),
-                         ("week-motion", "before-settings", "settings"))
-        workflow = (ROOT / ".github/workflows/application-relaunch-native-probe.yml").read_text()
-        self.assertIn("- week-card-and-motion", workflow)
         with self.assertRaisesRegex(ValueError, "Unknown"):
             manifest.phase_tests(manifest.SHARDS["B"], "unregistered")
+
+    def test_merged_card_probe_starts_with_only_the_original_case(self):
+        cases = manifest.PROBE_GROUPS["merged-lesson-cards"]
+        self.assertEqual(cases, ("testMergedCardsFromAllSources",))
+        self.assertEqual(manifest.runner_phases(cases), ("remaining",))
+        self.assertIn(cases[0], manifest.SHARDS["A"])
+        workflow = (ROOT / ".github/workflows/application-relaunch-native-probe.yml").read_text()
+        self.assertIn("- merged-lesson-cards\n", workflow)
 
     def test_week_card_contact_uses_one_observed_enabled_button_and_requires_the_real_detail(self):
         source = (ROOT / "tests/ui/ApplicationChecks+Timetable.swift").read_text()

@@ -25,7 +25,7 @@ on:
           - event-cache-input
           - timetable-clocks
           - week-change-details
-          - week-card-and-motion
+          - merged-lesson-cards
           - system-text-size
           - home-boundaries
           - home-launch
