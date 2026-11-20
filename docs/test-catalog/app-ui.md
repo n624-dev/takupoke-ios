@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`89bbe4b850fe7c6027d5c79bccb2cda0beb29f189239dd3bb445f77f7e7b9e8a`
+`e379317c04962463d5e7127a3ad11dfa8fb8acb79d9da82b2390e78665b13f47`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -301,6 +301,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_simulator_ci_trace.py](../../tests/test_simulator_ci_trace.py)
 
+- `test_fixture_output_compiles_with_escaping_log_interpolation`
 - `test_parses_fixed_fields_and_rejects_unrelated_or_unstructured_output`
 - `test_streams_over_128_events_while_owned_command_runs_and_stops_it`
 

@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import selectors
+import shutil
 import signal
 import subprocess
 import sys
@@ -23,6 +24,40 @@ def event(sequence, payload, **metadata):
 
 
 class SimulatorCITraceTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("swiftc"), "Swift compiler for log interpolation type check")
+    def test_fixture_output_compiles_with_escaping_log_interpolation(self):
+        source = (ROOT / "tests/ui/ApplicationFixture+CITrace.swift").read_text(encoding="utf-8")
+        start = source.index("private final class FixtureCITraceOutput:")
+        end = source.index("// Compiled only into", start)
+        # Apple Logger defers evaluating interpolation. Preserve that compiler
+        # constraint when testing the actual output class without the Apple SDK.
+        log_interface = """
+import Foundation
+
+private enum LogPrivacy { case `public` }
+private struct LogMessage: ExpressibleByStringInterpolation {
+    struct StringInterpolation: StringInterpolationProtocol {
+        init(literalCapacity: Int, interpolationCount: Int) {}
+        mutating func appendLiteral(_ value: String) {}
+        mutating func appendInterpolation<T>(_ value: @autoclosure @escaping () -> T) {}
+        mutating func appendInterpolation(_ value: @autoclosure @escaping () -> String, privacy: LogPrivacy) {}
+    }
+    init(stringLiteral value: String) {}
+    init(stringInterpolation: StringInterpolation) {}
+}
+
+private struct Logger {
+    init(subsystem: String, category: String) {}
+    func notice(_ message: LogMessage) {}
+}
+"""
+        with tempfile.TemporaryDirectory(prefix="takupoke-log-interpolation-") as temporary:
+            file = Path(temporary) / "Output.swift"
+            file.write_text(log_interface + source[start:end], encoding="utf-8")
+            result = subprocess.run(["swiftc", "-typecheck", "-module-cache-path", str(file.parent / "modules"),
+                                     str(file)], capture_output=True, text=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_parses_fixed_fields_and_rejects_unrelated_or_unstructured_output(self):
         payloads = (
             "stage=fixture-ready",

@@ -13,10 +13,11 @@ private final class FixtureCITraceOutput: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         sequence += 1
+        let ordinal = sequence
         let pid = ProcessInfo.processInfo.processIdentifier
         let time = Date().timeIntervalSince1970
         let uptime = ProcessInfo.processInfo.systemUptime
-        logger.notice("CI_SIMULATOR_EVENT pid=\(pid) seq=\(sequence) time=\(time) uptime=\(uptime) \(fields, privacy: .public)")
+        logger.notice("CI_SIMULATOR_EVENT pid=\(pid) seq=\(ordinal) time=\(time) uptime=\(uptime) \(fields, privacy: .public)")
     }
 }
 
