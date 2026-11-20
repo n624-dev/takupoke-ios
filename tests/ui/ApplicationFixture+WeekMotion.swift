@@ -93,14 +93,15 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     }
     func checkpoint(_ name: String) {
         guard enabled, link != nil else { return }
+        if checkpoints.count < 32 {
+            checkpoints.append(["name": name, "t": CACurrentMediaTime() - releasedAt, "cpu": threadCPUTime()])
+        }
         switch name {
         case "display-link-registered", "horizontal-arrival", "height-ended", "promotion-begin",
              "arrival-callback-returned", "scroll-restored", "configuration-begin", "configuration-end":
             FixtureCITrace.mark("week-motion-" + name)
         default: break
         }
-        guard checkpoints.count < 32 else { return }
-        checkpoints.append(["name": name, "t": CACurrentMediaTime() - releasedAt, "cpu": threadCPUTime()])
     }
     private func point(_ view: UIView?) -> CGPoint? {
         guard let view, let window = view.window else { return nil }
