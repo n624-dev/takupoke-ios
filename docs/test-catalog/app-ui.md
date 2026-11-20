@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`5d1778206cac9e2c15bcfe0afaf02f50e0a130a5a305de48ecc8b560794fae06`
+`08233e50a78eddca0d521fa13566b580dfe8810632101a07f22f723b74a3464b`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -120,7 +120,7 @@ bash tools/test-app-ui.sh
 - `test_empty_missing_extra_and_duplicate_results_fail`
 - `test_failure_and_unexpected_skip_fail`
 - `test_workflow_matrix_matches_gate_and_publish_follows_gate`
-- `test_application_lanes_wait_only_for_the_matching_27_lane`
+- `test_apple_validation_lanes_can_start_after_distribution_checks`
 - `test_manual_matrix_requires_every_unchanged_case_on_both_os_separately`
 - `test_cli_selects_the_complete_shard_and_rejects_invalid_shard`
 - `test_cli_reads_japanese_source_with_non_utf8_default_encoding`

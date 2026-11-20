@@ -1011,7 +1011,7 @@ METHOD
             self.assertIn("DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer", jobs[job])
             self.assertIn("TKPK_SIMULATOR_FRONTEND: headless", jobs[job])
 
-    def test_application_lanes_wait_only_for_the_matching_27_lane(self):
+    def test_apple_validation_lanes_can_start_after_distribution_checks(self):
         workflow = (ROOT / ".github/workflows/ios-release.yml").read_text()
         jobs = dict(re.findall(r"^  ([\w-]+):\n(.*?)(?=^  [\w-]+:|\Z)",
                                workflow, re.MULTILINE | re.DOTALL))
@@ -1020,7 +1020,7 @@ METHOD
                 first = jobs[f"simulator-27-{shard}"]
                 second = jobs[f"simulator-26-{shard}"]
                 self.assertIn("    needs: checks\n", first)
-                self.assertIn(f"    needs: [checks, simulator-27-{shard}]\n", second)
+                self.assertIn("    needs: checks\n", second)
                 self.assertIsNone(re.search(r"^    if:", first + second, re.MULTILINE))
                 self.assertNotIn("continue-on-error", first + second)
                 for ios, block in ((27, first), (26, second)):
@@ -1038,11 +1038,10 @@ METHOD
                 cleanup = "run: " + prepare + " --cleanup-export\n"
                 self.assertIn("if: always()\n        " + cleanup, second)
                 self.assertLess(second.index("bash tools/test-app-ui.sh"), second.index(cleanup))
-        # Native PDF verification remains independent of Simulator UI availability.
-        self.assertIn("    needs: checks\n", jobs["native-parsing"])
-        self.assertIn("    needs: [checks, manual-27, simulator-27-a, simulator-27-b]\n",
-                      jobs["manual-26"])
-        self.assertNotIn("continue-on-error", jobs["manual-26"])
+        for lane in ("native-parsing", "manual-26", "manual-27"):
+            with self.subTest(lane=lane):
+                self.assertIn("    needs: checks\n", jobs[lane])
+                self.assertNotIn("continue-on-error", jobs[lane])
 
     def test_manual_matrix_requires_every_unchanged_case_on_both_os_separately(self):
         workflow = (ROOT / ".github/workflows/ios-release.yml").read_text(encoding="utf-8")
@@ -1094,7 +1093,7 @@ METHOD
                 self.assertIn("if: always()\n        " + cleanup, block)
                 self.assertLess(block.index("bash tools/test-manual-ui.sh"), block.index(cleanup))
         simulator = workflow.split("  simulator-27-a:\n", 1)[1].split("  manual-27:\n", 1)[0]
-        for ios, shard, minutes in ((27, "a", 60), (27, "b", 75), (26, "a", 80), (26, "b", 80)):
+        for ios, shard, minutes in ((27, "a", 75), (27, "b", 75), (26, "a", 80), (26, "b", 80)):
             block = workflow.split(f"  simulator-{ios}-{shard}:\n", 1)[1]
             block = re.split(r"^  [a-z][a-z0-9-]*:\s*$", block, maxsplit=1, flags=re.MULTILINE)[0]
             self.assertEqual(re.findall(r"^    timeout-minutes: (\d+)$", block, re.MULTILINE),

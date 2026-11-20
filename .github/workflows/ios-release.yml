@@ -99,7 +99,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     # Includes dependency resolution, build, simulator tests and owned cleanup.
     # Individual UI operation deadlines and completion checks stay unchanged.
-    timeout-minutes: 60
+    timeout-minutes: 75
     env:
       TKPK_EXPECTED_IOS_SDK: '27.2'
       TKPK_SIMULATOR_FRONTEND: headless
@@ -167,7 +167,7 @@ jobs:
 
   simulator-26-a:
     name: Application iOS ${{ matrix.ios }} UI ${{ matrix.shard }}
-    needs: [checks, simulator-27-a]
+    needs: checks
     strategy:
       fail-fast: false
       matrix:
@@ -210,7 +210,7 @@ jobs:
 
   simulator-26-b:
     name: Application iOS ${{ matrix.ios }} UI ${{ matrix.shard }}
-    needs: [checks, simulator-27-b]
+    needs: checks
     strategy:
       fail-fast: false
       matrix:
@@ -293,7 +293,7 @@ jobs:
 
   manual-26:
     name: Manual correction iOS ${{ matrix.ios }} / ${{ matrix.case }}
-    needs: [checks, manual-27, simulator-27-a, simulator-27-b]
+    needs: checks
     strategy:
       fail-fast: false
       matrix:

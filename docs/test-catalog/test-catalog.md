@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`f566ed071f7d85259c99cad354bced99f164c9573d48062963b78941b7b8a48c`
+`fdb0b89ba2cceadef4a35f58c9f33569d6ad5eb618d406d8bf9a0531f857b40e`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -68,7 +68,7 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 - `test_empty_missing_extra_and_duplicate_results_fail`
 - `test_failure_and_unexpected_skip_fail`
 - `test_workflow_matrix_matches_gate_and_publish_follows_gate`
-- `test_application_lanes_wait_only_for_the_matching_27_lane`
+- `test_apple_validation_lanes_can_start_after_distribution_checks`
 - `test_manual_matrix_requires_every_unchanged_case_on_both_os_separately`
 - `test_cli_selects_the_complete_shard_and_rejects_invalid_shard`
 - `test_cli_reads_japanese_source_with_non_utf8_default_encoding`
