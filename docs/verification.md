@@ -8890,3 +8890,18 @@ iOS26.5の同じ限定ログから標準・最大文字サイズの実画像を�
 0.1.524の実機報告で`#666100`が茶色・オリーブに見えた。限定44917689867のiOS26.5の設定画像を利用者と確認し、黄色は既存のアイコンの線だけに使うと確定した。公開候補は0.1.524の製品コードから作り直した。ライトで設定の同じSF Symbolsの線色をsRGB`#FFCC00`にし、そのほかの標準部品と操作文字はデフォルトのtintを使う。黄色と白は約1.51:1なので、必要な情報は元のラベル・標準部品で示す。ダークでは従来のシステム黄色を使う。README・既存の部品形状・時間割・通知日の実装は公開済みコードと同じ。
 
 `yellow|黄色|WeekAppearance|Native tab tap did not select|型検査|輪郭`で失敗索引と旧コードを確認した。標準アイコンの実際の行画像で明るい線と白い内側を確認する。既存の週保持・橙・緑・黄色・既定・青の実tint比較と、黄色の保存・UIKitコントラストtraitを使った実iOS描画を維持する。限定`yellow-contrast`は既存の外観1ケースだけで診断し、正式の必須検査を維持する。
+
+### 0.1.525（525.3）の正式公開
+
+2026年11月22日04時48分51秒（日本時間）、#124の修正版を[AltStore Classic向け最新版](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.525-build.525.3)として公開した。source `de64d20b31af3d606d51316e7df05f6f2efeab89`。[正式CIの試行3](https://github.com/n624-dev/takupoke-ios/actions/runs/44921744173/attempts/3)の同一source・試行で必須14検査と配布ジョブの成功を照合し、保存用Actions artifactは0件。試行1・2の不成功と実配信の記録は[失敗索引](ui-test-failures.md#124の正式525試行1で週送りの描画間隔と復路の記録照会が停止)に保持した。試行3ではiOS26 Aと27 Bが実行され、GitHub Actionsが同じsourceの成功済みジョブを引き継いだ。各試行で選んだ再実行は失敗ジョブとその依存だけで、正式の条件は同じ。
+
+同一sourceの[外観限定](https://github.com/n624-dev/takupoke-ios/actions/runs/44919879164/attempts/1)でiOS26.5／27.0（SDK27.2）を確認。通常と高コントラストの設定行で、黄色の線／白い内側は26が1,105／2,683画素、27が1,104／2,682画素、どちらも対象4,176画素。iOS27の高コントラストの実画像を開き、設定の3つの既存アイコンの表示も目視した。両OSで元の色切替・週保持、黄色の再起動後の保持、標準の選択タブと日付のtintを確認した。外観ケースは26が242.680秒、27が200.503秒。各144配信／2プロセス、欠番・処理戻り欠落0。Linux Swift 664件・失敗0、配布Python 328件・失敗0・予定skip2、構文・生成後Swift・対応表472件も確認した。修正後の物理iPhoneでの更新と表示は未確認。
+
+| 添付 | バイト | SHA-256 |
+| --- | ---: | --- |
+| altstore-source.json | 2,436 | `7c096af71caf1dab3e9e60bdd2abeae28c9ae0b23e01eaf173acb5859a319e3e` |
+| icon.png | 130,461 | `7ed41c1462f9bd46427b11e1045caddd95c10bea459a5984298c60776ab6177f` |
+| release.json | 647 | `6056a62cea0f040f0ef7010d06a1a96b74193a005b93af48128aaa889eff39ff` |
+| takupoke.ipa | 18,047,504 | `6781cb7e0e1132a4030167538ab0bf1fcac9b2e72acc04e233a38d6f0c93ce8d` |
+
+4添付の公開URLから匿名取得し、サイズ、SHA-256、タグとIPA内のコミット、版・ビルド、共通の更新内容を照合した。[固定AltStore Source](https://github.com/n624-dev/takupoke-ios/releases/latest/download/altstore-source.json)とタグのSourceはバイト単位で一致した。
