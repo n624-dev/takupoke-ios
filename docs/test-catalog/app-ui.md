@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`517cc2e559f997628d65d0e42309650aa74008566e32c861e1ce97d4efcf456c`
+`dbf0e9d761a1c89bc824cb6d4513090d5733c0e9693f6a2db65b24fd3d738cb7`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -85,7 +85,7 @@ bash tools/test-app-ui.sh
 - `testUnsetPreferenceDoesNotCreateAStoredColor`
 - `testAllSavedColorsSurviveReadAndDefaultRemovesOnlyColor`
 - `testWeekControlsUseTheSharedTintInBothAppearances`
-- `testLightYellowReachesSmallTextContrastAndKeepsTheSystemDarkYellow`
+- `testLightYellowIsAnIconColorAndDarkYellowRemainsSystemTint`
 - `testSharedSelectionPublishesImmediatelyAndDefaultRemovesOnlyItsPreference`
 - `testDefaultHasNoTintOverrideAndExplicitBlueIsKept`
 

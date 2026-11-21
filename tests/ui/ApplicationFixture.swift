@@ -18,6 +18,29 @@ private enum FixtureBrowserPrewarming {
     }
 }
 
+// Apply the same UIKit trait that feeds SwiftUI's contrast environment.
+private struct FixtureIncreasedContrast: UIViewRepresentable {
+    final class WindowProbe: UIView {
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            window?.traitOverrides.accessibilityContrast = .high
+        }
+    }
+
+    func makeUIView(context: Context) -> WindowProbe { WindowProbe() }
+    func updateUIView(_ uiView: WindowProbe, context: Context) {}
+}
+
+private struct FixtureThemeContrastStatus: View {
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        Text(contrast == .increased ? "increased" : "standard")
+            .accessibilityIdentifier("fixture-theme-contrast")
+            .allowsHitTesting(false)
+    }
+}
+
 final class FixtureNetwork: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -93,6 +116,11 @@ struct SimulatorApplication: App {
         WindowGroup {
             ContentView().environment(\.timeZone, JapaneseDateDisplay.timeZone).modifier(MainColorScope())
                 .preferredColorScheme(ProcessInfo.processInfo.arguments.contains("--light-theme-probe") ? .light : nil)
+                .background {
+                    if ProcessInfo.processInfo.arguments.contains("--increased-theme-contrast") {
+                        FixtureIncreasedContrast().allowsHitTesting(false).accessibilityHidden(true)
+                    }
+                }
                 .onAppear { FixtureLaunchDiagnostics.record("content-appeared") }
                 .overlay(alignment: .bottomLeading) {
                     if ProcessInfo.processInfo.arguments.contains("--countdown-notifications") {
@@ -214,6 +242,9 @@ struct SimulatorApplication: App {
                             .id(storedMainColor)
                             .accessibilityIdentifier("fixture-stored-color")
                             .allowsHitTesting(false)
+                        if ProcessInfo.processInfo.arguments.contains("--light-theme-probe") {
+                            FixtureThemeContrastStatus().padding(.bottom, 22)
+                        }
                     }
                 }
                 .overlay {

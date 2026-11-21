@@ -37,6 +37,9 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable", manifest.PROBE_GROUPS["week-appearance"])
         self.assertIn("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch", manifest.PROBE_GROUPS["week-appearance"])
         workflow = (ROOT / ".github/workflows/week-appearance-probe.yml").read_text()
+        self.assertEqual(manifest.PROBE_GROUPS["yellow-contrast"],
+                         ("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch",))
+        self.assertIn("week-navigation-and-yellow, yellow-contrast", workflow)
         self.assertIn("default: week-motion", workflow)
         self.assertIn("inputs.focus || 'week-motion'", workflow)
         self.assertIn("testTimetableCommonClocksAndEventOnlyWeekScale", manifest.PROBE_GROUPS["week-motion"])

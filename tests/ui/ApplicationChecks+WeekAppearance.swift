@@ -2,9 +2,7 @@ import XCTest
 import UIKit
 
 extension ApplicationChecks {
-    // Extract actual colored ink, excluding the neutral glass, text, and tab
-    // background. Medians reduce the influence of anti-aliased edge pixels.
-    private func coloredInk(_ image: UIImage) throws -> [Double] {
+    private func sRGBPixels(_ image: UIImage) throws -> (width: Int, bytes: [UInt8]) {
         let cg = try XCTUnwrap(image.cgImage)
         let width = cg.width, height = cg.height
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
@@ -15,6 +13,13 @@ extension ApplicationChecks {
                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
             context.draw(cg, in: CGRect(x: 0, y: 0, width: width, height: height))
         }
+        return (width, pixels)
+    }
+
+    // Extract actual colored ink, excluding the neutral glass, text, and tab
+    // background. Medians reduce the influence of anti-aliased edge pixels.
+    private func coloredInk(_ image: UIImage) throws -> [Double] {
+        let pixels = try sRGBPixels(image).bytes
         var channels = [[Double](), [Double](), [Double]()]
         for offset in stride(from: 0, to: pixels.count, by: 4) {
             let rgb = (0..<3).map { Double(pixels[offset + $0]) / 255 }
@@ -28,7 +33,48 @@ extension ApplicationChecks {
         }
     }
 
+    private func assertYellowSettingsIcon(contrast: String) throws {
+        let row = visible(app.buttons["時間割ファイル"], navigation: "設定", searchEarlierRows: true)
+        recoveryScreenshot("yellow-settings-" + contrast)
+        let scan = try sRGBPixels(row.screenshot().image)
+        let pixels = scan.bytes
+        var left = scan.width, right = 0, top = pixels.count / (scan.width * 4), bottom = 0
+        var yellowPixels = 0
+        for offset in stride(from: 0, to: pixels.count, by: 4) {
+            guard pixels[offset] >= 250, (199...209).contains(pixels[offset + 1]), pixels[offset + 2] <= 5 else { continue }
+            let index = offset / 4
+            let x = index % scan.width, y = index / scan.width
+            left = min(left, x); right = max(right, x)
+            top = min(top, y); bottom = max(bottom, y)
+            yellowPixels += 1
+        }
+        XCTAssertGreaterThan(yellowPixels, 30, "The icon must draw its existing glyph in #FFCC00")
+        guard left < right, top < bottom else {
+            XCTFail("The setting row must include a visible yellow glyph")
+            return
+        }
+        var whitePixels = 0
+        for y in top...bottom {
+            for x in left...right {
+                let offset = (y * scan.width + x) * 4
+                if pixels[offset] >= 235 && pixels[offset + 1] >= 235 && pixels[offset + 2] >= 235 {
+                    whitePixels += 1
+                }
+            }
+        }
+        let area = (right - left + 1) * (bottom - top + 1)
+        print("YELLOW_ICON contrast=\(contrast);yellow=\(yellowPixels);white=\(whitePixels);area=\(area)")
+        XCTAssertGreaterThan(whitePixels, area / 3, "The original icon interior must show the light row surface")
+    }
+
+    private func requireThemeContrast(_ value: String) {
+        let observed = expectation(for: NSPredicate(format: "label == %@", value),
+                                   evaluatedWith: app.staticTexts["fixture-theme-contrast"])
+        wait(for: [observed], timeout: 10)
+    }
+
     func testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch() throws {
+        requireThemeContrast("standard")
         tab("時間割")
         tap("翌週")
         let calendar = app.buttons["timetable-week-calendar"]
@@ -40,6 +86,7 @@ extension ApplicationChecks {
             let saved = expectation(for: NSPredicate(format: "label == %@", stored),
                                     evaluatedWith: app.staticTexts["fixture-stored-color"])
             wait(for: [saved], timeout: 10)
+            if stored == "yellow" { try assertYellowSettingsIcon(contrast: "standard") }
             tab("時間割")
             XCTAssertEqual(calendar.label, selectedWeek, "Changing color must retain the selected week")
             let buttonInk = try coloredInk(calendar.screenshot().image)
@@ -54,19 +101,34 @@ extension ApplicationChecks {
             } else if stored == "green" {
                 XCTAssertGreaterThan(buttonInk[1], 0.5)
                 XCTAssertGreaterThan(buttonInk[1], buttonInk[0] + 0.1)
-            } else if stored == "yellow" {
-                for ink in [buttonInk, tabInk] {
-                    XCTAssertGreaterThan(ink[0], ink[1])
-                    XCTAssertGreaterThan(ink[1], ink[0] * 0.86, "The rendered tint must retain a yellow hue")
-                    XCTAssertGreaterThan(ink[1], ink[2] + 0.22)
-                    XCTAssertLessThan(ink[0], 0.64, "Light appearance must use the readable shared yellow")
-                }
             } else {
                 XCTAssertGreaterThan(buttonInk[2], 0.7)
                 XCTAssertGreaterThan(buttonInk[2], buttonInk[0] + 0.15)
             }
             recoveryScreenshot("live-theme-" + stored)
         }
+
+        tab("設定")
+        tap("メインカラー")
+        tap("黄色")
+        let saved = expectation(for: NSPredicate(format: "label == %@", "yellow"),
+                                evaluatedWith: app.staticTexts["fixture-stored-color"])
+        wait(for: [saved], timeout: 10)
+        app.launchArguments.removeAll { $0 == "--reset-fixture" }
+        app.launchArguments.append("--increased-theme-contrast")
+        launchReady()
+        requireThemeContrast("increased")
+        XCTAssertEqual(app.staticTexts["fixture-stored-color"].label, "yellow")
+        tab("設定")
+        try assertYellowSettingsIcon(contrast: "increased")
+        tab("時間割")
+        let highContrastCalendar = try coloredInk(app.buttons["timetable-week-calendar"].screenshot().image)
+        let highContrastTab = try coloredInk(app.tabBars.buttons["時間割"].screenshot().image)
+        for ink in [highContrastCalendar, highContrastTab] {
+            XCTAssertGreaterThan(ink[2], 0.7)
+            XCTAssertGreaterThan(ink[2], ink[0] + 0.15)
+        }
+        recoveryScreenshot("yellow-calendar-increased")
     }
 
     func testConsecutiveWeekPullsTrackOverlappingContactsWithoutRepeating() throws {

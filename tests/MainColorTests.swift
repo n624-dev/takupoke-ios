@@ -48,30 +48,28 @@ final class MainColorTests: XCTestCase {
                 let color = style.resolve(in: environment).resolve(in: environment)
                 let tint = theme.color(for: scheme, contrast: environment.colorSchemeContrast) ?? .accentColor
                 XCTAssertEqual(color, tint.resolve(in: environment), theme.title)
-                if theme != .systemDefault { XCTAssertTrue(explicitColors.insert(color).inserted, theme.title) }
+                if theme == .yellow && scheme == .light {
+                    XCTAssertEqual(color, Color.accentColor.resolve(in: environment))
+                } else if theme != .systemDefault {
+                    XCTAssertTrue(explicitColors.insert(color).inserted, theme.title)
+                }
             }
         }
     }
 
-    func testLightYellowReachesSmallTextContrastAndKeepsTheSystemDarkYellow() throws {
+    func testLightYellowIsAnIconColorAndDarkYellowRemainsSystemTint() throws {
         guard #available(macOS 14.0, *) else { throw XCTSkip("Resolved SwiftUI colors require macOS 14") }
         var environment = EnvironmentValues()
         environment.colorScheme = .light
-        let standard = try XCTUnwrap(MainColor.yellow.color(for: .light, contrast: .standard)).resolve(in: environment)
-        let increased = try XCTUnwrap(MainColor.yellow.color(for: .light, contrast: .increased)).resolve(in: environment)
-        for tint in [standard, increased] {
-            XCTAssertGreaterThan(tint.linearRed, 0)
-            XCTAssertGreaterThan(tint.linearGreen, tint.linearRed * 0.80, "Keep the hue near yellow")
-            XCTAssertLessThan(tint.linearBlue, tint.linearGreen * 0.10, "Keep a saturated yellow")
+        let icon = MainColor.lightYellowIcon.resolve(in: environment)
+        XCTAssertEqual(icon.red, 1, accuracy: 0.002)
+        XCTAssertEqual(icon.green, 0.8, accuracy: 0.002)
+        XCTAssertEqual(icon.blue, 0, accuracy: 0.002)
+        for contrast in [ColorSchemeContrast.standard, .increased] {
+            XCTAssertNil(MainColor.yellow.color(for: .light, contrast: contrast),
+                         "Light yellow icons must not change the native tint of functional controls")
+            XCTAssertEqual(MainColor.yellow.displayColor(for: .light, contrast: contrast), .accentColor)
         }
-        func luminance(_ color: Color.Resolved) -> Double {
-            0.2126 * Double(color.linearRed) + 0.7152 * Double(color.linearGreen) + 0.0722 * Double(color.linearBlue)
-        }
-        for level in [1.0, 0.85] {
-            let background = Color(.sRGB, red: level, green: level, blue: level).resolve(in: environment)
-            XCTAssertGreaterThanOrEqual((luminance(background) + 0.05) / (luminance(standard) + 0.05), 4.5)
-        }
-        XCTAssertLessThan(luminance(increased), luminance(standard))
         environment.colorScheme = .dark
         for contrast in [ColorSchemeContrast.standard, .increased] {
             let dark = try XCTUnwrap(MainColor.yellow.color(for: .dark, contrast: contrast))
@@ -106,7 +104,7 @@ final class MainColorTests: XCTestCase {
     func testDefaultHasNoTintOverrideAndExplicitBlueIsKept() {
         XCTAssertNil(MainColor.systemDefault.color(for: .light, contrast: .standard))
         XCTAssertEqual(MainColor.blue.color(for: .light, contrast: .standard), .blue)
-        XCTAssertTrue(MainColor.allCases.filter { $0 != .systemDefault }
+        XCTAssertTrue(MainColor.allCases.filter { $0 != .systemDefault && $0 != .yellow }
             .allSatisfy { $0.color(for: .light, contrast: .standard) != nil })
     }
     #endif

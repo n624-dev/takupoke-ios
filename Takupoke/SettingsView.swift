@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @Environment(\.colorScheme) private var scheme
     @EnvironmentObject private var mainColor: MainColorModel
     @AppStorage("linkOpeningMode") private var linkOpeningMode = LinkOpeningMode.inApp.rawValue
     @AppStorage(SyllabusLinkPolicy.storageKey) private var syllabusDepartmentID = ""
@@ -18,6 +19,18 @@ struct SettingsView: View {
         Binding(get: { mainColor.selection }, set: { mainColor.select($0) })
     }
 
+    @ViewBuilder private func dataLabel(_ title: String, systemImage: String) -> some View {
+        if mainColor.selection == .yellow && scheme == .light {
+            Label {
+                Text(title)
+            } icon: {
+                Image(systemName: systemImage).foregroundStyle(MainColor.lightYellowIcon)
+            }
+        } else {
+            Label(title, systemImage: systemImage)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -26,18 +39,18 @@ struct SettingsView: View {
                         MaterialsView(model: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents,
                                       mappings: mappings)
                     } label: {
-                        Label("時間割ファイル", systemImage: "folder")
+                        dataLabel("時間割ファイル", systemImage: "folder")
                     }
                     NavigationLink {
                         SchoolEventsSettingsView(model: schoolEvents)
                     } label: {
-                        Label("学校行事", systemImage: "calendar")
+                        dataLabel("学校行事", systemImage: "calendar")
                     }
                     NavigationLink {
                         AccountDataSettingsView()
                     } label: {
                         HStack {
-                            Label("リンク・名称・授業時刻", systemImage: "arrow.down.circle")
+                            dataLabel("リンク・名称・授業時刻", systemImage: "arrow.down.circle")
                             Spacer()
                             if (mappings.current != nil && mappings.updateAvailable) || (links.saved != nil && links.updateAvailable) || (times.current != nil && times.updateAvailable) { Text("更新あり").font(.caption).foregroundStyle(.orange) }
                             else if mappings.failed || links.failed || times.failed { Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange) }

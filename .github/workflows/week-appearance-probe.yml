@@ -8,7 +8,7 @@ on:
       focus:
         type: choice
         default: week-motion
-        options: [week-motion, week-navigation-and-yellow]
+        options: [week-motion, week-navigation-and-yellow, yellow-contrast]
 
 permissions:
   contents: read

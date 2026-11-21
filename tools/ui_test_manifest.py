@@ -93,6 +93,7 @@ CONTROL_PROBE_TESTS = NOTIFICATION_PROBE_TESTS + (
 )
 PROBE_GROUPS = {
     "system-text-size": (SYSTEM_SIZE_TEST,),
+    "yellow-contrast": ("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch",),
     "week-appearance": ("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch",
                         "testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable",
                         "testTimetableCommonClocksAndEventOnlyWeekScale",

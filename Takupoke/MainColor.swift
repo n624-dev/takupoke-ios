@@ -32,17 +32,16 @@ enum MainColor: String, CaseIterable, Identifiable {
         }
     }
     #if canImport(SwiftUI)
+    static let lightYellowIcon = Color(.sRGB, red: 1, green: 0.8, blue: 0)
+
     func color(for scheme: ColorScheme, contrast: ColorSchemeContrast) -> Color? {
         switch self {
         case .systemDefault: return nil
         case .blue: return .blue
         case .yellow:
-            if scheme == .dark { return .yellow }
-            // Keep the hue near yellow across contrast settings while
-            // retaining legibility on the selected tab's light material.
-            let red = contrast == .increased ? 89.0 : 102.0
-            let green = contrast == .increased ? 85.0 : 97.0
-            return Color(.sRGB, red: red / 255, green: green / 255, blue: 0)
+            // In light appearance, yellow identifies the theme on the leading
+            // icons. Native control and text contrast uses the standard tint.
+            return scheme == .dark ? .yellow : nil
         case .green: return .green
         case .orange: return .orange
         case .red: return .red
