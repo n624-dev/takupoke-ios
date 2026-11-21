@@ -359,7 +359,9 @@ extension ApplicationChecks {
         }
         field.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5)).press(forDuration: 0.1)
         let heard = try await waitForSpeech {
-            $0.contains("何日前") && ($0.contains("7") || $0.contains("７") || $0.contains("七"))
+            $0.contains("予定の何日前") &&
+                $0.range(of: #"(?<![0-9０-９〇一二三四五六七八九十百千万])[7７七](?![0-9０-９〇一二三四五六七八九十百千万])"#,
+                         options: .regularExpression) != nil
         }
         print("UI_REMINDER_SPEECH editor=\(editor);complete=\(heard ? 1 : 0)")
         XCTAssertTrue(heard, "VoiceOver must announce the reminder value and what it means")
