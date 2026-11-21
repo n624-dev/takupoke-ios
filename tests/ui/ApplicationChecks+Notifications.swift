@@ -323,33 +323,46 @@ extension ApplicationChecks {
 
 #if TAKUPOKE_VOICEOVER_AUTOMATION
     @MainActor private func hearReminderDay(_ field: XCUIElement, editor: String) async throws {
-        guard #available(iOS 27.0, *) else { throw XCTSkip("iOS 27 native speech service is required") }
+        guard #available(iOS 27.0, *) else {
+            XCTFail("iOS 27 native speech service is required")
+            return
+        }
         let frame = field.frame
-        XCTAssertTrue(usable(frame) && app.frame.contains(frame) && field.isHittable)
+        let caption = app.staticTexts["countdown-reminder-label-0"]
+        XCTAssertTrue(usable(frame) && app.frame.contains(frame) && field.isHittable &&
+                      caption.isHittable && app.frame.contains(caption.frame))
         let service = XCUIDevice.shared.voiceOverService
         try service.enable()
-        defer { try? service.disable() }
-        XCTAssertTrue(service.isEnabled)
-        field.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5)).press(forDuration: 0.1)
-        let deadline = Date().addingTimeInterval(45)
-        var heardUnit = false, heardValue = false
-        while Date() < deadline {
-            do {
-                let speech = try service.currentSpeech().utterance
-                if speech.contains("何日前") {
-                    heardUnit = true
-                    heardValue = speech.contains("7") || speech.contains("７") || speech.contains("七")
-                    break
-                }
-            } catch {
-                let failure = error as NSError
-                guard failure.domain == XCUIVoiceOverService.Error.errorDomain,
-                      failure.code == XCUIVoiceOverService.Error.noSpeech.rawValue else { throw error }
-            }
-            try await Task.sleep(for: .milliseconds(100))
+        defer {
+            do { try service.disable() }
+            catch { XCTFail("Could not disable VoiceOver after the speech check: \(error)") }
         }
-        print("UI_REMINDER_SPEECH editor=\(editor);unit=\(heardUnit ? 1 : 0);value=\(heardValue ? 1 : 0)")
-        XCTAssertTrue(heardUnit && heardValue, "VoiceOver must announce the reminder value and what it means")
+        XCTAssertTrue(service.isEnabled)
+        func waitForSpeech(matching matches: (String) -> Bool) async throws -> Bool {
+            let deadline = Date().addingTimeInterval(45)
+            while Date() < deadline {
+                do {
+                    if matches(try service.currentSpeech().utterance) { return true }
+                } catch {
+                    let failure = error as NSError
+                    guard failure.domain == XCUIVoiceOverService.Error.errorDomain,
+                          failure.code == XCUIVoiceOverService.Error.noSpeech.rawValue else { throw error }
+                }
+                try await Task.sleep(for: .milliseconds(100))
+            }
+            return false
+        }
+        caption.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.1)
+        guard try await waitForSpeech(matching: { $0.contains("通知する日") && !$0.contains("何日前") }) else {
+            XCTFail("VoiceOver did not read the neighbouring caption")
+            return
+        }
+        field.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5)).press(forDuration: 0.1)
+        let heard = try await waitForSpeech {
+            $0.contains("何日前") && ($0.contains("7") || $0.contains("７") || $0.contains("七"))
+        }
+        print("UI_REMINDER_SPEECH editor=\(editor);complete=\(heard ? 1 : 0)")
+        XCTAssertTrue(heard, "VoiceOver must announce the reminder value and what it means")
     }
 #endif
 
