@@ -38,8 +38,10 @@ enum MainColor: String, CaseIterable, Identifiable {
         case .blue: return .blue
         case .yellow:
             if scheme == .dark { return .yellow }
-            let red = contrast == .increased ? 104.0 : 122.0
-            let green = contrast == .increased ? 70.0 : 85.0
+            // Keep the hue near yellow across contrast settings while
+            // retaining legibility on the selected tab's light material.
+            let red = contrast == .increased ? 89.0 : 102.0
+            let green = contrast == .increased ? 85.0 : 97.0
             return Color(.sRGB, red: red / 255, green: green / 255, blue: 0)
         case .green: return .green
         case .orange: return .orange

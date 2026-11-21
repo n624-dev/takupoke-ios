@@ -55,9 +55,12 @@ extension ApplicationChecks {
                 XCTAssertGreaterThan(buttonInk[1], 0.5)
                 XCTAssertGreaterThan(buttonInk[1], buttonInk[0] + 0.1)
             } else if stored == "yellow" {
-                XCTAssertGreaterThan(buttonInk[0], buttonInk[1])
-                XCTAssertGreaterThan(buttonInk[1], buttonInk[2] + 0.22)
-                XCTAssertLessThan(buttonInk[0], 0.64, "Light appearance must use the readable shared gold")
+                for ink in [buttonInk, tabInk] {
+                    XCTAssertGreaterThan(ink[0], ink[1])
+                    XCTAssertGreaterThan(ink[1], ink[0] * 0.86, "The rendered tint must retain a yellow hue")
+                    XCTAssertGreaterThan(ink[1], ink[2] + 0.22)
+                    XCTAssertLessThan(ink[0], 0.64, "Light appearance must use the readable shared yellow")
+                }
             } else {
                 XCTAssertGreaterThan(buttonInk[2], 0.7)
                 XCTAssertGreaterThan(buttonInk[2], buttonInk[0] + 0.15)

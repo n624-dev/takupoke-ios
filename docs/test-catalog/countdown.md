@@ -1,7 +1,7 @@
 # カウントダウン・日付・通知・保存
 
 対応関係・宣言名・実行方法のSHA-256：
-`2db86d00bea352c80fad2c1336d8df7f2656b33a6ebffd6bc9a347f3f4cb8fa6`
+`692662f810b3e2eddfa223e7ccefa8d202645d6d910c00c4a772799a002156c1`
 
 環境：Linux Swift／iOS 26.5・27.0シミュレータ
 
@@ -54,4 +54,5 @@ TKPK_UI_RELAUNCH_PROBE=1 TKPK_UI_PROBE_CASE=countdown bash tools/test-app-ui.sh
 
 - `testNotificationControlsAndAppearance`
 - `testChangedDataProducesOneLocalNotification`
+- `testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors`
 - `testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch`

@@ -443,6 +443,7 @@ private struct CountdownAutomaticEditor: View {
                     }
                     dismiss()
                 }
+                .accessibilityIdentifier("countdown-save")
                 .disabled(!automatic.preferences.valid)
             }
         }
@@ -471,17 +472,11 @@ private struct CountdownPreferencesFields: View {
             Toggle("通知を予約", isOn: $value.notifications)
             if value.notifications {
                 ForEach(value.reminders.indices, id: \.self) { index in
-                    LabeledContent("通知する日") {
-                        TextField("何日前", value: Binding(get: {
-                            value.reminders.indices.contains(index) ? value.reminders[index].daysBefore : 0
-                        }, set: { days in
-                            if value.reminders.indices.contains(index) { value.reminders[index].daysBefore = days }
-                        }), format: .number)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .accessibilityLabel("何日前に通知")
-                        Text("日前")
-                    }
+                    CountdownReminderDayField(days: Binding(get: {
+                        value.reminders.indices.contains(index) ? value.reminders[index].daysBefore : 0
+                    }, set: { days in
+                        if value.reminders.indices.contains(index) { value.reminders[index].daysBefore = days }
+                    }), index: index)
                     DatePicker("日本時間の通知時刻", selection: reminderTime(index), displayedComponents: .hourAndMinute)
                     if value.reminders.count > 1 {
                         Button("この通知条件を削除", role: .destructive) { value.reminders.remove(at: index) }
@@ -489,7 +484,7 @@ private struct CountdownPreferencesFields: View {
                 }
                 Button("通知条件を追加") {
                     let used = Set(value.reminders.map(\.daysBefore))
-                    if let days = (0...365_000).first(where: { !used.contains($0) }) {
+                    if let days = (0...CountdownReminder.maximumDaysBefore).first(where: { !used.contains($0) }) {
                         value.reminders.append(.init(daysBefore: days, hour: 20, minute: 0))
                     }
                 }
@@ -509,5 +504,41 @@ private struct CountdownPreferencesFields: View {
             value.reminders[index].hour = time.hour ?? 20
             value.reminders[index].minute = time.minute ?? 0
         })
+    }
+}
+
+private struct CountdownReminderDayField: View {
+    @Environment(\.dynamicTypeSize) private var textSize
+    @Binding var days: Int
+    let index: Int
+
+    var body: some View {
+        let layout = textSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 8))
+        layout {
+            Text("通知する日")
+                .accessibilityIdentifier("countdown-reminder-label-\(index)")
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(CountdownReminder.maximumDaysBefore, format: .number)
+                    .fixedSize()
+                    .padding(.horizontal, 2)
+                    .hidden()
+                    .accessibilityHidden(true)
+                    .overlay {
+                        TextField("", value: $days, format: .number)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .accessibilityLabel("予定の何日前")
+                            .accessibilityIdentifier("countdown-reminder-days-\(index)")
+                    }
+                Text("日前")
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+                    .accessibilityHidden(true)
+            }
+            .monospacedDigit()
+            .frame(maxWidth: .infinity, alignment: textSize.isAccessibilitySize ? .leading : .trailing)
+        }
     }
 }

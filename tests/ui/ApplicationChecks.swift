@@ -53,6 +53,7 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
             "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch": ["--change-row-skip", "--fixture-input-trace"],
             "testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups": ["--change-weekday-carryover", "--fixture-input-trace"],
             "testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch": ["--countdown-notifications"],
+            "testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors": ["--countdown-reminder-layout", "--fixture-input-trace"],
             "testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent": [
                 "--events-v2", "--countdown-calendar", "--countdown-source-checking", "--fixture-input-trace",
             ],

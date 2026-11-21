@@ -223,6 +223,66 @@ extension ApplicationChecks {
 }
 
 extension ApplicationChecks {
+    func testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors() {
+        let management = "カウントダウン", automatic = "試験の自動表示", personal = "カウントダウンを設定"
+        let digits = app.textFields["countdown-reminder-days-0"]
+        let label = app.staticTexts["countdown-reminder-label-0"]
+
+        func showField(in editor: String, expected: String, enlarged: Bool = false) {
+            let field = visible(digits, navigation: editor)
+            XCTAssertEqual(field.label, "予定の何日前")
+            XCTAssertEqual(field.value as? String, expected)
+            XCTAssertTrue(field.isHittable)
+            let labelFrame = label.frame, fieldFrame = field.frame
+            XCTAssertTrue(label.exists && usable(labelFrame) && usable(fieldFrame))
+            if enlarged {
+                XCTAssertGreaterThan(fieldFrame.midY, labelFrame.maxY)
+            } else {
+                XCTAssertEqual(fieldFrame.midY, labelFrame.midY, accuracy: 5)
+                XCTAssertGreaterThan(fieldFrame.minX, labelFrame.maxX)
+            }
+            print("UI_COUNTDOWN_DAY enlarged=\(enlarged);labelFrame=\(labelFrame);fieldFrame=\(fieldFrame)")
+        }
+
+        func changeDay(to value: String, replacingDigitCount count: Int) {
+            digits.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+            digits.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: count) + value)
+            let save = app.navigationBars.buttons["countdown-save"]
+            XCTAssertTrue(save.exists && save.isEnabled && save.isHittable)
+            save.tap()
+        }
+
+        tab("設定")
+        tap(management)
+        screen(management)
+        app.buttons["countdown-automatic"].tap()
+        screen(automatic)
+        showField(in: automatic, expected: "7")
+        recoveryScreenshot("countdown-notification-days-standard")
+        changeDay(to: "365000", replacingDigitCount: 1)
+        screen(management)
+        app.buttons["countdown-automatic"].tap()
+        screen(automatic)
+        showField(in: automatic, expected: "365,000")
+        back(to: management)
+
+        let plan = app.buttons.matching(NSPredicate(format: "identifier == %@ AND label CONTAINS %@",
+                                                     "countdown-list-card", "架空の通知日設定")).firstMatch
+        visible(plan, navigation: management).tap()
+        screen("予定の詳細")
+        tap("編集")
+        screen(personal)
+        app.buttons["fixture-type-size"].tap()
+        app.buttons["アクセシビリティ・大"].tap()
+        showField(in: personal, expected: "7", enlarged: true)
+        recoveryScreenshot("countdown-notification-days-accessibility")
+        changeDay(to: "0", replacingDigitCount: 1)
+        screen("予定の詳細")
+        tap("編集")
+        screen(personal)
+        showField(in: personal, expected: "0", enlarged: true)
+    }
+
     func testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch() {
         func openPlan() {
             tab("設定")

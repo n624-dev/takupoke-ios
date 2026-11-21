@@ -92,13 +92,14 @@ enum CountdownLookahead: Int, Codable, CaseIterable, Identifiable {
 }
 
 struct CountdownReminder: Codable, Equatable, Hashable {
+    static let maximumDaysBefore = 365_000
     var daysBefore: Int
     var hour: Int
     var minute: Int
 
     static let defaults = [Self(daysBefore: 7, hour: 20, minute: 0), Self(daysBefore: 1, hour: 20, minute: 0)]
 
-    var valid: Bool { (0...365_000).contains(daysBefore) && (0..<24).contains(hour) && (0..<60).contains(minute) }
+    var valid: Bool { (0...Self.maximumDaysBefore).contains(daysBefore) && (0..<24).contains(hour) && (0..<60).contains(minute) }
     var key: String { "\(daysBefore)-\(hour)-\(minute)" }
     var label: String { "\(daysBefore == 0 ? "当日" : "\(daysBefore)日前") \(String(format: "%02d:%02d", hour, minute))" }
 

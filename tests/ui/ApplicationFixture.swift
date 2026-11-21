@@ -73,7 +73,7 @@ struct SimulatorApplication: App {
     @State private var fixtureTypeSize: DynamicTypeSize = .large
     private var showsTypeSizeControl: Bool {
         let arguments = ProcessInfo.processInfo.arguments
-        return arguments.contains("--grid-probe") || arguments.contains("--failed-refresh")
+        return arguments.contains("--grid-probe") || arguments.contains("--failed-refresh") || arguments.contains("--countdown-reminder-layout")
     }
     @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
     init() {
@@ -165,7 +165,8 @@ struct SimulatorApplication: App {
                 .overlay(alignment: .topTrailing) {
                     if showsTypeSizeControl {
                         Menu("文字サイズ") {
-                            if ProcessInfo.processInfo.arguments.contains("--failed-refresh") {
+                            if ProcessInfo.processInfo.arguments.contains("--failed-refresh") ||
+                               ProcessInfo.processInfo.arguments.contains("--countdown-reminder-layout") {
                                 Button("アクセシビリティ・大") { fixtureTypeSize = .accessibility2 }
                             }
                             ForEach(["標準", "小", "大", "最大"], id: \.self) { title in
@@ -454,6 +455,15 @@ struct SimulatorApplication: App {
             try CountdownStore(root: base).save(CountdownLibrary(registrations: [
                 .init(id: countdownNoticeID, target: .personal(target))
             ]))
+        }
+        if ProcessInfo.processInfo.arguments.contains("--countdown-reminder-layout"),
+           ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
+            let date = SchoolDate.today().addingDays(12)!
+            let target = CountdownDates(title: "架空の通知日設定", ranges: [.init(start: date, end: date)])
+            try CountdownStore(root: base).save(CountdownLibrary(
+                registrations: [.init(id: countdownNoticeID, target: .personal(target),
+                                      preferences: CountdownPreferences(notifications: true))],
+                automatic: CountdownAutomatic(enabled: true, preferences: CountdownPreferences(notifications: true))))
         }
         if SimulatorEventsYearFixture.enabled { try SimulatorEventsYearFixture.seed(base) }
         if SimulatorHomeBoundaryFixture.enabled { try SimulatorHomeBoundaryFixture.seed(base) }

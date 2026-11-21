@@ -84,6 +84,7 @@ NOTIFICATION_PROBE_TESTS = (
     "testNotificationControlsAndAppearance",
 )
 COUNTDOWN_NOTIFICATION_TEST = "testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch"
+COUNTDOWN_REMINDER_LAYOUT_TEST = "testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors"
 NATIVE_NOTIFICATION_CASES = NOTIFICATION_PROBE_TESTS + (COUNTDOWN_NOTIFICATION_TEST,)
 CONTROL_PROBE_TESTS = NOTIFICATION_PROBE_TESTS + (
     "testLinkPreferencesSurviveRelaunch",
@@ -107,6 +108,7 @@ PROBE_GROUPS = {
     "rows": ("testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",),
     "weekday-carryover": ("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",),
     "countdown-notifications": (COUNTDOWN_NOTIFICATION_TEST,),
+    "countdown-and-yellow": (COUNTDOWN_REMINDER_LAYOUT_TEST, "testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch"),
     "countdown-notification-context": (SETTINGS_TEST, "testNotificationControlsAndAppearance", COUNTDOWN_NOTIFICATION_TEST),
     "countdown-calendar": ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",),
     "countdown": ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent", COUNTDOWN_NOTIFICATION_TEST),
@@ -162,6 +164,7 @@ SHARDS = {
         "testSettingsAccountDataAndFileDetails",
         "testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",
         "testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",
+        COUNTDOWN_REMINDER_LAYOUT_TEST,
         SYSTEM_SIZE_TEST,
         "testNotificationControlsAndAppearance",
         COUNTDOWN_NOTIFICATION_TEST,

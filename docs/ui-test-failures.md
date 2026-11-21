@@ -5666,3 +5666,7 @@ ebe3694の[明示選択限定44616309920](https://github.com/n624-dev/takupoke-i
 
 - [iOS27.0／SDK27.2の手動単項目](https://github.com/n624-dev/takupoke-ios/actions/runs/44800663590/job/136563363412)・試行2、21:08:41 UTCにfailure。元の `testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground`（144.503秒）は設定タブと復旧画面へ到達した。科目の実消去ボタン(317,565.667,44,44)に一回接触し、対象PID19107で消去のsetter、編集開始、keyboard did-showを記録。did-showから約679ms後、追加のタッチ配送と入力送出の記録がない状態でkeyboard will-hideが発生し、編集終了とdid-hideを記録した。空欄・確認解除の照会は通過したが、21:07:28に `ManualAssistanceChecks+Input.swift:99` の元のキーボード確認で停止。全文入力・確定・再起動には未到達。実配信205件／1PID、欠番・未返却0。フォーカスが外れた経路は未確定。
 - `keyboard-will-hide`、`text-edit-ended`、`Input.swift:99`、`消去` とN52／U17／N191を照合した。N52は空欄後の確認コントロール照会、U17はキーボードを確認後の追加照会、N191はiOS26.5で全文入力後の完了ボタンとキーボードが不在。今回は入力前に表示と閉鎖の両通知があり、最終画面には復旧シートと空欄・未確認の科目、通常の閉じる操作が残った。旧正式e59d1ffから `PDFRecoveryView.swift` と手動入力・期待値のコードは同一。[その27単項目](https://github.com/n624-dev/takupoke-ios/actions/runs/44741890239/job/136373732851)が537.927秒、[現在と同じタブhelperを使う0741379の27限定](https://github.com/n624-dev/takupoke-ios/actions/runs/44781058037/job/136443541524)が631.621秒で全文・背景・保存・再起動まで通過。この正式の26単項目と27の残り3種も成功した。今回の実閉鎖は先行のSimulator起動中断とは異なる。残る正式ジョブの終端後、同じ製品・SDK・ケース・期限で27単項目のみを一度、新しいRunnerで確認する。同じ閉鎖が再現した場合は再実行を重ねず、フォーカスの変化と画面構成を確認する。
+
+### #120の通知日回帰を追加した時点のLinux件数検査
+
+- 5906340を基に公開前の通知日ケース一件を追加したローカル差分。Linux x86_64／Swift 6.1.2でUI manifest検査38件中1件失敗、19.996秒。`test_all_source_tests_are_assigned_once_and_both_os_checks_are_required` の件数が旧38に固定され、新しい宣言と登録の39件を拒否した。実機とApple CIは未実行。旧5906340と登録一覧を比較して元の38件がすべて残ることを確認し、39件の厳密照合と限定の2件選択を検査する。

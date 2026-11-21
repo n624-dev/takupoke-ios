@@ -59,6 +59,11 @@ final class MainColorTests: XCTestCase {
         environment.colorScheme = .light
         let standard = try XCTUnwrap(MainColor.yellow.color(for: .light, contrast: .standard)).resolve(in: environment)
         let increased = try XCTUnwrap(MainColor.yellow.color(for: .light, contrast: .increased)).resolve(in: environment)
+        for tint in [standard, increased] {
+            XCTAssertGreaterThan(tint.linearRed, 0)
+            XCTAssertGreaterThan(tint.linearGreen, tint.linearRed * 0.80, "Keep the hue near yellow")
+            XCTAssertLessThan(tint.linearBlue, tint.linearGreen * 0.10, "Keep a saturated yellow")
+        }
         func luminance(_ color: Color.Resolved) -> Double {
             0.2126 * Double(color.linearRed) + 0.7152 * Double(color.linearGreen) + 0.0722 * Double(color.linearBlue)
         }
