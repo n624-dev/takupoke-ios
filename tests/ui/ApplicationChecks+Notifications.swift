@@ -250,11 +250,15 @@ extension ApplicationChecks {
             XCTAssertEqual(digits.value as? String, value, "Native editor must contain the complete input before saving")
         }
 
-        func changeDay(to value: String, replacingDigitCount count: Int) {
-            enterDay(value, replacingDigitCount: count)
+        func saveReminderEditor() {
             let save = app.navigationBars.buttons["countdown-save"]
             XCTAssertTrue(save.exists && save.isEnabled && save.isHittable)
             save.tap()
+        }
+
+        func changeDay(to value: String, replacingDigitCount count: Int) {
+            enterDay(value, replacingDigitCount: count)
+            saveReminderEditor()
         }
 
         func setTextSize(_ size: String) {
@@ -303,6 +307,11 @@ extension ApplicationChecks {
         XCTAssertTrue(remove.isHittable)
         remove.tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 10))
+        showField(in: personal, expected: "1")
+        saveReminderEditor()
+        screen("予定の詳細")
+        tap("編集")
+        screen(personal)
         showField(in: personal, expected: "1")
     }
 

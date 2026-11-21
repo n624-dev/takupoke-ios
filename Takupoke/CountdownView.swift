@@ -472,12 +472,17 @@ private struct CountdownPreferencesFields: View {
         Section("通知（日本時間）") {
             Toggle("通知を予約", isOn: $value.notifications)
             if value.notifications {
+                let rowCount = value.reminders.count
                 ForEach(value.reminders.indices, id: \.self) { index in
                     CountdownReminderDayField(days: Binding(get: {
                         value.reminders.indices.contains(index) ? value.reminders[index].daysBefore : 0
                     }, set: { days in
-                        if value.reminders.indices.contains(index) { value.reminders[index].daysBefore = days }
+                        guard value.reminders.count == rowCount, value.reminders.indices.contains(index) else { return }
+                        value.reminders[index].daysBefore = days
                     }), index: index, editingReminder: $editingReminder)
+                    // An index can refer to another reminder after a deletion.
+                    // Discard the old editor, including its unformatted text.
+                    .id("\(rowCount)-\(index)")
                     DatePicker("日本時間の通知時刻", selection: reminderTime(index), displayedComponents: .hourAndMinute)
                     if value.reminders.count > 1 {
                         Button("この通知条件を削除", role: .destructive) {
@@ -490,6 +495,7 @@ private struct CountdownPreferencesFields: View {
                 Button("通知条件を追加") {
                     let used = Set(value.reminders.map(\.daysBefore))
                     if let days = (0...CountdownReminder.maximumDaysBefore).first(where: { !used.contains($0) }) {
+                        editingReminder = nil
                         value.reminders.append(.init(daysBefore: days, hour: 20, minute: 0))
                     }
                 }
