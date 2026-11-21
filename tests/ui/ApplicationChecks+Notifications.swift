@@ -252,6 +252,11 @@ extension ApplicationChecks {
             save.tap()
         }
 
+        func setTextSize(_ size: String) {
+            app.buttons["fixture-type-size"].tap()
+            app.buttons[size].tap()
+        }
+
         tab("設定")
         tap(management)
         screen(management)
@@ -264,6 +269,10 @@ extension ApplicationChecks {
         app.buttons["countdown-automatic"].tap()
         screen(automatic)
         showField(in: automatic, expected: "365,000")
+        setTextSize("最大")
+        showField(in: automatic, expected: "365,000", enlarged: true)
+        recoveryScreenshot("countdown-notification-days-maximum-size")
+        setTextSize("標準")
         back(to: management)
 
         let plan = app.buttons.matching(NSPredicate(format: "identifier == %@ AND label CONTAINS %@",
@@ -272,8 +281,7 @@ extension ApplicationChecks {
         screen("予定の詳細")
         tap("編集")
         screen(personal)
-        app.buttons["fixture-type-size"].tap()
-        app.buttons["アクセシビリティ・大"].tap()
+        setTextSize("アクセシビリティ・大")
         showField(in: personal, expected: "7", enlarged: true)
         recoveryScreenshot("countdown-notification-days-accessibility")
         changeDay(to: "0", replacingDigitCount: 1)

@@ -520,8 +520,11 @@ private struct CountdownReminderDayField: View {
             Text("通知する日")
                 .accessibilityIdentifier("countdown-reminder-label-\(index)")
             HStack(alignment: .firstTextBaseline, spacing: 2) {
+                // Reserve room for the longest valid number when it fits.
+                // On narrow rows, the native editor can scroll horizontally.
                 Text(CountdownReminder.maximumDaysBefore, format: .number)
-                    .fixedSize()
+                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 2)
                     .hidden()
                     .accessibilityHidden(true)
@@ -535,6 +538,7 @@ private struct CountdownReminderDayField: View {
                 Text("日前")
                     .foregroundStyle(.secondary)
                     .fixedSize()
+                    .layoutPriority(1)
                     .accessibilityHidden(true)
             }
             .monospacedDigit()
