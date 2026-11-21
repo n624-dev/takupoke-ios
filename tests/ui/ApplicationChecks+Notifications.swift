@@ -244,10 +244,14 @@ extension ApplicationChecks {
             print("UI_COUNTDOWN_DAY enlarged=\(enlarged);labelFrame=\(labelFrame);fieldFrame=\(fieldFrame)")
         }
 
-        func changeDay(to value: String, replacingDigitCount count: Int) {
+        func enterDay(_ value: String, replacingDigitCount count: Int) {
             digits.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
             digits.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: count) + value)
             XCTAssertEqual(digits.value as? String, value, "Native editor must contain the complete input before saving")
+        }
+
+        func changeDay(to value: String, replacingDigitCount count: Int) {
+            enterDay(value, replacingDigitCount: count)
             let save = app.navigationBars.buttons["countdown-save"]
             XCTAssertTrue(save.exists && save.isEnabled && save.isHittable)
             save.tap()
@@ -293,7 +297,7 @@ extension ApplicationChecks {
 
         setTextSize("標準")
         showField(in: personal, expected: "0")
-        digits.tap()
+        enterDay("2", replacingDigitCount: 1)
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 10))
         let remove = visible(app.buttons["countdown-delete-reminder-0"], navigation: personal)
         XCTAssertTrue(remove.isHittable)
