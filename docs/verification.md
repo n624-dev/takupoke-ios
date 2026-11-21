@@ -8869,3 +8869,18 @@ Linux Swift 6.1.2で本番と生成後のアプリSwiftの構文、テスト一�
 [8ebd8d4の限定・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/44896433997/attempts/1)はiOS26.5と27.0（SDK27.2）とも全2件成功。通知日は26.5で145.399秒、27.0で163.620秒。両エディタの実入力・保存、365,000の最大文字サイズ、先頭の2を実入力後に削除して残った1を表示し、保存・再入場後も1を確認した。黄色の実描画も26.5で114.932秒、27.0で156.100秒で元の統一と新しい色相を確認した。実配信は各572／576件、各2PID、欠番と処理戻りの欠落0。正式公開では同じコードの必須14事前検査と配布の成功を照合する。
 
 iOS26.5の同じ限定ログから標準・最大文字サイズの実画像を開き、標準の「7日前」、最大の「365,000日前」の数字と「日前」がともに欠けず、同じ行に描画されていることを確認した。VoiceOverの実発声と物理iPhoneへの更新は未確認。
+
+### 0.1.524（524.1）の正式公開と通知日VoiceOver確認
+
+[正式CIの試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/44898304806/attempts/1)はコミット `08d2b4a3e0a7fb0955ab4820881a0ac86233b8b8` で公開前の必須14件と配布ジョブがすべて成功した。通常UIの既存38ケースに通知日の1ケースを加え、正式のiOS26.5・27.0両方の検査で確認した。
+
+[別のVoiceOver限定](https://github.com/n624-dev/takupoke-ios/actions/runs/44905389568/job/136849746950)では、正式と同じ製品コードをiOS27.0／SDK27.2のSimulatorで実行した。試験の自動表示と個人予定のそれぞれで実数値欄に接触し、Appleの `currentSpeech()` が「予定の何日前」と単独値7を返すことを確認。先行する確認でのラベル発声不一致と最初の移動命令Code3は失敗索引へ記録した。成功した元ケースは290.560秒、実配信454件／1PID、欠番・処理戻りの欠落0。今回の版の物理iPhoneへの更新は未確認。
+
+2026年11月21日22時35分31秒（日本時間）、[0.1.524（524.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.524-build.524.1)をAltStore Classic向けの最新リリースとして正式公開した。公開URLから添付4点を匿名で取得し、GitHub記録のサイズ・SHA-256、タグとIPA内のコミット、版・ビルド、共通の更新内容を照合した。[固定AltStore Source](https://github.com/n624-dev/takupoke-ios/releases/latest/download/altstore-source.json)はタグのSourceとバイト単位で一致。Actionsの保存用artifactは0件。
+
+| 添付 | バイト | SHA-256 |
+| --- | ---: | --- |
+| altstore-source.json | 2,571 | `4e46b6127fdb2be59ba0b5746aa74f368936b8b027ee8437f5128cb398cdf723` |
+| icon.png | 130,461 | `7ed41c1462f9bd46427b11e1045caddd95c10bea459a5984298c60776ab6177f` |
+| release.json | 782 | `1e1ab488fad47a3ce3338d089b6285fca895c244535127fcea1c22c2ce1a3653` |
+| takupoke.ipa | 18,045,333 | `ccf7f6ead5ac7444ea835098bbabddaa386299b5059afb8d9bad9b32b5e7f010` |
