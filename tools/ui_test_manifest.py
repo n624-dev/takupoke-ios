@@ -109,6 +109,7 @@ PROBE_GROUPS = {
     "weekday-carryover": ("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",),
     "countdown-notifications": (COUNTDOWN_NOTIFICATION_TEST,),
     "countdown-and-yellow": (COUNTDOWN_REMINDER_LAYOUT_TEST, "testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch"),
+    "countdown-reminder-voiceover": (COUNTDOWN_REMINDER_LAYOUT_TEST,),
     "countdown-notification-context": (SETTINGS_TEST, "testNotificationControlsAndAppearance", COUNTDOWN_NOTIFICATION_TEST),
     "countdown-calendar": ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",),
     "countdown": ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent", COUNTDOWN_NOTIFICATION_TEST),

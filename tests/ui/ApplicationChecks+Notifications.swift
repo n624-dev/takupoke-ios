@@ -223,7 +223,7 @@ extension ApplicationChecks {
 }
 
 extension ApplicationChecks {
-    func testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors() {
+    @MainActor func testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors() async throws {
         let management = "カウントダウン", automatic = "試験の自動表示", personal = "カウントダウンを設定"
         let digits = app.textFields["countdown-reminder-days-0"]
         let label = app.staticTexts["countdown-reminder-label-0"]
@@ -272,6 +272,9 @@ extension ApplicationChecks {
         app.buttons["countdown-automatic"].tap()
         screen(automatic)
         showField(in: automatic, expected: "7")
+#if TAKUPOKE_VOICEOVER_AUTOMATION
+        try await hearReminderDay(digits, editor: "automatic")
+#endif
         recoveryScreenshot("countdown-notification-days-standard")
         changeDay(to: "365000", replacingDigitCount: 1)
         screen(management)
@@ -292,6 +295,9 @@ extension ApplicationChecks {
         screen(personal)
         setTextSize("アクセシビリティ・大")
         showField(in: personal, expected: "7", enlarged: true)
+#if TAKUPOKE_VOICEOVER_AUTOMATION
+        try await hearReminderDay(digits, editor: "personal")
+#endif
         recoveryScreenshot("countdown-notification-days-accessibility")
         changeDay(to: "0", replacingDigitCount: 1)
         screen("予定の詳細")
@@ -314,6 +320,38 @@ extension ApplicationChecks {
         screen(personal)
         showField(in: personal, expected: "1")
     }
+
+#if TAKUPOKE_VOICEOVER_AUTOMATION
+    @MainActor private func hearReminderDay(_ field: XCUIElement, editor: String) async throws {
+        guard #available(iOS 27.0, *) else { throw XCTSkip("iOS 27 native speech service is required") }
+        let frame = field.frame
+        XCTAssertTrue(usable(frame) && app.frame.contains(frame) && field.isHittable)
+        let service = XCUIDevice.shared.voiceOverService
+        try service.enable()
+        defer { try? service.disable() }
+        XCTAssertTrue(service.isEnabled)
+        field.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5)).press(forDuration: 0.1)
+        let deadline = Date().addingTimeInterval(45)
+        var heardUnit = false, heardValue = false
+        while Date() < deadline {
+            do {
+                let speech = try service.currentSpeech().utterance
+                if speech.contains("何日前") {
+                    heardUnit = true
+                    heardValue = speech.contains("7") || speech.contains("７") || speech.contains("七")
+                    break
+                }
+            } catch {
+                let failure = error as NSError
+                guard failure.domain == XCUIVoiceOverService.Error.errorDomain,
+                      failure.code == XCUIVoiceOverService.Error.noSpeech.rawValue else { throw error }
+            }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        print("UI_REMINDER_SPEECH editor=\(editor);unit=\(heardUnit ? 1 : 0);value=\(heardValue ? 1 : 0)")
+        XCTAssertTrue(heardUnit && heardValue, "VoiceOver must announce the reminder value and what it means")
+    }
+#endif
 
     func testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch() {
         func openPlan() {
