@@ -5670,3 +5670,5 @@ ebe3694の[明示選択限定44616309920](https://github.com/n624-dev/takupoke-i
 ### #120の通知日回帰を追加した時点のLinux件数検査
 
 - 5906340を基に公開前の通知日ケース一件を追加したローカル差分。Linux x86_64／Swift 6.1.2でUI manifest検査38件中1件失敗、19.996秒。`test_all_source_tests_are_assigned_once_and_both_os_checks_are_required` の件数が旧38に固定され、新しい宣言と登録の39件を拒否した。実機とApple CIは未実行。旧5906340と登録一覧を比較して元の38件がすべて残ることを確認し、39件の厳密照合と限定の2件選択を検査する。
+
+- Linux x86_64／Swift 6.1.2の最初のローカル対象実行は、直接の `swift test` からGRDBの `sqlite3.h` を解決できず、対象ケース開始前に終了。以前の0.1.523のLinuxパッケージ検証と同じ `tools/test-parsing.sh` に戻し、`TKPK_ZLIB_PREFIX` から対応するヘッダーと共有ライブラリを渡す。Apple側のテスト条件は維持する。
