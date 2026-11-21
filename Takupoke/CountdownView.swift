@@ -453,6 +453,7 @@ private struct CountdownAutomaticEditor: View {
 private struct CountdownPreferencesFields: View {
     @Binding var value: CountdownPreferences
     @FocusState private var editingReminder: Int?
+    @State private var reminderEditorGeneration = UUID()
 
     private var progress: Binding<Date> {
         Binding(get: { value.progressStart?.dateInJapan() ?? Date() },
@@ -472,21 +473,22 @@ private struct CountdownPreferencesFields: View {
         Section("通知（日本時間）") {
             Toggle("通知を予約", isOn: $value.notifications)
             if value.notifications {
-                let rowCount = value.reminders.count
+                let generation = reminderEditorGeneration
                 ForEach(value.reminders.indices, id: \.self) { index in
                     CountdownReminderDayField(days: Binding(get: {
                         value.reminders.indices.contains(index) ? value.reminders[index].daysBefore : 0
                     }, set: { days in
-                        guard value.reminders.count == rowCount, value.reminders.indices.contains(index) else { return }
+                        guard reminderEditorGeneration == generation, value.reminders.indices.contains(index) else { return }
                         value.reminders[index].daysBefore = days
                     }), index: index, editingReminder: $editingReminder)
                     // An index can refer to another reminder after a deletion.
                     // Discard the old editor, including its unformatted text.
-                    .id("\(rowCount)-\(index)")
+                    .id("\(generation.uuidString)-\(index)")
                     DatePicker("日本時間の通知時刻", selection: reminderTime(index), displayedComponents: .hourAndMinute)
                     if value.reminders.count > 1 {
                         Button("この通知条件を削除", role: .destructive) {
                             editingReminder = nil
+                            reminderEditorGeneration = UUID()
                             value.reminders.remove(at: index)
                         }
                         .accessibilityIdentifier("countdown-delete-reminder-\(index)")
@@ -496,6 +498,7 @@ private struct CountdownPreferencesFields: View {
                     let used = Set(value.reminders.map(\.daysBefore))
                     if let days = (0...CountdownReminder.maximumDaysBefore).first(where: { !used.contains($0) }) {
                         editingReminder = nil
+                        reminderEditorGeneration = UUID()
                         value.reminders.append(.init(daysBefore: days, hour: 20, minute: 0))
                     }
                 }
