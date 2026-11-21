@@ -247,6 +247,7 @@ extension ApplicationChecks {
         func changeDay(to value: String, replacingDigitCount count: Int) {
             digits.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
             digits.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: count) + value)
+            XCTAssertEqual(digits.value as? String, value, "Native editor must contain the complete input before saving")
             let save = app.navigationBars.buttons["countdown-save"]
             XCTAssertTrue(save.exists && save.isEnabled && save.isHittable)
             save.tap()

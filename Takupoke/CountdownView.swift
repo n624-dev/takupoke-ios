@@ -510,7 +510,20 @@ private struct CountdownPreferencesFields: View {
 private struct CountdownReminderDayField: View {
     @Environment(\.dynamicTypeSize) private var textSize
     @Binding var days: Int
+    @FocusState private var editing: Bool
+    @State private var typedDigits: String?
     let index: Int
+
+    private var input: Binding<String> {
+        Binding(get: { typedDigits ?? days.formatted() }, set: { text in
+            // Preserve the text and caret while typing. Reformatting the
+            // integer after every digit can interrupt editing when it groups.
+            typedDigits = text
+            if let parsed = try? IntegerFormatStyle<Int>.number.parseStrategy.parse(text) {
+                days = parsed
+            }
+        })
+    }
 
     var body: some View {
         let layout = textSize.isAccessibilitySize
@@ -529,9 +542,10 @@ private struct CountdownReminderDayField: View {
                     .hidden()
                     .accessibilityHidden(true)
                     .overlay {
-                        TextField("", value: $days, format: .number)
+                        TextField("", text: input)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
+                            .focused($editing)
                             .accessibilityLabel("予定の何日前")
                             .accessibilityIdentifier("countdown-reminder-days-\(index)")
                     }
@@ -543,6 +557,9 @@ private struct CountdownReminderDayField: View {
             }
             .monospacedDigit()
             .frame(maxWidth: .infinity, alignment: textSize.isAccessibilitySize ? .leading : .trailing)
+        }
+        .onChange(of: editing) { _, isEditing in
+            if !isEditing { typedDigits = nil }
         }
     }
 }
