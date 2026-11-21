@@ -452,6 +452,7 @@ private struct CountdownAutomaticEditor: View {
 
 private struct CountdownPreferencesFields: View {
     @Binding var value: CountdownPreferences
+    @FocusState private var editingReminder: Int?
 
     private var progress: Binding<Date> {
         Binding(get: { value.progressStart?.dateInJapan() ?? Date() },
@@ -476,10 +477,14 @@ private struct CountdownPreferencesFields: View {
                         value.reminders.indices.contains(index) ? value.reminders[index].daysBefore : 0
                     }, set: { days in
                         if value.reminders.indices.contains(index) { value.reminders[index].daysBefore = days }
-                    }), index: index)
+                    }), index: index, editingReminder: $editingReminder)
                     DatePicker("日本時間の通知時刻", selection: reminderTime(index), displayedComponents: .hourAndMinute)
                     if value.reminders.count > 1 {
-                        Button("この通知条件を削除", role: .destructive) { value.reminders.remove(at: index) }
+                        Button("この通知条件を削除", role: .destructive) {
+                            editingReminder = nil
+                            value.reminders.remove(at: index)
+                        }
+                        .accessibilityIdentifier("countdown-delete-reminder-\(index)")
                     }
                 }
                 Button("通知条件を追加") {
@@ -510,9 +515,9 @@ private struct CountdownPreferencesFields: View {
 private struct CountdownReminderDayField: View {
     @Environment(\.dynamicTypeSize) private var textSize
     @Binding var days: Int
-    @FocusState private var editing: Bool
     @State private var typedDigits: String?
     let index: Int
+    let editingReminder: FocusState<Int?>.Binding
 
     private var input: Binding<String> {
         Binding(get: { typedDigits ?? days.formatted() }, set: { text in
@@ -545,7 +550,7 @@ private struct CountdownReminderDayField: View {
                         TextField("", text: input)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
-                            .focused($editing)
+                            .focused(editingReminder, equals: index)
                             .accessibilityLabel("予定の何日前")
                             .accessibilityIdentifier("countdown-reminder-days-\(index)")
                     }
@@ -558,8 +563,8 @@ private struct CountdownReminderDayField: View {
             .monospacedDigit()
             .frame(maxWidth: .infinity, alignment: textSize.isAccessibilitySize ? .leading : .trailing)
         }
-        .onChange(of: editing) { _, isEditing in
-            if !isEditing { typedDigits = nil }
+        .onChange(of: editingReminder.wrappedValue) { previous, _ in
+            if previous == index { typedDigits = nil }
         }
     }
 }

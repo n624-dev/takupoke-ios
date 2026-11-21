@@ -290,6 +290,16 @@ extension ApplicationChecks {
         tap("編集")
         screen(personal)
         showField(in: personal, expected: "0", enlarged: true)
+
+        setTextSize("標準")
+        showField(in: personal, expected: "0")
+        digits.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 10))
+        let remove = visible(app.buttons["countdown-delete-reminder-0"], navigation: personal)
+        XCTAssertTrue(remove.isHittable)
+        remove.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 10))
+        showField(in: personal, expected: "1")
     }
 
     func testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch() {
