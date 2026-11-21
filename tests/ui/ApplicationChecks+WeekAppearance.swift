@@ -104,6 +104,10 @@ extension ApplicationChecks {
             } else {
                 XCTAssertGreaterThan(buttonInk[2], 0.7)
                 XCTAssertGreaterThan(buttonInk[2], buttonInk[0] + 0.15)
+                if stored == "yellow" {
+                    XCTAssertGreaterThan(tabInk[2], 0.7)
+                    XCTAssertGreaterThan(tabInk[2], tabInk[0] + 0.15)
+                }
             }
             recoveryScreenshot("live-theme-" + stored)
         }

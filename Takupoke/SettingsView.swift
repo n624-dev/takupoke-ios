@@ -19,7 +19,7 @@ struct SettingsView: View {
         Binding(get: { mainColor.selection }, set: { mainColor.select($0) })
     }
 
-    @ViewBuilder private func dataLabel(_ title: String, systemImage: String) -> some View {
+    @ViewBuilder private func dataLabel(_ title: LocalizedStringKey, systemImage: String) -> some View {
         if mainColor.selection == .yellow && scheme == .light {
             Label {
                 Text(title)
