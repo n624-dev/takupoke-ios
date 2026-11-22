@@ -5895,3 +5895,5 @@ Linux Swift 6.1.2の初回7件では既存5件が成功し、通知ゲート・�
 `70fb091` の[45063781514試行1／137335320142](https://github.com/n624-dev/takupoke-ios/actions/runs/45063781514/job/137335320142)、iOS26.5／SDK27.2の `testLinkPreferencesSurviveRelaunch`（134.246秒）。実解除・再起動・追加と、追加後のお気に入り行を確認した。元のprimary tap受信後に `browser-controller-created` が到達。接触記録の後、loopback GETを読み終え、0.0007秒でHTTP200／205bytesを送信した。元の30秒で実本文が見つからず、`ApplicationChecks+Settings.swift:527` で失敗。末尾AXは「一覧」とお気に入り済み行。SafariのCloseと本文、実初回読込callbackは未観測で、閉じる操作と復帰の検査は未到達。同runのiOS27.0は183.495秒で実本文・実Close・一覧復帰まで成功。接続、Safariの表示・読込、リストの保存を区別する。
 
 `testLinkPreferencesSurviveRelaunch|browser-controller-created|IsPageLoaded` でN161/N236/N242と44499001313の旧iOS26.5を照合。旧の主な比較は実Closeが表示されながらWebViewが未読込だった。今回は同じloopback fixtureで入力とHTTP送信が成立し、失敗末尾にSafari画面自体が見えなかった。実初回読込探索、入力、旧30秒を保ったまま、次の比較には生成アプリで表示側の観測だけを追加する。
+
+Safariの準備APIと実画面をそのまま使い、使い捨ての生成アプリにだけフルスクリーン表示の出現・消失と、既存コントローラの `viewIfLoaded.window` への接続を記録する。画面を新規に読み込ませず、弱参照で取得できる既存値だけを見る。URL・画面内容は記録しない。iOS26.5／SDK27.2の同じリンクケースを比較し、元の一回の接触・30秒の本文・10秒のClose・一覧復帰、お気に入りの再起動後の期待値は維持する。生成Swiftの構文とLinuxのmanifest40件が成功。

@@ -144,6 +144,44 @@ def instrument_timetable_date(text, filename):
     return ''.join(lines)
 
 
+BROWSER_COVER = '''                SafariLinkView(url: page.url) { safariPage = nil }
+                    .ignoresSafeArea()
+'''
+BROWSER_COVER_TRACE = '''                    .onAppear {
+                        if ProcessInfo.processInfo.arguments.contains("--loopback-browser-fixture") {
+                            FixtureCITrace.mark("browser-cover-appeared")
+                        }
+                    }
+                    .onDisappear {
+                        if ProcessInfo.processInfo.arguments.contains("--loopback-browser-fixture") {
+                            FixtureCITrace.mark("browser-cover-disappeared")
+                        }
+                    }
+'''
+
+def instrument_browser_cover(text):
+    assert text.count(BROWSER_COVER) == 1, 'Native Safari cover insertion point missing'
+    return text.replace(BROWSER_COVER, BROWSER_COVER + BROWSER_COVER_TRACE)
+
+BROWSER_WINDOW_OBSERVATION = '''    @MainActor
+    private static func observeFixtureBrowserWindow(_ controller: SFSafariViewController) {
+        Task { @MainActor [weak controller] in
+            for _ in 0..<60 {
+                if controller == nil {
+                    FixtureCITrace.mark("browser-controller-released-before-attachment")
+                    return
+                }
+                if controller?.viewIfLoaded?.window != nil {
+                    FixtureCITrace.mark("browser-controller-window-attached")
+                    return
+                }
+                do { try await Task.sleep(for:.milliseconds(500)) } catch { return }
+            }
+            FixtureCITrace.mark("browser-controller-window-unconfirmed")
+        }
+    }
+'''
+
 def instrument_browser_fixture(text):
     marker = '        let controller = SFSafariViewController(url: url)'
     assert text.count(marker) == 1, 'Native Safari network boundary insertion point missing'
@@ -162,14 +200,15 @@ def instrument_browser_fixture(text):
         return local
     }
 
-''' + factory)
+''' + BROWSER_WINDOW_OBSERVATION + '\n' + factory)
     text = text.replace(marker, '''        let local = Self.fixtureBrowserURL()
         if local != nil {
             precondition(url.absoluteString == "https://fixture.example.test",
                          "The browser fixture requires its original fictional input")
         }
         let controller = SFSafariViewController(url: local ?? url)
-        FixtureLaunchDiagnostics.record("browser-controller-created")''')
+        FixtureLaunchDiagnostics.record("browser-controller-created")
+        if local != nil { Self.observeFixtureBrowserWindow(controller) }''')
     delegate = '    final class Coordinator: NSObject, SFSafariViewControllerDelegate {\n'
     assert text.count(delegate) == 1, 'Native Safari delegate observation insertion point missing'
     finished = '        func safariViewControllerDidFinish(_ controller: SFSafariViewController) {\n'
@@ -372,6 +411,8 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         text = path.read_text()
         if path.name == 'SafariLinkView.swift':
             text = instrument_browser_fixture(text)
+        if path.name == 'LinksView.swift':
+            text = instrument_browser_cover(text)
         if path.name == 'ContentView.swift':
             text = instrument_retention_recovery(text)
         if path.name == 'NotificationSettingsView.swift':

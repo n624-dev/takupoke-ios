@@ -726,6 +726,17 @@ enum SimulatorEventsYearFixture {
         generated = app_test_project.instrument_browser_fixture(original)
         method = block(generated, "func makeUIViewController(")
         url_validator = block(generated, "static func fixtureBrowserURL(")
+        window_observer = block(generated, "private static func observeFixtureBrowserWindow(")
+        self.assertIn("[weak controller]", window_observer)
+        self.assertIn("controller?.viewIfLoaded?.window", window_observer)
+        self.assertNotRegex(window_observer, r"loadView|present\(|dismiss\(|didCompleteInitialLoad")
+        cover = (ROOT / "Takupoke/LinksView.swift").read_text()
+        instrumented_cover = app_test_project.instrument_browser_cover(cover)
+        cover_trace = app_test_project.BROWSER_COVER_TRACE
+        self.assertEqual(instrumented_cover.count(cover_trace), 1)
+        self.assertEqual(instrumented_cover.replace(cover_trace, ""), cover)
+        with self.assertRaises(AssertionError):
+            app_test_project.instrument_browser_cover(cover + app_test_project.BROWSER_COVER)
         fixture = (ROOT / "tests/ui/ApplicationFixture.swift").read_text()
         prewarming = block(fixture, "private enum FixtureBrowserPrewarming")
         startup = (
@@ -746,15 +757,18 @@ enum SimulatorEventsYearFixture {
         program = r'''import Foundation
 final class SFSafariViewController {
     struct PrewarmingToken {}
+    struct View { let window: Int? = nil }
     static var prewarmed: [URL] = []
     let url: URL
     var delegate: NSObject?
+    let viewIfLoaded: View? = nil
     init(url: URL) { self.url = url }
     static func prewarmConnections(to urls: [URL]) -> PrewarmingToken {
         prewarmed += urls
         return PrewarmingToken()
     }
 }
+enum FixtureCITrace { static func mark(_ stage: String) {} }
 enum FixtureLaunchDiagnostics {
     static var stages: [String] = []
     static func record(_ stage: String) { stages.append(stage) }
@@ -764,6 +778,7 @@ struct Context { let coordinator = NSObject() }
 struct SafariLinkView {
     let url = URL(string: ProcessInfo.processInfo.environment["ORIGINAL_BROWSER_URL"] ?? "https://fixture.example.test")!
 VALIDATOR
+WINDOW_OBSERVER
 METHOD
 }
 @MainActor
@@ -786,7 +801,8 @@ PREWARMING
         print(controller.url.absoluteString)
     }
 }
-'''.replace("VALIDATOR", url_validator).replace("METHOD", method).replace("PREWARMING", prewarming)
+'''.replace("VALIDATOR", url_validator).replace("METHOD", method).replace("PREWARMING", prewarming).replace(
+            "WINDOW_OBSERVER", window_observer)
         with self.assertRaises(AssertionError):
             app_test_project.instrument_browser_fixture(original.replace(
                 "SFSafariViewController(url: url)", "SFSafariViewController(url: anotherURL)"))
