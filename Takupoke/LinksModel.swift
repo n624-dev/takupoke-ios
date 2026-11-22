@@ -167,12 +167,14 @@ final class LinksModel: ObservableObject {
 
     func report(_ error: Error) {
         failed = true
+        let description: String
         switch error as? MappingError {
-        case .authentication: message = "認証を完了できませんでした。"
-        case .changedDuringDownload: message = "取得中に一覧が更新されました。もう一度お試しください。"
-        default: message = (error as? LinksError ?? .unavailable).localizedDescription
+        case .authentication: description = "認証を完了できませんでした。"
+        case .changedDuringDownload: description = "取得中に一覧が更新されました。もう一度お試しください。"
+        default: description = (error as? LinksError ?? .unavailable).localizedDescription
         }
-        if saved != nil { message! += " 保存済みの一覧を表示しています。" }
+        let warning = storedReadWarning.map { $0 + "\n" } ?? ""
+        message = warning + description + (saved == nil ? "" : " 保存済みの一覧を表示しています。")
     }
 
     func resetForRetention() {

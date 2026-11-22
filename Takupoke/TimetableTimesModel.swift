@@ -94,7 +94,8 @@ final class TimetableTimesModel: ObservableObject {
 
     func report(_ error: Error) {
         failed = true
-        message = (error as? TimetableTimesError ?? .unavailable).localizedDescription
+        let warning = storedReadWarning.map { $0 + "\n" } ?? ""
+        message = warning + (error as? TimetableTimesError ?? .unavailable).localizedDescription
     }
 
     func resetForRetention() {

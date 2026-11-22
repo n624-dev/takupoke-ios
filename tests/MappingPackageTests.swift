@@ -287,8 +287,18 @@ final class MappingPackageTests: XCTestCase {
         for (host, token) in [("failure.example.test", "synthetic-token"), ("invalid.example.test", "synthetic-token"), ("mapping.example.test", "invalid-token")] {
             let model = MappingModel(directory: root, baseURL: URL(string: "https://\(host)")!)
             model.loadIfNeeded(); XCTAssertTrue(model.ready); XCTAssertTrue(model.failed); XCTAssertNil(model.current)
+            let warning = try XCTUnwrap(model.message)
+            if host == "failure.example.test" {
+                do { _ = try await model.revision(using: network); XCTFail("Failed revision was accepted") }
+                catch { model.report(error) }
+                XCTAssertEqual(model.message, warning + "\n" + MappingError.unavailable.localizedDescription)
+            }
             try preserved()
-            do { try await model.download(token: token, revision: revision, network: network); XCTFail("Invalid response must not replace cache") } catch { }
+            do { try await model.download(token: token, revision: revision, network: network); XCTFail("Invalid response must not replace cache") }
+            catch {
+                model.report(error)
+                XCTAssertTrue(model.message?.hasPrefix(warning + "\n") == true)
+            }
             try preserved(); XCTAssertNil(model.current)
         }
         let model = MappingModel(directory: root, baseURL: URL(string: "https://mapping.example.test")!)
@@ -344,10 +354,19 @@ final class MappingPackageTests: XCTestCase {
             model.loadIfNeeded()
             XCTAssertTrue(model.ready && model.failed)
             XCTAssertNil(model.current)
+            let warning = try XCTUnwrap(model.message)
+            if host == "failure.example.test" {
+                do { _ = try await model.revision(using: network); XCTFail("Failed revision was accepted") }
+                catch { model.report(error) }
+                XCTAssertEqual(model.message, warning + "\n" + MappingError.unavailable.localizedDescription)
+            }
             do {
                 try await model.download(token:token,revision:revision,network:network)
                 XCTFail("Failed network, authorization or validation must preserve the damaged original")
-            } catch {}
+            } catch {
+                model.report(error)
+                XCTAssertTrue(model.message?.hasPrefix(warning + "\n") == true)
+            }
             try originalIsActive()
         }
         let model = MappingModel(directory:root,baseURL:URL(string:"https://mapping.example.test")!)

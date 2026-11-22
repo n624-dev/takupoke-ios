@@ -1,7 +1,7 @@
 # 時間割・今日の予定・授業時刻・授業名
 
 対応関係・宣言名・実行方法のSHA-256：
-`83b2b860d5761d23759610e69811c3429bb848d57fd23c3f86622360efee7361`
+`a2b31c05268bc3dacef4439ce0301f29538466590c793b312c50838826707b09`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -131,6 +131,7 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 ## [tests/TimetableModelTests.swift](../../tests/TimetableModelTests.swift)
 
 - `testActualLinksModelSharesOwnedURLSessionAcrossAutomaticAndManualWaiters`
+- `testFailedLinkRevisionRetainsUnreadableCacheWarningAndBytes`
 - `testCorruptTimeCachesCanBeReplacedAndReopened`
 - `testFailedTimeDownloadsPreserveCorruptCacheAndOfferRetry`
 - `testUnavailableDirectoryAndFailedSaveNeverPublishSuccess`

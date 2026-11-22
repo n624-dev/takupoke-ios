@@ -10,11 +10,11 @@ private final class LinksRevisionTransport: URLProtocol {
     static func expectStart(_ event:XCTestExpectation) { lock.lock(); started = event; lock.unlock() }
     static func reset() { lock.lock(); pending = []; requestCount = 0; started = nil; lock.unlock() }
     static var count:Int { lock.lock(); defer { lock.unlock() }; return requestCount }
-    static func release() {
+    static func release(status: Int = 200) {
         lock.lock(); let requests = pending; pending = []; lock.unlock()
         for request in requests {
             let url = request.request.url!
-            request.client?.urlProtocol(request,didReceive:HTTPURLResponse(url:url,statusCode:200,httpVersion:"HTTP/1.1",
+            request.client?.urlProtocol(request,didReceive:HTTPURLResponse(url:url,statusCode:status,httpVersion:"HTTP/1.1",
                 headerFields:["ETag":"\""+String(repeating:"A",count:43)+"\""])!,cacheStoragePolicy:.notAllowed)
             request.client?.urlProtocol(request,didLoad:Data())
             request.client?.urlProtocolDidFinishLoading(request)
@@ -81,6 +81,43 @@ final class TimetableModelTests: XCTestCase {
         await fulfillment(of:[resetStarted],timeout:5)
         model.resetForRetention(); await reset.value
         XCTAssertFalse(model.ready); XCTAssertFalse(model.busy); XCTAssertNil(model.saved)
+    }
+
+    func testFailedLinkRevisionRetainsUnreadableCacheWarningAndBytes() async throws {
+        let suite = "links-model-read-" + UUID().uuidString
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(suite)
+        let store = root.appendingPathComponent("LinksAPI", isDirectory: true)
+        try FileManager.default.createDirectory(at: store, withIntermediateDirectories: true)
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { try? FileManager.default.removeItem(at: root); defaults.removePersistentDomain(forName: suite); LinksRevisionTransport.reset() }
+        LinksRevisionTransport.reset()
+        let file = store.appendingPathComponent("links.json")
+        let original = Data("{fictional-unreadable-links".utf8)
+        try original.write(to: file)
+        let model = LinksModel(preferencesStore: LinkPreferencesStore(defaults: defaults), storeRoot: root, revisionNetwork: {
+            let config = URLSessionConfiguration.ephemeral
+            config.protocolClasses = [LinksRevisionTransport.self]
+            return URLSession(configuration: config)
+        }, endpoint: URL(string: "https://links.example.invalid/links")!)
+        defer { model.resetForRetention() }
+        model.loadIfNeeded()
+        let warning = try XCTUnwrap(model.message)
+        XCTAssertTrue(model.failed && model.saved == nil)
+        let started = expectation(description: "fictional unavailable link revision")
+        LinksRevisionTransport.expectStart(started)
+        let refresh = Task { await model.refresh(force: true) }
+        let wait = await XCTWaiter.fulfillment(of: [started], timeout: 5)
+        guard wait == .completed else {
+            refresh.cancel()
+            await refresh.value
+            XCTFail("Link revision request did not start")
+            return
+        }
+        LinksRevisionTransport.release(status: 503)
+        await refresh.value
+        XCTAssertEqual(model.message, warning + "\n" + LinksError.unavailable.localizedDescription)
+        XCTAssertTrue(model.failed && model.saved == nil)
+        XCTAssertEqual(try Data(contentsOf: file), original)
     }
     private let revision = String(repeating: "T", count: 43)
     private final class Stub: URLProtocol {
@@ -154,10 +191,20 @@ final class TimetableModelTests: XCTestCase {
             ("times.example.test", "invalid-token", revision),
             ("times.example.test", "synthetic-token", String(repeating: "U", count: 43))] {
             let current = model(root, host: host); current.loadIfNeeded()
+            let warning = try XCTUnwrap(current.message)
+            if host == "failure.example.test" {
+                do { _ = try await current.revision(using: network); XCTFail("Failed revision was accepted") }
+                catch { current.report(error) }
+                XCTAssertEqual(current.message, warning + "\n" + TimetableTimesError.unavailable.localizedDescription)
+            }
             do {
                 try await current.download(token: token, revision: requestedRevision, network: network)
                 XCTFail("Failed download must not replace the cache")
-            } catch { XCTAssertTrue(error is TimetableTimesError) }
+            } catch {
+                XCTAssertTrue(error is TimetableTimesError)
+                current.report(error)
+                XCTAssertEqual(current.message, warning + "\n" + error.localizedDescription)
+            }
             XCTAssertNil(current.current)
             XCTAssertEqual(try Data(contentsOf: file), bytes)
         }

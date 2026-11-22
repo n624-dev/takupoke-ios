@@ -87,9 +87,7 @@ final class MappingModel: ObservableObject {
                 apply(result)
             } catch {
                 guard operation == generation else { return }
-                failed = true
-                message = "名称データの更新を確認できませんでした。" +
-                    (current == nil ? "" : "保存済みの対応表を使用します。")
+                reportFailure("名称データの更新を確認できませんでした。")
             }
         }
     }
@@ -145,9 +143,13 @@ final class MappingModel: ObservableObject {
     }
 
     func report(_ error: Error) {
+        reportFailure((error as? MappingError ?? .unavailable).localizedDescription)
+    }
+
+    private func reportFailure(_ description: String) {
         failed = true
-        message = (error as? MappingError ?? .unavailable).localizedDescription +
-            (current == nil ? "" : "保存済みの対応表を使用します。")
+        let warning = storedReadFailed ? Self.storedReadWarning + "\n" : ""
+        message = warning + description + (current == nil ? "" : "保存済みの対応表を使用します。")
     }
 
     func resetForRetention() {
