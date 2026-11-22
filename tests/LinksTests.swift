@@ -128,6 +128,30 @@ final class LinksTests: XCTestCase {
                              LinkSearch.score(terms: "another|needle", query: "needle"))
     }
 
+    func testPreparedSearchPreservesRankingOrderAndCurrentVisibilityAcrossQueries() throws {
+        func link(_ id: String, terms: String, visible: Bool = true) -> LinkItem {
+            LinkItem(id:id,categoryId:"fictional-category",label:"架空リンク",href:"https://example.invalid/" + id,
+                color:"sky",visible:visible,sortOrder:0,recommended:false,recommendationOrder:0,searchAliases:[],searchTerms:terms)
+        }
+        let terms = (0..<350).map { "alias\($0)" }.joined(separator:"|")
+        let items = [link("prefix",terms:"chugoku.example"),link("late",terms:terms + "|chugoku"),
+                     link("kana",terms:"チューゴク"),link("exact",terms:"chugoku"),link("exact-next",terms:"chugoku"),
+                     link("hidden-in-api",terms:"chugoku",visible:false),link("substring",terms:"archugokux")]
+        let data = try JSONEncoder().encode(payload(items))
+        let decoded = try LinksPayload.decode(data)
+        let index = try LinkSearch.Index(categories:decoded.categories)
+        let query = LinkSearch.normalize("ＣＨＵＧＯＫＵ")
+        let all = try index.search(normalizedQuery:query,excluding:[])
+        let expected = ["exact","exact-next","kana","late","prefix","substring"]
+        XCTAssertEqual(all.map(\.id),expected)
+        XCTAssertEqual(try index.search(normalizedQuery:query,excluding:["exact","late"]).map(\.id),
+                       expected.filter { $0 != "exact" && $0 != "late" })
+        XCTAssertEqual(try index.search(normalizedQuery:LinkSearch.normalize("alias349"),excluding:[]).map(\.id),["late"])
+        XCTAssertTrue(try index.search(normalizedQuery:LinkSearch.normalize(" ！"),excluding:[]).isEmpty)
+        let replacement = try LinkSearch.Index(categories:payload([link("new",terms:"chugoku")]).categories)
+        XCTAssertEqual(try replacement.search(normalizedQuery:query,excluding:[]).map(\.id),["new"])
+    }
+
     func testAllPrivateResourceCombinationsUseOneAppropriateAuthentication() {
         for mask in 0..<8 {
             let selection = AccountDataSelection(rawValue: mask)

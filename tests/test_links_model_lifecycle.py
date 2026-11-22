@@ -70,7 +70,33 @@ struct MappingService {
         check(stored.favoriteIDs == previous.favoriteIDs.union(["fictional-new"]), "favorite editing recovers without erasing old values")
         check(stored.hiddenIDs == previous.hiddenIDs.union(["fictional-new"]), "hidden editing recovers without erasing old values")
         check(stored.colorOverrides["fictional-new"] == "blue" && stored.colorOverrides["fictional-colored"] == "blue", "color editing recovers without erasing old values")
-        check(failures.isEmpty, "all preference lifecycle assertions")
+        let dataRoot = URL(fileURLWithPath:CommandLine.arguments[1]).appendingPathComponent("LinksAPI")
+        let links = try LinksStore(root:dataRoot)
+        func fictional(_ id: String) -> SavedLinks {
+            let item = LinkItem(id:id,categoryId:"fictional",label:"架空リンク",href:"https://example.invalid/page",
+                color:"sky",visible:true,sortOrder:0,recommended:false,recommendationOrder:0,searchAliases:[],searchTerms:"fictional match")
+            let category = LinkCategory(id:"fictional",label:"架空カテゴリ",sortOrder:0,buttons:[item])
+            return SavedLinks(payload:LinksPayload(version:"v1",linksVersion:"sha256-" + String(repeating:"a",count:64),
+                categories:[category]),apiETag:"W/\"fictional\"",checkedAt:Date())
+        }
+        try links.save(fictional("fictional-first"))
+        model.resetForRetention(); model.loadIfNeeded()
+        let originalRevision = model.searchRevision
+        let originalHits = await model.search(normalizedQuery:"match",revision:originalRevision,excluding:[])
+        check(originalHits?.map(\.id) == ["fictional-first"], "search uses current saved data")
+        let hidden = await model.search(normalizedQuery:"match",revision:originalRevision,excluding:["fictional-first"])
+        check(hidden?.isEmpty == true, "search applies the current hidden set")
+        try links.save(fictional("fictional-second"))
+        model.resetForRetention(); model.loadIfNeeded()
+        let updatedRevision = model.searchRevision
+        let outdated = await model.search(normalizedQuery:"match",revision:originalRevision,excluding:[])
+        let updated = await model.search(normalizedQuery:"match",revision:updatedRevision,excluding:[])
+        check(outdated == nil && updated?.map(\.id) == ["fictional-second"], "an old input revision cannot show removed links")
+        let cancelled = Task { await model.search(normalizedQuery:"match",revision:updatedRevision,excluding:[]) }
+        cancelled.cancel()
+        let cancelledResult = await cancelled.value
+        check(cancelledResult == nil, "a cancelled search does not publish results")
+        check(failures.isEmpty, "all preference and search lifecycle assertions")
         if !failures.isEmpty { exit(1) }
         print("Production link preferences: revision, repair and edit persistence passed.")
     }
@@ -83,7 +109,7 @@ struct MappingService {
             model = model.replace("import SwiftUI", "#if canImport(FoundationNetworking)\nimport FoundationNetworking\n#endif")
             (root / "LinksModel.swift").write_text(model, encoding="utf-8")
             subprocess.run([compiler, "-swift-version", "5", "-parse-as-library", "-module-cache-path", str(root / "modules"),
-                            str(ROOT / "Takupoke/LinksAPI.swift"), str(ROOT / "Takupoke/LinksStore.swift"),
+                            str(ROOT / "Takupoke/LinksAPI.swift"), str(ROOT / "Takupoke/LinksStore.swift"), str(ROOT / "Takupoke/LinkSearch.swift"),
                             str(root / "LinksModel.swift"), str(root / "Host.swift"), "-o", str(root / "probe")],
                            check=True, timeout=60)
             subprocess.run([str(root / "probe"), str(root / "data")], check=True, timeout=15)

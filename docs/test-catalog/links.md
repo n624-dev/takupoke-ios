@@ -1,7 +1,7 @@
 # リンク・検索・設定保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`df4d74b0873084db7b1382aace87e09fd60ccc219611bdc5c4be5f9943f98386`
+`21556a3943903c8f4ff7058289e9575b5e92f785e4242a3ccff61dd1c60fb207`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -26,6 +26,7 @@ python3 -B -m unittest discover -s tests -p test_links_model_lifecycle.py
 - `testRevisionResetRejectsOldGenerationWhileNewOwnerCompletes`
 - `testStableLinkRowInputsIncludeEveryRenderedValueAndActionOwner`
 - `testLateSearchTermsRemainMatchesWithExactPrefixAndSubstringPriority`
+- `testPreparedSearchPreservesRankingOrderAndCurrentVisibilityAcrossQueries`
 - `testAllPrivateResourceCombinationsUseOneAppropriateAuthentication`
 - `testSyllabusDepartmentOnlyResolvesKnownLinkAndUsesCalendarYear`
 - `testLinkOpeningModeUsesHTTPSOnlyAndKeepsOverrideTemporary`

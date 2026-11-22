@@ -1,6 +1,43 @@
 import Foundation
 
 enum LinkSearch {
+    struct Hit: Identifiable, Sendable {
+        let item: LinkItem
+        let category: String
+        var id: String { item.id }
+    }
+
+    struct Index: Sendable {
+        private struct Entry: Sendable {
+            let hit: Hit
+            let terms: [String]
+        }
+
+        private let entries: [Entry]
+
+        init(categories: [LinkCategory]) throws {
+            var entries = [Entry]()
+            for category in categories {
+                for item in category.buttons where item.visible {
+                    try Task.checkCancellation()
+                    entries.append(Entry(hit:Hit(item:item,category:category.label), terms:LinkSearch.prepareTerms(item.searchTerms)))
+                }
+            }
+            self.entries = entries
+        }
+
+        func search(normalizedQuery: String, excluding hidden: Set<String>) throws -> [Hit] {
+            guard !normalizedQuery.isEmpty else { return [] }
+            var matches: [(hit: Hit, score: Int, position: Int)] = []
+            for (position, entry) in entries.enumerated() where !hidden.contains(entry.hit.id) {
+                try Task.checkCancellation()
+                let score = LinkSearch.score(prepared:entry.terms, query:normalizedQuery)
+                if score >= 0 { matches.append((entry.hit, score, position)) }
+            }
+            return matches.sorted { $0.score == $1.score ? $0.position < $1.position : $0.score > $1.score }.map(\.hit)
+        }
+    }
+
     private static let kana: [String: String] = [
         "あ":"a", "い":"i", "う":"u", "え":"e", "お":"o",
         "か":"ka", "き":"ki", "く":"ku", "け":"ke", "こ":"ko",
@@ -83,6 +120,10 @@ enum LinkSearch {
     static func score(terms: String, query: String) -> Int {
         let query = normalize(query)
         guard !query.isEmpty else { return -1 }
+        return score(prepared:prepareTerms(terms),query:query)
+    }
+
+    private static func prepareTerms(_ terms: String) -> [String] {
         var expanded: [String] = []
         for term in terms.split(separator: "|", omittingEmptySubsequences: false) {
             guard !term.isEmpty else { continue }
@@ -96,7 +137,11 @@ enum LinkSearch {
                     .replacingOccurrences(of: "oo", with: "o"))
             }
         }
-        return expanded.enumerated().reduce(-1) { best, entry in
+        return expanded
+    }
+
+    private static func score(prepared: [String], query: String) -> Int {
+        prepared.enumerated().reduce(-1) { best, entry in
             let (index, term) = entry
             guard !term.isEmpty else { return best }
             // Match kind takes priority over term position. A late match must

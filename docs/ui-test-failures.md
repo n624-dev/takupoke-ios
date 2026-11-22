@@ -5780,3 +5780,7 @@ ebe3694の[明示選択限定44616309920](https://github.com/n624-dev/takupoke-i
 - #126の `testAcceptedLinkResponseWithUnescapedSlashesSurvivesReload` と `testAcceptedEventResponseWithUnescapedSlashesSurvivesReload` はAPI応答の検証後、保存で `invalidResponse` になった。全666件のうちこの2件。APIのサイズ上限を維持し、保存・再読込用のJSONでスラッシュのエスケープを省く。
 - #127の `testChangeCommonClockChecksApplicableDocumentsWithEmptyPeriod` は時限欄だけが08:50〜09:35を返した。時刻が競合または欠落する8条件すべてで再現し、カードと詳細は期待どおり時刻を返さなかった。索引の `commonPeriodTime|cardTime` でN104を照合した。#90の未取得条件と異なり、今回は両資料が適用される。時限欄にもカードの資料照合を使う。
 - #128の `testNotModifiedRequiresMatchingValidatorForAllPrivateResources` は、不一致または欠落したETagで3経路とも304を変更なしと判定した。実確認メソッドと架空のURLProtocol応答による6件のassertion失敗。通知・UI・学校への通信は実行していない。
+
+### #150 リンク索引回帰のLinuxコンパイル（2026-11-23）
+
+02:28 JST前後、`a7fb5f4`からの候補、Linux Swift 6.1.2の一時ホスト実行。`LinksTests.swift:145` の期待順を `flatMap/filter/enumerated/compactMap/sorted/map` の一式で計算し、コンパイラの型検査が制限に達した。テストは未到達。以前のN100では検索スコアの後方別名を検査している。今回もその検査を保持し、新規テストの期待順は完全一致・長い別名・前方・部分一致とAPI順を事前に固定する。

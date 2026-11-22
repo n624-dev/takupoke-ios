@@ -1,14 +1,6 @@
 import SafariServices
 import SwiftUI
 
-private struct LinkSearchHit: Identifiable {
-    let item: LinkItem
-    let category: String
-    let score: Int
-    let position: Int
-    var id: String { item.id }
-}
-
 private struct VisibleLinkCategory: Identifiable {
     let category: LinkCategory
     let items: [LinkItem]
@@ -16,12 +8,19 @@ private struct VisibleLinkCategory: Identifiable {
 }
 
 struct LinksView: View {
+    private struct SearchRequest: Equatable {
+        let query: String
+        let revision: UUID
+        let hidden: Set<String>
+    }
+
     @EnvironmentObject private var account: AccountDataModel
     @EnvironmentObject private var mappings: MappingModel
     @ObservedObject var model: LinksModel
     @State private var safariPage: SafariPage?
     @State private var linkActionOwner = UUID()
     @State private var query = ""
+    @State private var completedSearch: (request: SearchRequest, hits: [LinkSearch.Hit])?
 
     private var visibleCategories: [VisibleLinkCategory] {
         (model.saved?.payload.categories ?? []).compactMap { category in
@@ -30,19 +29,9 @@ struct LinksView: View {
         }
     }
 
-    private var searchHits: [LinkSearchHit] {
-        var position = 0
-        return visibleCategories.flatMap { entry in
-            entry.items.compactMap { item -> LinkSearchHit? in
-                defer { position += 1 }
-                let score = LinkSearch.score(terms: item.searchTerms, query: query)
-                return score < 0 ? nil : LinkSearchHit(item: item, category: entry.category.label,
-                                                       score: score, position: position)
-            }
-        }.sorted { $0.score == $1.score ? $0.position < $1.position : $0.score > $1.score }
-    }
-
     var body: some View {
+        let request = SearchRequest(query:LinkSearch.normalize(query),revision:model.searchRevision,
+                                    hidden:model.preferences.hiddenIDs)
         NavigationStack {
             List {
                 LinksPreferencesWarning(model: model)
@@ -58,7 +47,7 @@ struct LinksView: View {
                             NavigationLink("リンク一覧を取得") { AccountDataSettingsView() }
                         }
                     }
-                } else if LinkSearch.normalize(query).isEmpty {
+                } else if request.query.isEmpty {
                     ForEach(visibleCategories) { entry in
                         Section(entry.category.label) {
                             ForEach(entry.items) { item in
@@ -71,20 +60,31 @@ struct LinksView: View {
                     }
                 } else {
                     Section("検索結果") {
-                        if searchHits.isEmpty {
-                            Text("該当するリンクがありません。").foregroundStyle(.secondary)
-                        } else {
-                            ForEach(searchHits) { hit in
-                                LinkRow(item: hit.item, subtitle: hit.category, model: model, actionOwner: linkActionOwner) {
-                                    safariPage = SafariPage(url: $0)
-                                }.equatable()
+                        if let completedSearch, completedSearch.request == request {
+                            if completedSearch.hits.isEmpty {
+                                Text("該当するリンクがありません。").foregroundStyle(.secondary)
+                            } else {
+                                ForEach(completedSearch.hits) { hit in
+                                    LinkRow(item: hit.item, subtitle: hit.category, model: model, actionOwner: linkActionOwner) {
+                                        safariPage = SafariPage(url: $0)
+                                    }.equatable()
+                                }
                             }
+                        } else {
+                            ProgressView("検索中⋯")
                         }
                     }
                 }
             }
             .navigationTitle("一覧")
             .searchable(text: $query, prompt: "リンクを検索")
+            .task(id:request) {
+                guard !request.query.isEmpty else { completedSearch = nil; return }
+                guard completedSearch?.request != request else { return }
+                guard let hits = await model.search(normalizedQuery:request.query,revision:request.revision,excluding:request.hidden),
+                      !Task.isCancelled else { return }
+                completedSearch = (request, hits)
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink {

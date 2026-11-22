@@ -5,7 +5,13 @@ import SwiftUI
 final class LinksModel: ObservableObject {
     @Published private(set) var updateAvailable = false
     private var generation = UUID()
-    @Published private(set) var saved: SavedLinks?
+    @Published private(set) var saved: SavedLinks? {
+        didSet {
+            searchPreparation?.cancel()
+            searchPreparation = nil
+            searchRevision = UUID()
+        }
+    }
     @Published private(set) var preferences = LinkPreferences()
     @Published private(set) var ready = false
     @Published private(set) var preferencesReady = true
@@ -19,6 +25,8 @@ final class LinksModel: ObservableObject {
     private let revisions = LinksRevisionCoordinator()
     private let revisionNetwork: () -> URLSession
     private var revisionBusyOwner: UUID?
+    private var searchPreparation: Task<LinkSearch.Index, Error>?
+    private(set) var searchRevision = UUID()
     var pendingRevisionWaiters: Int { revisions.pendingWaiterCount }
     @Published private(set) var preferencesError: String?
 
@@ -39,6 +47,22 @@ final class LinksModel: ObservableObject {
 
     var visibleRecommendations: [LinkItem] {
         saved?.payload.recommendations(hiddenIDs: preferences.hiddenIDs) ?? []
+    }
+
+    func search(normalizedQuery: String, revision: UUID, excluding hidden: Set<String>) async -> [LinkSearch.Hit]? {
+        guard revision == searchRevision, let saved, !normalizedQuery.isEmpty, !Task.isCancelled else { return nil }
+        if searchPreparation == nil {
+            let categories = saved.payload.categories
+            searchPreparation = Task.detached(priority:.userInitiated) { try LinkSearch.Index(categories:categories) }
+        }
+        guard let index = try? await searchPreparation?.value, revision == searchRevision, !Task.isCancelled else { return nil }
+        let task = Task.detached(priority:.userInitiated) {
+            try index.search(normalizedQuery:normalizedQuery,excluding:hidden)
+        }
+        return await withTaskCancellationHandler {
+            guard let results = try? await task.value, revision == searchRevision, !Task.isCancelled else { return nil }
+            return results
+        } onCancel: { task.cancel() }
     }
 
     func loadIfNeeded() {

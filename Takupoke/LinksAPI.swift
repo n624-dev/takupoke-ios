@@ -154,7 +154,7 @@ struct LinkItem: Codable, Equatable, Identifiable, Sendable {
     var url: URL? { URL(string: href) }
 }
 
-struct LinkCategory: Codable, Equatable, Identifiable {
+struct LinkCategory: Codable, Equatable, Identifiable, Sendable {
     let id: String
     let label: String
     let sortOrder: Int
