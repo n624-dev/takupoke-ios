@@ -14,7 +14,10 @@ extension ApplicationChecks {
         XCTAssertTrue(existing.isHittable)
         existing.tap()
         let detail = app.navigationBars["予定の詳細"]
-        XCTAssertTrue(detail.waitForExistence(timeout:10),app.debugDescription)
+        guard detail.waitForExistence(timeout:10) else {
+            XCTFail("Countdown destination did not open. Application state: \(app.state).\n\(app.debugDescription)")
+            return
+        }
         let close = detail.buttons["閉じる"]
         XCTAssertTrue(app.staticTexts["開始日"].waitForExistence(timeout:10),app.debugDescription)
         XCTAssertTrue(app.staticTexts["架空の通知予定"].exists)

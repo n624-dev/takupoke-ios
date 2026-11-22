@@ -185,12 +185,14 @@ struct SimulatorApplication: App {
                         VStack(alignment:.trailing) {
                             Button("架空通知を開く") {
                                 let id = Self.countdownNoticeID
+                                FixtureCITrace.mark("countdown-route-selected-existing")
                                 ApplicationData.shared.notifications.openedCountdown = .init(target:.init(id:id,key:id.uuidString))
                             }
                             .accessibilityIdentifier("fixture-countdown-route-existing")
                             Button("対象のない架空通知を開く") {
                                 // This fixed target is deliberately never registered.
                                 let id = UUID(uuidString:"4ccfacb8-6ce2-4cc2-a414-b67490b3975c")!
+                                FixtureCITrace.mark("countdown-route-selected-missing")
                                 ApplicationData.shared.notifications.openedCountdown = .init(target:.init(id:id,key:id.uuidString))
                             }
                             .accessibilityIdentifier("fixture-countdown-route-missing")

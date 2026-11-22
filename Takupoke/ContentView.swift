@@ -81,6 +81,7 @@ struct ContentView: View {
                 CountdownNotificationDestination(destination: destination, events: schoolEvents)
                     .toolbar { ToolbarItem(placement: .cancellationAction) { Button("閉じる") { notifications.openedCountdown = nil } } }
             }
+            .environmentObject(application.countdown)
         }
         .onChange(of: dataReady) { ready in
             if !ready { showingSetup = false }
