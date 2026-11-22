@@ -1,12 +1,13 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`9e5bce78b26694978099ec3d2f4d59a10fb44a30f1e2a625e74b39ff21ef6abb`
+`aa7b8408549332b9117d83436f18dba9657e4063573e64f4930c6ebe9fe82afb`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
 ```bash
 bash tools/test-parsing.sh
+python3 -B -m unittest discover -s tests -p test_change_preview_actions.py -k special_provider_refresh -v
 ```
 
 ## 変更時に確認するソース
@@ -106,3 +107,13 @@ bash tools/test-parsing.sh
 - `testHomeWarningsUseTheRetainedResultForEachSelectedMaterial`
 - `testLoadingFailureAndUnselectedAreDistinctForBothKinds`
 - `testFirstFailedAnalysisAndPreviousSuccessUseDifferentWarnings`
+
+## [tests/test_change_preview_actions.py](../../tests/test_change_preview_actions.py)
+
+- `test_special_provider_refresh_keeps_cancellation_separate_from_failure`
+- `test_recovered_timetable_clears_previous_error_only_after_commit`
+- `test_acquisition_acknowledges_only_committed_copy_and_honors_cancellation_during_migration`
+- `test_actual_dispatch_retains_review_after_failure_and_closes_only_after_success`
+- `test_actual_callbacks_preserve_rejected_preview_and_dispatch_accepted_action_once`
+- `test_actual_worker_records_failure_only_for_the_reviewed_original`
+- `test_invalid_year_blocks_change_acquisition_without_stalling_other_queued_materials`

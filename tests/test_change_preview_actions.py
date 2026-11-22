@@ -12,6 +12,112 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ChangePreviewActionTests(unittest.TestCase):
+    def test_special_provider_refresh_keeps_cancellation_separate_from_failure(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute production special schedule refresh")
+        refresh = (ROOT / "Takupoke/SpecialSchedulesModel+Startup.swift").read_text(encoding="utf-8")
+        access = (ROOT / "Takupoke/ScopedMaterialSelection.swift").read_text(encoding="utf-8")
+        program = r'''import Foundation
+enum MaterialError: Error { case cancelled, unavailable, accessExpired, providerReadFailed }
+enum SpecialScheduleKind: String, CaseIterable { case exam, examReturn }
+struct PDFParseError: Error { enum Code { case cancelled }; let code: Code }
+final class NSFileCoordinator { func cancel() {} }
+struct URL {
+    init() {}
+    init(resolvingBookmarkData: Data, options: [Int], relativeTo: URL?, bookmarkDataIsStale: inout Bool) throws {}
+}
+struct ScopedMaterialSelection { init(_ url: URL) {} }
+struct Grant { let bookmark = Data() }
+struct Source {
+    let digest = "saved", originalName = "fictional.pdf"
+    let grant: Grant? = Grant()
+    let failure: PDFParseError? = nil
+    let attemptParserVersion: Int? = SpecialScheduleAnalysis.parserVersion
+}
+struct SpecialScheduleAnalysis { static let parserVersion = 1; let version = SpecialScheduleAnalysis.parserVersion }
+struct Saved { let digest = "saved", analysis = SpecialScheduleAnalysis() }
+enum RecoveryConversion { static func trustsAcquisitionCache(_ value: SpecialScheduleAnalysis, hash: String) -> Bool { true } }
+enum PDFParseAttempt {
+    static func needsAnalysis(digest: String, parserVersion: Int, analysisDigest: String?, analysisVersion: Int?,
+                              attemptDigest: String?, failure: PDFParseError?, attemptVersion: Int?) -> Bool { false }
+}
+enum PDFKitReader {
+    static func readSpecial(_ url: URL, check: () throws -> Void) throws -> [Int] { preconditionFailure("Expected no parsing") }
+}
+enum SpecialScheduleParser {
+    static func parse(_ pages: [Int], kind: SpecialScheduleKind, digest: String, name: String,
+                      check: () throws -> Void) throws -> SpecialScheduleAnalysis { preconditionFailure("Expected no parsing") }
+}
+final class FileRefreshDiagnostics {
+    enum Event { case refreshStarted, refreshFailed, hashSame, hashChanged, cancelled }
+    struct Source { init(rawValue: String) {} }
+    static let shared = FileRefreshDiagnostics()
+    var events = [Event]()
+    func record(_ event: Event, source: Source) { events.append(event) }
+}
+final class SpecialScheduleStore {
+    let sources = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.map { ($0, Source()) })
+    let records = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.map { ($0, Saved()) })
+    var failed = [SpecialScheduleKind](), confirmed = [SpecialScheduleKind](), discarded = 0
+    func newStagingURL() -> URL { URL() }
+    func discardStaging(_ url: URL) { discarded += 1 }
+    func selectedURL(for kind: SpecialScheduleKind) -> URL? { URL() }
+    func recordSuccessfulCheck(_ kind: SpecialScheduleKind, digest: String, originalName: String) throws { confirmed.append(kind) }
+    func recordAcquisitionFailure(kind: SpecialScheduleKind) throws { failed.append(kind) }
+    func recordFailure(_ error: PDFParseError, kind: SpecialScheduleKind) throws { preconditionFailure("Expected no parsing") }
+    func saveSelection(staged: URL, kind: SpecialScheduleKind, originalName: String, byteCount: Int,
+                       digest: String, grant: Grant) throws { preconditionFailure("Expected same bytes") }
+    func saveAnalysis(_ analysis: SpecialScheduleAnalysis) throws { preconditionFailure("Expected no parsing") }
+}
+CONTROL
+enum SpecialSchedulesModel {
+    struct Receipt { let acknowledge: () -> Void }
+    static var cancelled = false, copied = [SpecialScheduleKind](), acknowledged = [SpecialScheduleKind]()
+    static func copy(_ selection: ScopedMaterialSelection, to staged: URL, kind: SpecialScheduleKind,
+                     control: AcquisitionControl) throws -> (String, Int, String, Receipt) {
+        copied.append(kind)
+        if kind == .exam {
+            if cancelled { control.cancel(); try control.check() }
+            throw MaterialError.providerReadFailed
+        }
+        return ("fictional.pdf", 10, "saved", Receipt { acknowledged.append(kind) })
+    }
+METHOD
+}
+var failures = [String]()
+func check(_ condition: Bool, _ description: String) { if !condition { failures.append(description) } }
+for cancelling in [true, false] {
+    let control = AcquisitionControl(), store = SpecialScheduleStore()
+    SpecialSchedulesModel.cancelled = cancelling
+    SpecialSchedulesModel.copied = []; SpecialSchedulesModel.acknowledged = []
+    FileRefreshDiagnostics.shared.events = []
+    do {
+        try SpecialSchedulesModel.refreshSelectedFiles(store, requested: Set(SpecialScheduleKind.allCases.map(\.rawValue)), control: control)
+        check(false, "refresh incorrectly reported success")
+    } catch MaterialError.cancelled { check(cancelling, "provider failure became cancellation") }
+    catch MaterialError.providerReadFailed { check(!cancelling, "cancellation became provider failure") }
+    catch { check(false, "unexpected refresh error") }
+    check(store.failed == (cancelling ? [] : [.exam]), "only a real provider read failure is recorded")
+    check(SpecialSchedulesModel.copied == (cancelling ? [.exam] : [.exam, .examReturn]), "unexpected provider work")
+    check(store.confirmed == (cancelling ? [] : [.examReturn]), "unexpected saved source check")
+    check(SpecialSchedulesModel.acknowledged == store.confirmed, "unexpected acknowledgment")
+    check(control.acquiredProviderSources == Set(store.confirmed.map(\.rawValue)), "unexpected acquired source")
+    check(store.discarded == SpecialSchedulesModel.copied.count, "staging must be discarded for each checked source")
+    let terminal = FileRefreshDiagnostics.shared.events.filter { $0 == .cancelled || $0 == .refreshFailed }
+    check(terminal == (cancelling ? [.cancelled] : [.refreshFailed]), "cancel and provider failure need distinct logs")
+}
+if !failures.isEmpty { print(failures.joined(separator: "\n")); exit(1) }
+'''.replace("METHOD", block(refresh, "nonisolated static func refreshSelectedFiles(")) \
+   .replace("CONTROL", block(access, "final class AcquisitionControl"))
+        with tempfile.TemporaryDirectory(prefix="special-provider-refresh-") as scratch:
+            root = Path(scratch)
+            source = root / "main.swift"
+            source.write_text(program, encoding="utf-8")
+            subprocess.run([compiler, "-swift-version", "5", "-module-cache-path", str(root / "modules"),
+                            str(source), "-o", str(root / "probe")], check=True, timeout=60)
+            subprocess.run([str(root / "probe")], check=True, timeout=15)
+
     def test_recovered_timetable_clears_previous_error_only_after_commit(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:

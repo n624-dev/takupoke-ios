@@ -1,7 +1,7 @@
 # 原本取得・更新・保存・File Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`53058cee333204738994f700224d3faab15275b8e1c815e1cc11391679dc69fe`
+`d0162746ae5dd61200f1dadab2d83f41541a2244700368c84d1af02de36f4d5c`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -87,6 +87,7 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py
 
 ## [tests/test_change_preview_actions.py](../../tests/test_change_preview_actions.py)
 
+- `test_special_provider_refresh_keeps_cancellation_separate_from_failure`
 - `test_recovered_timetable_clears_previous_error_only_after_commit`
 - `test_acquisition_acknowledges_only_committed_copy_and_honors_cancellation_during_migration`
 - `test_actual_dispatch_retains_review_after_failure_and_closes_only_after_success`

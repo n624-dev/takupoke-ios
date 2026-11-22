@@ -250,7 +250,8 @@
       "title": "試験・返却PDF",
       "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",
       "commands": [
-        "bash tools/test-parsing.sh"
+        "bash tools/test-parsing.sh",
+        "python3 -B -m unittest discover -s tests -p test_change_preview_actions.py -k special_provider_refresh -v"
       ],
       "sources": [
         "Takupoke/SpecialSchedule.swift",
@@ -271,7 +272,8 @@
         "tests/SpecialScheduleTests+Persistence.swift",
         "tests/SpecialScheduleTests.swift",
         "tests/PDFTextGeometryTests+Visibility.swift",
-        "tests/SpecialAvailabilityTests.swift"
+        "tests/SpecialAvailabilityTests.swift",
+        "tests/test_change_preview_actions.py"
       ]
     },
     {

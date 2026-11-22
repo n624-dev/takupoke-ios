@@ -63,6 +63,9 @@ extension SpecialSchedulesModel {
                         try parseCheck()
                         try store.saveAnalysis(analysis)
                     }
+                } catch MaterialError.cancelled {
+                    FileRefreshDiagnostics.shared.record(.cancelled, source: diagnosticSource)
+                    throw MaterialError.cancelled
                 } catch {
                     FileRefreshDiagnostics.shared.record(.refreshFailed, source: diagnosticSource)
                     failure = error
