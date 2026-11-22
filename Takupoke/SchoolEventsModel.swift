@@ -57,6 +57,8 @@ final class SchoolEventsModel: ObservableObject {
     private var wakeupAt: Date?
     private var wakeupID = UUID()
     private var manualYear: Int?
+    private var manualCancelled = false
+    private var pausedYears = Set<Int>()
     private var backgroundActive = false
 
     init(storeRoot: URL? = nil, eventsEndpoint: URL = URL(string: "https://takupoke-api.n624.jp/events")!,
@@ -87,7 +89,7 @@ final class SchoolEventsModel: ObservableObject {
     func sourcePresentation(year: Int) -> SchoolEventsSourcePresentation? {
         guard let current = saved[year] else { return nil }
         let state = states[year]
-        let retry = state?.targetMismatch == true ? Self.mismatchMessage : state?.source.retryAt != nil
+        let retry = state?.targetMismatch == true ? Self.mismatchMessage : state?.source.retryAt != nil && state?.followUpAt == nil
             ? "元PDFの状態を確認できません。後で自動確認します。" : nil
         return .make(saved: current, cached: sourceStatuses[year], error: sourceErrors[year] ?? retry, now: now(),
                      firstFailureAt: state?.source.firstFailureAt, checking: isChecking(year: year))
@@ -149,7 +151,10 @@ final class SchoolEventsModel: ObservableObject {
     func setSourceChecksActive(_ active: Bool) {
         guard active != self.active else { return }
         self.active = active
-        if active { reevaluate() }
+        if active {
+            pausedYears.removeAll()
+            reevaluate()
+        }
         else {
             cancelWakeup()
             for request in requests.values where !request.background { request.task.cancel() }
@@ -190,10 +195,13 @@ final class SchoolEventsModel: ObservableObject {
             return
         }
         manualYear = year
+        manualCancelled = false
         busy = true
         Task { [weak self] in
             var succeeded = await request.task.value
             guard let self else { return }
+            defer { self.busy = false; self.manualYear = nil }
+            guard !self.manualCancelled else { return }
             if !request.checksBody && !request.task.isCancelled, self.message == nil,
                let combined = self.start(year: year, demand: .manual) {
                 succeeded = await combined.task.value
@@ -207,17 +215,29 @@ final class SchoolEventsModel: ObservableObject {
                 self.message = request.task.isCancelled ? SchoolEventsError.cancelled.localizedDescription
                     : SchoolEventsError.unavailable.localizedDescription
             }
-            self.busy = false
-            self.manualYear = nil
         }
     }
 
     func cancel() {
-        if let manualYear { requests[manualYear]?.task.cancel() }
-        else {
-            cancelWakeup()
-            for request in requests.values { request.task.cancel() }
+        let years: Set<Int>
+        if let manualYear {
+            years = [manualYear]
+            manualCancelled = true
+            failed = true
+            message = SchoolEventsError.cancelled.localizedDescription
+        } else {
+            years = Set(requests.keys).union(states.compactMap { $0.value.followUpAt == nil ? nil : $0.key })
         }
+        pausedYears.formUnion(years)
+        for year in years {
+            requests[year]?.task.cancel()
+            if var state = states[year], state.followUpAt != nil {
+                state.followUpAt = nil; state.followUpsRemaining = nil
+                record(state)
+            }
+        }
+        cancelWakeup()
+        if manualYear != nil { scheduleWakeup() }
     }
 
     /// No timer or repeated source request is owned by a background execution.
@@ -249,7 +269,9 @@ final class SchoolEventsModel: ObservableObject {
     }
 
     private func nextSourceCheck(_ current: SavedSchoolEvents, state: SchoolEventsRefreshState, at date: Date) -> Date {
-        if let followUp = state.followUpAt { return max(followUp, state.source.retryAt ?? .distantPast) }
+        // A fresh checking response owns its bounded follow-up schedule.
+        // A failure in that cycle clears the follow-up before setting backoff.
+        if let followUp = state.followUpAt { return followUp }
         let cached = sourceStatuses[current.payload.schoolYear].flatMap { $0.matches(current) ? $0 : nil }
         let regular: Date
         if let cached, cached.receivedAt <= date, !cached.response.checking, !cached.response.stale,
@@ -280,7 +302,7 @@ final class SchoolEventsModel: ObservableObject {
         var candidates: [(Date, Bool)] = []
         for (year, current) in saved {
             guard let state = states[year] else { continue }
-            if !isChecking(year: year) && reachable && canAccessData() {
+            if !pausedYears.contains(year) && !isChecking(year: year) && reachable && canAccessData() {
                 if automaticEnabled {
                     candidates.append((nextBodyCheck(current, state: state, at: date), false))
                     candidates.append((nextSourceCheck(current, state: state, at: date), state.followUpAt != nil))
@@ -317,8 +339,10 @@ final class SchoolEventsModel: ObservableObject {
 
     @discardableResult
     private func start(year: Int, demand: Demand, background: Bool = false) -> Request? {
+        let explicit = demand == .manual || demand == .forcedSource
         guard ready, (active || background), reachable, canAccessData(),
-              demand == .manual || saved[year] != nil else { return nil }
+              demand == .manual || saved[year] != nil, explicit || !pausedYears.contains(year) else { return nil }
+        if explicit { pausedYears.remove(year) }
         if let request = runningRequest(year: year) { return request }
         let date = now()
         var dueBody = demand == .manual

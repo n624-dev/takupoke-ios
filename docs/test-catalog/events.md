@@ -1,7 +1,7 @@
 # 学校行事API・年度別保存
 
 対応関係・宣言名・実行方法のSHA-256：
-`ec62719567dd623d8e9918dbeaf39e3581dfbd93acfcc4c063a9ae3e68e77644`
+`cb12695f2d485afa82979727cc1e23faa9cc4f25447ccb8e96c1673f19057913`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -54,6 +54,8 @@ bash tools/test-parsing.sh
 ## [tests/SchoolEventsSourceModelTests.swift](../../tests/SchoolEventsSourceModelTests.swift)
 
 - `testCheckingAutomaticallyBecomesMatchedWithoutFetchingEventsAgain`
+- `testManualCheckingFollowsUpWithinSixtySecondsDuringEachPriorFailureBackoff`
+- `testManualCancellationDoesNotImmediatelyRestartExpiredAutomaticBodyRequest`
 - `testCheckingStopsAfterExactlyThreeAdditionalRequestsAndRestartsAfterPersistentDelay`
 - `testFailedFollowUpStopsAndPreservesSavedEventsAndSuccessfulEvidence`
 - `testBackgroundSuspensionCancelsPendingAndInFlightFollowUps`

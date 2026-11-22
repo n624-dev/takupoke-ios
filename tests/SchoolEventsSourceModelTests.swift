@@ -36,6 +36,7 @@ private final class SourceStatusScenario {
     private var validators: [String?] = []
     private var held: [SourceStatusTransport] = []
     var holdStatus = false
+    var holdBody = false
     var statusHTTP = 200
     var bodyHTTP = 200
     var bypassNotModified = false
@@ -73,7 +74,7 @@ private final class SourceStatusScenario {
         lock.lock()
         counts["\(url.path)/\(year)", default: 0] += 1
         if url.path == "/events" { validators.append(request.value(forHTTPHeaderField: "If-None-Match")) }
-        let shouldHold = holdStatus && url.path == "/events/source-status"
+        let shouldHold = holdStatus && url.path == "/events/source-status" || holdBody && url.path == "/events"
         let event = started; if shouldHold { held.append(transport); started = nil }
         lock.unlock()
         if shouldHold { event?.fulfill(); return }
@@ -196,6 +197,82 @@ final class SchoolEventsSourceModelTests: XCTestCase {
         XCTAssertEqual(f.model.saved[2032]?.payload, data)
         XCTAssertEqual(f.model.scheduleGeneration, generation); XCTAssertFalse(f.model.busy)
         XCTAssertEqual(f.network.unexpected, 0)
+    }
+
+    func testManualCheckingFollowsUpWithinSixtySecondsDuringEachPriorFailureBackoff() async throws {
+        for failures in 1...3 {
+            let f = try Fixture(), clock = RetryClock()
+            defer { f.clean(); clock.cancel() }
+            f.model = f.makeModel(waitForSourceRetry:clock.wait)
+            f.model.loadIfNeeded()
+            f.network.successAt = "2032-05-01T03:00:00Z"
+            let initial = try XCTUnwrap(f.model.checkSource(year:2032,force:true))
+            _ = await initial.value
+            let lastSuccess = try XCTUnwrap(f.model.sourcePresentation(year:2032)?.lastSuccessAt)
+            f.network.statusHTTP = 503
+            for _ in 0..<failures {
+                f.now.addTimeInterval(1)
+                let failed = try XCTUnwrap(f.model.checkSource(year:2032,force:true))
+                let succeeded = await failed.value
+                XCTAssertFalse(succeeded)
+            }
+            let store = try SchoolEventsStore(root:f.root.appendingPathComponent("SchoolEventsAPI"))
+            let oldRetry = try XCTUnwrap(store.loadRefreshState(year:2032)).source
+            XCTAssertEqual(oldRetry.retryAt?.timeIntervalSince(f.now),Double([900,1800,3600][failures-1]))
+            f.now.addTimeInterval(1)
+            f.network.statusHTTP = 200; f.network.checking = true
+            f.model.fetch(year:2032)
+            await dataFinished(f.model)
+            XCTAssertEqual(try store.loadRefreshState(year:2032)?.source.firstFailureAt,oldRetry.firstFailureAt)
+            XCTAssertEqual(f.model.sourcePresentation(year:2032)?.lastSuccessAt,lastSuccess)
+            XCTAssertTrue(try XCTUnwrap(f.model.sourcePresentation(year:2032)).message.contains("確認中"))
+            XCTAssertEqual(f.network.count(path:"/events/source-status",year:2032),failures+2)
+            try await finishRetry(f,clock)
+            XCTAssertEqual(f.network.count(path:"/events/source-status",year:2032),failures+3)
+            XCTAssertEqual(try store.loadRefreshState(year:2032)?.followUpsRemaining,2)
+            XCTAssertEqual(f.model.sourcePresentation(year:2032)?.lastSuccessAt,lastSuccess)
+            XCTAssertEqual(f.network.unexpected,0)
+        }
+    }
+
+    func testManualCancellationDoesNotImmediatelyRestartExpiredAutomaticBodyRequest() async throws {
+        for expired in [false, true] {
+            let f = try Fixture()
+            defer { f.clean() }
+            let store = try SchoolEventsStore(root:f.root.appendingPathComponent("SchoolEventsAPI"))
+            for (year,age) in [(2032, expired ? 3601 : 60),(2033,60)] {
+                let bytes = SourceStatusScenario.events(year:year)
+                let checkedAt = f.now.addingTimeInterval(-Double(age))
+                try store.save(.decode(bytes,requestedYear:year),apiETag:"W/\""+SourceStatusScenario.hash(bytes)+"\"",
+                    fetchedAt:checkedAt,lastEventsCheckedAt:checkedAt)
+            }
+            f.model = f.makeModel()
+            f.model.loadIfNeeded()
+            await f.model.checkSource(year:2032)?.value
+            await f.model.checkSource(year:2033)?.value
+            let started = expectation(description:"body is in flight before cancellation")
+            f.network.holdBody = true; f.network.started = started
+            f.model.refreshAtStartup()
+            if expired { await fulfillment(of:[started],timeout:5) }
+            f.model.fetch(year:2032)
+            if !expired { await fulfillment(of:[started],timeout:5) }
+            f.model.cancel()
+            f.network.holdBody = false; f.network.updated = true; f.network.release()
+            await dataFinished(f.model)
+            f.model.reevaluate()
+            XCTAssertFalse(f.model.isChecking(year:2032))
+            XCTAssertEqual(f.network.count(path:"/events",year:2032),1)
+            XCTAssertEqual(f.model.saved[2032]?.payload.events.first?.title,"架空保存行事")
+            XCTAssertEqual(f.model.message,SchoolEventsError.cancelled.localizedDescription)
+
+            if !expired { f.now.addTimeInterval(3600) }
+            f.model.setSourceChecksActive(false); f.model.setSourceChecksActive(true)
+            let resumed = try XCTUnwrap(f.model.checkSource(year:2032))
+            _ = await resumed.value
+            XCTAssertEqual(f.network.count(path:"/events",year:2032),2)
+            XCTAssertEqual(f.model.saved[2032]?.payload.events.first?.title,"架空更新行事")
+            XCTAssertEqual(f.network.unexpected,0)
+        }
     }
 
     func testCheckingStopsAfterExactlyThreeAdditionalRequestsAndRestartsAfterPersistentDelay() async throws {
