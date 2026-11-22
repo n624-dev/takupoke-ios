@@ -20,7 +20,7 @@ struct SettingsView: View {
     }
 
     @ViewBuilder private func dataLabel(_ title: LocalizedStringKey, systemImage: String) -> some View {
-        if mainColor.selection == .yellow && scheme == .light {
+        if mainColor.selection.usesLightYellowIcons(in: scheme) {
             Label {
                 Text(title)
             } icon: {

@@ -67,6 +67,57 @@ extension ApplicationChecks {
         XCTAssertGreaterThan(whitePixels, area / 3, "The original icon interior must show the light row surface")
     }
 
+    private func assertYellowTab(_ title: String, appearance: String) throws -> Double {
+        let tab = app.tabBars.buttons[title]
+        let button = try tab.snapshot()
+        XCTAssertTrue(button.isSelected)
+        let frame = button.frame
+        let images = try XCTUnwrap(snapshotNodes(in: button)).filter { $0.elementType == .image }
+        XCTAssertEqual(images.count, 1, "The selected tab must expose one native icon")
+        let icon = try XCTUnwrap(images.first).frame
+        XCTAssertTrue(frame.contains(icon), "The real icon must be within the native tab")
+        recoveryScreenshot("yellow-tab-" + (title == "設定" ? "settings" : "timetable") + "-" + appearance)
+        let photo = try XCTUnwrap(tab.screenshot().image.cgImage)
+        let scaleX = CGFloat(photo.width) / frame.width
+        let scaleY = CGFloat(photo.height) / frame.height
+        func pixels(in region: CGRect) throws -> [UInt8] {
+            let crop = CGRect(x: (region.minX - frame.minX) * scaleX, y: (region.minY - frame.minY) * scaleY,
+                              width: region.width * scaleX, height: region.height * scaleY).integral
+            let cg = try XCTUnwrap(photo.cropping(to: crop))
+            return try sRGBPixels(UIImage(cgImage: cg)).bytes
+        }
+        let glyph = try pixels(in: icon)
+        let yellowPixels = stride(from: 0, to: glyph.count, by: 4).count { offset in
+            glyph[offset] >= 250 && (199...209).contains(glyph[offset + 1]) && glyph[offset + 2] <= 5
+        }
+        XCTAssertGreaterThan(yellowPixels, 120, "The selected tab icon must render #FFCC00")
+        let textRegion = CGRect(x: frame.minX + frame.width * 0.16, y: icon.maxY,
+                                width: frame.width * 0.68, height: frame.maxY - icon.maxY)
+        let ink = try pixels(in: textRegion)
+        var textLuminances: [Double] = []
+        var backgroundLuminances: [Double] = []
+        func linear(_ channel: UInt8) -> Double {
+            let value = Double(channel) / 255
+            return value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+        }
+        for offset in stride(from: 0, to: ink.count, by: 4) {
+            let red = ink[offset], green = ink[offset + 1], blue = ink[offset + 2]
+            let darkest = min(red, green, blue), lightest = max(red, green, blue)
+            guard lightest - darkest <= 28 else { continue }
+            let luminance = 0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue)
+            if lightest <= 120 { textLuminances.append(luminance) }
+            if darkest >= 170 { backgroundLuminances.append(luminance) }
+        }
+        XCTAssertGreaterThan(textLuminances.count, 50, "The selected tab must have dark readable lettering")
+        XCTAssertGreaterThan(backgroundLuminances.count, 50, "The label must have a light stock background")
+        let textSample = textLuminances.sorted()[textLuminances.count / 4]
+        let background = backgroundLuminances.sorted()[backgroundLuminances.count / 4]
+        let ratio = (background + 0.05) / (textSample + 0.05)
+        print("YELLOW_TAB title=\(title);appearance=\(appearance);yellow=\(yellowPixels);text-contrast=\(ratio)")
+        XCTAssertGreaterThanOrEqual(ratio, 4.5)
+        return ratio
+    }
+
     private func requireThemeContrast(_ value: String) {
         let observed = expectation(for: NSPredicate(format: "label == %@", value),
                                    evaluatedWith: app.staticTexts["fixture-theme-contrast"])
@@ -79,6 +130,8 @@ extension ApplicationChecks {
         tap("翌週")
         let calendar = app.buttons["timetable-week-calendar"]
         let selectedWeek = calendar.label
+        var settingsTitle: Double?
+        var timetableTitle: Double?
         for (title, stored) in [("オレンジ", "orange"), ("緑", "green"), ("黄色", "yellow"), ("デフォルト", "未設定"), ("青", "blue")] {
             tab("設定")
             tap("メインカラー")
@@ -86,27 +139,32 @@ extension ApplicationChecks {
             let saved = expectation(for: NSPredicate(format: "label == %@", stored),
                                     evaluatedWith: app.staticTexts["fixture-stored-color"])
             wait(for: [saved], timeout: 10)
-            if stored == "yellow" { try assertYellowSettingsIcon(contrast: "standard") }
+            if stored == "yellow" {
+                try assertYellowSettingsIcon(contrast: "standard")
+                settingsTitle = try assertYellowTab("設定", appearance: "standard")
+            }
             tab("時間割")
             XCTAssertEqual(calendar.label, selectedWeek, "Changing color must retain the selected week")
             let buttonInk = try coloredInk(calendar.screenshot().image)
-            let tabInk = try coloredInk(app.tabBars.buttons["時間割"].screenshot().image)
-            for channel in 0..<3 {
-                XCTAssertEqual(buttonInk[channel], tabInk[channel], accuracy: 0.12,
-                               "Calendar and selected tab must draw the same \(title) without dark mixing")
-            }
-            if stored == "orange" {
-                XCTAssertGreaterThan(buttonInk[0], 0.8)
-                XCTAssertGreaterThan(buttonInk[0], buttonInk[2] + 0.3)
-            } else if stored == "green" {
-                XCTAssertGreaterThan(buttonInk[1], 0.5)
-                XCTAssertGreaterThan(buttonInk[1], buttonInk[0] + 0.1)
-            } else {
+            if stored == "yellow" {
                 XCTAssertGreaterThan(buttonInk[2], 0.7)
                 XCTAssertGreaterThan(buttonInk[2], buttonInk[0] + 0.15)
-                if stored == "yellow" {
-                    XCTAssertGreaterThan(tabInk[2], 0.7)
-                    XCTAssertGreaterThan(tabInk[2], tabInk[0] + 0.15)
+                timetableTitle = try assertYellowTab("時間割", appearance: "standard")
+            } else {
+                let tabInk = try coloredInk(app.tabBars.buttons["時間割"].screenshot().image)
+                for channel in 0..<3 {
+                    XCTAssertEqual(buttonInk[channel], tabInk[channel], accuracy: 0.12,
+                                   "Calendar and selected tab must draw the same \(title) without dark mixing")
+                }
+                if stored == "orange" {
+                    XCTAssertGreaterThan(buttonInk[0], 0.8)
+                    XCTAssertGreaterThan(buttonInk[0], buttonInk[2] + 0.3)
+                } else if stored == "green" {
+                    XCTAssertGreaterThan(buttonInk[1], 0.5)
+                    XCTAssertGreaterThan(buttonInk[1], buttonInk[0] + 0.1)
+                } else {
+                    XCTAssertGreaterThan(buttonInk[2], 0.7)
+                    XCTAssertGreaterThan(buttonInk[2], buttonInk[0] + 0.15)
                 }
             }
             recoveryScreenshot("live-theme-" + stored)
@@ -125,13 +183,14 @@ extension ApplicationChecks {
         XCTAssertEqual(app.staticTexts["fixture-stored-color"].label, "yellow")
         tab("設定")
         try assertYellowSettingsIcon(contrast: "increased")
+        let increasedSettings = try assertYellowTab("設定", appearance: "increased")
+        XCTAssertGreaterThan(increasedSettings, try XCTUnwrap(settingsTitle) + 1)
         tab("時間割")
         let highContrastCalendar = try coloredInk(app.buttons["timetable-week-calendar"].screenshot().image)
-        let highContrastTab = try coloredInk(app.tabBars.buttons["時間割"].screenshot().image)
-        for ink in [highContrastCalendar, highContrastTab] {
-            XCTAssertGreaterThan(ink[2], 0.7)
-            XCTAssertGreaterThan(ink[2], ink[0] + 0.15)
-        }
+        XCTAssertGreaterThan(highContrastCalendar[2], 0.7)
+        XCTAssertGreaterThan(highContrastCalendar[2], highContrastCalendar[0] + 0.15)
+        let increasedTimetable = try assertYellowTab("時間割", appearance: "increased")
+        XCTAssertGreaterThan(increasedTimetable, try XCTUnwrap(timetableTitle) + 1)
         recoveryScreenshot("yellow-calendar-increased")
     }
 

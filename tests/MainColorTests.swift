@@ -70,10 +70,17 @@ final class MainColorTests: XCTestCase {
                          "Light yellow icons must not change the native tint of functional controls")
             XCTAssertEqual(MainColor.yellow.displayColor(for: .light, contrast: contrast), .accentColor)
         }
+        let standardTitle = try XCTUnwrap(MainColor.yellow.tabTitleTint(for: .light, contrast: .standard))
+        let title = standardTitle.resolve(in: environment)
+        XCTAssertEqual(title.red, 71.0 / 255, accuracy: 0.002)
+        XCTAssertEqual(title.green, 71.0 / 255, accuracy: 0.002)
+        XCTAssertEqual(title.blue, 76.0 / 255, accuracy: 0.002)
+        XCTAssertEqual(MainColor.yellow.tabTitleTint(for: .light, contrast: .increased), .primary)
         environment.colorScheme = .dark
         for contrast in [ColorSchemeContrast.standard, .increased] {
             let dark = try XCTUnwrap(MainColor.yellow.color(for: .dark, contrast: contrast))
             XCTAssertEqual(dark.resolve(in: environment), Color.yellow.resolve(in: environment))
+            XCTAssertEqual(MainColor.yellow.tabTitleTint(for: .dark, contrast: contrast), dark)
         }
     }
 
@@ -106,6 +113,14 @@ final class MainColorTests: XCTestCase {
         XCTAssertEqual(MainColor.blue.color(for: .light, contrast: .standard), .blue)
         XCTAssertTrue(MainColor.allCases.filter { $0 != .systemDefault && $0 != .yellow }
             .allSatisfy { $0.color(for: .light, contrast: .standard) != nil })
+        for scheme in [ColorScheme.light, .dark] {
+            for contrast in [ColorSchemeContrast.standard, .increased] {
+                for theme in MainColor.allCases where theme != .yellow {
+                    XCTAssertEqual(theme.tabTitleTint(for: scheme, contrast: contrast),
+                                   theme.color(for: scheme, contrast: contrast))
+                }
+            }
+        }
     }
     #endif
 }

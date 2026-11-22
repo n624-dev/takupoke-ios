@@ -39,8 +39,8 @@ enum MainColor: String, CaseIterable, Identifiable {
         case .systemDefault: return nil
         case .blue: return .blue
         case .yellow:
-            // In light appearance, yellow identifies the theme on the leading
-            // icons. Native control and text contrast uses the standard tint.
+            // Light yellow is applied separately to icons. Native controls
+            // inside each page use the standard tint.
             return scheme == .dark ? .yellow : nil
         case .green: return .green
         case .orange: return .orange
@@ -48,6 +48,16 @@ enum MainColor: String, CaseIterable, Identifiable {
         case .pink: return .pink
         case .purple: return .purple
         }
+    }
+
+    func usesLightYellowIcons(in scheme: ColorScheme) -> Bool {
+        self == .yellow && scheme == .light
+    }
+
+    func tabTitleTint(for scheme: ColorScheme, contrast: ColorSchemeContrast) -> Color? {
+        guard usesLightYellowIcons(in: scheme) else { return color(for: scheme, contrast: contrast) }
+        if contrast == .increased { return .primary }
+        return Color(.sRGB, red: 71.0 / 255, green: 71.0 / 255, blue: 76.0 / 255)
     }
 
     // Custom text and shapes need a concrete color; use the inherited accent

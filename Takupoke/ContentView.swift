@@ -1,10 +1,14 @@
 import SwiftUI
 import Combine
+import UIKit
 
 struct ContentView: View {
     private enum Tab: Hashable { case home, links, timetable, settings }
 
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+    @EnvironmentObject private var mainColor: MainColorModel
     @State private var selectedTab: Tab = .home
     @State private var timetableTodayRequest: UUID?
     @StateObject private var application = ApplicationData.shared
@@ -116,20 +120,45 @@ struct ContentView: View {
         else { setupPresented = true }
     }
 
+    private var tabContentTint: Color? {
+        mainColor.selection.color(for: colorScheme, contrast: colorSchemeContrast)
+    }
+
+    @ViewBuilder private func tabLabel(_ title: LocalizedStringKey, symbol: String, tab: Tab,
+                                      selectedSymbol: String? = nil) -> some View {
+        if selectedTab == tab, mainColor.selection.usesLightYellowIcons(in: colorScheme),
+           let image = UIImage(systemName: selectedSymbol ?? symbol) {
+            Label {
+                Text(title)
+            } icon: {
+                // Preserve this foreground when the native tab applies its title tint.
+                Image(uiImage: image.withTintColor(UIColor(MainColor.lightYellowIcon), renderingMode: .alwaysOriginal))
+                    .renderingMode(.original)
+            }
+        } else {
+            Label(title, systemImage: symbol)
+        }
+    }
+
     private var tabs: some View {
         TabView(selection: $selectedTab) {
             HomeView(materials: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents) {
                 timetableTodayRequest = UUID()
                 selectedTab = .timetable
             }
-                .tabItem { Label("ホーム", systemImage: "house") }.tag(Tab.home)
+                .tint(tabContentTint)
+                .tabItem { tabLabel("ホーム", symbol: "house", tab: .home, selectedSymbol: "house.fill") }.tag(Tab.home)
             LinksView(model: links)
-                .tabItem { Label("一覧", systemImage: "list.bullet") }.tag(Tab.links)
+                .tint(tabContentTint)
+                .tabItem { tabLabel("一覧", symbol: "list.bullet", tab: .links) }.tag(Tab.links)
             TimetableView(model: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents, mappings: mappings, todayRequest: $timetableTodayRequest)
-                .tabItem { Label("時間割", systemImage: "calendar") }.tag(Tab.timetable)
+                .tint(tabContentTint)
+                .tabItem { tabLabel("時間割", symbol: "calendar", tab: .timetable) }.tag(Tab.timetable)
             SettingsView(materials: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents, mappings: mappings)
-                .tabItem { Label("設定", systemImage: "gearshape") }.tag(Tab.settings)
+                .tint(tabContentTint)
+                .tabItem { tabLabel("設定", symbol: "gearshape", tab: .settings, selectedSymbol: "gearshape.fill") }.tag(Tab.settings)
         }
+        .tint(mainColor.selection.tabTitleTint(for: colorScheme, contrast: colorSchemeContrast))
         .onChange(of: selectedTab) { tab in
             if tab == .links, !account.busy { Task { await links.refresh() } }
         }
