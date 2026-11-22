@@ -28,11 +28,14 @@ class SimulatorCITraceTests(unittest.TestCase):
     def test_height_handoff_imports_core_foundation_in_swift(self):
         source = ROOT / "tests/ui/ApplicationFixture+WeekHandoff.swift"
         test = (ROOT / "tests/ui/ApplicationChecks+WeekAppearance.swift").read_text(encoding="utf-8")
-        start = test.index("            let heightWindow = XCTestExpectation(")
-        end = test.index("            try NativeTestContacts.send(", start)
+        subscriptions = []
+        for signal in ("heightWindow", "reportReady"):
+            start = test.index(f"            let {signal} = XCTestExpectation(")
+            end = test.index("            try NativeTestContacts.send(", start)
+            subscriptions.append(f"func test_{signal}() {{\n" + test[start:end] + "}\n")
         with tempfile.TemporaryDirectory(prefix="takupoke-height-notification-") as temporary:
             subscription = Path(temporary) / "Subscription.swift"
-            subscription.write_text("import XCTest\nfunc testSubscription() {\n" + test[start:end] + "}\n", encoding="utf-8")
+            subscription.write_text("import XCTest\n" + "".join(subscriptions), encoding="utf-8")
             result = subprocess.run(["swiftc", "-typecheck", "-module-cache-path", temporary, str(source), str(subscription)],
                                     capture_output=True, text=True, timeout=30)
         self.assertEqual(result.returncode, 0, result.stderr)

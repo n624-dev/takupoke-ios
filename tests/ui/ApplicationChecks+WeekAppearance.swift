@@ -230,14 +230,14 @@ extension ApplicationChecks {
         do {
             let heightWindow = XCTestExpectation(description: "The arriving week began height adjustment")
             let observer = Unmanaged.passUnretained(heightWindow).toOpaque()
-            guard WeekHeightHandoff.observe(observer, callback: { _, context, _, _, _ in
+            guard WeekMotionSignal.heightWindow.observe(observer, callback: { _, context, _, _, _ in
                 guard let context else { return }
                 Unmanaged<XCTestExpectation>.fromOpaque(context).takeUnretainedValue().fulfill()
             }) else {
                 XCTFail("Could not observe the simulator's week height handoff"); return
             }
             defer {
-                WeekHeightHandoff.remove(observer)
+                WeekMotionSignal.heightWindow.remove(observer)
                 withExtendedLifetime(heightWindow) {}
             }
             try NativeTestContacts.send(Array(sequence.prefix(1)), named: "Timed timetable week pulls")
@@ -327,10 +327,28 @@ extension ApplicationChecks {
             XCTAssertGreaterThan(visible.width, 230)
             XCTAssertGreaterThan(visible.height, 30)
             let x = towardNext ? visible.maxX - 30 : visible.minX + 30
-            let start = app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: x, dy: visible.midY))
-            start.press(forDuration: 0.08,
-                        thenDragTo: start.withOffset(CGVector(dx: towardNext ? -195 : 195, dy: 0)),
-                        withVelocity: .slow, thenHoldForDuration: 0.3)
+            let start = CGPoint(x: x, y: visible.midY)
+            let end = CGPoint(x: x + (towardNext ? -195 : 195), y: visible.midY)
+            let reportReady = XCTestExpectation(description: "The app sampled and published the actual week frames")
+            let observer = Unmanaged.passUnretained(reportReady).toOpaque()
+            guard WeekMotionSignal.reportReady.observe(observer, callback: { _, context, _, _, _ in
+                guard let context else { return }
+                Unmanaged<XCTestExpectation>.fromOpaque(context).takeUnretainedValue().fulfill()
+            }) else {
+                XCTFail("Could not observe completion of the actual week frames"); return
+            }
+            defer {
+                WeekMotionSignal.reportReady.remove(observer)
+                withExtendedLifetime(reportReady) {}
+            }
+            // Keep the pre-release glass hold and the same real edge drag.
+            // Do not ask XCTest to wait for application idle while frames are sampled.
+            try NativeTestContacts.send([.init(start: start, end: end, duration: 0.8, pauseAfterLift: 0,
+                                               holdBeforeMove: 0.08, holdBeforeLift: 0.30)], named: "Prepared week edge pull")
+            let deadline = ProcessInfo.processInfo.systemUptime + 8
+            guard XCTWaiter.wait(for: [reportReady], timeout: 8) == .completed else {
+                XCTFail("The app did not finish recording the actual week frames"); return
+            }
             let probe = app.staticTexts["fixture-week-motion"]
             var records: [[String: Any]] = []
             var observedJSON = ""
@@ -341,7 +359,7 @@ extension ApplicationChecks {
                 observedJSON = raw
                 return value.count == index + 1
             }, evaluatedWith: probe)
-            wait(for: [completed], timeout: 8)
+            wait(for: [completed], timeout: max(0, deadline - ProcessInfo.processInfo.systemUptime))
             print("TAKUPOKE_WEEK_MOTION " + observedJSON)
             let record = try XCTUnwrap(records.last)
             let samples = try XCTUnwrap(record["samples"] as? [[String: Double]])

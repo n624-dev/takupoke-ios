@@ -58,12 +58,18 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("if heightAdjustment != nil", promotion)
         swift = (ROOT / "tests/ui/ApplicationChecks+WeekAppearance.swift").read_text()
         sequence = swift.split("func testConsecutiveWeekPullsTrackOverlappingContactsWithoutRepeating()", 1)[1]
-        self.assertLess(sequence.index("WeekHeightHandoff.observe("), sequence.index("sequence.prefix(1)"))
-        self.assertIn("WeekHeightHandoff.remove(observer)", sequence)
+        self.assertLess(sequence.index("WeekMotionSignal.heightWindow.observe("), sequence.index("sequence.prefix(1)"))
+        self.assertIn("WeekMotionSignal.heightWindow.remove(observer)", sequence)
         self.assertIn("ApplicationFixture+WeekHandoff.swift", manifest.CHECK_SOURCES)
         self.assertIn("ApplicationFixture+WeekHandoff.swift", manifest.FIXTURE_SOURCES)
         self.assertLess(sequence.index("XCTWaiter.wait(for: [heightWindow]"), sequence.index("sequence.dropFirst()"))
         self.assertIn('$0.phase == "height"', sequence)
+        frames = swift.split("func testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable()", 1)[1]
+        self.assertLess(frames.index("WeekMotionSignal.reportReady.observe("), frames.index("NativeTestContacts.send("))
+        self.assertLess(frames.index("XCTWaiter.wait(for: [reportReady]"), frames.index('app.staticTexts["fixture-week-motion"]'))
+        self.assertIn("WeekMotionSignal.reportReady.remove(observer)", frames)
+        self.assertIn("holdBeforeMove: 0.08, holdBeforeLift: 0.30", frames)
+        self.assertIn('0.09, "Height adjustment must keep drawing frames"', frames)
 
     def test_generated_week_selection_initialization_respects_actor_isolation(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")

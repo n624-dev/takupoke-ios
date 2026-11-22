@@ -147,6 +147,8 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
             if let bytes = try? JSONSerialization.data(withJSONObject: records, options: [.sortedKeys]),
                let value = String(data: bytes, encoding: .utf8) {
                 report = value
+                let posted = WeekMotionSignal.reportReady.post()
+                print("TAKUPOKE_WEEK_MOTION_REPORT_READY posted=\(posted);count=\(records.count)")
                 print("TAKUPOKE_WEEK_MOTION " + value)
             }
         }
@@ -220,7 +222,7 @@ final class FixtureWeekSequenceRecorder: ObservableObject {
 
     func signalHeightWindow() {
         guard ProcessInfo.processInfo.arguments.contains("--week-sequence-probe") else { return }
-        let posted = WeekHeightHandoff.post()
+        let posted = WeekMotionSignal.heightWindow.post()
         FixtureCITrace.mark(posted ? "week-height-window-posted" : "week-height-window-post-failed")
     }
 

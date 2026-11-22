@@ -11,6 +11,18 @@ enum NativeTestContacts {
         let end: CGPoint
         let duration: TimeInterval
         let pauseAfterLift: TimeInterval
+        let holdBeforeMove: TimeInterval
+        let holdBeforeLift: TimeInterval
+
+        init(start: CGPoint, end: CGPoint, duration: TimeInterval, pauseAfterLift: TimeInterval,
+             holdBeforeMove: TimeInterval = 0, holdBeforeLift: TimeInterval = 0) {
+            self.start = start
+            self.end = end
+            self.duration = duration
+            self.pauseAfterLift = pauseAfterLift
+            self.holdBeforeMove = holdBeforeMove
+            self.holdBeforeLift = holdBeforeLift
+        }
     }
 
     private static func typeEncoding(_ copied: UnsafeMutablePointer<CChar>?) -> String {
@@ -87,12 +99,14 @@ enum NativeTestContacts {
                     let fraction = CGFloat(sample) / CGFloat(samples)
                     let position = CGPoint(x: contact.start.x + (contact.end.x - contact.start.x) * fraction,
                                            y: contact.start.y + (contact.end.y - contact.start.y) * fraction)
-                    move(path, moveSelector, position, next + 0.02 + Double(fraction) * (contact.duration - 0.04))
+                    let offset = contact.holdBeforeMove + 0.02 + Double(fraction) * (contact.duration - 0.04)
+                    move(path, moveSelector, position, next + offset)
                 }
             }
-            lift(path, liftSelector, next + contact.duration)
+            let liftOffset = next + contact.holdBeforeMove + contact.duration + contact.holdBeforeLift
+            lift(path, liftSelector, liftOffset)
             add(record, addSelector, path)
-            next += contact.duration + contact.pauseAfterLift
+            next = liftOffset + contact.pauseAfterLift
         }
 
         try deliver(record)
