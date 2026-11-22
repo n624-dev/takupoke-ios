@@ -248,8 +248,9 @@ struct SchoolDataPeriod: Equatable {
     func resetForRetention() { resets += 1 }
 }
 @MainActor final class UpdateNotifications {
-    func suspendForUnavailableData() async {}
-    func resetForRetention() async {}
+    var response = true
+    func suspendForUnavailableData() async -> Bool { response }
+    func resetForRetention() async -> Bool { response }
 }
 @MainActor final class Countdown {
     var response = false
@@ -279,12 +280,14 @@ STOP
         try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
         defer { try? FileManager.default.removeItem(at:root) }
         try Data("fictional".utf8).write(to:root.appendingPathComponent("fictional-private"))
-        for corrupt in [false,true] {
+        for (corrupt, countdownResponds, updatesRespond) in [(false,false,true), (true,false,true), (false,true,false), (true,true,false)] {
             SchoolDataRetention.installed = .init(half:1)
             SchoolDataRetention.corrupt = corrupt
             SchoolDataRetention.replaced = 0
             SchoolDataRetention.quarantined = 0
             let app = Application(root:root)
+            app.countdown.response = countdownResponds
+            app.notifications.response = updatesRespond
             let blocked = await app.prepare(recoverInvalidMarker:corrupt)
             precondition(!blocked && !app.ready && app.loadedPeriod == nil && !app.preparing)
             precondition(app.retentionFailure && app.retentionFailureReason == .notificationCleanup(recoveringInvalidMarker:corrupt))
@@ -295,6 +298,7 @@ STOP
             precondition(app.account.closed == 1 && app.materials.closed == 1 && app.specialSchedules.closed == 1)
             precondition(app.links.resets == 1 && app.times.resets == 1 && app.countdown.includesDelivered == [true])
             app.countdown.response = true
+            app.notifications.response = true
             let recovered = await app.prepare(recoverInvalidMarker:app.canRecoverRetention)
             precondition(recovered && app.ready && !app.retentionFailure && app.retentionFailureReason == nil)
             precondition(app.loadedPeriod?.half == 2 && app.retentionNotice && !app.preparing)

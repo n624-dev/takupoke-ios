@@ -642,9 +642,9 @@ struct Card { let isPrivate: Bool }
     var notificationCards = [0:Card(isPrivate:true),1:Card(isPrivate:false)]
     var revision = UUID()
     var request: Int? = 0
-    var worker: Task<Void, Never>?
+    var worker: NotificationWork?
     func begin() {
-        worker = Task {
+        worker = NotificationWork { [self] in
             let settings = await ScheduleNotifications.notificationSettings(from:center)
             precondition(Task.isCancelled && settings == nil)
             worker = nil
@@ -692,7 +692,110 @@ EXPIRY
         precondition(center.removedDelivered == ["fictional.private.1"])
     }
 }
-'''.replace("BRIDGES", bridges).replace("EXPIRY", block(model, "func expirePrivateNotices("))
+'''.replace("BRIDGES", bridges).replace("EXPIRY", block(model, "func expirePrivateNotices(")) + "\n@MainActor\n" + block(
+            notifications, "final class NotificationWork {")
+        self.run_probe(compiler, program)
+
+    def test_retention_does_not_wait_indefinitely_or_clean_up_before_a_notification_write_finishes(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the notification worker's cancellation and expiry")
+        notifications = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
+        countdown = (ROOT / "Takupoke/CountdownModel.swift").read_text(encoding="utf-8")
+        program = r'''import Foundation
+struct Request { let identifier: String; var request: Self { self } }
+struct Card { let isPrivate: Bool }
+enum CountdownNotice { static let privatePrefix = "fictional.private." }
+@MainActor final class Center {
+    var commit: CheckedContinuation<Void, Never>?
+    var saved = ["fictional.personal", "fictional.school", "unrelated"]
+    var pendingReads = 0
+    var removedPending = [String](), removedDelivered = [String]()
+    func write(_ identifier: String) async {
+        await withCheckedContinuation { commit = $0 }
+        saved.append(identifier)
+    }
+    func finishWrite() { let continuation = commit; commit = nil; continuation?.resume() }
+    func removePendingNotificationRequests(withIdentifiers ids: [String]) {
+        removedPending += ids
+        saved.removeAll { ids.contains($0) }
+    }
+    func removeDeliveredNotifications(withIdentifiers ids: [String]) { removedDelivered += ids }
+}
+@MainActor final class ScheduleNotifications {
+    static let updateIdentifiers = ["fictional.changes", "fictional.exam", "fictional.examReturn"]
+    let center = Center()
+    var generation = UUID()
+    var pending: Int? = 1, baseline: Int? = 1
+    var loaded = true
+    var reconcileTask: NotificationWork?
+    func start() {
+        reconcileTask = NotificationWork {
+            await self.center.write("fictional.exam")
+            self.reconcileTask = nil
+        }
+    }
+    static func readPending(from center: Center) async -> [Request]? {
+        center.pendingReads += 1
+        return center.saved.map(Request.init)
+    }
+    static func readDelivered(from center: Center) async -> [Request]? { center.saved.map(Request.init) }
+STOP_UPDATES
+RESET_UPDATES
+}
+@MainActor final class Countdown {
+    let center = Center()
+    var cards = [Card(isPrivate:true),Card(isPrivate:false)]
+    var notificationCards = [0:Card(isPrivate:true),1:Card(isPrivate:false)]
+    var revision = UUID(), request: Int? = 1
+    var worker: NotificationWork?
+    func start() {
+        worker = NotificationWork {
+            await self.center.write("fictional.private.countdown")
+            self.worker = nil
+        }
+    }
+EXPIRE
+}
+@main struct Probe {
+    @MainActor static func main() async {
+        let countdown = Countdown(), updates = ScheduleNotifications()
+        countdown.start(); updates.start()
+        while countdown.center.commit == nil || updates.center.commit == nil { await Task.yield() }
+        async let privateExpiry = countdown.expirePrivateNotices(removeDelivered:true)
+        async let updateExpiry = updates.resetForRetention()
+        let (removedPrivate, removedUpdates) = await (privateExpiry, updateExpiry)
+        precondition(!removedPrivate && !removedUpdates, "an unknown write must leave the period blocked")
+        precondition(countdown.worker?.task.isCancelled == true && updates.reconcileTask?.task.isCancelled == true)
+        precondition(countdown.center.pendingReads == 0 && updates.loaded && updates.baseline == 1)
+        precondition(countdown.request == nil && updates.pending == nil && countdown.cards.map(\.isPrivate) == [false])
+        precondition(countdown.center.removedPending.isEmpty && updates.center.removedPending.isEmpty)
+
+        let retry = Task { await countdown.expirePrivateNotices(removeDelivered:true) }
+        retry.cancel()
+        let cancelled = await retry.value
+        precondition(!cancelled && countdown.worker != nil)
+
+        let oldCountdown = countdown.worker, oldUpdates = updates.reconcileTask
+        countdown.center.finishWrite(); updates.center.finishWrite()
+        await oldCountdown?.value; await oldUpdates?.value
+        precondition(countdown.center.saved.contains("fictional.private.countdown"))
+        precondition(updates.center.saved.contains("fictional.exam"))
+        let retriedPrivate = await countdown.expirePrivateNotices(removeDelivered:true)
+        let retriedUpdates = await updates.resetForRetention()
+        precondition(retriedPrivate && retriedUpdates)
+        precondition(countdown.center.removedPending == ["fictional.private.countdown"])
+        precondition(updates.center.removedPending == ScheduleNotifications.updateIdentifiers)
+        precondition(!updates.loaded && updates.baseline == nil)
+        precondition(countdown.center.saved == ["fictional.personal", "fictional.school", "unrelated"])
+        precondition(updates.center.saved == countdown.center.saved)
+        print("Verified notification-write timeout, ownership retention, cancellation, and late completion cleanup.")
+    }
+}
+'''.replace("STOP_UPDATES", block(notifications, "func suspendForUnavailableData("))
+        program = program.replace("RESET_UPDATES", block(notifications, "func resetForRetention("))
+        program = program.replace("EXPIRE", block(countdown, "func expirePrivateNotices("))
+        program += "\n@MainActor\n" + block(notifications, "final class NotificationWork {")
         self.run_probe(compiler, program)
 
     def test_background_refresh_waits_for_countdown_and_cancels_its_owned_plan(self):
@@ -729,7 +832,7 @@ EXPIRY
 }
 @MainActor final class Countdown {
     struct NoticePlan { let revision: UUID }
-    var request: NoticePlan?, worker: Task<Void, Never>?
+    var request: NoticePlan?, worker: NotificationWork?
     var revision = UUID()
     var waiting: CheckedContinuation<Void, Never>?
     var applied: [UUID] = []
@@ -783,7 +886,7 @@ BACKGROUND
             let token = app.countdown.revision
             if cancel {
                 task.cancel()
-                await observe { app.countdown.worker?.isCancelled == true }
+                await observe { app.countdown.worker?.task.isCancelled == true }
             }
             app.countdown.release()
             await task.value
@@ -827,7 +930,7 @@ BACKGROUND
             if newerPlanAfterJoining {
                 join.cancel()
                 await observe { !countdown.cancellations.isEmpty }
-                precondition(countdown.cancellations == [original] && countdown.worker?.isCancelled == false)
+                precondition(countdown.cancellations == [original] && countdown.worker?.task.isCancelled == false)
             }
             countdown.release()
             await join.value
@@ -837,6 +940,8 @@ BACKGROUND
     }
 }
 '''.replace("WORKERS", workers).replace("BACKGROUND", background)
+        notifications = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
+        program += "\n@MainActor\n" + block(notifications, "final class NotificationWork {")
         self.run_probe(compiler, program)
 
     def run_probe(self, compiler, program):

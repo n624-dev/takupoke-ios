@@ -20,7 +20,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     private let center = UNUserNotificationCenter.current()
     private var baseline: ScheduleNotificationSnapshot?
     private var loaded = false
-    private var reconcileTask: Task<Void, Never>?
+    private var reconcileTask: NotificationWork?
     private var pending: Input?
     private var generation = UUID()
     private var latestRevision = UUID()
@@ -202,19 +202,20 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         return identifiers
     }
 
-    func suspendForUnavailableData() async {
+    func suspendForUnavailableData() async -> Bool {
         generation = UUID()
         pending = nil
-        reconcileTask?.cancel()
-        await reconcileTask?.value
+        guard await reconcileTask?.stop() != false, !Task.isCancelled else { return false }
         baseline = nil
         loaded = false
+        return true
     }
 
-    func resetForRetention() async {
-        await suspendForUnavailableData()
+    func resetForRetention() async -> Bool {
+        guard await suspendForUnavailableData() else { return false }
         center.removePendingNotificationRequests(withIdentifiers: Self.updateIdentifiers)
         center.removeDeliveredNotifications(withIdentifiers: Self.updateIdentifiers)
+        return true
     }
 
     func reconcile(state: MaterialLibraryState, records: [SpecialScheduleKind: SpecialScheduleRecord],
@@ -251,10 +252,10 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
 
     private func drainPending() async {
         guard pending != nil, !Task.isCancelled else { return }
-        let task: Task<Void, Never>
+        let task: NotificationWork
         if let current = reconcileTask { task = current }
         else {
-            task = Task { @MainActor in
+            task = NotificationWork {
                 defer { self.reconcileTask = nil }
                 while let input = self.pending, !Task.isCancelled {
                     self.pending = nil
@@ -382,5 +383,59 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         values.isExcludedFromBackup = true
         try directory.setResourceValues(values)
         return root.appendingPathComponent("baseline.json")
+    }
+}
+
+@MainActor
+final class NotificationWork {
+    let task: Task<Void, Never>
+    private let completion: Completion
+
+    init(_ operation: @escaping @MainActor () async -> Void) {
+        let completion = Completion()
+        self.completion = completion
+        task = Task {
+            await operation()
+            completion.finish()
+        }
+    }
+
+    var value: Void { get async { await task.value } }
+
+    func cancel() { task.cancel() }
+
+    /// A timed-out stop leaves the actual write owned by this worker. No newer
+    /// worker may replace it while the notification service can still commit it.
+    func stop(timeout: Duration = .seconds(6)) async -> Bool {
+        cancel()
+        return await completion.wait(timeout:timeout)
+    }
+
+    @MainActor
+    private final class Completion {
+        private var finished = false
+        private var waiters: [UUID: AsyncStream<Void>.Continuation] = [:]
+
+        func finish() {
+            finished = true
+            for continuation in waiters.values { continuation.finish() }
+            waiters.removeAll()
+        }
+
+        func wait(timeout: Duration) async -> Bool {
+            guard !Task.isCancelled else { return false }
+            if finished { return true }
+            let id = UUID()
+            let (stream, continuation) = AsyncStream<Void>.makeStream()
+            waiters[id] = continuation
+            let deadline = Task {
+                do { try await Task.sleep(for:timeout) } catch { return }
+                continuation.finish()
+            }
+            defer { deadline.cancel(); waiters.removeValue(forKey:id) }
+            var iterator = stream.makeAsyncIterator()
+            _ = await iterator.next()
+            return finished && !Task.isCancelled
+        }
     }
 }

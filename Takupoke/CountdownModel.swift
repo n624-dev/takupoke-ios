@@ -27,7 +27,7 @@ final class CountdownModel: ObservableObject {
     private var store: CountdownStore?
     private let center = UNUserNotificationCenter.current()
     private var request: NoticePlan?
-    private var worker: Task<Void, Never>?
+    private var worker: NotificationWork?
     private var revision = UUID()
     private lazy var initialClassScope = classSelection().scope
     var onChange: (() -> Void)?
@@ -323,8 +323,7 @@ final class CountdownModel: ObservableObject {
         // loaded. Cancel an old plan without reconciling against that empty list.
         revision = UUID()
         request = nil
-        worker?.cancel()
-        await worker?.value
+        guard await worker?.stop() != false, !Task.isCancelled else { return false }
         let queued = await ScheduleNotifications.readPending(from:center)
         if let queued, !Task.isCancelled {
             let pending = queued.map(\.identifier).filter { $0.hasPrefix(CountdownNotice.privatePrefix) }
@@ -371,7 +370,7 @@ final class CountdownModel: ObservableObject {
 
     private func startNotificationWorker() {
         guard worker == nil else { return }
-        worker = Task { [weak self] in
+        worker = NotificationWork { [weak self] in
             guard let self else { return }
             while !Task.isCancelled, let plan = self.request {
                 self.request = nil

@@ -171,17 +171,16 @@ final class ApplicationData: ObservableObject {
         recovery.cancel()
         setFileMonitoring(false)
         let countdownCleared = await countdown.expirePrivateNotices(removeDelivered: resetNotifications)
-        if resetNotifications {
-            await notifications.resetForRetention()
-        }
-        else { await notifications.suspendForUnavailableData() }
+        let updatesCleared: Bool
+        if resetNotifications { updatesCleared = await notifications.resetForRetention() }
+        else { updatesCleared = await notifications.suspendForUnavailableData() }
         await account.stopForRetention()
         await materials.closeForRetention()
         await specialSchedules.closeForRetention()
         mappings.resetForRetention()
         links.resetForRetention()
         times.resetForRetention()
-        return countdownCleared
+        return countdownCleared && updatesCleared
     }
 
     func recoverRetention() async {
