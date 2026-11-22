@@ -124,6 +124,7 @@ struct MappingService {
         model.setColor("blue",for:currentLink.id)
         model.reloadPreferences()
         check(model.color(for:currentLink) == "blue", "choosing a new supported color works after reload")
+        check(model.preferences.colorOverrides[currentLink.id] == "blue", "the replacement is stored as an override")
         check(model.preferences.colorOverrides["fictional-removed"] == "fictional-old-color", "unrelated historic color is retained")
         check(failures.isEmpty, "all preference and search lifecycle assertions")
         if !failures.isEmpty { exit(1) }
