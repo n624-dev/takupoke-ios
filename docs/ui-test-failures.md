@@ -5939,3 +5939,9 @@ Linux Swift 6.1.2で、actor境界だけを直した直後の製品の `activate
 `b927d41` の通知モデル全体と実際の比較状態保存をLinux Swift 6.1.2で動かした。架空の試験・返却PDFの両更新を確認したとき、先の試験の追加だけをOS境界で拒否すると呼出しは試験1件で、試験・返却が送信待ちに残った。別条件では試験の追加応答を保留して時間割変更だけをオフにし、試験の書込を返してからも返却のOS追加に進まなかった。OS応答だけを制御し、実資料・Appleの通知設定は使っていない。#161はカウントダウン予約の追加と再試行で、今回は更新通知の種類間の処理で発生した。
 
 `testChangedDataProducesOneLocalNotification|実配信|requestAuthorization` で限定43767607953の許可応答停止、正式44259503653の26 Aの実セル取消し、先の#155で実許可応答を確認した経路を照合した。今回の回帰は許可済みで比較状態を保存してからの処理。オンの種類を処理し続け、拒否された種類だけを既存の送信待ちへ残す。既存のiOS試験では実許可操作、実ファイル更新、通知センターの新しい実通知と同一更新の重複防止を維持する。
+
+### #170 Linuxの開発ツールジョブが全Python検査の途中で中断
+
+`edeb3ae` の[45069283561試行1／137352393571](https://github.com/n624-dev/takupoke-ios/actions/runs/45069283561/job/137352393571)、Ubuntu 24.04。Python全検査開始は20:57:04Z。架空のiOS26ランタイム検査 `test_ios26_export_lives_until_explicit_job_cleanup_including_preparation_failures` は直前ケース終了から126秒後の21:02:05Zに成功。21:02:10Zに実行が取り消され、Python集計・後続の文法と空白検査は未到達。ジョブに5分の上限が設定されていた。Ubuntu Swiftは694件、macOSの両Xcodeは各808件・既定skip1・失敗0で成功した。
+
+`test_ios26_export_lives_until|5分|TimeoutExpired` でL20261113-runtime-mockおよび0bbb0249のLinux全検査を比較した。今回の停止は個別の模擬条件が期限に達した過去例と異なり、対象テストが成功した後のジョブ全体の上限。0bbb0249の全検査は355.989秒だった。開発・配布のUbuntuジョブが同じ全検査を実行するため外側の予算を両方10分にする。模擬の個別期限、検査項目と期待値、Appleの実UI・公開の合格条件は維持する。[#170](https://github.com/n624-dev/takupoke-ios/issues/170)
