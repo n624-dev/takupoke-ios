@@ -6,6 +6,7 @@ import UserNotifications
 @MainActor
 final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     static let updateIdentifiers = ["takupoke.changes", "takupoke.exam", "takupoke.examReturn"]
+    private static let notificationStopPending = "処理中だった通知の取り消しを確認中です。"
     struct CountdownDestination: Identifiable {
         let target: CountdownNoticeTarget
         var id: CountdownNoticeTarget { target }
@@ -21,6 +22,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     private var baseline: ScheduleNotificationSnapshot?
     private var loaded = false
     private var reconcileTask: NotificationWork?
+    private var disabledNotificationsAwaitingWrite = Set<String>()
     private var pending: Input?
     private var generation = UUID()
     private var latestRevision = UUID()
@@ -89,18 +91,46 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             lastAppliedPermissionSequence = permissionReadSequence
             permissionMessage = nil
         }
-        if !value {
-            let ids = changes ? ["takupoke.changes"] : ["takupoke.exam", "takupoke.examReturn"]
-            reconcileTask?.cancel()
-            await reconcileTask?.value
-            if var value = baseline {
-                for id in ids { value.pending.removeValue(forKey: String(id.dropFirst("takupoke.".count))) }
-                do { try save(value, to: storageFile()) }
-                catch { message = "通知の更新確認を保存できませんでした。" }
-            }
-            center.removePendingNotificationRequests(withIdentifiers: ids)
-            center.removeDeliveredNotifications(withIdentifiers: ids)
+        if !value { await disableNotifications(changes:changes) }
+    }
+
+    private func disableNotifications(changes: Bool) async {
+        let ids = changes ? ["takupoke.changes"] : ["takupoke.exam", "takupoke.examReturn"]
+        guard let worker = reconcileTask else { clearDisabledNotifications(ids); return }
+        // Remove notices already in the center even when the in-flight add
+        // cannot finish. Remove again once that write has actually stopped.
+        disabledNotificationsAwaitingWrite.formUnion(ids)
+        worker.cancel()
+        removeUpdateNotifications(ids)
+        let finished = await worker.waitForCompletion()
+        if !finished, !Task.isCancelled, !(changes ? changesEnabled : specialsEnabled),
+           ids.contains(where: disabledNotificationsAwaitingWrite.contains) {
+            message = Self.notificationStopPending
         }
+    }
+
+    private func finishDeferredNotificationRemovals() {
+        let ids = Self.updateIdentifiers.filter { id in
+            disabledNotificationsAwaitingWrite.contains(id) &&
+                (id == "takupoke.changes" ? !changesEnabled : !specialsEnabled)
+        }
+        disabledNotificationsAwaitingWrite.removeAll()
+        if message == Self.notificationStopPending { message = nil }
+        if !ids.isEmpty { clearDisabledNotifications(ids) }
+    }
+
+    private func clearDisabledNotifications(_ ids: [String]) {
+        if var value = baseline {
+            for id in ids { value.pending.removeValue(forKey: String(id.dropFirst("takupoke.".count))) }
+            do { try save(value, to: storageFile()) }
+            catch { message = "通知の更新確認を保存できませんでした。" }
+        }
+        removeUpdateNotifications(ids)
+    }
+
+    private func removeUpdateNotifications(_ ids: [String]) {
+        center.removePendingNotificationRequests(withIdentifiers: ids)
+        center.removeDeliveredNotifications(withIdentifiers: ids)
     }
 
     // Start the permission UI on this object's MainActor, then transport the
@@ -256,7 +286,10 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         if let current = reconcileTask { task = current }
         else {
             task = NotificationWork {
-                defer { self.reconcileTask = nil }
+                defer {
+                    self.reconcileTask = nil
+                    self.finishDeferredNotificationRemovals()
+                }
                 while let input = self.pending, !Task.isCancelled {
                     self.pending = nil
                     await self.apply(input)

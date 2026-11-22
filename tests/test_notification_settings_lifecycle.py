@@ -15,6 +15,107 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class NotificationSettingsLifecycleTests(unittest.TestCase):
+    def test_disabling_update_notices_removes_owned_ids_now_and_after_a_late_write(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the actual update notice settings and worker")
+        source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
+        methods = "\n".join(block(source, name) for name in (
+            "func setEnabled(", "func disableNotifications(", "func finishDeferredNotificationRemovals(",
+            "func clearDisabledNotifications(", "func removeUpdateNotifications(", "func drainPending()"))
+        declarations = "\n".join(line for line in source.splitlines()
+            if "static let updateIdentifiers" in line or "static let notificationStopPending" in line)
+        program = r'''import Foundation
+@MainActor final class UserDefaults {
+    static let standard = UserDefaults()
+    var values = [String:Bool]()
+    func set(_ value: Bool, forKey key: String) { values[key] = value }
+}
+struct Snapshot { var pending = ["changes":1,"exam":2,"examReturn":3] }
+@MainActor final class Center {
+    let initial = ["takupoke.changes","takupoke.exam","takupoke.examReturn","fictional.unrelated"]
+    lazy var pending = initial
+    lazy var delivered = initial
+    var waiting: CheckedContinuation<Void,Never>?
+    var removals = [[String]]()
+    func add(_ id: String) async {
+        await withCheckedContinuation { waiting = $0 }
+        pending.append(id); delivered.append(id)
+    }
+    func complete() { let callback = waiting; waiting = nil; callback?.resume() }
+    func removePendingNotificationRequests(withIdentifiers ids: [String]) {
+        pending.removeAll { ids.contains($0) }
+        removals.append(ids)
+    }
+    func removeDeliveredNotifications(withIdentifiers ids: [String]) { delivered.removeAll { ids.contains($0) } }
+}
+@MainActor final class Schedule {
+DECLARATIONS
+    let center = Center()
+    var changesEnabled = true, specialsEnabled = true, requestingPermission = false
+    var message: String?, permissionMessage: String?
+    var lastAppliedPermissionSequence = 0, permissionReadSequence = 0
+    var baseline: Snapshot? = Snapshot(), pending: String?
+    var reconcileTask: NotificationWork?
+    var disabledNotificationsAwaitingWrite = Set<String>()
+    static func requestAuthorization(from center: Center) async throws -> Bool { true }
+    func storageFile() throws -> URL { URL(fileURLWithPath:"/fictional-discarded") }
+    func save(_ snapshot: Snapshot, to url: URL) throws { baseline = snapshot }
+    func apply(_ id: String) async { await center.add(id) }
+    func start(_ id: String) -> Task<Void,Never> {
+        Task { pending = id; await drainPending() }
+    }
+METHODS
+}
+@main struct Probe {
+    @MainActor static func observe(_ condition: () -> Bool) async {
+        let deadline = ContinuousClock.now.advanced(by:.seconds(3))
+        while !condition() { precondition(ContinuousClock.now < deadline); await Task.yield() }
+    }
+    @MainActor static func main() async {
+        let slow = Schedule(), reenabled = Schedule()
+        let writeChanges = slow.start("takupoke.changes"), writeExam = reenabled.start("takupoke.exam")
+        await observe { slow.center.waiting != nil && reenabled.center.waiting != nil }
+        let offChanges = Task { await slow.setEnabled(changes:true,value:false) }
+        let offExams = Task { await reenabled.setEnabled(changes:false,value:false) }
+        await observe {
+            UserDefaults.standard.values["notifyScheduleChanges"] == false &&
+            UserDefaults.standard.values["notifySpecialSchedules"] == false &&
+            !slow.center.pending.contains("takupoke.changes") && !reenabled.center.pending.contains("takupoke.exam")
+        }
+        let otherNotifications = ["takupoke.exam","takupoke.examReturn","fictional.unrelated"]
+        precondition(slow.center.pending == otherNotifications && slow.center.delivered == otherNotifications)
+        precondition(slow.reconcileTask?.task.isCancelled == true && slow.center.waiting != nil)
+        precondition(reenabled.center.pending == ["takupoke.changes","fictional.unrelated"])
+
+        await reenabled.setEnabled(changes:false,value:true)
+        reenabled.center.complete()
+        await writeExam.value; await offExams.value
+        precondition(reenabled.specialsEnabled && reenabled.center.pending.contains("takupoke.exam"))
+        precondition(reenabled.center.delivered.contains("takupoke.exam") && reenabled.center.removals.count == 1)
+        precondition(reenabled.baseline?.pending == Snapshot().pending)
+
+        await offChanges.value
+        precondition(!slow.changesEnabled && slow.specialsEnabled && slow.center.waiting != nil && slow.message != nil)
+        precondition(slow.baseline?.pending == Snapshot().pending)
+        slow.center.complete()
+        await writeChanges.value
+        precondition(slow.center.pending == otherNotifications && slow.center.delivered == otherNotifications)
+        precondition(slow.center.removals == [["takupoke.changes"],["takupoke.changes"]])
+        precondition(slow.baseline?.pending == ["exam":2,"examReturn":3] && slow.message == nil)
+        precondition(slow.reconcileTask == nil && slow.disabledNotificationsAwaitingWrite.isEmpty)
+
+        let idle = Schedule()
+        await idle.setEnabled(changes:false,value:false)
+        precondition(idle.center.pending == ["takupoke.changes","fictional.unrelated"] && idle.center.pending == idle.center.delivered)
+        precondition(idle.baseline?.pending == ["changes":1] && idle.message == nil)
+        print("Verified immediate owned removals, bounded stop, late write cleanup, and a newer explicit opt-in.")
+    }
+}
+'''.replace("DECLARATIONS", declarations).replace("METHODS", methods)
+        program += "\n@MainActor\n" + block(source, "final class NotificationWork {")
+        self.run_probe(compiler, program, swift_version="6")
+
     def test_countdown_retries_only_rejected_missing_reservations_while_plan_is_current(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
@@ -1015,6 +1116,7 @@ EXPIRE
         let callback = waiting; waiting = nil
         callback?.resume()
     }
+    private func finishDeferredNotificationRemovals() {}
 UPDATE_DRAIN
 }
 @MainActor final class Countdown {
