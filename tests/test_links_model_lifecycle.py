@@ -37,14 +37,29 @@ struct MappingService {
         let suite = "takupoke-links-lifecycle-" + UUID().uuidString
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
-        let bad = Data("{fictional-invalid-preferences".utf8)
-        defaults.set(bad, forKey: "linkPreferences.v1")
         let store = LinkPreferencesStore(defaults: defaults)
         let model = LinksModel(preferencesStore: store, storeRoot: URL(fileURLWithPath: CommandLine.arguments[1]), endpoint: URL(string: "https://links.example.invalid/links")!)
         var failures = [String]()
         func check(_ condition: Bool, _ name: String) {
             if !condition { failures.append(name); print("FAILED: " + name) }
         }
+        check(try store.load() == LinkPreferences(), "a missing settings key supplies defaults")
+        let wrongTypes: [NSObject] = ["fictional-old-preferences" as NSString,
+            ["favoriteIDs": ["fictional-kept"]] as NSDictionary]
+        for original in wrongTypes {
+            defaults.set(original, forKey: "linkPreferences.v1")
+            let reopened = LinksModel(preferencesStore: store, storeRoot: URL(fileURLWithPath: CommandLine.arguments[1]))
+            reopened.loadIfNeeded()
+            check(reopened.ready && !reopened.preferencesReady && reopened.preferencesError != nil,
+                  "an existing value with the wrong type surfaces the unreadable-settings warning")
+            reopened.toggleFavorite("fictional-new")
+            reopened.hide("fictional-new")
+            reopened.setColor("blue", for: "fictional-new")
+            check((defaults.object(forKey: "linkPreferences.v1") as? NSObject) == original,
+                  "link edits preserve the unreadable value")
+        }
+        let bad = Data("{fictional-invalid-preferences".utf8)
+        defaults.set(bad, forKey: "linkPreferences.v1")
         model.loadIfNeeded()
         check(model.ready && !model.preferencesReady && model.preferencesError != nil, "actual corrupt settings detected")
         check(defaults.data(forKey: "linkPreferences.v1") == bad, "corrupt original is preserved")

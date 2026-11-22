@@ -286,6 +286,13 @@ final class LinksTests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let store = LinkPreferencesStore(defaults: defaults)
+        XCTAssertEqual(try store.load(), LinkPreferences())
+        let storedKey = "linkPreferences.v1"
+        let unexpected = ["favoriteIDs": ["fictional-saved-favorite"]]
+        defaults.set(unexpected, forKey: storedKey)
+        XCTAssertThrowsError(try store.load())
+        XCTAssertEqual(defaults.dictionary(forKey: storedKey) as? [String: [String]], unexpected)
+        defaults.removeObject(forKey: storedKey)
         var value = LinkPreferences()
         value.favoriteIDs.insert("fictional-link")
         value.hiddenIDs.insert("temporarily-absent")

@@ -63,7 +63,8 @@ final class LinkPreferencesStore {
     init(defaults: UserDefaults = .standard) { self.defaults = defaults }
 
     func load() throws -> LinkPreferences {
-        guard let data = defaults.data(forKey: key) else { return LinkPreferences() }
+        guard let saved = defaults.object(forKey: key) else { return LinkPreferences() }
+        guard let data = saved as? Data else { throw LinksError.invalidResponse }
         return try JSONDecoder().decode(LinkPreferences.self, from: data)
     }
 
