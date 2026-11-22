@@ -5766,3 +5766,9 @@ ebe3694の[明示選択限定44616309920](https://github.com/n624-dev/takupoke-i
 [iOS26.5／SDK27.2通常B](https://github.com/n624-dev/takupoke-ios/actions/runs/44997934998/job/137181895048)、source `d37a2ae47a812aa5364345821be7182c4a8c4c97`。11月22日20時00分56秒JSTに `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable`（42.339秒）が `ApplicationChecks+WeekAppearance.swift:442` で停止。実タブ・接触・解放が成立。横到着0.281766秒から次の枠0.497948秒で216.183ms、既存90msを超過。到着と次枠のmain CPU差約211.3ms。スクロール復帰まで約0.70ms、最初の設定0.174ms、着地x16・旧高238.333pt、高さ終了0.685487秒、29実枠、幾何欠落0、実PNG724,014バイトを一回採取。復路・後続ケースは未到達。必須13件成功、公開は依存で未実行、全ジョブ終端。
 
 `0.09|horizontal-arrival|configuration-begin|fixture-week-motion` で試行2の166.470ms、試行3で往復を成功した83.225／66.222ms、旧正式525試行1と44800663590試行1を比較。同じ停止が繰り返され、通常の昇格処理だけでは差を説明できない。試行2・4とも実解放後から横到着付近に座標操作のXCTest側「Wait for … to idle」が並行し、明示的な `fixture-week-motion` の読み取りは高さ完了後だった。座標操作の同期が原因とは未確定。前後の実経路が同じで時計・準備・観測負荷のどこに差が出るかを切り分ける。
+
+### #125 正式527・試行1でiOS26手動原本変更の設定List照会が停止
+
+[iOS26.5／SDK27.2手動原本変更](https://github.com/n624-dev/takupoke-ios/actions/runs/45017628980/job/137194296982)、source `8b335c9524b45f758b13319f7fbd22e13caecf4a`。11月22日20時59分44秒（日本時間）。`testChangedOriginalCannotSubmitOrReplaceLastGood`（159.445秒）でアプリ起動・fixture-ready、設定タブの中心(320.333,793)の実開始と解放、設定のgearshapeの照会まで成功。11:57:53 UTCに `manual-settings-list` の現Listの実identity列挙に進み、約111秒後に `ManualAssistanceChecks+Navigation.swift:42` がXCTestのUI query timeoutで終了した。以後の設定行・初回訂正・原本変更・送信拒否・前回結果保存は未到達。同じrunのiOS27同ケースは成功。
+
+`manual-settings-list|Timed out while evaluating UI query|CollectionView|N213`でN213のList照会中のSimulator消失、正式43754726270および44486188488の手動原本変更の後半入力／送信照会停止、正式526試行1の同じiOS26原本変更の成功（137133998183）と照合した。今回は最初の設定画面で、実入力が始まる前。Simulator消失や配信取消の証拠はなく、AX応答が返らなかった下位理由は未確定。元のケースと画面、固有Listの照会・期限を維持する。残る正式ジョブを終端まで確認した後、失敗したジョブだけを対象にする。
