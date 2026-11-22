@@ -197,8 +197,8 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 | R427 | P16 | `guard analysis.validScopes else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L90) |
 | R434 | P04 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L101) |
 | R387 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L134) |
-| R386 | P17 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L165) |
-| R385 | P08 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L171) |
+| R386 | P17 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L172) |
+| R385 | P08 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L178) |
 
 ### 239.1のStrictと返却のクラス表上端・学年の所属範囲
 

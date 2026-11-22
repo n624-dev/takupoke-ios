@@ -17,7 +17,11 @@ enum RecoveryValidator {
         if kind == .timetable { let label = ["1": "月", "2": "火", "3": "水", "4": "木", "5": "金"][day] ?? "?"; return [label, label + "曜", label + "曜日"] }
         let parts = day.split(separator: "-").compactMap { Int($0) }
         guard parts.count == 3 else { return [] }
-        return [day, "\(parts[0])/\(parts[1])/\(parts[2])", "\(parts[1])/\(parts[2])", "\(parts[1])月\(parts[2])日"]
+        let label = "\(parts[1])月\(parts[2])日"
+        let original = [day, "\(parts[0])/\(parts[1])/\(parts[2])", "\(parts[1])/\(parts[2])", label]
+        guard kind == .exam, let date = SchoolDate(iso8601:day) else { return original }
+        let weekday = PDF239SpecialScheduleParser.examWeekday(for:date)
+        return original + [weekday,weekday+"曜",weekday+"曜日"].flatMap { [label+$0,label+"("+$0+")"] }
     }
     private static func classLabels(_ cls: String) -> [String] {
         [cls, cls.replacingOccurrences(of: "_", with: "-"), cls.replacingOccurrences(of: "_", with: ""), cls.hasPrefix("AI_") ? cls.replacingOccurrences(of: "AI_", with: "") + "年" : cls]

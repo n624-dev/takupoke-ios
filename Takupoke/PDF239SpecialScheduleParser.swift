@@ -137,15 +137,22 @@ enum PDF239SpecialScheduleParser {
     }
 
     static func date(_ text: String, schoolYear: Int, slash: Bool) -> SchoolDate? {
-        let weekday = #"[月火水木金土日](?:曜日?)?"#
+        let weekday = #"([月火水木金土日])(?:曜日?)?"#
         let pattern = slash ? "^([0-9]{1,2})/([0-9]{1,2})$"
             : #"^([0-9]{1,2})月([0-9]{1,2})日(?:\("# + weekday + #"\)|"# + weekday + #")?\z"#
         guard let regex = try? NSRegularExpression(pattern: pattern),
               let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
               let monthRange = Range(match.range(at: 1), in: text),
               let dayRange = Range(match.range(at: 2), in: text),
-              let month = Int(text[monthRange]), let day = Int(text[dayRange]) else { return nil }
-        return SchoolDate(year: month >= 4 ? schoolYear : schoolYear + 1, month: month, day: day)
+              let month = Int(text[monthRange]), let day = Int(text[dayRange]),
+              let date = SchoolDate(year: month >= 4 ? schoolYear : schoolYear + 1, month: month, day: day) else { return nil }
+        if !slash, let printed = Range(match.range(at: 3),in:text) ?? Range(match.range(at: 4),in:text),
+           text[printed] != examWeekday(for:date) { return nil }
+        return date
+    }
+
+    static func examWeekday(for date: SchoolDate) -> String {
+        ["月","火","水","木","金","土","日"][date.schoolWeekday-1]
     }
 
     static func lessons(in page: PDFPageLayout, box: PDFBox, date: SchoolDate,

@@ -180,12 +180,18 @@ enum RecoveryDocumentBuilder {
                     doc.classEvidence[cls, default: []].append(id)
                 }
                 let dates = headings(page.glyphs.filter { $0.cy > headerY && $0.cx < periodRow[0].cx }).compactMap { h -> (Heading, SchoolDate)? in
-                    SpecialScheduleParser.date(PDFSchoolParser.key(h.text), schoolYear: doc.schoolYear, slash: false).map { (h,$0) }
+                    PDF239SpecialScheduleParser.date(PDFSchoolParser.key(h.text), schoolYear: doc.schoolYear, slash: false).map { (h,$0) }
                 }
                 guard !dates.isEmpty, dates.count <= 31, Set(dates.map { $0.1 }).count == dates.count else { throw PDFParseError(code: .unsupported, stage: .calendarDates) }
                 for (h,date) in dates {
-                    let id = try add(h.glyphs), r = try grid.box(h.box.x+h.box.width/2,h.box.y+h.box.height/2,check:check)
-                    vertical.append(AxisItem(value: date.iso8601, ids: [id], region: region(h.box, axis: .left), position: h.box.y+h.box.height/2, row: r))
+                    let r = try grid.box(h.box.x+h.box.width/2,h.box.y+h.box.height/2,check:check)
+                    let glyphs = try PDFGrid.contentRows(grid.glyphs(in:r,check:check)).flatMap { $0 }
+                    let label = PDFSchoolParser.key(glyphs.map(\.text).joined())
+                    guard PDF239SpecialScheduleParser.date(label,schoolYear:doc.schoolYear,slash:false) == date else {
+                        throw PDFParseError(code:.ambiguous,stage:.calendarDates)
+                    }
+                    let id = try add(glyphs), labelBox = try box(glyphs)
+                    vertical.append(AxisItem(value: date.iso8601, ids: [id], region: region(labelBox, axis: .left), position: h.box.y+h.box.height/2, row: r))
                     doc.dayEvidence[date.iso8601, default: []].append(id)
                 }
                 guard PDF239SpecialScheduleParser.examRowsReachBoundaries(page,periods:periodRow,

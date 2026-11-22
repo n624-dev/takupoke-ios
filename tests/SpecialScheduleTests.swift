@@ -44,6 +44,42 @@ final class SpecialScheduleTests: XCTestCase {
             analysisDigest:"fictional",analysisVersion:36,attemptDigest:nil,failure:nil,attemptVersion:nil))
     }
 
+    func testPrintedExamWeekdayMustAgreeInStrictCertifiedAndRecovery() async throws {
+        let hash = String(repeating:"a",count:64)
+        for (label,day) in [("4月1日", "2026-04-01"), ("4月1日(水)", "2026-04-01"),
+                            ("4月1日水曜日", "2026-04-01"), ("1月5日（火曜）", "2027-01-05")] {
+            let page = flexibleExamPage(["3-IT"],days:[1],dateLabels:[label])
+            let strict = try SpecialScheduleParser.parse([page],kind:.exam,digest:hash,name:"fictional.pdf")
+            let certified = try SpecialScheduleParser.parseCertified([page],kind:.exam,digest:hash,name:"fictional.pdf")
+            let document = try RecoveryDocumentBuilder.build([page],kind:.exam,hash:hash)
+            let run = try await RecoveryEngine.run(document,os:"test",osMajor:26,foreground:true,providers:[],rule:{_ in nil},check:{})
+            let result = try XCTUnwrap(run.result)
+            XCTAssertEqual(strict.coveredDates,[day],label)
+            XCTAssertEqual(certified.coveredDates,[day],label)
+            XCTAssertEqual(document.days,[day],label)
+            XCTAssertTrue(RecoveryValidator.validate(document,result).canAdopt,label)
+        }
+        var separated = flexibleExamPage(["3-IT"],days:[1])
+        for (index, character) in "（火）".enumerated() {
+            separated.glyphs.append(PDFGlyph(text:String(character),x:55+Double(index)*3,y:182,width:3,height:4,
+                sourceLine:9000,sourceOrder:10000+index))
+        }
+        let contradictions = ["4月1日(火)", "4月1日火曜日", "1月5日（水曜）"].map {
+            flexibleExamPage(["3-IT"],days:[1],dateLabels:[$0])
+        } + [separated]
+        for page in contradictions {
+            XCTAssertThrowsError(try SpecialScheduleParser.parse([page],kind:.exam,digest:hash,name:"fictional.pdf")) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage,.calendarDates)
+            }
+            XCTAssertThrowsError(try SpecialScheduleParser.parseCertified([page],kind:.exam,digest:hash,name:"fictional.pdf")) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage,.calendarDates)
+            }
+            XCTAssertThrowsError(try RecoveryDocumentBuilder.build([page],kind:.exam,hash:hash)) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage,.calendarDates)
+            }
+        }
+    }
+
     func testSegmentedCellTopBordersDefineTheCompleteExamBody() throws {
         var page=flexibleExamPage(["2-CN"],days:[1,2])
         page.lines=page.lines.flatMap { rule -> [PDFRule] in

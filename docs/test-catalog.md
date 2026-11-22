@@ -34,7 +34,7 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 | [学校行事API・年度別保存](test-catalog/events.md) | 47 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [カウントダウン・日付・通知・保存](test-catalog/countdown.md) | 42 | Linux Swift／iOS 26.5・27.0シミュレータ |
 | [時間割・今日の予定・授業時刻・授業名](test-catalog/timetable.md) | 104 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
-| [試験・返却PDF](test-catalog/special.md) | 67 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
+| [試験・返却PDF](test-catalog/special.md) | 68 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [Strict PDF・文字・位置・罫線](test-catalog/pdf.md) | 121 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [PDF復旧・OCR・構造・Validator・端末内Provider](test-catalog/recovery.md) | 225 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [確認訂正・画像比較・入力変更・実操作](test-catalog/manual.md) | 124 | Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認 |
