@@ -5803,3 +5803,8 @@ ebe3694の[明示選択限定44616309920](https://github.com/n624-dev/takupoke-i
 
 - `369012d` 基点のLinux Swift 6.1.2全体検査は688件中5失敗（110.060秒、実機・Xcodeなし）。`RecoveryTests` の `SpecialScopeVersion`、`RowOrderAndWholeClockVersion`、`UnusedFontReaderVersion`、`ParallelAlignmentVersion`、`OCRCoverageVersion` の各ケースで、試験・返却解析器の版37を旧固定値36と比較する箇所だけが失敗した。同一原本の再解析・成功後の停止条件自体に失敗は出ていない。
 - 79件の限定検査には `RecoveryTests` を含めなかった。日付の版更新が過去の再解析テストでも参照されるため、版を上げる候補は過去の固定値参照を先に横断検索し、Apple実行前にLinux全体を通す。
+
+### #147 旧採用証明を作る対照のOCR行番号（2026-11-23）
+
+- `369012d` の直前のBuilderとラスター判定を使う架空対照をLinux Swift 6.1.2で実行した。1件が `invalidInventory` で停止した。閉図形を誤って空欄とするBuilderまでは進み、旧確認結果を生成する手前のOCR取得記録で止まった。
+- 取得記録の行番号は0から連続する必要がある。架空の画像に合わせて3行分の認識結果を除いた後、番号を詰めていないことを確認した。既存の取得証明の検査は維持し、架空入力だけを実取得と同じ連続番号に直す。
