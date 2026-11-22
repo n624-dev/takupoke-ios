@@ -827,6 +827,25 @@ extension PDFTextGeometryTests {
             }
         }
     }
+
+    func testNativeTextWithoutVectorRulesRemainsAvailableForOCRRecovery() throws {
+        let text = "0 g BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET"
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".pdf")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try syntheticPDF(content: text, simpleFont: true).write(to: url)
+        for special in [false, true] {
+            let capture = RecoveryReadCapture()
+            XCTAssertThrowsError(try special ? PDFKitReader.readCertifiedSpecial(url, capture: capture)
+                : PDFKitReader.readCertified(url, kind: .timetable, capture: capture)) { error in
+                XCTAssertEqual((error as? PDFParseError)?.stage, .gridCell)
+            }
+            XCTAssertFalse(capture.complete)
+            let page = try XCTUnwrap(capture.pages.first)
+            XCTAssertEqual(page.state, .partial)
+            XCTAssertEqual(page.layout?.glyphs.map(\.text).joined(), "AB")
+            XCTAssertTrue(try XCTUnwrap(page.layout).lines.isEmpty)
+        }
+    }
     func testNativeOffCanvasSelectableTextCannotBecomeCompleteInput() throws {
         let content = "0 g BT /F1 10 Tf 1 0 0 1 30 350 Tm (AB) Tj ET 10 10 m 290 10 l S"
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("takupoke-offcanvas-"+UUID().uuidString)

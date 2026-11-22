@@ -445,16 +445,24 @@ final class PDFRecoveryCoordinator: ObservableObject {
     }
     func adopt() {
         guard LocalAIFeaturePolicy.enabled, !running, let preview else { return }
-        running = true; status = "確認済みの結果を保存しています⋯"
+        running = true; failure = nil; status = "確認済みの結果を保存しています⋯"
         let operation = self.operation
         task = Task { @MainActor in
             do {
                 try check(operation)
                 let success = preview.document.kind == .timetable ? await ApplicationData.shared.materials.adoptRecovery(preview) : await ApplicationData.shared.specialSchedules.adoptRecovery(preview)
                 try check(operation); running = false
+                if !success, selectedSourceIsCurrent {
+                    failure = "復旧結果を保存できませんでした。確認済みの内容を保持しています。もう一度採用できます。"
+                    return
+                }
                 previewRasters = [:]; manualInitialValues = [:]
-                if success { self.preview = nil; pendingDocument = nil; pendingPages = nil; source = nil; status = "復旧結果を採用しました。" }
-                else { self.preview = nil; source = nil; failure = "資料の選択や保存状態が変わったため採用できませんでした。元のPDFから再試行してください。" }
+                self.preview = nil; source = nil
+                if success {
+                    pendingDocument = nil; pendingPages = nil; status = "復旧結果を採用しました。"
+                } else {
+                    failure = "資料の選択や保存状態が変わったため採用できませんでした。元のPDFから再試行してください。"
+                }
             } catch { guard self.operation == operation else { return }; running = false; failure = "採用を中止しました。" }
         }
     }

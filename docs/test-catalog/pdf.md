@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`62b6a9199f67f090e7a0bbb131ff2715d950be8e2cb9afb46005ecc5970c3508`
+`0d71c0870e3cd4b39e12cd036226185da086ebcecdb63c973513be7adc536a63`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -150,6 +150,7 @@ python3 -B tools/pdf_branch_catalog.py check
 - `testNativeCompoundFillCannotTurnCancelledSubpathsIntoTableRules`
 - `testNativeWhiteTextAndOpaqueRepaintUseRasterInsteadOfSelectableText`
 - `testNativeCroppedOutBodyCannotBecomeCompleteInput`
+- `testNativeTextWithoutVectorRulesRemainsAvailableForOCRRecovery`
 - `testNativeOffCanvasSelectableTextCannotBecomeCompleteInput`
 - `testNativeRejectionBranchIsFixedAndPositiveControlStillReads`
 - `testNativeThinStrokeCannotCrossAcquiredGlyphs`

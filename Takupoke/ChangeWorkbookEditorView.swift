@@ -278,6 +278,7 @@ struct ChangeWorkbookEditorView: View {
                 Section("同じ内容の行の確認") {
                     ForEach(view.previous.indices.filter { view.previous[$0].original == view.table.original(at: row) }, id: \.self) { index in
                         let entry = view.previous[index]
+                        let canUsePrior = view.table.priorEdit(entry, on: row, defaultYear: preview.defaultYear ?? 0) != nil
                         VStack(alignment: .leading, spacing: 4) {
                             if entry.edit.excluded { Text("除外") }
                             if entry.edit.deriveWeekday { Text("曜日を日付から補完") }
@@ -286,8 +287,13 @@ struct ChangeWorkbookEditorView: View {
                                 LabeledContent(title, value: entry.displayValue(column: column, edited: true))
                             }
                             Button("以前の\(entry.row)行目の修正を使う") {
-                                edits[row] = entry.edit
+                                guard let edit = view.table.priorEdit(entry, on: row, defaultYear: preview.defaultYear ?? 0) else { return }
+                                edits[row] = edit
                                 view.conflicts.remove(row)
+                            }
+                            .disabled(!canUsePrior)
+                            if !canUsePrior {
+                                InlineWarning("以前の修正を適用する列を確認できません。現在の項目に修正値を入力してください。")
                             }
                         }
                     }

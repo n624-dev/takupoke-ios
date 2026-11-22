@@ -7,7 +7,7 @@ struct SpecialScheduleRecord: Codable {
     let byteCount: Int
     let digest: String
     let acquiredAt: Date
-    let analysis: SpecialScheduleAnalysis
+    var analysis: SpecialScheduleAnalysis
 }
 
 struct SpecialScheduleSource: Codable {

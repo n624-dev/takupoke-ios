@@ -128,6 +128,21 @@ final class SpecialScheduleStore {
         for kind in Array(records.keys) { try recertifyAccepted(kind:kind) }
     }
 
+    func displayableRecords() -> (records: [SpecialScheduleKind: SpecialScheduleRecord], rejected: Set<SpecialScheduleKind>) {
+        var visible = records
+        var rejected = Set<SpecialScheduleKind>()
+        for (kind, var record) in records where record.analysis.recovery != nil {
+            if let proved = try? RecoveryConversion.recertifiedSpecial(record.analysis,hash:record.digest) {
+                record.analysis = proved
+                visible[kind] = record
+            } else {
+                visible.removeValue(forKey:kind)
+                rejected.insert(kind)
+            }
+        }
+        return (visible, rejected)
+    }
+
     /// Revalidate only already accepted results; never confirm an old preview.
     @discardableResult
     func recertifyAccepted(kind: SpecialScheduleKind) throws -> Bool {

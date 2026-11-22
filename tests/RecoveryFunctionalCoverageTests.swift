@@ -1,4 +1,5 @@
 import Foundation
+import GRDB
 import XCTest
 @testable import TakupokeParsing
 
@@ -73,6 +74,98 @@ extension PDFParsingTests {
 }
 
 extension SpecialScheduleTests {
+    func testSpecialRecoveryAdoptsSameBytesAfterProviderRename() async throws {
+        for kind: SpecialScheduleKind in [.exam, .examReturn] {
+            let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer { try? FileManager.default.removeItem(at:root) }
+            let store = try SpecialScheduleStore(root:root)
+            let bytes = Data("%PDF-fictional".utf8)
+            let digest = "e604a9e2526224c5bddcfba54526a87aa865443e5967c35f05675c532f332060"
+            let staged = store.newStagingURL()
+            try bytes.write(to:staged)
+            try store.saveSelection(staged:staged,kind:kind,originalName:"fictional-A.pdf",byteCount:bytes.count,digest:digest)
+            try store.recordFailure(PDFParseError(code:.ambiguous),kind:kind)
+            let pages = kind == .exam ? (1...6).map { examPage($0) } : [returnPageWithSplitCell()]
+            let document = try RecoveryDocumentBuilder.build(pages,kind:kind == .exam ? .exam : .return,hash:digest)
+            let run = try await RecoveryEngine.run(document,os:"ios",osMajor:26,foreground:true,providers:[],rule:{_ in nil},check:{})
+            var preview = try functionalPreview(document,XCTUnwrap(run.result))
+            let original = try XCTUnwrap(store.sources[kind])
+            preview.source.originalName = original.originalName
+            preview.source.storedName = original.storedName
+            preview.source.url = try XCTUnwrap(store.selectedURL(for:kind))
+
+            try store.recordSuccessfulCheck(kind,digest:digest,originalName:"fictional-B.pdf")
+            let reopened = try SpecialScheduleStore(root:root)
+            let selected = try XCTUnwrap(reopened.sources[kind])
+            XCTAssertEqual(selected.recoveryJob,original.recoveryJob)
+            XCTAssertThrowsError(try reopened.saveAnalysis(RecoveryConversion.special(preview)))
+            try RecoveryConversion.verifyFile(preview.source,currentPeriod:{ preview.source.period },check:{})
+            let adopted = try RecoveryConversion.special(preview,selected:selected)
+            try reopened.saveAnalysis(adopted)
+            XCTAssertEqual(reopened.records[kind]?.analysis.sourceName,"fictional-B.pdf")
+            XCTAssertEqual(reopened.records[kind]?.analysis.recovery?.result,preview.result)
+
+            let nextYear = try XCTUnwrap(SchoolDate(year:preview.source.period.schoolYear + 1,month:4,day:1))
+            XCTAssertThrowsError(try RecoveryConversion.verifyFile(preview.source,
+                currentPeriod:{ SchoolDataPeriod(day:nextYear) },check:{}))
+            try Data("%PDF-fictional-changed".utf8).write(to:preview.source.url)
+            XCTAssertThrowsError(try RecoveryConversion.verifyFile(preview.source,currentPeriod:{ preview.source.period },check:{}))
+            let otherStaged = reopened.newStagingURL()
+            try bytes.write(to:otherStaged)
+            try reopened.saveSelection(staged:otherStaged,kind:kind,originalName:"fictional-B.pdf",byteCount:bytes.count,digest:digest)
+            XCTAssertThrowsError(try RecoveryConversion.special(preview,selected:XCTUnwrap(reopened.sources[kind])))
+        }
+    }
+
+    func testRetainedSpecialRecoveryProjectsCurrentVersionWhileAnotherSourceFails() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let store = try SpecialScheduleStore(root:root)
+        let pages = (1...6).map { examPage($0) }
+        let digest = String(repeating:"a",count:64)
+        let document = try RecoveryDocumentBuilder.build(pages,kind:.exam,hash:digest)
+        let run = try await RecoveryEngine.run(document,os:"ios",osMajor:26,foreground:true,providers:[],rule:{_ in nil},check:{})
+        let accepted = try RecoveryConversion.special(functionalPreview(document,XCTUnwrap(run.result)))
+        let a = store.newStagingURL(), bytesA = Data("%PDF-fictional-A".utf8)
+        try bytesA.write(to:a)
+        try store.save(staged:a,analysis:accepted,originalName:accepted.sourceName,byteCount:bytesA.count,digest:digest)
+        var old = try XCTUnwrap(store.records[.exam])
+        old.analysis.version = 35
+        let database = try DatabaseQueue(path:root.appendingPathComponent("specials.sqlite").path)
+        func persist(_ record: SpecialScheduleRecord) throws {
+            try database.write { try $0.execute(sql:"UPDATE specialSchedule SET payload = ? WHERE kind = 'exam'",
+                arguments:[JSONEncoder().encode(record)]) }
+        }
+        try persist(old)
+        let sameSource = try SpecialScheduleStore(root:root)
+        XCTAssertEqual(sameSource.records[.exam]?.analysis.version,SpecialScheduleAnalysis.parserVersion)
+
+        let b = store.newStagingURL(), bytesB = Data("%PDF-fictional-B".utf8)
+        let digestB = String(repeating:"b",count:64), nameB = "fictional-B.pdf"
+        try bytesB.write(to:b)
+        try store.saveSelection(staged:b,kind:.exam,originalName:nameB,byteCount:bytesB.count,digest:digestB)
+        try store.recordFailure(PDFParseError(code:.ambiguous),kind:.exam)
+        try persist(old)
+        let reopened = try SpecialScheduleStore(root:root)
+        let visible = reopened.displayableRecords()
+        XCTAssertEqual(reopened.records[.exam]?.analysis.version,35)
+        XCTAssertEqual(visible.records[.exam]?.analysis,accepted)
+        XCTAssertEqual(visible.records[.exam]?.digest,digest)
+        XCTAssertTrue(visible.rejected.isEmpty)
+        XCTAssertEqual(reopened.sources[.exam]?.digest,digestB)
+        XCTAssertEqual(reopened.sources[.exam]?.failure?.code,.ambiguous)
+
+        old.analysis.recovery?.acceptance.resultHash = String(repeating:"f",count:64)
+        try persist(old)
+        let invalid = try SpecialScheduleStore(root:root)
+        XCTAssertNil(invalid.displayableRecords().records[.exam])
+        XCTAssertEqual(invalid.displayableRecords().rejected,[.exam])
+        let current = try SpecialScheduleParser.parse(pages,kind:.exam,digest:digestB,name:nameB)
+        try invalid.saveAnalysis(current)
+        XCTAssertEqual(invalid.displayableRecords().records[.exam]?.analysis,current)
+        XCTAssertNil(invalid.sources[.exam]?.failure)
+    }
+
     func testFunctionalExamMergedClockAndBlankRolesReachFormalConversion() async throws {
         let pages = (1...6).map { functionalLayout(examPage($0,mergedFirstTwo:$0 == 1)) }
         let doc = try RecoveryDocumentBuilder.build(pages,kind:.exam,hash:String(repeating:"c",count:64))

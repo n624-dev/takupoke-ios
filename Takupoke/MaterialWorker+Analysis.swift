@@ -133,6 +133,11 @@ extension MaterialWorker {
 
     func pdfURL(for kind: MaterialKind) -> URL? { library?.localURL(for: kind) }
 
+    func saveRecoveredTimetable(_ analysis: PDFAnalysis, in library: MaterialLibrary) throws {
+        try library.savePDFAnalysis(analysis)
+        timetableFailure = nil
+    }
+
     func previewChanges(defaultYear: Int? = nil, control: AcquisitionControl) throws {
         guard let library = library else { throw ChangeParseError(code: .storage) }
         try library.stabilizeLegacyChangeSelection()

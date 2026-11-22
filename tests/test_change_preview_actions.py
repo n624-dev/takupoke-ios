@@ -12,6 +12,45 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ChangePreviewActionTests(unittest.TestCase):
+    def test_recovered_timetable_clears_previous_error_only_after_commit(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the recovered timetable commit")
+        source = (ROOT / "Takupoke/MaterialWorker+Analysis.swift").read_text(encoding="utf-8")
+        program = '''import Foundation
+struct PDFAnalysis { let digest: String }
+final class MaterialLibrary {
+    enum Failure: Error { case disk }
+    var saved = "previous", fails = true
+    func savePDFAnalysis(_ analysis: PDFAnalysis) throws {
+        if fails { throw Failure.disk }
+        saved = analysis.digest
+    }
+}
+final class MaterialWorker {
+    var timetableFailure: String? = "fictional-strict-error"
+METHOD
+}
+let library = MaterialLibrary(), worker = MaterialWorker()
+let recovered = PDFAnalysis(digest: "fictional-recovery")
+do {
+    try worker.saveRecoveredTimetable(recovered, in: library)
+    preconditionFailure("Failed commit returned success")
+} catch MaterialLibrary.Failure.disk {
+    precondition(library.saved == "previous" && worker.timetableFailure == "fictional-strict-error")
+}
+library.fails = false
+try worker.saveRecoveredTimetable(recovered, in: library)
+precondition(library.saved == recovered.digest && worker.timetableFailure == nil)
+'''.replace("METHOD", block(source, "    func saveRecoveredTimetable("))
+        with tempfile.TemporaryDirectory(prefix="recovered-timetable-commit-") as scratch:
+            directory = Path(scratch)
+            swift = directory / "main.swift"
+            swift.write_text(program, encoding="utf-8")
+            subprocess.run([compiler, "-swift-version", "5", "-module-cache-path", str(directory / "modules"),
+                            str(swift), "-o", str(directory / "probe")], check=True, timeout=60)
+            subprocess.run([str(directory / "probe")], check=True, timeout=15)
+
     def test_actual_dispatch_retains_review_after_failure_and_closes_only_after_success(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:

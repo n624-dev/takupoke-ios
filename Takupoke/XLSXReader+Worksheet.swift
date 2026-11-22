@@ -11,10 +11,15 @@ extension XLSXReader {
         let content = try readCells(sheet, strings: strings, editing: false, formats: formats, check: check)
         var rows = content.rows
         let formulas = content.formulas
-        // Locate literal required headers without accepting a formula's cached
-        // text as a header. All metadata before that row stays outside the table.
+        // Locate literal required headers without accepting cached formula text
+        // from either the anchor or a dependent cell.
         var headerRows = rows
         for formula in formulas { headerRows[formula.row - 1][formula.column] = "" }
+        for (number, issues) in content.issues {
+            for (column, issue) in issues where issue == .formula && headerRows[number - 1].indices.contains(column) {
+                headerRows[number - 1][column] = ""
+            }
+        }
         let header = try ChangeNormalizer.headerIndex(headerRows) + 1
         let headers = rows[header - 1].map(ChangeNormalizer.token)
         let dateColumn = headers.firstIndex(of: "月日")!
@@ -24,6 +29,9 @@ extension XLSXReader {
                                        dateCells: content.dateCells, formattedDates: content.formattedDates)
         for (number, issues) in content.issues {
             for (column, issue) in issues where number <= header || column != updated {
+                // Metadata outside the table may contain formulas. Only their
+                // dependencies that reach the header or data affect acceptance.
+                if number < header && issue == .formula { continue }
                 throw ChangeParseError(code: issue, row: number)
             }
         }
@@ -109,7 +117,7 @@ extension XLSXReader {
         var issues: [Int: [Int: ChangeParseError.Code]] = [:]
         var sources: [Int: [Int: String]] = [:]
         var sharedMasters: [String: (row: Int, column: Int, fingerprint: String)] = [:]
-        var rangedMasters: [(firstRow: Int, firstColumn: Int, lastRow: Int, lastColumn: Int, fingerprint: String)] = []
+        var rangedMasters: [(firstRow: Int, firstColumn: Int, lastRow: Int, lastColumn: Int, fingerprint: String?)] = []
         var rangedCellCount = 0
         var duplicateMasters = Set<String>()
         var sharedFollowers: [(row: Int, column: Int, group: String)] = []
@@ -126,30 +134,34 @@ extension XLSXReader {
                 guard cellCount <= 100_000, let ref = cell.attributes["r"] else { throw ChangeParseError(code: .limit) }
                 let position = try coordinate(ref)
                 guard position.row == number, seen.insert(position.column).inserted else { throw ChangeParseError(code: .invalidXML) }
-                let isFormula = cell.child("f") != nil
+                let formula = cell.child("f")
+                let isFormula = formula != nil
                 let type = cell.attributes["t", default: "n"]
                 let value = cell.child("v")?.text ?? ""
                 if isFormula {
                     formulas.append((number, position.column, !value.isEmpty && ["n", "str", "s", "b", "d"].contains(type)))
                 }
+                if let formula, ["array", "dataTable"].contains(formula.attributes["t"] ?? ""), let ref = formula.attributes["ref"] {
+                    let ends = ref.split(separator: ":", omittingEmptySubsequences: false)
+                    guard ends.count == 1 || ends.count == 2 else { throw ChangeParseError(code: .invalidXML) }
+                    let start = try coordinate(String(ends[0])), end = try coordinate(String(ends[ends.count - 1]))
+                    guard start == position, start.row <= end.row, start.column <= end.column else { throw ChangeParseError(code: .invalidXML) }
+                    rangedCellCount += (end.row - start.row + 1) * (end.column - start.column + 1)
+                    guard rangedCellCount <= 100_000 else { throw ChangeParseError(code: .limit) }
+                    var fingerprint: String?
+                    if editing {
+                        let dependency = [formula.text] + formula.attributes.sorted { $0.key < $1.key }.filter { $0.key != "ref" }.flatMap { [$0.key, $0.value] }
+                        let bytes = Data(dependency.map { "\($0.utf8.count):" + $0 }.joined().utf8)
+                        fingerprint = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+                    }
+                    rangedMasters.append((start.row, start.column, end.row, end.column, fingerprint))
+                }
                 var decoded: String
-                if editing, let formula = cell.child("f") {
+                if editing, let formula {
                     // Length-frame each field so separators inside a formula cannot collide
                     // with its attributes, cached error or written cell type.
                     let fields = [type, formula.text] + formula.attributes.keys.sorted().flatMap { [$0, formula.attributes[$0]!] }
                     sources[number, default: [:]][position.column] = "formula/" + fields.map { "\($0.utf8.count):" + $0 }.joined()
-                    if ["array", "dataTable"].contains(formula.attributes["t"] ?? ""), let ref = formula.attributes["ref"] {
-                        let ends = ref.split(separator: ":", omittingEmptySubsequences: false)
-                        guard ends.count == 1 || ends.count == 2 else { throw ChangeParseError(code: .invalidXML) }
-                        let start = try coordinate(String(ends[0])), end = try coordinate(String(ends[ends.count - 1]))
-                        guard start == position, start.row <= end.row, start.column <= end.column else { throw ChangeParseError(code: .invalidXML) }
-                        rangedCellCount += (end.row - start.row + 1) * (end.column - start.column + 1)
-                        guard rangedCellCount <= 100_000 else { throw ChangeParseError(code: .limit) }
-                        let dependency = [formula.text] + formula.attributes.sorted { $0.key < $1.key }.filter { $0.key != "ref" }.flatMap { [$0.key, $0.value] }
-                        let bytes = Data(dependency.map { "\($0.utf8.count):" + $0 }.joined().utf8)
-                        let fingerprint = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
-                        rangedMasters.append((start.row, start.column, end.row, end.column, fingerprint))
-                    }
                     if formula.attributes["t"] == "shared" {
                         let group = formula.attributes["si"] ?? ""
                         if formula.text.isEmpty {
@@ -214,8 +226,10 @@ extension XLSXReader {
             for row in master.firstRow...master.lastRow {
                 try check()
                 for column in master.firstColumn...master.lastColumn where row != master.firstRow || column != master.firstColumn {
-                    sources[row, default: [:]][column, default: ""] +=
-                        "/array/\(master.fingerprint)/\(master.firstRow-row)/\(master.firstColumn-column)/\(master.lastRow-row)/\(master.lastColumn-column)"
+                    if let fingerprint = master.fingerprint {
+                        sources[row, default: [:]][column, default: ""] +=
+                            "/array/\(fingerprint)/\(master.firstRow-row)/\(master.firstColumn-column)/\(master.lastRow-row)/\(master.lastColumn-column)"
+                    }
                     if issues[row]?[column] == nil { issues[row, default: [:]][column] = .formula }
                 }
             }

@@ -1,7 +1,7 @@
 # PDF復旧・OCR・構造・Validator・端末内Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`6a8fa77fa7e9409fb849ad2c55a569d120bda4d898f5cbe6cc968eacc669422a`
+`ebfa5b5f0b51c4a896c90b70050446820eb8fd3657ba8fdebc2b876067717c04`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -125,6 +125,8 @@ bash tools/test-parsing.sh
 
 - `testFunctionalUnlabeledTeacherAndRoomBlanksReachFormalConversionWithoutShifting`
 - `testFunctionalMergedUnlabeledParallelTuplesRetainSeparatorAndEveryFormalSlot`
+- `testSpecialRecoveryAdoptsSameBytesAfterProviderRename`
+- `testRetainedSpecialRecoveryProjectsCurrentVersionWhileAnotherSourceFails`
 - `testFunctionalExamMergedClockAndBlankRolesReachFormalConversion`
 - `testFunctionalReturnSplitParallelBlankRoomAndMergedNormalClockReachFormalConversion`
 - `testFunctionalSpecialHeaderEvidenceCannotBeRemovedOrBorrowedForConversion`

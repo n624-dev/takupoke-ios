@@ -42,6 +42,14 @@ enum RecoveryConversion {
         }
         return PDFAnalysis(kind:.timetable,sourceDigest:preview.source.digest,sourceName:preview.source.originalName,parsedAt:adopted.acceptance.acceptedAt,schoolYear:preview.document.schoolYear,term:preview.document.term,lessons:lessons.map(PDFClassAssignment.assign),events:[],notices:["端末内の復旧結果を確認して採用しました。"],recovery:adopted)
     }
+    static func special(_ preview: RecoveryPreview, selected source: SpecialScheduleSource) throws -> SpecialScheduleAnalysis {
+        guard preview.document.kind == (source.kind == .exam ? .exam : .return),
+              preview.source.storedName == source.storedName, preview.source.digest == source.digest,
+              preview.document.pdfHash == source.digest else { throw PDFParseError(code:.storage) }
+        var current = preview
+        current.source.originalName = source.originalName
+        return try special(current)
+    }
     static func special(_ preview: RecoveryPreview, remapFirstYear: Bool = true) throws -> SpecialScheduleAnalysis {
         guard preview.document.kind != .timetable else { throw PDFParseError(code:.storage) }
         let adopted = try adopted(preview), doc = preview.document

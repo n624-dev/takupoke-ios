@@ -46,7 +46,8 @@
       "title": "原本取得・更新・保存・File Provider",
       "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",
       "commands": [
-        "bash tools/test-parsing.sh"
+        "bash tools/test-parsing.sh",
+        "python3 -B -m unittest discover -s tests -p test_change_preview_actions.py"
       ],
       "sources": [
         "Takupoke/FileRefreshDiagnostics.swift",
@@ -74,7 +75,8 @@
         "tests/FileRefreshTests.swift",
         "tests/MaterialLibraryChecks.swift",
         "tests/WebPDFChecks.swift",
-        "tests/ParsingTests+RowSkips.swift"
+        "tests/ParsingTests+RowSkips.swift",
+        "tests/test_change_preview_actions.py"
       ]
     },
     {

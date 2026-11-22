@@ -374,6 +374,73 @@ extension ParsingTests {
         }
     }
 
+    func testPriorConflictingEditUsesTheLabelFromItsOwnWorkbookGeneration() throws {
+        try temporary { root in
+            let headers = ["学 年", "学科・クラス", "月日", "時限", "変更後"]
+            let row = ["3", "IT", "11/24", "1", "架空科目A"]
+            func table(_ name: String, _ columns: [String], repeated: Bool) throws -> ChangeEditTable {
+                let url = root.appendingPathComponent(name + ".xlsx")
+                try write(workbook([columns, row] + (repeated ? [row] : [])), to: url)
+                return try XLSXReader.editableWorkbook(url, layout: nil, check: {}).table
+            }
+            let first = try table("first", headers, repeated: false)
+            let oldRoom = try XCTUnwrap(first.headers.firstIndex(of: "教室"))
+            let edit = ChangeRowEdit(values: [oldRoom: "架空実習室A"])
+            let saved = try XCTUnwrap(first.savedEdits(sourceIdentity: "source", digest: "original", defaultYear: 2032, edits: [2: edit]))
+            let second = try table("second", headers, repeated: true)
+            let history = second.restoreDetailed(saved, sourceIdentity: "source", digest: "second", defaultYear: 2032)
+            XCTAssertEqual(history.conflicts, [2, 3])
+            let entry = try XCTUnwrap(history.unmatched.first)
+            let third = try table("third", headers + ["備考"], repeated: true)
+            let newRoom = try XCTUnwrap(third.headers.firstIndex(of: "教室"))
+            XCTAssertNotEqual(oldRoom, newRoom)
+            XCTAssertEqual(third.headers[oldRoom], "教員")
+            let mapped = try XCTUnwrap(third.priorEdit(entry, on: 2, defaultYear: 2032))
+            XCTAssertEqual(mapped.values, [newRoom: "架空実習室A"])
+            let result = try third.records(edits: [2: mapped], defaultYear: 2032)
+            XCTAssertEqual(result.first?.room, "架空実習室A")
+            XCTAssertEqual(result.first?.teacher, "")
+            XCTAssertEqual(result.last?.room, "")
+            let current = try XCTUnwrap(second.savedEdits(sourceIdentity: "source", digest: "second",
+                defaultYear: 2032, edits: [2: edit, 3: edit]))
+            let automaticallyRestored = third.restore(current, sourceIdentity: "source", digest: "third", defaultYear: 2032)
+            XCTAssertEqual(automaticallyRestored.edits[2]?.values, mapped.values)
+            XCTAssertEqual(automaticallyRestored.edits[3]?.values, mapped.values)
+
+            var ambiguous = third
+            ambiguous.headers.append("場所")
+            XCTAssertNil(ambiguous.priorEdit(entry, on: 2, defaultYear: 2032))
+            ambiguous.headers = third.headers + ["教室"]
+            XCTAssertNil(ambiguous.priorEdit(entry, on: 2, defaultYear: 2032))
+            ambiguous.headers = third.headers
+            ambiguous.headers[newRoom] = "架空項目"
+            XCTAssertNil(ambiguous.priorEdit(entry, on: 2, defaultYear: 2032))
+            var legacy = entry
+            legacy.valueLabels = nil
+            XCTAssertNil(third.priorEdit(legacy, on: 2, defaultYear: 2032))
+            legacy.edit = ChangeRowEdit(excluded: true)
+            XCTAssertEqual(third.priorEdit(legacy, on: 2, defaultYear: 2032), legacy.edit)
+            legacy.edit = ChangeRowEdit(deriveWeekday: true)
+            XCTAssertEqual(third.priorEdit(legacy, on: 2, defaultYear: 2032), legacy.edit)
+        }
+    }
+
+    func testPriorDateEditKeepsItsYearColumnAndExcelDateSystem() throws {
+        let table = ChangeEditTable(sheet: "時間割変更", headers: ["学 年", "学科・クラス", "月日"],
+                                    rows: [["学 年", "学科・クラス", "月日"], ["3", "IT", "11/24"]], headerRow: 1)
+        let edit = ChangeRowEdit(values: [2: "48545.0"])
+        let saved = try XCTUnwrap(table.savedEdits(sourceIdentity: "source", digest: "original", defaultYear: 2032, edits: [2: edit]))
+        let entry = try XCTUnwrap(saved.entries.first)
+        XCTAssertEqual(table.priorEdit(entry, on: 2, defaultYear: 2032), edit)
+        XCTAssertNil(table.priorEdit(entry, on: 2, defaultYear: 2033))
+        var otherEpoch = table
+        otherEpoch.uses1904 = true
+        XCTAssertNil(otherEpoch.priorEdit(entry, on: 2, defaultYear: 2032))
+        var movedColumn = table
+        movedColumn.headers = ["学 年", "月日", "学科・クラス"]
+        XCTAssertNil(movedColumn.priorEdit(entry, on: 2, defaultYear: 2032))
+    }
+
     func testBlankDateKeepsPersonalCorrectionWhenOnlyFormattingChangesIn1904Workbook() throws {
         try temporary { root in
             func table(_ name: String, formatted: Bool) throws -> ChangeEditTable {

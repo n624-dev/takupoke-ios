@@ -1,12 +1,13 @@
 # 原本取得・更新・保存・File Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`8bbd75e6b978cab423784ee5ff00fd6b81426b47784a9b576b4501eba228b416`
+`6845933a27fde9c91f00f6c7f3d24e3b7d63c6d5fb6ca63be73ea84fd549af97`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
 ```bash
 bash tools/test-parsing.sh
+python3 -B -m unittest discover -s tests -p test_change_preview_actions.py
 ```
 
 ## 変更時に確認するソース
@@ -81,3 +82,11 @@ bash tools/test-parsing.sh
 - `testOldRowSkipDecisionSurvivesSQLiteUpgradeAndCurrentRevalidation`
 - `testRowSkipRevalidationFailureCancellationAndSaveFailureKeepDecision`
 - `testRenewedBookmarkMatchesOnlyTheSelectedOriginal`
+
+## [tests/test_change_preview_actions.py](../../tests/test_change_preview_actions.py)
+
+- `test_recovered_timetable_clears_previous_error_only_after_commit`
+- `test_actual_dispatch_retains_review_after_failure_and_closes_only_after_success`
+- `test_actual_callbacks_preserve_rejected_preview_and_dispatch_accepted_action_once`
+- `test_actual_worker_records_failure_only_for_the_reviewed_original`
+- `test_invalid_year_blocks_change_acquisition_without_stalling_other_queued_materials`

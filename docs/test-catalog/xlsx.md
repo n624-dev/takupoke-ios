@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`356d547bbabddb10b3d5d0e28ab6a4b7092c4fab1445cc0b4c4a9d17fda9090c`
+`85fb7ee76ccc2e8e35b0e4fa36bd5585c3d5a9d33fe4bf76141f3202ce98dccf`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -25,6 +25,7 @@ bash tools/test-parsing.sh
 
 ## [tests/test_change_preview_actions.py](../../tests/test_change_preview_actions.py)
 
+- `test_recovered_timetable_clears_previous_error_only_after_commit`
 - `test_actual_dispatch_retains_review_after_failure_and_closes_only_after_success`
 - `test_actual_callbacks_preserve_rejected_preview_and_dispatch_accepted_action_once`
 - `test_actual_worker_records_failure_only_for_the_reviewed_original`
@@ -46,6 +47,8 @@ bash tools/test-parsing.sh
 - `testChangedFormulaWithSameCachedErrorDoesNotRestoreCorrection`
 - `testSharedFormulaFollowerMatchesOnlyAnUnchangedMaster`
 - `testArrayFormulaIdentityAndTrailingFormattedBlanks`
+- `testPriorConflictingEditUsesTheLabelFromItsOwnWorkbookGeneration`
+- `testPriorDateEditKeepsItsYearColumnAndExcelDateSystem`
 - `testBlankDateKeepsPersonalCorrectionWhenOnlyFormattingChangesIn1904Workbook`
 - `testEditorPreserves1904SerialAndConvertsOnlyTheMappedDate`
 - `testEmptyFirstSheetAllowsSelectingOtherSheet`
@@ -97,6 +100,8 @@ bash tools/test-parsing.sh
 
 ## [tests/ParsingTests+Workbook.swift](../../tests/ParsingTests+Workbook.swift)
 
+- `testFormulaRangeCannotSupplyUnverifiedChangeCells`
+- `testFormulaRangeStartingBeforeHeaderStillMarksAffectedTableCells`
 - `testLeadingZeroGradesFromWorkbookProduceSelectableCanonicalClasses`
 - `testTypedDateCellsUseTheirWrittenCalendarDateAndBomIsAccepted`
 - `testUnsupportedAndMalformedWorkbooks`

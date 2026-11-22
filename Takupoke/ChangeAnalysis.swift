@@ -112,7 +112,7 @@ struct ChangeWeekdayConsent: Codable, Equatable {
 }
 
 struct ChangeAnalysis: Codable {
-    static let parserVersion = 13
+    static let parserVersion = 14
     var sourceModifiedAt: Date? = nil
     var personalEdit: Bool? = nil
     var personalSourceIdentity: String? = nil
@@ -659,6 +659,35 @@ struct ChangeEditTable: Equatable {
         -> (edits: [Int: ChangeRowEdit], conflicts: Set<Int>) {
         let restored = restoreDetailed(saved, sourceIdentity: sourceIdentity, digest: digest, defaultYear: defaultYear)
         return (restored.edits, restored.conflicts)
+    }
+
+    func priorEdit(_ entry: ChangeEdits.Entry, on row: Int, defaultYear: Int) -> ChangeRowEdit? {
+        guard row > headerRow, rows.indices.contains(row - 1), original(at: row) == entry.original else { return nil }
+        let labels = headers.map(ChangeNormalizer.text)
+        let tokens = headers.map(ChangeNormalizer.token)
+        var result = entry.edit
+        result.values.removeAll()
+        for (oldColumn, value) in entry.edit.values {
+            guard let savedLabel = entry.valueLabels?[oldColumn] else { return nil }
+            let label = ChangeNormalizer.text(savedLabel)
+            guard !label.isEmpty, !ChangeNormalizer.matches(label, #"^列[0-9]+$"#) else { return nil }
+            let matches = labels.indices.filter { labels[$0] == label }
+            guard matches.count == 1, let column = matches.first, result.values[column] == nil else { return nil }
+            let token = tokens[column]
+            if let field = ChangeNormalizer.OptionalColumn.allCases.first(where: { $0.aliases.contains(token) }),
+               tokens.filter(field.aliases.contains).count != 1 { return nil }
+            if ["曜日", "曜"].contains(token), tokens.filter({ ["曜日", "曜"].contains($0) }).count != 1 { return nil }
+            if label == "月日" {
+                guard entry.dateColumn == column, entry.dateSchoolYear == defaultYear else { return nil }
+                if ChangeNormalizer.matches(ChangeNormalizer.text(value), #"^[0-9]+(?:\.[0-9]+)?$"#) {
+                    let epoch = entry.editedSerialUses1904 ?? (entry.original.sources[column]?.hasPrefix("/type/n/") == true
+                        ? entry.original.date1904 == true : nil)
+                    guard epoch == uses1904 else { return nil }
+                }
+            }
+            result.values[column] = value
+        }
+        return result
     }
 }
 

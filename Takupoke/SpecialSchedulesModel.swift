@@ -147,13 +147,7 @@ final class SpecialSchedulesModel: ObservableObject {
                 capture.store = store
                 try operation(store, control, capture)
             }
-            var visible = capture.store?.records ?? [:], rejected = Set<SpecialScheduleKind>()
-            for (kind,record) in visible where record.analysis.recovery != nil {
-                if (try? RecoveryConversion.recertifiedSpecial(record.analysis,hash:record.digest)) == nil {
-                    visible.removeValue(forKey:kind); rejected.insert(kind)
-                }
-            }
-            let visibleRecords = visible, rejectedKinds = rejected
+            let projection = capture.store?.displayableRecords()
             DispatchQueue.main.async {
                 guard !self.retired, operationGeneration == self.generation else { completion?(false); return }
                 self.busy = false
@@ -162,8 +156,8 @@ final class SpecialSchedulesModel: ObservableObject {
                 if let kind { self.fullReadReports[kind] = capture.report }
                 if let store = capture.store {
                     self.store = store
-                    self.records = visibleRecords
-                    self.rejectedRecoveryKinds = rejectedKinds
+                    self.records = projection?.records ?? [:]
+                    self.rejectedRecoveryKinds = projection?.rejected ?? []
                     self.sources = store.sources
                     self.urls = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.compactMap { kind in
                         store.selectedURL(for: kind).map { (kind, $0) }
@@ -216,12 +210,11 @@ extension SpecialSchedulesModel {
         return await withTaskCancellationHandler {
         await withCheckedContinuation { continuation in
             perform(success:"復旧結果を採用しました。",completion:{ continuation.resume(returning:$0) }) { store,control,_ in
-                guard let selected = store.sources[kind], selected.storedName == preview.source.storedName,
-                      selected.digest == preview.source.digest, selected.attemptParserVersion == SpecialScheduleAnalysis.parserVersion,
+                guard let selected = store.sources[kind], selected.attemptParserVersion == SpecialScheduleAnalysis.parserVersion,
                       selected.failure.map(RecoveryPolicy.eligible) == true, selected.recoveryJob?.pdfHash == selected.digest,
-                      preview.document.pdfHash == selected.digest else { throw PDFParseError(code:.storage) }
+                      let selectedURL = store.selectedURL(for:kind), selectedURL == preview.source.url else { throw PDFParseError(code:.storage) }
+                let analysis = try RecoveryConversion.special(preview, selected:selected)
                 try RecoveryConversion.verifyFile(preview.source,check:{ try cancelled.check(); try control.check() })
-                let analysis = try RecoveryConversion.special(preview)
                 guard preview.source.period == SchoolDataPeriod.current() else { throw PDFParseError(code:.cancelled) }
                 try cancelled.check(); try control.check(); try LocalAIFeaturePolicy.check(ticket); try store.saveAnalysis(analysis)
             }

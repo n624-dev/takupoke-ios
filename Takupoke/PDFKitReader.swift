@@ -217,7 +217,7 @@ enum PDFKitReader {
             }
             var capturedLayout = layout
             capturedLayout.glyphs = recoveryGlyphs ?? glyphs
-            capture?.record(page: index + 1, state: glyphs.isEmpty ? .rasterOnly : recoveryComplete ? .complete : .partial, layout: capturedLayout)
+            capture?.record(page: index + 1, state: glyphs.isEmpty ? .rasterOnly : recoveryComplete && !lines.isEmpty ? .complete : .partial, layout: capturedLayout)
             guard !glyphs.isEmpty else { throw PDFParseError(code: .unsupported, page: index + 1, stage: .rasterInput, branch:.b107) }
             guard !lines.isEmpty else { throw PDFParseError(code: .unsupported, page: index + 1, stage: .gridCell, branch:.b108) }
             diagnostics?.record(.pageComplete, page: index + 1,
