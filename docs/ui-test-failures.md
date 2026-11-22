@@ -5923,3 +5923,13 @@ Linux Swift 6.1.2で、actor境界だけを直した直後の製品の `activate
 ### #157・#162 統合後のiOS27は通知センターの準備段階で停止
 
 `d63ecf4` の[45067307478試行1／137346226400](https://github.com/n624-dev/takupoke-ios/actions/runs/45067307478/job/137346226400)、iOS27.0／Xcode27.2。ビルド・起動と復旧の取消しまで成功。取消し後に元マーカーと旧資料、個人設定・公開データ・元ファイルの保持を確認した。同一プロセスの保留・配信済み一覧の準備条件が元の90秒で成立せず、`ApplicationChecks+Settings.swift:191`、120.792秒で失敗した。二度目の復旧確定を行わず、末尾も古いデータとマーカーを保持。86d95ebの型エラー、4bcf6d8の確定後の停止、ead8fd2で実応答した同じ成功対照とは観測段階が異なる。iOS26の別ジョブは進行中。通知サービス内部で両処理のどちらが停止したかは準備段階について未確定。
+
+### #167 iOS26で削除完了のあとにテスト用の準備表示だけが更新されない
+
+同じ `d63ecf4` の[45067307478試行1／137346226105](https://github.com/n624-dev/takupoke-ios/actions/runs/45067307478/job/137346226105)、iOS26.5／Xcode27.2。実保留・配信済み一覧の応答と取消し時の元バイトを確認した。20:49:37Zに生成アプリの `fixture-ready-timeout` が出てから、20:49:58Zに二度目の確認、20:50:01Z台に両実一覧の応答と削除完了アラート、20:50:05Z台に「あとで」が成立。末尾の画面はホームタブを選択済みだったが、採取済みの保存情報の表示が取消し前の値のまま、準備表示を待つ `ApplicationChecks+Settings.swift:203`、163.084秒で失敗した。確定後の再起動・バイト比較は未到達。末尾の古い表示からディスク内容は判定できない。
+
+`fixture-ready-timeout|testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData|保存データを削除しました` で `4bcf6d8`・`ead8fd2` と今回のコードを比較し、三候補とも起動画面から300回×100msの監視を一度だけ実行することを確認した。復旧用の起動だけ、製品の保存期間準備の通知を受けてから既存の読み込み監視を始める。通知サービスの実応答・取消し・復旧後のファイル照合・元のテスト期限を維持する。[#167](https://github.com/n624-dev/takupoke-ios/issues/167)
+
+### iOS27で個人予定の初回の実予約一覧が返らない
+
+`44d8932` の[45068137098試行1／137348820903](https://github.com/n624-dev/takupoke-ios/actions/runs/45068137098/job/137348820903)、iOS27.0／Xcode27.2。個人予定の既存 `testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch` を単独実行。起動と編集一覧が成立し、20:52:49Z台に「予約を照合」を一回操作。実 `getPendingNotificationRequests` を待つ「保留予約を取得中」のまま、最初の保留0件の条件が元の15秒で成立しなかった（`ApplicationChecks+Notifications.swift:512`、53.160秒）。個人予定の許可・保存・追加は未到達。学校全体の追加や対象選択を行う前にも実通知センターの別APIで停滞した。iOS27で前の実Allowが出たケース、実予約4件を拒否したケース、準備段階で止まった復旧の両一覧と到達段階が異なる。通知サービスの下位原因は未確定で、同条件の再実行は保留する。

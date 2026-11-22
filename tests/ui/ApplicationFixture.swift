@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import UIKit
 import ObjectiveC
 import CryptoKit
@@ -308,6 +309,14 @@ struct SimulatorApplication: App {
                     FixtureLaunchDiagnostics.record("root-task-enter")
                     FixtureBrowserPrewarming.startIfNeeded()
                     let data = ApplicationData.shared
+                    let retentionRecovery = ProcessInfo.processInfo.arguments.contains("--retention-corrupt")
+                    if retentionRecovery && !data.ready {
+                        // Recovery can require a user confirmation long after this view appears.
+                        for await ready in data.$ready.values {
+                            if ready { break }
+                        }
+                        guard !Task.isCancelled else { return }
+                    }
                     var recordedApplicationReady = false
                     for _ in 0..<300 {
                         if data.ready && !recordedApplicationReady {
@@ -327,7 +336,7 @@ struct SimulatorApplication: App {
                                 recoveryOffProbe = !data.recovery.running && data.recovery.preview == nil && data.recovery.manualDraft == nil ? "1" : "0"
                             }
                             applicationReady = true
-                            if ProcessInfo.processInfo.arguments.contains("--retention-corrupt") {
+                            if retentionRecovery {
                                 SimulatorRetentionObservation.shared.capture()
                             }
                             FixtureLaunchDiagnostics.record("fixture-ready")
