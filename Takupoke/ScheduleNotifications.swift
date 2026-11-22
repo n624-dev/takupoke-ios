@@ -124,40 +124,62 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             return
         }
         let settings = await Self.notificationSettings(from: center)
-        recordPermission(settings)
+        if let settings { recordPermission(settings) }
     }
 
-    // Keep the actual OS response across the callback/concurrency boundary.
-    // This performs one read, without requesting permission or caching its value.
+    // Keep the actual OS response across the callback/concurrency boundary. Missing or cancelled reads
+    // are unconfirmed, so callers can preserve prior decisions and retry.
     nonisolated static func notificationSettings(
-        from center: UNUserNotificationCenter
-    ) async -> UNNotificationSettings {
-        await withCheckedContinuation { continuation in
+        from center: UNUserNotificationCenter, timeout: Duration = .seconds(6)
+    ) async -> UNNotificationSettings? {
+        await notificationQuery(timeout:timeout) { callback in
             center.getNotificationSettings { settings in
-                continuation.resume(returning: settings)
+                callback(settings)
             }
         }
+    }
+
+    nonisolated static func readPending(
+        from center: UNUserNotificationCenter, timeout: Duration = .seconds(6)
+    ) async -> [UNNotificationRequest]? {
+        await notificationQuery(timeout:timeout) { callback in
+            center.getPendingNotificationRequests(completionHandler:callback)
+        }
+    }
+
+    nonisolated static func readDelivered(from center: UNUserNotificationCenter) async -> [UNNotification]? {
+        await notificationQuery(timeout:.seconds(6)) { callback in
+            center.getDeliveredNotifications(completionHandler:callback)
+        }
+    }
+
+    nonisolated static func notificationQuery<Value>(
+        timeout: Duration, _ request: (@escaping @Sendable (Value) -> Void) -> Void
+    ) async -> Value? {
+        guard !Task.isCancelled else { return nil }
+        let (results, continuation) = AsyncStream<Value>.makeStream(bufferingPolicy:.bufferingNewest(1))
+        let timeoutTask = Task {
+            do { try await Task.sleep(for:timeout) } catch { return }
+            continuation.finish()
+        }
+        defer { timeoutTask.cancel(); continuation.finish() }
+        request { value in
+            continuation.yield(value)
+            continuation.finish()
+        }
+        var iterator = results.makeAsyncIterator()
+        let value = await iterator.next()
+        return Task.isCancelled ? nil : value
     }
 
     /// Recovery must remain usable if the notification service never responds.
     nonisolated static func pendingStorageRecoveryIdentifiers(
         from center: UNUserNotificationCenter, timeout: Duration = .seconds(6)
     ) async -> [String]? {
-        let (results, continuation) = AsyncStream<[String]>.makeStream(bufferingPolicy:.bufferingNewest(1))
-        let timeoutTask = Task {
-            do { try await Task.sleep(for:timeout) } catch { return }
-            continuation.finish()
-        }
-        defer { timeoutTask.cancel(); continuation.finish() }
         #if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
         print("TAKUPOKE_COUNTDOWN_STORAGE pending-read-start")
         #endif
-        center.getPendingNotificationRequests { requests in
-            continuation.yield(requests.map(\.identifier))
-            continuation.finish()
-        }
-        var iterator = results.makeAsyncIterator()
-        let identifiers = await iterator.next()
+        let identifiers = await readPending(from:center,timeout:timeout)?.map(\.identifier)
         #if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
         print("TAKUPOKE_COUNTDOWN_STORAGE pending-read-\(identifiers == nil ? "unavailable" : "complete")")
         #endif
@@ -231,12 +253,12 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         if pending != nil, !Task.isCancelled { await drainPending() }
     }
 
-    private func deliveryAllowed() async -> Bool {
+    private func deliveryAllowed() async -> Bool? {
         // Keep the comparison baseline current even when notifications are off.
         // No notification can be delivered in that state, so an OS settings read
         // must not delay saving the baseline or the next input.
         guard changesEnabled || specialsEnabled else { permissionMessage = nil; return false }
-        let settings = await Self.notificationSettings(from: center)
+        guard let settings = await Self.notificationSettings(from: center) else { return nil }
         recordPermission(settings)
         guard changesEnabled || specialsEnabled else { return false }
         return settings.authorizationStatus == .authorized ||
@@ -259,7 +281,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
                 loaded = true
             }
             guard var next = baseline else { return }
-            let allowed = await deliveryAllowed()
+            guard let allowed = await deliveryAllowed() else { return }
             guard operation == generation, input.period == SchoolDataPeriod.current(),
                   UIApplication.shared.isProtectedDataAvailable else { return }
             let classes = Set((UserDefaults.standard.string(forKey: "timetableSelectedClasses") ?? "")
@@ -279,8 +301,9 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
                 try Task.checkCancellation()
                 guard operation == generation, input.period == SchoolDataPeriod.current(),
                       UIApplication.shared.isProtectedDataAvailable else { return }
-                let queued = await center.pendingNotificationRequests()
-                let deliveredNotifications = await center.deliveredNotifications()
+                guard let queued = await Self.readPending(from:center),
+                      let deliveredNotifications = await Self.readDelivered(from:center) else { return }
+                try Task.checkCancellation()
                 let delivered = deliveredNotifications.map(\.request)
                 // Selection or midnight may change while the notification service
                 // suspends. Revalidate the exact slots immediately before delivery.

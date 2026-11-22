@@ -105,6 +105,7 @@ final class CountdownStore {
     }
 }
 typealias UNUserNotificationCenter = FakeCenter
+typealias UNNotificationRequest = FakeCenter.Request
 @MainActor enum ScheduleNotifications {
     BRIDGE
 }
@@ -190,7 +191,9 @@ typealias UNUserNotificationCenter = FakeCenter
     }
 }
 '''.replace("PREFIX", prefix) \
-           .replace("BRIDGE", block(notifications, "nonisolated static func pendingStorageRecoveryIdentifiers")) \
+           .replace("BRIDGE", "\n".join(block(notifications, marker) for marker in (
+               "nonisolated static func notificationQuery", "nonisolated static func readPending",
+               "nonisolated static func pendingStorageRecoveryIdentifiers"))) \
            .replace("STATE", block(source, "enum StorageState")) \
            .replace("LOAD", block(source, "func load(reportFailure:")) \
            .replace("RETRY", block(source, "func retryStorageLoad()")) \
@@ -281,12 +284,13 @@ BRIDGE
 '''.replace("BRIDGE", source[start:end])
         self.run_probe(compiler, program)
 
-    def test_actual_bridge_preserves_os_objects_for_immediate_delayed_and_cancelled_reads(self):
+    def test_actual_bridge_preserves_os_objects_and_finishes_cancelled_or_missing_reads(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
             self.skipTest("Swift required to execute the production callback bridge")
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
-        bridge = block(source, "nonisolated static func notificationSettings(")
+        bridge = "\n".join(block(source, "nonisolated static func " + name) for name in (
+            "notificationSettings(", "notificationQuery"))
         program = r'''import Foundation
 final class UNNotificationSettings: @unchecked Sendable {
     let authorizationStatus: Int
@@ -312,8 +316,9 @@ final class UNUserNotificationCenter: @unchecked Sendable {
 }
 final class Harness {
 BRIDGE
-    nonisolated static func read(_ center: UNUserNotificationCenter) async -> UNNotificationSettings {
-        await notificationSettings(from: center)
+    nonisolated static func read(_ center: UNUserNotificationCenter,
+                                 timeout: Duration = .seconds(6)) async -> UNNotificationSettings? {
+        await notificationSettings(from:center,timeout:timeout)
     }
 }
 @main struct Probe {
@@ -330,7 +335,7 @@ BRIDGE
             let original = UNNotificationSettings(status)
             let center = UNUserNotificationCenter(original)
             let result = await Harness.read(center)
-            precondition(result === original && result.authorizationStatus == status)
+            precondition(result === original && result?.authorizationStatus == status)
             precondition(center.count == 1)
         }
         let center = UNUserNotificationCenter()
@@ -345,10 +350,18 @@ BRIDGE
         let secondResult = await second.value
         precondition(secondResult === later && center.count == 2)
         first.cancel()
-        center.complete(0, earlier)
         let firstResult = await first.value
-        precondition(firstResult === earlier && first.isCancelled && center.count == 2)
-        print("Verified actual bridge: exact OS objects, one read per call, concurrent and cancelled completion.")
+        precondition(firstResult == nil && first.isCancelled && center.count == 2)
+        let expired = await Harness.read(center,timeout:.milliseconds(40))
+        precondition(expired == nil && center.count == 3)
+        let next = Task { await Harness.read(center) }
+        await waitForReads(4,center)
+        center.complete(0,earlier)
+        center.complete(2,earlier)
+        center.complete(3,later)
+        let nextResult = await next.value
+        precondition(nextResult === later && center.count == 4)
+        print("Verified actual bridge: exact OS objects, one read per call, cancellation, deadlines, and late callback isolation.")
     }
 }
 '''.replace("BRIDGE", bridge)
@@ -359,10 +372,11 @@ BRIDGE
         if not compiler:
             self.skipTest("Swift required to execute the production delivery gate")
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
-        bridge = block(source, "nonisolated static func notificationSettings(")
+        bridge = "\n".join(block(source, "nonisolated static func " + name) for name in (
+            "notificationSettings(", "notificationQuery"))
         permission_start = source.index("    func checkPermission() async {")
         permission_end = source.index("    // Keep the actual OS response", permission_start)
-        gate_start = source.index("    private func deliveryAllowed() async -> Bool {")
+        gate_start = source.index("    private func deliveryAllowed() async -> Bool? {")
         gate_end = source.index("    private func apply(", gate_start)
         program = r'''import Foundation
 enum Authorization: Int {
@@ -397,14 +411,14 @@ final class UNUserNotificationCenter: @unchecked Sendable {
 BRIDGE
 GATE
 PERMISSION
-    func evaluate() async -> Bool { await deliveryAllowed() }
+    func evaluate() async -> Bool? { await deliveryAllowed() }
 }
 @main struct Probe {
     @MainActor static func main() async {
         let unavailable = UNUserNotificationCenter(nil)
         let disabled = Harness(false, false, unavailable)
         let disabledResult = await disabled.evaluate()
-        precondition(!disabledResult && unavailable.count == 0)
+        precondition(disabledResult == false && unavailable.count == 0)
         disabled.permissionMessage = "iPhoneの設定で通知を許可してください。"
         await disabled.checkPermission()
         precondition(disabled.permissionMessage == nil && disabled.message == nil && unavailable.count == 0)
@@ -446,21 +460,28 @@ PERMISSION
             self.skipTest("Swift required for the production permission/apply methods")
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
         permission = source[source.index("    func checkPermission() async {"):source.index("    // Keep the actual OS response")]
-        bridge = block(source, "nonisolated static func notificationSettings(")
-        gate_start = source.index("    private func deliveryAllowed() async -> Bool {")
+        bridge = "\n".join(block(source, "nonisolated static func " + name) for name in (
+            "notificationSettings(", "notificationQuery", "readPending", "readDelivered"))
+        gate_start = source.index("    private func deliveryAllowed() async -> Bool? {")
         methods = source[gate_start:source.index("    private func changeNotice(", gate_start)]
         program = r'''import Foundation
 enum Authorization { case denied, authorized, provisional, ephemeral }
 final class UNNotificationSettings: @unchecked Sendable { let authorizationStatus:Authorization; init(_ status:Authorization){authorizationStatus=status} }
 final class UNUserNotificationCenter: @unchecked Sendable {
- var response=UNNotificationSettings(.denied), reads=0
- func getNotificationSettings(completionHandler:@escaping @Sendable (UNNotificationSettings)->Void){reads+=1;completionHandler(response)}
- func pendingNotificationRequests() async -> [Request] { [] }
- func deliveredNotifications() async -> [Delivered] { [] }
+ var response:UNNotificationSettings?=UNNotificationSettings(.denied)
+ private let lock=NSLock()
+ private var count=0
+ var reads:Int{lock.lock();defer{lock.unlock()};return count}
+ func getNotificationSettings(completionHandler:@escaping @Sendable (UNNotificationSettings)->Void){
+  lock.lock();count+=1;lock.unlock()
+  if let response{completionHandler(response)}
+ }
+ func getPendingNotificationRequests(completionHandler:@escaping @Sendable ([UNNotificationRequest])->Void){completionHandler([])}
+ func getDeliveredNotifications(completionHandler:@escaping @Sendable ([UNNotification])->Void){completionHandler([])}
 }
-struct Request { let identifier:String; let content:Content }
+struct UNNotificationRequest { let identifier:String; let content:Content }
 struct Content { let userInfo:[AnyHashable:Any] }
-struct Delivered { let request:Request }
+struct UNNotification { let request:UNNotificationRequest }
 struct SchoolDate { static func today()->Self{Self()} }
 struct SchoolDataPeriod:Equatable { static func current()->Self{Self()} }
 struct ChangeNormalizer { static func canonicalClassName(_ value:String)->String{value} }
@@ -506,6 +527,16 @@ METHODS
   precondition(h.permissionMessage==nil && h.message != nil,"Authorization recovery must not clear the storage failure")
   h.failSave=false;await h.update();precondition(h.message==nil && h.permissionMessage==nil)
   h.center.response=UNNotificationSettings(.denied);await h.checkPermission();precondition(h.permissionMessage==denied)
+  h.center.response=nil
+  let original=h.baseline, saves=h.saves, reads=h.center.reads
+  let unavailable=Task{await h.update()}
+  let deadline=ContinuousClock.now.advanced(by:.seconds(3))
+  while h.center.reads==reads{precondition(ContinuousClock.now<deadline);await Task.yield()}
+  unavailable.cancel();await unavailable.value
+  precondition(h.baseline==original && h.saves==saves && h.permissionMessage==denied)
+  h.center.response=UNNotificationSettings(.authorized);await h.update()
+  precondition(h.saves==saves+1 && h.baseline?.revision==(original?.revision ?? 0)+1 && h.permissionMessage==nil)
+  h.center.response=UNNotificationSettings(.denied);await h.checkPermission();precondition(h.permissionMessage==denied)
   h.changesEnabled=false;h.specialsEnabled=false;let count=h.center.reads
   await h.checkPermission();await h.update()
   precondition(h.permissionMessage==nil && h.center.reads==count,"Both-off must clear permission state without asking the OS")
@@ -513,6 +544,109 @@ METHODS
  }
 }
 '''.replace("PERMISSION", permission).replace("BRIDGE", bridge).replace("METHODS", methods)
+        self.run_probe(compiler, program)
+
+    def test_retention_can_retry_private_notification_cleanup_after_unknown_os_reads(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute production expiry and passive callbacks")
+        notifications = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
+        model = (ROOT / "Takupoke/CountdownModel.swift").read_text(encoding="utf-8")
+        bridges = "\n".join(block(notifications, "nonisolated static func " + name) for name in (
+            "notificationSettings(", "notificationQuery", "readPending", "readDelivered"))
+        program = r'''import Foundation
+struct UNNotificationSettings: Sendable {}
+struct UNNotificationRequest: Sendable { let identifier: String }
+struct UNNotification: Sendable { let request: UNNotificationRequest }
+enum CountdownNotice { static let privatePrefix = "fictional.private." }
+@MainActor final class UNUserNotificationCenter {
+    let all = ["fictional.private.1", "fictional.personal.1", "fictional.school.1", "unrelated"]
+    var reads = [0, 0, 0]
+    var respondToPending = false, respondToDelivered = false
+    var pending: (@Sendable ([UNNotificationRequest]) -> Void)?
+    var delivered: (@Sendable ([UNNotification]) -> Void)?
+    var removed = [String](), removedDelivered = [String]()
+    nonisolated func getNotificationSettings(completionHandler: @escaping @Sendable (UNNotificationSettings) -> Void) {
+        Task { @MainActor in reads[0] += 1 }
+    }
+    nonisolated func getPendingNotificationRequests(completionHandler: @escaping @Sendable ([UNNotificationRequest]) -> Void) {
+        Task { @MainActor in
+            reads[1] += 1
+            if respondToPending { completionHandler(all.map(UNNotificationRequest.init)) }
+            else { pending = completionHandler }
+        }
+    }
+    nonisolated func getDeliveredNotifications(completionHandler: @escaping @Sendable ([UNNotification]) -> Void) {
+        Task { @MainActor in
+            reads[2] += 1
+            if respondToDelivered { completionHandler(all.map { UNNotification(request:.init(identifier:$0)) }) }
+            else { delivered = completionHandler }
+        }
+    }
+    func removePendingNotificationRequests(withIdentifiers ids: [String]) { removed += ids }
+    func removeDeliveredNotifications(withIdentifiers ids: [String]) { removedDelivered += ids }
+}
+enum ScheduleNotifications {
+BRIDGES
+}
+struct Card { let isPrivate: Bool }
+@MainActor final class Harness {
+    let center = UNUserNotificationCenter()
+    var cards = [Card(isPrivate:true),Card(isPrivate:false)]
+    var notificationCards = [0:Card(isPrivate:true),1:Card(isPrivate:false)]
+    var revision = UUID()
+    var request: Int? = 0
+    var worker: Task<Void, Never>?
+    func begin() {
+        worker = Task {
+            let settings = await ScheduleNotifications.notificationSettings(from:center)
+            precondition(Task.isCancelled && settings == nil)
+            worker = nil
+        }
+    }
+EXPIRY
+}
+@main struct Probe {
+    @MainActor static func waitUntil(_ condition: () -> Bool) async {
+        let deadline = ContinuousClock.now.advanced(by:.seconds(3))
+        while !condition() { precondition(ContinuousClock.now < deadline); await Task.yield() }
+    }
+    @MainActor static func main() async {
+        let h = Harness(), center = h.center
+        h.begin()
+        await waitUntil { center.reads[0] == 1 }
+        let cancelled = Task { await h.expirePrivateNotices(removeDelivered:true) }
+        await waitUntil { center.pending != nil }
+        cancelled.cancel()
+        let first = await cancelled.value
+        precondition(!first && h.worker == nil && h.request == nil)
+        precondition(h.cards.map(\.isPrivate) == [false] && h.notificationCards.keys.sorted() == [1])
+        precondition(center.removed.isEmpty && center.removedDelivered.isEmpty)
+        center.pending?(center.all.map(UNNotificationRequest.init))
+
+        center.respondToPending = true
+        let pendingMissing = Harness()
+        pendingMissing.center.respondToDelivered = true
+        async let inverse = pendingMissing.expirePrivateNotices(removeDelivered:true)
+        let second = await h.expirePrivateNotices(removeDelivered:true)
+        precondition(!second && center.reads == [1,2,1] && center.delivered != nil)
+        precondition(center.removed == ["fictional.private.1"] && center.removedDelivered.isEmpty)
+        center.delivered?(center.all.map { UNNotification(request:.init(identifier:$0)) })
+        let pendingWasKnown = await inverse
+        precondition(!pendingWasKnown && pendingMissing.center.reads == [0,1,1])
+        precondition(pendingMissing.center.removed.isEmpty && pendingMissing.center.removedDelivered == ["fictional.private.1"])
+
+        center.respondToDelivered = true
+        let complete = await h.expirePrivateNotices(removeDelivered:true)
+        precondition(complete && center.reads == [1,3,2])
+        precondition(center.removed == ["fictional.private.1", "fictional.private.1"])
+        precondition(center.removedDelivered == ["fictional.private.1"])
+        let suspended = await h.expirePrivateNotices(removeDelivered:false)
+        precondition(suspended && center.reads == [1,4,2])
+        precondition(center.removedDelivered == ["fictional.private.1"])
+    }
+}
+'''.replace("BRIDGES", bridges).replace("EXPIRY", block(model, "func expirePrivateNotices("))
         self.run_probe(compiler, program)
 
     def test_background_refresh_waits_for_countdown_and_cancels_its_owned_plan(self):

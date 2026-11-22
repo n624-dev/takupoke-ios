@@ -200,6 +200,121 @@ print("Verified actual stale/missing/review callback rejection and current callb
         stopping = application.split("private func stopPrivateWork(")[1].split("func recoverRetention()")[0]
         self.assertIn("recovery.cancel()", stopping)
 
+    def test_retention_waits_for_confirmed_notifications_before_advancing_or_resetting_marker(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the production retention lifecycle")
+        application = (ROOT / "Takupoke/ApplicationData.swift").read_text(encoding="utf-8")
+        prepare = block(application, "    func prepare(")
+        original_root = ('try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,\n'
+                         '                                                  appropriateFor: nil, create: true)')
+        self.assertEqual(prepare.count(original_root), 1)
+        program = r'''import Foundation
+@MainActor final class UIApplication {
+    static let shared = UIApplication()
+    var isProtectedDataAvailable = true
+}
+struct SchoolDataPeriod: Equatable {
+    let half: Int
+    static func current() -> Self { .init(half:2) }
+}
+@MainActor struct SchoolDataRetention {
+    let root: URL
+    enum Failure: Error, Equatable { case invalidMarker; case notificationCleanup(recoveringInvalidMarker:Bool) }
+    static let privatePaths = ["fictional-private"]
+    static var installed: SchoolDataPeriod? = .init(half:1)
+    static var corrupt = false, replaced = 0, quarantined = 0
+    func installedPeriod() throws -> SchoolDataPeriod? {
+        if Self.corrupt { throw Failure.invalidMarker }
+        return Self.installed
+    }
+    func replace(with period: SchoolDataPeriod) throws { Self.replaced += 1; Self.installed = period }
+    func quarantineInvalidMarker() throws { Self.corrupt = false; Self.quarantined += 1 }
+    func finishRecovery() throws {}
+}
+@MainActor final class FileRefreshDiagnostics {
+    static let shared = FileRefreshDiagnostics()
+    func clear() {}
+}
+@MainActor final class Unit {
+    var closed = 0, resumed = 0, resets = 0
+    func suspend() {}
+    func resume() {}
+    func allow() {}
+    func cancel() {}
+    func resumeAfterRetention() { resumed += 1 }
+    func closeForRetention() async { closed += 1 }
+    func stopForRetention() async { closed += 1 }
+    func resetForRetention() { resets += 1 }
+}
+@MainActor final class UpdateNotifications {
+    func suspendForUnavailableData() async {}
+    func resetForRetention() async {}
+}
+@MainActor final class Countdown {
+    var response = false
+    var includesDelivered = [Bool]()
+    func expirePrivateNotices(removeDelivered: Bool) async -> Bool {
+        includesDelivered.append(removeDelivered)
+        return response
+    }
+}
+@MainActor final class Application {
+    let testRoot: URL
+    init(root: URL) { testRoot = root }
+    let projections = Unit(), textMeasurements = Unit(), homeClock = Unit(), recovery = Unit()
+    let notifications = UpdateNotifications(), account = Unit(), materials = Unit(), specialSchedules = Unit()
+    let mappings = Unit(), links = Unit(), times = Unit(), countdown = Countdown()
+    var ready = true, preparing = false, retentionNotice = false, retentionFailure = false
+    var retentionFailureReason: SchoolDataRetention.Failure?
+    var loadedPeriod: SchoolDataPeriod? = .init(half:1)
+    func setFileMonitoring(_ enabled: Bool) { precondition(!enabled) }
+RECOVERY_ACTION
+PREPARE
+STOP
+}
+@main struct Probe {
+    @MainActor static func main() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString,isDirectory:true)
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
+        defer { try? FileManager.default.removeItem(at:root) }
+        try Data("fictional".utf8).write(to:root.appendingPathComponent("fictional-private"))
+        for corrupt in [false,true] {
+            SchoolDataRetention.installed = .init(half:1)
+            SchoolDataRetention.corrupt = corrupt
+            SchoolDataRetention.replaced = 0
+            SchoolDataRetention.quarantined = 0
+            let app = Application(root:root)
+            let blocked = await app.prepare(recoverInvalidMarker:corrupt)
+            precondition(!blocked && !app.ready && app.loadedPeriod == nil && !app.preparing)
+            precondition(app.retentionFailure && app.retentionFailureReason == .notificationCleanup(recoveringInvalidMarker:corrupt))
+            precondition(app.canRecoverRetention == corrupt)
+            precondition(SchoolDataRetention.corrupt == corrupt)
+            precondition(SchoolDataRetention.installed?.half == 1 && SchoolDataRetention.replaced == 0)
+            precondition(SchoolDataRetention.quarantined == 0 && app.materials.resumed == 0)
+            precondition(app.account.closed == 1 && app.materials.closed == 1 && app.specialSchedules.closed == 1)
+            precondition(app.links.resets == 1 && app.times.resets == 1 && app.countdown.includesDelivered == [true])
+            app.countdown.response = true
+            let recovered = await app.prepare(recoverInvalidMarker:app.canRecoverRetention)
+            precondition(recovered && app.ready && !app.retentionFailure && app.retentionFailureReason == nil)
+            precondition(app.loadedPeriod?.half == 2 && app.retentionNotice && !app.preparing)
+            precondition(SchoolDataRetention.replaced == 1 && SchoolDataRetention.quarantined == (corrupt ? 1 : 0))
+            precondition(app.countdown.includesDelivered == [true,true])
+        }
+    }
+}
+'''.replace("RECOVERY_ACTION", block(application, "    var canRecoverRetention:")).replace(
+    "PREPARE", prepare.replace(original_root, "testRoot")).replace(
+    "STOP", block(application, "    private func stopPrivateWork("))
+        with tempfile.TemporaryDirectory(prefix="retention-notice-retry-") as scratch:
+            directory = Path(scratch)
+            swift = directory / "Probe.swift"
+            swift.write_text(program, encoding="utf-8")
+            subprocess.run([compiler, "-swift-version", "5", "-parse-as-library",
+                            "-module-cache-path", str(directory / "modules"), str(swift),
+                            "-o", str(directory / "probe")], check=True, timeout=60)
+            subprocess.run([str(directory / "probe")], check=True, timeout=15)
+
 
 if __name__ == "__main__":
     unittest.main()

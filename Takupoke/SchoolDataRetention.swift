@@ -34,11 +34,13 @@ struct SchoolDataRetention {
 
     enum Failure: Error, Equatable {
         case invalidMarker, unreadableMarker, cleanup, markerWrite, recovery
+        case notificationCleanup(recoveringInvalidMarker: Bool)
         var message: String {
             switch self {
             case .invalidMarker: return "保存期間の管理情報が破損しています。学校データの利用を停止しています。"
             case .unreadableMarker: return "保存期間の管理情報を読み込めませんでした。端末のロック状態と保存先を確認して再試行してください。"
             case .cleanup: return "保存データを削除できませんでした。古いデータの利用を停止しています。"
+            case .notificationCleanup: return "期限切れの通知を確認できませんでした。学校データの利用を停止しています。再試行してください。"
             case .markerWrite: return "保存期間の管理情報を保存できませんでした。学校データの利用を停止しています。"
             case .recovery: return "保存期間の管理情報を隔離できませんでした。保存データは利用せず、復旧を中止しました。"
             }

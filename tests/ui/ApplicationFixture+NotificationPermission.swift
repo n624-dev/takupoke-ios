@@ -21,9 +21,14 @@ final class FixtureNotificationAuthorization: ObservableObject {
         return identifier
     }
 
-    func complete(_ identifier: UUID, authorization: Int, cancelled: Bool) {
+    func complete(_ identifier: UUID, authorization: Int?, cancelled: Bool) {
         guard request == identifier, !cancelled else {
             FixtureLaunchDiagnostics.record("notification-settings-cancelled")
+            return
+        }
+        guard let authorization else {
+            self.authorization = "unavailable"
+            FixtureLaunchDiagnostics.record("notification-settings-unavailable")
             return
         }
         self.authorization = String(authorization)

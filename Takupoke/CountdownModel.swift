@@ -316,20 +316,26 @@ final class CountdownModel: ObservableObject {
         catch { message = "通知の許可を確認できません。端末の通知設定を確認してください。" }
     }
 
-    func expirePrivateNotices(removeDelivered: Bool) async {
+    func expirePrivateNotices(removeDelivered: Bool) async -> Bool {
         cards.removeAll { $0.isPrivate }
         notificationCards = notificationCards.filter { !$0.value.isPrivate }
         // Cold launch can reach retention before the public/personal cards are
         // loaded. Cancel an old plan without reconciling against that empty list.
         revision = UUID()
         request = nil
+        worker?.cancel()
         await worker?.value
-        let pending = await center.pendingNotificationRequests().map(\.identifier).filter { $0.hasPrefix(CountdownNotice.privatePrefix) }
-        center.removePendingNotificationRequests(withIdentifiers: pending)
+        let queued = await ScheduleNotifications.readPending(from:center)
+        if let queued, !Task.isCancelled {
+            let pending = queued.map(\.identifier).filter { $0.hasPrefix(CountdownNotice.privatePrefix) }
+            center.removePendingNotificationRequests(withIdentifiers: pending)
+        }
         if removeDelivered {
-            let delivered = await center.deliveredNotifications().map(\.request.identifier).filter { $0.hasPrefix(CountdownNotice.privatePrefix) }
+            guard let listed = await ScheduleNotifications.readDelivered(from:center), !Task.isCancelled else { return false }
+            let delivered = listed.map(\.request.identifier).filter { $0.hasPrefix(CountdownNotice.privatePrefix) }
             center.removeDeliveredNotifications(withIdentifiers: delivered)
         }
+        return queued != nil && !Task.isCancelled
     }
 
     private func planNotifications(for cards: [CountdownCard], at now: Date,
@@ -380,10 +386,11 @@ final class CountdownModel: ObservableObject {
         let allowed: Bool
         if plan.cards.values.contains(where: { $0.preferences.notifications }) {
             let settings = await ScheduleNotifications.notificationSettings(from: center)
+            guard let settings else { return reportUnconfirmedNotices(plan) }
             allowed = [.authorized, .provisional, .ephemeral].contains(settings.authorizationStatus)
         } else { allowed = false }
-        let pending = await center.pendingNotificationRequests()
-        let delivered = await center.deliveredNotifications()
+        guard let pending = await ScheduleNotifications.readPending(from:center),
+              let delivered = await ScheduleNotifications.readDelivered(from:center) else { return reportUnconfirmedNotices(plan) }
         guard !Task.isCancelled, revision == plan.revision else { return }
         let desired = allowed ? Dictionary(uniqueKeysWithValues: plan.desired.map { ($0.identifier, $0) }) : [:]
         func holdsWhileLoading(_ existing: UNNotificationRequest) -> Bool {
@@ -431,7 +438,7 @@ final class CountdownModel: ObservableObject {
                 return
             }
         }
-        let current = await center.pendingNotificationRequests()
+        guard let current = await ScheduleNotifications.readPending(from:center) else { return reportUnconfirmedNotices(plan) }
         guard !Task.isCancelled, revision == plan.revision else { return }
         let desiredByTarget = Dictionary(grouping: plan.desired, by: \.target)
         var statuses: [CountdownNoticeTarget: String] = [:]
@@ -448,6 +455,13 @@ final class CountdownModel: ObservableObject {
                 statuses[target] = count == expected.count ? "\(count)件予約済み" : "\(count)件予約済み・\(expected.count - count)件を予約できません。"
             }
         }
+        if notificationStatuses != statuses { notificationStatuses = statuses }
+    }
+
+    private func reportUnconfirmedNotices(_ plan: NoticePlan) {
+        guard !Task.isCancelled, revision == plan.revision else { return }
+        let statuses = plan.cards.filter { $0.value.preferences.notifications }
+            .mapValues { _ in "通知の予約状況を確認できません。" }
         if notificationStatuses != statuses { notificationStatuses = statuses }
     }
 

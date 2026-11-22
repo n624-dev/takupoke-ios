@@ -378,12 +378,12 @@ enum SimulatorEventsYearFixture {
             restored = restored.replace(insertion, "", 1)
         self.assertEqual(restored, source)
         for marker in ("center.getNotificationSettings { settings in",
-                       "continuation.resume(returning: settings)",
+                       "callback(settings)",
                        "center.requestAuthorization(options: [.alert, .sound]) { granted, error in"):
             for changed in (source.replace(marker, ""), source + marker + "\n"):
                 with self.assertRaises(AssertionError):
                     app_test_project.instrument_notification_permission(changed)
-        self.assertIn("settings.authorizationStatus.rawValue", generated)
+        self.assertIn("settings?.authorizationStatus.rawValue", generated)
         self.assertIn("cancelled: Task.isCancelled", generated)
         for changed in (source.replace("func checkPermission()", "func otherPermission()", 1),
                         source + source):
@@ -392,6 +392,7 @@ enum SimulatorEventsYearFixture {
         probe = (ROOT / "tests/ui/ApplicationFixture+NotificationPermission.swift").read_text(encoding="utf-8")
         self.assertIn("ApplicationFixture+NotificationPermission.swift", manifest.FIXTURE_SOURCES)
         self.assertIn("UIApplication.shared.applicationState.rawValue", probe)
+        self.assertIn('"notification-settings-unavailable"', probe)
         recorder = (ROOT / "tests/ui/ApplicationFixture.swift").read_text(encoding="utf-8")
         self.assertIn('"notification-settings-not-requested"', recorder)
         self.assertIn('"notification-auth-request"', recorder)

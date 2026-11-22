@@ -35,7 +35,9 @@ final class ApplicationData: ObservableObject {
     @Published private(set) var retentionFailure = false
     @Published var retentionNotice = false
     @Published private(set) var retentionFailureReason: SchoolDataRetention.Failure?
-    var canRecoverRetention: Bool { retentionFailureReason == .invalidMarker }
+    var canRecoverRetention: Bool {
+        retentionFailureReason == .invalidMarker || retentionFailureReason == .notificationCleanup(recoveringInvalidMarker:true)
+    }
     var retentionFailureMessage: String { retentionFailureReason?.message ?? SchoolDataRetention.Failure.cleanup.message }
     private var preparing = false
     private var backgroundRefresh: Task<Void, Never>?
@@ -122,7 +124,12 @@ final class ApplicationData: ObservableObject {
                     FileManager.default.fileExists(atPath: base.appendingPathComponent($0).path)
                 }
                 ready = false
-                await stopPrivateWork(resetNotifications: true)
+                guard await stopPrivateWork(resetNotifications: true) else {
+                    retentionFailure = !Task.isCancelled
+                    retentionFailureReason = retentionFailure ? .notificationCleanup(recoveringInvalidMarker:recoverInvalidMarker) : nil
+                    loadedPeriod = nil
+                    return false
+                }
                 try Task.checkCancellation()
                 // Protected data can become unavailable while workers unwind.
                 guard UIApplication.shared.isProtectedDataAvailable else { return false }
@@ -152,18 +159,18 @@ final class ApplicationData: ObservableObject {
             retentionFailure = !Task.isCancelled
             retentionFailureReason = error as? SchoolDataRetention.Failure
             loadedPeriod = nil
-            await stopPrivateWork()
+            _ = await stopPrivateWork()
             return false
         }
     }
 
-    private func stopPrivateWork(resetNotifications: Bool = false) async {
+    private func stopPrivateWork(resetNotifications: Bool = false) async -> Bool {
         projections.suspend()
         textMeasurements.suspend()
         homeClock.suspend()
         recovery.cancel()
         setFileMonitoring(false)
-        await countdown.expirePrivateNotices(removeDelivered: resetNotifications)
+        let countdownCleared = await countdown.expirePrivateNotices(removeDelivered: resetNotifications)
         if resetNotifications {
             await notifications.resetForRetention()
         }
@@ -174,6 +181,7 @@ final class ApplicationData: ObservableObject {
         mappings.resetForRetention()
         links.resetForRetention()
         times.resetForRetention()
+        return countdownCleared
     }
 
     func recoverRetention() async {

@@ -228,7 +228,7 @@ NOTIFICATION_PERMISSION_BEGIN = (
     '        let fixturePermissionRead = FixtureNotificationAuthorization.shared.begin()\n')
 NOTIFICATION_PERMISSION_END = (
     '        FixtureNotificationAuthorization.shared.complete(fixturePermissionRead,\n'
-    '            authorization: settings.authorizationStatus.rawValue, cancelled: Task.isCancelled)\n')
+    '            authorization: settings?.authorizationStatus.rawValue, cancelled: Task.isCancelled)\n')
 
 NOTIFICATION_NATIVE_REQUEST = '            FixtureLaunchDiagnostics.record("notification-native-request")\n'
 NOTIFICATION_NATIVE_CALLBACK = '                FixtureLaunchDiagnostics.record("notification-native-callback")\n'
@@ -260,7 +260,7 @@ def instrument_notification_permission(text):
         '            return\n', NOTIFICATION_PERMISSION_SKIPPED + '            return\n'))
     text = permission + text[end:]
     request = '            center.getNotificationSettings { settings in\n'
-    callback = '                continuation.resume(returning: settings)\n'
+    callback = '                callback(settings)\n'
     assert text.count(request) == 1 and text.count(request.strip()) == 1, (
         'Native settings request insertion point missing')
     assert text.count(callback) == 1 and text.count(callback.strip()) == 1, (
