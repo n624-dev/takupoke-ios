@@ -261,17 +261,32 @@ enum SchoolDate {
         return calendar
     }
 }
+struct CountdownNoticeTarget: Hashable { let id: UUID; let key: String }
+struct FixtureCard {
+    enum Availability { case loading, available; var allowsNotification: Bool { self == .available } }
+    struct Reminder { let key: String; func fireDate(start: Date) -> Date? { start } }
+    struct Preferences { let notifications = true; let reminders = [Reminder]() }
+    struct Dates { let start = Date() }
+    let title = "架空通知"
+    let preferences = Preferences()
+    let availability = Availability.available
+    let dates: Dates? = Dates()
+}
 struct CountdownNotice {
+    static let prefix = "takupoke.countdown."
     let identifier: String
     let title = "架空通知"
     let fireAt: Date
     let targetID = UUID()
     let targetKey = "fictional"
+    var target: CountdownNoticeTarget { .init(id:targetID,key:targetKey) }
     let classScope: String? = nil
     init(_ id: String, fromNow interval: TimeInterval = 3600) {
         identifier = id
         fireAt = Date().addingTimeInterval(interval)
     }
+    static func holdsWhileLoading(identifier:String, storedScope:String?, currentScope:String,
+                                  activeReminderKeys:Set<String>, acceptsLegacy:Bool) -> Bool { false }
 }
 struct UNCalendarNotificationTrigger {
     let dateMatching: DateComponents
@@ -288,8 +303,15 @@ struct UNNotificationRequest {
     let content: UNMutableNotificationContent
     let trigger: UNCalendarNotificationTrigger
 }
+struct Delivered { let request: UNNotificationRequest }
+struct Settings {
+    enum Status { case authorized, provisional, ephemeral }
+    let authorizationStatus = Status.authorized
+}
 @MainActor final class Center {
     var requests = [String:UNNotificationRequest]()
+    var delivered = [Delivered]()
+    var canReadDelivered = true
     var called = [String](), removals = [String]()
     var deliveredRemovals = [String]()
     var failOnce = Set<String>(), failPermanently = Set<String>()
@@ -307,7 +329,10 @@ struct UNNotificationRequest {
     func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
         for id in identifiers { requests.removeValue(forKey:id); removals.append(id) }
     }
-    func removeDeliveredNotifications(withIdentifiers identifiers: [String]) { deliveredRemovals += identifiers }
+    func removeDeliveredNotifications(withIdentifiers identifiers: [String]) {
+        deliveredRemovals += identifiers
+        delivered.removeAll { identifiers.contains($0.request.identifier) }
+    }
     func add(_ request: UNNotificationRequest) async throws {
         let id = request.identifier
         called.append(id)
@@ -322,17 +347,32 @@ struct UNNotificationRequest {
     static func readPending(from center: Center) async -> [UNNotificationRequest]? {
         await center.pendingNotificationRequests()
     }
+    static func readDelivered(from center: Center) async -> [Delivered]? { center.canReadDelivered ? center.delivered : nil }
+    static func notificationSettings(from center: Center) async -> Settings? { Settings() }
 }
 @MainActor final class Harness {
-    struct NoticePlan { let revision: UUID; let desired: [CountdownNotice] }
+    struct NoticePlan {
+        let revision: UUID
+        let desired: [CountdownNotice]
+        var cards = [CountdownNoticeTarget:FixtureCard]()
+        let loadingClassScope: String? = nil
+        let activeReminderKeys = Set<String>()
+        let acceptsLegacyClassNotice = false
+    }
     var revision = UUID()
     var disabledTargets = Set<UUID>()
+    var notificationStatuses = [CountdownNoticeTarget:String]()
     let center = Center()
     func notificationEnabled(for id: UUID) -> Bool { !disabledTargets.contains(id) }
     func apply(_ desired: [CountdownNotice], allowed: Bool = true) async -> [String]? {
         let known = Array(center.requests.values)
         return await reserveNotifications(.init(revision:revision,desired:desired),allowed:allowed,startingWith:known)?.map(\.identifier).sorted()
     }
+    func reconcile(_ notice: CountdownNotice) async {
+        await reconcile(.init(revision:revision,desired:[notice],cards:[notice.target:FixtureCard()]))
+    }
+RECONCILE
+REPORT
 RESERVE
 MATCH
 REMOVE
@@ -420,10 +460,33 @@ REMOVE
             precondition(stopped.center.removals == removed && stopped.center.deliveredRemovals == removed)
             precondition((stopped.center.requests[acceptedLate.identifier] != nil) == reenabled)
         }
+
+        for (canReadPending, canReadDelivered) in [(true,true),(true,false),(false,true)] {
+            let history = Harness()
+            if !canReadPending { history.center.withheldRead = 1 }
+            history.center.canReadDelivered = canReadDelivered
+            let notice = CountdownNotice(CountdownNotice.prefix + "fictional.reservation")
+            let obsolete = CountdownNotice.prefix + "fictional.delivered"
+            history.center.delivered = [obsolete, "fictional.external"].map { id in
+                Delivered(request:.init(identifier:id,content:UNMutableNotificationContent(),
+                    trigger:.init(dateMatching:.init(),repeats:false)))
+            }
+            await history.reconcile(notice)
+            let expectedReservations = canReadPending ? [notice.identifier] : []
+            precondition(history.center.called == expectedReservations)
+            precondition(Set(history.center.requests.keys) == Set(expectedReservations))
+            let status = canReadPending ? "1件予約済み" : "通知の予約状況を確認できません。"
+            precondition(history.notificationStatuses[notice.target] == status)
+            let expectedHistoryRemoval = canReadPending && canReadDelivered ? [obsolete] : []
+            precondition(history.center.deliveredRemovals == expectedHistoryRemoval)
+            precondition(history.center.delivered.contains { $0.request.identifier == "fictional.external" })
+        }
     }
 }
 '''.replace("RESERVE", block(source, "private func reserveNotifications(")).replace(
-    "MATCH", block(source, "private func matches(")).replace("REMOVE", block(source, "private func removeNotices("))
+    "MATCH", block(source, "private func matches(")).replace("REMOVE", block(source, "private func removeNotices(")).replace(
+    "RECONCILE", block(source, "private func reconcile(_ plan:")).replace(
+    "REPORT", block(source, "private func reportUnconfirmedNotices("))
         self.run_probe(compiler, program)
 
     def test_explicit_countdown_authorization_starts_without_a_settings_read(self):

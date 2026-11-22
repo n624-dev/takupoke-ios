@@ -458,8 +458,8 @@ final class CountdownModel: ObservableObject {
         guard !Task.isCancelled, revision == plan.revision else { return }
         let pending = await ScheduleNotifications.readPending(from:center)
         guard let pending, !Task.isCancelled, revision == plan.revision else { return reportUnconfirmedNotices(plan) }
+        // Delivery history can be unavailable independently of verified reservations.
         let delivered = await ScheduleNotifications.readDelivered(from:center)
-        guard let delivered else { return reportUnconfirmedNotices(plan) }
         guard !Task.isCancelled, revision == plan.revision else { return }
         let desired = allowed ? Dictionary(uniqueKeysWithValues: plan.desired.map { ($0.identifier, $0) }) : [:]
         func holdsWhileLoading(_ existing: UNNotificationRequest) -> Bool {
@@ -476,7 +476,7 @@ final class CountdownModel: ObservableObject {
             return !matches(existing, proposed)
         }
         center.removePendingNotificationRequests(withIdentifiers: obsolete.map(\.identifier))
-        let outdated = delivered.map(\.request).filter { existing in
+        let outdated = delivered?.map(\.request).filter { existing in
             guard existing.identifier.hasPrefix(CountdownNotice.prefix) else { return false }
             if holdsWhileLoading(existing) { return false }
             guard let uuid = existing.content.userInfo["countdownID"] as? String, let id = UUID(uuidString: uuid),
@@ -489,7 +489,9 @@ final class CountdownModel: ObservableObject {
                         existing.content.userInfo["fireAt"] as? Double == reminder.fireDate(start: start)?.timeIntervalSince1970
                 }
         }
-        center.removeDeliveredNotifications(withIdentifiers: outdated.map(\.identifier))
+        if let outdated {
+            center.removeDeliveredNotifications(withIdentifiers: outdated.map(\.identifier))
+        }
         guard let current = await reserveNotifications(plan, allowed:allowed, startingWith:owned),
               !Task.isCancelled, revision == plan.revision else { return reportUnconfirmedNotices(plan) }
         let desiredByTarget = Dictionary(grouping: plan.desired, by: \.target)
