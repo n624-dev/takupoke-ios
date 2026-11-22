@@ -139,11 +139,17 @@ final class ScheduleNotificationTests: XCTestCase {
         try unknown.write(to:file)
         XCTAssertThrowsError(try ScheduleNotificationSnapshot.load(from:file))
         XCTAssertEqual(try Data(contentsOf:file),unknown)
+        let target = root.appendingPathComponent("valid-snapshot.json")
+        let valid = ScheduleNotificationSnapshot(changes:[change("fictional-current")])
+        try valid.save(to:target)
+        XCTAssertEqual(try ScheduleNotificationSnapshot.load(from:target),valid)
         let link = root.appendingPathComponent("link.json")
-        try FileManager.default.createSymbolicLink(at:link,withDestinationURL:file)
+        try FileManager.default.createSymbolicLink(at:link,withDestinationURL:target)
         XCTAssertThrowsError(try ScheduleNotificationSnapshot.load(from:link))
-        XCTAssertEqual(try Data(contentsOf:file),unknown)
-        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath:root.path).sorted(),["baseline.json","link.json"])
+        XCTAssertEqual(try ScheduleNotificationSnapshot.load(from:target),valid)
+        XCTAssertEqual(try FileManager.default.destinationOfSymbolicLink(atPath:link.path),target.path)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath:root.path).sorted(),
+                       ["baseline.json","link.json","valid-snapshot.json"])
     }
 
     func testFailedChangeSendCannotSurviveClassSwitchTargetExpiryOrChangedContent() throws {

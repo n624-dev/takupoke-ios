@@ -46,27 +46,36 @@ final class SpecialScheduleTests: XCTestCase {
 
     func testPrintedExamWeekdayMustAgreeInStrictCertifiedAndRecovery() async throws {
         let hash = String(repeating:"a",count:64)
-        for (label,day) in [("4月1日", "2026-04-01"), ("4月1日(水)", "2026-04-01"),
-                            ("4月1日水曜日", "2026-04-01"), ("1月5日（火曜）", "2027-01-05")] {
-            let page = flexibleExamPage(["3-IT"],days:[1],dateLabels:[label])
+        func separateWeekday(_ text: String) -> PDFPageLayout {
+            var page = flexibleExamPage(["3-IT"],days:[1])
+            for (index, character) in text.enumerated() {
+                page.glyphs.append(PDFGlyph(text:String(character),x:55+Double(index)*3,y:182,width:3,height:4,
+                    sourceLine:9000,sourceOrder:10000+index))
+            }
+            return page
+        }
+        let validLabels = [("4月1日", "2026-04-01"), ("4月1日(水)", "2026-04-01"),
+                           ("4月1日水曜日", "2026-04-01"), ("1月5日（火曜）", "2027-01-05")]
+        let valid = validLabels.map { (label,day) in
+            (flexibleExamPage(["3-IT"],days:[1],dateLabels:[label]),[day],label)
+        } + [(separateWeekday("（水）"),["2026-04-01"],"separate correct weekday"),
+             (flexibleExamPage(["3-IT"],days:[1,2,3],dateLabels:["4月1日(水)","4月2日(木)","4月3日(金)"]),
+              ["2026-04-01","2026-04-02","2026-04-03"],"three correct rows")]
+        for (page,days,label) in valid {
             let strict = try SpecialScheduleParser.parse([page],kind:.exam,digest:hash,name:"fictional.pdf")
             let certified = try SpecialScheduleParser.parseCertified([page],kind:.exam,digest:hash,name:"fictional.pdf")
             let document = try RecoveryDocumentBuilder.build([page],kind:.exam,hash:hash)
             let run = try await RecoveryEngine.run(document,os:"test",osMajor:26,foreground:true,providers:[],rule:{_ in nil},check:{})
             let result = try XCTUnwrap(run.result)
-            XCTAssertEqual(strict.coveredDates,[day],label)
-            XCTAssertEqual(certified.coveredDates,[day],label)
-            XCTAssertEqual(document.days,[day],label)
+            XCTAssertEqual(strict.coveredDates,days,label)
+            XCTAssertEqual(certified.coveredDates,days,label)
+            XCTAssertEqual(document.days,days,label)
             XCTAssertTrue(RecoveryValidator.validate(document,result).canAdopt,label)
-        }
-        var separated = flexibleExamPage(["3-IT"],days:[1])
-        for (index, character) in "（火）".enumerated() {
-            separated.glyphs.append(PDFGlyph(text:String(character),x:55+Double(index)*3,y:182,width:3,height:4,
-                sourceLine:9000,sourceOrder:10000+index))
         }
         let contradictions = ["4月1日(火)", "4月1日火曜日", "1月5日（水曜）"].map {
             flexibleExamPage(["3-IT"],days:[1],dateLabels:[$0])
-        } + [separated]
+        } + [separateWeekday("（火）"),
+             flexibleExamPage(["3-IT"],days:[1,2,3],dateLabels:["4月1日(水)","4月2日(水)","4月3日(金)"])]
         for page in contradictions {
             XCTAssertThrowsError(try SpecialScheduleParser.parse([page],kind:.exam,digest:hash,name:"fictional.pdf")) {
                 XCTAssertEqual(($0 as? PDFParseError)?.stage,.calendarDates)
