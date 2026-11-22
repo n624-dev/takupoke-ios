@@ -11,6 +11,7 @@ final class MappingModel: ObservableObject {
     @Published private(set) var failed = false
 
     private var store: MappingStore?
+    private var damagedFile: MappingStore.DamagedFile?
     private var checkedAtStartup = false
     private var generation = UUID()
     private let directory: URL?
@@ -39,18 +40,26 @@ final class MappingModel: ObservableObject {
             try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: directory.path)
             #endif
             let file = directory.appendingPathComponent("mappings.sqlite")
-            let store = try MappingStore(url: file)
-            #if os(iOS)
-            try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: file.path)
-            #endif
+            try? MappingStore.DamagedFile.discardAbandonedStage(in:directory)
             do {
-                current = try store.load()
-                failed = false; message = nil
-            } catch is MappingStore.InvalidPayload {
+                let store = try MappingStore(url: file)
+                #if os(iOS)
+                try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: file.path)
+                #endif
+                do {
+                    current = try store.load()
+                    failed = false; message = nil
+                } catch is MappingStore.InvalidPayload {
+                    current = nil; failed = true
+                    message = MappingError.storage.localizedDescription
+                }
+                self.store = store
+            } catch {
+                guard let damage = try? MappingStore.DamagedFile(url:file,error:error) else { throw error }
+                damagedFile = damage
                 current = nil; failed = true
-                message = MappingError.storage.localizedDescription
+                message = "保存した名称データを読み込めません。学校アカウントで取得し直してください。"
             }
-            self.store = store
             ready = true
         } catch {
             failed = true
@@ -104,11 +113,26 @@ final class MappingModel: ObservableObject {
     }
 
     func download(token: String, revision: String, network: URLSession) async throws {
-        guard let store else { throw MappingError.storage }
+        let damagedFile = self.damagedFile
+        guard store != nil || damagedFile != nil else { throw MappingError.storage }
+        let operation = generation
         let package = try await MappingService(baseURL: baseURL, network: network)
             .download(accessToken: token, expectedRevision: revision)
         try Task.checkCancellation()
-        do { try store.save(package) } catch { throw MappingError.storage }
+        guard operation == generation, damagedFile == nil || self.damagedFile != nil else { throw CancellationError() }
+        do {
+            if let damagedFile {
+                try damagedFile.install(package)
+                self.damagedFile = nil
+                ready = false
+                loadIfNeeded()
+                guard store != nil, current == package else { throw MappingError.storage }
+            } else {
+                guard let store else { throw MappingError.storage }
+                try store.save(package)
+            }
+        } catch is CancellationError { throw CancellationError() }
+        catch { throw MappingError.storage }
         current = package
         updateAvailable = false
         failed = false
@@ -123,7 +147,7 @@ final class MappingModel: ObservableObject {
 
     func resetForRetention() {
         generation = UUID()
-        current = nil; store = nil; ready = false; busy = false
+        current = nil; store = nil; damagedFile = nil; ready = false; busy = false
         checkedAtStartup = false; updateAvailable = false; message = nil; failed = false
     }
 

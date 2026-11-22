@@ -308,4 +308,102 @@ final class MappingPackageTests: XCTestCase {
         XCTAssertFalse(unavailable.ready); XCTAssertTrue(unavailable.failed)
     }
 
+    @MainActor
+    func testUnreadableMappingDatabaseCanBeReacquiredWithoutDiscardingItsOriginalBytes() async throws {
+        let manager = FileManager.default
+        let root = manager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try manager.createDirectory(at:root,withIntermediateDirectories:true)
+        defer { try? manager.removeItem(at:root); RepairProtocol.payload = Data() }
+        let file = root.appendingPathComponent("mappings.sqlite")
+        let interruptedStage = root.appendingPathComponent("MappingReplacement")
+        let original = Data("fictional damaged SQLite header".utf8)
+        try original.write(to:file)
+        try manager.createDirectory(at:interruptedStage,withIntermediateDirectories:false)
+        try Data("fictional unfinished staging".utf8).write(to:interruptedStage.appendingPathComponent(file.lastPathComponent))
+        func backups() throws -> [URL] {
+            try manager.contentsOfDirectory(at:root,includingPropertiesForKeys:nil)
+                .filter { $0.lastPathComponent.hasPrefix("mappings-damaged-") }
+        }
+        func originalIsActive() throws {
+            XCTAssertEqual(try Data(contentsOf:file),original)
+            XCTAssertTrue(try backups().isEmpty)
+            XCTAssertFalse(manager.fileExists(atPath:interruptedStage.path))
+        }
+
+        RepairProtocol.payload = try package()
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [RepairProtocol.self]
+        let network = URLSession(configuration:configuration)
+        defer { network.invalidateAndCancel() }
+        for (host, token) in [("failure.example.test","synthetic-token"), ("invalid.example.test","synthetic-token"),
+                              ("mapping.example.test","invalid-token")] {
+            let model = MappingModel(directory:root,baseURL:URL(string:"https://\(host)")!)
+            model.loadIfNeeded()
+            XCTAssertTrue(model.ready && model.failed)
+            XCTAssertNil(model.current)
+            do {
+                try await model.download(token:token,revision:revision,network:network)
+                XCTFail("Failed network, authorization or validation must preserve the damaged original")
+            } catch {}
+            try originalIsActive()
+        }
+        let model = MappingModel(directory:root,baseURL:URL(string:"https://mapping.example.test")!)
+        let available = try await model.revision(using:network)
+        XCTAssertEqual(available,.available(revision))
+        try originalIsActive()
+        try await model.download(token:"synthetic-token",revision:revision,network:network)
+        let expected = try XCTUnwrap(model.current)
+        XCTAssertTrue(model.ready && !model.failed)
+        XCTAssertEqual(expected.revision,revision)
+        XCTAssertEqual(try backups().map { try Data(contentsOf:$0) },[original])
+        XCTAssertFalse(manager.fileExists(atPath:interruptedStage.path))
+        let reopened = MappingModel(directory:root)
+        reopened.loadIfNeeded()
+        XCTAssertTrue(reopened.ready && !reopened.failed)
+        XCTAssertEqual(reopened.current,expected)
+    }
+
+    func testMappingDatabaseReplacementProtectsChangedFilesAndLeavesSidecarsAlone() throws {
+        let manager = FileManager.default
+        let root = manager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try manager.createDirectory(at:root,withIntermediateDirectories:true)
+        defer { try? manager.removeItem(at:root) }
+        let file = root.appendingPathComponent("mappings.sqlite")
+        let bytes = Data("fictional unreadable database".utf8)
+        try bytes.write(to:file)
+        var rejection: Error?
+        XCTAssertThrowsError(try MappingStore(url:file)) { rejection = $0 }
+        let sqliteError = try XCTUnwrap(rejection)
+        let backup = try XCTUnwrap(try MappingStore.DamagedFile(url:file,error:sqliteError))
+        let replacement = try MappingPackage.decode(package(),version:"v1",revision:revision,archiveETag:"\"zip\"")
+        XCTAssertNil(try MappingStore.DamagedFile(url:file,error:CocoaError(.fileReadNoPermission)))
+        let link = root.appendingPathComponent("mapping-symlink.sqlite")
+        try manager.createSymbolicLink(at:link,withDestinationURL:file)
+        XCTAssertNil(try MappingStore.DamagedFile(url:link,error:sqliteError))
+        try manager.removeItem(at:link)
+
+        let sidecar = root.appendingPathComponent("mappings.sqlite-wal")
+        let sidecarBytes = Data("fictional unfinished SQLite sidecar".utf8)
+        try sidecarBytes.write(to:sidecar)
+        XCTAssertNil(try MappingStore.DamagedFile(url:file,error:sqliteError))
+        XCTAssertThrowsError(try backup.install(replacement))
+        XCTAssertEqual(try Data(contentsOf:sidecar),sidecarBytes)
+        XCTAssertEqual(try Data(contentsOf:file),bytes)
+        try manager.removeItem(at:sidecar)
+
+        let newer = Data("fictional different file while acquisition completed".utf8)
+        try newer.write(to:file)
+        XCTAssertThrowsError(try backup.install(replacement))
+        XCTAssertEqual(try Data(contentsOf:file),newer)
+        XCTAssertEqual(try manager.contentsOfDirectory(atPath:root.path),[file.lastPathComponent])
+
+        let currentDamage = try XCTUnwrap(try MappingStore.DamagedFile(url:file,error:sqliteError))
+        try currentDamage.install(replacement)
+        XCTAssertEqual(try MappingStore(url:file).load(),replacement)
+        let backups = try manager.contentsOfDirectory(at:root,includingPropertiesForKeys:nil)
+            .filter { $0.lastPathComponent.hasPrefix("mappings-damaged-") }
+        XCTAssertEqual(try backups.map { try Data(contentsOf:$0) },[newer])
+        XCTAssertFalse(manager.fileExists(atPath:root.appendingPathComponent("MappingReplacement").path))
+    }
+
 }

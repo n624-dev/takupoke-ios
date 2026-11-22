@@ -1,7 +1,7 @@
 # 名称対応・パッケージ・認証取得
 
 対応関係・宣言名・実行方法のSHA-256：
-`b63d0510874c673ea564a23cc1509c096def7f738767e0eeb95212fe8ae2286f`
+`4b3faed941ce2b0a3483185f7ce6f0e9f2b0adea48938e27aa6d56c3c4082958`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -34,6 +34,8 @@ bash tools/test-parsing.sh
 - `testChangeShortSubjectUsesOnlyOneAliasFromSameClass`
 - `testScopedInternationalRuleSurvivesGenericExactAliasBeforeLessonReplacement`
 - `testCorruptMappingPayloadAllowsRepairAndFailuresPreserveItsBytes`
+- `testUnreadableMappingDatabaseCanBeReacquiredWithoutDiscardingItsOriginalBytes`
+- `testMappingDatabaseReplacementProtectsChangedFilesAndLeavesSidecarsAlone`
 
 ## [tests/MappingRulesTests.swift](../../tests/MappingRulesTests.swift)
 
